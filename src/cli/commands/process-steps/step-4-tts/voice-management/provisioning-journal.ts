@@ -1,40 +1,24 @@
-import { createHash, randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdir, readdir, readFile, rename } from 'node:fs/promises'
-import { dirname, join, resolve } from 'node:path'
+import { readdir, readFile } from 'node:fs/promises'
+import { join, resolve } from 'node:path'
 import type {
   VoiceIssuedResource,
   VoiceProvisioningAttempt,
   VoiceProvisioningState,
+  RunCrashSafeProvisioningInput,
 } from '~/types'
-import { CLIUsageError, ValidationError, extractErrorMetadata } from '~/utils/error-handler'
+import { UsageError, InfraError, ValidationError, extractErrorMetadata } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { withProcessLock } from '~/utils/process-lock'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { classifyTtsProviderAdmissionError } from '../script-to-audio/tts-request-evidence'
 import { validateVoiceProvisioningAttempt } from './voice-management-contracts'
-
-export type VoiceProvisioningProviderResponse = {
-  state: VoiceProvisioningState
-  issuedResources: VoiceIssuedResource[]
-  evidenceHash: string
-}
-
-export type RunCrashSafeProvisioningInput = {
-  journalRoot: string
-  attempt: VoiceProvisioningAttempt
-  mutate: (attempt: VoiceProvisioningAttempt) => Promise<VoiceProvisioningProviderResponse>
-  faultInjection?: {
-    afterPrepared?: (() => void | Promise<void>) | undefined
-    afterRequestSent?: (() => void | Promise<void>) | undefined
-    afterResponseRecorded?: (() => void | Promise<void>) | undefined
-  } | undefined
-}
+import { atomicWriteJson } from '~/utils/filesystem'
 
 const SAFE_KEY = /^[a-z0-9][a-z0-9_-]{0,127}$/
 
 const assertSafeKey = (value: string, label: string): void => {
-  if (!SAFE_KEY.test(value)) throw CLIUsageError(`${label} must be a safe lowercase key.`)
+  if (!SAFE_KEY.test(value)) throw UsageError(`${label} must be a safe lowercase key.`)
 }
 
 const attemptPath = (root: string, registrationDraftId: string, attemptId: string): string => {
@@ -43,15 +27,8 @@ const attemptPath = (root: string, registrationDraftId: string, attemptId: strin
   return join(resolve(root), registrationDraftId, attemptId, 'voice-provisioning-attempt.json')
 }
 
-const atomicWriteJson = async (path: string, value: unknown): Promise<void> => {
-  await mkdir(dirname(path), { recursive: true })
-  const temporary = `${path}.tmp-${randomUUID()}`
-  await Bun.write(temporary, `${JSON.stringify(value, null, 2)}\n`)
-  await rename(temporary, path)
-}
-
 const loadAttemptPath = async (path: string): Promise<VoiceProvisioningAttempt> => {
-  if (!existsSync(path)) throw CLIUsageError('Voice provisioning attempt journal was not found.')
+  if (!existsSync(path)) throw UsageError('Voice provisioning attempt journal was not found.')
   let attempt: VoiceProvisioningAttempt
   try {
     attempt = JSON.parse(await readFile(path, 'utf8')) as VoiceProvisioningAttempt
@@ -62,24 +39,7 @@ const loadAttemptPath = async (path: string): Promise<VoiceProvisioningAttempt> 
 }
 
 const lockName = (root: string, registrationDraftId: string): string =>
-  `voice-provision-${createHash('sha256').update(`${resolve(root)}\0${registrationDraftId}`).digest('hex').slice(0, 32)}`
-
-export const createVoiceProvisioningAttempt = async (
-  journalRoot: string,
-  attempt: VoiceProvisioningAttempt
-): Promise<VoiceProvisioningAttempt> => {
-  validateVoiceProvisioningAttempt(attempt)
-  const path = attemptPath(journalRoot, attempt.registrationDraftId, attempt.attemptId)
-  return await withProcessLock(lockName(journalRoot, attempt.registrationDraftId), async () => {
-    if (existsSync(path)) {
-      const existing = await loadAttemptPath(path)
-      if (canonicalTtsJson(existing) !== canonicalTtsJson(attempt)) throw ValidationError('Provisioning attempt identity already has different bytes.', { stage: 'voice:provisioning' })
-      return existing
-    }
-    await atomicWriteJson(path, attempt)
-    return attempt
-  })
-}
+  `voice-provision-${new Bun.CryptoHasher('sha256').update(`${resolve(root)}\0${registrationDraftId}`).digest('hex').slice(0, 32)}`
 
 export const loadVoiceProvisioningAttempt = async (
   journalRoot: string,
@@ -109,16 +69,16 @@ const assertAppendPreservingUpdate = (
   next: VoiceProvisioningAttempt
 ): void => {
   for (const field of ['schemaVersion', 'attemptId', 'registrationDraftId', 'operation', 'accountScopeHash', 'lockLeaseId', 'requestFingerprint', 'idempotencyKey'] as const) {
-    if (canonicalTtsJson(current[field] ?? null) !== canonicalTtsJson(next[field] ?? null)) throw CLIUsageError(`Provisioning update cannot change ${field}.`)
+    if (canonicalTtsJson(current[field] ?? null) !== canonicalTtsJson(next[field] ?? null)) throw UsageError(`Provisioning update cannot change ${field}.`)
   }
-  if (canonicalTtsJson(current.protectedRequestEvidence) !== canonicalTtsJson(next.protectedRequestEvidence)) throw CLIUsageError('Provisioning update cannot change protected request evidence.')
-  if (canonicalTtsJson(current.reconciliation ?? null) !== canonicalTtsJson(next.reconciliation ?? null)) throw CLIUsageError('Provisioning update cannot change reconciliation strategy or evidence.')
-  if (next.compareAndSwapVersion !== current.compareAndSwapVersion + 1) throw CLIUsageError('Provisioning update has a stale compare-and-swap version.')
+  if (canonicalTtsJson(current.protectedRequestEvidence) !== canonicalTtsJson(next.protectedRequestEvidence)) throw UsageError('Provisioning update cannot change protected request evidence.')
+  if (canonicalTtsJson(current.reconciliation ?? null) !== canonicalTtsJson(next.reconciliation ?? null)) throw UsageError('Provisioning update cannot change reconciliation strategy or evidence.')
+  if (next.compareAndSwapVersion !== current.compareAndSwapVersion + 1) throw UsageError('Provisioning update has a stale compare-and-swap version.')
   if (next.transitions.length < current.transitions.length || canonicalTtsJson(next.transitions.slice(0, current.transitions.length)) !== canonicalTtsJson(current.transitions)) {
-    throw CLIUsageError('Provisioning transitions must be append-preserving.')
+    throw UsageError('Provisioning transitions must be append-preserving.')
   }
   if (next.issuedResources.length < current.issuedResources.length || canonicalTtsJson(next.issuedResources.slice(0, current.issuedResources.length)) !== canonicalTtsJson(current.issuedResources)) {
-    throw CLIUsageError('Provisioning issued resources must be append-preserving.')
+    throw UsageError('Provisioning issued resources must be append-preserving.')
   }
   if (current.outcome !== undefined && canonicalTtsJson(current.outcome) !== canonicalTtsJson(next.outcome)) {
     const appendedPhases = next.transitions.slice(current.transitions.length).map(entry => entry.phase)
@@ -126,33 +86,9 @@ const assertAppendPreservingUpdate = (
       && next.outcome !== undefined
       && next.outcome.state !== 'reconciliation-required'
       && appendedPhases.includes('reconciled')
-    if (!isReconciliation) throw CLIUsageError('Provisioning outcome is immutable except through an explicit reconciliation transition.')
+    if (!isReconciliation) throw UsageError('Provisioning outcome is immutable except through an explicit reconciliation transition.')
   }
 }
-
-const updateAttemptUnlocked = async (
-  path: string,
-  expectedVersion: number,
-  update: (current: VoiceProvisioningAttempt) => VoiceProvisioningAttempt
-): Promise<VoiceProvisioningAttempt> => {
-  const current = await loadAttemptPath(path)
-  if (current.compareAndSwapVersion !== expectedVersion) throw CLIUsageError(`Provisioning attempt changed; expected version ${expectedVersion}, found ${current.compareAndSwapVersion}.`)
-  const next = update(current)
-  assertAppendPreservingUpdate(current, next)
-  validateVoiceProvisioningAttempt(next)
-  await atomicWriteJson(path, next)
-  return next
-}
-
-export const updateVoiceProvisioningAttempt = async (
-  journalRoot: string,
-  registrationDraftId: string,
-  attemptId: string,
-  expectedVersion: number,
-  update: (current: VoiceProvisioningAttempt) => VoiceProvisioningAttempt
-): Promise<VoiceProvisioningAttempt> => await withProcessLock(lockName(journalRoot, registrationDraftId), async () =>
-  await updateAttemptUnlocked(attemptPath(journalRoot, registrationDraftId, attemptId), expectedVersion, update)
-)
 
 const transition = (
   attempt: VoiceProvisioningAttempt,
@@ -222,12 +158,12 @@ const assertSameProvisioningIntent = (
 ): void => {
   for (const field of ['schemaVersion', 'attemptId', 'registrationDraftId', 'operation', 'accountScopeHash', 'requestFingerprint', 'idempotencyKey'] as const) {
     if (canonicalTtsJson(current[field] ?? null) !== canonicalTtsJson(proposed[field] ?? null)) {
-      throw CLIUsageError(`Existing provisioning attempt does not match proposed ${field}.`)
+      throw UsageError(`Existing provisioning attempt does not match proposed ${field}.`)
     }
   }
   if (canonicalTtsJson(current.protectedRequestEvidence) !== canonicalTtsJson(proposed.protectedRequestEvidence)
     || canonicalTtsJson(current.reconciliation ?? null) !== canonicalTtsJson(proposed.reconciliation ?? null)) {
-    throw CLIUsageError('Existing provisioning attempt does not match the proposed protected or reconciliation evidence.')
+    throw UsageError('Existing provisioning attempt does not match the proposed protected or reconciliation evidence.')
   }
 }
 
@@ -242,7 +178,7 @@ export const reconcileVoiceProvisioningAttempt = async (input: {
   const path = attemptPath(input.journalRoot, input.registrationDraftId, input.attemptId)
   let current = await loadAttemptPath(path)
   if (current.outcome?.state === 'ready') return current
-  if (current.outcome?.state !== 'reconciliation-required') throw CLIUsageError('Only a reconciliation-required provisioning attempt can be reconciled.')
+  if (current.outcome?.state !== 'reconciliation-required') throw UsageError('Only a reconciliation-required provisioning attempt can be reconciled.')
   const existingKeys = new Set(current.issuedResources.map(resource => canonicalTtsJson(resource.providerVoice)))
   const issuedResources = [...current.issuedResources]
   for (const resource of input.issuedResources ?? []) {
@@ -272,9 +208,9 @@ export const requireVoiceProvisioningReconciliation = async (
   const current = await loadAttemptPath(path)
   if (current.outcome !== undefined) return current
   if (!current.transitions.some(entry => entry.phase === 'request-sent')) {
-    throw CLIUsageError('Prepared provisioning has not reached the provider and can be safely resumed through the original management action.')
+    throw UsageError('Prepared provisioning has not reached the provider and can be safely resumed through the original management action.')
   }
-  return await markAmbiguous(path, current, new Error('Provisioning stopped after request dispatch without a durable terminal outcome.'))
+  return await markAmbiguous(path, current, InfraError('Provisioning stopped after request dispatch without a durable terminal outcome.', { stage: 'tts:voice-provisioning', retryable: false }))
 })
 
 export const runCrashSafeVoiceProvisioning = async (
@@ -290,13 +226,11 @@ export const runCrashSafeVoiceProvisioning = async (
       if (attempt.outcome?.state === 'failed') return attempt
       assertSameProvisioningIntent(attempt, initial)
       if (attempt.transitions.length === 1 && attempt.transitions[0]?.phase === 'prepared' && attempt.outcome === undefined) {
-        // The durable journal proves the provider mutation was never admitted, so resuming this exact
-        // attempt is safe. Preserve the original lease and prepared transition.
       } else if (attempt.outcome === undefined && attempt.transitions.some(entry => entry.phase === 'request-sent')) {
-        await markAmbiguous(path, attempt, new Error('Provisioning stopped after request dispatch without a durable terminal outcome.'))
-        throw CLIUsageError('Voice provisioning may have reached the provider; automatic redispatch is blocked pending reconciliation. Pass --reconcile to safely complete the durable attempt without recreating the voice.')
+        await markAmbiguous(path, attempt, InfraError('Provisioning stopped after request dispatch without a durable terminal outcome.', { stage: 'tts:voice-provisioning', retryable: false }))
+        throw UsageError('Voice provisioning may have reached the provider; automatic redispatch is blocked pending reconciliation. Pass --reconcile to safely complete the durable attempt without recreating the voice.')
       } else {
-        throw CLIUsageError('A provisioning attempt already exists for this identity; automatic redispatch is blocked pending reconciliation. Pass --reconcile to safely complete the durable attempt without recreating the voice.')
+        throw UsageError('A provisioning attempt already exists for this identity; automatic redispatch is blocked pending reconciliation. Pass --reconcile to safely complete the durable attempt without recreating the voice.')
       }
     } else {
       await atomicWriteJson(path, initial)

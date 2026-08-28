@@ -1,12 +1,8 @@
 # voice delete
 
-Explicitly delete an eligible project-owned managed voice and tombstone its registration.
+Delete a project-owned remote provider voice and record the registration as deleted.
 
 See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
-
-## Outline
-
-- [delete](#delete)
 
 ## delete
 
@@ -14,16 +10,18 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice delete <registration-id> [flags]
 ```
 
-`delete` is an explicit provider-mutating action for eligibility-checked, project-owned ElevenLabs, Inworld, Fish, Cartesia, and Speechify resources and requires `--confirm-voice-id` to equal the exact resource ID. A resource cannot be deleted while another current model-qualified registration shares its provider/resource identity. Cartesia, Fish, and Speechify delete only project-owned account/personal resources. AutoShow first appends a local `deletion-pending` generation, then records a terminal deleted tombstone after the provider confirms deletion. If a Fish provisioning journal is still pending, `delete` completes an unambiguous journal first. Ambiguous journals refuse until you pass `--reconcile`.
+`delete` removes the remote provider voice. It only works for a ready voice this project owns. `--confirm-voice-id` is required and must match that exact provider voice ID. If another current registration still uses the same provider voice, [retire](./08-retire.md) or revoke that registration first.
+
+If a previous Fish create is still in progress, `delete` finishes it first when the outcome is unambiguous. If that completion is ambiguous, pass `--reconcile`.
 
 ### Options
 
-| Flag                       | Description                                                     |
-| -------------------------- | --------------------------------------------------------------- |
-| `--generation-id <sha256>` | Optional unless more than one generation could match            |
-| `--confirm-voice-id <id>`  | Exact provider resource ID confirmation                         |
-| `--reconcile`              | Complete an ambiguous Fish provisioning journal without recreating the voice |
-| `--price`                  | Validate and estimate without provider calls or artifact writes |
+| Flag | Description |
+| --- | --- |
+| `--generation-id <sha256>` | Optional unless more than one generation could match |
+| `--confirm-voice-id <id>` | Required exact provider voice ID confirmation |
+| `--reconcile` | Complete an ambiguous Fish provisioning journal without recreating the voice |
+| `--price` | Validate and estimate without provider calls or artifact writes |
 
 ### Examples
 

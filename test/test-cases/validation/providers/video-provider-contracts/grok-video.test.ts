@@ -38,7 +38,7 @@ describe('video provider REST contracts', () => {
     expect(pollAttempts).toBe(2)
   })
 
-  test('Grok sends generation media, storage options, and extracts poll metadata cost', async () => {
+  test('Grok sends generation media and extracts poll metadata cost without server-side storage', async () => {
     process.env['XAI_API_KEY'] = 'xai-key'
     const calls = installMockFetch((call) => {
       if (call.method === 'POST') return jsonResponse({ request_id: 'grok-123' })
@@ -51,8 +51,7 @@ describe('video provider REST contracts', () => {
           video: {
             url: 'https://cdn.example.com/grok.mp4',
             duration: 6,
-            respect_moderation: true,
-            file_output: { file_id: 'file-123', filename: 'clip.mp4' }
+            respect_moderation: true
           }
         })
       }
@@ -68,9 +67,7 @@ describe('video provider REST contracts', () => {
         inputImage: imagePath,
         durationSeconds: 6,
         aspectRatio: '9:16',
-        resolution: '720p',
-        storageFilename: 'clip.mp4',
-        storageExpiresAfter: 3600
+        resolution: '720p'
       })
 
       expect(result.metadata).toMatchObject({
@@ -91,16 +88,12 @@ describe('video provider REST contracts', () => {
       url: `${XAI_DEFAULT_BASE_URL}/videos/generations`,
       method: 'POST'
     })
-    expect(calls[0]?.bodyJson).toMatchObject({
+    expect(calls[0]?.bodyJson).toEqual({
       model: 'grok-imagine-video',
       prompt: 'animate subject',
       duration: 6,
       aspect_ratio: '9:16',
       resolution: '720p',
-      storage_options: {
-        filename: 'clip.mp4',
-        expires_after: 3600
-      },
       image: {
         url: `data:image/png;base64,${Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')}`
       }

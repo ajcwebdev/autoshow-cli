@@ -1,0 +1,24 @@
+import type { ProviderVoiceRef, TtsProvider } from '~/types'
+
+export type AdvancedProviderHttpRequest = <T = unknown>(input: {
+  method: 'GET' | 'POST' | 'DELETE'
+  path: string
+  query?: Readonly<Record<string, string | undefined>> | undefined
+  headers?: Readonly<Record<string, string>> | undefined
+  body?: unknown | undefined
+  signal?: AbortSignal | undefined
+}) => Promise<T>
+
+export type AdvancedVoiceProviderIdentity = {
+  provider: TtsProvider
+  label: string
+  labelWithArticle: string
+  accountScopeHash: string
+}
+
+export type AdvancedVoiceDeletionPolicy = {
+  ownedResourceLabel: string
+  namespaceCheck?: 'ownership' | 'account-scope' | undefined
+}
+
+export type RemoteVoiceResourceRef = Extract<ProviderVoiceRef, { kind: 'remote-resource' }>

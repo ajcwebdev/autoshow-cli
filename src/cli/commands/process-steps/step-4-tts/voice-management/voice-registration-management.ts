@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import type {
   CharacterVoiceBrief,
@@ -13,15 +12,19 @@ import type {
   VoiceConsentRecord,
   VoiceRegistration,
   VoiceRetentionPolicy,
+  MistralSavedReferencePlan,
+  MistralVoiceManagementRequest,
+  ProtectedVoiceAssetStore,
+  VoiceRegistrationReadiness,
 } from '~/types'
-import type { ProtectedVoiceAssetStore } from '../voice-assets/protected-voice-asset-store'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { assertProtectedStoreOutputDisjoint } from '../voice-assets/protected-output-boundary'
 import { hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
-import { appendVoiceRegistration, atomicWriteJson, hashCharacterVoiceBrief, loadCurrentVoiceRegistrationIndex, loadVoiceRegistrationCatalog, recordVoiceProvisioningOutcome, resolveCharacterVoiceRegistryPaths, writeCreateOnlyJson } from './character-voice-registry'
+import { appendVoiceRegistration, hashCharacterVoiceBrief, loadCurrentVoiceRegistrationIndex, loadVoiceRegistrationCatalog, recordVoiceProvisioningOutcome, resolveCharacterVoiceRegistryPaths, writeCreateOnlyJson } from './character-voice-registry'
 import { assertVoiceConsentAllows, computeVoiceAuditionId, validateVoiceAuditionManifest, validateVoiceConsentRecord, validateVoiceRegistration } from './voice-management-contracts'
-import { createMistralSavedVoice, findMistralSavedVoiceBySlug, inspectMistralSavedVoice, mistralAccountScopeHash, type MistralVoiceManagementRequest } from './mistral-voice-management'
-import { loadVoiceProvisioningAttempt, reconcileVoiceProvisioningAttempt, requireVoiceProvisioningReconciliation, runCrashSafeVoiceProvisioning } from './provisioning-journal'
+import { createMistralSavedVoice, inspectMistralSavedVoice, mistralAccountScopeHash } from './mistral-voice-management'
+import { runCrashSafeVoiceProvisioning } from './provisioning-journal'
+import { atomicWriteJson } from '~/utils/filesystem'
 
 export const DEFAULT_VOICE_RETENTION_POLICY: VoiceRetentionPolicy = {
   protectedAssets: 'delete-on-revocation',
@@ -66,11 +69,11 @@ export const buildReadyVoiceRegistrationDraft = (input: {
   approval?: VoiceRegistration['approval'] | undefined
   approvedAuditionId?: string | undefined
 }): VoiceRegistration => {
-  if (input.providerVoice.provider !== input.provider) throw CLIUsageError('Registration voice provider does not match its target provider.')
+  if (input.providerVoice.provider !== input.provider) throw UsageError('Registration voice provider does not match its target provider.')
   if (input.consent) {
     validateVoiceConsentRecord(input.consent)
-    if (input.consent.subjectKey !== input.subjectKey) throw CLIUsageError('Consent subject does not match the voice registration subject.')
-    if (!input.consentRecordRef?.startsWith('protected-consent:v1:')) throw CLIUsageError('Consent-bound registration requires its protected consent-record locator.')
+    if (input.consent.subjectKey !== input.subjectKey) throw UsageError('Consent subject does not match the voice registration subject.')
+    if (!input.consentRecordRef?.startsWith('protected-consent:v1:')) throw UsageError('Consent-bound registration requires its protected consent-record locator.')
     assertVoiceConsentAllows(input.consent, 'new-synthesis')
   }
   const createdAt = input.createdAt ?? new Date().toISOString()
@@ -179,9 +182,9 @@ export const importExistingVoiceRegistration = async (input: {
   capabilityFixtureHash: string
   settings?: TypedProviderSynthesisSettings | undefined
 }): Promise<VoiceRegistration> => {
-  if (!input.resourceId.trim()) throw CLIUsageError('Voice import requires an existing provider resource ID.')
+  if (!input.resourceId.trim()) throw UsageError('Voice import requires an existing provider resource ID.')
   const namespace = input.origin === 'provider-stock' ? 'provider' as const : 'account' as const
-  if (namespace === 'account' && !input.accountScopeHash) throw CLIUsageError('Account voice import requires a non-secret account scope hash.')
+  if (namespace === 'account' && !input.accountScopeHash) throw UsageError('Account voice import requires a non-secret account scope hash.')
   const now = new Date().toISOString()
   const providerVoice: ProviderVoiceRef = {
     kind: 'remote-resource',
@@ -263,15 +266,7 @@ export const importExistingVoiceRegistration = async (input: {
   return registration
 }
 
-export type MistralSavedReferencePlan = {
-  registrationId: string
-  attemptId: string
-  slug: string
-  source: ProtectedAssetRef
-  estimatedCostCents: 0
-}
-
-export const planMistralSavedReferenceRegistration = async (input: {
+const planMistralSavedReferenceRegistration = async (input: {
   protectedStore: ProtectedVoiceAssetStore
   subjectKey: string
   profileKey: string
@@ -313,11 +308,11 @@ export const provisionMistralSavedReferenceRegistration = async (input: {
   faultInjection?: Parameters<typeof runCrashSafeVoiceProvisioning>[0]['faultInjection'] | undefined
 }): Promise<VoiceRegistration> => {
   validateVoiceConsentRecord(input.consent)
-  if (input.consent.subjectKey !== input.subjectKey) throw CLIUsageError('Mistral reference consent subject does not match the registration subject.')
-  if (!input.consentRecordRef?.startsWith('protected-consent:v1:')) throw CLIUsageError('Mistral saved reference requires the protected consent-record locator used by later audition and synthesis gates.')
+  if (input.consent.subjectKey !== input.subjectKey) throw UsageError('Mistral reference consent subject does not match the registration subject.')
+  if (!input.consentRecordRef?.startsWith('protected-consent:v1:')) throw UsageError('Mistral saved reference requires the protected consent-record locator used by later audition and synthesis gates.')
   assertVoiceConsentAllows(input.consent, 'upload')
   assertVoiceConsentAllows(input.consent, 'new-synthesis')
-  if (!input.protectedStore.root || !input.protectedStore.ingestManaged || !input.protectedStore.storeBytes) throw CLIUsageError('Mistral saved reference requires a managed registered protected store.')
+  if (!input.protectedStore.root || !input.protectedStore.ingestManaged || !input.protectedStore.storeBytes) throw UsageError('Mistral saved reference requires a managed registered protected store.')
   await assertProtectedStoreOutputDisjoint(input.charactersRoot, input.protectedStore.root)
   const plan = await planMistralSavedReferenceRegistration(input)
   const briefHash = hashCharacterVoiceBrief(input.brief)
@@ -334,11 +329,11 @@ export const provisionMistralSavedReferenceRegistration = async (input: {
     && registration.consentRecordRef === input.consentRecordRef
     && registration.capabilityFixtureHash === input.capabilityFixtureHash
   if (existingLeaf?.provisioning.state === 'ready') {
-    if (!identityMatches(existingLeaf) || existingLeaf.sanitizedProviderMetadata['sourceAssetSha256'] !== plan.source.sha256) throw CLIUsageError('Existing Mistral saved-reference registration identity does not match the requested source and policy.')
+    if (!identityMatches(existingLeaf) || existingLeaf.sanitizedProviderMetadata['sourceAssetSha256'] !== plan.source.sha256) throw UsageError('Existing Mistral saved-reference registration identity does not match the requested source and policy.')
     return existingLeaf
   }
   if (existingLeaf && (!identityMatches(existingLeaf) || existingLeaf.provisioning.state !== 'pending' || existingLeaf.provisioning.operationId !== plan.attemptId)) {
-    throw CLIUsageError('Existing Mistral saved-reference registration identity has incompatible state; inspect or reconcile it instead of creating again.')
+    throw UsageError('Existing Mistral saved-reference registration identity has incompatible state; inspect or reconcile it instead of creating again.')
   }
   const createdAt = new Date().toISOString()
   const materialized = await input.protectedStore.ingestManaged({ sourcePath: input.sourcePath, authorizationRef: input.authorizationRef }, {
@@ -401,7 +396,7 @@ export const provisionMistralSavedReferenceRegistration = async (input: {
       registrationDraftId: plan.registrationId,
       operation: 'save-reference',
       accountScopeHash,
-      lockLeaseId: `lease_${randomUUID().replace(/-/g, '')}`,
+      lockLeaseId: `lease_${crypto.randomUUID().replace(/-/g, '')}`,
       requestFingerprint: hashCanonicalTtsValue({ provider: 'mistral', operation: 'save-reference', name: input.voiceName, slug: plan.slug, sourceSha256: plan.source.sha256, languages: input.languages ?? [] }),
       protectedRequestEvidence: materialized.protectedAsset,
       reconciliation: { strategy: 'provider-search', providerHandle: plan.slug, protectedLookupEvidence: lookupEvidence },
@@ -428,10 +423,10 @@ export const provisionMistralSavedReferenceRegistration = async (input: {
     },
     faultInjection: input.faultInjection
   })
-  if (attempt.outcome?.state !== 'ready') throw CLIUsageError('Mistral saved reference did not reach ready state.')
+  if (attempt.outcome?.state !== 'ready') throw UsageError('Mistral saved reference did not reach ready state.')
   const outcomeVoice = attempt.outcome.providerVoice
-  if (outcomeVoice.kind !== 'remote-resource') throw CLIUsageError('Ready Mistral saved reference is not a remote resource.')
-  if (!attempt.issuedResources.some(entry => entry.providerVoice.kind === 'remote-resource' && entry.providerVoice.resourceId === outcomeVoice.resourceId)) throw CLIUsageError('Ready Mistral resource is missing from the provisioning journal.')
+  if (outcomeVoice.kind !== 'remote-resource') throw UsageError('Ready Mistral saved reference is not a remote resource.')
+  if (!attempt.issuedResources.some(entry => entry.providerVoice.kind === 'remote-resource' && entry.providerVoice.resourceId === outcomeVoice.resourceId)) throw UsageError('Ready Mistral resource is missing from the provisioning journal.')
   return await recordVoiceProvisioningOutcome({
     charactersRoot: input.charactersRoot,
     registrationId: plan.registrationId,
@@ -439,73 +434,6 @@ export const provisionMistralSavedReferenceRegistration = async (input: {
     provisioning: attempt.outcome,
     sanitizedProviderMetadata: { provisioningAttemptId: plan.attemptId, sourceAssetSha256: materialized.protectedAsset.sha256 }
   })
-}
-
-export const reconcileMistralSavedReferenceRegistration = async (input: {
-  charactersRoot: string
-  registration: VoiceRegistration
-  apiKey: string
-  baseURL?: string | undefined
-  request?: MistralVoiceManagementRequest | undefined
-}): Promise<VoiceRegistration> => {
-  const registration = input.registration
-  if (registration.provider !== 'mistral') throw CLIUsageError('Only Mistral saved-reference reconciliation is implemented in Phase 1.')
-  const attemptId = typeof registration.sanitizedProviderMetadata['provisioningAttemptId'] === 'string'
-    ? registration.sanitizedProviderMetadata['provisioningAttemptId']
-    : registration.provisioning.state === 'pending'
-      ? registration.provisioning.operationId
-      : undefined
-  if (!attemptId) throw CLIUsageError('Mistral registration does not identify its provisioning attempt.')
-  const journalRoot = `${input.charactersRoot}/voice-provisioning`
-  let attempt = await loadVoiceProvisioningAttempt(journalRoot, registration.registrationId, attemptId)
-  if (mistralAccountScopeHash(input.apiKey) !== attempt.accountScopeHash) throw CLIUsageError('Mistral reconciliation credentials do not match the provisioning account scope.')
-  if (attempt.outcome === undefined) attempt = await requireVoiceProvisioningReconciliation(journalRoot, registration.registrationId, attemptId)
-  if (attempt.outcome?.state === 'reconciliation-required') {
-    let issued = attempt.issuedResources.find(resource => resource.providerVoice.provider === 'mistral')
-    if (!issued) {
-      const slug = attempt.reconciliation?.strategy === 'provider-search' ? attempt.reconciliation.providerHandle : undefined
-      if (!slug) throw CLIUsageError('Mistral provisioning journal has no safe reconciliation lookup handle.')
-      const observed = await findMistralSavedVoiceBySlug({ apiKey: input.apiKey, slug, baseURL: input.baseURL, request: input.request })
-      if (observed) issued = { providerVoice: observed.providerVoice, observedAt: observed.observedAt, sanitizedResponseHash: observed.sanitizedResponseHash }
-    }
-    if (issued) {
-      attempt = await reconcileVoiceProvisioningAttempt({
-        journalRoot,
-        registrationDraftId: registration.registrationId,
-        attemptId,
-        outcome: { state: 'ready', providerVoice: issued.providerVoice },
-        issuedResources: [issued],
-        evidenceHash: issued.sanitizedResponseHash
-      })
-    } else {
-      const evidenceHash = hashCanonicalTtsValue({ provider: 'mistral', attemptId, result: 'not-found' })
-      attempt = await reconcileVoiceProvisioningAttempt({
-        journalRoot,
-        registrationDraftId: registration.registrationId,
-        attemptId,
-        outcome: { state: 'failed', code: 'reconciliation-not-found', message: 'No Mistral saved voice matched the durable provisioning handle.' },
-        evidenceHash
-      })
-    }
-  }
-  if (!attempt.outcome) throw CLIUsageError('Mistral reconciliation did not produce a durable outcome.')
-  return await recordVoiceProvisioningOutcome({
-    charactersRoot: input.charactersRoot,
-    registrationId: registration.registrationId,
-    generationId: registration.generationId,
-    provisioning: attempt.outcome,
-    sanitizedProviderMetadata: { provisioningAttemptId: attemptId, reconciliationState: attempt.outcome.state, sourceAssetSha256: attempt.protectedRequestEvidence.sha256 }
-  })
-}
-
-export type VoiceRegistrationReadiness = {
-  state: 'ready' | 'blocked' | 'external-action-required'
-  registrationId: string
-  generationId: string
-  checkedAt: string
-  networkAccess: 'none' | 'read-only'
-  evidenceHash: string
-  reason?: string | undefined
 }
 
 export const inspectVoiceRegistrationReadiness = async (input: {
@@ -533,8 +461,8 @@ export const inspectVoiceRegistrationReadiness = async (input: {
     const reason = `Read-only readiness inspection is not implemented for account-namespaced ${registration.provider} voices in Phase 1.`
     return { state: 'external-action-required', registrationId: registration.registrationId, generationId: registration.generationId, checkedAt, networkAccess: 'none', evidenceHash: hashCanonicalTtsValue({ registrationId: registration.registrationId, generationId: registration.generationId, result: 'adapter-unavailable' }), reason }
   }
-  if (!input.apiKey) throw CLIUsageError('Mistral account-resource readiness requires an API key.')
+  if (!input.apiKey) throw UsageError('Mistral account-resource readiness requires an API key.')
   const observed = await inspectMistralSavedVoice({ apiKey: input.apiKey, voiceId: voice.resourceId, baseURL: input.baseURL, request: input.request })
-  if (observed.accountScopeHash !== voice.accountScopeHash) throw CLIUsageError('Mistral readiness credentials do not match the registered account scope.')
+  if (observed.accountScopeHash !== voice.accountScopeHash) throw UsageError('Mistral readiness credentials do not match the registered account scope.')
   return { state: 'ready', registrationId: registration.registrationId, generationId: registration.generationId, checkedAt: observed.observedAt, networkAccess: 'read-only', evidenceHash: observed.sanitizedResponseHash }
 }

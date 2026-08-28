@@ -1,5 +1,5 @@
 import type { FalTtsModel } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 
 export const FAL_TTS_SERIALIZER_VERSION = 'fal.tts.v1'
 
@@ -7,7 +7,7 @@ export const FAL_SEED_SPEECH_MODEL = 'fal-ai/bytedance/seed-speech/tts/v2' as co
 export const FAL_MAYA_MODEL = 'fal-ai/maya' as const
 export const FAL_ASYNC_TTS_PRO_MODEL = 'async/tts-pro/v1.0' as const
 
-export const FAL_SEED_SPEECH_VOICES = [
+const FAL_SEED_SPEECH_VOICES = [
   'vivi_mixed_en_zh_ja_es_id',
   'mindy_en_es_id_pt_zh',
   'stokie_en',
@@ -51,9 +51,9 @@ export const FAL_SEED_SPEECH_VOICES = [
   'monkey_king_zh',
 ] as const
 
-export const FAL_SEED_DEFAULT_VOICE = 'stokie_en'
-export const FAL_ASYNC_DEFAULT_VOICE = 'Jennie'
-export const FAL_MAYA_DEFAULT_VOICE_PROMPT = 'Realistic narrator voice in the 30s with american accent. Normal pitch, warm timbre, conversational pacing, neutral tone delivery at med intensity.'
+const FAL_SEED_DEFAULT_VOICE = 'stokie_en'
+const FAL_ASYNC_DEFAULT_VOICE = 'Jennie'
+const FAL_MAYA_DEFAULT_VOICE_PROMPT = 'Realistic narrator voice in the 30s with american accent. Normal pitch, warm timbre, conversational pacing, neutral tone delivery at med intensity.'
 
 export const resolveFalTtsDefaultVoice = (model: FalTtsModel): string => {
   switch (model) {
@@ -78,7 +78,7 @@ export const buildFalTtsRequestBody = (input: Readonly<{
   switch (input.model) {
     case FAL_SEED_SPEECH_MODEL: {
       if (!(FAL_SEED_SPEECH_VOICES as readonly string[]).includes(input.voice)) {
-        throw CLIUsageError(`Invalid fal.ai Seed Speech voice "${input.voice}". Expected one of: ${FAL_SEED_SPEECH_VOICES.join(', ')}.`)
+        throw UsageError(`Invalid fal.ai Seed Speech voice "${input.voice}". Expected one of: ${FAL_SEED_SPEECH_VOICES.join(', ')}.`)
       }
       return {
         text: input.text,
@@ -104,7 +104,7 @@ export const buildFalTtsRequestBody = (input: Readonly<{
 }
 
 export const extractFalTtsAudioUrl = (output: unknown): string => {
-  if (!output || typeof output !== 'object') throw new Error('fal.ai TTS returned an invalid response.')
+  if (!output || typeof output !== 'object') throw ValidationError('fal.ai TTS returned an invalid response.', { stage: 'tts:fal', retryable: false })
   const record = output as Record<string, unknown>
   const audio = record['audio']
   if (typeof audio === 'string' && audio.trim()) return audio
@@ -112,5 +112,5 @@ export const extractFalTtsAudioUrl = (output: unknown): string => {
     const url = (audio as Record<string, unknown>)['url']
     if (typeof url === 'string' && url.trim()) return url
   }
-  throw new Error('fal.ai TTS response did not contain an audio URL.')
+  throw ValidationError('fal.ai TTS response did not contain an audio URL.', { stage: 'tts:fal', retryable: false })
 }

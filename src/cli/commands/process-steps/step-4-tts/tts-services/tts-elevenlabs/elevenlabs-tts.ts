@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureElevenLabsTtsSetup = ensureApiKeySetup('ELEVENLABS_API_KEY', 'tts:elevenlabs', 'ElevenLabs TTS')
+export const ensureElevenLabsTtsSetup = async (): Promise<void> => { resolveCredential('elevenlabs', 'require', { stage: 'tts:elevenlabs', description: 'ElevenLabs TTS' }) }

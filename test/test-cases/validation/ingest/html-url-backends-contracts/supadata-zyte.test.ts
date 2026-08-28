@@ -6,6 +6,7 @@ import {
   runSupadataUrl,
   runZyteUrl
 } from './shared'
+import { extractErrorMetadata } from '~/utils/error-handler'
 
 test('Supadata URL backend sends scrape request and normalizes article metadata', async () => {
   process.env['SUPADATA_API_KEY'] = 'supadata-test-key'
@@ -57,7 +58,7 @@ test('Supadata URL backend rejects missing API key', async () => {
 
   await expect(
     runSupadataUrl('https://article.test/no-key', 'https://article.test/no-key')
-  ).rejects.toThrow('SUPADATA_API_KEY is required')
+  ).rejects.toThrow('SUPADATA_API_KEY environment variable is required for --url-provider supadata')
 })
 
 test('Supadata URL backend reports provider HTTP errors with message/details', async () => {
@@ -72,6 +73,29 @@ test('Supadata URL backend reports provider HTTP errors with message/details', a
   await expect(
     runSupadataUrl('https://article.test/error', 'https://article.test/error')
   ).rejects.toThrow('Supadata scrape failed (401 Unauthorized): Unauthorized')
+})
+
+test('Supadata URL backend marks plan-limit 429 non-retryable but keeps burst 429 retryable', async () => {
+  process.env['SUPADATA_API_KEY'] = 'supadata-test-key'
+
+  installMockFetch(() => new Response(JSON.stringify({
+    error: 'limit-exceeded',
+    message: 'Limit Exceeded'
+  }), { status: 429, statusText: 'Too Many Requests' }))
+
+  const planLimitError = await runSupadataUrl('https://article.test/limit', 'https://article.test/limit')
+    .then(() => undefined, (error: unknown) => error)
+  expect(extractErrorMetadata(planLimitError)['retryable']).toBe(false)
+  expect((planLimitError as Error).message).toContain('Limit Exceeded')
+
+  installMockFetch(() => new Response(JSON.stringify({
+    error: 'rate-limited',
+    message: 'Too many requests, slow down'
+  }), { status: 429, statusText: 'Too Many Requests' }))
+
+  const burstError = await runSupadataUrl('https://article.test/burst', 'https://article.test/burst')
+    .then(() => undefined, (error: unknown) => error)
+  expect(extractErrorMetadata(burstError)['retryable']).toBe(true)
 })
 
 test('Zyte URL backend posts article extract request and normalizes article metadata', async () => {

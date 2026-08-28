@@ -1,13 +1,11 @@
 import type * as v from 'valibot'
 import type { ComicPanelSelection, DraftScenesCommandOptions, GenerateImagesCommandOptions } from '~/types'
 
-
 export type ImageGenerationSize =
   | (typeof import('../image-workflow/image-services-image-types').IMAGE_GENERATION_SIZES)[number]
   | `${number}x${number}`
 
 export type ImageGenerationQuality = (typeof import('../image-workflow/image-services-image-types').IMAGE_GENERATION_QUALITIES)[number]
-
 
 export type GeneratedImageResponse = {
   mode: 'edit' | 'generate'
@@ -32,14 +30,9 @@ export type ImageRunStats = {
   totalDurationMs: number
 }
 
-// Comic resolves text models against the central LLM registry (llm-config.json) at
-// runtime, so the static type is a model id string rather than a comic-local union.
 export type LlmModel = string
 
-// Comic resolves image models against the central image registry (image-config.json)
-// at runtime, so the static type is a model id string rather than a comic-local union.
 export type ImageGenerationModel = string
-
 
 export type PromptsConfig = v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/schemas/schemas').PromptsConfigSchema>
 

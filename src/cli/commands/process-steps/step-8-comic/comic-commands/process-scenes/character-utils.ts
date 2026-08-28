@@ -1,19 +1,18 @@
-import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { join, relative, resolve, sep } from 'node:path'
 import * as v from 'valibot'
-import type { CharacterCatalogEntry, CharacterKey, CharacterSketchView } from '~/types'
+import type { CharacterCatalogEntry, CharacterKey, CharacterSketchManifest, CharacterSketchRegistration, CharacterSketchView } from '~/types'
 import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { loadCharacterCatalog } from '../../comic-utils/character-reference-config'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 
 export const CHARACTER_SKETCH_VIEWS = ['front', 'three-quarter', 'profile'] as const
-export const CHARACTER_SKETCH_MANIFEST_FILENAME = 'character-sketches.json'
+const CHARACTER_SKETCH_MANIFEST_FILENAME = 'character-sketches.json'
 
-const CharacterSketchRegistrationSchema = v.strictObject({
+export const CharacterSketchRegistrationSchema = v.strictObject({
   characterKey: v.pipe(v.string(), v.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)),
   generationId: v.pipe(v.string(), v.minLength(1)),
-  origin: v.picklist(['generated', 'revision', 'legacy-import']),
+  origin: v.picklist(['generated', 'revision']),
   sourceImage: v.string(),
   outlineSheet: v.string(),
   sourceSha256: v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/)),
@@ -23,16 +22,13 @@ const CharacterSketchRegistrationSchema = v.strictObject({
   priorGenerationId: v.optional(v.string()),
 })
 
-const CharacterSketchManifestSchema = v.strictObject({
+export const CharacterSketchManifestSchema = v.strictObject({
   schemaVersion: v.literal(1),
   sketches: v.array(CharacterSketchRegistrationSchema),
 })
 
-export type CharacterSketchRegistration = v.InferOutput<typeof CharacterSketchRegistrationSchema>
-export type CharacterSketchManifest = v.InferOutput<typeof CharacterSketchManifestSchema>
-
 export const checksumFile = async (path: string): Promise<string> => {
-  const hash = createHash('sha256')
+  const hash = new Bun.CryptoHasher('sha256')
   hash.update(Buffer.from(await Bun.file(path).arrayBuffer()))
   return hash.digest('hex')
 }
@@ -54,7 +50,7 @@ const assertSafeManifestPath = (root: string, path: string, label: string): void
   const absolute = resolve(root, path)
   const rel = relative(resolve(root), absolute)
   if (!rel || rel === '..' || rel.startsWith(`..${sep}`)) {
-    throw new Error(`${label} has unsafe path "${path}"`)
+    throw ValidationError(`${label} has unsafe path "${path}"`, { stage: 'comic:characters', retryable: false })
   }
 }
 
@@ -66,8 +62,8 @@ export const readCharacterSketchManifest = async (charactersRoot = getCharacters
     const keys = new Set<string>()
     const generationIds = new Set<string>()
     for (const sketch of manifest.sketches) {
-      if (keys.has(sketch.characterKey)) throw new Error(`duplicate character key "${sketch.characterKey}"`)
-      if (generationIds.has(sketch.generationId)) throw new Error(`duplicate generation ID "${sketch.generationId}"`)
+      if (keys.has(sketch.characterKey)) throw ValidationError(`duplicate character key "${sketch.characterKey}"`, { stage: 'comic:characters', retryable: false })
+      if (generationIds.has(sketch.generationId)) throw ValidationError(`duplicate generation ID "${sketch.generationId}"`, { stage: 'comic:characters', retryable: false })
       assertSafeManifestPath(charactersRoot, sketch.sourceImage, 'source image')
       assertSafeManifestPath(charactersRoot, sketch.outlineSheet, 'outline sheet')
       keys.add(sketch.characterKey)
@@ -77,12 +73,15 @@ export const readCharacterSketchManifest = async (charactersRoot = getCharacters
   } catch (error) {
     throw ValidationError(
       `Invalid character sketch manifest ${path}: ${error instanceof Error ? error.message : String(error)}`,
-      { stage: 'comic:character-sketch' }
+      {
+        stage: 'comic:character-sketch',
+        ...(error instanceof Error ? { cause: error } : {})
+      }
     )
   }
 }
 
-export const readRegisteredCharacterSketch = async (
+const readRegisteredCharacterSketch = async (
   key: CharacterKey,
   character?: CharacterCatalogEntry,
 ): Promise<CharacterSketchRegistration | null> => {

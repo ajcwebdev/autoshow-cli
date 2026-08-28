@@ -1,6 +1,6 @@
 import type { Step2Metadata, TranscriptionResult } from '~/types'
 import { TOGETHER_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleSingleSpeakerStt } from '../openai-compatible-single-speaker'
 
 export const buildTogetherSttFormFields = (
@@ -30,7 +30,7 @@ export const runTogetherStt = async (
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const { model, segmentOffsetMinutes = 0, segmentNumber, totalSegments, audioDurationSeconds } = options
-  const apiKey = requireApiKey('TOGETHER_API_KEY', 'stt:together', 'Together transcription')
+  const apiKey = resolveCredential('together', 'require', { stage: 'stt:together', description: 'Together transcription' })
 
   return await runOpenAICompatibleSingleSpeakerStt(audioPath, outputDir, {
     service: 'together',

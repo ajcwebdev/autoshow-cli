@@ -1,5 +1,6 @@
-import { afterEach, beforeEach } from 'bun:test'
-import type { EnvSnapshot, MockFetchCall, MockFetchHandler } from '~/types'
+import { afterEach, beforeEach, expect } from 'bun:test'
+import type { EnvSnapshot, MockFetchCall, MockFetchHandler, ProviderHttpErrorExpectation } from '~/types'
+import { extractErrorMetadata, isAppError } from '~/utils/error-handler'
 import { createTempDirTracker } from './temp-dirs'
 
 export const jsonResponse = (body: unknown, init?: ResponseInit): Response =>
@@ -83,7 +84,7 @@ export const installMockFetch = (handler: MockFetchHandler): MockFetchCall[] => 
 export const snapshotEnv = (keys: readonly string[]): EnvSnapshot =>
   Object.fromEntries(keys.map((key) => [key, process.env[key]]))
 
-export const clearEnv = (keys: readonly string[]): void => {
+const clearEnv = (keys: readonly string[]): void => {
   for (const key of keys) {
     delete process.env[key]
   }
@@ -96,6 +97,32 @@ export const restoreEnv = (snapshot: EnvSnapshot): void => {
     } else {
       process.env[key] = value
     }
+  }
+}
+
+export const withEnv = async <T>(
+  env: Readonly<Record<string, string | undefined>>,
+  run: () => Promise<T> | T
+): Promise<T> => {
+  const previous = snapshotEnv(Object.keys(env))
+  restoreEnv(env)
+  try {
+    return await run()
+  } finally {
+    restoreEnv(previous)
+  }
+}
+
+export const withEnvSync = <T>(
+  env: Readonly<Record<string, string | undefined>>,
+  run: () => T
+): T => {
+  const previous = snapshotEnv(Object.keys(env))
+  restoreEnv(env)
+  try {
+    return run()
+  } finally {
+    restoreEnv(previous)
   }
 }
 
@@ -138,3 +165,61 @@ export const setupContractSuiteLifecycle = (
 
   return tempDirs
 }
+
+export const expectProviderHttpError = async (
+  fn: () => Promise<unknown>,
+  expectation: ProviderHttpErrorExpectation = {}
+): Promise<Error> => {
+  let caught: unknown
+  let threw = false
+  try {
+    await fn()
+  } catch (error) {
+    threw = true
+    caught = error
+  }
+
+  if (!threw) {
+    expect.unreachable('Expected the provider call to reject, but it resolved')
+  }
+
+  const error = caught instanceof Error ? caught : new Error(String(caught))
+  const metadata = extractErrorMetadata(error)
+
+  if (expectation.instanceOf) expect(error).toBeInstanceOf(expectation.instanceOf)
+  if (expectation.name !== undefined) expect(error.name).toBe(expectation.name)
+  if (expectation.status !== undefined) expect(metadata['status']).toBe(expectation.status)
+  if (expectation.stage !== undefined) expect(metadata['stage']).toBe(expectation.stage)
+  if (expectation.retryable !== undefined) expect(metadata['retryable']).toBe(expectation.retryable)
+  if (expectation.kind !== undefined) {
+    expect(isAppError(error)).toBe(true)
+    expect(isAppError(error) ? error.kind : undefined).toBe(expectation.kind)
+  }
+  if (expectation.headers) {
+    const headers = (error as { headers?: Headers }).headers
+    for (const [key, value] of Object.entries(expectation.headers)) {
+      expect(headers?.get(key)).toBe(value)
+    }
+  }
+  for (const fragment of typeof expectation.messageContains === 'string'
+    ? [expectation.messageContains]
+    : expectation.messageContains ?? []) {
+    expect(error.message).toContain(fragment)
+  }
+
+  return error
+}
+
+export const unexpectedFetch = (label = 'test'): { fetchImpl: typeof fetch, attempts: () => number } => {
+  let attempts = 0
+  const fetchImpl = ((input: Parameters<typeof fetch>[0]): Promise<Response> => {
+    attempts += 1
+    return Promise.reject(new Error(`${label} attempted an unexpected network fetch: ${String(input)}`))
+  }) as typeof fetch
+  return { fetchImpl, attempts: () => attempts }
+}
+
+export const unexpectedCall = (label: string): (...args: unknown[]) => never =>
+  () => {
+    throw new Error(`Unexpected call to ${label}`)
+  }

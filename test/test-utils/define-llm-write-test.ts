@@ -1,19 +1,13 @@
 import { expect } from "bun:test"
 import {
-  runCommand,
   fileExists,
-  findLatestDirectory,
-  STABLE_EXAMPLE_AUDIO_URL,
-  STABLE_EXAMPLE_AUDIO_TITLE,
 } from "./test-helpers"
 import { E2E_TEST_TIMEOUT_MS } from './budget'
 import { readCanonicalRecord } from './manifest-helpers'
 import {
-  classifyLiveProviderAvailabilityFailure,
   defineBudgetedLiveServiceTest,
-  formatCommandFailureDiagnostics,
   requireConfiguredEnvVar,
-  runCommandWithTransientRetry,
+  runCommandAndExpectOutputDir,
   withOutputLifecycle
 } from './service-test-kit'
 import {
@@ -32,8 +26,8 @@ export const defineLLMWriteTest = ({
   llmService,
   requiresEnvVar,
   promptProfiles,
-  inputPath = STABLE_EXAMPLE_AUDIO_URL,
-  inputTitle = STABLE_EXAMPLE_AUDIO_TITLE,
+  inputPath = 'input/examples/tts/0-tts-short.txt',
+  inputTitle = '0-tts-short',
 }: {
   models: readonly string[]
   provider: string
@@ -59,26 +53,17 @@ export const defineLLMWriteTest = ({
       }
 
       const transientPredicate = TRANSIENT_RETRY_PREDICATES[llmService]
-      const result = transientPredicate
-        ? await runCommandWithTransientRetry(commandArgs, {
-            isTransient: transientPredicate,
-            providerLabel: `transient ${llmService} availability error for ${model}`,
-            persistedLabel: `${llmService} transient availability error persisted for ${model}`,
-          })
-        : await runCommand(commandArgs)
-
-      if (result.exitCode !== 0) {
-        const availabilityReason = classifyLiveProviderAvailabilityFailure(`${result.stdout}\n${result.stderr}`)
-        if (availabilityReason) {
-          throw new Error(`Live provider availability failure: ${availabilityReason}\n${formatCommandFailureDiagnostics(commandArgs, result)}`)
-        }
-        throw new Error(formatCommandFailureDiagnostics(commandArgs, result))
-      }
-
-      const outputDir = result.outputDir ?? await findLatestDirectory(inputTitle, result.outputRoot)
-      if (!outputDir) {
-        throw new Error(`Expected output directory for ${inputTitle}`)
-      }
+      const outputDir = await runCommandAndExpectOutputDir(inputTitle, commandArgs, undefined, {
+        ...(transientPredicate
+          ? {
+              transient: {
+                isTransient: transientPredicate,
+                providerLabel: `transient ${llmService} availability error for ${model}`,
+                persistedLabel: `${llmService} transient availability error persisted for ${model}`,
+              }
+            }
+          : {})
+      })
 
       const metadataExists = await fileExists(`${outputDir}/manifest.json`)
       expect(metadataExists).toBe(true)

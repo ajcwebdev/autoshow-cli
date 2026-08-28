@@ -32,14 +32,15 @@ Read `references/shared-conventions.md` first, then the category reference for t
 
 Progress:
 
-- [ ] Identify the category and run directory.
+- [ ] Identify whether the path is a single run (`manifest.json`) or an archive root (a directory of those runs).
 - [ ] Read `references/shared-conventions.md` and `references/<category>.md`.
-- [ ] Build the packet with `scripts/run.ts <category> build-packet`.
+- [ ] For an archive root, run `scripts/run.ts <category> compact-archive`, then `build-combined-report` when the category supports it.
+- [ ] For a single run, build the packet with `scripts/run.ts <category> build-packet`.
 - [ ] Write the category consensus artifact when the workflow requires agent reconciliation.
 - [ ] Generate reports with `scripts/run.ts <category> build-report`.
 - [ ] Verify that JSON reports include the required ranking contract for the category.
 - [ ] For OCR and STT single-run reports, verify full grouped `metricRankings` are present and old combined overall/tier/top-three fields are absent.
-- [ ] For OCR, STT, and URL combined cross-run reports, verify per-group `metricRankings`, `weightedRankings`, and `tiering` are present and no cross-group leaderboard exists.
+- [ ] For OCR, STT, and URL combined cross-run reports, verify per-group `metricRankings` are present and no weighted rankings, tiers, or cross-group leaderboard exist.
 - [ ] For OCR, verify `page-metrics.json`, `outliers.json`, `selective-adjudication-pages.json`, `variant-comparison-summary.json`, and `ocr-benchmark-summary.md` are present when `build-report` is run.
 
 ## Commands
@@ -67,6 +68,7 @@ Unified command shape:
 ```bash
 bun scripts/run.ts <category> build-packet <run_dir> [--input-text <path>] [--out <path>]
 bun scripts/run.ts <category> build-report <run_dir> [--input-text <path>] [--roundtrip-dir <path>] [--preserve-existing]
+bun scripts/run.ts <category> compact-archive <root_dir>
 bun scripts/run.ts stt compact-results <run_dir>
 bun scripts/run.ts stt build-combined-report <root_dir>
 bun scripts/run.ts ocr build-combined-report <root_dir>
@@ -75,11 +77,13 @@ bun scripts/run.ts url build-combined-report <root_dir>
 
 TTS packet and report generation require `--input-text <path>`.
 
-STT `compact-results` shrinks `providers/*/result.json` files in place (drops the unused `evidence.words` arrays and non-consumer `evidence.rawResponse` blobs) so a run can be committed to git. It preserves every field the packet and report read, is idempotent, and leaves report output byte-identical aside from the `generatedAt` timestamp. See `references/stt.md` for details. Run it before committing benchmark runs.
+`compact-archive` runs only on an archive root. See `references/shared-conventions.md`.
+
+STT `compact-results` shrinks `providers/*/result.json` files in place (drops unused `evidence.words` arrays, unused `evidence.segments` duplicates of `result.segments`, and non-consumer `evidence.rawResponse` blobs) so a run can be committed to git. It preserves every field the packet and report read, is idempotent, and leaves report output byte-identical aside from the `generatedAt` timestamp. See `references/stt.md` for details. Use it on a single run.
 
 STT `build-report --preserve-existing` retains already-scored historical report rows when their original `result.json` artifacts are no longer present, while newly discovered result rows replace matching provider identities. Use it only for benchmark archives that intentionally preserve historical report comparisons after source-result cleanup. Current `result.json` files remain authoritative for matching provider keys.
 
-`build-combined-report` (STT, OCR, and URL) aggregates every per-run report JSON under a root directory into generated `combined-comparison-report.{json,md,html}` artifacts, matching providers by `providerKey` and ranking pure quality, price, and speed within the same category groups. STT also promotes observed realtime throughput, computed as total covered audio duration divided by total covered processing time, into its JSON, Markdown, HTML dashboard, and repository benchmark summary. URL reads committed `provider-comparison-report.json` files and optional sibling `manifest.json` metadata; it uses source `rankingSurfaces.*.automatedQuality` values instead of recomputing quality. The `.html` is a self-contained zero-dependency dashboard consolidating the same per-group data. Combined reports also emit, per group, eight weighted composite rankings (strong/moderate quality, speed, and cost, plus quality + cost and cost + speed) and deterministic `quality-cost-terciles-v1` model tiers: three contiguous, near-equal slices of the `qualityCost` ranking with remainder models assigned to higher tiers first. Groups are never ranked against each other. See `references/stt.md`, `references/ocr.md`, and `references/url.md` for details.
+`build-combined-report` (STT, OCR, and URL) aggregates every per-run report JSON under a root directory into generated `combined-comparison-report.{json,md,html}` artifacts, matching providers by `providerKey` and ranking price, speed, and quality within the same category groups. STT also promotes observed realtime throughput, computed as total covered audio duration divided by total covered processing time, into its JSON, Markdown, HTML dashboard, and repository benchmark summary. URL reads committed `provider-comparison-report.json` files and optional sibling `manifest.json` metadata; it uses source `rankingSurfaces.*.automatedQuality` values instead of recomputing quality. The `.html` is a self-contained zero-dependency dashboard consolidating the same per-group data; each group's metric table can be sorted by quality, cost, or speed. Combined reports do not emit weighted composites, overall scores, or model tiers. Groups are never ranked against each other. See `references/stt.md`, `references/ocr.md`, and `references/url.md` for details.
 
 Text/write packet and report generation read existing canonical `command: "write"` manifest metadata only:
 
@@ -153,7 +157,7 @@ STT reports use grouped full metric rankings split by diarization support:
 8. `metricRankings.thirdPartyServiceDiarization.speed`
 9. `metricRankings.thirdPartyServiceDiarization.qualityScore`
 
-OCR and STT single-run reports do not emit JSON `rankingSurfaces`, `overall`, `overallMetric`, `overallWeights`, or `tiering`, and their markdown does not emit `## Overall Ranking`, `## Tier Breakdown`, or combined `## Ranking` sections. OCR, STT, and URL combined cross-run reports emit per-group `metricRankings`, `weightedRankings`, and `tiering` (markdown `#### Weighted Rankings` and `## Model Tiers`), and still emit no cross-group leaderboard. URL combined schema v1 retains `local` and `service` groups and exposes pure `price`, `speed`, and `automatedQuality` rankings.
+OCR and STT single-run reports do not emit JSON `rankingSurfaces`, `overall`, `overallMetric`, `overallWeights`, or `tiering`, and their markdown does not emit `## Overall Ranking`, `## Tier Breakdown`, or combined `## Ranking` sections. OCR, STT, and URL combined cross-run reports emit per-group `metricRankings` only: price, speed, and quality (OCR/STT `qualityScore`, URL `automatedQuality`). They emit no `weightedRankings`, `tiering`, or cross-group leaderboard. URL combined schema v2 retains `local` and `service` groups.
 
 Each OCR/STT metric ranking entry includes `rank`, `providerKey`, `provider`, `model`, `group`, `metric`, `value`, `label`, and relevant evidence fields. Price ranks lower cost first, with local providers at zero monetary cost and missing service price retained at the end. Speed ranks lower processing time first, with missing timing retained at the end. Quality Score ranks the existing score from highest to lowest.
 
@@ -180,14 +184,15 @@ TTS reports keep automated and human quality separate. Automated quality uses ro
 1. Confirm the consensus artifact exists when required by the category.
 2. Confirm the markdown report exposes the category's expected ranking structure.
 3. For non-OCR/STT reports, confirm full `price`, `speed`, `automatedQuality`, and `humanQuality` JSON `rankingSurfaces` paths exist, plus compatibility aliases.
-4. For OCR/STT single-run reports, confirm grouped full `metricRankings` exist and old `rankingSurfaces`, `overall`, `overallMetric`, `overallWeights`, and `tiering` fields are absent. For OCR/STT/URL combined cross-run reports, confirm per-group `weightedRankings` and `tiering` exist alongside `metricRankings`.
+4. For OCR/STT single-run reports, confirm grouped full `metricRankings` exist and old `rankingSurfaces`, `overall`, `overallMetric`, `overallWeights`, and `tiering` fields are absent. For OCR/STT/URL combined cross-run reports, confirm per-group `metricRankings` exist and `weightedRankings` and `tiering` are absent.
 5. For OCR, confirm the page metrics, outliers, selective adjudication pages, variant comparison summary, and benchmark summary artifacts exist.
 6. For TTS, confirm full `price`, `speed`, `automatedQuality`, and `humanQuality` rankings exist for local and service groups.
 7. Confirm unavailable quality rankings explain why they are unavailable.
 8. Confirm local cheapest rankings only compare local providers and use zero monetary cost.
 9. Confirm no combined local-vs-service leaderboard remains in the markdown or JSON report.
-10. Delete temporary packet files unless the user explicitly wants to keep them.
-11. If a script fails, report the exact command, run directory, and first actionable error line.
+10. For OCR, STT, and URL combined HTML dashboards, confirm each group's metric table can be sorted by quality, cost, or speed without JavaScript or network requests.
+11. Delete temporary packet files unless the user explicitly wants to keep them.
+12. If a script fails, report the exact command, run directory, and first actionable error line.
 
 ## Reporting
 

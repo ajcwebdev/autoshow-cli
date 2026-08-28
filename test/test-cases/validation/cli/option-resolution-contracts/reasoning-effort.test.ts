@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { rm } from 'node:fs/promises'
 import * as v from 'valibot'
 import type { ExtractionOptions, LLMTarget, PipelineManifestItem, ResolvedStructuredSchema, Step3Metadata, StructuredRequestOptions, WriteRuntimeOptions } from '~/types'
 import { resolveOcrExtractionOptions } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-extraction-options'
@@ -18,6 +16,7 @@ import {
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { buildLlmEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/llm-estimates'
 import { buildExtractEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const structuredSchema: ResolvedStructuredSchema = {
   schemaName: 'content',
@@ -56,7 +55,6 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
 
   describe('resolveReasoningPolicy - Adapter Defaults & Explicit Overrides', () => {
     it('returns adapter defaults only when the flag is omitted', () => {
-      // Groq write default
       const groqPolicy = resolveReasoningPolicy({
         step: 'llm',
         service: 'groq',
@@ -65,7 +63,6 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       })
       expect(groqPolicy.effective).toBe('low')
 
-      // An explicit default delegates to the provider instead of preserving AutoShow's legacy low override.
       const geminiOcrPolicy = resolveReasoningPolicy({
         step: 'extract',
         service: 'gemini',
@@ -75,7 +72,6 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       expect(geminiOcrPolicy.requested).toBe('default')
       expect(geminiOcrPolicy.effective).toBe('default')
 
-      // Kimi K2.6 write default
       const kimiK26Policy = resolveReasoningPolicy({
         step: 'llm',
         service: 'kimi',
@@ -84,14 +80,21 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       })
       expect(kimiK26Policy.effective).toBe('disabled')
 
-      // Kimi K3 write default
       const kimiK3Policy = resolveReasoningPolicy({
         step: 'llm',
         service: 'kimi',
         model: 'kimi-k3',
         requestedReasoningEffort: undefined
       })
-      expect(kimiK3Policy.effective).toBe('max')
+      expect(kimiK3Policy.effective).toBe('low')
+
+      const kimiK3OcrPolicy = resolveReasoningPolicy({
+        step: 'extract',
+        service: 'kimi',
+        model: 'kimi-k3',
+        requestedReasoningEffort: undefined
+      })
+      expect(kimiK3OcrPolicy.effective).toBe('low')
     })
 
     it('accepts valid supported explicit effort overrides', () => {
@@ -233,7 +236,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
     })
 
     it('passes the normalized request into a structured LLM target', async () => {
-      const outputDir = await mkdtemp(join(tmpdir(), 'autoshow-reasoning-dispatch-'))
+      const outputDir = await makeTempDir('autoshow-reasoning-dispatch-')
       let receivedOptions: StructuredRequestOptions | undefined
       const target: LLMTarget = {
         service: 'openai',
@@ -301,7 +304,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       const estimates = await buildLlmEstimates({
         openaiModels: ['gpt-5.5'],
         reasoningEffort: 'high'
-      }, false)
+      })
       expect(estimates).toHaveLength(1)
       expect(estimates[0]?.requestedReasoningEffort).toBe('high')
       expect(estimates[0]?.effectiveReasoningEffort).toBe('high')
@@ -309,7 +312,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       await expect(buildLlmEstimates({
         anthropicModels: ['claude-haiku-4-5'],
         reasoningEffort: 'high'
-      }, false)).rejects.toThrow('does not support reasoning effort configuration')
+      })).rejects.toThrow('does not support reasoning effort configuration')
     })
 
     it('does not apply hosted reasoning overrides to local OCR price targets', async () => {
@@ -359,7 +362,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
 
   describe('Option Resolution Flag Integration', () => {
     it('reads --reasoning-effort flag into buildOptsFromFlags', () => {
-      const opts = buildOptsFromFlags(false, {
+      const opts = buildOptsFromFlags({
         'reasoning-effort': 'high',
         prompt: 'test prompt'
       })
@@ -367,7 +370,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
     })
 
     it('defaults reasoningEffort to undefined when flag is omitted', () => {
-      const opts = buildOptsFromFlags(false, {
+      const opts = buildOptsFromFlags({
         prompt: 'test prompt'
       })
       expect(opts.reasoningEffort).toBeUndefined()

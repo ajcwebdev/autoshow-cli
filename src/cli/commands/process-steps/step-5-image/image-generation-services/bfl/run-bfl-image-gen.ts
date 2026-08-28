@@ -1,12 +1,13 @@
 import * as v from 'valibot'
 import type { BflImageModel, BflOutputFormat, Step5Metadata } from '~/types'
-import { CLIUsageError, ValidationError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateImageCosts, logImageEstimate } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { downloadGeneratedImage, extractImageErrorMessage, readJsonOrText, runPolledJob, withImageProviderHeaders } from '~/utils/polled-job-client/polled-job'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { imageReferenceToUrlOrDataUrl } from '../../image-utils/image-inputs'
 import { ensureBflImageGenSetup, getBflBaseUrl } from './bfl-image-gen'
+import { normalizeImageOutputFormat } from '../../image-utils/image-target-validation'
 const POLL_INTERVAL_MS = 5_000
 const POLL_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
 
@@ -38,30 +39,25 @@ export const normalizeBflImageSize = (
 
   const match = /^(\d{2,5})x(\d{2,5})$/i.exec(size.trim())
   if (!match) {
-    throw CLIUsageError(`Invalid --image-size value "${size}" for BFL. Expected WIDTHxHEIGHT, e.g. 1024x1024.`)
+    throw UsageError(`Invalid --size value "${size}" for BFL. Expected WIDTHxHEIGHT, e.g. 1024x1024.`)
   }
 
   const width = Number.parseInt(match[1]!, 10)
   const height = Number.parseInt(match[2]!, 10)
   if (!Number.isFinite(width) || !Number.isFinite(height) || width < 64 || height < 64) {
-    throw CLIUsageError(`Invalid --image-size value "${size}" for BFL. Width and height must each be at least 64 pixels.`)
+    throw UsageError(`Invalid --size value "${size}" for BFL. Width and height must each be at least 64 pixels.`)
   }
 
   return { width, height }
 }
 
-export const normalizeBflImageOutputFormat = (format: string | undefined): BflOutputFormat => {
-  if (format === undefined || format.length === 0) {
-    return 'jpeg'
-  }
-
-  const normalized = format.toLowerCase()
-  if ((BFL_OUTPUT_FORMATS as readonly string[]).includes(normalized)) {
-    return normalized as BflOutputFormat
-  }
-
-  throw CLIUsageError(`Invalid --image-format value "${format}" for BFL. Expected jpeg, png, or webp.`)
-}
+export const normalizeBflImageOutputFormat = (format: string | undefined): BflOutputFormat =>
+  normalizeImageOutputFormat(format, {
+    allowed: BFL_OUTPUT_FORMATS,
+    fallback: 'jpeg',
+    providerLabel: 'BFL',
+    expected: 'jpeg, png, or webp'
+  })
 
 export const getBflImageExtension = (format: string | undefined): string => {
   const outputFormat = normalizeBflImageOutputFormat(format)
@@ -82,7 +78,7 @@ export const runBflImageGen = async (
   const fileName = `generated-image.${ext}`
   const outputPath = `${outputDir}/${fileName}`
 
-  const estimate = estimateImageCosts({ bflImageModel: options.model, imageSize: options.imageSize })[0]
+  const estimate = estimateImageCosts({ bflImageModels: [options.model], imageSize: options.imageSize })[0]
   if (estimate) {
     logImageEstimate(estimate)
   }

@@ -1,13 +1,14 @@
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { colorizeHelpFlagGroups } from '~/cli/help-colors'
 import type { CliRootDefinition } from '~/types'
+import packageJson from '../../../package.json'
 import { HELP_COMMAND_GROUPS, HELP_FLAG_GROUPS } from './help-groups'
 
 export { HELP_COMMAND_GROUPS, HELP_FLAG_GROUPS } from './help-groups'
 
-export const CLI_VERSION = (await import('../../../package.json')).version as string
+const CLI_VERSION = packageJson.version as string
 
-export const HELP_COMMAND_GROUP_DEFINITIONS: [string, string][] = HELP_COMMAND_GROUPS.map(([key, label]) => [key, label])
+const HELP_COMMAND_GROUP_DEFINITIONS: [string, string][] = HELP_COMMAND_GROUPS.map(([key, label]) => [key, label])
 
 export const createNativeRootDefinition = (): CliRootDefinition => ({
   scriptName: 'bun autoshow',

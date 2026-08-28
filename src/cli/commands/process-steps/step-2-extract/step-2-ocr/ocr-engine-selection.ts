@@ -24,12 +24,6 @@ export const hasGeminiOcr = (opts: ExtractionOptions): boolean =>
 export const hasDeepinfraOcr = (opts: ExtractionOptions): boolean =>
   typeof opts.deepinfraOcrModel === 'string' && opts.deepinfraOcrModel.length > 0
 
-export const hasReplicateOcr = (opts: ExtractionOptions): boolean =>
-  typeof opts.replicateOcrModel === 'string' && opts.replicateOcrModel.length > 0
-
-export const hasFalOcr = (opts: ExtractionOptions): boolean =>
-  typeof opts.falOcrModel === 'string' && opts.falOcrModel.length > 0
-
 export const hasHostedOcr = (opts: ExtractionOptions): boolean =>
   hasMistralOcr(opts)
   || hasGlmOcr(opts)
@@ -39,8 +33,6 @@ export const hasHostedOcr = (opts: ExtractionOptions): boolean =>
   || hasAnthropicOcr(opts)
   || hasGeminiOcr(opts)
   || hasDeepinfraOcr(opts)
-  || hasReplicateOcr(opts)
-  || hasFalOcr(opts)
 
 export const hasOcrFlag = (opts: ExtractionOptions): boolean =>
   opts.useTesseract === true || hasHostedOcr(opts)
@@ -57,9 +49,7 @@ export const countSelectedOcrEngines = (opts: ExtractionOptions): number =>
     hasGrokOcr(opts),
     hasAnthropicOcr(opts),
     hasGeminiOcr(opts),
-    hasDeepinfraOcr(opts),
-    hasReplicateOcr(opts),
-    hasFalOcr(opts)
+    hasDeepinfraOcr(opts)
   ].filter(Boolean).length
 
 export const getHostedOcrEngine = (opts: ExtractionOptions): HostedExtractOcrEngine | undefined => {
@@ -71,7 +61,5 @@ export const getHostedOcrEngine = (opts: ExtractionOptions): HostedExtractOcrEng
   if (hasAnthropicOcr(opts)) return 'anthropic-ocr'
   if (hasGeminiOcr(opts)) return 'gemini-ocr'
   if (hasDeepinfraOcr(opts)) return 'deepinfra-ocr'
-  if (hasReplicateOcr(opts)) return 'replicate-ocr'
-  if (hasFalOcr(opts)) return 'fal-ocr'
   return undefined
 }

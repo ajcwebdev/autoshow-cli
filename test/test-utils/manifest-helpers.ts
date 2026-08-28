@@ -9,10 +9,8 @@ import {
   writeManifest,
   writePipelineItemRecords
 } from '~/cli/commands/process-steps/pipeline-manifest'
-import type { ExtractRoute, PipelineManifest, PipelineManifestItem, PipelineProviderState, ProcessCommand } from '~/types'
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
+import type { ExtractRoute, MultiProviderManifestFixtureOptions, PipelineManifest, PipelineManifestItem, PipelineProviderState, ProcessCommand } from '~/types'
+import { isRecord } from '~/utils/value-helpers'
 
 const resolveRootDir = (pathOrDir: string): string =>
   basename(pathOrDir) === PIPELINE_MANIFEST_FILE ? dirname(pathOrDir) : pathOrDir
@@ -68,7 +66,7 @@ export const writeSingleManifestFixture = async (
   await writePipelineItemRecords(rootDir, command, 'single', [record], options)
 }
 
-export const writeLegacyTtsManifestFixture = async (
+export const writeReportInputTtsManifestFixture = async (
   rootDir: string,
   record: Record<string, unknown>
 ): Promise<void> => {
@@ -79,7 +77,7 @@ export const writeLegacyTtsManifestFixture = async (
     && typeof entry['ttsModel'] === 'string'
   )
   if (entries.length === 0) {
-    throw new Error('A legacy TTS manifest fixture requires at least one TTS metadata entry.')
+    throw new Error('A report-input TTS manifest fixture requires at least one TTS metadata entry.')
   }
 
   const metadata = { ...record }
@@ -143,24 +141,6 @@ export const writeProviderResultFixture = async (
 ): Promise<void> => {
   await mkdir(pathOrDir, { recursive: true })
   await Bun.write(resolveProviderResultPath(pathOrDir), `${JSON.stringify(result, null, 2)}\n`)
-}
-
-export type MultiProviderManifestFixtureProvider = {
-  dir: string
-  provider: string
-  model: string
-  status?: 'succeeded' | 'missing' | 'failed' | 'skipped'
-  processingTime?: number
-  cost?: number
-  result: Record<string, unknown>
-}
-
-export type MultiProviderManifestFixtureOptions = {
-  command: ProcessCommand
-  extractRoute?: ExtractRoute | undefined
-  metadata?: Record<string, unknown>
-  providerMetadata?: Record<string, unknown>
-  providers: readonly MultiProviderManifestFixtureProvider[]
 }
 
 export const writeMultiProviderManifestFixture = async (

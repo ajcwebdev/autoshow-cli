@@ -1,18 +1,8 @@
-import type { HostedTtsRetryAttemptContext, HostedTtsRetryOptions, RetryClassifier, RetryDecision, RetryPolicy } from '~/types'
+import type { HostedTtsRetryAttemptContext, HostedTtsRetryOptions, RetryClassifier, RetryDecision } from '~/types'
 import { AppError } from '~/utils/error-handler'
 import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { classifyHostedRateLimitPressure } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
-
-import { classifyTtsProviderAdmissionError } from '../script-to-audio/tts-request-evidence'
-
-const HOSTED_TTS_RETRY_POLICY: RetryPolicy = {
-  maxAttempts: 4,
-  baseDelayMs: 2_000,
-  maxDelayMs: 30_000,
-  jitter: true,
-  exponential: true
-}
 
 export const classifyHostedTtsRetry: RetryClassifier = (error) => {
   const hostedPressure = classifyHostedRateLimitPressure(error)
@@ -59,14 +49,7 @@ export const withHostedTtsRetry = async <T>(
   operation: (signal: AbortSignal | undefined, attempt: HostedTtsRetryAttemptContext) => Promise<T>
 ): Promise<T> => {
   options.abortSignal?.throwIfAborted()
-  const baseClassifier = options.classifier ?? classifyHostedTtsRetry
-  const classifier: RetryClassifier = (error) => {
-    const ambiguous = (error instanceof Error && (error as Error & { ttsAdmissionAmbiguous?: boolean }).ttsAdmissionAmbiguous === true)
-      || classifyTtsProviderAdmissionError(error) === 'ambiguous'
-    return ambiguous && options.allowAmbiguousRedispatch === true
-      ? classifyFetchRetry(error, 'runtime_http_create_retriable')
-      : baseClassifier(error)
-  }
+  const classifier = options.classifier ?? classifyHostedTtsRetry
   let attempt = 0
   let retryReasonCode: string | undefined
   return await withRetry(
@@ -75,10 +58,7 @@ export const withHostedTtsRetry = async <T>(
       operationName: options.operationName,
       timeoutMs: options.timeoutMs ?? MEDIA_GENERATION_TIMEOUT_MS,
       abortSignal: options.abortSignal,
-      policy: {
-        ...HOSTED_TTS_RETRY_POLICY,
-        ...options.policy
-      },
+      ...(options.policy ? { policy: options.policy } : {}),
       retryHookCanExtendAttempts: options.chunkScheduler?.usesSharedHostedRateLimitRecovery() === true,
       onRetryAttempt: (error, decision) => {
         retryReasonCode = decision.reason

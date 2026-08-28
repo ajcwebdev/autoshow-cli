@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { getRetryPolicyForClass } from '~/utils/retries'
 import {
   buildHostedOcrImageResult,
   classifyOcrCreateRetry,
@@ -20,17 +21,10 @@ describe('OCR resilience contracts', () => {
     expect(OCR_PAGE_REQUEST_TIMEOUT_MS).toBe(5 * 60_000)
     expect(HOSTED_OCR_PDF_PAGE_FALLBACK_THRESHOLD).toBe(20)
     expect(OCR_SCHEMA_RETRY_ATTEMPTS).toBe(3)
-    expect(OCR_CREATE_RETRY_POLICY).toMatchObject({
-      maxAttempts: 4,
-      maxDelayMs: 60_000,
-      jitter: true,
-      exponential: true
-    })
-    expect(OCR_PAGE_REQUEST_RETRY_POLICY).toMatchObject({
-      maxAttempts: 2,
-      maxDelayMs: 10_000,
-      jitter: true,
-      exponential: true
+    expect(OCR_CREATE_RETRY_POLICY).toEqual(getRetryPolicyForClass('runtime_http_create_retriable'))
+    expect(OCR_PAGE_REQUEST_RETRY_POLICY).toEqual({
+      ...getRetryPolicyForClass('runtime_http_create_retriable'),
+      maxAttempts: 2
     })
     expect(classifyOcrCreateRetry(new DOMException('deadline exceeded', 'TimeoutError')).shouldRetry).toBe(true)
 

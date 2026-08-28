@@ -1,6 +1,6 @@
 import type { PdfChapterDetectionSummary, TextArtifactFile } from '~/types'
 
-export type ChapterExportSummary = {
+type ChapterExportSummary = {
   sourceFormat: 'epub' | 'pdf'
   mode: 'chapters' | 'chunks'
   chunkLimitChars?: number

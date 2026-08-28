@@ -23,9 +23,6 @@ export const formatCost = (dollars: number): string => {
     : `$${dollars.toFixed(2)}`
 }
 
-// Per-image output cost (USD) sourced from the central image registry, mirroring
-// the LLM cost path. The shared estimator is size/quality-aware for OpenAI and
-// falls back to the registry's documented per-image rate for other providers.
 export const estimateImageOutputCost = (
   model: ImageGenerationModel,
   quality: ImageGenerationQuality,
@@ -50,9 +47,6 @@ export const estimateImageOutputCost = (
   return estimate.costPerImageCents / 100
 }
 
-// Central image runs do not surface per-request token usage, so comic charges the
-// registry's per-image estimate. The stats object keeps its token fields for the
-// shared run-summary shape; they stay zero for image generation.
 export const updateImageRunStatsWithCostFallback = (
   model: ImageGenerationModel,
   stats: ImageRunStats,

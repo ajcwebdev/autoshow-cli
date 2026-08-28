@@ -1,10 +1,5 @@
 import type { TtsOptions, TtsTargetSelection } from '~/types'
 import { isMultiSpeakerRequested, parseSpeakerVoiceMappings } from '../dialogue-normalizer'
-const selectModels = (
-  models: string[] | undefined,
-  model: string | undefined
-): string[] => models ?? (model ? [model] : [])
-
 const trimmed = (value: string | undefined): string | undefined => value?.trim() || undefined
 
 export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelection => {
@@ -16,22 +11,22 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     : undefined
 
   return {
-    elevenlabsModels: selectModels(options.elevenlabsTtsModels, options.elevenlabsTtsModel),
-    minimaxModels: selectModels(options.minimaxTtsModels, options.minimaxTtsModel),
-    groqModels: selectModels(options.groqTtsModels, options.groqTtsModel),
-    grokModels: selectModels(options.grokTtsModels, options.grokTtsModel),
-    mistralModels: selectModels(options.mistralTtsModels, options.mistralTtsModel),
-    openaiModels: selectModels(options.openaiTtsModels, options.openaiTtsModel),
-    geminiModels: selectModels(options.geminiTtsModels, options.geminiTtsModel),
-    deepgramModels: selectModels(options.deepgramTtsModels, options.deepgramTtsModel),
-    speechifyModels: selectModels(options.speechifyTtsModels, options.speechifyTtsModel),
-    humeModels: selectModels(options.humeTtsModels, options.humeTtsModel),
-    cartesiaModels: selectModels(options.cartesiaTtsModels, options.cartesiaTtsModel),
-    fishModels: selectModels(options.fishTtsModels, options.fishTtsModel),
-    inworldModels: selectModels(options.inworldTtsModels, options.inworldTtsModel),
-    deepinfraModels: selectModels(options.deepinfraTtsModels, options.deepinfraTtsModel),
-    replicateModels: selectModels(options.replicateTtsModels, options.replicateTtsModel),
-    falModels: selectModels(options.falTtsModels, options.falTtsModel),
+    elevenlabsModels: options.elevenlabsTtsModels ?? [],
+    minimaxModels: options.minimaxTtsModels ?? [],
+    groqModels: options.groqTtsModels ?? [],
+    grokModels: options.grokTtsModels ?? [],
+    mistralModels: options.mistralTtsModels ?? [],
+    openaiModels: options.openaiTtsModels ?? [],
+    geminiModels: options.geminiTtsModels ?? [],
+    deepgramModels: options.deepgramTtsModels ?? [],
+    speechifyModels: options.speechifyTtsModels ?? [],
+    humeModels: options.humeTtsModels ?? [],
+    cartesiaModels: options.cartesiaTtsModels ?? [],
+    fishModels: options.fishTtsModels ?? [],
+    inworldModels: options.inworldTtsModels ?? [],
+    deepinfraModels: options.deepinfraTtsModels ?? [],
+    replicateModels: options.replicateTtsModels ?? [],
+    falModels: options.falTtsModels ?? [],
     speakerVoiceRegistry,
     multiSpeakerRequested: multiSpeaker,
     minimaxVoiceId: trimmed(options.minimaxTtsVoice),
@@ -45,13 +40,8 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     openaiVoiceId: trimmed(options.openaiVoiceId),
     openaiInstructions: trimmed(options.openaiTtsInstructions),
     openaiSpeed: options.openaiTtsSpeed,
-    deepgramEncoding: trimmed(options.deepgramTtsEncoding),
-    deepgramContainer: trimmed(options.deepgramTtsContainer),
-    deepgramBitRate: options.deepgramTtsBitRate,
-    deepgramSampleRate: options.deepgramTtsSampleRate,
     deepgramSpeed: options.deepgramTtsSpeed,
     elevenLabsVoiceId: trimmed(options.elevenlabsVoiceId),
-    elevenLabsOutputFormat: trimmed(options.elevenlabsTtsOutputFormat),
     elevenLabsLanguageCode: trimmed(options.elevenlabsTtsLanguageCode),
     elevenLabsStability: options.elevenlabsTtsStability,
     elevenLabsSimilarityBoost: options.elevenlabsTtsSimilarityBoost,
@@ -62,10 +52,8 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     elevenLabsTextNormalization: trimmed(options.elevenlabsTtsTextNormalization),
     elevenLabsPronunciationDictionaryLocators,
     speechifyVoiceId: trimmed(options.speechifyVoice),
-    speechifyAudioFormat: trimmed(options.speechifyTtsAudioFormat),
     speechifyLanguage: trimmed(options.speechifyTtsLanguage),
     humeVoice: trimmed(options.humeTtsVoice),
-    humeVoiceProvider: trimmed(options.humeTtsVoiceProvider),
     cartesiaVoiceId: trimmed(options.cartesiaTtsVoice),
     cartesiaLanguage: trimmed(options.cartesiaTtsLanguage),
     fishVoiceId: trimmed((options as { fishTtsVoice?: string }).fishTtsVoice),

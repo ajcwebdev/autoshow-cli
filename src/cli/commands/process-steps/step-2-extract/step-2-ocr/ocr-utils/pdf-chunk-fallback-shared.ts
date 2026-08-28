@@ -1,6 +1,6 @@
-import { stat } from 'node:fs/promises'
 import type { OcrPdfChunkRange } from '~/types'
-import { collectErrorChain } from '~/utils/error-handler'
+import { statPath as stat } from '~/utils/bun-file-io'
+import { collectErrorChain, InfraError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 import { stripAnsi } from '../ocr-run-state'
 
@@ -61,7 +61,10 @@ export const createOcrPdfChunkRenderError = (
   command: string
 } =>
   Object.assign(
-    new Error(`PDF chunk creation failed for ${formatRange(range)}: ${summarizePdfChunkCreateCause(result.stderr, result.stdout)}`),
+    InfraError(
+      `PDF chunk creation failed for ${formatRange(range)}: ${summarizePdfChunkCreateCause(result.stderr, result.stdout)}`,
+      { stage: 'pdf_chunk_render' }
+    ),
     {
       category: 'pdf_chunk_render' as const,
       stage: 'pdf_chunk_render' as const,

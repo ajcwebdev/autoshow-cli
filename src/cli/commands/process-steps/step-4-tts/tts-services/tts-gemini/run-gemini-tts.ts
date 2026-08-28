@@ -1,5 +1,5 @@
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
-import { concatAndConvertToWav, runTtsChunks, splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
+import { concatAndConvertToWav, requireHostedTtsChunkScheduler, runTtsChunks, splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { finalizeTtsRun } from '~/cli/commands/process-steps/step-4-tts/tts-utils/finalize-tts-run'
 import { classifyHostedTtsRetry, withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
@@ -9,7 +9,7 @@ import type { GeminiInlineAudioInfo, GeminiTtsModel, HostedTtsChunkScheduler, Sp
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import {
@@ -79,7 +79,7 @@ export const runGeminiTts = async (
     validateGeminiMultiSpeakerTranscriptFromRegistry(text, registry)
   }
 
-  const apiKey = requireApiKey('GEMINI_API_KEY', 'tts:gemini', 'Gemini TTS')
+  const apiKey = resolveCredential('gemini', 'require', { stage: 'tts:gemini', description: 'Gemini TTS' })
 
   const speakerSummary = registry
     ? formatSpeakerRegistrySummary(registry)
@@ -104,7 +104,7 @@ export const runGeminiTts = async (
   let completed = false
 
   try {
-    const chunkPathGroups = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index, admission) => {
+    const chunkPathGroups = await runTtsChunks(chunks, async (chunk, index, admission) => {
       const chunkIndex = index + 1
       const speakerVoiceConfigs = registry ? buildGeminiSpeakerVoiceConfigs(registry) : undefined
       const generationConfig = {
@@ -206,7 +206,7 @@ export const runGeminiTts = async (
       }
       if (pathsForChunk.length > 0) await options.requestEvidence?.complete({ chunkIndex })
       return pathsForChunk
-    }, { provider: 'gemini', scheduler: options.chunkScheduler, abortSignal: options.abortSignal })
+    }, { provider: 'gemini', scheduler: requireHostedTtsChunkScheduler(options.chunkScheduler), abortSignal: options.abortSignal })
     const orderedChunkPaths = chunkPathGroups.flat()
 
     if (orderedChunkPaths.length === 0) {

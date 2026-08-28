@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureMistralSttSetup = ensureApiKeySetup('MISTRAL_API_KEY', 'stt:mistral', 'Mistral transcription')
+export const ensureMistralSttSetup = async (): Promise<void> => { resolveCredential('mistral', 'require', { stage: 'stt:mistral', description: 'Mistral transcription' }) }

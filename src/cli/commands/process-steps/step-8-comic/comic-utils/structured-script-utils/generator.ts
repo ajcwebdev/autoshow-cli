@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises'
 import { basename, dirname } from 'node:path'
 import * as v from 'valibot'
 import type { ComicLlmCommandOptionsBase, StructuredScriptRunStats } from '~/types'
-import { comicLog, err, formatCompactCost, formatDuration, l } from '../comic-logger'
+import { comicLog, err, formatCompactCost, formatDuration } from '../comic-logger'
 import { getStructuredScriptPath } from '../project-paths'
 import { reviewStructuredScriptWithLlm } from './llm-review'
 import { parseScriptMarkdownToStructuredData } from './structured-script-parser'
@@ -31,7 +31,7 @@ export const generateStructuredScript = async (
     const content = new TextDecoder().decode(sourceBytes)
 
     if (!content.trim()) {
-      l.dim(`Skipping empty file: ${basename(scriptPath)}`)
+      comicLog.line(`Skipping empty file: ${basename(scriptPath)}`)
       return stats
     }
 

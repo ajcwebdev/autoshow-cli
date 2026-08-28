@@ -14,7 +14,6 @@ export const tryResolveBatchSource = async (
 
   const batchOpts = {
     limit: opts.batchLimit,
-    all: opts.batchAll,
     order: opts.batchOrder
   }
 

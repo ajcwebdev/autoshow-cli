@@ -1,6 +1,6 @@
 import { httpResponseError, isRecord } from '~/utils/rest-client'
 import { extname } from 'node:path'
-import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, PageResult } from '~/types'
+import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult } from '~/types'
 import { GlmOcrResponseSchema } from '~/types'
 import { withOcrCreateRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
 import { validateData } from '~/utils/validate/validation'
@@ -46,7 +46,7 @@ export const runGlmOcr = async (
   model: string,
   options: {
     onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
-    reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+    reasoningEffort?: NormalizedReasoningEffort | undefined
   } = {}
 ): Promise<{
   pages: PageResult[]
@@ -55,8 +55,8 @@ export const runGlmOcr = async (
   totalPages?: number
   promptTokens?: number
   completionTokens?: number
-  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
-  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
 }> => {
   const policy = resolveReasoningPolicy({
     step: 'extract',
@@ -64,7 +64,7 @@ export const runGlmOcr = async (
     model,
     requestedReasoningEffort: options.reasoningEffort
   })
-  const apiKey = ensureGlmApiKey('GLM OCR')
+  const apiKey = ensureGlmApiKey('GLM OCR', 'ocr:glm')
   const bytes = await Bun.file(filePath).arrayBuffer()
   const base64 = Buffer.from(bytes).toString('base64')
   const mimeType = getMimeType(filePath, step1Metadata.format)

@@ -1,14 +1,15 @@
 import * as l from '~/utils/app-logger/app-logger'
 import * as v from 'valibot'
-import type { GrokWord, RetryClass, Step2Metadata, SttStageHttpError, TranscriptionEvidenceWord, TranscriptionResult, TranscriptionSegment } from '~/types'
+import type { GrokWord, Step2Metadata, TranscriptionEvidenceWord, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import { appendToken, buildSegmentsFromWords, formatSpeakerLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { validateDataSafe } from '~/utils/validate/validation'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 import { createSttRetryMetrics, sttRetryMetricsToCallbacks } from '../../stt-retry-metrics'
 import { sttStageRequest } from '../stt-stage-request'
+import { attachSttStageErrorContext } from '../../stt-error-context'
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 
 const GrokSttWordSchema = v.object({
@@ -161,17 +162,6 @@ const evidenceWordsFromApi = (
   return parsed
 }
 
-const attachGrokErrorContext = (
-  error: unknown,
-  stage: string,
-  retryClass: RetryClass
-): never => {
-  const source = error instanceof Error ? error : new Error(String(error))
-  ;(source as SttStageHttpError).stage = stage
-  ;(source as SttStageHttpError).retryClass = retryClass
-  throw source
-}
-
 export const runGrokStt = async (
   audioPath: string,
   outputDir: string,
@@ -183,7 +173,7 @@ export const runGrokStt = async (
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const { model, segmentOffsetMinutes = 0, segmentNumber, totalSegments } = options
-  const apiKey = requireApiKey('XAI_API_KEY', 'stt:grok', 'Grok transcription')
+  const apiKey = resolveCredential('grok', 'require', { stage: 'stt:grok', description: 'Grok transcription' })
 
   if (segmentNumber && totalSegments) {
     logSttSegmentLifecycle(l, { provider: 'grok', action: 'started', segmentNumber, totalSegments, model })
@@ -201,7 +191,6 @@ export const runGrokStt = async (
     operationName: 'grok-stt',
     stage: 'transcribe',
     retryClass: 'runtime_http_create_retriable',
-    maxAttempts: 4,
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'Grok',
     failureLabel: 'transcription',
@@ -211,7 +200,7 @@ export const runGrokStt = async (
       requestCount += 1
     }),
     readFailure: readGrokError,
-    attachError: attachGrokErrorContext,
+    attachError: attachSttStageErrorContext,
     doFetch: async (signal) => {
       const form = new FormData()
       form.append('format', 'true')

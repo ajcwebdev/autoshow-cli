@@ -6,41 +6,30 @@ import type {
   ComicPresentationPlan,
   ComicPresentationSoundBinding,
   ComicPresentationTimelineEvent,
+  ComicDialogueTurn,
+  PanelSpeech,
+  PresentationSoundSource,
   ResolvedPanelTimeline,
   ScenePromptData,
+  SpeechTextMatch,
   StructuredScriptData,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from '../../step-4-tts/script-to-audio/contract-identity'
-
-type PanelSpeech = {
-  panelNumber: number
-  speechOrdinal: number
-  speaker: ScenePromptData['panels'][number]['speech'][number]['speaker']
-  line: string
-}
-
-export type PresentationSoundSource = {
-  cue: AuthoredSoundscapeCue
-  originalRangeMs: { start: number, end: number }
-  sourceAudio: { path: string, sha256: string, durationMs: number }
-}
 
 const exactText = (value: string): string => value.normalize('NFKC').replace(/\s+/gu, ' ').trim()
 const exactLabel = (value: string): string => exactText(value).toUpperCase()
 
 const flattenDialogueTurns = (plan: ComicDialoguePlan) => plan.nodes.flatMap(node => node.kind === 'turn' ? [node.turn] : node.turns)
-type DialogueTurn = ReturnType<typeof flattenDialogueTurns>[number]
-type SpeechTextMatch = 'exact' | 'exact-after-source-cue-elision'
 
 const cueText = (value: string): string => exactText(value).replace(/^\(\s*|\s*\)$/gu, '')
 
-const exactSourceCueTexts = (turn: DialogueTurn): Set<string> => new Set([
+const exactSourceCueTexts = (turn: ComicDialogueTurn): Set<string> => new Set([
   ...(turn.delivery?.description.split(',') ?? []),
   ...(turn.timingCues?.map(cue => cue.sourceSpan.text) ?? []),
 ].map(cueText).filter(Boolean))
 
-const elideExactSourceCues = (turn: DialogueTurn, value: string): string | undefined => {
+const elideExactSourceCues = (turn: ComicDialogueTurn, value: string): string | undefined => {
   const parentheticals = [...value.matchAll(/\(([^()]*)\)/gu)]
   if (parentheticals.length === 0) return undefined
   const sourceCues = exactSourceCueTexts(turn)
@@ -48,28 +37,22 @@ const elideExactSourceCues = (turn: DialogueTurn, value: string): string | undef
   return exactText(value.replace(/\s*\([^()]*\)\s*/gu, ' ').replace(/\s+([,.;:!?…])/gu, '$1'))
 }
 
-const speechTextMatch = (turn: DialogueTurn, speech: PanelSpeech): SpeechTextMatch | undefined => {
+const speechTextMatch = (turn: ComicDialogueTurn, speech: PanelSpeech): SpeechTextMatch | undefined => {
   const canonical = exactText(turn.canonicalText)
   if (canonical === exactText(speech.line)) return 'exact'
   return canonical === elideExactSourceCues(turn, speech.line) ? 'exact-after-source-cue-elision' : undefined
 }
 
-const panelSpeechLabel = (speech: PanelSpeech['speaker']): string => {
-  if (speech.kind === 'character') return speech.characterKey
-  if (speech.kind === 'voice') return speech.label
-  return 'NARRATOR'
-}
-
-const speakerMatches = (turn: DialogueTurn, speech: PanelSpeech['speaker']): boolean => {
+const speakerMatches = (turn: ComicDialogueTurn, speech: PanelSpeech['speaker']): boolean => {
   if (speech.kind === 'character') return turn.subjectKey === speech.characterKey || exactLabel(turn.originalSpeakerLabel) === exactLabel(speech.characterKey)
   if (speech.kind === 'voice') return exactLabel(turn.originalSpeakerLabel) === exactLabel(speech.label) || turn.subjectKey === `voice:${speech.label}`
   return turn.subjectKey === 'role:narrator' || ['NARRATOR', 'CAPTION'].includes(exactLabel(turn.originalSpeakerLabel))
 }
 
-const speechMatches = (turn: DialogueTurn, speech: PanelSpeech): boolean =>
+const speechMatches = (turn: ComicDialogueTurn, speech: PanelSpeech): boolean =>
   speakerMatches(turn, speech.speaker) && speechTextMatch(turn, speech) !== undefined
 
-const describeTurn = (turn: DialogueTurn): string =>
+const describeTurn = (turn: ComicDialogueTurn): string =>
   `${turn.turnId} (${turn.originalSpeakerLabel}: ${exactText(turn.canonicalText)})`
 
 export const reconcilePresentationDialogue = (input: {
@@ -83,7 +66,6 @@ export const reconcilePresentationDialogue = (input: {
     line: speech.line,
   })))
   const turns = flattenDialogueTurns(input.dialoguePlan)
-  const legacyOccurrence = new Map<string, number>()
 
   return turns.map((turn) => {
     const provenancePanels = input.scene.panels.filter(panel => panel.sourceSegmentIds.includes(turn.sourceSegmentId))
@@ -108,39 +90,11 @@ export const reconcilePresentationDialogue = (input: {
         },
       }
     }
-    if (exact.length > 1) throw CLIUsageError(`Dialogue ownership is ambiguous for ${describeTurn(turn)}: exact source provenance and speech content match panels ${exact.map(match => match.panelNumber).join(', ')}.`)
+    if (exact.length > 1) throw UsageError(`Dialogue ownership is ambiguous for ${describeTurn(turn)}: exact source provenance and speech content match panels ${exact.map(match => match.panelNumber).join(', ')}.`)
     if (provenancePanels.length > 0) {
-      throw CLIUsageError(`Dialogue ownership is inconsistent for ${describeTurn(turn)}: source segment ${turn.sourceSegmentId} is assigned to panel(s) ${provenancePanels.map(panel => panel.number).join(', ')}, but no exact speaker-and-text entry matches.`)
+      throw UsageError(`Dialogue ownership is inconsistent for ${describeTurn(turn)}: source segment ${turn.sourceSegmentId} is assigned to panel(s) ${provenancePanels.map(panel => panel.number).join(', ')}, but no exact speaker-and-text entry matches.`)
     }
-
-    const signature = `${exactLabel(turn.originalSpeakerLabel)}\0${exactText(turn.canonicalText)}`
-    const occurrence = (legacyOccurrence.get(signature) ?? 0) + 1
-    legacyOccurrence.set(signature, occurrence)
-    const contentMatches = speeches.filter(speech => speechMatches(turn, speech))
-    const match = contentMatches[occurrence - 1]
-    if (!match) {
-      throw CLIUsageError(`Dialogue ownership is missing for ${describeTurn(turn)}: no exact source-segment match exists and legacy exact content occurrence ${occurrence} is unavailable.`)
-    }
-    const matchingTurns = turns.filter(candidate => exactLabel(candidate.originalSpeakerLabel) === exactLabel(turn.originalSpeakerLabel) && exactText(candidate.canonicalText) === exactText(turn.canonicalText))
-    if (contentMatches.length !== matchingTurns.length) {
-      throw CLIUsageError(`Legacy dialogue ownership is ambiguous for ${describeTurn(turn)}: found ${contentMatches.length} exact panel speech occurrence(s) for ${matchingTurns.length} canonical turn(s).`)
-    }
-    return {
-      turnId: turn.turnId,
-      sourceSegmentId: turn.sourceSegmentId,
-      panelNumber: match.panelNumber,
-      subjectKey: turn.subjectKey,
-      speakerLabel: turn.originalSpeakerLabel,
-      canonicalText: turn.canonicalText,
-      evidence: {
-        kind: 'exact-content-ordinal',
-        speaker: panelSpeechLabel(match.speaker),
-        text: exactText(match.line),
-        occurrence,
-        speechOrdinal: match.speechOrdinal,
-        textMatch: speechTextMatch(turn, match) as SpeechTextMatch,
-      },
-    }
+    throw UsageError(`Dialogue ownership is missing for ${describeTurn(turn)}: source segment ${turn.sourceSegmentId} is not assigned to any panel. Redraft the scene so every dialogue turn carries panel provenance.`)
   })
 }
 
@@ -153,7 +107,7 @@ const owningPanelForSegment = (scene: ScenePromptData, sourceSegmentId: string, 
   const owners = scene.panels.filter(panel => panel.sourceSegmentIds.includes(sourceSegmentId))
   if (owners.length !== 1) {
     const detail = owners.length === 0 ? 'no reviewed panel' : `reviewed panels ${owners.map(panel => panel.number).join(', ')}`
-    throw CLIUsageError(`Sound cue ${cueId} source segment ${sourceSegmentId} is owned by ${detail}; exact panel ownership is required.`)
+    throw UsageError(`Sound cue ${cueId} source segment ${sourceSegmentId} is owned by ${detail}; exact panel ownership is required.`)
   }
   return (owners[0] as ScenePromptData['panels'][number]).number
 }
@@ -170,7 +124,7 @@ export const reconcilePresentationSoundEffects = (input: {
     const sourceSegmentId = cue.anchor.sourceSegmentId
     const bindings = input.dialogueBindings.filter(binding => binding.sourceSegmentId === sourceSegmentId)
     const panels = [...new Set(bindings.map(binding => binding.panelNumber))]
-    if (bindings.length === 0 || panels.length !== 1) throw CLIUsageError(`Inline sound cue ${cue.cueId} cannot resolve one panel from source segment ${sourceSegmentId}.`)
+    if (bindings.length === 0 || panels.length !== 1) throw UsageError(`Inline sound cue ${cue.cueId} cannot resolve one panel from source segment ${sourceSegmentId}.`)
     return {
       cueId: cue.cueId,
       panelNumber: panels[0] as number,
@@ -196,12 +150,12 @@ export const reconcilePresentationSoundEffects = (input: {
   const nearest = nearestEnd === undefined ? [] : preceding.filter(candidate => candidate.end === nearestEnd)
   if (nearest.length === 0) {
     const detail = 'no preceding authored action segment'
-    throw CLIUsageError(`Sound cue ${cue.cueId} has ${detail}; author exact source ownership before generating a slideshow.`)
+    throw UsageError(`Sound cue ${cue.cueId} has ${detail}; author exact source ownership before generating a slideshow.`)
   }
   const owners = nearest.map(candidate => ({ candidate, panelNumber: owningPanelForSegment(input.scene, candidate.segment.id, cue.cueId) }))
   const ownerPanels = [...new Set(owners.map(owner => owner.panelNumber))]
   if (ownerPanels.length !== 1) {
-    throw CLIUsageError(`Sound cue ${cue.cueId} has ambiguous preceding action segments ${nearest.map(candidate => candidate.segment.id).join(', ')} owned by panels ${ownerPanels.join(', ')}; author exact source ownership before generating a slideshow.`)
+    throw UsageError(`Sound cue ${cue.cueId} has ambiguous preceding action segments ${nearest.map(candidate => candidate.segment.id).join(', ')} owned by panels ${ownerPanels.join(', ')}; author exact source ownership before generating a slideshow.`)
   }
   const action = nearest[0] as NonNullable<typeof nearest[number]>
   return {
@@ -224,9 +178,9 @@ export const reconcilePresentationSoundEffects = (input: {
 })
 
 const validatePanelSequence = (panels: readonly ComicPresentationPanelInput[]): void => {
-  if (panels.length === 0) throw CLIUsageError('Comic presentation requires at least one reviewed panel.')
+  if (panels.length === 0) throw UsageError('Comic presentation requires at least one reviewed panel.')
   panels.forEach((panel, index) => {
-    if (panel.panelNumber !== index + 1) throw CLIUsageError(`Comic presentation panels must be uniquely ordered 1..N; found panel ${panel.panelNumber} at ordinal ${index + 1}.`)
+    if (panel.panelNumber !== index + 1) throw UsageError(`Comic presentation panels must be uniquely ordered 1..N; found panel ${panel.panelNumber} at ordinal ${index + 1}.`)
   })
 }
 
@@ -240,12 +194,12 @@ export const resolveComicPanelTimeline = (input: {
   untimedPanelMs: number
 }): ResolvedPanelTimeline => {
   validatePanelSequence(input.panels)
-  if (!Number.isSafeInteger(input.untimedPanelMs) || input.untimedPanelMs <= 0) throw CLIUsageError('--untimed-panel-ms must be a positive safe integer.')
+  if (!Number.isSafeInteger(input.untimedPanelMs) || input.untimedPanelMs <= 0) throw UsageError('--untimed-panel-ms must be a positive safe integer.')
   const preRollMs = input.dialoguePreRollMs ?? 0
   const eventsByPanel = new Map<number, Array<Omit<ComicPresentationTimelineEvent, 'presentationRangeMs'>>>()
   for (const binding of input.dialogueBindings) {
     const range = input.dialogueRanges.get(binding.turnId)
-    if (!range || !Number.isSafeInteger(range.start) || !Number.isSafeInteger(range.end) || range.end <= range.start) throw CLIUsageError(`Selected canonical audio timeline has no positive exact range for dialogue turn ${binding.turnId}.`)
+    if (!range || !Number.isSafeInteger(range.start) || !Number.isSafeInteger(range.end) || range.end <= range.start) throw UsageError(`Selected canonical audio timeline has no positive exact range for dialogue turn ${binding.turnId}.`)
     const event = {
       eventId: `dialogue:${binding.turnId}`,
       kind: 'dialogue' as const,
@@ -279,7 +233,7 @@ export const resolveComicPanelTimeline = (input: {
     }
     const originalStart = Math.min(...assigned.map(event => event.originalRangeMs.start))
     const originalEnd = Math.max(...assigned.map(event => event.originalRangeMs.end))
-    if (originalStart < 0 || originalEnd <= originalStart) throw CLIUsageError(`Panel ${image.panelNumber} resolves to an invalid assigned-audio window.`)
+    if (originalStart < 0 || originalEnd <= originalStart) throw UsageError(`Panel ${image.panelNumber} resolves to an invalid assigned-audio window.`)
     const startMs = cursor
     for (const event of assigned) {
       events.push({
@@ -311,25 +265,25 @@ export const createComicPresentationPlan = (
 
 export const validateComicPresentationPlan = (plan: ComicPresentationPlan): ComicPresentationPlan => {
   const { presentationId: _presentationId, ...base } = plan
-  if (plan.schemaVersion !== 1 || plan.presentationId !== hashCanonicalTtsValue(base)) throw CLIUsageError('ComicPresentationPlan has invalid content identity.')
+  if (plan.schemaVersion !== 1 || plan.presentationId !== hashCanonicalTtsValue(base)) throw UsageError('ComicPresentationPlan has invalid content identity.')
   validatePanelSequence(plan.inputs.panels)
-  if (new Set(plan.dialogueBindings.map(binding => binding.turnId)).size !== plan.dialogueBindings.length) throw CLIUsageError('ComicPresentationPlan contains duplicate dialogue bindings.')
-  if (new Set(plan.soundBindings.map(binding => binding.cueId)).size !== plan.soundBindings.length) throw CLIUsageError('ComicPresentationPlan contains duplicate sound bindings.')
+  if (new Set(plan.dialogueBindings.map(binding => binding.turnId)).size !== plan.dialogueBindings.length) throw UsageError('ComicPresentationPlan contains duplicate dialogue bindings.')
+  if (new Set(plan.soundBindings.map(binding => binding.cueId)).size !== plan.soundBindings.length) throw UsageError('ComicPresentationPlan contains duplicate sound bindings.')
   return plan
 }
 
 export const validateResolvedPanelTimeline = (timeline: ResolvedPanelTimeline): ResolvedPanelTimeline => {
   const { timelineId: _timelineId, ...base } = timeline
-  if (timeline.schemaVersion !== 1 || timeline.timelineId !== hashCanonicalTtsValue(base)) throw CLIUsageError('ResolvedPanelTimeline has invalid content identity.')
+  if (timeline.schemaVersion !== 1 || timeline.timelineId !== hashCanonicalTtsValue(base)) throw UsageError('ResolvedPanelTimeline has invalid content identity.')
   let cursor = 0
   for (const panel of timeline.panels) {
-    if (panel.startMs !== cursor || panel.endMs <= panel.startMs || panel.durationMs !== panel.endMs - panel.startMs) throw CLIUsageError('ResolvedPanelTimeline panel windows must be positive and sequential.')
+    if (panel.startMs !== cursor || panel.endMs <= panel.startMs || panel.durationMs !== panel.endMs - panel.startMs) throw UsageError('ResolvedPanelTimeline panel windows must be positive and sequential.')
     cursor = panel.endMs
   }
-  if (cursor !== timeline.durationMs) throw CLIUsageError('ResolvedPanelTimeline duration does not match its panel windows.')
+  if (cursor !== timeline.durationMs) throw UsageError('ResolvedPanelTimeline duration does not match its panel windows.')
   for (const event of timeline.events) {
     const panel = timeline.panels.find(candidate => candidate.panelNumber === event.panelNumber)
-    if (!panel || event.presentationRangeMs.start < panel.startMs || event.presentationRangeMs.end > panel.endMs || event.presentationRangeMs.end <= event.presentationRangeMs.start) throw CLIUsageError(`ResolvedPanelTimeline event ${event.eventId} escapes its owning panel.`)
+    if (!panel || event.presentationRangeMs.start < panel.startMs || event.presentationRangeMs.end > panel.endMs || event.presentationRangeMs.end <= event.presentationRangeMs.start) throw UsageError(`ResolvedPanelTimeline event ${event.eventId} escapes its owning panel.`)
   }
   return timeline
 }

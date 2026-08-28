@@ -1,14 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import {
-  captureLogEvents,
-  createOcrPdfChunkWithLocalFallback,
-  formatSplitPdfDiagnostic,
-  join,
-  mkdtemp,
-  readFallbackAuditRollup,
-  rm,
-  tmpdir
-} from './shared'
+import { captureLogEvents, createOcrPdfChunkWithLocalFallback, formatSplitPdfDiagnostic, join, readFallbackAuditRollup, rm } from './shared'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 describe('OCR resilience contracts', () => {
   test('formatSplitPdfDiagnostic prefixes messages with the provider log label', () => {
@@ -21,7 +13,7 @@ describe('OCR resilience contracts', () => {
   })
 
   test('rasterize fallback warning is prefixed with the provider label', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-split-label-'))
+    const tempDir = await makeTempDir('autoshow-ocr-split-label-')
     try {
       const inputPath = join(tempDir, 'input.pdf')
       const outputPath = join(tempDir, 'chunk.pdf')
@@ -56,7 +48,7 @@ describe('OCR resilience contracts', () => {
   })
 
   test('readFallbackAuditRollup returns audit counts and tolerates corrupt state', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-audit-rollup-'))
+    const tempDir = await makeTempDir('autoshow-ocr-audit-rollup-')
     try {
       await Bun.write(join(tempDir, 'fallback-state.json'), JSON.stringify({
         version: 2,

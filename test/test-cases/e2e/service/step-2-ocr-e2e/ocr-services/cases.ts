@@ -54,23 +54,6 @@ export const deepinfraOcr = {
   assertUsageMetadata: true,
 } as const
 
-export const replicateOcr = {
-  provider: 'replicate',
-  extractionMethod: 'replicate-ocr',
-  imageExtractionMethod: 'image+replicate-ocr',
-  envVarKey: 'REPLICATE_API_TOKEN',
-  imageInput: 'input/examples/document/1-document.jpg',
-} as const
-
-export const falOcr = {
-  provider: 'fal',
-  extractionMethod: 'fal-ocr',
-  imageExtractionMethod: 'image+fal-ocr',
-  envVarKey: 'FAL_API_KEY',
-  inputMode: 'image-only',
-  imageInput: hostedOcrImageInput,
-} as const
-
 export const grokOcr = {
   provider: 'grok',
   extractionMethod: 'grok-ocr',

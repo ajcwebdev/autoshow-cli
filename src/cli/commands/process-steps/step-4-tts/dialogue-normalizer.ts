@@ -1,6 +1,6 @@
 import { basename } from 'node:path'
 import type { DialogueNormalization, DialogueTurn, DialogueTurnDelivery, SpeakerVoiceMapping, SpeakerVoiceRegistry, TtsDialogueFormat, TtsOptions } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 const ACTION_VERBS = new Set([
   'freezes',
@@ -102,18 +102,18 @@ export const parseSpeakerVoiceMappings = (
   for (const raw of values ?? []) {
     const idx = raw.indexOf('=')
     if (idx <= 0 || idx === raw.length - 1) {
-      throw CLIUsageError(`Invalid --tts-speaker value "${raw}". Expected SPEAKER=VOICE or SPEAKER=path.`)
+      throw UsageError(`Invalid --tts-speaker value "${raw}". Expected SPEAKER=VOICE or SPEAKER=path.`)
     }
 
     const speaker = raw.slice(0, idx).trim()
     const voice = raw.slice(idx + 1).trim()
     if (!speaker || !voice) {
-      throw CLIUsageError(`Invalid --tts-speaker value "${raw}". Expected SPEAKER=VOICE or SPEAKER=path.`)
+      throw UsageError(`Invalid --tts-speaker value "${raw}". Expected SPEAKER=VOICE or SPEAKER=path.`)
     }
 
     const normalizedSpeaker = normalizeDialogueSpeakerKey(speaker)
     if (bySpeaker.has(normalizedSpeaker)) {
-      throw CLIUsageError(`Duplicate --tts-speaker mapping for speaker ${speaker}.`)
+      throw UsageError(`Duplicate --tts-speaker mapping for speaker ${speaker}.`)
     }
 
     const entry: SpeakerVoiceMapping = { speaker, normalizedSpeaker, voice, voiceKind: detectVoiceKind(voice) }
@@ -124,9 +124,6 @@ export const parseSpeakerVoiceMappings = (
   return { entries, bySpeaker }
 }
 
-// Speaker mappings alone are the mode switch. A dialogue format without them can only ever fail,
-// so counting it here turned a `ttsDialogueFormat` stored in config defaults into a step-4 abort
-// for every pipeline run. `assertDialogueFormatIsUsable` reports that case instead.
 export const isMultiSpeakerRequested = (options: TtsOptions): boolean =>
   (options.ttsSpeakers?.length ?? 0) > 0
 
@@ -135,11 +132,9 @@ export const resolveDialogueFormat = (options: TtsOptions): TtsDialogueFormat =>
     return options.ttsDialogueFormat
   }
 
-  throw CLIUsageError('Dialogue TTS requires --tts-dialogue-format screenplay|labeled.')
+  throw UsageError('Dialogue TTS requires --tts-dialogue-format screenplay|labeled.')
 }
 
-// A format with no speaker mappings selects nothing. Typed on the command line that is a usage
-// error; inherited from config defaults it is inert, so say so rather than failing the run.
 export const assertDialogueFormatIsUsable = (
   options: TtsOptions,
   explicitFlags?: ReadonlySet<string>
@@ -150,12 +145,13 @@ export const assertDialogueFormatIsUsable = (
   }
 
   if (explicitFlags?.has('tts-dialogue-format')) {
-    throw CLIUsageError('--tts-dialogue-format requires at least one --tts-speaker SPEAKER=VOICE mapping. Speaker mappings select multi-speaker TTS; a dialogue format alone selects nothing.')
+    throw UsageError('--tts-dialogue-format requires at least one --tts-speaker SPEAKER=VOICE mapping. Speaker mappings select multi-speaker TTS; a dialogue format alone selects nothing.')
   }
 
   l.warn(
     `--tts-dialogue-format ${format} has no effect without --tts-speaker mappings and was ignored. `
-    + 'Pass --tts-speaker SPEAKER=VOICE to run multi-speaker TTS, or remove ttsDialogueFormat from your config defaults.'
+    + 'Pass --tts-speaker SPEAKER=VOICE to run multi-speaker TTS, or remove ttsDialogueFormat from your config defaults.',
+    { category: 'tts', metadata: { dialogueFormat: format } }
   )
 }
 
@@ -306,23 +302,23 @@ const normalizeLabeledDialogue = (
 
     const match = line.match(/^([^:]+):\s*(.+)$/)
     if (!match) {
-      throw CLIUsageError(`Invalid labeled dialogue line ${i + 1}. Expected SPEAKER: text.`)
+      throw UsageError(`Invalid labeled dialogue line ${i + 1}. Expected SPEAKER: text.`)
     }
 
     const rawSpeaker = match[1]?.trim() ?? ''
     const speaker = registry.bySpeaker.get(normalizeDialogueSpeakerKey(rawSpeaker))
     if (!speaker) {
-      throw CLIUsageError(`No --tts-speaker mapping found for speaker ${rawSpeaker}.`)
+      throw UsageError(`No --tts-speaker mapping found for speaker ${rawSpeaker}.`)
     }
 
     const rawTurnText = match[2] ?? ''
     const parsed = parseLeadingParentheticals(rawTurnText)
     const turnText = normalizeDialogueWhitespace(rawTurnText)
     if (!turnText) {
-      throw CLIUsageError(`Invalid labeled dialogue line ${i + 1}. Dialogue text is empty.`)
+      throw UsageError(`Invalid labeled dialogue line ${i + 1}. Dialogue text is empty.`)
     }
     if (parsed.delivery && !parsed.text) {
-      throw CLIUsageError(`Invalid labeled dialogue line ${i + 1}. Dialogue text contains delivery but no spoken text.`)
+      throw UsageError(`Invalid labeled dialogue line ${i + 1}. Dialogue text contains delivery but no spoken text.`)
     }
 
     turns.push({
@@ -390,7 +386,7 @@ const normalizeScreenplayDialogue = (
     const unmappedSpeaker = getUnmappedInlineSpeaker(line, registry)
       ?? getUnmappedStandaloneSpeaker(line, lines[lineIndex + 1], registry)
     if (unmappedSpeaker) {
-      throw CLIUsageError(`No --tts-speaker mapping found for speaker ${unmappedSpeaker}.`)
+      throw UsageError(`No --tts-speaker mapping found for speaker ${unmappedSpeaker}.`)
     }
 
     if (!currentSpeaker) {
@@ -428,7 +424,7 @@ export const normalizeDialogueText = (
     : normalizeLabeledDialogue(text, registry)
 
   if (turns.length === 0) {
-    throw CLIUsageError('Dialogue TTS found no dialogue turns for the configured speakers.')
+    throw UsageError('Dialogue TTS found no dialogue turns for the configured speakers.')
   }
 
   const normalizedText = formatDialogueTurns(turns)
@@ -462,7 +458,7 @@ export const getSpeakerVoice = (
 ): SpeakerVoiceMapping => {
   const entry = registry.bySpeaker.get(normalizeDialogueSpeakerKey(speaker))
   if (!entry) {
-    throw CLIUsageError(`No --tts-speaker mapping found for speaker ${speaker}.`)
+    throw UsageError(`No --tts-speaker mapping found for speaker ${speaker}.`)
   }
   return entry
 }

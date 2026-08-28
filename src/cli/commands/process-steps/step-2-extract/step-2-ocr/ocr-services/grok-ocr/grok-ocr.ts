@@ -1,5 +1,5 @@
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 export const GROK_OCR_IMAGE_BYTES = 20 * 1024 * 1024
 export const GROK_OCR_LIMIT_SOURCE = 'https://docs.x.ai/developers/models'
@@ -12,7 +12,7 @@ const resolveGrokOcrBaseUrl = (baseUrl: string = XAI_DEFAULT_BASE_URL): string =
 }
 
 export const getGrokOcrClientConfig = (baseUrl?: string): { apiKey: string, baseURL: string } => {
-  const apiKey = requireApiKey('XAI_API_KEY', 'ocr:grok', 'Grok OCR')
+  const apiKey = resolveCredential('grok', 'require', { stage: 'ocr:grok', description: 'Grok OCR' })
 
   return {
     apiKey,

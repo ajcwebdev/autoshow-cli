@@ -1,26 +1,22 @@
 import { readFile } from 'node:fs/promises'
 import { basename, isAbsolute, resolve } from 'node:path'
-import type { ParsedCommandMetric, ParsedJunitCase, TestRunArtifacts } from '~/types'
-import type { MetricContext, ReportTestContext, ServiceModelPair } from '~/types'
+import type { MetricContext, ParsedCommandMetric, ParsedJunitCase, ReportTestContext, ServiceModelPair, TestRunArtifacts } from '~/types'
+import { readString } from '../utils'
+import { l } from '~/utils/app-logger/app-logger'
+import { hasErrorCode, serializeDiagnosticError } from '~/utils/error-handler'
+import { isObjectLike } from '~/utils/value-helpers'
 
 const COMMAND_KIND_NAMES = new Set(['setup', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music'])
 
 const MEDIA_INPUT_PATTERN = /\.(?:mp3|m4a|aac|wav|flac|ogg|opus|webm|mp4|mov|mkv|avi|m4v)(?:[?#]|$)/i
 const DOCUMENT_INPUT_PATTERN = /\.(?:pdf|epub|mobi|prc|azw3?|fb2|lit|docx|pptx|xlsx|odt|ods|odp|rtf|csv|cbz|png|jpe?g|tiff?|webp|bmp|gif)(?:[?#]|$)/i
 
-// Live write-step selectors (src/cli/flags/shared-flags.ts stepProviderSelectorFlags).
 const STEP_SELECTOR_KINDS: Record<string, string> = {
   '--stt': 'transcribe',
   '--ocr': 'extract',
   '--llm': 'write',
-  '--tts': 'tts',
-  '--image': 'image',
-  '--video': 'video',
-  '--music': 'music',
 }
 
-// Mirrors the canonical backend list in src/utils/extraction-provider-model.ts. `glm-reader`
-// is reported under service `glm` so it keeps matching the `glm` service hint below.
 const URL_BACKEND_PAIRS: Array<[backend: string, service: string, model: string]> = [
   ['defuddle', 'defuddle', 'defuddle'],
   ['firecrawl', 'firecrawl', 'firecrawl'],
@@ -70,10 +66,6 @@ const KNOWN_SERVICE_HINTS: Array<{ pattern: RegExp, service: string }> = [
   { pattern: /\bwhisper\b/i, service: 'whisper' },
 ]
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null
-}
-
 const cleanValue = (value: string | null | undefined): string | null => {
   if (!value) return null
   const cleaned = value.trim()
@@ -87,9 +79,9 @@ export const normalizeValue = (value: string | null | undefined): string | null 
 
 const toRecordArray = (value: unknown): Record<string, unknown>[] => {
   if (Array.isArray(value)) {
-    return value.filter(isRecord)
+    return value.filter(isObjectLike)
   }
-  return isRecord(value) ? [value] : []
+  return isObjectLike(value) ? [value] : []
 }
 
 const dedupePairs = (pairs: ServiceModelPair[]): ServiceModelPair[] => {
@@ -129,8 +121,6 @@ export const isControlE2ETest = (name: string): boolean => {
     || /^requires\b/i.test(name)
 }
 
-// Only resolves kinds the CLI actually names. `resume` is deliberately absent, so provider
-// pairs harvested from a `resume` invocation stay unlabelled instead of being called `write`.
 const resolveExplicitCommandKind = (metric: ParsedCommandMetric): string | null => {
   return metric.args.find(arg => COMMAND_KIND_NAMES.has(arg)) ?? null
 }
@@ -244,9 +234,9 @@ const buildPairsFromMetricArgs = (metric: ParsedCommandMetric): ServiceModelPair
 }
 
 const resolveStep2ExtractPair = (step2: Record<string, unknown>): { service: string | null, model: string | null } => {
-  const extractionMethod = typeof step2['extractionMethod'] === 'string' ? step2['extractionMethod'] : null
-  const ocrService = typeof step2['ocrService'] === 'string' ? step2['ocrService'] : null
-  const ocrModel = typeof step2['ocrModel'] === 'string' ? step2['ocrModel'] : null
+  const extractionMethod = readString(step2, 'extractionMethod')
+  const ocrService = readString(step2, 'ocrService')
+  const ocrModel = readString(step2, 'ocrModel')
 
   if (extractionMethod) {
     for (const [backend, service, model] of URL_BACKEND_PAIRS) {
@@ -295,8 +285,8 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
     pushPair(
       pairs,
       'transcribe',
-      typeof step2['transcriptionService'] === 'string' ? step2['transcriptionService'] : null,
-      typeof step2['transcriptionModel'] === 'string' ? step2['transcriptionModel'] : null
+      readString(step2, 'transcriptionService'),
+      readString(step2, 'transcriptionModel')
     )
 
     const extractPair = resolveStep2ExtractPair(step2)
@@ -307,8 +297,8 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
     pushPair(
       pairs,
       'write',
-      typeof step3['llmService'] === 'string' ? step3['llmService'] : null,
-      typeof step3['llmModel'] === 'string' ? step3['llmModel'] : null
+      readString(step3, 'llmService'),
+      readString(step3, 'llmModel')
     )
   }
 
@@ -316,8 +306,8 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
     pushPair(
       pairs,
       'tts',
-      typeof step4['ttsService'] === 'string' ? step4['ttsService'] : null,
-      typeof step4['ttsModel'] === 'string' ? step4['ttsModel'] : null
+      readString(step4, 'ttsService'),
+      readString(step4, 'ttsModel')
     )
   }
 
@@ -325,8 +315,8 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
     pushPair(
       pairs,
       'music',
-      typeof music['musicService'] === 'string' ? music['musicService'] : null,
-      typeof music['musicModel'] === 'string' ? music['musicModel'] : null
+      readString(music, 'musicService'),
+      readString(music, 'musicModel')
     )
   }
 
@@ -334,8 +324,8 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
     pushPair(
       pairs,
       'tts',
-      typeof tts['ttsService'] === 'string' ? tts['ttsService'] : null,
-      typeof tts['ttsModel'] === 'string' ? tts['ttsModel'] : null
+      readString(tts, 'ttsService'),
+      readString(tts, 'ttsModel')
     )
   }
 
@@ -343,8 +333,8 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
     pushPair(
       pairs,
       'image',
-      typeof image['imageService'] === 'string' ? image['imageService'] : null,
-      typeof image['imageModel'] === 'string' ? image['imageModel'] : null
+      readString(image, 'imageService'),
+      readString(image, 'imageModel')
     )
   }
 
@@ -352,24 +342,17 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
     pushPair(
       pairs,
       'video',
-      typeof video['videoGenService'] === 'string'
-        ? video['videoGenService']
-        : typeof video['videoService'] === 'string' ? video['videoService'] : null,
-      typeof video['videoGenModel'] === 'string'
-        ? video['videoGenModel']
-        : typeof video['videoModel'] === 'string' ? video['videoModel'] : null
+      readString(video, 'videoGenService') ?? readString(video, 'videoService'),
+      readString(video, 'videoGenModel') ?? readString(video, 'videoModel')
     )
   }
 
   return dedupePairs(pairs)
 }
 
-// Matches sanitizeOutputRootSegment in test/test-utils/test-helpers.ts, which names the
-// canonical manifest copies under `<runDir>/run/`.
 const sanitizeArtifactSegment = (value: string): string =>
   value.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'run'
 
-// Mirrors unwrapCanonicalRecordValue in test/test-utils/manifest-helpers.ts.
 const unwrapManifestMetadata = (value: Record<string, unknown>): Record<string, unknown> => {
   const items = value['items']
   if (
@@ -377,8 +360,8 @@ const unwrapManifestMetadata = (value: Record<string, unknown>): Record<string, 
     && (value['scope'] === 'single' || value['scope'] === 'batch')
     && Array.isArray(items)
     && items.length === 1
-    && isRecord(items[0])
-    && isRecord(items[0]['metadata'])
+    && isObjectLike(items[0])
+    && isObjectLike(items[0]['metadata'])
   ) {
     return items[0]['metadata']
   }
@@ -413,8 +396,6 @@ const getMetricMetadata = async (
 ): Promise<Record<string, unknown> | null> => {
   if (!metric.outputDir) return null
 
-  // Keyed on the fully-qualified output dir: basenames such as `downloaded_audio` and
-  // `1-document` repeat across parallel workers and would cross-attribute metadata.
   const key = `${metric.outputRoot ?? ''}::${metric.outputDir}`
   if (cache.has(key)) {
     return cache.get(key) ?? null
@@ -423,12 +404,18 @@ const getMetricMetadata = async (
   for (const metadataPath of buildMetricMetadataPaths(metric, artifacts)) {
     try {
       const parsed = JSON.parse(await readFile(metadataPath, 'utf8')) as unknown
-      if (isRecord(parsed)) {
+      if (isObjectLike(parsed)) {
         const record = unwrapManifestMetadata(parsed)
         cache.set(key, record)
         return record
       }
-    } catch {
+    } catch (error) {
+      if (!hasErrorCode(error, 'ENOENT')) {
+        l.warn(`Could not read run metadata at ${metadataPath}; the report will omit it`, {
+          category: 'artifact',
+          metadata: { metadataPath, error: serializeDiagnosticError(error) }
+        })
+      }
     }
   }
 
@@ -455,22 +442,33 @@ export const buildMetricContext = async (
   }
 }
 
-export const inferTestKind = (testCase: ParsedJunitCase): string | null => {
-  if (testCase.file.includes('/step-7-music-gen-e2e/')) return 'music'
-  if (testCase.file.includes('/step-6-video-gen-e2e/')) return 'video'
-  if (testCase.file.includes('/step-5-image-gen-e2e/')) return 'image'
-  if (testCase.file.includes('/step-4-tts-e2e/')) return 'tts'
-  if (testCase.file.includes('/step-3-write-e2e/')) return 'write'
-  if (testCase.file.includes('/step-2-stt-e2e/')) return 'transcribe'
-  if (testCase.file.includes('/step-2-ocr-e2e/')) return 'extract'
-  if (/\btranscribe\b/i.test(testCase.name)) return 'transcribe'
-  if (/\bextract\b/i.test(testCase.name)) return 'extract'
-  if (/\btts\b/i.test(testCase.name) || /speech\.wav/i.test(testCase.name)) return 'tts'
-  if (/\bimage\b/i.test(testCase.name) || /generated-image/i.test(testCase.name)) return 'image'
-  if (/\bvideo\b/i.test(testCase.name) || /\bveo\b/i.test(testCase.name)) return 'video'
-  if (/\bmusic\b/i.test(testCase.name) || /generated music/i.test(testCase.name)) return 'music'
-  return null
-}
+type TestKindRule = Readonly<{ pattern: RegExp, kind: string }>
+
+const TEST_KIND_PATH_RULES: readonly TestKindRule[] = [
+  { pattern: /\/step-7-music-gen-e2e\//, kind: 'music' },
+  { pattern: /\/step-6-video-gen-e2e\//, kind: 'video' },
+  { pattern: /\/step-5-image-gen-e2e\//, kind: 'image' },
+  { pattern: /\/step-4-tts-e2e\//, kind: 'tts' },
+  { pattern: /\/step-3-write-e2e\//, kind: 'write' },
+  { pattern: /\/step-2-stt-e2e\//, kind: 'transcribe' },
+  { pattern: /\/step-2-ocr-e2e\//, kind: 'extract' },
+]
+
+const TEST_KIND_NAME_RULES: readonly TestKindRule[] = [
+  { pattern: /\btranscribe\b/i, kind: 'transcribe' },
+  { pattern: /\bextract\b/i, kind: 'extract' },
+  { pattern: /\btts\b|speech\.wav/i, kind: 'tts' },
+  { pattern: /\bimage\b|generated-image/i, kind: 'image' },
+  { pattern: /\bvideo\b|\bveo\b/i, kind: 'video' },
+  { pattern: /\bmusic\b|generated music/i, kind: 'music' },
+]
+
+const firstMatchingTestKind = (value: string, rules: readonly TestKindRule[]): string | null =>
+  rules.find(rule => rule.pattern.test(value))?.kind ?? null
+
+export const inferTestKind = (testCase: Pick<ParsedJunitCase, 'file' | 'name'>): string | null =>
+  firstMatchingTestKind(testCase.file, TEST_KIND_PATH_RULES)
+  ?? firstMatchingTestKind(testCase.name, TEST_KIND_NAME_RULES)
 
 const inferServiceHints = (testCase: ParsedJunitCase): Set<string> => {
   const text = `${testCase.file} ${testCase.name}`

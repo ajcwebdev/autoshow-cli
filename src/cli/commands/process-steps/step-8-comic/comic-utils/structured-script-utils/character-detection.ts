@@ -9,7 +9,7 @@ export const uniqueCharacters = <T extends string>(characterKeys: T[]): T[] => {
 export const getCharactersFromMentions = (mentions: CharacterMention[]): CharacterKey[] =>
   uniqueCharacters(mentions.flatMap(mention => [...mention.characterKeys]))
 
-export const normalizeSpeakerLabelForMatching = normalizeCharacterLookup
+const normalizeSpeakerLabelForMatching = normalizeCharacterLookup
 
 export const detectSpeakerLabelCharacters = (label: string): CharacterKey[] => {
   const catalog = loadCharacterCatalog()

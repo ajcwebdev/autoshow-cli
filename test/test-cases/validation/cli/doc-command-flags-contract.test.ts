@@ -14,10 +14,10 @@ import { musicCommand } from '~/cli/commands/process-steps/step-7-music/define-m
 import { comicCommand } from '~/cli/commands/process-steps/step-8-comic/define-comic-command'
 import { voiceCommand } from '~/cli/commands/process-steps/step-4-tts/voice-management/define-voice-command'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
-import type { CliCommandDefinition, CliFlagDefinition } from '~/types'
+import type { CliCommandDefinition, CliFlagDefinition, DocumentedFlag, FlagTableRows, ScannerState } from '~/types'
 
 const docsRoot = resolve(import.meta.dir, '../../../../docs/commands')
-const configDoc = 'setup-and-utilities/config/config.md'
+const configDoc = 'setup-and-utilities/config-command/config.md'
 const commandByDoc = {
   'process-steps/step-0-metadata/metadata.md': metadataCommand,
   'process-steps/step-1-download/download-file.md': downloadCommand,
@@ -52,12 +52,6 @@ const commandByDoc = {
   'setup-and-utilities/setup/setup.md': setupCommand
 } as const satisfies Record<string, CliCommandDefinition>
 
-type DocumentedFlag = {
-  heading: string | undefined
-  line: number
-  name: string
-}
-
 const tableCells = (line: string): string[] =>
   line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((cell) => cell.trim())
 
@@ -66,39 +60,175 @@ const isTableDivider = (line: string): boolean => {
   return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell))
 }
 
+const isFlagTableHeader = (lines: string[], currentLine: number): boolean => {
+  const header = lines[currentLine] ?? ''
+  const divider = lines[currentLine + 1] ?? ''
+  if (!header.trim().startsWith('|') || !isTableDivider(divider)) return false
+  return tableCells(header).some((cell) => /\bflags?\b/i.test(cell))
+}
+
+const flagsFromTableRow = (
+  row: string,
+  heading: string | undefined,
+  line: number
+): DocumentedFlag[] => {
+  const flags: DocumentedFlag[] = []
+  for (const match of row.matchAll(/--([a-z0-9][a-z0-9-]*)/g)) {
+    const name = match[1]
+    if (name !== undefined) flags.push({ heading, line, name })
+  }
+  return flags
+}
+
+const readFlagTableRows = (
+  lines: string[],
+  firstRow: number,
+  heading: string | undefined
+): FlagTableRows => {
+  const flags: DocumentedFlag[] = []
+  let nextLine = firstRow
+  while ((lines[nextLine] ?? '').trim().startsWith('|')) {
+    flags.push(...flagsFromTableRow(lines[nextLine] ?? '', heading, nextLine + 1))
+    nextLine += 1
+  }
+  return { flags, nextLine }
+}
+
 const documentedFlags = (markdown: string): DocumentedFlag[] => {
   const lines = markdown.split('\n')
   const flags: DocumentedFlag[] = []
-  let heading: string | undefined
-  let inFence = false
+  const state: ScannerState = {
+    currentLine: 0,
+    currentH2: undefined,
+    inFence: false
+  }
 
-  for (let index = 0; index < lines.length; index++) {
-    const line = lines[index] ?? ''
+  while (state.currentLine < lines.length) {
+    const line = lines[state.currentLine] ?? ''
     if (/^\s*```/.test(line)) {
-      inFence = !inFence
+      state.inFence = !state.inFence
+      state.currentLine += 1
       continue
     }
-    if (inFence) continue
+    if (state.inFence) {
+      state.currentLine += 1
+      continue
+    }
 
     const headingMatch = line.match(/^##\s+(.+?)\s*$/)
-    if (headingMatch) heading = headingMatch[1]
+    if (headingMatch !== null) state.currentH2 = headingMatch[1]
 
-    const nextLine = lines[index + 1] ?? ''
-    if (!line.trim().startsWith('|') || !isTableDivider(nextLine)) continue
-    if (!tableCells(line).some((cell) => /\bflags?\b/i.test(cell))) continue
-
-    for (index += 2; index < lines.length && (lines[index] ?? '').trim().startsWith('|'); index++) {
-      const row = lines[index] ?? ''
-      for (const match of row.matchAll(/--([a-z0-9][a-z0-9-]*)/g)) {
-        const name = match[1]
-        if (name !== undefined) flags.push({ heading, line: index + 1, name })
-      }
+    if (isFlagTableHeader(lines, state.currentLine)) {
+      const table = readFlagTableRows(lines, state.currentLine + 2, state.currentH2)
+      flags.push(...table.flags)
+      state.currentLine = table.nextLine
+      continue
     }
-    index--
+    state.currentLine += 1
   }
 
   return flags
 }
+
+test('documented flag scanner excludes fenced tables', () => {
+  const markdown = [
+    '## Options',
+    '```md',
+    '| Flag | Description |',
+    '| --- | --- |',
+    '| `--hidden` | Example only |',
+    '```',
+    '| Flag | Description |',
+    '| --- | --- |',
+    '| `--visible` | Registered option |'
+  ].join('\n')
+
+  expect(documentedFlags(markdown)).toEqual([
+    { heading: 'Options', line: 9, name: 'visible' }
+  ])
+})
+
+test('documented flag scanner ignores non-flag tables', () => {
+  const markdown = [
+    '## Options',
+    '| Setting | Description |',
+    '| --- | --- |',
+    '| `--not-a-flag-table` | Example text |',
+    '',
+    '| Flag | Description |',
+    '| --- | --- |',
+    '| `--included` | Registered option |'
+  ].join('\n')
+
+  expect(documentedFlags(markdown)).toEqual([
+    { heading: 'Options', line: 8, name: 'included' }
+  ])
+})
+
+test('documented flag scanner reads consecutive flag tables in order', () => {
+  const markdown = [
+    '## Options',
+    '| Flag | Description |',
+    '| --- | --- |',
+    '| `--first` | First option |',
+    '',
+    '| FLAGS | Description |',
+    '| :--- | ---: |',
+    '| `--second` | Second option |'
+  ].join('\n')
+
+  expect(documentedFlags(markdown)).toEqual([
+    { heading: 'Options', line: 4, name: 'first' },
+    { heading: 'Options', line: 8, name: 'second' }
+  ])
+})
+
+test('documented flag scanner scopes tables to the current H2 heading', () => {
+  const markdown = [
+    '## First command',
+    '| Flag | Description |',
+    '| --- | --- |',
+    '| `--first` | First option |',
+    '',
+    '## Second command',
+    '| Flag | Description |',
+    '| --- | --- |',
+    '| `--second` | Second option |'
+  ].join('\n')
+
+  expect(documentedFlags(markdown)).toEqual([
+    { heading: 'First command', line: 4, name: 'first' },
+    { heading: 'Second command', line: 9, name: 'second' }
+  ])
+})
+
+test('documented flag scanner preserves multiple flags and duplicates in row order', () => {
+  const markdown = [
+    '| Flag | Description |',
+    '| --- | --- |',
+    '| `--alpha`, `--beta`, `--alpha` | Aliases and duplicate reference |'
+  ].join('\n')
+
+  expect(documentedFlags(markdown)).toEqual([
+    { heading: undefined, line: 3, name: 'alpha' },
+    { heading: undefined, line: 3, name: 'beta' },
+    { heading: undefined, line: 3, name: 'alpha' }
+  ])
+})
+
+test('documented flag scanner preserves negated flags', () => {
+  const markdown = [
+    '## Options',
+    '| Flag | Description |',
+    '| --- | --- |',
+    '| `--feature`, `--no-feature` | Positive and negated forms |'
+  ].join('\n')
+
+  expect(documentedFlags(markdown)).toEqual([
+    { heading: 'Options', line: 4, name: 'feature' },
+    { heading: 'Options', line: 4, name: 'no-feature' }
+  ])
+})
 
 const numberedParentCommands = [
   { prefix: 'process-steps/step-8-comic/', command: comicCommand, overview: 'comic-overview' },

@@ -1,9 +1,10 @@
 import { test, expect, beforeAll, afterAll } from 'bun:test'
-import { readdir, rm } from 'node:fs/promises'
+import { readdir } from 'node:fs/promises'
 import { basename, dirname, join, resolve } from 'node:path'
-import { runCommand, fileExists, findLatestDirectory, cleanupTestOutput } from '../../../../test-utils/test-helpers'
+import { cleanupOutputDir, cleanupTestOutput, fileExists, findLatestDirectory, runCommand } from '../../../../test-utils/test-helpers'
 import { readCanonicalItemRecords, readCanonicalSource, readCanonicalRecord } from '../../../../test-utils/manifest-helpers'
 import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
+import { expectArtifact } from '../../../../test-utils/value-assertions'
 import type {
   DownloadE2eBatchCase,
   DownloadE2eBatchSource,
@@ -142,10 +143,8 @@ export const setupDownloadInputTypeLifecycle = (suffixes: string[]): void => {
   })
 
   afterAll(async () => {
-    if (process.env['AUTOSHOW_TEST_PRESERVE_ARTIFACTS'] === '0') {
-      await Promise.all([...createdDirs].map(dir => rm(dir, { recursive: true, force: true }).catch(() => {})))
-      await Promise.all(uniqueSuffixes.map(suffix => cleanupTestOutput(suffix)))
-    }
+    await Promise.all([...createdDirs].map(dir => cleanupOutputDir(dir)))
+    await Promise.all(uniqueSuffixes.map(suffix => cleanupTestOutput(suffix)))
   })
 }
 
@@ -173,7 +172,7 @@ export const defineSingleCaseTest = (tc: DownloadE2eSingleCase): void => {
       return
     }
 
-    expect(await fileExists(join(outputDir, PIPELINE_MANIFEST_FILE))).toBe(true)
+    await expectArtifact(join(outputDir, PIPELINE_MANIFEST_FILE))
     const metadata = parseMetadata(await readCanonicalRecord(outputDir))
     expect(metadata.step1).toBeDefined()
 
@@ -202,7 +201,7 @@ export const defineBatchCaseTest = (tc: DownloadE2eBatchCase): void => {
       return
     }
 
-    expect(await fileExists(join(batchDir, PIPELINE_MANIFEST_FILE))).toBe(true)
+    await expectArtifact(join(batchDir, PIPELINE_MANIFEST_FILE))
     const infoEntries = await readCanonicalItemRecords(batchDir)
 
     const canonicalSource = await readCanonicalSource(batchDir)
@@ -233,7 +232,7 @@ export const defineBatchCaseTest = (tc: DownloadE2eBatchCase): void => {
       return
     }
 
-    expect(await fileExists(join(firstItemDir, PIPELINE_MANIFEST_FILE))).toBe(true)
+    await expectArtifact(join(firstItemDir, PIPELINE_MANIFEST_FILE))
     expect(infoEntries.length).toBe(itemDirs.length)
     const rawMetadata = await readCanonicalRecord(firstItemDir)
     const firstInfoEntry = asRecord(infoEntries[0])

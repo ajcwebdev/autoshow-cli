@@ -5,18 +5,21 @@ import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-pipeline'
 import { SPEECHIFY_DEFAULT_TTS_VOICE, validateSpeechifyTtsLanguageForModel, validateSpeechifyTtsVoiceForModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { SPEECHIFY_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { validateDataSafe } from '~/utils/validate/validation'
 import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
+import { readRestErrorText } from '~/utils/rest-client'
 
 const SpeechifySpeechResponseSchema = v.object({
   audio_data: v.string()
 })
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
+
+const SPEECHIFY_TTS_AUDIO_FORMAT = 'wav'
 
 const decodeSpeechifyAudioData = (audioData: string): Uint8Array => {
   const cleaned = audioData.includes(',')
@@ -25,27 +28,20 @@ const decodeSpeechifyAudioData = (audioData: string): Uint8Array => {
   return new Uint8Array(Buffer.from(cleaned, 'base64'))
 }
 
-const readSpeechifyError = async (response: Response): Promise<string> => {
-  const text = await response.text()
-  return text.trim() || `HTTP ${response.status}`
-}
-
 export const runSpeechifyTts = async (
   text: string,
   outputDir: string,
   options: {
     model: SpeechifyTtsModel
     voiceId?: string | undefined
-    audioFormat?: string | undefined
     language?: string | undefined
     abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
     requestEvidence?: TtsRequestEvidenceScope | undefined
-    allowAmbiguousRedispatch?: boolean | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = requireApiKey('SPEECHIFY_API_KEY', 'tts:speechify', 'Speechify TTS')
+  const apiKey = resolveCredential('speechify', 'require', { stage: 'tts:speechify', description: 'Speechify TTS' })
 
   const baseURL = trimTrailingSlash(SPEECHIFY_DEFAULT_BASE_URL)
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.speechify)
@@ -56,14 +52,13 @@ export const runSpeechifyTts = async (
 
   const startTime = Date.now()
   const voice = validateSpeechifyTtsVoiceForModel(options.model, options.voiceId?.trim() || SPEECHIFY_DEFAULT_TTS_VOICE)
-  const audioFormat = options.audioFormat?.trim() || 'mp3'
   const language = validateSpeechifyTtsLanguageForModel(options.model, options.language)
   const speaker = voice
 
   logTtsConfig('Speechify', [
     { label: 'model', value: options.model },
     { label: 'voice', value: voice },
-    { label: 'audio format', value: audioFormat },
+    { label: 'audio format', value: SPEECHIFY_TTS_AUDIO_FORMAT },
     { label: 'language', value: language },
     { label: 'chunk count', value: chunks.length }
   ])
@@ -75,10 +70,9 @@ export const runSpeechifyTts = async (
     speaker,
     chunks,
     outputDir,
-    chunkExtension: audioFormat,
+    chunkExtension: SPEECHIFY_TTS_AUDIO_FORMAT,
     startTime,
     abortSignal: options.abortSignal,
-    allowAmbiguousRedispatch: options.allowAmbiguousRedispatch,
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
     requestEvidence: options.requestEvidence,
@@ -86,7 +80,7 @@ export const runSpeechifyTts = async (
       const requestBody = {
         input: chunk,
         voice_id: voice,
-        audio_format: audioFormat,
+        audio_format: SPEECHIFY_TTS_AUDIO_FORMAT,
         model: options.model,
         ...(language ? { language } : {})
       }
@@ -99,7 +93,7 @@ export const runSpeechifyTts = async (
         voiceField: 'voice_id',
         voices: [{ kind: 'provider-id', value: voice }],
         requestControls: {
-          audioFormat,
+          audioFormat: SPEECHIFY_TTS_AUDIO_FORMAT,
           ...(language ? { language } : {})
         },
         continuation: { kind: 'none' }
@@ -116,7 +110,7 @@ export const runSpeechifyTts = async (
       })
 
       if (!response.ok) {
-        const errText = await readSpeechifyError(response)
+        const errText = await readRestErrorText(response)
         throw httpResponseError(`Speechify TTS failed (${response.status}): ${errText}`, response)
       }
       await accepted({ fields: { httpStatus: response.status } })

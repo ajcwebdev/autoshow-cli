@@ -1,50 +1,36 @@
 import { expect } from 'bun:test'
-import { rm } from 'node:fs/promises'
 import { budgetedTest } from '../../../../../test-utils/budget'
-import { runCommand, fileExists } from '../../../../../test-utils/test-helpers'
+
 import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
+import { cleanupOutputDir } from '../../../../../test-utils/test-helpers'
 import {
-  classifyLiveProviderAvailabilityFailure,
-  formatCommandFailureDiagnostics,
-  requireConfiguredEnvVar
+  requireConfiguredEnvVar,
+  runCommandAndExpectOutputDir
 } from '../../../../../test-utils/service-test-kit'
 import type { OcrE2eExtractMetadata } from '~/types'
+import { expectArtifact } from '../../../../../test-utils/value-assertions'
 
 const articleUrl = 'https://ajcwebdev.com'
 
-budgetedTest('extract-glm-reader-url', 'bun autoshow extract https://ajcwebdev.com --url-provider glm-reader', async () => {
+budgetedTest('extract-glm-reader-url', 'bun autoshow extract https://ajcwebdev.com --provider glm-reader', async () => {
   await requireConfiguredEnvVar('GLM_API_KEY', 'GLM_API_KEY not configured')
 
   let outputDir: string | null = null
 
   try {
-    const args = ['src/cli/create-cli.ts', 'extract', articleUrl, '--url-provider', 'glm-reader']
-    const result = await runCommand(
+    const args = ['src/cli/create-cli.ts', 'extract', articleUrl, '--provider', 'glm-reader']
+    outputDir = await runCommandAndExpectOutputDir(
+      'GLM Reader URL extraction',
       args,
-      { testName: 'bun autoshow extract https://ajcwebdev.com --url-provider glm-reader' }
+      { testName: 'bun autoshow extract https://ajcwebdev.com --provider glm-reader' }
     )
-    if (result.exitCode !== 0) {
-      const availabilityReason = classifyLiveProviderAvailabilityFailure(`${result.stdout}\n${result.stderr}`)
-      if (availabilityReason) {
-        throw new Error(`Live provider availability failure: ${availabilityReason}\n${formatCommandFailureDiagnostics(args, result)}`)
-      }
-      throw new Error(formatCommandFailureDiagnostics(args, result))
-    }
-    expect(result.exitCode).toBe(0)
 
-    outputDir = result.outputDir
-    if (!outputDir) {
-      throw new Error('Expected output directory for GLM Reader URL extraction')
-    }
-
-    expect(await fileExists(`${outputDir}/extraction.txt`)).toBe(true)
+    await expectArtifact(`${outputDir}/extraction.txt`)
 
     const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
     expect(metadata.step1?.format).toBe('html')
     expect(metadata.step2?.extractionMethod).toBe('html+glm-reader')
   } finally {
-    if (outputDir && process.env['AUTOSHOW_TEST_PRESERVE_ARTIFACTS'] === '0') {
-      await rm(outputDir, { recursive: true, force: true }).catch(() => {})
-    }
+    await cleanupOutputDir(outputDir)
   }
 })

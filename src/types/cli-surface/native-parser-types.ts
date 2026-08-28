@@ -1,6 +1,6 @@
 import type { CliCommandDefinition, CliFlagValues, CliParameterValues, CliRawParsed } from '~/types'
 
-export type CliParseMode = 'command' | 'help' | 'version'
+type CliParseMode = 'command' | 'help' | 'version'
 
 export type CliParseResult = {
   mode: CliParseMode

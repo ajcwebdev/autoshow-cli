@@ -7,45 +7,36 @@ import { ensureDeepgramTtsSetup } from './deepgram-tts'
 import { runDeepgramTts } from './run-deepgram-tts'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
 import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
-export const collectDeepgramTtsTargets = (
-  selection: TtsTargetSelection
-): TtsTarget[] => {
-  const targets: TtsTarget[] = []
-  for (const rawModel of selection.deepgramModels) {
-    const model: DeepgramTtsModel = validateDeepgramTtsModel(rawModel)
-    const voiceId = selection.deepgramVoiceId
-      ? validateDeepgramTtsVoice(selection.deepgramVoiceId)
-      : undefined
+import { createMediaTargetCollector } from '~/cli/commands/process-steps/media-target-collector'
 
-    targets.push({
-      service: 'deepgram',
+export const collectDeepgramTtsTargets: (selection: TtsTargetSelection) => TtsTarget[] = createMediaTargetCollector<
+  TtsTargetSelection,
+  string,
+  DeepgramTtsModel,
+  'deepgram',
+  Parameters<TtsTarget['run']>,
+  Awaited<ReturnType<TtsTarget['run']>>,
+  { voice?: string }
+>({
+  service: 'deepgram',
+  readModels: (selection: TtsTargetSelection) => selection.deepgramModels,
+  validateModel: (rawModel): DeepgramTtsModel => validateDeepgramTtsModel(rawModel),
+  targetFields: selection => {
+    const voiceId = selection.deepgramVoiceId ? validateDeepgramTtsVoice(selection.deepgramVoiceId) : undefined
+    return voiceId ? { voice: voiceId } : {}
+  },
+  ensureSetup: ensureDeepgramTtsSetup,
+  run: async (selection, model, fields, ...[text, outputDir, opts, invocation, requestEvidence]: Parameters<TtsTarget['run']>) => {
+    const invocationVoiceId = resolveTtsTargetInvocationVoiceId('deepgram', invocation)
+    const controls = resolveTtsTargetInvocationControls('deepgram', invocation, { speed: selection.deepgramSpeed })
+    return await runDeepgramTts(text, outputDir, {
       model,
-      ...(voiceId ? { voice: voiceId } : {}),
-      run: async (text, outputDir, opts, invocation, requestEvidence) => {
-        const invocationVoiceId = resolveTtsTargetInvocationVoiceId('deepgram', invocation)
-        const controls = resolveTtsTargetInvocationControls('deepgram', invocation, {
-          encoding: selection.deepgramEncoding,
-          container: selection.deepgramContainer,
-          bitRate: selection.deepgramBitRate,
-          sampleRate: selection.deepgramSampleRate,
-          speed: selection.deepgramSpeed,
-        })
-        await ensureDeepgramTtsSetup()
-        return await runDeepgramTts(text, outputDir, {
-          model,
-          voiceId: invocationVoiceId ?? voiceId,
-          encoding: controls.encoding,
-          container: controls.container,
-          bitRate: controls.bitRate,
-          sampleRate: controls.sampleRate,
-          speed: controls.speed,
-          chunkConcurrency: opts.ttsChunkConcurrency,
-          chunkScheduler: opts.hostedTtsChunkScheduler,
-          abortSignal: invocation?.signal,
-          requestEvidence
-        })
-      }
+      voiceId: invocationVoiceId ?? fields.voice,
+      speed: controls.speed,
+      chunkConcurrency: opts.ttsChunkConcurrency,
+      chunkScheduler: opts.hostedTtsChunkScheduler,
+      abortSignal: invocation?.signal,
+      requestEvidence
     })
   }
-  return targets
-}
+})

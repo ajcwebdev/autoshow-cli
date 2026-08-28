@@ -1,22 +1,12 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
-import type { ParsedJunitCase } from '~/types'
+import { join, resolve } from 'node:path'
+import type { FileTimingsCacheFile, FileTimingsLookup, ParsedJunitCase } from '~/types'
+import { TEST_OUTPUT_ROOT } from './artifacts'
 
 const CACHE_VERSION = 1
 const MAX_SAMPLES = 20
 
-export const FILE_TIMINGS_CACHE_PATH = resolve(process.cwd(), 'project/test-output/.test-cache/file-timings.json')
-
-type FileTimingsCacheFile = {
-  version: number
-  files: Record<string, number[]>
-  tests: Record<string, number>
-}
-
-export type FileTimingsLookup = {
-  fileP50: Map<string, number>
-  testDurations: Map<string, number>
-}
+const FILE_TIMINGS_CACHE_PATH = join(TEST_OUTPUT_ROOT, '.test-cache', 'file-timings.json')
 
 export const medianDuration = (values: readonly number[]): number | null => {
   if (values.length === 0) {

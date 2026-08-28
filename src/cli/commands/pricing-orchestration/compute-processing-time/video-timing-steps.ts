@@ -6,12 +6,11 @@ import { roundMs, withNormalizedTiming } from './timing-shared'
 
 const resolveVideoTimingDurationSeconds = (
   target: NonNullable<ComputeEstimatedProcessingTimesInput['videoTargets']>[number],
-  input: Pick<ComputeEstimatedProcessingTimesInput, 'videoSize' | 'videoAspectRatio' | 'videoResolution' | 'videoMode'>
+  input: Pick<ComputeEstimatedProcessingTimesInput, 'videoAspectRatio' | 'videoResolution' | 'videoMode'>
 ): number | undefined => {
   const estimates = estimateVideoCosts({
     ...optionsForService(VIDEO_PRICING_PROVIDERS, target.service, target.model),
     videoDuration: target.durationSeconds,
-    videoSize: input.videoSize,
     videoAspectRatio: input.videoAspectRatio,
     videoResolution: input.videoResolution,
     videoMode: input.videoMode,

@@ -6,7 +6,7 @@ import type { ComicSourceIdentity, FinalPanelImageStageOptions, GenerateComicPag
 import { DEFAULT_IMAGE_MODEL, validateImageSizeForModels } from '../../comic-utils/image-size'
 import { InfraError } from '~/utils/error-handler'
 import { ScenePromptDataSchema } from '../../schemas/schemas'
-import { comicLog, err, formatCompactCost, formatDuration, suppressSharedPipelineLogs } from '../../comic-utils/comic-logger'
+import { comicLog, err, formatCompactCost, formatDuration, withSuppressedPipelineLogs } from '../../comic-utils/comic-logger'
 import { getPanelPromptsDirectory, getSceneJsonPath, getSceneMetadataDirectoryForWorkspace, getSceneOutputDirectory } from '../../comic-utils/project-paths'
 import { beginSceneRun, findLatestSceneRunDirectory } from '../../comic-utils/scene-run-context'
 import { createComicRunId } from '../../comic-utils/comic-run-id'
@@ -18,6 +18,7 @@ import { generateComicGridPages } from './generate-comic-grid-pages'
 import { generateComicPages } from './generate-comic-pages'
 import { generatePanelImages } from './generate-panel-images'
 import { getImagePromptVariationLabel } from './prompt-variations'
+import { createImageRunStats } from '../../comic-image-services/image-costs'
 import { readManifest } from '../../../pipeline-manifest'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { canonicalTargetKey, sha256Bytes } from '../../../step-4-tts/script-to-audio/contract-identity'
@@ -37,21 +38,6 @@ const panelPromptsExist = async (sceneSlug: string): Promise<boolean> => {
   const entries = await readdir(dir, { withFileTypes: true })
   return entries.some(entry => entry.isDirectory() && !entry.name.startsWith('.'))
 }
-
-const createEmptyImageStats = (): ImageRunStats => ({
-  imagesGenerated: 0,
-  imagesSkipped: 0,
-  totalInputTokens: 0,
-  totalInputTextTokens: 0,
-  totalInputImageTokens: 0,
-  totalInputUnattributedTokens: 0,
-  totalOutputTokens: 0,
-  totalOutputTextTokens: 0,
-  totalOutputImageTokens: 0,
-  totalOutputUnattributedTokens: 0,
-  totalCost: 0,
-  totalDurationMs: 0,
-})
 
 const mergeImageStats = (target: ImageRunStats, source: ImageRunStats | void): void => {
   if (!source) return
@@ -111,7 +97,10 @@ const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Pr
     await assertPanelPromptSourceCoverage(sceneSlug)
   } catch (error) {
     err('Image initialization failed:', error instanceof Error ? error.message : String(error))
-    throw InfraError('Failed at initialization step', { stage: 'comic:generate-images' })
+    throw InfraError('Failed at initialization step', {
+      stage: 'comic:generate-images',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   }
 
   try {
@@ -179,22 +168,19 @@ const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Pr
     }
   } catch (error) {
     err(`${stageLabel} generation failed:`, error instanceof Error ? error.message : String(error))
-    throw InfraError(`Failed at ${options.grid ? 'grid' : usePageMode ? 'page' : 'image'} generation step`, { stage: 'comic:generate-images' })
+    throw InfraError(`Failed at ${options.grid ? 'grid' : usePageMode ? 'page' : 'image'} generation step`, {
+      stage: 'comic:generate-images',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   }
 }
 
-export const generateImagesCommand = async (
+const runGenerateImagesCommand = async (
   options: GenerateImagesCommandOptions,
   dependencies: GenerateImagesWorkflowDependencies = {}
 ): Promise<void> => {
   const { sceneSlug } = options
 
-  // Comic prints its own per-image output line with the real path; drop the shared
-  // image services' interim pipeline logs (which show the throwaway scratch path).
-  suppressSharedPipelineLogs()
-
-  // Image generation is a controlled consumer: it only resumes a reviewed run and
-  // never drafts, upgrades, or rewrites scene/panel artifacts. --force is image-only.
   const latestRunDir = findLatestSceneRunDirectory(sceneSlug)
   const resumeLatest = latestRunDir !== undefined
     && existsSync(join(getSceneMetadataDirectoryForWorkspace(latestRunDir), 'scene.json'))
@@ -218,7 +204,7 @@ export const generateImagesCommand = async (
   const concurrency = options.concurrency ?? DEFAULT_CLI_CONCURRENCY
   const runId = createComicRunId()
   const startedAt = Date.now()
-  const totals = createEmptyImageStats()
+  const totals = createImageRunStats()
 
   validateImageSizeForModels(size, models)
   validateComicGridOptions(options.grid, {
@@ -364,3 +350,10 @@ export const generateImagesCommand = async (
   ])
   comicLog.outputDirectory(sceneRunDir)
 }
+
+export const generateImagesCommand = async (
+  options: GenerateImagesCommandOptions,
+  dependencies: GenerateImagesWorkflowDependencies = {}
+): Promise<void> => await withSuppressedPipelineLogs(
+  async () => { await runGenerateImagesCommand(options, dependencies) }
+)

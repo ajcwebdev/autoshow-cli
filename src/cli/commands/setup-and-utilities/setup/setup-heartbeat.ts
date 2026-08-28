@@ -2,9 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 import type { SetupHeartbeatEntry } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 
-// Subprocess output is suppressed in compact mode, so a source build that takes
-// minutes is otherwise indistinguishable from a hang.
-export const SETUP_HEARTBEAT_INTERVAL_MS = 30_000
+const SETUP_HEARTBEAT_INTERVAL_MS = 30_000
 
 const HEARTBEAT_SEPARATOR = ' · '
 
@@ -15,11 +13,6 @@ export const formatSetupElapsed = (elapsedMs: number): string => {
   return `${Math.floor(totalSeconds / 60)}m ${totalSeconds % 60}s`
 }
 
-/**
- * One line for every in-flight task, or nothing at all. A task that printed its
- * own progress within the last interval is already proving it is alive, so
- * repeating that in the heartbeat is the noise this aggregation exists to stop.
- */
 export const formatSetupHeartbeatLine = (
   entries: readonly SetupHeartbeatEntry[],
   nowMs: number,
@@ -34,8 +27,6 @@ export const formatSetupHeartbeatLine = (
 }
 
 const inFlight = new Map<string, SetupHeartbeatEntry>()
-// One ticker for every task rather than one per task: eight unsynchronized
-// timers were what turned a liveness signal into ~40 lines per cold run.
 let ticker: ReturnType<typeof setInterval> | undefined
 
 const stopTicker = (): void => {
@@ -47,24 +38,24 @@ const stopTicker = (): void => {
 const startTicker = (): void => {
   if (ticker) return
   ticker = setInterval(() => {
-    const line = formatSetupHeartbeatLine([...inFlight.values()], Date.now())
-    if (line) l.write('info', line)
+    const nowMs = Date.now()
+    const line = formatSetupHeartbeatLine([...inFlight.values()], nowMs)
+    if (!line) return
+    l.write('info', line, {
+      category: 'command',
+      metadata: {
+        tasks: [...inFlight.values()].map((entry) => ({
+          label: entry.label,
+          elapsedMs: nowMs - entry.startedAtMs,
+          quietMs: nowMs - entry.lastActivityAtMs
+        }))
+      }
+    })
   }, SETUP_HEARTBEAT_INTERVAL_MS)
   ticker.unref?.()
 }
 
 const taskContext = new AsyncLocalStorage<{ label: string }>()
-
-/**
- * Lets in-task progress renderers mark themselves alive without knowing which
- * setup task they belong to; the label comes from the surrounding context.
- */
-export const noteSetupTaskActivity = (): void => {
-  const label = taskContext.getStore()?.label
-  if (label === undefined) return
-  const entry = inFlight.get(label)
-  if (entry) entry.lastActivityAtMs = Date.now()
-}
 
 export const runWithSetupHeartbeat = async <T>(
   label: string,

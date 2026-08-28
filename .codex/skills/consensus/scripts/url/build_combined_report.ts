@@ -1,42 +1,15 @@
 #!/usr/bin/env bun
 
-/**
- * Build a combined cross-run URL provider comparison report from committed
- * single-run report artifacts. No extraction provider or external service is
- * invoked by this script.
- */
-
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { loadCanonicalRunRecord, PIPELINE_MANIFEST_FILE } from "../shared/pipeline_manifest";
+import { discoverCombinedRuns, type CombinedRunRef } from "../shared/combined_report_lib";
 import {
-  MISSING_DATA_POLICY,
-  TIERING_METHOD_LINES,
-  WEIGHTED_COMPOSITE_POLICY,
-  WEIGHTED_METHOD_LINES,
-  WEIGHT_SETS,
-  WEIGHT_SET_KEYS,
-  buildQualityCostTiering,
-  computeGroupSubscores,
-  computeWeightedRankings,
-  discoverCombinedRuns,
-  tierTable,
-  weightedRankingTable,
-  type CombinedProviderInput,
-  type CombinedRunRef,
-  type CombinedTiering,
-  type ProviderSubscores,
-  type WeightSetKey,
-  type WeightedRankingEntry,
-} from "../shared/combined_report_lib";
-import {
-  balancedCells,
   renderCombinedDashboard,
   type CombinedDashboardModel,
   type DashboardGroup,
   type DashboardProviderRow,
   type DashboardRunInventoryCell,
-  type DashboardWeightedCell,
 } from "../shared/combined_report_html";
 import { LONG_SEQUENCE_DISTANCE_METHOD } from "./url_consensus_lib";
 
@@ -237,7 +210,7 @@ export function discoverUrlCombinedRuns(rootDir: string): UrlCombinedRun[] {
     const actualRunDir = dirname(discovered.reportPath);
     const manifestPath = join(actualRunDir, PIPELINE_MANIFEST_FILE);
     const manifestMetadata = existsSync(manifestPath)
-      ? loadCanonicalRunRecord(actualRunDir, "extract", "article").metadata
+      ? loadCanonicalRunRecord(actualRunDir, "extract").metadata
       : null;
     const providerCounts = {
       local: report.providerGroups?.local?.count ?? report.providerGroups?.local?.providers?.length ?? 0,
@@ -571,28 +544,10 @@ function buildDashboardGroup(
   providers: AggregatedUrlProvider[],
   runs: UrlCombinedRun[],
   metricRankings: Record<UrlCombinedMetric, UrlMetricRankingEntry[]>,
-  weightedRankings: Record<WeightSetKey, WeightedRankingEntry[]>,
-  tiering: CombinedTiering,
-  subscored: ProviderSubscores[],
 ): DashboardGroup {
   const qualityRank = new Map(metricRankings.automatedQuality.map((entry) => [entry.providerKey, entry.rank]));
   const speedRank = new Map(metricRankings.speed.map((entry) => [entry.providerKey, entry.rank]));
   const priceRank = new Map(metricRankings.price.map((entry) => [entry.providerKey, entry.rank]));
-  const balanced = balancedCells(subscored);
-  const subscoredByKey = new Map(subscored.map((item) => [item.providerKey, item]));
-  const weightedByKey = {} as Record<WeightSetKey, Map<string, DashboardWeightedCell>>;
-  for (const key of WEIGHT_SET_KEYS) {
-    weightedByKey[key] = new Map(weightedRankings[key].map((entry) => [
-      entry.providerKey,
-      { rank: entry.rank, composite: entry.composite },
-    ]));
-  }
-  const tierByKey = new Map<string, number>();
-  for (const tier of tiering.tiers) {
-    for (const provider of tier.providers) {
-      tierByKey.set(provider.providerKey, tier.tier);
-    }
-  }
   const heatValues = providers.flatMap((provider) =>
     runs.map((run) => provider.perRun[run.runName]).filter(isFiniteNumber)
   );
@@ -604,19 +559,10 @@ function buildDashboardGroup(
     display: provider.providerKey,
     model: provider.model,
     coverage: `${provider.runsCovered}/${runs.length}`,
-    tier: tierByKey.get(provider.providerKey) ?? null,
     quality: { display: formatQuality(provider.meanAutomatedQuality), rank: qualityRank.get(provider.providerKey) ?? null },
     speed: { display: formatTime(provider.meanProcessingTimeMs), rank: speedRank.get(provider.providerKey) ?? null },
     cost: { display: formatCostUsd(provider.meanCostUSD), rank: priceRank.get(provider.providerKey) ?? null },
-    balanced: balanced.get(provider.providerKey) ?? { rank: providers.length, composite: 0 },
-    weighted: Object.fromEntries(
-      WEIGHT_SET_KEYS.map((key) => [
-        key,
-        weightedByKey[key].get(provider.providerKey) ?? { rank: providers.length, composite: 0 },
-      ]),
-    ) as Record<WeightSetKey, DashboardWeightedCell>,
     evidence: [formatPercent(provider.meanWER), formatPercent(provider.meanCER), formatPercent(provider.meanContentCoverage)],
-    missingDimensions: subscoredByKey.get(provider.providerKey)?.missingDimensions ?? [],
     perRun: runs.map((run) => {
       const value = provider.perRun[run.runName];
       if (!isFiniteNumber(value)) {
@@ -632,16 +578,6 @@ function buildDashboardGroup(
   return {
     key: group,
     label: GROUP_LABELS[group],
-    tierCards: tiering.tiers.map((tier) => ({
-      tier: tier.tier,
-      label: tier.label,
-      description: tier.description,
-      providers: tier.providers.map((provider) => ({
-        display: provider.display ?? provider.provider,
-        qualityCostRank: provider.qualityCostRank,
-        qualityCostComposite: provider.qualityCostComposite,
-      })),
-    })),
     metricColumns: { quality: "Auto quality /100", speed: "Mean time", cost: "Mean cost" },
     evidenceColumns: ["Avg WER", "Avg CER", "Avg coverage"],
     perRunMetricLabel: "Per-run automated quality",
@@ -659,8 +595,6 @@ function buildMarkdown(
   aggregated: AggregatedUrlProvider[],
   groupedProviders: Record<UrlCombinedGroup, AggregatedUrlProvider[]>,
   metricRankings: Record<UrlCombinedGroup, Record<UrlCombinedMetric, UrlMetricRankingEntry[]>>,
-  weightedRankings: Record<UrlCombinedGroup, Record<WeightSetKey, WeightedRankingEntry[]>>,
-  tiering: Record<UrlCombinedGroup, CombinedTiering>,
   counts: {
     providerRowCount: number;
     automatedQualityRowCount: number;
@@ -692,10 +626,6 @@ function buildMarkdown(
     "- WER, CER, content coverage, processing time, and cost are supporting unweighted means over present provider-row values. Source cents are converted to USD for price display and ranking; local monetary cost is always zero.",
     "- Automated quality ranks descending, then speed ascending, then provider key. Speed ranks ascending, then quality descending, then provider key. Price ranks ascending, then quality descending, speed ascending, then provider key. Missing values sort last.",
     "",
-    ...WEIGHTED_METHOD_LINES,
-    "",
-    ...TIERING_METHOD_LINES,
-    "",
     "## Metric Rankings",
     "",
   ];
@@ -705,15 +635,6 @@ function buildMarkdown(
     md.push("#### Price", "", metricTable(metricRankings[group].price, runs.length), "");
     md.push("#### Speed", "", metricTable(metricRankings[group].speed, runs.length), "");
     md.push("#### Automated Quality", "", metricTable(metricRankings[group].automatedQuality, runs.length), "");
-    md.push(
-      "#### Weighted Rankings",
-      "",
-      "Q, S, and C are each provider's per-run normalized automated-quality, processing-time, and monetary-cost subscores averaged across covered runs.",
-      "",
-    );
-    for (const key of WEIGHT_SET_KEYS) {
-      md.push(`##### ${WEIGHT_SETS[key].label}`, "", weightedRankingTable(weightedRankings[group][key], runs.length), "");
-    }
   }
 
   md.push(
@@ -726,16 +647,6 @@ function buildMarkdown(
     if (groupedProviders[group].length > 0) {
       md.push(`### ${GROUP_LABELS[group]}`, "", perRunMatrix(groupedProviders[group], runs), "");
     }
-  }
-
-  md.push(
-    "## Model Tiers",
-    "",
-    "Tiers are `quality-cost-terciles-v1`: contiguous, near-equal slices of each group's `qualityCost` weighted ranking, with remainder models assigned to higher tiers first. Groups are never compared against each other.",
-    "",
-  );
-  for (const group of GROUPS) {
-    md.push(`### ${GROUP_LABELS[group]}`, "", tierTable(tiering[group]), "");
   }
 
   md.push(
@@ -774,31 +685,6 @@ export function buildUrlCombinedReport(rootDirRaw: string, generatedAt = new Dat
     local: rankUrlProviderGroup(groupedProviders.local),
     service: rankUrlProviderGroup(groupedProviders.service),
   };
-  const weightedRankings = {} as Record<UrlCombinedGroup, Record<WeightSetKey, WeightedRankingEntry[]>>;
-  const tiering = {} as Record<UrlCombinedGroup, CombinedTiering>;
-  const subscoresByGroup = {} as Record<UrlCombinedGroup, ProviderSubscores[]>;
-  const runNames = runs.map((run) => run.runName);
-  for (const group of GROUPS) {
-    const inputs: CombinedProviderInput[] = groupedProviders[group].map((provider) => {
-      const source = collected.find((item) => item.group === group && item.providerKey === provider.providerKey);
-      return {
-        providerKey: provider.providerKey,
-        provider: provider.provider,
-        model: provider.model,
-        display: provider.providerKey,
-        samples: (source?.samples ?? []).map((sample) => ({
-          runName: sample.runName,
-          quality: sample.automatedQuality,
-          timeMs: sample.processingTimeMs,
-          costCents: group === "local" ? 0 : sample.costCents,
-        })),
-      };
-    });
-    const subscored = computeGroupSubscores(inputs, runNames);
-    subscoresByGroup[group] = subscored;
-    weightedRankings[group] = computeWeightedRankings(subscored, group);
-    tiering[group] = buildQualityCostTiering(weightedRankings[group].qualityCost);
-  }
 
   const providerRowCount = runs.reduce((sum, run) => sum + run.providerRowCount, 0);
   const automatedQualityRowCount = runs.reduce((sum, run) => sum + run.automatedQualityRowCount, 0);
@@ -806,14 +692,14 @@ export function buildUrlCombinedReport(rootDirRaw: string, generatedAt = new Dat
   const longDistanceRunCount = runs.filter((run) => run.declaresLongDistanceApproximation).length;
   const notes = [
     "Each provider is aggregated by providerKey within its source group; present-value means do not impute missing rows or metrics.",
-    "Local and service providers are never normalized, ranked, or tiered together; local monetary cost remains zero.",
+    "Local and service providers are never ranked together; local monetary cost remains zero.",
     humanQualityRowCount === 0
       ? "No human-quality ranking is emitted because explicit human-quality rows are absent from the current source reports."
-      : `${humanQualityRowCount} explicit human-quality ${humanQualityRowCount === 1 ? "row is" : "rows are"} present; URL combined schema v1 does not mix ${humanQualityRowCount === 1 ? "it" : "them"} into automated-quality rankings.`,
-    "Weighted composite rankings and quality-cost tercile tiers are precomputed per group; the HTML performs no runtime metric or composite calculation.",
+      : `${humanQualityRowCount} explicit human-quality ${humanQualityRowCount === 1 ? "row is" : "rows are"} present; URL combined schema v2 does not mix ${humanQualityRowCount === 1 ? "it" : "them"} into automated-quality rankings.`,
+    "Each group ranks price, speed, and automated quality independently. No weighted composite or model-tier ranking is emitted.",
   ];
   const report = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     kind: "url-combined-comparison-report",
     category: "url",
     rootDir,
@@ -843,31 +729,15 @@ export function buildUrlCombinedReport(rootDirRaw: string, generatedAt = new Dat
     })),
     providers: aggregated,
     metricRankings,
-    weightSets: WEIGHT_SETS,
-    weightedRankings,
-    tiering,
     rankingPolicy: {
       price: "mean monetary cost in USD ascending; local providers at zero; then automated quality descending, processing time ascending, providerKey ascending; missing values sort last",
       speed: "mean processing time ascending; then automated quality descending, providerKey ascending; missing values sort last",
       automatedQuality: "mean source rankingSurfaces automatedQuality value descending; then processing time ascending, providerKey ascending; missing values sort last",
-      weightedComposite: WEIGHTED_COMPOSITE_POLICY,
-      missingData: MISSING_DATA_POLICY,
     },
-    normalization: {
-      scope: "per-run, per-provider-group",
-      dimensions: {
-        quality: "source automatedQuality value; higher is better",
-        speed: "processingTimeMs; lower is better",
-        cost: "costCents; lower is better; local monetary cost is zero",
-      },
-      range: "min-max 0-100; identical present min/max values receive 100",
-      aggregation: "mean of each provider's present per-run subscores",
-      groupIsolation: true,
-      sourceDistance: {
-        exactLevenshteinElementLimit: 10_000,
-        longSequenceDistance: "source-declared-per-run",
-        declaringRunCount: longDistanceRunCount,
-      },
+    sourceDistance: {
+      exactLevenshteinElementLimit: 10_000,
+      longSequenceDistance: "source-declared-per-run",
+      declaringRunCount: longDistanceRunCount,
     },
     notes,
   };
@@ -878,8 +748,6 @@ export function buildUrlCombinedReport(rootDirRaw: string, generatedAt = new Dat
     aggregated,
     groupedProviders,
     metricRankings,
-    weightedRankings,
-    tiering,
     { providerRowCount, automatedQualityRowCount, humanQualityRowCount, longDistanceRunCount },
     notes,
   );
@@ -925,15 +793,10 @@ export function buildUrlCombinedReport(rootDirRaw: string, generatedAt = new Dat
       groupedProviders[group],
       runs,
       metricRankings[group],
-      weightedRankings[group],
-      tiering[group],
-      subscoresByGroup[group],
     )),
     methodParagraphs: [
       "Providers are matched by `providerKey` within `local` or `service`; present-value means are computed independently per group.",
       "Automated quality comes directly from source `rankingSurfaces.*.automatedQuality` values. Speed is mean processing time. Cost converts mean source cents to USD and remains zero for local providers. WER, CER, and coverage are supporting evidence. Missing values sort last; ties break deterministically.",
-      ...WEIGHTED_METHOD_LINES.filter((line) => line.length > 0 && !line.startsWith("|")),
-      ...TIERING_METHOD_LINES,
     ],
     notes: [
       ...notes,
@@ -959,7 +822,7 @@ export function writeUrlCombinedReport(rootDirRaw: string): UrlCombinedBuildResu
   const jsonPath = join(rootDir, "combined-comparison-report.json");
   const markdownPath = join(rootDir, "combined-comparison-report.md");
   const htmlPath = join(rootDir, "combined-comparison-report.html");
-  writeFileSync(jsonPath, `${JSON.stringify(result.report, null, 2)}\n`);
+  writeFileSync(jsonPath, JSON.stringify(result.report));
   writeFileSync(markdownPath, result.markdown);
   writeFileSync(htmlPath, result.html);
   console.log(`Wrote ${jsonPath}`);

@@ -1,7 +1,7 @@
-import { execFileSync } from 'node:child_process'
 import { statSync } from 'node:fs'
 import type { SourceNameViolation, SourceNameViolationKind } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
+import { runSyncCommandOrThrow } from '~/utils/sync-subprocess'
 
 const DEFAULT_SOURCE_ROOT = 'src'
 const DEFAULT_ALLOWED_INDEX_PATH = 'src/types/index.ts'
@@ -123,10 +123,9 @@ export const formatSourceNameViolations = (violations: SourceNameViolation[]): s
 }
 
 const listSourceFiles = (): string[] => {
-  const output = execFileSync(
+  const output = runSyncCommandOrThrow(
     'git',
-    ['ls-files', '--cached', '--others', '--exclude-standard', DEFAULT_SOURCE_ROOT],
-    { encoding: 'utf8' }
+    ['ls-files', '--cached', '--others', '--exclude-standard', DEFAULT_SOURCE_ROOT]
   )
 
   return output
@@ -145,7 +144,7 @@ const listSourceFiles = (): string[] => {
 if (import.meta.main) {
   const violations = findSourceNameViolations(listSourceFiles())
   if (violations.length > 0) {
-    l.error(formatSourceNameViolations(violations))
+    l.error(formatSourceNameViolations(violations), { category: 'command' })
     process.exit(1)
   }
 }

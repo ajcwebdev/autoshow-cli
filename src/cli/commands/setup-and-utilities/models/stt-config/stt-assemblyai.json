@@ -22,26 +22,6 @@
           "costMultiplier": 1,
           "msPerSecond": 188
         }
-      },
-      "universal-2": {
-        "description": "Universal-2 — economical multilingual transcription with diarization",
-        "pricingSourceUrl": "https://www.assemblyai.com/pricing",
-        "pricingCheckedAt": "2026-08-03",
-        "pricingCurrency": "USD",
-        "pricingTier": "AssemblyAI pay-as-you-go transcription pricing",
-        "pricingNotes": "AssemblyAI lists Universal-2 transcription at $0.09/hour and speaker diarization at $0.08/hour, for a diarization-inclusive effective rate of $0.17/hour. Billing is per second. The timing estimate is provisionally reused from Universal-3 Pro until an explicitly approved calibration run is available. Free allowance, volume discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerHourCents": 17,
-        "limits": {
-          "effectiveBytes": 2362232013,
-          "directUploadBytes": 2362232013,
-          "remoteUrlBytes": 5368709120,
-          "durationSeconds": 36000,
-          "notes": "AssemblyAI allows larger remote URLs than upload API submissions. The current CLI uploads first, so effectiveBytes tracks the smaller upload cap."
-        },
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerSecond": 188
-        }
       }
     }
   }

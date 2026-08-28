@@ -7,20 +7,15 @@ import { runSingleTtsInput, runTtsDirectoryBatch } from '~/cli/commands/process-
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-request-reference-policy'
 import { createProtectedVoiceAssetStore } from '~/cli/commands/process-steps/step-4-tts/voice-assets/protected-voice-asset-store'
-import type { ProtectedVoiceAssetStore } from '~/cli/commands/process-steps/step-4-tts/voice-assets/protected-voice-asset-store'
 import { planStandaloneMistralReference } from '~/cli/commands/process-steps/step-4-tts/voice-assets/standalone-mistral-reference'
 import { runTtsTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
-import type { CanonicalAudioProviderProjection, PipelineProviderState, ProviderReadinessResult, TtsProvider, TtsTarget } from '~/types'
+import type { CanonicalAudioProviderProjection, HostedFixture, PipelineProviderState, ProtectedVoiceAssetStore, ProviderReadinessResult, TtsProvider, TtsTarget } from '~/types'
 import { createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
-
-type HostedFixture = {
-  target: TtsTarget
-  calls: { run: number, setup: number, fetch: number }
-}
+import { requireDefined } from '../../../test-utils/value-assertions'
 
 const hostedFixture = (
   service: Extract<TtsProvider, 'openai' | 'groq'>,
@@ -93,14 +88,13 @@ const expectBranchOnlyFailure = async (
 }
 
 const withHostedCredentials = async <T>(
-  values: Partial<Record<'OPENAI_API_KEY' | 'GROQ_API_KEY' | 'MISTRAL_API_KEY' | 'HF_HOME', string | undefined>>,
+  values: Partial<Record<'OPENAI_API_KEY' | 'GROQ_API_KEY' | 'MISTRAL_API_KEY', string | undefined>>,
   operation: () => Promise<T>
 ): Promise<T> => {
   const prior = {
     OPENAI_API_KEY: process.env['OPENAI_API_KEY'],
     GROQ_API_KEY: process.env['GROQ_API_KEY'],
-    MISTRAL_API_KEY: process.env['MISTRAL_API_KEY'],
-    HF_HOME: process.env['HF_HOME']
+    MISTRAL_API_KEY: process.env['MISTRAL_API_KEY']
   }
   for (const [key, value] of Object.entries(values)) {
     if (value === undefined) delete process.env[key]
@@ -316,8 +310,7 @@ describe('canonical TTS execution-readiness failures', () => {
           sourcePath: referencePath,
           authorizationRef: MISTRAL_CLI_REFERENCE_AUTHORIZATION
         }, store)
-        const plannedMistral = collectTtsTargets(options)[0]
-        if (!plannedMistral) throw new Error('Expected a planned Mistral protected-reference target.')
+        const plannedMistral = requireDefined(collectTtsTargets(options)[0], 'a planned Mistral protected-reference target')
         const mistralCalls = { run: 0, setup: 0, fetch: 0 }
         const mistralTarget: TtsTarget = {
           ...plannedMistral,
@@ -448,8 +441,7 @@ describe('canonical TTS execution-readiness failures', () => {
         sourcePath: referencePath,
         authorizationRef: MISTRAL_CLI_REFERENCE_AUTHORIZATION
       }, store)
-      const plannedMistral = collectTtsTargets(options)[0]
-      if (!plannedMistral) throw new Error('Expected a planned Mistral protected-reference target.')
+      const plannedMistral = requireDefined(collectTtsTargets(options)[0], 'a planned Mistral protected-reference target')
       const mistralCalls = { run: 0, setup: 0, fetch: 0 }
       const mistralTarget: TtsTarget = {
         ...plannedMistral,

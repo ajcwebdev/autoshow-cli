@@ -26,16 +26,12 @@ const HELP_GROUP_COLOR_BY_KEY: Readonly<Record<string, string>> = {
   'step-2-ocr': 'mediumseagreen',
   extraction: 'mediumseagreen',
   'ocr-document': 'mediumseagreen',
-  'epub-inspect': 'mediumseagreen',
   'transcript-video': 'mediumpurple',
   'step-3-write': 'cornflowerblue',
   writing: 'cornflowerblue',
   'step-4-tts': 'darkorange',
   'tts-options': 'darkorange',
   'tts-minimax': 'darkorange',
-  'tts-deepgram': 'darkorange',
-  'tts-speechify': 'darkorange',
-  'tts-hume': 'darkorange',
   'tts-dialogue': 'darkorange',
   'tts-elevenlabs': 'darkorange',
   'step-5-image': 'hotpink',
@@ -46,8 +42,6 @@ const HELP_GROUP_COLOR_BY_KEY: Readonly<Record<string, string>> = {
   'video-options': 'mediumpurple',
   'video-inputs': 'mediumpurple',
   'replicate-video': 'mediumpurple',
-  'fal-video': 'mediumpurple',
-  'grok-storage': 'mediumpurple',
   'step-7-music': 'gold',
   'hosted-music': 'gold',
   'comic-panels': 'hotpink',
@@ -64,6 +58,7 @@ export const HELP_TYPE_COLOR = 'lightsalmon'
 const HELP_MODEL_VALUE_COLOR = 'deepskyblue'
 const HELP_MODEL_DELIMITER_COLOR = 'steelblue'
 const HELP_MODEL_SEGMENT_PATTERN = /(\bmodel(?:s)?(?:\s+ID)?(?:\s*\([^)]*\))?\s*:\s*)([^\n]+)/gi
+const HELP_DEFAULT_SEGMENT_PATTERN = /(\b(?:final\s+|sketch\s+|OpenAI\/fal\.ai\s+|BFL\s+|OpenAI,\s+)?defaults?\s*:\s*)([^;,)\n]+)/gi
 const ANSI_ESCAPE_PATTERN = /\x1b\[[0-9;]*m/
 
 const hasAnsiEscapes = (text: string): boolean => ANSI_ESCAPE_PATTERN.test(text)
@@ -84,13 +79,27 @@ const colorizeModelValueList = (modelValues: string): string => {
   return parts.map(colorizeModelToken).join(divider)
 }
 
+const colorizeDefaultToken = (token: string): string => {
+  const leadingWhitespace = token.match(/^\s*/)?.[0] ?? ''
+  const trailingWhitespace = token.match(/\s*$/)?.[0] ?? ''
+  const core = token.slice(leadingWhitespace.length, token.length - trailingWhitespace.length)
+  if (core.length === 0) {
+    return token
+  }
+  return `${leadingWhitespace}${colorText(core, HELP_DEFAULT_VALUE_COLOR)}${trailingWhitespace}`
+}
+
 export const colorizeHelpDescription = (description: string): string => {
   if (!shouldUseHelpColors() || hasAnsiEscapes(description)) {
     return description
   }
 
-  return description.replace(HELP_MODEL_SEGMENT_PATTERN, (_match, prefix: string, modelValues: string) => {
+  const modelColorized = description.replace(HELP_MODEL_SEGMENT_PATTERN, (_match, prefix: string, modelValues: string) => {
     return `${prefix}${colorizeModelValueList(modelValues)}`
+  })
+
+  return modelColorized.replace(HELP_DEFAULT_SEGMENT_PATTERN, (_match, prefix: string, defaultValue: string) => {
+    return `${prefix}${colorizeDefaultToken(defaultValue)}`
   })
 }
 

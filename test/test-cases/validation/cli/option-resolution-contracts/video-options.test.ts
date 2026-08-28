@@ -4,25 +4,23 @@ import { collectVideoTargets, getVideoArtifactFileName } from '~/cli/commands/pr
 
 describe('option resolution contracts', () => {
   test('Luma Labs video resolution follows the documented Ray 3.2 values', () => {
-    expect(collectVideoTargets(buildOptsFromFlags(false, {
+    expect(collectVideoTargets(buildOptsFromFlags({
       'lumalabs-video': 'ray-3.2',
-      'video-resolution': '540p'
+      'resolution': '540p'
     })).map(target => target.service)).toEqual(['lumalabs'])
 
-    expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+    expect(() => collectVideoTargets(buildOptsFromFlags({
       'lumalabs-video': 'ray-3.2',
-      'video-resolution': '360p'
+      'resolution': '360p'
     }))).toThrow('Expected 540p, 720p, 1080p')
   })
 
   test('retired video selectors fail with replacement guidance', () => {
     for (const [provider, model, replacement] of [
-      ['minimax', 'MiniMax-Hailuo-2.3', 'MiniMax-H3'],
-      ['minimax', 'S2V-01', 'MiniMax-H3'],
       ['replicate', 'runwayml/aleph-2', 'grok-imagine-video'],
       ['replicate', 'wan-video/wan-2.7-t2v', 'bytedance/seedance-2.0-fast']
     ] as const) {
-      expect(() => buildOptsFromFlags(false, {
+      expect(() => buildOptsFromFlags({
         [`${provider}-video`]: model
       })).toThrow(`Use "${replacement}" instead`)
     }
@@ -32,47 +30,47 @@ describe('option resolution contracts', () => {
       const imageDataUrl = `data:image/png;base64,${Buffer.from([1, 2, 3]).toString('base64')}`
       const videoDataUrl = `data:video/mp4;base64,${Buffer.from([4, 5, 6]).toString('base64')}`
 
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+      expect(() => collectVideoTargets(buildOptsFromFlags({
         'gemini-video': 'veo-3.1-fast-generate-preview',
-        'video-input-image': imageDataUrl
-      }))).toThrow('--video-input-image is not valid with --video-mode text')
+        'input-image': imageDataUrl
+      }))).toThrow('--input-image is not valid with --mode text')
 
-      expect(collectVideoTargets(buildOptsFromFlags(false, {
+      expect(collectVideoTargets(buildOptsFromFlags({
         'gemini-video': 'veo-3.1-fast-generate-preview'
       })).map(target => target.service)).toEqual(['gemini'])
 
-      expect(collectVideoTargets(buildOptsFromFlags(false, {
+      expect(collectVideoTargets(buildOptsFromFlags({
         'gemini-video': 'veo-3.1-fast-generate-preview',
-        'video-mode': 'image-to-video',
-        'video-input-image': imageDataUrl
+        'mode': 'image-to-video',
+        'input-image': imageDataUrl
       })).map(target => target.service)).toEqual(['gemini'])
 
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+      expect(() => collectVideoTargets(buildOptsFromFlags({
         'grok-video': 'grok-imagine-video',
-        'video-mode': 'reference-to-video',
-        'video-reference-image': [imageDataUrl, imageDataUrl, imageDataUrl, imageDataUrl]
-      }))).toThrow('--video-reference-image supports at most 3 images')
+        'mode': 'reference-to-video',
+        'reference-image': [imageDataUrl, imageDataUrl, imageDataUrl, imageDataUrl]
+      }))).toThrow('--reference-image supports at most 3 images')
 
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+      expect(() => collectVideoTargets(buildOptsFromFlags({
         'gemini-video': 'veo-3.1-fast-generate-preview',
-        'video-mode': 'interpolate',
-        'video-input-image': imageDataUrl
-      }))).toThrow('--video-mode interpolate requires --video-last-frame')
+        'mode': 'interpolate',
+        'input-image': imageDataUrl
+      }))).toThrow('--mode interpolate requires --last-frame')
 
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+      expect(() => collectVideoTargets(buildOptsFromFlags({
         'grok-video': 'grok-imagine-video',
-        'video-mode': 'edit',
-        'video-input-video': videoDataUrl,
-        'video-duration': '8'
-      }))).toThrow('--video-duration, --video-aspect-ratio, and --video-resolution are not valid with Grok --video-mode edit')
+        'mode': 'edit',
+        'input-video': videoDataUrl,
+        'duration': '8'
+      }))).toThrow('--duration, --aspect-ratio, and --resolution are not valid with Grok --mode edit')
     })
 
   test('all-video reference mode keeps compatible active targets', () => {
       const imageDataUrl = `data:image/png;base64,${Buffer.from([1, 2, 3]).toString('base64')}`
-      const allReferenceTargets = collectVideoTargets(buildOptsFromFlags(false, {
+      const allReferenceTargets = collectVideoTargets(buildOptsFromFlags({
         'all-video': true,
-        'video-mode': 'reference-to-video',
-        'video-reference-image': imageDataUrl
+        'mode': 'reference-to-video',
+        'reference-image': imageDataUrl
       }))
       expect(allReferenceTargets.map(target => `${target.service}/${target.model}`)).toEqual([
         'gemini/veo-3.1-fast-generate-preview',
@@ -94,49 +92,49 @@ describe('option resolution contracts', () => {
       const videoDataUrl = `data:video/mp4;base64,${Buffer.from([7, 8, 9]).toString('base64')}`
       const audioDataUrl = `data:audio/mpeg;base64,${Buffer.from([10, 11, 12]).toString('base64')}`
 
-      const explicitOpts = buildOptsFromFlags(false, {
+      const explicitOpts = buildOptsFromFlags({
         'replicate-video': ['bytedance/seedance-2.0-fast'],
-        'video-mode': 'reference-to-video',
-        'video-reference-image': [imageDataUrl, bmpDataUrl],
-        'replicate-video-reference-video': [videoDataUrl],
-        'replicate-video-reference-audio': [audioDataUrl],
+        'mode': 'reference-to-video',
+        'reference-image': [imageDataUrl, bmpDataUrl],
+        'reference-video': [videoDataUrl],
+        'reference-audio': [audioDataUrl],
         'replicate-video-seed': '123',
-        'replicate-video-generate-audio': false,
-        'video-duration': '-1',
-        'video-aspect-ratio': 'adaptive'
+        'generate-audio': false,
+        'duration': '-1',
+        'aspect-ratio': 'adaptive'
       })
       expect(explicitOpts.replicateVideoModels).toEqual(['bytedance/seedance-2.0-fast'])
       expect(explicitOpts.replicateVideoSeed).toBe(123)
-      expect(explicitOpts.replicateVideoGenerateAudio).toBe(false)
-      expect(explicitOpts.replicateVideoReferenceVideos).toEqual([videoDataUrl])
-      expect(explicitOpts.replicateVideoReferenceAudios).toEqual([audioDataUrl])
+      expect(explicitOpts.videoGenerateAudio).toBe(false)
+      expect(explicitOpts.videoReferenceVideos).toEqual([videoDataUrl])
+      expect(explicitOpts.videoReferenceAudios).toEqual([audioDataUrl])
       expect(collectVideoTargets(explicitOpts).map(target => `${target.service}/${target.model}`)).toEqual([
         'replicate/bytedance/seedance-2.0-fast'
       ])
 
-      expect(collectVideoTargets(buildOptsFromFlags(false, {
+      expect(collectVideoTargets(buildOptsFromFlags({
         'replicate-video': 'bytedance/seedance-2.0',
-        'video-mode': 'reference-to-video',
-        'video-reference-image': Array.from({ length: 9 }, () => imageDataUrl)
+        'mode': 'reference-to-video',
+        'reference-image': Array.from({ length: 9 }, () => imageDataUrl)
       }))).toHaveLength(1)
 
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+      expect(() => collectVideoTargets(buildOptsFromFlags({
         'replicate-video': 'bytedance/seedance-2.0',
-        'video-mode': 'reference-to-video',
-        'video-reference-image': Array.from({ length: 10 }, () => imageDataUrl)
-      }))).toThrow('--video-reference-image supports at most 9 images')
+        'mode': 'reference-to-video',
+        'reference-image': Array.from({ length: 10 }, () => imageDataUrl)
+      }))).toThrow('--reference-image supports at most 9 images')
 
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+      expect(() => collectVideoTargets(buildOptsFromFlags({
         'replicate-video': 'bytedance/seedance-2.0-fast',
-        'video-resolution': '1080p'
+        'resolution': '1080p'
       }))).toThrow('Expected 480p or 720p')
 
-      expect(() => buildOptsFromFlags(false, {
+      expect(() => buildOptsFromFlags({
         'replicate-video': 'wan-video/wan-2.7-t2v'
       })).toThrow('Use "bytedance/seedance-2.0-fast" instead')
 
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
-        'replicate-video-reference-audio': audioDataUrl
+      expect(() => collectVideoTargets(buildOptsFromFlags({
+        'replicate-video-seed': '123'
       }))).toThrow('Replicate video flags require a Replicate video provider target')
     })
 
@@ -145,97 +143,93 @@ describe('option resolution contracts', () => {
       const lastFrameDataUrl = `data:image/webp;base64,${Buffer.from([4, 5, 6]).toString('base64')}`
       const videoDataUrl = `data:video/mp4;base64,${Buffer.from([7, 8, 9]).toString('base64')}`
 
-      expect(collectVideoTargets(buildOptsFromFlags(false, {
+      expect(collectVideoTargets(buildOptsFromFlags({
         'ltx-video': 'ltx-2-3-fast',
-        'video-mode': 'image-to-video',
-        'video-input-image': imageDataUrl,
-        'video-aspect-ratio': '9:16',
-        'video-resolution': '4k'
+        'mode': 'image-to-video',
+        'input-image': imageDataUrl,
+        'aspect-ratio': '9:16',
+        'resolution': '4k'
       })).map(target => `${target.service}/${target.model}`)).toEqual([
         'ltx/ltx-2-3-fast'
       ])
 
-      expect(collectVideoTargets(buildOptsFromFlags(false, {
+      expect(collectVideoTargets(buildOptsFromFlags({
         'ltx-video': 'ltx-2-3-pro',
-        'video-mode': 'interpolate',
-        'video-input-image': imageDataUrl,
-        'video-last-frame': lastFrameDataUrl,
-        'video-size': '1440x2560'
+        'mode': 'interpolate',
+        'input-image': imageDataUrl,
+        'last-frame': lastFrameDataUrl,
+        'resolution': '4k',
+        'aspect-ratio': '9:16'
       })).map(target => `${target.service}/${target.model}`)).toEqual([
         'ltx/ltx-2-3-pro'
       ])
 
-      expect(collectVideoTargets(buildOptsFromFlags(false, {
+      expect(collectVideoTargets(buildOptsFromFlags({
         'ltx-video': 'ltx-2-3-pro',
-        'video-mode': 'extend',
-        'video-input-video': videoDataUrl,
-        'video-duration': '30'
+        'mode': 'extend',
+        'input-video': videoDataUrl,
+        'duration': '30'
       })).map(target => `${target.service}/${target.model}`)).toEqual([
         'ltx/ltx-2-3-pro'
       ])
 
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+      expect(() => collectVideoTargets(buildOptsFromFlags({
         'ltx-video': 'ltx-2-3-fast',
-        'video-mode': 'extend',
-        'video-input-video': videoDataUrl
-      }))).toThrow('--video-mode extend is not supported by ltx/ltx-2-3-fast')
+        'mode': 'extend',
+        'input-video': videoDataUrl
+      }))).toThrow('--mode extend is not supported by ltx/ltx-2-3-fast')
 
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+      expect(() => collectVideoTargets(buildOptsFromFlags({
         'ltx-video': 'ltx-2-3-fast',
-        'video-aspect-ratio': '1:1'
+        'aspect-ratio': '1:1'
       }))).toThrow('Expected 16:9 or 9:16')
 
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+      expect(() => collectVideoTargets(buildOptsFromFlags({
         'ltx-video': 'ltx-2-3-fast',
-        'video-resolution': '1440p'
+        'resolution': '1440p'
       }))).toThrow('Expected 1080p or 4k')
-
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
-        'ltx-video': 'ltx-2-3-fast',
-        'video-size': '1024x1024'
-      }))).toThrow('Invalid --video-size')
     })
 
   test('Gemini video media modes enforce Lite and 4k capability limits', () => {
       const imageDataUrl = `data:image/png;base64,${Buffer.from([1, 2, 3]).toString('base64')}`
       const videoDataUrl = `data:video/mp4;base64,${Buffer.from([4, 5, 6]).toString('base64')}`
 
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+      expect(() => collectVideoTargets(buildOptsFromFlags({
         'gemini-video': 'veo-3.1-lite-generate-preview',
-        'video-resolution': '4k'
-      }))).toThrow('Veo 3.1 Lite does not support --video-resolution 4k')
+        'resolution': '4k'
+      }))).toThrow('Veo 3.1 Lite does not support --resolution 4k')
 
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+      expect(() => collectVideoTargets(buildOptsFromFlags({
         'gemini-video': 'veo-3.1-lite-generate-preview',
-        'video-mode': 'reference-to-video',
-        'video-reference-image': imageDataUrl
-      }))).toThrow('--video-mode reference-to-video is not supported by gemini/veo-3.1-lite-generate-preview')
+        'mode': 'reference-to-video',
+        'reference-image': imageDataUrl
+      }))).toThrow('--mode reference-to-video is not supported by gemini/veo-3.1-lite-generate-preview')
 
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+      expect(() => collectVideoTargets(buildOptsFromFlags({
         'gemini-video': 'veo-3.1-lite-generate-preview',
-        'video-mode': 'extend',
-        'video-input-video': videoDataUrl
-      }))).toThrow('--video-mode extend is not supported by gemini/veo-3.1-lite-generate-preview')
+        'mode': 'extend',
+        'input-video': videoDataUrl
+      }))).toThrow('--mode extend is not supported by gemini/veo-3.1-lite-generate-preview')
 
-      expect(collectVideoTargets(buildOptsFromFlags(false, {
+      expect(collectVideoTargets(buildOptsFromFlags({
         'gemini-video': 'veo-3.1-generate-preview',
-        'video-resolution': '4k'
+        'resolution': '4k'
       }))).toHaveLength(1)
     })
 
   test('Grok video rejects 1080p on Imagine Video', () => {
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+      expect(() => collectVideoTargets(buildOptsFromFlags({
         'grok-video': 'grok-imagine-video',
-        'video-resolution': '1080p'
+        'resolution': '1080p'
       }))).toThrow('Expected 480p or 720p')
     })
 
   test('all-video image-to-video keeps compatible I2V targets', () => {
       const imageDataUrl = `data:image/png;base64,${Buffer.from([1, 2, 3]).toString('base64')}`
-      const targets = collectVideoTargets(buildOptsFromFlags(false, {
+      const targets = collectVideoTargets(buildOptsFromFlags({
         'all-video': true,
-        'video-mode': 'image-to-video',
-        'video-input-image': imageDataUrl
+        'mode': 'image-to-video',
+        'input-image': imageDataUrl
       })).map(target => `${target.service}/${target.model}`)
 
       expect(targets).toContain('gemini/veo-3.1-fast-generate-preview')

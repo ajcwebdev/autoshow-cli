@@ -1,19 +1,6 @@
 import { expect, test } from 'bun:test'
-import {
-  buildExtractionOptions,
-  configureBinDir,
-  getConfiguredBinDir,
-  join,
-  mkdtemp,
-  prepareDocumentMetadata,
-  resolveEbookConvertCommand,
-  resolveOcrStep2ExecutionFromFormat,
-  rm,
-  runOcr,
-  tmpdir,
-  withFakeEbookConvert,
-  writeFile
-} from './shared'
+import { buildExtractionOptions, configureBinDir, getConfiguredBinDir, join, prepareDocumentMetadata, resolveEbookConvertCommand, resolveOcrStep2ExecutionFromFormat, rm, runOcr, withFakeEbookConvert, writeFile } from './shared'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 test('normalizable ebook metadata records source format and EPUB normalization chain', async () => {
   await withFakeEbookConvert(async (root) => {
@@ -48,7 +35,7 @@ test('normalizable ebook metadata records source format and EPUB normalization c
 test('normalizable ebook extraction follows EPUB chapter, length, and inspect behavior', async () => {
   await withFakeEbookConvert(async (root) => {
     const sourcePath = join(root, 'normalized-source.azw3')
-    const outputDir = await mkdtemp(join(tmpdir(), 'autoshow-normalized-ebook-output-'))
+    const outputDir = await makeTempDir('autoshow-normalized-ebook-output-')
     await writeFile(sourcePath, 'fake azw3 input')
     const prepared = await prepareDocumentMetadata(sourcePath)
     const epubPath = prepared.effectiveFilePath ?? sourcePath
@@ -85,19 +72,6 @@ test('normalizable ebook extraction follows EPUB chapter, length, and inspect be
       expect(lengthRun.step2Metadata.chapterExport?.normalizedFrom).toBe('azw3')
       expect(lengthRun.step2Metadata.chapterExport?.chunkLimitChars).toBe(30)
       expect(lengthRun.artifactFiles?.some((file) => file.relativePath.includes('-part-'))).toBe(true)
-
-      const inspectRun = await runOcr(
-        epubPath,
-        prepared.step1Metadata,
-        buildExtractionOptions(epubPath, outputDir, {
-          outputFormat: 'json',
-          useEpubBun: true
-        })
-      )
-      expect(inspectRun.step2Metadata.extractionMethod).toBe('epub-bun')
-      expect(inspectRun.step2Metadata.normalizedFrom).toBe('azw3')
-      expect(inspectRun.step2Metadata.conversionChain).toEqual(['calibre'])
-      expect(inspectRun.step2Metadata.epub).toBeDefined()
     } finally {
       await prepared.tempCleanup?.()
       await rm(outputDir, { recursive: true, force: true })

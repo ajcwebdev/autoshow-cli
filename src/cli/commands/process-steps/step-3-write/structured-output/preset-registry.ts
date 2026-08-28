@@ -101,6 +101,18 @@ const ShortStoryActSchema = v.object({
   prose: TextSchema
 })
 
+const RapSongExtendedLyricsSchema = v.object({
+  title: TextSchema,
+  intro: v.pipe(v.array(TextSchema), v.length(4)),
+  verse1: v.pipe(v.array(TextSchema), v.length(16)),
+  chorus1: v.pipe(v.array(TextSchema), v.length(4)),
+  verse2: v.pipe(v.array(TextSchema), v.length(16)),
+  chorus2: v.pipe(v.array(TextSchema), v.length(4)),
+  verse3: v.pipe(v.array(TextSchema), v.length(16)),
+  bridge: v.pipe(v.array(TextSchema), v.length(4)),
+  chorus3: v.pipe(v.array(TextSchema), v.length(4))
+})
+
 const PRESET_REGISTRY = {
   shortSummary: v.object({
     episodeDescription: ShortDescriptionSchema
@@ -205,23 +217,15 @@ const PRESET_REGISTRY = {
   }),
   rapSongLyrics: v.object({
     title: TextSchema,
-    verse1: v.pipe(v.array(TextSchema), v.length(16)),
-    chorus1: v.pipe(v.array(TextSchema), v.length(4)),
-    verse2: v.pipe(v.array(TextSchema), v.length(16)),
-    chorus2: v.pipe(v.array(TextSchema), v.length(4)),
-    verse3: v.pipe(v.array(TextSchema), v.length(16)),
-    chorus3: v.pipe(v.array(TextSchema), v.length(4))
-  }),
-  rapSongLongLyrics: v.object({
-    title: TextSchema,
     verse1: v.pipe(v.array(TextSchema), v.length(8)),
     chorus1: v.pipe(v.array(TextSchema), v.length(4)),
     verse2: v.pipe(v.array(TextSchema), v.length(8)),
     chorus2: v.pipe(v.array(TextSchema), v.length(4)),
-    verse3: v.pipe(v.array(TextSchema), v.length(12)),
-    bridge: v.pipe(v.array(TextSchema), v.length(12)),
+    verse3: v.pipe(v.array(TextSchema), v.length(8)),
     chorus3: v.pipe(v.array(TextSchema), v.length(4))
   }),
+  rapSongLongLyrics: RapSongExtendedLyricsSchema,
+  rapSongChapterLyrics: RapSongExtendedLyricsSchema,
   poetryCollection: v.object({
     title: TextSchema,
     theme: TextSchema,
@@ -256,7 +260,7 @@ export const hasStructuredPreset = (presetName: string): boolean => {
   return presetName in PRESET_REGISTRY
 }
 
-const SONG_LYRICS_PRESETS = new Set<string>(['standardSongLyrics', 'rapSongLyrics', 'rapSongLongLyrics'])
+const SONG_LYRICS_PRESETS = new Set<string>(['standardSongLyrics', 'rapSongLyrics', 'rapSongLongLyrics', 'rapSongChapterLyrics'])
 
 export const isSongLyricsPreset = (name: string): boolean => SONG_LYRICS_PRESETS.has(name)
 

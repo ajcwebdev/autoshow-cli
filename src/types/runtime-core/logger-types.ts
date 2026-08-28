@@ -53,13 +53,17 @@ export type HumanLogSection = {
 }
 
 export type LogWriteOptions = {
-  category?: LogCategory
+  category: LogCategory
   metadata?: LogMetadata
   context?: LogContext
   indent?: boolean
   args?: readonly unknown[]
   humanTable?: HumanLogTable
   humanSections?: readonly HumanLogSection[]
+}
+
+type LogErrorOptions = LogWriteOptions & {
+  error?: unknown
 }
 
 export type LogSinkEvent = {
@@ -83,22 +87,19 @@ export type LogSink = (event: LogSinkEvent) => void
 export type MutableLoggerConfig = {
   sinks: LogSink[]
   minLevel: LogLevel
+  suppressedCategories: LogCategory[]
 }
 
-
-type BaseLogFn = (message: string, ...args: unknown[]) => void
-
 export interface Logger {
-  write: (level: LogLevel, message: string, options?: LogWriteOptions) => void
-  debug: BaseLogFn
-  warn: BaseLogFn
-  error: (message: string, errorObj?: unknown) => void
+  write: (level: LogLevel, message: string, options: LogWriteOptions) => void
+  debug: (message: string, options: LogWriteOptions) => void
+  warn: (message: string, options: LogWriteOptions) => void
+  error: (message: string, options: LogErrorOptions) => void
   withContext: (context: LogContext) => Logger
   config: MutableLoggerConfig
 }
 
 export type TableLogger = Pick<Logger, 'write'>
-
 
 export type LocationTableRow = {
   artifact: string
@@ -117,7 +118,6 @@ export type HumanTableLogOptions = {
   category?: LogCategory
   metadata?: LogMetadata
 }
-
 
 export type StepTimingCost = {
   label: string
@@ -144,10 +144,19 @@ export type CompleteOptions = {
   includeOutputDir?: boolean
 }
 
+type ReportResultOptions = {
+  message?: string
+  level?: LogLevel
+  category?: LogCategory
+  humanTable?: HumanLogTable
+  humanSections?: readonly HumanLogSection[]
+}
+
 export type Reporter = {
   expectedOutput: (outputDir: string, files: string[]) => void
   estimate: (estimate: AggregatedPriceEstimate) => void
   complete: (outputDir: string, files: Record<string, string>, options?: CompleteOptions) => void
+  result: (data: Record<string, unknown>, options?: ReportResultOptions) => void
 }
 
 export type StepSummaryEntry = {

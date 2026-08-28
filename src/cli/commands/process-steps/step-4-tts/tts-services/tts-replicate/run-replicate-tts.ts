@@ -1,4 +1,4 @@
-import type { HostedTtsChunkScheduler, ReplicateTtsModel, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { RunReplicateTtsOptions, Step4Metadata } from '~/types'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
@@ -12,17 +12,7 @@ import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retrie
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { hashCanonicalTtsValue } from '../../script-to-audio/contract-identity'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
-
-export type RunReplicateTtsOptions = Readonly<{
-  model: ReplicateTtsModel
-  apiKey: string
-  voiceId?: string | undefined
-  speed?: number | undefined
-  abortSignal?: AbortSignal | undefined
-  chunkConcurrency?: number | undefined
-  chunkScheduler?: HostedTtsChunkScheduler | undefined
-  requestEvidence?: TtsRequestEvidenceScope | undefined
-}>
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 export const REPLICATE_KOKORO_VERSION = 'f559560eb822dc509045f3921a1921234918b91739db4bf3daab2169b71c7a13'
 export const REPLICATE_KOKORO_MODEL_ID = 'jaaari/kokoro-82m' as const
@@ -63,9 +53,7 @@ export const runReplicateTts = async (
   outputDir: string,
   options: RunReplicateTtsOptions
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  if (!options.apiKey.trim()) {
-    throw ValidationError('Replicate API token is required', { stage: 'tts:replicate' })
-  }
+  const apiKey = resolveCredential('replicate', 'require', { stage: 'tts:replicate', providedValue: options.apiKey, useProvidedValue: true, description: 'Replicate TTS' })
   const voice = validateReplicateTtsVoice(options.voiceId?.trim() || REPLICATE_DEFAULT_TTS_VOICE)
   if (options.speed !== undefined && (!Number.isFinite(options.speed) || options.speed < 0.1 || options.speed > 5)) {
     throw ValidationError('Replicate Kokoro TTS speed must be between 0.1 and 5', { stage: 'tts:replicate' })
@@ -123,7 +111,7 @@ export const runReplicateTts = async (
         continuation: { kind: 'none' }
       }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
         const prediction = await runReplicatePrediction({
-          apiToken: options.apiKey,
+          apiToken: apiKey,
           baseUrl: REPLICATE_DEFAULT_BASE_URL,
           model: options.model,
           version: REPLICATE_KOKORO_VERSION,
@@ -132,7 +120,7 @@ export const runReplicateTts = async (
             voice,
             ...(options.speed !== undefined ? { speed: options.speed } : {})
           },
-          operationName: `Replicate TTS chunk ${chunkIndex + 1}`,
+          operationName: `replicate-tts-chunk-${chunkIndex + 1}`,
           abortSignal: signal,
           onCreated: async (created) => {
             await accepted({
@@ -152,7 +140,7 @@ export const runReplicateTts = async (
 
         return await withRetry({
           retryClass: 'runtime_http_read',
-          operationName: `Replicate TTS audio download ${chunkIndex + 1}`,
+          operationName: `replicate-tts-audio-download-${chunkIndex + 1}`,
           timeoutMs: MEDIA_GENERATION_TIMEOUT_MS,
           abortSignal: signal
         }, async (downloadSignal) => {

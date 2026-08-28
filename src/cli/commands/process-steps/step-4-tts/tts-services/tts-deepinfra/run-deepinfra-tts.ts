@@ -1,4 +1,4 @@
-import type { DeepinfraTtsModel, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { RunDeepinfraTtsOptions, Step4Metadata } from '~/types'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { resolveTtsChunkCharacterLimit } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
@@ -17,35 +17,14 @@ import {
   resolveDeepinfraTtsRequestControls,
   resolveDeepinfraTtsVoiceField,
 } from './deepinfra-tts-request'
-
-export type RunDeepinfraTtsOptions = Readonly<{
-  model: DeepinfraTtsModel
-  apiKey: string
-  voiceId?: string | undefined
-  promptInstructions?: string | undefined
-  abortSignal?: AbortSignal | undefined
-  chunkConcurrency?: number | undefined
-  chunkScheduler?: HostedTtsChunkScheduler | undefined
-  requestEvidence?: TtsRequestEvidenceScope | undefined
-  allowAmbiguousRedispatch?: boolean | undefined
-}>
-
-export const DEEPINFRA_TTS_RETRY_POLICY = {
-  maxAttempts: 8,
-  baseDelayMs: 3_000,
-  maxDelayMs: 30_000,
-  jitter: true,
-  exponential: true
-} as const
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 export const runDeepinfraTts = async (
   text: string,
   outputDir: string,
   options: RunDeepinfraTtsOptions
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  if (!options.apiKey.trim()) {
-    throw ValidationError('DeepInfra API key is required', { stage: 'tts:deepinfra' })
-  }
+  const apiKey = resolveCredential('deepinfra', 'require', { stage: 'tts:deepinfra', providedValue: options.apiKey, useProvidedValue: true, description: 'DeepInfra TTS' })
   const voice = validateDeepinfraTtsVoice(options.voiceId?.trim() || resolveDeepinfraTtsDefaultVoice(options.model))
   const providerText = prepareDeepinfraTtsText(options.model, text)
   const chunks = splitTextIntoChunks(providerText, resolveTtsChunkCharacterLimit('deepinfra', options.model) ?? 2000)
@@ -75,8 +54,6 @@ export const runDeepinfraTts = async (
     abortSignal: options.abortSignal,
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
-    retryPolicy: DEEPINFRA_TTS_RETRY_POLICY,
-    allowAmbiguousRedispatch: options.allowAmbiguousRedispatch,
     requestEvidence: options.requestEvidence,
     fetchChunkAudio: async ({ chunk, chunkIndex, requestAttempt, retryReasonCode, signal }) => {
       const body = buildDeepinfraTtsRequestBody({
@@ -103,7 +80,7 @@ export const runDeepinfraTts = async (
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${options.apiKey}`
+            'Authorization': `Bearer ${apiKey}`
           },
           body: JSON.stringify(body),
           ...(signal ? { signal } : {})

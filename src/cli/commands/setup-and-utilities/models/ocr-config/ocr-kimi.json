@@ -15,7 +15,7 @@
         "costPerMOutputTokensCents": 400,
         "limits": {
           "imageBytes": 104857600,
-          "notes": "project/links/kimi-general-ocr-text-links.md documents Kimi image support for PNG/JPEG/WebP/GIF, a 100 MB request-body/file limit, and recommended image resolution no higher than 4K. AutoShow renders PDFs to page images before calling Kimi OCR."
+          "notes": "https://platform.kimi.ai/docs/guide/use-kimi-vision-model.md documents Kimi image support for PNG/JPEG/WebP/GIF, a 100 MB request-body/file limit, and recommended image resolution no higher than 4K. AutoShow renders PDFs to page images before calling Kimi OCR."
         },
         "estimation": {
           "costMultiplier": 1,
@@ -35,13 +35,13 @@
         "pricingCheckedAt": "2026-07-24",
         "pricingCurrency": "USD",
         "pricingTier": "Moonshot AI public API token pricing",
-        "pricingNotes": "Moonshot AI public pricing lists Kimi K3 at $3/1M cache-miss input tokens, $0.30/1M cache-hit input tokens, and $15/1M output tokens with flat pay-as-you-go rates and no context tiers. OCR estimates use cache-miss input pricing conservatively. Kimi K3 runs with always-on thinking at the provider default reasoning_effort of max, so the reused Kimi K2.6 page heuristics are provisional until a separately approved paid calibration is available. Cache discounts, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "pricingNotes": "Moonshot AI public pricing lists Kimi K3 at $3/1M cache-miss input tokens, $0.30/1M cache-hit input tokens, and $15/1M output tokens with flat pay-as-you-go rates and no context tiers. OCR estimates use cache-miss input pricing conservatively. Kimi K3 requires thinking; AutoShow defaults omitted --reasoning-effort to low rather than the provider max. The reused Kimi K2.6 page heuristics are provisional until a separately approved paid calibration is available. Cache discounts, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
         "costPerMInputTokensCents": 300,
         "costPerMCachedInputTokensCents": 30,
         "costPerMOutputTokensCents": 1500,
         "limits": {
           "imageBytes": 104857600,
-          "notes": "project/links/kimi-all-links.md documents Kimi image support for PNG/JPEG/WebP/GIF, a 100 MB request-body/file limit, and recommended image resolution no higher than 4K. AutoShow renders PDFs to page images before calling Kimi OCR."
+          "notes": "https://platform.kimi.ai/docs/guide/use-kimi-vision-model.md documents Kimi image support for PNG/JPEG/WebP/GIF, a 100 MB request-body/file limit, and recommended image resolution no higher than 4K. AutoShow renders PDFs to page images before calling Kimi OCR."
         },
         "estimation": {
           "costMultiplier": 1,

@@ -87,7 +87,7 @@ export const resolveSttStep2Execution = (
     sourceKind: 'media',
     providers: [{
       service: 'whisper',
-      model: typeof options.whisperModel === 'string' && options.whisperModel.length > 0 ? options.whisperModel : 'tiny',
+      model: options.whisperModels?.[0] ?? 'tiny',
       origin: 'default'
     }]
   }
@@ -120,7 +120,6 @@ export const resolveOcrStep2ExecutionFromFormat = (
     { format },
     {
       preparedMarkdown: options.preparedMarkdown,
-      epubInspect: format === 'epub' && options.useEpubBun === true,
       forceOcr: providers.length > 0
     }
   )
@@ -128,11 +127,6 @@ export const resolveOcrStep2ExecutionFromFormat = (
   switch (ocrSourceKind) {
     case 'article':
       return resolveArticleStep2(options)
-    case 'epub-inspect':
-      return {
-        route: 'native-document',
-        sourceKind: 'epub-inspect'
-      }
     case 'office-native':
       return {
         route: 'native-document',

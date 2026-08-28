@@ -1,5 +1,15 @@
 import type { HostedOcrTokenReasoningPolicy, TokenPricedOcrProvider } from '~/types'
 
+export type TokenShapeSample = {
+  provider: TokenPricedOcrProvider
+  model: string
+  ocrMode: string
+  pageCountBand: string
+  effectiveReasoningEffort: HostedOcrTokenReasoningPolicy
+  promptTokensPerPage: number
+  completionTokensPerPage: number
+}
+
 export type OcrTokenShapeAuditMetric = {
   registryTokensPerPage: number
   profileTokensPerPage?: number | undefined

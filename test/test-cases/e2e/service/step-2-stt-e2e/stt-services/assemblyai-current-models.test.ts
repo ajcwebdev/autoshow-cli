@@ -3,6 +3,6 @@ import { assemblyaiTranscription } from './cases'
 
 defineSTTServiceTest({
   ...assemblyaiTranscription,
-  models: ['universal-3-5-pro', 'universal-2'],
+  models: ['universal-3-5-pro'],
   sttService: 'assemblyai',
 })

@@ -1,33 +1,32 @@
 import { basename } from 'node:path'
-import type { GeminiContent, GeminiFile, GeminiGenerateContentResponse, GeminiGeneratedVideo, GeminiInlineMedia, GeminiPart, GeminiVideo, GeminiVideoImageMedia, GeminiVideoOperation, GeminiVideoReferenceImage } from '~/types'
+import type { GeminiContent, GeminiFetchOptions, GeminiFile, GeminiGenerateContentResponse, GeminiGeneratedVideo, GeminiInlineMedia, GeminiPart, GeminiVideo, GeminiVideoImageMedia, GeminiVideoOperation, GeminiVideoReferenceImage } from '~/types'
 import { buildCaptureMetadata, redactPayloadPreview } from '~/utils/bounded-capture'
-import { AppError, InfraError, ValidationError } from '~/utils/error-handler'
+import { AppError, AppProviderError, InfraError, ValidationError } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { createProviderRestClient, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
+import { pollUntil } from '~/utils/retries'
+import { isObjectLike } from '~/utils/value-helpers'
 
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com'
 const GEMINI_API_VERSION = 'v1beta'
 const GEMINI_UPLOAD_CHUNK_BYTES = 8 * 1024 * 1024
 
-export class GeminiRestError extends Error {
-  status: number
-  headers: Headers
+export class GeminiRestError extends AppProviderError {
+  override readonly status: number
+  override readonly headers: Headers
   body: unknown
   bodyBytes?: number | undefined
   bodyTruncated?: boolean | undefined
   bodyPreview?: string | undefined
 
   constructor(message: string, status: number, headers: Headers, body: unknown) {
-    super(message)
+    super(message, { status, headers, stage: 'gemini' })
     this.name = 'GeminiRestError'
     this.status = status
     this.headers = headers
     this.body = body
   }
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
 
 const buildGeminiUrl = (path: string, params?: Record<string, string>): string => {
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path
@@ -42,7 +41,7 @@ const buildV1BetaUrl = (path: string, params?: Record<string, string>): string =
   buildGeminiUrl(`${GEMINI_API_VERSION}/${path}`, params)
 
 const formatGeminiErrorMessage = (body: unknown, status: number): string => {
-  if (isRecord(body) && isRecord(body['error'])) {
+  if (isObjectLike(body) && isObjectLike(body['error'])) {
     const error = body['error']
     const message = typeof error['message'] === 'string' ? error['message'] : JSON.stringify(body)
     const code = typeof error['code'] === 'number' ? error['code'] : status
@@ -52,11 +51,6 @@ const formatGeminiErrorMessage = (body: unknown, status: number): string => {
     return `Gemini API request failed with status ${status}: ${sanitizeLogText(body)}`
   }
   return `Gemini API request failed with status ${status}`
-}
-
-type GeminiFetchOptions = {
-  url: string
-  init: RequestInit
 }
 
 const requestGemini = createProviderRestClient<GeminiFetchOptions, GeminiRestError>({
@@ -149,13 +143,13 @@ const normalizeGeminiContents = (
   if (typeof contents === 'string') {
     return [geminiUserContent([contents])]
   }
-  if (isRecord(contents) && Array.isArray(contents['parts'])) {
+  if (isObjectLike(contents) && Array.isArray(contents['parts'])) {
     return [contents as GeminiContent]
   }
   if (!Array.isArray(contents)) {
     return [geminiUserContent([contents as GeminiPart])]
   }
-  if (contents.length > 0 && isRecord(contents[0]) && Array.isArray((contents[0] as Record<string, unknown>)['parts'])) {
+  if (contents.length > 0 && isObjectLike(contents[0]) && Array.isArray((contents[0] as Record<string, unknown>)['parts'])) {
     return contents as GeminiContent[]
   }
   return [geminiUserContent(contents as Array<string | GeminiPart>)]
@@ -206,7 +200,7 @@ export const geminiGenerateContent = async (
     body,
     ...(params.abortSignal ? { abortSignal: params.abortSignal } : {})
   })
-  const response = isRecord(json) ? json as GeminiGenerateContentResponse : {}
+  const response = isObjectLike(json) ? json as GeminiGenerateContentResponse : {}
   response.text = extractGeminiResponseText(response)
   response.sdkHttpResponse = { headers, status }
   return response
@@ -261,16 +255,15 @@ export const geminiGetOperation = async (
 }
 
 const normalizeGeminiVideoOperation = (value: unknown): GeminiVideoOperation => {
-  const raw = isRecord(value) ? value : {}
+  const raw = isObjectLike(value) ? value : {}
   const operation: GeminiVideoOperation = {
     ...(typeof raw['name'] === 'string' ? { name: raw['name'] } : {}),
     ...(typeof raw['done'] === 'boolean' ? { done: raw['done'] } : {}),
     ...(raw['metadata'] !== undefined ? { metadata: raw['metadata'] } : {}),
     ...(raw['error'] !== undefined ? { error: raw['error'] } : {})
   }
-  const response = isRecord(raw['response']) ? raw['response'] : undefined
-  // Raw Gemini REST provenance: https://ai.google.dev/gemini-api/docs/veo and the Google Gen AI SDK's ML Developer API converters at https://github.com/googleapis/js-genai/blob/4489991a7c40b22dff75348748048b0b14ac687e/src/converters/_models_converters.ts.
-  const generateVideoResponse = response && isRecord(response['generateVideoResponse'])
+  const response = isObjectLike(raw['response']) ? raw['response'] : undefined
+  const generateVideoResponse = response && isObjectLike(response['generateVideoResponse'])
     ? response['generateVideoResponse']
     : undefined
   if (generateVideoResponse) {
@@ -280,8 +273,8 @@ const normalizeGeminiVideoOperation = (value: unknown): GeminiVideoOperation => 
     operation.response = {
       generatedVideos: samples
         .map((sample): GeminiGeneratedVideo | undefined => {
-          if (!isRecord(sample)) return undefined
-          if (isRecord(sample['video'])) {
+          if (!isObjectLike(sample)) return undefined
+          if (isObjectLike(sample['video'])) {
             const video = normalizeGeminiVideo(sample['video'])
             return video ? { video } : undefined
           }
@@ -393,34 +386,59 @@ export const geminiUploadFile = async (
       metadata: buildCaptureMetadata(captured)
     })
   }
-  if (isRecord(parsed) && isRecord(parsed['file'])) {
+  if (isObjectLike(parsed) && isObjectLike(parsed['file'])) {
     return parsed['file'] as GeminiFile
   }
   throw ValidationError('Gemini Files API upload did not return file metadata.', { stage: 'gemini:rest' })
 }
 
-export const getGeminiFileState = (file: unknown): string | undefined => {
-  if (!isRecord(file)) {
+const getGeminiFileState = (file: unknown): string | undefined => {
+  if (!isObjectLike(file)) {
     return undefined
   }
   const state = file['state']
   if (typeof state === 'string') {
     return state.toUpperCase()
   }
-  if (isRecord(state) && typeof state['name'] === 'string') {
+  if (isObjectLike(state) && typeof state['name'] === 'string') {
     return state['name'].toUpperCase()
   }
   return undefined
 }
 
-export const geminiGetFile = async (
+const geminiGetFile = async (
   apiKey: string,
   name: string
 ): Promise<GeminiFile> => {
   const { json } = await geminiJsonRequest(apiKey, `files/${encodeURIComponent(extractGeminiFileName(name))}`, {
     method: 'GET'
   })
-  return isRecord(json) ? json as GeminiFile : {}
+  return isObjectLike(json) ? json as GeminiFile : {}
+}
+
+const GEMINI_FILE_ACTIVATION_DEADLINE_MS = 120_000
+const GEMINI_FILE_ACTIVATION_INTERVAL_MS = 1_000
+
+export const waitForGeminiFileActive = async (
+  apiKey: string,
+  fileName: string,
+  options: { stage: string, abortSignal?: AbortSignal | undefined }
+): Promise<void> => {
+  await pollUntil<GeminiFile>({
+    operationName: `gemini-file-activation:${extractGeminiFileName(fileName)}`,
+    pollFn: async () => await geminiGetFile(apiKey, fileName),
+    isDone: (file) => {
+      const state = getGeminiFileState(file)
+      return state === undefined || state === 'ACTIVE'
+    },
+    isFailed: (file) => getGeminiFileState(file) === 'FAILED'
+      ? { failed: true, reason: `Gemini Files API upload failed for ${fileName}`, metadata: { fileName, stage: options.stage } }
+      : { failed: false },
+    describeResult: (file) => ({ fileName, state: getGeminiFileState(file) ?? 'unknown' }),
+    intervalMs: GEMINI_FILE_ACTIVATION_INTERVAL_MS,
+    deadlineMs: GEMINI_FILE_ACTIVATION_DEADLINE_MS,
+    ...(options.abortSignal ? { abortSignal: options.abortSignal } : {})
+  })
 }
 
 export const geminiDeleteFile = async (
@@ -454,7 +472,7 @@ const extractInlineVideoBytes = (file: string | GeminiVideo | GeminiGeneratedVid
   if ('videoBytes' in file && typeof file.videoBytes === 'string') {
     return file.videoBytes
   }
-  if ('video' in file && isRecord(file.video) && typeof file.video['videoBytes'] === 'string') {
+  if ('video' in file && isObjectLike(file.video) && typeof file.video['videoBytes'] === 'string') {
     return file.video['videoBytes']
   }
   return undefined
@@ -467,7 +485,7 @@ const extractGeminiFileNameFromFile = (file: string | GeminiVideo | GeminiGenera
   if ('uri' in file && typeof file.uri === 'string') {
     return extractGeminiFileName(file.uri)
   }
-  if ('video' in file && isRecord(file.video) && typeof file.video['uri'] === 'string') {
+  if ('video' in file && isObjectLike(file.video) && typeof file.video['uri'] === 'string') {
     return extractGeminiFileName(file.video['uri'])
   }
   throw ValidationError('Could not extract Gemini file name from generated media.', { stage: 'gemini:rest' })

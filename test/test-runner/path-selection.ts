@@ -30,7 +30,6 @@ export const resolveSelectedFiles = (allFiles: string[], pathFilters: string[]):
 }
 
 const SLOW_E2E_PATH_FRAGMENTS = [
-  'ocr-services/ocr-replicate.test.ts',
   'download-input-types-streaming.test.ts',
   'stt-services/scrapecreators-youtube-transcript.test.ts',
   'step-5-image-gen-e2e/fal-image.test.ts',

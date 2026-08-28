@@ -1,5 +1,6 @@
-import type { HumanLogTable, KeyValueEntry, LogLevel, OcrPagesProgress, OcrProviderLifecycle, TableLogger } from '~/types'
+import type { HumanLogTable, KeyValueEntry, OcrPagesProgress, OcrProviderLifecycle } from '~/types'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
+import { defineTableLog } from '~/utils/app-logger/table-log-definition'
 
 const addOptionalEntry = (
   entries: KeyValueEntry[],
@@ -11,7 +12,7 @@ const addOptionalEntry = (
   }
 }
 
-export const buildOcrProviderLifecycleTable = (
+const buildOcrProviderLifecycleTableValue = (
   lifecycle: OcrProviderLifecycle
 ): HumanLogTable => {
   const entries: KeyValueEntry[] = [
@@ -25,21 +26,15 @@ export const buildOcrProviderLifecycleTable = (
   return createKeyValueTable(entries)
 }
 
-export const logOcrProviderLifecycle = (
-  logger: TableLogger,
-  lifecycle: OcrProviderLifecycle,
-  level: LogLevel = lifecycle.status === 'succeeded'
-    ? 'success'
-    : lifecycle.status === 'failed' ? 'warn' : 'info'
-): void => {
-  logger.write(level, 'OCR Provider', {
-    category: 'pipeline',
-    humanTable: buildOcrProviderLifecycleTable(lifecycle),
-    metadata: lifecycle
-  })
-}
+export const { buildTable: buildOcrProviderLifecycleTable, log: logOcrProviderLifecycle } = defineTableLog<OcrProviderLifecycle>({
+  title: 'OCR Provider',
+  category: 'pipeline',
+  buildTable: buildOcrProviderLifecycleTableValue,
+  level: lifecycle => lifecycle.status === 'succeeded' ? 'success' : lifecycle.status === 'failed' ? 'warn' : 'info',
+  metadata: lifecycle => lifecycle
+})
 
-export const buildOcrPagesProgressTable = (
+const buildOcrPagesProgressTableValue = (
   progress: OcrPagesProgress
 ): HumanLogTable =>
   createKeyValueTable([
@@ -50,14 +45,10 @@ export const buildOcrPagesProgressTable = (
     ['ocrConcurrency', progress.ocrConcurrency]
   ])
 
-export const logOcrPagesProgress = (
-  logger: TableLogger,
-  progress: OcrPagesProgress,
-  level: LogLevel = 'info'
-): void => {
-  logger.write(level, 'OCR Pages', {
-    category: 'pipeline',
-    humanTable: buildOcrPagesProgressTable(progress),
-    metadata: progress
-  })
-}
+export const { buildTable: buildOcrPagesProgressTable, log: logOcrPagesProgress } = defineTableLog<OcrPagesProgress>({
+  title: 'OCR Pages',
+  category: 'pipeline',
+  buildTable: buildOcrPagesProgressTableValue,
+  level: 'info',
+  metadata: progress => progress
+})

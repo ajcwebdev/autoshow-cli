@@ -1,12 +1,9 @@
 import { expect } from 'bun:test'
 import { budgetedTest } from '../../../../../test-utils/budget'
-import {
-  fileExists,
-  findLatestDirectory,
-  runCommand,
-} from '../../../../../test-utils/test-helpers'
+import { findLatestDirectory, runCommand } from '../../../../../test-utils/test-helpers'
 import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVar } from '../../../../../test-utils/service-test-kit'
+import { expectArtifact } from '../../../../../test-utils/value-assertions'
 
 const SHORT_TTS_INPUT_PATH = 'input/examples/tts/0-tts-short.txt'
 const SHORT_TTS_INPUT_TITLE = '0-tts-short'
@@ -30,7 +27,7 @@ budgetedTest('tts-groq-canopylabs/orpheus-v1-english', 'orpheus english with --t
   expect(outputDir).not.toBeNull()
 
   if (outputDir) {
-    expect(await fileExists(`${outputDir}/speech.wav`)).toBe(true)
+    await expectArtifact(`${outputDir}/speech.wav`)
 
     const metadata = await readCanonicalRecord(outputDir) as {
       tts?: Array<{ ttsService?: string, ttsModel?: string, speaker?: string }>

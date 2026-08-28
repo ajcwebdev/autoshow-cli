@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureMistralOcrSetup = ensureApiKeySetup('MISTRAL_API_KEY', 'ocr:mistral', 'Mistral OCR')
+export const ensureMistralOcrSetup = async (): Promise<void> => { resolveCredential('mistral', 'require', { stage: 'ocr:mistral', description: 'Mistral OCR' }) }

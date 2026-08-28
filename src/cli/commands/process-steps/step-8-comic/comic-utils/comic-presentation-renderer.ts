@@ -6,28 +6,21 @@ import type {
   ComicPresentationPlan,
   ComicPresentationRun,
   CompactPresentation,
+  DialogueSlice,
+  FfmpegCommand,
   ObservedAudioFormat,
   ResolvedPanelTimeline,
 } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, hasErrorCode, InfraError } from '~/utils/error-handler'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
 import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from '../../step-4-tts/script-to-audio/contract-identity'
 import { inspectSoundscapeAudio } from '../../step-4-tts/soundscape/soundscape-audio'
-import { hardlinkContainedArtifact, readContainedArtifactFile, removeContainedDirectory, writeReplaceableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
+import { hardlinkContainedArtifact, isMissingArtifactError, readContainedArtifactFile, removeContainedDirectory, writeReplaceableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
 
 export const PRESENTATION_ARCHIVE_PATH = 'presentation/presentation.json'
 export const PRESENTATION_FINAL_WAV = 'presentation/final/slideshow.wav'
 export const PRESENTATION_FINAL_MP4 = 'presentation/final/slideshow.mp4'
-
-type FfmpegCommand = { tool: 'ffmpeg', args: string[] }
-
-type DialogueSlice = {
-  panelNumber: number
-  turnIds: string[]
-  sourceRangeMs: { start: number, end: number }
-  finalRangeMs: { start: number, end: number }
-}
 
 const seconds = (milliseconds: number): string => (milliseconds / 1000).toFixed(6)
 
@@ -107,7 +100,7 @@ export const buildPresentationAudioCommand = (input: {
   for (const event of input.timeline.events.filter(candidate => candidate.kind !== 'dialogue')) {
     const cueId = event.sourceIds[0] as string
     const binding = input.plan.soundBindings.find(candidate => candidate.cueId === cueId)
-    if (!binding) throw CLIUsageError(`Resolved presentation event ${event.eventId} has no sound binding.`)
+    if (!binding) throw UsageError(`Resolved presentation event ${event.eventId} has no sound binding.`)
     args.push('-i', resolve(input.sceneRunDir, binding.sourceAudio.path))
     const label = `sound${inputIndex}`
     const durationMs = event.presentationRangeMs.end - event.presentationRangeMs.start
@@ -161,19 +154,19 @@ export const buildPresentationAudioCommand = (input: {
 
 const ffconcatPath = (path: string): string => `'${path.replaceAll("'", "'\\''")}'`
 
-export const writePresentationConcatFile = async (path: string, sceneRunDir: string, timeline: ResolvedPanelTimeline): Promise<void> => {
+const writePresentationConcatFile = async (path: string, sceneRunDir: string, timeline: ResolvedPanelTimeline): Promise<void> => {
   const lines = ['ffconcat version 1.0']
   for (const panel of timeline.panels) {
     lines.push(`file ${ffconcatPath(resolve(sceneRunDir, panel.image.path))}`)
     lines.push(`duration ${seconds(panel.durationMs)}`)
   }
   const last = timeline.panels.at(-1)
-  if (!last) throw CLIUsageError('Cannot render a slideshow without panels.')
+  if (!last) throw UsageError('Cannot render a slideshow without panels.')
   lines.push(`file ${ffconcatPath(resolve(sceneRunDir, last.image.path))}`)
   await Bun.write(path, `${lines.join('\n')}\n`)
 }
 
-export const buildPresentationVideoCommand = (input: {
+const buildPresentationVideoCommand = (input: {
   concatPath: string
   wavPath: string
   outputPath: string
@@ -225,9 +218,13 @@ const publishStagedImmutable = async (sceneRunDir: string, stagedPath: string, r
   try {
     await link(stagedPath, destination)
   } catch (error) {
-    if (!(error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'EEXIST')) throw error
+    if (!hasErrorCode(error, 'EEXIST')) throw error
     const existing = await readContainedArtifactFile(sceneRunDir, relativePath)
-    if (existing.sha256 !== sha256) throw CLIUsageError(`Immutable comic presentation artifact conflicts with existing bytes: ${relativePath}`)
+    if (existing.sha256 !== sha256) throw UsageError(
+        `Immutable comic presentation artifact conflicts with existing bytes: ${relativePath}`,
+        undefined,
+        error instanceof Error ? { cause: error } : {}
+      )
   }
   await rm(stagedPath, { force: true })
   return { path: relativePath, sha256 }
@@ -238,20 +235,19 @@ const existingRef = async (sceneRunDir: string, relativePath: string): Promise<{
     const stored = await readContainedArtifactFile(sceneRunDir, relativePath)
     return { path: relativePath, sha256: stored.sha256 }
   } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT') return undefined
-    if (error instanceof Error && /does not exist|no such file/iu.test(error.message)) return undefined
+    if (isMissingArtifactError(error)) return undefined
     throw error
   }
 }
 
 const inspectPresentationVideo = async (path: string): Promise<{ durationMs: number, width: number, height: number, videoCodec: string, pixelFormat: string, audioCodec: string }> => {
   const result = await exec(getFfprobeBinary(), ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type,codec_name,pix_fmt,width,height', '-of', 'json', path])
-  if (result.exitCode !== 0) throw CLIUsageError(`Could not inspect rendered comic slideshow: ${result.stderr.trim() || `ffprobe exited ${result.exitCode}`}`)
+  if (result.exitCode !== 0) throw UsageError(`Could not inspect rendered comic slideshow: ${result.stderr.trim() || `ffprobe exited ${result.exitCode}`}`)
   const parsed = JSON.parse(result.stdout) as { format?: { duration?: string }, streams?: Array<{ codec_type?: string, codec_name?: string, pix_fmt?: string, width?: number, height?: number }> }
   const video = parsed.streams?.find(stream => stream.codec_type === 'video')
   const audio = parsed.streams?.find(stream => stream.codec_type === 'audio')
   const durationMs = Math.round(Number(parsed.format?.duration) * 1000)
-  if (!video?.codec_name || !audio?.codec_name || !Number.isFinite(durationMs) || durationMs <= 0 || !video.width || !video.height || !video.pix_fmt) throw CLIUsageError('Rendered comic slideshow has incomplete codec, dimension, or duration evidence.')
+  if (!video?.codec_name || !audio?.codec_name || !Number.isFinite(durationMs) || durationMs <= 0 || !video.width || !video.height || !video.pix_fmt) throw UsageError('Rendered comic slideshow has incomplete codec, dimension, or duration evidence.')
   return { durationMs, width: video.width, height: video.height, videoCodec: video.codec_name, pixelFormat: video.pix_fmt, audioCodec: audio.codec_name }
 }
 
@@ -273,14 +269,14 @@ export const presentationRunAsArchive = (presentation: CompactPresentation, arch
 
 export const validateCompactPresentation = (value: CompactPresentation): CompactPresentation => {
   if (value.schemaVersion !== 1 || value.presentationId !== value.plan.presentationId || value.timeline.presentationId !== value.plan.presentationId) {
-    throw CLIUsageError('Compact presentation has invalid identity.')
+    throw UsageError('Compact presentation has invalid identity.')
   }
   return value
 }
 
 export const validateComicPresentationRun = (run: ComicPresentationRun): ComicPresentationRun => {
   const { presentationRunId: _presentationRunId, ...base } = run
-  if (run.schemaVersion !== 1 || run.presentationRunId !== hashCanonicalTtsValue(base)) throw CLIUsageError('ComicPresentationRun has invalid content identity.')
+  if (run.schemaVersion !== 1 || run.presentationRunId !== hashCanonicalTtsValue(base)) throw UsageError('ComicPresentationRun has invalid content identity.')
   return run
 }
 
@@ -288,17 +284,16 @@ export const loadCompactPresentation = async (sceneRunDir: string, presentationI
   let stored: Awaited<ReturnType<typeof readContainedArtifactFile>>
   try { stored = await readContainedArtifactFile(sceneRunDir, PRESENTATION_ARCHIVE_PATH) }
   catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT') return undefined
-    if (error instanceof Error && /does not exist|no such file/iu.test(error.message)) return undefined
+    if (isMissingArtifactError(error)) return undefined
     throw error
   }
   let presentation: CompactPresentation
   try { presentation = validateCompactPresentation(JSON.parse(stored.bytes.toString('utf8')) as CompactPresentation) }
-  catch { throw CLIUsageError('Retained presentation.json is not valid JSON.') }
+  catch { throw UsageError('Retained presentation.json is not valid JSON.') }
   if (presentationId && presentation.presentationId !== presentationId) return undefined
   for (const output of [presentation.outputs.wav, presentation.outputs.mp4]) {
     const artifact = await readContainedArtifactFile(sceneRunDir, output.path)
-    if (artifact.sha256 !== output.sha256) throw CLIUsageError(`Retained presentation output checksum is stale: ${output.path}`)
+    if (artifact.sha256 !== output.sha256) throw UsageError(`Retained presentation output checksum is stale: ${output.path}`)
   }
   return { presentation, ref: { path: stored.relativePath, sha256: stored.sha256 } }
 }
@@ -346,7 +341,7 @@ export const renderComicPresentation = async (input: {
   }
   const wavPath = resolve(input.sceneRunDir, wavRelative)
   const wav = await inspectSoundscapeAudio(wavPath)
-  if (Math.abs(wav.durationMs - input.timeline.durationMs) > 1 || wav.format.sampleRate !== audioBuild.format.sampleRate || wav.format.channels !== audioBuild.format.channels || wav.format.codec !== audioBuild.format.codec) throw CLIUsageError('Presentation WAV does not match its resolved duration and PCM profile.')
+  if (Math.abs(wav.durationMs - input.timeline.durationMs) > 1 || wav.format.sampleRate !== audioBuild.format.sampleRate || wav.format.channels !== audioBuild.format.channels || wav.format.codec !== audioBuild.format.codec) throw UsageError('Presentation WAV does not match its resolved duration and PCM profile.')
   await writePresentationConcatFile(concatPath, input.sceneRunDir, input.timeline)
   let mp4Ref = await existingRef(input.sceneRunDir, mp4Relative)
   if (!mp4Ref) {
@@ -355,10 +350,10 @@ export const renderComicPresentation = async (input: {
   }
   const video = await inspectPresentationVideo(resolve(input.sceneRunDir, mp4Relative))
   const frameMs = 1000 / encoderProfile.fps
-  if (Math.abs(video.durationMs - input.timeline.durationMs) > frameMs + 1 || video.width !== encoderProfile.width || video.height !== encoderProfile.height || video.videoCodec !== 'h264' || video.pixelFormat !== encoderProfile.pixelFormat || video.audioCodec !== 'aac') throw CLIUsageError('Presentation MP4 does not match its timeline, source dimensions, H.264/yuv420p video, or AAC audio contract.')
+  if (Math.abs(video.durationMs - input.timeline.durationMs) > frameMs + 1 || video.width !== encoderProfile.width || video.height !== encoderProfile.height || video.videoCodec !== 'h264' || video.pixelFormat !== encoderProfile.pixelFormat || video.audioCodec !== 'aac') throw UsageError('Presentation MP4 does not match its timeline, source dimensions, H.264/yuv420p video, or AAC audio contract.')
   const finalWav = await hardlinkContainedArtifact(input.sceneRunDir, wavRef.path, PRESENTATION_FINAL_WAV)
   const finalMp4 = await hardlinkContainedArtifact(input.sceneRunDir, mp4Ref.path, PRESENTATION_FINAL_MP4)
-  if (finalWav.sha256 !== wavRef.sha256 || finalMp4.sha256 !== mp4Ref.sha256) throw CLIUsageError('Published presentation finals do not match their rendered media.')
+  if (finalWav.sha256 !== wavRef.sha256 || finalMp4.sha256 !== mp4Ref.sha256) throw UsageError('Published presentation finals do not match their rendered media.')
   const presentation: CompactPresentation = {
     schemaVersion: 1,
     presentationId: input.plan.presentationId,
@@ -379,9 +374,9 @@ export const renderComicPresentation = async (input: {
 export const publishComicPresentationFinal = async (sceneRunDir: string, run: ComicPresentationRun): Promise<Array<{ path: string, sha256: string }>> => {
   const publish = async (source: { path: string, sha256: string }, relativePath: string): Promise<{ path: string, sha256: string }> => {
     const sourceFile = await readContainedArtifactFile(sceneRunDir, source.path)
-    if (sourceFile.sha256 !== source.sha256) throw CLIUsageError(`Comic presentation output checksum changed before publication: ${source.path}`)
+    if (sourceFile.sha256 !== source.sha256) throw UsageError(`Comic presentation output checksum changed before publication: ${source.path}`)
     const published = await hardlinkContainedArtifact(sceneRunDir, source.path, relativePath)
-    if (published.sha256 !== source.sha256) throw CLIUsageError(`Published comic presentation output checksum does not match: ${relativePath}`)
+    if (published.sha256 !== source.sha256) throw UsageError(`Published comic presentation output checksum does not match: ${relativePath}`)
     return { path: relativePath, sha256: source.sha256 }
   }
   return [

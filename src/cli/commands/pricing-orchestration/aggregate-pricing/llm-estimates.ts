@@ -1,9 +1,9 @@
-import type { LlmStepEstimate, ResolvedLLMModelOptions } from '~/types'
+import type { LlmStepEstimate, NormalizedReasoningEffort, ResolvedLLMModelOptions } from '~/types'
 import { resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
 import { estimateLlmRates } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-pricing'
 import { estimatePromptTokensFromText, readPromptFileText } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import { getLlmCost, getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { resolveReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { resolvePromptTokenEstimate } from '~/prompts/prompt-loader'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
 
@@ -12,10 +12,8 @@ export const buildLlmEstimates = async (
     prompts?: string[] | undefined
     promptFile?: string | undefined
     reasoningEffort?: NormalizedReasoningEffort | undefined
-  },
-  skipLLM: boolean
+  }
 ): Promise<LlmStepEstimate[]> => {
-  if (skipLLM) return []
   const llmConfig = resolveLLMDefaults(opts)
   const rates = estimateLlmRates(llmConfig)
   const plannedRates = rates.map((rate) => {

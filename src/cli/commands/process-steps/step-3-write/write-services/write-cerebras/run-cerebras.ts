@@ -1,12 +1,12 @@
 import { isRecord } from '~/utils/rest-client'
 import type { Step3Metadata, StructuredRequestOptions } from '~/types'
 import { CEREBRAS_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { CLIUsageError } from '~/utils/error-handler'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { UsageError } from '~/utils/error-handler'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
-import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
 
-export const CEREBRAS_MODEL_BY_SELECTOR = {
+const CEREBRAS_MODEL_BY_SELECTOR = {
   'gpt-oss-120b': 'gpt-oss-120b',
   'zai-glm-4.7': 'zai-glm-4.7'
 } as const
@@ -21,7 +21,7 @@ const CEREBRAS_UNSUPPORTED_SCHEMA_KEYS = new Set([
 ])
 
 
-export const sanitizeCerebrasStructuredSchema = (schema: Record<string, unknown>): Record<string, unknown> => {
+const sanitizeCerebrasStructuredSchema = (schema: Record<string, unknown>): Record<string, unknown> => {
   const sanitize = (node: unknown): unknown => {
     if (Array.isArray(node)) {
       return node.map((entry) => sanitize(entry))
@@ -45,13 +45,13 @@ export const sanitizeCerebrasStructuredSchema = (schema: Record<string, unknown>
 }
 
 const ensureCerebrasApiKey = (): string => {
-  const apiKey = requireApiKey('CEREBRAS_API_KEY', 'write:cerebras', '--cerebras models')
+  const apiKey = resolveCredential('cerebras', 'require', { stage: 'write:cerebras', description: '--cerebras models' })
   return apiKey
 }
 
-export const resolveCerebrasApiModel = (model: string): string => {
+const resolveCerebrasApiModel = (model: string): string => {
   if (!(model in CEREBRAS_MODEL_BY_SELECTOR)) {
-    throw CLIUsageError(
+    throw UsageError(
       `Unsupported Cerebras model selector "${model}". Allowed values: ${Object.keys(CEREBRAS_MODEL_BY_SELECTOR).join(', ')}`
     )
   }
@@ -65,22 +65,7 @@ export const runCerebrasModel = async (
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const policy = resolveReasoningPolicy({
-    step: 'llm',
-    service: 'cerebras',
-    model,
-    requestedReasoningEffort: structuredOpts?.requestedReasoningEffort
-  })
-  const updatedOpts: StructuredRequestOptions | undefined = structuredOpts
-    ? { ...structuredOpts, requestedReasoningEffort: policy.requested, effectiveReasoningEffort: policy.effective }
-    : {
-        schemaName: '',
-        schema: {},
-        strict: false,
-        strategy: 'native',
-        requestedReasoningEffort: policy.requested,
-        effectiveReasoningEffort: policy.effective
-      }
+  const { updatedOpts } = resolveLlmReasoningOptions('cerebras', model, structuredOpts)
 
   return await runOpenAICompatibleChatModel({
     prompt,

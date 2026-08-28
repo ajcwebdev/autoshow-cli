@@ -1,4 +1,4 @@
-import { createModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
+import { createModelValidator, createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 export const SUPPORTED_WHISPER_MODELS = [
   'tiny',
@@ -8,8 +8,6 @@ export const SUPPORTED_WHISPER_MODELS = [
   'large-v3-turbo'
 ] as const satisfies readonly string[]
 
-// Prebuilt packaged whisperfiles hosted at huggingface.co/Mozilla/whisperfile.
-// Each entry maps to a whisper-<model>.llamafile artifact (binary + embedded weights).
 export const SUPPORTED_WHISPERFILE_MODELS = [
   'tiny',
   'tiny.en',
@@ -21,14 +19,9 @@ export const SUPPORTED_WHISPERFILE_MODELS = [
   'large-v3'
 ] as const satisfies readonly string[]
 
-// Default whisperfile model used by `bun autoshow setup --step whisperfile` and the
-// on-demand bootstrap fallback (smallest packaged whisperfile).
 export const DEFAULT_WHISPERFILE_MODEL = 'tiny'
 
 export const SUPPORTED_DEEPGRAM_STT_MODELS = [
-  // Keep the concrete general-purpose family selector only. Domain and
-  // specialization variants such as nova-3-medical and nova-3-general are
-  // intentionally outside the hosted STT refresh scope.
   'nova-3'
 ] as const satisfies readonly string[]
 
@@ -42,13 +35,7 @@ export const SUPPORTED_SONIOX_STT_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_SPEECHMATICS_STT_MODELS = [
-  'enhanced',
   'melia-1'
-] as const satisfies readonly string[]
-
-export const SUPPORTED_REV_STT_MODELS = [
-  'machine',
-  'low_cost'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_GROQ_STT_MODELS = [
@@ -65,12 +52,10 @@ export const SUPPORTED_MISTRAL_STT_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_ASSEMBLYAI_STT_MODELS = [
-  'universal-3-5-pro',
-  'universal-2'
+  'universal-3-5-pro'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_GLADIA_STT_MODELS = [
-  'solaria-1',
   'solaria-3'
 ] as const satisfies readonly string[]
 
@@ -100,13 +85,12 @@ export const validateWhisperfileModel = createModelValidator(SUPPORTED_WHISPERFI
 export const validateDeepgramSttModel = createModelValidator(SUPPORTED_DEEPGRAM_STT_MODELS, 'deepgram-stt')
 export const validateDeepinfraSttModel = createModelValidator(SUPPORTED_DEEPINFRA_STT_MODELS, 'deepinfra-stt', 'This selector only accepts DeepInfra OpenAI-compatible Whisper models.')
 export const validateSonioxSttModel = createModelValidator(SUPPORTED_SONIOX_STT_MODELS, 'soniox-stt')
-export const validateSpeechmaticsSttModel = createModelValidator(SUPPORTED_SPEECHMATICS_STT_MODELS, 'speechmatics-stt')
-export const validateRevSttModel = createModelValidator(SUPPORTED_REV_STT_MODELS, 'rev-stt')
+export const validateSpeechmaticsSttModel = createRetiringModelValidator('stt', 'speechmatics', SUPPORTED_SPEECHMATICS_STT_MODELS, 'speechmatics-stt')
 export const validateGroqSttModel = createModelValidator(SUPPORTED_GROQ_STT_MODELS, 'groq-stt', 'This selector only accepts Groq Whisper API models.')
 export const validateGrokSttModel = createModelValidator(SUPPORTED_GROK_STT_MODELS, 'grok-stt')
 export const validateMistralSttModel = createModelValidator(SUPPORTED_MISTRAL_STT_MODELS, 'mistral-stt')
-export const validateAssemblyaiSttModel = createModelValidator(SUPPORTED_ASSEMBLYAI_STT_MODELS, 'assemblyai-stt')
-export const validateGladiaSttModel = createModelValidator(SUPPORTED_GLADIA_STT_MODELS, 'gladia-stt')
+export const validateAssemblyaiSttModel = createRetiringModelValidator('stt', 'assemblyai', SUPPORTED_ASSEMBLYAI_STT_MODELS, 'assemblyai-stt')
+export const validateGladiaSttModel = createRetiringModelValidator('stt', 'gladia', SUPPORTED_GLADIA_STT_MODELS, 'gladia-stt')
 export const validateHappyscribeSttModel = createModelValidator(SUPPORTED_HAPPYSCRIBE_STT_MODELS, 'happyscribe-stt')
 export const validateSupadataSttModel = createModelValidator(SUPPORTED_SUPADATA_STT_MODELS, 'supadata-stt')
 export const validateScrapeCreatorsSttModel = createModelValidator(SUPPORTED_SCRAPECREATORS_STT_MODELS, 'scrapecreators-stt')

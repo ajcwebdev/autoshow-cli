@@ -1,17 +1,25 @@
-import type { HumanLogTable, PollOptions, RetryAttemptLog, RetryClass, RetryClassifier, RetryContext, RetryDecision, RetryPolicy } from '~/types'
+import type { HumanLogTable, PollFailure, PollOptions, RetryAttemptLog, RetryClass, RetryClassifier, RetryContext, RetryDecision, RetryPolicy, RetrySignals } from '~/types'
 import { AppError, extractErrorMetadata } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 
-const NON_RETRYABLE_STATUSES = new Set([400, 401, 402, 403, 404, 422])
-const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504])
-const RUNTIME_HTTP_CREATE_RETRY_POLICY: RetryPolicy = {
-  maxAttempts: 2,
-  baseDelayMs: 2_000,
-  maxDelayMs: 10_000,
-  jitter: true,
-  exponential: true
-}
+export const NON_RETRYABLE_STATUS_CODES = [400, 401, 402, 403, 404, 422] as const
+export const RETRYABLE_STATUS_CODES = [408, 425, 429, 500, 502, 503, 504] as const
+export const NETWORK_FAILURE_SPELLINGS = [
+  'fetch failed',
+  'network',
+  'econnreset',
+  'econnrefused',
+  'etimedout',
+  'socket connection was closed unexpectedly',
+  'socket connection',
+  'socket hang up',
+  'closed unexpectedly',
+  'dns'
+] as const
+
+const NON_RETRYABLE_STATUSES: ReadonlySet<number> = new Set(NON_RETRYABLE_STATUS_CODES)
+const RETRYABLE_STATUSES: ReadonlySet<number> = new Set(RETRYABLE_STATUS_CODES)
 
 const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
   setup_download: {
@@ -28,13 +36,6 @@ const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
     jitter: false,
     exponential: false
   },
-  runtime_local_inference: {
-    maxAttempts: 3,
-    baseDelayMs: 1_000,
-    maxDelayMs: 8_000,
-    jitter: true,
-    exponential: true
-  },
   runtime_http_read: {
     maxAttempts: 4,
     baseDelayMs: 1_000,
@@ -42,21 +43,42 @@ const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
     jitter: true,
     exponential: true
   },
-  runtime_http_create_conservative: RUNTIME_HTTP_CREATE_RETRY_POLICY,
-  runtime_http_create_retriable: RUNTIME_HTTP_CREATE_RETRY_POLICY,
-  runtime_poll_loop: {
-    maxAttempts: 1,
-    baseDelayMs: 0,
-    maxDelayMs: 0,
-    jitter: false,
-    exponential: false
+  runtime_http_create_conservative: {
+    maxAttempts: 2,
+    baseDelayMs: 2_000,
+    maxDelayMs: 30_000,
+    jitter: true,
+    exponential: true
+  },
+  runtime_http_create_retriable: {
+    maxAttempts: 4,
+    baseDelayMs: 2_000,
+    maxDelayMs: 30_000,
+    jitter: true,
+    exponential: true
   }
-} as const
+}
+
+export const getRetryPolicyForClass = (retryClass: RetryClass): RetryPolicy => ({ ...RETRY_POLICIES[retryClass] })
+
+export const STT_POLL_RETRY_POLICY: Partial<RetryPolicy> = { maxAttempts: 6 }
+
+export const getSttStageRetryPolicy = (retryClass: RetryClass): Partial<RetryPolicy> | undefined =>
+  retryClass === 'runtime_http_read' ? STT_POLL_RETRY_POLICY : undefined
+
+export const URL_ARTICLE_RETRY_POLICY: Partial<RetryPolicy> = {
+  baseDelayMs: 2_000,
+  maxDelayMs: 10_000,
+  jitter: true,
+  exponential: true
+}
 
 export const isRetryableStatus = (status: number): boolean => {
   if (RETRYABLE_STATUSES.has(status)) return true
   return status >= 500
 }
+
+export const isNonRetryableStatus = (status: number): boolean => NON_RETRYABLE_STATUSES.has(status)
 
 export const parseRetryAfterMs = (headers: Headers | undefined): number | undefined => {
   if (!headers) return undefined
@@ -77,22 +99,14 @@ export const parseRetryAfterMs = (headers: Headers | undefined): number | undefi
   return undefined
 }
 
+const matchesNetworkSpelling = (message: string): boolean => {
+  const msg = message.toLowerCase()
+  return NETWORK_FAILURE_SPELLINGS.some((spelling) => msg.includes(spelling))
+}
+
 const isNetworkError = (error: unknown): boolean => {
-  if (error instanceof TypeError) return true
   if (error instanceof Error) {
-    const msg = error.message.toLowerCase()
-    return (
-      msg.includes('fetch failed') ||
-      msg.includes('network') ||
-      msg.includes('econnreset') ||
-      msg.includes('econnrefused') ||
-      msg.includes('etimedout') ||
-      msg.includes('socket connection was closed unexpectedly') ||
-      msg.includes('socket connection') ||
-      msg.includes('socket hang up') ||
-      msg.includes('closed unexpectedly') ||
-      msg.includes('dns')
-    )
+    return matchesNetworkSpelling(error.message)
   }
   return false
 }
@@ -119,28 +133,13 @@ export const isTimeoutError = (error: unknown): boolean => {
   return false
 }
 
-const getStatusFromError = (error: unknown): number | undefined => {
-  if (error && typeof error === 'object' && 'status' in error) {
-    const status = (error as { status: unknown }).status
-    if (typeof status === 'number') return status
+const readRetrySignals = (error: unknown): RetrySignals => {
+  const metadata = extractErrorMetadata(error)
+  return {
+    status: typeof metadata['status'] === 'number' ? metadata['status'] : undefined,
+    retryable: typeof metadata['retryable'] === 'boolean' ? metadata['retryable'] : undefined,
+    headers: metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
   }
-  return undefined
-}
-
-const getRetryableFlagFromError = (error: unknown): boolean | undefined => {
-  if (error && typeof error === 'object' && 'retryable' in error) {
-    const retryable = (error as { retryable: unknown }).retryable
-    if (typeof retryable === 'boolean') return retryable
-  }
-  return undefined
-}
-
-const getHeadersFromError = (error: unknown): Headers | undefined => {
-  if (error && typeof error === 'object' && 'headers' in error) {
-    const headers = (error as { headers: unknown }).headers
-    if (headers instanceof Headers) return headers
-  }
-  return undefined
 }
 
 const getWrappedRetryCause = (error: unknown): unknown => {
@@ -160,6 +159,44 @@ const getWrappedRetryCause = (error: unknown): unknown => {
   return current
 }
 
+export const classifyPaidCreateRetry = (error: unknown): RetryDecision => {
+  const { status, headers } = readRetrySignals(error)
+  if (status !== 425 && status !== 429) {
+    return {
+      shouldRetry: false,
+      delayMs: 0,
+      reason: status === undefined
+        ? 'paid create outcome is ambiguous'
+        : `paid create status ${status} is not safe to redispatch`
+    }
+  }
+
+  return {
+    shouldRetry: true,
+    delayMs: parseRetryAfterMs(headers) ?? 0,
+    reason: `provider rejected paid create with retryable status ${status}`
+  }
+}
+
+export const classifyRetryFloor = (error: unknown): RetryDecision => {
+  const { status, retryable, headers } = readRetrySignals(error)
+
+  if (retryable === false) {
+    return { shouldRetry: false, delayMs: 0, reason: 'error marked non-retryable' }
+  }
+
+  if (status !== undefined && NON_RETRYABLE_STATUSES.has(status)) {
+    return { shouldRetry: false, delayMs: 0, reason: `non-retryable status ${status}` }
+  }
+
+  const reason = error instanceof Error ? error.message : String(error)
+  if (status !== undefined && isRetryableStatus(status)) {
+    return { shouldRetry: true, delayMs: parseRetryAfterMs(headers) ?? 0, reason: `retryable status ${status}` }
+  }
+
+  return { shouldRetry: true, delayMs: parseRetryAfterMs(headers) ?? 0, reason }
+}
+
 export const classifyFetchRetry = (
   error: unknown,
   retryClass: RetryClass
@@ -168,26 +205,14 @@ export const classifyFetchRetry = (
   const doRetry = (delayMs: number, reason: string): RetryDecision => ({ shouldRetry: true, delayMs, reason })
 
   if (retryClass === 'runtime_http_create_conservative') {
-    const metadata = extractErrorMetadata(error)
-    const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
-    if (status === 425 || status === 429) {
-      const headers = metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
-      return doRetry(parseRetryAfterMs(headers) ?? 0, `provider rejected paid create with retryable status ${status}`)
-    }
-    return noRetry(status === undefined
-      ? 'paid create outcome is ambiguous'
-      : `paid create status ${status} is not safe to redispatch`)
+    return classifyPaidCreateRetry(error)
   }
 
-  // An explicit retryable flag always wins: deterministic errors (e.g. a 200
-  // response with a malformed/business-rejected body) mark themselves
-  // non-retryable so the default retry-on-any-error behavior skips them.
-  const explicitRetryable = getRetryableFlagFromError(error)
-  if (explicitRetryable === false) {
+  const { status, retryable, headers } = readRetrySignals(error)
+
+  if (retryable === false) {
     return noRetry('error marked non-retryable')
   }
-
-  const status = getStatusFromError(error)
 
   if (status !== undefined) {
     if (NON_RETRYABLE_STATUSES.has(status)) {
@@ -195,8 +220,7 @@ export const classifyFetchRetry = (
     }
 
     if (isRetryableStatus(status)) {
-      const retryAfter = parseRetryAfterMs(getHeadersFromError(error))
-      return doRetry(retryAfter ?? 0, `retryable status ${status}`)
+      return doRetry(parseRetryAfterMs(headers) ?? 0, `retryable status ${status}`)
     }
 
     return noRetry(`unexpected status ${status}`)
@@ -212,41 +236,12 @@ export const classifyFetchRetry = (
     return doRetry(0, 'network error')
   }
 
-  // Default: retry on the simple fact that a failure happened. Deterministic
-  // client errors (4xx above) and side-effecting aborts are the only cases we
-  // refuse to retry; any other unrecognized error is treated as transient.
   return doRetry(0, 'unclassified error')
-}
-
-/**
- * Retry a paid create request only when the provider definitely rejected it
- * before admitting work. Network failures, timeouts, 408/409 responses, and
- * 5xx responses are ambiguous and must be reconciled instead of redispatched.
- */
-export const classifyPaidCreateRetry = (error: unknown): RetryDecision => {
-  const metadata = extractErrorMetadata(error)
-  const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
-  if (status !== 425 && status !== 429) {
-    return {
-      shouldRetry: false,
-      delayMs: 0,
-      reason: status === undefined
-        ? 'paid create outcome is ambiguous'
-        : `paid create status ${status} is not safe to redispatch`
-    }
-  }
-
-  const headers = metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
-  return {
-    shouldRetry: true,
-    delayMs: parseRetryAfterMs(headers) ?? 0,
-    reason: `provider rejected paid create with retryable status ${status}`
-  }
 }
 
 const getRetryPolicy = (retryClass: RetryClass, overrides?: Partial<RetryPolicy>): RetryPolicy => {
   const base = RETRY_POLICIES[retryClass]
-  if (!overrides) return base
+  if (!overrides) return { ...base }
   return { ...base, ...overrides }
 }
 
@@ -262,7 +257,7 @@ const computeDelay = (attempt: number, baseDelayMs: number, maxDelayMs: number, 
   return Math.min(delay, maxDelayMs)
 }
 
-const sleepWithAbortSignal = async (
+export const sleepWithAbortSignal = async (
   delayMs: number,
   signal?: AbortSignal | undefined
 ): Promise<void> => {
@@ -326,7 +321,7 @@ export const buildRetryAttemptTable = (
     ['delayMs', summary.delayMs]
   ])
 
-const logRetryAttempt = (
+export const logRetryAttempt = (
   summary: RetryAttemptLog,
   metadata: Record<string, unknown> = {}
 ): void => {
@@ -340,6 +335,14 @@ const logRetryAttempt = (
   })
 }
 
+export const formatRetryExhaustedMessage = (
+  operationName: string,
+  attemptsMade: number,
+  maxAttempts: number,
+  stopReason: string,
+  elapsedMs: number
+): string => `${operationName} failed after ${attemptsMade}/${maxAttempts} attempts (${stopReason}, ${elapsedMs}ms elapsed)`
+
 export const withRetry = async <T>(
   ctx: RetryContext,
   operation: (signal?: AbortSignal) => Promise<T>,
@@ -347,6 +350,7 @@ export const withRetry = async <T>(
 ): Promise<T> => {
   ctx.abortSignal?.throwIfAborted()
   const policy = getRetryPolicy(ctx.retryClass, ctx.policy)
+  const decide: RetryClassifier = classifier ?? classifyRetryFloor
   let maxAttempts = policy.maxAttempts
   const startedAt = Date.now()
   let lastError: unknown
@@ -364,69 +368,60 @@ export const withRetry = async <T>(
       lastError = error
       attemptsMade = attempt + 1
 
-      let classifiedReason: string | undefined
-      if (classifier) {
-        const decision = classifier(error)
-        if (decision.shouldRetry && getStatusFromError(error) === 429 && typeof ctx.rateLimitMaxAttempts === 'number' && Number.isFinite(ctx.rateLimitMaxAttempts)) {
-          maxAttempts = Math.max(maxAttempts, Math.max(1, Math.floor(ctx.rateLimitMaxAttempts)))
+      const decision = decide(error)
+      if (decision.shouldRetry && readRetrySignals(error).status === 429 && typeof ctx.rateLimitMaxAttempts === 'number' && Number.isFinite(ctx.rateLimitMaxAttempts)) {
+        maxAttempts = Math.max(maxAttempts, Math.max(1, Math.floor(ctx.rateLimitMaxAttempts)))
+      }
+
+      if (!decision.shouldRetry) {
+        if (!retried) {
+          throw error
         }
+        stopReason = decision.reason
+        break
+      }
 
-        if (!decision.shouldRetry) {
-          if (!retried) {
-            throw error
-          }
-          stopReason = decision.reason
-          break
-        }
-
-        const isLastAttempt = attempt >= maxAttempts - 1
-        if (isLastAttempt && ctx.retryHookCanExtendAttempts !== true) {
-          stopReason = 'max attempts reached'
-          break
-        }
-
-        const retryDelayHandled = await ctx.onRetryAttempt?.(error, decision) === true
-
-        if (retryDelayHandled) {
-          retried = true
-          maxAttempts = Math.max(maxAttempts, attempt + 2)
-          continue
-        }
-
-        if (isLastAttempt) {
-          stopReason = 'max attempts reached'
-          break
-        }
-
-        if (decision.delayMs > 0) {
-          retried = true
-          logRetryAttempt({
-            operation: ctx.operationName,
-            attempt: attempt + 1,
-            maxAttempts,
-            reason: decision.reason,
-            delayMs: decision.delayMs
-          }, { retryClass: ctx.retryClass })
-          await sleepWithAbortSignal(decision.delayMs, ctx.abortSignal)
-          continue
-        }
-
-        classifiedReason = decision.reason
-      } else if (attempt >= maxAttempts - 1) {
+      const isLastAttempt = attempt >= maxAttempts - 1
+      if (isLastAttempt && ctx.retryHookCanExtendAttempts !== true) {
         stopReason = 'max attempts reached'
         break
       }
 
+      const retryDelayHandled = await ctx.onRetryAttempt?.(error, decision) === true
+
+      if (retryDelayHandled) {
+        retried = true
+        maxAttempts = Math.max(maxAttempts, attempt + 2)
+        continue
+      }
+
+      if (isLastAttempt) {
+        stopReason = 'max attempts reached'
+        break
+      }
+
+      if (decision.delayMs > 0) {
+        retried = true
+        logRetryAttempt({
+          operation: ctx.operationName,
+          attempt: attempt + 1,
+          maxAttempts,
+          reason: decision.reason,
+          delayMs: decision.delayMs
+        }, { retryClass: ctx.retryClass, ...ctx.retryLogMetadata?.(error) })
+        await sleepWithAbortSignal(decision.delayMs, ctx.abortSignal)
+        continue
+      }
+
       retried = true
       const delay = computeDelay(attempt, policy.baseDelayMs, policy.maxDelayMs, policy.exponential, policy.jitter)
-      const reason = classifiedReason ?? (error instanceof Error ? error.message : String(error))
       logRetryAttempt({
         operation: ctx.operationName,
         attempt: attempt + 1,
         maxAttempts,
-        reason,
+        reason: decision.reason,
         delayMs: Math.round(delay)
-      }, { retryClass: ctx.retryClass })
+      }, { retryClass: ctx.retryClass, ...ctx.retryLogMetadata?.(error) })
       await sleepWithAbortSignal(delay, ctx.abortSignal)
     }
   }
@@ -438,9 +433,8 @@ export const withRetry = async <T>(
   const stage = typeof metadata['stage'] === 'string' ? metadata['stage'] : undefined
   const retryable = typeof metadata['retryable'] === 'boolean' ? metadata['retryable'] : undefined
   const retryClass = typeof metadata['retryClass'] === 'string' ? metadata['retryClass'] as RetryClass : ctx.retryClass
-  const enrichedMessage = `${ctx.operationName} failed after ${attemptsMade}/${maxAttempts} attempts (${stopReason}, ${elapsed}ms elapsed)`
 
-  throw new AppError(enrichedMessage, {
+  throw new AppError(formatRetryExhaustedMessage(ctx.operationName, attemptsMade, maxAttempts, stopReason, elapsed), {
     kind: 'retry_exhausted',
     cause: toErrorCause(lastError),
     retryClass,
@@ -459,14 +453,104 @@ export const withRetry = async <T>(
   })
 }
 
-export const pollUntil = async <T>(opts: PollOptions<T>): Promise<T> => {
-  const deadline = Date.now() + opts.deadlineMs
-  const { operationName, pollFn, isDone, isFailed, intervalMs, abortSignal } = opts
+const resolveNextPollDelayMs = <T>(
+  opts: PollOptions<T>,
+  result: T,
+  currentIntervalMs: number
+): number => {
+  const requested = opts.nextIntervalMs?.(result, currentIntervalMs)
+  if (typeof requested === 'number' && Number.isFinite(requested)) {
+    return Math.min(opts.maxIntervalMs ?? requested, Math.max(opts.intervalMs, requested))
+  }
+  if (typeof opts.maxIntervalMs !== 'number') {
+    return currentIntervalMs
+  }
+  return Math.min(opts.maxIntervalMs, currentIntervalMs * 2)
+}
 
-  while (Date.now() < deadline) {
+const throwPollExhausted = (
+  operationName: string,
+  stopReason: string,
+  pollCount: number,
+  maxPolls: number | undefined,
+  deadlineMs: number,
+  elapsedMs: number,
+  lastPoll: Record<string, unknown> | undefined
+): never => {
+  const maxAttempts = maxPolls ?? pollCount
+  throw new AppError(formatRetryExhaustedMessage(operationName, pollCount, maxAttempts, stopReason, elapsedMs), {
+    kind: 'retry_exhausted',
+    stage: operationName,
+    metadata: {
+      operationName,
+      deadlineMs,
+      attemptsMade: pollCount,
+      maxAttempts,
+      elapsedMs,
+      stopReason,
+      pollCount,
+      ...(lastPoll ? { lastPoll } : {})
+    }
+  })
+}
+
+const throwPollTerminalFailure = (
+  operationName: string,
+  failure: Extract<PollFailure, { failed: true }>,
+  pollCount: number,
+  elapsedMs: number
+): never => {
+  throw new AppError(`${operationName}: terminal failure — ${failure.reason}`, {
+    kind: 'infrastructure',
+    stage: operationName,
+    ...(typeof failure.status === 'number' ? { status: failure.status } : {}),
+    ...(failure.headers instanceof Headers ? { headers: failure.headers } : {}),
+    metadata: {
+      operationName,
+      reason: failure.reason,
+      pollCount,
+      elapsedMs,
+      ...(failure.metadata ?? {})
+    }
+  })
+}
+
+export const pollUntil = async <T>(opts: PollOptions<T>): Promise<T> => {
+  const startedAt = Date.now()
+  const deadline = startedAt + opts.deadlineMs
+  const { operationName, pollFn, isDone, isFailed, abortSignal, intervalSchedule } = opts
+  const maxPolls = intervalSchedule ? intervalSchedule.length : opts.maxPolls
+  const stats = opts.stats
+
+  let pollCount = 0
+  let intervalMs = intervalSchedule ? (intervalSchedule[0] ?? 0) : opts.intervalMs
+  let sleepBeforePoll = intervalSchedule !== undefined || opts.sleepBeforeFirstPoll === true
+  let lastPoll: Record<string, unknown> | undefined
+
+  while (true) {
+    abortSignal?.throwIfAborted()
+
+    if (sleepBeforePoll) {
+      const remaining = deadline - Date.now()
+      if (remaining <= 0) break
+      const delayMs = Math.min(intervalMs, remaining)
+      if (delayMs > 0) {
+        const sleepStartedAt = Date.now()
+        await sleepWithAbortSignal(delayMs, abortSignal)
+        if (stats) stats.pollSleepMs += Date.now() - sleepStartedAt
+      }
+    } else if (Date.now() >= deadline) {
+      break
+    }
+    sleepBeforePoll = true
+
     abortSignal?.throwIfAborted()
     const result = await pollFn()
     abortSignal?.throwIfAborted()
+    pollCount += 1
+    if (stats) stats.pollCount += 1
+    lastPoll = opts.describeResult?.(result) ?? lastPoll
+    await opts.onPoll?.(result, pollCount)
 
     if (isDone(result)) {
       return result
@@ -475,24 +559,35 @@ export const pollUntil = async <T>(opts: PollOptions<T>): Promise<T> => {
     if (isFailed) {
       const failure = isFailed(result)
       if (failure.failed) {
-        throw new AppError(`${operationName}: terminal failure — ${failure.reason}`, {
-          kind: 'infrastructure',
-          stage: operationName,
-          metadata: { operationName, reason: failure.reason }
-        })
+        throwPollTerminalFailure(operationName, failure, pollCount, Date.now() - startedAt)
       }
     }
 
-    const remaining = deadline - Date.now()
-    if (remaining <= 0) break
+    if (typeof maxPolls === 'number' && pollCount >= maxPolls) {
+      throwPollExhausted(
+        operationName,
+        'max polls reached',
+        pollCount,
+        maxPolls,
+        opts.deadlineMs,
+        Date.now() - startedAt,
+        lastPoll
+      )
+    }
 
-    await sleepWithAbortSignal(Math.min(intervalMs, remaining), abortSignal)
+    intervalMs = intervalSchedule
+      ? (intervalSchedule[pollCount] ?? intervalMs)
+      : resolveNextPollDelayMs(opts, result, intervalMs)
   }
 
   abortSignal?.throwIfAborted()
-  throw new AppError(`${operationName}: deadline exceeded (${opts.deadlineMs}ms)`, {
-    kind: 'retry_exhausted',
-    stage: operationName,
-    metadata: { operationName, deadlineMs: opts.deadlineMs }
-  })
+  return throwPollExhausted(
+    operationName,
+    'deadline exceeded',
+    pollCount,
+    maxPolls,
+    opts.deadlineMs,
+    Date.now() - startedAt,
+    lastPoll
+  )
 }

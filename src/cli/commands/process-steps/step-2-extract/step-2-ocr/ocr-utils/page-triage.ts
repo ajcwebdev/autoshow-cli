@@ -11,10 +11,7 @@ const hasRepeatedGarbage = (text: string): boolean => {
   return symbols.length / compact.length > 0.65
 }
 
-// Unicode-aware alpha/numeric counter using \p{L} and \p{N}
 const countAlphaNumericUnicode = (text: string): number => {
-  // Use Unicode property escapes for letter and numeric category matching
-  // This handles CJK, Arabic, Cyrillic, etc.
   const matches = text.match(/[\p{L}\p{N}]/gu)
   return matches ? matches.length : 0
 }
@@ -23,7 +20,6 @@ export const isTextUsable = (rawText: string): boolean => {
   const trimmed = rawText.replace(/\s+/g, ' ').trim()
   if (trimmed.length < MIN_CHARS) return false
 
-  // Unicode-aware alpha ratio check
   const alphaCount = countAlphaNumericUnicode(trimmed)
   if (alphaCount / trimmed.length < ALPHA_RATIO) return false
 

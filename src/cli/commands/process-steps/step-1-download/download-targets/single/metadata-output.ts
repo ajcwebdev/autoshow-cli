@@ -26,7 +26,7 @@ export const writeMetadataTerminalOutput = (metadata: Record<string, unknown>, m
     return
   }
 
-  console.log(JSON.stringify(metadata, null, 2))
+  l.report.result(metadata, { message: 'Metadata' })
 }
 
 export const writeSavedMetadataArtifacts = async (

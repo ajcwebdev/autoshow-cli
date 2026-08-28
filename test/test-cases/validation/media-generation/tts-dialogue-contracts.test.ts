@@ -31,17 +31,17 @@ describe('TTS dialogue contracts', () => {
   })
 
   test('multi-speaker validates provider selection and speaker mappings', () => {
-    expect(() => collectTtsTargets(buildOptsFromFlags(false, {
+    expect(() => collectTtsTargets(buildOptsFromFlags({
       'tts-dialogue-format': 'screenplay',
       'tts-speaker': ['DUCO=voice_duco']
     }))).toThrow('requires at least one TTS provider')
 
-    expect(() => collectTtsTargets(buildOptsFromFlags(false, {
+    expect(() => collectTtsTargets(buildOptsFromFlags({
       'mistral-tts': 'voxtral-mini-tts-2603',
       'tts-speaker': ['DUCO=voice_duco']
     }))).toThrow('Dialogue TTS requires --tts-dialogue-format screenplay|labeled.')
 
-    expect(() => collectTtsTargets(buildOptsFromFlags(false, {
+    expect(() => collectTtsTargets(buildOptsFromFlags({
       'mistral-tts': 'voxtral-mini-tts-2603',
       'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
       'tts-dialogue-format': 'labeled',
@@ -49,12 +49,10 @@ describe('TTS dialogue contracts', () => {
     }))).toThrow('requires exactly one TTS provider')
   })
 
-  // Speaker mappings are the mode switch. A stored `ttsDialogueFormat` used to force dialogue mode
-  // and abort every pipeline TTS run at step 4; it must now be inert, and only a typed flag errors.
   test('a dialogue format without speakers is inert unless it was typed explicitly', () => {
-    const opts = buildOptsFromFlags(false, {
+    const opts = buildOptsFromFlags({
       'mistral-tts': 'voxtral-mini-tts-2603',
-      'mistral-tts-voice': 'voice-existing',
+      'tts-voice': 'voice-existing',
       'tts-dialogue-format': 'screenplay'
     })
 
@@ -67,8 +65,7 @@ describe('TTS dialogue contracts', () => {
     expect(() => assertDialogueFormatIsUsable(opts, new Set(['tts-dialogue-format'])))
       .toThrow('--tts-dialogue-format requires at least one --tts-speaker SPEAKER=VOICE mapping.')
 
-    // With mappings present the format is load-bearing again, so neither arm fires.
-    const dialogueOpts = buildOptsFromFlags(false, {
+    const dialogueOpts = buildOptsFromFlags({
       'mistral-tts': 'voxtral-mini-tts-2603',
       'tts-dialogue-format': 'screenplay',
       'tts-speaker': ['DUCO=voice_duco']
@@ -107,7 +104,7 @@ describe('TTS dialogue contracts', () => {
   })
 
   test('new --tts-speaker flag works with voice IDs for multi-speaker', () => {
-    const targets = collectTtsTargets(buildOptsFromFlags(false, {
+    const targets = collectTtsTargets(buildOptsFromFlags({
       'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['Alice=alloy', 'Bob=onyx']
@@ -141,7 +138,7 @@ describe('TTS dialogue contracts', () => {
       'Alice: Alpha turn.',
       'Bob: Bravo turn.',
       'Alice: Charlie turn.'
-    ].join('\n'), dir, buildOptsFromFlags(false, {
+    ].join('\n'), dir, buildOptsFromFlags({
       'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['Alice=alloy', 'Bob=onyx']
@@ -160,7 +157,7 @@ describe('TTS dialogue contracts', () => {
   }, 10_000)
 
   test('Gemini multispeaker uses the generic speaker mappings', () => {
-    const opts = buildOptsFromFlags(false, {
+    const opts = buildOptsFromFlags({
       'gemini-tts': 'gemini-3.1-flash-tts-preview',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['Host=Kore', 'Guest=Puck']
@@ -177,7 +174,7 @@ describe('TTS dialogue contracts', () => {
   })
 
   test('raw ref-audio speakers cannot enter generic runtime options', () => {
-    expect(() => collectTtsTargets(buildOptsFromFlags(false, {
+    expect(() => collectTtsTargets(buildOptsFromFlags({
       'groq-tts': 'canopylabs/orpheus-v1-english',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['DUCO=input/examples/audio/anthony-voice.mp3', 'CHAT=input/examples/audio/voice.mp3']

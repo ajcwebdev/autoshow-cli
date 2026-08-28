@@ -1,14 +1,17 @@
-import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { homedir, hostname } from 'node:os'
 import { join } from 'node:path'
-import type { ActiveProcessLockOwner, HeartbeatHealth, ProcessLockOptions, ProcessLockOwner, ProcessLockOwnerReadResult } from '~/types'
+import type { ActiveProcessLockOwner, HeartbeatHealth, ProcessLockDirIdentity, ProcessLockOptions, ProcessLockOwner, ProcessLockOwnerReadResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { InfraError } from '~/utils/error-handler'
+import { AppError, InfraError, serializeDiagnosticError } from '~/utils/error-handler'
+import { formatRetryExhaustedMessage, sleepWithAbortSignal } from '~/utils/retries'
+import { formatErrorMessage } from '~/utils/value-helpers'
 
 const DEFAULT_LOCK_STALE_MS = 60_000
 const DEFAULT_LOCK_WAIT_TIMEOUT_MS = 2 * 60 * 60 * 1000
 const DEFAULT_LOCK_WAIT_MS = 100
+const LOCK_WAIT_LOG_INTERVAL_MS = 30_000
 const DEFAULT_LOCK_HEARTBEAT_MS = 5_000
 const LIVE_OWNER_STALE_MULTIPLIER = 10
 const LOCK_OWNER_FILE = 'owner.json'
@@ -16,9 +19,6 @@ const CURRENT_HOSTNAME = hostname()
 
 const getErrorCode = (error: unknown): string | undefined =>
   error instanceof Error && 'code' in error ? (error as Error & { code?: string }).code : undefined
-
-const safeErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error)
 
 const resolvePositiveInteger = (
   optionValue: number | undefined,
@@ -47,7 +47,7 @@ const sanitizeLockName = (lockName: string): string => {
 const getDefaultProcessStateDir = (): string =>
   join(homedir(), '.cache', 'autoshow-cli')
 
-export const resolveProcessLockRoot = (options: ProcessLockOptions = {}): string =>
+const resolveProcessLockRoot = (options: ProcessLockOptions = {}): string =>
   options.lockRoot ?? join(getDefaultProcessStateDir(), 'process-locks')
 
 const getLockOwnerPath = (lockDir: string): string => join(lockDir, LOCK_OWNER_FILE)
@@ -74,7 +74,7 @@ const readProcessLockOwnerState = async (lockDir: string): Promise<ProcessLockOw
     return {
       owner: null,
       ownerPath,
-      parseError: safeErrorMessage(error)
+      parseError: formatErrorMessage(error)
     }
   }
 }
@@ -100,7 +100,7 @@ const writeProcessLockOwner = async (
   owner: ActiveProcessLockOwner
 ): Promise<void> => {
   const ownerPath = getLockOwnerPath(lockDir)
-  const tempOwnerPath = join(lockDir, `${LOCK_OWNER_FILE}.${owner.ownerId}.${randomUUID()}.tmp`)
+  const tempOwnerPath = join(lockDir, `${LOCK_OWNER_FILE}.${owner.ownerId}.${crypto.randomUUID()}.tmp`)
   await writeFile(tempOwnerPath, JSON.stringify(owner, null, 2))
   await rename(tempOwnerPath, ownerPath)
 }
@@ -134,11 +134,6 @@ const getProcessLockAgeMs = async (
   } catch {
     return null
   }
-}
-
-type ProcessLockDirIdentity = {
-  dev: number
-  ino: number
 }
 
 const getProcessLockDirIdentity = async (lockDir: string): Promise<ProcessLockDirIdentity | null> => {
@@ -179,6 +174,7 @@ const removeStaleProcessLock = async (
   if (!ownerIsGone && !heartbeatIsStale) {
     if (ownerState.parseError) {
       l.write('warn', `Process lock owner metadata at ${ownerState.ownerPath} could not be parsed; keeping non-stale lock`, {
+        category: 'pipeline',
         metadata: {
           lockDir,
           ownerPath: ownerState.ownerPath,
@@ -191,7 +187,7 @@ const removeStaleProcessLock = async (
     return false
   }
 
-  const reapDir = `${lockDir}.reap-${randomUUID()}`
+  const reapDir = `${lockDir}.reap-${crypto.randomUUID()}`
   try {
     await rename(lockDir, reapDir)
   } catch (error) {
@@ -208,18 +204,20 @@ const removeStaleProcessLock = async (
   ) && (owner?.ownerId === undefined || takenOverOwner?.ownerId === owner.ownerId)
 
   if (!tookObservedLock) {
-    // A third contender can acquire the canonical path before this restore and make
-    // it fail. That residual window is accepted; orphaned .reap-* directories are
-    // ignored because acquisition only considers the canonical lock directory.
     try {
       await rename(reapDir, lockDir)
-    } catch {
+    } catch (error) {
+      l.warn(`Could not restore the process lock directory after a failed reap: ${lockDir}`, {
+        category: 'pipeline',
+        metadata: { lockDir, reapDir, error: serializeDiagnosticError(error) }
+      })
       return false
     }
     return false
   }
 
   l.write('warn', `Removing stale process lock at ${lockDir}`, {
+    category: 'pipeline',
     metadata: {
       lockDir,
       ownerPath: ownerState.ownerPath,
@@ -271,12 +269,15 @@ export const withProcessLock = async <T,>(
   await mkdir(lockRoot, { recursive: true })
 
   let owner: ActiveProcessLockOwner | null = null
+  let waitAttempts = 0
+  let lastWaitLogAtMs = 0
   while (owner === null) {
+    options.abortSignal?.throwIfAborted()
     try {
       await mkdir(lockDir)
       const now = new Date().toISOString()
       const acquiredOwner: ActiveProcessLockOwner = {
-        ownerId: randomUUID(),
+        ownerId: crypto.randomUUID(),
         lockName,
         pid: process.pid,
         hostname: CURRENT_HOSTNAME,
@@ -300,11 +301,37 @@ export const withProcessLock = async <T,>(
         continue
       }
 
-      if (Date.now() - startedAt > waitTimeoutMs) {
-        throw InfraError(`Timed out waiting for process lock ${lockName} at ${lockDir}`, { stage: 'lock:process' })
+      const waitedMs = Date.now() - startedAt
+      if (waitedMs > waitTimeoutMs) {
+        throw new AppError(
+          formatRetryExhaustedMessage(`process lock ${lockName}`, waitAttempts, waitAttempts, 'lock wait timed out', waitedMs),
+          {
+            kind: 'retry_exhausted',
+            stage: 'lock:process',
+            ...(error instanceof Error ? { cause: error } : {}),
+            metadata: {
+              lockName,
+              lockDir,
+              attemptsMade: waitAttempts,
+              maxAttempts: waitAttempts,
+              elapsedMs: waitedMs,
+              waitTimeoutMs,
+              stopReason: 'lock wait timed out'
+            }
+          }
+        )
       }
 
-      await Bun.sleep(waitMs)
+      waitAttempts += 1
+      if (waitedMs - lastWaitLogAtMs >= LOCK_WAIT_LOG_INTERVAL_MS) {
+        lastWaitLogAtMs = waitedMs
+        l.write('info', `Waiting for process lock ${lockName}`, {
+          category: 'pipeline',
+          metadata: { lockName, lockDir, waitedMs, waitTimeoutMs, attempt: waitAttempts }
+        })
+      }
+
+      await sleepWithAbortSignal(waitMs, options.abortSignal)
     }
   }
 
@@ -319,8 +346,9 @@ export const withProcessLock = async <T,>(
     heartbeatRefresh = refreshProcessLockOwner(lockDir, activeOwner).catch((error) => {
       heartbeatHealth.failureCount += 1
       heartbeatHealth.lastFailureAt = new Date().toISOString()
-      heartbeatHealth.lastError = safeErrorMessage(error)
+      heartbeatHealth.lastError = formatErrorMessage(error)
       l.write('warn', `Failed to refresh process lock heartbeat for ${lockName}`, {
+        category: 'pipeline',
         metadata: {
           lockName,
           lockDir,
@@ -345,6 +373,7 @@ export const withProcessLock = async <T,>(
     await heartbeatRefresh
     if (heartbeatHealth.failureCount > 0) {
       l.write('warn', `Process lock ${lockName} completed after heartbeat refresh failures`, {
+        category: 'pipeline',
         metadata: {
           lockName,
           lockDir,

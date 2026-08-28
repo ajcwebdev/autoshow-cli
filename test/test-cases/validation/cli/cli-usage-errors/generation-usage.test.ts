@@ -5,9 +5,6 @@ import { STABLE_EXAMPLE_AUDIO_URL } from '../../../../test-utils/test-helpers'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectImageTargets } from '~/cli/commands/process-steps/step-5-image/image-generation-targets'
 import { collectVideoTargets } from '~/cli/commands/process-steps/step-6-video/video-targets'
-import { renameFlagSpellings } from '~/cli/flags/flag-utils'
-import { imageCommandOptionNames } from '~/cli/flags/image-flags'
-import { videoCommandOptionNames } from '~/cli/flags/video-flags'
 import { videoCommand } from '~/cli/commands/process-steps/step-6-video/define-video-command'
 import { musicCommand } from '~/cli/commands/process-steps/step-7-music/define-music-command'
 import { runMusicLyricVideo } from '~/cli/commands/process-steps/step-7-music/lyrics-video/run-lyrics-video'
@@ -53,7 +50,7 @@ test('video positional image rejects conflicting explicit text mode', async () =
 
 test('music lyric-video mode rejects missing audio or batch', async () => {
   await expect(runMusicLyricVideo({ model: 'tiny' }))
-    .rejects.toThrow('Missing --audio (or use --batch)')
+    .rejects.toThrow('Missing --audio (or use --batch <dir>)')
 })
 
 test('music rejects mixed hosted generation and lyric-video modes', async () => {
@@ -76,24 +73,16 @@ test('music rejects mixed hosted generation and lyric-video modes', async () => 
 })
 
 test('image command rejections name the spellings the image command registers', () => {
-  expect(() => collectImageTargets(buildOptsFromFlags(false, {
+  expect(() => collectImageTargets(buildOptsFromFlags({
     'grok-image': 'grok-imagine-image-quality',
-    'image-search-grounding': true
-  }))).toThrow('--image-search-grounding is not supported by Grok/grok-imagine-image-quality')
-  expect(renameFlagSpellings(
-    '--image-search-grounding is not supported by Grok/grok-imagine-image-quality',
-    imageCommandOptionNames
-  )).toContain('--search-grounding is not supported by Grok/grok-imagine-image-quality')
+    'search-grounding': true
+  }))).toThrow('--search-grounding is not supported by Grok/grok-imagine-image-quality')
 })
 
 test('video command rejections name the spellings the video command registers', () => {
-  expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+  expect(() => collectVideoTargets(buildOptsFromFlags({
     'grok-video': 'grok-imagine-video',
-    'video-mode': 'edit',
-    'video-duration': '5'
-  }))).toThrow('--video-mode edit requires --video-input-video.')
-  expect(renameFlagSpellings(
-    '--video-mode edit requires --video-input-video.',
-    videoCommandOptionNames
-  )).toBe('--mode edit requires --input-video.')
+    mode: 'edit',
+    duration: '5'
+  }))).toThrow('--mode edit requires --input-video.')
 })

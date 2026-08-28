@@ -113,9 +113,6 @@ export const resolvePanelSourceSegments = (
   })
 }
 
-// Each segment reaches the image model with an explicit instruction about whether its
-// text is lettered into the artwork. Without this, staging prose is drawn as caption
-// boxes because a bare type name like "narration" reads as a lettering instruction.
 const LETTERED_SOURCE_SEGMENT_GUIDANCE: Partial<Record<StructuredScriptSourceSegment['type'], string>> = {
   dialogue: 'Spoken line. Letter this text verbatim in a speech balloon.',
   narration: 'Authored caption. Letter this text verbatim in a caption box.',
@@ -123,7 +120,7 @@ const LETTERED_SOURCE_SEGMENT_GUIDANCE: Partial<Record<StructuredScriptSourceSeg
 
 const STAGING_SOURCE_SEGMENT_GUIDANCE = 'Staging direction. Draw what it describes. Never letter any of this text in the image.'
 
-export const getSourceSegmentLetteringGuidance = (
+const getSourceSegmentLetteringGuidance = (
   type: StructuredScriptSourceSegment['type']
 ): string => {
   return LETTERED_SOURCE_SEGMENT_GUIDANCE[type] ?? STAGING_SOURCE_SEGMENT_GUIDANCE

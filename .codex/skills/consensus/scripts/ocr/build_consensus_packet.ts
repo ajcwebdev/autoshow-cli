@@ -96,7 +96,6 @@ export function buildPacket(runDir: string) {
       resultPath: provider.resultPath,
     }));
 
-  // Build page-level evidence using baseline pages as reference
   const allPageNumbers = new Set<number>();
   for (const provider of providers) {
     for (const page of provider.pages) {
@@ -126,15 +125,12 @@ export function buildPacket(runDir: string) {
       })
       .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
       .sort((left, right) => {
-        // Baseline first
         if ((left.providerKey === baseline.providerKey) !== (right.providerKey === baseline.providerKey)) {
           return left.providerKey === baseline.providerKey ? -1 : 1;
         }
-        // Then by similarity descending
         if (left.similarity !== right.similarity) {
           return right.similarity - left.similarity;
         }
-        // Then alphabetically
         return left.providerKey.localeCompare(right.providerKey);
       });
 

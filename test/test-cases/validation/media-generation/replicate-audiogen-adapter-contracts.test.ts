@@ -1,10 +1,8 @@
 import { describe, expect, test } from 'bun:test'
-import { randomUUID } from 'node:crypto'
-import { mkdtemp, readdir, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { ProviderError } from '~/utils/error-handler'
+import { readdir, rm } from 'node:fs/promises'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
-import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { installMockFetch, setupContractSuiteLifecycle, unexpectedCall } from '../../../test-utils/rest-contract-helpers'
 import { resolveSoundEffectTarget } from '~/cli/commands/process-steps/step-4-tts/soundscape/elevenlabs-sfx-adapter'
 import {
   AUDIOGEN_NONCOMMERCIAL_LICENSE_USE,
@@ -28,6 +26,8 @@ import { createSoundEffectRenderPlan, executeSoundEffectRenderPlan, planSoundEff
 import { DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE } from '~/cli/commands/process-steps/step-4-tts/soundscape/soundscape-planner'
 import { hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import type { SoundEffectRenderTask, SoundscapePlan } from '~/types'
+import { isAppError, normalizeExitCode } from '~/utils/error-handler'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const POLL_URL = 'https://api.replicate.com/v1/predictions/prediction-audiogen'
 const CANCEL_URL = 'https://api.replicate.com/v1/predictions/prediction-audiogen/cancel'
@@ -102,7 +102,7 @@ const createAudiogenPlan = (prompt: string, options?: Parameters<typeof taskPlan
     licenseUse: AUDIOGEN_NONCOMMERCIAL_LICENSE_USE,
   })
 
-describe('ADR-018 Phase 7 Replicate AudioGen contracts', () => {
+describe('ADR-017 Phase 7 Replicate AudioGen contracts', () => {
   test('capability fixture pins owner, version, schemas, hardware, license, and community lifecycle', () => {
     const fixture = REPLICATE_AUDIOGEN_SFX_CAPABILITY_FIXTURE
     expect(fixture).toMatchObject({
@@ -166,18 +166,18 @@ describe('ADR-018 Phase 7 Replicate AudioGen contracts', () => {
   })
 
   test('static license and price planning distinguish supported, prohibited, unknown, and missing use without writes', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-audiogen-price-'))
+    const root = await makeTempDir('autoshow-audiogen-price-')
     try {
       const target = audiogenTarget()
       expect(() => createSoundEffectRenderPlan({ plan: taskPlan('needs-license', { durationSeconds: 3 }), target })).toThrow(/requires explicit --sfx-license-use noncommercial/)
       expect(() => assertAudioGenLicenseEligible(createSoundEffectLicenseUse({ classification: 'commercial', fixture: target.capabilityFixture }), target.capabilityFixture)).toThrow(/commercial intended use is ineligible/)
       expect(() => assertAudioGenLicenseEligible(createSoundEffectLicenseUse({ classification: 'unknown', fixture: target.capabilityFixture }), target.capabilityFixture)).toThrow(/unknown intended use is ineligible/)
-      const priced = createSoundEffectRenderPlan({ plan: taskPlan(`priced-${randomUUID()}`, { durationSeconds: 10 }), target, licenseUse: AUDIOGEN_NONCOMMERCIAL_LICENSE_USE })
+      const priced = createSoundEffectRenderPlan({ plan: taskPlan(`priced-${crypto.randomUUID()}`, { durationSeconds: 10 }), target, licenseUse: AUDIOGEN_NONCOMMERCIAL_LICENSE_USE })
       expect(priced.licenseUse?.classification).toBe('noncommercial')
       expect(priced.plannedCost.currency).toBe('USD')
       expect(priced.plannedCost.amount).toBeCloseTo(0.013)
       expect(priced.plannedCost.basis).toContain('typical per-prediction')
-      const defaulted = createSoundEffectRenderPlan({ plan: taskPlan(`unknown-${randomUUID()}`), target, licenseUse: AUDIOGEN_NONCOMMERCIAL_LICENSE_USE })
+      const defaulted = createSoundEffectRenderPlan({ plan: taskPlan(`unknown-${crypto.randomUUID()}`), target, licenseUse: AUDIOGEN_NONCOMMERCIAL_LICENSE_USE })
       expect(defaulted.plannedCost.amount).toBeCloseTo(0.013)
       expect(defaulted.plannedCost.basis).toContain('typical per-prediction')
       const estimate = await planSoundEffectResumePrice(root, priced)
@@ -190,12 +190,21 @@ describe('ADR-018 Phase 7 Replicate AudioGen contracts', () => {
   })
 
   test('createReplicateAudioGenAdapter requires an API token', () => {
-    expect(() => createReplicateAudioGenAdapter({ apiToken: '' })).toThrow(/requires REPLICATE_API_TOKEN/)
+    expect(() => createReplicateAudioGenAdapter({ apiToken: '' }))
+      .toThrow(/REPLICATE_API_TOKEN environment variable is required/)
+    try {
+      createReplicateAudioGenAdapter({ apiToken: '' })
+    } catch (error) {
+      expect(isAppError(error) && error.kind).toBe('usage')
+      expect(normalizeExitCode(error)).toBe(2)
+      return
+    }
+    expect.unreachable('Expected a missing-credential usage error')
   })
 
   test('mocked prediction create/poll/download retains evidence and reuses the shared cache', async () => {
     const root = await tempDirs.make()
-    const prompt = `hatch slam ${randomUUID()}`
+    const prompt = `hatch slam ${crypto.randomUUID()}`
     const renderPlan = createAudiogenPlan(prompt)
     const calls = installMockFetch(call => {
       if (call.url.endsWith('/v1/predictions') && call.method === 'POST') {
@@ -234,7 +243,7 @@ describe('ADR-018 Phase 7 Replicate AudioGen contracts', () => {
     const failedAdapter = createReplicateAudioGenAdapter({
       apiToken: 'fixture-token',
       runPrediction: async () => {
-        throw Object.assign(new Error('status failed'), { status: 422 })
+        throw ProviderError('status failed', { status: 422 })
       },
     })
     await expect(failedAdapter.generate(validTask(), target, 1, new AbortController().signal)).rejects.toThrow(/prediction failed/)
@@ -242,7 +251,7 @@ describe('ADR-018 Phase 7 Replicate AudioGen contracts', () => {
     const timedOutAdapter = createReplicateAudioGenAdapter({
       apiToken: 'fixture-token',
       runPrediction: async () => {
-        throw Object.assign(new Error('prediction timed out'), { status: 504 })
+        throw ProviderError('prediction timed out', { status: 504 })
       },
     })
     await expect(timedOutAdapter.generate(validTask(), target, 1, new AbortController().signal)).rejects.toMatchObject({ admissionDisposition: 'ambiguous' })
@@ -276,7 +285,7 @@ describe('ADR-018 Phase 7 Replicate AudioGen contracts', () => {
     await expect(emptyAdapter.generate(validTask(), target, 1, new AbortController().signal)).rejects.toThrow(/download was empty/)
 
     const root = await tempDirs.make()
-    const ambiguousPlan = createAudiogenPlan(`ambiguous-${randomUUID()}`)
+    const ambiguousPlan = createAudiogenPlan(`ambiguous-${crypto.randomUUID()}`)
     let calls = 0
     const ambiguousAdapter = { generate: async () => { calls++; throw new Error('transport disconnected after request write') } }
     expect((await executeSoundEffectRenderPlan({ rootDir: root, plan: ambiguousPlan, adapter: ambiguousAdapter })).result.status).toBe('failed')
@@ -286,7 +295,7 @@ describe('ADR-018 Phase 7 Replicate AudioGen contracts', () => {
   })
 
   test('keeps AudioGen request identity distinct from ElevenLabs and blocks unavailable dispatch', async () => {
-    const prompt = `identity-${randomUUID()}`
+    const prompt = `identity-${crypto.randomUUID()}`
     const audiogen = createAudiogenPlan(prompt)
     const elevenlabs = createSoundEffectRenderPlan({ plan: taskPlan(prompt, { durationSeconds: 3 }), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
     expect(audiogen.tasks[0]?.requestIdentity).not.toBe(elevenlabs.tasks[0]?.requestIdentity)
@@ -300,7 +309,7 @@ describe('ADR-018 Phase 7 Replicate AudioGen contracts', () => {
       licenseUse: createSoundEffectLicenseUse({ classification: 'noncommercial', fixture: retired }),
     })).toThrow(/cannot dispatch new predictions/)
     const historical = createSoundEffectRenderPlan({
-      plan: taskPlan(`historical-${randomUUID()}`, { durationSeconds: 3 }),
+      plan: taskPlan(`historical-${crypto.randomUUID()}`, { durationSeconds: 3 }),
       target: retiredTarget,
       licenseUse: createSoundEffectLicenseUse({ classification: 'noncommercial', fixture: retired }),
       allowUnavailable: true,
@@ -309,7 +318,7 @@ describe('ADR-018 Phase 7 Replicate AudioGen contracts', () => {
     const executed = await executeSoundEffectRenderPlan({
       rootDir: historicalRoot,
       plan: historical,
-      adapter: { generate: async () => { throw new Error('must not dispatch retired AudioGen') } },
+      adapter: { generate: unexpectedCall('retired AudioGen dispatch') },
     })
     expect(executed.result.status).toBe('failed')
     expect(executed.result.entries[0]?.omissionReason).toMatch(/cannot dispatch new predictions/)

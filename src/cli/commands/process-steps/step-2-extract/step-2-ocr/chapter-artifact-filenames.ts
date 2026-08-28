@@ -1,6 +1,6 @@
 import type { ChapterArtifactFilenamePart } from '~/types'
 
-export const chapterArtifactNumberWidth = (fileCount: number): number =>
+const chapterArtifactNumberWidth = (fileCount: number): number =>
   fileCount >= 100 ? 3 : 2
 
 const coercePositiveInteger = (value: number, fallback: number): number => {

@@ -11,7 +11,15 @@ import { resolveTtsChunkCharacterLimit } from '~/cli/commands/process-steps/step
 import type { TtsOptions } from '~/types'
 import { createMockWavBase64, createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
 import { installMockFetch } from '../../../../test-utils/rest-contract-helpers'
-import { LOCAL_AUDIO_PATH, LOCAL_SHORT_AUDIO_PATH, readWavSamples, segmentRms, setupTtsContractLifecycle, waitForCondition } from './shared'
+import {
+  captureGatedAssertions,
+  LOCAL_AUDIO_PATH,
+  LOCAL_SHORT_AUDIO_PATH,
+  readWavSamples,
+  segmentRms,
+  setupTtsContractLifecycle,
+  waitForCondition
+} from './shared'
 
 const { makeTempDir } = setupTtsContractLifecycle()
 
@@ -83,7 +91,7 @@ describe('TTS provider service contracts', () => {
       expect(calls).toHaveLength(0)
     }, 10_000)
 
-  test('ElevenLabs TTS sends output format, voice settings, seed, text normalization, and pronunciation dictionaries controls', async () => {
+  test('ElevenLabs TTS sends the baked output format, voice settings, seed, text normalization, and pronunciation dictionaries controls', async () => {
       const dir = await makeTempDir('autoshow-elevenlabs-tts-controls-')
       const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
 
@@ -95,7 +103,6 @@ describe('TTS provider service contracts', () => {
         model: 'eleven_v3',
         voiceId: 'voice_existing123',
         controls: {
-          outputFormat: 'mp3_22050_32',
           languageCode: 'en',
           voiceSettings: {
             stability: 0.4,
@@ -113,7 +120,7 @@ describe('TTS provider service contracts', () => {
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
       expect(calls).toHaveLength(1)
       expect(calls[0]?.headers.get('xi-api-key')).toBe('elevenlabs-key')
-      expect(calls[0]?.url).toBe('https://api.elevenlabs.io/v1/text-to-speech/voice_existing123?output_format=mp3_22050_32')
+      expect(calls[0]?.url).toBe('https://api.elevenlabs.io/v1/text-to-speech/voice_existing123?output_format=mp3_44100_128')
       expect(calls[0]?.method).toBe('POST')
       expect(calls[0]?.bodyJson).toEqual({
         text: 'ElevenLabs control synthesis.',
@@ -216,24 +223,20 @@ describe('TTS provider service contracts', () => {
         voiceId: 'voice_existing123',
         chunkConcurrency: 3
       })
-      let waitError: unknown
-
-      try {
+      const rethrowGatedAssertions = await captureGatedAssertions(async () => {
         await waitForCondition(() => started.length === 3, 'ElevenLabs chunks did not start concurrently')
         expect(started).toEqual(['A', 'B', 'C'])
         expect(maxInFlight).toBe(3)
         for (const marker of ['C', 'B', 'A']) {
           releases.get(marker)?.()
         }
-      } catch (error) {
-        waitError = error
-      } finally {
+      }, () => {
         releaseImmediately = true
         for (const release of releases.values()) release()
-      }
+      })
 
       const result = await runPromise
-      if (waitError) throw waitError
+      rethrowGatedAssertions()
 
       const samples = await readWavSamples(result.audioPath)
       const rmsValues = [0, 1, 2].map((index) => segmentRms(samples, index, 3))

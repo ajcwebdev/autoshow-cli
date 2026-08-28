@@ -1,11 +1,14 @@
-import { stat } from 'node:fs/promises'
 import { basename, resolve as pathResolve } from 'node:path'
+import { statPath as stat } from '~/utils/bun-file-io'
 import * as l from '~/utils/app-logger/app-logger'
-import type { FetchRemoteHtmlOptions, HtmlArticleBackend, LocalHtmlReadResult, RemoteHtmlFetchResult, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
+import type { FetchRemoteHtmlOptions, HtmlArticleBackend, LocalHtmlReadResult, RemoteHtmlFetchResult, UrlArticleRunResult, UrlArticleScrapeRunner, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { isAbortError } from '~/utils/retries'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
-import { isRecord } from '~/utils/rest-client'
+import { resolveCredential } from '~/utils/validate/env-utils'
+import { InfraError, ProviderError, ValidationError } from '~/utils/error-handler'
+import { httpResponseError, isRecord } from '~/utils/rest-client'
+import { formatErrorMessage } from '~/utils/value-helpers'
+
+export { formatErrorMessage }
 
 const HTML_FETCH_TIMEOUT_MS = 15000
 export const DEFAULT_URL_REQUEST_TIMEOUT_MS = 60000
@@ -37,7 +40,7 @@ export const pickCleanString = (
   return undefined
 }
 
-export const byteLength = (value: string): number =>
+const byteLength = (value: string): number =>
   new TextEncoder().encode(value).byteLength
 
 export const isRemoteSource = (source: string): boolean =>
@@ -110,15 +113,13 @@ const createUrlProviderTimeoutError = (
   timeoutMs: number,
   cause: unknown
 ): Error => {
-  const error = new Error(`${providerLabel} request timed out after ${timeoutMs}ms`, {
-    cause: cause instanceof Error ? cause : undefined
+  const error = ProviderError(`${providerLabel} request timed out after ${timeoutMs}ms`, {
+    retryable: true,
+    stage: 'extract:url',
+    metadata: { timeoutMs, provider: providerLabel },
+    ...(cause instanceof Error ? { cause } : {})
   })
   error.name = 'AbortError'
-  Object.assign(error, {
-    timeoutMs,
-    provider: providerLabel,
-    retryable: true
-  })
   return error
 }
 
@@ -126,19 +127,17 @@ export const createUrlProviderHttpError = (
   providerLabel: string,
   action: string,
   response: Response,
-  message: string | undefined
-): Error => {
-  const error = new Error(
-    `${providerLabel} ${action} failed (${response.status} ${response.statusText})${message ? `: ${message}` : ''}`
-  )
-  Object.assign(error, {
-    status: response.status,
-    headers: response.headers,
+  message: string | undefined,
+  terminal = false
+): Error => httpResponseError(
+  `${providerLabel} ${action} failed (${response.status} ${response.statusText})${message ? `: ${message}` : ''}`,
+  response,
+  {
     provider: providerLabel,
-    retryable: response.status === 408 || response.status === 429 || response.status >= 500
-  })
-  return error
-}
+    retryable: !terminal
+      && (response.status === 408 || response.status === 429 || response.status >= 500)
+  }
+)
 
 export const withUrlProviderTimeout = async <T>(
   providerLabel: string,
@@ -161,20 +160,16 @@ export const withUrlProviderTimeout = async <T>(
 }
 
 export const requireHostedUrlProviderApiKey = (
-  envVar: string,
   providerId: string,
   stage: string,
   usingHostedApi: boolean
 ): string | undefined => {
-  const apiKey = readEnv(envVar)
-  if (usingHostedApi && !apiKey) {
-    throw InternalError(
-      `${envVar} is required for --url-provider ${providerId} when using the hosted API. ` +
-      `Set ${envVar} or use a different URL backend.`,
-      { stage, hints: hintsForMissingEnv(envVar) }
-    )
-  }
-  return apiKey
+  const observation = resolveCredential(providerId, 'observe', {
+    description: `--url-provider ${providerId}`
+  })
+  return usingHostedApi
+    ? resolveCredential(providerId, 'require', { stage, description: `--url-provider ${providerId}` })
+    : observation.value
 }
 
 export const fetchUrlProviderJson = async (
@@ -183,7 +178,8 @@ export const fetchUrlProviderJson = async (
   endpoint: string,
   init: Omit<RequestInit, 'signal'>,
   options: UrlRequestOptions | undefined,
-  errorKeys: readonly string[]
+  errorKeys: readonly string[],
+  isTerminalFailure?: (payload: unknown, message: string | undefined) => boolean
 ): Promise<unknown> => {
   const response = await withUrlProviderTimeout(providerLabel, options, async (signal) =>
     await fetch(endpoint, { ...init, signal })
@@ -203,7 +199,13 @@ export const fetchUrlProviderJson = async (
         errorMessage ??= cleanString(payload[key])
       }
     }
-    throw createUrlProviderHttpError(providerLabel, action, response, errorMessage)
+    throw createUrlProviderHttpError(
+      providerLabel,
+      action,
+      response,
+      errorMessage,
+      isTerminalFailure?.(payload, errorMessage) === true
+    )
   }
 
   return payload
@@ -252,7 +254,7 @@ export const fetchRemoteHtml = async (
   }
 }
 
-export const tryFetchRemoteHtml = async (
+const tryFetchRemoteHtml = async (
   source: string
 ): Promise<RemoteHtmlFetchResult | null> => {
   try {
@@ -262,7 +264,7 @@ export const tryFetchRemoteHtml = async (
   }
 }
 
-export const finalizeUrlArticleResult = async (
+const finalizeUrlArticleResult = async (
   source: string,
   sourceUrl: string | undefined,
   backend: HtmlArticleBackend,
@@ -282,12 +284,6 @@ export const finalizeUrlArticleResult = async (
   }
 }
 
-type UrlArticleScrapeRunner = (
-  source: string,
-  options?: UrlRequestOptions,
-  baseUrl?: string
-) => Promise<{ markdown: string, web: WebArticleMetadata }>
-
 export const createUrlArticleRun = (
   backend: HtmlArticleBackend,
   displayName: string,
@@ -299,7 +295,7 @@ export const createUrlArticleRun = (
   baseUrl?: string
 ) => Promise<UrlArticleRunResult> =>
   async (source, sourceUrl, options, baseUrl) => {
-    l.write('info', `Using ${displayName} backend for article extraction`)
+    l.write('info', `Using ${displayName} backend for article extraction`, { category: 'pipeline', metadata: { backend: displayName } })
     const scraped = await scrape(source, options, baseUrl)
     return await finalizeUrlArticleResult(source, sourceUrl, backend, scraped)
   }
@@ -335,9 +331,6 @@ export const normalizeMarkdown = (value: unknown): string => {
   }
   return value.trim()
 }
-
-export const formatErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error)
 
 export const ensureMeaningfulMarkdown = (
   markdown: string,

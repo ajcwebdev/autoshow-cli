@@ -1,6 +1,4 @@
-// Structural mirror of the model-loader `ExtractEstimation` returned by
-// `getExtractEstimation`; kept here so type-land never imports from src/cli.
-export type ExtractTimingEstimation = {
+type ExtractTimingEstimation = {
   costMultiplier: number
   msPerPage: number
   singlePagePdfFallbackMsPerPage?: number

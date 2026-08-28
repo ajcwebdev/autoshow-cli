@@ -1,11 +1,12 @@
 import type { OpenAIChatCompletionResponse, OpenAIErrorFields, OpenAIFetchOptions, OpenAIImageResponse, OpenAIRequestOptions, OpenAIResponsesResponse, OpenAIRestConfig } from '~/types'
 import { OPENAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { redactPayloadPreview } from '~/utils/bounded-capture'
+import { AppProviderError } from '~/utils/error-handler'
 import { createProviderRestClient, isRecord, joinRestUrl, readJsonResponse } from '~/utils/rest-client'
 
-export class OpenAIRestError extends Error {
-  status: number
-  headers: Headers
+export class OpenAIRestError extends AppProviderError {
+  override readonly status: number
+  override readonly headers: Headers
   body: string
   rawResponse: unknown
   bodyBytes?: number | undefined
@@ -24,7 +25,7 @@ export class OpenAIRestError extends Error {
     rawResponse: unknown,
     fields: OpenAIErrorFields = {}
   ) {
-    super(message)
+    super(message, { status, headers, stage: 'openai' })
     this.name = 'OpenAIRestError'
     this.status = status
     this.headers = headers

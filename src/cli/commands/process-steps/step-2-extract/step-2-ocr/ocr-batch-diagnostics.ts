@@ -1,32 +1,14 @@
-import { createHash, randomUUID } from 'node:crypto'
 import { readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
-import type { OcrBatchDiagnosticTarget, OcrBatchDiagnosticsReport, PipelineManifest } from '~/types'
+import type { OcrBatchDiagnosticTarget, OcrBatchDiagnosticsReport, PipelineManifest, TargetAccumulator } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable, logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { isRecord } from '~/utils/rest-client'
 
 export const OCR_BATCH_DIAGNOSTICS_FILE = 'ocr-batch-diagnostics.json'
 const MATERIAL_ESTIMATE_ERROR_PERCENT = 20
-const OCR_PROVIDER_SERVICES = new Set(['tesseract', 'mistral', 'glm', 'kimi', 'openai', 'grok', 'anthropic', 'gemini', 'deepinfra', 'replicate'])
-
-type TargetAccumulator = {
-  provider: string
-  model: string
-  affectedItems: Set<number>
-  attemptedItems: Set<number>
-  blockerItems: Map<string, Set<number>>
-  attempts: number
-  retries: number
-  rateLimitFailures: number
-  retryAfterMs: number
-  estimatedCostCents: number
-  actualCostCents: number
-  partialProviderCostCents: number
-  partialProviderUsageItems: Set<number>
-  unknownActualCostItems: Set<number>
-}
+const OCR_PROVIDER_SERVICES = new Set(['tesseract', 'mistral', 'glm', 'kimi', 'openai', 'grok', 'anthropic', 'gemini', 'deepinfra'])
 
 const targetKey = (provider: string, model: string): string => `${provider}\u0000${model}`
 
@@ -219,7 +201,7 @@ export const writeOcrBatchDiagnostics = async (
   const manifest = await readManifest(batchDir)
   if (!manifest || manifest.scope !== 'batch') return undefined
   const manifestBytes = await readFile(join(batchDir, PIPELINE_MANIFEST_FILE))
-  const sha256 = createHash('sha256').update(manifestBytes).digest('hex')
+  const sha256 = new Bun.CryptoHasher('sha256').update(manifestBytes).digest('hex')
   const report = deriveOcrBatchDiagnostics(manifest, sha256)
   const outputPath = join(batchDir, OCR_BATCH_DIAGNOSTICS_FILE)
   if (!report) {
@@ -227,7 +209,7 @@ export const writeOcrBatchDiagnostics = async (
     return undefined
   }
 
-  const temporaryPath = `${outputPath}.${randomUUID()}.tmp`
+  const temporaryPath = `${outputPath}.${crypto.randomUUID()}.tmp`
   await writeFile(temporaryPath, `${JSON.stringify(report, null, 2)}\n`)
   await rename(temporaryPath, outputPath)
   l.write('warn', 'OCR batch diagnostics', {

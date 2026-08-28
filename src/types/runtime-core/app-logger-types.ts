@@ -1,4 +1,4 @@
-import type { LogFormat, LogLevel } from '~/types'
+import type { LogCategory, LogFormat, LogLevel } from '~/types'
 
 export type LogFormatChoice = Exclude<LogFormat, 'auto'>
 
@@ -8,4 +8,5 @@ export type ReconfigureOptions = {
   json?: boolean
   logLevel?: LogLevel
   logFormat?: LogFormatChoice
+  suppressCategories?: readonly LogCategory[]
 }

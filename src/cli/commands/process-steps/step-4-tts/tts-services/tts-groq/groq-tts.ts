@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureGroqTtsSetup = ensureApiKeySetup('GROQ_API_KEY', 'tts:groq', 'Groq TTS')
+export const ensureGroqTtsSetup = async (): Promise<void> => { resolveCredential('groq', 'require', { stage: 'tts:groq', description: 'Groq TTS' }) }

@@ -6,7 +6,7 @@ import {
   readConfiguredEnvVar,
   readConfiguredEnvVarSync
 } from './test-helpers'
-import type { RunCommandOptions } from '~/types'
+import type { RunAndExpectOutputDirOptions, RunCommandOptions } from '~/types'
 import { l } from '~/utils/app-logger/app-logger'
 import { stripAnsi } from '~/utils/terminal-colors'
 import {
@@ -17,6 +17,8 @@ import {
   isGlmRetryable429Exhaustion,
   isDeepInfraWhisperLargeV3CommandTimeout,
   isGeminiImageAvailabilityFailure,
+  isGeminiImageEmptyResponse,
+  isSupadataPlanLimitFailure,
   isBflResultDownloadAvailabilityFailure,
   isTogetherSttAvailabilityFailure
 } from './provider-failure-classifiers'
@@ -43,6 +45,12 @@ export const classifyLiveProviderAvailabilityFailure = (output: string): string 
   }
   if (isGeminiImageAvailabilityFailure(cleanOutput)) {
     return 'Gemini image provider is temporarily unavailable or rate limited'
+  }
+  if (isGeminiImageEmptyResponse(cleanOutput)) {
+    return 'Gemini image provider returned a response with no image content (refusal or filtered prompt)'
+  }
+  if (isSupadataPlanLimitFailure(cleanOutput)) {
+    return 'Supadata account plan limit is exhausted'
   }
   if (isBflResultDownloadAvailabilityFailure(cleanOutput)) {
     return 'BFL image result download hit a transient provider availability failure'
@@ -86,12 +94,10 @@ export const defineBudgetedLiveServiceTest = (
   fn: () => void | Promise<void>,
   timeoutMs: number = E2E_TEST_TIMEOUT_MS
 ): void => {
-  // Always run the test. A missing API key fails it (via requireConfiguredEnvVar in the
-  // body) rather than being silently skipped. Over-budget skipping still applies.
   budgetedTest(budgetKey, name, fn, timeoutMs)
 }
 
-export const requireConfiguredValue = <T>(
+const requireConfiguredValue = <T>(
   value: T | null | undefined,
   message: string
 ): NonNullable<T> => {
@@ -164,13 +170,21 @@ export const formatCommandFailureDiagnostics = (
 export const runCommandAndExpectOutputDir = async (
   title: string,
   args: string[],
-  opts?: RunCommandOptions
+  opts?: RunCommandOptions,
+  extra: RunAndExpectOutputDirOptions = {}
 ): Promise<string> => {
-  const result = await runCommand(args, opts)
+  const result = extra.transient
+    ? await runCommandWithTransientRetry(args, extra.transient, opts)
+    : await runCommand(args, opts)
+
+  extra.onResult?.(result)
+
   const combinedOutput = `${result.stdout}\n${result.stderr}`
   if (result.exitCode !== 0) {
-    const availabilityReason = classifyLiveProviderAvailabilityFailure(combinedOutput)
     const diagnostics = formatCommandFailureDiagnostics(args, result)
+    const availabilityReason = extra.classifyAvailability === false
+      ? undefined
+      : classifyLiveProviderAvailabilityFailure(combinedOutput)
     if (availabilityReason) {
       throw new Error(`Live provider availability failure: ${availabilityReason}\n${diagnostics}`)
     }
@@ -184,26 +198,23 @@ export const runCommandAndExpectOutputDir = async (
   return outputDir
 }
 
-// Runs a command once; if it fails with a transient provider error (per `isTransient`), warns,
-// waits, and retries a single time. Throws if the transient failure persists; otherwise returns
-// the result for the caller to handle (success or a non-transient failure). Any factory can opt
-// in by passing the relevant provider predicate from `./provider-failure-classifiers`.
-export const runCommandWithTransientRetry = async (
+const runCommandWithTransientRetry = async (
   commandArgs: string[],
   opts: {
     isTransient: (output: string) => boolean
     providerLabel: string
     persistedLabel: string
     retryDelayMs?: number
-  }
+  },
+  runOptions?: RunCommandOptions
 ): Promise<Awaited<ReturnType<typeof runCommand>>> => {
-  let result = await runCommand(commandArgs)
+  let result = await runCommand(commandArgs, runOptions)
   if (result.exitCode === 0) return result
   if (!opts.isTransient(`${result.stdout}\n${result.stderr}`)) return result
 
-  l.warn(`Retrying once after ${opts.providerLabel}`)
+  l.warn(`Retrying once after ${opts.providerLabel}`, { category: 'pipeline' })
   await Bun.sleep(opts.retryDelayMs ?? 2_000)
-  result = await runCommand(commandArgs)
+  result = await runCommand(commandArgs, runOptions)
 
   if (result.exitCode !== 0 && opts.isTransient(`${result.stdout}\n${result.stderr}`)) {
     throw new Error(`${opts.persistedLabel}\n${formatCommandFailureDiagnostics(commandArgs, result)}`)

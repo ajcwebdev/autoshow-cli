@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdtemp, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { ProtectedAssetRef, StructuredScriptData, TtsTarget } from '~/types'
 import { canonicalTargetKey } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
@@ -10,7 +9,8 @@ import { createComicDialoguePlan } from '~/cli/commands/process-steps/step-8-com
 import { createFishAdvancedProvider, FISH_ADVANCED_CAPABILITY_FIXTURE } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/fish-advanced-provider'
 import { runFishTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/run-fish-tts'
 import { createMockWavBase64, createMockWavBytes } from '../../../test-utils/media-fixtures'
-import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { installMockFetch, setupContractSuiteLifecycle, withEnv } from '../../../test-utils/rest-contract-helpers'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const HASH_A = 'a'.repeat(64)
 const CREATED_AT = '2026-08-14T00:00:00.000Z'
@@ -45,7 +45,7 @@ const createDummyRun = (): TtsTarget['run'] => async () => ({
   }
 })
 
-describe('ADR-018 Phase 3 Fish Audio Contracts', () => {
+describe('ADR-017 Phase 3 Fish Audio Contracts', () => {
   test('Fish Audio capability fixture declares single-speaker TTS, S2 Pro native dialogue, and voice design', () => {
     expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'turn-synthesis' && c.adapterSupport === 'implemented')).toBeTrue()
     expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'native-dialogue' && 'model' in c.scope && c.scope.model === 's2.1-pro' && c.adapterSupport === 'implemented')).toBeTrue()
@@ -62,17 +62,12 @@ describe('ADR-018 Phase 3 Fish Audio Contracts', () => {
   })
 
   test('Fish Audio target preflight check with FISH_API_KEY present', async () => {
-    const originalKey = process.env['FISH_API_KEY']
-    process.env['FISH_API_KEY'] = 'test-fish-key'
-    try {
+    await withEnv({ FISH_API_KEY: 'test-fish-key' }, async () => {
       const targetKey = canonicalTargetKey('tts-synthesis', 'fish', 's2.1-pro', 'http')
       const targets: readonly TtsTarget[] = [{ service: 'fish', model: 's2.1-pro', voice: '7f92f8afb8ec43bf81429cc1c9199cb1', operation: 'tts-synthesis', transport: 'http', targetKey, run: createDummyRun() }]
       const preflight = await validateTtsTargetsForExecution(targets)
       expect(preflight[0]?.status).toBe('ready')
-    } finally {
-      if (originalKey !== undefined) process.env['FISH_API_KEY'] = originalKey
-      else delete process.env['FISH_API_KEY']
-    }
+    })
   })
 
   test('Fish Audio advanced provider generates design candidates and clones voices', async () => {
@@ -136,7 +131,7 @@ describe('ADR-018 Phase 3 Fish Audio Contracts', () => {
       return new Response('Not found', { status: 404 })
     })
 
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-fish-tts-'))
+    const tempDir = await makeTempDir('autoshow-fish-tts-')
 
     const result = await runFishTts('Ready for departure.', tempDir, {
       model: 's2.1-pro',
@@ -149,7 +144,7 @@ describe('ADR-018 Phase 3 Fish Audio Contracts', () => {
   })
 
   test('Fish Audio structured script creates dialogue plan', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-fish-scene-'))
+    const tempDir = await makeTempDir('autoshow-fish-scene-')
     const sourceFile = join(tempDir, 'input.txt')
     const sourceText = 'PILOT: Ready?\nNAVIGATOR: Ready.'
     await writeFile(sourceFile, sourceText)

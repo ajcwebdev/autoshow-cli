@@ -1,5 +1,5 @@
 export type ReferenceTokenizerMetadata = {
   name: 'o200k_base'
-  packageName: 'tiktoken'
-  packageVersion: '1.0.22'
+  implementation: 'in-repository-bpe'
+  rankDataSha256: string
 }

@@ -1,17 +1,8 @@
-import type { AggregateExplicitEstimateOptions, AggregatedPriceEstimate, AggregateTimingOptions, CommandPricingOptions, ProcessingOptions, ProcessCommand, StepEstimate } from '~/types'
-import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
-import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-routing'
-import { resolveSttStep2Execution } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/resolved-step2'
-import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
+import type { AggregateExplicitEstimateOptions, AggregatedPriceEstimate, AggregateTimingOptions, CommandPricingOptions, ProcessingOptions, ProcessCommand, StepEstimate, WriteRuntimeOptions } from '~/types'
 import { SUPADATA_STT_AGGREGATE_NOTE } from '~/cli/commands/pricing-orchestration/supadata-pricing'
 import { SCRAPECREATORS_STT_AGGREGATE_NOTE } from '~/utils/pricing/scrapecreators-pricing'
-import { buildArticleEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-article-estimates'
-import { buildExtractEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates'
-import { buildImageEstimates, buildMusicEstimates, buildVideoEstimates } from './aggregate-pricing/generation-estimates'
-import { buildLlmEstimates } from './aggregate-pricing/llm-estimates'
-import { buildSttEstimates } from './aggregate-pricing/stt-estimates'
+import { buildPriceEstimateContribution } from './aggregate-pricing/route-estimates'
 import { buildAggregateTiming } from './aggregate-pricing/timing'
-import { buildTtsEstimates, estimateTtsCharacterCountFromPrompts } from './aggregate-pricing/tts-estimates'
 
 const buildTimingOptions = (
   opts: AggregateTimingOptions,
@@ -26,26 +17,22 @@ const buildTimingOptions = (
   ...(typeof opts.ocrLocalConcurrency === 'number' ? { ocrLocalConcurrency: opts.ocrLocalConcurrency } : {})
 })
 
+const appendProviderNotes = (steps: readonly StepEstimate[], notes: string[]): void => {
+  if (steps.some((step) => step.step === 'stt' && step.provider === 'supadata')) notes.push(SUPADATA_STT_AGGREGATE_NOTE)
+  if (steps.some((step) => step.step === 'stt' && step.provider === 'scrapecreators')) notes.push(SCRAPECREATORS_STT_AGGREGATE_NOTE)
+}
+
 export const aggregateExplicitPriceEstimate = (
   steps: StepEstimate[],
   opts: AggregateTimingOptions,
   options: AggregateExplicitEstimateOptions = {}
 ): AggregatedPriceEstimate => {
   const notes = [...(options.notes ?? [])]
-  if (steps.some((step) => step.step === 'stt' && step.provider === 'supadata')) {
-    notes.push(SUPADATA_STT_AGGREGATE_NOTE)
-  }
-
-  if (steps.some((step) => step.step === 'stt' && step.provider === 'scrapecreators')) {
-    notes.push(SCRAPECREATORS_STT_AGGREGATE_NOTE)
-  }
-
+  appendProviderNotes(steps, notes)
   const timing = buildAggregateTiming(steps, options.ttsTimingCharacterCount, buildTimingOptions(opts, {
     ...(typeof options.ttsInputText === 'string' ? { ttsInputText: options.ttsInputText } : {})
   }))
-
   const uniqueNotes = [...new Set(notes)]
-
   return {
     steps,
     totalEstimatedCost: steps.reduce((sum, step) => sum + step.totalCost, 0),
@@ -54,165 +41,33 @@ export const aggregateExplicitPriceEstimate = (
   }
 }
 
-const isProcessingOptions = (
-  opts: CommandPricingOptions | ProcessingOptions
-): opts is ProcessingOptions =>
-  'outputDir' in opts && ('url' in opts || 'filePath' in opts)
-
-export function buildAggregatedPriceEstimate (
-  command: 'write',
-  resolvedTarget: string,
-  opts: CommandPricingOptions | ProcessingOptions,
-  characterCount?: number,
-  context?: { ttsInputText?: string | undefined }
-): Promise<AggregatedPriceEstimate>
 export function buildAggregatedPriceEstimate (
   command: ProcessCommand,
   resolvedTarget: string,
-  opts: CommandPricingOptions,
+  opts: CommandPricingOptions | WriteRuntimeOptions | ProcessingOptions,
   characterCount?: number,
   context?: { ttsInputText?: string | undefined }
 ): Promise<AggregatedPriceEstimate>
 export async function buildAggregatedPriceEstimate (
   command: ProcessCommand,
   resolvedTarget: string,
-  opts: CommandPricingOptions | ProcessingOptions,
+  opts: CommandPricingOptions | WriteRuntimeOptions | ProcessingOptions,
   characterCount?: number,
   context: { ttsInputText?: string | undefined } = {}
 ): Promise<AggregatedPriceEstimate> {
-  const steps: StepEstimate[] = []
-  let totalEstimatedCost = 0
-  let ttsTimingCharacterCount: number | undefined
-  let ttsTimingInputText: string | undefined
-  const notes: string[] = []
-
-  const addStep = (step: StepEstimate): void => {
-    steps.push(step)
-    totalEstimatedCost += step.totalCost
-  }
-
-  const routing = isProcessingOptions(opts)
-    ? {
-        family: 'media' as const,
-        resolvedStep2: resolveSttStep2Execution(opts),
-        extractRoute: 'media' as const
-      }
-    : await resolveInputRoutingForCommand(command === 'download' || command === 'metadata' ? 'write' : command, resolvedTarget, opts)
-  const documentTarget = routing.family === 'document' || routing.family === 'html_article'
-  const resolvedStep2 = routing.resolvedStep2
-  const extractRoute = routing.extractRoute
-  const textInputWrite = command === 'write' && !isProcessingOptions(opts) && opts.textInput
-  const documentWrite = command === 'write' && documentTarget && !textInputWrite
-  const mediaWrite = command === 'write' && routing.family === 'media' && !textInputWrite
-  const isRemoteTarget = /^https?:\/\//i.test(resolvedTarget)
-
-  if (!textInputWrite && ((isExtractCommand(command) && extractRoute === 'media') || mediaWrite)) {
-    for (const stt of await buildSttEstimates(resolvedTarget, opts)) {
-      addStep(stt)
-      if (typeof stt.note === 'string' && stt.note.length > 0) {
-        notes.push(stt.note)
-      }
-    }
-  }
-
-  if (!textInputWrite && ((isExtractCommand(command) && extractRoute === 'document') || documentWrite) && resolvedStep2.route === 'ocr' && !isProcessingOptions(opts)) {
-    for (const extract of await buildExtractEstimates(resolvedTarget, resolvedStep2, {
-      hostedOcrTokenProfilePath: opts.hostedOcrTokenProfilePath,
-      reasoningEffort: opts.reasoningEffort,
-      ocrProviderMode: opts.ocrProviderMode
-    })) {
-      addStep(extract)
-    }
-  }
-
-  if (resolvedStep2.route === 'article' && !isProcessingOptions(opts)) {
-    const article = buildArticleEstimates(resolvedStep2, opts, isRemoteTarget)
-    for (const estimate of article.estimates) {
-      addStep(estimate)
-    }
-    notes.push(...article.notes)
-  }
-
-  if (command === 'write') {
-    const llmEstimates = await buildLlmEstimates(opts, false)
-    for (const llm of llmEstimates) {
-      addStep(llm)
-    }
-
-    const selectedTtsTargets = collectTtsTargets(opts)
-    if (selectedTtsTargets.length > 0) {
-      if (llmEstimates.length === 1) {
-        const estimatedTtsCharacterCount = await estimateTtsCharacterCountFromPrompts(opts)
-        ttsTimingCharacterCount = estimatedTtsCharacterCount
-        const ttsEstimates = await buildTtsEstimates(opts, estimatedTtsCharacterCount)
-        for (const tts of ttsEstimates) {
-          addStep(tts)
-        }
-      } else {
-        notes.push(
-          llmEstimates.length > 1
-            ? `TTS estimate omitted: step 4 only runs when write produces exactly one summary, but ${llmEstimates.length} LLM providers are selected.`
-            : 'TTS estimate omitted: step 4 only runs when write produces exactly one summary, and this run skips summary generation.'
-        )
-      }
-    }
-
-    for (const image of buildImageEstimates(opts)) {
-      addStep(image)
-    }
-
-    for (const video of await buildVideoEstimates(opts)) {
-      addStep(video)
-    }
-
-    for (const music of await buildMusicEstimates(opts)) {
-      addStep(music)
-    }
-  }
-
-  if (command === 'tts') {
-    ttsTimingCharacterCount = typeof characterCount === 'number' ? characterCount : 0
-    ttsTimingInputText = context.ttsInputText
-    const ttsEstimates = await buildTtsEstimates(opts, ttsTimingCharacterCount)
-    for (const tts of ttsEstimates) {
-      addStep(tts)
-    }
-  }
-
-  if (command === 'image') {
-    for (const image of buildImageEstimates(opts)) {
-      addStep(image)
-    }
-  }
-
-  if (command === 'video') {
-    for (const video of await buildVideoEstimates(opts)) {
-      addStep(video)
-    }
-  }
-
-  if (command === 'music') {
-    for (const music of await buildMusicEstimates(opts)) {
-      addStep(music)
-    }
-  }
-
-  if (steps.some((step) => step.step === 'stt' && step.provider === 'supadata')) {
-    notes.push(SUPADATA_STT_AGGREGATE_NOTE)
-  }
-
-  if (steps.some((step) => step.step === 'stt' && step.provider === 'scrapecreators')) {
-    notes.push(SCRAPECREATORS_STT_AGGREGATE_NOTE)
-  }
-
-  const timing = buildAggregateTiming(steps, ttsTimingCharacterCount, buildTimingOptions(opts, {
-    ...(typeof ttsTimingInputText === 'string' ? { ttsInputText: ttsTimingInputText } : {})
-  }))
-
+  const contribution = await buildPriceEstimateContribution(command, resolvedTarget, opts, characterCount, context)
+  appendProviderNotes(contribution.steps, contribution.notes)
+  const timing = buildAggregateTiming(
+    contribution.steps,
+    contribution.ttsTimingCharacterCount,
+    buildTimingOptions(opts, {
+      ...(typeof contribution.ttsTimingInputText === 'string' ? { ttsInputText: contribution.ttsTimingInputText } : {})
+    })
+  )
   return {
-    steps,
-    totalEstimatedCost,
+    steps: contribution.steps,
+    totalEstimatedCost: contribution.steps.reduce((sum, step) => sum + step.totalCost, 0),
     ...(timing && timing.steps.length > 0 ? { timing } : {}),
-    ...(notes.length > 0 ? { notes } : {})
+    ...(contribution.notes.length > 0 ? { notes: contribution.notes } : {})
   }
 }

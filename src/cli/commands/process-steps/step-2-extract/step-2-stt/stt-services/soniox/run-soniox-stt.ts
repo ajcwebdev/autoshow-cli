@@ -10,7 +10,7 @@ import {
   runAsyncSttJobLifecycle
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { SONIOX_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { InternalError } from '~/utils/error-handler'
 import { lifecycleMetricsToCallbacks } from '../stt-stage-request'
 import {
@@ -40,7 +40,7 @@ export const runSonioxStt = async (
     lifecycle?: AsyncSttLifecycleHooks | undefined
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const apiKey = requireApiKey('SONIOX_API_KEY', 'stt:soniox', 'Soniox transcription')
+  const apiKey = resolveCredential('soniox', 'require', { stage: 'stt:soniox', description: 'Soniox transcription' })
 
   const {
     model: modelName,
@@ -99,8 +99,8 @@ export const runSonioxStt = async (
     isFailed: (status) => status.status === 'error'
       ? `Soniox transcription failed: ${status.error_message ?? status.error_type ?? 'unknown error'}`
       : undefined,
-    buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('Soniox', jobId, pollDeadlineMs),
-    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('Soniox', 'transcription', jobId, probeCount, totalWaitMs),
+    buildDeadlineError: (jobId, pollDeadlineMs, cause) => buildAsyncSttPollingDeadlineError('Soniox', jobId, pollDeadlineMs, cause),
+    buildResumeProbeError: (jobId, probeCount, totalWaitMs, cause) => buildAsyncSttResumeProbeError('Soniox', 'transcription', jobId, probeCount, totalWaitMs, cause),
     cleanup: {
       shouldDelete: ({ metadata, lastKnownStatus }) =>
         metadata !== undefined || lastKnownStatus?.status === 'completed' || lastKnownStatus?.status === 'error',

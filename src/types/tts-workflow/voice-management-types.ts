@@ -9,14 +9,14 @@ import type {
   TypedProviderSynthesisSettings,
 } from '~/types'
 
-export type ProtectedVoiceAssetPurpose =
+type ProtectedVoiceAssetPurpose =
   | 'reference-audio'
   | 'candidate-preview'
   | 'audition-audio'
   | 'consent-evidence'
   | 'reconciliation-evidence'
 
-export type ProtectedVoiceAssetRetention = {
+type ProtectedVoiceAssetRetention = {
   mode: 'retain-until' | 'retain-until-revoked' | 'delete-after-operation'
   expiresAt?: string | undefined
   obligationRef?: string | undefined
@@ -40,7 +40,7 @@ export type VoiceConsentAction =
   | 'retention'
   | 'deletion'
 
-export type VoiceConsentGrant = {
+type VoiceConsentGrant = {
   action: VoiceConsentAction
   allowed: boolean
   expiresAt?: string | undefined
@@ -78,7 +78,7 @@ export type VoiceRetentionPolicy = {
   obligationRef?: string | undefined
 }
 
-export type VoiceCleanupState =
+type VoiceCleanupState =
   | { state: 'retained', checkedAt: string }
   | { state: 'deletion-required', reason: string, requiredAt: string }
   | { state: 'deletion-pending', requestedAt: string }
@@ -97,7 +97,7 @@ export type VoiceProvisioningState =
   | { state: 'deleted', providerVoice: ProviderVoiceRef, deletedAt: string }
   | { state: 'failed', code: string, message: string, providerVoice?: ProviderVoiceRef | undefined }
 
-export type VoiceProvisioningOperation = 'design' | 'remix' | 'clone' | 'import' | 'save-reference'
+type VoiceProvisioningOperation = 'design' | 'remix' | 'clone' | 'import' | 'save-reference'
 
 export type VoiceIssuedResource = {
   providerVoice: ProviderVoiceRef
@@ -131,12 +131,6 @@ export type VoiceProvisioningAttempt = {
   compareAndSwapVersion: number
 }
 
-export type VoiceProvisioningResult = VoiceProvisioningState & {
-  attemptId: string
-  idempotencyKey?: string | undefined
-  checkedAt: string
-}
-
 export type VoiceCandidate = {
   schemaVersion: 1
   candidateId: string
@@ -163,7 +157,7 @@ export type VoiceCandidate = {
 
 export type VoiceAuditionCategory = 'neutral' | 'representative' | 'emotional-delivery' | 'pronunciation' | 'comparison'
 
-export type VoiceAuditionTake = {
+type VoiceAuditionTake = {
   takeId: string
   protectedAudio: ProtectedAssetRef
   sha256: string
@@ -199,7 +193,7 @@ export type VoiceAuditionManifest = {
   createdAt: string
 }
 
-export type VoiceRegistrationBase = {
+type VoiceRegistrationBase = {
   schemaVersion: 1
   registrationId: string
   generationId: string
@@ -244,7 +238,7 @@ export type VoiceRegistrationCatalog = {
   registrations: VoiceRegistration[]
 }
 
-export type CurrentVoiceRegistrationSelection = {
+type CurrentVoiceRegistrationSelection = {
   subjectKey: string
   provider: TtsProvider
   providerModel: string
@@ -258,39 +252,4 @@ export type CurrentVoiceRegistrationIndex = {
   schemaVersion: 2
   revision: number
   selections: CurrentVoiceRegistrationSelection[]
-}
-
-export type VoiceManagementAction =
-  | 'create-candidate'
-  | 'materialize-candidate'
-  | 'import'
-  | 'audition'
-  | 'approve'
-  | 'inspect'
-  | 'reconcile'
-  | 'retire'
-  | 'revoke'
-  | 'delete'
-
-export type VoiceManagementRuntimeOptions = {
-  action: VoiceManagementAction
-  provider: TtsProvider
-  providerModel: string
-  subjectKey: string
-  profileKey: string
-  charactersRoot: string
-  registrationId?: string | undefined
-  candidateId?: string | undefined
-  existingVoiceId?: string | undefined
-  desiredResourceName?: string | undefined
-  referenceAudioPath?: string | undefined
-  consentRecordRef?: string | undefined
-  provenanceRef?: string | undefined
-  authorizationRef?: string | undefined
-  maxCandidates: number
-  maxTakes: number
-  maxCents?: number | undefined
-  approve: boolean
-  actor: AuditActorRef
-  price: boolean
 }

@@ -58,6 +58,49 @@ afterAll(async () => {
   }
 })
 
+test('write --price auto-detects prose .txt targets as text input instead of batch lists', async () => {
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const fixtureDir = join(OUTPUT_DIR, `${PROJECT_PREFIX}-prose-${suffix}`)
+  await mkdir(fixtureDir, { recursive: true })
+  createdProjects.push(fixtureDir)
+
+  const prosePath = join(fixtureDir, 'chapter.txt')
+  await writeFile(prosePath, [
+    'The warden crossed the yard before the morning bell rang out.',
+    'Nobody spoke while the ledger changed hands in the records office.',
+    'By nightfall the account of the transfer had already been rewritten.'
+  ].join('\n'))
+
+  const result = await runCommand([
+    'src/cli/create-cli.ts',
+    'write',
+    prosePath,
+    '--price'
+  ], { env: { AUTOSHOW_TEST_OUTPUT_DIR: OUTPUT_DIR } })
+
+  const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
+  expect(result.exitCode).toBe(0)
+  expect(output).not.toContain('running write in text-input mode')
+  expect(output).not.toContain('No valid inputs found')
+  expect(output).toContain('Expected files')
+}, E2E_TEST_TIMEOUT_MS)
+
+test('write --price errors on nonexistent local targets instead of estimating', async () => {
+  const missingPath = join(OUTPUT_DIR, `${PROJECT_PREFIX}-missing-${Date.now()}.txt`)
+
+  const result = await runCommand([
+    'src/cli/create-cli.ts',
+    'write',
+    missingPath,
+    '--price'
+  ], { env: { AUTOSHOW_TEST_OUTPUT_DIR: OUTPUT_DIR } })
+
+  const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
+  expect(result.exitCode).toBe(2)
+  expect(output).toContain(`Input does not exist: ${missingPath}`)
+  expect(output).not.toContain('Total estimated cost')
+}, E2E_TEST_TIMEOUT_MS)
+
 test('write project directory --price reports rendered lyric outputs without creating a run directory', async () => {
   const project = await createWriteLyricsProject()
   const dirsBefore = new Set(await listOutputDirs())
@@ -66,7 +109,6 @@ test('write project directory --price reports rendered lyric outputs without cre
     'src/cli/create-cli.ts',
     'write',
     project.textDir,
-    '--text-input',
     '--price'
   ], { env: { AUTOSHOW_TEST_OUTPUT_DIR: OUTPUT_DIR } })
 

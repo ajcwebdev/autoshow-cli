@@ -1,28 +1,32 @@
 import { mkdir, rm } from 'node:fs/promises'
-import { randomUUID } from 'node:crypto'
 import { dirname, join, posix } from 'node:path'
-import type { AudioRun, CompactMix, CompactSfx, CompactTargetRender, FinalTimeline, HostedConcurrencyCoordinator, PipelineProviderState, SoundEffectLicenseUse, SoundEffectLicenseUseClassification, SoundEffectRenderPlan, SoundscapePlan } from '~/types'
-import { requireApiKey } from '~/utils/validate/env-utils'
-import { CLIUsageError } from '~/utils/error-handler'
+import type {
+  AudioRun,
+  CompactMix,
+  CompactSfx,
+  CompactTargetRender,
+  DialogueAudioRunBinding,
+  FinalTimeline,
+  HostedConcurrencyCoordinator,
+  PipelineProviderState,
+  SoundEffectAdapter,
+  SoundEffectLicenseUse,
+  SoundEffectLicenseUseClassification,
+  SoundEffectRenderPlan,
+  SoundscapePlan,
+} from '~/types'
+import { resolveCredential } from '~/utils/validate/env-utils'
+import { UsageError } from '~/utils/error-handler'
 import { hardlinkContainedArtifact, readContainedArtifactFile, writeImmutableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
 import { createElevenLabsSoundEffectAdapter, resolveSoundEffectTarget } from '../../step-4-tts/soundscape/elevenlabs-sfx-adapter'
 import { assertAudioGenDispatchEligible, assertAudioGenLicenseEligible, createReplicateAudioGenAdapter, createSoundEffectLicenseUse } from '../../step-4-tts/soundscape/replicate-audiogen-adapter'
 import { createStabilitySoundEffectAdapter } from '../../step-4-tts/soundscape/stability-stable-audio-adapter'
-import { createSoundEffectRenderPlan, executeSoundEffectRenderPlan, loadCompactSfx, loadSoundEffectRenderPlan, loadSoundEffectRenderResult, planSoundEffectResumePrice, type SoundEffectAdapter, writeSoundEffectRenderPlan } from '../../step-4-tts/soundscape/sound-effect-execution'
+import { createSoundEffectRenderPlan, executeSoundEffectRenderPlan, loadCompactSfx, loadSoundEffectRenderPlan, loadSoundEffectRenderResult, planSoundEffectResumePrice, writeSoundEffectRenderPlan } from '../../step-4-tts/soundscape/sound-effect-execution'
 import { mixSoundscape } from '../../step-4-tts/soundscape/soundscape-mixer'
 import { resolveSoundscapeTimeline } from '../../step-4-tts/soundscape/soundscape-timeline'
 import { writeSoundscapePlan } from '../../step-4-tts/soundscape/soundscape-planner'
 import { canonicalTargetKey, canonicalTtsJson, hashCanonicalTtsValue } from '../../step-4-tts/script-to-audio/contract-identity'
 import { createSilenceWav } from '../../step-4-tts/tts-utils/audio-utils'
-
-export type DialogueAudioRunBinding = {
-  targetKey: string
-  renderIdentity: string
-  audioRunId: string
-  audioRunRef: string
-  audioRunSha256: string
-  reportedOutputPath: string
-}
 
 export const soundscapeReportedOutputPath = (targetKey: string): string => `audio/final/${targetKey}.soundscape.wav`
 
@@ -36,7 +40,7 @@ export const createLocalSilentDialogueRun = async (input: {
   const renderIdentity = hashCanonicalTtsValue({ operation: 'comic-audio', targetKey, dialoguePlanId: input.plan.dialoguePlanId, outputProfileHash: input.plan.mixProfileHash })
   const renderPlanId = hashCanonicalTtsValue({ renderIdentity, strategy: 'local-silence' })
   const root = `audio/local-dialogue/${renderIdentity}`
-  const work = join(input.rootDir, 'audio', `.local-silence-${randomUUID()}`)
+  const work = join(input.rootDir, 'audio', `.local-silence-${crypto.randomUUID()}`)
   await mkdir(work, { recursive: true })
   try {
     const temporary = join(work, 'silence.wav')
@@ -76,9 +80,9 @@ export const createLocalSilentDialogueRun = async (input: {
 
 const verifiedJson = async <T>(rootDir: string, path: string, sha256: string, label: string): Promise<T> => {
   const stored = await readContainedArtifactFile(rootDir, path)
-  if (stored.sha256 !== sha256) throw CLIUsageError(`${label} checksum is invalid.`)
+  if (stored.sha256 !== sha256) throw UsageError(`${label} checksum is invalid.`)
   try { return JSON.parse(stored.bytes.toString('utf8')) as T }
-  catch { throw CLIUsageError(`${label} is not valid JSON.`) }
+  catch { throw UsageError(`${label} is not valid JSON.`) }
 }
 
 const isCompactTargetRender = (value: unknown): value is CompactTargetRender =>
@@ -93,26 +97,26 @@ const loadDialogueMixSource = async (rootDir: string, binding: DialogueAudioRunB
 }> => {
   const stored = await verifiedJson<CompactTargetRender | AudioRun>(rootDir, binding.audioRunRef, binding.audioRunSha256, `Dialogue render ${binding.audioRunId}`)
   if (isCompactTargetRender(stored)) {
-    if (stored.targetKey !== binding.targetKey || stored.renderIdentity !== binding.renderIdentity) throw CLIUsageError('Selected dialogue render identity does not match its canonical manifest binding.')
+    if (stored.targetKey !== binding.targetKey || stored.renderIdentity !== binding.renderIdentity) throw UsageError('Selected dialogue render identity does not match its canonical manifest binding.')
     const timelinePath = posix.join(posix.dirname(binding.audioRunRef), 'timeline.json')
     const timelineBytes = await readContainedArtifactFile(rootDir, timelinePath)
     const timeline = JSON.parse(timelineBytes.bytes.toString('utf8')) as FinalTimeline
-    if (timeline.renderIdentity !== stored.renderIdentity) throw CLIUsageError('Selected dialogue timeline does not bind the compact render.')
+    if (timeline.renderIdentity !== stored.renderIdentity) throw UsageError('Selected dialogue timeline does not bind the compact render.')
     return { audioRunId: binding.audioRunId, path: binding.audioRunRef, sha256: binding.audioRunSha256, timeline, finalAudio: { path: stored.outputs.final.path, sha256: stored.outputs.final.sha256 } }
   }
-  if (stored.audioRunId !== binding.audioRunId || stored.targetKey !== binding.targetKey) throw CLIUsageError('Selected dialogue AudioRun identity does not match its canonical manifest binding.')
+  if (stored.audioRunId !== binding.audioRunId || stored.targetKey !== binding.targetKey) throw UsageError('Selected dialogue AudioRun identity does not match its canonical manifest binding.')
   const audioRunDirectory = dirname(binding.audioRunRef)
   const finalTimelinePath = join(audioRunDirectory, stored.finalTimeline.path).replace(/\\/gu, '/')
   const timeline = await verifiedJson<FinalTimeline>(rootDir, finalTimelinePath, stored.finalTimeline.sha256, `Dialogue timeline ${stored.finalTimeline.timelineId}`)
   const finalOutput = stored.finalOutputs[0]
-  if (!finalOutput) throw CLIUsageError(`Dialogue AudioRun ${binding.audioRunId} has no final audio output.`)
+  if (!finalOutput) throw UsageError(`Dialogue AudioRun ${binding.audioRunId} has no final audio output.`)
   return { audioRunId: stored.audioRunId, path: binding.audioRunRef, sha256: binding.audioRunSha256, timeline, finalAudio: { path: join(audioRunDirectory, finalOutput.path).replace(/\\/gu, '/'), sha256: finalOutput.sha256 } }
 }
 
 export const parseSoundEffectLicenseUseClassification = (value: unknown): SoundEffectLicenseUseClassification | undefined => {
   if (value === undefined || value === null || value === '') return undefined
   if (value !== 'noncommercial' && value !== 'commercial' && value !== 'unknown') {
-    throw CLIUsageError('--sfx-license-use must be noncommercial, commercial, or unknown.')
+    throw UsageError('--sfx-license-use must be noncommercial, commercial, or unknown.')
   }
   return value
 }
@@ -141,10 +145,10 @@ export const resolveSoundEffectPlan = async (input: {
   }
   if (input.retainedPlanRef) {
     const retained = await loadSoundEffectRenderPlan(input.rootDir, input.retainedPlanRef)
-    if (retained.soundscapePlanId !== input.soundscapePlan.soundscapePlanId) throw CLIUsageError('Retained sound-effect target belongs to a different soundscape plan; provide an explicit --sfx-provider for the new plan.')
+    if (retained.soundscapePlanId !== input.soundscapePlan.soundscapePlanId) throw UsageError('Retained sound-effect target belongs to a different soundscape plan; provide an explicit --sfx-provider for the new plan.')
     return retained
   }
-  throw CLIUsageError('Authored SFX, VOCAL SFX, or AMBIENCE requires --sfx-provider (e.g. elevenlabs=eleven_text_to_sound_v2 or replicate=sepal/audiogen@154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8); no paid hosted default is selected.')
+  throw UsageError('Authored SFX, VOCAL SFX, or AMBIENCE requires --sfx-provider (e.g. elevenlabs=eleven_text_to_sound_v2 or replicate=sepal/audiogen@154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8); no paid hosted default is selected.')
 }
 
 export const planComicSoundscapePrice = async (input: {
@@ -167,18 +171,21 @@ export const planComicSoundscapePrice = async (input: {
   return { renderPlan, summary: `soundscape ${renderPlan.target.provider}/${renderPlan.target.model}: ${estimate.unresolvedTaskCount} unresolved, ${estimate.cachedTaskCount} cache, ${estimate.resumedTaskCount} resume, ${amount} ${estimate.currency}` }
 }
 
+const requireSoundscapeProviderApiKey = (provider: string): string =>
+  provider === 'replicate'
+    ? resolveCredential('replicate', 'require', { stage: 'comic:soundscape', description: 'Replicate AudioGen sound-effect generation' })
+    : provider === 'stability'
+      ? resolveCredential('stability', 'require', { stage: 'comic:soundscape', description: 'Stability Stable Audio 3 sound-effect generation' })
+      : resolveCredential('elevenlabs', 'require', { stage: 'comic:soundscape', description: 'ElevenLabs sound-effect generation' })
+
 export const assertComicSoundscapeExecutionReady = async (rootDir: string, renderPlan: SoundEffectRenderPlan): Promise<void> => {
   const estimate = await planSoundEffectResumePrice(rootDir, renderPlan)
   if (estimate.unresolvedTaskCount > 0) {
     if (renderPlan.target.provider === 'replicate') {
       assertAudioGenDispatchEligible(renderPlan.target.capabilityFixture)
       assertAudioGenLicenseEligible(renderPlan.licenseUse, renderPlan.target.capabilityFixture)
-      requireApiKey('REPLICATE_API_TOKEN', 'comic:soundscape', 'Replicate AudioGen sound-effect generation')
-    } else if (renderPlan.target.provider === 'stability') {
-      requireApiKey('STABILITY_API_KEY', 'comic:soundscape', 'Stability Stable Audio 3 sound-effect generation')
-    } else {
-      requireApiKey('ELEVENLABS_API_KEY', 'comic:soundscape', 'ElevenLabs sound-effect generation')
     }
+    requireSoundscapeProviderApiKey(renderPlan.target.provider)
   }
 }
 
@@ -200,7 +207,7 @@ export const runComicSoundscape = async (input: {
   soundscapeRuns: Array<{ binding: DialogueAudioRunBinding, mix: CompactMix, ref: { path: string, sha256: string } }>
   providerState: PipelineProviderState
 }> => {
-  if (input.dialogueRuns.length === 0) throw CLIUsageError('Soundscape mastering requires at least one selected dialogue AudioRun.')
+  if (input.dialogueRuns.length === 0) throw UsageError('Soundscape mastering requires at least one selected dialogue AudioRun.')
   const planRef = await writeSoundscapePlan(input.rootDir, input.plan)
   const retainedCompact = await loadCompactSfx(input.rootDir, input.renderPlan)
   let renderResult = retainedCompact ? await loadSoundEffectRenderResult(input.rootDir, input.renderPlan) : undefined
@@ -214,18 +221,18 @@ export const runComicSoundscape = async (input: {
     const estimate = await planSoundEffectResumePrice(input.rootDir, input.renderPlan)
     const liveAdapter = input.adapter ?? (estimate.unresolvedTaskCount > 0
       ? (input.renderPlan.target.provider === 'replicate'
-          ? createReplicateAudioGenAdapter({ apiToken: requireApiKey('REPLICATE_API_TOKEN', 'comic:soundscape', 'Replicate AudioGen sound-effect generation') })
+          ? createReplicateAudioGenAdapter({ apiToken: requireSoundscapeProviderApiKey('replicate') })
           : input.renderPlan.target.provider === 'stability'
-            ? createStabilitySoundEffectAdapter({ apiKey: requireApiKey('STABILITY_API_KEY', 'comic:soundscape', 'Stability Stable Audio 3 sound-effect generation') })
-            : createElevenLabsSoundEffectAdapter({ apiKey: requireApiKey('ELEVENLABS_API_KEY', 'comic:soundscape', 'ElevenLabs sound-effect generation') }))
-      : { generate: async (): Promise<never> => { throw CLIUsageError('Verified sound-effect resume planning unexpectedly attempted provider dispatch.') } })
+            ? createStabilitySoundEffectAdapter({ apiKey: requireSoundscapeProviderApiKey('stability') })
+            : createElevenLabsSoundEffectAdapter({ apiKey: requireSoundscapeProviderApiKey(input.renderPlan.target.provider) }))
+      : { generate: async (): Promise<never> => { throw UsageError('Verified sound-effect resume planning unexpectedly attempted provider dispatch.') } })
     const executed = await executeSoundEffectRenderPlan({ rootDir: input.rootDir, plan: input.renderPlan, adapter: liveAdapter, concurrency: input.concurrency, cancellation: input.cancellation, hostedConcurrencyCoordinator: input.hostedConcurrencyCoordinator })
     renderResult = executed.result
     renderResultRef = executed.ref
     compactSfx = executed.compact
     if (executed.compact) renderPlanRef = undefined
   }
-  if (!renderResult) throw CLIUsageError('Sound-effect render produced no result.')
+  if (!renderResult) throw UsageError('Sound-effect render produced no result.')
   const providerState: PipelineProviderState = {
     service: input.renderPlan.target.provider,
     model: input.renderPlan.target.model,
@@ -264,7 +271,7 @@ export const runComicSoundscape = async (input: {
   }
   for (const entry of mixed) {
     const published = await hardlinkContainedArtifact(input.rootDir, entry.mix.master.path, entry.binding.reportedOutputPath)
-    if (published.sha256 !== entry.mix.master.sha256) throw CLIUsageError('Published soundscape master checksum does not match its canonical artifact.')
+    if (published.sha256 !== entry.mix.master.sha256) throw UsageError('Published soundscape master checksum does not match its canonical artifact.')
   }
   return { planRef, ...(renderPlanRef ? { renderPlanRef } : {}), renderResultRef, ...(compactSfx ? { compactSfx } : {}), soundscapeRuns: mixed, providerState }
 }

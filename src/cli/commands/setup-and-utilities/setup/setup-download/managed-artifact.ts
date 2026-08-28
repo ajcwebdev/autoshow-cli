@@ -1,8 +1,8 @@
-import { createHash, randomUUID } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, rename, rm } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import * as v from 'valibot'
 import { readDependencyUrlAndSha256, readDependencyVersion } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
+import { UsageError, InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import {
   managedToolchainDistributionLicense,
@@ -20,14 +20,16 @@ import type {
   ManagedPrebuiltPayloadManifest,
   ManagedPrebuiltReleaseManifest,
   ManagedSourceArtifactManifest,
-  ManagedSourceArtifactValidation
+  ManagedSourceArtifactValidation,
+  ManagedSourceRecipe
 } from '~/types'
-import { pathExists } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
+import { pathExists } from '~/utils/filesystem'
 import { mupdfToolDir, qpdfToolDir } from '~/utils/runtime-paths'
+import { sha256Bytes } from '~/utils/value-helpers'
 
-export const MANAGED_ARTIFACT_MANIFEST_NAME = '.autoshow-managed-artifact.json'
-export const MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME = '.autoshow-payload-manifest.json'
-export const MANAGED_ARTIFACT_SCHEMA_VERSION = 1
+const MANAGED_ARTIFACT_MANIFEST_NAME = '.autoshow-managed-artifact.json'
+const MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME = '.autoshow-payload-manifest.json'
+const MANAGED_ARTIFACT_SCHEMA_VERSION = 1
 
 const Sha256Schema = v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/))
 const MacosVersionSchema = v.pipe(v.string(), v.regex(/^\d+(?:\.\d+){1,2}$/))
@@ -84,7 +86,7 @@ const PrebuiltLicenseSchema = v.strictObject({
   userNoticePath: SafeRelativePathSchema
 })
 
-export const ManagedSourceArtifactManifestSchema = v.strictObject({
+const ManagedSourceArtifactManifestSchema = v.strictObject({
   schemaVersion: v.literal(MANAGED_ARTIFACT_SCHEMA_VERSION),
   tool: v.picklist(['mupdf', 'qpdf']),
   version: NonEmptyStringSchema,
@@ -97,7 +99,7 @@ export const ManagedSourceArtifactManifestSchema = v.strictObject({
   payload: v.array(ArtifactPayloadFileSchema)
 })
 
-export const ManagedPrebuiltPayloadManifestSchema = v.strictObject({
+const ManagedPrebuiltPayloadManifestSchema = v.strictObject({
   schemaVersion: v.literal(MANAGED_ARTIFACT_SCHEMA_VERSION),
   tool: v.picklist(['mupdf', 'qpdf']),
   version: NonEmptyStringSchema,
@@ -116,7 +118,7 @@ export const ManagedPrebuiltPayloadManifestSchema = v.strictObject({
   license: PrebuiltLicenseSchema
 })
 
-export const ManagedPrebuiltReleaseManifestSchema = v.strictObject({
+const ManagedPrebuiltReleaseManifestSchema = v.strictObject({
   schemaVersion: v.literal(MANAGED_ARTIFACT_SCHEMA_VERSION),
   identity: NonEmptyStringSchema,
   tool: v.picklist(['mupdf', 'qpdf']),
@@ -146,7 +148,7 @@ export const ManagedPrebuiltReleaseManifestSchema = v.strictObject({
   licenseReviewReferences: v.array(NonEmptyStringSchema)
 })
 
-export const ManagedPrebuiltArtifactManifestSchema = v.strictObject({
+const ManagedPrebuiltArtifactManifestSchema = v.strictObject({
   schemaVersion: v.literal(MANAGED_ARTIFACT_SCHEMA_VERSION),
   tool: v.picklist(['mupdf', 'qpdf']),
   version: NonEmptyStringSchema,
@@ -179,16 +181,10 @@ export const ManagedPrebuiltArtifactManifestSchema = v.strictObject({
   })
 })
 
-export const ManagedArtifactManifestSchema = v.union([
+const ManagedArtifactManifestSchema = v.union([
   ManagedSourceArtifactManifestSchema,
   ManagedPrebuiltArtifactManifestSchema
 ])
-
-type ManagedSourceRecipe = {
-  binaryRelativePath: string
-  sourceNames: readonly string[]
-  buildFlags: readonly string[]
-}
 
 const SOURCE_RECIPES: Record<ManagedArtifactToolId, ManagedSourceRecipe> = {
   mupdf: {
@@ -211,34 +207,30 @@ const MANAGED_TOOL_DIRS: Record<ManagedArtifactToolId, string> = {
 export const managedArtifactManifestPath = (toolDir: string): string =>
   join(toolDir, MANAGED_ARTIFACT_MANIFEST_NAME)
 
-export const managedPrebuiltPayloadManifestPath = (toolDir: string): string =>
+const managedPrebuiltPayloadManifestPath = (toolDir: string): string =>
   join(toolDir, MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME)
 
 const parseSchema = <T>(schema: v.BaseSchema<unknown, T, v.BaseIssue<unknown>>, value: unknown, label: string): T => {
   const result = v.safeParse(schema, value)
-  if (!result.success) throw new Error(`Invalid ${label}`)
+  if (!result.success) {
+    throw ValidationError(`Invalid ${label}`, { stage: 'setup:managed-artifact', retryable: false })
+  }
   return result.output
 }
 
 export const parseManagedSourceArtifactManifest = (value: unknown): ManagedSourceArtifactManifest =>
   parseSchema(ManagedSourceArtifactManifestSchema, value, 'managed source artifact manifest')
 
-export const parseManagedPrebuiltPayloadManifest = (value: unknown): ManagedPrebuiltPayloadManifest =>
+const parseManagedPrebuiltPayloadManifest = (value: unknown): ManagedPrebuiltPayloadManifest =>
   parseSchema(ManagedPrebuiltPayloadManifestSchema, value, 'managed prebuilt payload manifest')
 
-export const parseManagedPrebuiltReleaseManifest = (value: unknown): ManagedPrebuiltReleaseManifest =>
+const parseManagedPrebuiltReleaseManifest = (value: unknown): ManagedPrebuiltReleaseManifest =>
   parseSchema(ManagedPrebuiltReleaseManifestSchema, value, 'managed prebuilt release manifest')
 
-export const parseManagedPrebuiltArtifactManifest = (value: unknown): ManagedPrebuiltArtifactManifest =>
-  parseSchema(ManagedPrebuiltArtifactManifestSchema, value, 'managed prebuilt artifact manifest')
-
-export const parseManagedArtifactManifest = (value: unknown): ManagedArtifactManifest =>
+const parseManagedArtifactManifest = (value: unknown): ManagedArtifactManifest =>
   parseSchema(ManagedArtifactManifestSchema, value, 'managed artifact manifest')
 
-export const sha256Bytes = (value: string | Uint8Array): string =>
-  createHash('sha256').update(value).digest('hex')
-
-export const sha256File = async (path: string): Promise<string> =>
+const sha256File = async (path: string): Promise<string> =>
   sha256Bytes(await readFile(path))
 
 const normalizeMacosVersion = (value: string): string | undefined => {
@@ -246,7 +238,7 @@ const normalizeMacosVersion = (value: string): string | undefined => {
   return match ? `${Number(match[1])}.${Number(match[2])}` : undefined
 }
 
-export const compareMacosVersions = (left: string, right: string): number => {
+const compareMacosVersions = (left: string, right: string): number => {
   const leftParts = left.split('.').map(Number)
   const rightParts = right.split('.').map(Number)
   for (let index = 0; index < Math.max(leftParts.length, rightParts.length); index += 1) {
@@ -256,10 +248,10 @@ export const compareMacosVersions = (left: string, right: string): number => {
   return 0
 }
 
-export const resolveHostMacosVersion = async (): Promise<string> => {
+const resolveHostMacosVersion = async (): Promise<string> => {
   const result = await runCapture('sw_vers', ['-productVersion'], { allowFailure: true })
   const version = result.exitCode === 0 ? normalizeMacosVersion(result.stdout) : undefined
-  if (!version) throw new Error('could not determine the host macOS version with sw_vers')
+  if (!version) throw InfraError('could not determine the host macOS version with sw_vers', { stage: 'setup:managed-artifact' })
   return version
 }
 
@@ -267,23 +259,27 @@ export const resolveSourceDeploymentTarget = async (): Promise<string> => {
   const configured = process.env['MACOSX_DEPLOYMENT_TARGET']
   if (configured) {
     const version = normalizeMacosVersion(configured)
-    if (!version) throw new Error(`Invalid MACOSX_DEPLOYMENT_TARGET: ${configured}`)
+    if (!version) {
+      throw UsageError(`Invalid MACOSX_DEPLOYMENT_TARGET: ${configured}`, 'Use a MAJOR.MINOR macOS version, for example 15.0.')
+    }
     return version
   }
   const hostVersion = await resolveHostMacosVersion()
   return `${hostVersion.split('.')[0]}.0`
 }
 
-export const managedArtifactBinaryRelativePath = (tool: ManagedArtifactToolId): string =>
+const managedArtifactBinaryRelativePath = (tool: ManagedArtifactToolId): string =>
   SOURCE_RECIPES[tool].binaryRelativePath
 
-export const managedArtifactBuildFlags = (tool: ManagedArtifactToolId): string[] =>
+const managedArtifactBuildFlags = (tool: ManagedArtifactToolId): string[] =>
   [...SOURCE_RECIPES[tool].buildFlags]
 
-export const readExpectedManagedArtifactSources = async (tool: ManagedArtifactToolId): Promise<ManagedArtifactSource[]> =>
+const readExpectedManagedArtifactSources = async (tool: ManagedArtifactToolId): Promise<ManagedArtifactSource[]> =>
   await Promise.all(SOURCE_RECIPES[tool].sourceNames.map(async (name) => {
     const version = await readDependencyVersion(name)
-    if (!version) throw new Error(`Missing version for managed source dependency ${name}`)
+    if (!version) {
+      throw InternalError(`Missing version for managed source dependency ${name}`, { stage: 'setup:managed-artifact', retryable: false })
+    }
     const { url, sha256 } = await readDependencyUrlAndSha256(name)
     return { name, version, url, sha256 }
   }))
@@ -297,7 +293,9 @@ export const createManagedSourceArtifactManifest = async (options: {
 }): Promise<ManagedSourceArtifactManifest> => {
   const recipe = SOURCE_RECIPES[options.tool]
   const platform = options.platform ?? process.platform
-  if (platform !== 'darwin') throw new Error(`Managed source artifacts require darwin, received ${platform}`)
+  if (platform !== 'darwin') {
+    throw InfraError(`Managed source artifacts require darwin, received ${platform}`, { stage: 'setup:managed-artifact', retryable: false })
+  }
   const binaryPath = join(options.toolDir, recipe.binaryRelativePath)
   return {
     schemaVersion: MANAGED_ARTIFACT_SCHEMA_VERSION,
@@ -392,33 +390,39 @@ const validateManagedSourceManifest = async (
   }
 }
 
-export const verifyManagedPrebuiltCodeSignature = async (
+const verifyManagedPrebuiltCodeSignature = async (
   binaryPath: string,
   expected: { signingIdentity: string, teamId: string }
 ): Promise<void> => {
   const verification = await runCapture('codesign', ['--verify', '--strict', '--verbose=2', binaryPath], { allowFailure: true })
-  if (verification.exitCode !== 0) throw new Error(`strict code-signature verification failed for ${binaryPath}`)
+  if (verification.exitCode !== 0) {
+    throw InfraError(`strict code-signature verification failed for ${binaryPath}`, { stage: 'setup:managed-artifact', retryable: false })
+  }
   const details = await runCapture('codesign', ['-d', '--verbose=4', binaryPath], { allowFailure: true })
   const output = `${details.stdout}\n${details.stderr}`
-  if (details.exitCode !== 0) throw new Error(`could not inspect code signature for ${binaryPath}`)
+  if (details.exitCode !== 0) {
+    throw InfraError(`could not inspect code signature for ${binaryPath}`, { stage: 'setup:managed-artifact' })
+  }
   if (!output.split('\n').some(line => line.trim() === `TeamIdentifier=${expected.teamId}`)) {
-    throw new Error(`code-signature Team ID mismatch for ${binaryPath}`)
+    throw InfraError(`code-signature Team ID mismatch for ${binaryPath}`, { stage: 'setup:managed-artifact', retryable: false })
   }
   if (!output.split('\n').some(line => line.trim() === `Authority=${expected.signingIdentity}`)) {
-    throw new Error(`code-signature identity mismatch for ${binaryPath}`)
+    throw InfraError(`code-signature identity mismatch for ${binaryPath}`, { stage: 'setup:managed-artifact', retryable: false })
   }
 }
 
-export const verifyManagedPrebuiltArchitecture = async (
+const verifyManagedPrebuiltArchitecture = async (
   binaryPath: string,
   expectedArchitecture: 'arm64' | 'x64'
 ): Promise<void> => {
   const inspected = await runCapture('lipo', ['-archs', binaryPath], { allowFailure: true })
-  if (inspected.exitCode !== 0) throw new Error(`could not inspect Mach-O architecture for ${binaryPath}`)
+  if (inspected.exitCode !== 0) {
+    throw InfraError(`could not inspect Mach-O architecture for ${binaryPath}`, { stage: 'setup:managed-artifact' })
+  }
   const architectures = inspected.stdout.trim().split(/\s+/).filter(Boolean)
   const expected = expectedArchitecture === 'x64' ? 'x86_64' : 'arm64'
   if (architectures.length !== 1 || architectures[0] !== expected) {
-    throw new Error(`Mach-O architecture mismatch for ${binaryPath}: expected thin ${expected}, got ${architectures.join(' ') || 'unknown'}`)
+    throw InfraError(`Mach-O architecture mismatch for ${binaryPath}: expected thin ${expected}, got ${architectures.join(' ') || 'unknown'}`, { stage: 'setup:managed-artifact', retryable: false })
   }
 }
 
@@ -430,17 +434,19 @@ const listRegularPackageFiles = async (toolDir: string, relativeDir = ''): Promi
     const relativePath = relativeDir ? `${relativeDir}/${entry.name}` : entry.name
     if (relativePath === MANAGED_ARTIFACT_MANIFEST_NAME) continue
     const entryStat = await lstat(join(toolDir, relativePath))
-    if (entryStat.isSymbolicLink()) throw new Error(`package contains symbolic link ${relativePath}`)
+    if (entryStat.isSymbolicLink()) {
+      throw ValidationError(`package contains symbolic link ${relativePath}`, { stage: 'setup:managed-artifact', retryable: false })
+    }
     if (entryStat.isDirectory()) paths.push(...await listRegularPackageFiles(toolDir, relativePath))
     else if (entryStat.isFile()) paths.push(relativePath)
-    else throw new Error(`package contains unsupported file type ${relativePath}`)
+    else throw ValidationError(`package contains unsupported file type ${relativePath}`, { stage: 'setup:managed-artifact', retryable: false })
   }
   return paths.sort()
 }
 
 const readCandidateReleaseManifest = (candidate: ManagedPrebuiltCandidate): ManagedPrebuiltReleaseManifest => {
   if (sha256Bytes(candidate.releaseManifestJson) !== candidate.releaseManifestSha256) {
-    throw new Error('release manifest SHA-256 does not match candidate metadata')
+    throw ValidationError('release manifest SHA-256 does not match candidate metadata', { stage: 'setup:managed-artifact', retryable: false })
   }
   return parseManagedPrebuiltReleaseManifest(JSON.parse(candidate.releaseManifestJson) as unknown)
 }
@@ -480,7 +486,7 @@ const validatePayloadManifestAgainstCandidate = async (
   return undefined
 }
 
-export const validateManagedPrebuiltArtifact = async (
+const validateManagedPrebuiltArtifact = async (
   tool: ManagedArtifactToolId,
   options: {
     toolDir?: string
@@ -616,7 +622,7 @@ export const validateManagedArtifact = async (
 }
 
 export const createManagedToolStagingDirectory = async (toolDir: string): Promise<string> => {
-  const stagingDir = join(dirname(toolDir), `.${basename(toolDir)}.staging-${randomUUID()}`)
+  const stagingDir = join(dirname(toolDir), `.${basename(toolDir)}.staging-${crypto.randomUUID()}`)
   await mkdir(stagingDir, { recursive: false })
   return stagingDir
 }
@@ -628,7 +634,7 @@ export const promoteManagedToolDirectory = async (options: {
   activate?: () => Promise<void>
   rollbackActivation?: (hadPreviousInstall: boolean) => Promise<void>
 }): Promise<void> => {
-  const backupDir = `${options.destinationDir}.backup-${randomUUID()}`
+  const backupDir = `${options.destinationDir}.backup-${crypto.randomUUID()}`
   const hadPreviousInstall = await pathExists(options.destinationDir)
   let previousMoved = false
   let stagingPromoted = false

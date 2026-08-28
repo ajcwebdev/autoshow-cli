@@ -6,10 +6,12 @@ import { runLumalabsImageGen } from '~/cli/commands/process-steps/step-5-image/i
 import { runReplicateImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/replicate/run-replicate-image-gen'
 import {
   bytesResponse,
+  expectProviderHttpError,
   installMockFetch,
   jsonResponse,
   setupContractSuiteLifecycle
 } from '../../../test-utils/rest-contract-helpers'
+import { extractErrorMetadata } from '~/utils/error-handler'
 
 const envKeys = [
   'BFL_API_KEY',
@@ -430,30 +432,22 @@ describe('image provider REST contracts', () => {
     }, { status: 400 }))
 
     await withTempDir(async (dir) => {
-      try {
-        await runReplicateImageGen('Rejected prompt', dir, {
+      const error = await expectProviderHttpError(
+        () => runReplicateImageGen('Rejected prompt', dir, {
           model: 'wan-video/wan-2.7-image'
-        })
-        throw new Error('expected Replicate REST failure')
-      } catch (error) {
-        expect(error).toBeInstanceOf(Error)
-        const replicateError = error as Error & {
-          rawResponse?: unknown
-          metadata?: Record<string, unknown>
-          bodyBytes?: number
-          bodyTruncated?: boolean
-          bodyPreview?: string
-        }
-        const serialized = JSON.stringify({
-          rawResponse: replicateError.rawResponse,
-          metadata: replicateError.metadata,
-          bodyPreview: replicateError.bodyPreview
-        })
-        expect(serialized).not.toContain(secret)
-        expect(serialized).toContain('REDACTED')
-        expect(replicateError.bodyBytes).toBeGreaterThan(0)
-        expect(replicateError.bodyTruncated).toBe(false)
-      }
+        }),
+        { status: 400 }
+      )
+      const metadata = extractErrorMetadata(error)
+      const serialized = JSON.stringify({
+        rawResponse: metadata['rawResponse'],
+        metadata,
+        bodyPreview: metadata['bodyPreview']
+      })
+      expect(serialized).not.toContain(secret)
+      expect(serialized).toContain('REDACTED')
+      expect(metadata['bodyBytes']).toBeGreaterThan(0)
+      expect(metadata['bodyTruncated']).toBe(false)
     })
   })
 })

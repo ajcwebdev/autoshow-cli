@@ -1,7 +1,9 @@
 import type { HostedOcrSchedulerRetryPressureHandler, OcrCreateRetryOptions, OcrPageRequestRetryOptions, RetryClassifier, RetryDecision, RetryPolicy } from '~/types'
-import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
+import { classifyFetchRetry, getRetryPolicyForClass, isTimeoutError, parseRetryAfterMs, withRetry } from '~/utils/retries'
+import { findOcrStructuredResponseError } from '../ocr-structured-response-error'
 import { OCR_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
 import { classifyOcrErrorForRetry } from './ocr-failure-classifier'
+import { getErrorHeaders, getErrorStatus } from '~/utils/error-handler'
 
 export const OCR_SCHEMA_RETRY_ATTEMPTS = 3
 export const OCR_PAGE_REQUEST_ATTEMPTS = 2
@@ -10,66 +12,22 @@ export const OCR_PAGE_REQUEST_TIMEOUT_MS = 5 * 60_000
 export const OCR_RATE_LIMIT_RETRY_DELAY_MIN_MS = 2_000
 export const OCR_RATE_LIMIT_RETRY_DELAY_MAX_MS = 30_000
 
-export const OCR_CREATE_RETRY_POLICY: Partial<RetryPolicy> = {
-  maxAttempts: 4,
-  baseDelayMs: 2_000,
-  maxDelayMs: 60_000,
-  jitter: true,
-  exponential: true
+export const OCR_CREATE_RETRY_POLICY: RetryPolicy = getRetryPolicyForClass('runtime_http_create_retriable')
+
+export const OCR_PAGE_REQUEST_RETRY_POLICY: RetryPolicy = {
+  ...getRetryPolicyForClass('runtime_http_create_retriable'),
+  maxAttempts: OCR_PAGE_REQUEST_ATTEMPTS
 }
 
-export const OCR_PAGE_REQUEST_RETRY_POLICY: Partial<RetryPolicy> = {
-  maxAttempts: OCR_PAGE_REQUEST_ATTEMPTS,
-  baseDelayMs: 2_000,
-  maxDelayMs: 10_000,
-  jitter: true,
-  exponential: true
-}
-
-const isTimeoutError = (error: unknown): boolean => {
-  if (error instanceof DOMException && error.name === 'TimeoutError') {
-    return true
-  }
-  if (error instanceof Error) {
-    return error.name === 'TimeoutError' || /timed out|timeout/i.test(error.message)
-  }
-  return false
-}
-
-const isStructuredOcrResponseError = (error: unknown): boolean => {
-  if (error instanceof Error) {
-    return error.name === 'OcrStructuredResponseError'
-      || /not valid json|malformed json|schema|returned \d+ pages|non-contiguous page numbers|returned no pages|returned no text output/i.test(error.message)
-  }
-  return false
-}
-
-const getStatusFromError = (error: unknown): number | undefined => {
-  if (error && typeof error === 'object' && 'status' in error) {
-    const status = (error as { status: unknown }).status
-    if (typeof status === 'number') {
-      return status
-    }
-  }
-  return undefined
-}
-
-const getHeadersFromError = (error: unknown): Headers | undefined => {
-  if (error && typeof error === 'object' && 'headers' in error) {
-    const headers = (error as { headers: unknown }).headers
-    if (headers instanceof Headers) {
-      return headers
-    }
-  }
-  return undefined
-}
+const isStructuredOcrResponseError = (error: unknown): boolean =>
+  findOcrStructuredResponseError(error) !== undefined
 
 const withOcrRateLimitRetryDelay = (error: unknown, decision: RetryDecision): RetryDecision => {
-  if (!decision.shouldRetry || getStatusFromError(error) !== 429) {
+  if (!decision.shouldRetry || getErrorStatus(error) !== 429) {
     return decision
   }
 
-  const retryAfterMs = parseRetryAfterMs(getHeadersFromError(error))
+  const retryAfterMs = parseRetryAfterMs(getErrorHeaders(error))
   if (typeof retryAfterMs === 'number') {
     return { ...decision, delayMs: retryAfterMs }
   }
@@ -111,8 +69,8 @@ const notifyRetryablePressure = (
     return
   }
 
-  const retryAfterMs = parseRetryAfterMs(getHeadersFromError(error))
-  const status = getStatusFromError(error)
+  const retryAfterMs = parseRetryAfterMs(getErrorHeaders(error))
+  const status = getErrorStatus(error)
   return onRetryable?.({
     reason: decision.reason,
     ...(decision.delayMs > 0 ? { delayMs: decision.delayMs } : {}),
@@ -142,13 +100,59 @@ export const withOcrCreateRetry = async <T>(
     {
       retryClass: 'runtime_http_create_retriable',
       operationName,
-      policy: OCR_CREATE_RETRY_POLICY,
       timeoutMs: OCR_REQUEST_TIMEOUT_MS,
       onRetryAttempt: (error, decision) => notifyRetryablePressure(options.onRetryable, error, decision),
       retryHookCanExtendAttempts: options.onRetryable?.managesHostedRateLimitRecovery === true
     },
     operation,
     withOcrRateLimitDelayClassifier(options.classifier ?? classifyOcrCreateRetry)
+  )
+}
+
+export const withOcrSchemaRetry = async <TResponse, TResult>(options: {
+  operationName: string
+  attempts?: number | undefined
+  request: (attempt: number) => Promise<TResponse>
+  parse: (response: TResponse, attempt: number) => TResult
+  onSchemaFailure?: ((context: { error: unknown, response: TResponse, attempt: number }) => void) | undefined
+  retryLogMetadata?: ((context: { error: unknown, response: TResponse, attempt: number }) => Record<string, unknown> | undefined) | undefined
+}): Promise<TResult> => {
+  const maxAttempts = Math.max(1, Math.floor(options.attempts ?? OCR_SCHEMA_RETRY_ATTEMPTS))
+  const createAttempts = OCR_CREATE_RETRY_POLICY.maxAttempts ?? 1
+  const schemaFailures = new WeakSet<object>()
+  let attempt = 0
+  let attemptLogMetadata: Record<string, unknown> | undefined
+
+  return await withRetry(
+    {
+      retryClass: 'runtime_http_create_retriable',
+      operationName: options.operationName,
+      policy: { maxAttempts, baseDelayMs: 0, maxDelayMs: 0, jitter: false, exponential: false },
+      retryLogMetadata: () => ({
+        ocrSchemaAttempts: maxAttempts,
+        ocrCreateAttempts: createAttempts,
+        maxPaidRequests: maxAttempts * createAttempts,
+        ...attemptLogMetadata
+      })
+    },
+    async () => {
+      attempt += 1
+      const currentAttempt = attempt
+      const response = await options.request(currentAttempt)
+      try {
+        return options.parse(response, currentAttempt)
+      } catch (error) {
+        if (error !== null && typeof error === 'object') {
+          schemaFailures.add(error)
+        }
+        options.onSchemaFailure?.({ error, response, attempt: currentAttempt })
+        attemptLogMetadata = options.retryLogMetadata?.({ error, response, attempt: currentAttempt })
+        throw error
+      }
+    },
+    (error) => error !== null && typeof error === 'object' && schemaFailures.has(error)
+      ? { shouldRetry: true, delayMs: 0, reason: 'structured_response' }
+      : { shouldRetry: false, delayMs: 0, reason: 'non-schema failure' }
   )
 }
 

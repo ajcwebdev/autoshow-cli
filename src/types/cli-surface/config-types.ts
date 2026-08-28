@@ -23,7 +23,6 @@ const ExtractSttDefaultsSchema = v.strictObject({
   grokStt: ModelArraySchema,
   deepgramStt: ModelArraySchema,
   sonioxStt: ModelArraySchema,
-  revStt: ModelArraySchema,
   mistralStt: ModelArraySchema,
   assemblyaiStt: ModelArraySchema,
   gladiaStt: ModelArraySchema,
@@ -60,6 +59,8 @@ const LlmDefaultsSchema = v.strictObject({
   localConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
 })
 
+const StringOrStringListSchema = v.optional(v.union([v.string(), v.array(v.string())]), undefined)
+
 const TtsDefaultsSchema = v.strictObject({
   elevenlabsTts: ModelArraySchema,
   minimaxTts: ModelArraySchema,
@@ -71,57 +72,30 @@ const TtsDefaultsSchema = v.strictObject({
   deepgramTts: ModelArraySchema,
   speechifyTts: ModelArraySchema,
   humeTts: ModelArraySchema,
-  humeTtsVoice: v.optional(v.string(), undefined),
-  humeTtsVoiceProvider: v.optional(v.picklist(['HUME_AI', 'CUSTOM_VOICE']), undefined),
   cartesiaTts: ModelArraySchema,
-  cartesiaTtsVoice: v.optional(v.string(), undefined),
-  cartesiaTtsLanguage: v.optional(v.string(), undefined),
   fishTts: ModelArraySchema,
   inworldTts: ModelArraySchema,
   deepinfraTts: ModelArraySchema,
   replicateTts: ModelArraySchema,
   falTts: ModelArraySchema,
-  speechifyVoice: v.optional(v.string(), undefined),
-  speechifyTtsAudioFormat: v.optional(v.picklist(['mp3', 'ogg', 'aac', 'wav', 'pcm']), undefined),
-  speechifyTtsLanguage: v.optional(v.string(), undefined),
-  groqVoice: v.optional(v.string(), undefined),
-  grokTtsVoice: v.optional(v.string(), undefined),
-  grokTtsLanguage: v.optional(v.string(), undefined),
-  grokTtsTextNormalization: v.optional(v.boolean(), undefined),
-  mistralTtsVoice: v.optional(v.string(), undefined),
+  voice: StringOrStringListSchema,
+  speed: v.optional(v.union([v.number(), v.string(), v.array(v.string())]), undefined),
+  language: StringOrStringListSchema,
+  textNormalization: v.optional(v.union([v.boolean(), v.string(), v.array(v.string())]), undefined),
+  instructions: StringOrStringListSchema,
   ttsDialogueFormat: v.optional(v.picklist(['screenplay', 'labeled']), undefined),
   ttsSpeakers: v.optional(v.array(v.string()), undefined),
-  openaiVoice: v.optional(v.string(), undefined),
-  openaiTtsInstructions: v.optional(v.string(), undefined),
-  openaiTtsSpeed: v.optional(v.pipe(v.number(), v.minValue(0.25), v.maxValue(4)), undefined),
-  geminiVoice: v.optional(v.string(), undefined),
-  deepgramVoice: v.optional(v.string(), undefined),
-  deepgramTtsEncoding: v.optional(v.string(), undefined),
-  deepgramTtsContainer: v.optional(v.string(), undefined),
-  deepgramTtsBitRate: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
-  deepgramTtsSampleRate: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
-  deepgramTtsSpeed: v.optional(v.pipe(v.number(), v.minValue(0.5), v.maxValue(2)), undefined),
-  elevenlabsVoice: v.optional(v.string(), undefined),
-  elevenlabsTtsOutputFormat: v.optional(v.string(), undefined),
-  elevenlabsTtsLanguageCode: v.optional(v.string(), undefined),
   elevenlabsTtsStability: v.optional(v.pipe(v.number(), v.minValue(0), v.maxValue(1)), undefined),
   elevenlabsTtsSimilarityBoost: v.optional(v.pipe(v.number(), v.minValue(0), v.maxValue(1)), undefined),
   elevenlabsTtsStyle: v.optional(v.pipe(v.number(), v.minValue(0), v.maxValue(1)), undefined),
   elevenlabsTtsUseSpeakerBoost: v.optional(v.boolean(), undefined),
-  elevenlabsTtsSpeed: v.optional(v.pipe(v.number(), v.minValue(0.7), v.maxValue(1.2)), undefined),
   elevenlabsTtsSeed: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0)), undefined),
-  elevenlabsTtsTextNormalization: v.optional(v.picklist(['auto', 'on', 'off']), undefined),
   elevenlabsTtsPronunciationDictionaryLocators: v.optional(v.array(v.string()), undefined),
-  minimaxTtsVoice: v.optional(v.string(), undefined),
-  minimaxTtsLanguageBoost: v.optional(v.string(), undefined),
-  minimaxTtsSpeed: v.optional(v.pipe(v.number(), v.minValue(0.5), v.maxValue(2)), undefined),
   minimaxTtsVolume: v.optional(v.pipe(v.number(), v.check(value => value > 0, 'Expected a number greater than 0'), v.maxValue(10)), undefined),
   minimaxTtsPitch: v.optional(v.pipe(v.number(), v.integer(), v.minValue(-12), v.maxValue(12)), undefined),
   minimaxTtsEmotion: v.optional(v.string(), undefined),
-  minimaxTtsEnglishNormalization: v.optional(v.boolean(), undefined),
   minimaxTtsPronunciations: v.optional(v.array(v.string()), undefined),
   providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
-  localConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   chunkConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
 })
 
@@ -133,62 +107,53 @@ const ImageDefaultsSchema = v.strictObject({
   replicateImage: ModelArraySchema,
   lumalabsImage: ModelArraySchema,
   falImage: ModelArraySchema,
-  imageAspectRatio: v.optional(v.string(), undefined),
-  imageSize: v.optional(v.string(), undefined),
-  imageQuality: v.optional(v.string(), undefined),
-  imageFormat: v.optional(v.string(), undefined),
-  imageBackground: v.optional(v.string(), undefined),
-  imageCount: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
-  providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
-  localConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
+  aspectRatio: v.optional(v.string(), undefined),
+  size: v.optional(v.string(), undefined),
+  quality: v.optional(v.string(), undefined),
+  format: v.optional(v.string(), undefined),
+  background: v.optional(v.string(), undefined),
+  count: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
+  providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
 })
 
 const VideoDefaultsSchema = v.strictObject({
   geminiVideo: ModelArraySchema,
-  minimaxVideo: ModelArraySchema,
   grokVideo: ModelArraySchema,
   ltxVideo: v.optional(ModelArraySchema, undefined),
   replicateVideo: v.optional(ModelArraySchema, undefined),
   lumalabsVideo: v.optional(ModelArraySchema, undefined),
   falVideo: v.optional(ModelArraySchema, undefined),
-  videoDuration: v.optional(v.pipe(v.number(), v.integer(), v.minValue(-1)), undefined),
-  videoSize: v.optional(v.string(), undefined),
-  videoAspectRatio: v.optional(v.string(), undefined),
-  videoResolution: v.optional(v.string(), undefined),
-  videoMode: v.optional(v.string(), undefined),
-  videoInputImage: v.optional(v.string(), undefined),
-  videoLastFrame: v.optional(v.string(), undefined),
-  videoReferenceImages: v.optional(v.array(v.string()), undefined),
-  videoInputVideo: v.optional(v.string(), undefined),
+  duration: v.optional(v.pipe(v.number(), v.integer(), v.minValue(-1)), undefined),
+  aspectRatio: v.optional(v.string(), undefined),
+  resolution: v.optional(v.string(), undefined),
+  mode: v.optional(v.string(), undefined),
+  inputImage: v.optional(v.string(), undefined),
+  lastFrame: v.optional(v.string(), undefined),
+  referenceImages: v.optional(v.array(v.string()), undefined),
+  inputVideo: v.optional(v.string(), undefined),
   replicateVideoSeed: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(2147483647)), undefined),
-  replicateVideoGenerateAudio: v.optional(v.boolean(), undefined),
-  replicateVideoReferenceVideos: v.optional(v.array(v.string()), undefined),
-  replicateVideoReferenceAudios: v.optional(v.array(v.string()), undefined),
+  generateAudio: v.optional(v.boolean(), undefined),
+  referenceVideos: v.optional(v.array(v.string()), undefined),
+  referenceAudios: v.optional(v.array(v.string()), undefined),
   replicateVideoNegativePrompt: v.optional(v.string(), undefined),
-  falVideoGenerateAudio: v.optional(v.boolean(), undefined),
-  falVideoReferenceVideos: v.optional(v.array(v.string()), undefined),
-  falVideoReferenceAudios: v.optional(v.array(v.string()), undefined),
-  grokVideoStorageFilename: v.optional(v.string(), undefined),
-  grokVideoStorageExpiresAfter: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(2592000)), undefined),
-  providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
-  localConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
+  providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
 })
 
 const MusicDefaultsSchema = v.strictObject({
   elevenlabsMusic: ModelArraySchema,
   minimaxMusic: ModelArraySchema,
   geminiMusic: ModelArraySchema,
-  musicDuration: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
-  providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
-  localConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
+  duration: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
+  instrumental: v.optional(v.boolean(), undefined),
+  providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
 })
 
 const ExtractOcrDefaultsSchema = v.strictObject({
-  lang: v.optional(v.string(), undefined),
-  out: v.optional(v.picklist(['text', 'json', 'tsv', 'hocr']), undefined),
+  ocrLanguage: v.optional(v.string(), undefined),
+  format: v.optional(v.picklist(['text', 'json']), undefined),
   tesseract: v.optional(v.boolean(), undefined),
   dpi: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
-  pageConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
+  ocrConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   localConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   mistralOcr: ModelArraySchema,
@@ -199,11 +164,10 @@ const ExtractOcrDefaultsSchema = v.strictObject({
   anthropicOcr: ModelArraySchema,
   geminiOcr: ModelArraySchema,
   deepinfraOcr: ModelArraySchema,
-  replicateOcr: ModelArraySchema,
-  falOcr: ModelArraySchema,
   chapters: v.optional(v.boolean(), undefined),
   length: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
-  pdfChapterMode: v.optional(v.picklist(['local', 'auto', 'llm']), undefined)
+  pdfChapterMode: v.optional(v.picklist(['local', 'auto', 'llm']), undefined),
+  providerMode: v.optional(v.picklist(['fanout', 'pool']), undefined)
 })
 
 const ExtractUrlDefaultsSchema = v.strictObject({
@@ -222,17 +186,13 @@ const BatchDefaultsSchema = v.strictObject({
   concurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
 })
 
-const PostDefaultsSchema = v.strictObject({
-  tts: v.optional(TtsDefaultsSchema, undefined),
-  image: v.optional(ImageDefaultsSchema, undefined),
-  video: v.optional(VideoDefaultsSchema, undefined),
-  music: v.optional(MusicDefaultsSchema, undefined)
-})
-
 const ConfigDefaultsSchema = v.strictObject({
   concurrency: v.optional(ConcurrencyDefaultsSchema, undefined),
   llm: v.optional(LlmDefaultsSchema, undefined),
-  post: v.optional(PostDefaultsSchema, undefined),
+  tts: v.optional(TtsDefaultsSchema, undefined),
+  image: v.optional(ImageDefaultsSchema, undefined),
+  video: v.optional(VideoDefaultsSchema, undefined),
+  music: v.optional(MusicDefaultsSchema, undefined),
   extract: v.optional(ExtractDefaultsSchema, undefined),
   batch: v.optional(BatchDefaultsSchema, undefined),
   prompts: v.optional(v.array(v.string()), undefined)

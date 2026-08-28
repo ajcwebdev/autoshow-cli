@@ -1,8 +1,9 @@
+import { partialCompletionError } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-batch-state'
 import { join, resolve as resolvePath } from 'node:path'
 import { PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config/config-loader'
-import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
+import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
+import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 import { normalizeExtractGenericSelectorFlags } from '~/cli/flags/service-selector-normalization/extract-selectors'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { assertNoVoiceIdentityWithDialogue, normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
@@ -11,8 +12,9 @@ import { logSuitePriceSummary } from '~/cli/commands/process-steps/step-1-downlo
 import { logResumeSuiteSummary } from './resume-logging'
 import * as l from '~/utils/app-logger/app-logger'
 import type { AggregatedPriceEstimate, CliFlagOccurrence, ExtractRoute, ExtractSelectorInputRoutes, HostedConcurrencyCoordinator, PipelineManifest, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { getResumeHandler } from './resume-registry'
+import { formatErrorMessage } from '~/utils/value-helpers'
 
 const SUPPORTED_RESUME_KINDS = new Set<ResumeTargetKind>(['extract', 'write', 'tts', 'image', 'video', 'music'])
 
@@ -102,10 +104,10 @@ const resolveExplicitResumeTarget = async (
     if (target) {
       return target
     }
-    throw CLIUsageError(`Resume supports only extract, write, TTS, image, video, and music manifests. Found "${manifest.command}" at ${manifestPath}.`)
+    throw UsageError(`Resume supports only extract, write, TTS, image, video, and music manifests. Found "${manifest.command}" at ${manifestPath}.`)
   }
 
-  throw CLIUsageError(`Could not find ${PIPELINE_MANIFEST_FILE} under ${dir}.`)
+  throw UsageError(`Could not find ${PIPELINE_MANIFEST_FILE} under ${dir}.`)
 }
 
 export const normalizeResumeSelectorFlagsForTarget = (
@@ -160,9 +162,6 @@ const normalizeOutputDirInputs = (
       ? [outputDirInput]
       : []
 
-const errorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error)
-
 const buildResumeFailureError = (
   failures: Array<{ outputDir: string, message: string }>
 ): Error => {
@@ -171,7 +170,7 @@ const buildResumeFailureError = (
     `Resume failed for ${failures.length} output ${noun}:`,
     ...failures.map((failure) => `- ${failure.outputDir}: ${failure.message}`)
   ]
-  return InfraError(lines.join('\n'), { stage: 'resume:dispatch', exitCode: 2 })
+  return partialCompletionError(lines.join('\n'), { stage: 'resume:dispatch' })
 }
 
 const dispatchSingleResume = async (
@@ -187,9 +186,9 @@ const dispatchSingleResume = async (
   const configPathOverride = typeof rawFlags['config-path'] === 'string' ? rawFlags['config-path'] : undefined
   const resolvedConfigPath = await resolveConfigPath(configPathOverride)
   const config = await loadConfig(resolvedConfigPath)
-  const mergedFlags = mergeConfigIntoRawFlags(normalized.flags, config, normalized.explicitFlags)
+  const mergedFlags = mergeConfigIntoRawFlags(normalized.flags, config, normalized.explicitFlags, target.kind)
   const opts = {
-    ...buildOptsFromFlags(false, mergedFlags, {}, normalized.explicitFlags, normalized.flagOccurrences),
+    ...buildOptsFromFlags(mergedFlags, {}, normalized.explicitFlags, { flagOccurrences: normalized.flagOccurrences }),
     configPath: resolvedConfigPath
   }
   if (sharedHostedConcurrency) {
@@ -201,7 +200,7 @@ const dispatchSingleResume = async (
 
   const handler = getResumeHandler(target.kind)
   if (!handler) {
-    throw CLIUsageError(`Resume is not supported for "${target.kind}".`)
+    throw UsageError(`Resume is not supported for "${target.kind}".`)
   }
 
   if (opts.price) {
@@ -221,12 +220,12 @@ export const dispatchResume = async (
   flagOccurrences: readonly CliFlagOccurrence[] = []
 ): Promise<void> => {
   if (doubleDash.length > 0) {
-    throw CLIUsageError(`Unexpected positional outputs after "--" for "resume": ${doubleDash.join(' ')}. Run: bun autoshow help resume`)
+    throw UsageError(`Unexpected positional outputs after "--" for "resume": ${doubleDash.join(' ')}. Run: bun autoshow help resume`)
   }
 
   const outputDirs = normalizeOutputDirInputs(outputDirInput)
   if (outputDirs.length === 0) {
-    throw CLIUsageError('Missing required output directory. Usage: bun autoshow resume <outputDirs...> [flags]')
+    throw UsageError('Missing required output directory. Usage: bun autoshow resume <outputDirs...> [flags]')
   }
 
   const failures: Array<{ outputDir: string, message: string }> = []
@@ -251,7 +250,7 @@ export const dispatchResume = async (
         resumeResults.push(outcome.result)
       }
     } catch (error) {
-      failures.push({ outputDir, message: errorMessage(error) })
+      failures.push({ outputDir, message: formatErrorMessage(error) })
     }
   }
 

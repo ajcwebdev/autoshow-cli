@@ -1,11 +1,12 @@
 import type { LumalabsImageModel, LumalabsImageRef, LumalabsOutputFormat, Step5Metadata } from '~/types'
-import { CLIUsageError, ValidationError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateImageCosts, logImageEstimate } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { downloadGeneratedImage, extractImageErrorMessage, LumalabsGenerationSchema, readJsonOrText, runPolledJob, withImageProviderHeaders } from '~/utils/polled-job-client/polled-job'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { imageReferenceToInlineDataPart, isHttpUrl } from '../../image-utils/image-inputs'
 import { ensureLumalabsImageGenSetup, getLumalabsBaseUrl } from './lumalabs-image-gen'
+import { normalizeImageOutputFormat } from '../../image-utils/image-target-validation'
 const POLL_INTERVAL_MS = 5_000
 const POLL_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
 
@@ -21,21 +22,16 @@ export const normalizeLumalabsAspectRatio = (aspectRatio: string | undefined): s
     return aspectRatio
   }
 
-  throw CLIUsageError(`Invalid --image-aspect-ratio value "${aspectRatio}" for Luma Labs. Supported values: ${LUMALABS_ASPECT_RATIOS.join(', ')}.`)
+  throw UsageError(`Invalid --aspect-ratio value "${aspectRatio}" for Luma Labs. Supported values: ${LUMALABS_ASPECT_RATIOS.join(', ')}.`)
 }
 
-export const normalizeLumalabsImageOutputFormat = (format: string | undefined): LumalabsOutputFormat => {
-  if (format === undefined || format.length === 0) {
-    return 'png'
-  }
-
-  const normalized = format.toLowerCase()
-  if ((LUMALABS_OUTPUT_FORMATS as readonly string[]).includes(normalized)) {
-    return normalized as LumalabsOutputFormat
-  }
-
-  throw CLIUsageError(`Invalid --image-format value "${format}" for Luma Labs. Expected png or jpeg.`)
-}
+export const normalizeLumalabsImageOutputFormat = (format: string | undefined): LumalabsOutputFormat =>
+  normalizeImageOutputFormat(format, {
+    allowed: LUMALABS_OUTPUT_FORMATS,
+    fallback: 'png',
+    providerLabel: 'Luma Labs',
+    expected: 'png or jpeg'
+  })
 
 export const getLumalabsImageExtension = (format: string | undefined): string => {
   const outputFormat = normalizeLumalabsImageOutputFormat(format)
@@ -70,7 +66,7 @@ export const runLumalabsImageGen = async (
   const fileName = `generated-image.${ext}`
   const outputPath = `${outputDir}/${fileName}`
 
-  const estimate = estimateImageCosts({ lumalabsImageModel: options.model })[0]
+  const estimate = estimateImageCosts({ lumalabsImageModels: [options.model] })[0]
   if (estimate) {
     logImageEstimate(estimate)
   }

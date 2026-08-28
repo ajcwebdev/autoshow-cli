@@ -16,7 +16,6 @@ export const resolveListBatchItems = async (
 ): Promise<ResolvedBatch> => {
   const batchOpts = {
     limit: opts.batchLimit,
-    all: opts.batchAll,
     order: opts.batchOrder
   }
 

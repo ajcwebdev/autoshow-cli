@@ -1,6 +1,7 @@
-import { chmod, readdir } from 'node:fs/promises'
-import { join } from 'node:path'
+import { chmod, readdir, rename, mkdir } from 'node:fs/promises'
+import { dirname, isAbsolute, join, relative, sep } from 'node:path'
 import type { WalkPathKind, WalkPathsOptions } from '~/types'
+import { statPath as stat, writeFileExact } from '~/utils/bun-file-io'
 
 const normalizeMaxDepth = (maxDepth: number | undefined): number => {
   if (maxDepth === undefined) return Number.POSITIVE_INFINITY
@@ -13,6 +14,27 @@ const shouldInclude = (kind: WalkPathKind, entryKind: Exclude<WalkPathKind, 'any
 
 export const makeExecutable = async (path: string, mode = 0o755): Promise<void> => {
   await chmod(path, mode)
+}
+
+export const pathExists = async (path: string): Promise<boolean> => {
+  try {
+    await stat(path)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export const isContainedPath = (root: string, candidate: string): boolean => {
+  const child = relative(root, candidate)
+  return child !== '' && child !== '..' && !child.startsWith(`..${sep}`) && !isAbsolute(child)
+}
+
+export const atomicWriteJson = async (path: string, value: unknown): Promise<void> => {
+  await mkdir(dirname(path), { recursive: true })
+  const temporary = `${path}.tmp-${crypto.randomUUID()}`
+  await writeFileExact(temporary, `${JSON.stringify(value, null, 2)}\n`)
+  await rename(temporary, path)
 }
 
 export const walkPaths = async (

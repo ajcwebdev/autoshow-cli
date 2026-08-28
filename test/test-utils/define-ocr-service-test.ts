@@ -28,13 +28,18 @@ const requireServiceRunPrerequisites = async (
     return
   }
 
+  let ready: boolean
   try {
-    if (await shouldSkipReadiness()) {
-      throw new Error('readiness prerequisite did not pass')
-    }
+    ready = !await shouldSkipReadiness()
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`readiness check failed: ${message}`)
+    throw new Error(
+      `readiness check threw: ${error instanceof Error ? error.message : String(error)}`,
+      error instanceof Error ? { cause: error } : undefined
+    )
+  }
+
+  if (!ready) {
+    throw new Error('readiness prerequisite did not pass')
   }
 }
 

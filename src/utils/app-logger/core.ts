@@ -1,4 +1,4 @@
-import type { CreateLoggerOptions, LogContext, Logger, LogLevel, LogSinkEvent, LogWriteOptions, MutableLoggerConfig } from '~/types'
+import type { CreateLoggerOptions, LogCategory, LogContext, Logger, LogLevel, LogSinkEvent, LogWriteOptions, MutableLoggerConfig } from '~/types'
 import { LOG_LEVEL_PRIORITY } from '~/types'
 import { getLogContext } from '~/utils/app-logger/context-store'
 import {
@@ -48,10 +48,10 @@ const makeSinkEvent = (
   message: string,
   runId: string,
   baseContext: LogContext,
-  options?: LogWriteOptions
+  options: LogWriteOptions
 ): LogSinkEvent => {
   const asyncContext = getLogContext()
-  const mergedContext = sanitizeLogContext(mergeContext(baseContext, asyncContext, options?.context))
+  const mergedContext = sanitizeLogContext(mergeContext(baseContext, asyncContext, options.context))
   const contextKeys = Object.keys(mergedContext)
   const command = getContextString(mergedContext, 'command')
   const step = getContextString(mergedContext, 'step')
@@ -60,16 +60,16 @@ const makeSinkEvent = (
     timestamp: getTimestamp(),
     level,
     message: sanitizeLogText(message),
-    category: options?.category ?? 'general',
+    category: options.category,
     runId,
     ...(command ? { command } : {}),
     ...(step ? { step } : {}),
     ...(contextKeys.length > 0 ? { context: mergedContext } : {}),
-    ...(options?.metadata ? { metadata: sanitizeLogMetadata(options.metadata) } : {}),
-    ...(options?.humanTable ? { humanTable: sanitizeHumanTable(options.humanTable) } : {}),
-    ...(options?.humanSections ? { humanSections: sanitizeHumanSections(options.humanSections) } : {}),
-    indent: options?.indent ?? true,
-    args: sanitizeLogArgs(options?.args ?? [])
+    ...(options.metadata ? { metadata: sanitizeLogMetadata(options.metadata) } : {}),
+    ...(options.humanTable ? { humanTable: sanitizeHumanTable(options.humanTable) } : {}),
+    ...(options.humanSections ? { humanSections: sanitizeHumanSections(options.humanSections) } : {}),
+    indent: options.indent ?? true,
+    args: sanitizeLogArgs(options.args ?? [])
   }
 }
 
@@ -84,7 +84,8 @@ export const createLogger = (options: CreateLoggerOptions = {}): Logger => {
   const baseContext = options.context ?? {}
   const config: MutableLoggerConfig = {
     sinks: options.sinks ? [...options.sinks] : [],
-    minLevel: options.minLevel ?? 'info'
+    minLevel: options.minLevel ?? 'info',
+    suppressedCategories: options.suppressedCategories ?? []
   }
   let sinkFailureReported = false
 
@@ -101,8 +102,12 @@ export const createLogger = (options: CreateLoggerOptions = {}): Logger => {
     }
   }
 
-  const write = (level: LogLevel, message: string, writeOptions?: LogWriteOptions): void => {
+  const write = (level: LogLevel, message: string, writeOptions: LogWriteOptions): void => {
     if (!shouldEmitLevel(level, config.minLevel)) {
+      return
+    }
+    const category: LogCategory = writeOptions.category
+    if (config.suppressedCategories.includes(category)) {
       return
     }
     emit(makeSinkEvent(level, message, runId, baseContext, writeOptions))
@@ -111,36 +116,44 @@ export const createLogger = (options: CreateLoggerOptions = {}): Logger => {
   const logger: Logger = {
     config,
     write,
-    debug: (message, ...args) => {
-      write('debug', message, { args })
+    debug: (message, options) => {
+      write('debug', message, options)
     },
-    warn: (message, ...args) => {
-      write('warn', message, { args })
+    warn: (message, options) => {
+      write('warn', message, options)
     },
-    error: (message, errorObj) => {
+    error: (message, options) => {
+      const { error: errorObj, ...writeOptions } = options
+
       if (errorObj instanceof Error) {
         write('error', `${message}: ${errorObj.message}`, {
-          metadata: { error: errorObj }
+          ...writeOptions,
+          metadata: { ...writeOptions.metadata, error: errorObj }
         })
         if (errorObj.stack) {
-          write('error', errorObj.stack, { indent: false })
+          write('error', errorObj.stack, {
+            category: writeOptions.category,
+            ...(writeOptions.context ? { context: writeOptions.context } : {}),
+            indent: false
+          })
         }
         return
       }
 
       if (errorObj === undefined) {
-        write('error', message)
+        write('error', message, writeOptions)
         return
       }
 
-      write('error', message, { args: [errorObj] })
+      write('error', message, { ...writeOptions, args: [errorObj] })
     },
     withContext: (context) => {
       return createLogger({
         runId,
         context: { ...baseContext, ...context },
         sinks: config.sinks,
-        minLevel: config.minLevel
+        minLevel: config.minLevel,
+        suppressedCategories: config.suppressedCategories
       })
     }
   }

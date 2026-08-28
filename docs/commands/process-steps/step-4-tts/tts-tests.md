@@ -7,6 +7,7 @@ Safety: these `bun t` commands document human service/e2e coverage and may call 
 ## Outline
 
 - [Quick Start](#quick-start)
+- [Provider Env Vars](#provider-env-vars)
 - [Current Coverage](#current-coverage)
 - [Price Preflight](#price-preflight)
 - [Related Docs](#related-docs)
@@ -17,11 +18,16 @@ Safety: these `bun t` commands document human service/e2e coverage and may call 
 bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/
 ```
 
+## Provider Env Vars
+
+Live TTS synthesis tests need the matching provider key: `CARTESIA_API_KEY`, `DEEPGRAM_API_KEY`, `ELEVENLABS_API_KEY`, `GEMINI_API_KEY`, `XAI_API_KEY`, `GROQ_API_KEY`, `HUME_API_KEY`, `MINIMAX_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, or `SPEECHIFY_API_KEY`. A missing key fails that test rather than skipping it, so only over-budget selections are skipped.
+
 ## Current Coverage
 
-- Model-level service files under `test/test-cases/e2e/service/step-4-tts-e2e/tts-services/` cover Cartesia, Deepgram, DeepInfra, ElevenLabs, Gemini, Grok, Groq, Hume, Inworld, MiniMax, Mistral, OpenAI, and Speechify, gated by their respective provider keys. The shared `defineTTSServiceTest` helper covers invalid model rejection and synthesis.
-- Mocked provider contract validation under `test/test-cases/validation/providers/tts-provider-contracts/` covers ElevenLabs Instant Voice Cloning (IVC), OpenAI preset-only parameters, Grok normalization/custom voice IDs, Groq English voice defaults, MiniMax synthesis controls, Hume Octave payloads, and Cartesia byte requests.
-- Mistral live coverage exercises reference audio via `input/examples/audio/anthony-voice.mp3`; Speechify live coverage asserts the default speaker.
+- Live synthesis files under `test/test-cases/e2e/service/step-4-tts-e2e/tts-services/` cover Cartesia, Deepgram, ElevenLabs, Gemini, Grok, Groq, Hume, MiniMax, Mistral, OpenAI, and Speechify.
+- DeepInfra and Inworld files in that directory do not call providers. `mistral-validation.test.ts` covers invalid-model rejection locally.
+- Zero-cost validation lives in `test/test-cases/validation/providers/tts-provider-contracts/` and `test/test-cases/validation/cli/option-resolution-contracts/tts-custom-voices/`.
+- Focused `--price` validation lives in `test/test-cases/price-flag/tts-price/`.
 
 ## Price Preflight
 
@@ -30,7 +36,7 @@ bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/ --price
 bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/ --budget 2500
 ```
 
-ElevenLabs IVC, Speechify custom voice, Hume, and Cartesia provide side-effect-free price coverage.
+The mapped TTS price preflight covers the live synthesis files plus DeepInfra and Inworld. Fal and Replicate TTS price coverage is under `test/test-cases/validation/media-generation/`.
 
 ## Related Docs
 

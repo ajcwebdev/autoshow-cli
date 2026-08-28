@@ -51,6 +51,37 @@ describe('price mode contracts', () => {
       expect(fractional.billedDurationSeconds).toBe(16)
     })
 
+  test('Happy Scribe zero provider quotes fall back to configured duration cost', () => {
+      const audioDurationSeconds = 600
+      const actual = computeActualCosts({
+        step1: buildHostedStep1({ durationSeconds: audioDurationSeconds }),
+        step2: buildSttMetadata({
+          transcriptionService: 'happyscribe',
+          transcriptionModel: 'auto',
+          billing: {
+            totalCost: 0,
+            source: 'provider_quote',
+            mode: 'order',
+            creditsUsed: 0
+          }
+        }),
+        audioDurationSeconds
+      })
+      const sttStep = actual.steps[0]
+      const expectedCost = computeSttCost('happyscribe', 'auto', audioDurationSeconds)
+
+      expect(expectedCost).toBe(10)
+      expect(sttStep).toMatchObject({
+        step: 'stt',
+        provider: 'happyscribe',
+        model: 'auto',
+        cost: expectedCost,
+        inputMetric: 'durationSeconds',
+        inputValue: audioDurationSeconds
+      })
+      expect(actual.totalCost).toBe(expectedCost)
+    })
+
   test('STT provider billing metadata wins over duration fallback', () => {
       const audioDurationSeconds = 3600
       const providerCostCents = 1.23
@@ -124,7 +155,7 @@ describe('price mode contracts', () => {
     expect(estimated.totalCost).toBe(40)
   })
 
-  test('Gemini and Gladia estimates use current selected-model rates', () => {
+  test('Gemini and Gladia estimates use current Solaria-3 rates and retired Solaria-1 rates', () => {
     const audioDurationSeconds = 3600
     const estimated = computeEstimatedCosts({
       audioDurationSeconds,
@@ -165,7 +196,7 @@ describe('price mode contracts', () => {
     expect(estimated.totalCost).toBe(10)
   })
 
-  test('Speechmatics estimates use current Enhanced and Melia 1 rates', () => {
+  test('Speechmatics estimates use retired Enhanced rates and current Melia 1 rates', () => {
     const audioDurationSeconds = 3600
     const estimated = computeEstimatedCosts({
       audioDurationSeconds,

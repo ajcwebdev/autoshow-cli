@@ -1,4 +1,5 @@
 import type {
+  ClassState,
   HostedConcurrencyAdmission,
   HostedConcurrencyAdmissionToken,
   HostedConcurrencyClassTelemetry,
@@ -12,82 +13,24 @@ import type {
   HostedConcurrencyRampTransition,
   HostedConcurrencyTelemetry,
   HostedConcurrencyWorkClass,
+  LaneState,
   ProviderLaneCompletionStatus,
   ProviderLaneIdentity,
-  ProviderLanePressureFeedback
+  ProviderLanePressureFeedback,
+  RecoveryState,
+  TokenState,
+  Waiter
 } from '~/types'
 import { createProviderLaneIdentity, DEFAULT_PROVIDER_LANE_SCOPE_LABEL } from './provider-lane-contract'
-import { AppError, extractErrorMetadata } from '~/utils/error-handler'
+import { AppError, extractErrorMetadata, InternalError } from '~/utils/error-handler'
+import { normalizePositiveInt } from '~/utils/value-helpers'
 
-export const DEFAULT_HOSTED_CONCURRENCY_MODE: HostedConcurrencyMode = 'ramp'
-export const HOSTED_CONCURRENCY_RAMP_INTERVAL_MS = 5_000
-export const HOSTED_CONCURRENCY_RECOVERY_BUDGET_MS = 5 * 60_000
+const DEFAULT_HOSTED_CONCURRENCY_MODE: HostedConcurrencyMode = 'ramp'
+const HOSTED_CONCURRENCY_RAMP_INTERVAL_MS = 5_000
+const HOSTED_CONCURRENCY_RECOVERY_BUDGET_MS = 5 * 60_000
 
 const RATE_LIMIT_BACKOFF_MS = [2_000, 4_000, 8_000, 16_000, 30_000] as const
 const EVENT_HISTORY_LIMIT = 100
-
-type ClassState = {
-  configuredLimit: number
-  active: number
-  activePeak: number
-}
-
-type RecoveryState = {
-  firstPressureAtMs: number
-  pressureAttempt: number
-}
-
-type Waiter = {
-  admission: HostedConcurrencyAdmission
-  lane: LaneState
-  classState: ClassState
-  queuedAtMs: number
-  recoveryKey: string
-  resolve: (token: HostedConcurrencyAdmissionToken) => void
-  reject: (error: unknown) => void
-  abortListener?: (() => void) | undefined
-}
-
-type TokenState = {
-  lane: LaneState
-  classState: ClassState
-  recoveryKey: string
-  released: boolean
-  pressureReported: boolean
-  recoveryRetryApproved: boolean
-  recoveryFailureRecorded: boolean
-}
-
-type LaneState = {
-  lane: ProviderLaneIdentity
-  configuredLimit: number
-  currentLimit: number
-  active: number
-  activePeak: number
-  queuedPeak: number
-  admitted: number
-  completed: number
-  failed: number
-  canceled: number
-  waiters: Waiter[]
-  classes: Map<HostedConcurrencyWorkClass, ClassState>
-  rampTransitions: HostedConcurrencyRampTransition[]
-  pressureEvents: HostedConcurrencyPressureEvent[]
-  recovering: boolean
-  recoveryProbeActive: boolean
-  rampingAfterRecovery: boolean
-  pauseUntilMs: number
-  pauseStartedAtMs?: number | undefined
-  pauseDurationMs: number
-  recoveryProbes: number
-  recoveryFailures: number
-  nextRampAtMs?: number | undefined
-  wakeTimer?: ReturnType<typeof setTimeout> | undefined
-  wakeAtMs?: number | undefined
-}
-
-const normalizeLimit = (value: number): number =>
-  Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1
 
 const recoveryKeyFor = (laneKey: string, workId: string, unitIndex: number): string =>
   `${laneKey}\u0000${workId}\u0000${unitIndex}`
@@ -364,7 +307,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
       )
     }
     if (admission.lane.service !== admission.provider) {
-      throw new Error(`Hosted concurrency lane provider ${admission.lane.service} does not match admission provider ${admission.provider}.`)
+      throw InternalError(`Hosted concurrency lane provider ${admission.lane.service} does not match admission provider ${admission.provider}.`, { stage: 'concurrency:lane', retryable: false })
     }
     const lane = createProviderLaneIdentity(
       admission.provider,
@@ -372,14 +315,14 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
       DEFAULT_PROVIDER_LANE_SCOPE_LABEL
     )
     if (lane.laneKey !== admission.lane.laneKey) {
-      throw new Error('Hosted concurrency lane key does not match its provider and account label.')
+      throw InternalError('Hosted concurrency lane key does not match its provider and account label.', { stage: 'concurrency:lane', retryable: false })
     }
     return lane
   }
 
   #getLane(admission: HostedConcurrencyAdmission): LaneState {
     const identity = this.#resolveIdentity(admission)
-    const configuredLimit = normalizeLimit(admission.configuredLimit)
+    const configuredLimit = normalizePositiveInt(admission.configuredLimit)
     const existing = this.#lanes.get(identity.laneKey)
     if (existing) {
       if (configuredLimit > existing.configuredLimit) {
@@ -421,7 +364,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
   }
 
   #getClassState(lane: LaneState, workClass: HostedConcurrencyWorkClass, limit: number): ClassState {
-    const configuredLimit = normalizeLimit(limit)
+    const configuredLimit = normalizePositiveInt(limit)
     const existing = lane.classes.get(workClass)
     if (existing) {
       existing.configuredLimit = Math.max(existing.configuredLimit, configuredLimit)
@@ -513,7 +456,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
       unitIndex: admission.unitIndex,
       context: admission.context ?? {},
       workClass: admission.workClass,
-      configuredLimit: normalizeLimit(admission.configuredLimit),
+      configuredLimit: normalizePositiveInt(admission.configuredLimit),
       admittedAtMs: this.#now(),
       recoveryProbe
     })
@@ -640,6 +583,7 @@ const readNestedErrorValue = (error: unknown, key: string): unknown => {
   while (current && typeof current === 'object' && !seen.has(current)) {
     seen.add(current)
     if (key in current) return (current as Record<string, unknown>)[key]
+    if (current instanceof AppError && key in current.metadata) return current.metadata[key]
     current = 'cause' in current ? (current as { cause?: unknown }).cause : undefined
   }
   return undefined

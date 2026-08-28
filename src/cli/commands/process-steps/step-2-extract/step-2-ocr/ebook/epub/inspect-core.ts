@@ -6,8 +6,8 @@ import { cleanEpubHtmlToText, decodeLegacyPuaText } from './cleanup'
 const stripNsPrefixes = (xml: string): string =>
   xml.replace(/<\/?[a-zA-Z][a-zA-Z0-9]*:/g, match => (match[1] === '/' ? '</' : '<'))
 
-export const EPUB_UNREADABLE_CONTENT_ERROR = 'The EPUB content appears encrypted or unsupported, and AutoShow does not remove DRM. Provide a readable EPUB or PDF after your own authorized workflow.'
-export const EPUB_UNREADABLE_CONTENT_REASON = 'epub-unreadable-content'
+const EPUB_UNREADABLE_CONTENT_ERROR = 'The EPUB content appears encrypted or unsupported, and AutoShow does not remove DRM. Provide a readable EPUB or PDF after your own authorized workflow.'
+const EPUB_UNREADABLE_CONTENT_REASON = 'epub-unreadable-content'
 
 const collapseWhitespace = (value: string): string =>
   value.replace(/\s+/g, ' ').trim()

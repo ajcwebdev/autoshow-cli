@@ -1,0 +1,43 @@
+{
+  "message": "OpenAI OCR returned 7 pages, expected 4.",
+  "category": "auth",
+  "failureKind": "auth",
+  "retryable": false,
+  "providerWide": true,
+  "blockedReason": "auth",
+  "stage": "ocr:structured-response",
+  "rawResponseFile": "invalid-structured-response.txt",
+  "error": {
+    "name": "AppError",
+    "message": "openai-ocr failed after 3/3 attempts (max attempts reached, 21963ms elapsed)",
+    "stack": "AppError: openai-ocr failed after 3/3 attempts (max attempts reached, 21963ms elapsed)\n    at <anonymous> (/Users/ajc/c/autoshow-cli/src/utils/retries.ts:437:13)\n    at processTicksAndRejections (native:7:39)",
+    "kind": "retry_exhausted",
+    "hints": [],
+    "exitCode": 1,
+    "stage": "ocr:structured-response",
+    "retryClass": "runtime_http_create_retriable",
+    "retryable": false,
+    "metadata": {
+      "stage": "ocr:structured-response",
+      "retryable": false,
+      "rawResponse": "{\"pages\":[{\"pageNumber\":1,\"text\":\"\"},{\"pageNumber\":2,\"text\":\"\"},{\"pageNumber\":3,\"text\":\"\"},{\"pageNumber\":4,\"text\":\"THE AUTHOR’S PREFACE\\n\\nTO THE READER: God bless me, and with what eag-\\nerness shouldst thou be now awaiting, reader illustrious,\\nor it may be plebeian, this prologue, expecting to find in\\nit retaliations, wranglings, and railings against the author of the\\nsecond “Don Quixote”! I mean him who they say was bego-\\nten at Tordesillas, and born at Tarragona. In truth, then, I\\nam not about to give thee this satisfaction, for though injuries\\nawake anger in the meekest bosoms, in mine the rule should suf-\\nfer excepting that wouldst have me hurl at him “ass,” “fool,”\\nand “bully”; but I have not thought of doing so. Let his sin be\\nhis punishment, — with his bread let him eat it, and there let\\nit be. That which I cannot help feeling is that he charges\\nme with being old and maimed, as though it had been in my\\npower to stop time from passing over me, or as though my\\ndeformity had been produced in some tavern, and not on the\\ngrandest occasion which ages past or present have seen, or\\nthose to come can hope to see. If my wounds do not shine\\nin the eyes of him who looks on them, they are at least hon-\\nored by the estimation of those who know where they were\\nacquired; for the soldier looks better dead in battle than safe\\nin flight. And so much am I of this opinion, that if now I\\ncould devise and bring about the impossible, I would rather\\nbe again present in that wonderful action than now be whole\\nof my wounds, without having taken part there in. Those the\\nsoldier shows in his face and in his breast are stars which\\nguide others to the heaven of honor and to the coveting of\\ndeserved praise; and it should be considered that it is not\\nwith gray hairs one writes but with the understanding, which\\nis wont to grow better with years. I have felt, also, his call-\\ning me envious, and explaining to me, as to one who is igno-\\nrant, what kind of thing envy is; and in very truth, of two\"},{\"pageNumber\":2,\"text\":\"\"},{\"pageNumber\":3,\"text\":\"\"},{\"pageNumber\":4,\"text\":\"and sufficient also it is that an honest man should have told\\nthe story of these witty follies without caring to go into them\\nafresh; for the abundance of things, be they ever so good,\\nmakes them to be of little worth; and scarcity, even of things\\nthat are bad, confers a certain value.\\nI forgot to tell thee that thou mayest look out for the\\n“Persiles,” which I am now finishing, and the Second Part\\nof “Galatea.”\"}]}",
+      "attemptsMade": 3,
+      "maxAttempts": 3,
+      "elapsedMs": 21963,
+      "stopReason": "max attempts reached",
+      "retryClass": "runtime_http_create_retriable"
+    },
+    "cause": {
+      "name": "OcrStructuredResponseError",
+      "message": "OpenAI OCR returned 7 pages, expected 4.",
+      "stack": "OcrStructuredResponseError: OpenAI OCR returned 7 pages, expected 4.\n    at <anonymous> (/Users/ajc/c/autoshow-cli/src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-json.ts:137:17)\n    at parse (/Users/ajc/c/autoshow-cli/src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/openai-ocr/run-openai-ocr.ts:202:11)\n    at <anonymous> (/Users/ajc/c/autoshow-cli/src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry.ts:143:24)\n    at processTicksAndRejections (native:7:39)",
+      "kind": "validation",
+      "hints": [],
+      "exitCode": 1,
+      "stage": "ocr:structured-response",
+      "retryable": false,
+      "metadata": {},
+      "rawResponse": "{\"pages\":[{\"pageNumber\":1,\"text\":\"\"},{\"pageNumber\":2,\"text\":\"\"},{\"pageNumber\":3,\"text\":\"\"},{\"pageNumber\":4,\"text\":\"THE AUTHOR’S PREFACE\\n\\nTO THE READER: God bless me, and with what eag-\\nerness shouldst thou be now awaiting, reader illustrious,\\nor it may be plebeian, this prologue, expecting to find in\\nit retaliations, wranglings, and railings against the author of the\\nsecond “Don Quixote”! I mean him who they say was bego-\\nten at Tordesillas, and born at Tarragona. In truth, then, I\\nam not about to give thee this satisfaction, for though injuries\\nawake anger in the meekest bosoms, in mine the rule should suf-\\nfer excepting that wouldst have me hurl at him “ass,” “fool,”\\nand “bully”; but I have not thought of doing so. Let his sin be\\nhis punishment, — with his bread let him eat it, and there let\\nit be. That which I cannot help feeling is that he charges\\nme with being old and maimed, as though it had been in my\\npower to stop time from passing over me, or as though my\\ndeformity had been produced in some tavern, and not on the\\ngrandest occasion which ages past or present have seen, or\\nthose to come can hope to see. If my wounds do not shine\\nin the eyes of him who looks on them, they are at least hon-\\nored by the estimation of those who know where they were\\nacquired; for the soldier looks better dead in battle than safe\\nin flight. And so much am I of this opinion, that if now I\\ncould devise and bring about the impossible, I would rather\\nbe again present in that wonderful action than now be whole\\nof my wounds, without having taken part there in. Those the\\nsoldier shows in his face and in his breast are stars which\\nguide others to the heaven of honor and to the coveting of\\ndeserved praise; and it should be considered that it is not\\nwith gray hairs one writes but with the understanding, which\\nis wont to grow better with years. I have felt, also, his call-\\ning me envious, and explaining to me, as to one who is igno-\\nrant, what kind of thing envy is; and in very truth, of two\"},{\"pageNumber\":2,\"text\":\"\"},{\"pageNumber\":3,\"text\":\"\"},{\"pageNumber\":4,\"text\":\"and sufficient also it is that an honest man should have told\\nthe story of these witty follies without caring to go into them\\nafresh; for the abundance of things, be they ever so good,\\nmakes them to be of little worth; and scarcity, even of things\\nthat are bad, confers a certain value.\\nI forgot to tell thee that thou mayest look out for the\\n“Persiles,” which I am now finishing, and the Second Part\\nof “Galatea.”\"}]}"
+    }
+  }
+}

@@ -1,15 +1,7 @@
 import { lstat, realpath } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError, hasErrorCode } from '~/utils/error-handler'
 
-const hasErrorCode = (error: unknown, code: string): boolean =>
-  error !== null
-  && typeof error === 'object'
-  && 'code' in error
-  && (error as { code?: unknown }).code === code
-
-// Canonicalize the longest existing prefix, then reattach an unresolved suffix. This catches an
-// overlap through a symlink even when the eventual output/store child does not exist yet.
 const canonicalProspectivePath = async (input: string): Promise<string> => {
   let cursor = resolve(input)
   const suffix: string[] = []
@@ -20,7 +12,11 @@ const canonicalProspectivePath = async (input: string): Promise<string> => {
       exists = true
     } catch (error) {
       if (!hasErrorCode(error, 'ENOENT')) {
-        throw CLIUsageError('Unable to inspect the TTS output/protected-store path boundary.')
+        throw UsageError(
+      'Unable to inspect the TTS output/protected-store path boundary.',
+      undefined,
+      error instanceof Error ? { cause: error } : {}
+    )
       }
     }
     if (exists) {
@@ -28,12 +24,12 @@ const canonicalProspectivePath = async (input: string): Promise<string> => {
         const canonicalPrefix = await realpath(cursor)
         return resolve(canonicalPrefix, ...suffix)
       } catch {
-        throw CLIUsageError('Unable to resolve the TTS output/protected-store path boundary; dangling symbolic links are not allowed.')
+        throw UsageError('Unable to resolve the TTS output/protected-store path boundary; dangling symbolic links are not allowed.')
       }
     } else {
       const parent = dirname(cursor)
       if (parent === cursor) {
-        throw CLIUsageError('Unable to resolve the TTS output/protected-store path boundary.')
+        throw UsageError('Unable to resolve the TTS output/protected-store path boundary.')
       }
       suffix.unshift(basename(cursor))
       cursor = parent
@@ -59,18 +55,9 @@ export const assertProtectedStoreOutputDisjoint = async (
     isSameOrContained(canonicalOutput, canonicalStore)
     || isSameOrContained(canonicalStore, canonicalOutput)
   ) {
-    throw CLIUsageError(
+    throw UsageError(
       'Output and the protected voice asset store must be disjoint directories.',
       'Choose an --output-dir/--output-root outside the protected runtime store and do not connect them through a symbolic link.'
     )
-  }
-}
-
-export const assertProtectedStoresOutputDisjoint = async (
-  outputPath: string,
-  protectedStoreRoots: readonly string[]
-): Promise<void> => {
-  for (const protectedStoreRoot of protectedStoreRoots) {
-    await assertProtectedStoreOutputDisjoint(outputPath, protectedStoreRoot)
   }
 }

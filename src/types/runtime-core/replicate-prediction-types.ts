@@ -1,3 +1,5 @@
+import type { RetryClass } from '~/types'
+
 export type ReplicatePrediction = {
   id?: string | undefined
   model?: string | undefined
@@ -27,4 +29,12 @@ export type RunReplicatePredictionOptions = {
   abortSignal?: AbortSignal | undefined
   onCreated?: ((prediction: ReplicatePrediction) => void | Promise<void>) | undefined
   onStatus?: ((prediction: ReplicatePrediction) => void) | undefined
+}
+
+export type ReplicateFetchOptions = {
+  url: string
+  apiToken: string
+  init: RequestInit
+  stage: string
+  retryClass: RetryClass
 }

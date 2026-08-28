@@ -1,5 +1,5 @@
 import * as l from '~/utils/app-logger/app-logger'
-import { InfraError, InternalError } from '~/utils/error-handler'
+import { InfraError, InternalError, serializeDiagnosticError } from '~/utils/error-handler'
 import type { LLMOptions, LLMTarget, PendingStructuredRunResult, RunLlmTargetsForStructuredPromptOptions, StructuredRequestOptions, StructuredRunResult, StructuredValidationContext, TranscriptionResult, VideoMetadata } from '~/types'
 import { buildPrompt as buildPromptFromUtils } from './write-utils/prompt-utils'
 import { resolvePromptNames } from '~/prompts/prompt-loader'
@@ -17,7 +17,7 @@ import { resolveStructuredStrategy, resolveValidationRetryBudget, shouldApplyStr
 import { buildStructuredInstructionSuffix, resolveStructuredSchema } from './structured-output/schema-resolver'
 import { isSongLyricsPreset } from './structured-output/preset-registry'
 import { parseAndValidateStructured } from './structured-output/validator'
-import { runCompatFallback } from './structured-output/compat-fallback'
+import { runSchemaGuidedFallback } from './structured-output/schema-guided-fallback'
 import { renderToPlainText } from './structured-output/renderers'
 import { readPromptFile } from './text-input-utils'
 import { runLlmProviderTargetPools } from './llm-provider-pool'
@@ -46,24 +46,23 @@ export const collectLlmTargets = (options: LLMOptions): LLMTarget[] => {
     service: LLMTarget['service'],
     label: string,
     models: string[] | undefined,
-    fallback: string | undefined,
     run: LLMTarget['run']
   ): void => {
-    for (const model of models ?? (fallback ? [fallback] : [])) {
+    for (const model of models ?? []) {
       targets.push({ service, label, model, run })
     }
   }
 
-  appendTargets('gemini', 'Gemini', options.geminiModels, options.geminiModel, runGeminiModel)
-  appendTargets('anthropic', 'Anthropic', options.anthropicModels, options.anthropicModel, runAnthropicModel)
-  appendTargets('openai', 'OpenAI', options.openaiModels, options.openaiModel, runOpenAIModel)
-  appendTargets('groq', 'Groq', options.groqModels, options.groqModel, runGroqModel)
-  appendTargets('minimax', 'MiniMax', options.minimaxModels, options.minimaxModel, runMinimaxModel)
-  appendTargets('grok', 'Grok', options.grokModels, options.grokModel, runGrokModel)
-  appendTargets('glm', 'GLM', options.glmModels, options.glmModel, runGlmModel)
-  appendTargets('kimi', 'Kimi', options.kimiModels, options.kimiModel, runKimiModel)
-  appendTargets('together', 'Together', options.togetherModels, options.togetherModel, runTogetherModel)
-  appendTargets('cerebras', 'Cerebras', options.cerebrasModels, options.cerebrasModel, runCerebrasModel)
+  appendTargets('gemini', 'Gemini', options.geminiModels, runGeminiModel)
+  appendTargets('anthropic', 'Anthropic', options.anthropicModels, runAnthropicModel)
+  appendTargets('openai', 'OpenAI', options.openaiModels, runOpenAIModel)
+  appendTargets('groq', 'Groq', options.groqModels, runGroqModel)
+  appendTargets('minimax', 'MiniMax', options.minimaxModels, runMinimaxModel)
+  appendTargets('grok', 'Grok', options.grokModels, runGrokModel)
+  appendTargets('glm', 'GLM', options.glmModels, runGlmModel)
+  appendTargets('kimi', 'Kimi', options.kimiModels, runKimiModel)
+  appendTargets('together', 'Together', options.togetherModels, runTogetherModel)
+  appendTargets('cerebras', 'Cerebras', options.cerebrasModels, runCerebrasModel)
 
   return targets
 }
@@ -99,7 +98,7 @@ export const runLlmTargetsForStructuredPrompt = async (
       let metadata = undefined as StructuredRunResult['metadata'] | undefined
 
       if (structuredMode === 'schema-guided') {
-        const compatResponse = await runCompatFallback(
+        const schemaGuidedResponse = await runSchemaGuidedFallback(
           target,
           options.prompt,
           target.model,
@@ -108,8 +107,8 @@ export const runLlmTargetsForStructuredPrompt = async (
           options.structuredValidationContext,
           targetReasoningEffort
         )
-        parsedJson = compatResponse.parsedJson
-        metadata = compatResponse.metadata
+        parsedJson = schemaGuidedResponse.parsedJson
+        metadata = schemaGuidedResponse.metadata
       } else {
         const structuredOpts: StructuredRequestOptions = {
           schemaName: options.structuredSchema.schemaName,
@@ -123,7 +122,10 @@ export const runLlmTargetsForStructuredPrompt = async (
         let validation = parseAndValidateStructured(options.structuredSchema.schema, response.result, options.structuredValidationContext)
 
         for (let retry = 1; !validation.success && retry <= validationRetryBudget; retry++) {
-          l.warn(`Structured validation retry ${retry}/${validationRetryBudget} for ${target.label}/${target.model}: ${validation.issue ?? 'validation failed'}`)
+          l.warn(`Structured validation retry ${retry}/${validationRetryBudget} for ${target.label}/${target.model}: ${validation.issue ?? 'validation failed'}`, {
+            category: 'pipeline',
+            metadata: { provider: target.label, model: target.model, retry, retryBudget: validationRetryBudget, issue: validation.issue }
+          })
           response = await target.run(options.prompt, target.model, structuredOpts)
           validation = parseAndValidateStructured(options.structuredSchema.schema, response.result, options.structuredValidationContext)
         }
@@ -132,7 +134,10 @@ export const runLlmTargetsForStructuredPrompt = async (
           parsedJson = validation.value
         } else {
           const issue = validation.issue ?? 'Schema validation failed'
-          l.warn(`Structured validation fallback for ${target.label}/${target.model}: ${issue}`)
+          l.warn(`Structured validation fallback for ${target.label}/${target.model}: ${issue}`, {
+            category: 'pipeline',
+            metadata: { provider: target.label, model: target.model, issue }
+          })
           parsedJson = buildStructuredValidationFailureEnvelope(response.result, issue)
         }
 
@@ -158,7 +163,10 @@ export const runLlmTargetsForStructuredPrompt = async (
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      l.error(`Failed to run ${target.label} model ${target.model}: ${message}`)
+      l.error(`Failed to run ${target.label} model ${target.model}: ${message}`, {
+        category: 'pipeline',
+        metadata: { provider: target.label, service: target.service, model: target.model, error: serializeDiagnosticError(err) }
+      })
       failedTargetsByIndex[index] = `${target.service}/${target.model}: ${message}`
     }
   }, options.hostedConcurrencyCoordinator, options.outputDir)
@@ -177,7 +185,10 @@ export const runLlmTargetsForStructuredPrompt = async (
   }
 
   if (failedTargets.length > 0) {
-    l.warn(`LLM run completed with partial failures: ${failedTargets.join('; ')}`)
+    l.warn(`LLM run completed with partial failures: ${failedTargets.join('; ')}`, {
+      category: 'pipeline',
+      metadata: { failureCount: failedTargets.length, failures: failedTargets }
+    })
   }
 
   return results.map((result) => ({

@@ -4,23 +4,25 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-11
-- **Date Updated:** 2026-08-14
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
-- **Supersession:** Absorbs OCR architecture, ordinal-first chapter filenames, and URL extraction contracts from former individual records. Source identity belongs to [ADR-001](ADR-001-source-ingestion-and-normalization.md); pipeline state and resume belong to [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md).
+- **Supersession:** Absorbs OCR architecture, ordinal-first chapter filenames, and URL extraction contracts into this extract-execution record. This record remains accepted authority for Step 2 URL, OCR, and STT execution plus public extract artifacts.
 
 ## Context
 
-Step 2 owns domain execution after [ADR-001](ADR-001-source-ingestion-and-normalization.md) has classified and normalized a source and [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) has supplied the work plan. Shared registries provide provider identity, but URL, OCR, and STT retain domain-specific adapters, retry and response policy, orchestration, and artifacts. Canonical provider progress belongs in [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)'s manifest; raw responses and derived artifacts belong to the executing domain and cannot become resume authority.
+Step 2 executes extraction after [ADR-001](ADR-001-source-ingestion-and-normalization.md) has classified and normalized a source and [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) has supplied the work plan. Provider identity is shared, but URL, OCR, and STT each own adapters, retries, response handling, and artifacts. Canonical progress belongs in [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)'s manifest; raw responses and derived files cannot become resume authority.
 
-URL execution historically mixed identity, discovery, persistence, and runtime rules. This record narrows that concern: `article` is an explicit extract route with domain-owned adapters, retries, response handling, content normalization, and artifact writes under `step-2-url`; `x-space` is a separate explicit route with its own non-resumable behavior. Neither route is inferred from the other, the input family, or provider metadata.
+URL extraction mixed route identity with runtime rules. Articles and X Spaces must remain distinct explicit routes: articles are resumable URL extraction, X Spaces are a separate non-resumable route, and neither is inferred from the other.
 
-OCR carries the widest execution surface: local engine choice, input-type source layout, hosted failure handling, page scheduling, throughput and token telemetry, cost estimation, and multi-provider execution modes. Fan-out gives each target the full document and retains independent provider results, while pool mode gives all targets one shared page queue and produces one composite result. Those contracts must stay consistent with each other, because failure classification decides resume eligibility, scheduling decisions change observed throughput, and observed throughput feeds cost estimates.
+OCR is the widest extract surface: local engine choice, hosted failure handling, page concurrency, cost estimation, and the artifacts multi-provider runs write. Failure classification decides whether automatic resume may retry a provider. Token-priced estimates were drifting against billed usage, and repeated deterministic blockers were only visible per item.
 
-OCR also had inconsistent public chapter paths. Native EPUB export started with logical order, such as `chapters/01-title.txt`, while PDF chapter detection started with the source page, such as `chapters/011-title.txt`. A shared artifact contract must sort by reading order while retaining the source locator and split-part behavior.
+Public chapter paths also disagreed. Native EPUB export used logical order, such as `chapters/01-title.txt`, while PDF chapter detection used the source page, such as `chapters/011-title.txt`. A shared artifact contract must sort by reading order while retaining the source locator and split-part behavior.
 
-Why now: hosted OCR estimates were drifting against actual billed usage, repeated deterministic blockers were only visible per item, and chapter producers emitted incompatible public paths — all execution and artifact concerns with no single owning record.
+Why now: hosted OCR estimates were drifting against billed usage, repeated deterministic blockers were only visible per item, and chapter producers emitted incompatible public paths.
 
 ## Options Considered
+
+### Local OCR engine
 
 **Option 1 (selected)**
 
@@ -34,131 +36,126 @@ Why now: hosted OCR estimates were drifting against actual billed usage, repeate
 - **Option:** Keep OCRmyPDF and PaddleOCR alongside Tesseract
 - **Pros:** Local engine diversity for hard inputs
 - **Cons:** Duplicate provisioning, slower defaults, ongoing dependency maintenance
-- **Quantitative Notes:** Rejected
+- **Quantitative Notes:** Rejected; extra engines add maintenance without a better default
 
-**Option 3 (selected)**
+### Token-priced OCR estimates
+
+**Option 1 (selected)**
 
 - **Option:** Evidence-gated token shapes with `costMultiplier: 1`
-- **Pros:** Preserves published rate and tier semantics; keeps profile estimates from being multiplied twice; makes wrong component visible
-- **Cons:** Requires an audit helper and a migration-aware profile store
+- **Pros:** Preserves published rate and tier semantics; keeps profile estimates from being multiplied twice; makes the wrong component visible
+- **Cons:** Requires ongoing evidence collection
 - **Quantitative Notes:** Promotion needs ≥3 matching healthy samples and >20% median absolute percentage error
 
-**Option 4**
+**Option 2**
 
-- **Option:** Tune `costMultiplier` until total estimate matches benchmark
+- **Option:** Tune `costMultiplier` until total estimate matches a benchmark
 - **Pros:** Small metadata change
 - **Cons:** Hides which token component is wrong, distorts tier selection, and double-adjusts profile estimates
 - **Quantitative Notes:** Rejected for token-priced OCR
 
-**Option 5**
+**Option 3**
 
-- **Option:** Replace registry values from one paid or historical run
+- **Option:** Replace registry values from one paid run
 - **Pros:** Fast calibration
 - **Cons:** Overfits document mode, page band, reasoning policy, and provider variance
-- **Quantitative Notes:** Rejected
+- **Quantitative Notes:** Rejected; one run is not a promotion sample
 
-**Option 6 (selected)**
+### Batch diagnostics
 
-- **Option:** Derive batch diagnostics from final canonical manifest
+**Option 1 (selected)**
+
+- **Option:** Derive batch diagnostics from the final canonical manifest
 - **Pros:** Deterministic, sanitized rollup of repeated blockers and cost gaps; no second source of authority
 - **Cons:** Another regenerable artifact schema to version
 - **Quantitative Notes:** Emitted only for actionable batches
 
-**Option 7**
+**Option 2**
 
-- **Option:** Add blocker/cost aggregates as mutable top-level manifest state
+- **Option:** Add blocker and cost aggregates as mutable top-level manifest state
 - **Pros:** Easy for readers to find
 - **Cons:** Duplicates child provider authority and can drift during partial writes or resume
-- **Quantitative Notes:** Rejected
+- **Quantitative Notes:** Rejected; derived reports must not become resume authority
 
-**Option 8 (selected)**
+### Chapter filenames
 
-- **Option:** Retain full-document fan-out by default and add an explicit composite page pool
-- **Pros:** Preserves comparison artifacts; avoids charging every target for every page when pooling; supports dynamic handoff
-- **Cons:** Two execution and artifact contracts must remain distinct
-- **Quantitative Notes:** `fanout` default; `pool` selected by `--ocr-provider-mode pool`
-
-**Option 9 (selected)**
+**Option 1 (selected)**
 
 - **Option:** Ordinal-first plus source-locator chapter names: `NN-PPP-title` / `NN-III-title`
 - **Pros:** Sorts every chapter producer by reading order; preserves source traceability; one documented contract
-- **Cons:** Changes public artifact paths and requires docs/tests updates
+- **Cons:** Changes public artifact paths
 - **Quantitative Notes:** Applies to the 2 direct `chapters/` producers
 
-**Option 10**
+**Option 2**
 
 - **Option:** Keep source-page-first PDF names beside EPUB `NN-title`
 - **Pros:** Avoids path churn
 - **Cons:** Preserves inconsistent first-token meaning and sorting
-- **Quantitative Notes:** No implementation work
+- **Quantitative Notes:** n/a
 
 ## Decision
 
-Step 2 execution is domain-owned above shared provider identity: extraction domains own adapters, retries, response handling, normalized output, and artifacts, while canonical progress stays in [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)'s manifest.
+Step 2 execution is domain-owned above shared provider identity. URL, OCR, and STT own adapters, retries, response handling, normalized output, and artifacts. Canonical progress and resume eligibility stay in [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)'s manifest.
 
 This applies to:
 
-- URL, OCR, and STT execution adapters, retry and response policy, normalized domain output, and artifact writes under Step 2.
-- Native EPUB/ebook chapter files, PDF chapter-detection files, and split parts produced by `--length <n>`.
-- Routes that directly create chapter files or generate output artifacts; reruns recreate artifacts under the current names.
-- Scope explicitly excluded: source identity, normalization, canonical state, resume authority, or price dry runs, which belong to [ADR-001](ADR-001-source-ingestion-and-normalization.md) and [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md).
+- URL, OCR, and STT execution, retries, response handling, normalized domain output, and Step 2 artifact writes.
+- Native EPUB and ebook chapter files, PDF chapter-detection files, and split parts produced by `--length <n>`.
+- Routes that write chapter files or extract artifacts; reruns recreate files under the current names.
+
+It does not apply to:
+
+- Source identity, classification, and normalization ([ADR-001](ADR-001-source-ingestion-and-normalization.md)).
+- Canonical pipeline state, resume authority, and price dry runs ([ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)).
+- Local OCR toolchain provisioning ([ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md)).
+- Shared hosted admission, ramps, and lane pressure ([ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md)).
+- Hosted model identity, lifecycle, reasoning, and pricing provenance ([ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)).
+- Queue claims, handoff, and the product choice of fan-out versus pooled page execution ([ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md)).
 
 ### Extract domain ownership
 
-Shared Step 2 registries own provider identity, hosted/local grouping, configuration paths, shortcuts, provider specs, target identity, and the canonical STT/OCR provider-target maps. Public `extract --provider` normalization and route-aware resume selection derive from those maps; they do not maintain another list of provider spellings. Each extraction domain owns its execution adapters, retry and cleanup behavior, provider response handling, normalized output, and artifact writing.
+`extract --provider` and resume use the same route-qualified STT and OCR names. There is no second list of provider spellings.
 
-URL execution remains under `step-2-url`. `article` is a first-class route and is never inferred from `x-space`, input family, or provider metadata. X Spaces retain their separate route and explicit non-resumable behavior. URL adapters normalize article content and write domain artifacts, while provider progress and resume eligibility are recorded only in [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)'s canonical manifest.
+`article` is a first-class URL route and is never inferred from `x-space`, input family, or provider metadata. X Spaces keep their separate route and explicit non-resumable behavior. URL adapters write domain artifacts; provider progress is recorded only in the canonical manifest.
 
-### OCR architecture and reliability
+### OCR execution
 
-Use Tesseract as the sole local OCR engine. Organize source-specific OCR code under ebook, image, PDF, and office/native input-type areas. Keep orchestration, hosted provider clients, and shared utilities—including `ocr-utils/`—outside those input-specific areas.
+Use Tesseract as the sole local OCR engine. Source-specific OCR follows ebook, image, PDF, and office/native inputs.
 
-Hosted failures carry retryability, blocker classification, redacted diagnostics, fallback-audit state, and run-level `blockedProviders`. Automatic resume skips deterministic provider blockers; explicit provider resume overrides that filter after user repair or explicit re-attempt.
+Hosted failures carry retryability and redacted diagnostics. Automatic resume skips deterministic provider blockers such as quota, billing, account, and policy failures. Explicit provider resume re-includes a blocked target after repair or an explicit retry.
 
-Schedule hosted page work through fair provider/account lanes managed by the run-scoped admission coordinator ([ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md)). Batch extraction and write commands share coordinator instances across documents to prevent batch concurrency from multiplying remote admission, while standalone extraction uses a command-scoped coordinator. Concurrency resolves via OCR's `auto|fixed` contract: `auto` computes limits from document size and qualified clean profiles (up to a global ceiling of `48` or explicit user cap), while fixed values set hard lane caps. Startup behavior follows the shared `ramp|immediate` concurrency mode. Local preparation (Tesseract, page rendering, and normalization) executes immediately without remote admission gates.
+Hosted page work uses the shared provider/account lanes in [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md). `--ocr-concurrency auto` sizes hosted limits from document size and qualified profiles, up to a ceiling of `48` or an explicit user cap. `--ocr-concurrency <n>` is a hard ceiling. `--concurrency-mode ramp|immediate` controls hosted startup. Local Tesseract, page rendering, and normalization start immediately.
 
-Persist privacy-preserving throughput, timing, partial-provider usage, and token profiles. Telemetry distinguishes healthy full target samples from failed, partial, or incomplete work so unhealthy samples cannot become trusted warm starts.
+Token-priced OCR keeps published rates and prompt/completion shapes explicit, with `costMultiplier: 1`. Canonical usage follows each provider's billed prompt and completion components, including thought tokens when the provider bills them. Calibrate components only from healthy samples qualified by provider, concrete model, OCR mode, page-count band, and effective reasoning policy. Promotion requires at least three matching samples, a consistent direction, and median absolute percentage error above 20%. Failed, partial, or incomplete work cannot become a trusted warm start. Pool and fan-out evidence are not interchangeable.
 
-For token-priced OCR, keep published rates and prompt/completion shapes explicit and require `costMultiplier: 1`. Calibrate components only through healthy evidence bucketed by provider, concrete model, OCR mode, page-count band, and effective reasoning policy. Require at least three matching samples, a consistent direction, and median absolute percentage error above 20% before a registry shape is eligible for promotion. Gemini canonical completion usage includes candidate plus thought tokens (counting schema-retry usage once); Kimi canonical usage uses provider-reported prompt and completion totals.
+Emit `ocr-batch-diagnostics.json` and a human summary table only when a deterministic blocker affects multiple items, partial provider usage exists, actual cost is missing for attempted hosted work, or absolute estimate error exceeds 20%. The report is a sanitized, regenerable projection of the final canonical manifest and is never resume authority. Clean reruns remove a stale report.
 
-Derive actionable OCR batch diagnostics from the final canonical manifest and child provider records. Emit `ocr-batch-diagnostics.json` and a human summary table only when a deterministic blocker affects multiple items, partial provider usage exists, actual cost is missing for attempted hosted work, or absolute estimate error exceeds 20%. The report is sanitized, deterministically ordered, tied to the exact source manifest by SHA-256, regenerable after resume, and never resume authority.
+### Fan-out and pool artifacts
 
-Retain `fanout` as the default multi-provider OCR execution contract. Each selected target receives the full document, writes a complete result below its provider directory, contributes its existing full-document pricing and provider state, and may be selected by `--primary-ocr` for the top-level artifact. Explicit `fanout` is byte-for-byte equivalent to omitting the mode flag.
+[ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md) owns the `fanout|pool` product choice. This record owns the public artifacts those modes write.
 
-With `--ocr-provider-mode pool` ([ADR-016](ADR-016-distribute-ocr-pages-across-a-multi-provider-work-pool.md)), validate locally that the normalized input and every target can produce compatible page work units, and reject `--primary-ocr` before credential lookup or provider dispatch. Assemble accepted results by original page number into one top-level composite extraction with `extractionMethod: "ocr-pool"`. Provider directories contain attributed page attempts, raw responses, errors, result fragments, and usage records, but never a second complete extraction or persistence authority.
+Default `fanout` (explicit `--ocr-provider-mode fanout` is equivalent to omitting the flag) gives every selected target the full document and a complete result under its provider directory. `--primary-ocr` may copy one of those complete results to the top-level extraction.
 
-Every accepted page records provider, concrete model, requested and effective reasoning policy, attempt, usage, cost, timing, and artifact path. Failed and ambiguous attempts retain the same attribution and any reported paid usage without becoming accepted output. Transient page failures requeue to another eligible target. Target-specific blockers retire one target; provider/account blockers retire the lane. Pages already accepted from retired workers remain canonical. The extraction is successful when all pages are accepted even if workers failed, and incomplete when any page exhausts all eligible targets.
+`--ocr-provider-mode pool` writes one top-level composite extraction with `extractionMethod: "ocr-pool"`, assembled in original page order. `--primary-ocr` is rejected before credential lookup or dispatch. Provider directories hold attributed page attempts, never a second complete extraction.
 
-Provider-neutral page preparation may be reused. Hosted response-cache identity includes provider mode, provider, concrete model, requested and effective reasoning, input SHA-256, normalized input format, original page number, and DPI. This prevents pooled page attempts from consuming fan-out responses or responses produced under behavior-affecting model, reasoning, input, or rendering changes.
-
-Pool price mode allocates the page set once across independent lanes and divides shared-lane weight among its targets. The allocation is labeled heuristic and reports per-target pages, tokens or page units, time, and cost. Actual usage and cost include paid failed or ambiguous attempts when available. Pool diagnostics are deterministic projections of the final canonical manifest and attributed provider records.
-
-Pool timing and token evidence is qualified by concrete model, pool OCR mode, page-count band, and effective reasoning policy. Fan-out throughput profiles are not used as trusted pool timing evidence. Failed, partial, retry-heavy, or incomplete samples remain ineligible as healthy profiles.
-
-Keep provider-neutral pricing primitives under `src/utils/pricing/`, command-wide pricing orchestration under `src/cli/commands/pricing-orchestration/`, extraction-specific estimate orchestration under `src/cli/commands/process-steps/step-2-extract/extract-pricing/`, and the Step 1 document-write prompt helper beside its sole consumer.
+Every accepted page records provider, model, reasoning, attempt, usage, cost, timing, and artifact path. Failed and ambiguous attempts keep the same attribution and any reported paid usage without becoming accepted output. Hosted response caches must not reuse a page response produced under a different provider mode, model, reasoning, input, page, or render.
 
 ### Chapter artifact filenames
 
-Every direct chapter producer writes `chapters/<ordinal>-<source-locator>-<slug>.txt`. PDF uses `pdfStartPage` as the source locator. EPUB uses the first original source/spine section index when available and otherwise the logical section index.
+Every direct chapter producer writes `chapters/<ordinal>-<source-locator>-<slug>.txt`. PDF uses the starting source page. EPUB uses the original spine section index when available, otherwise the logical section index.
 
-Ordinal and split-part fields use dynamic width: two digits below 100 generated files and three digits at 100 or more. Source locators are padded to at least three digits and never truncated. Split files append `-part-NN` to the same base. Exact generated-path collisions receive deterministic disambiguation through the shared filename helper.
+Ordinal and split-part fields use two digits below 100 generated files and three digits at 100 or more. Source locators are padded to at least three digits and never truncated. Split files append `-part-NN` to the same base.
 
 ## Rationale
 
 - Tesseract provided the best performance-to-complexity ratio in local testing while avoiding multi-engine dependency and maintenance costs.
-- Input-type directories mirror runtime classification without forcing shared orchestration, providers, or utilities into artificial ownership.
-- Retry-aware blockers prevent automatic resume from repeating quota, billing, account, policy, and other deterministic failures while preserving useful mixed-provider output.
-- Provider/API-key lanes provide a fair pressure boundary for multiple models sharing credentials, and adaptive caps improve large-document throughput without weakening retry backoff or explicit limits.
-- Separate fan-out and pool contracts preserve independent comparison results while allowing selected targets to collaborate on one cost-efficient composite extraction.
-- Page-level attribution and isolated attempt artifacts make accepted output, remote ambiguity, worker failure, and paid usage independently auditable.
-- Behavior-complete hosted cache identity prevents model, reasoning, mode, input, and DPI changes from reusing incompatible page responses.
-- Privacy-preserving profiles improve future timing and token estimates without turning local calibration data into input or account history.
+- Retry-aware blockers prevent automatic resume from repeating quota, billing, account, policy, and other deterministic failures.
+- Adaptive OCR caps improve large-document throughput without weakening explicit `--ocr-concurrency` limits or [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) lanes.
 - Explicit token components preserve pricing-tier semantics and prevent profile-derived usage from being multiplied a second time.
-- A derived batch report exposes repeated blockers and cost gaps without duplicating mutable child provider state.
-- Source placement follows dependency ownership: pure calculations remain reusable, while command and document orchestration remain above them.
-- Explicit URL routes preserve domain-specific runtime behavior without duplicating provider identity or canonical state.
-- Deriving public and resume selectors from the canonical STT/OCR maps prevents a newly added extract provider from working only in fresh execution or only on one duplicated route table.
+- A derived batch report exposes repeated blockers and cost gaps without duplicating mutable provider state.
+- Explicit URL routes and one extract/resume selector inventory keep domain behavior and newly added providers selectable without inferred routes or a second spelling list.
 - Logical ordinal first makes EPUB and PDF chapter paths sort by reading order, while a real source locator preserves debugging traceability.
+- Distinct fan-out and pool artifacts keep comparison results and composite output from being mistaken for each other, and behavior-complete cache identity prevents incompatible page reuse.
 
 ## Consequences
 
@@ -166,24 +163,19 @@ Positive outcomes:
 
 - URL article execution has one explicit domain owner, and X Spaces cannot be conflated with it during execution or resume.
 - Local OCR has one routing and execution path supplied by the toolchain that [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md) provisions.
-- Maintainers can find input-specific code by source type while shared concerns retain a shared home.
 - Hosted OCR preserves useful partial results, produces actionable resume guidance, and avoids known deterministic retry loops.
 - Large clean runs can use available throughput, while pressured lanes fall back conservatively.
-- Estimates and summaries explain wall time, gating targets, retry pressure, actual partial usage, and token-shape drift.
-- Actionable OCR batches emit one deterministic, sanitized blocker/cost diagnostic rollup; clean batches remain quiet.
-- Pool mode survives target or lane failures when healthy workers can finish every page, and top-level output remains in original page order.
-- Actual pooled cost includes failed and ambiguous paid attempts rather than underreporting provider spend.
-- Pricing dependencies point from command orchestration to pure utilities rather than from generic utilities into command implementations.
+- Estimates and summaries explain wall time, retry pressure, actual partial usage, and token-shape drift.
+- Actionable OCR batches emit one deterministic, sanitized blocker/cost diagnostic; clean batches remain quiet.
+- Fan-out keeps complete per-provider results; pool writes one composite extraction in original page order.
 - EPUB and PDF chapters share one public path shape that sorts by reading order and retains source position.
 
 Negative outcomes:
 
-- URL, OCR, and STT deliberately retain different execution structures even though identity and pipeline state are shared.
 - There is no non-Tesseract local fallback for difficult inputs.
-- Provider failure classifiers and profile schemas require ongoing maintenance as hosted APIs change.
-- Adaptive scheduling, fallback audit data, migration-tolerant profile readers, audit rules, and derived diagnostics add implementation and test surface.
+- Provider failure classifiers and profile schemas require maintenance as hosted APIs change.
 - Clean profiles can become stale as provider routing, limits, models, account tiers, or reasoning defaults change.
-- Pool mode does not provide complete per-provider outputs, and its page allocation estimates remain heuristic because runtime throughput and failures determine final shares.
+- Pool mode does not provide complete per-provider outputs.
 
 ## Trade-offs
 
@@ -194,125 +186,97 @@ Negative outcomes:
 
 **Trade-off 2**
 
-- **Gain:** Navigable input-type ownership with shared plumbing retained
-- **Sacrifice:** A perfectly partitioned OCR directory tree
-
-**Trade-off 3**
-
 - **Gain:** Deterministic blocker handling and auditable fallback
 - **Sacrifice:** More provider-state metadata
 
+**Trade-off 3**
+
+- **Gain:** `--ocr-concurrency auto` can use available throughput
+- **Sacrifice:** Adaptive caps depend on profile quality and can fall back conservatively
+
 **Trade-off 4**
-
-- **Gain:** Faster bounded large-document defaults
-- **Sacrifice:** More scheduler and profile logic
-
-**Trade-off 5**
 
 - **Gain:** Explicit evidence-gated token shapes
 - **Sacrifice:** Profile lifecycle and periodic evidence review
 
-**Trade-off 6**
+**Trade-off 5**
 
 - **Gain:** One derived batch diagnostic
 - **Sacrifice:** Another regenerable artifact schema
 
+**Trade-off 6**
+
+- **Gain:** Comparison artifacts in fan-out and one composite in pool
+- **Sacrifice:** Two public artifact shapes
+
 **Trade-off 7**
-
-- **Gain:** Correct pure/command dependency direction
-- **Sacrifice:** A larger command-owned pricing directory
-
-**Trade-off 8**
-
-- **Gain:** Composite multi-provider OCR with dynamic handoff
-- **Sacrifice:** No complete per-provider result in pool mode
-
-**Trade-off 9**
 
 - **Gain:** Attempt-level cost and failure attribution
 - **Sacrifice:** More provider artifact and telemetry records
 
 ## Implementation Note
 
-The architecture is implemented. Tesseract is the sole local engine; source-specific code is grouped by ebook, image, PDF, and office/native input; provider failures are classified and sanitized before durable reporting; automatic resume filters `blockedProviders`; and explicit provider resume can opt back in. Hosted work uses fair provider/account lanes, run-scoped batch admission, adaptive `auto` or explicit fixed ceiling selection, shared five-second ramp or immediate startup, classified rate-limit recovery, and a profile-raised ceiling of `48`.
-
-`extract-selectors.ts` builds `EXTRACT_PUBLIC_SELECTOR_FLAGS` from `WRITE_STT_PROVIDER_TARGETS` and `WRITE_OCR_PROVIDER_TARGETS`. Route-aware resume therefore receives the same provider inventory as fresh extract selection, and local bidirectional contracts fail if either canonical map and the public/resume surface diverge.
-
-Scheduler telemetry records lane activity, cap changes, pause/retry pressure, throughput, target shares, and likely gating targets. Timing metadata separates wall-clock/gating time from summed provider processing time. Full clean target samples may inform throughput profiles, while failed or incomplete targets remain ineligible as healthy samples. Partial failed-provider artifacts and usage remain reportable without being treated as successful extraction.
-
-Pooled OCR orchestration is implemented in `ocr-pooled-batch.ts` over the shared selector in `ocr-provider-pool.ts`. Page inputs are prepared once per page where possible, every attempt uses a contained page/attempt directory, successful commits checkpoint the canonical ledger atomically, and final assembly writes one top-level artifact. Fan-out continues through `ocr-multi-provider-batch.ts` without changing its provider directories or primary-result rules.
-
-Pool diagnostics and target usage are derived from the canonical ledger. Pooled estimate allocation lives in `extract-pricing/build-extract-estimates.ts`; actual target usage is consumed by command pricing orchestration. Hosted cache identity is enforced by `hosted-ocr.ts` and `ocr-utils/pdf-chunk-fallback-state.ts`. Pool runs do not persist fan-out-qualified throughput or token profiles as healthy samples.
-
-Hosted OCR token profiles are stored as reasoning-aware records, audited by `audit:ocr-tokens`, which compares registry, selected-profile, and observed prompt/completion tokens independently. Token-priced OCR model validation enforces `costMultiplier: 1`, and registry promotion requires reasoning-qualified evidence above error thresholds.
-
-Final document OCR and resumed batches derive `ocr-batch-diagnostics.json` after the canonical manifest write, aggregating provider targets, blocker categories, item counts, attempts, retries, rate limits, costs, and partial provider usage. Clean reruns clear stale diagnostic files.
-
-Pure token-cost, profile-selection, and projection logic lives in `src/utils/pricing/ocr-token-pricing.ts`; OCR page/model/profile orchestration lives in `src/cli/commands/process-steps/step-2-extract/extract-pricing/`; command-aware aggregate, preflight, actual-cost, timing, and provider pricing orchestration lives in `src/cli/commands/pricing-orchestration/`; and the Step 1 prompt helper lives at `src/cli/commands/process-steps/step-1-download/download-targets/single/document-write-prompt.ts`.
-
-Chapter filename construction is centralized in `chapter-artifact-filenames.ts` and used by the EPUB and PDF builders. Each producer preserves its existing slug cleanup and fallback behavior; the shared helper owns dynamic ordinal widths, source-locator padding, split suffixes, and collision handling. The shared OCR artifact writer only persists each supplied `TextArtifactFile.relativePath` and is not another naming authority.
+URL extraction lives under `src/cli/commands/process-steps/step-2-extract/step-2-url/`. OCR execution, chapter filenames, and batch diagnostics live under `src/cli/commands/process-steps/step-2-extract/step-2-ocr/`. Extract and resume provider names are projected from `src/cli/flags/service-selector-normalization/extract-selectors.ts` and `src/cli/flags/service-selector-normalization/provider-targets.ts`. Token-shape audit is `src/tools/audit-ocr-token-shapes.ts`.
 
 ## API / Type Impact
 
-The extraction CLI surface is preserved; the internal, profile, and report contracts are:
-
 - `--ocr-concurrency auto` selects adaptive hosted behavior; `--ocr-concurrency <n>` is a hard maximum for runtime scheduling and estimates.
 - `--ocr-provider-mode fanout|pool` defaults to `fanout`. Pool mode produces one composite top-level extraction and rejects `--primary-ocr`.
-- Composite metadata carries `ocrProviderMode`, page-attributed target usage, reasoning, attempts, timing, and actual costs. Provider attempt artifacts live below `providers/<target>/attempts/page-<number>/attempt-<number>/`.
-- Provider failure metadata includes retryability, failure/blocker classification, redacted diagnostics, retry details, and fallback audit state.
-- Run metadata uses `blockedProviders` so automatic resume skips deterministic blockers; explicit provider selection overrides that skip.
-- `partialStep2` records failed providers with usable cached artifacts and sanitized failure/usage aggregates, and `partial_provider_usage` contributes actual cost and token usage without marking a failed provider successful.
-- Scheduler telemetry reports provider/API-key lane caps, active peaks, retry pressure, pause time, throughput, target shares, and gating-target information.
-- Throughput and token profiles exclude filenames, paths, titles, output directories, document content, page images, prompts, credentials, account/request identifiers, and raw provider diagnostics; only healthy full samples qualify as trusted evidence.
-- Pool and fan-out evidence are not comparable unless a profile schema explicitly qualifies the provider mode. Current pooled estimates use pool-qualified token identity and registry timing rather than trusted fan-out throughput.
-- `ocr-batch-diagnostics.json` is a versioned, regenerable projection of the final canonical batch manifest, not provider or resume authority.
-- Chapter naming adds no CLI flag or metadata schema; the public path shape is `NN-PPP-title` for PDF and `NN-III-title` for EPUB, with dynamic widths and split suffixes.
-- URL provider identity remains registry-owned, while URL response, normalized article, and artifact types remain under `step-2-url`.
-- Extract public/resume provider normalization is a projection of the canonical STT/OCR target maps and remains route-qualified after normalization.
-
-## Follow-up Actions
-
-- [ ] Maintain provider error classifiers and billed-component normalizers as hosted response formats drift — Ongoing
-- [ ] Keep every direct chapter producer on the shared ordinal/source-locator helper — Ongoing guardrail
-- [ ] Collect reasoning-qualified token samples so registry shapes can become promotion-eligible — Pending
-  Requires explicit approval for paid provider runs.
+- Composite metadata carries `extractionMethod: "ocr-pool"`. Provider attempt artifacts live below `providers/<target>/attempts/`.
+- Automatic resume skips deterministic provider blockers; explicit provider selection overrides that skip.
+- `ocr-batch-diagnostics.json` is a versioned, regenerable projection of the final canonical batch manifest, not resume authority.
+- Chapter naming adds no CLI flag. The public path shape is `NN-PPP-title` for PDF and `NN-III-title` for EPUB, with dynamic widths and split suffixes.
+- `extract` and `resume` accept the same route-qualified STT and OCR provider names.
 
 ## Test Plan
 
-- Verify local engine resolution exposes only Tesseract and input-type routing still reaches ebook, image, PDF, and office/native implementations.
-- Use mocked/local tests for failure classification, redaction, provider-wide cancellation, fallback audit state, `blockedProviders`, and automatic versus explicit resume.
-- Test scheduler fairness, shared provider/account lanes, adaptive `auto` cap selection, fixed caps, clean-ramp timing, retry-pressure halving/recovery, independent-lane isolation, and the global ceiling of `48`.
-- Test pooled queue claims, one-active-claim and duplicate-commit prevention, hosted/local target admission, same-lane sharing, independent-lane multiplication, reverse completion, transient handoff, target and lane retirement, ambiguity, exhaustion, interrupted recovery, and composite completion.
-- Test page attribution, reasoning and cache identity, attempt artifact isolation and containment, ordered output, pooled estimates, failed-attempt actual usage, deterministic diagnostics, and byte-for-byte-compatible fan-out behavior.
-- Test timing, gating-target, `partialStep2`, `partial_provider_usage`, throughput-profile, token-profile, audit-gate, and batch-diagnostic behavior, including rejection of identifying data and unhealthy samples.
-- Test URL registry ordering and selection separately from explicit article-vs-X-Space runtime routing.
-- Test bidirectional equality between the canonical STT/OCR target maps and route-aware public/resume provider selection.
-- Test PDF and EPUB chapter names, 100+ dynamic widths, split sorting, source locators, and collision behavior with local fixtures.
-- Run `bun run check`, `bun t --price`, focused mocked Kimi/Gemini provider contracts, focused OCR pricing/profile/audit/report contracts, CLI help/usage contracts, repository import/path checks, and `git diff --check`. Do not run hosted OCR providers or full provider suite.
+```bash
+bun run check
+bun t --price
+bun test test/test-cases/validation/extract-ocr/chapter-artifact-filenames.test.ts
+bun test test/test-cases/validation/extract-ocr/ocr-batch-diagnostics.test.ts
+bun test test/test-cases/validation/extract-ocr/ocr-page-pool-*-contracts.test.ts
+bun test test/test-cases/validation/extract-ocr/ocr-resilience-contracts/
+bun test test/test-cases/validation/extract-ocr/ocr-resume-failure-target-contracts.test.ts
+bun test test/test-cases/validation/extract-ocr/ocr-resume-provider-state-contracts.test.ts
+bun test test/test-cases/validation/reports-pricing/price-mode-contracts/ocr-token-usage-profiles.test.ts
+bun test test/test-cases/validation/providers/provider-selection-contracts/selection-inventory-contracts.test.ts
+bun test test/test-cases/validation/cli/cli-help-contracts.test.ts
+bun test test/test-cases/validation/cli/cli-usage-errors/
+bun test test/test-cases/validation/cli/option-resolution-contracts/
+```
+
+1. Typecheck and unique-source check pass.
+2. Mapped price commands stay no-cost and do not dispatch providers.
+3. Chapter producers emit ordinal-first, source-locator paths with dynamic widths and split suffixes.
+4. Batch diagnostics emit only for actionable blocker or cost gaps, stay regenerable, and never become resume authority.
+5. Pool artifacts stay composite, isolate attempts, reject `--primary-ocr`, and leave default fan-out unchanged.
+6. Hosted failure classification, `auto` versus fixed OCR caps, and automatic versus explicit resume skip deterministic blockers.
+7. Token profiles reject identifying data and unhealthy samples, and token-priced OCR keeps `costMultiplier: 1`.
+8. Extract public and resume selectors stay equal to the canonical STT/OCR target maps.
+9. Help and usage contracts keep OCR mode and concurrency flags stable.
+
+Do not run hosted OCR providers, paid-provider, smoke, e2e, or full-suite tests for this ADR.
+
+## Follow-up Actions
+
+- [ ] Collect reasoning-qualified OCR token samples — Blocked on explicit approval for paid provider runs
 
 ## References
 
-- Related ADR: [ADR-001](ADR-001-source-ingestion-and-normalization.md) — source identity, supported ebook normalization, and normalized handoff to extraction
-- Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — command-neutral work plans, canonical state, resume, and price dry runs
-- Related ADR: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md) — architecture-oriented source layout
-- Related ADR: [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md) — exclusive authority for toolchain setup and local OCR provisioning
-- Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — shared hosted admission, pressure recovery, and clean-ramp price planning
-- Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — concrete model identity, lifecycle and capability validation, reasoning policy, and pricing provenance
-- Related ADR: [ADR-016](ADR-016-distribute-ocr-pages-across-a-multi-provider-work-pool.md) — the explicit fan-out versus pooled page-execution decision
+- Related ADR: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
+- Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
+- Related ADR: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)
+- Related ADR: [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md)
+- Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md)
+- Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
+- Related ADR: [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md)
+- Related ADR: [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
 - Extract command documentation: [`docs/commands/process-steps/step-2-extract/01-extract.md`](../commands/process-steps/step-2-extract/01-extract.md)
 - OCR command documentation: [`docs/commands/process-steps/step-2-extract/03-extract-ocr.md`](../commands/process-steps/step-2-extract/03-extract-ocr.md)
 - Resume command documentation: [`docs/commands/setup-and-utilities/resume/resume.md`](../commands/setup-and-utilities/resume/resume.md)
-- URL runtime: `src/cli/commands/process-steps/step-2-extract/step-2-url/`
-- OCR stage: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/`
-- Pooled OCR orchestration: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool.ts`
-- OCR estimate orchestration: `src/cli/commands/process-steps/step-2-extract/extract-pricing/`
-- Command pricing orchestration: `src/cli/commands/pricing-orchestration/`
-- Pure pricing primitives: `src/utils/pricing/`
-- OCR workflow types: `src/types/ocr-workflow/`
-- Token-shape audit entry point: `scripts/audit-ocr-token-shapes.ts`
-- Resume command: `src/cli/commands/setup-and-utilities/resume/`
-- Extract selector projection: `src/cli/flags/service-selector-normalization/extract-selectors.ts`, `src/cli/flags/service-selector-normalization/provider-targets.ts`
-- Shared chapter filename helper: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-artifact-filenames.ts`
-- EPUB chapter producer: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ebook/epub/export.ts`
-- PDF chapter producer: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/pdf/ocr-chapters/ocr-chapter-artifacts.ts`
-- Chapter artifact contracts: `test/test-cases/validation/extract-ocr/chapter-artifact-filenames.test.ts`
+- `src/cli/commands/process-steps/step-2-extract/step-2-url/`
+- `src/cli/commands/process-steps/step-2-extract/step-2-ocr/`
+- `src/cli/flags/service-selector-normalization/extract-selectors.ts`
+- `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-artifact-filenames.ts`
+- `test/test-cases/validation/extract-ocr/chapter-artifact-filenames.test.ts`

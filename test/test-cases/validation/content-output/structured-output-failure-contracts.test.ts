@@ -1,11 +1,10 @@
 import { expect, test } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import * as v from 'valibot'
-import type { GenerationStageOptions, LLMService, LLMTarget, ResolvedStructuredSchema, Step3Metadata, StructuredRequestOptions } from '~/types'
-import { runGenerationStagesForSingleWrite } from '~/cli/commands/process-steps/step-3-write/generation-stage-runner'
+import type { LLMService, LLMTarget, ResolvedStructuredSchema, Step3Metadata, StructuredRequestOptions } from '~/types'
 import { runLlmTargetsForStructuredPrompt } from '~/cli/commands/process-steps/step-3-write/run-llm'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const buildMetadata = (service: LLMService, model: string): Step3Metadata => ({
   llmService: service,
@@ -33,7 +32,7 @@ const structuredSchema: ResolvedStructuredSchema = {
 }
 
 test('stubbed LLM targets use capability retry budgets and persist one failure envelope', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-structured-failure-'))
+  const tempDir = await makeTempDir('autoshow-structured-failure-')
   try {
     const attempts = new Map<LLMService, number>()
     const requestOptions = new Map<LLMService, StructuredRequestOptions[]>()
@@ -89,27 +88,4 @@ test('stubbed LLM targets use capability retry budgets and persist one failure e
   } finally {
     await rm(tempDir, { recursive: true, force: true })
   }
-})
-
-test('failed structured validation skips requested downstream generation', async () => {
-  const step3 = {
-    ...buildMetadata('openai', 'gpt-5.5'),
-    outputFileName: 'text.json',
-    validationFailed: true
-  }
-  const generationOptions = {
-    openaiTtsModels: ['gpt-4o-mini-tts-2025-12-15']
-  } as GenerationStageOptions
-
-  const result = await runGenerationStagesForSingleWrite({
-    step3Results: [step3],
-    step3RunResults: [{ renderedText: 'must not reach TTS' }],
-    outputDir: '/tmp/autoshow-structured-output-gate',
-    generationOptions
-  })
-
-  expect(result.ttsTargets).toHaveLength(1)
-  expect(result.attemptedTtsTargets).toEqual([])
-  expect(result.step4Metadata).toBeNull()
-  expect(result.ttsInputText).toBeUndefined()
 })

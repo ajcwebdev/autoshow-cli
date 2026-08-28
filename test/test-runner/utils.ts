@@ -16,7 +16,12 @@ export const normalizeRepoPath = (path: string | null | undefined): string | nul
 export const getFiniteNumber = (value: unknown): number | null =>
   typeof value === 'number' && Number.isFinite(value) ? value : null
 
-export const prepareCommandOutputForParse = (text: string): string => {
+export const readString = (record: Record<string, unknown>, key: string): string | null => {
+  const value = record[key]
+  return typeof value === 'string' ? value : null
+}
+
+const prepareCommandOutputForParse = (text: string): string => {
   if (text.length <= COMMAND_OUTPUT_PARSE_TAIL_CHARS) {
     return stripAnsi(text)
   }
@@ -171,7 +176,7 @@ export const formatTimestampForDir = (date: Date): string => {
   return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`
 }
 
-export const TIMED_OUTPUT_PREFIX_PATTERN = /^(?:\x1b\[[0-9;]*m|\s)*\[\d{2}:\d{2}:\d{2}(\.\d{3})?\]/
+const TIMED_OUTPUT_PREFIX_PATTERN = /^(?:\x1b\[[0-9;]*m|\s)*\[\d{2}:\d{2}:\d{2}(\.\d{3})?\]/
 
 export const lineHasTimedOutputPrefix = (line: string): boolean => TIMED_OUTPUT_PREFIX_PATTERN.test(line)
 
@@ -182,4 +187,14 @@ export const formatTimedOutputPrefix = (atMs: number = Date.now()): string => {
   const seconds = String(date.getSeconds()).padStart(2, '0')
   const milliseconds = String(date.getMilliseconds()).padStart(3, '0')
   return `[${hours}:${minutes}:${seconds}.${milliseconds}]`
+}
+
+export const formatProgressCounter = (index: number, total: number): string =>
+  `[${index + 1}/${total}]`
+
+const COMMAND_TAIL_LINES = 20
+
+export const formatOutputTail = (label: string, output: string, lineCount = COMMAND_TAIL_LINES): string | undefined => {
+  const tail = output.split('\n').slice(-lineCount).join('\n')
+  return tail.trim().length > 0 ? `  ${label} tail:\n${tail}` : undefined
 }

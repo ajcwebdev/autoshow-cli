@@ -1,10 +1,11 @@
 import { expect } from 'bun:test'
-import { fileExists } from '../../../../test-utils/test-helpers'
+
 import {
   defineSingleCaseTest,
   setupDownloadInputTypeLifecycle,
 } from './download-input-types.shared'
 import type { DownloadE2eSingleCase } from '~/types'
+import { expectArtifact } from '../../../../test-utils/value-assertions'
 
 const singleCases: DownloadE2eSingleCase[] = [
   {
@@ -16,7 +17,7 @@ const singleCases: DownloadE2eSingleCase[] = [
       expect(metadata.step1?.title).toBeDefined()
       expect(metadata.step1?.channel).toBeDefined()
       const audioPath = `${outputDir}/${metadata.step1?.audioFileName ?? ''}`
-      expect(await fileExists(audioPath)).toBe(true)
+      await expectArtifact(audioPath)
     },
   },
   {
@@ -26,7 +27,7 @@ const singleCases: DownloadE2eSingleCase[] = [
       expect(metadata.step1?.audioFileName).toBeDefined()
       expect((metadata.step1?.audioFileSize ?? 0) > 0).toBe(true)
       const audioPath = `${outputDir}/${metadata.step1?.audioFileName ?? ''}`
-      expect(await fileExists(audioPath)).toBe(true)
+      await expectArtifact(audioPath)
     },
   },
 ]

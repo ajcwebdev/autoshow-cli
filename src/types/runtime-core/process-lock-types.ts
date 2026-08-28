@@ -3,6 +3,7 @@ export type ProcessLockOptions = {
   staleMs?: number
   waitMs?: number
   heartbeatMs?: number
+  abortSignal?: AbortSignal | undefined
 }
 
 export type ProcessLockOwner = {
@@ -13,7 +14,6 @@ export type ProcessLockOwner = {
   createdAt?: string | undefined
   updatedAt?: string | undefined
 }
-
 
 export type ActiveProcessLockOwner = {
   ownerId: string
@@ -34,4 +34,9 @@ export type ProcessLockOwnerReadResult = {
   owner: ProcessLockOwner | null
   ownerPath: string
   parseError?: string | undefined
+}
+
+export type ProcessLockDirIdentity = {
+  dev: number
+  ino: number
 }

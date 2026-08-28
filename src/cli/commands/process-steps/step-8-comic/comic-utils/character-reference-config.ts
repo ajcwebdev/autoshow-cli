@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
@@ -8,8 +7,8 @@ import { CharacterReferenceSchema } from '../schemas/schemas'
 import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 
-export const CHARACTER_REFERENCE_FILENAME = 'characters-reference.json'
-export const CHARACTER_KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const CHARACTER_REFERENCE_FILENAME = 'characters-reference.json'
+const CHARACTER_KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const SUPPORTED_SOURCE_EXTENSIONS = /\.(?:png|webp|jpe?g)$/i
 const catalogContext = new AsyncLocalStorage<CharacterCatalogService>()
 
@@ -21,7 +20,7 @@ export const normalizeCharacterLookup = (value: string): string => value
   .replace(/\s+/g, ' ')
   .toLocaleUpperCase('en-US')
 
-export const asCharacterKey = (value: string): CharacterKey => {
+const asCharacterKey = (value: string): CharacterKey => {
   if (!CHARACTER_KEY_PATTERN.test(value)) {
     throw ValidationError(
       `Invalid character key "${value}". Character keys must use lowercase kebab-case.`,
@@ -31,7 +30,7 @@ export const asCharacterKey = (value: string): CharacterKey => {
   return value as CharacterKey
 }
 
-export const resolveCharacterReferenceConfigPath = (charactersRoot = getCharactersRoot()): string =>
+const resolveCharacterReferenceConfigPath = (charactersRoot = getCharactersRoot()): string =>
   join(charactersRoot, CHARACTER_REFERENCE_FILENAME)
 
 const fail = (configPath: string, detail: string): never => {
@@ -124,9 +123,6 @@ export const loadCharacterCatalog = (charactersRoot = getCharactersRoot()): Char
     if (sourcePaths.has(normalizedSourcePath)) fail(configPath, `duplicate source image path "${authored.image}"`)
     const normalizedOutlineSheetPath = outlineSheetPath.replace(/\\/g, '/')
     if (outlineSheetPaths.has(normalizedOutlineSheetPath)) fail(configPath, `duplicate outline sheet path "${authored.outlineSheet}"`)
-    // A character may intentionally use one canonical image for both fields.
-    // Paths must still be exclusive to that character so references cannot be
-    // silently shared or mislabeled across catalog entries.
     if (assetPaths.has(normalizedSourcePath) || assetPaths.has(normalizedOutlineSheetPath)) {
       fail(configPath, 'character asset paths must be unique across source images and outline sheets')
     }
@@ -168,7 +164,7 @@ export const loadCharacterCatalog = (charactersRoot = getCharactersRoot()): Char
     schemaVersion: 3,
     root,
     configPath,
-    hash: createHash('sha256').update(raw).digest('hex'),
+    hash: new Bun.CryptoHasher('sha256').update(raw).digest('hex'),
     characters,
     characterKeys,
     get(key) {

@@ -1,11 +1,6 @@
-import type { HostedConcurrencyCoordinator, HostedConcurrencyWorkClass, ImageGenerationModel } from '~/types'
+import type { ComicHostedScheduling, HostedConcurrencyWorkClass, ImageGenerationModel } from '~/types'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { runHostedConcurrencyRequest } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
-
-type ComicHostedScheduling = {
-  hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
-  concurrency: number
-}
 
 export const runComicHostedRequest = async <T>(
   options: ComicHostedScheduling,

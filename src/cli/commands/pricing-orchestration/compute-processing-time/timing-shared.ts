@@ -1,8 +1,9 @@
 import type { ComputeEstimatedProcessingTimesInput, EstimateConfidence, NormalizedTimingFields, TimingBasisDefinition, TimingScope, TimingStepEntry } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { findHostedOcrThroughputProfile } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-throughput-profiles'
+import { roundMetric } from '~/utils/value-helpers'
 
-export const OCR_HOSTED_PROVIDERS = new Set([
+const OCR_HOSTED_PROVIDERS = new Set([
   'mistral',
   'glm',
   'kimi',
@@ -13,7 +14,7 @@ export const OCR_HOSTED_PROVIDERS = new Set([
   'deepinfra',
   'replicate'
 ])
-export const OCR_LOCAL_PROVIDERS = new Set(['tesseract'])
+const OCR_LOCAL_PROVIDERS = new Set(['tesseract'])
 export const RASTERIZED_SINGLE_PAGE_PDF_FALLBACK_TIMING_MULTIPLIER = 2
 
 export const roundMs = (value: number): number => Math.max(0, Math.round(value))
@@ -23,11 +24,6 @@ export const normalizeConcurrency = (value: number | undefined, fallback = DEFAU
     : fallback
 export const resolveOcrConcurrencyMode = (input: Pick<ComputeEstimatedProcessingTimesInput, 'ocrConcurrency' | 'ocrConcurrencyMode'>): 'auto' | 'fixed' =>
   input.ocrConcurrencyMode ?? (typeof input.ocrConcurrency === 'number' ? 'fixed' : 'auto')
-const roundTimingMetric = (value: number): number => {
-  const rounded = Math.round(value * 1000) / 1000
-  return Object.is(rounded, -0) ? 0 : rounded
-}
-
 const defaultTimingMetricForStep = (step: TimingStepEntry['step']): string => {
   switch (step) {
     case 'stt':
@@ -139,8 +135,8 @@ const computeNormalizedTimingFields = (
 
   return {
     rateBasis: basis.rateBasis,
-    msPerUnit: roundTimingMetric(processingTimeMs / basis.units),
-    throughputValue: roundTimingMetric(basis.throughputInputValue / (processingTimeMs / basis.throughputScaleMs)),
+    msPerUnit: roundMetric(processingTimeMs / basis.units),
+    throughputValue: roundMetric(basis.throughputInputValue / (processingTimeMs / basis.throughputScaleMs)),
     throughputUnit: basis.throughputUnit,
   }
 }

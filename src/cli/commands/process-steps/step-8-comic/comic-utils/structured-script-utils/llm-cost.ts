@@ -1,7 +1,5 @@
 import { findRegistryServiceForModel, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 
-// Single LLM pricing path for comic, sourced from the central model registry
-// (llm-config.json) instead of comic-local pricing tables.
 export const estimateLlmCostFromRegistry = (
   modelId: string,
   inputTokens: number,

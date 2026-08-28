@@ -5,13 +5,9 @@ import {
 } from '~/cli/help-colors'
 import { getNativeRenderableCommands } from './builtins'
 import { globalFlagsForCommand } from './global-flag-support'
-import type { CliCommandDefinition, CliFlagDefinition, CliFlagsDefinition, CliParameterDefinition, CliRootDefinition } from '~/types'
+import type { CliCommandDefinition, CliCommandHelpDefinition, CliFlagDefinition, CliFlagsDefinition, CliParameterDefinition, CliRootDefinition } from '~/types'
 
 export const HELP_EXAMPLE_ALIGN_COLUMN_CAP = 100
-
-// Help rendering never needs the handler, so nested subcommands can supply
-// handler-less definitions purely to describe their own help output.
-type CliCommandHelpDefinition = Omit<CliCommandDefinition, 'handler'>
 
 const ANSI_ESCAPE_PATTERN = /\x1b\[[0-9;]*m/g
 
@@ -66,9 +62,19 @@ const formatFlagName = (name: string, definition: CliFlagDefinition): string => 
   return definition.short ? `--${name}, -${definition.short}` : `--${name}`
 }
 
+const shouldRenderDefault = (definition: CliFlagDefinition): boolean => {
+  if (!('default' in definition) || definition.default === undefined) {
+    return false
+  }
+  if (definition.type === Boolean && definition.default === false) {
+    return false
+  }
+  return true
+}
+
 const renderFlagRows = (flags: CliFlagsDefinition, indent = '  '): string[] => {
   const rows = Object.entries(flags).filter(([, definition]) => !isFlagHidden(definition)).map(([name, definition]) => {
-    const defaultSuffix = 'default' in definition ? ` ${formatDefault(definition.default)}` : ''
+    const defaultSuffix = shouldRenderDefault(definition) ? ` ${formatDefault(definition.default)}` : ''
     return [
       formatFlagName(name, definition),
       formatType(definition),
@@ -116,19 +122,25 @@ const renderGroupedFlags = (
   const groupedKeys = new Set<string>()
   const lines: string[] = []
   for (const [groupKey, label] of groups) {
-    const groupFlags = Object.fromEntries(
-      entries.filter(([, definition]) => flagGroup(definition) === groupKey)
-    ) as CliFlagsDefinition
-    if (Object.keys(groupFlags).length === 0) {
+    const groupEntries = entries.filter(([, definition]) => flagGroup(definition) === groupKey)
+    if (groupEntries.length === 0) {
       continue
     }
-    lines.push(`  ${label}`, ...renderFlagRows(groupFlags, '    '), '')
-    for (const key of Object.keys(groupFlags)) {
+    for (const [key] of groupEntries) {
       groupedKeys.add(key)
     }
+    const visibleGroupFlags = Object.fromEntries(
+      groupEntries.filter(([, definition]) => !isFlagHidden(definition))
+    ) as CliFlagsDefinition
+    if (Object.keys(visibleGroupFlags).length === 0) {
+      continue
+    }
+    lines.push(`  ${label}`, ...renderFlagRows(visibleGroupFlags, '    '), '')
   }
 
-  const ungrouped = Object.fromEntries(entries.filter(([name]) => !groupedKeys.has(name))) as CliFlagsDefinition
+  const ungrouped = Object.fromEntries(
+    entries.filter(([name, definition]) => !groupedKeys.has(name) && !isFlagHidden(definition))
+  ) as CliFlagsDefinition
   if (Object.keys(ungrouped).length > 0) {
     lines.push(...renderFlagRows(ungrouped, '  '), '')
   }

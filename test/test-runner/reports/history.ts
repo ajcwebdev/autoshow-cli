@@ -1,5 +1,4 @@
-import type { TestRunArtifacts } from '~/types'
-import type { ReportHistoricalLookup } from '~/types'
+import type { ReportHistoricalLookup, TestRunArtifacts } from '~/types'
 import { readFileTimings } from '../file-timings'
 
 export const readHistoricalLookups = async (

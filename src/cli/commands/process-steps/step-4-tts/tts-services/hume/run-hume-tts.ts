@@ -2,39 +2,32 @@ import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts
 import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-pipeline'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
-import { HUME_DEFAULT_TTS_VOICE, validateHumeTtsVoice, validateHumeTtsVoiceProvider } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { HUME_DEFAULT_TTS_VOICE, HUME_LIBRARY_VOICE_PROVIDER, validateHumeTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { HostedTtsChunkScheduler, HumeTtsModel, HumeVoicePayload, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { HUME_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
+import { readRestErrorText } from '~/utils/rest-client'
 
 const UUID_LIKE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
 
-const readHumeError = async (response: Response): Promise<string> => {
-  const text = await response.text()
-  return text.trim() || `HTTP ${response.status}`
-}
-
 const resolveHumeVoice = (
   options: {
     voice?: string | undefined
-    voiceProvider?: string | undefined
   }
 ): { label: string, payload: HumeVoicePayload, provider?: string | undefined } => {
   const rawVoice = options.voice?.trim() || HUME_DEFAULT_TTS_VOICE
   const label = validateHumeTtsVoice(rawVoice)
-  const explicitProvider = options.voiceProvider?.trim()
 
-  if (UUID_LIKE_RE.test(label) && !explicitProvider) {
+  if (UUID_LIKE_RE.test(label)) {
     return { label, payload: { id: label } }
   }
 
-  const provider = validateHumeTtsVoiceProvider(explicitProvider || 'HUME_AI')
-  return { label, provider, payload: { name: label, provider } }
+  return { label, provider: HUME_LIBRARY_VOICE_PROVIDER, payload: { name: label, provider: HUME_LIBRARY_VOICE_PROVIDER } }
 }
 
 export const runHumeTts = async (
@@ -43,7 +36,6 @@ export const runHumeTts = async (
   options: {
     model: HumeTtsModel
     voice?: string | undefined
-    voiceProvider?: string | undefined
     speed?: number | undefined
     trailingSilence?: number | undefined
     description?: string | undefined
@@ -53,7 +45,7 @@ export const runHumeTts = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = requireApiKey('HUME_API_KEY', 'tts:hume', 'Hume TTS')
+  const apiKey = resolveCredential('hume', 'require', { stage: 'tts:hume', description: 'Hume TTS' })
 
   const baseURL = trimTrailingSlash(HUME_DEFAULT_BASE_URL)
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.hume)
@@ -130,7 +122,7 @@ export const runHumeTts = async (
       })
 
       if (!response.ok) {
-        const errText = await readHumeError(response)
+        const errText = await readRestErrorText(response)
         throw httpResponseError(`Hume TTS failed (${response.status}): ${errText}`, response)
       }
       await accepted({ fields: { httpStatus: response.status } })

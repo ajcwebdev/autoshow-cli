@@ -1,4 +1,4 @@
-import type { ExtractionMetadata, ExtractionResult, HostedOcrSchedulerTelemetry, OcrConcurrencyMode, PageResult, PdfChunkPreparationSummary, ProcessDocumentOutput, ProviderCompletionStatus, ProviderErrorSummaryFields, ProviderRunStateBase, ProviderSuccess, ResolvedStep2Execution, Step1SourceRef } from '~/types'
+import type { ExtractionMetadata, ExtractionResult, HostedOcrSchedulerTelemetry, NormalizedReasoningEffort, OcrConcurrencyMode, PageResult, PdfChunkPreparationSummary, ProcessDocumentOutput, ProviderCompletionStatus, ProviderErrorSummaryFields, ProviderRunStateBase, ProviderSuccess, ResolvedStep2Execution, Step1SourceRef } from '~/types'
 export type EpubInspectEngine = 'bun'
 
 export type EpubContentEntry = {
@@ -150,8 +150,8 @@ export type HostedOcrRun = {
   providerUsage?: Array<Record<string, unknown>>
   pdfChunkPreparation?: PdfChunkPreparationSummary
   hostedOcrScheduler?: HostedOcrSchedulerTelemetry
-  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
-  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
   ocrProviderMode?: import('~/types').OcrProviderMode | undefined
   inputSha256?: string | undefined
   inputFormat?: string | undefined
@@ -223,7 +223,7 @@ export type OcrProviderState = ProviderRunStateBase<OcrTarget['service'], OcrRec
 export type OcrProviderSuccess = ProviderSuccess<OcrTarget, ExtractionMetadata, ExtractionResult>
 
 
-export type OcrFallbackPageCounts = {
+type OcrFallbackPageCounts = {
   cached: number
   resumed: number
   succeeded: number

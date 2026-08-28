@@ -1,5 +1,5 @@
 import type { LumalabsImageRef, LumalabsVideoModel, Step6VideoMetadata } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import { normalizeLumaVideoAspectRatio, normalizeLumaVideoDuration, normalizeLumaVideoResolution } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
@@ -7,7 +7,7 @@ import { videoMediaReferenceToUrlOrDataUrl } from '~/cli/commands/process-steps/
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
 import { LUMALABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { LumalabsGenerationSchema, runPolledJob } from '~/utils/polled-job-client/polled-job'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 
 const POLL_INTERVAL_MS = 10_000
@@ -34,10 +34,10 @@ export const runLumalabsVideoGen = async (
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
   if (prompt.trim().length === 0) {
-    throw CLIUsageError('Luma Labs video prompt cannot be empty.')
+    throw UsageError('Luma Labs video prompt cannot be empty.')
   }
 
-  const apiKey = requireApiKey('LUMA_AGENTS_API_KEY', 'video:lumalabs', 'Luma Labs video generation')
+  const apiKey = resolveCredential('lumalabs', 'require', { stage: 'video:lumalabs', description: 'Luma Labs video generation' })
 
   const baseUrl = LUMALABS_DEFAULT_BASE_URL.replace(/\/+$/, '')
   const aspectRatio = normalizeLumaVideoAspectRatio(options.aspectRatio)
@@ -49,7 +49,7 @@ export const runLumalabsVideoGen = async (
   logGenStatus('video', 'lumalabs', options.model, 'started', startFrame ? 'image-to-video' : 'text')
 
   const estimate = estimateVideoCost({
-    lumalabsVideoModel: options.model,
+    lumalabsVideoModels: [options.model],
     videoDuration: options.durationSeconds,
     videoResolution: options.resolution
   })

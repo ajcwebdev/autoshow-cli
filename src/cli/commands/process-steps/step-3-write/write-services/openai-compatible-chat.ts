@@ -1,9 +1,11 @@
 import { executeLlmRequest } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-request-scaffold'
 import { isStructuredFallbackError } from '~/cli/commands/process-steps/step-3-write/write-utils/structured-error-utils'
-import type { LlmApiCallResult, OpenAIRestConfig, RunOpenAICompatibleChatModelOptions, Step3Metadata } from '~/types'
+import type { LlmApiCallResult, OpenAICompatibleChatService, OpenAIRestConfig, RunOpenAICompatibleChatModelOptions, Step3Metadata, StructuredRequestOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { createOpenAIChatCompletion, extractOpenAIChatCompletionText } from '~/utils/openai/openai-client'
 import { classifyFetchRetry } from '~/utils/retries'
+import { resolveCredential } from '~/utils/validate/env-utils'
+import { resolveLlmReasoningOptions } from './llm-reasoning-options'
 
 export const runOpenAICompatibleChatModel = async ({
   prompt,
@@ -66,9 +68,47 @@ export const runOpenAICompatibleChatModel = async ({
         if (!isStructuredFallbackError(error)) {
           throw error
         }
-        l.warn(`${providerLabel} structured output failed for ${model}; retrying without response_format`)
+        l.warn(`${providerLabel} structured output failed for ${model}; retrying without response_format`, {
+      category: 'pipeline',
+      metadata: { provider: providerLabel, model, fallback: 'no-response-format' }
+    })
         return await executeRequest(requestBody)
       }
     }
   })
+}
+
+export const createOpenAICompatibleReasoningRunner = (descriptor: {
+  service: OpenAICompatibleChatService
+  providerLabel: string
+  envPurpose: string
+  baseURL: string
+}) => {
+  const config = (): { apiKey: string, baseURL: string } => ({
+    apiKey: resolveCredential(descriptor.service, 'require', { stage: `write:${descriptor.service}`, description: descriptor.envPurpose }),
+    baseURL: descriptor.baseURL
+  })
+
+  return async (
+    prompt: string,
+    model: string,
+    structuredOpts?: StructuredRequestOptions
+  ): Promise<{ result: string, metadata: Step3Metadata }> => {
+    const { policy, updatedOpts } = resolveLlmReasoningOptions(descriptor.service, model, structuredOpts)
+
+    return await runOpenAICompatibleChatModel({
+      prompt,
+      model,
+      structuredOpts: updatedOpts,
+      config,
+      service: descriptor.service,
+      providerLabel: descriptor.providerLabel,
+      operationName: `${descriptor.service}-llm`,
+      customizeRequestBody: (requestBody) => {
+        if (policy.effective === 'low' || policy.effective === 'medium' || policy.effective === 'high') {
+          requestBody['reasoning_effort'] = policy.effective
+        }
+      }
+    })
+  }
 }

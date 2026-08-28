@@ -3,7 +3,7 @@ import { runMistralOcr } from '~/cli/commands/process-steps/step-2-extract/step-
 import { runMistralStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-mistral/run-mistral-stt'
 import type { DocumentMetadata } from '~/types'
 import { mistralJsonRequest, normalizeMistralBaseUrl } from '~/utils/mistral/mistral-client'
-import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
 const envKeys = ['MISTRAL_API_KEY']
 const tempDirs = setupContractSuiteLifecycle({ envKeys, tempPrefix: 'autoshow-mistral-rest-' })
@@ -146,21 +146,17 @@ describe('Mistral REST contracts', () => {
         headers: { 'retry-after': '7' }
     }))
 
-    try {
-      await mistralJsonRequest({
-        apiKey: 'mistral-key',
-        baseURL: 'https://mock.mistral.local',
-        path: '/audio/speech',
-        errorMessagePrefix: 'Mistral TTS failed',
-        body: { input: 'hello' }
-      })
-      throw new Error('Expected Mistral request to fail')
-    } catch (error) {
-      expect(error).toBeInstanceOf(Error)
-      expect((error as { status?: number }).status).toBe(429)
-      expect((error as { headers?: Headers }).headers?.get('retry-after')).toBe('7')
-      expect((error as Error).message).toContain('rate limited')
-    }
+    await expectProviderHttpError(async () => await mistralJsonRequest({
+      apiKey: 'mistral-key',
+      baseURL: 'https://mock.mistral.local',
+      path: '/audio/speech',
+      errorMessagePrefix: 'Mistral TTS failed',
+      body: { input: 'hello' }
+    }), {
+      status: 429,
+      headers: { 'retry-after': '7' },
+      messageContains: 'rate limited'
+    })
 
     expect(calls.map((call) => call.url)).toEqual(['https://mock.mistral.local/v1/audio/speech'])
   })

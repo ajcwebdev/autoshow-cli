@@ -1,3 +1,4 @@
+import { partialCompletionError } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-batch-state'
 import { isRecord } from '~/utils/rest-client'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -29,7 +30,7 @@ import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestra
 import { buildArticleEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-article-estimates'
 import type { AggregatedPriceEstimate, HtmlArticleBackend, ProviderCompletionStatus, ResolvedStep2Execution, ResumeDisplayOptions, ResumeResult, ResumeTarget, Step2ProviderSelectionFilter, StepEstimate, UrlArticleResumePlan, UrlArticleResumeResult, UrlArticleTarget, UrlExtractionOptions, UrlProviderRunOutcome, WebArticleMetadata } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { InfraError, ValidationError } from '~/utils/error-handler'
+import { ValidationError } from '~/utils/error-handler'
 import { logResumeItem, logResumeSummary } from '../resume-logging'
 
 
@@ -91,7 +92,7 @@ export const resolveUrlArticleResumePlan = (
   }
 }
 
-export const resumeUrlArticleProviders = async (
+const resumeUrlArticleProviders = async (
   outputDir: string,
   opts: UrlExtractionOptions,
   selectedTargets?: readonly UrlArticleTarget[] | undefined
@@ -152,7 +153,7 @@ export const resumeUrlArticleProviders = async (
     .filter((state) => state.status === 'failed')
     .map((state) => ({
       backend: state.service,
-      message: state.lastError?.message ?? 'Provider failed',
+      message: state.error?.message ?? 'Provider failed',
       attempts: state.attempts
     }))
   const completionStatus = completionStatusFromProviderStates(providerStates)
@@ -362,7 +363,10 @@ export const resumeUrlArticleTarget = async (
   await writeUpdatedUrlBatchManifest(target)
 
   if (incomplete > 0 || failed > 0) {
-    throw InfraError(`URL article resume still has ${incomplete} incomplete and ${failed} failed item(s)`, { stage: 'resume:url', exitCode: 2 })
+    throw partialCompletionError(`URL article resume still has ${incomplete} incomplete and ${failed} failed item(s)`, {
+      stage: 'resume:url',
+      metadata: { incomplete, failed }
+    })
   }
   return { full, incomplete, failed }
 }

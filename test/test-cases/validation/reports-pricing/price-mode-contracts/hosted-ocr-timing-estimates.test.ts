@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
@@ -6,6 +6,7 @@ import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/
 import { resolveHostedOcrEstimateCap } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
 import { computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const missingProfilePath = (): string =>
   join(tmpdir(), `autoshow-missing-ocr-profile-${process.pid}-${Date.now()}-${Math.random()}.json`)
@@ -84,7 +85,7 @@ describe('hosted OCR timing estimate contracts', () => {
     })
 
   test('shared-lane throughput profiles use profiled lane target counts for timing estimates', async () => {
-      const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-shared-lane-profile-'))
+      const tempDir = await makeTempDir('autoshow-ocr-shared-lane-profile-')
       const profilePath = join(tempDir, 'profiles.json')
       const pageCount = 312
 
@@ -168,7 +169,7 @@ describe('hosted OCR timing estimate contracts', () => {
     })
 
   test('hosted OCR timing uses healthy profiles and blends sparse profiles', async () => {
-      const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-timing-'))
+      const tempDir = await makeTempDir('autoshow-ocr-timing-')
       const profilePath = join(tempDir, 'profiles.json')
       const pageCount = 20
 

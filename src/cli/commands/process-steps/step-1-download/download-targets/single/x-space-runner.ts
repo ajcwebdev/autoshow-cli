@@ -1,27 +1,17 @@
 import { ensureDirectory } from '~/utils/cli-utils'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-child-output'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
-import { sanitizeTitleSlug } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
 import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import * as l from '~/utils/app-logger/app-logger'
-import { readEnv } from '~/utils/validate/env-utils'
 import { writeMetadataTerminalOutput, writeSavedMetadataArtifacts } from './metadata-output'
-import { runExtractedDocumentWrite } from './document-write'
-import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItemProcessResult, DocumentMetadata, ExtractionResult, MetadataOutputOptions, ParsedSpaceInput, ProcessDocumentOutput, SharedPipelineOptions, SpacesArtifact, WriteRuntimeOptions, XSpaceExtractionArtifacts } from '~/types'
+import type { BatchChildRunContext, BatchItemProcessResult, MetadataOutputOptions, ParsedSpaceInput, SharedPipelineOptions, SpacesArtifact, XSpaceExtractionArtifacts } from '~/types'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 const X_SPACE_URL_BASE = 'https://x.com/i/spaces/'
 
-const getXBearerToken = (purpose: 'download' | 'extraction' | 'metadata'): string => {
-  const bearerToken = readEnv('X_BEARER_TOKEN')
-  if (!bearerToken) {
-    throw CLIUsageError(
-      `X_BEARER_TOKEN environment variable is required for X/Twitter Space ${purpose}. `
-      + 'Create a Bearer Token at https://developer.x.com/en/portal/dashboard'
-    )
-  }
-  return bearerToken
-}
+const getXBearerToken = (purpose: 'download' | 'extraction' | 'metadata'): string =>
+  resolveCredential('x-spaces', 'require', { stage: 'download:x-spaces', description: `X/Twitter Space ${purpose}` })
 
 const collectXSpacesArtifact = async (
   target: string,
@@ -124,37 +114,6 @@ const buildXSpaceMetadataView = (artifact: SpacesArtifact): Record<string, unkno
   }
 }
 
-const textByteLength = (value: string): number =>
-  new TextEncoder().encode(value).byteLength
-
-const buildXSpaceDocumentMetadata = (
-  label: string,
-  extractionMarkdown: string
-): DocumentMetadata => ({
-  title: label,
-  slug: sanitizeTitleSlug(label, 180) || 'x-space',
-  pageCount: 1,
-  format: 'html',
-  fileSize: textByteLength(extractionMarkdown)
-})
-
-const buildXSpaceExtractionResult = (
-  extractionMarkdown: string
-): ExtractionResult => {
-  const text = extractionMarkdown.trim()
-  return {
-    text,
-    pages: [{
-      pageNumber: 1,
-      method: 'text',
-      text
-    }],
-    totalPages: 1,
-    ocrPages: 0,
-    textPages: 1
-  }
-}
-
 const collectAndWriteXSpaceExtraction = async (
   target: string,
   baseDir: string,
@@ -200,14 +159,14 @@ export const resolveXSpaceDownloadTarget = async (target: string): Promise<strin
   }
 
   if (parsedInput.postIds.length === 0) {
-    throw CLIUsageError('Expected an X Space URL, raw Space ID, or X post URL')
+    throw UsageError('Expected an X Space URL, raw Space ID, or X post URL')
   }
 
   const { artifact } = await collectXSpacesArtifact(target, 'download')
   const resolvedSpaceId = getFirstReferencedSpaceId(artifact)
   if (!resolvedSpaceId) {
     const detail = artifact.errors[0]?.detail
-    throw CLIUsageError(
+    throw UsageError(
       `No X Space audio target could be resolved from post input.${detail ? ` ${detail}` : ''}`
     )
   }
@@ -268,33 +227,4 @@ export const processXSpace = async (
   })
 
   return { outputDir: extraction.outputDir }
-}
-
-export const runXSpaceWrite = async (
-  target: string,
-  baseDir: string,
-  opts: WriteRuntimeOptions,
-  preflightEstimate?: AggregatedPriceEstimate,
-  batchChildContext?: BatchChildRunContext
-): Promise<BatchItemProcessResult> => {
-  const extraction = await collectAndWriteXSpaceExtraction(target, baseDir, opts, batchChildContext)
-  const step1Metadata = buildXSpaceDocumentMetadata(extraction.label, extraction.extractionMarkdown)
-  const processOutput: ProcessDocumentOutput = {
-    result: buildXSpaceExtractionResult(extraction.extractionMarkdown),
-    step1Metadata,
-    step2Metadata: [],
-    outputDir: extraction.outputDir
-  }
-
-  return await runExtractedDocumentWrite({
-    target,
-    opts,
-    extraction: processOutput,
-    sourceRef: { url: extraction.sourceUrl },
-    ...(preflightEstimate ? { preflightEstimate } : {}),
-    extraArtifactFiles: {
-      result: 'result.json',
-      extraction: 'extraction.md'
-    }
-  })
 }

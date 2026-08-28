@@ -1,10 +1,9 @@
 import { resolve } from 'node:path'
-import type { HostedTtsChunkAdmissionToken, RunTtsChunksOptions } from '~/types'
+import type { HostedTtsChunkAdmissionToken, HostedTtsChunkScheduler, RunTtsChunksOptions, TtsMasteringProfile } from '~/types'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { InfraError } from '~/utils/error-handler'
-import type { TtsMasteringProfile } from '~/types'
-import { createHostedTtsChunkScheduler, normalizeHostedTtsChunkConcurrency } from './hosted-tts-chunk-scheduler'
+import { normalizeHostedTtsChunkConcurrency } from './hosted-tts-chunk-scheduler'
 
 export const splitTextIntoChunks = (text: string, maxChars: number): string[] => {
   const chunks: string[] = []
@@ -37,52 +36,25 @@ export const normalizeTtsChunkConcurrency = (concurrency: number | undefined): n
   return normalizeHostedTtsChunkConcurrency(concurrency)
 }
 
+export const requireHostedTtsChunkScheduler = (
+  scheduler: HostedTtsChunkScheduler | undefined
+): HostedTtsChunkScheduler => {
+  if (!scheduler) {
+    throw InfraError('Hosted TTS chunk execution requires the shared scheduler.', { stage: 'tts:audio-utils' })
+  }
+  return scheduler
+}
+
 export const runTtsChunks = async <T>(
   chunks: readonly string[],
-  concurrency: number | undefined,
   runChunk: (chunk: string, index: number, admission?: HostedTtsChunkAdmissionToken | undefined) => Promise<T>,
-  options: RunTtsChunksOptions = {}
+  options: RunTtsChunksOptions
 ): Promise<T[]> => {
-  if (options.provider) {
-    const scheduler = options.scheduler ?? createHostedTtsChunkScheduler(concurrency)
-    return await scheduler.runChunks(options.provider, chunks, runChunk, {
-      job: options.job,
-      scopeLabel: options.scopeLabel,
-      abortSignal: options.abortSignal
-    })
-  }
-
-  const normalizedConcurrency = normalizeTtsChunkConcurrency(concurrency)
-  const results = new Array<T>(chunks.length)
-  let nextIndex = 0
-  let firstError: unknown
-
-  const worker = async (): Promise<void> => {
-    while (true) {
-      if (firstError !== undefined) return
-      const index = nextIndex
-      nextIndex += 1
-      if (index >= chunks.length) return
-
-      try {
-        results[index] = await runChunk(chunks[index] as string, index)
-      } catch (error) {
-        if (firstError === undefined) {
-          firstError = error
-        }
-        return
-      }
-    }
-  }
-
-  const workerCount = Math.min(normalizedConcurrency, chunks.length)
-  await Promise.all(Array.from({ length: workerCount }, () => worker()))
-
-  if (firstError !== undefined) {
-    throw firstError
-  }
-
-  return results
+  return await options.scheduler.runChunks(options.provider, chunks, runChunk, {
+    job: options.job,
+    scopeLabel: options.scopeLabel,
+    abortSignal: options.abortSignal
+  })
 }
 
 export const concatAndConvertToWav = async (

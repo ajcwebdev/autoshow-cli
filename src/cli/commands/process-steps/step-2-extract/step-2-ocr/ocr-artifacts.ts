@@ -1,27 +1,14 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import type { ExtractionMetadata, ExtractionOptions, ExtractionResult, TextArtifactFile } from '~/types'
+import type { ExtractionOptions, ExtractionResult, TextArtifactFile } from '~/types'
 import { writeFile } from '~/utils/cli-utils'
-
-export const isEpubInspectMode = (metadata: ExtractionMetadata): boolean =>
-  metadata.extractionMethod === 'epub-bun'
 
 export const writeExtractionArtifact = async (
   outputDir: string,
   extractionResult: ExtractionResult,
   outputFormat: ExtractionOptions['outputFormat'],
-  epubInspectMode: boolean,
   jsonFileName = 'result.json'
 ): Promise<void> => {
-  if (epubInspectMode) {
-    return
-  }
-
-  if (outputFormat === 'text') {
-    await writeFile(`${outputDir}/extraction.txt`, extractionResult.text)
-    return
-  }
-
   if (outputFormat === 'json') {
     if (jsonFileName) {
       await writeFile(`${outputDir}/${jsonFileName}`, JSON.stringify(extractionResult, null, 2))
@@ -29,14 +16,7 @@ export const writeExtractionArtifact = async (
     return
   }
 
-  if (outputFormat === 'tsv') {
-    const tsv = extractionResult.pages.map(p => `${p.pageNumber}\t${p.text.replace(/\n/g, ' ')}`).join('\n')
-    await writeFile(`${outputDir}/extraction.tsv`, tsv)
-    return
-  }
-
-  const hocr = extractionResult.pages.map(p => `<div class="page" data-page="${p.pageNumber}">${p.text}</div>`).join('\n')
-  await writeFile(`${outputDir}/extraction.hocr`, hocr)
+  await writeFile(`${outputDir}/extraction.txt`, extractionResult.text)
 }
 
 export const writeTextArtifactFiles = async (
@@ -64,7 +44,6 @@ export const writeTextArtifactFiles = async (
 export const writeProviderArtifacts = async (
   providerDir: string,
   extractionResult: ExtractionResult,
-  step2Metadata: ExtractionMetadata,
   outputFormat: ExtractionOptions['outputFormat'],
   artifactFiles?: TextArtifactFile[] | undefined
 ): Promise<void> => {
@@ -72,7 +51,6 @@ export const writeProviderArtifacts = async (
     providerDir,
     extractionResult,
     outputFormat,
-    isEpubInspectMode(step2Metadata),
     undefined
   )
   await writeFile(join(providerDir, 'result.json'), JSON.stringify(extractionResult, null, 2))

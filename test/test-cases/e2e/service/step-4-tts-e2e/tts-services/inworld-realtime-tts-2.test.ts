@@ -4,7 +4,7 @@ import { createTtsTargetSelection } from '~/cli/commands/process-steps/step-4-tt
 
 describe('Inworld Realtime TTS 2 Price Test', () => {
   test('collects Inworld target', () => {
-    const selection = createTtsTargetSelection({ inworldTtsModel: 'realtime-tts-2' })
+    const selection = createTtsTargetSelection({ inworldTtsModels: ['realtime-tts-2'] })
     const targets = collectInworldTtsTargets(selection)
     expect(targets).toHaveLength(1)
     expect(targets[0]?.model).toBe('realtime-tts-2')

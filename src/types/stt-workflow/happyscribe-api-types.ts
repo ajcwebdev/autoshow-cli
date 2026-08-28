@@ -5,6 +5,11 @@ export type HappyScribePollResult<TStatus> = {
   retryAfterMs: number | null
 }
 
+export type TimeFieldCandidate = {
+  key: string
+  unit: 'seconds' | 'milliseconds' | 'auto'
+}
+
 export type HappyScribeApiClientOptions = {
   apiKey: string
   baseURL: string
@@ -12,13 +17,12 @@ export type HappyScribeApiClientOptions = {
   onRetry?: ((error: unknown) => void) | undefined
 }
 
-export type HappyScribeRetryPolicyClass = 'runtime_http_create_retriable' | 'runtime_http_read'
+type HappyScribeRetryPolicyClass = 'runtime_http_create_retriable' | 'runtime_http_read'
 
 export type HappyScribeJsonRequestOptions = {
   stage: HappyScribeStage
   retryClass: HappyScribeRetryPolicyClass
   operationName: string
-  maxAttempts: number
   timeoutMs: number
   messagePrefix: string
   request: (signal: AbortSignal | undefined) => Promise<Response>

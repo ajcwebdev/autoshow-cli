@@ -1,6 +1,8 @@
 import * as v from 'valibot'
 import { validateDataSafe } from '~/utils/validate/validation'
 
+export const ELEVENLABS_TTS_OUTPUT_FORMAT = 'mp3_44100_128'
+
 const ElevenLabsErrorSchema = v.object({
   detail: v.optional(v.union([
     v.string(),

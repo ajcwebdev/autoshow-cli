@@ -1,20 +1,13 @@
 import { resolve } from 'node:path'
 
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
-import { CLIUsageError } from '~/utils/error-handler'
-
-type ProbeResult = Readonly<{ exitCode: number, stdout: string, stderr: string }>
-
-export type MistralReferenceAudioProbeRunner = (
-  command: string,
-  args: readonly string[]
-) => Promise<ProbeResult>
-
-export type MistralReferenceAudioProbeStatus = 'ready' | 'runtime-unavailable'
+import { UsageError } from '~/utils/error-handler'
+import type { MistralReferenceAudioProbeRunner, MistralReferenceAudioProbeStatus } from '~/types'
+import { childEnv } from '~/utils/child-env'
 
 const runReadOnlyProbe: MistralReferenceAudioProbeRunner = async (command, args) => {
   try {
-    const process = Bun.spawn([command, ...args], { stdout: 'pipe', stderr: 'pipe' })
+    const process = Bun.spawn([command, ...args], { env: childEnv(), stdout: 'pipe', stderr: 'pipe' })
     const [stdout, stderr, exitCode] = await Promise.all([
       new Response(process.stdout).text(),
       new Response(process.stderr).text(),
@@ -30,9 +23,6 @@ const runReadOnlyProbe: MistralReferenceAudioProbeRunner = async (command, args)
   }
 }
 
-// This is deliberately a decode-to-null probe: it verifies both stream selection and the exact
-// local conversion path without creating a temporary output or exposing the protected edge path in
-// errors/artifacts. Global readiness separately explains missing/broken ffmpeg prerequisites.
 export const assertMistralReferenceAudioDecodable = async (
   sourcePath: string,
   runner: MistralReferenceAudioProbeRunner = runReadOnlyProbe
@@ -52,7 +42,7 @@ export const assertMistralReferenceAudioDecodable = async (
     resolvedSourcePath
   ])
   if (stream.exitCode !== 0 || !stream.stdout.split(/\s+/).includes('audio')) {
-    throw CLIUsageError('Protected Mistral reference audio is not a decodable audio input.')
+    throw UsageError('Protected Mistral reference audio is not a decodable audio input.')
   }
 
   const decode = await runner(getFfmpegBinary(), [
@@ -64,7 +54,7 @@ export const assertMistralReferenceAudioDecodable = async (
     '-'
   ])
   if (decode.exitCode !== 0) {
-    throw CLIUsageError('Protected Mistral reference audio cannot be converted by the ready local audio runtime.')
+    throw UsageError('Protected Mistral reference audio cannot be converted by the ready local audio runtime.')
   }
   return 'ready'
 }

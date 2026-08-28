@@ -11,14 +11,15 @@ import {
   writeManifest
 } from '~/cli/commands/process-steps/pipeline-manifest'
 import { PROCESS_COMMANDS } from '~/types'
-import type { CanonicalAudioProviderProjection, PipelineManifest, PipelineProviderState } from '~/types'
+import type { CanonicalAudioProviderProjection, PipelineManifest, PipelineProviderState, TtsTarget } from '~/types'
+import { policySkippedTtsProviderState } from '../../../test-utils/tts-provider-state-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
-import type { TtsTarget } from '~/types'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { appendCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
+import { requireDefined } from '../../../test-utils/value-assertions'
 
 const provider = (
   rootDir: string,
@@ -57,45 +58,6 @@ const materializeFailedTtsProviderState = async (
     latest,
     await materializeTtsDialoguePlanArtifact(rootDir, dialoguePlan)
   )
-}
-
-const policySkippedTtsProviderState = (
-  target: TtsTarget,
-  artifactRoot = 'providers'
-): PipelineProviderState => {
-  const targetKey = target.targetKey as string
-  const actor = { namespace: 'local-user' as const, actorId: 'fixture' }
-  const at = new Date(0).toISOString()
-  const evidence = {
-    schemaVersion: 1 as const,
-    skipId: `skip-${targetKey}`,
-    targetKey,
-    reasonCode: 'user-requested' as const,
-    reason: 'fixture skip',
-    actor,
-    at
-  }
-  const projection = {
-    activeWork: { kind: 'policy-skip' as const, evidence },
-    branchHistory: [],
-    readinessAttempts: [],
-    renderHistory: [],
-    pointerEvents: [{ sequence: 1, action: 'activate-policy-skip' as const, skipId: evidence.skipId, actor, at }]
-  }
-  return {
-    service: target.service,
-    model: target.model,
-    local: false,
-    operation: 'tts-synthesis',
-    targetKey,
-    transport: target.transport as string,
-    artifactDir: `${artifactRoot}/${targetKey}`,
-    status: 'skipped',
-    attempts: 0,
-    options: {},
-    metadata: { ttsAudio: projection },
-    result: { ttsAudio: projection }
-  }
 }
 
 describe('canonical pipeline manifest', () => {
@@ -446,8 +408,7 @@ describe('canonical pipeline manifest', () => {
       const projection = appended.result?.['ttsAudio'] as CanonicalAudioProviderProjection
       expect(projection.renderHistory).toHaveLength(2)
       expect(new Set(projection.renderHistory.map((render) => render.renderIdentity)).size).toBe(2)
-      const activeRender = projection.renderHistory[1]
-      if (!activeRender) throw new Error('Expected the appended render to retain its render plan')
+      const activeRender = requireDefined(projection.renderHistory[1], 'the appended render to retain its render plan')
       expect(projection.activeWork).toEqual({ kind: 'render', renderIdentity: activeRender.renderIdentity, eventSequence: activeRender.events.at(-1)?.sequence as number })
       expect(projection.pointerEvents.at(-1)).toMatchObject({
         action: 'activate-render',
@@ -500,40 +461,26 @@ describe('canonical pipeline manifest', () => {
     })
   })
 
-  test('legacy TTS identity uses only canonical options and recorded output checksum pairs', async () => {
-    await withTempDir('autoshow-tts-legacy-identity-', async (dir) => {
-      const legacy: PipelineProviderState = {
+  test('a pre-canonical TTS provider state is unreadable and unwritable', async () => {
+    await withTempDir('autoshow-tts-precanonical-', async (dir) => {
+      const preCanonical: PipelineProviderState = {
         service: 'openai',
-        model: 'legacy-model',
+        model: 'tts-1',
         artifactDir: '.',
         status: 'succeeded',
         attempts: 1,
         options: { language: 'en' },
         metadata: { audioFileName: 'speech.wav', audioFileSize: 10, processingTime: 1 }
       }
-      const legacyManifest = createManifest('tts', 'single', [createManifestItem(dir, {
-        input: 'legacy input',
+      const preCanonicalManifest = createManifest('tts', 'single', [createManifestItem(dir, {
+        input: 'inline input',
         status: 'full',
         metadata: {},
-        providers: [legacy]
+        providers: [preCanonical]
       })])
-      await expect(writeManifest(dir, legacyManifest)).rejects.toThrow('Invalid canonical manifest')
-      await Bun.write(join(dir, PIPELINE_MANIFEST_FILE), `${JSON.stringify(legacyManifest, null, 2)}\n`)
-      const first = (await readManifest(dir))?.items[0]?.providers[0]
-      const firstIdentity = first?.legacyRenderIdentity
-      expect(firstIdentity).toMatch(/^legacy:[a-f0-9]{64}$/)
-      expect(JSON.stringify(first)).not.toContain('legacyRenderIdentity')
-
-      const manifestPath = join(dir, PIPELINE_MANIFEST_FILE)
-      const raw = await Bun.file(manifestPath).json() as { items: Array<{ providers: Array<{ metadata: Record<string, unknown> }> }> }
-      raw.items[0]!.providers[0]!.metadata['audioFileSize'] = 99
-      raw.items[0]!.providers[0]!.metadata['processingTime'] = 999
-      await Bun.write(manifestPath, `${JSON.stringify(raw, null, 2)}\n`)
-      expect((await readManifest(dir))?.items[0]?.providers[0]?.legacyRenderIdentity).toBe(firstIdentity)
-
-      raw.items[0]!.providers[0]!.metadata['audioFileName'] = 'another.wav'
-      await Bun.write(manifestPath, `${JSON.stringify(raw, null, 2)}\n`)
-      expect((await readManifest(dir))?.items[0]?.providers[0]?.legacyRenderIdentity).not.toBe(firstIdentity)
+      await expect(writeManifest(dir, preCanonicalManifest)).rejects.toThrow('Invalid canonical manifest')
+      await Bun.write(join(dir, PIPELINE_MANIFEST_FILE), `${JSON.stringify(preCanonicalManifest, null, 2)}\n`)
+      await expect(readManifest(dir)).rejects.toThrow('Invalid canonical manifest')
     })
   })
 })

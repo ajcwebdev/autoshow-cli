@@ -1,8 +1,6 @@
 import { expect } from 'bun:test'
 import {
-  runCommand,
   fileExists,
-  findLatestDirectory,
   STABLE_TTS_MD_PATH,
   STABLE_TTS_MD_TITLE,
 } from './test-helpers'
@@ -11,28 +9,12 @@ import {
   defineBudgetedLiveServiceTest,
   formatCommandFailureDiagnostics,
   requireConfiguredEnvVar,
+  runCommandAndExpectOutputDir,
   withOutputLifecycle
 } from './service-test-kit'
 import { readCanonicalRecord } from './manifest-helpers'
-import { l } from '~/utils/app-logger/app-logger'
-import type { TtsExtraArgs } from '~/types'
-
-const stripAnsi = (text: string): string => text.replace(/\x1b\[[0-9;]*m/g, '')
-
-const isTransientMinimaxTtsFailure = (output: string): boolean => {
-  const clean = stripAnsi(output)
-  return (
-    /minimax-tts-chunk-\d+: deadline exceeded/i.test(clean) ||
-    /MiniMax TTS (task creation|task query|download) failed \((408|425|429|500|502|503|504)\)/i.test(clean) ||
-    /fetch failed|network error|econnreset|econnrefused|etimedout|socket hang up|dns/i.test(clean)
-  )
-}
-
-const isRunwayInsufficientCreditsFailure = (output: string): boolean =>
-  output.includes('You do not have enough credits to run this task.')
-
-const isGroqTermsAcceptanceFailure = (output: string): boolean =>
-  /requires terms acceptance/i.test(stripAnsi(output))
+import { isTransientMinimaxTtsFailure, TERMINAL_TTS_FAILURES } from './provider-failure-classifiers'
+import type { RunCommandResult, TtsExtraArgs } from '~/types'
 
 const resolveTtsExtraArgs = async (
   extraArgs: TtsExtraArgs | undefined,
@@ -40,6 +22,50 @@ const resolveTtsExtraArgs = async (
 ): Promise<readonly string[]> => {
   if (!extraArgs) return []
   return typeof extraArgs === 'function' ? await extraArgs(model) : extraArgs
+}
+
+const throwOnKnownProviderFailure = (
+  ttsService: string,
+  model: string,
+  args: string[],
+  result: RunCommandResult
+): void => {
+  if (result.exitCode === 0) {
+    return
+  }
+
+  const terminalFailure = TERMINAL_TTS_FAILURES[ttsService]
+  if (!terminalFailure || !terminalFailure.matches(`${result.stdout}\n${result.stderr}`)) {
+    return
+  }
+
+  throw new Error(`${terminalFailure.describe(model)}\n${formatCommandFailureDiagnostics(args, result)}`)
+}
+
+const assertTtsArtifacts = async (
+  outputDir: string,
+  { ttsService, model, resolveExpectedSpeaker }: {
+    ttsService: string
+    model: string
+    resolveExpectedSpeaker?: ((model: string) => string | Promise<string>) | undefined
+  }
+): Promise<void> => {
+  const audioExists = await fileExists(`${outputDir}/speech.wav`)
+  expect(audioExists).toBe(true)
+
+  const audioFile = Bun.file(`${outputDir}/speech.wav`)
+  expect(audioFile.size).toBeGreaterThan(0)
+
+  const metadata = await readCanonicalRecord(outputDir) as {
+    tts?: Array<{ ttsService?: string, ttsModel?: string, speaker?: string, audioFileName?: string }>
+  }
+  expect(metadata.tts?.[0]?.ttsService).toBe(ttsService)
+  expect(metadata.tts?.[0]?.ttsModel).toBe(model)
+  if (resolveExpectedSpeaker) {
+    const expectedSpeaker = await resolveExpectedSpeaker(model)
+    expect(metadata.tts?.[0]?.speaker).toBe(expectedSpeaker)
+  }
+  expect(metadata.tts?.[0]?.audioFileName).toBe('speech.wav')
 }
 
 export const defineTTSServiceTest = ({
@@ -86,63 +112,22 @@ export const defineTTSServiceTest = ({
         `${provider}=${model}`,
         ...resolvedExtraArgs
       ]
-      let result = await runCommand(args)
 
-      if (result.exitCode !== 0 && ttsService === 'minimax') {
-        const combinedOutput = `${result.stdout}\n${result.stderr}`
-        if (isTransientMinimaxTtsFailure(combinedOutput)) {
-          l.warn(`Retrying once after transient MiniMax TTS error for ${model}`)
-          await Bun.sleep(2_000)
-          result = await runCommand(args)
-
-          if (result.exitCode !== 0) {
-            const retryOutput = `${result.stdout}\n${result.stderr}`
-            if (isTransientMinimaxTtsFailure(retryOutput)) {
-              throw new Error(`MiniMax transient TTS error persisted for ${model}\n${formatCommandFailureDiagnostics(args, result)}`)
+      const outputDir = await runCommandAndExpectOutputDir(inputTitle, args, undefined, {
+        ...(ttsService === 'minimax'
+          ? {
+              transient: {
+                isTransient: isTransientMinimaxTtsFailure,
+                providerLabel: `transient MiniMax TTS error for ${model}`,
+                persistedLabel: `MiniMax transient TTS error persisted for ${model}`,
+              }
             }
-          }
-        }
-      }
-      if (result.exitCode !== 0 && ttsService === 'runway') {
-        const combinedOutput = `${result.stdout}\n${result.stderr}`
-        if (isRunwayInsufficientCreditsFailure(combinedOutput)) {
-          throw new Error(`Runway account does not have enough credits to run this task\n${formatCommandFailureDiagnostics(args, result)}`)
-        }
-      }
-      if (result.exitCode !== 0 && ttsService === 'groq') {
-        const combinedOutput = `${result.stdout}\n${result.stderr}`
-        if (isGroqTermsAcceptanceFailure(combinedOutput)) {
-          throw new Error(`Groq terms acceptance is required for ${model}\n${formatCommandFailureDiagnostics(args, result)}`)
-        }
-      }
+          : {}),
+        onResult: (result) => { throwOnKnownProviderFailure(ttsService, model, args, result) },
+        classifyAvailability: false
+      })
 
-      if (result.exitCode !== 0) {
-        throw new Error(formatCommandFailureDiagnostics(args, result))
-      }
-
-      expect(result.exitCode).toBe(0)
-
-      const outputDir = result.outputDir ?? await findLatestDirectory(inputTitle, result.outputRoot)
-      if (!outputDir) {
-        throw new Error(`Expected output directory for ${inputTitle}`)
-      }
-
-      const audioExists = await fileExists(`${outputDir}/speech.wav`)
-      expect(audioExists).toBe(true)
-
-      const audioFile = Bun.file(`${outputDir}/speech.wav`)
-      expect(audioFile.size).toBeGreaterThan(0)
-
-      const metadata = await readCanonicalRecord(outputDir) as {
-        tts?: Array<{ ttsService?: string, ttsModel?: string, speaker?: string, audioFileName?: string }>
-      }
-      expect(metadata.tts?.[0]?.ttsService).toBe(ttsService)
-      expect(metadata.tts?.[0]?.ttsModel).toBe(model)
-      if (resolveExpectedSpeaker) {
-        const expectedSpeaker = await resolveExpectedSpeaker(model)
-        expect(metadata.tts?.[0]?.speaker).toBe(expectedSpeaker)
-      }
-      expect(metadata.tts?.[0]?.audioFileName).toBe('speech.wav')
+      await assertTtsArtifacts(outputDir, { ttsService, model, resolveExpectedSpeaker })
     }, timeoutMs)
   }
 }

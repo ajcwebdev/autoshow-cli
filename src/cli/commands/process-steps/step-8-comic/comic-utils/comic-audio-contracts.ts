@@ -9,7 +9,7 @@ import type {
   VoiceReferenceManifest,
   VoiceReferenceSnapshotIndex,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { toPosixPath, toProjectDisplayPath } from '~/utils/runtime-paths'
 import {
   assertContentIdentity,
@@ -22,7 +22,7 @@ import {
 const SHA256 = /^[a-f0-9]{64}$/
 
 const assertIsoDate = (value: string, label: string): void => {
-  if (!value || Number.isNaN(Date.parse(value))) throw CLIUsageError(`${label} must be an ISO date-time.`)
+  if (!value || Number.isNaN(Date.parse(value))) throw UsageError(`${label} must be an ISO date-time.`)
 }
 
 export const createComicSourceIdentity = async (
@@ -42,10 +42,10 @@ export const createComicSourceIdentity = async (
 
 export const validateComicSourceIdentity = (value: ComicSourceIdentity): ComicSourceIdentity => {
   if (value.schemaVersion !== 1 || !value.canonicalPath || !value.scriptSlug || !SHA256.test(value.contentSha256)) {
-    throw CLIUsageError('Comic source identity requires schemaVersion 1, a canonical path/slug, and an exact source checksum.')
+    throw UsageError('Comic source identity requires schemaVersion 1, a canonical path/slug, and an exact source checksum.')
   }
   if (value.canonicalPath.includes('\\') || value.canonicalPath.split('/').some(part => part === '..')) {
-    throw CLIUsageError('Comic source identity canonicalPath must be normalized POSIX form without traversal.')
+    throw UsageError('Comic source identity canonicalPath must be normalized POSIX form without traversal.')
   }
   assertContentIdentity(value as unknown as Record<string, unknown>, 'identityHash', 'Comic source identity')
   return value
@@ -61,16 +61,16 @@ export const validateStructuredScriptSourceSpans = (
   structuredScript: StructuredScriptData,
   exactSourceText: string
 ): StructuredScriptData => {
-  if (structuredScript.schemaVersion !== 5) throw CLIUsageError('Structured source-span validation requires schemaVersion 5.')
+  if (structuredScript.schemaVersion !== 5) throw UsageError('Structured source-span validation requires schemaVersion 5.')
   const scalars = [...exactSourceText]
   const validate = (spans: ReadonlyArray<{ start: number, end: number, text: string }>, label: string): void => {
-    if (!spans || spans.length === 0) throw CLIUsageError(`${label} requires at least one exact source span.`)
+    if (!spans || spans.length === 0) throw UsageError(`${label} requires at least one exact source span.`)
     let priorStart = -1
     let priorEnd = -1
     for (const span of spans) {
-      if (!Number.isSafeInteger(span.start) || !Number.isSafeInteger(span.end) || span.start < 0 || span.end <= span.start || span.end > scalars.length) throw CLIUsageError(`${label} contains an invalid zero-based half-open Unicode source span.`)
-      if (span.start < priorStart || (span.start === priorStart && span.end < priorEnd)) throw CLIUsageError(`${label} source spans are not canonically ordered.`)
-      if (scalars.slice(span.start, span.end).join('') !== span.text) throw CLIUsageError(`${label} source span text does not match the exact source identity bytes.`)
+      if (!Number.isSafeInteger(span.start) || !Number.isSafeInteger(span.end) || span.start < 0 || span.end <= span.start || span.end > scalars.length) throw UsageError(`${label} contains an invalid zero-based half-open Unicode source span.`)
+      if (span.start < priorStart || (span.start === priorStart && span.end < priorEnd)) throw UsageError(`${label} source spans are not canonically ordered.`)
+      if (scalars.slice(span.start, span.end).join('') !== span.text) throw UsageError(`${label} source span text does not match the exact source identity bytes.`)
       priorStart = span.start
       priorEnd = span.end
     }
@@ -89,42 +89,42 @@ export const computeSceneRunIdentity = (
 ): string => {
   validateComicSourceIdentity(sourceIdentity)
   if (structuredScript.path !== 'metadata/structured-script.json' || structuredScript.artifactSchemaVersion !== 5 || !SHA256.test(structuredScript.sha256)) {
-    throw CLIUsageError('Structured script artifact reference must bind strict schemaVersion 5 bytes.')
+    throw UsageError('Structured script artifact reference must bind strict schemaVersion 5 bytes.')
   }
   return hashCanonicalTtsValue({ sourceIdentity, structuredScript })
 }
 
 export const validateComicDialoguePlan = (plan: ComicDialoguePlan): ComicDialoguePlan => {
-  if (plan.schemaVersion !== 2 || !SHA256.test(plan.sceneRunIdentity)) throw CLIUsageError('Comic dialogue plan requires schemaVersion 2 and a scene-run identity.')
+  if (plan.schemaVersion !== 2 || !SHA256.test(plan.sceneRunIdentity)) throw UsageError('Comic dialogue plan requires schemaVersion 2 and a scene-run identity.')
   validateComicSourceIdentity(plan.sourceIdentity)
   if (computeSceneRunIdentity(plan.sourceIdentity, plan.structuredScript) !== plan.sceneRunIdentity) {
-    throw CLIUsageError('Comic dialogue plan sceneRunIdentity does not bind its source and structured script.')
+    throw UsageError('Comic dialogue plan sceneRunIdentity does not bind its source and structured script.')
   }
   assertIsoDate(plan.createdAt, 'Comic dialogue plan createdAt')
-  if (!['none', 'loose-comedy'].includes(plan.pacing.profile) || !Number.isSafeInteger(plan.pacing.interTurnMs) || plan.pacing.interTurnMs < 0) throw CLIUsageError('Comic dialogue plan requires a supported deterministic pacing profile.')
+  if (!['none', 'loose-comedy'].includes(plan.pacing.profile) || !Number.isSafeInteger(plan.pacing.interTurnMs) || plan.pacing.interTurnMs < 0) throw UsageError('Comic dialogue plan requires a supported deterministic pacing profile.')
   const turns = plan.nodes.flatMap(node => node.kind === 'turn' ? [node.turn] : node.turns)
   const turnIds = turns.map(turn => turn.turnId)
-  if (new Set(turnIds).size !== turnIds.length) throw CLIUsageError('Comic dialogue plan contains duplicate turn IDs.')
+  if (new Set(turnIds).size !== turnIds.length) throw UsageError('Comic dialogue plan contains duplicate turn IDs.')
   const sourceIdsByNode = plan.nodes.map(node => {
     const sourceIds = node.kind === 'turn' ? [node.turn.sourceSegmentId] : [...new Set(node.turns.map(turn => turn.sourceSegmentId))]
-    if (sourceIds.length !== 1) throw CLIUsageError('One comic overlap node must derive from one source segment.')
+    if (sourceIds.length !== 1) throw UsageError('One comic overlap node must derive from one source segment.')
     return sourceIds[0] as string
   })
-  if (new Set(sourceIdsByNode).size !== sourceIdsByNode.length) throw CLIUsageError('Comic dialogue plan speaks one source segment in more than one node.')
+  if (new Set(sourceIdsByNode).size !== sourceIdsByNode.length) throw UsageError('Comic dialogue plan speaks one source segment in more than one node.')
   for (const turn of turns) {
     if (!turn.turnId || !turn.sourceSegmentId || !turn.subjectKey || !turn.originalSpeakerLabel || !turn.canonicalText.trim()) {
-      throw CLIUsageError('Comic dialogue turns require stable source, subject, speaker, and non-empty text identity.')
+      throw UsageError('Comic dialogue turns require stable source, subject, speaker, and non-empty text identity.')
     }
     if (!turn.sourceSpans?.length || turn.sourceSpans.some(span => !Number.isSafeInteger(span.start) || !Number.isSafeInteger(span.end) || span.start < 0 || span.end <= span.start || span.indexUnit !== 'unicode-scalar-value' || !span.text)) {
-      throw CLIUsageError(`Comic dialogue turn ${turn.turnId} requires exact zero-based half-open Unicode source spans.`)
+      throw UsageError(`Comic dialogue turn ${turn.turnId} requires exact zero-based half-open Unicode source spans.`)
     }
     if (turn.timingCues?.some(cue => !['beat', 'pause', 'long-pause'].includes(cue.kind) || !Number.isSafeInteger(cue.afterTextOffset) || cue.afterTextOffset < 0 || cue.afterTextOffset > [...turn.canonicalText].length || !Number.isSafeInteger(cue.durationMs) || cue.durationMs <= 0 || cue.sourceSpan.kind !== 'timing')) {
-      throw CLIUsageError(`Comic dialogue turn ${turn.turnId} contains an invalid timing cue.`)
+      throw UsageError(`Comic dialogue turn ${turn.turnId} contains an invalid timing cue.`)
     }
   }
   for (const node of plan.nodes) {
     if (node.kind === 'overlap' && (node.turns.length < 2 || !node.groupId.trim())) {
-      throw CLIUsageError('Comic overlap nodes require a stable group ID and at least two child turns.')
+      throw UsageError('Comic overlap nodes require a stable group ID and at least two child turns.')
     }
   }
   assertContentIdentity(plan as unknown as Record<string, unknown>, 'dialoguePlanId', 'Comic dialogue plan')
@@ -141,19 +141,19 @@ const snapshotEntrySortKey = (entry: ApprovedVoiceSnapshotEntry): string => [
   entry.entryId,
 ].join('\0')
 
-export const validateApprovedVoiceSnapshotEntry = (entry: ApprovedVoiceSnapshotEntry): ApprovedVoiceSnapshotEntry => {
+const validateApprovedVoiceSnapshotEntry = (entry: ApprovedVoiceSnapshotEntry): ApprovedVoiceSnapshotEntry => {
   if (entry.registrationStateAtSnapshot !== 'approved-ready' || entry.providerVoice.provider !== entry.provider || !entry.subjectKey || !entry.profileKey) {
-    throw CLIUsageError('Voice snapshot entry must retain one approved-ready provider-qualified registration.')
+    throw UsageError('Voice snapshot entry must retain one approved-ready provider-qualified registration.')
   }
   if (!SHA256.test(entry.generationId) || !SHA256.test(entry.briefHash) || !SHA256.test(entry.auditionManifestHash) || !SHA256.test(entry.capabilityFixtureHash)) {
-    throw CLIUsageError('Voice snapshot entry requires immutable registration, brief, audition, and capability identities.')
+    throw UsageError('Voice snapshot entry requires immutable registration, brief, audition, and capability identities.')
   }
-  if (entry.settingsSchema !== entry.synthesisSettings.settingsSchema) throw CLIUsageError('Voice snapshot entry settings schema does not match its synthesis settings.')
+  if (entry.settingsSchema !== entry.synthesisSettings.settingsSchema) throw UsageError('Voice snapshot entry settings schema does not match its synthesis settings.')
   const expectedEntryHash = hashCanonicalRecordWithout(entry as unknown as Record<string, unknown>, ['entryId', 'entryHash'])
   const { entryId: _entryId, ...withoutEntryId } = entry
   const expectedEntryId = hashCanonicalTtsValue(withoutEntryId)
   if (entry.entryHash !== expectedEntryHash || entry.entryId !== expectedEntryId) {
-    throw CLIUsageError('Voice snapshot entry has invalid content identity.')
+    throw UsageError('Voice snapshot entry has invalid content identity.')
   }
   return entry
 }
@@ -168,33 +168,33 @@ export const createApprovedVoiceSnapshotEntry = (
 
 export const validateVoiceReferenceManifest = (manifest: VoiceReferenceManifest): VoiceReferenceManifest => {
   if (manifest.schemaVersion !== 1 || !SHA256.test(manifest.sceneRunIdentity) || !SHA256.test(manifest.dialoguePlanId) || !SHA256.test(manifest.catalogHash) || !SHA256.test(manifest.briefSetHash)) {
-    throw CLIUsageError('Voice reference manifest requires strict scene, dialogue, catalog, and brief identities.')
+    throw UsageError('Voice reference manifest requires strict scene, dialogue, catalog, and brief identities.')
   }
   assertIsoDate(manifest.createdAt, 'Voice reference manifest createdAt')
   manifest.entries.forEach(validateApprovedVoiceSnapshotEntry)
-  if (new Set(manifest.entries.map(entry => entry.entryId)).size !== manifest.entries.length) throw CLIUsageError('Voice reference manifest contains duplicate entries.')
+  if (new Set(manifest.entries.map(entry => entry.entryId)).size !== manifest.entries.length) throw UsageError('Voice reference manifest contains duplicate entries.')
   const bindingKeys = manifest.entries.map(entry => `${entry.provider}\0${entry.providerModel}\0${entry.profileKey}\0${entry.subjectKey}`)
-  if (new Set(bindingKeys).size !== bindingKeys.length) throw CLIUsageError('Voice reference manifest contains duplicate provider/model/profile/subject bindings.')
+  if (new Set(bindingKeys).size !== bindingKeys.length) throw UsageError('Voice reference manifest contains duplicate provider/model/profile/subject bindings.')
   const sorted = [...manifest.entries].sort((left, right) => snapshotEntrySortKey(left).localeCompare(snapshotEntrySortKey(right)))
-  if (canonicalTtsJson(sorted) !== canonicalTtsJson(manifest.entries)) throw CLIUsageError('Voice reference manifest entries must use canonical lexical order.')
+  if (canonicalTtsJson(sorted) !== canonicalTtsJson(manifest.entries)) throw UsageError('Voice reference manifest entries must use canonical lexical order.')
   assertContentIdentity(manifest as unknown as Record<string, unknown>, 'snapshotId', 'Voice reference manifest')
   return manifest
 }
 
 export const validateVoiceReferenceSnapshotIndex = (index: VoiceReferenceSnapshotIndex): VoiceReferenceSnapshotIndex => {
-  if (index.schemaVersion !== 1 || !Array.isArray(index.entries)) throw CLIUsageError('Voice snapshot index requires schemaVersion 1.')
+  if (index.schemaVersion !== 1 || !Array.isArray(index.entries)) throw UsageError('Voice snapshot index requires schemaVersion 1.')
   const keys = new Set<string>()
   const renderIds = new Map<string, string>()
   for (const entry of index.entries) {
-    if (!SHA256.test(entry.sceneRunIdentity) || !SHA256.test(entry.dialoguePlanId) || !SHA256.test(entry.snapshotId) || !Array.isArray(entry.renderIdentities) || entry.renderIdentities.some(renderIdentity => !SHA256.test(renderIdentity))) throw CLIUsageError('Voice snapshot index contains an invalid content identity.')
-    if (new Set(entry.renderIdentities).size !== entry.renderIdentities.length) throw CLIUsageError('Voice snapshot index contains duplicate render identities.')
+    if (!SHA256.test(entry.sceneRunIdentity) || !SHA256.test(entry.dialoguePlanId) || !SHA256.test(entry.snapshotId) || !Array.isArray(entry.renderIdentities) || entry.renderIdentities.some(renderIdentity => !SHA256.test(renderIdentity))) throw UsageError('Voice snapshot index contains an invalid content identity.')
+    if (new Set(entry.renderIdentities).size !== entry.renderIdentities.length) throw UsageError('Voice snapshot index contains duplicate render identities.')
     assertIsoDate(entry.createdAt, 'Voice snapshot index createdAt')
     const key = `${entry.sceneRunIdentity}\0${entry.dialoguePlanId}\0${entry.snapshotId}`
-    if (keys.has(key)) throw CLIUsageError('Voice snapshot index contains duplicate scene/dialogue/snapshot entries.')
+    if (keys.has(key)) throw UsageError('Voice snapshot index contains duplicate scene/dialogue/snapshot entries.')
     keys.add(key)
     for (const renderIdentity of entry.renderIdentities) {
       const prior = renderIds.get(renderIdentity)
-      if (prior && prior !== entry.snapshotId) throw CLIUsageError('One render identity cannot map to multiple voice snapshots.')
+      if (prior && prior !== entry.snapshotId) throw UsageError('One render identity cannot map to multiple voice snapshots.')
       renderIds.set(renderIdentity, entry.snapshotId)
     }
   }

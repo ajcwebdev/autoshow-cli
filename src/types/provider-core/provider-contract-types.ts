@@ -18,7 +18,6 @@ export type PipelineProviderState = {
   operation?: string | undefined
   targetKey?: string | undefined
   transport?: string | undefined
-  legacyRenderIdentity?: string | undefined
   artifactDir: string
   status: PipelineProviderStatus
   attempts: number

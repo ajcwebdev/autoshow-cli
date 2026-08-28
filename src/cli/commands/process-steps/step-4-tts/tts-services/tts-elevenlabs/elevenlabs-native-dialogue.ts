@@ -1,6 +1,11 @@
 import type {
+  ElevenLabsDialogueTimingResponse,
+  ElevenLabsNativeDialogueBatch,
+  ElevenLabsNativeDialogueTurn,
+  ElevenLabsPreparedDialogueTurn,
   ElevenlabsTtsModel,
   ElevenLabsTtsRequestControls,
+  ElevenLabsVoiceSegment,
   HostedTtsChunkScheduler,
   NormalizedTiming,
   PreparedProviderText,
@@ -8,37 +13,19 @@ import type {
   TtsRequestEvidenceScope,
 } from '~/types'
 import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { concatAndConvertToWav } from '../../tts-utils/audio-utils'
 import { finalizeTtsRun } from '../../tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '../../tts-utils/hosted-tts-retry'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { providerSecondsToMilliseconds } from '../../script-to-audio/advanced-provider-contracts'
-import { readElevenLabsError } from './elevenlabs-utils'
+import { ELEVENLABS_TTS_OUTPUT_FORMAT, readElevenLabsError } from './elevenlabs-utils'
+import { canonicalOffsetForProviderOffset } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-timing-mapping'
 
-export const ELEVENLABS_NATIVE_DIALOGUE_MAX_CHARACTERS = 2000
-export const ELEVENLABS_NATIVE_DIALOGUE_MAX_VOICES = 10
-
-export type ElevenLabsNativeDialogueTurn = {
-  turnId: string
-  subjectKey: string
-  speaker: string
-  canonicalText: string
-  voiceId: string
-  delivery?: string | undefined
-}
-
-export type ElevenLabsPreparedDialogueTurn = ElevenLabsNativeDialogueTurn & {
-  preparedText: PreparedProviderText
-}
-
-export type ElevenLabsNativeDialogueBatch = {
-  batchIndex: number
-  turns: ElevenLabsPreparedDialogueTurn[]
-  providerText: string
-}
+const ELEVENLABS_NATIVE_DIALOGUE_MAX_CHARACTERS = 2000
+const ELEVENLABS_NATIVE_DIALOGUE_MAX_VOICES = 10
 
 const ELEVENLABS_DOCUMENTED_ACTION_TAGS = [
   { tag: 'whispers', pattern: /\b(?:whisper(?:s|ed|ing)?|softly|quiet(?:ly)?|under (?:his|her|their) breath)\b/i },
@@ -92,7 +79,7 @@ export const planElevenLabsNativeDialogueBatches = (
   turns: readonly ElevenLabsNativeDialogueTurn[],
   maxCharacters = ELEVENLABS_NATIVE_DIALOGUE_MAX_CHARACTERS
 ): ElevenLabsNativeDialogueBatch[] => {
-  if (!Number.isInteger(maxCharacters) || maxCharacters < 1) throw CLIUsageError('ElevenLabs native dialogue character limit must be a positive integer.')
+  if (!Number.isInteger(maxCharacters) || maxCharacters < 1) throw UsageError('ElevenLabs native dialogue character limit must be a positive integer.')
   const prepared = turns.map(turn => ({ ...turn, preparedText: prepareElevenLabsDialogueText(turn.canonicalText, turn.delivery) }))
   const batches: ElevenLabsNativeDialogueBatch[] = []
   let current: ElevenLabsPreparedDialogueTurn[] = []
@@ -107,7 +94,7 @@ export const planElevenLabsNativeDialogueBatches = (
   }
   for (const turn of prepared) {
     const length = [...turn.preparedText.providerText].length
-    if (length > maxCharacters) throw CLIUsageError(`ElevenLabs native dialogue turn ${turn.turnId} exceeds the ${maxCharacters}-character turn-safe boundary.`)
+    if (length > maxCharacters) throw UsageError(`ElevenLabs native dialogue turn ${turn.turnId} exceeds the ${maxCharacters}-character turn-safe boundary.`)
     const wouldAddVoice = !voices.has(turn.voiceId)
     if (current.length > 0 && (characters + length > maxCharacters || (wouldAddVoice && voices.size >= ELEVENLABS_NATIVE_DIALOGUE_MAX_VOICES))) flush()
     current.push(turn)
@@ -118,37 +105,8 @@ export const planElevenLabsNativeDialogueBatches = (
   return batches
 }
 
-type ElevenLabsAlignment = {
-  characters?: unknown
-  character_start_times_seconds?: unknown
-  character_end_times_seconds?: unknown
-}
-type ElevenLabsVoiceSegment = {
-  start_time_seconds?: unknown
-  end_time_seconds?: unknown
-  character_start_index?: unknown
-  character_end_index?: unknown
-  dialogue_input_index?: unknown
-}
-export type ElevenLabsDialogueTimingResponse = {
-  voice_segments?: unknown
-  alignment?: ElevenLabsAlignment | null | undefined
-  normalized_alignment?: ElevenLabsAlignment | null | undefined
-}
-
 const numberAt = (value: unknown, index: number): number | undefined => Array.isArray(value) && typeof value[index] === 'number' ? value[index] : undefined
 
-const canonicalOffsetForProviderOffset = (prepared: PreparedProviderText, providerOffset: number): number | undefined => {
-  for (const span of prepared.spans) {
-    if (span.kind !== 'mapped' || span.providerStart === undefined || span.providerEnd === undefined || span.canonicalStart === undefined || span.canonicalEnd === undefined) continue
-    if (providerOffset < span.providerStart || providerOffset >= span.providerEnd) continue
-    const providerWidth = span.providerEnd - span.providerStart
-    const canonicalWidth = span.canonicalEnd - span.canonicalStart
-    if (providerWidth !== canonicalWidth) return undefined
-    return span.canonicalStart + (providerOffset - span.providerStart)
-  }
-  return undefined
-}
 
 export const normalizeElevenLabsDialogueTiming = (input: {
   response: ElevenLabsDialogueTimingResponse
@@ -164,7 +122,7 @@ export const normalizeElevenLabsDialogueTiming = (input: {
     if (starts.length === 0 || ends.length === 0) return undefined
     const startMs = Math.min(...starts)
     const endMs = Math.max(...ends)
-    if (endMs < startMs) throw CLIUsageError('ElevenLabs dialogue timing contains a reversed voice segment.')
+    if (endMs < startMs) throw UsageError('ElevenLabs dialogue timing contains a reversed voice segment.')
     return { turnId: turn.turnId, subjectKey: turn.subjectKey, startMs, endMs }
   })
   if (turns.some(turn => turn === undefined)) {
@@ -197,7 +155,7 @@ export const normalizeElevenLabsDialogueTiming = (input: {
     const canonicalStart = canonicalOffsetForProviderOffset(turn.preparedText, providerStart)
     const startMs = providerSecondsToMilliseconds(startSeconds, input.durationMs)
     const endMs = providerSecondsToMilliseconds(endSeconds, input.durationMs)
-    if (endMs < startMs) throw CLIUsageError('ElevenLabs character alignment contains a reversed range.')
+    if (endMs < startMs) throw UsageError('ElevenLabs character alignment contains a reversed range.')
     return [{ turnId: turn.turnId, subjectKey: turn.subjectKey, text: character, startMs, endMs, ...(canonicalStart === undefined ? {} : { canonicalStart, canonicalEnd: canonicalStart + 1 }), providerStart, providerEnd: providerStart + 1 }]
   })
   return { availability: 'timed', clock: 'take-audio-ms', provenance: 'provider-alignment', turns: turns as Array<{ turnId: string, subjectKey: string, startMs: number, endMs: number }>, ...(timedCharacters.length > 0 ? { characters: timedCharacters } : {}) }
@@ -214,11 +172,11 @@ export const runElevenLabsNativeDialogue = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  if (options.model !== 'eleven_v3') throw CLIUsageError('ElevenLabs native Text-to-Dialogue requires model eleven_v3.')
-  if (turns.length === 0) throw CLIUsageError('ElevenLabs native Text-to-Dialogue requires at least one turn.')
-  const apiKey = requireApiKey('ELEVENLABS_API_KEY', 'tts:elevenlabs', 'ElevenLabs Text-to-Dialogue')
+  if (options.model !== 'eleven_v3') throw UsageError('ElevenLabs native Text-to-Dialogue requires model eleven_v3.')
+  if (turns.length === 0) throw UsageError('ElevenLabs native Text-to-Dialogue requires at least one turn.')
+  const apiKey = resolveCredential('elevenlabs', 'require', { stage: 'tts:elevenlabs', description: 'ElevenLabs Text-to-Dialogue' })
   const batches = planElevenLabsNativeDialogueBatches(turns)
-  const outputFormat = options.controls?.outputFormat?.trim() || 'mp3_44100_128'
+  const outputFormat = ELEVENLABS_TTS_OUTPUT_FORMAT
   const paths: string[] = []
   let completed = false
   const startedAt = Date.now()

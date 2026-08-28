@@ -6,7 +6,8 @@ import { mistralJsonRequest } from '~/utils/mistral/mistral-client'
 import { createOpenAIResponse } from '~/utils/openai/openai-client'
 import { runReplicatePrediction } from '~/utils/replicate-client/replicate-prediction'
 import { setHttpCaptureBytesForTests } from '~/utils/bounded-capture'
-import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import type { ClientCase } from '~/types'
 
 setupContractSuiteLifecycle({
   envKeys: [],
@@ -16,14 +17,6 @@ setupContractSuiteLifecycle({
     ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
   }
 })
-
-type ClientCase = {
-  name: string
-  request: () => Promise<unknown>
-  errorName: string
-  appError: boolean
-  bodyPolicy: 'raw-text' | 'parsed'
-}
 
 const clients: ClientCase[] = [
   {
@@ -35,8 +28,7 @@ const clients: ClientCase[] = [
       errorMessagePrefix: 'Mistral matrix request failed',
       body: { input: 'hello' }
     }),
-    errorName: 'Error',
-    appError: false,
+    errorName: 'AppProviderError',
     bodyPolicy: 'raw-text'
   },
   {
@@ -45,8 +37,7 @@ const clients: ClientCase[] = [
       { apiKey: 'anthropic-key', baseURL: 'https://mock.anthropic.local' },
       { model: 'claude-test', max_tokens: 16, messages: [{ role: 'user', content: 'hello' }] }
     ),
-    errorName: 'Error',
-    appError: false,
+    errorName: 'AppProviderError',
     bodyPolicy: 'raw-text'
   },
   {
@@ -56,7 +47,6 @@ const clients: ClientCase[] = [
       { model: 'gpt-test', input: 'hello' }
     ),
     errorName: 'OpenAIRestError',
-    appError: false,
     bodyPolicy: 'raw-text'
   },
   {
@@ -69,7 +59,6 @@ const clients: ClientCase[] = [
       operationName: 'replicate-matrix'
     }),
     errorName: 'ReplicateRestError',
-    appError: true,
     bodyPolicy: 'parsed'
   },
   {
@@ -79,19 +68,12 @@ const clients: ClientCase[] = [
       contents: 'hello'
     }),
     errorName: 'GeminiRestError',
-    appError: false,
     bodyPolicy: 'parsed'
   }
 ]
 
-const captureError = async (client: ClientCase): Promise<Error & Record<string, unknown>> => {
-  try {
-    await client.request()
-    throw new Error(`Expected ${client.name} request to fail`)
-  } catch (error) {
-    return error as Error & Record<string, unknown>
-  }
-}
+const captureError = async (client: ClientCase): Promise<Error & Record<string, unknown>> =>
+  await expectProviderHttpError(client.request) as Error & Record<string, unknown>
 
 describe('provider REST client differential contracts', () => {
   for (const client of clients) {
@@ -110,14 +92,16 @@ describe('provider REST client differential contracts', () => {
 
       const jsonError = await captureError(client)
       expect(jsonError.name).toBe(client.errorName)
-      expect(jsonError instanceof AppError).toBe(client.appError)
+      expect(jsonError instanceof AppError).toBe(true)
+      expect((jsonError as unknown as AppError).kind).toBe('provider_http')
       expect(jsonError['status']).toBe(400)
       expect((jsonError['headers'] as Headers).get('retry-after')).toBe('3')
       expect(jsonError.message).toContain('matrix JSON failure')
 
       const textError = await captureError(client)
       expect(textError.name).toBe(client.errorName)
-      expect(textError instanceof AppError).toBe(client.appError)
+      expect(textError instanceof AppError).toBe(true)
+      expect((textError as unknown as AppError).kind).toBe('provider_http')
       expect(textError['status']).toBe(418)
       expect((textError['headers'] as Headers).get('retry-after')).toBe('4')
       expect(textError.message).toContain('matrix text failure')
@@ -160,6 +144,18 @@ describe('provider REST client differential contracts', () => {
     const replicateError = await captureError(clients[3] as ClientCase)
     expect(replicateError.name).toBe('AbortError')
     expect(replicateCalls).toHaveLength(1)
+  })
+
+  test('every provider client disables Bun\'s default fetch idle timeout', async () => {
+    for (const client of clients) {
+      let capturedInit: Parameters<typeof fetch>[1]
+      installMockFetch((_call, _input, init) => {
+        capturedInit = init
+        return new Response(JSON.stringify({ error: { code: 400, message: 'init capture' } }), { status: 400 })
+      })
+      await captureError(client)
+      expect((capturedInit as { timeout?: unknown } | undefined)?.timeout).toBe(false)
+    }
   })
 
   test('Gemini keeps its established successful-response JSON validation message', async () => {

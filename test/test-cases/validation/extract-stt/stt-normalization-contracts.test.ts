@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parseWhisperJson, extractWhisperWords } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/parse-whisper-output'
 import {
@@ -9,19 +8,16 @@ import {
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-timing-quality'
 import type { MetricName, SttNormalizationMetricRankingEntry } from '~/types'
 import { writeMultiProviderManifestFixture } from '../../../test-utils/manifest-helpers'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
+import { readBunSpawnStreamText as readStreamText } from '../../../test-utils/stream-text'
 
 const tempDirs: string[] = []
 
 const makeTempRoot = async (): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), 'autoshow-stt-normalization-'))
+  const root = await makeTempDir('autoshow-stt-normalization-')
   tempDirs.push(root)
   return root
 }
-
-const readStreamText = async (
-  stream: ReadableStream<Uint8Array> | number | undefined | null
-): Promise<string> =>
-  stream && typeof stream !== 'number' ? await new Response(stream).text() : ''
 
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))

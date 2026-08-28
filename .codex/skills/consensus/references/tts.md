@@ -36,4 +36,4 @@ Compatibility aliases are preserved:
 
 Automated quality uses roundtrip WER-derived accuracy when available, including median roundtrip WER from `voice-quality-report.json`. Human quality uses `humanSpeechScore` from `voice-quality-report.json`. Duration, bitrate, file size, and subjective judgment are not quality proxies.
 
-Markdown should use Local Models and Third-Party Service Models sections and should not describe TTS ranking surfaces as “Top 3”.
+Markdown should use Local Models and Third-Party Service Models sections and should not describe TTS ranking surfaces as “Top 3”. Normalized TTS JSON and markdown omit overall ranking and model-tier output.

@@ -27,20 +27,15 @@ export const ocrRegistry: PriceSelectionEntry[] = [
     command('extract-deepinfra-qwen3-vl-235b-a22b-instruct', 'extract-deepinfra-qwen3-vl-235b-a22b-instruct', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=Qwen/Qwen3-VL-235B-A22B-Instruct', '--price']),
     command('extract-deepinfra-qwen3-vl-30b-a3b-instruct', 'extract-deepinfra-Qwen/Qwen3-VL-30B-A3B-Instruct', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct', '--price']),
   ]),
-  ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-replicate.test.ts', [
-    command('extract-replicate-datalab-to/ocr', 'extract-replicate-datalab-to/ocr', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'replicate=datalab-to/ocr', '--price']),
-    command('extract-replicate-datalab-to/marker', 'extract-replicate-datalab-to/marker', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'replicate=datalab-to/marker', '--price']),
-    command('extract-replicate-lucataco/deepseek-ocr', 'extract-replicate-lucataco/deepseek-ocr', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'replicate=lucataco/deepseek-ocr', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-fal.test.ts', [
-    command('extract-fal-fal-ai/got-ocr/v2', 'extract-fal-fal-ai/got-ocr/v2', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'fal=fal-ai/got-ocr/v2', '--price']),
-  ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/openai-gpt-5.5.test.ts', [
     command('extract-openai-gpt-5.5', 'extract-openai-gpt-5.5', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/benchmarks/ocr/1-document.png', '--provider', 'openai=gpt-5.5', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/grok-4.3.test.ts', [
     command('extract-grok-grok-4.3', 'extract-grok-grok-4.3', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/benchmarks/ocr/1-document.png', '--provider', 'grok=grok-4.3', '--price']),
     command('extract-grok-grok-4.20-0309-non-reasoning', 'extract-grok-grok-4.20-0309-non-reasoning', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'grok=grok-4.20-0309-non-reasoning', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/grok-4.6.test.ts', [
+    command('extract-grok-grok-4.6', 'extract-grok-grok-4.6', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/benchmarks/ocr/1-document.png', '--provider', 'grok=grok-4.6', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/anthropic-claude-opus-4-8.test.ts', [
     command('extract-anthropic-claude-opus-4-8', 'extract-anthropic-claude-opus-4-8', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/benchmarks/ocr/1-document.png', '--provider', 'anthropic=claude-opus-4-8', '--price']),
@@ -49,16 +44,22 @@ export const ocrRegistry: PriceSelectionEntry[] = [
     command('extract-anthropic-claude-sonnet-5', 'extract-anthropic-claude-sonnet-5', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'anthropic=claude-sonnet-5', '--price']),
     command('extract-anthropic-claude-haiku-4-5', 'extract-anthropic-claude-haiku-4-5', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'anthropic=claude-haiku-4-5', '--price']),
   ]),
+  ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/anthropic-claude-sonnet-4-6.test.ts', [
+    command('extract-anthropic-claude-sonnet-4-6', 'extract-anthropic-claude-sonnet-4-6', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'anthropic=claude-sonnet-4-6', '--price']),
+  ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/gemini-3.1-pro-preview.test.ts', [
     command('extract-gemini-gemini-3.1-pro-preview', 'extract-gemini-gemini-3.1-pro-preview', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/benchmarks/ocr/1-document.png', '--provider', 'gemini=gemini-3.1-pro-preview', '--price']),
   ]),
+  ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/gemini-3.7-flash.test.ts', [
+    command('extract-gemini-gemini-3.7-flash', 'extract-gemini-gemini-3.7-flash', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'gemini=gemini-3.7-flash', '--price']),
+  ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-supadata.test.ts', [
-    command('extract-supadata-url', 'extract-supadata-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--url-provider', 'supadata', '--price']),
+    command('extract-supadata-url', 'extract-supadata-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--provider', 'supadata', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-firecrawl.test.ts', [
-    command('extract-firecrawl-url', 'extract-firecrawl-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--url-provider', 'firecrawl', '--price']),
+    command('extract-firecrawl-url', 'extract-firecrawl-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--provider', 'firecrawl', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-glm-reader.test.ts', [
-    command('extract-glm-reader-url', 'extract-glm-reader-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--url-provider', 'glm-reader', '--price']),
+    command('extract-glm-reader-url', 'extract-glm-reader-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--provider', 'glm-reader', '--price']),
   ]),
 ]

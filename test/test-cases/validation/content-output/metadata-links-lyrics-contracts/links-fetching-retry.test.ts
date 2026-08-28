@@ -1,17 +1,15 @@
 import { expect, test } from 'bun:test'
-import {
-  chmod,
-  mkdtemp,
-  rm,
-  writeFile
-} from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { rm } from 'node:fs/promises'
 import {
   runLinksWithArgv
 } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
+import { writeFakeDefuddleBinIn } from '../../../../test-utils/fixtures/fake-defuddle-bin'
+import type { ConsoleCapture } from '~/types'
+import { captureConsole } from '../../../../test-utils/console-capture'
 import { BLOB_PREFIXED_DOC_FETCH_LINK, BLOB_PREFIXED_DOC_LINK, linksTestOutputPath } from './shared'
+import { withEnv } from '../../../../test-utils/rest-contract-helpers'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const LINKS_RETRY_TEST_URL = 'https://elevenlabs.io/docs/overview/models.md'
 
@@ -58,19 +56,12 @@ const expectLinksRetryScenario = async (options: {
 }
 
 const writeLinksFakeDefuddleBin = async (): Promise<{ dir: string, bin: string }> => {
-  const dir = await mkdtemp(join(tmpdir(), 'autoshow-links-fake-defuddle-'))
-  const bin = join(dir, 'defuddle')
-  await writeFile(bin, [
-    '#!/usr/bin/env bun',
-    "import { readFileSync } from 'node:fs'",
-    'const args = process.argv.slice(2)',
-    "if (args[0] === '--version') { console.log('0.17.0'); process.exit(0) }",
-    "if (process.env.AUTOSHOW_FAKE_DEFUDDLE_STDERR) console.error(process.env.AUTOSHOW_FAKE_DEFUDDLE_STDERR)",
+  const dir = await makeTempDir('autoshow-links-fake-defuddle-')
+  const bin = await writeFakeDefuddleBinIn(dir, [
     "const html = readFileSync(args[1], 'utf8')",
     "const text = html.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim()",
     "console.log(JSON.stringify({ contentMarkdown: text, title: 'Links Defuddle Fixture', wordCount: text.split(/\\s+/).filter(Boolean).length }))"
-  ].join('\n'))
-  await chmod(bin, 0o755)
+  ], ["import { readFileSync } from 'node:fs'"])
   return { dir, bin }
 }
 
@@ -134,42 +125,35 @@ test('links captures defuddle CLI diagnostics for fetched html', async () => {
   const outputPath = linksTestOutputPath('defuddle-diagnostic')
   const words = Array.from({ length: 40 }, (_, index) => `word${index}`).join(' ')
   const html = `<!doctype html><html><body><div class="hidden bad[">${words}</div></body></html>`
-  const consoleErrors: string[] = []
-  const originalConsoleError = console.error
   const previousBinDir = getConfiguredBinDir()
-  const previousDefuddleStderr = process.env['AUTOSHOW_FAKE_DEFUDDLE_STDERR']
   const fakeDefuddle = await writeLinksFakeDefuddleBin()
-  console.error = (...args: Parameters<typeof console.error>): void => {
-    consoleErrors.push(args.map(String).join(' '))
-  }
   configureBinDir(fakeDefuddle.dir)
-  process.env['AUTOSHOW_FAKE_DEFUDDLE_STDERR'] = 'Defuddle Error processing document: captured by wrapper'
+  let captured: ConsoleCapture = { stdout: [], stderr: [] }
 
   try {
-    await runLinksWithArgv([
-      'bun',
-      'src/cli/create-cli.ts',
-      'links',
-      BLOB_PREFIXED_DOC_LINK
-    ], {
-      outputPath,
-      fetchImpl: async (): Promise<Response> => new Response(html, {
-        headers: { 'content-type': 'text/html' }
+    captured = await withEnv(
+      { AUTOSHOW_FAKE_DEFUDDLE_STDERR: 'Defuddle Error processing document: captured by wrapper' },
+      async () => await captureConsole(async () => {
+        await runLinksWithArgv([
+          'bun',
+          'src/cli/create-cli.ts',
+          'links',
+          BLOB_PREFIXED_DOC_LINK
+        ], {
+          outputPath,
+          fetchImpl: async (): Promise<Response> => new Response(html, {
+            headers: { 'content-type': 'text/html' }
+          })
+        })
       })
-    })
+    )
   } finally {
-    console.error = originalConsoleError
     configureBinDir(previousBinDir ?? '')
-    if (previousDefuddleStderr === undefined) {
-      delete process.env['AUTOSHOW_FAKE_DEFUDDLE_STDERR']
-    } else {
-      process.env['AUTOSHOW_FAKE_DEFUDDLE_STDERR'] = previousDefuddleStderr
-    }
     await rm(fakeDefuddle.dir, { recursive: true, force: true })
   }
 
   const output = await Bun.file(outputPath).text()
   expect(output).toContain(`<!-- Source: ${BLOB_PREFIXED_DOC_LINK} -->`)
   expect(output).toContain('word0 word1 word2')
-  expect(consoleErrors.join('\n')).not.toContain('Defuddle Error processing document')
+  expect(captured.stderr.join('\n')).not.toContain('Defuddle Error processing document')
 })

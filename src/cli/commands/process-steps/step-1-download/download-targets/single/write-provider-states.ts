@@ -54,7 +54,7 @@ export const buildWriteSttProviderStates = (ctx: BuildWriteSttProviderStatesCont
         artifactDir: target.service === YOUTUBE_CAPTIONS_SERVICE ? '.' : `providers/${getSttTargetDirectoryName(target)}`,
         status: failure.skipped === true ? 'skipped' : 'failed',
         attempts: 1,
-        lastError: {
+        error: {
           message: failure.message,
           ...(failure.skipped === true ? { skipped: true } : {}),
           ...(failure.stage ? { stage: failure.stage } : {}),

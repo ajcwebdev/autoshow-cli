@@ -10,15 +10,15 @@ import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { pick } from '~/utils/cli-utils'
 
 export const STT_MODEL_KEYS = [
-  'whisperModels', 'whisperModel', 'whisperfileModels', 'whisperfileModel',
-  'deepinfraSttModels', 'deepinfraSttModel', 'groqSttModels', 'groqSttModel',
-  'grokSttModels', 'grokSttModel', 'deepgramSttModels', 'deepgramSttModel',
-  'sonioxSttModels', 'sonioxSttModel', 'speechmaticsSttModels', 'speechmaticsSttModel',
-  'revSttModels', 'revSttModel', 'mistralSttModels', 'mistralSttModel',
-  'assemblyaiSttModels', 'assemblyaiSttModel', 'gladiaSttModels', 'gladiaSttModel',
-  'happyscribeSttModels', 'happyscribeSttModel', 'supadataSttModels', 'supadataSttModel',
-  'scrapecreatorsSttModels', 'scrapecreatorsSttModel', 'geminiSttModels', 'geminiSttModel',
-  'togetherSttModels', 'togetherSttModel',
+  'whisperModels', 'whisperfileModels',
+  'deepinfraSttModels', 'groqSttModels',
+  'grokSttModels', 'deepgramSttModels',
+  'sonioxSttModels', 'speechmaticsSttModels',
+  'mistralSttModels',
+  'assemblyaiSttModels', 'gladiaSttModels',
+  'happyscribeSttModels', 'supadataSttModels',
+  'scrapecreatorsSttModels', 'geminiSttModels',
+  'togetherSttModels',
 ] as const satisfies readonly SttRuntimeOptionKey[]
 
 export const buildSttOptions = (ctx: ResolvedFlagContext): SttRuntimeOptions => {

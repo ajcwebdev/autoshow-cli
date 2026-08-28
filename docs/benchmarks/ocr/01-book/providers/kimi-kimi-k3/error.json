@@ -1,0 +1,44 @@
+{
+  "message": "Kimi OCR response for input image stopped at the max completion token limit before finishing.",
+  "category": "provider_limit",
+  "failureKind": "provider_limit",
+  "retryable": false,
+  "blockedReason": "provider_limit",
+  "stage": "ocr:structured-response",
+  "rawResponseFile": "invalid-structured-response.txt",
+  "error": {
+    "name": "AppError",
+    "message": "kimi-ocr input image failed after 2/2 attempts (max attempts reached, 597839ms elapsed)",
+    "stack": "AppError: kimi-ocr input image failed after 2/2 attempts (max attempts reached, 597839ms elapsed)\n    at <anonymous> (/Users/ajc/c/autoshow-cli/src/utils/retries.ts:437:13)\n    at processTicksAndRejections (native:7:39)",
+    "kind": "retry_exhausted",
+    "hints": [],
+    "exitCode": 1,
+    "stage": "ocr:structured-response",
+    "retryClass": "runtime_http_create_retriable",
+    "retryable": false,
+    "metadata": {
+      "stage": "ocr:structured-response",
+      "retryable": false,
+      "category": "provider_limit",
+      "rawResponse": "",
+      "attemptsMade": 2,
+      "maxAttempts": 2,
+      "elapsedMs": 597839,
+      "stopReason": "max attempts reached",
+      "retryClass": "runtime_http_create_retriable"
+    },
+    "cause": {
+      "name": "OcrStructuredResponseError",
+      "message": "Kimi OCR response for input image stopped at the max completion token limit before finishing.",
+      "stack": "OcrStructuredResponseError: Kimi OCR response for input image stopped at the max completion token limit before finishing.\n    at buildTruncatedResponseError (/Users/ajc/c/autoshow-cli/src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/kimi-ocr/run-kimi-ocr.ts:38:21)\n    at checkResponse (/Users/ajc/c/autoshow-cli/src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/kimi-ocr/run-kimi-ocr.ts:71:13)\n    at <anonymous> (/Users/ajc/c/autoshow-cli/src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/chat-image-ocr.ts:64:17)\n    at processTicksAndRejections (native:7:39)",
+      "kind": "validation",
+      "hints": [],
+      "exitCode": 1,
+      "stage": "ocr:structured-response",
+      "retryable": false,
+      "metadata": {},
+      "rawResponse": "",
+      "category": "provider_limit"
+    }
+  }
+}

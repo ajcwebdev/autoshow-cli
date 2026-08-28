@@ -15,10 +15,10 @@ import { appendChapterExportArtifacts, buildExtractionCallOpts } from './documen
 
 const warnHtmlArticleFlagBehavior = (target: string, opts: OcrSelectionOptions, backend: PreparedDocument['htmlArticleBackend']): void => {
   if (hasConfiguredOcrProviderSelection(opts)) {
-    l.warn(formatHtmlArticleOcrFlagsIgnoredWarning(target))
+    l.warn(formatHtmlArticleOcrFlagsIgnoredWarning(target), { category: 'pipeline' })
   }
   if (backend && backend !== 'defuddle') {
-    l.write('info', `Article extraction backend: ${getHtmlArticleBackendDisplayName(backend)}`)
+    l.write('info', `Article extraction backend: ${getHtmlArticleBackendDisplayName(backend)}`, { category: 'pipeline', metadata: { backend } })
   }
 }
 
@@ -218,19 +218,10 @@ export const processOcrSingle = async (
   const artifactFiles: Record<string, string> = {
     manifest: 'manifest.json'
   }
-  switch (opts.out) {
-    case 'json':
-      artifactFiles['result'] = 'result.json'
-      break
-    case 'tsv':
-      artifactFiles['extraction'] = 'extraction.tsv'
-      break
-    case 'hocr':
-      artifactFiles['extraction'] = 'extraction.hocr'
-      break
-    default:
-      artifactFiles['extraction'] = 'extraction.txt'
-      break
+  if (opts.out === 'json') {
+    artifactFiles['result'] = 'result.json'
+  } else {
+    artifactFiles['extraction'] = 'extraction.txt'
   }
   await appendChapterExportArtifacts(artifactFiles, extraction.step2Metadata, extraction.outputDir)
 

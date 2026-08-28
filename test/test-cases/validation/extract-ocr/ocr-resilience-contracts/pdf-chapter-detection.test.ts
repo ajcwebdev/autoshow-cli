@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { appendChapterExportArtifacts } from '~/cli/commands/process-steps/step-1-download/download-targets/single/document-write'
 import { writeProviderArtifacts } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/process-ocr'
@@ -9,6 +8,7 @@ import { buildPdfChapterFiles } from '~/cli/commands/process-steps/step-2-extrac
 import { buildChapterSlug, cleanDetectedChapterTitle } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/pdf/ocr-chapters/text'
 import { parseTocEntriesFromPage } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/pdf/ocr-chapters/toc'
 import type { ExtractionMetadata, ExtractionResult, PageResult } from '~/types'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const page = (pageNumber: number, text: string): PageResult => ({
   pageNumber,
@@ -273,7 +273,7 @@ describe('OCR PDF chapter detection contracts', () => {
   })
 
   test('provider chapter artifact metadata agrees with filesystem output', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-pdf-provider-chapters-'))
+    const tempDir = await makeTempDir('autoshow-pdf-provider-chapters-')
     const files = buildPdfChapterFiles([
       page(11, 'Introduction\nOpening body.')
     ], [{
@@ -289,48 +289,11 @@ describe('OCR PDF chapter detection contracts', () => {
       ocrPages: 1,
       textPages: 0
     }
-    const metadata: ExtractionMetadata = {
-      extractionMethod: 'pdf+gemini-ocr',
-      totalPages: 11,
-      ocrPages: 1,
-      textPages: 0,
-      processingTime: 100,
-      dpi: 300,
-      languages: 'eng',
-      tokenEstimate: 2,
-      ocrService: 'gemini',
-      ocrModel: 'gemini-3.5-flash',
-      chapterExport: {
-        sourceFormat: 'pdf',
-        mode: 'chapters',
-        sectionsKept: 1,
-        sectionsDropped: 0,
-        dividerSectionsMerged: 0,
-        filesWritten: files.length,
-        chapterFilesWritten: files.length,
-        directories: ['chapters']
-      },
-      pdfChapterDetection: {
-        mode: 'local',
-        strategyUsed: 'toc',
-        overallConfidence: 0.9,
-        warnings: [],
-        tocPages: [3],
-        pageMapSpans: [],
-        chapters: [{
-          title: 'Introduction',
-          pdfStartPage: 11,
-          source: 'toc',
-          confidence: 0.9
-        }]
-      }
-    }
 
     try {
       await writeProviderArtifacts(
         tempDir,
         result,
-        metadata,
         'json',
         files
       )
@@ -346,7 +309,7 @@ describe('OCR PDF chapter detection contracts', () => {
   })
 
   test('root chapter artifacts are only advertised when root directories exist', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-root-chapter-artifacts-'))
+    const tempDir = await makeTempDir('autoshow-root-chapter-artifacts-')
     const artifactFiles: Record<string, string> = { manifest: 'manifest.json' }
     const metadata: ExtractionMetadata = {
       extractionMethod: 'pdf+gemini-ocr',

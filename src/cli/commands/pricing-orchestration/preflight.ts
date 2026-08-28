@@ -1,13 +1,8 @@
-import type { CommandPricingOptions, PreflightResult, ProcessCommand } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import type { CommandPricingOptions, PreflightBudgetOptions, PreflightResult, ProcessCommand } from '~/types'
+import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { buildAggregatedPriceEstimate } from './aggregate-pricing'
-
-type PreflightBudgetOptions = {
-  price: boolean
-  allowOverBudget: boolean
-}
 
 export const evaluatePreflightEstimate = (
   estimate: PreflightResult['estimate'],
@@ -22,7 +17,7 @@ export const evaluatePreflightEstimate = (
 
   if (maxCents !== undefined && estimate.totalEstimatedCost > maxCents) {
     if (!opts.allowOverBudget) {
-      throw CLIUsageError(
+      throw UsageError(
         `Estimated cost ${formatCents(estimate.totalEstimatedCost)} exceeds configured budget ${formatCents(maxCents)}. Use --allow-over-budget to proceed.`
       )
     }

@@ -1,6 +1,6 @@
 import type { ActualCostBreakdown, EstimatedCostBreakdown, ProviderCompletionStatus, ProviderFailure, StepTimingBreakdown, SttProviderState, SttProviderSuccess, SttRequestedProvider, SttTarget } from '~/types'
 
-export type SttProviderStateSummary = {
+type SttProviderStateSummary = {
   requested: number
   applicable: number
   succeeded: number

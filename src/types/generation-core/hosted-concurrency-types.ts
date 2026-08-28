@@ -1,6 +1,6 @@
 import type { ProviderLaneAdmissionToken, ProviderLaneCompletionStatus, ProviderLaneIdentity, ProviderLanePressureFeedback } from '~/types'
 
-export const HOSTED_CONCURRENCY_MODES = ['ramp', 'immediate'] as const
+const HOSTED_CONCURRENCY_MODES = ['ramp', 'immediate'] as const
 
 export type HostedConcurrencyMode = typeof HOSTED_CONCURRENCY_MODES[number]
 
@@ -39,7 +39,7 @@ export type HostedConcurrencyAdmissionToken = ProviderLaneAdmissionToken<string,
   recoveryProbe: boolean
 }>
 
-export type HostedConcurrencyRampTransitionReason =
+type HostedConcurrencyRampTransitionReason =
   | 'startup-ramp'
   | 'recovery-ramp'
   | 'rate-limit'
@@ -133,3 +133,8 @@ export type HostedConcurrencyRequestOptions = Readonly<{
   admission: HostedConcurrencyAdmission
   classifyPressure?: ((error: unknown) => ProviderLanePressureFeedback | undefined) | undefined
 }>
+
+export type ComicHostedScheduling = {
+  hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
+  concurrency: number
+}

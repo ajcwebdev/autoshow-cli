@@ -55,7 +55,7 @@ export const runMultiProviderSttBatch = async ({
         artifactDir: existing?.artifactDir ?? getSttProviderArtifactDir(target),
         status: targetsToRun.has(getSttTargetKey(target)) ? 'missing' : existing?.status ?? 'missing',
         attempts: existing?.attempts ?? 0,
-        ...(existing?.lastError ? { lastError: existing.lastError } : {}),
+        ...(existing?.error ? { error: existing.error } : {}),
         ...(existing?.metadata ? { metadata: existing.metadata } : {})
       }
     }),

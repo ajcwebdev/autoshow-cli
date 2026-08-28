@@ -1,5 +1,5 @@
 import { GLM_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 export const resolveGlmBaseUrl = (baseUrl?: string): string => {
   const override = baseUrl?.replace(/\/$/, '')
@@ -9,9 +9,9 @@ export const resolveGlmBaseUrl = (baseUrl?: string): string => {
     : `${override}/api/paas/v4`
 }
 
-export const ensureGlmApiKey = (serviceName: string): string =>
-  requireApiKey('GLM_API_KEY', 'ocr:glm', serviceName)
+export const ensureGlmApiKey = (serviceName: string, stage: string): string =>
+  resolveCredential('glm', 'require', { stage: stage, description: serviceName })
 
 export const ensureGlmOcrSetup = async (): Promise<void> => {
-  ensureGlmApiKey('GLM OCR')
+  ensureGlmApiKey('GLM OCR', 'ocr:glm')
 }

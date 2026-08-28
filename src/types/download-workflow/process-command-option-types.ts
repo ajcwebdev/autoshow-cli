@@ -1,8 +1,4 @@
-import type { BatchRuntimeOptions } from './batch-options-types'
-import type { OcrExtractionOptions, OcrRuntimeOptions } from './ocr-options-types'
-import type { SttExtractionOptions } from './stt-options-types'
-import type { DownloadRuntimeOptions, MetadataOutputOptions, SharedPipelineOptions, UrlRuntimeOptions, WriteRuntimeOptions } from '../cli-surface/cli-types'
-import type { UrlExtractionOptions } from '../url-workflow/url-targets-types'
+import type { BatchRuntimeOptions, DownloadRuntimeOptions, MetadataOutputOptions, OcrExtractionOptions, OcrRuntimeOptions, SharedPipelineOptions, SttExtractionOptions, UrlExtractionOptions, UrlRuntimeOptions } from '~/types'
 
 export type MetadataCommandOptions = OcrRuntimeOptions
   & UrlRuntimeOptions
@@ -20,4 +16,3 @@ export type ExtractCommandOptions = SttExtractionOptions
 export type SingleTargetCommandOptions = MetadataCommandOptions
   | DownloadCommandOptions
   | ExtractCommandOptions
-  | WriteRuntimeOptions

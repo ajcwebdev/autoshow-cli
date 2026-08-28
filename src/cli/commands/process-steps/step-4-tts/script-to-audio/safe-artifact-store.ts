@@ -1,8 +1,9 @@
 import { constants } from 'node:fs'
-import { link, lstat, mkdir, open, readdir, realpath, rename, rm, rmdir, unlink } from 'node:fs/promises'
-import { createHash, randomUUID } from 'node:crypto'
+import { link, lstat, mkdir, open, readdir, realpath, rename, rm, rmdir } from 'node:fs/promises'
+import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
-import { CLIUsageError } from '~/utils/error-handler'
+import type { ContainedArtifactFile, ImmutableArtifactFile, ReservedInvocationAttemptDirectory, SafeArtifactDirectory } from '~/types'
+import { AppInfrastructureError, UsageError, extractErrorMetadata, hasErrorCode } from '~/utils/error-handler'
 
 const DIRECTORY_MODE = 0o700
 const FILE_MODE = 0o600
@@ -10,46 +11,32 @@ const SAFE_INVOCATION_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/
 const ENCODED_PATH_SEPARATOR_OR_DOT = /%(?:2e|2f|5c)/i
 const CLAIM_OWNER_FILE = /^owner-([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.lock$/
 
-export type SafeArtifactDirectory = Readonly<{
-  path: string
-  relativePath: string
-}>
-
-export type ImmutableArtifactFile = Readonly<{
-  path: string
-  relativePath: string
-  sha256: string
-  created: boolean
-}>
-
-export type ContainedArtifactFile = Readonly<{
-  path: string
-  relativePath: string
-  bytes: Buffer
-  sha256: string
-}>
-
-export type ReservedInvocationAttemptDirectory = SafeArtifactDirectory & Readonly<{
-  attempt: number
-  invocationId: string
-  claimRelativePath: string
-  release: () => Promise<void>
-}>
-
-export class ArtifactReservationConflictError extends Error {
+export class ArtifactReservationConflictError extends AppInfrastructureError {
   readonly code = 'ARTIFACT_RESERVATION_CONFLICT'
+  readonly relativePath: string
 
-  constructor(readonly relativePath: string) {
-    super(`Immutable invocation attempt directory is already reserved: ${relativePath}`)
+  constructor(relativePath: string) {
+    super(`Immutable invocation attempt directory is already reserved: ${relativePath}`, {
+      stage: 'tts:artifact-store',
+      retryable: false,
+      metadata: { relativePath }
+    })
     this.name = 'ArtifactReservationConflictError'
+    this.relativePath = relativePath
   }
 }
 
-const hasErrorCode = (error: unknown, code: string): boolean =>
-  typeof error === 'object'
-  && error !== null
-  && 'code' in error
-  && (error as { code?: unknown }).code === code
+const MISSING_ARTIFACT_STATE = 'missing'
+
+const ARTIFACT_CONFLICT_STATE = 'conflict'
+
+export const isArtifactConflictError = (error: unknown): boolean =>
+  hasErrorCode(error, 'EEXIST')
+  || extractErrorMetadata(error)['artifactState'] === ARTIFACT_CONFLICT_STATE
+
+export const isMissingArtifactError = (error: unknown): boolean =>
+  hasErrorCode(error, 'ENOENT')
+  || extractErrorMetadata(error)['artifactState'] === MISSING_ARTIFACT_STATE
 
 const normalizeSafeRelativePath = (
   value: string,
@@ -63,12 +50,12 @@ const normalizeSafeRelativePath = (
     || isAbsolute(value)
     || ENCODED_PATH_SEPARATOR_OR_DOT.test(value)
   ) {
-    throw CLIUsageError(`${label} must be a safe contained POSIX path.`)
+    throw UsageError(`${label} must be a safe contained POSIX path.`)
   }
 
   const segments = value.length === 0 ? [] : value.split('/')
   if (segments.some((segment) => segment.length === 0 || segment === '.' || segment === '..')) {
-    throw CLIUsageError(`${label} must be a safe contained POSIX path.`)
+    throw UsageError(`${label} must be a safe contained POSIX path.`)
   }
   return segments.join('/')
 }
@@ -85,12 +72,15 @@ const inspectSafeRoot = async (rootDir: string): Promise<{ absolute: string, can
     entry = await lstat(absolute)
   } catch (error) {
     if (hasErrorCode(error, 'ENOENT')) {
-      throw CLIUsageError(`Safe artifact root does not exist: ${absolute}`)
+      throw Object.assign(
+        UsageError(`Safe artifact root does not exist: ${absolute}`, undefined, error instanceof Error ? { cause: error } : {}),
+        { metadata: { artifactState: MISSING_ARTIFACT_STATE } }
+      )
     }
     throw error
   }
   if (entry.isSymbolicLink() || !entry.isDirectory()) {
-    throw CLIUsageError(`Safe artifact root must be a real directory, not a symbolic link: ${absolute}`)
+    throw UsageError(`Safe artifact root must be a real directory, not a symbolic link: ${absolute}`)
   }
   return { absolute, canonical: await realpath(absolute) }
 }
@@ -102,11 +92,11 @@ const inspectSafeDirectory = async (
 ): Promise<string> => {
   const entry = await lstat(path)
   if (entry.isSymbolicLink() || !entry.isDirectory()) {
-    throw CLIUsageError(`${label} must be a real directory and cannot traverse a symbolic link.`)
+    throw UsageError(`${label} must be a real directory and cannot traverse a symbolic link.`)
   }
   const canonical = await realpath(path)
   if (!isContainedOrEqual(canonicalRoot, canonical)) {
-    throw CLIUsageError(`${label} resolves outside its safe artifact root.`)
+    throw UsageError(`${label} resolves outside its safe artifact root.`)
   }
   return canonical
 }
@@ -156,7 +146,7 @@ const inspectExistingSafeArtifactDirectory = async (
 const readExistingImmutableBytes = async (path: string): Promise<Buffer> => {
   const entry = await lstat(path)
   if (entry.isSymbolicLink() || !entry.isFile()) {
-    throw CLIUsageError(`Immutable artifact path is not a regular non-symlink file: ${path}`)
+    throw UsageError(`Immutable artifact path is not a regular non-symlink file: ${path}`)
   }
 
   let handle
@@ -164,12 +154,12 @@ const readExistingImmutableBytes = async (path: string): Promise<Buffer> => {
     handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW)
     const opened = await handle.stat()
     if (!opened.isFile()) {
-      throw CLIUsageError(`Immutable artifact path is not a regular file: ${path}`)
+      throw UsageError(`Immutable artifact path is not a regular file: ${path}`)
     }
     return await handle.readFile()
   } catch (error) {
     if (hasErrorCode(error, 'ELOOP')) {
-      throw CLIUsageError(`Immutable artifact path cannot be a symbolic link: ${path}`)
+      throw UsageError(`Immutable artifact path cannot be a symbolic link: ${path}`, undefined, error instanceof Error ? { cause: error } : {})
     }
     throw error
   } finally {
@@ -195,7 +185,7 @@ export const readContainedArtifactFile = async (
     path,
     relativePath: normalized,
     bytes,
-    sha256: createHash('sha256').update(bytes).digest('hex')
+    sha256: new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
   }
 }
 
@@ -211,7 +201,7 @@ export const writeImmutableArtifactFile = async (
   const parent = await ensureSafeArtifactDirectory(rootDir, parentRelative)
   const path = join(parent.path, fileName)
   const bytes = typeof value === 'string' ? Buffer.from(value) : Buffer.from(value)
-  const temporaryPath = join(parent.path, `.immutable-${randomUUID()}.tmp`)
+  const temporaryPath = join(parent.path, `.immutable-${crypto.randomUUID()}.tmp`)
   let created = false
   let handle
 
@@ -223,7 +213,7 @@ export const writeImmutableArtifactFile = async (
     )
     const opened = await handle.stat()
     if (!opened.isFile()) {
-      throw CLIUsageError(`Immutable artifact temporary destination is not a regular file: ${temporaryPath}`)
+      throw UsageError(`Immutable artifact temporary destination is not a regular file: ${temporaryPath}`)
     }
     await handle.writeFile(bytes)
     await handle.sync()
@@ -238,12 +228,15 @@ export const writeImmutableArtifactFile = async (
       if (!hasErrorCode(error, 'EEXIST')) throw error
       const existing = await readExistingImmutableBytes(path)
       if (!existing.equals(bytes)) {
-        throw CLIUsageError(`Immutable artifact already exists with different bytes: ${path}`)
+        throw Object.assign(
+          UsageError(`Immutable artifact already exists with different bytes: ${path}`),
+          { metadata: { artifactState: ARTIFACT_CONFLICT_STATE } }
+        )
       }
     }
   } catch (error) {
     if (hasErrorCode(error, 'ELOOP')) {
-      throw CLIUsageError(`Immutable artifact destination cannot be a symbolic link: ${path}`)
+      throw UsageError(`Immutable artifact destination cannot be a symbolic link: ${path}`, undefined, error instanceof Error ? { cause: error } : {})
     }
     throw error
   } finally {
@@ -254,7 +247,7 @@ export const writeImmutableArtifactFile = async (
   return {
     path,
     relativePath: normalized,
-    sha256: createHash('sha256').update(bytes).digest('hex'),
+    sha256: new Bun.CryptoHasher('sha256').update(bytes).digest('hex'),
     created
   }
 }
@@ -266,7 +259,7 @@ export const writeReplaceableArtifactFile = async (
 ): Promise<ImmutableArtifactFile> => {
   const normalized = normalizeSafeRelativePath(relativeFile, 'Replaceable artifact file', false)
   const bytes = typeof value === 'string' ? Buffer.from(value) : Buffer.from(value)
-  const sha256 = createHash('sha256').update(bytes).digest('hex')
+  const sha256 = new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
   try {
     const existing = await readContainedArtifactFile(rootDir, normalized)
     if (existing.bytes.equals(bytes)) {
@@ -275,7 +268,7 @@ export const writeReplaceableArtifactFile = async (
   } catch (error) {
     if (!hasErrorCode(error, 'ENOENT')) throw error
   }
-  const temporaryRelative = `${dirname(normalized)}/.archive-${randomUUID()}.tmp`
+  const temporaryRelative = `${dirname(normalized)}/.archive-${crypto.randomUUID()}.tmp`
   const temporary = await writeImmutableArtifactFile(rootDir, temporaryRelative, bytes)
   const destination = join((await inspectSafeRoot(rootDir)).absolute, normalized)
   try {
@@ -293,7 +286,7 @@ export const appendJsonlArtifactLine = async (
 ): Promise<ContainedArtifactFile> => {
   const normalized = normalizeSafeRelativePath(relativeFile, 'Journal artifact file', false)
   if (!normalized.endsWith('.jsonl')) {
-    throw CLIUsageError(`Journal artifact must use a .jsonl suffix: ${normalized}`)
+    throw UsageError(`Journal artifact must use a .jsonl suffix: ${normalized}`)
   }
   const segments = normalized.split('/')
   const fileName = segments.pop() as string
@@ -315,7 +308,7 @@ export const appendJsonlArtifactLine = async (
   try {
     const opened = await handle.stat()
     if (!opened.isFile()) {
-      throw CLIUsageError(`Journal artifact destination is not a regular file: ${path}`)
+      throw UsageError(`Journal artifact destination is not a regular file: ${path}`)
     }
     await handle.writeFile(line)
     await handle.sync()
@@ -327,7 +320,7 @@ export const appendJsonlArtifactLine = async (
     path,
     relativePath: normalized,
     bytes,
-    sha256: createHash('sha256').update(bytes).digest('hex')
+    sha256: new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
   }
 }
 
@@ -348,7 +341,10 @@ export const hardlinkContainedArtifact = async (
     if (!hasErrorCode(error, 'EEXIST')) throw error
     const existing = await readExistingImmutableBytes(path)
     if (!existing.equals(source.bytes)) {
-      throw CLIUsageError(`Hardlinked artifact already exists with different bytes: ${path}`)
+      throw Object.assign(
+        UsageError(`Hardlinked artifact already exists with different bytes: ${path}`, undefined, error instanceof Error ? { cause: error } : {}),
+        { metadata: { artifactState: ARTIFACT_CONFLICT_STATE } }
+      )
     }
   }
   return {
@@ -384,10 +380,10 @@ export const releasePreparedInvocationAttemptClaim = async (
   }>
 ): Promise<void> => {
   if (!Number.isSafeInteger(options.attempt) || options.attempt < 1) {
-    throw CLIUsageError('Invocation attempt number must be a positive safe integer.')
+    throw UsageError('Invocation attempt number must be a positive safe integer.')
   }
   if (!SAFE_INVOCATION_ID.test(options.invocationId)) {
-    throw CLIUsageError('Invocation ID must be an opaque path-safe identifier.')
+    throw UsageError('Invocation ID must be an opaque path-safe identifier.')
   }
 
   const attemptsDirectory = normalizeSafeRelativePath(
@@ -405,7 +401,7 @@ export const releasePreparedInvocationAttemptClaim = async (
   const entries = await readdir(claim.path)
   const ownerMatch = entries.length === 1 ? CLAIM_OWNER_FILE.exec(entries[0] as string) : undefined
   if (!ownerMatch?.[1]) {
-    throw CLIUsageError(`Invocation attempt claim has no unique immutable owner: ${claimRelativePath}`)
+    throw UsageError(`Invocation attempt claim has no unique immutable owner: ${claimRelativePath}`)
   }
   const ownerRelativePath = `${claimRelativePath}/${entries[0] as string}`
   const owner = await readContainedArtifactFile(rootDir, ownerRelativePath)
@@ -416,7 +412,7 @@ export const releasePreparedInvocationAttemptClaim = async (
     || ownerFields[0] !== options.invocationId
     || ownerFields[1] !== ownerMatch[1]
   ) {
-    throw CLIUsageError(`Invocation attempt claim belongs to a different immutable invocation: ${claimRelativePath}`)
+    throw UsageError(`Invocation attempt claim belongs to a different immutable invocation: ${claimRelativePath}`)
   }
 
   try {
@@ -442,10 +438,10 @@ export const reserveInvocationAttemptDirectory = async (
   }>
 ): Promise<ReservedInvocationAttemptDirectory> => {
   if (!Number.isSafeInteger(options.attempt) || options.attempt < 1) {
-    throw CLIUsageError('Invocation attempt number must be a positive safe integer.')
+    throw UsageError('Invocation attempt number must be a positive safe integer.')
   }
   if (!SAFE_INVOCATION_ID.test(options.invocationId)) {
-    throw CLIUsageError('Invocation ID must be an opaque path-safe identifier.')
+    throw UsageError('Invocation ID must be an opaque path-safe identifier.')
   }
 
   const attemptsDirectory = normalizeSafeRelativePath(
@@ -460,7 +456,7 @@ export const reserveInvocationAttemptDirectory = async (
   const claimName = `.attempt-${String(options.attempt).padStart(3, '0')}.claim`
   const claimRelativePath = `${attemptsDirectory}/${claimName}`
   const claimPath = join(parent.path, claimName)
-  const claimToken = randomUUID()
+  const claimToken = crypto.randomUUID()
   const claimOwnerName = `owner-${claimToken}.lock`
   const claimOwnerRelativePath = `${claimRelativePath}/${claimOwnerName}`
   const claimOwnerPath = join(claimPath, claimOwnerName)
@@ -480,7 +476,7 @@ export const reserveInvocationAttemptDirectory = async (
     if (claimOwnerCreated) {
       const owner = await readExistingImmutableBytes(claimOwnerPath)
       if (!owner.equals(claimBytes)) {
-        throw CLIUsageError(`Invocation attempt claim owner changed unexpectedly: ${claimRelativePath}`)
+        throw UsageError(`Invocation attempt claim owner changed unexpectedly: ${claimRelativePath}`)
       }
       await unlink(claimOwnerPath)
       claimOwnerCreated = false
@@ -491,7 +487,7 @@ export const reserveInvocationAttemptDirectory = async (
   try {
     const owner = await writeImmutableArtifactFile(rootDir, claimOwnerRelativePath, claimBytes)
     if (!owner.created) {
-      throw CLIUsageError(`Invocation attempt claim was not created exclusively: ${claimRelativePath}`)
+      throw UsageError(`Invocation attempt claim was not created exclusively: ${claimRelativePath}`)
     }
     claimOwnerCreated = true
     await mkdir(path, { mode: DIRECTORY_MODE })

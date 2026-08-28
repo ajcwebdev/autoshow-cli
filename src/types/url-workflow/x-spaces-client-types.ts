@@ -16,7 +16,7 @@ export interface XApiClientOptions {
   verbose?: boolean;
 }
 
-export interface XListMeta {
+interface XListMeta {
   newest_id?: string | undefined;
   next_token?: string | undefined;
   oldest_id?: string | undefined;

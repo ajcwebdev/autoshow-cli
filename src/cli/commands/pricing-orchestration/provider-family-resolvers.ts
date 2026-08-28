@@ -1,7 +1,7 @@
 import { getExtractEstimation, getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { estimateOcrTokenUsage } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
 import { isTokenPricedOcrProvider } from '~/types'
-import type { CostSource, EstimatedStepEntry, ExtractionMetadata, StepCostEntry, TokenPricedOcrProvider } from '~/types'
+import type { CostSource, EstimatedStepEntry, ExtractionMetadata, NormalizedReasoningEffort, StepCostEntry, TokenPricedOcrProvider } from '~/types'
 import { applyCostMultiplier } from './cost-helpers'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
 
@@ -24,15 +24,13 @@ const LOCAL_ZERO_PROVIDERS = new Set([
   'tesseract'
 ])
 
-export { isTokenPricedOcrProvider } from '~/types'
-
-export const isPagePricedExtractProvider = (provider: string): boolean =>
+const isPagePricedExtractProvider = (provider: string): boolean =>
   PAGE_PRICED_EXTRACT_PROVIDERS.has(provider)
 
 export const zeroCostSource = (provider: string, cost: number, fallback: CostSource): CostSource =>
   cost === 0 && LOCAL_ZERO_PROVIDERS.has(provider) ? 'local_zero' : fallback
 
-export const computeActualTokenOcrCost = (
+const computeActualTokenOcrCost = (
   provider: TokenPricedOcrProvider,
   model: string,
   promptTokens: number,
@@ -47,7 +45,7 @@ export const computeActualTokenOcrCost = (
   }, promptTokens, completionTokens)
 }
 
-export const tokenUsageCostSource = (metadata: ExtractionMetadata): CostSource =>
+const tokenUsageCostSource = (metadata: ExtractionMetadata): CostSource =>
   metadata.providerCostSource === 'partial_provider_usage'
     ? 'partial_provider_usage'
     : (Array.isArray(metadata.ocrProviderUsage) && metadata.ocrProviderUsage.length > 0)
@@ -129,7 +127,7 @@ export const resolveEstimatedExtractCostEntry = (
     pageCount?: number | undefined
     promptTokens?: number | undefined
     completionTokens?: number | undefined
-    effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+    effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
     ocrMode?: string | undefined
     tokenEstimateSource?: 'exact' | 'profile' | 'blended-profile' | 'registry' | undefined
     tokenEstimateConfidence?: 'none' | 'sparse' | 'healthy' | undefined

@@ -1,0 +1,4 @@
+{
+  "error": "Kimi OCR response for input image stopped at the max completion token limit before finishing.",
+  "rawResponseFile": "invalid-structured-response.txt"
+}

@@ -1,6 +1,6 @@
 import type { HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleProviderRunWithStats, UrlArticleRunResult, UrlRequestOptions } from '~/types'
-import { isAppError } from '~/utils/error-handler'
-import { classifyFetchRetry, withRetry } from '~/utils/retries'
+import { AppError, isAppError } from '~/utils/error-handler'
+import { classifyFetchRetry, URL_ARTICLE_RETRY_POLICY, withRetry } from '~/utils/retries'
 import { defuddleArticleAdapter } from './url-local/defuddle/run-defuddle-url'
 import { firecrawlArticleAdapter } from './url-services/firecrawl/run-firecrawl-url'
 import { glmReaderArticleAdapter } from './url-services/glm-reader/run-glm-reader-url'
@@ -22,13 +22,6 @@ export const getUrlArticleProviderAdapter = (
   backend: HtmlArticleBackend
 ): UrlArticleProviderAdapter => URL_ARTICLE_PROVIDER_ADAPTERS[backend]
 
-const URL_PROVIDER_RETRY_POLICY = {
-  baseDelayMs: 2_000,
-  maxDelayMs: 10_000,
-  jitter: true,
-  exponential: true
-} as const
-
 const enrichUrlRetryError = (
   error: unknown,
   providerLabel: string,
@@ -44,22 +37,28 @@ const enrichUrlRetryError = (
   const causeMessage = error.cause?.message ?? error.message
   const attempts = typeof error.metadata['attemptsMade'] === 'number' ? error.metadata['attemptsMade'] : attemptsMade
   const max = typeof error.metadata['maxAttempts'] === 'number' ? error.metadata['maxAttempts'] : maxAttempts
-  const enriched = new Error(
+  return new AppError(
     `${providerLabel} request failed after ${attempts}/${max} attempts with ${timeoutMs}ms timeout` +
     `${typeof elapsedMs === 'number' ? ` (${elapsedMs}ms elapsed)` : ''}: ${causeMessage}`,
-    { cause: error }
+    {
+      kind: error.kind,
+      cause: error,
+      exitCode: error.exitCode,
+      hints: error.hints,
+      ...(error.retryClass !== undefined ? { retryClass: error.retryClass } : {}),
+      ...(error.retryable !== undefined ? { retryable: error.retryable } : {}),
+      ...(error.status !== undefined ? { status: error.status } : {}),
+      ...(error.stage !== undefined ? { stage: error.stage } : {}),
+      metadata: {
+        ...error.metadata,
+        attemptsMade: attempts,
+        maxAttempts: max,
+        timeoutMs,
+        ...(elapsedMs !== undefined ? { elapsedMs } : {}),
+        provider: providerLabel
+      }
+    }
   )
-  Object.assign(enriched, {
-    attemptsMade: attempts,
-    maxAttempts: max,
-    timeoutMs,
-    elapsedMs,
-    provider: providerLabel,
-    retryClass: error.retryClass,
-    retryable: error.retryable,
-    status: error.status
-  })
-  return enriched
 }
 
 export const runUrlArticleProviderWithStats = async (
@@ -77,10 +76,10 @@ export const runUrlArticleProviderWithStats = async (
     const article = await withRetry(
       {
         retryClass: 'runtime_http_read',
-        operationName: `${adapter.displayName} request`,
+        operationName: `url-article-${adapter.id}`,
         timeoutMs,
         policy: {
-          ...URL_PROVIDER_RETRY_POLICY,
+          ...URL_ARTICLE_RETRY_POLICY,
           maxAttempts
         }
       },

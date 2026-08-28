@@ -1,0 +1,32 @@
+{
+  "defaults": {
+    "extract": {
+      "stt": {
+        "assemblyaiStt": [
+          "universal-3-5-pro"
+        ],
+        "speechmaticsStt": [
+          "melia-1"
+        ],
+        "sonioxStt": [
+          "stt-async-v5"
+        ],
+        "gladiaStt": [
+          "solaria-3"
+        ],
+        "grokStt": [
+          "speech-to-text"
+        ],
+        "mistralStt": [
+          "voxtral-mini-2602"
+        ],
+        "deepgramStt": [
+          "nova-3"
+        ],
+        "happyscribeStt": [
+          "auto"
+        ]
+      }
+    }
+  }
+}

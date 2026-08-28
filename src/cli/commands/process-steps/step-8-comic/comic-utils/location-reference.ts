@@ -1,6 +1,5 @@
-import { createHash, randomUUID } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
-import { copyFile, mkdir, rename } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { combineCharacterSketchSheet } from '../comic-commands/character-sketch/character-sketch-sheet'
@@ -8,48 +7,16 @@ import { checksumFile } from '../comic-commands/process-scenes/character-utils'
 import { loadCharacterCatalog } from './character-reference-config'
 import { AppValidationError, InfraError, ValidationError } from '~/utils/error-handler'
 import { getLocationReferencesDirectory, getSceneAssetsDirectory } from './project-paths'
+import type { CurrentLocationReference, LocationReferenceCatalog, LocationReferenceEntry, LocationReferenceSnapshot, LocationReferenceSnapshotManifest, LocationSketchManifest, LocationSketchRegistration, LocationSketchViewRegistration, LocationView } from '~/types'
+import { atomicWriteJson } from '~/utils/filesystem'
+import { copyFileExact } from '~/utils/bun-file-io'
 
 export const LOCATION_VIEWS = ['establishing', 'reverse', 'side'] as const
-export type LocationView = typeof LOCATION_VIEWS[number]
-
-export type LocationReferenceEntry = {
-  key: string
-  name: string
-  aliases?: string[]
-  referenceDirectory?: string
-  referenceFilename?: string
-  specification: string
-  sourceScripts: string[]
-}
-
-export type LocationReferenceCatalog = {
-  schemaVersion: 1
-  styleImage: string
-  locations: LocationReferenceEntry[]
-}
-
-export type LocationSketchViewRegistration = {
-  view: LocationView
-  generationId: string
-  image: string
-  imageSha256: string
-  model: string
-  createdAt: string
-  priorGenerationId?: string
-}
-
-export type LocationSketchRegistration = {
-  locationKey: string
-  specificationSha256: string
-  views: LocationSketchViewRegistration[]
-}
-
-export type LocationSketchManifest = { schemaVersion: 2; sketches: LocationSketchRegistration[] }
 
 export const LOCATION_KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
-export const LOCATION_REFERENCE_FILENAME = 'locations-reference.json'
-export const LOCATION_SKETCH_MANIFEST_FILENAME = 'location-sketches.json'
+const LOCATION_REFERENCE_FILENAME = 'locations-reference.json'
+const LOCATION_SKETCH_MANIFEST_FILENAME = 'location-sketches.json'
 export const LOCATION_SNAPSHOTS_FILENAME = 'location-references.json'
 
 export const getLocationsRoot = (): string => join(dirname(getCharactersRoot()), 'locations')
@@ -170,13 +137,6 @@ export const readLocationSketchManifest = async (): Promise<LocationSketchManife
   }
 }
 
-export const atomicWriteJson = async (path: string, value: unknown): Promise<void> => {
-  await mkdir(dirname(path), { recursive: true })
-  const temporary = `${path}.tmp-${randomUUID()}`
-  await Bun.write(temporary, `${JSON.stringify(value, null, 2)}\n`)
-  await rename(temporary, path)
-}
-
 const establishingFilename = (key: string, referenceFilename?: string): string => referenceFilename ?? `${key}--reference.png`
 
 export const getLocationViewPath = (key: string, view: LocationView, referenceDirectory?: string, referenceFilename?: string): string => {
@@ -188,14 +148,7 @@ export const getLocationViewPath = (key: string, view: LocationView, referenceDi
 }
 
 export const resolveRegisteredLocationImagePath = (image: string): string => resolveLocationAssetPath(image, 'Registered location image')
-export const specificationHash = (specification: string): string => createHash('sha256').update(specification).digest('hex')
-
-export type CurrentLocationReference = {
-  entry: LocationReferenceEntry
-  registration: LocationSketchRegistration
-  views: Array<LocationSketchViewRegistration & { imagePath: string }>
-  sheetPath: string
-}
+export const specificationHash = (specification: string): string => new Bun.CryptoHasher('sha256').update(specification).digest('hex')
 
 export const requireCurrentLocationReference = async (rawLocation: string): Promise<CurrentLocationReference> => {
   const catalog = await readLocationReferenceCatalog()
@@ -214,24 +167,13 @@ export const requireCurrentLocationReference = async (rawLocation: string): Prom
   return { entry, registration, views, sheetPath: views[0]!.imagePath }
 }
 
-export type LocationReferenceSnapshot = {
-  schemaVersion: 2
-  snapshotId: string
-  locationKey: string
-  specification: string
-  sourceScripts: string[]
-  sourceViews: Array<{ view: LocationView; generationId: string; imageSha256: string }>
-  sheet: { path: string; sha256: string }
-}
-
 export const getLocationReferenceSnapshotsPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), LOCATION_SNAPSHOTS_FILENAME)
-export type LocationReferenceSnapshotManifest = { schemaVersion: 2; snapshots: LocationReferenceSnapshot[] }
 
 const snapshotCurrentLocationReference = async (runDirectory: string, current: CurrentLocationReference): Promise<LocationReferenceSnapshot> => {
-  const snapshotId = `${Date.now()}-${randomUUID().slice(0, 12)}`
+  const snapshotId = `${Date.now()}-${crypto.randomUUID().slice(0, 12)}`
   const destination = join(getLocationReferencesDirectory(runDirectory), snapshotId, `${current.entry.key}--reference-sheet.png`)
   await mkdir(dirname(destination), { recursive: true })
-  if (current.views.length === 1) await copyFile(current.views[0]!.imagePath, destination)
+  if (current.views.length === 1) await copyFileExact(current.views[0]!.imagePath, destination)
   else await combineCharacterSketchSheet({ outputPath: destination, sources: current.views.map(view => ({ view: view.view as never, path: view.imagePath })) })
   const snapshot: LocationReferenceSnapshot = {
     schemaVersion: 2,

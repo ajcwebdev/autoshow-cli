@@ -1,97 +1,79 @@
 # End-to-End Execution Reference
 
-A current trace of a write command from native CLI dispatch through output artifacts, plus environment variable references from local config sources.
+A walkthrough of `extract` then `write` from invocation through the files they leave on disk.
 
 ## Outline
 
 - [Example Trace](#example-trace)
 - [Expected Artifacts](#expected-artifacts)
-- [Provider API Keys](#provider-api-keys)
-- [Provider Defaults and Runtime Environment](#provider-defaults-and-runtime-environment)
+- [Credentials and Runtime](#credentials-and-runtime)
 
 ## Example Trace
 
-Example command:
+Example commands:
 
 ```bash
-bun autoshow write "https://youtube.com/watch?v=abc123" --stt whisper=small --rendered-text --prompt-md
+bun autoshow extract "https://youtube.com/watch?v=abc123" --provider whisper=small
+bun autoshow write output/<extract-run>/transcription.txt --llm openai --rendered-text --prompt-md
 ```
 
 ```
-user argv
+extract command
+  |
+  +--> parse flags and merge config defaults
+  +--> apply logging, output, and yt-dlp cookie settings
+  +--> validate STT selection from --provider
   |
   v
-src/cli/create-cli.ts
+classify the URL as streaming media
   |
-  +--> dispatchNativeCli(argv, root, commands)
-       |
-       +--> parseNativeCli()
-       +--> apply global flags:
-             logger, yt-dlp cookies
-       +--> command handler: write
-       |
-       v
-define-write-command.ts
+  v
+Step 1: metadata and download
+  +--> extract source metadata
+  +--> create the run output directory
+  +--> download and stage media
+  +--> prepare audio for transcription
   |
-  +--> handleProcessTarget("write", target, flags)
-       |
-       +--> resolveProcessTargetDoubleDash()
-       +--> load config and merge config flags
-       +--> normalizeWriteStepSelectorFlags()
-       +--> buildOptsFromFlags(skipLLM=false, rawFlags)
-       +--> resolveWriteTextProjectDefaults() if relevant
-       +--> validate write Step 2 provider selection
-       +--> resolveProcessTargetPlan()
-            |
-            +--> single target plan
-            |
-            v
-       +--> resolveInputRoutingForCommand("write", target, opts)
-            |
-            +--> classify URL as media/streaming
-            +--> resolvedStep2 route: STT
-            |
-            v
-       +--> handleSingleTarget()
-            |
-            v
-processSingleTarget()
+  v
+Step 2: transcription
+  +--> run local Whisper `small`
+  +--> write transcription.txt and result.json
+  +--> write extract manifest.json
   |
-  +--> processMediaSingle()
-       |
-       +--> processVideo()
-            |
-            +--> Step 1:
-            |    extract source metadata
-            |    create output directory
-            |    download/stage media
-            |    prepareSttMedia()
-            |
-            +--> Step 2:
-            |    run selected STT target whisper=small
-            |    write transcription.txt and provider result
-            |
-            +--> Step 3:
-            |    buildPrompt()
-            |    write prompt.md
-            |    write prompt-md.md because --prompt-md is set
-             |    runLLM() through the hosted LLM pool
-            |    write text.json
-            |
-            +--> rendered/show-note artifacts:
-            |    writeRenderedTextArtifacts() -> text.md
-            |    writeShowNoteArtifacts() -> show-note.md
-            |
-            +--> writeManifest(createManifest("write", "single", items))
+  v
+write command
+  |
+  +--> parse flags and merge config defaults
+  +--> reject URLs, media, documents, HTML, and X Spaces
+  +--> treat the .txt file as source text
+  +--> validate LLM selection from --llm
+  |
+  v
+Step 3: LLM writing
+  +--> use the configured `--llm` default unless `--llm` is passed
+  +--> write prompt.md
+  +--> write prompt-md.md because --prompt-md is set
+  +--> write text.json
+  |
+  v
+rendered artifacts
+  +--> text.md because --rendered-text is set
+  +--> show-note.md
+  +--> write manifest.json
 ```
+
+This example is a single media extract followed by a text write. Directory, input-list, and source-backed batches follow the same extract steps per item; see [Input Routing & Batch Orchestration](02-input-routing-batch.md). Document and article routes replace Steps 1-2 on `extract`; `write` always starts at Step 3; see [Processing Pipelines](03-processing-pipelines.md).
 
 ## Expected Artifacts
 
 ```
-output/YYYY-MM-DD_HH-MM-SS-mmm_<video-title>/
-  audio.(mp3|m4a|ogg|flac)
+output/<extract-run>/
+  <publish-date>-<title-slug>.(mp3|m4a|ogg|flac)
   transcription.txt
-  result.json                 # raw STT domain payload for a single provider
+  result.json
+  manifest.json
+
+output/<write-run>/
   prompt.md
   prompt-md.md
   text.json
@@ -100,83 +82,10 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_<video-title>/
   manifest.json
 ```
 
-The canonical `manifest.json`:
+With more than one STT selection, extract provider-specific files move under `providers/<provider-model>/`. With more than one LLM selection, write uses `text-<model>.json` / `text-<model>.md` names. The full layout and `manifest.json` shape are in [Types, Metadata & Output Layout](05-types-and-output.md).
 
-```json
-{
-  "command": "write",
-  "scope": "single",
-  "createdAt": "2026-08-10T12:00:00.000Z",
-  "updatedAt": "2026-08-10T12:00:05.000Z",
-  "items": [
-    {
-      "status": "full",
-      "metadata": {
-        "step1": {},
-        "step3": {},
-        "cost": {},
-        "timing": {}
-      },
-      "providers": [
-        {
-          "service": "whisper",
-          "model": "small",
-          "local": true,
-          "artifactDir": ".",
-          "status": "succeeded",
-          "attempts": 1,
-          "options": {},
-          "metadata": {},
-          "result": {}
-        }
-      ]
-    }
-  ]
-}
-```
+## Credentials and Runtime
 
-For multi-provider STT or LLM selections, provider-specific artifacts move under `providers/<provider-model>/` or receive `text-<model>.json` / `text-<model>.md` names. The manifest stores item status and canonical provider entries; requested, missing, and completion views are computed from that state.
+Hosted provider API keys are listed in [Providers, Models & Setup](04-providers-and-setup.md#hosted-provider-env-checks). This extract example uses local Whisper, so it needs no STT key; `write` still requires a configured LLM key.
 
-## Provider API Keys
-
-These variables mirror `HOSTED_PROVIDER_ENV_CHECKS`.
-
-| Area          | Variables                                                                                                                                                |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| OpenAI        | `OPENAI_API_KEY` for write/OCR/TTS/image.                                                                                                                |
-| Grok/xAI      | `XAI_API_KEY` for write/STT/OCR/TTS/image/video.                                                                                                         |
-| Gemini        | `GEMINI_API_KEY` for write/STT/OCR/TTS/image/video/music.                                                                                                |
-| GLM           | `GLM_API_KEY` for write/OCR.                                                                                                                             |
-| Kimi          | `KIMI_API_KEY` for write/OCR.                                                                                                                            |
-| Together      | `TOGETHER_API_KEY` for write/STT.                                                                                                                        |
-| Cerebras      | `CEREBRAS_API_KEY` for write.                                                                                                                            |
-| Anthropic     | `ANTHROPIC_API_KEY` for write/OCR.                                                                                                                       |
-| Mistral       | `MISTRAL_API_KEY` for STT/OCR/TTS.                                                                                                                       |
-| Groq          | `GROQ_API_KEY` for write/STT/TTS.                                                                                                                        |
-| DeepInfra     | `DEEPINFRA_API_KEY` for STT/OCR/TTS.                                                                                                                     |
-| MiniMax       | `MINIMAX_API_KEY` for write/TTS/music.                                                                                                                   |
-| ElevenLabs    | `ELEVENLABS_API_KEY` for TTS/music.                                                                                                                      |
-| fal.ai        | `FAL_API_KEY` for OCR/image/video/TTS.                                                                                                                   |
-| Replicate     | `REPLICATE_API_TOKEN` for OCR/image/video/TTS.                                                                                                           |
-| Image-only    | `BFL_API_KEY`.                                                                                                                                            |
-| Image/Video   | `LUMA_AGENTS_API_KEY` for Luma Labs image/video.                                                                                                         |
-| Video-only    | `LTXV_API_KEY`.                                                                                                                   |
-| Sound effects | `STABILITY_API_KEY` for Stability AI sound effects.                                                                                                      |
-| STT-only      | `ASSEMBLYAI_API_KEY`, `GLADIA_API_KEY`, `SONIOX_API_KEY`, `SPEECHMATICS_API_KEY`, `REVAI_ACCESS_TOKEN`, `HAPPYSCRIBE_API_KEY`, `SCRAPECREATORS_API_KEY`. |
-| STT/TTS       | `DEEPGRAM_API_KEY`.                                                                                                                                      |
-| STT/URL       | `SUPADATA_API_KEY`.                                                                                                                                      |
-| TTS-only      | `SPEECHIFY_API_KEY`, `HUME_API_KEY`, `CARTESIA_API_KEY`, `FISH_API_KEY`, `INWORLD_API_KEY`.                                                              |
-| URL/X         | `FIRECRAWL_API_KEY`, `SPIDER_API_KEY`, `ZYTE_API_KEY`, `X_BEARER_TOKEN`.                                                                                 |
-
-## Provider Defaults and Runtime Environment
-
-Runtime configuration is flag- and config-driven. The CLI reads only provider API keys and standard `NO_COLOR` / `FORCE_COLOR` environment variables at runtime.
-
-| Area                                        | Mechanism                                                                                                                                                                                                                                                                          |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TTS voices / reference audio / API versions | Per-run flags (`--tts-voice`, `--tts-ref-audio`, `--hume-tts-voice-provider`, …); defaults are defined in [`tts-models.ts`](../../src/cli/commands/setup-and-utilities/models/tts-models.ts). Cartesia `Cartesia-Version` and Hume `version` headers are fixed protocol constants. |
-| Output / external binaries                  | `--output-root`, `--bin-dir` flags.                                                                                                                                                                                                                                                |
-| URL backend                                 | `--url-provider` flag.                                                                                                                                                                                                                                                             |
-| Logging / color                             | `--log-level`, `--log-format` (plus `--verbose` / `--quiet` / `--json`); `NO_COLOR` / `FORCE_COLOR` honored, with `--color` / `--no-color` taking precedence.                                                                                                                      |
-| Timeouts and base URLs                      | Fixed constants in provider client implementations (`base-urls.ts`).                                                                                                                                                                                                               |
-| yt-dlp auth/cookies                         | `bun autoshow config --cookies` and `bun autoshow config --cookies-from-browser`; applied centrally after config load.                                                                                                                                                             |
+Runtime settings come from flags and `config/autoshow.json`. The CLI reads environment variables only for provider API keys and `NO_COLOR` / `FORCE_COLOR`. `--color` / `--no-color` override those color variables.

@@ -13,7 +13,7 @@ test('omitted --prompt resolves to an empty prompt list', () => {
 
   expect(parsed.flags['prompt']).toBeUndefined()
   expect(readPromptFlags(parsed.flags)).toEqual([])
-  expect(buildOptsFromFlags(false, parsed.flags).prompts).toEqual([])
+  expect(buildOptsFromFlags(parsed.flags).prompts).toEqual([])
 })
 
 test('repeated --prompt values accumulate in order', () => {
@@ -21,5 +21,5 @@ test('repeated --prompt values accumulate in order', () => {
 
   expect(parsed.flags['prompt']).toEqual(['shortSummary', 'longSummary', 'chapterTitles'])
   expect(readPromptFlags(parsed.flags)).toEqual(['shortSummary', 'longSummary', 'chapterTitles'])
-  expect(buildOptsFromFlags(false, parsed.flags).prompts).toEqual(['shortSummary', 'longSummary', 'chapterTitles'])
+  expect(buildOptsFromFlags(parsed.flags).prompts).toEqual(['shortSummary', 'longSummary', 'chapterTitles'])
 })

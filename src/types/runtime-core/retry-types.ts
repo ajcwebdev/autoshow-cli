@@ -1,11 +1,9 @@
 export type RetryClass =
   | 'setup_download'
   | 'runtime_subprocess_transient'
-  | 'runtime_local_inference'
   | 'runtime_http_read'
   | 'runtime_http_create_conservative'
   | 'runtime_http_create_retriable'
-  | 'runtime_poll_loop'
 
 export type RetryPolicy = {
   maxAttempts: number
@@ -14,7 +12,6 @@ export type RetryPolicy = {
   jitter: boolean
   exponential: boolean
 }
-
 
 export type RetryDecision = {
   shouldRetry: boolean

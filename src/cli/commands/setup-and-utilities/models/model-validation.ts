@@ -1,4 +1,6 @@
-import { CLIUsageError } from '~/utils/error-handler'
+import type { ModelCategory } from '~/types'
+import { UsageError } from '~/utils/error-handler'
+import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates'
 import {
   STANDALONE_IMAGE_PROVIDER_TARGETS,
   STANDALONE_MUSIC_PROVIDER_TARGETS,
@@ -11,11 +13,6 @@ import {
 
 export const formatAllowedValues = (values: readonly string[]): string => values.join(', ')
 
-// Validator keys are internal target flag names (`mistral-ocr`, `groq-tts`, `openai`) that the
-// selector normalizers generate; none of them is a flag a user can type. Each category maps its
-// internal names back to the public spellings that produce them, using the dual-naming form
-// `target-validation.ts` already uses: `--provider` on extract and the standalone
-// tts/image/video/music commands, and the step selector in the write pipeline.
 const SELECTOR_CATEGORIES = [
   { stepFlag: 'stt', targets: WRITE_STT_PROVIDER_TARGETS },
   { stepFlag: 'ocr', targets: WRITE_OCR_PROVIDER_TARGETS },
@@ -25,8 +22,6 @@ const SELECTOR_CATEGORIES = [
   { stepFlag: 'music', targets: STANDALONE_MUSIC_PROVIDER_TARGETS }
 ] as const satisfies readonly { stepFlag: string, targets: Record<string, string> }[]
 
-// Two local STT keys predate the `<provider>-<category>` convention and cannot be split by
-// suffix, so they would otherwise read as bare LLM providers.
 const IRREGULAR_SELECTORS: Record<string, string> = {
   whisper: '--provider/--stt whisper[=model]',
   whisperfile: '--provider/--stt whisperfile[=model]'
@@ -34,11 +29,8 @@ const IRREGULAR_SELECTORS: Record<string, string> = {
 
 const modelValidatorFlags = new Set<string>()
 
-// Every flag key handed to createModelValidator, for the drift guard in
-// model-selector-messages.test.ts. Populated as the model modules are imported.
 export const getModelValidatorFlags = (): readonly string[] => [...modelValidatorFlags]
 
-// Returns undefined when a key resolves to no public spelling, which the guard treats as drift.
 export const describeModelSelector = (flag: string): string | undefined => {
   const irregular = IRREGULAR_SELECTORS[flag]
   if (irregular !== undefined) {
@@ -56,7 +48,6 @@ export const describeModelSelector = (flag: string): string | undefined => {
     }
   }
 
-  // Bare keys are write-pipeline LLM providers, whose only public spelling is --llm.
   if ((WRITE_LLM_PROVIDER_TARGETS as Record<string, string>)[flag] === flag) {
     return `--llm ${flag}[=model]`
   }
@@ -75,7 +66,7 @@ export const createModelValidator = <T extends string>(
   return (model: string): T => {
     if (!supported.includes(model as T)) {
       const suffix = extraMessage ? ` ${extraMessage}` : ''
-      throw CLIUsageError(
+      throw UsageError(
         `Invalid model "${model}" for ${formatModelSelector(flag)}.${suffix} Allowed values: ${formatAllowedValues(supported)}`
       )
     }
@@ -83,14 +74,31 @@ export const createModelValidator = <T extends string>(
   }
 }
 
-export const throwRetiredModelSelection = (
+const throwRetiredModelSelection = (
   model: string,
   flag: string,
   replacement: string
 ): never => {
-  throw CLIUsageError(
+  throw UsageError(
     `Model "${model}" is retired for ${formatModelSelector(flag)}. Use "${replacement}" instead. AutoShow will not silently substitute a different model identity.`
   )
+}
+
+export const createRetiringModelValidator = <T extends string>(
+  category: ModelCategory,
+  service: string,
+  supported: readonly T[],
+  flag: string,
+  extraMessage?: string
+) => {
+  const validateActive = createModelValidator<T>(supported, flag, extraMessage)
+  return (model: string): T => {
+    const replacement = getRetiredModelReplacement(category, service, model)
+    if (replacement !== undefined) {
+      return throwRetiredModelSelection(model, flag, replacement)
+    }
+    return validateActive(model)
+  }
 }
 
 export const buildModelDescription = (label: string, models: readonly string[]): string =>

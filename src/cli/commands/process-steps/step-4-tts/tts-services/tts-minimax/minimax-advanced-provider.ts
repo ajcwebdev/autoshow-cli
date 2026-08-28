@@ -1,5 +1,8 @@
 import type {
   AnyCapabilityRecord,
+  JsonObject,
+  MiniMaxAdvancedProviderOptions,
+  MiniMaxVoiceType,
   ProviderVoiceCatalogEntry,
   ProviderVoiceCatalogPage,
   ProviderVoiceCloneRequest,
@@ -14,15 +17,17 @@ import type {
   VoiceLifecyclePort,
 } from '~/types'
 import { MINIMAX_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from '../../script-to-audio/contract-identity'
 import {
   buildAdvancedCapabilityFixture,
   buildCapabilityDocumentationEvidence,
   createAdvancedProviderJsonRequest,
   providerAccountScopeHash,
-  type AdvancedProviderHttpRequest,
 } from '../../script-to-audio/advanced-provider-contracts'
+import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
+import type { AdvancedVoiceProviderIdentity } from '~/types'
+import { assertAdvancedVoiceCloneAuthorized, assertAdvancedVoiceDeletable, assertAdvancedVoiceInspectionIdentity, buildAdvancedVoiceInspection } from '../advanced-voice-provider-shell'
 
 const DOCS = {
   catalog: 'https://platform.minimax.io/docs/api-reference/voice-management-get',
@@ -46,26 +51,19 @@ const capabilityRecords = [
 ] as const satisfies readonly AnyCapabilityRecord[]
 
 export const MINIMAX_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
-export const MINIMAX_TEMPORARY_VOICE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000
-export const MINIMAX_CLONE_SAMPLE_MAX_BYTES = 20 * 1024 * 1024
+const MINIMAX_TEMPORARY_VOICE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000
+const MINIMAX_CLONE_SAMPLE_MAX_BYTES = 20 * 1024 * 1024
 
-type JsonRecord = Record<string, unknown>
-type MiniMaxVoiceType = 'voice_cloning' | 'voice_generation'
-
-const record = (value: unknown, label: string): JsonRecord => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw CLIUsageError(`MiniMax ${label} response is invalid.`)
-  return value as JsonRecord
-}
-const string = (value: unknown): string | undefined => typeof value === 'string' && value.trim() ? value.trim() : undefined
+const record = createProviderRecordReader('MiniMax')
 const integer = (value: unknown): number | undefined => typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined
-const strings = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(item => string(item) ?? []) : []
+const strings = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(item => trimmedString(item) ?? []) : []
 const array = (value: unknown): unknown[] => Array.isArray(value) ? value : []
 
-const assertBaseResponse = (payload: JsonRecord, label: string): JsonRecord => {
+const assertBaseResponse = (payload: JsonObject, label: string): JsonObject => {
   const baseResponse = payload['base_resp']
   if (!baseResponse || typeof baseResponse !== 'object' || Array.isArray(baseResponse)) return payload
-  const statusCode = (baseResponse as JsonRecord)['status_code']
-  if (statusCode !== undefined && statusCode !== 0) throw CLIUsageError(`MiniMax ${label} failed: ${string((baseResponse as JsonRecord)['status_msg']) ?? `status ${String(statusCode)}`}.`)
+  const statusCode = (baseResponse as JsonObject)['status_code']
+  if (statusCode !== undefined && statusCode !== 0) throw UsageError(`MiniMax ${label} failed: ${trimmedString((baseResponse as JsonObject)['status_msg']) ?? `status ${String(statusCode)}`}.`)
   return payload
 }
 
@@ -77,15 +75,15 @@ const mapVoice = (
   checkedAt: string
 ): ProviderVoiceCatalogEntry => {
   const voice = record(value, 'voice')
-  const resourceId = string(voice['voice_id'])
-  if (!resourceId) throw CLIUsageError('MiniMax voice response omits voice_id.')
+  const resourceId = trimmedString(voice['voice_id'])
+  if (!resourceId) throw UsageError('MiniMax voice response omits voice_id.')
   const source = voiceType === 'system' ? 'provider-library' as const : 'account' as const
   const origin = voiceType === 'system' ? 'provider-stock' as const : voiceType === 'voice_generation' ? 'designed' as const : 'instant-clone' as const
-  const description = strings(voice['description']).join(', ') || string(voice['description'])
+  const description = strings(voice['description']).join(', ') || trimmedString(voice['description'])
   return {
     provider: 'minimax',
     resourceId,
-    name: string(voice['voice_name']) ?? resourceId,
+    name: trimmedString(voice['voice_name']) ?? resourceId,
     source,
     origin,
     ...(description ? { description } : {}),
@@ -94,7 +92,7 @@ const mapVoice = (
     state: 'available',
     sanitizedMetadata: {
       voiceType,
-      ...(string(voice['created_time']) ? { createdTime: string(voice['created_time']) as string } : {}),
+      ...(trimmedString(voice['created_time']) ? { createdTime: trimmedString(voice['created_time']) as string } : {}),
       ...(voiceType === 'system' ? {} : { activationRequiredBeforeCatalogVisibility: true, temporaryLifetimeDays: 7, observedAt: checkedAt })
     }
   }
@@ -103,13 +101,6 @@ const mapVoice = (
 const voiceTypeFor = (voice: Extract<ProviderVoiceRef, { kind: 'remote-resource' }>): MiniMaxVoiceType =>
   voice.origin === 'designed' ? 'voice_generation' : 'voice_cloning'
 
-export type MiniMaxAdvancedProviderOptions = {
-  apiKey: string
-  request?: AdvancedProviderHttpRequest | undefined
-  resolveProtectedAsset?: ((asset: ProviderVoiceCloneRequest['protectedSamples'][number]) => Promise<{ bytes: Uint8Array, fileName: string, mediaType: string, durationMs: number }>) | undefined
-  now?: (() => string) | undefined
-}
-
 export const createMiniMaxAdvancedProvider = (options: MiniMaxAdvancedProviderOptions): Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & {
   accountScopeHash: string
 } => {
@@ -117,12 +108,12 @@ export const createMiniMaxAdvancedProvider = (options: MiniMaxAdvancedProviderOp
   const now = options.now ?? (() => new Date().toISOString())
   const accountScopeHash = providerAccountScopeHash('minimax', options.apiKey)
 
-  const getVoices = async (voiceType: 'system' | 'all'): Promise<JsonRecord> => assertBaseResponse(record(await request({ method: 'POST', path: '/v1/get_voice', body: { voice_type: voiceType } }), 'voice catalog'), 'voice catalog')
+  const getVoices = async (voiceType: 'system' | 'all'): Promise<JsonObject> => assertBaseResponse(record(await request({ method: 'POST', path: '/v1/get_voice', body: { voice_type: voiceType } }), 'voice catalog'), 'voice catalog')
   const catalog: VoiceCatalogPort = {
     list: async input => {
       const source = input?.source ?? 'account'
-      if (source === 'shared-library') throw CLIUsageError('MiniMax does not expose a shared-owner voice-library namespace.')
-      if (input?.cursor) throw CLIUsageError('MiniMax voice catalog is not paginated and does not accept a cursor.')
+      if (source === 'shared-library') throw UsageError('MiniMax does not expose a shared-owner voice-library namespace.')
+      if (input?.cursor) throw UsageError('MiniMax voice catalog is not paginated and does not accept a cursor.')
       const checkedAt = now()
       const payload = await getVoices(source === 'provider-library' ? 'system' : 'all')
       const entries = source === 'provider-library'
@@ -138,16 +129,16 @@ export const createMiniMaxAdvancedProvider = (options: MiniMaxAdvancedProviderOp
 
   const design: VoiceDesignPort = {
     createCandidate: async designRequest => {
-      if (designRequest.sourceVoice) throw CLIUsageError('MiniMax does not expose a voice remix operation.')
-      if (designRequest.candidateCount !== 1) throw CLIUsageError('MiniMax Voice Design returns exactly one bounded preview per request.')
-      if (!designRequest.description.trim()) throw CLIUsageError('MiniMax Voice Design prompt cannot be blank.')
-      if (!designRequest.previewText.trim() || designRequest.previewText.length > 500) throw CLIUsageError('MiniMax Voice Design preview text must contain 1-500 characters.')
-      if (designRequest.seed !== undefined) throw CLIUsageError('MiniMax Voice Design does not expose a deterministic seed.')
+      if (designRequest.sourceVoice) throw UsageError('MiniMax does not expose a voice remix operation.')
+      if (designRequest.candidateCount !== 1) throw UsageError('MiniMax Voice Design returns exactly one bounded preview per request.')
+      if (!designRequest.description.trim()) throw UsageError('MiniMax Voice Design prompt cannot be blank.')
+      if (!designRequest.previewText.trim() || designRequest.previewText.length > 500) throw UsageError('MiniMax Voice Design preview text must contain 1-500 characters.')
+      if (designRequest.seed !== undefined) throw UsageError('MiniMax Voice Design does not expose a deterministic seed.')
       const checkedAt = now()
       const payload = assertBaseResponse(record(await request({ method: 'POST', path: '/v1/voice_design', body: { prompt: designRequest.description, preview_text: designRequest.previewText } }), 'voice design'), 'voice design')
-      const providerCandidateId = string(payload['voice_id'])
-      const trialAudio = string(payload['trial_audio'])
-      if (!providerCandidateId || !trialAudio || !/^(?:[a-fA-F0-9]{2})+$/.test(trialAudio)) throw CLIUsageError('MiniMax Voice Design response omits a valid voice_id or hexadecimal trial_audio.')
+      const providerCandidateId = trimmedString(payload['voice_id'])
+      const trialAudio = trimmedString(payload['trial_audio'])
+      if (!providerCandidateId || !trialAudio || !/^(?:[a-fA-F0-9]{2})+$/.test(trialAudio)) throw UsageError('MiniMax Voice Design response omits a valid voice_id or hexadecimal trial_audio.')
       const result: ProviderVoiceDesignResult = {
         schemaVersion: 1,
         provider: 'minimax',
@@ -165,7 +156,7 @@ export const createMiniMaxAdvancedProvider = (options: MiniMaxAdvancedProviderOp
       return result
     },
     materializeCandidate: async materializeRequest => {
-      if (!materializeRequest.providerCandidateId.trim() || !materializeRequest.desiredName.trim()) throw CLIUsageError('MiniMax materialization requires the selected candidate ID and desired local name.')
+      if (!materializeRequest.providerCandidateId.trim() || !materializeRequest.desiredName.trim()) throw UsageError('MiniMax materialization requires the selected candidate ID and desired local name.')
       const checkedAt = now()
       const providerVoice: ProviderVoiceRef = {
         kind: 'remote-resource', provider: 'minimax', resourceId: materializeRequest.providerCandidateId,
@@ -183,28 +174,28 @@ export const createMiniMaxAdvancedProvider = (options: MiniMaxAdvancedProviderOp
 
   const clone: VoiceClonePort = {
     clone: async cloneRequest => {
-      if (!cloneRequest.consentRecordRef || !cloneRequest.provenanceRef) throw CLIUsageError('MiniMax cloning requires consent and provenance before any external upload.')
+      assertAdvancedVoiceCloneAuthorized(identity, cloneRequest, 'before any external upload')
       if (cloneRequest.cloneKind === 'professional') {
         const result: ProviderVoiceMutationResult = { schemaVersion: 1, provider: 'minimax', state: 'external-action-required', action: 'MiniMax does not document a separate professional-clone API; use the supported instant clone or manage any contracted workflow externally.', sanitizedMetadata: { cloneKind: 'professional', sampleCount: cloneRequest.protectedSamples.length }, checkedAt: now() }
         return result
       }
-      if (cloneRequest.protectedSamples.length !== 1) throw CLIUsageError('MiniMax Voice Clone requires exactly one protected sample.')
-      if (!options.resolveProtectedAsset) throw CLIUsageError('MiniMax cloning requires a protected-asset resolver.')
-      if (!/^[A-Za-z](?:[A-Za-z0-9_-]{6,254}[A-Za-z0-9])$/.test(cloneRequest.desiredName)) throw CLIUsageError('MiniMax clone voice ID must contain 8-256 letters, numbers, underscores, or hyphens, start with a letter, and end with a letter or number.')
+      if (cloneRequest.protectedSamples.length !== 1) throw UsageError('MiniMax Voice Clone requires exactly one protected sample.')
+      if (!options.resolveProtectedAsset) throw UsageError('MiniMax cloning requires a protected-asset resolver.')
+      if (!/^[A-Za-z](?:[A-Za-z0-9_-]{6,254}[A-Za-z0-9])$/.test(cloneRequest.desiredName)) throw UsageError('MiniMax clone voice ID must contain 8-256 letters, numbers, underscores, or hyphens, start with a letter, and end with a letter or number.')
       const resolved = await options.resolveProtectedAsset(cloneRequest.protectedSamples[0] as ProviderVoiceCloneRequest['protectedSamples'][number])
-      if (resolved.bytes.byteLength === 0 || resolved.bytes.byteLength > MINIMAX_CLONE_SAMPLE_MAX_BYTES) throw CLIUsageError('MiniMax clone sample must be non-empty and no larger than 20 MiB.')
-      if (!Number.isFinite(resolved.durationMs) || resolved.durationMs < 10_000 || resolved.durationMs > 300_000) throw CLIUsageError('MiniMax clone sample must have a verified duration from 10 seconds through 5 minutes.')
-      if (!/\.(?:mp3|m4a|wav)$/i.test(resolved.fileName)) throw CLIUsageError('MiniMax clone sample must be an mp3, m4a, or wav file.')
+      if (resolved.bytes.byteLength === 0 || resolved.bytes.byteLength > MINIMAX_CLONE_SAMPLE_MAX_BYTES) throw UsageError('MiniMax clone sample must be non-empty and no larger than 20 MiB.')
+      if (!Number.isFinite(resolved.durationMs) || resolved.durationMs < 10_000 || resolved.durationMs > 300_000) throw UsageError('MiniMax clone sample must have a verified duration from 10 seconds through 5 minutes.')
+      if (!/\.(?:mp3|m4a|wav)$/i.test(resolved.fileName)) throw UsageError('MiniMax clone sample must be an mp3, m4a, or wav file.')
       const form = new FormData()
       form.append('purpose', 'voice_clone')
       form.append('file', new Blob([resolved.bytes], { type: resolved.mediaType }), resolved.fileName)
       const uploaded = assertBaseResponse(record(await request({ method: 'POST', path: '/v1/files/upload', body: form }), 'clone sample upload'), 'clone sample upload')
-      const file = uploaded['file'] && typeof uploaded['file'] === 'object' && !Array.isArray(uploaded['file']) ? uploaded['file'] as JsonRecord : uploaded
+      const file = uploaded['file'] && typeof uploaded['file'] === 'object' && !Array.isArray(uploaded['file']) ? uploaded['file'] as JsonObject : uploaded
       const fileId = integer(file['file_id']) ?? integer(file['id'])
-      if (fileId === undefined) throw CLIUsageError('MiniMax clone sample upload returned no positive integer file_id.')
+      if (fileId === undefined) throw UsageError('MiniMax clone sample upload returned no positive integer file_id.')
       const checkedAt = now()
       const cloned = assertBaseResponse(record(await request({ method: 'POST', path: '/v1/voice_clone', body: { file_id: fileId, voice_id: cloneRequest.desiredName } }), 'voice clone'), 'voice clone')
-      const resourceId = string(cloned['voice_id']) ?? cloneRequest.desiredName
+      const resourceId = trimmedString(cloned['voice_id']) ?? cloneRequest.desiredName
       const providerVoice: ProviderVoiceRef = {
         kind: 'remote-resource', provider: 'minimax', resourceId, namespace: 'account', accountScopeHash,
         origin: 'instant-clone', ownership: 'project', expiresAt: plusLifetime(checkedAt), deletion: { state: 'eligible', checkedAt },
@@ -212,31 +203,33 @@ export const createMiniMaxAdvancedProvider = (options: MiniMaxAdvancedProviderOp
           sourceRef: cloneRequest.protectedSamples[0]!.assetId,
           sourceIdentityHash: cloneRequest.protectedSamples[0]!.sha256,
           operation: 'cloned-from', localAttemptId: cloneRequest.localAttemptId,
-          ...(string(cloned['trace_id']) ? { providerOperationId: string(cloned['trace_id']) } : {})
+          ...(trimmedString(cloned['trace_id']) ? { providerOperationId: trimmedString(cloned['trace_id']) } : {})
         }
       }
       return { schemaVersion: 1, provider: 'minimax', state: 'ready', providerVoice, sanitizedMetadata: { cloneKind: 'instant', sampleCount: 1, sampleDurationMs: resolved.durationMs, activationRequired: true, temporaryLifetimeDays: 7 }, checkedAt }
     }
   }
 
+  const identity: AdvancedVoiceProviderIdentity = { provider: 'minimax', label: 'MiniMax', labelWithArticle: 'a MiniMax', accountScopeHash }
   const inspect = async (voice: ProviderVoiceRef): Promise<ProviderVoiceInspection> => {
-    if (voice.provider !== 'minimax' || voice.kind !== 'remote-resource') throw CLIUsageError('MiniMax inspection requires a MiniMax remote voice resource.')
-    const page = await catalog.list({ source: voice.namespace === 'account' ? 'account' : 'provider-library' })
-    const entry = page.entries.find(candidate => candidate.resourceId === voice.resourceId)
-    const expired = voice.expiresAt !== undefined && Date.parse(voice.expiresAt) <= Date.parse(page.checkedAt)
-    const state = entry ? 'available' as const : expired ? 'expired' as const : voice.expiresAt ? 'pending' as const : 'missing' as const
-    return { schemaVersion: 1, provider: 'minimax', providerVoice: voice, state, deletion: voice.deletion, sanitizedMetadata: entry?.sanitizedMetadata ?? { activationRequiredBeforeCatalogVisibility: Boolean(voice.expiresAt) }, checkedAt: page.checkedAt }
+    const remote = assertAdvancedVoiceInspectionIdentity(identity, voice)
+    const page = await catalog.list({ source: remote.namespace === 'account' ? 'account' : 'provider-library' })
+    const entry = page.entries.find(candidate => candidate.resourceId === remote.resourceId)
+    const expired = remote.expiresAt !== undefined && Date.parse(remote.expiresAt) <= Date.parse(page.checkedAt)
+    return buildAdvancedVoiceInspection(identity, {
+      voice: remote,
+      state: entry ? 'available' : expired ? 'expired' : remote.expiresAt ? 'pending' : 'missing',
+      sanitizedMetadata: entry?.sanitizedMetadata ?? { activationRequiredBeforeCatalogVisibility: Boolean(remote.expiresAt) },
+      checkedAt: page.checkedAt
+    })
   }
   const lifecycle: VoiceLifecyclePort = {
     inspect,
     delete: async deleteRequest => {
-      const voice = deleteRequest.providerVoice
-      if (voice.provider !== 'minimax' || voice.kind !== 'remote-resource' || voice.resourceId !== deleteRequest.expectedResourceId) throw CLIUsageError('MiniMax deletion identity does not match the registered resource.')
-      if (voice.ownership !== 'project' || voice.deletion.state !== 'eligible' || voice.namespace !== 'account') throw CLIUsageError('MiniMax deletes only eligibility-checked project-owned account voices.')
-      if (voice.accountScopeHash !== accountScopeHash) throw CLIUsageError('MiniMax deletion credentials do not match the registered account scope.')
+      const voice = assertAdvancedVoiceDeletable(identity, { ownedResourceLabel: 'account voices' }, deleteRequest)
       const payload = assertBaseResponse(record(await request({ method: 'POST', path: '/v1/delete_voice', body: { voice_type: voiceTypeFor(voice), voice_id: voice.resourceId } }), 'voice deletion'), 'voice deletion')
-      const returnedId = string(payload['voice_id'])
-      if (returnedId && returnedId !== voice.resourceId) throw CLIUsageError('MiniMax deletion response identity does not match the registered resource.')
+      const returnedId = trimmedString(payload['voice_id'])
+      if (returnedId && returnedId !== voice.resourceId) throw UsageError('MiniMax deletion response identity does not match the registered resource.')
       return { deletedAt: now() }
     }
   }

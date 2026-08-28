@@ -1,4 +1,4 @@
-import type { DocumentMetadata, EpubArtifactFile, ExtractionOptions, HostedOcrRun, PageResult } from '~/types'
+import type { DocumentMetadata, EpubArtifactFile, ExtractionOptions, HostedOcrRun, NormalizedReasoningEffort, PageResult } from '~/types'
 
 export type OcrResultBuilderInput = {
   start: number
@@ -6,7 +6,6 @@ export type OcrResultBuilderInput = {
   extractionMethod: string
   step1Metadata: DocumentMetadata
   opts: ExtractionOptions
-  epubPayload: Record<string, unknown> | undefined
   inputFamily: string | undefined
   normalizedFrom: string | undefined
   conversionChain: string[] | undefined
@@ -23,6 +22,6 @@ export type OcrResultBuilderInput = {
   chapterExportSummary: Record<string, unknown> | undefined
   pdfChapterDetectionSummary: Record<string, unknown> | undefined
   artifactFiles: EpubArtifactFile[] | undefined
-  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
-  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
 }

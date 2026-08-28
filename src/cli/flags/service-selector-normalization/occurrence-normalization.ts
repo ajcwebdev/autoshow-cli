@@ -1,4 +1,4 @@
-import type { CliFlagOccurrence, SelectorNormalizationResult } from '~/types'
+import type { CliFlagOccurrence, FlagOccurrenceReplacement, SelectorNormalizationResult } from '~/types'
 
 const appendFlagValue = (
   flags: Record<string, unknown>,
@@ -15,11 +15,6 @@ const appendFlagValue = (
     return
   }
   flags[flagName] = value
-}
-
-export type FlagOccurrenceReplacement = {
-  occurrence: CliFlagOccurrence
-  update: 'append' | 'set'
 }
 
 export const replaceFlagOccurrence = (

@@ -1,11 +1,11 @@
 import type { NativeCliUsageErrorCode } from '~/types'
+import { AppUsageError } from '~/utils/error-handler'
 
-class NativeCliUsageError extends Error {
+class NativeCliUsageError extends AppUsageError {
   readonly code: NativeCliUsageErrorCode
-  readonly exitCode = 2
 
-  constructor(code: NativeCliUsageErrorCode, message: string) {
-    super(message)
+  constructor(code: NativeCliUsageErrorCode, message: string, usageMessage?: string) {
+    super(message, undefined, usageMessage !== undefined ? { usageMessage } : {})
     this.name = 'NativeCliUsageError'
     this.code = code
   }
@@ -15,7 +15,11 @@ export class NativeNoSuchCommandError extends NativeCliUsageError {
   readonly commandName: string
 
   constructor(commandName: string) {
-    super('no-such-command', `Unknown command "${commandName}"`)
+    super(
+      'no-such-command',
+      `Unknown command "${commandName}"`,
+      `Unknown command "${commandName}". Run: bun autoshow help`
+    )
     this.name = 'NativeNoSuchCommandError'
     this.commandName = commandName
   }
@@ -23,7 +27,7 @@ export class NativeNoSuchCommandError extends NativeCliUsageError {
 
 export class NativeInvalidParametersError extends NativeCliUsageError {
   constructor(message: string) {
-    super('invalid-parameters', message)
+    super('invalid-parameters', message, `${message}. Run: bun autoshow help <command>`)
     this.name = 'NativeInvalidParametersError'
   }
 }
@@ -49,24 +53,12 @@ export class NativeMissingFlagValueError extends NativeCliUsageError {
   readonly flagName: string
 
   constructor(flagName: string) {
-    super('missing-required-value', `Missing value for --${flagName}`)
+    super(
+      'missing-required-value',
+      `Missing value for --${flagName}`,
+      `Missing value for --${flagName}. Run: bun autoshow help <command>`
+    )
     this.name = 'NativeMissingFlagValueError'
     this.flagName = flagName
   }
-}
-
-export const isNativeUsageError = (error: unknown): boolean =>
-  error instanceof NativeCliUsageError
-
-export const nativeUsageMessage = (error: unknown): string | undefined => {
-  if (error instanceof NativeNoSuchCommandError) {
-    return `Unknown command "${error.commandName}". Run: bun autoshow help`
-  }
-  if (error instanceof NativeInvalidParametersError || error instanceof NativeMissingFlagValueError) {
-    return `${error.message}. Run: bun autoshow help <command>`
-  }
-  if (error instanceof NativeUnknownFlagError || error instanceof NativeCliUsageError) {
-    return error.message
-  }
-  return undefined
 }

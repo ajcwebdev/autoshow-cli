@@ -4,32 +4,28 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-08-17
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 - **Supersession:** URL execution moved to ADR-009, and pipeline state, resume, and dry-run planning belong to ADR-002. This record remains accepted authority for source classification, supported ebook normalization, discovery caches, and the normalized handoff to execution.
 
 ## Context
 
-Source ingestion must answer what the input is, which route it requires, and which normalized input enters extraction, without owning provider execution or persistent run state. Input classification, source expansion, format hints, and route selection are command-neutral Step 0 concerns. Download-specific acquisition, normalization, raw downloader options, and source output writing are Step 1 concerns.
+Source ingestion must answer what the input is, which route it requires, and which normalized file enters extraction. It does not own provider execution or persistent run state.
 
-URL sources need one stable identity model before extraction. The shared provider registry owns URL backend identity, hosted/local grouping, configuration paths, shortcut expansion, provider-spec collection, and resume-selectable target identity. It does not own adapters, retries, provider responses, article normalization, or artifact writing.
+URL sources need a stable identity before extraction. `article` and `x-space` stay distinct explicit routes rather than being inferred from each other or from provider metadata.
 
-Discovery repeats expensive but non-authoritative work across independent CLI processes: `yt-dlp` video and collection lookups, local `ffprobe` probes, and batch-list parsing. Best-effort temporary caches may accelerate that work only when fingerprints, payload validation, stable-source checks, serialized updates, private permissions, and atomic replacement preserve the same ingestion result.
+Discovery repeats expensive, non-authoritative work across independent CLI processes: video and collection lookups, local media probes, and batch-list parsing. Best-effort caches may reuse that work only when they cannot change classification, routing, or normalized output.
 
-AutoShow has one mature document extraction implementation, and it reads exactly two container types: EPUB and PDF. The EPUB path covers TOC/spine inspection, text cleanup, automatic chapter export, and JSON inspection; the PDF path covers page extraction and local/hosted OCR. Everything else a user thinks of as "a book" arrives in some other container, so Step 0/1 is the single place where a book-like input becomes an EPUB or PDF before Step 2 runs.
+Only EPUB and PDF have chapter-aware extraction. Other documents and images produce flat text or per-image OCR. A book-like file in another container must become an EPUB or PDF before extraction. Several ebook formats are closer to EPUB than to PDF OCR, but treating each separately would duplicate chapter logic.
 
-Several ebook formats are closer to EPUB than to PDF/image OCR workflows, but treating each separately would duplicate chapter logic. These explicitly registered formats are normalized to EPUB before extraction.
-
-Why now: supported ebook conversion, source routing, and discovery caching share one ingestion contract and one explicit-registry rule.
+Why now: source routing, supported ebook conversion, and discovery caching share one ingestion contract and one explicit-registry rule.
 
 ## Options Considered
-
-### Convertible Ebook Formats
 
 **Option 1 (selected)**
 
 - **Option:** Normalize supported convertible ebooks to EPUB with Calibre `ebook-convert`
-- **Pros:** Reuses native EPUB chapter extraction; one implementation for TOC/spine/chunk behavior; no new package dependencies; default path stays local and no-cost
+- **Pros:** Reuses native EPUB chapter extraction; one implementation for chapter behavior; no new package dependencies; default path stays local and no-cost
 - **Cons:** Requires Calibre; conversion quality depends on Calibre; DRM or malformed inputs fail before extraction
 - **Quantitative Notes:** 4 canonical formats plus 2 aliases; 0 package dependencies; 1 local subprocess per normalized ebook
 
@@ -38,7 +34,7 @@ Why now: supported ebook conversion, source routing, and discovery caching share
 - **Option:** Add one-off AZW3 handling
 - **Pros:** Smallest immediate implementation
 - **Cons:** Leaves MOBI, AZW, FB2, LIT, and PRC inconsistent; creates precedent for per-format branches
-- **Quantitative Notes:** Misses the broader ebook class
+- **Quantitative Notes:** n/a
 
 **Option 3**
 
@@ -63,135 +59,105 @@ Why now: supported ebook conversion, source routing, and discovery caching share
 
 ## Decision
 
-Input classification, source expansion, format hints, and route selection belong to `step-0-metadata`. Download-specific acquisition, normalization, raw downloader options, and source output writing belong to `step-1-download`. These stages produce the normalized, explicitly routed inputs consumed by execution without owning the canonical batch work plan or provider progress.
-
-The shared provider registry owns URL backend identity, hosted/local grouping, configuration paths, shortcut expansion, provider-spec collection, and resume-selectable targets. `article` and `x-space` remain distinct explicit source routes and are never inferred from one another.
-
-### Discovery cache ownership and correctness
-
-Discovery caches reusable metadata in JSON files under the operating-system temporary directory:
-
-- `getVideoInfo` caches validated `yt-dlp` video information by URL so a remote lookup normally executes at most once across CLI processes.
-- YouTube collection discovery caches the normalized, de-duplicated item list by collection URL.
-- `extractLocalFileMetadata` caches validated `ffprobe` results by resolved local path in `autoshow-local-file-metadata-cache.json`.
-- `readInputList` caches parsed batch targets by resolved path in `autoshow-batch-list-cache.json`.
-
-The local-file and batch-list caches are correctness-preserving accelerators, never source-of-truth state. Entries include stable file fingerprints covering device, inode, modification time, change time, and size; a hit requires the current fingerprint to match. Producers fingerprint before and after parsing or probing and write only when the source remained stable. Cached payloads are shape-checked before reuse.
-
-Shared asynchronous JSON-cache updates take a process lock, re-read while holding it, write a mode-`0600` temporary file, and atomically rename it into place. Read, parse, validation, and write failures degrade to a miss or uncached result. Remote collection caching is likewise best effort. These caches cannot change classification, metadata fallback, provider selection, normalized output, or canonical pipeline state.
-
-### Book-like normalization
-
-No raw book container other than EPUB and PDF is directly extractable. Every supported convertible book input is converted at the Step 1 boundary into a temporary EPUB, and only that normalized file enters Step 2 extraction. A format must be registered before conversion is attempted; AutoShow must not broadly probe unknown extensions.
-
-Convertible ebooks. Explicitly registered non-EPUB ebook inputs are normalized to a temporary EPUB with Calibre `ebook-convert`, then routed through the existing native EPUB extraction and chapter export path. Canonical detected formats are `mobi`, `azw3`, `fb2`, and `lit`, with `.azw` treated as `azw3` and `.prc` as `mobi`. Convertible formats are maintained in a single central registry (`src/cli/commands/process-steps/step-0-metadata/formats/metadata-convertible-ebooks.ts`) rather than probed dynamically.
-
-ACSM is unsupported. AutoShow does not recognize, fulfill, authorize, or provision tooling for `.acsm`; users must provide a lawful readable EPUB or PDF, and existing activation files are left untouched.
+Classify each input, expand collections and batch lists, and normalize supported sources before extraction. The result is an explicitly routed, normalized file.
 
 This applies to:
 
-- Canonical convertible formats `mobi`, `azw3`, `fb2`, `lit`, and the aliases `.azw` as `azw3` and `.prc` as `mobi`.
-- Default extraction of `epub-text` after ebook normalization.
-- EPUB features after normalization: automatic chapter export, length truncation, and JSON inspection.
-- OCR provider flags after normalization: existing EPUB-to-PDF OCR behavior.
-- Metadata that records the original source format and normalized EPUB for supported ebook conversion.
+- Command-neutral source classification, expansion, format hints, and route selection, including distinct `article` and `x-space` routes.
+- Local conversion during download of ebooks `mobi`, `azw3`, `fb2`, and `lit`, with `.azw` treated as `azw3` and `.prc` as `mobi`.
+- Best-effort discovery caches for video lookups, YouTube collections, local media probes, and batch-list parsing.
+- Conversion metadata that records the original source format and the normalized EPUB.
+- The explicit refusal of `.acsm` as an input.
 
 It does not apply to:
 
-- Attempting conversion of unregistered extensions, or uploading any input to online converters or remote conversion services.
-- Automating DRM removal. Users remain responsible for lawful access, authorization, and any key handling needed to read their fulfilled books.
-- Changing paid-provider execution rules. Supported ebook normalization is local preprocessing.
+- Batch work planning, pipeline persistence, resume, or dry-run pricing ([ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)).
+- URL, OCR, or STT execution, retries, or artifacts ([ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)).
+- Setup-managed Calibre provisioning ([ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md)).
+- Unregistered extensions, remote conversion services, DRM removal, or paid-provider execution.
 
-## API / Type Impact
+### Discovery caches
 
-Supported ebook conversion writes standard Step 1 conversion metadata fields that Step 2 extraction preserves:
+Video lookups, YouTube collection expansion, local media probes, and batch-list parsing may reuse best-effort caches across CLI processes. Caches accelerate discovery; they are never source-of-truth state. A hit requires the source to be unchanged, cached payloads are validated before reuse, and any failure degrades to a miss. Caches cannot change classification, routing, or normalized output.
 
-**Source class 1: Convertible ebook**
+### Convertible ebooks
 
-- **Source class:** Convertible ebook
-- **`sourceFormat`:** `mobi` \| `azw3` \| `fb2` \| `lit` (after alias resolution)
-- **`normalizedFormat`:** `epub`
-- **`conversionChain`:** `["calibre"]`
+Registered non-EPUB ebook inputs convert with Calibre `ebook-convert` to a temporary EPUB; only that file enters extraction. Unregistered extensions are not probed. After conversion, the file follows the existing EPUB extract path.
 
-- `ConvertibleEbookFormat` type union defines explicitly supported convertible formats (`mobi`, `azw3`, `fb2`, `lit`).
-- Step 2 extraction result metadata records `normalizedFrom` (the original source format) and `conversionChain` for downstream manifest transparency.
+`.acsm` files are not recognized, fulfilled, or provisioned. Provide a readable EPUB or PDF. DRM-protected ebooks remain unsupported.
 
 ## Rationale
 
-- The project already has one strong EPUB/PDF extraction implementation. Converting at Step 1 keeps chapter and inspection behavior consistent without adding parser dependencies or parallel extraction paths.
-- Keeping the registry explicit prevents unrelated file types from being silently sent to Calibre, while the metadata fields make every conversion transparent to downstream manifests and reports.
+- Converting registered ebooks to EPUB reuses the existing chapter-aware extract path without parser dependencies or parallel extractors.
+- An explicit registry prevents unrelated files from being sent to Calibre, and conversion metadata keeps the original format visible in run output.
+- Discovery work is expensive and non-authoritative, so caches are allowed only when they cannot change the ingestion result.
+- `.acsm` is a fulfillment document, not a readable book, and must not enter extraction.
 
 ## Consequences
 
 Positive outcomes:
 
-- URL, OCR, and STT selection share one registry-backed source identity model without centralizing execution, and metadata, download, extract, and write consume one command-neutral classification and expansion result.
-- Repeated remote discovery, local probing, and batch-list parsing reuse validated best-effort caches across CLI processes, while fingerprints, stable-source checks, shape validation, locking, private temporary files, and atomic replacement prevent cache acceleration from becoming source authority.
-- MOBI, AZW/AZW3, FB2, LIT, and PRC inputs get consistent EPUB-style extraction, and native chapter behavior remains centralized in the EPUB extractor.
-- The default normalization path remains local and no-cost.
-- Step 1 metadata records `sourceFormat`, `normalizedFormat`, and `conversionChain`; Step 2 metadata records `normalizedFrom` and `conversionChain`, making the original source and conversion chain auditable.
-- Future normalizable formats can be added through one registry and focused tests.
+- Every command uses one classification and expansion result before extraction.
+- Convertible ebooks get the same EPUB chapter path after a local, no-cost conversion.
+- Rerunning discovery, local probes, and batch-list parsing can reuse validated caches without changing results.
+- Future ebook formats can be added through the registry.
 
 Negative outcomes:
 
-- Temporary discovery caches add a small disk-state and maintenance surface; misses still perform the original discovery work.
-- Users need Calibre available through the setup-managed runtime or an explicit supported override, and conversion failures are delegated to Calibre before extraction begins.
-- DRM-protected ebooks remain unsupported.
-- The normalized EPUB is temporary, so debugging conversion output requires rerunning with local inspection.
+- Users need Calibre from setup or an explicit supported override; conversion failures surface before extraction.
+- Discovery caches occupy a small temporary-disk surface; misses still do the original work.
+- DRM-protected ebooks and `.acsm` files are unsupported.
+- The normalized EPUB is temporary, so inspecting conversion output requires a local rerun.
 
 ## Trade-offs
 
 **Trade-off 1**
 
-- **Gain:** Broad book-like input support with minimal extraction code
-- **Sacrifice:** No byte-level native parser for each ebook format
+- **Gain:** Broad book-like input support with one EPUB extraction path
+- **Sacrifice:** No native parser for each ebook format
 
 **Trade-off 2**
 
-- **Gain:** One chapter export and EPUB inspection implementation
-- **Sacrifice:** Calibre remains an external tool prerequisite
+- **Gain:** No new runtime package dependencies
+- **Sacrifice:** Calibre remains an external prerequisite, and unregistered formats are not converted
 
 **Trade-off 3**
 
-- **Gain:** No new runtime package dependencies
-- **Sacrifice:** Unsupported Calibre-capable formats are not auto-tried until added to the registry
+- **Gain:** Run metadata records the original format and conversion chain
+- **Sacrifice:** Conversion quality is whatever Calibre emits
 
-**Trade-off 4**
+## Implementation Note
 
-- **Gain:** Clear source-vs-normalized metadata for both conversion chains
-- **Sacrifice:** Conversion fidelity depends on Calibre output
+The convertible-ebook registry is `src/cli/commands/process-steps/step-0-metadata/formats/metadata-convertible-ebooks.ts`. Calibre conversion runs during document download in `src/cli/commands/process-steps/step-1-download/document/dl-document.ts`. Discovery caches use `src/utils/file-fingerprint-cache.ts`.
+
+## API / Type Impact
+
+Convertible ebook runs record:
+
+- **`sourceFormat`:** `mobi`, `azw3`, `fb2`, or `lit` after alias resolution
+- **`normalizedFormat`:** `epub`
+- **`conversionChain`:** `["calibre"]`
+- **`normalizedFrom`:** original source format after extraction
 
 ## Test Plan
-
-Run default verification (`bun run check`) and local, no-cost contract validation suites:
 
 ```bash
 bun run check
 bun test test/test-cases/validation/extract-ocr/epub-contracts/normalizable-ebooks.test.ts
 ```
 
-Local/no-cost contract tests cover:
+1. Convertible ebook detection, alias resolution, Calibre conversion to EPUB, and original-format metadata.
+2. Original format and conversion chain remain recorded after EPUB extraction.
 
-- Convertible ebook detection, alias resolution, Calibre normalization, and Step 1 source/conversion metadata.
-- Step 2 `normalizedFrom` and `conversionChain` propagation after normalization.
-
-Do not run live Adobe, distributor, hosted OCR, paid-provider, smoke, e2e, or full-suite tests for this ADR.
+Do not run hosted OCR, paid-provider, smoke, e2e, or full-suite tests for this ADR.
 
 ## References
 
-- Pipeline work-plan, state, resume, and dry-run authority: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
-- Setup-managed toolchain, resolver, doctor, and help authority: [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md)
-- Extract execution and artifact authority: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
-- Command-neutral discovery: `src/cli/commands/process-steps/step-0-metadata/`
-- URL provider identity: `src/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry/url-providers.ts`
-- Shared fingerprint cache: `src/utils/file-fingerprint-cache.ts`
-- Video and local-file metadata caches: `src/cli/commands/process-steps/step-1-download/audio/metadata-utils.ts`
-- YouTube collection cache: `src/cli/commands/process-steps/step-0-metadata/metadata-sources/metadata-youtube-collection-target.ts`
-- Batch-list cache: `src/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-collection.ts`
-- Convertible ebook registry: `src/cli/commands/process-steps/step-0-metadata/formats/metadata-convertible-ebooks.ts`
-- Convertible ebook types: `src/types/document-processing/convertible-ebooks-types.ts`
-- Step 1 document preparation and Calibre normalization: `src/cli/commands/process-steps/step-1-download/document/dl-document.ts`
-- EPUB/PDF extraction entry point and metadata propagation: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/run-ocr.ts`
-- OCR result metadata fields: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-result.ts`
-- EPUB export implementation: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ebook/epub/export.ts`
-- Normalizable ebook contracts: `test/test-cases/validation/extract-ocr/epub-contracts/normalizable-ebooks.test.ts`
+- Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
+- Related ADR: [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md)
+- Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
+- `src/cli/commands/process-steps/step-0-metadata/formats/metadata-convertible-ebooks.ts`
+- `src/cli/commands/process-steps/step-1-download/document/dl-document.ts`
+- `src/types/document-processing/convertible-ebooks-types.ts`
+- `src/utils/file-fingerprint-cache.ts`
+- `test/test-cases/validation/extract-ocr/epub-contracts/normalizable-ebooks.test.ts`

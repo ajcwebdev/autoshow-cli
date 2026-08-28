@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { FLAG_TO_CONFIG_PATH } from '~/cli/commands/setup-and-utilities/config/config-merge'
+import { FLAG_TO_CONFIG_PATH } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 import { REPEATABLE_MODEL_FLAGS } from '~/cli/options/option-resolution/model-flag-selection'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import { WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'

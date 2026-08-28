@@ -1,9 +1,10 @@
 import type { ImageGenOptions, ImageTarget, OpenAIImageModel } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { validateOpenAIImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ensureOpenAIImageGenSetup } from './openai-image-gen'
 import { runOpenAIImageGen } from './run-openai-image-gen'
 import {
+  assertNoUnsupportedFlags,
   hasEditInputs,
   unsupportedFlagError,
   validateEnumOption,
@@ -24,7 +25,7 @@ export const normalizeOpenAIImageExtension = (format: string | undefined): strin
 }
 
 export const OPENAI_FIXED_IMAGE_SIZE_VALUES = ['auto', '1024x1024', '1536x1024', '1024x1536'] as const
-export const OPENAI_IMAGE_QUALITY_VALUES = ['auto', 'low', 'medium', 'high'] as const
+const OPENAI_IMAGE_QUALITY_VALUES = ['auto', 'low', 'medium', 'high'] as const
 export const OPENAI_IMAGE_FORMAT_VALUES = ['png', 'jpeg', 'webp'] as const
 export const OPENAI_IMAGE_BACKGROUND_VALUES = ['auto', 'transparent', 'opaque'] as const
 export const OPENAI_IMAGE_COUNT_RANGE = [1, 10] as const
@@ -52,7 +53,7 @@ const validateGptImage2Size = (size: string | undefined): void => {
 
   const dimensions = parseImageDimensions(size)
   if (!dimensions) {
-    throw CLIUsageError(`Invalid --image-size value "${size}" for gpt-image-2. Expected auto or WIDTHxHEIGHT.`)
+    throw UsageError(`Invalid --size value "${size}" for gpt-image-2. Expected auto or WIDTHxHEIGHT.`)
   }
 
   const { width, height } = dimensions
@@ -68,8 +69,8 @@ const validateGptImage2Size = (size: string | undefined): void => {
     || totalPixels < 655_360
     || totalPixels > 8_294_400
   ) {
-    throw CLIUsageError(
-      `Invalid --image-size value "${size}" for gpt-image-2. Width and height must be multiples of 16, max edge <= 3840, aspect ratio <= 3:1, and total pixels between 655,360 and 8,294,400.`
+    throw UsageError(
+      `Invalid --size value "${size}" for gpt-image-2. Width and height must be multiples of 16, max edge <= 3840, aspect ratio <= 3:1, and total pixels between 655,360 and 8,294,400.`
     )
   }
 }
@@ -79,27 +80,27 @@ const validateFixedOpenAIImageSize = (model: OpenAIImageModel, size: string | un
     return
   }
 
-  throw CLIUsageError(`Invalid --image-size value "${size}" for ${model}. Expected auto, 1024x1024, 1536x1024, or 1024x1536.`)
+  throw UsageError(`Invalid --size value "${size}" for ${model}. Expected auto, 1024x1024, 1536x1024, or 1024x1536.`)
 }
 
 const validateOpenAIImageOptions = (
   model: OpenAIImageModel,
   options: Pick<ImageGenOptions, 'imageSize' | 'imageQuality' | 'imageFormat' | 'imageBackground' | 'imageCompression'>
 ): void => {
-  validateEnumOption('OpenAI', model, 'image-quality', options.imageQuality, OPENAI_IMAGE_QUALITIES)
-  validateEnumOption('OpenAI', model, 'image-format', options.imageFormat, OPENAI_IMAGE_FORMATS)
-  validateEnumOption('OpenAI', model, 'image-background', options.imageBackground, OPENAI_IMAGE_BACKGROUNDS)
+  validateEnumOption('OpenAI', model, 'quality', options.imageQuality, OPENAI_IMAGE_QUALITIES)
+  validateEnumOption('OpenAI', model, 'format', options.imageFormat, OPENAI_IMAGE_FORMATS)
+  validateEnumOption('OpenAI', model, 'background', options.imageBackground, OPENAI_IMAGE_BACKGROUNDS)
   if (options.imageCompression !== undefined) {
     const format = options.imageFormat ?? 'png'
     if (format !== 'jpeg' && format !== 'webp') {
-      throw CLIUsageError(`--image-compression is only supported by OpenAI/${model} with --image-format jpeg or webp.`)
+      throw UsageError(`--compression is only supported by OpenAI/${model} with --format jpeg or webp.`)
     }
   }
 
   if (model === 'gpt-image-2') {
     validateGptImage2Size(options.imageSize)
     if (options.imageBackground?.toLowerCase() === 'transparent') {
-      throw CLIUsageError('--image-background transparent is not supported by OpenAI/gpt-image-2. Supported alternatives: opaque or auto.')
+      throw UsageError('--background transparent is not supported by OpenAI/gpt-image-2. Supported alternatives: opaque or auto.')
     }
     return
   }
@@ -120,14 +121,12 @@ export const collectOpenAIImageTargets = (options: ImageGenOptions): ImageTarget
       imageCompression: options.imageCompression
     })
     if (options.imageAspectRatio !== undefined) {
-      throw unsupportedFlagError('OpenAI', model, ['--image-aspect-ratio'], 'Use --image-size for OpenAI dimensions.')
+      throw unsupportedFlagError('OpenAI', model, ['--aspect-ratio'], 'Use --size for OpenAI dimensions.')
     }
-    if (options.imageResponseMode !== undefined || options.geminiSearchGrounding === true) {
-      const unsupported: string[] = []
-      if (options.imageResponseMode !== undefined) unsupported.push('--image-response-mode')
-      if (options.geminiSearchGrounding === true) unsupported.push('--image-search-grounding')
-      throw unsupportedFlagError('OpenAI', model, unsupported, 'These flags are Gemini-only.')
-    }
+    assertNoUnsupportedFlags(options, [
+      'imageResponseMode',
+      { key: 'geminiSearchGrounding', when: value => value === true }
+    ], { provider: 'OpenAI', model, hint: 'These flags are Gemini-only.' })
     validateImageInputReferences(options.imageInputs, {
       provider: 'OpenAI',
       model,

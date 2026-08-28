@@ -6,7 +6,7 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 test('write without --llm resolves to the cheapest hosted LLM', () => {
   const cheapest = selectCheapestDefaultLlmSelection()
   const defaults = resolveLLMDefaults({})
-  const opts = buildOptsFromFlags(false, {})
+  const opts = buildOptsFromFlags({})
 
   expect(defaults.llmService).toBe(cheapest.provider)
   expect(defaults.llmModel).toBe(cheapest.model)

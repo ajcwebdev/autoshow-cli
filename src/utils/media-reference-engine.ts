@@ -1,43 +1,7 @@
 import { existsSync } from 'node:fs'
 import { basename, extname } from 'node:path'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
-
-type MediaReferencePolicy =
-  | { mode: 'strict' }
-  | { mode: 'lenient', contentTypePrefix: string, fallbackMimeType: string }
-
-export interface MediaKindSpec {
-  allowedMimeTypes: readonly string[]
-  mimeByExtension: Readonly<Record<string, string>>
-  mimeAliases: Readonly<Record<string, string>>
-  dataUrlPattern: RegExp
-  policy: MediaReferencePolicy
-  accept: string
-  defaultFileName: (mimeType: string) => string
-  errors: {
-    download: (status: number, url: string) => string
-    unsupportedLocal: (value: string) => string
-    unsupportedUrl: (url: string) => string
-    unsupportedDataUrl: () => string
-  }
-  downloadError: {
-    stage: string
-  }
-}
-
-export interface MediaReferenceBytes {
-  bytes: Uint8Array
-  mimeType: string
-  fileName: string
-}
-
-interface ReferenceValidationOptions {
-  allowedMimeTypes?: readonly string[] | undefined
-  maxInputs?: number | undefined
-  maxInputsError?: ((maxInputs: number) => string) | undefined
-  missingFileError: (value: string) => string
-  unsupportedMimeError: (value: string) => string
-}
+import { UsageError, InfraError } from '~/utils/error-handler'
+import type { MediaKindSpec, MediaReferenceBytes, ReferenceValidationOptions } from '~/types'
 
 const isHttpUrl = (value: string): boolean => {
   try {
@@ -95,14 +59,14 @@ export const createMediaReferenceEngine = (spec: MediaKindSpec): {
   const assertSupportedMimeType = (value: string, allowedMimeTypes: readonly string[], error: (value: string) => string): void => {
     const mimeType = getReferenceMimeType(value)
     if (mimeType === undefined || !allowedMimeTypes.includes(mimeType)) {
-      throw CLIUsageError(error(value))
+      throw UsageError(error(value))
     }
   }
 
   const validateReferences = (inputs: readonly string[] | undefined, options: ReferenceValidationOptions): void => {
     const values = inputs ?? []
     if (options.maxInputs !== undefined && values.length > options.maxInputs) {
-      throw CLIUsageError(options.maxInputsError?.(options.maxInputs) ?? `Expected at most ${options.maxInputs} media references.`)
+      throw UsageError(options.maxInputsError?.(options.maxInputs) ?? `Expected at most ${options.maxInputs} media references.`)
     }
     const allowedMimeTypes = options.allowedMimeTypes ?? spec.allowedMimeTypes
     for (const value of values) {
@@ -117,7 +81,7 @@ export const createMediaReferenceEngine = (spec: MediaKindSpec): {
         continue
       }
       if (!existsSync(value)) {
-        throw CLIUsageError(options.missingFileError(value))
+        throw UsageError(options.missingFileError(value))
       }
       assertSupportedMimeType(value, allowedMimeTypes, options.unsupportedMimeError)
     }
@@ -126,7 +90,7 @@ export const createMediaReferenceEngine = (spec: MediaKindSpec): {
   const dataUrlToBytes = (value: string): MediaReferenceBytes => {
     const parsed = parseDataUrl(value)
     if (!parsed || (spec.policy.mode === 'strict' && !spec.allowedMimeTypes.includes(parsed.mimeType))) {
-      throw CLIUsageError(spec.errors.unsupportedDataUrl())
+      throw UsageError(spec.errors.unsupportedDataUrl())
     }
     return {
       bytes: new Uint8Array(Buffer.from(parsed.base64, 'base64')),
@@ -153,7 +117,7 @@ export const createMediaReferenceEngine = (spec: MediaKindSpec): {
       ? responseMimeType
       : getUrlMimeType(url) ?? (spec.policy.mode === 'lenient' ? spec.policy.fallbackMimeType : undefined)
     if (!mimeType || (spec.policy.mode === 'strict' && !spec.allowedMimeTypes.includes(mimeType))) {
-      throw CLIUsageError(spec.errors.unsupportedUrl(url))
+      throw UsageError(spec.errors.unsupportedUrl(url))
     }
     const urlName = basename(new URL(url).pathname)
     return {
@@ -167,7 +131,7 @@ export const createMediaReferenceEngine = (spec: MediaKindSpec): {
     const detectedMimeType = getLocalMimeType(value)
     const mimeType = detectedMimeType ?? (spec.policy.mode === 'lenient' ? spec.policy.fallbackMimeType : undefined)
     if (!mimeType || (spec.policy.mode === 'strict' && !spec.allowedMimeTypes.includes(mimeType))) {
-      throw CLIUsageError(spec.errors.unsupportedLocal(value))
+      throw UsageError(spec.errors.unsupportedLocal(value))
     }
     return {
       bytes: new Uint8Array(await Bun.file(value).arrayBuffer()),

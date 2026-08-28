@@ -1,21 +1,26 @@
 {
   "DeAPI": {
     "General": [
+      "https://docs.deapi.ai/introduction.md",
       "https://docs.deapi.ai/quickstart.md",
       "https://docs.deapi.ai/pricing.md",
       "https://docs.deapi.ai/architecture-and-security.md",
       "https://docs.deapi.ai/limits-and-quotas.md",
-      "https://docs.deapi.ai/other/payment-methods.md"
+      "https://docs.deapi.ai/other/payment-methods.md",
+      "https://docs.deapi.ai/other/support-and-contact.md",
+      "https://docs.deapi.ai/api/v2/utilities/balance.md",
+      "https://docs.deapi.ai/api/v2/utilities/jobs.md"
     ],
     "Models": [
-      "https://docs.deapi.ai/models.md"
+      "https://docs.deapi.ai/models.md",
+      "https://docs.deapi.ai/api/v2/utilities/models.md"
     ],
     "STT": [
       "https://docs.deapi.ai/api/v2/audio/transcriptions.md",
       "https://docs.deapi.ai/execution-modes-and-integrations/execution-modes-and-http-queue.md",
       "https://docs.deapi.ai/execution-modes-and-integrations/webhooks.md",
       "https://docs.deapi.ai/other/faq-frequently-asked-questions.md",
-      "https://docs.deapi.ai/api/v2/overview",
+      "https://docs.deapi.ai/api/v2/overview.md",
       "https://docs.deapi.ai/api/v2/errors.md",
       "https://docs.deapi.ai/api/v2/audio/transcriptions-price.md",
       "https://deapi.ai/blog/whisper-large-v3-ct2-transcription-that-knows-who-said-what",

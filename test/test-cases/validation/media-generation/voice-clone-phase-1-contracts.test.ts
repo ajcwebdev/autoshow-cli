@@ -1,18 +1,18 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdtemp, readdir, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CharacterVoiceBrief, ProviderVoiceRef, TtsVoiceProvider } from '~/types'
 import { planAdvancedClone, provisionAdvancedVoiceClone } from '~/cli/commands/process-steps/step-4-tts/voice-management/advanced-voice-management'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const checkedAt = '2026-08-13T00:00:00.000Z'
 const protectedSample = { storeId: 'voice_store', assetId: `sha256_${'a'.repeat(64)}`, sha256: 'a'.repeat(64) }
 const consentRef = `protected-consent:v1:voice_store:sha256_${'f'.repeat(64)}:${'f'.repeat(64)}`
 const brief: CharacterVoiceBrief = { subjectKey: 'hero', profileKey: 'default', mannerisms: [], prohibitedCaricatures: [], pronunciations: [], allowedOrigins: ['instant-clone', 'professional-clone'] }
 
-describe('ADR-018 Phase 1 shared voice clone workflow', () => {
+describe('ADR-017 Phase 1 shared voice clone workflow', () => {
   test('plans without writes and provisions an ElevenLabs instant clone through one durable mutation', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-voice-clone-phase1-'))
+    const root = await makeTempDir('autoshow-voice-clone-phase1-')
     try {
       const request = { cloneKind: 'instant' as const, desiredName: 'Hero Clone', localAttemptId: 'planning', protectedSamples: [protectedSample], consentRecordRef: consentRef, provenanceRef: 'project:casting' }
       const planned = planAdvancedClone(request)
@@ -39,7 +39,7 @@ describe('ADR-018 Phase 1 shared voice clone workflow', () => {
   })
 
   test('records professional cloning as a truthful verification-gated external state without samples', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-voice-clone-professional-'))
+    const root = await makeTempDir('autoshow-voice-clone-professional-')
     try {
       let calls = 0
       const provider: Pick<TtsVoiceProvider, 'provider' | 'clone'> & { accountScopeHash: string } = {

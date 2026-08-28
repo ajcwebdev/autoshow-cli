@@ -7,10 +7,6 @@ export const buildLlmCostSteps = (input: ComputeEstimatedCostsInput): CostStepsR
   const steps: EstimatedStepEntry[] = []
   let cost = 0
 
-  if (input.skipLLM) {
-    return { steps, cost }
-  }
-
   const llmTargets = input.llmTargets && input.llmTargets.length > 0
     ? input.llmTargets
     : input.llmService && input.llmModel

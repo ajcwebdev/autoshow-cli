@@ -1,12 +1,32 @@
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtempSync } from 'node:fs'
+import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+
+export const makeTempDir = async (prefix: string): Promise<string> =>
+  await mkdtemp(join(tmpdir(), prefix))
+
+export const makeTempDirSync = (prefix: string): string =>
+  mkdtempSync(join(tmpdir(), prefix))
 
 export const withTempDir = async <T>(
   prefix: string,
   fn: (dir: string) => Promise<T>
 ): Promise<T> => {
-  const dir = await mkdtemp(join(tmpdir(), prefix))
+  const dir = await makeTempDir(prefix)
+  try {
+    return await fn(dir)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+}
+
+export const withLocalTestDir = async <T>(
+  prefix: string,
+  fn: (dir: string) => Promise<T>
+): Promise<T> => {
+  const dir = join(process.cwd(), '.test-work', `${prefix}-${crypto.randomUUID()}`)
+  await mkdir(dir, { recursive: true })
   try {
     return await fn(dir)
   } finally {
@@ -24,7 +44,7 @@ export const createTempDirTracker = (
   const tempDirs: string[] = []
 
   const make = async (prefix = defaultPrefix): Promise<string> => {
-    const dir = await mkdtemp(join(tmpdir(), prefix))
+    const dir = await makeTempDir(prefix)
     tempDirs.push(dir)
     return dir
   }

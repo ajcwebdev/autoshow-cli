@@ -1,4 +1,4 @@
-import type { BudgetPreflightSummary, CommandResultBase } from '~/types'
+import type { BudgetPreflightSummary, CommandResultBase, PriceCommandSpec } from '~/types'
 
 export type ResolvePriceSelectionOptions = {
   budgetSkippableOnly?: boolean
@@ -52,3 +52,29 @@ export type BudgetPreflightResult = {
 }
 
 export type RunnerStreamLabel = 'STDOUT' | 'STDERR'
+
+export type BudgetPreflightCacheFile = {
+  version: number
+  fingerprint: string
+  entries: Array<{
+    argvKey: string
+    costCents: number
+  }>
+}
+
+export type BudgetPreflightVariant = {
+  entry: PriceCommandSpec
+  groupIndex: number
+  variantIndex: number
+}
+
+export type ExecutedBudgetPreflightVariant = BudgetPreflightVariant & {
+  executed: ExecutedPriceCommand
+  observation: PriceCommandObservation
+}
+
+export type HeadBudgetResult = {
+  summary: BudgetPreflightSummary | undefined
+  skipKeys: string[]
+  evaluatedKeys: string[]
+}

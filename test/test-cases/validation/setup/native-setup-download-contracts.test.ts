@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { chmod, lstat, mkdir, readlink, stat } from 'node:fs/promises'
+import { chmod, lstat, mkdir, readlink } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { join } from 'node:path'
 import { extractTarGzBuffer } from '~/cli/commands/setup-and-utilities/setup/setup-download/tar-gz'
 import { downloadFile, resolveDownloadTimeouts } from '~/cli/commands/setup-and-utilities/setup/setup-download/download'
@@ -9,7 +10,6 @@ import {
   setSetupDownloadConcurrency
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/download-admission'
 import { buildGithubArchiveUrl, buildGithubCommitArchiveUrl } from '~/cli/commands/setup-and-utilities/setup/setup-download/github-archives'
-import { resolveUvAssetName, resolveUvCommandFromCandidates, resolveUvDownloadUrl } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-uv'
 import { buildManagedQpdfWrapperScript } from '~/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools'
 import {
   buildLibjpegTurboCmakeArguments,
@@ -19,7 +19,8 @@ import {
   resolveQpdfSourceBuildLayout
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/qpdf-source-build'
 import type { SetupTarEntry } from '~/types'
-import { setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { waitFor } from '../../../test-utils/wait-for'
 
 const tempDirs = setupContractSuiteLifecycle({
   envKeys: [],
@@ -88,10 +89,6 @@ const createTarGz = (entries: SetupTarEntry[]): Uint8Array<ArrayBuffer> => {
   return Bun.gzipSync(tar)
 }
 
-const mockFetch = (
-  fn: (url: string | URL | Request, init?: RequestInit) => Promise<Response>
-): typeof fetch => Object.assign(fn, { preconnect: () => undefined }) as typeof fetch
-
 describe('native tar.gz extraction', () => {
   test('extracts files, nested directories, symlinks, executable mode, and strip components', async () => {
     const destination = await makeTempDir()
@@ -125,7 +122,7 @@ describe('managed download checksum validation', () => {
   test('validates sha256 before writing downloaded files', async () => {
     const destination = join(await makeTempDir(), 'asset.txt')
     const payload = 'official artifact\n'
-    globalThis.fetch = mockFetch(async () => new Response(payload))
+    installMockFetch(async () => new Response(payload))
     const result = await downloadFile({
       url: 'https://example.test/asset.txt',
       destination,
@@ -143,7 +140,7 @@ describe('managed download checksum validation', () => {
 
   test('a checksum mismatch discards the partial file instead of leaving it to resume', async () => {
     const destination = join(await makeTempDir(), 'asset.bin')
-    globalThis.fetch = mockFetch(async () => new Response('corrupt\n'))
+    installMockFetch(async () => new Response('corrupt\n'))
     await expect(downloadFile({
       url: 'https://example.test/asset.bin',
       destination,
@@ -156,7 +153,7 @@ describe('managed download checksum validation', () => {
 
   test('a short file is rejected and discarded rather than cached as complete', async () => {
     const destination = join(await makeTempDir(), 'model.bin')
-    globalThis.fetch = mockFetch(async () => new Response('truncated'))
+    installMockFetch(async () => new Response('truncated'))
     await expect(downloadFile({
       url: 'https://example.test/model.bin',
       destination,
@@ -175,14 +172,12 @@ describe('resumable downloads', () => {
     const rangeHeaders: (string | null)[] = []
     let attempt = 0
 
-    globalThis.fetch = mockFetch(async (_url, init) => {
+    installMockFetch(async (_call, _input, init) => {
       const headers = new Headers(init?.headers)
       rangeHeaders.push(headers.get('range'))
       attempt += 1
 
       if (attempt === 1) {
-        // Deliver a prefix, then fail before the body completes. The chunk must
-        // be delivered on a separate pull: error() discards anything still queued.
         let pulls = 0
         return new Response(new ReadableStream<Uint8Array>({
           pull (controller) {
@@ -202,7 +197,6 @@ describe('resumable downloads', () => {
 
     await expect(downloadFile({ url: 'https://example.test/large.bin', destination }))
       .rejects.toThrow()
-    // The prefix survives so the retry does not refetch from zero.
     expect(await Bun.file(`${destination}.part`).text()).toBe(payload.slice(0, 10))
 
     await downloadFile({ url: 'https://example.test/large.bin', destination })
@@ -219,7 +213,7 @@ describe('resumable downloads', () => {
     await Bun.write(`${destination}.part`, 'stale bytes from another asset')
     await Bun.write(`${destination}.part.json`, JSON.stringify({ url: 'https://example.test/other.bin' }))
 
-    globalThis.fetch = mockFetch(async (_url, init) => {
+    installMockFetch(async (_call, _input, init) => {
       rangeHeaders.push(new Headers(init?.headers).get('range'))
       return new Response('fresh\n')
     })
@@ -235,8 +229,7 @@ describe('resumable downloads', () => {
     await Bun.write(`${destination}.part`, 'partial')
     await Bun.write(`${destination}.part.json`, JSON.stringify({ url: 'https://example.test/asset.bin' }))
 
-    // Status 200 rather than 206 means the peer replayed from byte 0.
-    globalThis.fetch = mockFetch(async () => new Response('complete payload\n', { status: 200 }))
+    installMockFetch(async () => new Response('complete payload\n', { status: 200 }))
 
     await downloadFile({ url: 'https://example.test/asset.bin', destination })
     expect(await Bun.file(destination).text()).toBe('complete payload\n')
@@ -245,38 +238,31 @@ describe('resumable downloads', () => {
 
 describe('download timeout budgets', () => {
   test('large-asset flows get a longer total budget than the default flow', () => {
-    // A flat total-transfer deadline is what made multi-GB models fail on any
-    // link slower than the deadline implied, regardless of connection health.
     const defaultTimeouts = resolveDownloadTimeouts({ url: '', destination: '' })
     const modelTimeouts = resolveDownloadTimeouts({ url: '', destination: '', flowId: 'whisper-model' })
 
     expect(modelTimeouts.totalTimeoutMs).toBeGreaterThan(defaultTimeouts.totalTimeoutMs)
-    // Inactivity, not elapsed transfer time, is what aborts a download.
     expect(modelTimeouts.stallTimeoutMs).toBe(defaultTimeouts.stallTimeoutMs)
   })
 
   test('HTTP download failures retain Retry-After headers for outer retry wrappers', async () => {
     const destination = join(await makeTempDir(), 'rate-limited.bin')
-    globalThis.fetch = mockFetch(async () => new Response('slow down', {
+    installMockFetch(async () => new Response('slow down', {
       status: 429,
       headers: { 'retry-after': '11' }
     }))
 
-    try {
-      await downloadFile({ url: 'https://example.test/rate-limited.bin', destination })
-      throw new Error('expected rate-limited download failure')
-    } catch (error) {
-      expect((error as { status?: number }).status).toBe(429)
-      expect((error as { headers?: Headers }).headers?.get('retry-after')).toBe('11')
-    }
+    await expectProviderHttpError(
+      () => downloadFile({ url: 'https://example.test/rate-limited.bin', destination }),
+      { status: 429, headers: { 'retry-after': '11' } }
+    )
   })
 
   test('a stalled transfer fails with a retryable timeout message', async () => {
     const destination = join(await makeTempDir(), 'stalled.bin')
-    globalThis.fetch = mockFetch(async (_url, init) => new Response(new ReadableStream<Uint8Array>({
+    installMockFetch(async (_call, _input, init) => new Response(new ReadableStream<Uint8Array>({
       start (controller) {
         controller.enqueue(new TextEncoder().encode('partial'))
-        // Never closes; only the stall watchdog can end this.
         init?.signal?.addEventListener('abort', () => controller.error(new Error('aborted')))
       }
     })))
@@ -297,14 +283,6 @@ describe('setup download admission budget', () => {
     return { promise, resolve }
   }
 
-  const waitFor = async (predicate: () => boolean, timeoutMs = 2_000): Promise<void> => {
-    const deadline = Date.now() + timeoutMs
-    while (!predicate()) {
-      if (Date.now() > deadline) throw new Error('timed out waiting for download admission state')
-      await new Promise<void>((resolve) => { setTimeout(resolve, 1) })
-    }
-  }
-
   const settle = async (): Promise<void> => {
     for (let i = 0; i < 20; i++) await new Promise<void>((resolve) => { setTimeout(resolve, 1) })
   }
@@ -314,8 +292,8 @@ describe('setup download admission budget', () => {
     const started: string[] = []
     const gates = new Map<string, ReturnType<typeof deferred>>()
 
-    globalThis.fetch = mockFetch(async (url) => {
-      const key = String(url)
+    installMockFetch(async (call) => {
+      const key = call.url
       started.push(key)
       await gates.get(key)!.promise
       return new Response('payload')
@@ -331,8 +309,6 @@ describe('setup download admission budget', () => {
         destination: join(dir, `asset-${index}.bin`)
       }))
 
-      // Which two win the race depends on which mkdir lands first; that only
-      // two are in flight at all is the contract.
       await waitFor(() => started.length >= 2)
       await settle()
       expect(started.length).toBe(2)
@@ -354,7 +330,7 @@ describe('setup download admission budget', () => {
     const dir = await makeTempDir()
     let attempt = 0
 
-    globalThis.fetch = mockFetch(async () => {
+    installMockFetch(async () => {
       attempt += 1
       if (attempt === 1) throw new Error('connection reset')
       return new Response('payload')
@@ -383,15 +359,13 @@ describe('setup download admission budget', () => {
     const dir = await makeTempDir()
     const events: string[] = []
 
-    globalThis.fetch = mockFetch(async (url) => {
-      events.push(`fetch:${String(url).endsWith('first.bin') ? 'first' : 'second'}`)
+    installMockFetch(async (call) => {
+      events.push(`fetch:${call.url.endsWith('first.bin') ? 'first' : 'second'}`)
       return new Response('official artifact\n')
     })
 
     setSetupDownloadConcurrency(1)
     try {
-      // The first download's checksum pass is local work. If the slot were held
-      // across it, the second download could not start until the first resolved.
       const first = downloadFile({
         url: 'https://example.test/first.bin',
         destination: join(dir, 'first.bin'),
@@ -547,7 +521,7 @@ describe('managed macOS qpdf setup', () => {
     const end = source.indexOf('export const setupDocumentTools')
     const installSource = source.slice(start, end)
     const healthIndex = installSource.indexOf('await resolveHealthyQpdfToolInfo()')
-    const installIndex = installSource.indexOf("l.write('info', 'Installing qpdf')")
+    const installIndex = installSource.indexOf("l.write('info', 'Installing qpdf'")
     const darwinInstallIndex = installSource.indexOf('await installManagedQpdfMacos()')
     const linuxInstallIndex = installSource.indexOf("await runInherit('sudo', ['apt', 'install', '-y', 'qpdf'])")
     const refreshIndexes = [...installSource.matchAll(/await refreshQpdfHealthCache\(\{ repairManaged: false \}\)/g)]
@@ -563,28 +537,6 @@ describe('managed macOS qpdf setup', () => {
     expect(refreshIndexes.some(index => index > darwinInstallIndex && index < linuxInstallIndex)).toBe(true)
     expect(refreshIndexes.some(index => index > linuxInstallIndex)).toBe(true)
     expect(installSource).not.toContain("if (hasRuntimeTool('qpdf'))")
-  })
-})
-
-describe('managed uv resolution', () => {
-  test('maps supported platforms to uv release assets', () => {
-    expect(resolveUvAssetName('darwin', 'arm64')).toBe('uv-aarch64-apple-darwin.tar.gz')
-    expect(resolveUvAssetName('darwin', 'x64')).toBe('uv-x86_64-apple-darwin.tar.gz')
-    expect(resolveUvAssetName('linux', 'arm64')).toBe('uv-aarch64-unknown-linux-gnu.tar.gz')
-    expect(resolveUvAssetName('linux', 'x64')).toBe('uv-x86_64-unknown-linux-gnu.tar.gz')
-    expect(resolveUvDownloadUrl('0.11.14', 'uv-x86_64-apple-darwin.tar.gz')).toBe(
-      'https://github.com/astral-sh/uv/releases/download/0.11.14/uv-x86_64-apple-darwin.tar.gz'
-    )
-  })
-
-  test('prefers PATH uv before managed uv and falls back to managed uv', async () => {
-    const dir = await makeTempDir()
-    const managed = join(dir, 'uv')
-    await Bun.write(managed, 'fake uv')
-    await chmod(managed, 0o755)
-
-    expect(await resolveUvCommandFromCandidates('/path/uv', managed)).toBe('/path/uv')
-    expect(await resolveUvCommandFromCandidates(null, managed)).toBe(managed)
   })
 })
 

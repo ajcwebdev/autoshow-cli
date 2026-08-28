@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { loadTtsManifestRecord } from '../../../../.codex/skills/consensus/scripts/tts/tts_eval_lib'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const roots: string[] = []
 
@@ -12,7 +12,7 @@ afterEach(async () => {
 
 describe('TTS comic consensus adapter', () => {
   test('loads in-place comic audio outputs and selected render cost', async () => {
-    const runDir = await mkdtemp(join(tmpdir(), 'autoshow-tts-comic-consensus-'))
+    const runDir = await makeTempDir('autoshow-tts-comic-consensus-')
     roots.push(runDir)
     const artifactDir = 'audio/providers/hume-octave-1'
     await mkdir(join(runDir, artifactDir), { recursive: true })

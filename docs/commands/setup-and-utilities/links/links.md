@@ -1,8 +1,6 @@
 # links
 
-Fetch curated or ad hoc documentation pages and write one combined markdown file under `project/links/`.
-
-`bun autoshow` is the canonical command used throughout this guide. `bun as` is an equivalent shorthand, so `bun as links --help` and `bun autoshow links --help` invoke the same command.
+Fetch curated or ad hoc documentation pages and write one combined markdown file into a timestamped run directory under `output/`.
 
 ## Outline
 
@@ -17,37 +15,31 @@ Fetch curated or ad hoc documentation pages and write one combined markdown file
 - [Output format](#output-format)
 - [Refresh metadata](#refresh-metadata)
 - [Flags](#flags)
-- [Notes](#notes)
 
 ## Usage
 
 ```bash
 bun autoshow links
-bun autoshow links https://example.com/docs
-bun autoshow links urls.md
-bun autoshow links --refresh
-bun autoshow links --refresh https://example.com/docs
-bun autoshow links --refresh urls.md
 bun autoshow links <global-section>...
 bun autoshow links --<provider> [section...]
 bun autoshow links <global-section>... --<provider> [section...] [--<provider> [section...]]
+bun autoshow links https://example.com/docs
+bun autoshow links urls.md
 ```
+
+Add `--refresh` or `--refresh-only` to any of these invocations.
 
 ## Overview
 
-`links` reads the curated URL registry from `src/cli/commands/setup-and-utilities/links/model-links/`, fetches every matched page, and concatenates the results into a single local file. It can also fetch one standalone remote documentation URL or read a standalone local `.md` or `.txt` file containing remote documentation URLs.
+`links` fetches matched pages from the curated documentation registry and concatenates them into a single local file. It can also fetch one remote documentation URL or read a local `.md` or `.txt` file of remote documentation URLs.
 
-- Output path: `project/links/<normalized-selection>-links.md`
-- Examples: `project/links/all-all-links.md`, `project/links/all-models-links.md`, `project/links/all-stt-links.md`, `project/links/gemini-all-links.md`, `project/links/gemini-general-tts-links.md`, `project/links/spider-all-links.md`, `project/links/spider-url-links.md`
-- Existing output is overwritten on each run
-- Duplicate URLs are removed before fetching, so overlapping selections only fetch once
-- Raw markdown/text docs are appended as-is; HTML docs pages are converted to markdown locally before they are appended
-- `--refresh` also writes a JSON sidecar with per-link freshness, token-count, and content-change metadata
-- `--refresh-only` updates the JSON sidecar metadata without overwriting an existing Markdown bundle file
+Each run creates a timestamped directory under `output/` (or `--output-root`) and writes the combined markdown inside it. Pass `--output-dir <dir>` to pin that run directory instead of a timestamped path.
 
-Direct URL mode uses `project/links/<normalized-host-and-path>-links.md`; for example, `bun autoshow links https://blog.railway.com/p/railway-for-agents` writes `project/links/blog-railway-com-p-railway-for-agents-links.md`.
-
-Input file mode uses `project/links/<input-basename>-links.md`; for example, `bun autoshow links urls.md` writes `project/links/urls-links.md`.
+- Curated selections write `<run-dir>/<normalized-selection>-links.md`, for example `output/<timestamp>_all-all-links/all-all-links.md` or `output/<timestamp>_gemini-general-tts-links/gemini-general-tts-links.md`
+- Direct URL mode writes `<run-dir>/<normalized-host-and-path>-links.md`, for example `blog-railway-com-p-railway-for-agents-links.md` from `https://blog.railway.com/p/railway-for-agents`
+- Input file mode writes `<run-dir>/<input-basename>-links.md`, for example `urls-links.md` from `urls.md`
+- Duplicate URLs are fetched once
+- Raw markdown and text docs are appended as-is; HTML pages are converted to markdown before they are appended
 
 ## Selection syntax
 
@@ -67,7 +59,7 @@ Pass one remote `http://` or `https://` URL to fetch only that page instead of t
 bun autoshow links https://example.com/docs
 ```
 
-`blob:http://` and `blob:https://` documentation URLs are also accepted. They are fetched through the underlying HTTP URL while preserving the original source marker in the output.
+`blob:http://` and `blob:https://` documentation URLs are also accepted.
 
 Direct URL mode is standalone. Do not combine it with provider selectors, section selectors, input file mode, or another direct URL.
 
@@ -79,7 +71,7 @@ Pass one local `.md` or `.txt` file to fetch URLs from that file instead of the 
 bun autoshow links urls.md
 ```
 
-The file may contain bare `http://` or `https://` URLs, markdown links like `[docs](https://example.com/docs)`, and `blob:http://` or `blob:https://` documentation URLs. Headings, comments, blank lines, bullets, and non-URL prose are ignored. Duplicate URLs are fetched once in first-seen order.
+The file may contain bare `http://` or `https://` URLs, markdown links like `[docs](https://example.com/docs)`, and `blob:http://` or `blob:https://` documentation URLs. Headings, comments, blank lines, bullets, local file paths, and other non-URL prose are ignored. Duplicate URLs are fetched once in first-seen order.
 
 Input file mode is standalone. Do not combine it with provider selectors, section selectors, or direct URL mode.
 
@@ -95,12 +87,12 @@ Accepted provider selectors are the lowercase names below.
 | `--cartesia`       | `general`, `models`, `tts`                                                  |
 | `--cerebras`       | `general`, `models`, `text`                                                 |
 | `--claude`         | `general`, `models`, `ocr`, `text`                                          |
-| `--deapi`          | `models`, `stt`                                                             |
+| `--deapi`          | `general`, `models`, `stt`                                                  |
 | `--deepgram`       | `models`, `stt`, `tts`                                                      |
 | `--deepinfra`      | `general`, `models`, `ocr`, `stt`                                           |
 | `--drive`          | `general`                                                                   |
-| `--elevenlabs`     | `models`, `music`, `tts`                                                    |
-| `--fal`            | `general`, `image`, `video`                                                 |
+| `--elevenlabs`     | `general`, `models`, `music`, `tts`                                         |
+| `--fal`            | `general`, `image`, `tts`, `video`                                          |
 | `--firecrawl`      | `general`, `url`                                                            |
 | `--fish`           | `general`, `models`, `tts`                                                  |
 | `--gemini`         | `general`, `image`, `models`, `music`, `ocr`, `stt`, `text`, `tts`, `video` |
@@ -112,10 +104,9 @@ Accepted provider selectors are the lowercase names below.
 | `--hume`           | `general`, `tts`                                                            |
 | `--inworld`        | `general`, `models`, `tts`                                                  |
 | `--kimi`           | `general`, `models`, `ocr`, `text`                                          |
-| `--whisperfile`    | `stt`                                                                       |
 | `--ltx`            | `models`, `video`                                                           |
 | `--lumalabs`       | `general`, `image`, `models`, `video`                                       |
-| `--minimax`        | `general`, `music`, `text`, `tts`                                           |
+| `--minimax`        | `general`, `music`, `text`, `tts`, `video`                                  |
 | `--mistral`        | `general`, `models`, `ocr`, `stt`, `tts`                                    |
 | `--openai`         | `general`, `image`, `models`, `ocr`, `text`, `tts`                          |
 | `--replicate`      | `general`, `models`                                                         |
@@ -130,6 +121,7 @@ Accepted provider selectors are the lowercase names below.
 | `--spider`         | `general`, `url`                                                            |
 | `--supadata`       | `general`, `stt`, `url`                                                     |
 | `--together`       | `general`, `models`, `stt`, `text`                                          |
+| `--whisperfile`    | `stt`                                                                       |
 | `--x`              | `general`, `url`                                                            |
 | `--zyte`           | `general`, `url`                                                            |
 
@@ -168,67 +160,23 @@ bun autoshow links models
 # Fetch one remote docs page
 bun autoshow links https://example.com/docs
 
-# Fetch one remote docs page and write refresh metadata
-bun autoshow links --refresh https://example.com/docs
-
 # Fetch remote docs listed in urls.md
 bun autoshow links urls.md
-
-# Fetch remote docs listed in urls.md and write refresh metadata
-bun autoshow links --refresh urls.md
 
 # Fetch every curated OpenAI doc
 bun autoshow links --openai
 
-# Fetch Better Auth documentation
-bun autoshow links --better-auth
-
-# Fetch Solidbase documentation
-bun autoshow links --solidbase
-
-# Fetch DeepInfra OCR docs, including normal HTML doc pages
-bun autoshow links --deepinfra ocr
-
-# Fetch DeAPI STT docs
-bun autoshow links --deapi stt
-
-# Fetch Kimi model, text, and OCR docs
-bun autoshow links --kimi models text ocr
-
-# Fetch Cerebras model and text docs
-bun autoshow links --cerebras models text
-
-# Fetch Together text and STT docs
-bun autoshow links --together text stt
-
-# Fetch Mistral STT, OCR, and TTS docs
-bun autoshow links --mistral stt ocr tts
+# Fetch only OpenAI general and text docs
+bun autoshow links --openai general text
 
 # Fetch Hume and Cartesia TTS docs
 bun autoshow links --hume tts --cartesia tts
 
-# Fetch only OpenAI general and text docs
-bun autoshow links --openai general text
-
-# Fetch Spider URL scraping and crawling docs
-bun autoshow links --spider url
-
-# Fetch whisperfile STT docs
-bun autoshow links --whisperfile stt
-
-# Fetch LTX video API docs
-bun autoshow links --ltx video
-
-# Fetch Luma Labs image and video docs
-bun autoshow links --lumalabs image video
-bun autoshow links --fal image video
-
-
-# Fetch Replicate general and model docs
-bun autoshow links --replicate general models
-
 # Mix a global section with provider-specific sections
 bun autoshow links tts --openai general text --minimax video
+
+# Update refresh metadata without rewriting the markdown bundle
+bun autoshow links --refresh-only --openai models
 ```
 
 ## Output format
@@ -245,15 +193,11 @@ If a fetch fails, the command keeps going and writes:
 <!-- Failed to fetch https://example.com/page.md -->
 ```
 
-Fetches are retried for transient network failures, timeouts, `408`, `425`, `429`, and `5xx` responses before this placeholder is written. Each attempt has a fixed 60 second timeout.
-
 If a response is empty, it writes:
 
 ```md
 <!-- Empty response from https://example.com/page.md -->
 ```
-
-`--refresh` does not change the combined markdown format. It adds the metadata sidecar described below.
 
 ## Refresh metadata
 
@@ -263,42 +207,22 @@ Pass `--refresh` to write a JSON sidecar next to the generated markdown:
 bun autoshow links --refresh --openai models
 ```
 
-The sidecar path is derived from the markdown path by replacing `.md` with `.refresh.json`; for example, `project/links/openai-models-links.md` gets `project/links/openai-models-links.refresh.json`. Direct URL and input file modes use the same rule after deriving their normal markdown output filenames.
+The sidecar path replaces `.md` with `.refresh.json` next to the markdown in the same run directory; for example, `openai-models-links.md` gets `openai-models-links.refresh.json`. Direct URL and input file modes use the same rule after their normal markdown filenames.
 
-The sidecar includes:
-
-- `schemaVersion`, `command`, `selectionMode`, selected URLs, output path, sidecar path, and `refreshedAt`
-- aggregate counts for successful, empty, failed, new, unchanged, changed, and failed links
-- aggregate token, byte, and character totals
-- tokenizer metadata for the reference tokenizer
-- per-link `sourceUrl`, `fetchUrl`, `finalUrl` when available, fetch status, change status, token count, content hash, byte count, character count, refresh timestamps, previous hash/token count when available, and failure reason when applicable
+`--refresh-only` updates that sidecar without overwriting an existing markdown bundle. A default timestamped run is a new directory, so `--refresh` and `--refresh-only` only compare against a previous bundle when `--output-dir` pins that earlier run.
 
 Change status is one of:
 
 - `new`: no prior successful metadata exists for the source URL
-- `unchanged`: the current normalized markdown body has the same SHA-256 hash and token count as the previous successful refresh
-- `changed`: either the SHA-256 hash or token count changed
-- `failed`: the current fetch failed; previous successful hash/token/timestamp metadata is preserved when available
+- `unchanged`: the current markdown body matches the previous successful refresh
+- `changed`: the markdown body differs from the previous successful refresh
+- `failed`: the current fetch failed; previous successful metadata is preserved when available
 
-Token counts are reference-tokenizer estimates using `tiktoken` with `o200k_base`. They are intended for stable local comparison and rough context sizing, not as exact billable token counts for every provider or model.
+Token counts are local estimates for comparison and rough context sizing, not exact billable token counts for any provider or model.
 
 ## Flags
 
-| Flag             | Type    | Description                                                                                               |
-| ---------------- | ------- | --------------------------------------------------------------------------------------------------------- |
-| `--refresh`      | Boolean | Write a refresh metadata sidecar with per-link SHA-256 hashes, reference token counts, and change status. |
-| `--refresh-only` | Boolean | Update the refresh metadata sidecar without overwriting an existing Markdown bundle file.                 |
-
-Global flags like `--config-path` and `--allow-over-budget` may still appear in help output, but they do not change link selection or the output file path for this command.
-
-## Notes
-
-- Provider and section coverage comes entirely from `src/cli/commands/setup-and-utilities/links/model-links/`.
-- The generated file is always a single combined markdown file. There is no CLI flag to choose a different output path.
-- `--refresh` rewrites both the combined markdown and metadata sidecar. `--refresh-only` updates the metadata sidecar while leaving an existing markdown bundle file unchanged.
-- Curated `.md` / `.txt` endpoints and normal HTML docs pages can be mixed in the same provider/section selection. HTML pages are converted locally first; if that extraction fails, the command falls back to Firecrawl article extraction before marking the URL failed.
-- Direct URL mode uses the same fetch and HTML-to-markdown conversion path as curated registry links.
-- Input file entries must be remote documentation/page URLs; local file entries inside the input file are ignored.
-- Documentation links with a `blob:https://` or `blob:http://` wrapper are fetched through the underlying HTTP URL while preserving the original source marker in the output.
-- Selection filenames are derived from normalized provider and section selections, lowercased, deduped, and sorted into a stable order. Input-file filenames use the sanitized input basename. Direct URL filenames use the sanitized URL host and path.
-- Provider selectors are registered as hidden CLI flags and documented in the provider table above. `--refresh` and `--refresh-only` appear in `bun autoshow links --help`.
+| Flag             | Type    | Description                                                                               |
+| ---------------- | ------- | ----------------------------------------------------------------------------------------- |
+| `--refresh`      | Boolean | Write a refresh metadata sidecar with per-link hashes, token counts, and change status.   |
+| `--refresh-only` | Boolean | Update the refresh metadata sidecar without overwriting an existing markdown bundle file. |

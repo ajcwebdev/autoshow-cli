@@ -20,14 +20,3 @@ export const downloadGithubArchive = async (options: DownloadGithubArchiveOption
     ...(options.flowId ? { flowId: options.flowId } : {})
   })
 }
-
-export const downloadGithubCommitArchive = async (options: DownloadGithubArchiveOptions): Promise<void> => {
-  await rm(options.destination, { recursive: true, force: true })
-  await downloadFile({
-    url: buildGithubCommitArchiveUrl(options),
-    destination: options.destination,
-    mode: 'tar-gz',
-    stripComponents: options.stripComponents ?? 1,
-    ...(options.flowId ? { flowId: options.flowId } : {})
-  })
-}

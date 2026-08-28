@@ -4,10 +4,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadCanonicalRunRecord } from "../shared/pipeline_manifest";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export interface ImageProperties {
   width: number;
   height: number;
@@ -74,10 +70,6 @@ export interface ImageProviderEvidence {
   costCents: number | null;
 }
 
-// ---------------------------------------------------------------------------
-// Canonical manifest helpers
-// ---------------------------------------------------------------------------
-
 export function loadImageManifestRecord(runDir: string): ImageManifestRecord {
   const metadata = loadCanonicalRunRecord(runDir, "image").metadata;
   if (!Array.isArray(metadata.image) || metadata.image.length === 0) {
@@ -89,10 +81,6 @@ export function loadImageManifestRecord(runDir: string): ImageManifestRecord {
 export function makeProviderKey(service: string, model: string): string {
   return `${service}/${model}`;
 }
-
-// ---------------------------------------------------------------------------
-// Image file discovery
-// ---------------------------------------------------------------------------
 
 export function discoverImageFiles(
   runDir: string,
@@ -118,19 +106,13 @@ export function discoverImageFiles(
   return { found, missing };
 }
 
-// ---------------------------------------------------------------------------
-// Image probing (PNG / JPEG header parsing)
-// ---------------------------------------------------------------------------
-
 function readPngDimensions(buffer: Uint8Array): { width: number; height: number } | null {
-  // PNG signature: 137 80 78 71 13 10 26 10
   if (
     buffer.length < 24 ||
     buffer[0] !== 0x89 || buffer[1] !== 0x50 || buffer[2] !== 0x4e || buffer[3] !== 0x47
   ) {
     return null;
   }
-  // IHDR chunk starts at byte 8, width at 16, height at 20 (big-endian 4-byte integers)
   const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
   const width = view.getUint32(16, false);
   const height = view.getUint32(20, false);
@@ -138,7 +120,6 @@ function readPngDimensions(buffer: Uint8Array): { width: number; height: number 
 }
 
 function readJpegDimensions(buffer: Uint8Array): { width: number; height: number } | null {
-  // JPEG starts with FF D8
   if (buffer.length < 4 || buffer[0] !== 0xff || buffer[1] !== 0xd8) {
     return null;
   }
@@ -150,7 +131,6 @@ function readJpegDimensions(buffer: Uint8Array): { width: number; height: number
       continue;
     }
     const marker = buffer[offset + 1];
-    // SOF markers: C0-C3, C5-C7, C9-CB, CD-CF
     if (
       marker !== undefined &&
       marker >= 0xc0 && marker <= 0xcf &&
@@ -163,7 +143,6 @@ function readJpegDimensions(buffer: Uint8Array): { width: number; height: number
       }
       return null;
     }
-    // Skip to next marker using segment length
     if (offset + 3 < buffer.length) {
       const segmentLength = view.getUint16(offset + 2, false);
       offset += 2 + segmentLength;
@@ -175,7 +154,6 @@ function readJpegDimensions(buffer: Uint8Array): { width: number; height: number
 }
 
 function readWebpDimensions(buffer: Uint8Array): { width: number; height: number } | null {
-  // RIFF....WEBP
   if (
     buffer.length < 30 ||
     buffer[0] !== 0x52 || buffer[1] !== 0x49 || buffer[2] !== 0x46 || buffer[3] !== 0x46 ||
@@ -183,7 +161,6 @@ function readWebpDimensions(buffer: Uint8Array): { width: number; height: number
   ) {
     return null;
   }
-  // VP8 lossy: chunk at offset 12, "VP8 " signature
   if (buffer[12] === 0x56 && buffer[13] === 0x50 && buffer[14] === 0x38 && buffer[15] === 0x20) {
     if (buffer.length >= 30) {
       const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
@@ -192,7 +169,6 @@ function readWebpDimensions(buffer: Uint8Array): { width: number; height: number
       return { width, height };
     }
   }
-  // VP8L lossless: "VP8L"
   if (buffer[12] === 0x56 && buffer[13] === 0x50 && buffer[14] === 0x38 && buffer[15] === 0x4c) {
     if (buffer.length >= 25) {
       const bits = (buffer[21]!) | (buffer[22]! << 8) | (buffer[23]! << 16) | (buffer[24]! << 24);
@@ -243,10 +219,6 @@ export async function probeImage(imagePath: string): Promise<ImageProperties> {
   return { width, height, format, fileSize, megapixels, bytesPerPixel };
 }
 
-// ---------------------------------------------------------------------------
-// Cost and timing lookups
-// ---------------------------------------------------------------------------
-
 export function buildCostLookup(manifestRecord: ImageManifestRecord): Map<string, number> {
   const lookup = new Map<string, number>();
   const estimatedSteps = manifestRecord.metadata.cost?.estimated?.steps ?? [];
@@ -280,10 +252,6 @@ export function buildTimingLookup(manifestRecord: ImageManifestRecord): Map<stri
   }
   return lookup;
 }
-
-// ---------------------------------------------------------------------------
-// Formatting
-// ---------------------------------------------------------------------------
 
 export function formatCents(cents: number | null): string {
   if (cents === null) {

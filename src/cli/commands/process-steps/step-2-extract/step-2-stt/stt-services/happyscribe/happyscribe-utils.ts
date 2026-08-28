@@ -1,6 +1,6 @@
 import type { HappyScribeHttpError, HappyScribeStage, RetryClass } from '~/types'
-import { isRecord } from '~/utils/rest-client'
-
+import { httpResponseError, isRecord } from '~/utils/rest-client'
+import { ProviderError } from '~/utils/error-handler'
 export { isRecord }
 
 export const normalizeHappyScribeId = (value: unknown): string | undefined => {
@@ -23,19 +23,6 @@ export const parseHappyScribeNumber = (value: unknown): number | undefined =>
         })()
       : undefined
 
-export const readHappyScribeJsonOrText = async (response: Response): Promise<unknown> => {
-  const rawText = await response.text()
-  if (rawText.length === 0) {
-    return {}
-  }
-
-  try {
-    return JSON.parse(rawText) as unknown
-  } catch {
-    return rawText
-  }
-}
-
 export const extractHappyScribeErrorMessage = (payload: unknown): string | undefined => {
   if (typeof payload === 'string') {
     const trimmed = payload.trim()
@@ -55,11 +42,6 @@ export const extractHappyScribeErrorMessage = (payload: unknown): string | undef
 
   return undefined
 }
-
-export const getHappyScribeErrorStatus = (error: unknown): number | undefined =>
-  error && typeof error === 'object' && 'status' in error && typeof (error as { status?: unknown }).status === 'number'
-    ? (error as { status: number }).status
-    : undefined
 
 export const buildHappyScribeRetryHeaders = (
   response: Response,
@@ -82,14 +64,16 @@ export const toHappyScribeHttpError = (
   payload: unknown,
   messagePrefix = 'Happy Scribe request failed'
 ): HappyScribeHttpError => Object.assign(
-  new Error(`${messagePrefix} (${response.status}): ${extractHappyScribeErrorMessage(payload) ?? 'Unknown error'}`),
-  {
-    status: response.status,
-    headers: buildHappyScribeRetryHeaders(response, payload),
-    stage,
-    retryClass,
-    rawResponse: payload
-  } satisfies Pick<HappyScribeHttpError, 'status' | 'headers' | 'stage' | 'retryClass' | 'rawResponse'>
+  httpResponseError(
+    `${messagePrefix} (${response.status}): ${extractHappyScribeErrorMessage(payload) ?? 'Unknown error'}`,
+    response,
+    {
+      stage,
+      retryClass,
+      rawResponse: payload
+    } satisfies Pick<HappyScribeHttpError, 'stage' | 'retryClass' | 'rawResponse'>
+  ),
+  { headers: buildHappyScribeRetryHeaders(response, payload) }
 )
 
 export const attachHappyScribeErrorContext = (
@@ -98,7 +82,7 @@ export const attachHappyScribeErrorContext = (
   retryClass: RetryClass,
   rawResponse?: unknown
 ): never => {
-  const source = error instanceof Error ? error : new Error(String(error))
+  const source = error instanceof Error ? error : ProviderError(String(error))
   ;(source as HappyScribeHttpError).stage = stage
   ;(source as HappyScribeHttpError).retryClass = retryClass
   if (rawResponse !== undefined) {

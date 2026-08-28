@@ -3,30 +3,15 @@ import { executeLlmRequest } from '~/cli/commands/process-steps/step-3-write/wri
 import { classifyFetchRetry } from '~/utils/retries'
 import { getOpenAIClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/openai-utils'
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
-import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { applyOpenAIResponsesReasoning } from '~/cli/commands/setup-and-utilities/models/reasoning-request-mappers'
+import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
 
 export const runOpenAIModel = async (
   prompt: string,
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const policy = resolveReasoningPolicy({
-    step: 'llm',
-    service: 'openai',
-    model,
-    requestedReasoningEffort: structuredOpts?.requestedReasoningEffort
-  })
-  const updatedOpts: StructuredRequestOptions | undefined = structuredOpts
-    ? { ...structuredOpts, requestedReasoningEffort: policy.requested, effectiveReasoningEffort: policy.effective }
-    : {
-        schemaName: '',
-        schema: {},
-        strict: false,
-        strategy: 'native',
-        requestedReasoningEffort: policy.requested,
-        effectiveReasoningEffort: policy.effective
-      }
+  const { policy, updatedOpts } = resolveLlmReasoningOptions('openai', model, structuredOpts)
 
   return await executeLlmRequest(prompt, model, updatedOpts, {
     service: 'openai',

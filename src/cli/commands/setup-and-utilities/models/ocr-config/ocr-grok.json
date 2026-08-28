@@ -95,6 +95,47 @@
           "support": "required",
           "supportedEfforts": ["low", "medium", "high"]
         }
+      },
+      "grok-4.6": {
+        "description": "Grok 4.6 OCR via multimodal Chat Completions",
+        "pricingSourceUrl": "https://docs.x.ai/developers/pricing",
+        "pricingCheckedAt": "2026-08-18",
+        "pricingCurrency": "USD",
+        "pricingTier": "xAI public Chat API token pricing",
+        "pricingNotes": "xAI lists Grok 4.6 standard pricing at $2.00/1M input tokens, $0.50/1M cached input tokens, and $6.00/1M output tokens for requests with up to 200K input tokens. Requests above 200K input tokens cost $4.00/1M input tokens, $1.00/1M cached input tokens, and $12.00/1M output tokens. OCR estimates use uncached rates and switch bands from estimated or observed input tokens. Batch discounts, cached-input discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMInputTokensCents": 200,
+        "costPerMCachedInputTokensCents": 50,
+        "costPerMOutputTokensCents": 600,
+        "tokenPricingBands": [
+          {
+            "label": "standard-up-to-200k",
+            "maxInputTokens": 200000,
+            "inputCostPer1MCents": 200,
+            "cachedInputCostPer1MCents": 50,
+            "outputCostPer1MCents": 600
+          },
+          {
+            "label": "standard-over-200k",
+            "minInputTokens": 200001,
+            "inputCostPer1MCents": 400,
+            "cachedInputCostPer1MCents": 100,
+            "outputCostPer1MCents": 1200
+          }
+        ],
+        "limits": {
+          "imageBytes": 20971520,
+          "notes": "docs.x.ai documents Grok 4.6 image input support for PNG/JPG/JPEG with a 20 MiB maximum image size. AutoShow renders PDF pages to PNG images before calling Grok OCR."
+        },
+        "estimation": {
+          "promptTokensPerPage": 4000,
+          "completionTokensPerPage": 1000,
+          "costMultiplier": 1,
+          "msPerPage": 18000
+        },
+        "reasoning": {
+          "support": "required",
+          "supportedEfforts": ["low", "medium", "high"]
+        }
       }
     }
   }

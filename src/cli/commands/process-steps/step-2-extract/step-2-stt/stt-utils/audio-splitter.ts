@@ -118,7 +118,10 @@ export const splitAudioFile = async (audioPath: string, outputDir: string, segme
     })
 
     if (result.exitCode !== 0) {
-      l.error(`Failed to create segment ${i + 1}: ${result.stderr}`)
+      l.error(`Failed to create segment ${i + 1}: ${result.stderr}`, {
+        category: 'pipeline',
+        metadata: { segmentNumber: i + 1, exitCode: result.exitCode, stderr: result.stderr }
+      })
       throw InfraError(`Failed to create segment ${i + 1}`, { stage: 'stt:audio-split' })
     }
 

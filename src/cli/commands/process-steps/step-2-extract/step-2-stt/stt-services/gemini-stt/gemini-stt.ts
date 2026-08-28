@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureGeminiSttSetup = ensureApiKeySetup('GEMINI_API_KEY', 'stt:gemini', 'Gemini transcription')
+export const ensureGeminiSttSetup = async (): Promise<void> => { resolveCredential('gemini', 'require', { stage: 'stt:gemini', description: 'Gemini transcription' }) }

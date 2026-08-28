@@ -111,7 +111,7 @@ describe('TTS provider service contracts', () => {
     expect(calls).toHaveLength(1)
   })
 
-  test('Deepgram TTS sends documented output controls as query parameters', async () => {
+  test('Deepgram TTS bakes the lossless WAV intermediate into the query parameters', async () => {
       const dir = await makeTempDir('autoshow-deepgram-tts-controls-')
       const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
       process.env['DEEPGRAM_API_KEY'] = 'deepgram-key'
@@ -123,17 +123,13 @@ describe('TTS provider service contracts', () => {
       const result = await runDeepgramTts('Deepgram control synthesis.', dir, {
         model: 'aura-2-thalia-en',
         voiceId: 'aura-2-andromeda-en',
-        encoding: 'linear16',
-        container: 'wav',
-        bitRate: 128000,
-        sampleRate: 24000,
         speed: 1.1
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
       expect(calls).toHaveLength(1)
       expect(calls[0]).toMatchObject({
-        url: 'https://api.deepgram.com/v1/speak?model=aura-2-andromeda-en&encoding=linear16&container=wav&bit_rate=128000&sample_rate=24000&speed=1.1',
+        url: 'https://api.deepgram.com/v1/speak?model=aura-2-andromeda-en&encoding=linear16&container=wav&speed=1.1',
         method: 'POST',
         bodyJson: { text: 'Deepgram control synthesis.' }
       })
@@ -153,9 +149,9 @@ describe('TTS provider service contracts', () => {
     }
 
     expect(calls.map((call) => call.url)).toEqual([
-      'https://api.deepgram.com/v1/speak?model=aura-2-helena-en',
-      'https://api.deepgram.com/v1/speak?model=aura-2-arcas-en',
-      'https://api.deepgram.com/v1/speak?model=aura-2-aries-en'
+      'https://api.deepgram.com/v1/speak?model=aura-2-helena-en&encoding=linear16&container=wav',
+      'https://api.deepgram.com/v1/speak?model=aura-2-arcas-en&encoding=linear16&container=wav',
+      'https://api.deepgram.com/v1/speak?model=aura-2-aries-en&encoding=linear16&container=wav'
     ])
   }, 10_000)
 })

@@ -1,4 +1,4 @@
-import { readElevenLabsError } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/elevenlabs-utils'
+import { ELEVENLABS_TTS_OUTPUT_FORMAT, readElevenLabsError } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/elevenlabs-utils'
 import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-pipeline'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
@@ -6,7 +6,7 @@ import { resolveTtsChunkCharacterLimit } from '~/cli/commands/process-steps/step
 import { ELEVENLABS_DEFAULT_VOICE_ID } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { ElevenlabsTtsModel, ElevenLabsTtsRequestControls, ElevenLabsTtsVoiceSettings, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
@@ -42,7 +42,7 @@ export const runElevenLabsTts = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = requireApiKey('ELEVENLABS_API_KEY', 'tts:elevenlabs', 'ElevenLabs TTS')
+  const apiKey = resolveCredential('elevenlabs', 'require', { stage: 'tts:elevenlabs', description: 'ElevenLabs TTS' })
 
   const baseURL = ELEVENLABS_DEFAULT_BASE_URL
   const chunks = splitTextIntoChunks(text, resolveTtsChunkCharacterLimit('elevenlabs', options.model) ?? 2000)
@@ -52,7 +52,7 @@ export const runElevenLabsTts = async (
 
   const startTime = Date.now()
   const voiceId = options.voiceId?.trim() ?? ELEVENLABS_DEFAULT_VOICE_ID
-  const outputFormat = options.controls?.outputFormat?.trim() || 'mp3_44100_128'
+  const outputFormat = ELEVENLABS_TTS_OUTPUT_FORMAT
   const languageCode = options.controls?.languageCode?.trim() || undefined
   const pronunciationDictionaryLocators = options.controls?.pronunciationDictionaryLocators
     ?.map((item) => item.trim())

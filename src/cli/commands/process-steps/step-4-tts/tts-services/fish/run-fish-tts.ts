@@ -1,4 +1,4 @@
-import type { FishTtsModel, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { RunFishTtsOptions, Step4Metadata } from '~/types'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
@@ -14,17 +14,6 @@ import {
   normalizeFishTimestampAlignment,
   prepareFishDialogueText,
 } from './fish-tts-request'
-
-export type RunFishTtsOptions = Readonly<{
-  model: FishTtsModel
-  apiKey: string
-  voiceId?: string | undefined
-  latency?: 'normal' | 'balanced' | undefined
-  abortSignal?: AbortSignal | undefined
-  chunkConcurrency?: number | undefined
-  chunkScheduler?: HostedTtsChunkScheduler | undefined
-  requestEvidence?: TtsRequestEvidenceScope | undefined
-}>
 
 export const runFishTts = async (
   text: string,

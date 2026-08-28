@@ -1,4 +1,5 @@
-import type { RetryDecision } from '~/types'
+import type { RetryClass, RetryClassifier, RetryDecision } from '~/types'
+import { extractErrorMetadata, ProviderError } from '~/utils/error-handler'
 import { classifyFetchRetry } from '~/utils/retries'
 
 const parseStatusFromGeminiError = (error: unknown): number | undefined => {
@@ -24,20 +25,26 @@ const parseStatusFromGeminiError = (error: unknown): number | undefined => {
   return undefined
 }
 
-export const classifyGeminiRetry = (error: unknown): RetryDecision => {
-  const decision = classifyFetchRetry(error, 'runtime_http_create_conservative')
-  if (decision.shouldRetry) {
-    return decision
+export const classifyGeminiRetry = (
+  error: unknown,
+  retryClass: RetryClass = 'runtime_http_create_conservative'
+): RetryDecision => {
+  const metadata = extractErrorMetadata(error)
+  const hasStructuredStatus = typeof metadata['status'] === 'number'
+  const parsedStatus = hasStructuredStatus ? undefined : parseStatusFromGeminiError(error)
+
+  if (parsedStatus === undefined) {
+    return classifyFetchRetry(error, retryClass)
   }
 
-  const status = parseStatusFromGeminiError(error)
-  if (status !== undefined && (status === 408 || status === 425 || status === 429 || status >= 500)) {
-    return {
-      shouldRetry: true,
-      delayMs: 0,
-      reason: `retryable status ${status}`
-    }
-  }
-
-  return decision
+  return classifyFetchRetry(
+    ProviderError(error instanceof Error ? error.message : String(error), {
+      status: parsedStatus,
+      ...(error instanceof Error ? { cause: error } : {})
+    }),
+    retryClass
+  )
 }
+
+export const createGeminiRetryClassifier = (retryClass: RetryClass): RetryClassifier =>
+  (error) => classifyGeminiRetry(error, retryClass)

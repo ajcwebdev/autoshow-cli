@@ -6,11 +6,6 @@ import { runSttProviderTargetAtIndex } from './stt-batch-worker'
 
 const STT_RECOVERY_MAX_PASSES = 3
 
-/**
- * Retries failed targets serially for up to {@link STT_RECOVERY_MAX_PASSES} passes,
- * stopping early once no failures remain or a pass recovers nothing. Only used for
- * uncoordinated (single-item) runs; batch-coordinated runs recover across the batch.
- */
 export const runSttRecoveryPasses = async (
   ctx: SttBatchWorkerContext
 ): Promise<void> => {

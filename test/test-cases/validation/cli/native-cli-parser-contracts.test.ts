@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { NativeMissingFlagValueError, NativeUnknownFlagError } from '~/cli/native/native-errors'
+import { NativeMissingFlagValueError, NativeNoSuchCommandError, NativeUnknownFlagError } from '~/cli/native/native-errors'
 import { defineCliCommand } from '~/cli/native/native-types'
 import { dispatchNativeCli } from '~/cli/native/dispatcher'
 import { parseCommandArgv, parseCommandInvocation, parseNativeCli } from '~/cli/native/native-parser'
@@ -286,16 +286,17 @@ describe('native CLI parser contracts', () => {
     expect(() => parseCommandInvocation(argv, runCommand, globalFlags)).toThrow(expectedMessage)
     await expect(dispatchNativeCli(argv, root, commands)).rejects.toThrow(expectedMessage)
 
+    let unknownFlagError: NativeUnknownFlagError | undefined
     try {
       parseCommandInvocation(argv, runCommand, globalFlags)
-      throw new Error('Expected parseCommandInvocation to reject unknown flags')
     } catch (error) {
       expect(error).toBeInstanceOf(NativeUnknownFlagError)
-      const unknownFlagError = error as NativeUnknownFlagError
-      expect(unknownFlagError.flagSpellings).toEqual(['--misspelled-long', '-x', '--Mixed--spelling'])
-      expect(unknownFlagError.flagNames).toBe(unknownFlagError.flagSpellings)
-      expect(unknownFlagError.message).not.toContain('secret')
+      unknownFlagError = error as NativeUnknownFlagError
     }
+    if (!unknownFlagError) expect.unreachable('Expected parseCommandInvocation to reject unknown flags')
+    expect(unknownFlagError.flagSpellings).toEqual(['--misspelled-long', '-x', '--Mixed--spelling'])
+    expect(unknownFlagError.flagNames).toBe(unknownFlagError.flagSpellings)
+    expect(unknownFlagError.message).not.toContain('secret')
   })
 
   test('falls back to normalized unknown keys for synthetic parse results without unknown occurrences', () => {
@@ -316,7 +317,8 @@ describe('native CLI parser contracts', () => {
     expect(parseNativeCli(['-h'], commands, globalFlags).mode).toBe('help')
     expect(parseNativeCli(['--version'], commands, globalFlags).mode).toBe('version')
     expect(parseNativeCli(['-v'], commands, globalFlags).mode).toBe('version')
-    expect(parseNativeCli(['-V'], commands, globalFlags).mode).toBe('version')
+    expect(() => parseNativeCli(['-V'], commands, globalFlags)).toThrow(NativeNoSuchCommandError)
+    expect(() => parseCommandInvocation(['run', 'input.txt', '-V'], runCommand, globalFlags)).toThrow(NativeUnknownFlagError)
 
     const commandHelp = parseNativeCli(['run', '--help'], commands, globalFlags)
     expect(commandHelp.mode).toBe('help')

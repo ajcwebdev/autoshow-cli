@@ -1,19 +1,13 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { createHash } from 'node:crypto'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
-import {
-  createLocationReferenceSnapshots,
-  normalizeLocationKey,
-  resolveLocationCatalogEntry,
-  type LocationReferenceCatalog,
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference'
+import { createLocationReferenceSnapshots, normalizeLocationKey, resolveLocationCatalogEntry } from '~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference'
 import { resolveLocationReferencesAcrossPanels } from '~/cli/commands/process-steps/step-8-comic/comic-utils/panel-prompt-utils'
 import { validateSceneSourceSegmentCoverage } from '~/cli/commands/process-steps/step-8-comic/comic-utils/source-coverage-utils'
 import { parseScriptMarkdownToStructuredData } from '~/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/structured-script-parser'
-import type { CharacterCatalogService, PanelPrimaryReferenceInput, ScenePromptData, StructuredScriptSourceSegment } from '~/types'
+import type { CharacterCatalogService, LocationReferenceCatalog, PanelPrimaryReferenceInput, ScenePromptData, StructuredScriptSourceSegment } from '~/types'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const roots: string[] = []
 const emptyCharacterCatalog = {
@@ -95,7 +89,7 @@ describe('multi-location comic contracts', () => {
   })
 
   test('snapshots each distinct location once and rejects tampered or missing snapshot manifests on the panel resolution path', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-multi-location-snapshots-'))
+    const root = await makeTempDir('autoshow-multi-location-snapshots-')
     roots.push(root)
     const characters = join(root, 'input', 'characters')
     const locations = join(root, 'input', 'locations')
@@ -109,12 +103,12 @@ describe('multi-location comic contracts', () => {
       await Bun.write(join(locations, sheet), bytes)
       sketches.push({
         locationKey: entry.key,
-        specificationSha256: createHash('sha256').update(entry.specification).digest('hex'),
+        specificationSha256: new Bun.CryptoHasher('sha256').update(entry.specification).digest('hex'),
         views: [{
           view: 'establishing',
           generationId: `generation-${entry.key}`,
           image: sheet,
-          imageSha256: createHash('sha256').update(bytes).digest('hex'),
+          imageSha256: new Bun.CryptoHasher('sha256').update(bytes).digest('hex'),
           model: 'fixture',
           createdAt: '2026-01-01T00:00:00.000Z',
         }],
@@ -159,7 +153,7 @@ describe('multi-location comic contracts', () => {
   })
 
   test('composes schema-version-2 views in canonical order and records source provenance', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-multi-view-location-'))
+    const root = await makeTempDir('autoshow-multi-view-location-')
     roots.push(root)
     const characters = join(root, 'input', 'characters')
     const locations = join(root, 'input', 'locations')
@@ -179,10 +173,10 @@ describe('multi-location comic contracts', () => {
     await Bun.write(join(locations, 'locations-reference.json'), JSON.stringify({ ...catalog, locations: [location] }))
     await Bun.write(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 2, sketches: [{
       locationKey: location.key,
-      specificationSha256: createHash('sha256').update(location.specification).digest('hex'),
+      specificationSha256: new Bun.CryptoHasher('sha256').update(location.specification).digest('hex'),
       views: [
-        { view: 'establishing', generationId: 'establishing-generation', image: 'quarters--reference.png', imageSha256: createHash('sha256').update(await bytes(establishing)).digest('hex'), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' },
-        { view: 'reverse', generationId: 'reverse-generation', image: 'quarters--reference-reverse.png', imageSha256: createHash('sha256').update(await bytes(reverse)).digest('hex'), model: 'fixture', createdAt: '2026-01-02T00:00:00.000Z' },
+        { view: 'establishing', generationId: 'establishing-generation', image: 'quarters--reference.png', imageSha256: new Bun.CryptoHasher('sha256').update(await bytes(establishing)).digest('hex'), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' },
+        { view: 'reverse', generationId: 'reverse-generation', image: 'quarters--reference-reverse.png', imageSha256: new Bun.CryptoHasher('sha256').update(await bytes(reverse)).digest('hex'), model: 'fixture', createdAt: '2026-01-02T00:00:00.000Z' },
       ],
     }] }))
     const run = join(root, 'run')

@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureSonioxSttSetup = ensureApiKeySetup('SONIOX_API_KEY', 'stt:soniox', 'Soniox transcription')
+export const ensureSonioxSttSetup = async (): Promise<void> => { resolveCredential('soniox', 'require', { stage: 'stt:soniox', description: 'Soniox transcription' }) }

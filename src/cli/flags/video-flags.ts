@@ -1,5 +1,5 @@
 import { booleanAllProvidersFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
-import { formatProviderList, formatRange, formatValueList, formatValuesByProvider, pickFlags, renameFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
+import { formatProviderList, formatRange, formatValueList, formatValuesByProvider, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import { VIDEO_MODES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
 import { STANDALONE_VIDEO_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
@@ -9,7 +9,6 @@ import {
   GROK_VIDEO_ASPECT_RATIOS,
   GROK_VIDEO_DURATION_RANGE,
   GROK_VIDEO_RESOLUTIONS,
-  LTX_2_3_SIZE_VALUES,
   LTX_ASPECT_RATIOS,
   LTX_DURATION_SECONDS,
   LTX_FAST_1080P_DURATION_SECONDS,
@@ -33,22 +32,21 @@ const ltxFastOnlyDurations = LTX_FAST_1080P_DURATION_SECONDS.filter(
 )
 
 export const videoGenFlags = {
-  'video-mode': strFlag(`Video generation mode: ${formatValueList(VIDEO_MODES)} (default: text)`),
-  'video-duration': strFlag(`Video duration in seconds: ${formatValuesByProvider([
+  mode: strFlag(`Video generation mode: ${formatValueList(VIDEO_MODES)} (default: text)`),
+  duration: strFlag(`Video duration in seconds: ${formatValuesByProvider([
     { provider: 'Gemini Veo', values: GEMINI_DURATION_SECONDS },
     { provider: 'Luma Labs', values: LUMA_DURATION_SECONDS, note: 'rounds to the nearer value' },
     { provider: 'LTX', values: LTX_DURATION_SECONDS, note: `the Fast model at 1920x1080 also accepts ${formatValueList(ltxFastOnlyDurations)}` }
   ])}, ${formatRange(GROK_VIDEO_DURATION_RANGE)} (Grok), ${formatRange(REPLICATE_HAPPYHORSE_DURATION_RANGE)} (Replicate HappyHorse), ${formatRange(REPLICATE_SEEDANCE_DURATION_RANGE)} (Replicate Seedance, where ${REPLICATE_SEEDANCE_DURATION_RANGE[0]} means the model default), 5-15 (fal.ai H3), 1-15 (fal.ai PixVerse C1)`),
-  'video-size': strFlag(`Video size: ${formatValueList(LTX_2_3_SIZE_VALUES)} (LTX); other providers use --video-resolution or --video-aspect-ratio`),
-  'video-aspect-ratio': strFlag(`Video aspect ratio: ${formatValuesByProvider([
+  'aspect-ratio': strFlag(`Video aspect ratio: ${formatValuesByProvider([
     { provider: 'Replicate', values: REPLICATE_COMMON_ASPECT_RATIOS },
     { provider: 'Luma Labs', values: LUMA_ASPECT_RATIOS },
     { provider: 'Grok', values: GROK_VIDEO_ASPECT_RATIOS },
     { provider: 'LTX 2.3', values: LTX_ASPECT_RATIOS },
     { provider: 'fal.ai H3', values: FAL_H3_ASPECT_RATIOS },
     { provider: 'fal.ai PixVerse C1', values: FAL_PIXVERSE_ASPECT_RATIOS }
-  ])}; Replicate Seedance also supports ${formatValueList(seedanceExtraAspectRatios)}; Gemini forwards any ratio to the Veo API unvalidated and MiniMax has no aspect-ratio control`),
-  'video-resolution': strFlag(`Video resolution: ${formatValuesByProvider([
+  ])}; Replicate Seedance also supports ${formatValueList(seedanceExtraAspectRatios)}; Gemini forwards any ratio to the Veo API unvalidated`),
+  resolution: strFlag(`Video resolution: ${formatValuesByProvider([
     { provider: 'Gemini', values: GEMINI_VIDEO_RESOLUTIONS, note: '4k requires Veo 3.1 standard/Fast' },
     { provider: 'Grok', values: GROK_VIDEO_RESOLUTIONS },
     { provider: 'LTX', values: LTX_RESOLUTIONS },
@@ -57,44 +55,24 @@ export const videoGenFlags = {
     { provider: 'fal.ai H3', values: FAL_H3_RESOLUTIONS },
     { provider: 'fal.ai PixVerse C1', values: FAL_PIXVERSE_RESOLUTIONS }
   ])}`),
-  'video-input-image': strFlag('Video input image path, URL, or data URL for image-to-video and interpolation first frame (including Luma Labs start-frame generation)'),
-  'video-last-frame': strFlag('Video last-frame image path, URL, or data URL for interpolation'),
-  'video-reference-image': strListFlag('Reference image path, URL, or data URL for reference-to-video; repeat up to 3 times'),
-  'video-input-video': strFlag('Input MP4 path, URL, or data URL for video extension or editing'),
-  'replicate-video-seed': strFlag('Replicate video seed: integer from 0 to 2147483647'),
-  'replicate-video-generate-audio': {
-    description: 'Replicate Seedance, Kling, or PixVerse synchronized/native audio toggle',
+  'input-image': strFlag('Video input image path, URL, or data URL for image-to-video and interpolation first frame (including Luma Labs start-frame generation)'),
+  'last-frame': strFlag('Video last-frame image path, URL, or data URL for interpolation'),
+  'reference-image': strListFlag('Reference image path, URL, or data URL for reference-to-video; repeat up to 3 times'),
+  'input-video': strFlag('Input MP4 path, URL, or data URL for video extension or editing'),
+  'generate-audio': {
+    description: 'Video synchronized/native audio toggle where supported (Replicate Seedance/Kling/PixVerse, fal.ai PixVerse C1)',
     type: Boolean
   },
-  'replicate-video-reference-video': strListFlag('Replicate Seedance or Kling Omni reference MP4 path, URL, or data URL; repeat where supported'),
-  'replicate-video-reference-audio': strListFlag('Replicate Seedance reference MP3/WAV path, URL, or data URL; repeat up to 3 times'),
+  'reference-video': strListFlag('Reference MP4 video path, URL, or data URL; repeat where supported (Replicate Seedance/Kling Omni, fal.ai MiniMax H3)'),
+  'reference-audio': strListFlag('Reference MP3/WAV audio path, URL, or data URL; repeat up to 3 times (Replicate Seedance, fal.ai MiniMax H3)'),
+  'replicate-video-seed': strFlag('Replicate video seed: integer from 0 to 2147483647'),
   'replicate-video-negative-prompt': strFlag('Replicate Kling Video 3.0 or PixVerse V6 negative prompt'),
   'replicate-video-multi-prompt': strFlag('Replicate Kling multi-shot JSON array (up to 6 shots whose durations sum to --duration)'),
   'replicate-video-multi-clip': {
     description: 'Replicate PixVerse V6 multi-shot generation toggle',
     type: Boolean
-  },
-  'fal-video-generate-audio': {
-    description: 'fal.ai PixVerse C1 synchronized audio toggle',
-    type: Boolean
-  },
-  'fal-video-reference-video': strListFlag('fal.ai MiniMax H3 reference video path, URL, or data URL; repeat up to 3 times'),
-  'fal-video-reference-audio': strListFlag('fal.ai MiniMax H3 reference audio path, URL, or data URL; repeat up to 3 times'),
-  'grok-video-storage-filename': strFlag('Grok video storage filename for generated file output'),
-  'grok-video-storage-expires-after': strFlag('Grok video storage expiration in seconds (max 2592000)'),
+  }
 } as const satisfies CliFlagsDefinition
-
-export const videoCommandOptionNames = {
-  'video-mode': 'mode',
-  'video-duration': 'duration',
-  'video-size': 'size',
-  'video-aspect-ratio': 'aspect-ratio',
-  'video-resolution': 'resolution',
-  'video-input-image': 'input-image',
-  'video-last-frame': 'last-frame',
-  'video-reference-image': 'reference-image',
-  'video-input-video': 'input-video'
-} as const satisfies Record<string, string>
 
 const videoProviderSelectionFlags = {
   provider: strListFlag(`Video provider[=model]: ${formatProviderList(STANDALONE_VIDEO_PROVIDER_TARGETS)}; repeatable`),
@@ -103,47 +81,33 @@ const videoProviderSelectionFlags = {
 } as const satisfies CliFlagsDefinition
 
 export const videoGenerationOptionNames = [
-  'video-mode',
-  'video-duration',
-  'video-size',
-  'video-aspect-ratio',
-  'video-resolution'
+  'mode',
+  'duration',
+  'aspect-ratio',
+  'resolution',
+  'generate-audio'
 ] as const
 
 export const videoInputOptionNames = [
-  'video-input-image',
-  'video-last-frame',
-  'video-reference-image',
-  'video-input-video'
+  'input-image',
+  'last-frame',
+  'reference-image',
+  'input-video',
+  'reference-video',
+  'reference-audio'
 ] as const
 
 const replicateOptionNames = [
   'replicate-video-seed',
-  'replicate-video-generate-audio',
-  'replicate-video-reference-video',
-  'replicate-video-reference-audio',
   'replicate-video-negative-prompt',
   'replicate-video-multi-prompt',
   'replicate-video-multi-clip'
 ] as const
 
-const falOptionNames = [
-  'fal-video-generate-audio',
-  'fal-video-reference-video',
-  'fal-video-reference-audio'
-] as const
-
-const grokStorageOptionNames = [
-  'grok-video-storage-filename',
-  'grok-video-storage-expires-after'
-] as const
-
 export const videoCommandFlags = {
   ...withHelpGroup(videoProviderSelectionFlags, 'provider-selection'),
-  ...withHelpGroup(renameFlags(pickFlags(videoGenFlags, videoGenerationOptionNames), videoCommandOptionNames), 'video-options'),
-  ...withHelpGroup(renameFlags(pickFlags(videoGenFlags, videoInputOptionNames), videoCommandOptionNames), 'video-inputs'),
+  ...withHelpGroup(pickFlags(videoGenFlags, videoGenerationOptionNames), 'video-options'),
+  ...withHelpGroup(pickFlags(videoGenFlags, videoInputOptionNames), 'video-inputs'),
   ...withHelpGroup(pickFlags(videoGenFlags, replicateOptionNames), 'replicate-video'),
-  ...withHelpGroup(pickFlags(videoGenFlags, falOptionNames), 'fal-video'),
-  ...withHelpGroup(renameFlags(pickFlags(videoGenFlags, grokStorageOptionNames), videoCommandOptionNames), 'grok-storage'),
   ...withHelpGroup(priceFlag, 'pricing')
 } as const satisfies CliFlagsDefinition

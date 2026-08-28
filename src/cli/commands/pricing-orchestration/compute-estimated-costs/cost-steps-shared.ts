@@ -8,12 +8,6 @@ export const resolveCostMultiplier = (
   multiplier: number
 ): number => input.applyCostMultipliers === false ? 1 : multiplier
 
-/**
- * Shared push/accumulate scaffolding for the Image/Video/Music generation branches,
- * which each estimate a per-target cost, apply the registry cost multiplier, and push
- * a step differing only in `step` label and one identifying quantity (`imageCount` or
- * `durationSeconds`).
- */
 export const pushGenerationEstimates = <T extends { provider: string, model: string, totalCost: number }>(
   estimates: readonly T[],
   input: Pick<ComputeEstimatedCostsInput, 'applyCostMultipliers'>,

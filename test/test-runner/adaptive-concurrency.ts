@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { stripAnsi } from '~/utils/terminal-colors'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { withProcessLock } from '~/utils/process-lock'
@@ -14,10 +14,12 @@ import type {
   AdaptiveSchedulerState
 } from '~/types'
 import {
+  isTransientPressureOutput,
   RATE_LIMIT_PATTERN,
-  TIMEOUT_PATTERN,
-  TRANSIENT_PATTERN
+  TIMEOUT_PATTERN
 } from '../test-utils/provider-failure-classifiers'
+import { readString } from './utils'
+import { isObjectLike } from '~/utils/value-helpers'
 
 const STATE_FILE = 'adaptive-concurrency.json'
 const LOCK_NAME = 'adaptive-concurrency-state'
@@ -31,9 +33,6 @@ const DEFAULT_SUCCESS_STREAK_TO_INCREASE = 3
 const DEFAULT_ACQUIRE_POLL_MS = 100
 const DEFAULT_LOCK_WAIT_MS = 25
 const DEFAULT_LOCK_STALE_MS = 30_000
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
 
 const initialLimitForGroup = (
   group: AdaptiveProviderGroup,
@@ -66,7 +65,7 @@ const emptyState = (): AdaptiveSchedulerState => ({
 })
 
 const parseLeaseState = (value: unknown): AdaptiveLeaseState | null => {
-  if (!isRecord(value)) {
+  if (!isObjectLike(value)) {
     return null
   }
   const pid = value['pid']
@@ -89,12 +88,12 @@ const parseGroupState = (
   value: unknown,
   config: AdaptiveConcurrencyConfig
 ): AdaptiveGroupState | null => {
-  if (!isRecord(value)) {
+  if (!isObjectLike(value)) {
     return null
   }
   const leases: Record<string, AdaptiveLeaseState> = {}
   const rawLeases = value['leases']
-  if (isRecord(rawLeases)) {
+  if (isObjectLike(rawLeases)) {
     for (const [leaseId, leaseValue] of Object.entries(rawLeases)) {
       const lease = parseLeaseState(leaseValue)
       if (lease) {
@@ -125,7 +124,7 @@ const parseGroupState = (
 const readSchedulerState = async (config: AdaptiveConcurrencyConfig): Promise<AdaptiveSchedulerState> => {
   try {
     const parsed = JSON.parse(await readFile(statePath(config), 'utf8')) as unknown
-    if (!isRecord(parsed) || parsed['schemaVersion'] !== 1 || !isRecord(parsed['groups'])) {
+    if (!isObjectLike(parsed) || parsed['schemaVersion'] !== 1 || !isObjectLike(parsed['groups'])) {
       return emptyState()
     }
 
@@ -139,7 +138,7 @@ const readSchedulerState = async (config: AdaptiveConcurrencyConfig): Promise<Ad
 
     return {
       schemaVersion: 1,
-      updatedAt: typeof parsed['updatedAt'] === 'string' ? parsed['updatedAt'] : new Date().toISOString(),
+      updatedAt: readString(parsed, 'updatedAt') ?? new Date().toISOString(),
       groups,
     }
   } catch {
@@ -239,7 +238,7 @@ export const acquireAdaptiveProviderLease = async (
     }
   }
 
-  const leaseId = randomUUID()
+  const leaseId = crypto.randomUUID()
 
   while (true) {
     const acquired = await withStateLock(config, async (state) => {
@@ -289,7 +288,7 @@ export const acquireAdaptiveProviderLease = async (
   }
 }
 
-export const releaseAdaptiveProviderLease = async (
+const releaseAdaptiveProviderLease = async (
   leaseId: string,
   groups: AdaptiveProviderGroup[],
   config: AdaptiveConcurrencyConfig
@@ -366,14 +365,14 @@ export const classifyAdaptivePressure = (
   if (exitCode === 0) {
     return null
   }
-  const clean = output.replace(/\x1b\[[0-9;]*m/g, '')
+  const clean = stripAnsi(output)
   if (timedOut || RATE_LIMIT_PATTERN.test(clean)) {
     return RATE_LIMIT_PATTERN.test(clean) ? 'rate-limit' : 'timeout'
   }
   if (TIMEOUT_PATTERN.test(clean)) {
     return 'timeout'
   }
-  if (TRANSIENT_PATTERN.test(clean)) {
+  if (isTransientPressureOutput(clean)) {
     return 'transient'
   }
   return null

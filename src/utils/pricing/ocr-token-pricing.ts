@@ -1,12 +1,6 @@
-import type { HostedOcrTokenReasoningPolicy, HostedOcrTokenUsageEstimate, HostedOcrTokenUsageProfile, TokenPricedOcrProvider } from '~/types'
+import type { HostedOcrTokenReasoningPolicy, HostedOcrTokenUsageEstimate, HostedOcrTokenUsageProfile, OcrTokenRateInput, TokenPricedOcrProvider } from '~/types'
 import { computeTokenCost } from './token-pricing'
-
-export type OcrTokenRateInput = {
-  inputCostPer1MCents?: number | undefined
-  outputCostPer1MCents?: number | undefined
-  tokenPricingBands?: Parameters<typeof computeTokenCost>[0]['tokenPricingBands']
-  higherContextPricing?: Parameters<typeof computeTokenCost>[0]['higherContextPricing']
-}
+import { selectBestScoredProfile } from '~/utils/json-profile-store'
 
 export const computeOcrTokenCost = (
   pricing: OcrTokenRateInput,
@@ -57,14 +51,7 @@ export const selectHostedOcrTokenUsageProfile = (
     effectiveReasoningEffort: HostedOcrTokenReasoningPolicy
   }
 ): HostedOcrTokenUsageProfile | undefined =>
-  profiles
-    .map((profile) => ({ profile, score: scoreProfile(profile, input) }))
-    .filter((entry) => entry.score >= 0)
-    .sort((left, right) =>
-      right.score - left.score
-      || right.profile.sampleCount - left.profile.sampleCount
-      || Date.parse(right.profile.lastSeenAt) - Date.parse(left.profile.lastSeenAt)
-    )[0]?.profile
+  selectBestScoredProfile(profiles, (profile) => scoreProfile(profile, input))
 
 export const projectHostedOcrTokenUsageEstimate = (input: {
   pageCount: number

@@ -1,5 +1,5 @@
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
-import type { BuildOptsDefaults, CliFlagOccurrence, ResolvedFlagContext, TtsOptionResolutionAuthority } from '~/types'
+import type { BuildOptsDefaults, BuildOptsResolutionContext, ResolvedFlagContext } from '~/types'
 import {
   parseHostedConcurrencyMode,
   readBooleanFlag,
@@ -25,28 +25,17 @@ export { collectRepeatableModelFlagOccurrences, REPEATABLE_MODEL_FLAGS, normaliz
 
 const emptyYtDlpPassthroughArgs = (): string[] | undefined => undefined
 
-type BuildOptsResolutionContext = Readonly<{
-  flagOccurrences?: readonly CliFlagOccurrence[] | undefined
-  ttsOptionResolutionAuthority?: TtsOptionResolutionAuthority | undefined
-}>
-
-const isBuildOptsResolutionContext = (
-  value: readonly CliFlagOccurrence[] | BuildOptsResolutionContext
-): value is BuildOptsResolutionContext => !Array.isArray(value)
-
 export const buildOptsFromFlags = (
-  skipLLM: boolean,
   flags: Record<string, unknown>,
   defaults: BuildOptsDefaults = {},
   explicitFlags: Set<string> = new Set(),
-  occurrencesOrContext: readonly CliFlagOccurrence[] | BuildOptsResolutionContext = []
+  context: BuildOptsResolutionContext = {}
 ) => {
-  const flagOccurrences = isBuildOptsResolutionContext(occurrencesOrContext)
-    ? occurrencesOrContext.flagOccurrences ?? []
-    : occurrencesOrContext
-  const ttsOptionResolutionAuthority = isBuildOptsResolutionContext(occurrencesOrContext)
-    ? occurrencesOrContext.ttsOptionResolutionAuthority ?? {}
-    : {}
+  const scope = context.scope ?? 'all'
+  const scopeIncludes = (...scopes: NonNullable<BuildOptsResolutionContext['scope']>[]): boolean =>
+    scope === 'all' || scopes.includes(scope)
+  const flagOccurrences = context.flagOccurrences ?? []
+  const ttsOptionResolutionAuthority = context.ttsOptionResolutionAuthority ?? {}
   const rawModelOccurrences = collectRepeatableModelFlagOccurrences(flagOccurrences)
 
   const mergedFlags: Record<string, unknown> = { ...flags }
@@ -56,25 +45,15 @@ export const buildOptsFromFlags = (
   const modelOptions = readRuntimeModelOptions(mergedFlags, rawModelOccurrences, allShortcutFlags, defaults)
   const {
     openaiModels,
-    openaiModel,
     groqModels,
-    groqModel,
     geminiModels,
-    geminiModel,
     anthropicModels,
-    anthropicModel,
     minimaxModels,
-    minimaxModel,
     grokModels,
-    grokModel,
     glmModels,
-    glmModel,
     kimiModels,
-    kimiModel,
     togetherModels,
-    togetherModel,
     cerebrasModels,
-    cerebrasModel,
   } = modelOptions
   const allUrlSelected = allShortcutFlags['all-url']
   const allLocalUrlSelected = allShortcutFlags['all-local-url']
@@ -95,6 +74,17 @@ export const buildOptsFromFlags = (
     allShortcutFlags,
     modelOptions
   }
+  const inactiveAllShortcutFlags = readAllShortcutFlags({})
+  const inactiveModelOptions = readRuntimeModelOptions({}, {}, inactiveAllShortcutFlags, {})
+  const inactiveCtx: ResolvedFlagContext = {
+    ...ctx,
+    mergedFlags: {},
+    explicitFlags: new Set(),
+    configuredFlags: new Set(),
+    flagOccurrences: [],
+    allShortcutFlags: inactiveAllShortcutFlags,
+    modelOptions: inactiveModelOptions
+  }
 
   const concurrencyMode = parseHostedConcurrencyMode(readOptionalStringFlag(mergedFlags, 'concurrency-mode'))
   return {
@@ -106,43 +96,31 @@ export const buildOptsFromFlags = (
     whisperExplicit,
     step2SelectionOrigins,
     openaiModels,
-    openaiModel,
     groqModels,
-    groqModel,
     geminiModels,
-    geminiModel,
     anthropicModels,
-    anthropicModel,
     minimaxModels,
-    minimaxModel,
     grokModels,
-    grokModel,
     glmModels,
-    glmModel,
     kimiModels,
-    kimiModel,
     togetherModels,
-    togetherModel,
     cerebrasModels,
-    cerebrasModel,
-    ...buildSttOptions(ctx),
-    ...buildOcrOptions(ctx),
+    ...buildSttOptions(scopeIncludes('extract', 'download', 'metadata') ? ctx : inactiveCtx),
+    ...buildOcrOptions(scopeIncludes('extract', 'download', 'metadata') ? ctx : inactiveCtx),
     llmProviderConcurrency: resolveProviderConcurrency(mergedFlags, 'llm-provider-concurrency', allShortcutFlags['all-llm'], explicitFlags, configuredFlags),
     llmLocalConcurrency: resolveLocalConcurrency(mergedFlags, 'llm-local-concurrency', explicitFlags, configuredFlags),
-    ttsProviderConcurrency: resolveProviderConcurrency(mergedFlags, 'tts-provider-concurrency', allShortcutFlags['all-tts'], explicitFlags, configuredFlags),
-    ttsLocalConcurrency: resolveLocalConcurrency(mergedFlags, 'tts-local-concurrency', explicitFlags, configuredFlags),
-    ttsChunkConcurrency: resolveTtsChunkConcurrency(mergedFlags, modelOptions, explicitFlags, configuredFlags),
-    ...buildImageOptions(ctx),
-    ...buildVideoOptions(ctx),
-    ...buildMusicOptions(ctx),
+    ttsProviderConcurrency: resolveProviderConcurrency(scopeIncludes('tts') ? mergedFlags : {}, 'tts-provider-concurrency', scopeIncludes('tts') && allShortcutFlags['all-tts'], explicitFlags, configuredFlags),
+    ttsChunkConcurrency: resolveTtsChunkConcurrency(scopeIncludes('tts') ? mergedFlags : {}, scopeIncludes('tts') ? modelOptions : inactiveModelOptions, explicitFlags, configuredFlags),
+    ...buildImageOptions(scopeIncludes('image') ? ctx : inactiveCtx),
+    ...buildVideoOptions(scopeIncludes('video') ? ctx : inactiveCtx),
+    ...buildMusicOptions(scopeIncludes('music') ? ctx : inactiveCtx),
     price: readBooleanFlag(mergedFlags, 'price'),
     allowOverBudget: readBooleanFlag(mergedFlags, 'allow-over-budget'),
-    skipLLM,
     ...urlOptions,
     urlProviderConcurrency: resolveProviderConcurrency(
-      mergedFlags,
+      scopeIncludes('extract', 'download', 'metadata') ? mergedFlags : {},
       'url-provider-concurrency',
-      allUrlSelected,
+      scopeIncludes('extract', 'download', 'metadata') && allUrlSelected,
       explicitFlags,
       configuredFlags
     ),
@@ -150,12 +128,11 @@ export const buildOptsFromFlags = (
     ytDlpPassthroughArgs: emptyYtDlpPassthroughArgs(),
     prompts: readPromptFlags(mergedFlags),
     promptFile: readOptionalStringFlag(mergedFlags, 'prompt-file'),
-    textInput: readBooleanFlag(mergedFlags, 'text-input'),
     renderedText: readBooleanFlag(mergedFlags, 'rendered-text'),
     renderedOutDir: readOptionalStringFlag(mergedFlags, 'rendered-out-dir'),
     trackList: readOptionalStringFlag(mergedFlags, 'track-list'),
     promptMd: readBooleanFlag(mergedFlags, 'prompt-md'),
-    ...buildTtsOptions(mergedFlags, flagOccurrences, modelOptions, {
+    ...buildTtsOptions(scopeIncludes('tts') ? mergedFlags : {}, scopeIncludes('tts') ? flagOccurrences : [], scopeIncludes('tts') ? modelOptions : inactiveModelOptions, {
       explicitFlags,
       configuredFlags,
       ...ttsOptionResolutionAuthority

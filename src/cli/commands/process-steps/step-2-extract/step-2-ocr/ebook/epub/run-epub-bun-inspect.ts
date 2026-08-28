@@ -1,70 +1,13 @@
-import { inflateRawSync } from 'node:zlib'
 import { ValidationError } from '~/utils/error-handler'
 import { inspectEpubWithReader, normalizeEntryPath } from './inspect-core'
-import type { EpubContentEntry, EpubContentReader, EpubInspectEngine, EpubInspectOutput, ZipEntry } from '~/types'
+import type { EpubContentEntry, EpubContentReader, EpubInspectEngine, EpubInspectOutput } from '~/types'
+import { openZipArchive, readZipEntryData } from '~/utils/zip-central-directory'
 
-const EOCD_SIG = 0x06054b50
-const CD_SIG = 0x02014b50
-const LFH_SIG = 0x04034b50
-
-const findEocd = (buffer: Buffer): number => {
-  const limit = Math.max(0, buffer.length - 65557)
-  for (let idx = buffer.length - 22; idx >= limit; idx--) {
-    if (buffer.readUInt32LE(idx) === EOCD_SIG) return idx
-  }
-  throw ValidationError('Not a valid ZIP file: End of Central Directory not found', { stage: 'ocr:epub-zip' })
-}
-
-const readCentralDirectory = (buffer: Buffer): ZipEntry[] => {
-  const eocd = findEocd(buffer)
-  const count = buffer.readUInt16LE(eocd + 10)
-  const offset = buffer.readUInt32LE(eocd + 16)
-
-  const entries: ZipEntry[] = []
-  let pos = offset
-  for (let idx = 0; idx < count; idx++) {
-    if (buffer.readUInt32LE(pos) !== CD_SIG) break
-    const method = buffer.readUInt16LE(pos + 10)
-    const compSize = buffer.readUInt32LE(pos + 20)
-    const uncompSize = buffer.readUInt32LE(pos + 24)
-    const fnLen = buffer.readUInt16LE(pos + 28)
-    const extraLen = buffer.readUInt16LE(pos + 30)
-    const commentLen = buffer.readUInt16LE(pos + 32)
-    const localOffset = buffer.readUInt32LE(pos + 42)
-    const name = buffer.subarray(pos + 46, pos + 46 + fnLen).toString('utf8')
-    entries.push({
-      name: normalizeEntryPath(name),
-      method,
-      compSize,
-      uncompSize,
-      localOffset
-    })
-    pos += 46 + fnLen + extraLen + commentLen
-  }
-  return entries
-}
-
-const readEntryData = (buffer: Buffer, entry: ZipEntry): Buffer => {
-  const localPos = entry.localOffset
-  if (buffer.readUInt32LE(localPos) !== LFH_SIG) {
-    throw ValidationError(`Local file header missing for entry: ${entry.name}`, { stage: 'ocr:epub-zip' })
-  }
-
-  const nameLength = buffer.readUInt16LE(localPos + 26)
-  const extraLength = buffer.readUInt16LE(localPos + 28)
-  const dataStart = localPos + 30 + nameLength + extraLength
-  const compressed = buffer.subarray(dataStart, dataStart + entry.compSize)
-
-  if (entry.method === 0) return Buffer.from(compressed)
-  if (entry.method === 8) return inflateRawSync(compressed)
-  throw ValidationError(`Unsupported ZIP compression method ${entry.method} for entry: ${entry.name}`, { stage: 'ocr:epub-zip' })
-}
+const EPUB_ARCHIVE = { stage: 'ocr:epub-zip', normalizeEntryName: normalizeEntryPath } as const
 
 const createZipReader = async (filePath: string): Promise<EpubContentReader> => {
-  const buffer = Buffer.from(await Bun.file(filePath).arrayBuffer())
-  const zipEntries = readCentralDirectory(buffer)
-  const byPath = new Map(zipEntries.map(entry => [entry.name, entry]))
-  const entries: EpubContentEntry[] = zipEntries.map(entry => ({
+  const { buffer, list, entries: byPath } = await openZipArchive(filePath, EPUB_ARCHIVE)
+  const entries: EpubContentEntry[] = list.map(entry => ({
     path: entry.name,
     size: entry.uncompSize,
     compressedSize: entry.compSize
@@ -80,12 +23,12 @@ const createZipReader = async (filePath: string): Promise<EpubContentReader> => 
       if (!entry) {
         throw ValidationError(`EPUB entry not found: ${normalized}`, { stage: 'ocr:epub-zip' })
       }
-      return readEntryData(buffer, entry).toString('utf8')
+      return readZipEntryData(buffer, entry, EPUB_ARCHIVE).toString('utf8')
     }
   }
 }
 
-export const runEpubZipInspect = async (
+const runEpubZipInspect = async (
   filePath: string,
   engine: EpubInspectEngine
 ): Promise<EpubInspectOutput> => {

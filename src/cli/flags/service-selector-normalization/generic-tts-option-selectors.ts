@@ -1,120 +1,46 @@
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import type { CliFlagOccurrence, SelectorNormalizationResult, TtsOptions } from '~/types'
 import { occurrenceValues } from './flag-helpers'
-import { applyFlagOccurrenceNormalization, replaceFlagOccurrence } from './occurrence-normalization'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from './provider-targets'
 
-const TTS_PROVIDER_BY_TARGET = Object.fromEntries(
-  Object.entries(STANDALONE_TTS_PROVIDER_TARGETS).map(([provider, target]) => [target, provider])
-) as Record<string, string>
-const TTS_GENERIC_OPTION_TARGETS = {
+export const GENERIC_TTS_OPTION_PROVIDERS = {
   'tts-voice': {
     voiceIdentity: true,
-    targets: {
-      groq: 'groq-voice',
-      grok: 'grok-tts-voice',
-      mistral: 'mistral-tts-voice',
-      openai: 'openai-voice',
-      gemini: 'gemini-voice',
-      deepgram: 'deepgram-voice',
-      speechify: 'speechify-voice',
-      hume: 'hume-tts-voice',
-      cartesia: 'cartesia-tts-voice',
-      fish: 'fish-tts-voice',
-      inworld: 'inworld-voice',
-      deepinfra: 'deepinfra-voice',
-      replicate: 'replicate-voice',
-      fal: 'fal-voice',
-      minimax: 'minimax-tts-voice',
-      elevenlabs: 'elevenlabs-voice'
-    }
+    providers: [
+      'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify',
+      'hume', 'cartesia', 'fish', 'inworld', 'deepinfra', 'replicate', 'fal',
+      'minimax', 'elevenlabs'
+    ]
   },
   'tts-speed': {
     voiceIdentity: false,
-    targets: {
-      openai: 'openai-tts-speed',
-      deepgram: 'deepgram-tts-speed',
-      minimax: 'minimax-tts-speed',
-      elevenlabs: 'elevenlabs-tts-speed'
-    }
+    providers: ['openai', 'deepgram', 'minimax', 'elevenlabs']
   },
   'tts-language': {
     voiceIdentity: false,
-    targets: {
-      grok: 'grok-tts-language',
-      speechify: 'speechify-tts-language',
-      cartesia: 'cartesia-tts-language',
-      elevenlabs: 'elevenlabs-tts-language-code'
-    }
+    providers: ['grok', 'speechify', 'cartesia', 'elevenlabs', 'minimax']
   },
   'tts-ref-audio': {
     voiceIdentity: true,
-    targets: {
-      mistral: 'mistral-tts-ref-audio',
-      speechify: 'speechify-tts-ref-audio',
-      elevenlabs: 'elevenlabs-tts-ref-audio'
-    }
-  },
-  'tts-voice-name': {
-    voiceIdentity: true,
-    targets: {
-      mistral: 'mistral-tts-voice-name',
-      speechify: 'speechify-tts-voice-name',
-      elevenlabs: 'elevenlabs-tts-voice-name'
-    }
-  },
-  'tts-consent-name': {
-    voiceIdentity: false,
-    targets: {
-      speechify: 'speechify-tts-consent-name'
-    }
-  },
-  'tts-consent-email': {
-    voiceIdentity: false,
-    targets: {
-      speechify: 'speechify-tts-consent-email'
-    }
+    providers: ['mistral']
   },
   'tts-text-normalization': {
     voiceIdentity: false,
-    targets: {
-      grok: 'grok-tts-text-normalization',
-      minimax: 'minimax-tts-english-normalization',
-      elevenlabs: 'elevenlabs-tts-text-normalization'
-    }
+    providers: ['grok', 'minimax', 'elevenlabs']
   },
   'tts-instructions': {
     voiceIdentity: false,
-    targets: {
-      openai: 'openai-tts-instructions',
-      fal: 'fal-tts-instructions',
-      inworld: 'inworld-tts-instructions'
-    }
-  },
-  'tts-output-format': {
-    voiceIdentity: false,
-    targets: {
-      deepgram: 'deepgram-tts-encoding',
-      speechify: 'speechify-tts-audio-format',
-      elevenlabs: 'elevenlabs-tts-output-format'
-    }
+    providers: ['openai', 'fal', 'inworld']
   }
 } as const satisfies Record<string, {
   voiceIdentity: boolean
-  targets: Record<string, string>
+  providers: readonly string[]
 }>
 
-// Every provider flag `--tts-voice` can normalize into. Derived so a provider added above is
-// covered without a second list to keep in step.
-const TTS_VOICE_OPTION_TARGETS = new Set<string>(Object.values(TTS_GENERIC_OPTION_TARGETS['tts-voice'].targets))
+export type GenericTtsOptionFlag = keyof typeof GENERIC_TTS_OPTION_PROVIDERS
 
-// Every generic row must classify itself above. The guard is then derived from that classification,
-// so adding another voice-identity option cannot leave it outside the dialogue conflict check.
-const TTS_VOICE_IDENTITY_OPTION_TARGETS = new Set<string>(
-  Object.values(TTS_GENERIC_OPTION_TARGETS)
-    .filter((definition) => definition.voiceIdentity)
-    .flatMap((definition) => Object.values(definition.targets))
-)
+const GENERIC_TTS_OPTION_FLAGS = Object.keys(GENERIC_TTS_OPTION_PROVIDERS) as GenericTtsOptionFlag[]
+const BOOLEAN_TTS_TEXT_NORMALIZATION_PROVIDERS = new Set<string>(['grok', 'minimax'])
 
 export const assertNoVoiceIdentityWithDialogue = (
   options: Pick<TtsOptions, 'ttsSpeakers'>,
@@ -122,21 +48,16 @@ export const assertNoVoiceIdentityWithDialogue = (
 ): void => {
   if ((options.ttsSpeakers?.length ?? 0) === 0) return
 
-  const explicitIdentityTargets = [...TTS_VOICE_IDENTITY_OPTION_TARGETS]
-    .filter((target) => explicitFlags.has(target))
-  if (explicitIdentityTargets.length === 0) return
-
-  if (explicitIdentityTargets.some((target) => TTS_VOICE_OPTION_TARGETS.has(target))) {
-    throw CLIUsageError('--tts-voice cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
+  if (explicitFlags.has('tts-voice')) {
+    throw UsageError('--tts-voice cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
   }
 
-  throw CLIUsageError('Voice identity options such as --tts-ref-audio and --tts-voice-name cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
+  if (explicitFlags.has('tts-ref-audio')) {
+    throw UsageError('Voice identity options such as --tts-ref-audio cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
+  }
 }
 
-const genericTtsOptionFlags = Object.keys(TTS_GENERIC_OPTION_TARGETS)
-const booleanTtsOptionTargets = new Set<string>(['grok-tts-text-normalization', 'minimax-tts-english-normalization'])
-
-const readSelectedTtsProviders = (
+export const readSelectedTtsProviders = (
   flags: Record<string, unknown>,
   defaultProvider?: string | undefined
 ): string[] => {
@@ -159,7 +80,11 @@ const readSelectedTtsProviders = (
   return providers
 }
 
-const parseGenericTtsOptionValue = (
+const TTS_PROVIDER_BY_TARGET = Object.fromEntries(
+  Object.entries(STANDALONE_TTS_PROVIDER_TARGETS).map(([provider, target]) => [target, provider])
+) as Record<string, string>
+
+export const parseGenericTtsOptionValue = (
   rawValue: string | boolean,
   flagName: string
 ): { provider?: string | undefined, value: string | boolean } => {
@@ -173,7 +98,7 @@ const parseGenericTtsOptionValue = (
     if (possibleProvider in STANDALONE_TTS_PROVIDER_TARGETS) {
       const value = rawValue.slice(eqIndex + 1)
       if (value.length === 0) {
-        throw CLIUsageError(`--${flagName} requires a value after "${possibleProvider}=".`)
+        throw UsageError(`--${flagName} requires a value after "${possibleProvider}=".`)
       }
       return { provider: possibleProvider, value }
     }
@@ -182,47 +107,115 @@ const parseGenericTtsOptionValue = (
   return { value: rawValue }
 }
 
-const resolveGenericTtsOptionProvider = (
+export const resolveGenericTtsOptionProvider = (
   flagName: string,
   parsedProvider: string | undefined,
-  selectedProviders: string[]
-): string => {
+  selectedProviders: string[],
+  options: { allowUnscoped?: boolean } = {}
+): string | undefined => {
   if (parsedProvider) {
     return parsedProvider
   }
   if (selectedProviders.length === 1) {
-    return selectedProviders[0] as string
+    return selectedProviders[0]
   }
   if (selectedProviders.length === 0) {
-    throw CLIUsageError(`--${flagName} requires one selected TTS provider or provider=value.`)
+    if (options.allowUnscoped === true) return undefined
+    throw UsageError(`--${flagName} requires one selected TTS provider or provider=value.`)
   }
-  throw CLIUsageError(`--${flagName} requires provider=value when multiple TTS providers are selected.`)
+  throw UsageError(`--${flagName} requires provider=value when multiple TTS providers are selected.`)
 }
 
-const resolveGenericTtsOption = (
-  flagName: string,
-  provider: string,
+export const assertGenericTtsOptionSupported = (flagName: string, provider: string): void => {
+  const definition = GENERIC_TTS_OPTION_PROVIDERS[flagName as GenericTtsOptionFlag]
+  if (!definition || !(definition.providers as readonly string[]).includes(provider)) {
+    throw UsageError(`--${flagName} does not apply to ${provider} TTS.`)
+  }
+}
+
+export const requireGenericTtsOptionString = (flagName: string, value: string | boolean): string => {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw UsageError(`--${flagName} requires a value.`)
+  }
+  return value
+}
+
+export const parseGenericTtsBooleanOption = (value: string | boolean): boolean =>
+  value === true || (typeof value === 'string' && !['false', '0', 'no', 'off'].includes(value.trim().toLowerCase()))
+
+const assertGenericTtsOptionValue = (
+  flagName: GenericTtsOptionFlag,
+  provider: string | undefined,
   value: string | boolean
-): { target: string, value: string | boolean, update: 'append' | 'set' } => {
-  const providerTargets = TTS_GENERIC_OPTION_TARGETS[flagName as keyof typeof TTS_GENERIC_OPTION_TARGETS]?.targets
-  const target = providerTargets?.[provider as keyof typeof providerTargets]
-  if (!target) {
-    throw CLIUsageError(`--${flagName} does not apply to ${provider} TTS.`)
+): void => {
+  if (value !== true) return
+  if (flagName === 'tts-text-normalization') {
+    if (provider === undefined || BOOLEAN_TTS_TEXT_NORMALIZATION_PROVIDERS.has(provider)) return
   }
+  throw UsageError(`--${flagName} requires a value.`)
+}
 
-  if (booleanTtsOptionTargets.has(target)) {
-    return {
-      target,
-      value: value === true || (typeof value === 'string' && !['false', '0', 'no', 'off'].includes(value.trim().toLowerCase())),
-      update: 'set'
+const validateGenericTtsOption = (
+  flagName: GenericTtsOptionFlag,
+  rawValue: string | boolean,
+  selectedProviders: string[]
+): void => {
+  const parsed = parseGenericTtsOptionValue(rawValue, flagName)
+  const provider = resolveGenericTtsOptionProvider(flagName, parsed.provider, selectedProviders, { allowUnscoped: true })
+  if (provider !== undefined) {
+    assertGenericTtsOptionSupported(flagName, provider)
+  }
+  assertGenericTtsOptionValue(flagName, provider, parsed.value)
+}
+
+export const readGenericTtsOptionRawValues = (
+  flags: Record<string, unknown>,
+  flagOccurrences: readonly CliFlagOccurrence[],
+  flagName: string
+): Array<string | boolean> => {
+  const occurrenceValuesForFlag = flagOccurrences.flatMap((occurrence) => {
+    if (occurrence.name !== flagName) return []
+    if (typeof occurrence.value === 'string' || typeof occurrence.value === 'boolean') {
+      return [occurrence.value]
     }
-  }
+    return []
+  })
+  if (occurrenceValuesForFlag.length > 0) return occurrenceValuesForFlag
 
-  if (value === true) {
-    throw CLIUsageError(`--${flagName} requires a value.`)
+  const value = flags[flagName]
+  if (Array.isArray(value)) {
+    return value.filter((entry): entry is string | boolean =>
+      (typeof entry === 'string' && entry.length > 0) || typeof entry === 'boolean'
+    )
   }
+  if (typeof value === 'string' && value.length > 0) return [value]
+  if (typeof value === 'boolean') return [value]
+  if (typeof value === 'number' && Number.isFinite(value)) return [String(value)]
+  return []
+}
 
-  return { target, value, update: 'append' }
+export type GenericTtsOptionAssignment = {
+  provider: string
+  value: string | boolean
+}
+
+export const resolveGenericTtsOptionAssignments = (
+  flags: Record<string, unknown>,
+  flagOccurrences: readonly CliFlagOccurrence[],
+  flagName: GenericTtsOptionFlag,
+  selectedProviders: string[]
+): GenericTtsOptionAssignment[] => {
+  const rawValues = readGenericTtsOptionRawValues(flags, flagOccurrences, flagName)
+  return rawValues.map((rawValue) => {
+    const parsed = parseGenericTtsOptionValue(rawValue, flagName)
+    const provider = resolveGenericTtsOptionProvider(flagName, parsed.provider, selectedProviders)
+    if (provider === undefined) {
+      throw UsageError(`--${flagName} requires one selected TTS provider or provider=value.`)
+    }
+    assertGenericTtsOptionSupported(flagName, provider)
+    assertGenericTtsOptionValue(flagName, provider, parsed.value)
+    return { provider, value: parsed.value }
+  })
 }
 
 export const normalizeGenericTtsOptionFlags = (
@@ -232,18 +225,10 @@ export const normalizeGenericTtsOptionFlags = (
   defaultProvider?: string | undefined
 ): SelectorNormalizationResult => {
   const selectedProviders = readSelectedTtsProviders(flags, defaultProvider)
-  return applyFlagOccurrenceNormalization(flags, explicitFlags, flagOccurrences, (occurrence) => {
-    if (!genericTtsOptionFlags.includes(occurrence.name)) {
-      return undefined
-    }
-    const parsed = parseGenericTtsOptionValue(occurrence.value, occurrence.name)
-    const provider = resolveGenericTtsOptionProvider(occurrence.name, parsed.provider, selectedProviders)
-    const replacement = resolveGenericTtsOption(occurrence.name, provider, parsed.value)
-    return [replaceFlagOccurrence(
-      occurrence,
-      replacement.target,
-      replacement.value,
-      replacement.update
-    )]
-  })
+  for (const occurrence of flagOccurrences) {
+    if (!GENERIC_TTS_OPTION_FLAGS.includes(occurrence.name as GenericTtsOptionFlag)) continue
+    if (typeof occurrence.value !== 'string' && typeof occurrence.value !== 'boolean') continue
+    validateGenericTtsOption(occurrence.name as GenericTtsOptionFlag, occurrence.value, selectedProviders)
+  }
+  return { flags, explicitFlags, flagOccurrences: [...flagOccurrences] }
 }

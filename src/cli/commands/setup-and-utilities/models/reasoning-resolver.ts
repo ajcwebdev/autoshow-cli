@@ -1,5 +1,7 @@
-import { CLIUsageError } from '~/utils/error-handler'
+import type { MappedReasoningPolicy, NormalizedReasoningEffort, ReasoningCapabilities, ReasoningSupport } from '~/types'
+import { UsageError } from '~/utils/error-handler'
 import { getModelRegistry } from './model-loader/registry'
+import { formatQuotedChoiceList } from '~/utils/value-helpers'
 
 export const NORMALIZED_REASONING_EFFORTS = [
   'default',
@@ -11,30 +13,8 @@ export const NORMALIZED_REASONING_EFFORTS = [
   'max'
 ] as const
 
-export type NormalizedReasoningEffort = typeof NORMALIZED_REASONING_EFFORTS[number]
-export type ReasoningSupport = 'unsupported' | 'optional' | 'required'
-
-export type ReasoningCapabilities = {
-  support: ReasoningSupport
-  allowDisabled?: boolean | undefined
-  supportedEfforts?: NormalizedReasoningEffort[] | undefined
-}
-
-export type MappedReasoningPolicy = {
-  requested: NormalizedReasoningEffort | undefined
-  effective: NormalizedReasoningEffort
-}
-
 export const isNormalizedReasoningEffort = (value: unknown): value is NormalizedReasoningEffort =>
   typeof value === 'string' && (NORMALIZED_REASONING_EFFORTS as readonly string[]).includes(value)
-
-const formatQuotedChoiceList = (choices: readonly string[]): string => {
-  const quotedChoices = choices.map((choice) => `"${choice}"`)
-  if (quotedChoices.length <= 2) {
-    return quotedChoices.join(' or ')
-  }
-  return `${quotedChoices.slice(0, -1).join(', ')}, or ${quotedChoices[quotedChoices.length - 1]}`
-}
 
 export const parseReasoningEffort = (value: string | undefined): NormalizedReasoningEffort | undefined => {
   if (value === undefined) {
@@ -44,10 +24,10 @@ export const parseReasoningEffort = (value: string | undefined): NormalizedReaso
   if (isNormalizedReasoningEffort(normalized)) {
     return normalized as NormalizedReasoningEffort
   }
-  throw CLIUsageError(`Invalid --reasoning-effort value "${value}". Expected ${formatQuotedChoiceList(NORMALIZED_REASONING_EFFORTS)}.`)
+  throw UsageError(`Invalid --reasoning-effort value "${value}". Expected ${formatQuotedChoiceList(NORMALIZED_REASONING_EFFORTS)}.`)
 }
 
-export const getReasoningCapabilities = (
+const getReasoningCapabilities = (
   step: 'llm' | 'extract',
   service: string,
   model: string
@@ -66,7 +46,7 @@ export const getReasoningCapabilities = (
   return { support: 'unsupported' }
 }
 
-export const getAdapterDefaultReasoningEffort = (
+const getAdapterDefaultReasoningEffort = (
   step: 'llm' | 'extract',
   service: string,
   model: string
@@ -76,7 +56,7 @@ export const getAdapterDefaultReasoningEffort = (
       return 'low'
     }
     if (service === 'kimi') {
-      return model === 'kimi-k3' ? 'max' : 'disabled'
+      return model === 'kimi-k3' ? 'low' : 'disabled'
     }
     if (service === 'glm') {
       return 'disabled'
@@ -88,7 +68,7 @@ export const getAdapterDefaultReasoningEffort = (
       return 'low'
     }
     if (service === 'kimi') {
-      return model === 'kimi-k3' ? 'max' : 'disabled'
+      return model === 'kimi-k3' ? 'low' : 'disabled'
     }
   }
 
@@ -120,14 +100,14 @@ export const resolveReasoningPolicy = (options: {
   }
 
   if (capabilities.support === 'unsupported') {
-    throw CLIUsageError(
+    throw UsageError(
       `Model "${model}" for ${service} does not support reasoning effort configuration.`
     )
   }
 
   if (requestedReasoningEffort === 'disabled') {
     if (capabilities.support === 'required' || capabilities.allowDisabled !== true) {
-      throw CLIUsageError(
+      throw UsageError(
         `Model "${model}" for ${service} does not support disabling reasoning.`
       )
     }
@@ -142,7 +122,7 @@ export const resolveReasoningPolicy = (options: {
     const supportedDescription = supportedEfforts.length > 0
       ? `Supported effort levels: ${supportedEfforts.join(', ')}.`
       : 'This model exposes no named effort levels.'
-    throw CLIUsageError(
+    throw UsageError(
       `Model "${model}" for ${service} does not support reasoning effort "${requestedReasoningEffort}". ${supportedDescription}`
     )
   }

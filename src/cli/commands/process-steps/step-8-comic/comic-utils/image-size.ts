@@ -4,9 +4,6 @@ import {
 import { ValidationError } from '~/utils/error-handler'
 import type { ImageGenerationModel, ImageGenerationSize } from '~/types'
 
-// Comic's default image model and the only model that accepts custom WIDTHxHEIGHT
-// sizes. Both are validated against the central image registry at parse time;
-// these constants name the registry ids comic defaults to.
 export const DEFAULT_IMAGE_MODEL: ImageGenerationModel = 'gpt-image-2'
 const GPT_IMAGE_2_MODEL = 'gpt-image-2'
 

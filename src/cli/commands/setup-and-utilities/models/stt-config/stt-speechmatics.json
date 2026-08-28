@@ -3,24 +3,6 @@
     "description": "Speechmatics cloud batch speech-to-text",
     "type": "api",
     "models": {
-      "enhanced": {
-        "description": "Batch enhanced accuracy — highest accuracy for file transcription",
-        "pricingSourceUrl": "https://www.speechmatics.com/pricing",
-        "pricingCheckedAt": "2026-08-03",
-        "pricingCurrency": "USD",
-        "pricingTier": "Speechmatics batch transcription public pricing",
-        "pricingNotes": "Speechmatics Batch Enhanced is billed at $0.40/hour with speaker diarization included. Free allowance, model-training discounts, volume discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerHourCents": 40,
-        "limits": {
-          "effectiveBytes": 1073741824,
-          "directUploadBytes": 1073741824,
-          "notes": "Current Speechmatics docs publish a 1 GB limit for multipart uploads and explicitly suggest fetch-by-URL for larger files. They do not publish a current remote URL size cap or a batch-audio duration cap."
-        },
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerSecond": 218
-        }
-      },
       "melia-1": {
         "description": "Batch Melia 1 — multilingual transcription with automatic code-switching",
         "pricingSourceUrl": "https://www.speechmatics.com/pricing",

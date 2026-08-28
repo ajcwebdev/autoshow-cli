@@ -3,12 +3,12 @@ import { collectInworldTtsTargets } from '~/cli/commands/process-steps/step-4-tt
 import { parseInworldMarkups, runInworldTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/inworld/run-inworld-tts'
 import { createInworldAdvancedProvider, INWORLD_ADVANCED_CAPABILITY_FIXTURE } from '~/cli/commands/process-steps/step-4-tts/tts-services/inworld/inworld-advanced-provider'
 import { createTtsTargetSelection } from '~/cli/commands/process-steps/step-4-tts/tts-targets/tts-target-selection'
-import type { AdvancedProviderHttpRequest } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/advanced-provider-contracts'
 import { buildInworldTtsRequestBody, INWORLD_TTS_SERIALIZER_VERSION, resolveInworldTtsApiModelId } from '~/cli/commands/process-steps/step-4-tts/tts-services/inworld/inworld-tts-request'
+import type { AdvancedProviderHttpRequest } from '~/types'
 
 describe('Inworld AI Phase 3 Contracts', () => {
   test('collects Inworld TTS targets with correct provider and model', () => {
-    const selection = createTtsTargetSelection({ inworldTtsModel: 'realtime-tts-2', inworldTtsVoice: 'voice_inworld_standard_en' })
+    const selection = createTtsTargetSelection({ inworldTtsModels: ['realtime-tts-2'], inworldTtsVoice: 'voice_inworld_standard_en' })
     const targets = collectInworldTtsTargets(selection)
     expect(targets).toHaveLength(1)
     expect(targets[0]?.service).toBe('inworld')
@@ -26,7 +26,7 @@ describe('Inworld AI Phase 3 Contracts', () => {
     expect(INWORLD_TTS_SERIALIZER_VERSION).toBe('inworld.tts.phase-3-v3')
     expect(resolveInworldTtsApiModelId('realtime-tts-2')).toBe('inworld-tts-2')
     expect(buildInworldTtsRequestBody({ model: 'realtime-tts-2', text: 'Hello [laugh]', voiceId: 'Dennis' })).toEqual({ text: 'Hello [laugh]', voiceId: 'Dennis', modelId: 'inworld-tts-2', timestampType: 'WORD', audioConfig: { audioEncoding: 'WAV', sampleRateHertz: 48000 } })
-    const targets = collectInworldTtsTargets(createTtsTargetSelection({ inworldTtsModel: 'realtime-tts-2' }))
+    const targets = collectInworldTtsTargets(createTtsTargetSelection({ inworldTtsModels: ['realtime-tts-2'] }))
     expect(targets[0]?.model).toBe('realtime-tts-2')
   })
 
@@ -34,7 +34,7 @@ describe('Inworld AI Phase 3 Contracts', () => {
     await expect(runInworldTts('Hello from Inworld AI test [happy]', 'test-out', {
       model: 'realtime-tts-2',
       apiKey: '',
-    })).rejects.toThrow('Inworld AI API key is required')
+    })).rejects.toThrow('INWORLD_API_KEY environment variable is required for Inworld AI TTS')
   })
 
   test('advanced provider normalizes the voice catalog and declares Phase 3C capabilities', async () => {

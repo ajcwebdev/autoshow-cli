@@ -1,7 +1,8 @@
 import { mkdir } from 'node:fs/promises'
-import { cpus, release } from 'node:os'
+import { release } from 'node:os'
 import { join } from 'node:path'
 import type {
+  ActiveSetupPerformanceRun,
   BeginSetupPerformanceRunOptions,
   FinishSetupPerformanceRunOptions,
   FinishedSetupPerformanceRun,
@@ -12,16 +13,7 @@ import type {
   SetupPerformancePhaseRecord
 } from '~/types'
 import { RUNTIME_DIR } from '~/utils/runtime-paths'
-
-type ActiveSetupPerformanceRun = {
-  runId: string
-  startedAt: Date
-  startedMonotonicMs: number
-  topology: string
-  dependencyVersions: Record<string, string>
-  artifactDirectory: string
-  phases: SetupPerformancePhaseRecord[]
-}
+import { logicalCpuCount } from '~/utils/logical-cpu-count'
 
 let activeRun: ActiveSetupPerformanceRun | undefined
 let runSequence = 0
@@ -105,7 +97,7 @@ export const finishSetupPerformanceRun = async (
   if (!recorder) return undefined
 
   const finishedAt = new Date()
-  const logicalCpuCount = Math.max(1, cpus().length)
+  const cpuCount = logicalCpuCount()
   const artifact: SetupPerformanceArtifact = {
     schemaVersion: 1,
     runId: recorder.runId,
@@ -116,8 +108,8 @@ export const finishSetupPerformanceRun = async (
       platform: process.platform,
       osRelease: release(),
       architecture: process.arch,
-      logicalCpuCount,
-      sourceBuildParallelJobs: Math.max(1, Math.min(logicalCpuCount, 8)),
+      logicalCpuCount: cpuCount,
+      sourceBuildParallelJobs: Math.min(cpuCount, 8),
       bunVersion: Bun.version,
       dependencyVersions: recorder.dependencyVersions
     },

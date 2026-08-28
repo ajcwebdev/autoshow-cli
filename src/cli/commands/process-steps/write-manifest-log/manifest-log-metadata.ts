@@ -1,4 +1,4 @@
-import type { CostSource, EstimatedCostBreakdown, ExtractionMetadata, ManifestLogActualCostBreakdown, ManifestLogCostEntryLike, PartialExtractionMetadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, TimingEntryLike, WriteManifestMetadata, WriteStepKind } from '~/types'
+import type { CostSource, EstimatedCostBreakdown, ExtractionMetadata, ManifestLogActualCostBreakdown, ManifestLogCostEntryLike, PartialExtractionMetadata, Step2Metadata, Step3Metadata, TimingEntryLike, WriteManifestMetadata, WriteStepKind } from '~/types'
 import { isCostSource } from '~/types'
 import { isRecord } from '~/utils/rest-client'
 import { buildMatchKey } from './manifest-log-formatting'
@@ -15,7 +15,7 @@ export const isExtractionMetadata = (value: unknown): value is ExtractionMetadat
   && typeof value['extractionMethod'] === 'string'
   && typeof value['processingTime'] === 'number'
 
-export const isPartialExtractionMetadata = (value: unknown): value is PartialExtractionMetadata => {
+const isPartialExtractionMetadata = (value: unknown): value is PartialExtractionMetadata => {
   if (!isRecord(value)) {
     return false
   }
@@ -34,26 +34,6 @@ export const isStep3Metadata = (value: unknown): value is Step3Metadata =>
   && typeof value['llmService'] === 'string'
   && typeof value['llmModel'] === 'string'
 
-export const isStep4Metadata = (value: unknown): value is Step4Metadata =>
-  isRecord(value)
-  && typeof value['ttsService'] === 'string'
-  && typeof value['ttsModel'] === 'string'
-
-export const isStep5Metadata = (value: unknown): value is Step5Metadata =>
-  isRecord(value)
-  && typeof value['imageService'] === 'string'
-  && typeof value['imageModel'] === 'string'
-
-export const isStep6Metadata = (value: unknown): value is Step6VideoMetadata =>
-  isRecord(value)
-  && typeof value['videoGenService'] === 'string'
-  && typeof value['videoGenModel'] === 'string'
-
-export const isStep7Metadata = (value: unknown): value is Step7MusicMetadata =>
-  isRecord(value)
-  && typeof value['musicService'] === 'string'
-  && typeof value['musicModel'] === 'string'
-
 const isCostEntry = (value: unknown): value is ManifestLogCostEntryLike =>
   isRecord(value)
   && typeof value['step'] === 'string'
@@ -68,9 +48,6 @@ const isTimingEntry = (value: unknown): value is TimingEntryLike =>
   && typeof value['model'] === 'string'
   && typeof value['processingTimeMs'] === 'number'
 
-// Manifests written by this CLI always record one of the known vocabulary values.
-// Anything else is left unset so the summary renders an empty source rather than
-// asserting a cost provenance the manifest never claimed.
 const readManifestCostSource = (value: unknown): CostSource | undefined =>
   isCostSource(value)
     ? value

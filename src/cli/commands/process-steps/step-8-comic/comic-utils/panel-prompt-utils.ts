@@ -1,17 +1,16 @@
-import { createHash } from 'node:crypto'
-import type { Dirent } from 'node:fs'
+import type { DirectoryEntry } from '~/types'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import * as v from 'valibot'
-import type { ComicPanelSource, PanelBundleData, ImageGenerationModel, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedReferenceImages } from '~/types'
+import type { ComicPanelSource, ImageGenerationModel, LocationReferenceSnapshotManifest, PanelBundleData, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedLocationReference, ResolvedReferenceImages } from '~/types'
 import { PanelBundleDataSchema } from '../schemas/schemas'
 import { loadAndVerifyCharacterReferenceSnapshot } from './character-reference-snapshot'
 import { resolveCharacterIdentityReferences } from './character-identity-card'
-import { getLocationReferenceSnapshotsPath, LOCATION_SNAPSHOTS_FILENAME, LOCATION_VIEWS, type LocationReferenceSnapshotManifest } from './location-reference'
+import { getLocationReferenceSnapshotsPath, LOCATION_SNAPSHOTS_FILENAME, LOCATION_VIEWS } from './location-reference'
 import { resolveDesignReferencesAcrossPanels } from './design-reference'
 export { resolveDesignReferencesAcrossPanels } from './design-reference'
 import { trimOptionalContinuityReferences } from './reference-capabilities'
-import { l } from './comic-logger'
+import { comicLog } from './comic-logger'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { getSceneWorkspaceDirectoryForPanelPrompt } from './project-paths'
 
@@ -29,14 +28,14 @@ export const extractPanelBundleData = (content: string): PanelBundleData => {
   if (!json) throw ValidationError('Prompt bundle is missing a JSON block. Unversioned bundles must be regenerated.', { stage: 'comic:panel-prompt' })
   try {
     const value = v.parse(PanelBundleDataSchema, JSON.parse(json))
-    if (value.panels.length !== 1) throw new Error(`expected one panel, found ${value.panels.length}`)
+    if (value.panels.length !== 1) throw ValidationError(`expected one panel, found ${value.panels.length}`, { stage: 'comic:panel-prompt', retryable: false })
     return value
   } catch (error) {
-    throw ValidationError(`Prompt bundle JSON is not a reviewed schemaVersion 4 panel bundle: ${error instanceof Error ? error.message : String(error)}. Run draft-scenes explicitly to rebuild it.`, { stage: 'comic:panel-prompt' })
+    throw ValidationError(`Prompt bundle JSON is not a reviewed schemaVersion 4 panel bundle: ${error instanceof Error ? error.message : String(error)}. Run draft-scenes explicitly to rebuild it.`, { stage: 'comic:panel-prompt', ...(error instanceof Error ? { cause: error } : {}) })
   }
 }
 
-export const getPromptBundleFilename = (panelDirectory: string, entries: Dirent[]): string => {
+export const getPromptBundleFilename = (panelDirectory: string, entries: DirectoryEntry[]): string => {
   const files = entries.filter(entry => entry.isFile() && entry.name.endsWith('.md')).map(entry => entry.name).sort()
   if (files.length !== 1 || !files[0]) throw ValidationError(`Expected exactly 1 markdown prompt bundle in ${panelDirectory}, found ${files.length}`, { stage: 'comic:panel-prompt' })
   return files[0]
@@ -69,15 +68,8 @@ export const resolvePrimaryCharacterReferencesAcrossPanels = (panels: PanelPrima
   }
 }
 
-export const resolvePrimaryCharacterReferences = (panelDirectory: string, entries: Dirent[], bundleData: PanelBundleData): PrimaryCharacterReferenceState =>
+export const resolvePrimaryCharacterReferences = (panelDirectory: string, entries: DirectoryEntry[], bundleData: PanelBundleData): PrimaryCharacterReferenceState =>
   resolvePrimaryCharacterReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
-
-export type ResolvedLocationReference = {
-  key: string
-  snapshotId: string
-  specification: string
-  path: string
-}
 
 export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[]): ResolvedLocationReference[] => {
   if (panels.length === 0) throw ValidationError('A location reference requires at least one panel', { stage: 'comic:location-reference' })
@@ -107,7 +99,7 @@ export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryRefere
     if (seen.has(snapshotId)) continue
     const sheetPath = resolve(runDirectory, snapshot.sheet.path)
     if (!existsSync(sheetPath)) throw InfraError(`Location snapshot asset is missing: ${snapshot.sheet.path}`, { stage: 'comic:location-reference' })
-    const actual = createHash('sha256').update(readFileSync(sheetPath)).digest('hex')
+    const actual = new Bun.CryptoHasher('sha256').update(readFileSync(sheetPath)).digest('hex')
     if (actual !== snapshot.sheet.sha256) throw ValidationError(`Location snapshot asset was modified: ${snapshot.sheet.path}`, { stage: 'comic:location-reference' })
     seen.add(snapshotId)
     ordered.push({ key: snapshot.locationKey, snapshotId, specification: snapshot.specification, path: sheetPath })
@@ -128,7 +120,7 @@ export const applyReferenceImageLimits = (
 ): ResolvedReferenceImages => {
   const optional = [...prior, ...secondary].filter(path => !primary.includes(path))
   const limited = trimOptionalContinuityReferences(model, primary, optional)
-  if (limited.trimmed.length > 0) l.dim(`  Trimmed ${limited.trimmed.length} optional continuity reference(s) for ${model}`)
+  if (limited.trimmed.length > 0) comicLog.line(`  Trimmed ${limited.trimmed.length} optional continuity reference(s) for ${model}`)
   return buildResolved(limited.references, primary, prior, secondary, missing)
 }
 
@@ -178,11 +170,10 @@ export const findMissingReferenceImageFiles = async (paths: string[]): Promise<s
 }
 
 export const resolveReferenceImages = (
-  panelDirectory: string, entries: Dirent[], bundleData: PanelBundleData, model: ImageGenerationModel
+  panelDirectory: string, entries: DirectoryEntry[], bundleData: PanelBundleData, model: ImageGenerationModel
 ): ResolvedReferenceImages => {
   const primary = resolvePrimaryCharacterReferences(panelDirectory, entries, bundleData)
   const prior: string[] = []
-  // Arbitrary images in panel directories are never promoted into identity refs.
   const locations = resolveLocationReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
   const designs = resolveDesignReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
   const required = [...primary.primaryCharacterRefs, ...locations.map(location => location.path), ...designs.map(design => design.path)]
@@ -195,7 +186,7 @@ export const resolveReferenceImages = (
   }
 }
 
-export const resolveScenePanelDirectories = (entries: Dirent[], sceneDirectory: string, requested?: number): Dirent[] => {
+export const resolveScenePanelDirectories = (entries: DirectoryEntry[], sceneDirectory: string, requested?: number): DirectoryEntry[] => {
   const panels = entries.filter(entry => entry.isDirectory() && PANEL_DIRECTORY_PATTERN.test(entry.name)).sort((a, b) => (getPanelNumberFromName(a.name) ?? 0) - (getPanelNumberFromName(b.name) ?? 0))
   if (panels.length === 0) throw ValidationError(`No panel directories were found in ${sceneDirectory}`, { stage: 'comic:panel-prompt' })
   if (!requested) return panels

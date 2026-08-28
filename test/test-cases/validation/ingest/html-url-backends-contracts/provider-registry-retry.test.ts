@@ -5,7 +5,8 @@ import {
   runUrlArticleProviderWithStats,
   URL_ARTICLE_PROVIDER_ADAPTERS
 } from './shared'
-import type { UrlRequestOptions } from './shared'
+import type { UrlRequestOptions } from '~/types'
+import { extractErrorMetadata, isAppError } from '~/utils/error-handler'
 
 test('URL article provider retry wrapper retries timeout failures and reports attempts', async () => {
   const originalSleep = Bun.sleep
@@ -105,7 +106,8 @@ test('URL article provider retry wrapper enriches exhausted timeout errors', asy
     expect(message).toContain('Zyte request failed after 2/2 attempts with 25ms timeout')
     expect(message).toContain('ms elapsed')
     expect(message).toContain('Zyte request timed out after 25ms')
-    expect((error as { attemptsMade?: unknown }).attemptsMade).toBe(2)
+    expect(extractErrorMetadata(error)['attemptsMade']).toBe(2)
+    expect(isAppError(error) && error.kind).toBe('retry_exhausted')
   } finally {
     ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = originalSleep
   }

@@ -11,7 +11,7 @@ import {
   videoMediaReferenceToGeminiInlineData,
   videoMediaReferenceToUrlOrDataUrl
 } from '~/cli/commands/process-steps/step-6-video/video-utils/video-media-inputs'
-import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
 const tempDirs = setupContractSuiteLifecycle({ envKeys: [], tempPrefix: 'autoshow-media-reference-' })
 const imageValidation = {
@@ -38,16 +38,16 @@ describe('media reference differential contracts', () => {
     expect(() => validateVideoMediaReferences([pngPath, 'https://example.com/no-extension'], videoImageValidation)).not.toThrow()
 
     expect(() => validateImageInputReferences(['data:image/jpg;base64,AQID'], imageValidation))
-      .toThrow('Unsupported --image-input value "data:image/jpg;base64,AQID"')
+      .toThrow('Unsupported --input value "data:image/jpg;base64,AQID"')
     expect(() => validateVideoMediaReferences(['data:image/jpg;base64,AQID'], videoImageValidation)).not.toThrow()
 
     expect(() => validateImageInputReferences(['data:image/gif;base64,AQID'], imageValidation))
-      .toThrow('Unsupported --image-input value "data:image/gif;base64,AQID"')
+      .toThrow('Unsupported --input value "data:image/gif;base64,AQID"')
     expect(() => validateVideoMediaReferences(['data:image/gif;base64,AQID'], videoImageValidation))
       .toThrow('--video-input-image file "data:image/gif;base64,AQID" does not exist')
 
     expect(() => validateImageInputReferences([unknownPath], imageValidation))
-      .toThrow(`Unsupported --image-input value "${unknownPath}"`)
+      .toThrow(`Unsupported --input value "${unknownPath}"`)
     expect(() => validateVideoMediaReferences([unknownPath], videoImageValidation))
       .toThrow(`Unsupported --video-input-image value "${unknownPath}"`)
   })
@@ -91,26 +91,22 @@ describe('media reference differential contracts', () => {
 
     installMockFetch(() => new Response('rate limited', { status: 429 }))
 
-    try {
-      await imageReferenceToInlineDataPart('https://example.com/reference.png')
-      throw new Error('Expected image download to fail')
-    } catch (error) {
-      expect(error).toMatchObject({
-        message: 'Image reference download failed (429): https://example.com/reference.png',
+    await expectProviderHttpError(
+      async () => await imageReferenceToInlineDataPart('https://example.com/reference.png'),
+      {
+        status: 429,
         stage: 'image:inputs',
-        status: 429
-      })
-    }
+        messageContains: 'Image reference download failed (429): https://example.com/reference.png'
+      }
+    )
 
-    try {
-      await videoMediaReferenceToGeminiInlineData('https://example.com/reference.png', 'image')
-      throw new Error('Expected video media download to fail')
-    } catch (error) {
-      expect(error).toMatchObject({
-        message: 'Video media input download failed (429): https://example.com/reference.png',
+    await expectProviderHttpError(
+      async () => await videoMediaReferenceToGeminiInlineData('https://example.com/reference.png', 'image'),
+      {
+        status: 429,
         stage: 'video:media-inputs',
-        status: 429
-      })
-    }
+        messageContains: 'Video media input download failed (429): https://example.com/reference.png'
+      }
+    )
   })
 })

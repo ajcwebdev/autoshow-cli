@@ -5,7 +5,7 @@ import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-
 import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-pipeline'
 import { fetchTtsAudioBytes, trimTrailingSlash } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-http-utils'
 import { GROK_DEFAULT_TTS_VOICE, validateGrokTtsLanguage, validateGrokTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { ValidationError } from '~/utils/error-handler'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
@@ -22,10 +22,9 @@ export const runGrokTts = async (
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
     requestEvidence?: TtsRequestEvidenceScope | undefined
-    allowAmbiguousRedispatch?: boolean | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = requireApiKey('XAI_API_KEY', 'tts:grok', 'Grok TTS')
+  const apiKey = resolveCredential('grok', 'require', { stage: 'tts:grok', description: 'Grok TTS' })
 
   const baseURL = trimTrailingSlash(XAI_DEFAULT_BASE_URL)
   const rawVoice = options.voiceId?.trim() || GROK_DEFAULT_TTS_VOICE
@@ -55,7 +54,6 @@ export const runGrokTts = async (
     chunkExtension: 'wav',
     startTime: Date.now(),
     abortSignal: options.abortSignal,
-    allowAmbiguousRedispatch: options.allowAmbiguousRedispatch,
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
     requestEvidence: options.requestEvidence,

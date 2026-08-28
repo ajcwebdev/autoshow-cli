@@ -1,21 +1,22 @@
 # Benchmark Rankings Summary
 
-Static cross-run ranking report built from the current `provider-comparison-report.json` and `reference-comparison-report.json` files under `docs/benchmarks`. Deleted tracked runs and `project/reports/results` are not included.
+Static cross-run ranking report built from the current `provider-comparison-report.json` and `reference-comparison-report.json` files under `docs/benchmarks`.
 
 Costs are lower-is-better and converted from cents to USD. Speeds are lower-is-better and converted from milliseconds to seconds. Auto-quality and human quality are higher-is-better. Averages use only observed rows for the exact `providerKey`; coverage shows observed category runs.
 
 ## Source Inventory
 
-| Category  | Reports | Provider rows | Groups present                                                       |
-| --------- | ------: | ------------: | -------------------------------------------------------------------- |
-| image     |       2 |            26 | local, service                                                       |
-| music     |       4 |            16 | local, service                                                       |
-| ocr       |      14 |           305 | local, thirdPartyService                                             |
-| stt       |       5 |           125 | local, thirdPartyServiceDiarization, thirdPartyServiceNonDiarization |
-| tts       |       4 |            84 | local, service                                                       |
-| url       |       7 |            37 | local, service                                                       |
-| video     |       2 |            17 | local, service                                                       |
-| **Total** |  **38** |       **610** | **5 groups**                                                         |
+| Category             | Reports | Provider rows | Groups present |
+| -------------------- | ------: | ------------: | --- |
+| image                |       2 |            26 | local, service |
+| music                |       4 |            16 | local, service |
+| ocr                  |      14 |           305 | local, thirdPartyService |
+| stt-with-speakers    |       4 |            32 | local, thirdPartyServiceDiarization, thirdPartyServiceNonDiarization |
+| stt-without-speakers |       4 |            28 | local, thirdPartyServiceDiarization, thirdPartyServiceNonDiarization |
+| tts                  |       4 |            84 | local, service |
+| url                  |       7 |            37 | local, service |
+| video                |       2 |            17 | local, service |
+| **Total**            | **41** | **545** | **5 groups** |
 
 ## Method
 
@@ -263,7 +264,8 @@ _Unavailable: no humanQuality entries are present for `ocr/local` in the current
 
 _Unavailable: no humanQuality entries are present for `ocr/thirdPartyService` in the current report files._
 
-## STT
+
+## STT With Speakers
 
 ### local
 
@@ -285,163 +287,189 @@ _Unavailable: no entries are present in the current STT report files._
 
 #### Human Quality Ranking
 
-_Unavailable: no humanQuality entries are present for `stt/local` in the current report files._
+_Unavailable: no humanQuality entries are present for `stt-with-speakers/local` in the current report files._
 
 ### thirdPartyServiceNonDiarization
 
 #### Cost Ranking
 
-| Rank | Provider/model                          |     Runs | Average |
-| ---: | --------------------------------------- | -------: | ------: |
-|    1 | scrapecreators/youtube-transcript       | 1/5 runs | $0.0019 |
-|    2 | deepinfra/openai/whisper-large-v3-turbo | 5/5 runs | $0.0108 |
-|    3 | supadata/auto                           | 4/5 runs | $0.0175 |
-|    4 | deepinfra/openai/whisper-large-v3       | 5/5 runs | $0.0242 |
-|    5 | groq/whisper-large-v3-turbo             | 5/5 runs | $0.0359 |
-|    6 | together/openai/whisper-large-v3        | 5/5 runs | $0.0808 |
-|    7 | together/nvidia/parakeet-tdt-0.6b-v3    | 5/5 runs | $0.0808 |
-|    8 | groq/whisper-large-v3                   | 5/5 runs | $0.0997 |
-|    9 | gemini-stt/gemini-3-flash-preview       | 5/5 runs | $0.2759 |
-|   10 | gemini-stt/gemini-3.6-flash             | 5/5 runs | $0.5301 |
+_Unavailable: no entries are present in the current STT report files._
 
 #### Speed Ranking
 
-| Rank | Provider/model                          |     Runs | Average |
-| ---: | --------------------------------------- | -------: | ------: |
-|    1 | scrapecreators/youtube-transcript       | 1/5 runs |   3.06s |
-|    2 | together/nvidia/parakeet-tdt-0.6b-v3    | 5/5 runs |   3.63s |
-|    3 | together/openai/whisper-large-v3        | 5/5 runs |  15.41s |
-|    4 | supadata/auto                           | 4/5 runs |  24.46s |
-|    5 | deepinfra/openai/whisper-large-v3-turbo | 5/5 runs |  34.53s |
-|    6 | groq/whisper-large-v3                   | 5/5 runs |  34.91s |
-|    7 | groq/whisper-large-v3-turbo             | 5/5 runs |  41.92s |
-|    8 | deepinfra/openai/whisper-large-v3       | 5/5 runs |  58.95s |
-|    9 | gemini-stt/gemini-3.6-flash             | 5/5 runs | 249.08s |
-|   10 | gemini-stt/gemini-3-flash-preview       | 5/5 runs | 261.78s |
+_Unavailable: no entries are present in the current STT report files._
 
 #### Realtime Throughput Ranking
 
-| Rank | Provider/model                          |     Runs |           Average |
-| ---: | --------------------------------------- | -------: | ----------------: |
-|    1 | scrapecreators/youtube-transcript       | 1/5 runs | 2942.14× realtime |
-|    2 | together/nvidia/parakeet-tdt-0.6b-v3    | 5/5 runs |  889.55× realtime |
-|    3 | together/openai/whisper-large-v3        | 5/5 runs |  209.77× realtime |
-|    4 | supadata/auto                           | 4/5 runs |  123.47× realtime |
-|    5 | deepinfra/openai/whisper-large-v3-turbo | 5/5 runs |   93.64× realtime |
-|    6 | groq/whisper-large-v3                   | 5/5 runs |   92.62× realtime |
-|    7 | groq/whisper-large-v3-turbo             | 5/5 runs |   77.13× realtime |
-|    8 | deepinfra/openai/whisper-large-v3       | 5/5 runs |   54.85× realtime |
-|    9 | gemini-stt/gemini-3.6-flash             | 5/5 runs |   12.98× realtime |
-|   10 | gemini-stt/gemini-3-flash-preview       | 5/5 runs |   12.35× realtime |
+_Unavailable: no entries are present in the current STT report files._
 
 #### Auto-Quality Ranking
 
-| Rank | Provider/model                          |     Runs |                 Average |
-| ---: | --------------------------------------- | -------: | ----------------------: |
-|    1 | deepinfra/openai/whisper-large-v3       | 5/5 runs | 94.09/100 quality score |
-|    2 | together/openai/whisper-large-v3        | 5/5 runs | 93.64/100 quality score |
-|    3 | groq/whisper-large-v3-turbo             | 5/5 runs | 93.44/100 quality score |
-|    4 | scrapecreators/youtube-transcript       | 1/5 runs | 93.39/100 quality score |
-|    5 | groq/whisper-large-v3                   | 5/5 runs | 93.33/100 quality score |
-|    6 | together/nvidia/parakeet-tdt-0.6b-v3    | 5/5 runs | 92.73/100 quality score |
-|    7 | deepinfra/openai/whisper-large-v3-turbo | 5/5 runs | 89.07/100 quality score |
-|    8 | supadata/auto                           | 4/5 runs | 87.24/100 quality score |
-|    9 | gemini-stt/gemini-3-flash-preview       | 5/5 runs | 86.77/100 quality score |
-|   10 | gemini-stt/gemini-3.6-flash             | 5/5 runs | 84.59/100 quality score |
+_Unavailable: no entries are present in the current STT report files._
 
 #### Human Quality Ranking
 
-_Unavailable: no humanQuality entries are present for `stt/thirdPartyServiceNonDiarization` in the current report files._
+_Unavailable: no humanQuality entries are present for `stt-with-speakers/thirdPartyServiceNonDiarization` in the current report files._
 
 ### thirdPartyServiceDiarization
 
 #### Cost Ranking
 
-| Rank | Provider/model               |     Runs | Average |
-| ---: | ---------------------------- | -------: | ------: |
-|    1 | grok/speech-to-text          | 5/5 runs | $0.0498 |
-|    2 | soniox/stt-async-v5          | 5/5 runs | $0.0898 |
-|    3 | soniox/stt-async-v4          | 5/5 runs | $0.0898 |
-|    4 | rev/low_cost                 | 5/5 runs | $0.0898 |
-|    5 | happyscribe/auto             | 5/5 runs | $0.1028 |
-|    6 | mistral/voxtral-mini-2602    | 5/5 runs | $0.1078 |
-|    7 | speechmatics/melia-1         | 5/5 runs | $0.1159 |
-|    8 | assemblyai/universal-2       | 5/5 runs | $0.1527 |
-|    9 | rev/machine                  | 5/5 runs | $0.1796 |
-|   10 | assemblyai/universal-3-pro   | 5/5 runs | $0.1886 |
-|   11 | assemblyai/universal-3-5-pro | 5/5 runs | $0.2066 |
-|   12 | deepgram/nova-3              | 5/5 runs | $0.5227 |
-|   13 | gladia/solaria-3             | 5/5 runs | $0.5479 |
-|   14 | gladia/solaria-1             | 5/5 runs | $0.5479 |
-|   15 | gladia/default               | 5/5 runs | $0.5479 |
-|   16 | speechmatics/enhanced        | 5/5 runs | $0.6736 |
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | soniox/stt-async-v5 | 4/4 runs | $0.0684 |
+| 2 | grok/speech-to-text | 4/4 runs | $0.0684 |
+| 3 | mistral/voxtral-mini-2602 | 4/4 runs | $0.0821 |
+| 4 | speechmatics/melia-1 | 4/4 runs | $0.0883 |
+| 5 | assemblyai/universal-3-5-pro | 4/4 runs | $0.1574 |
+| 6 | deepgram/nova-3 | 4/4 runs | $0.3983 |
+| 7 | happyscribe/auto | 4/4 runs | $0.4106 |
+| 8 | gladia/solaria-3 | 4/4 runs | $0.4175 |
 
 #### Speed Ranking
 
-| Rank | Provider/model               |     Runs | Average |
-| ---: | ---------------------------- | -------: | ------: |
-|    1 | deepgram/nova-3              | 5/5 runs |  15.58s |
-|    2 | speechmatics/melia-1         | 5/5 runs |  21.26s |
-|    3 | gladia/default               | 5/5 runs |  27.25s |
-|    4 | assemblyai/universal-2       | 5/5 runs |  31.04s |
-|    5 | assemblyai/universal-3-5-pro | 5/5 runs |  33.87s |
-|    6 | mistral/voxtral-mini-2602    | 5/5 runs |  34.80s |
-|    7 | assemblyai/universal-3-pro   | 5/5 runs |  40.77s |
-|    8 | gladia/solaria-3             | 5/5 runs |  44.09s |
-|    9 | gladia/solaria-1             | 5/5 runs |  44.16s |
-|   10 | grok/speech-to-text          | 5/5 runs |  55.47s |
-|   11 | happyscribe/auto             | 5/5 runs |  93.79s |
-|   12 | rev/machine                  | 5/5 runs | 101.59s |
-|   13 | soniox/stt-async-v4          | 5/5 runs | 141.71s |
-|   14 | speechmatics/enhanced        | 5/5 runs | 148.16s |
-|   15 | rev/low_cost                 | 5/5 runs | 179.74s |
-|   16 | soniox/stt-async-v5          | 5/5 runs | 208.90s |
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | deepgram/nova-3 | 4/4 runs | 7.78s |
+| 2 | speechmatics/melia-1 | 4/4 runs | 19.70s |
+| 3 | grok/speech-to-text | 4/4 runs | 26.94s |
+| 4 | mistral/voxtral-mini-2602 | 4/4 runs | 30.29s |
+| 5 | gladia/solaria-3 | 4/4 runs | 33.78s |
+| 6 | assemblyai/universal-3-5-pro | 4/4 runs | 36.43s |
+| 7 | soniox/stt-async-v5 | 4/4 runs | 67.32s |
+| 8 | happyscribe/auto | 4/4 runs | 93.53s |
 
 #### Realtime Throughput Ranking
 
-| Rank | Provider/model               |     Runs |          Average |
-| ---: | ---------------------------- | -------: | ---------------: |
-|    1 | deepgram/nova-3              | 5/5 runs | 207.58× realtime |
-|    2 | speechmatics/melia-1         | 5/5 runs | 152.09× realtime |
-|    3 | gladia/default               | 5/5 runs | 118.64× realtime |
-|    4 | assemblyai/universal-2       | 5/5 runs | 104.18× realtime |
-|    5 | assemblyai/universal-3-5-pro | 5/5 runs |  95.47× realtime |
-|    6 | mistral/voxtral-mini-2602    | 5/5 runs |  92.92× realtime |
-|    7 | assemblyai/universal-3-pro   | 5/5 runs |  79.30× realtime |
-|    8 | gladia/solaria-3             | 5/5 runs |  73.33× realtime |
-|    9 | gladia/solaria-1             | 5/5 runs |  73.21× realtime |
-|   10 | grok/speech-to-text          | 5/5 runs |  58.29× realtime |
-|   11 | happyscribe/auto             | 5/5 runs |  34.47× realtime |
-|   12 | rev/machine                  | 5/5 runs |  31.83× realtime |
-|   13 | soniox/stt-async-v4          | 5/5 runs |  22.82× realtime |
-|   14 | speechmatics/enhanced        | 5/5 runs |  21.82× realtime |
-|   15 | rev/low_cost                 | 5/5 runs |  17.99× realtime |
-|   16 | soniox/stt-async-v5          | 5/5 runs |  15.48× realtime |
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | deepgram/nova-3 | 4/4 runs | 316.56× realtime |
+| 2 | speechmatics/melia-1 | 4/4 runs | 125.04× realtime |
+| 3 | grok/speech-to-text | 4/4 runs | 91.44× realtime |
+| 4 | mistral/voxtral-mini-2602 | 4/4 runs | 81.33× realtime |
+| 5 | gladia/solaria-3 | 4/4 runs | 72.94× realtime |
+| 6 | assemblyai/universal-3-5-pro | 4/4 runs | 67.63× realtime |
+| 7 | soniox/stt-async-v5 | 4/4 runs | 36.60× realtime |
+| 8 | happyscribe/auto | 4/4 runs | 26.34× realtime |
 
 #### Auto-Quality Ranking
 
-| Rank | Provider/model               |     Runs |                 Average |
-| ---: | ---------------------------- | -------: | ----------------------: |
-|    1 | assemblyai/universal-3-pro   | 5/5 runs | 96.59/100 quality score |
-|    2 | happyscribe/auto             | 5/5 runs | 96.25/100 quality score |
-|    3 | assemblyai/universal-3-5-pro | 5/5 runs | 95.80/100 quality score |
-|    4 | soniox/stt-async-v5          | 5/5 runs | 95.46/100 quality score |
-|    5 | soniox/stt-async-v4          | 5/5 runs | 95.30/100 quality score |
-|    6 | mistral/voxtral-mini-2602    | 5/5 runs | 95.16/100 quality score |
-|    7 | speechmatics/enhanced        | 5/5 runs | 94.53/100 quality score |
-|    8 | gladia/solaria-3             | 5/5 runs | 94.52/100 quality score |
-|    9 | assemblyai/universal-2       | 5/5 runs | 94.24/100 quality score |
-|   10 | speechmatics/melia-1         | 5/5 runs | 94.21/100 quality score |
-|   11 | gladia/solaria-1             | 5/5 runs | 93.44/100 quality score |
-|   12 | rev/machine                  | 5/5 runs | 92.71/100 quality score |
-|   13 | deepgram/nova-3              | 5/5 runs | 92.71/100 quality score |
-|   14 | rev/low_cost                 | 5/5 runs | 92.07/100 quality score |
-|   15 | grok/speech-to-text          | 5/5 runs | 89.71/100 quality score |
-|   16 | gladia/default               | 5/5 runs | 79.51/100 quality score |
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | assemblyai/universal-3-5-pro | 4/4 runs | 98.09/100 quality score |
+| 2 | happyscribe/auto | 4/4 runs | 97.75/100 quality score |
+| 3 | mistral/voxtral-mini-2602 | 4/4 runs | 95.75/100 quality score |
+| 4 | soniox/stt-async-v5 | 4/4 runs | 95.65/100 quality score |
+| 5 | gladia/solaria-3 | 4/4 runs | 95.49/100 quality score |
+| 6 | speechmatics/melia-1 | 4/4 runs | 95.40/100 quality score |
+| 7 | deepgram/nova-3 | 4/4 runs | 92.82/100 quality score |
+| 8 | grok/speech-to-text | 4/4 runs | 89.73/100 quality score |
 
 #### Human Quality Ranking
 
-_Unavailable: no humanQuality entries are present for `stt/thirdPartyServiceDiarization` in the current report files._
+_Unavailable: no humanQuality entries are present for `stt-with-speakers/thirdPartyServiceDiarization` in the current report files._
+
+
+## STT Without Speakers
+
+### local
+
+#### Cost Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Speed Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Realtime Throughput Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Auto-Quality Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Human Quality Ranking
+
+_Unavailable: no humanQuality entries are present for `stt-without-speakers/local` in the current report files._
+
+### thirdPartyServiceNonDiarization
+
+#### Cost Ranking
+
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | deepinfra/openai/whisper-large-v3-turbo | 4/4 runs | $0.0082 |
+| 2 | deepinfra/openai/whisper-large-v3 | 4/4 runs | $0.0185 |
+| 3 | groq/whisper-large-v3-turbo | 4/4 runs | $0.0274 |
+| 4 | together/openai/whisper-large-v3 | 4/4 runs | $0.0616 |
+| 5 | together/nvidia/parakeet-tdt-0.6b-v3 | 4/4 runs | $0.0616 |
+| 6 | groq/whisper-large-v3 | 4/4 runs | $0.0760 |
+| 7 | gemini-stt/gemini-3.6-flash | 4/4 runs | $0.3973 |
+
+#### Speed Ranking
+
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | together/openai/whisper-large-v3 | 4/4 runs | 10.84s |
+| 2 | deepinfra/openai/whisper-large-v3-turbo | 4/4 runs | 13.08s |
+| 3 | together/nvidia/parakeet-tdt-0.6b-v3 | 4/4 runs | 14.21s |
+| 4 | groq/whisper-large-v3-turbo | 4/4 runs | 21.24s |
+| 5 | groq/whisper-large-v3 | 4/4 runs | 24.57s |
+| 6 | deepinfra/openai/whisper-large-v3 | 4/4 runs | 24.86s |
+| 7 | gemini-stt/gemini-3.6-flash | 4/4 runs | 169.19s |
+
+#### Realtime Throughput Ranking
+
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | together/openai/whisper-large-v3 | 4/4 runs | 227.18× realtime |
+| 2 | deepinfra/openai/whisper-large-v3-turbo | 4/4 runs | 188.41× realtime |
+| 3 | together/nvidia/parakeet-tdt-0.6b-v3 | 4/4 runs | 173.32× realtime |
+| 4 | groq/whisper-large-v3-turbo | 4/4 runs | 116.00× realtime |
+| 5 | groq/whisper-large-v3 | 4/4 runs | 100.26× realtime |
+| 6 | deepinfra/openai/whisper-large-v3 | 4/4 runs | 99.09× realtime |
+| 7 | gemini-stt/gemini-3.6-flash | 4/4 runs | 14.56× realtime |
+
+#### Auto-Quality Ranking
+
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | groq/whisper-large-v3-turbo | 4/4 runs | 94.57/100 quality score |
+| 2 | groq/whisper-large-v3 | 4/4 runs | 94.50/100 quality score |
+| 3 | together/openai/whisper-large-v3 | 4/4 runs | 94.00/100 quality score |
+| 4 | together/nvidia/parakeet-tdt-0.6b-v3 | 4/4 runs | 93.27/100 quality score |
+| 5 | deepinfra/openai/whisper-large-v3 | 4/4 runs | 89.40/100 quality score |
+| 6 | deepinfra/openai/whisper-large-v3-turbo | 4/4 runs | 88.40/100 quality score |
+| 7 | gemini-stt/gemini-3.6-flash | 4/4 runs | 81.85/100 quality score |
+
+#### Human Quality Ranking
+
+_Unavailable: no humanQuality entries are present for `stt-without-speakers/thirdPartyServiceNonDiarization` in the current report files._
+
+### thirdPartyServiceDiarization
+
+#### Cost Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Speed Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Realtime Throughput Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Auto-Quality Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Human Quality Ranking
+
+_Unavailable: no humanQuality entries are present for `stt-without-speakers/thirdPartyServiceDiarization` in the current report files._
+
 
 ## TTS
 

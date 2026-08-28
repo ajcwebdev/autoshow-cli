@@ -1,4 +1,4 @@
-import type { FalTtsModel, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { RunFalTtsOptions, Step4Metadata } from '~/types'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
@@ -6,6 +6,7 @@ import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-t
 import { validateFalTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { runFalQueue } from '~/utils/fal-client/fal-queue'
 import { ProviderError, ValidationError } from '~/utils/error-handler'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { extractRestErrorMessage, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
 import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
@@ -18,26 +19,12 @@ import {
   resolveFalTtsVoiceField,
 } from './fal-tts-request'
 
-export type RunFalTtsOptions = Readonly<{
-  model: FalTtsModel
-  apiKey: string
-  voiceId?: string | undefined
-  voiceInstruction?: string | undefined
-  abortSignal?: AbortSignal | undefined
-  chunkConcurrency?: number | undefined
-  chunkScheduler?: HostedTtsChunkScheduler | undefined
-  requestEvidence?: TtsRequestEvidenceScope | undefined
-  runQueue?: typeof runFalQueue | undefined
-}>
-
 export const runFalTts = async (
   text: string,
   outputDir: string,
   options: RunFalTtsOptions
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  if (!options.apiKey.trim()) {
-    throw ValidationError('fal.ai API key is required', { stage: 'tts:fal' })
-  }
+  const apiKey = resolveCredential('fal', 'require', { stage: 'tts:fal', providedValue: options.apiKey, useProvidedValue: true, description: 'fal.ai TTS' })
   const voice = validateFalTtsVoice(options.voiceId?.trim() || resolveFalTtsDefaultVoice(options.model))
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.fal ?? 2000)
   if (chunks.length === 0) {
@@ -87,10 +74,10 @@ export const runFalTts = async (
         continuation: { kind: 'none' },
       }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
         const queued = await queue({
-          apiKey: options.apiKey,
+          apiKey,
           endpointId: options.model,
           input: body,
-          operationName: `fal.ai TTS chunk ${chunkIndex + 1}`,
+          operationName: `fal-tts-chunk-${chunkIndex + 1}`,
         })
         await accepted({
           providerRequestId: queued.requestId,
@@ -99,7 +86,7 @@ export const runFalTts = async (
         const audioUrl = extractFalTtsAudioUrl(queued.output)
         return await withRetry({
           retryClass: 'runtime_http_read',
-          operationName: `fal.ai TTS audio download ${chunkIndex + 1}`,
+          operationName: `fal-tts-audio-download-${chunkIndex + 1}`,
           timeoutMs: MEDIA_GENERATION_TIMEOUT_MS,
         }, async (downloadSignal) => {
           const audioRes = await fetch(audioUrl, downloadSignal ? { signal: downloadSignal } : undefined)

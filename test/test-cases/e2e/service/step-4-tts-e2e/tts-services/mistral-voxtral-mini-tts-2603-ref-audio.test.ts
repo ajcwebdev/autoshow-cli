@@ -1,17 +1,11 @@
-import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { expect } from 'bun:test'
 import { budgetedTest, E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
-import {
-  fileExists,
-  findLatestDirectory,
-  runCommand,
-  STABLE_TTS_MD_PATH,
-  STABLE_TTS_MD_TITLE,
-} from '../../../../../test-utils/test-helpers'
+import { findLatestDirectory, runCommand, STABLE_TTS_MD_PATH, STABLE_TTS_MD_TITLE } from '../../../../../test-utils/test-helpers'
 import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVar } from '../../../../../test-utils/service-test-kit'
-import { mistralRefAudioPath, mistralTtsModel } from './cases'
+import { mistralRefAudioPath, mistralTtsModels } from './cases'
+import { expectArtifact } from '../../../../../test-utils/value-assertions'
 
 budgetedTest('tts-mistral-voxtral-mini-tts-2603-ref-audio', 'mistral reference audio generates speech.wav', async () => {
   await requireConfiguredEnvVar('MISTRAL_API_KEY', 'MISTRAL_API_KEY is required for Mistral TTS test')
@@ -21,7 +15,7 @@ budgetedTest('tts-mistral-voxtral-mini-tts-2603-ref-audio', 'mistral reference a
     'tts',
     STABLE_TTS_MD_PATH,
     '--provider',
-    `mistral=${mistralTtsModel}`,
+    `mistral=${mistralTtsModels}`,
     '--tts-ref-audio',
     mistralRefAudioPath
   ])
@@ -32,14 +26,14 @@ budgetedTest('tts-mistral-voxtral-mini-tts-2603-ref-audio', 'mistral reference a
   expect(outputDir).not.toBeNull()
 
   if (outputDir) {
-    expect(await fileExists(`${outputDir}/speech.wav`)).toBe(true)
+    await expectArtifact(`${outputDir}/speech.wav`)
 
     const metadata = await readCanonicalRecord(outputDir) as {
       tts?: Array<{ ttsService?: string, ttsModel?: string, speaker?: string }>
     }
     expect(metadata.tts?.[0]?.ttsService).toBe('mistral')
-    expect(metadata.tts?.[0]?.ttsModel).toBe(mistralTtsModel)
-    const refAudioSha256 = createHash('sha256').update(await readFile(mistralRefAudioPath)).digest('hex')
+    expect(metadata.tts?.[0]?.ttsModel).toBe(mistralTtsModels)
+    const refAudioSha256 = new Bun.CryptoHasher('sha256').update(await readFile(mistralRefAudioPath)).digest('hex')
     expect(metadata.tts?.[0]?.speaker).toBe(`ref_audio:sha256_${refAudioSha256}`)
   }
 }, E2E_TEST_TIMEOUT_MS)

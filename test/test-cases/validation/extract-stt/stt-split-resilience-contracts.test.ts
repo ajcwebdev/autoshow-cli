@@ -17,7 +17,7 @@ const GROQ = {
 
 const GLADIA = {
   service: 'gladia',
-  model: 'solaria-1'
+  model: 'solaria-3'
 } satisfies SplitPolicyTarget
 
 const expectValidSegmentPlan = (segments: ReturnType<typeof planAudioSplitSegments>): void => {

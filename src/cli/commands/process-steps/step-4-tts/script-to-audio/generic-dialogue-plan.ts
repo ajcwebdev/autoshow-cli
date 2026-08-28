@@ -1,10 +1,8 @@
 import { realpath } from 'node:fs/promises'
-import type { DialogueNormalization, GenericTtsDialoguePlan, GenericTtsSourceIdentity, TtsOptions } from '~/types'
+import type { DialogueNormalization, GenericTtsDialoguePlan, GenericTtsSourceBytes, GenericTtsSourceIdentity, TtsOptions } from '~/types'
 import { toPosixPath, toProjectDisplayPath } from '~/utils/runtime-paths'
 import { normalizeDialogueFromOptions } from '../dialogue-normalizer'
 import { hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
-
-type GenericTtsSourceBytes = string | Uint8Array
 
 const canonicalSourcePath = async (inputPath: string): Promise<string> =>
   toPosixPath(toProjectDisplayPath(await realpath(inputPath)))

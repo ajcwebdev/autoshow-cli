@@ -1,6 +1,6 @@
 import { isRecord } from '~/utils/rest-client'
 import { extname } from 'node:path'
-import { concatAndConvertToWav, convertAudioToWav, runTtsChunks, splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
+import { concatAndConvertToWav, convertAudioToWav, requireHostedTtsChunkScheduler, runTtsChunks, splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { finalizeTtsRun } from '~/cli/commands/process-steps/step-4-tts/tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
@@ -9,8 +9,8 @@ import type { HostedTtsChunkScheduler, MistralReferenceAudio, MistralTtsModel, M
 import { MISTRAL_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { mistralJsonRequest } from '~/utils/mistral/mistral-client'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import { requireApiKey } from '~/utils/validate/env-utils'
-import { CLIUsageError, InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import { resolveCredential } from '~/utils/validate/env-utils'
+import { UsageError, InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { sha256Bytes } from '../../script-to-audio/contract-identity'
 
@@ -42,14 +42,14 @@ const resolveVoiceSource = (
   const optionVoice = options.voiceId?.trim()
   const optionRefAudio = options.refAudioPath?.trim()
   if (optionVoice && optionRefAudio) {
-    throw CLIUsageError('Mistral TTS requires exactly one voice source. Use either --mistral-tts-voice or --mistral-tts-ref-audio, not both.')
+    throw UsageError('Mistral TTS requires exactly one voice source. Use either --mistral-tts-voice or --mistral-tts-ref-audio, not both.')
   }
   if (optionVoice) {
     return { kind: 'voice', value: optionVoice, speaker: optionVoice }
   }
   if (optionRefAudio) {
     if (!options.protectedReference) {
-      throw CLIUsageError(
+      throw UsageError(
         'Mistral reference audio must resolve from an opaque protected asset immediately before synthesis.',
         'Use the standalone `tts` request-reference edge, or create/import a voice with the shared `voice` command or `comic reference-voice`.'
       )
@@ -61,7 +61,7 @@ const resolveVoiceSource = (
     }
   }
 
-  throw CLIUsageError('Mistral TTS requires a saved voice ID or reference audio. Use --mistral-tts-voice or --mistral-tts-ref-audio.')
+  throw UsageError('Mistral TTS requires a saved voice ID or reference audio. Use --mistral-tts-voice or --mistral-tts-ref-audio.')
 }
 
 const readAudioBase64 = async (
@@ -105,7 +105,10 @@ const prepareReferenceAudio = async (
     await convertAudioToWav(path, convertedPath, 'Mistral', 'reference audio', abortSignal)
   } catch (error) {
     if (!protectedReference) throw error
-    throw InfraError('Failed to convert protected Mistral reference audio to WAV.', { stage: 'tts:mistral' })
+    throw InfraError('Failed to convert protected Mistral reference audio to WAV.', {
+      stage: 'tts:mistral',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   }
 
   return {
@@ -132,7 +135,7 @@ export const runMistralTts = async (
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const voiceSource = resolveVoiceSource(options)
-  const apiKey = requireApiKey('MISTRAL_API_KEY', 'tts:mistral', 'Mistral TTS')
+  const apiKey = resolveCredential('mistral', 'require', { stage: 'tts:mistral', description: 'Mistral TTS' })
 
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.mistral)
   if (chunks.length === 0) {
@@ -185,7 +188,7 @@ export const runMistralTts = async (
     let completed = false
 
     try {
-      const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index, admission) => {
+      const orderedChunkPaths = await runTtsChunks(chunks, async (chunk, index, admission) => {
         const chunkIndex = index + 1
         const chunkPath = `${outputDir}/speech-mistral-chunk-${String(chunkIndex).padStart(3, '0')}.${responseFormat}`
         const response = await withHostedTtsRetry(
@@ -238,7 +241,7 @@ export const runMistralTts = async (
         await options.requestEvidence?.complete({ chunkIndex })
         chunkPaths.push(chunkPath)
         return chunkPath
-      }, { provider: 'mistral', scheduler: options.chunkScheduler, abortSignal: options.abortSignal })
+      }, { provider: 'mistral', scheduler: requireHostedTtsChunkScheduler(options.chunkScheduler), abortSignal: options.abortSignal })
 
       const audioPath = await concatAndConvertToWav(orderedChunkPaths, outputDir, 'Mistral', options.abortSignal)
       const result = finalizeTtsRun({

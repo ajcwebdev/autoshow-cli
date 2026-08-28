@@ -1,5 +1,5 @@
 import type { GeminiPart } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { createMediaReferenceEngine } from '~/utils/media-reference-engine'
 
 const MIME_BY_EXTENSION: Readonly<Record<string, string>> = {
@@ -47,7 +47,7 @@ const prettyMimeList = (mimeTypes: readonly string[]): string =>
 export const isHttpUrl = imageReferenceEngine.isHttpUrl
 
 const unsupportedReferenceMessage = (
-  flagName: '--image-input' | '--image-mask',
+  flagName: '--input' | '--mask',
   value: string,
   provider: string,
   model: string,
@@ -66,9 +66,9 @@ export const validateImageInputReferences = (
   imageReferenceEngine.validateReferences(inputs, {
     allowedMimeTypes: options.allowedMimeTypes,
     maxInputs: options.maxInputs,
-    maxInputsError: maxInputs => `--image-input supports at most ${maxInputs} reference images for ${options.provider}/${options.model}.`,
-    missingFileError: value => `--image-input file "${value}" does not exist for ${options.provider}/${options.model}.`,
-    unsupportedMimeError: value => unsupportedReferenceMessage('--image-input', value, options.provider, options.model, options.allowedMimeTypes)
+    maxInputsError: maxInputs => `--input supports at most ${maxInputs} reference images for ${options.provider}/${options.model}.`,
+    missingFileError: value => `--input file "${value}" does not exist for ${options.provider}/${options.model}.`,
+    unsupportedMimeError: value => unsupportedReferenceMessage('--input', value, options.provider, options.model, options.allowedMimeTypes)
   })
 }
 
@@ -82,12 +82,12 @@ export const validateImageMaskReference = (
 ): void => {
   if (mask === undefined) return
   if (isHttpUrl(mask) || imageReferenceEngine.isDataUrl(mask)) {
-    throw CLIUsageError(`--image-mask must be a local image file for ${options.provider}/${options.model}.`)
+    throw UsageError(`--mask must be a local image file for ${options.provider}/${options.model}.`)
   }
   imageReferenceEngine.validateReferences([mask], {
     allowedMimeTypes: options.allowedMimeTypes,
-    missingFileError: value => `--image-mask file "${value}" does not exist for ${options.provider}/${options.model}.`,
-    unsupportedMimeError: value => unsupportedReferenceMessage('--image-mask', value, options.provider, options.model, options.allowedMimeTypes)
+    missingFileError: value => `--mask file "${value}" does not exist for ${options.provider}/${options.model}.`,
+    unsupportedMimeError: value => unsupportedReferenceMessage('--mask', value, options.provider, options.model, options.allowedMimeTypes)
   })
 }
 

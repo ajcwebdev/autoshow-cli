@@ -2,34 +2,22 @@ import type { ComicDialoguePlan, ComicSourceIdentity, HostedConcurrencyRuntimeOp
 
 export type TtsOptions = HostedConcurrencyRuntimeOptions & Partial<TtsRuntimeOptions & {
   ttsProviderConcurrency: number
-  ttsLocalConcurrency: number
   ttsChunkConcurrency: number
 }> & {
   generationResourceGate?: ResourceGate | undefined
   hostedTtsChunkScheduler?: HostedTtsChunkScheduler | undefined
   hostedTtsChunkJobContext?: HostedTtsChunkJobContext | undefined
   hostedTtsLaneScopeLabel?: string | undefined
-  /** Explicit one-run authorization to repurchase a slot whose prior provider admission has no recoverable output. */
   ttsAllowAmbiguousRedispatch?: boolean | undefined
-  /** Execution-only cap for unresolved immutable generation slots; omitted for an unbounded render. */
   ttsMaxGenerationSlots?: number | undefined
-  /**
-   * Internal synthesis input for canonical dialogue turns. This is deliberately not part of
-   * TtsRuntimeOptions or config persistence: callers must bind controls to the immutable turn ID
-   * and provider before render planning.
-   */
   ttsTurnControls?: TtsTurnControls | undefined
-  /** Internal canonical dialogue sequence used by structured callers after source planning. */
   ttsCanonicalTurns?: readonly {
     turnId: string
     speaker: string
     text: string
-    /** Provider-ready request texts for a segmented comic turn, in immutable render-plan order. */
     providerSegments?: readonly string[] | undefined
-    /** Original zero-based segment indexes when an execution checkpoint selects a subset. */
     providerSegmentIndexes?: readonly number[] | undefined
   }[] | undefined
-  /** Internal mastering contract used by comic audio; it is not a config or generic CLI option. */
   ttsMasteringProfile?: TtsMasteringProfile | undefined
 }
 
@@ -51,7 +39,6 @@ export type ComicTtsRenderContext = {
   modePreference: 'auto' | 'native' | 'segmented'
   deliveryPolicy?: 'strict' | 'best-effort' | undefined
   deliveryDispositionByTurnId?: Readonly<Record<string, 'none' | 'serialized' | 'unsupported-best-effort'>> | undefined
-  /** Bounded native alternatives. More than one requires an explicit deterministic policy. */
   nativeTakeCount?: number | undefined
   nativeTakeSelectionPolicy?: 'manual' | 'first-generated' | undefined
 }
@@ -92,7 +79,6 @@ export type TtsTurnControls = Readonly<Record<
 export type TtsTargetInvocation = Readonly<{
   sourceId: string
   sourceIndex: number
-  /** Zero-based provider segment within one canonical turn. Omitted for whole-turn/native calls. */
   providerSegmentIndex?: number | undefined
   speaker: string
   voice: TtsTargetVoiceSource
@@ -100,7 +86,7 @@ export type TtsTargetInvocation = Readonly<{
   signal?: AbortSignal | undefined
 }>
 
-export type TtsSerializedVoiceObservation = Readonly<{
+type TtsSerializedVoiceObservation = Readonly<{
   kind: 'provider-id' | 'reference-asset' | 'local-model-voice'
   value?: string | undefined
   valueHash?: string | undefined
@@ -124,7 +110,7 @@ export type TtsProviderRequestAttempt = Readonly<{
   retryReasonCode?: string | undefined
 }>
 
-export type TtsProviderRequestAcceptance = Readonly<{
+type TtsProviderRequestAcceptance = Readonly<{
   providerRequestId?: string | undefined
   fields?: Readonly<Record<string, string | number | boolean | null>> | undefined
 }>
@@ -138,7 +124,6 @@ export type TtsTimingFactory = (identity: TtsTimingIdentity) => import('./script
 
 export type TtsRequestEvidenceScope = Readonly<{
   forInvocation?: ((invocation: TtsTargetInvocation) => TtsRequestEvidenceScope) | undefined
-  /** Returns verified retained outputs only when every planned slot in this invocation is complete. */
   recoverCompletedOutputs?: (() => Promise<Readonly<{
     paths: readonly string[]
     generationSlotIds: readonly string[]
@@ -282,9 +267,7 @@ export type TtsTarget = ProviderTargetBase<TtsProvider> & {
   transport?: string | undefined
   protectedVoiceAsset?: ProtectedAssetRef | undefined
   protectedSpeakerVoiceAssets?: Readonly<Record<string, ProtectedAssetRef>> | undefined
-  /** Stable IDs inspected read-only at the all-target execution-readiness barrier. */
   readinessVoiceIds?: readonly string[] | undefined
-  /** Allows resume to append a replacement plan after a definitive failed attempt when an implicit adapter default changed. */
   allowFailedImplicitDefaultReplan?: boolean | undefined
   voice?: string
   multiSpeakerStrategy?: MultiSpeakerStrategy
@@ -299,7 +282,6 @@ export type TtsTarget = ProviderTargetBase<TtsProvider> & {
     requestEvidence?: TtsRequestEvidenceScope | undefined
   ) => Promise<{ audioPath: string, metadata: Step4Metadata }>
 }
-
 
 export type TtsCustomVoiceSampleAudio = {
   path: string

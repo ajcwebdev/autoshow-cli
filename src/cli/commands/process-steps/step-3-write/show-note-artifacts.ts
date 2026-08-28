@@ -1,8 +1,9 @@
 import { isRecord } from '~/utils/rest-client'
 import { join } from 'node:path'
-import type { ShowNoteArtifactResult, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, StructuredRunResult } from '~/types'
+import type { ShowNoteArtifactResult, Step3Metadata, StructuredRunResult } from '~/types'
 import { isSongLyricsPreset } from './structured-output/preset-registry'
 import { isStructuredValidationFailureEnvelope } from './structured-output/validation-failure'
+import { humanizeKey } from '~/utils/text-utils'
 
 const FRONTMATTER_PATTERN = /^---\r?\n[\s\S]*?\r?\n---/
 
@@ -24,27 +25,6 @@ const fencedTextBlock = (value: string): string => {
   return `${fence}text\n${content}${fence}`
 }
 
-const htmlAttr = (value: string): string =>
-  value
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-
-const markdownLabel = (value: string): string =>
-  value.replace(/]/g, '\\]')
-
-const markdownPath = (value: string): string =>
-  encodeURI(value).replace(/\(/g, '%28').replace(/\)/g, '%29')
-
-const humanizeKey = (value: string): string => {
-  return value
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/^./, (char) => char.toUpperCase())
-}
 
 
 const renderPrimitiveList = (items: unknown[]): string | undefined => {
@@ -207,59 +187,14 @@ const buildShowNoteArtifactKey = (fileName: string): string => {
     .replace(/^show-note-/u, 'showNote-')
 }
 
-const renderDownloadLink = (fileName: string): string =>
-  `[Download ${markdownLabel(fileName)}](${markdownPath(fileName)})`
-
-const renderAudioAsset = (fileName: string): string =>
-  `<audio controls src="${htmlAttr(fileName)}"></audio>\n\n${renderDownloadLink(fileName)}`
-
-const renderVideoAsset = (fileName: string): string =>
-  `<video controls src="${htmlAttr(fileName)}"></video>\n\n${renderDownloadLink(fileName)}`
-
-const renderImageAsset = (fileName: string): string =>
-  `![${markdownLabel(fileName)}](${markdownPath(fileName)})\n\n${renderDownloadLink(fileName)}`
-
-const renderAssetSection = (options: {
-  step4Metadata?: Step4Metadata[] | null | undefined
-  step5Metadata?: Step5Metadata[] | null | undefined
-  step6Metadata?: Step6VideoMetadata[] | null | undefined
-  step7Metadata?: Step7MusicMetadata[] | null | undefined
-}): string => {
-  const sections: string[] = []
-
-  for (const entry of options.step4Metadata ?? []) {
-    sections.push(`### Speech\n\n${renderAudioAsset(entry.audioFileName)}`)
-  }
-
-  for (const entry of options.step5Metadata ?? []) {
-    for (const fileName of entry.imageFileNames) {
-      sections.push(`### Image\n\n${renderImageAsset(fileName)}`)
-    }
-  }
-
-  for (const entry of options.step6Metadata ?? []) {
-    sections.push(`### Video\n\n${renderVideoAsset(entry.videoFileName)}`)
-  }
-
-  for (const entry of options.step7Metadata ?? []) {
-    sections.push(`### Music\n\n${renderAudioAsset(entry.musicFileName)}`)
-  }
-
-  return sections.length > 0
-    ? `## Assets\n\n${sections.join('\n\n')}`
-    : ''
-}
-
 const buildShowNoteContent = (options: {
   frontmatter: string
   bodyContent: string
   sourceText: string
-  assetSection: string
 }): string => {
   const parts = [
     options.frontmatter,
     options.bodyContent.trimEnd(),
-    options.assetSection,
     `## Source\n\n${fencedTextBlock(options.sourceText)}`
   ].filter((part) => part.trim().length > 0)
 
@@ -270,10 +205,6 @@ export const writeShowNoteArtifacts = async (options: {
   outputDir: string
   results: StructuredRunResult[]
   sourceText: string
-  step4Metadata?: Step4Metadata[] | null | undefined
-  step5Metadata?: Step5Metadata[] | null | undefined
-  step6Metadata?: Step6VideoMetadata[] | null | undefined
-  step7Metadata?: Step7MusicMetadata[] | null | undefined
 }): Promise<ShowNoteArtifactResult> => {
   const internalArtifacts: Record<string, string> = {}
   if (options.results.length === 0) {
@@ -282,15 +213,13 @@ export const writeShowNoteArtifacts = async (options: {
 
   const promptContent = await Bun.file(join(options.outputDir, 'prompt.md')).text()
   const frontmatter = extractFrontmatter(promptContent)
-  const assetSection = renderAssetSection(options)
 
   for (const result of options.results) {
     const fileName = buildShowNoteFileName(result.metadata)
     const content = buildShowNoteContent({
       frontmatter,
       bodyContent: renderShowNoteBody(result.parsedJson, result.renderedText, result.metadata),
-      sourceText: options.sourceText,
-      assetSection
+      sourceText: options.sourceText
     })
     await Bun.write(join(options.outputDir, fileName), content)
     internalArtifacts[buildShowNoteArtifactKey(fileName)] = fileName

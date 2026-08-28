@@ -1,12 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import * as v from 'valibot'
-import type { CharacterCatalogService } from '~/types'
+import type { CharacterCatalogService, LocationReferenceCatalog } from '~/types'
 import { createStructuredScriptArtifactRef, computeSceneRunIdentity, validateStructuredScriptSourceSpans } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
 import { createComicDialoguePlan } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-dialogue-plan'
 import { parseScriptMarkdownToStructuredData } from '~/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/structured-script-parser'
 import { StructuredScriptDataSchema } from '~/cli/commands/process-steps/step-8-comic/schemas/schemas'
 import { createSoundscapePlan } from '~/cli/commands/process-steps/step-4-tts/soundscape/soundscape-planner'
-import type { LocationReferenceCatalog } from '~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference'
 
 const characters = {
   characterKeys: ['pilot'],
@@ -39,7 +38,7 @@ const source = [
   'Heavy hatch closes',
 ].join('\n')
 
-describe('ADR-018 structured soundscape contracts', () => {
+describe('ADR-017 structured soundscape contracts', () => {
   test('parses strict v5 block and inline directives with exact source spans and stable anchors', async () => {
     const initial = parseScriptMarkdownToStructuredData(source, 'input/sound.md', { characterCatalog: characters, locationCatalog: locations })
     const sourceIdentity = initial.sourceIdentity

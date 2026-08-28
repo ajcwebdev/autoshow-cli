@@ -1,3 +1,4 @@
+import { AppProviderError } from "~/utils/error-handler";
 import type { MergeableXListResponse, RecentSpaceLinkSearchResult, SpacesClientContract, XApiClientOptions, XApiProblem, XPost, XPostLookupResponse, XPostSearchResponse, XSpacesResponse, XUser, XUserLookupResponse } from '~/types';
 import { extractSpaceIdsFromText } from "./input";
 import { InfraError } from '~/utils/error-handler';
@@ -39,14 +40,19 @@ const USER_FIELDS = [
 ].join(",");
 const TWEET_FIELDS = "author_id,created_at,entities";
 
-class XApiError extends Error {
+class XApiError extends AppProviderError {
+  override readonly status: number;
+  readonly responseText: string;
+
   constructor(
     message: string,
-    readonly status: number,
-    readonly responseText: string
+    status: number,
+    responseText: string
   ) {
-    super(message);
+    super(message, { status, stage: "url:x-spaces" });
     this.name = "XApiError";
+    this.status = status;
+    this.responseText = responseText;
   }
 }
 

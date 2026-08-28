@@ -22,29 +22,32 @@ import {
   resolveHappyScribeOrderTranscriptionId
 } from './happyscribe-response-parsers'
 import {
-  attachHappyScribeErrorContext,
-  getHappyScribeErrorStatus
+  attachHappyScribeErrorContext
 } from './happyscribe-utils'
 import { parseHappyScribeTranscriptPayload } from './parse-happyscribe-transcript'
-import { InfraError, ValidationError } from '~/utils/error-handler'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { AppError, InfraError, ValidationError } from '~/utils/error-handler'
+import { resolveCredential } from '~/utils/validate/env-utils'
+import { getErrorStatus } from '~/utils/error-handler'
 
 const INITIAL_POLL_INTERVAL_MS = 1_000
 const MAX_POLL_INTERVAL_MS = 10_000
 
 const buildExportDeadlineError = (
   exportId: string,
-  pollDeadlineMs: number
+  pollDeadlineMs: number,
+  cause?: unknown
 ): never => {
-  const error = Object.assign(
-    new Error(`Happy Scribe timed out waiting for export completion for ${exportId} (deadline exceeded after ${pollDeadlineMs}ms)`),
+  throw new AppError(
+    `Happy Scribe timed out waiting for export completion for ${exportId} (deadline exceeded after ${pollDeadlineMs}ms)`,
     {
+      kind: 'retry_exhausted',
       stage: 'result',
-      retryClass: 'runtime_http_read' as RetryClass,
-      retryable: true
+      retryClass: 'runtime_http_read' satisfies RetryClass,
+      retryable: true,
+      ...(cause instanceof Error ? { cause } : {}),
+      metadata: { provider: 'happyscribe', exportId, deadlineMs: pollDeadlineMs, stopReason: 'deadline exceeded' }
     }
   )
-  throw error
 }
 
 const buildBillingMetadata = (
@@ -60,7 +63,7 @@ const buildBillingMetadata = (
     ? order.details.totalCredits
     : undefined
 
-  if (typeof totalCost === 'number' && Number.isFinite(totalCost) && totalCost >= 0) {
+  if (typeof totalCost === 'number' && Number.isFinite(totalCost) && totalCost > 0) {
     const billing: NonNullable<Step2Metadata['billing']> = {
       totalCost,
       source: 'provider_quote',
@@ -110,7 +113,7 @@ export const runHappyScribeStt = async (
     runMode,
     lifecycle
   } = options
-  const apiKey = requireApiKey('HAPPYSCRIBE_API_KEY', 'stt:happyscribe', 'Happy Scribe transcription')
+  const apiKey = resolveCredential('happyscribe', 'require', { stage: 'stt:happyscribe', description: 'Happy Scribe transcription' })
   const baseURL = getHappyScribeBaseUrl()
   const offsetSeconds = segmentOffsetMinutes * 60
   const outputBase = buildTranscriptionOutputBase(outputDir, segmentNumber)
@@ -127,7 +130,7 @@ export const runHappyScribeStt = async (
     onRetry: (error) => {
       if (!lifecycleMetrics) return
       lifecycleMetrics.retryCount += 1
-      if (getHappyScribeErrorStatus(error) === 429) {
+      if (getErrorStatus(error) === 429) {
         lifecycleMetrics.rateLimitCount += 1
       }
     }
@@ -228,7 +231,6 @@ export const runHappyScribeStt = async (
           const structuredPayload = await apiClient.fetchDownloadPayload(transcription.downloadUrl)
           return parseHappyScribeTranscriptPayload(structuredPayload, { offsetSeconds })
         } catch {
-          // Fall through to the export workflow when the direct artifact is absent or transiently unavailable.
         }
       }
 
@@ -242,7 +244,7 @@ export const runHappyScribeStt = async (
           initialPollIntervalMs: INITIAL_POLL_INTERVAL_MS,
           maxPollIntervalMs: MAX_POLL_INTERVAL_MS,
           audioDurationSeconds,
-          buildDeadlineError: (jobId, pollDeadlineMs) => buildExportDeadlineError(jobId, pollDeadlineMs),
+          buildDeadlineError: (jobId, pollDeadlineMs, cause) => buildExportDeadlineError(jobId, pollDeadlineMs, cause),
           poll: async () => await apiClient.pollExport(activeExportId),
           isComplete: (exportStatus) => exportStatus.state === 'ready',
           isFailed: (exportStatus) =>
@@ -269,8 +271,8 @@ export const runHappyScribeStt = async (
     isFailed: (order) => order.state === 'failed' || order.state === 'locked'
       ? buildHappyScribeOrderFailureMessage(order)
       : undefined,
-    buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('Happy Scribe', jobId, pollDeadlineMs),
-    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('Happy Scribe', 'order', jobId, probeCount, totalWaitMs),
+    buildDeadlineError: (jobId, pollDeadlineMs, cause) => buildAsyncSttPollingDeadlineError('Happy Scribe', jobId, pollDeadlineMs, cause),
+    buildResumeProbeError: (jobId, probeCount, totalWaitMs, cause) => buildAsyncSttResumeProbeError('Happy Scribe', 'order', jobId, probeCount, totalWaitMs, cause),
     buildResult: async ({ transcript: result, runtime, processingTime, timings }) => {
       await Bun.write(`${outputBase}.txt`, formatTranscriptText(result.segments))
 

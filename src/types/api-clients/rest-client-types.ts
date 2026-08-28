@@ -1,3 +1,6 @@
+import type { BoundedCaptureResult } from '~/types'
+import type { AppProviderError } from '~/utils/error-handler'
+
 export type RestClientConfigBase = {
   apiKey: string
   baseURL?: string | undefined
@@ -18,8 +21,7 @@ export type RestFetchOptionsBase<TConfig extends RestClientConfigBase> = {
   errorMessagePrefix: string
 }
 
-
-export type RestErrorBase = Error & {
+export type RestErrorBase = AppProviderError & {
   status: number
   headers: Headers
   body: string
@@ -27,4 +29,25 @@ export type RestErrorBase = Error & {
   bodyBytes?: number | undefined
   bodyTruncated?: boolean | undefined
   bodyPreview?: string | undefined
+}
+
+type ProviderRestRequest = {
+  url: string
+  init: RequestInit
+}
+
+type ProviderRestErrorContext<TOptions> = {
+  options: TOptions
+  response: Response
+  captured: BoundedCaptureResult
+  rawText: string
+  parsedBody: unknown
+}
+
+export type ProviderRestClientProfile<TOptions, TError extends Error> = {
+  buildRequest: (options: TOptions) => ProviderRestRequest
+  errorMessagePrefix: (options: TOptions) => string
+  formatErrorMessage?: ((context: ProviderRestErrorContext<TOptions> & { errorMessagePrefix: string }) => string) | undefined
+  createError: (context: ProviderRestErrorContext<TOptions> & { message: string }) => TError
+  diagnostics?: 'raw-and-parsed' | 'parsed-body' | 'factory' | undefined
 }

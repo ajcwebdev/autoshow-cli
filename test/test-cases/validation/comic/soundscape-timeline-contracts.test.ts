@@ -30,7 +30,7 @@ const result = {
   ],
 } as SoundEffectRenderResult
 
-describe('ADR-018 strict soundscape timeline resolution', () => {
+describe('ADR-017 strict soundscape timeline resolution', () => {
   test('resolves exact source edges and text offsets while shifting every bus for negative pre-roll', () => {
     const resolved = resolveSoundscapeTimeline({ plan, dialoguePlan, dialogueTimeline: timeline, dialogueAudioRunId: hash('audio-run'), renderResult: result })
     expect(resolved.preRollMs).toBe(150)

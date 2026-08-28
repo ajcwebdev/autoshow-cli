@@ -6,6 +6,7 @@ import {
 } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import type { TtsOptions, TtsTarget } from '~/types'
+import { requireDefined } from '../../../test-utils/value-assertions'
 
 const dialogue = [
   'Alice: First line.',
@@ -14,18 +15,19 @@ const dialogue = [
 ].join('\n')
 
 const targetFor = (options: TtsOptions, service: TtsTarget['service']): TtsTarget => {
-  const target = collectTtsTargets(options).find((candidate) => candidate.service === service)
-  if (!target) throw new Error(`Missing ${service} target fixture`)
-  return target
+  return requireDefined(
+    collectTtsTargets(options).find((candidate) => candidate.service === service),
+    `${service} target fixture`
+  )
 }
 
 describe('current TTS render planning uses final invocation controls', () => {
   test('plans OpenAI A/X, B/default-cleared, A/X from the exact effective serializer controls', () => {
-    const defaults = buildOptsFromFlags(false, {
+    const defaults = buildOptsFromFlags({
       'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
-      'openai-voice': 'ash',
-      'openai-tts-instructions': 'inherited instruction',
-      'openai-tts-speed': 1,
+      'tts-voice': 'ash',
+      'tts-instructions': 'inherited instruction',
+      'tts-speed': '1',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['Alice=alloy', 'Bob=onyx'],
     })
@@ -76,7 +78,7 @@ describe('current TTS render planning uses final invocation controls', () => {
   })
 
   test('forces two-speaker Gemini through segmented planning when any turn has explicit controls', () => {
-    const defaults = buildOptsFromFlags(false, {
+    const defaults = buildOptsFromFlags({
       'gemini-tts': 'gemini-3.1-flash-tts-preview',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['Alice=Kore', 'Bob=Puck'],

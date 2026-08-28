@@ -1,4 +1,4 @@
-import type { AdaptiveConcurrencyConfig, CommandResultBase } from '~/types'
+import type { AdaptiveConcurrencyConfig, AppErrorKind, CommandResultBase, OutputMetadataSummary } from '~/types'
 
 export type BudgetKeyInput = string | readonly string[]
 
@@ -23,6 +23,7 @@ export type EnvSnapshot = Record<string, string | undefined>
 export type RunCommandOptions = {
   testName?: string
   env?: Record<string, string | undefined>
+  binDir?: string | undefined
   cwd?: string
   timeoutMs?: number
   forceSourceCli?: boolean
@@ -36,7 +37,7 @@ export type RunCommandResult = CommandResultBase & {
   outputRoot: string
 }
 
-export type RunCommandAttemptInput = {
+type RunCommandAttemptInput = {
   args: string[]
   env: Record<string, string | undefined>
   attempt: number
@@ -49,3 +50,57 @@ export type RunCommandAttemptResult = CommandResultBase & {
 }
 
 export type RunCommandAttemptRunner = (input: RunCommandAttemptInput) => Promise<RunCommandAttemptResult>
+
+export type ConsoleMethod = 'log' | 'warn' | 'error' | 'info' | 'debug'
+
+export type TestBuffer = {
+  lines: string[]
+  failed: boolean
+}
+
+export type CallerLocation = { file: string | null, line: number | null, column: number | null }
+
+export type RunCommandArtifacts = {
+  outputDir: string | null
+  absoluteOutputDir: string | null
+  metadataSummary: OutputMetadataSummary | null
+  parsedEstimatedCostCents: number | null
+}
+
+export type RunAndExpectOutputDirOptions = {
+  transient?: {
+    isTransient: (output: string) => boolean
+    providerLabel: string
+    persistedLabel: string
+  }
+  onResult?: (result: RunCommandResult) => void
+  classifyAvailability?: boolean
+}
+
+export type CommandFailureExpectation = {
+  exitCode?: number
+  contains?: string | readonly string[]
+  notContains?: string | readonly string[]
+  env?: RunCommandOptions['env']
+}
+
+export type ConsoleCapture = {
+  stdout: string[]
+  stderr: string[]
+}
+
+export type CaptureConsoleOptions = {
+  strip?: boolean
+  interactiveHumanSink?: boolean
+}
+
+export type ProviderHttpErrorExpectation = {
+  status?: number
+  kind?: AppErrorKind
+  stage?: string
+  retryable?: boolean
+  headers?: Readonly<Record<string, string>>
+  messageContains?: string | readonly string[]
+  instanceOf?: new (...args: never[]) => Error
+  name?: string
+}

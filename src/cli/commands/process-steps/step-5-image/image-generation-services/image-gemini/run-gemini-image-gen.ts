@@ -2,13 +2,25 @@ import { mkdir } from 'node:fs/promises'
 import { basename } from 'node:path'
 import type { GeminiImageModel, Step5Metadata } from '~/types'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { withRetry } from '~/utils/retries'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { imageReferenceToInlineDataPart } from '../../image-utils/image-inputs'
 import { getProviderReturnedModel } from '../../image-utils/image-output'
 import { InfraError } from '~/utils/error-handler'
+
+const describeGeminiEmptyImageReason = (
+  response: { promptFeedback?: { blockReason?: string | undefined } | undefined, candidates?: Array<{ finishReason?: string | undefined }> | undefined }
+): string => {
+  const blockReason = response.promptFeedback?.blockReason
+  const finishReason = response.candidates?.find((candidate) => typeof candidate.finishReason === 'string')?.finishReason
+  const reasons = [
+    ...(typeof blockReason === 'string' && blockReason.length > 0 ? [`blockReason=${blockReason}`] : []),
+    ...(typeof finishReason === 'string' && finishReason.length > 0 ? [`finishReason=${finishReason}`] : [])
+  ]
+  return reasons.length > 0 ? ` (${reasons.join(', ')})` : ''
+}
 
 export const runGeminiImageGen = async (
   prompt: string,
@@ -23,7 +35,7 @@ export const runGeminiImageGen = async (
     searchGrounding?: boolean | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
-  const apiKey = requireApiKey('GEMINI_API_KEY', 'image:gemini')
+  const apiKey = resolveCredential('gemini', 'require', { stage: 'image:gemini' })
 
   const startTime = Date.now()
   const imagePaths: string[] = []
@@ -40,8 +52,7 @@ export const runGeminiImageGen = async (
   const response = await withRetry(
     {
       retryClass: 'runtime_http_create_conservative',
-      operationName: 'gemini-image-generate',
-      policy: { maxAttempts: 3 }
+      operationName: 'gemini-image-generate'
     },
     async (signal) => await geminiGenerateContent(apiKey, {
       model: options.model,
@@ -65,7 +76,10 @@ export const runGeminiImageGen = async (
 
   const candidates = response.candidates ?? []
   if (candidates.length === 0 || !candidates[0]?.content?.parts) {
-    throw InfraError('No image content in Gemini response', { stage: 'image:gemini' })
+    throw InfraError(
+      `No image content in Gemini response${describeGeminiEmptyImageReason(response)}`,
+      { stage: 'image:gemini' }
+    )
   }
 
   let imageIndex = 0

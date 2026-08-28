@@ -1,6 +1,7 @@
-import { isNativeUsageError, nativeUsageMessage } from '~/cli/native/native-errors'
 import { sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
 import type { AppErrorKind, AppErrorOptions, ErrorChainEntry, RetryClass } from '~/types'
+import { isRecord } from '~/utils/value-helpers'
+
 const DEFAULT_EXIT_CODE_BY_KIND: Readonly<Record<AppErrorKind, number>> = {
   usage: 2,
   provider_http: 1,
@@ -45,9 +46,30 @@ export class AppError extends Error {
 }
 
 export class AppUsageError extends AppError {
-  constructor(message: string, hints?: string[]) {
-    super(message, { kind: 'usage', exitCode: 2, ...(hints ? { hints } : {}) })
-    this.name = 'CLIUsageError'
+  readonly usageMessage: string
+
+  constructor(
+    message: string,
+    hints?: string[],
+    options: {
+      usageMessage?: string
+      cause?: Error | undefined
+      stage?: string
+      retryable?: boolean
+      metadata?: Record<string, unknown>
+    } = {}
+  ) {
+    super(message, {
+      kind: 'usage',
+      exitCode: 2,
+      ...(hints ? { hints } : {}),
+      ...(options.cause ? { cause: options.cause } : {}),
+      ...(options.stage !== undefined ? { stage: options.stage } : {}),
+      ...(typeof options.retryable === 'boolean' ? { retryable: options.retryable } : {}),
+      ...(options.metadata ? { metadata: options.metadata } : {})
+    })
+    this.name = 'AppUsageError'
+    this.usageMessage = options.usageMessage ?? message
   }
 }
 
@@ -72,17 +94,22 @@ export class AppInfrastructureError extends AppError {
   }
 }
 
-export class AppInternalError extends AppError {
+class AppInternalError extends AppError {
   constructor(message: string, options: Omit<AppErrorOptions, 'kind'> = {}) {
     super(message, { ...options, kind: 'internal' })
     this.name = 'AppInternalError'
   }
 }
 
-export const CLIUsageError = (
+export const UsageError = (
   message: string,
-  hint?: string
-): Error => new AppUsageError(message, hint ? [hint] : undefined)
+  hint?: string,
+  options: { cause?: Error | undefined } = {}
+): Error => new AppUsageError(
+  message,
+  hint ? [hint] : undefined,
+  options.cause ? { cause: options.cause } : {}
+)
 
 export const InfraError = (
   message: string,
@@ -104,42 +131,31 @@ export const ValidationError = (
   options: Omit<AppErrorOptions, 'kind'> = {}
 ): AppValidationError => new AppValidationError(message, options)
 
-const MISSING_ENV_HINTS: Readonly<Record<string, string>> = {
-  OPENAI_API_KEY: 'Set OPENAI_API_KEY environment variable to use OpenAI models',
-  GEMINI_API_KEY: 'Set GEMINI_API_KEY environment variable to use Gemini models',
-  GROQ_API_KEY: 'Set GROQ_API_KEY environment variable to use Groq models',
-  GLM_API_KEY: 'Set GLM_API_KEY environment variable to use GLM models',
-  DEEPINFRA_API_KEY: 'Set DEEPINFRA_API_KEY environment variable to use DeepInfra transcription',
-  ANTHROPIC_API_KEY: 'Set ANTHROPIC_API_KEY environment variable to use Anthropic Claude models',
-  MINIMAX_API_KEY: 'Set MINIMAX_API_KEY environment variable to use MiniMax models',
-  ELEVENLABS_API_KEY: 'Set ELEVENLABS_API_KEY environment variable to use ElevenLabs transcription/TTS/music',
-  SPEECHMATICS_API_KEY: 'Set SPEECHMATICS_API_KEY environment variable to use Speechmatics transcription',
-  REVAI_ACCESS_TOKEN: 'Set REVAI_ACCESS_TOKEN environment variable to use Rev transcription',
-  GLADIA_API_KEY: 'Set GLADIA_API_KEY environment variable to use Gladia transcription',
-  HAPPYSCRIBE_API_KEY: 'Set HAPPYSCRIBE_API_KEY environment variable to use Happy Scribe transcription',
-  SUPADATA_API_KEY: 'Set SUPADATA_API_KEY environment variable to use Supadata transcription',
-  SCRAPECREATORS_API_KEY: 'Set SCRAPECREATORS_API_KEY environment variable to use ScrapeCreators YouTube transcript retrieval',
-  LUMA_AGENTS_API_KEY: 'Set LUMA_AGENTS_API_KEY environment variable to use Luma Labs image/video generation'
-}
-
-/**
- * Structured remediation hint(s) for a missing environment variable. Keeps the
- * env-var wording centralized so throw sites can attach `hints: hintsForMissingEnv(key)`.
- */
-export const hintsForMissingEnv = (key: string): string[] => [
-  MISSING_ENV_HINTS[key] ?? `Set ${key} environment variable to use this provider`
-]
-
 export const isAppError = (error: unknown): error is AppError =>
   error instanceof AppError
 
-export const isCLIUsageError = (error: unknown): error is AppUsageError =>
+export const isUsageError = (error: unknown): error is AppUsageError =>
   error instanceof AppUsageError
 
-/**
- * Runs `fn` and re-wraps any non-usage throw as a `CLIUsageError` (usage errors pass
- * through untouched). Consolidates the validator-wrapping idiom at command boundaries.
- */
+export const isRetryExhaustedError = (error: unknown): boolean => {
+  const seen = new Set<unknown>()
+  let current: unknown = error
+  while (current instanceof Error && !seen.has(current)) {
+    seen.add(current)
+    if (isAppError(current) && current.kind === 'retry_exhausted') {
+      return true
+    }
+    current = current.cause
+  }
+  return false
+}
+
+export const hasErrorCode = (error: unknown, code: string): boolean =>
+  typeof error === 'object'
+  && error !== null
+  && 'code' in error
+  && (error as { code?: unknown }).code === code
+
 export function rethrowAsUsage<T>(fn: () => Promise<T>, fallbackHint?: string): Promise<T>
 export function rethrowAsUsage<T>(fn: () => T, fallbackHint?: string): T
 export function rethrowAsUsage<T>(
@@ -147,10 +163,14 @@ export function rethrowAsUsage<T>(
   fallbackHint?: string
 ): T | Promise<T> {
   const wrap = (error: unknown): never => {
-    if (isCLIUsageError(error)) {
+    if (isUsageError(error)) {
       throw error
     }
-    throw CLIUsageError(error instanceof Error ? error.message : String(error), fallbackHint)
+    throw UsageError(
+      error instanceof Error ? error.message : String(error),
+      fallbackHint,
+      error instanceof Error ? { cause: error } : {}
+    )
   }
   try {
     const result = fn()
@@ -163,12 +183,7 @@ export function rethrowAsUsage<T>(
   }
 }
 
-export const isUsageError = (error: unknown): boolean => {
-  return (
-    isCLIUsageError(error) ||
-    isNativeUsageError(error)
-  )
-}
+
 
 export const normalizeExitCode = (error: unknown): number => {
   if (isAppError(error)) {
@@ -186,11 +201,9 @@ export const normalizeExitCode = (error: unknown): number => {
 }
 
 export const usageMessage = (error: unknown): string => {
-  if (isCLIUsageError(error)) {
-    return error.message
+  if (isUsageError(error)) {
+    return error.usageMessage
   }
-  const nativeMessage = nativeUsageMessage(error)
-  if (nativeMessage !== undefined) return nativeMessage
   return 'Invalid command usage. Run: bun autoshow --help'
 }
 
@@ -227,9 +240,6 @@ const PROVIDER_METADATA_KEYS = [
   'responseType'
 ] as const
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
 const addMetadataValue = (
   out: Record<string, unknown>,
   key: string,
@@ -238,6 +248,26 @@ const addMetadataValue = (
   if (value !== undefined && out[key] === undefined) {
     out[key] = value
   }
+}
+
+export const getErrorStatus = (error: unknown): number | undefined => {
+  if (error && typeof error === 'object' && 'status' in error) {
+    const status = (error as { status: unknown }).status
+    if (typeof status === 'number') {
+      return status
+    }
+  }
+  return undefined
+}
+
+export const getErrorHeaders = (error: unknown): Headers | undefined => {
+  if (error && typeof error === 'object' && 'headers' in error) {
+    const headers = (error as { headers: unknown }).headers
+    if (headers instanceof Headers) {
+      return headers
+    }
+  }
+  return undefined
 }
 
 export const extractErrorMetadata = (error: unknown): Record<string, unknown> => {

@@ -30,13 +30,8 @@ export type TtsTargetSelection = {
   openaiVoiceId: string | undefined
   openaiInstructions: string | undefined
   openaiSpeed: number | undefined
-  deepgramEncoding: string | undefined
-  deepgramContainer: string | undefined
-  deepgramBitRate: number | undefined
-  deepgramSampleRate: number | undefined
   deepgramSpeed: number | undefined
   elevenLabsVoiceId: string | undefined
-  elevenLabsOutputFormat: string | undefined
   elevenLabsLanguageCode: string | undefined
   elevenLabsStability: number | undefined
   elevenLabsSimilarityBoost: number | undefined
@@ -47,10 +42,8 @@ export type TtsTargetSelection = {
   elevenLabsTextNormalization: string | undefined
   elevenLabsPronunciationDictionaryLocators: string[] | undefined
   speechifyVoiceId: string | undefined
-  speechifyAudioFormat: string | undefined
   speechifyLanguage: string | undefined
   humeVoice: string | undefined
-  humeVoiceProvider: string | undefined
   cartesiaVoiceId: string | undefined
   cartesiaLanguage: string | undefined
   fishVoiceId: string | undefined

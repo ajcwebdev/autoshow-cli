@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureOpenAIOcrSetup = ensureApiKeySetup('OPENAI_API_KEY', 'ocr:openai', 'OpenAI OCR')
+export const ensureOpenAIOcrSetup = async (): Promise<void> => { resolveCredential('openai', 'require', { stage: 'ocr:openai', description: 'OpenAI OCR' }) }

@@ -7,7 +7,6 @@ export type ElevenLabsTtsVoiceSettings = {
 }
 
 export type ElevenLabsTtsRequestControls = {
-  outputFormat?: string | undefined
   languageCode?: string | undefined
   voiceSettings?: ElevenLabsTtsVoiceSettings | undefined
   seed?: number | undefined

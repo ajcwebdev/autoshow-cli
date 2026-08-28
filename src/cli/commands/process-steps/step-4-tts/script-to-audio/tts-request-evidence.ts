@@ -1,12 +1,11 @@
 import type {
+  TtsProviderAdmissionDisposition,
   TtsProviderRequestAttempt,
   TtsProviderRequestLifecycle,
   TtsRequestEvidenceScope,
   TtsSerializedRequestObservation,
 } from '~/types'
 import { extractErrorMetadata } from '~/utils/error-handler'
-
-export type TtsProviderAdmissionDisposition = 'rejected' | 'ambiguous'
 
 export const classifyTtsProviderAdmissionError = (error: unknown): TtsProviderAdmissionDisposition => {
   const explicit = error && typeof error === 'object' && 'ttsAdmissionDisposition' in error

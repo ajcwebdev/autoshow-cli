@@ -1,9 +1,9 @@
 import type { LlmApiCallResult, Step3Metadata, StructuredRequestOptions } from '~/types'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { executeLlmRequest } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-request-scaffold'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
-import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
 
 const buildGeminiThinkingLevel = (effective: string): string | undefined => {
   switch (effective) {
@@ -20,22 +20,7 @@ export const runGeminiModel = async (
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const policy = resolveReasoningPolicy({
-    step: 'llm',
-    service: 'gemini',
-    model,
-    requestedReasoningEffort: structuredOpts?.requestedReasoningEffort
-  })
-  const updatedOpts: StructuredRequestOptions | undefined = structuredOpts
-    ? { ...structuredOpts, requestedReasoningEffort: policy.requested, effectiveReasoningEffort: policy.effective }
-    : {
-        schemaName: '',
-        schema: {},
-        strict: false,
-        strategy: 'native',
-        requestedReasoningEffort: policy.requested,
-        effectiveReasoningEffort: policy.effective
-      }
+  const { policy, updatedOpts } = resolveLlmReasoningOptions('gemini', model, structuredOpts)
 
   return await executeLlmRequest(prompt, model, updatedOpts, {
     service: 'gemini',
@@ -43,8 +28,7 @@ export const runGeminiModel = async (
     operationName: 'gemini-llm',
     emptyResponseStage: 'write:gemini',
     classifier: classifyGeminiRetry,
-    policy: { maxAttempts: 3 },
-    prepare: () => requireApiKey('GEMINI_API_KEY', 'write:gemini'),
+    prepare: () => resolveCredential('gemini', 'require', { stage: 'write:gemini' }),
     execute: async (createSignal, apiKey): Promise<LlmApiCallResult> => {
       const thinkingLevel = buildGeminiThinkingLevel(policy.effective)
       const generationConfig: Record<string, unknown> = {

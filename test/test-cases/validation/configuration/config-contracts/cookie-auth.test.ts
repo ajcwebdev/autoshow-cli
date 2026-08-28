@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { applyConfiguredYtDlpAuth } from '~/cli/commands/setup-and-utilities/config/config-auth'
-import { buildConfigPatchFromFlags, FLAG_TO_CONFIG_PATH } from '~/cli/commands/setup-and-utilities/config/config-merge'
+import { applyConfiguredYtDlpAuth } from '~/cli/commands/setup-and-utilities/config-command/config-auth'
+import { buildConfigPatchFromFlags, FLAG_TO_CONFIG_PATH } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 import { configureYtDlpAuth, inspectYtDlpAuthState } from '~/cli/commands/process-steps/shared/shared-yt-dlp-options'
 import { runCommand } from '../../../../test-utils/test-helpers'
 import { writeTempConfig } from './shared'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []
 
@@ -32,7 +32,7 @@ describe('config cookie auth contracts', () => {
   })
 
   test('config --cookies persists auth.cookies and later yt-dlp auth sees it', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-cookie-auth-'))
+    const dir = await makeTempDir('autoshow-cookie-auth-')
     tempDirs.push(dir)
     const cookiesPath = join(dir, 'youtube.cookies.txt')
     const configPath = join(dir, 'autoshow.json')

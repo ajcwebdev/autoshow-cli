@@ -1,70 +1,18 @@
 import { constants } from 'node:fs'
-import { chmod, link, lstat, mkdir, open, readFile, realpath, rm, unlink } from 'node:fs/promises'
-import { createHash, randomUUID } from 'node:crypto'
-import { isAbsolute, join, relative, resolve, sep } from 'node:path'
-import type { ProtectedAssetRef, ProtectedVoiceAssetPolicy, TtsCliReferenceInput, VoiceConsentRevocation } from '~/types'
-import { AppValidationError, ValidationError } from '~/utils/error-handler'
+import { chmod, link, lstat, mkdir, open, readFile, realpath, rm } from 'node:fs/promises'
+import { unlinkPath as unlink } from '~/utils/bun-file-io'
+import { join, resolve } from 'node:path'
+import type { MaterializedProtectedVoiceAsset, PlannedProtectedVoiceAsset, ProtectedAssetRef, ProtectedVoiceAssetPolicy, ProtectedVoiceAssetStore, ProtectedVoiceAssetStoreConfig, ReadReferenceInput, ReadyStore, TtsCliReferenceInput, VoiceConsentRevocation } from '~/types'
+import { AppValidationError, hasErrorCode, ValidationError } from '~/utils/error-handler'
 import { canonicalTtsJson, hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
+import { isContainedPath } from '~/utils/filesystem'
 
 const SAFE_OPAQUE_ID = /^[a-z0-9][a-z0-9_-]{0,127}$/
 const SHA256 = /^[a-f0-9]{64}$/
 const DIRECTORY_MODE = 0o700
 const FILE_MODE = 0o600
 
-export type ProtectedVoiceAssetStoreConfig = {
-  storeId: string
-  root: string
-}
-
-export type PlannedProtectedVoiceAsset = {
-  materialization: 'non-materialized'
-  protectedAsset: ProtectedAssetRef
-  authorizationRef: string
-  byteLength: number
-  speakerKey?: string | undefined
-}
-
-export type MaterializedProtectedVoiceAsset = {
-  materialization: 'materialized'
-  protectedAsset: ProtectedAssetRef
-  authorizationRef: string
-  byteLength: number
-  speakerKey?: string | undefined
-}
-
-export type ProtectedVoiceAssetStore = {
-  root?: string | undefined
-  plan: (input: TtsCliReferenceInput) => Promise<PlannedProtectedVoiceAsset>
-  ingest: (input: TtsCliReferenceInput, expected?: ProtectedAssetRef | undefined) => Promise<MaterializedProtectedVoiceAsset>
-  ingestManaged?: ((input: TtsCliReferenceInput, policy: ProtectedVoiceAssetPolicy, expected?: ProtectedAssetRef | undefined) => Promise<MaterializedProtectedVoiceAsset>) | undefined
-  storeBytes?: ((bytes: Uint8Array, policy: ProtectedVoiceAssetPolicy, expectedSha256?: string | undefined) => Promise<ProtectedAssetRef>) | undefined
-  resolve: (asset: ProtectedAssetRef) => Promise<string>
-  readPolicies?: ((asset: ProtectedAssetRef) => Promise<ProtectedVoiceAssetPolicy[]>) | undefined
-  recordConsentRevocation?: ((asset: ProtectedAssetRef, revocation: VoiceConsentRevocation) => Promise<void>) | undefined
-  readConsentRevocations?: ((asset: ProtectedAssetRef) => Promise<VoiceConsentRevocation[]>) | undefined
-  withWorkspace?: (<T>(attemptId: string, run: (workspace: string) => Promise<T>) => Promise<T>) | undefined
-}
-
-type ReadReferenceInput = {
-  bytes: Uint8Array
-  byteLength: number
-  sha256: string
-}
-
-type ReadyStore = {
-  canonicalStoreRoot: string
-  canonicalAssetsRoot: string
-  canonicalPoliciesRoot: string
-  canonicalWorkRoot: string
-}
-
-const hasErrorCode = (error: unknown, code: string): boolean =>
-  typeof error === 'object'
-  && error !== null
-  && 'code' in error
-  && (error as { code?: unknown }).code === code
-
-export const assertSafeProtectedVoiceOpaqueId = (value: string, label: string): void => {
+const assertSafeProtectedVoiceOpaqueId = (value: string, label: string): void => {
   if (!SAFE_OPAQUE_ID.test(value)) {
     throw ValidationError(`${label} must be an opaque lowercase identifier containing only letters, numbers, underscores, or hyphens.`, { stage: 'tts:protected-assets' })
   }
@@ -88,11 +36,6 @@ export const assertValidProtectedAssetRef = (asset: ProtectedAssetRef): Protecte
 
 const assetIdForSha256 = (sha256: string): string => `sha256_${sha256}`
 
-const isContainedPath = (root: string, candidate: string): boolean => {
-  const child = relative(root, candidate)
-  return child !== '' && child !== '..' && !child.startsWith(`..${sep}`) && !isAbsolute(child)
-}
-
 const assertOwnerOnlyMode = (mode: number, expected: number, label: string): void => {
   if ((mode & 0o777) !== expected) {
     throw ValidationError(`${label} permissions are not owner-only.`, { stage: 'tts:protected-assets' })
@@ -104,7 +47,10 @@ const lstatIfPresent = async (path: string) => {
     return await lstat(path)
   } catch (error) {
     if (hasErrorCode(error, 'ENOENT')) return undefined
-    throw ValidationError('Unable to inspect the protected asset store.', { stage: 'tts:protected-assets' })
+    throw ValidationError('Unable to inspect the protected asset store.', {
+      stage: 'tts:protected-assets',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   }
 }
 
@@ -128,8 +74,11 @@ const prepareOwnerOnlyDirectory = async (path: string, label: string): Promise<v
   try {
     await mkdir(path, { recursive: true, mode: DIRECTORY_MODE })
     await chmod(path, DIRECTORY_MODE)
-  } catch {
-    throw ValidationError(`Unable to prepare ${label.toLowerCase()}.`, { stage: 'tts:protected-assets' })
+  } catch (error) {
+    throw ValidationError(`Unable to prepare ${label.toLowerCase()}.`, {
+      stage: 'tts:protected-assets',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   }
 
   const after = await lstatIfPresent(path)
@@ -221,11 +170,14 @@ const readAuthorizedReferenceInput = async (input: TtsCliReferenceInput): Promis
     return {
       bytes,
       byteLength: bytes.byteLength,
-      sha256: createHash('sha256').update(bytes).digest('hex')
+      sha256: new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
     }
   } catch (error) {
     if (error instanceof AppValidationError) throw error
-    throw ValidationError('Unable to read the authorized reference audio.', { stage: 'tts:protected-assets' })
+    throw ValidationError('Unable to read the authorized reference audio.', {
+      stage: 'tts:protected-assets',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   } finally {
     await handle?.close().catch(() => undefined)
   }
@@ -251,7 +203,7 @@ const buildPlannedBinding = (
   }
 }
 
-export const planProtectedVoiceAsset = async (
+const planProtectedVoiceAsset = async (
   storeId: string,
   input: TtsCliReferenceInput
 ): Promise<PlannedProtectedVoiceAsset> => {
@@ -291,7 +243,7 @@ const assertStoredAsset = async (
   } catch {
     throw ValidationError('Unable to read the protected asset.', { stage: 'tts:protected-assets' })
   }
-  const actualSha256 = createHash('sha256').update(bytes).digest('hex')
+  const actualSha256 = new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
   if (actualSha256 !== expectedSha256) {
     throw ValidationError('Protected asset checksum does not match its content address.', { stage: 'tts:protected-assets' })
   }
@@ -308,7 +260,7 @@ const atomicallyStoreBytes = async (
     throw ValidationError('Protected asset path escapes its registered store.', { stage: 'tts:protected-assets' })
   }
 
-  const temporaryPath = join(canonicalAssetsRoot, `.ingest-${randomUUID()}`)
+  const temporaryPath = join(canonicalAssetsRoot, `.ingest-${crypto.randomUUID()}`)
   let temporaryCreated = false
   try {
     const handle = await open(temporaryPath, 'wx', FILE_MODE)
@@ -325,12 +277,18 @@ const atomicallyStoreBytes = async (
       await link(temporaryPath, assetPath)
     } catch (error) {
       if (!hasErrorCode(error, 'EEXIST')) {
-        throw ValidationError('Unable to atomically promote the protected asset.', { stage: 'tts:protected-assets' })
+        throw ValidationError('Unable to atomically promote the protected asset.', {
+      stage: 'tts:protected-assets',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
       }
     }
   } catch (error) {
     if (error instanceof AppValidationError) throw error
-    throw ValidationError('Unable to write the protected asset.', { stage: 'tts:protected-assets' })
+    throw ValidationError('Unable to write the protected asset.', {
+      stage: 'tts:protected-assets',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   } finally {
     if (temporaryCreated) await unlink(temporaryPath).catch(() => undefined)
   }
@@ -338,7 +296,7 @@ const atomicallyStoreBytes = async (
   await assertStoredAsset(canonicalAssetsRoot, assetPath, protectedAsset.sha256)
 }
 
-export const ingestProtectedVoiceAsset = async (
+const ingestProtectedVoiceAsset = async (
   config: ProtectedVoiceAssetStoreConfig,
   input: TtsCliReferenceInput,
   expected?: ProtectedAssetRef | undefined
@@ -405,7 +363,7 @@ const writePolicy = async (
   const policyHash = hashCanonicalTtsValue(policy)
   const destination = join(canonicalPolicyRoot, `${policyHash}.json`)
   const bytes = `${canonicalTtsJson(policy)}\n`
-  const temporary = join(canonicalPolicyRoot, `.policy-${randomUUID()}`)
+  const temporary = join(canonicalPolicyRoot, `.policy-${crypto.randomUUID()}`)
   try {
     const handle = await open(temporary, 'wx', FILE_MODE)
     try {
@@ -420,7 +378,10 @@ const writePolicy = async (
       if (!hasErrorCode(error, 'EEXIST')) throw error
       const existing = await readFile(destination, 'utf8')
       if (existing !== bytes) {
-        throw ValidationError('Protected asset policy identity conflicts with existing bytes.', { stage: 'tts:protected-assets' })
+        throw ValidationError('Protected asset policy identity conflicts with existing bytes.', {
+      stage: 'tts:protected-assets',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
       }
     }
   } finally {
@@ -428,7 +389,7 @@ const writePolicy = async (
   }
 }
 
-export const ingestManagedProtectedVoiceAsset = async (
+const ingestManagedProtectedVoiceAsset = async (
   config: ProtectedVoiceAssetStoreConfig,
   input: TtsCliReferenceInput,
   policy: ProtectedVoiceAssetPolicy,
@@ -442,14 +403,12 @@ export const ingestManagedProtectedVoiceAsset = async (
     throw ValidationError('Authorized reference audio changed after protected planning; no asset was ingested.', { stage: 'tts:protected-assets' })
   }
   const { canonicalPoliciesRoot } = await prepareStore(config)
-  // Persist policy authority before sensitive bytes. A crash can leave an harmless orphan policy,
-  // but never a newly managed asset with no retention/authorization record.
   await writePolicy(canonicalPoliciesRoot, planned.protectedAsset, policy)
   const materialized = await ingestProtectedVoiceAsset(config, input, planned.protectedAsset)
   return materialized
 }
 
-export const storeManagedProtectedVoiceBytes = async (
+const storeManagedProtectedVoiceBytes = async (
   config: ProtectedVoiceAssetStoreConfig,
   bytes: Uint8Array,
   policy: ProtectedVoiceAssetPolicy,
@@ -457,7 +416,7 @@ export const storeManagedProtectedVoiceBytes = async (
 ): Promise<ProtectedAssetRef> => {
   if (bytes.byteLength === 0) throw ValidationError('Protected voice asset cannot be empty.', { stage: 'tts:protected-assets' })
   validateProtectedVoiceAssetPolicy(policy)
-  const sha256 = createHash('sha256').update(bytes).digest('hex')
+  const sha256 = new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
   if (expectedSha256 !== undefined && expectedSha256 !== sha256) {
     throw ValidationError('Protected voice asset bytes do not match the expected checksum.', { stage: 'tts:protected-assets' })
   }
@@ -468,7 +427,7 @@ export const storeManagedProtectedVoiceBytes = async (
   return asset
 }
 
-export const readProtectedVoiceAssetPolicies = async (
+const readProtectedVoiceAssetPolicies = async (
   config: ProtectedVoiceAssetStoreConfig,
   asset: ProtectedAssetRef
 ): Promise<ProtectedVoiceAssetPolicy[]> => {
@@ -521,7 +480,7 @@ const validateConsentRevocation = (revocation: VoiceConsentRevocation): void => 
   }
 }
 
-export const readProtectedVoiceConsentRevocations = async (
+const readProtectedVoiceConsentRevocations = async (
   config: ProtectedVoiceAssetStoreConfig,
   asset: ProtectedAssetRef
 ): Promise<VoiceConsentRevocation[]> => {
@@ -552,7 +511,7 @@ export const readProtectedVoiceConsentRevocations = async (
   return revocations
 }
 
-export const recordProtectedVoiceConsentRevocation = async (
+const recordProtectedVoiceConsentRevocation = async (
   config: ProtectedVoiceAssetStoreConfig,
   asset: ProtectedAssetRef,
   revocation: VoiceConsentRevocation
@@ -568,7 +527,7 @@ export const recordProtectedVoiceConsentRevocation = async (
     throw ValidationError('Protected consent record already has a different revocation marker.', { stage: 'tts:protected-assets' })
   }
   const destination = join(policyRoot, `consent-revocation-${revocation.revocationId}.json`)
-  const temporary = join(policyRoot, `.consent-revocation-${randomUUID()}`)
+  const temporary = join(policyRoot, `.consent-revocation-${crypto.randomUUID()}`)
   const bytes = `${canonicalTtsJson(revocation)}\n`
   try {
     const handle = await open(temporary, 'wx', FILE_MODE)
@@ -589,7 +548,7 @@ export const recordProtectedVoiceConsentRevocation = async (
   await readProtectedVoiceConsentRevocations(config, asset)
 }
 
-export const withProtectedVoiceWorkspace = async <T>(
+const withProtectedVoiceWorkspace = async <T>(
   config: ProtectedVoiceAssetStoreConfig,
   attemptId: string,
   run: (workspace: string) => Promise<T>
@@ -638,33 +597,3 @@ export const createProtectedVoiceAssetStore = (
   readConsentRevocations: asset => readProtectedVoiceConsentRevocations(config, asset),
   withWorkspace: (attemptId, run) => withProtectedVoiceWorkspace(config, attemptId, run)
 })
-
-export class ProtectedVoiceAssetStoreRegistry {
-  readonly #stores = new Map<string, ProtectedVoiceAssetStore>()
-
-  register(config: ProtectedVoiceAssetStoreConfig): ProtectedVoiceAssetStore {
-    assertSafeProtectedVoiceOpaqueId(config.storeId, 'Protected store ID')
-    if (this.#stores.has(config.storeId)) {
-      throw ValidationError(`Protected store ${config.storeId} is already registered.`, { stage: 'tts:protected-assets' })
-    }
-    const store = createProtectedVoiceAssetStore(config)
-    this.#stores.set(config.storeId, store)
-    return store
-  }
-
-  require(storeId: string): ProtectedVoiceAssetStore {
-    assertSafeProtectedVoiceOpaqueId(storeId, 'Protected store ID')
-    const store = this.#stores.get(storeId)
-    if (!store) throw ValidationError(`Protected store ${storeId} is not registered.`, { stage: 'tts:protected-assets' })
-    return store
-  }
-
-  async resolve(asset: ProtectedAssetRef): Promise<string> {
-    assertValidProtectedAssetRef(asset)
-    return await this.require(asset.storeId).resolve(asset)
-  }
-
-  roots(): string[] {
-    return [...this.#stores.values()].flatMap(store => store.root ? [store.root] : [])
-  }
-}

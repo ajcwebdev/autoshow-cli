@@ -1,4 +1,4 @@
-import type { JsonObject, ModelRegistry } from '~/types'
+import type { JsonObject, ModelCategory, ModelRegistry } from '~/types'
 
 export type MetricName = 'price' | 'speed' | 'qualityScore'
 
@@ -26,38 +26,18 @@ export type TtsRankingEntry = {
   label: string
 }
 
-export type ArtifactRankingEntry = {
+type ArtifactMetricRankingEntry = {
   rank: number
   providerKey: string
-  provider: string
-  display?: string
-  composite: number
-}
-
-export type ArtifactTierProvider = {
-  providerKey: string
-  provider: string
-  display?: string
-  qualityCostRank: number
-  qualityCostComposite: number
-}
-
-export type ArtifactTiering = {
-  method: string
-  ranking: string
-  providerCount: number
-  tieBreak: string
-  tiers: Array<{
-    tier: number
-    count: number
-    providers: ArtifactTierProvider[]
-  }>
+  metric: string
+  value: number | null
 }
 
 export type ArtifactReport = {
   schemaVersion: number
-  weightedRankings: Record<string, { qualityCost: ArtifactRankingEntry[] }>
-  tiering: Record<string, ArtifactTiering>
+  metricRankings: Record<string, Record<string, ArtifactMetricRankingEntry[]>>
+  weightedRankings?: unknown
+  tiering?: unknown
 }
 
 export type RegistryModelRecord = {
@@ -101,7 +81,20 @@ export type UrlCombinedArtifact<TAggregatedProvider = unknown, TMetricRankingEnt
   }>
   providers: TAggregatedProvider[]
   metricRankings: Record<'local' | 'service', Record<'price' | 'speed' | 'automatedQuality', TMetricRankingEntry[]>>
-  weightedRankings: Record<string, Record<string, unknown[]>>
-  tiering: Record<string, { tiers: Array<{ count: number }> }>
+  weightedRankings?: Record<string, Record<string, unknown[]>>
+  tiering?: Record<string, { tiers: Array<{ count: number }> }>
   notes: string[]
+}
+
+export type ModelIdentitySpec = {
+  category: ModelCategory
+  serviceField: string
+  modelField: string
+}
+
+export type HistoricalIdentity = {
+  category: ModelCategory
+  service: string
+  model: string
+  file: string
 }

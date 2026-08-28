@@ -32,7 +32,7 @@ The OCR report uses full grouped metric rankings:
 2. Each group contains full Price, Speed, and Quality Score tables.
 3. JSON exposes `metricRankings.local.price|speed|qualityScore`.
 4. JSON exposes `metricRankings.thirdPartyService.price|speed|qualityScore`.
-5. The single-run JSON does not emit `rankingSurfaces`, `overall`, `overallMetric`, `overallWeights`, or `tiering`; combined cross-run reports add per-group weighted composites and model tiers (see Combined Cross-Run Report).
+5. The single-run JSON does not emit `rankingSurfaces`, `overall`, `overallMetric`, `overallWeights`, or `tiering`; combined cross-run reports keep the same per-group metric rankings and add no weighted composites or model tiers (see Combined Cross-Run Report).
 
 Quality Score rankings use the existing WER-derived score from highest to lowest, with WER and CER retained as evidence. Price rankings use zero monetary cost for local OCR providers and reported cost for third-party services, keeping missing service price at the end. Speed rankings keep missing timing at the end.
 
@@ -45,6 +45,8 @@ Quality Score rankings use the existing WER-derived score from highest to lowest
 5. `ocr-benchmark-summary.md` with a short human-readable summary of page-level hybrid sources, outlier counts, adjudication candidates, and variant distances.
 
 These are repo-local consensus-skill artifacts only. They do not add production CLI flags or public APIs, and they must be generated from existing provider artifacts unless the user separately approves an exact paid provider rerun.
+
+On a category root such as `docs/benchmarks/ocr`, run `compact-archive` before the combined report. It strips duplicated `providers[].result` payloads from each run `manifest.json` when `result.json` exists, minifies `provider-comparison-report.json`, `page-metrics.json`, `outliers.json`, `selective-adjudication-pages.json`, `variant-comparison-summary.json`, and the archive-root `combined-comparison-report.json`, rewrites absolute run paths in those files to run-relative paths, deletes regenerable `page-inputs/` trees, and deletes per-page resume checkpoints (`providers/*/page-results/`, `fallback-state.json`, `partial-extraction.txt`) once the sibling `result.json` exists. Failed providers without `result.json` keep those checkpoints, including invalid-response files. Markdown reports stay pretty-printed. See `references/shared-conventions.md`.
 
 ## Combined Cross-Run Report
 
@@ -59,6 +61,5 @@ bun scripts/run.ts ocr build-combined-report "$ROOT_DIR"
 1. Quality score: unweighted mean of the per-run `metrics.score`, ranked highest first. Weighted WER and weighted CER (summed breakdown errors over summed reference counts) are retained as evidence.
 2. Speed: aggregate pages per minute — `sum(pageCount) / sum(processingTimeMs / 60000)` — ranked highest first, missing timing last.
 3. Price: USD per 100 pages — `sum(costCents) / sum(pageCount)` — ranked lowest first, local providers at zero, missing cost last.
-4. Weighted composites and model tiers: identical per-group methodology to the STT combined report (eight weight sets over per-run min-max Q/S/C subscores; `quality-cost-terciles-v1` tiers formed from contiguous, near-equal slices of the `qualityCost` ranking only, with remainder models assigned to higher tiers first).
 
-Output is written to `$ROOT_DIR/combined-comparison-report.json` (schema v2), `combined-comparison-report.md`, and `combined-comparison-report.html`. The `.html` is a self-contained dashboard (all data embedded, inline CSS/JS, zero third-party dependencies, works from `file://`) consolidating the same per-group data; see ADR-014. The report follows the same group split as single-run reports (`local`, `thirdPartyService`) — local and service providers are never ranked against each other — and emits no cross-group overall or `rankingSurfaces` leaderboard. The hand-authored `2026-06-14_combined-provider-comparison-report.md` predates this command and is preserved as a historical record.
+Output is written to `$ROOT_DIR/combined-comparison-report.json` (schema v3), `combined-comparison-report.md`, and `combined-comparison-report.html`. The `.html` is a self-contained dashboard (all data embedded, inline CSS, zero third-party dependencies, works from `file://`) consolidating the same per-group metric rankings. The report follows the same group split as single-run reports (`local`, `thirdPartyService`) — local and service providers are never ranked against each other — and emits no weighted composites, model tiers, cross-group overall, or `rankingSurfaces` leaderboard. The hand-authored `2026-06-14_combined-provider-comparison-report.md` predates this command and is preserved as a historical record.

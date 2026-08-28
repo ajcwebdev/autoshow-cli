@@ -6,11 +6,8 @@ const SGR_COLOR_PATTERN = /^\x1b\[[0-9;]*m$/
 
 let colorOverride: 'force' | 'disable' | undefined
 
-// Set by the global --color / --no-color flags. Takes precedence over the
-// FORCE_COLOR / NO_COLOR environment conventions, which remain honored for
-// CI / cross-tool composition when no flag is passed.
-export const configureColor = (mode: 'force' | 'disable'): void => {
-  colorOverride = mode
+export const configureColor = (mode: 'force' | 'disable' | 'auto'): void => {
+  colorOverride = mode === 'auto' ? undefined : mode
 }
 
 const isForceColorEnabled = (): boolean => {

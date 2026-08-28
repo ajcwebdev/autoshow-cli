@@ -1,12 +1,13 @@
 import { isRecord } from '~/utils/rest-client'
-import { mkdir, stat } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { ensureDirectory, writeFile } from '~/utils/cli-utils'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { validateData } from '~/utils/validate/validation'
 import { estimateTokens } from '~/utils/text-utils'
-import { InfraError, ValidationError } from '~/utils/error-handler'
+import { InfraError, serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
 import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-child-output'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { buildArticleSlug } from '~/cli/commands/process-steps/step-1-download/document/prepare-html-article'
@@ -31,7 +32,7 @@ import {
   parseStoredProviderArray,
   resolveProviderCompletionStatus
 } from '../step-2-shared/provider-batch-state'
-
+import { extractErrorMetadata } from '~/utils/error-handler'
 
 const readLocalHtmlFileSize = async (source: string): Promise<number | undefined> => {
   if (isRemoteSource(source)) {
@@ -60,11 +61,9 @@ const buildUrlRunOptions = (
 })
 
 const getErrorAttempts = (error: unknown): number => {
-  if (error && typeof error === 'object' && 'attemptsMade' in error) {
-    const attempts = (error as { attemptsMade?: unknown }).attemptsMade
-    if (typeof attempts === 'number' && Number.isFinite(attempts) && attempts > 0) {
-      return Math.floor(attempts)
-    }
+  const attempts = extractErrorMetadata(error)['attemptsMade']
+  if (typeof attempts === 'number' && Number.isFinite(attempts) && attempts > 0) {
+    return Math.floor(attempts)
   }
   return 1
 }
@@ -171,18 +170,6 @@ export const writeExtractionArtifact = async (
     return
   }
 
-  if (outputFormat === 'tsv') {
-    const tsv = extractionResult.pages.map(page => `${page.pageNumber}\t${page.text.replace(/\n/g, ' ')}`).join('\n')
-    await writeFile(join(outputDir, 'extraction.tsv'), `${tsv}\n`)
-    return
-  }
-
-  if (outputFormat === 'hocr') {
-    const hocr = extractionResult.pages.map(page => `<div class="page" data-page="${page.pageNumber}">${page.text}</div>`).join('\n')
-    await writeFile(join(outputDir, 'extraction.hocr'), `${hocr}\n`)
-    return
-  }
-
   await writeFile(join(outputDir, 'extraction.txt'), `${extractionResult.text}\n`)
 }
 
@@ -214,7 +201,10 @@ const runSingleUrlBackend = async (
       article = run.article
       attempts = run.attempts
     } catch (defuddleError) {
-      l.warn(`Defuddle article extraction failed; falling back to Firecrawl: ${formatErrorMessage(defuddleError)}`)
+      l.warn(`Defuddle article extraction failed; falling back to Firecrawl: ${formatErrorMessage(defuddleError)}`, {
+        category: 'pipeline',
+        metadata: { fallbackBackend: 'firecrawl', error: serializeDiagnosticError(defuddleError) }
+      })
       try {
         const run = await runUrlArticleProviderWithStats('firecrawl', source, sourceUrl, urlRunOptions)
         article = run.article
@@ -224,7 +214,11 @@ const runSingleUrlBackend = async (
         throw InfraError(
           `Defuddle article extraction failed and Firecrawl fallback failed. ` +
           `Defuddle: ${formatErrorMessage(defuddleError)} Firecrawl: ${formatErrorMessage(firecrawlError)}`,
-          { stage: 'extract:url' }
+          {
+            stage: 'extract:url',
+            metadata: { defuddleError: serializeDiagnosticError(defuddleError) },
+            ...(firecrawlError instanceof Error ? { cause: firecrawlError } : {})
+          }
         )
       }
     }
@@ -308,7 +302,7 @@ export const buildProviderStates = (
       artifactDir: getUrlProviderArtifactDir(backend),
       status: outcome.status,
       attempts: outcome.status === 'skipped' ? 0 : outcome.attempts,
-      lastError: {
+      error: {
         message: outcome.message
       }
     }
@@ -529,8 +523,8 @@ export const parseStoredProviderStates = (metadata: Record<string, unknown>): Ur
       attempts: typeof entry['attempts'] === 'number' ? entry['attempts'] : 0,
       ...(isRecord(entry['metadata']) ? { metadata: entry['metadata'] } : {}),
       ...(isRecord(entry['result']) ? { result: entry['result'] } : {}),
-      ...(isRecord(entry['lastError']) && typeof entry['lastError']['message'] === 'string'
-        ? { lastError: { message: entry['lastError']['message'] } }
+      ...(isRecord(entry['error']) && typeof entry['error']['message'] === 'string'
+        ? { error: { message: entry['error']['message'] } }
         : {})
     } satisfies UrlProviderState
   })

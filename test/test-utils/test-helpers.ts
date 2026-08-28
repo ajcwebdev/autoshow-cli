@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
-import { mkdir, readdir, rm, appendFile, copyFile, stat } from 'node:fs/promises'
+import { mkdir, readdir, rm, appendFile, copyFile } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { basename, dirname, isAbsolute, join, normalize, relative, resolve } from 'node:path'
 import { parseCommandOutputText } from '../test-runner/utils'
 import {
@@ -18,13 +19,21 @@ import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
 import type {
   AdaptiveCommandAttemptRecord,
   AdaptiveConcurrencyConfig,
+  CallerLocation,
   CommandResultBase,
+  RunCommandArtifacts,
   RunCommandAttemptResult,
   RunCommandOptions,
   RunCommandResult
 } from '~/types'
+import { hasErrorCode, serializeDiagnosticError } from '~/utils/error-handler'
+import { l } from '~/utils/app-logger/app-logger'
+import { isRecord } from '~/utils/value-helpers'
+import { pathExists } from '~/utils/filesystem'
+import { childEnv } from '~/utils/child-env'
+import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 
-const TEST_OUTPUT_ROOT = 'project/test-output'
+const TEST_OUTPUT_ROOT = 'output/test-output'
 
 const sanitizeOutputRootSegment = (value: string): string =>
   value.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'run'
@@ -44,8 +53,6 @@ const resolveTestOutputDir = (): string => {
 }
 
 export const OUTPUT_DIR = resolveTestOutputDir()
-// In-process tests call production getOutputRoot() directly; point it at the test
-// output dir. (Production no longer reads AUTOSHOW_OUTPUT_DIR — it is flag-driven.)
 configureOutputRoot(OUTPUT_DIR)
 const EXAMPLE_AUDIO_URL = 'https://ajc.pics/autoshow/examples/1-audio.mp3'
 export const EXAMPLE_SHORT_AUDIO_URL = 'https://ajc.pics/autoshow/examples/0-audio-short.mp3'
@@ -121,7 +128,7 @@ const copyManifestToArtifacts = async (outputDir: string | null, outputRoot: str
   const srcPath = `${absoluteOutputDir}/manifest.json`
 
   try {
-    const exists = await fileExists(srcPath)
+    const exists = await pathExists(srcPath)
     if (!exists) {
       return
     }
@@ -155,7 +162,7 @@ const HELP_FLAGS = new Set(['--help', '-h'])
 
 export const CLI_SOURCE_ENTRY = 'src/cli/create-cli.ts'
 
-export const resolveCliSpawnArgs = (args: string[], forceSource = false): string[] => {
+const resolveCliSpawnArgs = (args: string[], forceSource = false): string[] => {
   const bundle = process.env['AUTOSHOW_TEST_CLI_BUNDLE']?.trim()
   if (!forceSource && bundle && args[0] === CLI_SOURCE_ENTRY) {
     return [bundle, ...args.slice(1)]
@@ -164,12 +171,14 @@ export const resolveCliSpawnArgs = (args: string[], forceSource = false): string
 }
 
 let commandOutputCounter = 0
-const BASE_CHILD_ENV = Object.entries(process.env).reduce<Record<string, string>>((env, [key, value]) => {
-  if (typeof value === 'string') {
-    env[key] = value
-  }
-  return env
-}, {})
+let commandMetricsWriteWarned = false
+const BASE_CHILD_ENV = childEnv({
+  allow: [
+    ...HOSTED_PROVIDER_ENV_CHECKS.map(provider => provider.envVar),
+    'AUTOSHOW_PROJECT_ROOT',
+    'AUTOSHOW_TEST_CLI_BUNDLE'
+  ]
+})
 
 const shouldUseEmptyTestConfig = (args: string[]): boolean => {
   if (args[0] !== CLI_SOURCE_ENTRY) {
@@ -321,7 +330,7 @@ const runCommandAttempt = async (
   const spawnEnv = spawnArgs[0] !== args[0] && !env['AUTOSHOW_PROJECT_ROOT']
     ? { ...env, AUTOSHOW_PROJECT_ROOT: process.cwd() }
     : env
-  const proc = Bun.spawn(['bun', ...spawnArgs], {
+  const proc = Bun.spawn(['bun', '--no-env-file', ...spawnArgs], {
     stdout: 'pipe',
     stderr: 'pipe',
     env: spawnEnv,
@@ -442,6 +451,105 @@ const runCommandWithOptionalAdaptiveConcurrency = async (
   return { exitCode, stdout, stderr, adaptiveRecords }
 }
 
+export const injectGlobalCliFlags = (
+  baseChildArgs: string[],
+  outputRoot: string,
+  overrideBinDir: string | undefined
+): string[] => {
+  const injectedGlobalFlags = isProcessingCliCommand(baseChildArgs)
+    ? [
+      '--output-root', outputRoot,
+      ...(overrideBinDir ? ['--bin-dir', overrideBinDir] : [])
+    ]
+    : []
+
+  if (injectedGlobalFlags.length === 0) {
+    return baseChildArgs
+  }
+
+  const passthroughIndex = baseChildArgs.indexOf('--')
+  return passthroughIndex === -1
+    ? [...baseChildArgs, ...injectedGlobalFlags]
+    : [
+      ...baseChildArgs.slice(0, passthroughIndex),
+      ...injectedGlobalFlags,
+      ...baseChildArgs.slice(passthroughIndex)
+    ]
+}
+
+const buildChildEnv = (optsEnv: Record<string, string | undefined> | undefined): Record<string, string | undefined> => ({
+  ...BASE_CHILD_ENV,
+  FORCE_COLOR: '0',
+  ...(optsEnv ?? {})
+})
+
+const collectRunArtifacts = async (
+  stdout: string,
+  stderr: string,
+  outputRoot: string
+): Promise<RunCommandArtifacts> => {
+  const { outputDir, estimatedCostCents: parsedEstimatedCostCents } = parseCommandOutputText(`${stdout}\n${stderr}`)
+  await copyManifestToArtifacts(outputDir, outputRoot)
+  const absoluteOutputDir = outputDir
+    ? (isAbsolute(outputDir) ? outputDir : resolve(process.cwd(), outputDir))
+    : null
+  const metadataSummary = absoluteOutputDir
+    ? await readOutputMetadataSummary(`${absoluteOutputDir}/manifest.json`)
+    : null
+
+  return { outputDir, absoluteOutputDir, metadataSummary, parsedEstimatedCostCents }
+}
+
+const appendCommandMetricsRecord = async (
+  metricsLogPath: string,
+  parts: {
+    commandText: string
+    args: string[]
+    exitCode: number
+    durationMs: number
+    outputRoot: string
+    caller: CallerLocation
+    testName: string | null
+    runArtifacts: RunCommandArtifacts
+    adaptiveConfig: AdaptiveConcurrencyConfig | null
+    adaptiveRetryAttempts: number
+  }
+): Promise<void> => {
+  const { runArtifacts, caller } = parts
+  const record = {
+    kind: 'command_metric',
+    at: new Date().toISOString(),
+    source: 'runCommand',
+    command: parts.commandText,
+    args: parts.args,
+    exitCode: parts.exitCode,
+    durationMs: parts.durationMs,
+    outputDir: runArtifacts.outputDir,
+    outputRoot: parts.outputRoot,
+    callerFile: caller.file,
+    callerLine: caller.line,
+    callerColumn: caller.column,
+    testName: parts.testName,
+    estimatedCostCents: runArtifacts.metadataSummary?.estimatedCostCents ?? runArtifacts.parsedEstimatedCostCents,
+    actualCostCents: runArtifacts.metadataSummary?.actualCostCents ?? null,
+    estimatedProcessingTimeMs: runArtifacts.metadataSummary?.estimatedProcessingTimeMs ?? null,
+    actualProcessingTimeMs: runArtifacts.metadataSummary?.actualProcessingTimeMs ?? null,
+    adaptiveConcurrencyGroups: parts.adaptiveConfig ? extractAdaptiveProviderGroups(parts.args) : [],
+    adaptiveRetryAttempts: parts.adaptiveRetryAttempts,
+  }
+
+  try {
+    await appendFile(metricsLogPath, `${JSON.stringify(record)}\n`)
+  } catch (error) {
+    if (commandMetricsWriteWarned) return
+    commandMetricsWriteWarned = true
+    l.warn(`Could not append to the command metrics log at ${metricsLogPath}; pricing reports will be incomplete`, {
+      category: 'pricing',
+      metadata: { metricsLogPath, error: serializeDiagnosticError(error) }
+    })
+  }
+}
+
 export const runCommand = async (args: string[], opts?: RunCommandOptions): Promise<RunCommandResult> => {
   const testName = opts?.testName ?? null
   const baseChildArgs = withEmptyTestConfig(args)
@@ -451,39 +559,9 @@ export const runCommand = async (args: string[], opts?: RunCommandOptions): Prom
   const timeoutMs = opts?.timeoutMs ?? SUBPROCESS_TIMEOUT
   const outputRoot = await resolveCommandOutputRoot(baseChildArgs, testName, opts?.env)
 
-  // Production reads config from flags, not env. Translate the harness's output-root
-  // and optional bin-dir conventions into the global CLI flags the child understands.
-  // Only inject for processing commands (the ones that consume the output root and the
-  // managed binaries); help invocations do not need either. Insert BEFORE any `--`
-  // passthrough separator so the flags are parsed by AutoShow, not forwarded to yt-dlp.
-  const overrideBinDir = opts?.env?.['AUTOSHOW_BIN_DIR']?.trim()
-  const injectedGlobalFlags = isProcessingCliCommand(baseChildArgs)
-    ? [
-      '--output-root', outputRoot,
-      ...(overrideBinDir ? ['--bin-dir', overrideBinDir] : [])
-    ]
-    : []
-  const passthroughIndex = baseChildArgs.indexOf('--')
-  const childArgs = injectedGlobalFlags.length === 0
-    ? baseChildArgs
-    : passthroughIndex === -1
-      ? [...baseChildArgs, ...injectedGlobalFlags]
-      : [
-        ...baseChildArgs.slice(0, passthroughIndex),
-        ...injectedGlobalFlags,
-        ...baseChildArgs.slice(passthroughIndex)
-      ]
+  const childArgs = injectGlobalCliFlags(baseChildArgs, outputRoot, opts?.binDir?.trim())
   const cmdStr = `bun ${childArgs.join(' ')}`
-
-  const env = {
-    ...BASE_CHILD_ENV,
-    // Don't let an inherited FORCE_COLOR (set when `bun t` runs in an interactive
-    // terminal) force ANSI codes into child CLI output. FORCE_COLOR overrides both
-    // NO_COLOR and non-TTY detection (see shouldUseTerminalColors), which breaks
-    // plain-substring assertions. Tests that need color can re-enable via opts.env.
-    FORCE_COLOR: '0',
-    ...(opts?.env ?? {})
-  }
+  const env = buildChildEnv(opts?.env)
 
   const caller = parseCallerLocation()
   const adaptiveConfig = shouldUseAdaptiveConcurrency(childArgs, caller.file, env)
@@ -503,43 +581,21 @@ export const runCommand = async (args: string[], opts?: RunCommandOptions): Prom
   )
   const duration = Date.now() - startTime
 
-  const { outputDir, estimatedCostCents: parsedEstimatedCostCents } = parseCommandOutputText(`${stdout}\n${stderr}`)
-  const effectiveOutputRoot = outputRoot
-  await copyManifestToArtifacts(outputDir, effectiveOutputRoot)
-  const absoluteOutputDir = outputDir
-    ? (isAbsolute(outputDir) ? outputDir : resolve(process.cwd(), outputDir))
-    : null
-  const metadataSummary = absoluteOutputDir
-    ? await readOutputMetadataSummary(`${absoluteOutputDir}/manifest.json`)
-    : null
+  const runArtifacts = await collectRunArtifacts(stdout, stderr, outputRoot)
 
   if (metricsLogPath) {
-    const record = {
-      kind: 'command_metric',
-      at: new Date().toISOString(),
-      source: 'runCommand',
-      command: cmdStr,
+    await appendCommandMetricsRecord(metricsLogPath, {
+      commandText: cmdStr,
       args: childArgs,
       exitCode,
       durationMs: duration,
-      outputDir,
-      outputRoot: effectiveOutputRoot,
-      callerFile: caller.file,
-      callerLine: caller.line,
-      callerColumn: caller.column,
+      outputRoot,
+      caller,
       testName,
-      estimatedCostCents: metadataSummary?.estimatedCostCents ?? parsedEstimatedCostCents,
-      actualCostCents: metadataSummary?.actualCostCents ?? null,
-      estimatedProcessingTimeMs: metadataSummary?.estimatedProcessingTimeMs ?? null,
-      actualProcessingTimeMs: metadataSummary?.actualProcessingTimeMs ?? null,
-      adaptiveConcurrencyGroups: adaptiveConfig ? extractAdaptiveProviderGroups(childArgs) : [],
+      runArtifacts,
+      adaptiveConfig,
       adaptiveRetryAttempts: adaptiveRecords.length,
-    }
-
-    try {
-      await appendFile(metricsLogPath, `${JSON.stringify(record)}\n`)
-    } catch {
-    }
+    })
   }
 
   if (commandLogPath) {
@@ -548,17 +604,10 @@ export const runCommand = async (args: string[], opts?: RunCommandOptions): Prom
       `\n=== START cmd: ${cmdStr} ===\nstdout:\n${stdout}\nstderr:\n${stderr}\n=== END cmd: ${cmdStr} (exit=${exitCode}, ${duration}ms) ===\n`
     )
   }
-  return { exitCode, stdout, stderr, outputDir, outputRoot: effectiveOutputRoot }
+  return { exitCode, stdout, stderr, outputDir: runArtifacts.outputDir, outputRoot }
 }
 
-export const fileExists = async (path: string): Promise<boolean> => {
-  try {
-    await stat(path)
-    return true
-  } catch {
-    return false
-  }
-}
+export { pathExists as fileExists }
 
 export const ensurePageImageFixture = async (path = 'input/examples/document/1-document.png'): Promise<void> => {
   await Bun.write(path, Buffer.from(PAGE_IMAGE_PNG_BASE64, 'base64'))
@@ -619,9 +668,19 @@ export const findLatestDirectory = async (
     })
 
     return stats[stats.length - 1]?.dir ?? null
-  } catch {
-    return null
+  } catch (error) {
+    if (hasErrorCode(error, 'ENOENT')) {
+      return null
+    }
+    throw error
   }
+}
+
+export const cleanupOutputDir = async (dir: string | null | undefined): Promise<void> => {
+  if (!dir || shouldPreserveArtifacts()) {
+    return
+  }
+  await rm(dir, { recursive: true, force: true }).catch(() => {})
 }
 
 export const cleanupTestOutput = async (titleSuffix: string): Promise<void> => {
@@ -666,9 +725,7 @@ export const readConfiguredEnvVarSync = (key: string): string | undefined => {
   return undefined
 }
 
-export const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null
-}
+export { isRecord }
 
 export const toRecordArray = (value: unknown): Record<string, unknown>[] => {
   if (Array.isArray(value)) {

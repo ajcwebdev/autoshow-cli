@@ -6,10 +6,9 @@ import {
   validateMinimaxMusicModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { deriveGenerationPricingProviders, MUSIC_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
-import type { EstimateMusicCostOptions, MusicCostEstimate, MusicProvider } from '~/types'
+import type { EstimateMusicCostOptions, MusicCostEstimate, MusicProvider, ProviderModelSelectionSpec } from '~/types'
 import { InternalError, ValidationError } from '~/utils/error-handler'
 import { collectSelections, passThroughKeys } from '~/utils/pricing/model-selection'
-import type { ProviderModelSelectionSpec } from '~/utils/pricing/model-selection'
 
 export const MUSIC_PRICING_PROVIDERS = deriveGenerationPricingProviders(MUSIC_GENERATION_SELECTION) satisfies readonly ProviderModelSelectionSpec<EstimateMusicCostOptions, MusicProvider>[]
 

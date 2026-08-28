@@ -4,11 +4,6 @@ export const HELP_COMMAND_GROUPS = [
   ['processing', 'Processing & Generation']
 ] as const
 
-// Section order for grouped flag help on *every* command, not just `config`.
-// `renderGroupedFlags` walks this list and prints each group that some flag
-// claims via `withHelpGroup`, then dumps whatever is left in an unlabeled
-// trailing block — so a group missing from here does not error, it silently
-// renders ungrouped. `help-flag-groups.test.ts` pins the two sides equal.
 export const HELP_FLAG_GROUPS = [
   ['config', 'Config'],
   ['document-options', 'Document Options'],
@@ -22,14 +17,10 @@ export const HELP_FLAG_GROUPS = [
   ['ocr-document', 'OCR / Document Extraction'],
   ['article-extraction', 'Article Extraction'],
   ['batch-processing', 'Batch Processing'],
-  ['epub-inspect', 'EPUB Inspect'],
   ['transcript-video', 'Transcript Video'],
   ['writing', 'Writing'],
   ['tts-options', 'Text to Speech'],
   ['tts-minimax', 'MiniMax TTS'],
-  ['tts-deepgram', 'Deepgram TTS'],
-  ['tts-speechify', 'Speechify TTS'],
-  ['tts-hume', 'Hume TTS'],
   ['tts-dialogue', 'Multi-Speaker / Dialogue'],
   ['tts-elevenlabs', 'ElevenLabs TTS'],
   ['image-options', 'Image Options'],
@@ -38,8 +29,6 @@ export const HELP_FLAG_GROUPS = [
   ['video-options', 'Video Options'],
   ['video-inputs', 'Video Inputs'],
   ['replicate-video', 'Replicate Video'],
-  ['fal-video', 'fal.ai Video'],
-  ['grok-storage', 'Grok Storage Options'],
   ['hosted-music', 'Hosted Music'],
   ['comic-panels', 'Panel Selection'],
   ['comic-reference', 'Reference Sheet'],

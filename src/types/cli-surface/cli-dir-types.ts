@@ -77,7 +77,7 @@ export type ResolvedStep2Execution =
     }
   | {
       route: 'native-document'
-      sourceKind: 'epub' | 'epub-inspect' | 'office' | 'rtf' | 'csv'
+      sourceKind: 'epub' | 'office' | 'rtf' | 'csv'
     }
   | {
       route: 'unsupported'

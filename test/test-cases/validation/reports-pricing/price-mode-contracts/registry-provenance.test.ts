@@ -3,6 +3,7 @@ import { safeParse } from 'valibot'
 import { getModelRegistry, ModelRegistrySchema } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { JsonObject, ModelRegistry, RegistryModelRecord } from '~/types'
 import { isRecord } from './shared'
+import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const PRICING_PROVENANCE_FIELDS = [
   'pricingSourceUrl',
@@ -151,10 +152,7 @@ describe('price mode contracts', () => {
           const registry = structuredClone(getModelRegistry())
           const services = registry[category] as Record<string, { models: Record<string, JsonObject> }>
           const service = Object.values(services)[0]
-          const model = Object.values(service?.models ?? {})[0]
-          if (!model) {
-            throw new Error(`Missing ${category} registry model fixture`)
-          }
+          const model = requireDefined(Object.values(service?.models ?? {})[0], `${category} registry model fixture`)
           model[field] = 1
           return safeParse(ModelRegistrySchema, registry).success
             ? [`${category}.${field}`]
@@ -164,10 +162,7 @@ describe('price mode contracts', () => {
 
       const acceptedTokenBandFields = RETIRED_USD_TOKEN_BAND_FIELDS.flatMap((field) => {
         const registry = structuredClone(getModelRegistry())
-        const band = registry.llm['minimax']?.models['MiniMax-M3']?.tokenPricingBands?.[0]
-        if (!band) {
-          throw new Error('Missing MiniMax-M3 token pricing band fixture')
-        }
+        const band = requireDefined(registry.llm['minimax']?.models['MiniMax-M3']?.tokenPricingBands?.[0], 'MiniMax-M3 token pricing band fixture')
         ;(band as unknown as JsonObject)[field] = 1
         return safeParse(ModelRegistrySchema, registry).success
           ? [`llm.tokenPricingBands.${field}`]
@@ -179,8 +174,7 @@ describe('price mode contracts', () => {
 
   test('hosted LLM and OCR lifecycle schemas enforce static retirement evidence and concrete replacements', () => {
       const invalidReplacement = structuredClone(getModelRegistry())
-      const invalidReplacementModel = invalidReplacement.llm['gemini']?.models['gemini-3.6-flash']
-      if (!invalidReplacementModel) throw new Error('Missing Gemini LLM lifecycle fixture')
+      const invalidReplacementModel = requireDefined(invalidReplacement.llm['gemini']?.models['gemini-3.6-flash'], 'Gemini LLM lifecycle fixture')
       invalidReplacementModel.lifecycle = {
         status: 'deprecated',
         shutdownDate: '2027-05-07',
@@ -193,8 +187,7 @@ describe('price mode contracts', () => {
       }
 
       const missingEvidence = structuredClone(getModelRegistry())
-      const missingEvidenceModel = missingEvidence.extract['gemini']?.models['gemini-3.6-flash']
-      if (!missingEvidenceModel) throw new Error('Missing Gemini OCR lifecycle fixture')
+      const missingEvidenceModel = requireDefined(missingEvidence.extract['gemini']?.models['gemini-3.6-flash'], 'Gemini OCR lifecycle fixture')
       missingEvidenceModel.lifecycle = {
         status: 'deprecated',
         replacementModel: 'gemini-3.5-flash-lite',
@@ -205,8 +198,7 @@ describe('price mode contracts', () => {
       }
 
       const invalidDate = structuredClone(getModelRegistry())
-      const invalidDateModel = invalidDate.llm['gemini']?.models['gemini-3.6-flash']
-      if (!invalidDateModel) throw new Error('Missing Gemini LLM lifecycle date fixture')
+      const invalidDateModel = requireDefined(invalidDate.llm['gemini']?.models['gemini-3.6-flash'], 'Gemini LLM lifecycle date fixture')
       invalidDateModel.lifecycle = {
         status: 'deprecated',
         shutdownDate: '2027-02-31',
@@ -219,8 +211,7 @@ describe('price mode contracts', () => {
       }
 
       const invalidActiveEligibility = structuredClone(getModelRegistry())
-      const invalidActiveModel = invalidActiveEligibility.extract['gemini']?.models['gemini-3.6-flash']
-      if (!invalidActiveModel) throw new Error('Missing Gemini OCR active lifecycle fixture')
+      const invalidActiveModel = requireDefined(invalidActiveEligibility.extract['gemini']?.models['gemini-3.6-flash'], 'Gemini OCR active lifecycle fixture')
       invalidActiveModel.lifecycle = {
         status: 'active',
         defaultEligible: false,

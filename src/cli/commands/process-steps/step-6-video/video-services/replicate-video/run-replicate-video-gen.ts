@@ -1,6 +1,6 @@
 import { mkdir } from 'node:fs/promises'
-import type { ReplicatePrediction, ReplicateVideoBuildResult, ReplicateVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import type { ReplicatePrediction, ReplicateVideoBuildResult, ReplicateVideoGenOptions, Step6VideoMetadata, VideoMode } from '~/types'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateReplicateCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import {
@@ -24,31 +24,12 @@ import { normalizeReplicateOutputUris, runReplicatePrediction } from '~/utils/re
 
 const MAX_SEEDANCE_REFERENCE_DURATION_SECONDS = 15
 
-type ReplicateVideoGenOptions = {
-  model: ReplicateVideoModel
-  mode?: VideoMode | undefined
-  durationSeconds?: number | undefined
-  resolution?: string | undefined
-  aspectRatio?: string | undefined
-  inputImage?: string | undefined
-  lastFrameImage?: string | undefined
-  referenceImages?: string[] | undefined
-  inputVideo?: string | undefined
-  referenceVideos?: string[] | undefined
-  referenceAudios?: string[] | undefined
-  negativePrompt?: string | undefined
-  generateAudio?: boolean | undefined
-  seed?: number | undefined
-  multiPrompt?: string | undefined
-  multiClip?: boolean | undefined
-}
-
 const hasText = (value: string | undefined): value is string =>
   typeof value === 'string' && value.trim().length > 0
 
 const requirePrompt = (prompt: string | undefined, label: string): string => {
   if (!hasText(prompt)) {
-    throw CLIUsageError(`${label} video prompt cannot be empty.`)
+    throw UsageError(`${label} video prompt cannot be empty.`)
   }
   return prompt
 }
@@ -59,24 +40,24 @@ const normalizeKlingMultiPrompt = (value: string | undefined, duration: number):
   try {
     parsed = JSON.parse(value)
   } catch {
-    throw CLIUsageError('--replicate-video-multi-prompt must be a valid JSON array.')
+    throw UsageError('--replicate-video-multi-prompt must be a valid JSON array.')
   }
   if (!Array.isArray(parsed) || parsed.length < 1 || parsed.length > 6) {
-    throw CLIUsageError('--replicate-video-multi-prompt must contain 1 through 6 shots.')
+    throw UsageError('--replicate-video-multi-prompt must contain 1 through 6 shots.')
   }
   let totalDuration = 0
   for (const shot of parsed) {
     if (typeof shot !== 'object' || shot === null || typeof (shot as { prompt?: unknown }).prompt !== 'string') {
-      throw CLIUsageError('Each --replicate-video-multi-prompt shot must contain a string prompt and integer duration.')
+      throw UsageError('Each --replicate-video-multi-prompt shot must contain a string prompt and integer duration.')
     }
     const shotDuration = (shot as { duration?: unknown }).duration
     if (typeof shotDuration !== 'number' || !Number.isInteger(shotDuration) || shotDuration < 1) {
-      throw CLIUsageError('Each --replicate-video-multi-prompt shot duration must be an integer of at least 1 second.')
+      throw UsageError('Each --replicate-video-multi-prompt shot duration must be an integer of at least 1 second.')
     }
     totalDuration += shotDuration
   }
   if (totalDuration !== duration) {
-    throw CLIUsageError(`--replicate-video-multi-prompt shot durations must total --video-duration (${duration}).`)
+    throw UsageError(`--replicate-video-multi-prompt shot durations must total --duration (${duration}).`)
   }
   return JSON.stringify(parsed)
 }
@@ -107,7 +88,7 @@ const validateSeedanceReferenceDurations = async (
     knownTotal += duration ?? 0
   }
   if (knownTotal > MAX_SEEDANCE_REFERENCE_DURATION_SECONDS) {
-    throw CLIUsageError(`Replicate Seedance reference ${kind}s must total 15 seconds or less.`)
+    throw UsageError(`Replicate Seedance reference ${kind}s must total 15 seconds or less.`)
   }
 }
 
@@ -293,7 +274,7 @@ const buildReplicateVideoInput = async (
   if (isReplicatePixVerseVideoModel(options.model)) {
     return await buildPixVerseInput(prompt, { ...options, mode })
   }
-  throw CLIUsageError(`Unsupported Replicate video model: ${options.model}`)
+  throw UsageError(`Unsupported Replicate video model: ${options.model}`)
 }
 
 export const runReplicateVideoGen = async (
@@ -305,12 +286,12 @@ export const runReplicateVideoGen = async (
   const referenceVideoCount = (options.inputVideo ? 1 : 0) + (options.referenceVideos?.length ?? 0)
   const request = await buildReplicateVideoInput(prompt, options)
   const estimate = estimateReplicateCost(options.model, {
-    replicateVideoModel: options.model,
+    replicateVideoModels: [options.model],
     videoDuration: options.durationSeconds,
     videoResolution: options.resolution,
     videoMode: request.requestMode,
     replicateVideoReferenceVideoCount: referenceVideoCount,
-    replicateVideoGenerateAudio: options.generateAudio,
+    videoGenerateAudio: options.generateAudio,
     ...(request.inputVideoDurationSeconds !== undefined ? { replicateInputVideoDurationSeconds: request.inputVideoDurationSeconds } : {})
   })
   logVideoEstimate(estimate)

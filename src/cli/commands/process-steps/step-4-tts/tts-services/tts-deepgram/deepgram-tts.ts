@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureDeepgramTtsSetup = ensureApiKeySetup('DEEPGRAM_API_KEY', 'tts:deepgram', 'Deepgram TTS')
+export const ensureDeepgramTtsSetup = async (): Promise<void> => { resolveCredential('deepgram', 'require', { stage: 'tts:deepgram', description: 'Deepgram TTS' }) }

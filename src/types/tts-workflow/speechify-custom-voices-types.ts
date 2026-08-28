@@ -11,7 +11,7 @@ export type SpeechifyTtsCustomVoiceResult = {
   sourceAudio: TtsCustomVoiceSampleAudio
 }
 
-export type SpeechifyTtsCustomVoiceContext = {
+type SpeechifyTtsCustomVoiceContext = {
   voicePromise?: Promise<SpeechifyTtsCustomVoiceResult> | undefined
 }
 

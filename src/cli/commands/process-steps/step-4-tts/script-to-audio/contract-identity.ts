@@ -1,12 +1,11 @@
-import { createHash } from 'node:crypto'
 import { isAbsolute, posix } from 'node:path'
-import type { ProviderRenderStrategy } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
-export { canonicalTargetKey } from '~/utils/canonical-target-key'
-export type { CanonicalProviderOperation as AudioProviderOperation } from '~/utils/canonical-target-key'
+import type { ArtifactPathScope, CanonicalValue, ProviderRenderStrategy } from '~/types'
+import { UsageError } from '~/utils/error-handler'
+import { safeKeyPart } from '~/utils/value-helpers'
+import { sha256Bytes } from '~/utils/value-helpers'
 
-type CanonicalPrimitive = string | number | boolean | null
-export type CanonicalValue = CanonicalPrimitive | CanonicalValue[] | { [key: string]: CanonicalValue }
+export { sha256Bytes }
+export { canonicalTargetKey } from '~/utils/canonical-target-key'
 
 const canonicalizeValue = (value: unknown, path: string): CanonicalValue => {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') {
@@ -14,7 +13,7 @@ const canonicalizeValue = (value: unknown, path: string): CanonicalValue => {
   }
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) {
-      throw CLIUsageError(`Cannot hash non-finite number at ${path}.`)
+      throw UsageError(`Cannot hash non-finite number at ${path}.`)
     }
     return Object.is(value, -0) ? 0 : value
   }
@@ -22,7 +21,7 @@ const canonicalizeValue = (value: unknown, path: string): CanonicalValue => {
     return value.map((entry, index) => canonicalizeValue(entry, `${path}[${index}]`))
   }
   if (typeof value !== 'object' || value === undefined) {
-    throw CLIUsageError(`Cannot canonically serialize ${typeof value} at ${path}.`)
+    throw UsageError(`Cannot canonically serialize ${typeof value} at ${path}.`)
   }
 
   const record = value as Record<string, unknown>
@@ -30,7 +29,7 @@ const canonicalizeValue = (value: unknown, path: string): CanonicalValue => {
   for (const key of Object.keys(record).sort()) {
     const entry = record[key]
     if (entry === undefined) {
-      throw CLIUsageError(`Cannot canonically serialize undefined at ${path}.${key}. Omit optional fields instead.`)
+      throw UsageError(`Cannot canonically serialize undefined at ${path}.${key}. Omit optional fields instead.`)
     }
     result[key] = canonicalizeValue(entry, `${path}.${key}`)
   }
@@ -39,9 +38,6 @@ const canonicalizeValue = (value: unknown, path: string): CanonicalValue => {
 
 export const canonicalTtsJson = (value: unknown): string =>
   JSON.stringify(canonicalizeValue(value, '$'))
-
-export const sha256Bytes = (value: string | Uint8Array): string =>
-  createHash('sha256').update(value).digest('hex')
 
 export const hashCanonicalTtsValue = (value: unknown): string =>
   sha256Bytes(canonicalTtsJson(value))
@@ -64,13 +60,8 @@ export const assertContentIdentity = <T extends Record<string, unknown>>(
   const actual = value[identityField]
   const expected = hashCanonicalRecordWithout(value, [identityField, ...additionalOmittedFields])
   if (typeof actual !== 'string' || actual !== expected) {
-    throw CLIUsageError(`${label} has an invalid ${identityField}; expected ${expected}.`)
+    throw UsageError(`${label} has an invalid ${identityField}; expected ${expected}.`)
   }
-}
-
-const safeKeyPart = (value: string): string => {
-  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-  return normalized.slice(0, 48) || 'none'
 }
 
 export const computeVoiceContextKey = (
@@ -79,14 +70,14 @@ export const computeVoiceContextKey = (
     | { kind: 'transient', turns: Array<{ turnId: string, bindingIdentityHash: string }> }
 ): string => {
   if (context.kind === 'approved-snapshot') {
-    if (!context.snapshotId.trim()) throw CLIUsageError('Approved voice context requires a snapshot ID.')
+    if (!context.snapshotId.trim()) throw UsageError('Approved voice context requires a snapshot ID.')
     return `approved:${context.snapshotId}`
   }
   const turns = context.turns.slice().sort((left, right) =>
     left.turnId.localeCompare(right.turnId) || left.bindingIdentityHash.localeCompare(right.bindingIdentityHash)
   )
   if (new Set(turns.map((turn) => turn.turnId)).size !== turns.length) {
-    throw CLIUsageError('Transient voice context contains duplicate turn IDs.')
+    throw UsageError('Transient voice context contains duplicate turn IDs.')
   }
   return hashCanonicalTtsValue({ schemaVersion: 1, kind: 'transient', turns })
 }
@@ -122,24 +113,7 @@ export const computePaidSpeechSlotHash = (input: {
   serializerVersion: input.serializerVersion,
 })
 
-export const computeLegacySingleRenderIdentity = (input: {
-  itemInput: string
-  targetKey: string
-  service: string
-  model: string | null | undefined
-  canonicalLegacyOptions: Record<string, unknown>
-  artifactDir: string
-  outputs: Array<{ path: string, sha256: string | 'unverified' }>
-}): string => `legacy:${hashCanonicalTtsValue({
-  schemaVersion: 1,
-  kind: 'pre-adr-single',
-  ...input,
-  outputs: input.outputs.slice().sort((left, right) => left.path.localeCompare(right.path))
-})}`
-
 const ENCODED_PATH_SEPARATOR_OR_DOT = /%(?:2e|2f|5c)/i
-
-export type ArtifactPathScope = 'render' | 'attempt' | 'batch-result' | 'audio-run'
 
 export const assertSafeArtifactRelativePath = (
   value: string,
@@ -155,18 +129,18 @@ export const assertSafeArtifactRelativePath = (
     || posix.isAbsolute(value)
     || ENCODED_PATH_SEPARATOR_OR_DOT.test(value)
   ) {
-    throw CLIUsageError(`Invalid ${scope} artifact path: ${value}`)
+    throw UsageError(`Invalid ${scope} artifact path: ${value}`)
   }
   const segments = value.split('/')
   if (segments.some((segment) => segment.length === 0 || segment === '.' || segment === '..')) {
-    throw CLIUsageError(`Invalid ${scope} artifact path: ${value}`)
+    throw UsageError(`Invalid ${scope} artifact path: ${value}`)
   }
   if (containingIdentity && segments.includes(containingIdentity)) {
-    throw CLIUsageError(`${scope} artifact path must not contain its parent identity: ${value}`)
+    throw UsageError(`${scope} artifact path must not contain its parent identity: ${value}`)
   }
   const normalized = posix.normalize(value)
   if (normalized !== value || normalized.startsWith('../')) {
-    throw CLIUsageError(`Invalid ${scope} artifact path: ${value}`)
+    throw UsageError(`Invalid ${scope} artifact path: ${value}`)
   }
   return value
 }

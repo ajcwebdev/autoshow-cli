@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { ResolvedSoundscapeTimeline, SoundEffectRenderPlan, SoundEffectRenderResult, SoundscapePlan } from '~/types'
 import { hashCanonicalTtsValue, sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
@@ -8,6 +7,7 @@ import { mixSoundscape } from '~/cli/commands/process-steps/step-4-tts/soundscap
 import { DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE } from '~/cli/commands/process-steps/step-4-tts/soundscape/soundscape-planner'
 import { inspectSoundscapeAudio } from '~/cli/commands/process-steps/step-4-tts/soundscape/soundscape-audio'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const h = (value: unknown) => hashCanonicalTtsValue(value)
 
@@ -49,9 +49,9 @@ const pcm24Metrics = async (path: string, rangeMs?: { start: number, end: number
   return { peak, rms: count === 0 ? 0 : Math.sqrt(squareSum / count) }
 }
 
-describe('ADR-018 deterministic four-bus mixer', () => {
+describe('ADR-017 deterministic four-bus mixer', () => {
   test('writes semantic stems, loops and ducks ambience, limits the master, and remains checksum deterministic', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-soundscape-mixer-'))
+    const root = await makeTempDir('autoshow-soundscape-mixer-')
     try {
       const writeSource = async (name: string, durationSeconds: number, amplitude: number, frequencyHz: number) => {
         const path = `sources/${name}.wav`

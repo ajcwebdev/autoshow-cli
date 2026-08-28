@@ -106,16 +106,3 @@ export const extractSupadataErrorMessage = (payload: unknown): string | undefine
 
   return undefined
 }
-
-export const readJsonOrText = async (response: Response): Promise<unknown> => {
-  const rawText = await response.text()
-  if (rawText.length === 0) {
-    return {}
-  }
-
-  try {
-    return JSON.parse(rawText) as unknown
-  } catch {
-    return rawText
-  }
-}

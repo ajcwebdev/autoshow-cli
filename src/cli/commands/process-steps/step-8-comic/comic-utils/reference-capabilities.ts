@@ -1,10 +1,8 @@
-import type { ImageGenerationModel } from '~/types'
+import type { ImageGenerationModel, ReferenceImageCapabilities } from '~/types'
 import { getImageReferenceCapabilities } from '~/cli/commands/setup-and-utilities/models/image-reference-capabilities'
 import { ValidationError } from '~/utils/error-handler'
 
-export type ReferenceImageCapabilities = Readonly<{ supported: boolean; maxInputs: number }>
-
-export const getReferenceImageCapabilities = (model: ImageGenerationModel): ReferenceImageCapabilities => {
+const getReferenceImageCapabilities = (model: ImageGenerationModel): ReferenceImageCapabilities => {
   return getImageReferenceCapabilities(model)
 }
 

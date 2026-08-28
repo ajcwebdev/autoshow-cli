@@ -3,7 +3,7 @@ import {
   runCommand,
   STABLE_TTS_MD_PATH,
 } from '../../../../../test-utils/test-helpers'
-import { mistralTtsModel } from './cases'
+import { mistralTtsModels } from './cases'
 
 test('rejects invalid mistral model', async () => {
   const result = await runCommand([
@@ -14,7 +14,7 @@ test('rejects invalid mistral model', async () => {
     'mistral=invalid-model'
   ])
 
-  expect(result.exitCode).not.toBe(0)
+  expect(result.exitCode).toBe(2)
   expect(`${result.stdout}\n${result.stderr}`).toContain('Invalid model "invalid-model" for --provider/--tts mistral[=model]')
 })
 
@@ -24,14 +24,14 @@ test('mistral execution rejects a missing voice source before provider setup', a
     'tts',
     STABLE_TTS_MD_PATH,
     '--provider',
-    `mistral=${mistralTtsModel}`
+    `mistral=${mistralTtsModels}`
   ], {
     env: {
       MISTRAL_API_KEY: ''
     }
   })
 
-  expect(result.exitCode).not.toBe(0)
+  expect(result.exitCode).toBe(2)
   const output = `${result.stdout}\n${result.stderr}`
   expect(output).toContain('requires an existing voice ID or an explicitly authorized unnamed request reference')
   expect(output).not.toContain('MISTRAL_API_KEY')

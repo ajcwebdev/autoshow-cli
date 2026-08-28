@@ -1,10 +1,10 @@
-import type { AudioRun, ComicDialoguePlan, ComicSourceIdentity, NormalizedTiming, ObservedAudioFormat, StructuredScriptArtifactRef } from '~/types'
+import type { ComicDialoguePlan, ComicSourceIdentity, NormalizedTiming, ObservedAudioFormat, StructuredScriptArtifactRef } from '~/types'
 
-export type SoundscapeCueKind = 'vocal-reaction' | 'action-sfx'
+type SoundscapeCueKind = 'vocal-reaction' | 'action-sfx'
 export type SoundscapeBus = 'dialogue' | 'vocal-reaction' | 'action-sfx' | 'ambience'
 export type SoundscapeTimingPolicy = 'strict' | 'proportional'
 
-export type SoundscapeSourceSpan = {
+type SoundscapeSourceSpan = {
   kind: 'sound-effect'
   start: number
   end: number
@@ -18,7 +18,7 @@ export type SoundscapeAnchor =
   | { kind: 'source-text-offset', sourceSegmentId: string, textOffset: number, indexUnit: 'unicode-scalar-value', offsetMs: number }
   | { kind: 'resolved-scene-edge', edge: 'start' | 'end' }
 
-export type SoundscapeCueRoute = 'dedicated-sfx' | 'unsupported'
+type SoundscapeCueRoute = 'dedicated-sfx' | 'unsupported'
 
 export type SoundscapeCueRoutingDecision = {
   cueId: string
@@ -122,10 +122,10 @@ export type ResolvedSoundscapeAnchorResolution = {
   errorBoundMs: number
 }
 
-export type SoundEffectProvider = 'elevenlabs' | 'replicate' | 'stability'
+type SoundEffectProvider = 'elevenlabs' | 'replicate' | 'stability'
 export type SoundEffectLicenseUseClassification = 'noncommercial' | 'commercial' | 'unknown'
 export type SoundEffectDispatchAvailability = 'available' | 'unavailable' | 'retired'
-export type SoundEffectCommunityLifecycle = 'official' | 'community-unofficial'
+type SoundEffectCommunityLifecycle = 'official' | 'community-unofficial'
 
 export type SoundEffectLicenseUse = {
   schemaVersion: 1
@@ -257,7 +257,7 @@ export type SoundEffectRenderResult = {
   createdAt: string
 }
 
-export type ResolvedSoundscapeTimelineEntry = {
+type ResolvedSoundscapeTimelineEntry = {
   cueId: string
   bus: Exclude<SoundscapeBus, 'dialogue'>
   required: boolean
@@ -298,23 +298,6 @@ export type SoundscapeStemRef = {
   durationMs: number
 }
 
-export type SoundscapeAudioRun = {
-  schemaVersion: 1
-  audioRunId: string
-  dialogueAudioRun: { audioRunId: AudioRun['audioRunId'], path: string, sha256: string }
-  soundscapePlan: { soundscapePlanId: string, path: string, sha256: string }
-  soundEffectRenderPlan?: { renderPlanId: string, path: string, sha256: string } | undefined
-  soundEffectRenderResult?: { resultId: string, path: string, sha256: string } | undefined
-  resolvedTimeline: { timelineId: string, path: string, sha256: string }
-  mixProfileHash: string
-  mixIdentity: string
-  transformLedger: { path: string, sha256: string }
-  transforms: SoundscapeTransform[]
-  stems: SoundscapeStemRef[]
-  master: { path: string, sha256: string, format: ObservedAudioFormat, durationMs: number }
-  createdAt: string
-}
-
 export type CompactSfxEntry = {
   cueId: string
   taskId: string
@@ -340,7 +323,7 @@ export type CompactSfx = {
   createdAt: string
 }
 
-export type CompactMixTimelineEntry = {
+type CompactMixTimelineEntry = {
   cueId: string
   bus: Exclude<SoundscapeBus, 'dialogue'>
   required: boolean

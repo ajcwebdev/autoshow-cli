@@ -1052,18 +1052,18 @@ function main(): number {
     console.error(`[warn] ${warning}`);
   }
 
-  writeFileSync(jsonOut, `${JSON.stringify(reportJson, null, 2)}\n`);
+  writeFileSync(jsonOut, JSON.stringify(reportJson));
   writeFileSync(markdownOut, markdown);
   const artifactDir = dirname(jsonOut);
-  writeFileSync(join(artifactDir, "page-metrics.json"), `${JSON.stringify(analysisArtifacts.pageMetrics, null, 2)}\n`);
-  writeFileSync(join(artifactDir, "outliers.json"), `${JSON.stringify(analysisArtifacts.outliers, null, 2)}\n`);
+  writeFileSync(join(artifactDir, "page-metrics.json"), JSON.stringify(analysisArtifacts.pageMetrics));
+  writeFileSync(join(artifactDir, "outliers.json"), JSON.stringify(analysisArtifacts.outliers));
   writeFileSync(
     join(artifactDir, "selective-adjudication-pages.json"),
-    `${JSON.stringify(analysisArtifacts.selectiveAdjudicationPages, null, 2)}\n`,
+    JSON.stringify(analysisArtifacts.selectiveAdjudicationPages),
   );
   writeFileSync(
     join(artifactDir, "variant-comparison-summary.json"),
-    `${JSON.stringify(analysisArtifacts.variantComparisonSummary, null, 2)}\n`,
+    JSON.stringify(analysisArtifacts.variantComparisonSummary),
   );
   writeFileSync(join(artifactDir, "ocr-benchmark-summary.md"), analysisArtifacts.benchmarkSummaryMarkdown);
   return 0;

@@ -7,40 +7,20 @@ import { formatSpeakerLabel, toTimestamp } from '~/cli/commands/process-steps/st
 import { withRetry, classifyFetchRetry, parseRetryAfterMs } from '~/utils/retries'
 import { MISTRAL_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { mistralMultipartRequest } from '~/utils/mistral/mistral-client'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 import { createMistralSttPassController } from './mistral-stt-pass-controller'
+import { isAppError, ProviderError } from '~/utils/error-handler'
+import { getErrorHeaders, getErrorStatus } from '~/utils/error-handler'
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 const MISTRAL_RATE_LIMIT_FALLBACK_COOLDOWN_MS = 60_000
 
 const isMistralRetryWrapper = (error: unknown): error is Error & { cause: Error } =>
-  error instanceof Error
+  isAppError(error)
+  && error.kind === 'retry_exhausted'
   && error.cause instanceof Error
-  && error.message.startsWith('mistral-stt failed after ')
-
-const getErrorStatus = (error: unknown): number | undefined => {
-  if (error && typeof error === 'object' && 'status' in error) {
-    const status = (error as { status: unknown }).status
-    if (typeof status === 'number') {
-      return status
-    }
-  }
-
-  return undefined
-}
-
-const getErrorHeaders = (error: unknown): Headers | undefined => {
-  if (error && typeof error === 'object' && 'headers' in error) {
-    const headers = (error as { headers: unknown }).headers
-    if (headers instanceof Headers) {
-      return headers
-    }
-  }
-
-  return undefined
-}
 
 const resolveMistralRateLimitCooldownMs = (
   error: unknown
@@ -57,7 +37,7 @@ const throwMistralErrorWithContext = (
     throw error.cause
   }
 
-  const source = error instanceof Error ? error : new Error(String(error))
+  const source = error instanceof Error ? error : ProviderError(String(error))
   ;(source as SttTranscribeHttpError).stage = stage
   ;(source as SttTranscribeHttpError).retryClass = retryClass
   throw source
@@ -116,7 +96,7 @@ export const runMistralStt = async (
     baseUrl?: string | undefined
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const apiKey = requireApiKey('MISTRAL_API_KEY', 'stt:mistral', 'Mistral transcription')
+  const apiKey = resolveCredential('mistral', 'require', { stage: 'stt:mistral', description: 'Mistral transcription' })
 
   const { model: modelName, segmentOffsetMinutes = 0, segmentNumber, totalSegments } = options
   if (segmentNumber && totalSegments) {
@@ -140,7 +120,6 @@ export const runMistralStt = async (
       {
         retryClass: 'runtime_http_create_retriable',
         operationName: 'mistral-stt',
-        policy: { maxAttempts: 4 },
         timeoutMs: REQUEST_TIMEOUT_MS
       },
       async (signal) => {
@@ -194,7 +173,7 @@ export const runMistralStt = async (
   const payload = validateData(MistralTranscriptionResponseSchema, rawPayload, 'Mistral STT response')
   const segments = toSegments(payload.segments ?? [], offsetSeconds)
   if (segments.every(seg => seg.speaker === undefined)) {
-    l.warn('Mistral diarization is enabled but the API returned no speaker labels for this audio')
+    l.warn('Mistral diarization is enabled but the API returned no speaker labels for this audio', { category: 'pipeline' })
   }
   const textFromPayload = (payload.text ?? '').trim()
   const text = textFromPayload.length > 0 ? textFromPayload : segments.map(seg => seg.text).join(' ').trim()

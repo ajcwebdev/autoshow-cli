@@ -1,10 +1,10 @@
 import { readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, extname, join, resolve } from 'node:path'
-import type { MetadataTopLevelTargetInfo } from '~/types'
+import type { BatchListCacheEntry, FileFingerprint, MetadataTopLevelTargetInfo } from '~/types'
 import { fileExists } from '~/utils/cli-utils'
 import * as l from '~/utils/app-logger/app-logger'
-import { fileFingerprintsMatch, getFileFingerprint, readJsonCacheMap, writeJsonCacheEntry, type FileFingerprint } from '~/utils/file-fingerprint-cache'
+import { fileFingerprintsMatch, getFileFingerprint, readJsonCacheMap, writeJsonCacheEntry } from '~/utils/file-fingerprint-cache'
 import { hasSupportedExtension, isLikelyUrl, isRawXSpaceId } from './metadata-input-classifier'
 
 const URL_LIST_EXTENSIONS = ['.md', '.txt']
@@ -46,11 +46,6 @@ const parseListEntry = (line: string): string => {
 const BATCH_LIST_CACHE_FILE = join(tmpdir(), 'autoshow-batch-list-cache.json')
 const BATCH_LIST_CACHE_LOCK = 'batch-list-cache'
 
-type BatchListCacheEntry = {
-  items: string[]
-  fingerprint: FileFingerprint
-}
-
 const getCachedBatchListItems = async (filePath: string): Promise<string[] | undefined> => {
   const cache = await readJsonCacheMap<BatchListCacheEntry>(BATCH_LIST_CACHE_FILE)
   const entry = cache[resolve(filePath)]
@@ -87,7 +82,7 @@ export const readInputList = async (filePath: string): Promise<string[]> => {
   try {
     const exists = await fileExists(filePath)
     if (!exists) {
-      l.warn(`Input list not found at ${filePath}`)
+      l.warn(`Input list not found at ${filePath}`, { category: 'pipeline', metadata: { filePath } })
       return []
     }
 
@@ -135,18 +130,55 @@ export const readInputList = async (filePath: string): Promise<string[]> => {
     }
 
     if (invalidCount > 0) {
-      l.warn(`Ignored ${invalidCount} invalid entries in ${filePath}`)
+      l.warn(`Ignored ${invalidCount} invalid entries in ${filePath}`, { category: 'pipeline', metadata: { filePath, invalidCount } })
     }
 
-    l.write('info', `Loaded ${valid.length} inputs from ${filePath}`)
+    l.write('info', `Loaded ${valid.length} inputs from ${filePath}`, { category: 'pipeline', metadata: { filePath, inputCount: valid.length } })
     const fingerprintAfterRead = await getFileFingerprint(filePath)
     if (fingerprintAfterRead && fileFingerprintsMatch(fingerprintBeforeRead, fingerprintAfterRead)) {
       await writeBatchListCache(filePath, valid, fingerprintAfterRead)
     }
     return valid
   } catch {
-    l.error(`Failed to read input list at ${filePath}`)
+    l.error(`Failed to read input list at ${filePath}`, { category: 'pipeline', metadata: { filePath } })
     return []
+  }
+}
+
+export const isLikelyInputListFile = async (filePath: string): Promise<boolean> => {
+  try {
+    const baseDir = dirname(filePath)
+    const text = await Bun.file(filePath).text()
+    const lines = text
+      .split('\n')
+      .map(s => s.trim())
+      .filter(s => s.length > 0)
+      .filter(s => !s.startsWith('#'))
+
+    if (lines.length === 0) {
+      return true
+    }
+
+    let valid = 0
+    for (const line of lines) {
+      const entry = parseListEntry(line)
+      if (!entry) {
+        continue
+      }
+
+      if (isLikelyUrl(entry) || (isRawXSpaceId(entry) && /\d/.test(entry))) {
+        valid++
+        continue
+      }
+
+      if (await fileExists(resolve(baseDir, entry)) || await fileExists(entry)) {
+        valid++
+      }
+    }
+
+    return valid * 2 >= lines.length
+  } catch {
+    return true
   }
 }
 

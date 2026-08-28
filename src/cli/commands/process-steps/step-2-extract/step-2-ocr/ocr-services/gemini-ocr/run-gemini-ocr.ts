@@ -1,13 +1,13 @@
 import { basename } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
-import type { DocumentMetadata, GeminiContent, GeminiGenerateContentUsageMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, PageResult, RetryDecision } from '~/types'
-import { requireApiKey } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import type { DocumentMetadata, GeminiContent, GeminiGenerateContentUsageMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult, RetryDecision } from '~/types'
+import { resolveCredential } from '~/utils/validate/env-utils'
+import { InfraError, InternalError, serializeDiagnosticError } from '~/utils/error-handler'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
-import { classifyOcrCreateRetry, OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
+import { classifyOcrCreateRetry, OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry, withOcrSchemaRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
 import { getCachedCloudStagingObject } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/preparation-cache'
 import { buildHostedOcrJsonPrompt, createHostedOcrResponseParser, HOSTED_OCR_PAGES_JSON_SCHEMA } from '../../ocr-utils/hosted-ocr-json'
-import { geminiDeleteFile, geminiFileDataPart, geminiGenerateContent, geminiGetFile, geminiUploadFile, geminiUserContent, getGeminiFileState } from '~/utils/gemini/gemini-rest'
+import { geminiDeleteFile, geminiFileDataPart, geminiGenerateContent, geminiUploadFile, geminiUserContent, waitForGeminiFileActive } from '~/utils/gemini/gemini-rest'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import {
@@ -15,6 +15,7 @@ import {
   GEMINI_INLINE_NON_PDF_BYTES,
   GEMINI_INLINE_PDF_BYTES
 } from './gemini-ocr'
+import { OcrStructuredResponseError } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-structured-response-error'
 
 const GEMINI_OCR_MIN_OUTPUT_TOKENS = 24_576
 const GEMINI_OCR_SINGLE_PAGE_IMAGE_MAX_OUTPUT_TOKENS = 8_192
@@ -69,7 +70,7 @@ const classifyGeminiOcrRetry = (error: unknown): RetryDecision => {
   if (ocrDecision.shouldRetry) {
     return ocrDecision
   }
-  return classifyGeminiRetry(error)
+  return classifyGeminiRetry(error, 'runtime_http_create_retriable')
 }
 
 const hasGeminiUsageMetadata = (
@@ -221,25 +222,6 @@ const normalizeGeminiDiagnosticPageNumber = (
     ? Math.max(1, Math.floor(pageNumber))
     : undefined
 
-const waitForGeminiFile = async (
-  apiKey: string,
-  fileName: string
-): Promise<void> => {
-  const deadline = Date.now() + 120_000
-  while (Date.now() < deadline) {
-    const file = await geminiGetFile(apiKey, fileName)
-    const state = getGeminiFileState(file)
-    if (state === undefined || state === 'ACTIVE') {
-      return
-    }
-    if (state === 'FAILED') {
-      throw InfraError(`Gemini Files API upload failed for ${fileName}`, { stage: 'ocr:gemini' })
-    }
-    await Bun.sleep(1000)
-  }
-  throw InfraError(`Gemini Files API upload did not become active for ${fileName}`, { stage: 'ocr:gemini' })
-}
-
 export const runGeminiOcr = async (
   filePath: string,
   step1Metadata: DocumentMetadata,
@@ -248,7 +230,7 @@ export const runGeminiOcr = async (
     ocrPreparationCache?: import('~/types').OcrPreparationCache | undefined
     onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
     documentPageNumber?: number | undefined
-    reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+    reasoningEffort?: NormalizedReasoningEffort | undefined
   } = {}
 ): Promise<{
   pages: PageResult[]
@@ -257,8 +239,8 @@ export const runGeminiOcr = async (
   promptTokens?: number
   completionTokens?: number
   providerUsage?: HostedOcrRun['providerUsage']
-  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
-  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
 }> => {
   const policy = resolveReasoningPolicy({
     step: 'extract',
@@ -266,7 +248,7 @@ export const runGeminiOcr = async (
     model,
     requestedReasoningEffort: opts.reasoningEffort
   })
-  const apiKey = requireApiKey('GEMINI_API_KEY', 'ocr:gemini', 'Gemini OCR')
+  const apiKey = resolveCredential('gemini', 'require', { stage: 'ocr:gemini', description: 'Gemini OCR' })
 
   const expectedPageCount = Math.max(1, step1Metadata.pageCount)
   const diagnosticPageNumber = expectedPageCount === 1
@@ -279,18 +261,19 @@ export const runGeminiOcr = async (
     throw InfraError(`Gemini OCR input exceeds the 2 GB file upload limit for ${basename(filePath)}.`, { stage: 'ocr:gemini' })
   }
 
-  let lastSchemaError: Error | undefined
   let retryPromptTokens: number | undefined
   let retryCompletionTokens: number | undefined
   const retryUsage: NonNullable<HostedOcrRun['providerUsage']> = []
 
-  for (let attempt = 0; attempt < OCR_SCHEMA_RETRY_ATTEMPTS; attempt++) {
-    const prompt = attempt === 0
-      ? initialPrompt
-      : buildGeminiOcrSchemaRetryPrompt(expectedPageCount)
-    const response = await withOcrCreateRetry(
-      'gemini-ocr',
-      async (signal) => {
+  return await withOcrSchemaRetry({
+    operationName: 'gemini-ocr',
+    request: async (attempt) => {
+      const prompt = attempt === 1
+        ? initialPrompt
+        : buildGeminiOcrSchemaRetryPrompt(expectedPageCount)
+      return await withOcrCreateRetry(
+        'gemini-ocr',
+        async (signal) => {
         let uploadedFileName: string | undefined
         try {
           const contents = shouldUploadFile(fileSizeBytes, step1Metadata.format)
@@ -311,7 +294,10 @@ export const runGeminiOcr = async (
                     })
                     const name = uploadedFile.name ?? undefined
                     if (name) {
-                      await waitForGeminiFile(apiKey, name)
+                      await waitForGeminiFileActive(apiKey, name, {
+                        stage: 'ocr:gemini',
+                        ...(signal ? { abortSignal: signal } : {})
+                      })
                     }
                     const fileMimeType = uploadedFile.mimeType ?? mimeType
                     if (typeof uploadedFile.uri !== 'string' || uploadedFile.uri.length === 0) {
@@ -348,88 +334,73 @@ export const runGeminiOcr = async (
             try {
               await geminiDeleteFile(apiKey, uploadedFileName)
             } catch (error) {
-              l.warn(`Failed to delete Gemini OCR upload ${uploadedFileName}: ${error instanceof Error ? error.message : String(error)}`)
+              l.warn(`Failed to delete Gemini OCR upload ${uploadedFileName}: ${error instanceof Error ? error.message : String(error)}`, {
+        category: 'pipeline',
+        metadata: { provider: 'gemini', uploadedFileName, error: serializeDiagnosticError(error) }
+      })
             }
           }
         }
-      },
-      {
-        classifier: classifyGeminiOcrRetry,
-        onRetryable: opts.onRetryable
+        },
+        {
+          classifier: classifyGeminiOcrRetry,
+          onRetryable: opts.onRetryable
+        }
+      )
+    },
+    parse: (response, attempt) => {
+      const rawText = response.text ?? ''
+      const usage = response.usageMetadata
+      const buildResult = (pages: PageResult[], totalPages: number) => {
+        const successUsage = buildGeminiOcrUsageEntry(usage, model, attempt, 'success')
+        const promptTokens = addOptionalTokenCounts(retryPromptTokens, getGeminiPromptTokens(usage))
+        const completionTokens = addOptionalTokenCounts(retryCompletionTokens, getGeminiCompletionTokens(usage))
+        const providerUsage = [...retryUsage, ...(successUsage ? [successUsage] : [])]
+        return {
+          pages,
+          extractionMethod: 'gemini-ocr' as const,
+          totalPages,
+          ...(typeof promptTokens === 'number' ? { promptTokens } : {}),
+          ...(typeof completionTokens === 'number' ? { completionTokens } : {}),
+          ...(providerUsage.length > 0 ? { providerUsage } : {}),
+          ...(policy.requested !== undefined ? { requestedReasoningEffort: policy.requested } : {}),
+          effectiveReasoningEffort: policy.effective
+        }
       }
-    )
 
-    const rawText = response.text ?? ''
-    const usage = response.usageMetadata
-    try {
       if (!rawText.trim()) {
         if (expectedPageCount === 1) {
-          const successUsage = buildGeminiOcrUsageEntry(usage, model, attempt + 1, 'success')
-          const promptTokens = addOptionalTokenCounts(retryPromptTokens, getGeminiPromptTokens(usage))
-          const completionTokens = addOptionalTokenCounts(retryCompletionTokens, getGeminiCompletionTokens(usage))
-          return {
-            pages: [{
-              pageNumber: 1,
-              method: 'ocr',
-              text: ''
-            }],
-            extractionMethod: 'gemini-ocr',
-            totalPages: 1,
-            ...(typeof promptTokens === 'number' ? { promptTokens } : {}),
-            ...(typeof completionTokens === 'number' ? { completionTokens } : {}),
-            ...([...retryUsage, ...(successUsage ? [successUsage] : [])].length > 0
-              ? { providerUsage: [...retryUsage, ...(successUsage ? [successUsage] : [])] }
-              : {}),
-            ...(policy.requested !== undefined ? { requestedReasoningEffort: policy.requested } : {}),
-            effectiveReasoningEffort: policy.effective
-          }
+          return buildResult([{ pageNumber: 1, method: 'ocr', text: '' }], 1)
         }
-        throw ValidationError('Gemini OCR returned no text output.', { stage: 'ocr:gemini' })
+        throw new OcrStructuredResponseError('Gemini OCR returned no text output.', rawText)
       }
 
-      const successUsage = buildGeminiOcrUsageEntry(usage, model, attempt + 1, 'success')
-      const promptTokens = addOptionalTokenCounts(retryPromptTokens, getGeminiPromptTokens(usage))
-      const completionTokens = addOptionalTokenCounts(retryCompletionTokens, getGeminiCompletionTokens(usage))
-      return {
-        pages: parseOcrResponse(rawText, expectedPageCount),
-        extractionMethod: 'gemini-ocr',
-        totalPages: expectedPageCount,
-        ...(typeof promptTokens === 'number' ? { promptTokens } : {}),
-        ...(typeof completionTokens === 'number' ? { completionTokens } : {}),
-        ...([...retryUsage, ...(successUsage ? [successUsage] : [])].length > 0
-          ? { providerUsage: [...retryUsage, ...(successUsage ? [successUsage] : [])] }
-          : {}),
-        ...(policy.requested !== undefined ? { requestedReasoningEffort: policy.requested } : {}),
-        effectiveReasoningEffort: policy.effective
-      }
-    } catch (error) {
-      const failureReason = sanitizeGeminiSchemaFailureReason(error)
-      const retryUsageEntry = buildGeminiOcrUsageEntry(usage, model, attempt + 1, 'schema-retry', {
+      return buildResult(parseOcrResponse(rawText, expectedPageCount), expectedPageCount)
+    },
+    onSchemaFailure: ({ error, response, attempt }) => {
+      const usage = response.usageMetadata
+      const retryUsageEntry = buildGeminiOcrUsageEntry(usage, model, attempt, 'schema-retry', {
         expectedPageCount,
         pageNumber: diagnosticPageNumber,
-        failureReason
+        failureReason: sanitizeGeminiSchemaFailureReason(error)
       })
       if (retryUsageEntry !== undefined) {
         retryUsage.push(retryUsageEntry)
         retryPromptTokens = addOptionalTokenCounts(retryPromptTokens, getGeminiPromptTokens(usage))
         retryCompletionTokens = addOptionalTokenCounts(retryCompletionTokens, getGeminiCompletionTokens(usage))
       }
-      lastSchemaError = error instanceof Error ? error : new Error(String(error))
-      if (attempt < OCR_SCHEMA_RETRY_ATTEMPTS - 1) {
-        l.write('warn', formatGeminiOcrMalformedRetryWarning(filePath, attempt + 1, usage, failureReason), {
-          metadata: {
-            provider: 'gemini',
-            pageCount: expectedPageCount,
-            ...(typeof diagnosticPageNumber === 'number' ? { pageNumber: diagnosticPageNumber } : {}),
-            attempt: attempt + 1,
-            ...(typeof getGeminiPromptTokens(usage) === 'number' ? { promptTokens: getGeminiPromptTokens(usage) } : {}),
-            ...(typeof getGeminiCompletionTokens(usage) === 'number' ? { completionTokens: getGeminiCompletionTokens(usage) } : {}),
-            failureReason
-          }
-        })
+    },
+    retryLogMetadata: ({ error, response, attempt }) => {
+      const usage = response.usageMetadata
+      return {
+        provider: 'gemini',
+        pageCount: expectedPageCount,
+        ...(typeof diagnosticPageNumber === 'number' ? { pageNumber: diagnosticPageNumber } : {}),
+        malformedOutput: formatGeminiOcrMalformedRetryWarning(filePath, attempt, usage, sanitizeGeminiSchemaFailureReason(error)),
+        ...(typeof getGeminiPromptTokens(usage) === 'number' ? { promptTokens: getGeminiPromptTokens(usage) } : {}),
+        ...(typeof getGeminiCompletionTokens(usage) === 'number' ? { completionTokens: getGeminiCompletionTokens(usage) } : {}),
+        failureReason: sanitizeGeminiSchemaFailureReason(error)
       }
     }
-  }
-
-  throw lastSchemaError ?? InfraError('Gemini OCR failed', { stage: 'ocr:gemini' })
+  })
 }

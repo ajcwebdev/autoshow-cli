@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
+import { waitFor } from '../../../../test-utils/wait-for'
 
 export { installMockFetch }
 
@@ -36,12 +37,26 @@ export const setupTtsContractLifecycle = (): { makeTempDir: (prefix: string) => 
 export const waitForCondition = async (
   predicate: () => boolean,
   message: string
-): Promise<void> => {
-  for (let attempt = 0; attempt < 200; attempt += 1) {
-    if (predicate()) return
-    await Bun.sleep(5)
+): Promise<void> => await waitFor(predicate, { timeoutMs: 1_000, intervalMs: 5, label: message })
+
+export const captureGatedAssertions = async (
+  assertions: () => Promise<void> | void,
+  release: () => void
+): Promise<() => void> => {
+  let failure: unknown
+  let failed = false
+  try {
+    await assertions()
+  } catch (error) {
+    failed = true
+    failure = error
+  } finally {
+    release()
   }
-  throw new Error(message)
+
+  return () => {
+    if (failed) throw failure
+  }
 }
 
 export const readWavSamples = async (path: string): Promise<number[]> => {

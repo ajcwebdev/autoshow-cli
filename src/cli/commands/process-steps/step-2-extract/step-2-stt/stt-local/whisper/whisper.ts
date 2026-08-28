@@ -1,7 +1,7 @@
 import { copyFile, mkdir, readdir, rm } from 'node:fs/promises'
-import { cpus } from 'node:os'
 import { dirname } from 'node:path'
-import { pathExists, runCapture, runInherit, detectPlatform, whisperBinaryPath, whisperBuildDir, whisperLibDir, whisperModelsDir } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
+import { runCapture, runInherit, detectPlatform, whisperBinaryPath, whisperBuildDir, whisperLibDir, whisperModelsDir } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
+import { pathExists } from '~/utils/filesystem'
 import * as l from '~/utils/app-logger/app-logger'
 import { downloadFile } from '~/cli/commands/setup-and-utilities/setup/setup-download/download'
 import { withRetry } from '~/utils/retries'
@@ -11,6 +11,7 @@ import { readDependencyTag } from '~/cli/commands/setup-and-utilities/setup/depe
 import { getWhisperModelIntegrity, resolveWhisperModelMinBytes } from './whisper-model-integrity'
 import { InternalError } from '~/utils/error-handler'
 import { recordSetupPerformancePhase } from '~/cli/commands/setup-and-utilities/setup/setup-performance'
+import { logicalCpuCount } from '~/utils/logical-cpu-count'
 
 const whisperBaseUrl = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main'
 const fileExists = async (path: string): Promise<boolean> => {
@@ -38,19 +39,12 @@ const maybeCopyWhisperDylibs = async (buildSrcDir: string): Promise<void> => {
   for (const dylib of dylibs) {
     await copyFile(`${buildSrcDir}/${dylib}`, `${whisperLibDir}/${dylib}`)
   }
-
-  await runCapture('install_name_tool', ['-add_rpath', whisperLibDir, whisperBinaryPath], { allowFailure: true })
-  await runCapture(
-    'install_name_tool',
-    ['-change', '@rpath/libwhisper.1.dylib', `${whisperLibDir}/libwhisper.1.dylib`, whisperBinaryPath],
-    { allowFailure: true }
-  )
 }
 
 const verifyWhisperBinary = async (): Promise<void> => {
   const result = await runCapture(whisperBinaryPath, ['--help'], { allowFailure: true })
   if (result.exitCode !== 0) {
-    l.warn('Whisper installation may have issues, but continuing')
+    l.warn('Whisper installation may have issues, but continuing', { category: 'command' })
   }
 }
 
@@ -65,13 +59,13 @@ export const setupWhisper = async (): Promise<void> => {
       return
     }
 
-    l.write('info', 'Whisper binary found but not working, rebuilding')
+    l.write('info', 'Whisper binary found but not working, rebuilding', { category: 'command' })
   }
 
   const tag = await readWhisperTag()
   const repoDir = whisperBuildDir
 
-  l.write('info', `Building whisper.cpp ${tag}`)
+  l.write('info', `Building whisper.cpp ${tag}`, { category: 'command', metadata: { engine: 'whisper', tag } })
 
   await mkdir(repoDir, { recursive: true })
   await cleanupPath(repoDir)
@@ -101,7 +95,7 @@ export const setupWhisper = async (): Promise<void> => {
     }
   })
 
-  const parallelJobs = Math.max(1, cpus().length)
+  const parallelJobs = logicalCpuCount()
   await recordSetupPerformancePhase('whisper.cpp', 'compile-link', async () => {
     await runInherit('cmake', ['--build', 'build', '-j', '--config', 'Release'], { cwd: repoDir })
   }, { parallelJobs })
@@ -124,13 +118,11 @@ export const setupWhisper = async (): Promise<void> => {
 
   await recordSetupPerformancePhase('whisper.cpp', 'health-check', verifyWhisperBinary)
 
-  // The checked-out source and object tree are inputs to the binary we just
-  // copied into runtime/bin; keeping them only costs disk.
   await recordSetupPerformancePhase('whisper.cpp', 'cleanup', async () => {
     await cleanupPath(repoDir)
   })
 
-  l.write('success', 'Whisper.cpp installed')
+  l.write('success', 'Whisper.cpp installed', { category: 'command' })
 }
 
 export const downloadWhisperModel = async (modelName: string): Promise<void> => {
@@ -141,7 +133,7 @@ export const downloadWhisperModel = async (modelName: string): Promise<void> => 
 
   if (await fileExists(destination)) {
   } else {
-    l.write('info', `Downloading whisper model: ${modelName}`)
+    l.write('info', `Downloading whisper model: ${modelName}`, { category: 'command', metadata: { engine: 'whisper', model: modelName } })
 
     const url = `${whisperBaseUrl}/${modelFile}`
     const integrity = getWhisperModelIntegrity(modelName)
@@ -149,8 +141,6 @@ export const downloadWhisperModel = async (modelName: string): Promise<void> => 
     await withRetry(
       { retryClass: 'setup_download', operationName: `whisper-model-${modelName}` },
       async () => {
-        // No cleanup between attempts: downloadFile keeps a verified partial
-        // file so a retry resumes instead of refetching gigabytes from zero.
         await downloadFile({
           url,
           destination,
@@ -161,13 +151,13 @@ export const downloadWhisperModel = async (modelName: string): Promise<void> => 
       }
     )
 
-    l.write('success', `Whisper model ${modelName} downloaded`)
+    l.write('success', `Whisper model ${modelName} downloaded`, { category: 'command', metadata: { engine: 'whisper', model: modelName } })
   }
 }
 
 export const ensureWhisperReady = async (modelName: string): Promise<void> => {
   if (!modelName) {
-    l.error('Model name required')
+    l.error('Model name required', { category: 'command' })
     throw InternalError('Model name required', { stage: 'setup:whisper' })
   }
 
@@ -175,7 +165,7 @@ export const ensureWhisperReady = async (modelName: string): Promise<void> => {
     const healthy = (await runCapture(whisperBinaryPath, ['--help'], { allowFailure: true })).exitCode === 0
 
     if (!healthy) {
-      l.write('info', 'Rebuilding whisper')
+      l.write('info', 'Rebuilding whisper', { category: 'command' })
       await setupWhisper()
     }
   } else {

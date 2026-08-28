@@ -9,6 +9,7 @@ import { join } from 'node:path'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { mkdir } from 'node:fs/promises'
+import { createMetadataFixtureBuilder } from '../../../test-utils/metadata-fixtures'
 
 const asRecord = (value: unknown): Record<string, unknown> => {
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
@@ -24,14 +25,13 @@ const asArray = (value: unknown): unknown[] => {
   throw new Error('Expected array')
 }
 
-const buildTtsMetadata = (overrides: Partial<Step4Metadata> = {}): Step4Metadata => ({
+const buildTtsMetadata = createMetadataFixtureBuilder<Step4Metadata>({
   ttsService: 'openai',
   ttsModel: 'gpt-4o-mini-tts-2025-12-15',
   processingTime: 100,
   audioFileName: 'speech.wav',
   audioFileSize: 10,
-  chunkCount: 1,
-  ...overrides
+  chunkCount: 1
 })
 
 const buildCompletedItem = (

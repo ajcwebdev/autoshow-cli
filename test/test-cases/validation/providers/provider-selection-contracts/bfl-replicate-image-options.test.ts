@@ -6,9 +6,9 @@ import { withTempImageFixture, withTempImageFixtures } from './shared'
 describe('provider selection contracts', () => {
   test('BFL accepts newly mapped shared image options', () => {
     withTempImageFixture('autoshow-image-provider-flags-', (imagePath) => {
-      const bflOpts = buildOptsFromFlags(false, {
+      const bflOpts = buildOptsFromFlags({
         'bfl-image': ['flux-2-pro'],
-        'image-input': [imagePath]
+        'input': [imagePath]
       })
       const bflTargets = collectImageTargets(bflOpts)
       expect(bflTargets.map((target) => `${target.service}:${target.model}`)).toEqual([
@@ -21,28 +21,28 @@ describe('provider selection contracts', () => {
 
   test('Luma Labs accepts matching shared image options and rejects unsupported ones', () => {
     withTempImageFixtures('autoshow-lumalabs-image-input-', ({ firstRef, secondRef }) => {
-      const createOpts = buildOptsFromFlags(false, {
+      const createOpts = buildOptsFromFlags({
         'lumalabs-image': ['uni-1'],
-        'image-aspect-ratio': '16:9',
-        'image-format': 'png'
+        'aspect-ratio': '16:9',
+        'format': 'png'
       })
       const createTargets = collectImageTargets(createOpts)
       expect(createTargets.map((target) => `${target.service}:${target.model}`)).toEqual(['lumalabs:uni-1'])
       expect(getExpectedImageArtifactFileNames(createTargets[0]!, createOpts, true)).toEqual(['generated-image.png'])
 
-      const editOpts = buildOptsFromFlags(false, {
+      const editOpts = buildOptsFromFlags({
         'lumalabs-image': ['uni-1-max'],
-        'image-input': [firstRef, secondRef],
-        'image-format': 'jpeg'
+        'input': [firstRef, secondRef],
+        'format': 'jpeg'
       })
       expect(collectImageTargets(editOpts).map((target) => `${target.service}:${target.model}`)).toEqual(['lumalabs:uni-1-max'])
       expect(getExpectedImageArtifactFileNames(collectImageTargets(editOpts)[0]!, editOpts, true)).toEqual(['generated-image.jpg'])
 
       for (const [flag, value] of [
-        ['image-aspect-ratio', '21:9'],
-        ['image-format', 'gif']
+        ['aspect-ratio', '21:9'],
+        ['format', 'gif']
       ] as const) {
-        const opts = buildOptsFromFlags(false, {
+        const opts = buildOptsFromFlags({
           'lumalabs-image': ['uni-1'],
           [flag]: value
         })
@@ -50,36 +50,36 @@ describe('provider selection contracts', () => {
       }
 
       for (const [flag, value] of [
-        ['image-size', '1024x1024'],
-        ['image-count', '2'],
-        ['image-quality', 'high'],
-        ['image-background', 'transparent'],
-        ['image-compression', '80'],
-        ['image-response-mode', 'text-image'],
-        ['image-search-grounding', true]
+        ['size', '1024x1024'],
+        ['count', '2'],
+        ['quality', 'high'],
+        ['background', 'transparent'],
+        ['compression', '80'],
+        ['response-mode', 'text-image'],
+        ['search-grounding', true]
       ] as const) {
-        const opts = buildOptsFromFlags(false, {
+        const opts = buildOptsFromFlags({
           'lumalabs-image': ['uni-1'],
           [flag]: value
         })
         expect(() => collectImageTargets(opts)).toThrow('not supported by Luma Labs/uni-1')
       }
 
-      const tooManyInputs = buildOptsFromFlags(false, {
+      const tooManyInputs = buildOptsFromFlags({
         'lumalabs-image': ['uni-1'],
-        'image-input': Array.from({ length: 10 }, () => firstRef)
+        'input': Array.from({ length: 10 }, () => firstRef)
       })
-      expect(() => collectImageTargets(tooManyInputs)).toThrow('--image-input supports at most 9 reference images for Luma Labs/uni-1')
+      expect(() => collectImageTargets(tooManyInputs)).toThrow('--input supports at most 9 reference images for Luma Labs/uni-1')
     })
   })
 
   test('Replicate image options validate per-model-family controls', () => {
     withTempImageFixtures('autoshow-replicate-image-input-', ({ firstRef, secondRef }) => {
-      const seedream45 = buildOptsFromFlags(false, {
+      const seedream45 = buildOptsFromFlags({
         'replicate-image': ['bytedance/seedream-4.5'],
-        'image-input': [firstRef],
-        'image-size': '1536x1024',
-        'image-aspect-ratio': '16:9'
+        'input': [firstRef],
+        'size': '1536x1024',
+        'aspect-ratio': '16:9'
       })
       const seedream45Targets = collectImageTargets(seedream45)
       expect(seedream45Targets.map((target) => `${target.service}:${target.model}`)).toEqual([
@@ -89,20 +89,20 @@ describe('provider selection contracts', () => {
         'generated-image.jpg'
       ])
 
-      const seedream5Lite = buildOptsFromFlags(false, {
+      const seedream5Lite = buildOptsFromFlags({
         'replicate-image': ['bytedance/seedream-5-lite'],
-        'image-format': 'jpeg',
-        'image-size': '3K'
+        'format': 'jpeg',
+        'size': '3K'
       })
       const seedream5LiteTargets = collectImageTargets(seedream5Lite)
       expect(getExpectedImageArtifactFileNames(seedream5LiteTargets[0]!, seedream5Lite, true)).toEqual([
         'generated-image.jpg'
       ])
 
-      const qwen = buildOptsFromFlags(false, {
+      const qwen = buildOptsFromFlags({
         'replicate-image': ['qwen/qwen-image-2'],
-        'image-input': [firstRef],
-        'image-aspect-ratio': '1:1'
+        'input': [firstRef],
+        'aspect-ratio': '1:1'
       })
       const qwenTargets = collectImageTargets(qwen)
       expect(qwenTargets.map((target) => `${target.service}:${target.model}`)).toEqual([
@@ -112,11 +112,11 @@ describe('provider selection contracts', () => {
         'generated-image.png'
       ])
 
-      const wan = buildOptsFromFlags(false, {
+      const wan = buildOptsFromFlags({
         'replicate-image': ['wan-video/wan-2.7-image'],
-        'image-input': [firstRef, secondRef],
-        'image-size': '1920x1080',
-        'image-count': '4'
+        'input': [firstRef, secondRef],
+        'size': '1920x1080',
+        'count': '4'
       })
       const wanTargets = collectImageTargets(wan)
       expect(wanTargets.map((target) => `${target.service}:${target.model}`)).toEqual([
@@ -130,46 +130,46 @@ describe('provider selection contracts', () => {
         'generated-image-4.png'
       ])
 
-      expect(() => collectImageTargets(buildOptsFromFlags(false, {
+      expect(() => collectImageTargets(buildOptsFromFlags({
         'replicate-image': ['bytedance/seedream-4.5'],
-        'image-count': '2'
-      }))).toThrow('--image-count is supported only by Replicate Wan and ERNIE image models')
-      expect(() => collectImageTargets(buildOptsFromFlags(false, {
+        'count': '2'
+      }))).toThrow('--count is supported only by Replicate Wan image models')
+      expect(() => collectImageTargets(buildOptsFromFlags({
         'replicate-image': ['bytedance/seedream-4.5'],
-        'image-format': 'webp'
-      }))).toThrow('--image-format is supported only by Replicate Seedream 5 and ERNIE image models')
-      expect(() => collectImageTargets(buildOptsFromFlags(false, {
+        'format': 'webp'
+      }))).toThrow('--format is supported only by Replicate Seedream 5 image models')
+      expect(() => collectImageTargets(buildOptsFromFlags({
         'replicate-image': ['bytedance/seedream-5-lite'],
-        'image-size': '1536x1024'
+        'size': '1536x1024'
       }))).toThrow('Supported values: 2K or 3K')
-      expect(() => collectImageTargets(buildOptsFromFlags(false, {
+      expect(() => collectImageTargets(buildOptsFromFlags({
         'replicate-image': ['qwen/qwen-image-2'],
-        'image-input': [firstRef, secondRef]
-      }))).toThrow('--image-input supports at most 1 reference images for Replicate/qwen/qwen-image-2')
-      expect(() => collectImageTargets(buildOptsFromFlags(false, {
+        'input': [firstRef, secondRef]
+      }))).toThrow('--input supports at most 1 reference images for Replicate/qwen/qwen-image-2')
+      expect(() => collectImageTargets(buildOptsFromFlags({
         'replicate-image': ['qwen/qwen-image-2'],
-        'image-size': '1024x1024'
-      }))).toThrow('Use --image-aspect-ratio for Replicate Qwen image dimensions')
-      expect(() => collectImageTargets(buildOptsFromFlags(false, {
+        'size': '1024x1024'
+      }))).toThrow('Use --aspect-ratio for Replicate Qwen image dimensions')
+      expect(() => collectImageTargets(buildOptsFromFlags({
         'replicate-image': ['wan-video/wan-2.7-image'],
-        'image-aspect-ratio': '16:9'
-      }))).toThrow('Use --image-size 1K|2K|4K or WIDTHxHEIGHT')
-      expect(() => collectImageTargets(buildOptsFromFlags(false, {
+        'aspect-ratio': '16:9'
+      }))).toThrow('Use --size 1K|2K|4K or WIDTHxHEIGHT')
+      expect(() => collectImageTargets(buildOptsFromFlags({
         'replicate-image': ['wan-video/wan-2.7-image'],
-        'image-count': '5'
+        'count': '5'
       }))).toThrow('Supported range: 1-4')
 
-      const seedream5Pro = buildOptsFromFlags(false, {
+      const seedream5Pro = buildOptsFromFlags({
         'replicate-image': ['bytedance/seedream-5-pro'],
-        'image-input': [firstRef, secondRef],
-        'image-size': '2K',
-        'image-format': 'jpeg'
+        'input': [firstRef, secondRef],
+        'size': '2K',
+        'format': 'jpeg'
       })
       expect(getExpectedImageArtifactFileNames(collectImageTargets(seedream5Pro)[0]!, seedream5Pro, true)).toEqual(['generated-image.jpg'])
-      expect(() => collectImageTargets(buildOptsFromFlags(false, {
+      expect(() => collectImageTargets(buildOptsFromFlags({
         'replicate-image': ['bytedance/seedream-5-pro'],
-        'image-input': Array.from({ length: 11 }, (_, index) => `https://example.com/reference-${index}.png`)
-      }))).toThrow('--image-input supports at most 10 reference images')
+        'input': Array.from({ length: 11 }, (_, index) => `https://example.com/reference-${index}.png`)
+      }))).toThrow('--input supports at most 10 reference images')
 
     })
   })

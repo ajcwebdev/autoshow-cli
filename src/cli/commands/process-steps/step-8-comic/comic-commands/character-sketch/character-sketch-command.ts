@@ -1,8 +1,8 @@
 import { mkdtemp, mkdir, rename, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
-import type { CharacterSketchCommandOptions, CharacterSketchView, ImageGenerationQuality, ImageGenerationSize } from '~/types'
-import { comicLog, err, formatCompactCost, formatDuration, suppressSharedPipelineLogs } from '../../comic-utils/comic-logger'
+import type { CharacterSketchCommandDependencies, CharacterSketchCommandOptions, CharacterSketchView, ImageGenerationQuality, ImageGenerationSize } from '~/types'
+import { comicLog, err, formatCompactCost, formatDuration, withSuppressedPipelineLogs } from '../../comic-utils/comic-logger'
 import {
   CHARACTER_SKETCH_VIEWS,
   checksumFile,
@@ -23,7 +23,7 @@ import { runWithConcurrency } from '~/utils/run-with-concurrency'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { loadCharacterCatalog } from '../../comic-utils/character-reference-config'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
-import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
+import { UsageError, InfraError, serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
 import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 
 const DEFAULT_IMAGE_SIZE: ImageGenerationSize = '1024x1536'
@@ -56,33 +56,25 @@ const buildPrompt = (
     : 'Requirements:\n- Output black-and-white outline art only.\n- Use a plain white background.\n- Preserve identity, proportions, clothing silhouette, and distinctive features.\n- Show the full character clearly in frame.',
 ].filter(Boolean).join('\n\n')
 
-export type CharacterSketchCommandDependencies = {
-  requestImage?: typeof createImage
-  writeImage?: typeof writeGeneratedImage
-  composeSheet?: typeof combineCharacterSketchSheet
-  createGenerationId?: () => string
-}
-
-export const characterSketchCommand = async (
+const runCharacterSketchCommand = async (
   options: CharacterSketchCommandOptions = {},
   dependencies: CharacterSketchCommandDependencies = {},
 ): Promise<void> => {
-  if (!options.character) throw CLIUsageError('--character is required')
-  if ((options.imageModels?.length ?? 1) !== 1) throw CLIUsageError('comic reference-sketch accepts exactly one --image-model')
+  if (!options.character) throw UsageError('--character is required')
+  if ((options.imageModels?.length ?? 1) !== 1) throw UsageError('comic reference-sketch accepts exactly one --image-model')
 
-  suppressSharedPipelineLogs()
   const catalog = loadCharacterCatalog()
   const key = catalog.requireKey(options.character)
   const character = catalog.get(key)
   const model = options.imageModels?.[0] ?? DEFAULT_IMAGE_MODEL
-  if (!model) throw CLIUsageError('comic reference-sketch --character requires one image model')
+  if (!model) throw UsageError('comic reference-sketch --character requires one image model')
   const size = options.size ?? DEFAULT_IMAGE_SIZE
   const quality = options.quality ?? DEFAULT_CHARACTER_SKETCH_QUALITY
   validateImageSizeForModels(size, [model])
 
   const current = options.revise ? await requireCurrentCharacterSketch(key, character) : null
   const bootstrap = !existsSync(character.sourcePath)
-  if (bootstrap && options.revise) throw CLIUsageError(`Cannot revise character "${key}" before its first reference has been generated`)
+  if (bootstrap && options.revise) throw UsageError(`Cannot revise character "${key}" before its first reference has been generated`)
   if (bootstrap && !character.generationReferencePath) {
     throw ValidationError(`Character "${key}" has no source image or generationReference`, { stage: 'comic:character-sketch' })
   }
@@ -175,8 +167,12 @@ export const characterSketchCommand = async (
         await rm(manifestTemporaryPath, { force: true }).catch(() => undefined)
         if (sheetPromoted) await rm(character.outlineSheetPath, { force: true }).catch(() => undefined)
         if (hadSheet) {
-          await rename(sheetBackupPath, character.outlineSheetPath).catch(rollbackError => {
-            throw InfraError(`Character sketch promotion failed and rollback also failed for "${key}": ${String(rollbackError)}`, { stage: 'comic:character-sketch' })
+          await rename(sheetBackupPath, character.outlineSheetPath).catch((rollbackError: unknown) => {
+            throw InfraError(`Character sketch promotion failed and rollback also failed for "${key}": ${String(rollbackError)}`, {
+              stage: 'comic:character-sketch',
+              metadata: { promotionError: serializeDiagnosticError(promotionError) },
+              ...(rollbackError instanceof Error ? { cause: rollbackError } : {})
+            })
           })
         }
         throw promotionError
@@ -192,3 +188,10 @@ export const characterSketchCommand = async (
     await rm(temporaryDirectory, { recursive: true, force: true })
   }
 }
+
+export const characterSketchCommand = async (
+  options: CharacterSketchCommandOptions,
+  dependencies: CharacterSketchCommandDependencies = {}
+): Promise<void> => await withSuppressedPipelineLogs(
+  async () => { await runCharacterSketchCommand(options, dependencies) }
+)

@@ -1,42 +1,30 @@
-import { createHash } from 'node:crypto'
-import { mkdir, open, rename, rm, stat } from 'node:fs/promises'
+import { mkdir, open, rename, rm } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { dirname } from 'node:path'
-import type { DownloadFlowId, DownloadRequest, PartialDownloadMetadata } from '~/types'
+import type { DownloadFlowId, DownloadRequest, DownloadTimeouts, DownloadWatchdog, PartialDownloadMetadata } from '~/types'
 import { extractTarGzBuffer } from './tar-gz'
 import { withSetupDownloadSlot } from './download-admission'
-import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
-import { InfraError, InternalError } from '~/utils/error-handler'
+import { hasErrorCode, InfraError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
 
-// Downloads abort on inactivity, not on elapsed transfer time: a flat total
-// deadline made every multi-GB asset fail on any link slower than the deadline
-// implied, regardless of connection health.
 const DEFAULT_STALL_TIMEOUT_MS = 60_000
 const DEFAULT_TOTAL_TIMEOUT_MS = 15 * 60_000
 const LARGE_ASSET_TOTAL_TIMEOUT_MS = 60 * 60_000
 
 const TOTAL_TIMEOUT_MS_BY_FLOW: Record<DownloadFlowId, number> = {
-  'uv-release': DEFAULT_TOTAL_TIMEOUT_MS,
   'yt-dlp-binary': DEFAULT_TOTAL_TIMEOUT_MS,
   'ffmpeg-source': DEFAULT_TOTAL_TIMEOUT_MS,
   'lame-source': DEFAULT_TOTAL_TIMEOUT_MS,
   'mupdf-source': DEFAULT_TOTAL_TIMEOUT_MS,
-  'mupdf-prebuilt': DEFAULT_TOTAL_TIMEOUT_MS,
   'calibre-dmg': LARGE_ASSET_TOTAL_TIMEOUT_MS,
   'leptonica-source': DEFAULT_TOTAL_TIMEOUT_MS,
   'tesseract-source': DEFAULT_TOTAL_TIMEOUT_MS,
   tessdata: DEFAULT_TOTAL_TIMEOUT_MS,
   'libjpeg-turbo-source': DEFAULT_TOTAL_TIMEOUT_MS,
   'qpdf-source': DEFAULT_TOTAL_TIMEOUT_MS,
-  'qpdf-prebuilt': DEFAULT_TOTAL_TIMEOUT_MS,
   'whisper-model': LARGE_ASSET_TOTAL_TIMEOUT_MS,
   'whisperfile-binary': LARGE_ASSET_TOTAL_TIMEOUT_MS,
   'whisper-source': DEFAULT_TOTAL_TIMEOUT_MS
-}
-
-type DownloadTimeouts = {
-  stallTimeoutMs: number
-  totalTimeoutMs: number
 }
 
 export const resolveDownloadTimeouts = (req: DownloadRequest): DownloadTimeouts => {
@@ -53,7 +41,7 @@ const getFileSize = async (path: string): Promise<number | null> => {
     const s = await stat(path)
     return s.size
   } catch (error: unknown) {
-    if (error instanceof Error && 'code' in error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
+    if (hasErrorCode(error, 'ENOENT')) {
       return null
     }
     throw error
@@ -63,7 +51,7 @@ const getFileSize = async (path: string): Promise<number | null> => {
 const normalizeSha256 = (value: string): string => value.replace(/^sha256:/i, '').trim().toLowerCase()
 
 const hashFile = async (path: string): Promise<string> => {
-  const hash = createHash('sha256')
+  const hash = new Bun.CryptoHasher('sha256')
   const reader = Bun.file(path).stream().getReader()
   for (;;) {
     const { done, value } = await reader.read()
@@ -96,8 +84,6 @@ const writePartialDownloadMetadata = async (destination: string, url: string): P
   await Bun.write(partMetadataPath(destination), JSON.stringify({ url } satisfies PartialDownloadMetadata))
 }
 
-// Only resume a partial file we can prove belongs to this exact URL; otherwise a
-// leftover fragment from another asset would be silently concatenated.
 const resolveResumeOffset = async (req: DownloadRequest): Promise<number> => {
   const size = await getFileSize(partFilePath(req.destination))
   if (size === null || size === 0) {
@@ -110,13 +96,6 @@ const resolveResumeOffset = async (req: DownloadRequest): Promise<number> => {
     return 0
   }
   return size
-}
-
-type DownloadWatchdog = {
-  signal: AbortSignal
-  progress: () => void
-  stop: () => void
-  timeoutMessage: () => string | undefined
 }
 
 const createDownloadWatchdog = (timeouts: DownloadTimeouts): DownloadWatchdog => {
@@ -146,7 +125,6 @@ const createDownloadWatchdog = (timeouts: DownloadTimeouts): DownloadWatchdog =>
       if (stallTimer) clearTimeout(stallTimer)
       clearTimeout(deadlineTimer)
     },
-    // Wording keeps "timed out" so classifyFetchRetry treats this as retryable.
     timeoutMessage: () => {
       if (abortReason === 'stall') {
         return `Download timed out: no data received for ${Math.round(timeouts.stallTimeoutMs / 1000)}s`
@@ -188,8 +166,6 @@ const streamResponseToFile = async (
   return written
 }
 
-// Streams to `<destination>.part` so nothing is buffered whole in memory and an
-// interrupted transfer can resume from the bytes already on disk.
 const fetchToPartFile = async (req: DownloadRequest, timeouts: DownloadTimeouts): Promise<number> => {
   const resumeFrom = await resolveResumeOffset(req)
   const partPath = partFilePath(req.destination)
@@ -204,7 +180,6 @@ const fetchToPartFile = async (req: DownloadRequest, timeouts: DownloadTimeouts)
 
     if (!response.ok) {
       if (response.status === 416) {
-        // The partial file is at or past the full length; restart clean.
         await discardPartialDownload(req.destination)
       }
       throw httpResponseError(`bun-fetch download failed: HTTP ${response.status} ${response.statusText}`, response, {
@@ -216,7 +191,6 @@ const fetchToPartFile = async (req: DownloadRequest, timeouts: DownloadTimeouts)
 
     const resumed = resumeFrom > 0 && response.status === 206
     if (resumeFrom > 0 && !resumed) {
-      // Server ignored the range request and is replaying from byte 0.
       await rm(partPath, { force: true })
     }
 
@@ -226,7 +200,10 @@ const fetchToPartFile = async (req: DownloadRequest, timeouts: DownloadTimeouts)
   } catch (error) {
     const timeoutMessage = watchdog.timeoutMessage()
     if (timeoutMessage) {
-      throw InfraError(`${timeoutMessage} (${req.url})`, { stage: 'setup:download' })
+      throw InfraError(`${timeoutMessage} (${req.url})`, {
+        stage: 'setup:download',
+        ...(error instanceof Error ? { cause: error } : {})
+      })
     }
     throw error
   } finally {
@@ -236,33 +213,14 @@ const fetchToPartFile = async (req: DownloadRequest, timeouts: DownloadTimeouts)
 
 const extractDownloadedArchive = async (
   archivePath: string,
-  req: DownloadRequest,
-  mode: 'tar-gz' | 'tar-xz' | 'zip'
+  req: DownloadRequest
 ): Promise<void> => {
   await mkdir(req.destination, { recursive: true })
-
-  if (mode === 'tar-gz') {
-    const buffer = await Bun.file(archivePath).arrayBuffer()
-    await extractTarGzBuffer(buffer, {
-      destination: req.destination,
-      ...(req.stripComponents !== undefined ? { stripComponents: req.stripComponents } : {})
-    })
-    return
-  }
-
-  if (mode === 'tar-xz') {
-    const args = ['-xJf', archivePath, '-C', req.destination]
-    if (req.stripComponents !== undefined) {
-      args.push(`--strip-components=${req.stripComponents}`)
-    }
-    await runCapture('tar', args)
-    return
-  }
-
-  if (req.stripComponents !== undefined && req.stripComponents > 0) {
-    throw InternalError('zip extraction does not support stripComponents', { stage: 'setup:download' })
-  }
-  await runCapture('unzip', ['-q', archivePath, '-d', req.destination])
+  const buffer = await Bun.file(archivePath).arrayBuffer()
+  await extractTarGzBuffer(buffer, {
+    destination: req.destination,
+    ...(req.stripComponents !== undefined ? { stripComponents: req.stripComponents } : {})
+  })
 }
 
 export const downloadFile = async (req: DownloadRequest): Promise<void> => {
@@ -272,12 +230,8 @@ export const downloadFile = async (req: DownloadRequest): Promise<void> => {
 
   await mkdir(dirname(partPath), { recursive: true })
 
-  // Only the transfer holds a slot: hashing and extraction below are local work,
-  // and a 1.5 GB checksum pass must not keep another download queued.
   const bytes = await withSetupDownloadSlot(async () => await fetchToPartFile(req, timeouts))
 
-  // Both guards below mean the bytes on disk are wrong rather than merely
-  // incomplete, so the partial file is discarded instead of resumed.
   if (req.sha256) {
     const actual = await hashFile(partPath)
     const expected = normalizeSha256(req.sha256)
@@ -300,7 +254,7 @@ export const downloadFile = async (req: DownloadRequest): Promise<void> => {
     await rename(partPath, req.destination)
     await rm(partMetadataPath(req.destination), { force: true })
   } else {
-    await extractDownloadedArchive(partPath, req, mode)
+    await extractDownloadedArchive(partPath, req)
     await discardPartialDownload(req.destination)
   }
 }

@@ -1,10 +1,11 @@
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { InfraError } from '~/utils/error-handler'
 import type { LlmApiCallResult, MiniMaxChatCompletionResponse, Step3Metadata, StructuredRequestOptions } from '~/types'
 import { executeLlmRequest } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-request-scaffold'
 import { classifyFetchRetry } from '~/utils/retries'
 import { createOpenAIChatCompletion, extractOpenAIChatCompletionText } from '~/utils/openai/openai-client'
 import { MINIMAX_DEFAULT_BASE_URL } from '~/utils/base-urls'
+import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
 
 const ensureMiniMaxBaseRespSuccess = (
   baseResp: MiniMaxChatCompletionResponse['base_resp'],
@@ -17,29 +18,13 @@ const ensureMiniMaxBaseRespSuccess = (
 
 const MINIMAX_TEXT_BASE_URL = `${MINIMAX_DEFAULT_BASE_URL}/v1`
 
-import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 
 export const runMinimaxModel = async (
   prompt: string,
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const policy = resolveReasoningPolicy({
-    step: 'llm',
-    service: 'minimax',
-    model,
-    requestedReasoningEffort: structuredOpts?.requestedReasoningEffort
-  })
-  const updatedOpts: StructuredRequestOptions | undefined = structuredOpts
-    ? { ...structuredOpts, requestedReasoningEffort: policy.requested, effectiveReasoningEffort: policy.effective }
-    : {
-        schemaName: '',
-        schema: {},
-        strict: false,
-        strategy: 'native',
-        requestedReasoningEffort: policy.requested,
-        effectiveReasoningEffort: policy.effective
-      }
+  const { updatedOpts } = resolveLlmReasoningOptions('minimax', model, structuredOpts)
 
   return await executeLlmRequest(prompt, model, updatedOpts, {
     service: 'minimax',
@@ -48,7 +33,7 @@ export const runMinimaxModel = async (
     emptyResponseStage: 'write:minimax',
     classifier: (error) => classifyFetchRetry(error, 'runtime_http_create_conservative'),
     prepare: () => ({
-      apiKey: requireApiKey('MINIMAX_API_KEY', 'write:minimax'),
+      apiKey: resolveCredential('minimax', 'require', { stage: 'write:minimax' }),
       provider: 'minimax',
       baseURL: MINIMAX_TEXT_BASE_URL
     }),

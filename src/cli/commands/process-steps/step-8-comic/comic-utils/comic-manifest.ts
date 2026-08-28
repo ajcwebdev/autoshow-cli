@@ -7,7 +7,7 @@ import type {
   Step4Metadata,
   StructuredScriptArtifactRef,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import {
   createManifest,
   readManifest,
@@ -17,8 +17,9 @@ import {
 import { canonicalTtsJson } from '../../step-4-tts/script-to-audio/contract-identity'
 import { computeSceneRunIdentity } from './comic-audio-contracts'
 import { appendCurrentTtsProviderState } from '../../step-4-tts/script-to-audio/current-render-artifacts'
+import { aggregateComicStageStatus } from '../../pipeline-manifest/comic-stage-status'
 
-export const notRequestedComicStage = () => ({
+const notRequestedComicStage = () => ({
   requirement: 'not-requested' as const,
   status: 'skipped' as const,
   execution: { kind: 'none' as const, reason: 'not-requested' as const },
@@ -28,7 +29,7 @@ export const notRequestedComicStage = () => ({
 
 const comicMetadata = (item: PipelineManifestItem): CanonicalComicItemMetadata => {
   const value = item.metadata['comic']
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw CLIUsageError('Canonical comic item is missing its strict metadata.comic envelope.')
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw UsageError('Canonical comic item is missing its strict metadata.comic envelope.')
   return value as unknown as CanonicalComicItemMetadata
 }
 
@@ -63,21 +64,15 @@ export const writeInitialComicStructureManifest = async (input: {
   const current = await readManifest(input.sceneRunDir)
   if (current) {
     if (current.command !== 'comic' || current.scope !== 'single' || current.items.length !== 1 || canonicalTtsJson(current.source) !== canonicalTtsJson(input.sourceIdentity)) {
-      throw CLIUsageError('Existing scene output does not belong to the exact canonical comic source; use a new run directory.')
+      throw UsageError('Existing scene output does not belong to the exact canonical comic source; use a new run directory.')
     }
     return await updateManifest(input.sceneRunDir, (manifest) => {
       const item = manifest.items[0]
-      if (!item || item.input !== input.sourceIdentity.canonicalPath) throw CLIUsageError('Canonical comic item source changed during structure generation.')
+      if (!item || item.input !== input.sourceIdentity.canonicalPath) throw UsageError('Canonical comic item source changed during structure generation.')
       const prior = comicMetadata(item)
       const stages = { ...prior.stages, structure: structureStage }
       const required = Object.values(stages).filter(stage => stage.requirement === 'required')
-      const status = required.every(stage => stage.status === 'full' || stage.status === 'skipped') && required.some(stage => stage.status === 'full')
-        ? 'full' as const
-        : required.every(stage => stage.status === 'skipped')
-          ? 'skipped' as const
-          : required.every(stage => stage.status === 'failed' || stage.status === 'skipped') && required.some(stage => stage.status === 'failed')
-            ? 'failed' as const
-            : 'incomplete' as const
+      const status = aggregateComicStageStatus(required)
       const items = [{
         ...item,
         status,
@@ -113,13 +108,13 @@ export const updateComicAudioManifest = async (input: {
   ttsEvaluation?: Step4Metadata[] | undefined
 }): Promise<PipelineManifest> => await updateManifest(input.sceneRunDir, (manifest) => {
   if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1 || canonicalTtsJson(manifest.source) !== canonicalTtsJson(input.sourceIdentity)) {
-    throw CLIUsageError('Comic audio can update only the exact compatible canonical scene manifest.')
+    throw UsageError('Comic audio can update only the exact compatible canonical scene manifest.')
   }
   const item = manifest.items[0]
-  if (!item || item.input !== input.sourceIdentity.canonicalPath) throw CLIUsageError('Canonical comic source changed during audio generation.')
+  if (!item || item.input !== input.sourceIdentity.canonicalPath) throw UsageError('Canonical comic source changed during audio generation.')
   const prior = comicMetadata(item)
   const audioOperations = new Set(['comic-audio', 'sound-effect-generation'])
-  if (input.providers?.some(provider => !provider.operation || !audioOperations.has(provider.operation))) throw CLIUsageError('Comic audio stage updates may replace only comic-audio or sound-effect-generation provider states.')
+  if (input.providers?.some(provider => !provider.operation || !audioOperations.has(provider.operation))) throw UsageError('Comic audio stage updates may replace only comic-audio or sound-effect-generation provider states.')
   const providers = input.providers === undefined
     ? item.providers
     : (() => {
@@ -138,13 +133,7 @@ export const updateComicAudioManifest = async (input: {
         ]
       })()
   const requiredStages = [prior.stages.structure, prior.stages.image, input.stage].filter(stage => stage.requirement === 'required')
-  const status = requiredStages.every(stage => stage.status === 'full' || stage.status === 'skipped') && requiredStages.some(stage => stage.status === 'full')
-    ? 'full' as const
-    : requiredStages.every(stage => stage.status === 'skipped')
-      ? 'skipped' as const
-      : requiredStages.every(stage => stage.status === 'failed' || stage.status === 'skipped') && requiredStages.some(stage => stage.status === 'failed')
-        ? 'failed' as const
-        : 'incomplete' as const
+  const status = aggregateComicStageStatus(requiredStages)
   const nextItem: PipelineManifestItem = {
     ...item,
     status,
@@ -182,11 +171,11 @@ export const appendComicAudioProviderState = async (input: {
   targetKeys: readonly string[]
   state: PipelineProviderState
 }): Promise<PipelineManifest> => await updateManifest(input.sceneRunDir, (manifest) => {
-  if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1 || canonicalTtsJson(manifest.source) !== canonicalTtsJson(input.sourceIdentity)) throw CLIUsageError('Comic audio provider state can update only the exact canonical scene manifest.')
+  if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1 || canonicalTtsJson(manifest.source) !== canonicalTtsJson(input.sourceIdentity)) throw UsageError('Comic audio provider state can update only the exact canonical scene manifest.')
   const item = manifest.items[0]
-  if (!item) throw CLIUsageError('Canonical comic scene item is missing.')
+  if (!item) throw UsageError('Canonical comic scene item is missing.')
   const prior = comicMetadata(item)
-  if (input.state.operation !== 'comic-audio' && input.state.operation !== 'sound-effect-generation') throw CLIUsageError('Comic audio provider state has an unsupported operation owner.')
+  if (input.state.operation !== 'comic-audio' && input.state.operation !== 'sound-effect-generation') throw UsageError('Comic audio provider state has an unsupported operation owner.')
   const providers = item.providers.slice()
   const index = providers.findIndex(provider => provider.targetKey === input.state.targetKey)
   if (index >= 0) providers[index] = input.state.operation === 'comic-audio' ? appendCurrentTtsProviderState(providers[index] as PipelineProviderState, input.state) : input.state
@@ -199,13 +188,7 @@ export const appendComicAudioProviderState = async (input: {
     artifactRefs: prior.stages.audio.artifactRefs,
   }
   const requiredStages = [prior.stages.structure, prior.stages.image, stage].filter(candidate => candidate.requirement === 'required')
-  const status = requiredStages.every(candidate => candidate.status === 'full' || candidate.status === 'skipped') && requiredStages.some(candidate => candidate.status === 'full')
-    ? 'full' as const
-    : requiredStages.every(candidate => candidate.status === 'skipped')
-      ? 'skipped' as const
-      : requiredStages.every(candidate => candidate.status === 'failed' || candidate.status === 'skipped') && requiredStages.some(candidate => candidate.status === 'failed')
-        ? 'failed' as const
-        : 'incomplete' as const
+  const status = aggregateComicStageStatus(requiredStages)
   return {
     ...manifest,
     items: [{
@@ -223,12 +206,12 @@ export const updateComicImageManifest = async (input: {
   providers: PipelineProviderState[]
   artifactRefs: Array<{ path: string, sha256: string }>
 }): Promise<PipelineManifest> => await updateManifest(input.sceneRunDir, (manifest) => {
-  if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1 || canonicalTtsJson(manifest.source) !== canonicalTtsJson(input.sourceIdentity)) throw CLIUsageError('Comic image generation can update only the exact canonical scene manifest.')
+  if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1 || canonicalTtsJson(manifest.source) !== canonicalTtsJson(input.sourceIdentity)) throw UsageError('Comic image generation can update only the exact canonical scene manifest.')
   const item = manifest.items[0]
-  if (!item) throw CLIUsageError('Canonical comic scene item is missing.')
+  if (!item) throw UsageError('Canonical comic scene item is missing.')
   const prior = comicMetadata(item)
   const targetKeys = input.providers.map(provider => provider.targetKey as string)
-  if (targetKeys.length === 0 || targetKeys.some(key => !key) || new Set(targetKeys).size !== targetKeys.length) throw CLIUsageError('Comic image stage requires unique operation-scoped provider targets.')
+  if (targetKeys.length === 0 || targetKeys.some(key => !key) || new Set(targetKeys).size !== targetKeys.length) throw UsageError('Comic image stage requires unique operation-scoped provider targets.')
   const providers = [...item.providers.filter(provider => provider.operation !== 'comic-image'), ...input.providers]
   const imageStage = {
     requirement: 'required' as const,
@@ -239,13 +222,7 @@ export const updateComicImageManifest = async (input: {
   }
   const stages = { ...prior.stages, image: imageStage }
   const required = Object.values(stages).filter(stage => stage.requirement === 'required')
-  const status = required.every(stage => stage.status === 'full' || stage.status === 'skipped') && required.some(stage => stage.status === 'full')
-    ? 'full' as const
-    : required.every(stage => stage.status === 'skipped')
-      ? 'skipped' as const
-      : required.every(stage => stage.status === 'failed' || stage.status === 'skipped') && required.some(stage => stage.status === 'failed')
-        ? 'failed' as const
-        : 'incomplete' as const
+  const status = aggregateComicStageStatus(required)
   return { ...manifest, items: [{ ...item, status, providers, metadata: { ...item.metadata, comic: { ...prior, stages } } as never }] }
 })
 
@@ -256,20 +233,14 @@ export const updateComicPresentationManifest = async (input: {
   presentation: CanonicalComicItemMetadata['presentation']
   publishFinal?: (() => Promise<Array<{ path: string, sha256: string }>>) | undefined
 }): Promise<PipelineManifest> => await updateManifest(input.sceneRunDir, async (manifest) => {
-  if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1 || canonicalTtsJson(manifest.source) !== canonicalTtsJson(input.sourceIdentity)) throw CLIUsageError('Comic presentation can update only the exact compatible canonical scene manifest.')
+  if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1 || canonicalTtsJson(manifest.source) !== canonicalTtsJson(input.sourceIdentity)) throw UsageError('Comic presentation can update only the exact compatible canonical scene manifest.')
   const item = manifest.items[0]
-  if (!item || item.input !== input.sourceIdentity.canonicalPath) throw CLIUsageError('Canonical comic source changed during presentation rendering.')
+  if (!item || item.input !== input.sourceIdentity.canonicalPath) throw UsageError('Canonical comic source changed during presentation rendering.')
   const prior = comicMetadata(item)
-  if (input.stage.requirement !== 'optional' || input.stage.execution.kind !== 'local' || input.stage.targetKeys.length !== 0) throw CLIUsageError('Comic presentation is an optional local-only stage.')
+  if (input.stage.requirement !== 'optional' || input.stage.execution.kind !== 'local' || input.stage.targetKeys.length !== 0) throw UsageError('Comic presentation is an optional local-only stage.')
   const stages = { ...prior.stages, presentation: input.stage }
   const required = Object.values(stages).filter(stage => stage.requirement === 'required')
-  const status = required.every(stage => stage.status === 'full' || stage.status === 'skipped') && required.some(stage => stage.status === 'full')
-    ? 'full' as const
-    : required.every(stage => stage.status === 'skipped')
-      ? 'skipped' as const
-      : required.every(stage => stage.status === 'failed' || stage.status === 'skipped') && required.some(stage => stage.status === 'failed')
-        ? 'failed' as const
-        : 'incomplete' as const
+  const status = aggregateComicStageStatus(required)
   const next = {
     ...manifest,
     items: [{
@@ -280,7 +251,7 @@ export const updateComicPresentationManifest = async (input: {
   }
   if (input.publishFinal) {
     const published = await input.publishFinal()
-    if (canonicalTtsJson(published) !== canonicalTtsJson(input.presentation.finalOutputRefs)) throw CLIUsageError('Published comic presentation outputs do not match the canonical presentation manifest update.')
+    if (canonicalTtsJson(published) !== canonicalTtsJson(input.presentation.finalOutputRefs)) throw UsageError('Published comic presentation outputs do not match the canonical presentation manifest update.')
   }
   return next
 })

@@ -7,19 +7,15 @@ import {
   CARTESIA_DEFAULT_TTS_VOICE,
   validateCartesiaTtsVoice
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { CARTESIA_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
+import { readRestErrorText } from '~/utils/rest-client'
 const CARTESIA_DEFAULT_VERSION = '2026-03-01'
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
-
-const readCartesiaError = async (response: Response): Promise<string> => {
-  const text = await response.text()
-  return text.trim() || `HTTP ${response.status}`
-}
 
 export const runCartesiaTts = async (
   text: string,
@@ -34,7 +30,7 @@ export const runCartesiaTts = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = requireApiKey('CARTESIA_API_KEY', 'tts:cartesia', 'Cartesia TTS')
+  const apiKey = resolveCredential('cartesia', 'require', { stage: 'tts:cartesia', description: 'Cartesia TTS' })
 
   const baseURL = trimTrailingSlash(CARTESIA_DEFAULT_BASE_URL)
   const version = CARTESIA_DEFAULT_VERSION
@@ -103,7 +99,7 @@ export const runCartesiaTts = async (
       })
 
       if (!response.ok) {
-        const errText = await readCartesiaError(response)
+        const errText = await readRestErrorText(response)
         throw httpResponseError(`Cartesia TTS failed (${response.status}): ${errText}`, response)
       }
       await accepted({ fields: { httpStatus: response.status } })

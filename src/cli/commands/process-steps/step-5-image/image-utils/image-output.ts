@@ -2,7 +2,7 @@ import { basename, extname } from 'node:path'
 import type { OpenAIImageResponse } from '~/types'
 import { imageDownloadHttpError } from '~/utils/polled-job-client/polled-job'
 
-export const mimeToExtension = (mimeType: string | null | undefined, fallback = 'png'): string => {
+const mimeToExtension = (mimeType: string | null | undefined, fallback = 'png'): string => {
   const normalized = mimeType?.split(';')[0]?.trim().toLowerCase()
   if (normalized === 'image/jpeg' || normalized === 'image/jpg') return 'jpg'
   if (normalized === 'image/webp') return 'webp'
@@ -11,7 +11,7 @@ export const mimeToExtension = (mimeType: string | null | undefined, fallback = 
   return fallback
 }
 
-export const urlToExtension = (url: string, fallback = 'png'): string => {
+const urlToExtension = (url: string, fallback = 'png'): string => {
   try {
     return extname(new URL(url).pathname).replace(/^\./, '') || fallback
   } catch {
@@ -19,7 +19,7 @@ export const urlToExtension = (url: string, fallback = 'png'): string => {
   }
 }
 
-export const outputPathForIndex = (outputDir: string, ext: string, index: number): { fileName: string, outputPath: string } => {
+const outputPathForIndex = (outputDir: string, ext: string, index: number): { fileName: string, outputPath: string } => {
   const normalizedExt = ext === 'jpeg' ? 'jpg' : ext
   const fileName = index === 0
     ? `generated-image.${normalizedExt}`

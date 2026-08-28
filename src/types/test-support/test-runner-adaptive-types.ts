@@ -75,3 +75,5 @@ export type AdaptiveLease = {
   groups: AdaptiveProviderGroup[]
   release: () => Promise<void>
 }
+
+export type SimpleMediaCommand = 'tts' | 'image' | 'video' | 'music'

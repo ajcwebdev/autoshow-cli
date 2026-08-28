@@ -1,4 +1,4 @@
-import type { FetchFn, ReferenceTokenizerMetadata } from '~/types'
+import type { CliCommandContext, CliParseResult, FetchFn, ReferenceTokenizerMetadata } from '~/types'
 
 export type FetchUrlResult = {
   sourceUrl: string
@@ -78,3 +78,5 @@ export type LinksRefreshMetadata = {
   }
   links: LinksRefreshLinkMetadata[]
 }
+
+export type LinksParsedCommand = Pick<CliCommandContext, 'argv' | 'flags' | 'rawParsed'> | CliParseResult

@@ -58,7 +58,8 @@ describe('video provider REST contracts', () => {
         mode: 'interpolate',
         inputImage: imagePath,
         lastFrameImage: lastFramePath,
-        size: '1440x2560',
+        resolution: '1080p',
+        aspectRatio: '16:9',
         durationSeconds: 8
       })
       const extend = await runLtxVideoGen('continue forward', dir, {
@@ -94,10 +95,12 @@ describe('video provider REST contracts', () => {
       })
       expect(interpolate.metadata).toMatchObject({
         videoDuration: 8,
-        videoSize: '1440x2560',
+        videoSize: '1920x1080',
         requestMode: 'interpolate',
+        videoResolution: '1080p',
+        videoAspectRatio: '16:9',
         lastFrameImage: lastFramePath,
-        providerCostCents: 128
+        providerCostCents: 64
       })
       expect(extend.metadata).toMatchObject({
         videoDuration: 20,
@@ -111,7 +114,7 @@ describe('video provider REST contracts', () => {
         image.metadata,
         interpolate.metadata,
         extend.metadata
-      ] }).totalCost).toBe(688)
+      ] }).totalCost).toBe(624)
     })
 
     expect(calls.filter((call) => call.method === 'POST').map((call) => call.url)).toEqual([
@@ -148,7 +151,7 @@ describe('video provider REST contracts', () => {
       prompt: 'transition frames',
       duration: 8,
       fps: 24,
-      resolution: '1440x2560',
+      resolution: '1920x1080',
       last_frame_uri: lastFrameDataUrl
     })
     expect(postBodies[3]).toEqual({

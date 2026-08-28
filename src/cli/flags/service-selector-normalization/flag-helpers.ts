@@ -1,6 +1,4 @@
-import { CLIUsageError } from '~/utils/error-handler'
-import type { CliFlagOccurrence, SelectorFlagMap, SelectorNormalizationResult } from '~/types'
-import { applyFlagOccurrenceNormalization, replaceFlagOccurrence } from './occurrence-normalization'
+import { UsageError } from '~/utils/error-handler'
 
 export const occurrenceValues = (value: unknown): Array<string | true> => {
   if (Array.isArray(value)) {
@@ -14,18 +12,18 @@ export const parseProviderSelectorValue = (
   flagName: string
 ): { provider: string, model: string | true } => {
   if (rawValue === true) {
-    throw CLIUsageError(`--${flagName} requires provider[=model].`)
+    throw UsageError(`--${flagName} requires provider[=model].`)
   }
 
   const trimmed = rawValue.trim()
   if (trimmed.length === 0) {
-    throw CLIUsageError(`--${flagName} requires provider[=model].`)
+    throw UsageError(`--${flagName} requires provider[=model].`)
   }
 
   const eqIndex = trimmed.indexOf('=')
   const provider = (eqIndex === -1 ? trimmed : trimmed.slice(0, eqIndex)).trim().toLowerCase()
   if (provider.length === 0) {
-    throw CLIUsageError(`--${flagName} requires provider[=model].`)
+    throw UsageError(`--${flagName} requires provider[=model].`)
   }
 
   if (eqIndex === -1) {
@@ -34,7 +32,7 @@ export const parseProviderSelectorValue = (
 
   const model = trimmed.slice(eqIndex + 1).trim()
   if (model.length === 0) {
-    throw CLIUsageError(`--${flagName} requires a model after "${provider}=".`)
+    throw UsageError(`--${flagName} requires a model after "${provider}=".`)
   }
 
   return { provider, model }
@@ -49,35 +47,13 @@ export const resolveProviderSelector = (
   const parsed = parseProviderSelectorValue(value, selectorFlag)
   const target = targetByProvider[parsed.provider]
   if (!target) {
-    throw CLIUsageError(`Unknown provider "${parsed.provider}" for --${selectorFlag}.`)
+    throw UsageError(
+      `Unknown provider "${parsed.provider}" for --${selectorFlag}. Expected ${Object.keys(targetByProvider).join('|')}.`
+    )
   }
 
   if (parsed.model !== true && booleanTargets.has(target)) {
-    throw CLIUsageError(`--${selectorFlag} ${parsed.provider} does not accept a model.`)
+    throw UsageError(`--${selectorFlag} ${parsed.provider} does not accept a model.`)
   }
   return { target, model: parsed.model }
-}
-
-export const normalizeCommandSelectorFlags = (
-  flags: Record<string, unknown>,
-  explicitFlags: Set<string>,
-  flagOccurrences: readonly CliFlagOccurrence[],
-  publicNameByInternalName: SelectorFlagMap
-): SelectorNormalizationResult => {
-  const internalNameByPublicName = new Map(
-    Object.entries(publicNameByInternalName).map(([internalName, publicName]) => [publicName, internalName])
-  )
-
-  return applyFlagOccurrenceNormalization(flags, explicitFlags, flagOccurrences, (occurrence) => {
-    const internalName = internalNameByPublicName.get(occurrence.name)
-    if (!internalName) {
-      return undefined
-    }
-    return [replaceFlagOccurrence(
-      occurrence,
-      internalName,
-      occurrence.value,
-      Array.isArray(flags[occurrence.name]) ? 'append' : 'set'
-    )]
-  })
 }

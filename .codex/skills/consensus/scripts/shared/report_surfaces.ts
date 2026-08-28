@@ -869,24 +869,6 @@ function fullHumanQualityRanking(
   return { entries, reason: null };
 }
 
-function dropCombinedOverallFields(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(dropCombinedOverallFields);
-  }
-  if (!isRecord(value)) {
-    return value;
-  }
-
-  const sanitized: Record<string, unknown> = {};
-  for (const [key, child] of Object.entries(value)) {
-    if (key === "overallRank" || key === "overallScore" || key === "overallComponents") {
-      continue;
-    }
-    sanitized[key] = dropCombinedOverallFields(child);
-  }
-  return sanitized;
-}
-
 function reportNotes(sourceReport: Record<string, unknown>): string[] {
   if (!Array.isArray(sourceReport.notes)) {
     return [];
@@ -989,11 +971,6 @@ function providerDetail(category: ConsensusCategory, provider: ProviderSummary):
     detail.distanceMethod = provider.source.distanceMethod ?? null;
     detail.distanceSource = provider.source.distanceSource ?? null;
   }
-  if (category !== "ocr" && category !== "stt") {
-    detail.tierGroup = provider.source.tierGroup ?? null;
-    detail.groupOverallRank = provider.source.groupOverallRank ?? null;
-    detail.groupTier = provider.source.groupTier ?? null;
-  }
   return detail;
 }
 
@@ -1072,7 +1049,7 @@ function buildJsonReport(
     generatedAt: new Date().toISOString(),
     metric: sourceReport.metric ?? null,
     scoreFormula: sourceReport.scoreFormula ?? null,
-    ...(category === "tts" ? { tiering: dropCombinedOverallFields(sourceReport.tiering ?? null) } : {}),
+
     duplicateGroups: sourceReport.duplicateGroups ?? [],
     normalization: sourceReport.normalization ?? null,
     providerCount: providers.length,
@@ -1555,6 +1532,6 @@ export function rewriteComparisonReports(options: RewriteOptions): void {
   const jsonReport = buildJsonReport(options.category, sourceReport, providers, rankingSurfaces);
   const markdownReport = buildMarkdownReport(options.category, sourceReport, providers, rankingSurfaces);
 
-  writeFileSync(options.jsonPath, `${JSON.stringify(jsonReport, null, 2)}\n`);
+  writeFileSync(options.jsonPath, JSON.stringify(jsonReport));
   writeFileSync(options.markdownPath, markdownReport);
 }

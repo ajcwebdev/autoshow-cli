@@ -1,4 +1,4 @@
-import type { Step2ProviderSelectionFilter, SttDiarizationFlagOptions, SttSelectionOptions, SttSource, SttSourceEligibility, SttTarget } from '~/types'
+import type { Step2ProviderSelectionFilter, SttSource, SttSourceEligibility, SttTarget, SttTargetBuildOptions } from '~/types'
 import { SUPPORTED_SCRAPECREATORS_STT_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { collectStep2ProviderSelections } from '../step-2-shared/provider-registry'
 import { collectSttProviderSpecs, resolveDiarizationOptions } from './stt-cli'
@@ -18,8 +18,6 @@ const URL_ONLY_STT_SERVICES = new Set<SttTarget['service']>([
 
 const scrapeCreatorsAllProviderModel = SUPPORTED_SCRAPECREATORS_STT_MODELS[0] ?? 'youtube-transcript'
 
-type SttTargetOptions = SttSelectionOptions & SttDiarizationFlagOptions
-
 const sanitizeSegment = (value: string): string =>
   value.replace(/[/\\:*?"<>|]+/g, '_')
 
@@ -36,7 +34,7 @@ export const getSttTargetDirectoryName = (target: Pick<SttTarget, 'service' | 'm
   `${sanitizeSegment(target.service)}-${sanitizeSegment(target.model)}`
 
 const buildSttTarget = (
-  options: SttTargetOptions,
+  options: SttTargetBuildOptions,
   provider: string,
   selectedModel?: string | undefined
 ): SttTarget => {
@@ -53,7 +51,7 @@ const buildSttTarget = (
   } satisfies SttTarget
 }
 
-export const resolveSttSourceEligibility = (
+const resolveSttSourceEligibility = (
   source: SttSource
 ): SttSourceEligibility => ({
   supadata: isSupadataSupportedSourceUrl(source.url),
@@ -67,7 +65,7 @@ export const sttSourceFromInput = (
   : { filePath: input }
 
 export const collectSttTargets = (
-  options: SttTargetOptions,
+  options: SttTargetBuildOptions,
   filter?: Step2ProviderSelectionFilter
 ): SttTarget[] => {
   return collectSttProviderSpecs(options, filter).map((spec) => {
@@ -76,7 +74,7 @@ export const collectSttTargets = (
 }
 
 export const collectSttTargetsForSource = (
-  options: SttTargetOptions,
+  options: SttTargetBuildOptions,
   source: SttSource,
   filter?: Step2ProviderSelectionFilter
 ): SttTarget[] => {

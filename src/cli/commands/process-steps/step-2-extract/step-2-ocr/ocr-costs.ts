@@ -116,135 +116,113 @@ const withPdfChunkTiming = (
   }
 }
 
+type TokenOcrEstimateProvider = Extract<'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra', ExtractEstimateProvider>
+
+type TokenOcrEstimateDescriptor = Readonly<{
+  fallbackModel: (opts: CollectEstimatedExtractTargetsOptions) => string
+  note: string
+}>
+
+const TOKEN_OCR_ESTIMATE_DESCRIPTORS = {
+  glm: { fallbackModel: opts => opts.glmOcrModels?.[0] || 'glm-ocr', note: GLM_OCR_PRICE_NOTE },
+  kimi: { fallbackModel: opts => opts.kimiOcrModels?.[0] || 'kimi-ocr', note: KIMI_OCR_PRICE_NOTE },
+  openai: { fallbackModel: opts => opts.openaiOcrModels?.[0] || 'openai-ocr', note: OPENAI_OCR_PRICE_NOTE },
+  grok: { fallbackModel: opts => opts.grokOcrModels?.[0] || 'grok-4.3', note: GROK_OCR_PRICE_NOTE },
+  anthropic: { fallbackModel: opts => opts.anthropicOcrModels?.[0] || 'anthropic-ocr', note: ANTHROPIC_OCR_PRICE_NOTE },
+  gemini: { fallbackModel: opts => opts.geminiOcrModels?.[0] || 'gemini-ocr', note: GEMINI_OCR_PRICE_NOTE },
+  deepinfra: { fallbackModel: opts => opts.deepinfraOcrModels?.[0] || 'deepinfra-ocr', note: DEEPINFRA_OCR_PRICE_NOTE },
+} satisfies Record<TokenOcrEstimateProvider, TokenOcrEstimateDescriptor>
+
+const isTokenEstimateProvider = (provider: string): provider is TokenOcrEstimateProvider =>
+  provider in TOKEN_OCR_ESTIMATE_DESCRIPTORS
+
+const poolUsageTargets = (entry: ExtractionMetadata | PartialExtractionMetadata): ExtractEstimateTarget[] | undefined => {
+  if (entry.ocrProviderMode !== 'pool' || !Array.isArray(entry.ocrPoolTargetUsage)) return undefined
+  return entry.ocrPoolTargetUsage.filter(isRecord).flatMap((usage): ExtractEstimateTarget[] => {
+    const provider = typeof usage['provider'] === 'string' ? usage['provider'] : undefined
+    const model = typeof usage['model'] === 'string' ? usage['model'] : undefined
+    if (!provider || !model) return []
+    const pageCount = typeof usage['attemptedPages'] === 'number' ? Math.max(0, Math.floor(usage['attemptedPages'])) : 0
+    if (provider === 'tesseract') return [{ provider, model, pageCount, ocrMode: 'pool', ocrProviderMode: 'pool', estimateType: 'exact' as const }]
+    if (provider === 'mistral') return [{ provider, model, pageCount, ocrMode: 'pool:pdf', ocrProviderMode: 'pool', estimateType: 'exact' as const }]
+    if (!isTokenPricedOcrProvider(provider)) return []
+    const promptTokens = typeof usage['promptTokens'] === 'number' ? usage['promptTokens'] : undefined
+    const completionTokens = typeof usage['completionTokens'] === 'number' ? usage['completionTokens'] : undefined
+    const effectiveReasoningEffort = typeof usage['effectiveReasoningEffort'] === 'string'
+      ? usage['effectiveReasoningEffort'] as ExtractionMetadata['effectiveReasoningEffort']
+      : undefined
+    return [{
+      provider,
+      model,
+      pageCount,
+      ocrMode: 'pool',
+      ocrProviderMode: 'pool',
+      ...(promptTokens !== undefined ? { promptTokens } : {}),
+      ...(completionTokens !== undefined ? { completionTokens } : {}),
+      ...(effectiveReasoningEffort !== undefined ? { effectiveReasoningEffort } : {}),
+      estimateType: promptTokens !== undefined && completionTokens !== undefined ? 'exact' as const : 'heuristic' as const,
+    }]
+  })
+}
+
+const HTML_EXACT_METHODS = new Set([
+  'html+defuddle',
+  'html+firecrawl',
+  'html+glm-reader',
+  'html+spider',
+  'html+supadata',
+  'html+zyte',
+])
+
+const htmlExtractionTarget = (entry: ExtractionMetadata): ExtractEstimateTarget | undefined => {
+  if (!HTML_EXACT_METHODS.has(entry.extractionMethod)) return undefined
+  const { provider, model } = resolveExtractionProviderModel(entry) as {
+    provider: 'defuddle' | 'firecrawl' | 'glm-reader' | 'spider' | 'supadata' | 'zyte'
+    model: string
+  }
+  return withPdfChunkTiming(entry, {
+    provider,
+    model,
+    pageCount: Math.max(1, entry.totalPages),
+    estimateType: 'exact',
+    ...(provider === 'firecrawl' ? { note: FIRECRAWL_PRICE_NOTE } : {}),
+  })
+}
+
+const hostedOcrTarget = (
+  entry: ExtractionMetadata,
+  opts: CollectEstimatedExtractTargetsOptions
+): ExtractEstimateTarget | undefined => {
+  const { provider, model } = resolveExtractionProviderModel(entry)
+  const pageCount = Math.max(1, entry.totalPages)
+  if (provider === 'mistral') return withPdfChunkTiming(entry, { provider, model: model || opts.mistralOcrModels?.[0] || 'mistral-ocr', pageCount, estimateType: 'exact' })
+  if (provider === 'replicate') return withPdfChunkTiming(entry, { provider, model: model || 'datalab-to/ocr', pageCount, estimateType: 'exact' })
+  if (provider === 'fal') return withPdfChunkTiming(entry, { provider, model: model || 'fal-ai/got-ocr/v2', pageCount, estimateType: 'exact' })
+  if (!isTokenEstimateProvider(provider)) return undefined
+  const descriptor = TOKEN_OCR_ESTIMATE_DESCRIPTORS[provider]
+  const target = buildTokenTarget(
+    provider,
+    model || descriptor.fallbackModel(opts),
+    pageCount,
+    resolveHostedOcrModeFromExtractionMethod(entry.extractionMethod, entry.inputFamily),
+    entry.effectiveReasoningEffort,
+    descriptor.note
+  )
+  return withPdfChunkTiming(entry, withObservedTokenUsage(target, entry, opts.useObservedUsage))
+}
+
 export const collectEstimatedExtractTargets = (
   metadata: ExtractionMetadata | PartialExtractionMetadata | Array<ExtractionMetadata | PartialExtractionMetadata>,
   opts: CollectEstimatedExtractTargetsOptions = {}
-): ExtractEstimateTarget[] => {
-  const targets: ExtractEstimateTarget[] = []
-
-  for (const entry of toArray(metadata)) {
-    const pageCount = Math.max(1, entry.totalPages)
-
-    if (entry.ocrProviderMode === 'pool' && Array.isArray(entry.ocrPoolTargetUsage)) {
-      for (const usage of entry.ocrPoolTargetUsage.filter(isRecord)) {
-        const provider = typeof usage['provider'] === 'string' ? usage['provider'] : undefined
-        const model = typeof usage['model'] === 'string' ? usage['model'] : undefined
-        if (!provider || !model) continue
-        const attemptedPages = typeof usage['attemptedPages'] === 'number'
-          ? Math.max(0, Math.floor(usage['attemptedPages']))
-          : 0
-        const promptTokens = typeof usage['promptTokens'] === 'number' ? usage['promptTokens'] : undefined
-        const completionTokens = typeof usage['completionTokens'] === 'number' ? usage['completionTokens'] : undefined
-        const effectiveReasoningEffort = typeof usage['effectiveReasoningEffort'] === 'string'
-          ? usage['effectiveReasoningEffort'] as ExtractionMetadata['effectiveReasoningEffort']
-          : undefined
-        if (provider === 'tesseract') {
-          targets.push({ provider, model, pageCount: attemptedPages, ocrMode: 'pool', ocrProviderMode: 'pool', estimateType: 'exact' })
-        } else if (provider === 'mistral') {
-          targets.push({ provider, model, pageCount: attemptedPages, ocrMode: 'pool:pdf', ocrProviderMode: 'pool', estimateType: 'exact' })
-        } else if (isTokenPricedOcrProvider(provider)) {
-          targets.push({
-            provider,
-            model,
-            pageCount: attemptedPages,
-            ocrMode: 'pool',
-            ocrProviderMode: 'pool',
-            ...(promptTokens !== undefined ? { promptTokens } : {}),
-            ...(completionTokens !== undefined ? { completionTokens } : {}),
-            ...(effectiveReasoningEffort !== undefined ? { effectiveReasoningEffort } : {}),
-            estimateType: promptTokens !== undefined && completionTokens !== undefined ? 'exact' : 'heuristic'
-          })
-        }
-      }
-      continue
-    }
-
-    if (
-      entry.extractionMethod === 'html+defuddle'
-      || entry.extractionMethod === 'html+firecrawl'
-      || entry.extractionMethod === 'html+glm-reader'
-      || entry.extractionMethod === 'html+spider'
-      || entry.extractionMethod === 'html+supadata'
-      || entry.extractionMethod === 'html+zyte'
-    ) {
-      const { provider, model } = resolveExtractionProviderModel(entry) as {
-        provider: 'defuddle' | 'firecrawl' | 'glm-reader' | 'spider' | 'supadata' | 'zyte'
-        model: string
-      }
-      targets.push(withPdfChunkTiming(entry, {
-        provider,
-        model,
-        pageCount,
-        estimateType: 'exact',
-        ...(provider === 'firecrawl' ? { note: FIRECRAWL_PRICE_NOTE } : {})
-      }))
-      continue
-    }
-
-    if (entry.extractionMethod.startsWith('html+')) {
-      continue
-    }
-
-    const { provider, model } = resolveExtractionProviderModel(entry)
-    const ocrMode = resolveHostedOcrModeFromExtractionMethod(entry.extractionMethod, entry.inputFamily)
-    if (provider === 'mistral') {
-      targets.push(withPdfChunkTiming(entry, {
-        provider: 'mistral',
-        model: model || opts.mistralOcrModel || 'mistral-ocr',
-        pageCount,
-        estimateType: 'exact'
-      }))
-      continue
-    }
-
-    if (provider === 'glm') {
-      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('glm', model || opts.glmOcrModel || 'glm-ocr', pageCount, ocrMode, entry.effectiveReasoningEffort, GLM_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
-      continue
-    }
-
-    if (provider === 'kimi') {
-      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('kimi', model || opts.kimiOcrModel || 'kimi-ocr', pageCount, ocrMode, entry.effectiveReasoningEffort, KIMI_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
-      continue
-    }
-
-    if (provider === 'openai') {
-      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('openai', model || opts.openaiOcrModel || 'openai-ocr', pageCount, ocrMode, entry.effectiveReasoningEffort, OPENAI_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
-      continue
-    }
-
-    if (provider === 'grok') {
-      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('grok', model || opts.grokOcrModel || 'grok-4.3', pageCount, ocrMode, entry.effectiveReasoningEffort, GROK_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
-      continue
-    }
-
-    if (provider === 'anthropic') {
-      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('anthropic', model || opts.anthropicOcrModel || 'anthropic-ocr', pageCount, ocrMode, entry.effectiveReasoningEffort, ANTHROPIC_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
-      continue
-    }
-
-    if (provider === 'gemini') {
-      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('gemini', model || opts.geminiOcrModel || 'gemini-ocr', pageCount, ocrMode, entry.effectiveReasoningEffort, GEMINI_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
-      continue
-    }
-
-    if (provider === 'deepinfra') {
-      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('deepinfra', model || opts.deepinfraOcrModel || 'deepinfra-ocr', pageCount, ocrMode, entry.effectiveReasoningEffort, DEEPINFRA_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
-      continue
-    }
-
-    if (provider === 'fal') {
-      const falModel = model || opts.falOcrModel || 'fal-ai/got-ocr/v2'
-      targets.push(withPdfChunkTiming(entry, {
-        provider: 'fal',
-        model: falModel,
-        pageCount,
-        estimateType: 'exact'
-      }))
-    }
-  }
-
-  return targets
-}
+): ExtractEstimateTarget[] => toArray(metadata).flatMap(entry => {
+  const poolTargets = poolUsageTargets(entry)
+  if (poolTargets) return poolTargets
+  const htmlTarget = htmlExtractionTarget(entry)
+  if (htmlTarget) return [htmlTarget]
+  if (entry.extractionMethod.startsWith('html+')) return []
+  const hostedTarget = hostedOcrTarget(entry, opts)
+  return hostedTarget ? [hostedTarget] : []
+})
 
 const buildMatchKey = (step: string, provider: string, model: string): string =>
   `${step}::${provider}::${model}`
@@ -311,7 +289,6 @@ export const resolveDocumentWriteEstimatedCosts = (
       inputTokens: entry.inputTokenCount,
       outputTokens: entry.outputTokenCount
     })),
-    skipLLM: false,
     ...tokenProfileCostInput(opts)
   })
 }
@@ -335,7 +312,6 @@ export const resolveDocumentWriteObservedEstimateCosts = (
       inputTokens: entry.inputTokenCount,
       outputTokens: entry.outputTokenCount
     })),
-    skipLLM: false,
     ...tokenProfileCostInput(opts)
   })
 }

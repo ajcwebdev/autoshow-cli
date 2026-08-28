@@ -1,16 +1,5 @@
-import { createHash } from 'node:crypto'
-
-export type CanonicalProviderOperation =
-  | 'tts-synthesis'
-  | 'comic-structure'
-  | 'comic-image'
-  | 'comic-audio'
-  | (string & {})
-
-const safeKeyPart = (value: string): string => {
-  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-  return normalized.slice(0, 48) || 'none'
-}
+import type { CanonicalProviderOperation } from '~/types'
+import { safeKeyPart } from '~/utils/value-helpers'
 
 export const canonicalTargetKey = (
   operation: CanonicalProviderOperation,
@@ -18,7 +7,7 @@ export const canonicalTargetKey = (
   model: string,
   transport: string
 ): string => {
-  const digest = createHash('sha256').update(JSON.stringify({
+  const digest = new Bun.CryptoHasher('sha256').update(JSON.stringify({
     schemaVersion: 1,
     operation,
     service,

@@ -23,7 +23,6 @@ export const collectElevenLabsTtsTargets = (
         invocation?.signal?.throwIfAborted()
         const invocationVoiceId = resolveTtsTargetInvocationVoiceId('elevenlabs', invocation)
         const controls = resolveTtsTargetInvocationControls('elevenlabs', invocation, {
-          outputFormat: selection.elevenLabsOutputFormat,
           languageCode: selection.elevenLabsLanguageCode,
           stability: selection.elevenLabsStability,
           similarityBoost: selection.elevenLabsSimilarityBoost,
@@ -50,7 +49,6 @@ export const collectElevenLabsTtsTargets = (
           })), outputDir, {
             model,
             controls: {
-              outputFormat: controls.outputFormat,
               languageCode: controls.languageCode,
               seed: controls.seed,
               textNormalization: controls.textNormalization
@@ -63,7 +61,6 @@ export const collectElevenLabsTtsTargets = (
           model,
           voiceId: invocationVoiceId ?? voiceId,
           controls: {
-            outputFormat: controls.outputFormat,
             languageCode: controls.languageCode,
             voiceSettings: {
               ...(typeof controls.stability === 'number' ? { stability: controls.stability } : {}),

@@ -35,8 +35,8 @@ export const ocrImage = async (
 ): Promise<TesseractOcrResult> => {
   await ensureTesseractSetup()
   const args = [imagePath, 'stdout', '-l', lang, '--oem', '1', '--psm', '3']
-  if (outputFormat === 'tsv' || outputFormat === 'hocr') {
-    args.push(outputFormat)
+  if (outputFormat === 'tsv') {
+    args.push('tsv')
   }
   const result = await exec(getTesseractBinary(), args, {
     env: {

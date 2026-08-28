@@ -1,7 +1,8 @@
 import { appendFile, mkdir, readdir, readFile, rm } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
-import type { TestRunArtifacts } from '~/types'
+import type { RunnerLogHandle, TestRunArtifacts } from '~/types'
 import { formatTimestampForDir } from './utils'
+import { isObjectLike } from '~/utils/value-helpers'
 
 const LATEST_LOG_FILE = 'latest.log'
 const ACTIVE_RUN_FILE = '.active-run.json'
@@ -9,21 +10,9 @@ const RUNNER_LOG_FLUSH_INTERVAL_MS = 100
 const RUNNER_LOG_FLUSH_SIZE_BYTES = 64 * 1024
 const COMMAND_LOG_TAIL_BYTES = 256 * 1024
 
-const TEST_OUTPUT_ROOT = resolve(process.cwd(), 'project/test-output')
-
-type RunnerLogWriter = ReturnType<ReturnType<typeof Bun.file>['writer']>
-
-type RunnerLogHandle = {
-  writer: RunnerLogWriter
-  pendingBytes: number
-  closed: boolean
-  flushTimer: ReturnType<typeof setInterval>
-}
+export const TEST_OUTPUT_ROOT = resolve(process.cwd(), 'output/test-output')
 
 const runnerLogHandles = new WeakMap<TestRunArtifacts, RunnerLogHandle>()
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
 
 const readTextIfExists = async (path: string): Promise<string> => {
   try {
@@ -55,7 +44,7 @@ const parseJsonRecord = (text: string): Record<string, unknown> | null => {
 
   try {
     const parsed = JSON.parse(text) as unknown
-    return isRecord(parsed) ? parsed : null
+    return isObjectLike(parsed) ? parsed : null
   } catch {
     return null
   }
@@ -127,8 +116,8 @@ const appendRunSummary = (
 ): void => {
   const runRaw = report?.['run']
   const summaryRaw = report?.['summary']
-  const run = isRecord(runRaw) ? runRaw : {}
-  const summary = isRecord(summaryRaw) ? summaryRaw : {}
+  const run = isObjectLike(runRaw) ? runRaw : {}
+  const summary = isObjectLike(summaryRaw) ? summaryRaw : {}
 
   lines.push('AutoShow test runner latest log')
   lines.push(`Run ID: ${formatUnknown(run['id']) ?? artifacts.runId}`)
@@ -158,11 +147,11 @@ const appendFailures = (lines: string[], report: Record<string, unknown> | null)
   const commandsRaw = report?.['commands']
   const failedTests = Array.isArray(testsRaw)
     ? testsRaw.filter((entry): entry is Record<string, unknown> =>
-        isRecord(entry) && entry['status'] === 'failed')
+        isObjectLike(entry) && entry['status'] === 'failed')
     : []
   const failedCommands = Array.isArray(commandsRaw)
     ? commandsRaw.filter((entry): entry is Record<string, unknown> =>
-        isRecord(entry) && entry['status'] === 'failed')
+        isObjectLike(entry) && entry['status'] === 'failed')
     : []
 
   if (failedTests.length === 0 && failedCommands.length === 0 && !report?.['error']) {

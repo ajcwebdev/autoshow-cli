@@ -1,14 +1,13 @@
-import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, rm } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import type {
   ApprovedVoiceSnapshotEntry,
   ComicDialoguePlan,
-  TtsProvider,
+  ComicVoiceSnapshotTarget,
   VoiceReferenceManifest,
   VoiceReferenceSnapshotIndex,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { withProcessLock } from '~/utils/process-lock'
 import { managedVoiceAssetStore } from '../../step-4-tts/voice-management/managed-voice-store'
 import { loadVoiceConsentRecord } from '../../step-4-tts/voice-management/voice-consent-store'
@@ -27,17 +26,15 @@ import {
   validateVoiceReferenceSnapshotIndex,
 } from './comic-audio-contracts'
 
-export type ComicVoiceSnapshotTarget = { provider: TtsProvider, model: string }
-
 const snapshotLockName = (sceneRunDir: string): string =>
-  `comic-voice-snapshots-${createHash('sha256').update(resolve(sceneRunDir)).digest('hex').slice(0, 24)}`
+  `comic-voice-snapshots-${new Bun.CryptoHasher('sha256').update(resolve(sceneRunDir)).digest('hex').slice(0, 24)}`
 
 const selectedAuditionAsset = (audition: Awaited<ReturnType<typeof loadApprovedVoiceAudition>>) => {
   for (const item of audition.items) {
     const take = item.takes.find(candidate => candidate.takeId === item.selectedTakeId)
     if (take) return take.protectedAudio
   }
-  throw CLIUsageError('Approved audition does not retain an explicitly selected protected take.')
+  throw UsageError('Approved audition does not retain an explicitly selected protected take.')
 }
 
 const providerRevision = (metadata: Record<string, string | number | boolean | null | string[]>): string | undefined => {
@@ -73,22 +70,22 @@ export const buildVoiceReferenceManifest = async (input: {
         && candidate.providerModel === target.model
         && candidate.profileKey === input.profileKey
       )
-      if (!selection) throw CLIUsageError(`No approved current ${target.provider}/${input.profileKey} voice registration exists for ${subjectKey}.`)
+      if (!selection) throw UsageError(`No approved current ${target.provider}/${input.profileKey} voice registration exists for ${subjectKey}.`)
       const registration = registrations.registrations.find(candidate =>
         candidate.registrationId === selection.registrationId
         && candidate.generationId === selection.generationId
       )
       if (!registration || registration.approval.state !== 'approved' || registration.provisioning.state !== 'ready') {
-        throw CLIUsageError(`Current voice registration for ${subjectKey}/${target.provider} is not approved and ready.`)
+        throw UsageError(`Current voice registration for ${subjectKey}/${target.provider} is not approved and ready.`)
       }
       if (registration.providerModel !== target.model) {
-        throw CLIUsageError(`Approved ${target.provider} voice for ${subjectKey} targets ${registration.providerModel}, not selected model ${target.model}.`)
+        throw UsageError(`Approved ${target.provider} voice for ${subjectKey} targets ${registration.providerModel}, not selected model ${target.model}.`)
       }
       const brief = briefs.briefs.find(candidate => candidate.subjectKey === subjectKey && candidate.profileKey === input.profileKey)
-      if (!brief || hashCanonicalTtsValue(brief) !== registration.briefHash) throw CLIUsageError(`Approved voice registration for ${subjectKey} no longer matches its authored brief.`)
+      if (!brief || hashCanonicalTtsValue(brief) !== registration.briefHash) throw UsageError(`Approved voice registration for ${subjectKey} no longer matches its authored brief.`)
       if (registration.consentRecordRef) {
         const consent = await loadVoiceConsentRecord(managedVoiceAssetStore, registration.consentRecordRef)
-        if (consent.subjectKey !== subjectKey) throw CLIUsageError(`Voice consent subject does not match ${subjectKey}.`)
+        if (consent.subjectKey !== subjectKey) throw UsageError(`Voice consent subject does not match ${subjectKey}.`)
         assertVoiceConsentAllows(consent, 'new-synthesis')
       }
       const audition = await loadApprovedVoiceAudition(input.charactersRoot, registration)
@@ -134,7 +131,7 @@ export const buildVoiceReferenceManifest = async (input: {
 }
 
 const atomicWriteIndex = async (path: string, value: VoiceReferenceSnapshotIndex): Promise<void> => {
-  const temporary = `${path}.tmp-${randomUUID()}`
+  const temporary = `${path}.tmp-${crypto.randomUUID()}`
   await mkdir(dirname(path), { recursive: true })
   try {
     await Bun.write(temporary, `${JSON.stringify(value, null, 2)}\n`)
@@ -164,7 +161,7 @@ export const writeVoiceReferenceManifest = async (
     createdAt: manifest.createdAt,
   }
   const prior = index.entries.find(entry => entry.snapshotId === manifest.snapshotId)
-  if (prior && (prior.sceneRunIdentity !== nextEntry.sceneRunIdentity || prior.dialoguePlanId !== nextEntry.dialoguePlanId || prior.createdAt !== nextEntry.createdAt)) throw CLIUsageError('Append-only voice snapshot index contains a conflicting snapshot identity.')
+  if (prior && (prior.sceneRunIdentity !== nextEntry.sceneRunIdentity || prior.dialoguePlanId !== nextEntry.dialoguePlanId || prior.createdAt !== nextEntry.createdAt)) throw UsageError('Append-only voice snapshot index contains a conflicting snapshot identity.')
   if (!prior) await atomicWriteIndex(indexPath, validateVoiceReferenceSnapshotIndex({ schemaVersion: 1, entries: [...index.entries, nextEntry] }))
   return { path: relativePath, sha256: written.sha256 }
 })
@@ -183,7 +180,7 @@ export const loadVoiceReferenceManifest = async (input: {
     && candidate.dialoguePlanId === input.dialoguePlanId
     && (input.snapshotId === undefined || candidate.snapshotId === input.snapshotId)
   )
-  if (input.snapshotId === undefined && matchingEntries.length > 1) throw CLIUsageError('Multiple retained voice snapshots exist for this scene/dialogue; select one exact snapshot identity.')
+  if (input.snapshotId === undefined && matchingEntries.length > 1) throw UsageError('Multiple retained voice snapshots exist for this scene/dialogue; select one exact snapshot identity.')
   const entry = matchingEntries[0]
   if (!entry) return undefined
   const relativePath = `assets/voice-references/${entry.snapshotId}/voice-reference-snapshot.json`
@@ -192,9 +189,9 @@ export const loadVoiceReferenceManifest = async (input: {
   try {
     parsed = validateVoiceReferenceManifest(JSON.parse(new TextDecoder().decode(bytes)) as VoiceReferenceManifest)
   } catch (error) {
-    throw CLIUsageError(`Retained voice snapshot is invalid: ${error instanceof Error ? error.message : String(error)}`)
+    throw UsageError(`Retained voice snapshot is invalid: ${error instanceof Error ? error.message : String(error)}`, undefined, error instanceof Error ? { cause: error } : {})
   }
-  if (parsed.snapshotId !== entry.snapshotId || parsed.sceneRunIdentity !== input.sceneRunIdentity || parsed.dialoguePlanId !== input.dialoguePlanId || parsed.createdAt !== entry.createdAt) throw CLIUsageError('Retained voice snapshot does not bind its append-only scene/dialogue index entry.')
+  if (parsed.snapshotId !== entry.snapshotId || parsed.sceneRunIdentity !== input.sceneRunIdentity || parsed.dialoguePlanId !== input.dialoguePlanId || parsed.createdAt !== entry.createdAt) throw UsageError('Retained voice snapshot does not bind its append-only scene/dialogue index entry.')
   return { manifest: parsed, ref: { path: relativePath, sha256: sha256Bytes(bytes) } }
 }
 
@@ -204,11 +201,11 @@ export const bindSnapshotRenderIdentities = async (
   renderIdentities: readonly string[]
 ): Promise<void> => await withProcessLock(snapshotLockName(sceneRunDir), async () => {
   const indexPath = join(sceneRunDir, 'assets/voice-reference-snapshots.json')
-  if (!await Bun.file(indexPath).exists()) throw CLIUsageError('Voice snapshot index is missing during render binding.')
+  if (!await Bun.file(indexPath).exists()) throw UsageError('Voice snapshot index is missing during render binding.')
   const index = validateVoiceReferenceSnapshotIndex(await Bun.file(indexPath).json() as VoiceReferenceSnapshotIndex)
   const entryIndex = index.entries.findIndex(entry => entry.snapshotId === snapshotId)
   const entry = index.entries[entryIndex]
-  if (!entry) throw CLIUsageError('Voice snapshot index does not contain the selected snapshot.')
+  if (!entry) throw UsageError('Voice snapshot index does not contain the selected snapshot.')
   const merged = [...new Set([...entry.renderIdentities, ...renderIdentities])].sort()
   const entries = index.entries.slice()
   entries[entryIndex] = { ...entry, renderIdentities: merged }

@@ -3,22 +3,14 @@ import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/
 import { readManifest, resolveManifestRelativePath } from '~/cli/commands/process-steps/pipeline-manifest'
 import { readHostedOcrTokenUsageProfiles, resolveHostedOcrModeFromExtractionMethod, resolveHostedOcrTokenPageCountBand } from '../step-2-ocr/ocr-utils/hosted-ocr-token-profiles'
 import { isTokenPricedOcrProvider } from '~/types'
-import type { AuditOcrTokenShapesOptions, HostedOcrTokenReasoningPolicy, HostedOcrTokenUsageProfile, OcrTokenShapeAuditBucket, OcrTokenShapeAuditMetric, OcrTokenShapeAuditReport, PipelineManifestItem, TokenPricedOcrProvider } from '~/types'
+import type { AuditOcrTokenShapesOptions, HostedOcrTokenReasoningPolicy, HostedOcrTokenUsageProfile, OcrTokenShapeAuditBucket, OcrTokenShapeAuditMetric, OcrTokenShapeAuditReport, PipelineManifestItem, TokenPricedOcrProvider, TokenShapeSample } from '~/types'
 import { selectHostedOcrTokenUsageProfile } from '~/utils/pricing/ocr-token-pricing'
 import { isRecord } from '~/utils/rest-client'
+import { UsageError } from '~/utils/error-handler'
+import { roundMetric } from '~/utils/value-helpers'
 
 const MINIMUM_HEALTHY_SAMPLES = 3
 const PROMOTION_ERROR_THRESHOLD = 20
-
-type TokenShapeSample = {
-  provider: TokenPricedOcrProvider
-  model: string
-  ocrMode: string
-  pageCountBand: string
-  effectiveReasoningEffort: HostedOcrTokenReasoningPolicy
-  promptTokensPerPage: number
-  completionTokensPerPage: number
-}
 
 const defaultTarget = (provider: TokenPricedOcrProvider, model: string): boolean =>
   provider === 'kimi' || (provider === 'gemini' && model.toLowerCase().includes('pro'))
@@ -46,8 +38,6 @@ const reasoningPolicy = (value: unknown): HostedOcrTokenReasoningPolicy => {
 
 const bucketKey = (value: Pick<TokenShapeSample, 'provider' | 'model' | 'ocrMode' | 'pageCountBand' | 'effectiveReasoningEffort'>): string =>
   [value.provider, value.model, value.ocrMode, value.pageCountBand, value.effectiveReasoningEffort].join('\u0000')
-
-const roundMetric = (value: number): number => Math.round(value * 1000) / 1000
 
 const median = (values: readonly number[]): number | undefined => {
   if (values.length === 0) return undefined
@@ -231,7 +221,7 @@ export const auditOcrTokenShapes = async (
 ): Promise<OcrTokenShapeAuditReport> => {
   const runDirectories = [...new Set(options.runDirectories ?? [])]
   if (runDirectories.length === 0 && options.profilePath === undefined) {
-    throw new Error('OCR token-shape audit requires at least one explicit run directory or an explicit token-profile path.')
+    throw UsageError('OCR token-shape audit requires at least one explicit run directory or an explicit token-profile path.')
   }
 
   const seen = new Set<string>()

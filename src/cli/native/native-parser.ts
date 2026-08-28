@@ -53,7 +53,7 @@ const isHelpFlag = (arg: string | undefined): boolean =>
   arg === '--help' || arg === '-h'
 
 const isVersionFlag = (arg: string | undefined): boolean =>
-  arg === '--version' || arg === '-v' || arg === '-V'
+  arg === '--version' || arg === '-v'
 
 const isRepeatableStringFlag = (definition: CliFlagDefinition): boolean =>
   Array.isArray(definition.type)
@@ -393,7 +393,7 @@ export const parseCommandArgv = (
         rawParsed: buildRawParsed(argv, doubleDash, explicitFlags, flagOccurrences, unknown, positional)
       }
     }
-    if (arg === '--version' || arg === '-v' || arg === '-V') {
+    if (arg === '--version' || arg === '-v') {
       explicitFlags.add('version')
       flags['version'] = true
       recordFlagOccurrence(flagOccurrences, 'version', arg, true, definitions['version'])

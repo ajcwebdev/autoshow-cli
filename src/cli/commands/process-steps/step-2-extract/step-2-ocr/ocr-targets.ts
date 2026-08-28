@@ -1,5 +1,5 @@
 import type { ExtractionOptions, OcrTarget, Step2ProviderSelectionFilter, Step2ProviderSelectionOrigin } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { sanitizeModelName } from '~/cli/commands/process-steps/target-runner'
 import { collectOcrProviderSpecs } from './ocr-cli'
 
@@ -12,13 +12,11 @@ const providerToOcrService = (provider: string): OcrTarget['service'] => {
   if (provider === 'anthropic-ocr') return 'anthropic'
   if (provider === 'gemini-ocr') return 'gemini'
   if (provider === 'deepinfra-ocr') return 'deepinfra'
-  if (provider === 'replicate-ocr') return 'replicate'
-  if (provider === 'fal-ocr') return 'fal'
   return provider as OcrTarget['service']
 }
 
 export const collectExplicitOcrTargets = (
-  opts: Pick<ExtractionOptions, 'useTesseract' | 'mistralOcrModel' | 'glmOcrModel' | 'kimiOcrModel' | 'openaiOcrModel' | 'grokOcrModel' | 'anthropicOcrModel' | 'geminiOcrModel' | 'deepinfraOcrModel' | 'replicateOcrModel' | 'falOcrModel'> & {
+  opts: Pick<ExtractionOptions, 'useTesseract' | 'mistralOcrModel' | 'glmOcrModel' | 'kimiOcrModel' | 'openaiOcrModel' | 'grokOcrModel' | 'anthropicOcrModel' | 'geminiOcrModel' | 'deepinfraOcrModel'> & {
     step2SelectionOrigins?: Partial<Record<string, Step2ProviderSelectionOrigin>> | undefined
     provider?: string[] | undefined
   },
@@ -51,11 +49,11 @@ export const resolvePrimaryOcrTarget = (
   }
 
   if (matches.length > 1) {
-    throw CLIUsageError(`--primary-ocr ${requested} matches multiple requested OCR providers. Use service/model.`)
+    throw UsageError(`--primary-ocr ${requested} matches multiple requested OCR providers. Use service/model.`)
   }
 
   const available = requestedTargets.map((target) => `${target.service}/${target.model}`).join(', ')
-  throw CLIUsageError(`--primary-ocr ${requested} does not match a requested OCR provider. Requested: ${available}`)
+  throw UsageError(`--primary-ocr ${requested} does not match a requested OCR provider. Requested: ${available}`)
 }
 
 export const getOcrTargetDirectoryName = (target: OcrTarget): string =>
@@ -74,7 +72,5 @@ export const buildExtractionOptionsForTarget = (
   grokOcrModel: target.service === 'grok' ? target.model : undefined,
   anthropicOcrModel: target.service === 'anthropic' ? target.model : undefined,
   geminiOcrModel: target.service === 'gemini' ? target.model : undefined,
-  deepinfraOcrModel: target.service === 'deepinfra' ? target.model : undefined,
-  replicateOcrModel: target.service === 'replicate' ? target.model : undefined,
-  falOcrModel: target.service === 'fal' ? target.model : undefined
+  deepinfraOcrModel: target.service === 'deepinfra' ? target.model : undefined
 })

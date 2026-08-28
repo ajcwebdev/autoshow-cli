@@ -1,5 +1,5 @@
 import * as l from '~/utils/app-logger/app-logger'
-import type { DeepgramAlternative, DeepgramResponse, DeepgramWords, RetryClass, Step2Metadata, SttSegmentRunOptions, SttStageHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
+import type { DeepgramAlternative, DeepgramResponse, DeepgramWords, Step2Metadata, SttSegmentRunOptions, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { DeepgramResponseSchema } from '~/types'
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import {
@@ -9,23 +9,13 @@ import {
   toTimestamp
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import { DEEPGRAM_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 import { createSttRetryMetrics, sttRetryMetricsToCallbacks } from '../../stt-retry-metrics'
 import { sttStageRequest } from '../stt-stage-request'
+import { attachSttStageErrorContext } from '../../stt-error-context'
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
-
-const attachDeepgramErrorContext = (
-  error: unknown,
-  stage: string,
-  retryClass: RetryClass
-): never => {
-  const source = error instanceof Error ? error : new Error(String(error))
-  ;(source as SttStageHttpError).stage = stage
-  ;(source as SttStageHttpError).retryClass = retryClass
-  throw source
-}
 
 const inferDeepgramMimeType = (audioPath: string, fallback?: string | undefined): string => {
   const lower = audioPath.toLowerCase()
@@ -156,7 +146,7 @@ export const runDeepgramTranscribe = async (
   outputDir: string,
   options: SttSegmentRunOptions
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const apiKey = requireApiKey('DEEPGRAM_API_KEY', 'stt:deepgram', 'Deepgram transcription')
+  const apiKey = resolveCredential('deepgram', 'require', { stage: 'stt:deepgram', description: 'Deepgram transcription' })
 
   const { model: modelName, segmentOffsetMinutes = 0, segmentNumber, totalSegments } = options
   if (segmentNumber && totalSegments) {
@@ -178,7 +168,6 @@ export const runDeepgramTranscribe = async (
     operationName: 'deepgram-stt',
     stage: 'transcribe',
     retryClass: 'runtime_http_create_retriable',
-    maxAttempts: 4,
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'Deepgram',
     failureLabel: 'transcription',
@@ -187,7 +176,7 @@ export const runDeepgramTranscribe = async (
     metrics: sttRetryMetricsToCallbacks(retryMetrics, () => {
       requestCount += 1
     }),
-    attachError: attachDeepgramErrorContext,
+    attachError: attachSttStageErrorContext,
     doFetch: async (signal) => await fetch(buildDeepgramUrl(baseURL, modelName), {
       method: 'POST',
       headers: {

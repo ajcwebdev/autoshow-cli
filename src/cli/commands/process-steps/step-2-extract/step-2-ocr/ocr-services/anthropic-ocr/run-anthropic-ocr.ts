@@ -3,16 +3,16 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import * as v from 'valibot'
 import * as l from '~/utils/app-logger/app-logger'
-import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, PageResult } from '~/types'
+import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult } from '~/types'
 import { parseAndValidateStructured } from '~/cli/commands/process-steps/step-3-write/structured-output/validator'
 import { splitPdfPages } from '~/cli/commands/process-steps/step-1-download/document/mutool-utils'
 import { getAnthropicClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-anthropic/anthropic-utils'
-import { OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
+import { withOcrCreateRetry, withOcrSchemaRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
 import { OcrStructuredResponseError } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-structured-response-error'
 import { OCR_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
-import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import { InfraError, InternalError, serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
 import { applyAnthropicReasoning } from '~/cli/commands/setup-and-utilities/models/reasoning-request-mappers'
-import { resolveReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { buildHostedOcrJsonPrompt, HOSTED_OCR_PAGES_JSON_SCHEMA, HostedOcrEnvelopeSchema, normalizeHostedOcrPages } from '../../ocr-utils/hosted-ocr-json'
 import {
   createAnthropicMessage,
@@ -110,46 +110,28 @@ const runMessageWithSchemaRetry = async (
   operationName: string,
   beta?: string | string[] | undefined,
   onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
-): Promise<{ pages: PageResult[], promptTokens?: number, completionTokens?: number }> => {
-  let lastError: Error | undefined
-
-  for (let attempt = 0; attempt < OCR_SCHEMA_RETRY_ATTEMPTS; attempt++) {
-    const message = await callAnthropicMessage(requestBody, operationName, beta, onRetryable)
-    const rawText = extractAnthropicText(message.content ?? [])
-
-    try {
-      if (!rawText.trim()) {
-        if (expectedPageCount === 1) {
-          return {
-            pages: [{
-              pageNumber: 1,
-              method: 'ocr',
-              text: ''
-            }],
-            ...(typeof message.usage?.input_tokens === 'number' ? { promptTokens: message.usage.input_tokens } : {}),
-            ...(typeof message.usage?.output_tokens === 'number' ? { completionTokens: message.usage.output_tokens } : {})
-          }
-        }
-        throw InfraError(`Anthropic OCR returned no text output for ${pageLabel}.`, { stage: 'ocr:anthropic' })
-      }
-
-      const pages = parseOcrResponse(rawText, expectedPageCount, pageLabel)
-      return {
-        pages,
+): Promise<{ pages: PageResult[], promptTokens?: number, completionTokens?: number }> =>
+  await withOcrSchemaRetry({
+    operationName,
+    request: async () => await callAnthropicMessage(requestBody, operationName, beta, onRetryable),
+    parse: (message) => {
+      const rawText = extractAnthropicText(message.content ?? [])
+      const usage = {
         ...(typeof message.usage?.input_tokens === 'number' ? { promptTokens: message.usage.input_tokens } : {}),
         ...(typeof message.usage?.output_tokens === 'number' ? { completionTokens: message.usage.output_tokens } : {})
       }
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error))
-      if (attempt < OCR_SCHEMA_RETRY_ATTEMPTS - 1) {
-        l.warn(`Anthropic OCR returned malformed output for ${pageLabel}; retrying`)
-        continue
-      }
-    }
-  }
 
-  throw lastError ?? InfraError(`Anthropic OCR failed for ${pageLabel}.`, { stage: 'ocr:anthropic' })
-}
+      if (!rawText.trim()) {
+        if (expectedPageCount === 1) {
+          return { pages: [{ pageNumber: 1, method: 'ocr', text: '' }], ...usage }
+        }
+        throw new OcrStructuredResponseError(`Anthropic OCR returned no text output for ${pageLabel}.`, rawText)
+      }
+
+      return { pages: parseOcrResponse(rawText, expectedPageCount, pageLabel), ...usage }
+    },
+    retryLogMetadata: () => ({ provider: 'anthropic', pageLabel })
+  })
 
 const createImageRequestBody = async (
   filePath: string,
@@ -292,7 +274,10 @@ const runPdfChunk = async (
           beta: ANTHROPIC_OCR_FILES_BETA
         })
       } catch (error) {
-        l.warn(`Failed to delete Anthropic OCR upload ${uploadedFileId}: ${error instanceof Error ? error.message : String(error)}`)
+        l.warn(`Failed to delete Anthropic OCR upload ${uploadedFileId}: ${error instanceof Error ? error.message : String(error)}`, {
+        category: 'pipeline',
+        metadata: { provider: 'anthropic', uploadedFileId, error: serializeDiagnosticError(error) }
+      })
       }
     }
     if (tempDir !== undefined) {
@@ -310,7 +295,7 @@ export const runAnthropicOcr = async (
   model: string,
   options: {
     onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
-    reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+    reasoningEffort?: NormalizedReasoningEffort | undefined
   } = {}
 ): Promise<{
   pages: PageResult[]
@@ -318,8 +303,8 @@ export const runAnthropicOcr = async (
   totalPages: number
   promptTokens?: number
   completionTokens?: number
-  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
-  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
 }> => {
   const policy = resolveReasoningPolicy({
     step: 'extract',

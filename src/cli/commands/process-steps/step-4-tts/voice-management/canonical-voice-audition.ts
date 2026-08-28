@@ -1,38 +1,23 @@
 import { mkdir } from 'node:fs/promises'
 import type {
   CharacterVoiceBrief,
-  PlannedCost,
   ProviderVoiceRef,
   TtsOptions,
   TtsTarget,
-  VoiceAuditionCategory,
   VoiceAuditionItem,
   VoiceAuditionManifest,
   VoiceConsentRecord,
   VoiceRegistration,
+  CanonicalVoiceAuditionPassage,
+  CanonicalVoiceAuditionPlan,
+  ProtectedVoiceAssetStore,
 } from '~/types'
-import type { ProtectedVoiceAssetStore } from '../voice-assets/protected-voice-asset-store'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { collectTtsTargets } from '../tts-targets'
 import { estimateTtsTargetCosts } from '../tts-utils/tts-pricing'
 import { computeVoiceAuditionId, assertVoiceConsentAllows, validateVoiceAuditionManifest } from './voice-management-contracts'
 import { hashCharacterVoiceBrief } from './character-voice-registry'
 import { prepareElevenLabsDialogueText } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
-
-export type CanonicalVoiceAuditionPassage = {
-  itemId: string
-  category: VoiceAuditionCategory
-  text: string
-  delivery?: string | undefined
-}
-
-export type CanonicalVoiceAuditionPlan = {
-  passages: CanonicalVoiceAuditionPassage[]
-  takeCount: number
-  characterCount: number
-  estimatedCostCents: number
-  plannedCost: PlannedCost
-}
 
 const COMPARISON_PASSAGE = 'Morning light crossed the quiet station while a distant bell marked the hour.'
 const NEUTRAL_PASSAGE = 'This is my voice: clear, steady, and ready to tell the story.'
@@ -44,11 +29,11 @@ const pronunciationPassage = (brief: CharacterVoiceBrief): string => {
     : 'Names and places should remain clear, deliberate, and easy to understand.'
 }
 
-export const buildCanonicalVoiceAuditionPassages = (
+const buildCanonicalVoiceAuditionPassages = (
   brief: CharacterVoiceBrief,
   representativeLine: string
 ): CanonicalVoiceAuditionPassage[] => {
-  if (!representativeLine.trim()) throw CLIUsageError('Canonical voice audition requires a representative script line.')
+  if (!representativeLine.trim()) throw UsageError('Canonical voice audition requires a representative script line.')
   return [
     { itemId: 'neutral', category: 'neutral', text: NEUTRAL_PASSAGE },
     { itemId: 'representative', category: 'representative', text: representativeLine.trim(), ...(brief.defaultDelivery ? { delivery: brief.defaultDelivery } : {}) },
@@ -63,13 +48,13 @@ const voiceId = (voice: ProviderVoiceRef): string => {
   if (voice.kind === 'remote-resource') return voice.resourceId
   if (voice.kind === 'shared-library-resource') return voice.sharedVoiceId
   if (voice.kind === 'local-model-voice') return voice.voiceLocator
-  throw CLIUsageError('Canonical audition currently requires a materialized saved, stock, shared, or local-model voice; request references must first be saved by voice management.')
+  throw UsageError('Canonical audition currently requires a materialized saved, stock, shared, or local-model voice; request references must first be saved by voice management.')
 }
 
 const targetOptions = (registration: VoiceRegistration): TtsOptions => {
   const voice = voiceId(registration.provisioning.state === 'ready'
     ? registration.provisioning.providerVoice
-    : (() => { throw CLIUsageError('Canonical audition requires a ready voice registration.') })())
+    : (() => { throw UsageError('Canonical audition requires a ready voice registration.') })())
   const model = registration.providerModel
   switch (registration.provider) {
     case 'elevenlabs': return { elevenlabsTtsModels: [model], elevenlabsVoiceId: voice }
@@ -95,7 +80,7 @@ const requireSingleTarget = (registration: VoiceRegistration): { target: TtsTarg
   const options = targetOptions(registration)
   const targets = collectTtsTargets(options)
   if (targets.length !== 1 || targets[0]?.service !== registration.provider || targets[0].model !== registration.providerModel) {
-    throw CLIUsageError('Canonical audition did not resolve exactly one matching provider/model target.')
+    throw UsageError('Canonical audition did not resolve exactly one matching provider/model target.')
   }
   return { target: targets[0], options }
 }
@@ -106,8 +91,8 @@ export const planCanonicalVoiceAudition = (
   representativeLine: string,
   takeCount = 1
 ): CanonicalVoiceAuditionPlan => {
-  if (!Number.isInteger(takeCount) || takeCount < 1 || takeCount > 5) throw CLIUsageError('Canonical audition take count must be between 1 and 5.')
-  if (brief.subjectKey !== registration.subjectKey || brief.profileKey !== registration.profileKey || hashCharacterVoiceBrief(brief) !== registration.briefHash) throw CLIUsageError('Canonical audition brief does not match the exact registration brief identity.')
+  if (!Number.isInteger(takeCount) || takeCount < 1 || takeCount > 5) throw UsageError('Canonical audition take count must be between 1 and 5.')
+  if (brief.subjectKey !== registration.subjectKey || brief.profileKey !== registration.profileKey || hashCharacterVoiceBrief(brief) !== registration.briefHash) throw UsageError('Canonical audition brief does not match the exact registration brief identity.')
   const passages = buildCanonicalVoiceAuditionPassages(brief, representativeLine)
   const characterCount = passages.reduce((sum, passage) => sum + [...passage.text].length, 0) * takeCount
   const { target } = requireSingleTarget(registration)
@@ -127,11 +112,11 @@ export const runCanonicalVoiceAudition = async (input: {
   now?: string | undefined
 }): Promise<VoiceAuditionManifest> => {
   const registration = input.registration
-  if (registration.approval.state !== 'draft' || registration.provisioning.state !== 'ready') throw CLIUsageError('Canonical audition requires a ready draft registration.')
+  if (registration.approval.state !== 'draft' || registration.provisioning.state !== 'ready') throw UsageError('Canonical audition requires a ready draft registration.')
   if (registration.consentRecordRef) assertVoiceConsentAllows(input.consent, 'new-synthesis')
   const plan = planCanonicalVoiceAudition(registration, input.brief, input.representativeLine, input.takeCount ?? 1)
-  if (input.maxCents !== undefined && plan.estimatedCostCents > input.maxCents) throw CLIUsageError(`Canonical audition estimate ${plan.estimatedCostCents.toFixed(4)} cents exceeds --max-cents ${input.maxCents}.`)
-  if (!input.protectedStore.withWorkspace || !input.protectedStore.storeBytes) throw CLIUsageError('Canonical audition requires a managed protected store with workspaces.')
+  if (input.maxCents !== undefined && plan.estimatedCostCents > input.maxCents) throw UsageError(`Canonical audition estimate ${plan.estimatedCostCents.toFixed(4)} cents exceeds --max-cents ${input.maxCents}.`)
+  if (!input.protectedStore.withWorkspace || !input.protectedStore.storeBytes) throw UsageError('Canonical audition requires a managed protected store with workspaces.')
   const { target, options } = requireSingleTarget(registration)
   const providerVoice = registration.provisioning.providerVoice
   const providerVoiceId = voiceId(providerVoice)

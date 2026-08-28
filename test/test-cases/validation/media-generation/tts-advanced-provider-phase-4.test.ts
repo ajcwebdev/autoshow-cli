@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import type { ProviderVoiceRef } from '~/types'
-import type { AdvancedProviderHttpRequest } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/advanced-provider-contracts'
+import type { AdvancedProviderHttpRequest, ProviderVoiceRef } from '~/types'
 import { validateProviderVoiceRef } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
 import {
   createMiniMaxAdvancedProvider,

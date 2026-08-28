@@ -1,10 +1,10 @@
-import type { LogFormat, LogLevel } from '~/types'
+import type { CliCommandContext, CliCommandDefinition, CliRootDefinition, LogFormat, LogLevel } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { LOG_FORMAT_CHOICES, LOG_LEVEL_CHOICES, reconfigureLogger, runWithLogContext } from '~/utils/app-logger/app-logger'
+import { clearSuppressedLogCategories, LOG_FORMAT_CHOICES, LOG_LEVEL_CHOICES, reconfigureLogger, runWithLogContext } from '~/utils/app-logger/app-logger'
 import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { configurePinnedRunDir } from '~/cli/commands/process-steps/run-dir'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
-import { applyConfiguredYtDlpAuth } from '~/cli/commands/setup-and-utilities/config/config-auth'
+import { applyConfiguredYtDlpAuth } from '~/cli/commands/setup-and-utilities/config-command/config-auth'
 import { configureBinDir } from '~/utils/runtime-paths'
 import { configureColor } from '~/utils/terminal-colors'
 import { parseNativeCli } from './native-parser'
@@ -12,7 +12,6 @@ import { renderCommandHelp, renderRootHelp } from './help-renderer'
 import { NativeUnknownFlagError } from './native-errors'
 import { cookieFlagNameFromSpelling, commandAcceptsGlobalFlag, unsupportedCookieFlagError, unsupportedGlobalFlagError } from './global-flag-support'
 import { getUnknownFlagSpellings } from './unknown-flag-spellings'
-import type { CliCommandContext, CliCommandDefinition, CliRootDefinition } from '~/types'
 
 const formatVersion = (version: string): string =>
   version.startsWith('v') ? version : `v${version}`
@@ -25,9 +24,6 @@ export const dispatchNativeCli = async (
   const parsed = parseNativeCli(argv, commands, root.globalFlags)
 
   if (parsed.mode === 'help') {
-    if (parsed.argv.length === 0) {
-      console.log('No command specified. Showing help:\n')
-    }
     if (parsed.command) {
       console.log(renderCommandHelp(root, parsed.command))
       return
@@ -75,6 +71,7 @@ export const dispatchNativeCli = async (
     ? logFormatFlag as Exclude<LogFormat, 'auto'>
     : undefined
 
+  clearSuppressedLogCategories()
   reconfigureLogger({
     verbose: parsed.flags['verbose'] === true,
     quiet: parsed.flags['quiet'] === true,
@@ -123,6 +120,9 @@ export const dispatchNativeCli = async (
   const startedAtMs = store['startedAtMs']
   if (typeof startedAtMs === 'number') {
     const elapsedMs = Date.now() - startedAtMs
-    l.debug(`Command "${parsed.calledAs ?? command.name}" completed in ${elapsedMs}ms`)
+    l.debug(`Command "${parsed.calledAs ?? command.name}" completed in ${elapsedMs}ms`, {
+      category: 'command',
+      metadata: { command: parsed.calledAs ?? command.name, elapsedMs }
+    })
   }
 }

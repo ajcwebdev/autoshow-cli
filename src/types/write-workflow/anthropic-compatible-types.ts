@@ -1,6 +1,6 @@
 import type { AnthropicRestConfig, Step3Metadata, StructuredRequestOptions } from '~/types'
 
-export type AnthropicCompatibleService = Extract<Step3Metadata['llmService'], 'anthropic'>
+type AnthropicCompatibleService = Extract<Step3Metadata['llmService'], 'anthropic'>
 
 export type RunAnthropicCompatibleModelOptions = {
   prompt: string

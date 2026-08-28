@@ -1,6 +1,6 @@
 import { defineCliCommand } from '~/cli/native/native-types'
 import { setupFlags } from '~/cli/flags/setup-flags'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { runCompleteSetup, runSetupStep } from './run-complete-setup'
 import { runDoctor } from './run-doctor'
 import { runModelDownloads } from '~/cli/commands/setup-and-utilities/models/run-model-downloads'
@@ -8,10 +8,11 @@ import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import type { SetupStepId } from '~/types'
 
-const VALID_SETUP_STEPS: SetupStepId[] = ['uv', 'yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile', 'calibre', 'all', 'transcription', 'write', 'tts', 'image', 'video', 'music']
+const VALID_SETUP_STEPS: SetupStepId[] = ['yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile', 'calibre', 'all', 'transcription', 'music']
 const FOCUSED_SETUP_CONFLICT_FLAGS = [
   'models',
   'doctor',
+  'strict',
   'step',
   'force-redownload'
 ] as const
@@ -46,7 +47,7 @@ export const setupCommand = defineCliCommand({
   const modelTargets = normalizeStringArrayFlag(ctx.flags.models)
 
   if (usedModelsFlag && modelTargets.length === 0) {
-    throw CLIUsageError('--models requires at least one value')
+    throw UsageError('--models requires at least one value')
   }
   if (usedModelsFlag) {
     const modeFlag = 'models'
@@ -54,7 +55,7 @@ export const setupCommand = defineCliCommand({
       .filter((flag) => flag !== modeFlag && ctx.rawParsed.explicitFlags.has(flag))
       .map((flag) => `--${flag}`)
     if (conflicts.length > 0) {
-      throw CLIUsageError(`--${modeFlag} cannot be combined with ${conflicts.join(', ')}`)
+      throw UsageError(`--${modeFlag} cannot be combined with ${conflicts.join(', ')}`)
     }
   }
 
@@ -65,14 +66,18 @@ export const setupCommand = defineCliCommand({
     return
   }
 
+  if (ctx.flags['strict'] === true && !ctx.flags.doctor) {
+    throw UsageError('--strict requires --doctor')
+  }
+
   if (ctx.flags.doctor) {
-    await runDoctor()
+    await runDoctor({ strict: ctx.flags['strict'] === true })
     return
   }
 
   const step = ctx.flags.step as string
   if (!VALID_SETUP_STEPS.includes(step as SetupStepId)) {
-    throw CLIUsageError(`Invalid --step value: ${step}. Valid values: ${VALID_SETUP_STEPS.join(', ')}`)
+    throw UsageError(`Invalid --step value: ${step}. Valid values: ${VALID_SETUP_STEPS.join(', ')}`)
   }
 
   const healthy = await runWithLogContext({ step: 'setup' }, async () => {
@@ -84,9 +89,6 @@ export const setupCommand = defineCliCommand({
     })
   })
 
-  // An unconditional success line meant a run that ended with missing tools or
-  // models still reported "Setup complete" and exited 0, so `bun autoshow setup` could
-  // not be used as a gate in CI or a scripted install.
   if (!healthy) {
     throw InfraError('Setup finished with missing local tools or models. See the Setup Summary above, then run: bun autoshow setup --doctor', {
       stage: 'setup:run',
@@ -94,5 +96,5 @@ export const setupCommand = defineCliCommand({
     })
   }
 
-  l.write('success', 'Setup complete')
+  l.write('success', 'Setup complete', { category: 'command' })
 })

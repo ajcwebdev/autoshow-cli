@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { mkdir, rename, rm, stat } from 'node:fs/promises'
+import { mkdir, rename, rm } from 'node:fs/promises'
 import {
   defuddleRuntimeDir,
   ensureDefuddleCliSetup
@@ -16,22 +16,12 @@ import {
   writeFile,
   writeFakeDefuddleBin
 } from './shared'
-import type { DocumentMetadata, ExtractionOptions } from './shared'
-
-const pathExists = async (path: string): Promise<boolean> => {
-  try {
-    await stat(path)
-    return true
-  } catch {
-    return false
-  }
-}
+import type { DocumentMetadata, ExtractionOptions } from '~/types'
+import { requireDefined } from '../../../../test-utils/value-assertions'
+import { pathExists } from '~/utils/filesystem'
 
 const streamFromText = (value: string): ReadableStream<Uint8Array> => {
-  const stream = new Response(value).body
-  if (!stream) {
-    throw new Error('Expected Response body stream')
-  }
+  const stream = requireDefined(new Response(value).body, 'Response body stream')
   return stream
 }
 

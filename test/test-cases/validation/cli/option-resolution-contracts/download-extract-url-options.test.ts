@@ -23,7 +23,7 @@ import {
 
 describe('option resolution contracts', () => {
   test('buildOptsFromFlags maps representative CLI flags to runtime options', () => {
-      const opts = buildOptsFromFlags(false, {
+      const opts = buildOptsFromFlags({
         openai: 'gpt-5.4-mini',
         grok: 'grok-4.3',
         glm: 'glm-5.1',
@@ -37,35 +37,28 @@ describe('option resolution contracts', () => {
         'scrapecreators-stt': 'youtube-transcript',
         'stt-scrapecreators-lang': 'fr',
         'grok-tts': 'grok-tts',
-        'grok-tts-voice': 'EVE',
         'mistral-tts': 'voxtral-mini-tts-2603',
-        'mistral-tts-voice': 'voice_abc123',
         'deepgram-tts': 'aura-2-apollo-en',
-        'deepgram-tts-encoding': 'linear16',
-        'deepgram-tts-container': 'wav',
-        'deepgram-tts-bit-rate': '128000',
-        'deepgram-tts-sample-rate': '24000',
-        'deepgram-tts-speed': '1.1',
         'speechify-tts': 'simba-3.2',
-        'speechify-voice': 'narrator_voice',
-        'speechify-tts-audio-format': 'wav',
-        'speechify-tts-language': 'en-US',
         'hume-tts': 'octave-2',
-        'hume-tts-voice': 'Studio Voice',
-        'hume-tts-voice-provider': 'CUSTOM_VOICE',
         'cartesia-tts': 'sonic-3.5-2026-05-04',
-        'cartesia-tts-voice': 'cartesia-voice-id',
-        'cartesia-tts-language': 'en',
         'elevenlabs-tts': 'eleven_v3',
-        'elevenlabs-tts-output-format': 'mp3_22050_32',
-        'elevenlabs-tts-language-code': 'en',
+        'tts-voice': [
+          'grok=EVE',
+          'mistral=voice_abc123',
+          'speechify=narrator_voice',
+          'hume=Studio Voice',
+          'cartesia=cartesia-voice-id',
+          'openai=alloy'
+        ],
+        'tts-speed': ['deepgram=1.1', 'elevenlabs=1.1'],
+        'tts-language': ['speechify=en-US', 'cartesia=en', 'elevenlabs=en'],
+        'tts-text-normalization': 'elevenlabs=ON',
         'elevenlabs-tts-stability': '0.4',
         'elevenlabs-tts-similarity-boost': '0.8',
         'elevenlabs-tts-style': '0.2',
         'elevenlabs-tts-use-speaker-boost': true,
-        'elevenlabs-tts-speed': '1.1',
         'elevenlabs-tts-seed': '12345',
-        'elevenlabs-tts-text-normalization': 'ON',
         'elevenlabs-tts-pronunciation-dictionary-locator': ['dict_1:version_2', 'dict_3'],
         'openai-ocr': 'gpt-5.5',
         'grok-ocr': 'grok-4.3',
@@ -79,44 +72,36 @@ describe('option resolution contracts', () => {
         'ocr-provider-concurrency': '4',
         'ocr-local-concurrency': '2',
         'llm-provider-concurrency': '5',
-        'llm-local-concurrency': '3',
-        'openai-voice': 'alloy'
+        'llm-local-concurrency': '3'
       })
 
-      expect(opts.openaiModel).toBe('gpt-5.4-mini')
-      expect(opts.grokModel).toBe('grok-4.3')
-      expect(opts.glmModel).toBe('glm-5.1')
-      expect(opts.kimiModel).toBe('kimi-k2.6')
-      expect(opts.togetherModel).toBe('glm-5.1')
-      expect(opts.cerebrasModel).toBe('gpt-oss-120b')
-      expect(opts.mistralSttModel).toBe('voxtral-mini-2602')
-      expect(opts.grokSttModel).toBe('speech-to-text')
-      expect(opts.togetherSttModel).toBe('openai/whisper-large-v3')
-      expect(opts.deepgramSttModel).toBe('nova-3')
-      expect(opts.scrapecreatorsSttModel).toBe('youtube-transcript')
+      expect(opts.openaiModels?.[0]).toBe('gpt-5.4-mini')
+      expect(opts.grokModels?.[0]).toBe('grok-4.3')
+      expect(opts.glmModels?.[0]).toBe('glm-5.1')
+      expect(opts.kimiModels?.[0]).toBe('kimi-k2.6')
+      expect(opts.togetherModels?.[0]).toBe('glm-5.1')
+      expect(opts.cerebrasModels?.[0]).toBe('gpt-oss-120b')
+      expect(opts.mistralSttModels?.[0]).toBe('voxtral-mini-2602')
+      expect(opts.grokSttModels?.[0]).toBe('speech-to-text')
+      expect(opts.togetherSttModels?.[0]).toBe('openai/whisper-large-v3')
+      expect(opts.deepgramSttModels?.[0]).toBe('nova-3')
+      expect(opts.scrapecreatorsSttModels?.[0]).toBe('youtube-transcript')
       expect(opts.scrapecreatorsLang).toBe('fr')
-      expect(opts.grokTtsModel).toBe('grok-tts')
+      expect(opts.grokTtsModels?.[0]).toBe('grok-tts')
       expect(opts.grokTtsVoice).toBe('eve')
-      expect(opts.mistralTtsModel).toBe('voxtral-mini-tts-2603')
+      expect(opts.mistralTtsModels?.[0]).toBe('voxtral-mini-tts-2603')
       expect(opts.mistralTtsVoice).toBe('voice_abc123')
-      expect(opts.deepgramTtsModel).toBe('aura-2-apollo-en')
-      expect(opts.deepgramTtsEncoding).toBe('linear16')
-      expect(opts.deepgramTtsContainer).toBe('wav')
-      expect(opts.deepgramTtsBitRate).toBe(128000)
-      expect(opts.deepgramTtsSampleRate).toBe(24000)
+      expect(opts.deepgramTtsModels?.[0]).toBe('aura-2-apollo-en')
       expect(opts.deepgramTtsSpeed).toBe(1.1)
-      expect(opts.speechifyTtsModel).toBe('simba-3.2')
+      expect(opts.speechifyTtsModels?.[0]).toBe('simba-3.2')
       expect(opts.speechifyVoice).toBe('narrator_voice')
-      expect(opts.speechifyTtsAudioFormat).toBe('wav')
       expect(opts.speechifyTtsLanguage).toBe('en-US')
-      expect(opts.humeTtsModel).toBe('octave-2')
+      expect(opts.humeTtsModels?.[0]).toBe('octave-2')
       expect(opts.humeTtsVoice).toBe('Studio Voice')
-      expect(opts.humeTtsVoiceProvider).toBe('CUSTOM_VOICE')
-      expect(opts.cartesiaTtsModel).toBe('sonic-3.5-2026-05-04')
+      expect(opts.cartesiaTtsModels?.[0]).toBe('sonic-3.5-2026-05-04')
       expect(opts.cartesiaTtsVoice).toBe('cartesia-voice-id')
       expect(opts.cartesiaTtsLanguage).toBe('en')
-      expect(opts.elevenlabsTtsModel).toBe('eleven_v3')
-      expect(opts.elevenlabsTtsOutputFormat).toBe('mp3_22050_32')
+      expect(opts.elevenlabsTtsModels?.[0]).toBe('eleven_v3')
       expect(opts.elevenlabsTtsLanguageCode).toBe('en')
       expect(opts.elevenlabsTtsStability).toBe(0.4)
       expect(opts.elevenlabsTtsSimilarityBoost).toBe(0.8)
@@ -126,10 +111,10 @@ describe('option resolution contracts', () => {
       expect(opts.elevenlabsTtsSeed).toBe(12345)
       expect(opts.elevenlabsTtsTextNormalization).toBe('on')
       expect(opts.elevenlabsTtsPronunciationDictionaryLocators).toEqual(['dict_1:version_2', 'dict_3'])
-      expect(opts.openaiOcrModel).toBe('gpt-5.5')
-      expect(opts.grokOcrModel).toBe('grok-4.3')
-      expect(opts.deepinfraOcrModel).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
-      expect(opts.kimiOcrModel).toBe('kimi-k2.6')
+      expect(opts.openaiOcrModels?.[0]).toBe('gpt-5.5')
+      expect(opts.grokOcrModels?.[0]).toBe('grok-4.3')
+      expect(opts.deepinfraOcrModels?.[0]).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
+      expect(opts.kimiOcrModels?.[0]).toBe('kimi-k2.6')
       expect(opts.useTesseract).toBe(true)
       expect(opts.youtubeCaptions).toBe(true)
       expect(opts.bestQuality).toBe(true)
@@ -143,9 +128,9 @@ describe('option resolution contracts', () => {
     })
 
   test('chapter export defaults to automatic and preserves explicit opt-out', () => {
-      const defaults = buildOptsFromFlags(false, {})
-      const explicitChapters = buildOptsFromFlags(false, { chapters: true })
-      const disabled = buildOptsFromFlags(false, { chapters: false })
+      const defaults = buildOptsFromFlags({})
+      const explicitChapters = buildOptsFromFlags({ chapters: true })
+      const disabled = buildOptsFromFlags({ chapters: false })
 
       expect(defaults.chapterFiles).toBeUndefined()
       expect(explicitChapters.chapterFiles).toBe(true)
@@ -165,12 +150,12 @@ describe('option resolution contracts', () => {
   test('EPUB extract expected files include automatic chapters unless chapters are disabled', async () => {
       const automatic = await buildExpectedFilesList(
         'extract',
-        buildOptsFromFlags(false, {}),
+        buildOptsFromFlags({}),
         'input/examples/document/1-epub.epub'
       )
       const disabled = await buildExpectedFilesList(
         'extract',
-        buildOptsFromFlags(false, { chapters: false }),
+        buildOptsFromFlags({ chapters: false }),
         'input/examples/document/1-epub.epub'
       )
 
@@ -179,7 +164,7 @@ describe('option resolution contracts', () => {
     })
 
   test('pooled OCR expected files describe isolated page attempts instead of fanout results', async () => {
-      const opts = buildOptsFromFlags(false, {
+      const opts = buildOptsFromFlags({
         'ocr-provider-mode': 'pool',
         'openai-ocr': 'gpt-5.5',
         'mistral-ocr': 'mistral-ocr-4-0',
@@ -199,37 +184,37 @@ describe('option resolution contracts', () => {
     })
 
   test('buildOptsFromFlags only accepts canonical flag keys', () => {
-      const camelCaseFlags = buildOptsFromFlags(false, {
+      const camelCaseFlags = buildOptsFromFlags({
         mistralStt: 'voxtral-mini-2602',
         deepinfraOcr: 'Qwen/Qwen3-VL-30B-A3B-Instruct'
       })
-      const canonicalFlags = buildOptsFromFlags(false, {
+      const canonicalFlags = buildOptsFromFlags({
         'mistral-stt': 'voxtral-mini-2602',
         'deepinfra-ocr': 'Qwen/Qwen3-VL-30B-A3B-Instruct'
       })
 
-      expect(camelCaseFlags.mistralSttModel).toBeUndefined()
-      expect(camelCaseFlags.deepinfraOcrModel).toBeUndefined()
-      expect(canonicalFlags.mistralSttModel).toBe('voxtral-mini-2602')
-      expect(canonicalFlags.deepinfraOcrModel).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
+      expect(camelCaseFlags.mistralSttModels?.[0]).toBeUndefined()
+      expect(camelCaseFlags.deepinfraOcrModels?.[0]).toBeUndefined()
+      expect(canonicalFlags.mistralSttModels?.[0]).toBe('voxtral-mini-2602')
+      expect(canonicalFlags.deepinfraOcrModels?.[0]).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
     })
 
   test('buildOptsFromFlags accepts URL article backend names', () => {
       for (const backend of ['defuddle', 'firecrawl', 'glm-reader', 'spider', 'supadata', 'zyte'] as const) {
-        const opts = buildOptsFromFlags(false, { 'url-provider': backend })
+        const opts = buildOptsFromFlags({ 'url-provider': backend })
         expect(opts.urlBackend).toBe(backend)
         expect(opts.urlBackendExplicit).toBe(true)
       }
     })
 
   test('--all-url expands hosted URL article backends and --all-local-url expands defuddle', () => {
-      const opts = buildOptsFromFlags(false, { 'all-url': true })
-      const localOpts = buildOptsFromFlags(false, { 'all-local-url': true })
-      const combinedOpts = buildOptsFromFlags(false, {
+      const opts = buildOptsFromFlags({ 'all-url': true })
+      const localOpts = buildOptsFromFlags({ 'all-local-url': true })
+      const combinedOpts = buildOptsFromFlags({
         'all-url': true,
         'all-local-url': true
       })
-      const explicitConcurrency = buildOptsFromFlags(false, {
+      const explicitConcurrency = buildOptsFromFlags({
         'all-url': true,
         'provider-concurrency': '3'
       }, {}, new Set(['provider-concurrency']))
@@ -244,8 +229,8 @@ describe('option resolution contracts', () => {
     })
 
   test('URL request timeout and attempts resolve defaults and CLI overrides', () => {
-      const defaults = buildOptsFromFlags(false, {})
-      const cliOverrides = buildOptsFromFlags(false, {
+      const defaults = buildOptsFromFlags({})
+      const cliOverrides = buildOptsFromFlags({
         'url-request-timeout-ms': '45000',
         'url-request-attempts': '4'
       })
@@ -257,27 +242,27 @@ describe('option resolution contracts', () => {
     })
 
   test('URL request timeout and attempts reject invalid CLI values', () => {
-      expect(() => buildOptsFromFlags(false, {
+      expect(() => buildOptsFromFlags({
         'url-request-timeout-ms': '0'
       })).toThrow('Invalid --url-request-timeout-ms value "0". Expected a positive integer.')
-      expect(() => buildOptsFromFlags(false, {
+      expect(() => buildOptsFromFlags({
         'url-request-attempts': 'nope'
       })).toThrow('Invalid --url-request-attempts value "nope". Expected a positive integer.')
     })
 
   test('--all-url conflicts with single URL backend selection', () => {
-      expect(() => buildOptsFromFlags(false, {
+      expect(() => buildOptsFromFlags({
         'all-url': true,
         'url-provider': 'firecrawl'
       })).toThrow('Cannot use --all-providers or --all-local url with --url-provider')
-      expect(() => buildOptsFromFlags(false, {
+      expect(() => buildOptsFromFlags({
         'all-local-url': true,
         'url-provider': 'defuddle'
       })).toThrow('Cannot use --all-providers or --all-local url with --url-provider')
     })
 
   test('--all-url article extraction reports provider artifact expectations', async () => {
-      const opts = buildOptsFromFlags(false, { 'all-url': true })
+      const opts = buildOptsFromFlags({ 'all-url': true })
 
       await expect(buildExpectedFilesList(
         'extract',
@@ -290,16 +275,14 @@ describe('option resolution contracts', () => {
       ])
     })
 
-  test('--all-url article write reports extraction and write artifact expectations', async () => {
-      const opts = buildOptsFromFlags(false, { 'all-url': true })
+  test('standalone write reports only write artifact expectations', async () => {
+      const opts = buildOptsFromFlags({ 'all-url': true })
 
       await expect(buildExpectedFilesList(
         'write',
         opts,
         'https://example.com/articles/story.html'
       )).resolves.toEqual([
-        'providers/<backend>/result.json',
-        'providers/<backend>/extraction.txt',
         'text.json',
         'show-note.md',
         'prompt.md',
@@ -307,14 +290,12 @@ describe('option resolution contracts', () => {
       ])
     })
 
-  test('X Space write reports collection and write artifact expectations', async () => {
+  test('X Space write reports only write artifact expectations', async () => {
       await expect(buildExpectedFilesList(
         'write',
-        buildOptsFromFlags(false, {}),
+        buildOptsFromFlags({}),
         'https://x.com/i/spaces/1DXxyRYNejbKM'
       )).resolves.toEqual([
-        'result.json',
-        'extraction.md',
         'text.json',
         'show-note.md',
         'prompt.md',

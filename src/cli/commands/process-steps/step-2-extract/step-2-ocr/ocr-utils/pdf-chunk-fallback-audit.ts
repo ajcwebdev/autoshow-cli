@@ -65,7 +65,7 @@ export const summarizeFallbackAudit = (
   terminalReason: summarizeFallbackTerminalReason(pages, totalPages)
 })
 
-export const isPdfChunkPreparationSummary = (value: unknown): value is PdfChunkPreparationSummary =>
+const isPdfChunkPreparationSummary = (value: unknown): value is PdfChunkPreparationSummary =>
   isRecord(value)
   && typeof value['strategy'] === 'string'
   && typeof value['directPageAttempts'] === 'number'

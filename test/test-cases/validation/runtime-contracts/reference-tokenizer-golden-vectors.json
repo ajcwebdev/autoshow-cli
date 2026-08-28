@@ -1,0 +1,927 @@
+{
+  "description": "Golden o200k_base encode_ordinary vectors generated with tiktoken@1.0.22 before the in-repository encoder replaced it. tokenCount is the full contract; tokens (token ids) are included for short vectors.",
+  "encoding": "o200k_base",
+  "generatedWith": "tiktoken@1.0.22",
+  "vectors": [
+    {
+      "id": "empty",
+      "text": "",
+      "tokenCount": 0,
+      "tokens": []
+    },
+    {
+      "id": "single-space",
+      "text": " ",
+      "tokenCount": 1,
+      "tokens": [
+        220
+      ]
+    },
+    {
+      "id": "spaces",
+      "text": "   ",
+      "tokenCount": 1,
+      "tokens": [
+        271
+      ]
+    },
+    {
+      "id": "tab",
+      "text": "\t",
+      "tokenCount": 1,
+      "tokens": [
+        197
+      ]
+    },
+    {
+      "id": "newline",
+      "text": "\n",
+      "tokenCount": 1,
+      "tokens": [
+        198
+      ]
+    },
+    {
+      "id": "crlf",
+      "text": "\r\n",
+      "tokenCount": 1,
+      "tokens": [
+        370
+      ]
+    },
+    {
+      "id": "blank-lines",
+      "text": "\n\n\n",
+      "tokenCount": 1,
+      "tokens": [
+        2499
+      ]
+    },
+    {
+      "id": "space-newline-mix",
+      "text": "   \n  \t\r\n ",
+      "tokenCount": 4,
+      "tokens": [
+        10190,
+        256,
+        7709,
+        220
+      ]
+    },
+    {
+      "id": "trailing-spaces",
+      "text": "end of line   ",
+      "tokenCount": 4,
+      "tokens": [
+        419,
+        328,
+        2543,
+        271
+      ]
+    },
+    {
+      "id": "leading-spaces",
+      "text": "   indented",
+      "tokenCount": 3,
+      "tokens": [
+        256,
+        1383,
+        23537
+      ]
+    },
+    {
+      "id": "hello",
+      "text": "hello world",
+      "tokenCount": 2,
+      "tokens": [
+        24912,
+        2375
+      ]
+    },
+    {
+      "id": "hello-punct",
+      "text": "Hello, World!",
+      "tokenCount": 4,
+      "tokens": [
+        13225,
+        11,
+        5922,
+        0
+      ]
+    },
+    {
+      "id": "contraction-lower",
+      "text": "don't stop believing",
+      "tokenCount": 3,
+      "tokens": [
+        91418,
+        5666,
+        63514
+      ]
+    },
+    {
+      "id": "contraction-upper",
+      "text": "DON'T STOP",
+      "tokenCount": 3,
+      "tokens": [
+        134882,
+        51532,
+        82926
+      ]
+    },
+    {
+      "id": "contraction-mixed",
+      "text": "I'll go, they're here, we've been, it's fine, I'm sure, you'd know",
+      "tokenCount": 17,
+      "tokens": [
+        67504,
+        810,
+        11,
+        18940,
+        2105,
+        11,
+        24716,
+        1339,
+        11,
+        4275,
+        8975,
+        11,
+        5477,
+        3239,
+        11,
+        35174,
+        1761
+      ]
+    },
+    {
+      "id": "contraction-caps",
+      "text": "'S 'T 'RE 'VE 'M 'LL 'D",
+      "tokenCount": 13,
+      "tokens": [
+        31233,
+        461,
+        51,
+        461,
+        1099,
+        461,
+        19511,
+        461,
+        44,
+        461,
+        7454,
+        461,
+        35
+      ]
+    },
+    {
+      "id": "digits-grouping",
+      "text": "1 12 123 1234 12345 123456789012345678901234567890",
+      "tokenCount": 22,
+      "tokens": [
+        16,
+        220,
+        899,
+        220,
+        7633,
+        220,
+        7633,
+        19,
+        220,
+        7633,
+        2548,
+        220,
+        7633,
+        19354,
+        29338,
+        19267,
+        22901,
+        30833,
+        35616,
+        20771,
+        34904,
+        38518
+      ]
+    },
+    {
+      "id": "decimal-number",
+      "text": "3.14159 costs $1,000,000.00",
+      "tokenCount": 13,
+      "tokens": [
+        18,
+        13,
+        16926,
+        4621,
+        8959,
+        548,
+        16,
+        11,
+        1302,
+        11,
+        1302,
+        13,
+        504
+      ]
+    },
+    {
+      "id": "punct-runs",
+      "text": "!!!???...---===>>><<<///\\\\\\",
+      "tokenCount": 11,
+      "tokens": [
+        10880,
+        33110,
+        1008,
+        10356,
+        17380,
+        3920,
+        3784,
+        5354,
+        5991,
+        5994,
+        59
+      ]
+    },
+    {
+      "id": "code-comment",
+      "text": "// TODO(ajc): fix this => const x = { a: 1, b: [2, 3] };",
+      "tokenCount": 27,
+      "tokens": [
+        393,
+        9691,
+        7,
+        1255,
+        66,
+        3127,
+        9295,
+        495,
+        871,
+        1026,
+        1215,
+        314,
+        354,
+        261,
+        25,
+        220,
+        16,
+        11,
+        287,
+        25,
+        723,
+        17,
+        11,
+        220,
+        18,
+        60,
+        47821
+      ]
+    },
+    {
+      "id": "url",
+      "text": "https://example.com/path/to/resource?query=1&other=2#fragment",
+      "tokenCount": 17,
+      "tokens": [
+        4172,
+        1684,
+        18582,
+        1136,
+        119244,
+        72231,
+        115951,
+        30,
+        2975,
+        28,
+        16,
+        5,
+        2141,
+        28,
+        17,
+        2,
+        74424
+      ]
+    },
+    {
+      "id": "markdown",
+      "text": "# Title\n\n- item one\n- item two\n\n```ts\nconst x = 1\n```\n\n> quote\n",
+      "tokenCount": 25,
+      "tokens": [
+        2,
+        19612,
+        279,
+        12,
+        2169,
+        1001,
+        198,
+        12,
+        2169,
+        1920,
+        279,
+        168394,
+        1561,
+        198,
+        1671,
+        1215,
+        314,
+        220,
+        16,
+        198,
+        26178,
+        38193,
+        29,
+        16723,
+        198
+      ]
+    },
+    {
+      "id": "json-snippet",
+      "text": "{\"name\":\"o200k_base\",\"values\":[1,2,3],\"nested\":{\"ok\":true}}",
+      "tokenCount": 22,
+      "tokens": [
+        10848,
+        897,
+        7534,
+        78,
+        1179,
+        74,
+        17096,
+        4294,
+        7222,
+        16853,
+        16,
+        11,
+        17,
+        11,
+        18,
+        91001,
+        125059,
+        70649,
+        525,
+        1243,
+        3309,
+        6478
+      ]
+    },
+    {
+      "id": "accents",
+      "text": "café naïve résumé Zürich São Paulo",
+      "tokenCount": 8,
+      "tokens": [
+        66,
+        103112,
+        153475,
+        737,
+        140184,
+        127483,
+        19202,
+        21711
+      ]
+    },
+    {
+      "id": "combining-marks",
+      "text": "é à́̂ ñ",
+      "tokenCount": 7,
+      "tokens": [
+        68,
+        13430,
+        162481,
+        13430,
+        128886,
+        297,
+        52279
+      ]
+    },
+    {
+      "id": "japanese",
+      "text": "日本語のテキストをトークン化するテストです。",
+      "tokenCount": 16,
+      "tokens": [
+        9048,
+        40909,
+        3385,
+        16056,
+        18368,
+        38236,
+        7277,
+        5662,
+        77764,
+        4025,
+        11415,
+        39065,
+        16056,
+        38236,
+        15121,
+        788
+      ]
+    },
+    {
+      "id": "chinese",
+      "text": "中文分词测试，包括标点符号。",
+      "tokenCount": 10,
+      "tokens": [
+        10667,
+        2957,
+        31892,
+        82843,
+        120838,
+        15530,
+        8300,
+        43487,
+        4785,
+        788
+      ]
+    },
+    {
+      "id": "korean",
+      "text": "한국어 텍스트 토큰화 테스트입니다.",
+      "tokenCount": 11,
+      "tokens": [
+        114854,
+        5959,
+        57901,
+        235,
+        42321,
+        68258,
+        118101,
+        11049,
+        169814,
+        27001,
+        13
+      ]
+    },
+    {
+      "id": "cyrillic",
+      "text": "Привет, мир! Это тест.",
+      "tokenCount": 8,
+      "tokens": [
+        23881,
+        131903,
+        11,
+        37934,
+        0,
+        23813,
+        52523,
+        13
+      ]
+    },
+    {
+      "id": "arabic",
+      "text": "مرحبا بالعالم، هذا اختبار.",
+      "tokenCount": 8,
+      "tokens": [
+        158894,
+        26537,
+        101462,
+        12773,
+        1368,
+        12254,
+        171597,
+        13
+      ]
+    },
+    {
+      "id": "hebrew",
+      "text": "שלום עולם, זהו מבחן.",
+      "tokenCount": 8,
+      "tokens": [
+        106154,
+        143896,
+        11,
+        17978,
+        653,
+        125467,
+        2589,
+        13
+      ]
+    },
+    {
+      "id": "greek",
+      "text": "Γειά σου Κόσμε.",
+      "tokenCount": 9,
+      "tokens": [
+        23628,
+        4969,
+        2132,
+        79060,
+        22134,
+        2097,
+        1168,
+        11702,
+        13
+      ]
+    },
+    {
+      "id": "emoji-simple",
+      "text": "🎉🎊✨",
+      "tokenCount": 5,
+      "tokens": [
+        71344,
+        231,
+        71344,
+        232,
+        97375
+      ]
+    },
+    {
+      "id": "emoji-zwj",
+      "text": "👨‍👩‍👧‍👦 🏳️‍🌈",
+      "tokenCount": 18,
+      "tokens": [
+        28823,
+        101,
+        2524,
+        28823,
+        102,
+        2524,
+        28823,
+        100,
+        2524,
+        28823,
+        99,
+        9552,
+        237,
+        111,
+        15148,
+        2524,
+        64364,
+        230
+      ]
+    },
+    {
+      "id": "emoji-in-text",
+      "text": "Great job 👍 see you tomorrow 🚀",
+      "tokenCount": 8,
+      "tokens": [
+        19936,
+        3349,
+        160433,
+        1921,
+        481,
+        22021,
+        169883,
+        222
+      ]
+    },
+    {
+      "id": "special-token-eot",
+      "text": "<|endoftext|>",
+      "tokenCount": 7,
+      "tokens": [
+        27,
+        91,
+        419,
+        1440,
+        919,
+        91,
+        29
+      ]
+    },
+    {
+      "id": "special-token-eop",
+      "text": "<|endofprompt|>",
+      "tokenCount": 7,
+      "tokens": [
+        27,
+        91,
+        419,
+        1440,
+        82467,
+        91,
+        29
+      ]
+    },
+    {
+      "id": "special-token-embedded",
+      "text": "before <|endoftext|> after",
+      "tokenCount": 9,
+      "tokens": [
+        29615,
+        464,
+        91,
+        419,
+        1440,
+        919,
+        91,
+        29,
+        1934
+      ]
+    },
+    {
+      "id": "special-token-unknown",
+      "text": "<|fim_prefix|>content<|fim_suffix|>",
+      "tokenCount": 13,
+      "tokens": [
+        27,
+        91,
+        103473,
+        33197,
+        91,
+        29,
+        3252,
+        27,
+        91,
+        103473,
+        87556,
+        91,
+        29
+      ]
+    },
+    {
+      "id": "transcript-sample",
+      "text": "[00:00:00] Welcome back to the show, everybody. Today we are talking about dependency audits and why they matter. [00:00:12] So the first thing you'll notice is that most projects don't actually know what they depend on. [00:00:21] Right, and when we ran the audit we found 186 packages in the lockfile but only six direct declarations. It's wild. [00:00:35] Let's dig into how the transitive graph gets that big, and what you can do about it.",
+      "tokenCount": 112
+    },
+    {
+      "id": "prompt-sample",
+      "text": "You are a helpful assistant that writes show notes. Given the transcript below, produce: 1) a one-paragraph summary, 2) five key takeaways, and 3) chapter titles with timestamps. Keep the tone conversational but precise, and do not invent facts that are not present in the transcript.",
+      "tokenCount": 63,
+      "tokens": [
+        3575,
+        553,
+        261,
+        10297,
+        29186,
+        484,
+        26475,
+        2356,
+        12870,
+        13,
+        29844,
+        290,
+        63989,
+        4895,
+        11,
+        10635,
+        25,
+        220,
+        16,
+        8,
+        261,
+        1001,
+        50607,
+        16830,
+        18522,
+        11,
+        220,
+        17,
+        8,
+        6468,
+        2140,
+        2304,
+        51781,
+        11,
+        326,
+        220,
+        18,
+        8,
+        20069,
+        22517,
+        483,
+        104931,
+        13,
+        16835,
+        290,
+        23206,
+        153459,
+        889,
+        31687,
+        11,
+        326,
+        621,
+        625,
+        20420,
+        19719,
+        484,
+        553,
+        625,
+        3333,
+        306,
+        290,
+        63989,
+        13
+      ]
+    },
+    {
+      "id": "long-letter-run",
+      "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "tokenCount": 625
+    },
+    {
+      "id": "long-space-run",
+      "text": "                                                                                                                                                                                                                                                                                                            ",
+      "tokenCount": 3,
+      "tokens": [
+        72056,
+        72056,
+        32392
+      ]
+    },
+    {
+      "id": "long-ab-run",
+      "text": "abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+      "tokenCount": 1000
+    },
+    {
+      "id": "long-emoji-run",
+      "text": "🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉",
+      "tokenCount": 200
+    },
+    {
+      "id": "long-newline-run",
+      "text": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n",
+      "tokenCount": 32,
+      "tokens": [
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        64469,
+        4707
+      ]
+    },
+    {
+      "id": "long-word-paragraph",
+      "text": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. ",
+      "tokenCount": 2001
+    },
+    {
+      "id": "nel-char",
+      "text": "",
+      "tokenCount": 2,
+      "tokens": [
+        126,
+        227
+      ]
+    },
+    {
+      "id": "nel-between-letters",
+      "text": "ab",
+      "tokenCount": 4,
+      "tokens": [
+        64,
+        126,
+        227,
+        65
+      ]
+    },
+    {
+      "id": "nel-run-with-spaces",
+      "text": "  ",
+      "tokenCount": 5,
+      "tokens": [
+        1322,
+        227,
+        126,
+        227,
+        220
+      ]
+    },
+    {
+      "id": "nbsp",
+      "text": "a b",
+      "tokenCount": 3,
+      "tokens": [
+        64,
+        5310,
+        65
+      ]
+    },
+    {
+      "id": "nbsp-run",
+      "text": "   ",
+      "tokenCount": 1,
+      "tokens": [
+        111741
+      ]
+    },
+    {
+      "id": "bom-prefix",
+      "text": "﻿hello",
+      "tokenCount": 2,
+      "tokens": [
+        5574,
+        24912
+      ]
+    },
+    {
+      "id": "bom-between-letters",
+      "text": "a﻿b",
+      "tokenCount": 3,
+      "tokens": [
+        64,
+        5574,
+        65
+      ]
+    },
+    {
+      "id": "line-para-separators",
+      "text": "a b c",
+      "tokenCount": 6,
+      "tokens": [
+        64,
+        51008,
+        65,
+        318,
+        102,
+        66
+      ]
+    },
+    {
+      "id": "ideographic-space",
+      "text": "日本　語",
+      "tokenCount": 3,
+      "tokens": [
+        9048,
+        1397,
+        40909
+      ]
+    },
+    {
+      "id": "thin-spaces",
+      "text": "a b c d",
+      "tokenCount": 7,
+      "tokens": [
+        64,
+        29106,
+        65,
+        86741,
+        66,
+        35971,
+        67
+      ]
+    },
+    {
+      "id": "null-byte",
+      "text": "a\u0000b",
+      "tokenCount": 3,
+      "tokens": [
+        64,
+        188,
+        65
+      ]
+    },
+    {
+      "id": "bell-control",
+      "text": "a\u0007b",
+      "tokenCount": 3,
+      "tokens": [
+        64,
+        195,
+        65
+      ]
+    },
+    {
+      "id": "vertical-tab-formfeed",
+      "text": "a\u000bb\fc",
+      "tokenCount": 5,
+      "tokens": [
+        64,
+        199,
+        65,
+        200,
+        66
+      ]
+    },
+    {
+      "id": "mixed-ws-exotic",
+      "text": " \t\r   　 ",
+      "tokenCount": 11,
+      "tokens": [
+        14593,
+        201,
+        126,
+        227,
+        5310,
+        157,
+        248,
+        222,
+        318,
+        222,
+        135066
+      ]
+    }
+  ]
+}

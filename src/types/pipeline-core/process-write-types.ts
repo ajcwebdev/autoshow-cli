@@ -1,3 +1,5 @@
+import type { NormalizedReasoningEffort } from '~/types'
+
 export type Step3Metadata = {
   llmService: 'openai' | 'groq' | 'gemini' | 'anthropic' | 'minimax' | 'grok' | 'glm' | 'kimi' | 'together' | 'cerebras'
   llmModel: string
@@ -17,7 +19,7 @@ export type Step3Metadata = {
   structuredMode: 'native' | 'schema-guided'
   structuredPresetNames: string[]
   validationFailed?: boolean | undefined
-  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
-  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
   hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
 }

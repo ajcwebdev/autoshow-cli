@@ -3,21 +3,20 @@ import { buildAsyncSttPollingDeadlineError, buildAsyncSttResumeProbeError, runAs
 import { logSttDiarizationConfig } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import { buildTranscriptionWordEvidence } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-evidence'
 import { buildSegmentsFromWords, buildTranscriptionOutputBase, countTokens, formatSpeakerLabel, formatTranscriptText, resolveTranscriptionOutput, toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-import type { AsyncSttLifecycleMetrics, GladiaNormalizedWord, GladiaStatusResponse, GladiaUtterance, HostedAsyncSttRunOptions, RetryClass, Step2Metadata, SttStageHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
+import type { AsyncSttLifecycleMetrics, GladiaNormalizedWord, GladiaStatusResponse, GladiaUtterance, HostedAsyncSttRunOptions, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { GladiaCreateResponseSchema, GladiaStatusResponseSchema, GladiaUploadResponseSchema } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InternalError } from '~/utils/error-handler'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
 import { getGladiaBaseUrl } from './gladia'
+import { attachSttStageErrorContext } from '../../stt-error-context'
+import { resolveRestPath } from '~/utils/rest-client'
 
 const INITIAL_POLL_INTERVAL_MS = 1000
 const MAX_POLL_INTERVAL_MS = 10000
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 const POLL_REQUEST_TIMEOUT_MS = 60 * 1000
-
-const buildGladiaUrl = (baseURL: string, path: string): string =>
-  new URL(path.replace(/^\/+/, ''), baseURL.endsWith('/') ? baseURL : `${baseURL}/`).toString()
 
 export const buildGladiaCreateRequest = (
   audioUrl: string,
@@ -35,17 +34,6 @@ export const buildGladiaCreateRequest = (
       }
     : {})
 })
-
-const attachGladiaErrorContext = (
-  error: unknown,
-  stage: string,
-  retryClass: RetryClass
-): never => {
-  const source = error instanceof Error ? error : new Error(String(error))
-  ;(source as SttStageHttpError).stage = stage
-  ;(source as SttStageHttpError).retryClass = retryClass
-  throw source
-}
 
 const flattenGladiaWords = (
   utterances: ReadonlyArray<GladiaUtterance>,
@@ -108,18 +96,17 @@ const uploadGladiaAudio = async (
   operationName: 'gladia-upload',
   stage: 'upload',
   retryClass: 'runtime_http_create_retriable',
-  maxAttempts: 4,
   timeoutMs: REQUEST_TIMEOUT_MS,
   errorPrefix: 'Gladia',
   schema: GladiaUploadResponseSchema,
   schemaLabel: 'Gladia upload response',
   metrics: lifecycleMetricsToCallbacks(metrics),
-  attachError: attachGladiaErrorContext,
+  attachError: attachSttStageErrorContext,
   doFetch: (signal) => {
     const form = new FormData()
     form.append('audio', Bun.file(audioPath), basename(audioPath))
 
-    return fetch(buildGladiaUrl(baseURL, '/v2/upload'), {
+    return fetch(resolveRestPath(baseURL, '/v2/upload'), {
       method: 'POST',
       headers: { 'x-gladia-key': apiKey },
       body: form,
@@ -140,15 +127,14 @@ const createGladiaTranscription = async (
     operationName: 'gladia-create-transcription',
     stage: 'create',
     retryClass: 'runtime_http_create_retriable',
-    maxAttempts: 4,
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'Gladia',
     failureLabel: 'transcription creation',
     schema: GladiaCreateResponseSchema,
     schemaLabel: 'Gladia create response',
     metrics: lifecycleMetricsToCallbacks(metrics),
-    attachError: attachGladiaErrorContext,
-    doFetch: (signal) => fetch(buildGladiaUrl(baseURL, '/v2/pre-recorded'), {
+    attachError: attachSttStageErrorContext,
+    doFetch: (signal) => fetch(resolveRestPath(baseURL, '/v2/pre-recorded'), {
       method: 'POST',
       headers: {
         'x-gladia-key': apiKey,
@@ -172,15 +158,14 @@ const pollGladiaTranscription = async (
     operationName: 'gladia-poll-transcription',
     stage: 'poll',
     retryClass: 'runtime_http_read',
-    maxAttempts: 6,
     timeoutMs: POLL_REQUEST_TIMEOUT_MS,
     errorPrefix: 'Gladia',
     failureLabel: 'polling',
     schema: GladiaStatusResponseSchema,
     schemaLabel: 'Gladia transcription status response',
     metrics: lifecycleMetricsToCallbacks(metrics),
-    attachError: attachGladiaErrorContext,
-    doFetch: (signal) => fetch(buildGladiaUrl(baseURL, `/v2/pre-recorded/${transcriptionId}`), {
+    attachError: attachSttStageErrorContext,
+    doFetch: (signal) => fetch(resolveRestPath(baseURL, `/v2/pre-recorded/${transcriptionId}`), {
       method: 'GET',
       headers: { 'x-gladia-key': apiKey },
       signal: signal ?? null
@@ -205,7 +190,7 @@ export const runGladiaStt = async (
     runMode,
     lifecycle
   } = options
-  const apiKey = requireApiKey('GLADIA_API_KEY', 'stt:gladia', 'Gladia transcription')
+  const apiKey = resolveCredential('gladia', 'require', { stage: 'stt:gladia', description: 'Gladia transcription' })
 
   if (diarizationOptions?.speakerCount !== undefined) {
     logSttDiarizationConfig(l, {
@@ -265,8 +250,8 @@ export const runGladiaStt = async (
     isFailed: (status) => status.status === 'error'
       ? `Gladia transcription failed: ${status.message ?? (typeof status.error_code === 'number' ? `error code ${status.error_code}` : 'unknown error')}`
       : undefined,
-    buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('Gladia', jobId, pollDeadlineMs),
-    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('Gladia', 'transcription', jobId, probeCount, totalWaitMs),
+    buildDeadlineError: (jobId, pollDeadlineMs, cause) => buildAsyncSttPollingDeadlineError('Gladia', jobId, pollDeadlineMs, cause),
+    buildResumeProbeError: (jobId, probeCount, totalWaitMs, cause) => buildAsyncSttResumeProbeError('Gladia', 'transcription', jobId, probeCount, totalWaitMs, cause),
     buildResult: async ({ transcript, runtime, processingTime, timings }) => {
       const utterances = extractUtterances(transcript)
       const normalizedWords = buildNormalizedWords(utterances)

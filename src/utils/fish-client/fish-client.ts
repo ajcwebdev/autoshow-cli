@@ -1,88 +1,33 @@
-import { CLIUsageError, ProviderError, ValidationError } from '~/utils/error-handler'
+import { ProviderError, ValidationError } from '~/utils/error-handler'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import {
   buildFishGlobalTimeline,
   emptyFishTimestampStreamState,
   parseFishSseFrame,
   reduceFishTimestampStreamEvent,
   splitFishSseFrames,
-  type FishGlobalTimelineSegment,
-  type FishTimestampAlignmentSnapshot,
-  type FishTimestampStreamState,
 } from './fish-timestamp-stream'
+import type {
+  FishClientOptions,
+  FishCreateModelRequest,
+  FishGlobalTimelineSegment,
+  FishModelRecord,
+  FishOperationOptions,
+  FishTimestampAlignmentSnapshot,
+  FishTimestampStreamState,
+  FishTtsRequest,
+  FishVoiceDesignCandidate,
+  FishVoiceDesignRequest,
+  FishVoiceDesignResponse,
+} from '~/types'
 import { extractRestErrorMessage, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
 import { isRetryableStatus } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 
 export const FISH_API_BASE_URL = 'https://api.fish.audio/v1'
 
-export type FishTtsRequest = Readonly<{
-  text: string
-  reference_id?: string | readonly string[] | undefined
-  references?: readonly Readonly<{ audio: Uint8Array | string, text: string }>[] | undefined
-  format?: 'wav' | 'mp3' | 'opus' | 'flac' | undefined
-  mp3_bitrate?: number | undefined
-  latency?: 'normal' | 'balanced' | 'low' | undefined
-  model?: string | undefined
-}>
-
-export type FishVoiceDesignRequest = Readonly<{
-  instruction: string
-  reference_text?: string | undefined
-  language?: string | undefined
-  n?: number | undefined
-  seed?: number | undefined
-}>
-
-export type FishVoiceDesignCandidate = Readonly<{
-  id: string
-  index: number
-  audio_base64: string
-  sample_rate: number
-  duration_ms: number
-  text?: string | undefined
-  instruct?: string | undefined
-  language?: string | undefined
-}>
-
-export type FishVoiceDesignResponse = Readonly<{
-  candidates: readonly FishVoiceDesignCandidate[]
-}>
-
-export type FishModelRecord = Readonly<{
-  _id: string
-  title: string
-  description?: string | undefined
-  type?: string | undefined
-  state?: 'ready' | 'processing' | 'failed' | string | undefined
-  created_at?: string | undefined
-  updated_at?: string | undefined
-  author?: Readonly<{ _id: string, name?: string }> | undefined
-}>
-
-export type FishCreateModelRequest = Readonly<{
-  title: string
-  description?: string | undefined
-  type?: 'tts' | string | undefined
-  voices: readonly Uint8Array[]
-  texts?: readonly string[] | undefined
-}>
-
-export type FishClientOptions = Readonly<{
-  apiKey: string
-  baseUrl?: string | undefined
-  fetchImpl?: typeof fetch | undefined
-}>
-
-type FishOperationOptions = Readonly<{
-  signal?: AbortSignal | undefined
-  onAccepted?: ((response: Response) => void | Promise<void>) | undefined
-}>
-
 export const createFishClient = (options: FishClientOptions) => {
-  const apiKey = options.apiKey.trim()
-  if (!apiKey) {
-    throw CLIUsageError('Fish Audio API key is required.')
-  }
+  const apiKey = resolveCredential('fish', 'require', { stage: 'tts:fish', providedValue: options.apiKey, useProvidedValue: true, description: 'Fish Audio' })
 
   const baseUrl = (options.baseUrl ?? FISH_API_BASE_URL).replace(/\/+$/, '')
   const customFetch = options.fetchImpl ?? fetch
@@ -349,5 +294,3 @@ export const createFishClient = (options: FishClientOptions) => {
     }
   }
 }
-
-export type FishClient = ReturnType<typeof createFishClient>

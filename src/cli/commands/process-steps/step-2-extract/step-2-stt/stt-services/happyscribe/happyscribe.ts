@@ -1,13 +1,13 @@
 import { HAPPYSCRIBE_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { ensureApiKeySetup, requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
+import { httpResponseError, parseJsonOrText, resolveRestPath } from '~/utils/rest-client'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
-import { ValidationError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import type { HappyScribeOrganization, HappyScribeOrganizationSelection } from '~/types'
 import {
   extractHappyScribeErrorMessage,
   isRecord,
-  normalizeHappyScribeId,
-  readHappyScribeJsonOrText
+  normalizeHappyScribeId
 } from './happyscribe-utils'
 
 const ORGANIZATION_REQUEST_TIMEOUT_MS = 60_000
@@ -37,9 +37,6 @@ const parseOrganization = (value: unknown): HappyScribeOrganization | undefined 
 
 export const getHappyScribeBaseUrl = (): string => HAPPYSCRIBE_DEFAULT_BASE_URL
 
-export const buildHappyScribeUrl = (baseURL: string, path: string): string =>
-  new URL(path.replace(/^\/+/, ''), baseURL.endsWith('/') ? baseURL : `${baseURL}/`).toString()
-
 const formatHappyScribeOrganizationChoices = (
   organizations: HappyScribeOrganization[]
 ): string =>
@@ -62,18 +59,17 @@ const listHappyScribeOrganizations = async (
     baseURL?: string | undefined
   } = {}
 ): Promise<HappyScribeOrganization[]> => {
-  const apiKey = options.apiKey ?? requireApiKey('HAPPYSCRIBE_API_KEY', 'stt:happyscribe', 'Happy Scribe transcription')
+  const apiKey = options.apiKey ?? resolveCredential('happyscribe', 'require', { stage: 'stt:happyscribe', description: 'Happy Scribe transcription' })
 
   const baseURL = options.baseURL ?? getHappyScribeBaseUrl()
   const payload = await withRetry(
     {
       retryClass: 'runtime_http_read',
       operationName: 'happyscribe-list-organizations',
-      policy: { maxAttempts: 4 },
       timeoutMs: ORGANIZATION_REQUEST_TIMEOUT_MS
     },
     async (signal) => {
-      const response = await fetch(buildHappyScribeUrl(baseURL, '/organizations'), {
+      const response = await fetch(resolveRestPath(baseURL, '/organizations'), {
         method: 'GET',
         headers: {
           authorization: `Bearer ${apiKey}`,
@@ -81,14 +77,13 @@ const listHappyScribeOrganizations = async (
         },
         signal: signal ?? null
       })
-      const payload = await readHappyScribeJsonOrText(response)
+      const payload = parseJsonOrText(await response.text())
 
       if (!response.ok) {
-        throw Object.assign(
-          new Error(`Happy Scribe organizations lookup failed (${response.status}): ${extractHappyScribeErrorMessage(payload) ?? 'Unknown error'}`),
+        throw httpResponseError(
+          `Happy Scribe organizations lookup failed (${response.status}): ${extractHappyScribeErrorMessage(payload) ?? 'Unknown error'}`,
+          response,
           {
-            status: response.status,
-            headers: response.headers,
             stage: 'create',
             retryClass: 'runtime_http_read',
             rawResponse: payload
@@ -160,11 +155,13 @@ export const buildHappyScribeOrganizationResolutionError = (
       ? 'Happy Scribe execution requires an explicit organization because this API key can access multiple organizations.'
       : 'No Happy Scribe organizations are available for this API key.'
 
-  return new Error([
-    baseMessage,
-    `Organizations: ${formatHappyScribeOrganizationChoices(selection.organizations)}.`,
+  return UsageError(
+    [
+      baseMessage,
+      `Organizations: ${formatHappyScribeOrganizationChoices(selection.organizations)}.`
+    ].join(' '),
     'Pass --stt-happyscribe-organization-id <id> or save defaults.extract.stt.happyscribeOrganizationId with bun autoshow config.'
-  ].join(' '))
+  )
 }
 
-export const ensureHappyScribeSttSetup = ensureApiKeySetup('HAPPYSCRIBE_API_KEY', 'stt:happyscribe', 'Happy Scribe transcription')
+export const ensureHappyScribeSttSetup = async (): Promise<void> => { resolveCredential('happyscribe', 'require', { stage: 'stt:happyscribe', description: 'Happy Scribe transcription' }) }

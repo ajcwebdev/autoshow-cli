@@ -78,7 +78,7 @@ const buildSharedYtDlpArgs = async (): Promise<string[]> => {
     const warningKey = authState.resolvedCookiesPath ?? authState.cookiesPath ?? authState.warning
     if (!warnedUnreadableCookiePaths.has(warningKey)) {
       warnedUnreadableCookiePaths.add(warningKey)
-      l.warn(authState.warning)
+      l.warn(authState.warning, { category: 'pipeline' })
     }
   }
   args.push(...authState.cookieArgs)
@@ -155,8 +155,8 @@ export const buildYtDlpListArgs = async (
   options: YtDlpListOptions = {}
 ): Promise<string[]> => {
   const sharedArgs = await buildSharedYtDlpArgs()
-  const limit = Math.max(1, options.limit ?? 5)
-  const all = options.all === true
+  const isAll = options.limit === 'all'
+  const limit = typeof options.limit === 'number' ? Math.max(1, options.limit) : 5
   const order = options.order ?? 'newest'
 
   return [
@@ -164,7 +164,7 @@ export const buildYtDlpListArgs = async (
     '--dump-json',
     '--no-warnings',
     '--ignore-errors',
-    ...(!all ? ['--playlist-end', String(limit)] : []),
+    ...(!isAll ? ['--playlist-end', String(limit)] : []),
     ...(order === 'oldest' ? ['--playlist-reverse'] : []),
     ...sharedArgs,
     url

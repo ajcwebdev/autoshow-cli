@@ -9,9 +9,6 @@ const EPISODE_SCRIPTS_ROOT = join(INPUT_ROOT, 'scripts')
 
 const COMIC_SCRIPT_SHORTHAND_PATTERN = /^(\d{2})-(\d{2})$/
 
-// Each scene's output lives in a per-run, timestamped directory under output/
-// (resolved once per process by scene-run-context), so consecutive runs are
-// preserved instead of overwriting one another.
 export const getSceneOutputDirectory = (sceneSlug: string): string =>
   getSceneRunDirectory(sceneSlug)
 

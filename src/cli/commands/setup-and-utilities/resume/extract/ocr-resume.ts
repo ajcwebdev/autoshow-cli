@@ -1,6 +1,7 @@
+import { partialCompletionError } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-batch-state'
 import { isRecord } from '~/utils/rest-client'
 import { DocumentMetadataSchema } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { validateData } from '~/utils/validate/validation'
 import { processOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/process-ocr'
 import { downloadDocumentUrlToTempFile } from '~/cli/commands/process-steps/step-1-download/document/resolve-document-source'
@@ -11,17 +12,16 @@ import {
   parseStoredRequestedTargets
 } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-run-state'
 import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord } from '~/cli/commands/process-steps/pipeline-manifest'
-import type { AggregatedPriceEstimate, OcrExtractionOptions, OcrResumePassContext, OcrTarget, PipelineItemRecord, PreparedDocument, ProviderCompletionStatus, ProviderResumePassResult, ResolvedStep2Execution, ResumeDisplayOptions, ResumeOcrEntry, ResumeResult, ResumeTarget, Step1SourceRef, WebArticleMetadata } from '~/types'
+import type { AggregatedPriceEstimate, NormalizedReasoningEffort, OcrExtractionOptions, OcrPoolLedger, OcrProviderMode, OcrResumePassContext, OcrTarget, PipelineItemRecord, PreparedDocument, ProviderCompletionStatus, ProviderResumePassResult, ResolvedStep2Execution, ResumeDisplayOptions, ResumeOcrEntry, ResumeResult, ResumeTarget, Step1SourceRef, WebArticleMetadata } from '~/types'
 import { resolveAdditiveResumeProviderSelection } from '../resume-provider-selection'
 import { hasResumableProviderTargetWork, priceProviderResumeTarget, providerResumeSourceInput, resolveProviderResumeOutputDir, runProviderResumePass, selectedProviderTargetsComplete, selectedProvidersCompleteResult, toProviderResumeResult, toProviderResumeSource, withProviderResumeOutputDir } from '../provider-batch-resume'
 import { buildExtractEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates'
-import { isNormalizedReasoningEffort, resolveReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { isNormalizedReasoningEffort, resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { writeOcrBatchDiagnostics } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-batch-diagnostics'
 import { getStep2ActiveModelsForService } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { getOcrTargetKey } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-run-state'
 import { parseStoredOcrPoolLedger } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch'
-import type { OcrProviderMode, OcrPoolLedger } from '~/types'
 
 const storedOcrProviderMode = (record: Record<string, unknown>): OcrProviderMode =>
   record['ocrProviderMode'] === 'pool' ? 'pool' : 'fanout'
@@ -32,7 +32,7 @@ const assertStoredOcrProviderMode = (
 ): OcrProviderMode => {
   const storedMode = storedOcrProviderMode(record)
   if (opts?.ocrProviderModeExplicit && opts.ocrProviderMode !== storedMode) {
-    throw CLIUsageError(`Cannot resume a ${storedMode} OCR run as ${opts.ocrProviderMode}. Resume preserves the OCR provider mode stored in manifest.json.`)
+    throw UsageError(`Cannot resume a ${storedMode} OCR run as ${opts.ocrProviderMode}. Resume preserves the OCR provider mode stored in manifest.json.`)
   }
   return storedMode
 }
@@ -69,7 +69,7 @@ const storedPoolRequestedReasoningEffort = (
       : []
   )))
   if (efforts.size > 1) {
-    throw CLIUsageError(`Canonical pooled OCR manifest records conflicting requested reasoning policies: ${[...efforts].sort().join(', ')}.`)
+    throw UsageError(`Canonical pooled OCR manifest records conflicting requested reasoning policies: ${[...efforts].sort().join(', ')}.`)
   }
   return [...efforts][0]
 }
@@ -108,7 +108,7 @@ const filterRunnableStoredOcrTargets = (
   const runnable: OcrTarget[] = []
   for (const target of targets) {
     const activeModels = getStep2ActiveModelsForService('ocr', target.service)
-    if (!activeModels || activeModels.includes(target.model)) {
+    if (activeModels?.includes(target.model)) {
       runnable.push(target)
       continue
     }
@@ -123,8 +123,10 @@ const filterRunnableStoredOcrTargets = (
 
     const nextStep = replacement !== undefined
       ? `Re-run with --provider ${target.service}=${replacement} to add the replacement as a distinct target.`
-      : `Re-run with an explicit active ${target.service} model to add a distinct target.`
-    throw CLIUsageError(
+      : activeModels && activeModels.length > 0
+        ? `Re-run with an explicit active ${target.service} model to add a distinct target.`
+        : 'Re-run with an explicit active OCR provider to add a distinct target.'
+    throw UsageError(
       `Stored OCR target ${target.service}/${target.model} is incomplete, but that model is no longer in the active registry. AutoShow will not substitute a different model because that would change the stored target identity. ${nextStep}`
     )
   }
@@ -171,7 +173,7 @@ const assertSelectedOcrReasoningCompatibility = (
           : [])
       ]) ?? [])
       if ([...storedEffectivePolicies].some((stored) => stored !== policy.effective)) {
-        throw CLIUsageError(
+        throw UsageError(
           `OCR resume reasoning policy mismatch for ${target.service}/${target.model}: the pooled page ledger records ${[...storedEffectivePolicies].sort().join(', ')}, but the current request resolves to ${policy.effective}.`
         )
       }
@@ -188,7 +190,7 @@ const assertSelectedOcrReasoningCompatibility = (
     const metadata = isRecord(state['metadata']) ? state['metadata'] : undefined
     const storedEffective = metadata?.['effectiveReasoningEffort']
     if (storedEffective !== policy.effective) {
-      throw CLIUsageError(
+      throw UsageError(
         `OCR resume reasoning policy mismatch for ${target.service}/${target.model}: manifest effective effort is ${typeof storedEffective === 'string' ? storedEffective : 'unrecorded'}, but the current request resolves to ${policy.effective}.`
       )
     }
@@ -209,7 +211,7 @@ const toStoredSource = (record: PipelineItemRecord): Step1SourceRef => {
   }
 
   if (!url) {
-    throw CLIUsageError('Pipeline item record is missing source information and cannot be resumed.')
+    throw UsageError('Pipeline item record is missing source information and cannot be resumed.')
   }
 
   return toProviderResumeSource(url)
@@ -240,7 +242,7 @@ const parseResumeRecord = async (
     ? parseStoredOcrPoolLedger(record['ocrPool'])
     : undefined
   if (ocrProviderMode === 'pool' && !poolLedger) {
-    throw CLIUsageError('Canonical pooled OCR manifest is missing a valid ocrPool page ledger.')
+    throw UsageError('Canonical pooled OCR manifest is missing a valid ocrPool page ledger.')
   }
   assertSelectedOcrReasoningCompatibility(
     record,
@@ -304,7 +306,7 @@ const parseResumeRecord = async (
 const readItemRecord = async (outputDir: string): Promise<PipelineItemRecord> => {
   const record = await readSinglePipelineItemRecord(outputDir, { command: 'extract', extractRoute: 'document' })
   if (!isRecord(record)) {
-    throw CLIUsageError(`Invalid OCR manifest at ${outputDir}/${PIPELINE_MANIFEST_FILE}`)
+    throw UsageError(`Invalid OCR manifest at ${outputDir}/${PIPELINE_MANIFEST_FILE}`)
   }
   return record
 }
@@ -312,7 +314,7 @@ const readItemRecord = async (outputDir: string): Promise<PipelineItemRecord> =>
 const readPreparedDocument = async (outputDir: string): Promise<PreparedDocument> => {
   const record = await readItemRecord(outputDir)
   if (!isRecord(record['step1'])) {
-    throw CLIUsageError(`Invalid OCR manifest at ${outputDir}/${PIPELINE_MANIFEST_FILE}`)
+    throw UsageError(`Invalid OCR manifest at ${outputDir}/${PIPELINE_MANIFEST_FILE}`)
   }
 
   const step1Metadata = validateData(DocumentMetadataSchema, record['step1'], 'stored OCR step1 metadata')
@@ -382,7 +384,6 @@ const buildResumeExtractionOpts = (
     chapterChunkLimitChars: opts.chapterChunkLimitChars,
     pdfChapterMode: opts.pdfChapterMode,
     configPath: opts.configPath,
-    ...(opts.useEpubBun ? { useEpubBun: true } : {}),
     ...(step2SelectionOrigins ? { step2SelectionOrigins } : {}),
     ...(reasoningEffort ? { reasoningEffort } : {})
   }
@@ -439,7 +440,7 @@ const runResumeOcrTarget = async (
         }
 
         if (!resumeFilePath) {
-          throw CLIUsageError('OCR resume entry is missing a resumable file path.')
+          throw UsageError('OCR resume entry is missing a resumable file path.')
         }
 
         try {
@@ -518,7 +519,10 @@ const runResumeOcrTarget = async (
   }
 
   if (resumableStatus.resumableIncomplete > 0 || resumableStatus.resumableFailed > 0) {
-    throw InfraError(`OCR resume still has ${resumableStatus.resumableIncomplete} incomplete and ${resumableStatus.resumableFailed} failed item(s) with resumable providers`, { stage: 'resume:ocr', exitCode: 2 })
+    throw partialCompletionError(`OCR resume still has ${resumableStatus.resumableIncomplete} incomplete and ${resumableStatus.resumableFailed} failed item(s) with resumable providers`, {
+      stage: 'resume:ocr',
+      metadata: { incomplete: resumableStatus.resumableIncomplete, failed: resumableStatus.resumableFailed }
+    })
   }
   return result
 }

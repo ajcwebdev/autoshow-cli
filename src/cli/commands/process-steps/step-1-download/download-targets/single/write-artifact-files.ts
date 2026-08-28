@@ -1,12 +1,8 @@
-import { buildTtsArtifactMap } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
-import { buildImageArtifactMap } from '~/cli/commands/process-steps/step-5-image/image-generation-targets'
-import { buildVideoArtifactMap } from '~/cli/commands/process-steps/step-6-video/video-targets'
-import { buildMusicArtifactMap } from '~/cli/commands/process-steps/step-7-music/music-targets'
 import { YOUTUBE_CAPTIONS_SERVICE } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/youtube-captions'
 import type { BuildWriteArtifactFilesContext } from '~/types'
 
 export const buildWriteArtifactFiles = (ctx: BuildWriteArtifactFilesContext): Record<string, string> => {
-  const { step1Metadata, renderedInternalArtifacts, showNoteInternalArtifacts, step2Entries, successfulSttProviders, step3Results, step4Metadata, step5Metadata, step6Metadata, step7Metadata } = ctx
+  const { step1Metadata, renderedInternalArtifacts, showNoteInternalArtifacts, step2Entries, successfulSttProviders, step3Results } = ctx
 
   const artifactFiles: Record<string, string> = {
     audio: step1Metadata.audioFileName,
@@ -37,14 +33,6 @@ export const buildWriteArtifactFiles = (ctx: BuildWriteArtifactFilesContext): Re
       artifactFiles[summaryKey] = r.outputFileName
     }
   }
-  if (step4Metadata) {
-    Object.assign(artifactFiles, buildTtsArtifactMap(step4Metadata))
-  }
-  if (step5Metadata) {
-    Object.assign(artifactFiles, buildImageArtifactMap(step5Metadata))
-  }
-  if (step6Metadata) Object.assign(artifactFiles, buildVideoArtifactMap(step6Metadata))
-  if (step7Metadata) Object.assign(artifactFiles, buildMusicArtifactMap(step7Metadata))
   artifactFiles['prompt'] = 'prompt.md'
   artifactFiles['manifest'] = 'manifest.json'
 

@@ -1,5 +1,5 @@
 import { lstat, readFile, realpath } from 'node:fs/promises'
-import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { isAbsolute, join, resolve } from 'node:path'
 import type {
   CanonicalAudioProviderProjection,
   GenericTtsDialoguePlan,
@@ -8,9 +8,11 @@ import type {
   ProviderReadinessResult,
   ProviderRenderBranchPlan,
   ProviderRenderPlan,
-  ProviderVoiceRef
+  ProviderTtsResumeSourceContext,
+  ProviderVoiceRef,
+  ResolvedTtsResumeSourceContext,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import {
@@ -18,35 +20,11 @@ import {
   validateGenericTtsSourceIdentity,
   validateProviderRenderPlanIdentity
 } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
-import type { TtsRunSourceContext } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { resolveUserPath } from '~/utils/runtime-paths'
 import { parseTtsDialoguePlanArtifactRef, readTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
-import type { TtsDialoguePlanArtifactRef } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
-
-export type ResolvedTtsResumeSourceContext = TtsRunSourceContext & {
-  retainedPlanIdentities: ReadonlyMap<string,
-    | { kind: 'branch', branchPlanId: string }
-    | { kind: 'render', renderPlanId: string, renderIdentity: string }
-  >
-  dialoguePlanArtifact: TtsDialoguePlanArtifactRef
-}
-
-type ProviderTtsResumeSourceContext = {
-  sourceIdentity: GenericTtsSourceIdentity
-  dialoguePlan: GenericTtsDialoguePlan
-  targetKey: string
-  planIdentity:
-    | { kind: 'branch', branchPlanId: string }
-    | { kind: 'render', renderPlanId: string, renderIdentity: string }
-}
-
+import { isContainedPath } from '~/utils/filesystem'
 const SOURCE_IDENTITY_FILE = 'source-identity.json'
 const DIALOGUE_PLAN_FILE = 'dialogue-plan.json'
-
-const isContainedPath = (root: string, candidate: string): boolean => {
-  const child = relative(root, candidate)
-  return child !== '' && child !== '..' && !child.startsWith(`..${sep}`) && !isAbsolute(child)
-}
 
 const assertSafeRelativePath = (value: string, label: string): void => {
   if (
@@ -55,7 +33,7 @@ const assertSafeRelativePath = (value: string, label: string): void => {
     || isAbsolute(value)
     || value.split('/').some((segment) => segment.length === 0 || segment === '.' || segment === '..')
   ) {
-    throw CLIUsageError(`Stored TTS ${label} is not a safe contained path. Rebuild this output before resuming it.`)
+    throw UsageError(`Stored TTS ${label} is not a safe contained path. Rebuild this output before resuming it.`)
   }
 }
 
@@ -68,7 +46,7 @@ const assertRealPathWithoutSymlinks = async (
   assertSafeRelativePath(relativePath, label)
   const candidate = resolve(canonicalRoot, relativePath)
   if (!isContainedPath(canonicalRoot, candidate)) {
-    throw CLIUsageError(`Stored TTS ${label} escapes its artifact root. Rebuild this output before resuming it.`)
+    throw UsageError(`Stored TTS ${label} escapes its artifact root. Rebuild this output before resuming it.`)
   }
 
   let cursor = canonicalRoot
@@ -78,20 +56,20 @@ const assertRealPathWithoutSymlinks = async (
     try {
       entry = await lstat(cursor)
     } catch {
-      throw CLIUsageError(`Stored TTS ${label} is missing. Rebuild this output before resuming it.`)
+      throw UsageError(`Stored TTS ${label} is missing. Rebuild this output before resuming it.`)
     }
     if (entry.isSymbolicLink()) {
-      throw CLIUsageError(`Stored TTS ${label} cannot traverse a symbolic link. Rebuild this output before resuming it.`)
+      throw UsageError(`Stored TTS ${label} cannot traverse a symbolic link. Rebuild this output before resuming it.`)
     }
   }
 
   const entry = await lstat(candidate)
   if ((kind === 'directory' && !entry.isDirectory()) || (kind === 'file' && !entry.isFile())) {
-    throw CLIUsageError(`Stored TTS ${label} has the wrong artifact type. Rebuild this output before resuming it.`)
+    throw UsageError(`Stored TTS ${label} has the wrong artifact type. Rebuild this output before resuming it.`)
   }
   const canonical = await realpath(candidate)
   if (!isContainedPath(canonicalRoot, canonical)) {
-    throw CLIUsageError(`Stored TTS ${label} resolves outside its artifact root. Rebuild this output before resuming it.`)
+    throw UsageError(`Stored TTS ${label} resolves outside its artifact root. Rebuild this output before resuming it.`)
   }
   return canonical
 }
@@ -105,16 +83,16 @@ const readJsonRecord = async (
   const path = await assertRealPathWithoutSymlinks(canonicalArtifactRoot, relativePath, 'file', label)
   const bytes = await readFile(path)
   if (expectedSha256 !== undefined && sha256Bytes(bytes) !== expectedSha256) {
-    throw CLIUsageError(`Stored TTS ${label} checksum does not match its canonical reference. Rebuild this output before resuming it.`)
+    throw UsageError(`Stored TTS ${label} checksum does not match its canonical reference. Rebuild this output before resuming it.`)
   }
   let parsed: unknown
   try {
     parsed = JSON.parse(bytes.toString('utf8'))
   } catch {
-    throw CLIUsageError(`Stored TTS ${label} is not valid JSON. Rebuild this output before resuming it.`)
+    throw UsageError(`Stored TTS ${label} is not valid JSON. Rebuild this output before resuming it.`)
   }
   if (!isRecord(parsed)) {
-    throw CLIUsageError(`Stored TTS ${label} is not a JSON object. Rebuild this output before resuming it.`)
+    throw UsageError(`Stored TTS ${label} is not a JSON object. Rebuild this output before resuming it.`)
   }
   return parsed
 }
@@ -156,7 +134,7 @@ export const readRetainedTtsResolvedVoices = async (
   provider: PipelineProviderState
 ): Promise<ProviderVoiceRef[]> => {
   if (!provider.targetKey) {
-    throw CLIUsageError('Stored TTS voice evidence is missing its operation-scoped target identity. Rebuild this output before resuming it.')
+    throw UsageError('Stored TTS voice evidence is missing its operation-scoped target identity. Rebuild this output before resuming it.')
   }
   const projection = provider.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
   const active = projection?.activeWork
@@ -173,7 +151,7 @@ export const readRetainedTtsResolvedVoices = async (
     branchPlanId = active.branchPlanId
   } else {
     const render = projection.renderHistory.find((entry) => entry.renderIdentity === active.renderIdentity)
-    if (!render) throw CLIUsageError('Stored TTS active render is missing its exact render history. Rebuild this output before resuming it.')
+    if (!render) throw UsageError('Stored TTS active render is missing its exact render history. Rebuild this output before resuming it.')
     const renderPlan = validateProviderRenderPlanIdentity(
       await readJsonRecord(canonicalArtifactRoot, render.renderPlanRef, 'active render plan', render.renderPlanSha256) as unknown as ProviderRenderPlan
     )
@@ -183,7 +161,7 @@ export const readRetainedTtsResolvedVoices = async (
     .filter((entry) => entry.branchPlanId === branchPlanId)
     .sort((left, right) => right.sequence - left.sequence)[0]
   if (!readinessRef) {
-    throw CLIUsageError('Stored TTS active work has no checksum-bound readiness voice evidence. Rebuild this output before resuming it.')
+    throw UsageError('Stored TTS active work has no checksum-bound readiness voice evidence. Rebuild this output before resuming it.')
   }
   const record = await readJsonRecord(
     canonicalArtifactRoot,
@@ -199,11 +177,11 @@ export const readRetainedTtsResolvedVoices = async (
     || record['targetKey'] !== provider.targetKey
     || !Array.isArray(record['resolvedVoices'])
   ) {
-    throw CLIUsageError('Stored TTS readiness voice evidence has an invalid identity or target binding. Rebuild this output before resuming it.')
+    throw UsageError('Stored TTS readiness voice evidence has an invalid identity or target binding. Rebuild this output before resuming it.')
   }
   const readiness = record as unknown as ProviderReadinessResult
   if (readiness.resolvedVoices.some((entry) => !isRecord(entry) || !isRecord(entry.providerVoice))) {
-    throw CLIUsageError('Stored TTS readiness voice evidence is malformed. Rebuild this output before resuming it.')
+    throw UsageError('Stored TTS readiness voice evidence is malformed. Rebuild this output before resuming it.')
   }
   return readiness.resolvedVoices.map((entry) => entry.providerVoice)
 }
@@ -219,7 +197,7 @@ const readProviderSourceContext = async (
   if (!render && !branch) return undefined
 
   if (!provider.targetKey) {
-    throw CLIUsageError('Stored TTS active work is missing its operation-scoped target identity. Rebuild this output before resuming it.')
+    throw UsageError('Stored TTS active work is missing its operation-scoped target identity. Rebuild this output before resuming it.')
   }
 
   assertSafeRelativePath(provider.artifactDir, 'provider artifact directory')
@@ -250,7 +228,7 @@ const readProviderSourceContext = async (
       || branchPlan.sourceIdentityHash !== itemDialoguePlan.sourceIdentity.identityHash
       || branchPlan.dialoguePlanId !== itemDialoguePlan.dialoguePlanId
     ) {
-      throw CLIUsageError('Stored TTS active branch does not bind its exact item source, dialogue, and operation-scoped target. Rebuild this output before resuming it.')
+      throw UsageError('Stored TTS active branch does not bind its exact item source, dialogue, and operation-scoped target. Rebuild this output before resuming it.')
     }
     return {
       sourceIdentity: itemDialoguePlan.sourceIdentity,
@@ -294,7 +272,7 @@ const readProviderSourceContext = async (
     || renderPlan.renderIdentity !== render.renderIdentity
     || renderPlan.targetKey !== provider.targetKey
   ) {
-    throw CLIUsageError('Stored TTS source/dialogue evidence does not match its active render or resume input. Rebuild this output before resuming it.')
+    throw UsageError('Stored TTS source/dialogue evidence does not match its active render or resume input. Rebuild this output before resuming it.')
   }
 
   return {
@@ -318,16 +296,15 @@ export const resolveTtsResumeSourceContext = async (
   const dialoguePlanArtifacts = providers
     .filter((provider) =>
       provider.operation === 'tts-synthesis'
-      && provider.legacyRenderIdentity === undefined
       && provider.status !== 'skipped'
     )
     .map(parseTtsDialoguePlanArtifactRef)
   const dialoguePlanArtifact = dialoguePlanArtifacts[0]
   if (!dialoguePlanArtifact) {
-    throw CLIUsageError('TTS resume has no item-owned canonical dialogue-plan artifact. Rebuild this output with the current tts command.')
+    throw UsageError('TTS resume has no item-owned canonical dialogue-plan artifact. Rebuild this output with the current tts command.')
   }
   if (dialoguePlanArtifacts.some((candidate) => canonicalTtsJson(candidate) !== canonicalTtsJson(dialoguePlanArtifact))) {
-    throw CLIUsageError('TTS resume found conflicting item-owned dialogue plans across selected targets. Rebuild this output before resuming it.')
+    throw UsageError('TTS resume found conflicting item-owned dialogue plans across selected targets. Rebuild this output before resuming it.')
   }
   const itemDialoguePlan = validateGenericTtsDialoguePlan(
     await readTtsDialoguePlanArtifact(rootDir, dialoguePlanArtifact)
@@ -336,7 +313,7 @@ export const resolveTtsResumeSourceContext = async (
     ? sha256Bytes(new Uint8Array(await Bun.file(resolveUserPath(itemDialoguePlan.sourceIdentity.sourceLocator.canonicalPath)).arrayBuffer()))
     : sha256Bytes(input)
   if (itemDialoguePlan.sourceIdentity.contentSha256 !== exactItemSourceHash) {
-    throw CLIUsageError('TTS resume input bytes do not match the item-owned source identity. Restore the exact source or rebuild this output.')
+    throw UsageError('TTS resume input bytes do not match the item-owned source identity. Restore the exact source or rebuild this output.')
   }
   const selectedProviders = providers.filter((provider) =>
     provider.targetKey !== undefined && targetKeys.has(provider.targetKey)
@@ -364,13 +341,13 @@ export const resolveTtsResumeSourceContext = async (
     canonicalTtsJson(context.sourceIdentity) !== canonicalTtsJson(sourceContext.sourceIdentity)
     || canonicalTtsJson(context.dialoguePlan) !== canonicalTtsJson(sourceContext.dialoguePlan)
   )) {
-    throw CLIUsageError('TTS resume found conflicting active source/dialogue evidence across selected targets. Rebuild this output before resuming it.')
+    throw UsageError('TTS resume found conflicting active source/dialogue evidence across selected targets. Rebuild this output before resuming it.')
   }
   if (
     itemDialoguePlan.dialoguePlanId !== dialoguePlanArtifact.dialoguePlanId
     || canonicalTtsJson(itemDialoguePlan) !== canonicalTtsJson(sourceContext.dialoguePlan)
   ) {
-    throw CLIUsageError('TTS resume item dialogue plan does not match its retained render evidence. Rebuild this output before resuming it.')
+    throw UsageError('TTS resume item dialogue plan does not match its retained render evidence. Rebuild this output before resuming it.')
   }
   return {
     sourceIdentity: sourceContext.sourceIdentity,

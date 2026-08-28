@@ -12,16 +12,15 @@ type RegistrySelectionOptionKey<Entry> = Entry extends {
     : Selection extends {
       type: 'models'
       runtimeModelsKey: infer ModelsKey extends keyof Step2ProviderOptionSurface
-      runtimeModelKey: infer ModelKey extends keyof Step2ProviderOptionSurface
     }
-      ? ModelsKey | ModelKey
+      ? ModelsKey
       : never
   : never
 
 type RegistryModelOptionKey<Entry> = Entry extends {
   selection: {
     type: 'models'
-    runtimeModelKey: infer Key extends keyof Step2ProviderOptionSurface
+    runtimeModelsKey: infer Key extends keyof Step2ProviderOptionSurface
   }
 } ? Key : never
 
@@ -52,7 +51,6 @@ export type UrlSelectionOptions = Step2SelectionOriginOptions & {
   urlBackendExplicit: boolean
   urlBackends: HtmlArticleBackend[] | undefined
 }
-
 
 export type ResolvedStep2Provider = ProviderIdentityBase & {
   origin?: Step2ProviderSelectionOrigin | undefined
@@ -104,7 +102,6 @@ export type Step2ModelProviderRegistryEntry = Step2ProviderRegistryEntryBase & {
   selection: {
     type: 'models'
     runtimeModelsKey: keyof Step2ProviderOptionSurface
-    runtimeModelKey: keyof Step2ProviderOptionSurface
     supportedModels: readonly string[]
     validateModel: (value: string) => string
   }
@@ -124,14 +121,13 @@ export type Step2ProviderRegistryEntry =
   | Step2ModelProviderRegistryEntry
   | Step2FixedProviderRegistryEntry
 
-
 export type ProviderRunStateBase<TService extends string, TError> = ProviderIdentityBase<TService> & {
   artifactDir: string
   status: 'running' | 'succeeded' | 'missing' | 'failed' | 'skipped'
   attempts: number
   metadata?: Record<string, unknown> | undefined
   result?: Record<string, unknown> | undefined
-  lastError?: TError | undefined
+  error?: TError | undefined
 }
 
 export type ProviderErrorSummaryFields = {
@@ -141,10 +137,10 @@ export type ProviderErrorSummaryFields = {
   retryAfterMs?: number | undefined
   errorFile?: string | undefined
   rawResponseFile?: string | undefined
+  missingEnvVar?: string | undefined
 }
 
-
-export type OcrStep2ResolutionOptions = OcrSelectionOptions & Partial<Pick<OcrRuntimeOptions, 'useEpubBun'>> & Partial<UrlSelectionOptions> & {
+export type OcrStep2ResolutionOptions = OcrSelectionOptions & Partial<UrlSelectionOptions> & {
   preparedMarkdown?: string | undefined
   localHtmlDocument?: boolean | undefined
 }

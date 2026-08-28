@@ -1,7 +1,7 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { basename, join } from 'node:path'
-import type { FallbackAuditState, HostedOcrIdentity, HostedOcrRun, InitialFallbackReason, OcrPdfChunkRange, PdfChunkPreparationSummary, RunHostedOcrPdfChunkFallbackOptions, StoredHostedOcrFallbackPage } from '~/types'
-import { ValidationError } from '~/utils/error-handler'
+import type { FallbackAuditState, HostedOcrIdentity, HostedOcrPageCacheValidation, HostedOcrRun, InitialFallbackReason, OcrPdfChunkRange, ParsedHostedOcrPageCache, PdfChunkPreparationSummary, RunHostedOcrPdfChunkFallbackOptions, StoredHostedOcrFallbackPage } from '~/types'
+import { serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
 import { findOcrStructuredResponseError } from '../ocr-structured-response-error'
@@ -23,19 +23,6 @@ import {
 } from './pdf-chunk-fallback-paths'
 import { summarizeFallbackAudit } from './pdf-chunk-fallback-audit'
 import { isHostedOcrRun } from './hosted-ocr-utils'
-
-type HostedOcrPageCacheValidation = {
-  pageNumber?: number | undefined
-  totalPages?: number | undefined
-  sourceFile?: string | undefined
-  identity?: HostedOcrIdentity | undefined
-}
-
-export type ParsedHostedOcrPageCache = {
-  pageNumber: number
-  totalPages: number
-  run: HostedOcrRun
-}
 
 const matchesCacheIdentity = (
   run: HostedOcrRun,
@@ -200,7 +187,10 @@ export const cleanupFallbackPageInputs = async (
   try {
     await rm(getFallbackPageInputsDir(fallbackDir), { recursive: true, force: true })
   } catch (error) {
-    l.warn(`${serviceLabel}: failed to delete OCR fallback page inputs: ${error instanceof Error ? error.message : String(error)}`)
+    l.warn(`${serviceLabel}: failed to delete OCR fallback page inputs: ${error instanceof Error ? error.message : String(error)}`, {
+      category: 'artifact',
+      metadata: { service: serviceLabel, error: serializeDiagnosticError(error) }
+    })
   }
 }
 
@@ -228,7 +218,7 @@ export const writeCachedFallbackPage = async (
   await Bun.write(getFallbackPageResultPath(fallbackDir, pageNumber), JSON.stringify(payload, null, 2) + '\n')
 }
 
-export const writeFallbackPageText = async (
+const writeFallbackPageText = async (
   fallbackDir: string | undefined,
   pageNumber: number,
   run: HostedOcrRun
@@ -331,7 +321,7 @@ export const buildMalformedFallbackPageRun = (
   )
 }
 
-export const hasMatchingFallbackState = async (
+const hasMatchingFallbackState = async (
   fallbackDir: string | undefined,
   sourceFile: string,
   identity?: HostedOcrIdentity | undefined

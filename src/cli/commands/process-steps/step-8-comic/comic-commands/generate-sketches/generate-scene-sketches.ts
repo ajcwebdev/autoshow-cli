@@ -1,4 +1,4 @@
-import type { Dirent } from 'node:fs'
+import type { DirectoryEntry } from '~/types'
 import { mkdir, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import * as v from 'valibot'
@@ -39,7 +39,6 @@ import { runWithConcurrency } from '~/utils/run-with-concurrency'
 import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 
 const SKETCH_CHUNK_SIZE = DEFAULT_SKETCH_PANELS_PER_IMAGE
-
 
 const formatSketchChunkLabel = (startPanelNumber: number, endPanelNumber: number): string => {
   return `panels-${String(startPanelNumber).padStart(PANEL_FILENAME_PADDING, '0')}-${String(endPanelNumber).padStart(PANEL_FILENAME_PADDING, '0')}`
@@ -221,8 +220,6 @@ export const buildSketchPrompt = (
   return sections.filter(section => section && section.length > 0).join('\n\n')
 }
 
-// Every character a chunk draws, keyed the same way character reference state is
-// keyed, so an established sketch can be looked up per character.
 const getChunkCharacterKeys = (
   panels: Array<Pick<ComicPanelSource, 'bundleData'>>
 ): string[] => {
@@ -239,7 +236,7 @@ const getChunkCharacterKeys = (
 
 const readSketchPanelSource = async (
   sceneDirectory: string,
-  panelEntry: Dirent
+  panelEntry: DirectoryEntry
 ): Promise<ComicPanelSource> => {
   const panelNumber = getPanelNumberFromName(panelEntry.name)
   if (!panelNumber) {
@@ -313,8 +310,6 @@ export const generateSceneSketches = async (
 
       await mkdir(getSketchesDirectory(sceneSlug), { recursive: true })
 
-      // Required snapshot references are known up front. Validate every chunk and
-      // model before starting any sequential stream/provider call.
       const preflightFailures: string[] = []
       for (const chunk of selectedSketchChunks) {
         for (const model of options.models) {
@@ -331,19 +326,10 @@ export const generateSceneSketches = async (
         throw ValidationError(`Sketch preflight failed before any provider calls:\n- ${Array.from(new Set(preflightFailures)).join('\n- ')}`, { stage: 'comic:generate-sketches' })
       }
 
-      // Each model is an independent stream, but chunks within a stream stay
-      // sequential so every chunk can reference the one before it. Generating chunks
-      // in parallel leaves them blind to each other and recurring characters drift.
       const sketchStreams = options.models.map(model => async () => {
-        // Chaining each chunk to its immediate predecessor only carries a character
-        // forward when they appear in consecutive chunks: a character who sits out a
-        // chunk loses their design. Anchor per character instead, on the first sketch
-        // that established them, so later chunks always reference the same likeness.
         const establishedCharacterSketches = new Map<string, string>()
         let previousSketchPath: string | undefined
 
-        // First sketch to draw a character wins, so a later chunk that renders them
-        // off-model cannot become the reference everything after it follows.
         const recordEstablishedSketch = (characterKeys: string[], sketchPath: string) => {
           characterKeys.forEach(key => {
             if (!establishedCharacterSketches.has(key)) {
@@ -365,9 +351,6 @@ export const generateSceneSketches = async (
             const normalizedPrompt = buildSketchPrompt(sketchPromptData, sketchPrompts)
             const chunkCharacterKeys = getChunkCharacterKeys(sketchChunk.panels)
 
-            // Anchors first (identity), then the previous chunk (scene and style
-            // continuity). One sketch usually anchors several characters, so this
-            // stays a short list after de-duplication.
             const priorSketchCandidates = [
               ...chunkCharacterKeys
                 .map(key => establishedCharacterSketches.get(key))
@@ -408,8 +391,6 @@ export const generateSceneSketches = async (
               options.runId
             )
 
-            // A skipped chunk is still a real sketch on disk, so it can anchor
-            // the characters it drew for every chunk that follows.
             if (!options.force && await Bun.file(outputPath).exists()) {
               stats.imagesSkipped++
               recordEstablishedSketch(chunkCharacterKeys, outputPath)

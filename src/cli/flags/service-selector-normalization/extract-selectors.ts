@@ -2,7 +2,7 @@ import { readInjectedConfigFlags } from '~/cli/options/option-resolution/build-o
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import { WRITE_OCR_PROVIDER_TARGETS, WRITE_STT_PROVIDER_TARGETS } from './provider-targets'
 import type { CliFlagOccurrence, ExtractPublicSelectorTarget, ExtractSelectorInputRoutes, SelectorNormalizationResult } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { parseProviderSelectorValue } from './flag-helpers'
 import { applyFlagOccurrenceNormalization, replaceFlagOccurrence } from './occurrence-normalization'
 
@@ -40,27 +40,27 @@ const selectExtractGenericTargets = (
 
   if (routes.article && extractUrlProviderNames.has(providerName)) {
     if (value !== true) {
-      throw CLIUsageError(`--provider ${providerName} does not accept a model for article extract inputs.`)
+      throw UsageError(`--provider ${providerName} does not accept a model for article extract inputs.`)
     }
     targets.push({ target: 'url-provider', value: providerName })
   }
 
   if (targets.length === 0) {
-    throw CLIUsageError(`--provider ${providerName} does not apply to ${describeRoutes(routes)} extract inputs.`)
+    throw UsageError(`--provider ${providerName} does not apply to ${describeRoutes(routes)} extract inputs.`)
   }
 
   const selectedModelTargets = targets.filter((entry) =>
     entry.target !== 'url-provider' && !extractBooleanSelectorTargetFlags.has(entry.target)
   )
   if (typeof value === 'string' && selectedModelTargets.length > 1) {
-    throw CLIUsageError(
+    throw UsageError(
       `--provider ${providerName}=<model> is ambiguous for ${describeRoutes(routes)} extract inputs. Split the batch by input type or omit the model to use route-specific defaults.`
     )
   }
 
   for (const entry of targets) {
     if (typeof value === 'string' && extractBooleanSelectorTargetFlags.has(entry.target)) {
-      throw CLIUsageError(`--provider ${providerName} does not accept a model for ${describeRoutes(routes)} extract inputs.`)
+      throw UsageError(`--provider ${providerName} does not accept a model for ${describeRoutes(routes)} extract inputs.`)
     }
   }
 
@@ -75,7 +75,7 @@ const selectExtractAllProviderTargets = (
   if (routes.document) targets.push('all-ocr')
   if (routes.article) targets.push('all-url')
   if (targets.length === 0) {
-    throw CLIUsageError(`--all-providers does not apply to ${describeRoutes(routes)} extract inputs.`)
+    throw UsageError(`--all-providers does not apply to ${describeRoutes(routes)} extract inputs.`)
   }
   return targets
 }
@@ -142,7 +142,7 @@ export const normalizeExtractGenericSelectorFlags = (
       return selectExtractGenericTargets(provider.provider, provider.model, routes).map((target) => {
         if (target.target === 'url-provider') {
           if (selectedUrlBackend !== undefined && selectedUrlBackend !== target.value) {
-            throw CLIUsageError('Article extract supports one --provider URL backend at a time. Use --all-providers, --all-local, or both for URL backend groups.')
+            throw UsageError('Article extract supports one --provider URL backend at a time. Use --all-providers, --all-local, or both for URL backend groups.')
           }
           selectedUrlBackend = String(target.value)
         }
@@ -169,7 +169,7 @@ export const normalizeExtractGenericSelectorFlags = (
   })
 }
 
-export const describeRoutes = (routes: ExtractSelectorInputRoutes): string => {
+const describeRoutes = (routes: ExtractSelectorInputRoutes): string => {
   if (routes.media && routes.document) return 'mixed media and document/image'
   if (routes.media) return 'media'
   if (routes.document) return 'document/image'

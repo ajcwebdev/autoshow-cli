@@ -1,41 +1,12 @@
-import type { AccountCapabilityState, SanitizedProviderError, TtsProvider, TtsTarget } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
-import { readEnv } from '~/utils/validate/env-utils'
+import type { SanitizedProviderError, TtsExecutionReadinessObservation, TtsTarget } from '~/types'
+import { UsageError, extractErrorMetadata, ProviderError, ValidationError } from '~/utils/error-handler'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
+import { findHostedTtsCredential } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
+import { childEnv } from '~/utils/child-env'
 import { parseHumeVoiceCatalogEnvelope } from '../tts-services/hume/hume-advanced-provider'
 
-const HOSTED_TTS_CREDENTIALS = {
-  elevenlabs: { env: 'ELEVENLABS_API_KEY', label: 'ElevenLabs TTS' },
-  minimax: { env: 'MINIMAX_API_KEY', label: 'MiniMax TTS' },
-  groq: { env: 'GROQ_API_KEY', label: 'Groq TTS' },
-  grok: { env: 'XAI_API_KEY', label: 'Grok TTS' },
-  mistral: { env: 'MISTRAL_API_KEY', label: 'Mistral TTS' },
-  openai: { env: 'OPENAI_API_KEY', label: 'OpenAI TTS' },
-  gemini: { env: 'GEMINI_API_KEY', label: 'Gemini TTS' },
-  deepgram: { env: 'DEEPGRAM_API_KEY', label: 'Deepgram TTS' },
-  speechify: { env: 'SPEECHIFY_API_KEY', label: 'Speechify TTS' },
-  hume: { env: 'HUME_API_KEY', label: 'Hume TTS' },
-  cartesia: { env: 'CARTESIA_API_KEY', label: 'Cartesia TTS' },
-  fish: { env: 'FISH_API_KEY', label: 'Fish Audio TTS' },
-  inworld: { env: 'INWORLD_API_KEY', label: 'Inworld AI TTS' },
-  deepinfra: { env: 'DEEPINFRA_API_KEY', label: 'DeepInfra TTS' },
-  replicate: { env: 'REPLICATE_API_TOKEN', label: 'Replicate TTS' },
-  fal: { env: 'FAL_API_KEY', label: 'fal.ai TTS' }
-} as const satisfies Record<TtsProvider, { env: string, label: string }>
-
-export type TtsExecutionReadinessObservation = Readonly<{
-  targetKey: string
-  accountState: AccountCapabilityState
-  status: 'ready' | 'blocked'
-  error?: SanitizedProviderError | undefined
-}>
-
-/**
- * A blocked pre-ingest observation stays authoritative because protected capabilities were not
- * materialized. Otherwise a fresh observation may narrow ready to blocked, but never widen a
- * previously blocked target back to ready inside the same execution admission.
- */
 export const mergeTtsExecutionReadinessObservations = (
   preIngest: readonly TtsExecutionReadinessObservation[],
   fresh: readonly TtsExecutionReadinessObservation[]
@@ -70,7 +41,7 @@ const missingCredentialObservation = (
 
 const probeRuntimeTool = async (binary: string): Promise<boolean> => {
   try {
-    const process = Bun.spawn([binary, '-version'], { stdout: 'ignore', stderr: 'ignore' })
+    const process = Bun.spawn([binary, '-version'], { env: childEnv(), stdout: 'ignore', stderr: 'ignore' })
     return await process.exited === 0
   } catch {
     return false
@@ -97,12 +68,13 @@ const advancedVoiceBlockedObservation = (
   targetKey: string,
   code: string,
   message: string,
-  retryable: boolean
+  retryable: boolean,
+  detail: Partial<Pick<SanitizedProviderError, 'status' | 'stage' | 'errorName' | 'providerMessage'>> = {}
 ): TtsExecutionReadinessObservation => ({
   targetKey,
   accountState: 'unavailable',
   status: 'blocked',
-  error: { phase: 'readiness', code, message, retryable, blockedReason: code }
+  error: { phase: 'readiness', code, message, retryable, blockedReason: code, ...detail }
 })
 
 export const listHumeVoiceIdsForReadiness = async (
@@ -115,9 +87,17 @@ export const listHumeVoiceIdsForReadiness = async (
     let totalPages = 1
     do {
       const response = await fetchImpl(`https://api.hume.ai/v0/tts/voices?${new URLSearchParams({ provider, page_number: String(pageNumber), page_size: '100' })}`, { headers: { 'X-Hume-Api-Key': apiKey } })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      if (!response.ok) {
+        throw ProviderError(`Hume voice catalog request failed (HTTP ${response.status}).`, {
+          stage: 'tts:readiness',
+          status: response.status,
+          headers: response.headers
+        })
+      }
       const page = parseHumeVoiceCatalogEnvelope(await response.json())
-      if (page.pageNumber !== pageNumber) throw new Error('Hume voice catalog returned an unexpected page number.')
+      if (page.pageNumber !== pageNumber) {
+        throw ValidationError('Hume voice catalog returned an unexpected page number.', { stage: 'tts:readiness', retryable: false })
+      }
       for (const value of page.voices) {
         if (value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { id?: unknown }).id === 'string') availableIds.add((value as { id: string }).id)
       }
@@ -136,9 +116,17 @@ export const listInworldVoiceIdsForReadiness = async (
   const response = await fetchImpl('https://api.inworld.ai/voices/v1/voices?languages=EN_US', {
     headers: { Authorization: authorization }
   })
-  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  if (!response.ok) {
+    throw ProviderError(`Inworld voice catalog request failed (HTTP ${response.status}).`, {
+      stage: 'tts:readiness',
+      status: response.status,
+      headers: response.headers
+    })
+  }
   const payload = await response.json() as { voices?: unknown }
-  if (!Array.isArray(payload.voices)) throw new Error('Inworld voice catalog response omits voices.')
+  if (!Array.isArray(payload.voices)) {
+    throw ValidationError('Inworld voice catalog response omits voices.', { stage: 'tts:readiness', retryable: false })
+  }
   return new Set(payload.voices.flatMap(value =>
     value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { voiceId?: unknown }).voiceId === 'string'
       ? [(value as { voiceId: string }).voiceId]
@@ -160,12 +148,10 @@ const checkAdvancedVoiceReadiness = async (
       const results = await Promise.all(voiceIds.map(async voiceId => {
         const response = await fetch(`https://api.elevenlabs.io/v1/voices/${encodeURIComponent(voiceId)}`, { headers: { 'xi-api-key': apiKey } })
         if (!response.ok) return false
-        const payload = await response.json() as { voice_id?: unknown, high_quality_base_model_ids?: unknown, sharing?: { disable_at_unix?: unknown } | null, fine_tuning?: { state?: Record<string, unknown> } | null }
+        const payload = await response.json() as { voice_id?: unknown, sharing?: { disable_at_unix?: unknown } | null, fine_tuning?: { state?: Record<string, unknown> } | null }
         if (payload.voice_id !== voiceId) return false
         const relevantFineTuningState = payload.fine_tuning?.state?.[target.model]
         if (relevantFineTuningState === 'not_verified' || relevantFineTuningState === 'not_started' || relevantFineTuningState === 'failed') return false
-        const modelIds = Array.isArray(payload.high_quality_base_model_ids) ? payload.high_quality_base_model_ids.filter(value => typeof value === 'string') : []
-        if (modelIds.length > 0 && !modelIds.includes(target.model)) return false
         const disableAtUnix = payload.sharing?.disable_at_unix
         return typeof disableAtUnix !== 'number' || disableAtUnix * 1000 > Date.now()
       }))
@@ -189,11 +175,23 @@ const checkAdvancedVoiceReadiness = async (
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ voice_type: 'all' })
       })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      if (!response.ok) {
+        throw ProviderError(`MiniMax voice catalog request failed (HTTP ${response.status}).`, {
+          stage: 'tts:readiness',
+          status: response.status,
+          headers: response.headers
+        })
+      }
       const payload = await response.json() as Record<string, unknown>
       const baseResponse = payload['base_resp']
       const statusCode = baseResponse && typeof baseResponse === 'object' && !Array.isArray(baseResponse) ? (baseResponse as Record<string, unknown>)['status_code'] : undefined
-      if (typeof statusCode === 'number' && statusCode !== 0) throw new Error('MiniMax base response failed')
+      if (typeof statusCode === 'number' && statusCode !== 0) {
+        throw ValidationError(`MiniMax voice catalog returned a failed base response (status_code ${statusCode}).`, {
+          stage: 'tts:readiness',
+          retryable: false,
+          metadata: { statusCode }
+        })
+      }
       const availableIds = new Set(['system_voice', 'voice_cloning', 'voice_generation'].flatMap(key => {
         const voices = payload[key]
         return Array.isArray(voices) ? voices.flatMap(value => value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { voice_id?: unknown }).voice_id === 'string' ? [(value as { voice_id: string }).voice_id] : []) : []
@@ -221,9 +219,22 @@ const checkAdvancedVoiceReadiness = async (
     }))
     if (results.some(ready => !ready)) return advancedVoiceBlockedObservation(targetKey, 'speechify-voice-not-ready', 'One or more approved Speechify voices are missing, inaccessible, or unavailable for the selected model.', false)
     return { targetKey, accountState: 'available', status: 'ready' }
-  } catch {
+  } catch (error) {
     const label = target.service === 'elevenlabs' ? 'ElevenLabs' : target.service === 'hume' ? 'Hume' : target.service === 'minimax' ? 'MiniMax' : target.service === 'cartesia' ? 'Cartesia' : target.service === 'inworld' ? 'Inworld' : 'Speechify'
-    return advancedVoiceBlockedObservation(targetKey, `${target.service}-readiness-inspection-failed`, `${label} read-only voice readiness inspection failed before synthesis.`, true)
+    const metadata = extractErrorMetadata(error)
+    const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
+    const retryable = metadata['retryable'] === false ? false : true
+    return advancedVoiceBlockedObservation(
+      targetKey,
+      `${target.service}-readiness-inspection-failed`,
+      `${label} read-only voice readiness inspection failed before synthesis.`,
+      retryable,
+      {
+        ...(status !== undefined ? { status } : {}),
+        ...(typeof metadata['stage'] === 'string' ? { stage: metadata['stage'] } : {}),
+        ...(error instanceof Error ? { errorName: error.name, providerMessage: error.message } : {})
+      }
+    )
   }
 }
 
@@ -231,7 +242,7 @@ export const validateTtsTargetsForExecution = (
   targets: readonly TtsTarget[]
 ): Promise<TtsExecutionReadinessObservation[]> => {
   if (targets.length === 0) {
-    throw CLIUsageError('TTS execution requires at least one fully validated target.')
+    throw UsageError('TTS execution requires at least one fully validated target.')
   }
   const targetKeys = new Set<string>()
   for (const target of targets) {
@@ -241,13 +252,13 @@ export const validateTtsTargetsForExecution = (
       || !target.transport
       || !target.model.trim()
     ) {
-      throw CLIUsageError(`Audio target ${target.service}/${target.model} is missing complete operation-scoped execution identity.`)
+      throw UsageError(`Audio target ${target.service}/${target.model} is missing complete operation-scoped execution identity.`)
     }
     if (target.targetKey !== canonicalTargetKey(target.operation, target.service, target.model, target.transport)) {
-      throw CLIUsageError(`Audio target ${target.service}/${target.model} has a non-canonical operation-scoped execution identity.`)
+      throw UsageError(`Audio target ${target.service}/${target.model} has a non-canonical operation-scoped execution identity.`)
     }
     if (targetKeys.has(target.targetKey)) {
-      throw CLIUsageError(`Duplicate operation-scoped TTS execution target: ${target.targetKey}`)
+      throw UsageError(`Duplicate operation-scoped TTS execution target: ${target.targetKey}`)
     }
     targetKeys.add(target.targetKey)
   }
@@ -265,8 +276,17 @@ export const validateTtsTargetsForExecution = (
     const humeReadinessByVoiceSet = new Map<string, Promise<TtsExecutionReadinessObservation>>()
 
     return await Promise.all(targets.map(async (target): Promise<TtsExecutionReadinessObservation> => {
-      const credential = HOSTED_TTS_CREDENTIALS[target.service]
-      const apiKey = readEnv(credential.env)
+      const credential = findHostedTtsCredential(target.service)
+      if (!credential?.ttsPreflight) {
+        throw ValidationError(`TTS provider ${target.service} has no credential specification.`, {
+          stage: 'tts:readiness',
+          retryable: false
+        })
+      }
+      const observation = resolveCredential(credential.providerId, 'observe', {
+        description: credential.ttsPreflight.label
+      })
+      const apiKey = observation.value
       if (apiKey && target.service === 'hume' && (target.readinessVoiceIds?.length ?? 0) > 0) {
         const voiceSetKey = [...new Set(target.readinessVoiceIds)].sort().join('\0')
         let probe = humeReadinessByVoiceSet.get(voiceSetKey)
@@ -279,7 +299,7 @@ export const validateTtsTargetsForExecution = (
       }
       return apiKey
         ? await checkAdvancedVoiceReadiness(target, apiKey)
-        : missingCredentialObservation(target.targetKey as string, credential.env, credential.label)
+        : missingCredentialObservation(target.targetKey as string, observation.envVar, credential.ttsPreflight.label)
     }))
   })()
 }

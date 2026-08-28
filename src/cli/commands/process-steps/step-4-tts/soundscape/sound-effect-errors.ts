@@ -1,12 +1,28 @@
-export class SoundEffectProviderError extends Error {
+import { AppProviderError } from '~/utils/error-handler'
+
+export class SoundEffectProviderError extends AppProviderError {
+  readonly admissionDisposition: 'rejected' | 'ambiguous'
+
   constructor(
     message: string,
-    readonly retryable: boolean,
-    readonly admissionDisposition: 'rejected' | 'ambiguous',
-    readonly status?: number | undefined,
-    readonly headers?: Headers | Record<string, string> | undefined
+    retryable: boolean,
+    admissionDisposition: 'rejected' | 'ambiguous',
+    status?: number | undefined,
+    headers?: Headers | Record<string, string> | undefined
   ) {
-    super(message)
+    const normalizedHeaders = headers instanceof Headers
+      ? headers
+      : headers
+        ? new Headers(headers)
+        : undefined
+    super(message, {
+      retryable,
+      stage: 'tts:soundscape',
+      ...(status !== undefined ? { status } : {}),
+      ...(normalizedHeaders ? { headers: normalizedHeaders } : {}),
+      metadata: { admissionDisposition }
+    })
     this.name = 'SoundEffectProviderError'
+    this.admissionDisposition = admissionDisposition
   }
 }

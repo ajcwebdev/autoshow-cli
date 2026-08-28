@@ -18,13 +18,13 @@ export type ProviderResumePriceConfig<
   getAggregateTimingOptions?: ((opts: TOptions) => AggregateTimingOptions) | undefined
 }
 
-export type ProviderResumePassContextInput<TEntry, TOptions extends object> = {
+type ProviderResumePassContextInput<TEntry, TOptions extends object> = {
   target: ResumeTarget
   opts: TOptions
   parsedEntries: Array<TEntry | undefined>
 }
 
-export type ProviderResumeProcessEntryInput<TEntry, TContext, TOptions extends object> = {
+type ProviderResumeProcessEntryInput<TEntry, TContext, TOptions extends object> = {
   target: ResumeTarget
   opts: TOptions
   entry: TEntry
@@ -34,7 +34,7 @@ export type ProviderResumeProcessEntryInput<TEntry, TContext, TOptions extends o
   context: TContext
 }
 
-export type ProviderResumeNoMatchingDetailInput<TEntry, TContext, TOptions extends object> = {
+type ProviderResumeNoMatchingDetailInput<TEntry, TContext, TOptions extends object> = {
   target: ResumeTarget
   opts: TOptions
   entry: TEntry
@@ -43,17 +43,17 @@ export type ProviderResumeNoMatchingDetailInput<TEntry, TContext, TOptions exten
   context: TContext
 }
 
-export type ProviderResumePassHookInput<TContext, TOptions extends object> = {
+type ProviderResumePassHookInput<TContext, TOptions extends object> = {
   target: ResumeTarget
   opts: TOptions
   context: TContext
 }
 
-export type ProviderResumeRecordHookInput<TContext, TOptions extends object> = ProviderResumePassHookInput<TContext, TOptions> & {
+type ProviderResumeRecordHookInput<TContext, TOptions extends object> = ProviderResumePassHookInput<TContext, TOptions> & {
   record: PipelineItemRecord
 }
 
-export type ProviderResumeResultHookInput<TContext, TOptions extends object> = ProviderResumePassHookInput<TContext, TOptions> & {
+type ProviderResumeResultHookInput<TContext, TOptions extends object> = ProviderResumePassHookInput<TContext, TOptions> & {
   result: ProviderResumeProcessResult
 }
 

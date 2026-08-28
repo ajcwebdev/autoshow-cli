@@ -1,16 +1,14 @@
-import { readdir, stat } from 'node:fs/promises'
+import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { resolveYtDlpBinaryInfo } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
 import { inspectYtDlpAuthState } from '~/cli/commands/process-steps/shared/shared-yt-dlp-options'
 import { readDefuddleCliReadiness } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/defuddle-cli'
-import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config/config-loader'
-import type { AutoshowConfig, CheckResult, DoctorCheck, DoctorProbes, DoctorReport, DoctorSection, DoctorSeverity, DoctorStatus, ManagedArtifactToolId, RunResult } from '~/types'
-import { loadEnvFile } from '~/utils/cli-utils'
+import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
+import type { AutoshowConfig, DoctorCheck, DoctorProbes, DoctorReport, DoctorSection, DoctorSeverity, DoctorStatus, ManagedArtifactToolId, RunResult, RuntimeToolId } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
-import { getHostedProviderConfiguredPaths, HOSTED_PROVIDER_ENV_CHECKS } from './hosted-provider-config'
+import { getHostedProviderConfiguredPaths, getMissingConfiguredHostedProviderCredentials, HOSTED_PROVIDER_ENV_CHECKS } from './hosted-provider-config'
 import { defaultWhisperModel, runCapture, whisperBinaryPath, whisperModelsDir } from './run-complete-setup'
-import { resolveUvCommand } from './setup-download/managed-uv'
 import {
   ebookConvertManagedBinaryPath,
   englishTrainedDataPath,
@@ -24,17 +22,10 @@ import {
   tessdataHocrConfigPath,
   ytDlpManagedBinaryPath
 } from '~/utils/runtime-paths'
-import type { RuntimeToolId } from '~/types'
 import { validateManagedArtifact } from './setup-download/managed-artifact'
-
-const hasPath = async (path: string): Promise<boolean> => {
-  try {
-    await stat(path)
-    return true
-  } catch {
-    return false
-  }
-}
+import { pathExists } from '~/utils/filesystem'
+import { AppUsageError } from '~/utils/error-handler'
+import { hintsForMissingEnv, resolveCredential } from '~/utils/validate/env-utils'
 
 const listNames = async (path: string): Promise<string[]> => {
   try {
@@ -61,12 +52,11 @@ const directoryHasAnyFiles = async (root: string): Promise<boolean> => {
 const createDoctorProbes = (overrides: Partial<DoctorProbes> = {}): DoctorProbes => ({
   env: process.env as Record<string, string | undefined>,
   which: (command) => Bun.which(command) ?? undefined,
-  pathExists: hasPath,
+  pathExists: pathExists,
   listDirectory: listNames,
   directoryHasFiles: directoryHasAnyFiles,
   run: async (command, args) => await runCapture(command, args, { allowFailure: true }),
   resolveYtDlpBinaryInfo,
-  resolveUvCommand,
   readDefuddleCliReadiness,
   resolveConfigPath,
   loadConfig,
@@ -178,16 +168,6 @@ const checkRuntimeToolVersion = async (
   })
 }
 
-const checkUv = async (probes: DoctorProbes): Promise<DoctorCheck> => {
-  const resolved = await probes.resolveUvCommand()
-  return resolved
-    ? check('OK', 'uv', resolved)
-    : check('MISSING', 'uv', 'not found', {
-      severity: 'warn',
-      nextStep: 'bun autoshow setup --step uv'
-    })
-}
-
 const formatRunIssue = (result: RunResult): string => {
   const details = result.stderr.trim() || result.stdout.trim() || `exit code ${result.exitCode}`
   return details.length > 300 ? `${details.slice(0, 300)}...` : details
@@ -275,23 +255,10 @@ const checkMusicRenderer = async (probes: DoctorProbes): Promise<DoctorCheck> =>
 const collectSystemBuildToolChecks = async (probes: DoctorProbes): Promise<DoctorSection> => ({
   title: 'System/build tools',
   checks: [
-    await checkUv(probes),
     checkCommand(probes, 'cmake', 'cmake', { nextStep: 'install cmake with your system package manager' }),
     await checkMusicRenderer(probes)
   ]
 })
-
-const fromLegacyCheck = (legacy: CheckResult, options: { nextStep: string }): DoctorCheck => {
-  if (legacy.ok) {
-    return check('OK', legacy.label, legacy.detail)
-  }
-  return check(
-    legacy.detail.toLowerCase().includes('failed') ? 'WARN' : 'MISSING',
-    legacy.label,
-    legacy.detail,
-    { severity: 'warn', nextStep: options.nextStep }
-  )
-}
 
 const checkManagedBinary = async (
   probes: DoctorProbes,
@@ -319,40 +286,45 @@ const checkManagedBinary = async (
   })
 }
 
-const collectManagedRuntimeChecks = async (probes: DoctorProbes): Promise<DoctorSection> => ({
-  title: 'Managed local runtimes',
-  checks: [
-    await checkRuntimeToolVersion(probes, 'yt-dlp', 'yt-dlp', ['--version'], {
-      nextStep: 'bun autoshow setup --step yt-dlp'
-    }),
-    await checkRuntimeToolVersion(probes, 'ffmpeg', 'ffmpeg', ['-version'], {
-      nextStep: 'bun autoshow setup --step yt-dlp'
-    }),
-    await checkRuntimeToolVersion(probes, 'ffprobe', 'ffprobe', ['-version'], {
-      nextStep: 'bun autoshow setup --step yt-dlp'
-    }),
-    await checkRuntimeToolVersion(probes, 'mutool', 'mutool', ['-v'], {
-      nextStep: 'bun autoshow setup --step calibre',
-      okExitCodes: [0, 1],
-      managedArtifactTool: 'mupdf'
-    }),
-    await checkRuntimeToolVersion(probes, 'ebook-convert', 'ebook-convert', ['--version'], {
-      nextStep: 'bun autoshow setup --step calibre'
-    }),
-    await checkRuntimeToolVersion(probes, 'tesseract', 'tesseract', ['--version'], {
-      nextStep: 'bun autoshow setup'
-    }),
-    await checkTesseractEnglishData(probes),
-    await checkRuntimeToolVersion(probes, 'qpdf', 'qpdf', ['--version'], {
-      nextStep: 'bun autoshow setup --step calibre',
-      managedArtifactTool: 'qpdf'
-    }),
-    fromLegacyCheck(await probes.readDefuddleCliReadiness(), { nextStep: 'bun autoshow setup --step defuddle' }),
-    await checkManagedBinary(probes, 'runtime/bin/whisper-cli', whisperBinaryPath, ['--help'], {
-      nextStep: 'bun autoshow setup --step whisper-binary'
-    })
-  ]
-})
+const collectManagedRuntimeChecks = async (probes: DoctorProbes): Promise<DoctorSection> => {
+  const defuddle = await probes.readDefuddleCliReadiness()
+  return {
+    title: 'Managed local runtimes',
+    checks: [
+      await checkRuntimeToolVersion(probes, 'yt-dlp', 'yt-dlp', ['--version'], {
+        nextStep: 'bun autoshow setup --step yt-dlp'
+      }),
+      await checkRuntimeToolVersion(probes, 'ffmpeg', 'ffmpeg', ['-version'], {
+        nextStep: 'bun autoshow setup --step yt-dlp'
+      }),
+      await checkRuntimeToolVersion(probes, 'ffprobe', 'ffprobe', ['--version'], {
+        nextStep: 'bun autoshow setup --step yt-dlp'
+      }),
+      await checkRuntimeToolVersion(probes, 'mutool', 'mutool', ['-v'], {
+        nextStep: 'bun autoshow setup --step calibre',
+        okExitCodes: [0, 1],
+        managedArtifactTool: 'mupdf'
+      }),
+      await checkRuntimeToolVersion(probes, 'ebook-convert', 'ebook-convert', ['--version'], {
+        nextStep: 'bun autoshow setup --step calibre'
+      }),
+      await checkRuntimeToolVersion(probes, 'tesseract', 'tesseract', ['--version'], {
+        nextStep: 'bun autoshow setup'
+      }),
+      await checkTesseractEnglishData(probes),
+      await checkRuntimeToolVersion(probes, 'qpdf', 'qpdf', ['--version'], {
+        nextStep: 'bun autoshow setup --step calibre',
+        managedArtifactTool: 'qpdf'
+      }),
+      defuddle.status === 'OK' || defuddle.nextStep
+        ? defuddle
+        : { ...defuddle, nextStep: 'bun autoshow setup --step defuddle' },
+      await checkManagedBinary(probes, 'runtime/bin/whisper-cli', whisperBinaryPath, ['--help'], {
+        nextStep: 'bun autoshow setup --step whisper-binary'
+      })
+    ]
+  }
+}
 
 const checkModelFile = async (
   probes: DoctorProbes,
@@ -401,8 +373,7 @@ const buildHostedProviderEnvChecks = (
   config?: AutoshowConfig
 ): DoctorCheck[] =>
   HOSTED_PROVIDER_ENV_CHECKS.map((provider) => {
-    const value = env[provider.envVar]
-    const set = typeof value === 'string' && value.trim().length > 0
+    const set = resolveCredential(provider.providerId, 'observe', { env }).available
     const configuredPaths = getHostedProviderConfiguredPaths(config, provider.configPaths)
     const label = `${provider.envVar} (${provider.label})`
 
@@ -519,6 +490,10 @@ export const collectDoctorReport = async (
 ): Promise<DoctorReport> => {
   const probes = createDoctorProbes(probeOverrides)
   const configAndCookies = await collectConfigAndCookieChecks(probes)
+  const missingConfiguredCredentialEnvVars = getMissingConfiguredHostedProviderCredentials(
+    probes.env,
+    configAndCookies.config
+  ).map(provider => provider.envVar)
   const sections = [
     await collectSystemBuildToolChecks(probes),
     await collectManagedRuntimeChecks(probes),
@@ -531,6 +506,7 @@ export const collectDoctorReport = async (
   return {
     sections,
     hasWarnings,
+    missingConfiguredCredentialEnvVars,
     nextSteps: collectDoctorNextSteps(sections)
   }
 }
@@ -552,9 +528,10 @@ const logDoctorSection = (section: DoctorSection): void => {
   })
 }
 
-export const runDoctor = async (): Promise<void> => {
-  await loadEnvFile()
-  const report = await collectDoctorReport()
+export const runDoctor = async (
+  options: { strict?: boolean, probeOverrides?: Partial<DoctorProbes> } = {}
+): Promise<DoctorReport> => {
+  const report = await collectDoctorReport(options.probeOverrides)
 
   for (const section of report.sections) {
     logDoctorSection(section)
@@ -583,4 +560,19 @@ export const runDoctor = async (): Promise<void> => {
       )
     })
   }
+
+  if (options.strict && report.missingConfiguredCredentialEnvVars.length > 0) {
+    const missing = report.missingConfiguredCredentialEnvVars
+    throw new AppUsageError(
+      `Credential check failed: configured defaults require ${missing.join(', ')}.`,
+      missing.flatMap(hintsForMissingEnv),
+      {
+        stage: 'setup:doctor',
+        retryable: false,
+        metadata: { missingCredentialEnvVars: missing }
+      }
+    )
+  }
+
+  return report
 }

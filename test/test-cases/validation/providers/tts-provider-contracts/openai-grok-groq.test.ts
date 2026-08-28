@@ -9,7 +9,13 @@ import { runOpenAITts } from '~/cli/commands/process-steps/step-4-tts/tts-servic
 import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { createMockWavBase64, createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
 import { installMockFetch } from '../../../../test-utils/rest-contract-helpers'
-import { readWavSamples, segmentRms, setupTtsContractLifecycle, waitForCondition } from './shared'
+import {
+  captureGatedAssertions,
+  readWavSamples,
+  segmentRms,
+  setupTtsContractLifecycle,
+  waitForCondition
+} from './shared'
 
 const { makeTempDir } = setupTtsContractLifecycle()
 
@@ -107,8 +113,8 @@ describe('TTS provider service contracts', () => {
       })
     }, 10_000)
 
-  test('Grok TTS retries Bun request timeouts and passes per-attempt signals', async () => {
-      const dir = await makeTempDir('autoshow-grok-tts-timeout-retry-')
+  test('Grok TTS redispatches provider-rejected chunks and passes per-attempt signals', async () => {
+      const dir = await makeTempDir('autoshow-grok-tts-rejected-retry-')
       const audioBytes = Buffer.from(createMockWavBase64(), 'base64')
       const signals: boolean[] = []
       let attempt = 0
@@ -120,14 +126,13 @@ describe('TTS provider service contracts', () => {
         signals.push(init?.signal instanceof AbortSignal)
         attempt += 1
         if (attempt === 1) {
-          throw new DOMException('The operation timed out.', 'TimeoutError')
+          return new Response('slow down', { status: 429 })
         }
         return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/wav' } })
       })
 
       const result = await runGrokTts('Grok timeout retry synthesis.', dir, {
-        model: 'grok-tts',
-        allowAmbiguousRedispatch: true
+        model: 'grok-tts'
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
@@ -174,24 +179,20 @@ describe('TTS provider service contracts', () => {
         model: 'grok-tts',
         chunkConcurrency: 3
       })
-      let waitError: unknown
-
-      try {
+      const rethrowGatedAssertions = await captureGatedAssertions(async () => {
         await waitForCondition(() => started.length === 3, 'Grok chunks did not start concurrently')
         expect(started).toEqual(['A', 'B', 'C'])
         expect(maxInFlight).toBe(3)
         for (const marker of ['C', 'B', 'A']) {
           releases.get(marker)?.()
         }
-      } catch (error) {
-        waitError = error
-      } finally {
+      }, () => {
         releaseImmediately = true
         for (const release of releases.values()) release()
-      }
+      })
 
       const result = await runPromise
-      if (waitError) throw waitError
+      rethrowGatedAssertions()
 
       const samples = await readWavSamples(result.audioPath)
       const rmsValues = [0, 1, 2].map((index) => segmentRms(samples, index, 3))
@@ -203,7 +204,7 @@ describe('TTS provider service contracts', () => {
   test('Grok TTS concurrent chunked runs share one hosted provider scheduler', async () => {
       const firstDir = await makeTempDir('autoshow-grok-tts-shared-scheduler-a-')
       const secondDir = await makeTempDir('autoshow-grok-tts-shared-scheduler-b-')
-      const scheduler = createHostedTtsChunkScheduler(2)
+      const scheduler = createHostedTtsChunkScheduler({ maxConcurrency: 2, concurrencyMode: 'immediate' })
       const audioBytes = createSyntheticWavBytes({ durationSeconds: 0.2, amplitude: 0.3, frequencyHz: 440 })
       const started: string[] = []
       const releases: Array<() => void> = []
@@ -237,9 +238,7 @@ describe('TTS provider service contracts', () => {
         chunkConcurrency: 3,
         chunkScheduler: scheduler
       })
-      let waitError: unknown
-
-      try {
+      const rethrowGatedAssertions = await captureGatedAssertions(async () => {
         await waitForCondition(() => started.length === 2, 'Grok shared scheduler did not enforce the provider cap')
         expect(maxInFlight).toBe(2)
         expect(scheduler.getProviderSnapshot('grok')).toMatchObject({
@@ -247,15 +246,13 @@ describe('TTS provider service contracts', () => {
           currentLimit: 2,
           active: 2
         })
-      } catch (error) {
-        waitError = error
-      } finally {
+      }, () => {
         releaseImmediately = true
         for (const release of releases.splice(0)) release()
-      }
+      })
 
       const [firstResult, secondResult] = await Promise.all([firstRun, secondRun])
-      if (waitError) throw waitError
+      rethrowGatedAssertions()
 
       expect(await Bun.file(firstResult.audioPath).exists()).toBe(true)
       expect(await Bun.file(secondResult.audioPath).exists()).toBe(true)

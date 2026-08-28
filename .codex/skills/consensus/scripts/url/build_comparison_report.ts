@@ -595,7 +595,7 @@ const jsonReport = {
 };
 
 writeFileSync(markdownOut, markdownReport);
-writeFileSync(jsonOut, `${JSON.stringify(jsonReport, null, 2)}\n`);
+writeFileSync(jsonOut, JSON.stringify(jsonReport));
 
 console.log(`Wrote ${markdownOut}`);
 console.log(`Wrote ${jsonOut}`);

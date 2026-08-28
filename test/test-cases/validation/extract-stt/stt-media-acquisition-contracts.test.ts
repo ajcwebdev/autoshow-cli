@@ -1,30 +1,14 @@
 import { afterEach, expect, test } from 'bun:test'
-import { mkdtemp, rm, stat } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
 import { dirname, extname, join } from 'node:path'
 import { prepareSttMedia } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/media'
 import { commandExists, exec } from '~/utils/cli-utils'
+import { pathExists } from '~/utils/filesystem'
+import { createTempDirTracker } from '../../../test-utils/temp-dirs'
 
-const tempDirs: string[] = []
+const tempDirs = createTempDirTracker('autoshow-stt-acquire-')
+const makeTempDir = tempDirs.make
 
-const exists = async (path: string): Promise<boolean> => {
-  try {
-    await stat(path)
-    return true
-  } catch {
-    return false
-  }
-}
-
-const makeTempDir = async (prefix: string): Promise<string> => {
-  const dir = await mkdtemp(join(tmpdir(), prefix))
-  tempDirs.push(dir)
-  return dir
-}
-
-afterEach(async () => {
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})
+afterEach(tempDirs.cleanup)
 
 test('STT media acquisition stages and materializes local source media without persistent reuse', async () => {
   if (!commandExists('ffmpeg') || !commandExists('ffprobe')) {
@@ -49,10 +33,10 @@ test('STT media acquisition stages and materializes local source media without p
   try {
     expect(firstPrepared.executionArtifacts.sourceMediaPath).not.toBe(secondPrepared.executionArtifacts.sourceMediaPath)
     expect(dirname(firstPrepared.executionArtifacts.sourceMediaPath)).not.toBe(dirname(secondPrepared.executionArtifacts.sourceMediaPath))
-    expect(await exists(firstPrepared.executionArtifacts.sourceMediaPath)).toBe(true)
-    expect(await exists(secondPrepared.executionArtifacts.sourceMediaPath)).toBe(true)
-    expect(await exists(firstPrepared.outputArtifacts.sourceMediaPath)).toBe(true)
-    expect(await exists(secondPrepared.outputArtifacts.sourceMediaPath)).toBe(true)
+    expect(await pathExists(firstPrepared.executionArtifacts.sourceMediaPath)).toBe(true)
+    expect(await pathExists(secondPrepared.executionArtifacts.sourceMediaPath)).toBe(true)
+    expect(await pathExists(firstPrepared.outputArtifacts.sourceMediaPath)).toBe(true)
+    expect(await pathExists(secondPrepared.outputArtifacts.sourceMediaPath)).toBe(true)
     expect(firstPrepared.durationSeconds).toBeGreaterThan(0)
     expect(secondPrepared.durationSeconds).toBeGreaterThan(0)
   } finally {
@@ -60,10 +44,10 @@ test('STT media acquisition stages and materializes local source media without p
     await secondPrepared.cleanup?.()
   }
 
-  expect(await exists(firstPrepared.executionArtifacts.sourceMediaPath)).toBe(false)
-  expect(await exists(firstPrepared.outputArtifacts.sourceMediaPath)).toBe(true)
-  expect(await exists(secondPrepared.executionArtifacts.sourceMediaPath)).toBe(false)
-  expect(await exists(secondPrepared.outputArtifacts.sourceMediaPath)).toBe(true)
+  expect(await pathExists(firstPrepared.executionArtifacts.sourceMediaPath)).toBe(false)
+  expect(await pathExists(firstPrepared.outputArtifacts.sourceMediaPath)).toBe(true)
+  expect(await pathExists(secondPrepared.executionArtifacts.sourceMediaPath)).toBe(false)
+  expect(await pathExists(secondPrepared.outputArtifacts.sourceMediaPath)).toBe(true)
 })
 
 test('STT media acquisition keeps local and hosted staging profiles distinct', async () => {
@@ -92,13 +76,13 @@ test('STT media acquisition keeps local and hosted staging profiles distinct', a
   })
   const hostedPrepared = await prepareSttMedia({
     source,
-    targets: [{ service: 'gladia', model: 'solaria-1', local: false }],
+    targets: [{ service: 'gladia', model: 'solaria-3', local: false }],
     outputDir: await makeTempDir('autoshow-stt-acquire-hosted-')
   })
 
   try {
-    expect(await exists(localPrepared.executionArtifacts.sourceMediaPath)).toBe(true)
-    expect(await exists(hostedPrepared.executionArtifacts.sourceMediaPath)).toBe(true)
+    expect(await pathExists(localPrepared.executionArtifacts.sourceMediaPath)).toBe(true)
+    expect(await pathExists(hostedPrepared.executionArtifacts.sourceMediaPath)).toBe(true)
     expect(extname(localPrepared.executionArtifacts.sourceMediaPath)).toBe('.mp3')
     expect(extname(hostedPrepared.executionArtifacts.sourceMediaPath)).toBe('.m4a')
     expect(localPrepared.outputArtifacts.sourceMediaPath).not.toBe(hostedPrepared.outputArtifacts.sourceMediaPath)

@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Step3Metadata } from '~/types'
 import {
@@ -10,19 +9,13 @@ import {
 } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import { renderToPlainText } from '~/cli/commands/process-steps/step-3-write/structured-output/renderers'
 import { buildStructuredValidationFailureEnvelope } from '~/cli/commands/process-steps/step-3-write/structured-output/validation-failure'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
+import { buildStep3Metadata as buildSharedStep3Metadata } from './shared'
 
-const buildStep3Metadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata => ({
-  llmService: 'gemini',
-  llmModel: 'gemini-3.1-pro-preview',
-  processingTime: 1,
-  inputTokenCount: 1,
-  outputTokenCount: 1,
-  outputFileName: 'text.json',
-  outputFormat: 'json',
-  structuredMode: 'native',
-  structuredPresetNames: ['standardSongLyrics'],
-  ...overrides
-})
+const LLM_FIXTURE = { llmService: 'gemini' as const, llmModel: 'gemini-3.1-pro-preview', structuredPresetNames: ['standardSongLyrics'] }
+
+const buildStep3Metadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata =>
+  buildSharedStep3Metadata(LLM_FIXTURE, overrides)
 
 test('rendered text track headers use model display names', () => {
   expect(formatRenderedLlmLabel({
@@ -37,7 +30,7 @@ test('rendered text track headers use model display names', () => {
 })
 
 test('text input song titles use tracks.md before falling back to the filename stem', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-title-'))
+  const tempDir = await makeTempDir('autoshow-title-')
   try {
     const tracksPath = join(tempDir, 'tracks.md')
     const alphaPath = join(tempDir, 'chapter-alpha.txt')
@@ -76,6 +69,32 @@ test('song lyric renderer assembles sections with headers', () => {
   )
 })
 
+test('song lyric renderer assembles extended rap sections from intro through final chorus', () => {
+  const rendered = renderToPlainText({
+    title: 'Track One',
+    intro: ['Intro line one', 'Intro line two'],
+    verse1: ['Verse one line'],
+    chorus1: ['Hook line'],
+    verse2: ['Verse two line'],
+    chorus2: ['Hook line again'],
+    verse3: ['Verse three line'],
+    bridge: ['Bridge line'],
+    chorus3: ['Final hook']
+  }, ['rapSongChapter'])
+
+  expect(rendered).toBe(
+    '# Track One\n\n' +
+    'Intro\n\nIntro line one\nIntro line two\n\n' +
+    'Verse 1\n\nVerse one line\n\n' +
+    'Chorus\n\nHook line\n\n' +
+    'Verse 2\n\nVerse two line\n\n' +
+    'Chorus\n\nHook line again\n\n' +
+    'Verse 3\n\nVerse three line\n\n' +
+    'Bridge\n\nBridge line\n\n' +
+    'Chorus\n\nFinal hook'
+  )
+})
+
 test('structured validation failures render as marked diagnostics with fenced raw output', () => {
   const rendered = renderToPlainText(buildStructuredValidationFailureEnvelope(
     'not json\n```\nstill raw',
@@ -98,7 +117,7 @@ test('structured validation failures render as marked diagnostics with fenced ra
 })
 
 test('rendered text track headers replace duplicate song title headings', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-render-'))
+  const tempDir = await makeTempDir('autoshow-render-')
   try {
     const outputDir = join(tempDir, 'out')
     const tracksPath = join(tempDir, 'tracks.md')
@@ -143,7 +162,7 @@ test('rendered text track headers replace duplicate song title headings', async 
 })
 
 test('rendered text track headers use sorted sibling order for unnumbered inputs', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-render-sequential-'))
+  const tempDir = await makeTempDir('autoshow-render-sequential-')
   try {
     const outputDir = join(tempDir, 'out')
     const tracksPath = join(tempDir, 'tracks.md')
@@ -189,7 +208,7 @@ test('rendered text track headers use sorted sibling order for unnumbered inputs
 })
 
 test('external rendered text filenames use provider aliases only for single-target writes', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-render-names-'))
+  const tempDir = await makeTempDir('autoshow-render-names-')
   try {
     const outputDir = join(tempDir, 'out')
     const externalDir = join(tempDir, 'lyrics')

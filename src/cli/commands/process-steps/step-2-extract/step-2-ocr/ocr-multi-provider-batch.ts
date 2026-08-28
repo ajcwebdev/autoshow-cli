@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises'
 import type { ExtractionMetadata, ExistingOcrRun, OcrBatchFinalization, OcrBatchRunContext, ProviderCompletionStatus, OcrMetadataOptions, OcrProviderFailureSummary, OcrProviderSuccess, OcrTarget, ProcessDocumentOutput, ResolvedStep2Execution } from '~/types'
 import { l, runWithLogContext } from '~/utils/app-logger/app-logger'
 import { logExtractManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
-import { isEpubInspectMode, writeExtractionArtifact, writeProviderArtifacts } from './ocr-artifacts'
+import { writeExtractionArtifact, writeProviderArtifacts } from './ocr-artifacts'
 import { buildDocumentMetadataPayload, resolveRecordedOcrStep2 } from './ocr-document-metadata'
 import { logOcrProviderLifecycle } from './ocr-logging'
 import { writePipelineItemRecords } from '../../pipeline-manifest'
@@ -30,8 +30,9 @@ import { persistHostedOcrThroughputProfiles } from './ocr-utils/hosted-ocr-throu
 import { runOcr } from './run-ocr'
 import { ProviderBatchCompletionError } from '../step-2-shared/provider-batch-state'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { serializeDiagnosticError } from '~/utils/error-handler'
 
-export class OcrBatchCompletionError extends ProviderBatchCompletionError {
+class OcrBatchCompletionError extends ProviderBatchCompletionError {
   constructor(outputDir: string, completionStatus: ProviderCompletionStatus, message: string) {
     super('OcrBatchCompletionError', outputDir, completionStatus, message)
   }
@@ -137,7 +138,6 @@ const createOcrProviderTargetRunner = (params: {
       await writeProviderArtifacts(
         providerDir,
         extracted.result,
-        extracted.step2Metadata,
         opts.outputFormat ?? 'text',
         extracted.artifactFiles
       )
@@ -262,12 +262,18 @@ const finalizeOcrProviderBatch = async (params: {
   await persistHostedOcrThroughputProfiles(hostedOcrScheduler.snapshot(), {
     completionStatus
   }).catch((error) => {
-    l.write('debug', `Failed to update hosted OCR throughput profiles: ${error instanceof Error ? error.message : String(error)}`)
+    l.write('debug', `Failed to update hosted OCR throughput profiles: ${error instanceof Error ? error.message : String(error)}`, {
+      category: 'artifact',
+      metadata: { profile: 'throughput', error: serializeDiagnosticError(error) }
+    })
   })
   await persistHostedOcrTokenUsageProfiles(step2Metadata, {
     completionStatus
   }).catch((error) => {
-    l.write('debug', `Failed to update hosted OCR token profiles: ${error instanceof Error ? error.message : String(error)}`)
+    l.write('debug', `Failed to update hosted OCR token profiles: ${error instanceof Error ? error.message : String(error)}`, {
+      category: 'artifact',
+      metadata: { profile: 'token', error: serializeDiagnosticError(error) }
+    })
   })
   logExtractManifestConsoleSummary(outputDir, writtenMetadata)
 
@@ -377,7 +383,6 @@ export const runOcrMultiProviderBatch = async (ctx: OcrBatchRunContext): Promise
       outputDir,
       primary.result,
       opts.outputFormat ?? 'text',
-      isEpubInspectMode(primary.metadata),
       'result.json'
     )
   }

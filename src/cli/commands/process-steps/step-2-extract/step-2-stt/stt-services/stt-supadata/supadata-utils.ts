@@ -1,9 +1,9 @@
 import type { RetryClass, Step2Metadata, SupadataHttpError, SupadataStage } from '~/types'
+import { ProviderError } from '~/utils/error-handler'
+import { httpResponseError } from '~/utils/rest-client'
+import { isSupadataPlanLimitExhausted } from '~/utils/supadata-plan-limit'
 import { describeSupadataUnsupportedSource } from './supadata'
 import { extractSupadataErrorMessage, isRecord } from './supadata-response-parsers'
-export const buildSupadataUrl = (baseURL: string, path: string): string =>
-  new URL(path.replace(/^\/+/, ''), baseURL.endsWith('/') ? baseURL : `${baseURL}/`).toString()
-
 export const parseSupadataBillableRequests = (headers: Headers): number | undefined => {
   const raw = headers.get('x-billable-requests')
   if (typeof raw !== 'string' || raw.trim().length === 0) {
@@ -44,16 +44,19 @@ export const toSupadataHttpError = (
   response: Response,
   payload: unknown,
   messagePrefix = 'Supadata request failed'
-): SupadataHttpError => Object.assign(
-  new Error(`${messagePrefix} (${response.status}): ${extractSupadataErrorMessage(payload) ?? 'Unknown error'}`),
-  {
-    status: response.status,
-    headers: response.headers,
-    stage,
-    retryClass,
-    rawResponse: payload
-  } satisfies Pick<SupadataHttpError, 'status' | 'headers' | 'stage' | 'retryClass' | 'rawResponse'>
-)
+): SupadataHttpError => {
+  const message = extractSupadataErrorMessage(payload)
+  return httpResponseError(
+    `${messagePrefix} (${response.status}): ${message ?? 'Unknown error'}`,
+    response,
+    {
+      stage,
+      retryClass,
+      rawResponse: payload,
+      ...(isSupadataPlanLimitExhausted(payload, message) ? { retryable: false } : {})
+    } satisfies Pick<SupadataHttpError, 'stage' | 'retryClass' | 'rawResponse'> & { retryable?: false }
+  )
+}
 
 export const attachSupadataErrorContext = (
   error: unknown,
@@ -61,7 +64,7 @@ export const attachSupadataErrorContext = (
   retryClass: RetryClass,
   rawResponse?: unknown
 ): never => {
-  const source = error instanceof Error ? error : new Error(String(error))
+  const source = error instanceof Error ? error : ProviderError(String(error))
   ;(source as SupadataHttpError).stage = stage
   ;(source as SupadataHttpError).retryClass = retryClass
   if (rawResponse !== undefined) {
@@ -73,7 +76,7 @@ export const attachSupadataErrorContext = (
 export const buildSupadataUnsupportedSourceError = (
   sourceUrl: string | undefined
 ): SupadataHttpError => Object.assign(
-  new Error(describeSupadataUnsupportedSource(sourceUrl)),
+  ProviderError(describeSupadataUnsupportedSource(sourceUrl), { stage: 'create', retryable: false }),
   {
     stage: 'create' as const,
     retryable: false,

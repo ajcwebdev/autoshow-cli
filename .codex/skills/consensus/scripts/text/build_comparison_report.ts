@@ -134,7 +134,7 @@ async function main(): Promise<number> {
     ],
   };
 
-  writeFileSync(jsonOut, `${JSON.stringify(reportJson, null, 2)}\n`);
+  writeFileSync(jsonOut, JSON.stringify(reportJson));
   writeFileSync(markdownOut, markdownForRows(args.runDir, rows));
   return 0;
 }

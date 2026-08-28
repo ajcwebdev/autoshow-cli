@@ -20,16 +20,9 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 
-// Importing setup-model-options above registers every createModelValidator key, so
-// getModelValidatorFlags() below sees all seven model modules.
-
 const WRITE_STT_EXTRACT_EXCLUSIONS = new Set<string>([])
 
 describe('model validation selector contracts', () => {
-  // Model validators are keyed by internal target flag names (`kimi-ocr`, `groq-tts`,
-  // `cerebras`) that the selector normalizers generate. Interpolating those keys into
-  // `--<flag>` named flags no user can type; a key with no derivable public spelling
-  // silently reintroduces that, so fail here instead.
   test('every model validator key derives a public selector', () => {
     const underivable = getModelValidatorFlags()
       .filter((flag) => describeModelSelector(flag) === undefined)
@@ -93,7 +86,7 @@ describe('model validation selector contracts', () => {
         continue
       }
       try {
-        expect(() => buildOptsFromFlags(false, { [flag]: 'invalid-model' })).toThrow(
+        expect(() => buildOptsFromFlags({ [flag]: 'invalid-model' })).toThrow(
           `Invalid model "invalid-model" for ${formatModelSelector(flag)}`
         )
       } catch (error) {
@@ -104,7 +97,6 @@ describe('model validation selector contracts', () => {
     expect(failures).toEqual([])
   })
 
-  // The two keys that predate the `<provider>-<category>` convention.
   test('irregular local STT keys name their real spellings', () => {
     expect(() => validateWhisperModel('bogus')).toThrow(
       'Invalid model "bogus" for --provider/--stt whisper[=model]. This selector uses local whisper.cpp models.'

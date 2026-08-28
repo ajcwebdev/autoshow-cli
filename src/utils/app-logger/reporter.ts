@@ -3,7 +3,7 @@ import { formatCost, formatDuration, formatEstimatedCost, formatEstimatedCostWit
 import { createDetailTable, createHumanTable, createLocationsTable, toHumanTableCell } from '~/utils/app-logger/human-table/human-table'
 import { emitResult } from '~/utils/app-logger/result-emitter'
 import { stepEstimateToReport } from '~/utils/pricing/step-estimate-fields'
-import type { AggregatedPriceEstimate, CompleteOptions, HumanCompletionTables, HumanLogTableRow, Logger, Reporter, ReporterMetricValue, StepEstimate, StepSummaryEntry, StepTimingCost, TimingStepEntry } from '~/types'
+import type { AggregatedPriceEstimate, CompleteOptions, HumanCompletionTables, HumanLogTable, HumanLogTableRow, Logger, Reporter, ReporterMetricValue, StepEstimate, StepSummaryEntry, StepTimingCost, TimingStepEntry } from '~/types'
 
 const formatSttProvider = (provider: string): string => {
   return provider === 'whisper' ? 'whisper.cpp' : provider
@@ -186,6 +186,9 @@ const buildCompleteResultData = (
   return resultData
 }
 
+const buildResultDetailTable = (data: Record<string, unknown>): HumanLogTable =>
+  createDetailTable(Object.entries(data).map(([label, value]) => [label, value] as const))
+
 export const createReporter = (logger: Logger): Reporter => {
   return {
     expectedOutput: (outputDir, files) => {
@@ -244,6 +247,17 @@ export const createReporter = (logger: Logger): Reporter => {
       })
 
       emitResult(buildCompleteResultData(outputDir, files, options))
+    },
+    result: (data, options) => {
+      logger.write(options?.level ?? 'info', options?.message ?? 'Result', {
+        category: options?.category ?? 'command',
+        metadata: data,
+        ...(options?.humanSections
+          ? { humanSections: options.humanSections }
+          : { humanTable: options?.humanTable ?? buildResultDetailTable(data) })
+      })
+
+      emitResult(data)
     }
   }
 }

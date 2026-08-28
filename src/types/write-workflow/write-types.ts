@@ -1,15 +1,13 @@
 import type * as v from 'valibot'
-import type { JsonObject, LLMModelOptionKey, ProcessingOptions, RateEstimateBase, Step3Metadata } from '~/types'
-export type LLMOptions = Pick<ProcessingOptions,
-  | 'outputDir'
-  | 'prompts'
-  | 'promptFile'
-  | 'promptMd'
-  | LLMModelOptionKey
-  | 'llmProviderConcurrency'
-  | 'llmLocalConcurrency'
-  | 'reasoningEffort'
-> & {
+import type { JsonObject, NormalizedReasoningEffort, RateEstimateBase, ResolvedLLMModelOptions, Step3Metadata } from '~/types'
+export type LLMOptions = Partial<ResolvedLLMModelOptions> & {
+  outputDir: string
+  prompts?: string[] | undefined
+  promptFile?: string | undefined
+  promptMd?: boolean | undefined
+  llmProviderConcurrency?: number | undefined
+  llmLocalConcurrency?: number | undefined
+  reasoningEffort?: NormalizedReasoningEffort | undefined
   concurrencyMode?: import('~/types').HostedConcurrencyMode | undefined
   hostedConcurrencyCoordinator?: import('~/types').HostedConcurrencyCoordinator | undefined
   promptBuilder?: ((instruction: string) => string) | undefined
@@ -19,11 +17,6 @@ export type LLMOptions = Pick<ProcessingOptions,
 }
 
 
-export type DownloadInfo = {
-  sourceUrl: string
-  destinationPath: string
-}
-
 export type StructuredStrategy = 'native' | 'schema-guided'
 
 export type StructuredRequestOptions = {
@@ -31,8 +24,8 @@ export type StructuredRequestOptions = {
   schema: JsonObject
   strict: boolean
   strategy: StructuredStrategy
-  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
-  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
 }
 
 export type StructuredValidationContext = {
@@ -96,6 +89,7 @@ export type StructuredPresetName =
   | 'standardSongLyrics'
   | 'rapSongLyrics'
   | 'rapSongLongLyrics'
+  | 'rapSongChapterLyrics'
   | 'poetryCollection'
   | 'screenplay'
   | 'shortStory'

@@ -86,7 +86,7 @@ const getLastSplitAttempt = (result: PdfChunkSplitResult): PdfChunkSplitAttempt 
   return attempts[attempts.length - 1] ?? { tool: result.tool, exitCode: result.exitCode }
 }
 
-export const getPrimarySplitFailureAttempt = (result: PdfChunkSplitResult): PdfChunkSplitAttempt => {
+const getPrimarySplitFailureAttempt = (result: PdfChunkSplitResult): PdfChunkSplitAttempt => {
   const attempts = result.attempts ?? []
   return attempts.find((attempt) => attempt.failureKind === 'qpdf_launch_failure')
     ?? attempts.find((attempt) => attempt.failureKind === 'mutool_unsupported_document')

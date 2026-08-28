@@ -1,7 +1,6 @@
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { DocumentMetadata, HostedOcrRun, LogSinkEvent, OcrPreparationCache, PageResult } from '~/types'
+import type { DocumentMetadata, HostedOcrRun, OcrPreparationCache, PageResult } from '~/types'
 import { OCR_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
 import {
   classifyOcrCreateRetry,
@@ -36,24 +35,15 @@ import {
 import { runKimiOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/kimi-ocr/run-kimi-ocr'
 import { runAnthropicOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/anthropic-ocr/run-anthropic-ocr'
 import { l } from '~/utils/app-logger/app-logger'
+import { pagesForOcrRange as pagesForRange } from '../../../../test-utils/ocr-page-fixtures'
+
+export { pagesForRange }
 
 export const basePdfMetadata: DocumentMetadata = {
   slug: 'document',
   pageCount: 6,
   format: 'pdf',
   fileSize: 12_345
-}
-
-export const pagesForRange = (startPage: number, endPage: number): PageResult[] => {
-  const pages: PageResult[] = []
-  for (let pageNumber = 1; pageNumber <= endPage - startPage + 1; pageNumber++) {
-    pages.push({
-      pageNumber,
-      method: 'ocr',
-      text: `page ${startPage + pageNumber - 1}`
-    })
-  }
-  return pages
 }
 
 export const hostedRun = (
@@ -79,7 +69,7 @@ export const invalidPageResponsePath = (dir: string, pageNumber: number): string
 export const pageInputPath = (dir: string, pageNumber: number): string =>
   join(dir, 'page-inputs', `page-${String(pageNumber).padStart(6, '0')}.pdf`)
 
-export const renderedPageCacheKey = (
+const renderedPageCacheKey = (
   filePath: string,
   page: number,
   dpi: number,
@@ -110,34 +100,9 @@ export const prefillRenderedPageCache = async (
   }
 }
 
-export const captureLogEvents = async <T>(
-  run: () => Promise<T>
-): Promise<{ result: T, events: LogSinkEvent[] }> => {
-  const originalSinks = [...l.config.sinks]
-  const events: LogSinkEvent[] = []
-  l.config.sinks.length = 0
-  l.config.sinks.push((event) => {
-    events.push(event)
-  })
+export { captureLogEvents } from '../../../../test-utils/console-capture'
 
-  try {
-    return {
-      result: await run(),
-      events
-    }
-  } finally {
-    l.config.sinks.length = 0
-    l.config.sinks.push(...originalSinks)
-  }
-}
-
-export const jsonResponse = (body: unknown, status = 200): Response =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'content-type': 'application/json'
-    }
-  })
+export { jsonResponse } from '../../../../test-utils/rest-contract-helpers'
 export {
   buildHostedOcrImageResult,
   classifyOcrCreateRetry,
@@ -151,7 +116,6 @@ export {
   join,
   l,
   mkdir,
-  mkdtemp,
   OCR_CREATE_RETRY_POLICY,
   OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS,
   OCR_PAGE_REQUEST_ATTEMPTS,
@@ -169,15 +133,6 @@ export {
   runKimiOcr,
   shouldFallbackToOcrPdfChunks,
   stitchHostedOcrChunkRuns,
-  tmpdir,
   withOcrPageRequestRetry,
   writeOcrProviderError
-}
-
-export type {
-  DocumentMetadata,
-  HostedOcrRun,
-  LogSinkEvent,
-  OcrPreparationCache,
-  PageResult
 }

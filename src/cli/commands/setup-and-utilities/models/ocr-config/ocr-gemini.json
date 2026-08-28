@@ -16,7 +16,7 @@
           "pdfBytes": 2147483648,
           "imageBytes": 2147483648,
           "pageCount": 1000,
-          "notes": "project/links/gemini-general-ocr-text-links.md documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
+          "notes": "https://ai.google.dev/gemini-api/docs/document-processing.md.txt documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
         },
         "estimation": {
           "promptTokensPerPage": 1172,
@@ -45,6 +45,32 @@
           "supportedEfforts": ["low", "medium", "high"]
         }
       },
+      "gemini-3.7-flash": {
+        "description": "Gemini 3.7 Flash OCR",
+        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricingCheckedAt": "2026-08-18",
+        "pricingCurrency": "USD",
+        "pricingTier": "Gemini API paid Standard",
+        "pricingNotes": "Gemini 3.7 Flash Standard pricing is $1.50/1M input tokens and $7.50/1M output tokens effective 2027-01-01, with introductory pricing of $0.75/1M input tokens and $3.75/1M output tokens through 2026-12-31 and no published context tiers. AutoShow conservatively records the standard rates, so estimates overstate cost during the introductory window. OCR estimates multiply observed token usage by these published rates. The page heuristics are reused from Gemini 3.6 Flash and are provisional until a separately approved paid calibration is available; free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.",
+        "costPerMInputTokensCents": 150,
+        "costPerMOutputTokensCents": 750,
+        "limits": {
+          "pdfBytes": 2147483648,
+          "imageBytes": 2147483648,
+          "pageCount": 1000,
+          "notes": "https://ai.google.dev/gemini-api/docs/document-processing.md.txt documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 2921,
+          "promptTokensPerPage": 1157,
+          "completionTokensPerPage": 1626
+        },
+        "reasoning": {
+          "support": "optional",
+          "supportedEfforts": ["low", "medium", "high"]
+        }
+      },
       "gemini-3.5-flash": {
         "description": "Gemini 3.5 Flash OCR",
         "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -58,7 +84,7 @@
           "pdfBytes": 2147483648,
           "imageBytes": 2147483648,
           "pageCount": 1000,
-          "notes": "project/links/gemini-general-ocr-text-links.md documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
+          "notes": "https://ai.google.dev/gemini-api/docs/document-processing.md.txt documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
         },
         "estimation": {
           "msPerPage": 2921,
@@ -84,7 +110,7 @@
           "pdfBytes": 2147483648,
           "imageBytes": 2147483648,
           "pageCount": 1000,
-          "notes": "project/links/gemini-general-ocr-text-links.md documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
+          "notes": "https://ai.google.dev/gemini-api/docs/document-processing.md.txt documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
         },
         "estimation": {
           "costMultiplier": 1,
@@ -110,7 +136,7 @@
           "pdfBytes": 2147483648,
           "imageBytes": 2147483648,
           "pageCount": 1000,
-          "notes": "project/links/gemini-general-ocr-text-links.md documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
+          "notes": "https://ai.google.dev/gemini-api/docs/document-processing.md.txt documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
         },
         "estimation": {
           "costMultiplier": 1,

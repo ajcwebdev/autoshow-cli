@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureSpeechifyTtsSetup = ensureApiKeySetup('SPEECHIFY_API_KEY', 'tts:speechify', 'Speechify TTS')
+export const ensureSpeechifyTtsSetup = async (): Promise<void> => { resolveCredential('speechify', 'require', { stage: 'tts:speechify', description: 'Speechify TTS' }) }

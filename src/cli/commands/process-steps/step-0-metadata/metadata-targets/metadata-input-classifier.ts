@@ -1,5 +1,5 @@
 import { extname } from 'node:path'
-import type { DetectResult, InputFamily, MetadataInputKind, UrlRuntimeOptions } from '~/types'
+import type { DetectResult, InputFamily, UrlInputKind, UrlRuntimeOptions } from '~/types'
 import { fileExists } from '~/utils/cli-utils'
 import { resolveConvertibleEbookFormatFromExtension } from '../formats/metadata-convertible-ebooks'
 import { detectDocumentFormat } from '../formats/metadata-detect-format'
@@ -183,7 +183,7 @@ export const isHtmlDocumentPath = (path: string): boolean =>
 export const classifyUrlInput = async (
   url: string,
   opts?: Pick<UrlRuntimeOptions, 'urlBackendExplicit'>
-): Promise<MetadataInputKind> => {
+): Promise<UrlInputKind> => {
   if (isDocumentUrl(url)) {
     return hasHtmlExtension(new URL(url).pathname) ? 'url_html_article' : 'url_direct_document'
   }
@@ -277,6 +277,12 @@ export const classifyInputFamily = async (
     return 'unsupported'
   }
 
+  return await classifyExistingLocalInputFamily(target)
+}
+
+export const classifyExistingLocalInputFamily = async (
+  target: string
+): Promise<Exclude<InputFamily, 'x_space'>> => {
   if (isHtmlDocumentPath(target)) {
     return 'html_article'
   }

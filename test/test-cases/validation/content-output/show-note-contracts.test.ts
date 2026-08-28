@@ -1,13 +1,8 @@
 import { expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type {
   Step3Metadata,
-  Step4Metadata,
-  Step5Metadata,
-  Step6VideoMetadata,
-  Step7MusicMetadata,
   StructuredRunResult
 } from '~/types'
 import { writeShowNoteArtifacts } from '~/cli/commands/process-steps/step-3-write/show-note-artifacts'
@@ -15,19 +10,13 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 import { buildExpectedFilesList } from '~/cli/commands/process-steps/step-1-download/download-targets/expected-output'
 import { renderToPlainText } from '~/cli/commands/process-steps/step-3-write/structured-output/renderers'
 import { buildStructuredValidationFailureEnvelope } from '~/cli/commands/process-steps/step-3-write/structured-output/validation-failure'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
+import { buildStep3Metadata as buildSharedStep3Metadata } from './shared'
 
-const buildStep3Metadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata => ({
-  llmService: 'openai',
-  llmModel: 'gpt-5.5',
-  processingTime: 1,
-  inputTokenCount: 1,
-  outputTokenCount: 1,
-  outputFileName: 'text.json',
-  outputFormat: 'json',
-  structuredMode: 'native',
-  structuredPresetNames: ['shortSummary'],
-  ...overrides
-})
+const LLM_FIXTURE = { llmService: 'openai' as const, llmModel: 'gpt-5.5', structuredPresetNames: ['shortSummary'] }
+
+const buildStep3Metadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata =>
+  buildSharedStep3Metadata(LLM_FIXTURE, overrides)
 
 const buildResult = (overrides: Partial<Step3Metadata> = {}, renderedText = '## Summary\n\nRendered JSON markdown'): StructuredRunResult => ({
   metadata: buildStep3Metadata(overrides),
@@ -50,7 +39,7 @@ const writePrompt = async (outputDir: string): Promise<void> => {
 }
 
 test('show notes preserve prompt frontmatter and include rendered output plus source text', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-show-note-'))
+  const tempDir = await makeTempDir('autoshow-show-note-')
   try {
     const outputDir = join(tempDir, 'out')
     await mkdir(outputDir, { recursive: true })
@@ -76,7 +65,7 @@ test('show notes preserve prompt frontmatter and include rendered output plus so
 })
 
 test('show notes preserve marked structured validation failures', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-show-note-validation-failure-'))
+  const tempDir = await makeTempDir('autoshow-show-note-validation-failure-')
   try {
     const outputDir = join(tempDir, 'out')
     await mkdir(outputDir, { recursive: true })
@@ -102,7 +91,7 @@ test('show notes preserve marked structured validation failures', async () => {
 })
 
 test('show notes preserve rendered song lyric text instead of generic JSON fields', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-show-note-song-'))
+  const tempDir = await makeTempDir('autoshow-show-note-song-')
   try {
     const outputDir = join(tempDir, 'out')
     await mkdir(outputDir, { recursive: true })
@@ -134,7 +123,7 @@ test('show notes preserve rendered song lyric text instead of generic JSON field
 })
 
 test('show notes flatten default summary JSON into publication markdown', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-show-note-default-'))
+  const tempDir = await makeTempDir('autoshow-show-note-default-')
   try {
     const outputDir = join(tempDir, 'out')
     await mkdir(outputDir, { recursive: true })
@@ -192,7 +181,7 @@ test('show notes flatten default summary JSON into publication markdown', async 
 })
 
 test('show notes mirror single and multi-output JSON naming', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-show-note-names-'))
+  const tempDir = await makeTempDir('autoshow-show-note-names-')
   try {
     const outputDir = join(tempDir, 'out')
     await mkdir(outputDir, { recursive: true })
@@ -232,95 +221,18 @@ test('show notes mirror single and multi-output JSON naming', async () => {
   }
 })
 
-test('show notes render generated media assets with relative embeds and links', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-show-note-assets-'))
-  try {
-    const outputDir = join(tempDir, 'out')
-    await mkdir(outputDir, { recursive: true })
-    await writePrompt(outputDir)
-
-    const step4Metadata: Step4Metadata[] = [{
-      ttsService: 'openai',
-      ttsModel: 'gpt-4o-mini-tts',
-      processingTime: 1,
-      audioFileName: 'speech.wav',
-      audioFileSize: 100,
-      chunkCount: 1
-    }]
-    const step5Metadata: Step5Metadata[] = [{
-      imageService: 'openai',
-      imageModel: 'gpt-image-2',
-      processingTime: 1,
-      imageFileNames: ['generated-image.png'],
-      imageCount: 1,
-      imageFileSize: 100,
-      imageWidth: 1024,
-      imageHeight: 1024,
-      requestMode: 'generation'
-    }]
-    const step6Metadata: Step6VideoMetadata[] = [{
-      videoGenService: 'gemini',
-      videoGenModel: 'veo-3.1-generate-preview',
-      processingTime: 1,
-      videoFileName: 'generated-video.mp4',
-      videoFileSize: 100,
-      videoDuration: 8
-    }]
-    const step7Metadata: Step7MusicMetadata[] = [{
-      musicService: 'elevenlabs',
-      musicModel: 'music_v2',
-      processingTime: 1,
-      musicFileName: 'generated-music.mp3',
-      musicFileSize: 100,
-      musicDurationMs: 30_000,
-      lyricsSource: 'generated'
-    }]
-
-    await writeShowNoteArtifacts({
-      outputDir,
-      results: [buildResult()],
-      sourceText: 'source',
-      step4Metadata,
-      step5Metadata,
-      step6Metadata,
-      step7Metadata
-    })
-
-    const showNote = await Bun.file(join(outputDir, 'show-note.md')).text()
-    expect(showNote).toContain('## Assets')
-    expect(showNote).toContain('<audio controls src="speech.wav"></audio>')
-    expect(showNote).toContain('[Download speech.wav](speech.wav)')
-    expect(showNote).toContain('![generated-image.png](generated-image.png)')
-    expect(showNote).toContain('[Download generated-image.png](generated-image.png)')
-    expect(showNote).toContain('<video controls src="generated-video.mp4"></video>')
-    expect(showNote).toContain('[Download generated-video.mp4](generated-video.mp4)')
-    expect(showNote).toContain('<audio controls src="generated-music.mp3"></audio>')
-    expect(showNote).toContain('[Download generated-music.mp3](generated-music.mp3)')
-  } finally {
-    await rm(tempDir, { recursive: true, force: true })
-  }
-})
-
-test('expected output planning reports show-note artifacts only when LLM output is expected', async () => {
+test('expected output planning reports show-note artifacts for write LLM output', async () => {
   const singleTextInput = await buildExpectedFilesList(
     'write',
-    buildOptsFromFlags(false, { 'text-input': true, openai: 'gpt-5.4-mini' })
+    buildOptsFromFlags({ openai: 'gpt-5.4-mini' })
   )
   expect(singleTextInput).toContain('text.json')
   expect(singleTextInput).toContain('show-note.md')
 
   const multiTextInput = await buildExpectedFilesList(
     'write',
-    buildOptsFromFlags(false, { 'text-input': true, 'all-llm': true })
+    buildOptsFromFlags({ 'all-llm': true })
   )
-  expect(multiTextInput).toContain('text-<model>.json')
-  expect(multiTextInput).toContain('show-note-<model>.md')
-  expect(multiTextInput).not.toContain('show-note.md')
-
-  const skipLlmMediaWrite = await buildExpectedFilesList(
-    'write',
-    buildOptsFromFlags(true, {})
-  )
-  expect(skipLlmMediaWrite).not.toContain('text.json')
-  expect(skipLlmMediaWrite).not.toContain('show-note.md')
+  expect(multiTextInput).toContain('text.json')
+  expect(multiTextInput).toContain('show-note.md')
 })

@@ -1,9 +1,8 @@
-import * as v from 'valibot'
 import type { CanonicalAudioProviderProjection, ImageProvider, MusicProvider, ProviderRenderStrategy, TtsProvider, VideoProvider } from '~/types'
 
 type GenerationProviderCostSource = 'provider_usage' | 'provider_quote' | 'registry_fallback'
 
-export type TtsMetadataBase<TService extends string = string> = {
+type TtsMetadataBase<TService extends string = string> = {
   ttsService: TService
   ttsModel: string
   speaker?: string
@@ -33,12 +32,6 @@ export type Step4Metadata = TtsMetadataBase<TtsProvider> & {
   ttsAudio?: CanonicalAudioProviderProjection | undefined
   comicAudio?: CanonicalAudioProviderProjection | undefined
 }
-
-export const TtsScriptOutputSchema = v.object({
-  sampleRate: v.number(),
-  chunkCount: v.number(),
-  durationSeconds: v.number()
-})
 
 export type Step5Metadata = {
   imageService: ImageProvider
@@ -99,7 +92,6 @@ export type Step6VideoMetadata = {
   providerProgress?: number | undefined
   providerModeration?: unknown
   providerFileOutput?: unknown
-  providerStorageError?: unknown
   providerCostCents?: number | undefined
   providerCostSource?: GenerationProviderCostSource | undefined
   hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined

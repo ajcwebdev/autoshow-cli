@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildConfigPatchFromFlags, mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
+import { buildConfigPatchFromFlags, mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 
 describe('config provider and concurrency default contracts', () => {
   test('hosted concurrency mode persists globally and explicit flags override config', () => {
@@ -50,7 +50,7 @@ describe('config provider and concurrency default contracts', () => {
             deepinfraOcr: ['Qwen/Qwen3-VL-30B-A3B-Instruct'],
             kimiOcr: ['kimi-k2.6'],
             dpi: 450,
-            pageConcurrency: 5,
+            ocrConcurrency: 5,
             providerConcurrency: 4,
             localConcurrency: 2
           }
@@ -88,24 +88,18 @@ describe('config provider and concurrency default contracts', () => {
       'music-local-concurrency'
     ]))).toEqual({
       defaults: {
-        post: {
-          tts: {
-            providerConcurrency: 4,
-            localConcurrency: 1,
-            chunkConcurrency: 3
-          },
-          image: {
-            providerConcurrency: 5,
-            localConcurrency: 1
-          },
-          video: {
-            providerConcurrency: 6,
-            localConcurrency: 1
-          },
-          music: {
-            providerConcurrency: 7,
-            localConcurrency: 1
-          }
+        tts: {
+          providerConcurrency: 4,
+          chunkConcurrency: 3
+        },
+        image: {
+          providerConcurrency: 5
+        },
+        video: {
+          providerConcurrency: 6
+        },
+        music: {
+          providerConcurrency: 7
         }
       }
     })
@@ -118,10 +112,8 @@ describe('config provider and concurrency default contracts', () => {
 
     expect(patch).toEqual({
       defaults: {
-        post: {
-          tts: {
-            chunkConcurrency: 4
-          }
+        tts: {
+          chunkConcurrency: 4
         }
       }
     })
@@ -139,7 +131,7 @@ describe('config provider and concurrency default contracts', () => {
       defaults: {
         extract: {
           ocr: {
-            pageConcurrency: 4
+            ocrConcurrency: 4
           }
         }
       }
@@ -174,5 +166,29 @@ describe('config provider and concurrency default contracts', () => {
     expect(mergeConfigIntoRawFlags({
       'all-url': true
     }, patch as Parameters<typeof mergeConfigIntoRawFlags>[1], new Set(['all-url']))).not.toHaveProperty('url-provider')
+  })
+
+  test('OCR provider mode and music instrumental save and merge through config defaults', () => {
+    const patch = buildConfigPatchFromFlags({
+      'ocr-provider-mode': 'pool',
+      'music-instrumental': true
+    }, new Set(['ocr-provider-mode', 'music-instrumental']))
+
+    expect(patch).toEqual({
+      defaults: {
+        extract: {
+          ocr: {
+            providerMode: 'pool'
+          }
+        },
+        music: {
+          musicInstrumental: true
+        }
+      }
+    })
+    expect(mergeConfigIntoRawFlags({}, patch as Parameters<typeof mergeConfigIntoRawFlags>[1], new Set())).toMatchObject({
+      'ocr-provider-mode': 'pool',
+      'music-instrumental': true
+    })
   })
 })

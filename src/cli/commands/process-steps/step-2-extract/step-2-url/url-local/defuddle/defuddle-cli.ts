@@ -1,15 +1,22 @@
-import { mkdir, rm, stat } from 'node:fs/promises'
+import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { logSetupToolStatus } from '~/cli/commands/setup-and-utilities/setup/setup-logging'
-import type { CheckResult, ResolvedDefuddleCli, RunOptions, RunResult } from '~/types'
+import type { DoctorCheck, ResolvedDefuddleCli, RunOptions, RunResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
 import { getConfiguredBinDir, PROJECT_ROOT } from '~/utils/runtime-paths'
+import { pathExists } from '~/utils/filesystem'
+import { childEnv } from '~/utils/child-env'
 
 const DEFUDDLE_CLI_VERSION = '0.17.0'
 
 const RUNTIME = join(PROJECT_ROOT, 'runtime')
 let defuddleCliSetupPromise: Promise<void> | undefined
+const DEFUDDLE_TEST_CHILD_ENV_KEYS = [
+  'AUTOSHOW_DEFUDDLE_ARGS_LOG',
+  'AUTOSHOW_FAKE_DEFUDDLE_MODE',
+  'AUTOSHOW_FAKE_DEFUDDLE_STDERR'
+] as const
 
 export const defuddleRuntimeDir = join(RUNTIME, 'defuddle')
 const defuddleRuntimeBinaryPath = join(
@@ -19,20 +26,8 @@ const defuddleRuntimeBinaryPath = join(
   process.platform === 'win32' ? 'defuddle.cmd' : 'defuddle'
 )
 
-const mergeEnv = (env?: Record<string, string | undefined>): Record<string, string | undefined> =>
-  env ? { ...(process.env as Record<string, string | undefined>), ...env } : process.env as Record<string, string | undefined>
-
 const readStream = async (stream: ReadableStream<Uint8Array> | null | undefined): Promise<string> =>
   stream ? await new Response(stream).text() : ''
-
-const pathExists = async (path: string): Promise<boolean> => {
-  try {
-    await stat(path)
-    return true
-  } catch {
-    return false
-  }
-}
 
 const runCapture = async (
   command: string,
@@ -41,7 +36,7 @@ const runCapture = async (
 ): Promise<RunResult> => {
   const proc = Bun.spawn([command, ...args], {
     ...(options.cwd ? { cwd: options.cwd } : {}),
-    env: mergeEnv(options.env),
+    env: childEnv({ allow: DEFUDDLE_TEST_CHILD_ENV_KEYS, set: options.env }),
     stdout: 'pipe',
     stderr: 'pipe'
   })
@@ -132,23 +127,37 @@ const verifyDefuddleCli = async (binaryPath: string): Promise<{ ok: boolean, det
 const isPinnedDefuddleCli = (verified: { ok: boolean, detail: string }): boolean =>
   verified.ok && verified.detail.includes(DEFUDDLE_CLI_VERSION)
 
-export const readDefuddleCliReadiness = async (): Promise<CheckResult> => {
+const DEFUDDLE_SETUP_NEXT_STEP = 'bun autoshow setup --step defuddle'
+
+export const readDefuddleCliReadiness = async (): Promise<DoctorCheck> => {
   const resolved = await resolveDefuddleCli()
   if (!resolved) {
     return {
       label: 'defuddle',
-      ok: false,
-      detail: 'not found (run bun autoshow setup --step defuddle or pass --bin-dir)'
+      status: 'MISSING',
+      detail: 'not found (run bun autoshow setup --step defuddle or pass --bin-dir)',
+      severity: 'warn',
+      nextStep: DEFUDDLE_SETUP_NEXT_STEP
     }
   }
 
   const verified = await verifyDefuddleCli(resolved.path)
+  if (verified.ok) {
+    return {
+      label: 'defuddle',
+      status: 'OK',
+      detail: `${resolved.path} (${verified.detail})`,
+      severity: 'info'
+    }
+  }
+
+  const detail = `${resolved.path} failed --version: ${verified.detail}`
   return {
     label: 'defuddle',
-    ok: verified.ok,
-    detail: verified.ok
-      ? `${resolved.path} (${verified.detail})`
-      : `${resolved.path} failed --version: ${verified.detail}`
+    status: detail.toLowerCase().includes('failed') ? 'WARN' : 'MISSING',
+    detail,
+    severity: 'warn',
+    nextStep: DEFUDDLE_SETUP_NEXT_STEP
   }
 }
 

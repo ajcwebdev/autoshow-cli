@@ -1,4 +1,4 @@
-import type { NormalizedReasoningEffort } from './reasoning-resolver'
+import type { NormalizedReasoningEffort } from '~/types'
 
 const isNamedEffort = (
   effort: NormalizedReasoningEffort

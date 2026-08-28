@@ -41,7 +41,6 @@ SUPPORTED_FAL_VIDEO_MODELS,
 SUPPORTED_GROK_VIDEO_MODELS,
 SUPPORTED_LTX_VIDEO_MODELS,
 SUPPORTED_LUMALABS_VIDEO_MODELS,
-SUPPORTED_MINIMAX_VIDEO_MODELS,
 SUPPORTED_REPLICATE_VIDEO_MODELS
 } from '~/cli/commands/setup-and-utilities/models/video-models'
 import type { AutoshowConfigSchema, CommandResultBase } from '~/types'
@@ -58,12 +57,9 @@ export type RunOptions = {
   allowFailure?: boolean
 }
 
-
 export type ModelLinksData = Record<string, Record<string, string[]>>
 
-
 export type FetchFn = (input: string | URL | Request, init?: RequestInit) => Promise<Response>
-
 
 export type GroqModel = typeof SUPPORTED_GROQ_MODELS[number]
 export type ElevenlabsTtsModel = typeof SUPPORTED_ELEVENLABS_TTS_MODELS[number]
@@ -93,22 +89,19 @@ export type ReplicateImageModel = typeof SUPPORTED_REPLICATE_IMAGE_MODELS[number
 export type LumalabsImageModel = typeof SUPPORTED_LUMALABS_IMAGE_MODELS[number]
 export type FalImageModel = typeof SUPPORTED_FAL_IMAGE_MODELS[number]
 export type GeminiVideoModel = typeof SUPPORTED_GEMINI_VIDEO_MODELS[number]
-export type MinimaxVideoModel = typeof SUPPORTED_MINIMAX_VIDEO_MODELS[number]
 export type GrokVideoModel = typeof SUPPORTED_GROK_VIDEO_MODELS[number]
 export type LtxVideoModel = typeof SUPPORTED_LTX_VIDEO_MODELS[number]
 export type ReplicateVideoModel = typeof SUPPORTED_REPLICATE_VIDEO_MODELS[number]
 export type LumalabsVideoModel = typeof SUPPORTED_LUMALABS_VIDEO_MODELS[number]
 export type FalVideoModel = typeof SUPPORTED_FAL_VIDEO_MODELS[number]
 
-
 export type SttBilling = {
   roundingIncrementSeconds?: number
   minimumSeconds?: number
 }
 
-
 export type CheapestVideoSelection = {
-  provider: 'gemini' | 'minimax' | 'grok' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
+  provider: 'gemini' | 'grok' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
   model: string
   duration: number
   size?: string | undefined
@@ -128,24 +121,16 @@ export type CheapestLlmSelection = {
   totalCost: number
 }
 
-export type CheckResult = {
-  label: string
-  ok: boolean
-  detail: string
-}
-
 export type SetupToolStatus = {
   tool: string
   status: string
   detail?: string
 }
 
-// Order is the order shown by `bun autoshow setup --help`; every id must have a case in
-// executeStepOnce, and the exhaustiveness check there fails if one is missing.
 export const SETUP_STEP_IDS = [
-  'uv', 'yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile',
+  'yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile',
   'calibre', 'all',
-  'transcription', 'write', 'tts', 'image', 'video', 'music'
+  'transcription', 'music'
 ] as const
 
 export type SetupStepId = typeof SETUP_STEP_IDS[number]

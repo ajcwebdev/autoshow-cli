@@ -1,4 +1,4 @@
-import type { InworldTtsModel, NormalizedTiming, TimedToken, TtsTimingIdentity } from '~/types'
+import type { InworldTtsModel, InworldTtsRequestInput, NormalizedTiming, TimedToken, TtsTimingIdentity } from '~/types'
 
 export const INWORLD_TTS_SERIALIZER_VERSION = 'inworld.tts.phase-3-v3'
 
@@ -7,14 +7,6 @@ export const resolveInworldTtsApiModelId = (model: InworldTtsModel): string => {
     case 'realtime-tts-2': return 'inworld-tts-2'
   }
 }
-
-type InworldTtsRequestInput = Readonly<{
-  text: string
-  voiceId: string
-  markups?: readonly string[] | undefined
-  model: 'realtime-tts-2'
-  steeringPrompt?: string | undefined
-}>
 
 export const buildInworldTtsRequestBody = (input: InworldTtsRequestInput): Readonly<Record<string, unknown>> => {
   return {

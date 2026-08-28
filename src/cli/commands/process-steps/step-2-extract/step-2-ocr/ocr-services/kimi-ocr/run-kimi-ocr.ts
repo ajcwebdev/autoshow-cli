@@ -53,7 +53,7 @@ export const runKimiOcr = createChatImageOcrRunner({
   prompt: buildOcrPrompt(),
   errorMessagePrefix: 'Kimi OCR request failed',
   getConfig: () => ({
-    apiKey: ensureKimiApiKey('Kimi OCR'),
+    apiKey: ensureKimiApiKey('Kimi OCR', 'ocr:kimi'),
     baseURL: resolveKimiBaseUrl()
   }),
   buildBody: ({ model, messages, reasoningPolicy }) => ({
@@ -61,7 +61,7 @@ export const runKimiOcr = createChatImageOcrRunner({
     stream: false,
     max_completion_tokens: KIMI_OCR_DEFAULT_MAX_COMPLETION_TOKENS,
     ...(reasoningPolicy.effective === 'disabled' ? { thinking: { type: 'disabled' } } : {}),
-    ...(model === 'kimi-k3' && reasoningPolicy.requested !== undefined && reasoningPolicy.requested !== 'default'
+    ...(model === 'kimi-k3' && reasoningPolicy.effective !== 'default' && reasoningPolicy.effective !== 'disabled'
       ? { reasoning_effort: reasoningPolicy.effective }
       : {}),
     messages

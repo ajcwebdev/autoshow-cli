@@ -15,7 +15,7 @@ import {
   URL_ARTICLE_PROVIDER_ADAPTERS,
   writeFile
 } from './shared'
-import type { HtmlArticleBackend, UrlRequestOptions } from './shared'
+import type { HtmlArticleBackend, UrlRequestOptions } from '~/types'
 import { writeSingleManifestFixture } from '../../../../test-utils/manifest-helpers'
 
 test('--all-providers URL orchestrator writes provider artifacts and one canonical manifest', async () => {
@@ -30,7 +30,7 @@ test('--all-providers URL orchestrator writes provider artifacts and one canonic
       }
     }
 
-    const opts = buildOptsFromFlags(false, {
+    const opts = buildOptsFromFlags({
       'all-url': true,
       'url-request-timeout-ms': '25000',
       'url-request-attempts': '2'
@@ -94,7 +94,7 @@ test('--all-providers plus --all-local URL orchestrator preserves the full backe
         buildMockArticle(backend, source, sourceUrl)
     }
 
-    const opts = buildOptsFromFlags(false, {
+    const opts = buildOptsFromFlags({
       'all-url': true,
       'all-local-url': true
     })
@@ -128,7 +128,7 @@ test('--all-providers URL manifest records one exhausted failed URL provider wit
       throw buildAbortError('Zyte request timed out after 25ms')
     }
 
-    const opts = buildOptsFromFlags(false, {
+    const opts = buildOptsFromFlags({
       'all-url': true,
       'url-request-timeout-ms': '25',
       'url-request-attempts': '2'
@@ -178,7 +178,7 @@ test('URL resume persists recovered provider state to the batch-scoped canonical
       throw buildAbortError('Zyte request timed out after 25ms')
     }
 
-    const opts = buildOptsFromFlags(false, {
+    const opts = buildOptsFromFlags({
       'all-url': true,
       'url-request-timeout-ms': '25',
       'url-request-attempts': '2'
@@ -237,7 +237,7 @@ test('URL batch resume refuses to rewrite a corrupt canonical manifest', async (
       scope: 'batch',
       dir: tempRoot,
       manifestPath
-    }, buildOptsFromFlags(false, {}))).rejects.toThrow(
+    }, buildOptsFromFlags({}))).rejects.toThrow(
       `Invalid canonical manifest at ${manifestPath}`
     )
     expect(await Bun.file(manifestPath).text()).toBe(original)
@@ -273,7 +273,7 @@ test('URL resume exits 2 for a stored failed run with no resumable backends', as
       scope: 'single',
       dir: tempRoot,
       manifestPath: join(tempRoot, PIPELINE_MANIFEST_FILE)
-    }, buildOptsFromFlags(false, {}))).rejects.toMatchObject({
+    }, buildOptsFromFlags({}))).rejects.toMatchObject({
       exitCode: 2,
       stage: 'resume:url'
     })
@@ -297,7 +297,7 @@ test('--all-providers plus --all-local URL with local HTML runs defuddle and mar
       }
     }
 
-    const opts = buildOptsFromFlags(false, {
+    const opts = buildOptsFromFlags({
       'all-url': true,
       'all-local-url': true
     })
@@ -345,14 +345,14 @@ test('local HTML with a single hosted URL provider still runs and records defudd
       throw new Error('firecrawl should not run for local HTML')
     }
 
-    const opts = buildOptsFromFlags(false, {
+    const opts = buildOptsFromFlags({
       'url-provider': 'firecrawl'
     }, {}, new Set(['url-provider']))
     const output = await processUrlArticle(localHtml, tempRoot, opts)
 
     const item = (await readManifest(output.outputDir))?.items[0]
 
-    expect(await Bun.file(join(output.outputDir, 'result.json')).exists()).toBe(true)
+    expect(await Bun.file(join(output.outputDir, 'extraction.txt')).exists()).toBe(true)
     expect(await Bun.file(join(output.outputDir, 'providers', 'defuddle', 'result.json')).exists()).toBe(false)
     expect(await Bun.file(join(output.outputDir, 'providers', 'firecrawl', 'result.json')).exists()).toBe(false)
     expect(item?.status).toBe('full')
@@ -365,9 +365,6 @@ test('local HTML with a single hosted URL provider still runs and records defudd
     expect(resolvedStep2).toMatchObject({
       providers: [{ service: 'defuddle', model: 'defuddle' }]
     })
-    // `providers` is the sole persisted backend record. The legacy `backend`/`backends`
-    // keys were write-only and are no longer emitted; resume reconstructs the backend
-    // set from `requestedProviders` instead.
     expect(resolvedStep2.backend).toBeUndefined()
     expect(resolvedStep2.backends).toBeUndefined()
   } finally {

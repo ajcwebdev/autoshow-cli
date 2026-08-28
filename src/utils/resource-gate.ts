@@ -2,7 +2,7 @@ import type { ResourceGate, ResourceGateOptions } from '~/types'
 
 const DEFAULT_RESOURCE_GATE_CAPACITY = 1
 
-export const normalizeResourceGateCapacity = (
+const normalizeResourceGateCapacity = (
   value: unknown,
   fallback = DEFAULT_RESOURCE_GATE_CAPACITY
 ): number =>
@@ -22,10 +22,6 @@ export const runWithGate = async <T>(
   }
 }
 
-/**
- * Counting semaphore with a FIFO waiter queue. `acquire` resolves immediately
- * when a slot is free, so a gate at capacity is the only case that defers.
- */
 export const createResourceGate = (options: ResourceGateOptions = {}): ResourceGate => {
   const capacity = normalizeResourceGateCapacity(options.capacity)
   let active = 0

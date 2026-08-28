@@ -1,5 +1,4 @@
-import type { HostedConcurrencyRuntimeOptions, LLMTarget, ResolvedStructuredSchema, StructuredRunResult, StructuredValidationContext } from '~/types'
-import type { NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import type { HostedConcurrencyRuntimeOptions, LLMTarget, NormalizedReasoningEffort, ResolvedStructuredSchema, StructuredRunResult, StructuredValidationContext } from '~/types'
 
 export type PendingStructuredRunResult = StructuredRunResult & {
   fileName: string

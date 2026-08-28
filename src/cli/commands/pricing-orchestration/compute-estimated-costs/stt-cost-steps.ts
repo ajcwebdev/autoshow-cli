@@ -5,23 +5,22 @@ import { estimateScrapeCreatorsCost } from '~/utils/pricing/scrapecreators-prici
 import { EXACT_COST_MULTIPLIER } from './cost-steps-shared'
 
 const STT_FIELD_MAP = [
-  { field: 'deepinfraSttModel' as const, provider: 'deepinfra' },
-  { field: 'deepgramSttModel' as const, provider: 'deepgram' },
-  { field: 'sonioxSttModel' as const, provider: 'soniox' },
-  { field: 'speechmaticsSttModel' as const, provider: 'speechmatics' },
-  { field: 'revSttModel' as const, provider: 'rev' },
-  { field: 'groqSttModel' as const, provider: 'groq' },
-  { field: 'grokSttModel' as const, provider: 'grok' },
-  { field: 'mistralSttModel' as const, provider: 'mistral' },
-  { field: 'assemblyaiSttModel' as const, provider: 'assemblyai' },
-  { field: 'gladiaSttModel' as const, provider: 'gladia' },
-  { field: 'happyscribeSttModel' as const, provider: 'happyscribe' },
-  { field: 'supadataSttModel' as const, provider: 'supadata' },
-  { field: 'scrapecreatorsSttModel' as const, provider: 'scrapecreators' },
-  { field: 'geminiSttModel' as const, provider: 'gemini-stt' },
-  { field: 'togetherSttModel' as const, provider: 'together' },
-  { field: 'whisperModel' as const, provider: 'whisper' },
-  { field: 'whisperfileModel' as const, provider: 'whisperfile' },
+  { field: 'deepinfraSttModels' as const, provider: 'deepinfra' },
+  { field: 'deepgramSttModels' as const, provider: 'deepgram' },
+  { field: 'sonioxSttModels' as const, provider: 'soniox' },
+  { field: 'speechmaticsSttModels' as const, provider: 'speechmatics' },
+  { field: 'groqSttModels' as const, provider: 'groq' },
+  { field: 'grokSttModels' as const, provider: 'grok' },
+  { field: 'mistralSttModels' as const, provider: 'mistral' },
+  { field: 'assemblyaiSttModels' as const, provider: 'assemblyai' },
+  { field: 'gladiaSttModels' as const, provider: 'gladia' },
+  { field: 'happyscribeSttModels' as const, provider: 'happyscribe' },
+  { field: 'supadataSttModels' as const, provider: 'supadata' },
+  { field: 'scrapecreatorsSttModels' as const, provider: 'scrapecreators' },
+  { field: 'geminiSttModels' as const, provider: 'gemini-stt' },
+  { field: 'togetherSttModels' as const, provider: 'together' },
+  { field: 'whisperModels' as const, provider: 'whisper' },
+  { field: 'whisperfileModels' as const, provider: 'whisperfile' },
 ]
 
 const computeSttTargetStep = (
@@ -62,7 +61,8 @@ export const buildSttCostSteps = (input: ComputeEstimatedCostsInput): CostStepsR
     }
   } else {
     for (const { field, provider } of STT_FIELD_MAP) {
-      const model = input[field]
+      const models = input[field]
+      const model = models?.[0]
       if (typeof model === 'string' && model.length > 0) {
         push(computeSttTargetStep(provider, model, durationSeconds, input))
         break

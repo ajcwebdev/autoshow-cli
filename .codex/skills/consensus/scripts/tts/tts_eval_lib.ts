@@ -4,10 +4,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { isRecord, loadCanonicalRunRecord, readCanonicalManifest } from "../shared/pipeline_manifest";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export interface AudioProperties {
   durationSeconds: number;
   sampleRate: number | null;
@@ -76,10 +72,6 @@ export interface ProviderEvidence {
   charCount: number;
   wordCount: number;
 }
-
-// ---------------------------------------------------------------------------
-// Canonical manifest helpers
-// ---------------------------------------------------------------------------
 
 export function loadTtsManifestRecord(runDir: string): TtsManifestRecord {
   const manifest = readCanonicalManifest(runDir);
@@ -154,10 +146,6 @@ export function makeProviderKey(service: string, model: string): string {
   return `${service}/${model}`;
 }
 
-// ---------------------------------------------------------------------------
-// Audio file discovery
-// ---------------------------------------------------------------------------
-
 export function discoverAudioFiles(
   runDir: string,
   ttsEntries: TtsEntryMetadata[],
@@ -174,10 +162,6 @@ export function discoverAudioFiles(
   }
   return { found, missing };
 }
-
-// ---------------------------------------------------------------------------
-// ffprobe
-// ---------------------------------------------------------------------------
 
 export async function probeAudio(audioPath: string): Promise<AudioProperties> {
   const proc = Bun.spawn(
@@ -210,20 +194,12 @@ export async function probeAudio(audioPath: string): Promise<AudioProperties> {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Metrics
-// ---------------------------------------------------------------------------
-
 export function computeSpeakingRate(charCount: number, durationSeconds: number): number | null {
   if (durationSeconds <= 0) {
     return null;
   }
   return charCount / durationSeconds;
 }
-
-// ---------------------------------------------------------------------------
-// Cost and timing lookups
-// ---------------------------------------------------------------------------
 
 export function buildCostLookup(manifestRecord: TtsManifestRecord): Map<string, number> {
   const lookup = new Map<string, number>();
@@ -246,10 +222,6 @@ export function buildTimingLookup(manifestRecord: TtsManifestRecord): Map<string
   }
   return lookup;
 }
-
-// ---------------------------------------------------------------------------
-// Text utilities (self-contained copies from stt-consensus)
-// ---------------------------------------------------------------------------
 
 const TOKEN_RE = /[a-z0-9]+(?:[''][a-z0-9]+)?/gi;
 const PUNCT_REPLACEMENTS: Array<[RegExp, string]> = [
@@ -307,19 +279,11 @@ export function roundtripWer(originalText: string, transcribedText: string): num
   return levenshteinDistance(originalTokens, transcribedTokens) / originalTokens.length;
 }
 
-// ---------------------------------------------------------------------------
-// Provider classification
-// ---------------------------------------------------------------------------
-
 const LOCAL_SERVICES = new Set<string>();
 
 export function isLocalService(ttsService: string): boolean {
   return LOCAL_SERVICES.has(ttsService);
 }
-
-// ---------------------------------------------------------------------------
-// Formatting
-// ---------------------------------------------------------------------------
 
 export function formatCents(cents: number | null): string {
   if (cents === null) {

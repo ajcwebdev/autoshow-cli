@@ -1,25 +1,25 @@
-import { readdir, readFile, stat } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { resolve } from 'node:path'
 import { MODEL_CONFIG_FRAGMENT_PREFIXES, MODEL_CONFIG_PATHS } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type {
   CalibrationConfigPaths,
+  CalibrationGroupRates,
   CalibrationKind,
   CalibrationRecommendation,
   CalibrationReport,
+  CalibrationScan,
   CalibrationStepObservation,
   CalibrationStepShape,
   JsonObject
 } from '~/types'
-import { getFiniteNumber } from './utils'
+import { getFiniteNumber, readString } from './utils'
+import { isRecord } from '~/utils/value-helpers'
 
 const COST_DRIFT_THRESHOLD = 0.1
 const TIME_DRIFT_THRESHOLD = 0.1
 const SMOOTHING_FACTOR = 0.35
 const MAX_CHANGE_FACTOR = 0.5
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
 
 const buildStepKey = (step: Pick<CalibrationStepShape, 'kind' | 'service' | 'model'>): string => {
   return `${step.kind}::${step.service}::${step.model}`
@@ -73,29 +73,29 @@ const normalizeStepShape = (
   }
 }
 
-const normalizeUnitValue = (
+type UnitConverter = (value: number) => number
+
+const identityUnit: UnitConverter = value => value
+const millisecondsToSeconds: UnitConverter = value => value / 1000
+
+const UNIT_NORMALIZATION_RULES = {
+  stt: { durationMs: millisecondsToSeconds, durationSeconds: identityUnit },
+  extract: { pages: identityUnit },
+  llm: { tokens: identityUnit },
+  tts: { characters: identityUnit },
+  image: { images: identityUnit },
+  video: { durationMs: millisecondsToSeconds, durationSeconds: identityUnit },
+  music: { durationMs: millisecondsToSeconds, durationSeconds: identityUnit },
+} satisfies Record<CalibrationKind, Readonly<Record<string, UnitConverter>>>
+
+export const normalizeUnitValue = (
   kind: CalibrationKind,
   metric: string | null,
   value: number | null
 ): number | null => {
-  if (value === null || value <= 0) return null
-
-  switch (kind) {
-    case 'stt':
-    case 'video':
-    case 'music':
-      if (metric === 'durationMs') return value / 1000
-      if (metric === 'durationSeconds') return value
-      return null
-    case 'extract':
-      return metric === 'pages' ? value : null
-    case 'llm':
-      return metric === 'tokens' ? value : null
-    case 'tts':
-      return metric === 'characters' ? value : null
-    case 'image':
-      return metric === 'images' ? value : null
-  }
+  if (value === null || !Number.isFinite(value) || value <= 0 || metric === null) return null
+  const rules: Readonly<Record<string, UnitConverter>> = UNIT_NORMALIZATION_RULES[kind]
+  return rules[metric]?.(value) ?? null
 }
 
 const computeObservedTimeRate = (kind: CalibrationKind, actualProcessingTimeMs: number, unitValue: number): number | null => {
@@ -143,14 +143,14 @@ const getActualCostSteps = (metadata: Record<string, unknown>): Map<string, { co
 
   for (const rawStep of steps) {
     if (!isRecord(rawStep)) continue
-    const kind = typeof rawStep['step'] === 'string' ? rawStep['step'] : ''
-    const service = typeof rawStep['provider'] === 'string' ? rawStep['provider'] : ''
-    const model = typeof rawStep['model'] === 'string' ? rawStep['model'] : ''
+    const kind = readString(rawStep, 'step') ?? ''
+    const service = readString(rawStep, 'provider') ?? ''
+    const model = readString(rawStep, 'model') ?? ''
     const normalized = normalizeStepShape(kind, service, model)
     const costValue = getFiniteNumber(rawStep['cost'])
     if (!normalized || costValue === null) continue
 
-    const metric = typeof rawStep['inputMetric'] === 'string' ? rawStep['inputMetric'] : null
+    const metric = readString(rawStep, 'inputMetric')
     const inputValue = normalizeUnitValue(normalized.kind, metric, getFiniteNumber(rawStep['inputValue']))
     out.set(buildStepKey(normalized), { cost: costValue, unitValue: inputValue })
   }
@@ -168,9 +168,9 @@ const getEstimatedCostSteps = (metadata: Record<string, unknown>): Map<string, {
 
   for (const rawStep of steps) {
     if (!isRecord(rawStep)) continue
-    const kind = typeof rawStep['step'] === 'string' ? rawStep['step'] : ''
-    const service = typeof rawStep['provider'] === 'string' ? rawStep['provider'] : ''
-    const model = typeof rawStep['model'] === 'string' ? rawStep['model'] : ''
+    const kind = readString(rawStep, 'step') ?? ''
+    const service = readString(rawStep, 'provider') ?? ''
+    const model = readString(rawStep, 'model') ?? ''
     const normalized = normalizeStepShape(kind, service, model)
     const costValue = getFiniteNumber(rawStep['cost'])
     if (!normalized || costValue === null) continue
@@ -193,16 +193,16 @@ const getTimingActualSteps = (metadata: Record<string, unknown>): Map<string, { 
 
   for (const rawStep of steps) {
     if (!isRecord(rawStep)) continue
-    const timingScope = typeof rawStep['timingScope'] === 'string' ? rawStep['timingScope'] : null
+    const timingScope = readString(rawStep, 'timingScope')
     if (timingScope !== null && timingScope !== 'wall') continue
-    const kind = typeof rawStep['step'] === 'string' ? rawStep['step'] : ''
-    const service = typeof rawStep['provider'] === 'string' ? rawStep['provider'] : ''
-    const model = typeof rawStep['model'] === 'string' ? rawStep['model'] : ''
+    const kind = readString(rawStep, 'step') ?? ''
+    const service = readString(rawStep, 'provider') ?? ''
+    const model = readString(rawStep, 'model') ?? ''
     const normalized = normalizeStepShape(kind, service, model)
     const processingTimeMs = getFiniteNumber(rawStep['processingTimeMs'])
     if (!normalized || processingTimeMs === null) continue
 
-    const metric = typeof rawStep['inputMetric'] === 'string' ? rawStep['inputMetric'] : null
+    const metric = readString(rawStep, 'inputMetric')
     const inputValue = normalizeUnitValue(normalized.kind, metric, getFiniteNumber(rawStep['inputValue']))
     out.set(buildStepKey(normalized), {
       processingTimeMs,
@@ -372,30 +372,15 @@ const collectCalibrationManifestPaths = async (runDir: string): Promise<string[]
   return [...pipelineManifests, ...metadataManifests]
 }
 
-export const buildModelCalibrationReport = async (
-  rootDir: string,
-  configPaths: CalibrationConfigPaths = MODEL_CONFIG_PATHS
-): Promise<CalibrationReport> => {
-  const observations: CalibrationStepObservation[] = []
-  let runsScanned = 0
-  let metadataFilesScanned = 0
-
+const collectCalibrationObservations = async (rootDir: string): Promise<CalibrationScan> => {
   let runEntries
   try {
     runEntries = await readdir(rootDir, { withFileTypes: true })
   } catch {
-    return {
-      generatedAt: new Date().toISOString(),
-      rootDir: resolve(rootDir),
-      runsScanned,
-      metadataFilesScanned,
-      recommendedModels: 0,
-      recommendations: [],
-    }
+    return { observations: [], runsScanned: 0, metadataFilesScanned: 0 }
   }
 
   const runDirectories = runEntries.filter((entry) => entry.isDirectory())
-  runsScanned = runDirectories.length
   const manifestPaths = (
     await Promise.all(runDirectories.map((entry) => collectCalibrationManifestPaths(resolve(rootDir, entry.name))))
   ).flat()
@@ -408,13 +393,23 @@ export const buildModelCalibrationReport = async (
     }
   }))
 
+  const observations: CalibrationStepObservation[] = []
+  let metadataFilesScanned = 0
+
   for (const parsed of parsedManifests) {
     if (!parsed) continue
     metadataFilesScanned += 1
     observations.push(...collectObservationsFromMetadata(unwrapCalibrationMetadata(parsed)))
   }
 
+  return { observations, runsScanned: runDirectories.length, metadataFilesScanned }
+}
+
+const groupObservationsByStep = (
+  observations: CalibrationStepObservation[]
+): Map<string, CalibrationStepObservation[]> => {
   const grouped = new Map<string, CalibrationStepObservation[]>()
+
   for (const observation of observations) {
     const key = buildStepKey(observation)
     const list = grouped.get(key) ?? []
@@ -422,92 +417,141 @@ export const buildModelCalibrationReport = async (
     grouped.set(key, list)
   }
 
+  return grouped
+}
+
+const loadCalibrationModelEntry = async (
+  kind: CalibrationKind,
+  service: string,
+  model: string,
+  configPaths: CalibrationConfigPaths,
+  parsedConfigCache: Map<string, JsonObject>
+): Promise<JsonObject | null> => {
+  const configPath = configPaths[kind]
+  if (!configPath) return null
+  const configFilePath = await resolveCalibrationConfigFilePath(kind, configPath, service)
+  if (!configFilePath) return null
+
+  let parsedConfig = parsedConfigCache.get(configFilePath)
+  if (!parsedConfig) {
+    try {
+      const raw = JSON.parse(await readFile(configFilePath, 'utf8')) as unknown
+      if (!isRecord(raw)) return null
+      parsedConfig = raw
+      parsedConfigCache.set(configFilePath, parsedConfig)
+    } catch {
+      return null
+    }
+  }
+
+  return getModelEntry(parsedConfig, service, model)
+}
+
+const computeGroupRates = (group: CalibrationStepObservation[]): CalibrationGroupRates => {
+  const costRatios = group
+    .filter(obs => (obs.rawEstimatedCostCents ?? 0) > 0 && (obs.actualCostCents ?? 0) >= 0)
+    .map(obs => (obs.actualCostCents as number) / (obs.rawEstimatedCostCents as number))
+    .filter(value => Number.isFinite(value) && value > 0)
+
+  const timeRates = group
+    .map(obs => {
+      if (obs.actualMsPerUnit !== null) return obs.actualMsPerUnit
+      if (obs.actualProcessingTimeMs === null || obs.unitValue === null) return null
+      return computeObservedTimeRate(obs.kind, obs.actualProcessingTimeMs, obs.unitValue)
+    })
+    .filter((value): value is number => value !== null && Number.isFinite(value) && value > 0)
+
+  return { costRatios, timeRates }
+}
+
+const driftGate = (current: number | null, next: number, threshold: number): boolean => {
+  if (current === null) return true
+  const drift = current > 0 ? Math.abs((next - current) / current) : 1
+  return drift >= threshold
+}
+
+const recommendForGroup = (
+  kind: CalibrationKind,
+  service: string,
+  model: string,
+  rates: CalibrationGroupRates,
+  modelEntry: JsonObject
+): CalibrationRecommendation | null => {
+  const { costRatios, timeRates } = rates
+  const medianCost = median(costRatios)
+  const medianTime = median(timeRates)
+  const oldCost = readCurrentCostMultiplier(modelEntry)
+  const timeField = getTimeFieldName(kind)
+  const oldTime = readCurrentTimeValue(modelEntry, timeField)
+
+  let recommendedCost: number | null = null
+  let recommendedTime: number | null = null
+
+  if (medianCost !== null) {
+    const next = roundCostMultiplier(smoothValue(oldCost, medianCost))
+    if (driftGate(oldCost, next, COST_DRIFT_THRESHOLD)) {
+      recommendedCost = next
+    }
+  }
+
+  if (medianTime !== null) {
+    const next = roundTimeValue(smoothValue(oldTime, medianTime))
+    if (driftGate(oldTime, next, TIME_DRIFT_THRESHOLD)) {
+      recommendedTime = next
+    }
+  }
+
+  if (recommendedCost === null && recommendedTime === null) {
+    return null
+  }
+
+  const notes = recommendedTime !== null && timeRates.length > 0
+    ? ['Timing calibration uses wall-clock latency observations.']
+    : []
+
+  return {
+    kind,
+    service,
+    model,
+    costSamples: costRatios.length,
+    timeSamples: timeRates.length,
+    oldCostMultiplier: oldCost,
+    recommendedCostMultiplier: recommendedCost,
+    medianCostMultiplier: medianCost,
+    timeField,
+    oldTimeValue: oldTime,
+    recommendedTimeValue: recommendedTime,
+    medianTimeValue: medianTime,
+    ...(notes.length > 0 ? { notes } : {}),
+  }
+}
+
+export const buildModelCalibrationReport = async (
+  rootDir: string,
+  configPaths: CalibrationConfigPaths = MODEL_CONFIG_PATHS
+): Promise<CalibrationReport> => {
+  const { observations, runsScanned, metadataFilesScanned } = await collectCalibrationObservations(rootDir)
+  const grouped = groupObservationsByStep(observations)
   const parsedConfigCache = new Map<string, JsonObject>()
   const recommendations: CalibrationRecommendation[] = []
 
   for (const [key, group] of grouped) {
     const [kind, service, model] = key.split('::')
     if (!kind || !service || !model) continue
+
     const calibrationKind = kind as CalibrationKind
-    const configPath = configPaths[calibrationKind]
-    if (!configPath) continue
-    const configFilePath = await resolveCalibrationConfigFilePath(calibrationKind, configPath, service)
-    if (!configFilePath) continue
-
-    let parsedConfig = parsedConfigCache.get(configFilePath)
-    if (!parsedConfig) {
-      try {
-        const raw = JSON.parse(await readFile(configFilePath, 'utf8')) as unknown
-        if (!isRecord(raw)) continue
-        parsedConfig = raw
-        parsedConfigCache.set(configFilePath, parsedConfig)
-      } catch {
-        continue
-      }
-    }
-
-    const modelEntry = getModelEntry(parsedConfig, service, model)
+    const modelEntry = await loadCalibrationModelEntry(calibrationKind, service, model, configPaths, parsedConfigCache)
     if (!modelEntry) continue
 
-    const costRatios = group
-      .filter(obs => (obs.rawEstimatedCostCents ?? 0) > 0 && (obs.actualCostCents ?? 0) >= 0)
-      .map(obs => (obs.actualCostCents as number) / (obs.rawEstimatedCostCents as number))
-      .filter(value => Number.isFinite(value) && value > 0)
-
-    const timeRates = group
-      .map(obs => {
-        if (obs.actualMsPerUnit !== null) return obs.actualMsPerUnit
-        if (obs.actualProcessingTimeMs === null || obs.unitValue === null) return null
-        return computeObservedTimeRate(obs.kind, obs.actualProcessingTimeMs, obs.unitValue)
-      })
-      .filter((value): value is number => value !== null && Number.isFinite(value) && value > 0)
-
-    const medianCost = median(costRatios)
-    const medianTime = median(timeRates)
-    const oldCost = readCurrentCostMultiplier(modelEntry)
-    const timeField = getTimeFieldName(calibrationKind)
-    const oldTime = readCurrentTimeValue(modelEntry, timeField)
-
-    let recommendedCost: number | null = null
-    let recommendedTime: number | null = null
-
-    if (medianCost !== null) {
-      const next = roundCostMultiplier(smoothValue(oldCost, medianCost))
-      const baseline = oldCost ?? 1
-      const drift = Math.abs((next - baseline) / baseline)
-      if (oldCost === null || drift >= COST_DRIFT_THRESHOLD) {
-        recommendedCost = next
-      }
-    }
-
-    if (medianTime !== null) {
-      const next = roundTimeValue(smoothValue(oldTime, medianTime))
-      const baseline = oldTime ?? medianTime
-      const drift = baseline > 0 ? Math.abs((next - baseline) / baseline) : 1
-      if (oldTime === null || drift >= TIME_DRIFT_THRESHOLD) {
-        recommendedTime = next
-      }
-    }
-
-    if (recommendedCost !== null || recommendedTime !== null) {
-      const notes = recommendedTime !== null && timeRates.length > 0
-        ? ['Timing calibration uses wall-clock latency observations.']
-        : []
-      recommendations.push({
-        kind: calibrationKind,
-        service,
-        model,
-        costSamples: costRatios.length,
-        timeSamples: timeRates.length,
-        oldCostMultiplier: oldCost,
-        recommendedCostMultiplier: recommendedCost,
-        medianCostMultiplier: medianCost,
-        timeField,
-        oldTimeValue: oldTime,
-        recommendedTimeValue: recommendedTime,
-        medianTimeValue: medianTime,
-        ...(notes.length > 0 ? { notes } : {}),
-      })
+    const recommendation = recommendForGroup(
+      calibrationKind,
+      service,
+      model,
+      computeGroupRates(group),
+      modelEntry
+    )
+    if (recommendation) {
+      recommendations.push(recommendation)
     }
   }
 

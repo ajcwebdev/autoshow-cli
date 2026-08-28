@@ -1,19 +1,8 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { basename, dirname, resolve } from 'node:path'
-
-export type DialogueWorkItem<TResult> = {
-  workspaceName: string
-  run: (workspaceDir: string, signal: AbortSignal) => Promise<TResult>
-}
-
-export type DialogueWorkSelectorOptions<TResult> = {
-  concurrency: number
-  workspaceRoot: string
-  work: readonly DialogueWorkItem<TResult>[]
-}
-
-const normalizeConcurrency = (value: number): number =>
-  Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1
+import type { DialogueWorkItem, DialogueWorkSelectorOptions } from '~/types'
+import { InfraError, ValidationError } from '~/utils/error-handler'
+import { normalizePositiveInt } from '~/utils/value-helpers'
 
 const resolveWorkspaces = <TResult>(
   workspaceRoot: string,
@@ -31,10 +20,10 @@ const resolveWorkspaces = <TResult>(
       && dirname(workspaceDir) === root
 
     if (!isSafeName) {
-      throw new Error(`Invalid dialogue workspace name: ${entry.workspaceName}`)
+      throw ValidationError(`Invalid dialogue workspace name: ${entry.workspaceName}`, { stage: 'tts:dialogue', retryable: false })
     }
     if (seen.has(workspaceDir)) {
-      throw new Error(`Duplicate dialogue workspace name: ${entry.workspaceName}`)
+      throw ValidationError(`Duplicate dialogue workspace name: ${entry.workspaceName}`, { stage: 'tts:dialogue', retryable: false })
     }
 
     seen.add(workspaceDir)
@@ -70,7 +59,7 @@ export const runDialogueWorkSelector = async <TResult>(
     try {
       await mkdir(entry.workspaceDir, { recursive: true })
       if (controller.signal.aborted) {
-        throw controller.signal.reason ?? new Error('Dialogue work was cancelled')
+        throw controller.signal.reason ?? InfraError('Dialogue work was cancelled', { stage: 'tts:dialogue', retryable: false })
       }
       return await entry.run(entry.workspaceDir, controller.signal)
     } catch (error) {
@@ -103,7 +92,7 @@ export const runDialogueWorkSelector = async <TResult>(
     }
   }
 
-  const workerCount = Math.min(normalizeConcurrency(options.concurrency), entries.length)
+  const workerCount = Math.min(normalizePositiveInt(options.concurrency), entries.length)
   await Promise.all(Array.from({ length: workerCount }, async () => await runWorker()))
 
   if (failed) {

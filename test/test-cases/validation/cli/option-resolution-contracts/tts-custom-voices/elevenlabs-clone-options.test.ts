@@ -1,26 +1,17 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { validateElevenLabsTtsIvcAudio } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/elevenlabs-ivc'
 import { LOCAL_SHORT_AUDIO_PATH } from './shared'
+import { makeTempDir } from '../../../../../test-utils/temp-dirs'
 
 describe('ElevenLabs clone option contracts', () => {
-  test('synthesis option resolution rejects ElevenLabs clone creation with management guidance', () => {
-      expect(() => buildOptsFromFlags(false, {
-        'elevenlabs-tts': 'eleven_v3',
-        'elevenlabs-tts-ref-audio': 'input/examples/audio/anthony-voice.mp3',
-        'elevenlabs-tts-voice-name': 'AutoShow Anthony',
-        'elevenlabs-tts-clone-remove-background-noise': true
-      }, {}, new Set(['elevenlabs-tts-ref-audio']))).toThrow('cannot perform reference-audio cloning during TTS synthesis')
-    })
-
   test('elevenlabs synthesis accepts only an existing voice identity', () => {
-      const existingVoice = buildOptsFromFlags(false, {
+      const existingVoice = buildOptsFromFlags({
         'elevenlabs-tts': 'eleven_v3',
-        'elevenlabs-voice': 'voice_existing123'
+        'tts-voice': 'voice_existing123'
       })
 
       expect(collectTtsTargets(existingVoice).map((target) => target.voice)).toEqual(['voice_existing123'])
@@ -31,7 +22,7 @@ describe('ElevenLabs clone option contracts', () => {
       expect(sample.basename).toBe('anthony-voice.mp3')
       expect(sample.mimeType).toBe('audio/mpeg')
 
-      const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-elevenlabs-ref-audio-'))
+      const tempDir = await makeTempDir('autoshow-elevenlabs-ref-audio-')
       const emptyPath = join(tempDir, 'empty.mp3')
       const textPath = join(tempDir, 'not-audio.txt')
       await writeFile(emptyPath, '')

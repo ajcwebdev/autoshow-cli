@@ -1,7 +1,7 @@
 import type { SoundEffectSynthesisTask, SoundEffectTarget, SoundscapeCueRoutingDecision } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 
-export const soundEffectTargetSupportsKind = (target: SoundEffectTarget, kind: SoundEffectSynthesisTask['kind']): boolean =>
+const soundEffectTargetSupportsKind = (target: SoundEffectTarget, kind: SoundEffectSynthesisTask['kind']): boolean =>
   (target.provider !== 'replicate' && target.provider !== 'stability') || kind !== 'vocal-reaction'
 
 const unsupportedReason = (target: SoundEffectTarget, kind: SoundEffectSynthesisTask['kind']): string =>
@@ -20,7 +20,7 @@ export const routeSoundscapeSynthesisTasks = (input: {
     return { cueId: task.cueId, kind: task.kind, required: task.required, route: 'unsupported', reason: unsupportedReason(input.target, task.kind) }
   })
   const requiredUnsupported = decisions.find(decision => decision.route === 'unsupported' && decision.required)
-  if (requiredUnsupported?.reason) throw CLIUsageError(requiredUnsupported.reason)
+  if (requiredUnsupported?.reason) throw UsageError(requiredUnsupported.reason)
   return {
     decisions,
     sfxTasks: input.tasks.filter((_, index) => decisions[index]?.route === 'dedicated-sfx'),

@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import type { AggregatedPriceEstimate, ExtractRoute, ExtractRouteResumeHandler, OcrExtractionOptions, OcrTarget, PipelineManifest, PipelineManifestChildLink, ResumeHandler, ResumeResult, ResumeTarget, SttExtractionOptions, StepEstimate, SttTarget, UrlArticleTarget, UrlExtractionOptions } from '~/types'
+import type { AggregatedPriceEstimate, ExtractResumeOptions, ExtractRoute, ExtractRouteResumeHandler, OcrExtractionOptions, OcrTarget, PipelineManifest, PipelineManifestChildLink, ResumeHandler, ResumeResult, ResumeTarget, SttExtractionOptions, StepEstimate, SttTarget, UrlArticleTarget, UrlExtractionOptions } from '~/types'
 import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
 import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 import { hasResumableOcrTargetWork, priceOcrTarget, resumeOcrTarget } from './extract/ocr-resume'
@@ -13,7 +13,7 @@ import { buildGenerationResumeHandler } from './generation-resume'
 import { writeResumeConfig } from './write/write-resume'
 import { PIPELINE_MANIFEST_FILE, readManifest, resolveManifestRelativePath, toManifestRelativePath, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 
 const EXPLICIT_STEP2_SELECTION_FILTER = {
   includeOrigins: ['explicit', 'all-shortcut']
@@ -24,8 +24,6 @@ const EMPTY_RESUME_RESULT: ResumeResult = {
   incomplete: 0,
   failed: 0
 }
-
-type ExtractResumeOptions = SttExtractionOptions & OcrExtractionOptions & UrlExtractionOptions
 
 const addResumeResult = (
   totals: ResumeResult,
@@ -86,7 +84,7 @@ const invalidExtractParentManifest = (
   parentDir: string,
   detail: string
 ): Error =>
-  CLIUsageError(`Invalid canonical extract parent manifest at ${join(parentDir, PIPELINE_MANIFEST_FILE)}: ${detail}`)
+  UsageError(`Invalid canonical extract parent manifest at ${join(parentDir, PIPELINE_MANIFEST_FILE)}: ${detail}`)
 
 const buildChildResumeTarget = (
   parentDir: string,
@@ -113,7 +111,7 @@ const readExtractManifest = async (
     return undefined
   }
   if (manifest.command !== 'extract' || manifest.scope !== target.scope) {
-    throw CLIUsageError(`Invalid extract manifest at ${target.manifestPath}.`)
+    throw UsageError(`Invalid extract manifest at ${target.manifestPath}.`)
   }
   return manifest
 }
@@ -317,7 +315,7 @@ const urlArticleResumeHandler: ExtractRouteResumeHandler<UrlExtractionOptions> =
 }
 
 const throwXSpaceNotResumable = (): never => {
-  throw CLIUsageError('X-Space runs are not resumable. Re-run the pipeline instead.')
+  throw UsageError('X-Space runs are not resumable. Re-run the pipeline instead.')
 }
 
 const assertNoXSpaceResumeTarget = (manifest: PipelineManifest): void => {

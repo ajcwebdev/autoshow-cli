@@ -1,3 +1,5 @@
+import type { GenerationPricingProviders, GenerationSelectionDescriptor, GenerationSelectionFields } from '~/types'
+
 export const STANDALONE_TTS_PROVIDER_TARGETS = {
   elevenlabs: 'elevenlabs-tts',
   minimax: 'minimax-tts',
@@ -29,7 +31,6 @@ export const STANDALONE_IMAGE_PROVIDER_TARGETS = {
 
 export const STANDALONE_VIDEO_PROVIDER_TARGETS = {
   gemini: 'gemini-video',
-  minimax: 'minimax-video',
   grok: 'grok-video',
   ltx: 'ltx-video',
   replicate: 'replicate-video',
@@ -42,28 +43,6 @@ export const STANDALONE_MUSIC_PROVIDER_TARGETS = {
   minimax: 'minimax-music',
   gemini: 'gemini-music'
 } as const satisfies Record<string, string>
-
-type GenerationSelectionField = {
-  readonly modelsKey: string
-  readonly modelKey: string
-}
-
-type GenerationSelectionFields<TProviderTargets extends Readonly<Record<string, string>>> = {
-  readonly [Service in keyof TProviderTargets]: GenerationSelectionField
-}
-
-type GenerationSelectionDescriptor = {
-  readonly providerTargets: Readonly<Record<string, string>>
-  readonly selections: Readonly<Record<string, GenerationSelectionField>>
-}
-
-type GenerationPricingProviders<TDescriptor extends GenerationSelectionDescriptor> = Array<{
-  [Service in keyof TDescriptor['providerTargets'] & keyof TDescriptor['selections'] & string]: {
-    service: Service
-    modelsKey: TDescriptor['selections'][Service]['modelsKey']
-    modelKey: TDescriptor['selections'][Service]['modelKey']
-  }
-}[keyof TDescriptor['providerTargets'] & keyof TDescriptor['selections'] & string]>
 
 const defineGenerationSelectionDescriptor = <
   const TProviderTargets extends Readonly<Record<string, string>>,
@@ -78,16 +57,15 @@ export const deriveGenerationPricingProviders = <const TDescriptor extends Gener
 ): GenerationPricingProviders<TDescriptor> =>
   Object.keys(descriptor.providerTargets).map((service) => ({
     service,
-    modelsKey: descriptor.selections[service]!.modelsKey,
-    modelKey: descriptor.selections[service]!.modelKey
+    modelsKey: descriptor.selections[service]!.modelsKey
   })) as GenerationPricingProviders<TDescriptor>
 
 export const deriveGenerationResumeModelFields = <const TDescriptor extends GenerationSelectionDescriptor>(
   descriptor: TDescriptor
-): Readonly<Record<string, readonly [modelsKey: string, modelKey: string]>> =>
+): Readonly<Record<string, string>> =>
   Object.fromEntries(Object.keys(descriptor.providerTargets).map((service) => [
     service,
-    [descriptor.selections[service]!.modelsKey, descriptor.selections[service]!.modelKey] as const
+    descriptor.selections[service]!.modelsKey
   ]))
 
 export const deriveGenerationResumeProviderFlags = <const TDescriptor extends GenerationSelectionDescriptor>(
@@ -98,57 +76,56 @@ export const deriveGenerationResumeProviderFlags = <const TDescriptor extends Ge
 export const TTS_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   STANDALONE_TTS_PROVIDER_TARGETS,
   {
-    elevenlabs: { modelsKey: 'elevenlabsTtsModels', modelKey: 'elevenlabsTtsModel' },
-    minimax: { modelsKey: 'minimaxTtsModels', modelKey: 'minimaxTtsModel' },
-    groq: { modelsKey: 'groqTtsModels', modelKey: 'groqTtsModel' },
-    grok: { modelsKey: 'grokTtsModels', modelKey: 'grokTtsModel' },
-    mistral: { modelsKey: 'mistralTtsModels', modelKey: 'mistralTtsModel' },
-    openai: { modelsKey: 'openaiTtsModels', modelKey: 'openaiTtsModel' },
-    gemini: { modelsKey: 'geminiTtsModels', modelKey: 'geminiTtsModel' },
-    deepgram: { modelsKey: 'deepgramTtsModels', modelKey: 'deepgramTtsModel' },
-    speechify: { modelsKey: 'speechifyTtsModels', modelKey: 'speechifyTtsModel' },
-    hume: { modelsKey: 'humeTtsModels', modelKey: 'humeTtsModel' },
-    cartesia: { modelsKey: 'cartesiaTtsModels', modelKey: 'cartesiaTtsModel' },
-    fish: { modelsKey: 'fishTtsModels', modelKey: 'fishTtsModel' },
-    inworld: { modelsKey: 'inworldTtsModels', modelKey: 'inworldTtsModel' },
-    deepinfra: { modelsKey: 'deepinfraTtsModels', modelKey: 'deepinfraTtsModel' },
-    replicate: { modelsKey: 'replicateTtsModels', modelKey: 'replicateTtsModel' },
-    fal: { modelsKey: 'falTtsModels', modelKey: 'falTtsModel' }
+    elevenlabs: { modelsKey: 'elevenlabsTtsModels' },
+    minimax: { modelsKey: 'minimaxTtsModels' },
+    groq: { modelsKey: 'groqTtsModels' },
+    grok: { modelsKey: 'grokTtsModels' },
+    mistral: { modelsKey: 'mistralTtsModels' },
+    openai: { modelsKey: 'openaiTtsModels' },
+    gemini: { modelsKey: 'geminiTtsModels' },
+    deepgram: { modelsKey: 'deepgramTtsModels' },
+    speechify: { modelsKey: 'speechifyTtsModels' },
+    hume: { modelsKey: 'humeTtsModels' },
+    cartesia: { modelsKey: 'cartesiaTtsModels' },
+    fish: { modelsKey: 'fishTtsModels' },
+    inworld: { modelsKey: 'inworldTtsModels' },
+    deepinfra: { modelsKey: 'deepinfraTtsModels' },
+    replicate: { modelsKey: 'replicateTtsModels' },
+    fal: { modelsKey: 'falTtsModels' }
   }
 )
 
 export const IMAGE_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   STANDALONE_IMAGE_PROVIDER_TARGETS,
   {
-    gemini: { modelsKey: 'geminiImageModels', modelKey: 'geminiImageModel' },
-    openai: { modelsKey: 'openaiImageModels', modelKey: 'openaiImageModel' },
-    grok: { modelsKey: 'grokImageModels', modelKey: 'grokImageModel' },
-    bfl: { modelsKey: 'bflImageModels', modelKey: 'bflImageModel' },
-    replicate: { modelsKey: 'replicateImageModels', modelKey: 'replicateImageModel' },
-    lumalabs: { modelsKey: 'lumalabsImageModels', modelKey: 'lumalabsImageModel' },
-    fal: { modelsKey: 'falImageModels', modelKey: 'falImageModel' }
+    gemini: { modelsKey: 'geminiImageModels' },
+    openai: { modelsKey: 'openaiImageModels' },
+    grok: { modelsKey: 'grokImageModels' },
+    bfl: { modelsKey: 'bflImageModels' },
+    replicate: { modelsKey: 'replicateImageModels' },
+    lumalabs: { modelsKey: 'lumalabsImageModels' },
+    fal: { modelsKey: 'falImageModels' }
   }
 )
 
 export const VIDEO_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   STANDALONE_VIDEO_PROVIDER_TARGETS,
   {
-    gemini: { modelsKey: 'geminiVideoModels', modelKey: 'geminiVideoModel' },
-    minimax: { modelsKey: 'minimaxVideoModels', modelKey: 'minimaxVideoModel' },
-    grok: { modelsKey: 'grokVideoModels', modelKey: 'grokVideoModel' },
-    ltx: { modelsKey: 'ltxVideoModels', modelKey: 'ltxVideoModel' },
-    replicate: { modelsKey: 'replicateVideoModels', modelKey: 'replicateVideoModel' },
-    lumalabs: { modelsKey: 'lumalabsVideoModels', modelKey: 'lumalabsVideoModel' },
-    fal: { modelsKey: 'falVideoModels', modelKey: 'falVideoModel' }
+    gemini: { modelsKey: 'geminiVideoModels' },
+    grok: { modelsKey: 'grokVideoModels' },
+    ltx: { modelsKey: 'ltxVideoModels' },
+    replicate: { modelsKey: 'replicateVideoModels' },
+    lumalabs: { modelsKey: 'lumalabsVideoModels' },
+    fal: { modelsKey: 'falVideoModels' }
   }
 )
 
 export const MUSIC_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   STANDALONE_MUSIC_PROVIDER_TARGETS,
   {
-    elevenlabs: { modelsKey: 'elevenlabsMusicModels', modelKey: 'elevenlabsMusicModel' },
-    minimax: { modelsKey: 'minimaxMusicModels', modelKey: 'minimaxMusicModel' },
-    gemini: { modelsKey: 'geminiMusicModels', modelKey: 'geminiMusicModel' }
+    elevenlabs: { modelsKey: 'elevenlabsMusicModels' },
+    minimax: { modelsKey: 'minimaxMusicModels' },
+    gemini: { modelsKey: 'geminiMusicModels' }
   }
 )
 
@@ -157,7 +134,6 @@ export const WRITE_STT_PROVIDER_TARGETS = {
   deepgram: 'deepgram-stt',
   soniox: 'soniox-stt',
   speechmatics: 'speechmatics-stt',
-  rev: 'rev-stt',
   groq: 'groq-stt',
   grok: 'grok-stt',
   mistral: 'mistral-stt',
@@ -181,9 +157,7 @@ export const WRITE_OCR_PROVIDER_TARGETS = {
   grok: 'grok-ocr',
   anthropic: 'anthropic-ocr',
   gemini: 'gemini-ocr',
-  deepinfra: 'deepinfra-ocr',
-  replicate: 'replicate-ocr',
-  fal: 'fal-ocr'
+  deepinfra: 'deepinfra-ocr'
 } as const satisfies Record<string, string>
 
 export const WRITE_LLM_PROVIDER_TARGETS = {
@@ -202,16 +176,16 @@ export const WRITE_LLM_PROVIDER_TARGETS = {
 export const WRITE_LLM_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   WRITE_LLM_PROVIDER_TARGETS,
   {
-    openai: { modelsKey: 'openaiModels', modelKey: 'openaiModel' },
-    groq: { modelsKey: 'groqModels', modelKey: 'groqModel' },
-    gemini: { modelsKey: 'geminiModels', modelKey: 'geminiModel' },
-    anthropic: { modelsKey: 'anthropicModels', modelKey: 'anthropicModel' },
-    minimax: { modelsKey: 'minimaxModels', modelKey: 'minimaxModel' },
-    grok: { modelsKey: 'grokModels', modelKey: 'grokModel' },
-    glm: { modelsKey: 'glmModels', modelKey: 'glmModel' },
-    kimi: { modelsKey: 'kimiModels', modelKey: 'kimiModel' },
-    together: { modelsKey: 'togetherModels', modelKey: 'togetherModel' },
-    cerebras: { modelsKey: 'cerebrasModels', modelKey: 'cerebrasModel' }
+    openai: { modelsKey: 'openaiModels' },
+    groq: { modelsKey: 'groqModels' },
+    gemini: { modelsKey: 'geminiModels' },
+    anthropic: { modelsKey: 'anthropicModels' },
+    minimax: { modelsKey: 'minimaxModels' },
+    grok: { modelsKey: 'grokModels' },
+    glm: { modelsKey: 'glmModels' },
+    kimi: { modelsKey: 'kimiModels' },
+    together: { modelsKey: 'togetherModels' },
+    cerebras: { modelsKey: 'cerebrasModels' }
   }
 )
 

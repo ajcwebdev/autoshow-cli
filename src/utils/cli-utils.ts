@@ -2,9 +2,11 @@ import { constants } from 'node:fs'
 import { access, mkdir } from 'node:fs/promises'
 import type { ExecOptions, ExecResult } from '~/types'
 import { readBoundedTextStream } from '~/utils/bounded-capture'
+import { extractErrorMetadata, hasErrorCode, InfraError } from '~/utils/error-handler'
+import { withRetry } from '~/utils/retries'
 import * as l from './app-logger/app-logger'
+import { childEnv } from './child-env'
 
-let envFileLoaded = false
 const DEFAULT_LINE_BUFFER_CHARS = 64 * 1024
 
 const readStreamText = async (
@@ -65,60 +67,21 @@ const readStreamText = async (
   }
 }
 
-const DEFAULT_EXEC_RETRY_ATTEMPTS = 2
-const DEFAULT_EXEC_RETRY_BASE_DELAY_MS = 1_000
-const DEFAULT_EXEC_RETRY_MAX_DELAY_MS = 8_000
-
-const computeExecRetryDelay = (
-  attempt: number,
-  baseDelayMs: number,
-  maxDelayMs: number
-): number => {
-  const exponential = baseDelayMs * Math.pow(2, attempt - 1)
-  const jittered = exponential * (0.5 + Math.random() * 0.5)
-  return Math.round(Math.min(jittered, maxDelayMs))
-}
-
-const sleepWithAbortSignal = async (
-  delayMs: number,
-  signal?: AbortSignal | undefined
-): Promise<void> => {
-  signal?.throwIfAborted()
-  if (!signal) {
-    await Bun.sleep(delayMs)
-    return
-  }
-
-  await new Promise<void>((resolve, reject) => {
-    const onAbort = (): void => {
-      clearTimeout(timer)
-      reject(signal.reason ?? new DOMException('The operation was aborted.', 'AbortError'))
-    }
-    const timer = setTimeout(() => {
-      signal.removeEventListener('abort', onAbort)
-      resolve()
-    }, delayMs)
-    signal.addEventListener('abort', onAbort, { once: true })
-  })
-}
-
 const execOnce = async (
   command: string,
   args: string[],
   opts?: ExecOptions
 ): Promise<ExecResult> => {
   opts?.signal?.throwIfAborted()
-  const env = opts?.env ? { ...process.env, ...opts.env } : undefined
   const proc = Bun.spawn([command, ...args], {
     stdout: 'pipe',
     stderr: 'pipe',
-    ...(env ? { env: env as Record<string, string | undefined> } : {})
+    env: childEnv({ set: opts?.env })
   })
   const onAbort = (): void => {
     try {
       proc.kill()
     } catch {
-      // The process may already have exited between the abort and this callback.
     }
   }
   opts?.signal?.addEventListener('abort', onAbort, { once: true })
@@ -160,50 +123,50 @@ export const exec = async (
     return await execOnce(command, args, opts)
   }
 
-  const maxAttempts = Math.max(1, Math.floor(retry.maxAttempts ?? DEFAULT_EXEC_RETRY_ATTEMPTS))
-  const baseDelayMs = retry.baseDelayMs ?? DEFAULT_EXEC_RETRY_BASE_DELAY_MS
-  const maxDelayMs = retry.maxDelayMs ?? DEFAULT_EXEC_RETRY_MAX_DELAY_MS
-  const label = retry.operationName ?? command
-
+  const operationName = retry.operationName ?? command
   let lastResult: ExecResult | undefined
-  let lastError: unknown
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    opts?.signal?.throwIfAborted()
-    let result: ExecResult | undefined
-    let failureReason: string | undefined
-
-    try {
-      result = await execOnce(command, args, opts)
-      if (result.exitCode === 0) {
-        return result
+  try {
+    return await withRetry(
+      {
+        retryClass: 'runtime_subprocess_transient',
+        operationName,
+        ...(opts?.signal ? { abortSignal: opts.signal } : {})
+      },
+      async () => {
+        const result = await execOnce(command, args, opts)
+        if (result.exitCode === 0) {
+          return result
+        }
+        lastResult = result
+        throw InfraError(`${operationName} failed (exit code ${result.exitCode})`, {
+          stage: 'exec',
+          metadata: { command, exitCode: result.exitCode }
+        })
       }
-      lastResult = result
-      failureReason = `exit code ${result.exitCode}`
-    } catch (error) {
-      opts?.signal?.throwIfAborted()
-      lastError = error
-      failureReason = error instanceof Error ? error.message : String(error)
-    }
-
+    )
+  } catch (error) {
     opts?.signal?.throwIfAborted()
-
-    if (attempt >= maxAttempts) {
-      break
+    if (!lastResult) {
+      throw error
     }
 
-    const delayMs = computeExecRetryDelay(attempt, baseDelayMs, maxDelayMs)
-    l.write('warn', `${label} failed (${failureReason}); retrying (${attempt}/${maxAttempts}) in ${delayMs}ms`, {
+    const metadata = extractErrorMetadata(error)
+    l.write('warn', 'Exec Retry Exhausted', {
       category: 'pipeline',
-      metadata: { command, attempt, maxAttempts, failureReason, delayMs }
+      metadata: {
+        operation: operationName,
+        command,
+        exitCode: lastResult.exitCode,
+        attemptsMade: metadata['attemptsMade'],
+        maxAttempts: metadata['maxAttempts'],
+        elapsedMs: metadata['elapsedMs'],
+        stopReason: metadata['stopReason'],
+        retryClass: 'runtime_subprocess_transient'
+      }
     })
-    await sleepWithAbortSignal(delayMs, opts?.signal)
-  }
-
-  if (lastResult) {
     return lastResult
   }
-  throw lastError ?? new Error(`${label} failed`)
 }
 
 export const commandExists = (command: string): boolean => {
@@ -218,41 +181,11 @@ export const pick = <T extends object, K extends keyof T>(obj: T, keys: readonly
   return result
 }
 
-export const loadEnvFile = async (): Promise<void> => {
-  try {
-    if (envFileLoaded) {
-      return
-    }
-    const envPath = '.env'
-    const exists = await fileExists(envPath)
-    if (!exists) {
-      return
-    }
-    const content = await Bun.file(envPath).text()
-    const lines = content.split('\n')
-    lines.forEach(line => {
-      const trimmedLine = line.trim()
-      if (trimmedLine && !trimmedLine.startsWith('#')) {
-        const [key, ...valueParts] = trimmedLine.split('=')
-        if (!key || valueParts.length === 0) {
-          l.warn(`Skipping malformed .env line: ${trimmedLine.slice(0, 40)}${trimmedLine.length > 40 ? '...' : ''}`)
-          return
-        }
-        const value = valueParts.join('=').replace(/^["']|["']$/g, '')
-        process.env[key.trim()] = value.trim()
-      }
-    })
-    envFileLoaded = true
-  } catch (error) {
-    l.error(`Failed to load .env file`, error)
-  }
-}
-
 export const ensureDirectory = async (dirPath: string): Promise<void> => {
   try {
     await mkdir(dirPath, { recursive: true })
   } catch (error) {
-    l.error(`Failed to create directory: ${dirPath}`, error)
+    l.error(`Failed to create directory: ${dirPath}`, { category: 'artifact', error, metadata: { dirPath } })
     throw error
   }
 }
@@ -261,7 +194,7 @@ export const writeFile = async (filePath: string, content: string): Promise<void
   try {
     await Bun.write(filePath, content)
   } catch (error) {
-    l.error(`Failed to write file: ${filePath}`, error)
+    l.error(`Failed to write file: ${filePath}`, { category: 'artifact', error, metadata: { filePath } })
     throw error
   }
 }
@@ -271,10 +204,7 @@ export const fileExists = async (filePath: string): Promise<boolean> => {
     await access(filePath, constants.F_OK)
     return true
   } catch (error) {
-    const code = error instanceof Error && 'code' in error
-      ? (error as NodeJS.ErrnoException).code
-      : undefined
-    if (code === 'ENOENT' || code === 'ENOTDIR' || code === 'ENAMETOOLONG') {
+    if (['ENOENT', 'ENOTDIR', 'ENAMETOOLONG'].some((code) => hasErrorCode(error, code))) {
       return false
     }
     throw error

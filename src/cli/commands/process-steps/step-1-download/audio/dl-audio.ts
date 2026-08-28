@@ -1,21 +1,20 @@
 import { copyFile, rename, rm } from 'node:fs/promises'
-import { randomUUID } from 'node:crypto'
 import { basename, extname, join } from 'node:path'
 import type { DownloadAudioOptions, Step1Metadata, VideoMetadata } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { downloadVideo } from './yt-utils'
 import { exec } from '~/utils/cli-utils'
 import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { buildMediaStep1Slug, sanitizeTitleSlug } from './metadata-utils'
 import { MEDIA_EXTENSIONS } from '~/cli/commands/process-steps/step-0-metadata/formats/metadata-media-extensions'
 import { withRetry, classifyFetchRetry } from '~/utils/retries'
+import { MEDIA_DOWNLOAD_TIMEOUT_MS } from '~/utils/timeouts'
 import { materializeNormalizedAudioArtifact, planNormalizedAudioArtifact } from './audio-normalize'
 import { logAudioDownload, logAudioNormalize, logAudioOutput } from './audio-logging'
 import { getYtDlpBinary, hasYtDlpBinary } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
 import { hasRuntimeTool } from '~/utils/runtime-paths'
 import { httpResponseError } from '~/utils/rest-client'
-
 
 let ytDlpVersionVerified = false
 
@@ -32,7 +31,7 @@ const createTempDownloadPath = (
   outputDir: string,
   prefix: string,
   extension: string
-): string => join(outputDir, `${prefix}-${randomUUID()}${extension}`)
+): string => join(outputDir, `${prefix}-${crypto.randomUUID()}${extension}`)
 
 const inferExtensionFromContentType = (contentType: string): string => (
   contentType.includes('mpeg') ? '.mp3'
@@ -108,9 +107,13 @@ const downloadDirectMediaUrl = async (url: string, outputDir: string): Promise<s
   const fileExtension = extname(pathname) || '.mp3'
   const dest = createTempDownloadPath(outputDir, 'downloaded-media', fileExtension)
   const response = await withRetry(
-    { retryClass: 'runtime_http_read', operationName: 'direct-media-download' },
-    async () => {
-      const r = await fetch(url)
+    {
+      retryClass: 'runtime_http_read',
+      operationName: 'direct-media-download',
+      timeoutMs: MEDIA_DOWNLOAD_TIMEOUT_MS
+    },
+    async (signal) => {
+      const r = await fetch(url, { ...(signal ? { signal } : {}) })
       if (!r.ok) {
         throw httpResponseError(`Failed to download ${url}: HTTP ${r.status}`, r)
       }
@@ -171,16 +174,20 @@ const verifyYtDlpVersion = async (): Promise<void> => {
 
     ytDlpVersionVerified = true
   } catch (error) {
-    l.error(`yt-dlp verification failed`, error)
+    l.error(`yt-dlp verification failed`, { category: 'pipeline', error })
     throw error
   }
 }
 
 const downloadDirectAudioUrl = async (url: string, outputDir: string): Promise<string> => {
   const resp = await withRetry(
-    { retryClass: 'runtime_http_read', operationName: 'direct-audio-download' },
-    async () => {
-      const r = await fetch(url, { redirect: 'follow' })
+    {
+      retryClass: 'runtime_http_read',
+      operationName: 'direct-audio-download',
+      timeoutMs: MEDIA_DOWNLOAD_TIMEOUT_MS
+    },
+    async (signal) => {
+      const r = await fetch(url, { redirect: 'follow', ...(signal ? { signal } : {}) })
       if (!r.ok) {
         throw httpResponseError(`Direct download failed: ${r.status} ${r.statusText} (${url})`, r)
       }
@@ -223,7 +230,7 @@ export const downloadAudio = async (options: DownloadAudioOptions, videoMetadata
   let audioPath = ''
   if (options.filePath) {
     if (hasYtDlpPassthroughArgs) {
-      throw CLIUsageError('yt-dlp passthrough args (--) are not supported for local file inputs')
+      throw UsageError('yt-dlp passthrough args (--) are not supported for local file inputs')
     }
     if (preserveOriginalMedia) {
       audioPath = await finalizeDownloadedMedia(options.filePath, options.outputDir, videoMetadata, { copy: true })

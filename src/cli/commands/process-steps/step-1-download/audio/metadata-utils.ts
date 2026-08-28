@@ -2,13 +2,13 @@ import * as l from '~/utils/app-logger/app-logger'
 import { validateData, validateDataSafe } from '~/utils/validate/validation'
 import { exec } from '~/utils/cli-utils'
 import { getFfprobeBinary } from '~/utils/runtime-paths'
-import { InfraError } from '~/utils/error-handler'
+import { InfraError, serializeDiagnosticError } from '~/utils/error-handler'
 import { YtDlpVideoInfoSchema, VideoMetadataSchema } from '~/types'
 import { MEDIA_EXTENSIONS } from '~/cli/commands/process-steps/step-0-metadata/formats/metadata-media-extensions'
 import { buildYtDlpFailureMessage, buildYtDlpMetadataArgs } from '~/cli/commands/process-steps/shared/shared-yt-dlp-options'
 import { getYtDlpBinary } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
-import type { Step1SourceRef, VideoMetadata, YtDlpVideoInfo } from '~/types'
-import { fileFingerprintsMatch, getFileFingerprint, readJsonCacheMap, writeJsonCacheEntry, type FileFingerprint } from '~/utils/file-fingerprint-cache'
+import type { FileFingerprint, LocalFileMetadataCacheEntry, Step1SourceRef, VideoMetadata, YtDlpVideoInfo } from '~/types'
+import { fileFingerprintsMatch, getFileFingerprint, readJsonCacheMap, writeJsonCacheEntry } from '~/utils/file-fingerprint-cache'
 
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -24,7 +24,11 @@ const writeVideoInfoCache = async (url: string, data: YtDlpVideoInfo): Promise<v
       key: url,
       value: data
     })
-  } catch {
+  } catch (error) {
+    l.write('debug', 'Failed to cache yt-dlp video info', {
+      category: 'artifact',
+      metadata: { cachePath: VIDEO_INFO_CACHE_FILE, url, error: serializeDiagnosticError(error) }
+    })
   }
 }
 
@@ -43,7 +47,7 @@ export const getVideoInfo = async (url: string): Promise<YtDlpVideoInfo | null> 
     const result = await exec(getYtDlpBinary(), args)
 
     if (result.exitCode !== 0) {
-      l.warn(buildYtDlpFailureMessage('metadata', result.stderr || result.stdout || 'unknown yt-dlp error'))
+      l.warn(buildYtDlpFailureMessage('metadata', result.stderr || result.stdout || 'unknown yt-dlp error'), { category: 'pipeline' })
       return null
     }
 
@@ -58,7 +62,7 @@ export const getVideoInfo = async (url: string): Promise<YtDlpVideoInfo | null> 
     return videoInfoData
 
   } catch (error) {
-    l.error(`Failed to get video info`, error)
+    l.error(`Failed to get video info`, { category: 'pipeline', error })
     return null
   }
 }
@@ -73,7 +77,7 @@ const extractVideoMetadata = async (url: string): Promise<VideoMetadata> => {
     
     return getFallbackMetadata(url)
   } catch (error) {
-    l.error(`Failed to extract video metadata`, error)
+    l.error(`Failed to extract video metadata`, { category: 'pipeline', error })
     return getFallbackMetadata(url)
   }
 }
@@ -220,11 +224,6 @@ export const createUniqueDirectoryName = (title: string): string => {
 const LOCAL_FILE_METADATA_CACHE_FILE = join(tmpdir(), 'autoshow-local-file-metadata-cache.json')
 const LOCAL_FILE_METADATA_CACHE_LOCK = 'local-file-metadata-cache'
 
-type LocalFileMetadataCacheEntry = {
-  data: VideoMetadata
-  fingerprint: FileFingerprint
-}
-
 const getCachedLocalFileMetadata = async (filePath: string): Promise<VideoMetadata | undefined> => {
   const cache = await readJsonCacheMap<LocalFileMetadataCacheEntry>(LOCAL_FILE_METADATA_CACHE_FILE)
   const entry = cache[resolve(filePath)]
@@ -249,7 +248,11 @@ const writeLocalFileMetadataCache = async (
       key: resolve(filePath),
       value: { data, fingerprint }
     })
-  } catch {
+  } catch (error) {
+    l.write('debug', 'Failed to cache local file metadata', {
+      category: 'artifact',
+      metadata: { cachePath: LOCAL_FILE_METADATA_CACHE_FILE, filePath, error: serializeDiagnosticError(error) }
+    })
   }
 }
 

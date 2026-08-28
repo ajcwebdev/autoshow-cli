@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { join } from 'node:path'
 import { convertDocumentToPdf, getDocumentInfo, isPdfEncryptedViaQpdf, showPdfObject } from '~/cli/commands/process-steps/step-1-download/document/mutool-utils'
 import type { DocumentMetadata, ExtractionOptions, PageResult } from '~/types'
@@ -45,7 +45,6 @@ export const isPdfEncrypted = async (
     const qpdfResult = await isPdfEncryptedViaQpdf(filePath)
     if (qpdfResult !== undefined) return qpdfResult
   } catch {
-    // qpdf unavailable or errored, fall through to mutool
   }
   try {
     const result = await showPdfObject(filePath, 'trailer/Encrypt', password)

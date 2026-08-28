@@ -7,21 +7,16 @@ import { isExtractCommand } from '~/cli/commands/process-steps/process-command-k
 import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, readManifest, resolveManifestRelativePath, toManifestRelativePath, updateManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { runSttBatch, throwIfSttBatchIncomplete } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/batch'
-import type { BatchExecutionPlan, BatchProcessResult, BatchRuntimeOptions, BatchSource, ExtractChildBatchPlan, ExtractCommandOptions, ExtractRoute, HostedConcurrencyRuntimeOptions, PipelineItemRecord, PipelineManifest, PipelineManifestItem, ProcessCommand, SingleTargetCommandOptions } from '~/types'
+import type { BatchCommandOptions, BatchExecutionPlan, BatchProcessResult, BatchSource, ExtractChildBatchPlan, ExtractCommandOptions, ExtractRoute, PipelineItemRecord, PipelineManifest, PipelineManifestItem, ProcessCommand } from '~/types'
 import { processSingleTarget } from '../single/single-target-runner'
 import { processBatch } from './process-download-batch'
-import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { createHostedOcrScheduler } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
+import type { OptionsAssertion } from '~/types'
+import { createOptionsAssertion } from '~/cli/commands/process-steps/command-option-assertion'
 
-type BatchCommandOptions = SingleTargetCommandOptions & Pick<BatchRuntimeOptions, 'batchConcurrency'> & HostedConcurrencyRuntimeOptions
-
-function assertExtractCommandOptions (
-  opts: BatchCommandOptions
-): asserts opts is ExtractCommandOptions {
-  if (!('whisperModel' in opts) || !('step2SelectionOrigins' in opts)) {
-    throw ValidationError('Extract command options are incomplete')
-  }
-}
+const assertExtractCommandOptions: OptionsAssertion<BatchCommandOptions, ExtractCommandOptions> =
+  createOptionsAssertion('Extract command options are incomplete', ['step2SelectionOrigins'])
 
 const createExtractChildBatchPlan = (
   route: ExtractRoute
@@ -102,10 +97,10 @@ const readExtractChildManifest = async (
   const childDir = join(batchDir, route)
   const manifest = await readManifest(childDir)
   if (!manifest) {
-    throw CLIUsageError(`Missing canonical child manifest at ${join(childDir, PIPELINE_MANIFEST_FILE)}.`)
+    throw UsageError(`Missing canonical child manifest at ${join(childDir, PIPELINE_MANIFEST_FILE)}.`)
   }
   if (manifest.command !== 'extract' || manifest.scope !== 'batch') {
-    throw CLIUsageError(`Invalid extract child manifest at ${join(childDir, PIPELINE_MANIFEST_FILE)}.`)
+    throw UsageError(`Invalid extract child manifest at ${join(childDir, PIPELINE_MANIFEST_FILE)}.`)
   }
   return { childDir, manifest }
 }
@@ -205,7 +200,7 @@ const executeExtractBatchPlan = async (
   logLocationsTable(l, [{ artifact: 'manifest', path: `${batchDir}/${PIPELINE_MANIFEST_FILE}` }])
 
   if (childPlans.media.items.length === 0 && childPlans.document.items.length === 0 && childPlans.article.items.length === 0 && childPlans['x-space'].items.length === 0) {
-    l.warn('No supported inputs to process')
+    l.warn('No supported inputs to process', { category: 'pipeline' })
     return
   }
 
@@ -249,10 +244,10 @@ const executeExtractBatchPlan = async (
 
       const childEntry = childManifest.items[childIndex]
       if (!childEntry) {
-        throw CLIUsageError(`Canonical child manifest ${join(childDir, PIPELINE_MANIFEST_FILE)} is missing item ${childIndex}.`)
+        throw UsageError(`Canonical child manifest ${join(childDir, PIPELINE_MANIFEST_FILE)} is missing item ${childIndex}.`)
       }
       if (childEntry.extractRoute !== route) {
-        throw CLIUsageError(`Canonical child manifest ${join(childDir, PIPELINE_MANIFEST_FILE)} item ${childIndex} has route ${childEntry.extractRoute ?? 'missing'}, expected ${route}.`)
+        throw UsageError(`Canonical child manifest ${join(childDir, PIPELINE_MANIFEST_FILE)} item ${childIndex} has route ${childEntry.extractRoute ?? 'missing'}, expected ${route}.`)
       }
       const outputDir = childEntry.outputDir === undefined
         ? undefined

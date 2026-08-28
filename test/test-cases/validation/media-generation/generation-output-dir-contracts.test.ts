@@ -1,9 +1,10 @@
 import { afterEach, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { basename, join } from 'node:path'
 import { createGenerationOutputDir } from '~/cli/commands/process-steps/generation-command-utils'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []
 
@@ -13,7 +14,7 @@ afterEach(async () => {
 })
 
 const makeTempRoot = async (): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), 'autoshow-generation-output-dir-'))
+  const root = await makeTempDir('autoshow-generation-output-dir-')
   tempDirs.push(root)
   return root
 }
@@ -55,10 +56,8 @@ test('a pinned output directory is claimed by a single run', async () => {
   configurePinnedRunDir(pinnedDir)
   await expect(createGenerationOutputDir('image-gen')).resolves.toBe(pinnedDir)
 
-  // The same run resolving its directory again is idempotent.
   await expect(createGenerationOutputDir('image-gen')).resolves.toBe(pinnedDir)
 
-  // A second, independent run cannot share one pinned directory.
   await expect(createGenerationOutputDir('video-gen'))
     .rejects
     .toThrow('--output-dir cannot be used for a run that creates more than one output directory')

@@ -10,12 +10,7 @@ import { classifySttProviderFailure, extractProviderRawResponse, resolveTransien
 import { getSttTargetDirectoryName, getSttTargetKey } from '../stt-targets'
 import { writeSttResultArtifact } from '../stt-utils/stt-result-artifacts'
 import { withMergedStep2Timings } from './recorded-step2'
-
-/**
- * Mutable state shared across every provider target run in a multi-provider STT batch.
- * The worker functions read and mutate `successes`, `failuresByIndex`, and
- * `providerStateMap` in place, and queue a prompt refresh after each success.
- */
+import { serializeDiagnosticError } from '~/utils/error-handler'
 
 export const markSttTargetSkipped = async (
   ctx: SttBatchWorkerContext,
@@ -40,7 +35,7 @@ export const markSttTargetSkipped = async (
     status: 'skipped',
     attempts: options.attempts ?? ctx.providerStateMap.get(targetKey)?.attempts ?? 0,
     ...(ctx.providerStateMap.get(targetKey)?.metadata ? { metadata: ctx.providerStateMap.get(targetKey)?.metadata } : {}),
-    lastError: toRecordedProviderError({
+    error: toRecordedProviderError({
       message: reason.message,
       skipped: true,
       ...(reason.stage ? { stage: reason.stage } : {}),
@@ -84,7 +79,7 @@ export const runSttProviderTargetAtIndex = async (
     await mkdir(providerDir, { recursive: true })
     await markSttProviderRunning({
       rootDir: ctx.outputDir,
-      artifactDir: providerDir,
+      artifactDir: relativeDir,
       target
     }, nextAttemptCount)
 
@@ -95,7 +90,7 @@ export const runSttProviderTargetAtIndex = async (
     let asyncJobReady = false
     const manifestLifecycle = createSttProviderProgressLifecycle({
       rootDir: ctx.outputDir,
-      artifactDir: providerDir,
+      artifactDir: relativeDir,
       target
     }, (metadata) => {
       const current = providerStateMap.get(targetKey)
@@ -184,7 +179,10 @@ export const runSttProviderTargetAtIndex = async (
     try {
       Object.assign(failure, await writeProviderFailureArtifacts(providerDir, failure, rawResponse, error))
     } catch (artifactError) {
-      l.warn(`Failed to write STT provider diagnostics for ${target.service}/${target.model}: ${artifactError instanceof Error ? artifactError.message : String(artifactError)}`)
+      l.warn(`Failed to write STT provider diagnostics for ${target.service}/${target.model}: ${artifactError instanceof Error ? artifactError.message : String(artifactError)}`, {
+        category: 'artifact',
+        metadata: { service: target.service, model: target.model, error: serializeDiagnosticError(artifactError) }
+      })
     }
 
     const batchBlockedFailure = shouldBlockSttProviderForBatch(failure)
@@ -212,7 +210,7 @@ export const runSttProviderTargetAtIndex = async (
       status: 'failed',
       attempts: nextAttemptCount,
       ...(providerStateMap.get(targetKey)?.metadata ? { metadata: providerStateMap.get(targetKey)?.metadata } : {}),
-      lastError: toRecordedProviderError({
+      error: toRecordedProviderError({
         message: failure.message,
         ...(failure.stage ? { stage: failure.stage } : {}),
         ...(typeof failure.status === 'number' ? { status: failure.status } : {}),

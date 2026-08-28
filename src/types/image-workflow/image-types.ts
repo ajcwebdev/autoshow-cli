@@ -4,6 +4,11 @@ export type ImageGenOptions = Partial<ImageRuntimeOptions> & HostedConcurrencyRu
   generationResourceGate?: ResourceGate | undefined
 }
 
+export type UnsupportedImageFlagSpec = keyof ImageGenOptions | {
+  key: keyof ImageGenOptions
+  when: (value: ImageGenOptions[keyof ImageGenOptions]) => boolean
+}
+
 export type ImageResult = {
   imagePaths: string[]
   metadata: Step5Metadata
@@ -19,9 +24,9 @@ export type ImageCostEstimate = CostEstimateBase<ImageProvider> & {
 }
 
 export type EstimateImageCostOptions = Partial<Pick<ImageRuntimeOptions,
-  | 'geminiImageModels' | 'geminiImageModel' | 'openaiImageModels' | 'openaiImageModel'
-  | 'grokImageModels' | 'grokImageModel' | 'bflImageModels' | 'bflImageModel'
-  | 'replicateImageModels' | 'replicateImageModel'
-  | 'lumalabsImageModels' | 'lumalabsImageModel' | 'falImageModels' | 'falImageModel'
+  | 'geminiImageModels' | 'openaiImageModels'
+  | 'grokImageModels' | 'bflImageModels'
+  | 'replicateImageModels'
+  | 'lumalabsImageModels' | 'falImageModels'
   | 'imageSize' | 'imageQuality' | 'imageCount'
 >>

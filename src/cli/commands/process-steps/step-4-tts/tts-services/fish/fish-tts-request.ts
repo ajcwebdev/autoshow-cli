@@ -1,6 +1,6 @@
-import type { FishTtsModel, NormalizedTiming, PreparedProviderText, TimedToken, TtsTimingIdentity } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
-import type { FishGlobalTimelineSegment } from '~/utils/fish-client/fish-timestamp-stream'
+import type { FishGlobalTimelineSegment, FishNativeDialogueBatch, FishNativeDialogueTurn, FishPreparedDialogueTurn, FishTtsModel, NormalizedTiming, PreparedProviderText, TimedToken, TtsTimingIdentity } from '~/types'
+import { UsageError } from '~/utils/error-handler'
+import { canonicalOffsetForProviderOffset } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-timing-mapping'
 
 export {
   buildFishGlobalTimeline,
@@ -10,45 +10,16 @@ export {
   reduceFishTimestampStreamEvent,
   splitFishSseFrames,
 } from '~/utils/fish-client/fish-timestamp-stream'
-export type {
-  FishAlignmentSegment,
-  FishGlobalTimelineSegment,
-  FishTimestampAlignment,
-  FishTimestampAlignmentSnapshot,
-  FishTimestampStreamEvent,
-  FishTimestampStreamState,
-} from '~/utils/fish-client/fish-timestamp-stream'
 
 export const FISH_TTS_SERIALIZER_VERSION = 'fish.tts.phase-0-v1'
 export const FISH_TIMESTAMP_SERIALIZER_VERSION = 'fish.tts.timestamp.phase-6-v1'
 export const FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION = 'fish.dialogue.phase-6-v1'
-export const FISH_NATIVE_DIALOGUE_MAX_CHARACTERS = 4000
+const FISH_NATIVE_DIALOGUE_MAX_CHARACTERS = 4000
 export const FISH_S21_PRO_MODEL = 's2.1-pro'
 export const FISH_VOICE_DESIGN_MODEL = 'voice-design-1'
 
 export const isFishNativeDialogueModel = (model: string | undefined): boolean => model === FISH_S21_PRO_MODEL
 export const isFishTimestampModel = (model: string | undefined): boolean => model === FISH_S21_PRO_MODEL
-
-export type FishNativeDialogueTurn = {
-  turnId: string
-  subjectKey: string
-  speaker: string
-  canonicalText: string
-  voiceId: string
-  delivery?: string | undefined
-}
-
-export type FishPreparedDialogueTurn = FishNativeDialogueTurn & {
-  preparedText: PreparedProviderText
-  speakerIndex: number
-}
-
-export type FishNativeDialogueBatch = {
-  batchIndex: number
-  turns: FishPreparedDialogueTurn[]
-  providerText: string
-  referenceIds: string[]
-}
 
 const FISH_S2_DELIVERY_TAGS = [
   { tag: 'happy', pattern: /\b(?:happy|happily|cheerful|jolly)\b/i },
@@ -100,7 +71,7 @@ export const planFishNativeDialogueBatches = (
   turns: readonly FishNativeDialogueTurn[],
   maxCharacters = FISH_NATIVE_DIALOGUE_MAX_CHARACTERS
 ): FishNativeDialogueBatch[] => {
-  if (!Number.isInteger(maxCharacters) || maxCharacters < 1) throw CLIUsageError('Fish native dialogue character limit must be a positive integer.')
+  if (!Number.isInteger(maxCharacters) || maxCharacters < 1) throw UsageError('Fish native dialogue character limit must be a positive integer.')
   const speakerOrder: string[] = []
   for (const turn of turns) {
     if (!speakerOrder.includes(turn.voiceId)) speakerOrder.push(turn.voiceId)
@@ -132,7 +103,7 @@ export const planFishNativeDialogueBatches = (
   }
   for (const turn of prepared) {
     const taggedLength = [...speakerTag(turn.speakerIndex)].length + [...turn.preparedText.providerText].length
-    if (taggedLength > maxCharacters) throw CLIUsageError(`Fish native dialogue turn ${turn.turnId} exceeds the ${maxCharacters}-character turn-safe boundary.`)
+    if (taggedLength > maxCharacters) throw UsageError(`Fish native dialogue turn ${turn.turnId} exceeds the ${maxCharacters}-character turn-safe boundary.`)
     if (current.length > 0 && characters + taggedLength > maxCharacters) flush()
     current.push(turn)
     characters += taggedLength
@@ -143,17 +114,6 @@ export const planFishNativeDialogueBatches = (
 
 const milliseconds = (seconds: number): number => Math.round(seconds * 1000)
 
-const canonicalOffsetForProviderOffset = (prepared: PreparedProviderText, providerOffset: number): number | undefined => {
-  for (const span of prepared.spans) {
-    if (span.kind !== 'mapped' || span.providerStart === undefined || span.providerEnd === undefined || span.canonicalStart === undefined || span.canonicalEnd === undefined) continue
-    if (providerOffset < span.providerStart || providerOffset >= span.providerEnd) continue
-    const providerWidth = span.providerEnd - span.providerStart
-    const canonicalWidth = span.canonicalEnd - span.canonicalStart
-    if (providerWidth !== canonicalWidth) return undefined
-    return span.canonicalStart + (providerOffset - span.providerStart)
-  }
-  return undefined
-}
 
 export const normalizeFishTimestampAlignment = (input: Readonly<{
   text: string

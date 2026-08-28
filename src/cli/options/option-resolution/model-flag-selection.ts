@@ -34,7 +34,6 @@ import {
   SUPPORTED_GEMINI_VIDEO_MODELS,
   SUPPORTED_GROK_VIDEO_MODELS,
   SUPPORTED_LTX_VIDEO_MODELS,
-  SUPPORTED_MINIMAX_VIDEO_MODELS,
   SUPPORTED_REPLICATE_VIDEO_MODELS,
   SUPPORTED_LUMALABS_VIDEO_MODELS,
   SUPPORTED_FAL_VIDEO_MODELS
@@ -45,8 +44,7 @@ import {
   isStep2BooleanProviderSelected
 } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import { REPEATABLE_MODEL_FLAGS } from '~/cli/flags/service-selector-normalization/repeatable-model-flags'
-import type { RepeatableModelFlag } from '~/cli/flags/service-selector-normalization/repeatable-model-flags'
-import type { AllShortcutFlag, CliFlagOccurrence, FlagOccurrenceValue, Step2ProviderSelectionOrigin } from '~/types'
+import type { AllShortcutFlag, CliFlagOccurrence, FlagOccurrenceValue, RepeatableModelFlag, Step2ProviderSelectionOrigin } from '~/types'
 import { readBooleanFlag } from './flag-readers'
 
 export { REPEATABLE_MODEL_FLAGS }
@@ -91,7 +89,6 @@ const ALL_SHORTCUT_MODEL_EXPANSIONS: Partial<Record<RepeatableModelFlag, { short
   'minimax-music': { shortcut: 'all-music', supported: SUPPORTED_MINIMAX_MUSIC_MODELS },
   'gemini-music': { shortcut: 'all-music', supported: SUPPORTED_GEMINI_MUSIC_MODELS },
   'gemini-video': { shortcut: 'all-video', supported: SUPPORTED_GEMINI_VIDEO_MODELS },
-  'minimax-video': { shortcut: 'all-video', supported: SUPPORTED_MINIMAX_VIDEO_MODELS },
   'grok-video': { shortcut: 'all-video', supported: SUPPORTED_GROK_VIDEO_MODELS },
   'ltx-video': { shortcut: 'all-video', supported: SUPPORTED_LTX_VIDEO_MODELS },
   'replicate-video': { shortcut: 'all-video', supported: SUPPORTED_REPLICATE_VIDEO_MODELS },

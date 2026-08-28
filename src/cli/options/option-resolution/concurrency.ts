@@ -23,28 +23,27 @@ const readExplicitOrConfiguredStringFlag = (
     : undefined
 
 const hasSelectedTarget = (
-  models: string[] | undefined,
-  model: string | undefined
-): boolean => (models?.length ?? 0) > 0 || model !== undefined
+  models: string[] | undefined
+): boolean => (models?.length ?? 0) > 0
 
 const isGrokOnlyHostedTtsSelection = (modelOptions: ResolvedModelOptions): boolean => {
-  const grokSelected = hasSelectedTarget(modelOptions.grokTtsModels, modelOptions.grokTtsModel)
+  const grokSelected = hasSelectedTarget(modelOptions.grokTtsModels)
   if (!grokSelected) {
     return false
   }
 
   return ![
-    hasSelectedTarget(modelOptions.elevenlabsTtsModels, modelOptions.elevenlabsTtsModel),
-    hasSelectedTarget(modelOptions.minimaxTtsModels, modelOptions.minimaxTtsModel),
-    hasSelectedTarget(modelOptions.groqTtsModels, modelOptions.groqTtsModel),
-    hasSelectedTarget(modelOptions.mistralTtsModels, modelOptions.mistralTtsModel),
-    hasSelectedTarget(modelOptions.openaiTtsModels, modelOptions.openaiTtsModel),
-    hasSelectedTarget(modelOptions.geminiTtsModels, modelOptions.geminiTtsModel),
-    hasSelectedTarget(modelOptions.deepgramTtsModels, modelOptions.deepgramTtsModel),
-    hasSelectedTarget(modelOptions.speechifyTtsModels, modelOptions.speechifyTtsModel),
-    hasSelectedTarget(modelOptions.humeTtsModels, modelOptions.humeTtsModel),
-    hasSelectedTarget(modelOptions.cartesiaTtsModels, modelOptions.cartesiaTtsModel),
-    hasSelectedTarget(modelOptions.fishTtsModels, modelOptions.fishTtsModel)
+    hasSelectedTarget(modelOptions.elevenlabsTtsModels),
+    hasSelectedTarget(modelOptions.minimaxTtsModels),
+    hasSelectedTarget(modelOptions.groqTtsModels),
+    hasSelectedTarget(modelOptions.mistralTtsModels),
+    hasSelectedTarget(modelOptions.openaiTtsModels),
+    hasSelectedTarget(modelOptions.geminiTtsModels),
+    hasSelectedTarget(modelOptions.deepgramTtsModels),
+    hasSelectedTarget(modelOptions.speechifyTtsModels),
+    hasSelectedTarget(modelOptions.humeTtsModels),
+    hasSelectedTarget(modelOptions.cartesiaTtsModels),
+    hasSelectedTarget(modelOptions.fishTtsModels)
   ].some(Boolean)
 }
 

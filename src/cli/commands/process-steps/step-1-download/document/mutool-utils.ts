@@ -1,5 +1,5 @@
-import { stat } from 'node:fs/promises'
 import { exec } from '~/utils/cli-utils'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { setupDocumentTools } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/document'
 import * as l from '~/utils/app-logger/app-logger'
 import type { MutoolDocInfo, PdfChunkSplitAttempt, PdfChunkSplitOptions, PdfChunkSplitResult, PdfChunkSplitTool, ResolvedRuntimeTool } from '~/types'
@@ -126,10 +126,10 @@ const writeSplitPdfDiagnostic = (message: string, options?: PdfChunkSplitOptions
   }
   const text = formatSplitPdfDiagnostic(message, options)
   if (logMode === 'debug') {
-    l.debug(text)
+    l.debug(text, { category: 'pipeline' })
     return
   }
-  l.warn(text)
+  l.warn(text, { category: 'pipeline' })
 }
 
 const splitFailureFirstLine = (stderr: string, stdout: string): string => {
@@ -248,7 +248,6 @@ export const splitPdfPages = async (
       return { tool: 'mutool', ...result, attempts }
     }
   } catch {
-    // output file doesn't exist
   }
 
   return { tool: 'mutool', ...result, attempts }

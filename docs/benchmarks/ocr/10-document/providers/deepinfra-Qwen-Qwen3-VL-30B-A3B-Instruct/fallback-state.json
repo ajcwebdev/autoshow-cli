@@ -1,0 +1,184 @@
+{
+  "version": 2,
+  "mode": "single-page",
+  "totalPages": 10,
+  "serviceLabel": "DeepInfra OCR",
+  "sourceFile": "document.pdf",
+  "extractionMethod": "deepinfra-ocr",
+  "ocrService": "deepinfra",
+  "ocrModel": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+  "effectiveReasoningEffort": "default",
+  "ocrProviderMode": "fanout",
+  "inputSha256": "4d4ec587e7a9b720a96c5751804a646f9dbc3875d8ccf37f3639f9f7c6d07cb2",
+  "inputFormat": "pdf",
+  "dpi": 300,
+  "initialFallbackReason": "forced-page-mode",
+  "pageRange": {
+    "startPage": 1,
+    "endPage": 10
+  },
+  "pageStatusCounts": {
+    "cached": 0,
+    "resumed": 0,
+    "succeeded": 0,
+    "failed": 10,
+    "canceled": 0
+  },
+  "terminalReason": "content_policy",
+  "pages": [
+    {
+      "pageNumber": 1,
+      "range": {
+        "startPage": 1,
+        "endPage": 1
+      },
+      "status": "failed",
+      "failure": {
+        "message": "DeepInfra OCR request failed (429): Model busy, retry later",
+        "category": "content_policy",
+        "failureKind": "content_policy",
+        "retryable": false,
+        "blockedReason": "content_policy",
+        "status": 429
+      }
+    },
+    {
+      "pageNumber": 2,
+      "range": {
+        "startPage": 2,
+        "endPage": 2
+      },
+      "status": "failed",
+      "failure": {
+        "message": "deepinfra-ocr page 2 failed after 2/2 attempts (max attempts reached, 601347ms elapsed): The operation timed out.",
+        "category": "timeout",
+        "failureKind": "timeout",
+        "retryable": true
+      }
+    },
+    {
+      "pageNumber": 3,
+      "range": {
+        "startPage": 3,
+        "endPage": 3
+      },
+      "status": "failed",
+      "failure": {
+        "message": "DeepInfra OCR request failed (429): Model busy, retry later",
+        "category": "content_policy",
+        "failureKind": "content_policy",
+        "retryable": false,
+        "blockedReason": "content_policy",
+        "status": 429
+      }
+    },
+    {
+      "pageNumber": 4,
+      "range": {
+        "startPage": 4,
+        "endPage": 4
+      },
+      "status": "failed",
+      "failure": {
+        "message": "DeepInfra OCR request failed (429): Model busy, retry later",
+        "category": "content_policy",
+        "failureKind": "content_policy",
+        "retryable": false,
+        "blockedReason": "content_policy",
+        "status": 429
+      }
+    },
+    {
+      "pageNumber": 5,
+      "range": {
+        "startPage": 5,
+        "endPage": 5
+      },
+      "status": "failed",
+      "failure": {
+        "message": "DeepInfra OCR request failed (429): Model busy, retry later",
+        "category": "content_policy",
+        "failureKind": "content_policy",
+        "retryable": false,
+        "blockedReason": "content_policy",
+        "status": 429
+      }
+    },
+    {
+      "pageNumber": 6,
+      "range": {
+        "startPage": 6,
+        "endPage": 6
+      },
+      "status": "failed",
+      "failure": {
+        "message": "DeepInfra OCR request failed (429): Model busy, retry later",
+        "category": "content_policy",
+        "failureKind": "content_policy",
+        "retryable": false,
+        "blockedReason": "content_policy",
+        "status": 429
+      }
+    },
+    {
+      "pageNumber": 7,
+      "range": {
+        "startPage": 7,
+        "endPage": 7
+      },
+      "status": "failed",
+      "failure": {
+        "message": "DeepInfra OCR request failed (429): Model busy, retry later",
+        "category": "content_policy",
+        "failureKind": "content_policy",
+        "retryable": false,
+        "blockedReason": "content_policy",
+        "status": 429
+      }
+    },
+    {
+      "pageNumber": 8,
+      "range": {
+        "startPage": 8,
+        "endPage": 8
+      },
+      "status": "failed",
+      "failure": {
+        "message": "deepinfra-ocr page 8 failed after 2/2 attempts (max attempts reached, 601513ms elapsed): The operation timed out.",
+        "category": "timeout",
+        "failureKind": "timeout",
+        "retryable": true
+      }
+    },
+    {
+      "pageNumber": 9,
+      "range": {
+        "startPage": 9,
+        "endPage": 9
+      },
+      "status": "failed",
+      "failure": {
+        "message": "deepinfra-ocr page 9 failed after 2/2 attempts (max attempts reached, 601718ms elapsed): The operation timed out.",
+        "category": "timeout",
+        "failureKind": "timeout",
+        "retryable": true
+      }
+    },
+    {
+      "pageNumber": 10,
+      "range": {
+        "startPage": 10,
+        "endPage": 10
+      },
+      "status": "failed",
+      "failure": {
+        "message": "DeepInfra OCR request failed (429): Model busy, retry later",
+        "category": "content_policy",
+        "failureKind": "content_policy",
+        "retryable": false,
+        "blockedReason": "content_policy",
+        "status": 429
+      }
+    }
+  ]
+}

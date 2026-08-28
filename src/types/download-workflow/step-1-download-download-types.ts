@@ -103,9 +103,6 @@ export type BatchItemProcessResult = {
 
 export type BuildOptsDefaults = Record<string, never>
 
-export type RepeatableModelFlag =
-  import('~/cli/flags/service-selector-normalization/repeatable-model-flags').RepeatableModelFlag
-
 export type FlagOccurrenceValue = string | boolean
 
 export type AllShortcutFlag =

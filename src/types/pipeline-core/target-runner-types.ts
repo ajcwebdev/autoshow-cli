@@ -8,7 +8,7 @@ export type BuildSingleArtifactMapOptions<T> = {
   getFileName: (item: T) => string
 }
 
-export type RunTargetsOptionsBase<TTarget extends ProviderIdentity> = HostedConcurrencyRuntimeOptions & {
+type RunTargetsOptionsBase<TTarget extends ProviderIdentity> = HostedConcurrencyRuntimeOptions & {
   targets: TTarget[]
   outputDir: string
   stepLabel: string
@@ -28,6 +28,13 @@ export type RunSingleFileTargetsOptions<TTarget extends ProviderIdentity, TMetad
   runTarget: (target: TTarget, workspaceDir: string) => Promise<SingleFileRunResult<TMetadata>>
   getArtifactFileName: (target: TTarget, singleTarget: boolean) => string
   finalizeMetadata: (metadata: TMetadata, finalFileName: string, finalPath: string) => TMetadata
+}
+
+export type MediaFileTargetDescriptor<TTarget extends ProviderIdentity, TMetadata, TPrompt> = Pick<
+  RunSingleFileTargetsOptions<TTarget, TMetadata>,
+  'stepLabel' | 'noProviderMessage' | 'workspacePrefix' | 'hostedWorkClass' | 'getArtifactFileName' | 'finalizeMetadata'
+> & {
+  runTarget: (target: TTarget, prompt: TPrompt, workspaceDir: string) => Promise<SingleFileRunResult<TMetadata>>
 }
 
 export type RunTargetsOptions<TTarget extends ProviderIdentity, TResult> = RunTargetsOptionsBase<TTarget> & {

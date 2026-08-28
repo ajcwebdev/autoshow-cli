@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import { sanitizeTitleSlug } from './step-1-download/audio/metadata-utils'
 import type { BatchChildDirectoryIdentity, BatchChildRunContext } from '~/types'
+import { hasErrorCode } from '~/utils/error-handler'
 
 export const normalizeBatchChildPublishedAt = (
   publishedAt?: string
@@ -63,11 +64,7 @@ export const reserveBatchChildOutputDir = async (
       context.outputDir = candidatePath
       return candidatePath
     } catch (error) {
-      const code = error instanceof Error && 'code' in error
-        ? (error as Error & { code?: string }).code
-        : undefined
-
-      if (code === 'EEXIST') {
+      if (hasErrorCode(error, 'EEXIST')) {
         continue
       }
 

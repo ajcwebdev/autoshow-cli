@@ -7,35 +7,36 @@ import { ensureCartesiaTtsSetup } from './cartesia-tts'
 import { runCartesiaTts } from './run-cartesia-tts'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
 import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
-export const collectCartesiaTtsTargets = (
-  selection: TtsTargetSelection
-): TtsTarget[] => {
-  const targets: TtsTarget[] = []
-  for (const rawModel of selection.cartesiaModels) {
-    const model: CartesiaTtsModel = validateCartesiaTtsModel(rawModel)
-    const voiceId = selection.cartesiaVoiceId ? validateCartesiaTtsVoice(selection.cartesiaVoiceId) : undefined
+import { createMediaTargetCollector } from '~/cli/commands/process-steps/media-target-collector'
 
-    targets.push({
-      service: 'cartesia',
+export const collectCartesiaTtsTargets: (selection: TtsTargetSelection) => TtsTarget[] = createMediaTargetCollector<
+  TtsTargetSelection,
+  string,
+  CartesiaTtsModel,
+  'cartesia',
+  Parameters<TtsTarget['run']>,
+  Awaited<ReturnType<TtsTarget['run']>>,
+  { voice?: string }
+>({
+  service: 'cartesia',
+  readModels: (selection: TtsTargetSelection) => selection.cartesiaModels,
+  validateModel: (rawModel): CartesiaTtsModel => validateCartesiaTtsModel(rawModel),
+  targetFields: selection => {
+    const voiceId = selection.cartesiaVoiceId ? validateCartesiaTtsVoice(selection.cartesiaVoiceId) : undefined
+    return voiceId ? { voice: voiceId } : {}
+  },
+  ensureSetup: ensureCartesiaTtsSetup,
+  run: async (selection, model, fields, ...[text, outputDir, opts, invocation, requestEvidence]: Parameters<TtsTarget['run']>) => {
+    const invocationVoiceId = resolveTtsTargetInvocationVoiceId('cartesia', invocation)
+    const controls = resolveTtsTargetInvocationControls('cartesia', invocation, { language: selection.cartesiaLanguage })
+    return await runCartesiaTts(text, outputDir, {
       model,
-      ...(voiceId ? { voice: voiceId } : {}),
-      run: async (text, outputDir, opts, invocation, requestEvidence) => {
-        const invocationVoiceId = resolveTtsTargetInvocationVoiceId('cartesia', invocation)
-        const controls = resolveTtsTargetInvocationControls('cartesia', invocation, {
-          language: selection.cartesiaLanguage,
-        })
-        await ensureCartesiaTtsSetup()
-        return await runCartesiaTts(text, outputDir, {
-          model,
-          voiceId: invocationVoiceId ?? voiceId,
-          language: controls.language,
-          chunkConcurrency: opts.ttsChunkConcurrency,
-          chunkScheduler: opts.hostedTtsChunkScheduler,
-          abortSignal: invocation?.signal,
-          requestEvidence
-        })
-      }
+      voiceId: invocationVoiceId ?? fields.voice,
+      language: controls.language,
+      chunkConcurrency: opts.ttsChunkConcurrency,
+      chunkScheduler: opts.hostedTtsChunkScheduler,
+      abortSignal: invocation?.signal,
+      requestEvidence
     })
   }
-  return targets
-}
+})

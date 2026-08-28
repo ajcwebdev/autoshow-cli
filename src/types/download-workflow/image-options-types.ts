@@ -1,20 +1,12 @@
 export type ImageRuntimeOptions = {
   imageProviderConcurrency: number
-  imageLocalConcurrency: number
   geminiImageModels: string[] | undefined
-  geminiImageModel: string | undefined
   openaiImageModels: string[] | undefined
-  openaiImageModel: string | undefined
   grokImageModels: string[] | undefined
-  grokImageModel: string | undefined
   bflImageModels: string[] | undefined
-  bflImageModel: string | undefined
   replicateImageModels: string[] | undefined
-  replicateImageModel: string | undefined
   lumalabsImageModels: string[] | undefined
-  lumalabsImageModel: string | undefined
   falImageModels: string[] | undefined
-  falImageModel: string | undefined
   imageAspectRatio: string | undefined
   imageSize: string | undefined
   imageQuality: string | undefined

@@ -19,13 +19,19 @@
 # Work Preservation & Slot Recovery Rules
 
 - Never delete output directories or temporary TTS working directories (`rm -rf output/...` or `.tts-tmp-...`) when a process is interrupted, fails, or requires configuration adjustments. Deleting output directories destroys cached audio segment files that were already synthesized and paid for, forcing duplicate provider API calls and double billing.
-- When a TTS run is blocked with `automatic redispatch is blocked pending reconciliation`, pass `--tts-allow-ambiguous-redispatch` (or `--allow-ambiguous-redispatch`). This flag safely reconciles the in-flight slot, reuses all completed segment audio files already saved on disk, and resumes synthesis without deleting output directories or losing work.
+- When a TTS run is blocked with `automatic redispatch is blocked pending reconciliation`, pass `--allow-ambiguous-redispatch`. This flag safely reconciles the in-flight slot, reuses all completed segment audio files already saved on disk, and resumes synthesis without deleting output directories or losing work.
 
 # Git Command Rules
 
 - Never run git commands that modify repository state (e.g. `git add`, `git commit`, `git mv`, `git rm`, `git checkout`, `git reset`, `git push`, `git stash`). Use plain filesystem commands (`mv`, `rm`, `mkdir`) for file operations instead.
 - Only read-only git commands are allowed (e.g. `git status`, `git diff`, `git log`, `git grep`, `git show`).
 - Leave staging and committing to the user unless they explicitly ask for it.
+
+# Pre-Commit Book Privacy Rules
+
+- Immediately before staging or committing, inspect the complete candidate change set, including tracked diffs and untracked files, for source-book artifacts, excerpts, book titles, author names, source filenames, metadata, and generated derivatives.
+- Never stage or commit while any source-book artifact or identifying book title remains in the candidate change set. Remove it from the candidate change set and repeat the audit before proceeding.
+- Git-ignored files are outside this pre-commit audit. Do not inspect, modify, move, or delete ignored `input/`, `output/`, or other runtime files as part of the audit unless the user explicitly requests a broader workspace inspection.
 
 # Pull Request Rules
 

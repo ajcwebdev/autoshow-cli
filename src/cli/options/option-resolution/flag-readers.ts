@@ -1,17 +1,11 @@
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import type { BatchOrder, CliFlagOccurrence, HostedConcurrencyMode, HtmlArticleBackend } from '~/types'
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { formatQuotedChoiceList } from '~/utils/value-helpers'
 
 export const parseIntWithDefault = (value: string | undefined, fallback: number): number => {
   if (!value) return fallback
   const parsed = Number.parseInt(value, 10)
-  if (Number.isFinite(parsed)) return parsed
-  return fallback
-}
-
-export const parseFloatWithDefault = (value: string | undefined, fallback: number): number => {
-  if (!value) return fallback
-  const parsed = Number.parseFloat(value)
   if (Number.isFinite(parsed)) return parsed
   return fallback
 }
@@ -25,12 +19,12 @@ export const parseOptionalPositiveIntFlag = (
   }
 
   if (!/^\d+$/.test(value)) {
-    throw CLIUsageError(`Invalid --${flagName} value "${value}". Expected a positive integer.`)
+    throw UsageError(`Invalid --${flagName} value "${value}". Expected a positive integer.`)
   }
 
   const parsed = Number.parseInt(value, 10)
   if (!Number.isFinite(parsed) || parsed < 1) {
-    throw CLIUsageError(`Invalid --${flagName} value "${value}". Expected a positive integer.`)
+    throw UsageError(`Invalid --${flagName} value "${value}". Expected a positive integer.`)
   }
 
   return parsed
@@ -67,7 +61,7 @@ export const parseOptionalNumberFlag = (
 
   if (invalid) {
     const minLabel = options.exclusiveMin === true ? `>${options.min}` : `${options.min}`
-    throw CLIUsageError(
+    throw UsageError(
       `Invalid --${flagName} value "${value}". Expected ${options.integer === true ? 'an integer' : 'a number'} from ${minLabel} to ${options.max}.`
     )
   }
@@ -116,17 +110,21 @@ export const readOptionalBooleanFlag = (flags: Record<string, unknown>, key: str
   return typeof value === 'boolean' ? value : undefined
 }
 
+export const readBatchLimit = (flags: Record<string, unknown>): number | 'all' => {
+  const raw = flags['batch-limit']
+  if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) return raw
+  if (typeof raw === 'string') {
+    const normalized = raw.trim().toLowerCase()
+    if (normalized === 'all') return 'all'
+    const parsed = Number.parseInt(normalized, 10)
+    if (Number.isFinite(parsed) && parsed > 0) return parsed
+  }
+  return 5
+}
+
 export const readBatchOrder = (flags: Record<string, unknown>): BatchOrder => {
   const v = readFlagValue(flags, 'batch-order')
   return v === 'oldest' ? 'oldest' : 'newest'
-}
-
-const formatQuotedChoiceList = (choices: readonly string[]): string => {
-  const quotedChoices = choices.map((choice) => `"${choice}"`)
-  if (quotedChoices.length <= 2) {
-    return quotedChoices.join(' or ')
-  }
-  return `${quotedChoices.slice(0, -1).join(', ')}, or ${quotedChoices[quotedChoices.length - 1]}`
 }
 
 export const parseUrlBackend = (value: string | undefined): HtmlArticleBackend => {
@@ -137,7 +135,7 @@ export const parseUrlBackend = (value: string | undefined): HtmlArticleBackend =
   if ((URL_ARTICLE_BACKENDS as readonly string[]).includes(normalized)) {
     return normalized as HtmlArticleBackend
   }
-  throw CLIUsageError(`Invalid --url-provider value "${value}". Expected ${formatQuotedChoiceList(URL_ARTICLE_BACKENDS)}.`)
+  throw UsageError(`Invalid --url-provider value "${value}". Expected ${formatQuotedChoiceList(URL_ARTICLE_BACKENDS)}.`)
 }
 
 export const PDF_CHAPTER_MODES = ['local', 'auto', 'llm'] as const
@@ -153,7 +151,7 @@ export const parsePdfChapterMode = (value: string | undefined): 'local' | 'auto'
   if (normalized === 'llm') {
     return 'llm'
   }
-  throw CLIUsageError(`Invalid --pdf-chapter-mode value "${value}". Expected ${formatQuotedChoiceList(PDF_CHAPTER_MODES)}.`)
+  throw UsageError(`Invalid --pdf-chapter-mode value "${value}". Expected ${formatQuotedChoiceList(PDF_CHAPTER_MODES)}.`)
 }
 
 export const parseTtsDialogueFormat = (value: string | undefined): 'screenplay' | 'labeled' | undefined => {
@@ -164,14 +162,14 @@ export const parseTtsDialogueFormat = (value: string | undefined): 'screenplay' 
   if (normalized === 'screenplay' || normalized === 'labeled') {
     return normalized
   }
-  throw CLIUsageError(`Invalid --tts-dialogue-format value "${value}". Expected "screenplay" or "labeled".`)
+  throw UsageError(`Invalid --tts-dialogue-format value "${value}". Expected "screenplay" or "labeled".`)
 }
 
 export const parseHostedConcurrencyMode = (value: string | undefined): HostedConcurrencyMode => {
   const normalized = value?.trim().toLowerCase()
   if (!normalized || normalized === 'ramp') return 'ramp'
   if (normalized === 'immediate') return 'immediate'
-  throw CLIUsageError(`Invalid --concurrency-mode value "${value}". Expected "ramp" or "immediate".`)
+  throw UsageError(`Invalid --concurrency-mode value "${value}". Expected "ramp" or "immediate".`)
 }
 
 export const readOptionalOccurrenceStringFlag = (

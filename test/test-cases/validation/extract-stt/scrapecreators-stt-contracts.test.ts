@@ -7,7 +7,8 @@ import {
 import {
   runScrapeCreatorsStt
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/scrapecreators/run-scrapecreators-stt'
-import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { expectProviderHttpError, installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { extractErrorMetadata } from '~/utils/error-handler'
 
 const tempDirs = setupContractSuiteLifecycle({
   envKeys: ['SCRAPECREATORS_API_KEY'],
@@ -109,21 +110,17 @@ describe('ScrapeCreators STT contracts', () => {
     installMockFetch(() => jsonResponse(invalidPayload))
 
     await withTempOutputDir(async (outputDir) => {
-        try {
-          await runScrapeCreatorsStt('unused.mp3', outputDir, {
-            model: 'youtube-transcript',
-            sourceUrl: 'https://youtu.be/dQw4w9WgXcQ',
-            language: 'en',
-            segmentOffsetMinutes: 0,
-            baseUrl: 'https://mock.scrapecreators.local'
-          })
-          throw new Error('expected ScrapeCreators invalid transcript payload error')
-        } catch (error) {
-          expect(error).toBeInstanceOf(Error)
-          expect((error as Error).message).toContain('invalid transcript payload')
-          expect((error as { stage?: string }).stage).toBe('create')
-          expect((error as { rawResponse?: unknown }).rawResponse).toEqual(invalidPayload)
-        }
+      const error = await expectProviderHttpError(
+        () => runScrapeCreatorsStt('unused.mp3', outputDir, {
+          model: 'youtube-transcript',
+          sourceUrl: 'https://youtu.be/dQw4w9WgXcQ',
+          language: 'en',
+          segmentOffsetMinutes: 0,
+          baseUrl: 'https://mock.scrapecreators.local'
+        }),
+        { kind: 'provider_http', stage: 'create', messageContains: 'invalid transcript payload' }
+      )
+      expect(extractErrorMetadata(error)['rawResponse']).toEqual(invalidPayload)
     })
   })
 
@@ -132,22 +129,19 @@ describe('ScrapeCreators STT contracts', () => {
     installMockFetch(() => jsonResponse({ transcript: null }))
 
     await withTempOutputDir(async (outputDir) => {
-        try {
-          await runScrapeCreatorsStt('unused.mp3', outputDir, {
-            model: 'youtube-transcript',
-            sourceUrl: 'https://youtu.be/dQw4w9WgXcQ',
-            language: 'fr',
-            segmentOffsetMinutes: 0,
-            baseUrl: 'https://mock.scrapecreators.local'
-          })
-          throw new Error('expected ScrapeCreators language unavailable error')
-        } catch (error) {
-          expect(error).toBeInstanceOf(Error)
-          expect((error as Error).message).toContain('requested language "fr"')
-          expect((error as { skipped?: boolean }).skipped).toBe(true)
-          expect((error as { retryable?: boolean }).retryable).toBe(false)
-          expect((error as { rawResponse?: unknown }).rawResponse).toEqual({ transcript: null })
-        }
+      const error = await expectProviderHttpError(
+        () => runScrapeCreatorsStt('unused.mp3', outputDir, {
+          model: 'youtube-transcript',
+          sourceUrl: 'https://youtu.be/dQw4w9WgXcQ',
+          language: 'fr',
+          segmentOffsetMinutes: 0,
+          baseUrl: 'https://mock.scrapecreators.local'
+        }),
+        { kind: 'provider_http', retryable: false, messageContains: 'requested language "fr"' }
+      )
+      const metadata = extractErrorMetadata(error)
+      expect(metadata['skipped']).toBe(true)
+      expect(metadata['rawResponse']).toEqual({ transcript: null })
     })
   })
 
@@ -155,19 +149,15 @@ describe('ScrapeCreators STT contracts', () => {
     const calls = installMockFetch(() => new Response('{}'))
 
     await withTempOutputDir(async (outputDir) => {
-        try {
-          await runScrapeCreatorsStt('unused.mp3', outputDir, {
-            model: 'youtube-transcript',
-            sourceUrl: 'https://example.com/audio.mp3',
-            segmentOffsetMinutes: 0
-          })
-          throw new Error('expected ScrapeCreators unsupported source error')
-        } catch (error) {
-          expect(error).toBeInstanceOf(Error)
-          expect((error as Error).message).toContain('only supports youtube.com and youtu.be URLs')
-          expect((error as { skipped?: boolean }).skipped).toBe(true)
-          expect((error as { retryable?: boolean }).retryable).toBe(false)
-        }
+      const error = await expectProviderHttpError(
+        () => runScrapeCreatorsStt('unused.mp3', outputDir, {
+          model: 'youtube-transcript',
+          sourceUrl: 'https://example.com/audio.mp3',
+          segmentOffsetMinutes: 0
+        }),
+        { kind: 'provider_http', retryable: false, messageContains: 'only supports youtube.com and youtu.be URLs' }
+      )
+      expect(extractErrorMetadata(error)['skipped']).toBe(true)
     })
     expect(calls).toHaveLength(0)
   })

@@ -3,7 +3,9 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runElevenLabsTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/run-elevenlabs-tts'
 import { createElevenLabsTtsIvcContext, ensureElevenLabsTtsIvcVoice } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/elevenlabs-ivc'
-import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../../../test-utils/rest-contract-helpers'
+import { createHostedConcurrencyCoordinator } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
+import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
+import { expectProviderHttpError, installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../../../test-utils/rest-contract-helpers'
 import { LOCAL_SHORT_AUDIO_PATH } from './shared'
 
 const tempDirs = setupContractSuiteLifecycle({
@@ -43,13 +45,20 @@ describe('ElevenLabs clone flow contracts', () => {
         }
         const firstVoice = await ensureElevenLabsTtsIvcVoice('https://api.elevenlabs.io/v1', 'test-key', clone)
         const secondVoice = await ensureElevenLabsTtsIvcVoice('https://api.elevenlabs.io/v1', 'test-key', clone)
+        const chunkScheduler = createHostedTtsChunkScheduler({
+          maxConcurrency: 2,
+          concurrencyMode: 'immediate',
+          hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: 'immediate' })
+        })
         const first = await runElevenLabsTts('Hello from the first run.', firstDir, {
           model: 'eleven_v3',
-          voiceId: firstVoice.voiceId
+          voiceId: firstVoice.voiceId,
+          chunkScheduler
         })
         const second = await runElevenLabsTts('Hello from the second run.', secondDir, {
           model: 'eleven_v3',
-          voiceId: secondVoice.voiceId
+          voiceId: secondVoice.voiceId,
+          chunkScheduler
         })
 
         expect(await Bun.file(first.audioPath).exists()).toBe(true)
@@ -122,16 +131,16 @@ describe('ElevenLabs clone flow contracts', () => {
           throw new Error(`Unexpected ElevenLabs error mock fetch: ${call.url}`)
         })
 
-        try {
-          await ensureElevenLabsTtsIvcVoice('https://api.elevenlabs.io/v1', 'test-key', {
+        await expectProviderHttpError(
+          () => ensureElevenLabsTtsIvcVoice('https://api.elevenlabs.io/v1', 'test-key', {
             refAudioPath: 'input/examples/audio/anthony-voice.mp3',
             context: createElevenLabsTtsIvcContext()
-          })
-          throw new Error('expected ElevenLabs IVC failure')
-        } catch (error) {
-          expect((error as Error).message).toContain('ElevenLabs IVC voice creation failed (400): bad reference audio')
-          expect((error as { headers?: Headers }).headers?.get('retry-after')).toBe('7')
-        }
+          }),
+          {
+            messageContains: 'ElevenLabs IVC voice creation failed (400): bad reference audio',
+            headers: { 'retry-after': '7' }
+          }
+        )
         expect(synthesisCalls).toBe(0)
     })
 })

@@ -1,36 +1,15 @@
-import { stat } from 'node:fs/promises'
-import { createReadStream } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { basename, extname, join } from 'node:path'
 import { getExtractLimits } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import type { DocumentMetadata, ExtractionOptions, HostedDirectImageFormatSet, HostedDirectImageInputStrategy, HostedExtractOcrEngine, HostedOcrIdentity, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, HostedOcrService, RunHostedOcrPdfChunkFallbackOptions } from '~/types'
 import { commandExists, exec } from '~/utils/cli-utils'
-import { CLIUsageError } from '~/utils/error-handler'
-import { hasAnthropicOcr, hasDeepinfraOcr, hasFalOcr, hasGeminiOcr, hasGlmOcr, hasGrokOcr, hasKimiOcr, hasMistralOcr, hasOpenAIOcr, hasReplicateOcr } from './ocr-engine-selection'
-import { ANTHROPIC_OCR_LIMIT_SOURCE, ensureAnthropicOcrSetup } from './ocr-services/anthropic-ocr/anthropic-ocr'
-import { runAnthropicOcr } from './ocr-services/anthropic-ocr/run-anthropic-ocr'
-import { DEEPINFRA_OCR_LIMIT_SOURCE, ensureDeepinfraOcrSetup } from './ocr-services/deepinfra-ocr/deepinfra-ocr'
-import { runDeepinfraOcr } from './ocr-services/deepinfra-ocr/run-deepinfra-ocr'
-import { GEMINI_FILE_UPLOAD_BYTES, GEMINI_OCR_LIMIT_SOURCE, GEMINI_PDF_PAGE_COUNT_LIMIT, ensureGeminiOcrSetup } from './ocr-services/gemini-ocr/gemini-ocr'
-import { runGeminiOcr } from './ocr-services/gemini-ocr/run-gemini-ocr'
-import { ensureGlmOcrSetup } from './ocr-services/glm-ocr/glm'
-import { runGlmOcr } from './ocr-services/glm-ocr/run-glm-ocr'
-import { GROK_OCR_LIMIT_SOURCE, ensureGrokOcrSetup } from './ocr-services/grok-ocr/grok-ocr'
-import { runGrokOcr } from './ocr-services/grok-ocr/run-grok-ocr'
-import { KIMI_OCR_LIMIT_SOURCE, ensureKimiOcrSetup } from './ocr-services/kimi-ocr/kimi'
-import { runKimiOcr } from './ocr-services/kimi-ocr/run-kimi-ocr'
-import { ensureMistralOcrSetup } from './ocr-services/mistral-ocr/mistral-ocr'
-import { runMistralOcr } from './ocr-services/mistral-ocr/run-mistral-ocr'
-import { ensureOpenAIOcrSetup } from './ocr-services/openai-ocr/openai-ocr'
-import { runOpenAIOcr } from './ocr-services/openai-ocr/run-openai-ocr'
-import { ensureReplicateOcrSetup } from './ocr-services/replicate-ocr/replicate-ocr'
-import { runReplicateOcr } from './ocr-services/replicate-ocr/run-replicate-ocr'
-import { FAL_OCR_LIMIT_SOURCE, ensureFalOcrSetup } from './ocr-services/fal-ocr/fal-ocr'
-import { runFalOcr } from './ocr-services/fal-ocr/run-fal-ocr'
+import { statPath as stat } from '~/utils/bun-file-io'
+import { UsageError, InfraError } from '~/utils/error-handler'
+import { HOSTED_OCR_ADAPTERS, hostedOcrAdapterForEngine, hostedOcrAdapterForService } from './hosted-ocr-adapters'
+import { GEMINI_FILE_UPLOAD_BYTES, GEMINI_PDF_PAGE_COUNT_LIMIT } from './ocr-services/gemini-ocr/gemini-ocr'
 import { isBunImagePngNormalizableFormat, normalizeImageToPngWithBun } from './ocr-utils/bun-image-utils'
 import { runHostedOcrSchedulerAdmission } from './ocr-utils/hosted-ocr-scheduler'
-import { createRenderedPngPageChunk, runHostedOcrWithPdfChunkFallback } from './ocr-utils/pdf-chunk-fallback'
+import { runHostedOcrWithPdfChunkFallback } from './ocr-utils/pdf-chunk-fallback'
 import { isPdfEncrypted, resolvePdfPageCount } from './pdf/pdf-utils'
 
 const formatBytes = (bytes: number): string => {
@@ -40,92 +19,20 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
-const formatHostedOcrLabel = (service: HostedOcrService): string => {
-  switch (service) {
-    case 'glm':
-      return 'GLM OCR'
-    case 'kimi':
-      return 'Kimi OCR'
-    case 'mistral':
-      return 'Mistral OCR'
-    case 'openai':
-      return 'OpenAI OCR'
-    case 'grok':
-      return 'Grok OCR'
-    case 'anthropic':
-      return 'Anthropic OCR'
-    case 'gemini':
-      return 'Gemini OCR'
-    case 'deepinfra':
-      return 'DeepInfra OCR'
-    case 'replicate':
-      return 'Replicate OCR'
-    case 'fal':
-      return 'fal.ai OCR'
-  }
-}
+const formatHostedOcrLabel = (service: HostedOcrService): string =>
+  hostedOcrAdapterForService(service).label
 
-const getHostedOcrLimitSource = (service: HostedOcrService): string => {
-  switch (service) {
-    case 'mistral':
-      return 'project/links/mistral-general-ocr-links.md'
-    case 'openai':
-      return 'project/links/openai-general-ocr-text-links.md'
-    case 'grok':
-      return GROK_OCR_LIMIT_SOURCE
-    case 'anthropic':
-      return ANTHROPIC_OCR_LIMIT_SOURCE
-    case 'gemini':
-      return GEMINI_OCR_LIMIT_SOURCE
-    case 'deepinfra':
-      return DEEPINFRA_OCR_LIMIT_SOURCE
-    case 'glm':
-      return 'project/links/glm-all-links.md'
-    case 'kimi':
-      return KIMI_OCR_LIMIT_SOURCE
-    case 'replicate':
-      return 'https://replicate.com/datalab-to/marker/api/schema'
-    case 'fal':
-      return FAL_OCR_LIMIT_SOURCE
-  }
-}
+const getHostedOcrLimitSource = (service: HostedOcrService): string =>
+  hostedOcrAdapterForService(service).limitSource
 
 const BUN_PNG_FALLBACK_FORMATS = ['webp', 'gif', 'bmp'] as const
 const IMAGEMAGICK_PNG_FALLBACK_FORMATS = ['tif'] as const
 
-export const getHostedDirectImageSupportError = (engine: HostedExtractOcrEngine): string => {
-  if (engine === 'glm-ocr') {
-    return 'The GLM OCR provider sends PNG/JPG images to GLM directly; PDF pages are rendered to PNG. AutoShow normalizes WEBP/GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.'
-  }
-  if (engine === 'kimi-ocr') {
-    return 'The Kimi OCR provider sends PNG/JPG/WEBP/GIF images to Kimi directly; PDF pages are rendered to PNG. AutoShow normalizes BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.'
-  }
-  if (engine === 'mistral-ocr') {
-    return 'The Mistral OCR provider sends PDF and PNG/JPG/TIF images to Mistral directly. AutoShow normalizes WEBP/GIF/BMP images locally with Bun.Image.'
-  }
-  if (engine === 'anthropic-ocr') {
-    return 'The Anthropic OCR provider supports PDF and PNG/JPG/WEBP/GIF images directly. AutoShow normalizes BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.'
-  }
-  if (engine === 'gemini-ocr') {
-    return 'The Gemini OCR provider supports PDF and PNG/JPG/WEBP/BMP images directly. AutoShow normalizes GIF images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.'
-  }
-  if (engine === 'deepinfra-ocr') {
-    return 'The DeepInfra OCR provider sends PNG/JPG/WEBP images to DeepInfra directly; PDF pages are rendered to PNG. AutoShow normalizes GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.'
-  }
-  if (engine === 'replicate-ocr') {
-    return 'The Replicate OCR provider sends PDF and PNG/JPG/WEBP images to Replicate directly. AutoShow normalizes GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.'
-  }
-  if (engine === 'fal-ocr') {
-    return 'The fal.ai OCR provider sends PNG/JPG/WEBP images to GOT-OCR directly and renders PDF pages to PNG. AutoShow normalizes GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.'
-  }
-  if (engine === 'grok-ocr') {
-    return 'The Grok OCR provider sends PNG/JPG images to Grok directly; PDF pages are rendered to PNG. AutoShow normalizes WEBP/GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.'
-  }
-  return 'The OpenAI OCR provider supports PDF and PNG/JPG/WEBP/GIF images directly. AutoShow normalizes BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.'
-}
+export const getHostedDirectImageSupportError = (engine: HostedExtractOcrEngine): string =>
+  hostedOcrAdapterForEngine(engine).directImageSupportError
 
 const hostedDirectImageFormats = (
-  direct: string[]
+  direct: readonly string[]
 ): HostedDirectImageFormatSet => {
   const directFormats = new Set(direct)
   const supportsPngUpload = directFormats.has('png')
@@ -144,18 +51,9 @@ const hostedDirectImageFormats = (
   }
 }
 
-const HOSTED_DIRECT_IMAGE_FORMATS: Record<HostedExtractOcrEngine, HostedDirectImageFormatSet> = {
-  'glm-ocr': hostedDirectImageFormats(['png', 'jpg']),
-  'kimi-ocr': hostedDirectImageFormats(['png', 'jpg', 'webp', 'gif']),
-  'mistral-ocr': hostedDirectImageFormats(['png', 'jpg', 'tif']),
-  'openai-ocr': hostedDirectImageFormats(['png', 'jpg', 'webp', 'gif']),
-  'grok-ocr': hostedDirectImageFormats(['png', 'jpg']),
-  'anthropic-ocr': hostedDirectImageFormats(['png', 'jpg', 'webp', 'gif']),
-  'gemini-ocr': hostedDirectImageFormats(['png', 'jpg', 'webp', 'bmp']),
-  'deepinfra-ocr': hostedDirectImageFormats(['png', 'jpg', 'webp']),
-  'replicate-ocr': hostedDirectImageFormats(['png', 'jpg', 'webp']),
-  'fal-ocr': hostedDirectImageFormats(['png', 'jpg', 'webp'])
-}
+const HOSTED_DIRECT_IMAGE_FORMATS = Object.fromEntries(
+  HOSTED_OCR_ADAPTERS.map((adapter) => [adapter.engine, hostedDirectImageFormats([...adapter.directImageFormats])])
+) as Record<HostedExtractOcrEngine, HostedDirectImageFormatSet>
 
 const normalizeHostedImageFormat = (format: string): string =>
   format.toLowerCase() === 'jpeg'
@@ -190,7 +88,7 @@ const normalizeHostedImageWithBun = async (
   normalizedFormat: string
 ): Promise<{ filePath: string, format: DocumentMetadata['format'] }> => {
   if (!isBunImagePngNormalizableFormat(normalizedFormat)) {
-    throw CLIUsageError(getHostedDirectImageSupportError(engine))
+    throw UsageError(getHostedDirectImageSupportError(engine))
   }
 
   const pngPath = join(tempDir, `${outputStem}.png`)
@@ -198,7 +96,14 @@ const normalizeHostedImageWithBun = async (
     await normalizeImageToPngWithBun(imagePath, pngPath)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    throw CLIUsageError(`Failed to normalize ${basename(imagePath)} for --${engine}. Bun.Image could not convert ${normalizedFormat.toUpperCase()} to PNG: ${message}`)
+    throw InfraError(
+      `Failed to normalize ${basename(imagePath)} for --${engine}. Bun.Image could not convert ${normalizedFormat.toUpperCase()} to PNG: ${message}`,
+      {
+        stage: 'ocr:image-normalize',
+        hints: ['Convert the image to PNG or JPG yourself (for example with ImageMagick) and rerun.'],
+        ...(error instanceof Error ? { cause: error } : {})
+      }
+    )
   }
 
   return { filePath: pngPath, format: 'png' }
@@ -216,13 +121,19 @@ const normalizeHostedImageWithImageMagick = async (
       ? 'convert'
       : undefined
   if (!imageMagickCommand) {
-    throw CLIUsageError(getHostedDirectImageSupportError(engine))
+    throw UsageError(getHostedDirectImageSupportError(engine))
   }
 
   const pngPath = join(tempDir, `${outputStem}.png`)
   const result = await exec(imageMagickCommand, [imagePath, pngPath])
   if (result.exitCode !== 0) {
-    throw CLIUsageError(`Failed to normalize ${basename(imagePath)} for --${engine}. ${result.stderr || result.stdout || 'ImageMagick conversion failed.'}`)
+    throw InfraError(
+      `Failed to normalize ${basename(imagePath)} for --${engine}. ${result.stderr || result.stdout || 'ImageMagick conversion failed.'}`,
+      {
+        stage: 'ocr:image-normalize',
+        hints: ['Convert the image to PNG or JPG yourself and rerun.']
+      }
+    )
   }
 
   return { filePath: pngPath, format: 'png' }
@@ -248,52 +159,16 @@ export const normalizeHostedDirectImageInput = async (
     return await normalizeHostedImageWithImageMagick(imagePath, engine, tempDir, outputStem)
   }
 
-  throw CLIUsageError(getHostedDirectImageSupportError(engine))
+  throw UsageError(getHostedDirectImageSupportError(engine))
 }
 
 const resolveHostedOcrSelection = (
   opts: ExtractionOptions
 ): { service: HostedOcrService, model: string } | undefined => {
-  if (hasMistralOcr(opts)) {
-    return { service: 'mistral', model: opts.mistralOcrModel as string }
+  for (const adapter of HOSTED_OCR_ADAPTERS) {
+    const model = adapter.selectModel(opts)
+    if (model !== undefined) return { service: adapter.service, model }
   }
-
-  if (hasGlmOcr(opts)) {
-    return { service: 'glm', model: opts.glmOcrModel as string }
-  }
-
-  if (hasKimiOcr(opts)) {
-    return { service: 'kimi', model: opts.kimiOcrModel as string }
-  }
-
-  if (hasOpenAIOcr(opts)) {
-    return { service: 'openai', model: opts.openaiOcrModel as string }
-  }
-
-  if (hasGrokOcr(opts)) {
-    return { service: 'grok', model: opts.grokOcrModel as string }
-  }
-
-  if (hasAnthropicOcr(opts)) {
-    return { service: 'anthropic', model: opts.anthropicOcrModel as string }
-  }
-
-  if (hasGeminiOcr(opts)) {
-    return { service: 'gemini', model: opts.geminiOcrModel as string }
-  }
-
-  if (hasDeepinfraOcr(opts)) {
-    return { service: 'deepinfra', model: opts.deepinfraOcrModel as string }
-  }
-
-  if (hasReplicateOcr(opts)) {
-    return { service: 'replicate', model: opts.replicateOcrModel as string }
-  }
-
-  if (hasFalOcr(opts)) {
-    return { service: 'fal', model: opts.falOcrModel as string }
-  }
-
   return undefined
 }
 
@@ -309,7 +184,7 @@ const assertHostedOcrWithinLimits = async (
     const inputLabel = step1Metadata.format === 'pdf' ? 'PDF' : 'image'
     const fileStats = await stat(filePath)
     if (fileStats.size > GEMINI_FILE_UPLOAD_BYTES) {
-      throw CLIUsageError(
+      throw UsageError(
         `${formatHostedOcrLabel(selection.service)} supports ${inputLabel} inputs up to ${formatBytes(GEMINI_FILE_UPLOAD_BYTES)} based on ${getHostedOcrLimitSource(selection.service)}. `
         + `Got ${formatBytes(fileStats.size)} for ${basename(filePath)}.`
       )
@@ -318,7 +193,7 @@ const assertHostedOcrWithinLimits = async (
     if (step1Metadata.format === 'pdf') {
       const pageCount = await resolvePdfPageCount(filePath, opts.password, step1Metadata.pageCount)
       if (typeof pageCount === 'number' && pageCount > GEMINI_PDF_PAGE_COUNT_LIMIT) {
-        throw CLIUsageError(
+        throw UsageError(
           `${formatHostedOcrLabel(selection.service)} supports PDF inputs up to ${GEMINI_PDF_PAGE_COUNT_LIMIT} pages based on ${getHostedOcrLimitSource(selection.service)}. `
           + `Got ${pageCount} pages for ${basename(filePath)}.`
         )
@@ -330,11 +205,11 @@ const assertHostedOcrWithinLimits = async (
 
   if (selection.service === 'anthropic' && step1Metadata.format === 'pdf') {
     if (typeof opts.password === 'string' && opts.password.length > 0) {
-      throw CLIUsageError('Anthropic OCR only supports standard unencrypted PDFs. Remove --password and decrypt the PDF before using the Anthropic OCR provider.')
+      throw UsageError('Anthropic OCR only supports standard unencrypted PDFs. Remove --password and decrypt the PDF before using the Anthropic OCR provider.')
     }
 
     if (await isPdfEncrypted(filePath)) {
-      throw CLIUsageError('Anthropic OCR only supports standard unencrypted PDFs. Decrypt the PDF before using the Anthropic OCR provider.')
+      throw UsageError('Anthropic OCR only supports standard unencrypted PDFs. Decrypt the PDF before using the Anthropic OCR provider.')
     }
   }
 
@@ -350,7 +225,7 @@ const assertHostedOcrWithinLimits = async (
   const fileStats = await stat(filePath)
 
   if (typeof limits.effectiveBytes === 'number' && fileStats.size > limits.effectiveBytes) {
-    throw CLIUsageError(
+    throw UsageError(
       `${formatHostedOcrLabel(selection.service)} supports ${inputLabel} inputs up to ${formatBytes(limits.effectiveBytes)} based on ${getHostedOcrLimitSource(selection.service)}. `
       + `Got ${formatBytes(fileStats.size)} for ${basename(filePath)}.`
     )
@@ -359,7 +234,7 @@ const assertHostedOcrWithinLimits = async (
   if (step1Metadata.format === 'pdf' && typeof limits.pageCount === 'number') {
     const pageCount = await resolvePdfPageCount(filePath, opts.password, step1Metadata.pageCount)
     if (typeof pageCount === 'number' && pageCount > limits.pageCount) {
-      throw CLIUsageError(
+      throw UsageError(
         `${formatHostedOcrLabel(selection.service)} supports PDF inputs up to ${limits.pageCount} pages based on ${getHostedOcrLimitSource(selection.service)}. `
         + `Got ${pageCount} pages for ${basename(filePath)}.`
       )
@@ -382,13 +257,14 @@ const runChunkableHostedPdfOcr = async (
     model: identity.ocrModel,
     requestedReasoningEffort: opts.reasoningEffort
   })
-  const inputSha256 = await new Promise<string>((resolve, reject) => {
-    const hash = createHash('sha256')
-    const stream = createReadStream(filePath)
-    stream.on('error', reject)
-    stream.on('data', (chunk) => hash.update(chunk))
-    stream.on('end', () => resolve(hash.digest('hex')))
-  })
+  const inputHasher = new Bun.CryptoHasher('sha256')
+  const inputReader = Bun.file(filePath).stream().getReader()
+  for (;;) {
+    const { done, value } = await inputReader.read()
+    if (done) break
+    if (value) inputHasher.update(value)
+  }
+  const inputSha256 = inputHasher.digest('hex')
   const reasoningIdentity: HostedOcrIdentity = {
     ...identity,
     ...(reasoningPolicy.requested !== undefined ? { requestedReasoningEffort: reasoningPolicy.requested } : {}),
@@ -536,299 +412,20 @@ export const runHostedOcr = async (
     })
   }
 
-  if (hasMistralOcr(opts)) {
-    await ensureMistralOcrSetup()
-    const ocrModel = opts.mistralOcrModel as string
-    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, 'Mistral OCR', {
-      extractionMethod: 'mistral-ocr',
-      ocrService: 'mistral',
-      ocrModel
-    }, async (inputPath, inputMetadata, onRetryable) => {
-      await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
-      const run = await runMistralOcr(inputPath, inputMetadata, ocrModel, { onRetryable })
-      return {
-        pages: run.pages,
-        extractionMethod: run.extractionMethod,
-        ocrService: 'mistral',
-        ocrModel
-      }
-    })
-  }
+  for (const adapter of HOSTED_OCR_ADAPTERS) {
+    const ocrModel = adapter.selectModel(opts)
+    if (ocrModel === undefined) continue
 
-  if (hasGlmOcr(opts)) {
-    await ensureGlmOcrSetup()
-    const ocrModel = opts.glmOcrModel as string
-    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, 'GLM OCR', {
-      extractionMethod: 'glm-ocr',
-      ocrService: 'glm',
-      ocrModel
-    }, async (inputPath, inputMetadata, onRetryable) => {
-      await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
-      const run = await runGlmOcr(inputPath, inputMetadata, ocrModel, {
-        onRetryable,
-        reasoningEffort: opts.reasoningEffort
-      })
-      return {
-        pages: run.pages,
-        extractionMethod: run.extractionMethod,
-        ocrService: 'glm',
-        ocrModel,
-        canonicalText: run.markdown,
-        ...(typeof run.totalPages === 'number' ? { totalPages: run.totalPages } : {}),
-        ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : {}),
-        ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {})
-      }
-    })
-  }
-
-  if (hasKimiOcr(opts)) {
-    await ensureKimiOcrSetup()
-    const ocrModel = opts.kimiOcrModel as string
-    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, 'Kimi OCR', {
-      extractionMethod: 'kimi-ocr',
-      ocrService: 'kimi',
+    await adapter.ensureSetup()
+    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, adapter.label, {
+      extractionMethod: adapter.engine,
+      ocrService: adapter.service,
       ocrModel
     }, async (inputPath, inputMetadata, onRetryable, pageNumber) => {
       await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
-      const run = await runKimiOcr(inputPath, inputMetadata, ocrModel, {
-        dpi: opts.dpi,
-        password: opts.password,
-        outputDir: opts.outputDir,
-        ocrConcurrency: opts.ocrConcurrency,
-        ocrConcurrencyMode: opts.ocrConcurrencyMode,
-        hostedOcrScheduler: opts.hostedOcrScheduler,
-        ocrPreparationCache: opts.ocrPreparationCache,
-        onRetryable,
-        documentPageNumber: pageNumber,
-        reasoningEffort: opts.reasoningEffort
-      })
-      return {
-        pages: run.pages,
-        extractionMethod: run.extractionMethod,
-        ocrService: 'kimi',
-        ocrModel,
-        totalPages: run.totalPages,
-        ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : {}),
-        ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {})
-      }
-    }, {
-      forcePageMode: true,
-      createChunk: createRenderedPngPageChunk(opts.dpi, opts.ocrPreparationCache),
-      chunkFormat: 'png',
-      chunkExtension: 'png'
-    })
+      return await adapter.request({ inputPath, inputMetadata, ocrModel, opts, onRetryable, pageNumber })
+    }, adapter.fallbackOptions?.(opts, ocrModel) ?? {})
   }
 
-  if (hasOpenAIOcr(opts)) {
-    await ensureOpenAIOcrSetup()
-    const ocrModel = opts.openaiOcrModel as string
-    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, 'OpenAI OCR', {
-      extractionMethod: 'openai-ocr',
-      ocrService: 'openai',
-      ocrModel
-    }, async (inputPath, inputMetadata, onRetryable) => {
-      await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
-      const run = await runOpenAIOcr(inputPath, inputMetadata, ocrModel, {
-        onRetryable,
-        reasoningEffort: opts.reasoningEffort
-      })
-      return {
-        pages: run.pages,
-        extractionMethod: run.extractionMethod,
-        ocrService: 'openai',
-        ocrModel,
-        totalPages: run.totalPages,
-        ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : {}),
-        ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {})
-      }
-    })
-  }
-
-  if (hasGrokOcr(opts)) {
-    await ensureGrokOcrSetup()
-    const ocrModel = opts.grokOcrModel as string
-    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, 'Grok OCR', {
-      extractionMethod: 'grok-ocr',
-      ocrService: 'grok',
-      ocrModel
-    }, async (inputPath, inputMetadata, onRetryable, pageNumber) => {
-      await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
-      const run = await runGrokOcr(inputPath, inputMetadata, ocrModel, {
-        dpi: opts.dpi,
-        password: opts.password,
-        outputDir: opts.outputDir,
-        ocrConcurrency: opts.ocrConcurrency,
-        ocrConcurrencyMode: opts.ocrConcurrencyMode,
-        hostedOcrScheduler: opts.hostedOcrScheduler,
-        ocrPreparationCache: opts.ocrPreparationCache,
-        onRetryable,
-        documentPageNumber: pageNumber,
-        reasoningEffort: opts.reasoningEffort
-      })
-      return {
-        pages: run.pages,
-        extractionMethod: run.extractionMethod,
-        ocrService: 'grok',
-        ocrModel,
-        totalPages: run.totalPages,
-        ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : {}),
-        ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {})
-      }
-    }, {
-      forcePageMode: true,
-      createChunk: createRenderedPngPageChunk(opts.dpi, opts.ocrPreparationCache),
-      chunkFormat: 'png',
-      chunkExtension: 'png'
-    })
-  }
-
-  if (hasAnthropicOcr(opts)) {
-    await ensureAnthropicOcrSetup()
-    const ocrModel = opts.anthropicOcrModel as string
-    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, 'Anthropic OCR', {
-      extractionMethod: 'anthropic-ocr',
-      ocrService: 'anthropic',
-      ocrModel
-    }, async (inputPath, inputMetadata, onRetryable) => {
-      await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
-      const run = await runAnthropicOcr(inputPath, inputMetadata, ocrModel, {
-        onRetryable,
-        reasoningEffort: opts.reasoningEffort
-      })
-      return {
-        pages: run.pages,
-        extractionMethod: run.extractionMethod,
-        ocrService: 'anthropic',
-        ocrModel,
-        totalPages: run.totalPages,
-        ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : {}),
-        ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {})
-      }
-    })
-  }
-
-  if (hasGeminiOcr(opts)) {
-    await ensureGeminiOcrSetup()
-    const ocrModel = opts.geminiOcrModel as string
-    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, 'Gemini OCR', {
-      extractionMethod: 'gemini-ocr',
-      ocrService: 'gemini',
-      ocrModel
-    }, async (inputPath, inputMetadata, onRetryable, pageNumber) => {
-      await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
-      const run = await runGeminiOcr(inputPath, inputMetadata, ocrModel, {
-        ocrPreparationCache: opts.ocrPreparationCache,
-        onRetryable,
-        reasoningEffort: opts.reasoningEffort,
-        ...(typeof pageNumber === 'number' ? { documentPageNumber: pageNumber } : {})
-      })
-      return {
-        pages: run.pages,
-        extractionMethod: run.extractionMethod,
-        ocrService: 'gemini',
-        ocrModel,
-        totalPages: run.totalPages,
-        ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : {}),
-        ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {}),
-        ...(run.providerUsage && run.providerUsage.length > 0 ? { providerUsage: run.providerUsage } : {})
-      }
-    }, {
-      createChunk: createRenderedPngPageChunk(opts.dpi, opts.ocrPreparationCache),
-      chunkFormat: 'png',
-      chunkExtension: 'png'
-    })
-  }
-
-  if (hasDeepinfraOcr(opts)) {
-    await ensureDeepinfraOcrSetup()
-    const ocrModel = opts.deepinfraOcrModel as string
-    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, 'DeepInfra OCR', {
-      extractionMethod: 'deepinfra-ocr',
-      ocrService: 'deepinfra',
-      ocrModel
-    }, async (inputPath, inputMetadata, onRetryable, pageNumber) => {
-      await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
-      const run = await runDeepinfraOcr(inputPath, inputMetadata, ocrModel, {
-        dpi: opts.dpi,
-        password: opts.password,
-        outputDir: opts.outputDir,
-        ocrConcurrency: opts.ocrConcurrency,
-        ocrConcurrencyMode: opts.ocrConcurrencyMode,
-        hostedOcrScheduler: opts.hostedOcrScheduler,
-        ocrPreparationCache: opts.ocrPreparationCache,
-        onRetryable,
-        documentPageNumber: pageNumber,
-        reasoningEffort: opts.reasoningEffort
-      })
-      return {
-        pages: run.pages,
-        extractionMethod: run.extractionMethod,
-        ocrService: 'deepinfra',
-        ocrModel,
-        totalPages: run.totalPages,
-        ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : {}),
-        ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {})
-      }
-    }, {
-      forcePageMode: true,
-      createChunk: createRenderedPngPageChunk(opts.dpi, opts.ocrPreparationCache),
-      chunkFormat: 'png',
-      chunkExtension: 'png'
-    })
-  }
-
-  if (hasReplicateOcr(opts)) {
-    await ensureReplicateOcrSetup()
-    const ocrModel = opts.replicateOcrModel as string
-    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, 'Replicate OCR', {
-      extractionMethod: 'replicate-ocr',
-      ocrService: 'replicate',
-      ocrModel
-    }, async (inputPath, inputMetadata) => {
-      await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
-      const run = await runReplicateOcr(inputPath, inputMetadata, ocrModel)
-      return {
-        pages: run.pages,
-        extractionMethod: run.extractionMethod,
-        ocrService: 'replicate',
-        ocrModel,
-        ...(typeof run.totalPages === 'number' ? { totalPages: run.totalPages } : {})
-      }
-    }, {
-      ...(ocrModel === 'lucataco/deepseek-ocr'
-        ? {
-            forcePageMode: true,
-            createChunk: createRenderedPngPageChunk(opts.dpi, opts.ocrPreparationCache),
-            chunkFormat: 'png' as const,
-            chunkExtension: 'png'
-          }
-        : {})
-    })
-  }
-
-  if (hasFalOcr(opts)) {
-    await ensureFalOcrSetup()
-    const ocrModel = opts.falOcrModel as string
-    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, 'fal.ai OCR', {
-      extractionMethod: 'fal-ocr',
-      ocrService: 'fal',
-      ocrModel
-    }, async (inputPath, inputMetadata) => {
-      await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
-      const run = await runFalOcr(inputPath, ocrModel)
-      return {
-        pages: run.pages,
-        extractionMethod: run.extractionMethod,
-        ocrService: 'fal',
-        ocrModel
-      }
-    }, {
-      forcePageMode: true,
-      createChunk: createRenderedPngPageChunk(opts.dpi, opts.ocrPreparationCache),
-      chunkFormat: 'png',
-      chunkExtension: 'png'
-    })
-  }
-
-  throw CLIUsageError('Hosted OCR requested without a configured hosted OCR model.')
+  throw UsageError('Hosted OCR requested without a configured hosted OCR model.')
 }

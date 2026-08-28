@@ -7,7 +7,7 @@ import {
   SPEECHIFY_DEFAULT_TTS_VOICE,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 
-export const mistralTtsModel = 'voxtral-mini-tts-2603'
+export const mistralTtsModels = 'voxtral-mini-tts-2603'
 export const mistralRefAudioPath = 'input/examples/audio/anthony-voice.mp3'
 const shortTtsInputPath = 'input/examples/tts/0-tts-short.txt'
 const shortTtsInputTitle = '0-tts-short'
@@ -110,5 +110,3 @@ export const cartesiaTts = {
   envVarDescription: 'Cartesia TTS',
 } as const
 
-export const isTransientMistralTtsFailure = (output: string): boolean =>
-  /Unable to connect|Unexpected HTTP client error|fetch failed|network error|econnreset|econnrefused|etimedout|socket hang up|dns/i.test(output)

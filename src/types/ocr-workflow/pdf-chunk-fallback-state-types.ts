@@ -1,4 +1,17 @@
-import type { HostedOcrRun } from '~/types'
+import type { HostedOcrIdentity, HostedOcrRun } from '~/types'
+
+export type HostedOcrPageCacheValidation = {
+  pageNumber?: number | undefined
+  totalPages?: number | undefined
+  sourceFile?: string | undefined
+  identity?: HostedOcrIdentity | undefined
+}
+
+export type ParsedHostedOcrPageCache = {
+  pageNumber: number
+  totalPages: number
+  run: HostedOcrRun
+}
 
 export type StoredHostedOcrFallbackPage = {
   version: number

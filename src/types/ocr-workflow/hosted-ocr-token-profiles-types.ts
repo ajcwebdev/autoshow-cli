@@ -1,10 +1,9 @@
-import type { HostedOcrProfileStore, HostedOcrSchedulerProfileConfidence, TokenPricedOcrProvider } from '~/types'
-import type { NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import type { HostedOcrProfileStore, HostedOcrSchedulerProfileConfidence, NormalizedReasoningEffort, TokenPricedOcrProvider } from '~/types'
 
 export type HostedOcrTokenReasoningPolicy = NormalizedReasoningEffort | 'unspecified'
 
-export type HostedOcrTokenEstimateSource = 'profile' | 'blended-profile' | 'registry'
-export type HostedOcrTokenDisqualificationReason = 'partial' | 'failed' | 'incomplete' | 'missing-usage'
+type HostedOcrTokenEstimateSource = 'profile' | 'blended-profile' | 'registry'
+type HostedOcrTokenDisqualificationReason = 'partial' | 'failed' | 'incomplete' | 'missing-usage'
 
 export type HostedOcrTokenUsageEstimate = {
   promptTokens: number

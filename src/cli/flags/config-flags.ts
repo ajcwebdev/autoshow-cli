@@ -1,19 +1,16 @@
 import { boolFlag, omitFlags, strFlag, withHelpGroup } from './flag-utils'
 import {
   transcriptionFlags,
-  llmProviderFlags,
   ocrInputFlags,
   ocrProviderModeFlag,
   ocrTuningFlags,
   batchFlags,
   promptFlag,
   sharedConcurrencyFlags,
-  stepProviderSelectorFlags
+  configPipelineSelectorFlags,
+  configGenerationSelectorFlags
 } from './shared-flags'
 import { ttsCommandFlags } from './tts-flags'
-import { imageGenFlags } from './image-flags'
-import { musicGenFlags } from './music-flags'
-import { videoGenFlags } from './video-flags'
 import type { CliFlagsDefinition } from '~/types'
 
 const configFlags = {
@@ -38,24 +35,12 @@ const configTtsFlags = omitFlags(ttsCommandFlags, [
   'provider-concurrency',
   'local-concurrency',
   'batch-concurrency',
-  'price'
+  'price',
+  'tts-ref-audio',
+  'allow-ambiguous-redispatch'
 ])
 const configOcrInputFlags = omitFlags(ocrInputFlags, ['password'])
-
-// Per-run inputs, not defaults: each names a specific file, mask, or one-shot
-// switch for a single generation. They used to be accepted here and silently
-// dropped, because `FLAG_TO_CONFIG_PATH` never had a destination for them.
-const configImageGenFlags = omitFlags(imageGenFlags, [
-  'image-input',
-  'image-mask',
-  'image-response-mode',
-  'image-search-grounding',
-  'image-compression'
-])
-const configVideoGenFlags = omitFlags(videoGenFlags, [
-  'replicate-video-multi-prompt',
-  'replicate-video-multi-clip'
-])
+const configPromptFlags = omitFlags(promptFlag, ['prompt-md'])
 
 export const configCommandFlags = {
   ...withHelpGroup(configFlags, 'config'),
@@ -63,20 +48,17 @@ export const configCommandFlags = {
   ...withHelpGroup(authFlags, 'auth'),
   ...withHelpGroup(batchFlags, 'batch-download'),
   ...withHelpGroup(sharedConcurrencyFlags, 'concurrency'),
-  ...withHelpGroup({ stt: stepProviderSelectorFlags.stt }, 'transcription'),
+  ...withHelpGroup({ stt: configPipelineSelectorFlags.stt }, 'transcription'),
   ...withHelpGroup(transcriptionFlags, 'transcription'),
-  ...withHelpGroup({ ocr: stepProviderSelectorFlags.ocr }, 'ocr-document'),
+  ...withHelpGroup({ ocr: configPipelineSelectorFlags.ocr }, 'ocr-document'),
   ...withHelpGroup(configOcrInputFlags, 'ocr-document'),
   ...withHelpGroup(ocrTuningFlags, 'ocr-document'),
   ...withHelpGroup(ocrProviderModeFlag, 'ocr-document'),
-  ...withHelpGroup(llmProviderFlags, 'writing'),
-  ...withHelpGroup(promptFlag, 'writing'),
-  ...withHelpGroup({ tts: stepProviderSelectorFlags.tts }, 'tts-options'),
+  ...withHelpGroup({ llm: configPipelineSelectorFlags.llm }, 'writing'),
+  ...withHelpGroup(configPromptFlags, 'writing'),
+  ...withHelpGroup({ tts: configGenerationSelectorFlags.tts }, 'tts-options'),
   ...withHelpGroup(configTtsFlags, 'tts-options'),
-  ...withHelpGroup({ image: stepProviderSelectorFlags.image }, 'image-options'),
-  ...withHelpGroup(configImageGenFlags, 'image-options'),
-  ...withHelpGroup({ video: stepProviderSelectorFlags.video }, 'video-options'),
-  ...withHelpGroup(configVideoGenFlags, 'video-options'),
-  ...withHelpGroup({ music: stepProviderSelectorFlags.music }, 'hosted-music'),
-  ...withHelpGroup(musicGenFlags, 'hosted-music')
+  ...withHelpGroup({ image: configGenerationSelectorFlags.image }, 'image-options'),
+  ...withHelpGroup({ video: configGenerationSelectorFlags.video }, 'video-options'),
+  ...withHelpGroup({ music: configGenerationSelectorFlags.music }, 'hosted-music')
 } as const satisfies CliFlagsDefinition

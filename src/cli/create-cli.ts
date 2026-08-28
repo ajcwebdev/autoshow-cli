@@ -1,5 +1,5 @@
 import { installProcessFailureHandlers } from '~/cli/failure-handlers'
-import { extractErrorHints, isUsageError, normalizeExitCode, usageMessage } from '~/utils/error-handler'
+import { extractErrorHints, extractErrorMetadata, isUsageError, normalizeExitCode, usageMessage } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import type { HelpCommandGroupKey } from '~/types'
 import {
@@ -8,24 +8,25 @@ import {
 } from '~/cli/help-colors'
 import { dispatchNativeCli } from '~/cli/native/dispatcher'
 import { createNativeRootDefinition } from '~/cli/native/root-definition'
+import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { COMMAND_DEFINITIONS, HELP_COMMAND_GROUP_BY_NAME } from './command-definitions'
 
 export { COMMAND_DEFINITIONS, HELP_COMMAND_GROUP_BY_NAME } from './command-definitions'
 
 const cliErrorHandler = (error: unknown): void => {
   if (isUsageError(error)) {
-    l.error(`Usage error: ${usageMessage(error)}`)
+    l.error(`Usage error: ${usageMessage(error)}`, { category: 'usage', metadata: extractErrorMetadata(error) })
     for (const hint of extractErrorHints(error)) {
-      l.write('info', hint)
+      l.write('info', hint, { category: 'usage' })
     }
     process.exit(2)
   }
 
   const exitCode = normalizeExitCode(error)
-  l.error('Command failed', error)
+  l.error('Command failed', { category: 'command', error })
 
   for (const hint of extractErrorHints(error)) {
-    l.write('info', hint)
+    l.write('info', hint, { category: 'command' })
   }
 
   process.exit(exitCode)
@@ -61,6 +62,7 @@ const applyUniversalHelpDescriptionColors = (): void => {
     return
   }
 
+  colorizeFlagDescriptions(GLOBAL_FLAG_DEFINITIONS as Record<string, unknown> | undefined)
   for (const command of COMMAND_DEFINITIONS) {
     colorizeFlagDescriptions(command.flags as Record<string, unknown> | undefined)
     for (const subcommand of command.subcommands ?? []) {
@@ -71,7 +73,7 @@ const applyUniversalHelpDescriptionColors = (): void => {
   helpDescriptionColorsApplied = true
 }
 
-export const runCliInProcess = async (argv: string[]): Promise<void> => {
+const runCliInProcess = async (argv: string[]): Promise<void> => {
   applyUniversalHelpDescriptionColors()
   await dispatchNativeCli(argv, createNativeRootDefinition(), COMMAND_DEFINITIONS)
 }

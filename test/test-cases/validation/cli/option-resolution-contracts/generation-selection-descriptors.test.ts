@@ -60,13 +60,12 @@ describe('generation selection descriptors', () => {
     for (const domain of DOMAINS) {
       const descriptorPricing = Object.entries(domain.descriptor.selections).map(([service, selection]) => ({
         service,
-        modelsKey: selection.modelsKey,
-        modelKey: selection.modelKey
+        modelsKey: selection.modelsKey
       }))
       const descriptorModelFields = Object.fromEntries(
         Object.entries(domain.descriptor.selections).map(([service, selection]) => [
           service,
-          [selection.modelsKey, selection.modelKey] as const
+          selection.modelsKey
         ])
       )
       expect<unknown>(domain.pricingProviders, domain.name).toEqual(descriptorPricing)

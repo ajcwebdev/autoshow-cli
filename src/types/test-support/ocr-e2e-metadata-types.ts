@@ -1,4 +1,4 @@
-export type OcrE2eEpubExportMetadata = {
+type OcrE2eEpubExportMetadata = {
   sourceFormat?: 'epub' | 'pdf'
   mode?: 'chapters' | 'chunks'
   chunkLimitChars?: number
@@ -11,7 +11,7 @@ export type OcrE2eEpubExportMetadata = {
   prefaceSectionsDropped?: number
 }
 
-export type OcrE2ePdfChapterDetectionMetadata = {
+type OcrE2ePdfChapterDetectionMetadata = {
   strategyUsed?: string
   tocPages?: number[]
   pageMapSpans?: Array<Record<string, unknown>>

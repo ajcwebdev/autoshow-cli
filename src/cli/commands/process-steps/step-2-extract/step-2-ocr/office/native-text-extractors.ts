@@ -232,7 +232,6 @@ const extractRtfText = (rtf: string): string => {
         try {
           append(String.fromCodePoint(codePoint))
         } catch {
-          // Ignore malformed code points and keep parsing the rest of the file.
         }
         index = skipRtfFallbackChars(rtf, index, state().uc)
         break

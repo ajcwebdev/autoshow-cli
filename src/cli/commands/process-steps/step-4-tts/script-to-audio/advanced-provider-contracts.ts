@@ -1,28 +1,19 @@
 import type {
-  AccountCapabilityObservation,
+  AdvancedProviderHttpRequest,
   AnyCapabilityRecord,
   CapabilityDocumentationEvidence,
-  CapabilityScope,
-  ProviderAccessRequirement,
   TtsProvider,
 } from '~/types'
-import { CLIUsageError, ProviderError } from '~/utils/error-handler'
+import { UsageError, ProviderError } from '~/utils/error-handler'
 import { extractRestErrorMessage, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
 import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { hashCanonicalTtsValue } from './contract-identity'
-import { validateAccountCapabilityObservation, validateCapabilityFacetSet } from './contract-validation'
+import { validateCapabilityFacetSet } from './contract-validation'
+import { deriveProviderAccountScopeHash } from '~/utils/account-scope-hash'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ADVANCED_PROVIDER_FIXTURE_CHECKED_AT = '2026-08-11T00:00:00.000Z'
-
-export type AdvancedProviderHttpRequest = <T = unknown>(input: {
-  method: 'GET' | 'POST' | 'DELETE'
-  path: string
-  query?: Readonly<Record<string, string | undefined>> | undefined
-  headers?: Readonly<Record<string, string>> | undefined
-  body?: unknown | undefined
-  signal?: AbortSignal | undefined
-}) => Promise<T>
+const ADVANCED_PROVIDER_FIXTURE_CHECKED_AT = '2026-08-11T00:00:00.000Z'
 
 export const createAdvancedProviderJsonRequest = (input: {
   baseUrl: string
@@ -70,7 +61,7 @@ export const createAdvancedProviderJsonRequest = (input: {
   if (request.method === 'GET') {
     return await withRetry({
       retryClass: 'runtime_http_read',
-      operationName: `${input.providerLabel} voice management read`,
+      operationName: `${input.providerLabel.toLowerCase()}-voice-management-read`,
       timeoutMs: MEDIA_GENERATION_TIMEOUT_MS,
       abortSignal: request.signal
     }, execute, (error) => classifyFetchRetry(error, 'runtime_http_read'))
@@ -99,60 +90,24 @@ export const buildAdvancedCapabilityFixture = <T extends readonly AnyCapabilityR
   return { ...fixture, capabilityFixtureHash: hashCanonicalTtsValue(fixture) }
 }
 
-export const capabilityScopeHash = (scope: CapabilityScope): string => hashCanonicalTtsValue(scope)
-
 export const providerAccountScopeHash = (provider: TtsProvider, credential: string): string => {
-  const normalized = credential.trim()
-  if (!normalized) throw CLIUsageError(`${provider} account scope requires configured credentials.`)
-  return hashCanonicalTtsValue({ schemaVersion: 1, provider, credential: normalized })
-}
-
-export const buildAccountCapabilityObservation = (input: {
-  scope: CapabilityScope
-  capabilityFixtureHash: string
-  accountScopeHash: string
-  state: AccountCapabilityObservation['state']
-  requirements: readonly ProviderAccessRequirement[]
-  unmetRequirements?: readonly ProviderAccessRequirement[] | undefined
-  checkedAt?: string | undefined
-  expiresAt?: string | undefined
-  evidenceRefs: readonly string[]
-  reason?: string | undefined
-}): AccountCapabilityObservation => {
-  const unmetRequirements = [...(input.unmetRequirements ?? [])]
-  const satisfiedRequirements = input.requirements.filter(requirement =>
-    !unmetRequirements.some(unmet => hashCanonicalTtsValue(unmet) === hashCanonicalTtsValue(requirement)))
-  const base = {
-    capabilityScopeHash: capabilityScopeHash(input.scope),
-    capabilityFixtureHash: input.capabilityFixtureHash,
-    accountScopeHash: input.accountScopeHash,
-    state: input.state,
-    satisfiedRequirements,
-    unmetRequirements,
-    checkedAt: input.checkedAt ?? new Date().toISOString(),
-    ...(input.expiresAt ? { expiresAt: input.expiresAt } : {}),
-    evidenceRefs: [...input.evidenceRefs],
-    ...(input.reason ? { reason: input.reason } : {})
-  }
-  const observation: AccountCapabilityObservation = {
-    ...base,
-    observationHash: hashCanonicalTtsValue(base)
-  }
-  return validateAccountCapabilityObservation(observation, {
-    capabilityScopeHash: base.capabilityScopeHash,
-    capabilityFixtureHash: input.capabilityFixtureHash,
-    accountScopeHash: input.accountScopeHash
+  const normalized = resolveCredential(provider, 'require', {
+    stage: 'tts:account-scope',
+    providedValue: credential,
+    useProvidedValue: true,
+    description: `${provider} account scope`
   })
+  return deriveProviderAccountScopeHash(provider, normalized)
 }
 
 export const providerSecondsToMilliseconds = (seconds: number, durationMs?: number | undefined): number => {
-  if (!Number.isFinite(seconds) || seconds < 0) throw CLIUsageError('Provider timing must be a finite non-negative number of seconds.')
+  if (!Number.isFinite(seconds) || seconds < 0) throw UsageError('Provider timing must be a finite non-negative number of seconds.')
   const rounded = Math.floor((seconds * 1000) + 0.5)
   return durationMs === undefined ? rounded : Math.min(durationMs, rounded)
 }
 
 export const providerMilliseconds = (milliseconds: number, durationMs?: number | undefined): number => {
-  if (!Number.isFinite(milliseconds) || milliseconds < 0) throw CLIUsageError('Provider timing must be a finite non-negative number of milliseconds.')
+  if (!Number.isFinite(milliseconds) || milliseconds < 0) throw UsageError('Provider timing must be a finite non-negative number of milliseconds.')
   const rounded = Math.floor(milliseconds + 0.5)
   return durationMs === undefined ? rounded : Math.min(durationMs, rounded)
 }

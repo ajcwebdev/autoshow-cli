@@ -4,7 +4,6 @@ import {
   parseIntWithDefault,
   parseOptionalPositiveIntFlag,
   parsePdfChapterMode,
-  readBooleanFlag,
   readOptionalBooleanFlag,
   readOptionalStringFlag,
   readStringFlag
@@ -14,21 +13,25 @@ import { resolveLocalConcurrency, resolveProviderConcurrency } from './concurren
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { pick } from '~/utils/cli-utils'
 import { parseReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 
 const OCR_MODEL_KEYS = [
-  'mistralOcrModels', 'mistralOcrModel', 'glmOcrModels', 'glmOcrModel',
-  'kimiOcrModels', 'kimiOcrModel', 'openaiOcrModels', 'openaiOcrModel',
-  'grokOcrModels', 'grokOcrModel', 'anthropicOcrModels', 'anthropicOcrModel',
-  'geminiOcrModels', 'geminiOcrModel', 'deepinfraOcrModels', 'deepinfraOcrModel',
-  'replicateOcrModels', 'replicateOcrModel', 'falOcrModels', 'falOcrModel',
+  'mistralOcrModels', 'glmOcrModels',
+  'kimiOcrModels', 'openaiOcrModels',
+  'grokOcrModels', 'anthropicOcrModels',
+  'geminiOcrModels', 'deepinfraOcrModels',
 ] as const satisfies readonly OcrRuntimeOptionKey[]
 
 export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => {
   const { mergedFlags, explicitFlags, configuredFlags, allShortcutFlags, modelOptions } = ctx
 
-  const outputFormat = readStringFlag(mergedFlags, 'format', 'json')
-  const normalizedOut: OutputFormat = outputFormat === 'text' || outputFormat === 'tsv' || outputFormat === 'hocr' ? outputFormat : 'json'
+  const outputFormat = readStringFlag(mergedFlags, 'format', 'text')
+  if (outputFormat === 'tsv' || outputFormat === 'hocr') {
+    throw UsageError(
+      `--format "${outputFormat}" was removed because no extraction backend emits it natively. Use --format text or --format json.`
+    )
+  }
+  const normalizedOut: OutputFormat = outputFormat === 'json' ? 'json' : 'text'
   const epubLengthThousands = parseOptionalPositiveIntFlag(readOptionalStringFlag(mergedFlags, 'length'), 'length')
   const pdfChapterMode = parsePdfChapterMode(readOptionalStringFlag(mergedFlags, 'pdf-chapter-mode'))
   const useTesseract = isStep2BooleanProviderSelected('tesseract-ocr', mergedFlags, allShortcutFlags)
@@ -45,7 +48,7 @@ export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => 
     : undefined
   const rawOcrProviderMode = readStringFlag(mergedFlags, 'ocr-provider-mode', 'fanout')
   if (rawOcrProviderMode !== 'fanout' && rawOcrProviderMode !== 'pool') {
-    throw CLIUsageError(`Invalid --ocr-provider-mode "${rawOcrProviderMode}". Expected fanout or pool.`)
+    throw UsageError(`Invalid --ocr-provider-mode "${rawOcrProviderMode}". Expected fanout or pool.`)
   }
   const ocrProviderModeExplicit = hasExplicitOrConfiguredFlag(
     'ocr-provider-mode',
@@ -83,7 +86,6 @@ export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => 
     chapterFiles: readOptionalBooleanFlag(mergedFlags, 'chapters'),
     chapterChunkLimitChars: epubLengthThousands === undefined ? undefined : epubLengthThousands * 1000,
     pdfChapterMode,
-    useEpubBun: readBooleanFlag(mergedFlags, 'epub-bun'),
     reasoningEffort: parseReasoningEffort(readOptionalStringFlag(mergedFlags, 'reasoning-effort'))
   }
 }

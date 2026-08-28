@@ -4,7 +4,7 @@ import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import { formatDuration } from '~/utils/app-logger/formatters'
 import { buildProviderModelLabel } from './manifest-log-formatting'
 
-export const HOSTED_OCR_SCHEDULER_COLUMNS = ['lane', 'status', 'cap', 'capSource', 'peak', 'retryPressure', 'pause', 'pagesPerMinute', 'targetShare'] as const
+const HOSTED_OCR_SCHEDULER_COLUMNS = ['lane', 'status', 'cap', 'capSource', 'peak', 'retryPressure', 'pause', 'pagesPerMinute', 'targetShare'] as const
 
 
 const parseTarget = (value: unknown): HostedOcrSchedulerTargetTelemetry | undefined => {

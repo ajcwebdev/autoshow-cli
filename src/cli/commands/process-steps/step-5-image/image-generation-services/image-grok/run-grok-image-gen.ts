@@ -1,7 +1,7 @@
 import type { GrokImageModel, OpenAIImageResponse, Step5Metadata } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { createOpenAIImage, openAIJsonRequest } from '~/utils/openai/openai-client'
 import { imageReferenceToDataUrl, isHttpUrl } from '../../image-utils/image-inputs'
@@ -16,7 +16,7 @@ export const normalizeGrokImageResolution = (size: string | undefined): string |
   if (size === undefined || size.length === 0) return undefined
   const normalized = size.toLowerCase()
   if (normalized === '1k' || normalized === '2k') return normalized
-  throw CLIUsageError(`Invalid --image-size value "${size}" for Grok. Expected 1K or 2K.`)
+  throw UsageError(`Invalid --size value "${size}" for Grok. Expected 1K or 2K.`)
 }
 
 export const runGrokImageGen = async (
@@ -31,7 +31,7 @@ export const runGrokImageGen = async (
     imageSize?: string | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
-  const apiKey = requireApiKey('XAI_API_KEY', 'image:grok', 'Grok image generation')
+  const apiKey = resolveCredential('grok', 'require', { stage: 'image:grok', description: 'Grok image generation' })
 
   const resolution = normalizeGrokImageResolution(options.imageSize)
   const mode = options.mode ?? 'generation'

@@ -4,17 +4,13 @@ import { writeFile } from 'node:fs/promises'
 
 import type { MetricName, MetricRankingEntry, RankingSurfaceName, TtsRankingEntry } from '~/types'
 import { createTempDirTracker } from '../../../../test-utils/temp-dirs'
+import { readBunSpawnStreamText as readStreamText } from '../../../../test-utils/stream-text'
 
 export const setupTempRoots = (): ((prefix: string) => Promise<string>) => {
   const tracker = createTempDirTracker('autoshow-grouped-tier-')
   afterEach(tracker.cleanup)
   return tracker.make
 }
-
-export const readStreamText = async (
-  stream: ReadableStream<Uint8Array> | number | undefined | null
-): Promise<string> =>
-  stream && typeof stream !== 'number' ? await new Response(stream).text() : ''
 
 export const writeJson = async (path: string, value: unknown): Promise<void> => {
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`)

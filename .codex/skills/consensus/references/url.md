@@ -39,16 +39,6 @@ reads optional sibling `manifest.json` metadata for article titles and source UR
 uses only committed local artifacts and never reruns providers or regenerates a
 consensus extraction.
 
-Output is written to `$ROOT_DIR/combined-comparison-report.json` (URL schema v1),
-`combined-comparison-report.md`, and `combined-comparison-report.html`. The HTML
-is a self-contained offline dashboard with embedded data and inline CSS/JS. Its
-article inventory validates links as HTTP(S), and the browser script only switches
-between precomputed rankings.
+Output is written to `$ROOT_DIR/combined-comparison-report.json` (URL schema v2), `combined-comparison-report.md`, and `combined-comparison-report.html`. The HTML is a self-contained offline dashboard with embedded data and inline CSS.
 
-Providers remain split into `local` and `service`. Pure rankings aggregate present
-values for price, speed, and source `rankingSurfaces.*.automatedQuality`; combined
-quality is not recomputed from WER/CER/coverage. WER, CER, content coverage,
-processing time, and cost remain supporting means. Each group also receives the
-shared eight weighted Q/S/C rankings and `quality-cost-terciles-v1` tiers. No
-human-quality ranking is emitted when the source human-quality arrays are empty,
-and local and service providers are never compared against each other.
+Providers remain split into `local` and `service`. Rankings aggregate present values for price, speed, and source `rankingSurfaces.*.automatedQuality`; combined quality is not recomputed from WER/CER/coverage. WER, CER, content coverage, processing time, and cost remain supporting means. Combined reports do not emit weighted composites or model tiers. No human-quality ranking is emitted when the source human-quality arrays are empty, and local and service providers are never compared against each other.

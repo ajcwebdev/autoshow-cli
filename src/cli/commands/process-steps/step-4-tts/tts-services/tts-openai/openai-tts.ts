@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureOpenAITtsSetup = ensureApiKeySetup('OPENAI_API_KEY', 'tts:openai', 'OpenAI TTS')
+export const ensureOpenAITtsSetup = async (): Promise<void> => { resolveCredential('openai', 'require', { stage: 'tts:openai', description: 'OpenAI TTS' }) }

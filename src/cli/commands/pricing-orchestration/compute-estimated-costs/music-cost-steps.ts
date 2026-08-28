@@ -6,7 +6,7 @@ import { pushGenerationEstimates } from './cost-steps-shared'
 
 export const buildMusicCostSteps = (input: ComputeEstimatedCostsInput): CostStepsResult => {
   const hasMusic = input.musicTargets?.length
-    || MUSIC_PRICING_PROVIDERS.some((provider) => !!input[provider.modelKey])
+    || MUSIC_PRICING_PROVIDERS.some((provider) => (input[provider.modelsKey]?.length ?? 0) > 0)
   if (!hasMusic) {
     return { steps: [], cost: 0 }
   }
@@ -16,8 +16,8 @@ export const buildMusicCostSteps = (input: ComputeEstimatedCostsInput): CostStep
     musicInstrumental: input.musicInstrumental
   }
   const selectionOptions = Object.assign({}, ...MUSIC_PRICING_PROVIDERS.map((provider) => {
-    const model = input[provider.modelKey]
-    return model ? optionsForService(MUSIC_PRICING_PROVIDERS, provider.service, model) : {}
+    const models = input[provider.modelsKey]
+    return models?.length ? optionsForService(MUSIC_PRICING_PROVIDERS, provider.service, models) : {}
   }))
   const musicEstimates = input.musicTargets === undefined
     ? estimateMusicCosts({ ...selectionOptions, ...sharedOptions, musicDuration: input.musicDuration })

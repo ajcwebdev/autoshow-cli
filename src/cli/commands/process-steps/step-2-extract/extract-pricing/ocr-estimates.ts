@@ -1,14 +1,14 @@
-import { randomUUID } from 'node:crypto'
-import { unlink, writeFile } from 'node:fs/promises'
+import { writeFile } from 'node:fs/promises'
+import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { tmpdir } from 'node:os'
 import { extname, join } from 'node:path'
 import { getDocumentInfo } from '~/cli/commands/process-steps/step-1-download/document/mutool-utils'
 import { getExtractEstimation, getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { validateAnthropicOcrModel, validateDeepinfraOcrModel, validateFalOcrModel, validateGeminiOcrModel, validateGlmOcrModel, validateGrokOcrModel, validateKimiOcrModel, validateMistralOcrModel, validateOpenAIOcrModel, validateReplicateOcrModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateAnthropicOcrModel, validateDeepinfraOcrModel, validateGeminiOcrModel, validateGlmOcrModel, validateGrokOcrModel, validateKimiOcrModel, validateMistralOcrModel, validateOpenAIOcrModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { EstimateOcrTokenUsageOptions, HostedOcrEstimateOptions, HostedOcrTokenUsageEstimate, TokenEstimateMetadata, TokenOcrCostEstimate, TokenPricedOcrProvider } from '~/types'
 import { resolveHostedOcrTokenUsageEstimate } from '../step-2-ocr/ocr-utils/hosted-ocr-token-profiles'
 import { computeOcrTokenCost } from '~/utils/pricing/ocr-token-pricing'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError, ValidationError } from '~/utils/error-handler'
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp', '.gif', '.bmp'] as const
 const DEFAULT_EXTRACT_PAGE_COUNT = 1
@@ -86,7 +86,7 @@ const tokenEstimateMetadata = (
 })
 
 const downloadToTemp = async (url: string): Promise<string> => {
-  const tempPath = join(tmpdir(), `autoshow-price-${randomUUID()}.pdf`)
+  const tempPath = join(tmpdir(), `autoshow-price-${crypto.randomUUID()}.pdf`)
   const response = await fetch(url)
   if (!response.ok) throw InfraError(`Failed to fetch ${url}: ${response.status}`, { stage: 'ocr:extract-pricing', status: response.status })
   const buffer = Buffer.from(await response.arrayBuffer())
@@ -118,7 +118,7 @@ export const resolveExtractInputPageCountForPricing = (input: string): Promise<n
 const resolveExtractInputPageCountUncached = async (input: string): Promise<number> => {
   if (hasImageExtension(input)) return DEFAULT_EXTRACT_PAGE_COUNT
   if (!hasPdfExtension(input)) {
-    throw CLIUsageError(`Unable to estimate hosted OCR price for "${input}": expected a PDF or image input so page count can be determined.`)
+    throw UsageError(`Unable to estimate hosted OCR price for "${input}": expected a PDF or image input so page count can be determined.`)
   }
 
   let localPath = input
@@ -132,9 +132,17 @@ const resolveExtractInputPageCountUncached = async (input: string): Promise<numb
     if (Number.isFinite(info.pageCount) && info.pageCount > 0) {
       return Math.floor(info.pageCount)
     }
-    throw new Error(`document info returned ${info.pageCount} pages`)
+    throw ValidationError(`document info returned ${info.pageCount} pages`, { stage: 'ocr:pricing', retryable: false })
   } catch (error) {
-    throw CLIUsageError(`Unable to estimate hosted OCR price for "${input}": could not determine PDF page count (${formatPageCountError(error)}).`)
+    throw ValidationError(
+      `Unable to estimate hosted OCR price for "${input}": could not determine PDF page count (${formatPageCountError(error)}).`,
+      {
+        stage: 'ocr:pricing',
+        retryable: false,
+        hints: ['Confirm the input is a readable PDF, or pass an explicit page count via the pricing options.'],
+        ...(error instanceof Error ? { cause: error } : {})
+      }
+    )
   } finally {
     if (tempFile) {
       await unlink(tempFile).catch(() => {})
@@ -158,36 +166,6 @@ export const estimateMistralOcrCost = async (
     costPer1kPagesCents,
     totalCost: (pageCount / 1000) * costPer1kPagesCents
   }
-}
-
-export const estimateReplicateOcrCost = async (
-  modelRaw: string,
-  input: string
-): Promise<{ provider: 'replicate', model: string, pageCount: number, costPer1kPagesCents: number, totalCost: number }> => {
-  const model = validateReplicateOcrModel(modelRaw)
-  const pricing = getExtractPricing('replicate', model)
-  const costPer1kPagesCents = pricing.costPer1kPagesCents ?? 200
-  const pageCount = await resolveExtractInputPageCountForPricing(input)
-
-  return {
-    provider: 'replicate',
-    model,
-    pageCount,
-    costPer1kPagesCents,
-    totalCost: (pageCount / 1000) * costPer1kPagesCents
-  }
-}
-
-export const estimateFalOcrCost = async (
-  modelRaw: string,
-  input: string
-): Promise<{ provider: 'fal', model: string, pageCount: number, costPer1kPagesCents: number, totalCost: number }> => {
-  const model = validateFalOcrModel(modelRaw)
-  const pricing = getExtractPricing('fal', model)
-  const costPer1kPagesCents = pricing.costPer1kPagesCents ?? 5000
-  const pageCount = await resolveExtractInputPageCountForPricing(input)
-
-  return { provider: 'fal', model, pageCount, costPer1kPagesCents, totalCost: (pageCount / 1000) * costPer1kPagesCents }
 }
 
 const estimateTokenPricedOcrCost = async <TProvider extends TokenPricedOcrProvider>(

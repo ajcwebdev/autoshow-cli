@@ -1,6 +1,6 @@
 import * as v from 'valibot'
 import type { LtxVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import {
@@ -11,7 +11,7 @@ import {
 } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
 import { formatPolledJobError, runPolledJob } from '~/utils/polled-job-client/polled-job'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { videoMediaReferenceToUrlOrDataUrl } from '../../video-utils/video-media-inputs'
 const LTX_BASE_URL = 'https://api.ltx.video'
@@ -38,12 +38,12 @@ const resolveLtxEndpoint = (mode: VideoMode): 'text-to-video' | 'image-to-video'
   if (mode === 'text') return 'text-to-video'
   if (mode === 'image-to-video' || mode === 'interpolate') return 'image-to-video'
   if (mode === 'extend') return 'extend'
-  throw CLIUsageError(`--video-mode ${mode} is not supported by LTX.`)
+  throw UsageError(`--mode ${mode} is not supported by LTX.`)
 }
 
 const requireLtxPrompt = (prompt: string | undefined): string => {
   if (prompt === undefined || prompt.trim().length === 0) {
-    throw CLIUsageError('LTX video prompt cannot be empty.')
+    throw UsageError('LTX video prompt cannot be empty.')
   }
   return prompt
 }
@@ -55,7 +55,6 @@ export const runLtxVideoGen = async (
     model: LtxVideoModel
     mode?: VideoMode | undefined
     durationSeconds?: number | undefined
-    size?: string | undefined
     aspectRatio?: string | undefined
     resolution?: string | undefined
     inputImage?: string | undefined
@@ -63,11 +62,11 @@ export const runLtxVideoGen = async (
     inputVideo?: string | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
-  const apiKey = requireApiKey('LTXV_API_KEY', 'video:ltx', 'LTX video generation')
+  const apiKey = resolveCredential('ltx', 'require', { stage: 'video:ltx', description: 'LTX video generation' })
 
   const mode = options.mode ?? 'text'
   const endpoint = resolveLtxEndpoint(mode)
-  const size = normalizeLtxVideoSize(options.model, options.size, options.resolution, options.aspectRatio)
+  const size = normalizeLtxVideoSize(options.model, options.resolution, options.aspectRatio)
   const resolution = normalizeLtxVideoResolution(options.resolution)
   const aspectRatio = normalizeLtxVideoAspectRatio(options.model, options.aspectRatio)
   const duration = normalizeLtxVideoDuration(options.model, size, options.durationSeconds, mode)
@@ -80,9 +79,8 @@ export const runLtxVideoGen = async (
   logGenStatus('video', 'ltx', options.model, 'started')
 
   const estimate = estimateVideoCost({
-    ltxVideoModel: options.model,
+    ltxVideoModels: [options.model],
     videoDuration: options.durationSeconds,
-    videoSize: options.size,
     videoAspectRatio: options.aspectRatio,
     videoResolution: options.resolution,
     videoMode: mode

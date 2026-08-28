@@ -9,9 +9,7 @@ import {
 } from './provider-targets'
 import { STEP2_OCR_PROVIDER_REGISTRY } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry/ocr-providers'
 import { STEP2_STT_PROVIDER_REGISTRY } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry/stt-providers'
-
-type ModelFlag<Registry extends readonly { flagName: string, selection: { type: string } }[]> =
-  Extract<Registry[number], { selection: { type: 'models' } }>['flagName']
+import type { ModelFlag } from '~/types'
 
 const projectModelFlags = <
   const Registry extends readonly { flagName: string, selection: { type: string } }[]
@@ -40,7 +38,6 @@ const STT_MODEL_FLAG_ORDER = [
   WRITE_STT_PROVIDER_TARGETS.deepgram,
   WRITE_STT_PROVIDER_TARGETS.soniox,
   WRITE_STT_PROVIDER_TARGETS.speechmatics,
-  WRITE_STT_PROVIDER_TARGETS.rev,
   WRITE_STT_PROVIDER_TARGETS.mistral,
   WRITE_STT_PROVIDER_TARGETS.assemblyai,
   WRITE_STT_PROVIDER_TARGETS.gladia,
@@ -79,5 +76,3 @@ export const REPEATABLE_MODEL_FLAGS = [
   ...targetValues(STANDALONE_MUSIC_PROVIDER_TARGETS),
   ...targetValues(STANDALONE_VIDEO_PROVIDER_TARGETS)
 ] as const
-
-export type RepeatableModelFlag = typeof REPEATABLE_MODEL_FLAGS[number]

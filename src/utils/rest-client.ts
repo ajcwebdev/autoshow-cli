@@ -1,22 +1,23 @@
-import { AppError } from '~/utils/error-handler'
+import { AppError, type AppProviderError, ProviderError } from '~/utils/error-handler'
 import { buildCaptureMetadata, readBoundedResponseText, redactPayloadPreview } from '~/utils/bounded-capture'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
-import type { BoundedCaptureResult } from '~/types'
+import type { BoundedCaptureResult, ProviderRestClientProfile } from '~/types'
+import { isRecord } from '~/utils/value-helpers'
+
+export { isRecord }
 
 export const trimTrailingSlashes = (value: string): string => value.replace(/\/+$/, '')
-
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 export const httpResponseError = <TExtras extends object = Record<never, never>>(
   message: string,
   response: Response,
   extras?: TExtras
-): Error & { status: number, headers: Headers } & TExtras =>
-  Object.assign(new Error(message), extras, {
-    status: response.status,
-    headers: response.headers
-  })
+): AppProviderError & { status: number, headers: Headers } & TExtras =>
+  Object.assign(
+    ProviderError(message, { status: response.status, headers: response.headers }),
+    extras,
+    { status: response.status, headers: response.headers }
+  ) as AppProviderError & { status: number, headers: Headers } & TExtras
 
 export const parseJsonOrText = (rawText: string): unknown => {
   if (rawText.trim().length === 0) {
@@ -51,41 +52,17 @@ export const extractRestErrorMessage = (payload: unknown, rawText: string, statu
   return sanitizeLogText(rawText.trim()) || `HTTP ${status}`
 }
 
-export const normalizeFetchAbortError = (error: unknown): unknown => {
-  if (error instanceof DOMException && (error.name === 'AbortError' || error.name === 'TimeoutError')) {
-    const abortError = new Error(error.message)
-    abortError.name = 'AbortError'
-    return abortError
-  }
+const normalizeFetchAbortError = (error: unknown): unknown => {
+  const isAbortShaped = (error instanceof DOMException || error instanceof Error)
+    && (error.name === 'AbortError' || error.name === 'TimeoutError')
 
-  if (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')) {
-    const abortError = new Error(error.message)
+  if (isAbortShaped) {
+    const abortError = new Error(error.message, { cause: error })
     abortError.name = 'AbortError'
     return abortError
   }
 
   return error
-}
-
-type ProviderRestRequest = {
-  url: string
-  init: RequestInit
-}
-
-type ProviderRestErrorContext<TOptions> = {
-  options: TOptions
-  response: Response
-  captured: BoundedCaptureResult
-  rawText: string
-  parsedBody: unknown
-}
-
-type ProviderRestClientProfile<TOptions, TError extends Error> = {
-  buildRequest: (options: TOptions) => ProviderRestRequest
-  errorMessagePrefix: (options: TOptions) => string
-  formatErrorMessage?: ((context: ProviderRestErrorContext<TOptions> & { errorMessagePrefix: string }) => string) | undefined
-  createError: (context: ProviderRestErrorContext<TOptions> & { message: string }) => TError
-  diagnostics?: 'raw-and-parsed' | 'parsed-body' | 'factory' | undefined
 }
 
 export const createProviderRestClient = <TOptions, TError extends Error>(
@@ -95,7 +72,8 @@ export const createProviderRestClient = <TOptions, TError extends Error>(
     const request = profile.buildRequest(options)
 
     try {
-      const response = await fetch(request.url, request.init)
+      const init: RequestInit & { timeout: false } = { ...request.init, timeout: false }
+      const response = await fetch(request.url, init)
       if (response.ok) {
         return response
       }
@@ -128,6 +106,14 @@ export const createProviderRestClient = <TOptions, TError extends Error>(
       throw normalizeFetchAbortError(error)
     }
   }
+
+export const resolveRestPath = (baseURL: string, path: string): string =>
+  new URL(path.replace(/^\/+/, ''), baseURL.endsWith('/') ? baseURL : `${baseURL}/`).toString()
+
+export const readRestErrorText = async (response: Response): Promise<string> => {
+  const text = await response.text()
+  return text.trim() || `HTTP ${response.status}`
+}
 
 export const joinRestUrl = (
   baseURL: string | undefined,

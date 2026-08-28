@@ -37,6 +37,6 @@ test('mistral rejects voice and reference audio together before API request in p
     '--price'
   ])
 
-  expect(result.exitCode).not.toBe(0)
+  expect(result.exitCode).toBe(2)
   expect(`${result.stdout}\n${result.stderr}`).toContain('Use either --mistral-tts-voice or --mistral-tts-ref-audio, not both')
 })

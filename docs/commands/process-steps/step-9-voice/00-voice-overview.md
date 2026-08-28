@@ -1,14 +1,14 @@
 # voice
 
-Manage durable provider voice registrations separately from speech synthesis. The comic-native `comic reference-voice` command delegates to the same implementation and protected store.
+Manage durable provider voice registrations separately from speech synthesis. `comic reference-voice` is the comic-native alias of the same command surface.
 
 ## Outline
 
 - [Overview](#overview)
 - [Setup](#setup)
 - [Typical Flow](#typical-flow)
-- [Protected and Ordinary Artifacts](#protected-and-ordinary-artifacts)
-- [Voice Price Safety](#voice-price-safety)
+- [Artifacts](#artifacts)
+- [Pricing](#pricing)
 - [Command Docs](#command-docs)
 
 ## Overview
@@ -20,7 +20,7 @@ bun autoshow comic reference-voice <subcommand> [flags]
 
 Available actions are `list`, `consent`, `import`, `design`, `clone`, `audition`, `approve`, `retire`, and `delete`. Bare `voice` and `comic reference-voice` run `list`. Run `bun autoshow voice <action> --help` for the exact action flags.
 
-`voice` manages only these synthesis models: ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`. Every other implemented TTS model stays compatible with [`tts`](../step-4-tts/text-to-speech-and-voice.md) and uses a single existing stock, designed, or cloned voice ID. fal.ai Maya remains synthesis-only until it exposes a durable voice port.
+`voice` manages only these synthesis models: ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`. Every other implemented TTS model stays compatible with [`tts`](../step-4-tts/text-to-speech-and-voice.md) and uses a single existing stock, designed, or cloned voice ID.
 
 Voice management reads authored profiles from `input/characters/character-voices.json`. Profiles are independent of the visual character catalog. A minimal catalog is:
 
@@ -55,38 +55,32 @@ CARTESIA_API_KEY=...
 SPEECHIFY_API_KEY=...
 ```
 
-`--price` modes perform local validation and estimate only. They make no provider calls and write neither protected nor ordinary artifacts.
+`--price` estimates cost without provider calls or writes.
 
 ## Typical Flow
 
 1. Store [consent](./02-consent.md) before clone or other consent-gated work.
 2. [List](./01-list.md) provider or account catalogs, or [import](./03-import.md) an existing voice ID.
-3. Optionally [design](./04-design.md) candidates and save one with `--save`, or [clone](./05-clone.md) from protected samples.
+3. Optionally [design](./04-design.md) candidates and save one with `--save`, or [clone](./05-clone.md) from local samples.
 4. [Audition](./06-audition.md) the draft registration, then [approve](./07-approve.md) it.
-5. [List](./01-list.md) the local catalog or one registration.
-6. Interrupted Fish creates complete automatically when unambiguous. Pass `--reconcile` on `design --save`, `clone`, `delete`, or `list <id>` when the journal is ambiguous.
-7. [Retire](./08-retire.md) or [delete](./09-delete.md) when the registration should leave the current index. Use `voice consent --revoke` to revoke a consent locator.
+5. [Retire](./08-retire.md) or [delete](./09-delete.md) when the registration should no longer be current. Use `voice consent --revoke` to revoke a consent locator.
 
-## Protected and Ordinary Artifacts
+## Artifacts
 
-Protected reference, preview, audition, consent, and reconciliation bytes live under the registered owner-only runtime store. Policies are content-addressed, workspaces are disposable, and the protected root must be disjoint from ordinary output roots.
+Sample audio, previews, auditions, and consent records stay in a separate owner-only store, not under ordinary project output.
 
-Ordinary character artifacts contain only strict versioned metadata and opaque protected-asset locators:
+You author profiles in `input/characters/character-voices.json`. The CLI writes registration metadata beside it:
 
-- `input/characters/character-voices.json`
 - `input/characters/character-voice-registrations.json`
 - `input/characters/character-voice-current.json`
-- `input/characters/voice-candidates/<candidate-id>.json`
-- `input/characters/voice-references/<subject>/<provider>/<registration>/<generation>/registration-snapshot.json`
-- `input/characters/voice-references/<subject>/<provider>/<registration>/<generation>/audition-manifest.json`
+- `input/characters/voice-candidates/`
+- `input/characters/voice-references/`
 
-Registration and audition generations are create-only and content-identified. The catalog preserves every prior generation; the current index contains only approved, ready registrations.
+The catalog keeps history. Only approved, ready voices are current.
 
-## Voice Price Safety
+## Pricing
 
-Management `--price` modes perform local validation and estimate only. They make no provider calls and write neither protected nor ordinary artifacts. Voice Design reports a numeric preview estimate from the exact provider, creation model, character count, and candidate count; ElevenLabs, Fish, and Inworld charge the preview text once. Materialization reports zero estimated provider cost because the supported design flows include saving the selected resource. Ordinary `tts`, `write`, resume, configuration loading, and synthesis price paths cannot express provider resource creation.
-
-Provider prices and eligibility can change. Treat the estimate as a preflight derived from AutoShow's dated pricing configuration and use the provider console when account-specific terms matter.
+`design --price` estimates one preview for ElevenLabs, Fish, and Inworld even when you request multiple candidates. `design --save --price` reports zero provider cost because saving a selected candidate does not add a billed preview. Treat estimates as a preflight; use the provider console for account-specific terms.
 
 ## Command Docs
 

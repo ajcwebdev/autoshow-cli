@@ -1,17 +1,13 @@
-import { stat } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { basename, extname } from 'node:path'
 import * as v from 'valibot'
 import { getAudioDuration } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter'
 import { withRetry, classifyFetchRetry } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
 import { materializeMediaInput } from '~/utils/media-url'
-import { CLIUsageError, ValidationError } from '~/utils/error-handler'
-import type { SpeechifyTtsCustomVoiceContext, SpeechifyTtsCustomVoiceGender, SpeechifyTtsCustomVoiceOptions, SpeechifyTtsCustomVoiceResult, TtsCustomVoiceSampleAudio } from '~/types'
+import { UsageError, ValidationError } from '~/utils/error-handler'
+import type { SpeechifyTtsCustomVoiceGender, SpeechifyTtsCustomVoiceOptions, SpeechifyTtsCustomVoiceResult, TtsCustomVoiceSampleAudio } from '~/types'
 import { httpResponseError } from '~/utils/rest-client'
-
-export const SPEECHIFY_TTS_CUSTOM_VOICE_COST_CENTS = 0
-export const SPEECHIFY_TTS_CUSTOM_VOICE_SETUP_MS = 10_000
-export const SPEECHIFY_TTS_CUSTOM_VOICE_SETUP_NOTE = 'Speechify custom voice creation setup'
 
 const SPEECHIFY_TTS_DEFAULT_CUSTOM_VOICE_LOCALE = 'en-US'
 const SPEECHIFY_TTS_DEFAULT_CUSTOM_VOICE_GENDER = 'notSpecified'
@@ -40,14 +36,12 @@ const SpeechifyVoiceResponseSchema = v.object({
 
 export const SPEECHIFY_CUSTOM_VOICE_GENDERS = ['male', 'female', 'notSpecified'] as const
 
-export const createSpeechifyTtsCustomVoiceContext = (): SpeechifyTtsCustomVoiceContext => ({})
-
 const defaultSpeechifyTtsCustomVoiceName = (): string => `AutoShow_${Date.now()}`
 
 const isSpeechifyCustomVoiceGender = (value: string): value is SpeechifyTtsCustomVoiceGender =>
   (SPEECHIFY_CUSTOM_VOICE_GENDERS as readonly string[]).includes(value)
 
-export const validateSpeechifyTtsCustomVoiceGender = (
+const validateSpeechifyTtsCustomVoiceGender = (
   value: string | undefined
 ): SpeechifyTtsCustomVoiceGender => {
   const normalized = value?.trim() || SPEECHIFY_TTS_DEFAULT_CUSTOM_VOICE_GENDER
@@ -55,13 +49,13 @@ export const validateSpeechifyTtsCustomVoiceGender = (
     return normalized
   }
 
-  throw CLIUsageError('Invalid --speechify-tts-voice-gender value. Expected male, female, or notSpecified.')
+  throw UsageError('Invalid Speechify custom voice gender. Expected male, female, or notSpecified.')
 }
 
 const resolveSpeechifyTtsCustomVoiceLocale = (value: string | undefined): string => {
   const normalized = value?.trim() || SPEECHIFY_TTS_DEFAULT_CUSTOM_VOICE_LOCALE
   if (normalized.length === 0) {
-    throw CLIUsageError('Speechify TTS custom voice locale is empty.')
+    throw UsageError('Speechify TTS custom voice locale is empty.')
   }
   return normalized
 }
@@ -74,13 +68,13 @@ const resolveSpeechifyTtsCustomVoiceConsent = (
   const email = consentEmail?.trim()
 
   if (!fullName) {
-    throw CLIUsageError('Speechify TTS custom voice creation requires --speechify-tts-consent-name.')
+    throw UsageError('Speechify TTS custom voice creation requires consent full name.')
   }
   if (!email) {
-    throw CLIUsageError('Speechify TTS custom voice creation requires --speechify-tts-consent-email.')
+    throw UsageError('Speechify TTS custom voice creation requires consent email.')
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    throw CLIUsageError('Invalid --speechify-tts-consent-email value. Expected an email address.')
+    throw UsageError('Invalid Speechify TTS custom voice consent email value. Expected an email address.')
   }
 
   return { fullName, email }
@@ -91,30 +85,30 @@ const validateSpeechifyTtsCustomVoiceAudio = async (
 ): Promise<TtsCustomVoiceSampleAudio> => {
   const normalizedPath = audioPath.trim()
   if (normalizedPath.length === 0) {
-    throw CLIUsageError('Speechify TTS custom voice reference audio path is empty.')
+    throw UsageError('Speechify TTS custom voice reference audio path is empty.')
   }
 
   const ext = extname(normalizedPath).toLowerCase()
   const mimeType = SPEECHIFY_CUSTOM_VOICE_AUDIO_TYPES.get(ext)
   if (!mimeType) {
-    throw CLIUsageError('Speechify TTS custom voice reference audio must be an mp3/mpeg, wav, m4a/mp4, ogg, flac, aac, or webm file.')
+    throw UsageError('Speechify TTS custom voice reference audio must be an mp3/mpeg, wav, m4a/mp4, ogg, flac, aac, or webm file.')
   }
 
   let fileStats: Awaited<ReturnType<typeof stat>>
   try {
     fileStats = await stat(normalizedPath)
   } catch {
-    throw CLIUsageError(`Speechify TTS custom voice reference audio not found: ${normalizedPath}`)
+    throw UsageError(`Speechify TTS custom voice reference audio not found: ${normalizedPath}`)
   }
 
   if (!fileStats.isFile()) {
-    throw CLIUsageError(`Speechify TTS custom voice reference audio is not a file: ${normalizedPath}`)
+    throw UsageError(`Speechify TTS custom voice reference audio is not a file: ${normalizedPath}`)
   }
   if (fileStats.size <= 0) {
-    throw CLIUsageError(`Speechify TTS custom voice reference audio is empty: ${normalizedPath}`)
+    throw UsageError(`Speechify TTS custom voice reference audio is empty: ${normalizedPath}`)
   }
   if (fileStats.size > SPEECHIFY_TTS_CUSTOM_VOICE_MAX_BYTES) {
-    throw CLIUsageError(`Speechify TTS custom voice reference audio exceeds 5 MiB: ${normalizedPath}`)
+    throw UsageError(`Speechify TTS custom voice reference audio exceeds 5 MiB: ${normalizedPath}`)
   }
 
   let durationSeconds: number | undefined
@@ -124,14 +118,14 @@ const validateSpeechifyTtsCustomVoiceAudio = async (
       durationSeconds = detectedDuration
     }
   } catch {
-    throw CLIUsageError('Speechify TTS custom voice reference audio duration could not be verified before upload.')
+    throw UsageError('Speechify TTS custom voice reference audio duration could not be verified before upload.')
   }
 
   if (durationSeconds === undefined) {
-    throw CLIUsageError('Speechify TTS custom voice reference audio duration could not be verified before upload.')
+    throw UsageError('Speechify TTS custom voice reference audio duration could not be verified before upload.')
   }
   if (durationSeconds < SPEECHIFY_TTS_CUSTOM_VOICE_MIN_SECONDS || durationSeconds > SPEECHIFY_TTS_CUSTOM_VOICE_MAX_SECONDS) {
-    throw CLIUsageError(`Speechify TTS custom voice reference audio must be 10-30 seconds; got ${durationSeconds.toFixed(2)}s.`)
+    throw UsageError(`Speechify TTS custom voice reference audio must be 10-30 seconds; got ${durationSeconds.toFixed(2)}s.`)
   }
 
   return {

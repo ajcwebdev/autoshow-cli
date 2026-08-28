@@ -1,7 +1,6 @@
-import type { Step2Metadata, TranscriptionResult } from '~/types'
+import type { Step2Metadata, TranscriptionResult, WhisperCppTranscribeOptions } from '~/types'
 import { whisperBinaryPath, whisperModelsDir } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { runWhisperCppTranscribe } from '../run-whispercpp-core'
-import type { WhisperCppTranscribeOptions } from '../run-whispercpp-core'
 
 export const runWhisperTranscribe = async (
   audioPath: string,

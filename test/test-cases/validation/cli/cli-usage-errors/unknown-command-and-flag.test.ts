@@ -14,9 +14,9 @@ test('unknown command exits 2', () => {
 })
 
 test('hosted commands reject invalid concurrency modes before dispatch', () => {
-  expect(() => buildOptsFromFlags(false, { 'concurrency-mode': 'fast' }))
+  expect(() => buildOptsFromFlags({ 'concurrency-mode': 'fast' }))
     .toThrow('Invalid --concurrency-mode value "fast". Expected "ramp" or "immediate".')
-  expect(() => buildOptsFromFlags(false, { 'concurrency-mode': 'adaptive' }))
+  expect(() => buildOptsFromFlags({ 'concurrency-mode': 'adaptive' }))
     .toThrow('Invalid --concurrency-mode value "adaptive". Expected "ramp" or "immediate".')
   expect(() => coerceAndValidateDraftScenes(parseCommandInvocation(
     ['comic draft-scenes', 'input/scripts/example.md', '--concurrency-mode', 'burst'],
@@ -37,7 +37,8 @@ test('hosted-only generation commands reject local-only controls', () => {
     ['tts', 'prompt', '--all-local'],
     ['image', 'prompt', '--local-concurrency', '1'],
     ['video', 'prompt', '--local-concurrency', '1'],
-    ['music', 'prompt', '--local-concurrency', '1']
+    ['music', 'prompt', '--local-concurrency', '1'],
+    ['tts', 'prompt', '--local-concurrency', '1']
   ]) {
     expectUnknownFlag(argv, argv[2]!)
   }
@@ -59,4 +60,12 @@ test('commands reject cookie flags outside config', () => {
   expectUsageThrow(() => { throw unsupportedCookieFlagError('extract', 'cookies') }, 'Use bun autoshow config --cookies <file> or bun autoshow config --cookies-from-browser <browser>.')
   expectUsageThrow(() => { throw unsupportedCookieFlagError('download', 'cookies-from-browser') }, '--cookies-from-browser is not supported by "download"')
   expectUsageThrow(() => { throw unsupportedCookieFlagError('download', 'cookies-from-browser') }, 'Use bun autoshow config --cookies <file> or bun autoshow config --cookies-from-browser <browser>.')
+})
+
+test('commands reject --allow-over-budget on unbudgeted commands', () => {
+  expectUsageThrow(() => { throw unsupportedGlobalFlagError('config', 'allow-over-budget') }, '--allow-over-budget is not supported by "config"')
+  expectUsageThrow(() => { throw unsupportedGlobalFlagError('config', 'allow-over-budget') }, 'Use --allow-over-budget with pipeline and generation commands that check costs.')
+  expectUsageThrow(() => { throw unsupportedGlobalFlagError('voice', 'allow-over-budget') }, '--allow-over-budget is not supported by "voice"')
+  expectUsageThrow(() => { throw unsupportedGlobalFlagError('setup', 'allow-over-budget') }, '--allow-over-budget is not supported by "setup"')
+  expectUsageThrow(() => { throw unsupportedGlobalFlagError('links', 'allow-over-budget') }, '--allow-over-budget is not supported by "links"')
 })

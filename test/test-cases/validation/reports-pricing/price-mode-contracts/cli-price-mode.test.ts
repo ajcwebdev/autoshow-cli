@@ -1,10 +1,10 @@
 import { existsSync } from 'node:fs'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 import { LOCAL_EXAMPLE_AUDIO_PATH, STABLE_TTS_MD_PATH, runCommand } from '../../../../test-utils/test-helpers'
 import { findPricingNoteKeys, isRecord, parseJsonLines } from './shared'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const priceCases: Array<{ label: string; args: string[]; expected: string | string[]; env?: Record<string, string | undefined> }> = [
   {
@@ -14,7 +14,7 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
   },
   {
     label: 'write',
-    args: ['write', LOCAL_EXAMPLE_AUDIO_PATH, '--llm', 'openai=gpt-5.4-nano', '--price'],
+    args: ['write', STABLE_TTS_MD_PATH, '--llm', 'openai=gpt-5.4-nano', '--price'],
     expected: 'Expected files'
   },
   {
@@ -60,28 +60,23 @@ describe('price mode contracts', () => {
       })
     }
 
-  for (const creationCase of [
-    {
-      label: 'Speechify custom voice TTS',
-      args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'speechify=simba-3.2', '--tts-ref-audio', 'input/examples/audio/anthony-voice.mp3', '--tts-consent-name', 'Anthony Example', '--tts-consent-email', 'anthony@example.com', '--price'],
-      expected: 'cannot perform reference-audio cloning during TTS synthesis'
-    },
-    {
-      label: 'ElevenLabs IVC TTS',
-      args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'elevenlabs=eleven_v3', '--tts-ref-audio', 'input/examples/audio/anthony-voice.mp3', '--price'],
-      expected: 'cannot perform reference-audio cloning during TTS synthesis'
-    }
-  ]) {
-    test(`${creationCase.label} is rejected before synthesis price planning`, async () => {
-      const result = await runCommand(['src/cli/create-cli.ts', ...creationCase.args])
+  test('ElevenLabs TTS rejects --tts-ref-audio before synthesis price planning', async () => {
+    const result = await runCommand([
+      'src/cli/create-cli.ts',
+      'tts',
+      STABLE_TTS_MD_PATH,
+      '--provider',
+      'elevenlabs=eleven_v3',
+      '--tts-ref-audio',
+      'input/examples/audio/anthony-voice.mp3',
+      '--price'
+    ])
 
-      expect(result.exitCode).toBe(2)
-      expect(result.outputDir).toBeNull()
-      const output = `${result.stdout}\n${result.stderr}`
-      expect(output).toContain(creationCase.expected)
-      expect(output).toContain('comic reference-voice')
-    })
-  }
+    expect(result.exitCode).toBe(2)
+    expect(result.outputDir).toBeNull()
+    const output = `${result.stdout}\n${result.stderr}`
+    expect(output).toContain('--tts-ref-audio does not apply to elevenlabs TTS')
+  })
 
   test('hosted OCR --price reports the detected PDF page count', async () => {
       const result = await runCommand([
@@ -104,13 +99,11 @@ describe('price mode contracts', () => {
       const result = await runCommand([
         'src/cli/create-cli.ts',
         'write',
-        LOCAL_EXAMPLE_AUDIO_PATH,
+        STABLE_TTS_MD_PATH,
         '--llm',
         'openai=gpt-5.5',
         '--llm',
         'groq=openai/gpt-oss-20b',
-        '--tts',
-        'openai=gpt-4o-mini-tts-2025-12-15',
         '--price',
         '--json'
       ])
@@ -125,7 +118,7 @@ describe('price mode contracts', () => {
     })
 
   test('tts directory --price reports per-item estimates and suite total without creating output dirs', async () => {
-      const dir = await mkdtemp(join(tmpdir(), 'autoshow-tts-directory-price-'))
+      const dir = await makeTempDir('autoshow-tts-directory-price-')
       const inputDir = join(dir, 'inputs')
       const nestedDir = join(inputDir, 'nested')
       const outputDir = join(dir, 'tts-batch-out')

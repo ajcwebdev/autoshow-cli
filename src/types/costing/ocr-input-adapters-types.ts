@@ -1,4 +1,4 @@
-export type OcrInputFamily =
+type OcrInputFamily =
   | 'html'
   | 'epub'
   | 'office'

@@ -11,7 +11,7 @@ import { TRANSCRIPT_CUE_LIMITS, buildTranscriptionCues } from '~/cli/commands/pr
 import { buildTranscriptAss, extractTitle, findMatchingImage, FIXED_RENDER_FPS, FIXED_RENDER_HEIGHT, FIXED_RENDER_WIDTH, formatSpeakerDisplayLabel, renderLyricsVideo, TRANSCRIPT_OVERLAY_TEXT_LAYOUT } from '~/cli/commands/process-steps/step-7-music/lyrics-video/render'
 import type { CaptionCue, LoadedTranscription, PipelineManifestItem, TranscriptCue, TranscriptCueSource, TranscriptionResult, TranscriptVideoSource } from '~/types'
 import { ensureDirectory, fileExists } from '~/utils/cli-utils'
-import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
+import { UsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { materializeMediaInput } from '~/utils/media-url'
 import { PROJECT_ROOT, baseStem, resolveUserPath, toProjectDisplayPath } from '~/utils/runtime-paths'
@@ -20,7 +20,6 @@ const AUDIO_EXTENSIONS = new Set(['.wav', '.mp3', '.m4a', '.flac', '.ogg', '.aac
 const TRANSCRIPT_LINE_PATTERN = /^\[(\d{2}:\d{2}:\d{2}(?:[.,]\d{1,3})?)\]\s+(?:\[([^\]]+)\]\s+)?(.*)$/
 const MAX_TRANSCRIPT_WORDS_PER_CUE = 12
 const MAX_TRANSCRIPT_CHARACTERS_PER_CUE = 78
-
 
 const materializeAudioInput = async (
   value: string
@@ -163,8 +162,6 @@ const repairCueDurations = (
 const buildCuesFromTranscriptionResult = (
   result: TranscriptionResult
 ): { cues: TranscriptCue[], cueSource: TranscriptCueSource } => {
-  // Native per-word timings are exact. Segment stamps only bound a whole utterance, so splitting them
-  // into displayed lines has to interpolate, which drifts by up to a second on long segments.
   if ((result.evidence?.words?.length ?? 0) > 0) {
     const { cues } = buildTranscriptionCues(result, TRANSCRIPT_CUE_LIMITS)
     const wordCues = cues.map((cue, index) => ({
@@ -277,8 +274,6 @@ const buildCuesFromTranscriptText = (
   }
 }
 
-// Captions carry the speaker inline because .vtt/.srt have no second line to attribute with; the
-// rendered video instead draws the label as its own coloured chip.
 const toCaptionCuesWithSpeakerLabels = (cues: TranscriptCue[]): CaptionCue[] =>
   cues.map((cue, index) => ({
     index,
@@ -287,8 +282,6 @@ const toCaptionCuesWithSpeakerLabels = (cues: TranscriptCue[]): CaptionCue[] =>
     text: cue.speaker ? `${formatSpeakerDisplayLabel(cue.speaker)}: ${cue.text}` : cue.text
   }))
 
-// The rendered video keeps the label out of the text so it can be drawn as its own coloured chip on
-// the active line only; context lines above and below stay unlabelled.
 const toRenderCues = (cues: TranscriptCue[]): CaptionCue[] =>
   cues.map((cue, index) => ({
     index,
@@ -368,7 +361,7 @@ const resolveAudioFromExtractRun = async (
     return audioFiles[0]!
   }
 
-  throw CLIUsageError(`Could not infer extract audio file from ${toProjectDisplayPath(runDir)}. Pass --audio explicitly.`)
+  throw UsageError(`Could not infer extract audio file from ${toProjectDisplayPath(runDir)}. Pass --audio explicitly.`)
 }
 
 const getProviderStateResultCandidates = async (
@@ -399,10 +392,10 @@ const resolveResultFromExtractRun = async (
   }
 
   if (candidates.length > 1) {
-    throw CLIUsageError(`Multiple STT result files found in ${toProjectDisplayPath(runDir)}. Pass --transcript-result to choose one.`)
+    throw UsageError(`Multiple STT result files found in ${toProjectDisplayPath(runDir)}. Pass --transcript-result to choose one.`)
   }
 
-  throw CLIUsageError(`No STT result.json found in ${toProjectDisplayPath(runDir)}. Pass --transcript-result or --transcript-text explicitly.`)
+  throw UsageError(`No STT result.json found in ${toProjectDisplayPath(runDir)}. Pass --transcript-result or --transcript-text explicitly.`)
 }
 
 const resolveTitleFromExtractRun = (item: PipelineManifestItem, audioPath: string): string => {
@@ -421,14 +414,14 @@ const resolveExtractRunSource = async (
   const manifest = await readManifest(runDir)
   const item = manifest?.items[0]
   if (!manifest || manifest.command !== 'extract' || manifest.scope !== 'single' || !item || item.extractRoute !== 'media') {
-    throw CLIUsageError(`Transcript video input must be a media extract output directory: ${toProjectDisplayPath(runDir)}`)
+    throw UsageError(`Transcript video input must be a media extract output directory: ${toProjectDisplayPath(runDir)}`)
   }
 
   const audioFlag = typeof flags['audio'] === 'string' ? flags['audio'] : undefined
   const resultFlag = typeof flags['transcript-result'] === 'string' ? flags['transcript-result'] : undefined
   const textFlag = typeof flags['transcript-text'] === 'string' ? flags['transcript-text'] : undefined
   if (resultFlag && textFlag) {
-    throw CLIUsageError('Use only one of --transcript-result or --transcript-text')
+    throw UsageError('Use only one of --transcript-result or --transcript-text')
   }
 
   const audioInput = audioFlag ? await materializeAudioInput(audioFlag) : undefined
@@ -477,10 +470,10 @@ const resolveManualSource = async (flags: Record<string, unknown>): Promise<Tran
   const textFlag = typeof flags['transcript-text'] === 'string' ? flags['transcript-text'] : undefined
 
   if (!audioFlag) {
-    throw CLIUsageError('Manual transcript-video mode requires --audio')
+    throw UsageError('Manual transcript-video mode requires --audio')
   }
   if ((resultFlag ? 1 : 0) + (textFlag ? 1 : 0) !== 1) {
-    throw CLIUsageError('Manual transcript-video mode requires exactly one of --transcript-result or --transcript-text')
+    throw UsageError('Manual transcript-video mode requires exactly one of --transcript-result or --transcript-text')
   }
 
   const audioInput = await materializeAudioInput(audioFlag)

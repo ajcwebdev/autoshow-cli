@@ -1,0 +1,23 @@
+{
+  "Scene Prompts": {
+    "Prefix": "Create one comic panel from the source panel data.",
+    "1st Panel": "This is the first panel of the scene. Establish the location, cast, and action clearly.",
+    "2nd Panel": "This is Panel 2. Continue from the previous panels of the scene without repeating the same camera.",
+    "3rd Panel": "This is Panel 3. Continue from the previous panels of the scene without repeating the same camera."
+  },
+  "Sketch Prompts": {
+    "Prefix": "Produce black-and-white rough sketch output only.",
+    "Chunk": "Render the ordered source panels as labeled sub-panels in reading order."
+  },
+  "Character Sketch Prompts": {
+    "Prefix": "Create a reusable character reference sheet view.",
+    "Character": "Preserve identity, proportions, clothing silhouette, palette, and distinctive features.",
+    "Front": "Camera: orthographic front view, eye level, full body in frame, facing the camera.",
+    "Three-Quarter": "Camera: three-quarter view, eye level, full body in frame, turned about 45 degrees from front.",
+    "Profile": "Camera: strict side profile, eye level, full body in frame, facing left."
+  },
+  "Image Prompt Variations": {
+    "animation-polish": "Render as clean production animation stills with stable volumes and readable silhouettes.",
+    "cinematic-depth": "Add cinematic depth with layered foreground and background while preserving the comic contract."
+  }
+}

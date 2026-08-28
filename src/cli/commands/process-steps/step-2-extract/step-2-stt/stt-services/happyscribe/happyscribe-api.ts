@@ -1,10 +1,11 @@
 import { basename } from 'node:path'
 import type { HappyScribeApiClientOptions, HappyScribeExport, HappyScribeJsonRequestOptions, HappyScribeOrder, HappyScribePollResult, HappyScribeTranscription, RetryClass } from '~/types'
-import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
-import { buildHappyScribeUrl, HAPPYSCRIBE_STT_LANGUAGE } from './happyscribe'
+import { ProviderError } from '~/utils/error-handler'
+import { classifyFetchRetry, getSttStageRetryPolicy, parseRetryAfterMs, withRetry } from '~/utils/retries'
+import { HAPPYSCRIBE_STT_LANGUAGE } from './happyscribe'
 import { parseHappyScribeExport, parseHappyScribeOrder, parseHappyScribeSignedUploadUrl, parseHappyScribeTranscription } from './happyscribe-response-parsers'
-import { attachHappyScribeErrorContext, buildHappyScribeRetryHeaders, readHappyScribeJsonOrText, toHappyScribeHttpError } from './happyscribe-utils'
-
+import { attachHappyScribeErrorContext, buildHappyScribeRetryHeaders, toHappyScribeHttpError } from './happyscribe-utils'
+import { parseJsonOrText, resolveRestPath } from '~/utils/rest-client'
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 const POLL_REQUEST_TIMEOUT_MS = 60 * 1000
@@ -21,13 +22,16 @@ export const createHappyScribeApiClient = (
         {
           retryClass: requestOptions.retryClass,
           operationName: requestOptions.operationName,
-          policy: { maxAttempts: requestOptions.maxAttempts },
+          ...(() => {
+            const policy = getSttStageRetryPolicy(requestOptions.retryClass)
+            return policy ? { policy } : {}
+          })(),
           timeoutMs: requestOptions.timeoutMs
         },
         async (signal) => {
           options.onRequest?.()
           const response = await requestOptions.request(signal ?? undefined)
-          payload = await readHappyScribeJsonOrText(response)
+          payload = parseJsonOrText(await response.text())
 
           if (!response.ok) {
             throw toHappyScribeHttpError(
@@ -55,32 +59,67 @@ export const createHappyScribeApiClient = (
     }
   }
 
-  const getSignedUploadUrl = async (
-    audioPath: string
-  ): Promise<string> => {
+  const authHeaders = (extra: Record<string, string> = {}): Record<string, string> => ({
+    authorization: `Bearer ${options.apiKey}`,
+    accept: 'application/json',
+    ...extra
+  })
+
+  const get = (path: string) => (signal: AbortSignal | undefined) =>
+    fetch(resolveRestPath(options.baseURL, path), {
+      method: 'GET',
+      headers: authHeaders(),
+      signal: signal ?? null
+    })
+
+  const post = (path: string, body: unknown) => (signal: AbortSignal | undefined) =>
+    fetch(resolveRestPath(options.baseURL, path), {
+      method: 'POST',
+      headers: authHeaders({ 'content-type': 'application/json' }),
+      body: JSON.stringify(body),
+      signal: signal ?? null
+    })
+
+  const requestParsed = async <T>(
+    requestOptions: Omit<HappyScribeJsonRequestOptions, 'onResponse'> & { parse: (payload: unknown) => T }
+  ): Promise<T> => {
+    const payload = await fetchJsonWithRetry(requestOptions)
+    try {
+      return requestOptions.parse(payload)
+    } catch (error) {
+      return attachHappyScribeErrorContext(error, requestOptions.stage, requestOptions.retryClass, payload)
+    }
+  }
+
+  const pollParsed = async <T>(
+    requestOptions: Omit<HappyScribeJsonRequestOptions, 'onResponse'> & { parse: (payload: unknown) => T }
+  ): Promise<HappyScribePollResult<T>> => {
+    let retryAfterMs: number | null = null
     const payload = await fetchJsonWithRetry({
-      stage: 'upload',
-      retryClass: 'runtime_http_create_retriable',
-      operationName: 'happyscribe-get-signed-upload',
-      maxAttempts: 4,
-      timeoutMs: REQUEST_TIMEOUT_MS,
-      messagePrefix: 'Happy Scribe signed upload request failed',
-      request: (signal) => fetch(`${buildHappyScribeUrl(options.baseURL, '/uploads/new')}?filename=${encodeURIComponent(basename(audioPath))}`, {
-        method: 'GET',
-        headers: {
-          authorization: `Bearer ${options.apiKey}`,
-          accept: 'application/json'
-        },
-        signal: signal ?? null
-      })
+      ...requestOptions,
+      onResponse: (response, responsePayload) => {
+        retryAfterMs = parseRetryAfterMs(buildHappyScribeRetryHeaders(response, responsePayload)) ?? null
+      }
     })
 
     try {
-      return parseHappyScribeSignedUploadUrl(payload)
+      return { status: requestOptions.parse(payload), retryAfterMs }
     } catch (error) {
-      return attachHappyScribeErrorContext(error, 'upload', 'runtime_http_create_retriable', payload)
+      return attachHappyScribeErrorContext(error, requestOptions.stage, requestOptions.retryClass, payload)
     }
   }
+
+  const getSignedUploadUrl = async (
+    audioPath: string
+  ): Promise<string> => await requestParsed({
+    stage: 'upload',
+    retryClass: 'runtime_http_create_retriable',
+    operationName: 'happyscribe-get-signed-upload',
+    timeoutMs: REQUEST_TIMEOUT_MS,
+    messagePrefix: 'Happy Scribe signed upload request failed',
+    request: get(`/uploads/new?filename=${encodeURIComponent(basename(audioPath))}`),
+    parse: parseHappyScribeSignedUploadUrl
+  })
 
   const uploadMedia = async (
     uploadUrl: string,
@@ -91,7 +130,6 @@ export const createHappyScribeApiClient = (
         {
           retryClass: 'runtime_http_create_retriable',
           operationName: 'happyscribe-upload-media',
-          policy: { maxAttempts: 3 },
           timeoutMs: REQUEST_TIMEOUT_MS
         },
         async (signal) => {
@@ -103,7 +141,7 @@ export const createHappyScribeApiClient = (
           })
 
           if (!uploadResponse.ok) {
-            const payload = await readHappyScribeJsonOrText(uploadResponse)
+            const payload = parseJsonOrText(await uploadResponse.text())
             throw toHappyScribeHttpError(
               'upload',
               'runtime_http_create_retriable',
@@ -132,171 +170,78 @@ export const createHappyScribeApiClient = (
       uploadUrl: string
       organizationId: string
     }
-  ): Promise<HappyScribeOrder> => {
-    const payload = await fetchJsonWithRetry({
-      stage: 'create',
-      retryClass: 'runtime_http_create_retriable',
-      operationName: 'happyscribe-create-order',
-      maxAttempts: 4,
-      timeoutMs: REQUEST_TIMEOUT_MS,
-      messagePrefix: 'Happy Scribe order creation failed',
-      request: (signal) => fetch(buildHappyScribeUrl(options.baseURL, '/orders'), {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${options.apiKey}`,
-          accept: 'application/json',
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-          order: {
-            url: createOptions.uploadUrl,
-            language: HAPPYSCRIBE_STT_LANGUAGE,
-            service: 'auto',
-            confirm: true,
-            organization_id: createOptions.organizationId,
-            is_subtitle: false,
-            name: basename(createOptions.audioPath)
-          }
-        }),
-        signal: signal ?? null
-      })
-    })
-
-    try {
-      return parseHappyScribeOrder(payload)
-    } catch (error) {
-      return attachHappyScribeErrorContext(error, 'create', 'runtime_http_create_retriable', payload)
-    }
-  }
+  ): Promise<HappyScribeOrder> => await requestParsed({
+    stage: 'create',
+    retryClass: 'runtime_http_create_retriable',
+    operationName: 'happyscribe-create-order',
+    timeoutMs: REQUEST_TIMEOUT_MS,
+    messagePrefix: 'Happy Scribe order creation failed',
+    request: post('/orders', {
+      order: {
+        url: createOptions.uploadUrl,
+        language: HAPPYSCRIBE_STT_LANGUAGE,
+        service: 'auto',
+        confirm: true,
+        organization_id: createOptions.organizationId,
+        is_subtitle: false,
+        name: basename(createOptions.audioPath)
+      }
+    }),
+    parse: parseHappyScribeOrder
+  })
 
   const pollOrder = async (
     orderId: string
-  ): Promise<HappyScribePollResult<HappyScribeOrder>> => {
-    let retryAfterMs: number | null = null
-    const payload = await fetchJsonWithRetry({
-      stage: 'poll',
-      retryClass: 'runtime_http_read',
-      operationName: 'happyscribe-poll-order',
-      maxAttempts: 6,
-      timeoutMs: POLL_REQUEST_TIMEOUT_MS,
-      messagePrefix: 'Happy Scribe order poll failed',
-      request: (signal) => fetch(buildHappyScribeUrl(options.baseURL, `/orders/${encodeURIComponent(orderId)}`), {
-        method: 'GET',
-        headers: {
-          authorization: `Bearer ${options.apiKey}`,
-          accept: 'application/json'
-        },
-        signal: signal ?? null
-      }),
-      onResponse: (response, responsePayload) => {
-        retryAfterMs = parseRetryAfterMs(buildHappyScribeRetryHeaders(response, responsePayload)) ?? null
-      }
-    })
-
-    try {
-      return {
-        status: parseHappyScribeOrder(payload),
-        retryAfterMs
-      }
-    } catch (error) {
-      return attachHappyScribeErrorContext(error, 'poll', 'runtime_http_read', payload)
-    }
-  }
+  ): Promise<HappyScribePollResult<HappyScribeOrder>> => await pollParsed({
+    stage: 'poll',
+    retryClass: 'runtime_http_read',
+    operationName: 'happyscribe-poll-order',
+    timeoutMs: POLL_REQUEST_TIMEOUT_MS,
+    messagePrefix: 'Happy Scribe order poll failed',
+    request: get(`/orders/${encodeURIComponent(orderId)}`),
+    parse: parseHappyScribeOrder
+  })
 
   const getTranscription = async (
     transcriptionId: string
-  ): Promise<HappyScribeTranscription> => {
-    const payload = await fetchJsonWithRetry({
-      stage: 'result',
-      retryClass: 'runtime_http_read',
-      operationName: 'happyscribe-get-transcription',
-      maxAttempts: 4,
-      timeoutMs: POLL_REQUEST_TIMEOUT_MS,
-      messagePrefix: 'Happy Scribe transcription lookup failed',
-      request: (signal) => fetch(buildHappyScribeUrl(options.baseURL, `/transcriptions/${encodeURIComponent(transcriptionId)}`), {
-        method: 'GET',
-        headers: {
-          authorization: `Bearer ${options.apiKey}`,
-          accept: 'application/json'
-        },
-        signal: signal ?? null
-      })
-    })
-
-    try {
-      return parseHappyScribeTranscription(payload)
-    } catch (error) {
-      return attachHappyScribeErrorContext(error, 'result', 'runtime_http_read', payload)
-    }
-  }
+  ): Promise<HappyScribeTranscription> => await requestParsed({
+    stage: 'result',
+    retryClass: 'runtime_http_read',
+    operationName: 'happyscribe-get-transcription',
+    timeoutMs: POLL_REQUEST_TIMEOUT_MS,
+    messagePrefix: 'Happy Scribe transcription lookup failed',
+    request: get(`/transcriptions/${encodeURIComponent(transcriptionId)}`),
+    parse: parseHappyScribeTranscription
+  })
 
   const createExport = async (
     transcriptionId: string
-  ): Promise<HappyScribeExport> => {
-    const payload = await fetchJsonWithRetry({
-      stage: 'result',
-      retryClass: 'runtime_http_create_retriable',
-      operationName: 'happyscribe-create-export',
-      maxAttempts: 4,
-      timeoutMs: REQUEST_TIMEOUT_MS,
-      messagePrefix: 'Happy Scribe export creation failed',
-      request: (signal) => fetch(buildHappyScribeUrl(options.baseURL, '/exports'), {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${options.apiKey}`,
-          accept: 'application/json',
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-          export: {
-            format: 'json',
-            transcription_ids: [transcriptionId]
-          }
-        }),
-        signal: signal ?? null
-      })
-    })
-
-    try {
-      return parseHappyScribeExport(payload)
-    } catch (error) {
-      return attachHappyScribeErrorContext(error, 'result', 'runtime_http_create_retriable', payload)
-    }
-  }
+  ): Promise<HappyScribeExport> => await requestParsed({
+    stage: 'result',
+    retryClass: 'runtime_http_create_retriable',
+    operationName: 'happyscribe-create-export',
+    timeoutMs: REQUEST_TIMEOUT_MS,
+    messagePrefix: 'Happy Scribe export creation failed',
+    request: post('/exports', {
+      export: {
+        format: 'json',
+        transcription_ids: [transcriptionId]
+      }
+    }),
+    parse: parseHappyScribeExport
+  })
 
   const pollExport = async (
     exportId: string
-  ): Promise<HappyScribePollResult<HappyScribeExport>> => {
-    let retryAfterMs: number | null = null
-    const payload = await fetchJsonWithRetry({
-      stage: 'result',
-      retryClass: 'runtime_http_read',
-      operationName: 'happyscribe-poll-export',
-      maxAttempts: 6,
-      timeoutMs: POLL_REQUEST_TIMEOUT_MS,
-      messagePrefix: 'Happy Scribe export poll failed',
-      request: (signal) => fetch(buildHappyScribeUrl(options.baseURL, `/exports/${encodeURIComponent(exportId)}`), {
-        method: 'GET',
-        headers: {
-          authorization: `Bearer ${options.apiKey}`,
-          accept: 'application/json'
-        },
-        signal: signal ?? null
-      }),
-      onResponse: (response, responsePayload) => {
-        retryAfterMs = parseRetryAfterMs(buildHappyScribeRetryHeaders(response, responsePayload)) ?? null
-      }
-    })
-
-    try {
-      return {
-        status: parseHappyScribeExport(payload),
-        retryAfterMs
-      }
-    } catch (error) {
-      return attachHappyScribeErrorContext(error, 'result', 'runtime_http_read', payload)
-    }
-  }
+  ): Promise<HappyScribePollResult<HappyScribeExport>> => await pollParsed({
+    stage: 'result',
+    retryClass: 'runtime_http_read',
+    operationName: 'happyscribe-poll-export',
+    timeoutMs: POLL_REQUEST_TIMEOUT_MS,
+    messagePrefix: 'Happy Scribe export poll failed',
+    request: get(`/exports/${encodeURIComponent(exportId)}`),
+    parse: parseHappyScribeExport
+  })
 
   const fetchDownloadPayload = async (
     url: string
@@ -317,13 +262,16 @@ export const createHappyScribeApiClient = (
           headers,
           redirect: 'follow'
         })
-        const payload = await readHappyScribeJsonOrText(response)
+        const payload = parseJsonOrText(await response.text())
         if (!response.ok) {
           throw toHappyScribeHttpError('result', 'runtime_http_read', response, payload, 'Happy Scribe transcript download failed')
         }
         if (typeof payload === 'string') {
           throw Object.assign(
-            new Error('Happy Scribe transcript download did not return JSON'),
+            ProviderError('Happy Scribe transcript download did not return JSON', {
+              stage: 'result',
+              retryClass: 'runtime_http_read'
+            }),
             {
               stage: 'result',
               retryClass: 'runtime_http_read' as RetryClass,
@@ -337,7 +285,9 @@ export const createHappyScribeApiClient = (
       }
     }
 
-    throw lastError instanceof Error ? lastError : new Error(String(lastError))
+    throw lastError instanceof Error
+      ? lastError
+      : ProviderError(String(lastError), { stage: 'result', retryClass: 'runtime_http_read' })
   }
 
   return {

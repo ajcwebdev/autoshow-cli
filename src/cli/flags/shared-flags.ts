@@ -35,15 +35,24 @@ export const booleanAllLocalFlag = {
 export const stepProviderSelectorFlags = {
   stt: strListFlag(`Write pipeline STT provider[=model]: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisper=tiny)`),
   ocr: strListFlag(`Write pipeline OCR provider[=model]: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (default: tesseract)`),
-  llm: strListFlag(`Write pipeline LLM provider[=model]: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`),
-  tts: strListFlag(`Write pipeline TTS provider[=model]: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)}`),
-  image: strListFlag(`Write pipeline image provider[=model]: ${formatProviderList(STANDALONE_IMAGE_PROVIDER_TARGETS)}`),
-  video: strListFlag(`Write pipeline video provider[=model]: ${formatProviderList(STANDALONE_VIDEO_PROVIDER_TARGETS)}`),
-  music: strListFlag(`Write pipeline music provider[=model]: ${formatProviderList(STANDALONE_MUSIC_PROVIDER_TARGETS)}`)
+  llm: strListFlag(`LLM provider[=model]: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`)
+} as const satisfies CliFlagsDefinition
+
+export const configPipelineSelectorFlags = {
+  stt: strListFlag(`Default STT provider[=model] persisted for the extract command: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisper=tiny)`),
+  ocr: strListFlag(`Default OCR provider[=model] persisted for the extract command: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (default: tesseract)`),
+  llm: strListFlag(`Default LLM provider[=model] persisted for the write command: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`)
+} as const satisfies CliFlagsDefinition
+
+export const configGenerationSelectorFlags = {
+  tts: strListFlag(`Default TTS provider[=model] persisted for the tts command: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)}`),
+  image: strListFlag(`Default image provider[=model] persisted for the image command: ${formatProviderList(STANDALONE_IMAGE_PROVIDER_TARGETS)}`),
+  video: strListFlag(`Default video provider[=model] persisted for the video command: ${formatProviderList(STANDALONE_VIDEO_PROVIDER_TARGETS)}`),
+  music: strListFlag(`Default music provider[=model] persisted for the music command: ${formatProviderList(STANDALONE_MUSIC_PROVIDER_TARGETS)}`)
 } as const satisfies CliFlagsDefinition
 
 export const writeAllProvidersFlag = {
-  'all-providers': strListFlag('Write pipeline hosted/API-backed all-provider selector, repeatable for stt|ocr|url|llm|tts|image|video|music')
+  'all-providers': strListFlag('Write pipeline hosted/API-backed all-provider selector, repeatable for stt|ocr|url|llm')
 } as const satisfies CliFlagsDefinition
 
 export const writeAllLocalFlag = {
@@ -57,8 +66,7 @@ export const sharedConcurrencyFlags = {
 } as const satisfies CliFlagsDefinition
 
 export const batchFlags = {
-  'batch-limit': strFlag('Batch: number of items to process', '5'),
-  'batch-all': boolFlag('Batch: process all items'),
+  'batch-limit': strFlag('Batch: number of items to process or "all"', '5'),
   'batch-order': strFlag('Batch: item order newest|oldest', 'newest'),
   'batch-concurrency': strFlag('Batch: number of items to process concurrently', DEFAULT_CONCURRENCY_FLAG_VALUE)
 } as const satisfies CliFlagsDefinition
@@ -71,11 +79,7 @@ export const transcriptionFlags = {
   'speaker-count': strFlag('Optional diarization speaker-count hint (positive integer); unsupported providers report one aggregated warning at runtime'),
   split: boolFlag('Split audio into 30-minute segments for transcription'),
   'stt-segment-concurrency': strFlag('STT: max split segments in flight per provider (local clamps to 1)', DEFAULT_CONCURRENCY_FLAG_VALUE),
-  'stt-preflight-concurrency': strFlag('STT: max duration probes running in parallel during preflight', DEFAULT_CONCURRENCY_FLAG_VALUE),
-} as const satisfies CliFlagsDefinition
-
-export const llmProviderFlags = {
-  llm: stepProviderSelectorFlags.llm
+  'stt-preflight-concurrency': strFlag('STT: max duration probes running in parallel during preflight', DEFAULT_CONCURRENCY_FLAG_VALUE)
 } as const satisfies CliFlagsDefinition
 
 export const promptFlag = {
@@ -104,14 +108,8 @@ export const articleFlags = {
   'url-provider': strFlag(`Article/HTML extraction backend: ${formatValueList(URL_ARTICLE_BACKENDS)} (local .html/.htm always use defuddle)`, 'defuddle')
 } as const satisfies CliFlagsDefinition
 
-export const allArticleFlags = {
-  ...articleFlags,
-  'url-provider-concurrency': {
-    description: 'URL article extraction: max hosted URL providers running in parallel for one item',
-    type: String,
-    default: DEFAULT_CONCURRENCY_FLAG_VALUE,
-    help: { hidden: true }
-  },
+export const articleTuningFlags = {
+  'url-provider-concurrency': strFlag('URL article extraction: max hosted URL providers running in parallel for one item', DEFAULT_CONCURRENCY_FLAG_VALUE),
   'url-request-timeout-ms': strFlag('URL article extraction: per-provider request timeout in milliseconds', '60000'),
   'url-request-attempts': strFlag('URL article extraction: total provider request attempts including retries', '3')
 } as const satisfies CliFlagsDefinition

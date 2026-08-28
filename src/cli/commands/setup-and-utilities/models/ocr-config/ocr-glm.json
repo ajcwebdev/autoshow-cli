@@ -16,7 +16,7 @@
           "imageBytes": 10485760,
           "pdfBytes": 52428800,
           "pageCount": 100,
-          "notes": "project/links/glm-all-links.md documents GLM OCR input caps of 10 MB per image, 50 MB per PDF, and a maximum of 100 pages."
+          "notes": "https://docs.z.ai/api-reference/tools/layout-parsing.md documents GLM OCR input caps of 10 MB per image, 50 MB per PDF, and a maximum of 100 pages."
         },
         "estimation": {
           "costMultiplier": 1,

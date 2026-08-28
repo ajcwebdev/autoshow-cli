@@ -1,4 +1,5 @@
-import type { GlobalLogger, LogFormatChoice, Logger, LogLevel, LogSink, ReconfigureOptions } from '~/types'
+import type { GlobalLogger, LogCategory, LogFormatChoice, Logger, LogLevel, LogSink, ReconfigureOptions } from '~/types'
+import { LOG_LEVEL_PRIORITY } from '~/types'
 import { runWithLogContext } from '~/utils/app-logger/context-store'
 import { createLogger } from '~/utils/app-logger/core'
 import { createReporter } from '~/utils/app-logger/reporter'
@@ -46,11 +47,30 @@ let activeLogger = attachReport(createLogger({
   sinks: createConfiguredSinks()
 }))
 
+export const suppressLogCategories = (categories: readonly LogCategory[]): (() => void) => {
+  const suppressed = activeLogger.config.suppressedCategories
+  const added = categories.filter((category) => !suppressed.includes(category))
+  suppressed.push(...added)
+
+  return () => {
+    for (const category of added) {
+      const index = suppressed.indexOf(category)
+      if (index !== -1) suppressed.splice(index, 1)
+    }
+  }
+}
+
+export const isLogLevelEnabled = (level: LogLevel): boolean =>
+  LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[activeLogger.config.minLevel]
+
+export const clearSuppressedLogCategories = (): void => {
+  activeLogger.config.suppressedCategories.length = 0
+}
+
 export const reconfigureLogger = (opts: ReconfigureOptions): void => {
   let minLevel: LogLevel | undefined
   let formatOverride: LogFormatChoice | undefined
 
-  // Level precedence: explicit --log-level wins over the --verbose/--quiet shortcuts.
   if (opts.logLevel !== undefined) {
     minLevel = opts.logLevel
   } else if (opts.verbose) {
@@ -59,7 +79,6 @@ export const reconfigureLogger = (opts: ReconfigureOptions): void => {
     minLevel = 'error'
   }
 
-  // Format precedence: explicit --log-format wins over the --json shortcut.
   if (opts.logFormat !== undefined) {
     formatOverride = opts.logFormat
   } else if (opts.json) {
@@ -68,6 +87,10 @@ export const reconfigureLogger = (opts: ReconfigureOptions): void => {
 
   if (formatOverride === 'json' || formatOverride === 'both') {
     enableJsonResult()
+  }
+
+  if (opts.suppressCategories !== undefined) {
+    suppressLogCategories(opts.suppressCategories)
   }
 
   if (minLevel === undefined && formatOverride === undefined) {

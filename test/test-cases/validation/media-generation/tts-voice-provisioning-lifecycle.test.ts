@@ -1,29 +1,24 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readFile } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { join } from 'node:path'
-import type { CharacterVoiceBrief, ProtectedAssetRef, ProviderVoiceRef, VoiceConsentRecord, VoiceProvisioningAttempt } from '~/types'
+import type { CharacterVoiceBrief, MistralVoiceManagementRequest, ProtectedAssetRef, ProviderVoiceRef, VoiceConsentRecord, VoiceProvisioningAttempt } from '~/types'
 import { createProtectedVoiceAssetStore } from '~/cli/commands/process-steps/step-4-tts/voice-assets/protected-voice-asset-store'
 import { assertProtectedStoreOutputDisjoint } from '~/cli/commands/process-steps/step-4-tts/voice-assets/protected-output-boundary'
 import { computeConsentRecordId, assertVoiceConsentAllows, computeVoiceCandidateId, validateVoiceCandidate } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-management-contracts'
 import { runCrashSafeVoiceProvisioning, loadVoiceProvisioningAttempt, reconcileVoiceProvisioningAttempt } from '~/cli/commands/process-steps/step-4-tts/voice-management/provisioning-journal'
 import { createMistralSavedVoice, deleteMistralSavedVoice } from '~/cli/commands/process-steps/step-4-tts/voice-management/mistral-voice-management'
-import type { MistralVoiceManagementRequest } from '~/cli/commands/process-steps/step-4-tts/voice-management/mistral-voice-management'
 import { loadVoiceConsentRecord, revokeVoiceConsentRecord, storeVoiceConsentRecord } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-consent-store'
 import { provisionMistralSavedReferenceRegistration } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-registration-management'
 import { loadVoiceRegistrationCatalog } from '~/cli/commands/process-steps/step-4-tts/voice-management/character-voice-registry'
 import { ProviderError } from '~/utils/error-handler'
+import { unexpectedCall } from '../../../test-utils/rest-contract-helpers'
+import { createTempDirTracker } from '../../../test-utils/temp-dirs'
 
-const roots: string[] = []
-const makeRoot = async (): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), 'autoshow-voice-phase1-'))
-  roots.push(root)
-  return root
-}
+const tempDirTracker = createTempDirTracker('autoshow-voice-phase1-')
+const makeRoot = tempDirTracker.make
 
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true })))
-})
+afterEach(tempDirTracker.cleanup)
 
 const asset = (letter: string): ProtectedAssetRef => ({
   storeId: 'test_voice_store', assetId: `sha256_${letter.repeat(64)}`, sha256: letter.repeat(64)
@@ -221,7 +216,7 @@ describe('Phase 1 provisioning journal', () => {
     await expect(runCrashSafeVoiceProvisioning({
       journalRoot: root,
       attempt: attempt('attempt_prepared'),
-      mutate: async () => { throw new Error('must not run') },
+      mutate: unexpectedCall('provisioning mutate'),
       faultInjection: { afterPrepared: () => { throw new Error('before provider creation') } }
     })).rejects.toThrow('before provider creation')
     const prepared = await loadVoiceProvisioningAttempt(root, 'vr_test', 'attempt_prepared')

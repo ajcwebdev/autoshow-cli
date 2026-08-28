@@ -5,43 +5,17 @@ import {
   buildProviderModelLabel,
   formatCount,
   formatPromptUsageTokenPair,
-  formatSecondsShort,
   formatTokenCount,
   resolveWhisperModel
 } from './manifest-log-formatting'
 import {
-  getActualCostBreakdown,
   getPartialStep2Entries,
-  getTimingEntries,
   isExtractionMetadata,
   isStep2Metadata,
   isStep3Metadata,
-  isStep4Metadata,
-  isStep5Metadata,
-  isStep6Metadata,
-  isStep7Metadata,
   toArray
 } from './manifest-log-metadata'
 import { PROMPT_USAGE_COLUMNS } from './write-manifest-log-columns'
-
-const resolveTtsCharacterCount = (metadata: WriteManifestMetadata, index: number): number | undefined => {
-  const actualTtsRows = getTimingEntries(metadata, 'actual').filter((entry) => entry.step === 'tts')
-  const actualValue = actualTtsRows[index]?.inputMetric === 'characters' ? actualTtsRows[index]?.inputValue : undefined
-  if (typeof actualValue === 'number' && actualValue > 0) {
-    return actualValue
-  }
-
-  const estimatedTtsRows = getTimingEntries(metadata, 'estimated').filter((entry) => entry.step === 'tts')
-  const estimatedValue = estimatedTtsRows[index]?.inputMetric === 'characters' ? estimatedTtsRows[index]?.inputValue : undefined
-  if (typeof estimatedValue === 'number' && estimatedValue > 0) {
-    return estimatedValue
-  }
-
-  const actualCost = getActualCostBreakdown(metadata)
-  const actualCostRow = actualCost?.steps.filter((entry) => entry.step === 'tts')[index]
-  const costValue = actualCostRow?.inputMetric === 'characters' ? actualCostRow.inputValue : undefined
-  return typeof costValue === 'number' && costValue > 0 ? costValue : undefined
-}
 
 const getEpubLogicalChapterCount = (entry: { extractionMethod: string, totalPages: number, chapterExport?: unknown }): number | undefined => {
   if (entry.extractionMethod !== 'epub-text') {
@@ -84,7 +58,6 @@ export const buildPromptUsage = (
   const rows: WritePromptUsageRow[] = []
   const promptArtifact = refs.promptArtifact ?? 'prompt.md'
   const extractPromptSource = 'inline source'
-  const step3RenderedOutput = refs.step3RenderedOutput ?? 'step3 rendered output'
 
   for (const entry of toArray(metadata['step2'], isExtractionMetadata)) {
     const { provider, model } = resolveExtractionProviderModel(entry)
@@ -130,49 +103,6 @@ export const buildPromptUsage = (
       providerModel: buildProviderModelLabel(entry.llmService, entry.llmModel),
       promptSource: promptArtifact,
       usage: formatPromptUsageTokenPair(entry.inputTokenCount, entry.outputTokenCount)
-    })
-  }
-
-  for (const [index, entry] of toArray(metadata['step4'], isStep4Metadata).entries()) {
-    const characterCount = resolveTtsCharacterCount(metadata, index)
-    const usage = [
-      typeof characterCount === 'number' ? formatCount(characterCount, 'char', 'chars') : null,
-      formatCount(entry.chunkCount, 'chunk', 'chunks')
-    ].filter((value): value is string => typeof value === 'string' && value.length > 0).join(' / ')
-    rows.push({
-      step: 'TTS',
-      providerModel: buildProviderModelLabel(entry.ttsService, entry.ttsModel),
-      promptSource: step3RenderedOutput,
-      usage: usage.length > 0 ? usage : null
-    })
-  }
-
-  for (const entry of toArray(metadata['step5'], isStep5Metadata)) {
-    rows.push({
-      step: 'Image',
-      providerModel: buildProviderModelLabel(entry.imageService, entry.imageModel),
-      promptSource: step3RenderedOutput,
-      usage: formatCount(entry.imageCount, 'image', 'images')
-    })
-  }
-
-  for (const entry of toArray(metadata['step6'], isStep6Metadata)) {
-    rows.push({
-      step: 'Video',
-      providerModel: buildProviderModelLabel(entry.videoGenService, entry.videoGenModel),
-      promptSource: step3RenderedOutput,
-      usage: typeof entry.videoDuration === 'number' && entry.videoDuration > 0 ? formatSecondsShort(entry.videoDuration) : null
-    })
-  }
-
-  for (const entry of toArray(metadata['step7'], isStep7Metadata)) {
-    rows.push({
-      step: 'Music',
-      providerModel: buildProviderModelLabel(entry.musicService, entry.musicModel),
-      promptSource: step3RenderedOutput,
-      usage: typeof entry.musicDurationMs === 'number' && entry.musicDurationMs > 0
-        ? formatSecondsShort(entry.musicDurationMs / 1000)
-        : null
     })
   }
 

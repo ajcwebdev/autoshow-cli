@@ -1,3 +1,4 @@
+import type { LifecycleRegistryService } from '~/types'
 import * as v from 'valibot'
 
 const SttEstimationSchema = v.object({
@@ -29,7 +30,7 @@ const IsoDateSchema = v.pipe(
   v.check(isIsoDate, 'Expected an ISO calendar date in YYYY-MM-DD form.')
 )
 
-export const ModelLifecycleSchema = v.pipe(
+const ModelLifecycleSchema = v.pipe(
   v.strictObject({
     status: v.picklist(['active', 'deprecated']),
     shutdownDate: v.optional(IsoDateSchema, undefined),
@@ -54,14 +55,6 @@ export const ModelLifecycleSchema = v.pipe(
     'Active models cannot declare retirement data or opt out of automatic selection.'
   )
 )
-
-type LifecycleRegistryService = {
-  models: Record<string, {
-    lifecycle?: {
-      replacementModel?: string | undefined
-    } | undefined
-  }>
-}
 
 const isMovingLatestAlias = (model: string): boolean =>
   /(?:^|[-_/])latest(?:$|[-_/])/i.test(model)
@@ -123,7 +116,7 @@ export const ExtractLimitsSchema = v.object({
   notes: v.optional(v.string(), undefined)
 })
 
-export const ReasoningCapabilitiesSchema = v.pipe(
+const ReasoningCapabilitiesSchema = v.pipe(
   v.strictObject({
     support: v.picklist(['unsupported', 'optional', 'required']),
     allowDisabled: v.optional(v.boolean(), undefined),

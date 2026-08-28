@@ -1,21 +1,16 @@
-import type { ElevenLabsCompositionChunk, ElevenLabsCompositionPlan } from '~/types'
+import type { ElevenLabsCompositionChunk, ElevenLabsCompositionPlan, LyricsSection } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
 
-export const ELEVENLABS_PLAN_MAX_CHUNKS = 30
-export const ELEVENLABS_CHUNK_MIN_MS = 3000
-export const ELEVENLABS_CHUNK_MAX_MS = 120000
-export const ELEVENLABS_PLAN_MIN_MS = 3000
-export const ELEVENLABS_PLAN_MAX_MS = 600000
-export const ELEVENLABS_MAX_STYLES = 50
+const ELEVENLABS_PLAN_MAX_CHUNKS = 30
+const ELEVENLABS_CHUNK_MIN_MS = 3000
+const ELEVENLABS_CHUNK_MAX_MS = 120000
+const ELEVENLABS_PLAN_MIN_MS = 3000
+const ELEVENLABS_PLAN_MAX_MS = 600000
+const ELEVENLABS_MAX_STYLES = 50
 
 const SECTION_HEADER_PATTERN = /^\[?\s*((?:pre[- ]?chorus|chorus|verse|bridge|intro|outro|hook|refrain|interlude|breakdown|drop|voiceover)(?:\s*\d+)?)\s*\]?[:.]?$/i
 
 const NEGATIVE_STYLES_PATTERN = /^negative(?:\s+styles)?\s*:\s*(.+)$/i
-
-type LyricsSection = {
-  label: string
-  lines: string[]
-}
 
 const titleCaseLabel = (label: string): string =>
   label
@@ -23,8 +18,7 @@ const titleCaseLabel = (label: string): string =>
     .replace(/\s+/g, ' ')
     .replace(/\b[a-z]/g, (character) => character.toUpperCase())
 
-/** Split section-labeled lyrics text into ordered sections. */
-export const parseLyricsSections = (lyrics: string): LyricsSection[] => {
+const parseLyricsSections = (lyrics: string): LyricsSection[] => {
   const sections: LyricsSection[] = []
   let current: LyricsSection | undefined
 
@@ -52,11 +46,7 @@ export const parseLyricsSections = (lyrics: string): LyricsSection[] => {
   return sections.filter((section) => section.lines.length > 0)
 }
 
-/**
- * Split a free-text style prompt into ElevenLabs style descriptors. An optional
- * trailing `Negative styles: a, b` line supplies negative styles for every chunk.
- */
-export const parseStylePrompt = (prompt: string): { positiveStyles: string[], negativeStyles: string[] } => {
+const parseStylePrompt = (prompt: string): { positiveStyles: string[], negativeStyles: string[] } => {
   const positiveStyles: string[] = []
   const negativeStyles: string[] = []
 
@@ -101,11 +91,7 @@ const dedupe = (values: string[]): string[] => {
   return result
 }
 
-/**
- * Allocate per-chunk durations proportional to line count while honoring the
- * per-chunk 3s-120s bounds and keeping the total at the requested length.
- */
-export const allocateChunkDurations = (weights: number[], totalMs: number): number[] => {
+const allocateChunkDurations = (weights: number[], totalMs: number): number[] => {
   const count = weights.length
   const minTotal = count * ELEVENLABS_CHUNK_MIN_MS
   const maxTotal = count * ELEVENLABS_CHUNK_MAX_MS
@@ -137,10 +123,6 @@ export const allocateChunkDurations = (weights: number[], totalMs: number): numb
   return durations
 }
 
-/**
- * Build a `music_v2` composition plan from section-labeled lyrics. The first
- * chunk carries the full style list because it sets the genre for the song.
- */
 export const buildElevenLabsCompositionPlan = (
   lyrics: string,
   options: {

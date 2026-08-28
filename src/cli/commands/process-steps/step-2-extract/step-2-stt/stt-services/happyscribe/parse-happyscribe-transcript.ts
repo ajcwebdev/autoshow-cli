@@ -1,4 +1,4 @@
-import type { TranscriptionEvidenceSegment, TranscriptionEvidenceWord, TranscriptionResult, TranscriptionSegment } from '~/types'
+import type { TimeFieldCandidate, TranscriptionEvidenceSegment, TranscriptionEvidenceWord, TranscriptionResult, TranscriptionSegment } from '~/types'
 import {
   buildSegmentsFromWords,
   formatSpeakerLabel,
@@ -40,9 +40,37 @@ const parseTimestampToSeconds = (value: string): number | undefined => {
   return (numeric[0] as number) * 60 + (numeric[1] as number)
 }
 
+const START_TIME_FIELDS = [
+  { key: 'start_seconds', unit: 'seconds' },
+  { key: 'startSeconds', unit: 'seconds' },
+  { key: 'start_ms', unit: 'milliseconds' },
+  { key: 'startMs', unit: 'milliseconds' },
+  { key: 'start_time_ms', unit: 'milliseconds' },
+  { key: 'startTimeMs', unit: 'milliseconds' },
+  { key: 'data_start', unit: 'seconds' },
+  { key: 'dataStart', unit: 'seconds' },
+  { key: 'start_time', unit: 'auto' },
+  { key: 'startTime', unit: 'auto' },
+  { key: 'start', unit: 'auto' }
+] as const satisfies readonly TimeFieldCandidate[]
+
+const END_TIME_FIELDS = [
+  { key: 'end_seconds', unit: 'seconds' },
+  { key: 'endSeconds', unit: 'seconds' },
+  { key: 'end_ms', unit: 'milliseconds' },
+  { key: 'endMs', unit: 'milliseconds' },
+  { key: 'end_time_ms', unit: 'milliseconds' },
+  { key: 'endTimeMs', unit: 'milliseconds' },
+  { key: 'data_end', unit: 'seconds' },
+  { key: 'dataEnd', unit: 'seconds' },
+  { key: 'end_time', unit: 'auto' },
+  { key: 'endTime', unit: 'auto' },
+  { key: 'end', unit: 'auto' }
+] as const satisfies readonly TimeFieldCandidate[]
+
 const readTimeField = (
   record: Record<string, unknown>,
-  candidates: Array<{ key: string, unit: 'seconds' | 'milliseconds' | 'auto' }>
+  candidates: readonly TimeFieldCandidate[]
 ): number | undefined => {
   for (const candidate of candidates) {
     if (!(candidate.key in record)) {
@@ -141,32 +169,8 @@ const parseWord = (
     return undefined
   }
 
-  const startSeconds = readTimeField(value, [
-    { key: 'start_seconds', unit: 'seconds' },
-    { key: 'startSeconds', unit: 'seconds' },
-    { key: 'start_ms', unit: 'milliseconds' },
-    { key: 'startMs', unit: 'milliseconds' },
-    { key: 'start_time_ms', unit: 'milliseconds' },
-    { key: 'startTimeMs', unit: 'milliseconds' },
-    { key: 'data_start', unit: 'seconds' },
-    { key: 'dataStart', unit: 'seconds' },
-    { key: 'start_time', unit: 'auto' },
-    { key: 'startTime', unit: 'auto' },
-    { key: 'start', unit: 'auto' }
-  ])
-  const endSeconds = readTimeField(value, [
-    { key: 'end_seconds', unit: 'seconds' },
-    { key: 'endSeconds', unit: 'seconds' },
-    { key: 'end_ms', unit: 'milliseconds' },
-    { key: 'endMs', unit: 'milliseconds' },
-    { key: 'end_time_ms', unit: 'milliseconds' },
-    { key: 'endTimeMs', unit: 'milliseconds' },
-    { key: 'data_end', unit: 'seconds' },
-    { key: 'dataEnd', unit: 'seconds' },
-    { key: 'end_time', unit: 'auto' },
-    { key: 'endTime', unit: 'auto' },
-    { key: 'end', unit: 'auto' }
-  ])
+  const startSeconds = readTimeField(value, START_TIME_FIELDS)
+  const endSeconds = readTimeField(value, END_TIME_FIELDS)
 
   if (typeof startSeconds !== 'number' || typeof endSeconds !== 'number') {
     return undefined
@@ -203,32 +207,8 @@ const parseSegment = (
     return undefined
   }
 
-  const startSeconds = readTimeField(value, [
-    { key: 'start_seconds', unit: 'seconds' },
-    { key: 'startSeconds', unit: 'seconds' },
-    { key: 'start_ms', unit: 'milliseconds' },
-    { key: 'startMs', unit: 'milliseconds' },
-    { key: 'start_time_ms', unit: 'milliseconds' },
-    { key: 'startTimeMs', unit: 'milliseconds' },
-    { key: 'data_start', unit: 'seconds' },
-    { key: 'dataStart', unit: 'seconds' },
-    { key: 'start_time', unit: 'auto' },
-    { key: 'startTime', unit: 'auto' },
-    { key: 'start', unit: 'auto' }
-  ]) ?? nestedWords[0]?.startSeconds
-  const endSeconds = readTimeField(value, [
-    { key: 'end_seconds', unit: 'seconds' },
-    { key: 'endSeconds', unit: 'seconds' },
-    { key: 'end_ms', unit: 'milliseconds' },
-    { key: 'endMs', unit: 'milliseconds' },
-    { key: 'end_time_ms', unit: 'milliseconds' },
-    { key: 'endTimeMs', unit: 'milliseconds' },
-    { key: 'data_end', unit: 'seconds' },
-    { key: 'dataEnd', unit: 'seconds' },
-    { key: 'end_time', unit: 'auto' },
-    { key: 'endTime', unit: 'auto' },
-    { key: 'end', unit: 'auto' }
-  ]) ?? nestedWords[nestedWords.length - 1]?.endSeconds
+  const startSeconds = readTimeField(value, START_TIME_FIELDS) ?? nestedWords[0]?.startSeconds
+  const endSeconds = readTimeField(value, END_TIME_FIELDS) ?? nestedWords[nestedWords.length - 1]?.endSeconds
 
   if (typeof startSeconds !== 'number' || typeof endSeconds !== 'number') {
     return undefined
@@ -303,30 +283,7 @@ const toEvidenceSegmentsFromWords = (
   }))
 
 const hasRecognizedTiming = (record: Record<string, unknown>): boolean => {
-  const timingKeys = [
-    'start_seconds',
-    'startSeconds',
-    'start_ms',
-    'startMs',
-    'start_time_ms',
-    'startTimeMs',
-    'data_start',
-    'dataStart',
-    'start_time',
-    'startTime',
-    'start',
-    'end_seconds',
-    'endSeconds',
-    'end_ms',
-    'endMs',
-    'end_time_ms',
-    'endTimeMs',
-    'data_end',
-    'dataEnd',
-    'end_time',
-    'endTime',
-    'end'
-  ] as const
+  const timingKeys = [...START_TIME_FIELDS, ...END_TIME_FIELDS].map(field => field.key)
   if (timingKeys.some((key) => key in record)) {
     return true
   }

@@ -7,6 +7,7 @@ import { runElevenLabsMusicGen } from '~/cli/commands/process-steps/step-7-music
 import { writeGeminiMusicInlineAudio } from '~/cli/commands/process-steps/step-7-music/music-services/music-gemini/run-gemini-music-gen'
 import { runMinimaxMusicGen } from '~/cli/commands/process-steps/step-7-music/music-services/music-minimax/run-minimax-music-gen'
 import { withTempDir } from '../../../test-utils/temp-dirs'
+import { expectProviderHttpError, restoreEnv, snapshotEnv } from '../../../test-utils/rest-contract-helpers'
 
 const audioBytes = new Uint8Array([1, 2, 3, 4])
 const audioHex = Buffer.from(audioBytes).toString('hex')
@@ -18,27 +19,15 @@ const withEnvAndFetch = async <T,>(
   fn: () => Promise<T>
 ): Promise<T> => {
   const previousFetch = globalThis.fetch
-  const previousEnv = Object.fromEntries(Object.keys(env).map((key) => [key, process.env[key]]))
+  const previousEnv = snapshotEnv(Object.keys(env))
 
   try {
-    for (const [key, value] of Object.entries(env)) {
-      if (value === undefined) {
-        delete process.env[key]
-      } else {
-        process.env[key] = value
-      }
-    }
+    restoreEnv(env)
     globalThis.fetch = fetchImpl
     return await fn()
   } finally {
     globalThis.fetch = previousFetch
-    for (const [key, value] of Object.entries(previousEnv)) {
-      if (value === undefined) {
-        delete process.env[key]
-      } else {
-        process.env[key] = value
-      }
-    }
+    restoreEnv(previousEnv)
   }
 }
 
@@ -47,7 +36,7 @@ const readJsonBody = (body: RequestInit['body'] | null | undefined): Record<stri
 
 describe('music provider contracts', () => {
   test('MiniMax music accepts 3.0 and rejects previous-generation and unsupported models', () => {
-    const opts = buildOptsFromFlags(false, {
+    const opts = buildOptsFromFlags({
       'minimax-music': ['music-3.0']
     })
 
@@ -56,10 +45,10 @@ describe('music provider contracts', () => {
       'minimax:music-3.0'
     ])
     const previousModel = 'music-2' + '.6'
-    expect(() => buildOptsFromFlags(false, {
+    expect(() => buildOptsFromFlags({
       'minimax-music': previousModel
     })).toThrow(`Invalid model "${previousModel}" for --provider/--music minimax[=model]`)
-    expect(() => buildOptsFromFlags(false, {
+    expect(() => buildOptsFromFlags({
       'minimax-music': 'music-cover'
     })).toThrow('Invalid model "music-cover" for --provider/--music minimax[=model]')
   })
@@ -93,7 +82,7 @@ describe('music provider contracts', () => {
         }
         throw new Error(`Unexpected MiniMax mock fetch: ${init?.method ?? 'GET'} ${url}`)
       }) as typeof fetch, async () => {
-        const opts = buildOptsFromFlags(false, {
+        const opts = buildOptsFromFlags({
           'minimax-music': 'music-3.0',
           'music-instrumental': true
         })
@@ -139,17 +128,13 @@ describe('music provider contracts', () => {
         status: 200,
         headers: { 'content-type': 'application/json' }
       })) as typeof fetch, async () => {
-        try {
-          await runMinimaxMusicGen('ambient instrumental', dir, {
+        await expectProviderHttpError(
+          () => runMinimaxMusicGen('ambient instrumental', dir, {
             model: 'music-3.0',
             forceInstrumental: true
-          })
-          throw new Error('expected MiniMax music generation to fail')
-        } catch (error) {
-          expect(error).toBeInstanceOf(Error)
-          expect((error as Error).message).toContain('returned invalid JSON')
-          expect((error as { stage?: string }).stage).toBe('music:minimax')
-        }
+          }),
+          { stage: 'music:minimax', messageContains: 'returned invalid JSON' }
+        )
       })
     })
   })
@@ -265,8 +250,7 @@ describe('music provider contracts', () => {
 
     await withTempDir('autoshow-music-provider-', async (dir) => {
       await withEnvAndFetch({
-        ELEVENLABS_API_KEY: 'test-key',
-        ELEVENLABS_BASE_URL: 'https://mock.elevenlabs.local/v1'
+        ELEVENLABS_API_KEY: 'test-key'
       }, (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
         const url = String(input)
         if (url.endsWith('/music?output_format=mp3_48000_192')) {

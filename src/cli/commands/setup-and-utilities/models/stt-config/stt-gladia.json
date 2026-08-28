@@ -3,26 +3,6 @@
     "description": "Gladia cloud pre-recorded speech-to-text",
     "type": "api",
     "models": {
-      "solaria-1": {
-        "description": "Solaria-1 general-purpose diarization-enabled async transcription",
-        "pricingSourceUrl": "https://www.gladia.io/pricing",
-        "pricingCheckedAt": "2026-08-03",
-        "pricingCurrency": "USD",
-        "pricingTier": "Gladia public transcription pricing",
-        "pricingNotes": "Gladia pre-recorded transcription is estimated at $0.61/hour. The reused timing estimate is provisional until Phase 4 benchmarking completes. Free trial credits, custom plans, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerHourCents": 61,
-        "limits": {
-          "effectiveBytes": 1048576000,
-          "directUploadBytes": 1048576000,
-          "remoteUrlBytes": 1048576000,
-          "durationSeconds": 8100,
-          "notes": "Direct YouTube links are limited to 120 minutes. Current CLI uploads files instead. Enterprise plans can raise the audio-length cap to 4 hours 15 minutes."
-        },
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerSecond": 284
-        }
-      },
       "solaria-3": {
         "description": "Solaria-3 general-purpose diarization-enabled async transcription",
         "pricingSourceUrl": "https://www.gladia.io/pricing",

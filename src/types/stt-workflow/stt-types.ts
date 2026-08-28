@@ -20,21 +20,10 @@ export type TranscribeEngineCapabilities = {
   supportsSpeakerCountHint: boolean
 }
 
-export type EmbeddedJson = {
-  text?: string
-  segments?: Array<{
-    start?: number
-    end?: number
-    text?: string
-    speaker?: string
-  }>
-}
-
 export type RawTranscriptionPayload = {
   text?: unknown
   segments?: unknown
 }
-
 
 export type SonioxTranscriptionStatus = v.InferOutput<typeof SonioxTranscriptionStatusSchema>
 export type SonioxTranscriptResponse = v.InferOutput<typeof SonioxTranscriptResponseSchema>
@@ -62,7 +51,6 @@ export type Step2TimingMetadata = {
   degradedCount?: number | undefined
   backfillCount?: number | undefined
 }
-
 
 export type SttTarget = ProviderIdentityBase<TranscribeEngine> & {
   local: boolean
@@ -102,7 +90,6 @@ export type EffectiveSttProviderConcurrency = {
   effective: number
   hostedProviderCount: number
 }
-
 
 export type PreparedSttMedia = {
   metadata: VideoMetadata
@@ -179,7 +166,6 @@ export type SttBatchBlockedProviderReason = {
   degraded?: boolean | undefined
 }
 
-
 export type SttBatchProviderStatsSnapshot = {
   lane: import('~/types').ProviderLaneIdentity<SttTarget['service']>
   service: SttTarget['service']
@@ -229,7 +215,6 @@ export type ProviderState = {
 
 export type ProviderFailureSummary = Pick<SttProviderFailureSummary, 'message' | 'retryable' | 'stage' | 'status'>
 
-
 export type WhisperProgressLogContext = {
   segmentNumber?: number | undefined
   totalSegments?: number | undefined
@@ -237,7 +222,6 @@ export type WhisperProgressLogContext = {
   segmentDurationSeconds?: number | undefined
   totalDurationSeconds?: number | undefined
 }
-
 
 export type AsyncSttLifecycleHooks = {
   onJobReady?: ((runtime: Step2RuntimeMetadata) => Promise<void> | void) | undefined
@@ -264,7 +248,6 @@ export type IndexedTranscriptionChunk = {
   segmentIndex: number
   data: { result: TranscriptionResult, metadata: Step2Metadata }
 }
-
 
 export type AudioSegmentDescriptor = {
   path: string
@@ -309,7 +292,6 @@ export type SttRequestMetrics = {
 
 export type DeepgramAlternative = NonNullable<DeepgramResponse['results']['channels'][number]['alternatives']>[number]
 export type DeepgramWords = DeepgramAlternative['words']
-
 
 export type GladiaUtterance = NonNullable<NonNullable<NonNullable<GladiaStatusResponse['result']>['transcription']>['utterances']>[number]
 
@@ -432,7 +414,6 @@ export type SupadataTranscriptPayload = {
   lang?: string | undefined
   availableLangs?: string[] | undefined
 }
-
 
 export type SupadataJobStatus = {
   status: 'queued' | 'active' | 'completed' | 'failed'

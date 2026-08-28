@@ -95,7 +95,7 @@ const runZyteExtract = async (
   options?: UrlRequestOptions,
   baseUrl: string = ZYTE_DEFAULT_API_URL
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  const apiKey = requireHostedUrlProviderApiKey('ZYTE_API_KEY', 'zyte', 'url:zyte', baseUrl === ZYTE_DEFAULT_API_URL)
+  const apiKey = requireHostedUrlProviderApiKey('zyte', 'url:zyte', baseUrl === ZYTE_DEFAULT_API_URL)
   const payload = await fetchUrlProviderJson('Zyte', 'extract', `${baseUrl.replace(/\/$/, '')}/v1/extract`, {
     method: 'POST',
     headers: {

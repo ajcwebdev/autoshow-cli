@@ -1,9 +1,8 @@
-import { randomUUID } from 'node:crypto'
 import { cp, mkdir, rename, rm, symlink } from 'node:fs/promises'
-import { cpus } from 'node:os'
 import { dirname, join } from 'node:path'
 import { readDependencyUrlAndSha256 } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
-import { pathExists, runCapture, runInherit } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
+import { runCapture, runInherit } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
+import { pathExists } from '~/utils/filesystem'
 import { downloadFile } from '~/cli/commands/setup-and-utilities/setup/setup-download/download'
 import { installDmgApp } from '~/cli/commands/setup-and-utilities/setup/setup-download/dmg'
 import { recordSetupPerformancePhase } from '~/cli/commands/setup-and-utilities/setup/setup-performance'
@@ -25,6 +24,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-artifact'
 import type { DownloadFlowId } from '~/types'
 import { InfraError } from '~/utils/error-handler'
+import { logicalCpuCount } from '~/utils/logical-cpu-count'
 import { makeExecutable } from '~/utils/filesystem'
 import {
   ebookConvertInstalledBinaryPath,
@@ -60,7 +60,7 @@ import {
   ytDlpManagedBinaryPath
 } from '~/utils/runtime-paths'
 
-export const resolveSetupSourceBuildParallelJobs = (): number => Math.max(1, Math.min(cpus().length, 8))
+const resolveSetupSourceBuildParallelJobs = (): number => Math.min(logicalCpuCount(), 8)
 const leptonicaCmakeConfigDir = join(leptonicaToolDir, 'lib/cmake/leptonica')
 const leptonicaCmakeConfigPath = join(leptonicaCmakeConfigDir, 'LeptonicaConfig.cmake')
 const leptonicaManagedBuildStampPath = join(leptonicaToolDir, '.autoshow-managed-build')
@@ -78,7 +78,7 @@ const recreateDir = async (path: string): Promise<void> => {
 
 const createSymlinkShim = async (target: string, linkPath: string): Promise<void> => {
   await ensureParentDir(linkPath)
-  const tempPath = `${linkPath}.tmp-${randomUUID()}`
+  const tempPath = `${linkPath}.tmp-${crypto.randomUUID()}`
   try {
     await symlink(target, tempPath)
     await rename(tempPath, linkPath)
@@ -89,7 +89,7 @@ const createSymlinkShim = async (target: string, linkPath: string): Promise<void
 
 const writeExecutableScript = async (path: string, content: string): Promise<void> => {
   await ensureParentDir(path)
-  const tempPath = `${path}.tmp-${randomUUID()}`
+  const tempPath = `${path}.tmp-${crypto.randomUUID()}`
   try {
     await Bun.write(tempPath, content)
     await makeExecutable(tempPath)
@@ -188,12 +188,9 @@ const hasExtractedSource = async (buildDir: string, sha256: string): Promise<boo
 const downloadSource = async (
   name: string,
   buildDir: string,
-  flowId: DownloadFlowId,
-  mode: 'tar-gz' | 'tar-xz'
+  flowId: DownloadFlowId
 ): Promise<void> => {
   const { url, sha256 } = await readDependencyUrlAndSha256(name)
-  // A build that fails after extraction used to re-download the tarball on every
-  // retry, because recreateDir wiped the already-verified source tree first.
   const sourceCached = await hasExtractedSource(buildDir, sha256)
   await recordSetupPerformancePhase(name, 'archive-preparation', async () => {
     if (sourceCached) return
@@ -204,16 +201,14 @@ const downloadSource = async (
       sha256,
       destination: buildDir,
       flowId,
-      mode,
+      mode: 'tar-gz',
       stripComponents: 1
     })
     await Bun.write(sourceStampPath(buildDir), `${sha256}\n`)
   }, { sourceCached })
 }
 
-// Source and object trees are inputs to the installed artifacts under
-// runtime/tools; once an install validates, keeping them only costs disk.
-export const discardBuildTree = async (buildDir: string): Promise<void> => {
+const discardBuildTree = async (buildDir: string): Promise<void> => {
   await rm(buildDir, { recursive: true, force: true })
 }
 
@@ -232,9 +227,9 @@ export const installManagedYtDlpMacos = async (): Promise<void> => {
 
 const lameStaticLibPath = join(lameToolDir, 'lib/libmp3lame.a')
 
-export const installManagedLameMacos = async (): Promise<void> => {
+const installManagedLameMacos = async (): Promise<void> => {
   if (await pathExists(lameStaticLibPath)) return
-  await downloadSource('lame', lameBuildDir, 'lame-source', 'tar-gz')
+  await downloadSource('lame', lameBuildDir, 'lame-source')
   await recreateDir(lameToolDir)
   await recordSetupPerformancePhase('lame', 'configure-generate', async () => {
     await runInherit('./configure', [
@@ -270,13 +265,14 @@ export const hasManagedFfmpegBuild = async (): Promise<boolean> => {
 export const installManagedFfmpegMacos = async (): Promise<void> => {
   if (await hasManagedFfmpegBuild()) return
   await installManagedLameMacos()
-  await downloadSource('ffmpeg', ffmpegBuildDir, 'ffmpeg-source', 'tar-xz')
+  await downloadSource('ffmpeg', ffmpegBuildDir, 'ffmpeg-source')
   await recreateDir(ffmpegToolDir)
   await recordSetupPerformancePhase('ffmpeg', 'configure-generate', async () => {
     await runInherit('./configure', [
       `--prefix=${ffmpegToolDir}`,
       '--disable-doc',
       '--disable-debug',
+      '--disable-ffplay',
       '--enable-libmp3lame',
       `--extra-cflags=-I${join(lameToolDir, 'include')}`,
       `--extra-ldflags=-L${join(lameToolDir, 'lib')}`
@@ -308,7 +304,7 @@ export const installManagedMupdfMacos = async (): Promise<void> => {
     await createSymlinkShim(mutoolInstalledBinaryPath, mutoolManagedBinaryPath)
     return
   }
-  await downloadSource('mupdf', mupdfBuildDir, 'mupdf-source', 'tar-gz')
+  await downloadSource('mupdf', mupdfBuildDir, 'mupdf-source')
   const deploymentTarget = await resolveSourceDeploymentTarget()
   const jobs = resolveSetupSourceBuildParallelJobs()
   await recordSetupPerformancePhase('mupdf', 'compile-link', async () => {
@@ -358,7 +354,7 @@ exec "${ebookConvertInstalledBinaryPath}" "$@"
 `)
 }
 
-export const installManagedTessdataEng = async (): Promise<void> => {
+const installManagedTessdataEng = async (): Promise<void> => {
   if (!await pathExists(englishTrainedDataPath)) {
     const { url, sha256 } = await readDependencyUrlAndSha256('tessdataEng')
     await mkdir(tessdataDir, { recursive: true })
@@ -398,7 +394,7 @@ export const ensureManagedTessdataSupportFiles = async (): Promise<void> => {
 
 export const installManagedTesseractMacos = async (): Promise<void> => {
   if (!await hasManagedLeptonicaBuild()) {
-    await downloadSource('leptonica', leptonicaBuildDir, 'leptonica-source', 'tar-gz')
+    await downloadSource('leptonica', leptonicaBuildDir, 'leptonica-source')
     await recreateDir(leptonicaToolDir)
     const leptonicaCmakeBuildDir = join(leptonicaBuildDir, 'build')
     await recordSetupPerformancePhase('leptonica', 'configure-generate', async () => {
@@ -426,7 +422,7 @@ export const installManagedTesseractMacos = async (): Promise<void> => {
   }
 
   if (!await pathExists(tesseractInstalledBinaryPath)) {
-    await downloadSource('tesseract', tesseractBuildDir, 'tesseract-source', 'tar-gz')
+    await downloadSource('tesseract', tesseractBuildDir, 'tesseract-source')
     await recreateDir(tesseractToolDir)
     const tesseractCmakeBuildDir = join(tesseractBuildDir, 'build')
     await recordSetupPerformancePhase('tesseract', 'configure-generate', async () => {
@@ -469,8 +465,8 @@ export const installManagedQpdfMacos = async (): Promise<void> => {
   const existingSourceInstallHealthy = await hasValidManagedSourcePayload('qpdf')
   if (!existingSourceInstallHealthy) {
     const layout = resolveQpdfSourceBuildLayout(qpdfBuildDir)
-    await downloadSource('libjpeg-turbo', layout.libjpegTurboSourceDir, 'libjpeg-turbo-source', 'tar-gz')
-    await downloadSource('qpdf', layout.qpdfSourceDir, 'qpdf-source', 'tar-gz')
+    await downloadSource('libjpeg-turbo', layout.libjpegTurboSourceDir, 'libjpeg-turbo-source')
+    await downloadSource('qpdf', layout.qpdfSourceDir, 'qpdf-source')
     await recreateDir(layout.libjpegTurboCmakeBuildDir)
     await recreateDir(layout.libjpegTurboInstallDir)
     const deploymentTarget = await resolveSourceDeploymentTarget()

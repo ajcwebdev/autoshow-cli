@@ -2,7 +2,7 @@ import { mkdir, rename, rm } from 'node:fs/promises'
 import type { BuildSingleArtifactMapOptions, ProviderIdentity, RunSingleFileTargetsOptions, RunTargetsOptions, SingleFileArtifactNameOptions, SingleFileRunResult } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import * as l from '~/utils/app-logger/app-logger'
-import { InfraError } from '~/utils/error-handler'
+import { InfraError, serializeDiagnosticError } from '~/utils/error-handler'
 import { runProviderTargetScheduler } from './provider-target-scheduler'
 
 
@@ -84,7 +84,10 @@ export const runTargets = async <TTarget extends ProviderIdentity, TResult>(
   })
   const successes = scheduled.results.filter((result): result is TResult => result !== undefined)
   const failedTargets = scheduled.failures.map(({ target, message, error }) => {
-    l.error(`Failed to run ${stepLabel} target ${target.service}/${target.model}: ${message}`)
+    l.error(`Failed to run ${stepLabel} target ${target.service}/${target.model}: ${message}`, {
+      category: 'pipeline',
+      metadata: { step: stepLabel, service: target.service, model: target.model, error: serializeDiagnosticError(error) }
+    })
     return { summary: `${target.service}/${target.model}: ${message}`, error }
   })
 
@@ -99,7 +102,10 @@ export const runTargets = async <TTarget extends ProviderIdentity, TResult>(
   }
 
   if (failedTargets.length > 0) {
-    l.warn(`${stepLabel} run completed with partial failures: ${failedTargets.map(failure => failure.summary).join('; ')}`)
+    l.warn(`${stepLabel} run completed with partial failures: ${failedTargets.map(failure => failure.summary).join('; ')}`, {
+      category: 'pipeline',
+      metadata: { step: stepLabel, failureCount: failedTargets.length, failures: failedTargets.map(failure => failure.summary) }
+    })
   }
 
   return successes

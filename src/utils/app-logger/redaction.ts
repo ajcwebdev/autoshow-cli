@@ -51,8 +51,7 @@ const SENSITIVE_FLAG_NAMES = new Set<string>([
   'supadata-api-key',
   'scrapecreators-api-key',
   'elevenlabs-api-key',
-  'minimax-api-key',
-  'speechify-tts-consent-email'
+  'minimax-api-key'
 ])
 
 const SENSITIVE_OBJECT_KEY_PATTERN = /(?:token|api[_-]?key|authorization|secret|password|cookie|credential|account[_-]?id|organization[_-]?id|project[_-]?id|request[_-]?id|trace[_-]?id|traceparent|traceresponse|tracestate|cloud[_-]?trace|amzn[_-]?trace|b3[_-]?(?:traceid|spanid)|cf[_-]?ray|^auth$|[_-]auth$|auth[_-])/i
@@ -84,10 +83,6 @@ const sanitizeEnvAssignments = (value: string): string => {
 const sanitizeEmailAddresses = (value: string): string =>
   value.replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[REDACTED_EMAIL]')
 
-// The opaque-id prefixes below (project, account, org, request, trace) are ordinary
-// words that also appear in directory names, so the rule would otherwise corrupt real
-// filesystem paths the user needs to be able to copy. Secret-shaped rules (token_, key_,
-// sk-, jwt) still apply everywhere, including inside paths.
 const isInsidePathToken = (source: string, offset: number): boolean => {
   const isBoundary = (char: string): boolean => char === '' || /\s|["'`]/.test(char)
 

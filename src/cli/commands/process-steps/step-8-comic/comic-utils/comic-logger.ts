@@ -1,16 +1,7 @@
 import * as v from 'valibot'
 import * as appLog from '~/utils/app-logger/app-logger'
 import { formatDuration as formatSharedDuration } from '~/utils/app-logger/formatters'
-import { paint, terminalStyles } from '~/utils/terminal-colors'
-import type { LogSink } from '~/types'
-
-export const bold = (text: string): string => {
-  return paint(text, 'white')
-}
-
-export const cyan = (text: string): string => {
-  return terminalStyles.info(text)
-}
+import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 
 export const formatDuration = formatSharedDuration
 
@@ -29,53 +20,22 @@ const compactParts = (
     .join(' ')
 }
 
-const logBase = (...messages: unknown[]): void => {
-  appLog.write('info', messages.map(String).join(' '), { category: 'command' })
-}
-
-logBase.dim = (...messages: unknown[]): void => {
-  appLog.write('info', messages.map(String).join(' '), { category: 'command' })
-}
-
-logBase.success = (message: string): void => {
-  appLog.write('success', message, { category: 'command' })
-}
-
-export const l = logBase
-
-// The shared image services emit their own "Image Status/Result" lines
-// (category 'pipeline') that point at the scratch directory comic runs each image
-// in and then deletes. Comic already prints an authoritative per-image line with
-// the real output path, so these interim logs are redundant and the scratch path
-// is actively confusing. Filter category 'pipeline' out of the active sinks once
-// per command. It is idempotent (wrapped sinks are tagged) and concurrency-safe
-// because it only rewrites sink output, not shared per-call state.
-const PIPELINE_SINK_FILTERED = Symbol('comicPipelineSinkFiltered')
-
-export const suppressSharedPipelineLogs = (): void => {
-  const sinks = appLog.l.config.sinks
-  for (let index = 0; index < sinks.length; index++) {
-    const sink = sinks[index]
-    if (!sink || (sink as { [PIPELINE_SINK_FILTERED]?: boolean })[PIPELINE_SINK_FILTERED]) {
-      continue
-    }
-
-    const filtered: LogSink = (event) => {
-      if (event.category === 'pipeline') return
-      sink(event)
-    }
-    ;(filtered as { [PIPELINE_SINK_FILTERED]?: boolean })[PIPELINE_SINK_FILTERED] = true
-    sinks[index] = filtered
+export const withSuppressedPipelineLogs = async <T>(run: () => Promise<T>): Promise<T> => {
+  const restore = appLog.suppressLogCategories(['pipeline'])
+  try {
+    return await run()
+  } finally {
+    restore()
   }
 }
 
 export const comicLog = {
   header(command: string, details: Array<string | number | false | null | undefined> = []): void {
-    l(`${bold(command)}${details.length > 0 ? ` ${compactParts(details)}` : ''}`)
+    appLog.write('info', `${command}${details.length > 0 ? ` ${compactParts(details)}` : ''}`, { category: 'command' })
   },
 
   line(label: string, details: Array<string | number | false | null | undefined> = []): void {
-    l.dim(`${label}${details.length > 0 ? ` ${compactParts(details)}` : ''}`)
+    appLog.write('info', `${label}${details.length > 0 ? ` ${compactParts(details)}` : ''}`, { category: 'command' })
   },
 
   output(
@@ -83,15 +43,15 @@ export const comicLog = {
     kind: string,
     details: Array<string | number | false | null | undefined>
   ): void {
-    l.dim(compactParts([status, kind, ...details]))
+    appLog.write('info', compactParts([status, kind, ...details]), { category: 'command' })
   },
 
   summary(details: Array<string | number | false | null | undefined>): void {
-    l.dim(compactParts(['summary', ...details]))
+    appLog.write('info', compactParts(['summary', ...details]), { category: 'command' })
   },
 
   outputDirectory(path: string): void {
-    l.dim(`output directory: ${path}`)
+    appLog.write('info', `output directory: ${path}`, { category: 'command' })
   },
 }
 
@@ -101,32 +61,36 @@ const errBase = (...messages: unknown[]): void => {
     return
   }
 
-  appLog.error(messages.map(String).join(' '))
+  appLog.error(messages.map(String).join(' '), { category: 'command' })
 }
 
-const errValidation = (error: v.ValiError<v.GenericSchema | v.GenericSchemaAsync>): void => {
-  errBase('Validation error:')
-
+const flattenValidationIssues = (
+  error: v.ValiError<v.GenericSchema | v.GenericSchemaAsync>
+): Array<{ path: string, message: string }> => {
   const issues = Array.isArray(error.issues) ? error.issues : []
-
   if (issues.length === 0) {
-    errBase(`  - ${error.message}`)
-    return
+    return [{ path: '', message: error.message }]
   }
 
   const flatErrors = v.flatten(issues as [v.BaseIssue<unknown>, ...v.BaseIssue<unknown>[]])
+  return [
+    ...(flatErrors.root ?? []).map((message) => ({ path: '', message })),
+    ...Object.entries(flatErrors.nested ?? {}).flatMap(([path, messages]) =>
+      (messages ?? []).map((message) => ({ path, message }))
+    )
+  ]
+}
 
-  if (flatErrors.root) {
-    flatErrors.root.forEach(msg => errBase(`  - ${msg}`))
-  }
-
-  if (flatErrors.nested) {
-    Object.entries(flatErrors.nested).forEach(([path, messages]) => {
-      if (messages) {
-        messages.forEach(msg => errBase(`  - ${path}: ${msg}`))
-      }
-    })
-  }
+const errValidation = (error: v.ValiError<v.GenericSchema | v.GenericSchemaAsync>): void => {
+  const issues = flattenValidationIssues(error)
+  appLog.write('error', 'Validation error', {
+    category: 'command',
+    metadata: { issues },
+    humanTable: createHumanTable(
+      issues.map(({ path, message }) => ({ path: path || '(root)', message })),
+      ['path', 'message']
+    )
+  })
 }
 
 export const err = errBase

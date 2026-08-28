@@ -1,24 +1,24 @@
 # Types, Metadata & Output Layout
 
-Reference for public output artifacts, the canonical pipeline manifest, runtime directories, provider result files, and key type families.
+Public output artifacts, the pipeline manifest, runtime directories, and metadata fields.
 
 ## Outline
 
 - [Output Layout](#output-layout)
 - [Canonical Manifest](#canonical-manifest)
 - [Runtime Layout](#runtime-layout)
-- [Type Reference](#type-reference)
+- [Metadata](#metadata)
 
 ## Output Layout
 
 ```
 output/
-  YYYY-MM-DD_HH-MM-SS_<title>/
+  YYYY-MM-DD_HH-MM-SS-mmm_<title>/
     manifest.json
 
     # media extract/write
-    audio.(mp3|m4a|ogg|flac)
-    source_media.(m4a|mp3)             # staged artifact when materialized in run dir
+    <publish-date>-<title-slug>.(mp3|m4a|ogg|flac)   # normalized media artifact
+    source_media.(mp3|m4a|ogg|flac)    # staged artifact when materialized in run dir
     transcription.txt                  # single-provider or primary text output
     youtube-captions.vtt               # when --youtube-captions succeeds
     youtube-captions.json
@@ -30,27 +30,26 @@ output/
     text-<model>.md
     show-note.md
     show-note-<model>.md
-    providers/<provider-model>/
+    providers/<service>-<model>/
       transcription.txt
-      result.json                      # raw domain result payload
+      result.json
 
     # document/article extract/write
     extraction.txt
-    result.json                        # raw structured extract/domain payload
-    extraction.tsv
-    extraction.hocr
-    providers/<provider-or-backend>/
+    result.json
+    providers/<service>-<model>/       # OCR targets
+    providers/<backend>/               # HTML article backends
       extraction.txt
-      result.json                      # raw domain result payload
+      result.json
     prompt.md
     prompt-md.md
     text.json | text-<model>.json
     text.md | text-<model>.md
     show-note.md | show-note-<model>.md
 
-    # standalone generation
-    speech.wav | speech.mp3 | ...
-    generated-image.*
+    # standalone generation; multi-target runs suffix the stem with -<provider>-<model>
+    speech.wav
+    generated-image.*                  # extra images append -<n>
     generated-video.mp4
     generated-music.mp3
 
@@ -93,11 +92,11 @@ standalone tts directory batch:
   <item-stem>-<provider>-<model>.<ext>     # multi-target/provider output
 ```
 
-Every output root owns exactly one `manifest.json`. TTS directory batch items include the input, `audioStem`, status, provider states, TTS metadata, cost, timing, and any errors. Extract parent items link to route child manifests by a containment-checked relative directory.
+Every output root owns exactly one `manifest.json`. Extract parent items link to route child manifests by a relative directory. TTS directory batch items record the input, audio stem, status, providers, cost, timing, and errors. See [Input Routing & Batch Orchestration](02-input-routing-batch.md) for how extract batches are partitioned by route.
 
 ## Canonical Manifest
 
-Single runs and batches use the same unversioned, non-union shape. `command` and `scope` are ordinary data, not format selectors:
+Single runs and batches use the same shape:
 
 ```json
 {
@@ -134,83 +133,56 @@ Single runs and batches use the same unversioned, non-union shape. `command` and
 
 Commands are `metadata`, `download`, `extract`, `write`, `tts`, `image`, `video`, `music`, and `comic`. Scope is `single` or `batch`. Item status is `full`, `incomplete`, `failed`, or `skipped`; provider status is `running`, `succeeded`, `missing`, `failed`, or `skipped`.
 
-Batch items use the same item shape. A route parent adds a child link without changing the manifest format:
+`source` is optional top-level data for source-backed work such as podcast feeds or YouTube collections.
+
+Provider directories may keep a raw `result.json` next to generated text. That file is the transcription or extraction payload, not a second manifest:
 
 ```json
 {
-  "input": "input/file.pdf",
-  "inputFamily": "document",
-  "extractRoute": "document",
-  "outputDir": "document/2026-08-10_12-00-00_file",
-  "child": {
-    "route": "document",
-    "index": 0,
-    "manifestDir": "document"
-  },
-  "status": "full",
-  "metadata": {},
-  "providers": []
+  "text": "…",
+  "segments": []
 }
 ```
-
-`source` is optional top-level business data for source-backed work such as podcast feeds or YouTube collections.
-
-Provider directories may retain raw user-facing domain results, but those files are not manifests and do not control resume:
-
-```json
-{
-  "provider": "whisper",
-  "model": "small",
-  "metadata": {},
-  "result": {}
-}
-```
-
-A single reader validates this structure, timestamps, enumerated values, status consistency, and path containment. A serialized atomic writer manages all creation and in-progress provider lifecycle updates.
 
 ## Runtime Layout
 
+Managed installs live under `runtime/` in the project checkout. `--bin-dir` overrides `runtime/bin` for external tool lookup; a tool present in that directory takes precedence over the managed install and `PATH`.
+
 ```
 runtime/
-  bin/
-    whisper-cli
-    whisperfile/                 # prebuilt Mozilla whisperfiles (downloaded on demand)
-  build/
-    whisper.cpp/
-  models/
-    whisper/
+  bin/                           # managed binaries, including whisperfile models
+  models/                        # local Whisper models
+  tools/                         # installed tool prefixes
 ```
-
-Process locks use an internal default location under `~/.cache/autoshow-cli/process-locks`.
 
 ### Comic character and run layout
 
 ```text
 input/characters/
-  characters-reference.json       # schemaVersion 3; CharacterKey catalog
-  character-sketches.json         # flat-sheet provenance and SHA-256 checksums
+  characters-reference.json
+  character-sketches.json
   <canonical-source-image>
-  <source-stem>--outline-sheet.png # registered live sheet
+  <source-stem>--outline-sheet.png
 
 output/<timestamp>_<scene-slug>/
   metadata/
-    structured-script.json           # schemaVersion 5; characterKeys/speakerKey plus scene.soundscape
+    structured-script.json
     draft-prompt.md
-    scene.json                       # schemaVersion 4; authoritative panel.characterKeys
+    scene.json
     scene.invalid.json               # only when validation preserves invalid model output
     panel-prompts/
       source-coverage.json
       panel-NN/
-        <scene>-panel-N.md            # keys + snapshot IDs; no copied reference images
+        <scene>-panel-N.md            # keys and snapshot IDs; images live under assets/
   assets/
-    character-references.json        # checksummed immutable character snapshot index
+    character-references.json
     character-references/
       <snapshot-id>/
         <character-key>/
-          reference.<ext>             # one-image character
-          sketch-sheet.png            # legacy two-image character
-          source.<ext>                # legacy two-image character
-    location-references.json         # checksummed immutable location snapshot index
+          reference.<ext>             # when source and outline sheet are the same file
+          sketch-sheet.png            # when source and outline sheet differ
+          source.<ext>                # when source and outline sheet differ
+    location-references.json
     location-references/
       <snapshot-id>/
         <location-key>--reference-sheet.png
@@ -223,62 +195,19 @@ output/<timestamp>_<scene-slug>/
   sketches/
 ```
 
-Reference compilation preserves first character appearance and emits one canonical image for each one-image character. Legacy two-image characters emit one derived identity card. The scene's immutable location reference follows all required character references, then any optional panel/page/sketch continuity references.
+## Metadata
 
-## Type Reference
+Item `status` and `providers` record completion and provider progress. Item metadata commonly includes title, slug, duration or page count, source URL or path, output file names, token or character counts, timings, and cost.
 
-Process command and runtime option families:
+Typical fields by step:
 
-```
-ProcessCommand =
-  "metadata" | "download" | "extract" | "write" |
-  "tts" | "image" | "music" | "video" | "comic"
-
-Flag/config resolution context:
-  merged/configured/explicit flags
-  normalized repeatable model selections
-  command-neutral resolution state
-
-ProcessingOptions:
-  only the composed media/document write pipeline
-
-Domain option slices:
-  STT, OCR, URL, LLM, TTS, image, video, music, comic, batch, and pricing
-  each consumer requests only its domain plus named shared controls
-```
-
-Provider unions:
-
-| Type                   | Values                                                                                                                                                                  |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TtsProvider`          | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal` |
-| `ImageProvider`        | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`                                                                                                       |
-| `VideoProvider`        | `gemini`, `minimax`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`                                                                                     |
-| `MusicProvider`        | `elevenlabs`, `minimax`, `gemini`                                                                                                                                       |
-| `OcrTarget['service']` | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `replicate`, `fal`                                                         |
-| `HtmlArticleBackend`   | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`                                                                                                     |
-
-`DetectResult` values:
-
-```
-"pdf" | "epub" | "docx" | "pptx" | "xlsx" | "odf" |
-"mobi" | "azw3" | "fb2" | "lit" | "cbz" | "rtf" | "csv" |
-"png" | "jpg" | "tif" | "webp" | "bmp" | "gif" | "html" | null
-```
-
-Important metadata fields by step:
-
-| Step              | Metadata highlights                                                                                                                                                                                                                                                                                                                    |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Step 1 media      | title, slug, duration, author, source URL/path, publish metadata, audio file name/size, and staged source media details.                                                                                                                                                                                                               |
-| Step 1 document   | title, slug, author, page count when available, format, file size, source URL/path.                                                                                                                                                                                                                                                    |
-| Step 2 STT        | transcription service, model, output files, segment counts, token/character counts, timings, runtime/provider info, billing/cost fields, caption fields `captionKind`, `captionLanguage`, `captionFormat` for YouTube captions.                                                                                                        |
-| Step 2 extraction | extraction method, provider/model/backend, format, page counts, OCR/text page counts, language/DPI/chapter fields, HTML/web/source info, conversion/normalization details, provider cost/usage and timing.                                                                                                                             |
-| Step 3 LLM        | LLM service/model, output file, token counts, structured mode/preset names, processing time, provider cost/usage.                                                                                                                                                                                                                      |
-| Step 4 TTS        | TTS provider/model, voice/speaker/language, audio file names/sizes, chunk counts, operation-scoped target/transport, voice/settings/output-aware render/result/audio-run identities, canonical `ttsAudio` projection, processing time, and provider cost. Voice creation and protected consent/sample data are not synthesis metadata. |
-| Step 5 image      | image provider/model, file names/sizes, image count/dimensions, size/quality/format, request mode, revised prompt, returned model, moderation/grounding, provider cost.                                                                                                                                                                |
-| Step 6 video      | video provider/model, file name/size/duration, request mode, resolution/aspect ratio, input/reference media, provider IDs/URLs/progress/moderation/storage, provider cost.                                                                                                                                                             |
-| Step 7 music      | music provider/model, file name/size/duration, lyrics source, generated lyrics/title/style fields, audio technical metadata, provider IDs/traces, provider cost.                                                                                                                                                                       |
-| Step 8 comic      | script slug, stage progress (structure, image, audio), character catalog, scene run identity, structured script, dialogue plan, snapshot, and selected audio runs.                                                                                                                                                                     |
-
-Item metadata commonly includes cost, timing, errors, and route-specific evidence such as `resolvedStep2` and `web`. Completion and provider progress live only in the canonical item `status` and `providers` fields; requested, missing, and blocked lists are derived views rather than duplicated persisted state.
+- Step 1 media: title, slug, duration, author, source, publish metadata, and audio file name/size.
+- Step 1 document: title, slug, author, page count when available, format, file size, and source.
+- Step 2 STT: service, model, output files, segment counts, timings, cost, and YouTube caption language/format when captions were used.
+- Step 2 extraction: method, provider/model/backend, format, page counts, language, and cost.
+- Step 3 LLM: service/model, output file, token counts, processing time, and cost.
+- Step 4 TTS: provider/model, voice/speaker/language, audio file names/sizes, chunk counts, processing time, and cost.
+- Step 5 image: provider/model, file names/sizes, dimensions, format, request mode, and cost.
+- Step 6 video: provider/model, file name/size/duration, resolution/aspect ratio, request mode, and cost.
+- Step 7 music: provider/model, file name/size/duration, lyrics source, generated title/style, and cost.
+- Step 8 comic: stage progress (structure, image, audio, presentation), scene identity, structured script, dialogue plan, and selected audio/soundscape/presentation refs. The script slug lives in the manifest `source` block.

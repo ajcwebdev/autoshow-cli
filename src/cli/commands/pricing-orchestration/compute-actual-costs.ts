@@ -6,7 +6,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { estimateImageCosts } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { estimateVideoCost } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
-import { isCostSource } from '~/types'
+import { isCostSource, isTokenPricedOcrProvider } from '~/types'
 import type { ActualCostBreakdown, ComputeActualCostsInput, CostSource, ExtractionMetadata, Step2Metadata, Step5Metadata, Step6VideoMetadata, StepCostEntry } from '~/types'
 import {
   computeSttCost,
@@ -24,7 +24,6 @@ import {
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
 import {
-  isTokenPricedOcrProvider,
   resolveActualExtractCostEntry,
   zeroCostSource
 } from './provider-family-resolvers'
@@ -99,7 +98,7 @@ const computeActualSttCharge = (
     }
   }
 
-  if (typeof metadata.billing?.totalCost === 'number' && Number.isFinite(metadata.billing.totalCost)) {
+  if (typeof metadata.billing?.totalCost === 'number' && Number.isFinite(metadata.billing.totalCost) && metadata.billing.totalCost > 0) {
     const inputTokens = metadata.billing.inputTokens
     const outputTokens = metadata.billing.outputTokens
     const totalTokens = metadata.billing.totalTokens
@@ -181,15 +180,13 @@ const estimateActualVideoFallbackCost = (entry: Step6VideoMetadata): number => {
   if (typeof retiredCost === 'number') return retiredCost
 
   const estimate = estimateVideoCost({
-    ...(entry.videoGenService === 'gemini' ? { geminiVideoModel: entry.videoGenModel } : {}),
-    ...(entry.videoGenService === 'minimax' ? { minimaxVideoModel: entry.videoGenModel } : {}),
-    ...(entry.videoGenService === 'grok' ? { grokVideoModel: entry.videoGenModel } : {}),
-    ...(entry.videoGenService === 'ltx' ? { ltxVideoModel: entry.videoGenModel } : {}),
-    ...(entry.videoGenService === 'replicate' ? { replicateVideoModel: entry.videoGenModel } : {}),
-    ...(entry.videoGenService === 'lumalabs' ? { lumalabsVideoModel: entry.videoGenModel } : {}),
-    ...(entry.videoGenService === 'fal' ? { falVideoModel: entry.videoGenModel } : {}),
+    ...(entry.videoGenService === 'gemini' ? { geminiVideoModels: [entry.videoGenModel] } : {}),
+    ...(entry.videoGenService === 'grok' ? { grokVideoModels: [entry.videoGenModel] } : {}),
+    ...(entry.videoGenService === 'ltx' ? { ltxVideoModels: [entry.videoGenModel] } : {}),
+    ...(entry.videoGenService === 'replicate' ? { replicateVideoModels: [entry.videoGenModel] } : {}),
+    ...(entry.videoGenService === 'lumalabs' ? { lumalabsVideoModels: [entry.videoGenModel] } : {}),
+    ...(entry.videoGenService === 'fal' ? { falVideoModels: [entry.videoGenModel] } : {}),
     ...(typeof entry.videoDuration === 'number' ? { videoDuration: entry.videoDuration } : {}),
-    ...(typeof entry.videoSize === 'string' ? { videoSize: entry.videoSize } : {}),
     ...(typeof entry.videoAspectRatio === 'string' ? { videoAspectRatio: entry.videoAspectRatio } : {}),
     ...(typeof entry.videoResolution === 'string' ? { videoResolution: entry.videoResolution } : {}),
     ...(typeof entry.requestMode === 'string' ? { videoMode: entry.requestMode } : {}),
@@ -211,7 +208,7 @@ const computeImageFallbackCost = (
     && metadata.imageModel === 'gpt-image-2'
   ) {
     const estimate = estimateImageCosts({
-      openaiImageModel: metadata.imageModel,
+      openaiImageModels: [metadata.imageModel],
       imageSize: metadata.imageSize,
       imageQuality: metadata.imageQuality
     })[0]

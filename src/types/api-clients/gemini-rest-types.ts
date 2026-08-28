@@ -43,6 +43,7 @@ export type GeminiGenerateContentResponse = {
       parts?: GeminiPart[] | undefined
       [key: string]: unknown
     } | undefined
+    finishReason?: string | undefined
     groundingMetadata?: unknown
     [key: string]: unknown
   }> | undefined
@@ -108,4 +109,9 @@ export type GeminiVideoOperation = {
 export type GeminiVideoReferenceImage = {
   image: GeminiInlineMedia
   referenceType: 'asset'
+}
+
+export type GeminiFetchOptions = {
+  url: string
+  init: RequestInit
 }

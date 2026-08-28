@@ -92,7 +92,7 @@ describe('Gemini dialogue strategy planning', () => {
     process.env['GEMINI_API_KEY'] = 'gemini-key'
     const calls = installGeminiAudioFetch()
     const dir = await tempDirs.make()
-    const options = buildOptsFromFlags(false, {
+    const options = buildOptsFromFlags({
       'gemini-tts': 'gemini-3.1-flash-tts-preview',
       'tts-dialogue-format': 'screenplay',
       'tts-speaker': ['Host=Kore', 'Guest=Puck']
@@ -107,7 +107,7 @@ describe('Gemini dialogue strategy planning', () => {
     process.env['GEMINI_API_KEY'] = 'gemini-key'
     const calls = installGeminiAudioFetch()
     const dir = await tempDirs.make()
-    const options = buildOptsFromFlags(false, {
+    const options = buildOptsFromFlags({
       'gemini-tts': 'gemini-3.1-flash-tts-preview',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['Host=Kore']
@@ -127,7 +127,7 @@ describe('Gemini dialogue strategy planning', () => {
     process.env['GEMINI_API_KEY'] = 'gemini-key'
     const calls = installGeminiAudioFetch()
     const dir = await tempDirs.make()
-    const options = buildOptsFromFlags(false, {
+    const options = buildOptsFromFlags({
       'gemini-tts': 'gemini-3.1-flash-tts-preview',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['Alice=Kore', 'Bob=Puck', 'Cara=Charon']
@@ -149,7 +149,7 @@ describe('Gemini dialogue strategy planning', () => {
     process.env['GEMINI_API_KEY'] = 'gemini-key'
     const calls = installGeminiAudioFetch()
     const dir = await tempDirs.make()
-    const options = buildOptsFromFlags(false, {
+    const options = buildOptsFromFlags({
       'gemini-tts': 'gemini-3.1-flash-tts-preview',
       'tts-dialogue-format': 'screenplay',
       'tts-speaker': ['Host=Kore', 'Guest=Puck']
@@ -172,7 +172,7 @@ describe('Gemini dialogue strategy planning', () => {
     process.env['GEMINI_API_KEY'] = 'gemini-key'
     const calls = installGeminiAudioFetch()
     const dir = await tempDirs.make()
-    const options = buildOptsFromFlags(false, {
+    const options = buildOptsFromFlags({
       'gemini-tts': 'gemini-3.1-flash-tts-preview',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['Host=Kore', 'Guest=Puck']
@@ -194,7 +194,7 @@ describe('Gemini dialogue strategy planning', () => {
     process.env['GEMINI_API_KEY'] = 'gemini-key'
     const calls = installGeminiAudioFetch()
     const dir = await tempDirs.make()
-    const options = buildOptsFromFlags(false, {
+    const options = buildOptsFromFlags({
       'gemini-tts': 'gemini-3.1-flash-tts-preview',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['Host=Kore', 'Guest=Puck']
@@ -217,9 +217,9 @@ describe('Gemini dialogue strategy planning', () => {
     process.env['GEMINI_API_KEY'] = 'gemini-key'
     const calls = installGeminiAudioFetch()
     const dir = await tempDirs.make()
-    const options = buildOptsFromFlags(false, {
+    const options = buildOptsFromFlags({
       'gemini-tts': 'gemini-3.1-flash-tts-preview',
-      'gemini-voice': 'Kore'
+      'tts-voice': 'Kore'
     })
 
     await runTts('Ordinary single-speaker narration.', dir, options)

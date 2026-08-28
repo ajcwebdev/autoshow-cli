@@ -1,5 +1,5 @@
-import type { GeminiDurationSeconds, GeminiResolution, GrokVideoDurationSeconds, GrokVideoResolution, LtxVideoDurationSeconds, LtxVideoModel, LumaVideoDuration, LumaVideoResolution, MinimaxApiResolution, MinimaxDurationSeconds, MinimaxResolution, MinimaxVideoModel, ReplicateVideoModel, ReplicateVideoResolution, VideoMode } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import type { GeminiDurationSeconds, GeminiResolution, GrokVideoDurationSeconds, GrokVideoResolution, LtxVideoDurationSeconds, LtxVideoModel, LumaVideoDuration, LumaVideoResolution, ReplicateVideoModel, ReplicateVideoResolution, VideoMode } from '~/types'
+import { UsageError } from '~/utils/error-handler'
 
 export const REPLICATE_COMMON_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '4:3', '3:4'] as const
 export const REPLICATE_SEEDANCE_ASPECT_RATIOS = [...REPLICATE_COMMON_ASPECT_RATIOS, '21:9', '9:21', 'adaptive'] as const
@@ -16,7 +16,7 @@ const clampIntegerDuration = (
 ): number => {
   if (duration === undefined) return fallback
   if (!Number.isFinite(duration) || !Number.isInteger(duration) || duration < min || duration > max) {
-    throw CLIUsageError(`Invalid --video-duration value "${String(duration)}" for ${label}. Expected an integer from ${min} to ${max}.`)
+    throw UsageError(`Invalid --duration value "${String(duration)}" for ${label}. Expected an integer from ${min} to ${max}.`)
   }
   return duration
 }
@@ -28,7 +28,7 @@ const normalizeReplicateAspectRatioFrom = (
 ): string => {
   if (aspectRatio === undefined || aspectRatio === '') return '16:9'
   if (allowed.includes(aspectRatio)) return aspectRatio
-  throw CLIUsageError(`Invalid --video-aspect-ratio value "${aspectRatio}" for ${label}. Expected ${allowed.join(', ')}.`)
+  throw UsageError(`Invalid --aspect-ratio value "${aspectRatio}" for ${label}. Expected ${allowed.join(', ')}.`)
 }
 
 export const isReplicateHappyHorseVideoModel = (model: ReplicateVideoModel): boolean =>
@@ -43,7 +43,7 @@ export const isReplicateKlingOmniVideoModel = (model: ReplicateVideoModel): bool
 export const isReplicatePixVerseVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'pixverse/pixverse-v6'
 
-export const isReplicateSeedanceFastVideoModel = (model: ReplicateVideoModel): boolean =>
+const isReplicateSeedanceFastVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'bytedance/seedance-2.0-fast'
 
 export const REPLICATE_HAPPYHORSE_DURATION_RANGE = [3, 15] as const
@@ -65,7 +65,7 @@ export const normalizeReplicateVideoDuration = (
   if (isReplicatePixVerseVideoModel(model)) {
     const value = duration ?? 5
     if (value === 5 || value === 8 || value === 10 || value === 15) return value
-    throw CLIUsageError(`Invalid --video-duration value "${String(duration)}" for Replicate/${model}. Expected 5, 8, 10, or 15.`)
+    throw UsageError(`Invalid --duration value "${String(duration)}" for Replicate/${model}. Expected 5, 8, 10, or 15.`)
   }
   return clampIntegerDuration(duration, 5, 3, 15, `Replicate/${model}`)
 }
@@ -87,22 +87,22 @@ export const normalizeReplicateVideoResolution = (
   if (resolution === undefined || resolution === '') return '720p'
   if (isReplicateKlingVideoModel(model)) {
     if (resolution === '720p' || resolution === '1080p' || resolution === '4k') return resolution
-    throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Replicate/${model}. Expected 720p, 1080p, or 4k.`)
+    throw UsageError(`Invalid --resolution value "${resolution}" for Replicate/${model}. Expected 720p, 1080p, or 4k.`)
   }
   if (isReplicatePixVerseVideoModel(model)) {
     if (resolution === '360p' || resolution === '540p' || resolution === '720p' || resolution === '1080p') return resolution
-    throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Replicate/${model}. Expected 360p, 540p, 720p, or 1080p.`)
+    throw UsageError(`Invalid --resolution value "${resolution}" for Replicate/${model}. Expected 360p, 540p, 720p, or 1080p.`)
   }
   if (isReplicateHappyHorseVideoModel(model)) {
     if (resolution === '720p' || resolution === '1080p') return resolution
-    throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Replicate/${model}. Expected 720p or 1080p.`)
+    throw UsageError(`Invalid --resolution value "${resolution}" for Replicate/${model}. Expected 720p or 1080p.`)
   }
   if (isReplicateSeedanceFastVideoModel(model)) {
     if (resolution === '480p' || resolution === '720p') return resolution
-    throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Replicate/${model}. Expected 480p or 720p.`)
+    throw UsageError(`Invalid --resolution value "${resolution}" for Replicate/${model}. Expected 480p or 720p.`)
   }
   if (resolution === '480p' || resolution === '720p' || resolution === '1080p') return resolution
-  throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Replicate/${model}. Expected ${REPLICATE_VIDEO_RESOLUTIONS.join(', ')}.`)
+  throw UsageError(`Invalid --resolution value "${resolution}" for Replicate/${model}. Expected ${REPLICATE_VIDEO_RESOLUTIONS.join(', ')}.`)
 }
 
 export const normalizeReplicateVideoAspectRatio = (
@@ -142,77 +142,14 @@ export const normalizeGeminiResolution = (
 ): GeminiResolution => {
   if (resolution === undefined || resolution === '') return '720p'
   if (resolution !== '720p' && resolution !== '1080p' && resolution !== '4k') {
-    throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Gemini. Expected ${GEMINI_VIDEO_RESOLUTIONS.join(', ')}.`)
+    throw UsageError(`Invalid --resolution value "${resolution}" for Gemini. Expected ${GEMINI_VIDEO_RESOLUTIONS.join(', ')}.`)
   }
   if (resolution === '4k' && model === 'veo-3.1-lite-generate-preview') {
-    throw CLIUsageError('Gemini Veo 3.1 Lite does not support --video-resolution 4k. Use veo-3.1-generate-preview or veo-3.1-fast-generate-preview for 4k.')
+    throw UsageError('Gemini Veo 3.1 Lite does not support --resolution 4k. Use veo-3.1-generate-preview or veo-3.1-fast-generate-preview for 4k.')
   }
   if (resolution === '4k') return '4k'
   if (resolution === '1080p') return '1080p'
   return '720p'
-}
-
-export const isMinimaxHailuoModel = (model: MinimaxVideoModel): boolean => {
-  return model === 'MiniMax-Hailuo-2.3'
-    || model === 'MiniMax-Hailuo-2.3-Fast'
-}
-
-export const normalizeMinimaxResolution = (
-  model: MinimaxVideoModel,
-  resolution: string | undefined
-): MinimaxResolution => {
-  if (!isMinimaxHailuoModel(model)) {
-    return '720p'
-  }
-  return resolution === '1080p' ? '1080p' : '720p'
-}
-
-export const normalizeMinimaxResolutionForApi = (
-  model: MinimaxVideoModel,
-  resolution: string | undefined
-): MinimaxApiResolution => {
-  if (resolution === '1080p') {
-    return isMinimaxHailuoModel(model) ? '1080P' : '720P'
-  }
-  return isMinimaxHailuoModel(model) ? '768P' : '720P'
-}
-
-export const MINIMAX_HAILUO_DURATION_SECONDS = [6, 10] as const
-export const MINIMAX_RESOLUTIONS = ['720p', '1080p'] as const
-
-export const normalizeMinimaxDuration = (
-  model: MinimaxVideoModel,
-  resolution: MinimaxResolution,
-  duration: number | undefined
-): MinimaxDurationSeconds => {
-  const [shorter, longer] = MINIMAX_HAILUO_DURATION_SECONDS
-  if (!isMinimaxHailuoModel(model)) {
-    return shorter
-  }
-  if (resolution === '1080p') {
-    return shorter
-  }
-  if (typeof duration !== 'number' || !Number.isFinite(duration)) {
-    return shorter
-  }
-  return Math.floor(duration) <= shorter ? shorter : longer
-}
-
-export const normalizeMinimaxDurationForApi = (
-  model: MinimaxVideoModel,
-  resolution: MinimaxApiResolution,
-  duration: number | undefined
-): MinimaxDurationSeconds => {
-  if (!isMinimaxHailuoModel(model)) {
-    return 6
-  }
-  if (resolution === '1080P') {
-    return 6
-  }
-  if (typeof duration !== 'number' || !Number.isFinite(duration)) {
-    return 6
-  }
-  return Math.floor(duration) <= 6 ? 6 : 10
 }
 
 export const GROK_VIDEO_DURATION_RANGE = [1, 15] as const
@@ -234,7 +171,7 @@ export const normalizeGrokVideoResolution = (resolution: string | undefined, mod
   if (resolution === undefined || resolution === '') return '480p'
   if (resolution === '480p' || resolution === '720p') return resolution
   if (resolution === '1080p' && model === 'grok-imagine-video-1.5') return resolution
-  throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Grok/${model ?? 'video'}. Expected ${model === 'grok-imagine-video-1.5' ? GROK_VIDEO_RESOLUTIONS.join(', ') : '480p or 720p'}.`)
+  throw UsageError(`Invalid --resolution value "${resolution}" for Grok/${model ?? 'video'}. Expected ${model === 'grok-imagine-video-1.5' ? GROK_VIDEO_RESOLUTIONS.join(', ') : '480p or 720p'}.`)
 }
 
 export const GROK_VIDEO_ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'] as const
@@ -244,43 +181,26 @@ export const normalizeGrokVideoAspectRatio = (aspectRatio: string | undefined): 
   return aspectRatio && allowed.has(aspectRatio) ? aspectRatio : '16:9'
 }
 
-export const LTX_2_3_SIZE_VALUES = [
-  '1920x1080',
-  '1080x1920',
-  '2560x1440',
-  '1440x2560',
-  '3840x2160',
-  '2160x3840'
-] as const
-
-const LTX_2_3_SIZES = new Set<string>(LTX_2_3_SIZE_VALUES)
-
 const isLtxFastModel = (model: LtxVideoModel): boolean => model.endsWith('-fast')
 
 export const normalizeLtxVideoResolution = (resolution: string | undefined): '1080p' | '4k' => {
   if (resolution === undefined || resolution === '') return '1080p'
   if (resolution === '1080p' || resolution === '4k') return resolution
-  throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for LTX. Expected ${LTX_RESOLUTIONS.join(' or ')}.`)
+  throw UsageError(`Invalid --resolution value "${resolution}" for LTX. Expected ${LTX_RESOLUTIONS.join(' or ')}.`)
 }
 
 export const normalizeLtxVideoAspectRatio = (model: LtxVideoModel, aspectRatio: string | undefined): '16:9' | '9:16' => {
   if (aspectRatio === undefined || aspectRatio === '') return '16:9'
   if (aspectRatio === '16:9') return '16:9'
   if (aspectRatio === '9:16') return '9:16'
-  throw CLIUsageError(`Invalid --video-aspect-ratio value "${aspectRatio}" for LTX ${model}. Expected ${LTX_ASPECT_RATIOS.join(' or ')}.`)
+  throw UsageError(`Invalid --aspect-ratio value "${aspectRatio}" for LTX ${model}. Expected ${LTX_ASPECT_RATIOS.join(' or ')}.`)
 }
 
 export const normalizeLtxVideoSize = (
   model: LtxVideoModel,
-  size: string | undefined,
   resolution: string | undefined,
   aspectRatio: string | undefined
 ): string => {
-  if (size !== undefined && size !== '') {
-    if (LTX_2_3_SIZES.has(size)) return size
-    throw CLIUsageError(`Invalid --video-size value "${size}" for LTX ${model}. Expected ${[...LTX_2_3_SIZES].join(', ')}.`)
-  }
-
   const normalizedResolution = normalizeLtxVideoResolution(resolution)
   const normalizedAspectRatio = normalizeLtxVideoAspectRatio(model, aspectRatio)
   if (normalizedResolution === '4k') return normalizedAspectRatio === '9:16' ? '2160x3840' : '3840x2160'
@@ -300,18 +220,18 @@ export const normalizeLumaVideoDuration = (duration: number | undefined): LumaVi
 export const normalizeLumaVideoResolution = (resolution: string | undefined): LumaVideoResolution => {
   if (resolution === undefined || resolution === '') return '720p'
   if ((LUMA_RESOLUTIONS as readonly string[]).includes(resolution)) return resolution as LumaVideoResolution
-  throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Luma Labs. Expected ${LUMA_RESOLUTIONS.join(', ')}.`)
+  throw UsageError(`Invalid --resolution value "${resolution}" for Luma Labs. Expected ${LUMA_RESOLUTIONS.join(', ')}.`)
 }
 
 export const normalizeLumaVideoAspectRatio = (aspectRatio: string | undefined): string => {
   if (aspectRatio === undefined || aspectRatio === '') return '16:9'
   if ((LUMA_ASPECT_RATIOS as readonly string[]).includes(aspectRatio)) return aspectRatio
-  throw CLIUsageError(`Invalid --video-aspect-ratio value "${aspectRatio}" for Luma Labs. Expected ${LUMA_ASPECT_RATIOS.join(', ')}.`)
+  throw UsageError(`Invalid --aspect-ratio value "${aspectRatio}" for Luma Labs. Expected ${LUMA_ASPECT_RATIOS.join(', ')}.`)
 }
 
 export const LTX_DURATION_SECONDS = [6, 8, 10] as const
 export const LTX_FAST_1080P_DURATION_SECONDS = [6, 8, 10, 12, 14, 16, 18, 20] as const
-export const LTX_EXTEND_DURATION_RANGE = [2, 20] as const
+const LTX_EXTEND_DURATION_RANGE = [2, 20] as const
 export const LTX_RESOLUTIONS = ['1080p', '4k'] as const
 export const LTX_ASPECT_RATIOS = ['16:9', '9:16'] as const
 

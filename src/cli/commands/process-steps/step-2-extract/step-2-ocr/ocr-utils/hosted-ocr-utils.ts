@@ -1,5 +1,5 @@
 import { isRecord } from '~/utils/rest-client'
-import { stat } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { basename } from 'node:path'
 import type { DocumentMetadata, HostedOcrImageResult, HostedOcrRun, PageResult } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
@@ -61,7 +61,7 @@ export const readHostedOcrImageDataUrl = async (
   return `data:${getHostedOcrImageMimeType(format, options.providerLabel, options.supportedMimeTypes)};base64,${base64}`
 }
 
-export const isPageResult = (value: unknown): value is PageResult =>
+const isPageResult = (value: unknown): value is PageResult =>
   isRecord(value)
   && typeof value['pageNumber'] === 'number'
   && (value['method'] === 'text' || value['method'] === 'ocr' || value['method'] === 'skipped')

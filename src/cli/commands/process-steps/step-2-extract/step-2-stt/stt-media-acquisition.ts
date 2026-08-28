@@ -1,5 +1,5 @@
 import { constants as fsConstants } from 'node:fs'
-import { copyFile, link, mkdtemp, rm, stat } from 'node:fs/promises'
+import { copyFile, link, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import { hasYtDlpBinary } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
@@ -9,25 +9,22 @@ import { downloadVideo } from '~/cli/commands/process-steps/step-1-download/audi
 import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio'
 import type { AudioNormalizationProfile, PreparedSttMedia, ResolvedSttSource, Step1Metadata, SttAcquireArtifactOptions, SttTarget, VideoMetadata } from '~/types'
 import { ensureDirectory } from '~/utils/cli-utils'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { hasRuntimeTool } from '~/utils/runtime-paths'
 import { InfraError } from '~/utils/error-handler'
 import { getAudioDuration } from './stt-utils/audio-splitter'
 
-
 const DEFAULT_STT_ACQUIRE_CONCURRENCY = 2
 
-// New hosted STT providers default to shared mp3 artifacts until .m4a support is explicitly confirmed.
 const HOSTED_STT_SHARED_SOURCE_MEDIA_SERVICES = new Set<SttTarget['service']>([
   'assemblyai',
   'deepgram',
   'gladia',
   'groq',
   'mistral',
-  'rev',
   'soniox',
   'speechmatics'
 ])
-
 
 const sourceMediaAcquireQueue: Array<() => void> = []
 let activeSourceMediaAcquireCount = 0

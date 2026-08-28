@@ -1,5 +1,6 @@
-import { mkdir, readdir, rm, stat } from 'node:fs/promises'
-import type { Dirent } from 'node:fs'
+import { mkdir, readdir, rm } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
+import type { DirectoryEntry } from '~/types'
 import { join } from 'node:path'
 import { setupTesseractOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-local/tesseract-setup'
 import { downloadWhisperModel, setupWhisper } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper'
@@ -10,13 +11,12 @@ import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/se
 import { setupCalibreDocumentTools } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre'
 import { logSetupToolStatus } from '~/cli/commands/setup-and-utilities/setup/setup-logging'
 import { formatSetupElapsed, runWithSetupHeartbeat } from '~/cli/commands/setup-and-utilities/setup/setup-heartbeat'
-import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, RunOptions, RunResult, SetupPlatform, SetupStepId } from '~/types'
+import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, ReclaimableWhisperCoremlArtifact, RunOptions, RunResult, SetupPlatform, SetupStepId } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { l as globalLogger, isJsonResultActive } from '~/utils/app-logger/app-logger'
+import { isJsonResultActive, isLogLevelEnabled } from '~/utils/app-logger/app-logger'
 import { createHumanTable, logKeyValueTable, logSingleRowTable } from '~/utils/app-logger/human-table/human-table'
-import { withRetry } from '~/utils/retries'
 import { isCompactSetupMode, setCompactSetupMode } from '~/utils/setup-output-mode'
-import { InfraError, InternalError } from '~/utils/error-handler'
+import { extractErrorHints, InfraError, InternalError, serializeDiagnosticError } from '~/utils/error-handler'
 import {
   RUNTIME_BIN_DIR,
   RUNTIME_BUILD_DIR,
@@ -45,8 +45,9 @@ import {
 } from '~/utils/runtime-paths'
 import { listPinnedDependencies } from './dependency-metadata'
 import { getHostedProviderEnvKeysForConfigPrefix, HOSTED_PROVIDER_ENV_CHECKS, logHostedProviderConfiguration } from './hosted-provider-config'
-import { installManagedUv, managedUvxPath, resolveUvCommand } from './setup-download/managed-uv'
 import { beginSetupPerformanceRun, finishSetupPerformanceRun } from './setup-performance'
+import { pathExists } from '~/utils/filesystem'
+import { childEnv } from '~/utils/child-env'
 
 const RUNTIME = RUNTIME_DIR
 
@@ -56,9 +57,6 @@ export const whisperBuildDir = join(RUNTIME, 'build/whisper.cpp')
 export const whisperModelsDir = join(RUNTIME, 'models/whisper')
 export const whisperfileDir = join(RUNTIME, 'bin/whisperfile')
 export const whisperfileBinaryPath = (model: string): string => join(whisperfileDir, `whisper-${model}.llamafile`)
-const mergeEnv = (env?: Record<string, string | undefined>): Record<string, string | undefined> =>
-  env ? { ...(process.env as Record<string, string | undefined>), ...env } : process.env as Record<string, string | undefined>
-
 const readStream = async (stream: ReadableStream<Uint8Array> | null | undefined): Promise<string> =>
   stream ? await new Response(stream).text() : ''
 
@@ -93,7 +91,7 @@ const formatCommandFailure = (command: string, args: string[], result: RunResult
 const shouldUseCompactSetup = (): boolean => isCompactSetupMode()
 
 const shouldUseVerboseHumanOutput = (): boolean =>
-  globalLogger.config.minLevel === 'debug' && !isJsonResultActive()
+  isLogLevelEnabled('debug') && !isJsonResultActive()
 
 const shouldStreamCompactSetupOutput = (): boolean =>
   shouldUseCompactSetup()
@@ -102,17 +100,12 @@ const shouldStreamCompactSetupOutput = (): boolean =>
 const formatTaskFailureReason = (reason: unknown): string =>
   reason instanceof Error ? reason.message : String(reason)
 
-// Each concurrent task announces its start and its finish but nothing in
-// between, so a source build that takes minutes is indistinguishable from a
-// hang. Recording per-task durations at least makes the cost visible afterwards.
 const setupStepTimings: { label: string, durationMs: number, ok: boolean }[] = []
 
-export const getSetupStepTimings = (): readonly { label: string, durationMs: number, ok: boolean }[] =>
+const getSetupStepTimings = (): readonly { label: string, durationMs: number, ok: boolean }[] =>
   setupStepTimings
 
-// Runs tasks concurrently and aggregates every failure instead of surfacing only
-// the first. Shared with nested groups that must not record their own timings.
-export const runSettledSetupTasks = async (tasks: readonly ConcurrentSetupTask[]): Promise<void> => {
+const runSettledSetupTasks = async (tasks: readonly ConcurrentSetupTask[]): Promise<void> => {
   const results = await Promise.allSettled(tasks.map(async (task) => await task.run()))
   const failures = results.flatMap((result, index) => {
     if (result.status === 'fulfilled') return []
@@ -124,12 +117,23 @@ export const runSettledSetupTasks = async (tasks: readonly ConcurrentSetupTask[]
 
   if (failures.length === 0) return
 
-  throw new AggregateError(
-    failures.map(({ reason }) => reason),
+  throw InfraError(
     [
       'Setup tasks failed:',
       ...failures.map(({ label, reason }) => `- ${label}: ${formatTaskFailureReason(reason)}`)
-    ].join('\n')
+    ].join('\n'),
+    {
+      stage: 'setup:tasks',
+      retryable: false,
+      hints: failures.flatMap(({ reason }) => extractErrorHints(reason)),
+      cause: new AggregateError(failures.map(({ reason }) => reason), 'Setup tasks failed'),
+      metadata: {
+        failures: failures.map(({ label, reason }) => ({
+          label,
+          error: serializeDiagnosticError(reason)
+        }))
+      }
+    }
   )
 }
 
@@ -155,7 +159,7 @@ export const runConcurrentSetupTasks = async (tasks: readonly ConcurrentSetupTas
 export const runCapture = async (command: string, args: string[] = [], options: RunOptions = {}): Promise<RunResult> => {
   const proc = Bun.spawn([command, ...args], {
     ...(options.cwd ? { cwd: options.cwd } : {}),
-    env: mergeEnv(options.env),
+    env: childEnv({ set: options.env }),
     stdout: 'pipe',
     stderr: 'pipe'
   })
@@ -180,7 +184,7 @@ export const runInherit = async (command: string, args: string[] = [], options: 
 
   const proc = Bun.spawn([command, ...args], {
     ...(options.cwd ? { cwd: options.cwd } : {}),
-    env: mergeEnv(options.env),
+    env: childEnv({ set: options.env }),
     stdin: 'inherit', stdout: 'inherit', stderr: 'inherit'
   })
   const exitCode = await proc.exited
@@ -190,32 +194,9 @@ export const runInherit = async (command: string, args: string[] = [], options: 
   return exitCode
 }
 
-export const requireUvCommand = async (): Promise<string> => {
-  const command = await resolveUvCommand()
-  if (command) return command
-  throw InfraError('uv is not available. Run `bun autoshow setup --step uv` to install AutoShow managed uv.', {
-    stage: 'setup:uv',
-    hints: ['Run `bun autoshow setup --step uv` to install AutoShow managed uv']
-  })
-}
-
-export const runUvCapture = async (args: string[] = [], options: RunOptions = {}): Promise<RunResult> => {
-  const command = await requireUvCommand()
-  return await runCapture(command, args, options)
-}
-
-export const runUvInherit = async (args: string[] = [], options: RunOptions = {}): Promise<number> => {
-  const command = await requireUvCommand()
-  return await runInherit(command, args, options)
-}
-
 export const commandExists = (command: string): boolean => {
   const resolved = Bun.which(command)
   return typeof resolved === 'string' && resolved.length > 0
-}
-
-export const pathExists = async (path: string): Promise<boolean> => {
-  try { await stat(path); return true } catch { return false }
 }
 
 export const detectPlatform = (): SetupPlatform => {
@@ -224,33 +205,8 @@ export const detectPlatform = (): SetupPlatform => {
   return 'unknown'
 }
 
-export const detectArchitecture = (): string => {
-  if (process.arch === 'x64') return 'x86_64'
-  if (process.arch === 'arm64') return 'arm64'
-  return process.arch
-}
-
-export const setupUv = async (): Promise<void> => {
-  const pathUv = Bun.which('uv')
-  if (pathUv) {
-    return
-  }
-  const managedUv = await resolveUvCommand()
-  if (managedUv && await pathExists(managedUvxPath)) {
-    return
-  }
-  logSetupToolStatus(l, { tool: 'uv', status: 'installing' })
-  await withRetry(
-    { retryClass: 'setup_download', operationName: 'uv-release' },
-    async () => {
-      await installManagedUv()
-    }
-  )
-  logSetupToolStatus(l, { tool: 'uv', status: 'installed' })
-}
-
 export const defaultWhisperModel = 'tiny'
-export const defaultMusicWhisperModel = 'large-v3-turbo'
+const defaultMusicWhisperModel = 'large-v3-turbo'
 
 const withCompactSetup = async (fn: () => Promise<void>): Promise<void> => {
   const previous = isCompactSetupMode()
@@ -270,8 +226,6 @@ const ensureRuntimeDirs = async (): Promise<void> => {
   ])
 }
 
-// Iterates the pinned set rather than restating a subset of it, so a dependency
-// that is pinned and built (leptonica, lame, tessdata) cannot be built silently.
 const logPinnedVersions = async (): Promise<void> => {
   const formatVersion = (value: string): string =>
     /^[a-f0-9]{40}$/i.test(value) ? value.slice(0, 12) : value
@@ -285,28 +239,26 @@ const logPinnedVersions = async (): Promise<void> => {
 }
 
 const validateBinary = async (name: string, path: string, args: string[]): Promise<void> => {
-  if (!await pathExists(path)) { l.warn(`${name}: not found at ${path}`); return }
+  if (!await pathExists(path)) { l.warn(`${name}: not found at ${path}`, { category: 'command', metadata: { tool: name, path, status: 'missing' } }); return }
   try {
     const result = await runCapture(path, args, { allowFailure: true })
     if (result.exitCode === 0 || result.exitCode === 1) {
       logSetupToolStatus(l, { tool: name, status: 'ready', detail: path })
-    } else l.warn(`${name}: installed but exited ${result.exitCode} (may still work)`)
+    } else l.warn(`${name}: installed but exited ${result.exitCode} (may still work)`, {
+      category: 'command',
+      metadata: { tool: name, path, exitCode: result.exitCode, status: 'unhealthy' }
+    })
   } catch (err) {
-    l.warn(`${name}: could not execute — ${err instanceof Error ? err.message : String(err)}`)
+    l.warn(`${name}: could not execute — ${err instanceof Error ? err.message : String(err)}`, {
+      category: 'command',
+      metadata: { tool: name, path, status: 'unexecutable', error: serializeDiagnosticError(err) }
+    })
   }
 }
 
 const TRANSCRIPTION_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.extract.stt.')
 
-const WRITE_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.llm.')
-
-const TTS_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.post.tts.')
-
-const IMAGE_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.post.image.')
-
-const VIDEO_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.post.video.')
-
-const MUSIC_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.post.music.')
+const MUSIC_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.music.')
 
 const ALL_PROVIDER_ENV_KEYS = HOSTED_PROVIDER_ENV_CHECKS.map(check => check.envVar)
 
@@ -320,8 +272,6 @@ const logSetupProviderConfiguration = (
     mode: shouldUseVerboseHumanOutput() ? 'all' : 'missing'
   })
 
-// Binary units so the reported figure matches what `du -h` prints for the same
-// directory; a decimal figure next to a du-shaped path invites a false mismatch.
 const formatBytes = (bytes: number): string => {
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GiB`
   if (bytes >= 1024 ** 2) return `${Math.round(bytes / 1024 ** 2)} MiB`
@@ -331,7 +281,7 @@ const formatBytes = (bytes: number): string => {
 const walkDirectorySize = async (root: string): Promise<number> => {
   let total = 0
   const walk = async (dir: string): Promise<void> => {
-    let entries: Dirent[]
+    let entries: DirectoryEntry[]
     try {
       entries = await readdir(dir, { withFileTypes: true })
     } catch {
@@ -345,7 +295,6 @@ const walkDirectorySize = async (root: string): Promise<number> => {
         try {
           total += (await stat(path)).size
         } catch {
-          // Raced with cleanup; a missing file contributes nothing.
         }
       }
     }
@@ -354,22 +303,7 @@ const walkDirectorySize = async (root: string): Promise<number> => {
   return total
 }
 
-// `runtime/` holds ~77k files, and stat-ing each one cost a noticeable share of
-// a warm run. `du` does the same walk in C; the JS walk stays as the fallback
-// for hosts without it.
-const directorySize = async (root: string): Promise<number> => {
-  const result = await runCapture('du', ['-sk', root], { allowFailure: true })
-  if (result.exitCode === 0) {
-    const kilobytes = Number.parseInt(result.stdout.trim().split(/\s+/)[0] ?? '', 10)
-    if (Number.isFinite(kilobytes)) return kilobytes * 1024
-  }
-  return await walkDirectorySize(root)
-}
-
-type ReclaimableWhisperCoremlArtifact = {
-  path: string
-  bytes: number
-}
+const directorySize = async (root: string): Promise<number> => await walkDirectorySize(root)
 
 export const collectReclaimableWhisperCoremlArtifacts = async (options: {
   coremlEnvDir?: string
@@ -388,7 +322,6 @@ export const collectReclaimableWhisperCoremlArtifacts = async (options: {
       .sort()
     paths.push(...encoderPackages)
   } catch {
-    // A fresh install has no Whisper model directory yet.
   }
 
   return await Promise.all(paths.map(async (path) => ({
@@ -418,14 +351,6 @@ const logReclaimableWhisperCoremlArtifacts = async (): Promise<void> => {
   })
 }
 
-// runtime/build only ever holds transient source and object trees. Individual
-// installers now drop their own tree on success, but an install that predates
-// that, or one whose guard short-circuits, leaves the tree behind forever.
-// `du -sk` charges an empty directory for its own inode — 8 KiB on APFS — so
-// the previous `before === 0` guard never fired and every run reported a table
-// for reclaiming nothing. The `walkDirectorySize` fallback sums file sizes only
-// and would return 0 for that same tree, so the two size functions disagree on
-// exactly the case that matters; a threshold is the fix, not a tighter zero.
 const RECLAIMED_BUILD_TREE_MIN_BYTES = 10 * 1024 * 1024
 
 export const shouldReportReclaimedBuildTrees = (bytes: number): boolean =>
@@ -449,9 +374,6 @@ const logSetupStepTimings = (): void => {
   const timings = [...getSetupStepTimings()].sort((a, b) => b.durationMs - a.durationMs)
   if (timings.length === 0) return
 
-  // Wall clock, not work: these tasks run concurrently and contend for CPU and
-  // I/O, so a task's duration here can be an order of magnitude above what the
-  // same task costs when run alone via `--step`.
   l.write('info', 'Setup Step Timings (concurrent wall clock)', {
     category: 'command',
     humanTable: createHumanTable(
@@ -536,8 +458,6 @@ const logSetupSummary = async (
         detail: missingModels.length === 0 ? 'default local assets available' : missingModels.join(', ')
       },
       {
-        // "present" rather than "configured": this only proves the variable is
-        // non-empty, never that the key is valid.
         item: 'hosted providers',
         status: `${providerSummary.configured}/${providerSummary.total} present`,
         detail: providerSummary.missing === 0 ? 'all env vars set' : `${providerSummary.missing} missing`
@@ -566,7 +486,7 @@ const runFullSetup = async (): Promise<boolean> => {
   let healthy = false
 
   try {
-    l.write('info', 'Starting complete AutoShow setup')
+    l.write('info', 'Starting complete AutoShow setup', { category: 'command' })
     await logPinnedVersions()
     await ensureRuntimeDirs()
 
@@ -596,7 +516,7 @@ const runFullSetup = async (): Promise<boolean> => {
     logSetupStepTimings()
     healthy = await logSetupSummary(startedAtMs, providerSummary)
 
-    l.write('info', 'You can now run: bun autoshow "https://www.youtube.com/watch?v=u1-WHqATSQU"')
+    l.write('info', 'You can now run: bun autoshow "https://www.youtube.com/watch?v=u1-WHqATSQU"', { category: 'command' })
     return healthy
   } finally {
     try {
@@ -606,7 +526,10 @@ const runFullSetup = async (): Promise<boolean> => {
       })
       logDetailedSetupPerformance(performanceResult)
     } catch (error) {
-      l.warn(`Could not write setup performance artifact: ${error instanceof Error ? error.message : String(error)}`)
+      l.warn(`Could not write setup performance artifact: ${error instanceof Error ? error.message : String(error)}`, {
+      category: 'artifact',
+      metadata: { error: serializeDiagnosticError(error) }
+    })
     }
   }
 }
@@ -616,27 +539,7 @@ export const runCompleteSetup = async (): Promise<boolean> => await runFullSetup
 const runSetupTranscription = async (): Promise<void> => {
   await downloadWhisperModel('large-v3-turbo')
   logSetupProviderConfiguration('Transcription Provider Configuration', TRANSCRIPTION_PROVIDER_ENV_KEYS)
-  l.write('success', 'Transcription setup complete')
-}
-
-const runSetupWrite = async (): Promise<void> => {
-  logSetupProviderConfiguration('Write Provider Configuration', WRITE_PROVIDER_ENV_KEYS)
-  l.write('success', 'Write setup complete (all write providers are API-based)')
-}
-
-const runSetupTts = async (): Promise<void> => {
-  logSetupProviderConfiguration('TTS Provider Configuration', TTS_PROVIDER_ENV_KEYS)
-  l.write('success', 'TTS setup complete (all TTS providers are API-based)')
-}
-
-const runSetupImage = async (): Promise<void> => {
-  logSetupProviderConfiguration('Image Provider Configuration', IMAGE_PROVIDER_ENV_KEYS)
-  l.write('success', 'Image setup complete (all image providers are API-based)')
-}
-
-const runSetupVideo = async (): Promise<void> => {
-  logSetupProviderConfiguration('Video Provider Configuration', VIDEO_PROVIDER_ENV_KEYS)
-  l.write('success', 'Video setup complete (all video providers are API-based)')
+  l.write('success', 'Transcription setup complete', { category: 'command' })
 }
 
 const runSetupMusic = async (): Promise<void> => {
@@ -666,7 +569,7 @@ const runSetupMusic = async (): Promise<void> => {
 
   await setupWhisper()
   await downloadWhisperModel('large-v3-turbo')
-  l.write('success', 'Music setup complete')
+  l.write('success', 'Music setup complete', { category: 'command' })
 }
 
 export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readonly string[]> => {
@@ -678,8 +581,6 @@ export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readon
     case 'whisperfile': return [whisperfileBinaryPath(DEFAULT_WHISPERFILE_MODEL)]
     case 'defuddle': return [defuddleRuntimeDir]
     case 'music': return [whisperBinaryPath, whisperBuildDir, lyricsWhisperModelPath]
-    // 'all' is the union of every step above plus the managed tool trees, so the
-    // documented "reinstall everything" hatch does not quietly keep artifacts.
     case 'all': return [
       whisperBinaryPath,
       whisperBuildDir,
@@ -704,8 +605,7 @@ export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readon
     ]
     case 'yt-dlp': return [ytDlpManagedBinaryPath, ffmpegManagedBinaryPath, ffprobeManagedBinaryPath, ffmpegBuildDir, ffmpegToolDir, lameBuildDir, lameToolDir]
     case 'calibre': return [mutoolManagedBinaryPath, mupdfBuildDir, mupdfToolDir, qpdfManagedBinaryPath, qpdfBuildDir, qpdfToolDir, ebookConvertManagedBinaryPath, calibreToolDir]
-    case 'tts': return []
-    case 'uv': case 'transcription': case 'write': case 'image': case 'video': return []
+    case 'transcription': return []
     default: { const exhaustive: never = step; throw InternalError(`Unknown setup step: ${exhaustive}`, { stage: 'setup:run' }) }
   }
 }
@@ -721,12 +621,9 @@ const applyRunOptions = async (step: SetupStepId, options?: { forceRedownload?: 
   }, { category: 'artifact', columns: ['step', 'clearedArtifacts'] })
 }
 
-// Returns whether the step left the install in a healthy state. Only the full
-// setup produces a verdict; focused steps throw on failure instead.
 const executeStepOnce = async (step: SetupStepId): Promise<boolean> => {
   switch (step) {
     case 'all': return await runCompleteSetup()
-    case 'uv': await setupUv(); return true
     case 'yt-dlp': await setupYtDependencies(); return true
     case 'whisper-binary': await setupWhisper(); return true
     case 'whisper-model': await downloadWhisperModel(defaultWhisperModel); return true
@@ -734,10 +631,6 @@ const executeStepOnce = async (step: SetupStepId): Promise<boolean> => {
     case 'defuddle': await setupDefuddleCli(); return true
     case 'calibre': await setupCalibreDocumentTools(); return true
     case 'transcription': await runSetupTranscription(); return true
-    case 'write': await runSetupWrite(); return true
-    case 'tts': await runSetupTts(); return true
-    case 'image': await runSetupImage(); return true
-    case 'video': await runSetupVideo(); return true
     case 'music': await runSetupMusic(); return true
     default: { const exhaustive: never = step; throw InternalError(`Unknown setup step: ${exhaustive}`, { stage: 'setup:run' }) }
   }

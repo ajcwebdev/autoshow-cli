@@ -16,10 +16,8 @@ export const sttRegistry: PriceSelectionEntry[] = [
   ]),
   ...exact('test/test-cases/e2e/service/step-2-stt-e2e/stt-services/assemblyai-current-models.test.ts', [
     command('transcribe-assemblyai-universal-3-5-pro', 'transcribe-assemblyai-universal-3-5-pro', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'assemblyai=universal-3-5-pro', '--price']),
-    command('transcribe-assemblyai-universal-2', 'transcribe-assemblyai-universal-2', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'assemblyai=universal-2', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-stt-e2e/stt-services/gladia-current-models.test.ts', [
-    command('transcribe-gladia-solaria-1', 'transcribe-gladia-solaria-1', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'gladia=solaria-1', '--price']),
     command('transcribe-gladia-solaria-3', 'transcribe-gladia-solaria-3', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'gladia=solaria-3', '--price']),
     command('transcribe-happyscribe-auto', 'transcribe-happyscribe-auto', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'happyscribe=auto', '--price']),
   ]),
@@ -40,14 +38,7 @@ export const sttRegistry: PriceSelectionEntry[] = [
     command('transcribe-soniox-stt-async-v5', 'transcribe-soniox-stt-async-v5', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'soniox=stt-async-v5', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-stt-e2e/stt-services/speechmatics-current-models.test.ts', [
-    command('transcribe-speechmatics-enhanced', 'transcribe-speechmatics-enhanced', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'speechmatics=enhanced', '--price']),
     command('transcribe-speechmatics-melia-1', 'transcribe-speechmatics-melia-1', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'speechmatics=melia-1', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/service/step-2-stt-e2e/stt-services/rev-machine.test.ts', [
-    command('transcribe-rev-machine', 'transcribe-rev-machine', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/0-audio-short.mp3', '--provider', 'rev=machine', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/service/step-2-stt-e2e/stt-services/rev-low-cost.test.ts', [
-    command('transcribe-rev-low_cost', 'transcribe-rev-low_cost', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/0-audio-short.mp3', '--provider', 'rev=low_cost', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-stt-e2e/stt-services/groq-whisper-large-v3.test.ts', [
     command('transcribe-groq-whisper-large-v3', 'transcribe-groq-whisper-large-v3', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'groq=whisper-large-v3', '--price']),

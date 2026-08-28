@@ -7,27 +7,18 @@ import { buildMediaStep1Slug, extractSourceMetadata } from '~/cli/commands/proce
 import { downloadAudio } from '~/cli/commands/process-steps/step-1-download/audio/dl-audio'
 import { createManifest, createPipelineItemFromRecord, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
-import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
 import { STT_MODEL_KEYS } from '~/cli/options/option-resolution/stt-options'
-import { TTS_MODEL_KEYS } from '~/cli/options/option-resolution/tts-options'
-import { IMAGE_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
-import { VIDEO_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
-import { MUSIC_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
 import { writeMetadataTerminalOutput, writeSavedMetadataArtifacts } from './metadata-output'
-import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItem, BatchItemProcessResult, BatchRuntimeOptions, DownloadAudioOptions, DownloadRuntimeOptions, MetadataOutputOptions, PipelineItemRecord, ProcessingOptions, ProcessingSource, SharedPipelineOptions, VideoMetadata, WebArticleMetadata, WriteRuntimeOptions } from '~/types'
-
-type DownloadMediaRuntimeOptions = Pick<BatchRuntimeOptions, 'keepOriginalMedia' | 'bestQuality' | 'flatBatch'>
-  & DownloadRuntimeOptions
-  & Pick<SharedPipelineOptions, 'outputRootDir'>
+import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItem, BatchItemProcessResult, DownloadAudioOptions, DownloadMediaRuntimeOptions, DownloadRuntimeOptions, ExtractCommandOptions, MetadataOutputOptions, PipelineItemRecord, ProcessingOptions, ProcessingSource, SharedPipelineOptions, VideoMetadata, WebArticleMetadata } from '~/types'
 
 export const buildProcessingOptions = (
   source: ProcessingSource,
   outputDir: string,
-  runtimeOptions: WriteRuntimeOptions
+  runtimeOptions: ExtractCommandOptions
 ): ProcessingOptions => {
   return {
     ...source,
-    concurrencyMode: runtimeOptions.concurrencyMode,
+    ...(runtimeOptions.concurrencyMode !== undefined ? { concurrencyMode: runtimeOptions.concurrencyMode } : {}),
     hostedConcurrencyCoordinator: runtimeOptions.hostedConcurrencyCoordinator,
     configPath: runtimeOptions.configPath,
     step2SelectionOrigins: runtimeOptions.step2SelectionOrigins,
@@ -38,108 +29,6 @@ export const buildProcessingOptions = (
     scrapecreatorsLang: runtimeOptions.scrapecreatorsLang,
     diarizationSpeakerCount: runtimeOptions.diarizationSpeakerCount,
     split: runtimeOptions.split,
-    ...buildLLMModelOptions(resolveLLMDefaults(runtimeOptions)),
-    llmProviderConcurrency: runtimeOptions.llmProviderConcurrency,
-    llmLocalConcurrency: runtimeOptions.llmLocalConcurrency,
-    ttsProviderConcurrency: runtimeOptions.ttsProviderConcurrency,
-    ttsLocalConcurrency: runtimeOptions.ttsLocalConcurrency,
-    ttsChunkConcurrency: runtimeOptions.ttsChunkConcurrency,
-    ...pick(runtimeOptions, TTS_MODEL_KEYS),
-    groqVoiceId: runtimeOptions.groqVoiceId,
-    grokTtsVoice: runtimeOptions.grokTtsVoice,
-    grokTtsLanguage: runtimeOptions.grokTtsLanguage,
-    grokTtsTextNormalization: runtimeOptions.grokTtsTextNormalization,
-    mistralTtsVoice: runtimeOptions.mistralTtsVoice,
-    ttsDialogueFormat: runtimeOptions.ttsDialogueFormat,
-    ttsSpeakers: runtimeOptions.ttsSpeakers,
-    openaiVoiceId: runtimeOptions.openaiVoiceId,
-    openaiTtsInstructions: runtimeOptions.openaiTtsInstructions,
-    openaiTtsSpeed: runtimeOptions.openaiTtsSpeed,
-    geminiVoiceId: runtimeOptions.geminiVoiceId,
-    elevenlabsVoiceId: runtimeOptions.elevenlabsVoiceId,
-    elevenlabsTtsOutputFormat: runtimeOptions.elevenlabsTtsOutputFormat,
-    elevenlabsTtsLanguageCode: runtimeOptions.elevenlabsTtsLanguageCode,
-    elevenlabsTtsStability: runtimeOptions.elevenlabsTtsStability,
-    elevenlabsTtsSimilarityBoost: runtimeOptions.elevenlabsTtsSimilarityBoost,
-    elevenlabsTtsStyle: runtimeOptions.elevenlabsTtsStyle,
-    elevenlabsTtsUseSpeakerBoost: runtimeOptions.elevenlabsTtsUseSpeakerBoost,
-    elevenlabsTtsSpeed: runtimeOptions.elevenlabsTtsSpeed,
-    elevenlabsTtsSeed: runtimeOptions.elevenlabsTtsSeed,
-    elevenlabsTtsTextNormalization: runtimeOptions.elevenlabsTtsTextNormalization,
-    elevenlabsTtsPronunciationDictionaryLocators: runtimeOptions.elevenlabsTtsPronunciationDictionaryLocators,
-    deepgramVoiceId: runtimeOptions.deepgramVoiceId,
-    deepgramTtsEncoding: runtimeOptions.deepgramTtsEncoding,
-    deepgramTtsContainer: runtimeOptions.deepgramTtsContainer,
-    deepgramTtsBitRate: runtimeOptions.deepgramTtsBitRate,
-    deepgramTtsSampleRate: runtimeOptions.deepgramTtsSampleRate,
-    deepgramTtsSpeed: runtimeOptions.deepgramTtsSpeed,
-    minimaxTtsVoice: runtimeOptions.minimaxTtsVoice,
-    minimaxTtsLanguageBoost: runtimeOptions.minimaxTtsLanguageBoost,
-    minimaxTtsSpeed: runtimeOptions.minimaxTtsSpeed,
-    minimaxTtsVolume: runtimeOptions.minimaxTtsVolume,
-    minimaxTtsPitch: runtimeOptions.minimaxTtsPitch,
-    minimaxTtsEmotion: runtimeOptions.minimaxTtsEmotion,
-    minimaxTtsEnglishNormalization: runtimeOptions.minimaxTtsEnglishNormalization,
-    minimaxTtsPronunciations: runtimeOptions.minimaxTtsPronunciations,
-    speechifyVoice: runtimeOptions.speechifyVoice,
-    speechifyTtsAudioFormat: runtimeOptions.speechifyTtsAudioFormat,
-    speechifyTtsLanguage: runtimeOptions.speechifyTtsLanguage,
-    humeTtsVoice: runtimeOptions.humeTtsVoice,
-    humeTtsVoiceProvider: runtimeOptions.humeTtsVoiceProvider,
-    cartesiaTtsVoice: runtimeOptions.cartesiaTtsVoice,
-    cartesiaTtsLanguage: runtimeOptions.cartesiaTtsLanguage,
-    ...pick(runtimeOptions, IMAGE_PRICING_MODEL_KEYS),
-    imageProviderConcurrency: runtimeOptions.imageProviderConcurrency,
-    imageLocalConcurrency: runtimeOptions.imageLocalConcurrency,
-    imageAspectRatio: runtimeOptions.imageAspectRatio,
-    imageSize: runtimeOptions.imageSize,
-    imageQuality: runtimeOptions.imageQuality,
-    imageFormat: runtimeOptions.imageFormat,
-    imageBackground: runtimeOptions.imageBackground,
-    imageCount: runtimeOptions.imageCount,
-    imageInputs: runtimeOptions.imageInputs,
-    imageMask: runtimeOptions.imageMask,
-    imageResponseMode: runtimeOptions.imageResponseMode,
-    geminiSearchGrounding: runtimeOptions.geminiSearchGrounding,
-    imageCompression: runtimeOptions.imageCompression,
-    ...pick(runtimeOptions, VIDEO_PRICING_MODEL_KEYS),
-    videoProviderConcurrency: runtimeOptions.videoProviderConcurrency,
-    videoLocalConcurrency: runtimeOptions.videoLocalConcurrency,
-    allVideo: runtimeOptions.allVideo,
-    videoDuration: runtimeOptions.videoDuration,
-    videoSize: runtimeOptions.videoSize,
-    videoAspectRatio: runtimeOptions.videoAspectRatio,
-    videoResolution: runtimeOptions.videoResolution,
-    videoMode: runtimeOptions.videoMode,
-    videoInputImage: runtimeOptions.videoInputImage,
-    videoLastFrame: runtimeOptions.videoLastFrame,
-    videoReferenceImages: runtimeOptions.videoReferenceImages,
-    videoInputVideo: runtimeOptions.videoInputVideo,
-    replicateVideoSeed: runtimeOptions.replicateVideoSeed,
-    replicateVideoGenerateAudio: runtimeOptions.replicateVideoGenerateAudio,
-    replicateVideoReferenceVideos: runtimeOptions.replicateVideoReferenceVideos,
-    replicateVideoReferenceAudios: runtimeOptions.replicateVideoReferenceAudios,
-    replicateVideoNegativePrompt: runtimeOptions.replicateVideoNegativePrompt,
-    replicateVideoMultiPrompt: runtimeOptions.replicateVideoMultiPrompt,
-    replicateVideoMultiClip: runtimeOptions.replicateVideoMultiClip,
-    falVideoGenerateAudio: runtimeOptions.falVideoGenerateAudio,
-    falVideoReferenceVideos: runtimeOptions.falVideoReferenceVideos,
-    falVideoReferenceAudios: runtimeOptions.falVideoReferenceAudios,
-    grokVideoStorageFilename: runtimeOptions.grokVideoStorageFilename,
-    grokVideoStorageExpiresAfter: runtimeOptions.grokVideoStorageExpiresAfter,
-    ...pick(runtimeOptions, MUSIC_PRICING_MODEL_KEYS),
-    musicProviderConcurrency: runtimeOptions.musicProviderConcurrency,
-    musicLocalConcurrency: runtimeOptions.musicLocalConcurrency,
-    musicDuration: runtimeOptions.musicDuration,
-    musicLyricsFile: runtimeOptions.musicLyricsFile,
-    musicInstrumental: runtimeOptions.musicInstrumental,
-    skipLLM: runtimeOptions.skipLLM,
-    prompts: runtimeOptions.prompts,
-    promptFile: runtimeOptions.promptFile,
-    renderedText: runtimeOptions.renderedText,
-    renderedOutDir: runtimeOptions.renderedOutDir,
-    trackList: runtimeOptions.trackList,
-    promptMd: runtimeOptions.promptMd,
     outputDir
   }
 }
@@ -147,12 +36,12 @@ export const buildProcessingOptions = (
 export const processMediaSingle = async (
   target: string,
   baseDir: string,
-  llmDefaults: WriteRuntimeOptions,
+  runtimeOptions: ExtractCommandOptions,
   preflightEstimate?: AggregatedPriceEstimate,
   batchChildContext?: BatchChildRunContext
 ): Promise<{ outputDir: string, info: { url: string, title: string, channel: string, channelURL?: string, publishDate?: string, duration: string } }> => {
-  if (llmDefaults.split) {
-    l.write('info', 'Audio will be split into 30-minute segments for transcription')
+  if (runtimeOptions.split) {
+    l.write('info', 'Audio will be split into 30-minute segments for transcription', { category: 'pipeline' })
   }
 
   const isUrl = isLikelyUrl(target)
@@ -179,14 +68,14 @@ export const processMediaSingle = async (
     : exists
       ? { filePath: target }
       : { url: target }
-  const options = buildProcessingOptions(source, baseDir, llmDefaults)
+  const options = buildProcessingOptions(source, baseDir, runtimeOptions)
 
   const outDir = await processVideo(options, meta, preflightEstimate, {
     ...(batchOutputDir ? { outputDir: batchOutputDir } : {}),
-    outputRootDir: llmDefaults.outputRootDir,
-    sttProviderConcurrency: llmDefaults.sttProviderConcurrency,
-    sttLocalConcurrency: llmDefaults.sttLocalConcurrency,
-    sttSegmentConcurrency: llmDefaults.sttSegmentConcurrency,
+    outputRootDir: runtimeOptions.outputRootDir,
+    sttProviderConcurrency: runtimeOptions.sttProviderConcurrency,
+    sttLocalConcurrency: runtimeOptions.sttLocalConcurrency,
+    sttSegmentConcurrency: runtimeOptions.sttSegmentConcurrency,
   })
   const baseInfo: { url: string, title: string, channel: string, duration: string, channelURL?: string, publishDate?: string } = {
     url: srcUrl,
@@ -371,7 +260,10 @@ export const processDownloadMedia = async (
   const itemRecord = buildDownloadItemRecord(step1Metadata)
 
   if (useFlatBatchOutput) {
-    l.write('info', `Saved media file: ${step1Metadata.audioFileName}`)
+    l.write('info', `Saved media file: ${step1Metadata.audioFileName}`, {
+    category: 'artifact',
+    metadata: { audioFileName: step1Metadata.audioFileName }
+  })
     return { itemRecord }
   }
 

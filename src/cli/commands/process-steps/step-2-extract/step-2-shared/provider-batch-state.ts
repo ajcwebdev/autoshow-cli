@@ -1,8 +1,28 @@
-import type { ProviderCompletionStatus } from '~/types'
+import { AppInfrastructureError, InfraError } from '~/utils/error-handler'
+import type { ProviderCompletionStatus, ProviderIdentityLike, ProviderStateLike } from '~/types'
+import { isRecord } from '~/utils/value-helpers'
 
-type ProviderIdentityLike = { service: string, model: string }
+const STORED_PROVIDER_STATUSES = ['running', 'succeeded', 'missing', 'failed', 'skipped'] as const
 
-export type ProviderStateLike = ProviderIdentityLike & { status: 'running' | 'succeeded' | 'missing' | 'failed' | 'skipped' }
+export const parseStoredProviderStateCore = (value: unknown): {
+  status: ProviderStateLike['status']
+  artifactDir: string
+  attempts: number
+  metadata?: Record<string, unknown> | undefined
+  result?: Record<string, unknown> | undefined
+} | undefined => {
+  if (!isRecord(value)) return undefined
+  if (!(STORED_PROVIDER_STATUSES as readonly unknown[]).includes(value['status'])) return undefined
+  if (typeof value['artifactDir'] !== 'string' || typeof value['attempts'] !== 'number') return undefined
+
+  return {
+    status: value['status'] as ProviderStateLike['status'],
+    artifactDir: value['artifactDir'],
+    attempts: value['attempts'],
+    ...(isRecord(value['metadata']) ? { metadata: value['metadata'] } : {}),
+    ...(isRecord(value['result']) ? { result: value['result'] } : {})
+  }
+}
 
 const getProviderKey = (provider: ProviderIdentityLike): string =>
   `${provider.service}:${provider.model}`
@@ -83,15 +103,31 @@ export const buildRequestedProviderList = <TTarget extends ProviderIdentityLike,
     .map(toRequestedProvider)
 }
 
-export class ProviderBatchCompletionError extends Error {
+const PARTIAL_COMPLETION_EXIT_CODE = 2
+
+export class ProviderBatchCompletionError extends AppInfrastructureError {
   readonly outputDir: string
   readonly completionStatus: ProviderCompletionStatus
-  readonly exitCode = 2
 
   constructor(name: string, outputDir: string, completionStatus: ProviderCompletionStatus, message: string) {
-    super(message)
+    super(message, {
+      exitCode: PARTIAL_COMPLETION_EXIT_CODE,
+      stage: 'batch:completion',
+      retryable: false,
+      metadata: { outputDir, completionStatus }
+    })
     this.name = name
     this.outputDir = outputDir
     this.completionStatus = completionStatus
   }
 }
+
+export const partialCompletionError = (
+  message: string,
+  options: { stage: string, metadata?: Record<string, unknown> }
+): AppInfrastructureError => InfraError(message, {
+  stage: options.stage,
+  exitCode: PARTIAL_COMPLETION_EXIT_CODE,
+  retryable: false,
+  ...(options.metadata ? { metadata: options.metadata } : {})
+})

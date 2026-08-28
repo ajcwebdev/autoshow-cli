@@ -12,28 +12,9 @@ import { getPipelineItemErrors, toBatchCommand } from './pipeline-item-record-st
 import { buildBatchPartialFailureTable, logBatchCompletionTable } from './download-batch-summary'
 import { executeBatchItem } from './execute-batch-item'
 import { writeOcrBatchDiagnostics } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-batch-diagnostics'
+import { serializeDiagnosticError } from '~/utils/error-handler'
+import { createResourceGate, runWithGate } from '~/utils/resource-gate'
 
-const runWithSemaphore = async <T>(
-  max: number,
-  sem: { active: number },
-  fn: () => Promise<T>
-): Promise<T> => {
-  while (sem.active >= max) {
-    await new Promise<void>(r => setTimeout(r, 50))
-  }
-  sem.active++
-  try {
-    return await fn()
-  } finally {
-    sem.active--
-  }
-}
-
-/**
- * Validates inputs, creates the batch directory, and writes the initial canonical manifest.
- * Returns `{ done: true }` with an early result when there is nothing to
- * process, otherwise the resolved batch directory and pipeline item records.
- */
 const prepareBatchRun = async (
   items: string[],
   batchLabel: string,
@@ -43,7 +24,7 @@ const prepareBatchRun = async (
   const prefilledRecords = runOpts.initialRecords ? [...runOpts.initialRecords] : undefined
 
   if (items.length === 0 && (!prefilledRecords || prefilledRecords.length === 0)) {
-    l.warn('No inputs to process')
+    l.warn('No inputs to process', { category: 'pipeline' })
     return { done: true, result: { ok: 0, partial: 0, incomplete: 0, fail: 0 } }
   }
 
@@ -51,12 +32,21 @@ const prepareBatchRun = async (
     const selectedCount = prefilledRecords?.length ?? items.length
     if (selectedCount < runOpts.totalCount) {
       if (items.length < selectedCount) {
-        l.warn(`Processing ${items.length} runnable items from ${selectedCount} selected of ${runOpts.totalCount} total. Some selected inputs were skipped as unsupported for this command; use --batch-all to select more items.`)
+        l.warn(`Processing ${items.length} runnable items from ${selectedCount} selected of ${runOpts.totalCount} total. Some selected inputs were skipped as unsupported for this command; use --batch-limit all to select more items.`, {
+      category: 'pipeline',
+      metadata: { runnableCount: items.length, selectedCount, totalCount: runOpts.totalCount }
+    })
       } else {
-        l.warn(`Processing ${items.length} of ${runOpts.totalCount} items. Use --batch-all to process all.`)
+        l.warn(`Processing ${items.length} of ${runOpts.totalCount} items. Use --batch-limit all to process all.`, {
+      category: 'pipeline',
+      metadata: { runnableCount: items.length, totalCount: runOpts.totalCount }
+    })
       }
     } else {
-      l.warn(`Processing ${items.length} of ${selectedCount} selected items. Some inputs were skipped as unsupported for this command.`)
+      l.warn(`Processing ${items.length} of ${selectedCount} selected items. Some inputs were skipped as unsupported for this command.`, {
+      category: 'pipeline',
+      metadata: { runnableCount: items.length, selectedCount }
+    })
     }
   }
 
@@ -91,7 +81,7 @@ const prepareBatchRun = async (
   }
 
   if (itemRecords.length === 0) {
-    l.warn('No supported inputs to process')
+    l.warn('No supported inputs to process', { category: 'pipeline' })
     return { done: true, result: { ok: 0, partial: 0, incomplete: 0, fail: 0, batchDir } }
   }
 
@@ -103,10 +93,6 @@ const prepareBatchRun = async (
   return { done: false, batchDir, batchDirName, batchSource, itemRecords }
 }
 
-/**
- * Accumulates per-item outcomes into batch counters and item records, unifying the
- * serial and concurrent execution paths behind a single `applyItemResult`.
- */
 const createBatchTallyAccumulator = (
   itemRecords: PipelineItemRecord[],
   resultEntryIndexes: number[]
@@ -177,9 +163,6 @@ const createBatchTallyAccumulator = (
   }
 }
 
-/**
- * Logs the partial-failure and completion tables and writes the final canonical manifest.
- */
 const finalizeBatch = async ({
   command,
   batchDir,
@@ -216,7 +199,7 @@ const finalizeBatch = async ({
     ...manifest,
     items: completedItems
   }))
-  if (command === 'write' || (command === 'extract' && extractRoute === 'document')) {
+  if (command === 'extract' && extractRoute === 'document') {
     await writeOcrBatchDiagnostics(batchDir)
   }
 
@@ -267,11 +250,14 @@ export const processBatch = async <TOptions extends object>(
       acc.applyItemResult(result, index)
     }
   } else {
-    l.write('info', `Processing ${items.length} items with concurrency ${concurrency}`)
-    const sem = { active: 0 }
+    l.write('info', `Processing ${items.length} items with concurrency ${concurrency}`, {
+    category: 'pipeline',
+    metadata: { itemCount: items.length, concurrency }
+  })
+    const gate = createResourceGate({ capacity: concurrency })
     const results = await Promise.allSettled(
       items.map((item, index) =>
-        runWithSemaphore(concurrency, sem, async () => await executeBatchItem(itemContext, item, index))
+        runWithGate(gate, async () => await executeBatchItem(itemContext, item, index))
       )
     )
     for (const [index, r] of results.entries()) {
@@ -280,7 +266,10 @@ export const processBatch = async <TOptions extends object>(
       } else {
         acc.recordRejectedItem(r.reason)
         const message = r.reason instanceof Error ? r.reason.message : String(r.reason)
-        l.error(`Batch item failed: ${message}`)
+        l.error(`Batch item failed: ${message}`, {
+          category: 'pipeline',
+          metadata: { index, error: serializeDiagnosticError(r.reason) }
+        })
       }
     }
   }

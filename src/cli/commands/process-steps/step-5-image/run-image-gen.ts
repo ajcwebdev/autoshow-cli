@@ -57,7 +57,7 @@ export const runImageTargets = async (
     noProviderMessage: 'No provider produced images',
     concurrency: {
       provider: options.imageProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY,
-      local: options.imageLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY
+      local: DEFAULT_CLI_CONCURRENCY
     },
     getWorkspaceDir: (dir, target) =>
       `${dir}/.image-tmp-${target.service}-${sanitizeModelName(target.model)}`,

@@ -4,6 +4,8 @@ const CATEGORY_COLORS: Partial<Record<LogCategory, string>> = {
   command: terminalPalette.info,
   artifact: terminalPalette.path,
   pricing: terminalPalette.cost,
+  pipeline: terminalPalette.pending,
+  tts: terminalPalette.tts,
   usage: 'lightsalmon'
 }
 

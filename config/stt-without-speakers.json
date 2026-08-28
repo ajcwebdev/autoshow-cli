@@ -1,0 +1,23 @@
+{
+  "defaults": {
+    "extract": {
+      "stt": {
+        "geminiStt": [
+          "gemini-3.6-flash"
+        ],
+        "togetherStt": [
+          "nvidia/parakeet-tdt-0.6b-v3",
+          "openai/whisper-large-v3"
+        ],
+        "deepinfraStt": [
+          "openai/whisper-large-v3-turbo",
+          "openai/whisper-large-v3"
+        ],
+        "groqStt": [
+          "whisper-large-v3-turbo",
+          "whisper-large-v3"
+        ]
+      }
+    }
+  }
+}

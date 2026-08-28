@@ -4,10 +4,12 @@ import type {
   ParsedJunitCase,
   TestStatus
 } from '~/types'
-import { decodeXml, normalizeRepoPath, parseXmlAttributes, getFiniteNumber } from './utils'
+import { decodeXml, normalizeRepoPath, parseXmlAttributes, getFiniteNumber, readString } from './utils'
+import { isObjectLike } from '~/utils/value-helpers'
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null
+const readNonEmptyString = (record: Record<string, unknown>, key: string): string | null => {
+  const value = readString(record, key)
+  return value !== null && value.length > 0 ? value : null
 }
 
 export const readMetrics = async (path: string): Promise<ParsedCommandMetric[]> => {
@@ -24,12 +26,12 @@ export const readMetrics = async (path: string): Promise<ParsedCommandMetric[]> 
         continue
       }
 
-      if (!isRecord(parsedRaw)) {
+      if (!isObjectLike(parsedRaw)) {
         continue
       }
 
-      const source = typeof parsedRaw['source'] === 'string' ? parsedRaw['source'] : 'unknown'
-      const command = typeof parsedRaw['command'] === 'string' ? parsedRaw['command'] : ''
+      const source = readString(parsedRaw, 'source') ?? 'unknown'
+      const command = readString(parsedRaw, 'command') ?? ''
       const args = Array.isArray(parsedRaw['args'])
         ? parsedRaw['args'].filter((value): value is string => typeof value === 'string')
         : []
@@ -40,13 +42,13 @@ export const readMetrics = async (path: string): Promise<ParsedCommandMetric[]> 
         continue
       }
 
-      const callerFile = normalizeRepoPath(typeof parsedRaw['callerFile'] === 'string' ? parsedRaw['callerFile'] : null)
+      const callerFile = normalizeRepoPath(readString(parsedRaw, 'callerFile'))
       const callerLine = getFiniteNumber(parsedRaw['callerLine'])
       const callerColumn = getFiniteNumber(parsedRaw['callerColumn'])
-      const outputDir = typeof parsedRaw['outputDir'] === 'string' && parsedRaw['outputDir'].length > 0 ? parsedRaw['outputDir'] : null
-      const outputRoot = typeof parsedRaw['outputRoot'] === 'string' && parsedRaw['outputRoot'].length > 0 ? parsedRaw['outputRoot'] : null
-      const at = typeof parsedRaw['at'] === 'string' ? parsedRaw['at'] : null
-      const testName = typeof parsedRaw['testName'] === 'string' ? parsedRaw['testName'] : null
+      const outputDir = readNonEmptyString(parsedRaw, 'outputDir')
+      const outputRoot = readNonEmptyString(parsedRaw, 'outputRoot')
+      const at = readString(parsedRaw, 'at')
+      const testName = readString(parsedRaw, 'testName')
       const estimatedCostCents = getFiniteNumber(parsedRaw['estimatedCostCents'])
       const actualCostCents = getFiniteNumber(parsedRaw['actualCostCents'])
       const estimatedProcessingTimeMs = getFiniteNumber(parsedRaw['estimatedProcessingTimeMs'])
@@ -78,6 +80,58 @@ export const readMetrics = async (path: string): Promise<ParsedCommandMetric[]> 
   }
 }
 
+const FAILURE_TAG_PATTERN = /<failure\b([^>]*)>([\s\S]*?)<\/failure>|<failure\b([^>]*)\/>/
+const ERROR_TAG_PATTERN = /<error\b([^>]*)>([\s\S]*?)<\/error>|<error\b([^>]*)\/>/
+const SKIPPED_TAG_PATTERN = /<skipped\b([^>]*)\/?>(?:[\s\S]*?<\/skipped>)?/
+
+export const resolveTestcaseStatus = (body: string): { status: TestStatus, failureMessage: string | null } => {
+  const failureTag = body.match(FAILURE_TAG_PATTERN)
+  const errorTag = body.match(ERROR_TAG_PATTERN)
+
+  if (failureTag || errorTag) {
+    const failureAttrs = parseXmlAttributes(
+      failureTag?.[1] ?? failureTag?.[3] ?? errorTag?.[1] ?? errorTag?.[3] ?? ''
+    )
+    const msgFromAttr = failureAttrs['message']?.trim()
+    if (msgFromAttr && msgFromAttr.length > 0) {
+      return { status: 'failed', failureMessage: msgFromAttr }
+    }
+
+    const bodyText = decodeXml((failureTag?.[2] ?? errorTag?.[2] ?? '').trim())
+    return { status: 'failed', failureMessage: bodyText.length > 0 ? bodyText : 'Test failed' }
+  }
+
+  if (SKIPPED_TAG_PATTERN.test(body)) {
+    return { status: 'skipped', failureMessage: null }
+  }
+
+  return { status: 'passed', failureMessage: null }
+}
+
+export const parseTestcase = (attrsRaw: string, body: string, suiteFile: string): ParsedJunitCase => {
+  const attrs = parseXmlAttributes(attrsRaw)
+
+  const name = attrs['name'] || 'unnamed'
+  const file = normalizeRepoPath(attrs['file']) ?? suiteFile
+  const lineRaw = attrs['line']
+  const line = lineRaw ? Number.parseInt(lineRaw, 10) : Number.NaN
+  const lineNumber = Number.isFinite(line) ? line : null
+  const seconds = Number.parseFloat(attrs['time'] || '0')
+  const durationMs = Number.isFinite(seconds) ? Math.round(seconds * 1000) : 0
+
+  const { status, failureMessage } = resolveTestcaseStatus(body)
+
+  return {
+    id: `${file || 'unknown-file'}::${name}`,
+    file: file || 'unknown-file',
+    name,
+    line: lineNumber,
+    durationMs,
+    status,
+    failureMessage,
+  }
+}
+
 export const parseJunit = async (junitPath: string): Promise<ParsedJunitCase[]> => {
   let xml = ''
   try {
@@ -90,58 +144,13 @@ export const parseJunit = async (junitPath: string): Promise<ParsedJunitCase[]> 
   const suiteRe = /<testsuite\b([^>]*)>([\s\S]*?)<\/testsuite>/g
 
   for (const suiteMatch of xml.matchAll(suiteRe)) {
-    const suiteAttrsRaw = suiteMatch[1] ?? ''
+    const suiteAttrs = parseXmlAttributes(suiteMatch[1] ?? '')
     const suiteBody = suiteMatch[2] ?? ''
-    const suiteAttrs = parseXmlAttributes(suiteAttrsRaw)
     const suiteFile = normalizeRepoPath(suiteAttrs['file']) ?? ''
 
     const testcaseRe = /<testcase\b([^>]*)\/>|<testcase\b([^>]*)>([\s\S]*?)<\/testcase>/g
     for (const tcMatch of suiteBody.matchAll(testcaseRe)) {
-      const attrsRaw = tcMatch[1] ?? tcMatch[2] ?? ''
-      const body = tcMatch[3] ?? ''
-      const attrs = parseXmlAttributes(attrsRaw)
-
-      const name = attrs['name'] || 'unnamed'
-      const file = normalizeRepoPath(attrs['file']) ?? suiteFile
-      const lineRaw = attrs['line']
-      const line = lineRaw ? Number.parseInt(lineRaw, 10) : Number.NaN
-      const lineNumber = Number.isFinite(line) ? line : null
-      const seconds = Number.parseFloat(attrs['time'] || '0')
-      const durationMs = Number.isFinite(seconds) ? Math.round(seconds * 1000) : 0
-
-      let status: TestStatus = 'passed'
-      let failureMessage: string | null = null
-
-      const failureTag = body.match(/<failure\b([^>]*)>([\s\S]*?)<\/failure>|<failure\b([^>]*)\/>/)
-      const errorTag = body.match(/<error\b([^>]*)>([\s\S]*?)<\/error>|<error\b([^>]*)\/>/)
-      const skippedTag = body.match(/<skipped\b([^>]*)\/?>(?:[\s\S]*?<\/skipped>)?/)
-
-      if (failureTag || errorTag) {
-        status = 'failed'
-        const failureAttrs = parseXmlAttributes(
-          failureTag?.[1] ?? failureTag?.[3] ?? errorTag?.[1] ?? errorTag?.[3] ?? ''
-        )
-        const msgFromAttr = failureAttrs['message']?.trim()
-        const bodyText = decodeXml((failureTag?.[2] ?? errorTag?.[2] ?? '').trim())
-        failureMessage = msgFromAttr && msgFromAttr.length > 0
-          ? msgFromAttr
-          : bodyText.length > 0
-            ? bodyText
-            : 'Test failed'
-      } else if (skippedTag) {
-        status = 'skipped'
-      }
-
-      const id = `${file || 'unknown-file'}::${name}`
-      tests.push({
-        id,
-        file: file || 'unknown-file',
-        name,
-        line: lineNumber,
-        durationMs,
-        status,
-        failureMessage,
-      })
+      tests.push(parseTestcase(tcMatch[1] ?? tcMatch[2] ?? '', tcMatch[3] ?? '', suiteFile))
     }
   }
 

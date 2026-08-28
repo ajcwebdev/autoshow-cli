@@ -1,4 +1,3 @@
-import { cpus } from 'node:os'
 import { join } from 'node:path'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -11,6 +10,10 @@ import { logOcrPagesProgress } from '../ocr-logging'
 import { getCachedRenderedPageImage } from './preparation-cache'
 import { normalizeOcrPageConcurrency } from './ocr-page-concurrency'
 import { InfraError, InternalError } from '~/utils/error-handler'
+import { logRetryAttempt } from '~/utils/retries'
+import { logicalCpuCount } from '~/utils/logical-cpu-count'
+
+const LOW_CONFIDENCE_RERENDER_THRESHOLD = 40
 
 const toPlainTextFromTsv = (tsv: string): string => {
   const lines = tsv.split('\n').map(l => l.trim()).filter(Boolean)
@@ -170,7 +173,7 @@ export const processPages = async (
 ): Promise<PageResult[]> => {
   const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-'))
   try {
-    const cores = Math.max(1, cpus().length)
+    const cores = logicalCpuCount()
     const renderConcurrency = options.renderConcurrency ?? Math.min(cores, 4)
     const ocrConcurrency = normalizeOcrPageConcurrency(options.ocrConcurrency)
     const renderPool = createPool(renderConcurrency)
@@ -208,7 +211,14 @@ export const processPages = async (
           throw InternalError('OCR function was not initialized', { stage: 'ocr:render' })
         }
         let attempt = await runOcrAttempt(filePath, page.pageNumber, options.dpi, tempDir, options, effectiveOcrFn)
-        if ((attempt.confidence ?? 100) < 40) {
+        if ((attempt.confidence ?? 100) < LOW_CONFIDENCE_RERENDER_THRESHOLD) {
+          logRetryAttempt({
+            operation: `tesseract-page-${page.pageNumber}`,
+            attempt: 1,
+            maxAttempts: 2,
+            reason: `confidence ${attempt.confidence ?? 'unknown'} below ${LOW_CONFIDENCE_RERENDER_THRESHOLD}`,
+            delayMs: 0
+          }, { retryClass: 'runtime_subprocess_transient', pageNumber: page.pageNumber, dpi: options.dpi + 100 })
           attempt = await runOcrAttempt(filePath, page.pageNumber, options.dpi + 100, tempDir, options, effectiveOcrFn)
         }
         return {

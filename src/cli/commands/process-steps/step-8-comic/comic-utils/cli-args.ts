@@ -2,7 +2,7 @@ import {
   IMAGE_GENERATION_QUALITIES,
 } from '~/types'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { parseHostedConcurrencyMode } from '~/cli/options/option-resolution/flag-readers'
 import {
@@ -20,7 +20,7 @@ import {
   validateComicGridOptions,
 } from '../comic-commands/generate-images/comic-page-utils'
 import type {
-  CliCommandContext,
+  ComicParsedArgs,
   ParsedDraftCommandArgs,
   ParsedGenerateBaseArgs,
   ParsedGenerateImagesArgs,
@@ -31,11 +31,7 @@ import type {
   ParsedReferenceSketchArgs,
 } from '~/types'
 
-type ComicParsedArgs = Pick<CliCommandContext, 'flags' | 'parameters' | 'rawParsed'>
-
-// Comic's default text model. Validated against the central LLM registry at parse time.
 export const DEFAULT_LLM_MODEL = 'gpt-5.6-sol'
-// Comic's default vision judge. Keep QA independent from the drafting model.
 export const DEFAULT_QA_MODEL = 'gpt-5.6-sol'
 
 export const REFERENCE_SKETCH_COMMAND = 'reference-sketch'
@@ -71,7 +67,7 @@ const isPositiveInteger = (value: string): boolean =>
 
 const parseConcurrencyValue = (value: string): number => {
   if (!isPositiveInteger(value)) {
-    throw CLIUsageError(`Invalid concurrency "${value}". Expected a positive integer like 1 or ${DEFAULT_CLI_CONCURRENCY}`)
+    throw UsageError(`Invalid concurrency "${value}". Expected a positive integer like 1 or ${DEFAULT_CLI_CONCURRENCY}`)
   }
   return Number(value)
 }
@@ -79,7 +75,7 @@ const parseConcurrencyValue = (value: string): number => {
 const parseImageModels = (value: string): ParsedImageModel[] => {
   const rawModels = value.split(',').map(model => model.trim())
   if (rawModels.some(model => model.length === 0)) {
-    throw CLIUsageError(
+    throw UsageError(
       `Invalid image model list "${value}". Expected one or more comma-separated image model ids from the central image registry.`
     )
   }
@@ -88,10 +84,10 @@ const parseImageModels = (value: string): ParsedImageModel[] => {
   const seenModels = new Set<string>()
   for (const model of rawModels) {
     if (!findRegistryServiceForModel('image', model)) {
-      throw CLIUsageError(`Invalid image model "${model}". It is not present in the central image registry.`)
+      throw UsageError(`Invalid image model "${model}". It is not present in the central image registry.`)
     }
     if (seenModels.has(model)) {
-      throw CLIUsageError(`Duplicate image model "${model}" is not allowed`)
+      throw UsageError(`Duplicate image model "${model}" is not allowed`)
     }
     seenModels.add(model)
     parsedModels.push(model as ParsedImageModel)
@@ -101,21 +97,21 @@ const parseImageModels = (value: string): ParsedImageModel[] => {
 
 const parseLlmModel = (value: string): ParsedLlmModel => {
   if (!findRegistryServiceForModel('llm', value)) {
-    throw CLIUsageError(`Invalid llm model "${value}". It is not present in the central LLM registry.`)
+    throw UsageError(`Invalid llm model "${value}". It is not present in the central LLM registry.`)
   }
   return value as ParsedLlmModel
 }
 
 const parseImageQuality = (value: string): ParsedImageQuality => {
   if (!IMAGE_QUALITY_OPTIONS.has(value)) {
-    throw CLIUsageError(`Invalid quality "${value}". Expected one of: low, medium, high, auto`)
+    throw UsageError(`Invalid quality "${value}". Expected one of: low, medium, high, auto`)
   }
   return value as ParsedImageQuality
 }
 
 const parseMaxRepairs = (value: string): number => {
   if (!/^\d+$/.test(value)) {
-    throw CLIUsageError(`Invalid max repairs "${value}". Expected a non-negative integer.`)
+    throw UsageError(`Invalid max repairs "${value}". Expected a non-negative integer.`)
   }
   return Number(value)
 }
@@ -143,7 +139,7 @@ export const coerceAndValidateDraftScenes = (parsed: ComicParsedArgs): ParsedDra
   if (llmModel !== undefined) output.llmModel = parseLlmModel(llmModel)
   if (only !== undefined) {
     if (!DRAFT_SCENES_ONLY_OPTIONS.has(only)) {
-      throw CLIUsageError(`Invalid only "${only}". Expected one of: ${DRAFT_SCENES_ONLY_VALUES.join(', ')}`)
+      throw UsageError(`Invalid only "${only}". Expected one of: ${DRAFT_SCENES_ONLY_VALUES.join(', ')}`)
     }
     output.only = only as NonNullable<ParsedDraftCommandArgs['only']>
   }
@@ -167,7 +163,7 @@ export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): Parse
   if (location !== undefined) output.location = location
   if (view !== undefined) {
     if (view !== 'establishing' && view !== 'reverse' && view !== 'side') {
-      throw CLIUsageError(`Invalid location view "${view}". Expected one of: establishing, reverse, side`)
+      throw UsageError(`Invalid location view "${view}". Expected one of: establishing, reverse, side`)
     }
     output.view = view
   }
@@ -184,15 +180,15 @@ export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): Parse
   assignSharedImageOptions(parsed, output)
 
   if (output.imageModels && output.imageModels.length !== 1) {
-    throw CLIUsageError('comic reference-sketch accepts exactly one --image-model')
+    throw UsageError('comic reference-sketch accepts exactly one --image-model')
   }
   if (Number(Boolean(output.character)) + Number(Boolean(output.location)) !== 1) {
-    throw CLIUsageError('Exactly one of --character or --location is required')
+    throw UsageError('Exactly one of --character or --location is required')
   }
-  if (output.character && output.view) throw CLIUsageError('--view is only valid with --location')
+  if (output.character && output.view) throw UsageError('--view is only valid with --location')
   validateImageSizeForModels(output.size, output.imageModels)
-  if (output.revise && !output.notes) throw CLIUsageError('--notes is required when using --revise')
-  if (output.notes && !output.revise) throw CLIUsageError('--notes requires --revise')
+  if (output.revise && !output.notes) throw UsageError('--notes is required when using --revise')
+  if (output.notes && !output.revise) throw UsageError('--notes requires --revise')
   return output
 }
 
@@ -213,14 +209,14 @@ export const coerceAndValidateGenerateImages = (parsed: ComicParsedArgs): Parsed
   if (qa !== undefined) output.qa = qa
   if (qaModel !== undefined) {
     if (findRegistryServiceForModel('llm', qaModel) !== 'openai') {
-      throw CLIUsageError(`Invalid QA model "${qaModel}". QA currently requires an OpenAI vision-capable LLM.`)
+      throw UsageError(`Invalid QA model "${qaModel}". QA currently requires an OpenAI vision-capable LLM.`)
     }
     output.qaModel = qaModel as ParsedLlmModel
   }
   if (maxRepairs !== undefined) output.maxRepairs = parseMaxRepairs(maxRepairs)
   if (targetValue !== undefined) {
     if (!GENERATE_IMAGES_TARGET_OPTIONS.has(targetValue)) {
-      throw CLIUsageError(`Invalid target "${targetValue}". Expected one of: ${GENERATE_IMAGES_TARGET_VALUES.join(', ')}`)
+      throw UsageError(`Invalid target "${targetValue}". Expected one of: ${GENERATE_IMAGES_TARGET_VALUES.join(', ')}`)
     }
     output.target = targetValue as NonNullable<ParsedGenerateBaseArgs['target']>
   }
@@ -229,7 +225,7 @@ export const coerceAndValidateGenerateImages = (parsed: ComicParsedArgs): Parsed
   if (panels !== undefined) output.panels = parsePanelSelector(panels)
   if (panelsPerImage !== undefined) {
     if (!isPositiveInteger(panelsPerImage)) {
-      throw CLIUsageError(`Invalid panels per image "${panelsPerImage}". Expected a positive integer like 1 or ${DEFAULT_SKETCH_PANELS_PER_IMAGE}`)
+      throw UsageError(`Invalid panels per image "${panelsPerImage}". Expected a positive integer like 1 or ${DEFAULT_SKETCH_PANELS_PER_IMAGE}`)
     }
     output.panelsPerImage = Number(panelsPerImage)
   }
@@ -241,17 +237,17 @@ export const coerceAndValidateGenerateImages = (parsed: ComicParsedArgs): Parsed
   const target = output.target ?? 'images'
   const targetRunsFinalImages = target === 'images' || target === 'both'
   if ((output.qa !== undefined || output.qaModel || output.maxRepairs !== undefined) && !targetRunsFinalImages) {
-    throw CLIUsageError('QA options only apply when --target is images or both')
+    throw UsageError('QA options only apply when --target is images or both')
   }
   if (output.grid && output.panelsPerImage === undefined) {
-    throw CLIUsageError('--grid requires --panels-per-image 1')
+    throw UsageError('--grid requires --panels-per-image 1')
   }
 
   output.qa ??= true
   output.qaModel ??= DEFAULT_QA_MODEL as ParsedLlmModel
   output.maxRepairs ??= 2
   if (output.variations !== undefined && !targetRunsFinalImages) {
-    throw CLIUsageError('--variation only applies when --target is images or both')
+    throw UsageError('--variation only applies when --target is images or both')
   }
   validateImageSizeForModels(output.size, output.imageModels)
   validateComicGridOptions(output.grid, {

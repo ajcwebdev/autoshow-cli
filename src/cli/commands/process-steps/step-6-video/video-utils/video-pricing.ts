@@ -1,5 +1,5 @@
-import type { EstimateVideoCostOptions, FalVideoModel, GeminiVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, MinimaxVideoModel, ReplicateVideoModel, VideoCostEstimate, VideoProvider } from '~/types'
-import { validateFalVideoModel, validateGeminiVideoModel, validateGrokVideoModel, validateLtxVideoModel, validateLumalabsVideoModel, validateMinimaxVideoModel, validateReplicateVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import type { EstimateVideoCostOptions, FalVideoModel, GeminiVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, ProviderModelSelectionSpec, ReplicateVideoModel, VideoCostEstimate, VideoProvider } from '~/types'
+import { validateFalVideoModel, validateGeminiVideoModel, validateGrokVideoModel, validateLtxVideoModel, validateLumalabsVideoModel, validateReplicateVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { getVideoModelMeta } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { deriveGenerationPricingProviders, VIDEO_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import {
@@ -10,19 +10,15 @@ import {
   normalizeGrokVideoResolution,
   normalizeLtxVideoDuration,
   normalizeLtxVideoSize,
-  normalizeMinimaxDuration,
-  normalizeMinimaxResolution,
   normalizeReplicateVideoResolution,
   resolveReplicateBilledDuration,
   normalizeLumaVideoDuration,
   normalizeLumaVideoResolution,
-  isReplicateSeedanceVideoModel,
-  isMinimaxHailuoModel
+  isReplicateSeedanceVideoModel
 } from './video-normalization'
 import * as l from '~/utils/app-logger/app-logger'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { collectSelections, passThroughKeys } from '~/utils/pricing/model-selection'
-import type { ProviderModelSelectionSpec } from '~/utils/pricing/model-selection'
 
 export const VIDEO_PRICING_PROVIDERS = deriveGenerationPricingProviders(VIDEO_GENERATION_SELECTION) satisfies readonly ProviderModelSelectionSpec<EstimateVideoCostOptions, VideoProvider>[]
 
@@ -64,49 +60,6 @@ const estimateGeminiModelCost = (
     note: normalizedResolution === '4k'
       ? 'Approximate estimate using 4k execution with fallback per-second pricing; Gemini 4k is normalized to 8s'
       : `Approximate estimate using ${normalizedResolution} per-second pricing${normalizedResolution === '1080p' ? '; 1080p is normalized to 8s' : ''}`
-  }
-}
-
-const estimateMinimaxCost = (model: MinimaxVideoModel, options: EstimateVideoCostOptions): VideoCostEstimate => {
-  const meta = getVideoModelMeta('minimax', model)
-  const normalizedResolution = normalizeMinimaxResolution(model, options.videoResolution)
-  const normalizedDuration = normalizeMinimaxDuration(model, normalizedResolution, options.videoDuration)
-  const fixedCost = meta?.fixedCostByResolutionDurationCents?.[normalizedResolution]?.[String(normalizedDuration)]
-  if (typeof fixedCost === 'number') {
-    return {
-      provider: 'minimax',
-      model,
-      durationSeconds: normalizedDuration,
-      billedDurationSeconds: normalizedDuration,
-      costPerSecond: normalizedDuration > 0 ? fixedCost / normalizedDuration : 0,
-      totalCost: fixedCost,
-      note: `Exact estimate using published ${normalizedResolution}/${normalizedDuration}s pricing`
-    }
-  }
-
-  const blockSize = meta?.blockSizeSec ?? 6
-  const blockCount = Math.max(1, Math.ceil(normalizedDuration / blockSize))
-  const blockCost720 = meta?.blockCost720pCents ?? 0
-  const blockCost1080 = meta?.blockCost1080pCents ?? blockCost720
-  const blockCost = normalizedResolution === '1080p' ? blockCost1080 : blockCost720
-  const billedDurationSeconds = blockCount * blockSize
-  const totalCost = blockCount * blockCost
-
-  let note = `Approximate estimate billed in ${blockSize}-second blocks`
-  if (!isMinimaxHailuoModel(model)) {
-    note = `${note}; ${model} currently normalized to 720p/6s`
-  } else if (normalizedResolution === '1080p') {
-    note = `${note}; 1080p currently supports 6s generation`
-  }
-
-  return {
-    provider: 'minimax',
-    model,
-    durationSeconds: normalizedDuration,
-    billedDurationSeconds,
-    costPerSecond: billedDurationSeconds > 0 ? totalCost / billedDurationSeconds : 0,
-    totalCost,
-    note
   }
 }
 
@@ -157,7 +110,7 @@ const getLtxSizeResolutionMultiplier = (size: string): number => {
 const estimateLtxCost = (model: LtxVideoModel, options: EstimateVideoCostOptions): VideoCostEstimate => {
   const meta = getVideoModelMeta('ltx', model)
   const mode = options.videoMode
-  const size = normalizeLtxVideoSize(model, options.videoSize, options.videoResolution, options.videoAspectRatio)
+  const size = normalizeLtxVideoSize(model, options.videoResolution, options.videoAspectRatio)
   const durationSeconds = normalizeLtxVideoDuration(model, size, options.videoDuration, mode)
   const isExtend = mode === 'extend'
   const costPerSecond = isExtend
@@ -231,7 +184,7 @@ export const estimateReplicateCost = (model: ReplicateVideoModel, options: Estim
   const durationSeconds = resolveReplicateBilledDuration(model, options.videoDuration)
   const hasVideoInput = isReplicateSeedanceVideoModel(model)
     && Math.max(0, Math.floor(options.replicateVideoReferenceVideoCount ?? 0)) > 0
-  const generateAudio = options.replicateVideoGenerateAudio === true
+  const generateAudio = options.videoGenerateAudio === true
   const costPerSecond = getReplicateCostPerSecond(model, resolution, hasVideoInput, generateAudio)
   const totalCost = durationSeconds * costPerSecond
   const videoInputNote = hasVideoInput ? ' video-input' : ''
@@ -255,9 +208,6 @@ export const estimateVideoCosts = (options: EstimateVideoCostOptions): VideoCost
     switch (selection.service) {
       case 'gemini':
         estimates.push(estimateGeminiCost(validateGeminiVideoModel(selection.model), options))
-        break
-      case 'minimax':
-        estimates.push(estimateMinimaxCost(validateMinimaxVideoModel(selection.model), options))
         break
       case 'grok':
         estimates.push(estimateGrokCost(validateGrokVideoModel(selection.model), options))

@@ -1,13 +1,14 @@
 import * as v from 'valibot'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { isMinimaxInstrumentalMusicModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import type { MinimaxLyricsGenerationResult, MinimaxMusicGenerationPayload, MinimaxMusicModel, MinimaxMusicResponse, Step7MusicMetadata } from '~/types'
+import type { MinimaxLyricsGenerationResult, MinimaxMusicGenerationPayload, MinimaxMusicModel, MinimaxMusicResponse, RetryClassifier, Step7MusicMetadata } from '~/types'
 import { MINIMAX_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import * as l from '~/utils/app-logger/app-logger'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import { requireApiKey } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import { resolveCredential } from '~/utils/validate/env-utils'
+import { extractErrorMetadata, InfraError, InternalError, ProviderError, ValidationError } from '~/utils/error-handler'
 import { MinimaxBaseRespSchema, minimaxFetchJson, minimaxJsonRequestInit } from '~/utils/minimax-client/minimax-client'
+import { classifyPaidCreateRetry, withRetry } from '~/utils/retries'
 
 const REQUEST_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
 const INCOMPLETE_RESPONSE_RETRY_DELAY_MS = 3_000
@@ -56,7 +57,10 @@ const normalizeMinimaxMusicPrompt = (
     throw ValidationError('MiniMax music prompt must not be empty', { stage: 'music:minimax' })
   }
   if (trimmed.length > MINIMAX_MUSIC_PROMPT_MAX_CHARS) {
-    l.warn(`MiniMax music prompt is ${trimmed.length} characters; truncating to ${MINIMAX_MUSIC_PROMPT_MAX_CHARS} characters`)
+    l.warn(`MiniMax music prompt is ${trimmed.length} characters; truncating to ${MINIMAX_MUSIC_PROMPT_MAX_CHARS} characters`, {
+      category: 'pipeline',
+      metadata: { provider: 'minimax', promptLength: trimmed.length, maxPromptLength: MINIMAX_MUSIC_PROMPT_MAX_CHARS }
+    })
     return trimmed.slice(0, MINIMAX_MUSIC_PROMPT_MAX_CHARS).trimEnd()
   }
   return trimmed
@@ -141,7 +145,10 @@ const requestMusicGeneration = async (
   } catch (error) {
     if ((error instanceof DOMException && error.name === 'AbortError')
       || (error instanceof Error && error.name === 'AbortError')) {
-      throw InfraError(`MiniMax music generation timed out after ${REQUEST_TIMEOUT_MS}ms`, { stage: 'music:minimax' })
+      throw InfraError(`MiniMax music generation timed out after ${REQUEST_TIMEOUT_MS}ms`, {
+        stage: 'music:minimax',
+        ...(error instanceof Error ? { cause: error } : {})
+      })
     }
     throw error
   }
@@ -166,26 +173,46 @@ const formatMusicResponseDetails = (payload: MinimaxMusicResponse): string => {
   return details.join(', ')
 }
 
+const INCOMPLETE_ENVELOPE_MARKER = 'minimaxMusicIncompleteEnvelope'
+
+const isIncompleteEnvelopeError = (error: unknown): boolean =>
+  extractErrorMetadata(error)[INCOMPLETE_ENVELOPE_MARKER] === true
+
+const classifyMinimaxMusicCreateRetry: RetryClassifier = (error) =>
+  isIncompleteEnvelopeError(error)
+    ? {
+      shouldRetry: true,
+      delayMs: INCOMPLETE_RESPONSE_RETRY_DELAY_MS,
+      reason: 'provider returned an incomplete success envelope'
+    }
+    : classifyPaidCreateRetry(error)
+
 const requestMusicGenerationWithIncompleteRetry = async (
   baseURL: string,
   apiKey: string,
   payload: MinimaxMusicGenerationPayload
-): Promise<MinimaxMusicResponse> => {
-  const result = await requestMusicGeneration(baseURL, apiKey, payload)
-  if (!isIncompleteSuccessEnvelope(result)) {
-    return result
-  }
-
-  l.warn('MiniMax music generation returned an incomplete success response; retrying once')
-  await Bun.sleep(INCOMPLETE_RESPONSE_RETRY_DELAY_MS)
-
-  const retried = await requestMusicGeneration(baseURL, apiKey, payload)
-  if (isIncompleteSuccessEnvelope(retried)) {
-    throw InfraError(`MiniMax music generation returned an incomplete success response after retry (${formatMusicResponseDetails(retried)})`, { stage: 'music:minimax' })
-  }
-
-  return retried
-}
+): Promise<MinimaxMusicResponse> =>
+  await withRetry(
+    {
+      retryClass: 'runtime_http_create_conservative',
+      operationName: 'minimax-music-create'
+    },
+    async () => {
+      const result = await requestMusicGeneration(baseURL, apiKey, payload)
+      if (isIncompleteSuccessEnvelope(result)) {
+        throw ProviderError(
+          `MiniMax music generation returned an incomplete success response (${formatMusicResponseDetails(result)})`,
+          {
+            stage: 'music:minimax',
+            retryable: true,
+            metadata: { [INCOMPLETE_ENVELOPE_MARKER]: true }
+          }
+        )
+      }
+      return result
+    },
+    classifyMinimaxMusicCreateRetry
+  )
 
 export const runMinimaxMusicGen = async (
   prompt: string,
@@ -197,21 +224,24 @@ export const runMinimaxMusicGen = async (
     forceInstrumental?: boolean | undefined
   }
 ): Promise<{ musicPath: string, metadata: Step7MusicMetadata }> => {
-  const apiKey = requireApiKey('MINIMAX_API_KEY', 'music:minimax', 'MiniMax music generation')
+  const apiKey = resolveCredential('minimax', 'require', { stage: 'music:minimax', description: 'MiniMax music generation' })
 
   const baseURL = MINIMAX_DEFAULT_BASE_URL
   const musicPath = `${outputDir}/generated-music.mp3`
 
   if (options.durationSeconds !== undefined) {
-    l.warn('MiniMax music generation currently ignores --duration')
+    l.warn('MiniMax music generation currently ignores --duration', { category: 'pipeline' })
   }
   const supportsInstrumental = isMinimaxInstrumentalMusicModel(options.model)
   const useInstrumental = options.forceInstrumental === true && supportsInstrumental
   if (options.forceInstrumental && !supportsInstrumental) {
-    l.warn(`MiniMax music model ${options.model} does not support --instrumental; generating with lyrics`)
+    l.warn(`MiniMax music model ${options.model} does not support --instrumental; generating with lyrics`, {
+      category: 'pipeline',
+      metadata: { provider: 'minimax', model: options.model, ignoredFlag: '--instrumental' }
+    })
   }
   if (useInstrumental && options.lyricsFile) {
-    l.warn('Ignoring --lyrics-file because --instrumental was provided for MiniMax music generation')
+    l.warn('Ignoring --lyrics-file because --instrumental was provided for MiniMax music generation', { category: 'pipeline' })
   }
 
   const startTime = Date.now()

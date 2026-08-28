@@ -1,4 +1,6 @@
 import type {
+  HostedConcurrencyAdmissionToken,
+  HostedConcurrencyCoordinator,
   HostedTtsBatchCoordinator,
   HostedTtsChunkAdmissionToken,
   HostedTtsChunkJob,
@@ -18,10 +20,10 @@ import type {
 import { DEFAULT_TTS_CHUNK_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { createProviderLaneIdentity, DEFAULT_PROVIDER_LANE_SCOPE_LABEL } from '~/cli/commands/process-steps/provider-lane-contract'
 import { createHostedConcurrencyCoordinator, recoverHostedConcurrencyRequest } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
-import type { HostedConcurrencyAdmissionToken, HostedConcurrencyCoordinator } from '~/types'
+import { InternalError } from '~/utils/error-handler'
 
 const DEFAULT_RATE_LIMIT_PAUSE_MS = 2_000
-export const HOSTED_TTS_DEFAULT_SCOPE_LABEL = DEFAULT_PROVIDER_LANE_SCOPE_LABEL
+const HOSTED_TTS_DEFAULT_SCOPE_LABEL = DEFAULT_PROVIDER_LANE_SCOPE_LABEL
 
 export const normalizeHostedTtsChunkConcurrency = (concurrency: number | undefined): number => {
   if (typeof concurrency !== 'number' || !Number.isFinite(concurrency)) {
@@ -74,7 +76,7 @@ const compareJobPriority = (
   return (left.originalOrder ?? left.internalId) - (right.originalOrder ?? right.internalId)
 }
 
-export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
+class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
   readonly #maxLimit: number
   readonly #maxActiveChunksPerJob: number | undefined
   readonly #defaultRateLimitPauseMs: number
@@ -83,29 +85,25 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
   readonly #registrationWaiters: Array<() => void> = []
   readonly #hostedConcurrencyCoordinator: HostedConcurrencyCoordinator
   readonly #coreAdmissions = new WeakMap<HostedTtsChunkAdmissionToken, HostedConcurrencyAdmissionToken>()
+  readonly #drainTasks = new WeakMap<HostedTtsProviderChunkState, Promise<void>>()
+  readonly #drainQueued = new WeakSet<HostedTtsProviderChunkState>()
   readonly #sharedHostedPolicy: boolean
   #autoStart: boolean
   #started: boolean
   #nextJobId = 1
   #registeredJobCount = 0
 
-  constructor(options: HostedTtsChunkSchedulerOptions | number | undefined = {}) {
-    const normalizedOptions = typeof options === 'number'
-      ? { maxConcurrency: options, autoStart: true, legacySuccessRamp: true }
-      : options
-    this.#maxLimit = normalizeHostedTtsChunkConcurrency(normalizedOptions?.maxConcurrency)
-    this.#maxActiveChunksPerJob = typeof normalizedOptions?.maxActiveChunksPerJob === 'number'
-      ? Math.max(1, Math.trunc(normalizedOptions.maxActiveChunksPerJob))
+  constructor(options: HostedTtsChunkSchedulerOptions = {}) {
+    this.#maxLimit = normalizeHostedTtsChunkConcurrency(options.maxConcurrency)
+    this.#maxActiveChunksPerJob = typeof options.maxActiveChunksPerJob === 'number'
+      ? Math.max(1, Math.trunc(options.maxActiveChunksPerJob))
       : undefined
-    this.#defaultRateLimitPauseMs = Math.max(0, Math.trunc(normalizedOptions?.defaultRateLimitPauseMs ?? DEFAULT_RATE_LIMIT_PAUSE_MS))
-    this.#autoStart = normalizedOptions?.autoStart !== false
+    this.#defaultRateLimitPauseMs = Math.max(0, Math.trunc(options.defaultRateLimitPauseMs ?? DEFAULT_RATE_LIMIT_PAUSE_MS))
+    this.#autoStart = options.autoStart !== false
     this.#started = this.#autoStart
-    this.#sharedHostedPolicy = normalizedOptions?.legacySuccessRamp !== true && (
-      normalizedOptions?.concurrencyMode !== undefined
-      || normalizedOptions?.hostedConcurrencyCoordinator !== undefined
-    )
-    this.#hostedConcurrencyCoordinator = normalizedOptions?.hostedConcurrencyCoordinator
-      ?? createHostedConcurrencyCoordinator({ mode: normalizedOptions?.concurrencyMode ?? 'immediate' })
+    this.#sharedHostedPolicy = true
+    this.#hostedConcurrencyCoordinator = options.hostedConcurrencyCoordinator
+      ?? createHostedConcurrencyCoordinator({ mode: options.concurrencyMode ?? 'immediate' })
   }
 
   #getState(provider: TtsProvider, scopeLabel?: string | undefined): HostedTtsProviderChunkState {
@@ -226,7 +224,6 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
   }
 
   #recordSuccess(state: HostedTtsProviderChunkState): void {
-    if (this.#sharedHostedPolicy) return
     if (state.currentLimit >= state.maxLimit) {
       state.successStreak = 0
       return
@@ -265,11 +262,13 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
 
     job.settled = true
     this.#detachAbortListener(job)
-    job.reject(job.failureReason ?? new Error('Hosted TTS chunk job failed'))
+    job.reject(job.failureReason ?? InternalError('Hosted TTS chunk job failed', {
+      stage: 'tts:chunk-scheduler'
+    }))
     this.#removeSettledJobs(state)
   }
 
-  #startChunk<T>(state: HostedTtsProviderChunkState, job: HostedTtsChunkJob<T>): void {
+  #startChunk<T>(state: HostedTtsProviderChunkState, job: HostedTtsChunkJob<T>): Promise<void> {
     const chunkIndex = job.nextChunkIndex
     job.nextChunkIndex += 1
     job.startedChunks += 1
@@ -303,56 +302,84 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
     })
     this.#admissionJobs.set(admission, job)
 
-    void (async () => {
-      let succeeded = false
-      try {
-        if (this.#sharedHostedPolicy) {
-          const coreAdmission = await this.#hostedConcurrencyCoordinator.acquire({
-            provider: state.provider,
-            accountLabel: state.lane.scopeLabel,
-            lane: state.lane,
-            workClass: 'tts-chunk',
-            configuredLimit: state.maxLimit,
-            workId: admission.workId,
-            unitIndex: chunkIndex,
-            context: admission.context,
-            abortSignal: job.abortSignal
-          })
-          this.#coreAdmissions.set(admission, coreAdmission)
-        }
-        job.results[chunkIndex] = await job.runChunk(job.chunks[chunkIndex] as string, chunkIndex, admission)
-        const completedAdmission = this.#coreAdmissions.get(admission)
-        if (completedAdmission) this.#hostedConcurrencyCoordinator.release(completedAdmission, 'succeeded')
-        this.#coreAdmissions.delete(admission)
-        succeeded = true
-        job.completedChunks += 1
-        state.stats.completedChunks += 1
-      } catch (error) {
-        const failedAdmission = this.#coreAdmissions.get(admission)
-        if (failedAdmission) this.#hostedConcurrencyCoordinator.release(failedAdmission, job.abortSignal?.aborted === true ? 'canceled' : 'failed')
-        this.#coreAdmissions.delete(admission)
-        job.failed = true
-        job.failureReason ??= error
-        job.failedChunks += 1
-        state.stats.failedChunks += 1
-      } finally {
-        const activeLatencyMs = Math.max(0, Date.now() - activeStartedAtMs)
-        job.activeLatencySamplesMs.push(activeLatencyMs)
-        state.stats.activeLatencySamplesMs.push(activeLatencyMs)
-        job.active = Math.max(0, job.active - 1)
-        state.active = Math.max(0, state.active - 1)
-
-        if (succeeded && !job.failed) {
-          this.#recordSuccess(state)
-        }
-        this.#settleFailedJobIfInactive(state, job)
-        this.#settleJobIfComplete(state, job)
-        this.#drain(state)
+    return new Promise<void>((resolveEntered) => {
+      let entered = false
+      const markEntered = (): void => {
+        if (entered) return
+        entered = true
+        resolveEntered()
       }
-    })()
+
+      void (async () => {
+        let succeeded = false
+        try {
+          if (this.#sharedHostedPolicy) {
+            const coreAdmission = await this.#hostedConcurrencyCoordinator.acquire({
+              provider: state.provider,
+              accountLabel: state.lane.scopeLabel,
+              lane: state.lane,
+              workClass: 'tts-chunk',
+              configuredLimit: state.maxLimit,
+              workId: admission.workId,
+              unitIndex: chunkIndex,
+              context: admission.context,
+              abortSignal: job.abortSignal
+            })
+            this.#coreAdmissions.set(admission, coreAdmission)
+          }
+          const runPromise = job.runChunk(job.chunks[chunkIndex] as string, chunkIndex, admission)
+          markEntered()
+          job.results[chunkIndex] = await runPromise
+          const completedAdmission = this.#coreAdmissions.get(admission)
+          if (completedAdmission) this.#hostedConcurrencyCoordinator.release(completedAdmission, 'succeeded')
+          this.#coreAdmissions.delete(admission)
+          succeeded = true
+          job.completedChunks += 1
+          state.stats.completedChunks += 1
+        } catch (error) {
+          markEntered()
+          const failedAdmission = this.#coreAdmissions.get(admission)
+          if (failedAdmission) this.#hostedConcurrencyCoordinator.release(failedAdmission, job.abortSignal?.aborted === true ? 'canceled' : 'failed')
+          this.#coreAdmissions.delete(admission)
+          job.failed = true
+          job.failureReason ??= error
+          job.failedChunks += 1
+          state.stats.failedChunks += 1
+        } finally {
+          const activeLatencyMs = Math.max(0, Date.now() - activeStartedAtMs)
+          job.activeLatencySamplesMs.push(activeLatencyMs)
+          state.stats.activeLatencySamplesMs.push(activeLatencyMs)
+          job.active = Math.max(0, job.active - 1)
+          state.active = Math.max(0, state.active - 1)
+
+          if (succeeded && !job.failed) {
+            this.#recordSuccess(state)
+          }
+          this.#settleFailedJobIfInactive(state, job)
+          this.#settleJobIfComplete(state, job)
+          this.#drain(state)
+        }
+      })()
+    })
   }
 
   #drain(state: HostedTtsProviderChunkState): void {
+    const inFlight = this.#drainTasks.get(state)
+    if (inFlight) {
+      this.#drainQueued.add(state)
+      return
+    }
+
+    const task = this.#drainLoop(state).finally(() => {
+      this.#drainTasks.delete(state)
+      if (this.#drainQueued.delete(state)) {
+        this.#drain(state)
+      }
+    })
+    this.#drainTasks.set(state, task)
+  }
+
+  async #drainLoop(state: HostedTtsProviderChunkState): Promise<void> {
     if (!this.#started) {
       return
     }
@@ -372,7 +399,7 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
       if (!job) {
         return
       }
-      this.#startChunk(state, job)
+      await this.#startChunk(state, job)
     }
   }
 
@@ -472,21 +499,24 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
     if (!state) return Promise.resolve(false)
     const coreAdmission = this.#coreAdmissions.get(admission)
     const previousLimit = state.currentLimit
-    if (!this.#sharedHostedPolicy) {
-      state.currentLimit = Math.max(1, Math.floor(state.currentLimit / 2))
-    }
+    state.currentLimit = Math.max(1, Math.floor(state.currentLimit / 2))
     state.successStreak = 0
     state.stats.rateLimitCount += 1
     job.rateLimitCount += 1
-    if (!this.#sharedHostedPolicy) this.#recordLimitChange(state, previousLimit, 'rate-limit')
+    this.#recordLimitChange(state, previousLimit, 'rate-limit')
 
     const pauseMs = feedback.retryAfterMs !== undefined
       ? feedback.retryAfterMs
       : feedback.delayMs !== undefined && feedback.delayMs > 0
         ? feedback.delayMs
         : this.#defaultRateLimitPauseMs
-    if (this.#sharedHostedPolicy && coreAdmission) {
-      this.#drain(state)
+    const now = Date.now()
+    const nextPauseUntilMs = now + Math.max(0, pauseMs)
+    const previousPauseUntilMs = state.pauseUntilMs
+    state.pauseUntilMs = Math.max(state.pauseUntilMs, nextPauseUntilMs)
+    state.stats.pauseTimeMs += Math.max(0, state.pauseUntilMs - Math.max(now, previousPauseUntilMs))
+    this.#drain(state)
+    if (this.#sharedHostedPolicy && coreAdmission && error !== undefined) {
       return recoverHostedConcurrencyRequest({
         coordinator: this.#hostedConcurrencyCoordinator,
         admission: {
@@ -501,7 +531,7 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
           abortSignal: job.abortSignal
         },
         token: coreAdmission,
-        error: error ?? Object.assign(new Error('Hosted TTS request was rate limited.'), { status: 429 }),
+        error,
         pressure: {
           ...feedback,
           reason: feedback.reason ?? 'rate-limit',
@@ -515,13 +545,6 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
         throw recoveryError
       })
     }
-    if (this.#sharedHostedPolicy) return Promise.resolve(false)
-    const now = Date.now()
-    const nextPauseUntilMs = now + Math.max(0, pauseMs)
-    const previousPauseUntilMs = state.pauseUntilMs
-    state.pauseUntilMs = Math.max(state.pauseUntilMs, nextPauseUntilMs)
-    state.stats.pauseTimeMs += Math.max(0, state.pauseUntilMs - Math.max(now, previousPauseUntilMs))
-    this.#drain(state)
     return Promise.resolve(false)
   }
 
@@ -537,7 +560,7 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
       scopeLabel: state.lane.scopeLabel,
       laneKey: state.lane.laneKey,
       maxLimit: state.maxLimit,
-      currentLimit: hostedLane?.currentLimit ?? state.currentLimit,
+      currentLimit: state.currentLimit,
       active: hostedClass?.active ?? state.active,
       queued: (hostedClass?.queued ?? 0) + state.jobs.reduce(
         (sum, job) => hasRemainingChunks(job)
@@ -673,22 +696,12 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
 }
 
 export const createHostedTtsChunkScheduler = (
-  optionsOrConcurrency?: HostedTtsChunkSchedulerOptions | number | undefined
-): HostedTtsChunkScheduler =>
-  new HostedTtsBatchCoordinatorImpl(
-    typeof optionsOrConcurrency === 'number'
-      ? { maxConcurrency: optionsOrConcurrency, autoStart: true, concurrencyMode: 'immediate', legacySuccessRamp: true }
-      : { ...optionsOrConcurrency, autoStart: optionsOrConcurrency?.autoStart ?? true }
-  )
-
-export const createHostedTtsBatchCoordinator = (
-  optionsOrConcurrency?: HostedTtsChunkSchedulerOptions | number | undefined
+  options: HostedTtsChunkSchedulerOptions = {}
 ): HostedTtsBatchCoordinator =>
-  new HostedTtsBatchCoordinatorImpl(
-    typeof optionsOrConcurrency === 'number'
-      ? { maxConcurrency: optionsOrConcurrency, autoStart: false, concurrencyMode: 'immediate', legacySuccessRamp: true }
-      : { ...optionsOrConcurrency, autoStart: optionsOrConcurrency?.autoStart ?? false }
-  )
+  new HostedTtsBatchCoordinatorImpl({
+    ...options,
+    autoStart: options.autoStart ?? true
+  })
 
 export const bindHostedTtsChunkScheduler = (
   scheduler: HostedTtsChunkScheduler,

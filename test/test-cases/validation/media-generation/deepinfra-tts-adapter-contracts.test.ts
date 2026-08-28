@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { collectDeepinfraTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepinfra/deepinfra-tts-targets'
-import { DEEPINFRA_TTS_RETRY_POLICY, runDeepinfraTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepinfra/run-deepinfra-tts'
+import { runDeepinfraTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepinfra/run-deepinfra-tts'
+import { getRetryPolicyForClass } from '~/utils/retries'
 import { createDeepinfraAdvancedProvider, DEEPINFRA_ADVANCED_CAPABILITY_FIXTURE } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepinfra/deepinfra-advanced-provider'
 import { prepareDeepinfraChatterboxText } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepinfra/deepinfra-text-preparation'
 import { buildDeepinfraTtsRequestBody, DEEPINFRA_TTS_SERIALIZER_VERSION, DEEPINFRA_VOICE_DESIGN_MODELS, isDeepinfraVoiceDesignModel, prepareDeepinfraTtsText, resolveDeepinfraTtsDefaultVoice, resolveDeepinfraTtsVoiceField } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepinfra/deepinfra-tts-request'
@@ -8,9 +9,9 @@ import { createTtsTargetSelection } from '~/cli/commands/process-steps/step-4-tt
 import { prepareComicSegmentedProviderTexts } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { validatePreparedProviderText } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
 import { resolveTtsChunkCharacterLimit } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
-import type { AdvancedProviderHttpRequest } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/advanced-provider-contracts'
 import { createMockWavBytes } from '../../../test-utils/media-fixtures'
-import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import type { AdvancedProviderHttpRequest } from '~/types'
 
 const CHECKED_AT = '2026-08-14T00:00:00.000Z'
 const protectedSample = { storeId: 'voice_store', assetId: `sha256_${'a'.repeat(64)}`, sha256: 'a'.repeat(64) }
@@ -18,20 +19,20 @@ const tempDirs = setupContractSuiteLifecycle({ envKeys: ['DEEPINFRA_API_KEY'], t
 
 describe('DeepInfra Phase 4 Contracts', () => {
   test('collects DeepInfra TTS targets with correct provider and model', () => {
-    const selection = createTtsTargetSelection({ deepinfraTtsModel: 'ResembleAI/chatterbox-turbo', deepinfraTtsVoice: 'standard' })
+    const selection = createTtsTargetSelection({ deepinfraTtsModels: ['ResembleAI/chatterbox-turbo'], deepinfraTtsVoice: 'standard' })
     const targets = collectDeepinfraTtsTargets(selection)
     expect(targets).toHaveLength(1)
     expect(targets[0]?.service).toBe('deepinfra')
     expect(targets[0]?.model).toBe('ResembleAI/chatterbox-turbo')
     expect(targets[0]?.voice).toBe('standard')
-    expect(DEEPINFRA_TTS_RETRY_POLICY).toMatchObject({ maxAttempts: 8, baseDelayMs: 3_000, maxDelayMs: 30_000, jitter: true, exponential: true })
+    expect(getRetryPolicyForClass('runtime_http_create_retriable')).toEqual({ maxAttempts: 4, baseDelayMs: 2_000, maxDelayMs: 30_000, jitter: true, exponential: true })
   })
 
   test('rejects missing credentials instead of fabricating offline audio', async () => {
     await expect(runDeepinfraTts('Hello from DeepInfra Chatterbox test', 'test-out', {
       model: 'ResembleAI/chatterbox-turbo',
       apiKey: '',
-    })).rejects.toThrow('DeepInfra API key is required')
+    })).rejects.toThrow('DEEPINFRA_API_KEY environment variable is required for DeepInfra TTS')
   })
 
   test('normalizes Chatterbox ellipses to provider-safe comma pauses without changing canonical text', () => {
@@ -41,7 +42,7 @@ describe('DeepInfra Phase 4 Contracts', () => {
     expect(validatePreparedProviderText(prepared)).toBe(prepared)
     expect(prepareDeepinfraChatterboxText('Power.').preparationVersion).toBe('generic-tts-v1')
 
-    const [target] = collectDeepinfraTtsTargets(createTtsTargetSelection({ deepinfraTtsModel: 'ResembleAI/chatterbox-turbo' }))
+    const [target] = collectDeepinfraTtsTargets(createTtsTargetSelection({ deepinfraTtsModels: ['ResembleAI/chatterbox-turbo'] }))
     expect(prepareComicSegmentedProviderTexts({
       turnId: 'dialogue-turn-009',
       sourceSegmentId: 'dialogue-turn-009',
@@ -100,13 +101,10 @@ describe('DeepInfra Phase 4 Contracts', () => {
 
   test('classifies HTTP 500 as retryable instead of fabricating audio', async () => {
     installMockFetch(() => new Response(JSON.stringify({ error: 'upstream failed' }), { status: 500, headers: { 'content-type': 'application/json' } }))
-    try {
-      await runDeepinfraTts('Ready?', await tempDirs.make(), { model: 'ResembleAI/chatterbox-turbo', apiKey: 'fixture-key' })
-      throw new Error('expected DeepInfra 500 to fail')
-    } catch (error) {
-      expect(error).toMatchObject({ retryable: true })
-      expect(String(error)).toContain('DeepInfra TTS failed (500)')
-    }
+    await expectProviderHttpError(
+      async () => await runDeepinfraTts('Ready?', await tempDirs.make(), { model: 'ResembleAI/chatterbox-turbo', apiKey: 'fixture-key' }),
+      { retryable: true, messageContains: 'DeepInfra TTS failed (500)' }
+    )
   })
 
   test('advanced provider lists account voices and declares implemented management facets', async () => {

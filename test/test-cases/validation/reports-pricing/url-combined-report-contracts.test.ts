@@ -4,16 +4,9 @@ import {
   expect,
   test
 } from 'bun:test'
-import { spawnSync } from 'node:child_process'
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync
-} from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { runSyncCommand } from '~/utils/sync-subprocess'
 import {
   buildUrlCombinedReport,
   rankUrlProviderGroup,
@@ -25,6 +18,7 @@ import {
 } from '../../../../.codex/skills/consensus/scripts/url/url_consensus_lib'
 import type { UrlCombinedArtifact, UrlCombinedFixtureProvider } from '~/types'
 import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
+import { makeTempDirSync } from '../../../test-utils/temp-dirs'
 
 const tempRoots: string[] = []
 
@@ -152,17 +146,58 @@ const sampleAggregate = (
   perRun: {}
 })
 
+type UrlSummaryMetric = 'price' | 'speed' | 'automatedQuality'
+
+const URL_SUMMARY_METRICS: readonly UrlSummaryMetric[] = ['price', 'speed', 'automatedQuality']
+const URL_SUMMARY_GROUPS = ['local', 'service'] as const
+
+export const normalizeMarkdownTable = (text: string): string =>
+  text.split('\n').map(line => line.split('|').map(cell => cell.trim()).join(' | ')).join('\n')
+
+export const formatUrlSummaryMetricValue = (metric: UrlSummaryMetric, value: number | null): string | null => {
+  if (value === null) return null
+  switch (metric) {
+    case 'price':
+      return value === 0 ? '$0.00' : `$${value.toFixed(4)}`
+    case 'speed':
+      return `${(value / 1000).toFixed(2)}s`
+    case 'automatedQuality':
+      return `${value.toFixed(2)}/100`
+  }
+}
+
+export const expectedUrlRankingRows = (
+  report: Pick<UrlCombinedArtifact<AggregatedUrlProvider, UrlMetricRankingEntry>, 'metricRankings' | 'runCount'>
+): string[] => URL_SUMMARY_GROUPS.flatMap(group =>
+  URL_SUMMARY_METRICS.flatMap(metric =>
+    report.metricRankings[group][metric].flatMap((entry) => {
+      const average = formatUrlSummaryMetricValue(metric, entry.value)
+      return average === null
+        ? []
+        : [`| ${entry.rank} | ${entry.providerKey} | ${entry.runsCovered}/${report.runCount} runs | ${average} |`]
+    })
+  )
+)
+
 describe('URL combined-report aggregation', () => {
+  test('formats retained URL summary values and omits null rankings', () => {
+    expect(formatUrlSummaryMetricValue('price', 0)).toBe('$0.00')
+    expect(formatUrlSummaryMetricValue('price', 1.23456)).toBe('$1.2346')
+    expect(formatUrlSummaryMetricValue('speed', 1234)).toBe('1.23s')
+    expect(formatUrlSummaryMetricValue('automatedQuality', 98.765)).toBe('98.77/100')
+    expect(formatUrlSummaryMetricValue('price', null)).toBeNull()
+  })
+
   test('exposes URL combined reports through unified help', () => {
     const runner = resolve(import.meta.dir, '../../../../.codex/skills/consensus/scripts/run.ts')
-    const result = spawnSync('bun', [runner, 'url', '--help'], { encoding: 'utf8' })
+    const result = runSyncCommand('bun', [runner, 'url', '--help'])
 
-    expect(result.status).toBe(0)
+    expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('bun scripts/run.ts url build-combined-report <root_dir>')
   })
 
   test('uses source automated quality, present-value means, USD conversion, metadata, and isolated groups', () => {
-    const root = mkdtempSync(join(tmpdir(), 'autoshow-url-combined-'))
+    const root = makeTempDirSync('autoshow-url-combined-')
     tempRoots.push(root)
     const localShared: UrlCombinedFixtureProvider = {
       providerKey: 'shared', processingTimeMs: 100, costCents: 999,
@@ -191,7 +226,7 @@ describe('URL combined-report aggregation', () => {
     const local = report.providers.find((provider) => provider.group === 'local' && provider.providerKey === 'shared')
     const service = report.providers.find((provider) => provider.group === 'service' && provider.providerKey === 'shared')
 
-    expect(report.schemaVersion).toBe(1)
+    expect(report.schemaVersion).toBe(2)
     expect(report.runCount).toBe(2)
     expect(report.providerCount).toBe(5)
     expect(report.providerRowCount).toBe(9)
@@ -238,7 +273,7 @@ describe('URL combined-report aggregation', () => {
   })
 
   test('omits per-run leaders when a ranking surface contains only null values', () => {
-    const root = mkdtempSync(join(tmpdir(), 'autoshow-url-combined-'))
+    const root = makeTempDirSync('autoshow-url-combined-')
     tempRoots.push(root)
     writeFixtureRun(root, 'all-null-leaders', [], [{
       providerKey: 'missing', processingTimeMs: null, costCents: null,
@@ -276,7 +311,7 @@ describe('URL combined-report aggregation', () => {
   })
 
   test('preserves fallback distance provenance alongside recomputed provider scores', () => {
-    const root = mkdtempSync(join(tmpdir(), 'autoshow-url-provenance-'))
+    const root = makeTempDirSync('autoshow-url-provenance-')
     tempRoots.push(root)
     const providerDir = join(root, 'providers', 'current')
     mkdirSync(providerDir, { recursive: true })
@@ -332,8 +367,8 @@ describe('URL combined-report aggregation', () => {
     }))
 
     const runner = resolve(import.meta.dir, '../../../../.codex/skills/consensus/scripts/run.ts')
-    const result = spawnSync('bun', [runner, 'url', 'build-report', root], { encoding: 'utf8' })
-    expect(result.status).toBe(0)
+    const result = runSyncCommand('bun', [runner, 'url', 'build-report', root])
+    expect(result.exitCode).toBe(0)
 
     const report = JSON.parse(
       readFileSync(join(root, 'provider-comparison-report.json'), 'utf8')
@@ -377,7 +412,7 @@ describe('URL combined-report aggregation', () => {
   })
 
   test('rejects unsafe inventory hyperlink protocols while retaining readable text', () => {
-    const root = mkdtempSync(join(tmpdir(), 'autoshow-url-combined-'))
+    const root = makeTempDirSync('autoshow-url-combined-')
     tempRoots.push(root)
     writeFixtureRun(root, 'unsafe-run', [], [{
       providerKey: 'service', processingTimeMs: 100, costCents: 1,
@@ -394,7 +429,7 @@ describe('URL combined-report aggregation', () => {
   })
 
   test('escapes remote HTML and Markdown syntax in inventory link labels', () => {
-    const root = mkdtempSync(join(tmpdir(), 'autoshow-url-combined-'))
+    const root = makeTempDirSync('autoshow-url-combined-')
     tempRoots.push(root)
     writeFixtureRun(root, 'hostile-title-run', [], [{
       providerKey: 'service', processingTimeMs: 100, costCents: 1,
@@ -415,7 +450,7 @@ describe('URL combined-report aggregation', () => {
   })
 
   test('percent-encodes Markdown table delimiters in inventory URLs', () => {
-    const root = mkdtempSync(join(tmpdir(), 'autoshow-url-combined-'))
+    const root = makeTempDirSync('autoshow-url-combined-')
     tempRoots.push(root)
     writeFixtureRun(root, 'pipe-url-run', [], [{
       providerKey: 'service', processingTimeMs: 100, costCents: 1,
@@ -437,7 +472,7 @@ describe('URL combined-report aggregation', () => {
   })
 
   test('reports explicit human-quality evidence without an absence note', () => {
-    const root = mkdtempSync(join(tmpdir(), 'autoshow-url-combined-'))
+    const root = makeTempDirSync('autoshow-url-combined-')
     tempRoots.push(root)
     writeFixtureRun(root, 'human-quality-run', [], [{
       providerKey: 'service', processingTimeMs: 100, costCents: 1,
@@ -446,7 +481,7 @@ describe('URL combined-report aggregation', () => {
 
     const result = buildUrlCombinedReport(root, '2026-07-18T00:00:00.000Z')
     const report = result.report as unknown as UrlCombinedArtifact<AggregatedUrlProvider, UrlMetricRankingEntry>
-    const presenceNote = '1 explicit human-quality row is present; URL combined schema v1 does not mix it into automated-quality rankings.'
+    const presenceNote = '1 explicit human-quality row is present; URL combined schema v2 does not mix it into automated-quality rankings.'
 
     expect(report.humanQualityRowCount).toBe(1)
     expect(report.notes).toContain(presenceNote)
@@ -463,7 +498,7 @@ describe('committed URL combined dashboard', () => {
     const artifactRoot = resolve(import.meta.dir, '../../../../docs/benchmarks/url')
     const report = JSON.parse(readFileSync(join(artifactRoot, 'combined-comparison-report.json'), 'utf8')) as UrlCombinedArtifact<AggregatedUrlProvider, UrlMetricRankingEntry>
 
-    expect(report.schemaVersion).toBe(1)
+    expect(report.schemaVersion).toBe(2)
     expect(report.runCount).toBe(7)
     expect(report.providerCount).toBe(6)
     expect(report.providerRowCount).toBe(37)
@@ -472,17 +507,9 @@ describe('committed URL combined dashboard', () => {
     expect(report.runs).toHaveLength(7)
     expect(report.runs.every((run) => run.articleTitle.length > 0)).toBe(true)
     expect(report.runs.every((run) => run.sourceUrl?.startsWith('https://'))).toBe(true)
-    expect(Object.keys(report.weightedRankings['service'] ?? {}).sort()).toEqual([
-      'costSpeed',
-      'moderateCost',
-      'moderateQuality',
-      'moderateSpeed',
-      'qualityCost',
-      'strongCost',
-      'strongQuality',
-      'strongSpeed'
-    ])
-    expect(report.tiering['service']?.tiers.map((tier) => tier.count)).toEqual([2, 2, 1])
+    expect(report.weightedRankings).toBeUndefined()
+    expect(report.tiering).toBeUndefined()
+    expect(Object.keys(report.metricRankings.service).sort()).toEqual(['automatedQuality', 'price', 'speed'])
   })
 
   test('keeps the retained benchmark summary synchronized with URL aggregates', () => {
@@ -491,42 +518,29 @@ describe('committed URL combined dashboard', () => {
     const summary = readFileSync(join(benchmarkRoot, 'summary.md'), 'utf8')
     const urlSection = summary.split('## URL\n')[1]?.split('\n## Video')[0] ?? ''
 
-    expect(summary).toContain(`| url | ${report.runCount} | ${report.providerRowCount} | local, service |`)
-    expect(summary).toContain('| **Total** | **38** | **610** | **5 groups** |')
+    const normalizedSummary = normalizeMarkdownTable(summary)
+    const normalizedUrlSection = normalizeMarkdownTable(urlSection)
+
+    expect(normalizedSummary).toContain(`| url | ${report.runCount} | ${report.providerRowCount} | local, service |`)
+    expect(normalizedSummary).toContain('| **Total** | **41** | **545** | **5 groups** |')
     expect(urlSection).not.toContain('2/2 runs')
 
-    for (const group of ['local', 'service'] as const) {
-      for (const metric of ['price', 'speed', 'automatedQuality'] as const) {
-        for (const entry of report.metricRankings[group][metric]) {
-          if (entry.value === null) continue
-          const average = metric === 'price'
-            ? entry.value === 0 ? '$0.00' : `$${entry.value.toFixed(4)}`
-            : metric === 'speed'
-              ? `${(entry.value / 1000).toFixed(2)}s`
-              : `${entry.value.toFixed(2)}/100`
-          expect(urlSection).toContain(
-            `| ${entry.rank} | ${entry.providerKey} | ${entry.runsCovered}/${report.runCount} runs | ${average} |`
-          )
-        }
-      }
+    for (const expectedRow of expectedUrlRankingRows(report)) {
+      expect(normalizedUrlSection).toContain(expectedRow)
     }
   })
 
   test('is self-contained, precomputed, and readable without JavaScript', () => {
     const artifactRoot = resolve(import.meta.dir, '../../../../docs/benchmarks/url')
     const html = readFileSync(join(artifactRoot, 'combined-comparison-report.html'), 'utf8')
-    const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1] ?? ''
-
     expect(html).toContain('<style>')
     expect(html).not.toMatch(/<link\b/i)
-    expect(html).not.toMatch(/<script[^>]+src=/i)
+    expect(html).not.toMatch(/<script[\s>]/i)
     expect(html).not.toContain('fetch(')
     expect(html).not.toContain('XMLHttpRequest')
-    expect(script).not.toContain('weights.quality')
-    expect(script).not.toContain('subscores')
-    expect(script).toContain('row.getAttribute("data-c-" + set)')
     expect(html).toContain('<table class="providers">')
-    expect(html).toContain('All weighted rankings (rank and composite per weight set)')
+    expect(html).not.toContain('All weighted rankings')
+    expect(html).toContain('<h3>Metric rankings</h3>')
     expect(html).toContain('<h3>Per-run automated quality</h3>')
     expect(html).toContain('rel="noreferrer"')
   })

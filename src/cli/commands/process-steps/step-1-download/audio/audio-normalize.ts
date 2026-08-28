@@ -73,7 +73,7 @@ const buildPlan = (
   ...(options.targetChannels !== undefined ? { targetChannels: options.targetChannels } : {})
 })
 
-export const probeMediaFile = async (inputPath: string): Promise<MediaProbe> => {
+const probeMediaFile = async (inputPath: string): Promise<MediaProbe> => {
   const result = await exec(getFfprobeBinary(), [
     '-v', 'error',
     '-show_entries', 'format=format_name,duration,bit_rate:stream=index,codec_type,codec_name,sample_rate,channels,bit_rate:stream_disposition=attached_pic',

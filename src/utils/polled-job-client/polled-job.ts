@@ -2,4 +2,3 @@ export { downloadGeneratedFile, downloadGeneratedImage, downloadGeneratedVideo, 
 export { extractImageErrorMessage, readJsonOrText, withImageProviderHeaders } from './image-http'
 export { LumalabsGenerationSchema } from './lumalabs'
 export { formatPolledJobError, runPolledJob } from './polled-job-client'
-export type { PolledJobFailure, PolledJobStep } from './polled-job-client'

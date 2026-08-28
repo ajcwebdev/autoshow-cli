@@ -4,8 +4,6 @@ import type { CliFlagsDefinition } from '~/types'
 import { LOG_FORMAT_CHOICES } from '~/utils/app-logger/app-logger'
 import { boolFlag, formatValueList, strFlag } from '~/cli/flags/flag-utils'
 
-// defuddle is resolved from --bin-dir by its own resolver rather than the runtime tool
-// registry, so it is listed alongside the registry ids.
 const BIN_DIR_TOOL_NAMES = [...RUNTIME_TOOL_IDS, 'defuddle'] as const
 
 export const GLOBAL_FLAG_DEFINITIONS = {

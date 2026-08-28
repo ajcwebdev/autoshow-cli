@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { COMMAND_DEFINITIONS } from '~/cli/command-definitions'
@@ -16,49 +16,15 @@ import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { createFileTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
+import { policySkippedTtsProviderState as policySkippedTtsState } from '../../../test-utils/tts-provider-state-fixtures'
 
 const tempDirs: string[] = []
 
 const makeTempRoot = async (prefix: string): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), prefix))
+  const root = await makeTempDir(prefix)
   tempDirs.push(root)
   return root
-}
-
-const policySkippedTtsState = (target: TtsTarget, artifactRoot = 'providers'): PipelineProviderState => {
-  const targetKey = target.targetKey as string
-  const actor = { namespace: 'local-user' as const, actorId: 'fixture' }
-  const at = new Date(0).toISOString()
-  const evidence = {
-    schemaVersion: 1 as const,
-    skipId: `skip-${targetKey}`,
-    targetKey,
-    reasonCode: 'user-requested' as const,
-    reason: 'fixture skip',
-    actor,
-    at
-  }
-  const projection = {
-    activeWork: { kind: 'policy-skip' as const, evidence },
-    branchHistory: [],
-    readinessAttempts: [],
-    renderHistory: [],
-    pointerEvents: [{ sequence: 1, action: 'activate-policy-skip' as const, skipId: evidence.skipId, actor, at }]
-  }
-  return {
-    service: target.service,
-    model: target.model,
-    local: false,
-    operation: 'tts-synthesis',
-    targetKey,
-    transport: target.transport as string,
-    artifactDir: `${artifactRoot}/${targetKey}`,
-    status: 'skipped',
-    attempts: 0,
-    options: {},
-    metadata: { ttsAudio: projection },
-    result: { ttsAudio: projection }
-  }
 }
 
 const writeCompleteTtsRun = async (dir: string): Promise<void> => {
@@ -523,7 +489,7 @@ test('resume rejects positional outputs after the separator', async () => {
 })
 
 test('setup focused model downloads cannot be combined with targeted steps', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'setup', '--models', 'base', '--step', 'uv'])
+  const result = await runCommand(['src/cli/create-cli.ts', 'setup', '--models', 'base', '--step', 'defuddle'])
 
   expect(result.exitCode).toBe(2)
   expect(`${result.stdout}\n${result.stderr}`).toContain('--models cannot be combined with --step')

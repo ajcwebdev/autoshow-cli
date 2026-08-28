@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runCommand } from '../../test-utils/test-helpers'
+import { makeTempDir } from '../../test-utils/temp-dirs'
 
 const withTempImage = async <T,>(fn: (path: string) => Promise<T>): Promise<T> => {
-  const dir = await mkdtemp(join(tmpdir(), 'autoshow-video-price-image-'))
+  const dir = await makeTempDir('autoshow-video-price-image-')
   try {
     const imagePath = join(dir, 'input.png')
     await writeFile(imagePath, new Uint8Array([1, 2, 3]))

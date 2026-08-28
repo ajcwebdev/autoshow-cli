@@ -3,78 +3,8 @@ import { getOpenAIClientConfig } from '~/cli/commands/process-steps/step-3-write
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { estimateLlmCostFromRegistry } from '../../comic-utils/structured-script-utils/llm-cost'
 import { InfraError, ValidationError } from '~/utils/error-handler'
-import type { PanelBundleData } from '~/types'
+import type { PageQaEntry, PageQaRepairDecision, PageQaRepairStagnationState, PageQaRequest, PageQaResult, PanelBundleData } from '~/types'
 
-export type PageQaResult = {
-  panelStructure: { pass: boolean; observedPanelCount: number; observedPanelOrder: number[]; issues: string[] }
-  panels: Array<{
-    panelNumber: number
-    requiredCastPresent: boolean
-    unexpectedCastAbsent: boolean
-    identityMatch: boolean
-    identityIssueKind: 'none' | 'minor-variance' | 'unmistakable-mismatch'
-    locationMatch: boolean
-    setContinuityMatch: boolean
-    setContinuityAudit: Array<{
-      anchor: string
-      status: 'present-correctly' | 'outside-crop' | 'missing' | 'relocated' | 'duplicated' | 'mirrored' | 'redesigned'
-      evidence: string
-    }>
-    sourcePrecedence: boolean
-    shotPlanMatch: boolean
-    dialogueAccuracy: boolean
-    dialogueIssueKind: 'none' | 'typography-only' | 'content'
-    speakerAttribution: boolean
-    artifacts: string[]
-    visualQualityScore: number
-    compositionScore: number
-    issues: string[]
-    editInstructions: string
-  }>
-  summary: string
-}
-
-export type PageQaEntry = {
-  pageNumber: number
-  panelNumbers: number[]
-  outputFile: string
-  judgeModel: string
-  hardFailure: boolean
-  waivedChecks?: Array<{ panelNumber: number; check: 'shotPlanMatch'; reason: string }>
-  repairPolicy?: {
-    action: 'restart' | 'stop'
-    repeatedHardFailures: string[]
-  }
-  result: PageQaResult
-  usage: { inputTokens: number; outputTokens: number; totalTokens: number; costUsd: number }
-}
-
-export type PageQaRepairStagnationState = {
-  consecutiveFailures: Record<string, number>
-  restartedFromCanonicalReferences: boolean
-}
-
-export type PageQaRepairDecision = {
-  action: 'accept' | 'edit' | 'restart' | 'stop'
-  repeatedHardFailures: string[]
-  state: PageQaRepairStagnationState
-}
-
-export type PageQaRequest = {
-  pageNumber: number
-  pagePath: string
-  panelData: PanelBundleData
-  identityCards: string[]
-  locationSheets: string[]
-  designSheets?: string[] | undefined
-  characterReferences?: Array<{ key: string; description: string }> | undefined
-  locationReferences?: Array<{ key: string; specification: string }> | undefined
-  designReferences?: Array<{ key: string; usage: string }> | undefined
-  model: string
-}
-
-// Bumped when every judge verdict field became required: v1 reports predate the
-// location/continuity/shot-plan fields, so they are discarded rather than reused.
 export const PAGE_QA_REPORT_SCHEMA_VERSION = 2
 
 const HARD_SET_CONTINUITY_STATUSES: ReadonlySet<string> = new Set(['missing', 'relocated', 'duplicated', 'mirrored', 'redesigned'])
@@ -108,7 +38,7 @@ const hasExactKeys = (value: Record<string, unknown>, keys: readonly string[]): 
 export const parseComicPageQaResult = (text: string, expectedPanels: number[]): PageQaResult => {
   let value: unknown
   try { value = JSON.parse(text) } catch (error) {
-    throw ValidationError(`Page QA judge returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`, { stage: 'comic:page-qa' })
+    throw ValidationError(`Page QA judge returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`, { stage: 'comic:page-qa', ...(error instanceof Error ? { cause: error } : {}) })
   }
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw ValidationError('Page QA result must be an object.', { stage: 'comic:page-qa' })
   if (!hasExactKeys(value as Record<string, unknown>, ['panelStructure', 'panels', 'summary'])) throw ValidationError('Page QA result has missing or unexpected top-level fields.', { stage: 'comic:page-qa' })
@@ -180,7 +110,7 @@ export const createPageQaRepairStagnationState = (): PageQaRepairStagnationState
   restartedFromCanonicalReferences: false,
 })
 
-export const getPageQaHardFailureKeys = (entry: PageQaEntry): string[] => {
+const getPageQaHardFailureKeys = (entry: PageQaEntry): string[] => {
   if (!entry.hardFailure) return []
   const failures: string[] = []
   if (!entry.result.panelStructure.pass) failures.push('page:panelStructure')

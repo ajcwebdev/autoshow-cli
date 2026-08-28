@@ -41,9 +41,6 @@ export const draftScenesCommand = async (
   const runPanelPrompts = dependencies.runPanelPrompts ?? panelPromptsCommand
   const stages = getDraftSceneStages(options.only)
 
-  // Resolve a single run directory for this invocation. When nested under
-  // generate-images the run is already active and reused. The initial 'structure'
-  // stage produces a fresh run; partial runs of later stages resume the latest.
   if (!isSceneRunActive(options.sceneSlug)) {
     const startsFromSource = !options.only || options.only === 'structure'
     beginSceneRun(options.sceneSlug, { resume: !startsFromSource })

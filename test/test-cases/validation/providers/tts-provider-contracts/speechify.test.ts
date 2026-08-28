@@ -9,9 +9,10 @@ import { runSpeechifyTts } from '~/cli/commands/process-steps/step-4-tts/tts-ser
 import { ensureSpeechifyTtsCustomVoice } from '~/cli/commands/process-steps/step-4-tts/tts-services/speechify/speechify-custom-voices'
 import { createMockWavBase64, createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
 import {
+  captureGatedAssertions,
+  installMockFetch,
   LOCAL_AUDIO_PATH,
   LOCAL_SHORT_AUDIO_PATH,
-  installMockFetch,
   readWavSamples,
   segmentRms,
   setupTtsContractLifecycle,
@@ -34,7 +35,7 @@ describe('TTS provider service contracts', () => {
       const calls = installMockFetch(() => {
         attempt += 1
         if (attempt === 1) {
-          return new Response('try again', { status: 500 })
+          return new Response('slow down', { status: 429 })
         }
         return Response.json({ audio_data: audioBase64 })
       })
@@ -42,9 +43,7 @@ describe('TTS provider service contracts', () => {
       const result = await runSpeechifyTts('a'.repeat(2100), dir, {
         model: 'simba-3.2',
         voiceId: 'narrator_voice',
-        audioFormat: 'wav',
-        language: 'en-US',
-        allowAmbiguousRedispatch: true
+        language: 'en-US'
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
@@ -129,27 +128,22 @@ describe('TTS provider service contracts', () => {
       const runPromise = runSpeechifyTts(`${'A'.repeat(2000)} ${'B'.repeat(100)}`, dir, {
         model: 'simba-3.2',
         voiceId: 'narrator_voice',
-        audioFormat: 'wav',
         chunkConcurrency: 2
       })
-      let waitError: unknown
-
-      try {
+      const rethrowGatedAssertions = await captureGatedAssertions(async () => {
         await waitForCondition(() => started.length === 2, 'Speechify chunks did not start concurrently')
         expect(started).toEqual(['A', 'B'])
         expect(maxInFlight).toBe(2)
         for (const marker of ['B', 'A']) {
           releases.get(marker)?.()
         }
-      } catch (error) {
-        waitError = error
-      } finally {
+      }, () => {
         releaseImmediately = true
         for (const release of releases.values()) release()
-      }
+      })
 
       const result = await runPromise
-      if (waitError) throw waitError
+      rethrowGatedAssertions()
 
       const samples = await readWavSamples(result.audioPath)
       const first = segmentRms(samples, 0, 2)
@@ -232,7 +226,7 @@ describe('TTS provider service contracts', () => {
         method: 'POST',
         bodyJson: {
           voice_id: 'speechify_custom_voice_123',
-          audio_format: 'mp3',
+          audio_format: 'wav',
           model: 'simba-3.2',
           input: 'Speechify custom voice synthesis.'
         }

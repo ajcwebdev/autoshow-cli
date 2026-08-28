@@ -1,6 +1,6 @@
 import { commandSupportsInputFamily, isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
 import { resolveOcrStep2ExecutionFromFormat, resolveSttStep2Execution } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/resolved-step2'
-import type { InputFamily, OcrRuntimeOptions, OcrSelectionOptions, ProcessCommand, ResolvedInputRouting, SttSelectionOptions, UrlRuntimeOptions } from '~/types'
+import type { InputFamily, OcrSelectionOptions, ProcessCommand, ResolvedInputRouting, SttSelectionOptions, UrlRuntimeOptions } from '~/types'
 import { classifyInputFamily, isLikelyUrl, resolveDocumentFormatHint } from './metadata-input-classifier'
 
 export const describeUnsupportedInputForCommand = (
@@ -15,10 +15,7 @@ export const describeUnsupportedInputForCommand = (
   }
 
   if (command === 'write') {
-    if (family === 'unsupported') {
-      return 'write could not classify this input; use media, documents, images, HTML articles, X Space links, URL lists, directories, or --text-input for raw text'
-    }
-    return 'write only processes media, documents, images, HTML articles, X Space links, URL lists, directories, or explicit raw text inputs'
+    return 'write only accepts local .md or .txt files or directories of those files. Run bun autoshow extract <input> first, then bun autoshow write on the extracted text'
   }
 
   return 'unsupported input'
@@ -30,7 +27,6 @@ export const resolveInputRoutingForCommand = async (
   opts?: SttSelectionOptions
     & OcrSelectionOptions
     & Pick<UrlRuntimeOptions, 'urlBackendExplicit' | 'urlBackend' | 'urlBackends'>
-    & Pick<OcrRuntimeOptions, 'useEpubBun'>
 ): Promise<ResolvedInputRouting> => {
   const family = await classifyInputFamily(target, opts)
   const documentFormatHint = await resolveDocumentFormatHint(target, family)

@@ -1,8 +1,8 @@
 import { join, resolve as resolvePath } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { createPipelineItemFromRecord, derivePipelineItemRecord, PIPELINE_MANIFEST_FILE, readManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import type { AggregatedPriceEstimate, PipelineItemRecord, ProviderBatchResumeConfig, ProviderCompletionStatus, ProviderIdentity, ProviderResumeEntry, ProviderResumePassResult, ProviderResumePriceConfig, ProviderResumeProcessResult, ProviderResumeSnapshot, ResumeDisplayOptions, ResumeResult, ResumeTarget, Step1SourceRef, StepEstimate } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
+import { fileUrlToPath } from '~/utils/file-url-path'
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import * as l from '~/utils/app-logger/app-logger'
 import { logResumeItem, logResumeSummary } from './resume-logging'
@@ -16,7 +16,7 @@ export const resolveProviderResumeOutputDir = (record: PipelineItemRecord): stri
 export const toProviderResumeSource = (url: string): Step1SourceRef => {
   if (url.startsWith('file://')) {
     try {
-      return { filePath: fileURLToPath(url) }
+      return { filePath: fileUrlToPath(url) }
     } catch {
       return { filePath: decodeURIComponent(url.replace(/^file:\/\/+/, '/')) }
     }
@@ -28,7 +28,7 @@ export const toProviderResumeSource = (url: string): Step1SourceRef => {
 export const providerResumeSourceInput = (source: Step1SourceRef, stepLabel: string): string => {
   const input = source.filePath ?? source.url
   if (!input) {
-    throw CLIUsageError(`${stepLabel} resume entry is missing a resumable source file or URL.`)
+    throw UsageError(`${stepLabel} resume entry is missing a resumable source file or URL.`)
   }
   return input
 }
@@ -74,7 +74,7 @@ export const withProviderResumeOutputDir = (
   outputDir
 })
 
-export const readProviderResumeSnapshot = async (
+const readProviderResumeSnapshot = async (
   target: ResumeTarget,
   readItemRecord: (outputDir: string) => Promise<PipelineItemRecord>
 ): Promise<ProviderResumeSnapshot | undefined> => {
@@ -110,7 +110,7 @@ export const priceProviderResumeTarget = async <
 ): Promise<AggregatedPriceEstimate> => {
   const snapshot = await readProviderResumeSnapshot(target, config.readItemRecord)
   if (!snapshot) {
-    throw CLIUsageError(
+    throw UsageError(
       `Invalid ${config.stepLabel} manifest at ${join(target.dir, PIPELINE_MANIFEST_FILE)}`
     )
   }
@@ -203,7 +203,7 @@ export const runProviderResumePass = async <
 ): Promise<ProviderResumePassResult> => {
   const snapshot = await readProviderResumeSnapshot(target, config.readItemRecord)
   if (!snapshot) {
-    throw CLIUsageError(
+    throw UsageError(
       `Invalid ${config.stepLabel} manifest at ${join(target.dir, PIPELINE_MANIFEST_FILE)}`
     )
   }
@@ -224,7 +224,10 @@ export const runProviderResumePass = async <
   const updatedRecords: PipelineItemRecord[] = []
 
   if (totalPasses > 1) {
-    l.write('info', `${config.stepLabel} resume pass ${pass}/${totalPasses}`)
+    l.write('info', `${config.stepLabel} resume pass ${pass}/${totalPasses}`, {
+      category: 'pipeline',
+      metadata: { step: config.stepLabel, pass, totalPasses }
+    })
   }
 
   for (let index = 0; index < parsedEntries.length; index++) {

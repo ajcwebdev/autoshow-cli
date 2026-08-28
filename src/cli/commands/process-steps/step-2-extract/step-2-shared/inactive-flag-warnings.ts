@@ -4,30 +4,24 @@ export const HTML_ARTICLE_OCR_FLAGS_IGNORED_WARNING = 'OCR flags are ignored for
 export const CSV_OCR_FLAGS_IGNORED_WARNING = 'OCR flags are ignored for CSV inputs (CSV content is read as raw text).'
 export const CHAPTER_EXPORT_FLAGS_IGNORED_WARNING = 'Chapter export flags (--chapters, --no-chapters, --length) are ignored for inputs other than EPUB and PDF.'
 export const PDF_LENGTH_WITHOUT_CHAPTERS_WARNING = 'For PDF inputs, --length is ignored when --no-chapters is set.'
-export const EPUB_EXPORT_FLAGS_IGNORED_INSPECT_WARNING = 'EPUB export flags (--chapters, --no-chapters, --length) are ignored when using EPUB inspect mode.'
 export const EPUB_EXPORT_FLAGS_IGNORED_OCR_WARNING = 'EPUB export flags (--chapters, --no-chapters, --length) are ignored when an OCR engine is selected for EPUB input.'
-export const EPUB_INSPECT_NON_EPUB_INFO = 'EPUB inspect flag was provided for a non-EPUB input. Falling back to normal extract flow for this file.'
-export const EPUB_INSPECT_JSON_ONLY_ERROR = 'EPUB inspect mode supports JSON output only. Use --format json with --epub-bun.'
 
 const hasSelectedModel = (
-  values: string[] | undefined,
-  value: string | undefined
-): boolean => (values?.length ?? 0) > 0 || (typeof value === 'string' && value.length > 0)
+  values: string[] | undefined
+): boolean => (values?.length ?? 0) > 0
 
 export const hasConfiguredOcrProviderSelection = (
   opts: OcrSelectionState
 ): boolean =>
   opts.useTesseract === true
-  || hasSelectedModel(opts.mistralOcrModels, opts.mistralOcrModel)
-  || hasSelectedModel(opts.glmOcrModels, opts.glmOcrModel)
-  || hasSelectedModel(opts.kimiOcrModels, opts.kimiOcrModel)
-  || hasSelectedModel(opts.openaiOcrModels, opts.openaiOcrModel)
-  || hasSelectedModel(opts.grokOcrModels, opts.grokOcrModel)
-  || hasSelectedModel(opts.anthropicOcrModels, opts.anthropicOcrModel)
-  || hasSelectedModel(opts.geminiOcrModels, opts.geminiOcrModel)
-  || hasSelectedModel(opts.deepinfraOcrModels, opts.deepinfraOcrModel)
-  || hasSelectedModel(opts.replicateOcrModels, opts.replicateOcrModel)
-  || hasSelectedModel(opts.falOcrModels, opts.falOcrModel)
+  || hasSelectedModel(opts.mistralOcrModels)
+  || hasSelectedModel(opts.glmOcrModels)
+  || hasSelectedModel(opts.kimiOcrModels)
+  || hasSelectedModel(opts.openaiOcrModels)
+  || hasSelectedModel(opts.grokOcrModels)
+  || hasSelectedModel(opts.anthropicOcrModels)
+  || hasSelectedModel(opts.geminiOcrModels)
+  || hasSelectedModel(opts.deepinfraOcrModels)
 
 export const formatHtmlArticleOcrFlagsIgnoredWarning = (
   target?: string

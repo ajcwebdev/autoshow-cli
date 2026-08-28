@@ -1,4 +1,4 @@
-import { mkdtemp, rm, stat } from 'node:fs/promises'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-child-output'
@@ -10,6 +10,7 @@ import { calibreBin } from '~/cli/commands/setup-and-utilities/setup/setup-downl
 import type { BatchChildRunContext, DocFormat, EbookConvertCommandOptions, PreparedDocument, PreparedDocumentMetadata, Step1SourceRef } from '~/types'
 import { DocumentMetadataSchema } from '~/types'
 import { ensureDirectory, exec } from '~/utils/cli-utils'
+import { statPath as stat } from '~/utils/bun-file-io'
 import * as l from '~/utils/app-logger/app-logger'
 import { validateData } from '~/utils/validate/validation'
 import { InfraError, ValidationError } from '~/utils/error-handler'
@@ -116,7 +117,6 @@ export const prepareDocumentMetadata = async (
   let title = baseTitle
   let author: string | undefined
 
-  // Normalizable ebook inputs are converted once, then routed through EPUB extraction.
   let effectiveFilePath: string | undefined
   let tempDir: string | undefined
   let tempCleanup: (() => Promise<void>) | undefined
@@ -124,7 +124,10 @@ export const prepareDocumentMetadata = async (
   let conversionChain: string[] | undefined
 
   if (isConvertibleEbookFormat(detectedFormat)) {
-    l.write('info', `Normalizing ${detectedFormat.toUpperCase()} ebook to EPUB via Calibre`)
+    l.write('info', `Normalizing ${detectedFormat.toUpperCase()} ebook to EPUB via Calibre`, {
+      category: 'pipeline',
+      metadata: { sourceFormat: detectedFormat, targetFormat: 'epub', tool: 'calibre' }
+    })
     tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ebook-norm-'))
     tempCleanup = async () => {
       if (tempDir) {
@@ -133,7 +136,6 @@ export const prepareDocumentMetadata = async (
     }
 
     const convResult = await normalizeEbookToEpub(filePath, tempDir).catch(async (err) => {
-      // cleanup on failure
       if (tempDir) await rm(tempDir, { recursive: true, force: true })
       throw err
     })

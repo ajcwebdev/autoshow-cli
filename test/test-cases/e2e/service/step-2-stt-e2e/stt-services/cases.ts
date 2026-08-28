@@ -54,15 +54,6 @@ export const mistralVoxtralMini = {
   envVarDescription: 'Mistral transcription',
 } as const
 
-export const revTranscription = {
-  provider: 'rev',
-  sttService: 'rev',
-  envVarKey: 'REVAI_ACCESS_TOKEN',
-  envVarDescription: 'Rev transcription',
-  inputPath: 'input/examples/audio/0-audio-short.mp3',
-  inputTitle: '0-audio-short',
-} as const
-
 export const sonioxTranscription = {
   provider: 'soniox',
   sttService: 'soniox',

@@ -1,6 +1,4 @@
-import type { OutputFormat } from '~/types'
-
-export type OcrOutputFormat = OutputFormat
+export type OcrOutputFormat = 'text' | 'tsv'
 
 export type TesseractOcrResult = {
   text: string

@@ -31,7 +31,7 @@ export const ExtractionOptionsSchema = v.object({
   outputDir: v.string(),
   dpi: v.optional(v.number(), 300),
   languages: v.optional(v.string(), 'eng'),
-  outputFormat: v.optional(v.picklist(['text', 'json', 'tsv', 'hocr']), 'text'),
+  outputFormat: v.optional(v.picklist(['text', 'json']), 'text'),
   password: v.optional(v.string(), undefined),
   renderConcurrency: v.optional(v.number(), undefined),
   ocrConcurrency: v.optional(v.number(), undefined),
@@ -58,10 +58,6 @@ export const ExtractionOptionsSchema = v.object({
   geminiOcrModels: v.optional(v.array(v.string()), undefined),
   deepinfraOcrModel: v.optional(v.string(), undefined),
   deepinfraOcrModels: v.optional(v.array(v.string()), undefined),
-  replicateOcrModel: v.optional(v.string(), undefined),
-  replicateOcrModels: v.optional(v.array(v.string()), undefined),
-  falOcrModel: v.optional(v.string(), undefined),
-  falOcrModels: v.optional(v.array(v.string()), undefined),
   configPath: v.optional(v.string(), undefined),
   primaryOcr: v.optional(v.string(), undefined),
   chapterFiles: v.optional(v.boolean(), undefined),
@@ -69,7 +65,6 @@ export const ExtractionOptionsSchema = v.object({
   pdfChapterMode: v.optional(v.picklist(['local', 'auto', 'llm']), 'local'),
   pdfChapterLlmService: v.optional(v.string(), undefined),
   pdfChapterLlmModel: v.optional(v.string(), undefined),
-  useEpubBun: v.optional(v.boolean(), undefined),
   step2SelectionOrigins: v.optional(v.record(
     v.string(),
     v.picklist(['default', 'explicit', 'all-shortcut'])
@@ -95,7 +90,6 @@ export const ExtractionResultSchema = v.object({
   textPages: v.number()
 })
 
-const EpubInspectionSchema = v.record(v.string(), v.unknown())
 const ChapterExportSummarySchema = v.object({
   sourceFormat: v.picklist(['epub', 'pdf']),
   normalizedFrom: v.optional(v.string(), undefined),
@@ -119,7 +113,7 @@ const ChapterExportSummarySchema = v.object({
 
 export const ExtractionMetadataSchema = v.object({
   extractionMethod: v.picklist([
-    'docx', 'pptx', 'xlsx', 'odf', 'tesseract', 'mutool+tesseract', 'mistral-ocr', 'openai-ocr', 'grok-ocr', 'ocr-pool', 'epub-bun',
+    'docx', 'pptx', 'xlsx', 'odf', 'tesseract', 'mutool+tesseract', 'mistral-ocr', 'openai-ocr', 'grok-ocr', 'ocr-pool',
     'epub-text',
     'pdf-text', 'pdf+tesseract', 'pdf+mistral-ocr', 'pdf+glm-ocr', 'pdf+kimi-ocr', 'pdf+openai-ocr', 'pdf+grok-ocr', 'pdf+anthropic-ocr', 'pdf+gemini-ocr', 'pdf+deepinfra-ocr', 'pdf+replicate-ocr', 'pdf+fal-ocr',
     'office-native', 'rtf-native',
@@ -148,7 +142,6 @@ export const ExtractionMetadataSchema = v.object({
   ocrService: v.optional(v.string(), undefined),
   promptTokens: v.optional(v.number(), undefined),
   completionTokens: v.optional(v.number(), undefined),
-  epub: v.optional(EpubInspectionSchema, undefined),
   chapterExport: v.optional(ChapterExportSummarySchema, undefined),
   pdfChapterDetection: v.optional(v.record(v.string(), v.unknown()), undefined),
   inputFamily: v.optional(v.string(), undefined),

@@ -1,6 +1,5 @@
-import type { Step2Metadata, SttTarget, SttTargetOptions, TranscriptionResult, WhisperProgressWindow } from '~/types'
-import { assertNever } from '~/utils/validate/assert-never'
-import { InternalError } from '~/utils/error-handler'
+import type { Step2Metadata, SttDispatchContext, SttDispatcher, SttTarget, SttTargetOptions, TranscriptionResult, WhisperProgressWindow } from '~/types'
+import { InternalError, UsageError } from '~/utils/error-handler'
 import { runWhisperTranscribe } from '../stt-local/whisper/run-whisper'
 import { runWhisperfileTranscribe } from '../stt-local/whisperfile/run-whisperfile'
 import { runAssemblyAiTranscribe } from '../stt-services/assemblyai/run-assemblyai-stt'
@@ -12,12 +11,82 @@ import { runGrokStt } from '../stt-services/stt-grok/run-grok-stt'
 import { runGroqTranscribe } from '../stt-services/stt-groq/run-whisper-groq'
 import { runHappyScribeStt } from '../stt-services/happyscribe/run-happyscribe-stt'
 import { runMistralStt } from '../stt-services/stt-mistral/run-mistral-stt'
-import { runRevStt } from '../stt-services/rev/run-rev-stt'
 import { runScrapeCreatorsStt } from '../stt-services/scrapecreators/run-scrapecreators-stt'
 import { runSonioxStt } from '../stt-services/soniox/run-soniox-stt'
 import { runSpeechmaticsStt } from '../stt-services/speechmatics/run-speechmatics-stt'
 import { runSupadataStt } from '../stt-services/stt-supadata/run-supadata-stt'
 import { runTogetherStt } from '../stt-services/together/run-together-stt'
+
+const minimalOptions = (context: SttDispatchContext) => ({
+  model: context.target.model,
+  segmentOffsetMinutes: context.segmentOffsetMinutes,
+  segmentNumber: context.segmentNumber,
+  totalSegments: context.totalSegments
+})
+
+const basicOptions = (context: SttDispatchContext) => ({
+  ...minimalOptions(context),
+  audioDurationSeconds: context.options.audioDurationSeconds
+})
+
+const asyncJobOptions = (context: SttDispatchContext) => ({
+  ...basicOptions(context),
+  diarizationOptions: context.target.diarizationOptions,
+  runMode: context.options.runMode,
+  lifecycle: context.options.asyncLifecycle
+})
+
+const whisperOptions = (context: SttDispatchContext) => ({
+  ...basicOptions(context),
+  segmentStartSeconds: context.whisperProgress?.segmentStartSeconds,
+  segmentDurationSeconds: context.whisperProgress?.segmentDurationSeconds,
+  totalDurationSeconds: context.whisperProgress?.totalDurationSeconds,
+  preserveJson: true
+})
+
+const sttDispatchers = {
+  deepgram: async context => await runDeepgramTranscribe(context.audioPath, context.outputDir, minimalOptions(context)),
+  deepinfra: async context => await runDeepinfraTranscribe(context.audioPath, context.outputDir, basicOptions(context)),
+  soniox: async context => await runSonioxStt(context.audioPath, context.outputDir, asyncJobOptions(context)),
+  speechmatics: async context => await runSpeechmaticsStt(context.audioPath, context.outputDir, asyncJobOptions(context)),
+  rev: async () => {
+    throw UsageError('Rev STT is retired and cannot dispatch. Start a new target with an active STT provider.')
+  },
+  groq: async context => await runGroqTranscribe(context.audioPath, context.outputDir, basicOptions(context)),
+  grok: async context => await runGrokStt(context.audioPath, context.outputDir, minimalOptions(context)),
+  whisper: async context => await runWhisperTranscribe(context.audioPath, context.outputDir, whisperOptions(context)),
+  whisperfile: async context => await runWhisperfileTranscribe(context.audioPath, context.outputDir, whisperOptions(context)),
+  mistral: async context => await runMistralStt(context.audioPath, context.outputDir, {
+    ...minimalOptions(context),
+    diarizationOptions: context.target.diarizationOptions,
+    passController: context.options.mistralPassController
+  }),
+  assemblyai: async context => await runAssemblyAiTranscribe(context.audioPath, context.outputDir, asyncJobOptions(context)),
+  gladia: async context => await runGladiaStt(context.audioPath, context.outputDir, asyncJobOptions(context)),
+  happyscribe: async context => await runHappyScribeStt(context.audioPath, context.outputDir, {
+    ...basicOptions(context),
+    happyscribeOrganizationId: context.options.happyscribeOrganizationId,
+    runMode: context.options.runMode,
+    lifecycle: context.options.asyncLifecycle
+  }),
+  supadata: async context => await runSupadataStt(context.audioPath, context.outputDir, {
+    ...basicOptions(context),
+    sourceUrl: context.options.sourceUrl,
+    language: context.options.language,
+    runMode: context.options.runMode,
+    lifecycle: context.options.asyncLifecycle
+  }),
+  scrapecreators: async context => await runScrapeCreatorsStt(context.audioPath, context.outputDir, {
+    ...minimalOptions(context),
+    sourceUrl: context.options.sourceUrl,
+    language: context.options.language
+  }),
+  'gemini-stt': async context => await runGeminiStt(context.audioPath, context.outputDir, basicOptions(context)),
+  together: async context => await runTogetherStt(context.audioPath, context.outputDir, basicOptions(context)),
+  'youtube-captions': async () => {
+    throw InternalError('youtube-captions is resolved before STT provider dispatch', { stage: 'stt:dispatch' })
+  }
+} satisfies Record<SttTarget['service'], SttDispatcher>
 
 export const dispatchStt = async (
   target: SttTarget,
@@ -28,210 +97,13 @@ export const dispatchStt = async (
   segmentNumber?: number,
   totalSegments?: number,
   whisperProgress?: WhisperProgressWindow | undefined
-): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  if (target.service === 'deepgram') {
-    return await runDeepgramTranscribe(audioPath, outputDir, {
-      model: target.model,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments
-    })
-  }
-
-  if (target.service === 'deepinfra') {
-    return await runDeepinfraTranscribe(audioPath, outputDir, {
-      model: target.model,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments,
-      audioDurationSeconds: options.audioDurationSeconds
-    })
-  }
-
-  if (target.service === 'soniox') {
-    return await runSonioxStt(audioPath, outputDir, {
-      model: target.model,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments,
-      diarizationOptions: target.diarizationOptions,
-      audioDurationSeconds: options.audioDurationSeconds,
-      runMode: options.runMode,
-      lifecycle: options.asyncLifecycle
-    })
-  }
-
-  if (target.service === 'speechmatics') {
-    return await runSpeechmaticsStt(audioPath, outputDir, {
-      model: target.model,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments,
-      diarizationOptions: target.diarizationOptions,
-      audioDurationSeconds: options.audioDurationSeconds,
-      runMode: options.runMode,
-      lifecycle: options.asyncLifecycle
-    })
-  }
-
-  if (target.service === 'rev') {
-    return await runRevStt(audioPath, outputDir, {
-      model: target.model,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments,
-      diarizationOptions: target.diarizationOptions,
-      audioDurationSeconds: options.audioDurationSeconds,
-      runMode: options.runMode,
-      lifecycle: options.asyncLifecycle
-    })
-  }
-
-  if (target.service === 'groq') {
-    return await runGroqTranscribe(audioPath, outputDir, {
-      model: target.model,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments,
-      audioDurationSeconds: options.audioDurationSeconds
-    })
-  }
-
-  if (target.service === 'grok') {
-    return await runGrokStt(audioPath, outputDir, {
-      model: target.model,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments
-    })
-  }
-
-  if (target.service === 'whisper') {
-    return await runWhisperTranscribe(audioPath, outputDir, {
-      model: target.model,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments,
-      audioDurationSeconds: options.audioDurationSeconds,
-      segmentStartSeconds: whisperProgress?.segmentStartSeconds,
-      segmentDurationSeconds: whisperProgress?.segmentDurationSeconds,
-      totalDurationSeconds: whisperProgress?.totalDurationSeconds,
-      preserveJson: true
-    })
-  }
-
-  if (target.service === 'whisperfile') {
-    return await runWhisperfileTranscribe(audioPath, outputDir, {
-      model: target.model,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments,
-      audioDurationSeconds: options.audioDurationSeconds,
-      segmentStartSeconds: whisperProgress?.segmentStartSeconds,
-      segmentDurationSeconds: whisperProgress?.segmentDurationSeconds,
-      totalDurationSeconds: whisperProgress?.totalDurationSeconds,
-      preserveJson: true
-    })
-  }
-
-  if (target.service === 'mistral') {
-    return await runMistralStt(audioPath, outputDir, {
-      model: target.model,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments,
-      diarizationOptions: target.diarizationOptions,
-      passController: options.mistralPassController
-    })
-  }
-
-  if (target.service === 'assemblyai') {
-    return await runAssemblyAiTranscribe(audioPath, outputDir, {
-      model: target.model,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments,
-      diarizationOptions: target.diarizationOptions,
-      audioDurationSeconds: options.audioDurationSeconds,
-      runMode: options.runMode,
-      lifecycle: options.asyncLifecycle
-    })
-  }
-
-  if (target.service === 'gladia') {
-    return await runGladiaStt(audioPath, outputDir, {
-      model: target.model,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments,
-      diarizationOptions: target.diarizationOptions,
-      audioDurationSeconds: options.audioDurationSeconds,
-      runMode: options.runMode,
-      lifecycle: options.asyncLifecycle
-    })
-  }
-
-  if (target.service === 'happyscribe') {
-    return await runHappyScribeStt(audioPath, outputDir, {
-      model: target.model,
-      happyscribeOrganizationId: options.happyscribeOrganizationId,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments,
-      audioDurationSeconds: options.audioDurationSeconds,
-      runMode: options.runMode,
-      lifecycle: options.asyncLifecycle
-    })
-  }
-
-  if (target.service === 'supadata') {
-    return await runSupadataStt(audioPath, outputDir, {
-      model: target.model,
-      sourceUrl: options.sourceUrl,
-      language: options.language,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments,
-      audioDurationSeconds: options.audioDurationSeconds,
-      runMode: options.runMode,
-      lifecycle: options.asyncLifecycle
-    })
-  }
-
-  if (target.service === 'scrapecreators') {
-    return await runScrapeCreatorsStt(audioPath, outputDir, {
-      model: target.model,
-      sourceUrl: options.sourceUrl,
-      language: options.language,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments
-    })
-  }
-
-  if (target.service === 'gemini-stt') {
-    return await runGeminiStt(audioPath, outputDir, {
-      model: target.model,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments,
-      audioDurationSeconds: options.audioDurationSeconds
-    })
-  }
-
-  if (target.service === 'together') {
-    return await runTogetherStt(audioPath, outputDir, {
-      model: target.model,
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments,
-      audioDurationSeconds: options.audioDurationSeconds
-    })
-  }
-
-  if (target.service === 'youtube-captions') {
-    throw InternalError('youtube-captions is resolved before STT provider dispatch', { stage: 'stt:dispatch' })
-  }
-
-  assertNever(target.service)
-}
+): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => await sttDispatchers[target.service]({
+  target,
+  audioPath,
+  outputDir,
+  segmentOffsetMinutes,
+  options,
+  segmentNumber,
+  totalSegments,
+  whisperProgress
+})

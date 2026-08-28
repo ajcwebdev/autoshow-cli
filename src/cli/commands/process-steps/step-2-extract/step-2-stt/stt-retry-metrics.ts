@@ -1,14 +1,10 @@
 import type { RetryClass, RetryDecision, SttRequestMetrics, SttRetryMetrics } from '~/types'
 import { classifyFetchRetry } from '~/utils/retries'
+import { getErrorStatus } from '~/utils/error-handler'
 export const createSttRetryMetrics = (): SttRetryMetrics => ({
   retryCount: 0,
   rateLimitCount: 0
 })
-
-export const getSttErrorStatus = (error: unknown): number | undefined =>
-  error && typeof error === 'object' && 'status' in error && typeof (error as { status?: unknown }).status === 'number'
-    ? (error as { status: number }).status
-    : undefined
 
 export const recordSttRetryMetric = (
   metrics: SttRetryMetrics,
@@ -20,7 +16,7 @@ export const recordSttRetryMetric = (
   }
 
   metrics.retryCount += 1
-  if (getSttErrorStatus(error) === 429) {
+  if (getErrorStatus(error) === 429) {
     metrics.rateLimitCount += 1
   }
 }

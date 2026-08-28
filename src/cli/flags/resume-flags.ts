@@ -1,8 +1,8 @@
 import {
   batchFlags,
-  allArticleFlags,
   booleanAllLocalFlag,
   booleanAllProvidersFlag,
+  articleTuningFlags,
   ocrInputFlags,
   ocrProviderModeFlag,
   ocrTuningFlags,
@@ -13,7 +13,6 @@ import {
   transcriptionFlags
 } from './shared-flags'
 import { formatProviderList, pickFlags, strListFlag, withHelpGroup } from './flag-utils'
-import { epubInspectFlags } from './ocr-flags'
 import { dialogueTtsCommandOptionNames, genericTtsOptionFlags, ttsFlags } from './tts-flags'
 import { imageGenFlags, imageGenerationOptionNames, imageInputOptionNames, imageProviderSpecificOptionNames } from './image-flags'
 import { videoGenFlags, videoGenerationOptionNames, videoInputOptionNames } from './video-flags'
@@ -43,10 +42,6 @@ const resumeProviderSelectionFlags = {
   ...sharedConcurrencyFlags
 } as const satisfies CliFlagsDefinition
 
-// Resume never accepts provider-named option flags. Provider choice belongs to
-// --provider provider[=model], and per-provider tuning belongs to the original
-// command or autoshow.config, so every group below is an explicit allow-list of
-// provider-neutral options rather than a deny-list that leaks new provider flags.
 const resumeTranscriptionOptionNames = [
   'youtube-captions',
   'speaker-count',
@@ -61,8 +56,7 @@ export const resumeFlags = {
   ...withHelpGroup(pickFlags(batchFlags, ['batch-concurrency']), 'batch-processing'),
   ...withHelpGroup(pickFlags(transcriptionFlags, resumeTranscriptionOptionNames), 'transcription'),
   ...withHelpGroup({ ...ocrInputFlags, ...ocrTuningFlags, ...ocrProviderModeFlag, ...reasoningEffortFlag }, 'ocr-document'),
-  ...withHelpGroup(allArticleFlags, 'article-extraction'),
-  ...withHelpGroup(epubInspectFlags, 'epub-inspect'),
+  ...withHelpGroup(articleTuningFlags, 'article-extraction'),
   ...withHelpGroup(promptFlag, 'writing'),
   ...withHelpGroup({
     ...genericTtsOptionFlags,

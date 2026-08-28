@@ -6,9 +6,9 @@ import { withTempImageFixture } from './shared'
 
 describe('provider selection contracts', () => {
   test('gpt-image-2 accepts flexible valid OpenAI image sizes', () => {
-    const opts = buildOptsFromFlags(false, {
+    const opts = buildOptsFromFlags({
       'openai-image': ['gpt-image-2'],
-      'image-size': '2048x1152'
+      'size': '2048x1152'
     })
 
     expect(collectImageTargets(opts).map((target) => `${target.service}:${target.model}`)).toEqual([
@@ -18,16 +18,16 @@ describe('provider selection contracts', () => {
 
   test('OpenAI image size validation is model-specific', () => {
     for (const invalidSize of ['1025x1024', '4096x1024', '3840x1024', '800x800', '3840x3840']) {
-      const opts = buildOptsFromFlags(false, {
+      const opts = buildOptsFromFlags({
         'openai-image': ['gpt-image-2'],
-        'image-size': invalidSize
+        'size': invalidSize
       })
-      expect(() => collectImageTargets(opts)).toThrow(`Invalid --image-size value "${invalidSize}" for gpt-image-2`)
+      expect(() => collectImageTargets(opts)).toThrow(`Invalid --size value "${invalidSize}" for gpt-image-2`)
     }
 
-    const validFlexibleSizeOpts = buildOptsFromFlags(false, {
+    const validFlexibleSizeOpts = buildOptsFromFlags({
       'openai-image': ['gpt-image-2'],
-      'image-size': '2048x1152'
+      'size': '2048x1152'
     })
     expect(collectImageTargets(validFlexibleSizeOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'openai:gpt-image-2'
@@ -35,19 +35,19 @@ describe('provider selection contracts', () => {
   })
 
   test('gpt-image-2 rejects transparent background', () => {
-    const opts = buildOptsFromFlags(false, {
+    const opts = buildOptsFromFlags({
       'openai-image': ['gpt-image-2'],
-      'image-background': 'transparent'
+      'background': 'transparent'
     })
 
-    expect(() => collectImageTargets(opts)).toThrow('--image-background transparent is not supported by OpenAI/gpt-image-2')
+    expect(() => collectImageTargets(opts)).toThrow('--background transparent is not supported by OpenAI/gpt-image-2')
   })
 
   test('image-count maps only to providers with native multi-image request support', () => {
-    const multiOpts = buildOptsFromFlags(false, {
+    const multiOpts = buildOptsFromFlags({
       'openai-image': ['gpt-image-2'],
       'grok-image': ['grok-imagine-image-quality'],
-      'image-count': '3'
+      'count': '3'
     })
     const targets = collectImageTargets(multiOpts)
     expect(targets.map((target) => `${target.service}:${target.model}`)).toEqual([
@@ -59,9 +59,9 @@ describe('provider selection contracts', () => {
       ['gemini-image', 'gemini-3.1-flash-lite-image', 'Gemini'],
       ['bfl-image', 'flux-2-pro', 'BFL']
     ] as const) {
-      const opts = buildOptsFromFlags(false, {
+      const opts = buildOptsFromFlags({
         [flag]: [model],
-        'image-count': '2'
+        'count': '2'
       })
       expect(() => collectImageTargets(opts)).toThrow(`${providerName}/${model}`)
     }
@@ -69,28 +69,28 @@ describe('provider selection contracts', () => {
 
   test('image edit/reference flags validate provider and model support', () => {
     withTempImageFixture('autoshow-image-input-', (imagePath, tempDir) => {
-      const openaiEditOpts = buildOptsFromFlags(false, {
+      const openaiEditOpts = buildOptsFromFlags({
         'openai-image': ['gpt-image-2'],
-        'image-input': [imagePath]
+        'input': [imagePath]
       })
       expect(collectImageTargets(openaiEditOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
         'openai:gpt-image-2'
       ])
 
-      const bflEditOpts = buildOptsFromFlags(false, {
+      const bflEditOpts = buildOptsFromFlags({
         'bfl-image': ['flux-2-pro'],
-        'image-input': [imagePath]
+        'input': [imagePath]
       })
       expect(collectImageTargets(bflEditOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
         'bfl:flux-2-pro'
       ])
 
       const missingPath = join(tempDir, 'missing.png')
-      const missingInputOpts = buildOptsFromFlags(false, {
+      const missingInputOpts = buildOptsFromFlags({
         'openai-image': ['gpt-image-2'],
-        'image-input': [missingPath]
+        'input': [missingPath]
       })
-      expect(() => collectImageTargets(missingInputOpts)).toThrow(`--image-input file "${missingPath}" does not exist`)
+      expect(() => collectImageTargets(missingInputOpts)).toThrow(`--input file "${missingPath}" does not exist`)
     })
   })
 })

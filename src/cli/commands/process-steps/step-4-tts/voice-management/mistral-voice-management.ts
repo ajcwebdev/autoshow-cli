@@ -1,43 +1,13 @@
 import { basename } from 'node:path'
-import type { ProviderVoiceRef, SanitizedProviderVoiceMetadata } from '~/types'
-import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
+import type { MistralSavedVoiceCreateInput, MistralSavedVoiceObservation, MistralVoiceManagementRequest, ProviderVoiceRef, SanitizedProviderVoiceMetadata } from '~/types'
+import { UsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 import { MISTRAL_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { mistralJsonRequest } from '~/utils/mistral/mistral-client'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import { hashCanonicalTtsValue, sha256Bytes } from '../script-to-audio/contract-identity'
-
-export type MistralVoiceManagementRequest = <T = unknown>(options: {
-  apiKey: string
-  baseURL?: string | undefined
-  path: string
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE' | undefined
-  body?: unknown
-  timeoutMs?: number | undefined
-  errorMessagePrefix: string
-}) => Promise<T>
-
-export type MistralSavedVoiceCreateInput = {
-  apiKey: string
-  protectedSamplePath: string
-  name: string
-  slug: string
-  languages?: string[] | undefined
-  gender?: string | undefined
-  age?: number | undefined
-  tags?: string[] | undefined
-  retentionNoticeDays?: number | undefined
-  baseURL?: string | undefined
-  request?: MistralVoiceManagementRequest | undefined
-}
-
-export type MistralSavedVoiceObservation = {
-  providerVoice: Extract<ProviderVoiceRef, { kind: 'remote-resource' }>
-  accountScopeHash: string
-  sanitizedMetadata: SanitizedProviderVoiceMetadata
-  sanitizedResponseHash: string
-  observedAt: string
-}
+import { hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
+import { deriveProviderAccountScopeHash } from '~/utils/account-scope-hash'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 const readRequiredString = (value: Record<string, unknown>, key: string): string => {
   const field = value[key]
@@ -65,15 +35,15 @@ const sanitizeVoiceResponse = (payload: unknown): { id: string, metadata: Saniti
 const requestDefault: MistralVoiceManagementRequest = async options => await mistralJsonRequest(options)
 
 export const mistralAccountScopeHash = (apiKey: string): string => {
-  if (!apiKey.trim()) throw CLIUsageError('Mistral voice management requires an API key.')
-  return sha256Bytes(`mistral-account-scope-v1\0${apiKey}`)
+  const credential = resolveCredential('mistral', 'require', { stage: 'voice:mistral', providedValue: apiKey, useProvidedValue: true, description: 'Mistral voice management' })
+  return deriveProviderAccountScopeHash('mistral', credential)
 }
 
 export const createMistralSavedVoice = async (
   input: MistralSavedVoiceCreateInput
 ): Promise<MistralSavedVoiceObservation> => {
-  if (!input.name.trim()) throw CLIUsageError('Mistral saved voice requires a name.')
-  if (!/^[a-z0-9][a-z0-9-]{0,127}$/.test(input.slug)) throw CLIUsageError('Mistral saved voice slug must be lowercase letters, numbers, and hyphens.')
+  if (!input.name.trim()) throw UsageError('Mistral saved voice requires a name.')
+  if (!/^[a-z0-9][a-z0-9-]{0,127}$/.test(input.slug)) throw UsageError('Mistral saved voice slug must be lowercase letters, numbers, and hyphens.')
   const sample = Bun.file(input.protectedSamplePath)
   if (!await sample.exists()) throw InfraError('Protected Mistral voice sample is unavailable.', { stage: 'voice:mistral' })
   const bytes = new Uint8Array(await sample.arrayBuffer())
@@ -125,7 +95,7 @@ export const inspectMistralSavedVoice = async (input: {
   baseURL?: string | undefined
   request?: MistralVoiceManagementRequest | undefined
 }): Promise<MistralSavedVoiceObservation> => {
-  if (!input.voiceId.trim()) throw CLIUsageError('Mistral voice inspection requires a voice ID.')
+  if (!input.voiceId.trim()) throw UsageError('Mistral voice inspection requires a voice ID.')
   const payload = await (input.request ?? requestDefault)({
     apiKey: input.apiKey,
     baseURL: input.baseURL ?? MISTRAL_DEFAULT_BASE_URL,
@@ -150,24 +120,13 @@ export const inspectMistralSavedVoice = async (input: {
   }
 }
 
-export const inspectMistralSavedVoiceIfPresent = async (
-  input: Parameters<typeof inspectMistralSavedVoice>[0]
-): Promise<MistralSavedVoiceObservation | undefined> => {
-  try {
-    return await inspectMistralSavedVoice(input)
-  } catch (error) {
-    if (typeof error === 'object' && error !== null && 'status' in error && (error as { status?: unknown }).status === 404) return undefined
-    throw error
-  }
-}
-
 export const findMistralSavedVoiceBySlug = async (input: {
   apiKey: string
   slug: string
   baseURL?: string | undefined
   request?: MistralVoiceManagementRequest | undefined
 }): Promise<MistralSavedVoiceObservation | undefined> => {
-  if (!input.slug.trim()) throw CLIUsageError('Mistral reconciliation requires a saved voice slug.')
+  if (!input.slug.trim()) throw UsageError('Mistral reconciliation requires a saved voice slug.')
   const matches: Record<string, unknown>[] = []
   const pageSize = 1000
   let offset = 0
@@ -202,9 +161,9 @@ export const deleteMistralSavedVoice = async (input: {
   request?: MistralVoiceManagementRequest | undefined
 }): Promise<{ deletedAt: string, providerVoice: ProviderVoiceRef }> => {
   const voice = input.providerVoice
-  if (voice.provider !== 'mistral' || voice.ownership !== 'project' || voice.deletion.state !== 'eligible') throw CLIUsageError('AutoShow can delete only an eligibility-checked project-owned Mistral voice.')
-  if (voice.namespace !== 'account' || voice.accountScopeHash !== mistralAccountScopeHash(input.apiKey)) throw CLIUsageError('Mistral deletion credentials do not match the registered account scope.')
-  if (input.confirmResourceId !== voice.resourceId) throw CLIUsageError('Mistral deletion confirmation does not match the exact resource ID.')
+  if (voice.provider !== 'mistral' || voice.ownership !== 'project' || voice.deletion.state !== 'eligible') throw UsageError('AutoShow can delete only an eligibility-checked project-owned Mistral voice.')
+  if (voice.namespace !== 'account' || voice.accountScopeHash !== mistralAccountScopeHash(input.apiKey)) throw UsageError('Mistral deletion credentials do not match the registered account scope.')
+  if (input.confirmResourceId !== voice.resourceId) throw UsageError('Mistral deletion confirmation does not match the exact resource ID.')
   const payload = await (input.request ?? requestDefault)({
     apiKey: input.apiKey,
     baseURL: input.baseURL ?? MISTRAL_DEFAULT_BASE_URL,

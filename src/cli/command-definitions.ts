@@ -1,4 +1,4 @@
-import { configCommand } from './commands/setup-and-utilities/config/define-config-command'
+import { configCommand } from './commands/setup-and-utilities/config-command/define-config-command'
 import { metadataCommand } from '~/cli/commands/process-steps/step-0-metadata/define-metadata-command'
 import { downloadCommand } from '~/cli/commands/process-steps/step-1-download/define-download-command'
 import { extractCommand } from '~/cli/commands/process-steps/step-2-extract/define-extract-command'

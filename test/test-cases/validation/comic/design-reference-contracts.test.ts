@@ -22,8 +22,6 @@ const referenceInput = (bundleData: PanelBundleData): PanelPrimaryReferenceInput
 
 describe('design reference contracts', () => {
   test('design references resolve from designReferenceKeys, not from the authored designReferences list', () => {
-    // `designReferenceKeys` is the only resolution source. A bundle carrying authored
-    // `designReferences` without the keys the writer emits alongside them requests nothing.
     const authoredOnly = panelBundle({
       designReferences: [{ key: 'console-panel', sourcePath: 'input/examples/comic/console.png', usage: 'Bridge console layout' }],
     })

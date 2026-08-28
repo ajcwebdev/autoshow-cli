@@ -56,7 +56,7 @@ export const collectSttProviderSpecs = (
   const specs = collectStep2ProviderSpecs('stt', options, filter)
 
   if (specs.length === 0 && !filter?.includeOrigins) {
-    specs.push({ provider: 'whisper', model: options.whisperModel })
+    specs.push({ provider: 'whisper', model: options.whisperModels?.[0] ?? 'tiny' })
   }
 
   return specs

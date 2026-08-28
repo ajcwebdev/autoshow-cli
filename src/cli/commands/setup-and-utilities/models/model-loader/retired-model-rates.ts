@@ -1,32 +1,30 @@
-import type { ModelRegistry } from '~/types'
-
-export type ModelCategory = keyof ModelRegistry
-
-export type RetiredModelRate<Category extends ModelCategory> = Partial<
-  ModelRegistry[Category][string]['models'][string]
->
-
-type RetiredModelRates = {
-  readonly [Category in ModelCategory]: Readonly<Record<string, RetiredModelRate<Category>>>
-}
-
-type RetiredModelReplacements = {
-  readonly [Category in ModelCategory]: Readonly<Record<string, string>>
-}
+import type { ModelCategory, RetiredModelRate, RetiredModelRates, RetiredModelReplacements } from '~/types'
 
 export const modelRateKey = (service: string, model: string): string => `${service}:${model}`
 
-// Historical pricing only. These models remain absent from active validation,
-// defaults, help, and provider expansion. Rates are the cents fields present in
-// the registry immediately before retirement; the one never-priced Opus OCR
-// identity retains the explicit zero rate recorded in the benchmark corpus.
 export const RETIRED_MODEL_RATES: RetiredModelRates = {
-  stt: {},
+  stt: {
+    'assemblyai:universal-2': { costPerHourCents: 17 },
+    'gladia:solaria-1': { costPerHourCents: 61 },
+    'speechmatics:enhanced': { costPerHourCents: 40 },
+    'rev:machine': {
+      costPerHourCents: 20,
+      billing: { roundingIncrementSeconds: 1, minimumSeconds: 15 }
+    },
+    'rev:low_cost': {
+      costPerHourCents: 10,
+      billing: { roundingIncrementSeconds: 1, minimumSeconds: 15 }
+    }
+  },
   extract: {
     'anthropic:claude-opus-4-7': { costPerMInputTokensCents: 0, costPerMOutputTokensCents: 0 },
-    'anthropic:claude-sonnet-4-6': { costPerMInputTokensCents: 300, costPerMOutputTokensCents: 1500 },
     'gemini:gemini-3.1-flash-lite': { costPerMInputTokensCents: 25, costPerMOutputTokensCents: 150 },
-    'gemini:gemini-3.1-flash-lite-preview': { costPerMInputTokensCents: 25, costPerMOutputTokensCents: 150 }
+    'gemini:gemini-3.1-flash-lite-preview': { costPerMInputTokensCents: 25, costPerMOutputTokensCents: 150 },
+    'replicate:datalab-to/ocr': { costPer1kPagesCents: 200 },
+    'replicate:datalab-to/marker': { costPer1kPagesCents: 400 },
+    'replicate:lucataco/deepseek-ocr': { costPer1kPagesCents: 330 },
+    'fal:fal-ai/got-ocr/v2': { costPer1kPagesCents: 5000 },
+    'fal:fal-ai/florence-2-large/ocr': { costPer1kPagesCents: 755 }
   },
   llm: {
     'gemini:gemini-3.1-flash-lite': { inputCostPer1MCents: 25, outputCostPer1MCents: 150 },
@@ -96,7 +94,11 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
 }
 
 export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
-  stt: {},
+  stt: {
+    'assemblyai:universal-2': 'universal-3-5-pro',
+    'gladia:solaria-1': 'solaria-3',
+    'speechmatics:enhanced': 'melia-1'
+  },
   extract: {
     'gemini:gemini-3.1-flash-lite': 'gemini-3.5-flash-lite'
   },

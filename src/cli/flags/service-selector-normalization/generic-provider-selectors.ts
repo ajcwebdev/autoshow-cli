@@ -1,5 +1,5 @@
 import type { CliFlagOccurrence, SelectorNormalizationResult } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { resolveProviderSelector } from './flag-helpers'
 import { applyFlagOccurrenceNormalization, replaceFlagOccurrence } from './occurrence-normalization'
 import { BOOLEAN_PROVIDER_TARGETS } from './provider-targets'
@@ -45,7 +45,7 @@ export const normalizeGenericProviderSelectorFlags = (
         return []
       }
       if (!options.allLocalTarget) {
-        throw CLIUsageError('--all-local is not supported for this command or resume target.')
+        throw UsageError('--all-local is not supported for this command or resume target.')
       }
       return [replaceFlagOccurrence(occurrence, options.allLocalTarget, true)]
     }

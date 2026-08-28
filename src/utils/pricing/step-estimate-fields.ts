@@ -1,16 +1,6 @@
-import type { EstimatedStepEntry, StepEstimate } from '~/types'
+import type { AnyReportField, EstimatedCopiedFields, EstimatedStepEntry, ReportFieldRegistry, ReportStepIdentity, ReportValue, StepEstimate, StepFieldRegistry } from '~/types'
 
-type StepKind = StepEstimate['step']
-type StepEstimateFor<TStep extends StepKind> = Extract<StepEstimate, { step: TStep }>
-type EstimatedBaseField = 'step' | 'provider' | 'model' | 'cost'
-type EstimatedCopiedFields = Omit<EstimatedStepEntry, EstimatedBaseField>
-type EstimatedCopiedField = keyof EstimatedCopiedFields
-
-type StepFieldRegistry = {
-  [TStep in StepKind]: readonly Extract<keyof StepEstimateFor<TStep>, EstimatedCopiedField>[]
-}
-
-export const STEP_FIELDS = {
+const STEP_FIELDS = {
   stt: ['costMultiplier', 'durationSeconds', 'estimateType'],
   extract: [
     'costMultiplier',
@@ -85,17 +75,7 @@ export const stepEstimateToEstimated = (estimate: StepEstimate): EstimatedStepEn
   ...pickDefined<EstimatedCopiedFields>(estimate, STEP_FIELDS[estimate.step])
 })
 
-type ReportValue = string | number
-type ReportableKey<T> = {
-  [TKey in keyof T]-?: Exclude<T[TKey], undefined> extends ReportValue ? TKey : never
-}[keyof T] & string
-type ReportField<T> = ReportableKey<T> | readonly [ReportableKey<T>, string]
-type ReportFieldRegistry = {
-  [TStep in StepKind]: readonly ReportField<StepEstimateFor<TStep>>[]
-}
-type AnyReportField = string | readonly [string, string]
-
-export const STEP_REPORT_FIELDS = {
+const STEP_REPORT_FIELDS = {
   stt: [],
   extract: [
     'costPer1kPagesCents',
@@ -150,8 +130,6 @@ const pickReportFields = (
 
   return output
 }
-
-type ReportStepIdentity = Pick<StepEstimate, 'provider' | 'model'>
 
 export const stepEstimateToReport = (
   estimate: StepEstimate,

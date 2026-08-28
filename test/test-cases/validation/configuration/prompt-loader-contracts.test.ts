@@ -1,12 +1,11 @@
 import { describe, expect, test } from 'bun:test'
-import { createHash } from 'node:crypto'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { collectLeafPrompts, getAvailablePromptNames, resolvePromptNames } from '~/prompts/prompt-loader'
 import { resolveStructuredSchema } from '~/cli/commands/process-steps/step-3-write/structured-output/schema-resolver'
 import { parseAndValidateStructured } from '~/cli/commands/process-steps/step-3-write/structured-output/validator'
 import { readPromptFile } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const MARKDOWN_PROMPT_SNAPSHOT = {
   blog: 'c1bb449943d0bfbf89f943c549ae507f254a2f362b53a65f05f6cd5be647042b',
@@ -32,8 +31,9 @@ const MARKDOWN_PROMPT_SNAPSHOT = {
   popSong: '35485f45fe09458d7a8a62f71effce3365d5e9aba8e45a8f350edfb55ad55493',
   questions: 'bc6211e86975ad7b454a49b0bde581de3d85e93b2ecd657e2efb8667da033e25',
   quotes: '60b990695179204ff5dbc0278fda7b37fa58bc232d4286ff4c55c27647c6e1f2',
-  rapSong: '46ff719f9fc7f7f1628a8307d572dd8e86e20744d467cc2c6aed125825d78333',
-  rapSongLong: '3a11e747683016b4d5356f64f0fbf99e32b23233fd4fc05603f7a7f4b33eaf35',
+  rapSong: '7697f173c4925e331f23ceac0534e67db508f74d1dd8026469c4c1db8d82c87a',
+  rapSongChapter: '21125259d263cc0208b0b2ca1615c9e8166073b1c549318136807264414c26a5',
+  rapSongLong: 'c7890d28eb437d53f4a760f40ce690e354ccef4f6d40abec9ef1eeb00371f2ef',
   rockSong: '1f7a513e96fd567cb3536129499a5044f1d7c63e947442b7b4e1dd00eafddf46',
   screenplay: 'e34dbfcea0400550285bc959a016d67c1d9f0524c467eafe40f4aacca245169e',
   seoArticle: '36f388032f84ad978ef76e72f363b31bd6eef732c9e3cc6bc1ceb7eeb469dc88',
@@ -47,8 +47,6 @@ const MARKDOWN_PROMPT_SNAPSHOT = {
   youtubeDescription: '5765d2ffa00b65c9e090ae1e543e6baa06ccc760994785859cd495488f3d0634'
 } as const
 
-// rockSong and rapSong are pinned by their own schema-shape tests below, so this
-// list is the remainder that would otherwise have no preset coverage at all.
 const STANDARD_SONG_LYRIC_PROMPTS = [
   'countrySong',
   'folkSong',
@@ -76,6 +74,21 @@ const CREATIVE_WRITING_PROMPTS = [
 
 const TEST_EPISODE_DESCRIPTION = 'James Perkins explains how his professional network helped him land a new DevRel role within 12 hours of being laid off.'
 const TEST_EPISODE_SUMMARY = 'James Perkins describes losing his role at Tina CMS during a sudden downsizing and immediately leaning on the professional network he had built through developer relations work. Instead of beginning a cold job search, he contacted a former collaborator named Clark, with whom he had already established trust through prior freelance projects. That relationship quickly turned into a concrete opportunity, and within 12 hours of the initial message, the new role was confirmed and paperwork was complete. Perkins frames the experience as both unfortunate and lucky, but the conversation makes clear that his luck was helped by a long history of visible work, reliable collaboration, and maintained industry connections.'
+
+const makeLines = (label: string, count: number): string[] =>
+  Array.from({ length: count }, (_, index) => `${label} line ${index + 1}`)
+
+const buildExtendedRapSongPayload = () => ({
+  title: 'Track One',
+  intro: makeLines('Intro', 4),
+  verse1: makeLines('Verse one', 16),
+  chorus1: makeLines('Chorus one', 4),
+  verse2: makeLines('Verse two', 16),
+  chorus2: makeLines('Chorus two', 4),
+  verse3: makeLines('Verse three', 16),
+  bridge: makeLines('Bridge', 4),
+  chorus3: makeLines('Chorus three', 4)
+})
 
 const getRequiredStringKeys = (jsonSchema: Record<string, unknown>, promptName: string): string[] => {
   const required = jsonSchema['required']
@@ -125,13 +138,13 @@ describe('prompt loader contracts', () => {
 
     for (const name of leafNames) {
       const prompt = await resolvePromptNames([name], { exampleFormat: 'markdown' })
-      const digest = createHash('sha256').update(prompt).digest('hex')
+      const digest = new Bun.CryptoHasher('sha256').update(prompt).digest('hex')
       expect(digest).toBe(MARKDOWN_PROMPT_SNAPSHOT[name as keyof typeof MARKDOWN_PROMPT_SNAPSHOT])
     }
   })
 
   test('rejects the retired markdown presentation prefix in JSON prompt files', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-prompt-prefix-'))
+    const tempDir = await makeTempDir('autoshow-prompt-prefix-')
     const promptPath = join(tempDir, 'legacy-prompt.json')
 
     try {
@@ -177,9 +190,6 @@ describe('prompt loader contracts', () => {
     expect(prompt).toContain('Create chapter titles and descriptions based on the topics discussed throughout')
   })
 
-  // Asserted through resolveStructuredSchema rather than a preset-name lookup, so a
-  // prompt whose structuredPreset is dropped and a preset deleted from preset-registry.ts
-  // both surface here as an empty presetNames array.
   test('resolves song lyric prompts to the standardSongLyrics preset', async () => {
     for (const promptName of STANDARD_SONG_LYRIC_PROMPTS) {
       const schema = await resolveStructuredSchema([promptName])
@@ -294,6 +304,63 @@ describe('prompt loader contracts', () => {
     expect(required).toContain('verse3')
     expect(required).toContain('chorus3')
     expect(required).not.toContain('lyrics')
+  })
+
+  test('rap song lyric validation enforces 8-line verses and 4-line choruses', async () => {
+    const schema = await resolveStructuredSchema(['rapSong'])
+
+    const validPayload = {
+      title: 'Track One',
+      verse1: makeLines('Verse one', 8),
+      chorus1: makeLines('Chorus one', 4),
+      verse2: makeLines('Verse two', 8),
+      chorus2: makeLines('Chorus two', 4),
+      verse3: makeLines('Verse three', 8),
+      chorus3: makeLines('Chorus three', 4)
+    }
+
+    const validValidation = parseAndValidateStructured(schema.schema, JSON.stringify(validPayload))
+    expect(validValidation.success).toBe(true)
+
+    const staleValidation = parseAndValidateStructured(
+      schema.schema,
+      JSON.stringify({ ...validPayload, verse1: makeLines('Verse one', 16) })
+    )
+    expect(staleValidation.success).toBe(false)
+  })
+
+  test('long rap song lyric schema requires intro, three 16-line verses, and bridge', async () => {
+    const schema = await resolveStructuredSchema(['rapSongLong'])
+    const required = getRequiredStringKeys(schema.jsonSchema, 'rapSongLong')
+
+    expect(schema.presetNames).toEqual(['rapSongLongLyrics'])
+    expect(required).toEqual(['bridge', 'chorus1', 'chorus2', 'chorus3', 'intro', 'title', 'verse1', 'verse2', 'verse3'])
+
+    const validValidation = parseAndValidateStructured(
+      schema.schema,
+      JSON.stringify(buildExtendedRapSongPayload())
+    )
+    expect(validValidation.success).toBe(true)
+
+    const staleValidation = parseAndValidateStructured(
+      schema.schema,
+      JSON.stringify({ ...buildExtendedRapSongPayload(), bridge: makeLines('Bridge', 12) })
+    )
+    expect(staleValidation.success).toBe(false)
+  })
+
+  test('chapter rap song lyric schema mirrors the long rap structure', async () => {
+    const schema = await resolveStructuredSchema(['rapSongChapter'])
+    const required = getRequiredStringKeys(schema.jsonSchema, 'rapSongChapter')
+
+    expect(schema.presetNames).toEqual(['rapSongChapterLyrics'])
+    expect(required).toEqual(['bridge', 'chorus1', 'chorus2', 'chorus3', 'intro', 'title', 'verse1', 'verse2', 'verse3'])
+
+    const validation = parseAndValidateStructured(
+      schema.schema,
+      JSON.stringify(buildExtendedRapSongPayload())
+    )
+    expect(validation.success).toBe(true)
   })
 
   test('song lyric validation overrides the title before storage', async () => {

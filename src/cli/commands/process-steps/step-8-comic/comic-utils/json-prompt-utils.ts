@@ -21,7 +21,10 @@ export const parseJsonFile = async <TSchema extends v.GenericSchema>(
   } catch (error) {
     if (v.isValiError(error)) {
       err(error)
-      throw ValidationError(`Invalid data in ${filePath}`, { stage: 'comic:json-prompt' })
+      throw ValidationError(`Invalid data in ${filePath}`, {
+      stage: 'comic:json-prompt',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
     }
     throw error
   }

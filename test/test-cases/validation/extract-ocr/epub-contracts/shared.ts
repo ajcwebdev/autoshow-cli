@@ -1,5 +1,4 @@
-import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { chmod, mkdir, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import {
   prepareDocumentMetadata,
@@ -12,6 +11,8 @@ import { runOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/r
 import { resolveOcrStep2ExecutionFromFormat } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/resolved-step2'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
 import type { EpubChapter, EpubContentReader, ExtractionOptions } from '~/types'
+import { withEnv } from '../../../../test-utils/rest-contract-helpers'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 export const createReader = (files: Record<string, string>): EpubContentReader => ({
   adapterLabel: 'test',
@@ -45,12 +46,12 @@ export const createStandardEpubReader = (
   packagePath = 'OEBPS/content.opf'
 ): EpubContentReader => createReader(withStandardEpubContainer(files, packagePath))
 
-export const EXAMPLE_EPUB_PATH = resolve('input/examples/document/1-epub.epub')
+const EXAMPLE_EPUB_PATH = resolve('input/examples/document/1-epub.epub')
 
 export const withFakeEbookConvert = async <T>(
   fn: (root: string) => Promise<T>
 ): Promise<T> => {
-  const root = await mkdtemp(join(tmpdir(), 'autoshow-fake-ebook-convert-'))
+  const root = await makeTempDir('autoshow-fake-ebook-convert-')
   const binDir = join(root, 'bin')
   await mkdir(binDir, { recursive: true })
   const fakeConvertPath = join(binDir, 'ebook-convert')
@@ -70,18 +71,11 @@ export const withFakeEbookConvert = async <T>(
   await chmod(fakeConvertPath, 0o755)
   await chmod(fakeMutoolPath, 0o755)
 
-  const previousPath = process.env['PATH']
   const previousBinDir = getConfiguredBinDir()
-  process.env['PATH'] = `${binDir}:${previousPath ?? ''}`
   configureBinDir(binDir)
   try {
-    return await fn(root)
+    return await withEnv({ PATH: `${binDir}:${process.env['PATH'] ?? ''}` }, () => fn(root))
   } finally {
-    if (previousPath === undefined) {
-      delete process.env['PATH']
-    } else {
-      process.env['PATH'] = previousPath
-    }
     configureBinDir(previousBinDir ?? '')
     await rm(root, { recursive: true, force: true })
   }
@@ -184,7 +178,7 @@ export const writeStoredZip = async (
   await writeFile(filePath, Buffer.concat([...localParts, centralDirectory, endOfCentralDirectory]))
 }
 
-export const WINDOWS_1252_TEST_BYTES: Record<string, number> = {
+const WINDOWS_1252_TEST_BYTES: Record<string, number> = {
   '‘': 0x91,
   '’': 0x92,
   '“': 0x93,
@@ -220,19 +214,11 @@ export {
   inspectEpubWithReader,
   join,
   mkdir,
-  mkdtemp,
   prepareDocumentMetadata,
   resolve,
   resolveEbookConvertCommand,
   resolveOcrStep2ExecutionFromFormat,
   rm,
   runOcr,
-  tmpdir,
   writeFile
-}
-
-export type {
-  EpubChapter,
-  EpubContentReader,
-  ExtractionOptions
 }

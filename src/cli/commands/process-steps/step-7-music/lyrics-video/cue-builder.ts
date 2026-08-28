@@ -1,6 +1,5 @@
 import type { CaptionCue, CueBuildLimits, LyricsCueSource, TranscriptionEvidenceWord, TranscriptionResult, TranscriptionSegment } from '~/types'
 
-/** Lyric lines are short and sung; transcript lines are spoken prose and run longer. */
 export const LYRICS_CUE_LIMITS: CueBuildLimits = {
   maxWordsPerCue: 7,
   maxCharactersPerCue: 42,
@@ -8,10 +7,6 @@ export const LYRICS_CUE_LIMITS: CueBuildLimits = {
   hardBreakGapSeconds: 0.65
 }
 
-/**
- * Capped so a cue always fits on one rendered line at the transcript font size, which is what keeps
- * the three-line stack from shifting between frames.
- */
 export const TRANSCRIPT_CUE_LIMITS: CueBuildLimits = {
   maxWordsPerCue: 10,
   maxCharactersPerCue: 58,
@@ -19,8 +14,6 @@ export const TRANSCRIPT_CUE_LIMITS: CueBuildLimits = {
   hardBreakGapSeconds: 0.9
 }
 
-/** Punctuation-only entries (Speechmatics emits these as their own timed words) attach to the previous
- * word rather than counting against the per-cue word budget or starting a cue. */
 const isPunctuationOnly = (text: string): boolean =>
   text.length > 0 && !/[\p{L}\p{N}]/u.test(text)
 
@@ -101,7 +94,6 @@ const buildFromWords = (
     currentText = ''
   }
 
-  // Punctuation-only entries never open a cue or count toward its word budget.
   const countedWords = (entries: TranscriptionEvidenceWord[]): number =>
     entries.reduce((total, entry) => isPunctuationOnly(entry.text.trim()) ? total : total + 1, 0)
 
@@ -194,11 +186,6 @@ const buildFromSegments = (segments: TranscriptionSegment[]): CaptionCue[] => {
   return cues
 }
 
-/**
- * Build cues from a transcription, preferring native per-word timings over segment stamps. Word timings
- * are exact; segment stamps only bound a whole utterance, so anything derived from them has to guess
- * where each displayed line starts and ends.
- */
 export const buildTranscriptionCues = (
   transcription: TranscriptionResult,
   limits: CueBuildLimits

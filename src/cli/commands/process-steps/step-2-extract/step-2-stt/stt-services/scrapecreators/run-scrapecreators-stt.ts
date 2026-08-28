@@ -1,15 +1,15 @@
-import { isRecord } from '~/utils/rest-client'
+import { httpResponseError, isRecord, parseJsonOrText } from '~/utils/rest-client'
+import { ProviderError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import type { RetryClass, ScrapeCreatorsHttpError, ScrapeCreatorsTranscriptEntry, ScrapeCreatorsTranscriptPayload, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { buildTranscriptionOutputBase, countTokens, formatTranscriptText, resolveTranscriptionOutput, toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import { logSttSegmentLifecycle, logSttTranscriptOutput } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import { convertScrapeCreatorsCreditsToCents, estimateScrapeCreatorsCredits, getScrapeCreatorsCreditRateCents } from '~/utils/pricing/scrapecreators-pricing'
 import { describeScrapeCreatorsUnsupportedSource, getScrapeCreatorsBaseUrl, isScrapeCreatorsSupportedSourceUrl } from './scrapecreators'
 const REQUEST_TIMEOUT_MS = 60_000
 const DEFAULT_LANGUAGE = 'en'
-
 
 const parseFiniteNumber = (value: unknown): number | undefined => {
   if (typeof value === 'number') {
@@ -84,19 +84,6 @@ const buildScrapeCreatorsUrl = (
   return url.toString()
 }
 
-const readJsonOrText = async (response: Response): Promise<unknown> => {
-  const rawText = await response.text()
-  if (rawText.length === 0) {
-    return {}
-  }
-
-  try {
-    return JSON.parse(rawText) as unknown
-  } catch {
-    return rawText
-  }
-}
-
 const extractScrapeCreatorsErrorMessage = (payload: unknown): string | undefined => {
   if (typeof payload === 'string') {
     const trimmed = payload.trim()
@@ -123,11 +110,10 @@ const extractScrapeCreatorsErrorMessage = (payload: unknown): string | undefined
 const toScrapeCreatorsHttpError = (
   response: Response,
   payload: unknown
-): ScrapeCreatorsHttpError => Object.assign(
-  new Error(`ScrapeCreators transcript request failed (${response.status}): ${extractScrapeCreatorsErrorMessage(payload) ?? 'Unknown error'}`),
+): ScrapeCreatorsHttpError => httpResponseError(
+  `ScrapeCreators transcript request failed (${response.status}): ${extractScrapeCreatorsErrorMessage(payload) ?? 'Unknown error'}`,
+  response,
   {
-    status: response.status,
-    headers: response.headers,
     stage: 'create',
     retryClass: 'runtime_http_create_retriable' as RetryClass,
     rawResponse: payload
@@ -137,7 +123,7 @@ const toScrapeCreatorsHttpError = (
 const buildScrapeCreatorsUnsupportedSourceError = (
   sourceUrl: string | undefined
 ): ScrapeCreatorsHttpError => Object.assign(
-  new Error(describeScrapeCreatorsUnsupportedSource(sourceUrl)),
+  ProviderError(describeScrapeCreatorsUnsupportedSource(sourceUrl), { stage: 'create', retryable: false }),
   {
     stage: 'create',
     retryable: false,
@@ -149,7 +135,10 @@ const buildLanguageUnavailableError = (
   language: string,
   payload: ScrapeCreatorsTranscriptPayload
 ): ScrapeCreatorsHttpError => Object.assign(
-  new Error(`ScrapeCreators transcript is unavailable for requested language "${language}"`),
+  ProviderError(`ScrapeCreators transcript is unavailable for requested language "${language}"`, {
+    stage: 'create',
+    retryable: false
+  }),
   {
     stage: 'create',
     retryable: false,
@@ -252,7 +241,7 @@ export const runScrapeCreatorsStt = async (
     throw buildScrapeCreatorsUnsupportedSourceError(sourceUrl)
   }
 
-  const apiKey = requireApiKey('SCRAPECREATORS_API_KEY', 'stt:scrapecreators', 'ScrapeCreators YouTube transcript retrieval')
+  const apiKey = resolveCredential('scrapecreators', 'require', { stage: 'stt:scrapecreators', description: 'ScrapeCreators YouTube transcript retrieval' })
 
   if (segmentNumber && totalSegments) {
     logSttSegmentLifecycle(l, { provider: 'scrapecreators', action: 'started', segmentNumber, totalSegments, model: modelName })
@@ -270,7 +259,6 @@ export const runScrapeCreatorsStt = async (
     {
       retryClass: 'runtime_http_create_retriable',
       operationName: 'scrapecreators-youtube-transcript',
-      policy: { maxAttempts: 3 },
       timeoutMs: REQUEST_TIMEOUT_MS
     },
     async (signal) => {
@@ -282,7 +270,7 @@ export const runScrapeCreatorsStt = async (
         },
         signal: signal ?? null
       })
-      const responsePayload = await readJsonOrText(response)
+      const responsePayload = parseJsonOrText(await response.text())
 
       if (!response.ok) {
         throw toScrapeCreatorsHttpError(response, responsePayload)
@@ -290,12 +278,19 @@ export const runScrapeCreatorsStt = async (
 
       const parsed = parseScrapeCreatorsTranscriptPayload(responsePayload)
       if (!parsed) {
-        throw Object.assign(new Error('ScrapeCreators returned an invalid transcript payload'), {
-          stage: 'create',
-          retryClass: 'runtime_http_create_retriable' as RetryClass,
-          retryable: false,
-          rawResponse: responsePayload
-        })
+        throw Object.assign(
+          ProviderError('ScrapeCreators returned an invalid transcript payload', {
+            stage: 'create',
+            retryClass: 'runtime_http_create_retriable',
+            retryable: false
+          }),
+          {
+            stage: 'create',
+            retryClass: 'runtime_http_create_retriable' as RetryClass,
+            retryable: false,
+            rawResponse: responsePayload
+          }
+        )
       }
 
       return parsed

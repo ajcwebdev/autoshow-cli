@@ -1,4 +1,7 @@
 import type {
+  ControlSpec,
+  ProviderControlSpecs,
+  TtsEffectiveInvocationControlsFor,
   TtsProvider,
   TtsTargetInvocation,
   TtsTargetInvocationControls,
@@ -10,95 +13,8 @@ import {
   validateGrokTtsLanguage,
   validateMinimaxTtsEmotion,
   validateMinimaxTtsLanguageBoost,
-  validateSpeechifyTtsAudioFormat,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { CLIUsageError } from '~/utils/error-handler'
-
-type OptionalControl<T> = T | null | undefined
-
-export type TtsInvocationControlsByProvider = {
-  openai: Readonly<{
-    instructions?: OptionalControl<string>
-    speed?: OptionalControl<number>
-  }>
-  elevenlabs: Readonly<{
-    outputFormat?: OptionalControl<string>
-    languageCode?: OptionalControl<string>
-    stability?: OptionalControl<number>
-    similarityBoost?: OptionalControl<number>
-    style?: OptionalControl<number>
-    useSpeakerBoost?: OptionalControl<boolean>
-    speed?: OptionalControl<number>
-    seed?: OptionalControl<number>
-    textNormalization?: OptionalControl<string>
-    pronunciationDictionaryLocators?: OptionalControl<readonly string[]>
-  }>
-  minimax: Readonly<{
-    languageBoost?: OptionalControl<string>
-    speed?: OptionalControl<number>
-    volume?: OptionalControl<number>
-    pitch?: OptionalControl<number>
-    emotion?: OptionalControl<string>
-    englishNormalization?: OptionalControl<boolean>
-    pronunciations?: OptionalControl<readonly string[]>
-  }>
-  groq: Readonly<{ speed?: OptionalControl<number> }>
-  grok: Readonly<{
-    language?: OptionalControl<string>
-    textNormalization?: OptionalControl<boolean>
-  }>
-  mistral: Readonly<{ responseFormat?: OptionalControl<'wav' | 'mp3' | 'flac' | 'opus'> }>
-  gemini: Readonly<{ languageCode?: OptionalControl<string> }>
-  deepgram: Readonly<{
-    encoding?: OptionalControl<string>
-    container?: OptionalControl<string>
-    bitRate?: OptionalControl<number>
-    sampleRate?: OptionalControl<number>
-    speed?: OptionalControl<number>
-  }>
-  speechify: Readonly<{
-    audioFormat?: OptionalControl<string>
-    language?: OptionalControl<string>
-  }>
-  hume: Readonly<{
-    speed?: OptionalControl<number>
-    trailingSilence?: OptionalControl<number>
-    description?: OptionalControl<string>
-  }>
-  cartesia: Readonly<{ language?: OptionalControl<string> }>
-  fish: Readonly<{ latency?: OptionalControl<string> }>
-  inworld: Readonly<{ steeringPrompt?: OptionalControl<string> }>
-  deepinfra: Readonly<{ promptInstructions?: OptionalControl<string> }>
-  replicate: Readonly<{ speed?: OptionalControl<number> }>
-  fal: Readonly<{ voiceInstruction?: OptionalControl<string> }>
-}
-
-export type TtsInvocationControlsFor<P extends TtsProvider> = TtsInvocationControlsByProvider[P]
-export type TtsEffectiveInvocationControlsFor<P extends TtsProvider> = Readonly<{
-  [K in keyof TtsInvocationControlsFor<P>]?: Exclude<TtsInvocationControlsFor<P>[K], null | undefined> | undefined
-}>
-
-type StringControlSpec = Readonly<{
-  kind: 'string'
-  normalize?: ((value: string) => string) | undefined
-  preserveWhitespace?: boolean | undefined
-  allowedValues?: readonly string[] | undefined
-}>
-
-type NumberControlSpec = Readonly<{
-  kind: 'number'
-  min?: number | undefined
-  max?: number | undefined
-  exclusiveMin?: boolean | undefined
-  integer?: boolean | undefined
-}>
-
-type ControlSpec = StringControlSpec
-  | NumberControlSpec
-  | Readonly<{ kind: 'boolean' }>
-  | Readonly<{ kind: 'string-array' }>
-
-type ProviderControlSpecs = Readonly<Record<string, ControlSpec>>
+import { UsageError } from '~/utils/error-handler'
 
 const GEMINI_TTS_LANGUAGE_CODES = [
   'de-DE', 'en-AU', 'en-GB', 'en-IN', 'en-US', 'es-US', 'fr-FR', 'hi-IN',
@@ -115,7 +31,6 @@ const CONTROL_SPECS = {
     speed: { kind: 'number', min: 0.25, max: 4 },
   },
   elevenlabs: {
-    outputFormat: { kind: 'string', normalize: trim },
     languageCode: { kind: 'string', normalize: trim },
     stability: { kind: 'number', min: 0, max: 1 },
     similarityBoost: { kind: 'number', min: 0, max: 1 },
@@ -149,14 +64,9 @@ const CONTROL_SPECS = {
     languageCode: { kind: 'string', normalize: trim, allowedValues: GEMINI_TTS_LANGUAGE_CODES },
   },
   deepgram: {
-    encoding: { kind: 'string', normalize: trim },
-    container: { kind: 'string', normalize: trim },
-    bitRate: { kind: 'number', min: 1, max: 1_000_000, integer: true },
-    sampleRate: { kind: 'number', min: 1, max: 192_000, integer: true },
     speed: { kind: 'number', min: 0.5, max: 2 },
   },
   speechify: {
-    audioFormat: { kind: 'string', normalize: validateSpeechifyTtsAudioFormat },
     language: { kind: 'string', normalize: trim },
   },
   hume: {
@@ -188,7 +98,7 @@ const PROVIDERS = new Set<TtsProvider>(Object.keys(CONTROL_SPECS) as TtsProvider
 const CANONICAL_TURN_ID_RE = /^dialogue-turn-\d{3,}(?:-\d{2,})?$/
 
 const invalidControl = (provider: TtsProvider, key: string, detail: string): Error =>
-  CLIUsageError(`Invalid per-turn ${provider} TTS control ${key}: ${detail}.`)
+  UsageError(`Invalid per-turn ${provider} TTS control ${key}: ${detail}.`)
 
 const normalizeControlValue = (
   provider: TtsProvider,
@@ -249,7 +159,7 @@ const normalizeProviderControls = (
   for (const key of Object.keys(controls).sort()) {
     const spec = specs[key]
     if (!spec) {
-      throw CLIUsageError(
+      throw UsageError(
         `Provider ${provider} does not support per-turn TTS invocation control ${key}. Allowed controls: ${Object.keys(specs).sort().join(', ')}.`
       )
     }
@@ -274,7 +184,7 @@ export const resolveTtsTurnControlOverrides = (
   controlsByTurn: TtsTurnControls | undefined
 ): TtsTargetInvocationControls => {
   if (!CANONICAL_TURN_ID_RE.test(sourceId)) {
-    throw CLIUsageError(`Per-turn TTS controls require a canonical dialogue turn ID; received ${sourceId}.`)
+    throw UsageError(`Per-turn TTS controls require a canonical dialogue turn ID; received ${sourceId}.`)
   }
   const providerControls = controlsByTurn?.[sourceId]?.[provider]
   return providerControls
@@ -292,24 +202,24 @@ export const normalizeTtsTurnControls = (
 
   for (const sourceId of Object.keys(controlsByTurn).sort()) {
     if (!CANONICAL_TURN_ID_RE.test(sourceId)) {
-      throw CLIUsageError(`Per-turn TTS controls require canonical dialogue-turn-NNN or dialogue-turn-NNN-NN keys; received ${sourceId}.`)
+      throw UsageError(`Per-turn TTS controls require canonical dialogue-turn-NNN or dialogue-turn-NNN-NN keys; received ${sourceId}.`)
     }
     if (expected && !expected.has(sourceId)) {
-      throw CLIUsageError(`Per-turn TTS controls reference unknown dialogue turn ${sourceId}.`)
+      throw UsageError(`Per-turn TTS controls reference unknown dialogue turn ${sourceId}.`)
     }
     const rawProviderControls = controlsByTurn[sourceId]
     if (!rawProviderControls || typeof rawProviderControls !== 'object' || Array.isArray(rawProviderControls)) {
-      throw CLIUsageError(`Per-turn TTS controls for ${sourceId} must be a provider-keyed object.`)
+      throw UsageError(`Per-turn TTS controls for ${sourceId} must be a provider-keyed object.`)
     }
     const normalizedProviders: Partial<Record<TtsProvider, TtsTargetInvocationControls>> = {}
     for (const rawProvider of Object.keys(rawProviderControls).sort()) {
       if (!PROVIDERS.has(rawProvider as TtsProvider)) {
-        throw CLIUsageError(`Per-turn TTS controls for ${sourceId} use unknown provider ${rawProvider}.`)
+        throw UsageError(`Per-turn TTS controls for ${sourceId} use unknown provider ${rawProvider}.`)
       }
       const provider = rawProvider as TtsProvider
       const rawControls = rawProviderControls[provider]
       if (!rawControls || typeof rawControls !== 'object' || Array.isArray(rawControls)) {
-        throw CLIUsageError(`Per-turn ${provider} TTS controls for ${sourceId} must be an object.`)
+        throw UsageError(`Per-turn ${provider} TTS controls for ${sourceId} must be an object.`)
       }
       normalizedProviders[provider] = normalizeProviderControls(provider, rawControls, true)
     }

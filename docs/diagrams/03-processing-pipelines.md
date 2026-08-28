@@ -1,6 +1,6 @@
 # Processing Pipelines
 
-Current processing flows for media, documents/articles, text-input writing, transcript-video rendering, and lyric-video rendering.
+Media, document, article, text writing, transcript-video, and lyric-video flows.
 
 ## Outline
 
@@ -12,13 +12,10 @@ Current processing flows for media, documents/articles, text-input writing, tran
 
 ## Media STT Pipeline
 
-`metadata` stops after metadata extraction, `download` stops after Step 1, `extract` runs Steps 1-2, and `write` continues into LLM and optional generation.
+`metadata` stops after metadata extraction, `download` stops after Step 1, `extract` runs Steps 1-2, and `write` runs Step 3 text generation over local `.md` / `.txt` (with follow-on generation commands for speech, images, video, and music).
 
 ```
 media target
-  |
-  v
-processMediaSingle() / processVideo()
   |
   v
 Step 1: source metadata + media staging
@@ -28,17 +25,11 @@ Step 1: source metadata + media staging
   +--> local media: inspect with ffprobe
   |
   v
-prepareSttMedia()
-  |
-  +--> normalize one shared upload/transcription artifact
-  +--> strip extra streams, cover art, chapters, and metadata
-  +--> keep compatible audio fast paths where possible
+stage one shared audio artifact for transcription
   |
   v
 Step 2: STT or YouTube captions
 ```
-
-`prepareSttMedia()` stages source media for the run and records source duration plus output file details in Step 1 metadata. The staged media artifact is shared by local and hosted STT providers so multi-provider runs do not repeatedly normalize the same input.
 
 When `--youtube-captions` is set, YouTube inputs first try caption extraction:
 
@@ -46,44 +37,35 @@ When `--youtube-captions` is set, YouTube inputs first try caption extraction:
 --youtube-captions
   |
   v
-tryResolveYoutubeCaptionTranscription()
+caption extraction
   |
   +--> success:
   |      youtube-captions.vtt
   |      youtube-captions.json
   |      transcription.txt
-  |      result.json raw caption/transcription payload
+  |      result.json
   |      requested STT providers are marked skipped
   |
   +--> unavailable:
          fall back to selected STT providers
 ```
 
-STT providers are run through local and hosted provider pools:
-
-| Pool   | Providers                                                                                                                                                                       |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Local  | `whisper`, `whisperfile`.                                                                                                                                                       |
-| Hosted | `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`. |
+Local STT providers are `whisper` and `whisperfile`. All others are hosted.
 
 Output layout:
 
 ```
 single provider:
   transcription.txt
-  result.json                # raw transcription payload
-  prompt.md                  # extraction/write prompt context
-  manifest.json              # canonical command/scope/items shape
+  result.json
+  manifest.json
 
 multi-provider:
-  providers/<provider-model>/
+  providers/<service>-<model>/
     transcription.txt
-    result.json              # raw transcription payload
-  prompt.md
+    result.json
   manifest.json
 ```
-
-Extract items record `extractRoute: "media"`. Extract and write items use the same canonical status/provider shape and keep ordinary Step 1, route, cost, and timing evidence in item metadata when applicable. Requested, missing, blocked, and completion summaries are derived from provider entries and item status rather than persisted as parallel lists.
 
 Provider failures do not discard the whole output directory. A run can finish as:
 
@@ -95,55 +77,49 @@ Provider failures do not discard the whole output directory. A run can finish as
 
 ## Document and Article Pipeline
 
-The document family covers PDFs, EPUB, Office/ODF files, ebooks, comic archives, RTF, CSV, HTML, and common image formats. `resolveOcrStep2ExecutionFromFormat()` decides whether the item uses OCR, native text extraction, or article extraction.
+Documents include PDFs, EPUB, Office/ODF files, ebooks, comic archives, RTF, CSV, and common image formats. HTML files and article URLs use article extraction. Format decides whether the item uses OCR, native text extraction, or article extraction.
 
 ```
 document/html target
   |
   v
-resolveDocumentFormatHint()
+detect format
   |
   +--> html/article URL or .html/.htm
-  |      process-url.ts route
+  |      article extraction
   |
   +--> CSV
-  |      native-document/csv
-  |
-  +--> EPUB inspect
-  |      native-document/epub-inspect
+  |      native CSV extraction
   |
   +--> DOCX/PPTX/XLSX/ODF/ebook/RTF
-  |      native document extraction or conversion path
+  |      native document extraction
   |
-  +--> PDF/image/EPUB-as-PDF/CBZ images
-         OCR provider path
+  +--> PDF, images, CBZ
+         OCR
 ```
 
-OCR provider path:
+OCR path:
 
 ```
-processOcr()
+OCR
   |
-  +--> local text/OCR:
-  |      tesseract, MuPDF assisted extraction
+  +--> local: tesseract
   |
-  +--> hosted OCR:
-         mistral, glm, kimi, openai, grok, anthropic, gemini,
-         deepinfra, replicate, fal
+  +--> hosted OCR providers
 ```
 
 Document extract output:
 
 ```
 single provider/native route:
-  extraction.txt | result.json | extraction.tsv | extraction.hocr
+  extraction.txt | result.json
   manifest.json
 
 multi-provider OCR:
-  providers/<provider-model>/
-    extraction.txt | extraction.tsv | extraction.hocr
-    result.json              # raw OCR/domain payload
-  extraction.<format>         # primary provider output when --primary-ocr is set
+  providers/<service>-<model>/
+    extraction.txt
+    result.json
+  extraction.txt | result.json  # primary provider output when --primary-ocr is set
   manifest.json
 ```
 
@@ -151,58 +127,56 @@ Article output:
 
 ```
 single backend:
-  extraction.txt | result.json | extraction.tsv | extraction.hocr
+  extraction.txt | result.json
   manifest.json
 
 all URL backends:
   providers/<backend>/
     extraction.txt
-    result.json              # raw article/domain payload
+    result.json
   manifest.json
 ```
 
-Article items record route evidence, `web`, source, cost, timing, and errors in `metadata`, plus canonical item and provider statuses. Local HTML uses Defuddle. Remote single-backend Defuddle can fall back to Firecrawl when configured.
-
-Document extract items record `extractRoute: "document"`, Step 1 and route evidence, primary-provider data, cost, timing, web/source data when applicable, and optional errors. Provider identity, attempts, status, options, metadata, result, and error live once in the item's `providers` entries.
+Local HTML uses Defuddle. Remote single-backend Defuddle automatically retries with Firecrawl when the Defuddle attempt fails.
 
 ## Write Outputs
 
-For media, document, article, and text-input write flows, Step 3 builds a prompt and calls `runLLM()`:
+For extracted transcripts, documents, articles, and local text write flows, Step 3 builds a prompt and runs the selected LLM providers:
 
 ```
 Step 2 result
   |
   v
-buildPrompt() / buildDocumentPrompt() / buildTextInputPrompt()
+build prompt
   |
   +--> prompt.md
   +--> prompt-md.md when --prompt-md is set
   |
   v
-runLLM()
+run LLM
   |
   +--> text.json                 single LLM provider
   +--> text-<model>.json         multi-provider LLM output
   |
   v
-writeRenderedTextArtifacts()
+write rendered text
   |
   +--> text.md or text-<model>.md when --rendered-text is set
   +--> external rendered files under --rendered-out-dir when configured
   |
   v
-writeShowNoteArtifacts()
+write show notes
   |
   +--> show-note.md or show-note-<model>.md
 ```
 
-Text-input write mode skips Steps 1-2. It treats `.md`/`.txt` files as the source corpus, writes a canonical manifest with `command: "write"`, `scope: "single"`, and `items[0].metadata.source.kind: "text-input"`, and then can run the same Step 3 plus optional TTS/image/video/music stages.
+`write` always starts at Step 3. It treats `.md`/`.txt` files as the source corpus. URLs, media, documents, HTML, and X Spaces go through `extract` first.
 
-`output/<project>/text` can be used as a project directory. The target layer infers `--text-input`, `prompt.md`, optional `tracks.md`, and rendered lyric output defaults from the project structure.
+`output/<project>/text` can be used as a project directory. The CLI infers `prompt.md`, optional `tracks.md`, and rendered lyric output defaults from the project structure.
 
 ## Transcript Video Pipeline
 
-`extract --transcript-video` renders a video with captions and writes a canonical single-run manifest with `command: "video"` and transcript-video item metadata.
+`extract --transcript-video` renders a video with captions from an existing extract run or from explicit audio and transcript files.
 
 ```
 existing extract output
@@ -211,7 +185,7 @@ existing extract output
   |    multiple provider results require --transcript-result
   |
   v
-runExtractTranscriptVideo()
+render transcript video
   |
   +--> build captions from provider result or --transcript-text
   +--> render video with --audio and optional --font
@@ -228,24 +202,22 @@ Manual mode requires `--audio` plus exactly one of `--transcript-result` or `--t
 
 ## Music Lyric-Video Pipeline
 
-Hosted music generation is a normal Step 7 provider run. The local lyric-video path is separate and is selected by `music --audio`, `music --captions`, or `music --batch`.
+Hosted music generation is a standalone provider run. The local lyric-video path is selected by any lyric-video flag (`--audio`, `--captions`, `--batch`, `--model`, `--font`) and requires either `--audio` or `--batch`.
 
 ```
 music lyric-video mode
   |
-  +--> validate audio/caption paths stay inside allowed input/output roots
+  +--> resolve audio/caption paths against the project root and require them to exist
   |
   +--> caption source:
   |      --captions -> parse VTT/SRT
-  |      no captions -> run local Whisper large-v3-turbo and create lyric cues
+  |      no captions -> run local whisper.cpp (--model, default large-v3-turbo) and create lyric cues
   |
-  +--> render:
-         ffmpeg + ass subtitle rendering
-         fallback helpers when needed
+  +--> render with ffmpeg
   |
   v
 <stem>.mp4
 <stem>.vtt
 <stem>.srt
-manifest.json command "music", item metadata mode "lyric-video"
+manifest.json
 ```

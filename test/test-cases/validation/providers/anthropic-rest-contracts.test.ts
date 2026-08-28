@@ -7,7 +7,8 @@ import {
   deleteAnthropicFile,
   uploadAnthropicFile
 } from '~/utils/anthropic/anthropic-client'
-import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { extractErrorMetadata } from '~/utils/error-handler'
 
 const envKeys = ['ANTHROPIC_API_KEY']
 
@@ -214,23 +215,20 @@ describe('Anthropic REST contracts', () => {
         headers: { 'retry-after': '7' }
       }))
 
-    try {
-      await createAnthropicMessage(
-        { apiKey: 'anthropic-key', baseURL: 'https://mock.anthropic.local' },
-        {
-          model: 'claude-haiku-4-5',
-          max_tokens: 16,
-          messages: [{ role: 'user', content: 'Hello' }]
-        }
-      )
-      throw new Error('Expected Anthropic request to fail')
-    } catch (error) {
-      expect(error).toBeInstanceOf(Error)
-      expect((error as { status?: number }).status).toBe(429)
-      expect((error as { headers?: Headers }).headers?.get('retry-after')).toBe('7')
-      expect((error as { body?: string }).body).toContain('rate_limit_error')
-      expect((error as { errorType?: string }).errorType).toBe('rate_limit_error')
-      expect((error as Error).message).toContain('slow down')
-    }
+    const error = await expectProviderHttpError(async () => await createAnthropicMessage(
+      { apiKey: 'anthropic-key', baseURL: 'https://mock.anthropic.local' },
+      {
+        model: 'claude-haiku-4-5',
+        max_tokens: 16,
+        messages: [{ role: 'user', content: 'Hello' }]
+      }
+    ), {
+      status: 429,
+      headers: { 'retry-after': '7' },
+      messageContains: 'slow down'
+    })
+    const metadata = extractErrorMetadata(error)
+    expect(metadata['body']).toContain('rate_limit_error')
+    expect(metadata['errorType']).toBe('rate_limit_error')
   })
 })

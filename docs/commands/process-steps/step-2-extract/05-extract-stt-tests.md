@@ -25,14 +25,13 @@ bun t test/test-cases/e2e/service/step-2-stt-e2e/stt-services/
 
 ## Local Coverage
 
-- `test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisper/` includes default, per-model (`tiny`/`base`), split, and `large-v3-turbo` coverage.
-- `test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisperfile/` covers local Mozilla whisperfile STT (downloads a prebuilt `tiny` whisperfile on first run).
+- `test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisper/` covers local Whisper transcription, including `--split`.
+- `test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisperfile/` covers local Whisperfile STT.
 
 ## Service Coverage
 
-- The shared `defineSTTServiceTest` helper covers invalid model rejection and real transcription when the required API key is configured. `--price` output coverage lives separately in `test/test-cases/price-flag/stt-price.test.ts` via the `defineSTTServicePriceTests` helper.
-- Service STT coverage is split into model and scenario files per provider target under `test/test-cases/e2e/service/step-2-stt-e2e/stt-services/`, covering AssemblyAI, Deepgram, DeepInfra, Gemini, Gladia, Grok, Groq, Mistral, Rev, ScrapeCreators, Soniox, Speechmatics, Supadata, and Together, including URL transcript scenarios.
-- Zero-cost routing, YouTube caption-first fallback, transcript parsing, and media acquisition validation live in `test/test-cases/validation/extract-stt/` and shared option/provider validation suites (`input-contracts.test.ts`, `option-resolution-contracts/`, `provider-selection-contracts/`, `price-mode-contracts/`, and `resume-setup-contracts.test.ts`).
+- Files under `test/test-cases/e2e/service/step-2-stt-e2e/stt-services/` cover live transcription for AssemblyAI, Deepgram, DeepInfra, Gemini, Gladia, Grok, Groq, Mistral, ScrapeCreators, Soniox, Speechmatics, Supadata, and Together, including ScrapeCreators and Supadata URL-to-transcript scenarios.
+- Zero-cost validation lives in `test/test-cases/validation/extract-stt/`.
 
 ## Price Preflight
 

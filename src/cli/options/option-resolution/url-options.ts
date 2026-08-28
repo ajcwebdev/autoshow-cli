@@ -6,7 +6,7 @@ import {
   DEFAULT_URL_REQUEST_ATTEMPTS,
   DEFAULT_URL_REQUEST_TIMEOUT_MS
 } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-utils'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import type { CliFlagOccurrence, HtmlArticleBackend, UrlRuntimeOptions } from '~/types'
 import {
   parseUrlBackend,
@@ -22,12 +22,12 @@ const parsePositiveIntegerFlag = (
   }
 
   if (!/^\d+$/.test(value)) {
-    throw CLIUsageError(`Invalid ${label} value "${value}". Expected a positive integer.`)
+    throw UsageError(`Invalid ${label} value "${value}". Expected a positive integer.`)
   }
 
   const parsed = Number.parseInt(value, 10)
   if (!Number.isFinite(parsed) || parsed < 1) {
-    throw CLIUsageError(`Invalid ${label} value "${value}". Expected a positive integer.`)
+    throw UsageError(`Invalid ${label} value "${value}". Expected a positive integer.`)
   }
 
   return parsed
@@ -52,7 +52,7 @@ export const resolveUrlOptions = (
     configuredFlags?: Set<string> | undefined
     flagOccurrences?: readonly CliFlagOccurrence[] | undefined
   } = {}
-): Omit<UrlRuntimeOptions, 'skipLLM' | 'urlProviderConcurrency'> => {
+): Omit<UrlRuntimeOptions, 'urlProviderConcurrency'> => {
   const publicUrlBackendFlag = readOptionalStringFlag(flags, 'url-provider')
   const hasFlagOccurrences = (options.flagOccurrences?.length ?? 0) > 0
   const hasSelectedFlag = (flagName: string, value: string | undefined): boolean =>
@@ -65,7 +65,7 @@ export const resolveUrlOptions = (
   const publicSelected = hasSelectedFlag('url-provider', publicUrlBackendFlag)
   const urlBackendFlag = publicSelected ? publicUrlBackendFlag : undefined
   if ((allUrlSelected || allLocalUrlSelected) && urlBackendFlag !== undefined) {
-    throw CLIUsageError('Cannot use --all-providers or --all-local url with --url-provider')
+    throw UsageError('Cannot use --all-providers or --all-local url with --url-provider')
   }
 
   const selectedUrlBackends = allUrlSelected || allLocalUrlSelected

@@ -23,7 +23,7 @@ export type SetupPerformanceOverlap = {
   overlapMs: number
 }
 
-export type SetupPerformanceEnvironment = {
+type SetupPerformanceEnvironment = {
   platform: NodeJS.Platform
   osRelease: string
   architecture: string
@@ -33,7 +33,7 @@ export type SetupPerformanceEnvironment = {
   dependencyVersions: Record<string, string>
 }
 
-export type SetupPerformanceStepTiming = {
+type SetupPerformanceStepTiming = {
   label: string
   durationMs: number
   ok: boolean
@@ -67,4 +67,14 @@ export type FinishSetupPerformanceRunOptions = {
 export type FinishedSetupPerformanceRun = {
   artifact: SetupPerformanceArtifact
   artifactPath: string
+}
+
+export type ActiveSetupPerformanceRun = {
+  runId: string
+  startedAt: Date
+  startedMonotonicMs: number
+  topology: string
+  dependencyVersions: Record<string, string>
+  artifactDirectory: string
+  phases: SetupPerformancePhaseRecord[]
 }

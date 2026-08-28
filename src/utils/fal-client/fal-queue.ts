@@ -2,15 +2,7 @@ import { FAL_QUEUE_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { InfraError } from '~/utils/error-handler'
 import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-
-export type FalQueueStatus = {
-  status: string
-  request_id: string
-  response_url?: string | undefined
-  status_url?: string | undefined
-  cancel_url?: string | undefined
-  queue_position?: number | undefined
-}
+import type { FalQueueStatus } from '~/types'
 
 const headersFor = (apiKey: string): Record<string, string> => ({
   Authorization: `Key ${apiKey}`,
@@ -41,13 +33,12 @@ const readErrorBody = async (response: Response): Promise<string> => {
   return body.trim().length > 0 ? body : 'No response body'
 }
 
-export const getFalQueueBaseUrl = (): string => FAL_QUEUE_DEFAULT_BASE_URL.replace(/\/+$/, '')
+const getFalQueueBaseUrl = (): string => FAL_QUEUE_DEFAULT_BASE_URL.replace(/\/+$/, '')
 
-export const cancelFalQueueRequest = async (apiKey: string, cancelUrl: string): Promise<void> => {
+const cancelFalQueueRequest = async (apiKey: string, cancelUrl: string): Promise<void> => {
   try {
     await fetch(cancelUrl, { method: 'PUT', headers: headersFor(apiKey) })
   } catch {
-    // Cancellation is best-effort while preserving the original queue error.
   }
 }
 
@@ -55,10 +46,10 @@ export const runFalQueue = async <T>(options: {
   apiKey: string
   endpointId: string
   input: Record<string, unknown>
-  /** Test-only override that keeps queue-polling contract tests fast. */
   pollIntervalMs?: number | undefined
   operationName: string
   onStatus?: ((status: FalQueueStatus) => void) | undefined
+  abortSignal?: AbortSignal | undefined
 }): Promise<{ requestId: string, output: T }> => {
   const baseUrl = getFalQueueBaseUrl()
   const headers = headersFor(options.apiKey)
@@ -66,7 +57,11 @@ export const runFalQueue = async <T>(options: {
 
   try {
     submission = await withRetry(
-      { operationName: `${options.operationName}-submit`, retryClass: 'runtime_http_create_conservative' },
+      {
+        operationName: `${options.operationName}-submit`,
+        retryClass: 'runtime_http_create_conservative',
+        ...(options.abortSignal ? { abortSignal: options.abortSignal } : {})
+      },
       async (signal) => {
         const response = await fetch(`${baseUrl}/${options.endpointId}`, {
           method: 'POST',
@@ -89,8 +84,9 @@ export const runFalQueue = async <T>(options: {
           operationName: options.operationName,
           intervalMs: options.pollIntervalMs ?? 5_000,
           deadlineMs: MEDIA_GENERATION_TIMEOUT_MS,
+          ...(options.abortSignal ? { abortSignal: options.abortSignal } : {}),
           pollFn: async () => {
-            const response = await fetch(statusUrl, { headers })
+            const response = await fetch(statusUrl, { headers, ...(options.abortSignal ? { signal: options.abortSignal } : {}) })
             if (!response.ok) {
               throw InfraError(`fal.ai queue status failed (${response.status}): ${await readErrorBody(response)}`, { stage: 'fal:queue', status: response.status })
             }

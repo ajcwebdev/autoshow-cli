@@ -1,4 +1,4 @@
-export type DefuddleCliSource = 'runtime' | 'path'
+type DefuddleCliSource = 'runtime' | 'path'
 
 export type ResolvedDefuddleCli = {
   path: string
