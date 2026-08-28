@@ -67,6 +67,7 @@ On `extract` and `resume`, pass `--provider provider[=model]`. On `config`, pass
 | `--batch-concurrency <n>`             | Process batch items concurrently; default `7`                                                                                                                                     |
 | `--provider-concurrency <n>`          | Max hosted provider/model targets running in parallel for one item; default `7`                                                                                                   |
 | `--stt-segment-concurrency <n>`       | Max split segments in flight per provider; default `7`                                                                                                                            |
+| `--stt-preflight-concurrency <n>`     | Max media-duration probes running in parallel during preflight; default `7`                                                                                                      |
 | `--concurrency-mode <ramp|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--price`                             | Show the aggregated estimate and exit                                                                                                                                             |
 

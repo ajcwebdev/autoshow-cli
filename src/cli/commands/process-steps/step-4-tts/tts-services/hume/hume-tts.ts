@@ -1,3 +1,3 @@
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureHumeTtsSetup = async (): Promise<void> => { requireProviderKey('hume', 'tts:hume', 'Hume TTS') }
+export const ensureHumeTtsSetup = async (): Promise<void> => { resolveCredential('hume', 'require', { stage: 'tts:hume', description: 'Hume TTS' }) }

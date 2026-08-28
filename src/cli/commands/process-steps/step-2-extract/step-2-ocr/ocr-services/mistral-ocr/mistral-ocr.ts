@@ -1,3 +1,3 @@
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureMistralOcrSetup = async (): Promise<void> => { requireProviderKey('mistral', 'ocr:mistral', 'Mistral OCR') }
+export const ensureMistralOcrSetup = async (): Promise<void> => { resolveCredential('mistral', 'require', { stage: 'ocr:mistral', description: 'Mistral OCR' }) }

@@ -61,23 +61,18 @@ const describeFailedTtsRecovery = async (options: {
 
 const selectBoundedExecutionOptions = (
   options: TtsOptions,
-  selection: readonly { turnId: string, providerSegmentIndex: number }[] | undefined
+  selection: readonly { turnId: string, providerSegmentIndex: number, providerText: string }[] | undefined
 ): TtsOptions => {
   if (!selection) return options
-  const selectedByTurn = new Map<string, number[]>()
-  for (const entry of selection) selectedByTurn.set(entry.turnId, [...(selectedByTurn.get(entry.turnId) ?? []), entry.providerSegmentIndex])
+  const selectedByTurn = new Map<string, typeof selection>()
+  for (const entry of selection) selectedByTurn.set(entry.turnId, [...(selectedByTurn.get(entry.turnId) ?? []), entry])
   const selectedTurns = options.ttsCanonicalTurns?.flatMap((turn) => {
-    const indexes = selectedByTurn.get(turn.turnId)
-    if (!indexes?.length) return []
-    const providerSegments = turn.providerSegments?.length ? turn.providerSegments : [turn.text]
+    const entries = selectedByTurn.get(turn.turnId)
+    if (!entries?.length) return []
     return [{
       ...turn,
-      providerSegments: indexes.map((index) => {
-        const segment = providerSegments[index]
-        if (segment === undefined) throw UsageError(`Bounded TTS execution selected missing provider segment ${index} for ${turn.turnId}.`)
-        return segment
-      }),
-      providerSegmentIndexes: indexes
+      providerSegments: entries.map((entry) => entry.providerText),
+      providerSegmentIndexes: entries.map((entry) => entry.providerSegmentIndex)
     }]
   })
   if (!selectedTurns?.length) throw UsageError('Bounded TTS execution did not select any canonical dialogue turns.')
@@ -90,6 +85,37 @@ const selectBoundedExecutionOptions = (
     ttsCanonicalTurns: selectedTurns,
     ...(selectedTurnControls ? { ttsTurnControls: selectedTurnControls } : {}),
     ttsChunkConcurrency: 1
+  }
+}
+
+const selectSingleSpeakerExecutionOptions = (
+  options: TtsOptions,
+  target: TtsTarget,
+  selection: NonNullable<CurrentRenderAttempt['executionSelection']>,
+  checkpointRequired: boolean
+): TtsOptions => {
+  const voicesBySpeaker = new Map<string, string>()
+  for (const entry of selection) {
+    const voice = entry.voice ?? target.voice
+    if (!voice) throw UsageError(`Selected TTS recovery cannot reconstruct the retained voice for ${entry.speaker}.`)
+    const current = voicesBySpeaker.get(entry.speaker)
+    if (current !== undefined && current !== voice) {
+      throw UsageError(`Selected TTS recovery found conflicting retained voices for ${entry.speaker}.`)
+    }
+    voicesBySpeaker.set(entry.speaker, voice)
+  }
+  return {
+    ...options,
+    ttsDialogueFormat: 'labeled',
+    ttsSpeakers: [...voicesBySpeaker].map(([speaker, voice]) => `${speaker}=${voice}`),
+    ttsCanonicalTurns: selection.map((entry) => ({
+      turnId: entry.turnId,
+      speaker: entry.speaker,
+      text: entry.providerText,
+      providerSegments: [entry.providerText],
+      providerSegmentIndexes: [entry.providerSegmentIndex]
+    })),
+    ...(checkpointRequired ? { ttsChunkConcurrency: 1 } : {})
   }
 }
 
@@ -335,16 +361,23 @@ const runPreparedTtsTarget = async (input: {
       providerRunCompleted = true
       return buildWorkingTtsResult({ mode: 'local-finalize', target, reportedOutput, startedAt: Date.now(), chunkCount: attempt.plannedChunkCount, renderArtifacts: await attempt.finalizeSuccess('', reportedOutput.path) })
     }
-    const boundedOptions = selectBoundedExecutionOptions(options, attempt.executionSelection)
+    const singleSpeakerSelection = attempt.executionSelection && !isMultiSpeakerRequested(options)
+      ? attempt.executionSelection
+      : undefined
+    const boundedOptions = singleSpeakerSelection
+      ? selectSingleSpeakerExecutionOptions(options, target, singleSpeakerSelection, attempt.executionCheckpointRequired)
+      : selectBoundedExecutionOptions(options, attempt.executionSelection)
     const executionOptions: TtsOptions = boundedOptions.hostedTtsChunkScheduler ? {
       ...boundedOptions,
       hostedTtsChunkJobContext: schedulerJob,
       hostedTtsChunkScheduler: bindHostedTtsChunkScheduler(boundedOptions.hostedTtsChunkScheduler, { job: schedulerJob, scopeLabel: boundedOptions.hostedTtsLaneScopeLabel }),
     } : boundedOptions
-    const { audioPath, metadata: rawMetadata } = await target.run(input.text, input.workspaceDir, executionOptions, undefined, attempt.requestEvidence)
+    const { audioPath, metadata: rawMetadata } = singleSpeakerSelection
+      ? await runMultiSpeakerTts(input.text, input.workspaceDir, target, executionOptions, attempt.requestEvidence)
+      : await target.run(input.text, input.workspaceDir, executionOptions, undefined, attempt.requestEvidence)
     providerRunCompleted = true
     const { _ttsObservedTurns: _ignoredTurns, _ttsRenderStrategy: _ignoredStrategy, ...metadata } = rawMetadata as WorkingTtsMetadata
-    if (attempt.executionSelection) return buildWorkingTtsResult({ mode: 'generation-checkpoint', metadata, audioPath, audioFileName: rawMetadata.audioFileName, checkpoint: await attempt.finalizeCheckpoint() })
+    if (attempt.executionCheckpointRequired) return buildWorkingTtsResult({ mode: 'generation-checkpoint', metadata, audioPath, audioFileName: rawMetadata.audioFileName, checkpoint: await attempt.finalizeCheckpoint() })
     return buildWorkingTtsResult({ mode: 'provider-render', metadata, reportedOutput, renderArtifacts: await attempt.finalizeSuccess(audioPath, reportedOutput.path) })
   } catch (error) {
     const failure = await attempt.finalizeFailure(error, providerRunCompleted ? 'assembly' : undefined)
@@ -388,7 +421,7 @@ export const runTtsTargets = async (
     outputDir,
     stepLabel: 'TTS',
     noProviderMessage: 'No provider produced audio',
-    concurrency: { provider: options.ttsProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY, local: options.ttsLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY },
+    concurrency: { provider: options.ttsProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY, local: DEFAULT_CLI_CONCURRENCY },
     getTargetPool: () => 'hosted',
     getWorkspaceDir: (dir, target) => `${dir}/.tts-tmp-${target.service}-${sanitizeModelName(target.model)}`,
     useWorkspaceForSingleTarget: true,

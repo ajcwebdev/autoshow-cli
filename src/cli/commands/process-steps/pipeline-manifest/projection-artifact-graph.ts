@@ -11,11 +11,8 @@ import {
   validateProviderRenderPlanIdentity
 } from '../step-4-tts/script-to-audio/contract-validation'
 import { parseTtsDialoguePlanArtifactRef, readTtsDialoguePlanArtifact } from '../step-4-tts/script-to-audio/item-dialogue-plan-artifact'
-import {
-  canonicalManifestJson,
-  isSafeRelativePath,
-  isSha256
-} from './guards'
+import { canonicalManifestJson, isSha256 } from './guards'
+import { verifyComicProjectionArtifacts } from './comic-projection-artifact-verifier'
 import { verifyProviderProjectionArtifacts } from './projection-artifact-verifier'
 
 export {
@@ -35,47 +32,6 @@ export const verifyManifestProjectionArtifacts = async (
   rootDir: string,
   manifest: PipelineManifest
 ): Promise<boolean> => {
-  const verifyComicItemArtifacts = async (item: PipelineManifestItem): Promise<boolean> => {
-    const comic = item.metadata['comic']
-    if (!isRecord(comic) || !isRecord(comic['stages']) || !isRecord(comic['audio'])) return false
-    const references: Array<{ path: string, sha256: string }> = []
-    for (const stage of Object.values(comic['stages'])) {
-      if (!isRecord(stage) || !Array.isArray(stage['artifactRefs'])) return false
-      for (const ref of stage['artifactRefs']) if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
-    }
-    const audio = comic['audio']
-    for (const key of ['structuredScript', 'dialoguePlanRef', 'snapshotRef', 'mixPlanRef', 'finalTimelineRef', 'soundscapePlanRef', 'soundEffectRenderPlanRef', 'soundEffectRenderResultRef'] as const) {
-      const ref = audio[key]
-      if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
-    }
-    if (Array.isArray(audio['finalOutputRefs'])) for (const ref of audio['finalOutputRefs']) if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
-    if (Array.isArray(audio['selectedAudioRuns'])) for (const run of audio['selectedAudioRuns']) {
-      if (isRecord(run) && typeof run['audioRunRef'] === 'string' && typeof run['audioRunSha256'] === 'string') references.push({ path: run['audioRunRef'], sha256: run['audioRunSha256'] })
-    }
-    if (Array.isArray(audio['selectedSoundscapeRuns'])) for (const run of audio['selectedSoundscapeRuns']) {
-      if (isRecord(run) && typeof run['audioRunRef'] === 'string' && typeof run['audioRunSha256'] === 'string') references.push({ path: run['audioRunRef'], sha256: run['audioRunSha256'] })
-      if (isRecord(run) && isRecord(run['masterRef']) && typeof run['masterRef']['path'] === 'string' && typeof run['masterRef']['sha256'] === 'string') references.push({ path: run['masterRef']['path'], sha256: run['masterRef']['sha256'] })
-    }
-    const presentation = comic['presentation']
-    if (isRecord(presentation)) {
-      for (const key of ['planRef', 'resolvedTimelineRef', 'runRef'] as const) {
-        const ref = presentation[key]
-        if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
-      }
-      if (Array.isArray(presentation['finalOutputRefs'])) for (const ref of presentation['finalOutputRefs']) if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
-    }
-    for (const ref of references) {
-      if (!isSafeRelativePath(rootDir, ref.path)) return false
-      try {
-        const bytes = await readFileBytes(resolve(rootDir, ref.path))
-        if (new Bun.CryptoHasher('sha256').update(bytes).digest('hex') !== ref.sha256) return false
-      } catch {
-        return false
-      }
-    }
-    return true
-  }
-
   const verifyTtsItemDialoguePlan = async (item: PipelineManifestItem, itemIndex: number): Promise<boolean> => {
     const synthesisProviders = item.providers.filter((provider) =>
       provider.operation === 'tts-synthesis'
@@ -123,7 +79,7 @@ export const verifyManifestProjectionArtifacts = async (
       if (!await verifyProviderProjectionArtifacts(rootDir, provider)) return false
     }
     if (manifest.command === 'tts' && !await verifyTtsItemDialoguePlan(item, itemIndex)) return false
-    if (manifest.command === 'comic' && !await verifyComicItemArtifacts(item)) return false
+    if (manifest.command === 'comic' && !await verifyComicProjectionArtifacts(rootDir, item)) return false
   }
   return true
 }

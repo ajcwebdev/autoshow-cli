@@ -97,7 +97,11 @@ export type CurrentTtsRenderAttempt = {
     generationSlotId: string
     turnId: string
     providerSegmentIndex: number
+    providerText: string
+    speaker: string
+    voice?: string | undefined
   }[] | undefined
+  executionCheckpointRequired: boolean
   finalizeSuccess: (audioPath: string, reportedOutputPath: string) => Promise<CurrentTtsRenderArtifacts>
   finalizeCheckpoint: () => Promise<{
     artifactDir: string

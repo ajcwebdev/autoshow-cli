@@ -60,7 +60,7 @@ Do not mix hosted generation flags with lyric-video flags.
 
 ## Shared Music Options
 
-The standalone `music` command drops the `music-` prefix these options carry on `config` and `resume` (e.g. `--duration` vs `--music-duration`).
+The `music` and `resume` commands use the same short option names, including `--duration`. Saved configuration uses the matching namespaced key, such as `defaults.music.duration`.
 
 Hosted generation flags:
 

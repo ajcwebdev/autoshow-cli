@@ -1,7 +1,7 @@
 import { rm } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { createGenerationOutputDir } from '~/cli/commands/process-steps/generation-command-utils'
-import { createPipelineItemFromRecord, readManifest, updateManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { createBatchedManifestUpdater, createPipelineItemFromRecord, readManifest, updateManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { getPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
 import { assertCompatibleTtsDirectoryBatch, priceExistingTtsDirectoryBatch, resumeExistingTtsDirectoryBatch } from '~/cli/commands/setup-and-utilities/resume/generation/tts-batch-resume'
 import { buildPipelineItemRecord } from '~/cli/commands/process-steps/step-0-metadata/metadata-batch/pipeline-item-record-builder'
@@ -36,10 +36,10 @@ import { createHumanTable, logLocationsTable } from '~/utils/app-logger/human-ta
 import { validateTtsRenderInputsForTargets } from './run-tts'
 import { computeSuccessfulTtsBatchActualCost } from './tts-batch-summary'
 import { collectTtsTargets, getTtsArtifactFileName, mergeTtsExecutionReadinessObservations, validateTtsTargetsForExecution } from './tts-targets'
-import { createHostedTtsBatchCoordinator } from './tts-utils/hosted-tts-chunk-scheduler'
+import { createHostedTtsChunkScheduler } from './tts-utils/hosted-tts-chunk-scheduler'
 import { materializeStandaloneMistralReference } from './voice-assets/standalone-mistral-reference'
 import { hasMistralProtectedReferences } from './voice-assets/mistral-protected-reference-binding'
-import { appendCurrentTtsProviderState } from './script-to-audio/current-render-artifacts'
+import { appendCurrentTtsProviderState, getCurrentTtsJournalAttemptKey } from './script-to-audio/current-render-artifacts'
 import { createBatchItemTtsSourceIdentity, createGenericTtsDialoguePlan, createSingleTurnTtsDialoguePlan } from './script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from './script-to-audio/item-dialogue-plan-artifact'
 import { buildTtsEstimateForInput, enforceTtsBatchBudget, mergeActualCostBreakdowns, mergeEstimatedCostBreakdowns, mergeTimingBreakdowns, reportTtsBatchEstimates } from './tts-batch-estimates'
@@ -165,6 +165,10 @@ const createTtsBatchLifecycleCoordinator = (options: {
   const preparationBarrier = new Promise<void>((resolve) => {
     releasePreparationBarrier = resolve
   })
+  const manifestUpdater = createBatchedManifestUpdater(
+    async (update) => await updateManifest(options.batchDir, update)
+  )
+  const publishedJournalAttempts = new Set<string>()
 
   const allItemsPrepared = (): boolean => options.accumulators.every((accumulator) =>
     options.targets.every((target) => target.targetKey !== undefined && accumulator.providerStates.has(target.targetKey))
@@ -210,10 +214,14 @@ const createTtsBatchLifecycleCoordinator = (options: {
       const state = bindTtsDialoguePlanArtifact(unboundState, dialoguePlanArtifact)
       if (!state.targetKey) throw UsageError('TTS batch lifecycle produced a provider state without an operation-scoped targetKey.')
       await waitForInitialization()
+      const journalAttemptKey = state.status === 'running'
+        ? getCurrentTtsJournalAttemptKey(state)
+        : undefined
+      if (state.status === 'running' && (!journalAttemptKey || publishedJournalAttempts.has(journalAttemptKey))) return
       const accumulator = options.accumulators[itemIndex]
       if (!accumulator) throw UsageError(`Missing TTS batch lifecycle accumulator for item ${itemIndex + 1}.`)
       let committed: PipelineProviderState | undefined
-      await updateManifest(options.batchDir, (manifest) => {
+      await manifestUpdater((manifest) => {
         if (manifest.command !== 'tts' || manifest.scope !== 'batch' || manifest.items.length !== options.preparedInputs.length) {
           throw UsageError('TTS batch lifecycle can update only its complete canonical batch manifest.')
         }
@@ -232,6 +240,7 @@ const createTtsBatchLifecycleCoordinator = (options: {
         return { ...manifest, items }
       })
       accumulator.providerStates.set(state.targetKey, committed as PipelineProviderState)
+      if (journalAttemptKey) publishedJournalAttempts.add(journalAttemptKey)
     },
     abortPreparation: (error) => {
       if (initialized || initializationError !== undefined) return
@@ -402,10 +411,11 @@ export const runTtsDirectoryBatch = async (
 
   const runPromises: Promise<void>[] = []
   const hostedCoordinator = targets.length > 0
-    ? createHostedTtsBatchCoordinator({
+    ? createHostedTtsChunkScheduler({
         maxConcurrency: ttsOptions.ttsChunkConcurrency,
         concurrencyMode: ttsOptions.concurrencyMode,
-        hostedConcurrencyCoordinator: ttsOptions.hostedConcurrencyCoordinator
+        hostedConcurrencyCoordinator: ttsOptions.hostedConcurrencyCoordinator,
+        autoStart: false
       })
     : undefined
   if (hostedCoordinator) {

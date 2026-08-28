@@ -92,7 +92,8 @@ export const ttsCommand = defineCliCommand({
   } as const
   const unresolvedTtsOptions: StandaloneTtsCommandOptions = buildOptsFromFlags(sanitizedFlags, {}, ttsNormalized.explicitFlags, {
       flagOccurrences: ttsNormalized.flagOccurrences,
-      ttsOptionResolutionAuthority
+      ttsOptionResolutionAuthority,
+      scope: 'tts'
     })
   const referenceInput = resolveStandaloneMistralTtsCliReferenceInput(
     ttsNormalized.flags,

@@ -9,12 +9,12 @@ import { createManifest, createPipelineItemFromRecord, PIPELINE_MANIFEST_FILE, w
 import { isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
 import { STT_MODEL_KEYS } from '~/cli/options/option-resolution/stt-options'
 import { writeMetadataTerminalOutput, writeSavedMetadataArtifacts } from './metadata-output'
-import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItem, BatchItemProcessResult, DownloadAudioOptions, DownloadMediaRuntimeOptions, DownloadRuntimeOptions, ExtractCommandOptions, MetadataOutputOptions, PipelineItemRecord, ProcessingOptions, ProcessingSource, SharedPipelineOptions, VideoMetadata, WebArticleMetadata, WriteRuntimeOptions } from '~/types'
+import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItem, BatchItemProcessResult, DownloadAudioOptions, DownloadMediaRuntimeOptions, DownloadRuntimeOptions, ExtractCommandOptions, MetadataOutputOptions, PipelineItemRecord, ProcessingOptions, ProcessingSource, SharedPipelineOptions, VideoMetadata, WebArticleMetadata } from '~/types'
 
 export const buildProcessingOptions = (
   source: ProcessingSource,
   outputDir: string,
-  runtimeOptions: ExtractCommandOptions | WriteRuntimeOptions
+  runtimeOptions: ExtractCommandOptions
 ): ProcessingOptions => {
   return {
     ...source,
@@ -36,7 +36,7 @@ export const buildProcessingOptions = (
 export const processMediaSingle = async (
   target: string,
   baseDir: string,
-  runtimeOptions: ExtractCommandOptions | WriteRuntimeOptions,
+  runtimeOptions: ExtractCommandOptions,
   preflightEstimate?: AggregatedPriceEstimate,
   batchChildContext?: BatchChildRunContext
 ): Promise<{ outputDir: string, info: { url: string, title: string, channel: string, channelURL?: string, publishDate?: string, duration: string } }> => {

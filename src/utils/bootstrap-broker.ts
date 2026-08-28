@@ -2,7 +2,7 @@ import { ensureWhisperReady } from '~/cli/commands/process-steps/step-2-extract/
 import { ensureWhisperfileReady } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisperfile/whisperfile'
 import type { BootstrapHandler } from '~/types'
 import { InternalError } from '~/utils/error-handler'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 const DEFAULT_WHISPER_MODEL = 'tiny'
 const cache = new Map<string, Promise<void>>()
@@ -37,46 +37,46 @@ const handlers: Record<string, BootstrapHandler> = {
     ensure: async (model) => await ensureWhisperfileReady(model ?? DEFAULT_WHISPER_MODEL)
   },
   'deepgram-stt': {
-    ensure: async (): Promise<void> => { requireProviderKey('deepgram', 'stt:deepgram', 'Deepgram transcription') }
+    ensure: async (): Promise<void> => { resolveCredential('deepgram', 'require', { stage: 'stt:deepgram', description: 'Deepgram transcription' }) }
   },
   'deepinfra-stt': {
-    ensure: async (): Promise<void> => { requireProviderKey('deepinfra', 'stt:deepinfra', 'DeepInfra transcription') }
+    ensure: async (): Promise<void> => { resolveCredential('deepinfra', 'require', { stage: 'stt:deepinfra', description: 'DeepInfra transcription' }) }
   },
   'soniox-stt': {
-    ensure: async (): Promise<void> => { requireProviderKey('soniox', 'stt:soniox', 'Soniox transcription') }
+    ensure: async (): Promise<void> => { resolveCredential('soniox', 'require', { stage: 'stt:soniox', description: 'Soniox transcription' }) }
   },
   'speechmatics-stt': {
-    ensure: async (): Promise<void> => { requireProviderKey('speechmatics', 'stt:speechmatics', 'Speechmatics transcription') }
+    ensure: async (): Promise<void> => { resolveCredential('speechmatics', 'require', { stage: 'stt:speechmatics', description: 'Speechmatics transcription' }) }
   },
   'groq-stt': {
-    ensure: async (): Promise<void> => { requireProviderKey('groq', 'stt:groq', 'Groq transcription') }
+    ensure: async (): Promise<void> => { resolveCredential('groq', 'require', { stage: 'stt:groq', description: 'Groq transcription' }) }
   },
   'grok-stt': {
-    ensure: async (): Promise<void> => { requireProviderKey('grok', 'stt:grok', 'Grok transcription') }
+    ensure: async (): Promise<void> => { resolveCredential('grok', 'require', { stage: 'stt:grok', description: 'Grok transcription' }) }
   },
   'mistral-stt': {
-    ensure: async (): Promise<void> => { requireProviderKey('mistral', 'stt:mistral', 'Mistral transcription') }
+    ensure: async (): Promise<void> => { resolveCredential('mistral', 'require', { stage: 'stt:mistral', description: 'Mistral transcription' }) }
   },
   'assemblyai-stt': {
-    ensure: async (): Promise<void> => { requireProviderKey('assemblyai', 'stt:assemblyai', 'AssemblyAI transcription') }
+    ensure: async (): Promise<void> => { resolveCredential('assemblyai', 'require', { stage: 'stt:assemblyai', description: 'AssemblyAI transcription' }) }
   },
   'gladia-stt': {
-    ensure: async (): Promise<void> => { requireProviderKey('gladia', 'stt:gladia', 'Gladia transcription') }
+    ensure: async (): Promise<void> => { resolveCredential('gladia', 'require', { stage: 'stt:gladia', description: 'Gladia transcription' }) }
   },
   'happyscribe-stt': {
-    ensure: async (): Promise<void> => { requireProviderKey('happyscribe', 'stt:happyscribe', 'Happy Scribe transcription') }
+    ensure: async (): Promise<void> => { resolveCredential('happyscribe', 'require', { stage: 'stt:happyscribe', description: 'Happy Scribe transcription' }) }
   },
   'supadata-stt': {
-    ensure: async (): Promise<void> => { requireProviderKey('supadata', 'stt:supadata', 'Supadata transcription') }
+    ensure: async (): Promise<void> => { resolveCredential('supadata', 'require', { stage: 'stt:supadata', description: 'Supadata transcription' }) }
   },
   'scrapecreators-stt': {
-    ensure: async (): Promise<void> => { requireProviderKey('scrapecreators', 'stt:scrapecreators', 'ScrapeCreators transcript retrieval') }
+    ensure: async (): Promise<void> => { resolveCredential('scrapecreators', 'require', { stage: 'stt:scrapecreators', description: 'ScrapeCreators transcript retrieval' }) }
   },
   'gemini-stt': {
-    ensure: async (): Promise<void> => { requireProviderKey('gemini', 'stt:gemini', 'Gemini transcription') }
+    ensure: async (): Promise<void> => { resolveCredential('gemini', 'require', { stage: 'stt:gemini', description: 'Gemini transcription' }) }
   },
   'together-stt': {
-    ensure: async (): Promise<void> => { requireProviderKey('together', 'stt:together', 'Together transcription') }
+    ensure: async (): Promise<void> => { resolveCredential('together', 'require', { stage: 'stt:together', description: 'Together transcription' }) }
   },
 }
 

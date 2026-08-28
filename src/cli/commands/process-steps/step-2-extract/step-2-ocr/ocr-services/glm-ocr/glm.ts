@@ -1,5 +1,5 @@
 import { GLM_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 export const resolveGlmBaseUrl = (baseUrl?: string): string => {
   const override = baseUrl?.replace(/\/$/, '')
@@ -10,7 +10,7 @@ export const resolveGlmBaseUrl = (baseUrl?: string): string => {
 }
 
 export const ensureGlmApiKey = (serviceName: string, stage: string): string =>
-  requireProviderKey('glm', stage, serviceName)
+  resolveCredential('glm', 'require', { stage: stage, description: serviceName })
 
 export const ensureGlmOcrSetup = async (): Promise<void> => {
   ensureGlmApiKey('GLM OCR', 'ocr:glm')

@@ -1,4 +1,4 @@
-import type { AggregateExplicitEstimateOptions, AggregatedPriceEstimate, BatchProcessResult, ExtractRoute, PipelineItemRecord, PipelineManifestItem, PipelineProviderState, ProcessCommand, ProviderCompletionStatus, ProviderIdentity, StepEstimate } from '~/types'
+import type { AggregateExplicitEstimateOptions, AggregatedPriceEstimate, BatchProcessResult, ExtractRoute, PipelineItemRecord, PipelineManifest, PipelineManifestItem, PipelineProviderState, ProcessCommand, ProviderCompletionStatus, ProviderIdentity, StepEstimate } from '~/types'
 
 export type ResumeItemSummary = {
   item: string
@@ -68,6 +68,9 @@ export type GenerationResumeRunContext<TTarget extends ProviderIdentity, TMetada
   currentManifestMetadata: Record<string, unknown>
   currentProviderStates: PipelineProviderState[]
   itemIndex?: number | undefined
+  manifestUpdater?: ((
+    update: (manifest: PipelineManifest) => PipelineManifest | Promise<PipelineManifest>
+  ) => Promise<PipelineManifest>) | undefined
 }
 
 export type GenerationResumeProviderIdentity = ProviderIdentity & {

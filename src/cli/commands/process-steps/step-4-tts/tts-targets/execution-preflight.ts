@@ -148,12 +148,10 @@ const checkAdvancedVoiceReadiness = async (
       const results = await Promise.all(voiceIds.map(async voiceId => {
         const response = await fetch(`https://api.elevenlabs.io/v1/voices/${encodeURIComponent(voiceId)}`, { headers: { 'xi-api-key': apiKey } })
         if (!response.ok) return false
-        const payload = await response.json() as { voice_id?: unknown, high_quality_base_model_ids?: unknown, sharing?: { disable_at_unix?: unknown } | null, fine_tuning?: { state?: Record<string, unknown> } | null }
+        const payload = await response.json() as { voice_id?: unknown, sharing?: { disable_at_unix?: unknown } | null, fine_tuning?: { state?: Record<string, unknown> } | null }
         if (payload.voice_id !== voiceId) return false
         const relevantFineTuningState = payload.fine_tuning?.state?.[target.model]
         if (relevantFineTuningState === 'not_verified' || relevantFineTuningState === 'not_started' || relevantFineTuningState === 'failed') return false
-        const modelIds = Array.isArray(payload.high_quality_base_model_ids) ? payload.high_quality_base_model_ids.filter(value => typeof value === 'string') : []
-        if (modelIds.length > 0 && !modelIds.includes(target.model)) return false
         const disableAtUnix = payload.sharing?.disable_at_unix
         return typeof disableAtUnix !== 'number' || disableAtUnix * 1000 > Date.now()
       }))

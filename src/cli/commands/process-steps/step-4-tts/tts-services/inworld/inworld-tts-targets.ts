@@ -1,5 +1,5 @@
 import type { InworldTtsModel, TtsTarget, TtsTargetSelection } from '~/types'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { validateInworldTtsModel, validateInworldTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { runInworldTts } from './run-inworld-tts'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
@@ -22,7 +22,7 @@ export const collectInworldTtsTargets = (
         const controls = resolveTtsTargetInvocationControls('inworld', invocation, {
           steeringPrompt: selection.inworldInstructions,
         })
-        const apiKey = requireProviderKey('inworld', 'tts:inworld', 'Inworld AI TTS')
+        const apiKey = resolveCredential('inworld', 'require', { stage: 'tts:inworld', description: 'Inworld AI TTS' })
         return await runInworldTts(text, outputDir, {
           model,
           apiKey,

@@ -135,10 +135,10 @@ Resume accepts only provider-neutral TTS options. See [`tts`](../../process-step
 
 ## Image, Video, And Music Options
 
-Image, video, and music resume use the prefixed option names (`--image-size`, `--video-duration`, `--music-duration`) rather than the short names on the standalone commands. See [`image`](../../process-steps/step-5-image/text-to-image.md), [`video`](../../process-steps/step-6-video/text-to-video-services.md), and [`music`](../../process-steps/step-7-music/text-to-music-services.md) for option meanings.
+Image, video, and music resume use the same short option names as the standalone commands. The stored target determines which domain owns shared names such as `--duration` and `--aspect-ratio`. See [`image`](../../process-steps/step-5-image/text-to-image.md), [`video`](../../process-steps/step-6-video/text-to-video-services.md), and [`music`](../../process-steps/step-7-music/text-to-music-services.md) for option meanings.
 
 | Target | Option flags                                                                                                                                                                                                                    |
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Image  | `--image-aspect-ratio`, `--image-size`, `--image-quality`, `--image-format`, `--image-background`, `--image-count`, `--image-input`, `--image-mask`, `--image-response-mode`, `--image-search-grounding`, `--image-compression` |
-| Video  | `--video-mode`, `--video-duration`, `--video-aspect-ratio`, `--video-resolution`, `--video-generate-audio`, `--video-input-image`, `--video-last-frame`, `--video-reference-image`, `--video-input-video`, `--video-reference-video`, `--video-reference-audio` |
-| Music  | `--music-duration`, `--music-lyrics-file`, `--music-instrumental`                                                                                                                                                               |
+| Image  | `--aspect-ratio`, `--size`, `--quality`, `--format`, `--background`, `--count`, `--input`, `--mask`, `--response-mode`, `--search-grounding`, `--compression` |
+| Video  | `--mode`, `--duration`, `--aspect-ratio`, `--resolution`, `--generate-audio`, `--input-image`, `--last-frame`, `--reference-image`, `--input-video`, `--reference-video`, `--reference-audio` |
+| Music  | `--duration`, `--lyrics-file`, `--instrumental` |

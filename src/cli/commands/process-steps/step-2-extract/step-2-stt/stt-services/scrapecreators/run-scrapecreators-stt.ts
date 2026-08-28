@@ -3,7 +3,7 @@ import { ProviderError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import type { RetryClass, ScrapeCreatorsHttpError, ScrapeCreatorsTranscriptEntry, ScrapeCreatorsTranscriptPayload, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { buildTranscriptionOutputBase, countTokens, formatTranscriptText, resolveTranscriptionOutput, toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import { logSttSegmentLifecycle, logSttTranscriptOutput } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import { convertScrapeCreatorsCreditsToCents, estimateScrapeCreatorsCredits, getScrapeCreatorsCreditRateCents } from '~/utils/pricing/scrapecreators-pricing'
@@ -241,7 +241,7 @@ export const runScrapeCreatorsStt = async (
     throw buildScrapeCreatorsUnsupportedSourceError(sourceUrl)
   }
 
-  const apiKey = requireProviderKey('scrapecreators', 'stt:scrapecreators', 'ScrapeCreators YouTube transcript retrieval')
+  const apiKey = resolveCredential('scrapecreators', 'require', { stage: 'stt:scrapecreators', description: 'ScrapeCreators YouTube transcript retrieval' })
 
   if (segmentNumber && totalSegments) {
     logSttSegmentLifecycle(l, { provider: 'scrapecreators', action: 'started', segmentNumber, totalSegments, model: modelName })

@@ -15,7 +15,7 @@ import type {
   SoundEffectRenderPlan,
   SoundscapePlan,
 } from '~/types'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { UsageError } from '~/utils/error-handler'
 import { hardlinkContainedArtifact, readContainedArtifactFile, writeImmutableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
 import { createElevenLabsSoundEffectAdapter, resolveSoundEffectTarget } from '../../step-4-tts/soundscape/elevenlabs-sfx-adapter'
@@ -173,10 +173,10 @@ export const planComicSoundscapePrice = async (input: {
 
 const requireSoundscapeProviderApiKey = (provider: string): string =>
   provider === 'replicate'
-    ? requireProviderKey('replicate', 'comic:soundscape', 'Replicate AudioGen sound-effect generation')
+    ? resolveCredential('replicate', 'require', { stage: 'comic:soundscape', description: 'Replicate AudioGen sound-effect generation' })
     : provider === 'stability'
-      ? requireProviderKey('stability', 'comic:soundscape', 'Stability Stable Audio 3 sound-effect generation')
-      : requireProviderKey('elevenlabs', 'comic:soundscape', 'ElevenLabs sound-effect generation')
+      ? resolveCredential('stability', 'require', { stage: 'comic:soundscape', description: 'Stability Stable Audio 3 sound-effect generation' })
+      : resolveCredential('elevenlabs', 'require', { stage: 'comic:soundscape', description: 'ElevenLabs sound-effect generation' })
 
 export const assertComicSoundscapeExecutionReady = async (rootDir: string, renderPlan: SoundEffectRenderPlan): Promise<void> => {
   const estimate = await planSoundEffectResumePrice(rootDir, renderPlan)

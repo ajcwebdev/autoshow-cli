@@ -1,6 +1,5 @@
 export type VideoRuntimeOptions = {
   videoProviderConcurrency: number
-  videoLocalConcurrency: number
   geminiVideoModels: string[] | undefined
   grokVideoModels: string[] | undefined
   ltxVideoModels: string[] | undefined

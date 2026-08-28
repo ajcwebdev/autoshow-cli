@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises'
 import { basename } from 'node:path'
 import type { GeminiImageModel, Step5Metadata } from '~/types'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { withRetry } from '~/utils/retries'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
@@ -35,7 +35,7 @@ export const runGeminiImageGen = async (
     searchGrounding?: boolean | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
-  const apiKey = requireProviderKey('gemini', 'image:gemini')
+  const apiKey = resolveCredential('gemini', 'require', { stage: 'image:gemini' })
 
   const startTime = Date.now()
   const imagePaths: string[] = []

@@ -1,7 +1,7 @@
 import type { Step3Metadata, StructuredRequestOptions } from '~/types'
 import { TOGETHER_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { UsageError } from '~/utils/error-handler'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
 import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
 
@@ -11,7 +11,7 @@ const TOGETHER_MODEL_BY_SELECTOR = {
 } as const
 
 const ensureTogetherApiKey = (): string => {
-  const apiKey = requireProviderKey('together', 'write:together', '--together models')
+  const apiKey = resolveCredential('together', 'require', { stage: 'write:together', description: '--together models' })
   return apiKey
 }
 

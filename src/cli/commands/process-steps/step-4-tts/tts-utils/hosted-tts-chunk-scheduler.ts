@@ -697,18 +697,10 @@ class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
 
 export const createHostedTtsChunkScheduler = (
   options: HostedTtsChunkSchedulerOptions = {}
-): HostedTtsChunkScheduler =>
-  new HostedTtsBatchCoordinatorImpl({
-    ...options,
-    autoStart: options.autoStart ?? true
-  })
-
-export const createHostedTtsBatchCoordinator = (
-  options: HostedTtsChunkSchedulerOptions = {}
 ): HostedTtsBatchCoordinator =>
   new HostedTtsBatchCoordinatorImpl({
     ...options,
-    autoStart: options.autoStart ?? false
+    autoStart: options.autoStart ?? true
   })
 
 export const bindHostedTtsChunkScheduler = (

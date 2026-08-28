@@ -9,7 +9,7 @@ import {
   toTimestamp
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import { DEEPGRAM_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 import { createSttRetryMetrics, sttRetryMetricsToCallbacks } from '../../stt-retry-metrics'
 import { sttStageRequest } from '../stt-stage-request'
@@ -146,7 +146,7 @@ export const runDeepgramTranscribe = async (
   outputDir: string,
   options: SttSegmentRunOptions
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const apiKey = requireProviderKey('deepgram', 'stt:deepgram', 'Deepgram transcription')
+  const apiKey = resolveCredential('deepgram', 'require', { stage: 'stt:deepgram', description: 'Deepgram transcription' })
 
   const { model: modelName, segmentOffsetMinutes = 0, segmentNumber, totalSegments } = options
   if (segmentNumber && totalSegments) {

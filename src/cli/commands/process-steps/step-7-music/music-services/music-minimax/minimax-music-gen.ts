@@ -1,3 +1,3 @@
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureMinimaxMusicGenSetup = async (): Promise<void> => { requireProviderKey('minimax', 'music:minimax', 'MiniMax music generation') }
+export const ensureMinimaxMusicGenSetup = async (): Promise<void> => { resolveCredential('minimax', 'require', { stage: 'music:minimax', description: 'MiniMax music generation' }) }

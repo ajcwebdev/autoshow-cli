@@ -54,16 +54,17 @@ const REASONING_POLICIES = new Set<HostedOcrTokenReasoningPolicy>([
   'unspecified'
 ])
 
-const parseReasoningPolicy = (value: unknown): HostedOcrTokenReasoningPolicy =>
+const parseReasoningPolicy = (value: unknown): HostedOcrTokenReasoningPolicy | undefined =>
   typeof value === 'string' && REASONING_POLICIES.has(value as HostedOcrTokenReasoningPolicy)
     ? value as HostedOcrTokenReasoningPolicy
-    : 'unspecified'
+    : undefined
 
 
 const parseProfile = (value: unknown): HostedOcrTokenUsageProfile | undefined => {
   if (!isRecord(value)) {
     return undefined
   }
+  const effectiveReasoningEffort = parseReasoningPolicy(value['effectiveReasoningEffort'])
   if (
     !isTokenPricedOcrProvider(value['provider'])
     || typeof value['model'] !== 'string'
@@ -81,6 +82,7 @@ const parseProfile = (value: unknown): HostedOcrTokenUsageProfile | undefined =>
     || typeof value['firstSeenAt'] !== 'string'
     || typeof value['lastSeenAt'] !== 'string'
     || typeof value['sampleCount'] !== 'number'
+    || effectiveReasoningEffort === undefined
   ) {
     return undefined
   }
@@ -90,7 +92,7 @@ const parseProfile = (value: unknown): HostedOcrTokenUsageProfile | undefined =>
     model: value['model'],
     ocrMode: value['ocrMode'],
     pageCountBand: value['pageCountBand'],
-    effectiveReasoningEffort: parseReasoningPolicy(value['effectiveReasoningEffort']),
+    effectiveReasoningEffort,
     pageCount: Math.max(1, Math.floor(value['pageCount'])),
     observedPromptTokens: Math.max(0, Math.round(value['observedPromptTokens'])),
     observedCompletionTokens: Math.max(0, Math.round(value['observedCompletionTokens'])),
@@ -122,7 +124,7 @@ const tokenUsageProfileStore = createJsonProfileStore({
     compareForRetention: (left, right) => Date.parse(right.lastSeenAt) - Date.parse(left.lastSeenAt)
   },
   version: TOKEN_PROFILE_STORE_VERSION,
-  acceptVersions: [1],
+  invalidStorePolicy: 'throw',
   parseEntry: parseProfile,
   resolvePath: resolveHostedOcrTokenUsageProfilePath
 })

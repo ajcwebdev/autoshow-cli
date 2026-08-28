@@ -6,12 +6,12 @@ import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, writeManife
 import * as l from '~/utils/app-logger/app-logger'
 import { writeMetadataTerminalOutput, writeSavedMetadataArtifacts } from './metadata-output'
 import type { BatchChildRunContext, BatchItemProcessResult, MetadataOutputOptions, ParsedSpaceInput, SharedPipelineOptions, SpacesArtifact, XSpaceExtractionArtifacts } from '~/types'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 const X_SPACE_URL_BASE = 'https://x.com/i/spaces/'
 
 const getXBearerToken = (purpose: 'download' | 'extraction' | 'metadata'): string =>
-  requireProviderKey('x-spaces', 'download:x-spaces', `X/Twitter Space ${purpose}`)
+  resolveCredential('x-spaces', 'require', { stage: 'download:x-spaces', description: `X/Twitter Space ${purpose}` })
 
 const collectXSpacesArtifact = async (
   target: string,

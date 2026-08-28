@@ -1,6 +1,6 @@
 import type { GeminiMusicModel, GeminiMusicResponsePart, Step7MusicMetadata } from '~/types'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { InfraError, ValidationError } from '~/utils/error-handler'
@@ -146,7 +146,7 @@ export const runGeminiMusicGen = async (
     forceInstrumental?: boolean | undefined
   }
 ): Promise<{ musicPath: string, metadata: Step7MusicMetadata }> => {
-  const apiKey = requireProviderKey('gemini', 'music:gemini', 'Gemini music generation')
+  const apiKey = resolveCredential('gemini', 'require', { stage: 'music:gemini', description: 'Gemini music generation' })
 
   const { prompt: geminiPrompt, lyricsSource, intendedDurationSeconds } = await buildGeminiMusicPrompt(prompt, options)
   const musicPath = `${outputDir}/generated-music.mp3`

@@ -74,7 +74,7 @@ export type * from './write-workflow/run-llm-types'
 export type * from './write-workflow/text-input-utils-types'
 export type * from './write-workflow/show-note-artifacts-types'
 export type * from './write-workflow/capabilities-types'
-export type * from './write-workflow/compat-fallback-types'
+export type * from './write-workflow/schema-guided-fallback-types'
 
 export type * from './write-workflow/anthropic-compatible-types'
 export type * from './write-workflow/openai-compatible-chat-types'

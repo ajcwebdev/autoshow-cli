@@ -87,5 +87,9 @@ export type AttemptContext = {
     generationSlotId: string
     turnId: string
     providerSegmentIndex: number
+    providerText: string
+    speaker: string
+    voice?: string | undefined
   }[] | undefined
+  executionCheckpointRequired: boolean
 }

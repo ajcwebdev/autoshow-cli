@@ -14,7 +14,7 @@ import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { assertMistralReferenceAudioDecodable } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-reference-audio-preflight'
 import { installMockFetch } from '../../../test-utils/rest-contract-helpers'
 import { requireDefined } from '../../../test-utils/value-assertions'
-import { admissionStore, createMistralProtectedFixture, mistralOptions, mistralReferenceInput, plannedExecution, planSpeakerReferenceOptions, protectedAsset } from './tts-protected-mistral-reference-fixture'
+import { admissionStore, createMistralProtectedFixture, createMistralTestChunkScheduler, mistralOptions, mistralReferenceInput, plannedExecution, planSpeakerReferenceOptions, protectedAsset } from './tts-protected-mistral-reference-fixture'
 
 const mistralFixture = createMistralProtectedFixture()
 const makeRoot = mistralFixture.makeRoot
@@ -67,6 +67,7 @@ describe('standalone Mistral protected request references', () => {
       `Guest=${guestPath}`
     ], store, false)
     options = await materializeStandaloneMistralReference(options, runDir)
+    options.hostedTtsChunkScheduler = createMistralTestChunkScheduler()
     expect(ingestCalls).toBe(2)
     expect(resolveCalls).toBe(0)
     const target = requireDefined(collectTtsTargets(options)[0], 'the protected Mistral dialogue target')

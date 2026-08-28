@@ -7,7 +7,7 @@ import {
   readOptionalStringFlag,
   readOptionalStringListFlag
 } from './flag-readers'
-import { resolveLocalConcurrency, resolveProviderConcurrency } from './concurrency'
+import { resolveProviderConcurrency } from './concurrency'
 import { pick } from '~/utils/cli-utils'
 
 export const buildVideoOptions = (ctx: ResolvedFlagContext): VideoRuntimeOptions => {
@@ -16,7 +16,6 @@ export const buildVideoOptions = (ctx: ResolvedFlagContext): VideoRuntimeOptions
   return {
     ...pick(modelOptions, VIDEO_PRICING_MODEL_KEYS),
     videoProviderConcurrency: resolveProviderConcurrency(mergedFlags, 'video-provider-concurrency', allShortcutFlags['all-video'], explicitFlags, configuredFlags),
-    videoLocalConcurrency: resolveLocalConcurrency(mergedFlags, 'video-local-concurrency', explicitFlags, configuredFlags),
     allVideo: allShortcutFlags['all-video'],
     videoDuration: parseOptionalIntFlag(readOptionalStringFlag(mergedFlags, 'duration')),
     videoAspectRatio: readOptionalStringFlag(mergedFlags, 'aspect-ratio'),

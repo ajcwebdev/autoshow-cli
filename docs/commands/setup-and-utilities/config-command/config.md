@@ -34,7 +34,7 @@ Override with `--config-path <path>`:
 
 ```bash
 bun autoshow config --show --config-path ./input/my-autoshow.json
-bun autoshow write input/examples/audio/1-audio.mp3 --config-path ./input/my-autoshow.json
+bun autoshow write input/examples/scripts/1-script.md --config-path ./input/my-autoshow.json
 ```
 
 ## Setting Defaults
@@ -47,8 +47,8 @@ bun autoshow config --ocr tesseract
 bun autoshow config --ocr mistral=mistral-ocr-2512 --ocr-language eng --ocr-dpi 300
 bun autoshow config --tts elevenlabs=eleven_v3 --tts-voice voice_123
 bun autoshow config --tts gemini=gemini-3.1-flash-tts-preview --tts-speaker Host=Kore --tts-speaker Guest=Puck --tts-chunk-concurrency 3
-bun autoshow config --image openai=gpt-image-2 --image-size 1024x1024 --image-count 2
-bun autoshow config --video ltx=ltx-2-3-fast --video-duration 8 --video-resolution 1080p
+bun autoshow config --image openai=gpt-image-2
+bun autoshow config --video ltx=ltx-2-3-fast
 bun autoshow config --batch-limit 20 --batch-order oldest --batch-concurrency 2
 bun autoshow config --concurrency-mode immediate
 bun autoshow config --prompt shortSummary --prompt longChapters
@@ -101,17 +101,17 @@ Representative JSON shape:
     },
     "image": {
       "openaiImage": ["gpt-image-2"],
-      "imageSize": "1024x1024",
-      "imageCount": 2
+      "size": "1024x1024",
+      "count": 2
     },
     "video": {
       "ltxVideo": ["ltx-2-3-fast"],
-      "videoDuration": 8,
-      "videoResolution": "1080p"
+      "duration": 8,
+      "resolution": "1080p"
     },
     "music": {
       "minimaxMusic": ["music-3.0"],
-      "musicInstrumental": true
+      "instrumental": true
     },
     "batch": {
       "limit": 5,
@@ -131,6 +131,8 @@ Representative JSON shape:
 ```
 
 Model-selecting fields are arrays of models, not single strings. Use `bun autoshow config --show` to inspect the file `config` actually writes.
+
+Image, video, and music tuning keys use the same short vocabulary as their standalone commands inside their namespaced JSON sections. Because names such as `duration` and `format` are ambiguous outside a section, `config` persists provider/model selectors from CLI flags while these tuning defaults are edited directly in `config/autoshow.json`.
 
 ## Persisted Defaults
 
@@ -181,7 +183,7 @@ bun autoshow config \
   --stt groq=whisper-large-v3-turbo \
   --llm groq=openai/gpt-oss-20b \
   --tts minimax=speech-2.8-turbo \
-  --image openai=gpt-image-2 --image-quality low \
+  --image openai=gpt-image-2 \
   --video ltx=ltx-2-3-fast \
   --music minimax=music-3.0
 ```

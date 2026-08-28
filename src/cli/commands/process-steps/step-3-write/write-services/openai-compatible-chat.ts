@@ -4,7 +4,7 @@ import type { LlmApiCallResult, OpenAICompatibleChatService, OpenAIRestConfig, R
 import * as l from '~/utils/app-logger/app-logger'
 import { createOpenAIChatCompletion, extractOpenAIChatCompletionText } from '~/utils/openai/openai-client'
 import { classifyFetchRetry } from '~/utils/retries'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { resolveLlmReasoningOptions } from './llm-reasoning-options'
 
 export const runOpenAICompatibleChatModel = async ({
@@ -85,7 +85,7 @@ export const createOpenAICompatibleReasoningRunner = (descriptor: {
   baseURL: string
 }) => {
   const config = (): { apiKey: string, baseURL: string } => ({
-    apiKey: requireProviderKey(descriptor.service, `write:${descriptor.service}`, descriptor.envPurpose),
+    apiKey: resolveCredential(descriptor.service, 'require', { stage: `write:${descriptor.service}`, description: descriptor.envPurpose }),
     baseURL: descriptor.baseURL
   })
 

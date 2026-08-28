@@ -1,6 +1,5 @@
 export type ImageRuntimeOptions = {
   imageProviderConcurrency: number
-  imageLocalConcurrency: number
   geminiImageModels: string[] | undefined
   openaiImageModels: string[] | undefined
   grokImageModels: string[] | undefined

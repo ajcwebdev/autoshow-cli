@@ -14,7 +14,7 @@ import { runMultiSpeakerTts } from '~/cli/commands/process-steps/step-4-tts/run-
 import { resetPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
 import { hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import { installMockFetch, unexpectedCall } from '../../../test-utils/rest-contract-helpers'
-import { createMistralProtectedFixture, mistralOptions, mistralReferenceInput, protectedAsset } from './tts-protected-mistral-reference-fixture'
+import { createMistralProtectedFixture, createMistralTestChunkScheduler, mistralOptions, mistralReferenceInput, protectedAsset } from './tts-protected-mistral-reference-fixture'
 
 const mistralFixture = createMistralProtectedFixture()
 const makeRoot = mistralFixture.makeRoot
@@ -232,6 +232,7 @@ describe('standalone Mistral protected request references', () => {
       mistralReferenceInput(sourcePath),
       createProtectedVoiceAssetStore({ storeId: 'test_mistral_refs', root: storeRoot })
     )
+    prepared.hostedTtsChunkScheduler = createMistralTestChunkScheduler()
     const binding = getMistralProtectedReference(prepared)
     expect(binding?.materialization).toBe('materialized')
     const protectedPath = join(storeRoot, 'assets', binding!.protectedAsset.assetId)

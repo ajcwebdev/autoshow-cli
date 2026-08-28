@@ -48,6 +48,28 @@ describe('comic audio phase 2 contracts', () => {
     expect([...(execution.target.readinessVoiceIds ?? [])].sort()).toEqual(['Alex', 'Dennis'])
   })
 
+  test('ElevenLabs premade voices stay ready for eleven_v3 when high_quality_base_model_ids omit eleven_v3', async () => {
+    process.env['ELEVENLABS_API_KEY'] = 'eleven-test-key'
+    const calls = installMockFetch((input) => {
+      const voiceId = new URL(input.url).pathname.split('/').at(-1)
+      return new Response(JSON.stringify({
+        voice_id: voiceId,
+        high_quality_base_model_ids: ['eleven_turbo_v2', 'eleven_multilingual_v2'],
+        sharing: null,
+        fine_tuning: { state: {} }
+      }), { status: 200, headers: { 'content-type': 'application/json' } })
+    })
+    const target: TtsTarget = {
+      service: 'elevenlabs', model: 'eleven_v3', operation: 'comic-audio', transport: 'hosted-api',
+      targetKey: canonicalTargetKey('comic-audio', 'elevenlabs', 'eleven_v3', 'hosted-api'),
+      readinessVoiceIds: ['XrExE9yKIg1WjnnlVkGX'],
+      run: async () => { throw new Error('provider must not run during readiness') },
+    }
+    const observations = await validateTtsTargetsForExecution([target])
+    expect(observations.map(observation => observation.status)).toEqual(['ready'])
+    expect(calls).toHaveLength(1)
+  })
+
   test('shared read-only execution readiness reuses one Hume catalog probe across model targets', async () => {
     process.env['HUME_API_KEY'] = 'hume-test-key'
     const calls = installMockFetch((input) => new Response(JSON.stringify({

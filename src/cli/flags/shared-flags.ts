@@ -79,10 +79,7 @@ export const transcriptionFlags = {
   'speaker-count': strFlag('Optional diarization speaker-count hint (positive integer); unsupported providers report one aggregated warning at runtime'),
   split: boolFlag('Split audio into 30-minute segments for transcription'),
   'stt-segment-concurrency': strFlag('STT: max split segments in flight per provider (local clamps to 1)', DEFAULT_CONCURRENCY_FLAG_VALUE),
-  'stt-preflight-concurrency': {
-    ...strFlag('STT: max duration probes running in parallel during preflight', DEFAULT_CONCURRENCY_FLAG_VALUE),
-    help: { hidden: true }
-  }
+  'stt-preflight-concurrency': strFlag('STT: max duration probes running in parallel during preflight', DEFAULT_CONCURRENCY_FLAG_VALUE)
 } as const satisfies CliFlagsDefinition
 
 export const promptFlag = {
@@ -111,21 +108,10 @@ export const articleFlags = {
   'url-provider': strFlag(`Article/HTML extraction backend: ${formatValueList(URL_ARTICLE_BACKENDS)} (local .html/.htm always use defuddle)`, 'defuddle')
 } as const satisfies CliFlagsDefinition
 
-export const hiddenArticleFlags = {
-  'url-provider-concurrency': {
-    description: 'URL article extraction: max hosted URL providers running in parallel for one item',
-    type: String,
-    default: DEFAULT_CONCURRENCY_FLAG_VALUE,
-    help: { hidden: true }
-  },
-  'url-request-timeout-ms': {
-    ...strFlag('URL article extraction: per-provider request timeout in milliseconds', '60000'),
-    help: { hidden: true }
-  },
-  'url-request-attempts': {
-    ...strFlag('URL article extraction: total provider request attempts including retries', '3'),
-    help: { hidden: true }
-  }
+export const articleTuningFlags = {
+  'url-provider-concurrency': strFlag('URL article extraction: max hosted URL providers running in parallel for one item', DEFAULT_CONCURRENCY_FLAG_VALUE),
+  'url-request-timeout-ms': strFlag('URL article extraction: per-provider request timeout in milliseconds', '60000'),
+  'url-request-attempts': strFlag('URL article extraction: total provider request attempts including retries', '3')
 } as const satisfies CliFlagsDefinition
 
 export const ocrTuningFlags = {

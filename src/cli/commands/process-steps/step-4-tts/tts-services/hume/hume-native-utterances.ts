@@ -13,7 +13,7 @@ import type {
 import { HUME_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { UsageError, InfraError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { concatAndConvertToWav } from '../../tts-utils/audio-utils'
 import { finalizeTtsRun } from '../../tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '../../tts-utils/hosted-tts-retry'
@@ -124,7 +124,7 @@ export const runHumeNativeUtterances = async (
   const takeCount = options.takeCount ?? 1
   if (!Number.isInteger(takeCount) || takeCount < 1 || takeCount > HUME_NATIVE_MAX_TAKES) throw UsageError(`Hume num_generations must be between 1 and ${HUME_NATIVE_MAX_TAKES}.`)
   if (takeCount > 1 && options.requestEvidence) throw UsageError('Canonical Hume execution requires explicit take selection before continuation; use a one-take run until a selection policy is supplied.')
-  const apiKey = requireProviderKey('hume', 'tts:hume', 'Hume native utterances')
+  const apiKey = resolveCredential('hume', 'require', { stage: 'tts:hume', description: 'Hume native utterances' })
   const batches = planHumeNativeUtteranceBatches(turns)
   const startedAt = Date.now()
   const selectedPaths: string[] = []

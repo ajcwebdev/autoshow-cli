@@ -17,9 +17,6 @@ import {
   STANDALONE_VIDEO_PROVIDER_TARGETS,
   WRITE_LLM_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { imageCommandOptionNames } from '~/cli/flags/image-flags'
-import { musicCommandOptionNames } from '~/cli/flags/music-flags'
-import { videoCommandOptionNames } from '~/cli/flags/video-flags'
 
 const STT_PROVIDER_FLAGS = getStep2ProviderSelectionFlagNames('stt')
 const OCR_PROVIDER_FLAGS = getStep2ProviderSelectionFlagNames('ocr')
@@ -149,12 +146,6 @@ const pathMatchesScope = (path: readonly string[], scope: ConfigInjectionScope):
   return prefixes.some((prefix) => prefix.every((segment, index) => path[index] === segment))
 }
 
-const PUBLIC_FLAG_ALIASES_BY_SCOPE: Partial<Record<ConfigInjectionScope, Record<string, string>>> = {
-  image: imageCommandOptionNames,
-  video: videoCommandOptionNames,
-  music: musicCommandOptionNames
-}
-
 export const mergeConfigIntoRawFlags = (
   rawFlags: Record<string, unknown>,
   config: AutoshowConfig,
@@ -172,11 +163,9 @@ export const mergeConfigIntoRawFlags = (
     if (!pathMatchesScope(path, scope)) return
     const value = readNestedValue(configRecord, path)
     if (value === undefined) return
-    const publicName = PUBLIC_FLAG_ALIASES_BY_SCOPE[scope]?.[flagName]
-    const destination = publicName && !explicitFlags.has(publicName) ? publicName : flagName
-    if (explicitFlags.has(destination) || explicitFlags.has(flagName)) return
-    merged[destination] = typeof value === 'number' ? String(value) : value
-    injectedFlags.add(destination)
+    if (explicitFlags.has(flagName)) return
+    merged[flagName] = typeof value === 'number' ? String(value) : value
+    injectedFlags.add(flagName)
   }
 
   for (const { gate, flags } of PROVIDER_SELECTION_GROUPS) {
@@ -187,7 +176,8 @@ export const mergeConfigIntoRawFlags = (
     }
   }
 
-  for (const [flagName, path] of Object.entries(FLAG_TO_CONFIG_PATH)) {
+  const scopedPaths = SCOPED_FLAG_TO_CONFIG_PATHS[scope] ?? {}
+  for (const [flagName, path] of Object.entries({ ...FLAG_TO_CONFIG_PATH, ...scopedPaths })) {
     if (GROUP_INJECTED_FLAGS.has(flagName) || path[0] !== 'defaults') continue
     inject(flagName, path)
   }
@@ -276,12 +266,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'replicate-image':   ['defaults', 'image', 'replicateImage'],
   'lumalabs-image':    ['defaults', 'image', 'lumalabsImage'],
   'fal-image':         ['defaults', 'image', 'falImage'],
-  'image-aspect-ratio': ['defaults', 'image', 'imageAspectRatio'],
-  'image-size':        ['defaults', 'image', 'imageSize'],
-  'image-quality':     ['defaults', 'image', 'imageQuality'],
-  'image-format':      ['defaults', 'image', 'imageFormat'],
-  'image-background':  ['defaults', 'image', 'imageBackground'],
-  'image-count':       ['defaults', 'image', 'imageCount'],
   'image-provider-concurrency': ['defaults', 'image', 'providerConcurrency'],
   'gemini-video':      ['defaults', 'video', 'geminiVideo'],
   'grok-video':        ['defaults', 'video', 'grokVideo'],
@@ -289,25 +273,12 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'replicate-video':   ['defaults', 'video', 'replicateVideo'],
   'lumalabs-video':    ['defaults', 'video', 'lumalabsVideo'],
   'fal-video':         ['defaults', 'video', 'falVideo'],
-  'video-duration':    ['defaults', 'video', 'videoDuration'],
-  'video-aspect-ratio': ['defaults', 'video', 'videoAspectRatio'],
-  'video-resolution':  ['defaults', 'video', 'videoResolution'],
-  'video-mode':        ['defaults', 'video', 'videoMode'],
-  'video-input-image': ['defaults', 'video', 'videoInputImage'],
-  'video-last-frame':  ['defaults', 'video', 'videoLastFrame'],
-  'video-reference-image': ['defaults', 'video', 'videoReferenceImages'],
-  'video-input-video': ['defaults', 'video', 'videoInputVideo'],
   'replicate-video-seed': ['defaults', 'video', 'replicateVideoSeed'],
-  'video-generate-audio': ['defaults', 'video', 'videoGenerateAudio'],
-  'video-reference-video': ['defaults', 'video', 'videoReferenceVideos'],
-  'video-reference-audio': ['defaults', 'video', 'videoReferenceAudios'],
   'replicate-video-negative-prompt': ['defaults', 'video', 'replicateVideoNegativePrompt'],
   'video-provider-concurrency': ['defaults', 'video', 'providerConcurrency'],
   'elevenlabs-music':  ['defaults', 'music', 'elevenlabsMusic'],
   'minimax-music':     ['defaults', 'music', 'minimaxMusic'],
   'gemini-music':      ['defaults', 'music', 'geminiMusic'],
-  'music-duration':    ['defaults', 'music', 'musicDuration'],
-  'music-instrumental': ['defaults', 'music', 'musicInstrumental'],
   'music-provider-concurrency': ['defaults', 'music', 'providerConcurrency'],
   'ocr-language':       ['defaults', 'extract', 'ocr', 'ocrLanguage'],
   'format':             ['defaults', 'extract', 'ocr', 'format'],
@@ -325,6 +296,34 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'max-cents':         ['pricing', 'maxCents'],
   cookies:             ['auth', 'cookies'],
   'cookies-from-browser': ['auth', 'cookiesFromBrowser'],
+}
+
+const SCOPED_FLAG_TO_CONFIG_PATHS: Partial<Record<ConfigInjectionScope, Record<string, string[]>>> = {
+  image: {
+    'aspect-ratio': ['defaults', 'image', 'aspectRatio'],
+    size: ['defaults', 'image', 'size'],
+    quality: ['defaults', 'image', 'quality'],
+    format: ['defaults', 'image', 'format'],
+    background: ['defaults', 'image', 'background'],
+    count: ['defaults', 'image', 'count']
+  },
+  video: {
+    duration: ['defaults', 'video', 'duration'],
+    'aspect-ratio': ['defaults', 'video', 'aspectRatio'],
+    resolution: ['defaults', 'video', 'resolution'],
+    mode: ['defaults', 'video', 'mode'],
+    'input-image': ['defaults', 'video', 'inputImage'],
+    'last-frame': ['defaults', 'video', 'lastFrame'],
+    'reference-image': ['defaults', 'video', 'referenceImages'],
+    'input-video': ['defaults', 'video', 'inputVideo'],
+    'generate-audio': ['defaults', 'video', 'generateAudio'],
+    'reference-video': ['defaults', 'video', 'referenceVideos'],
+    'reference-audio': ['defaults', 'video', 'referenceAudios']
+  },
+  music: {
+    duration: ['defaults', 'music', 'duration'],
+    instrumental: ['defaults', 'music', 'instrumental']
+  }
 }
 
 export const RUNTIME_ONLY_FLAGS = new Set([
@@ -363,17 +362,16 @@ const parseConfigValue = (flagName: string, rawValue: unknown): unknown => {
   }
   if (typeof rawValue !== 'string') return rawValue
   const numericFlags = new Set([
-    'speaker-count', 'image-count', 'video-duration',
-    'music-duration', 'ocr-dpi', 'length', 'batch-limit', 'batch-concurrency',
+    'speaker-count', 'ocr-dpi', 'length', 'batch-limit', 'batch-concurrency',
     'max-cents',
     'provider-concurrency', 'local-concurrency',
     'llm-provider-concurrency', 'llm-local-concurrency',
     'stt-provider-concurrency', 'stt-local-concurrency', 'stt-segment-concurrency', 'stt-preflight-concurrency',
     'ocr-concurrency', 'ocr-provider-concurrency', 'ocr-local-concurrency',
-    'tts-provider-concurrency', 'tts-local-concurrency', 'tts-chunk-concurrency',
-    'image-provider-concurrency', 'image-local-concurrency',
-    'video-provider-concurrency', 'video-local-concurrency',
-    'music-provider-concurrency', 'music-local-concurrency',
+    'tts-provider-concurrency', 'tts-chunk-concurrency',
+    'image-provider-concurrency',
+    'video-provider-concurrency',
+    'music-provider-concurrency',
     'tts-speed', 'minimax-tts-volume', 'minimax-tts-pitch',
     'elevenlabs-tts-stability', 'elevenlabs-tts-similarity-boost', 'elevenlabs-tts-style',
     'elevenlabs-tts-seed',

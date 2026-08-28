@@ -10,13 +10,12 @@ import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/comp
 describe('price mode contracts', () => {
   test('text write estimated costs stay price-aligned while observed LLM counts stay uncalibrated', async () => {
       const opts = {
-        textInput: true,
         prompts: ['shortSummary'],
         openaiModels: ['gpt-5.5'],
         useTesseract: false,
         urlBackend: 'defuddle',
         urlBackendExplicit: false
-      } as CommandPricingOptions
+      } as unknown as CommandPricingOptions
       const priceEstimate = await buildAggregatedPriceEstimate('write', 'input/examples/tts/1-tts.md', opts)
       const estimated = preflightToEstimated(priceEstimate)
       const observedEstimate = computeEstimatedCosts({

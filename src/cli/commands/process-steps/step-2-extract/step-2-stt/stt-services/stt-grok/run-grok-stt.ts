@@ -4,7 +4,7 @@ import type { GrokWord, Step2Metadata, TranscriptionEvidenceWord, TranscriptionR
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import { appendToken, buildSegmentsFromWords, formatSpeakerLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { validateDataSafe } from '~/utils/validate/validation'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 import { createSttRetryMetrics, sttRetryMetricsToCallbacks } from '../../stt-retry-metrics'
@@ -173,7 +173,7 @@ export const runGrokStt = async (
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const { model, segmentOffsetMinutes = 0, segmentNumber, totalSegments } = options
-  const apiKey = requireProviderKey('grok', 'stt:grok', 'Grok transcription')
+  const apiKey = resolveCredential('grok', 'require', { stage: 'stt:grok', description: 'Grok transcription' })
 
   if (segmentNumber && totalSegments) {
     logSttSegmentLifecycle(l, { provider: 'grok', action: 'started', segmentNumber, totalSegments, model })

@@ -11,9 +11,6 @@ import {
   configGenerationSelectorFlags
 } from './shared-flags'
 import { ttsCommandFlags } from './tts-flags'
-import { imageGenFlags } from './image-flags'
-import { musicGenFlags } from './music-flags'
-import { videoGenFlags } from './video-flags'
 import type { CliFlagsDefinition } from '~/types'
 
 const configFlags = {
@@ -45,21 +42,6 @@ const configTtsFlags = omitFlags(ttsCommandFlags, [
 const configOcrInputFlags = omitFlags(ocrInputFlags, ['password'])
 const configPromptFlags = omitFlags(promptFlag, ['prompt-md'])
 
-const configImageGenFlags = omitFlags(imageGenFlags, [
-  'image-input',
-  'image-mask',
-  'image-response-mode',
-  'image-search-grounding',
-  'image-compression'
-])
-const configVideoGenFlags = omitFlags(videoGenFlags, [
-  'replicate-video-multi-prompt',
-  'replicate-video-multi-clip'
-])
-const configMusicGenFlags = omitFlags(musicGenFlags, [
-  'music-lyrics-file'
-])
-
 export const configCommandFlags = {
   ...withHelpGroup(configFlags, 'config'),
   ...withHelpGroup(pricingFlags, 'pricing'),
@@ -77,9 +59,6 @@ export const configCommandFlags = {
   ...withHelpGroup({ tts: configGenerationSelectorFlags.tts }, 'tts-options'),
   ...withHelpGroup(configTtsFlags, 'tts-options'),
   ...withHelpGroup({ image: configGenerationSelectorFlags.image }, 'image-options'),
-  ...withHelpGroup(configImageGenFlags, 'image-options'),
   ...withHelpGroup({ video: configGenerationSelectorFlags.video }, 'video-options'),
-  ...withHelpGroup(configVideoGenFlags, 'video-options'),
-  ...withHelpGroup({ music: configGenerationSelectorFlags.music }, 'hosted-music'),
-  ...withHelpGroup(configMusicGenFlags, 'hosted-music')
+  ...withHelpGroup({ music: configGenerationSelectorFlags.music }, 'hosted-music')
 } as const satisfies CliFlagsDefinition

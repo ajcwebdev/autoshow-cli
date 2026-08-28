@@ -16,6 +16,7 @@ export type ResolvedFlagContext = {
 export type BuildOptsResolutionContext = Readonly<{
   flagOccurrences?: readonly CliFlagOccurrence[] | undefined
   ttsOptionResolutionAuthority?: TtsOptionResolutionAuthority | undefined
+  scope?: 'all' | 'write' | 'extract' | 'download' | 'metadata' | 'tts' | 'image' | 'video' | 'music' | undefined
 }>
 
 export type TtsOptionResolutionContext = TtsOptionResolutionAuthority & {

@@ -71,7 +71,7 @@ bun autoshow video "character walking through lagoon" --provider grok=grok-imagi
 
 ## Shared Video Options
 
-The standalone `video` command drops the `video-` prefix these options carry on `config` and `resume` (e.g. `--duration` here is `--video-duration` there).
+The `video` and `resume` commands use the same short option names, including `--duration`. Saved configuration uses the matching namespaced key, such as `defaults.video.duration`.
 
 | Flag                                   | Description                                                                                          |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------- |

@@ -21,7 +21,7 @@ import {
   deleteSttRemoteResource,
   runAsyncSttJobLifecycle
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from './stt-services/stt-stage-request'
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
@@ -38,11 +38,7 @@ export const runHttpAsyncSttProvider = async <
   outputDir: string,
   options: HttpAsyncSttRunOptions
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const apiKey = requireProviderKey(
-    descriptor.service,
-    descriptor.credential.stage,
-    descriptor.credential.purpose
-  )
+  const apiKey = resolveCredential(descriptor.service, 'require', { stage: descriptor.credential.stage, description: descriptor.credential.purpose })
 
   const {
     model: modelName,

@@ -2,7 +2,7 @@ import {
   booleanAllLocalFlag,
   batchFlags,
   booleanAllProvidersFlag,
-  hiddenArticleFlags,
+  articleTuningFlags,
   ocrInputFlags,
   ocrProviderModeFlag,
   ocrTuningFlags,
@@ -36,7 +36,7 @@ export const extractStep2CommandFlags = {
   ...withHelpGroup(transcriptionFlags, 'transcription'),
   ...withHelpGroup(extractDocumentFlags, 'ocr-document'),
   ...withHelpGroup(reasoningEffortFlag, 'ocr-document'),
-  ...withHelpGroup(hiddenArticleFlags, 'article-extraction'),
+  ...withHelpGroup(articleTuningFlags, 'article-extraction'),
   ...withHelpGroup(batchFlags, 'batch-processing'),
   ...withHelpGroup(priceFlag, 'pricing')
 } as const satisfies CliFlagsDefinition

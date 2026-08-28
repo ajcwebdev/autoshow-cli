@@ -9,9 +9,9 @@ import { readTextFile, writeFileExact } from '~/utils/bun-file-io'
 
 export const createJsonProfileStore = <const TVersion extends number, TEntry>(options: {
   version: TVersion
-  acceptVersions?: readonly number[] | undefined
   parseEntry: (value: unknown) => TEntry | undefined
   resolvePath: () => string
+  invalidStorePolicy?: 'empty' | 'throw' | undefined
   publishPolicy?: {
     lockName: string
     maxEntries: number
@@ -26,22 +26,33 @@ export const createJsonProfileStore = <const TVersion extends number, TEntry>(op
     profilePath?: string | undefined
   ) => Promise<void>
 } => {
-  const acceptedVersions = new Set([options.version, ...(options.acceptVersions ?? [])])
   const emptyStore = (): JsonProfileStore<TVersion, TEntry> => ({ version: options.version, profiles: [] })
+  const invalidStore = (message: string): JsonProfileStore<TVersion, TEntry> => {
+    if (options.invalidStorePolicy === 'throw') {
+      throw InternalError(message, { retryable: false })
+    }
+    return emptyStore()
+  }
   const parseStore = (value: unknown): JsonProfileStore<TVersion, TEntry> => {
-    if (!isRecord(value) || typeof value['version'] !== 'number' || !acceptedVersions.has(value['version']) || !Array.isArray(value['profiles'])) {
-      return emptyStore()
+    if (!isRecord(value) || value['version'] !== options.version || !Array.isArray(value['profiles'])) {
+      return invalidStore(`Invalid JSON profile store; expected version ${options.version}.`)
+    }
+    const profiles = value['profiles'].map(options.parseEntry)
+    if (options.invalidStorePolicy === 'throw' && profiles.some((entry) => entry === undefined)) {
+      return invalidStore(`Invalid entry in JSON profile store version ${options.version}.`)
     }
     return {
       version: options.version,
-      profiles: value['profiles'].map(options.parseEntry).filter((entry): entry is TEntry => entry !== undefined)
+      profiles: profiles.filter((entry): entry is TEntry => entry !== undefined)
     }
   }
 
   const readStore = async (profilePath: string): Promise<JsonProfileStore<TVersion, TEntry>> => {
+    if (!existsSync(profilePath)) return emptyStore()
     try {
       return parseStore(JSON.parse(await readTextFile(profilePath)) as unknown)
-    } catch {
+    } catch (error) {
+      if (options.invalidStorePolicy === 'throw') throw error
       return emptyStore()
     }
   }
@@ -52,7 +63,8 @@ export const createJsonProfileStore = <const TVersion extends number, TEntry>(op
       try {
         if (!existsSync(profilePath)) return emptyStore()
         return parseStore(JSON.parse(readFileSync(profilePath, 'utf-8')) as unknown)
-      } catch {
+      } catch (error) {
+        if (options.invalidStorePolicy === 'throw') throw error
         return emptyStore()
       }
     },

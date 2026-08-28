@@ -10,10 +10,10 @@ export const helpEnv = { NO_COLOR: '1' }
 export const removedSetupCommand = ['so', 'ck'].join('')
 export const HELP_TREE_TIMEOUT_MS = 30_000
 export const persistedVideoInputFlags = [
-  'video-input-image',
-  'video-last-frame',
-  'video-reference-image',
-  'video-input-video'
+  'input-image',
+  'last-frame',
+  'reference-image',
+  'input-video'
 ] as const
 
 const initializeHelpGroups = (): void => {

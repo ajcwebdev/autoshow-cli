@@ -27,6 +27,12 @@
 - Only read-only git commands are allowed (e.g. `git status`, `git diff`, `git log`, `git grep`, `git show`).
 - Leave staging and committing to the user unless they explicitly ask for it.
 
+# Pre-Commit Book Privacy Rules
+
+- Immediately before staging or committing, inspect the complete candidate change set, including tracked diffs and untracked files, for source-book artifacts, excerpts, book titles, author names, source filenames, metadata, and generated derivatives.
+- Never stage or commit while any source-book artifact or identifying book title remains in the candidate change set. Remove it from the candidate change set and repeat the audit before proceeding.
+- Git-ignored files are outside this pre-commit audit. Do not inspect, modify, move, or delete ignored `input/`, `output/`, or other runtime files as part of the audit unless the user explicitly requests a broader workspace inspection.
+
 # Pull Request Rules
 
 - Always open pull requests ready for review. Never create or convert a pull request as a draft.

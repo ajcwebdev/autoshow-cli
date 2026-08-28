@@ -20,10 +20,6 @@ const compactParts = (
     .join(' ')
 }
 
-const comicWrite = (...messages: unknown[]): void => {
-  appLog.write('info', messages.map(String).join(' '), { category: 'command' })
-}
-
 export const withSuppressedPipelineLogs = async <T>(run: () => Promise<T>): Promise<T> => {
   const restore = appLog.suppressLogCategories(['pipeline'])
   try {
@@ -35,11 +31,11 @@ export const withSuppressedPipelineLogs = async <T>(run: () => Promise<T>): Prom
 
 export const comicLog = {
   header(command: string, details: Array<string | number | false | null | undefined> = []): void {
-    comicWrite(`${command}${details.length > 0 ? ` ${compactParts(details)}` : ''}`)
+    appLog.write('info', `${command}${details.length > 0 ? ` ${compactParts(details)}` : ''}`, { category: 'command' })
   },
 
   line(label: string, details: Array<string | number | false | null | undefined> = []): void {
-    comicWrite(`${label}${details.length > 0 ? ` ${compactParts(details)}` : ''}`)
+    appLog.write('info', `${label}${details.length > 0 ? ` ${compactParts(details)}` : ''}`, { category: 'command' })
   },
 
   output(
@@ -47,15 +43,15 @@ export const comicLog = {
     kind: string,
     details: Array<string | number | false | null | undefined>
   ): void {
-    comicWrite(compactParts([status, kind, ...details]))
+    appLog.write('info', compactParts([status, kind, ...details]), { category: 'command' })
   },
 
   summary(details: Array<string | number | false | null | undefined>): void {
-    comicWrite(compactParts(['summary', ...details]))
+    appLog.write('info', compactParts(['summary', ...details]), { category: 'command' })
   },
 
   outputDirectory(path: string): void {
-    comicWrite(`output directory: ${path}`)
+    appLog.write('info', `output directory: ${path}`, { category: 'command' })
   },
 }
 

@@ -156,7 +156,7 @@ Pooled price preflights are `src/cli/commands/process-steps/step-2-extract/extra
 
 ```bash
 bun run check
-bun test test/test-cases/validation/extract-ocr/ocr-page-pool-contracts.test.ts
+bun test test/test-cases/validation/extract-ocr/ocr-page-pool-*-contracts.test.ts
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 ```
 
@@ -175,4 +175,4 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 - `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`
 - `src/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates.ts`
 - `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
-- `test/test-cases/validation/extract-ocr/ocr-page-pool-contracts.test.ts`
+- `test/test-cases/validation/extract-ocr/ocr-page-pool-*-contracts.test.ts`

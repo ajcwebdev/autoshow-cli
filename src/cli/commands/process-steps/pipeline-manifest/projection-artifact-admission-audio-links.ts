@@ -159,11 +159,6 @@ export const validateBatchResultProvenanceLinks = (ctx: GraphLinkContext): boole
         || journalRequest['batchInvocationPlanSha256'] !== invocationRef['sha256']
         || journalRequest['requestFingerprint'] !== invocationPlan['requestFingerprint']
       ) return false
-      const terminalState = journalRequest['transitions'].at(-1)
-      if (
-        value['status'] === 'succeeded'
-        && (!isRecord(terminalState) || terminalState['state'] !== 'completed')
-      ) return false
     }
     if (journalRequests.some((request) =>
       isRecord(request)
@@ -175,6 +170,32 @@ export const validateBatchResultProvenanceLinks = (ctx: GraphLinkContext): boole
         && retry['invocationId'] === value['invocationId']
       ))
     )) return false
+    if (value['status'] === 'succeeded') {
+      const requestsByOrdinal = new Map<number, Record<string, unknown>>()
+      const completed: Record<string, unknown>[] = []
+      for (const request of journalRequests) {
+        if (!isRecord(request) || !Number.isInteger(request['requestOrdinal']) || !Array.isArray(request['transitions'])) return false
+        const ordinal = request['requestOrdinal'] as number
+        if (requestsByOrdinal.has(ordinal)) return false
+        requestsByOrdinal.set(ordinal, request)
+        const terminalState = request['transitions'].at(-1)
+        if (isRecord(terminalState) && terminalState['state'] === 'completed') completed.push(request)
+      }
+      if (completed.length !== 1) return false
+      const retryChain = new Set<number>()
+      let request: Record<string, unknown> | undefined = completed[0]
+      while (request) {
+        const ordinal = request['requestOrdinal'] as number
+        if (retryChain.has(ordinal)) return false
+        retryChain.add(ordinal)
+        const parentOrdinal = request['retryOfRequestOrdinal']
+        if (parentOrdinal === undefined) break
+        if (!Number.isInteger(parentOrdinal)) return false
+        request = requestsByOrdinal.get(parentOrdinal as number)
+        if (!request) return false
+      }
+      if (retryChain.size !== journalRequests.length) return false
+    }
   }
   return true
 }

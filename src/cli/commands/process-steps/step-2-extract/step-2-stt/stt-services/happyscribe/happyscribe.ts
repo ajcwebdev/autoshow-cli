@@ -1,5 +1,5 @@
 import { HAPPYSCRIBE_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { httpResponseError, parseJsonOrText, resolveRestPath } from '~/utils/rest-client'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { UsageError, ValidationError } from '~/utils/error-handler'
@@ -59,7 +59,7 @@ const listHappyScribeOrganizations = async (
     baseURL?: string | undefined
   } = {}
 ): Promise<HappyScribeOrganization[]> => {
-  const apiKey = options.apiKey ?? requireProviderKey('happyscribe', 'stt:happyscribe', 'Happy Scribe transcription')
+  const apiKey = options.apiKey ?? resolveCredential('happyscribe', 'require', { stage: 'stt:happyscribe', description: 'Happy Scribe transcription' })
 
   const baseURL = options.baseURL ?? getHappyScribeBaseUrl()
   const payload = await withRetry(
@@ -164,4 +164,4 @@ export const buildHappyScribeOrganizationResolutionError = (
   )
 }
 
-export const ensureHappyScribeSttSetup = async (): Promise<void> => { requireProviderKey('happyscribe', 'stt:happyscribe', 'Happy Scribe transcription') }
+export const ensureHappyScribeSttSetup = async (): Promise<void> => { resolveCredential('happyscribe', 'require', { stage: 'stt:happyscribe', description: 'Happy Scribe transcription' }) }

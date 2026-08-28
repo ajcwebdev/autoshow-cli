@@ -132,7 +132,7 @@ export const resolveComicAudioInvocation = async (ctx: CliCommandContext, script
     const cheapest = selectCheapestDefaultHostedTtsSelection()
     providerNormalized.flags[`${cheapest.provider}-tts`] = cheapest.model
   }
-  const baseOptions = withoutInheritedVoiceSelection(buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences }) as TtsOptions)
+  const baseOptions = withoutInheritedVoiceSelection(buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences, scope: 'tts' }) as TtsOptions)
   baseOptions.ttsAllowAmbiguousRedispatch = allowAmbiguousRedispatch
   baseOptions.ttsMaxGenerationSlots = maxGenerationSlots
   if (allowAmbiguousRedispatch) l.write('warn', 'Ambiguous TTS redispatch is explicitly authorized for this run; a provider-admitted slot without retained audio may be purchased again.', { category: 'tts' })

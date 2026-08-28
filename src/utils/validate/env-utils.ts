@@ -101,12 +101,6 @@ export function resolveCredential (
   return observation.value
 }
 
-export const requireProviderKey = (
-  providerId: string,
-  stage: string,
-  description?: string
-): string => resolveCredential(providerId, 'require', { stage, ...(description ? { description } : {}) })
-
 export const missingCredentialEnvVar = (error: unknown): string | undefined => {
   const value = extractErrorMetadata(error)['missingEnvVar']
   return typeof value === 'string' ? value : undefined

@@ -15,7 +15,7 @@ import type {
 import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { UsageError, InfraError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { concatAndConvertToWav } from '../../tts-utils/audio-utils'
 import { finalizeTtsRun } from '../../tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '../../tts-utils/hosted-tts-retry'
@@ -174,7 +174,7 @@ export const runElevenLabsNativeDialogue = async (
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   if (options.model !== 'eleven_v3') throw UsageError('ElevenLabs native Text-to-Dialogue requires model eleven_v3.')
   if (turns.length === 0) throw UsageError('ElevenLabs native Text-to-Dialogue requires at least one turn.')
-  const apiKey = requireProviderKey('elevenlabs', 'tts:elevenlabs', 'ElevenLabs Text-to-Dialogue')
+  const apiKey = resolveCredential('elevenlabs', 'require', { stage: 'tts:elevenlabs', description: 'ElevenLabs Text-to-Dialogue' })
   const batches = planElevenLabsNativeDialogueBatches(turns)
   const outputFormat = ELEVENLABS_TTS_OUTPUT_FORMAT
   const paths: string[] = []

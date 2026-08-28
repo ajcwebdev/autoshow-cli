@@ -1,3 +1,3 @@
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureFalVideoGenSetup = async (): Promise<string> => requireProviderKey('fal', 'video:fal', 'fal.ai video generation')
+export const ensureFalVideoGenSetup = async (): Promise<string> => resolveCredential('fal', 'require', { stage: 'video:fal', description: 'fal.ai video generation' })

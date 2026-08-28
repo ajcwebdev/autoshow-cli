@@ -1,9 +1,9 @@
 import { resolve } from 'node:path'
-import type { HostedTtsChunkAdmissionToken, RunTtsChunksOptions, TtsMasteringProfile } from '~/types'
+import type { HostedTtsChunkAdmissionToken, HostedTtsChunkScheduler, RunTtsChunksOptions, TtsMasteringProfile } from '~/types'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { InfraError } from '~/utils/error-handler'
-import { createHostedTtsChunkScheduler, normalizeHostedTtsChunkConcurrency } from './hosted-tts-chunk-scheduler'
+import { normalizeHostedTtsChunkConcurrency } from './hosted-tts-chunk-scheduler'
 
 export const splitTextIntoChunks = (text: string, maxChars: number): string[] => {
   const chunks: string[] = []
@@ -36,17 +36,21 @@ export const normalizeTtsChunkConcurrency = (concurrency: number | undefined): n
   return normalizeHostedTtsChunkConcurrency(concurrency)
 }
 
+export const requireHostedTtsChunkScheduler = (
+  scheduler: HostedTtsChunkScheduler | undefined
+): HostedTtsChunkScheduler => {
+  if (!scheduler) {
+    throw InfraError('Hosted TTS chunk execution requires the shared scheduler.', { stage: 'tts:audio-utils' })
+  }
+  return scheduler
+}
+
 export const runTtsChunks = async <T>(
   chunks: readonly string[],
-  concurrency: number | undefined,
   runChunk: (chunk: string, index: number, admission?: HostedTtsChunkAdmissionToken | undefined) => Promise<T>,
   options: RunTtsChunksOptions
 ): Promise<T[]> => {
-  const scheduler = options.scheduler ?? createHostedTtsChunkScheduler({
-    maxConcurrency: concurrency,
-    concurrencyMode: 'immediate'
-  })
-  return await scheduler.runChunks(options.provider, chunks, runChunk, {
+  return await options.scheduler.runChunks(options.provider, chunks, runChunk, {
     job: options.job,
     scopeLabel: options.scopeLabel,
     abortSignal: options.abortSignal

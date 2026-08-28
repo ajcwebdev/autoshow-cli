@@ -1,3 +1,3 @@
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureDeepinfraSttSetup = async (): Promise<void> => { requireProviderKey('deepinfra', 'stt:deepinfra', 'DeepInfra transcription') }
+export const ensureDeepinfraSttSetup = async (): Promise<void> => { resolveCredential('deepinfra', 'require', { stage: 'stt:deepinfra', description: 'DeepInfra transcription' }) }

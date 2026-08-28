@@ -1,5 +1,5 @@
 import type { FishTtsModel, TtsTarget, TtsTargetSelection } from '~/types'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { validateFishTtsModel, validateFishTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { getSpeakerVoice, normalizeDialogueText, parseSpeakerVoiceMappings, resolveDialogueFormat } from '../../dialogue-normalizer'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
@@ -23,7 +23,7 @@ export const collectFishTtsTargets = (
       run: async (text, outputDir, opts, invocation, requestEvidence) => {
         const invocationVoiceId = resolveTtsTargetInvocationVoiceId('fish', invocation)
         const controls = resolveTtsTargetInvocationControls('fish', invocation, {})
-        const apiKey = requireProviderKey('fish', 'tts:fish', 'Fish Audio TTS')
+        const apiKey = resolveCredential('fish', 'require', { stage: 'tts:fish', description: 'Fish Audio TTS' })
         if (!invocation && isFishNativeDialogueModel(model) && opts.ttsSpeakers?.length) {
           const registry = parseSpeakerVoiceMappings(opts.ttsSpeakers)
           const dialogue = opts.ttsCanonicalTurns

@@ -170,8 +170,7 @@ describe('target scheduler contracts', () => {
           imageResponseMode: undefined,
           geminiSearchGrounding: undefined,
           imageCompression: undefined,
-          imageProviderConcurrency: 2,
-          imageLocalConcurrency: 1
+          imageProviderConcurrency: 2
         }
       )
 

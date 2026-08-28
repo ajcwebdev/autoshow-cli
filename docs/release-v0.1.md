@@ -77,12 +77,12 @@ bun autoshow extract input/examples/document/1-document.pdf --format json
 
 ### Step 3: write
 
-[`write`](./commands/process-steps/step-3-write/write-text.md) runs extraction, then generates hosted LLM text from a prompt. There is no local LLM; omitting `--llm` selects the cheapest hosted model. Typical outputs are `text.json` plus optional rendered Markdown and show notes.
+[`write`](./commands/process-steps/step-3-write/write-text.md) generates hosted LLM text from local `.md` or `.txt` input. Run `extract` first for URLs, media, documents, or HTML. There is no local LLM; omitting `--llm` selects the cheapest hosted model. Typical outputs are `text.json` plus optional rendered Markdown and show notes.
 
 Example:
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3
+bun autoshow write output/<extract-run>/transcription.txt
 ```
 
 ### Step 4: tts

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
-import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, readManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { createBatchedManifestUpdater, createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, readManifest, updateManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { buildCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
 import { createCurrentTtsRenderAttempt } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { priceGenerationTarget, resumeGenerationTarget } from '~/cli/commands/setup-and-utilities/resume/generation-resume'
@@ -79,6 +79,129 @@ describe('canonical TTS resume — item-scoped and batch scope', () => {
       expect(manifest?.scope).toBe('batch')
       expect(manifest?.createdAt).toBe(createdAt)
       expect(manifest?.items).toHaveLength(2)
+      expect(manifest?.source).toMatchObject({
+        selectedCount: 2,
+        summary: {
+          ok: 0,
+          partial: 2,
+          fail: 0,
+          requestedProviders: [{ service: target.service, model: target.model }]
+        }
+      })
+    })
+  })
+
+  test('runs TTS batch resume items at the configured batch concurrency', async () => {
+    await withTempDir('autoshow-tts-resume-batch-concurrency-', async (dir) => {
+      const target = { ...ttsTarget(), voice: 'alloy' }
+      const items = await Promise.all(['first', 'second', 'third'].map(async (label) => {
+        const inputPath = join(dir, `${label}.txt`)
+        const text = `${label} concurrent resume fixture.`
+        await Bun.write(inputPath, text)
+        const sourceIdentity = await createFileTtsSourceIdentity(inputPath, text)
+        const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text)
+        const failed = await materializeFailedProviderState({
+          rootDir: dir,
+          target,
+          text,
+          sourceIdentity,
+          dialoguePlan,
+          artifactRoot: `items/${label}/providers`
+        })
+        return createManifestItem(dir, {
+          input: canonicalFileInput(sourceIdentity),
+          status: 'failed',
+          metadata: { tts: [] },
+          providers: [failed]
+        })
+      }))
+      await writeManifest(dir, createManifest('tts', 'batch', items))
+
+      let active = 0
+      let maxActive = 0
+      let started = 0
+      const config = {
+        ...localTtsResumeConfig([target], new Map(), []),
+        runMissingTargets: async () => {
+          started += 1
+          active += 1
+          maxActive = Math.max(maxActive, active)
+          await Bun.sleep(40)
+          active -= 1
+          throw new Error('expected concurrent resume fixture failure')
+        }
+      }
+
+      await expect(resumeGenerationTarget(
+        { kind: 'tts', scope: 'batch', dir, manifestPath: join(dir, PIPELINE_MANIFEST_FILE) },
+        config,
+        { batchConcurrency: 3 } as TtsOptions
+      )).rejects.toThrow('failed items')
+
+      expect(started).toBe(3)
+      expect(maxActive).toBe(3)
+    })
+  })
+
+  test('isolates concurrent resume item provider workspaces', async () => {
+    await withTempDir('autoshow-tts-resume-workspace-isolation-', async (dir) => {
+      const target = { ...ttsTarget(), voice: 'alloy' }
+      const fixtures = await Promise.all(['first', 'second'].map(async (label) => {
+        const inputPath = join(dir, `${label}.txt`)
+        const text = `${label} isolated resume workspace fixture.`
+        await Bun.write(inputPath, text)
+        const sourceIdentity = await createFileTtsSourceIdentity(inputPath, text)
+        const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text)
+        const failed = await materializeFailedProviderState({
+          rootDir: dir,
+          target,
+          text,
+          sourceIdentity,
+          dialoguePlan,
+          artifactRoot: `items/${label}/providers`
+        })
+        return { inputPath, text, sourceIdentity, failed }
+      }))
+      await writeManifest(dir, createManifest('tts', 'batch', fixtures.map((fixture) => createManifestItem(dir, {
+        input: canonicalFileInput(fixture.sourceIdentity),
+        status: 'failed',
+        metadata: { tts: [] },
+        providers: [fixture.failed]
+      }))))
+
+      const providerWorkspaces: string[] = []
+      const baseCandidate = successfulTarget(target)
+      const candidate = {
+        ...baseCandidate,
+        run: async (...args: Parameters<typeof baseCandidate.run>) => {
+          providerWorkspaces.push(args[1])
+          return await baseCandidate.run(...args)
+        }
+      }
+      const manifestUpdater = createBatchedManifestUpdater(
+        async (update) => await updateManifest(dir, update)
+      )
+      await Promise.all(fixtures.map(async (fixture, itemIndex) => await ttsResumeConfig.runMissingTargets(
+        [candidate],
+        fixture.text,
+        dir,
+        {},
+        {
+          outputDir: dir,
+          runtimeOptions: {},
+          targets: [candidate],
+          existingEntries: [],
+          currentManifestMetadata: {},
+          currentProviderStates: [fixture.failed],
+          itemIndex,
+          manifestUpdater
+        }
+      )))
+
+      expect(providerWorkspaces).toHaveLength(2)
+      expect(new Set(providerWorkspaces).size).toBe(2)
+      expect(providerWorkspaces.some((workspace) => workspace.includes('.tts-resume-001-'))).toBe(true)
+      expect(providerWorkspaces.some((workspace) => workspace.includes('.tts-resume-002-'))).toBe(true)
     })
   })
 

@@ -68,7 +68,7 @@ const runHostedMusicGeneration = async (
     STANDALONE_MUSIC_PROVIDER_TARGETS,
     { allProvidersTarget: 'all-music' }
   )
-  const musicOpts: StandaloneMusicCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences })
+  const musicOpts: StandaloneMusicCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences, scope: 'music' })
 
   const musicTargets = collectMusicTargets(musicOpts)
   if (musicTargets.length === 0) {

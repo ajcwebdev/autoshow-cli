@@ -2,7 +2,6 @@ import type { ComicDialoguePlan, ComicSourceIdentity, HostedConcurrencyRuntimeOp
 
 export type TtsOptions = HostedConcurrencyRuntimeOptions & Partial<TtsRuntimeOptions & {
   ttsProviderConcurrency: number
-  ttsLocalConcurrency: number
   ttsChunkConcurrency: number
 }> & {
   generationResourceGate?: ResourceGate | undefined

@@ -80,7 +80,6 @@ const IMAGE_OPTION_LABELS = {
   geminiSearchGrounding: '--search-grounding',
   imageCompression: '--compression',
   imageProviderConcurrency: '--image-provider-concurrency',
-  imageLocalConcurrency: '--image-local-concurrency',
   concurrencyMode: '--concurrency-mode',
   hostedConcurrencyCoordinator: 'hosted concurrency coordinator',
   generationResourceGate: 'generation resource gate'

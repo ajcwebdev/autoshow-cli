@@ -33,7 +33,7 @@ const runImageCommand = async (
     STANDALONE_IMAGE_PROVIDER_TARGETS,
     { allProvidersTarget: 'all-image' }
   )
-  const imageOpts: StandaloneImageCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences })
+  const imageOpts: StandaloneImageCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences, scope: 'image' })
   const imageTargets = collectImageTargets(imageOpts)
   if (imageTargets.length === 0) {
     throw UsageError('No image provider specified. Use --provider gemini|openai|grok|bfl|replicate|lumalabs|fal[=model].')

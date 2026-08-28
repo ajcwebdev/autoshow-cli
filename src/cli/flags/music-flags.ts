@@ -8,9 +8,9 @@ import { GEMINI_PRO_DEFAULT_DURATION_SECONDS } from '~/cli/commands/process-step
 import { DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
 
 export const musicGenFlags = {
-  'music-duration': strFlag(`Music duration in seconds: ElevenLabs configurable from ${formatRange([ELEVENLABS_MIN_DURATION_SECONDS, ELEVENLABS_MAX_DURATION_SECONDS])} (default: ${DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS}); Gemini Lyria Pro uses the requested duration (default: ${GEMINI_PRO_DEFAULT_DURATION_SECONDS})`),
-  'music-lyrics-file': strFlag('Lyrics file path (.md or .txt) with section headers like Verse 1 or Chorus; MiniMax and Gemini receive the lyrics directly, ElevenLabs music_v2 converts them into a composition plan and uses the prompt as style descriptors'),
-  'music-instrumental': boolFlag('Force instrumental generation for providers that support prompt/instrumental mode'),
+  duration: strFlag(`Music duration in seconds: ElevenLabs configurable from ${formatRange([ELEVENLABS_MIN_DURATION_SECONDS, ELEVENLABS_MAX_DURATION_SECONDS])} (default: ${DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS}); Gemini Lyria Pro uses the requested duration (default: ${GEMINI_PRO_DEFAULT_DURATION_SECONDS})`),
+  'lyrics-file': strFlag('Lyrics file path (.md or .txt) with section headers like Verse 1 or Chorus; MiniMax and Gemini receive the lyrics directly, ElevenLabs music_v2 converts them into a composition plan and uses the prompt as style descriptors'),
+  instrumental: boolFlag('Force instrumental generation for providers that support prompt/instrumental mode'),
 } as const satisfies CliFlagsDefinition
 
 const musicLyricVideoFlags = {
@@ -27,21 +27,9 @@ const musicProviderSelectionFlags = {
   ...pickFlags(sharedConcurrencyFlags, ['concurrency-mode', 'provider-concurrency'])
 } as const satisfies CliFlagsDefinition
 
-export const musicCommandOptionNames = {
-  'music-duration': 'duration',
-  'music-lyrics-file': 'lyrics-file',
-  'music-instrumental': 'instrumental'
-} as const satisfies Record<string, string>
-
-const publicMusicFlags = (): CliFlagsDefinition =>
-  Object.fromEntries(Object.entries(musicCommandOptionNames).map(([internalName, publicName]) => [
-    publicName,
-    musicGenFlags[internalName as keyof typeof musicGenFlags]
-  ]))
-
 export const musicCommandFlags = {
   ...withHelpGroup(musicProviderSelectionFlags, 'provider-selection'),
-  ...withHelpGroup(publicMusicFlags(), 'hosted-music'),
+  ...withHelpGroup(musicGenFlags, 'hosted-music'),
   ...withHelpGroup(priceFlag, 'pricing'),
   ...withHelpGroup(musicLyricVideoFlags, 'lyric-video')
 } as const satisfies CliFlagsDefinition

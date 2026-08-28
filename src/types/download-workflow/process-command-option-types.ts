@@ -1,4 +1,4 @@
-import type { BatchRuntimeOptions, DownloadRuntimeOptions, MetadataOutputOptions, OcrExtractionOptions, OcrRuntimeOptions, SharedPipelineOptions, SttExtractionOptions, UrlExtractionOptions, UrlRuntimeOptions, WriteRuntimeOptions } from '~/types'
+import type { BatchRuntimeOptions, DownloadRuntimeOptions, MetadataOutputOptions, OcrExtractionOptions, OcrRuntimeOptions, SharedPipelineOptions, SttExtractionOptions, UrlExtractionOptions, UrlRuntimeOptions } from '~/types'
 
 export type MetadataCommandOptions = OcrRuntimeOptions
   & UrlRuntimeOptions
@@ -16,4 +16,3 @@ export type ExtractCommandOptions = SttExtractionOptions
 export type SingleTargetCommandOptions = MetadataCommandOptions
   | DownloadCommandOptions
   | ExtractCommandOptions
-  | WriteRuntimeOptions

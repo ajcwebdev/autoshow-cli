@@ -32,7 +32,6 @@ export type LlmRuntimeOptions = ResolvedLLMModelOptions & HostedConcurrencyRunti
 
 type GenerationSchedulingOptions = HostedConcurrencyRuntimeOptions & {
   ttsProviderConcurrency: number
-  ttsLocalConcurrency: number
   ttsChunkConcurrency: number
   generationResourceGate?: ResourceGate | undefined
   hostedTtsChunkScheduler?: HostedTtsChunkScheduler | undefined
@@ -59,7 +58,6 @@ export type DownloadRuntimeOptions = {
 type PromptRuntimeOptions = {
   prompts: string[]
   promptFile: string | undefined
-  textInput: boolean
   renderedText: boolean
   renderedOutDir: string | undefined
   trackList: string | undefined
@@ -75,7 +73,6 @@ export type ProcessPlanningOptions = SttSelectionOptions
   & OcrSelectionOptions
   & Pick<BatchRuntimeOptions, 'batchLimit' | 'batchOrder'>
   & Pick<UrlRuntimeOptions, 'urlBackend' | 'urlBackendExplicit' | 'urlBackends'>
-  & Pick<PromptRuntimeOptions, 'textInput'>
 
 export type CommandPricingOptions = ProcessPlanningOptions
   & SttRuntimeOptions
@@ -89,7 +86,7 @@ export type CommandPricingOptions = ProcessPlanningOptions
   & GenerationSchedulingOptions
   & PricingRuntimeOptions
   & UrlRuntimeOptions
-  & Pick<PromptRuntimeOptions, 'prompts' | 'promptFile' | 'textInput' | 'promptMd'>
+  & Pick<PromptRuntimeOptions, 'prompts' | 'promptFile' | 'promptMd'>
 
 export type ExpectedOutputOptions = ProcessPlanningOptions
   & SttRuntimeOptions
@@ -101,13 +98,8 @@ export type ExpectedOutputOptions = ProcessPlanningOptions
   & Pick<BatchRuntimeOptions, 'bestQuality'>
   & Pick<SharedPipelineOptions, 'youtubeCaptions'>
 
-export type WriteRuntimeOptions = SttRuntimeOptions
-  & OcrRuntimeOptions
-  & BatchRuntimeOptions
-  & SharedPipelineOptions
+export type WriteRuntimeOptions = BatchRuntimeOptions
+  & Pick<SharedPipelineOptions, 'outputRootDir' | 'configPath' | 'concurrencyMode' | 'hostedConcurrencyCoordinator'>
   & LlmRuntimeOptions
   & PricingRuntimeOptions
-  & UrlRuntimeOptions
-  & DownloadRuntimeOptions
   & PromptRuntimeOptions
-  & MetadataOutputOptions

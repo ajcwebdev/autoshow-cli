@@ -1,3 +1,3 @@
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureOpenAITtsSetup = async (): Promise<void> => { requireProviderKey('openai', 'tts:openai', 'OpenAI TTS') }
+export const ensureOpenAITtsSetup = async (): Promise<void> => { resolveCredential('openai', 'require', { stage: 'tts:openai', description: 'OpenAI TTS' }) }

@@ -52,7 +52,7 @@ export type RenderCollectorContext = {
   renderPlanId: string
   renderIdentity: string
   renderDir: string
-  sink: import('~/cli/commands/process-steps/pipeline-manifest/projection-artifact-references').ArtifactReferenceSink
+  sink: import('~/cli/commands/process-steps/pipeline-manifest/projection-artifact-reference-sink').ArtifactReferenceSink
 }
 
 export type EventReferenceListDescriptor = Readonly<{

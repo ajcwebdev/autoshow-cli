@@ -7,6 +7,7 @@ import type {
   RenderAdmissionJournalSnapshot,
   AttemptContext,
   AttemptSlot,
+  AttemptTurn,
   CreateCurrentTtsRenderAttemptOptions,
   CurrentTtsRecoveredGenerationSlot,
   ReadinessAuthorization,
@@ -253,11 +254,22 @@ const createInitialProjection = (
 }
 
 const buildExecutionSelection = (
-  requestedSlotLimit: number | undefined,
-  attemptSlots: AttemptSlot[]
-) => requestedSlotLimit === undefined ? undefined : attemptSlots.map(slot => {
-  if (slot.turnIds.length !== 1) throw UsageError('Bounded segmented execution requires each generation slot to bind exactly one dialogue turn.')
-  return { generationSlotId: slot.generationSlotId, turnId: slot.turnIds[0] as string, providerSegmentIndex: slot.slotIndex }
+  required: boolean,
+  attemptSlots: AttemptSlot[],
+  turns: AttemptTurn[]
+) => !required ? undefined : attemptSlots.map(slot => {
+  if (slot.turnIds.length !== 1) throw UsageError('Selected segmented execution requires each generation slot to bind exactly one dialogue turn.')
+  const turnId = slot.turnIds[0] as string
+  const turn = turns.find((candidate) => candidate.canonical.turnId === turnId)
+  if (!turn) throw UsageError(`Selected segmented execution cannot resolve dialogue turn ${turnId}.`)
+  return {
+    generationSlotId: slot.generationSlotId,
+    turnId,
+    providerSegmentIndex: slot.slotIndex,
+    providerText: slot.providerText,
+    speaker: turn.canonical.originalSpeakerLabel,
+    ...(turn.voice.value ? { voice: turn.voice.value } : {})
+  }
 })
 
 export const createAttemptContext = async (
@@ -304,6 +316,12 @@ export const createAttemptContext = async (
     promotedBatchFiles: new Map(),
     closedProviderAttempt: undefined,
     terminalState: undefined,
-    executionSelection: buildExecutionSelection(execution.requestedSlotLimit, execution.attemptSlots),
+    executionSelection: buildExecutionSelection(
+      execution.requestedSlotLimit !== undefined
+        || (execution.recoveredBySlot.size > 0 && execution.attemptSlots.length > 0),
+      execution.attemptSlots,
+      purePlan.planned.turns
+    ),
+    executionCheckpointRequired: execution.requestedSlotLimit !== undefined,
   }
 }

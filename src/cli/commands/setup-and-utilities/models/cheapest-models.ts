@@ -1,10 +1,13 @@
-import { estimateVideoCost } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import { getModelRegistry } from './model-loader'
 import { filterModelNamesByLifecycle } from './model-loader/model-lifecycle'
 import { InternalError } from '~/utils/error-handler'
 import type { CheapestLlmSelection, CheapestTtsSelection, CheapestVideoSelection, Step3Metadata, TtsProvider } from '~/types'
 import { STANDALONE_TTS_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { DEFAULT_DEEPINFRA_OCR_MODEL } from './ocr-models'
+import {
+  selectCheapestDefaultTextVideoCandidate,
+  selectCheapestVideoCandidateSelection
+} from './video-cheapest-candidates'
 
 const PERFORMANCE_TIE_BREAKERS = ['mini', 'nano', 'micro', 'flash', 'turbo', 'fast', 'small']
 
@@ -90,12 +93,6 @@ const beatsCurrentBest = <TCandidate>(
   }
 
   return dimensions.identity(candidate).localeCompare(dimensions.identity(best)) < 0
-}
-
-const qualityRank = (selection: { size?: string | undefined, resolution?: string | undefined }): number => {
-  if (selection.size === '1024x1792' || selection.size === '1792x1024') return 2
-  if (selection.resolution === '1080p') return 2
-  return 1
 }
 
 const selectCheapestSttModel = (service: string): string => {
@@ -216,173 +213,14 @@ const selectCheapestMusicModel = (service: string): string => {
 
 export const selectCheapestVideoSelection = (
   provider: 'gemini' | 'grok' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
-): CheapestVideoSelection => {
-  const serviceConfig = getModelRegistry().video[provider]
-  if (!serviceConfig) {
-    throw InternalError(`Missing video service config: ${provider}`, { stage: 'models:cheapest' })
-  }
-
-  const models = Object.keys(serviceConfig.models)
-  const durations = serviceConfig.billedDurations && serviceConfig.billedDurations.length > 0
-    ? serviceConfig.billedDurations
-    : [4]
-  const sizes = [undefined]
-  const resolutions = serviceConfig.resolutions && serviceConfig.resolutions.length > 0
-    ? serviceConfig.resolutions
-    : ['720p']
-
-  let best: CheapestVideoSelection | null = null
-
-  if (provider === 'replicate') {
-    for (const model of models) {
-      let estimate: ReturnType<typeof estimateVideoCost>
-      try {
-        estimate = estimateVideoCost(providerVideoEstimateOptions(provider, model))
-      } catch {
-        continue
-      }
-
-      const candidate: CheapestVideoSelection = {
-        provider,
-        model,
-        duration: estimate.durationSeconds,
-        totalCost: estimate.totalCost
-      }
-
-      if (beatsCurrentBest(candidate, best, {
-        cost: entry => entry.totalCost,
-        runtimeRank: entry => runtimeRank(entry.model),
-        identity: entry => entry.model
-      })) {
-        best = candidate
-      }
-    }
-
-    if (!best) {
-      throw InternalError(`No video candidates available for ${provider}`, { stage: 'models:cheapest' })
-    }
-    return best
-  }
-
-  for (const model of models) {
-    for (const duration of durations) {
-      for (const size of sizes) {
-        for (const resolution of resolutions) {
-          let estimate: ReturnType<typeof estimateVideoCost>
-          try {
-            estimate = estimateVideoCost({
-              ...(provider === 'gemini' ? { geminiVideoModels: [model] } : {}),
-              ...(provider === 'grok' ? { grokVideoModels: [model] } : {}),
-              ...(provider === 'ltx' ? { ltxVideoModels: [model] } : {}),
-              ...(provider === 'lumalabs' ? { lumalabsVideoModels: [model] } : {}),
-              ...(provider === 'fal' ? { falVideoModels: [model] } : {}),
-              videoDuration: duration,
-              videoResolution: resolution
-            })
-          } catch {
-            continue
-          }
-
-          const candidate: CheapestVideoSelection = {
-            provider,
-            model,
-            duration,
-            ...(size ? { size } : {}),
-            ...(resolution ? { resolution } : {}),
-            totalCost: estimate.totalCost
-          }
-
-          if (!best) {
-            best = candidate
-            continue
-          }
-
-          if (beatsCurrentBest(candidate, best, {
-            cost: entry => entry.totalCost,
-            ordered: [entry => entry.duration, qualityRank],
-            runtimeRank: entry => runtimeRank(entry.model),
-            identity: entry => entry.model
-          })) {
-            best = candidate
-          }
-        }
-      }
-    }
-  }
-
-  if (!best) {
-    throw InternalError(`No video candidates available for ${provider}`, { stage: 'models:cheapest' })
-  }
-
-  return best
-}
+): CheapestVideoSelection => selectCheapestVideoCandidateSelection(provider)
 
 const selectCheapestVideoModel = (
   provider: 'gemini' | 'grok' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
 ): string => selectCheapestVideoSelection(provider).model
 
-const TEXT_VIDEO_PROVIDERS = ['gemini', 'grok', 'ltx', 'replicate', 'lumalabs', 'fal'] as const
-
-const providerVideoEstimateOptions = (
-  provider: typeof TEXT_VIDEO_PROVIDERS[number],
-  model: string
-): Parameters<typeof estimateVideoCost>[0] => ({
-  ...(provider === 'gemini' ? { geminiVideoModels: [model] } : {}),
-  ...(provider === 'grok' ? { grokVideoModels: [model] } : {}),
-  ...(provider === 'ltx' ? { ltxVideoModels: [model] } : {}),
-  ...(provider === 'replicate' ? { replicateVideoModels: [model] } : {}),
-  ...(provider === 'lumalabs' ? { lumalabsVideoModels: [model] } : {}),
-  ...(provider === 'fal' ? { falVideoModels: [model] } : {}),
-  videoMode: 'text'
-})
-
-export const selectCheapestDefaultTextVideoSelection = (): CheapestVideoSelection => {
-  let best: CheapestVideoSelection | null = null
-
-  for (const provider of TEXT_VIDEO_PROVIDERS) {
-    const serviceConfig = getModelRegistry().video[provider]
-    if (!serviceConfig) {
-      continue
-    }
-
-    const models = Object.keys(serviceConfig.models)
-    for (const model of models) {
-      let estimate: ReturnType<typeof estimateVideoCost>
-      try {
-        estimate = estimateVideoCost(providerVideoEstimateOptions(provider, model))
-      } catch {
-        continue
-      }
-
-      const candidate: CheapestVideoSelection = {
-        provider,
-        model,
-        duration: estimate.durationSeconds,
-        totalCost: estimate.totalCost
-      }
-
-      if (!best) {
-        best = candidate
-        continue
-      }
-
-      if (beatsCurrentBest(candidate, best, {
-        cost: entry => entry.totalCost,
-        ordered: [entry => entry.duration],
-        runtimeRank: entry => runtimeRank(entry.model),
-        identity: entry => `${entry.provider}/${entry.model}`
-      })) {
-        best = candidate
-      }
-    }
-  }
-
-  if (!best) {
-    throw InternalError('No default text-to-video candidates available', { stage: 'models:cheapest' })
-  }
-
-  return best
-}
+export const selectCheapestDefaultTextVideoSelection = (): CheapestVideoSelection =>
+  selectCheapestDefaultTextVideoCandidate()
 
 export const selectCheapestDefaultHostedTtsSelection = (): CheapestTtsSelection => {
   let best: CheapestTtsSelection | null = null

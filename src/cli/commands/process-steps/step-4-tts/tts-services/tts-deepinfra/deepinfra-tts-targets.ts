@@ -1,5 +1,5 @@
 import type { DeepinfraTtsModel, TtsTarget, TtsTargetSelection } from '~/types'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { validateDeepinfraTtsModel, validateDeepinfraTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { runDeepinfraTts } from './run-deepinfra-tts'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
@@ -22,7 +22,7 @@ export const collectDeepinfraTtsTargets = (
       run: async (text, outputDir, opts, invocation, requestEvidence) => {
         const invocationVoiceId = resolveTtsTargetInvocationVoiceId('deepinfra', invocation)
         const controls = resolveTtsTargetInvocationControls('deepinfra', invocation, {})
-        const apiKey = requireProviderKey('deepinfra', 'tts:deepinfra', 'DeepInfra TTS')
+        const apiKey = resolveCredential('deepinfra', 'require', { stage: 'tts:deepinfra', description: 'DeepInfra TTS' })
         return await runDeepinfraTts(text, outputDir, {
           model,
           apiKey,

@@ -90,7 +90,7 @@ export const runWriteCommand = async (
     { allProvidersTarget: 'all-llm' }
   )
   const options: WriteRuntimeOptions = {
-    ...buildOptsFromFlags(normalized.flags, {}, normalized.explicitFlags, { flagOccurrences: normalized.flagOccurrences }),
+    ...buildOptsFromFlags(normalized.flags, {}, normalized.explicitFlags, { flagOccurrences: normalized.flagOccurrences, scope: 'write' }),
     configPath: resolvedConfigPath
   }
 

@@ -393,7 +393,7 @@ export const parseCommandArgv = (
         rawParsed: buildRawParsed(argv, doubleDash, explicitFlags, flagOccurrences, unknown, positional)
       }
     }
-    if (arg === '--version' || arg === '-v' || arg === '-V') {
+    if (arg === '--version' || arg === '-v') {
       explicitFlags.add('version')
       flags['version'] = true
       recordFlagOccurrence(flagOccurrences, 'version', arg, true, definitions['version'])

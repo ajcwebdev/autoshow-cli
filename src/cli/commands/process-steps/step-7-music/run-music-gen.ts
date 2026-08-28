@@ -10,7 +10,7 @@ export const runMusicTargets = async (
   targets: MusicTarget[],
   prompt: string,
   outputDir: string,
-  options?: Pick<MusicGenOptions, 'musicProviderConcurrency' | 'musicLocalConcurrency' | 'generationResourceGate' | 'hostedConcurrencyCoordinator' | 'concurrencyMode'>,
+  options?: Pick<MusicGenOptions, 'musicProviderConcurrency' | 'generationResourceGate' | 'hostedConcurrencyCoordinator' | 'concurrencyMode'>,
 ): Promise<{ musicPaths: string[], metadata: Step7MusicMetadata[] }> => {
   const result = await runMediaFileTargets<MusicTarget, Step7MusicMetadata, string>({
     targets,
@@ -18,7 +18,6 @@ export const runMusicTargets = async (
     outputDir,
     options: {
       providerConcurrency: options?.musicProviderConcurrency,
-      localConcurrency: options?.musicLocalConcurrency,
       resourceGate: options?.generationResourceGate,
       hostedConcurrencyCoordinator: options?.hostedConcurrencyCoordinator
     },

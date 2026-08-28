@@ -11,7 +11,7 @@ import {
 } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
 import { formatPolledJobError, runPolledJob } from '~/utils/polled-job-client/polled-job'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { videoMediaReferenceToUrlOrDataUrl } from '../../video-utils/video-media-inputs'
 const LTX_BASE_URL = 'https://api.ltx.video'
@@ -62,7 +62,7 @@ export const runLtxVideoGen = async (
     inputVideo?: string | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
-  const apiKey = requireProviderKey('ltx', 'video:ltx', 'LTX video generation')
+  const apiKey = resolveCredential('ltx', 'require', { stage: 'video:ltx', description: 'LTX video generation' })
 
   const mode = options.mode ?? 'text'
   const endpoint = resolveLtxEndpoint(mode)

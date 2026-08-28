@@ -202,7 +202,6 @@ const providerOptions = (value: Record<string, unknown>): Record<string, unknown
   delete options['artifactDir']
   delete options['status']
   delete options['attempts']
-  delete options['lastError']
   delete options['error']
   delete options['metadata']
   delete options['result']

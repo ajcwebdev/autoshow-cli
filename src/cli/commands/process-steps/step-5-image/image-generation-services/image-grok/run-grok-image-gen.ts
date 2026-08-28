@@ -1,7 +1,7 @@
 import type { GrokImageModel, OpenAIImageResponse, Step5Metadata } from '~/types'
 import { UsageError, InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { createOpenAIImage, openAIJsonRequest } from '~/utils/openai/openai-client'
 import { imageReferenceToDataUrl, isHttpUrl } from '../../image-utils/image-inputs'
@@ -31,7 +31,7 @@ export const runGrokImageGen = async (
     imageSize?: string | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
-  const apiKey = requireProviderKey('grok', 'image:grok', 'Grok image generation')
+  const apiKey = resolveCredential('grok', 'require', { stage: 'image:grok', description: 'Grok image generation' })
 
   const resolution = normalizeGrokImageResolution(options.imageSize)
   const mode = options.mode ?? 'generation'

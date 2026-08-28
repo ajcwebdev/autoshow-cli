@@ -3,24 +3,25 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 import { collectImageTargets } from '~/cli/commands/process-steps/step-5-image/image-generation-targets'
 import { runVideoGen } from '~/cli/commands/process-steps/step-6-video/run-video-gen'
 import { runMusicGen } from '~/cli/commands/process-steps/step-7-music/run-music-gen'
-import { imageCommandFlags, imageCommandOptionNames } from '~/cli/flags/image-flags'
-import { musicCommandFlags, musicCommandOptionNames } from '~/cli/flags/music-flags'
-import { videoCommandFlags, videoCommandOptionNames } from '~/cli/flags/video-flags'
+import { imageCommandFlags } from '~/cli/flags/image-flags'
+import { musicCommandFlags } from '~/cli/flags/music-flags'
+import { videoCommandFlags } from '~/cli/flags/video-flags'
 import type { MusicGenOptions, VideoGenOptions } from '~/types'
 import { rejectionMessage, thrownMessage } from '../../../../test-utils/cli-assertions'
 
-const expectOnlyPublicCommandSpellings = (
+const expectCanonicalCommandSpellings = (
   registeredFlags: Record<string, unknown>,
-  optionNames: Record<string, string>
+  canonicalNames: readonly string[],
+  retiredNames: readonly string[]
 ): void => {
   const registered = Object.keys(registeredFlags)
-  expect(Object.values(optionNames).filter((name) => !registered.includes(name))).toEqual([])
-  expect(Object.keys(optionNames).filter((name) => registered.includes(name))).toEqual([])
+  expect(canonicalNames.filter((name) => !registered.includes(name))).toEqual([])
+  expect(retiredNames.filter((name) => registered.includes(name))).toEqual([])
 }
 
 describe('image command flag spellings', () => {
   test('the standalone image command registers the public spellings and none of the prefixed ones', () => {
-    expectOnlyPublicCommandSpellings(imageCommandFlags, imageCommandOptionNames)
+    expectCanonicalCommandSpellings(imageCommandFlags, ['aspect-ratio', 'size', 'quality', 'format', 'background', 'count'], ['image-aspect-ratio', 'image-size', 'image-quality', 'image-format', 'image-background', 'image-count'])
   })
 
   test('option resolution reads public image command spellings', () => {
@@ -35,8 +36,8 @@ describe('image command flag spellings', () => {
 
 describe('video and music command flag spellings', () => {
   test('both standalone commands register only their public option spellings', () => {
-    expectOnlyPublicCommandSpellings(videoCommandFlags, videoCommandOptionNames)
-    expectOnlyPublicCommandSpellings(musicCommandFlags, musicCommandOptionNames)
+    expectCanonicalCommandSpellings(videoCommandFlags, ['mode', 'duration', 'aspect-ratio', 'resolution'], ['video-mode', 'video-duration', 'video-aspect-ratio', 'video-resolution'])
+    expectCanonicalCommandSpellings(musicCommandFlags, ['duration', 'lyrics-file', 'instrumental'], ['music-duration', 'music-lyrics-file', 'music-instrumental'])
   })
 
   test('option resolution reads public video and music command spellings', () => {

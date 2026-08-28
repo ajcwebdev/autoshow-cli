@@ -7,7 +7,7 @@ import {
   readOptionalStringFlag,
   readOptionalStringListFlag
 } from './flag-readers'
-import { resolveLocalConcurrency, resolveProviderConcurrency } from './concurrency'
+import { resolveProviderConcurrency } from './concurrency'
 import { pick } from '~/utils/cli-utils'
 
 export const buildImageOptions = (ctx: ResolvedFlagContext): ImageRuntimeOptions => {
@@ -16,7 +16,6 @@ export const buildImageOptions = (ctx: ResolvedFlagContext): ImageRuntimeOptions
   return {
     ...pick(modelOptions, IMAGE_PRICING_MODEL_KEYS),
     imageProviderConcurrency: resolveProviderConcurrency(mergedFlags, 'image-provider-concurrency', allShortcutFlags['all-image'], explicitFlags, configuredFlags),
-    imageLocalConcurrency: resolveLocalConcurrency(mergedFlags, 'image-local-concurrency', explicitFlags, configuredFlags),
     imageAspectRatio: readOptionalStringFlag(mergedFlags, 'aspect-ratio'),
     imageSize: readOptionalStringFlag(mergedFlags, 'size'),
     imageQuality: readOptionalStringFlag(mergedFlags, 'quality'),

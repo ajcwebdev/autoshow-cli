@@ -26,6 +26,7 @@ export const registerPipelineCommandHelpCases = (): void => {
     const providerSection = getFlagGroupSection(result.stdout, 'Provider Selection')
     const transcriptionSection = getFlagGroupSection(result.stdout, 'Transcription / STT')
     const documentSection = getFlagGroupSection(result.stdout, 'OCR / Document Extraction')
+    const articleSection = getFlagGroupSection(result.stdout, 'Article Extraction')
     const batchSection = getFlagGroupSection(result.stdout, 'Batch Processing')
     const transcriptVideoSection = getFlagGroupSection(result.stdout, 'Transcript Video')
     const pricingSection = getFlagGroupSection(result.stdout, 'Pricing')
@@ -53,8 +54,10 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(documentSection).toContain('hosted OCR defaults to auto')
     expect(documentSection).toContain('--chapters')
     expect(documentSection).toContain('--no-chapters')
-    expect(result.stdout).not.toContain('\n  Article Extraction\n')
-    expect(result.stdout).not.toContain('--url-provider')
+    expect(articleSection).toContain('--url-provider-concurrency')
+    expect(articleSection).toContain('--url-request-timeout-ms')
+    expect(articleSection).toContain('--url-request-attempts')
+    expect(providerSection).not.toContain('--url-provider')
     expect(batchSection).toContain('--batch-limit')
     expect(transcriptVideoSection).toContain('--transcript-video')
     expect(transcriptVideoSection).toContain('--transcript-result')
@@ -77,10 +80,10 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(result.stdout).toContain('--provider-concurrency')
     expect(result.stdout).toContain('--local-concurrency')
     expect(result.stdout).not.toContain('--ocr-provider-concurrency')
-    expect(result.stdout).not.toContain('--url-provider-concurrency')
-    expect(result.stdout).not.toContain('--url-request-timeout-ms')
-    expect(result.stdout).not.toContain('--url-request-attempts')
-    expect(result.stdout).not.toContain('--stt-preflight-concurrency')
+    expect(result.stdout).toContain('--url-provider-concurrency')
+    expect(result.stdout).toContain('--url-request-timeout-ms')
+    expect(result.stdout).toContain('--url-request-attempts')
+    expect(result.stdout).toContain('--stt-preflight-concurrency')
     expect(result.stdout).toContain('--transcript-video')
     expect(result.stdout).toContain('--transcript-result')
     expect(result.stdout).toContain('--transcript-text')
@@ -174,7 +177,8 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(configResult.stdout).toContain('Grok-only uses 50')
     expect(configResult.stdout).toContain('--ocr-concurrency')
     expect(configResult.stdout).toContain('--ocr-provider-mode')
-    expect(configResult.stdout).toContain('--music-instrumental')
+    expect(configResult.stdout).not.toContain('--music-instrumental')
+    expect(configResult.stdout).not.toContain('--instrumental')
     expect(configResult.stdout).not.toContain('--music-lyrics-file')
     expect(configResult.stdout).not.toContain('--prompt-md')
     expect(configResult.stdout).not.toContain('--allow-ambiguous-redispatch')
@@ -190,7 +194,7 @@ export const registerPipelineCommandHelpCases = (): void => {
 
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('--provider')
-    expect(result.stdout).not.toContain('--url-provider')
+    expect(getFlagGroupSection(result.stdout, 'Provider Selection')).not.toContain('--url-provider')
     expect(result.stdout).toContain('--all-providers')
     expect(result.stdout).toContain('--all-local')
     expect(result.stdout).toContain('--provider-concurrency')
@@ -200,8 +204,9 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(getFlagGroupSection(result.stdout, 'Transcription / STT')).toContain('--youtube-captions')
     expect(getFlagGroupSection(result.stdout, 'OCR / Document Extraction')).not.toContain('--batch-concurrency')
     expect(getFlagGroupSection(result.stdout, 'Text to Speech')).toContain('--tts-voice')
-    expect(getFlagGroupSection(result.stdout, 'Image Options')).toContain('--image-aspect-ratio')
-    expect(getFlagGroupSection(result.stdout, 'Hosted Music')).toContain('--music-duration')
+    expect(getFlagGroupSection(result.stdout, 'Image Options')).toContain('--size')
+    expect(getFlagGroupSection(result.stdout, 'Video Options')).toContain('--aspect-ratio')
+    expect(getFlagGroupSection(result.stdout, 'Hosted Music')).toContain('--duration')
     expect(result.stdout).toContain('STT:')
     expect(result.stdout).toContain('OCR:')
     expect(result.stdout).toContain('TTS:')
@@ -250,13 +255,13 @@ export const registerPipelineCommandHelpCases = (): void => {
   })
 
 
-  test.concurrent('config help keeps persisted reusable video input flags', async () => {
+  test.concurrent('config help omits command-scoped video input flags while JSON mappings stay namespaced', async () => {
     const result = await loadHelp(['config', '--help'])
 
     expect(result.exitCode).toBe(0)
     for (const flag of persistedVideoInputFlags) {
-      expect(FLAG_TO_CONFIG_PATH[flag]).toBeDefined()
-      expect(getCommandFlagsSection(result.stdout)).toContain(`--${flag}`)
+      expect(FLAG_TO_CONFIG_PATH[flag]).toBeUndefined()
+      expect(getCommandFlagsSection(result.stdout)).not.toContain(`--${flag}`)
     }
   })
 }

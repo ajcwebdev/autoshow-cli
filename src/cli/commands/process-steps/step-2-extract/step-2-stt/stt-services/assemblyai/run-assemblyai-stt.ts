@@ -7,7 +7,7 @@ import { AssemblyAiTranscriptResponseSchema } from '~/types'
 import { ASSEMBLYAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import * as l from '~/utils/app-logger/app-logger'
 import { InternalError, ValidationError } from '~/utils/error-handler'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import * as v from 'valibot'
 import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
 import { attachSttStageErrorContext } from '../../stt-error-context'
@@ -145,7 +145,7 @@ export const runAssemblyAiTranscribe = async (
     runMode,
     lifecycle
   } = options
-  const apiKey = requireProviderKey('assemblyai', 'stt:assemblyai', 'AssemblyAI transcription')
+  const apiKey = resolveCredential('assemblyai', 'require', { stage: 'stt:assemblyai', description: 'AssemblyAI transcription' })
 
   if (diarizationOptions?.speakerCount !== undefined) {
     logSttDiarizationConfig(l, {

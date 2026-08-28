@@ -18,6 +18,7 @@ export const createCurrentTtsRenderAttempt = async (
     providerDispatchRequired: !ctx.localCompositionOnly,
     plannedChunkCount: ctx.purePlan.planned.slots.length,
     executionSelection: ctx.executionSelection,
+    executionCheckpointRequired: ctx.executionCheckpointRequired,
     finalizeSuccess: (audioPath: string, reportedOutputPath: string) =>
       finalizeSuccess(ctx, audioPath, reportedOutputPath),
     finalizeCheckpoint: () => finalizeCheckpoint(ctx),

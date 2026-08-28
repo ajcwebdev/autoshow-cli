@@ -199,7 +199,7 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 bun test test/test-cases/validation/reports-pricing/price-mode-contracts/registry-provenance.test.ts
 bun test test/test-cases/validation/reports-pricing/historical-model-rate-contracts.test.ts
 bun test test/test-cases/validation/providers/provider-selection-contracts/
-bun test test/test-cases/validation/resume-manifests/resume-provider-surface-contracts.test.ts
+bun test test/test-cases/validation/resume-manifests/resume-provider-*-contracts.test.ts
 ```
 
 1. Types, formatting, and price-mode contracts after registry or capability changes.

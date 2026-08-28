@@ -1,6 +1,8 @@
 import { rm } from 'node:fs/promises'
-import type { ProtectedAssetRef, ProtectedVoiceAssetStore, TtsCliReferenceInput, TtsOptions } from '~/types'
+import type { HostedTtsChunkScheduler, ProtectedAssetRef, ProtectedVoiceAssetStore, TtsCliReferenceInput, TtsOptions } from '~/types'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
+import { createHostedConcurrencyCoordinator } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
+import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-request-reference-policy'
 import { planStandaloneMistralReference, planStandaloneMistralSpeakerReferences } from '~/cli/commands/process-steps/step-4-tts/voice-assets/standalone-mistral-reference'
 import { resolveStandaloneMistralTtsSpeakerReferenceInputs } from '~/cli/options/option-resolution/tts-options'
@@ -13,6 +15,13 @@ export const protectedAsset: ProtectedAssetRef = {
   assetId: `sha256_${'a'.repeat(64)}`,
   sha256: 'a'.repeat(64)
 }
+
+export const createMistralTestChunkScheduler = (): HostedTtsChunkScheduler =>
+  createHostedTtsChunkScheduler({
+    maxConcurrency: 2,
+    concurrencyMode: 'immediate',
+    hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: 'immediate' })
+  })
 
 export const createMistralProtectedFixture = () => {
   const roots: string[] = []

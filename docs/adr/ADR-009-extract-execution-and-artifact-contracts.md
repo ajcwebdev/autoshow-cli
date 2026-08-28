@@ -235,7 +235,7 @@ bun run check
 bun t --price
 bun test test/test-cases/validation/extract-ocr/chapter-artifact-filenames.test.ts
 bun test test/test-cases/validation/extract-ocr/ocr-batch-diagnostics.test.ts
-bun test test/test-cases/validation/extract-ocr/ocr-page-pool-contracts.test.ts
+bun test test/test-cases/validation/extract-ocr/ocr-page-pool-*-contracts.test.ts
 bun test test/test-cases/validation/extract-ocr/ocr-resilience-contracts/
 bun test test/test-cases/validation/extract-ocr/ocr-resume-failure-target-contracts.test.ts
 bun test test/test-cases/validation/extract-ocr/ocr-resume-provider-state-contracts.test.ts

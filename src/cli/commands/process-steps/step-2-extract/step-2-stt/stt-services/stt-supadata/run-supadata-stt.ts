@@ -14,7 +14,7 @@ import {
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { lifecycleMetricsToCallbacks } from '../stt-stage-request'
 import { getSupadataBaseUrl, isSupadataSupportedSourceUrl } from './supadata'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { InfraError, ProviderError } from '~/utils/error-handler'
 import { getSupadataCreditRateCents } from '~/cli/commands/pricing-orchestration/supadata-pricing'
 import {
@@ -71,7 +71,7 @@ export const runSupadataStt = async (
     throw buildSupadataUnsupportedSourceError(sourceUrl)
   }
 
-  const apiKey = requireProviderKey('supadata', 'stt:supadata', 'Supadata transcription')
+  const apiKey = resolveCredential('supadata', 'require', { stage: 'stt:supadata', description: 'Supadata transcription' })
   const baseURL = getSupadataBaseUrl()
   const offsetSeconds = segmentOffsetMinutes * 60
   const outputBase = buildTranscriptionOutputBase(outputDir, segmentNumber)

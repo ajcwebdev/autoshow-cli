@@ -26,7 +26,7 @@ import {
 } from './happyscribe-utils'
 import { parseHappyScribeTranscriptPayload } from './parse-happyscribe-transcript'
 import { AppError, InfraError, ValidationError } from '~/utils/error-handler'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { getErrorStatus } from '~/utils/error-handler'
 
 const INITIAL_POLL_INTERVAL_MS = 1_000
@@ -113,7 +113,7 @@ export const runHappyScribeStt = async (
     runMode,
     lifecycle
   } = options
-  const apiKey = requireProviderKey('happyscribe', 'stt:happyscribe', 'Happy Scribe transcription')
+  const apiKey = resolveCredential('happyscribe', 'require', { stage: 'stt:happyscribe', description: 'Happy Scribe transcription' })
   const baseURL = getHappyScribeBaseUrl()
   const offsetSeconds = segmentOffsetMinutes * 60
   const outputBase = buildTranscriptionOutputBase(outputDir, segmentNumber)

@@ -1,34 +1,26 @@
-import { buildUpdatedGenerationCostTiming, clearProviderModelFields, collectGenerationTargetsForProviders } from '../generation-resume'
-import { readManifest, updateManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { buildUpdatedGenerationCostTiming, collectGenerationTargetsForProviders } from '../generation-resume'
+import { readManifest, updateManifest, type ManifestUpdater } from '~/cli/commands/process-steps/pipeline-manifest'
 import { collectTtsTargets, getTtsArtifactFileName } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { runTtsTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { deriveGenerationResumeModelFields, deriveGenerationResumeProviderFlags, TTS_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { appendCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
+import { appendCurrentTtsProviderState, getCurrentTtsJournalAttemptKey } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
 import { planCurrentTtsRenderIdentity, planCurrentTtsResumePrice, prepareCurrentTtsCompletedRecovery } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { bindTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { buildTtsTargetEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/tts-estimates'
 import { UsageError } from '~/utils/error-handler'
-import { readRetainedTtsResolvedVoices, resolveTtsResumeSourceContext } from './tts-resume-source-context'
-import type { GenerationResumeConfig, GenerationResumeProviderIdentity, GenerationResumeRunContext, PipelineManifestItem, PipelineProviderState, ProtectedAssetRef, ProtectedVoiceAssetStore, ProviderVoiceRef, ResumeTarget, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
+import { resolveTtsResumeSourceContext } from './tts-resume-source-context'
+import type { GenerationResumeConfig, GenerationResumeProviderIdentity, GenerationResumeRunContext, PipelineManifestItem, PipelineProviderState, ProtectedVoiceAssetStore, ResumeTarget, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
 import { existsSync } from 'node:fs'
+import { mkdtemp } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import { resolveUserPath } from '~/utils/runtime-paths'
-import { validateProviderVoiceRef } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
-import { createProtectedVoiceAssetStore } from '~/cli/commands/process-steps/step-4-tts/voice-assets/protected-voice-asset-store'
-import {
-  MISTRAL_REQUEST_REFERENCE_STORE_ID,
-  MISTRAL_REQUEST_REFERENCE_STORE_ROOT
-} from '~/cli/commands/process-steps/step-4-tts/voice-assets/standalone-mistral-reference'
-import {
-  attachMistralProtectedReference,
-  attachMistralProtectedSpeakerReferences,
-  promoteMistralProtectedSpeakerReferences
-} from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-protected-reference-binding'
-import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-request-reference-policy'
-import { normalizeDialogueSpeakerKey } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
 import { materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
+import {
+  protectedRecoveryOnlyTargets,
+  resolveStoredMistralTtsTargetsForResume
+} from './mistral-resume-target-reconstruction'
 
 const TTS_PROVIDER_FLAGS = deriveGenerationResumeProviderFlags(
   TTS_GENERATION_SELECTION,
@@ -36,13 +28,6 @@ const TTS_PROVIDER_FLAGS = deriveGenerationResumeProviderFlags(
 )
 
 const TTS_MODEL_FIELDS = deriveGenerationResumeModelFields(TTS_GENERATION_SELECTION)
-
-const defaultResumeProtectedStore = createProtectedVoiceAssetStore({
-  storeId: MISTRAL_REQUEST_REFERENCE_STORE_ID,
-  root: MISTRAL_REQUEST_REFERENCE_STORE_ROOT
-})
-
-const protectedRecoveryOnlyTargets = new WeakSet<TtsTarget>()
 
 const getTtsResumeProviderKey = (
   provider: GenerationResumeProviderIdentity
@@ -76,16 +61,18 @@ const commitTtsResumeProviderState = async (
   rootDir: string,
   incoming: PipelineProviderState,
   providerOrder: readonly string[],
-  itemIndex = 0
+  itemIndex = 0,
+  manifestUpdater?: ManifestUpdater
 ): Promise<void> => {
-  await commitTtsResumePreparedStates(rootDir, [incoming], providerOrder, itemIndex)
+  await commitTtsResumePreparedStates(rootDir, [incoming], providerOrder, itemIndex, manifestUpdater)
 }
 
 const commitTtsResumePreparedStates = async (
   rootDir: string,
   incomingStates: readonly PipelineProviderState[],
   providerOrder: readonly string[],
-  itemIndex = 0
+  itemIndex = 0,
+  manifestUpdater: ManifestUpdater = async (update) => await updateManifest(rootDir, update)
 ): Promise<void> => {
   if (incomingStates.length === 0) throw UsageError('TTS resume lifecycle produced no prepared provider states.')
   for (const incoming of incomingStates) {
@@ -99,7 +86,7 @@ const commitTtsResumePreparedStates = async (
     }
   }
   const orderByTargetKey = new Map(providerOrder.map((targetKey, index) => [targetKey, index] as const))
-  await updateManifest(rootDir, (manifest) => {
+  await manifestUpdater((manifest) => {
     if (manifest.command !== 'tts' || (manifest.scope !== 'single' && manifest.scope !== 'batch')) {
       throw UsageError('TTS resume lifecycle can update only a canonical TTS manifest.')
     }
@@ -187,57 +174,12 @@ const resolveStoredTtsResumeInput = async (
   }
   return text
 }
-
-const sameProtectedAsset = (left: ProtectedAssetRef, right: ProtectedAssetRef): boolean =>
-  left.storeId === right.storeId
-  && left.assetId === right.assetId
-  && left.sha256 === right.sha256
-
-const protectedReferenceVoice = (voice: ProviderVoiceRef): Extract<ProviderVoiceRef, { kind: 'reference-asset' }> | undefined => {
-  const validated = validateProviderVoiceRef(voice)
-  if (validated.provider !== 'mistral') {
-    throw UsageError('Stored Mistral resume voice evidence names a different provider. Rebuild this output before resuming it.')
-  }
-  if (validated.kind !== 'reference-asset') return undefined
-  if (
-    validated.origin !== 'request-reference-audio'
-    || validated.authorizationRef !== MISTRAL_CLI_REFERENCE_AUTHORIZATION
-  ) {
-    throw UsageError('Stored Mistral reference voice evidence lacks the exact request authorization. Rebuild this output before resuming it.')
-  }
-  return validated
-}
-
-const matchesRetainedPlan = (
-  retained:
-    | { kind: 'branch', branchPlanId: string }
-    | { kind: 'render', renderPlanId: string, renderIdentity: string }
-    | undefined,
-  planned: ReturnType<typeof planCurrentTtsRenderIdentity>
-): boolean => retained?.kind === 'branch'
-  ? retained.branchPlanId === planned.branchPlanId
-  : retained?.kind === 'render'
-    ? retained.renderPlanId === planned.renderPlanId && retained.renderIdentity === planned.renderIdentity
-    : false
-
-const materializedSpeakerBinding = (
-  entries: Array<{ speakerKey: string, protectedAsset: ProtectedAssetRef }>,
-  store: ProtectedVoiceAssetStore
-) => ({
-  materialization: 'materialized' as const,
-  entries: entries.map((entry) => ({
-    ...entry,
-    sourceExtension: '',
-    resolve: async () => await store.resolve(entry.protectedAsset)
-  }))
-})
-
 export const resolveStoredTtsTargetsForResume = async (
   providers: GenerationResumeProviderIdentity[],
   opts: TtsOptions,
   target: ResumeTarget,
   item: PipelineManifestItem,
-  protectedStore: ProtectedVoiceAssetStore = defaultResumeProtectedStore
+  protectedStore?: ProtectedVoiceAssetStore
 ): Promise<TtsTarget[]> => {
   const ordinaryProviders = providers.filter((provider) => provider.service !== 'mistral')
   const resolved = collectGenerationTargetsForProviders(
@@ -248,128 +190,18 @@ export const resolveStoredTtsTargetsForResume = async (
   )
   const mistralProviders = providers.filter((provider) => provider.service === 'mistral')
   if (mistralProviders.length === 0) return resolved
-
   const input = await resolveStoredTtsResumeInput(target.dir, item)
-  const targetKeys = new Set(mistralProviders.flatMap((provider) => provider.targetKey ? [provider.targetKey] : []))
-  const sourceContext = await resolveTtsResumeSourceContext(target.dir, input, item.providers, targetKeys)
-  if (!sourceContext.dialoguePlan) throw UsageError('Stored generic TTS resume source is missing its dialogue plan.')
-  const turns = sourceContext.dialoguePlan.nodes.flatMap((node) => node.kind === 'turn' ? [node.turn] : node.turns)
-
-  for (const provider of mistralProviders) {
-    if (!provider.targetKey) throw UsageError(`Stored Mistral TTS target ${provider.model} is missing its operation-scoped target identity.`)
-    const state = item.providers.find((entry) => entry.targetKey === provider.targetKey)
-    if (!state) throw UsageError(`Stored Mistral TTS target ${provider.model} has no canonical provider state.`)
-    const voices = await readRetainedTtsResolvedVoices(target.dir, state)
-    const references = voices.flatMap((voice) => {
-      const reference = protectedReferenceVoice(voice)
-      return reference ? [reference] : []
-    })
-    if (references.length === 0) {
-      resolved.push(...collectGenerationTargetsForProviders([provider], opts, TTS_MODEL_FIELDS, collectTtsTargets))
-      continue
-    }
-    const uniqueAssets = references
-      .map((entry) => entry.protectedAsset)
-      .filter((asset, index, assets) => assets.findIndex((candidate) => sameProtectedAsset(candidate, asset)) === index)
-    for (const asset of uniqueAssets) {
-      try {
-        await protectedStore.resolve(asset)
-      } catch {
-        throw UsageError(
-          `Stored protected Mistral reference ${asset.assetId} is missing or fails its content checksum. Restore the exact owner-only protected asset before recovery; interrupted reference synthesis cannot be redispatched by resume.`
-        )
-      }
-    }
-
-    const retained = sourceContext.retainedPlanIdentities.get(provider.targetKey)
-    const baseOptions = clearProviderModelFields({ ...opts }, TTS_MODEL_FIELDS) as TtsOptions
-    baseOptions.mistralTtsModels = [provider.model]
-    baseOptions.mistralTtsVoice = undefined
-    const candidates: Array<{ options: TtsOptions, target: TtsTarget, speakerMappings?: string[] | undefined }> = []
-
-    if (uniqueAssets.length === 1 && references.length === voices.length) {
-      const asset = uniqueAssets[0] as ProtectedAssetRef
-      const standaloneOptions = { ...baseOptions, ttsSpeakers: undefined }
-      attachMistralProtectedReference(standaloneOptions, {
-        materialization: 'materialized',
-        protectedAsset: asset,
-        sourceExtension: '',
-        resolve: async () => await protectedStore.resolve(asset)
-      })
-      for (const candidate of collectTtsTargets(standaloneOptions).filter((entry) => entry.targetKey === provider.targetKey)) {
-        candidates.push({ options: standaloneOptions, target: candidate })
-      }
-    }
-
-    const findExactCandidate = () => candidates.find((candidate) => {
-      try {
-        return matchesRetainedPlan(retained, planCurrentTtsRenderIdentity({
-          target: candidate.target,
-          sourceText: input,
-          ttsOptions: candidate.options,
-          sourceIdentity: sourceContext.sourceIdentity,
-          dialoguePlan: sourceContext.dialoguePlan
-        }))
-      } catch {
-        return false
-      }
-    })
-    let exact = findExactCandidate()
-
-    if (!exact && voices.length === turns.length) {
-      const speakerVoice = new Map<string, { mapping: string, protectedAsset?: ProtectedAssetRef | undefined }>()
-      for (const [index, voice] of voices.entries()) {
-        const turn = turns[index]
-        if (!turn) throw UsageError('Stored Mistral voice evidence does not align with the item dialogue turns.')
-        const speakerKey = normalizeDialogueSpeakerKey(turn.originalSpeakerLabel)
-        const reference = protectedReferenceVoice(voice)
-        const mapping = reference
-          ? `${turn.originalSpeakerLabel}=ref_audio:${reference.protectedAsset.assetId}`
-          : voice.kind === 'remote-resource'
-            ? `${turn.originalSpeakerLabel}=${voice.resourceId}`
-            : undefined
-        if (!mapping) throw UsageError('Stored Mistral dialogue voice kind cannot be reconstructed safely for resume.')
-        const prior = speakerVoice.get(speakerKey)
-        if (prior && prior.mapping.split('=').slice(1).join('=') !== mapping.split('=').slice(1).join('=')) {
-          throw UsageError(`Stored Mistral speaker ${turn.originalSpeakerLabel} has conflicting retained voices.`)
-        }
-        speakerVoice.set(speakerKey, { mapping, ...(reference ? { protectedAsset: reference.protectedAsset } : {}) })
-      }
-      const speakerMappings = [...speakerVoice.values()].map((entry) => entry.mapping)
-      const protectedEntries = [...speakerVoice.entries()].flatMap(([speakerKey, entry]) =>
-        entry.protectedAsset ? [{ speakerKey, protectedAsset: entry.protectedAsset }] : []
-      )
-      if (protectedEntries.length > 0) {
-        for (const ttsDialogueFormat of ['labeled', 'screenplay'] as const) {
-          const speakerOptions = { ...baseOptions, ttsSpeakers: speakerMappings, ttsDialogueFormat }
-          attachMistralProtectedSpeakerReferences(speakerOptions, {
-            materialization: 'non-materialized',
-            entries: protectedEntries.map((entry) => ({ ...entry, sourceExtension: '' }))
-          })
-          promoteMistralProtectedSpeakerReferences(speakerOptions, materializedSpeakerBinding(protectedEntries, protectedStore))
-          try {
-            for (const candidate of collectTtsTargets(speakerOptions).filter((entry) => entry.targetKey === provider.targetKey)) {
-              candidates.push({ options: speakerOptions, target: candidate, speakerMappings })
-            }
-          } catch {
-          }
-        }
-      }
-      exact = findExactCandidate()
-    }
-
-    if (!exact) {
-      throw UsageError('Stored protected Mistral voice bindings cannot reconstruct the exact retained branch/render semantics. Rebuild this output with standalone `tts`; resume will not rebind or repurchase reference synthesis.')
-    }
-    if (exact.speakerMappings) {
-      opts.ttsSpeakers = exact.speakerMappings
-      opts.ttsDialogueFormat = exact.options.ttsDialogueFormat
-    }
-    protectedRecoveryOnlyTargets.add(exact.target)
-    resolved.push(exact.target)
-  }
+  resolved.push(...await resolveStoredMistralTtsTargetsForResume(
+    mistralProviders,
+    opts,
+    target,
+    item,
+    input,
+    protectedStore
+  ))
   return resolved
 }
+
 
 const resolveTtsResumeArtifactRoot = (
   states: readonly PipelineProviderState[]
@@ -585,7 +417,14 @@ export const ttsResumeConfig = {
     ]
     const itemIndex = context.itemIndex ?? 0
     const artifactRoot = resolveTtsResumeArtifactRoot(context.currentProviderStates)
-    return await runTtsTargets(targets, input, outputDir, opts, {
+    const manifestUpdater = context.manifestUpdater
+      ?? (async (update) => await updateManifest(outputDir, update))
+    const publishedJournalAttempts = new Set<string>()
+    const workspaceDir = await mkdtemp(join(
+      outputDir,
+      `.tts-resume-${String(itemIndex + 1).padStart(3, '0')}-`
+    ))
+    return await runTtsTargets(targets, input, workspaceDir, opts, {
       sourceIdentity: sourceContext.sourceIdentity,
       dialoguePlan: sourceContext.dialoguePlan,
       retainedProviderStates: context.currentProviderStates,
@@ -599,14 +438,32 @@ export const ttsResumeConfig = {
         outputDir,
         states.map((state) => bindTtsDialoguePlanArtifact(state, dialoguePlanArtifact)),
         providerOrder,
-        itemIndex
+        itemIndex,
+        manifestUpdater
       ),
-      onProviderState: async (state) => await commitTtsResumeProviderState(
-        outputDir,
-        bindTtsDialoguePlanArtifact(state, dialoguePlanArtifact),
-        providerOrder,
-        itemIndex
-      )
+      onProviderState: async (state) => {
+        const boundState = bindTtsDialoguePlanArtifact(state, dialoguePlanArtifact)
+        if (boundState.status === 'running') {
+          const journalAttemptKey = getCurrentTtsJournalAttemptKey(boundState)
+          if (!journalAttemptKey || publishedJournalAttempts.has(journalAttemptKey)) return
+          await commitTtsResumeProviderState(
+            outputDir,
+            boundState,
+            providerOrder,
+            itemIndex,
+            manifestUpdater
+          )
+          publishedJournalAttempts.add(journalAttemptKey)
+          return
+        }
+        await commitTtsResumeProviderState(
+          outputDir,
+          boundState,
+          providerOrder,
+          itemIndex,
+          manifestUpdater
+        )
+      }
     })
   },
   buildEstimates: async (

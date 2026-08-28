@@ -144,7 +144,7 @@ bun test test/test-cases/validation/cli/native-cli-parser-contracts.test.ts
 bun test test/test-cases/validation/cli/cli-usage-errors/
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 bun test test/test-cases/validation/content-output/metadata-links-lyrics-contracts/selector-validation.test.ts
-bun test test/test-cases/validation/comic/character-handling-contracts.test.ts
+bun test test/test-cases/validation/comic/comic-character-*-contracts.test.ts
 ```
 
 1. Typecheck and unique-source check pass against the native comic and `links` command definitions.

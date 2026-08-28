@@ -8,7 +8,7 @@ import {
   getGroqDefaultTtsVoiceForModel,
   validateGroqTtsVoiceForModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { GROQ_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { ValidationError } from '~/utils/error-handler'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
@@ -18,7 +18,7 @@ export const runGroqTts = async (
   outputDir: string,
   options: { model: GroqTtsModel, voiceId?: string | undefined, speed?: number | undefined, abortSignal?: AbortSignal | undefined, chunkConcurrency?: number | undefined, chunkScheduler?: HostedTtsChunkScheduler | undefined, requestEvidence?: TtsRequestEvidenceScope | undefined }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = requireProviderKey('groq', 'tts:groq', 'Groq TTS')
+  const apiKey = resolveCredential('groq', 'require', { stage: 'tts:groq', description: 'Groq TTS' })
 
   const baseURL = GROQ_DEFAULT_BASE_URL
   const rawVoice = options.voiceId?.trim() || getGroqDefaultTtsVoiceForModel(options.model)

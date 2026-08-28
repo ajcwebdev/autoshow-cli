@@ -47,7 +47,7 @@ Bare `--provider` flags without a model value resolve to the cheapest supported 
 
 ## Shared Image Options
 
-The standalone `image` command uses `--size`. `config` and `resume` use `--image-size`.
+The `image` and `resume` commands use the same short option names, including `--size`. Saved configuration uses the matching namespaced key, such as `defaults.image.size`.
 
 | Flag                                   | Description                                                                                             |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------- |

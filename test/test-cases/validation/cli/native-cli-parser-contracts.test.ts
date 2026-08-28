@@ -318,6 +318,7 @@ describe('native CLI parser contracts', () => {
     expect(parseNativeCli(['--version'], commands, globalFlags).mode).toBe('version')
     expect(parseNativeCli(['-v'], commands, globalFlags).mode).toBe('version')
     expect(() => parseNativeCli(['-V'], commands, globalFlags)).toThrow(NativeNoSuchCommandError)
+    expect(() => parseCommandInvocation(['run', 'input.txt', '-V'], runCommand, globalFlags)).toThrow(NativeUnknownFlagError)
 
     const commandHelp = parseNativeCli(['run', '--help'], commands, globalFlags)
     expect(commandHelp.mode).toBe('help')

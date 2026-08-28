@@ -2,7 +2,7 @@ import { isRecord } from '~/utils/rest-client'
 import type { Step3Metadata, StructuredRequestOptions } from '~/types'
 import { CEREBRAS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { UsageError } from '~/utils/error-handler'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
 import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
 
@@ -45,7 +45,7 @@ const sanitizeCerebrasStructuredSchema = (schema: Record<string, unknown>): Reco
 }
 
 const ensureCerebrasApiKey = (): string => {
-  const apiKey = requireProviderKey('cerebras', 'write:cerebras', '--cerebras models')
+  const apiKey = resolveCredential('cerebras', 'require', { stage: 'write:cerebras', description: '--cerebras models' })
   return apiKey
 }
 

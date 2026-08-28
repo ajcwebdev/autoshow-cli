@@ -66,15 +66,51 @@ export const readLatestJournalSnapshot = async (
 ): Promise<RenderAdmissionJournalSnapshot> =>
   await readJournalSnapshotFromLedger(rootDir, path, undefined, expectedSha256)
 
+const resolveRetainedRenderAttemptReservationCount = async (
+  rootDir: string,
+  state: PipelineProviderState,
+  renderDir: string
+): Promise<number> => {
+  const attemptsDirectory = join(rootDir, state.artifactDir, renderDir, 'attempts')
+  let entry
+  try {
+    entry = await lstat(attemptsDirectory)
+  } catch (error) {
+    if (hasErrorCode(error, 'ENOENT')) return 0
+    throw error
+  }
+  if (!entry.isDirectory() || entry.isSymbolicLink()) {
+    throw UsageError('Stored TTS invocation attempts path is not a safe retained directory.')
+  }
+  let retainedCount = 0
+  for (const child of await readdir(attemptsDirectory, { withFileTypes: true })) {
+    if (!child.isDirectory() || child.isSymbolicLink()) continue
+    const match = /^(?:attempt-(\d+)-invocation-.+|\.attempt-(\d+)\.claim)$/.exec(child.name)
+    const ordinal = Number(match?.[1] ?? match?.[2])
+    if (Number.isSafeInteger(ordinal) && ordinal > retainedCount) retainedCount = ordinal
+  }
+  return retainedCount
+}
+
 export const resolveCurrentTtsPriorAdmittedAttemptCount = async (options: {
   rootDir: string
   state: PipelineProviderState
 }): Promise<number> => {
-  const retainedCount = options.state.attempts
   const projection = readAudioProjection(options.state)
   const active = projection?.activeWork
+  const activeRender = active?.kind === 'render'
+    ? projection?.renderHistory.find((entry) => entry.renderIdentity === active.renderIdentity)
+    : undefined
+  const retainedReservationCount = activeRender
+    ? await resolveRetainedRenderAttemptReservationCount(options.rootDir, options.state, activeRender.renderDir)
+    : 0
+  const retainedCount = Math.max(
+    options.state.attempts,
+    retainedReservationCount,
+    ...(projection?.renderHistory.flatMap((render) => render.events.map((event) => event.attempt)) ?? [0])
+  )
   if (!projection || active?.kind !== 'render' || retainedCount === 0) return retainedCount
-  const render = projection.renderHistory.find((entry) => entry.renderIdentity === active.renderIdentity)
+  const render = activeRender
   const event = render?.events.find((entry) => entry.sequence === active.eventSequence)
   if (event?.status !== 'running' || event.attempt !== retainedCount) return retainedCount
   const journalPath = active.journalPath

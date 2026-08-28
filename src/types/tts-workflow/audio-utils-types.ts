@@ -2,7 +2,7 @@ import type { HostedTtsChunkJobContext, HostedTtsChunkScheduler, TtsProvider } f
 
 export type RunTtsChunksOptions = {
   provider: TtsProvider
-  scheduler?: HostedTtsChunkScheduler | undefined
+  scheduler: HostedTtsChunkScheduler
   job?: HostedTtsChunkJobContext | undefined
   scopeLabel?: string | undefined
   abortSignal?: AbortSignal | undefined

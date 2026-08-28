@@ -1,6 +1,5 @@
 export type MusicRuntimeOptions = {
   musicProviderConcurrency: number
-  musicLocalConcurrency: number
   elevenlabsMusicModels: string[] | undefined
   minimaxMusicModels: string[] | undefined
   geminiMusicModels: string[] | undefined

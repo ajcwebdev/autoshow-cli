@@ -174,7 +174,10 @@ const resolveNormalizedProcessOptions = async (input: {
     const preliminaryOccurrences = stripExtractGenericSelectorOccurrences(optionOccurrences)
     const preliminaryExplicitFlags = new Set(preliminaryOccurrences.map(occurrence => occurrence.name))
     const preliminaryOpts = {
-      ...buildOptsFromFlags(preliminaryFlags, {}, preliminaryExplicitFlags, { flagOccurrences: preliminaryOccurrences }),
+      ...buildOptsFromFlags(preliminaryFlags, {}, preliminaryExplicitFlags, {
+        flagOccurrences: preliminaryOccurrences,
+        scope: input.command === 'extract' ? 'extract' : input.command === 'download' ? 'download' : 'metadata'
+      }),
       configPath: resolvedConfigPath,
     }
     const selectorRoutes = await resolveDirectExtractSelectorInputRoutes(input.command, input.resolvedTarget, preliminaryOpts)
@@ -190,7 +193,10 @@ const resolveNormalizedProcessOptions = async (input: {
   }
   return {
     options: {
-      ...buildOptsFromFlags(optionFlags, {}, explicitFlags, { flagOccurrences: optionOccurrences }),
+      ...buildOptsFromFlags(optionFlags, {}, explicitFlags, {
+        flagOccurrences: optionOccurrences,
+        scope: input.command === 'extract' ? 'extract' : input.command === 'download' ? 'download' : 'metadata'
+      }),
       configPath: resolvedConfigPath,
     },
     selectorPlan,

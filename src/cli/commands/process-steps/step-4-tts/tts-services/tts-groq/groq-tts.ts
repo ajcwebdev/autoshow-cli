@@ -1,3 +1,3 @@
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
-export const ensureGroqTtsSetup = async (): Promise<void> => { requireProviderKey('groq', 'tts:groq', 'Groq TTS') }
+export const ensureGroqTtsSetup = async (): Promise<void> => { resolveCredential('groq', 'require', { stage: 'tts:groq', description: 'Groq TTS' }) }

@@ -10,7 +10,7 @@ export const runVideoTargets = async (
   targets: VideoTarget[],
   prompt: string | undefined,
   outputDir: string,
-  options?: Pick<VideoGenOptions, 'videoProviderConcurrency' | 'videoLocalConcurrency' | 'generationResourceGate' | 'hostedConcurrencyCoordinator' | 'concurrencyMode'>,
+  options?: Pick<VideoGenOptions, 'videoProviderConcurrency' | 'generationResourceGate' | 'hostedConcurrencyCoordinator' | 'concurrencyMode'>,
 ): Promise<{ videoPaths: string[], metadata: Step6VideoMetadata[] }> => {
   const result = await runMediaFileTargets<VideoTarget, Step6VideoMetadata, string | undefined>({
     targets,
@@ -18,7 +18,6 @@ export const runVideoTargets = async (
     outputDir,
     options: {
       providerConcurrency: options?.videoProviderConcurrency,
-      localConcurrency: options?.videoLocalConcurrency,
       resourceGate: options?.generationResourceGate,
       hostedConcurrencyCoordinator: options?.hostedConcurrencyCoordinator
     },

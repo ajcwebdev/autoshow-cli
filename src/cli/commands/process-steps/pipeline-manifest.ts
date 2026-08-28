@@ -14,6 +14,11 @@ export {
 } from './pipeline-manifest/manifest-io'
 
 export {
+  createBatchedManifestUpdater,
+  type ManifestUpdater
+} from './pipeline-manifest/manifest-update-batcher'
+
+export {
   resolveManifestRelativePath,
   toManifestRelativePath
 } from './pipeline-manifest/guards'

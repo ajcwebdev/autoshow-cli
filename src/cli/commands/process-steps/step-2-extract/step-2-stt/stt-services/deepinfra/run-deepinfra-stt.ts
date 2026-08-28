@@ -1,6 +1,6 @@
 import type { Step2Metadata, TranscriptionResult } from '~/types'
 import { DEEPINFRA_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleSingleSpeakerStt } from '../openai-compatible-single-speaker'
 
 const normalizeDeepinfraBaseURL = (baseURL: string): string =>
@@ -18,7 +18,7 @@ export const runDeepinfraTranscribe = async (
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const { model, segmentOffsetMinutes = 0, segmentNumber, totalSegments, audioDurationSeconds } = options
-  const apiKey = requireProviderKey('deepinfra', 'stt:deepinfra', 'DeepInfra transcription')
+  const apiKey = resolveCredential('deepinfra', 'require', { stage: 'stt:deepinfra', description: 'DeepInfra transcription' })
 
   const baseURL = normalizeDeepinfraBaseURL(DEEPINFRA_DEFAULT_BASE_URL)
   return await runOpenAICompatibleSingleSpeakerStt(audioPath, outputDir, {

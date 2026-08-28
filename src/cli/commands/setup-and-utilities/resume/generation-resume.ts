@@ -1,12 +1,14 @@
 import { partialCompletionError } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-batch-state'
 import { isRecord } from '~/utils/rest-client'
 import * as l from '~/utils/app-logger/app-logger'
-import { readManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { createBatchedManifestUpdater, readManifest, updateManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { logResumeItem, logResumeSummary } from './resume-logging'
 import { getResumeProviderKey, resolveAdditiveResumeProviderSelection, uniqueResumeProviders } from './resume-provider-selection'
 import { UsageError } from '~/utils/error-handler'
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
-import type { AggregatedPriceEstimate, GenerationModelFieldTable, GenerationResumeConfig, GenerationResumePreparation, GenerationResumeProviderIdentity, PipelineManifestItem, ProviderIdentity, ResumeDisplayOptions, ResumeHandler, ResumeResult, ResumeTarget, ResumeTargetKind } from '~/types'
+import type { AggregatedPriceEstimate, GenerationModelFieldTable, GenerationResumeConfig, GenerationResumePreparation, GenerationResumeProviderIdentity, PipelineManifest, PipelineManifestItem, ProviderIdentity, ResumeDisplayOptions, ResumeHandler, ResumeResult, ResumeTarget, ResumeTargetKind } from '~/types'
+import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
+import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 
 export const buildUpdatedGenerationCostTiming = (
   currentMetadata: Record<string, unknown>,
@@ -129,7 +131,8 @@ async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetada
   opts: TOptions,
   explicitFlags: Set<string>,
   throwOnInvalid: true,
-  itemIndex?: number
+  itemIndex?: number,
+  manifestSnapshot?: PipelineManifest
 ): Promise<GenerationResumePreparation<TTarget, TMetadata>>
 async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
@@ -137,7 +140,8 @@ async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetada
   opts: TOptions,
   explicitFlags: Set<string>,
   throwOnInvalid: false,
-  itemIndex?: number
+  itemIndex?: number,
+  manifestSnapshot?: PipelineManifest
 ): Promise<GenerationResumePreparation<TTarget, TMetadata> | undefined>
 async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
@@ -145,7 +149,8 @@ async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetada
   opts: TOptions,
   explicitFlags: Set<string>,
   throwOnInvalid: boolean,
-  itemIndex = 0
+  itemIndex = 0,
+  manifestSnapshot?: PipelineManifest
 ): Promise<GenerationResumePreparation<TTarget, TMetadata> | undefined> {
   if (
     target.scope !== 'single'
@@ -157,7 +162,7 @@ async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetada
     return undefined
   }
 
-  const manifest = await readManifest(target.dir)
+  const manifest = manifestSnapshot ?? await readManifest(target.dir)
   if (!manifest || manifest.command !== config.kind || manifest.scope !== target.scope) {
     if (throwOnInvalid) {
       const manifestLabel = config.selectionMode === 'selected-only'
@@ -314,6 +319,54 @@ const addResumeTotals = (left: ResumeResult, right: ResumeResult): ResumeResult 
   failed: left.failed + right.failed
 })
 
+const resolveResumeBatchConcurrency = (opts: object): number => {
+  const configured = Reflect.get(opts, 'batchConcurrency')
+  return typeof configured === 'number' && Number.isFinite(configured)
+    ? Math.max(1, Math.floor(configured))
+    : DEFAULT_CLI_CONCURRENCY
+}
+
+const reconcileGenerationBatchSummary = async (
+  config: { kind: PipelineManifest['command'], stepLabel: string },
+  manifestUpdater: (
+    update: (manifest: PipelineManifest) => PipelineManifest | Promise<PipelineManifest>
+  ) => Promise<PipelineManifest>
+): Promise<void> => {
+  await manifestUpdater((manifest) => {
+    if (manifest.command !== config.kind || manifest.scope !== 'batch') {
+      throw UsageError(`Canonical ${config.stepLabel} batch manifest changed incompatibly during resume summary reconciliation.`)
+    }
+
+    const ok = manifest.items.filter((item) => item.status === 'full').length
+    const partial = manifest.items.filter((item) => item.status === 'incomplete' || item.status === 'skipped').length
+    const fail = manifest.items.filter((item) => item.status === 'failed').length
+    const currentSource = isRecord(manifest.source) ? manifest.source : {}
+    const currentSummary = isRecord(currentSource['summary']) ? currentSource['summary'] : {}
+    const requestedProviders = [...new Map(manifest.items.flatMap((item) =>
+      item.providers.flatMap((provider) => typeof provider.model === 'string'
+        ? [[`${provider.service}\u0000${provider.model}`, { service: provider.service, model: provider.model }] as const]
+        : [])
+    )).values()]
+
+    return {
+      ...manifest,
+      source: {
+        ...currentSource,
+        selectedCount: manifest.items.length,
+        summary: {
+          ...currentSummary,
+          ok,
+          partial,
+          fail,
+          ...(Array.isArray(currentSummary['requestedProviders'])
+            ? {}
+            : { requestedProviders })
+        }
+      }
+    }
+  })
+}
+
 const resumeGenerationItems = async <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
   config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
@@ -325,16 +378,24 @@ const resumeGenerationItems = async <TTarget extends ProviderIdentity, TMetadata
   if (!manifest || manifest.command !== config.kind || manifest.scope !== target.scope || manifest.items.length === 0) {
     throw UsageError(`Invalid ${config.stepLabel} manifest at ${target.dir}/manifest.json`)
   }
-  let totals: ResumeResult = { full: 0, incomplete: 0, failed: 0 }
-  for (const [itemIndex] of manifest.items.entries()) {
-    const result = await resumeGenerationTarget(target, config, opts, explicitFlags, {
+  const manifestUpdater = createBatchedManifestUpdater(
+    async (update) => await updateManifest(target.dir, update)
+  )
+  const results = await mapWithConcurrency(
+    resolveResumeBatchConcurrency(opts),
+    manifest.items,
+    async (_item, itemIndex) => await resumeGenerationTarget(target, config, opts, explicitFlags, {
       ...displayOptions,
       itemIndex,
       itemLabel: `${itemIndex + 1}/${manifest.items.length}`,
       deferItemFailure: true
-    })
-    totals = addResumeTotals(totals, result)
-  }
+    }, manifestUpdater, manifest)
+  )
+  const totals = results.reduce(addResumeTotals, { full: 0, incomplete: 0, failed: 0 })
+  await reconcileGenerationBatchSummary(
+    config,
+    manifestUpdater
+  )
   if (totals.failed > 0) {
     throw partialCompletionError(
       `${config.stepLabel} resume still has failed items`,
@@ -374,7 +435,7 @@ export const hasResumableGenerationWork = async <TTarget extends ProviderIdentit
     const manifest = await readManifest(target.dir)
     if (!manifest || manifest.command !== 'tts' || manifest.scope !== 'batch') return false
     for (const [itemIndex] of manifest.items.entries()) {
-      const prep = await prepareGenerationResume(target, config, opts, explicitFlags, false, itemIndex)
+      const prep = await prepareGenerationResume(target, config, opts, explicitFlags, false, itemIndex, manifest)
       if (prep !== undefined && prep.resolved.providersToRun.length > 0) return true
     }
     return false
@@ -388,14 +449,18 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
   config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
   opts: TOptions,
   explicitFlags: Set<string> = new Set(),
-  displayOptions: ResumeDisplayOptions = {}
+  displayOptions: ResumeDisplayOptions = {},
+  manifestUpdater: (
+    update: (manifest: PipelineManifest) => PipelineManifest | Promise<PipelineManifest>
+  ) => Promise<PipelineManifest> = async (update) => await updateManifest(target.dir, update),
+  manifestSnapshot?: PipelineManifest
 ): Promise<ResumeResult> => {
   if (target.scope === 'batch' && config.kind === 'tts' && displayOptions.itemIndex === undefined) {
     return await resumeGenerationItems(target, config, opts, explicitFlags, displayOptions)
   }
   const itemIndex = displayOptions.itemIndex ?? 0
   const itemLabel = displayOptions.itemLabel ?? '1/1'
-  const prep = await prepareGenerationResume(target, config, opts, explicitFlags, true, itemIndex)
+  const prep = await prepareGenerationResume(target, config, opts, explicitFlags, true, itemIndex, manifestSnapshot)
   const { item, existingEntries, successKeys, selectedProviders, resolved } = prep
   const hasExplicitSelectedProviders = selectedProviders !== undefined
   const getProviderKey = (provider: ProviderIdentity): string =>
@@ -447,7 +512,8 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
       existingEntries,
       currentManifestMetadata: item.metadata,
       currentProviderStates: item.providers,
-      itemIndex
+      itemIndex,
+      manifestUpdater
     })
   } catch (error) {
     logResumeItem(l, {
@@ -474,72 +540,71 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
   const stillMissing = resolved.requestedProviders.filter(
     (provider) => !mergedSuccessKeys.has(getProviderKey(provider))
   )
-  const latestManifest = await readManifest(target.dir)
-  const latestItem = latestManifest?.items[itemIndex]
-  if (
-    !latestManifest
-    || !latestItem
-    || latestManifest.command !== config.kind
-    || latestManifest.scope !== target.scope
-    || (target.scope === 'single' && latestManifest.items.length !== 1)
-  ) {
-    throw UsageError(`Canonical ${config.stepLabel} manifest changed incompatibly during resume.`)
-  }
-  const rebuiltMetadata = config.rebuildRunMetadata
-    ? config.rebuildRunMetadata(mergedMetadata, latestItem.metadata, input)
-    : {}
-
-  const nextProviders = config.reconcileProviderStates
-    ? config.reconcileProviderStates({
-        currentProviders: latestItem.providers,
-        requestedProviders: resolved.requestedProviders,
-        targetsToRun,
-        existingEntries,
-        newEntries: newMetadata,
-        mergedEntries: mergedMetadata,
-        completedProviderKeys: mergedSuccessKeys
-      })
-    : (() => {
-        const nextProviderByKey = new Map(latestItem.providers.flatMap((provider) =>
-          typeof provider.model === 'string'
-            ? [[getProviderKey(provider as ProviderIdentity), provider] as const]
-            : []
-        ))
-        for (const provider of resolved.requestedProviders) {
-          const key = getProviderKey(provider)
-          const current = nextProviderByKey.get(key)
-          const succeeded = mergedSuccessKeys.has(key)
-          nextProviderByKey.set(key, {
-            service: provider.service,
-            model: provider.model,
-            artifactDir: current?.artifactDir ?? '.',
-            status: succeeded ? 'succeeded' : 'missing',
-            attempts: Math.max(current?.attempts ?? 0, succeeded ? 1 : 0),
-            options: current?.options ?? {},
-            metadata: current?.metadata ?? {},
-            ...(succeeded ? {} : current?.error ? { error: current.error } : {})
-          })
-        }
-        return [...nextProviderByKey.values()]
-      })()
-  const nextItem = {
-    ...latestItem,
-    input: config.kind === 'tts' ? latestItem.input : input,
-    status: stillMissing.length > 0 ? 'incomplete' as const : 'full' as const,
-    metadata: {
-      ...latestItem.metadata,
-      ...rebuiltMetadata,
-      [config.metadataKey]: config.serializeEntries
-        ? config.serializeEntries(mergedMetadata)
-        : mergedMetadata
-    },
-    providers: nextProviders
-  }
-  await writeManifest(target.dir, {
-    ...latestManifest,
-    items: target.scope === 'batch'
-      ? latestManifest.items.map((entry, index) => index === itemIndex ? nextItem : entry)
-      : [nextItem]
+  await manifestUpdater((latestManifest) => {
+    const latestItem = latestManifest.items[itemIndex]
+    if (
+      !latestItem
+      || latestManifest.command !== config.kind
+      || latestManifest.scope !== target.scope
+      || (target.scope === 'single' && latestManifest.items.length !== 1)
+    ) {
+      throw UsageError(`Canonical ${config.stepLabel} manifest changed incompatibly during resume.`)
+    }
+    const rebuiltMetadata = config.rebuildRunMetadata
+      ? config.rebuildRunMetadata(mergedMetadata, latestItem.metadata, input)
+      : {}
+    const nextProviders = config.reconcileProviderStates
+      ? config.reconcileProviderStates({
+          currentProviders: latestItem.providers,
+          requestedProviders: resolved.requestedProviders,
+          targetsToRun,
+          existingEntries,
+          newEntries: newMetadata,
+          mergedEntries: mergedMetadata,
+          completedProviderKeys: mergedSuccessKeys
+        })
+      : (() => {
+          const nextProviderByKey = new Map(latestItem.providers.flatMap((provider) =>
+            typeof provider.model === 'string'
+              ? [[getProviderKey(provider as ProviderIdentity), provider] as const]
+              : []
+          ))
+          for (const provider of resolved.requestedProviders) {
+            const key = getProviderKey(provider)
+            const current = nextProviderByKey.get(key)
+            const succeeded = mergedSuccessKeys.has(key)
+            nextProviderByKey.set(key, {
+              service: provider.service,
+              model: provider.model,
+              artifactDir: current?.artifactDir ?? '.',
+              status: succeeded ? 'succeeded' : 'missing',
+              attempts: Math.max(current?.attempts ?? 0, succeeded ? 1 : 0),
+              options: current?.options ?? {},
+              metadata: current?.metadata ?? {},
+              ...(succeeded ? {} : current?.error ? { error: current.error } : {})
+            })
+          }
+          return [...nextProviderByKey.values()]
+        })()
+    const nextItem = {
+      ...latestItem,
+      input: config.kind === 'tts' ? latestItem.input : input,
+      status: stillMissing.length > 0 ? 'incomplete' as const : 'full' as const,
+      metadata: {
+        ...latestItem.metadata,
+        ...rebuiltMetadata,
+        [config.metadataKey]: config.serializeEntries
+          ? config.serializeEntries(mergedMetadata)
+          : mergedMetadata
+      },
+      providers: nextProviders
+    }
+    return {
+      ...latestManifest,
+      items: target.scope === 'batch'
+        ? latestManifest.items.map((entry, index) => index === itemIndex ? nextItem : entry)
+        : [nextItem]
+    }
   })
 
   if (stillMissing.length > 0) {
@@ -590,9 +655,10 @@ const priceGenerationItem = async <TTarget extends ProviderIdentity, TMetadata, 
   config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
   opts: TOptions,
   explicitFlags: Set<string>,
-  itemIndex: number
+  itemIndex: number,
+  manifestSnapshot?: PipelineManifest
 ): Promise<{ steps: Awaited<ReturnType<GenerationResumeConfig<TTarget, TMetadata, TOptions>['buildEstimates']>>, input: string, priceOpts: TOptions }> => {
-  const prep = await prepareGenerationResume(target, config, opts, explicitFlags, true, itemIndex)
+  const prep = await prepareGenerationResume(target, config, opts, explicitFlags, true, itemIndex, manifestSnapshot)
   if (prep.resolved.providersToRun.length === 0) {
     return { steps: [], input: '', priceOpts: opts }
   }
@@ -627,7 +693,7 @@ export const priceGenerationTarget = async <TTarget extends ProviderIdentity, TM
     const steps: Awaited<ReturnType<GenerationResumeConfig<TTarget, TMetadata, TOptions>['buildEstimates']>> = []
     let priceOpts = opts
     for (const [itemIndex] of manifest.items.entries()) {
-      const priced = await priceGenerationItem(target, config, opts, explicitFlags, itemIndex)
+      const priced = await priceGenerationItem(target, config, opts, explicitFlags, itemIndex, manifest)
       steps.push(...priced.steps)
       priceOpts = priced.priceOpts
     }

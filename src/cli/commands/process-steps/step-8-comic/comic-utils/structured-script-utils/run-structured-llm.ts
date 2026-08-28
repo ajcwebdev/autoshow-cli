@@ -1,6 +1,6 @@
 import { collectLlmTargets } from '~/cli/commands/process-steps/step-3-write/run-llm'
 import { resolveStructuredStrategy, resolveValidationRetryBudget, shouldApplyStrictMode } from '~/cli/commands/process-steps/step-3-write/structured-output/capabilities'
-import { runCompatFallback } from '~/cli/commands/process-steps/step-3-write/structured-output/compat-fallback'
+import { runSchemaGuidedFallback } from '~/cli/commands/process-steps/step-3-write/structured-output/schema-guided-fallback'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { UsageError, InternalError } from '~/utils/error-handler'
 import type { ComicStructuredLlmResult, ComicStructuredSchema, HostedConcurrencyCoordinator, LLMOptions, LLMTarget, ResolvedStructuredSchema, StructuredRequestOptions, StructuredValidationContext } from '~/types'
@@ -66,8 +66,8 @@ export const runComicStructuredLlm = async (
         schema: schema.valibotSchema,
         jsonSchema: schema.jsonSchema,
       }
-      const compat = await runCompatFallback(target, prompt, target.model, resolvedSchema, resolveValidationRetryBudget(target.service), validationContext)
-      return { text: compat.rawResponse, metadata: compat.metadata }
+      const schemaGuided = await runSchemaGuidedFallback(target, prompt, target.model, resolvedSchema, resolveValidationRetryBudget(target.service), validationContext)
+      return { text: schemaGuided.rawResponse, metadata: schemaGuided.metadata }
     }
 
     const structuredOpts: StructuredRequestOptions = {

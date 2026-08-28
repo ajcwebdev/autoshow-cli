@@ -17,7 +17,7 @@ import { resolveStructuredStrategy, resolveValidationRetryBudget, shouldApplyStr
 import { buildStructuredInstructionSuffix, resolveStructuredSchema } from './structured-output/schema-resolver'
 import { isSongLyricsPreset } from './structured-output/preset-registry'
 import { parseAndValidateStructured } from './structured-output/validator'
-import { runCompatFallback } from './structured-output/compat-fallback'
+import { runSchemaGuidedFallback } from './structured-output/schema-guided-fallback'
 import { renderToPlainText } from './structured-output/renderers'
 import { readPromptFile } from './text-input-utils'
 import { runLlmProviderTargetPools } from './llm-provider-pool'
@@ -98,7 +98,7 @@ export const runLlmTargetsForStructuredPrompt = async (
       let metadata = undefined as StructuredRunResult['metadata'] | undefined
 
       if (structuredMode === 'schema-guided') {
-        const compatResponse = await runCompatFallback(
+        const schemaGuidedResponse = await runSchemaGuidedFallback(
           target,
           options.prompt,
           target.model,
@@ -107,8 +107,8 @@ export const runLlmTargetsForStructuredPrompt = async (
           options.structuredValidationContext,
           targetReasoningEffort
         )
-        parsedJson = compatResponse.parsedJson
-        metadata = compatResponse.metadata
+        parsedJson = schemaGuidedResponse.parsedJson
+        metadata = schemaGuidedResponse.metadata
       } else {
         const structuredOpts: StructuredRequestOptions = {
           schemaName: options.structuredSchema.schemaName,

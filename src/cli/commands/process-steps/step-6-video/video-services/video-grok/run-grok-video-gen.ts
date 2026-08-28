@@ -11,7 +11,7 @@ import {
 } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
 import { formatPolledJobError, runPolledJob } from '~/utils/polled-job-client/polled-job'
-import { requireProviderKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import {
@@ -54,7 +54,7 @@ export const runGrokVideoGen = async (
     inputVideo?: string | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
-  const apiKey = requireProviderKey('grok', 'video:grok', 'Grok video generation')
+  const apiKey = resolveCredential('grok', 'require', { stage: 'video:grok', description: 'Grok video generation' })
 
   const baseURL = XAI_DEFAULT_BASE_URL
   const mode = options.mode ?? 'text'
