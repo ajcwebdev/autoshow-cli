@@ -10,8 +10,11 @@ permissions:
   packages: write
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
+  build-amd64:
+    name: Build AMD64 image
+    runs-on: ubuntu-24.04
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Fetch repository at the pushed commit
         env:
@@ -20,11 +23,6 @@ jobs:
           git init .
           git fetch --depth 1 "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${GITHUB_SHA}"
           git checkout --detach FETCH_HEAD
-
-      - name: Install QEMU binfmt emulation
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-user-static
 
       - name: Create Buildx builder
         run: |
@@ -37,20 +35,113 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
         run: printf '%s' "${GITHUB_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
 
-      - name: Build and push multi-arch image
+      - name: Build and push AMD64 image by digest
+        id: build
         run: |
+          set -euo pipefail
           image="ghcr.io/$(printf '%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
-          created="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          created="$(git show -s --format=%cI "${GITHUB_SHA}")"
+          metadata_file="$(mktemp)"
           docker buildx build \
-            --platform linux/amd64,linux/arm64 \
+            --platform linux/amd64 \
             --file Dockerfile \
-            --tag "${image}:latest" \
-            --tag "${image}:${GITHUB_SHA}" \
             --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
             --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
             --label "org.opencontainers.image.created=${created}" \
             --provenance=true \
+            --cache-from "type=registry,ref=${image}:buildcache-amd64" \
             --cache-from "type=registry,ref=${image}:buildcache" \
-            --cache-to "type=registry,ref=${image}:buildcache,mode=max" \
-            --push \
+            --cache-to "type=registry,ref=${image}:buildcache-amd64,mode=max" \
+            --output "type=image,name=${image},push-by-digest=true,name-canonical=true,push=true" \
+            --metadata-file "${metadata_file}" \
             .
+          digest="$(jq -er '."containerimage.digest"' "${metadata_file}")"
+          case "${digest}" in
+            sha256:*) ;;
+            *) printf 'Unexpected AMD64 image digest: %s\n' "${digest}" >&2; exit 1 ;;
+          esac
+          printf 'digest=%s\n' "${digest}" >> "${GITHUB_OUTPUT}"
+
+  build-arm64:
+    name: Build ARM64 image
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Fetch repository at the pushed commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git init .
+          git fetch --depth 1 "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${GITHUB_SHA}"
+          git checkout --detach FETCH_HEAD
+
+      - name: Create Buildx builder
+        run: |
+          docker buildx create --name autoshow-builder --driver docker-container --use
+          docker buildx inspect --bootstrap
+
+      - name: Log in to GitHub Container Registry
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: printf '%s' "${GITHUB_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
+
+      - name: Build and push ARM64 image by digest
+        id: build
+        run: |
+          set -euo pipefail
+          image="ghcr.io/$(printf '%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          created="$(git show -s --format=%cI "${GITHUB_SHA}")"
+          metadata_file="$(mktemp)"
+          docker buildx build \
+            --platform linux/arm64 \
+            --file Dockerfile \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --label "org.opencontainers.image.created=${created}" \
+            --provenance=true \
+            --cache-from "type=registry,ref=${image}:buildcache-arm64" \
+            --cache-from "type=registry,ref=${image}:buildcache" \
+            --cache-to "type=registry,ref=${image}:buildcache-arm64,mode=max" \
+            --output "type=image,name=${image},push-by-digest=true,name-canonical=true,push=true" \
+            --metadata-file "${metadata_file}" \
+            .
+          digest="$(jq -er '."containerimage.digest"' "${metadata_file}")"
+          case "${digest}" in
+            sha256:*) ;;
+            *) printf 'Unexpected ARM64 image digest: %s\n' "${digest}" >&2; exit 1 ;;
+          esac
+          printf 'digest=%s\n' "${digest}" >> "${GITHUB_OUTPUT}"
+
+  publish-manifest:
+    name: Publish multi-arch manifest
+    runs-on: ubuntu-24.04
+    needs:
+      - build-amd64
+      - build-arm64
+    steps:
+      - name: Log in to GitHub Container Registry
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: printf '%s' "${GITHUB_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
+
+      - name: Create and verify multi-arch manifest
+        env:
+          AMD64_DIGEST: ${{ needs.build-amd64.outputs.digest }}
+          ARM64_DIGEST: ${{ needs.build-arm64.outputs.digest }}
+        run: |
+          set -euo pipefail
+          image="ghcr.io/$(printf '%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          docker buildx imagetools create \
+            --tag "${image}:latest" \
+            --tag "${image}:${GITHUB_SHA}" \
+            "${image}@${AMD64_DIGEST}" \
+            "${image}@${ARM64_DIGEST}"
+          manifest="$(docker buildx imagetools inspect --raw "${image}:${GITHUB_SHA}")"
+          printf '%s' "${manifest}" | jq -e '
+            [.manifests[] | select(.platform.os == "linux") | .platform.architecture]
+            | index("amd64") != null and index("arm64") != null
+          ' >/dev/null
+          docker buildx imagetools inspect "${image}:${GITHUB_SHA}"
