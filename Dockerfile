@@ -10,13 +10,30 @@ COPY package.json bun.lock* bunfig.toml ./
 
 RUN bun install --frozen-lockfile --production
 
+FROM ${BUN_BASE_IMAGE} AS fetch
+
+ARG YT_DLP_URL=https://github.com/yt-dlp/yt-dlp/releases/download/2026.06.09/yt-dlp
+ARG YT_DLP_SHA256=e5d57466682cfa9d61e9cf7c8a4f09b00f4a62af37d3bbdc4bcffdf63615feac
+
+RUN set -eux; \
+    YT_DLP_URL="${YT_DLP_URL}" bun -e 'const url = process.env.YT_DLP_URL; const response = await fetch(url); if (!response.ok || !response.body) throw new Error(`yt-dlp download failed: ${response.status}`); const writer = Bun.file("/usr/local/bin/yt-dlp").writer(); for await (const chunk of response.body) writer.write(chunk); await writer.end();'; \
+    printf '%s %s\n' "${YT_DLP_SHA256}" /usr/local/bin/yt-dlp | sha256sum -c -; \
+    chmod 0755 /usr/local/bin/yt-dlp
+
 FROM ${BUN_BASE_IMAGE} AS runtime
 
 ARG DEBIAN_FRONTEND=noninteractive
+ARG AUTOSHOW_VERSION=0.1.0
+ARG BUILD_DATE=unknown
+ARG VCS_REF=unknown
 
 LABEL org.opencontainers.image.title="autoshow-cli"
 LABEL org.opencontainers.image.description="Bun-native AutoShow CLI with Debian slim local-lite tools"
-LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.version="${AUTOSHOW_VERSION}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.revision="${VCS_REF}"
+LABEL org.opencontainers.image.source="https://github.com/ajcwebdev/autoshow-cli"
+LABEL org.opencontainers.image.url="https://github.com/ajcwebdev/autoshow-cli/pkgs/container/autoshow-cli"
 
 ENV NODE_ENV=production
 ENV HOME=/home/bun
@@ -45,7 +62,7 @@ RUN set -eux; \
     chmod 0755 /usr/local/bin/tesseract; \
     rm -rf /var/lib/apt/lists/* /root/.cache/* /tmp/*
 
-ADD --checksum=sha256:e5d57466682cfa9d61e9cf7c8a4f09b00f4a62af37d3bbdc4bcffdf63615feac --chmod=0755 https://github.com/yt-dlp/yt-dlp/releases/download/2026.06.09/yt-dlp /usr/local/bin/yt-dlp
+COPY --from=fetch /usr/local/bin/yt-dlp /usr/local/bin/yt-dlp
 
 WORKDIR /app
 

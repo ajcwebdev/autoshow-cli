@@ -41,14 +41,19 @@ jobs:
           set -euo pipefail
           image="ghcr.io/$(printf '%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
           created="$(git show -s --format=%cI "${GITHUB_SHA}")"
+          version="$(jq -er '.version' package.json)"
           metadata_file="$(mktemp)"
           docker buildx build \
             --platform linux/amd64 \
             --file Dockerfile \
+            --build-arg "AUTOSHOW_VERSION=${version}" \
+            --build-arg "BUILD_DATE=${created}" \
+            --build-arg "VCS_REF=${GITHUB_SHA}" \
             --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
             --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
             --label "org.opencontainers.image.created=${created}" \
-            --provenance=true \
+            --provenance=mode=max \
+            --sbom=true \
             --cache-from "type=registry,ref=${image}:buildcache-amd64" \
             --cache-from "type=registry,ref=${image}:buildcache" \
             --cache-to "type=registry,ref=${image}:buildcache-amd64,mode=max" \
@@ -93,14 +98,19 @@ jobs:
           set -euo pipefail
           image="ghcr.io/$(printf '%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
           created="$(git show -s --format=%cI "${GITHUB_SHA}")"
+          version="$(jq -er '.version' package.json)"
           metadata_file="$(mktemp)"
           docker buildx build \
             --platform linux/arm64 \
             --file Dockerfile \
+            --build-arg "AUTOSHOW_VERSION=${version}" \
+            --build-arg "BUILD_DATE=${created}" \
+            --build-arg "VCS_REF=${GITHUB_SHA}" \
             --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
             --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
             --label "org.opencontainers.image.created=${created}" \
-            --provenance=true \
+            --provenance=mode=max \
+            --sbom=true \
             --cache-from "type=registry,ref=${image}:buildcache-arm64" \
             --cache-from "type=registry,ref=${image}:buildcache" \
             --cache-to "type=registry,ref=${image}:buildcache-arm64,mode=max" \

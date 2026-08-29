@@ -12,6 +12,33 @@ import {
   recordAdaptiveDirectSuccess, recordSplitAttempts, recordToolFallbackSuccess, summarizePdfChunkPreparation
 } from './pdf-chunk-preparation-state'
 
+const PNG_SIGNATURE = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+
+export const hasValidPngSignature = async (path: string): Promise<boolean> => {
+  try {
+    const file = Bun.file(path)
+    if (file.size <= PNG_SIGNATURE.length) return false
+    const bytes = new Uint8Array(await file.slice(0, PNG_SIGNATURE.length).arrayBuffer())
+    return bytes.every((byte, index) => byte === PNG_SIGNATURE[index])
+  } catch {
+    return false
+  }
+}
+
+const acceptWarningOnlyPngRender = async (
+  outputPath: string,
+  result: { exitCode: number, stderr: string, stdout: string },
+  range: OcrPdfChunkRange
+): Promise<boolean> => {
+  if (result.exitCode === 0) return await hasNonEmptyFile(outputPath)
+  if (!await hasValidPngSignature(outputPath)) return false
+  l.warn(`mutool draw exited ${result.exitCode} for ${formatRange(range)} but produced a valid PNG; using rendered output`, {
+    category: 'pipeline',
+    metadata: { exitCode: result.exitCode, startPage: range.startPage, endPage: range.endPage }
+  })
+  return true
+}
+
 export const createRenderedPngPageChunk = (
   dpi: number,
   ocrPreparationCache?: OcrPreparationCache | undefined
@@ -32,7 +59,7 @@ export const createRenderedPngPageChunk = (
 
   const render = async (renderPath: string): Promise<void> => {
     const result = await renderPageToImage(inputPath, range.startPage, dpi, renderPath, password)
-    if (result.exitCode !== 0 || !await hasNonEmptyFile(renderPath)) {
+    if (!await acceptWarningOnlyPngRender(renderPath, result, range)) {
       throw createOcrPdfChunkRenderError(range, {
         exitCode: result.exitCode === 0 ? 1 : result.exitCode,
         stderr: result.stderr,
@@ -99,7 +126,7 @@ export const createRasterizedSinglePagePdfChunk = async (options: {
       imagePath,
       options.password
     )
-    if (renderResult.exitCode !== 0 || !await hasNonEmptyFile(imagePath)) {
+    if (!await acceptWarningOnlyPngRender(imagePath, renderResult, options.range)) {
       throw createOcrPdfChunkRenderError(options.range, {
         exitCode: renderResult.exitCode,
         stderr: renderResult.stderr,

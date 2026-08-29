@@ -1,5 +1,5 @@
 import { describe,expect,test } from 'bun:test'
-import { getOcrPoolAttemptRelativeDir } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch'
+import { getOcrPoolAttemptRelativeDir,preflightPooledPageInputs } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch'
 import { defaultOcrPoolLaneKey,runOcrPagePool } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool'
 import type { OcrPoolLedger,OcrTarget } from '~/types'
 import { extractErrorMetadata,ProviderError } from '~/utils/error-handler'
@@ -44,6 +44,26 @@ const runPool = async (overrides: Partial<Parameters<typeof runOcrPagePool>[0]> 
 }
 
 describe('pooled OCR page scheduler contracts', () => {
+
+  test('prepares pooled page inputs with a bounded parallel preflight', async () => {
+    let active = 0
+    let maxActive = 0
+    const prepared: number[] = []
+    await preflightPooledPageInputs({
+      totalPages: 12,
+      preparePage: async (pageNumber) => {
+        active += 1
+        maxActive = Math.max(maxActive, active)
+        await Bun.sleep(2)
+        prepared.push(pageNumber)
+        active -= 1
+        return { path: `/virtual/page-${pageNumber}.png`, metadata: { slug: 'test', format: 'png', pageCount: 1, fileSize: 1 } }
+      }
+    }, 4)
+
+    expect(maxActive).toBe(4)
+    expect(prepared.sort((left, right) => left - right)).toEqual(Array.from({ length: 12 }, (_, index) => index + 1))
+  })
 
   test('uses one shared queue, preserves page order, and shares same-account lane caps', async () => {
     const targets: OcrTarget[] = [

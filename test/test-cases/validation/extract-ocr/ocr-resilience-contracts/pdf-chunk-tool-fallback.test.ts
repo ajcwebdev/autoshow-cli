@@ -15,6 +15,7 @@ import {
   runHostedOcrWithPdfChunkFallback
 } from './shared'
 import { withLocalTestDir } from '../../../../test-utils/temp-dirs'
+import { redDotPng } from '../../../../test-utils/media-fixtures'
 
 const runLargePdfFallback = async (
   fallbackDir: string,
@@ -106,6 +107,30 @@ describe('PDF chunk creation and routing contracts', () => {
       })
 
       expect(calls).toEqual(['split:6', 'render:6:222', 'convert:png bytes'])
+      expect(await Bun.file(outputPath).text()).toBe('%PDF-1.7\n')
+    })
+  })
+
+  test('local PDF chunk creation accepts a valid PNG when mutool reports warning-only nonzero status', async () => {
+    await withLocalTestDir('ocr-raster-pdf-icc-warning', async (dir) => {
+      const outputPath = join(dir, 'page-000006.pdf')
+      await createOcrPdfChunkWithLocalFallback({
+        inputPath: '/virtual/input.pdf',
+        outputPath,
+        range: { startPage: 6, endPage: 6 },
+        tools: {
+          splitPdfPages: async () => ({ tool: 'mutool', exitCode: 1, stderr: 'direct split failed', stdout: '' }),
+          renderPageToImage: async (_filePath, _page, _dpi, outPath) => {
+            await Bun.write(outPath, redDotPng)
+            return { exitCode: 1, stderr: 'warning: ICC support is not available', stdout: '' }
+          },
+          convertDocumentToPdf: async (_imagePath, outPath) => {
+            await Bun.write(outPath, '%PDF-1.7\n')
+            return { exitCode: 0, stderr: '', stdout: '' }
+          }
+        }
+      })
+
       expect(await Bun.file(outputPath).text()).toBe('%PDF-1.7\n')
     })
   })

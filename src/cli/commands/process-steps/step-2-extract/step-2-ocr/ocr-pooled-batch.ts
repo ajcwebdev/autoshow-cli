@@ -17,7 +17,7 @@ import { classifyOcrProviderFailure, getOcrTargetKey, toRequestedProvider } from
 import { buildExtractionOptionsForTarget, getOcrTargetDirectoryName } from './ocr-targets'
 import { defaultOcrPoolLaneKey, isLocalOcrTarget, runOcrPagePool } from './ocr-provider-pool'
 import { runOcr } from './run-ocr'
-import { createOcrPdfChunkWithLocalFallback } from './ocr-utils/pdf-chunk-fallback'
+import { createRenderedPngPageChunk } from './ocr-utils/pdf-chunk-fallback'
 import { resolveHostedDirectImageInputStrategy } from './hosted-ocr'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { writeOcrProviderError } from './ocr-structured-response-error'
@@ -409,7 +409,7 @@ type PooledOcrContext = OcrBatchRunContext & {
 
 type PreparedPageInput = { path: string, metadata: OcrBatchRunContext['step1Metadata'] }
 
-type PooledPageInputProvider = {
+export type PooledPageInputProvider = {
   totalPages: number
   preparePage: (pageNumber: number) => Promise<PreparedPageInput>
 }
@@ -440,6 +440,7 @@ const createPooledPageInputProvider = async (
     }
   }
   const promises = new Map<number, Promise<PreparedPageInput>>()
+  const renderPdfPage = createRenderedPngPageChunk(ctx.effectiveOpts.dpi ?? 300, ctx.effectiveOpts.ocrPreparationCache)
   const preparePage = (pageNumber: number): Promise<PreparedPageInput> => {
     const existing = promises.get(pageNumber)
     if (existing) return existing
@@ -453,18 +454,15 @@ const createPooledPageInputProvider = async (
       if (ctx.step1Metadata.format !== 'pdf') return { path: ctx.extractFilePath, metadata: { ...ctx.step1Metadata, pageCount: 1 } }
       const pageDir = join(pageWorkspace, 'page-inputs')
       await mkdir(pageDir, { recursive: true })
-      const pagePath = join(pageDir, `page-${String(pageNumber).padStart(6, '0')}.pdf`)
-      await createOcrPdfChunkWithLocalFallback({
-        inputPath: ctx.extractFilePath,
-        outputPath: pagePath,
-        range: { startPage: pageNumber, endPage: pageNumber },
-        password: ctx.effectiveOpts.password,
-        dpi: ctx.effectiveOpts.dpi,
-        splitLogMode: 'debug',
-        logLabel: 'pooled OCR page preparation',
-      })
+      const pagePath = join(pageDir, `page-${String(pageNumber).padStart(6, '0')}.png`)
+      await renderPdfPage(
+        ctx.extractFilePath,
+        pagePath,
+        { startPage: pageNumber, endPage: pageNumber },
+        ctx.effectiveOpts.password
+      )
       const pageStats = await stat(pagePath)
-      return { path: pagePath, metadata: { ...ctx.step1Metadata, pageCount: 1, fileSize: pageStats.size, format: 'pdf' } }
+      return { path: pagePath, metadata: { ...ctx.step1Metadata, pageCount: 1, fileSize: pageStats.size, format: 'png' } }
     })()
     promises.set(pageNumber, promise)
     promise.catch(() => {
@@ -475,19 +473,32 @@ const createPooledPageInputProvider = async (
   return { totalPages: cbzImages?.length ?? Math.max(1, ctx.step1Metadata.pageCount), preparePage }
 }
 
-const preflightPooledPageInputs = async (provider: PooledPageInputProvider): Promise<void> => {
-  for (let pageNumber = 1; pageNumber <= provider.totalPages; pageNumber++) {
-    try {
-      await provider.preparePage(pageNumber)
-    } catch (error) {
-      const detail = error instanceof Error && error.message.trim().length > 0 ? error.message.trim() : String(error)
-      throw UsageError(
-        `--ocr-provider-mode pool could not normalize page ${pageNumber} into a compatible work unit: ${detail}`,
-        undefined,
-        error instanceof Error ? { cause: error } : {}
-      )
+export const preflightPooledPageInputs = async (
+  provider: PooledPageInputProvider,
+  concurrency = 8
+): Promise<void> => {
+  const requestedConcurrency = Number.isFinite(concurrency) ? Math.max(1, Math.floor(concurrency)) : 1
+  const workerCount = Math.max(1, Math.min(provider.totalPages, requestedConcurrency))
+  let nextPage = 1
+  let failure: unknown
+  const worker = async (): Promise<void> => {
+    while (failure === undefined) {
+      const pageNumber = nextPage++
+      if (pageNumber > provider.totalPages) return
+      try {
+        await provider.preparePage(pageNumber)
+      } catch (error) {
+        const detail = error instanceof Error && error.message.trim().length > 0 ? error.message.trim() : String(error)
+        failure = UsageError(
+          `--ocr-provider-mode pool could not normalize page ${pageNumber} into a compatible work unit: ${detail}`,
+          undefined,
+          error instanceof Error ? { cause: error } : {}
+        )
+      }
     }
   }
+  await Promise.all(Array.from({ length: workerCount }, worker))
+  if (failure !== undefined) throw failure
 }
 
 const validatePooledReasoningPolicies = (ctx: PooledOcrContext): void => {
