@@ -16,6 +16,11 @@ const parseVoiceConsentRecordRef = (value: string): ProtectedAssetRef => {
   return { storeId, assetId, sha256 }
 }
 
+export const validateVoiceConsentRecordRef = (value: string): string => {
+  parseVoiceConsentRecordRef(value)
+  return value
+}
+
 export const storeVoiceConsentRecord = async (
   store: ProtectedVoiceAssetStore,
   record: VoiceConsentRecord

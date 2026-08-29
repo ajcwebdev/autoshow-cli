@@ -10,8 +10,9 @@ import { loadVoiceRegistrationCatalog } from './character-voice-registry'
 import { managedVoiceAssetStore, MANAGED_VOICE_STORE_ROOT } from './managed-voice-store'
 import { loadVoiceConsentRecord } from './voice-consent-store'
 import { assertVoiceConsentAllows } from './voice-management-contracts'
+import { provisionMistralSavedReferenceRegistration } from './voice-registration-management'
 import {
-  CLONE_PROVIDERS, PROFILE_DEFAULT, SPEECHIFY_CLONE_GENDERS, advancedCapabilityFixtureHash,
+  CLONE_PROVIDERS, PROFILE_DEFAULT, advancedCapabilityFixtureHash,
   advancedProvider, cloneMediaType, isCloneProvider, maybeCompleteRegistrationJournal, optionalFlag,
   parameter, providerFlag, repeatableFlag, reportVoicePrice, reportVoiceResult, requireBrief,
   requiredFlag, requireVoiceModel
@@ -20,7 +21,12 @@ import {
 export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   const subjectKey = parameter(ctx, 'subjectKey')
   const provider = providerFlag(ctx)
-  if (!isCloneProvider(provider)) throw UsageError(`Voice clone currently supports ${CLONE_PROVIDERS.join(', ')}; other providers return unsupported until their adapter is implemented.`)
+  if (!isCloneProvider(provider)) {
+    if (provider === 'hume') throw UsageError('Hume voice cloning is performed in the Hume platform. Clone there, then register the resulting custom voice with voice import.')
+    if (provider === 'openai') throw UsageError('OpenAI voice cloning is deferred because creation requires a separate consent resource and the API does not expose matching catalog, inspection, and deletion operations.')
+    if (provider === 'speechify') throw UsageError('Speechify voice cloning is deferred because the current workflow requires a challenge phrase and a separate consent recording.')
+    throw UsageError(`Voice clone supports ${CLONE_PROVIDERS.join(', ')}; ${provider} has no API cloning capability in this release.`)
+  }
   const providerModel = requireVoiceModel(provider, requiredFlag(ctx, 'model'))
   const profileKey = optionalFlag(ctx, 'profile') ?? PROFILE_DEFAULT
   if (ctx.flags['price'] !== true) {
@@ -35,18 +41,7 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   }
   const samplePaths = repeatableFlag(ctx, 'sample')
   if (samplePaths.length === 0) throw UsageError(`${provider} instant voice clone requires at least one --sample.`)
-  if ((provider === 'cartesia' || provider === 'speechify') && samplePaths.length !== 1) throw UsageError(`${provider} instant voice clone requires exactly one --sample.`)
-  const speechifyConsentName = optionalFlag(ctx, 'consent-name')
-  const speechifyConsentEmail = optionalFlag(ctx, 'consent-email')
-  const speechifyLocale = optionalFlag(ctx, 'locale')
-  const speechifyGender = optionalFlag(ctx, 'gender')
-  if (provider === 'speechify') {
-    if (!speechifyConsentName || !speechifyConsentEmail) throw UsageError('Speechify instant clone requires --consent-name and --consent-email.')
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(speechifyConsentEmail)) throw UsageError('--consent-email must be a valid email address.')
-    if (speechifyGender && !SPEECHIFY_CLONE_GENDERS.includes(speechifyGender as typeof SPEECHIFY_CLONE_GENDERS[number])) throw UsageError(`--gender must be ${SPEECHIFY_CLONE_GENDERS.join(', ')}.`)
-  } else if (speechifyConsentName || speechifyConsentEmail || speechifyLocale || speechifyGender) {
-    throw UsageError('--consent-name, --consent-email, --locale, and --gender are Speechify instant-clone flags.')
-  }
+  if ((provider === 'cartesia' || provider === 'minimax' || provider === 'grok' || provider === 'mistral') && samplePaths.length !== 1) throw UsageError(`${provider} instant voice clone requires exactly one --sample.`)
   const consentRecordRef = requiredFlag(ctx, 'consent-ref')
   const consent = await loadVoiceConsentRecord(managedVoiceAssetStore, consentRecordRef)
   if (consent.subjectKey !== subjectKey) throw UsageError('Voice clone consent subject does not match the requested subject.')
@@ -69,6 +64,16 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
     return
   }
   const brief = await requireBrief(subjectKey, profileKey)
+  if (provider === 'mistral') {
+    const registration = await provisionMistralSavedReferenceRegistration({
+      charactersRoot: getCharactersRoot(), journalRoot: join(MANAGED_VOICE_STORE_ROOT, 'journals'), protectedStore: managedVoiceAssetStore,
+      subjectKey, profileKey, providerModel, voiceName: request.desiredName, sourcePath: samplePaths[0]!, authorizationRef,
+      brief, provenanceRef: request.provenanceRef, consent, consentRecordRef, capabilityFixtureHash: advancedCapabilityFixtureHash('mistral'),
+      apiKey: resolveCredential('mistral', 'require', { stage: 'voice:mistral', description: 'Mistral voice clone' })
+    })
+    reportVoiceResult('Voice clone provisioned', { registrationId: registration.registrationId, generationId: registration.generationId, state: registration.provisioning.state })
+    return
+  }
   await assertProtectedStoreOutputDisjoint(getCharactersRoot(), MANAGED_VOICE_STORE_ROOT)
   if (!managedVoiceAssetStore.ingestManaged) throw UsageError('Managed protected store cannot retain clone samples.')
   const createdAt = new Date().toISOString()
@@ -79,11 +84,11 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
       const path = await managedVoiceAssetStore.resolve(asset)
       return { bytes: new Uint8Array(await Bun.file(path).arrayBuffer()), fileName: `clone-sample-${asset.assetId}.${path.split('.').pop() ?? 'audio'}`, mediaType: cloneMediaType(path) }
   }
-  const resolveSpeechifyProtectedAsset = async (asset: typeof protectedSamples[number]) => {
+  const resolveDurationProtectedAsset = async (asset: typeof protectedSamples[number]) => {
     const resolved = await resolveProtectedAsset(asset)
     const path = await managedVoiceAssetStore.resolve(asset)
     const durationSeconds = await getAudioDuration(path)
-    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) throw UsageError('Speechify clone sample duration could not be verified before upload.')
+    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) throw UsageError(`${provider} clone sample duration could not be verified before upload.`)
     return { ...resolved, durationMs: Math.round(durationSeconds * 1000) }
   }
   const adapter = provider === 'elevenlabs'
@@ -95,17 +100,13 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
       ? advancedProvider('fish', { resolveFishProtectedAsset: resolveProtectedAsset })
       : provider === 'cartesia'
         ? advancedProvider('cartesia', { resolveCartesiaProtectedAsset: resolveProtectedAsset })
-        : provider === 'speechify'
-          ? advancedProvider('speechify', {
-              resolveSpeechifyProtectedAsset,
-              resolveSpeechifyProtectedConsent: async () => ({
-                fullName: speechifyConsentName!,
-                email: speechifyConsentEmail!,
-                ...(speechifyLocale ? { locale: speechifyLocale } : {}),
-                ...(speechifyGender ? { gender: speechifyGender as typeof SPEECHIFY_CLONE_GENDERS[number] } : {}),
-              }),
-            })
-          : advancedProvider('inworld', {
+        : provider === 'minimax'
+          ? advancedProvider('minimax', { resolveMiniMaxProtectedAsset: resolveDurationProtectedAsset })
+          : provider === 'grok'
+            ? advancedProvider('grok', { resolveGrokProtectedAsset: resolveDurationProtectedAsset })
+            : provider === 'deepinfra'
+              ? advancedProvider('deepinfra', { resolveDeepinfraProtectedAsset: resolveProtectedAsset })
+              : advancedProvider('inworld', {
               inworldApiKey: resolveCredential('inworld', 'require', { stage: 'voice:inworld', description: 'Inworld instant voice clone' }),
               resolveInworldProtectedAsset: resolveProtectedAsset,
             })

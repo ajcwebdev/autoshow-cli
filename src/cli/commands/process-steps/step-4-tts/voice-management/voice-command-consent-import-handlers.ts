@@ -4,12 +4,12 @@ import { assertProtectedStoreOutputDisjoint } from '../voice-assets/protected-ou
 import { UsageError } from '~/utils/error-handler'
 import { importExistingVoiceRegistration } from './voice-registration-management'
 import { managedVoiceAssetStore, MANAGED_VOICE_STORE_ROOT } from './managed-voice-store'
-import { revokeVoiceConsentRecord, storeVoiceConsentRecord } from './voice-consent-store'
+import { revokeVoiceConsentRecord, storeVoiceConsentRecord, validateVoiceConsentRecordRef } from './voice-consent-store'
 import { computeConsentRecordId, validateAuditActorRef, validateVoiceConsentRecord } from './voice-management-contracts'
 import {
   CONSENT_ACTIONS, PROFILE_DEFAULT, VOICE_ORIGINS, advancedCapabilityFixtureHash, advancedProvider,
-  capabilityFixtureHash, optionalConsent, optionalFlag, optionalParameter, parameter, providerFlag,
-  reportVoicePrice, reportVoiceResult, requireBrief, requiredFlag, requireVoiceModel
+  capabilityFixtureHash, catalogProviderFlag, optionalConsent, optionalFlag, optionalParameter, parameter, providerFlag,
+  reportVoicePrice, reportVoiceResult, requireBrief, requiredFlag, requireVoiceModel, resolveVoiceImportResourceId
 } from './voice-command-support'
 
 export const handleRevokeConsent = async (ctx: CliCommandContext, reference = parameter(ctx, 'consentRef')): Promise<void> => {
@@ -17,10 +17,16 @@ export const handleRevokeConsent = async (ctx: CliCommandContext, reference = pa
     namespace: (optionalFlag(ctx, 'actor-namespace') ?? 'local-user') as 'local-user' | 'project-role' | 'automation',
     actorId: requiredFlag(ctx, 'actor-id')
   })
+  const reason = requiredFlag(ctx, 'reason')
+  validateVoiceConsentRecordRef(reference)
+  if (ctx.flags['price'] === true) {
+    reportVoicePrice('Voice consent revocation estimate', { operation: 'voice-consent-revoke', estimatedCostCents: 0, mutation: false, providerCalls: 0, consentRecordRef: reference })
+    return
+  }
   const revocation = await revokeVoiceConsentRecord({
     store: managedVoiceAssetStore,
     reference,
-    reason: requiredFlag(ctx, 'reason'),
+    reason,
     revokedBy: actor
   })
   reportVoiceResult('Voice consent revoked', { consentRecordId: revocation.consentRecordId, revocationId: revocation.revocationId, state: 'revoked' })
@@ -95,9 +101,11 @@ export const handleImport = async (ctx: CliCommandContext): Promise<void> => {
   const brief = await requireBrief(subjectKey, profileKey)
   const accountScopeHash = optionalFlag(ctx, 'account-scope-hash')
   if (accountScopeHash && !/^[a-f0-9]{64}$/.test(accountScopeHash)) throw UsageError('--account-scope-hash must be a lowercase SHA-256 digest.')
+  if (origin !== 'provider-stock' && !accountScopeHash) throw UsageError('Account voice import requires a non-secret account scope hash.')
+  const resourceId = resolveVoiceImportResourceId(provider, model, requiredFlag(ctx, 'voice-id'))
   const request = {
     charactersRoot: getCharactersRoot(), subjectKey, profileKey, provider, providerModel: model,
-    resourceId: requiredFlag(ctx, 'voice-id'), origin, brief, provenanceRef: requiredFlag(ctx, 'provenance-ref'),
+    resourceId, origin, brief, provenanceRef: requiredFlag(ctx, 'provenance-ref'),
     ...(consent ? { consent, consentRecordRef: consentRef } : {}),
     ...(accountScopeHash ? { accountScopeHash } : {}),
     capabilityFixtureHash: capabilityFixtureHash(ctx, provider, model)
@@ -111,12 +119,11 @@ export const handleImport = async (ctx: CliCommandContext): Promise<void> => {
 }
 
 export const handleDiscover = async (ctx: CliCommandContext): Promise<void> => {
-  const provider = providerFlag(ctx)
+  const provider = catalogProviderFlag(ctx)
   const sourceRaw = optionalFlag(ctx, 'source') ?? 'account'
   if (sourceRaw !== 'account' && sourceRaw !== 'provider-library' && sourceRaw !== 'shared-library') throw UsageError('--source must be account, provider-library, or shared-library.')
   if (sourceRaw === 'shared-library' && provider !== 'elevenlabs') throw UsageError(`${provider} does not expose an ElevenLabs-style shared-owner voice-library namespace.`)
   const cursor = optionalFlag(ctx, 'cursor')
-  if (cursor && provider === 'inworld') throw UsageError(`${provider} voice discovery is not paginated and does not accept --cursor.`)
   if (ctx.flags['price'] === true) {
     reportVoicePrice('Voice discovery estimate', { operation: 'voice-discover', provider, mutation: false, providerCalls: 0, capabilityFixtureHash: advancedCapabilityFixtureHash(provider) })
     return

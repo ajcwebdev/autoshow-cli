@@ -35,7 +35,7 @@ Add `--refresh` or `--refresh-only` to any of these invocations.
 
 Each run creates a timestamped directory under `output/` (or `--output-root`) and writes the combined markdown inside it. Pass `--output-dir <dir>` to pin that run directory instead of a timestamped path.
 
-- Curated selections write `<run-dir>/<normalized-selection>-links.md`, for example `output/<timestamp>_all-all-links/all-all-links.md` or `output/<timestamp>_gemini-general-tts-links/gemini-general-tts-links.md`
+- Curated selections write `<run-dir>/<normalized-selection>-links.md`, for example `output/<timestamp>_all-all-links/all-all-links.md` or `output/<timestamp>_grok-general-tts-links/grok-general-tts-links.md`
 - Direct URL mode writes `<run-dir>/<normalized-host-and-path>-links.md`, for example `blog-railway-com-p-railway-for-agents-links.md` from `https://blog.railway.com/p/railway-for-agents`
 - Input file mode writes `<run-dir>/<input-basename>-links.md`, for example `urls-links.md` from `urls.md`
 - Duplicate URLs are fetched once
@@ -88,18 +88,18 @@ Accepted provider selectors are the lowercase names below.
 | `--cerebras`       | `general`, `models`, `text`                                                 |
 | `--claude`         | `general`, `models`, `ocr`, `text`                                          |
 | `--deapi`          | `general`, `models`, `stt`                                                  |
-| `--deepgram`       | `models`, `stt`, `tts`                                                      |
+| `--deepgram`       | `stt`                                                                       |
 | `--deepinfra`      | `general`, `models`, `ocr`, `stt`                                           |
 | `--drive`          | `general`                                                                   |
 | `--elevenlabs`     | `general`, `models`, `music`, `tts`                                         |
-| `--fal`            | `general`, `image`, `tts`, `video`                                          |
+| `--fal`            | `general`, `image`, `video`                                                 |
 | `--firecrawl`      | `general`, `url`                                                            |
 | `--fish`           | `general`, `models`, `tts`                                                  |
-| `--gemini`         | `general`, `image`, `models`, `music`, `ocr`, `stt`, `text`, `tts`, `video` |
+| `--gemini`         | `general`, `image`, `models`, `music`, `ocr`, `stt`, `text`, `video`        |
 | `--gladia`         | `general`, `stt`                                                            |
 | `--glm`            | `general`, `models`, `ocr`, `text`, `url`                                   |
 | `--grok`           | `general`, `image`, `models`, `stt`, `text`, `tts`, `video`                 |
-| `--groq`           | `general`, `models`, `stt`, `text`, `tts`                                   |
+| `--groq`           | `general`, `models`, `stt`, `text`                                          |
 | `--happyscribe`    | `stt`                                                                       |
 | `--hume`           | `general`, `tts`                                                            |
 | `--inworld`        | `general`, `models`, `tts`                                                  |

@@ -81,13 +81,10 @@ const withoutInheritedVoiceSelection = (options: TtsOptions): TtsOptions => ({
   ...options,
   ttsDialogueFormat: undefined,
   ttsSpeakers: undefined,
-  groqVoiceId: undefined,
   grokTtsVoice: undefined,
   mistralTtsVoice: undefined,
   openaiVoiceId: undefined,
-  geminiVoiceId: undefined,
   elevenlabsVoiceId: undefined,
-  deepgramVoiceId: undefined,
   minimaxTtsVoice: undefined,
   speechifyVoice: undefined,
   humeTtsVoice: undefined,
@@ -95,8 +92,6 @@ const withoutInheritedVoiceSelection = (options: TtsOptions): TtsOptions => ({
   fishTtsVoice: undefined,
   inworldTtsVoice: undefined,
   deepinfraTtsVoice: undefined,
-  replicateTtsVoice: undefined,
-  falTtsVoice: undefined,
 })
 
 export const resolveComicAudioInvocation = async (ctx: CliCommandContext, scriptPath: string): Promise<ResolvedComicAudioInvocation> => {

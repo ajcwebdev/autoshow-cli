@@ -77,32 +77,4 @@ describe('current TTS render planning uses final invocation controls', () => {
     expect(requestValues[1]).not.toHaveProperty('instructions')
   })
 
-  test('forces two-speaker Gemini through segmented planning when any turn has explicit controls', () => {
-    const defaults = buildOptsFromFlags({
-      'gemini-tts': 'gemini-3.1-flash-tts-preview',
-      'tts-dialogue-format': 'labeled',
-      'tts-speaker': ['Alice=Kore', 'Bob=Puck'],
-    })
-    const options: TtsOptions = {
-      ...defaults,
-      ttsTurnControls: {
-        'dialogue-turn-001': { gemini: { languageCode: 'en-US' } },
-        'dialogue-turn-002': { gemini: { languageCode: 'en-GB' } },
-        'dialogue-turn-003': { gemini: { languageCode: 'en-US' } },
-      },
-    }
-    const planned = planCurrentTtsReadiness({
-      target: targetFor(options, 'gemini'),
-      sourceText: dialogue,
-      ttsOptions: options,
-    })
-
-    expect(planned.strategy).toBe('segmented')
-    expect(planned.renderPlan.batches).toHaveLength(3)
-    expect(planned.renderPlan.batches.map((batch) => batch.requestControls.values['serializerControlsHash'])).toEqual([
-      hashCanonicalTtsValue({ responseModalities: ['AUDIO'], languageCode: 'en-US' }),
-      hashCanonicalTtsValue({ responseModalities: ['AUDIO'], languageCode: 'en-GB' }),
-      hashCanonicalTtsValue({ responseModalities: ['AUDIO'], languageCode: 'en-US' }),
-    ])
-  })
 })

@@ -19,7 +19,7 @@ describe('option resolution contracts', () => {
 
       expect(() => collectTtsTargets(buildOptsFromFlags({
         'tts-speed': 'deepgram=1.1'
-      }))).toThrow('Deepgram TTS request control flags require selecting deepgram TTS')
+      }))).toThrow('deepgram is no longer supported for TTS')
 
       expect(() => collectTtsTargets(buildOptsFromFlags({
         'tts-language': 'elevenlabs=en'

@@ -15,8 +15,6 @@ import { runDialogueWorkSelector } from './dialogue-work-selector'
 import { concatAndConvertToWav } from './tts-utils/audio-utils'
 import { finalizeTtsRun } from './tts-utils/finalize-tts-run'
 import { bindHostedTtsChunkScheduler, normalizeHostedTtsChunkConcurrency } from './tts-utils/hosted-tts-chunk-scheduler'
-import { TTS_CHUNK_CHARACTER_LIMITS } from './tts-utils/tts-chunking'
-import { resolveGeminiDialogueStrategyForText } from './tts-services/tts-gemini/gemini-tts-config'
 import { sha256Bytes } from './script-to-audio/contract-identity'
 import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from './voice-assets/mistral-request-reference-policy'
 import {
@@ -83,23 +81,10 @@ export const runMultiSpeakerTts = async (
     ? options.ttsCanonicalTurns.map(turn => turn.turnId)
     : dialogue.turns.map((_turn, sourceIndex) => `dialogue-turn-${String(sourceIndex + 1).padStart(3, '0')}`)
   const turnControls = normalizeTtsTurnControls(options.ttsTurnControls, turnIds)
-  const hasProviderTurnControls = turnIds.some(sourceId => {
-    const keys = Object.keys(turnControls?.[sourceId]?.[target.service] ?? {})
-    return keys.length > 0 && !(target.service === 'hume' && keys.every(key => key === 'speed' || key === 'trailingSilence'))
-  })
   const normalizedPath = `${outputDir}/dialogue-normalized.txt`
   await Bun.write(normalizedPath, `${dialogue.normalizedText}\n`)
 
-  const strategy = target.service === 'gemini'
-    ? hasProviderTurnControls
-      ? 'segmented'
-      : resolveGeminiDialogueStrategyForText(
-        dialogue.normalizedText,
-        registry,
-        TTS_CHUNK_CHARACTER_LIMITS.gemini,
-        'auto'
-      )
-    : target.multiSpeakerStrategy ?? 'segment-and-concat'
+  const strategy = target.multiSpeakerStrategy ?? 'segment-and-concat'
   if (strategy === 'native') {
     const result = await target.run(dialogue.normalizedText, outputDir, options, undefined, requestEvidence)
     return {

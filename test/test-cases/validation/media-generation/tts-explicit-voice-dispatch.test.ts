@@ -3,6 +3,8 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
+import { createHostedConcurrencyCoordinator } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
+import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import type { TtsOptions, TtsTarget, TtsTargetInvocation, TtsTargetInvocationControls, TtsVoiceMatrixEnvKey, VoiceMatrixCase } from '~/types'
 import { createMockWavBase64, createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
@@ -15,11 +17,9 @@ const MATRIX_ENV_KEYS = [
   'CARTESIA_API_KEY',
   'MISTRAL_API_KEY',
   'OPENAI_API_KEY',
-  'GROQ_API_KEY',
   'XAI_API_KEY',
   'MINIMAX_API_KEY',
-  'DEEPGRAM_API_KEY',
-  'GEMINI_API_KEY'
+  'INWORLD_API_KEY'
 ] as const satisfies readonly TtsVoiceMatrixEnvKey[]
 
 const tempDirs = setupContractSuiteLifecycle({
@@ -113,20 +113,6 @@ const cases: readonly VoiceMatrixCase[] = [
     }
   },
   {
-    provider: 'groq',
-    envKey: 'GROQ_API_KEY',
-    flags: {
-      'groq-tts': 'canopylabs/orpheus-v1-english',
-      'tts-voice': 'troy'
-    },
-    capturedVoice: 'troy',
-    invocationVoices: ['autumn', 'diana', 'autumn'],
-    invocationControls: [{ speed: 0.8 }, { speed: 1.2 }, { speed: 0.8 }],
-    respond: byteResponse,
-    readSerializedVoice: call => String(call.bodyJson?.['voice'] ?? ''),
-    readSerializedControl: call => call.bodyJson?.['speed']
-  },
-  {
     provider: 'grok',
     envKey: 'XAI_API_KEY',
     flags: {
@@ -153,51 +139,6 @@ const cases: readonly VoiceMatrixCase[] = [
     respond: jsonAudioResponse,
     readSerializedVoice: call => String(call.bodyJson?.['voice_id'] ?? ''),
     readSerializedControl: call => call.bodyJson?.['response_format']
-  },
-  {
-    provider: 'gemini',
-    envKey: 'GEMINI_API_KEY',
-    flags: {
-      'gemini-tts': 'gemini-3.1-flash-tts-preview',
-      'tts-voice': 'Zephyr'
-    },
-    capturedVoice: 'Zephyr',
-    invocationVoices: ['Kore', 'Puck', 'Kore'],
-    invocationControls: [{ languageCode: 'en-US' }, { languageCode: 'en-GB' }, { languageCode: 'en-US' }],
-    respond: () => Response.json({
-      candidates: [{
-        content: {
-          parts: [{ inlineData: { mimeType: 'audio/wav', data: audioBase64 } }]
-        }
-      }]
-    }),
-    readSerializedVoice: call => {
-      const generationConfig = call.bodyJson?.['generationConfig'] as Record<string, unknown> | undefined
-      const speechConfig = generationConfig?.['speechConfig'] as Record<string, unknown> | undefined
-      const voiceConfig = speechConfig?.['voiceConfig'] as Record<string, unknown> | undefined
-      const prebuilt = voiceConfig?.['prebuiltVoiceConfig'] as Record<string, unknown> | undefined
-      return String(prebuilt?.['voiceName'] ?? '')
-    },
-    readSerializedControl: call => {
-      const generationConfig = call.bodyJson?.['generationConfig'] as Record<string, unknown> | undefined
-      const speechConfig = generationConfig?.['speechConfig'] as Record<string, unknown> | undefined
-      return speechConfig?.['languageCode']
-    }
-  },
-  {
-    provider: 'deepgram',
-    envKey: 'DEEPGRAM_API_KEY',
-    flags: {
-      'deepgram-tts': 'aura-2-thalia-en',
-      'tts-voice': 'aura-2-thalia-en',
-      'tts-speed': '0.8'
-    },
-    capturedVoice: 'aura-2-thalia-en',
-    invocationVoices: ['aura-2-andromeda-en', 'aura-2-apollo-en', 'aura-2-andromeda-en'],
-    invocationControls: [{ speed: 0.8 }, { speed: 1.2 }, { speed: 0.8 }],
-    respond: byteResponse,
-    readSerializedVoice: call => new URL(call.url).searchParams.get('model') ?? undefined,
-    readSerializedControl: call => Number(new URL(call.url).searchParams.get('speed'))
   },
   {
     provider: 'speechify',
@@ -261,7 +202,12 @@ const cases: readonly VoiceMatrixCase[] = [
 const collectOneTarget = (
   matrixCase: VoiceMatrixCase
 ): { options: TtsOptions, target: TtsTarget } => {
-  const options = buildOptsFromFlags(matrixCase.flags)
+  const options: TtsOptions = buildOptsFromFlags(matrixCase.flags)
+  options.hostedTtsChunkScheduler = createHostedTtsChunkScheduler({
+    maxConcurrency: 2,
+    concurrencyMode: 'immediate',
+    hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: 'immediate' })
+  })
   const targets = collectTtsTargets(options)
   const target = requireDefined(
     targets.find(candidate => candidate.service === matrixCase.provider),
@@ -326,9 +272,14 @@ describe('explicit TTS target voice dispatch', () => {
     await mkdir(outputDir, { recursive: true })
     process.env['HUME_API_KEY'] = 'hume-test-key'
     const calls = installMockFetch(byteResponse)
-    const options = buildOptsFromFlags({
+    const options: TtsOptions = buildOptsFromFlags({
       'hume-tts': 'octave-2',
       'tts-voice': 'Captured Voice'
+    })
+    options.hostedTtsChunkScheduler = createHostedTtsChunkScheduler({
+      maxConcurrency: 2,
+      concurrencyMode: 'immediate',
+      hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: 'immediate' })
     })
     const target = requireDefined(
       collectTtsTargets(options).find(candidate => candidate.service === 'hume'),

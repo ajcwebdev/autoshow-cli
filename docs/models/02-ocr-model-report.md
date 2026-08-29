@@ -106,7 +106,7 @@ Excluded from expansion:
 
 ## 2026-08-22 Replicate and fal OCR retirement
 
-Implemented 2026-08-22 from the then-current combined report under [docs/benchmarks/ocr](../benchmarks/ocr/combined-comparison-report.md). Removed 5 selectors and the Replicate and fal OCR services. Keep Mistral (`mistral-ocr-4-0`, `mistral-ocr-2512`) and GLM (`glm-ocr`) as dedicated OCR, plus the remaining vision LLMs. Active hosted count: 33 − 5 = 28. Direct `extract --provider replicate` and `extract --provider fal` are unknown OCR providers. Replicate and fal remain active for image, video, TTS, and comic sound effects. Historical-manifest and pricing readers retain the retired per-1k-page rates. The retired provider run artifacts were removed after this decision; the aggregate quality, cost, and speed metrics below are the retained historical benchmark record from 12 runs / 19 pages.
+Implemented 2026-08-22 from the then-current combined report under [docs/benchmarks/ocr](../benchmarks/ocr/combined-comparison-report.md). Removed 5 selectors and the Replicate and fal OCR services. Keep Mistral (`mistral-ocr-4-0`, `mistral-ocr-2512`) and GLM (`glm-ocr`) as dedicated OCR, plus the remaining vision LLMs. Active hosted count: 33 − 5 = 28. Direct `extract --provider replicate` and `extract --provider fal` are unknown OCR providers. Replicate and fal remain active for image and video, and Replicate remains active for comic sound effects; both were removed from TTS on 2026-08-29. Historical-manifest and pricing readers retain the retired per-1k-page rates. The retired provider run artifacts were removed after this decision; the aggregate quality, cost, and speed metrics below are the retained historical benchmark record from 12 runs / 19 pages.
 
 **Provider 1: Replicate `datalab-to/ocr`**
 
@@ -202,7 +202,7 @@ Page heuristics stay provisional until an approved ADR-012 calibration promotes 
 
 - The active hosted OCR surface is 31 selectors. OCR unions still accept concrete 2026 OpenAI, Anthropic, Grok, Gemini, Kimi, Mistral, GLM, and DeepInfra identifiers.
 - Replicate and fal OCR selectors are excluded from active CLI help, configuration defaults, and `--all-ocr` expansion. Stored `replicate` / `fal` OCR identities remain readable in historical manifests and pricing readers.
-- The Replicate and fal provider flags remain on image, video, TTS, and comic commands.
+- The Replicate and fal provider flags remain on image and video commands; Replicate also remains on comic sound-effect commands. Neither remains a TTS provider.
 
 ## Follow-up Actions
 

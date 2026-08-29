@@ -123,6 +123,7 @@ export const handleMaterialize = async (ctx: CliCommandContext): Promise<void> =
   }
   const adapter = advancedProvider(provider, {
     ...(provider === 'fish' ? { resolveFishProtectedAsset: resolveManagedProtectedAsset } : {}),
+    ...(provider === 'deepinfra' ? { resolveDeepinfraProtectedAsset: resolveManagedProtectedAsset } : {}),
   })
   const result = await materializeAdvancedVoiceCandidate({
     charactersRoot: getCharactersRoot(), journalRoot: join(MANAGED_VOICE_STORE_ROOT, 'journals'), protectedStore: managedVoiceAssetStore,

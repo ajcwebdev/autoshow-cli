@@ -1,8 +1,11 @@
 import type { CliFlagOccurrence, SelectorNormalizationResult } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { resolveProviderSelector } from './flag-helpers'
+import { parseProviderSelectorValue } from './flag-helpers'
 import { applyFlagOccurrenceNormalization, replaceFlagOccurrence } from './occurrence-normalization'
-import { BOOLEAN_PROVIDER_TARGETS } from './provider-targets'
+import { BOOLEAN_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS } from './provider-targets'
+
+const RETIRED_TTS_PROVIDERS = new Set(['groq', 'gemini', 'deepgram', 'replicate', 'fal'])
 
 export const normalizeGenericProviderSelectorFlags = (
   flags: Record<string, unknown>,
@@ -19,6 +22,12 @@ export const normalizeGenericProviderSelectorFlags = (
     if (occurrence.name === selectorFlag) {
       if (occurrence.value === false) {
         return []
+      }
+      if (targetByProvider === STANDALONE_TTS_PROVIDER_TARGETS) {
+        const parsed = parseProviderSelectorValue(occurrence.value, selectorFlag)
+        if (RETIRED_TTS_PROVIDERS.has(parsed.provider)) {
+          throw UsageError(`${parsed.provider} is no longer supported for TTS. Select one of: ${Object.keys(STANDALONE_TTS_PROVIDER_TARGETS).join(', ')}.`)
+        }
       }
       const { target, model } = resolveProviderSelector(
         occurrence.value,

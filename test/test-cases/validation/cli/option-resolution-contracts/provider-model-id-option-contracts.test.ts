@@ -99,9 +99,7 @@ describe('option resolution contracts', () => {
       const kimiOcrDefault = resolveCheapestModelForFlag('kimi-ocr')
       const speechifyTtsDefault = resolveCheapestModelForFlag('speechify-tts')
       const elevenlabsTtsDefault = resolveCheapestModelForFlag('elevenlabs-tts')
-      const groqTtsDefault = resolveCheapestModelForFlag('groq-tts')
       const openaiTtsDefault = resolveCheapestModelForFlag('openai-tts')
-      const deepgramTtsDefault = resolveCheapestModelForFlag('deepgram-tts')
       const humeTtsDefault = resolveCheapestModelForFlag('hume-tts')
       const cartesiaTtsDefault = resolveCheapestModelForFlag('cartesia-tts')
       const opts = buildOptsFromFlags({
@@ -126,9 +124,7 @@ describe('option resolution contracts', () => {
         'kimi-ocr': true,
         'speechify-tts': true,
         'elevenlabs-tts': true,
-        'groq-tts': true,
         'openai-tts': true,
-        'deepgram-tts': true,
         'hume-tts': true,
         'cartesia-tts': true
       })
@@ -155,9 +151,7 @@ describe('option resolution contracts', () => {
       expect(kimiOcrDefault).toBe('kimi-k2.6')
       expect(speechifyTtsDefault).toBe('simba-3.2')
       expect(elevenlabsTtsDefault).toBe('eleven_v3')
-      expect(groqTtsDefault).toBe('canopylabs/orpheus-v1-english')
       expect(openaiTtsDefault).toBe('gpt-4o-mini-tts-2025-12-15')
-      expect(deepgramTtsDefault).toBe('aura-2-thalia-en')
       expect(humeTtsDefault).toBe('octave-1')
       expect(cartesiaTtsDefault).toBe('sonic-3.5-2026-05-04')
       expect(opts.openaiModels?.[0]).toBe(openaiDefault)
@@ -181,9 +175,7 @@ describe('option resolution contracts', () => {
       expect(opts.kimiOcrModels?.[0]).toBe(kimiOcrDefault)
       expect(opts.speechifyTtsModels?.[0]).toBe(speechifyTtsDefault)
       expect(opts.elevenlabsTtsModels?.[0]).toBe(elevenlabsTtsDefault)
-      expect(opts.groqTtsModels?.[0]).toBe(groqTtsDefault)
       expect(opts.openaiTtsModels?.[0]).toBe(openaiTtsDefault)
-      expect(opts.deepgramTtsModels?.[0]).toBe(deepgramTtsDefault)
       expect(opts.humeTtsModels?.[0]).toBe(humeTtsDefault)
       expect(opts.cartesiaTtsModels?.[0]).toBe(cartesiaTtsDefault)
     })

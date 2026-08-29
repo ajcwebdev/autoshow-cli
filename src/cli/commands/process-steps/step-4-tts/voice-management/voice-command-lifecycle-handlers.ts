@@ -15,7 +15,7 @@ import { inspectVoiceRegistrationReadiness } from './voice-registration-manageme
 import { assertVoiceConsentAllows, validateAuditActorRef } from './voice-management-contracts'
 import { handleDiscover } from './voice-command-consent-import-handlers'
 import {
-  VOICE_PROVIDERS, advancedProvider, isVoiceProvider, maybeCompleteRegistrationJournal,
+  VOICE_LIFECYCLE_PROVIDERS, VOICE_PROVIDERS, advancedProvider, isLifecycleProvider, isVoiceProvider, maybeCompleteRegistrationJournal,
   nonNegativeNumberFlag, optionalConsent, optionalFlag, optionalParameter, parameter,
   positiveIntegerFlag, reportVoicePrice, reportVoiceResult, requireBrief, requiredFlag
 } from './voice-command-support'
@@ -79,7 +79,14 @@ export const handleAudition = async (ctx: CliCommandContext): Promise<void> => {
 export const handleApprove = async (ctx: CliCommandContext): Promise<void> => {
   const registrationId = parameter(ctx, 'registrationId')
   const registration = await findRegistration(registrationId, optionalFlag(ctx, 'generation-id'))
-  const approved = await approveRegistration(registrationId, registration.generationId, requiredFlag(ctx, 'actor-id'))
+  const actorId = requiredFlag(ctx, 'actor-id')
+  if (ctx.flags['price'] === true) {
+    validateAuditActorRef({ namespace: 'local-user', actorId })
+    if (registration.provisioning.state !== 'ready' || registration.approval.state !== 'auditioned') throw UsageError('Voice approval requires a ready, auditioned registration generation.')
+    reportVoicePrice('Voice approval estimate', { operation: 'voice-approve', estimatedCostCents: 0, mutation: false, providerCalls: 0, registrationId, generationId: registration.generationId })
+    return
+  }
+  const approved = await approveRegistration(registrationId, registration.generationId, actorId)
   reportVoiceResult('Voice registration approved', { registrationId, generationId: approved.generationId, state: approved.approval.state })
 }
 
@@ -100,6 +107,7 @@ export const handleInspect = async (ctx: CliCommandContext, options: { live?: bo
   if (!isVoiceProvider(registration.provider)) throw UsageError(`Voice inspect supports only ${VOICE_PROVIDERS.join(', ')} registrations.`)
   const staticOnly = ctx.flags['price'] === true
   if (options.live === true && !staticOnly && registration.provisioning.state === 'ready') {
+    if (!isLifecycleProvider(registration.provider)) throw UsageError(`${registration.provider} does not expose remote voice inspection. Supported providers: ${VOICE_LIFECYCLE_PROVIDERS.join(', ')}.`)
     const adapter = advancedProvider(registration.provider)
     const inspection = await adapter.lifecycle?.inspect(registration.provisioning.providerVoice)
     reportVoiceResult('Voice registration inspection', { registrationId, generationId, staticOnly: false, inspection, mutation: false })
@@ -145,6 +153,10 @@ export const handleLifecycle = async (ctx: CliCommandContext): Promise<void> => 
   const generationId = registration.generationId
   const reason = optionalFlag(ctx, 'reason')
   const resolved = reason ? 'revoke' : 'retire'
+  if (ctx.flags['price'] === true) {
+    reportVoicePrice('Voice lifecycle estimate', { operation: `voice-${resolved}`, estimatedCostCents: 0, mutation: false, providerCalls: 0, registrationId, generationId, state: resolved === 'revoke' ? 'revoked' : 'retired' })
+    return
+  }
   const transitioned = await transitionVoiceRegistrationLifecycle({
     charactersRoot: getCharactersRoot(), registrationId, generationId, action: resolved, ...(reason ? { reason } : {})
   })
@@ -157,13 +169,16 @@ export const handleDelete = async (ctx: CliCommandContext): Promise<void> => {
   const completed = ctx.flags['price'] === true ? undefined : await maybeCompleteRegistrationJournal(source, ctx)
   const registration = completed ?? source
   const generationId = registration.generationId
-  if (!isVoiceProvider(registration.provider) || registration.provisioning.state !== 'ready' || registration.provisioning.providerVoice.kind !== 'remote-resource') {
-    throw UsageError(`Voice deletion supports only ready ${VOICE_PROVIDERS.join(', ')} remote-resource registrations.`)
+  if (!isLifecycleProvider(registration.provider) || registration.provisioning.state !== 'ready' || registration.provisioning.providerVoice.kind !== 'remote-resource') {
+    throw UsageError(`Voice deletion supports only ready ${VOICE_LIFECYCLE_PROVIDERS.join(', ')} remote-resource registrations.`)
   }
   const providerVoice = registration.provisioning.providerVoice
   const confirmResourceId = requiredFlag(ctx, 'confirm-voice-id')
   if (confirmResourceId !== providerVoice.resourceId) throw UsageError('--confirm-voice-id must match the exact registered provider resource ID.')
   if (providerVoice.ownership !== 'project' || providerVoice.deletion.state !== 'eligible') throw UsageError('Voice deletion is allowed only for an eligibility-checked project-owned resource.')
+  const expectedName = optionalFlag(ctx, 'expected-name')
+  if (registration.provider === 'hume' && !expectedName) throw UsageError('Hume deletion requires --expected-name with the exact current remote voice name.')
+  if (registration.provider !== 'hume' && expectedName) throw UsageError('--expected-name is only valid for Hume voice deletion.')
   if (ctx.flags['price'] === true) {
     reportVoicePrice('Voice delete estimate', { operation: 'voice-delete', estimatedCostCents: 0, mutation: false, registrationId, generationId, resourceId: providerVoice.resourceId })
     return
@@ -171,12 +186,13 @@ export const handleDelete = async (ctx: CliCommandContext): Promise<void> => {
   const pending = registration.cleanupState.state === 'deletion-pending'
     ? registration
     : await beginVoiceRegistrationDeletion({ charactersRoot: getCharactersRoot(), registrationId, generationId })
-  if (pending.provisioning.state !== 'ready' || pending.provisioning.providerVoice.kind !== 'remote-resource' || !isVoiceProvider(pending.provider)) throw UsageError('Pending deletion lost its exact provider voice identity.')
+  if (pending.provisioning.state !== 'ready' || pending.provisioning.providerVoice.kind !== 'remote-resource' || !isLifecycleProvider(pending.provider)) throw UsageError('Pending deletion lost its exact provider voice identity.')
   const adapter = advancedProvider(pending.provider)
   if (!adapter.lifecycle) throw UsageError(`${pending.provider} lifecycle adapter is unavailable.`)
   const deleted = await adapter.lifecycle.delete({
     providerVoice: pending.provisioning.providerVoice,
     expectedResourceId: confirmResourceId,
+    ...(expectedName ? { expectedName } : {}),
   })
   const terminal = await transitionVoiceRegistrationLifecycle({
     charactersRoot: getCharactersRoot(), registrationId, generationId: pending.generationId, action: 'delete', transitionedAt: deleted.deletedAt

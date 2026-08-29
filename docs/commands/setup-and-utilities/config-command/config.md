@@ -46,7 +46,7 @@ bun autoshow config --stt happyscribe=auto --stt-happyscribe-organization-id org
 bun autoshow config --ocr tesseract
 bun autoshow config --ocr mistral=mistral-ocr-2512 --ocr-language eng --ocr-dpi 300
 bun autoshow config --tts elevenlabs=eleven_v3 --tts-voice voice_123
-bun autoshow config --tts gemini=gemini-3.1-flash-tts-preview --tts-speaker Host=Kore --tts-speaker Guest=Puck --tts-chunk-concurrency 3
+bun autoshow config --tts hume=octave-2 --tts-speaker Host=voice_host --tts-speaker Guest=voice_guest --tts-chunk-concurrency 3
 bun autoshow config --image openai=gpt-image-2
 bun autoshow config --video ltx=ltx-2-3-fast
 bun autoshow config --batch-limit 20 --batch-order oldest --batch-concurrency 2

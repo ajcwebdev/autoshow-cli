@@ -30,13 +30,12 @@ describe('option resolution contracts', () => {
         'tts-text-normalization': ['grok=true', 'minimax=true', 'elevenlabs=AUTO'],
         'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
         'tts-instructions': 'openai=Speak with calm narration.',
-        'tts-speed': ['openai=1.25', 'minimax=1.2', 'deepgram=1.1', 'elevenlabs=1.1'],
+        'tts-speed': ['openai=1.25', 'minimax=1.2', 'elevenlabs=1.1'],
         'minimax-tts': 'speech-2.8-hd',
         'minimax-tts-volume': '2.5',
         'minimax-tts-pitch': '-2',
         'minimax-tts-emotion': 'CALM',
         'minimax-tts-pronunciation': ['AutoShow/auto show', 'TTS/tee tee ess'],
-        'deepgram-tts': 'aura-2-thalia-en',
         'speechify-tts': 'simba-3.2',
         'elevenlabs-tts': 'eleven_v3',
         'elevenlabs-tts-stability': '0.4',
@@ -60,7 +59,6 @@ describe('option resolution contracts', () => {
       expect(opts.minimaxTtsEmotion).toBe('calm')
       expect(opts.minimaxTtsEnglishNormalization).toBe(true)
       expect(opts.minimaxTtsPronunciations).toEqual(['AutoShow/auto show', 'TTS/tee tee ess'])
-      expect(opts.deepgramTtsSpeed).toBe(1.1)
       expect(opts.speechifyTtsLanguage).toBe('en-US')
       expect(opts.elevenlabsTtsLanguageCode).toBe('en')
       expect(opts.elevenlabsTtsStability).toBe(0.4)

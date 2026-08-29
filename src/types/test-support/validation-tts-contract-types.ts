@@ -18,11 +18,11 @@ export type TtsVoiceMatrixEnvKey =
   | 'CARTESIA_API_KEY'
   | 'MISTRAL_API_KEY'
   | 'OPENAI_API_KEY'
-  | 'GROQ_API_KEY'
   | 'XAI_API_KEY'
   | 'MINIMAX_API_KEY'
-  | 'DEEPGRAM_API_KEY'
-  | 'GEMINI_API_KEY'
+  | 'INWORLD_API_KEY'
+  | 'FISH_API_KEY'
+  | 'DEEPINFRA_API_KEY'
 
 export type VoiceMatrixCase = {
   provider: TtsProvider

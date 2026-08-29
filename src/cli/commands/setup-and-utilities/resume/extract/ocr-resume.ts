@@ -107,6 +107,10 @@ const filterRunnableStoredOcrTargets = (
 ): OcrTarget[] => {
   const runnable: OcrTarget[] = []
   for (const target of targets) {
+    if (target.service === 'tesseract' && target.model === 'tesseract') {
+      runnable.push(target)
+      continue
+    }
     const activeModels = getStep2ActiveModelsForService('ocr', target.service)
     if (activeModels?.includes(target.model)) {
       runnable.push(target)

@@ -22,13 +22,8 @@ import {
   SUPPORTED_FISH_TTS_MODELS,
   SUPPORTED_INWORLD_TTS_MODELS,
   SUPPORTED_DEEPINFRA_TTS_MODELS,
-  SUPPORTED_REPLICATE_TTS_MODELS,
-  SUPPORTED_FAL_TTS_MODELS,
-  SUPPORTED_DEEPGRAM_TTS_MODELS,
   SUPPORTED_ELEVENLABS_TTS_MODELS,
-  SUPPORTED_GEMINI_TTS_MODELS,
   SUPPORTED_GROK_TTS_MODELS,
-  SUPPORTED_GROQ_TTS_MODELS,
   SUPPORTED_HUME_TTS_MODELS,
   SUPPORTED_MINIMAX_TTS_MODELS,
   SUPPORTED_MISTRAL_TTS_MODELS,
@@ -64,20 +59,15 @@ export type FetchFn = (input: string | URL | Request, init?: RequestInit) => Pro
 export type GroqModel = typeof SUPPORTED_GROQ_MODELS[number]
 export type ElevenlabsTtsModel = typeof SUPPORTED_ELEVENLABS_TTS_MODELS[number]
 export type MinimaxTtsModel = typeof SUPPORTED_MINIMAX_TTS_MODELS[number]
-export type GroqTtsModel = typeof SUPPORTED_GROQ_TTS_MODELS[number]
 export type GrokTtsModel = typeof SUPPORTED_GROK_TTS_MODELS[number]
 export type MistralTtsModel = typeof SUPPORTED_MISTRAL_TTS_MODELS[number]
 export type OpenAITtsModel = typeof SUPPORTED_OPENAI_TTS_MODELS[number]
-export type GeminiTtsModel = typeof SUPPORTED_GEMINI_TTS_MODELS[number]
-export type DeepgramTtsModel = typeof SUPPORTED_DEEPGRAM_TTS_MODELS[number]
 export type SpeechifyTtsModel = typeof SUPPORTED_SPEECHIFY_TTS_MODELS[number]
 export type HumeTtsModel = typeof SUPPORTED_HUME_TTS_MODELS[number]
 export type CartesiaTtsModel = typeof SUPPORTED_CARTESIA_TTS_MODELS[number]
 export type FishTtsModel = typeof SUPPORTED_FISH_TTS_MODELS[number]
 export type InworldTtsModel = typeof SUPPORTED_INWORLD_TTS_MODELS[number]
 export type DeepinfraTtsModel = typeof SUPPORTED_DEEPINFRA_TTS_MODELS[number]
-export type ReplicateTtsModel = typeof SUPPORTED_REPLICATE_TTS_MODELS[number]
-export type FalTtsModel = typeof SUPPORTED_FAL_TTS_MODELS[number]
 export type ElevenlabsMusicModel = typeof SUPPORTED_ELEVENLABS_MUSIC_MODELS[number]
 export type MinimaxMusicModel = typeof SUPPORTED_MINIMAX_MUSIC_MODELS[number]
 export type GeminiMusicModel = typeof SUPPORTED_GEMINI_MUSIC_MODELS[number]

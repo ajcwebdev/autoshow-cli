@@ -7,10 +7,7 @@ import { resolvePriceSelection } from '../../../../test-runner/price-commands/re
 import { BUDGET_PRICE_SELECTION_REGISTRY } from '../../../../test-runner/price-commands/registry/index'
 import { evaluatePriceObservations, toObservation } from '../../../../test-runner/price-evaluation'
 import { findUnevaluatedBudgetKeys, isConcurrentBudgetedTestsEnabled, shouldSkipBudgetKeys } from '../../../../test-utils/budget'
-import {
-  MINIMAX_INSTRUMENTAL_MUSIC_MODELS,
-  DEEPGRAM_DEFAULT_VOICE
-} from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { MINIMAX_INSTRUMENTAL_MUSIC_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { inspectBudgetSource } from './budget-source-inspection'
 import { loadE2eTestSources } from './e2e-test-sources'
 import { auditBudgetKeyCoverage, indexBudgetSkippableSelectors } from './budget-coverage-audit'
@@ -288,11 +285,11 @@ describe('test-runner contracts', () => {
       }
     })
 
-  test('TTS service budget preflight includes remaining service entries', () => {
+  test('TTS service budget preflight includes active service entries', () => {
       const allFiles = [
-        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/groq-canopylabs-orpheus-v1-english.test.ts',
+        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/grok-tts.test.ts',
         'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/cartesia-sonic-3.5-2026-05-04.test.ts',
-        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/deepgram-aura-2-thalia-en.test.ts',
+        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/deepinfra-chatterbox.test.ts',
         'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/minimax-speech-2.8-turbo.test.ts',
       ]
 
@@ -300,10 +297,9 @@ describe('test-runner contracts', () => {
         'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/'
       ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
 
-      expect(keys).toContain('tts-groq-canopylabs/orpheus-v1-english')
-      expect(keys).not.toContain(['tts-groq-canopylabs/orpheus', 'arabic-saudi'].join('-'))
+      expect(keys).toContain('tts-grok-grok-tts')
       expect(keys).toContain('tts-cartesia-sonic-3.5-2026-05-04')
-      expect(keys.filter((key) => key.startsWith('tts-deepgram-'))).toEqual([`tts-deepgram-${DEEPGRAM_DEFAULT_VOICE}`])
+      expect(keys).toContain('tts-deepinfra-ResembleAI/chatterbox')
       expect(keys).not.toContain('tts-minimax-speech-2.8-turbo-clone')
     })
 

@@ -38,11 +38,11 @@ describe('option resolution contracts', () => {
         'stt-scrapecreators-lang': 'fr',
         'grok-tts': 'grok-tts',
         'mistral-tts': 'voxtral-mini-tts-2603',
-        'deepgram-tts': 'aura-2-apollo-en',
         'speechify-tts': 'simba-3.2',
         'hume-tts': 'octave-2',
         'cartesia-tts': 'sonic-3.5-2026-05-04',
         'elevenlabs-tts': 'eleven_v3',
+        'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
         'tts-voice': [
           'grok=EVE',
           'mistral=voice_abc123',
@@ -51,7 +51,7 @@ describe('option resolution contracts', () => {
           'cartesia=cartesia-voice-id',
           'openai=alloy'
         ],
-        'tts-speed': ['deepgram=1.1', 'elevenlabs=1.1'],
+        'tts-speed': ['openai=1.1', 'elevenlabs=1.1'],
         'tts-language': ['speechify=en-US', 'cartesia=en', 'elevenlabs=en'],
         'tts-text-normalization': 'elevenlabs=ON',
         'elevenlabs-tts-stability': '0.4',
@@ -91,8 +91,6 @@ describe('option resolution contracts', () => {
       expect(opts.grokTtsVoice).toBe('eve')
       expect(opts.mistralTtsModels?.[0]).toBe('voxtral-mini-tts-2603')
       expect(opts.mistralTtsVoice).toBe('voice_abc123')
-      expect(opts.deepgramTtsModels?.[0]).toBe('aura-2-apollo-en')
-      expect(opts.deepgramTtsSpeed).toBe(1.1)
       expect(opts.speechifyTtsModels?.[0]).toBe('simba-3.2')
       expect(opts.speechifyVoice).toBe('narrator_voice')
       expect(opts.speechifyTtsLanguage).toBe('en-US')
@@ -125,6 +123,7 @@ describe('option resolution contracts', () => {
       expect(opts.llmProviderConcurrency).toBe(5)
       expect(opts.llmLocalConcurrency).toBe(3)
       expect(opts.openaiVoiceId).toBe('alloy')
+      expect(opts.openaiTtsSpeed).toBe(1.1)
     })
 
   test('chapter export defaults to automatic and preserves explicit opt-out', () => {

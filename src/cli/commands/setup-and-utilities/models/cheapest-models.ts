@@ -17,16 +17,16 @@ const DEFAULT_LOCAL_MODEL_BY_FLAG = {
 
 const DEFAULT_HOSTED_TTS_MODEL_BY_FLAG = {
   'elevenlabs-tts': 'eleven_v3',
-  'groq-tts': 'canopylabs/orpheus-v1-english',
+  'minimax-tts': 'speech-2.8-turbo',
+  'grok-tts': 'grok-tts',
+  'mistral-tts': 'voxtral-mini-tts-2603',
   'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
-  'deepgram-tts': 'aura-2-thalia-en',
   'speechify-tts': 'simba-3.2',
+  'hume-tts': 'octave-1',
   'cartesia-tts': 'sonic-3.5-2026-05-04',
   'fish-tts': 's2.1-pro',
   'inworld-tts': 'realtime-tts-2',
-  'deepinfra-tts': 'ResembleAI/chatterbox-turbo',
-  'replicate-tts': 'jaaari/kokoro-82m',
-  'fal-tts': 'fal-ai/bytedance/seed-speech/tts/v2'
+  'deepinfra-tts': 'ResembleAI/chatterbox-turbo'
 } as const satisfies Record<string, string>
 
 const DEFAULT_OCR_INPUT_TOKENS_PER_PAGE = 4000
@@ -339,7 +339,6 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   'minimax-tts': () => selectCheapestTtsModel('minimax'),
   'grok-tts': () => selectCheapestTtsModel('grok'),
   'mistral-tts': () => selectCheapestTtsModel('mistral'),
-  'gemini-tts': () => selectCheapestTtsModel('gemini'),
   'hume-tts': () => selectCheapestTtsModel('hume'),
   'gemini-image': () => selectCheapestImageModel('gemini'),
   'openai-image': () => selectCheapestImageModel('openai'),

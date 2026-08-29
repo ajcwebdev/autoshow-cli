@@ -7,14 +7,13 @@ export const GENERIC_TTS_OPTION_PROVIDERS = {
   'tts-voice': {
     voiceIdentity: true,
     providers: [
-      'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify',
-      'hume', 'cartesia', 'fish', 'inworld', 'deepinfra', 'replicate', 'fal',
-      'minimax', 'elevenlabs'
+      'elevenlabs', 'minimax', 'grok', 'mistral', 'openai', 'speechify',
+      'hume', 'cartesia', 'fish', 'inworld', 'deepinfra'
     ]
   },
   'tts-speed': {
     voiceIdentity: false,
-    providers: ['openai', 'deepgram', 'minimax', 'elevenlabs']
+    providers: ['openai', 'minimax', 'elevenlabs']
   },
   'tts-language': {
     voiceIdentity: false,
@@ -30,7 +29,7 @@ export const GENERIC_TTS_OPTION_PROVIDERS = {
   },
   'tts-instructions': {
     voiceIdentity: false,
-    providers: ['openai', 'fal', 'inworld']
+    providers: ['openai', 'inworld']
   }
 } as const satisfies Record<string, {
   voiceIdentity: boolean
@@ -41,6 +40,7 @@ export type GenericTtsOptionFlag = keyof typeof GENERIC_TTS_OPTION_PROVIDERS
 
 const GENERIC_TTS_OPTION_FLAGS = Object.keys(GENERIC_TTS_OPTION_PROVIDERS) as GenericTtsOptionFlag[]
 const BOOLEAN_TTS_TEXT_NORMALIZATION_PROVIDERS = new Set<string>(['grok', 'minimax'])
+const RETIRED_TTS_PROVIDERS = new Set(['groq', 'gemini', 'deepgram', 'replicate', 'fal'])
 
 export const assertNoVoiceIdentityWithDialogue = (
   options: Pick<TtsOptions, 'ttsSpeakers'>,
@@ -95,6 +95,9 @@ export const parseGenericTtsOptionValue = (
   const eqIndex = rawValue.indexOf('=')
   if (eqIndex > 0) {
     const possibleProvider = rawValue.slice(0, eqIndex).trim().toLowerCase()
+    if (RETIRED_TTS_PROVIDERS.has(possibleProvider)) {
+      throw UsageError(`${possibleProvider} is no longer supported for TTS. Select one of: ${Object.keys(STANDALONE_TTS_PROVIDER_TARGETS).join(', ')}.`)
+    }
     if (possibleProvider in STANDALONE_TTS_PROVIDER_TARGETS) {
       const value = rawValue.slice(eqIndex + 1)
       if (value.length === 0) {

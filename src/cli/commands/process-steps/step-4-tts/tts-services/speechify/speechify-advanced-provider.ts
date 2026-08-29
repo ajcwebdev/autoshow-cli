@@ -3,12 +3,9 @@ import type {
   JsonObject,
   ProviderVoiceCatalogEntry,
   ProviderVoiceCatalogPage,
-  ProviderVoiceCloneRequest,
-  ProviderVoiceMutationResult,
   SpeechifyAdvancedProviderOptions,
   TtsVoiceProvider,
   VoiceCatalogPort,
-  VoiceClonePort,
 } from '~/types'
 import { SPEECHIFY_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { UsageError } from '~/utils/error-handler'
@@ -20,7 +17,7 @@ import {
 } from '../../script-to-audio/advanced-provider-contracts'
 import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
 import type { AdvancedVoiceProviderIdentity } from '~/types'
-import { assertAdvancedVoiceCloneAuthorized, buildClonedProviderVoiceRef, createRemoteResourceVoiceLifecycle } from '../advanced-voice-provider-shell'
+import { createRemoteResourceVoiceLifecycle } from '../advanced-voice-provider-shell'
 
 const DOCS = {
   catalog: 'https://docs.speechify.ai/build/api-reference/v1/voices/get',
@@ -37,15 +34,13 @@ const capabilityRecords = [
   { scope: { provider: 'speechify', feature: 'native-dialogue' as const }, maturity: 'not-applicable' as const, channel: 'unsupported' as const, adapterSupport: 'unsupported' as const, requirements: [], constraints: { voiceKinds: ['provider-id' as const], minSpeakers: 2, maxSpeakers: 2 }, reason: 'Speechify synthesis requests select one voice_id and do not document a native multi-speaker dialogue contract.', documentationEvidence: evidence([DOCS.synthesis]) },
   { scope: { provider: 'speechify', feature: 'voice-catalog' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { paginated: true, stableResourceIds: true }, documentationEvidence: evidence([DOCS.catalog, DOCS.inspect]) },
   { scope: { provider: 'speechify', feature: 'voice-design' as const }, maturity: 'not-applicable' as const, channel: 'unsupported' as const, adapterSupport: 'unsupported' as const, requirements: [], constraints: { requiresConsent: false, createsRemoteResource: true }, reason: 'Speechify does not document a text-prompt voice-design API.', documentationEvidence: evidence([DOCS.catalog, DOCS.cloning]) },
-  { scope: { provider: 'speechify', feature: 'instant-clone' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { requiresConsent: true, createsRemoteResource: true }, documentationEvidence: evidence([DOCS.create, DOCS.cloning]) },
+  { scope: { provider: 'speechify', feature: 'instant-clone' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'planned' as const, requirements: [], constraints: { requiresConsent: true, createsRemoteResource: true }, reason: 'The current Speechify workflow requires a challenge phrase and a separate consent recording; this pass intentionally defers that provider-specific contract.', documentationEvidence: evidence([DOCS.create, DOCS.cloning]) },
   { scope: { provider: 'speechify', feature: 'professional-clone' as const }, maturity: 'not-applicable' as const, channel: 'unsupported' as const, adapterSupport: 'unsupported' as const, requirements: [], constraints: { requiresConsent: true, createsRemoteResource: true }, reason: 'The public Speechify API documents one personal-voice cloning flow, not a separate professional-clone API.', documentationEvidence: evidence([DOCS.create, DOCS.cloning]) },
   { scope: { provider: 'speechify', feature: 'voice-delete' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { projectOwnedOnly: true }, documentationEvidence: evidence([DOCS.delete]) },
   { scope: { provider: 'speechify', feature: 'word-timing' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { providerTimeUnit: 'milliseconds' }, documentationEvidence: evidence([DOCS.synthesis]) },
 ] as const satisfies readonly AnyCapabilityRecord[]
 
 export const SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
-const SPEECHIFY_CLONE_SAMPLE_MAX_BYTES = 5 * 1024 * 1024
-
 const record = createProviderRecordReader('Speechify')
 
 const mapVoice = (value: unknown): ProviderVoiceCatalogEntry => {
@@ -72,7 +67,7 @@ const mapVoice = (value: unknown): ProviderVoiceCatalogEntry => {
   }
 }
 
-export const createSpeechifyAdvancedProvider = (options: SpeechifyAdvancedProviderOptions): Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'clone' | 'lifecycle'> & {
+export const createSpeechifyAdvancedProvider = (options: SpeechifyAdvancedProviderOptions): Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'lifecycle'> & {
   accountScopeHash: string
 } => {
   const request = options.request ?? createAdvancedProviderJsonRequest({ baseUrl: SPEECHIFY_DEFAULT_BASE_URL, apiKey: `Bearer ${options.apiKey}`, apiKeyHeader: 'Authorization', providerLabel: 'Speechify' })
@@ -91,45 +86,6 @@ export const createSpeechifyAdvancedProvider = (options: SpeechifyAdvancedProvid
     }
   }
 
-  const clone: VoiceClonePort = {
-    clone: async cloneRequest => {
-      assertAdvancedVoiceCloneAuthorized(identity, cloneRequest, 'before any external upload')
-      if (cloneRequest.cloneKind === 'professional') {
-        const result: ProviderVoiceMutationResult = { schemaVersion: 1, provider: 'speechify', state: 'external-action-required', action: 'Speechify does not document a separate professional-clone API; use the supported personal-voice clone workflow or manage any contracted workflow externally.', sanitizedMetadata: { cloneKind: 'professional', sampleCount: cloneRequest.protectedSamples.length }, checkedAt: now() }
-        return result
-      }
-      if (cloneRequest.protectedSamples.length !== 1) throw UsageError('Speechify voice cloning requires exactly one protected 10-30 second sample.')
-      if (!options.resolveProtectedAsset || !options.resolveProtectedConsent) throw UsageError('Speechify cloning requires protected asset and consent resolvers.')
-      if (!cloneRequest.desiredName.trim()) throw UsageError('Speechify cloning requires a voice name.')
-      const [resolved, consent] = await Promise.all([
-        options.resolveProtectedAsset(cloneRequest.protectedSamples[0] as ProviderVoiceCloneRequest['protectedSamples'][number]),
-        options.resolveProtectedConsent(cloneRequest.consentRecordRef)
-      ])
-      if (resolved.bytes.byteLength === 0 || resolved.bytes.byteLength > SPEECHIFY_CLONE_SAMPLE_MAX_BYTES) throw UsageError('Speechify clone sample must be non-empty and no larger than 5 MiB.')
-      if (!Number.isFinite(resolved.durationMs) || resolved.durationMs < 10_000 || resolved.durationMs > 30_000) throw UsageError('Speechify clone sample must have a verified duration of 10-30 seconds.')
-      const fullName = consent.fullName.trim()
-      const email = consent.email.trim()
-      if (!fullName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw UsageError('Speechify protected consent must contain a full name and valid email address.')
-      const locale = consent.locale?.trim() || 'en-US'
-      const gender = consent.gender ?? 'not_specified'
-      const form = new FormData()
-      form.append('name', cloneRequest.desiredName)
-      form.append('locale', locale)
-      form.append('gender', gender)
-      form.append('sample', new Blob([resolved.bytes], { type: resolved.mediaType }), resolved.fileName)
-      form.append('consent', JSON.stringify({ fullName, email }))
-      const entry = mapVoice(await request({ method: 'POST', path: '/v1/voices', headers: { 'Idempotency-Key': cloneRequest.localAttemptId }, body: form }) as unknown)
-      const checkedAt = now()
-      const providerVoice = buildClonedProviderVoiceRef(identity, {
-        resourceId: entry.resourceId,
-        sample: cloneRequest.protectedSamples[0]!,
-        localAttemptId: cloneRequest.localAttemptId,
-        checkedAt
-      })
-      return { schemaVersion: 1, provider: 'speechify', state: 'ready', providerVoice, sanitizedMetadata: { cloneKind: 'instant', sampleCount: 1, sampleDurationMs: resolved.durationMs, locale, gender }, checkedAt }
-    }
-  }
-
   const identity: AdvancedVoiceProviderIdentity = { provider: 'speechify', label: 'Speechify', labelWithArticle: 'a Speechify', accountScopeHash }
   const lifecycle = createRemoteResourceVoiceLifecycle(identity, { ownedResourceLabel: 'personal voices' }, {
     fetchVoice: async voice => {
@@ -143,5 +99,5 @@ export const createSpeechifyAdvancedProvider = (options: SpeechifyAdvancedProvid
     now
   })
 
-  return { provider: 'speechify', accountScopeHash, getDeclaredCapabilities: () => SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE.records, catalog, clone, lifecycle }
+  return { provider: 'speechify', accountScopeHash, getDeclaredCapabilities: () => SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE.records, catalog, lifecycle }
 }

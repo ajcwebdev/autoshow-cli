@@ -197,7 +197,7 @@ describe('standalone Mistral protected request references', () => {
       resolve: async () => { throw new Error('unexpected resolve') }
     })
     expect(() => nonMistralPlan?.attach({
-      groqTtsModels: ['canopylabs/orpheus-v1-english'],
+      openaiTtsModels: ['gpt-4o-mini-tts-2025-12-15'],
       ttsDialogueFormat: 'labeled',
       ttsSpeakers: [...(nonMistralPlan?.ttsSpeakers ?? [])],
       price: true

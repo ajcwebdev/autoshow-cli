@@ -92,7 +92,7 @@ export const buildCapabilityFixture = (
       : { voiceKinds, maxCharacters: chunkLimit(target), supportedOutputFormats: ['wav'] }
   const record = {
     scope,
-    maturity: target.service === 'gemini' || target.service === 'groq' ? 'preview' as const : 'stable' as const,
+    maturity: target.service === 'grok' ? 'preview' as const : 'stable' as const,
     channel: 'api' as const,
     adapterSupport: 'implemented' as const,
     requirements: [],
@@ -150,8 +150,6 @@ export const requestedOutput = (options: Pick<CreateCurrentTtsRenderAttemptOptio
 export const defaultVoiceValue = (target: TtsTarget): string => {
   switch (target.service) {
     case 'openai': return 'alloy'
-    case 'gemini': return 'Kore'
-    case 'deepgram': return target.model
     case 'grok': return 'eve'
     case 'minimax': return 'English_expressive_narrator'
     case 'hume': return 'Male English Actor'

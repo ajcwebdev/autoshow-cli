@@ -26,7 +26,7 @@ export type ProviderAccessRequirement =
   | { kind: 'plan', tier?: string | undefined }
   | { kind: 'approval', approvalKind?: string | undefined }
   | { kind: 'verification', verificationKind?: string | undefined }
-  | { kind: 'region', allowedRegionCodes: string[] }
+  | { kind: 'region', allowedRegionCodes: string[], excludedSubdivisionCodes?: string[] | undefined }
 
 export type AccountCapabilityState =
   | 'available'

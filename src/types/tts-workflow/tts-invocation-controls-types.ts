@@ -27,16 +27,11 @@ type TtsInvocationControlsByProvider = {
     englishNormalization?: OptionalControl<boolean>
     pronunciations?: OptionalControl<readonly string[]>
   }>
-  groq: Readonly<{ speed?: OptionalControl<number> }>
   grok: Readonly<{
     language?: OptionalControl<string>
     textNormalization?: OptionalControl<boolean>
   }>
   mistral: Readonly<{ responseFormat?: OptionalControl<'wav' | 'mp3' | 'flac' | 'opus'> }>
-  gemini: Readonly<{ languageCode?: OptionalControl<string> }>
-  deepgram: Readonly<{
-    speed?: OptionalControl<number>
-  }>
   speechify: Readonly<{
     language?: OptionalControl<string>
   }>
@@ -49,8 +44,6 @@ type TtsInvocationControlsByProvider = {
   fish: Readonly<{ latency?: OptionalControl<string> }>
   inworld: Readonly<{ steeringPrompt?: OptionalControl<string> }>
   deepinfra: Readonly<{ promptInstructions?: OptionalControl<string> }>
-  replicate: Readonly<{ speed?: OptionalControl<number> }>
-  fal: Readonly<{ voiceInstruction?: OptionalControl<string> }>
 }
 
 type TtsInvocationControlsFor<P extends TtsProvider> = TtsInvocationControlsByProvider[P]

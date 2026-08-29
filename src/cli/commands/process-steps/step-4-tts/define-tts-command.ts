@@ -31,7 +31,7 @@ export const ttsCommand = defineCliCommand({
       ['bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-voice YOUR_EXISTING_VOICE_ID', 'Use an existing ElevenLabs voice'],
       ['bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-turbo --tts-voice English_expressive_narrator', 'Use a MiniMax voice ID'],
       ['bun autoshow tts input/examples/tts/1-tts.md --provider mistral=voxtral-mini-tts-2603 --tts-ref-audio input/examples/audio/anthony-voice.mp3', 'Generate speech with Mistral Voxtral'],
-      ['bun autoshow tts input/examples/tts/1-tts.md --provider fal=fal-ai/bytedance/seed-speech/tts/v2 --tts-voice stokie_en', 'Generate speech with fal.ai Seed Speech']
+      ['bun autoshow tts input/examples/tts/1-tts.md --provider grok=grok-tts --tts-voice eve', 'Generate speech with a Grok voice']
     ]
   }
 }, async (ctx) => {

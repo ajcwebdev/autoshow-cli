@@ -3,20 +3,15 @@ import type { GenerationPricingProviders, GenerationSelectionDescriptor, Generat
 export const STANDALONE_TTS_PROVIDER_TARGETS = {
   elevenlabs: 'elevenlabs-tts',
   minimax: 'minimax-tts',
-  groq: 'groq-tts',
   grok: 'grok-tts',
   mistral: 'mistral-tts',
   openai: 'openai-tts',
-  gemini: 'gemini-tts',
-  deepgram: 'deepgram-tts',
   speechify: 'speechify-tts',
   hume: 'hume-tts',
   cartesia: 'cartesia-tts',
   fish: 'fish-tts',
   inworld: 'inworld-tts',
-  deepinfra: 'deepinfra-tts',
-  replicate: 'replicate-tts',
-  fal: 'fal-tts'
+  deepinfra: 'deepinfra-tts'
 } as const satisfies Record<string, string>
 
 export const STANDALONE_IMAGE_PROVIDER_TARGETS = {
@@ -78,20 +73,15 @@ export const TTS_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   {
     elevenlabs: { modelsKey: 'elevenlabsTtsModels' },
     minimax: { modelsKey: 'minimaxTtsModels' },
-    groq: { modelsKey: 'groqTtsModels' },
     grok: { modelsKey: 'grokTtsModels' },
     mistral: { modelsKey: 'mistralTtsModels' },
     openai: { modelsKey: 'openaiTtsModels' },
-    gemini: { modelsKey: 'geminiTtsModels' },
-    deepgram: { modelsKey: 'deepgramTtsModels' },
     speechify: { modelsKey: 'speechifyTtsModels' },
     hume: { modelsKey: 'humeTtsModels' },
     cartesia: { modelsKey: 'cartesiaTtsModels' },
     fish: { modelsKey: 'fishTtsModels' },
     inworld: { modelsKey: 'inworldTtsModels' },
-    deepinfra: { modelsKey: 'deepinfraTtsModels' },
-    replicate: { modelsKey: 'replicateTtsModels' },
-    fal: { modelsKey: 'falTtsModels' }
+    deepinfra: { modelsKey: 'deepinfraTtsModels' }
   }
 )
 

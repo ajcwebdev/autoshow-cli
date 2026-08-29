@@ -11,7 +11,8 @@ import { runCommand } from '../../../test-utils/test-helpers'
 import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord, writePipelineItemRecords } from '~/cli/commands/process-steps/pipeline-manifest'
 import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 import { dispatchResume } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
-import type { PipelineProviderState, Step3Metadata, TtsTarget } from '~/types'
+import { resolveStoredTtsTargetsForResume } from '~/cli/commands/setup-and-utilities/resume/generation/tts-resume'
+import type { GenerationResumeProviderIdentity, PipelineManifestItem, PipelineProviderState, ResumeTarget, Step3Metadata, TtsOptions, TtsTarget } from '~/types'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { createFileTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
@@ -82,12 +83,12 @@ const writeIncompleteTtsRun = async (dir: string): Promise<void> => {
     failedState,
     await materializeTtsDialoguePlanArtifact(dir, dialoguePlan)
   )
-  const groqTarget: TtsTarget = {
-    service: 'groq',
-    model: 'canopylabs/orpheus-v1-english',
+  const grokTarget: TtsTarget = {
+    service: 'grok',
+    model: 'grok-tts',
     operation: 'tts-synthesis',
     transport: 'hosted-api',
-    targetKey: canonicalTargetKey('tts-synthesis', 'groq', 'canopylabs/orpheus-v1-english', 'hosted-api'),
+    targetKey: canonicalTargetKey('tts-synthesis', 'grok', 'grok-tts', 'hosted-api'),
     run: async () => { throw new Error('not called in resume price fixture') }
   }
   await writeSingleManifestFixture(dir, 'tts', {
@@ -95,11 +96,11 @@ const writeIncompleteTtsRun = async (dir: string): Promise<void> => {
     completionStatus: 'failed',
     requestedProviders: [
       {
-        service: groqTarget.service,
-        model: groqTarget.model,
-        operation: groqTarget.operation,
-        targetKey: groqTarget.targetKey,
-        transport: groqTarget.transport
+        service: grokTarget.service,
+        model: grokTarget.model,
+        operation: grokTarget.operation,
+        targetKey: grokTarget.targetKey,
+        transport: grokTarget.transport
       },
       {
         service: openaiTarget.service,
@@ -109,7 +110,7 @@ const writeIncompleteTtsRun = async (dir: string): Promise<void> => {
         transport: openaiTarget.transport
       }
     ],
-    providerStates: [policySkippedTtsState(groqTarget), failedState],
+    providerStates: [policySkippedTtsState(grokTarget), failedState],
     tts: []
   })
 }
@@ -364,7 +365,7 @@ test('explicit OCR resume succeeds when selected providers are complete and mani
 
   const output = `${result.stdout}\n${result.stderr}`
   const manifest = await readSinglePipelineItemRecord(runDir, { command: 'extract', extractRoute: 'document' })
-  expect(result.exitCode).toBe(0)
+  expect(result.exitCode, output).toBe(0)
   expect(output).toContain('selected providers complete; canonical item still incomplete')
   expect(manifest?.['completionStatus']).toBe('incomplete')
   expect(manifest?.['missingProviders']).toEqual([
@@ -394,6 +395,22 @@ test('resume --price reports a dry-run estimate and leaves manifests unchanged',
   expect(output).toContain('Cost Estimate')
   expect(output).toContain('gpt-4o-mini-tts-2025-12-15')
   expect(await Bun.file(manifestPath).text()).toBe(before)
+})
+
+test('stored retired TTS providers are inspectable history but cannot be resumed or dispatched', async () => {
+  const target: ResumeTarget = { kind: 'tts', scope: 'single', dir: '/tmp/autoshow-retired-tts-history', manifestPath: '/tmp/autoshow-retired-tts-history/manifest.json' }
+  for (const service of ['groq', 'gemini', 'deepgram', 'replicate', 'fal']) {
+    const provider = {
+      service,
+      model: 'historical-model',
+      operation: 'tts-synthesis',
+      transport: 'hosted-api',
+      targetKey: canonicalTargetKey('tts-synthesis', service, 'historical-model', 'hosted-api')
+    } as GenerationResumeProviderIdentity
+    await expect(resolveStoredTtsTargetsForResume([provider], {} as TtsOptions, target, {} as PipelineManifestItem)).rejects.toThrow(
+      `Stored TTS provider ${service} is no longer supported for TTS and cannot be resumed or dispatched.`
+    )
+  }
 })
 
 test('resume --price logs per-directory estimates and a suite total', async () => {

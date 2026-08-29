@@ -18,6 +18,7 @@ Without `--reason`, `retire` removes the generation from the current index. With
 | --- | --- |
 | `--generation-id <sha256>` | Optional unless more than one generation could match |
 | `--reason <text>` | Revoke instead of retire and record a non-sensitive reason |
+| `--price` | Validate the local transition without provider calls or artifact writes |
 
 ### Examples
 
@@ -25,6 +26,7 @@ Without `--reason`, `retire` removes the generation from the current index. With
 bun autoshow voice retire vr_ID
 bun autoshow voice retire vr_ID --generation-id GENERATION_SHA256
 bun autoshow voice retire vr_ID --reason "Casting changed"
+bun autoshow voice retire vr_ID --reason "Casting changed" --price
 ```
 
 Next: [delete](./09-delete.md).

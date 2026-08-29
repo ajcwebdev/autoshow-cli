@@ -33,7 +33,7 @@ const attempt = (attemptId: string, draftId = 'vr_test'): VoiceProvisioningAttem
   schemaVersion: 1,
   attemptId,
   registrationDraftId: draftId,
-  operation: 'save-reference',
+  operation: 'clone',
   accountScopeHash: 'c'.repeat(64),
   lockLeaseId: `lease_${attemptId}`,
   requestFingerprint: 'd'.repeat(64),

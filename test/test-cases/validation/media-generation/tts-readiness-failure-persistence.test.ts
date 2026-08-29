@@ -18,7 +18,7 @@ import { withTempDir } from '../../../test-utils/temp-dirs'
 import { requireDefined } from '../../../test-utils/value-assertions'
 
 const hostedFixture = (
-  service: Extract<TtsProvider, 'openai' | 'groq'>,
+  service: Extract<TtsProvider, 'openai' | 'grok'>,
   model: string,
   voice: string
 ): HostedFixture => {
@@ -88,12 +88,12 @@ const expectBranchOnlyFailure = async (
 }
 
 const withHostedCredentials = async <T>(
-  values: Partial<Record<'OPENAI_API_KEY' | 'GROQ_API_KEY' | 'MISTRAL_API_KEY', string | undefined>>,
+  values: Partial<Record<'OPENAI_API_KEY' | 'XAI_API_KEY' | 'MISTRAL_API_KEY', string | undefined>>,
   operation: () => Promise<T>
 ): Promise<T> => {
   const prior = {
     OPENAI_API_KEY: process.env['OPENAI_API_KEY'],
-    GROQ_API_KEY: process.env['GROQ_API_KEY'],
+    XAI_API_KEY: process.env['XAI_API_KEY'],
     MISTRAL_API_KEY: process.env['MISTRAL_API_KEY']
   }
   for (const [key, value] of Object.entries(values)) {
@@ -365,13 +365,13 @@ describe('canonical TTS execution-readiness failures', () => {
       await Bun.write(inputPath, 'All targets gate synthesis as one readiness set.')
       configurePinnedRunDir(outputDir)
       const openai = hostedFixture('openai', 'gpt-4o-mini-tts-2025-12-15', 'alloy')
-      const groq = hostedFixture('groq', 'canopylabs/orpheus-v1-english', 'troy')
+      const grok = hostedFixture('grok', 'grok-tts', 'eve')
 
-      await withHostedCredentials({ OPENAI_API_KEY: undefined, GROQ_API_KEY: 'configured-for-local-fixture' }, async () => {
+      await withHostedCredentials({ OPENAI_API_KEY: undefined, XAI_API_KEY: 'configured-for-local-fixture' }, async () => {
         await expect(runSingleTtsInput(
           inputPath,
           commandOptions(),
-          [openai.target, groq.target],
+          [openai.target, grok.target],
           undefined
         )).rejects.toThrow('OPENAI_API_KEY')
       })
@@ -404,7 +404,7 @@ describe('canonical TTS execution-readiness failures', () => {
       expect(peerReadinessResult.capabilityObservations[0]?.state).toBe('available')
       expect(peerReadinessResult.candidateReadiness[0]?.status).toBe('ready')
       expect(openai.calls).toEqual({ run: 0, setup: 0, fetch: 0 })
-      expect(groq.calls).toEqual({ run: 0, setup: 0, fetch: 0 })
+      expect(grok.calls).toEqual({ run: 0, setup: 0, fetch: 0 })
     })
   })
 

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { mkdir, readFile, readdir, symlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { TtsOptions, TtsTarget, VoiceReferenceManifest } from '~/types'
-import { canonicalTargetKey, canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
+import { canonicalTargetKey, canonicalTtsJson, hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import { planCurrentTtsReadiness } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { createComicSourceIdentity, createStructuredScriptArtifactRef, computeSceneRunIdentity } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
 import { createComicDialoguePlan } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-dialogue-plan'
@@ -101,8 +101,8 @@ describe('comic audio phase 2 contracts', () => {
     const voiceSnapshot: VoiceReferenceManifest = { ...snapshotBase, snapshotId: hashCanonicalTtsValue(snapshotBase) }
     const overlapTurns = overlap.nodes.flatMap(node => node.kind === 'turn' ? [node.turn] : node.turns)
     const target: TtsTarget = {
-      service: 'gemini', model: 'gemini-2.5-pro-preview-tts', operation: 'comic-audio', transport: 'hosted-api',
-      targetKey: canonicalTargetKey('comic-audio', 'gemini', 'gemini-2.5-pro-preview-tts', 'hosted-api'),
+      service: 'hume', model: 'octave-2', operation: 'comic-audio', transport: 'hosted-api',
+      targetKey: canonicalTargetKey('comic-audio', 'hume', 'octave-2', 'hosted-api'),
       run: async () => { throw new Error('provider must not run during planning') },
     }
     const planned = planCurrentTtsReadiness({
@@ -154,7 +154,7 @@ describe('comic audio phase 2 contracts', () => {
     expect(plannedTurn?.timingCues).toEqual([expect.objectContaining({ kind: 'beat', afterTextOffset: 6, durationMs: 750 })])
   })
 
-  test('Gemini comic planning binds approved snapshot entries and selects native only for exactly two speakers', async () => {
+  test('Hume comic planning binds approved snapshot entries and selects native utterances', async () => {
     const root = await makeTempDir('autoshow-comic-audio-plan-')
     const sourcePath = join(root, 'scene.md')
     await writeFile(sourcePath, 'two speaker scene')
@@ -169,8 +169,8 @@ describe('comic audio phase 2 contracts', () => {
     const voiceSnapshot: VoiceReferenceManifest = { ...snapshotBase, snapshotId: hashCanonicalTtsValue(snapshotBase) }
     const turns = dialoguePlan.nodes.flatMap(node => node.kind === 'turn' ? [node.turn] : node.turns)
     const target: TtsTarget = {
-      service: 'gemini', model: 'gemini-2.5-pro-preview-tts', operation: 'comic-audio', transport: 'hosted-api',
-      targetKey: canonicalTargetKey('comic-audio', 'gemini', 'gemini-2.5-pro-preview-tts', 'hosted-api'),
+      service: 'hume', model: 'octave-2', operation: 'comic-audio', transport: 'hosted-api',
+      targetKey: canonicalTargetKey('comic-audio', 'hume', 'octave-2', 'hosted-api'),
       run: async () => { throw new Error('provider must not run during planning') },
     }
     const options: TtsOptions = {
@@ -190,14 +190,10 @@ describe('comic audio phase 2 contracts', () => {
     }
     const planned = planCurrentTtsReadiness({ target, sourceText: 'VOICE_001: Ready?\nVOICE_002: Ready.', ttsOptions: options, comicContext: context })
     expect(planned.operation).toBe('comic-audio')
-    expect(planned.strategy).toBe('native-dialogue')
+    expect(planned.strategy).toBe('native-utterances')
     expect(planned.renderPlan.voiceContext).toEqual({ kind: 'approved-snapshot', snapshotId: voiceSnapshot.snapshotId })
     expect(planned.renderPlan.requestedOutput).toEqual({ codec: 'pcm_s24le', container: 'wav', sampleRate: 48000, channels: 2 })
     expect(planned.renderPlan.nodes.every(node => node.kind === 'turn' && node.turn.voice.kind === 'approved-snapshot')).toBe(true)
 
-    const oneSpeakerContext = { ...context, providerSpeakerLabelByTurnId: Object.fromEntries(turns.map(turn => [turn.turnId, 'VOICE_001'])) }
-    const segmented = planCurrentTtsReadiness({ target, sourceText: 'VOICE_001: Ready?\nVOICE_001: Ready.', ttsOptions: { ...options, ttsSpeakers: ['VOICE_001=Kore'], ttsCanonicalTurns: turns.map(turn => ({ turnId: turn.turnId, speaker: 'VOICE_001', text: turn.canonicalText })) }, comicContext: oneSpeakerContext })
-    expect(segmented.strategy).toBe('segmented')
-    expect(sha256Bytes(canonicalTtsJson(segmented.renderPlan))).toHaveLength(64)
   })
 })

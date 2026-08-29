@@ -57,18 +57,10 @@ export const estimateTtsRequestCount = (service: string, model: string, characte
   return maxInputCharacters === undefined ? 1 : Math.ceil(normalizedCharacters / maxInputCharacters)
 }
 
-export const getGroqTtsVoices = (): readonly string[] => {
-  return getModelRegistry().tts['groq']?.voices ?? []
-}
-
 export const getGrokTtsVoices = (): readonly string[] => {
   return getModelRegistry().tts['grok']?.voices ?? []
 }
 
 export const getOpenAITtsVoices = (): readonly string[] => {
   return getModelRegistry().tts['openai']?.voices ?? []
-}
-
-export const getGeminiTtsVoices = (): readonly string[] => {
-  return getModelRegistry().tts['gemini']?.voices ?? []
 }

@@ -59,20 +59,15 @@ const targetOptions = (registration: VoiceRegistration): TtsOptions => {
   switch (registration.provider) {
     case 'elevenlabs': return { elevenlabsTtsModels: [model], elevenlabsVoiceId: voice }
     case 'minimax': return { minimaxTtsModels: [model], minimaxTtsVoice: voice }
-    case 'groq': return { groqTtsModels: [model], groqVoiceId: voice }
     case 'grok': return { grokTtsModels: [model], grokTtsVoice: voice }
     case 'mistral': return { mistralTtsModels: [model], mistralTtsVoice: voice }
     case 'openai': return { openaiTtsModels: [model], openaiVoiceId: voice }
-    case 'gemini': return { geminiTtsModels: [model], geminiVoiceId: voice }
-    case 'deepgram': return { deepgramTtsModels: [model], deepgramVoiceId: voice }
     case 'speechify': return { speechifyTtsModels: [model], speechifyVoice: voice }
     case 'hume': return { humeTtsModels: [model], humeTtsVoice: voice }
     case 'cartesia': return { cartesiaTtsModels: [model], cartesiaTtsVoice: voice }
     case 'fish': return { fishTtsModels: [model], fishTtsVoice: voice }
     case 'inworld': return { inworldTtsModels: [model], inworldTtsVoice: voice }
     case 'deepinfra': return { deepinfraTtsModels: [model], deepinfraTtsVoice: voice }
-    case 'replicate': return { replicateTtsModels: [model], replicateTtsVoice: voice }
-    case 'fal': return { falTtsModels: [model], falTtsVoice: voice }
   }
 }
 

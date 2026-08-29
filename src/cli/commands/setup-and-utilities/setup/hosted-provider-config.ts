@@ -22,7 +22,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     envVar: 'XAI_API_KEY',
     label: 'Grok write/STT/OCR/TTS/image/video',
     hintUrl: 'https://console.x.ai/',
-    stages: ['write', 'stt', 'ocr', 'tts', 'image', 'video'],
+    stages: ['write', 'stt', 'ocr', 'tts', 'image', 'video', 'voice'],
     ttsPreflight: { provider: 'grok', label: 'Grok TTS' },
     configPaths: [
       'defaults.llm.grok',
@@ -36,15 +36,13 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'gemini',
     envVar: 'GEMINI_API_KEY',
-    label: 'Gemini write/STT/OCR/TTS/image/video/music',
+    label: 'Gemini write/STT/OCR/image/video/music',
     hintUrl: 'https://aistudio.google.com/apikey',
-    stages: ['write', 'stt', 'ocr', 'tts', 'image', 'video', 'music'],
-    ttsPreflight: { provider: 'gemini', label: 'Gemini TTS' },
+    stages: ['write', 'stt', 'ocr', 'image', 'video', 'music'],
     configPaths: [
       'defaults.llm.gemini',
       'defaults.extract.stt.geminiStt',
       'defaults.extract.ocr.geminiOcr',
-      'defaults.tts.geminiTts',
       'defaults.image.geminiImage',
       'defaults.video.geminiVideo',
       'defaults.music.geminiMusic'
@@ -117,14 +115,12 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'fal',
     envVar: 'FAL_API_KEY',
-    label: 'fal.ai image/video/TTS',
+    label: 'fal.ai image/video',
     hintUrl: 'https://fal.ai/dashboard/keys',
-    stages: ['image', 'video', 'tts'],
-    ttsPreflight: { provider: 'fal', label: 'fal.ai TTS' },
+    stages: ['image', 'video'],
     configPaths: [
       'defaults.image.falImage',
-      'defaults.video.falVideo',
-      'defaults.tts.falTts'
+      'defaults.video.falVideo'
     ]
   },
   {
@@ -138,14 +134,12 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'replicate',
     envVar: 'REPLICATE_API_TOKEN',
-    label: 'Replicate image/video/TTS',
+    label: 'Replicate image/video',
     hintUrl: 'https://replicate.com/',
-    stages: ['image', 'video', 'tts', 'soundscape'],
-    ttsPreflight: { provider: 'replicate', label: 'Replicate TTS' },
+    stages: ['image', 'video', 'soundscape'],
     configPaths: [
       'defaults.image.replicateImage',
-      'defaults.video.replicateVideo',
-      'defaults.tts.replicateTts'
+      'defaults.video.replicateVideo'
     ]
   },
   {
@@ -159,14 +153,12 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'groq',
     envVar: 'GROQ_API_KEY',
-    label: 'Groq write/STT/TTS',
+    label: 'Groq write/STT',
     hintUrl: 'https://console.groq.com/keys',
-    stages: ['write', 'stt', 'tts'],
-    ttsPreflight: { provider: 'groq', label: 'Groq TTS' },
+    stages: ['write', 'stt'],
     configPaths: [
       'defaults.llm.groq',
-      'defaults.extract.stt.groqStt',
-      'defaults.tts.groqTts'
+      'defaults.extract.stt.groqStt'
     ]
   },
   {
@@ -174,7 +166,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     envVar: 'DEEPINFRA_API_KEY',
     label: 'DeepInfra STT/OCR/TTS',
     hintUrl: 'https://deepinfra.com/',
-    stages: ['stt', 'ocr', 'tts'],
+    stages: ['stt', 'ocr', 'tts', 'voice'],
     ttsPreflight: { provider: 'deepinfra', label: 'DeepInfra TTS' },
     configPaths: [
       'defaults.extract.stt.deepinfraStt',
@@ -228,11 +220,10 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'deepgram',
     envVar: 'DEEPGRAM_API_KEY',
-    label: 'Deepgram STT/TTS',
+    label: 'Deepgram STT',
     hintUrl: 'https://console.deepgram.com/project/api-keys',
-    stages: ['stt', 'tts'],
-    ttsPreflight: { provider: 'deepgram', label: 'Deepgram TTS' },
-    configPaths: ['defaults.extract.stt.deepgramStt', 'defaults.tts.deepgramTts']
+    stages: ['stt'],
+    configPaths: ['defaults.extract.stt.deepgramStt']
   },
   {
     providerId: 'speechify',

@@ -2,22 +2,17 @@ import type { MultiSpeakerStrategy, TtsProvider, TtsTargetInvocation, TtsTargetV
 import { UsageError } from '~/utils/error-handler'
 
 const MULTI_SPEAKER_CAPABILITY: Partial<Record<TtsProvider, MultiSpeakerStrategy>> = {
-  gemini: 'native',
   openai: 'segment-and-concat',
   elevenlabs: 'segment-and-concat',
   minimax: 'segment-and-concat',
-  groq: 'segment-and-concat',
   grok: 'segment-and-concat',
   mistral: 'segment-and-concat',
-  deepgram: 'segment-and-concat',
   speechify: 'segment-and-concat',
   hume: 'segment-and-concat',
   cartesia: 'segment-and-concat',
   fish: 'segment-and-concat',
   inworld: 'segment-and-concat',
   deepinfra: 'segment-and-concat',
-  replicate: 'segment-and-concat',
-  fal: 'segment-and-concat',
 }
 
 const REF_AUDIO_PROVIDERS = new Set<TtsProvider>(['mistral'])

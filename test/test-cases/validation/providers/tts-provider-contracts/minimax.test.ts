@@ -3,11 +3,12 @@ import {
   expect,
   test
 } from 'bun:test'
-import { runDeepgramTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepgram/run-deepgram-tts'
 import { runMinimaxTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-minimax/run-minimax-tts'
+import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { installMockFetch, LOCAL_SHORT_AUDIO_PATH, setupTtsContractLifecycle } from './shared'
 
 const { makeTempDir } = setupTtsContractLifecycle()
+const createScheduler = () => createHostedTtsChunkScheduler({ maxConcurrency: 4, concurrencyMode: 'immediate' })
 
 describe('TTS provider service contracts', () => {
   test('MiniMax TTS sends voice controls, language boost, and pronunciation rules', async () => {
@@ -44,7 +45,8 @@ describe('TTS provider service contracts', () => {
         pitch: -2,
         emotion: 'calm',
         englishNormalization: true,
-        pronunciations: ['AutoShow/auto show', 'TTS/tee tee ess']
+        pronunciations: ['AutoShow/auto show', 'TTS/tee tee ess'],
+        chunkScheduler: createScheduler()
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
@@ -85,7 +87,8 @@ describe('TTS provider service contracts', () => {
     }))
 
     await expect(runMinimaxTts('Invalid MiniMax request.', dir, {
-      model: 'speech-2.8-hd'
+      model: 'speech-2.8-hd',
+      chunkScheduler: createScheduler()
     })).rejects.toMatchObject({
       stage: 'tts:minimax',
       message: expect.stringContaining('invalid text')
@@ -101,7 +104,8 @@ describe('TTS provider service contracts', () => {
     }))
 
     await expect(runMinimaxTts('Invalid MiniMax request.', dir, {
-      model: 'speech-2.8-hd'
+      model: 'speech-2.8-hd',
+      chunkScheduler: createScheduler()
     })).rejects.toMatchObject({
       stage: 'tts:minimax',
       status: 400,
@@ -111,47 +115,4 @@ describe('TTS provider service contracts', () => {
     expect(calls).toHaveLength(1)
   })
 
-  test('Deepgram TTS bakes the lossless WAV intermediate into the query parameters', async () => {
-      const dir = await makeTempDir('autoshow-deepgram-tts-controls-')
-      const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
-      process.env['DEEPGRAM_API_KEY'] = 'deepgram-key'
-
-      const calls = installMockFetch(() => {
-        return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
-      })
-
-      const result = await runDeepgramTts('Deepgram control synthesis.', dir, {
-        model: 'aura-2-thalia-en',
-        voiceId: 'aura-2-andromeda-en',
-        speed: 1.1
-      })
-
-      expect(await Bun.file(result.audioPath).exists()).toBe(true)
-      expect(calls).toHaveLength(1)
-      expect(calls[0]).toMatchObject({
-        url: 'https://api.deepgram.com/v1/speak?model=aura-2-andromeda-en&encoding=linear16&container=wav&speed=1.1',
-        method: 'POST',
-        bodyJson: { text: 'Deepgram control synthesis.' }
-      })
-      expect(calls[0]?.headers.get('authorization')).toBe('Token deepgram-key')
-    }, 10_000)
-
-  test('Deepgram TTS sends each newly registered model through the existing query transport', async () => {
-    const dir = await makeTempDir('autoshow-deepgram-new-models-')
-    const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
-    process.env['DEEPGRAM_API_KEY'] = 'deepgram-key'
-    const calls = installMockFetch(() => {
-      return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
-    })
-
-    for (const model of ['aura-2-helena-en', 'aura-2-arcas-en', 'aura-2-aries-en'] as const) {
-      await runDeepgramTts('New Deepgram model.', dir, { model })
-    }
-
-    expect(calls.map((call) => call.url)).toEqual([
-      'https://api.deepgram.com/v1/speak?model=aura-2-helena-en&encoding=linear16&container=wav',
-      'https://api.deepgram.com/v1/speak?model=aura-2-arcas-en&encoding=linear16&container=wav',
-      'https://api.deepgram.com/v1/speak?model=aura-2-aries-en&encoding=linear16&container=wav'
-    ])
-  }, 10_000)
 })

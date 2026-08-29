@@ -5,12 +5,9 @@ import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-
 
 export const TTS_CHUNK_CHARACTER_LIMITS = {
   elevenlabs: 2000,
-  groq: 200,
-  deepgram: 2000,
   speechify: 2000,
   openai: 2000,
   mistral: 2000,
-  gemini: 2000,
   cartesia: 2000,
   hume: 2000,
   grok: 2000,
@@ -18,8 +15,6 @@ export const TTS_CHUNK_CHARACTER_LIMITS = {
   fish: 2000,
   inworld: 2000,
   deepinfra: 2000,
-  replicate: 2000,
-  fal: 2000,
 } as const satisfies Record<TtsProvider, number | undefined>
 
 export const resolveTtsChunkCharacterLimit = (

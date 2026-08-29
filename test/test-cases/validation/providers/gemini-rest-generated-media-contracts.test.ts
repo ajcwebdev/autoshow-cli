@@ -1,67 +1,15 @@
 import { describe, expect, test } from 'bun:test'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { runGeminiTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-gemini/run-gemini-tts'
-import { parseSpeakerVoiceMappings } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
 import { runGeminiVideoGen } from '~/cli/commands/process-steps/step-6-video/video-services/video-gemini/run-gemini-video-gen'
 import { runGeminiMusicGen } from '~/cli/commands/process-steps/step-7-music/music-services/music-gemini/run-gemini-music-gen'
 import { geminiGetOperation } from '~/utils/gemini/gemini-rest'
 import { installMockFetch as installFetch, jsonResponse } from '../../../test-utils/rest-contract-helpers'
-import { createMockWavBase64 } from '../../../test-utils/media-fixtures'
 import { setupGeminiRestContractFixture } from './gemini-rest-contract-fixture'
 
 const { audioBase64, audioBytes, videoBytes, withTempDir } = setupGeminiRestContractFixture()
 
 describe('Gemini REST contracts', () => {
-  test('Gemini TTS sends single and multispeaker speechConfig and extracts audio', async () => {
-    process.env['GEMINI_API_KEY'] = 'gemini-key'
-    const wavBase64 = createMockWavBase64()
-    const calls = installFetch(() => jsonResponse({
-      candidates: [{
-        content: {
-          parts: [{ inlineData: { mimeType: 'audio/wav', data: wavBase64 } }]
-        }
-      }]
-    }))
-
-    await withTempDir(async (dir) => {
-      const result = await runGeminiTts('Single speaker sample.', dir, {
-        model: 'gemini-3.1-flash-tts-preview',
-        voiceId: 'Kore'
-      })
-      expect(await Bun.file(result.audioPath).exists()).toBe(true)
-    })
-    await withTempDir(async (dir) => {
-      const result = await runGeminiTts('Host: Hello.\nGuest: Hi.', dir, {
-        model: 'gemini-3.1-flash-tts-preview',
-        speakerVoiceRegistry: parseSpeakerVoiceMappings(['Host=Kore', 'Guest=Puck'])
-      })
-      expect(await Bun.file(result.audioPath).exists()).toBe(true)
-    })
-
-    expect(calls[0]?.bodyJson?.['generationConfig']).toMatchObject({
-      responseModalities: ['AUDIO'],
-      speechConfig: {
-        voiceConfig: {
-          prebuiltVoiceConfig: {
-            voiceName: 'Kore'
-          }
-        }
-      }
-    })
-    expect(calls[1]?.bodyJson?.['generationConfig']).toMatchObject({
-      responseModalities: ['AUDIO'],
-      speechConfig: {
-        multiSpeakerVoiceConfig: {
-          speakerVoiceConfigs: [
-            { speaker: 'Host', voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
-            { speaker: 'Guest', voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } } }
-          ]
-        }
-      }
-    })
-  }, 20_000)
-
   test('Gemini Veo polls long-running operations and downloads generated video files', async () => {
     process.env['GEMINI_API_KEY'] = 'gemini-key'
     const calls = installFetch((call) => {

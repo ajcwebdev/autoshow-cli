@@ -1,9 +1,7 @@
 import type { AttemptSlot, AttemptTurn, CreateCurrentTtsRenderAttemptOptions, PlannedInputs, ProviderRenderStrategy, TtsTargetInvocation, TtsTargetSelection } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { splitTextIntoChunks } from '../tts-utils/audio-utils'
-import { TTS_CHUNK_CHARACTER_LIMITS } from '../tts-utils/tts-chunking'
-import { getSpeakerVoice, isMultiSpeakerRequested, normalizeDialogueFromOptions, normalizeDialogueText, parseSpeakerVoiceMappings, resolveDialogueFormat } from '../dialogue-normalizer'
-import { resolveGeminiDialogueStrategyForText, splitGeminiNativeDialogueText } from '../tts-services/tts-gemini/gemini-tts-config'
+import { getSpeakerVoice, isMultiSpeakerRequested, normalizeDialogueFromOptions, parseSpeakerVoiceMappings } from '../dialogue-normalizer'
 import { planElevenLabsNativeDialogueBatches } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
 import { planHumeNativeUtteranceBatches } from '../tts-services/hume/hume-native-utterances'
 import { isFishNativeDialogueModel, planFishNativeDialogueBatches } from '../tts-services/fish/fish-tts-request'
@@ -64,31 +62,12 @@ export const resolveGenericTurns = (
 }
 
 export const resolveGenericNativeGroups = (
-  options: CreateCurrentTtsRenderAttemptOptions,
   turns: AttemptTurn[],
   registry: ReturnType<typeof parseSpeakerVoiceMappings>,
-  limit: number,
-  geminiNative: boolean,
   elevenLabsNative: boolean,
   humeNative: boolean,
-  fishNative: boolean,
-  normalizedDialogue: ReturnType<typeof normalizeDialogueFromOptions> | undefined
+  fishNative: boolean
 ): Array<{ turnIds: string[], providerTexts: string[] }> => {
-  if (geminiNative) {
-    let nativeTurnCursor = 0
-    const groups = splitGeminiNativeDialogueText(normalizedDialogue?.normalizedText ?? '', registry, limit).map((providerText) => {
-      const chunkDialogue = normalizeDialogueText(providerText, resolveDialogueFormat(options.ttsOptions), registry)
-      const groupedTurns = turns.slice(nativeTurnCursor, nativeTurnCursor + chunkDialogue.turns.length)
-      if (
-        groupedTurns.length !== chunkDialogue.turns.length
-        || groupedTurns.some((turn, index) => turn.canonical.canonicalText !== chunkDialogue.turns[index]?.text || turn.canonical.subjectKey !== chunkDialogue.turns[index]?.speaker)
-      ) throw UsageError('Gemini native dialogue partition did not preserve exact normalized turn boundaries.')
-      nativeTurnCursor += groupedTurns.length
-      return { turnIds: groupedTurns.map((turn) => turn.canonical.turnId), providerTexts: [providerText] }
-    })
-    if (nativeTurnCursor !== turns.length) throw UsageError('Gemini native dialogue partition omitted normalized turns.')
-    return groups
-  }
   if (elevenLabsNative) {
     return planElevenLabsNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: getSpeakerVoice(registry, turn.canonical.originalSpeakerLabel).voice }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
   }
@@ -131,18 +110,15 @@ export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions,
 
   const normalizedDialogue = registry ? normalizeDialogueFromOptions(options.sourceText, options.ttsOptions) : undefined
   const hasNativeBlockingIntent = canonicalTurns.some(turn => turn.delivery !== undefined || turn.effect !== undefined)
-  const geminiNative = options.target.service === 'gemini' && registry
-    ? !hasProviderTurnControls && !hasNativeBlockingIntent && resolveGeminiDialogueStrategyForText(normalizedDialogue?.normalizedText ?? '', registry, TTS_CHUNK_CHARACTER_LIMITS.gemini, 'auto') === 'native'
-    : false
   const elevenLabsNative = options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3' && registry !== undefined && !hasProviderTurnControls && !hasNativeBlockingIntent
   const humeNative = options.target.service === 'hume' && options.target.model === 'octave-2' && registry !== undefined && !hasProviderTurnControls && !hasNativeBlockingIntent && canonicalTurns.reduce((sum, turn) => sum + [...turn.canonicalText].length, 0) <= 5000
   const fishNative = options.target.service === 'fish' && isFishNativeDialogueModel(options.target.model) && registry !== undefined && !hasProviderTurnControls
-  const native = geminiNative || elevenLabsNative || humeNative || fishNative
+  const native = elevenLabsNative || humeNative || fishNative
   const strategy: ProviderRenderStrategy = native ? humeNative ? 'native-utterances' : 'native-dialogue' : 'segmented'
   const limit = chunkLimit(options.target)
 
   const nativeGroups = native && registry
-    ? resolveGenericNativeGroups(options, turns, registry, limit, geminiNative, elevenLabsNative, humeNative, fishNative, normalizedDialogue)
+    ? resolveGenericNativeGroups(turns, registry, elevenLabsNative, humeNative, fishNative)
     : []
   const slotGroups: Array<{ turnIds: string[], providerTexts: string[] }> = native
     ? nativeGroups

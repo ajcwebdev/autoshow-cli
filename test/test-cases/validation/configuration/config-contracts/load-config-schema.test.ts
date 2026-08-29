@@ -57,16 +57,16 @@ describe('config load schema contracts', () => {
         image: {
           bflImage: ['flux-2-pro'],
           replicateImage: ['wan-video/wan-2.7-image'],
-          imageFormat: 'jpeg'
+          format: 'jpeg'
         },
         video: {
           replicateVideo: ['bytedance/seedance-2.0-fast'],
           replicateVideoSeed: 123,
-          videoGenerateAudio: false,
-          videoReferenceVideos: ['input/examples/video/reference.mp4'],
-          videoReferenceAudios: ['input/examples/audio/reference.mp3'],
+          generateAudio: false,
+          referenceVideos: ['input/examples/video/reference.mp4'],
+          referenceAudios: ['input/examples/audio/reference.mp3'],
           replicateVideoNegativePrompt: 'blur',
-          videoDuration: -1
+          duration: -1
         }
       }
     }
@@ -111,5 +111,12 @@ describe('config load schema contracts', () => {
     await expect(loadConfig(versionConfig)).rejects.toThrow('autoshow config')
     await expect(loadConfig(scalarConfig)).rejects.toThrow('autoshow config')
     await expect(loadConfig(pricingConfig)).rejects.toThrow('autoshow config')
+  })
+
+  test('obsolete TTS provider keys fail with migration guidance', async () => {
+    for (const key of ['groqTts', 'geminiTts', 'deepgramTts', 'replicateTts', 'falTts']) {
+      const configPath = await writeTempConfig({ defaults: { tts: { [key]: ['historical-model'] } } })
+      await expect(loadConfig(configPath)).rejects.toThrow(`TTS provider configuration ${key} is no longer supported.`)
+    }
   })
 })

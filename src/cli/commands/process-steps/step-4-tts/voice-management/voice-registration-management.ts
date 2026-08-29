@@ -282,7 +282,7 @@ const planMistralSavedReferenceRegistration = async (input: {
     providerModel: input.providerModel,
     sourceIdentityHash: planned.protectedAsset.sha256
   })
-  const attemptId = `vp_${hashCanonicalTtsValue({ registrationId, operation: 'save-reference' }).slice(0, 40)}`
+  const attemptId = `vp_${hashCanonicalTtsValue({ registrationId, operation: 'clone' }).slice(0, 40)}`
   return { registrationId, attemptId, slug: `autoshow-${attemptId.replace(/_/g, '-')}`, source: planned.protectedAsset, estimatedCostCents: 0 }
 }
 
@@ -394,10 +394,10 @@ export const provisionMistralSavedReferenceRegistration = async (input: {
       schemaVersion: 1,
       attemptId: plan.attemptId,
       registrationDraftId: plan.registrationId,
-      operation: 'save-reference',
+      operation: 'clone',
       accountScopeHash,
       lockLeaseId: `lease_${crypto.randomUUID().replace(/-/g, '')}`,
-      requestFingerprint: hashCanonicalTtsValue({ provider: 'mistral', operation: 'save-reference', name: input.voiceName, slug: plan.slug, sourceSha256: plan.source.sha256, languages: input.languages ?? [] }),
+      requestFingerprint: hashCanonicalTtsValue({ provider: 'mistral', operation: 'clone', name: input.voiceName, slug: plan.slug, sourceSha256: plan.source.sha256, languages: input.languages ?? [] }),
       protectedRequestEvidence: materialized.protectedAsset,
       reconciliation: { strategy: 'provider-search', providerHandle: plan.slug, protectedLookupEvidence: lookupEvidence },
       transitions: [{ sequence: 1, phase: 'prepared', at: pending.createdAt }],

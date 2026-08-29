@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from 'bun:test'
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { CharacterVoiceBrief, VoiceProvisioningAttempt } from '~/types'
+import type { CharacterVoiceBrief, ProviderVoiceRef, TtsProvider, VoiceProvisioningAttempt } from '~/types'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import {
   appendVoiceRegistration,
@@ -11,9 +11,17 @@ import {
 } from '~/cli/commands/process-steps/step-4-tts/voice-management/character-voice-registry'
 import { MANAGED_VOICE_STORE_ROOT } from '~/cli/commands/process-steps/step-4-tts/voice-management/managed-voice-store'
 import { AMBIGUOUS_VOICE_REDISPATCH_MESSAGE } from '~/cli/commands/process-steps/step-4-tts/voice-management/fish-voice-reconciliation'
+import {
+  CLONE_PROVIDERS,
+  DESIGN_PROVIDERS,
+  VOICE_CATALOG_PROVIDERS,
+  VOICE_LIFECYCLE_PROVIDERS,
+  VOICE_PROVIDERS,
+} from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-command-support'
 import { writeVoiceCandidate } from '~/cli/commands/process-steps/step-4-tts/voice-management/advanced-voice-management'
 import { computeVoiceCandidateId } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-management-contracts'
 import { buildReadyVoiceRegistrationDraft } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-registration-management'
+import { planCanonicalVoiceAudition } from '~/cli/commands/process-steps/step-4-tts/voice-management/canonical-voice-audition'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { captureLogEvents } from '../../../../test-utils/console-capture'
@@ -103,26 +111,21 @@ afterEach(() => {
   configureCharactersRoot('input/characters')
 })
 
-test('voice rejects providers outside the managed five-model surface', async () => {
-  await rejectVoice(
-    ['voice', 'import', 'hero', '--provider', 'openai', '--model', 'gpt-4o-mini-tts-2025-12-15', '--voice-id', 'cedar', '--provenance-ref', 'project:casting', '--price'],
-    'Unknown voice provider openai. Expected: elevenlabs, inworld, fish, cartesia, speechify.'
-  )
-  await rejectVoice(
-    ['voice', 'list', '--provider', 'hume', '--price'],
-    'Unknown voice provider hume. Expected: elevenlabs, inworld, fish, cartesia, speechify.'
-  )
+test('voice capability sets match the active provider policy and reject retired TTS providers', async () => {
+  expect(VOICE_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'grok', 'mistral', 'openai', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra'])
+  expect(VOICE_CATALOG_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'grok', 'mistral', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra'])
+  expect(VOICE_LIFECYCLE_PROVIDERS).toEqual(VOICE_CATALOG_PROVIDERS)
+  expect(DESIGN_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'hume', 'fish', 'inworld', 'deepinfra'])
+  expect(CLONE_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'grok', 'mistral', 'cartesia', 'fish', 'inworld', 'deepinfra'])
+  for (const provider of ['groq', 'gemini', 'deepgram', 'replicate', 'fal']) {
+    await rejectVoice(
+      ['voice', 'import', 'hero', '--provider', provider, '--model', 'retired-model', '--voice-id', 'retired-voice', '--provenance-ref', 'project:casting', '--price'],
+      `${provider} is no longer supported for TTS or voice management.`
+    )
+  }
   await rejectVoice(
     ['voice', 'list', '--provider', 'inworld', '--cursor', 'next'],
-    'inworld voice discovery is not paginated and does not accept --cursor.'
-  )
-  await rejectVoice(
-    ['voice', 'design', 'hero', '--provider', 'minimax', '--model', 'speech-2.8-hd', '--creation-model', 'voice-design', '--description', 'Warm, weathered guide', '--preview-text', 'A short representative passage.', '--price'],
-    'Unknown voice provider minimax. Expected: elevenlabs, inworld, fish, cartesia, speechify.'
-  )
-  await rejectVoice(
-    ['voice', 'clone', 'hero', '--provider', 'deepinfra', '--model', 'Qwen/Qwen3-TTS', '--voice-name', 'Hero', '--sample', 'input/examples/audio/anthony-voice.mp3', '--authorization-ref', 'project:casting', '--consent-ref', 'protected-consent:v1:ID', '--provenance-ref', 'project:casting', '--price'],
-    'Unknown voice provider deepinfra. Expected: elevenlabs, inworld, fish, cartesia, speechify.'
+    'Inworld voice catalog is not paginated.'
   )
   expectUnknownCommand(
     ['voice', 'save-reference', 'hero', '--model', 'voxtral-mini-tts-2603', '--price'],
@@ -130,10 +133,119 @@ test('voice rejects providers outside the managed five-model surface', async () 
   )
 })
 
+test('voice import and zero-call catalog validation accept their exact capability sets', async () => {
+  const root = await makeTempRoot('autoshow-voice-capability-matrix-')
+  configureCharactersRoot(root)
+  await writeCharacterVoiceBriefCatalog(root, { schemaVersion: 1, briefs: [brief] })
+  const imports = [
+    ['elevenlabs', 'eleven_v3', 'hpp4J3VqNfWAUOO0d1Us'],
+    ['minimax', 'speech-2.8-hd', 'English_expressive_narrator'],
+    ['grok', 'grok-tts', 'eve'],
+    ['mistral', 'voxtral-mini-tts-2603', 'voice-existing'],
+    ['openai', 'gpt-4o-mini-tts-2025-12-15', 'alloy'],
+    ['speechify', 'simba-3.2', 'geffen_32'],
+    ['hume', 'octave-2', 'Male English Actor'],
+    ['cartesia', 'sonic-3.5-2026-05-04', 'f786b574-daa5-4673-aa0c-cbe3e8534c02'],
+    ['fish', 's2.1-pro', '7f92f8afb8ec43bf81429cc1c9199cb1'],
+    ['inworld', 'realtime-tts-2', 'voice_inworld_standard_en'],
+    ['deepinfra', 'Qwen/Qwen3-TTS', 'voice-existing'],
+  ] as const
+  for (const [provider, model, voiceId] of imports) {
+    const logs = await captureLogs(async () => {
+      const parsed = parseRoot(['voice', 'import', 'hero', '--provider', provider, '--model', model, '--voice-id', voiceId, '--provenance-ref', 'project:casting', '--price'])
+      await parsed.command!.handler(asCtx(parsed))
+    })
+    expect(JSON.parse(logs.at(-1) ?? '{}')).toMatchObject({ dryRun: true, operation: 'voice-import', provider, model, mutation: false })
+  }
+  for (const provider of VOICE_CATALOG_PROVIDERS) {
+    const logs = await captureLogs(async () => {
+      const parsed = parseRoot(['voice', 'list', '--provider', provider, '--price'])
+      await parsed.command!.handler(asCtx(parsed))
+    })
+    expect(JSON.parse(logs.at(-1) ?? '{}')).toMatchObject({ dryRun: true, operation: 'voice-discover', provider, providerCalls: 0, mutation: false })
+  }
+  await rejectVoice(['voice', 'list', '--provider', 'openai', '--price'], 'openai does not expose remote voice catalog or lifecycle operations.')
+  await rejectVoice(
+    ['voice', 'import', 'hero', '--provider', 'grok', '--model', 'grok-tts', '--voice-id', 'a1b2c3d4', '--origin', 'imported-custom', '--provenance-ref', 'project:casting', '--price'],
+    'Account voice import requires a non-secret account scope hash.'
+  )
+})
+
+test('voice design price planning accepts exactly the six design-capable providers without dispatch', async () => {
+  const root = await makeTempRoot('autoshow-voice-design-capabilities-')
+  configureCharactersRoot(root)
+  await writeCharacterVoiceBriefCatalog(root, { schemaVersion: 1, briefs: [brief] })
+  const designs = [
+    ['elevenlabs', 'eleven_v3', 'eleven_ttv_v3'],
+    ['minimax', 'speech-2.8-hd', 'voice-design'],
+    ['hume', 'octave-2', 'octave-1'],
+    ['fish', 's2.1-pro', 'voice-design-1'],
+    ['inworld', 'realtime-tts-2', 'realtime-tts-2'],
+    ['deepinfra', 'Qwen/Qwen3-TTS', 'Qwen/Qwen3-TTS-VoiceDesign'],
+  ] as const
+  const description = 'Warm, grounded narrator with a clear midrange and restrained delivery.'
+  const previewText = 'Morning light crossed the quiet station while a distant bell marked the hour, and the guide calmly prepared everyone for the road ahead.'
+  for (const [provider, model, creationModel] of designs) {
+    const logs = await captureLogs(async () => {
+      const parsed = parseRoot(['voice', 'design', 'hero', '--provider', provider, '--model', model, '--creation-model', creationModel, '--description', description, '--preview-text', previewText, '--candidates', '1', '--price'])
+      await parsed.command!.handler(asCtx(parsed))
+    })
+    expect(JSON.parse(logs.at(-1) ?? '{}')).toMatchObject({ dryRun: true, provider, providerModel: model, creationModel, mutation: false, providerCalls: 0 })
+  }
+})
+
+test('canonical audition planning resolves every active TTS provider', () => {
+  const providers = [
+    ['elevenlabs', 'eleven_v3', 'hpp4J3VqNfWAUOO0d1Us'],
+    ['minimax', 'speech-2.8-hd', 'English_expressive_narrator'],
+    ['grok', 'grok-tts', 'eve'],
+    ['mistral', 'voxtral-mini-tts-2603', 'voice-existing'],
+    ['openai', 'gpt-4o-mini-tts-2025-12-15', 'alloy'],
+    ['speechify', 'simba-3.2', 'geffen_32'],
+    ['hume', 'octave-2', 'Male English Actor'],
+    ['cartesia', 'sonic-3.5-2026-05-04', 'f786b574-daa5-4673-aa0c-cbe3e8534c02'],
+    ['fish', 's2.1-pro', '7f92f8afb8ec43bf81429cc1c9199cb1'],
+    ['inworld', 'realtime-tts-2', 'voice_inworld_standard_en'],
+    ['deepinfra', 'Qwen/Qwen3-TTS', 'voice-existing'],
+  ] as const satisfies ReadonlyArray<readonly [TtsProvider, string, string]>
+
+  for (const [provider, model, resourceId] of providers) {
+    const providerVoice: ProviderVoiceRef = {
+      kind: 'remote-resource',
+      provider,
+      resourceId,
+      namespace: 'provider',
+      origin: 'provider-stock',
+      ownership: 'provider',
+      deletion: { state: 'provider-managed', checkedAt: '2026-08-11T00:00:00.000Z' }
+    }
+    const registration = buildReadyVoiceRegistrationDraft({
+      subjectKey: brief.subjectKey,
+      profileKey: brief.profileKey,
+      provider,
+      providerModel: model,
+      providerVoice,
+      brief,
+      provenanceRef: 'project:casting',
+      capabilityFixtureHash: 'b'.repeat(64),
+      createdAt: '2026-08-11T00:00:00.000Z'
+    })
+    const plan = planCanonicalVoiceAudition(registration, brief, 'We leave at dawn.')
+    expect(plan.passages).toHaveLength(6)
+    expect(plan.characterCount).toBeGreaterThan(0)
+  }
+})
+
+test('voice clone explains each intentionally deferred workflow', async () => {
+  await rejectVoice(['voice', 'clone', 'hero', '--provider', 'hume', '--price'], 'Hume voice cloning is performed in the Hume platform.')
+  await rejectVoice(['voice', 'clone', 'hero', '--provider', 'openai', '--price'], 'OpenAI voice cloning is deferred because creation requires a separate consent resource')
+  await rejectVoice(['voice', 'clone', 'hero', '--provider', 'speechify', '--price'], 'Speechify voice cloning is deferred because the current workflow requires a challenge phrase and a separate consent recording.')
+})
+
 test('voice design rejects catalog-only providers and unknown synthesis models', async () => {
   await rejectVoice(
     ['voice', 'design', 'hero', '--provider', 'cartesia', '--model', 'sonic-3.5-2026-05-04', '--creation-model', 'voice-design', '--description', 'Warm, weathered guide', '--preview-text', 'A short representative passage.', '--price'],
-    'Voice Design currently supports elevenlabs, fish, inworld; the selected provider has no implemented text-prompt design adapter.'
+    'Voice Design currently supports elevenlabs, minimax, hume, fish, inworld, deepinfra; the selected provider has no implemented text-prompt design adapter.'
   )
   await rejectVoice(
     ['voice', 'import', 'hero', '--provider', 'elevenlabs', '--model', 'eleven_multilingual_v2', '--voice-id', 'hpp4J3VqNfWAUOO0d1Us', '--provenance-ref', 'project:casting', '--price'],
@@ -290,6 +402,18 @@ test('voice audition --approve requires actor-id and does not approve on --price
   const payload = JSON.parse(logs.at(-1) ?? '{}') as { operation?: string, state?: string }
   expect(payload.operation).toBe('voice-audition')
   expect(payload.state).toBeUndefined()
+
+  const auditioned = await writeDraft(root, 'voice-2', {
+    registrationId: 'vr_auditioned',
+    createdAt: '2026-08-11T00:03:00.000Z',
+    approval: { state: 'auditioned', auditionId: 'd'.repeat(64) }
+  })
+  const approveLogs = await captureLogs(async () => {
+    const parsed = parseRoot(['voice', 'approve', auditioned.registrationId, '--generation-id', auditioned.generationId, '--actor-id', 'casting_editor', '--price'])
+    await parsed.command!.handler(asCtx(parsed))
+  })
+  expect(JSON.parse(approveLogs.at(-1) ?? '{}')).toMatchObject({ dryRun: true, operation: 'voice-approve', mutation: false, providerCalls: 0 })
+  expect((await resolveRegistrationGeneration(root, auditioned.registrationId, auditioned.generationId)).approval.state).toBe('auditioned')
 })
 
 test('voice consent grant stays deny-by-default and revoke uses --revoke', async () => {
@@ -313,6 +437,16 @@ test('voice consent grant stays deny-by-default and revoke uses --revoke', async
     ['voice', 'consent', '--revoke', 'protected-consent:v1:STORE:ASSET:SHA256', '--reason', 'Authorization withdrawn'],
     '--actor-id is required.'
   )
+  const grantLogs = await captureLogs(async () => {
+    const parsed = parseRoot(['voice', 'consent', 'hero', '--provenance-ref', 'release:hero-v1', '--allow', 'upload,new-synthesis', '--actor-id', 'casting_editor', '--price'])
+    await parsed.command!.handler(asCtx(parsed))
+  })
+  expect(JSON.parse(grantLogs.at(-1) ?? '{}')).toMatchObject({ dryRun: true, operation: 'voice-consent', mutation: false })
+  const revokeLogs = await captureLogs(async () => {
+    const parsed = parseRoot(['voice', 'consent', '--revoke', 'protected-consent:v1:STORE:ASSET:SHA256', '--reason', 'Authorization withdrawn', '--actor-id', 'casting_editor', '--price'])
+    await parsed.command!.handler(asCtx(parsed))
+  })
+  expect(JSON.parse(revokeLogs.at(-1) ?? '{}')).toMatchObject({ dryRun: true, operation: 'voice-consent-revoke', mutation: false, providerCalls: 0 })
 })
 
 test('voice retire without reason does not revoke, and --reason matches revoke', async () => {
@@ -323,6 +457,12 @@ test('voice retire without reason does not revoke, and --reason matches revoke',
     approval: approvedState,
     approvedAuditionId: approvedState.auditionId
   })
+  const priceLogs = await captureLogs(async () => {
+    const parsed = parseRoot(['voice', 'retire', retired.registrationId, '--generation-id', retired.generationId, '--price'])
+    await parsed.command!.handler(asCtx(parsed))
+  })
+  expect(JSON.parse(priceLogs.at(-1) ?? '{}')).toMatchObject({ dryRun: true, operation: 'voice-retire', mutation: false, providerCalls: 0, state: 'retired' })
+  expect((await resolveRegistrationGeneration(root, retired.registrationId, retired.generationId)).approval.state).toBe('approved')
   const retiredLogs = await captureLogs(async () => {
     const parsed = parseRoot(['voice', 'retire', retired.registrationId])
     await parsed.command!.handler(asCtx(parsed))
@@ -486,7 +626,7 @@ test('voice list completes an unambiguous journal and refuses an ambiguous one u
     await rejectVoice(['voice', 'list', ambiguousDraft.registrationId], AMBIGUOUS_VOICE_REDISPATCH_MESSAGE)
     await rejectVoice(
       ['voice', 'list', ambiguousDraft.registrationId, '--reconcile'],
-      'Fish provisioning journal has no safe reconciliation lookup handle; refuse to recreate the model.'
+      'Fish reconciliation credentials do not match the provisioning account scope.'
     )
   } finally {
     await rm(ambiguousRoot, { recursive: true, force: true })
@@ -509,6 +649,33 @@ test('voice clone is instant-only and no longer accepts a clone-kind selector', 
 test('voice list --reconcile without a registration id is rejected', async () => {
   await rejectVoice(['voice', 'list', '--reconcile'], '--reconcile requires a registration id.')
   await rejectVoice(['voice', 'design', 'hero', '--reconcile', '--provider', 'elevenlabs', '--price'], '--reconcile is only valid with --save.')
+})
+
+test('Hume remote deletion requires an exact expected name even in price mode', async () => {
+  const root = await makeTempRoot('autoshow-voice-hume-delete-')
+  configureCharactersRoot(root)
+  await writeCharacterVoiceBriefCatalog(root, { schemaVersion: 1, briefs: [brief] })
+  const providerVoice = {
+    kind: 'remote-resource' as const,
+    provider: 'hume' as const,
+    resourceId: 'hume-custom-voice-id',
+    namespace: 'account' as const,
+    accountScopeHash: 'a'.repeat(64),
+    origin: 'designed' as const,
+    ownership: 'project' as const,
+    deletion: { state: 'eligible' as const, checkedAt: '2026-08-11T00:00:00.000Z' }
+  }
+  const draft = buildReadyVoiceRegistrationDraft({
+    registrationId: 'vr_humedelete', subjectKey: 'hero', profileKey: 'default', provider: 'hume', providerModel: 'octave-2', providerVoice,
+    brief, provenanceRef: 'project:casting', capabilityFixtureHash: 'b'.repeat(64), createdAt: '2026-08-11T00:00:00.000Z'
+  })
+  await appendVoiceRegistration(root, draft)
+  await rejectVoice(['voice', 'delete', draft.registrationId, '--confirm-voice-id', providerVoice.resourceId, '--price'], 'Hume deletion requires --expected-name')
+  const logs = await captureLogs(async () => {
+    const parsed = parseRoot(['voice', 'delete', draft.registrationId, '--confirm-voice-id', providerVoice.resourceId, '--expected-name', 'Hero Guide', '--price'])
+    await parsed.command!.handler(asCtx(parsed))
+  })
+  expect(JSON.parse(logs.at(-1) ?? '{}')).toMatchObject({ dryRun: true, operation: 'voice-delete', mutation: false, resourceId: providerVoice.resourceId })
 })
 
 test('unambiguous journals complete on design --save, clone, and delete without --reconcile', async () => {

@@ -8,6 +8,7 @@ import { recordVoiceProvisioningOutcome } from './character-voice-registry'
 import { listVoiceProvisioningAttempts, loadVoiceProvisioningAttempt, reconcileVoiceProvisioningAttempt, requireVoiceProvisioningReconciliation } from './provisioning-journal'
 import { MANAGED_VOICE_STORE_ROOT } from './managed-voice-store'
 import { resolveCredential } from '~/utils/validate/env-utils'
+import { createGrokAdvancedProvider } from '../tts-services/tts-grok/grok-advanced-provider'
 
 export const AMBIGUOUS_VOICE_REDISPATCH_MESSAGE =
   'Voice provisioning may have reached the provider; automatic redispatch is blocked pending reconciliation. Pass --reconcile to safely complete the durable attempt without recreating the voice.'
@@ -46,7 +47,7 @@ const loadPendingVoiceProvisioningAttempt = async (
   return attempts.find(attempt => classifyProvisioningJournal(attempt) !== 'none')
 }
 
-const issuedFishResource = (
+const issuedProviderResource = (
   attempt: VoiceProvisioningAttempt,
   registration: Pick<VoiceRegistration, 'provider'>
 ): VoiceIssuedResource | undefined =>
@@ -87,6 +88,42 @@ const searchFishIssuedResource = async (
   } satisfies VoiceIssuedResource
 }
 
+const searchGrokIssuedResource = async (
+  attempt: VoiceProvisioningAttempt,
+  registration: Pick<VoiceRegistration, 'provider' | 'provisioning'>,
+  apiKey: string
+): Promise<VoiceIssuedResource | undefined> => {
+  const marker = attempt.reconciliation?.strategy === 'provider-search' ? attempt.reconciliation.providerHandle : undefined
+  if (!marker) throw UsageError('Grok provisioning journal has no deterministic attempt marker; refuse to recreate the voice.')
+  const provider = createGrokAdvancedProvider({ apiKey })
+  if (!provider.catalog) throw UsageError('Grok voice catalog adapter is unavailable for reconciliation.')
+  let cursor: string | undefined
+  const matches = []
+  for (let pageNumber = 0; pageNumber < 1000; pageNumber += 1) {
+    const page = await provider.catalog.list({ source: 'account', ...(cursor ? { cursor } : {}) })
+    matches.push(...page.entries.filter(entry => entry.description?.includes(marker)))
+    if (!page.nextCursor) break
+    cursor = page.nextCursor
+    if (pageNumber === 999) throw UsageError('Grok reconciliation pagination exceeded its safety limit.')
+  }
+  if (matches.length > 1) throw UsageError('Grok reconciliation found multiple custom voices with the durable attempt marker.')
+  const match = matches[0]
+  if (!match) return undefined
+  const checkedAt = new Date().toISOString()
+  return {
+    providerVoice: {
+      kind: 'remote-resource', provider: 'grok', resourceId: match.resourceId, namespace: 'account',
+      accountScopeHash: attempt.accountScopeHash,
+      origin: registration.provisioning.state === 'ready' && registration.provisioning.providerVoice.kind === 'remote-resource'
+        ? registration.provisioning.providerVoice.origin
+        : 'instant-clone',
+      ownership: 'project', deletion: { state: 'eligible', checkedAt },
+    },
+    observedAt: checkedAt,
+    sanitizedResponseHash: hashCanonicalTtsValue({ provider: 'grok', voiceId: match.resourceId, marker }),
+  }
+}
+
 export const finalizePendingVoiceProvisioningAttempt = async (input: {
   attempt: VoiceProvisioningAttempt
   registration: Pick<VoiceRegistration, 'provider' | 'provisioning' | 'sanitizedProviderMetadata'>
@@ -101,20 +138,17 @@ export const finalizePendingVoiceProvisioningAttempt = async (input: {
   let attempt = input.attempt
   if (attempt.outcome === undefined) attempt = await requireVoiceProvisioningReconciliation(root, attempt.registrationDraftId, attempt.attemptId)
   if (attempt.outcome?.state !== 'reconciliation-required') return attempt
-  let issued = issuedFishResource(attempt, input.registration)
+  let issued = issuedProviderResource(attempt, input.registration)
   if (!issued) {
-    if (input.registration.provider !== 'fish') throw UsageError('Voice reconcile currently supports fish; other providers return unsupported until their adapter is implemented.')
-    const title = attempt.reconciliation?.strategy === 'provider-search'
-      ? attempt.reconciliation.providerHandle
-      : typeof input.registration.sanitizedProviderMetadata['desiredName'] === 'string'
-        ? input.registration.sanitizedProviderMetadata['desiredName']
-        : undefined
-    if (!title) throw UsageError('Fish provisioning journal has no safe reconciliation lookup handle; refuse to recreate the model.')
-    const apiKey = resolveCredential('fish', 'require', { stage: 'voice:fish', providedValue: input.apiKey, useProvidedValue: true, description: 'Fish model reconciliation' })
-    if (providerAccountScopeHash('fish', apiKey) !== attempt.accountScopeHash) {
-      throw UsageError('Fish reconciliation credentials do not match the provisioning account scope.')
+    if (input.registration.provider !== 'fish' && input.registration.provider !== 'grok') throw UsageError('Voice reconciliation is unavailable for this provider.')
+    const provider = input.registration.provider
+    const apiKey = resolveCredential(provider, 'require', { stage: `voice:${provider}`, providedValue: input.apiKey, useProvidedValue: true, description: `${provider === 'grok' ? 'Grok voice' : 'Fish model'} reconciliation` })
+    if (providerAccountScopeHash(provider, apiKey) !== attempt.accountScopeHash) {
+      throw UsageError(`${provider === 'grok' ? 'Grok' : 'Fish'} reconciliation credentials do not match the provisioning account scope.`)
     }
-    issued = await searchFishIssuedResource(attempt, input.registration as VoiceRegistration, apiKey)
+    issued = provider === 'grok'
+      ? await searchGrokIssuedResource(attempt, input.registration, apiKey)
+      : await searchFishIssuedResource(attempt, input.registration as VoiceRegistration, apiKey)
   }
   if (issued) {
     return await reconcileVoiceProvisioningAttempt({
@@ -131,7 +165,7 @@ export const finalizePendingVoiceProvisioningAttempt = async (input: {
     journalRoot: root,
     registrationDraftId: attempt.registrationDraftId,
     attemptId: attempt.attemptId,
-    outcome: { state: 'failed', code: 'reconciliation-not-found', message: 'No Fish voice model matched the durable provisioning handle.' },
+    outcome: { state: 'failed', code: 'reconciliation-not-found', message: `No ${input.registration.provider === 'grok' ? 'Grok custom voice' : 'Fish voice model'} matched the durable provisioning handle.` },
     evidenceHash,
   })
 }
