@@ -37,7 +37,7 @@ Selectors use `provider[=model]`. Repeat a flag to run more than one provider. F
 | OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `fal`, `replicate`.                                                   |
 | URL   | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`.                                                                                                                                      |
 | LLM   | Hosted: `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`. Write has no local LLM.                                                                                       |
-| TTS   | Hosted: `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`.                                         |
+| TTS   | Hosted: `elevenlabs`, `minimax`, `grok`, `mistral`, `openai`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`.                                                                                         |
 | Image | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                       |
 | Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                                 |
 | Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                                       |
@@ -72,7 +72,7 @@ Hosted commands require the matching environment variable:
 | ------------------------ | ------------------------------------------ |
 | `OPENAI_API_KEY`         | OpenAI write/OCR/TTS/image                 |
 | `XAI_API_KEY`            | Grok write/STT/OCR/TTS/image/video         |
-| `GEMINI_API_KEY`         | Gemini write/STT/OCR/TTS/image/video/music |
+| `GEMINI_API_KEY`         | Gemini write/STT/OCR/image/video/music     |
 | `GLM_API_KEY`            | GLM write/OCR                              |
 | `KIMI_API_KEY`           | Kimi write/OCR                             |
 | `CEREBRAS_API_KEY`       | Cerebras write                             |
@@ -80,17 +80,17 @@ Hosted commands require the matching environment variable:
 | `MISTRAL_API_KEY`        | Mistral STT/OCR/TTS                        |
 | `BFL_API_KEY`            | BFL image                                  |
 | `LUMA_AGENTS_API_KEY`    | Luma Labs image/video                      |
-| `FAL_API_KEY`            | fal.ai image/video/TTS                     |
+| `FAL_API_KEY`            | fal.ai image/video                         |
 | `STABILITY_API_KEY`      | Stability AI sound effects                 |
-| `REPLICATE_API_TOKEN`    | Replicate image/video/TTS                  |
+| `REPLICATE_API_TOKEN`    | Replicate image/video                      |
 | `ANTHROPIC_API_KEY`      | Anthropic write/OCR                        |
-| `GROQ_API_KEY`           | Groq write/STT/TTS                         |
+| `GROQ_API_KEY`           | Groq write/STT                             |
 | `DEEPINFRA_API_KEY`      | DeepInfra STT/OCR/TTS                      |
 | `MINIMAX_API_KEY`        | MiniMax write/TTS/music                    |
 | `ELEVENLABS_API_KEY`     | ElevenLabs TTS/music                       |
 | `ASSEMBLYAI_API_KEY`     | AssemblyAI STT                             |
 | `GLADIA_API_KEY`         | Gladia STT                                 |
-| `DEEPGRAM_API_KEY`       | Deepgram STT/TTS                           |
+| `DEEPGRAM_API_KEY`       | Deepgram STT                               |
 | `SPEECHIFY_API_KEY`      | Speechify TTS                              |
 | `HUME_API_KEY`           | Hume TTS                                   |
 | `CARTESIA_API_KEY`       | Cartesia TTS                               |

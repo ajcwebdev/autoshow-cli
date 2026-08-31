@@ -1,15 +1,10 @@
 import type { TtsOptions, TtsTarget, TtsTargetSelection } from '~/types'
-import { collectDeepgramTtsTargets } from '../tts-services/tts-deepgram/deepgram-tts-targets'
 import { collectElevenLabsTtsTargets } from '../tts-services/tts-elevenlabs/elevenlabs-tts-targets'
 import { collectCartesiaTtsTargets } from '../tts-services/cartesia/cartesia-tts-targets'
 import { collectFishTtsTargets } from '../tts-services/fish/fish-tts-targets'
 import { collectInworldTtsTargets } from '../tts-services/inworld/inworld-tts-targets'
 import { collectDeepinfraTtsTargets } from '../tts-services/tts-deepinfra/deepinfra-tts-targets'
-import { collectReplicateTtsTargets } from '../tts-services/tts-replicate/replicate-tts-targets'
-import { collectFalTtsTargets } from '../tts-services/tts-fal/fal-tts-targets'
-import { collectGeminiTtsTargets } from '../tts-services/tts-gemini/gemini-tts-targets'
 import { collectGrokTtsTargets } from '../tts-services/tts-grok/grok-tts-targets'
-import { collectGroqTtsTargets } from '../tts-services/tts-groq/groq-tts-targets'
 import { collectHumeTtsTargets } from '../tts-services/hume/hume-tts-targets'
 import { collectMinimaxTtsTargets } from '../tts-services/tts-minimax/minimax-tts-targets'
 import { collectMistralTtsTargets } from '../tts-services/tts-mistral/mistral-tts-targets'
@@ -18,7 +13,6 @@ import { collectSpeechifyTtsTargets } from '../tts-services/speechify/speechify-
 import { createTtsTargetSelection } from './tts-target-selection'
 import { validateTtsTargetSelection } from './target-validation'
 import { getMultiSpeakerStrategy } from './multi-speaker-capability'
-import { resolveGeminiDialogueStrategy } from '../tts-services/tts-gemini/gemini-tts-config'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { UsageError } from '~/utils/error-handler'
 import { getMistralProtectedReference, getMistralProtectedSpeakerReferences } from '../voice-assets/mistral-protected-reference-binding'
@@ -48,20 +42,15 @@ export const collectTtsTargets = (options: TtsOptions): TtsTarget[] => {
   const collected: TtsTarget[] = [
     ...collectElevenLabsTtsTargets(selection),
     ...collectMinimaxTtsTargets(selection),
-    ...collectGroqTtsTargets(selection),
     ...collectGrokTtsTargets(selection),
     ...collectMistralTtsTargets(selection, mistralProtectedReference, mistralProtectedSpeakerReferences),
     ...collectOpenAITtsTargets(selection),
-    ...collectGeminiTtsTargets(selection),
-    ...collectDeepgramTtsTargets(selection),
     ...collectSpeechifyTtsTargets(selection),
     ...collectHumeTtsTargets(selection),
     ...collectCartesiaTtsTargets(selection),
     ...collectFishTtsTargets(selection),
     ...collectInworldTtsTargets(selection),
-    ...collectDeepinfraTtsTargets(selection),
-    ...collectReplicateTtsTargets(selection),
-    ...collectFalTtsTargets(selection)
+    ...collectDeepinfraTtsTargets(selection)
   ]
 
   const targets = collected.map((target): TtsTarget => {
@@ -82,9 +71,7 @@ export const collectTtsTargets = (options: TtsOptions): TtsTarget[] => {
 
   if (selection.multiSpeakerRequested) {
     for (const target of targets) {
-      const strategy = target.service === 'gemini' && selection.speakerVoiceRegistry
-        ? resolveGeminiDialogueStrategy(selection.speakerVoiceRegistry.entries.length, 'auto')
-        : getMultiSpeakerStrategy(target.service, target.model)
+      const strategy = getMultiSpeakerStrategy(target.service, target.model)
       if (strategy) {
         target.multiSpeakerStrategy = strategy
       }

@@ -9,10 +9,14 @@ import {
   applyPageQaTolerancePolicy,
   buildComicPageQaPrompt,
   createPageQaRepairStagnationState,
+  decidePageQaRepairDispatch,
   hasHardPageQaFailure,
   parseComicPageQaResult,
+  resolveComicQaProvider,
 } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-qa'
+import { runQaOnlyPanelAudit } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/qa-only-panel-audit'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/process-steps/step-8-comic/comic-utils/scene-run-context'
+import { estimateQaWork, normalizeFinalImageEstimateRequest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/final-image-price-estimate'
 import type { ComicImageRequestInput, PageQaEntry, PanelBundleData } from '~/types'
 import { makeTempDir } from '../../../test-utils/temp-dirs'
 
@@ -21,6 +25,35 @@ const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0l
 const sha = new Bun.CryptoHasher('sha256').update(tinyPng).digest('hex')
 
 const cargoBayLocation = { key: 'cargo-bay', raw: 'cargo-bay' }
+
+const repairAssessment = (overrides: Partial<NonNullable<PageQaEntry['result']['panels'][number]['repairAssessment']>> = {}): NonNullable<PageQaEntry['result']['panels'][number]['repairAssessment']> => ({
+  issueVisibility: 'not-assessable', expectedBenefit: 'none', editScope: 'bounded', editIsolation: 'isolated-single-region', collateralRisk: 'low', confidence: 'high', recommendation: 'retain-current', preservationRequirements: [], rationale: 'No material repair is warranted.', ...overrides,
+})
+
+const repairComparisonResponse = (pass: 1 | 2, outcome: 'winner' | 'tie' | 'worse'): string => {
+  const candidateIsA = pass === 2
+  const candidateLabel = candidateIsA ? 'image-a' : 'image-b'
+  const originalLabel = candidateIsA ? 'image-b' : 'image-a'
+  const candidateStatus = outcome === 'tie' ? 'visible' : 'not-visible'
+  const originalStatus = 'visible'
+  return JSON.stringify({
+    targetedDefectStatusImageA: candidateIsA ? candidateStatus : originalStatus,
+    targetedDefectStatusImageB: candidateIsA ? originalStatus : candidateStatus,
+    targetedDefectLowerIn: outcome === 'tie' ? 'neither' : candidateLabel,
+    differenceMeaningful: outcome !== 'tie',
+    majorRegressionImageA: outcome === 'worse' && candidateIsA,
+    majorRegressionImageB: outcome === 'worse' && !candidateIsA,
+    nonTargetDifferenceLevel: outcome === 'worse' ? 'major' : 'none',
+    preservationRequirementsSatisfiedImageA: !(outcome === 'worse' && candidateIsA),
+    preservationRequirementsSatisfiedImageB: !(outcome === 'worse' && !candidateIsA),
+    nonTargetDifferences: outcome === 'worse' ? ['A principal cast member disappeared.'] : [],
+    fullContractPreference: outcome === 'winner' ? candidateLabel : outcome === 'worse' ? originalLabel : 'tie',
+    confidence: 'high',
+    regressionsImageA: outcome === 'worse' && candidateIsA ? ['A principal cast member disappeared.'] : [],
+    regressionsImageB: outcome === 'worse' && !candidateIsA ? ['A principal cast member disappeared.'] : [],
+    rationale: outcome === 'winner' ? 'The candidate clearly fixes the visible issue without regression.' : outcome === 'worse' ? 'The candidate fixes the target but loses required cast.' : 'The images are materially equivalent.',
+  })
+}
 
 const panelBundle = (panelNumber: number): PanelBundleData => ({
   schemaVersion: 4, snapshotId: 'character-snapshot',
@@ -108,6 +141,39 @@ afterEach(async () => {
 })
 
 describe('canonical location references and grouped QA repairs', () => {
+  test('routes panel QA through supported vision providers', () => {
+    expect(resolveComicQaProvider('gpt-5.5')).toBe('openai')
+    expect(resolveComicQaProvider('gemini-3.1-pro-preview')).toBe('gemini')
+    expect(() => resolveComicQaProvider('grok-4.5')).toThrow('supports OpenAI and Gemini')
+  })
+
+  test('normalizes a single-panel judge bookkeeping number to the requested canonical panel', () => {
+    const payload = { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: [], editInstructions: '', repairAssessment: repairAssessment() }], summary: 'Pass.' }
+    const normalized = parseComicPageQaResult(JSON.stringify(payload), [4])
+    expect(normalized.panelStructure.observedPanelOrder).toEqual([4])
+    expect(normalized.panels[0]?.panelNumber).toBe(4)
+  })
+
+  test('QA-only audits canonical panels without changing their bytes or invoking an image path', async () => {
+    const sceneSlug = `qa-only-${crypto.randomUUID()}`
+    const { runDirectory } = await createSceneFixture(sceneSlug)
+    const panelPath = join(runDirectory, 'panels', 'panel-01.png')
+    await mkdir(dirname(panelPath), { recursive: true })
+    await Bun.write(panelPath, tinyPng)
+    const before = await Bun.file(panelPath).arrayBuffer()
+    const result = await runQaOnlyPanelAudit({ sceneSlug, scriptPath: 'script.md', qaOnly: true, qa: true, qaModel: 'gemini-3.1-pro-preview', maxRepairs: 0, panels: [1], concurrency: 1 }, {
+      runId: 'test-audit',
+      judgePage: async request => ({ pageNumber: request.pageNumber, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: request.model, hardFailure: true, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 7, issues: ['framing'], editInstructions: 'Use the authored framing.' }], summary: 'Framing mismatch.' }, usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15, costUsd: 0.01 } }),
+    })
+    expect(result.entries).toHaveLength(1)
+    expect(result.entries[0]?.hardFailure).toBe(true)
+    expect(Buffer.from(await Bun.file(panelPath).arrayBuffer())).toEqual(Buffer.from(before))
+    const audit = JSON.parse(await Bun.file(join(result.reportDirectory, 'qa-only-audit.json')).text())
+    expect(audit.imageGenerationCalls).toBe(0)
+    expect(audit.imageRepairCalls).toBe(0)
+    expect(audit.canonicalImagesModified).toBe(false)
+    expect(await Bun.file(join(result.reportDirectory, 'page-qa-report.json')).exists()).toBe(true)
+  })
   test('maps grouped and individual requests to distinct per-panel location references in deterministic order', async () => {
     const sceneSlug = `multi-location-${crypto.randomUUID()}`
     const { locationSheets } = await createMultiLocationFixture(sceneSlug)
@@ -202,6 +268,130 @@ describe('canonical location references and grouped QA repairs', () => {
     expect(calls[1]?.model).toBe('gpt-image-2')
     expect(calls[1]?.referenceImages[0]).toContain('attempt-0.png')
     expect(await Bun.file(output).exists()).toBe(true)
+  })
+
+  test('prices two order-swapped comparisons for every possible individual-panel repair', () => {
+    const request = normalizeFinalImageEstimateRequest({ sceneSlug: 'pricing', scriptPath: 'script.md', imageModels: ['gpt-image-2'], panelsPerImage: 1, maxRepairs: 1 })
+    if (request.mode !== 'panel') throw new Error('Expected panel mode')
+    const qa = estimateQaWork(request, { mode: 'panel', totalOutputs: 2, skipped: 0, grid: null }, { mode: 'panel', panelPromptsDir: '/tmp', panels: [], gridPages: [] })
+    expect(qa?.mode).toBe('panel')
+    if (qa?.mode !== 'panel') throw new Error('Expected panel QA work')
+    expect(qa.maximumAdditionalImageEdits).toBe(2)
+    expect(qa.maximumRepairQaCalls).toBe(2)
+    expect(qa.maximumComparisonJudgeCalls).toBe(4)
+    expect(qa.maximumAdditionalJudgeCalls).toBe(6)
+    expect(qa.maximumTotalJudgeCalls).toBe(8)
+    expect(qa.estimatedInputTokens).toBe(46_000)
+    expect(qa.estimatedOutputTokens).toBe(9_600)
+  })
+
+  test('skips an individual-panel edit when the expected change is marginal and preserves the canonical bytes', async () => {
+    const sceneSlug = `panel-value-skip-${crypto.randomUUID()}`
+    const { runDirectory } = await createSceneFixture(sceneSlug)
+    const output = join(runDirectory, 'panels', 'test-run', 'panel-01.png')
+    const originalBytes = Buffer.from('current-canonical')
+    await mkdir(dirname(output), { recursive: true })
+    await Bun.write(output, originalBytes)
+    const failedEntry: PageQaEntry = {
+      pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-5.5', hardFailure: true,
+      result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['A tiny background fixture differs.'], editInstructions: 'Adjust the tiny fixture.', repairAssessment: repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'marginal', recommendation: 'retain-current', rationale: 'The change would not affect the panel reading.' }) }], summary: 'A marginal strict finding remains.' },
+      usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
+    }
+    expect(decidePageQaRepairDispatch(failedEntry).action).toBe('skip')
+    await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 1 }, {
+      requestImage: async () => { throw new Error('repair image call must be skipped') },
+      judgePage: async () => failedEntry,
+    })).rejects.toThrow('1 image generation task(s) failed')
+    expect(Buffer.from(await Bun.file(output).arrayBuffer())).toEqual(originalBytes)
+    const evidence = JSON.parse(await Bun.file(join(dirname(output), 'attempts', 'panel-01', 'attempt-0-qa.json')).text()) as PageQaEntry
+    expect(evidence.hardFailure).toBe(true)
+    expect(evidence.repairPolicy?.action).toBe('skip')
+  })
+
+  test('dispatches meaningful high-confidence repairs through direct or comparison-protected lanes', () => {
+    const decisionFor = (editIsolation: NonNullable<PageQaEntry['result']['panels'][number]['repairAssessment']>['editIsolation']) => decidePageQaRepairDispatch({
+      hardFailure: true,
+      result: { panels: [{ repairAssessment: repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', editScope: 'bounded', editIsolation, collateralRisk: 'low', confidence: 'high', recommendation: 'targeted-edit', preservationRequirements: ['Preserve every unaffected subject and region.'], rationale: 'Synthetic dispatch fixture.' }) }] },
+    } as PageQaEntry)
+    expect(decisionFor('isolated-single-region')).toEqual({ action: 'edit', reason: 'The defect qualifies for the low-risk targeted-edit lane.' })
+    for (const editIsolation of ['shared-attribute', 'multi-region', 'generative-redraw'] as const) {
+      const decision = decisionFor(editIsolation)
+      expect(decision.action).toBe('edit')
+      expect(decision.reason).toContain('comparison-protected lane')
+    }
+  })
+
+  test('overrides a contradictory low-benefit label for an objective story-contract failure', () => {
+    const decision = decidePageQaRepairDispatch({
+      hardFailure: true,
+      result: { panels: [{ requiredCastPresent: false, unexpectedCastAbsent: true, identityIssueKind: 'none', dialogueIssueKind: 'none', speakerAttribution: true, sourcePrecedence: true, repairAssessment: repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'marginal', editScope: 'diffuse', editIsolation: 'multi-region', collateralRisk: 'high', confidence: 'high', recommendation: 'retain-current', rationale: 'The cast correction is broad.' }) }] },
+    } as PageQaEntry)
+    expect(decision.action).toBe('edit')
+    expect(decision.reason).toContain('Objective story-contract failures override')
+  })
+
+  for (const outcome of ['tie', 'worse', 'malformed'] as const) {
+    test(`retains the original after a ${outcome} repair comparison without hidden retries`, async () => {
+      const sceneSlug = `panel-value-${outcome}-${crypto.randomUUID()}`
+      const { runDirectory } = await createSceneFixture(sceneSlug)
+      const output = join(runDirectory, 'panels', 'test-run', 'panel-01.png')
+      const originalBytes = Buffer.from(`original-${outcome}`)
+      const candidateBytes = Buffer.from(`candidate-${outcome}`)
+      await mkdir(dirname(output), { recursive: true })
+      await Bun.write(output, originalBytes)
+      let judges = 0
+      let imageCalls = 0
+      const comparisonOrders: string[][] = []
+      await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 1 }, {
+        requestImage: async () => { imageCalls++; return { mode: 'edit', result: { imageBase64: candidateBytes.toString('base64') } } },
+        writeImage: async path => { await Bun.write(path, candidateBytes) },
+        judgePage: async (): Promise<PageQaEntry> => {
+          judges++
+          const failed = judges === 1
+          return { pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-5.5', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['The required wall display is missing.'] : [], editInstructions: failed ? 'Restore the wall display only.' : '', repairAssessment: failed ? repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', editScope: 'bounded', collateralRisk: 'low', confidence: 'high', recommendation: 'targeted-edit', preservationRequirements: ['Preserve all cast and staging.'], rationale: 'This is a specific visible omission.' }) : repairAssessment() }], summary: failed ? 'Repairable omission.' : 'Candidate passes QA.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
+        },
+        requestRepairComparison: async request => {
+          comparisonOrders.push(request.imagePaths.slice(0, 2))
+          return { text: outcome === 'malformed' ? '{bad json' : repairComparisonResponse(request.pass, outcome), inputTokens: 2, outputTokens: 1 }
+        },
+      })).rejects.toThrow('1 image generation task(s) failed')
+      expect(imageCalls).toBe(1)
+      expect(comparisonOrders).toHaveLength(2)
+      expect(comparisonOrders[0]?.[0]).toContain('attempt-0.png')
+      expect(comparisonOrders[0]?.[1]).toContain('attempt-1.png')
+      expect(comparisonOrders[1]?.[0]).toContain('attempt-1.png')
+      expect(comparisonOrders[1]?.[1]).toContain('attempt-0.png')
+      expect(Buffer.from(await Bun.file(output).arrayBuffer())).toEqual(originalBytes)
+      if (outcome === 'malformed') {
+        const malformed = JSON.parse(await Bun.file(join(dirname(output), 'attempts', 'panel-01', 'attempt-1-comparison-pass-1-error.json')).text())
+        expect(malformed.usage).toEqual({ inputTokens: 2, outputTokens: 1, costUsd: 0.00004 })
+      }
+    })
+  }
+
+  test('promotes only a unanimous high-confidence regression-free individual-panel repair', async () => {
+    const sceneSlug = `panel-value-win-${crypto.randomUUID()}`
+    const { runDirectory } = await createSceneFixture(sceneSlug)
+    const output = join(runDirectory, 'panels', 'test-run', 'panel-01.png')
+    const candidateBytes = Buffer.from('candidate-clear-winner')
+    await mkdir(dirname(output), { recursive: true })
+    await Bun.write(output, Buffer.from('original-clear-winner'))
+    let judges = 0
+    let comparisons = 0
+    await generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 1 }, {
+      requestImage: async () => ({ mode: 'edit', result: { imageBase64: candidateBytes.toString('base64') } }),
+      writeImage: async path => { await Bun.write(path, candidateBytes) },
+      judgePage: async (): Promise<PageQaEntry> => {
+        judges++
+        const failed = judges === 1
+        return { pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-5.5', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['The required wall display is missing.'] : [], editInstructions: failed ? 'Restore the wall display only.' : '', repairAssessment: failed ? repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', editScope: 'bounded', collateralRisk: 'low', confidence: 'high', recommendation: 'targeted-edit', preservationRequirements: ['Preserve all cast and staging.'], rationale: 'This is a specific visible omission.' }) : repairAssessment() }], summary: failed ? 'Repairable omission.' : 'Candidate passes QA.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
+      },
+      requestRepairComparison: async request => { comparisons++; return { text: repairComparisonResponse(request.pass, 'winner'), inputTokens: 2, outputTokens: 1 } },
+    })
+    expect(comparisons).toBe(2)
+    expect(Buffer.from(await Bun.file(output).arrayBuffer())).toEqual(candidateBytes)
+    const qa = JSON.parse(await Bun.file(join(dirname(output), 'attempts', 'panel-01', 'attempt-1-qa.json')).text()) as PageQaEntry
+    expect(qa.repairComparison?.decision).toBe('clear-winner')
   })
 
   test('waives a persistent individual-panel shot-plan mismatch after one edit', async () => {
@@ -299,7 +489,7 @@ describe('canonical location references and grouped QA repairs', () => {
   test('keeps set continuity strict without treating camera variation as a failure', () => {
     const setDrift = {
       panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] },
-      panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: false, setContinuityAudit: [{ anchor: 'fixed control booth', status: 'relocated' as const, evidence: 'It appears on the opposite side of the loading door.' }], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['The fixed control booth moved to the other side of the loading door.'], editInstructions: 'Restore the canonical world-space relationship while retaining this camera angle.' }],
+      panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: false, setContinuityAudit: [{ anchor: 'fixed control booth', status: 'relocated' as const, evidence: 'It appears on the opposite side of the loading door.' }], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['The fixed control booth moved to the other side of the loading door.'], editInstructions: 'Restore the canonical world-space relationship while retaining this camera angle.', repairAssessment: repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', editScope: 'bounded', collateralRisk: 'low', confidence: 'high', recommendation: 'targeted-edit', rationale: 'The topology error is directly visible and isolated.' }) }],
       summary: 'The location identity is recognizable, but its permanent topology drifted.',
     }
     expect(hasHardPageQaFailure(setDrift)).toBe(true)

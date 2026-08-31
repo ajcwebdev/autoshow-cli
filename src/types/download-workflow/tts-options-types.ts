@@ -1,7 +1,5 @@
 export type TtsRuntimeOptions = {
   ttsAllowAmbiguousRedispatch: boolean
-  groqTtsModels: string[] | undefined
-  groqVoiceId: string | undefined
   grokTtsModels: string[] | undefined
   grokTtsVoice: string | undefined
   grokTtsLanguage: string | undefined
@@ -14,8 +12,6 @@ export type TtsRuntimeOptions = {
   openaiVoiceId: string | undefined
   openaiTtsInstructions: string | undefined
   openaiTtsSpeed: number | undefined
-  geminiTtsModels: string[] | undefined
-  geminiVoiceId: string | undefined
   elevenlabsTtsModels: string[] | undefined
   elevenlabsVoiceId: string | undefined
   elevenlabsTtsLanguageCode: string | undefined
@@ -27,9 +23,6 @@ export type TtsRuntimeOptions = {
   elevenlabsTtsSeed: number | undefined
   elevenlabsTtsTextNormalization: string | undefined
   elevenlabsTtsPronunciationDictionaryLocators: string[] | undefined
-  deepgramTtsModels: string[] | undefined
-  deepgramVoiceId: string | undefined
-  deepgramTtsSpeed: number | undefined
   minimaxTtsModels: string[] | undefined
   minimaxTtsVoice: string | undefined
   minimaxTtsLanguageBoost: string | undefined
@@ -54,11 +47,6 @@ export type TtsRuntimeOptions = {
   inworldTtsInstructions: string | undefined
   deepinfraTtsModels: string[] | undefined
   deepinfraTtsVoice: string | undefined
-  replicateTtsModels: string[] | undefined
-  replicateTtsVoice: string | undefined
-  falTtsModels: string[] | undefined
-  falTtsVoice: string | undefined
-  falTtsInstructions: string | undefined
 }
 
 export type TtsRuntimeOptionKey = keyof TtsRuntimeOptions

@@ -16,13 +16,6 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { UsageError } from '~/utils/error-handler'
 
-const GEMINI_TTS_LANGUAGE_CODES = [
-  'de-DE', 'en-AU', 'en-GB', 'en-IN', 'en-US', 'es-US', 'fr-FR', 'hi-IN',
-  'pt-BR', 'ar-XA', 'es-ES', 'fr-CA', 'id-ID', 'it-IT', 'ja-JP', 'tr-TR',
-  'vi-VN', 'bn-IN', 'gu-IN', 'kn-IN', 'ml-IN', 'mr-IN', 'ta-IN', 'te-IN',
-  'nl-NL', 'ko-KR', 'cmn-CN', 'pl-PL', 'ru-RU', 'th-TH',
-] as const
-
 const trim = (value: string): string => value.trim()
 
 const CONTROL_SPECS = {
@@ -50,21 +43,12 @@ const CONTROL_SPECS = {
     englishNormalization: { kind: 'boolean' },
     pronunciations: { kind: 'string-array' },
   },
-  groq: {
-    speed: { kind: 'number', min: 0.5, max: 5 },
-  },
   grok: {
     language: { kind: 'string', normalize: validateGrokTtsLanguage },
     textNormalization: { kind: 'boolean' },
   },
   mistral: {
     responseFormat: { kind: 'string', normalize: value => value.trim().toLowerCase(), allowedValues: ['wav', 'mp3', 'flac', 'opus'] },
-  },
-  gemini: {
-    languageCode: { kind: 'string', normalize: trim, allowedValues: GEMINI_TTS_LANGUAGE_CODES },
-  },
-  deepgram: {
-    speed: { kind: 'number', min: 0.5, max: 2 },
   },
   speechify: {
     language: { kind: 'string', normalize: trim },
@@ -85,12 +69,6 @@ const CONTROL_SPECS = {
   },
   deepinfra: {
     promptInstructions: { kind: 'string', normalize: trim },
-  },
-  replicate: {
-    speed: { kind: 'number', min: 0.1, max: 5 },
-  },
-  fal: {
-    voiceInstruction: { kind: 'string', preserveWhitespace: true },
   },
 } as const satisfies Record<TtsProvider, ProviderControlSpecs>
 

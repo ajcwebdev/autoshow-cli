@@ -7,6 +7,7 @@ import { planCurrentTtsReadiness } from '~/cli/commands/process-steps/step-4-tts
 import { resolveSoundEffectTarget } from '~/cli/commands/process-steps/step-4-tts/soundscape/elevenlabs-sfx-adapter'
 import { createSoundEffectRenderPlan } from '~/cli/commands/process-steps/step-4-tts/soundscape/sound-effect-execution'
 import { runDeepinfraTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepinfra/run-deepinfra-tts'
+import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { validateTtsTargetsForExecution } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { buildTargetExecution } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-audio/generate-audio-command'
 import { createResourceGate } from '~/utils/resource-gate'
@@ -79,7 +80,7 @@ describe('ADR-017 Phase 4E DeepInfra soundscape acceptance', () => {
       if (!call.url.endsWith('/v1/inference/ResembleAI/chatterbox-turbo')) throw new Error(`Unexpected network call: ${call.method} ${call.url}`)
       return new Response(createMockWavBytes({ samples: 2400 }), { headers: { 'content-type': 'audio/wav', 'x-request-id': 'deepinfra-fixture' } })
     })
-    const result = await runDeepinfraTts('Ready?', join(root, 'deepinfra'), { model: 'ResembleAI/chatterbox-turbo', apiKey: 'fixture-key', voiceId: 'Ryan' })
+    const result = await runDeepinfraTts('Ready?', join(root, 'deepinfra'), { model: 'ResembleAI/chatterbox-turbo', apiKey: 'fixture-key', voiceId: 'Ryan', chunkScheduler: createHostedTtsChunkScheduler() })
     expect(await Bun.file(result.audioPath).exists()).toBe(true)
     expect(calls).toHaveLength(1)
     expect(calls[0]?.bodyJson).toMatchObject({ text: 'Ready?', response_format: 'wav', voice_id: 'Ryan' })

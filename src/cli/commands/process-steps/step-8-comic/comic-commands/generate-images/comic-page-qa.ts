@@ -1,26 +1,29 @@
 import { basename, dirname, join } from 'node:path'
 import { getOpenAIClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/openai-utils'
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
+import { geminiGenerateContent, geminiUserContent } from '~/utils/gemini/gemini-rest'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { estimateLlmCostFromRegistry } from '../../comic-utils/structured-script-utils/llm-cost'
-import { InfraError, ValidationError } from '~/utils/error-handler'
+import { InfraError, UsageError, ValidationError } from '~/utils/error-handler'
+import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import type { PageQaEntry, PageQaRepairDecision, PageQaRepairStagnationState, PageQaRequest, PageQaResult, PanelBundleData } from '~/types'
 
-export const PAGE_QA_REPORT_SCHEMA_VERSION = 2
+export const PAGE_QA_REPORT_SCHEMA_VERSION = 4
 
 const HARD_SET_CONTINUITY_STATUSES: ReadonlySet<string> = new Set(['missing', 'relocated', 'duplicated', 'mirrored', 'redesigned'])
 
 const hasHardSetContinuityAuditFailure = (panel: PageQaResult['panels'][number]): boolean =>
   panel.setContinuityAudit.some(item => HARD_SET_CONTINUITY_STATUSES.has(item.status))
 
-const PAGE_QA_SCHEMA = {
+export const PAGE_QA_SCHEMA = {
   type: 'object', additionalProperties: false,
   properties: {
     panelStructure: { type: 'object', additionalProperties: false, properties: {
       pass: { type: 'boolean' }, observedPanelCount: { type: 'integer' }, observedPanelOrder: { type: 'array', items: { type: 'integer' } }, issues: { type: 'array', items: { type: 'string' } },
     }, required: ['pass', 'observedPanelCount', 'observedPanelOrder', 'issues'] },
     panels: { type: 'array', items: { type: 'object', additionalProperties: false, properties: {
-      panelNumber: { type: 'integer' }, requiredCastPresent: { type: 'boolean' }, unexpectedCastAbsent: { type: 'boolean' }, identityMatch: { type: 'boolean' }, identityIssueKind: { type: 'string', enum: ['none', 'minor-variance', 'unmistakable-mismatch'] }, locationMatch: { type: 'boolean' }, setContinuityMatch: { type: 'boolean' }, setContinuityAudit: { type: 'array', items: { type: 'object', additionalProperties: false, properties: { anchor: { type: 'string' }, status: { type: 'string', enum: ['present-correctly', 'outside-crop', 'missing', 'relocated', 'duplicated', 'mirrored', 'redesigned'] }, evidence: { type: 'string' } }, required: ['anchor', 'status', 'evidence'] } }, sourcePrecedence: { type: 'boolean' }, shotPlanMatch: { type: 'boolean' }, dialogueAccuracy: { type: 'boolean' }, dialogueIssueKind: { type: 'string', enum: ['none', 'typography-only', 'content'] }, speakerAttribution: { type: 'boolean' }, artifacts: { type: 'array', items: { type: 'string' } }, visualQualityScore: { type: 'number', minimum: 1, maximum: 10 }, compositionScore: { type: 'number', minimum: 1, maximum: 10 }, issues: { type: 'array', items: { type: 'string' } }, editInstructions: { type: 'string' },
-    }, required: ['panelNumber', 'requiredCastPresent', 'unexpectedCastAbsent', 'identityMatch', 'identityIssueKind', 'locationMatch', 'setContinuityMatch', 'setContinuityAudit', 'sourcePrecedence', 'shotPlanMatch', 'dialogueAccuracy', 'dialogueIssueKind', 'speakerAttribution', 'artifacts', 'visualQualityScore', 'compositionScore', 'issues', 'editInstructions'] } },
+      panelNumber: { type: 'integer' }, requiredCastPresent: { type: 'boolean' }, unexpectedCastAbsent: { type: 'boolean' }, identityMatch: { type: 'boolean' }, identityIssueKind: { type: 'string', enum: ['none', 'minor-variance', 'unmistakable-mismatch'] }, locationMatch: { type: 'boolean' }, setContinuityMatch: { type: 'boolean' }, setContinuityAudit: { type: 'array', items: { type: 'object', additionalProperties: false, properties: { anchor: { type: 'string' }, status: { type: 'string', enum: ['present-correctly', 'outside-crop', 'missing', 'relocated', 'duplicated', 'mirrored', 'redesigned'] }, evidence: { type: 'string' } }, required: ['anchor', 'status', 'evidence'] } }, sourcePrecedence: { type: 'boolean' }, shotPlanMatch: { type: 'boolean' }, dialogueAccuracy: { type: 'boolean' }, dialogueIssueKind: { type: 'string', enum: ['none', 'typography-only', 'content'] }, speakerAttribution: { type: 'boolean' }, artifacts: { type: 'array', items: { type: 'string' } }, visualQualityScore: { type: 'number', minimum: 1, maximum: 10 }, compositionScore: { type: 'number', minimum: 1, maximum: 10 }, issues: { type: 'array', items: { type: 'string' } }, editInstructions: { type: 'string' }, repairAssessment: { type: 'object', additionalProperties: false, properties: { issueVisibility: { type: 'string', enum: ['directly-visible', 'ambiguous', 'not-visible', 'not-assessable'] }, expectedBenefit: { type: 'string', enum: ['meaningful', 'marginal', 'none'] }, editScope: { type: 'string', enum: ['bounded', 'diffuse'] }, editIsolation: { type: 'string', enum: ['isolated-single-region', 'shared-attribute', 'multi-region', 'generative-redraw'] }, collateralRisk: { type: 'string', enum: ['low', 'medium', 'high'] }, confidence: { type: 'string', enum: ['low', 'medium', 'high'] }, recommendation: { type: 'string', enum: ['targeted-edit', 'retain-current'] }, preservationRequirements: { type: 'array', items: { type: 'string' } }, rationale: { type: 'string' } }, required: ['issueVisibility', 'expectedBenefit', 'editScope', 'editIsolation', 'collateralRisk', 'confidence', 'recommendation', 'preservationRequirements', 'rationale'] },
+    }, required: ['panelNumber', 'requiredCastPresent', 'unexpectedCastAbsent', 'identityMatch', 'identityIssueKind', 'locationMatch', 'setContinuityMatch', 'setContinuityAudit', 'sourcePrecedence', 'shotPlanMatch', 'dialogueAccuracy', 'dialogueIssueKind', 'speakerAttribution', 'artifacts', 'visualQualityScore', 'compositionScore', 'issues', 'editInstructions', 'repairAssessment'] } },
     summary: { type: 'string' },
   }, required: ['panelStructure', 'panels', 'summary'],
 } as const
@@ -28,6 +31,16 @@ const PAGE_QA_SCHEMA = {
 const dataUrl = async (path: string): Promise<string> => {
   const type = path.toLowerCase().endsWith('.png') ? 'image/png' : path.toLowerCase().endsWith('.webp') ? 'image/webp' : 'image/jpeg'
   return `data:${type};base64,${Buffer.from(await Bun.file(path).arrayBuffer()).toString('base64')}`
+}
+
+const imageMimeType = (path: string): string => path.toLowerCase().endsWith('.png') ? 'image/png' : path.toLowerCase().endsWith('.webp') ? 'image/webp' : 'image/jpeg'
+
+const imageBase64 = async (path: string): Promise<string> => Buffer.from(await Bun.file(path).arrayBuffer()).toString('base64')
+
+export const resolveComicQaProvider = (model: string): 'openai' | 'gemini' => {
+  const service = findRegistryServiceForModel('llm', model)
+  if (service !== 'openai' && service !== 'gemini') throw UsageError(`Invalid comic QA model "${model}". Comic QA currently supports OpenAI and Gemini vision-capable LLMs.`)
+  return service
 }
 
 const hasExactKeys = (value: Record<string, unknown>, keys: readonly string[]): boolean => {
@@ -42,18 +55,26 @@ export const parseComicPageQaResult = (text: string, expectedPanels: number[]): 
   }
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw ValidationError('Page QA result must be an object.', { stage: 'comic:page-qa' })
   if (!hasExactKeys(value as Record<string, unknown>, ['panelStructure', 'panels', 'summary'])) throw ValidationError('Page QA result has missing or unexpected top-level fields.', { stage: 'comic:page-qa' })
-  const result = value as PageQaResult
+  let result = value as PageQaResult
   const structure = result.panelStructure as unknown
   if (!structure || typeof structure !== 'object' || Array.isArray(structure) || !Array.isArray(result.panels) || typeof result.summary !== 'string' || !result.summary.trim()) throw ValidationError('Page QA result is missing required fields.', { stage: 'comic:page-qa' })
   const structureRecord = structure as unknown as Record<string, unknown>
   if (!hasExactKeys(structureRecord, ['pass', 'observedPanelCount', 'observedPanelOrder', 'issues']) || typeof structureRecord['pass'] !== 'boolean' || !Number.isInteger(structureRecord['observedPanelCount']) || !Array.isArray(structureRecord['observedPanelOrder']) || !structureRecord['observedPanelOrder'].every(Number.isInteger) || !Array.isArray(structureRecord['issues']) || !structureRecord['issues'].every(item => typeof item === 'string')) {
     throw ValidationError('Page QA panelStructure is invalid.', { stage: 'comic:page-qa' })
   }
+  if (expectedPanels.length === 1 && result.panels.length === 1 && result.panelStructure.observedPanelCount === 1 && result.panelStructure.observedPanelOrder.length === 1) {
+    const panelNumber = expectedPanels[0]!
+    result = {
+      ...result,
+      panelStructure: { ...result.panelStructure, observedPanelOrder: [panelNumber] },
+      panels: [{ ...result.panels[0]!, panelNumber }],
+    }
+  }
   if (result.panels.length !== expectedPanels.length || result.panels.some((panel, index) => panel.panelNumber !== expectedPanels[index])) {
     throw ValidationError('Page QA result panels do not exactly match the requested source-panel order.', { stage: 'comic:page-qa' })
   }
   for (const panel of result.panels) {
-    if (!panel || typeof panel !== 'object' || !hasExactKeys(panel as unknown as Record<string, unknown>, ['panelNumber', 'requiredCastPresent', 'unexpectedCastAbsent', 'identityMatch', 'identityIssueKind', 'locationMatch', 'setContinuityMatch', 'setContinuityAudit', 'sourcePrecedence', 'shotPlanMatch', 'dialogueAccuracy', 'dialogueIssueKind', 'speakerAttribution', 'artifacts', 'visualQualityScore', 'compositionScore', 'issues', 'editInstructions'])) {
+    if (!panel || typeof panel !== 'object' || !hasExactKeys(panel as unknown as Record<string, unknown>, ['panelNumber', 'requiredCastPresent', 'unexpectedCastAbsent', 'identityMatch', 'identityIssueKind', 'locationMatch', 'setContinuityMatch', 'setContinuityAudit', 'sourcePrecedence', 'shotPlanMatch', 'dialogueAccuracy', 'dialogueIssueKind', 'speakerAttribution', 'artifacts', 'visualQualityScore', 'compositionScore', 'issues', 'editInstructions', 'repairAssessment'])) {
       throw ValidationError('Page QA panel has missing or unexpected fields.', { stage: 'comic:page-qa' })
     }
     for (const key of ['requiredCastPresent', 'unexpectedCastAbsent', 'identityMatch', 'locationMatch', 'setContinuityMatch', 'sourcePrecedence', 'shotPlanMatch', 'dialogueAccuracy', 'speakerAttribution'] as const) {
@@ -69,8 +90,37 @@ export const parseComicPageQaResult = (text: string, expectedPanels: number[]): 
     if (!Array.isArray(panel.artifacts) || !panel.artifacts.every(item => typeof item === 'string') || !Array.isArray(panel.issues) || !panel.issues.every(item => typeof item === 'string') || typeof panel.editInstructions !== 'string' || !Number.isFinite(panel.visualQualityScore) || panel.visualQualityScore < 1 || panel.visualQualityScore > 10 || !Number.isFinite(panel.compositionScore) || panel.compositionScore < 1 || panel.compositionScore > 10) {
       throw ValidationError(`Page QA panel ${panel.panelNumber} has invalid artifacts, issues, or advisory scores.`, { stage: 'comic:page-qa' })
     }
+    const assessment = panel.repairAssessment
+    if (!assessment || typeof assessment !== 'object' || !hasExactKeys(assessment as unknown as Record<string, unknown>, ['issueVisibility', 'expectedBenefit', 'editScope', 'editIsolation', 'collateralRisk', 'confidence', 'recommendation', 'preservationRequirements', 'rationale']) || !['directly-visible', 'ambiguous', 'not-visible', 'not-assessable'].includes(assessment.issueVisibility) || !['meaningful', 'marginal', 'none'].includes(assessment.expectedBenefit) || !['bounded', 'diffuse'].includes(assessment.editScope) || !['isolated-single-region', 'shared-attribute', 'multi-region', 'generative-redraw'].includes(assessment.editIsolation) || !['low', 'medium', 'high'].includes(assessment.collateralRisk) || !['low', 'medium', 'high'].includes(assessment.confidence) || !['targeted-edit', 'retain-current'].includes(assessment.recommendation) || !Array.isArray(assessment.preservationRequirements) || !assessment.preservationRequirements.every(item => typeof item === 'string' && item.trim()) || typeof assessment.rationale !== 'string' || !assessment.rationale.trim()) {
+      throw ValidationError(`Page QA panel ${panel.panelNumber} has an invalid repairAssessment.`, { stage: 'comic:page-qa' })
+    }
   }
   return result
+}
+
+export const decidePageQaRepairDispatch = (entry: PageQaEntry): { action: 'edit' | 'skip'; reason: string } => {
+  if (!entry.hardFailure) return { action: 'skip', reason: 'The current image has no hard QA failure.' }
+  if (entry.result.panels.length !== 1) return { action: 'skip', reason: 'Conservative repair-worthiness dispatch is limited to individual-panel images.' }
+  const assessment = entry.result.panels[0]?.repairAssessment
+  if (!assessment) return { action: 'edit', reason: 'The injected QA entry predates repair-worthiness assessment; preserve legacy dependency behavior.' }
+  const objectiveStoryFailure = (
+    entry.result.panels[0]?.requiredCastPresent === false
+    || entry.result.panels[0]?.unexpectedCastAbsent === false
+    || entry.result.panels[0]?.identityIssueKind === 'unmistakable-mismatch'
+    || entry.result.panels[0]?.dialogueIssueKind === 'content'
+    || entry.result.panels[0]?.speakerAttribution === false
+    || entry.result.panels[0]?.sourcePrecedence === false
+  )
+  const eligibilityBlockers = [
+    assessment.issueVisibility !== 'directly-visible' ? `issue visibility is ${assessment.issueVisibility}` : undefined,
+    assessment.expectedBenefit !== 'meaningful' && !objectiveStoryFailure ? `expected benefit is ${assessment.expectedBenefit}` : undefined,
+    assessment.confidence !== 'high' ? `confidence is ${assessment.confidence}` : undefined,
+  ].filter((item): item is string => item !== undefined)
+  if (eligibilityBlockers.length > 0) return { action: 'skip', reason: `Repair skipped because ${eligibilityBlockers.join('; ')}. ${assessment.rationale}` }
+  const directLane = assessment.editScope === 'bounded' && assessment.editIsolation === 'isolated-single-region' && assessment.collateralRisk === 'low' && assessment.recommendation === 'targeted-edit'
+  return directLane
+    ? { action: 'edit', reason: 'The defect qualifies for the low-risk targeted-edit lane.' }
+    : { action: 'edit', reason: `The defect qualifies for the comparison-protected lane; the candidate remains ineligible unless two order-swapped judgments unanimously find a meaningful regression-free improvement. ${objectiveStoryFailure ? 'Objective story-contract failures override the inconsistent no-benefit label. ' : ''}${assessment.rationale}` }
 }
 
 export const applyPageQaTolerancePolicy = (result: PageQaResult): PageQaResult => ({
@@ -165,6 +215,7 @@ export const buildComicPageQaPrompt = (
   'Judge this generated comic output strictly. The first image is the generated output. Following images are ordered canonical character references, followed by every immutable canonical location reference, then every mapped immutable canonical design reference, each in first-panel-appearance order.',
   `Location mapping: ${panelData.panels.map(panel => `panel ${panel.number} -> ${panel.locationKey}`).join('; ')}. Judge each panel only against its mapped location reference.`,
   'Evaluate panels left-to-right. Location identity, set continuity, source-instruction precedence, shot-plan framing/staging, exact cast, dialogue wording and completeness, and bubble-tail/speaker attribution are hard requirements. Artifacts, harmless typography substitutions, minor identity stylization variance, and aesthetic scores are advisory only. For every failed panel return concise actionable editInstructions in this same response.',
+  'Separately assess whether spending one image-edit call followed by conservative pairwise comparison is likely to create a clear net improvement. A QA failure remains a failure even when repairAssessment recommends retain-current. Recommend targeted-edit when the defect is unequivocally visible, materially affects panel reading, has concrete actionable instructions, and is supported with high confidence. Record scope, isolation, and collateral risk honestly; diffuse, multi-region, shared-attribute, or generative-redraw work may use the comparison-protected lane and is not automatically a retain-current recommendation. Use retain-current for false-positive or source-authorized premises, hidden or out-of-frame details, marginal or merely decorative differences, ambiguous evidence, vague aesthetic preferences, or a correction too underspecified to compare. Required cast, unmistakable identity, dialogue-content, speaker-attribution, and source-precedence failures are meaningful story-contract failures and cannot be labeled expectedBenefit none. Classify editIsolation as isolated-single-region only for one subject/object and one contiguous region; use shared-attribute when the edited attribute must change on one or more visually similar nearby subjects while remaining different on another, multi-region for independent corrections or separate regions, and generative-redraw for hands, limbs, faces, anatomy, or other structural regeneration. List concrete preservationRequirements for every targeted edit.',
   'Perform a mandatory anchor-by-anchor continuity audit before setting setContinuityMatch. Identify permanent architecture, fixed furniture, installed equipment, and every recurring spatial anchor named or visibly established by the mapped canonical location reference/specification. Emit one setContinuityAudit entry for every such anchor, with concrete visual evidence and exactly one allowed status. Presence alone is insufficient: for fixed furniture and architecture, explicitly compare footprint, silhouette, connectedness, orientation, visible edge geometry, and wall relationships. Perspective may foreshorten them but may not turn a straight run into a corner, L-shaped, wraparound, split, or freestanding form; classify that as redesigned. There is no occluded status and character or prop blocking never excuses an unverifiable anchor. If the anchor\'s canonical region is inside the image but the anchor is not visibly identifiable, status is missing, even when a foreground object covers that region. Use outside-crop only when the anchor\'s entire canonical region is beyond the image boundary. Set setContinuityMatch=false if any anchor is missing, relocated, duplicated, mirrored, or redesigned without an explicit source-authored story event. A wide or otherwise revealing view that shows an anchor\'s canonical region but omits the anchor is a hard failure; do not infer that it was intentionally cropped. Judge world-space topology and relative relationships, not screen coordinates. A different camera side, angle, distance, elevation, perspective, or crop is desirable shot variation and must not fail set continuity, but characters and foreground props must be composed around a recognizable visible remainder of every anchor whose canonical region is in frame. Do not demand the canonical reference camera or a repeated composition.',
   'Audit canonical assemblies component by component: seeing a desk, console, shelf, rack, berth, or counter does not establish that its named computer, keyboard, control unit, appliance, instrument, or other co-located components are present. Loose tools, generic clutter, speakers, lamps, or plausible substitute props do not satisfy a missing named component. If the supporting desk, console, shelf, rack, berth, counter, wall zone, footprint, or expected silhouette is in frame but a named component is absent, hidden, or replaced by generic clutter, status is missing.',
   'Canonical character references and their catalog descriptions have highest visual precedence for identity, physical embodiment, projection/display medium, anatomy, costume, and character-specific required props. A generated image that violates this canon is a hard identity failure even when the source panel description or shot plan repeats the same contradiction. Set identityIssueKind=unmistakable-mismatch and provide repair instructions that restore the canonical embodiment.',
@@ -182,20 +233,38 @@ export const buildComicPageQaPrompt = (
 export const judgeComicPage = async (request: PageQaRequest): Promise<PageQaEntry> => {
   const prompt = buildComicPageQaPrompt(request.panelData, request.characterReferences ?? [], request.locationReferences ?? [], request.designReferences ?? [])
   const imagePaths = [request.pagePath, ...request.identityCards, ...request.locationSheets, ...(request.designSheets ?? [])]
-  const response = await createOpenAIResponse(getOpenAIClientConfig(), {
-    model: request.model,
-    input: [{ role: 'user', content: [
-      { type: 'input_text', text: prompt },
-      ...(await Promise.all(imagePaths.map(async path => ({ type: 'input_image', image_url: await dataUrl(path), detail: 'high' })))),
-    ] }],
-    text: { verbosity: 'low', format: { type: 'json_schema', name: 'comic_page_qa_v1', schema: PAGE_QA_SCHEMA, strict: true } },
-  })
-  const text = extractOpenAIResponseText(response)
+  const provider = resolveComicQaProvider(request.model)
+  let text: string | undefined
+  let inputTokens = 0
+  let outputTokens = 0
+  if (provider === 'openai') {
+    const response = await createOpenAIResponse(getOpenAIClientConfig(), {
+      model: request.model,
+      input: [{ role: 'user', content: [
+        { type: 'input_text', text: prompt },
+        ...(await Promise.all(imagePaths.map(async path => ({ type: 'input_image', image_url: await dataUrl(path), detail: 'high' })))),
+      ] }],
+      text: { verbosity: 'low', format: { type: 'json_schema', name: 'comic_page_qa_v2', schema: PAGE_QA_SCHEMA, strict: true } },
+    })
+    text = extractOpenAIResponseText(response)
+    const usageObject = response.usage && typeof response.usage === 'object' ? response.usage as Record<string, unknown> : {}
+    inputTokens = typeof usageObject['input_tokens'] === 'number' ? usageObject['input_tokens'] : 0
+    outputTokens = typeof usageObject['output_tokens'] === 'number' ? usageObject['output_tokens'] : 0
+  } else {
+    const response = await geminiGenerateContent(resolveCredential('gemini', 'require', { stage: 'comic:page-qa', description: 'Comic panel QA' }), {
+      model: request.model,
+      contents: geminiUserContent([
+        { text: prompt },
+        ...(await Promise.all(imagePaths.map(async path => ({ inlineData: { mimeType: imageMimeType(path), data: await imageBase64(path) } })))),
+      ]),
+      generationConfig: { responseMimeType: 'application/json', responseJsonSchema: PAGE_QA_SCHEMA },
+    })
+    text = response.text
+    inputTokens = response.usageMetadata?.promptTokenCount ?? 0
+    outputTokens = (response.usageMetadata?.candidatesTokenCount ?? 0) + (response.usageMetadata?.thoughtsTokenCount ?? 0)
+  }
   if (!text) throw InfraError('Page QA judge returned no structured text.', { stage: 'comic:page-qa' })
   const result = applyPageQaTolerancePolicy(parseComicPageQaResult(text, request.panelData.panels.map(panel => panel.number)))
-  const usageObject = response.usage && typeof response.usage === 'object' ? response.usage as Record<string, unknown> : {}
-  const inputTokens = typeof usageObject['input_tokens'] === 'number' ? usageObject['input_tokens'] : 0
-  const outputTokens = typeof usageObject['output_tokens'] === 'number' ? usageObject['output_tokens'] : 0
   return {
     pageNumber: request.pageNumber,
     panelNumbers: request.panelData.panels.map(panel => panel.number),
@@ -225,6 +294,6 @@ export const writePageQaReports = async (directory: string, entries: PageQaEntry
     costUsd: total.costUsd + entry.usage.costUsd,
   }), { inputTokens: 0, outputTokens: 0, totalTokens: 0, costUsd: 0 })
   await Bun.write(join(directory, 'page-qa-report.json'), `${JSON.stringify({ schemaVersion: PAGE_QA_REPORT_SCHEMA_VERSION, usage, pages: sorted }, null, 2)}\n`)
-  const markdown = ['# Comic Page QA Report', '', `Hard failures: ${sorted.filter(entry => entry.hardFailure).length}`, `Waived shot-plan checks: ${sorted.reduce((count, entry) => count + (entry.waivedChecks?.length ?? 0), 0)}`, `Judge usage: ${usage.totalTokens} tokens; $${usage.costUsd.toFixed(4)}`, '', '| Page | Panels | Hard failure | Waived checks | Summary |', '|---:|:---|:---:|:---|:---|', ...sorted.map(entry => `| ${entry.pageNumber} | ${entry.panelNumbers.join(', ')} | ${entry.hardFailure ? 'yes' : 'no'} | ${entry.waivedChecks?.map(check => `panel ${check.panelNumber} ${check.check}`).join(', ') || 'none'} | ${entry.result.summary.replace(/\|/g, '\\|')} |`), '']
+  const markdown = ['# Comic Page QA Report', '', `Hard failures: ${sorted.filter(entry => entry.hardFailure).length}`, `Waived shot-plan checks: ${sorted.reduce((count, entry) => count + (entry.waivedChecks?.length ?? 0), 0)}`, `Repair dispatches skipped: ${sorted.filter(entry => entry.repairPolicy?.action === 'skip').length}`, `Repair candidates retained instead of promoted: ${sorted.filter(entry => entry.repairPolicy?.action === 'retain-original').length}`, `Unanimous repair wins: ${sorted.filter(entry => entry.repairComparison?.decision === 'clear-winner').length}`, `Judge usage: ${usage.totalTokens} tokens; $${usage.costUsd.toFixed(4)}`, '', '| Page | Panels | Hard failure | Repair action | Comparison | Waived checks | Summary |', '|---:|:---|:---:|:---|:---|:---|:---|', ...sorted.map(entry => `| ${entry.pageNumber} | ${entry.panelNumbers.join(', ')} | ${entry.hardFailure ? 'yes' : 'no'} | ${entry.repairPolicy?.action ?? 'none'} | ${entry.repairComparison?.decision ?? 'not run'} | ${entry.waivedChecks?.map(check => `panel ${check.panelNumber} ${check.check}`).join(', ') || 'none'} | ${entry.result.summary.replace(/\|/g, '\\|')} |`), '']
   await Bun.write(join(directory, 'page-qa-report.md'), markdown.join('\n'))
 }

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { readFile } from 'node:fs/promises'
+import { readFile,readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { readDependencyUrlAndSha256 } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
@@ -46,7 +46,21 @@ test('Docker yt-dlp pin matches resolved native setup metadata in both direction
 test('Docker documentation exposes only the native CLI and direct image invocation', async () => {
   const dockerDocs = await readFile(dockerDocsPath, 'utf8')
 
-  expect(existsSync(scriptsPath)).toBe(false)
+  expect(existsSync(scriptsPath) ? await readdir(scriptsPath) : []).toEqual([])
   expect(dockerDocs).toContain('bun autoshow extract content/book/book.epub')
   expect(dockerDocs).toContain('docker run --rm -i')
+})
+
+test('Docker images carry immutable build identity and publish provenance plus SBOM attestations', async () => {
+  const dockerfile = await readFile(dockerfilePath, 'utf8')
+  const workflow = await readFile(resolve(repositoryRoot, '.github/workflows/docker-publish.yml'), 'utf8')
+
+  expect(dockerfile).toContain('ARG AUTOSHOW_VERSION=')
+  expect(dockerfile).toContain('ARG BUILD_DATE=')
+  expect(dockerfile).toContain('ARG VCS_REF=')
+  expect(dockerfile).toContain('org.opencontainers.image.revision="${VCS_REF}"')
+  expect(dockerfile).toContain('org.opencontainers.image.source="https://github.com/ajcwebdev/autoshow-cli"')
+  expect(workflow.match(/--provenance=mode=max/g)).toHaveLength(2)
+  expect(workflow.match(/--sbom=true/g)).toHaveLength(2)
+  expect(workflow.match(/--build-arg "VCS_REF=\$\{GITHUB_SHA\}"/g)).toHaveLength(2)
 })

@@ -24,6 +24,8 @@ import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/
 import { canonicalTargetKey, sha256Bytes } from '../../../step-4-tts/script-to-audio/contract-identity'
 import { updateComicImageManifest } from '../../comic-utils/comic-manifest'
 import { resolveCompatibleComicSceneRun } from '../../comic-utils/compatible-scene-run'
+import { runQaOnlyPanelAudit } from './qa-only-panel-audit'
+import { runRevisionEvaluation } from './revision-evaluation'
 
 const DEFAULT_IMAGE_SIZE: ImageGenerationSize = COMIC_GRID_PANEL_SIZE
 const DEFAULT_IMAGE_QUALITY: ImageGenerationQuality = 'high'
@@ -260,9 +262,40 @@ const runGenerateImagesCommand = async (
       ? `variations=${options.variations.map(getImagePromptVariationLabel).join(',')}`
       : undefined,
     options.force ? 'force=true' : undefined,
+    options.qaOnly ? 'qaOnly=true' : undefined,
+    options.revisionPlan ? `revisionPlan=${options.revisionPlan}` : undefined,
   ])
 
   if (canonicalManifest && (canonicalManifest.command !== 'comic' || !canonicalManifest.source)) throw InfraError('Comic image generation found a canonical manifest for another workflow.', { stage: 'comic:generate-images' })
+  if (options.qaOnly) {
+    const audit = await runQaOnlyPanelAudit(options)
+    comicLog.summary([
+      `judged=${audit.entries.length}`,
+      `hardFailures=${audit.entries.filter(entry => entry.hardFailure).length}`,
+      'imageCalls=0',
+      'repairCalls=0',
+      `tokens=${(audit.inputTokens + audit.outputTokens).toLocaleString()}`,
+      `cost=${formatCompactCost(audit.costUsd)}`,
+      `duration=${formatDuration(Date.now() - startedAt)}`,
+    ])
+    comicLog.outputDirectory(audit.reportDirectory)
+    return
+  }
+  if (options.revisionPlan) {
+    const runRevision = dependencies.runRevisionEvaluation ?? (async revisionOptions => (await runRevisionEvaluation(revisionOptions)).stats)
+    const revisionStats = await runRevision(options)
+    mergeImageStats(totals, revisionStats)
+    comicLog.summary([
+      `generated=${totals.imagesGenerated}`,
+      `skipped=${totals.imagesSkipped}`,
+      `comparisons=${totals.totalInputTokens + totals.totalOutputTokens > 0 ? 'recorded' : 'none-recorded'}`,
+      `tokens=${(totals.totalInputTokens + totals.totalOutputTokens).toLocaleString()}`,
+      `cost=${formatCompactCost(totals.totalCost)}`,
+      `duration=${formatDuration(Date.now() - startedAt)}`,
+    ])
+    comicLog.outputDirectory(sceneRunDir)
+    return
+  }
   const imageProviderState = (status: PipelineProviderState['status'], error?: unknown): PipelineProviderState[] => models.map((model) => {
     const service = findRegistryServiceForModel('image', model)
     if (!service) throw InfraError(`Comic image model ${model} is missing its central provider identity.`, { stage: 'comic:generate-images' })

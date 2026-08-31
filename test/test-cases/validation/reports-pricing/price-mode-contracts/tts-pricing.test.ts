@@ -1,10 +1,8 @@
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
-import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { estimateTtsCosts } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-pricing'
 import { getTtsEstimation, getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { SUPPORTED_DEEPGRAM_TTS_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { preflightToEstimated } from '~/cli/commands/pricing-orchestration/compute-costs'
 import { computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
@@ -25,13 +23,6 @@ const buildTtsMetadata = createMetadataFixtureBuilder<Step4Metadata>({
 })
 
 describe('price mode contracts', () => {
-  test('TTS chunk limits use 2000 characters except Groq Orpheus', () => {
-      expect(TTS_CHUNK_CHARACTER_LIMITS.groq).toBe(200)
-      expect(Object.entries(TTS_CHUNK_CHARACTER_LIMITS)
-        .filter(([provider]) => provider !== 'groq')
-        .every(([, limit]) => limit === 2000)).toBe(true)
-    })
-
   test('Mistral TTS estimates use published output-character pricing and provisional speed', () => {
       const model = 'voxtral-mini-tts-2603'
       const opts = {
@@ -61,27 +52,10 @@ describe('price mode contracts', () => {
       expect(cost?.totalCost).toBe(1.5)
     })
 
-  test('Groq Orpheus TTS estimates use single character pricing', () => {
-      const cost = estimateTtsCosts({
-        groqTtsModels: ['canopylabs/orpheus-v1-english']
-      } as Parameters<typeof estimateTtsCosts>[0], 1000)[0]
-
-      expect(cost?.costPer1kCharactersCents).toBe(2.2)
-      expect(cost?.inputCostPer1MCharactersCents).toBeUndefined()
-      expect(cost?.outputCostPer1MCharactersCents).toBeUndefined()
-      expect(cost?.totalCost).toBe(2.2)
-    })
-
-  test('Replicate Kokoro estimates variable runtime pricing per prediction', () => {
-    const opts = {
-      replicateTtsModels: ['jaaari/kokoro-82m']
-    } as Parameters<typeof estimateTtsCosts>[0]
-    const oneRequest = estimateTtsCosts(opts, 1)[0]
-    const twoRequests = estimateTtsCosts(opts, 2001)[0]
-
+  test('retired TTS pricing remains available as read-only reporting history', () => {
+    expect(getTtsPricing('groq', 'canopylabs/orpheus-v1-english').costPer1kCharsCents).toBe(2.2)
     expect(getTtsPricing('replicate', 'jaaari/kokoro-82m').costPerRequestCents).toBe(0.022)
-    expect(oneRequest).toMatchObject({ costPerRequestCents: 0.022, requestCount: 1, totalCost: 0.022 })
-    expect(twoRequests).toMatchObject({ costPerRequestCents: 0.022, requestCount: 2, totalCost: 0.044 })
+    expect(getTtsPricing('deepgram', 'aura-2-thalia-en').costPer1kCharsCents).toBe(3)
   })
 
   test('chunked TTS estimates use chunk concurrency for wall-clock time', () => {
@@ -111,30 +85,6 @@ describe('price mode contracts', () => {
       expect(parallelTiming.steps[0]?.processingTimeMs).toBe(Math.round((2666 / 1000) * rate))
       expect(serialTiming.steps[0]?.processingTimeMs).toBe(Math.round((characterCount / 1000) * rate))
       expect(syntheticTiming.steps[0]?.processingTimeMs).toBe(parallelTiming.steps[0]?.processingTimeMs)
-    })
-
-  test('Groq Orpheus TTS keeps the 200-character chunk timing exemption', () => {
-      const model = 'canopylabs/orpheus-v1-english'
-      const characterCount = 450
-      const rate = getTtsEstimation('groq', model).msPer1KChars
-      const timing = computeEstimatedProcessingTimes({
-        ttsTargets: [{ service: 'groq', model }],
-        ttsCharacterCount: characterCount,
-        ttsInputText: 'a'.repeat(characterCount),
-        ttsChunkConcurrency: 5
-      })
-      const immediateTiming = computeEstimatedProcessingTimes({
-        ttsTargets: [{ service: 'groq', model }],
-        ttsCharacterCount: characterCount,
-        ttsInputText: 'a'.repeat(characterCount),
-        ttsChunkConcurrency: 5,
-        concurrencyMode: 'immediate'
-      })
-
-      expect(timing.steps[0]?.processingTimeMs)
-        .toBe(Math.round((400 / 1000) * rate))
-      expect(immediateTiming.steps[0]?.processingTimeMs)
-        .toBe(Math.round((200 / 1000) * rate))
     })
 
   test('ElevenLabs TTS estimates use model-aware chunk limits for wall-clock time', () => {
@@ -425,28 +375,7 @@ describe('price mode contracts', () => {
 
     })
 
-  test('every Deepgram Aura-2 model resolves a flat per-character estimate', () => {
-    for (const model of SUPPORTED_DEEPGRAM_TTS_MODELS) {
-      expect(getTtsPricing('deepgram', model).costPer1kCharsCents).toBe(3)
-
-      const cost = estimateTtsCosts({
-        deepgramTtsModels: [model]
-      } as Parameters<typeof estimateTtsCosts>[0], 1000)[0]
-
-      expect(cost).toMatchObject({
-        provider: 'deepgram',
-        model,
-        costPer1kCharactersCents: 3,
-        totalCost: 3
-      })
-    }
-  })
-
-  test('revised TTS models expose approved pricing and provisional timing', () => {
-    for (const model of ['aura-2-helena-en', 'aura-2-arcas-en', 'aura-2-aries-en']) {
-      expect(getTtsPricing('deepgram', model).costPer1kCharsCents).toBe(3)
-      expect(getTtsEstimation('deepgram', model).msPer1KChars).toBe(39_639)
-    }
+  test('active revised TTS models expose approved pricing and provisional timing', () => {
     expect(getTtsPricing('elevenlabs', 'eleven_v3').costPer1kCharsCents).toBe(10)
     expect(getTtsEstimation('elevenlabs', 'eleven_v3').msPer1KChars).toBe(35_885)
   })

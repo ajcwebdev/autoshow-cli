@@ -8,6 +8,7 @@ import { prepareElevenLabsDialogueText } from '../tts-services/tts-elevenlabs/el
 import { prepareFishDialogueText } from '../tts-services/fish/fish-tts-request'
 import { prepareDeepinfraChatterboxText } from '../tts-services/tts-deepinfra/deepinfra-text-preparation'
 import { PREPARATION_VERSION } from './attempt-shared'
+import { inspectSoundscapeAudio } from '../soundscape/soundscape-audio'
 export const chunkLimit = (target: TtsTarget): number =>
   resolveTtsChunkCharacterLimit(target.service, target.model)
     ?? TTS_CHUNK_CHARACTER_LIMITS[target.service]
@@ -34,6 +35,14 @@ export const prepareSegmentedTurnText = (
     : target.service === 'deepinfra' && target.model === 'ResembleAI/chatterbox-turbo'
       ? prepareDeepinfraChatterboxText(text)
       : preparedText(text)
+
+export const serializesComicDelivery = (
+  target: Pick<TtsTarget, 'service' | 'model'>,
+  delivery: string
+): boolean => {
+  if (target.service === 'hume' && target.model === 'octave-1') return true
+  return prepareSegmentedTurnText('', target as TtsTarget, delivery).spans.some(span => span.kind === 'provider-only')
+}
 
 export const localVoiceEffectFilter = (turn: CanonicalDialogueTurn): string | undefined => {
   const kind = turn.effect?.kind ?? ''
@@ -88,8 +97,14 @@ export const assembleComicSegmentedAudio = async (input: {
   masteringDir: string
   providerLabel: string
   profile: TtsMasteringProfile
-}): Promise<string> => {
+}): Promise<{
+  path: string
+  turnDurationMs: ReadonlyMap<string, number>
+  timingSegmentDurationMs: ReadonlyMap<string, number>
+}> => {
   const turnAudio = new Map<string, string>()
+  const turnDurationMs = new Map<string, number>()
+  const timingSegmentDurationMs = new Map<string, number>()
   for (const turn of input.turns) {
     const turnDir = join(input.masteringDir, 'turns', turn.turnId)
     await mkdir(turnDir, { recursive: true })
@@ -110,7 +125,9 @@ export const assembleComicSegmentedAudio = async (input: {
       if (chunks?.length) {
         const segmentDir = join(turnDir, `segment-${String(segmentIndex + 1).padStart(3, '0')}`)
         await mkdir(segmentDir, { recursive: true })
-        assembledParts.push(await concatAndConvertToWav(chunks, segmentDir, `${input.providerLabel}-${turn.turnId}-segment-${segmentIndex + 1}`, undefined, input.profile))
+        const segmentPath = await concatAndConvertToWav(chunks, segmentDir, `${input.providerLabel}-${turn.turnId}-segment-${segmentIndex + 1}`, undefined, input.profile)
+        assembledParts.push(segmentPath)
+        timingSegmentDurationMs.set(`${turn.turnId}:${segmentIndex}`, (await inspectSoundscapeAudio(segmentPath)).durationMs)
       }
       const offset = offsets[segmentIndex]
       const durationMs = offset === undefined ? undefined : cueDurationByOffset.get(offset)
@@ -123,8 +140,10 @@ export const assembleComicSegmentedAudio = async (input: {
       const effected = join(turnDir, 'effected.wav')
       await filterAudioToWav(concatenated, effected, `${input.providerLabel}-${turn.turnId}`, effectFilter, input.profile)
       turnAudio.set(turn.turnId, effected)
+      turnDurationMs.set(turn.turnId, (await inspectSoundscapeAudio(effected)).durationMs)
     } else {
       turnAudio.set(turn.turnId, concatenated)
+      turnDurationMs.set(turn.turnId, (await inspectSoundscapeAudio(concatenated)).durationMs)
     }
   }
   const nodePaths: string[] = []
@@ -154,7 +173,11 @@ export const assembleComicSegmentedAudio = async (input: {
       pacedNodePaths.push(await createSilenceWav(join(assemblyDir, `inter-turn-${String(index + 1).padStart(3, '0')}-${input.dialoguePlan.pacing.interTurnMs}ms.wav`), input.dialoguePlan.pacing.interTurnMs, input.profile))
     }
   }
-  return await concatAndConvertToWav(pacedNodePaths, assemblyDir, `${input.providerLabel}-comic-assembly`, undefined, input.profile)
+  return {
+    path: await concatAndConvertToWav(pacedNodePaths, assemblyDir, `${input.providerLabel}-comic-assembly`, undefined, input.profile),
+    turnDurationMs,
+    timingSegmentDurationMs,
+  }
 }
 
 export const comicTimelineLayout = (

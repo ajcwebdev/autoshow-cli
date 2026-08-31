@@ -5,11 +5,8 @@ import { normalizeTtsTurnControls, resolveTtsTurnControlOverrides } from '../tts
 import { planElevenLabsNativeDialogueBatches } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
 import { planHumeNativeUtteranceBatches } from '../tts-services/hume/hume-native-utterances'
 import { isFishNativeDialogueModel, planFishNativeDialogueBatches } from '../tts-services/fish/fish-tts-request'
-import { TTS_CHUNK_CHARACTER_LIMITS } from '../tts-utils/tts-chunking'
-import { normalizeDialogueText, parseSpeakerVoiceMappings, resolveDialogueFormat } from '../dialogue-normalizer'
-import { resolveGeminiDialogueStrategyForText, splitGeminiNativeDialogueText } from '../tts-services/tts-gemini/gemini-tts-config'
 import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
-import { chunkLimit, segmentedSlotGroup } from './comic-segmented-audio'
+import { segmentedSlotGroup } from './comic-segmented-audio'
 import { buildProviderSerializerDescriptor, createProviderRequestSettings, createTypedProviderSettings, providerSerializerVoiceField, resolveEffectiveProviderControls } from './provider-serializer-registry'
 import { flattenPlanTurns, plannedCost, sumCosts } from './attempt-planning-shared'
 
@@ -64,31 +61,12 @@ export const resolveComicTurns = (
 }
 
 export const resolveComicNativeGroups = (
-  options: CreateCurrentTtsRenderAttemptOptions,
   context: NonNullable<CreateCurrentTtsRenderAttemptOptions['comicContext']>,
   turns: AttemptTurn[],
-  normalizedText: string,
-  registry: ReturnType<typeof parseSpeakerVoiceMappings>,
-  limit: number,
-  geminiNative: boolean,
   elevenLabsNative: boolean,
   humeNative: boolean,
   fishNative: boolean
 ): Array<{ turnIds: string[], providerTexts: string[] }> => {
-  if (geminiNative) {
-    let nativeTurnCursor = 0
-    const groups = splitGeminiNativeDialogueText(normalizedText, registry, limit).map((providerText) => {
-      const chunkDialogue = normalizeDialogueText(providerText, resolveDialogueFormat(options.ttsOptions), registry)
-      const groupedTurns = turns.slice(nativeTurnCursor, nativeTurnCursor + chunkDialogue.turns.length)
-      if (groupedTurns.length !== chunkDialogue.turns.length || groupedTurns.some((turn, index) => turn.canonical.canonicalText !== chunkDialogue.turns[index]?.text)) {
-        throw UsageError('Gemini comic native partition did not preserve exact turn boundaries.')
-      }
-      nativeTurnCursor += groupedTurns.length
-      return { turnIds: groupedTurns.map(turn => turn.canonical.turnId), providerTexts: [providerText] }
-    })
-    if (nativeTurnCursor !== turns.length) throw UsageError('Gemini comic native partition omitted turns.')
-    return groups
-  }
   if (elevenLabsNative) {
     return planElevenLabsNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
   }
@@ -125,9 +103,7 @@ export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _
   const entriesById = new Map(context.voiceSnapshot.entries.map(entry => [entry.entryId, entry] as const))
   const turns = resolveComicTurns(options, context, canonicalTurns, normalizedTurnControls, selection, entriesById)
 
-  const registry = parseSpeakerVoiceMappings(options.ttsOptions.ttsSpeakers)
   const normalizedText = canonicalTurns.map(turn => `${context.providerSpeakerLabelByTurnId[turn.turnId] ?? turn.originalSpeakerLabel}: ${turn.canonicalText}`).join('\n')
-  const distinctSpeakers = new Set(canonicalTurns.map(turn => (context.providerSpeakerLabelByTurnId[turn.turnId] ?? turn.originalSpeakerLabel).normalize('NFKC').trim().toLocaleUpperCase('en-US')))
   const hasOverlapIntent = context.dialoguePlan.nodes.some(node => node.kind === 'overlap')
   const hasDeliveryOrEffect = canonicalTurns.some(turn => turn.delivery !== undefined || turn.effect !== undefined)
   const hasSegmentedOnlyIntent = hasOverlapIntent || (hasDeliveryOrEffect && options.target.service !== 'fish')
@@ -135,21 +111,15 @@ export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _
     const keys = Object.keys(normalizedTurnControls?.[turn.turnId]?.[options.target.service] ?? {})
     return keys.length > 0 && !(options.target.service === 'hume' && keys.every(key => key === 'speed' || key === 'trailingSilence'))
   })
-  const geminiNative = options.target.service === 'gemini'
-    && distinctSpeakers.size === 2
-    && !hasTurnControls
-    && resolveGeminiDialogueStrategyForText(normalizedText, registry, TTS_CHUNK_CHARACTER_LIMITS.gemini, 'auto') === 'native'
   const elevenLabsNative = options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3' && !hasTurnControls
   const humeNative = options.target.service === 'hume' && options.target.model === 'octave-2' && !hasTurnControls && canonicalTurns.reduce((sum, turn) => sum + [...turn.canonicalText].length, 0) <= 5000
   const fishNative = options.target.service === 'fish' && isFishNativeDialogueModel(options.target.model) && !hasTurnControls
-  const nativeEligible = canonicalTurns.length > 0 && !hasSegmentedOnlyIntent && (geminiNative || elevenLabsNative || humeNative || fishNative)
+  const nativeEligible = canonicalTurns.length > 0 && !hasSegmentedOnlyIntent && (elevenLabsNative || humeNative || fishNative)
   if (context.modePreference === 'native' && !nativeEligible) throw UsageError('Comic native mode requires a provider-native eligible target whose speaker, direction, control, and request limits can be represented exactly.')
   const native = context.modePreference !== 'segmented' && nativeEligible
   const strategy: ProviderRenderStrategy = native ? humeNative ? 'native-utterances' : 'native-dialogue' : 'segmented'
-  const limit = chunkLimit(options.target)
-
   const nativeGroups = native
-    ? resolveComicNativeGroups(options, context, turns, normalizedText, registry, limit, geminiNative, elevenLabsNative, humeNative, fishNative)
+    ? resolveComicNativeGroups(context, turns, elevenLabsNative, humeNative, fishNative)
     : []
   const slotGroups: Array<{ turnIds: string[], providerTexts: string[], timingSegmentIndexes?: number[] | undefined }> = native
     ? nativeGroups

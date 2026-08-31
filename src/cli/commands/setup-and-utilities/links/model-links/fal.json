@@ -12,11 +12,6 @@
       "https://fal.ai/models/reve/2.1/text-to-image/api",
       "https://fal.ai/models/reve/2.1/edit/api"
     ],
-    "TTS": [
-      "https://fal.ai/models/fal-ai/bytedance/seed-speech/tts/v2",
-      "https://fal.ai/models/fal-ai/maya",
-      "https://fal.ai/models/async/tts-pro/v1.0"
-    ],
     "Video": [
       "https://fal.ai/models/minimax/h3/text-to-video/api",
       "https://fal.ai/models/minimax/h3/image-to-video/api",

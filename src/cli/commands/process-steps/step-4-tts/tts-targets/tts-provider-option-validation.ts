@@ -1,9 +1,5 @@
 import type { TtsTargetSelection } from '~/types'
 import { UsageError } from '~/utils/error-handler'
-import {
-  getGroqTtsVoicesForModel,
-  validateGroqTtsVoice
-} from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 
 const requireProviderSelectionMessage = (
   label: string,
@@ -40,7 +36,6 @@ const validateRequiredProviderSelections = (selection: TtsTargetSelection): void
     { enabled: Boolean(selection.openaiInstructions || typeof selection.openaiSpeed === 'number'), models: selection.openaiModels, label: 'OpenAI TTS', provider: 'openai', detail: 'request control flags' },
     { enabled: Boolean(selection.inworldInstructions), models: selection.inworldModels, label: 'Inworld TTS', provider: 'inworld', detail: 'request control flags' },
     { enabled: Boolean(selection.grokLanguage || selection.grokTextNormalization), models: selection.grokModels, label: 'Grok TTS', provider: 'grok', detail: 'request control flags' },
-    { enabled: typeof selection.deepgramSpeed === 'number', models: selection.deepgramModels, label: 'Deepgram TTS', provider: 'deepgram', detail: 'request control flags' },
     { enabled: hasElevenLabsControls(selection), models: selection.elevenlabsModels, label: 'ElevenLabs TTS', provider: 'elevenlabs', detail: 'request control flags' },
     { enabled: Boolean(selection.speechifyLanguage), models: selection.speechifyModels, label: 'Speechify TTS', provider: 'speechify', detail: 'request control flags' },
     { enabled: Boolean(selection.humeVoice), models: selection.humeModels, label: 'Hume TTS', provider: 'hume', detail: 'voice flags' },
@@ -61,21 +56,7 @@ const validateOpenAiInstructions = (selection: TtsTargetSelection): void => {
   }
 }
 
-const validateGroqVoice = (selection: TtsTargetSelection): void => {
-  if (!selection.groqVoiceId || selection.groqModels.length <= 1) return
-  const voice = validateGroqTtsVoice(selection.groqVoiceId)
-  const matchingModel = selection.groqModels.find((model) =>
-    getGroqTtsVoicesForModel(model as Parameters<typeof getGroqTtsVoicesForModel>[0]).includes(voice)
-  )
-  throw UsageError(
-    matchingModel
-      ? `Groq TTS --tts-voice groq="${voice}" matches only ${matchingModel}; select --provider/--tts groq=${matchingModel}.`
-      : `Groq TTS --tts-voice groq="${voice}" requires selecting a Groq TTS model with --provider/--tts groq[=model].`
-  )
-}
-
 export const validateTtsProviderOptions = (selection: TtsTargetSelection): void => {
   validateRequiredProviderSelections(selection)
   validateOpenAiInstructions(selection)
-  validateGroqVoice(selection)
 }

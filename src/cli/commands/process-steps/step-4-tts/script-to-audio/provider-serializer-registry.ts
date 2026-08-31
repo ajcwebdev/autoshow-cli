@@ -1,6 +1,5 @@
 import type {
   AttemptTurn,
-  FalTtsModel,
   ProtectedAssetRef,
   ProviderRenderStrategy,
   TtsProvider,
@@ -28,7 +27,6 @@ import {
   resolveDeepinfraTtsRequestControls,
   resolveDeepinfraTtsVoiceField,
 } from '../tts-services/tts-deepinfra/deepinfra-tts-request'
-import { FAL_TTS_SERIALIZER_VERSION, resolveFalTtsVoiceField } from '../tts-services/tts-fal/fal-tts-request'
 import { INWORLD_TTS_SERIALIZER_VERSION } from '../tts-services/inworld/inworld-tts-request'
 import { SCHEMA_VERSION } from './attempt-shared'
 
@@ -66,14 +64,9 @@ const controlReader = (effectiveControls: Readonly<Record<string, unknown>>): Co
 
 const buildOpenAiSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'openai.tts.phase-0-v1', controls: { responseFormat: 'wav', ...(controls.string('instructions') ? { instructions: controls.string('instructions') } : {}), ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}) } })
 const buildGrokSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'grok.tts.phase-0-v1', controls: { language: controls.string('language') ?? 'auto', textNormalization: controls.boolean('textNormalization') === true, outputFormat: { codec: 'wav', sample_rate: 24000 } } })
-const buildGroqSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'groq.tts.phase-0-v1', controls: { responseFormat: 'wav', ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}) } })
 const buildCartesiaSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'cartesia.tts.phase-0-v1', controls: { ...(controls.string('language') ? { language: controls.string('language') } : {}), outputFormat: { container: 'wav', encoding: 'pcm_s16le', sample_rate: 24000 }, version: '2026-03-01' } })
 const buildSpeechifySerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'speechify.tts.phase-0-v1', controls: { audioFormat: 'wav', ...(controls.string('language') ? { language: controls.string('language') } : {}) } })
-const buildDeepgramSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'deepgram.tts.phase-0-v1', controls: { encoding: 'linear16', container: 'wav', ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}) } })
-const buildGeminiSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'generate-content-audio', serializerVersion: 'gemini.tts.phase-0-v1', controls: { responseModalities: ['AUDIO'], ...(controls.string('languageCode') ? { languageCode: controls.string('languageCode') } : {}) } })
 const buildMistralSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'mistral.tts.phase-0-v1', controls: { stream: false, responseFormat: controls.string('responseFormat') ?? 'wav' } })
-const buildReplicateSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'predictions', serializerVersion: 'replicate.kokoro.v1', controls: { format: 'wav', ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}) } })
-const buildFalSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'queue', serializerVersion: FAL_TTS_SERIALIZER_VERSION, controls: { format: 'wav', ...(controls.string('voiceInstruction') ? { voiceInstruction: controls.string('voiceInstruction') } : {}) } })
 const buildDeepinfraSerializer: SerializerBuilder = ({ target, controls }) => ({ endpointKind: 'inference', serializerVersion: DEEPINFRA_TTS_SERIALIZER_VERSION, controls: resolveDeepinfraTtsRequestControls(target.model, controls.string('promptInstructions')) })
 
 const buildHumeSerializer: SerializerBuilder = ({ target, strategy, controls }) => strategy === 'native-utterances'
@@ -140,18 +133,13 @@ const buildMiniMaxSerializer: SerializerBuilder = ({ voiceValue, controls }) => 
 const SERIALIZER_BUILDERS = {
   openai: buildOpenAiSerializer,
   grok: buildGrokSerializer,
-  groq: buildGroqSerializer,
   cartesia: buildCartesiaSerializer,
   hume: buildHumeSerializer,
   speechify: buildSpeechifySerializer,
-  deepgram: buildDeepgramSerializer,
   fish: buildFishSerializer,
   inworld: buildInworldSerializer,
   deepinfra: buildDeepinfraSerializer,
-  replicate: buildReplicateSerializer,
-  fal: buildFalSerializer,
   elevenlabs: buildElevenLabsSerializer,
-  gemini: buildGeminiSerializer,
   mistral: buildMistralSerializer,
   minimax: buildMiniMaxSerializer,
 } satisfies Record<TtsProvider, SerializerBuilder>
@@ -197,11 +185,8 @@ export const resolveEffectiveProviderControls = (
     }
     case 'elevenlabs': return resolveTtsTargetInvocationControls('elevenlabs', invocation, { languageCode: selection.elevenLabsLanguageCode, stability: selection.elevenLabsStability, similarityBoost: selection.elevenLabsSimilarityBoost, style: selection.elevenLabsStyle, ...(selection.elevenLabsUseSpeakerBoost ? { useSpeakerBoost: true } : {}), speed: selection.elevenLabsSpeed, seed: selection.elevenLabsSeed, textNormalization: selection.elevenLabsTextNormalization, pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators })
     case 'minimax': return resolveTtsTargetInvocationControls('minimax', invocation, { languageBoost: selection.minimaxLanguageBoost, speed: selection.minimaxSpeed, volume: selection.minimaxVolume, pitch: selection.minimaxPitch, emotion: selection.minimaxEmotion, ...(selection.minimaxEnglishNormalization ? { englishNormalization: true } : {}), pronunciations: selection.minimaxPronunciations })
-    case 'groq': return resolveTtsTargetInvocationControls('groq', invocation, {})
     case 'grok': return resolveTtsTargetInvocationControls('grok', invocation, { language: selection.grokLanguage, ...(selection.grokTextNormalization ? { textNormalization: true } : {}) })
     case 'mistral': return resolveTtsTargetInvocationControls('mistral', invocation, { responseFormat: 'wav' })
-    case 'gemini': return resolveTtsTargetInvocationControls('gemini', invocation, {})
-    case 'deepgram': return resolveTtsTargetInvocationControls('deepgram', invocation, { speed: selection.deepgramSpeed })
     case 'speechify': {
       const controls = resolveTtsTargetInvocationControls('speechify', invocation, { language: selection.speechifyLanguage })
       const language = validateSpeechifyTtsLanguageForModel(validateSpeechifyTtsModel(target.model), controls.language)
@@ -212,8 +197,6 @@ export const resolveEffectiveProviderControls = (
     case 'fish': return resolveTtsTargetInvocationControls('fish', invocation, {})
     case 'inworld': return resolveTtsTargetInvocationControls('inworld', invocation, { steeringPrompt: selection.inworldInstructions })
     case 'deepinfra': return resolveTtsTargetInvocationControls('deepinfra', invocation, {})
-    case 'replicate': return resolveTtsTargetInvocationControls('replicate', invocation, {})
-    case 'fal': return resolveTtsTargetInvocationControls('fal', invocation, { voiceInstruction: selection.falInstructions })
   }
 }
 
@@ -225,19 +208,14 @@ export const providerSerializerVoiceField = (
   switch (target.service) {
     case 'openai': return 'voice'
     case 'grok': return 'voice_id'
-    case 'groq': return 'voice'
     case 'cartesia': return 'voice.id'
     case 'hume': return strategy === 'native-utterances' ? 'utterances[].voice.id' : 'utterances[].voice'
     case 'speechify': return 'voice_id'
-    case 'deepgram': return 'query.model'
     case 'elevenlabs': return strategy === 'native-dialogue' ? 'inputs[].voice_id' : 'path.voice_id'
-    case 'gemini': return strategy === 'native-dialogue' ? 'speechConfig.multiSpeakerVoiceConfig' : 'speechConfig.voiceConfig'
     case 'mistral': return voiceKind === 'reference-asset' ? 'ref_audio' : 'voice_id'
     case 'minimax': return 'voice_setting.voice_id'
     case 'fish': return strategy === 'native-dialogue' ? 'reference_id[]' : 'reference_id'
     case 'inworld': return 'voiceId'
     case 'deepinfra': return resolveDeepinfraTtsVoiceField(target.model)
-    case 'replicate': return 'input.voice'
-    case 'fal': return resolveFalTtsVoiceField(target.model as FalTtsModel)
   }
 }

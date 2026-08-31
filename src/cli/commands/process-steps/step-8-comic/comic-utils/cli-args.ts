@@ -204,12 +204,24 @@ export const coerceAndValidateGenerateImages = (parsed: ComicParsedArgs): Parsed
   const panelsPerImage = stringFlag(parsed, 'panels-per-image')
   const grid = stringFlag(parsed, 'grid')
   const variation = stringFlag(parsed, 'variation')
+  const qaOnly = enabledFlag(parsed, 'qa-only') === true
+  const revisionPlan = stringFlag(parsed, 'revision-plan')
+  const comparisonPasses = stringFlag(parsed, 'comparison-passes')
+  const promote = stringFlag(parsed, 'promote')
   if (enabledFlag(parsed, 'price') === true) output.price = true
   const qa = enabledFlag(parsed, 'qa')
   if (qa !== undefined) output.qa = qa
+  if (qaOnly) output.qaOnly = true
+  if (revisionPlan !== undefined) output.revisionPlan = revisionPlan
+  if (comparisonPasses !== undefined) output.comparisonPasses = parseMaxRepairs(comparisonPasses)
+  if (promote !== undefined) {
+    if (promote !== 'clear-winners') throw UsageError(`Invalid revision promotion policy "${promote}". Expected clear-winners`)
+    output.promote = promote
+  }
   if (qaModel !== undefined) {
-    if (findRegistryServiceForModel('llm', qaModel) !== 'openai') {
-      throw UsageError(`Invalid QA model "${qaModel}". QA currently requires an OpenAI vision-capable LLM.`)
+    const qaService = findRegistryServiceForModel('llm', qaModel)
+    if (qaService !== 'openai' && qaService !== 'gemini') {
+      throw UsageError(`Invalid QA model "${qaModel}". QA currently supports OpenAI and Gemini vision-capable LLMs.`)
     }
     output.qaModel = qaModel as ParsedLlmModel
   }
@@ -243,9 +255,45 @@ export const coerceAndValidateGenerateImages = (parsed: ComicParsedArgs): Parsed
     throw UsageError('--grid requires --panels-per-image 1')
   }
 
+  if (qaOnly) {
+    if (target !== 'images') throw UsageError('--qa-only requires --target images')
+    if (output.qa === false) throw UsageError('--qa-only cannot be combined with --no-qa')
+    if (output.maxRepairs !== undefined && output.maxRepairs !== 0) throw UsageError('--qa-only requires --max-repairs 0')
+    if (output.panelsPerImage !== undefined && output.panelsPerImage !== 1) throw UsageError('--qa-only requires --panels-per-image 1')
+    if (output.grid) throw UsageError('--qa-only cannot be combined with --grid')
+    if (output.variations !== undefined) throw UsageError('--qa-only cannot be combined with --variation')
+    if (output.force) throw UsageError('--qa-only cannot be combined with --force')
+    if (output.imageModels !== undefined || output.size !== undefined || output.quality !== undefined) throw UsageError('--qa-only does not accept image-generation options')
+    output.qa = true
+    output.maxRepairs = 0
+    output.panelsPerImage = 1
+  }
+
+  if (revisionPlan !== undefined) {
+    if (qaOnly) throw UsageError('--revision-plan cannot be combined with --qa-only')
+    if (target !== 'images') throw UsageError('--revision-plan requires --target images')
+    if (output.panelsPerImage !== undefined && output.panelsPerImage !== 1) throw UsageError('--revision-plan requires --panels-per-image 1')
+    if (output.grid) throw UsageError('--revision-plan cannot be combined with --grid')
+    if (output.variations !== undefined) throw UsageError('--revision-plan cannot be combined with --variation')
+    if (output.force) throw UsageError('--revision-plan cannot be combined with --force')
+    if (output.qa === false) throw UsageError('--revision-plan cannot be combined with --no-qa')
+    if (output.maxRepairs !== undefined && output.maxRepairs !== 0) throw UsageError('--revision-plan requires --max-repairs 0')
+    if (output.imageModels !== undefined && (output.imageModels.length !== 1 || output.imageModels[0] !== 'gpt-image-2')) throw UsageError('--revision-plan supports only --image-model gpt-image-2')
+    if (output.qaModel !== undefined && output.qaModel !== 'gemini-3.1-pro-preview') throw UsageError('--revision-plan supports only --qa-model gemini-3.1-pro-preview')
+    if (output.comparisonPasses !== 2) throw UsageError('--revision-plan requires --comparison-passes 2')
+    if (output.promote !== 'clear-winners') throw UsageError('--revision-plan requires --promote clear-winners')
+    output.imageModels = ['gpt-image-2']
+    output.qaModel = 'gemini-3.1-pro-preview'
+    output.qa = true
+    output.maxRepairs = 0
+    output.panelsPerImage = 1
+  } else if (comparisonPasses !== undefined || promote !== undefined) {
+    throw UsageError('--comparison-passes and --promote require --revision-plan')
+  }
+
   output.qa ??= true
   output.qaModel ??= DEFAULT_QA_MODEL as ParsedLlmModel
-  output.maxRepairs ??= 2
+  output.maxRepairs ??= qaOnly || revisionPlan !== undefined ? 0 : 2
   if (output.variations !== undefined && !targetRunsFinalImages) {
     throw UsageError('--variation only applies when --target is images or both')
   }

@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { basename, extname, isAbsolute, join, relative, resolve } from 'node:path'
+import { basename, extname, isAbsolute, join, posix, relative, resolve } from 'node:path'
 import type { ResolvedRuntimeTool, ResolveRuntimeToolOptions, RuntimeToolId } from '~/types'
 
 const projectRootOverride = process.env['AUTOSHOW_PROJECT_ROOT']?.trim()
@@ -10,6 +10,35 @@ export const toPosixPath = (value: string): string => value.replace(/\\/g, '/')
 export const toProjectDisplayPath = (absolutePath: string): string => {
   const rel = relative(PROJECT_ROOT, absolutePath)
   return rel.length === 0 || rel.startsWith('..') || isAbsolute(rel) ? absolutePath : toPosixPath(rel)
+}
+
+export interface SourceIdentityPathMapping {
+  sourceRoot?: string | undefined
+  aliasRoot?: string | undefined
+}
+
+const configuredSourceIdentityPathMapping = (): SourceIdentityPathMapping => ({
+  sourceRoot: process.env['AUTOSHOW_SOURCE_IDENTITY_ROOT']?.trim(),
+  aliasRoot: process.env['AUTOSHOW_SOURCE_IDENTITY_ALIAS']?.trim(),
+})
+
+export const toSourceIdentityDisplayPath = (
+  absolutePath: string,
+  mapping: SourceIdentityPathMapping = configuredSourceIdentityPathMapping()
+): string => {
+  const sourceRoot = mapping.sourceRoot?.trim()
+  const aliasRoot = mapping.aliasRoot?.trim()
+  if (!sourceRoot && !aliasRoot) return toPosixPath(toProjectDisplayPath(absolutePath))
+  if (!sourceRoot || !aliasRoot) throw new Error('AUTOSHOW_SOURCE_IDENTITY_ROOT and AUTOSHOW_SOURCE_IDENTITY_ALIAS must be set together.')
+  if (!isAbsolute(sourceRoot)) throw new Error('AUTOSHOW_SOURCE_IDENTITY_ROOT must be an absolute filesystem path.')
+  if (!posix.isAbsolute(aliasRoot) || aliasRoot.includes('\\') || aliasRoot.split('/').some(part => part === '.' || part === '..') || posix.normalize(aliasRoot) !== aliasRoot) {
+    throw new Error('AUTOSHOW_SOURCE_IDENTITY_ALIAS must be a normalized absolute POSIX path without traversal.')
+  }
+  const resolvedRoot = resolve(sourceRoot)
+  const resolvedPath = resolve(absolutePath)
+  const rel = relative(resolvedRoot, resolvedPath)
+  if (rel.startsWith('..') || isAbsolute(rel)) return toPosixPath(toProjectDisplayPath(resolvedPath))
+  return rel.length === 0 ? aliasRoot : posix.join(aliasRoot, toPosixPath(rel))
 }
 export const resolveUserPath = (value: string): string => resolve(PROJECT_ROOT, value)
 export const baseStem = (filePath: string): string => basename(filePath, extname(filePath))

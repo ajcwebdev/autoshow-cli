@@ -5,7 +5,7 @@ import type { CanonicalAudioProviderProjection, CurrentTtsRecoveredGenerationSlo
 import { UsageError } from '~/utils/error-handler'
 import { getFfprobeBinary } from '~/utils/runtime-paths'
 import { hasErrorCode } from '~/utils/error-handler'
-import { canonicalTtsJson, sha256Bytes } from './contract-identity'
+import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { readContainedArtifactFile, writeImmutableArtifactFile } from './safe-artifact-store'
 import { childEnv } from '~/utils/child-env'
 export { hasErrorCode }
@@ -23,6 +23,39 @@ export const writeJson = async <T>(rootDir: string, path: string, value: T): Pro
 }
 
 export const writeJsonCreateOnly = writeJson
+
+export const writeJsonReuseCompatibleIdentity = async <T extends object>(
+  rootDir: string,
+  path: string,
+  value: T,
+  identityKey: keyof T & string,
+  ignoredKeys: readonly (keyof T & string)[]
+): Promise<WrittenJson<T>> => {
+  try {
+    const retained = await readContainedArtifactFile(rootDir, contained(rootDir, path))
+    const parsed = JSON.parse(retained.bytes.toString('utf8')) as unknown
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return await writeJson(rootDir, path, value)
+    const existing = parsed as Record<string, unknown>
+    const withoutIgnored = (record: Record<string, unknown>): Record<string, unknown> => {
+      const comparable = { ...record }
+      delete comparable[identityKey]
+      for (const key of ignoredKeys) delete comparable[key]
+      return comparable
+    }
+    const { [identityKey]: retainedIdentity, ...retainedBase } = existing
+    const candidate = value as unknown as Record<string, unknown>
+    const { [identityKey]: candidateIdentity, ...candidateBase } = candidate
+    if (
+      retainedIdentity !== hashCanonicalTtsValue(retainedBase)
+      || candidateIdentity !== hashCanonicalTtsValue(candidateBase)
+      || canonicalTtsJson(withoutIgnored(existing)) !== canonicalTtsJson(withoutIgnored(candidate))
+    ) return await writeJson(rootDir, path, value)
+    return { value: existing as unknown as T, path, sha256: retained.sha256 }
+  } catch (error) {
+    if (!hasErrorCode(error, 'ENOENT')) throw error
+    return await writeJson(rootDir, path, value)
+  }
+}
 
 export const writeJsonReplace = async <T>(rootDir: string, path: string, value: T): Promise<WrittenJson<T>> => {
   const bytes = `${canonicalTtsJson(value)}\n`
@@ -140,10 +173,19 @@ export const publishReportedOutput = async (
 ): Promise<string> => {
   const sourceFile = await readContainedArtifactFile(rootDir, contained(rootDir, source))
   const destinationRef = contained(rootDir, destination)
-  const protectedRefs = projection.renderHistory
-    .flatMap((render) => render.events)
-    .flatMap((event) => event.reportedOutputRefs ?? [])
-    .filter((ref) => ref.path === destinationRef)
+  const selected = projection.selectedSuccess
+  const active = projection.activeWork
+  const selectedIsAuthoritative = selected !== undefined && !(
+    active?.kind === 'render'
+    && (active.renderIdentity !== selected.renderIdentity || active.eventSequence !== selected.eventSequence)
+  )
+  const protectedRefs = selectedIsAuthoritative
+    ? projection.renderHistory
+        .filter((render) => render.renderIdentity === selected.renderIdentity)
+        .flatMap((render) => render.events.filter((event) => event.sequence === selected.eventSequence))
+        .flatMap((event) => event.reportedOutputRefs ?? [])
+        .filter((ref) => ref.path === destinationRef)
+    : []
   if (protectedRefs.some((ref) => ref.sha256 !== sourceFile.sha256)) {
     throw UsageError(`Reported TTS output ${destinationRef} is checksum-bound to an earlier successful render and cannot be replaced.`)
   }

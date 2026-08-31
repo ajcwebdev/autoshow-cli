@@ -32,14 +32,6 @@ export const prepareCurrentTtsCompletedRecoveryImpl = async (
       'Stored TTS render directory'
     )
     const plannedSlotIds = pure.planned.slots.map((slot) => slot.generationSlotId)
-    const evidence = await collectRetainedJournalEvidence(
-      options,
-      pure,
-      providerRoot,
-      retainedRender,
-      plannedSlotIds
-    )
-    if (!evidence.terminalJournalEvidence) return undefined
     const selectedRecovery = await prepareSelectedSuccess(
       options,
       pure,
@@ -50,6 +42,14 @@ export const prepareCurrentTtsCompletedRecoveryImpl = async (
       plannedSlotIds
     )
     if (selectedRecovery) return selectedRecovery
+    const evidence = await collectRetainedJournalEvidence(
+      options,
+      pure,
+      providerRoot,
+      retainedRender,
+      plannedSlotIds
+    )
+    if (!evidence.terminalJournalEvidence) return undefined
     const candidates = await discoverBatchCandidates(
       options,
       pure,

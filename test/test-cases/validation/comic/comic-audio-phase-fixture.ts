@@ -42,9 +42,9 @@ export const buildComicAudioPhase2Structured = (
 export const buildComicAudioPhase2SnapshotEntry = (
   subjectKey: string,
   resourceId: string,
-  provider: 'gemini' | 'inworld' | 'openai' = 'gemini',
-  providerModel = provider === 'gemini'
-    ? 'gemini-2.5-pro-preview-tts'
+  provider: 'hume' | 'inworld' | 'openai' = 'hume',
+  providerModel = provider === 'hume'
+    ? 'octave-2'
     : provider === 'inworld'
       ? 'realtime-tts-2'
       : 'gpt-4o-mini-tts-2025-12-15'

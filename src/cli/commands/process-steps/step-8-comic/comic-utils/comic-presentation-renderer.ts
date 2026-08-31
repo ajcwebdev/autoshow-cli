@@ -16,7 +16,7 @@ import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
 import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from '../../step-4-tts/script-to-audio/contract-identity'
 import { inspectSoundscapeAudio } from '../../step-4-tts/soundscape/soundscape-audio'
-import { hardlinkContainedArtifact, isMissingArtifactError, readContainedArtifactFile, removeContainedDirectory, writeReplaceableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
+import { isMissingArtifactError, readContainedArtifactFile, removeContainedDirectory, replaceHardlinkContainedArtifact, writeReplaceableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
 
 export const PRESENTATION_ARCHIVE_PATH = 'presentation/presentation.json'
 export const PRESENTATION_FINAL_WAV = 'presentation/final/slideshow.wav'
@@ -351,8 +351,8 @@ export const renderComicPresentation = async (input: {
   const video = await inspectPresentationVideo(resolve(input.sceneRunDir, mp4Relative))
   const frameMs = 1000 / encoderProfile.fps
   if (Math.abs(video.durationMs - input.timeline.durationMs) > frameMs + 1 || video.width !== encoderProfile.width || video.height !== encoderProfile.height || video.videoCodec !== 'h264' || video.pixelFormat !== encoderProfile.pixelFormat || video.audioCodec !== 'aac') throw UsageError('Presentation MP4 does not match its timeline, source dimensions, H.264/yuv420p video, or AAC audio contract.')
-  const finalWav = await hardlinkContainedArtifact(input.sceneRunDir, wavRef.path, PRESENTATION_FINAL_WAV)
-  const finalMp4 = await hardlinkContainedArtifact(input.sceneRunDir, mp4Ref.path, PRESENTATION_FINAL_MP4)
+  const finalWav = await replaceHardlinkContainedArtifact(input.sceneRunDir, wavRef.path, PRESENTATION_FINAL_WAV)
+  const finalMp4 = await replaceHardlinkContainedArtifact(input.sceneRunDir, mp4Ref.path, PRESENTATION_FINAL_MP4)
   if (finalWav.sha256 !== wavRef.sha256 || finalMp4.sha256 !== mp4Ref.sha256) throw UsageError('Published presentation finals do not match their rendered media.')
   const presentation: CompactPresentation = {
     schemaVersion: 1,
@@ -375,7 +375,7 @@ export const publishComicPresentationFinal = async (sceneRunDir: string, run: Co
   const publish = async (source: { path: string, sha256: string }, relativePath: string): Promise<{ path: string, sha256: string }> => {
     const sourceFile = await readContainedArtifactFile(sceneRunDir, source.path)
     if (sourceFile.sha256 !== source.sha256) throw UsageError(`Comic presentation output checksum changed before publication: ${source.path}`)
-    const published = await hardlinkContainedArtifact(sceneRunDir, source.path, relativePath)
+    const published = await replaceHardlinkContainedArtifact(sceneRunDir, source.path, relativePath)
     if (published.sha256 !== source.sha256) throw UsageError(`Published comic presentation output checksum does not match: ${relativePath}`)
     return { path: relativePath, sha256: source.sha256 }
   }

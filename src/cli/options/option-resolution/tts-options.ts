@@ -1,4 +1,4 @@
-import { validateCartesiaTtsVoice, validateDeepgramTtsVoice, validateDeepinfraTtsVoice, validateElevenLabsTtsTextNormalization, validateFishTtsVoice, validateGeminiTtsVoice, validateGrokTtsLanguage, validateGrokTtsVoice, validateGroqTtsVoice, validateHumeTtsVoice, validateInworldTtsVoice, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost,   validateFalTtsVoice, validateReplicateTtsVoice, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateCartesiaTtsVoice, validateDeepinfraTtsVoice, validateElevenLabsTtsTextNormalization, validateFishTtsVoice, validateGrokTtsLanguage, validateGrokTtsVoice, validateHumeTtsVoice, validateInworldTtsVoice, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { CliFlagOccurrence, ResolvedModelOptions, TtsCliReferenceInput, TtsOptionResolutionAuthority, TtsOptionResolutionContext, TtsRuntimeOptionKey, TtsRuntimeOptions } from '~/types'
 import { parseOptionalNumberFlag, parseTtsDialogueFormat, readBooleanFlag, readOptionalStringFlag, readOptionalStringListFlag } from './flag-readers'
 import { validateCliValue } from './download-model-options'
@@ -105,18 +105,15 @@ export const resolveStandaloneMistralTtsSpeakerReferenceInputs = (
 
 const TTS_MODEL_KEYS = [
   'elevenlabsTtsModels', 'minimaxTtsModels',
-  'groqTtsModels', 'grokTtsModels',
+  'grokTtsModels',
   'mistralTtsModels', 'openaiTtsModels',
-  'geminiTtsModels', 'deepgramTtsModels',
   'speechifyTtsModels', 'humeTtsModels',
   'cartesiaTtsModels', 'fishTtsModels',
-  'inworldTtsModels', 'deepinfraTtsModels',
-  'replicateTtsModels', 'falTtsModels'
+  'inworldTtsModels', 'deepinfraTtsModels'
 ] as const satisfies readonly TtsRuntimeOptionKey[]
 
 const TTS_SPEED_RANGES = {
   openai: { min: 0.25, max: 4 },
-  deepgram: { min: 0.5, max: 2 },
   minimax: { min: 0.5, max: 2 },
   elevenlabs: { min: 0.7, max: 1.2 }
 } as const
@@ -138,9 +135,6 @@ const applyGenericTtsRuntimeOptions = (
   for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-voice', selectedProviders)) {
     const voice = requireGenericTtsOptionString('tts-voice', value)
     switch (provider) {
-      case 'groq':
-        options.groqVoiceId = readValidatedWhenSelected(voice, modelOptions.groqTtsModels, validateGroqTtsVoice)
-        break
       case 'grok':
         options.grokTtsVoice = readValidatedWhenSelected(voice, modelOptions.grokTtsModels, validateGrokTtsVoice)
         break
@@ -149,12 +143,6 @@ const applyGenericTtsRuntimeOptions = (
         break
       case 'openai':
         options.openaiVoiceId = voice
-        break
-      case 'gemini':
-        options.geminiVoiceId = readValidatedWhenSelected(voice, modelOptions.geminiTtsModels, validateGeminiTtsVoice)
-        break
-      case 'deepgram':
-        options.deepgramVoiceId = readValidatedWhenSelected(voice, modelOptions.deepgramTtsModels, validateDeepgramTtsVoice)
         break
       case 'speechify':
         options.speechifyVoice = readValidatedWhenSelected(voice, modelOptions.speechifyTtsModels, validateSpeechifyTtsVoice)
@@ -173,12 +161,6 @@ const applyGenericTtsRuntimeOptions = (
         break
       case 'deepinfra':
         options.deepinfraTtsVoice = readValidatedWhenSelected(voice, modelOptions.deepinfraTtsModels, validateDeepinfraTtsVoice)
-        break
-      case 'replicate':
-        options.replicateTtsVoice = readValidatedWhenSelected(voice, modelOptions.replicateTtsModels, validateReplicateTtsVoice)
-        break
-      case 'fal':
-        options.falTtsVoice = readValidatedWhenSelected(voice, modelOptions.falTtsModels, validateFalTtsVoice)
         break
       case 'minimax':
         options.minimaxTtsVoice = voice
@@ -199,9 +181,6 @@ const applyGenericTtsRuntimeOptions = (
     switch (provider) {
       case 'openai':
         options.openaiTtsSpeed = parsed
-        break
-      case 'deepgram':
-        options.deepgramTtsSpeed = parsed
         break
       case 'minimax':
         options.minimaxTtsSpeed = parsed
@@ -256,9 +235,6 @@ const applyGenericTtsRuntimeOptions = (
       case 'openai':
         options.openaiTtsInstructions = instructions
         break
-      case 'fal':
-        options.falTtsInstructions = instructions
-        break
       case 'inworld':
         options.inworldTtsInstructions = instructions
         break
@@ -307,16 +283,9 @@ export const buildTtsOptions = (
     inworldTtsVoice: undefined,
     inworldTtsInstructions: undefined,
     deepinfraTtsVoice: undefined,
-    falTtsVoice: undefined,
-    falTtsInstructions: undefined,
-    replicateTtsVoice: undefined,
-    groqVoiceId: undefined,
     openaiVoiceId: undefined,
     openaiTtsInstructions: undefined,
     openaiTtsSpeed: undefined,
-    geminiVoiceId: undefined,
-    deepgramVoiceId: undefined,
-    deepgramTtsSpeed: undefined,
     elevenlabsTtsLanguageCode: undefined,
     elevenlabsTtsStability: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'elevenlabs-tts-stability'), 'elevenlabs-tts-stability', { min: 0, max: 1 }),
     elevenlabsTtsSimilarityBoost: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'elevenlabs-tts-similarity-boost'), 'elevenlabs-tts-similarity-boost', { min: 0, max: 1 }),

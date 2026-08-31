@@ -1,12 +1,10 @@
 import { createModelValidator, formatAllowedValues } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import { UsageError } from '~/utils/error-handler'
 import {
-  getGeminiTtsVoices,
-  getGroqTtsVoices,
   getGrokTtsVoices,
   getOpenAITtsVoices
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { CartesiaTtsModel, DeepgramTtsModel, DeepinfraTtsModel, ElevenlabsTtsModel, FalTtsModel, FishTtsModel, GeminiTtsModel, GrokTtsModel, GroqTtsModel, HumeTtsModel, InworldTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection, ReplicateTtsModel, SpeechifyTtsModel } from '~/types'
+import type { CartesiaTtsModel, DeepinfraTtsModel, ElevenlabsTtsModel, FishTtsModel, GrokTtsModel, HumeTtsModel, InworldTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection, SpeechifyTtsModel } from '~/types'
 import { createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 export const SUPPORTED_ELEVENLABS_TTS_MODELS = [
@@ -120,51 +118,6 @@ export const validateMinimaxTtsEmotion = (value: string): string => {
   return normalized
 }
 
-export const SUPPORTED_GROQ_TTS_MODELS = [
-  'canopylabs/orpheus-v1-english'
-] as const satisfies readonly string[]
-
-export const SUPPORTED_GROQ_ENGLISH_TTS_VOICES = [
-  'autumn',
-  'diana',
-  'hannah',
-  'austin',
-  'daniel',
-  'troy'
-] as const satisfies readonly string[]
-
-const SUPPORTED_GROQ_TTS_VOICES = getGroqTtsVoices()
-const GROQ_DEFAULT_TTS_VOICE = 'troy'
-
-export const validateGroqTtsModel = createRetiringModelValidator<GroqTtsModel>('tts', 'groq', SUPPORTED_GROQ_TTS_MODELS, 'groq-tts')
-
-export const validateGroqTtsVoice = (voice: string): string => {
-  const normalized = voice.trim().toLowerCase()
-  if (!SUPPORTED_GROQ_TTS_VOICES.includes(normalized)) {
-    throw UsageError(
-      `Invalid --tts-voice groq="${voice}". Allowed values: ${formatAllowedValues(SUPPORTED_GROQ_TTS_VOICES)}`
-    )
-  }
-  return normalized
-}
-
-export const getGroqTtsVoicesForModel = (_model: GroqTtsModel): readonly string[] =>
-  SUPPORTED_GROQ_ENGLISH_TTS_VOICES
-
-export const getGroqDefaultTtsVoiceForModel = (_model: GroqTtsModel): string =>
-  GROQ_DEFAULT_TTS_VOICE
-
-export const validateGroqTtsVoiceForModel = (model: GroqTtsModel, voice: string): string => {
-  const normalized = voice.trim().toLowerCase()
-  const allowedValues = getGroqTtsVoicesForModel(model)
-  if (!allowedValues.includes(normalized)) {
-    throw UsageError(
-      `Invalid --tts-voice groq="${voice}" for ${model}. Allowed values: ${formatAllowedValues(allowedValues)}`
-    )
-  }
-  return normalized
-}
-
 export const SUPPORTED_GROK_TTS_MODELS = [
   'grok-tts'
 ] as const satisfies readonly string[]
@@ -250,133 +203,6 @@ export const resolveOpenAITtsVoiceForModel = (
   throw UsageError(
     `Invalid --tts-voice openai="${voice}". Allowed built-in values: ${formatAllowedValues(SUPPORTED_OPENAI_TTS_VOICES)}, or an eligible custom voice ID beginning with voice_.`
   )
-}
-
-export const SUPPORTED_GEMINI_TTS_MODELS = [
-  'gemini-3.1-flash-tts-preview'
-] as const satisfies readonly string[]
-
-export const GEMINI_DEFAULT_TTS_VOICE = 'Kore'
-
-export const SUPPORTED_GEMINI_TTS_VOICES = getGeminiTtsVoices()
-
-export const validateGeminiTtsModel = createModelValidator<GeminiTtsModel>(SUPPORTED_GEMINI_TTS_MODELS, 'gemini-tts')
-
-export const validateGeminiTtsVoice = (voice: string): string => {
-  const normalized = normalizeListedValue(voice, SUPPORTED_GEMINI_TTS_VOICES)
-  if (!normalized) {
-    throw UsageError(
-      `Invalid --tts-voice gemini="${voice}". Allowed values: ${formatAllowedValues(SUPPORTED_GEMINI_TTS_VOICES)}`
-    )
-  }
-  return normalized
-}
-
-export const SUPPORTED_DEEPGRAM_TTS_MODELS = [
-  'aura-2-amalthea-en',
-  'aura-2-andromeda-en',
-  'aura-2-apollo-en',
-  'aura-2-arcas-en',
-  'aura-2-aries-en',
-  'aura-2-asteria-en',
-  'aura-2-athena-en',
-  'aura-2-atlas-en',
-  'aura-2-aurora-en',
-  'aura-2-callista-en',
-  'aura-2-cora-en',
-  'aura-2-cordelia-en',
-  'aura-2-delia-en',
-  'aura-2-draco-en',
-  'aura-2-electra-en',
-  'aura-2-harmonia-en',
-  'aura-2-helena-en',
-  'aura-2-hera-en',
-  'aura-2-hermes-en',
-  'aura-2-hyperion-en',
-  'aura-2-iris-en',
-  'aura-2-janus-en',
-  'aura-2-juno-en',
-  'aura-2-jupiter-en',
-  'aura-2-luna-en',
-  'aura-2-mars-en',
-  'aura-2-minerva-en',
-  'aura-2-neptune-en',
-  'aura-2-odysseus-en',
-  'aura-2-ophelia-en',
-  'aura-2-orion-en',
-  'aura-2-orpheus-en',
-  'aura-2-pandora-en',
-  'aura-2-phoebe-en',
-  'aura-2-pluto-en',
-  'aura-2-saturn-en',
-  'aura-2-selene-en',
-  'aura-2-thalia-en',
-  'aura-2-theia-en',
-  'aura-2-vesta-en',
-  'aura-2-zeus-en',
-  'aura-2-sirio-es',
-  'aura-2-nestor-es',
-  'aura-2-carina-es',
-  'aura-2-celeste-es',
-  'aura-2-alvaro-es',
-  'aura-2-diana-es',
-  'aura-2-aquila-es',
-  'aura-2-selena-es',
-  'aura-2-estrella-es',
-  'aura-2-javier-es',
-  'aura-2-agustina-es',
-  'aura-2-antonia-es',
-  'aura-2-gloria-es',
-  'aura-2-luciano-es',
-  'aura-2-olivia-es',
-  'aura-2-silvia-es',
-  'aura-2-valerio-es',
-  'aura-2-beatrix-nl',
-  'aura-2-daphne-nl',
-  'aura-2-cornelia-nl',
-  'aura-2-sander-nl',
-  'aura-2-hestia-nl',
-  'aura-2-lars-nl',
-  'aura-2-roman-nl',
-  'aura-2-rhea-nl',
-  'aura-2-leda-nl',
-  'aura-2-agathe-fr',
-  'aura-2-hector-fr',
-  'aura-2-elara-de',
-  'aura-2-aurelia-de',
-  'aura-2-lara-de',
-  'aura-2-julius-de',
-  'aura-2-fabian-de',
-  'aura-2-kara-de',
-  'aura-2-viktoria-de',
-  'aura-2-melia-it',
-  'aura-2-elio-it',
-  'aura-2-flavio-it',
-  'aura-2-maia-it',
-  'aura-2-cinzia-it',
-  'aura-2-cesare-it',
-  'aura-2-livia-it',
-  'aura-2-perseo-it',
-  'aura-2-dionisio-it',
-  'aura-2-demetra-it',
-  'aura-2-uzume-ja',
-  'aura-2-ebisu-ja',
-  'aura-2-fujin-ja',
-  'aura-2-izanami-ja',
-  'aura-2-ama-ja',
-] as const satisfies readonly string[]
-
-export const DEEPGRAM_DEFAULT_VOICE = 'aura-2-thalia-en'
-
-export const validateDeepgramTtsModel = createModelValidator<DeepgramTtsModel>(SUPPORTED_DEEPGRAM_TTS_MODELS, 'deepgram-tts')
-
-export const validateDeepgramTtsVoice = (voice: string): DeepgramTtsModel => {
-  if (!SUPPORTED_DEEPGRAM_TTS_MODELS.includes(voice as DeepgramTtsModel)) {
-    throw UsageError(
-      `Invalid --deepgram-voice "${voice}". Allowed values: ${formatAllowedValues(SUPPORTED_DEEPGRAM_TTS_MODELS)}`
-    )
-  }
-  return voice as DeepgramTtsModel
 }
 
 export const SUPPORTED_SPEECHIFY_TTS_MODELS = [
@@ -522,87 +348,6 @@ export const validateDeepinfraTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
   if (!normalized) {
     throw UsageError('Invalid --deepinfra-voice value. Expected a non-empty DeepInfra model/voice ID.')
-  }
-  return normalized
-}
-
-export const SUPPORTED_REPLICATE_TTS_MODELS = [
-  'jaaari/kokoro-82m'
-] as const satisfies readonly string[]
-
-const SUPPORTED_REPLICATE_TTS_VOICES = [
-  'af_alloy',
-  'af_aoede',
-  'af_bella',
-  'af_jessica',
-  'af_kore',
-  'af_nicole',
-  'af_nova',
-  'af_river',
-  'af_sarah',
-  'af_sky',
-  'am_adam',
-  'am_echo',
-  'am_eric',
-  'am_fenrir',
-  'am_liam',
-  'am_michael',
-  'am_onyx',
-  'am_puck',
-  'bf_alice',
-  'bf_emma',
-  'bf_isabella',
-  'bf_lily',
-  'bm_daniel',
-  'bm_fable',
-  'bm_george',
-  'bm_lewis',
-  'ff_siwis',
-  'hf_alpha',
-  'hf_beta',
-  'hm_omega',
-  'hm_psi',
-  'if_sara',
-  'im_nicola',
-  'jf_alpha',
-  'jf_gongitsune',
-  'jf_nezumi',
-  'jf_tebukuro',
-  'jm_kumo',
-  'zf_xiaobei',
-  'zf_xiaoni',
-  'zf_xiaoxiao',
-  'zf_xiaoyi',
-  'zm_yunjian',
-  'zm_yunxi',
-  'zm_yunxia',
-  'zm_yunyang'
-] as const satisfies readonly string[]
-
-export const REPLICATE_DEFAULT_TTS_VOICE = 'af_bella'
-
-export const SUPPORTED_FAL_TTS_MODELS = [
-  'fal-ai/bytedance/seed-speech/tts/v2',
-  'fal-ai/maya',
-  'async/tts-pro/v1.0'
-] as const satisfies readonly string[]
-
-export const validateFalTtsModel = createModelValidator<FalTtsModel>(SUPPORTED_FAL_TTS_MODELS, 'fal-tts')
-
-export const validateFalTtsVoice = (voice: string): string => {
-  const normalized = voice.trim()
-  if (!normalized) {
-    throw UsageError('Invalid --fal-voice value. Expected a non-empty fal.ai voice ID or voice description.')
-  }
-  return normalized
-}
-
-export const validateReplicateTtsModel = createModelValidator<ReplicateTtsModel>(SUPPORTED_REPLICATE_TTS_MODELS, 'replicate-tts')
-
-export const validateReplicateTtsVoice = (voice: string): string => {
-  const normalized = voice.trim()
-  if (!SUPPORTED_REPLICATE_TTS_VOICES.includes(normalized as typeof SUPPORTED_REPLICATE_TTS_VOICES[number])) {
-    throw UsageError(`Invalid --replicate-voice value "${normalized}". Expected a supported Kokoro voice: ${SUPPORTED_REPLICATE_TTS_VOICES.join(', ')}.`)
   }
   return normalized
 }

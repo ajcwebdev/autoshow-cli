@@ -46,7 +46,7 @@ const renderSinglePanel = async (
 ): Promise<PanelRenderResult> => {
   const resultStats = createImageRunStats()
   const qaEntries: Array<{ directory: string; entry: PageQaEntry }> = []
-  const { sceneSlug, sceneDirectory, options, variations, useVariationOutputPaths, useModelSpecificFilenames, prompts, requestImage, writeImage, judge, qaEnabled, judgeModel, maxRepairs, nextHostedIndex } = ctx
+  const { sceneSlug, sceneDirectory, options, variations, useVariationOutputPaths, useModelSpecificFilenames, prompts, requestImage, writeImage, judge, requestRepairComparison, qaEnabled, judgeModel, maxRepairs, nextHostedIndex } = ctx
 
   try {
     const panelNumber = getPanelNumberFromName(panelEntry.name)!
@@ -118,6 +118,7 @@ const renderSinglePanel = async (
           requestImage,
           writeImage,
           judge,
+          requestRepairComparison,
           qaEnabled,
           judgeModel,
           maxRepairs,
@@ -247,6 +248,7 @@ export const generatePanelImages = async (
     requestImage,
     writeImage,
     judge,
+    requestRepairComparison: dependencies.requestRepairComparison,
     qaEnabled,
     judgeModel,
     maxRepairs,

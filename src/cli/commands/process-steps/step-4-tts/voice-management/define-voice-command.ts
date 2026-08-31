@@ -5,7 +5,7 @@ import { handleClone } from './voice-command-clone-handlers'
 import { handleConsent, handleImport } from './voice-command-consent-import-handlers'
 import { handleDesign } from './voice-command-design-handlers'
 import { handleApprove, handleAudition, handleDelete, handleLifecycle, handleList } from './voice-command-lifecycle-handlers'
-import { CONSENT_ACTIONS, SPEECHIFY_CLONE_GENDERS, VOICE_ORIGINS, commonRegistrationFlags } from './voice-command-support'
+import { CONSENT_ACTIONS, VOICE_ORIGINS, commonRegistrationFlags } from './voice-command-support'
 
 const consentCommand = defineCliCommand({
   name: 'voice consent', description: 'Create or revoke a protected consent policy record',
@@ -56,10 +56,8 @@ const cloneCommand = defineCliCommand({
     'voice-name': strFlag('Desired provider account voice name'),
     sample: strListFlag('Authorized local clone sample; repeatable for instant cloning'), 'authorization-ref': strFlag('Opaque authorization record for the clone samples'),
     description: strFlag('Optional provider-safe voice description'), 'consent-ref': commonRegistrationFlags['consent-ref'],
-    'consent-name': strFlag('Speechify clone consent full name'), 'consent-email': strFlag('Speechify clone consent email'),
-    locale: strFlag('Speechify clone locale'), gender: strFlag(`Speechify clone gender: ${SPEECHIFY_CLONE_GENDERS.join('|')}`),
     'provenance-ref': commonRegistrationFlags['provenance-ref'],
-    reconcile: boolFlag('Complete an ambiguous Fish provisioning journal without recreating the voice'),
+    reconcile: boolFlag('Complete an ambiguous provider provisioning journal without recreating the voice'),
     price: commonRegistrationFlags.price,
   },
 }, handleClone)
@@ -80,7 +78,7 @@ const auditionCommand = defineCliCommand({
 const approveCommand = defineCliCommand({
   name: 'voice approve', description: 'Atomically approve an auditioned registration and make its profile current',
   parameters: [{ key: '<registration-id>', description: 'Voice registration ID' }],
-  flags: { 'generation-id': strFlag('Auditioned registration generation SHA-256'), 'actor-id': strFlag('Opaque approving actor ID') }
+  flags: { 'generation-id': strFlag('Auditioned registration generation SHA-256'), 'actor-id': strFlag('Opaque approving actor ID'), price: commonRegistrationFlags.price }
 }, handleApprove)
 
 const retireCommand = defineCliCommand({
@@ -88,7 +86,8 @@ const retireCommand = defineCliCommand({
   parameters: [{ key: '<registration-id>', description: 'Voice registration ID' }],
   flags: {
     'generation-id': strFlag('Registration generation SHA-256'),
-    reason: strFlag('Revoke instead of retire and record a non-sensitive reason')
+    reason: strFlag('Revoke instead of retire and record a non-sensitive reason'),
+    price: commonRegistrationFlags.price
   }
 }, handleLifecycle)
 
@@ -98,7 +97,8 @@ const deleteCommand = defineCliCommand({
   flags: {
     'generation-id': strFlag('Ready registration generation SHA-256'),
     'confirm-voice-id': strFlag('Exact provider resource ID confirmation'),
-    reconcile: boolFlag('Complete an ambiguous Fish provisioning journal without recreating the voice'),
+    'expected-name': strFlag('Exact current Hume voice name required for Hume deletion'),
+    reconcile: boolFlag('Complete an ambiguous provider provisioning journal without recreating the voice'),
     price: commonRegistrationFlags.price
   }
 }, handleDelete)
@@ -138,7 +138,7 @@ export const voiceCommand = defineCliCommand({
       ['bun autoshow voice design hero --provider inworld --model realtime-tts-2 --creation-model realtime-tts-2 --description "Warm, weathered guide with a grounded midrange" --preview-text "A representative passage." --price', 'Plan Inworld Voice Design without provider calls'],
       ['bun autoshow voice clone hero --provider elevenlabs --model eleven_v3 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan an ElevenLabs clone without provider calls or writes'],
       ['bun autoshow voice clone hero --provider cartesia --model sonic-3.5-2026-05-04 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a Cartesia instant clone without provider calls'],
-      ['bun autoshow voice clone hero --provider speechify --model simba-3.2 --voice-name "Hero" --sample ./hero.wav --consent-name "Authorized Speaker" --consent-email speaker@example.com --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a Speechify personal clone without provider calls'],
+      ['bun autoshow voice clone hero --provider mistral --model voxtral-mini-tts-2603 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a crash-safe Mistral saved-reference clone without provider calls'],
       ['bun autoshow voice clone hero --provider fish --model s2.1-pro --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a Fish fast voice-model create without provider calls'],
       ['bun autoshow voice design hero --provider fish --model s2.1-pro --creation-model voice-design-1 --description "Warm, weathered guide" --preview-text "A short representative passage." --candidates 1 --price', 'Plan one Fish Voice Design preview without provider calls'],
       ['bun autoshow voice design --save CANDIDATE_ID --provider elevenlabs --subject-key hero --voice-name HeroGuide --provenance-ref project:casting --price', 'Plan saving one selected design candidate without provider calls'],
@@ -147,8 +147,8 @@ export const voiceCommand = defineCliCommand({
     ],
     notes: [
       'Each subcommand has its own flags: bun autoshow voice <subcommand> --help',
-      'Voice management supports only ElevenLabs eleven_v3, Inworld realtime-tts-2, Fish s2.1-pro, Cartesia sonic-3.5-2026-05-04, and Speechify simba-3.2. Every other TTS model stays synthesis-only through tts with an existing stock, designed, or cloned voice ID.',
-      'Cartesia and Speechify expose catalog, clone, inspect, and delete. Text-prompt design is ElevenLabs, Inworld, and Fish. tts, write, resume, and synthesis price never create voices.'
+      'Voice import and local registration management support all active TTS providers. Remote capabilities are checked per subcommand from the typed voice capability registry.',
+      'OpenAI cloning is deferred, Speechify cloning requires an unsupported challenge-and-consent workflow, and Hume cloning is completed in the Hume platform before voice import. tts, write, resume, and synthesis price never create voices.'
     ]
   }
 }, async () => {})

@@ -16,7 +16,7 @@ A `provider-stock` import becomes current immediately. Other origins require `--
 
 | Flag | Description |
 | --- | --- |
-| `--provider <name>` | Voice provider: `elevenlabs`, `inworld`, `fish`, `cartesia`, or `speechify` |
+| `--provider <name>` | Any of the 11 active TTS providers |
 | `--model <model>` | Provider TTS model used by this registration |
 | `--profile <key>` | Casting profile key; default `default` |
 | `--voice-id <id>` | Existing provider voice ID |

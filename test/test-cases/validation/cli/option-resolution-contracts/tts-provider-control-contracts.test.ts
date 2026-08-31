@@ -4,7 +4,7 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 
 describe('option resolution contracts', () => {
 
-  test('Speechify validates model-specific languages, curated voices, and cloning', () => {
+  test('Speechify validates model-specific languages and accepts provisioned voice IDs', () => {
     expect(() => collectTtsTargets(buildOptsFromFlags({
       'speechify-tts': 'simba-3.2',
       'tts-language': 'es-ES'
@@ -49,33 +49,4 @@ describe('option resolution contracts', () => {
       ])
     })
 
-  test('explicit deepgram tts flags can still select multiple voices and apply voice overrides', () => {
-      const opts = buildOptsFromFlags({
-        'deepgram-tts': ['aura-2-thalia-en', 'aura-2-andromeda-en']
-      })
-      const deepgramTargets = collectTtsTargets(opts).filter((target) => target.service === 'deepgram')
-
-      expect(opts.deepgramTtsModels).toEqual(['aura-2-thalia-en', 'aura-2-andromeda-en'])
-      expect(deepgramTargets.map((target) => target.model)).toEqual(['aura-2-thalia-en', 'aura-2-andromeda-en'])
-
-      const overrideOpts = buildOptsFromFlags({
-        'deepgram-tts': ['aura-2-thalia-en'],
-        'tts-voice': 'aura-2-andromeda-en'
-      })
-      const overrideTargets = collectTtsTargets(overrideOpts).filter((target) => target.service === 'deepgram')
-
-      expect(overrideOpts.deepgramVoiceId).toBe('aura-2-andromeda-en')
-      expect(overrideTargets.map((target) => ({
-        model: target.model,
-        voice: target.voice
-      }))).toEqual([{
-        model: 'aura-2-thalia-en',
-        voice: 'aura-2-andromeda-en'
-      }])
-
-      expect(() => collectTtsTargets(buildOptsFromFlags({
-        'deepgram-tts': 'aura-2-thalia-en',
-        'tts-voice': 'invalid-model'
-      }))).toThrow('Invalid --deepgram-voice "invalid-model"')
-    })
 })

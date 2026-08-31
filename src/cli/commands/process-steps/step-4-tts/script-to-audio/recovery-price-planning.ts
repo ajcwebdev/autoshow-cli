@@ -21,6 +21,7 @@ export const planCurrentTtsResumePriceImpl = async (
     ) throw UsageError('TTS maximum generation slots must be a positive safe integer.')
     const projection = state ? readAudioProjection(state) : undefined
     const retainedHasPlannedRender = projection?.activeWork?.kind === 'render'
+      && projection.activeWork.renderIdentity === readiness.renderIdentity
       && projection.renderHistory.some((render) =>
         render.renderIdentity === readiness.renderIdentity)
     const sameRenderArchive = Boolean(

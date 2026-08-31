@@ -334,7 +334,11 @@ const assembleRecoveryAudio = async (
   input: RecoveryFinalizationInput,
   orderedBatches: LoadedRecoveryBatch[],
   workspaceDir: string
-): Promise<string> => {
+): Promise<{
+  path: string
+  turnDurationMs?: ReadonlyMap<string, number> | undefined
+  timingSegmentDurationMs?: ReadonlyMap<string, number> | undefined
+}> => {
   const masteringProfile = input.options.ttsOptions.ttsMasteringProfile
   if (input.options.comicContext && input.pure.planned.strategy === 'segmented') {
     if (!masteringProfile) {
@@ -351,13 +355,15 @@ const assembleRecoveryAudio = async (
       profile: masteringProfile,
     })
   }
-  return await concatAndConvertToWav(
-    orderedBatches.flatMap((batch) => batch.outputPaths),
-    workspaceDir,
-    `${input.options.target.service}-recovery`,
-    undefined,
-    masteringProfile
-  )
+  return {
+    path: await concatAndConvertToWav(
+      orderedBatches.flatMap((batch) => batch.outputPaths),
+      workspaceDir,
+      `${input.options.target.service}-recovery`,
+      undefined,
+      masteringProfile
+    )
+  }
 }
 
 const ensureAggregateProviderResult = async (
@@ -394,7 +400,8 @@ const publishCompletedRenderRecovery = async (
   const orderedBatches = orderedRecoveryBatches(input.pure, input.loadedBatches)
   const aggregate = await ensureAggregateProviderResult(input, orderedBatches)
   const journal = aggregate.journalEvidence.value
-  const assembledPath = await assembleRecoveryAudio(input, orderedBatches, workspaceDir)
+  const assembled = await assembleRecoveryAudio(input, orderedBatches, workspaceDir)
+  const assembledPath = assembled.path
   const audioRunRoot = `${input.renderRoot}/results/${aggregate.value.resultIdentity}/recovery-audio-run-${journal.snapshotId.slice(0, 16)}`
   const finalPath = `${audioRunRoot}/final.wav`
   await copyCreateOnly(input.options.rootDir, assembledPath, finalPath)
@@ -419,6 +426,8 @@ const publishCompletedRenderRecovery = async (
     slots: input.pure.planned.slots,
     batchResultFiles: orderedBatches,
     comicDialoguePlan: input.options.comicContext?.dialoguePlan,
+    masteredTurnDurationMs: assembled.turnDurationMs,
+    masteredTimingSegmentDurationMs: assembled.timingSegmentDurationMs,
   })
   const ledger = buildTransformLedger({
     renderIdentity: input.pure.renderIdentity,

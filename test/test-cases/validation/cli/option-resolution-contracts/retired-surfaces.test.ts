@@ -53,11 +53,6 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
     message: 'Model "tts-1-hd" is retired for --provider/--tts openai[=model]. Use "gpt-4o-mini-tts-2025-12-15" instead.'
   },
   {
-    flag: 'groq-tts',
-    model: 'canopylabs/orpheus-arabic-saudi',
-    message: 'Model "canopylabs/orpheus-arabic-saudi" is retired for --provider/--tts groq[=model]. Use "canopylabs/orpheus-v1-english" instead.'
-  },
-  {
     flag: 'elevenlabs-music',
     model: 'music_v1',
     message: 'Model "music_v1" is retired for --provider/--music elevenlabs[=model]. Use "music_v2" instead. AutoShow will not silently substitute a different model identity.'

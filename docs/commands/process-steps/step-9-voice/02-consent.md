@@ -32,6 +32,7 @@ Consent records cannot be edited. After revoke, the original locator fails every
 ```bash
 bun autoshow voice consent hero --provenance-ref release:hero-v1 --allow upload,new-synthesis,retention,deletion --actor-id casting_editor
 bun autoshow voice consent --revoke protected-consent:v1:STORE:ASSET:SHA256 --reason "Authorization withdrawn" --actor-id casting_editor
+bun autoshow voice consent --revoke protected-consent:v1:STORE:ASSET:SHA256 --reason "Authorization withdrawn" --actor-id casting_editor --price
 ```
 
 Next: [import](./03-import.md).

@@ -99,7 +99,7 @@ describe('comic character handling flat-reference contracts', () => {
     expect(Bun.file(alien.sourcePath).size).toBe(0)
   })
 
-  test('character sketch manifests accept only generated and revision origins', async () => {
+  test('character sketch manifests accept generated, revision, and canonical legacy-import origins', async () => {
     const root = await makeCatalog()
     const sketch = (origin: string) => ({
       characterKey: 'hero', generationId: 'hero-1', origin, sourceImage: 'hero.webp', outlineSheet: 'hero--outline-sheet.png',
@@ -109,6 +109,9 @@ describe('comic character handling flat-reference contracts', () => {
     expect((await readCharacterSketchManifest(root)).sketches[0]?.origin).toBe('generated')
 
     await writeFile(getCharacterSketchManifestPath(root), JSON.stringify({ schemaVersion: 1, sketches: [sketch('legacy-import')] }))
+    expect((await readCharacterSketchManifest(root)).sketches[0]?.origin).toBe('legacy-import')
+
+    await writeFile(getCharacterSketchManifestPath(root), JSON.stringify({ schemaVersion: 1, sketches: [sketch('unknown')] }))
     await expect(readCharacterSketchManifest(root)).rejects.toThrow()
   })
 

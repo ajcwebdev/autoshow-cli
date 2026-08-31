@@ -35,11 +35,6 @@
     "STT": [
       "https://ai.google.dev/gemini-api/docs/audio.md.txt"
     ],
-    "TTS": [
-      "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-tts-preview.md.txt",
-      "https://ai.google.dev/gemini-api/docs/speech-generation.md.txt",
-      "https://docs.cloud.google.com/text-to-speech/docs/gemini-tts.md.txt"
-    ],
     "Image": [
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-image.md.txt",
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image.md.txt",

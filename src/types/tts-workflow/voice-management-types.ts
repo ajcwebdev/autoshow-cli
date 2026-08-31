@@ -97,7 +97,7 @@ export type VoiceProvisioningState =
   | { state: 'deleted', providerVoice: ProviderVoiceRef, deletedAt: string }
   | { state: 'failed', code: string, message: string, providerVoice?: ProviderVoiceRef | undefined }
 
-type VoiceProvisioningOperation = 'design' | 'remix' | 'clone' | 'import' | 'save-reference'
+type VoiceProvisioningOperation = 'design' | 'remix' | 'clone' | 'import'
 
 export type VoiceIssuedResource = {
   providerVoice: ProviderVoiceRef

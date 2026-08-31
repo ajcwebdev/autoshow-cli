@@ -50,6 +50,25 @@ test('tts rejects ambiguous generic TTS options with multiple providers', () => 
     .toThrow('--tts-voice requires provider=value when multiple TTS providers are selected.')
 })
 
+test('tts rejects retired generic selectors with actionable guidance and exposes no compatibility flags', () => {
+  for (const provider of ['groq', 'gemini', 'deepgram', 'replicate', 'fal']) {
+    const parsed = parseCommandInvocation(
+      ['tts', 'input/examples/tts/1-tts.md', '--provider', `${provider}=historical-model`],
+      commandNamed('tts'),
+      GLOBAL_FLAG_DEFINITIONS
+    )
+    expect(() => normalizeGenericProviderSelectorFlags(
+      parsed.flags as Record<string, unknown>, parsed.rawParsed.explicitFlags, parsed.rawParsed.flagOccurrences,
+      'provider', STANDALONE_TTS_PROVIDER_TARGETS, { allProvidersTarget: 'all-tts' }
+    )).toThrow(`${provider} is no longer supported for TTS.`)
+    expect(() => parseCommandInvocation(
+      ['tts', 'input/examples/tts/1-tts.md', `--${provider}-tts`, 'historical-model'],
+      commandNamed('tts'),
+      GLOBAL_FLAG_DEFINITIONS
+    )).toThrow(`Unexpected flag: --${provider}-tts`)
+  }
+})
+
 test('tts rejects --tts-voice combined with dialogue flags', () => {
   expect(() => assertNoVoiceIdentityWithDialogue(
     { ttsSpeakers: ['Host=Jasper'] },

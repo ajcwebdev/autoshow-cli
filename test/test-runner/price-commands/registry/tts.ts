@@ -6,21 +6,6 @@ export const ttsRegistry: PriceSelectionEntry[] = [
     command('tts-openai-gpt-4o-mini-tts-2025-12-15', 'tts-openai-gpt-4o-mini-tts-2025-12-15', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--price']),
   ]),
 
-  ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/gemini-3.1-flash-tts-preview.test.ts', [
-    command('tts-gemini-gemini-3.1-flash-tts-preview', 'tts-gemini-gemini-3.1-flash-tts-preview', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'gemini=gemini-3.1-flash-tts-preview', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/gemini-3.1-flash-tts-preview-multispeaker.test.ts', [
-    command('tts-gemini-gemini-3.1-flash-tts-preview', 'tts-gemini-gemini-3.1-flash-tts-preview', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'gemini=gemini-3.1-flash-tts-preview', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/deepgram-aura-2-thalia-en.test.ts', [
-    command('tts-deepgram-aura-2-thalia-en', 'tts-deepgram-aura-2-thalia-en', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'deepgram=aura-2-thalia-en', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/groq-canopylabs-orpheus-v1-english.test.ts', [
-    command('tts-groq-canopylabs/orpheus-v1-english', 'tts-groq-canopylabs/orpheus-v1-english', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'groq=canopylabs/orpheus-v1-english', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/groq-canopylabs-orpheus-v1-english-hannah.test.ts', [
-    command('tts-groq-canopylabs/orpheus-v1-english', 'tts-groq-canopylabs/orpheus-v1-english', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'groq=canopylabs/orpheus-v1-english', '--price']),
-  ]),
   ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/grok-tts.test.ts', [
     command('tts-grok-grok-tts', 'tts-grok-grok-tts', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'grok=grok-tts', '--price']),
   ]),
@@ -62,12 +47,7 @@ export const ttsRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/deepinfra-chatterbox.test.ts', [
     command('tts-deepinfra-chatterbox-turbo', 'tts-deepinfra-chatterbox-turbo', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'deepinfra=ResembleAI/chatterbox-turbo', '--price']),
   ]),
-  ...exact('test/test-cases/validation/media-generation/replicate-tts-adapter-contracts.test.ts', [
-    command('tts-replicate-kokoro-82m', 'tts-replicate-kokoro-82m', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'replicate=jaaari/kokoro-82m', '--price']),
-  ]),
-  ...exact('test/test-cases/validation/media-generation/fal-tts-adapter-contracts.test.ts', [
-    command('tts-fal-seed-speech-v2', 'tts-fal-seed-speech-v2', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'fal=fal-ai/bytedance/seed-speech/tts/v2', '--price']),
-    command('tts-fal-maya', 'tts-fal-maya', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'fal=fal-ai/maya', '--price']),
-    command('tts-fal-async-tts-pro', 'tts-fal-async-tts-pro', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'fal=async/tts-pro/v1.0', '--price']),
+  ...exact('test/test-cases/validation/media-generation/fish-tts-adapter-contracts.test.ts', [
+    command('tts-fish-s2.1-pro', 'tts-fish-s2.1-pro', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'fish=s2.1-pro', '--price']),
   ]),
 ]

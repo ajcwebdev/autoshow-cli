@@ -10,7 +10,7 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice design [subject-key] [flags]
 ```
 
-Voice design is a two-step operation for ElevenLabs, Fish, and Inworld. Without `--save`, `design` creates unapproved candidates. `--save <candidate-id>` creates exactly one selected provider resource. Never infer `--save` from `--candidates 1`. ElevenLabs remix requires `--source-voice-id` and `--eligibility-snapshot-hash`. Cartesia and Speechify do not expose text-prompt design.
+Voice design is a two-step operation for ElevenLabs, MiniMax, Hume, Fish, Inworld, and DeepInfra. Without `--save`, `design` creates unapproved candidates. `--save <candidate-id>` creates exactly one selected provider resource. Never infer `--save` from `--candidates 1`. ElevenLabs remix requires `--source-voice-id` and `--eligibility-snapshot-hash`.
 
 `--save` cannot be combined with preview flags (`--description`, `--preview-text`, `--candidates`, `--seed`, `--source-voice-id`, `--creation-model`). A saved registration must still pass [audition](./06-audition.md) and [approve](./07-approve.md) before comic rendering can use it. If a Fish provisioning journal for that candidate is unambiguous, the next `--save` completes it without recreating the voice. Ambiguous journals refuse until you pass `--reconcile`. Remove `--price` only when you intend to purchase provider previews or save one candidate.
 
@@ -18,7 +18,7 @@ Voice design is a two-step operation for ElevenLabs, Fish, and Inworld. Without 
 
 | Flag | Description |
 | --- | --- |
-| `--provider <name>` | Voice provider: `elevenlabs`, `fish`, or `inworld` |
+| `--provider <name>` | Design provider: `elevenlabs`, `minimax`, `hume`, `fish`, `inworld`, or `deepinfra` |
 | `--model <model>` | Provider TTS model used by this registration |
 | `--profile <key>` | Casting profile key |
 | `--creation-model <model>` | Provider model used only to create candidates |

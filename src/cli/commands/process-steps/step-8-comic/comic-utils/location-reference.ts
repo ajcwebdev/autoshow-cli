@@ -53,14 +53,14 @@ export const normalizeLocationKey = (value: string): string => value
   .normalize('NFKC').toLowerCase()
   .replace(/^\s*(?:(?:cut|smash cut|match cut|dissolve|fade)\s+to|later|moments later)\s*:\s*/i, '')
   .replace(/^\s*(?:int\.?|ext\.?|int\.?\/ext\.?)\s*/i, '')
-  .replace(/\s*[–—-]\s*(?:(?:early|late)\s+)?(?:day|night|morning|afternoon|evening|continuous|later|moments later|seconds later|minutes later|same time|dawn|dusk|in flight)\s*$/i, '')
+  .replace(/\s*[–—-]\s*(?:(?:early|late)\s+)?(?:day|night|morning|afternoon|evening|continuous|later|shortly after|moments later|seconds later|minutes later|next day|same time|dawn|dusk|in flight)\s*$/i, '')
   .replace(/[^a-z0-9]+/g, '-')
   .replace(/^-+|-+$/g, '')
 
 const normalizeTypedLocationKey = (value: string): string => value
   .normalize('NFKC').toLowerCase()
   .replace(/^\s*(?:(?:cut|smash cut|match cut|dissolve|fade)\s+to|later|moments later)\s*:\s*/i, '')
-  .replace(/\s*[–—-]\s*(?:(?:early|late)\s+)?(?:day|night|morning|afternoon|evening|continuous|later|moments later|seconds later|minutes later|same time|dawn|dusk|in flight)\s*$/i, '')
+  .replace(/\s*[–—-]\s*(?:(?:early|late)\s+)?(?:day|night|morning|afternoon|evening|continuous|later|shortly after|moments later|seconds later|minutes later|next day|same time|dawn|dusk|in flight)\s*$/i, '')
   .replace(/[^a-z0-9]+/g, '-')
   .replace(/^-+|-+$/g, '')
 

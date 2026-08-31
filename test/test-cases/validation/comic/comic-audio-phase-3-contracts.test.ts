@@ -8,6 +8,7 @@ import { createComicSourceIdentity, createStructuredScriptArtifactRef, computeSc
 import { createComicDialoguePlan } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-dialogue-plan'
 import { createFishAdvancedProvider, FISH_ADVANCED_CAPABILITY_FIXTURE } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/fish-advanced-provider'
 import { runFishTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/run-fish-tts'
+import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { createMockWavBase64, createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle, withEnv } from '../../../test-utils/rest-contract-helpers'
 import { makeTempDir } from '../../../test-utils/temp-dirs'
@@ -137,6 +138,7 @@ describe('ADR-017 Phase 3 Fish Audio Contracts', () => {
       model: 's2.1-pro',
       voiceId: '7f92f8afb8ec43bf81429cc1c9199cb1',
       apiKey: 'test-fish-key',
+      chunkScheduler: createHostedTtsChunkScheduler(),
     })
 
     expect(result.audioPath).toContain(tempDir)

@@ -4,7 +4,6 @@ import {
   test
 } from 'bun:test'
 import { runGrokTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-grok/run-grok-tts'
-import { runGroqTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-groq/run-groq-tts'
 import { runOpenAITts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-openai/run-openai-tts'
 import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { createMockWavBase64, createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
@@ -18,6 +17,7 @@ import {
 } from './shared'
 
 const { makeTempDir } = setupTtsContractLifecycle()
+const createScheduler = (maxConcurrency = 4) => createHostedTtsChunkScheduler({ maxConcurrency, concurrencyMode: 'immediate' })
 
 describe('TTS provider service contracts', () => {
   test('OpenAI TTS sends instructions and speed in speech requests', async () => {
@@ -32,7 +32,8 @@ describe('TTS provider service contracts', () => {
         model: 'gpt-4o-mini-tts-2025-12-15',
         voiceId: 'alloy',
         instructions: 'Speak with a warm documentary narration style.',
-        speed: 1.25
+        speed: 1.25,
+        chunkScheduler: createScheduler()
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
@@ -62,7 +63,8 @@ describe('TTS provider service contracts', () => {
 
       const result = await runOpenAITts('OpenAI custom voice synthesis.', dir, {
         model: 'gpt-4o-mini-tts-2025-12-15',
-        voiceId: 'voice_123abc'
+        voiceId: 'voice_123abc',
+        chunkScheduler: createScheduler()
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
@@ -88,7 +90,8 @@ describe('TTS provider service contracts', () => {
         model: 'grok-tts',
         voiceId: 'AB12CD34',
         language: 'ar-SA',
-        textNormalization: true
+        textNormalization: true,
+        chunkScheduler: createScheduler()
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
@@ -132,7 +135,8 @@ describe('TTS provider service contracts', () => {
       })
 
       const result = await runGrokTts('Grok timeout retry synthesis.', dir, {
-        model: 'grok-tts'
+        model: 'grok-tts',
+        chunkScheduler: createScheduler()
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
@@ -177,7 +181,8 @@ describe('TTS provider service contracts', () => {
       const input = `${'A'.repeat(2000)} ${'B'.repeat(2000)} ${'C'.repeat(100)}`
       const runPromise = runGrokTts(input, dir, {
         model: 'grok-tts',
-        chunkConcurrency: 3
+        chunkConcurrency: 3,
+        chunkScheduler: createScheduler(3)
       })
       const rethrowGatedAssertions = await captureGatedAssertions(async () => {
         await waitForCondition(() => started.length === 3, 'Grok chunks did not start concurrently')
@@ -260,33 +265,4 @@ describe('TTS provider service contracts', () => {
       expect(maxInFlight).toBe(2)
     }, 10_000)
 
-  test('Groq TTS defaults to English Orpheus voice', async () => {
-      const dir = await makeTempDir('autoshow-groq-tts-defaults-')
-      const audioBytes = Buffer.from(createMockWavBase64(), 'base64')
-
-      process.env['GROQ_API_KEY'] = 'groq-key'
-
-      const calls = installMockFetch(() => new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/wav' } }))
-
-      const result = await runGroqTts('Groq English synthesis.', dir, {
-        model: 'canopylabs/orpheus-v1-english'
-      })
-
-      expect(await Bun.file(result.audioPath).exists()).toBe(true)
-      expect(result.metadata).toMatchObject({
-        ttsService: 'groq',
-        ttsModel: 'canopylabs/orpheus-v1-english',
-        speaker: 'troy'
-      })
-      expect(calls).toHaveLength(1)
-      expect(calls[0]?.headers.get('authorization')).toBe('Bearer groq-key')
-      expect(calls[0]?.url).toBe('https://api.groq.com/openai/v1/audio/speech')
-      expect(calls[0]?.method).toBe('POST')
-      expect(calls[0]?.bodyJson).toEqual({
-        model: 'canopylabs/orpheus-v1-english',
-        voice: 'troy',
-        input: 'Groq English synthesis.',
-        response_format: 'wav'
-      })
-    }, 10_000)
 })

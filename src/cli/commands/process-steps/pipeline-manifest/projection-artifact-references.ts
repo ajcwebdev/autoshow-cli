@@ -76,6 +76,18 @@ const collectReadinessHistory = (
   expectedJsonFields: { branchPlanId: readiness['branchPlanId'] as string, targetKey }
 }))
 
+const selectedReportedOutputAuthority = (projection: Record<string, unknown>): { renderIdentity: string, eventSequence: number } | undefined => {
+  const selected = projection['selectedSuccess']
+  if (!isRecord(selected) || typeof selected['renderIdentity'] !== 'string' || !Number.isInteger(selected['eventSequence'])) return undefined
+  const active = projection['activeWork']
+  if (
+    isRecord(active)
+    && active['kind'] === 'render'
+    && (active['renderIdentity'] !== selected['renderIdentity'] || active['eventSequence'] !== selected['eventSequence'])
+  ) return undefined
+  return { renderIdentity: selected['renderIdentity'], eventSequence: selected['eventSequence'] as number }
+}
+
 export const collectProjectionArtifactReferences = (
   projection: Record<string, unknown>,
   targetKey: string
@@ -86,7 +98,7 @@ export const collectProjectionArtifactReferences = (
   if (shape.kind === 'archive') return collectArchiveProjection(shape.archive, targetKey, sink) ? sink.result() : undefined
   if (!collectBranchHistory(shape.branchHistory, targetKey, sink)) return undefined
   if (!collectReadinessHistory(shape.readinessAttempts, targetKey, sink)) return undefined
-  if (!collectRenderHistory(shape.renderHistory, targetKey, sink)) return undefined
+  if (!collectRenderHistory(shape.renderHistory, targetKey, sink, selectedReportedOutputAuthority(projection))) return undefined
   return sink.result()
 }
 

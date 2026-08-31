@@ -41,7 +41,8 @@ const comicQaFlags = {
     type: Boolean,
     negatable: true
   },
-  'qa-model': strFlag(colorizeHelpDescription('Vision judge model: an OpenAI vision-capable LLM'), DEFAULT_QA_MODEL),
+  'qa-only': boolFlag(colorizeHelpDescription('Judge existing canonical individual panels without generating, repairing, or promoting images')),
+  'qa-model': strFlag(colorizeHelpDescription('Vision judge model: an OpenAI or Gemini vision-capable LLM'), DEFAULT_QA_MODEL),
   'max-repairs': strFlag(colorizeHelpDescription('Maximum repair attempts after the initial image; stagnation may restart once or stop early'), '2')
 } as const satisfies CliFlagsDefinition
 
@@ -67,6 +68,12 @@ const generateImagesVariationFlag = {
   variation: strFlag(colorizeHelpDescription(`Final-image prompt variations as name[,name...]: ${IMAGE_PROMPT_VARIATIONS.join('|')}`))
 } as const satisfies CliFlagsDefinition
 
+const generateImagesRevisionFlags = {
+  'revision-plan': strFlag(colorizeHelpDescription('Schema-validated, hash-bound targeted panel revision plan')),
+  'comparison-passes': strFlag(colorizeHelpDescription('Order-swapped comparison judgments per completed original/candidate pair; revision mode requires 2'), '2'),
+  promote: strFlag(colorizeHelpDescription('Revision promotion policy; revision mode requires clear-winners')),
+} as const satisfies CliFlagsDefinition
+
 const generateImagesForceFlag = {
   force: {
     description: colorizeHelpDescription('Regenerate and overwrite image outputs only'),
@@ -81,6 +88,7 @@ export const generateImagesFlags = {
   ...withHelpGroup(generateImagesPanelFlags, 'comic-panels'),
   ...withHelpGroup({ 'image-model': comicImageFlags['image-model'] }, 'comic-image'),
   ...withHelpGroup(generateImagesVariationFlag, 'comic-image'),
+  ...withHelpGroup(generateImagesRevisionFlags, 'comic-image'),
   ...withHelpGroup({ size: comicImageFlags.size, quality: comicImageFlags.quality }, 'comic-image'),
   ...withHelpGroup(comicQaFlags, 'comic-qa'),
   ...withHelpGroup(generateImagesForceFlag, 'comic-run'),

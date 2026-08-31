@@ -15,7 +15,7 @@ const readRequiredString = (value: Record<string, unknown>, key: string): string
   return field.trim()
 }
 
-const sanitizeVoiceResponse = (payload: unknown): { id: string, metadata: SanitizedProviderVoiceMetadata } => {
+export const sanitizeMistralVoiceResponse = (payload: unknown): { id: string, metadata: SanitizedProviderVoiceMetadata } => {
   if (!isRecord(payload)) throw ValidationError('Mistral voice response must be an object.', { stage: 'voice:mistral' })
   const id = readRequiredString(payload, 'id')
   const name = readRequiredString(payload, 'name')
@@ -69,7 +69,7 @@ export const createMistralSavedVoice = async (
     errorMessagePrefix: 'Mistral saved voice creation failed'
   })
   const observedAt = new Date().toISOString()
-  const { id, metadata } = sanitizeVoiceResponse(payload)
+  const { id, metadata } = sanitizeMistralVoiceResponse(payload)
   const accountScopeHash = mistralAccountScopeHash(input.apiKey)
   return {
     providerVoice: {
@@ -105,7 +105,7 @@ export const inspectMistralSavedVoice = async (input: {
     errorMessagePrefix: 'Mistral saved voice inspection failed'
   })
   const observedAt = new Date().toISOString()
-  const { id, metadata } = sanitizeVoiceResponse(payload)
+  const { id, metadata } = sanitizeMistralVoiceResponse(payload)
   if (id !== input.voiceId) throw ValidationError('Mistral voice inspection returned a different resource ID.', { stage: 'voice:mistral' })
   const accountScopeHash = mistralAccountScopeHash(input.apiKey)
   return {
@@ -149,7 +149,7 @@ export const findMistralSavedVoiceBySlug = async (input: {
   }
   if (matches.length > 1) throw ValidationError('Mistral voice reconciliation found multiple resources with the attempt slug.', { stage: 'voice:mistral' })
   if (matches.length === 0) return undefined
-  const { id } = sanitizeVoiceResponse(matches[0])
+  const { id } = sanitizeMistralVoiceResponse(matches[0])
   return await inspectMistralSavedVoice({ ...input, voiceId: id })
 }
 
@@ -172,7 +172,7 @@ export const deleteMistralSavedVoice = async (input: {
     timeoutMs: MEDIA_GENERATION_TIMEOUT_MS,
     errorMessagePrefix: 'Mistral saved voice deletion failed'
   })
-  const { id } = sanitizeVoiceResponse(payload)
+  const { id } = sanitizeMistralVoiceResponse(payload)
   if (id !== voice.resourceId) throw ValidationError('Mistral deletion returned a different resource identity.', { stage: 'voice:mistral' })
   return { deletedAt: new Date().toISOString(), providerVoice: voice }
 }

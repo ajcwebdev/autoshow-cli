@@ -407,7 +407,7 @@ describe('adaptive scheduler contracts', () => {
       false
     )).toBeNull()
     expect(classifyAdaptivePressure(
-      'fal-tts-chunk-1 failed after 2/2 attempts (paid create outcome is ambiguous, 400ms elapsed)',
+      'grok-tts-chunk-1 failed after 2/2 attempts (paid create outcome is ambiguous, 400ms elapsed)',
       1,
       false
     )).toBeNull()

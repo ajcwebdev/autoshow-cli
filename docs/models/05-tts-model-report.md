@@ -12,7 +12,7 @@ Durable registry, lifecycle, and capability policy belongs to [ADR-010](../adr/A
 
 ## TTS refresh and catalog narrowing
 
-Standardized hosted TTS on 111 active selectors across 15 hosted providers. Moving aliases and unsteerable models were replaced or retired with explicit refusal guidance.
+The provider-by-provider entries below preserve the 2026-08-19 refresh record. On 2026-08-29, AutoShow removed Groq, Gemini, Deepgram, Replicate, and fal from active TTS while preserving their non-TTS integrations and retired pricing history. The active TTS surface now contains 11 providers: ElevenLabs, MiniMax, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, Fish, Inworld, and DeepInfra.
 
 **Provider 1: Speechify**
 
@@ -32,7 +32,7 @@ Standardized hosted TTS on 111 active selectors across 15 hosted providers. Movi
 **Provider 4: Deepgram**
 
 - **Provider:** Deepgram
-- **2026 decision and active implementation:** Expanded from 8 to all 91 documented Aura-2 voice models across seven languages; single-default policy avoids multiplying all-provider runs. Excluded Aura-1 and Flux.
+- **2026-08-19 historical implementation:** Expanded from 8 to all 91 documented Aura-2 voice models across seven languages; single-default policy avoided multiplying all-provider runs. Excluded Aura-1 and Flux. Deepgram TTS was removed from the active surface on 2026-08-29.
 
 **Provider 5: ElevenLabs**
 
@@ -47,7 +47,7 @@ Standardized hosted TTS on 111 active selectors across 15 hosted providers. Movi
 **Provider 7: Groq**
 
 - **Provider:** Groq
-- **2026 decision and active implementation:** Retained English Orpheus (`canopylabs/orpheus-v1-english`, default voice `abdullah`). Retired narrow Arabic selector.
+- **2026-08-19 historical implementation:** Retained English Orpheus (`canopylabs/orpheus-v1-english`, default voice `abdullah`). Retired narrow Arabic selector. Groq TTS was removed from the active surface on 2026-08-29.
 
 **Provider 8: xAI**
 
@@ -57,7 +57,7 @@ Standardized hosted TTS on 111 active selectors across 15 hosted providers. Movi
 **Provider 9: Gemini**
 
 - **Provider:** Gemini
-- **2026 decision and active implementation:** Kept `gemini-3.1-flash-tts-preview` with 30 prebuilt voices supporting single and two-speaker synthesis.
+- **2026-08-19 historical implementation:** Kept `gemini-3.1-flash-tts-preview` with 30 prebuilt voices supporting single and two-speaker synthesis. Gemini TTS was removed from the active surface on 2026-08-29.
 
 **Provider 10: Inworld**
 
@@ -72,7 +72,7 @@ Standardized hosted TTS on 111 active selectors across 15 hosted providers. Movi
 **Provider 12: Replicate**
 
 - **Provider:** Replicate
-- **2026 decision and active implementation:** Added pinned `jaaari/kokoro-82m` ($0.00022/pred). Removed unmaintained community variants lacking compatible schemas.
+- **2026-08-19 historical implementation:** Added pinned `jaaari/kokoro-82m` ($0.00022/pred). Removed unmaintained community variants lacking compatible schemas. Replicate TTS was removed from the active surface on 2026-08-29.
 
 **Provider 13: Fish**
 
@@ -165,7 +165,7 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model
 
 ## API / Type Impact
 
-- The active hosted TTS surface is 111 selectors.
+- The active hosted TTS surface contains exactly the supported selectors for 11 providers.
 - Removed selectors are excluded from active CLI help, configuration defaults, and expansion lists, while remaining parseable in historical manifests and pricing readers.
 
 ## Follow-up Actions

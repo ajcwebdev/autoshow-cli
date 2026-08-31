@@ -13,6 +13,7 @@ import type {
 } from '~/types'
 import { canonicalTargetKey } from '../../../step-4-tts/script-to-audio/contract-identity'
 import { prepareComicSegmentedProviderTexts } from '../../../step-4-tts/script-to-audio/current-render-attempt'
+import { serializesComicDelivery } from '../../../step-4-tts/script-to-audio/comic-segmented-audio'
 import { runTtsForTargets } from '../../../step-4-tts/run-tts'
 import { validateTtsTargetsForExecution } from '../../../step-4-tts/tts-targets'
 import { createResourceGate } from '~/utils/resource-gate'
@@ -29,6 +30,20 @@ const voiceLocator = (entry: ApprovedVoiceSnapshotEntry): { value: string, prote
   if (voice.kind === 'reference-asset') return { value: `ref_audio:${voice.protectedAsset.assetId}`, protectedAsset: voice.protectedAsset }
   if (voice.kind !== 'shared-library-resource') throw UsageError('Comic audio requires a materialized saved, stock, or reference voice.')
   throw UsageError(`Shared-library voice ${voice.sharedVoiceId} must be imported and approved as an account resource before comic synthesis.`)
+}
+
+export const invalidateComicAudioPublication = (audio: Record<string, unknown>): Record<string, unknown> => {
+  const {
+    selectedAudioRuns: _selectedAudioRuns,
+    publishedAudioRunId: _publishedAudioRunId,
+    mixPlanRef: _mixPlanRef,
+    finalTimelineRef: _finalTimelineRef,
+    finalOutputRefs: _finalOutputRefs,
+    selectedSoundscapeRuns: _selectedSoundscapeRuns,
+    soundEffectRenderResultRef: _soundEffectRenderResultRef,
+    ...retained
+  } = audio
+  return retained
 }
 
 export const buildTargetExecution = (input: {
@@ -80,8 +95,8 @@ export const buildTargetExecution = (input: {
     providerSpeakerLabelByTurnId[turn.turnId] = speaker
     snapshotEntryIdByTurnId[turn.turnId] = entry.entryId
     const delivery = turn.delivery?.description
-    if (delivery && target.service === 'hume' && target.model === 'octave-2') {
-      if (input.deliveryPolicy === 'strict') throw UsageError(`Hume Octave 2 cannot serialize authored delivery for ${turn.turnId}; use --delivery-policy best-effort to record the degradation.`)
+    if (delivery && !serializesComicDelivery(target, delivery)) {
+      if (input.deliveryPolicy === 'strict') throw UsageError(`${target.service}/${target.model} cannot serialize authored delivery for ${turn.turnId}; use --delivery-policy best-effort to record the degradation.`)
       deliveryDispositionByTurnId[turn.turnId] = 'unsupported-best-effort'
     } else {
       deliveryDispositionByTurnId[turn.turnId] = delivery ? 'serialized' : 'none'
@@ -96,6 +111,7 @@ export const buildTargetExecution = (input: {
       turnId: turn.turnId,
       speaker,
       text: turn.canonicalText,
+      ...(delivery ? { delivery } : {}),
       providerSegments: prepareComicSegmentedProviderTexts(turn, target).providerTexts,
     }
   })
@@ -154,8 +170,9 @@ export const executeComicAudioTargets = async (input: {
           sceneRunDir: compatible.sceneRunDir,
           sourceIdentity: compatible.sourceIdentity,
           stage: { requirement: 'required', status: providerStageStatus(dialogueStageTargetKeys, [...priorByTarget.values()]), execution: { kind: 'provider-targets' }, targetKeys: dialogueStageTargetKeys as [string, ...string[]], artifactRefs: baseArtifacts },
-          audio: audioMetadata,
+          audio: invalidateComicAudioPublication(audioMetadata),
           providers: ordered,
+          invalidatePresentation: true,
         })
         releaseBarrier()
       } catch (error) {

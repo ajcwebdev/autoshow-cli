@@ -53,6 +53,7 @@ const EVENT_REFERENCE_LISTS: readonly EventReferenceListDescriptor[] = [
 
 export const collectGenericEventLists = (event: Record<string, unknown>, ctx: RenderCollectorContext): boolean => {
   for (const descriptor of EVENT_REFERENCE_LISTS) {
+    if (descriptor.key === 'reportedOutputRefs' && !ctx.verifyReportedOutputs) continue
     const list = event[descriptor.key]
     if (list === undefined) continue
     if (!Array.isArray(list)) return false

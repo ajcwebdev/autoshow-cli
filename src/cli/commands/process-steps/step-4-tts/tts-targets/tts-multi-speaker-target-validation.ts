@@ -19,15 +19,15 @@ export const validateMultiSpeakerTtsSelection = (
   const allProviderModels = [
     { provider: 'elevenlabs' as const, models: selection.elevenlabsModels },
     { provider: 'minimax' as const, models: selection.minimaxModels },
-    { provider: 'groq' as const, models: selection.groqModels },
     { provider: 'grok' as const, models: selection.grokModels },
     { provider: 'mistral' as const, models: selection.mistralModels },
     { provider: 'openai' as const, models: selection.openaiModels },
-    { provider: 'gemini' as const, models: selection.geminiModels },
-    { provider: 'deepgram' as const, models: selection.deepgramModels },
     { provider: 'speechify' as const, models: selection.speechifyModels },
     { provider: 'hume' as const, models: selection.humeModels },
     { provider: 'cartesia' as const, models: selection.cartesiaModels },
+    { provider: 'fish' as const, models: selection.fishModels },
+    { provider: 'inworld' as const, models: selection.inworldModels },
+    { provider: 'deepinfra' as const, models: selection.deepinfraModels },
   ]
   const selectedProviders = allProviderModels.filter((provider) => provider.models.length > 0)
   if (selectedProviders.length === 0) {

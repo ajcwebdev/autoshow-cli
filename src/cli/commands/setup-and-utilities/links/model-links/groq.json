@@ -16,9 +16,6 @@
     ],
     "STT": [
       "https://console.groq.com/docs/speech-to-text.md"
-    ],
-    "TTS": [
-      "https://console.groq.com/docs/text-to-speech.md"
     ]
   }
 }

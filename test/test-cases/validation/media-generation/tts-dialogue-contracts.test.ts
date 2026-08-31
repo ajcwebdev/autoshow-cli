@@ -156,26 +156,9 @@ describe('TTS dialogue contracts', () => {
     expect(rmsValues[1] as number).toBeLessThan(rmsValues[2] as number)
   }, 10_000)
 
-  test('Gemini multispeaker uses the generic speaker mappings', () => {
-    const opts = buildOptsFromFlags({
-      'gemini-tts': 'gemini-3.1-flash-tts-preview',
-      'tts-dialogue-format': 'labeled',
-      'tts-speaker': ['Host=Kore', 'Guest=Puck']
-    })
-
-    expect(opts.ttsSpeakers).toEqual(['Host=Kore', 'Guest=Puck'])
-    expect(opts.ttsDialogueFormat).toBe('labeled')
-
-    const targets = collectTtsTargets(opts)
-    expect(targets.length).toBe(1)
-    expect(targets[0]?.service).toBe('gemini')
-    expect(targets[0]?.multiSpeakerStrategy).toBe('native')
-    expect(targets[0]?.voice).toBe('Host=Kore, Guest=Puck')
-  })
-
   test('raw ref-audio speakers cannot enter generic runtime options', () => {
     expect(() => collectTtsTargets(buildOptsFromFlags({
-      'groq-tts': 'canopylabs/orpheus-v1-english',
+      'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['DUCO=input/examples/audio/anthony-voice.mp3', 'CHAT=input/examples/audio/voice.mp3']
     }))).toThrow('--tts-speaker SPEAKER=path mappings cannot enter generic TTS runtime options')

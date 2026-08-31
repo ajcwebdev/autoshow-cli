@@ -18,11 +18,13 @@ Approval makes the auditioned registration current for that subject, provider, m
 | --- | --- |
 | `--generation-id <sha256>` | Optional unless more than one generation could match |
 | `--actor-id <id>` | Required opaque approving actor ID |
+| `--price` | Validate the local transition without provider calls or artifact writes |
 
 ### Examples
 
 ```bash
 bun autoshow voice approve vr_ID --generation-id GENERATION_SHA256 --actor-id casting_editor
+bun autoshow voice approve vr_ID --generation-id GENERATION_SHA256 --actor-id casting_editor --price
 ```
 
 Next: [retire](./08-retire.md).

@@ -10,7 +10,7 @@ import type {
   VoiceReferenceSnapshotIndex,
 } from '~/types'
 import { UsageError } from '~/utils/error-handler'
-import { toPosixPath, toProjectDisplayPath } from '~/utils/runtime-paths'
+import { toSourceIdentityDisplayPath } from '~/utils/runtime-paths'
 import {
   assertContentIdentity,
   canonicalTtsJson,
@@ -30,7 +30,7 @@ export const createComicSourceIdentity = async (
   sourceBytes: string | Uint8Array
 ): Promise<ComicSourceIdentity> => {
   const resolved = await realpath(resolve(scriptPath))
-  const canonicalPath = toPosixPath(toProjectDisplayPath(resolved))
+  const canonicalPath = toSourceIdentityDisplayPath(resolved)
   const base = {
     schemaVersion: 1 as const,
     canonicalPath,

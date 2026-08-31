@@ -3,20 +3,15 @@ import type { SpeakerVoiceRegistry } from '~/types'
 export type TtsTargetSelection = {
   elevenlabsModels: string[]
   minimaxModels: string[]
-  groqModels: string[]
   grokModels: string[]
   mistralModels: string[]
   openaiModels: string[]
-  geminiModels: string[]
-  deepgramModels: string[]
   speechifyModels: string[]
   humeModels: string[]
   cartesiaModels: string[]
   fishModels: string[]
   inworldModels: string[]
   deepinfraModels: string[]
-  replicateModels: string[]
-  falModels: string[]
   speakerVoiceRegistry: SpeakerVoiceRegistry | undefined
   multiSpeakerRequested: boolean
   minimaxVoiceId: string | undefined
@@ -30,7 +25,6 @@ export type TtsTargetSelection = {
   openaiVoiceId: string | undefined
   openaiInstructions: string | undefined
   openaiSpeed: number | undefined
-  deepgramSpeed: number | undefined
   elevenLabsVoiceId: string | undefined
   elevenLabsLanguageCode: string | undefined
   elevenLabsStability: number | undefined
@@ -50,15 +44,9 @@ export type TtsTargetSelection = {
   inworldVoiceId: string | undefined
   inworldInstructions: string | undefined
   deepinfraVoiceId: string | undefined
-  replicateVoiceId: string | undefined
-  falVoiceId: string | undefined
-  falInstructions: string | undefined
-  groqVoiceId: string | undefined
   grokVoiceId: string | undefined
   grokLanguage: string | undefined
   grokTextNormalization: boolean
   mistralVoiceId: string | undefined
-  geminiVoiceId: string | undefined
-  deepgramVoiceId: string | undefined
   dialogueRequested: boolean
 }

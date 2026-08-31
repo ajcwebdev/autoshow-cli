@@ -65,11 +65,13 @@ export const generateImagesCommandDefinition = defineCliCommand({
       [`bun autoshow comic ${GENERATE_IMAGES_COMMAND} 05-01`, 'Generate final panel images for a scene'],
       [`bun autoshow comic ${GENERATE_IMAGES_COMMAND} 05-01 --target sketches --panels 1-4`, 'Generate review sketches for panels 1 through 4'],
       [`bun autoshow comic ${GENERATE_IMAGES_COMMAND} 05-01 --panels-per-image 6`, 'Generate multi-panel page images'],
+      [`bun autoshow comic ${GENERATE_IMAGES_COMMAND} 05-01 --qa-only --panels 1-5 --price`, 'Estimate a non-generating audit of existing canonical panels'],
       [`bun autoshow comic ${GENERATE_IMAGES_COMMAND} 05-01 --no-qa --price`, 'Estimate the image cost with QA disabled']
     ],
     notes: [
       'Reviewed scene and panel prompt bundles are required; --force only regenerates image outputs.',
       `To rebuild panel prompts explicitly, run: bun autoshow comic ${DRAFT_SCENES_COMMAND} <script-path> --only panel-prompts`,
+      'QA-only mode reads canonical individual panels and writes a separate audit report without generation, repairs, promotion, or image-manifest changes.',
       'QA options (--qa, --qa-model, --max-repairs) only apply when --target is images or both.',
       ARTIFACT_NOTE
     ]
@@ -83,7 +85,7 @@ export const generateAudioCommandDefinition = defineCliCommand({
   flags: comicGenerateAudioFlags,
   help: {
     examples: [
-      [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --provider gemini=gemini-2.5-pro-preview-tts`, 'Render with approved Gemini castings'],
+      [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --provider hume=octave-2`, 'Render with approved Hume castings'],
       [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --provider mistral=voxtral-mini-tts-2603 --mode segmented`, 'Render approved Mistral saved/reference voices'],
       [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --provider elevenlabs=eleven_v3 --sfx-provider elevenlabs=eleven_text_to_sound_v2`, 'Render dialogue plus authored sound effects and ambience'],
       [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --sfx-provider replicate=sepal/audiogen@154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8 --sfx-license-use noncommercial`, 'Render authored action SFX and ambience with pinned AudioGen'],

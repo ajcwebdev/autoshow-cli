@@ -14,7 +14,7 @@ bun autoshow voice list [registration-id] [flags]
 
 With a registration id it inspects that registration. `--live` checks whether the provider still has the voice. `--price` keeps the read local even when `--live` is set.
 
-If a Fish provisioning journal is unambiguous, `list <id>` completes it without recreating the voice. Ambiguous journals refuse until you pass `--reconcile`. `--price` and bare `voice list` never complete a journal.
+If a supported provisioning journal is unambiguous, `list <id>` completes it without recreating the voice. Ambiguous Fish and Grok journals refuse until you pass `--reconcile`. `--price` and bare `voice list` never complete a journal.
 
 With `--provider` it lists a provider or account catalog. `--provider` cannot be combined with a registration id. `--price` validates the catalog request without reading the provider.
 
@@ -24,10 +24,10 @@ With `--provider` it lists a provider or account catalog. `--provider` cannot be
 | --- | --- |
 | `--generation-id <sha256>` | Optional unless more than one generation could match |
 | `--live` | Opt-in provider readiness check for one registration |
-| `--provider <name>` | Voice provider: `elevenlabs`, `inworld`, `fish`, `cartesia`, or `speechify` |
+| `--provider <name>` | Remote catalog provider: every active provider except `openai` |
 | `--source <source>` | Catalog source: `account`, `provider-library`, or `shared-library`; default `account` |
 | `--cursor <cursor>` | Opaque provider pagination cursor |
-| `--reconcile` | Complete an ambiguous Fish provisioning journal without recreating the voice |
+| `--reconcile` | Complete an ambiguous provider provisioning journal without recreating the voice |
 | `--price` | Validate and estimate without provider calls or artifact writes |
 
 ### Examples

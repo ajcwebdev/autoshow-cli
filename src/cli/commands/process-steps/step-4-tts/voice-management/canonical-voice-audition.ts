@@ -18,6 +18,7 @@ import { estimateTtsTargetCosts } from '../tts-utils/tts-pricing'
 import { computeVoiceAuditionId, assertVoiceConsentAllows, validateVoiceAuditionManifest } from './voice-management-contracts'
 import { hashCharacterVoiceBrief } from './character-voice-registry'
 import { prepareElevenLabsDialogueText } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
+import { createHostedTtsChunkScheduler } from '../tts-utils/hosted-tts-chunk-scheduler'
 
 const COMPARISON_PASSAGE = 'Morning light crossed the quiet station while a distant bell marked the hour.'
 const NEUTRAL_PASSAGE = 'This is my voice: clear, steady, and ready to tell the story.'
@@ -59,20 +60,15 @@ const targetOptions = (registration: VoiceRegistration): TtsOptions => {
   switch (registration.provider) {
     case 'elevenlabs': return { elevenlabsTtsModels: [model], elevenlabsVoiceId: voice }
     case 'minimax': return { minimaxTtsModels: [model], minimaxTtsVoice: voice }
-    case 'groq': return { groqTtsModels: [model], groqVoiceId: voice }
     case 'grok': return { grokTtsModels: [model], grokTtsVoice: voice }
     case 'mistral': return { mistralTtsModels: [model], mistralTtsVoice: voice }
     case 'openai': return { openaiTtsModels: [model], openaiVoiceId: voice }
-    case 'gemini': return { geminiTtsModels: [model], geminiVoiceId: voice }
-    case 'deepgram': return { deepgramTtsModels: [model], deepgramVoiceId: voice }
     case 'speechify': return { speechifyTtsModels: [model], speechifyVoice: voice }
     case 'hume': return { humeTtsModels: [model], humeTtsVoice: voice }
     case 'cartesia': return { cartesiaTtsModels: [model], cartesiaTtsVoice: voice }
     case 'fish': return { fishTtsModels: [model], fishTtsVoice: voice }
     case 'inworld': return { inworldTtsModels: [model], inworldTtsVoice: voice }
     case 'deepinfra': return { deepinfraTtsModels: [model], deepinfraTtsVoice: voice }
-    case 'replicate': return { replicateTtsModels: [model], replicateTtsVoice: voice }
-    case 'fal': return { falTtsModels: [model], falTtsVoice: voice }
   }
 }
 
@@ -84,6 +80,11 @@ const requireSingleTarget = (registration: VoiceRegistration): { target: TtsTarg
   }
   return { target: targets[0], options }
 }
+
+export const withCanonicalVoiceAuditionScheduler = (options: TtsOptions): TtsOptions => ({
+  ...options,
+  hostedTtsChunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 1, concurrencyMode: 'immediate' })
+})
 
 export const planCanonicalVoiceAudition = (
   registration: VoiceRegistration,
@@ -118,6 +119,7 @@ export const runCanonicalVoiceAudition = async (input: {
   if (input.maxCents !== undefined && plan.estimatedCostCents > input.maxCents) throw UsageError(`Canonical audition estimate ${plan.estimatedCostCents.toFixed(4)} cents exceeds --max-cents ${input.maxCents}.`)
   if (!input.protectedStore.withWorkspace || !input.protectedStore.storeBytes) throw UsageError('Canonical audition requires a managed protected store with workspaces.')
   const { target, options } = requireSingleTarget(registration)
+  const auditionOptions = withCanonicalVoiceAuditionScheduler(options)
   const providerVoice = registration.provisioning.providerVoice
   const providerVoiceId = voiceId(providerVoice)
   const createdAt = input.now ?? new Date().toISOString()
@@ -136,7 +138,7 @@ export const runCanonicalVoiceAudition = async (input: {
         const takeId = `${passage.itemId}-${takeIndex + 1}`
         const outputDir = `${workspace}/${takeId}`
         await mkdir(outputDir, { recursive: true })
-        const result = await target.run(providerText, outputDir, options, {
+        const result = await target.run(providerText, outputDir, auditionOptions, {
           sourceId: `audition:${registration.registrationId}:${passage.itemId}:${takeIndex + 1}`,
           sourceIndex: takeIndex,
           speaker: registration.subjectKey,

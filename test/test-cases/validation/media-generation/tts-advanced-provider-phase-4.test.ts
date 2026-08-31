@@ -13,6 +13,7 @@ import {
   createSpeechifyAdvancedProvider,
   SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE,
 } from '~/cli/commands/process-steps/step-4-tts/tts-services/speechify/speechify-advanced-provider'
+import { advancedProvider } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-command-support'
 
 const CHECKED_AT = '2026-08-11T00:00:00.000Z'
 const protectedSample = { storeId: 'voice_store', assetId: `sha256_${'a'.repeat(64)}`, sha256: 'a'.repeat(64) }
@@ -27,6 +28,32 @@ describe('Phase 4 capability fixtures', () => {
     expect(MINIMAX_ADVANCED_CAPABILITY_FIXTURE.records.find(record => record.scope.feature === 'voice-design')).toEqual(expect.objectContaining({ adapterSupport: 'implemented' }))
     expect(CARTESIA_ADVANCED_CAPABILITY_FIXTURE.records.find(record => record.scope.feature === 'voice-design')).toEqual(expect.objectContaining({ adapterSupport: 'unsupported' }))
     expect(SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE.records.find(record => record.scope.feature === 'voice-design')).toEqual(expect.objectContaining({ adapterSupport: 'unsupported' }))
+    expect(SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE.records.find(record => record.scope.feature === 'instant-clone')).toEqual(expect.objectContaining({ adapterSupport: 'planned' }))
+  })
+
+  test('public routing exposes MiniMax, Grok, Mistral, Hume, and DeepInfra without provider calls', () => {
+    const credentials = {
+      MINIMAX_API_KEY: 'minimax-key',
+      XAI_API_KEY: 'xai-key',
+      MISTRAL_API_KEY: 'mistral-key',
+      HUME_API_KEY: 'hume-key',
+      DEEPINFRA_API_KEY: 'deepinfra-key',
+    } as const
+    const prior = Object.fromEntries(Object.keys(credentials).map(key => [key, process.env[key]]))
+    Object.assign(process.env, credentials)
+    try {
+      for (const provider of ['minimax', 'grok', 'mistral', 'hume', 'deepinfra'] as const) {
+        const routed = advancedProvider(provider)
+        expect(routed.provider).toBe(provider)
+        expect(routed.catalog).toBeDefined()
+        expect(routed.lifecycle).toBeDefined()
+      }
+    } finally {
+      for (const [key, value] of Object.entries(prior)) {
+        if (value === undefined) delete process.env[key]
+        else process.env[key] = value
+      }
+    }
   })
 })
 
@@ -82,25 +109,18 @@ describe('Cartesia and Speechify advanced voice adapters', () => {
     expect(calls).toHaveLength(callsBeforeProfessional)
   })
 
-  test('Speechify serializes protected consent and idempotency without returning PII', async () => {
+  test('Speechify exposes catalog and lifecycle without the obsolete clone contract', async () => {
     const calls: Parameters<AdvancedProviderHttpRequest>[0][] = []
     const request: AdvancedProviderHttpRequest = async <T>(input: Parameters<AdvancedProviderHttpRequest>[0]): Promise<T> => {
       calls.push(input)
-      if (input.method === 'GET') return { voices: [{ id: 'shared-1', display_name: 'Narrator', type: 'shared', models: [{ name: 'simba-3.0' }] }], has_more: false } as T
-      return { id: 'personal-1', display_name: 'Personal', type: 'personal', models: [{ name: 'simba-3.0' }] } as T
+      return { voices: [{ id: 'shared-1', display_name: 'Narrator', type: 'shared', models: [{ name: 'simba-3.2' }] }], has_more: false } as T
     }
     const adapter = createSpeechifyAdvancedProvider({
       apiKey: 'speechify-key', request, now: () => CHECKED_AT,
-      resolveProtectedAsset: async () => ({ bytes: new Uint8Array([1, 2]), fileName: 'sample.wav', mediaType: 'audio/wav', durationMs: 15_000 }),
-      resolveProtectedConsent: async () => ({ fullName: 'Authorized Speaker', email: 'speaker@example.com', locale: 'en-US', gender: 'not_specified' })
     })
     const catalog = await adapter.catalog!.list({ source: 'provider-library' })
-    expect(catalog.entries[0]).toEqual(expect.objectContaining({ resourceId: 'shared-1', modelIds: ['simba-3.0'], source: 'provider-library' }))
-    const cloned = await adapter.clone!.clone({ cloneKind: 'instant', desiredName: 'Personal', localAttemptId: 'attempt-speechify', protectedSamples: [protectedSample], consentRecordRef: 'protected-consent:v1:test', provenanceRef: 'project:casting' })
-    expect(cloned.providerVoice).toEqual(expect.objectContaining({ resourceId: 'personal-1', origin: 'instant-clone' }))
-    expect(JSON.stringify(cloned)).not.toContain('speaker@example.com')
-    const createCall = calls[1]
-    expect(createCall?.headers).toEqual({ 'Idempotency-Key': 'attempt-speechify' })
-    expect((createCall?.body as FormData).get('consent')).toBe(JSON.stringify({ fullName: 'Authorized Speaker', email: 'speaker@example.com' }))
+    expect(catalog.entries[0]).toEqual(expect.objectContaining({ resourceId: 'shared-1', modelIds: ['simba-3.2'], source: 'provider-library' }))
+    expect('clone' in adapter).toBe(false)
+    expect(calls).toHaveLength(1)
   })
 })

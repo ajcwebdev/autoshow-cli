@@ -36,16 +36,20 @@ describe('Fish Audio adapter contracts', () => {
       sha256: 'a'.repeat(64)
     }
     let uploadedVoiceCount = 0
+    let requestUrl = ''
     const provider = createFishAdvancedProvider({
       apiKey: 'test-fish-key',
       resolveProtectedAsset: async (asset) => {
         expect(asset).toEqual(protectedPreview)
         return { bytes: new Uint8Array([1, 2, 3, 4]), fileName: 'preview.wav', mediaType: 'audio/wav' }
       },
-      fetchImpl: (async (_input: string | URL | Request, init?: RequestInit) => {
+      fetchImpl: (async (input: string | URL | Request, init?: RequestInit) => {
+        requestUrl = String(input)
         expect(init?.method).toBe('POST')
         expect(init?.body).toBeInstanceOf(FormData)
         uploadedVoiceCount = (init?.body as FormData).getAll('voices').length
+        expect((init?.body as FormData).get('train_mode')).toBe('fast')
+        expect((init?.body as FormData).get('visibility')).toBe('private')
         return new Response(JSON.stringify({ _id: 'fish-designed-voice', title: 'Designed voice', state: 'ready' }), {
           status: 200,
           headers: { 'content-type': 'application/json' }
@@ -61,6 +65,7 @@ describe('Fish Audio adapter contracts', () => {
     })
 
     expect(uploadedVoiceCount).toBe(1)
+    expect(requestUrl).toBe('https://api.fish.audio/model')
     expect(result).toMatchObject({
       state: 'ready',
       providerVoice: { provider: 'fish', resourceId: 'fish-designed-voice', origin: 'designed' }

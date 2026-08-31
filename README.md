@@ -122,8 +122,8 @@ bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md
 # Generate final comic panels with hosted OpenAI
 bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --image-model gpt-image-2
 
-# Generate multi-speaker comic audio with hosted Gemini
-bun autoshow comic generate-audio 01-01 --provider gemini=gemini-3.1-flash-tts-preview --profile default
+# Generate multi-speaker comic audio with hosted Hume
+bun autoshow comic generate-audio 01-01 --provider hume=octave-2 --profile default
 
 # Synchronize comic panels with a complete audio run using local FFmpeg
 bun autoshow comic generate-slideshow 01-01

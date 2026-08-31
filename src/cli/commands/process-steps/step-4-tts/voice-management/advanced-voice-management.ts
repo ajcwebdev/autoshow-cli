@@ -19,6 +19,7 @@ import { buildReadyVoiceRegistrationDraft } from './voice-registration-managemen
 import { DEFAULT_VOICE_RETENTION_POLICY } from './voice-registration-management'
 import { computeVoiceCandidateId, validateVoiceCandidate } from './voice-management-contracts'
 import { runCrashSafeVoiceProvisioning } from './provisioning-journal'
+import { grokVoiceAttemptMarker } from '../tts-services/tts-grok/grok-advanced-provider'
 
 const EMPTY_COST: PlannedCost = { amounts: [] }
 const SAFE_ID = /^[a-z0-9][a-z0-9_-]{0,127}$/
@@ -299,7 +300,13 @@ export const provisionAdvancedVoiceClone = async (input: {
       lockLeaseId: `lease_${crypto.randomUUID().replace(/-/gu, '')}`,
       requestFingerprint: planAdvancedClone({ ...input.request, localAttemptId: attemptId }).requestFingerprint,
       protectedRequestEvidence: evidence,
-      ...(input.provider.provider === 'fish' ? { reconciliation: { strategy: 'provider-search' as const, providerHandle: input.request.desiredName, protectedLookupEvidence: evidence } } : {}),
+      ...(input.provider.provider === 'fish' || input.provider.provider === 'grok' ? {
+        reconciliation: {
+          strategy: 'provider-search' as const,
+          providerHandle: input.provider.provider === 'grok' ? grokVoiceAttemptMarker(attemptId) : input.request.desiredName,
+          protectedLookupEvidence: evidence
+        }
+      } : {}),
       transitions: [{ sequence: 1, phase: 'prepared', at: createdAt }], issuedResources: [], compareAndSwapVersion: 0,
     }
     attempt = await runCrashSafeVoiceProvisioning({

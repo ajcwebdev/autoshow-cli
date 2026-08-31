@@ -36,7 +36,7 @@ describe('per-turn TTS invocation controls', () => {
     )).toThrow('does not support per-turn TTS invocation control pitch')
 
     expect(() => resolveTtsTargetInvocationControls(
-      'groq',
+      'openai',
       invocation({ speed: 'fast' }),
       {}
     )).toThrow('expected a finite number')

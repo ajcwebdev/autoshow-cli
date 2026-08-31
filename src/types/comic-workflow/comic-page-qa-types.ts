@@ -25,8 +25,53 @@ export type PageQaResult = {
     compositionScore: number
     issues: string[]
     editInstructions: string
+    repairAssessment?: {
+      issueVisibility: 'directly-visible' | 'ambiguous' | 'not-visible' | 'not-assessable'
+      expectedBenefit: 'meaningful' | 'marginal' | 'none'
+      editScope: 'bounded' | 'diffuse'
+      editIsolation: 'isolated-single-region' | 'shared-attribute' | 'multi-region' | 'generative-redraw'
+      collateralRisk: 'low' | 'medium' | 'high'
+      confidence: 'low' | 'medium' | 'high'
+      recommendation: 'targeted-edit' | 'retain-current'
+      preservationRequirements: string[]
+      rationale: string
+    }
   }>
   summary: string
+}
+
+export type RepairCandidateComparisonRequest = {
+  pass: 1 | 2
+  prompt: string
+  imagePaths: string[]
+  model: string
+}
+
+export type RepairCandidateComparisonResponse = {
+  text: string
+  inputTokens: number
+  outputTokens: number
+}
+
+export type RepairCandidateComparisonJudgment = {
+  comparisonContractVersion?: 3 | 4
+  pass: 1 | 2
+  order: { imageA: 'original' | 'candidate'; imageB: 'original' | 'candidate' }
+  originalIssueVisible: boolean
+  candidateIssueFixed: boolean
+  targetedIssueMateriallyImproved: boolean
+  differenceMeaningful: boolean
+  candidateHasMajorRegression: boolean
+  nonTargetDifferenceLevel?: 'none' | 'minor' | 'major'
+  originalPreservationRequirementsSatisfied?: boolean
+  candidatePreservationRequirementsSatisfied?: boolean
+  candidateIntroducesPreservationRegression?: boolean
+  nonTargetDifferences?: string[]
+  preference: 'original' | 'candidate' | 'tie'
+  confidence: 'low' | 'medium' | 'high'
+  candidateRegressions: string[]
+  originalRegressions?: string[]
+  rationale: string
 }
 
 export type PageQaEntry = {
@@ -37,8 +82,15 @@ export type PageQaEntry = {
   hardFailure: boolean
   waivedChecks?: Array<{ panelNumber: number; check: 'shotPlanMatch'; reason: string }>
   repairPolicy?: {
-    action: 'restart' | 'stop'
+    action: 'restart' | 'stop' | 'skip' | 'retain-original'
     repeatedHardFailures: string[]
+    reason?: string
+  }
+  repairComparison?: {
+    decision: 'clear-winner' | 'retain-original' | 'incomplete'
+    reason: string
+    judgments: RepairCandidateComparisonJudgment[]
+    invalidPasses: Array<{ pass: 1 | 2; error: string }>
   }
   result: PageQaResult
   usage: { inputTokens: number; outputTokens: number; totalTokens: number; costUsd: number }

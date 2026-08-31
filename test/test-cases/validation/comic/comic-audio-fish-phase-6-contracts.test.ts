@@ -8,6 +8,7 @@ import { resolveSoundEffectTarget } from '~/cli/commands/process-steps/step-4-tt
 import { createSoundEffectRenderPlan } from '~/cli/commands/process-steps/step-4-tts/soundscape/sound-effect-execution'
 import { FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION, FISH_TIMESTAMP_SERIALIZER_VERSION } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/fish-tts-request'
 import { runFishTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/run-fish-tts'
+import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { validateTtsTargetsForExecution } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { buildTargetExecution } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-audio/generate-audio-command'
 import { createResourceGate } from '~/utils/resource-gate'
@@ -72,7 +73,7 @@ describe('ADR-017 Phase 6E Fish soundscape acceptance', () => {
       }
       throw new Error(`Unexpected network call: ${call.method} ${call.url}`)
     })
-    const result = await runFishTts('Ready?', join(root, 'fish'), { model: 's2.1-pro', apiKey: 'fixture-key', voiceId: 'pilot-voice' })
+    const result = await runFishTts('Ready?', join(root, 'fish'), { model: 's2.1-pro', apiKey: 'fixture-key', voiceId: 'pilot-voice', chunkScheduler: createHostedTtsChunkScheduler() })
     expect(await Bun.file(result.audioPath).exists()).toBe(true)
     expect(calls).toHaveLength(1)
     expect(calls[0]?.url).toBe('https://api.fish.audio/v1/tts/stream/with-timestamp')
