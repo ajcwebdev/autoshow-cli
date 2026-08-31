@@ -49,6 +49,8 @@ describe('multi-location comic contracts', () => {
     expect(structured.beats.map(beat => beat.location.key)).toEqual(['quarters', 'hallway', 'hallway'])
     expect(structured.sourceSegments.map(segment => segment.location.key)).toEqual(['quarters', 'hallway', 'hallway'])
     expect(normalizeLocationKey('INT. SHIP UPPER DECK HALLWAY - MOMENTS LATER')).toBe('ship-upper-deck-hallway')
+    expect(normalizeLocationKey('INT. MESS HALL - SHORTLY AFTER')).toBe('mess-hall')
+    expect(normalizeLocationKey('INT. MESS HALL - NEXT DAY')).toBe('mess-hall')
   })
 
   test('resolves aliases deterministically and rejects unknown or ambiguous locations', () => {

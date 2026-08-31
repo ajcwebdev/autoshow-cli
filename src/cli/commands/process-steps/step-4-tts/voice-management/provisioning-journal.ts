@@ -7,7 +7,7 @@ import type {
   VoiceProvisioningState,
   RunCrashSafeProvisioningInput,
 } from '~/types'
-import { UsageError, InfraError, ValidationError, extractErrorMetadata } from '~/utils/error-handler'
+import { AppUsageError, UsageError, InfraError, ValidationError, extractErrorMetadata } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { withProcessLock } from '~/utils/process-lock'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
@@ -268,7 +268,7 @@ export const runCrashSafeVoiceProvisioning = async (
       return attempt
     } catch (error) {
       const current = await loadAttemptPath(path)
-      if (classifyTtsProviderAdmissionError(error) === 'rejected') {
+      if (error instanceof AppUsageError || classifyTtsProviderAdmissionError(error) === 'rejected') {
         await markRejected(path, current, error)
       } else {
         await markAmbiguous(path, current, error)

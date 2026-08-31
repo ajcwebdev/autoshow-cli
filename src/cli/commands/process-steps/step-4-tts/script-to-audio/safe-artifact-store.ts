@@ -10,6 +10,7 @@ const FILE_MODE = 0o600
 const SAFE_INVOCATION_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/
 const ENCODED_PATH_SEPARATOR_OR_DOT = /%(?:2e|2f|5c)/i
 const CLAIM_OWNER_FILE = /^owner-([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.lock$/
+const CREATED_DIRECTORY_VISIBILITY_RETRY_DELAYS_MS = [25, 50, 100, 200, 400, 800, 1600] as const
 
 export class ArtifactReservationConflictError extends AppInfrastructureError {
   readonly code = 'ARTIFACT_RESERVATION_CONFLICT'
@@ -101,6 +102,34 @@ const inspectSafeDirectory = async (
   return canonical
 }
 
+const retryCreatedArtifactVisibility = async <T>(
+  operation: () => Promise<T>,
+  path: string,
+  label: string
+): Promise<T> => {
+  let lastMissingError: unknown
+  for (const delayMs of [0, ...CREATED_DIRECTORY_VISIBILITY_RETRY_DELAYS_MS]) {
+    if (delayMs > 0) await new Promise(resolveDelay => setTimeout(resolveDelay, delayMs))
+    try {
+      return await operation()
+    } catch (error) {
+      if (!hasErrorCode(error, 'ENOENT')) throw error
+      lastMissingError = error
+    }
+  }
+  throw UsageError(`${label} did not become visible for safe inspection: ${path}`, undefined, lastMissingError instanceof Error ? { cause: lastMissingError } : {})
+}
+
+const inspectCreatedSafeDirectory = async (
+  canonicalRoot: string,
+  path: string,
+  label: string
+): Promise<string> => await retryCreatedArtifactVisibility(
+  async () => await inspectSafeDirectory(canonicalRoot, path, label),
+  path,
+  label
+)
+
 export const ensureSafeArtifactDirectory = async (
   rootDir: string,
   relativeDirectory: string
@@ -117,7 +146,7 @@ export const ensureSafeArtifactDirectory = async (
     } catch (error) {
       if (!hasErrorCode(error, 'EEXIST')) throw error
     }
-    canonicalCursor = await inspectSafeDirectory(root.canonical, cursor, 'Artifact directory')
+    canonicalCursor = await inspectCreatedSafeDirectory(root.canonical, cursor, 'Artifact directory')
   }
 
   return {
@@ -149,7 +178,7 @@ const readExistingImmutableBytes = async (path: string): Promise<Buffer> => {
     throw UsageError(`Immutable artifact path is not a regular non-symlink file: ${path}`)
   }
 
-  let handle
+  let handle: Awaited<ReturnType<typeof open>> | undefined
   try {
     handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW)
     const opened = await handle.stat()
@@ -203,15 +232,16 @@ export const writeImmutableArtifactFile = async (
   const bytes = typeof value === 'string' ? Buffer.from(value) : Buffer.from(value)
   const temporaryPath = join(parent.path, `.immutable-${crypto.randomUUID()}.tmp`)
   let created = false
-  let handle
+  let handle: Awaited<ReturnType<typeof open>> | undefined
 
   try {
-    handle = await open(
+    const openedHandle = await open(
       temporaryPath,
       constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
       FILE_MODE
     )
-    const opened = await handle.stat()
+    handle = openedHandle
+    const opened = await retryCreatedArtifactVisibility(async () => await openedHandle.stat(), temporaryPath, 'Immutable artifact temporary destination')
     if (!opened.isFile()) {
       throw UsageError(`Immutable artifact temporary destination is not a regular file: ${temporaryPath}`)
     }
@@ -222,7 +252,7 @@ export const writeImmutableArtifactFile = async (
     handle = undefined
 
     try {
-      await link(temporaryPath, path)
+      await retryCreatedArtifactVisibility(async () => await link(temporaryPath, path), temporaryPath, 'Immutable artifact temporary source')
       created = true
     } catch (error) {
       if (!hasErrorCode(error, 'EEXIST')) throw error
@@ -306,7 +336,7 @@ export const appendJsonlArtifactLine = async (
     FILE_MODE
   )
   try {
-    const opened = await handle.stat()
+    const opened = await retryCreatedArtifactVisibility(async () => await handle.stat(), path, 'Journal artifact destination')
     if (!opened.isFile()) {
       throw UsageError(`Journal artifact destination is not a regular file: ${path}`)
     }
@@ -346,6 +376,41 @@ export const hardlinkContainedArtifact = async (
         { metadata: { artifactState: ARTIFACT_CONFLICT_STATE } }
       )
     }
+  }
+  return {
+    path,
+    relativePath: destination,
+    bytes: source.bytes,
+    sha256: source.sha256
+  }
+}
+
+export const replaceHardlinkContainedArtifact = async (
+  rootDir: string,
+  sourceRelative: string,
+  destinationRelative: string
+): Promise<ContainedArtifactFile> => {
+  const source = await readContainedArtifactFile(rootDir, sourceRelative)
+  const destination = normalizeSafeRelativePath(destinationRelative, 'Replaceable hardlinked artifact file', false)
+  if (source.relativePath === destination) return source
+  const segments = destination.split('/')
+  const fileName = segments.pop() as string
+  const parent = await ensureSafeArtifactDirectory(rootDir, segments.join('/'))
+  const path = join(parent.path, fileName)
+  try {
+    const existing = await readExistingImmutableBytes(path)
+    if (existing.equals(source.bytes)) {
+      return { path, relativePath: destination, bytes: source.bytes, sha256: source.sha256 }
+    }
+  } catch (error) {
+    if (!hasErrorCode(error, 'ENOENT')) throw error
+  }
+  const temporaryPath = join(parent.path, `.replacement-${crypto.randomUUID()}.tmp`)
+  try {
+    await link(source.path, temporaryPath)
+    await rename(temporaryPath, path)
+  } finally {
+    await unlink(temporaryPath).catch(() => undefined)
   }
   return {
     path,
@@ -491,7 +556,7 @@ export const reserveInvocationAttemptDirectory = async (
     }
     claimOwnerCreated = true
     await mkdir(path, { mode: DIRECTORY_MODE })
-    await inspectSafeDirectory((await inspectSafeRoot(rootDir)).canonical, path, 'Invocation attempt directory')
+    await inspectCreatedSafeDirectory((await inspectSafeRoot(rootDir)).canonical, path, 'Invocation attempt directory')
   } catch (error) {
     await releaseOwnedClaim().catch(() => undefined)
     if (hasErrorCode(error, 'EEXIST')) {

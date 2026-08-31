@@ -77,6 +77,35 @@ describe('comic source coverage contracts', () => {
     expect(() => validateStructuredScriptSourceSpans(structured, source)).not.toThrow()
   })
 
+  test('structured parser preserves source spans for adjacent bold fragments and following blocks', () => {
+    const source = [
+      '# Episode Test',
+      '',
+      '## Scene: "Adjacent Bold Fragments"',
+      '',
+      '**INT. CARGO BAY - MORNING**',
+      '',
+      '**TEXT ON SCREEN** **“Previously…”**',
+      '',
+      '_A rapid montage fills the screen._',
+      '',
+      '**SMASH CUT TO BLACK.**',
+      '',
+      '**TITLE CARD: “THE END”**',
+    ].join('\n')
+    const structured = parseScriptMarkdownToStructuredData(source, 'input/test-adjacent-bold-fragments.md')
+
+    expect(structured.beats.map(beat => beat.text)).toEqual([
+      'TEXT ON SCREEN',
+      '“Previously…”',
+      'A rapid montage fills the screen.',
+      'SMASH CUT TO BLACK.',
+      'TITLE CARD: “THE END”',
+    ])
+    expect(structured.beats.every(beat => beat.sourceSpans.length > 0)).toBe(true)
+    expect(() => validateStructuredScriptSourceSpans(structured, source)).not.toThrow()
+  })
+
   test('structured parser maps GUIDE script labels and mentions to the HR Hologram reference', () => {
     const structured = parseScriptMarkdownToStructuredData([
       '# Episode Test',

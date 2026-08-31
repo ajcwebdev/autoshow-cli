@@ -102,12 +102,14 @@ export const buildFinalTimelineLayout = (input: {
   slots: readonly AttemptSlot[]
   batchResultFiles: BatchResultFile[]
   comicDialoguePlan?: Parameters<typeof comicTimelineLayout>[0] | undefined
+  masteredTurnDurationMs?: ReadonlyMap<string, number> | undefined
+  masteredTimingSegmentDurationMs?: ReadonlyMap<string, number> | undefined
 }): FinalTimelineLayout => {
   if (input.comicDialoguePlan) {
     return comicTimelineLayout(
       input.comicDialoguePlan,
-      (turnId) => durationForTurn(input.batchResultFiles, turnId),
-      (turnId, segmentIndex) => durationForTimingSegment(input.slots, input.batchResultFiles, turnId, segmentIndex)
+      (turnId) => input.masteredTurnDurationMs?.get(turnId) ?? durationForTurn(input.batchResultFiles, turnId),
+      (turnId, segmentIndex) => input.masteredTimingSegmentDurationMs?.get(`${turnId}:${segmentIndex}`) ?? durationForTimingSegment(input.slots, input.batchResultFiles, turnId, segmentIndex)
     )
   }
   let cursorMs = 0

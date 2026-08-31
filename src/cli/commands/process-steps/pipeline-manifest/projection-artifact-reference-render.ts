@@ -15,7 +15,9 @@ const collectRenderEvent = (event: Record<string, unknown>, ctx: RenderCollector
   && collectBatchProgress(event, ctx)
 )
 
-const collectRenderRecord = (rawRender: unknown, targetKey: string, sink: ArtifactReferenceSink): boolean => {
+type ReportedOutputAuthority = { renderIdentity: string, eventSequence: number }
+
+const collectRenderRecord = (rawRender: unknown, targetKey: string, sink: ArtifactReferenceSink, reportedOutputAuthority?: ReportedOutputAuthority | undefined): boolean => {
   if (!isRecord(rawRender)) return false
   const renderPlanId = rawRender['renderPlanId']
   const renderIdentity = rawRender['renderIdentity']
@@ -30,12 +32,20 @@ const collectRenderRecord = (rawRender: unknown, targetKey: string, sink: Artifa
     context: { renderDir: renderDir as string }
   })) return false
   if (!sink.addDirectory(renderDir)) return false
-  const ctx = { targetKey, render: rawRender, renderPlanId, renderIdentity, renderDir: renderDir as string, sink }
-  return events.every((event) => isRecord(event) && collectRenderEvent(event, ctx))
+  return events.every((event) => isRecord(event) && collectRenderEvent(event, {
+    targetKey,
+    render: rawRender,
+    renderPlanId,
+    renderIdentity,
+    renderDir: renderDir as string,
+    verifyReportedOutputs: reportedOutputAuthority?.renderIdentity === renderIdentity && reportedOutputAuthority.eventSequence === event['sequence'],
+    sink,
+  }))
 }
 
 export const collectRenderHistory = (
   renders: readonly unknown[],
   targetKey: string,
-  sink: ArtifactReferenceSink
-): boolean => renders.every((render) => collectRenderRecord(render, targetKey, sink))
+  sink: ArtifactReferenceSink,
+  reportedOutputAuthority?: ReportedOutputAuthority | undefined
+): boolean => renders.every((render) => collectRenderRecord(render, targetKey, sink, reportedOutputAuthority))

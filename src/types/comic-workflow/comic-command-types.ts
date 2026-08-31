@@ -1,5 +1,5 @@
 import type { DirectoryEntry } from '../runtime-core/filesystem-types'
-import type { HostedConcurrencyCoordinator, HostedConcurrencyMode, PageQaEntry, PageQaRequest, PanelBundleData, GeneratedImageResponse, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, LlmModel, StructuredScriptData } from '~/types'
+import type { HostedConcurrencyCoordinator, HostedConcurrencyMode, PageQaEntry, PageQaRequest, PanelBundleData, GeneratedImageResponse, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, LlmModel, RepairCandidateComparisonRequest, RepairCandidateComparisonResponse, StructuredScriptData } from '~/types'
 
 type ComicHostedConcurrencyOptions = {
   concurrencyMode?: HostedConcurrencyMode | undefined
@@ -41,6 +41,10 @@ type ComicPanelGenerationOptionsBase = {
   panelsPerImage?: number
   variations?: ImagePromptVariation[]
   qa?: boolean
+  qaOnly?: boolean
+  revisionPlan?: string
+  comparisonPasses?: number
+  promote?: 'clear-winners'
   qaModel?: LlmModel
   maxRepairs?: number
 }
@@ -154,6 +158,7 @@ export type ComicImageGenerationDependencies = {
   requestImage?: (input: ComicImageRequestInput) => Promise<GeneratedImageResponse>
   writeImage?: (outputPath: string, imageBase64: string, mimeType?: string) => Promise<void>
   judgePage?: (input: PageQaRequest) => Promise<PageQaEntry>
+  requestRepairComparison?: (input: RepairCandidateComparisonRequest) => Promise<RepairCandidateComparisonResponse>
 }
 
 export type ComicPageChunk<T> = {

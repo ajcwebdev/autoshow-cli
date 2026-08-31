@@ -106,6 +106,7 @@ export const updateComicAudioManifest = async (input: {
   audio: CanonicalComicItemMetadata['audio']
   providers?: PipelineProviderState[] | undefined
   ttsEvaluation?: Step4Metadata[] | undefined
+  invalidatePresentation?: boolean | undefined
 }): Promise<PipelineManifest> => await updateManifest(input.sceneRunDir, (manifest) => {
   if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1 || canonicalTtsJson(manifest.source) !== canonicalTtsJson(input.sourceIdentity)) {
     throw UsageError('Comic audio can update only the exact compatible canonical scene manifest.')
@@ -134,6 +135,10 @@ export const updateComicAudioManifest = async (input: {
       })()
   const requiredStages = [prior.stages.structure, prior.stages.image, input.stage].filter(stage => stage.requirement === 'required')
   const status = aggregateComicStageStatus(requiredStages)
+  const invalidatePresentation = input.invalidatePresentation === true && prior.stages.presentation.requirement !== 'not-requested'
+  const presentationStage = invalidatePresentation
+    ? { requirement: 'optional' as const, status: 'incomplete' as const, execution: { kind: 'local' as const, state: 'missing' as const }, targetKeys: [] as [], artifactRefs: [] }
+    : prior.stages.presentation
   const nextItem: PipelineManifestItem = {
     ...item,
     status,
@@ -143,9 +148,9 @@ export const updateComicAudioManifest = async (input: {
       ...(input.ttsEvaluation ? { tts: input.ttsEvaluation } : {}),
       comic: {
         schemaVersion: 1,
-        stages: { ...prior.stages, audio: input.stage },
+        stages: { ...prior.stages, audio: input.stage, presentation: presentationStage },
         audio: input.audio,
-        presentation: prior.presentation,
+        presentation: invalidatePresentation ? {} : prior.presentation,
       },
     } as never,
   }
@@ -225,6 +230,57 @@ export const updateComicImageManifest = async (input: {
   const status = aggregateComicStageStatus(required)
   return { ...manifest, items: [{ ...item, status, providers, metadata: { ...item.metadata, comic: { ...prior, stages } } as never }] }
 })
+
+export const recordComicImageRevision = async (input: {
+  sceneRunDir: string
+  evaluation: {
+    schemaVersion: 1
+    experimentId: string
+    planFingerprint: string
+    evidenceDirectory: string
+    imageProvider: { service: string; model: string; attempts: number; completed: number; ambiguous: number }
+    comparisonProvider: { service: string; model: string; attempts: number; completed: number; invalid: number }
+    promotedPanels: number[]
+    retainedOriginalPanels: number[]
+    actualCostUsd: number
+  }
+  artifactRefs: Array<{ path: string; sha256: string }>
+  publishFinal?: (() => Promise<Array<{ path: string; sha256: string }>>) | undefined
+  rollbackFinal?: (() => Promise<void>) | undefined
+}): Promise<PipelineManifest> => {
+  try {
+    return await updateManifest(input.sceneRunDir, async (manifest) => {
+      if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1) throw UsageError('Comic image revision can update only one canonical comic scene manifest.')
+      const item = manifest.items[0]
+      if (!item) throw UsageError('Canonical comic scene item is missing.')
+      const prior = comicMetadata(item)
+      const rawEvaluations = item.metadata['comicImageRevisionEvaluations']
+      if (rawEvaluations !== undefined && !Array.isArray(rawEvaluations)) throw UsageError('Canonical comic revision provenance must be an array.')
+      const evaluations = (rawEvaluations ?? []).filter((candidate): candidate is Record<string, unknown> => candidate !== null && typeof candidate === 'object' && !Array.isArray(candidate))
+      const withoutCurrent = evaluations.filter(candidate => candidate['planFingerprint'] !== input.evaluation.planFingerprint)
+      const imageStage = { ...prior.stages.image, artifactRefs: input.artifactRefs }
+      const next = {
+        ...manifest,
+        items: [{
+          ...item,
+          metadata: {
+            ...item.metadata,
+            comicImageRevisionEvaluations: [...withoutCurrent, input.evaluation],
+            comic: { ...prior, stages: { ...prior.stages, image: imageStage } },
+          } as never,
+        }],
+      }
+      if (input.publishFinal) {
+        const published = await input.publishFinal()
+        if (canonicalTtsJson(published) !== canonicalTtsJson(input.artifactRefs)) throw UsageError('Published comic revision panels do not match the canonical manifest update.')
+      }
+      return next
+    })
+  } catch (error) {
+    await input.rollbackFinal?.()
+    throw error
+  }
+}
 
 export const updateComicPresentationManifest = async (input: {
   sceneRunDir: string

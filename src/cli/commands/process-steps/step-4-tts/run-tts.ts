@@ -16,6 +16,7 @@ import { bindHostedTtsChunkScheduler, createHostedTtsChunkScheduler } from './tt
 import { createCurrentTtsRenderAttempt, planCurrentTtsRenderIdentity, planCurrentTtsResumePrice, prepareCurrentTtsCompatibleSlotRecovery, prepareCurrentTtsCompletedRecovery, resolveCurrentTtsPriorAdmittedAttemptCount, validateCurrentTtsRenderAttemptInputs } from './script-to-audio/current-render-attempt'
 import { createCurrentTtsBlockedReadinessState } from './script-to-audio/current-readiness-attempt'
 import { buildWorkingTtsResult } from './working-tts-result'
+import { sanitizeError } from './script-to-audio/attempt-planning-shared'
 
 const getMetadataAudioPath = (outputDir: string, metadata: Step4Metadata): string =>
   `${outputDir}/${metadata.audioFileName}`
@@ -244,7 +245,7 @@ const prepareTargetForExecution = async (input: {
   const retainedState = target.targetKey ? input.retainedByTargetKey.get(target.targetKey) : undefined
   const retainedNamespace = retainedState?.operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
   const projection = retainedState?.result?.[retainedNamespace] as {
-    activeWork?: { kind?: unknown } | undefined
+    activeWork?: { kind?: unknown, renderIdentity?: unknown } | undefined
     renderHistory?: Array<{ renderIdentity?: unknown }> | undefined
     archive?: unknown
     selectedSuccess?: { renderIdentity?: unknown } | undefined
@@ -260,6 +261,7 @@ const prepareTargetForExecution = async (input: {
     comicContext: sourceContext?.comicContext,
   }).renderIdentity : undefined
   const hasPlannedRender = plannedRenderIdentity !== undefined && projection?.activeWork?.kind === 'render'
+    && projection.activeWork.renderIdentity === plannedRenderIdentity
     && projection.renderHistory?.some(render => render.renderIdentity === plannedRenderIdentity) === true
   const sameRenderArchive = Boolean(projection?.archive && projection.selectedSuccess?.renderIdentity === plannedRenderIdentity)
   if (retainedState && (hasPlannedRender || sameRenderArchive)) {
@@ -381,7 +383,7 @@ const runPreparedTtsTarget = async (input: {
     return buildWorkingTtsResult({ mode: 'provider-render', metadata, reportedOutput, renderArtifacts: await attempt.finalizeSuccess(audioPath, reportedOutput.path) })
   } catch (error) {
     const failure = await attempt.finalizeFailure(error, providerRunCompleted ? 'assembly' : undefined)
-    const sanitized = failure.error as SanitizedProviderError | undefined
+    const sanitized = (failure.error as SanitizedProviderError | undefined) ?? sanitizeError(error, providerRunCompleted ? 'assembly' : 'synthesis')
     const providerDiagnostic = sanitized ? [sanitized.message, sanitized.providerMessage && sanitized.providerMessage !== sanitized.message ? sanitized.providerMessage : undefined, sanitized.requestId ? `request_id=${sanitized.requestId}` : undefined].filter((value): value is string => value !== undefined).join(' ') : 'TTS target failed without exposing provider response details.'
     const recoveryDiagnostic = await describeFailedTtsRecovery({ rootDir: recoveryRoot(outputDir, sourceContext), state: failure, target, sourceText: input.text, ttsOptions: options, sourceContext })
     throw InfraError(recoveryDiagnostic ? `${providerDiagnostic} ${recoveryDiagnostic}` : providerDiagnostic, {

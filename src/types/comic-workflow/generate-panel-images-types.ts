@@ -11,6 +11,7 @@ export type PanelRenderContext = {
   requestImage: NonNullable<ComicImageGenerationDependencies['requestImage']>
   writeImage: typeof import('~/cli/commands/process-steps/step-8-comic/comic-image-services/image-writer').writeGeneratedImage
   judge: NonNullable<ComicImageGenerationDependencies['judgePage']>
+  requestRepairComparison?: ComicImageGenerationDependencies['requestRepairComparison']
   qaEnabled: boolean
   judgeModel: string
   maxRepairs: number

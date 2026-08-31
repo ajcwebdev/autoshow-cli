@@ -11,7 +11,7 @@ import { createMistralSavedVoice, deleteMistralSavedVoice } from '~/cli/commands
 import { loadVoiceConsentRecord, revokeVoiceConsentRecord, storeVoiceConsentRecord } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-consent-store'
 import { provisionMistralSavedReferenceRegistration } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-registration-management'
 import { loadVoiceRegistrationCatalog } from '~/cli/commands/process-steps/step-4-tts/voice-management/character-voice-registry'
-import { ProviderError } from '~/utils/error-handler'
+import { ProviderError, UsageError } from '~/utils/error-handler'
 import { unexpectedCall } from '../../../test-utils/rest-contract-helpers'
 import { createTempDirTracker } from '../../../test-utils/temp-dirs'
 
@@ -141,6 +141,28 @@ describe('Phase 1 protected voice assets and consent', () => {
 })
 
 describe('Phase 1 provisioning journal', () => {
+  test('a local usage failure is terminal failed rather than reconciliation-required', async () => {
+    const root = await makeRoot()
+    let calls = 0
+    const run = () => runCrashSafeVoiceProvisioning({
+      journalRoot: root,
+      attempt: attempt('attempt_local_usage'),
+      mutate: async () => {
+        calls += 1
+        throw UsageError('Protected voice audio has an unsupported media type.')
+      }
+    })
+
+    await expect(run()).rejects.toThrow('Protected voice audio has an unsupported media type.')
+    const rejected = await loadVoiceProvisioningAttempt(root, 'vr_test', 'attempt_local_usage')
+    expect(rejected.outcome).toEqual({ state: 'failed', code: 'PROVIDER_REJECTED', message: 'Protected voice audio has an unsupported media type.' })
+    expect(rejected.transitions.map(entry => entry.phase)).toEqual(['prepared', 'request-sent', 'response-received', 'terminal'])
+
+    const replay = await run()
+    expect(replay.outcome?.state).toBe('failed')
+    expect(calls).toBe(1)
+  })
+
   test('a definite provider rejection is terminal failed rather than reconciliation-required', async () => {
     const root = await makeRoot()
     let calls = 0

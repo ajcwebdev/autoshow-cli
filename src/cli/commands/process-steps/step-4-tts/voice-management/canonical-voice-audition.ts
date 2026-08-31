@@ -18,6 +18,7 @@ import { estimateTtsTargetCosts } from '../tts-utils/tts-pricing'
 import { computeVoiceAuditionId, assertVoiceConsentAllows, validateVoiceAuditionManifest } from './voice-management-contracts'
 import { hashCharacterVoiceBrief } from './character-voice-registry'
 import { prepareElevenLabsDialogueText } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
+import { createHostedTtsChunkScheduler } from '../tts-utils/hosted-tts-chunk-scheduler'
 
 const COMPARISON_PASSAGE = 'Morning light crossed the quiet station while a distant bell marked the hour.'
 const NEUTRAL_PASSAGE = 'This is my voice: clear, steady, and ready to tell the story.'
@@ -80,6 +81,11 @@ const requireSingleTarget = (registration: VoiceRegistration): { target: TtsTarg
   return { target: targets[0], options }
 }
 
+export const withCanonicalVoiceAuditionScheduler = (options: TtsOptions): TtsOptions => ({
+  ...options,
+  hostedTtsChunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 1, concurrencyMode: 'immediate' })
+})
+
 export const planCanonicalVoiceAudition = (
   registration: VoiceRegistration,
   brief: CharacterVoiceBrief,
@@ -113,6 +119,7 @@ export const runCanonicalVoiceAudition = async (input: {
   if (input.maxCents !== undefined && plan.estimatedCostCents > input.maxCents) throw UsageError(`Canonical audition estimate ${plan.estimatedCostCents.toFixed(4)} cents exceeds --max-cents ${input.maxCents}.`)
   if (!input.protectedStore.withWorkspace || !input.protectedStore.storeBytes) throw UsageError('Canonical audition requires a managed protected store with workspaces.')
   const { target, options } = requireSingleTarget(registration)
+  const auditionOptions = withCanonicalVoiceAuditionScheduler(options)
   const providerVoice = registration.provisioning.providerVoice
   const providerVoiceId = voiceId(providerVoice)
   const createdAt = input.now ?? new Date().toISOString()
@@ -131,7 +138,7 @@ export const runCanonicalVoiceAudition = async (input: {
         const takeId = `${passage.itemId}-${takeIndex + 1}`
         const outputDir = `${workspace}/${takeId}`
         await mkdir(outputDir, { recursive: true })
-        const result = await target.run(providerText, outputDir, options, {
+        const result = await target.run(providerText, outputDir, auditionOptions, {
           sourceId: `audition:${registration.registrationId}:${passage.itemId}:${takeIndex + 1}`,
           sourceIndex: takeIndex,
           speaker: registration.subjectKey,

@@ -52,6 +52,7 @@ export type RenderCollectorContext = {
   renderPlanId: string
   renderIdentity: string
   renderDir: string
+  verifyReportedOutputs: boolean
   sink: import('~/cli/commands/process-steps/pipeline-manifest/projection-artifact-reference-sink').ArtifactReferenceSink
 }
 

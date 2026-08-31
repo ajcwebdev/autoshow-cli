@@ -12,7 +12,7 @@ import { managedVoiceAssetStore, MANAGED_VOICE_STORE_ROOT } from './managed-voic
 import { listVoiceProvisioningAttempts } from './provisioning-journal'
 import { validateVoiceDesignRequest } from './voice-design-request-validation'
 import {
-  DESIGN_PROVIDERS, PROFILE_DEFAULT, advancedCapabilityFixtureHash, advancedProvider, cloneMediaType,
+  DESIGN_PROVIDERS, PROFILE_DEFAULT, advancedCapabilityFixtureHash, advancedProvider, cloneFileExtension, cloneMediaType,
   isDesignProvider, maybeCompleteRegistrationJournal, optionalConsent, optionalFlag, optionalParameter,
   parameter, positiveIntegerFlag, providerFlag, reportVoicePrice, reportVoiceResult, requireBrief,
   requiredFlag, requireVoiceModel, voiceJournalRoot
@@ -119,7 +119,9 @@ export const handleMaterialize = async (ctx: CliCommandContext): Promise<void> =
   await assertProtectedStoreOutputDisjoint(getCharactersRoot(), MANAGED_VOICE_STORE_ROOT)
   const resolveManagedProtectedAsset = async (asset: { storeId: string, assetId: string, sha256: string }) => {
     const path = await managedVoiceAssetStore.resolve(asset)
-    return { bytes: new Uint8Array(await Bun.file(path).arrayBuffer()), fileName: `design-preview-${asset.assetId}.${path.split('.').pop() ?? 'audio'}`, mediaType: cloneMediaType(path) }
+    const bytes = new Uint8Array(await Bun.file(path).arrayBuffer())
+    const mediaType = cloneMediaType(path, bytes)
+    return { bytes, fileName: `design-preview-${asset.assetId}.${cloneFileExtension(mediaType)}`, mediaType }
   }
   const adapter = advancedProvider(provider, {
     ...(provider === 'fish' ? { resolveFishProtectedAsset: resolveManagedProtectedAsset } : {}),

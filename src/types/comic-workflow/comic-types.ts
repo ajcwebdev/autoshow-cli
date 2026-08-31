@@ -57,6 +57,10 @@ export type ParsedGenerateBaseArgs = {
   force?: boolean
   concurrency?: number
   qa?: boolean
+  qaOnly?: boolean
+  revisionPlan?: string
+  comparisonPasses?: number
+  promote?: 'clear-winners'
   qaModel?: ParsedLlmModel
   maxRepairs?: number
   concurrencyMode?: import('~/types').HostedConcurrencyMode

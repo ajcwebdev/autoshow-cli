@@ -8,6 +8,7 @@ import { resolveSoundEffectTarget } from '~/cli/commands/process-steps/step-4-tt
 import { createSoundEffectRenderPlan } from '~/cli/commands/process-steps/step-4-tts/soundscape/sound-effect-execution'
 import { normalizeInworldTimestampInfo } from '~/cli/commands/process-steps/step-4-tts/tts-services/inworld/inworld-tts-request'
 import { runInworldTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/inworld/run-inworld-tts'
+import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { validateTtsTargetsForExecution } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { buildTargetExecution } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-audio/generate-audio-command'
 import { createResourceGate } from '~/utils/resource-gate'
@@ -80,7 +81,7 @@ describe('ADR-017 Phase 3E Inworld soundscape acceptance', () => {
         timestampInfo: { wordAlignment: { words: ['Ready?'], wordStartTimeSeconds: [0], wordEndTimeSeconds: [0.05], phoneticDetails: [{ wordIndex: 0, phones: [{ phoneSymbol: 'r', startTimeSeconds: 0, durationSeconds: 0.02, visemeSymbol: 'R' }] }] } },
       }, { headers: { 'x-request-id': 'inworld-fixture' } })
     })
-    const result = await runInworldTts('Ready?', join(root, 'inworld'), { model: 'realtime-tts-2', apiKey: 'fixture-key', voiceId: 'Dennis', requestEvidence: evidence })
+    const result = await runInworldTts('Ready?', join(root, 'inworld'), { model: 'realtime-tts-2', apiKey: 'fixture-key', voiceId: 'Dennis', requestEvidence: evidence, chunkScheduler: createHostedTtsChunkScheduler() })
     expect(await Bun.file(result.audioPath).exists()).toBe(true)
     expect(calls).toHaveLength(1)
     expect(calls[0]?.bodyJson).toMatchObject({ text: 'Ready?', voiceId: 'Dennis', modelId: 'inworld-tts-2', timestampType: 'WORD' })

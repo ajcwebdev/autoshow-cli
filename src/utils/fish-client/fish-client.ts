@@ -30,6 +30,7 @@ export const createFishClient = (options: FishClientOptions) => {
   const apiKey = resolveCredential('fish', 'require', { stage: 'tts:fish', providedValue: options.apiKey, useProvidedValue: true, description: 'Fish Audio' })
 
   const baseUrl = (options.baseUrl ?? FISH_API_BASE_URL).replace(/\/+$/, '')
+  const managementBaseUrl = baseUrl.endsWith('/v1') ? baseUrl.slice(0, -3) : baseUrl
   const customFetch = options.fetchImpl ?? fetch
 
   const operationSignal = (signal?: AbortSignal | null): AbortSignal => {
@@ -53,8 +54,8 @@ export const createFishClient = (options: FishClientOptions) => {
     })
   }
 
-  const requestJson = async <T>(path: string, requestOptions: RequestInit = {}, operation = 'management request'): Promise<T> => {
-    const url = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`
+  const requestJson = async <T>(path: string, requestOptions: RequestInit = {}, operation = 'management request', requestBaseUrl = baseUrl): Promise<T> => {
+    const url = `${requestBaseUrl}${path.startsWith('/') ? path : `/${path}`}`
     const requestHeaders = new Headers(requestOptions.headers)
     for (const [key, value] of Object.entries(headers(typeof requestOptions.body === 'string' ? 'application/json' : undefined))) {
       if (!requestHeaders.has(key)) requestHeaders.set(key, value)
@@ -232,7 +233,7 @@ export const createFishClient = (options: FishClientOptions) => {
       const queryString = query.toString() ? `?${query.toString()}` : ''
       const res = await requestJson<{ items?: FishModelRecord[], total?: number } | FishModelRecord[]>(`/model${queryString}`, {
         method: 'GET',
-      }, 'model catalog')
+      }, 'model catalog', managementBaseUrl)
       if (Array.isArray(res)) {
         return { items: res, total: res.length }
       }
@@ -242,7 +243,7 @@ export const createFishClient = (options: FishClientOptions) => {
     async getModel(modelId: string): Promise<FishModelRecord> {
       return requestJson<FishModelRecord>(`/model/${encodeURIComponent(modelId)}`, {
         method: 'GET',
-      }, 'model inspection')
+      }, 'model inspection', managementBaseUrl)
     },
 
     async createModel(req: FishCreateModelRequest): Promise<FishModelRecord> {
@@ -256,6 +257,8 @@ export const createFishClient = (options: FishClientOptions) => {
       formData.append('title', req.title)
       if (req.description) formData.append('description', req.description)
       formData.append('type', req.type ?? 'tts')
+      formData.append('train_mode', 'fast')
+      formData.append('visibility', 'private')
       req.voices.forEach((voiceBuffer, idx) => {
         formData.append('voices', new Blob([Uint8Array.from(voiceBuffer)], { type: 'audio/wav' }), `sample_${idx}.wav`)
       })
@@ -263,7 +266,7 @@ export const createFishClient = (options: FishClientOptions) => {
         req.texts.forEach((txt) => formData.append('texts', txt))
       }
 
-      const url = `${baseUrl}/model`
+      const url = `${managementBaseUrl}/model`
       const response = await customFetch(url, {
         method: 'POST',
         headers: {
@@ -284,13 +287,13 @@ export const createFishClient = (options: FishClientOptions) => {
       return requestJson<FishModelRecord>(`/model/${encodeURIComponent(modelId)}`, {
         method: 'PATCH',
         body: JSON.stringify(updates),
-      }, 'model update')
+      }, 'model update', managementBaseUrl)
     },
 
     async deleteModel(modelId: string): Promise<{ success: boolean }> {
       return requestJson<{ success: boolean }>(`/model/${encodeURIComponent(modelId)}`, {
         method: 'DELETE',
-      }, 'model delete')
+      }, 'model delete', managementBaseUrl)
     }
   }
 }

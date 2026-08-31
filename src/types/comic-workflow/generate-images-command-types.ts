@@ -11,6 +11,7 @@ export type GenerateImagesWorkflowDependencies = {
   checkScenesExist?: (sceneSlug: string) => Promise<boolean>
   checkPromptsExist?: (sceneSlug: string) => Promise<boolean>
   checkPanelPromptSourceCoverage?: (sceneSlug: string) => Promise<SourceCoverageReport>
+  runRevisionEvaluation?: (options: GenerateImagesCommandOptions) => Promise<ImageRunStats | void>
 }
 
 export type ComicImageWorkItemResult = {

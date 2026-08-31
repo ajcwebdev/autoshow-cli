@@ -13,7 +13,7 @@ import { assertVoiceConsentAllows } from './voice-management-contracts'
 import { provisionMistralSavedReferenceRegistration } from './voice-registration-management'
 import {
   CLONE_PROVIDERS, PROFILE_DEFAULT, advancedCapabilityFixtureHash,
-  advancedProvider, cloneMediaType, isCloneProvider, maybeCompleteRegistrationJournal, optionalFlag,
+  advancedProvider, cloneFileExtension, cloneMediaType, isCloneProvider, maybeCompleteRegistrationJournal, optionalFlag,
   parameter, providerFlag, repeatableFlag, reportVoicePrice, reportVoiceResult, requireBrief,
   requiredFlag, requireVoiceModel
 } from './voice-command-support'
@@ -82,7 +82,9 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   }, planned[index]?.protectedAsset)).protectedAsset))
   const resolveProtectedAsset = async (asset: typeof protectedSamples[number]) => {
       const path = await managedVoiceAssetStore.resolve(asset)
-      return { bytes: new Uint8Array(await Bun.file(path).arrayBuffer()), fileName: `clone-sample-${asset.assetId}.${path.split('.').pop() ?? 'audio'}`, mediaType: cloneMediaType(path) }
+      const bytes = new Uint8Array(await Bun.file(path).arrayBuffer())
+      const mediaType = cloneMediaType(path, bytes)
+      return { bytes, fileName: `clone-sample-${asset.assetId}.${cloneFileExtension(mediaType)}`, mediaType }
   }
   const resolveDurationProtectedAsset = async (asset: typeof protectedSamples[number]) => {
     const resolved = await resolveProtectedAsset(asset)

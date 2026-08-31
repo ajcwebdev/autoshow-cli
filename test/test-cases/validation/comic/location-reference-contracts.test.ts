@@ -4,7 +4,7 @@ import { mkdir, rm } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 import ts from 'typescript'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
-import { locationReferenceSketchCommand } from '~/cli/commands/process-steps/step-8-comic/comic-commands/reference-sketch/location-reference-command'
+import { locationReferenceSketchCommand, resolveLocationQaProvider } from '~/cli/commands/process-steps/step-8-comic/comic-commands/reference-sketch/location-reference-command'
 import {
   LOCATION_PROMOTION_TRANSACTION_BOUNDARIES,
   promoteLocationRegistrationTransaction,
@@ -58,6 +58,12 @@ afterEach(async () => {
 })
 
 describe('canonical location reference registration', () => {
+  test('routes supported location QA models to their registered vision providers', () => {
+    expect(resolveLocationQaProvider('gpt-5.6-sol')).toBe('openai')
+    expect(resolveLocationQaProvider('gemini-3.1-pro-preview')).toBe('gemini')
+    expect(() => resolveLocationQaProvider('claude-opus-4-6')).toThrow('supports OpenAI and Gemini')
+  })
+
   test('keeps validate, prepare, generate, and promote phases explicit with rollback outside generation', () => {
     const commandPath = resolve(process.cwd(), 'src/cli/commands/process-steps/step-8-comic/comic-commands/reference-sketch/location-reference-command.ts')
     const transactionPath = resolve(process.cwd(), 'src/cli/commands/process-steps/step-8-comic/comic-commands/reference-sketch/location-reference-transaction.ts')

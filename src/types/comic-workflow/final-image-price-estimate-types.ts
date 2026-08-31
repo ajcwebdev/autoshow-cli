@@ -103,6 +103,8 @@ export type FinalImageQaWork =
     judgeModel: LlmModel
     initialJudgeCalls: number
     maximumAdditionalImageEdits: number
+    maximumRepairQaCalls: number
+    maximumComparisonJudgeCalls: number
     maximumAdditionalJudgeCalls: number
     maximumTotalJudgeCalls: number
     estimatedInputTokens: number

@@ -14,6 +14,11 @@ import { buildStructuredSoundscape, parseSoundscapeBlockDirective, stripInlineSo
 
 const scalarOffset = (value: string, utf16Offset: number): number => [...value.slice(0, utf16Offset)].length
 
+const utf16Offset = (value: string, unicodeScalarOffset: number): number => [...value]
+  .slice(0, unicodeScalarOffset)
+  .join('')
+  .length
+
 const sourceSpan = (
   source: string,
   kind: StructuredSourceSpan['kind'],
@@ -93,7 +98,10 @@ const attachSourceSpans = (source: string, beats: StructuredScriptBeat[]): Struc
       spans.push(sourceSpan(source, 'simultaneous-speech', anchorIndex, anchorIndex + speakerAnchor.length))
     }
     if (spans.length === 0 && blockStart < spanSearchEnd) spans.push(sourceSpan(source, 'stage-direction', blockStart, spanSearchEnd))
-    cursor = Math.max(cursor, blockEnd)
+    const lastExactSourceOffset = spans.reduce((maximum, span) => Math.max(maximum, utf16Offset(source, span.end)), cursor)
+    cursor = lastExactSourceOffset
+    while (cursor < source.length && /[*_`~]/u.test(source[cursor] ?? '')) cursor += 1
+    while (cursor < source.length && /\s/u.test(source[cursor] ?? '')) cursor += 1
     return { ...beat, sourceSpans: spans.sort((left, right) => left.start - right.start || left.end - right.end || left.kind.localeCompare(right.kind)) }
   })
 }

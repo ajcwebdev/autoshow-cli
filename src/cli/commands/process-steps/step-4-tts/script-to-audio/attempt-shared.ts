@@ -3,6 +3,7 @@ import { hashCanonicalTtsValue } from './contract-identity'
 
 export const SCHEMA_VERSION = 'phase-0-v1'
 export const PREPARATION_VERSION = 'generic-tts-v1'
+export const SEGMENTED_COMPOSITION_VERSION = 'mastered-segment-timing-v2'
 export const EPOCH = new Date(0).toISOString()
 export const CAPABILITY_CHECKED_AT = '2026-08-11T00:00:00.000Z'
 export const LOCAL_ACTOR = { namespace: 'local-user' as const, actorId: 'current-cli-user' }

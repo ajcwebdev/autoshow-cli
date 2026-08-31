@@ -7,6 +7,8 @@ import { estimateFinalPanelImagesPrice } from './comic-price-final-image-estimat
 import { estimateGenerateSketchesPrice } from './comic-price-sketch-estimates'
 import { priceNotice } from './price-estimate-logging'
 import { getSceneJsonPath } from './project-paths'
+import { estimateQaOnlyPanelAuditPrice } from './qa-only-price-estimate'
+import { estimateRevisionEvaluationPrice } from './revision-evaluation-price'
 
 export { estimateDraftScenesPrice } from './comic-price-llm-estimates'
 export { estimateCharacterSketchPrice, estimateLocationReferencePrice } from './comic-price-reference-estimates'
@@ -54,6 +56,16 @@ export const estimateGenerateImagesPrice = async (
       scene: sceneSlug,
       sceneJsonPath: getSceneJsonPath(sceneSlug)
     })
+    return
+  }
+
+  if (options.qaOnly) {
+    await estimateQaOnlyPanelAuditPrice(options)
+    return
+  }
+
+  if (options.revisionPlan) {
+    await estimateRevisionEvaluationPrice(options)
     return
   }
 

@@ -21,7 +21,7 @@ import {
 import { writeVoiceCandidate } from '~/cli/commands/process-steps/step-4-tts/voice-management/advanced-voice-management'
 import { computeVoiceCandidateId } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-management-contracts'
 import { buildReadyVoiceRegistrationDraft } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-registration-management'
-import { planCanonicalVoiceAudition } from '~/cli/commands/process-steps/step-4-tts/voice-management/canonical-voice-audition'
+import { planCanonicalVoiceAudition, withCanonicalVoiceAuditionScheduler } from '~/cli/commands/process-steps/step-4-tts/voice-management/canonical-voice-audition'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { captureLogEvents } from '../../../../test-utils/console-capture'
@@ -234,6 +234,12 @@ test('canonical audition planning resolves every active TTS provider', () => {
     expect(plan.passages).toHaveLength(6)
     expect(plan.characterCount).toBeGreaterThan(0)
   }
+})
+
+test('canonical auditions install the shared hosted TTS scheduler', () => {
+  const options = withCanonicalVoiceAuditionScheduler({ deepinfraTtsModels: ['Qwen/Qwen3-TTS'], deepinfraTtsVoice: 'voice-existing' })
+  expect(options.hostedTtsChunkScheduler).toBeDefined()
+  expect(typeof options.hostedTtsChunkScheduler?.runChunks).toBe('function')
 })
 
 test('voice clone explains each intentionally deferred workflow', async () => {

@@ -22,6 +22,7 @@ import { DEFAULT_QA_MODEL } from './cli-args'
 import { isGeminiImageModel } from './image-service'
 import { DEFAULT_IMAGE_MODEL } from './image-size'
 import { estimateLlmCostFromRegistry } from './structured-script-utils/llm-cost'
+import { REVISION_ESTIMATED_INPUT_TOKENS_PER_COMPARISON, REVISION_ESTIMATED_OUTPUT_TOKENS_PER_COMPARISON } from '../comic-commands/generate-images/revision-evaluation'
 
 const selectFinalImageEstimateMode = (
   grid: ComicGridSpec | undefined,
@@ -148,17 +149,21 @@ export function estimateQaWork(
   }
 
   const initialJudgeCalls = estimate.totalOutputs
-  const maximumAdditionalJudgeCalls = initialJudgeCalls * request.qa.maxRepairs
+  const maximumRepairQaCalls = initialJudgeCalls * request.qa.maxRepairs
+  const maximumComparisonJudgeCalls = maximumRepairQaCalls * 2
+  const maximumAdditionalJudgeCalls = maximumRepairQaCalls + maximumComparisonJudgeCalls
   const maximumTotalJudgeCalls = initialJudgeCalls + maximumAdditionalJudgeCalls
   return {
     mode: 'panel',
     judgeModel: request.qa.judgeModel,
     initialJudgeCalls,
-    maximumAdditionalImageEdits: maximumAdditionalJudgeCalls,
+    maximumAdditionalImageEdits: maximumRepairQaCalls,
+    maximumRepairQaCalls,
+    maximumComparisonJudgeCalls,
     maximumAdditionalJudgeCalls,
     maximumTotalJudgeCalls,
-    estimatedInputTokens: maximumTotalJudgeCalls * 5000,
-    estimatedOutputTokens: maximumTotalJudgeCalls * 1200,
+    estimatedInputTokens: (initialJudgeCalls + maximumRepairQaCalls) * 5000 + maximumComparisonJudgeCalls * REVISION_ESTIMATED_INPUT_TOKENS_PER_COMPARISON,
+    estimatedOutputTokens: (initialJudgeCalls + maximumRepairQaCalls) * 1200 + maximumComparisonJudgeCalls * REVISION_ESTIMATED_OUTPUT_TOKENS_PER_COMPARISON,
   }
 }
 

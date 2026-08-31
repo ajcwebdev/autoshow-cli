@@ -13,6 +13,8 @@ import {
   buildFishGlobalTimeline,
 } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/fish-tts-request'
 import { runFishNativeDialogue } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/fish-native-dialogue'
+import { collectFishTtsTargets, resolveFishNativeDialogueTurns } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/fish-tts-targets'
+import { createTtsTargetSelection } from '~/cli/commands/process-steps/step-4-tts/tts-targets/tts-target-selection'
 import { runFishTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/run-fish-tts'
 import { createFishAdvancedProvider } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/fish-advanced-provider'
 import { createMockWavBase64, createMockWavBytes } from '../../../test-utils/media-fixtures'
@@ -72,6 +74,17 @@ describe('Fish timestamp stream reduction', () => {
     expect(batches[0]?.providerText).toBe('<|speaker:0|>[whispering] Ready?<|speaker:1|>Ready.')
     expect(batches[0]?.referenceIds).toEqual(['voice-a', 'voice-b'])
     expect(prepareFishDialogueText('Ready?', 'happy', 's2.1-pro').providerText).toBe('[happy] Ready?')
+  })
+
+  test('retains canonical comic delivery when resolving native dialogue turns for dispatch', () => {
+    expect(collectFishTtsTargets(createTtsTargetSelection({ fishTtsModels: ['s2.1-pro'] }))[0]?.multiSpeakerStrategy).toBe('native')
+    const turns = resolveFishNativeDialogueTurns('VOICE_001: Ready?', {
+      ttsDialogueFormat: 'labeled',
+      ttsSpeakers: ['VOICE_001=voice-a'],
+      ttsCanonicalTurns: [{ turnId: 'dialogue-turn-001', speaker: 'VOICE_001', text: 'Ready?', delivery: 'whispering' }],
+    })
+    expect(turns).toEqual([{ turnId: 'dialogue-turn-001', subjectKey: 'VOICE_001', speaker: 'VOICE_001', canonicalText: 'Ready?', voiceId: 'voice-a', delivery: 'whispering' }])
+    expect(planFishNativeDialogueBatches(turns)[0]?.providerText).toBe('<|speaker:0|>[whispering] Ready?')
   })
 })
 

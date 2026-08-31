@@ -31,8 +31,11 @@ import { verifyManifestProjectionArtifacts } from './projection-artifact-graph'
 
 export const PIPELINE_MANIFEST_FILE = 'manifest.json'
 
-const invalidManifestError = (manifestPath: string): Error =>
-  UsageError(`Invalid canonical manifest at ${manifestPath}. Re-run the pipeline to regenerate this output.`)
+const invalidManifestError = (
+  manifestPath: string,
+  reason?: 'structure' | 'artifact-graph'
+): Error =>
+  UsageError(`Invalid canonical manifest at ${manifestPath}${reason ? ` (${reason})` : ''}. Re-run the pipeline to regenerate this output.`)
 
 const readManifestUnlocked = async (
   rootDir: string
@@ -49,9 +52,8 @@ const readManifestUnlocked = async (
     throw UsageError(`Malformed canonical manifest at ${manifestPath}: ${error instanceof Error ? error.message : String(error)}`, undefined, error instanceof Error ? { cause: error } : {})
   }
   const manifest = parseManifest(rootDir, raw)
-  if (!manifest || !await verifyManifestProjectionArtifacts(rootDir, manifest)) {
-    throw invalidManifestError(manifestPath)
-  }
+  if (!manifest) throw invalidManifestError(manifestPath, 'structure')
+  if (!await verifyManifestProjectionArtifacts(rootDir, manifest)) throw invalidManifestError(manifestPath, 'artifact-graph')
   return manifest
 }
 
@@ -91,9 +93,8 @@ const writeManifestUnlocked = async (
     updatedAt: new Date().toISOString()
   }
   const parsed = parseManifest(rootDir, next)
-  if (!parsed || !await verifyManifestProjectionArtifacts(rootDir, parsed)) {
-    throw invalidManifestError(manifestPath)
-  }
+  if (!parsed) throw invalidManifestError(manifestPath, 'structure')
+  if (!await verifyManifestProjectionArtifacts(rootDir, parsed)) throw invalidManifestError(manifestPath, 'artifact-graph')
   if (previous) assertAppendOnlyManifestAudioState(previous, parsed)
 
   const tempPath = join(rootDir, `.${PIPELINE_MANIFEST_FILE}.${process.pid}.${crypto.randomUUID()}.tmp`)

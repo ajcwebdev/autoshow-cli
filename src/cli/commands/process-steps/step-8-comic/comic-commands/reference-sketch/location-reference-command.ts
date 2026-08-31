@@ -11,6 +11,8 @@ import { validateReferenceImageCount } from '../../comic-utils/reference-capabil
 import { runComicStructuredLlm } from '../../comic-utils/structured-script-utils/run-structured-llm'
 import { getOpenAIClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/openai-utils'
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
+import { geminiGenerateContent, geminiUserContent } from '~/utils/gemini/gemini-rest'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { UsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
@@ -52,9 +54,16 @@ const aggregateSpecification = async (input: { key: string; scripts: Array<{ pat
   return { name: value.name.trim(), specification: value.specification.trim() }
 }
 
-const dataUrl = async (path: string): Promise<string> => {
-  const mime = path.endsWith('.png') ? 'image/png' : path.endsWith('.webp') ? 'image/webp' : 'image/jpeg'
-  return `data:${mime};base64,${Buffer.from(await Bun.file(path).arrayBuffer()).toString('base64')}`
+const imageMimeType = (path: string): string => path.endsWith('.png') ? 'image/png' : path.endsWith('.webp') ? 'image/webp' : 'image/jpeg'
+
+const imageBase64 = async (path: string): Promise<string> => Buffer.from(await Bun.file(path).arrayBuffer()).toString('base64')
+
+const dataUrl = async (path: string): Promise<string> => `data:${imageMimeType(path)};base64,${await imageBase64(path)}`
+
+export const resolveLocationQaProvider = (model: string): 'openai' | 'gemini' => {
+  const service = findRegistryServiceForModel('llm', model)
+  if (service !== 'openai' && service !== 'gemini') throw UsageError(`Invalid location QA model "${model}". Location QA currently supports OpenAI and Gemini vision-capable LLMs.`)
+  return service
 }
 
 const judgeView = async (input: { imagePath: string; view: LocationView; specification: string; existingViewPaths: string[]; styleReference: string; model: string }): Promise<LocationViewQaResult> => {
@@ -62,11 +71,21 @@ const judgeView = async (input: { imagePath: string; view: LocationView; specifi
     pass: { type: 'boolean' }, stableFeaturesMatch: { type: 'boolean' }, crossViewGeometryMatch: { type: 'boolean' }, requestedAngleMatch: { type: 'boolean' }, materiallyDistinctFromExistingViews: { type: 'boolean' }, houseStyleMatch: { type: 'boolean' }, noPeople: { type: 'boolean' }, noCopiedStyleContent: { type: 'boolean' }, failedChecks: { type: 'array', items: { type: 'string' } }, editInstructions: { type: 'string' }, summary: { type: 'string' },
   }, required: ['pass', 'stableFeaturesMatch', 'crossViewGeometryMatch', 'requestedAngleMatch', 'materiallyDistinctFromExistingViews', 'houseStyleMatch', 'noPeople', 'noCopiedStyleContent', 'failedChecks', 'editInstructions', 'summary'] } as const
   const paths = [input.imagePath, ...input.existingViewPaths, input.styleReference]
-  const response = await createOpenAIResponse(getOpenAIClientConfig(), { model: input.model, input: [{ role: 'user', content: [
-    { type: 'input_text', text: `Strictly judge this requested ${input.view} canonical location view. Camera contract: ${CAMERA_CONTRACTS[input.view]} It must match the stable features and visual language established by the supplied references, contain no people, copy no character/text/content from the style reference, preserve cross-view geometry, comply with the requested angle, and be materially distinct from every existing location view. For an establishing view with no existing location views, materiallyDistinctFromExistingViews must be true. Specification:\n${input.specification}` },
-    ...(await Promise.all(paths.map(async path => ({ type: 'input_image' as const, image_url: await dataUrl(path), detail: 'high' as const })))),
-  ] }], text: { verbosity: 'low', format: { type: 'json_schema', name: 'location_view_qa_v2', schema, strict: true } } })
-  const text = extractOpenAIResponseText(response)
+  const prompt = `Strictly judge this requested ${input.view} canonical location view. Camera contract: ${CAMERA_CONTRACTS[input.view]} It must match the stable features and visual language established by the supplied references, contain no people, copy no character/text/content from the style reference, preserve cross-view geometry, comply with the requested angle, and be materially distinct from every existing location view. For an establishing view with no existing location views, materiallyDistinctFromExistingViews must be true. Specification:\n${input.specification}`
+  const provider = resolveLocationQaProvider(input.model)
+  const text = provider === 'openai'
+    ? extractOpenAIResponseText(await createOpenAIResponse(getOpenAIClientConfig(), { model: input.model, input: [{ role: 'user', content: [
+        { type: 'input_text', text: prompt },
+        ...(await Promise.all(paths.map(async path => ({ type: 'input_image' as const, image_url: await dataUrl(path), detail: 'high' as const })))),
+      ] }], text: { verbosity: 'low', format: { type: 'json_schema', name: 'location_view_qa_v2', schema, strict: true } } }))
+    : (await geminiGenerateContent(resolveCredential('gemini', 'require', { stage: 'comic:location-reference', description: 'Location QA' }), {
+        model: input.model,
+        contents: geminiUserContent([
+          { text: prompt },
+          ...(await Promise.all(paths.map(async path => ({ inlineData: { mimeType: imageMimeType(path), data: await imageBase64(path) } })))),
+        ]),
+        generationConfig: { responseMimeType: 'application/json', responseJsonSchema: schema },
+      })).text
   if (!text) throw InfraError('Location QA judge returned no structured result', { stage: 'comic:location-reference' })
   return JSON.parse(text) as LocationViewQaResult
 }
@@ -100,6 +119,9 @@ const resolveLocationReferenceRequest = (options: ReferenceSketchCommandOptions)
   const size: ImageGenerationSize = options.size ?? '1536x1024'
   const quality: ImageGenerationQuality = options.quality ?? 'high'
   validateImageSizeForModels(size, [model])
+  const qaEnabled = options.qa ?? true
+  const qaModel = options.qaModel ?? DEFAULT_QA_MODEL
+  if (qaEnabled) resolveLocationQaProvider(qaModel)
   return {
     key,
     view,
@@ -108,10 +130,10 @@ const resolveLocationReferenceRequest = (options: ReferenceSketchCommandOptions)
     quality,
     revise: options.revise ?? false,
     ...(options.notes ? { notes: options.notes } : {}),
-    qaEnabled: options.qa ?? true,
+    qaEnabled,
     maxRepairs: options.maxRepairs ?? 2,
     aggregationModel: options.llmModel ?? DEFAULT_LLM_MODEL,
-    qaModel: options.qaModel ?? DEFAULT_QA_MODEL,
+    qaModel,
     concurrency: options.concurrency ?? DEFAULT_CLI_CONCURRENCY,
     ...(options.hostedConcurrencyCoordinator ? { hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator } : {}),
   }
@@ -227,7 +249,7 @@ const runLocationViewGeneration = async (
       lastQa = validateQaResult(await runComicHostedRequest({
         concurrency: request.concurrency,
         hostedConcurrencyCoordinator: request.hostedConcurrencyCoordinator,
-      }, 'openai', 'comic-qa', `location-qa:${key}:${view}`, attempt, async () => await judge({ imagePath: path, view, specification: context.entry.specification, existingViewPaths: context.otherExisting.map(item => item.imagePath), styleReference: context.stylePath, model: request.qaModel })))
+      }, resolveLocationQaProvider(request.qaModel), 'comic-qa', `location-qa:${key}:${view}`, attempt, async () => await judge({ imagePath: path, view, specification: context.entry.specification, existingViewPaths: context.otherExisting.map(item => item.imagePath), styleReference: context.stylePath, model: request.qaModel })))
       await atomicWriteJson(join(attemptsRoot, `${view}-attempt-${attempt}-qa.json`), lastQa)
       qaReports.push({ view, attempt, retryMode, result: lastQa })
       await writeLocationQaReports(attemptsRoot, key, generationId, view, qaReports)

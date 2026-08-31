@@ -6,7 +6,7 @@ import type {
   SuccessPublicationInput,
 } from '~/types'
 import { removeContainedDirectory } from './safe-artifact-store'
-import { contained, hasErrorCode, writeJson, writeJsonReplace } from './attempt-io'
+import { contained, hasErrorCode, writeJson, writeJsonReplace, writeJsonReuseCompatibleIdentity } from './attempt-io'
 import { stateForProjection } from './attempt-planning'
 import { appendTerminalProjection, publish } from './attempt-projection'
 import {
@@ -58,7 +58,7 @@ export const publishExpandedCompletion = async (
     `${input.audioRunRoot}/final-timeline.json`,
     input.timeline
   )
-  const audioRun = buildAudioRun({
+  let audioRun = buildAudioRun({
     schemaVersion: 1,
     targetKey: purePlan.targetKey,
     renderPlanId: purePlan.renderPlanId,
@@ -93,11 +93,14 @@ export const publishExpandedCompletion = async (
     }],
     createdAt: ctx.now(),
   })
-  const audioRunFile = await writeJson(
+  const audioRunFile = await writeJsonReuseCompatibleIdentity(
     options.outputDir,
     `${input.audioRunRoot}/audio-run.json`,
-    audioRun
+    audioRun,
+    'audioRunId',
+    ['createdAt']
   )
+  audioRun = audioRunFile.value
   const archiveTimelineFile = await writeJsonReplace(
     options.outputDir,
     `${options.outputDir}/${layout.archiveTimelinePath}`,

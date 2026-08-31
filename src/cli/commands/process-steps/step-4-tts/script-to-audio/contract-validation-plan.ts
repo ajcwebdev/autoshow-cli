@@ -3,6 +3,7 @@ import { UsageError } from '~/utils/error-handler'
 import { canonicalTargetKey, computeRenderIdentity, computeVoiceContextKey, hashCanonicalRecordWithout, hashCanonicalTtsValue } from './contract-identity'
 import { assertExactStringSet, assertSha256, assertUnique, SHA256, validatePlannedCost, validateTypedSettings } from './contract-validation-primitives'
 import { validatePreparedProviderText, validateProviderVoiceRef } from './contract-validation-capability'
+import { SEGMENTED_COMPOSITION_VERSION } from './attempt-shared'
 
 export const capabilityFeatureForStrategy = (strategy: ProviderRenderPlan['strategy']): VoiceCapabilityFeature => {
   if (strategy === 'native-dialogue') return 'native-dialogue'
@@ -28,13 +29,15 @@ export const validateProviderRenderPlanIdentity = (plan: ProviderRenderPlan): Pr
     throw UsageError('Provider render plan has an invalid voice-aware renderIdentity.')
   }
   const feature = capabilityFeatureForStrategy(plan.strategy)
+  const legacyOutputProfileHash = hashCanonicalTtsValue(plan.requestedOutput)
+  const currentOutputProfileHash = hashCanonicalTtsValue({ requestedOutput: plan.requestedOutput, compositionVersion: SEGMENTED_COMPOSITION_VERSION })
   if (
     plan.requiredCapabilityScopeHashes.length === 0
     || plan.requiredCapabilityScopeHashes.some((hash) => !SHA256.test(hash))
     || !SHA256.test(plan.capabilityFixtureHash)
     || !SHA256.test(plan.synthesisSettingsHash)
     || !SHA256.test(plan.outputProfileHash)
-    || plan.outputProfileHash !== hashCanonicalTtsValue(plan.requestedOutput)
+    || (plan.outputProfileHash !== legacyOutputProfileHash && (plan.strategy !== 'segmented' || plan.outputProfileHash !== currentOutputProfileHash))
   ) {
     throw UsageError(`Provider render plan requires valid ${feature} capability, settings, and output identities.`)
   }

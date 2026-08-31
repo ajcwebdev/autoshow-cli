@@ -2,7 +2,7 @@ import type { CanonicalAudioProviderProjection, CreateCurrentTtsRenderAttemptOpt
 import { UsageError } from '~/utils/error-handler'
 import { canonicalTargetKey, canonicalTtsJson, computeRenderIdentity, computeVoiceContextKey, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { projectCanonicalAudioProviderStatus, validateProviderRenderPlanIdentity } from './contract-validation'
-import { SCHEMA_VERSION, withIdentity } from './attempt-shared'
+import { SCHEMA_VERSION, SEGMENTED_COMPOSITION_VERSION, withIdentity } from './attempt-shared'
 import { prepareSegmentedTurnText } from './comic-segmented-audio'
 import { bindingIdentityHash, buildCapabilityFixture, requestedOutput, sumCosts } from './attempt-planning-shared'
 import { planComicInputs } from './attempt-planning-comic'
@@ -33,7 +33,9 @@ export const buildPureCurrentTtsRenderPlan = (options: PureCurrentTtsRenderPlanO
     ? { kind: 'approved-snapshot', snapshotId: options.comicContext.voiceSnapshot.snapshotId }
     : { kind: 'transient', turns: planned.turns.map((turn) => ({ turnId: turn.canonical.turnId, bindingIdentityHash: bindingIdentityHash(turn.binding) })) })
   const requestedAudioOutput = requestedOutput(options)
-  const outputProfileHash = hashCanonicalTtsValue(requestedAudioOutput)
+  const outputProfileHash = planned.strategy === 'segmented'
+    ? hashCanonicalTtsValue({ requestedOutput: requestedAudioOutput, compositionVersion: SEGMENTED_COMPOSITION_VERSION })
+    : hashCanonicalTtsValue(requestedAudioOutput)
   const synthesisSettingsHash = hashCanonicalTtsValue({
     nodes: planned.turns.map((turn) => ({
       turnId: turn.canonical.turnId,

@@ -154,6 +154,22 @@ describe('comic presentation local FFmpeg rendering', () => {
       expect(ambienceBuild.command.args).toContain('-1')
       expect(ambienceBuild.transforms.find(transform => transform.kind === 'ambience-loop')?.finalRangeMs).toEqual({ start: 0, end: 1000 })
       expect(ambienceBuild.transforms.some(transform => transform.kind === 'digital-silence')).toBe(false)
+
+      const replacementWav = await writeImmutableArtifactFile(root, 'presentation/replacement/presentation.wav', new Uint8Array([1, 2, 3]))
+      const replacementMp4 = await writeImmutableArtifactFile(root, 'presentation/replacement/slideshow.mp4', new Uint8Array([4, 5, 6]))
+      const replacementRun = {
+        ...first.run,
+        outputs: {
+          wav: { ...first.run.outputs.wav, path: replacementWav.relativePath, sha256: replacementWav.sha256 },
+          mp4: { ...first.run.outputs.mp4, path: replacementMp4.relativePath, sha256: replacementMp4.sha256 },
+        },
+      }
+      expect(await publishComicPresentationFinal(root, replacementRun)).toEqual([
+        { path: PRESENTATION_FINAL_WAV, sha256: replacementWav.sha256 },
+        { path: PRESENTATION_FINAL_MP4, sha256: replacementMp4.sha256 },
+      ])
+      expect(await fileHash(join(root, PRESENTATION_FINAL_WAV))).toBe(replacementWav.sha256)
+      expect(await fileHash(join(root, PRESENTATION_FINAL_MP4))).toBe(replacementMp4.sha256)
     } finally {
       await rm(root, { recursive: true, force: true })
     }

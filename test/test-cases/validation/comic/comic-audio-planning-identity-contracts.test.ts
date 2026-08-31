@@ -9,6 +9,7 @@ import { createComicDialoguePlan } from '~/cli/commands/process-steps/step-8-com
 import { writeInitialComicStructureManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-manifest'
 import { resolveCompatibleComicSceneRun } from '~/cli/commands/process-steps/step-8-comic/comic-utils/compatible-scene-run'
 import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { toSourceIdentityDisplayPath } from '~/utils/runtime-paths'
 import { setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 import { makeTempDir } from '../../../test-utils/temp-dirs'
 import { COMIC_AUDIO_PHASE_2_CREATED_AT as CREATED_AT, COMIC_AUDIO_PHASE_2_HASH_A as HASH_A, COMIC_AUDIO_PHASE_2_HASH_B as HASH_B, buildComicAudioPhase2SnapshotEntry as snapshotEntry, buildComicAudioPhase2Structured as buildStructured } from './comic-audio-phase-fixture'
@@ -16,6 +17,16 @@ import { COMIC_AUDIO_PHASE_2_CREATED_AT as CREATED_AT, COMIC_AUDIO_PHASE_2_HASH_
 setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'HUME_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
 
 describe('comic audio phase 2 contracts', () => {
+  test('maps host source paths to an explicit immutable-workspace identity alias without weakening containment', () => {
+    const mapping = { sourceRoot: '/Users/editor/show', aliasRoot: '/workspace' }
+    expect(toSourceIdentityDisplayPath('/Users/editor/show/input/scripts/scene.md', mapping)).toBe('/workspace/input/scripts/scene.md')
+    expect(toSourceIdentityDisplayPath('/Users/editor/show', mapping)).toBe('/workspace')
+    expect(toSourceIdentityDisplayPath('/Users/editor/other/scene.md', mapping)).toBe('/Users/editor/other/scene.md')
+    expect(() => toSourceIdentityDisplayPath('/Users/editor/show/input/scripts/scene.md', { sourceRoot: 'relative/show', aliasRoot: '/workspace' })).toThrow(/ROOT must be an absolute/)
+    expect(() => toSourceIdentityDisplayPath('/Users/editor/show/input/scripts/scene.md', { sourceRoot: '/Users/editor/show', aliasRoot: '/workspace/../other' })).toThrow(/normalized absolute POSIX/)
+    expect(() => toSourceIdentityDisplayPath('/Users/editor/show/input/scripts/scene.md', { sourceRoot: '/Users/editor/show' })).toThrow(/must be set together/)
+  })
+
   test('source identity converges through symlinks and rejects exact-byte drift in a pinned scene run', async () => {
     const root = await makeTempDir('autoshow-comic-audio-source-')
     const sourcePath = join(root, 'scene.md')

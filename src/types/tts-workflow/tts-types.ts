@@ -15,6 +15,7 @@ export type TtsOptions = HostedConcurrencyRuntimeOptions & Partial<TtsRuntimeOpt
     turnId: string
     speaker: string
     text: string
+    delivery?: string | undefined
     providerSegments?: readonly string[] | undefined
     providerSegmentIndexes?: readonly number[] | undefined
   }[] | undefined

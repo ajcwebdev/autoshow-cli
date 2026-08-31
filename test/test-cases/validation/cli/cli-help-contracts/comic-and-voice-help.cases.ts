@@ -36,6 +36,7 @@ export const registerComicAndVoiceHelpCases = (): void => {
     expect(getFlagGroupSection(result.stdout, 'Image Options')).toContain('--variation')
     expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--qa, --no-qa')
     expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--max-repairs')
+    expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--qa-only')
     expect(result.stdout).toContain('final default: 1; sketch default: 6')
     expect(result.stdout).toContain('bun autoshow comic draft-scenes <script-path> --only panel-prompts')
     expect(result.stdout).not.toContain('[--target prompts|images|sketches|both]')

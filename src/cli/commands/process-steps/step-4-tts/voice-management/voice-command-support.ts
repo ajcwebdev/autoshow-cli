@@ -1,4 +1,4 @@
-import { join } from 'node:path'
+import { extname, join } from 'node:path'
 import { VOICE_CAPABILITY_REGISTRY } from '~/types'
 import type { CliCommandContext, CloneProviderName, DesignProviderName, ManagedAdvancedProvider, TtsProvider, VoiceCatalogProviderName, VoiceConsentAction, VoiceConsentRecord, VoiceLifecycleProviderName, VoiceProviderName, VoiceRegistration } from '~/types'
 import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
@@ -236,8 +236,20 @@ export const maybeCompleteRegistrationJournal = async (registration: VoiceRegist
   })
 }
 
-export const cloneMediaType = (path: string): string => {
-  const extension = path.toLowerCase().split('.').pop()
+const cloneMediaTypeFromBytes = (bytes: Uint8Array): string | undefined => {
+  const buffer = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  if (buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WAVE') return 'audio/wav'
+  if (buffer.length >= 3 && buffer.toString('ascii', 0, 3) === 'ID3') return 'audio/mpeg'
+  if (buffer.length >= 2 && buffer[0] === 0xff && (buffer[1]! & 0xe0) === 0xe0) return (buffer[1]! & 0x16) === 0x10 ? 'audio/aac' : 'audio/mpeg'
+  if (buffer.length >= 4 && buffer.toString('ascii', 0, 4) === 'fLaC') return 'audio/flac'
+  if (buffer.length >= 4 && buffer.toString('ascii', 0, 4) === 'OggS') return 'audio/ogg'
+  if (buffer.length >= 12 && buffer.toString('ascii', 4, 8) === 'ftyp') return 'audio/mp4'
+  if (buffer.length >= 4 && buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3) return 'audio/webm'
+  return undefined
+}
+
+export const cloneMediaType = (path: string, bytes?: Uint8Array): string => {
+  const extension = extname(path).toLowerCase().slice(1)
   if (extension === 'wav' || extension === 'wave') return 'audio/wav'
   if (extension === 'mp3') return 'audio/mpeg'
   if (extension === 'm4a' || extension === 'mp4') return 'audio/mp4'
@@ -245,5 +257,18 @@ export const cloneMediaType = (path: string): string => {
   if (extension === 'flac') return 'audio/flac'
   if (extension === 'aac') return 'audio/aac'
   if (extension === 'webm') return 'audio/webm'
+  const detected = bytes ? cloneMediaTypeFromBytes(bytes) : undefined
+  if (detected) return detected
   throw UsageError('Voice audio samples must be mp3, wav, m4a/mp4, ogg, flac, aac, or webm audio.')
+}
+
+export const cloneFileExtension = (mediaType: string): string => {
+  if (mediaType === 'audio/wav') return 'wav'
+  if (mediaType === 'audio/mpeg') return 'mp3'
+  if (mediaType === 'audio/mp4') return 'm4a'
+  if (mediaType === 'audio/ogg') return 'ogg'
+  if (mediaType === 'audio/flac') return 'flac'
+  if (mediaType === 'audio/aac') return 'aac'
+  if (mediaType === 'audio/webm') return 'webm'
+  throw UsageError(`Unsupported protected voice audio media type: ${mediaType}`)
 }

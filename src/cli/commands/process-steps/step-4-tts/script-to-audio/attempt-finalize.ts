@@ -31,6 +31,7 @@ import {
   readObservedAudio,
   writeJson,
   writeJsonCreateOnly,
+  writeJsonReuseCompatibleIdentity,
 } from './attempt-io'
 import {
   requestedOutput,
@@ -299,7 +300,11 @@ const assembleMasteredAudio = async (
   batchResultFiles: Array<WrittenJson<ProviderBatchResult>>,
   audioPath: string,
   masteringDir: string
-): Promise<string> => {
+): Promise<{
+  path: string
+  turnDurationMs?: ReadonlyMap<string, number> | undefined
+  timingSegmentDurationMs?: ReadonlyMap<string, number> | undefined
+}> => {
   const { options, purePlan } = ctx
   const masteringProfile = options.ttsOptions.ttsMasteringProfile
   if (options.comicContext && purePlan.planned.strategy === 'segmented') {
@@ -327,9 +332,9 @@ const assembleMasteredAudio = async (
     const recoveredOutputPaths = batchResultFiles.flatMap((file) =>
       file.value.outputs.map((output) => resolveRetainedPath(output.artifactRef.includes('/') ? options.outputDir : dirname(file.path), output.artifactRef, `Recovered generation slot ${file.value.generationSlotId} provider output`))
     )
-    return await concatAndConvertToWav(recoveredOutputPaths, masteringDir, `${options.target.service}-recovery-mastering`, undefined, masteringProfile)
+    return { path: await concatAndConvertToWav(recoveredOutputPaths, masteringDir, `${options.target.service}-recovery-mastering`, undefined, masteringProfile) }
   }
-  return await concatAndConvertToWav([audioPath], masteringDir, `${options.target.service}-mastering`, undefined, masteringProfile)
+  return { path: await concatAndConvertToWav([audioPath], masteringDir, `${options.target.service}-mastering`, undefined, masteringProfile) }
 }
 
 const publishReportedAudio = async (
@@ -398,12 +403,13 @@ export const finalizeSuccess = async (
   const finalPath = `${audioRunRoot}/final.wav`
   const masteringDir = ctx.localCompositionOnly ? `${dirname(resultFile.path)}/mastering` : `${attemptRoot}/mastering`
   await mkdir(masteringDir, { recursive: true })
-  const masteredPath = await assembleMasteredAudio(ctx, batchResultFiles, audioPath, masteringDir)
+  const mastered = await assembleMasteredAudio(ctx, batchResultFiles, audioPath, masteringDir)
+  const masteredPath = mastered.path
   await copyCreateOnly(options.outputDir, masteredPath, finalPath)
   const finalAudio = await readObservedAudio(options.outputDir, finalPath)
   const finalAudioSha256 = sha256Bytes(finalAudio.bytes)
   const speechSources = buildSpeechSources(resultFile.value)
-  const mixPlan = buildAudioMixPlan({
+  let mixPlan = buildAudioMixPlan({
     renderIdentity: purePlan.renderIdentity,
     outputProfileHash: purePlan.outputProfileHash,
     strategy: purePlan.planned.strategy,
@@ -413,12 +419,15 @@ export const finalizeSuccess = async (
     sources: speechSources,
     createdAt: ctx.now(),
   })
-  const mixPlanFile = await writeJson(options.outputDir, `${audioRunRoot}/mix-plan.json`, mixPlan)
+  const mixPlanFile = await writeJsonReuseCompatibleIdentity(options.outputDir, `${audioRunRoot}/mix-plan.json`, mixPlan, 'mixPlanId', ['createdAt'])
+  mixPlan = mixPlanFile.value
   const timelineLayout = buildFinalTimelineLayout({
     turns: purePlan.planned.turns,
     slots: purePlan.planned.slots,
     batchResultFiles,
     comicDialoguePlan: options.comicContext?.dialoguePlan,
+    masteredTurnDurationMs: mastered.turnDurationMs,
+    masteredTimingSegmentDurationMs: mastered.timingSegmentDurationMs,
   })
   const ledger = buildTransformLedger({
     renderIdentity: purePlan.renderIdentity,

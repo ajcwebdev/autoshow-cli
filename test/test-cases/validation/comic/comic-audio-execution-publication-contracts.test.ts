@@ -61,7 +61,8 @@ describe('comic audio phase 2 contracts', () => {
 
   test('mocked segmented command crosses the shared barrier and publishes canonical comic audio', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-test-key'
-    const calls = installMockFetch(() => new Response(createMockWavBytes(), { status: 200, headers: { 'content-type': 'audio/wav' } }))
+    let requestOrdinal = 0
+    const calls = installMockFetch(() => new Response(createSyntheticWavBytes({ durationSeconds: 0.25, amplitude: 0.2, frequencyHz: 220 + requestOrdinal++ * 55 }), { status: 200, headers: { 'content-type': 'audio/wav' } }))
     const root = await makeTempDir('autoshow-comic-audio-command-')
     const sourcePath = join(root, 'scene.md')
     const sceneRunDir = join(root, 'run')
@@ -109,7 +110,7 @@ describe('comic audio phase 2 contracts', () => {
     }
     const manifest = await readManifest(sceneRunDir)
     const provider = manifest?.items[0]?.providers[0]
-    const comic = manifest?.items[0]?.metadata['comic'] as never as { stages: { audio: { status: string } }, audio: { selectedAudioRuns?: unknown[], finalOutputRefs?: Array<{ path: string }> } }
+    const comic = manifest?.items[0]?.metadata['comic'] as never as { stages: { audio: { status: string } }, audio: { selectedAudioRuns?: unknown[], finalOutputRefs?: Array<{ path: string, sha256: string }> } }
     expect(calls.map(call => call.bodyJson?.['voice']).sort()).toEqual(['alloy', 'alloy', 'onyx'])
     expect(calls.filter(call => call.bodyJson?.['voice'] === 'alloy').map(call => call.bodyJson?.['input'])).toEqual(['Ready?', 'Go.'])
     expect(provider).toEqual(expect.objectContaining({ operation: 'comic-audio', status: 'succeeded' }))
@@ -118,6 +119,33 @@ describe('comic audio phase 2 contracts', () => {
     expect(comic.audio.selectedAudioRuns).toHaveLength(1)
     expect(comic.audio.finalOutputRefs).toHaveLength(1)
     expect(await Bun.file(join(sceneRunDir, comic.audio.finalOutputRefs?.[0]?.path as string)).exists()).toBe(true)
+
+    const firstFinal = comic.audio.finalOutputRefs?.[0]
+    const replacementContext = {
+      argv: [], flags: { provider: [providerValue], mode: 'segmented', 'tts-speed': '1.1' }, parameters: { input: '', outputDirs: [], prompt: '' }, store: {},
+      rawParsed: {
+        doubleDash: [], explicitFlags: new Set(['provider', 'mode', 'tts-speed']),
+        flagOccurrences: [{ name: 'provider', raw: '--provider', value: providerValue, known: true }, { name: 'mode', raw: '--mode', value: 'segmented', known: true }, { name: 'tts-speed', raw: '--tts-speed', value: '1.1', known: true }],
+        flagOccurrenceIndices: [0, 1, 2], unknown: {}, positionals: [],
+      },
+    } as CliCommandContext
+    configurePinnedRunDir(sceneRunDir)
+    try {
+      await generateComicAudio(replacementContext, sourcePath)
+    } finally {
+      resetPinnedRunDir()
+    }
+    const replacedManifest = await readManifest(sceneRunDir)
+    const replacedProvider = replacedManifest?.items[0]?.providers[0]
+    const replacedComic = replacedManifest?.items[0]?.metadata['comic'] as never as { stages: { audio: { status: string } }, audio: { selectedAudioRuns?: unknown[], finalOutputRefs?: Array<{ path: string, sha256: string }> } }
+    const replacementFinal = replacedComic.audio.finalOutputRefs?.[0]
+    expect(calls).toHaveLength(6)
+    expect(replacedProvider?.status).toBe('succeeded')
+    expect(replacedProvider?.result?.['comicAudio']).toEqual(expect.objectContaining({ renderHistory: expect.arrayContaining([expect.any(Object), expect.any(Object)]), selectedSuccess: expect.any(Object) }))
+    expect(replacedComic.stages.audio.status).toBe('full')
+    expect(replacedComic.audio.selectedAudioRuns).toHaveLength(1)
+    expect(replacementFinal?.path).toBe(firstFinal?.path)
+    expect(replacementFinal?.sha256).not.toBe(firstFinal?.sha256)
   }, 20_000)
 
   test('mocked comic command publishes a canonical soundscape master after both provider barriers', async () => {
