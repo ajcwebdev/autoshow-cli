@@ -52,6 +52,7 @@ const directoryHasAnyFiles = async (root: string): Promise<boolean> => {
 
 const createDoctorProbes = (overrides: Partial<DoctorProbes> = {}): DoctorProbes => ({
   bunVersion: Bun.version,
+  platform: process.platform,
   env: process.env as Record<string, string | undefined>,
   which: (command) => Bun.which(command) ?? undefined,
   pathExists: pathExists,
@@ -116,7 +117,7 @@ const resolveDoctorRuntimeTool = async (
     if (await probes.pathExists(overridePath)) return { path: overridePath, source: 'override' }
   }
   if (metadata && await probes.pathExists(metadata.managedPath)) return { path: metadata.managedPath, source: 'managed' }
-  if (process.platform !== 'darwin') {
+  if (probes.platform !== 'darwin') {
     const pathBinary = probes.which(id)
     if (pathBinary) return { path: pathBinary, source: 'path' }
   }

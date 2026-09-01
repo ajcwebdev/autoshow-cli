@@ -27,6 +27,7 @@ const okRun = (stdout = ''): RunResult => ({ stdout, stderr: '', exitCode: 0 })
 
 const makeDoctorProbes = (overrides: Partial<DoctorProbes> = {}): Partial<DoctorProbes> => ({
   bunVersion: SUPPORTED_BUN_VERSION,
+  platform: 'darwin',
   env: {},
   which: (command: string) => `/usr/bin/${command}`,
   pathExists: async () => true,
