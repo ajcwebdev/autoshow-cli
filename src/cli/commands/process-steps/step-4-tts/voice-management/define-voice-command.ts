@@ -43,7 +43,7 @@ const designCommand = defineCliCommand({
     'voice-name': strFlag('Desired provider account voice name when --save is set'),
     'provenance-ref': commonRegistrationFlags['provenance-ref'],
     'consent-ref': commonRegistrationFlags['consent-ref'],
-    reconcile: boolFlag('Complete an ambiguous Fish provisioning journal without recreating the voice'),
+    reconcile: boolFlag('Complete an ambiguous provider provisioning journal without recreating the voice'),
     price: commonRegistrationFlags.price
   }
 }, handleDesign)
@@ -112,7 +112,7 @@ const listCommand = defineCliCommand({
     provider: commonRegistrationFlags.provider,
     source: strFlag('Catalog source: account|provider-library|shared-library', 'account'),
     cursor: strFlag('Opaque provider pagination cursor'),
-    reconcile: boolFlag('Complete an ambiguous Fish provisioning journal without recreating the voice'),
+    reconcile: boolFlag('Complete an ambiguous provider provisioning journal without recreating the voice'),
     price: commonRegistrationFlags.price
   }
 }, handleList)
@@ -139,8 +139,6 @@ export const voiceCommand = defineCliCommand({
       ['bun autoshow voice clone hero --provider elevenlabs --model eleven_v3 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan an ElevenLabs clone without provider calls or writes'],
       ['bun autoshow voice clone hero --provider cartesia --model sonic-3.5-2026-05-04 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a Cartesia instant clone without provider calls'],
       ['bun autoshow voice clone hero --provider mistral --model voxtral-mini-tts-2603 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a crash-safe Mistral saved-reference clone without provider calls'],
-      ['bun autoshow voice clone hero --provider fish --model s2.1-pro --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a Fish fast voice-model create without provider calls'],
-      ['bun autoshow voice design hero --provider fish --model s2.1-pro --creation-model voice-design-1 --description "Warm, weathered guide" --preview-text "A short representative passage." --candidates 1 --price', 'Plan one Fish Voice Design preview without provider calls'],
       ['bun autoshow voice design --save CANDIDATE_ID --provider elevenlabs --subject-key hero --voice-name HeroGuide --provenance-ref project:casting --price', 'Plan saving one selected design candidate without provider calls'],
       ['bun autoshow voice audition vr_123 --generation-id SHA256 --representative-line "We leave at dawn." --price', 'Estimate a canonical audition without provider calls'],
       ['bun autoshow voice approve vr_123 --generation-id SHA256 --actor-id editor', 'Approve an audition locally']

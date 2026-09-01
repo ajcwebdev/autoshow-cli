@@ -18,9 +18,7 @@ export const VOICE_CAPABILITY_REGISTRY = {
   speechify: { models: ['simba-3.2'], import: true, catalog: true, design: false, clone: false, lifecycle: true },
   hume: { models: ['octave-1', 'octave-2'], import: true, catalog: true, design: true, clone: false, lifecycle: true },
   cartesia: { models: ['sonic-3.5-2026-05-04'], import: true, catalog: true, design: false, clone: true, lifecycle: true },
-  fish: { models: ['s2.1-pro'], import: true, catalog: true, design: true, clone: true, lifecycle: true },
   inworld: { models: ['realtime-tts-2'], import: true, catalog: true, design: true, clone: true, lifecycle: true },
-  deepinfra: { models: ['ResembleAI/chatterbox-turbo', 'XiaomiMiMo/MiMo-V2.5-tts', 'XiaomiMiMo/MiMo-V2.5-tts-voicedesign', 'Qwen/Qwen3-TTS', 'Qwen/Qwen3-TTS-VoiceDesign'], import: true, catalog: true, design: true, clone: true, lifecycle: true },
 } as const satisfies Record<TtsProvider, VoiceProviderCapabilities>
 
 type ProviderWithCapability<K extends keyof Omit<VoiceProviderCapabilities, 'models'>> = {

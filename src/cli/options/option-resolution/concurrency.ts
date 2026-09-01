@@ -5,6 +5,7 @@ import {
 import { hasExplicitOrConfiguredFlag } from './build-options-config-flags'
 import type { ResolveConcurrencyOptions, ResolvedModelOptions } from '~/types'
 import {
+  DEFAULT_ALL_PROVIDER_TTS_CHUNK_CONCURRENCY,
   DEFAULT_ALL_PROVIDER_CONCURRENCY,
   DEFAULT_CLI_CONCURRENCY,
   DEFAULT_GROK_TTS_CHUNK_CONCURRENCY,
@@ -40,9 +41,7 @@ const isGrokOnlyHostedTtsSelection = (modelOptions: ResolvedModelOptions): boole
     hasSelectedTarget(modelOptions.speechifyTtsModels),
     hasSelectedTarget(modelOptions.humeTtsModels),
     hasSelectedTarget(modelOptions.cartesiaTtsModels),
-    hasSelectedTarget(modelOptions.fishTtsModels),
-    hasSelectedTarget(modelOptions.inworldTtsModels),
-    hasSelectedTarget(modelOptions.deepinfraTtsModels)
+    hasSelectedTarget(modelOptions.inworldTtsModels)
   ].some(Boolean)
 }
 
@@ -83,15 +82,18 @@ export const resolveTtsChunkConcurrency = (
   flags: Record<string, unknown>,
   modelOptions: ResolvedModelOptions,
   explicitFlags: Set<string>,
-  configuredFlags: Set<string>
+  configuredFlags: Set<string>,
+  allShortcutSelected = false
 ): number => {
   const flagName = 'tts-chunk-concurrency'
   const rawValue = readOptionalStringFlag(flags, flagName)
   const hasUserValue = hasExplicitOrConfiguredFlag(flagName, explicitFlags, configuredFlags)
     || (rawValue !== undefined && rawValue !== DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE)
-  const defaultValue = !hasUserValue && isGrokOnlyHostedTtsSelection(modelOptions)
-    ? DEFAULT_GROK_TTS_CHUNK_CONCURRENCY
-    : DEFAULT_TTS_CHUNK_CONCURRENCY
+  const defaultValue = !hasUserValue && allShortcutSelected
+    ? DEFAULT_ALL_PROVIDER_TTS_CHUNK_CONCURRENCY
+    : !hasUserValue && isGrokOnlyHostedTtsSelection(modelOptions)
+      ? DEFAULT_GROK_TTS_CHUNK_CONCURRENCY
+      : DEFAULT_TTS_CHUNK_CONCURRENCY
 
   return Math.max(1, parseIntWithDefault(hasUserValue ? rawValue : undefined, defaultValue))
 }

@@ -4,12 +4,15 @@ import { concatAndConvertToWav, requireHostedTtsChunkScheduler, runTtsChunks } f
 import { finalizeTtsRun } from '~/cli/commands/process-steps/step-4-tts/tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
 import { InfraError } from '~/utils/error-handler'
+import * as l from '~/utils/app-logger/app-logger'
 
 export const runHostedTtsChunkPipeline = async (
   options: HostedTtsChunkPipelineOptions
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const { chunkScheduler, chunks, outputDir, provider, providerLabel } = options
   const chunkPaths: string[] = []
+  const progressInterval = Math.max(1, Math.ceil(chunks.length / 10))
+  let completedChunkCount = 0
   let completed = false
 
   try {
@@ -20,6 +23,7 @@ export const runHostedTtsChunkPipeline = async (
         {
           operationName: `${provider}-tts-chunk-${chunkIndex}`,
           abortSignal: options.abortSignal,
+          timeoutMs: options.timeoutMs,
           policy: options.retryPolicy,
           admission,
           chunkScheduler
@@ -42,6 +46,22 @@ export const runHostedTtsChunkPipeline = async (
       await Bun.write(chunkPath, audioBytes)
       await options.requestEvidence?.recordOutput({ chunkIndex, path: chunkPath, ...(timingFactory ? { timingFactory } : {}) })
       await options.requestEvidence?.complete({ chunkIndex })
+      completedChunkCount += 1
+      if (
+        completedChunkCount === 1
+        || completedChunkCount === chunks.length
+        || completedChunkCount % progressInterval === 0
+      ) {
+        l.write('info', `${providerLabel} TTS progress (${options.model}): ${completedChunkCount}/${chunks.length} chunks durably saved`, {
+          category: 'tts',
+          metadata: {
+            provider,
+            model: options.model,
+            completedChunks: completedChunkCount,
+            totalChunks: chunks.length
+          }
+        })
+      }
       chunkPaths.push(chunkPath)
       return chunkPath
     }, {

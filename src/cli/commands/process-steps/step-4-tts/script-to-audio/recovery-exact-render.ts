@@ -4,9 +4,10 @@ import { UsageError } from '~/utils/error-handler'
 import { buildPureCurrentTtsRenderPlan } from './attempt-planning'
 import { discoverBatchCandidates } from './recovery-batch-discovery'
 import { loadRecoveryBatches } from './recovery-batch-reconstruction'
-import { reconcileSlotCosts } from './recovery-cost-reconciliation'
+import { enforceTtsReconciliationBlockers, reconcileSlotCosts } from './recovery-cost-reconciliation'
 import { assembleCompletedRenderRecovery } from './recovery-finalization'
 import { collectRetainedJournalEvidence, prepareCompactRenderRecovery, prepareSelectedSuccess, resolveRetainedPath, validateRecoveryProjections } from './recovery-evidence'
+import { recoverInterruptedTtsWorkspaceSlots } from './recovery-compatible-slots'
 
 export const prepareCurrentTtsCompletedRecoveryImpl = async (
     options: PureCurrentTtsRenderPlanOptions & {
@@ -32,6 +33,13 @@ export const prepareCurrentTtsCompletedRecoveryImpl = async (
       'Stored TTS render directory'
     )
     const plannedSlotIds = pure.planned.slots.map((slot) => slot.generationSlotId)
+    const evidence = await collectRetainedJournalEvidence(
+      options,
+      pure,
+      providerRoot,
+      retainedRender,
+      plannedSlotIds
+    )
     const selectedRecovery = await prepareSelectedSuccess(
       options,
       pure,
@@ -42,13 +50,6 @@ export const prepareCurrentTtsCompletedRecoveryImpl = async (
       plannedSlotIds
     )
     if (selectedRecovery) return selectedRecovery
-    const evidence = await collectRetainedJournalEvidence(
-      options,
-      pure,
-      providerRoot,
-      retainedRender,
-      plannedSlotIds
-    )
     if (!evidence.terminalJournalEvidence) return undefined
     const candidates = await discoverBatchCandidates(
       options,
@@ -64,16 +65,44 @@ export const prepareCurrentTtsCompletedRecoveryImpl = async (
       evidence.journalEvidenceById,
       evidence.knownJournalSnapshots
     )
-    const costs = reconcileSlotCosts(pure, evidence.journalEvidenceById, loadedBatches, options)
-    if (loadedBatches.length === 0) {
+    const loadedSlotIds = new Set(loadedBatches.map((batch) => batch.value.generationSlotId))
+    const workspaceSlots = await recoverInterruptedTtsWorkspaceSlots({
+      ...options,
+      excludeGenerationSlotIds: loadedSlotIds,
+      materialize: options.reconciliationMode !== 'report'
+    })
+    const workspaceSlotIds = new Set(workspaceSlots.map((slot) => slot.value.generationSlotId))
+    const reconciled = reconcileSlotCosts(pure, evidence.journalEvidenceById, loadedBatches, {
+      ...options,
+      reconciliationMode: 'report'
+    })
+    const costs = {
+      ...reconciled,
+      reconciliationBlockers: reconciled.reconciliationBlockers.filter((blocker) =>
+        !workspaceSlotIds.has(blocker.generationSlotId))
+    }
+    enforceTtsReconciliationBlockers(costs.reconciliationBlockers, options)
+    const recoveredSlots = [...loadedBatches, ...workspaceSlots]
+    if (recoveredSlots.length === 0) {
       return {
         kind: 'safe-redispatch' as const,
         retainedCumulativePlannedCost: costs.retainedCumulativePlannedCost,
         reconciliationBlockers: costs.reconciliationBlockers
       }
     }
+    if (workspaceSlots.length > 0) {
+      if (pure.planned.strategy !== 'segmented') {
+        throw UsageError('Interrupted workspace recovery is supported only for immutable segmented dialogue renders.')
+      }
+      return {
+        kind: 'partial-slots' as const,
+        recoveredSlots,
+        retainedCumulativePlannedCost: costs.retainedCumulativePlannedCost,
+        reconciliationBlockers: costs.reconciliationBlockers
+      }
+    }
     const allCompleted = plannedSlotIds.every((slotId) =>
-      loadedBatches.some((batch) => batch.value.generationSlotId === slotId))
+      recoveredSlots.some((batch) => batch.value.generationSlotId === slotId))
     if (!allCompleted) {
       if (pure.planned.strategy !== 'segmented') {
         throw UsageError('Partial completed-slot recovery is supported only for immutable segmented dialogue renders; redispatch is blocked.')

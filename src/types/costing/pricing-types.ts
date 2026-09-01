@@ -47,6 +47,7 @@ export type TtsStepEstimate = ProviderModelBase & {
   inputCostPer1MCharactersCents?: number
   outputCostPer1MCharactersCents?: number
   characterCount?: number
+  chunkCharacterLimit?: number
   chunkConcurrency?: number
   totalCost: number
   costMultiplier?: number
@@ -231,6 +232,7 @@ export type ComputeEstimatedProcessingTimesInput = OcrModelOverrideOptions & {
     setupTimeMs?: number
     setupCostCents?: number
     setupNote?: string
+    chunkCharacterLimit?: number
     chunkConcurrency?: number
     characterCount?: number
   }> | undefined

@@ -22,6 +22,7 @@ import { buildExpectedFilesList } from './expected-output'
 import { formatCents, reportSuitePriceEstimate, shouldRunCommandPreflight } from './process-target-preflight'
 import { buildUnsupportedExtractInputMessage } from './process-target-validation'
 import { handleSingleTarget } from './single/single-target-runner'
+import { configureModelCostFilter } from '~/cli/commands/pricing-orchestration/model-cost-filter'
 
 const isDownloadCommand = (command: ProcessCommand): boolean => command === 'download'
 
@@ -304,6 +305,15 @@ export const handleProcessTarget = async (
     l.write('info', `Forwarding ${doubleDash.ytDlpPassthroughArgs.length} passthrough arg(s) to yt-dlp`, { category: 'pipeline', metadata: { passthroughArgCount: doubleDash.ytDlpPassthroughArgs.length } })
   }
   const planned = await planTargetExecutionPhase({ command, resolvedTarget: doubleDash.resolvedTarget, options: normalized.options, selectorPlan: normalized.selectorPlan })
+  if (normalized.options.maxModelCents !== undefined) {
+    while (true) {
+      const estimates: AggregatedPriceEstimate[] = []
+      for (const preflightTarget of planned.preflightTargets) {
+        estimates.push(await buildAggregatedPriceEstimate(command, preflightTarget, normalized.options, undefined))
+      }
+      if (configureModelCostFilter(normalized.options, estimates).length === 0) break
+    }
+  }
   const preflight = await runPriceAndBudgetPhase({ command, options: normalized.options, preflightTargets: planned.preflightTargets, maxCents: resolveMaxCents(normalized.config.pricing) })
   if (preflight.kind === 'reported') return
   await dispatchTargetExecutionPhase({ command, resolvedTarget: doubleDash.resolvedTarget, options: normalized.options, plan: planned.plan, batchPlan: planned.batchPlan, singleEstimate: preflight.singleEstimate })

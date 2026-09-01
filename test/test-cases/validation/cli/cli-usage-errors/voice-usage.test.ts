@@ -1,7 +1,6 @@
 import { afterEach, expect, test } from 'bun:test'
-import { mkdir, rm, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
-import type { CharacterVoiceBrief, ProviderVoiceRef, TtsProvider, VoiceProvisioningAttempt } from '~/types'
+import { writeFile } from 'node:fs/promises'
+import type { CharacterVoiceBrief, ProviderVoiceRef, TtsProvider } from '~/types'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import {
   appendVoiceRegistration,
@@ -9,8 +8,6 @@ import {
   resolveRegistrationGeneration,
   writeCharacterVoiceBriefCatalog
 } from '~/cli/commands/process-steps/step-4-tts/voice-management/character-voice-registry'
-import { MANAGED_VOICE_STORE_ROOT } from '~/cli/commands/process-steps/step-4-tts/voice-management/managed-voice-store'
-import { AMBIGUOUS_VOICE_REDISPATCH_MESSAGE } from '~/cli/commands/process-steps/step-4-tts/voice-management/fish-voice-reconciliation'
 import {
   CLONE_PROVIDERS,
   DESIGN_PROVIDERS,
@@ -18,8 +15,6 @@ import {
   VOICE_LIFECYCLE_PROVIDERS,
   VOICE_PROVIDERS,
 } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-command-support'
-import { writeVoiceCandidate } from '~/cli/commands/process-steps/step-4-tts/voice-management/advanced-voice-management'
-import { computeVoiceCandidateId } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-management-contracts'
 import { buildReadyVoiceRegistrationDraft } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-registration-management'
 import { planCanonicalVoiceAudition, withCanonicalVoiceAuditionScheduler } from '~/cli/commands/process-steps/step-4-tts/voice-management/canonical-voice-audition'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
@@ -113,12 +108,12 @@ afterEach(() => {
 })
 
 test('voice capability sets match the active provider policy and reject retired TTS providers', async () => {
-  expect(VOICE_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'grok', 'mistral', 'openai', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra'])
-  expect(VOICE_CATALOG_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'grok', 'mistral', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra'])
+  expect(VOICE_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'grok', 'mistral', 'openai', 'speechify', 'hume', 'cartesia', 'inworld'])
+  expect(VOICE_CATALOG_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'grok', 'mistral', 'speechify', 'hume', 'cartesia', 'inworld'])
   expect(VOICE_LIFECYCLE_PROVIDERS).toEqual(VOICE_CATALOG_PROVIDERS)
-  expect(DESIGN_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'hume', 'fish', 'inworld', 'deepinfra'])
-  expect(CLONE_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'grok', 'mistral', 'cartesia', 'fish', 'inworld', 'deepinfra'])
-  for (const provider of ['groq', 'gemini', 'deepgram', 'replicate', 'fal']) {
+  expect(DESIGN_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'hume', 'inworld'])
+  expect(CLONE_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'grok', 'mistral', 'cartesia', 'inworld'])
+  for (const provider of ['groq', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra']) {
     await rejectVoice(
       ['voice', 'import', 'hero', '--provider', provider, '--model', 'retired-model', '--voice-id', 'retired-voice', '--provenance-ref', 'project:casting', '--price'],
       `${provider} is no longer supported for TTS or voice management.`
@@ -149,9 +144,7 @@ test('voice import and zero-call catalog validation accept their exact capabilit
     ['speechify', 'simba-3.2', 'geffen_32'],
     ['hume', 'octave-2', 'Male English Actor'],
     ['cartesia', 'sonic-3.5-2026-05-04', 'f786b574-daa5-4673-aa0c-cbe3e8534c02'],
-    ['fish', 's2.1-pro', '7f92f8afb8ec43bf81429cc1c9199cb1'],
     ['inworld', 'realtime-tts-2', 'voice_inworld_standard_en'],
-    ['deepinfra', 'Qwen/Qwen3-TTS', 'voice-existing'],
   ] as const
   for (const [provider, model, voiceId] of imports) {
     const logs = await captureLogs(async () => {
@@ -174,7 +167,7 @@ test('voice import and zero-call catalog validation accept their exact capabilit
   )
 })
 
-test('voice design price planning accepts exactly the six design-capable providers without dispatch', async () => {
+test('voice design price planning accepts exactly the design-capable providers without dispatch', async () => {
   const root = await makeTempRoot('autoshow-voice-design-capabilities-')
   configureCharactersRoot(root)
   await writeCharacterVoiceBriefCatalog(root, { schemaVersion: 1, briefs: [brief] })
@@ -182,9 +175,7 @@ test('voice design price planning accepts exactly the six design-capable provide
     ['elevenlabs', 'eleven_v3', 'eleven_ttv_v3'],
     ['minimax', 'speech-2.8-hd', 'voice-design'],
     ['hume', 'octave-2', 'octave-1'],
-    ['fish', 's2.1-pro', 'voice-design-1'],
     ['inworld', 'realtime-tts-2', 'realtime-tts-2'],
-    ['deepinfra', 'Qwen/Qwen3-TTS', 'Qwen/Qwen3-TTS-VoiceDesign'],
   ] as const
   const description = 'Warm, grounded narrator with a clear midrange and restrained delivery.'
   const previewText = 'Morning light crossed the quiet station while a distant bell marked the hour, and the guide calmly prepared everyone for the road ahead.'
@@ -207,9 +198,7 @@ test('canonical audition planning resolves every active TTS provider', () => {
     ['speechify', 'simba-3.2', 'geffen_32'],
     ['hume', 'octave-2', 'Male English Actor'],
     ['cartesia', 'sonic-3.5-2026-05-04', 'f786b574-daa5-4673-aa0c-cbe3e8534c02'],
-    ['fish', 's2.1-pro', '7f92f8afb8ec43bf81429cc1c9199cb1'],
     ['inworld', 'realtime-tts-2', 'voice_inworld_standard_en'],
-    ['deepinfra', 'Qwen/Qwen3-TTS', 'voice-existing'],
   ] as const satisfies ReadonlyArray<readonly [TtsProvider, string, string]>
 
   for (const [provider, model, resourceId] of providers) {
@@ -240,7 +229,7 @@ test('canonical audition planning resolves every active TTS provider', () => {
 })
 
 test('canonical auditions install the shared hosted TTS scheduler', () => {
-  const options = withCanonicalVoiceAuditionScheduler({ deepinfraTtsModels: ['Qwen/Qwen3-TTS'], deepinfraTtsVoice: 'voice-existing' })
+  const options = withCanonicalVoiceAuditionScheduler({ openaiTtsModels: ['gpt-4o-mini-tts-2025-12-15'], openaiVoiceId: 'alloy' })
   expect(options.hostedTtsChunkScheduler).toBeDefined()
   expect(typeof options.hostedTtsChunkScheduler?.runChunks).toBe('function')
 })
@@ -254,7 +243,7 @@ test('voice clone explains each intentionally deferred workflow', async () => {
 test('voice design rejects catalog-only providers and unknown synthesis models', async () => {
   await rejectVoice(
     ['voice', 'design', 'hero', '--provider', 'cartesia', '--model', 'sonic-3.5-2026-05-04', '--creation-model', 'voice-design', '--description', 'Warm, weathered guide', '--preview-text', 'A short representative passage.', '--price'],
-    'Voice Design currently supports elevenlabs, minimax, hume, fish, inworld, deepinfra; the selected provider has no implemented text-prompt design adapter.'
+    'Voice Design currently supports elevenlabs, minimax, hume, inworld; the selected provider has no implemented text-prompt design adapter.'
   )
   await rejectVoice(
     ['voice', 'import', 'hero', '--provider', 'elevenlabs', '--model', 'eleven_multilingual_v2', '--voice-id', 'hpp4J3VqNfWAUOO0d1Us', '--provenance-ref', 'project:casting', '--price'],
@@ -525,125 +514,6 @@ test('voice design --save requires a candidate and rejects preview flags', async
   )
 })
 
-const writeJournal = async (registrationId: string, attempt: VoiceProvisioningAttempt): Promise<string> => {
-  const dir = join(MANAGED_VOICE_STORE_ROOT, 'journals', registrationId, attempt.attemptId)
-  await mkdir(dir, { recursive: true })
-  await writeFile(join(dir, 'voice-provisioning-attempt.json'), `${JSON.stringify(attempt, null, 2)}\n`)
-  return join(MANAGED_VOICE_STORE_ROOT, 'journals', registrationId)
-}
-
-const fishAttempt = (registrationId: string, extras: Partial<VoiceProvisioningAttempt> = {}): VoiceProvisioningAttempt => ({
-  schemaVersion: 1,
-  attemptId: 'vp_testcomplete',
-  registrationDraftId: registrationId,
-  operation: 'design',
-  accountScopeHash: 'c'.repeat(64),
-  lockLeaseId: 'lease_testcomplete',
-  requestFingerprint: 'd'.repeat(64),
-  protectedRequestEvidence: { storeId: 'managed_voice_assets_v1', assetId: `sha256_${'a'.repeat(64)}`, sha256: 'a'.repeat(64) },
-  reconciliation: { strategy: 'provider-search', providerHandle: 'Hero', protectedLookupEvidence: { storeId: 'managed_voice_assets_v1', assetId: `sha256_${'b'.repeat(64)}`, sha256: 'b'.repeat(64) } },
-  transitions: [
-    { sequence: 1, phase: 'prepared', at: '2026-08-11T00:00:00.000Z' },
-    { sequence: 2, phase: 'request-sent', at: '2026-08-11T00:00:01.000Z' },
-    { sequence: 3, phase: 'ambiguous', at: '2026-08-11T00:00:02.000Z' }
-  ],
-  issuedResources: [],
-  outcome: { state: 'reconciliation-required', attemptId: 'vp_testcomplete', reason: 'Provider mutation may have been admitted.' },
-  compareAndSwapVersion: 3,
-  ...extras
-})
-
-test('voice list completes an unambiguous journal and refuses an ambiguous one until --reconcile', async () => {
-  const root = await makeTempRoot('autoshow-voice-journal-')
-  configureCharactersRoot(root)
-  const fishVoice = {
-    kind: 'remote-resource' as const,
-    provider: 'fish' as const,
-    resourceId: 'fish-voice-1',
-    namespace: 'account' as const,
-    accountScopeHash: 'c'.repeat(64),
-    origin: 'designed' as const,
-    ownership: 'project' as const,
-    deletion: { state: 'eligible' as const, checkedAt: '2026-08-11T00:00:00.000Z' }
-  }
-  const draft = buildReadyVoiceRegistrationDraft({
-    registrationId: 'vr_fishjournal',
-    subjectKey: 'hero',
-    profileKey: 'default',
-    provider: 'fish',
-    providerModel: 's2.1-pro',
-    providerVoice: fishVoice,
-    brief: { ...brief, allowedOrigins: ['provider-stock', 'designed'] },
-    provenanceRef: 'project:casting',
-    capabilityFixtureHash: 'b'.repeat(64),
-    sanitizedProviderMetadata: { attemptId: 'vp_testcomplete', desiredName: 'Hero' },
-    createdAt: '2026-08-11T00:00:00.000Z'
-  })
-  await writeCharacterVoiceBriefCatalog(root, { schemaVersion: 1, briefs: [{ ...brief, allowedOrigins: ['provider-stock', 'designed'] }] })
-  await appendVoiceRegistration(root, draft)
-
-  const unambiguous = fishAttempt(draft.registrationId, {
-    issuedResources: [{
-      providerVoice: fishVoice,
-      observedAt: '2026-08-11T00:00:02.000Z',
-      sanitizedResponseHash: 'e'.repeat(64)
-    }]
-  })
-  const journalRoot = await writeJournal(draft.registrationId, unambiguous)
-  try {
-    const priceLogs = await captureLogs(async () => {
-      const parsed = parseRoot(['voice', 'list', draft.registrationId, '--price'])
-      await parsed.command!.handler(asCtx(parsed))
-    })
-    expect(JSON.parse(priceLogs.at(-1) ?? '{}').state).not.toBe('ready')
-    const stillPending = JSON.parse(await Bun.file(join(journalRoot, unambiguous.attemptId, 'voice-provisioning-attempt.json')).text()) as VoiceProvisioningAttempt
-    expect(stillPending.outcome?.state).toBe('reconciliation-required')
-
-    const logs = await captureLogs(async () => {
-      const parsed = parseRoot(['voice', 'list', draft.registrationId])
-      await parsed.command!.handler(asCtx(parsed))
-    })
-    expect(JSON.parse(logs.at(-1) ?? '{}').state).toBe('ready')
-    const completed = JSON.parse(await Bun.file(join(journalRoot, unambiguous.attemptId, 'voice-provisioning-attempt.json')).text()) as VoiceProvisioningAttempt
-    expect(completed.outcome?.state).toBe('ready')
-  } finally {
-    await rm(journalRoot, { recursive: true, force: true })
-  }
-
-  const ambiguousDraft = buildReadyVoiceRegistrationDraft({
-    registrationId: 'vr_fishambig',
-    subjectKey: 'hero',
-    profileKey: 'alt',
-    provider: 'fish',
-    providerModel: 's2.1-pro',
-    providerVoice: { ...fishVoice, resourceId: 'fish-voice-2' },
-    brief: { ...brief, profileKey: 'alt', allowedOrigins: ['provider-stock', 'designed'] },
-    provenanceRef: 'project:casting',
-    capabilityFixtureHash: 'b'.repeat(64),
-    sanitizedProviderMetadata: { attemptId: 'vp_testambig' },
-    createdAt: '2026-08-11T00:01:00.000Z'
-  })
-  await writeCharacterVoiceBriefCatalog(root, { schemaVersion: 1, briefs: [brief, { ...brief, profileKey: 'alt', allowedOrigins: ['provider-stock', 'designed'] }] })
-  await appendVoiceRegistration(root, ambiguousDraft)
-  const ambiguous = fishAttempt(ambiguousDraft.registrationId, {
-    attemptId: 'vp_testambig',
-    lockLeaseId: 'lease_testambig',
-    reconciliation: { strategy: 'provider-search', protectedLookupEvidence: { storeId: 'managed_voice_assets_v1', assetId: `sha256_${'b'.repeat(64)}`, sha256: 'b'.repeat(64) } }
-  })
-  const ambiguousRoot = await writeJournal(ambiguousDraft.registrationId, ambiguous)
-  try {
-    await rejectVoice(['voice', 'list', ambiguousDraft.registrationId], AMBIGUOUS_VOICE_REDISPATCH_MESSAGE)
-    await withEnv({ FISH_API_KEY: 'credential-mismatch-fixture' }, async () => {
-      await rejectVoice(
-        ['voice', 'list', ambiguousDraft.registrationId, '--reconcile'],
-        'Fish reconciliation credentials do not match the provisioning account scope.'
-      )
-    })
-  } finally {
-    await rm(ambiguousRoot, { recursive: true, force: true })
-  }
-})
-
 test('voice clone is instant-only and no longer accepts a clone-kind selector', async () => {
   const cloneCommand = parseRoot(['voice', 'clone', 'hero']).command!
   expect(() => parseCommandInvocation(
@@ -687,124 +557,4 @@ test('Hume remote deletion requires an exact expected name even in price mode', 
     await parsed.command!.handler(asCtx(parsed))
   })
   expect(JSON.parse(logs.at(-1) ?? '{}')).toMatchObject({ dryRun: true, operation: 'voice-delete', mutation: false, resourceId: providerVoice.resourceId })
-})
-
-test('unambiguous journals complete on design --save, clone, and delete without --reconcile', async () => {
-  const root = await makeTempRoot('autoshow-voice-journal-retry-')
-  configureCharactersRoot(root)
-  const fishVoice = {
-    kind: 'remote-resource' as const,
-    provider: 'fish' as const,
-    resourceId: 'fish-voice-retry',
-    namespace: 'account' as const,
-    accountScopeHash: 'c'.repeat(64),
-    origin: 'designed' as const,
-    ownership: 'project' as const,
-    deletion: { state: 'eligible' as const, checkedAt: '2026-08-11T00:00:00.000Z' }
-  }
-  const fishBrief = { ...brief, allowedOrigins: ['provider-stock', 'designed', 'instant-clone'] as typeof brief.allowedOrigins }
-  await writeCharacterVoiceBriefCatalog(root, { schemaVersion: 1, briefs: [fishBrief] })
-
-  const saveDraft = buildReadyVoiceRegistrationDraft({
-    registrationId: 'vr_fishsave',
-    subjectKey: 'hero',
-    profileKey: 'default',
-    provider: 'fish',
-    providerModel: 's2.1-pro',
-    providerVoice: fishVoice,
-    brief: fishBrief,
-    provenanceRef: 'project:casting',
-    capabilityFixtureHash: 'b'.repeat(64),
-    sanitizedProviderMetadata: { attemptId: 'vp_testsave', desiredName: 'Hero' },
-    createdAt: '2026-08-11T00:00:00.000Z'
-  })
-  await appendVoiceRegistration(root, saveDraft)
-  const withoutId = {
-    schemaVersion: 1 as const,
-    registrationDraftId: saveDraft.registrationId,
-    provider: 'fish' as const,
-    providerModel: 's2.1-pro',
-    operation: 'design' as const,
-    sourceIdentityHash: 'd'.repeat(64),
-    previewAssets: [] as [],
-    plannedCost: { amounts: [] },
-    expiryState: 'not-applicable' as const,
-    createdAt: '2026-08-11T00:00:00.000Z',
-    materialization: { state: 'not-materialized' as const }
-  }
-  const candidate = { ...withoutId, candidateId: computeVoiceCandidateId(withoutId) }
-  await writeVoiceCandidate(root, candidate)
-  const saveJournal = await writeJournal(saveDraft.registrationId, fishAttempt(saveDraft.registrationId, {
-    attemptId: 'vp_testsave',
-    lockLeaseId: 'lease_testsave',
-    issuedResources: [{ providerVoice: fishVoice, observedAt: '2026-08-11T00:00:02.000Z', sanitizedResponseHash: 'e'.repeat(64) }]
-  }))
-  try {
-    const logs = await captureLogs(async () => {
-      const parsed = parseRoot([
-        'voice', 'design', '--save', candidate.candidateId,
-        '--provider', 'fish', '--subject-key', 'hero', '--voice-name', 'Hero', '--provenance-ref', 'project:casting'
-      ])
-      await parsed.command!.handler(asCtx(parsed))
-    })
-    expect(JSON.parse(logs.at(-1) ?? '{}').state).toBe('ready')
-  } finally {
-    await rm(saveJournal, { recursive: true, force: true })
-  }
-
-  const cloneDraft = buildReadyVoiceRegistrationDraft({
-    registrationId: 'vr_fishclone',
-    subjectKey: 'hero',
-    profileKey: 'default',
-    provider: 'fish',
-    providerModel: 's2.1-pro',
-    providerVoice: { ...fishVoice, resourceId: 'fish-voice-clone' },
-    brief: fishBrief,
-    provenanceRef: 'project:casting',
-    capabilityFixtureHash: 'b'.repeat(64),
-    sanitizedProviderMetadata: { attemptId: 'vp_testclone', desiredName: 'HeroClone' },
-    createdAt: '2026-08-11T00:02:00.000Z'
-  })
-  await appendVoiceRegistration(root, cloneDraft)
-  const cloneJournal = await writeJournal(cloneDraft.registrationId, fishAttempt(cloneDraft.registrationId, {
-    attemptId: 'vp_testclone',
-    lockLeaseId: 'lease_testclone',
-    issuedResources: [{ providerVoice: { ...fishVoice, resourceId: 'fish-voice-clone' }, observedAt: '2026-08-11T00:02:02.000Z', sanitizedResponseHash: 'f'.repeat(64) }]
-  }))
-  try {
-    const logs = await captureLogs(async () => {
-      const parsed = parseRoot(['voice', 'clone', 'hero', '--provider', 'fish', '--model', 's2.1-pro'])
-      await parsed.command!.handler(asCtx(parsed))
-    })
-    expect(JSON.parse(logs.at(-1) ?? '{}').state).toBe('ready')
-  } finally {
-    await rm(cloneJournal, { recursive: true, force: true })
-  }
-
-  const deleteDraft = buildReadyVoiceRegistrationDraft({
-    registrationId: 'vr_fishdelete',
-    subjectKey: 'hero',
-    profileKey: 'default',
-    provider: 'fish',
-    providerModel: 's2.1-pro',
-    providerVoice: { ...fishVoice, resourceId: 'fish-voice-delete' },
-    brief: fishBrief,
-    provenanceRef: 'project:casting',
-    capabilityFixtureHash: 'b'.repeat(64),
-    sanitizedProviderMetadata: { attemptId: 'vp_testdelete', desiredName: 'HeroDelete' },
-    createdAt: '2026-08-11T00:03:00.000Z'
-  })
-  await appendVoiceRegistration(root, deleteDraft)
-  const deleteJournal = await writeJournal(deleteDraft.registrationId, fishAttempt(deleteDraft.registrationId, {
-    attemptId: 'vp_testdelete',
-    lockLeaseId: 'lease_testdelete',
-    issuedResources: [{ providerVoice: { ...fishVoice, resourceId: 'fish-voice-delete' }, observedAt: '2026-08-11T00:03:02.000Z', sanitizedResponseHash: '1'.repeat(64) }]
-  }))
-  try {
-    await rejectVoice(['voice', 'delete', deleteDraft.registrationId], '--confirm-voice-id is required.')
-    const completed = JSON.parse(await Bun.file(join(deleteJournal, 'vp_testdelete', 'voice-provisioning-attempt.json')).text()) as VoiceProvisioningAttempt
-    expect(completed.outcome?.state).toBe('ready')
-  } finally {
-    await rm(deleteJournal, { recursive: true, force: true })
-  }
 })

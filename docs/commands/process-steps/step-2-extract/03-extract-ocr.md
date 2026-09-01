@@ -83,6 +83,7 @@ When a provider does not accept an image format natively, AutoShow converts `WEB
 | `--length <n>`                         | Hard export limit in thousands of characters; splits oversized EPUB or PDF chapter files                                                                           |
 | `--pdf-chapter-mode <mode>`            | PDF chapter detection mode: `local`, `auto`, or `llm`                                                                                                              |
 | `--price`                              | Show the aggregated OCR estimate and exit                                                                                                                          |
+| `--max-model-cents <n>`                | Exclude each provider/model whose estimated total across the invocation exceeds the per-model ceiling in cents; works with or without `--price`                    |
 
 ```bash
 # Default PDF extraction
@@ -93,6 +94,9 @@ bun autoshow extract input/examples/document/1-document.pdf --format json
 
 # Fan out across every OCR provider in price mode
 bun autoshow extract input/examples/document/1-document.pdf --all-providers --price
+
+# Keep only OCR provider/model targets estimated at 10 cents or less
+bun autoshow extract input/examples/document/1-document.pdf --all-providers --max-model-cents 10 --price
 
 # Estimate one pooled composite extraction across three targets
 bun autoshow extract input/examples/document/1-document.pdf --provider grok=grok-4.5 --provider mistral=mistral-ocr-4-0 --provider kimi=kimi-k3 --ocr-provider-mode pool --ocr-concurrency 10 --price

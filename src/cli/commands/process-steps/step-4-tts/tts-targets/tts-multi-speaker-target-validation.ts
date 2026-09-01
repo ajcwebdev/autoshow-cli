@@ -25,9 +25,7 @@ export const validateMultiSpeakerTtsSelection = (
     { provider: 'speechify' as const, models: selection.speechifyModels },
     { provider: 'hume' as const, models: selection.humeModels },
     { provider: 'cartesia' as const, models: selection.cartesiaModels },
-    { provider: 'fish' as const, models: selection.fishModels },
     { provider: 'inworld' as const, models: selection.inworldModels },
-    { provider: 'deepinfra' as const, models: selection.deepinfraModels },
   ]
   const selectedProviders = allProviderModels.filter((provider) => provider.models.length > 0)
   if (selectedProviders.length === 0) {

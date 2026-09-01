@@ -91,6 +91,7 @@ The `video` and `resume` commands use the same short option names, including `--
 | `--input-video <path-or-url>`          | Input MP4 for `extend` or `edit`                                                                     |
 | `--generate-audio`                     | Native audio where supported (Replicate Seedance/Kling/PixVerse, fal.ai PixVerse C1)                 |
 | `--price`                              | Show the estimate and exit                                                                           |
+| `--max-model-cents <n>`                | Exclude each provider/model whose estimated total exceeds the per-model ceiling in cents; works with or without `--price` |
 | `--output-dir <dir>`                   | Global flag: pin an exact run directory instead of `output/<timestamp>_video-gen/`                   |
 
 See [Provider Capabilities](#provider-capabilities) for the per-model matrix.
@@ -98,6 +99,7 @@ See [Provider Capabilities](#provider-capabilities) for the per-model matrix.
 ```bash
 bun autoshow video "a rainy neon city street, slow camera pan" --provider gemini=veo-3.1-fast-generate-preview --provider grok=grok-imagine-video --provider ltx=ltx-2-3-fast
 bun autoshow video "a rainy neon city street, slow camera pan" --all-providers --price
+bun autoshow video "a rainy neon city street, slow camera pan" --all-providers --max-model-cents 100 --price
 ```
 
 ## Video Services

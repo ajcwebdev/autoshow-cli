@@ -2,6 +2,7 @@ import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
 import type { BuildOptsDefaults, BuildOptsResolutionContext, ResolvedFlagContext } from '~/types'
 import {
   parseHostedConcurrencyMode,
+  parseOptionalNumberFlag,
   readBooleanFlag,
   readOptionalStringFlag
 } from './flag-readers'
@@ -110,12 +111,17 @@ export const buildOptsFromFlags = (
     llmProviderConcurrency: resolveProviderConcurrency(mergedFlags, 'llm-provider-concurrency', allShortcutFlags['all-llm'], explicitFlags, configuredFlags),
     llmLocalConcurrency: resolveLocalConcurrency(mergedFlags, 'llm-local-concurrency', explicitFlags, configuredFlags),
     ttsProviderConcurrency: resolveProviderConcurrency(scopeIncludes('tts') ? mergedFlags : {}, 'tts-provider-concurrency', scopeIncludes('tts') && allShortcutFlags['all-tts'], explicitFlags, configuredFlags),
-    ttsChunkConcurrency: resolveTtsChunkConcurrency(scopeIncludes('tts') ? mergedFlags : {}, scopeIncludes('tts') ? modelOptions : inactiveModelOptions, explicitFlags, configuredFlags),
+    ttsChunkConcurrency: resolveTtsChunkConcurrency(scopeIncludes('tts') ? mergedFlags : {}, scopeIncludes('tts') ? modelOptions : inactiveModelOptions, explicitFlags, configuredFlags, scopeIncludes('tts') && allShortcutFlags['all-tts']),
     ...buildImageOptions(scopeIncludes('image') ? ctx : inactiveCtx),
     ...buildVideoOptions(scopeIncludes('video') ? ctx : inactiveCtx),
     ...buildMusicOptions(scopeIncludes('music') ? ctx : inactiveCtx),
     price: readBooleanFlag(mergedFlags, 'price'),
     allowOverBudget: readBooleanFlag(mergedFlags, 'allow-over-budget'),
+    maxModelCents: parseOptionalNumberFlag(
+      readOptionalStringFlag(mergedFlags, 'max-model-cents'),
+      'max-model-cents',
+      { min: 0, max: Number.MAX_SAFE_INTEGER }
+    ),
     ...urlOptions,
     urlProviderConcurrency: resolveProviderConcurrency(
       scopeIncludes('extract', 'download', 'metadata') ? mergedFlags : {},

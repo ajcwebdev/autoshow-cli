@@ -14,7 +14,7 @@ bun autoshow voice list [registration-id] [flags]
 
 With a registration id it inspects that registration. `--live` checks whether the provider still has the voice. `--price` keeps the read local even when `--live` is set.
 
-If a supported provisioning journal is unambiguous, `list <id>` completes it without recreating the voice. Ambiguous Fish and Grok journals refuse until you pass `--reconcile`. `--price` and bare `voice list` never complete a journal.
+If a supported provisioning journal is unambiguous, `list <id>` completes it without recreating the voice. Ambiguous Grok journals refuse until you pass `--reconcile`. `--price` and bare `voice list` never complete a journal.
 
 With `--provider` it lists a provider or account catalog. `--provider` cannot be combined with a registration id. `--price` validates the catalog request without reading the provider.
 
@@ -40,7 +40,6 @@ bun autoshow voice list vr_ID --generation-id GENERATION_SHA256 --price
 bun autoshow voice list --provider elevenlabs --source account
 bun autoshow voice list --provider elevenlabs --source shared-library --cursor OPAQUE_CURSOR
 bun autoshow voice list --provider cartesia --source provider-library --cursor OPAQUE_CURSOR
-bun autoshow voice list --provider fish --source account --price
 ```
 
 Next: [consent](./02-consent.md).

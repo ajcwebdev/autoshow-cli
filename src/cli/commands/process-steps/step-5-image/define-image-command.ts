@@ -17,6 +17,7 @@ import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExp
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import type { CliFlagOccurrence, StandaloneImageCommandOptions } from '~/types'
+import { configureModelCostFilter } from '~/cli/commands/pricing-orchestration/model-cost-filter'
 
 const runImageCommand = async (
   prompt: string,
@@ -34,13 +35,18 @@ const runImageCommand = async (
     { allProvidersTarget: 'all-image' }
   )
   const imageOpts: StandaloneImageCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences, scope: 'image' })
+  const unfilteredSteps = buildImageEstimates(imageOpts)
+  const unfilteredEstimate = aggregateExplicitPriceEstimate(unfilteredSteps, imageOpts)
+  const excludedTargets = configureModelCostFilter(imageOpts, [unfilteredEstimate])
   const imageTargets = collectImageTargets(imageOpts)
   if (imageTargets.length === 0) {
     throw UsageError('No image provider specified. Use --provider gemini|openai|grok|bfl|replicate|lumalabs|fal[=model].')
   }
 
   const { estimate: preflightEstimate, shouldExit: imageShouldExit } = evaluatePreflightEstimate(
-    aggregateExplicitPriceEstimate(buildImageEstimates(imageOpts), {}),
+    excludedTargets.length > 0
+      ? aggregateExplicitPriceEstimate(unfilteredSteps, imageOpts)
+      : unfilteredEstimate,
     imageOpts,
     imageMaxCents
   )

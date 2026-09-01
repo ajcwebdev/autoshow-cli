@@ -4,7 +4,7 @@
 
 - **Report Status:** Current
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-08-19
+- **Date Updated:** 2026-09-01
 
 This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](01-stt-model-report.md), [OCR](02-ocr-model-report.md), [URL scraping](03-url-model-report.md), [LLMs](04-llm-model-report.md), [Music](06-music-model-report.md), [Image](07-image-model-report.md), [Video](08-video-model-report.md).
 
@@ -12,7 +12,7 @@ Durable registry, lifecycle, and capability policy belongs to [ADR-010](../adr/A
 
 ## TTS refresh and catalog narrowing
 
-The provider-by-provider entries below preserve the 2026-08-19 refresh record. On 2026-08-29, AutoShow removed Groq, Gemini, Deepgram, Replicate, and fal from active TTS while preserving their non-TTS integrations and retired pricing history. The active TTS surface now contains 11 providers: ElevenLabs, MiniMax, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, Fish, Inworld, and DeepInfra.
+The provider-by-provider entries below preserve the 2026-08-19 refresh record. On 2026-08-29, AutoShow removed Groq, Gemini, Deepgram, Replicate, and fal from active TTS. On 2026-09-01, AutoShow removed Fish entirely and removed DeepInfra TTS while preserving DeepInfra STT and OCR. The active TTS surface now contains nine providers: ElevenLabs, MiniMax, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, and Inworld.
 
 **Provider 1: Speechify**
 
@@ -67,7 +67,7 @@ The provider-by-provider entries below preserve the 2026-08-19 refresh record. O
 **Provider 11: DeepInfra**
 
 - **Provider:** DeepInfra
-- **2026 decision and active implementation:** Added `ResembleAI/chatterbox-turbo` ($1/1M chars), `XiaomiMiMo/MiMo-V2.5-tts` ($0/1M promo), `XiaomiMiMo/MiMo-V2.5-tts-voicedesign` ($0/1M), `Qwen/Qwen3-TTS` ($20/1M), and `Qwen/Qwen3-TTS-VoiceDesign` ($20/1M). Retired failing `chatterbox-multilingual`.
+- **2026-08-19 historical implementation:** Added Chatterbox, MiMo, and Qwen TTS models. DeepInfra TTS was removed from the active surface on 2026-09-01; DeepInfra STT and OCR remain active.
 
 **Provider 12: Replicate**
 
@@ -77,79 +77,49 @@ The provider-by-provider entries below preserve the 2026-08-19 refresh record. O
 **Provider 13: Fish**
 
 - **Provider:** Fish
-- **2026 decision and active implementation:** Standardized on `s2.1-pro` ($15/1M UTF-8 bytes) as sole synthesis model with native dialogue and timestamps. Exposed `voice-design-1` via `--creation-model` rather than synthesis selector.
+- **2026-08-19 historical implementation:** Standardized on `s2.1-pro` as the sole synthesis model with native dialogue and timestamps. Fish was removed entirely on 2026-09-01.
 
 ### Refused / do not reimplement
 
-These twelve selectors are permanently retired. Direct selection fails with replacement guidance.
+These seven selectors are permanently retired. Direct selection fails with replacement guidance.
 
-**Refused selector 1: `fish/fish-speech-1.5`**
-
-- **Refused selector:** `fish/fish-speech-1.5`
-- **Replacement:** `s2.1-pro`
-- **Why not come back:** Superseded generation; absent from official API
-
-**Refused selector 2: `fish/s1`**
-
-- **Refused selector:** `fish/s1`
-- **Replacement:** `s2.1-pro`
-- **Why not come back:** Previous-generation parenthesis-tag model
-
-**Refused selector 3: `fish/s2-pro`**
-
-- **Refused selector:** `fish/s2-pro`
-- **Replacement:** `s2.1-pro`
-- **Why not come back:** Previous S2 generation replaced by production default
-
-**Refused selector 4: `fish/voice-design-1`**
-
-- **Refused selector:** `fish/voice-design-1`
-- **Replacement:** `s2.1-pro`
-- **Why not come back:** Voice Design creation endpoint, not a synthesis selector
-
-**Refused selector 5: `elevenlabs/eleven_multilingual_v2`**
+**Refused selector 1: `elevenlabs/eleven_multilingual_v2`**
 
 - **Refused selector:** `elevenlabs/eleven_multilingual_v2`
 - **Replacement:** `eleven_v3`
 - **Why not come back:** Superseded by native-dialogue flagship
 
-**Refused selector 6: `elevenlabs/eleven_flash_v2_5`**
+**Refused selector 2: `elevenlabs/eleven_flash_v2_5`**
 
 - **Refused selector:** `elevenlabs/eleven_flash_v2_5`
 - **Replacement:** `eleven_v3`
 - **Why not come back:** Latency sibling of retired generation
 
-**Refused selector 7: `inworld/realtime-tts-2-flash`**
+**Refused selector 3: `inworld/realtime-tts-2-flash`**
 
 - **Refused selector:** `inworld/realtime-tts-2-flash`
 - **Replacement:** `realtime-tts-2`
 - **Why not come back:** Latency sibling rejecting `--tts-instructions`
 
-**Refused selector 8: `speechify/simba-3.0`**
+**Refused selector 4: `speechify/simba-3.0`**
 
 - **Refused selector:** `speechify/simba-3.0`
 - **Replacement:** `simba-3.2`
 - **Why not come back:** Superseded by current Speechify default
 
-**Refused selector 9: `deepinfra/ResembleAI/chatterbox-multilingual`**
-
-- **Refused selector:** `deepinfra/ResembleAI/chatterbox-multilingual`
-- **Replacement:** `ResembleAI/chatterbox-turbo`
-- **Why not come back:** Unreliable upstream HTTP 500 errors
-
-**Refused selector 10: `openai/tts-1`**
+**Refused selector 5: `openai/tts-1`**
 
 - **Refused selector:** `openai/tts-1`
 - **Replacement:** `gpt-4o-mini-tts-2025-12-15`
 - **Why not come back:** Classic model rejecting instruction steering
 
-**Refused selector 11: `openai/tts-1-hd`**
+**Refused selector 6: `openai/tts-1-hd`**
 
 - **Refused selector:** `openai/tts-1-hd`
 - **Replacement:** `gpt-4o-mini-tts-2025-12-15`
 - **Why not come back:** Classic model rejecting instruction steering
 
-**Refused selector 12: `groq/canopylabs/orpheus-arabic-saudi`**
+**Refused selector 7: `groq/canopylabs/orpheus-arabic-saudi`**
 
 - **Refused selector:** `groq/canopylabs/orpheus-arabic-saudi`
 - **Replacement:** `canopylabs/orpheus-v1-english`

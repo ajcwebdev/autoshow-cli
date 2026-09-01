@@ -66,9 +66,7 @@ const targetOptions = (registration: VoiceRegistration): TtsOptions => {
     case 'speechify': return { speechifyTtsModels: [model], speechifyVoice: voice }
     case 'hume': return { humeTtsModels: [model], humeTtsVoice: voice }
     case 'cartesia': return { cartesiaTtsModels: [model], cartesiaTtsVoice: voice }
-    case 'fish': return { fishTtsModels: [model], fishTtsVoice: voice }
     case 'inworld': return { inworldTtsModels: [model], inworldTtsVoice: voice }
-    case 'deepinfra': return { deepinfraTtsModels: [model], deepinfraTtsVoice: voice }
   }
 }
 

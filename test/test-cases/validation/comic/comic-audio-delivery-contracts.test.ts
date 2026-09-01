@@ -7,11 +7,8 @@ describe('comic authored-delivery capability accounting', () => {
     expect(serializesComicDelivery({ service: 'hume', model: 'octave-1' }, 'flat, professional')).toBe(true)
     expect(serializesComicDelivery({ service: 'elevenlabs', model: 'eleven_v3' }, 'deadpan')).toBe(true)
     expect(serializesComicDelivery({ service: 'elevenlabs', model: 'eleven_v3' }, 'flat, professional')).toBe(false)
-    expect(serializesComicDelivery({ service: 'fish', model: 's2.1-pro' }, 'deadpan')).toBe(true)
-    expect(serializesComicDelivery({ service: 'fish', model: 's2.1-pro' }, 'flat, professional')).toBe(false)
     expect(serializesComicDelivery({ service: 'minimax', model: 'speech-2.8-hd' }, 'rushing')).toBe(false)
     expect(serializesComicDelivery({ service: 'inworld', model: 'realtime-tts-2' }, 'rushing')).toBe(false)
-    expect(serializesComicDelivery({ service: 'deepinfra', model: 'Qwen/Qwen3-TTS' }, 'rushing')).toBe(false)
   })
 
   test('uses mastered segment durations instead of provider-container duration estimates', () => {

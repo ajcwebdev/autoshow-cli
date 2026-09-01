@@ -1,5 +1,7 @@
 # ADR-013: Add Character Voice References and Multi-Speaker Script-to-Audio
 
+> Historical note: Fish support described by this decision was removed on 2026-09-01. DeepInfra TTS was also removed; its STT and OCR integrations remain active.
+
 ## Status
 
 - **Decision Status:** Accepted

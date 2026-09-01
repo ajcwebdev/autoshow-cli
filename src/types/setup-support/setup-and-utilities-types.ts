@@ -19,9 +19,7 @@ SUPPORTED_MINIMAX_MUSIC_MODELS
 } from '~/cli/commands/setup-and-utilities/models/music-models'
 import {
   SUPPORTED_CARTESIA_TTS_MODELS,
-  SUPPORTED_FISH_TTS_MODELS,
   SUPPORTED_INWORLD_TTS_MODELS,
-  SUPPORTED_DEEPINFRA_TTS_MODELS,
   SUPPORTED_ELEVENLABS_TTS_MODELS,
   SUPPORTED_GROK_TTS_MODELS,
   SUPPORTED_HUME_TTS_MODELS,
@@ -65,9 +63,7 @@ export type OpenAITtsModel = typeof SUPPORTED_OPENAI_TTS_MODELS[number]
 export type SpeechifyTtsModel = typeof SUPPORTED_SPEECHIFY_TTS_MODELS[number]
 export type HumeTtsModel = typeof SUPPORTED_HUME_TTS_MODELS[number]
 export type CartesiaTtsModel = typeof SUPPORTED_CARTESIA_TTS_MODELS[number]
-export type FishTtsModel = typeof SUPPORTED_FISH_TTS_MODELS[number]
 export type InworldTtsModel = typeof SUPPORTED_INWORLD_TTS_MODELS[number]
-export type DeepinfraTtsModel = typeof SUPPORTED_DEEPINFRA_TTS_MODELS[number]
 export type ElevenlabsMusicModel = typeof SUPPORTED_ELEVENLABS_MUSIC_MODELS[number]
 export type MinimaxMusicModel = typeof SUPPORTED_MINIMAX_MUSIC_MODELS[number]
 export type GeminiMusicModel = typeof SUPPORTED_GEMINI_MUSIC_MODELS[number]

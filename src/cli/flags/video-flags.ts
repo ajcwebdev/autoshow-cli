@@ -1,4 +1,4 @@
-import { booleanAllProvidersFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
+import { booleanAllProvidersFlag, modelCostFilterFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
 import { formatProviderList, formatRange, formatValueList, formatValuesByProvider, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import { VIDEO_MODES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
@@ -109,5 +109,5 @@ export const videoCommandFlags = {
   ...withHelpGroup(pickFlags(videoGenFlags, videoGenerationOptionNames), 'video-options'),
   ...withHelpGroup(pickFlags(videoGenFlags, videoInputOptionNames), 'video-inputs'),
   ...withHelpGroup(pickFlags(videoGenFlags, replicateOptionNames), 'replicate-video'),
-  ...withHelpGroup(priceFlag, 'pricing')
+  ...withHelpGroup({ ...priceFlag, ...modelCostFilterFlag }, 'pricing')
 } as const satisfies CliFlagsDefinition

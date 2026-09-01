@@ -20,6 +20,7 @@ import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { fileExists } from '~/utils/cli-utils'
 import { isTextInputPath } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import type { CliFlagOccurrence, StandaloneMusicCommandOptions } from '~/types'
+import { configureModelCostFilter } from '~/cli/commands/pricing-orchestration/model-cost-filter'
 
 const HOSTED_MUSIC_FLAGS = [
   'all-providers',
@@ -70,13 +71,18 @@ const runHostedMusicGeneration = async (
   )
   const musicOpts: StandaloneMusicCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences, scope: 'music' })
 
+  const unfilteredSteps = await buildMusicEstimates(musicOpts)
+  const unfilteredEstimate = aggregateExplicitPriceEstimate(unfilteredSteps, musicOpts)
+  const excludedTargets = configureModelCostFilter(musicOpts, [unfilteredEstimate])
   const musicTargets = collectMusicTargets(musicOpts)
   if (musicTargets.length === 0) {
     throw UsageError('Specify a music generation provider with --provider elevenlabs|minimax|gemini[=model]')
   }
 
   const { estimate: preflightEstimate, shouldExit: musicShouldExit } = evaluatePreflightEstimate(
-    aggregateExplicitPriceEstimate(await buildMusicEstimates(musicOpts), {}),
+    excludedTargets.length > 0
+      ? aggregateExplicitPriceEstimate(unfilteredSteps, musicOpts)
+      : unfilteredEstimate,
     musicOpts,
     musicMaxCents
   )

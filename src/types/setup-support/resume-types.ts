@@ -63,6 +63,7 @@ export type GenerationModelFieldTable = Record<string, string>
 export type GenerationResumeRunContext<TTarget extends ProviderIdentity, TMetadata, TOptions extends object = object> = {
   outputDir: string
   runtimeOptions: TOptions
+  explicitFlags?: ReadonlySet<string> | undefined
   targets: TTarget[]
   existingEntries: TMetadata[]
   currentManifestMetadata: Record<string, unknown>

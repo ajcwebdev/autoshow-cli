@@ -1,5 +1,5 @@
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
-import { buildTtsEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/tts-estimates'
+import { buildTtsEstimates, buildTtsTargetEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/tts-estimates'
 import { logSuitePriceSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/suite-price-logging'
 import type { ActualCostBreakdown, AggregatedPriceEstimate, EstimatedCostBreakdown, PreparedTtsInput, StepTimingBreakdown, TtsBatchEstimateReport, TtsOptions, TtsTarget } from '~/types'
 import { UsageError } from '~/utils/error-handler'
@@ -12,9 +12,12 @@ const formatCents = (amount: number): string => `${amount.toFixed(3)}¢`
 
 export const buildTtsEstimateForInput = async (
   prepared: PreparedTtsInput,
-  ttsOptions: TtsOptions
+  ttsOptions: TtsOptions,
+  targets?: readonly TtsTarget[]
 ): Promise<AggregatedPriceEstimate> => {
-  const steps = await buildTtsEstimates(ttsOptions, prepared.ttsCharacterCount)
+  const steps = targets
+    ? await buildTtsTargetEstimates(targets, ttsOptions, prepared.ttsCharacterCount)
+    : await buildTtsEstimates(ttsOptions, prepared.ttsCharacterCount)
   return aggregateExplicitPriceEstimate(steps, ttsOptions, {
     ttsTimingCharacterCount: prepared.ttsCharacterCount,
     ttsInputText: prepared.ttsTimingInputText
@@ -45,7 +48,7 @@ export const reportTtsBatchEstimates = async (
       })
     }
 
-    const estimate = await buildTtsEstimateForInput(prepared, ttsOptions)
+    const estimate = await buildTtsEstimateForInput(prepared, ttsOptions, targets)
     estimates.push(estimate)
 
     if (logItems) {

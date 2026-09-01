@@ -4,15 +4,14 @@ import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { assertProtectedStoreOutputDisjoint } from '../voice-assets/protected-output-boundary'
 import { UsageError } from '~/utils/error-handler'
-import { resolveCredential } from '~/utils/validate/env-utils'
 import { createAdvancedVoiceCandidates, loadVoiceCandidate, materializeAdvancedVoiceCandidate } from './advanced-voice-management'
 import { loadVoiceRegistrationCatalog } from './character-voice-registry'
-import { classifyProvisioningJournal, finalizePendingVoiceProvisioningAttempt } from './fish-voice-reconciliation'
+import { classifyProvisioningJournal, finalizePendingVoiceProvisioningAttempt } from './voice-provisioning-reconciliation'
 import { managedVoiceAssetStore, MANAGED_VOICE_STORE_ROOT } from './managed-voice-store'
 import { listVoiceProvisioningAttempts } from './provisioning-journal'
 import { validateVoiceDesignRequest } from './voice-design-request-validation'
 import {
-  DESIGN_PROVIDERS, PROFILE_DEFAULT, advancedCapabilityFixtureHash, advancedProvider, cloneFileExtension, cloneMediaType,
+  DESIGN_PROVIDERS, PROFILE_DEFAULT, advancedCapabilityFixtureHash, advancedProvider,
   isDesignProvider, maybeCompleteRegistrationJournal, optionalConsent, optionalFlag, optionalParameter,
   parameter, positiveIntegerFlag, providerFlag, reportVoicePrice, reportVoiceResult, requireBrief,
   requiredFlag, requireVoiceModel, voiceJournalRoot
@@ -112,21 +111,11 @@ export const handleMaterialize = async (ctx: CliCommandContext): Promise<void> =
         registration: { provider, provisioning: { state: 'pending', operationId: pending.attemptId }, sanitizedProviderMetadata: { desiredName } },
         journalRoot: voiceJournalRoot(),
         allowAmbiguous: ctx.flags['reconcile'] === true,
-        ...(ctx.flags['reconcile'] === true && provider === 'fish' ? { apiKey: resolveCredential('fish', 'require', { stage: 'voice:fish', description: 'Fish model reconciliation' }) } : {}),
       })
     }
   }
   await assertProtectedStoreOutputDisjoint(getCharactersRoot(), MANAGED_VOICE_STORE_ROOT)
-  const resolveManagedProtectedAsset = async (asset: { storeId: string, assetId: string, sha256: string }) => {
-    const path = await managedVoiceAssetStore.resolve(asset)
-    const bytes = new Uint8Array(await Bun.file(path).arrayBuffer())
-    const mediaType = cloneMediaType(path, bytes)
-    return { bytes, fileName: `design-preview-${asset.assetId}.${cloneFileExtension(mediaType)}`, mediaType }
-  }
-  const adapter = advancedProvider(provider, {
-    ...(provider === 'fish' ? { resolveFishProtectedAsset: resolveManagedProtectedAsset } : {}),
-    ...(provider === 'deepinfra' ? { resolveDeepinfraProtectedAsset: resolveManagedProtectedAsset } : {}),
-  })
+  const adapter = advancedProvider(provider)
   const result = await materializeAdvancedVoiceCandidate({
     charactersRoot: getCharactersRoot(), journalRoot: join(MANAGED_VOICE_STORE_ROOT, 'journals'), protectedStore: managedVoiceAssetStore,
     provider: adapter, candidateId, desiredName, subjectKey, profileKey, brief,

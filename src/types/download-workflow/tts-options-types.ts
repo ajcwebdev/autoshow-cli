@@ -1,4 +1,5 @@
 export type TtsRuntimeOptions = {
+  ttsAllProvidersSelected: boolean
   ttsAllowAmbiguousRedispatch: boolean
   grokTtsModels: string[] | undefined
   grokTtsVoice: string | undefined
@@ -40,13 +41,9 @@ export type TtsRuntimeOptions = {
   cartesiaTtsModels: string[] | undefined
   cartesiaTtsVoice: string | undefined
   cartesiaTtsLanguage: string | undefined
-  fishTtsModels: string[] | undefined
-  fishTtsVoice: string | undefined
   inworldTtsModels: string[] | undefined
   inworldTtsVoice: string | undefined
   inworldTtsInstructions: string | undefined
-  deepinfraTtsModels: string[] | undefined
-  deepinfraTtsVoice: string | undefined
 }
 
 export type TtsRuntimeOptionKey = keyof TtsRuntimeOptions

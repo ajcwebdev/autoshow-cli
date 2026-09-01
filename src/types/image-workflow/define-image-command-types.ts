@@ -1,7 +1,5 @@
-import type { ImageRuntimeOptions, ResourceGate } from '~/types'
+import type { ImageRuntimeOptions, PricingRuntimeOptions, ResourceGate } from '~/types'
 
-export type StandaloneImageCommandOptions = ImageRuntimeOptions & {
+export type StandaloneImageCommandOptions = ImageRuntimeOptions & PricingRuntimeOptions & {
   generationResourceGate?: ResourceGate | undefined
-  price: boolean
-  allowOverBudget: boolean
 }

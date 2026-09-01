@@ -138,7 +138,6 @@ describe('staged process-tree cleanup', () => {
       'src/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils.ts',
       'src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-pipeline.ts',
       'src/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/elevenlabs-native-dialogue.ts',
-      'src/cli/commands/process-steps/step-4-tts/tts-services/fish/fish-native-dialogue.ts',
       'src/cli/commands/process-steps/step-4-tts/tts-services/tts-mistral/run-mistral-tts.ts',
       'src/cli/commands/process-steps/step-4-tts/tts-services/tts-minimax/run-minimax-tts.ts',
       'src/cli/commands/process-steps/step-4-tts/tts-services/hume/hume-native-utterances.ts'

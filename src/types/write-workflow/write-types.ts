@@ -11,6 +11,7 @@ export type LLMOptions = Partial<ResolvedLLMModelOptions> & {
   concurrencyMode?: import('~/types').HostedConcurrencyMode | undefined
   hostedConcurrencyCoordinator?: import('~/types').HostedConcurrencyCoordinator | undefined
   promptBuilder?: ((instruction: string) => string) | undefined
+  modelCostFilterExcludedTargetKeys?: string[] | undefined
   structuredContext?: {
     songLyricsTitle?: string | undefined
   } | undefined

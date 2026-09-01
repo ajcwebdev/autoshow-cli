@@ -37,7 +37,7 @@ const VOICE_ORIGINS = new Set([
   'provider-stock', 'community-library', 'designed', 'remixed', 'instant-clone', 'professional-clone',
   'imported-custom', 'saved-reference', 'request-reference-audio', 'local-model-voice'
 ])
-const TTS_PROVIDERS = new Set(['elevenlabs', 'minimax', 'grok', 'mistral', 'openai', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra'])
+const TTS_PROVIDERS = new Set(['elevenlabs', 'minimax', 'grok', 'mistral', 'openai', 'speechify', 'hume', 'cartesia', 'inworld'])
 
 const assertSafeKey = (value: string, label: string): void => {
   if (!SAFE_KEY.test(value)) throw UsageError(`${label} must be a safe lowercase key.`)

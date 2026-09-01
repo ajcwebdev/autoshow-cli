@@ -26,6 +26,7 @@ export const buildTtsTimingSteps = (input: ComputeEstimatedProcessingTimesInput)
         characterCount,
         msPer1KChars: estimation.msPer1KChars,
         setupTimeMs: ttsTarget.setupTimeMs,
+        chunkCharacterLimit: ttsTarget.chunkCharacterLimit,
         chunkConcurrency: ttsTarget.chunkConcurrency ?? input.ttsChunkConcurrency,
         concurrencyMode: input.concurrencyMode ?? 'ramp',
       })),

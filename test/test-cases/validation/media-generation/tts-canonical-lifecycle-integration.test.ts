@@ -5,7 +5,7 @@ import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/process
 import { createManifest, createManifestItem, readManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { createFileTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
-import type { CanonicalAudioProviderProjection, PipelineManifest, TtsTarget } from '~/types'
+import type { CanonicalAudioProviderProjection, PipelineManifest, Step4Metadata, TtsTarget } from '~/types'
 import { runSingleTtsInput, runTtsDirectoryBatch } from '~/cli/commands/process-steps/step-4-tts/define-tts-command'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 
@@ -110,12 +110,16 @@ describe('canonical standalone TTS lifecycle persistence', () => {
       expect(manifest.items[0]?.providers.every((provider) => provider.artifactDir === `providers/${provider.targetKey}`)).toBe(true)
       const succeeded = manifest.items[0]?.providers[0]
       const projection = succeeded?.result?.['ttsAudio'] as CanonicalAudioProviderProjection
-      const render = projection.renderHistory[0]!
-      const dialoguePlan = await Bun.file(join(outputDir, succeeded?.artifactDir as string, render.renderDir, 'dialogue-plan.json')).json()
-      expect(dialoguePlan.createdAt).toBe(manifest.createdAt)
       const itemPlanRef = succeeded?.options['dialoguePlan'] as { dialoguePlanId: string, path: string, sha256: string }
+      const dialoguePlan = await Bun.file(join(outputDir, itemPlanRef.path)).json()
+      expect(dialoguePlan.createdAt).toBe(manifest.createdAt)
       expect(itemPlanRef.dialoguePlanId).toBe(dialoguePlan.dialoguePlanId)
       expect(await Bun.file(join(outputDir, itemPlanRef.path)).json()).toEqual(dialoguePlan)
+      expect(projection.archive).toBeDefined()
+      expect(projection.renderHistory).toEqual([])
+      expect(JSON.stringify(projection).length).toBeLessThan(5_000)
+      const serializedMetadata = manifest.items[0]?.metadata as { tts?: Array<Step4Metadata & { ttsAudio?: unknown }> }
+      expect(serializedMetadata.tts?.[0]?.ttsAudio).toBeUndefined()
     })
   })
 

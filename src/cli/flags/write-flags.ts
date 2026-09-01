@@ -1,6 +1,7 @@
 import {
   batchFlags,
   booleanAllProvidersFlag,
+  modelCostFilterFlag,
   priceFlag,
   promptFlag,
   reasoningEffortFlag,
@@ -29,7 +30,7 @@ const writeTextInputFlags = {
 } as const satisfies CliFlagsDefinition
 
 export const writeFlags = {
-  ...withHelpGroup(priceFlag, 'pricing'),
+  ...withHelpGroup({ ...priceFlag, ...modelCostFilterFlag }, 'pricing'),
   ...withHelpGroup(writeProviderSelectionFlags, 'pipeline'),
   ...withHelpGroup(reasoningEffortFlag, 'pipeline'),
   ...withHelpGroup(pickFlags(batchFlags, ['batch-limit', 'batch-order', 'batch-concurrency']), 'batch-processing'),

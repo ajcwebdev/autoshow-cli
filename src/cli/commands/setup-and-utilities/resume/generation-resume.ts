@@ -508,6 +508,7 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
     newMetadata = await config.runMissingTargets(targetsToRun, input, target.dir, opts, {
       outputDir: target.dir,
       runtimeOptions: opts,
+      explicitFlags,
       targets: targetsToRun,
       existingEntries,
       currentManifestMetadata: item.metadata,
@@ -670,6 +671,7 @@ const priceGenerationItem = async <TTarget extends ProviderIdentity, TMetadata, 
   const steps = await config.buildEstimates(priceOpts, input, {
     outputDir: target.dir,
     runtimeOptions: opts,
+    explicitFlags,
     targets: targetsToRun,
     existingEntries: prep.existingEntries,
     currentManifestMetadata: prep.item.metadata,

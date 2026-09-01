@@ -1,7 +1,5 @@
-import type { ResourceGate, VideoRuntimeOptions } from '~/types'
+import type { PricingRuntimeOptions, ResourceGate, VideoRuntimeOptions } from '~/types'
 
-export type StandaloneVideoCommandOptions = VideoRuntimeOptions & {
+export type StandaloneVideoCommandOptions = VideoRuntimeOptions & PricingRuntimeOptions & {
   generationResourceGate?: ResourceGate | undefined
-  price: boolean
-  allowOverBudget: boolean
 }

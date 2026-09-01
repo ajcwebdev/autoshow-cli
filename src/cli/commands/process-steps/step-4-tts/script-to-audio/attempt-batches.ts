@@ -20,7 +20,7 @@ export const buildBatchProgress = (
   ctx: AttemptContext,
   resultFiles: readonly WrittenJson<ProviderBatchResult>[]
 ): CanonicalBatchProgress[] => {
-  const { purePlan, runtimeRequests, recoveredBySlot, renderRoot, layout } = ctx
+  const { purePlan, runtimeRequests, recoveredBySlot, renderRoot } = ctx
   return purePlan.planned.batches.map((batch) => ({
     batchId: batch.batchId,
     generationSlots: batch.generationSlots.flatMap<CanonicalBatchProgress['generationSlots'][number]>((slot) => {
@@ -47,7 +47,7 @@ export const buildBatchProgress = (
           slotHash: recovered.value.slotHash,
           batchResult: {
             batchResultId: result.value.batchResultId,
-            path: layout.slotResultPath(recovered.value.slotHash),
+            path: contained(renderRoot, result.path),
             sha256: result.sha256,
             status: 'succeeded' as const,
           },

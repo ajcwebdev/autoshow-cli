@@ -91,8 +91,8 @@ describe('canonical TTS resume', () => {
       await expect(priceGenerationTarget(
         resumeTarget(dir),
         ttsResumeConfig,
-        { deepinfraTtsModels: ['ResembleAI/chatterbox-turbo'] } as TtsOptions,
-        new Set(['deepinfra-tts'])
+        { grokTtsModels: ['grok-tts'] } as TtsOptions,
+        new Set(['grok-tts'])
       )).rejects.toThrow('Invalid canonical manifest')
       expect(ranTargetKeys).toEqual([])
     })

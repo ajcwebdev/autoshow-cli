@@ -15,6 +15,7 @@ import { planStandaloneMistralReference, planStandaloneMistralSpeakerReferences 
 import { getTtsInputKind, runSingleTtsInput } from './tts-single-run'
 import type { StandaloneTtsCommandOptions } from '~/types'
 import { runTtsDirectoryBatch } from './tts-batch-run'
+import * as l from '~/utils/app-logger/app-logger'
 
 export { getTtsBatchAudioFileName, moveTtsBatchAudioFiles, buildTtsBatchSource } from './tts-batch-plan'
 export { runSingleTtsInput } from './tts-single-run'
@@ -114,6 +115,17 @@ export const ttsCommand = defineCliCommand({
   )
 
   const targets = collectTtsTargets(ttsOptions)
+  if (
+    ttsOptions.ttsAllProvidersSelected === true
+    && ttsOptions.price !== true
+    && (ttsOptions.mistralTtsModels?.length ?? 0) > 0
+    && !targets.some((target) => target.service === 'mistral')
+  ) {
+    l.warn(
+      'Skipping Mistral TTS in the all-provider run because no Mistral voice source was supplied. Pass --tts-voice mistral=VOICE_ID or --tts-ref-audio mistral=PATH to include it.',
+      { category: 'tts' }
+    )
+  }
 
   if (inputKind === 'directory') {
     await runTtsDirectoryBatch(inputPath, ttsOptions, targets, maxCents)

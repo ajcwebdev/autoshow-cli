@@ -289,7 +289,7 @@ describe('test-runner contracts', () => {
       const allFiles = [
         'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/grok-tts.test.ts',
         'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/cartesia-sonic-3.5-2026-05-04.test.ts',
-        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/deepinfra-chatterbox.test.ts',
+        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/openai-gpt-4o-mini-tts-2025-12-15.test.ts',
         'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/minimax-speech-2.8-turbo.test.ts',
       ]
 
@@ -299,7 +299,7 @@ describe('test-runner contracts', () => {
 
       expect(keys).toContain('tts-grok-grok-tts')
       expect(keys).toContain('tts-cartesia-sonic-3.5-2026-05-04')
-      expect(keys).toContain('tts-deepinfra-chatterbox-turbo')
+      expect(keys).toContain('tts-openai-gpt-4o-mini-tts-2025-12-15')
       expect(keys).not.toContain('tts-minimax-speech-2.8-turbo-clone')
     })
 

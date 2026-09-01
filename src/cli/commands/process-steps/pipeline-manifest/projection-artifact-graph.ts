@@ -28,58 +28,116 @@ export {
   validateProjectionArtifactGraphLinks
 } from './projection-artifact-graph-links'
 
+const verifyTtsItemDialoguePlan = async (
+  rootDir: string,
+  item: PipelineManifestItem,
+  itemIndex: number,
+  providersToVerify: readonly PipelineManifestItem['providers'][number][] = item.providers
+): Promise<boolean> => {
+  const synthesisProviders = item.providers.filter((provider) =>
+    provider.operation === 'tts-synthesis'
+    && provider.status !== 'skipped'
+  )
+  if (synthesisProviders.length === 0) return true
+  try {
+    const references = synthesisProviders.map((provider) => parseTtsDialoguePlanArtifactRef(provider))
+    const reference = references[0]
+    if (
+      !reference
+      || references.some((candidate) => canonicalManifestJson(candidate) !== canonicalManifestJson(reference))
+    ) return false
+    const dialoguePlan = validateGenericTtsDialoguePlan(await readTtsDialoguePlanArtifact(rootDir, reference))
+    if (
+      dialoguePlan.dialoguePlanId !== reference.dialoguePlanId
+      || (dialoguePlan.sourceIdentity.sourceLocator.kind === 'file' && item.input !== dialoguePlan.sourceIdentity.sourceLocator.canonicalPath)
+      || (dialoguePlan.sourceIdentity.sourceLocator.kind === 'batch-item' && dialoguePlan.sourceIdentity.sourceLocator.itemIndex !== itemIndex)
+    ) return false
+    const changedProviderJson = new Set(providersToVerify.map((provider) => canonicalManifestJson(provider)))
+    for (const provider of synthesisProviders) {
+      if (!changedProviderJson.has(canonicalManifestJson(provider))) continue
+      const projection = provider.result?.['ttsAudio']
+      if (!isRecord(projection) || !Array.isArray(projection['renderHistory'])) return false
+      for (const render of projection['renderHistory']) {
+        if (!isRecord(render) || typeof render['renderPlanRef'] !== 'string' || !isSha256(render['renderPlanSha256'])) return false
+        const planPath = resolve(rootDir, provider.artifactDir, render['renderPlanRef'])
+        const planBytes = await readFileBytes(planPath)
+        if (new Bun.CryptoHasher('sha256').update(planBytes).digest('hex') !== render['renderPlanSha256']) return false
+        const planValue = JSON.parse(planBytes.toString('utf8')) as unknown
+        if (!isRecord(planValue)) return false
+        const renderPlan = validateProviderRenderPlanIdentity(planValue as unknown as ProviderRenderPlan)
+        if (
+          renderPlan.dialoguePlanId !== dialoguePlan.dialoguePlanId
+          || renderPlan.sourceIdentityHash !== dialoguePlan.sourceIdentity.identityHash
+        ) return false
+      }
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
 export const verifyManifestProjectionArtifacts = async (
   rootDir: string,
   manifest: PipelineManifest
 ): Promise<boolean> => {
-  const verifyTtsItemDialoguePlan = async (item: PipelineManifestItem, itemIndex: number): Promise<boolean> => {
-    const synthesisProviders = item.providers.filter((provider) =>
-      provider.operation === 'tts-synthesis'
-      && provider.status !== 'skipped'
-    )
-    if (synthesisProviders.length === 0) return true
-    try {
-      const references = synthesisProviders.map((provider) => parseTtsDialoguePlanArtifactRef(provider))
-      const reference = references[0]
-      if (
-        !reference
-        || references.some((candidate) => canonicalManifestJson(candidate) !== canonicalManifestJson(reference))
-      ) return false
-      const dialoguePlan = validateGenericTtsDialoguePlan(await readTtsDialoguePlanArtifact(rootDir, reference))
-      if (
-        dialoguePlan.dialoguePlanId !== reference.dialoguePlanId
-        || (dialoguePlan.sourceIdentity.sourceLocator.kind === 'file' && item.input !== dialoguePlan.sourceIdentity.sourceLocator.canonicalPath)
-        || (dialoguePlan.sourceIdentity.sourceLocator.kind === 'batch-item' && dialoguePlan.sourceIdentity.sourceLocator.itemIndex !== itemIndex)
-      ) return false
-      for (const provider of synthesisProviders) {
-        const projection = provider.result?.['ttsAudio']
-        if (!isRecord(projection) || !Array.isArray(projection['renderHistory'])) return false
-        for (const render of projection['renderHistory']) {
-          if (!isRecord(render) || typeof render['renderPlanRef'] !== 'string' || !isSha256(render['renderPlanSha256'])) return false
-          const planPath = resolve(rootDir, provider.artifactDir, render['renderPlanRef'])
-          const planBytes = await readFileBytes(planPath)
-          if (new Bun.CryptoHasher('sha256').update(planBytes).digest('hex') !== render['renderPlanSha256']) return false
-          const planValue = JSON.parse(planBytes.toString('utf8')) as unknown
-          if (!isRecord(planValue)) return false
-          const renderPlan = validateProviderRenderPlanIdentity(planValue as unknown as ProviderRenderPlan)
-          if (
-            renderPlan.dialoguePlanId !== dialoguePlan.dialoguePlanId
-            || renderPlan.sourceIdentityHash !== dialoguePlan.sourceIdentity.identityHash
-          ) return false
-        }
-      }
-      return true
-    } catch {
-      return false
-    }
-  }
-
   for (const [itemIndex, item] of manifest.items.entries()) {
     for (const provider of item.providers) {
       if (!await verifyProviderProjectionArtifacts(rootDir, provider)) return false
     }
-    if (manifest.command === 'tts' && !await verifyTtsItemDialoguePlan(item, itemIndex)) return false
+    if (manifest.command === 'tts' && !await verifyTtsItemDialoguePlan(rootDir, item, itemIndex)) return false
     if (manifest.command === 'comic' && !await verifyComicProjectionArtifacts(rootDir, item)) return false
+  }
+  return true
+}
+
+const changedProvidersFor = (
+  previous: PipelineManifestItem | undefined,
+  next: PipelineManifestItem
+): PipelineManifestItem['providers'] => {
+  if (!previous) return next.providers
+  const unchangedCounts = new Map<string, number>()
+  for (const provider of previous.providers) {
+    const canonical = canonicalManifestJson(provider)
+    unchangedCounts.set(canonical, (unchangedCounts.get(canonical) ?? 0) + 1)
+  }
+  return next.providers.filter((provider) => {
+    const canonical = canonicalManifestJson(provider)
+    const remaining = unchangedCounts.get(canonical) ?? 0
+    if (remaining === 0) return true
+    unchangedCounts.set(canonical, remaining - 1)
+    return false
+  })
+}
+
+export const verifyManifestUpdateProjectionArtifacts = async (
+  rootDir: string,
+  previous: PipelineManifest,
+  next: PipelineManifest
+): Promise<boolean> => {
+  if (previous.command !== next.command || previous.scope !== next.scope) {
+    return await verifyManifestProjectionArtifacts(rootDir, next)
+  }
+  for (const [itemIndex, item] of next.items.entries()) {
+    const previousItem = previous.items[itemIndex]
+    const changedProviders = changedProvidersFor(previousItem, item)
+    for (const provider of changedProviders) {
+      if (!await verifyProviderProjectionArtifacts(rootDir, provider)) return false
+    }
+    if (
+      next.command === 'tts'
+      && (
+        changedProviders.length > 0
+        || previousItem?.input !== item.input
+        || previousItem?.providers.length !== item.providers.length
+      )
+      && !await verifyTtsItemDialoguePlan(rootDir, item, itemIndex, changedProviders)
+    ) return false
+    if (
+      next.command === 'comic'
+      && (!previousItem || canonicalManifestJson(previousItem) !== canonicalManifestJson(item))
+      && !await verifyComicProjectionArtifacts(rootDir, item)
+    ) return false
   }
   return true
 }

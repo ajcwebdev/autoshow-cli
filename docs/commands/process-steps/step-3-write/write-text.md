@@ -94,6 +94,7 @@ Project lyric draft mode is enabled when the input is `./output/<name>/text` or 
 | `--track-list <file>`                                               | Optional `tracks.md` file used to prepend track-number headers on saved rendered text                                                                                             |
 | `--prompt-md`                                                       | Save a second prompt file (`prompt-md.md`) with markdown examples alongside the JSON prompt                                                                                       |
 | `--price`                                                           | Show the aggregated estimate and exit                                                                                                                                             |
+| `--max-model-cents <n>`                                             | Exclude each provider/model whose estimated total across the invocation exceeds the per-model ceiling in cents; works with or without `--price`                                  |
 
 See [Provider Capabilities](#provider-capabilities) for the per-model reasoning, context, structured-output, and pricing matrix.
 
@@ -102,9 +103,12 @@ bun autoshow write output/<extract-run>/transcription.txt --llm openai=gpt-5.5 -
 bun autoshow write notes.md --llm openai=gpt-5.5 --prompt blog
 bun autoshow write ./output/demo/text --prompt rockSong
 bun autoshow write ./output/demo/text --price
+bun autoshow write ./output/demo/text --all-providers --max-model-cents 50 --price
 ```
 
 Write `--price` estimates use the selected prompt and source text. Use `--json` for structured token estimates and rates.
+
+`--max-model-cents` is a selection filter, not a total command budget. For directory and batch inputs, AutoShow sums each provider/model's estimates across the selected inputs before applying the ceiling. Without `--price`, only retained targets execute. Use the existing configured `--max-cents` budget when the combined cost of all retained targets must stay below a command-wide limit.
 
 ## Write Services
 

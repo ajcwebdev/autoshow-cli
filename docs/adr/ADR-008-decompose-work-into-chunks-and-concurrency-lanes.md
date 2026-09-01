@@ -237,7 +237,7 @@ Hosted TTS chunk dispatch is in `src/cli/commands/process-steps/step-4-tts/tts-u
 ## API / Type Impact
 
 - `--concurrency-mode ramp|immediate` defaults to `ramp` and is persisted at `defaults.concurrency.mode`.
-- `--tts-chunk-concurrency` is the run-wide hosted maximum for the current provider, default `30` (`50` for Grok-only hosted TTS).
+- `--tts-chunk-concurrency` is the run-wide hosted maximum for the current provider, default `30` (`2` for the all-provider shortcut and `50` for Grok-only hosted TTS).
 - `--batch-concurrency` bounds how many files stay active. For hosted TTS it does not cap remote chunk requests.
 - `--ocr-concurrency` omitted means adaptive `auto`; an explicit number is a fixed cap.
 - `--ocr-provider-mode fanout|pool` selects full-document replication versus shared-page pooling; pool mode still uses these lanes.

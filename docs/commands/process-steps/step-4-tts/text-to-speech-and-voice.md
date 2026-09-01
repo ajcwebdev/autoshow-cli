@@ -19,9 +19,7 @@ Durable voice registrations are documented separately in [`voice`](../step-9-voi
   - [Speechify](#speechify)
   - [Hume](#hume)
   - [Cartesia](#cartesia)
-  - [Fish](#fish)
   - [Inworld](#inworld)
-  - [DeepInfra](#deepinfra)
 - [Pricing Notes](#pricing-notes)
 - [Output](#output)
 - [Provider Capabilities](#provider-capabilities)
@@ -49,9 +47,7 @@ MISTRAL_API_KEY=...
 SPEECHIFY_API_KEY=...
 HUME_API_KEY=...
 CARTESIA_API_KEY=...
-FISH_API_KEY=...
 INWORLD_API_KEY=...
-DEEPINFRA_API_KEY=...
 ```
 
 ## Usage
@@ -77,22 +73,23 @@ bun autoshow tts <input> [flags]
 | `--tts-ref-audio <provider=path\|path>`            | Explicit one-off Mistral reference input                                                             |
 | `--tts-text-normalization <provider=value\|value>` | Generic text normalization                                                                           |
 | `--tts-instructions <provider=value\|value>`       | Generic voice/style instructions                                                                     |
-| `--tts-chunk-concurrency <n>`                      | Parallel requests allowed inside one hosted target; default `30` (or `50` for Grok-only)             |
+| `--tts-chunk-concurrency <n>`                      | Parallel requests allowed inside one hosted target; default `30`, `2` for all providers, or `50` for Grok-only             |
 | `--allow-ambiguous-redispatch`                     | Resume a stored generation that has no recoverable audio; may repurchase it                          |
 | `--tts-dialogue-format <screenplay\|labeled>`      | Dialogue input format for multi-speaker TTS; requires `--tts-speaker`                                |
 | `--tts-speaker SPEAKER=VOICE\|path`                | Multi-speaker voice mapping; repeatable. Selects multi-speaker TTS                                   |
 | `--price`                                          | Show the aggregated estimate and exit                                                                |
+| `--max-model-cents <n>`                            | Exclude each provider/model whose estimated total across the invocation exceeds the per-model ceiling in cents; works with or without `--price` |
 | `--output-dir <dir>`                               | Global flag: pin an exact run directory instead of a timestamped output directory                    |
 
 You can combine multiple TTS targets in one run. `--provider` is repeatable. Shared voice flags apply to every selected model for that provider.
 
 See [Provider Capabilities](#provider-capabilities) for catalog, design, clone, multi-speaker, prompt, selector, and SSML or emotion-control support. Catalog, design, and clone are not available on `tts` or `comic generate-audio`. Use [`voice`](../step-9-voice/00-voice-overview.md) to create or change remote voices.
 
-Multi-speaker mode requires `--tts-speaker` (repeatable) and `--tts-dialogue-format`, and exactly one active TTS provider. Reference-audio speaker paths work only with Mistral. ElevenLabs `eleven_v3`, Hume `octave-2`, and Fish `s2.1-pro` can use native grouped synthesis when the dialogue is eligible; other targets synthesize each turn and concatenate into `speech.wav`.
+Multi-speaker mode requires `--tts-speaker` (repeatable) and `--tts-dialogue-format`, and exactly one active TTS provider. Reference-audio speaker paths work only with Mistral. ElevenLabs `eleven_v3` and Hume `octave-2` can use native grouped synthesis when the dialogue is eligible; other targets synthesize each turn and concatenate into `speech.wav`.
 
 If a hosted target fails after producing some audio, keep the run's `.tts-tmp-*` directory so completed files can be reused. Successful finalization removes those files. If the run stops with a recovery checkpoint, pass `--allow-ambiguous-redispatch` on the next run to resume. That may purchase the interrupted request a second time.
 
-`--provider-concurrency` limits how many provider/model targets run at once. `--tts-chunk-concurrency` limits parallel requests within one target. To cap a single Inworld target at five simultaneous requests, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` does not.
+`--provider-concurrency` limits how many provider/model targets run at once. `--tts-chunk-concurrency` limits parallel requests within one provider lane. The all-provider shortcut defaults this to `2` to bound aggregate memory use; a single hosted target defaults to `30`, while Grok-only defaults to `50`. To cap a single Inworld target at five simultaneous requests, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` does not.
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md \
@@ -100,7 +97,12 @@ bun autoshow tts input/examples/tts/1-tts.md \
   --tts-voice alloy
 
 bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3
+
+# Keep only TTS provider/model runs estimated at $4 or less
+bun autoshow tts input/book.md --all-providers --max-model-cents 400
 ```
+
+`--max-model-cents` first estimates every selected target, then removes targets above the ceiling before provider readiness checks, output planning, or synthesis. For a directory, the comparison uses each provider/model's summed estimate across all selected files. Add `--price` to inspect the filtered plan without making provider calls. This differs from the configured `--max-cents` command-wide budget, which checks the combined retained cost instead of filtering individual models.
 
 ## TTS Services
 
@@ -168,7 +170,7 @@ bun autoshow tts input/examples/tts/tts-dialogue.txt \
   --tts-speaker Guest=input/examples/audio/1-audio.mp3
 ```
 
-Mistral requires an existing voice ID or an authorized one-off local reference file. Use `voice clone --provider mistral` to create and register a crash-safe saved reference.
+Mistral synthesis requires an existing voice ID or an authorized one-off local reference file. In `--price` mode, AutoShow uses an internal non-executable planning placeholder when no Mistral voice source is supplied so `--all-providers --price` can include Mistral in the estimate. A non-price `--all-providers` run without a Mistral voice source warns, skips Mistral, and continues with the other targets; an explicit Mistral selection without a voice source remains a usage error. Use `voice clone --provider mistral` to create and register a crash-safe saved reference.
 
 ### OpenAI
 
@@ -231,21 +233,6 @@ bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-
 
 Transcripts may include SSML-like `<speed>`, `<volume>`, `<emotion>`, `<break>`, and `<spell>` tags plus `[laughter]`.
 
-### Fish
-
-| Option   | Value                                                          |
-| -------- | -------------------------------------------------------------- |
-| Selector | `--provider fish[=<model>]`                                    |
-| Models   | `s2.1-pro`                                                     |
-| Voice    | `--tts-voice <id>`, default `7f92f8afb8ec43bf81429cc1c9199cb1` |
-
-```bash
-bun autoshow tts input/examples/tts/1-tts.md --provider fish=s2.1-pro
-bun autoshow tts input/examples/tts/1-tts.md --provider fish=s2.1-pro --tts-voice 7f92f8afb8ec43bf81429cc1c9199cb1
-```
-
-Voice design is a `s2.1-pro` capability, not a separate synthesis selector. Use [`voice`](../step-9-voice/00-voice-overview.md) to design and save a voice, then pass that ID to `tts`.
-
 ### Inworld
 
 | Option   | Value                                                   |
@@ -262,36 +249,16 @@ bun autoshow tts input/examples/tts/1-tts.md --provider inworld=realtime-tts-2 -
 
 `--tts-instructions` is accepted. Inline emotion and vocalization tags such as `[happy]`, `[laugh]`, and `[breathe]` are preserved.
 
-### DeepInfra
-
-| Option   | Value                                                                                                                                                                                                                 |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Selector | `--provider deepinfra[=<model>]`                                                                                                                                                                                      |
-| Models   | `ResembleAI/chatterbox-turbo`, `XiaomiMiMo/MiMo-V2.5-tts`, `XiaomiMiMo/MiMo-V2.5-tts-voicedesign`, `Qwen/Qwen3-TTS`, `Qwen/Qwen3-TTS-VoiceDesign`                                                                     |
-| Voice    | `--tts-voice <id>`; Chatterbox defaults to the provider stock voice, MiMo TTS defaults to `mimo_default`, Qwen TTS defaults to `Vivian`; VoiceDesign models use a narration description when `--tts-voice` is omitted |
-| Controls | None; MiMo TTS and Qwen TTS style instructions are not available through `--tts-instructions`                                                                                                                         |
-
-```bash
-bun autoshow tts input/examples/tts/1-tts.md --provider deepinfra=ResembleAI/chatterbox-turbo
-bun autoshow tts input/examples/tts/1-tts.md --provider deepinfra=Qwen/Qwen3-TTS --tts-voice Vivian
-bun autoshow tts input/examples/tts/1-tts.md --provider deepinfra=Qwen/Qwen3-TTS-VoiceDesign
-```
-
-Pass an existing account or VoiceDesign voice ID with `--tts-voice`. DeepInfra catalog, design, clone, inspection, and deletion are also available through `voice`.
-
 ## Pricing Notes
 
-The active registry ranks only the 11 supported TTS providers. Historical rates for removed providers remain available to manifest and report readers but are excluded from selection, defaults, and `--all-providers` expansion.
+The active registry ranks only the nine supported TTS providers. Historical rates for removed providers remain available to manifest and report readers but are excluded from selection, defaults, and `--all-providers` expansion.
 
 | Nominal price | Active selectors |
 | ---: | --- |
-| Promotional `$0.00` / 1K chars | `deepinfra/XiaomiMiMo/MiMo-V2.5-tts`, `deepinfra/XiaomiMiMo/MiMo-V2.5-tts-voicedesign` |
-| `$0.001` / 1K chars | `deepinfra/ResembleAI/chatterbox-turbo` |
 | `$0.01` / 1K chars | `speechify/simba-3.2` |
 | About `$0.0126` / 1K chars | `openai/gpt-4o-mini-tts-2025-12-15` |
-| `$0.015` / 1K chars | `fish/s2.1-pro`, `grok/grok-tts` |
+| `$0.015` / 1K chars | `grok/grok-tts` |
 | `$0.016` / 1K output chars | `mistral/voxtral-mini-tts-2603` |
-| `$0.02` / 1K chars | `deepinfra/Qwen/Qwen3-TTS`, `deepinfra/Qwen/Qwen3-TTS-VoiceDesign` |
 | `$0.025` / 1K chars | `inworld/realtime-tts-2` |
 | `$0.037375` / 1K chars | `cartesia/sonic-3.5-2026-05-04` |
 | `$0.06` / 1K chars | `minimax/speech-2.8-turbo` |
@@ -321,8 +288,6 @@ Every active provider supports local import, registration listing, approval, ret
 | Speechify | `simba-3.2` | Yes | No | Deferred |
 | Hume | `octave-1`, `octave-2` | Yes | Yes | External UI |
 | Cartesia | `sonic-3.5-2026-05-04` | Yes | No | Yes |
-| Fish | `s2.1-pro` | Yes | Yes | Yes |
 | Inworld | `realtime-tts-2` | Yes | Yes | Yes |
-| DeepInfra | Supported Chatterbox, Qwen, and MiMo models | Yes | Yes | Yes |
 
 Use `voice` for durable catalog, design, clone, inspection, and deletion operations. `tts` consumes an existing voice or request-scoped reference and never creates a remote voice.

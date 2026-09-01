@@ -56,6 +56,6 @@ export const reportSuitePriceEstimate = async (
 export const formatCents = (amount: number): string => `${amount.toFixed(3)}¢`
 
 export const shouldRunCommandPreflight = (
-  opts: Pick<PricingRuntimeOptions, 'price'>,
+  opts: Pick<PricingRuntimeOptions, 'price' | 'maxModelCents'>,
   maxCents: number | undefined
-): boolean => opts.price || maxCents !== undefined
+): boolean => opts.price || maxCents !== undefined || opts.maxModelCents !== undefined

@@ -37,7 +37,12 @@ type GenerationSchedulingOptions = HostedConcurrencyRuntimeOptions & {
   hostedTtsChunkScheduler?: HostedTtsChunkScheduler | undefined
 }
 
-export type PricingRuntimeOptions = {
+export type ModelCostFilterRuntimeOptions = {
+  maxModelCents?: number | undefined
+  modelCostFilterExcludedTargetKeys?: string[] | undefined
+}
+
+export type PricingRuntimeOptions = ModelCostFilterRuntimeOptions & {
   price: boolean
   allowOverBudget: boolean
 }

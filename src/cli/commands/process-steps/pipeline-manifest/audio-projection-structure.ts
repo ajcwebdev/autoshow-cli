@@ -446,6 +446,29 @@ export const assertAppendOnlyAudioProjection = (
   if (!isRecord(beforeProjection) || !isRecord(afterProjection)) {
     throw UsageError('An audio provider-state update requires its canonical projection.')
   }
+  const compactArchive = afterProjection['archive']
+  const compactSelected = afterProjection['selectedSuccess']
+  const isTerminalArchiveCompaction = after.status === 'succeeded'
+    && isRecord(compactArchive)
+    && isRecord(compactSelected)
+    && afterProjection['activeWork'] === undefined
+    && Array.isArray(afterProjection['branchHistory'])
+    && afterProjection['branchHistory'].length === 0
+    && Array.isArray(afterProjection['readinessAttempts'])
+    && afterProjection['readinessAttempts'].length === 0
+    && Array.isArray(afterProjection['renderHistory'])
+    && afterProjection['renderHistory'].length === 0
+  if (isTerminalArchiveCompaction) {
+    const priorSelected = beforeProjection['selectedSuccess']
+    if (isRecord(priorSelected) && (
+      priorSelected['renderIdentity'] !== compactSelected['renderIdentity']
+      || priorSelected['resultIdentity'] !== compactSelected['resultIdentity']
+      || priorSelected['audioRunId'] !== compactSelected['audioRunId']
+    )) {
+      throw UsageError('Canonical audio archive compaction cannot change the selected successful render.')
+    }
+    return
+  }
   for (const key of ['branchHistory', 'readinessAttempts', 'pointerEvents'] as const) {
     const oldEntries = beforeProjection[key]
     const nextEntries = afterProjection[key]

@@ -1,4 +1,4 @@
-import { booleanAllProvidersFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
+import { booleanAllProvidersFlag, modelCostFilterFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
 import { boolFlag, formatProviderList, formatRange, formatUniqueValueList, formatValueList, formatValuesByProvider, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import { IMAGE_GENERATION_QUALITIES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
@@ -74,5 +74,5 @@ export const imageCommandFlags = {
   ...withHelpGroup(pickFlags(imageGenFlags, imageGenerationOptionNames), 'image-options'),
   ...withHelpGroup(pickFlags(imageGenFlags, imageInputOptionNames), 'image-inputs'),
   ...withHelpGroup(pickFlags(imageGenFlags, imageProviderSpecificOptionNames), 'image-provider-options'),
-  ...withHelpGroup(priceFlag, 'pricing')
+  ...withHelpGroup({ ...priceFlag, ...modelCostFilterFlag }, 'pricing')
 } as const satisfies CliFlagsDefinition

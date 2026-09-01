@@ -32,7 +32,7 @@ test('report.result honors an explicit message, category, and human sections', (
   const logger = createLogger({ sinks: [sink], minLevel: 'debug' })
   const reporter = createReporter(logger)
 
-  reporter.result({ provider: 'fish' }, {
+  reporter.result({ provider: 'grok' }, {
     message: 'Voice discovery',
     category: 'pricing',
     humanSections: [{ title: 'Voices', table: { rows: [{ id: 'a' }], columns: ['id'] } }]

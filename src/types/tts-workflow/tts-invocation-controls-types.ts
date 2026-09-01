@@ -41,9 +41,7 @@ type TtsInvocationControlsByProvider = {
     description?: OptionalControl<string>
   }>
   cartesia: Readonly<{ language?: OptionalControl<string> }>
-  fish: Readonly<{ latency?: OptionalControl<string> }>
   inworld: Readonly<{ steeringPrompt?: OptionalControl<string> }>
-  deepinfra: Readonly<{ promptInstructions?: OptionalControl<string> }>
 }
 
 type TtsInvocationControlsFor<P extends TtsProvider> = TtsInvocationControlsByProvider[P]

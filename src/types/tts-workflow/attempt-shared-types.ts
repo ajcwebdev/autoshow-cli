@@ -96,6 +96,7 @@ export type CurrentTtsRenderAttempt = {
   executionSelection?: readonly {
     generationSlotId: string
     turnId: string
+    sourceIndex: number
     providerSegmentIndex: number
     providerText: string
     speaker: string

@@ -63,6 +63,7 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(transcriptVideoSection).toContain('--transcript-result')
     expect(transcriptVideoSection).toContain('--transcript-text')
     expect(pricingSection).toContain('--price')
+    expect(pricingSection).toContain('--max-model-cents')
     expect(result.stdout).toContain('--batch-limit')
     expect(result.stdout).not.toContain('--batch-all')
     expect(result.stdout).toContain('--batch-concurrency')
@@ -120,6 +121,7 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(pipelineSection).not.toContain('--local-concurrency')
     expect(pipelineSection).not.toContain('--all-local')
     expect(getFlagGroupSection(writeResult.stdout, 'Batch Processing')).toContain('--batch-limit')
+    expect(getFlagGroupSection(writeResult.stdout, 'Pricing')).toContain('--max-model-cents')
     expect(getFlagGroupSection(configResult.stdout, 'Concurrency')).toContain('--provider-concurrency')
     expect(getFlagGroupSection(configResult.stdout, 'Concurrency')).toContain('--local-concurrency')
     expect(getFlagGroupSection(configResult.stdout, 'Concurrency')).toContain('--concurrency-mode')
@@ -231,7 +233,9 @@ export const registerPipelineCommandHelpCases = (): void => {
     const pricing = getFlagGroupSection(result.stdout, 'Pricing')
     expect(pricing).toContain('--max-cents')
     expect(pricing).not.toContain('--price')
+    expect(pricing).not.toContain('--max-model-cents')
     expect(getCommandFlagsSection(result.stdout)).not.toContain('--price')
+    expect(getCommandFlagsSection(result.stdout)).not.toContain('--max-model-cents')
   })
 
   test.concurrent('config, resume, and write help omit the empty prompt parser default', async () => {

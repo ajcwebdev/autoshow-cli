@@ -147,9 +147,9 @@ export const joinRestUrl = (
 export const readJsonResponse = async (
   response: Response,
   errorMessagePrefix: string,
-  options: { invalidJsonMessagePrefix?: string | undefined, stage?: string | undefined } = {}
+  options: { invalidJsonMessagePrefix?: string | undefined, maxBytes?: number | undefined, stage?: string | undefined } = {}
 ): Promise<unknown> => {
-  const captured = await readRestResponseText(response)
+  const captured = await readRestResponseText(response, { maxBytes: options.maxBytes })
   const rawText = captured.text
   if (captured.truncated) {
     throw new AppError(`${errorMessagePrefix} exceeded the ${captured.retainedBytes.toLocaleString()} byte response capture limit`, {
@@ -177,5 +177,7 @@ export const readJsonResponse = async (
   }
 }
 
-export const readRestResponseText = async (response: Response): Promise<BoundedCaptureResult> =>
-  await readBoundedResponseText(response)
+export const readRestResponseText = async (
+  response: Response,
+  options: { maxBytes?: number | undefined } = {}
+): Promise<BoundedCaptureResult> => await readBoundedResponseText(response, options)

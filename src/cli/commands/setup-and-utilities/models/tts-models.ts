@@ -4,7 +4,7 @@ import {
   getGrokTtsVoices,
   getOpenAITtsVoices
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { CartesiaTtsModel, DeepinfraTtsModel, ElevenlabsTtsModel, FishTtsModel, GrokTtsModel, HumeTtsModel, InworldTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection, SpeechifyTtsModel } from '~/types'
+import type { CartesiaTtsModel, ElevenlabsTtsModel, GrokTtsModel, HumeTtsModel, InworldTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection, SpeechifyTtsModel } from '~/types'
 import { createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 export const SUPPORTED_ELEVENLABS_TTS_MODELS = [
@@ -302,22 +302,6 @@ export const validateCartesiaTtsVoice = (voice: string): string => {
   return normalized
 }
 
-export const SUPPORTED_FISH_TTS_MODELS = [
-  's2.1-pro'
-] as const satisfies readonly string[]
-
-export const FISH_DEFAULT_TTS_VOICE = '7f92f8afb8ec43bf81429cc1c9199cb1'
-
-export const validateFishTtsModel = createRetiringModelValidator<FishTtsModel>('tts', 'fish', SUPPORTED_FISH_TTS_MODELS, 'fish-tts')
-
-export const validateFishTtsVoice = (voice: string): string => {
-  const normalized = voice.trim()
-  if (!normalized) {
-    throw UsageError('Invalid --fish-tts-voice value. Expected a non-empty Fish model/voice ID.')
-  }
-  return normalized
-}
-
 export const SUPPORTED_INWORLD_TTS_MODELS = [
   'realtime-tts-2'
 ] as const satisfies readonly string[]
@@ -330,24 +314,6 @@ export const validateInworldTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
   if (!normalized) {
     throw UsageError('Invalid --inworld-voice value. Expected a non-empty Inworld voice ID.')
-  }
-  return normalized
-}
-
-export const SUPPORTED_DEEPINFRA_TTS_MODELS = [
-  'ResembleAI/chatterbox-turbo',
-  'XiaomiMiMo/MiMo-V2.5-tts',
-  'XiaomiMiMo/MiMo-V2.5-tts-voicedesign',
-  'Qwen/Qwen3-TTS',
-  'Qwen/Qwen3-TTS-VoiceDesign'
-] as const satisfies readonly string[]
-
-export const validateDeepinfraTtsModel = createRetiringModelValidator<DeepinfraTtsModel>('tts', 'deepinfra', SUPPORTED_DEEPINFRA_TTS_MODELS, 'deepinfra-tts')
-
-export const validateDeepinfraTtsVoice = (voice: string): string => {
-  const normalized = voice.trim()
-  if (!normalized) {
-    throw UsageError('Invalid --deepinfra-voice value. Expected a non-empty DeepInfra model/voice ID.')
   }
   return normalized
 }

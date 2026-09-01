@@ -1,4 +1,4 @@
-import type { HostedConcurrencyCoordinator, HostedConcurrencyMode, Step2SelectionOriginOptions, SttRuntimeOptions } from '~/types'
+import type { HostedConcurrencyCoordinator, HostedConcurrencyMode, ModelCostFilterRuntimeOptions, Step2SelectionOriginOptions, SttRuntimeOptions } from '~/types'
 
 export type ProcessingSource =
   | { url: string, filePath?: never }
@@ -23,4 +23,5 @@ export type ProcessingOptions = ProcessingSource
   & Step2SelectionOriginOptions
   & ProcessingSttOptions
   & Partial<ProcessingExtractOptions>
+  & ModelCostFilterRuntimeOptions
   & { outputDir: string }

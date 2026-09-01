@@ -154,7 +154,6 @@ export const defaultVoiceValue = (target: TtsTarget): string => {
     case 'minimax': return 'English_expressive_narrator'
     case 'hume': return 'Male English Actor'
     case 'cartesia': return 'f786b574-daa5-4673-aa0c-cbe3e8534c02'
-    case 'fish': return '7f92f8afb8ec43bf81429cc1c9199cb1'
     case 'elevenlabs': return ELEVENLABS_DEFAULT_VOICE_ID
     case 'speechify': return SPEECHIFY_DEFAULT_TTS_VOICE
     default: return 'provider-default'

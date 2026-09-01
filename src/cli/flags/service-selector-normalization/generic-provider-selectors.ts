@@ -5,7 +5,7 @@ import { parseProviderSelectorValue } from './flag-helpers'
 import { applyFlagOccurrenceNormalization, replaceFlagOccurrence } from './occurrence-normalization'
 import { BOOLEAN_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS } from './provider-targets'
 
-const RETIRED_TTS_PROVIDERS = new Set(['groq', 'gemini', 'deepgram', 'replicate', 'fal'])
+const RETIRED_TTS_PROVIDERS = new Set(['groq', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra'])
 
 export const normalizeGenericProviderSelectorFlags = (
   flags: Record<string, unknown>,

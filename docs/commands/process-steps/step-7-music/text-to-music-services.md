@@ -74,6 +74,7 @@ Hosted generation flags:
 | `--lyrics-file <path>`                | Lyrics file (`.md` or `.txt`); MiniMax and Gemini use the lyrics as written, ElevenLabs uses headers such as `Verse 1` or `Chorus` as song structure                             |
 | `--instrumental`                      | Force instrumental generation for providers that support prompt/instrumental mode                                                                                                 |
 | `--price`                             | Show the estimate and exit                                                                                                                                                        |
+| `--max-model-cents <n>`               | Exclude each provider/model whose estimated total exceeds the per-model ceiling in cents; works with or without `--price`                                                       |
 | `--output-dir <dir>`                  | Global flag: pin an exact hosted music run directory instead of `output/<timestamp>_music-gen/`                                                                                   |
 
 Lyric-video flags:
@@ -93,6 +94,7 @@ Repeating `--provider` runs each selected model independently and writes its own
 ```bash
 bun autoshow music "chill lo-fi beat" --provider elevenlabs=music_v2 --provider minimax=music-3.0
 bun autoshow music "chill lo-fi beat" --provider elevenlabs=music_v2 --provider minimax=music-3.0 --price
+bun autoshow music "chill lo-fi beat" --all-providers --max-model-cents 10 --price
 ```
 
 ## Music Services

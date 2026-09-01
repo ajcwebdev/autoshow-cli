@@ -23,6 +23,7 @@ export type HostedTtsChunkPipelineOptions = {
   chunkExtension: string
   startTime: number
   abortSignal?: AbortSignal | undefined
+  timeoutMs?: number | undefined
   chunkConcurrency?: number | undefined
   chunkScheduler?: HostedTtsChunkScheduler | undefined
   retryPolicy?: Partial<RetryPolicy> | undefined

@@ -4,6 +4,7 @@ export type TtsOptions = HostedConcurrencyRuntimeOptions & Partial<TtsRuntimeOpt
   ttsProviderConcurrency: number
   ttsChunkConcurrency: number
 }> & {
+  price?: boolean | undefined
   generationResourceGate?: ResourceGate | undefined
   hostedTtsChunkScheduler?: HostedTtsChunkScheduler | undefined
   hostedTtsChunkJobContext?: HostedTtsChunkJobContext | undefined
@@ -13,6 +14,7 @@ export type TtsOptions = HostedConcurrencyRuntimeOptions & Partial<TtsRuntimeOpt
   ttsTurnControls?: TtsTurnControls | undefined
   ttsCanonicalTurns?: readonly {
     turnId: string
+    sourceIndex?: number | undefined
     speaker: string
     text: string
     delivery?: string | undefined
@@ -272,6 +274,7 @@ export type TtsTarget = ProviderTargetBase<TtsProvider> & {
   allowFailedImplicitDefaultReplan?: boolean | undefined
   voice?: string
   multiSpeakerStrategy?: MultiSpeakerStrategy
+  chunkCharacterLimit?: number | undefined
   setupCostCents?: number | undefined
   setupTimeMs?: number | undefined
   setupNote?: string | undefined

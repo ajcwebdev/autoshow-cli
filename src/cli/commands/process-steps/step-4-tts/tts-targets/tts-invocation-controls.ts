@@ -61,14 +61,8 @@ const CONTROL_SPECS = {
   cartesia: {
     language: { kind: 'string', normalize: trim },
   },
-  fish: {
-    latency: { kind: 'string', normalize: trim },
-  },
   inworld: {
     steeringPrompt: { kind: 'string', normalize: trim },
-  },
-  deepinfra: {
-    promptInstructions: { kind: 'string', normalize: trim },
   },
 } as const satisfies Record<TtsProvider, ProviderControlSpecs>
 

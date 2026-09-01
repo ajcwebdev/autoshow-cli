@@ -94,7 +94,6 @@ Accepted provider selectors are the lowercase names below.
 | `--elevenlabs`     | `general`, `models`, `music`, `tts`                                         |
 | `--fal`            | `general`, `image`, `video`                                                 |
 | `--firecrawl`      | `general`, `url`                                                            |
-| `--fish`           | `general`, `models`, `tts`                                                  |
 | `--gemini`         | `general`, `image`, `models`, `music`, `ocr`, `stt`, `text`, `video`        |
 | `--gladia`         | `general`, `stt`                                                            |
 | `--glm`            | `general`, `models`, `ocr`, `text`, `url`                                   |

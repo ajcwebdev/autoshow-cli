@@ -98,6 +98,7 @@ export const runTextWrite = async (
       ...buildLLMModelOptions(llmConfig),
       llmProviderConcurrency: opts.llmProviderConcurrency,
       llmLocalConcurrency: opts.llmLocalConcurrency,
+      modelCostFilterExcludedTargetKeys: opts.modelCostFilterExcludedTargetKeys,
       structuredContext: {
         songLyricsTitle
       },

@@ -16,17 +16,6 @@ import {
 import { UsageError } from '~/utils/error-handler'
 import { resolveTtsTargetInvocationControls } from '../tts-targets/tts-invocation-controls'
 import { ELEVENLABS_TTS_OUTPUT_FORMAT } from '../tts-services/tts-elevenlabs/elevenlabs-utils'
-import {
-  FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION,
-  FISH_TIMESTAMP_SERIALIZER_VERSION,
-  FISH_TTS_SERIALIZER_VERSION,
-  isFishTimestampModel,
-} from '../tts-services/fish/fish-tts-request'
-import {
-  DEEPINFRA_TTS_SERIALIZER_VERSION,
-  resolveDeepinfraTtsRequestControls,
-  resolveDeepinfraTtsVoiceField,
-} from '../tts-services/tts-deepinfra/deepinfra-tts-request'
 import { INWORLD_TTS_SERIALIZER_VERSION } from '../tts-services/inworld/inworld-tts-request'
 import { SCHEMA_VERSION } from './attempt-shared'
 
@@ -67,17 +56,9 @@ const buildGrokSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind
 const buildCartesiaSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'cartesia.tts.phase-0-v1', controls: { ...(controls.string('language') ? { language: controls.string('language') } : {}), outputFormat: { container: 'wav', encoding: 'pcm_s16le', sample_rate: 24000 }, version: '2026-03-01' } })
 const buildSpeechifySerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'speechify.tts.phase-0-v1', controls: { audioFormat: 'wav', ...(controls.string('language') ? { language: controls.string('language') } : {}) } })
 const buildMistralSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'mistral.tts.phase-0-v1', controls: { stream: false, responseFormat: controls.string('responseFormat') ?? 'wav' } })
-const buildDeepinfraSerializer: SerializerBuilder = ({ target, controls }) => ({ endpointKind: 'inference', serializerVersion: DEEPINFRA_TTS_SERIALIZER_VERSION, controls: resolveDeepinfraTtsRequestControls(target.model, controls.string('promptInstructions')) })
-
 const buildHumeSerializer: SerializerBuilder = ({ target, strategy, controls }) => strategy === 'native-utterances'
   ? { endpointKind: 'native-utterance-synthesis', serializerVersion: 'hume.native-utterances.phase-3-v1', controls: { version: '2', format: { type: 'mp3' }, numGenerations: 1, includeTimestampTypes: ['word', 'phoneme'] } }
   : { endpointKind: 'speech-synthesis', serializerVersion: 'hume.tts.phase-0-v1', controls: { version: target.model === 'octave-1' ? '1' : '2', format: { type: 'mp3' }, numGenerations: 1, ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}), ...(controls.number('trailingSilence') !== undefined ? { trailingSilence: controls.number('trailingSilence') } : {}), ...(controls.string('description') ? { description: controls.string('description') } : {}) } }
-
-const buildFishSerializer: SerializerBuilder = ({ target, strategy }) => {
-  if (strategy === 'native-dialogue') return { endpointKind: 'text-to-speech-stream-with-timestamps', serializerVersion: FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION, controls: { format: 'wav', model: 's2.1-pro' } }
-  if (isFishTimestampModel(target.model)) return { endpointKind: 'text-to-speech-stream-with-timestamps', serializerVersion: FISH_TIMESTAMP_SERIALIZER_VERSION, controls: { format: 'wav', model: target.model } }
-  return { endpointKind: 'speech-synthesis', serializerVersion: FISH_TTS_SERIALIZER_VERSION, controls: { format: 'wav' } }
-}
 
 const buildInworldSerializer: SerializerBuilder = ({ controls }) => {
   const steeringPrompt = controls.string('steeringPrompt')
@@ -136,9 +117,7 @@ const SERIALIZER_BUILDERS = {
   cartesia: buildCartesiaSerializer,
   hume: buildHumeSerializer,
   speechify: buildSpeechifySerializer,
-  fish: buildFishSerializer,
   inworld: buildInworldSerializer,
-  deepinfra: buildDeepinfraSerializer,
   elevenlabs: buildElevenLabsSerializer,
   mistral: buildMistralSerializer,
   minimax: buildMiniMaxSerializer,
@@ -194,9 +173,7 @@ export const resolveEffectiveProviderControls = (
     }
     case 'hume': return resolveTtsTargetInvocationControls('hume', invocation, {})
     case 'cartesia': return resolveTtsTargetInvocationControls('cartesia', invocation, { language: selection.cartesiaLanguage })
-    case 'fish': return resolveTtsTargetInvocationControls('fish', invocation, {})
     case 'inworld': return resolveTtsTargetInvocationControls('inworld', invocation, { steeringPrompt: selection.inworldInstructions })
-    case 'deepinfra': return resolveTtsTargetInvocationControls('deepinfra', invocation, {})
   }
 }
 
@@ -214,8 +191,6 @@ export const providerSerializerVoiceField = (
     case 'elevenlabs': return strategy === 'native-dialogue' ? 'inputs[].voice_id' : 'path.voice_id'
     case 'mistral': return voiceKind === 'reference-asset' ? 'ref_audio' : 'voice_id'
     case 'minimax': return 'voice_setting.voice_id'
-    case 'fish': return strategy === 'native-dialogue' ? 'reference_id[]' : 'reference_id'
     case 'inworld': return 'voiceId'
-    case 'deepinfra': return resolveDeepinfraTtsVoiceField(target.model)
   }
 }

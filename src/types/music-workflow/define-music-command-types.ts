@@ -1,7 +1,5 @@
-import type { MusicRuntimeOptions, ResourceGate } from '~/types'
+import type { MusicRuntimeOptions, PricingRuntimeOptions, ResourceGate } from '~/types'
 
-export type StandaloneMusicCommandOptions = MusicRuntimeOptions & {
+export type StandaloneMusicCommandOptions = MusicRuntimeOptions & PricingRuntimeOptions & {
   generationResourceGate?: ResourceGate | undefined
-  price: boolean
-  allowOverBudget: boolean
 }

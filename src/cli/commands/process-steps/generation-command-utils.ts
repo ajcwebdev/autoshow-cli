@@ -207,8 +207,11 @@ export const writeGenerationMetadata = async <T,>(
             ? 'failed' as const
             : 'incomplete' as const
     : undefined
+  const persistedMetadata = metadataKey === 'tts'
+    ? (metadata as unknown as Array<Record<string, unknown>>).map(({ ttsAudio: _ttsAudio, hostedConcurrency: _hostedConcurrency, ...entry }) => entry)
+    : metadata
   const manifestMetadata = {
-    [metadataKey]: metadata,
+    [metadataKey]: persistedMetadata,
     cost: cost as Record<string, unknown>,
     timing: timing as Record<string, unknown>,
     ...(manifestContext ? {

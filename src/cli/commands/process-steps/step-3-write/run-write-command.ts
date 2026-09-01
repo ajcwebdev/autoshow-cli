@@ -11,11 +11,12 @@ import { readInjectedConfigFlags } from '~/cli/options/option-resolution/build-o
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import type { CliFlagOccurrence, WriteRuntimeOptions } from '~/types'
+import type { AggregatedPriceEstimate, CliFlagOccurrence, WriteRuntimeOptions } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { runTextWrite } from './run-text-write'
 import { collectTextInputFiles, isTextInputPath, readPromptFileText, resolveWriteTextProjectDefaults } from './text-input-utils'
+import { configureModelCostFilter } from '~/cli/commands/pricing-orchestration/model-cost-filter'
 
 export const WRITE_NON_TEXT_INPUT_MESSAGE =
   'write only accepts local .md or .txt files or directories of those files. Run bun autoshow extract <input> first, then bun autoshow write on the extracted text.'
@@ -117,7 +118,15 @@ export const runWriteCommand = async (
   const files = applyBatchSelection(await resolveWriteInputFiles(target), effectiveOptions)
   const maxCents = resolveMaxCents(config.pricing)
 
-  if (effectiveOptions.price || maxCents !== undefined) {
+  if (effectiveOptions.maxModelCents !== undefined) {
+    const estimates: AggregatedPriceEstimate[] = []
+    for (const file of files) {
+      estimates.push(await buildAggregatedPriceEstimate('write', file, effectiveOptions))
+    }
+    configureModelCostFilter(effectiveOptions, estimates)
+  }
+
+  if (effectiveOptions.price || maxCents !== undefined || effectiveOptions.maxModelCents !== undefined) {
     if (files.length === 1) {
       const estimate = await buildAggregatedPriceEstimate('write', files[0] as string, effectiveOptions)
       const { estimate: accepted, shouldExit } = evaluatePreflightEstimate(estimate, effectiveOptions, maxCents)

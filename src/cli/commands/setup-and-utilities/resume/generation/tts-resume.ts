@@ -3,7 +3,7 @@ import { readManifest, updateManifest, type ManifestUpdater } from '~/cli/comman
 import { collectTtsTargets, getTtsArtifactFileName } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { runTtsTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { deriveGenerationResumeModelFields, deriveGenerationResumeProviderFlags, TTS_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { appendCurrentTtsProviderState, getCurrentTtsJournalAttemptKey } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
+import { appendCurrentTtsProviderState, compactSucceededTtsProviderState, getCurrentTtsJournalAttemptKey, serializeTtsMetadataEntries } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
 import { planCurrentTtsRenderIdentity, planCurrentTtsResumePrice, prepareCurrentTtsCompletedRecovery } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { bindTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
@@ -17,6 +17,7 @@ import { mkdtemp } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import { resolveUserPath } from '~/utils/runtime-paths'
 import { materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
+import { DEFAULT_ALL_PROVIDER_TTS_CHUNK_CONCURRENCY, DEFAULT_TTS_CHUNK_CONCURRENCY } from '~/utils/concurrency-defaults'
 import {
   protectedRecoveryOnlyTargets,
   resolveStoredMistralTtsTargetsForResume
@@ -28,6 +29,16 @@ const TTS_PROVIDER_FLAGS = deriveGenerationResumeProviderFlags(
 )
 
 const TTS_MODEL_FIELDS = deriveGenerationResumeModelFields(TTS_GENERATION_SELECTION)
+
+const withSafeMultiTargetChunkConcurrency = (
+  targets: readonly TtsTarget[],
+  opts: TtsOptions,
+  explicitFlags?: ReadonlySet<string> | undefined
+): TtsOptions => targets.length > 1
+  && explicitFlags?.has('tts-chunk-concurrency') !== true
+  && (opts.ttsChunkConcurrency === undefined || opts.ttsChunkConcurrency === DEFAULT_TTS_CHUNK_CONCURRENCY)
+  ? { ...opts, ttsChunkConcurrency: DEFAULT_ALL_PROVIDER_TTS_CHUNK_CONCURRENCY }
+  : opts
 
 const getTtsResumeProviderKey = (
   provider: GenerationResumeProviderIdentity
@@ -97,7 +108,7 @@ const commitTtsResumePreparedStates = async (
     if (!item) {
       throw UsageError('TTS resume lifecycle received an out-of-range batch item.')
     }
-    const providers = item.providers.slice()
+    const providers = item.providers.map(compactSucceededTtsProviderState)
     for (const incoming of incomingStates) {
       const index = providers.findIndex((provider) => provider.targetKey === incoming.targetKey)
       if (index >= 0) {
@@ -114,7 +125,13 @@ const commitTtsResumePreparedStates = async (
     const nextItem = {
       ...item,
       providers,
-      status: reduceTtsResumeItemStatus(providers)
+      status: reduceTtsResumeItemStatus(providers),
+      metadata: {
+        ...item.metadata,
+        ...(Array.isArray(item.metadata['tts'])
+          ? { tts: serializeTtsMetadataEntries(item.metadata['tts'] as Step4Metadata[]) }
+          : {}),
+      }
     }
     return {
       ...manifest,
@@ -368,6 +385,7 @@ const assertProtectedRecoveryOnlyTargetsAreComplete = async (
 export const ttsResumeConfig = {
   kind: 'tts' as const,
   metadataKey: 'tts',
+  serializeEntries: serializeTtsMetadataEntries,
   stepLabel: 'TTS',
   providerFlags: TTS_PROVIDER_FLAGS,
   selectionMode: 'additive-stored' as const,
@@ -396,7 +414,8 @@ export const ttsResumeConfig = {
     opts: TtsOptions,
     context: GenerationResumeRunContext<TtsTarget, Step4Metadata, TtsOptions>
   ) => {
-    const { sourceContext, currentByTargetKey } = await resolveExactTtsResumeSourceContext(targets, input, opts, context)
+    const effectiveOpts = withSafeMultiTargetChunkConcurrency(targets, opts, context.explicitFlags)
+    const { sourceContext, currentByTargetKey } = await resolveExactTtsResumeSourceContext(targets, input, effectiveOpts, context)
     if (!sourceContext.dialoguePlan) {
       throw UsageError('TTS resume source context is missing its canonical dialogue plan.')
     }
@@ -404,7 +423,7 @@ export const ttsResumeConfig = {
     await assertProtectedRecoveryOnlyTargetsAreComplete(
       targets,
       input,
-      opts,
+      effectiveOpts,
       outputDir,
       sourceContext,
       currentByTargetKey
@@ -426,7 +445,7 @@ export const ttsResumeConfig = {
       outputDir,
       `.tts-resume-${String(itemIndex + 1).padStart(3, '0')}-`
     ))
-    return await runTtsTargets(targets, input, workspaceDir, opts, {
+    return await runTtsTargets(targets, input, workspaceDir, effectiveOpts, {
       sourceIdentity: sourceContext.sourceIdentity,
       dialoguePlan: sourceContext.dialoguePlan,
       retainedProviderStates: context.currentProviderStates,
@@ -473,7 +492,8 @@ export const ttsResumeConfig = {
     input: string,
     context: GenerationResumeRunContext<TtsTarget, Step4Metadata, TtsOptions>
   ) => {
-    const runtimeOptions = context.runtimeOptions
+    const runtimeOptions = withSafeMultiTargetChunkConcurrency(context.targets, context.runtimeOptions, context.explicitFlags)
+    const estimateOptions = withSafeMultiTargetChunkConcurrency(context.targets, opts, context.explicitFlags)
     const { sourceContext, currentByTargetKey } = await resolveExactTtsResumeSourceContext(
       context.targets,
       input,
@@ -534,7 +554,7 @@ export const ttsResumeConfig = {
     }
     const estimates = []
     for (const entry of remaining) {
-      estimates.push(...await buildTtsTargetEstimates([entry.target], opts, entry.characterCount))
+      estimates.push(...await buildTtsTargetEstimates([entry.target], estimateOptions, entry.characterCount))
     }
     return estimates
   },

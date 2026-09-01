@@ -1,22 +1,20 @@
 import { join } from 'node:path'
 import type { VoiceIssuedResource, VoiceProvisioningAttempt, VoiceRegistration } from '~/types'
 import { UsageError } from '~/utils/error-handler'
-import { createFishClient } from '~/utils/fish-client/fish-client'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { providerAccountScopeHash } from '../script-to-audio/advanced-provider-contracts'
-import { recordVoiceProvisioningOutcome } from './character-voice-registry'
-import { listVoiceProvisioningAttempts, loadVoiceProvisioningAttempt, reconcileVoiceProvisioningAttempt, requireVoiceProvisioningReconciliation } from './provisioning-journal'
-import { MANAGED_VOICE_STORE_ROOT } from './managed-voice-store'
-import { resolveCredential } from '~/utils/validate/env-utils'
 import { createGrokAdvancedProvider } from '../tts-services/tts-grok/grok-advanced-provider'
+import { recordVoiceProvisioningOutcome } from './character-voice-registry'
+import { MANAGED_VOICE_STORE_ROOT } from './managed-voice-store'
+import { listVoiceProvisioningAttempts, loadVoiceProvisioningAttempt, reconcileVoiceProvisioningAttempt, requireVoiceProvisioningReconciliation } from './provisioning-journal'
 
 export const AMBIGUOUS_VOICE_REDISPATCH_MESSAGE =
   'Voice provisioning may have reached the provider; automatic redispatch is blocked pending reconciliation. Pass --reconcile to safely complete the durable attempt without recreating the voice.'
 
-const journalRootFor = (journalRoot?: string): string =>
-  journalRoot ?? join(MANAGED_VOICE_STORE_ROOT, 'journals')
+const journalRootFor = (journalRoot?: string): string => journalRoot ?? join(MANAGED_VOICE_STORE_ROOT, 'journals')
 
-const resolveFishProvisioningAttemptId = (registration: VoiceRegistration): string | undefined => {
+const resolveProvisioningAttemptId = (registration: VoiceRegistration): string | undefined => {
   if (typeof registration.sanitizedProviderMetadata['attemptId'] === 'string') return registration.sanitizedProviderMetadata['attemptId']
   if (registration.provisioning.state === 'pending') return registration.provisioning.operationId
   if (typeof registration.sanitizedProviderMetadata['provisioningAttemptId'] === 'string') return registration.sanitizedProviderMetadata['provisioningAttemptId']
@@ -30,12 +28,9 @@ export const classifyProvisioningJournal = (attempt: VoiceProvisioningAttempt): 
   return 'none'
 }
 
-const loadPendingVoiceProvisioningAttempt = async (
-  registration: VoiceRegistration,
-  journalRoot?: string
-): Promise<VoiceProvisioningAttempt | undefined> => {
+const loadPendingVoiceProvisioningAttempt = async (registration: VoiceRegistration, journalRoot?: string): Promise<VoiceProvisioningAttempt | undefined> => {
   const root = journalRootFor(journalRoot)
-  const attemptId = resolveFishProvisioningAttemptId(registration)
+  const attemptId = resolveProvisioningAttemptId(registration)
   if (attemptId) {
     try {
       return await loadVoiceProvisioningAttempt(root, registration.registrationId, attemptId)
@@ -47,46 +42,9 @@ const loadPendingVoiceProvisioningAttempt = async (
   return attempts.find(attempt => classifyProvisioningJournal(attempt) !== 'none')
 }
 
-const issuedProviderResource = (
-  attempt: VoiceProvisioningAttempt,
-  registration: Pick<VoiceRegistration, 'provider'>
-): VoiceIssuedResource | undefined =>
+const issuedProviderResource = (attempt: VoiceProvisioningAttempt, registration: Pick<VoiceRegistration, 'provider'>): VoiceIssuedResource | undefined =>
   attempt.issuedResources.find(resource => resource.providerVoice.provider === registration.provider)
   ?? attempt.issuedResources.find(resource => resource.providerVoice.kind === 'remote-resource')
-
-const searchFishIssuedResource = async (
-  attempt: VoiceProvisioningAttempt,
-  registration: VoiceRegistration,
-  apiKey: string
-): Promise<VoiceIssuedResource | undefined> => {
-  const title = attempt.reconciliation?.strategy === 'provider-search'
-    ? attempt.reconciliation.providerHandle
-    : typeof registration.sanitizedProviderMetadata['desiredName'] === 'string'
-      ? registration.sanitizedProviderMetadata['desiredName']
-      : undefined
-  if (!title) throw UsageError('Fish provisioning journal has no safe reconciliation lookup handle; refuse to recreate the model.')
-  const client = createFishClient({ apiKey })
-  const catalog = await client.listModels({ self: true, title, page_size: 20, page_number: 1 })
-  const match = catalog.items.find(item => item.title === title)
-  if (!match) return undefined
-  const checkedAt = new Date().toISOString()
-  return {
-    providerVoice: {
-      kind: 'remote-resource',
-      provider: 'fish',
-      resourceId: match._id,
-      namespace: 'account',
-      accountScopeHash: attempt.accountScopeHash,
-      origin: registration.provisioning.state === 'ready' && registration.provisioning.providerVoice.kind === 'remote-resource'
-        ? registration.provisioning.providerVoice.origin
-        : 'instant-clone',
-      ownership: 'project',
-      deletion: { state: 'eligible', checkedAt },
-    },
-    observedAt: checkedAt,
-    sanitizedResponseHash: hashCanonicalTtsValue({ provider: 'fish', modelId: match._id, title: match.title, state: match.state ?? 'trained' }),
-  } satisfies VoiceIssuedResource
-}
 
 const searchGrokIssuedResource = async (
   attempt: VoiceProvisioningAttempt,
@@ -112,11 +70,8 @@ const searchGrokIssuedResource = async (
   const checkedAt = new Date().toISOString()
   return {
     providerVoice: {
-      kind: 'remote-resource', provider: 'grok', resourceId: match.resourceId, namespace: 'account',
-      accountScopeHash: attempt.accountScopeHash,
-      origin: registration.provisioning.state === 'ready' && registration.provisioning.providerVoice.kind === 'remote-resource'
-        ? registration.provisioning.providerVoice.origin
-        : 'instant-clone',
+      kind: 'remote-resource', provider: 'grok', resourceId: match.resourceId, namespace: 'account', accountScopeHash: attempt.accountScopeHash,
+      origin: registration.provisioning.state === 'ready' && registration.provisioning.providerVoice.kind === 'remote-resource' ? registration.provisioning.providerVoice.origin : 'instant-clone',
       ownership: 'project', deletion: { state: 'eligible', checkedAt },
     },
     observedAt: checkedAt,
@@ -140,33 +95,21 @@ export const finalizePendingVoiceProvisioningAttempt = async (input: {
   if (attempt.outcome?.state !== 'reconciliation-required') return attempt
   let issued = issuedProviderResource(attempt, input.registration)
   if (!issued) {
-    if (input.registration.provider !== 'fish' && input.registration.provider !== 'grok') throw UsageError('Voice reconciliation is unavailable for this provider.')
-    const provider = input.registration.provider
-    const apiKey = resolveCredential(provider, 'require', { stage: `voice:${provider}`, providedValue: input.apiKey, useProvidedValue: true, description: `${provider === 'grok' ? 'Grok voice' : 'Fish model'} reconciliation` })
-    if (providerAccountScopeHash(provider, apiKey) !== attempt.accountScopeHash) {
-      throw UsageError(`${provider === 'grok' ? 'Grok' : 'Fish'} reconciliation credentials do not match the provisioning account scope.`)
-    }
-    issued = provider === 'grok'
-      ? await searchGrokIssuedResource(attempt, input.registration, apiKey)
-      : await searchFishIssuedResource(attempt, input.registration as VoiceRegistration, apiKey)
+    if (input.registration.provider !== 'grok') throw UsageError('Voice reconciliation is unavailable for this provider.')
+    const apiKey = resolveCredential('grok', 'require', { stage: 'voice:grok', providedValue: input.apiKey, useProvidedValue: true, description: 'Grok voice reconciliation' })
+    if (providerAccountScopeHash('grok', apiKey) !== attempt.accountScopeHash) throw UsageError('Grok reconciliation credentials do not match the provisioning account scope.')
+    issued = await searchGrokIssuedResource(attempt, input.registration, apiKey)
   }
   if (issued) {
     return await reconcileVoiceProvisioningAttempt({
-      journalRoot: root,
-      registrationDraftId: attempt.registrationDraftId,
-      attemptId: attempt.attemptId,
-      outcome: { state: 'ready', providerVoice: issued.providerVoice },
-      issuedResources: [issued],
-      evidenceHash: issued.sanitizedResponseHash,
+      journalRoot: root, registrationDraftId: attempt.registrationDraftId, attemptId: attempt.attemptId,
+      outcome: { state: 'ready', providerVoice: issued.providerVoice }, issuedResources: [issued], evidenceHash: issued.sanitizedResponseHash,
     })
   }
   const evidenceHash = hashCanonicalTtsValue({ provider: input.registration.provider, attemptId: attempt.attemptId, result: 'not-found' })
   return await reconcileVoiceProvisioningAttempt({
-    journalRoot: root,
-    registrationDraftId: attempt.registrationDraftId,
-    attemptId: attempt.attemptId,
-    outcome: { state: 'failed', code: 'reconciliation-not-found', message: `No ${input.registration.provider === 'grok' ? 'Grok custom voice' : 'Fish voice model'} matched the durable provisioning handle.` },
-    evidenceHash,
+    journalRoot: root, registrationDraftId: attempt.registrationDraftId, attemptId: attempt.attemptId,
+    outcome: { state: 'failed', code: 'reconciliation-not-found', message: 'No Grok custom voice matched the durable provisioning handle.' }, evidenceHash,
   })
 }
 
@@ -179,19 +122,10 @@ export const completePendingVoiceProvisioning = async (input: {
 }): Promise<VoiceRegistration | undefined> => {
   const pending = await loadPendingVoiceProvisioningAttempt(input.registration, input.journalRoot)
   if (!pending || classifyProvisioningJournal(pending) === 'none') return undefined
-  const attempt = await finalizePendingVoiceProvisioningAttempt({
-    attempt: pending,
-    registration: input.registration,
-    apiKey: input.apiKey,
-    journalRoot: input.journalRoot,
-    allowAmbiguous: input.allowAmbiguous,
-  })
+  const attempt = await finalizePendingVoiceProvisioningAttempt({ attempt: pending, registration: input.registration, apiKey: input.apiKey, journalRoot: input.journalRoot, allowAmbiguous: input.allowAmbiguous })
   if (!attempt?.outcome) return undefined
   return await recordVoiceProvisioningOutcome({
-    charactersRoot: input.charactersRoot,
-    registrationId: input.registration.registrationId,
-    generationId: input.registration.generationId,
-    provisioning: attempt.outcome,
-    sanitizedProviderMetadata: { attemptId: attempt.attemptId, reconciliationState: attempt.outcome.state },
+    charactersRoot: input.charactersRoot, registrationId: input.registration.registrationId, generationId: input.registration.generationId,
+    provisioning: attempt.outcome, sanitizedProviderMetadata: { attemptId: attempt.attemptId, reconciliationState: attempt.outcome.state },
   })
 }

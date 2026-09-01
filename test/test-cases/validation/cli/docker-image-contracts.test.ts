@@ -104,8 +104,6 @@ test('Docker publication is blocked by exact-version no-cost verification and pa
     'bounded-text-stream-contracts.test.ts',
     'comic-image-composition-contracts.test.ts',
     'fetch-error-contracts.test.ts',
-    'fish-tts-adapter-contracts.test.ts',
-    'fish-tts-timing-contracts.test.ts',
     'multipart-serialization-contracts.test.ts',
     'profiling-recipes-contracts.test.ts',
     'reference-tokenizer-contracts.test.ts'

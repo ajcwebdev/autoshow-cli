@@ -27,6 +27,7 @@ import type {
   TtsOptions,
   TtsTarget,
 } from '~/types'
+import { configureModelCostFilter } from '~/cli/commands/pricing-orchestration/model-cost-filter'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { UsageError, InfraError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
@@ -39,7 +40,7 @@ import { collectTtsTargets, getTtsArtifactFileName, mergeTtsExecutionReadinessOb
 import { createHostedTtsChunkScheduler } from './tts-utils/hosted-tts-chunk-scheduler'
 import { materializeStandaloneMistralReference } from './voice-assets/standalone-mistral-reference'
 import { hasMistralProtectedReferences } from './voice-assets/mistral-protected-reference-binding'
-import { appendCurrentTtsProviderState, getCurrentTtsJournalAttemptKey } from './script-to-audio/current-render-artifacts'
+import { appendCurrentTtsProviderState, getCurrentTtsJournalAttemptKey, serializeTtsMetadataEntries } from './script-to-audio/current-render-artifacts'
 import { createBatchItemTtsSourceIdentity, createGenericTtsDialoguePlan, createSingleTurnTtsDialoguePlan } from './script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from './script-to-audio/item-dialogue-plan-artifact'
 import { buildTtsEstimateForInput, enforceTtsBatchBudget, mergeActualCostBreakdowns, mergeEstimatedCostBreakdowns, mergeTimingBreakdowns, reportTtsBatchEstimates } from './tts-batch-estimates'
@@ -318,8 +319,15 @@ export const runTtsDirectoryBatch = async (
   if (pinnedDir) {
     const existing = await readManifest(pinnedDir)
     if (existing?.command === 'tts' && existing.scope === 'batch') {
+      let estimate = await priceExistingTtsDirectoryBatch(pinnedDir, ttsOptions)
+      if (ttsOptions.maxModelCents !== undefined) {
+        const excludedTargets = configureModelCostFilter(ttsOptions, [estimate])
+        targets = collectTtsTargets(ttsOptions)
+        if (excludedTargets.length > 0) {
+          estimate = await priceExistingTtsDirectoryBatch(pinnedDir, ttsOptions)
+        }
+      }
       await assertCompatibleTtsDirectoryBatch(pinnedDir, existing, inputFiles, targets)
-      const estimate = await priceExistingTtsDirectoryBatch(pinnedDir, ttsOptions)
       if (ttsOptions.price) {
         l.report.estimate(estimate)
         return
@@ -345,8 +353,16 @@ export const runTtsDirectoryBatch = async (
     }
   }))
   const concurrency = Math.max(1, ttsOptions.batchConcurrency ?? DEFAULT_CLI_CONCURRENCY)
+  if (ttsOptions.maxModelCents !== undefined) {
+    const unfilteredEstimates: AggregatedPriceEstimate[] = []
+    for (const prepared of preparedInputs) {
+      unfilteredEstimates.push(await buildTtsEstimateForInput(prepared, ttsOptions, targets))
+    }
+    configureModelCostFilter(ttsOptions, unfilteredEstimates)
+    targets = collectTtsTargets(ttsOptions)
+  }
   for (const prepared of preparedInputs) validateTtsRenderInputsForTargets(targets, prepared.text, ttsOptions, prepared)
-  const shouldLogEstimates = ttsOptions.price || maxCents !== undefined
+  const shouldLogEstimates = ttsOptions.price || maxCents !== undefined || ttsOptions.maxModelCents !== undefined
   const estimateReport = await reportTtsBatchEstimates(preparedInputs, ttsOptions, targets, shouldLogEstimates, concurrency)
   enforceTtsBatchBudget(estimateReport.totalEstimatedCost, maxCents, ttsOptions.allowOverBudget)
 
@@ -506,7 +522,7 @@ export const runTtsDirectoryBatch = async (
       ...(finalRecords[accumulator.index] ?? {}),
       audioStem: accumulator.itemStem,
       completionStatus: isPartial ? 'incomplete' : 'full',
-      tts: metadata,
+      tts: serializeTtsMetadataEntries(metadata),
       providerStates: orderedTtsProviderStates(targets, accumulator.providerStates),
       ...(errors.length > 0 ? { errors } : {})
     }

@@ -1,7 +1,7 @@
 import {
   SUPPORTED_MINIMAX_TTS_EMOTIONS
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { batchFlags, booleanAllProvidersFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
+import { batchFlags, booleanAllProvidersFlag, modelCostFilterFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
 import { boolFlag, formatProviderList, formatValueList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 import { DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE } from '~/utils/concurrency-defaults'
@@ -29,7 +29,7 @@ export const genericTtsOptionFlags = {
   'tts-language': strListFlag('Generic TTS language. Use value with one selected provider, or provider=value with multiple providers.'),
   'tts-text-normalization': strListFlag('Generic TTS text normalization. Use value with one selected provider, or provider=value with multiple providers.'),
   'tts-instructions': strListFlag('Generic TTS voice/style instructions. Use value with one selected provider, or provider=value with multiple providers.'),
-  'tts-chunk-concurrency': strFlag('Hosted TTS chunk starts allowed in parallel per provider across the current run (Grok-only uses 50)', DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE),
+  'tts-chunk-concurrency': strFlag('Hosted TTS chunk starts allowed in parallel per provider across the current run (all-provider uses 2; Grok-only uses 50)', DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE),
 } as const satisfies CliFlagsDefinition
 
 const standaloneTtsOnlyFlags = {
@@ -73,5 +73,5 @@ export const ttsCommandFlags = {
   ...withHelpGroup(pickFlags(ttsFlags, minimaxTtsCommandOptionNames), 'tts-minimax'),
   ...withHelpGroup(pickFlags(ttsFlags, dialogueTtsCommandOptionNames), 'tts-dialogue'),
   ...withHelpGroup(pickFlags(ttsFlags, elevenlabsTtsCommandOptionNames), 'tts-elevenlabs'),
-  ...withHelpGroup(priceFlag, 'pricing')
+  ...withHelpGroup({ ...priceFlag, ...modelCostFilterFlag }, 'pricing')
 } as const satisfies CliFlagsDefinition

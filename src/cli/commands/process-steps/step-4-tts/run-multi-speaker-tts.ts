@@ -95,7 +95,7 @@ export const runMultiSpeakerTts = async (
           const mapping = getSpeakerVoice(registry, turn.speaker)
           return {
             turnId: turnIds[sourceIndex] as string,
-            sourceIndex,
+            sourceIndex: options.ttsCanonicalTurns?.[sourceIndex]?.sourceIndex ?? sourceIndex,
             speaker: turn.speaker,
             text: turn.text,
             voice: buildObservedVoice(target, mapping.voiceKind, mapping.voice, mapping.normalizedSpeaker),
@@ -117,6 +117,7 @@ export const runMultiSpeakerTts = async (
     signal: AbortSignal
   ): Promise<{ path: string, turn: CurrentTtsObservedTurn }> => {
     const turn = dialogue.turns[i] as { speaker: string, text: string, providerSegments?: readonly string[] | undefined, providerSegmentIndexes?: readonly number[] | undefined }
+    const sourceIndex = options.ttsCanonicalTurns?.[i]?.sourceIndex ?? i
     const speakerMapping = getSpeakerVoice(registry, turn.speaker)
     const index = String(i + 1).padStart(3, '0')
     const segmentFileName = `segment-${index}-${sanitizeSegmentName(turn.speaker)}.wav`
@@ -128,7 +129,7 @@ export const runMultiSpeakerTts = async (
     const invocationProtectedAsset = protectedAsset ? cloneProtectedAssetRef(protectedAsset) : undefined
     const baseInvocation: TtsTargetInvocation = Object.freeze({
       sourceId: turnIds[i] as string,
-      sourceIndex: i,
+      sourceIndex,
       speaker: turn.speaker,
       voice: Object.freeze({
         kind: speakerMapping.voiceKind,
@@ -203,7 +204,7 @@ export const runMultiSpeakerTts = async (
       path: segmentPath,
       turn: {
         turnId: baseInvocation.sourceId,
-        sourceIndex: i,
+        sourceIndex,
         speaker: turn.speaker,
         text: turn.text,
         voice: buildObservedVoice(target, speakerMapping.voiceKind, observedVoice, speakerMapping.normalizedSpeaker),

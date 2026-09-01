@@ -5,11 +5,13 @@ import { applyCostMultiplier } from '~/cli/commands/pricing-orchestration/cost-h
 
 const buildTtsEstimatesFromCosts = async (
   opts: TtsOptions,
-  costs: ReturnType<typeof estimateTtsTargetCosts>
+  costs: ReturnType<typeof estimateTtsTargetCosts>,
+  targets?: readonly TtsTarget[] | undefined
 ): Promise<TtsStepEstimate[]> => {
   const estimates: TtsStepEstimate[] = []
-  for (const cost of costs) {
+  for (const [index, cost] of costs.entries()) {
     const estimation = getTtsEstimation(cost.provider, cost.model)
+    const target = targets?.[index]
     estimates.push({
       step: 'tts' as const,
       provider: cost.provider,
@@ -20,6 +22,7 @@ const buildTtsEstimatesFromCosts = async (
       ...(cost.inputCostPer1MCharactersCents !== undefined ? { inputCostPer1MCharactersCents: cost.inputCostPer1MCharactersCents } : {}),
       ...(cost.outputCostPer1MCharactersCents !== undefined ? { outputCostPer1MCharactersCents: cost.outputCostPer1MCharactersCents } : {}),
       characterCount: cost.characterCount,
+      ...(typeof target?.chunkCharacterLimit === 'number' ? { chunkCharacterLimit: target.chunkCharacterLimit } : {}),
       ...(cost.setupCostCents !== undefined ? { setupCostCents: cost.setupCostCents } : {}),
       ...(cost.setupTimeMs !== undefined ? { setupTimeMs: cost.setupTimeMs } : {}),
       ...(typeof opts.ttsChunkConcurrency === 'number' ? { chunkConcurrency: opts.ttsChunkConcurrency } : {}),
@@ -37,7 +40,8 @@ export const buildTtsTargetEstimates = async (
   characterCount: number
 ): Promise<TtsStepEstimate[]> => buildTtsEstimatesFromCosts(
   opts,
-  estimateTtsTargetCosts(targets, Math.max(0, Math.floor(characterCount)))
+  estimateTtsTargetCosts(targets, Math.max(0, Math.floor(characterCount))),
+  targets
 )
 
 export const buildTtsEstimates = async (

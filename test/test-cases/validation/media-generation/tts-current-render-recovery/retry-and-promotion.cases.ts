@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { readdir } from 'node:fs/promises'
+import { mkdir, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { buildCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
@@ -137,11 +137,66 @@ const promotedResultScenario = async (dir: string): Promise<void> => {
   expect(observedStates.at(-1)?.status).toBe('succeeded')
 }
 
+const interruptedWorkspaceScenario = async (dir: string): Promise<void> => {
+  const text = 'Recover the provider response saved before durable promotion.'
+  const sourceIdentity = createInlineTtsSourceIdentity(text)
+  const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text, new Date(0).toISOString())
+  let providerCalls = 0
+  const target = createFixtureTarget(() => { providerCalls += 1 }, 'success')
+  let retained: PipelineProviderState | undefined
+  const attempt = await createCurrentTtsRenderAttempt({
+    outputDir: dir,
+    target,
+    sourceText: text,
+    ttsOptions: {},
+    sourceIdentity,
+    dialoguePlan,
+    onProviderState: async (state) => { retained = state }
+  })
+  const workspaceDir = join(dir, '.tts-tmp-openai-fixture-recovery-model')
+  const audioPath = join(workspaceDir, 'speech-openai-chunk-001.wav')
+  await attempt.requestEvidence.dispatch({
+    chunkIndex: 1,
+    endpointKind: 'speech-synthesis',
+    serializerVersion: 'openai.tts.phase-0-v1',
+    serializedRequest: { body: { input: text, voice: 'alloy', response_format: 'wav' } },
+    providerText: text,
+    voiceField: 'voice',
+    voices: [{ kind: 'provider-id', value: 'alloy' }],
+    requestControls: { responseFormat: 'wav' },
+    continuation: { kind: 'none' }
+  }, { attempt: 1 }, async ({ accepted }) => {
+    await accepted({ providerRequestId: 'interrupted-workspace-fixture' })
+    await mkdir(workspaceDir)
+    await Bun.write(audioPath, syntheticRecoveryAudio(0, 0.15))
+  })
+  if (!retained) throw new Error('Missing retained provider-accepted state')
+
+  const price = await planCurrentTtsResumePrice({ rootDir: dir, state: retained, target, sourceText: text, ttsOptions: {}, sourceIdentity, dialoguePlan })
+  expect(price).toMatchObject({ recoveryKind: 'partial-slots', recoveredSlotCount: 1, unresolvedSlotCount: 0, plannedSlotCount: 0, reconciliationBlockers: [] })
+
+  const reportedOutput = join(dir, 'interrupted-workspace-recovered.wav')
+  const recovered = await runTtsForTargets(text, dir, {}, [target], {
+    sourceIdentity,
+    dialoguePlan,
+    retainedProviderStates: [retained],
+    recoveryRootDir: dir,
+    resolveReportedOutput: () => ({ path: reportedOutput, fileName: 'interrupted-workspace-recovered.wav' }),
+    beforeDispatch: async () => {},
+    onProviderState: async () => {}
+  })
+  expect(providerCalls).toBe(0)
+  expect(await Bun.file(reportedOutput).exists()).toBe(true)
+  expect(recovered.metadata[0]?.ttsAudio?.renderHistory[0]?.events.at(-1)?.status).toBe('succeeded')
+}
+
 export const registerRetryAndPromotionCases = (): void => {
   test('leaves an ambiguous admission for reconciliation instead of redispatching it in flight', async () =>
     await withTempDir('autoshow-tts-ambiguous-admission-', ambiguousAdmissionScenario))
   test('reconstructs a completed partial slot when termination interrupts batch-result promotion', async () =>
     await withTempDir('autoshow-tts-interrupted-batch-promotion-', interruptedPromotionScenario))
+  test('adopts a valid hosted chunk saved before durable slot promotion without repurchasing it', async () =>
+    await withTempDir('autoshow-tts-interrupted-workspace-', interruptedWorkspaceScenario))
   test('assembles a promoted completed result locally without another provider call', async () =>
     await withTempDir('autoshow-tts-completed-recovery-', promotedResultScenario))
 }

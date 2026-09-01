@@ -9,9 +9,7 @@ export type TtsTargetSelection = {
   speechifyModels: string[]
   humeModels: string[]
   cartesiaModels: string[]
-  fishModels: string[]
   inworldModels: string[]
-  deepinfraModels: string[]
   speakerVoiceRegistry: SpeakerVoiceRegistry | undefined
   multiSpeakerRequested: boolean
   minimaxVoiceId: string | undefined
@@ -40,10 +38,8 @@ export type TtsTargetSelection = {
   humeVoice: string | undefined
   cartesiaVoiceId: string | undefined
   cartesiaLanguage: string | undefined
-  fishVoiceId: string | undefined
   inworldVoiceId: string | undefined
   inworldInstructions: string | undefined
-  deepinfraVoiceId: string | undefined
   grokVoiceId: string | undefined
   grokLanguage: string | undefined
   grokTextNormalization: boolean

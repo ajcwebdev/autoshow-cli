@@ -1,4 +1,4 @@
-import { validateCartesiaTtsVoice, validateDeepinfraTtsVoice, validateElevenLabsTtsTextNormalization, validateFishTtsVoice, validateGrokTtsLanguage, validateGrokTtsVoice, validateHumeTtsVoice, validateInworldTtsVoice, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateCartesiaTtsVoice, validateElevenLabsTtsTextNormalization, validateGrokTtsLanguage, validateGrokTtsVoice, validateHumeTtsVoice, validateInworldTtsVoice, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { CliFlagOccurrence, ResolvedModelOptions, TtsCliReferenceInput, TtsOptionResolutionAuthority, TtsOptionResolutionContext, TtsRuntimeOptionKey, TtsRuntimeOptions } from '~/types'
 import { parseOptionalNumberFlag, parseTtsDialogueFormat, readBooleanFlag, readOptionalStringFlag, readOptionalStringListFlag } from './flag-readers'
 import { validateCliValue } from './download-model-options'
@@ -108,8 +108,7 @@ const TTS_MODEL_KEYS = [
   'grokTtsModels',
   'mistralTtsModels', 'openaiTtsModels',
   'speechifyTtsModels', 'humeTtsModels',
-  'cartesiaTtsModels', 'fishTtsModels',
-  'inworldTtsModels', 'deepinfraTtsModels'
+  'cartesiaTtsModels', 'inworldTtsModels'
 ] as const satisfies readonly TtsRuntimeOptionKey[]
 
 const TTS_SPEED_RANGES = {
@@ -153,14 +152,8 @@ const applyGenericTtsRuntimeOptions = (
       case 'cartesia':
         options.cartesiaTtsVoice = readValidatedWhenSelected(voice, modelOptions.cartesiaTtsModels, validateCartesiaTtsVoice)
         break
-      case 'fish':
-        options.fishTtsVoice = readValidatedWhenSelected(voice, modelOptions.fishTtsModels, validateFishTtsVoice)
-        break
       case 'inworld':
         options.inworldTtsVoice = readValidatedWhenSelected(voice, modelOptions.inworldTtsModels, validateInworldTtsVoice)
-        break
-      case 'deepinfra':
-        options.deepinfraTtsVoice = readValidatedWhenSelected(voice, modelOptions.deepinfraTtsModels, validateDeepinfraTtsVoice)
         break
       case 'minimax':
         options.minimaxTtsVoice = voice
@@ -267,6 +260,7 @@ export const buildTtsOptions = (
 
   const options: TtsRuntimeOptions = {
     ...pick(modelOptions, TTS_MODEL_KEYS),
+    ttsAllProvidersSelected: readBooleanFlag(flags, 'all-tts'),
     ttsAllowAmbiguousRedispatch: readBooleanFlag(flags, 'allow-ambiguous-redispatch'),
     grokTtsVoice: undefined,
     grokTtsLanguage: undefined,
@@ -279,10 +273,8 @@ export const buildTtsOptions = (
     humeTtsVoice: undefined,
     cartesiaTtsVoice: undefined,
     cartesiaTtsLanguage: undefined,
-    fishTtsVoice: undefined,
     inworldTtsVoice: undefined,
     inworldTtsInstructions: undefined,
-    deepinfraTtsVoice: undefined,
     openaiVoiceId: undefined,
     openaiTtsInstructions: undefined,
     openaiTtsSpeed: undefined,

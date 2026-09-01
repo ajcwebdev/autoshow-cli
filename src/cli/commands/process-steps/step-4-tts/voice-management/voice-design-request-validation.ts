@@ -1,6 +1,5 @@
 import type { DesignProviderName } from '~/types'
 import { UsageError } from '~/utils/error-handler'
-import { FISH_VOICE_DESIGN_MODEL } from '../tts-services/fish/fish-tts-request'
 
 type VoiceDesignRequestInput = Readonly<{
   provider: DesignProviderName
@@ -29,11 +28,6 @@ export const validateVoiceDesignRequest = (input: VoiceDesignRequestInput): Vali
     if (candidateCount > 3) throw UsageError('ElevenLabs Voice Design supports one to three bounded previews per operation.')
     if (description.length < 20 || description.length > 1000) throw UsageError('ElevenLabs Voice Design description must contain 20-1000 characters.')
     if (previewText.length < 100 || previewText.length > 1000) throw UsageError('ElevenLabs Voice Design preview text must contain 100-1000 characters.')
-  } else if (provider === 'fish') {
-    if (creationModel !== FISH_VOICE_DESIGN_MODEL) throw UsageError('Fish Audio Voice Design creation model must be voice-design-1.')
-    if (candidateCount < 1 || candidateCount > 4) throw UsageError('Fish Audio Voice Design supports one to four bounded previews per request.')
-    if (description.length < 1 || description.length > 2000) throw UsageError('Fish Audio Voice Design description must contain 1-2000 characters.')
-    if (previewText.length > 150) throw UsageError('Fish Audio Voice Design preview text must contain at most 150 characters.')
   } else if (provider === 'inworld') {
     if (creationModel !== 'realtime-tts-2') throw UsageError('Inworld Voice Design creation model must be realtime-tts-2.')
     if (candidateCount > 3) throw UsageError('Inworld Voice Design supports one to three bounded previews per request.')
@@ -52,12 +46,6 @@ export const validateVoiceDesignRequest = (input: VoiceDesignRequestInput): Vali
     if (!description.trim() || description.length > 1000) throw UsageError('Hume Voice Design description must contain 1-1000 characters.')
     if (!previewText.trim()) throw UsageError('Hume Voice Design preview text cannot be blank.')
     if (seed !== undefined) throw UsageError('Hume Voice Design does not expose a deterministic seed.')
-  } else {
-    if (creationModel !== 'XiaomiMiMo/MiMo-V2.5-tts-voicedesign' && creationModel !== 'Qwen/Qwen3-TTS-VoiceDesign') throw UsageError('DeepInfra Voice Design creation model must be XiaomiMiMo/MiMo-V2.5-tts-voicedesign or Qwen/Qwen3-TTS-VoiceDesign.')
-    if (candidateCount !== 1) throw UsageError('DeepInfra Voice Design returns exactly one bounded preview per request.')
-    if (!description.trim()) throw UsageError('DeepInfra Voice Design description cannot be blank.')
-    if (!previewText.trim()) throw UsageError('DeepInfra Voice Design preview text cannot be blank.')
-    if (seed !== undefined) throw UsageError('DeepInfra Voice Design does not expose a deterministic seed.')
   }
   return { provider, creationModel, description, previewText, candidateCount, sourceVoiceId, eligibilitySnapshotHash, seed }
 }
