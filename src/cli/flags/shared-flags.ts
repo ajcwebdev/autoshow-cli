@@ -12,6 +12,10 @@ export const priceFlag = {
   price: boolFlag('Show aggregated cost estimate for all active pipeline steps and exit')
 } as const satisfies CliFlagsDefinition
 
+export const modelCostFilterFlag = {
+  'max-model-cents': strFlag('Run only provider/model targets whose estimated total cost for this invocation is at most this many cents')
+} as const satisfies CliFlagsDefinition
+
 export const reasoningEffortFlag = {
   'reasoning-effort': strFlag(`Reasoning effort policy: ${formatValueList(NORMALIZED_REASONING_EFFORTS)} (omit to preserve existing adapter behavior; default delegates to the provider)`)
 } as const satisfies CliFlagsDefinition

@@ -9,9 +9,7 @@ export const STANDALONE_TTS_PROVIDER_TARGETS = {
   speechify: 'speechify-tts',
   hume: 'hume-tts',
   cartesia: 'cartesia-tts',
-  fish: 'fish-tts',
-  inworld: 'inworld-tts',
-  deepinfra: 'deepinfra-tts'
+  inworld: 'inworld-tts'
 } as const satisfies Record<string, string>
 
 export const STANDALONE_IMAGE_PROVIDER_TARGETS = {
@@ -79,9 +77,7 @@ export const TTS_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
     speechify: { modelsKey: 'speechifyTtsModels' },
     hume: { modelsKey: 'humeTtsModels' },
     cartesia: { modelsKey: 'cartesiaTtsModels' },
-    fish: { modelsKey: 'fishTtsModels' },
-    inworld: { modelsKey: 'inworldTtsModels' },
-    deepinfra: { modelsKey: 'deepinfraTtsModels' }
+    inworld: { modelsKey: 'inworldTtsModels' }
   }
 )
 

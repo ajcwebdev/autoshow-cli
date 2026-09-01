@@ -22,6 +22,7 @@ export const buildProcessingOptions = (
     hostedConcurrencyCoordinator: runtimeOptions.hostedConcurrencyCoordinator,
     configPath: runtimeOptions.configPath,
     step2SelectionOrigins: runtimeOptions.step2SelectionOrigins,
+    modelCostFilterExcludedTargetKeys: runtimeOptions.modelCostFilterExcludedTargetKeys,
     ...pick(runtimeOptions, STT_MODEL_KEYS),
     youtubeCaptions: runtimeOptions.youtubeCaptions,
     happyscribeOrganizationId: runtimeOptions.happyscribeOrganizationId,

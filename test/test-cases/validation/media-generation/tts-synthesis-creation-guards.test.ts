@@ -35,4 +35,36 @@ describe('Synthesis voice option contracts', () => {
       mistralTtsRefAudio: referenceInput?.sourcePath
     } as TtsOptions)).toThrow('must cross the protected ingestion boundary')
   })
+
+  test('keeps the implicit Mistral price-planning voice non-executable', async () => {
+    const options = {
+      ...buildOptsFromFlags({ 'mistral-tts': 'voxtral-mini-tts-2603' }),
+      price: true
+    }
+    const target = collectTtsTargets(options)[0]
+
+    expect(target?.voice).toBe('price-planning-placeholder')
+    await expect(target?.run('Pricing only', '.', options)).rejects.toThrow('price-only Mistral TTS planning target cannot execute synthesis')
+  })
+
+  test('skips an unconfigured Mistral target only for all-provider synthesis', () => {
+    const allProviderOptions = buildOptsFromFlags({ 'all-tts': true })
+    const allProviderTargets = collectTtsTargets(allProviderOptions)
+
+    expect(allProviderOptions.ttsAllProvidersSelected).toBe(true)
+    expect(allProviderTargets.some((target) => target.service === 'mistral')).toBe(false)
+    expect(allProviderTargets.length).toBeGreaterThan(0)
+
+    const configuredAllProviderTargets = collectTtsTargets(buildOptsFromFlags({
+      'all-tts': true,
+      'tts-voice': 'mistral=voice_abc123'
+    }))
+    expect(configuredAllProviderTargets.some((target) => target.service === 'mistral')).toBe(true)
+
+    const explicitMistralOptions = buildOptsFromFlags({
+      'mistral-tts': 'voxtral-mini-tts-2603'
+    })
+    expect(explicitMistralOptions.ttsAllProvidersSelected).toBe(false)
+    expect(() => collectTtsTargets(explicitMistralOptions)).toThrow('requires an existing voice ID')
+  })
 })

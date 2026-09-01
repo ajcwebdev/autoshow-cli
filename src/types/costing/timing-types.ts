@@ -5,6 +5,8 @@ export type TimedExtractProvider = NonNullable<ComputeEstimatedProcessingTimesIn
 
 
 export type AggregateTimingOptions = {
+  maxModelCents?: number | undefined
+  modelCostFilterExcludedTargetKeys?: string[] | undefined
   concurrencyMode?: ComputeEstimatedProcessingTimesInput['concurrencyMode'] | undefined
   ttsInputText?: string | undefined
   ttsChunkConcurrency?: number | undefined

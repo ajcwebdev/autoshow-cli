@@ -85,13 +85,22 @@ const publishJournalState = async (ctx: AttemptContext): Promise<void> => {
   const at = ctx.now()
   requireJournalFile(ctx)
   const retainedProgress = buildBatchProgress(ctx, [...ctx.recoveredBatchFiles, ...ctx.promotedBatchFiles.values()])
+  const completedSlotCount = retainedProgress.reduce((sum, batch) =>
+    sum + batch.generationSlots.filter((slot) => slot.batchResult?.status === 'succeeded').length
+  , 0)
+  const previousProgressCount = [...ctx.events].reverse().find((event) => event.batchProgress)?.batchProgress
+    ?.reduce((sum, batch) => sum + batch.generationSlots.filter((slot) => slot.batchResult?.status === 'succeeded').length, 0) ?? 0
+  const totalSlotCount = ctx.purePlan.planned.slots.length
+  const progressInterval = Math.max(1, Math.ceil(totalSlotCount / 10))
+  const includeProgress = completedSlotCount > previousProgressCount
+    && (completedSlotCount === 1 || completedSlotCount === totalSlotCount || completedSlotCount % progressInterval === 0)
   ctx.events.push({
     sequence: ctx.events.length + 1,
     status: 'running',
     at,
     attempt: ctx.attemptNumber,
     ...journalEventFields(ctx),
-    ...(retainedProgress.length > 0 ? { batchProgress: retainedProgress } : {}),
+    ...(includeProgress ? { batchProgress: retainedProgress } : {}),
   })
   ctx.pointerEvents.push({
     sequence: ctx.pointerEvents.length + 1,
@@ -102,13 +111,6 @@ const publishJournalState = async (ctx: AttemptContext): Promise<void> => {
     at,
   })
   ctx.currentProjection = buildProjection(ctx)
-  if (ctx.currentProjection.activeWork?.kind === 'render') {
-    ctx.currentProjection.activeWork.completedSlotHashes = ctx.purePlan.planned.slots.flatMap((slot) =>
-      ctx.outputsBySlot.has(slot.generationSlotId) || ctx.recoveredBySlot.has(slot.generationSlotId)
-        ? [ctx.paidSpeechSlotHash(slot)]
-        : []
-    )
-  }
   await publish(ctx, stateForProjection(ctx.options.target, ctx.purePlan.targetKey, ctx.purePlan.transport, ctx.targetRelativeDir, ctx.currentProjection))
 }
 

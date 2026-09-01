@@ -37,7 +37,7 @@ Selectors use `provider[=model]`. Repeat a flag to run more than one provider. F
 | OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `fal`, `replicate`.                                                   |
 | URL   | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`.                                                                                                                                      |
 | LLM   | Hosted: `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`. Write has no local LLM.                                                                                       |
-| TTS   | Hosted: `elevenlabs`, `minimax`, `grok`, `mistral`, `openai`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`.                                                                                         |
+| TTS   | Hosted: `elevenlabs`, `minimax`, `grok`, `mistral`, `openai`, `speechify`, `hume`, `cartesia`, `inworld`.                                                                                                         |
 | Image | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                       |
 | Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                                 |
 | Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                                       |
@@ -85,7 +85,7 @@ Hosted commands require the matching environment variable:
 | `REPLICATE_API_TOKEN`    | Replicate image/video                      |
 | `ANTHROPIC_API_KEY`      | Anthropic write/OCR                        |
 | `GROQ_API_KEY`           | Groq write/STT                             |
-| `DEEPINFRA_API_KEY`      | DeepInfra STT/OCR/TTS                      |
+| `DEEPINFRA_API_KEY`      | DeepInfra STT/OCR                          |
 | `MINIMAX_API_KEY`        | MiniMax write/TTS/music                    |
 | `ELEVENLABS_API_KEY`     | ElevenLabs TTS/music                       |
 | `ASSEMBLYAI_API_KEY`     | AssemblyAI STT                             |
@@ -94,7 +94,6 @@ Hosted commands require the matching environment variable:
 | `SPEECHIFY_API_KEY`      | Speechify TTS                              |
 | `HUME_API_KEY`           | Hume TTS                                   |
 | `CARTESIA_API_KEY`       | Cartesia TTS                               |
-| `FISH_API_KEY`           | Fish Audio TTS                             |
 | `INWORLD_API_KEY`        | Inworld AI TTS                             |
 | `SONIOX_API_KEY`         | Soniox STT                                 |
 | `SPEECHMATICS_API_KEY`   | Speechmatics STT                           |

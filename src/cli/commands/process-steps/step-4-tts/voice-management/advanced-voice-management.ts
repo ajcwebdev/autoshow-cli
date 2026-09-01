@@ -205,7 +205,6 @@ export const materializeAdvancedVoiceCandidate = async (input: {
     protectedEvidence: evidence,
     requestFingerprint: hashCanonicalTtsValue({ candidateId: candidate.candidateId, registrationDraftId: candidate.registrationDraftId, desiredName: input.desiredName, sourceVoice: input.sourceVoice ?? null, eligibilitySnapshotHash: input.eligibilitySnapshotHash ?? null }),
     now: now(),
-    ...(input.provider.provider === 'fish' ? { providerHandle: input.desiredName } : {}),
   })
   const design = requireDesignPort(input.provider)
   const attempt = await runCrashSafeVoiceProvisioning({
@@ -300,10 +299,10 @@ export const provisionAdvancedVoiceClone = async (input: {
       lockLeaseId: `lease_${crypto.randomUUID().replace(/-/gu, '')}`,
       requestFingerprint: planAdvancedClone({ ...input.request, localAttemptId: attemptId }).requestFingerprint,
       protectedRequestEvidence: evidence,
-      ...(input.provider.provider === 'fish' || input.provider.provider === 'grok' ? {
+      ...(input.provider.provider === 'grok' ? {
         reconciliation: {
           strategy: 'provider-search' as const,
-          providerHandle: input.provider.provider === 'grok' ? grokVoiceAttemptMarker(attemptId) : input.request.desiredName,
+          providerHandle: grokVoiceAttemptMarker(attemptId),
           protectedLookupEvidence: evidence
         }
       } : {}),

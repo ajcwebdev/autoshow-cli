@@ -5,7 +5,7 @@ import type {
   CurrentTtsRenderArtifacts,
   SuccessPublicationInput,
 } from '~/types'
-import { removeContainedDirectory } from './safe-artifact-store'
+import { removeContainedDirectory, removeContainedDirectoryIfEmpty } from './safe-artifact-store'
 import { contained, hasErrorCode, writeJson, writeJsonReplace, writeJsonReuseCompatibleIdentity } from './attempt-io'
 import { stateForProjection } from './attempt-planning'
 import { appendTerminalProjection, publish } from './attempt-projection'
@@ -239,7 +239,7 @@ export const publishCompactCompletion = async (
 
   await removeContainedDirectory(options.outputDir, layout.workDir)
   await removeContainedDirectory(options.outputDir, targetRelativeDir)
-  await removeContainedDirectory(options.outputDir, ctx.artifactRoot)
+  await removeContainedDirectoryIfEmpty(options.outputDir, ctx.artifactRoot)
   const referencedSlotHashes = new Set(input.compactSlots.map((slot) => slot.slotHash))
   const slotEntries = await readDirectoryIfPresent(`${options.outputDir}/${layout.slotsDir}`)
   await Promise.all(slotEntries.map(async (name) => {

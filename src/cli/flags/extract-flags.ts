@@ -8,6 +8,7 @@ import {
   ocrTuningFlags,
   primaryOcrFlag,
   priceFlag,
+  modelCostFilterFlag,
   reasoningEffortFlag,
   sharedConcurrencyFlags,
   transcriptionFlags
@@ -38,5 +39,5 @@ export const extractStep2CommandFlags = {
   ...withHelpGroup(reasoningEffortFlag, 'ocr-document'),
   ...withHelpGroup(articleTuningFlags, 'article-extraction'),
   ...withHelpGroup(batchFlags, 'batch-processing'),
-  ...withHelpGroup(priceFlag, 'pricing')
+  ...withHelpGroup({ ...priceFlag, ...modelCostFilterFlag }, 'pricing')
 } as const satisfies CliFlagsDefinition

@@ -111,11 +111,12 @@ class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
     const existing = this.#states.get(lane.laneKey)
     if (existing) return existing
 
+    const providerLimit = this.#maxLimit
     const state: HostedTtsProviderChunkState = {
       lane,
       provider,
-      maxLimit: this.#maxLimit,
-      currentLimit: this.#maxLimit,
+      maxLimit: providerLimit,
+      currentLimit: providerLimit,
       active: 0,
       jobs: [],
       allJobs: [],

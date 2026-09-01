@@ -12,7 +12,7 @@ bun autoshow voice delete <registration-id> [flags]
 
 `delete` removes the remote provider voice. It only works for a ready voice this project owns. `--confirm-voice-id` is required and must match that exact provider voice ID. If another current registration still uses the same provider voice, [retire](./08-retire.md) or revoke that registration first.
 
-If a previous supported create is still in progress, `delete` finishes it first when the outcome is unambiguous. If a Fish or Grok completion is ambiguous, pass `--reconcile`. Hume deletion additionally requires the exact current remote name as `--expected-name` so the CLI can prove the mutable-name target before deletion.
+If a previous supported create is still in progress, `delete` finishes it first when the outcome is unambiguous. If a Grok completion is ambiguous, pass `--reconcile`. Hume deletion additionally requires the exact current remote name as `--expected-name` so the CLI can prove the mutable-name target before deletion.
 
 ### Options
 

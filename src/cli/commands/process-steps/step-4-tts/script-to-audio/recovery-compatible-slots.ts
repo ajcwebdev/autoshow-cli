@@ -1,16 +1,17 @@
-import { lstat } from 'node:fs/promises'
+import { lstat, readdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import type { AttemptSlot, CompactTargetRender, CurrentTtsPartialRecovery, CurrentTtsReconciliationBlocker, CurrentTtsRecoveredGenerationSlot, CurrentTtsSafeRedispatch, PipelineProviderState, ProviderRenderPlan, PureCurrentTtsRenderPlanOptions, RenderAdmissionJournalSnapshot } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { parseJsonlBytes } from '~/utils/jsonl-reader'
 import { canonicalTtsJson, computePaidSpeechSlotHash, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { validateProviderBatchResult, validateProviderRenderPlanIdentity, validateRenderAdmissionJournalSnapshot } from './contract-validation'
-import { contained, hasErrorCode, readObservedAudio, readVerifiedJson } from './attempt-io'
+import { contained, copyCreateOnly, hasErrorCode, readObservedAudio, readVerifiedJson } from './attempt-io'
 import { withIdentity } from './attempt-shared'
 import { buildPureCurrentTtsRenderPlan, readAudioProjection, requestedOutput } from './attempt-planning'
 import { readContainedArtifactFile } from './safe-artifact-store'
 import { resolveStableTtsArtifactDir, resolveTtsOutputLayout } from './tts-output-layout'
 import { resolveRetainedPath } from './recovery-evidence'
+import { sanitizeModelName } from '~/cli/commands/process-steps/target-runner'
 
 const resolvedPlanTurn = (plan: ProviderRenderPlan, turnId: string) => {
   for (const node of plan.nodes) {
@@ -80,18 +81,20 @@ const paidSpeechSlotHashFor = (
   serializerVersion: slot.expectedSerializerVersion,
 })
 
-const recoverSlotReuseFromExistingWav = async (input: {
+const recoverSlotReuseFromWav = async (input: {
   rootDir: string
-  layout: ReturnType<typeof resolveTtsOutputLayout>
   renderPlanId: string
   renderIdentity: string
   slot: AttemptSlot
   slotHash: string
+  wavPath: string
+  artifactRef: string
+  resultPath: string
+  outputPath: string
   expectedSha256?: string | undefined
   requiresMaterialization: boolean
 }): Promise<CurrentTtsRecoveredGenerationSlot> => {
-  const wavPath = `${input.rootDir}/${input.layout.slotWavPath(input.slotHash)}`
-  const audio = await readObservedAudio(input.rootDir, wavPath)
+  const audio = await readObservedAudio(input.rootDir, input.wavPath)
   const sha256 = sha256Bytes(audio.bytes)
   if (input.expectedSha256 && input.expectedSha256 !== sha256) {
     throw UsageError(`Stored TTS slot ${input.slotHash} no longer matches its archive checksum.`)
@@ -107,7 +110,7 @@ const recoverSlotReuseFromExistingWav = async (input: {
     requestedTurnIds: input.slot.turnIds,
     outputs: [{
       outputId,
-      artifactRef: input.layout.slotWavPath(input.slotHash),
+      artifactRef: input.artifactRef,
       sha256,
       format: audio.format,
       durationMs: audio.durationMs,
@@ -124,11 +127,94 @@ const recoverSlotReuseFromExistingWav = async (input: {
   validateProviderBatchResult(value)
   return {
     value,
-    path: `${input.rootDir}/${input.layout.slotResultPath(input.slotHash)}`,
+    path: input.resultPath,
     sha256: sha256Bytes(`${canonicalTtsJson(value)}\n`),
-    outputPaths: [wavPath],
+    outputPaths: [input.outputPath],
     requiresMaterialization: input.requiresMaterialization,
   }
+}
+
+const recoverSlotReuseFromExistingWav = async (input: {
+  rootDir: string
+  layout: ReturnType<typeof resolveTtsOutputLayout>
+  renderPlanId: string
+  renderIdentity: string
+  slot: AttemptSlot
+  slotHash: string
+  expectedSha256?: string | undefined
+  requiresMaterialization: boolean
+}): Promise<CurrentTtsRecoveredGenerationSlot> => {
+  const artifactRef = input.layout.slotWavPath(input.slotHash)
+  const wavPath = `${input.rootDir}/${artifactRef}`
+  return await recoverSlotReuseFromWav({
+    ...input,
+    wavPath,
+    artifactRef,
+    resultPath: `${input.rootDir}/${input.layout.slotResultPath(input.slotHash)}`,
+    outputPath: wavPath
+  })
+}
+
+export const recoverInterruptedTtsWorkspaceSlots = async (
+  options: PureCurrentTtsRenderPlanOptions & {
+    rootDir: string
+    artifactRoot?: string | undefined
+    excludeGenerationSlotIds?: ReadonlySet<string> | undefined
+    materialize?: boolean | undefined
+  }
+): Promise<CurrentTtsRecoveredGenerationSlot[]> => {
+  const pure = buildPureCurrentTtsRenderPlan(options)
+  if (pure.planned.strategy !== 'segmented' || pure.planned.turns.length !== 1) return []
+  const workspaceDir = resolve(
+    options.rootDir,
+    `.tts-tmp-${options.target.service}-${sanitizeModelName(options.target.model)}`
+  )
+  let names: string[]
+  try {
+    names = await readdir(workspaceDir)
+  } catch (error) {
+    if (hasErrorCode(error, 'ENOENT')) return []
+    throw error
+  }
+  const escapedProvider = options.target.service.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const pattern = new RegExp(`^speech-${escapedProvider}-chunk-(\\d+)\\.[^.]+$`)
+  const namesByChunkIndex = new Map<number, string[]>()
+  for (const name of names) {
+    const match = pattern.exec(name)
+    if (!match?.[1]) continue
+    const chunkIndex = Number.parseInt(match[1], 10)
+    if (!Number.isSafeInteger(chunkIndex) || chunkIndex <= 0) continue
+    namesByChunkIndex.set(chunkIndex, [...(namesByChunkIndex.get(chunkIndex) ?? []), name])
+  }
+  const layout = resolveTtsOutputLayout(
+    options.artifactRoot ?? (options.comicContext ? 'audio/providers' : 'providers'),
+    pure.targetKey,
+    pure.renderIdentity
+  )
+  const recovered: CurrentTtsRecoveredGenerationSlot[] = []
+  for (const [chunkIndex, candidates] of [...namesByChunkIndex].sort(([left], [right]) => left - right)) {
+    if (candidates.length !== 1) continue
+    const slot = pure.planned.slots[chunkIndex - 1]
+    if (!slot || options.excludeGenerationSlotIds?.has(slot.generationSlotId)) continue
+    const slotHash = paidSpeechSlotHashFor(options, pure.planned, slot)
+    const artifactRef = layout.slotWavPath(slotHash)
+    const tempPath = resolve(workspaceDir, candidates[0] as string)
+    const slotPath = `${options.rootDir}/${artifactRef}`
+    if (options.materialize !== false) await copyCreateOnly(options.rootDir, tempPath, slotPath)
+    recovered.push(await recoverSlotReuseFromWav({
+      rootDir: options.rootDir,
+      renderPlanId: pure.renderPlanId,
+      renderIdentity: pure.renderIdentity,
+      slot,
+      slotHash,
+      wavPath: options.materialize === false ? tempPath : slotPath,
+      artifactRef,
+      resultPath: `${options.rootDir}/${layout.slotResultPath(slotHash)}`,
+      outputPath: options.materialize === false ? tempPath : slotPath,
+      requiresMaterialization: true
+    }))
+  }
+  return recovered
 }
 
 

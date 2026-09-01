@@ -31,18 +31,17 @@ describe('Phase 4 capability fixtures', () => {
     expect(SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE.records.find(record => record.scope.feature === 'instant-clone')).toEqual(expect.objectContaining({ adapterSupport: 'planned' }))
   })
 
-  test('public routing exposes MiniMax, Grok, Mistral, Hume, and DeepInfra without provider calls', () => {
+  test('public routing exposes MiniMax, Grok, Mistral, and Hume without provider calls', () => {
     const credentials = {
       MINIMAX_API_KEY: 'minimax-key',
       XAI_API_KEY: 'xai-key',
       MISTRAL_API_KEY: 'mistral-key',
       HUME_API_KEY: 'hume-key',
-      DEEPINFRA_API_KEY: 'deepinfra-key',
     } as const
     const prior = Object.fromEntries(Object.keys(credentials).map(key => [key, process.env[key]]))
     Object.assign(process.env, credentials)
     try {
-      for (const provider of ['minimax', 'grok', 'mistral', 'hume', 'deepinfra'] as const) {
+      for (const provider of ['minimax', 'grok', 'mistral', 'hume'] as const) {
         const routed = advancedProvider(provider)
         expect(routed.provider).toBe(provider)
         expect(routed.catalog).toBeDefined()

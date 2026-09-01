@@ -98,17 +98,13 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
         elevenLabsApiKey: resolveCredential('elevenlabs', 'require', { stage: 'voice:elevenlabs', description: 'ElevenLabs instant voice clone' }),
         resolveElevenLabsProtectedAsset: resolveProtectedAsset,
       })
-    : provider === 'fish'
-      ? advancedProvider('fish', { resolveFishProtectedAsset: resolveProtectedAsset })
-      : provider === 'cartesia'
+    : provider === 'cartesia'
         ? advancedProvider('cartesia', { resolveCartesiaProtectedAsset: resolveProtectedAsset })
         : provider === 'minimax'
           ? advancedProvider('minimax', { resolveMiniMaxProtectedAsset: resolveDurationProtectedAsset })
           : provider === 'grok'
             ? advancedProvider('grok', { resolveGrokProtectedAsset: resolveDurationProtectedAsset })
-            : provider === 'deepinfra'
-              ? advancedProvider('deepinfra', { resolveDeepinfraProtectedAsset: resolveProtectedAsset })
-              : advancedProvider('inworld', {
+            : advancedProvider('inworld', {
               inworldApiKey: resolveCredential('inworld', 'require', { stage: 'voice:inworld', description: 'Inworld instant voice clone' }),
               resolveInworldProtectedAsset: resolveProtectedAsset,
             })

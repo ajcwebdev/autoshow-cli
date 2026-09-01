@@ -7,22 +7,36 @@ import { normalizeDialogueSpeakerKey } from '../../dialogue-normalizer'
 import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '../../voice-assets/mistral-request-reference-policy'
 import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
 
+const MISTRAL_PRICE_PLANNING_VOICE = 'price-planning-placeholder'
+
 export const collectMistralTtsTargets = (
   selection: TtsTargetSelection,
   protectedReference?: MistralProtectedReferenceBinding | undefined,
-  protectedSpeakerReferences?: MistralProtectedSpeakerReferenceBinding | undefined
+  protectedSpeakerReferences?: MistralProtectedSpeakerReferenceBinding | undefined,
+  context: {
+    pricePlanning?: boolean | undefined
+    skipMissingVoice?: boolean | undefined
+  } = {}
 ): TtsTarget[] => {
   const targets: TtsTarget[] = []
   for (const rawModel of selection.mistralModels) {
     const model: MistralTtsModel = validateMistralTtsModel(rawModel)
     const voiceId = selection.mistralVoiceId
+    const pricePlanningOnly = context.pricePlanning === true
+      && !voiceId
+      && !protectedReference
+      && !protectedSpeakerReferences
+      && !selection.multiSpeakerRequested
     if (voiceId && (protectedReference || protectedSpeakerReferences)) {
       throw UsageError('Mistral TTS requires exactly one voice source. Use either --mistral-tts-voice or --mistral-tts-ref-audio, not both.')
     }
     if (protectedReference && protectedSpeakerReferences) {
       throw UsageError('Standalone Mistral reference audio cannot be combined with per-speaker dialogue references.')
     }
-    if (!voiceId && !protectedReference && !selection.multiSpeakerRequested) {
+    if (!voiceId && !protectedReference && !selection.multiSpeakerRequested && context.skipMissingVoice === true && !pricePlanningOnly) {
+      continue
+    }
+    if (!voiceId && !protectedReference && !selection.multiSpeakerRequested && !pricePlanningOnly) {
       throw UsageError(
         'Mistral TTS synthesis requires an existing voice ID or an explicitly authorized unnamed request reference.',
         'Pass --mistral-tts-voice with an existing voice, or use standalone --mistral-tts-ref-audio so the reference crosses protected ingestion before target collection.'
@@ -43,8 +57,13 @@ export const collectMistralTtsTargets = (
         ? { voice: voiceId }
         : protectedReference
           ? { voice: `ref_audio:${protectedReference.protectedAsset.assetId}` }
+          : pricePlanningOnly
+            ? { voice: MISTRAL_PRICE_PLANNING_VOICE }
           : {}),
       run: async (text, outputDir, opts, invocation, requestEvidence) => {
+        if (pricePlanningOnly) {
+          throw InternalError('A price-only Mistral TTS planning target cannot execute synthesis.', { stage: 'tts:mistral' })
+        }
         const invocationVoice = resolveTtsTargetInvocationVoice('mistral', invocation)
         const controls = resolveTtsTargetInvocationControls('mistral', invocation, {
           responseFormat: 'wav',

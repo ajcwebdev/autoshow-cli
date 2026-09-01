@@ -70,6 +70,7 @@ On `extract` and `resume`, pass `--provider provider[=model]`. On `config`, pass
 | `--stt-preflight-concurrency <n>`     | Max media-duration probes running in parallel during preflight; default `7`                                                                                                      |
 | `--concurrency-mode <ramp|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--price`                             | Show the aggregated estimate and exit                                                                                                                                             |
+| `--max-model-cents <n>`               | Exclude each provider/model whose estimated total across the invocation exceeds the per-model ceiling in cents; works with or without `--price`                                  |
 
 See [Provider Capabilities](#provider-capabilities) for the per-model release date, diarization, speaker-count, word-timestamp, cleanup, duration, and file-size matrix.
 

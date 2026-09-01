@@ -5,12 +5,11 @@ import { UsageError } from '~/utils/error-handler'
 import { concatAndConvertToWav, createSilenceWav, filterAudioToWav, mixAudioToWav, splitTextIntoChunks } from '../tts-utils/audio-utils'
 import { resolveTtsChunkCharacterLimit, TTS_CHUNK_CHARACTER_LIMITS } from '../tts-utils/tts-chunking'
 import { prepareElevenLabsDialogueText } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
-import { prepareFishDialogueText } from '../tts-services/fish/fish-tts-request'
-import { prepareDeepinfraChatterboxText } from '../tts-services/tts-deepinfra/deepinfra-text-preparation'
 import { PREPARATION_VERSION } from './attempt-shared'
 import { inspectSoundscapeAudio } from '../soundscape/soundscape-audio'
 export const chunkLimit = (target: TtsTarget): number =>
-  resolveTtsChunkCharacterLimit(target.service, target.model)
+  target.chunkCharacterLimit
+    ?? resolveTtsChunkCharacterLimit(target.service, target.model)
     ?? TTS_CHUNK_CHARACTER_LIMITS[target.service]
     ?? 2000
 
@@ -30,11 +29,7 @@ export const prepareSegmentedTurnText = (
   delivery?: string | undefined
 ) => target.service === 'elevenlabs' && target.model === 'eleven_v3'
   ? prepareElevenLabsDialogueText(text, delivery)
-  : target.service === 'fish'
-    ? prepareFishDialogueText(text, delivery, target.model)
-    : target.service === 'deepinfra' && target.model === 'ResembleAI/chatterbox-turbo'
-      ? prepareDeepinfraChatterboxText(text)
-      : preparedText(text)
+  : preparedText(text)
 
 export const serializesComicDelivery = (
   target: Pick<TtsTarget, 'service' | 'model'>,

@@ -164,14 +164,12 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'deepinfra',
     envVar: 'DEEPINFRA_API_KEY',
-    label: 'DeepInfra STT/OCR/TTS',
+    label: 'DeepInfra STT/OCR',
     hintUrl: 'https://deepinfra.com/',
-    stages: ['stt', 'ocr', 'tts', 'voice'],
-    ttsPreflight: { provider: 'deepinfra', label: 'DeepInfra TTS' },
+    stages: ['stt', 'ocr'],
     configPaths: [
       'defaults.extract.stt.deepinfraStt',
-      'defaults.extract.ocr.deepinfraOcr',
-      'defaults.tts.deepinfraTts'
+      'defaults.extract.ocr.deepinfraOcr'
     ]
   },
   {
@@ -254,15 +252,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     ttsPreflight: { provider: 'cartesia', label: 'Cartesia TTS' },
     liveProbe: 'voice-catalog',
     configPaths: ['defaults.tts.cartesiaTts']
-  },
-  {
-    providerId: 'fish',
-    envVar: 'FISH_API_KEY',
-    label: 'Fish Audio TTS',
-    hintUrl: 'https://fish.audio/',
-    stages: ['tts', 'voice'],
-    ttsPreflight: { provider: 'fish', label: 'Fish Audio TTS' },
-    configPaths: ['defaults.tts.fishTts']
   },
   {
     providerId: 'inworld',

@@ -69,8 +69,6 @@ jobs:
             test/test-cases/validation/runtime-contracts/bun-version-alignment-contracts.test.ts \
             test/test-cases/validation/runtime-contracts/maintenance-environment-contracts.test.ts \
             test/test-cases/validation/media-generation/inworld-tts-websocket-adapter.test.ts \
-            test/test-cases/validation/media-generation/fish-tts-adapter-contracts.test.ts \
-            test/test-cases/validation/media-generation/fish-tts-timing-contracts.test.ts \
             test/test-cases/validation/comic/comic-audio-execution-publication-contracts.test.ts \
             test/test-cases/validation/comic/comic-image-composition-contracts.test.ts \
             test/test-cases/validation/extract-stt/async-stt-lifecycle-adoption-contracts.test.ts \

@@ -17,6 +17,7 @@ import { createCurrentTtsRenderAttempt, planCurrentTtsRenderIdentity, planCurren
 import { createCurrentTtsBlockedReadinessState } from './script-to-audio/current-readiness-attempt'
 import { buildWorkingTtsResult } from './working-tts-result'
 import { sanitizeError } from './script-to-audio/attempt-planning-shared'
+import { runWithTtsConfigLogScope } from './tts-utils/log-tts-config'
 
 const getMetadataAudioPath = (outputDir: string, metadata: Step4Metadata): string =>
   `${outputDir}/${metadata.audioFileName}`
@@ -62,20 +63,30 @@ const describeFailedTtsRecovery = async (options: {
 
 const selectBoundedExecutionOptions = (
   options: TtsOptions,
-  selection: readonly { turnId: string, providerSegmentIndex: number, providerText: string }[] | undefined
+  selection: readonly { turnId: string, sourceIndex: number, speaker: string, providerSegmentIndex: number, providerText: string }[] | undefined
 ): TtsOptions => {
   if (!selection) return options
   const selectedByTurn = new Map<string, typeof selection>()
   for (const entry of selection) selectedByTurn.set(entry.turnId, [...(selectedByTurn.get(entry.turnId) ?? []), entry])
-  const selectedTurns = options.ttsCanonicalTurns?.flatMap((turn) => {
-    const entries = selectedByTurn.get(turn.turnId)
-    if (!entries?.length) return []
-    return [{
-      ...turn,
-      providerSegments: entries.map((entry) => entry.providerText),
-      providerSegmentIndexes: entries.map((entry) => entry.providerSegmentIndex)
-    }]
-  })
+  const selectedTurns = options.ttsCanonicalTurns
+    ? options.ttsCanonicalTurns.flatMap((turn) => {
+        const entries = selectedByTurn.get(turn.turnId)
+        if (!entries?.length) return []
+        return [{
+          ...turn,
+          sourceIndex: entries[0]?.sourceIndex,
+          providerSegments: entries.map((entry) => entry.providerText),
+          providerSegmentIndexes: entries.map((entry) => entry.providerSegmentIndex)
+        }]
+      })
+    : [...selectedByTurn].map(([turnId, entries]) => ({
+        turnId,
+        sourceIndex: entries[0]?.sourceIndex,
+        speaker: entries[0]?.speaker ?? 'NARRATOR',
+        text: entries.map((entry) => entry.providerText).join(' '),
+        providerSegments: entries.map((entry) => entry.providerText),
+        providerSegmentIndexes: entries.map((entry) => entry.providerSegmentIndex),
+      }))
   if (!selectedTurns?.length) throw UsageError('Bounded TTS execution did not select any canonical dialogue turns.')
   const selectedTurnIds = new Set(selectedTurns.map(turn => turn.turnId))
   const selectedTurnControls = options.ttsTurnControls
@@ -111,6 +122,7 @@ const selectSingleSpeakerExecutionOptions = (
     ttsSpeakers: [...voicesBySpeaker].map(([speaker, voice]) => `${speaker}=${voice}`),
     ttsCanonicalTurns: selection.map((entry) => ({
       turnId: entry.turnId,
+      sourceIndex: entry.sourceIndex,
       speaker: entry.speaker,
       text: entry.providerText,
       providerSegments: [entry.providerText],
@@ -374,8 +386,11 @@ const runPreparedTtsTarget = async (input: {
       hostedTtsChunkJobContext: schedulerJob,
       hostedTtsChunkScheduler: bindHostedTtsChunkScheduler(boundedOptions.hostedTtsChunkScheduler, { job: schedulerJob, scopeLabel: boundedOptions.hostedTtsLaneScopeLabel }),
     } : boundedOptions
+    const recoveryTarget = singleSpeakerSelection && target.multiSpeakerStrategy === 'native'
+      ? { ...target, multiSpeakerStrategy: 'segment-and-concat' as const }
+      : target
     const { audioPath, metadata: rawMetadata } = singleSpeakerSelection
-      ? await runMultiSpeakerTts(input.text, input.workspaceDir, target, executionOptions, attempt.requestEvidence)
+      ? await runMultiSpeakerTts(input.text, input.workspaceDir, recoveryTarget, executionOptions, attempt.requestEvidence)
       : await target.run(input.text, input.workspaceDir, executionOptions, undefined, attempt.requestEvidence)
     providerRunCompleted = true
     const { _ttsObservedTurns: _ignoredTurns, _ttsRenderStrategy: _ignoredStrategy, ...metadata } = rawMetadata as WorkingTtsMetadata
@@ -402,7 +417,7 @@ export const runTtsTargets = async (
   outputDir: string,
   rawOptions: TtsOptions,
   sourceContext?: TtsRunSourceContext | undefined
-): Promise<Step4Metadata[]> => {
+): Promise<Step4Metadata[]> => await runWithTtsConfigLogScope(async () => {
   validateTtsRenderInputsForTargets(targets, text, rawOptions, sourceContext)
   const readiness = await resolveExecutionReadinessForRun(targets, sourceContext)
   if (readiness.blocked.length > 0) await persistBlockedReadiness({ targets, text, outputDir, options: rawOptions, sourceContext, readiness })
@@ -435,7 +450,7 @@ export const runTtsTargets = async (
       return metadata as Step4Metadata
     },
   })
-}
+})
 
 export const runTts = async (
   text: string,

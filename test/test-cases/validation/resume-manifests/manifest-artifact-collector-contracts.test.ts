@@ -22,6 +22,12 @@ const ARTIFACT_HASHES = {
 } as const
 
 const artifactCollectorProjection = (): Record<string, unknown> => ({
+  selectedSuccess: {
+    renderIdentity: 'render-1',
+    eventSequence: 3,
+    resultIdentity: 'result-1',
+    audioRunId: 'audio-run-1'
+  },
   branchHistory: [{
     branchPlanId: 'branch-1',
     branchPlanRef: 'branch-plan.json',
@@ -242,10 +248,11 @@ describe('manifest validator agreement harness', () => {
           context: { renderDir: 'renders/render-1' }
         },
         {
-          path: 'shared/batch-result.json',
+          path: 'renders/render-1/shared/batch-result.json',
           sha256: ARTIFACT_HASHES.reusedBatchResult,
-          scope: 'run-root',
+          scope: 'provider-artifact',
           kind: 'provider-batch-result',
+          expectedJsonFields: { batchResultId: 'batch-result-2' },
           context: { renderDir: 'renders/render-1' }
         },
         {

@@ -33,10 +33,11 @@ export const buildTtsArtifactMap = (
 
 export const buildEstimatedTtsTargets = (
   targets: TtsTarget[]
-): Array<{ service: Step4Metadata['ttsService'], model: string, setupCostCents?: number, setupTimeMs?: number, setupNote?: string }> =>
+): Array<{ service: Step4Metadata['ttsService'], model: string, setupCostCents?: number, setupTimeMs?: number, setupNote?: string, chunkCharacterLimit?: number }> =>
   targets.map((target) => ({
     service: target.service,
     model: target.model,
+    ...(typeof target.chunkCharacterLimit === 'number' ? { chunkCharacterLimit: target.chunkCharacterLimit } : {}),
     ...(typeof target.setupCostCents === 'number' ? { setupCostCents: target.setupCostCents } : {}),
     ...(typeof target.setupTimeMs === 'number' ? { setupTimeMs: target.setupTimeMs } : {}),
     ...(typeof target.setupNote === 'string' ? { setupNote: target.setupNote } : {})

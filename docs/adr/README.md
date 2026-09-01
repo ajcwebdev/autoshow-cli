@@ -92,7 +92,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 13: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Establishes shared character-voice, provisioning, capability, native/segmented rendering, timing, compact scene-run output retention, hosted dialogue scheduling, and ambiguous-redispatch contracts; requires truthful capability behavior across TTS providers; and provides durable voice management for current ElevenLabs, Inworld, Fish, Cartesia, and Speechify models.
+- **Decision:** Establishes shared character-voice, provisioning, capability, native/segmented rendering, timing, compact scene-run output retention, hosted dialogue scheduling, and ambiguous-redispatch contracts; requires truthful capability behavior across TTS providers; and provides durable voice management contracts. Fish examples in the decision are historical because Fish support was removed on 2026-09-01.
 - **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md), [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md)
 
 **ADR 14: [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)**

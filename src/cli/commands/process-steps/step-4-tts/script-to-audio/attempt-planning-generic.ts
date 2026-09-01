@@ -4,7 +4,6 @@ import { splitTextIntoChunks } from '../tts-utils/audio-utils'
 import { getSpeakerVoice, isMultiSpeakerRequested, normalizeDialogueFromOptions, parseSpeakerVoiceMappings } from '../dialogue-normalizer'
 import { planElevenLabsNativeDialogueBatches } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
 import { planHumeNativeUtteranceBatches } from '../tts-services/hume/hume-native-utterances'
-import { isFishNativeDialogueModel, planFishNativeDialogueBatches } from '../tts-services/fish/fish-tts-request'
 import { createTtsTargetSelection } from '../tts-targets/tts-target-selection'
 import { normalizeTtsTurnControls, resolveTtsTurnControlOverrides } from '../tts-targets/tts-invocation-controls'
 import { createGenericTtsDialoguePlan, createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from './generic-dialogue-plan'
@@ -65,17 +64,13 @@ export const resolveGenericNativeGroups = (
   turns: AttemptTurn[],
   registry: ReturnType<typeof parseSpeakerVoiceMappings>,
   elevenLabsNative: boolean,
-  humeNative: boolean,
-  fishNative: boolean
+  humeNative: boolean
 ): Array<{ turnIds: string[], providerTexts: string[] }> => {
   if (elevenLabsNative) {
     return planElevenLabsNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: getSpeakerVoice(registry, turn.canonical.originalSpeakerLabel).voice }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
   }
   if (humeNative) {
     return planHumeNativeUtteranceBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: getSpeakerVoice(registry, turn.canonical.originalSpeakerLabel).voice }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
-  }
-  if (fishNative) {
-    return planFishNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: getSpeakerVoice(registry, turn.canonical.originalSpeakerLabel).voice, delivery: turn.canonical.delivery?.description }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
   }
   return []
 }
@@ -112,13 +107,12 @@ export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions,
   const hasNativeBlockingIntent = canonicalTurns.some(turn => turn.delivery !== undefined || turn.effect !== undefined)
   const elevenLabsNative = options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3' && registry !== undefined && !hasProviderTurnControls && !hasNativeBlockingIntent
   const humeNative = options.target.service === 'hume' && options.target.model === 'octave-2' && registry !== undefined && !hasProviderTurnControls && !hasNativeBlockingIntent && canonicalTurns.reduce((sum, turn) => sum + [...turn.canonicalText].length, 0) <= 5000
-  const fishNative = options.target.service === 'fish' && isFishNativeDialogueModel(options.target.model) && registry !== undefined && !hasProviderTurnControls
-  const native = elevenLabsNative || humeNative || fishNative
+  const native = elevenLabsNative || humeNative
   const strategy: ProviderRenderStrategy = native ? humeNative ? 'native-utterances' : 'native-dialogue' : 'segmented'
   const limit = chunkLimit(options.target)
 
   const nativeGroups = native && registry
-    ? resolveGenericNativeGroups(turns, registry, elevenLabsNative, humeNative, fishNative)
+    ? resolveGenericNativeGroups(turns, registry, elevenLabsNative, humeNative)
     : []
   const slotGroups: Array<{ turnIds: string[], providerTexts: string[] }> = native
     ? nativeGroups

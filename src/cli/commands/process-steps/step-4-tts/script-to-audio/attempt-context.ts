@@ -256,16 +256,23 @@ const createInitialProjection = (
 const buildExecutionSelection = (
   required: boolean,
   attemptSlots: AttemptSlot[],
+  allSlots: AttemptSlot[],
   turns: AttemptTurn[]
 ) => !required ? undefined : attemptSlots.map(slot => {
   if (slot.turnIds.length !== 1) throw UsageError('Selected segmented execution requires each generation slot to bind exactly one dialogue turn.')
   const turnId = slot.turnIds[0] as string
   const turn = turns.find((candidate) => candidate.canonical.turnId === turnId)
   if (!turn) throw UsageError(`Selected segmented execution cannot resolve dialogue turn ${turnId}.`)
+  const sourceIndex = turns.findIndex((candidate) => candidate.canonical.turnId === turnId)
+  const providerSegmentIndex = allSlots
+    .filter((candidate) => candidate.turnIds.includes(turnId))
+    .findIndex((candidate) => candidate.generationSlotId === slot.generationSlotId)
+  if (sourceIndex < 0 || providerSegmentIndex < 0) throw UsageError(`Selected segmented execution cannot locate generation slot ${slot.generationSlotId}.`)
   return {
     generationSlotId: slot.generationSlotId,
     turnId,
-    providerSegmentIndex: slot.slotIndex,
+    sourceIndex,
+    providerSegmentIndex,
     providerText: slot.providerText,
     speaker: turn.canonical.originalSpeakerLabel,
     ...(turn.voice.value ? { voice: turn.voice.value } : {})
@@ -320,6 +327,7 @@ export const createAttemptContext = async (
       execution.requestedSlotLimit !== undefined
         || (execution.recoveredBySlot.size > 0 && execution.attemptSlots.length > 0),
       execution.attemptSlots,
+      purePlan.planned.slots,
       purePlan.planned.turns
     ),
     executionCheckpointRequired: execution.requestedSlotLimit !== undefined,

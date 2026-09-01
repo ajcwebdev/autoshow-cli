@@ -158,6 +158,29 @@ describe('ADR-013 compact archive contracts', () => {
     })
   })
 
+  test('compacting one TTS target never deletes a peer provider directory', async () => {
+    await withTempDir('autoshow-compact-archive-peer-', async (dir) => {
+      const sourceText = 'Keep peer provider work intact.'
+      const sourceIdentity = createInlineTtsSourceIdentity(sourceText)
+      const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, sourceText)
+      const peerFile = join(dir, 'audio', 'providers', 'peer-target', 'retained.json')
+      await mkdir(join(dir, 'audio', 'providers', 'peer-target'), { recursive: true })
+      await Bun.write(peerFile, '{"retained":true}\n')
+
+      await runTtsForTargets(sourceText, dir, {}, [createFixtureTarget([])], {
+        sourceIdentity,
+        dialoguePlan,
+        artifactRoot: 'audio/providers',
+        resolveReportedOutput: (target) => ({
+          path: join(dir, 'audio', 'final', `${target.targetKey}.wav`),
+          fileName: `audio/final/${target.targetKey}.wav`,
+        }),
+      })
+
+      expect(await Bun.file(peerFile).text()).toBe('{"retained":true}\n')
+    })
+  })
+
   test('a leftover audio/providers tree cannot satisfy a current generation slot', async () => {
     await withTempDir('autoshow-compact-archive-legacy-', async (dir) => {
       const sourceText = 'Legacy providers must not resume.'

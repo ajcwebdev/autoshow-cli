@@ -12,9 +12,7 @@ export const TTS_CHUNK_CHARACTER_LIMITS = {
   hume: 2000,
   grok: 2000,
   minimax: 2000,
-  fish: 2000,
   inworld: 2000,
-  deepinfra: 2000,
 } as const satisfies Record<TtsProvider, number | undefined>
 
 export const resolveTtsChunkCharacterLimit = (
@@ -93,6 +91,7 @@ export const estimateTtsSynthesisProcessingTimeMs = (
     characterCount: number
     msPer1KChars: number
     setupTimeMs?: number | undefined
+    chunkCharacterLimit?: number | undefined
     chunkConcurrency?: number | undefined
     concurrencyMode?: HostedConcurrencyMode | undefined
   }
@@ -101,7 +100,7 @@ export const estimateTtsSynthesisProcessingTimeMs = (
     ? Math.max(0, input.setupTimeMs)
     : 0
   const normalizedCharacterCount = Math.max(0, Math.floor(input.characterCount))
-  const chunkLimit = resolveTtsChunkCharacterLimit(input.provider, input.model)
+  const chunkLimit = input.chunkCharacterLimit ?? resolveTtsChunkCharacterLimit(input.provider, input.model)
 
   if (chunkLimit === undefined) {
     return setupTimeMs + (normalizedCharacterCount / 1000) * input.msPer1KChars

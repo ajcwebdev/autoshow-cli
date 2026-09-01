@@ -21,7 +21,6 @@ export type TtsVoiceMatrixEnvKey =
   | 'XAI_API_KEY'
   | 'MINIMAX_API_KEY'
   | 'INWORLD_API_KEY'
-  | 'FISH_API_KEY'
   | 'DEEPINFRA_API_KEY'
 
 export type VoiceMatrixCase = {

@@ -1,4 +1,4 @@
-import type { BatchRuntimeOptions, HostedConcurrencyRuntimeOptions } from '~/types'
+import type { BatchRuntimeOptions, HostedConcurrencyRuntimeOptions, ModelCostFilterRuntimeOptions } from '~/types'
 
 export type SttRuntimeOptions = {
   whisperModels: string[] | undefined
@@ -28,7 +28,7 @@ export type SttRuntimeOptions = {
   split: boolean
 }
 
-export type SttExtractionOptions = SttRuntimeOptions & HostedConcurrencyRuntimeOptions & Pick<BatchRuntimeOptions, 'batchConcurrency'> & {
+export type SttExtractionOptions = SttRuntimeOptions & HostedConcurrencyRuntimeOptions & ModelCostFilterRuntimeOptions & Pick<BatchRuntimeOptions, 'batchConcurrency'> & {
   outputRootDir: string
   youtubeCaptions: boolean
   step2SelectionOrigins: Partial<Record<string, 'default' | 'explicit' | 'all-shortcut'>>

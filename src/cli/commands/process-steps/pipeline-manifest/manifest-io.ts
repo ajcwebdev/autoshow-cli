@@ -27,18 +27,20 @@ import {
   parseManifestItem
 } from './manifest-parse'
 import { assertAppendOnlyAudioProjection, assertAppendOnlyManifestAudioState } from './audio-projection-structure'
-import { verifyManifestProjectionArtifacts } from './projection-artifact-graph'
+import { verifyManifestProjectionArtifacts, verifyManifestUpdateProjectionArtifacts } from './projection-artifact-graph'
 
 export const PIPELINE_MANIFEST_FILE = 'manifest.json'
 
 const invalidManifestError = (
   manifestPath: string,
   reason?: 'structure' | 'artifact-graph'
-): Error =>
-  UsageError(`Invalid canonical manifest at ${manifestPath}${reason ? ` (${reason})` : ''}. Re-run the pipeline to regenerate this output.`)
+): Error => reason === 'artifact-graph'
+  ? UsageError(`Invalid canonical manifest at ${manifestPath} (artifact-graph). One or more referenced artifacts are missing or changed. If another process is writing this run, wait for it to finish and retry; otherwise resume the output to recover retained work. Do not delete the output directory.`)
+  : UsageError(`Invalid canonical manifest at ${manifestPath}${reason ? ` (${reason})` : ''}. Re-run the pipeline to regenerate this output.`)
 
 const readManifestUnlocked = async (
-  rootDir: string
+  rootDir: string,
+  verifyArtifacts = true
 ): Promise<PipelineManifest | undefined> => {
   const manifestPath = join(rootDir, PIPELINE_MANIFEST_FILE)
   if (!await Bun.file(manifestPath).exists()) {
@@ -53,8 +55,30 @@ const readManifestUnlocked = async (
   }
   const manifest = parseManifest(rootDir, raw)
   if (!manifest) throw invalidManifestError(manifestPath, 'structure')
-  if (!await verifyManifestProjectionArtifacts(rootDir, manifest)) throw invalidManifestError(manifestPath, 'artifact-graph')
+  if (verifyArtifacts && !await verifyManifestProjectionArtifacts(rootDir, manifest)) throw invalidManifestError(manifestPath, 'artifact-graph')
   return manifest
+}
+
+const hasConcurrentProviderWork = (manifest: PipelineManifest): boolean =>
+  manifest.items.some((item) => item.providers.some((provider) =>
+    provider.status === 'running' || provider.status === 'missing'
+  ))
+
+const verifyManifestProjectionArtifactsForWrite = async (
+  rootDir: string,
+  manifest: PipelineManifest,
+  previous?: PipelineManifest | undefined,
+  updateOnly = false
+): Promise<boolean> => {
+  const maxAttempts = hasConcurrentProviderWork(manifest) ? 3 : 1
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const valid = updateOnly && previous
+      ? await verifyManifestUpdateProjectionArtifacts(rootDir, previous, manifest)
+      : await verifyManifestProjectionArtifacts(rootDir, manifest)
+    if (valid) return true
+    if (attempt < maxAttempts) await Bun.sleep(100)
+  }
+  return false
 }
 
 const manifestQueues = new Map<string, Promise<void>>()
@@ -85,7 +109,8 @@ const withManifestLock = async <T>(
 const writeManifestUnlocked = async (
   rootDir: string,
   manifest: PipelineManifest,
-  previous?: PipelineManifest | undefined
+  previous?: PipelineManifest | undefined,
+  updateOnly = false
 ): Promise<PipelineManifest> => {
   const manifestPath = join(rootDir, PIPELINE_MANIFEST_FILE)
   const next = {
@@ -94,8 +119,8 @@ const writeManifestUnlocked = async (
   }
   const parsed = parseManifest(rootDir, next)
   if (!parsed) throw invalidManifestError(manifestPath, 'structure')
-  if (!await verifyManifestProjectionArtifacts(rootDir, parsed)) throw invalidManifestError(manifestPath, 'artifact-graph')
   if (previous) assertAppendOnlyManifestAudioState(previous, parsed)
+  if (!await verifyManifestProjectionArtifactsForWrite(rootDir, parsed, previous, updateOnly)) throw invalidManifestError(manifestPath, 'artifact-graph')
 
   const tempPath = join(rootDir, `.${PIPELINE_MANIFEST_FILE}.${process.pid}.${crypto.randomUUID()}.tmp`)
   try {
@@ -116,7 +141,7 @@ export const writeManifest = async (
   manifest: PipelineManifest
 ): Promise<PipelineManifest> =>
   await withManifestLock(rootDir, async () => {
-    const current = await readManifestUnlocked(rootDir)
+    const current = await readManifestUnlocked(rootDir, false)
     return await writeManifestUnlocked(rootDir, manifest, current)
   })
 
@@ -125,11 +150,11 @@ export const updateManifest = async (
   update: (manifest: PipelineManifest) => PipelineManifest | Promise<PipelineManifest>
 ): Promise<PipelineManifest> =>
   await withManifestLock(rootDir, async () => {
-    const current = await readManifestUnlocked(rootDir)
+    const current = await readManifestUnlocked(rootDir, false)
     if (!current) {
       throw UsageError(`Missing canonical manifest at ${join(rootDir, PIPELINE_MANIFEST_FILE)}`)
     }
-    return await writeManifestUnlocked(rootDir, await update(current), current)
+    return await writeManifestUnlocked(rootDir, await update(current), current, true)
   })
 
 export const createManifest = (

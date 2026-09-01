@@ -10,6 +10,7 @@ import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/comp
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { evaluatePreflightEstimate } from '~/cli/commands/pricing-orchestration/preflight'
 import type { AggregatedPriceEstimate, PipelineItemRecord, PipelineProviderState, PreparedTtsInput, PreparedTtsRun, StandaloneTtsCommandOptions, Step4Metadata, TtsExecutionReadinessObservation, TtsOptions, TtsRunSourceContext, TtsTarget } from '~/types'
+import { configureModelCostFilter, filterModelCostTargets } from '~/cli/commands/pricing-orchestration/model-cost-filter'
 import { UsageError, hasErrorCode } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
@@ -18,7 +19,7 @@ import { runTtsForTargets, validateTtsRenderInputsForTargets } from './run-tts'
 import { buildEstimatedTtsTargets, buildTtsArtifactMap, collectTtsTargets, getTtsArtifactFileName, mergeTtsExecutionReadinessObservations, validateTtsTargetsForExecution } from './tts-targets'
 import { materializeStandaloneMistralReference } from './voice-assets/standalone-mistral-reference'
 import { hasMistralProtectedReferences } from './voice-assets/mistral-protected-reference-binding'
-import { appendCurrentTtsProviderState } from './script-to-audio/current-render-artifacts'
+import { appendCurrentTtsProviderState, getCurrentTtsJournalAttemptKey, serializeTtsMetadataEntries } from './script-to-audio/current-render-artifacts'
 import { createFileTtsSourceIdentity, createGenericTtsDialoguePlan, createSingleTurnTtsDialoguePlan } from './script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from './script-to-audio/item-dialogue-plan-artifact'
 import { buildTtsEstimateForInput } from './tts-batch-estimates'
@@ -195,6 +196,7 @@ const runPreparedTtsInput = async (
   executionReadiness: readonly TtsExecutionReadinessObservation[]
 ): Promise<Step4Metadata[]> => {
   const lifecycleStates = new Map<string, PipelineProviderState>()
+  const publishedJournalAttempts = new Set<string>()
   const dialoguePlanArtifact = await materializeTtsDialoguePlanArtifact(outputDir, prepared.dialoguePlan)
   const run = await synthesizePreparedTtsInputForTargets(prepared, outputDir, ttsOptions, targets, preflightEstimate, {
     executionReadiness,
@@ -224,6 +226,10 @@ const runPreparedTtsInput = async (
       if (!state.targetKey) {
         throw UsageError('TTS lifecycle produced a provider state without an operation-scoped targetKey.')
       }
+      const journalAttemptKey = state.status === 'running'
+        ? getCurrentTtsJournalAttemptKey(state)
+        : undefined
+      if (state.status === 'running' && (!journalAttemptKey || publishedJournalAttempts.has(journalAttemptKey))) return
       let committed: PipelineProviderState | undefined
       await updateManifest(outputDir, (manifest) => {
         if (manifest.command !== 'tts' || manifest.scope !== 'single' || manifest.items.length !== 1) {
@@ -245,6 +251,7 @@ const runPreparedTtsInput = async (
         }
       })
       lifecycleStates.set(state.targetKey, committed as PipelineProviderState)
+      if (journalAttemptKey) publishedJournalAttempts.add(journalAttemptKey)
     }
   })
   await updateManifest(outputDir, (manifest) => {
@@ -259,7 +266,7 @@ const runPreparedTtsInput = async (
         ...item,
         input: prepared.manifestInputPath,
         status: reduceTtsProviderStates(item.providers),
-        metadata: { ...item.metadata, tts: run.metadata, cost: run.cost, timing: run.timing }
+        metadata: { ...item.metadata, tts: serializeTtsMetadataEntries(run.metadata), cost: run.cost, timing: run.timing }
       }]
     }
   })
@@ -303,9 +310,12 @@ export const runSingleTtsInput = async (
 
   const createdAt = new Date().toISOString()
   const prepared = await prepareTtsInput(inputPath, ttsOptions, createdAt)
+  const unfilteredEstimate = await buildTtsEstimateForInput(prepared, ttsOptions, targets)
+  configureModelCostFilter(ttsOptions, [unfilteredEstimate])
+  targets = filterModelCostTargets(targets, ttsOptions, 'tts')
   validateTtsRenderInputsForTargets(targets, prepared.text, ttsOptions, prepared)
   const { estimate: preflightEstimate, shouldExit } = evaluatePreflightEstimate(
-    await buildTtsEstimateForInput(prepared, ttsOptions),
+    await buildTtsEstimateForInput(prepared, ttsOptions, targets),
     ttsOptions,
     maxCents
   )

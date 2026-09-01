@@ -18,9 +18,7 @@ export const CAPABILITY_SOURCE_REFS: Record<TtsTarget['service'], string[]> = {
   hume: ['https://dev.hume.ai/reference/text-to-speech-tts/synthesize-json'],
   cartesia: ['https://docs.cartesia.ai/build-with-cartesia/tts-models/sonic-3-5'],
   minimax: ['https://platform.minimax.io/docs/api-reference/api-overview'],
-  fish: ['https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech'],
   inworld: ['https://docs.inworld.ai/'],
-  deepinfra: ['https://docs.deepinfra.com/apis/text-to-speech'],
 }
 
 export const withIdentity = <T extends Record<string, unknown>, K extends string>(value: T, field: K): T & Record<K, string> =>

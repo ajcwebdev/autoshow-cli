@@ -186,7 +186,9 @@ const closeProviderAttempt = async (
           ? 'failed' as const
           : expectedSlotIds.every((slotId) => completedSlotIds.has(slotId))
             ? 'succeeded' as const
-            : 'unstarted' as const
+            : results.length > 0
+              ? 'failed' as const
+              : 'unstarted' as const
       const linkedRequests = allObserved.filter((request) => request.turns.some((turn) => turn.turnId === turnId))
       return {
         turnId,
@@ -206,9 +208,10 @@ const closeProviderAttempt = async (
       }
     })
     const succeededCount = turnOutcomes.filter((outcome) => outcome.status === 'succeeded').length
+    const hasSucceededBatch = batchResultFiles.some((file) => file.value.status === 'succeeded')
     const status = succeededCount === requestedTurnIds.length
       ? 'succeeded' as const
-      : succeededCount > 0
+      : succeededCount > 0 || hasSucceededBatch
         ? 'partial' as const
         : turnOutcomes.some((outcome) => outcome.status === 'ambiguous')
           ? 'ambiguous' as const
@@ -515,7 +518,10 @@ export const finalizeCheckpoint = async (ctx: AttemptContext): Promise<{
   }
   const { resultFile, batchResultFiles } = await closeProviderAttempt(ctx, checkpointReason)
   if (!resultFile || (resultFile.value.status !== 'partial' && resultFile.value.status !== 'succeeded')) {
-    throw UsageError('Bounded TTS generation checkpoint did not close with durable successful slot evidence.')
+    const detail = resultFile
+      ? ` status=${resultFile.value.status}; outcomes=${resultFile.value.turnOutcomes.map((outcome) => `${outcome.turnId}:${outcome.status}[${outcome.generationSlotIds.join(',')}]`).join(',')}; batches=${resultFile.value.batchResults.map((batch) => batch.generationSlotId).join(',')}`
+      : ''
+    throw UsageError(`Bounded TTS generation checkpoint did not close with durable successful slot evidence.${detail}`)
   }
   const at = ctx.now()
   requireJournalFile(ctx)

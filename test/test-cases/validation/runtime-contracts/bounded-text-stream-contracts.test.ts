@@ -99,7 +99,6 @@ describe('bounded text stream', () => {
   test('the four overlapping decoder loops use the shared primitive', async () => {
     const paths = [
       'src/utils/bounded-capture.ts',
-      'src/utils/fish-client/fish-client.ts',
       'test/test-runner/process-execution.ts',
       'test/test-utils/test-helpers.ts'
     ]

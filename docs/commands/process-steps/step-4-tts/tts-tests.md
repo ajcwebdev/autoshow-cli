@@ -20,12 +20,12 @@ bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/
 
 ## Provider Env Vars
 
-Live TTS synthesis tests need the matching provider key: `CARTESIA_API_KEY`, `DEEPINFRA_API_KEY`, `ELEVENLABS_API_KEY`, `FISH_API_KEY`, `XAI_API_KEY`, `HUME_API_KEY`, `INWORLD_API_KEY`, `MINIMAX_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, or `SPEECHIFY_API_KEY`. A missing key fails that test rather than skipping it, so only over-budget selections are skipped.
+Live TTS synthesis tests need the matching provider key: `CARTESIA_API_KEY`, `ELEVENLABS_API_KEY`, `XAI_API_KEY`, `HUME_API_KEY`, `INWORLD_API_KEY`, `MINIMAX_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, or `SPEECHIFY_API_KEY`. A missing key fails that test rather than skipping it, so only over-budget selections are skipped.
 
 ## Current Coverage
 
-- Live synthesis files under `test/test-cases/e2e/service/step-4-tts-e2e/tts-services/` are historical or explicitly approved provider tests. The active TTS registry contains ElevenLabs, MiniMax, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, Fish, Inworld, and DeepInfra; routine verification never runs live provider synthesis.
-- DeepInfra and Inworld files in that directory do not call providers. `mistral-validation.test.ts` covers invalid-model rejection locally.
+- Live synthesis files under `test/test-cases/e2e/service/step-4-tts-e2e/tts-services/` are historical or explicitly approved provider tests. The active TTS registry contains ElevenLabs, MiniMax, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, and Inworld; routine verification never runs live provider synthesis.
+- The Inworld file in that directory does not call providers. `mistral-validation.test.ts` covers invalid-model rejection locally.
 - Zero-cost validation lives in `test/test-cases/validation/providers/tts-provider-contracts/` and `test/test-cases/validation/cli/option-resolution-contracts/tts-custom-voices/`.
 - Focused `--price` validation lives in `test/test-cases/price-flag/tts-price/`.
 
@@ -36,7 +36,7 @@ bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/ --price
 bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/ --budget 2500
 ```
 
-The mapped TTS price preflight covers the active synthesis files, including local no-call DeepInfra and Inworld price cases. Retired provider rates remain available only for historical report inspection.
+The mapped TTS price preflight covers the active synthesis files, including the local no-call Inworld price case. Retired provider rates remain available only for historical report inspection.
 
 ## Related Docs
 

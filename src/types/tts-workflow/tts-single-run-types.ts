@@ -1,7 +1,5 @@
-import type { TtsOptions } from '~/types'
+import type { PricingRuntimeOptions, TtsOptions } from '~/types'
 
-export type StandaloneTtsCommandOptions = TtsOptions & {
+export type StandaloneTtsCommandOptions = TtsOptions & PricingRuntimeOptions & {
   batchConcurrency: number
-  price: boolean
-  allowOverBudget: boolean
 }

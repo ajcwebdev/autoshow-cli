@@ -1,5 +1,5 @@
 import { SUPPORTED_WHISPER_MODELS } from '~/cli/commands/setup-and-utilities/models/stt-models'
-import { booleanAllProvidersFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
+import { booleanAllProvidersFlag, modelCostFilterFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
 import { boolFlag, formatProviderList, formatRange, formatValueList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import type { CliFlagsDefinition } from '~/types'
 import { STANDALONE_MUSIC_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
@@ -30,6 +30,6 @@ const musicProviderSelectionFlags = {
 export const musicCommandFlags = {
   ...withHelpGroup(musicProviderSelectionFlags, 'provider-selection'),
   ...withHelpGroup(musicGenFlags, 'hosted-music'),
-  ...withHelpGroup(priceFlag, 'pricing'),
+  ...withHelpGroup({ ...priceFlag, ...modelCostFilterFlag }, 'pricing'),
   ...withHelpGroup(musicLyricVideoFlags, 'lyric-video')
 } as const satisfies CliFlagsDefinition

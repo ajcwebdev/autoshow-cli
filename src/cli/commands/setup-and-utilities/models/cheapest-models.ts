@@ -24,9 +24,7 @@ const DEFAULT_HOSTED_TTS_MODEL_BY_FLAG = {
   'speechify-tts': 'simba-3.2',
   'hume-tts': 'octave-1',
   'cartesia-tts': 'sonic-3.5-2026-05-04',
-  'fish-tts': 's2.1-pro',
   'inworld-tts': 'realtime-tts-2',
-  'deepinfra-tts': 'ResembleAI/chatterbox-turbo'
 } as const satisfies Record<string, string>
 
 const DEFAULT_OCR_INPUT_TOKENS_PER_PAGE = 4000

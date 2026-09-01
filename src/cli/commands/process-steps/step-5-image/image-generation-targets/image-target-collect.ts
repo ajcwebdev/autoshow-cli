@@ -8,13 +8,14 @@ import { collectReplicateImageTargets } from '../image-generation-services/repli
 import { collectLumalabsImageTargets } from '../image-generation-services/lumalabs/lumalabs-image-targets'
 import { collectFalImageTargets } from '../image-generation-services/fal-image-service/fal-image-targets'
 import { validateImageReferenceCapabilities } from '~/cli/commands/setup-and-utilities/models/image-reference-capabilities'
+import { filterModelCostTargets } from '~/cli/commands/pricing-orchestration/model-cost-filter'
 
 export const collectImageTargets = (options: ImageGenOptions): ImageTarget[] => {
   if (options.imageMask !== undefined && (options.imageInputs?.length ?? 0) === 0) {
     throw UsageError('--mask requires at least one --input reference image.')
   }
 
-  const targets = [
+  const targets = filterModelCostTargets([
     ...collectGeminiImageTargets(options),
     ...collectOpenAIImageTargets(options),
     ...collectGrokImageTargets(options),
@@ -22,7 +23,7 @@ export const collectImageTargets = (options: ImageGenOptions): ImageTarget[] => 
     ...collectReplicateImageTargets(options),
     ...collectLumalabsImageTargets(options),
     ...collectFalImageTargets(options)
-  ]
+  ], options, 'image')
   const referenceCount = options.imageInputs?.length ?? 0
   for (const target of targets) validateImageReferenceCapabilities(target.model, referenceCount)
   return targets

@@ -70,7 +70,7 @@ const collectReconciliationBlockers = (
   return blockers
 }
 
-const enforceReconciliationBlocker = (
+export const enforceTtsReconciliationBlockers = (
   blockers: CurrentTtsReconciliationBlocker[],
   options: {
     ttsOptions: { ttsAllowAmbiguousRedispatch?: boolean }
@@ -100,7 +100,7 @@ export const reconcileSlotCosts = (
     journalEvidenceById
   )
   const reconciliationBlockers = collectReconciliationBlockers(pure, journalEvidenceById, loadedBatches)
-  enforceReconciliationBlocker(reconciliationBlockers, options)
+  enforceTtsReconciliationBlockers(reconciliationBlockers, options)
   for (const batch of loadedBatches) {
     if (!completedSlotIds.has(batch.value.generationSlotId)) {
       throw UsageError('Stored successful provider batch result is not backed by one completed slot request.')

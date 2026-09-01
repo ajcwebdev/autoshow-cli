@@ -2,15 +2,17 @@ import { expect, test } from 'bun:test'
 import { join } from 'node:path'
 import { writeGenerationMetadata } from '~/cli/commands/process-steps/generation-command-utils'
 import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { verifyProviderProjectionArtifacts } from '~/cli/commands/process-steps/pipeline-manifest/projection-artifact-graph'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { buildCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
 import { planCurrentTtsResumePrice } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
-import { createGenericTtsDialoguePlan, createInlineTtsSourceIdentity } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
+import { createGenericTtsDialoguePlan, createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 import type { CanonicalAudioProviderProjection, PipelineProviderState, ProviderRenderPlan, ProviderRenderResult, TtsOptions } from '~/types'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
-import { createDialogueFixtureTarget, DIALOGUE_OPTIONS, latestJournalForState } from './shared'
+import { createDialogueFixtureTarget, DIALOGUE_OPTIONS, latestJournalForState, syntheticRecoveryAudio } from './shared'
 import { requireDefined } from '../../../../test-utils/value-assertions'
+import { createTtsFixtureTarget } from '../../../../test-utils/tts-fixture-target'
 
 const createPartialSlotFixture = async (dir: string) => {
   const text = 'Host: First retained turn.\nGuest: Second unstarted turn.'
@@ -18,12 +20,15 @@ const createPartialSlotFixture = async (dir: string) => {
   const dialoguePlan = createGenericTtsDialoguePlan(sourceIdentity, text, DIALOGUE_OPTIONS, new Date(0).toISOString())
   const firstCalls: number[] = []
   let retained: PipelineProviderState | undefined
+  let terminal: PipelineProviderState | undefined
   let injected = false
   await expect(runTtsForTargets(text, dir, DIALOGUE_OPTIONS, [createDialogueFixtureTarget(firstCalls)], {
     sourceIdentity,
     dialoguePlan,
     beforeDispatch: async () => {},
     onProviderState: async (state) => {
+      const projection = state.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
+      if (projection?.renderHistory[0]?.events.at(-1)?.status === 'failed') terminal = state
       const journal = await latestJournalForState(dir, state)
       if (!injected && journal?.recordedBatchResults.length === 1) {
         retained = state
@@ -33,6 +38,11 @@ const createPartialSlotFixture = async (dir: string) => {
     }
   })).rejects.toThrow(/Recovery checkpoint: 1\/2 generation slots retained; 1 unresolved\. Rerun the same command to reuse retained audio/)
   if (!retained) throw new Error('Missing partial-slot retained state')
+  if (!terminal) throw new Error('Missing partial-slot terminal state')
+  const terminalProjection = terminal.result?.['ttsAudio'] as CanonicalAudioProviderProjection
+  const terminalWork = terminalProjection.activeWork
+  if (terminalWork?.kind !== 'render') throw new Error('Missing partial-slot terminal render checkpoint')
+  expect(terminalWork.completedSlotHashes).toHaveLength(1)
   const recoveredSlotId = requireDefined((await latestJournalForState(dir, retained))?.recordedBatchResults[0]?.generationSlotId, 'first promoted slot evidence')
   return { text, sourceIdentity, dialoguePlan, firstCalls, retained, recoveredSlotId }
 }
@@ -113,6 +123,8 @@ const slotHashScenario = async (dir: string): Promise<void> => {
   expect(price).toMatchObject({ recoveryKind: 'partial-slots', recoveredSlotCount: 1, unresolvedSlotCount: 1, plannedSlotCount: 1 })
   const resumedCalls: number[] = []
   const reportedOutput = join(dir, 'speech-cross-render-recovered.wav')
+  const slotReuseResultPaths: string[] = []
+  const invalidActiveProjectionEvents: string[] = []
   const resumed = await runTtsForTargets(text, dir, changedOptions, [createDialogueFixtureTarget(resumedCalls)], {
     sourceIdentity,
     dialoguePlan,
@@ -120,13 +132,31 @@ const slotHashScenario = async (dir: string): Promise<void> => {
     recoveryRootDir: dir,
     resolveReportedOutput: () => ({ path: reportedOutput, fileName: 'speech-cross-render-recovered.wav' }),
     beforeDispatch: async () => {},
-    onProviderState: async () => {}
+    onProviderState: async (state) => {
+      const projection = state.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
+      if ((projection?.renderHistory.length ?? 0) > 0) {
+        const valid = await verifyProviderProjectionArtifacts(dir, state)
+        if (!valid) {
+          const event = projection?.renderHistory[0]?.events.at(-1)
+          invalidActiveProjectionEvents.push(`${event?.status ?? 'unknown'}:${event?.sequence ?? 0}`)
+        }
+      }
+      for (const event of projection?.renderHistory[0]?.events ?? []) {
+        for (const batch of event.batchProgress ?? []) {
+          for (const slot of batch.generationSlots) {
+            if (slot.source === 'slot-reuse' && slot.batchResult) slotReuseResultPaths.push(slot.batchResult.path)
+          }
+        }
+      }
+    }
   })
   expect(firstCalls).toEqual([0, 1])
   expect(resumedCalls).toEqual([1])
   expect(await Bun.file(reportedOutput).exists()).toBe(true)
   expect(resumed.metadata[0]?.ttsAudio?.archive?.slotCount).toBe(2)
   expect(resumed.metadata[0]?.ttsAudio?.renderHistory).toEqual([])
+  expect(invalidActiveProjectionEvents).toEqual([])
+  expect(slotReuseResultPaths.some((path) => path.startsWith('slots/'))).toBe(true)
   expect(await Bun.file(join(dir, 'cache-materializations')).exists()).toBe(false)
   const resumedArchive = requireDefined(resumed.metadata[0]?.ttsAudio?.archive, 'recast compact TTS archive')
   const resumedRender = await Bun.file(join(dir, resumedArchive.renderRef.path)).json() as { slots: Array<{ slotHash: string }> }
@@ -231,6 +261,45 @@ const checkpointScenario = async (dir: string): Promise<void> => {
   expect(completedPrice).toMatchObject({ recoveryKind: 'complete-render', recoveredSlotCount: 3, unresolvedSlotCount: 0, plannedSlotCount: 0, plannedCost: { amounts: [] } })
 }
 
+const nativeSingleSpeakerCheckpointScenario = async (dir: string): Promise<void> => {
+  const text = `${'A'.repeat(1_500)} ${'B'.repeat(1_500)}`
+  const sourceIdentity = createInlineTtsSourceIdentity(text)
+  const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text, new Date(0).toISOString())
+  const options: TtsOptions = { ttsMaxGenerationSlots: 1, ttsChunkConcurrency: 1 }
+  const createNativeTarget = (calls: number[]) => createTtsFixtureTarget({
+    mode: { kind: 'success' },
+    model: 'fixture-native-single-speaker-recovery-model',
+    voice: 'alloy',
+    multiSpeakerStrategy: 'native',
+    onRun: (sourceIndex) => { calls.push(sourceIndex) },
+    audioBytes: () => syntheticRecoveryAudio(),
+  })
+
+  const firstCalls: number[] = []
+  const first = await runTtsForTargets(text, dir, options, [createNativeTarget(firstCalls)], {
+    sourceIdentity,
+    dialoguePlan,
+    beforeDispatch: async () => {},
+    onProviderState: async () => {},
+  })
+  const firstState = buildCurrentTtsProviderState(requireDefined(first.metadata[0], 'first native checkpoint metadata'))
+  expect(first.metadata[0]?.generationCheckpoint).toMatchObject({ remainingGenerationSlotCount: 1 })
+
+  const secondCalls: number[] = []
+  const second = await runTtsForTargets(text, dir, options, [createNativeTarget(secondCalls)], {
+    sourceIdentity,
+    dialoguePlan,
+    retainedProviderStates: [firstState],
+    recoveryRootDir: dir,
+    beforeDispatch: async () => {},
+    onProviderState: async () => {},
+  })
+
+  expect(firstCalls).toHaveLength(1)
+  expect(secondCalls).toHaveLength(1)
+  expect(second.metadata[0]?.generationCheckpoint).toMatchObject({ remainingGenerationSlotCount: 0 })
+}
+
 export const registerCompatibleSlotReuseCases = (): void => {
   test('reuses completed slot one and dispatches only safe unstarted slot two', async () =>
     await withTempDir('autoshow-tts-partial-slot-recovery-', partialSlotScenario))
@@ -241,4 +310,6 @@ export const registerCompatibleSlotReuseCases = (): void => {
 export const registerCheckpointSlotReuseCase = (): void => {
   test('checkpoints exactly one unresolved segmented slot without publishing a final audio run', async () =>
     await withTempDir('autoshow-tts-one-slot-checkpoint-', checkpointScenario))
+  test('native multi-speaker targets resume a bounded single-speaker slot through segmented dispatch', async () =>
+    await withTempDir('autoshow-tts-native-single-speaker-checkpoint-', nativeSingleSpeakerCheckpointScenario))
 }

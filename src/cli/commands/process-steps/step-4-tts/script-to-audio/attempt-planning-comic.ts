@@ -4,7 +4,6 @@ import { createTtsTargetSelection } from '../tts-targets/tts-target-selection'
 import { normalizeTtsTurnControls, resolveTtsTurnControlOverrides } from '../tts-targets/tts-invocation-controls'
 import { planElevenLabsNativeDialogueBatches } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
 import { planHumeNativeUtteranceBatches } from '../tts-services/hume/hume-native-utterances'
-import { isFishNativeDialogueModel, planFishNativeDialogueBatches } from '../tts-services/fish/fish-tts-request'
 import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { segmentedSlotGroup } from './comic-segmented-audio'
 import { buildProviderSerializerDescriptor, createProviderRequestSettings, createTypedProviderSettings, providerSerializerVoiceField, resolveEffectiveProviderControls } from './provider-serializer-registry'
@@ -64,17 +63,13 @@ export const resolveComicNativeGroups = (
   context: NonNullable<CreateCurrentTtsRenderAttemptOptions['comicContext']>,
   turns: AttemptTurn[],
   elevenLabsNative: boolean,
-  humeNative: boolean,
-  fishNative: boolean
+  humeNative: boolean
 ): Array<{ turnIds: string[], providerTexts: string[] }> => {
   if (elevenLabsNative) {
     return planElevenLabsNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
   }
   if (humeNative) {
     return planHumeNativeUtteranceBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
-  }
-  if (fishNative) {
-    return planFishNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash, delivery: turn.canonical.delivery?.description }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
   }
   return []
 }
@@ -106,20 +101,19 @@ export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _
   const normalizedText = canonicalTurns.map(turn => `${context.providerSpeakerLabelByTurnId[turn.turnId] ?? turn.originalSpeakerLabel}: ${turn.canonicalText}`).join('\n')
   const hasOverlapIntent = context.dialoguePlan.nodes.some(node => node.kind === 'overlap')
   const hasDeliveryOrEffect = canonicalTurns.some(turn => turn.delivery !== undefined || turn.effect !== undefined)
-  const hasSegmentedOnlyIntent = hasOverlapIntent || (hasDeliveryOrEffect && options.target.service !== 'fish')
+  const hasSegmentedOnlyIntent = hasOverlapIntent || hasDeliveryOrEffect
   const hasTurnControls = canonicalTurns.some(turn => {
     const keys = Object.keys(normalizedTurnControls?.[turn.turnId]?.[options.target.service] ?? {})
     return keys.length > 0 && !(options.target.service === 'hume' && keys.every(key => key === 'speed' || key === 'trailingSilence'))
   })
   const elevenLabsNative = options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3' && !hasTurnControls
   const humeNative = options.target.service === 'hume' && options.target.model === 'octave-2' && !hasTurnControls && canonicalTurns.reduce((sum, turn) => sum + [...turn.canonicalText].length, 0) <= 5000
-  const fishNative = options.target.service === 'fish' && isFishNativeDialogueModel(options.target.model) && !hasTurnControls
-  const nativeEligible = canonicalTurns.length > 0 && !hasSegmentedOnlyIntent && (elevenLabsNative || humeNative || fishNative)
+  const nativeEligible = canonicalTurns.length > 0 && !hasSegmentedOnlyIntent && (elevenLabsNative || humeNative)
   if (context.modePreference === 'native' && !nativeEligible) throw UsageError('Comic native mode requires a provider-native eligible target whose speaker, direction, control, and request limits can be represented exactly.')
   const native = context.modePreference !== 'segmented' && nativeEligible
   const strategy: ProviderRenderStrategy = native ? humeNative ? 'native-utterances' : 'native-dialogue' : 'segmented'
   const nativeGroups = native
-    ? resolveComicNativeGroups(context, turns, elevenLabsNative, humeNative, fishNative)
+    ? resolveComicNativeGroups(context, turns, elevenLabsNative, humeNative)
     : []
   const slotGroups: Array<{ turnIds: string[], providerTexts: string[], timingSegmentIndexes?: number[] | undefined }> = native
     ? nativeGroups

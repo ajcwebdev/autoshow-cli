@@ -23,6 +23,19 @@ test('mistral --price works with an existing voice source', async () => {
   expect(`${result.stdout}\n${result.stderr}`).toContain('speech')
 })
 
+test('all-provider --price uses an internal Mistral planning voice when none is supplied', async () => {
+  const result = await runTtsPriceCommand([
+    'src/cli/create-cli.ts',
+    'tts',
+    STABLE_TTS_MD_PATH,
+    '--all-providers',
+    '--price'
+  ])
+
+  expectPriceEstimateForModel(result, MISTRAL_TTS_MODEL)
+  expect(`${result.stdout}\n${result.stderr}`).not.toContain('requires an existing voice ID')
+})
+
 test('mistral rejects voice and reference audio together before API request in price mode', async () => {
   const result = await runTtsPriceCommand([
     'src/cli/create-cli.ts',

@@ -2,6 +2,7 @@ import { isConvertibleEbookFormat } from '~/cli/commands/process-steps/step-0-me
 import { classifyOcrSourceKind } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/normalize'
 import type { DetectResult, HtmlArticleBackend, OcrStep2ResolutionOptions, ResolvedStep2Execution, ResolvedStep2Provider, SttStep2ResolutionOptions } from '~/types'
 import { collectStep2ProviderSelections } from './provider-registry'
+import { hasModelCostFilterPlan, isModelCostTargetIncluded } from '~/cli/commands/pricing-orchestration/model-cost-filter'
 
 
 const DEFAULT_TESSERACT_PROVIDER: ResolvedStep2Provider = {
@@ -43,14 +44,20 @@ const resolveArticleProviders = (
 ): ResolvedStep2Provider[] => {
   const selectedProviders = collectStep2ProviderSelections('url', options).map(toResolvedProvider)
   const selectedByService = new Map(selectedProviders.map((provider) => [provider.service, provider]))
-  const providerForBackend = (targetBackend: HtmlArticleBackend): ResolvedStep2Provider =>
-    selectedByService.get(targetBackend) ?? {
+  const providerForBackend = (targetBackend: HtmlArticleBackend): ResolvedStep2Provider | undefined => {
+    const selected = selectedByService.get(targetBackend)
+    if (selected) return selected
+    if (!isModelCostTargetIncluded(options, 'extract', targetBackend, targetBackend)) return undefined
+    return {
       service: targetBackend,
       model: targetBackend,
       origin: 'default'
     }
+  }
 
-  return (backends ?? [backend]).map(providerForBackend)
+  return (backends ?? [backend])
+    .map(providerForBackend)
+    .filter((provider): provider is ResolvedStep2Provider => provider !== undefined)
 }
 
 const resolveArticleStep2 = (
@@ -79,6 +86,14 @@ export const resolveSttStep2Execution = (
       route: 'stt',
       sourceKind: 'media',
       providers
+    }
+  }
+
+  if (hasModelCostFilterPlan(options)) {
+    return {
+      route: 'stt',
+      sourceKind: 'media',
+      providers: []
     }
   }
 
@@ -141,25 +156,25 @@ export const resolveOcrStep2ExecutionFromFormat = (
       return {
         route: 'ocr',
         sourceKind: 'pdf',
-        providers: providers.length > 0 ? providers : [DEFAULT_TESSERACT_PROVIDER]
+        providers: providers.length > 0 || hasModelCostFilterPlan(options) ? providers : [DEFAULT_TESSERACT_PROVIDER]
       }
     case 'image':
       return {
         route: 'ocr',
         sourceKind: 'image',
-        providers: providers.length > 0 ? providers : [DEFAULT_TESSERACT_PROVIDER]
+        providers: providers.length > 0 || hasModelCostFilterPlan(options) ? providers : [DEFAULT_TESSERACT_PROVIDER]
       }
     case 'epub-pdf':
       return {
         route: 'ocr',
         sourceKind: 'epub-pdf',
-        providers: providers.length > 0 ? providers : [DEFAULT_TESSERACT_PROVIDER]
+        providers: providers.length > 0 || hasModelCostFilterPlan(options) ? providers : [DEFAULT_TESSERACT_PROVIDER]
       }
     case 'cbz-images':
       return {
         route: 'ocr',
         sourceKind: 'cbz-images',
-        providers: providers.length > 0 ? providers : [DEFAULT_TESSERACT_PROVIDER]
+        providers: providers.length > 0 || hasModelCostFilterPlan(options) ? providers : [DEFAULT_TESSERACT_PROVIDER]
       }
   }
 }

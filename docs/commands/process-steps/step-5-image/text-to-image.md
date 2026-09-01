@@ -66,6 +66,7 @@ The `image` and `resume` commands use the same short option names, including `--
 | `--response-mode <image\|text-image>`  | Gemini response mode                                                                                    |
 | `--search-grounding`                   | Enable Gemini search grounding                                                                          |
 | `--price`                              | Show the aggregated estimate and exit                                                                   |
+| `--max-model-cents <n>`                | Exclude each provider/model whose estimated total exceeds the per-model ceiling in cents; works with or without `--price` |
 | `--output-dir <dir>`                   | Global flag: pin output directory instead of `output/<timestamp>_image-gen/`                            |
 
 See [Provider Capabilities](#provider-capabilities) for the per-model reference, resolution, aspect-ratio, count, format, and price matrix.
@@ -74,6 +75,7 @@ See [Provider Capabilities](#provider-capabilities) for the per-model reference,
 bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png --output-dir output/mug-base
 bun autoshow image "make the mug matte black, keep the same camera angle, and place it on a walnut desk" --provider openai=gpt-image-2 --input output/mug-base/generated-image.png --format webp --compression 80 --output-dir output/mug-edit
 bun autoshow image "a serene mountain lake at dawn" --all-providers --price
+bun autoshow image "a serene mountain lake at dawn" --all-providers --max-model-cents 5 --price
 ```
 
 ## Image Services

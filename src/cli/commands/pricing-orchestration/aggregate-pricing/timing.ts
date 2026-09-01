@@ -60,6 +60,7 @@ export const buildAggregateTiming = (
       model: step.model,
       characterCount: step.characterCount,
       ...(typeof step.setupTimeMs === 'number' ? { setupTimeMs: step.setupTimeMs } : {}),
+      ...(typeof step.chunkCharacterLimit === 'number' ? { chunkCharacterLimit: step.chunkCharacterLimit } : {}),
       ...(typeof step.chunkConcurrency === 'number' ? { chunkConcurrency: step.chunkConcurrency } : {})
     }))
   const llmTimingTargets = steps

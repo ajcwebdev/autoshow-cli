@@ -4,6 +4,7 @@ import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selec
 import { STANDALONE_TTS_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import {
+DEFAULT_ALL_PROVIDER_TTS_CHUNK_CONCURRENCY,
 DEFAULT_CLI_CONCURRENCY,
 DEFAULT_GROK_TTS_CHUNK_CONCURRENCY,
 DEFAULT_OCR_CONCURRENCY,
@@ -216,6 +217,10 @@ describe('option resolution contracts', () => {
         'openai-tts': 'gpt-4o-mini-tts-2025-12-15'
       })
       const allTts = buildOptsFromFlags({ 'all-tts': true })
+      const explicitAllTts = buildOptsFromFlags({
+        'all-tts': true,
+        'tts-chunk-concurrency': String(DEFAULT_TTS_CHUNK_CONCURRENCY)
+      }, {}, new Set(['tts-chunk-concurrency']))
 
       expect(grokOnly.ttsChunkConcurrency).toBe(DEFAULT_GROK_TTS_CHUNK_CONCURRENCY)
       expect(parserDefaultInjected.ttsChunkConcurrency).toBe(DEFAULT_GROK_TTS_CHUNK_CONCURRENCY)
@@ -225,6 +230,7 @@ describe('option resolution contracts', () => {
       expect(configuredCustom.ttsChunkConcurrency).toBe(44)
       expect(openaiOnly.ttsChunkConcurrency).toBe(DEFAULT_TTS_CHUNK_CONCURRENCY)
       expect(grokAndOpenai.ttsChunkConcurrency).toBe(DEFAULT_TTS_CHUNK_CONCURRENCY)
-      expect(allTts.ttsChunkConcurrency).toBe(DEFAULT_TTS_CHUNK_CONCURRENCY)
+      expect(allTts.ttsChunkConcurrency).toBe(DEFAULT_ALL_PROVIDER_TTS_CHUNK_CONCURRENCY)
+      expect(explicitAllTts.ttsChunkConcurrency).toBe(DEFAULT_TTS_CHUNK_CONCURRENCY)
     })
 })

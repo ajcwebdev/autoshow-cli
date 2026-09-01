@@ -44,10 +44,4 @@ export const ttsRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/inworld-realtime-tts-2.test.ts', [
     command('tts-inworld-realtime-tts-2', 'tts-inworld-realtime-tts-2', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'inworld=realtime-tts-2', '--price']),
   ]),
-  ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/deepinfra-chatterbox.test.ts', [
-    command('tts-deepinfra-chatterbox-turbo', 'tts-deepinfra-chatterbox-turbo', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'deepinfra=ResembleAI/chatterbox-turbo', '--price']),
-  ]),
-  ...exact('test/test-cases/validation/media-generation/fish-tts-adapter-contracts.test.ts', [
-    command('tts-fish-s2.1-pro', 'tts-fish-s2.1-pro', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'fish=s2.1-pro', '--price']),
-  ]),
 ]

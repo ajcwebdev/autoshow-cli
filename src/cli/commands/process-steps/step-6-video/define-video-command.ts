@@ -22,6 +22,7 @@ import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import type { StandaloneVideoCommandOptions, VideoProvider, VideoRuntimeOptions, VideoTarget } from '~/types'
 import { VIDEO_PRICING_PROVIDERS } from './video-utils/video-pricing'
 import { optionsForService } from '~/utils/pricing/model-selection'
+import { configureModelCostFilter } from '~/cli/commands/pricing-orchestration/model-cost-filter'
 
 const VIDEO_POSITIONAL_IMAGE_CONFLICT_FLAGS = [
   ['input-image', '--input-image'],
@@ -159,14 +160,21 @@ export const videoCommand = defineCliCommand({
   }
 
   const videoOpts: StandaloneVideoCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences, scope: 'video' })
-  const videoTargets = collectVideoTargets(videoOpts)
+  let videoTargets = collectVideoTargets(videoOpts)
   if (videoTargets.length === 0) {
     throw UsageError('Specify a video generation provider with --provider gemini|grok|ltx|replicate|lumalabs|fal[=model]')
   }
 
-  const pricingVideoOpts = buildPricingOptionsForTargets(videoOpts, videoTargets)
+  let pricingVideoOpts = buildPricingOptionsForTargets(videoOpts, videoTargets)
+  const unfilteredSteps = await buildVideoEstimates(pricingVideoOpts)
+  const unfilteredEstimate = aggregateExplicitPriceEstimate(unfilteredSteps, pricingVideoOpts)
+  const excludedTargets = configureModelCostFilter(videoOpts, [unfilteredEstimate])
+  videoTargets = collectVideoTargets(videoOpts)
+  pricingVideoOpts = buildPricingOptionsForTargets(videoOpts, videoTargets)
   const { estimate: preflightEstimate, shouldExit: videoShouldExit } = evaluatePreflightEstimate(
-    aggregateExplicitPriceEstimate(await buildVideoEstimates(pricingVideoOpts), {}),
+    excludedTargets.length > 0
+      ? aggregateExplicitPriceEstimate(await buildVideoEstimates(pricingVideoOpts), pricingVideoOpts)
+      : unfilteredEstimate,
     pricingVideoOpts,
     videoMaxCents
   )

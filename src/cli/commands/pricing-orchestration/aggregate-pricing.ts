@@ -3,6 +3,7 @@ import { SUPADATA_STT_AGGREGATE_NOTE } from '~/cli/commands/pricing-orchestratio
 import { SCRAPECREATORS_STT_AGGREGATE_NOTE } from '~/utils/pricing/scrapecreators-pricing'
 import { buildPriceEstimateContribution } from './aggregate-pricing/route-estimates'
 import { buildAggregateTiming } from './aggregate-pricing/timing'
+import { filterModelCostEstimateSteps } from './model-cost-filter'
 
 const buildTimingOptions = (
   opts: AggregateTimingOptions,
@@ -27,6 +28,7 @@ export const aggregateExplicitPriceEstimate = (
   opts: AggregateTimingOptions,
   options: AggregateExplicitEstimateOptions = {}
 ): AggregatedPriceEstimate => {
+  steps = filterModelCostEstimateSteps(steps, opts)
   const notes = [...(options.notes ?? [])]
   appendProviderNotes(steps, notes)
   const timing = buildAggregateTiming(steps, options.ttsTimingCharacterCount, buildTimingOptions(opts, {
@@ -56,6 +58,7 @@ export async function buildAggregatedPriceEstimate (
   context: { ttsInputText?: string | undefined } = {}
 ): Promise<AggregatedPriceEstimate> {
   const contribution = await buildPriceEstimateContribution(command, resolvedTarget, opts, characterCount, context)
+  contribution.steps = filterModelCostEstimateSteps(contribution.steps, opts)
   appendProviderNotes(contribution.steps, contribution.notes)
   const timing = buildAggregateTiming(
     contribution.steps,

@@ -32,8 +32,9 @@ const collectSlotReuse = (slot: Record<string, unknown>, ctx: RenderCollectorCon
     pathKey: 'path',
     shaKey: 'sha256',
     kind: 'provider-batch-result',
-    context: { renderDir: ctx.renderDir },
-    scope: 'run-root'
+    expectedJsonFields: typeof result['batchResultId'] === 'string' ? { batchResultId: result['batchResultId'] } : undefined,
+    baseDir: ctx.renderDir,
+    context: { renderDir: ctx.renderDir }
   })
 }
 

@@ -24,6 +24,7 @@ import { runLlmProviderTargetPools } from './llm-provider-pool'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { buildStructuredValidationFailureEnvelope, isStructuredValidationFailureEnvelope } from './structured-output/validation-failure'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { filterModelCostTargets } from '~/cli/commands/pricing-orchestration/model-cost-filter'
 const sanitizeModelName = (model: string): string =>
   model.replace(/[/\\:*?"<>|]/g, '-')
 
@@ -64,7 +65,7 @@ export const collectLlmTargets = (options: LLMOptions): LLMTarget[] => {
   appendTargets('together', 'Together', options.togetherModels, runTogetherModel)
   appendTargets('cerebras', 'Cerebras', options.cerebrasModels, runCerebrasModel)
 
-  return targets
+  return filterModelCostTargets(targets, options, 'llm')
 }
 
 export const runLlmTargetsForStructuredPrompt = async (

@@ -86,6 +86,7 @@ export type AttemptContext = {
   executionSelection?: readonly {
     generationSlotId: string
     turnId: string
+    sourceIndex: number
     providerSegmentIndex: number
     providerText: string
     speaker: string

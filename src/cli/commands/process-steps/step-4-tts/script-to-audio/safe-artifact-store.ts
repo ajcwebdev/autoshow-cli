@@ -436,6 +436,22 @@ export const removeContainedDirectory = async (
   await rm(path, { recursive: true, force: true })
 }
 
+export const removeContainedDirectoryIfEmpty = async (
+  rootDir: string,
+  relativeDirectory: string
+): Promise<void> => {
+  const normalized = normalizeSafeRelativePath(relativeDirectory, 'Removable empty artifact directory', false)
+  const parent = await inspectSafeRoot(rootDir)
+  const path = join(parent.absolute, normalized)
+  try {
+    await inspectSafeDirectory(parent.canonical, path, 'Removable empty artifact directory')
+    await rmdir(path)
+  } catch (error) {
+    if (hasErrorCode(error, 'ENOENT') || hasErrorCode(error, 'ENOTEMPTY') || hasErrorCode(error, 'EEXIST')) return
+    throw error
+  }
+}
+
 export const releasePreparedInvocationAttemptClaim = async (
   rootDir: string,
   options: Readonly<{

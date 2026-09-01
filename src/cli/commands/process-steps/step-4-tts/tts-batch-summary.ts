@@ -53,7 +53,7 @@ const getChunkLengths = (
   prepared: PreparedTtsInput,
   target: TtsTarget
 ): number[] => {
-  const maxChars = resolveTtsChunkCharacterLimit(target.service, target.model)
+  const maxChars = target.chunkCharacterLimit ?? resolveTtsChunkCharacterLimit(target.service, target.model)
   if (maxChars === undefined) {
     return [prepared.ttsCharacterCount]
   }

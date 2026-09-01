@@ -1,6 +1,7 @@
 import type { HtmlArticleBackend, ProviderSpec, Step2Command, Step2ProviderOptionSurface, Step2ProviderSelectionFilter, Step2ProviderSelectionOrigin, Step2ResolvedProviderSelection, Step2ShortcutFlag, UrlArticleTarget } from '~/types'
 import { getStep2ProviderEntries, getStep2ProviderEntry } from './entries'
 import { URL_ARTICLE_BACKENDS } from './url-providers'
+import { isModelCostTargetIncluded } from '~/cli/commands/pricing-orchestration/model-cost-filter'
 
 const appendProviderSpec = (
   specs: ProviderSpec[],
@@ -194,7 +195,10 @@ export const collectStep2ProviderSelections = (
     }
   }
 
-  return selections
+  const estimateStep = step === 'stt' ? 'stt' : 'extract'
+  return selections.filter((selection) =>
+    isModelCostTargetIncluded(options, estimateStep, selection.targetService, selection.model)
+  )
 }
 
 export const collectUrlArticleTargets = (
