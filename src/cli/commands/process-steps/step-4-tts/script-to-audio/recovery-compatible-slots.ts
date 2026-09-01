@@ -2,6 +2,7 @@ import { lstat } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import type { AttemptSlot, CompactTargetRender, CurrentTtsPartialRecovery, CurrentTtsReconciliationBlocker, CurrentTtsRecoveredGenerationSlot, CurrentTtsSafeRedispatch, PipelineProviderState, ProviderRenderPlan, PureCurrentTtsRenderPlanOptions, RenderAdmissionJournalSnapshot } from '~/types'
 import { UsageError } from '~/utils/error-handler'
+import { parseJsonlBytes } from '~/utils/jsonl-reader'
 import { canonicalTtsJson, computePaidSpeechSlotHash, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { validateProviderBatchResult, validateProviderRenderPlanIdentity, validateRenderAdmissionJournalSnapshot } from './contract-validation'
 import { contained, hasErrorCode, readObservedAudio, readVerifiedJson } from './attempt-io'
@@ -228,9 +229,11 @@ const recoverArchivedSlots = async (
         input.rootDir,
         contained(input.rootDir, journalPath)
       )
-      const last = retained.bytes.toString('utf8').split('\n').filter(Boolean).at(-1)
-      if (!last) continue
-      const parsed = JSON.parse(last) as { snapshot?: RenderAdmissionJournalSnapshot }
+      const parsed = parseJsonlBytes(retained.bytes, {
+        allowTornFinalRecord: true,
+        label: 'Stored TTS admission journal'
+      }).at(-1) as { snapshot?: RenderAdmissionJournalSnapshot } | undefined
+      if (!parsed) continue
       if (!parsed.snapshot) continue
       validateRenderAdmissionJournalSnapshot(parsed.snapshot)
       const journal = parsed.snapshot

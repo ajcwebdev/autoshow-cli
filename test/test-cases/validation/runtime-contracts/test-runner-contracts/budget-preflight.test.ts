@@ -299,7 +299,7 @@ describe('test-runner contracts', () => {
 
       expect(keys).toContain('tts-grok-grok-tts')
       expect(keys).toContain('tts-cartesia-sonic-3.5-2026-05-04')
-      expect(keys).toContain('tts-deepinfra-ResembleAI/chatterbox')
+      expect(keys).toContain('tts-deepinfra-chatterbox-turbo')
       expect(keys).not.toContain('tts-minimax-speech-2.8-turbo-clone')
     })
 

@@ -77,7 +77,7 @@ It does not apply to:
 - Intentional runner-to-child test IPC.
 - Standard system variables (`PATH`, `NO_COLOR`, `FORCE_COLOR`).
 - The error class vocabulary and rendering pipeline — the missing-credential contract slots into the `AppError` taxonomy that [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md) owns.
-- Docker credential delivery (`--env-file`, `-e`, mounted `/app/.env`) — [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md) owns the container credential boundary.
+- Docker credential delivery through Docker's `--env-file` and `-e` options — [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md) owns the container credential boundary; mounted `/app/.env` files are intentionally not loaded.
 
 ## Rationale
 

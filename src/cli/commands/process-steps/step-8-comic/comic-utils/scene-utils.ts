@@ -4,14 +4,17 @@ import { PromptsConfigSchema } from '../schemas/schemas'
 import { parseJsonFile } from './json-prompt-utils'
 import { err } from './comic-logger'
 import { InternalError, ValidationError } from '~/utils/error-handler'
-import { PROJECT_ROOT } from '~/utils/runtime-paths'
+import { IMMUTABLE_ASSET_ROOT } from '~/utils/runtime-paths'
 import { getPagesDirectory, getPanelsDirectory, getSketchesDirectory } from './project-paths'
 
 export const PANEL_FILENAME_PADDING = 2
 
 export const loadPromptsConfig = async (): Promise<PromptsConfig> => {
   try {
-    return await parseJsonFile(join(PROJECT_ROOT, 'src', 'cli', 'commands', 'process-steps', 'step-8-comic', 'comic-prompts', 'prompts.json'), PromptsConfigSchema)
+    const promptsPath = Bun.isStandaloneExecutable
+      ? join(IMMUTABLE_ASSET_ROOT, 'prompts.json')
+      : join(IMMUTABLE_ASSET_ROOT, 'src', 'cli', 'commands', 'process-steps', 'step-8-comic', 'comic-prompts', 'prompts.json')
+    return await parseJsonFile(promptsPath, PromptsConfigSchema)
   } catch (error) {
     err('Failed to load prompts:', error instanceof Error ? error.message : String(error))
     throw InternalError('Failed to load prompts configuration', { stage: 'comic:scene-utils', ...(error instanceof Error ? { cause: error } : {}) })

@@ -17,6 +17,7 @@ export type DoctorSection = {
 }
 
 export type DoctorProbes = {
+  bunVersion: string
   env: Record<string, string | undefined>
   which: (command: string) => string | undefined
   pathExists: (path: string) => Promise<boolean>

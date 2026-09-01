@@ -14,6 +14,25 @@ const FAST_RETRY_POLICY = {
 
 describe('retry error contracts', () => {
 
+  test('an unobserved AbortSignal timeout does not keep a completed process alive', () => {
+    const startedAt = Date.now()
+    const result = Bun.spawnSync([
+      'bun',
+      '--no-env-file',
+      './test/test-utils/fixtures/unobserved-abort-timeout.fixture.ts',
+    ], {
+      cwd: process.cwd(),
+      stdout: 'pipe',
+      stderr: 'pipe',
+      timeout: 2_000,
+    })
+
+    expect(result.exitCode).toBe(0)
+    expect(result.signalCode).toBeUndefined()
+    expect(result.stdout.toString()).toBe('UNOBSERVED_TIMEOUT_COMPLETE\n')
+    expect(Date.now() - startedAt).toBeLessThan(2_000)
+  })
+
   test('withHostedTtsRetry aborts a Retry-After backoff promptly', async () => {
     const controller = new AbortController()
     const cancellation = new Error('cancel hosted TTS retry backoff')

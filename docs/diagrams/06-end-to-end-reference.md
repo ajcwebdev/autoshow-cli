@@ -88,4 +88,4 @@ With more than one STT selection, extract provider-specific files move under `pr
 
 Hosted provider API keys are listed in [Providers, Models & Setup](04-providers-and-setup.md#hosted-provider-env-checks). This extract example uses local Whisper, so it needs no STT key; `write` still requires a configured LLM key.
 
-Runtime settings come from flags and `config/autoshow.json`. The CLI reads environment variables only for provider API keys and `NO_COLOR` / `FORCE_COLOR`. `--color` / `--no-color` override those color variables.
+Runtime settings come from flags and `config/autoshow.json`. The CLI reads environment variables only for provider API keys and `NO_COLOR` / `FORCE_COLOR`. `NO_COLOR` disables color whenever the variable is present, including when its value is an empty string; a non-empty, non-zero `FORCE_COLOR` takes precedence. `--color` / `--no-color` override both color variables.

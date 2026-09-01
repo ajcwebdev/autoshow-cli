@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { createLogger } from '~/utils/app-logger/core'
 import { createReporter } from '~/utils/app-logger/reporter'
 import {
+  createDetailTable,
   createHumanTable,
   createKeyValueTable,
   createLocationsTable,
@@ -55,7 +56,7 @@ describe('logging contracts', () => {
       ], ['status', 'cost', 'path', 'providerModel', 'durationMs'])
 
       const stripped = stripAnsi(withColorEnv({ forceColor: '1' }, () => renderHumanTable(table)))
-      const lineWidths = new Set(stripped.split('\n').map(line => line.length))
+      const lineWidths = new Set(stripped.split('\n').map(line => Bun.stringWidth(line)))
       expect(lineWidths.size).toBe(1)
       expect(stripped).toContain('\u2502 failed    \u2502 123.45600\u00a2')
       expect(stripped).toContain('\u2502 gemini/veo-3.1-lite')
@@ -112,13 +113,61 @@ describe('logging contracts', () => {
       expect(rendered).toMatch(/\x1b\[[0-9;]*mjob-123\x1b\[0m/)
     })
 
-  test('NO_COLOR disables human table ANSI output', () => {
-      const rendered = withColorEnv({ noColor: '1' }, () => renderHumanTable(createHumanTable([
+  test('NO_COLOR disables ANSI output when set to a value or an empty string', () => {
+    for (const noColor of ['1', '']) {
+      const rendered = withColorEnv({ noColor }, () => renderHumanTable(createHumanTable([
         { status: 'failed', cost: '2.00000\u00a2', path: 'output/run/manifest.json' }
       ], ['status', 'cost', 'path'])))
 
       expect(hasAnsi(rendered)).toBe(false)
-    })
+    }
+  })
+
+  test('human table widths follow terminal columns for Unicode, ANSI, hyperlinks, and right alignment', () => {
+    const hyperlink = '\x1b]8;;https://example.invalid/docs\x07docs\x1b]8;;\x07'
+    const table = createHumanTable([
+      { sample: '漢字', value: '7' },
+      { sample: 'e\u0301', value: '42' },
+      { sample: '👩‍💻', value: '900' },
+      { sample: '🇺🇸', value: '5' },
+      { sample: '\x1b[35mviolet\x1b[0m', value: '12' },
+      { sample: hyperlink, value: '1' }
+    ], ['sample', 'value'], { align: { value: 'right' } })
+    const rendered = withColorEnv({ forceColor: '1' }, () => renderHumanTable(table))
+    const plain = stripAnsi(rendered)
+    const boxedLines = rendered.split('\n').filter(line => line.includes('│') || line.includes('┌') || line.includes('├') || line.includes('└'))
+
+    expect(new Set(boxedLines.map(line => Bun.stringWidth(line))).size).toBe(1)
+    expect(plain).toContain('│ 漢字   │     7 │')
+    expect(plain).toContain('│ e\u0301      │    42 │')
+    expect(plain).toContain('│ 👩‍💻     │   900 │')
+    expect(plain).toContain('│ 🇺🇸     │     5 │')
+    expect(rendered).toContain(hyperlink)
+  })
+
+  test('multiline detail continuation aligns by terminal label width', () => {
+    const rendered = renderHumanTable(createDetailTable([
+      ['漢字👩‍💻', 'first line\nsecond line']
+    ]))
+
+    expect(rendered).toBe('  漢字👩‍💻: first line\n          second line')
+    expect(Bun.stringWidth(rendered.split('\n')[1] ?? '')).toBe(Bun.stringWidth('          second line'))
+  })
+
+  test('wide-path and verbose-detail thresholds use terminal display width', () => {
+    const widePath = `output/${'界'.repeat(24)}/result.json`
+    const verboseMessage = '界'.repeat(49)
+    const pathTable = createLocationsTable([{ artifact: 'manifest', path: widePath }])
+    const messageTable = createHumanTable([{ status: 'failed', code: 'E_FAIL', message: verboseMessage }], ['status', 'code', 'message'])
+
+    expect(widePath.length).toBeLessThanOrEqual(56)
+    expect(Bun.stringWidth(widePath)).toBeGreaterThan(56)
+    expect(pathTable.details).toEqual([{ label: 'manifest', value: widePath }])
+    expect(verboseMessage.length).toBeLessThanOrEqual(96)
+    expect(Bun.stringWidth(verboseMessage)).toBeGreaterThan(96)
+    expect(messageTable.rows[0]?.['message']).toBe('see details')
+    expect(messageTable.details).toEqual([{ label: 'message', value: verboseMessage }])
+  })
 
   test('human artifact/path table rendering omits artifact/path header row', () => {
       const rendered = stripAnsi(renderHumanTable(createHumanTable([

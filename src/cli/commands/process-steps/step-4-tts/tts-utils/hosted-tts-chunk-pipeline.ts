@@ -1,4 +1,5 @@
 import type { HostedTtsChunkPipelineOptions, Step4Metadata } from '~/types'
+import { rm } from 'node:fs/promises'
 import { concatAndConvertToWav, requireHostedTtsChunkScheduler, runTtsChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { finalizeTtsRun } from '~/cli/commands/process-steps/step-4-tts/tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
@@ -73,7 +74,7 @@ export const runHostedTtsChunkPipeline = async (
   } finally {
     if (completed) {
       for (const chunkPath of chunkPaths) {
-        await Bun.$`rm -f ${chunkPath}`.quiet().nothrow()
+        await rm(chunkPath, { force: true }).catch(() => {})
       }
     }
   }

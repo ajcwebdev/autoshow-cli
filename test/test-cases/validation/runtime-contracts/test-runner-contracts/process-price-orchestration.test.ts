@@ -3,7 +3,8 @@ import type { ExecutedBudgetPreflightVariant, PriceCommandSpec, TestRunArtifacts
 import { argvKeyFor } from '../../../../test-runner/budget-preflight-cache'
 import { collectOrderedVariantObservations, partitionBudgetCacheHits } from '../../../../test-runner/budget-preflight-orchestration'
 import { buildPriceSpawnArgs } from '../../../../test-runner/price-execution'
-import { buildTestWorkerEnv } from '../../../../test-runner/process-execution'
+import { buildBunTestArgs, buildTestWorkerEnv } from '../../../../test-runner/process-execution'
+import { BUN_FILE_TIMINGS_CACHE_PATH } from '../../../../test-runner/file-timings'
 import { toObservation } from '../../../../test-runner/price-evaluation'
 
 const artifacts: TestRunArtifacts = {
@@ -31,6 +32,26 @@ const command = (name: string, args: string[]): PriceCommandSpec => ({
 })
 
 describe('test-runner process and price orchestration', () => {
+  test('test commands enable descendant cleanup and native timing updates without dropping JUnit reporting', () => {
+    const file = 'test/test-cases/validation/runtime-contracts/example.test.ts'
+    expect(buildBunTestArgs([file], artifacts, ['--only-failures'])).toEqual([
+      'test',
+      '--no-orphans',
+      `--timings=${BUN_FILE_TIMINGS_CACHE_PATH}`,
+      '--update-timings',
+      '--timeout',
+      '600000',
+      expect.stringMatching(/^--max-concurrency=\d+$/),
+      expect.stringMatching(/^--parallel=\d+$/),
+      '--only-failures',
+      '--reporter',
+      'junit',
+      '--reporter-outfile',
+      artifacts.junitPath,
+      file
+    ])
+  })
+
   test('price command construction preserves argument order and substitutes the prebuilt CLI bundle', () => {
     const previous = process.env['AUTOSHOW_TEST_CLI_BUNDLE']
     try {

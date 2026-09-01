@@ -1,4 +1,5 @@
 import type { FishNativeDialogueTurn, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import { rm } from 'node:fs/promises'
 import { UsageError } from '~/utils/error-handler'
 import { createFishClient } from '~/utils/fish-client/fish-client'
 import { concatAndConvertToWav } from '../../tts-utils/audio-utils'
@@ -79,6 +80,6 @@ export const runFishNativeDialogue = async (
     completed = true
     return finalized
   } finally {
-    if (completed) for (const path of paths) await Bun.$`rm -f ${path}`.quiet().nothrow()
+    if (completed) for (const path of paths) await rm(path, { force: true }).catch(() => {})
   }
 }

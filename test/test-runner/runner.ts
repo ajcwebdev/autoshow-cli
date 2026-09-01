@@ -12,10 +12,10 @@ import {
   writeReportJson
 } from './artifacts'
 import { prepareBudgetPreflight } from './budget-preflight-orchestration'
-import { recordFileTimings, readFileTimings } from './file-timings'
+import { recordFileTimings } from './file-timings'
 import { buildModelCalibrationReport } from './model-calibration'
 import { readMetrics, parseJunit } from './parsers'
-import { orderTestFiles, resolveSelectedFiles } from './path-selection'
+import { resolveSelectedFiles } from './path-selection'
 import { resolvePriceSelection } from './price-commands/resolve'
 import { buildEmptyBudgetSummary, runPriceSuite } from './price-execution'
 import { prebuildTestCliBundle, runBunTest } from './process-execution'
@@ -63,8 +63,7 @@ const runStandardTestMode = async (
   argv: string[],
   budgetHead: HeadBudgetResult
 ): Promise<number> => {
-  const fileTimings = await readFileTimings()
-  const filesToRun = orderTestFiles(resolveSelectedFiles(allFiles, args.pathFilters), fileTimings.fileP50)
+  const filesToRun = resolveSelectedFiles(allFiles, args.pathFilters)
   if (args.pathFilters.length === 0) {
     l.write('info', `Running all discovered tests (${filesToRun.length} files)`, { category: 'command' })
   } else {

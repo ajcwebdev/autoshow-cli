@@ -5,7 +5,8 @@ import * as v from 'valibot'
 import type { LeafPrompt, PromptEntry, PromptExampleFormat, PromptExamples, PromptsRegistry, PromptTokenEstimate, ResolvedLeafPrompt } from '~/types'
 import { BoundedTextCapture, buildCaptureMetadata } from '~/utils/bounded-capture'
 import { AppError, UsageError, hasErrorCode } from '~/utils/error-handler'
-import { PROJECT_ROOT } from '~/utils/runtime-paths'
+import { IMMUTABLE_ASSET_ROOT } from '~/utils/runtime-paths'
+import { listEmbeddedAssetPaths } from '~/utils/embedded-assets'
 import { validateData } from '~/utils/validate/validation'
 
 const MARKDOWN_EXAMPLE_PRESENTATION_PREFIX = 'Format the output like so:'
@@ -36,12 +37,27 @@ const CompositePromptSchema = v.object({
 const PromptEntrySchema = v.union([LeafPromptSchema, CompositePromptSchema])
 const PromptsRegistrySchema = v.record(v.string(), PromptEntrySchema)
 
-const PROMPTS_DIR = resolve(PROJECT_ROOT, 'src/prompts/entries')
+const PROMPTS_DIR = resolve(IMMUTABLE_ASSET_ROOT, 'src/prompts/entries')
 const PROMPT_FILE_EXTENSION = '.json'
+const EMBEDDED_PROMPT_DIRECTORIES = [
+  'chapters',
+  'creative-writing',
+  'marketing-content',
+  'social-media',
+  'song-lyrics',
+  'summary-and-overview'
+]
 
 let cachedRegistry: PromptsRegistry | undefined
 
 const collectPromptFilePaths = async (directory: string): Promise<string[]> => {
+  if (directory === PROMPTS_DIR) {
+    const embedded = Bun.isStandaloneExecutable
+      ? EMBEDDED_PROMPT_DIRECTORIES.flatMap((name) =>
+        listEmbeddedAssetPaths(resolve(IMMUTABLE_ASSET_ROOT, name), PROMPT_FILE_EXTENSION))
+      : []
+    if (embedded.length > 0) return embedded
+  }
   let dirEntries: DirectoryEntry[]
   try {
     dirEntries = await readdir(directory, { withFileTypes: true })

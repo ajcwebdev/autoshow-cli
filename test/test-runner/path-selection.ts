@@ -29,32 +29,6 @@ export const resolveSelectedFiles = (allFiles: string[], pathFilters: string[]):
   return selectedFiles
 }
 
-const SLOW_E2E_PATH_FRAGMENTS = [
-  'download-input-types-streaming.test.ts',
-  'stt-services/scrapecreators-youtube-transcript.test.ts',
-  'step-5-image-gen-e2e/fal-image.test.ts',
-  'ocr-services/deepinfra-qwen3-vl-30b-a3b-instruct.test.ts',
-] as const
-
-export const orderTestFiles = (
-  files: string[],
-  timings: ReadonlyMap<string, number> = new Map()
-): string[] => {
-  const durationFor = (file: string): number => {
-    const cached = timings.get(file)
-    if (cached !== undefined) {
-      return cached
-    }
-    const seedIndex = SLOW_E2E_PATH_FRAGMENTS.findIndex((fragment) => file.endsWith(fragment))
-    return seedIndex === -1 ? 0 : Number.MAX_SAFE_INTEGER - seedIndex
-  }
-
-  return files
-    .map((file, index) => ({ file, index, duration: durationFor(file) }))
-    .sort((left, right) => right.duration - left.duration || left.index - right.index)
-    .map((entry) => entry.file)
-}
-
 const formatSelectionPath = (pathFilter: string): string => {
   const normalized = normalizePathFilter(pathFilter)
   if (normalized.startsWith(E2E_PREFIX)) {

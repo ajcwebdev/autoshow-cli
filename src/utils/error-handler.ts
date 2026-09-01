@@ -233,12 +233,47 @@ const PROVIDER_METADATA_KEYS = [
   'rawResponseFile',
   'errorFile',
   'code',
+  'errno',
+  'syscall',
+  'hostname',
+  'input',
   'param',
   'type',
   'error',
   'errorType',
   'responseType'
 ] as const
+
+const SAFE_CAUSE_METADATA_KEYS = [
+  'code',
+  'errno',
+  'syscall',
+  'hostname',
+  'input'
+] as const
+
+const ERROR_METADATA_CAUSE_DEPTH_LIMIT = 6
+
+const collectErrorMetadataChain = (error: unknown): object[] => {
+  const chain: object[] = []
+  const seen = new Set<unknown>()
+  let current = error
+
+  while (
+    current !== null
+    && typeof current === 'object'
+    && !seen.has(current)
+    && chain.length < ERROR_METADATA_CAUSE_DEPTH_LIMIT
+  ) {
+    chain.push(current)
+    seen.add(current)
+    current = 'cause' in current
+      ? (current as { cause?: unknown }).cause
+      : undefined
+  }
+
+  return chain
+}
 
 const addMetadataValue = (
   out: Record<string, unknown>,
@@ -298,6 +333,12 @@ export const extractErrorMetadata = (error: unknown): Record<string, unknown> =>
         continue
       }
       addMetadataValue(metadata, key, value)
+    }
+  }
+
+  for (const entry of collectErrorMetadataChain(error)) {
+    for (const key of SAFE_CAUSE_METADATA_KEYS) {
+      addMetadataValue(metadata, key, (entry as Record<string, unknown>)[key])
     }
   }
 

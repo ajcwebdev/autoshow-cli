@@ -3,6 +3,7 @@ import { formatTableCell } from './human-table-cells'
 import { nonEmptyTableCell, resolveTableColumns } from './human-table-columns'
 import { buildCellDetailLabel, detailLabelFromCell, getEffectiveVerboseColumnName } from './human-table-detail-labels'
 import { isAlwaysLiftVerboseColumnName, isConditionallyLiftVerboseColumnName, isPathLikeColumnName, normalizeColumnName } from './human-table-labels'
+import { getTerminalDisplayWidth } from './human-table-width'
 import type { HumanLogTable, HumanLogTableCell, HumanLogTableDetail, HumanLogTableRow, WidePathDetailContext } from '~/types'
 
 const widePathDetailVisibleLength = 56
@@ -32,7 +33,7 @@ const isProviderOrModelId = (value: string): boolean => {
 
 const isLiftableWidePathValue = (value: HumanLogTableCell): boolean => {
   const visibleValue = stripAnsi(formatTableCell(value))
-  return visibleValue.length > widePathDetailVisibleLength
+  return getTerminalDisplayWidth(visibleValue) > widePathDetailVisibleLength
     && /[\\/]/.test(visibleValue)
     && !isUrlLikeValue(visibleValue)
     && !isProviderOrModelId(visibleValue)
@@ -48,7 +49,7 @@ const isVerboseDetailValue = (
 ): boolean => {
   const visibleValue = stripAnsi(formatTableCell(value))
   return lineBreakPattern.test(visibleValue)
-    || visibleValue.length > VERBOSE_DETAIL_VISIBLE_LENGTH
+    || getTerminalDisplayWidth(visibleValue) > VERBOSE_DETAIL_VISIBLE_LENGTH
     || stackLikePattern.test(visibleValue)
     || rawStreamLikePattern.test(visibleValue)
 }

@@ -17,8 +17,15 @@ import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 import { createTtsFixtureTarget } from '../../../test-utils/tts-fixture-target'
 import { requireDefined } from '../../../test-utils/value-assertions'
+import { setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
 const MODEL = 'fixture-compact-archive-model'
+
+setupContractSuiteLifecycle({
+  envKeys: ['OPENAI_API_KEY'],
+  tempPrefix: 'autoshow-compact-archive-lifecycle-',
+  beforeEachExtra: () => { process.env['OPENAI_API_KEY'] = 'compact-archive-local-fixture' }
+})
 
 const relativeNames = async (root: string): Promise<string[]> =>
   (await readdir(root, { recursive: true })).map(String).map(name => name.replaceAll('\\', '/'))
@@ -103,9 +110,9 @@ describe('ADR-013 compact archive contracts', () => {
       const { renderId, ...compactRenderBase } = compactRender
       expect(renderId).toBe(hashCanonicalTtsValue(compactRenderBase))
       expect(compactRender.cost).toEqual({
-        currentComposition: { planned: expect.any(Object), observed: [] },
-        closingAttempt: { planned: expect.any(Object), observed: [] },
-        cumulativeRenderHistory: { planned: expect.any(Object), observed: [] },
+        currentComposition: { planned: expect.objectContaining({ amounts: expect.any(Array) }), observed: [] },
+        closingAttempt: { planned: expect.objectContaining({ amounts: expect.any(Array) }), observed: [] },
+        cumulativeRenderHistory: { planned: expect.objectContaining({ amounts: expect.any(Array) }), observed: [] },
       })
       const timeline = await Bun.file(join(dir, archive.timelineRef.path)).json() as FinalTimeline
       const { timelineId, ...timelineBase } = timeline

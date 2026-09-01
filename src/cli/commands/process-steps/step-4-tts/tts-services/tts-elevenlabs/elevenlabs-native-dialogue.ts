@@ -12,6 +12,7 @@ import type {
   Step4Metadata,
   TtsRequestEvidenceScope,
 } from '~/types'
+import { rm } from 'node:fs/promises'
 import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { UsageError, InfraError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
@@ -231,6 +232,6 @@ export const runElevenLabsNativeDialogue = async (
     completed = true
     return finalized
   } finally {
-    if (completed) for (const path of paths) await Bun.$`rm -f ${path}`.quiet().nothrow()
+    if (completed) for (const path of paths) await rm(path, { force: true }).catch(() => {})
   }
 }

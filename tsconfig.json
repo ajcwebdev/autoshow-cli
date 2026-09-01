@@ -44,6 +44,6 @@
       "~/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "include": ["scripts/**/*.ts", "src/**/*.ts", "test/**/*.ts"],
   "exclude": ["node_modules"]
 }

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect } from 'bun:test'
+import { beforeEach, expect, onTestFinished } from 'bun:test'
 import type { EnvSnapshot, MockFetchCall, MockFetchHandler, ProviderHttpErrorExpectation } from '~/types'
 import { extractErrorMetadata, isAppError } from '~/utils/error-handler'
 import { createTempDirTracker } from './temp-dirs'
@@ -136,31 +136,25 @@ export const setupContractSuiteLifecycle = (
   }
 ): ReturnType<typeof createTempDirTracker> => {
   const tempDirs = createTempDirTracker(options.tempPrefix)
-  let previousEnv: EnvSnapshot = {}
-  let previousFetch: typeof fetch
-  let previousSleep: typeof Bun.sleep | undefined
 
   beforeEach(async () => {
-    previousFetch = globalThis.fetch
-    previousEnv = snapshotEnv(options.envKeys)
-    clearEnv(options.envKeys)
-    if (options.restoreBunSleep === true) {
-      previousSleep = Bun.sleep
-    }
-    await options.beforeEachExtra?.()
-  })
-
-  afterEach(async () => {
-    try {
-      await options.afterEachExtra?.()
-    } finally {
-      globalThis.fetch = previousFetch
-      restoreEnv(previousEnv)
-      if (previousSleep !== undefined) {
-        ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = previousSleep
+    const previousFetch = globalThis.fetch
+    const previousEnv = snapshotEnv(options.envKeys)
+    const previousSleep = options.restoreBunSleep === true ? Bun.sleep : undefined
+    onTestFinished(async () => {
+      try {
+        await options.afterEachExtra?.()
+      } finally {
+        globalThis.fetch = previousFetch
+        restoreEnv(previousEnv)
+        if (previousSleep !== undefined) {
+          ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = previousSleep
+        }
+        await tempDirs.cleanup()
       }
-      await tempDirs.cleanup()
-    }
+    })
+    clearEnv(options.envKeys)
+    await options.beforeEachExtra?.()
   })
 
   return tempDirs

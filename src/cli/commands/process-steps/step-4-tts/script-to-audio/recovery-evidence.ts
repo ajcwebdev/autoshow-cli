@@ -12,6 +12,7 @@ import type {
   RetainedJournalEvidence,
 } from '~/types'
 import { UsageError, hasErrorCode } from '~/utils/error-handler'
+import { parseJsonlBytes } from '~/utils/jsonl-reader'
 import {
   hardlinkContainedArtifact,
   readContainedArtifactFile,
@@ -48,9 +49,11 @@ export const readJournalSnapshotFromLedger = async (
   if (expectedSha256 && retained.sha256 !== expectedSha256 && !snapshotId) {
     throw UsageError('Stored TTS admission journal checksum does not match retained canonical evidence.')
   }
-  const lines = retained.bytes.toString('utf8').split('\n').filter((line) => line.length > 0)
-  if (lines.length === 0) throw UsageError('Stored TTS admission journal is empty.')
-  const parsedLines = lines.map((line) => JSON.parse(line) as { snapshot?: RenderAdmissionJournalSnapshot })
+  const parsedLines = parseJsonlBytes(retained.bytes, {
+    allowTornFinalRecord: true,
+    label: 'Stored TTS admission journal'
+  }) as Array<{ snapshot?: RenderAdmissionJournalSnapshot }>
+  if (parsedLines.length === 0) throw UsageError('Stored TTS admission journal is empty.')
   const selected = snapshotId
     ? parsedLines.find((entry) => entry.snapshot?.snapshotId === snapshotId)
     : parsedLines.at(-1)

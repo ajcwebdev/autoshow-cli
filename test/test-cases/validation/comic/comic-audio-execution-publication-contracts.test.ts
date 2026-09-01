@@ -114,7 +114,14 @@ describe('comic audio phase 2 contracts', () => {
     expect(calls.map(call => call.bodyJson?.['voice']).sort()).toEqual(['alloy', 'alloy', 'onyx'])
     expect(calls.filter(call => call.bodyJson?.['voice'] === 'alloy').map(call => call.bodyJson?.['input'])).toEqual(['Ready?', 'Go.'])
     expect(provider).toEqual(expect.objectContaining({ operation: 'comic-audio', status: 'succeeded' }))
-    expect(provider?.result?.['comicAudio']).toEqual(expect.objectContaining({ selectedSuccess: expect.any(Object) }))
+    expect(provider?.result?.['comicAudio']).toEqual(expect.objectContaining({
+      selectedSuccess: expect.objectContaining({
+        renderIdentity: expect.any(String),
+        eventSequence: expect.any(Number),
+        resultIdentity: expect.any(String),
+        audioRunId: expect.any(String),
+      })
+    }))
     expect(comic.stages.audio.status).toBe('full')
     expect(comic.audio.selectedAudioRuns).toHaveLength(1)
     expect(comic.audio.finalOutputRefs).toHaveLength(1)
@@ -141,7 +148,18 @@ describe('comic audio phase 2 contracts', () => {
     const replacementFinal = replacedComic.audio.finalOutputRefs?.[0]
     expect(calls).toHaveLength(6)
     expect(replacedProvider?.status).toBe('succeeded')
-    expect(replacedProvider?.result?.['comicAudio']).toEqual(expect.objectContaining({ renderHistory: expect.arrayContaining([expect.any(Object), expect.any(Object)]), selectedSuccess: expect.any(Object) }))
+    expect(replacedProvider?.result?.['comicAudio']).toEqual(expect.objectContaining({
+      renderHistory: expect.arrayContaining([
+        expect.objectContaining({ renderIdentity: expect.any(String), renderPlanId: expect.any(String), events: expect.any(Array) }),
+        expect.objectContaining({ renderIdentity: expect.any(String), renderPlanId: expect.any(String), events: expect.any(Array) }),
+      ]),
+      selectedSuccess: expect.objectContaining({
+        renderIdentity: expect.any(String),
+        eventSequence: expect.any(Number),
+        resultIdentity: expect.any(String),
+        audioRunId: expect.any(String),
+      })
+    }))
     expect(replacedComic.stages.audio.status).toBe('full')
     expect(replacedComic.audio.selectedAudioRuns).toHaveLength(1)
     expect(replacementFinal?.path).toBe(firstFinal?.path)

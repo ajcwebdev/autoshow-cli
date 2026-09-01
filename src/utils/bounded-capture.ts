@@ -1,9 +1,11 @@
 import { sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
 import type { BoundedCaptureOptions, BoundedCaptureResult } from '~/types'
+import { consumeBoundedTextStream } from '~/utils/bounded-text-stream'
 
 const DEFAULT_PROCESS_CAPTURE_BYTES = 4 * 1024 * 1024
 const DEFAULT_HTTP_CAPTURE_BYTES = 16 * 1024 * 1024
 const DEFAULT_PREVIEW_BYTES = 8 * 1024
+const MAX_CAPTURE_STREAM_BYTES = 64 * 1024 * 1024
 
 const encoder = new TextEncoder()
 
@@ -75,26 +77,13 @@ export const readBoundedTextStream = async (
     return capture.result()
   }
 
-  const reader = stream.getReader()
-  const decoder = new TextDecoder()
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) {
-        break
-      }
-
-      const chunk = decoder.decode(value, { stream: true })
+  await consumeBoundedTextStream(stream, {
+    maxBytes: Math.max(MAX_CAPTURE_STREAM_BYTES, defaultMaxBytes, normalizePositiveBytes(options.maxBytes, defaultMaxBytes)),
+    onText: (chunk) => {
       capture.append(chunk)
       onText?.(chunk)
     }
-
-    const trailing = decoder.decode()
-    capture.append(trailing)
-    onText?.(trailing)
-  } finally {
-    reader.releaseLock()
-  }
+  })
 
   return capture.result()
 }

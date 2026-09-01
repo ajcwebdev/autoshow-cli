@@ -6,6 +6,8 @@ import type {
 } from '~/types'
 import { decodeXml, normalizeRepoPath, parseXmlAttributes, getFiniteNumber, readString } from './utils'
 import { isObjectLike } from '~/utils/value-helpers'
+import { parseJsonlBytes } from '~/utils/jsonl-reader'
+import { hasErrorCode } from '~/utils/error-handler'
 
 const readNonEmptyString = (record: Record<string, unknown>, key: string): string | null => {
   const value = readString(record, key)
@@ -14,18 +16,11 @@ const readNonEmptyString = (record: Record<string, unknown>, key: string): strin
 
 export const readMetrics = async (path: string): Promise<ParsedCommandMetric[]> => {
   try {
-    const text = await readFile(path, 'utf8')
-    const lines = text.split('\n').map(line => line.trim()).filter(Boolean)
+    const bytes = await readFile(path)
+    const records = parseJsonlBytes(bytes, { allowTornFinalRecord: true, label: 'Test metrics log' })
     const out: ParsedCommandMetric[] = []
 
-    for (const line of lines) {
-      let parsedRaw: unknown
-      try {
-        parsedRaw = JSON.parse(line)
-      } catch {
-        continue
-      }
-
+    for (const parsedRaw of records) {
       if (!isObjectLike(parsedRaw)) {
         continue
       }
@@ -75,8 +70,9 @@ export const readMetrics = async (path: string): Promise<ParsedCommandMetric[]> 
     }
 
     return out
-  } catch {
-    return []
+  } catch (error) {
+    if (hasErrorCode(error, 'ENOENT')) return []
+    throw error
   }
 }
 

@@ -2,7 +2,7 @@ import { mkdir, open, rename, rm } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { dirname } from 'node:path'
 import type { DownloadFlowId, DownloadRequest, DownloadTimeouts, DownloadWatchdog, PartialDownloadMetadata } from '~/types'
-import { extractTarGzBuffer } from './tar-gz'
+import { extractTarGzFile } from './tar-gz'
 import { withSetupDownloadSlot } from './download-admission'
 import { hasErrorCode, InfraError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
@@ -216,8 +216,7 @@ const extractDownloadedArchive = async (
   req: DownloadRequest
 ): Promise<void> => {
   await mkdir(req.destination, { recursive: true })
-  const buffer = await Bun.file(archivePath).arrayBuffer()
-  await extractTarGzBuffer(buffer, {
+  await extractTarGzFile(archivePath, {
     destination: req.destination,
     ...(req.stripComponents !== undefined ? { stripComponents: req.stripComponents } : {})
   })

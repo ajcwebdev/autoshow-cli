@@ -1,15 +1,26 @@
 {
   "name": "autoshow-bun-cli",
   "version": "0.1.0",
+  "packageManager": "bun@1.4.0",
   "type": "module",
   "author": "Anthony Campolo",
   "license": "MIT",
   "scripts": {
-    "repo": "bun src/tools/repo-snapshot.ts",
-    "audit:ocr-tokens": "bun src/tools/audit-ocr-token-shapes.ts",
-    "analyze:complexity": "bun src/tools/analyze-typescript-complexity.ts --scope src --scope test",
-    "check": "bun src/tools/unique-source-name-check.ts && bunx tsc --noEmit",
-    "t": "bun test/test-runner.ts",
+    "repo": "env -i PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file src/tools/repo-snapshot.ts",
+    "audit:ocr-tokens": "env -i PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file src/tools/audit-ocr-token-shapes.ts",
+    "analyze:complexity": "env -i PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file src/tools/analyze-typescript-complexity.ts --scope src --scope test",
+    "baseline:docker": "env -i PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file scripts/docker-bun-baseline.ts",
+    "compare:env": "env -i PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file scripts/bun-env-compat.ts",
+    "profile:cpu": "env -i PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file scripts/bun-profile.ts cpu",
+    "profile:heap": "env -i PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file scripts/bun-profile.ts heap",
+    "profile:bundle": "env -i PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file scripts/bun-profile.ts bundle",
+    "profile:tokenizer": "env -i PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file scripts/bun-profile.ts tokenizer",
+    "profile:all": "env -i PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file scripts/bun-profile.ts all",
+    "check": "bun run --parallel check:names check:types",
+    "check:names": "env -i PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file src/tools/unique-source-name-check.ts",
+    "check:types": "env -i PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file node_modules/typescript/bin/tsc --noEmit",
+    "t": "env -i PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file --no-orphans test/test-runner.ts",
+    "t:provider": "bun --no-env-file test/test-runner.ts",
     "autoshow": "bun src/cli/create-cli.ts",
     "as": "bun autoshow",
     "setup": "bun autoshow setup"
@@ -19,7 +30,7 @@
     "valibot": "1.4.2"
   },
   "devDependencies": {
-    "@types/bun": "1.3.14",
+    "@types/bun": "1.4.0",
     "typescript": "6.0.3"
   }
 }

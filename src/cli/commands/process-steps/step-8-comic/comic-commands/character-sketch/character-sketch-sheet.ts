@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import type { BunImageMetadataReaderConstructor, CharacterSketchSheetSelection, CharacterSketchSheetSource, CharacterSketchSheetSourceMetadata, CharacterSketchView } from '~/types'
+import type { CharacterSketchSheetSelection, CharacterSketchSheetSource, CharacterSketchSheetSourceMetadata, CharacterSketchView } from '~/types'
 import { commandExists, exec } from '~/utils/cli-utils'
 import { InfraError, InternalError } from '~/utils/error-handler'
 import { CHARACTER_SKETCH_VIEWS, getCharacterSketchImagePathForDirectory, getCharacterSketchSheetImagePathForDirectory } from '../process-scenes/character-utils'
@@ -33,14 +33,6 @@ export const selectCharacterSketchSheetSources = (
   )
 }
 
-const getBunImageConstructor = (): BunImageMetadataReaderConstructor => {
-  const imageConstructor = (Bun as unknown as { Image?: BunImageMetadataReaderConstructor }).Image
-  if (!imageConstructor) {
-    throw InternalError('Bun.Image is required to read character sketch dimensions', { stage: 'comic:character-sketch-sheet' })
-  }
-  return imageConstructor
-}
-
 const resolveImageMagickCommand = (): string => {
   if (commandExists('magick')) {
     return 'magick'
@@ -57,8 +49,7 @@ const resolveImageMagickCommand = (): string => {
 const identifyImageDimensions = async (
   source: CharacterSketchSheetSource
 ): Promise<CharacterSketchSheetSourceMetadata> => {
-  const Image = getBunImageConstructor()
-  const metadata = await new Image(await Bun.file(source.path).arrayBuffer()).metadata()
+  const metadata = await new Bun.Image(await Bun.file(source.path).arrayBuffer()).metadata()
   const { width, height } = metadata
   if (!width || !height) {
     throw InfraError(`Could not read dimensions for ${source.path}`, { stage: 'comic:character-sketch-sheet' })

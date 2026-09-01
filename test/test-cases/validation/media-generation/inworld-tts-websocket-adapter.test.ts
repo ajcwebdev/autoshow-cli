@@ -124,4 +124,61 @@ describe('Inworld TTS WebSocket adapter', () => {
     expect(JSON.parse(sent.at(-1) as string)).toEqual({ close_context: {}, contextId: 'ctx-cancel' })
     expect(closed).toBe(true)
   })
+
+  test('drains queued terminal messages when close is dispatched as a later task', async () => {
+    const originalWebSocket = globalThis.WebSocket
+    const lifecycle: string[] = []
+    const sent: string[] = []
+
+    class QueuedCloseWebSocket extends EventTarget {
+      constructor(_url: string, _options: { headers: Readonly<Record<string, string>> }) {
+        super()
+        queueMicrotask(() => this.dispatchEvent(new Event('open')))
+      }
+
+      send(message: string): void {
+        sent.push(message)
+        const parsed = JSON.parse(message) as Record<string, unknown>
+        if (!Object.hasOwn(parsed, 'send_text')) return
+        queueMicrotask(() => {
+          this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ result: { contextId: 'ctx-queued-close', contextCreated: {} } }) }))
+          this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ result: { contextId: 'ctx-queued-close', audioChunk: { audioContent: Buffer.from([1, 2, 3]).toString('base64') } } }) }))
+          this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ result: { contextId: 'ctx-queued-close', flushCompleted: {} } }) }))
+          queueMicrotask(() => {
+            lifecycle.push('provider-close-event')
+            this.dispatchEvent(new CloseEvent('close', { code: 1000, reason: 'provider complete' }))
+          })
+        })
+      }
+
+      close(_code?: number, _reason?: string): void {
+        lifecycle.push('client-close-call')
+        queueMicrotask(() => {
+          lifecycle.push('client-close-event')
+          this.dispatchEvent(new CloseEvent('close', { code: 1000, reason: 'client complete' }))
+        })
+        lifecycle.push('client-close-return')
+      }
+    }
+
+    ;(globalThis as typeof globalThis & { WebSocket: typeof WebSocket }).WebSocket = QueuedCloseWebSocket as unknown as typeof WebSocket
+    try {
+      const result = await synthesizeInworldWebSocket({
+        text: 'Queued close',
+        voiceId: 'Dennis',
+        model: 'realtime-tts-2',
+        apiKey: 'local-key',
+        contextId: 'ctx-queued-close',
+        requestId: 'req-queued-close',
+      })
+      await Bun.sleep(0)
+
+      expect([...result.audio]).toEqual([1, 2, 3])
+      expect(sent.map(message => JSON.parse(message))).toContainEqual({ close_context: {}, contextId: 'ctx-queued-close' })
+      expect(lifecycle).toContain('provider-close-event')
+      expect(lifecycle.indexOf('client-close-return')).toBeLessThan(lifecycle.indexOf('client-close-event'))
+    } finally {
+      ;(globalThis as typeof globalThis & { WebSocket: typeof WebSocket }).WebSocket = originalWebSocket
+    }
+  })
 })

@@ -1,4 +1,4 @@
-import { readdir } from 'node:fs/promises'
+import { readdir, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import type { BatchListCacheEntry, FileFingerprint, MetadataTopLevelTargetInfo } from '~/types'
@@ -183,8 +183,11 @@ export const isLikelyInputListFile = async (filePath: string): Promise<boolean> 
 }
 
 const isDirectoryPath = async (path: string): Promise<boolean> => {
-  const result = await Bun.$`test -d ${path}`.quiet().nothrow()
-  return result.exitCode === 0
+  try {
+    return (await stat(path)).isDirectory()
+  } catch {
+    return false
+  }
 }
 
 const isUrlListFilePath = (path: string): boolean => {

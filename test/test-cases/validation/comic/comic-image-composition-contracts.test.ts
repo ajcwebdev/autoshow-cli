@@ -10,30 +10,10 @@ import {
 getPanelPromptsDirectory,
 getSceneOutputDirectory
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/project-paths'
-import type {
-BunImageMetadataReader,
-ComicBunImageCodec
-} from '~/types'
 import { pngSignature,redDotPng } from '../../../test-utils/media-fixtures'
 import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const comicSourceRoot = 'src/cli/commands/process-steps/step-8-comic'
-
-const getBunImageCodec = (): new (source: Uint8Array) => ComicBunImageCodec => {
-  const imageConstructor = (Bun as unknown as { Image?: new (source: Uint8Array) => ComicBunImageCodec }).Image
-  if (!imageConstructor) {
-    throw new Error('Bun.Image is required for image writer contracts')
-  }
-  return imageConstructor
-}
-
-const getBunImageMetadataReader = (): new (source: ArrayBuffer) => BunImageMetadataReader => {
-  const imageConstructor = (Bun as unknown as { Image?: new (source: ArrayBuffer) => BunImageMetadataReader }).Image
-  if (!imageConstructor) {
-    throw new Error('Bun.Image is required for image metadata contracts')
-  }
-  return imageConstructor
-}
 
 const collectTypeScriptFiles = async (dir: string): Promise<string[]> => {
   const entries = await readdir(dir, { withFileTypes: true })
@@ -63,7 +43,7 @@ describe('comic source coverage contracts', () => {
 
   test('generated WebP and JPEG images are normalized to PNG with Bun.Image', async () => {
     const dir = await makeTempDir('autoshow-comic-image-writer-')
-    const Image = getBunImageCodec()
+    const Image = Bun.Image
     const encodedImages: Array<{ mimeType: string; bytes: Uint8Array; name: string }> = [
       { mimeType: 'image/webp', bytes: await new Image(redDotPng).webp().bytes(), name: 'webp' },
       { mimeType: 'image/jpeg', bytes: await new Image(redDotPng).jpeg().bytes(), name: 'jpeg' },
@@ -130,8 +110,7 @@ describe('comic source coverage contracts', () => {
         cellSize: { width: 1, height: 1 },
       })
       const outputBytes = new Uint8Array(await Bun.file(outputPath).arrayBuffer())
-      const Image = getBunImageMetadataReader()
-      const metadata = await new Image(await Bun.file(outputPath).arrayBuffer()).metadata()
+      const metadata = await new Bun.Image(await Bun.file(outputPath).arrayBuffer()).metadata()
 
       expect(dimensions).toEqual({ width: 2, height: 2 })
       expect(metadata.width).toBe(2)
