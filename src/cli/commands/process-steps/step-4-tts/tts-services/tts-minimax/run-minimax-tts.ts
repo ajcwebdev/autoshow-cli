@@ -1,4 +1,5 @@
 import { concatAndConvertToWav, requireHostedTtsChunkScheduler, runTtsChunks, splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
+import { rm } from 'node:fs/promises'
 import { finalizeTtsRun } from '~/cli/commands/process-steps/step-4-tts/tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
@@ -243,9 +244,9 @@ export const runMinimaxTts = async (
   } finally {
     if (completed) {
       for (const chunkPath of chunkPaths) {
-        await Bun.$`rm -f ${chunkPath}`.quiet().nothrow()
+        await rm(chunkPath, { force: true }).catch(() => {})
       }
-      await Bun.$`rm -f ${outputDir}/speech-minimax-chunks.txt`.quiet().nothrow()
+      await rm(`${outputDir}/speech-minimax-chunks.txt`, { force: true }).catch(() => {})
     }
   }
 }

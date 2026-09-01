@@ -7,6 +7,12 @@ const CACHE_VERSION = 1
 const MAX_SAMPLES = 20
 
 const FILE_TIMINGS_CACHE_PATH = join(TEST_OUTPUT_ROOT, '.test-cache', 'file-timings.json')
+export const BUN_FILE_TIMINGS_CACHE_PATH = join(TEST_OUTPUT_ROOT, '.test-cache', 'bun-file-timings.json')
+
+type BunFileTimingsCacheFile = {
+  version: 1
+  files: Record<string, number>
+}
 
 export const medianDuration = (values: readonly number[]): number | null => {
   if (values.length === 0) {
@@ -77,6 +83,42 @@ export const readFileTimings = async (cachePath = FILE_TIMINGS_CACHE_PATH): Prom
     fileP50,
     testDurations: new Map(Object.entries(cache.tests)),
   }
+}
+
+const parseBunFileTimings = (raw: unknown): BunFileTimingsCacheFile | null => {
+  if (typeof raw !== 'object' || raw === null) return null
+  const record = raw as Record<string, unknown>
+  if (record['version'] !== 1 || typeof record['files'] !== 'object' || record['files'] === null) return null
+  const files = Object.fromEntries(Object.entries(record['files']).flatMap(([file, duration]) =>
+    typeof duration === 'number' && Number.isFinite(duration) && duration >= 0
+      ? [[file, duration]]
+      : []
+  ))
+  return { version: 1, files }
+}
+
+export const readBunFileTimings = async (
+  cachePath = BUN_FILE_TIMINGS_CACHE_PATH
+): Promise<BunFileTimingsCacheFile | null> => {
+  try {
+    return parseBunFileTimings(JSON.parse(await readFile(cachePath, 'utf8')) as unknown)
+  } catch {
+    return null
+  }
+}
+
+export const prepareBunFileTimings = async (
+  nativeCachePath = BUN_FILE_TIMINGS_CACHE_PATH,
+  customCachePath = FILE_TIMINGS_CACHE_PATH
+): Promise<void> => {
+  if (await readBunFileTimings(nativeCachePath) !== null) return
+  const custom = await readFileTimings(customCachePath)
+  const native: BunFileTimingsCacheFile = {
+    version: 1,
+    files: Object.fromEntries(custom.fileP50)
+  }
+  await mkdir(resolve(nativeCachePath, '..'), { recursive: true })
+  await writeFile(nativeCachePath, `${JSON.stringify(native, null, 2)}\n`)
 }
 
 export const recordFileTimings = async (

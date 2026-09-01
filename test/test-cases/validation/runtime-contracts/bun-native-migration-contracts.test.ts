@@ -169,6 +169,25 @@ describe('Bun-native migration contracts', () => {
     }
   })
 
+  test('synchronous subprocess maxBuffer keeps exact output and bounds overflow', () => {
+    const exact = runSyncCommand(process.execPath, ['-e', 'process.stdout.write("x".repeat(1024))'], {
+      maxBuffer: 1024
+    })
+    expect(exact).toMatchObject({ exitCode: 0, success: true })
+    expect(exact.signalCode).toBeUndefined()
+    expect(exact.stdout).toHaveLength(1024)
+
+    const overflow = runSyncCommand(process.execPath, ['-e', 'process.stdout.write("x".repeat(262144))'], {
+      maxBuffer: 1024
+    })
+    expect(overflow).toMatchObject({ success: false, maxBufferExceeded: true, stderr: '' })
+    expect(overflow.stdout).toHaveLength(1024)
+    if (overflow.signalCode !== undefined) expect(overflow.signalCode).toBe('SIGTERM')
+    expect(() => runSyncCommandOrThrow(process.execPath, ['-e', 'process.stdout.write("x".repeat(262144))'], {
+      maxBuffer: 1024
+    })).toThrow('output exceeding maxBuffer')
+  })
+
   test('raw DEFLATE returns Buffer-identical binary data and rejects malformed streams', () => {
     const expected = Buffer.from([0, 1, 2, 3, 255, 128, 65, 66, 67, 0, 10])
     const compressed = Buffer.from('Y2BkYv7f4OjkzMAFAA==', 'base64')

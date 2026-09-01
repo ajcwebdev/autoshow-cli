@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import * as v from 'valibot'
-import { PROJECT_ROOT } from '~/utils/runtime-paths'
+import { IMMUTABLE_ASSET_ROOT } from '~/utils/runtime-paths'
 import { validateJson } from '~/utils/validate/validation'
 import { InternalError } from '~/utils/error-handler'
 import type { DependencyMetadata } from '~/types'
@@ -17,7 +17,7 @@ const DependencyEntrySchema = v.object({
 
 export const DependencyMetadataSchema = v.record(v.string(), DependencyEntrySchema)
 
-const depsJsonPath = join(PROJECT_ROOT, 'config/deps.json')
+const depsJsonPath = join(IMMUTABLE_ASSET_ROOT, 'config/deps.json')
 
 const DEFAULT_DEPENDENCY_METADATA: DependencyMetadata = {
   'whisper.cpp': { tag: 'v1.7.4' },

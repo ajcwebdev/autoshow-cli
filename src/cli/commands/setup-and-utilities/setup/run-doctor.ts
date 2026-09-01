@@ -26,6 +26,7 @@ import { validateManagedArtifact } from './setup-download/managed-artifact'
 import { pathExists } from '~/utils/filesystem'
 import { AppUsageError } from '~/utils/error-handler'
 import { hintsForMissingEnv, resolveCredential } from '~/utils/validate/env-utils'
+import { isSupportedBunVersion, SUPPORTED_BUN_VERSION } from '~/utils/bun-version'
 
 const listNames = async (path: string): Promise<string[]> => {
   try {
@@ -50,6 +51,8 @@ const directoryHasAnyFiles = async (root: string): Promise<boolean> => {
 }
 
 const createDoctorProbes = (overrides: Partial<DoctorProbes> = {}): DoctorProbes => ({
+  bunVersion: Bun.version,
+  platform: process.platform,
   env: process.env as Record<string, string | undefined>,
   which: (command) => Bun.which(command) ?? undefined,
   pathExists: pathExists,
@@ -114,7 +117,7 @@ const resolveDoctorRuntimeTool = async (
     if (await probes.pathExists(overridePath)) return { path: overridePath, source: 'override' }
   }
   if (metadata && await probes.pathExists(metadata.managedPath)) return { path: metadata.managedPath, source: 'managed' }
-  if (process.platform !== 'darwin') {
+  if (probes.platform !== 'darwin') {
     const pathBinary = probes.which(id)
     if (pathBinary) return { path: pathBinary, source: 'path' }
   }
@@ -252,9 +255,17 @@ const checkMusicRenderer = async (probes: DoctorProbes): Promise<DoctorCheck> =>
   )
 }
 
+const checkBunRuntime = (runtimeVersion: string): DoctorCheck =>
+  isSupportedBunVersion(runtimeVersion)
+    ? check('OK', 'Bun runtime', `${runtimeVersion} (supported)`)
+    : check('WARN', 'Bun runtime', `${runtimeVersion} installed; ${SUPPORTED_BUN_VERSION} required`, {
+      nextStep: `install Bun ${SUPPORTED_BUN_VERSION}`
+    })
+
 const collectSystemBuildToolChecks = async (probes: DoctorProbes): Promise<DoctorSection> => ({
   title: 'System/build tools',
   checks: [
+    checkBunRuntime(probes.bunVersion),
     checkCommand(probes, 'cmake', 'cmake', { nextStep: 'install cmake with your system package manager' }),
     await checkMusicRenderer(probes)
   ]

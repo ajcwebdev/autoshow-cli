@@ -3,12 +3,16 @@ import { join } from 'node:path'
 import type { RunnerStreamLabel, TestRunArtifacts } from '~/types'
 import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import { l } from '~/utils/app-logger/app-logger'
+import { consumeBoundedTextStream } from '~/utils/bounded-text-stream'
 import { childEnv } from '~/utils/child-env'
 import { buildBunTestFlags, isE2EOnlyTestSelection } from './args'
 import { appendRunnerLog, TEST_OUTPUT_ROOT } from './artifacts'
+import { BUN_FILE_TIMINGS_CACHE_PATH, prepareBunFileTimings } from './file-timings'
 import { formatTimedOutputPrefix, lineHasTimedOutputPrefix, normalizeRepoPath } from './utils'
 
 const TEST_CLI_BUNDLE_PATH = join(TEST_OUTPUT_ROOT, '.test-cache', 'cli.js')
+const MAX_RUNNER_STREAM_BYTES = 64 * 1024 * 1024
+const MAX_RUNNER_LINE_CHARACTERS = 64 * 1024
 
 export const prebuildTestCliBundle = async (artifacts: TestRunArtifacts): Promise<void> => {
   await mkdir(join(TEST_OUTPUT_ROOT, '.test-cache'), { recursive: true })
@@ -53,14 +57,11 @@ export const runWithConcurrency = async <T, R>(
 }
 
 export const forwardSpawnOutput = async (
-  stream: ReadableStream,
+  stream: ReadableStream<Uint8Array>,
   label: RunnerStreamLabel,
   artifacts: TestRunArtifacts
 ): Promise<void> => {
-  const reader = stream.getReader()
-  const decoder = new TextDecoder()
   const writer = label === 'STDOUT' ? process.stdout : process.stderr
-  let buffered = ''
 
   const flushLine = (line: string): void => {
     if (line.length === 0) return
@@ -70,33 +71,12 @@ export const forwardSpawnOutput = async (
     appendRunnerLog(artifacts, lineHasTimedOutputPrefix(line) ? `[${label}] ${line}` : `${prefix} [${label}] ${line}`)
   }
 
-  const flushBuffered = (force: boolean): void => {
-    while (true) {
-      const newlineIndex = buffered.indexOf('\n')
-      if (newlineIndex === -1) break
-      const line = buffered.slice(0, newlineIndex + 1)
-      buffered = buffered.slice(newlineIndex + 1)
-      flushLine(line)
-    }
-    if (force && buffered.length > 0) {
-      flushLine(buffered)
-      buffered = ''
-    }
-  }
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      buffered += decoder.decode(value, { stream: true })
-      flushBuffered(false)
-    }
-    const tail = decoder.decode()
-    if (tail.length > 0) buffered += tail
-    flushBuffered(true)
-  } finally {
-    reader.releaseLock()
-  }
+  await consumeBoundedTextStream(stream, {
+    maxBytes: MAX_RUNNER_STREAM_BYTES,
+    maxLineCharacters: MAX_RUNNER_LINE_CHARACTERS,
+    lineOverflow: 'truncate',
+    onLine: flushLine
+  })
 }
 
 export const buildTestWorkerEnv = (
@@ -127,6 +107,25 @@ export const buildTestWorkerEnv = (
   return workerEnv
 }
 
+export const buildBunTestArgs = (
+  files: string[],
+  artifacts: TestRunArtifacts,
+  passthroughArgs: string[],
+  extraArgs: string[] = []
+): string[] => [
+  'test',
+  '--no-orphans',
+  `--timings=${BUN_FILE_TIMINGS_CACHE_PATH}`,
+  '--update-timings',
+  ...buildBunTestFlags(files, passthroughArgs),
+  '--reporter',
+  'junit',
+  '--reporter-outfile',
+  artifacts.junitPath,
+  ...extraArgs,
+  ...files,
+]
+
 export const runBunTest = async (
   files: string[],
   artifacts: TestRunArtifacts,
@@ -135,16 +134,8 @@ export const runBunTest = async (
   extraArgs: string[] = [],
   envOverrides: Record<string, string> = {}
 ): Promise<number> => {
-  const args = [
-    'test',
-    ...buildBunTestFlags(files, passthroughArgs),
-    '--reporter',
-    'junit',
-    '--reporter-outfile',
-    artifacts.junitPath,
-    ...extraArgs,
-    ...files,
-  ]
+  await prepareBunFileTimings()
+  const args = buildBunTestArgs(files, artifacts, passthroughArgs, extraArgs)
   await appendRunnerLog(artifacts, `\n=== START bun ${args.join(' ')} ===\n`)
   const proc = Bun.spawn(['bun', '--no-env-file', ...args], {
     env: buildTestWorkerEnv(files, artifacts, preserveTestOutput, envOverrides),

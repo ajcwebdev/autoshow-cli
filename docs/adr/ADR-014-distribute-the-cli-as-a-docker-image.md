@@ -23,21 +23,21 @@ Why now: container users were paying the full native onboarding cost for a tool 
 
 **Option 1 (selected)**
 
-- **Option:** Debian slim local-lite image (`oven/bun:1.3.14-slim`) alongside native host setup
+- **Option:** Debian slim local-lite image (`oven/bun:1.4.0-slim`) alongside native host setup
 - **Pros:** Installs the full local-lite contract via `apt`; preserves native host development
 - **Cons:** Larger base size than Alpine; maintains dual distribution paths
 - **Quantitative Notes:** 269 MB base disk usage / 67.6 MB compressed
 
 **Option 2**
 
-- **Option:** Alpine base without Calibre (`oven/bun:1.3.14-alpine`)
+- **Option:** Alpine base without Calibre (`oven/bun:1.4.0-alpine`)
 - **Pros:** Smallest base image size
 - **Cons:** Package repositories lack Calibre, breaking ebook conversion workflows
 - **Quantitative Notes:** 146 MB base disk usage / 43.7 MB compressed
 
 **Option 3**
 
-- **Option:** Full Bun Debian base (`oven/bun:1.3.14`)
+- **Option:** Full Bun Debian base (`oven/bun:1.4.0`)
 - **Pros:** Supplies all required packages via `apt`
 - **Cons:** Adds base size without capability gain
 - **Quantitative Notes:** 335 MB base disk usage / 87.1 MB compressed
@@ -81,9 +81,9 @@ Why now: container users were paying the full native onboarding cost for a tool 
 
 ## Decision
 
-AutoShow distributes an additive Debian slim local-lite Docker image alongside native host setup. The image is based on `oven/bun:1.3.14-slim`, runs as the non-root `bun` user from `/app`, and uses the CLI as its entrypoint, so arguments after the image name are AutoShow arguments. A bare container run prints help and exits. The image exposes no ports and defines no HTTP health check; `setup --doctor` remains the offline diagnostic. The supported command surfaces are native `bun autoshow` and direct `docker run`.
+AutoShow distributes an additive Debian slim local-lite Docker image alongside native host setup. The image is based on the exact multi-architecture image `oven/bun:1.4.0-slim@sha256:e0ee68d16ccb9927bf02aa7dd8fd4bf3369ee6d46da04faa72b05ce8bfd135f6`, runs as the non-root `bun` user from `/app`, and uses the CLI as its entrypoint, so arguments after the image name are AutoShow arguments. A bare container run prints help and exits. The image exposes no ports and defines no HTTP health check; `setup --doctor` remains the offline diagnostic. The supported command surfaces are native `bun autoshow` and direct `docker run`.
 
-The image includes the local-lite tools listed in Context. `yt-dlp` matches the native Linux pin. Credentials arrive at runtime through `--env-file`, `-e`, or a read-only `.env` mount and are never baked into the image. User data stays on the host via bind mounts: the working directory at `/workspace`, or input, output, and runtime paths under `/app`. Linux hosts that need host-owned output use `--user "$(id -u):$(id -g)"`. A bind mount over `/app/runtime` must still leave Tesseract English data available.
+The image includes the local-lite tools listed in Context. `yt-dlp` matches the native Linux pin. Credentials arrive at runtime through Docker's `--env-file` or `-e` options and are never baked into or mounted as files inside the image. The entrypoint disables Bun's automatic `.env` loading, so mounting a file at `/app/.env` is not a supported credential path. User data stays on the host via bind mounts: the working directory at `/workspace`, or input, output, and runtime paths under `/app`. Linux hosts that need host-owned output use `--user "$(id -u):$(id -g)"`. A bind mount over `/app/runtime` must still leave Tesseract English data available.
 
 Image tools are discovered on the normal Linux `PATH`. The CLI does not special-case containers, so omitted tools fail in setup, doctor, or the workflow the same way they would on a native Linux host.
 

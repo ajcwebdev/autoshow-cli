@@ -1,5 +1,9 @@
 # Docker
 
+The supported container runtime is Bun 1.4.0, pinned in `Dockerfile` to the reviewed multi-architecture `oven/bun:1.4.0-slim` digest. Native development and CI use the same exact version from `package.json`; `bun autoshow setup --doctor` reports a warning when the running Bun version differs.
+
+The published image continues to run the TypeScript source entrypoint. `Dockerfile` also contains a non-published `compiled-experiment` target used on native AMD64 and ARM64 CI runners. That target is measured separately and is not the default or production stage because its embedded Bun runtime currently increases the packaging payload. See `docs/benchmarks/bun-1-4-native-api-evaluations.md` for the decision and acceptance gates.
+
 AutoShow publishes a Docker image with the CLI and common local tools so you can run without installing Bun or those tools on the host. Pre-built `linux/amd64` and `linux/arm64` images are on GitHub Container Registry (GHCR), tagged `latest` and by full commit SHA.
 
 The image includes:
@@ -24,6 +28,8 @@ To build locally from source:
 ```bash
 docker build -t autoshow-cli:local .
 ```
+
+To capture a no-provider, platform-specific runtime baseline before or after a Bun image change, run `bun baseline:docker --platform all --repeats 5 --fixture-repeats 3`. Raw command logs and samples go under the ignored `runtime/profiling/bun-docker-baseline/` directory. The checked results and measurement definitions are in [Bun 1.3 Docker Baseline](benchmarks/bun-1-3-docker-baseline.md) and [Bun 1.4 Docker Validation](benchmarks/bun-1-4-docker-validation.md).
 
 The examples below use `autoshow-cli:local`. Substitute `ghcr.io/ajcwebdev/autoshow-cli:latest` if you pulled the published image.
 
@@ -71,7 +77,7 @@ The default output root is `/app/output`. Pass `--output-root` when you need a d
 
 ## Provider Credentials
 
-Hosted providers still need credentials (for example `tts --provider grok` needs `XAI_API_KEY`). Supply them with `--env-file .env`, `-e KEY=value`, or a `.env` file mounted at `/app/.env`:
+Hosted providers still need credentials (for example `tts --provider grok` needs `XAI_API_KEY`). The image entrypoint intentionally disables Bun's automatic `.env` loading. Supply a credential file explicitly with Docker's `--env-file` option, or export individual variables with `-e KEY=value`:
 
 ```bash
 docker run --rm \
@@ -81,7 +87,7 @@ docker run --rm \
   autoshow-cli:local write input/example.md --llm openai=gpt-5.5
 ```
 
-If the `.env` lives elsewhere, mount it at `/app/.env`. Values from `-e` and `--env-file` override a mounted `.env`.
+Docker reads the file on the host and exports its entries into the container environment; the file is not mounted into the image. A variable supplied with `-e` overrides the same variable from Docker's `--env-file`. Already-exported container environment variables remain supported.
 
 ## Doctor
 

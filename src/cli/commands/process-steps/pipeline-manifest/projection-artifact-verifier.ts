@@ -9,6 +9,7 @@ import type {
   ProjectionVerificationRoots
 } from '~/types'
 import { UsageError } from '~/utils/error-handler'
+import { parseJsonlBytes } from '~/utils/jsonl-reader'
 import { readFileBytes } from '~/utils/bun-file-io'
 import { isRecord } from '~/utils/rest-client'
 import {
@@ -120,12 +121,11 @@ export const decodeProjectionArtifactBytes = (
   if (reference.kind === 'audio' || (reference.kind === 'strategy-text' && !reference.expectedJsonFields)) {
     return undefined
   }
-  const text = Buffer.from(bytes).toString('utf8')
-  const jsonText = reference.kind === 'admission-journal' && reference.path.endsWith('.jsonl')
-    ? text.split('\n').filter((line) => line.length > 0).at(-1)
-    : text
-  if (!jsonText) throw UsageError('Projection artifact JSON is empty.')
-  const parsed = JSON.parse(jsonText) as unknown
+  const isJsonl = reference.kind === 'admission-journal' && reference.path.endsWith('.jsonl')
+  const parsed = isJsonl
+    ? parseJsonlBytes(bytes, { allowTornFinalRecord: true, label: 'Projection admission journal' }).at(-1)
+    : JSON.parse(Buffer.from(bytes).toString('utf8')) as unknown
+  if (parsed === undefined) throw UsageError('Projection artifact JSON is empty.')
   const value = reference.kind === 'admission-journal'
     && reference.path.endsWith('.jsonl')
     && isRecord(parsed)

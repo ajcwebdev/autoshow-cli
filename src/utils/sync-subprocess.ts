@@ -14,6 +14,7 @@ export type SyncCommandOptions = {
 export type SyncCommandResult = {
   exitCode: number
   success: boolean
+  maxBufferExceeded?: boolean
   signalCode?: string
   stdout: string
   stderr: string
@@ -22,26 +23,36 @@ export type SyncCommandResult = {
 export class SyncCommandError extends Error {
   readonly command: readonly string[]
   readonly exitCode: number
+  readonly maxBufferExceeded: boolean
   readonly signalCode: string | undefined
   readonly stdout: string
   readonly stderr: string
 
   constructor(command: readonly string[], result: SyncCommandResult) {
-    const reason = result.signalCode
-      ? `signal ${result.signalCode}`
-      : `exit code ${result.exitCode}`
+    const reason = result.maxBufferExceeded === true
+      ? 'output exceeding maxBuffer'
+      : result.signalCode
+        ? `signal ${result.signalCode}`
+        : `exit code ${result.exitCode}`
     super(`Command failed with ${reason}: ${command.join(' ')}`)
     this.name = 'SyncCommandError'
     this.command = command
     this.exitCode = result.exitCode
+    this.maxBufferExceeded = result.maxBufferExceeded === true
     this.signalCode = result.signalCode
     this.stdout = result.stdout
     this.stderr = result.stderr
   }
 }
 
-const decodeOutput = (output: Uint8Array | null | undefined): string =>
-  output === null || output === undefined ? '' : Buffer.from(output).toString('utf8')
+const boundedOutput = (
+  output: Uint8Array | null | undefined,
+  maxBuffer: number | undefined
+): { bytes: Uint8Array, exceeded: boolean } => {
+  const bytes = output ?? new Uint8Array()
+  if (maxBuffer === undefined || bytes.byteLength <= maxBuffer) return { bytes, exceeded: false }
+  return { bytes: bytes.subarray(0, maxBuffer), exceeded: true }
+}
 
 export const runSyncCommand = (
   command: string,
@@ -58,12 +69,16 @@ export const runSyncCommand = (
     ...(options.timeout === undefined ? {} : { timeout: options.timeout }),
     ...(options.maxBuffer === undefined ? {} : { maxBuffer: options.maxBuffer })
   })
+  const stdout = boundedOutput(result.stdout, options.maxBuffer)
+  const stderr = boundedOutput(result.stderr, options.maxBuffer)
+  const maxBufferExceeded = stdout.exceeded || stderr.exceeded
   return {
-    exitCode: result.exitCode,
-    success: result.success,
+    exitCode: result.exitCode ?? -1,
+    success: result.success && !maxBufferExceeded,
+    ...(maxBufferExceeded ? { maxBufferExceeded: true } : {}),
     ...(result.signalCode === undefined ? {} : { signalCode: result.signalCode }),
-    stdout: decodeOutput(result.stdout),
-    stderr: decodeOutput(result.stderr)
+    stdout: Buffer.from(stdout.bytes).toString('utf8'),
+    stderr: Buffer.from(stderr.bytes).toString('utf8')
   }
 }
 

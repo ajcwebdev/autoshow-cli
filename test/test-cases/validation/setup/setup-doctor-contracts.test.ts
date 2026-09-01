@@ -20,11 +20,14 @@ import {
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
 import type { DoctorCheck, DoctorProbes, RunResult } from '~/types'
 import { AppUsageError } from '~/utils/error-handler'
+import { SUPPORTED_BUN_VERSION } from '~/utils/bun-version'
 import { requireDefined } from '../../../test-utils/value-assertions'
 
 const okRun = (stdout = ''): RunResult => ({ stdout, stderr: '', exitCode: 0 })
 
 const makeDoctorProbes = (overrides: Partial<DoctorProbes> = {}): Partial<DoctorProbes> => ({
+  bunVersion: SUPPORTED_BUN_VERSION,
+  platform: 'darwin',
   env: {},
   which: (command: string) => `/usr/bin/${command}`,
   pathExists: async () => true,
@@ -74,6 +77,21 @@ const findDoctorCheck = (
 }
 
 describe('setup doctor contracts', () => {
+  test('doctor reports whether the running Bun version matches the repository pin', async () => {
+    const supported = await collectDoctorReport(makeDoctorProbes())
+    expect(findDoctorCheck(supported, 'Bun runtime')).toMatchObject({
+      status: 'OK',
+      detail: `${SUPPORTED_BUN_VERSION} (supported)`
+    })
+
+    const drifted = await collectDoctorReport(makeDoctorProbes({ bunVersion: '1.3.14' }))
+    expect(findDoctorCheck(drifted, 'Bun runtime')).toMatchObject({
+      status: 'WARN',
+      nextStep: `install Bun ${SUPPORTED_BUN_VERSION}`
+    })
+    expect(drifted.hasWarnings).toBe(true)
+  })
+
   test('doctor reports missing managed runtimes and local model assets', async () => {
     const missingPathFragments = [
       '/runtime/bin/whisper-cli',

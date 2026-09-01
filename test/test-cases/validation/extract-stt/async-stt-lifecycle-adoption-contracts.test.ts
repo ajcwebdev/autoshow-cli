@@ -64,7 +64,14 @@ const expectLifecycleArtifacts = async (
       text: expected.text,
       speaker: expected.speaker
     }],
-    evidence: expect.any(Object)
+    evidence: expect.objectContaining({
+      capabilities: expect.objectContaining({
+        hasNativeWordTiming: expect.any(Boolean),
+        hasConfidence: expect.any(Boolean),
+        hasSpeakerLabels: expect.any(Boolean)
+      }),
+      timingQuality: expect.stringMatching(/^(native_word|segment_interpolated|coarse)$/)
+    })
   })
   expect(await Bun.file(join(outputDir, 'transcription.txt')).text()).toBe(
     `[00:00:00.000] [${expected.speaker}] ${expected.text}`

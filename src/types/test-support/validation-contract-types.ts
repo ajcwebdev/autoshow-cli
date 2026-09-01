@@ -1,6 +1,5 @@
 import type {
   AsyncSttLifecycleOptions,
-  BunImageEncoder,
   HostedOcrSchedulerSetTimer,
   MetricName,
   ModelRegistry,
@@ -10,14 +9,6 @@ import type {
   TargetPoolKind
 } from '~/types'
 
-export type ComicBunImageCodec = {
-  webp: () => BunImageEncoder
-  jpeg: () => BunImageEncoder
-}
-
-export type OcrBunImageCodec = {
-  webp: () => BunImageEncoder
-}
 export type SttNormalizationMetricRankingEntry = {
   rank: number
   providerKey: string

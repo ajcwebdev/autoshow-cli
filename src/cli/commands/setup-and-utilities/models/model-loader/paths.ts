@@ -1,12 +1,16 @@
 import { resolve } from 'node:path'
-import { PROJECT_ROOT } from '~/utils/runtime-paths'
+import { IMMUTABLE_ASSET_ROOT } from '~/utils/runtime-paths'
 
-const MODELS_DIR = resolve(PROJECT_ROOT, 'src/cli/commands/setup-and-utilities/models')
+const MODELS_DIR = resolve(IMMUTABLE_ASSET_ROOT, Bun.isStandaloneExecutable ? 'models' : 'src/cli/commands/setup-and-utilities/models')
+const segmentedConfigPath = (name: string): string => resolve(
+  Bun.isStandaloneExecutable ? IMMUTABLE_ASSET_ROOT : MODELS_DIR,
+  name
+)
 
-export const STT_PATH = resolve(MODELS_DIR, 'stt-config')
-export const OCR_PATH = resolve(MODELS_DIR, 'ocr-config')
+export const STT_PATH = segmentedConfigPath('stt-config')
+export const OCR_PATH = segmentedConfigPath('ocr-config')
 export const LLM_PATH = resolve(MODELS_DIR, 'llm-config.json')
-export const TTS_PATH = resolve(MODELS_DIR, 'tts-config')
+export const TTS_PATH = segmentedConfigPath('tts-config')
 export const IMAGE_PATH = resolve(MODELS_DIR, 'image-config.json')
 export const MUSIC_PATH = resolve(MODELS_DIR, 'music-config.json')
 export const VIDEO_PATH = resolve(MODELS_DIR, 'video-config.json')

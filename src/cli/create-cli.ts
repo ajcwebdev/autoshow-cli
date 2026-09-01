@@ -13,6 +13,19 @@ import { COMMAND_DEFINITIONS, HELP_COMMAND_GROUP_BY_NAME } from './command-defin
 
 export { COMMAND_DEFINITIONS, HELP_COMMAND_GROUP_BY_NAME } from './command-definitions'
 
+export const SETUP_NO_ORPHANS_MARKER = 'AUTOSHOW_SETUP_NO_ORPHANS_CHILD'
+
+export const shouldRelaunchSetupWithNoOrphans = (
+  argv: readonly string[],
+  env: Readonly<Record<string, string | undefined>> = process.env,
+  isStandaloneExecutable = Bun.isStandaloneExecutable
+): boolean => !isStandaloneExecutable && argv[0] === 'setup' && env[SETUP_NO_ORPHANS_MARKER] !== '1'
+
+export const buildSetupNoOrphansArgs = (
+  entrypoint: string,
+  argv: readonly string[]
+): string[] => ['--no-env-file', '--no-orphans', entrypoint, ...argv]
+
 const cliErrorHandler = (error: unknown): void => {
   if (isUsageError(error)) {
     l.error(`Usage error: ${usageMessage(error)}`, { category: 'usage', metadata: extractErrorMetadata(error) })
@@ -80,6 +93,22 @@ const runCliInProcess = async (argv: string[]): Promise<void> => {
 
 const main = async (): Promise<void> => {
   const argv = Bun.argv.slice(2)
+  if (shouldRelaunchSetupWithNoOrphans(argv)) {
+    const proc = Bun.spawn([
+      process.execPath,
+      ...buildSetupNoOrphansArgs(import.meta.path, argv)
+    ], {
+      env: {
+        ...process.env,
+        [SETUP_NO_ORPHANS_MARKER]: '1'
+      },
+      stdin: 'inherit',
+      stdout: 'inherit',
+      stderr: 'inherit'
+    })
+    process.exitCode = await proc.exited
+    return
+  }
   await runCliInProcess(argv)
 }
 

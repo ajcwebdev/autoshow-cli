@@ -17,6 +17,8 @@ export type DoctorSection = {
 }
 
 export type DoctorProbes = {
+  bunVersion: string
+  platform: NodeJS.Platform
   env: Record<string, string | undefined>
   which: (command: string) => string | undefined
   pathExists: (path: string) => Promise<boolean>

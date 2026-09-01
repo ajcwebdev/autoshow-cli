@@ -1,14 +1,5 @@
 import { SUPPORTED_GENERATED_IMAGE_MIME_TYPES } from '~/types'
-import type { BunImageEncoderConstructor } from '~/types'
-import { InternalError, ValidationError } from '~/utils/error-handler'
-
-const getBunImageConstructor = (): BunImageEncoderConstructor => {
-  const imageConstructor = (Bun as unknown as { Image?: BunImageEncoderConstructor }).Image
-  if (!imageConstructor) {
-    throw InternalError('Bun.Image is required to normalize generated images', { stage: 'comic:image-writer' })
-  }
-  return imageConstructor
-}
+import { ValidationError } from '~/utils/error-handler'
 
 const detectGeneratedImageMimeType = (imageBytes: Buffer): string | undefined => {
   if (
@@ -62,7 +53,6 @@ export const writeGeneratedImage = async (
     throw ValidationError(`Generated image MIME type "${resolvedMimeType}" is not supported for write`, { stage: 'comic:image-writer' })
   }
 
-  const Image = getBunImageConstructor()
-  const normalizedPngBytes = await new Image(imageBytes).png().bytes()
+  const normalizedPngBytes = await new Bun.Image(imageBytes).png().bytes()
   await Bun.write(outputPath, normalizedPngBytes)
 }

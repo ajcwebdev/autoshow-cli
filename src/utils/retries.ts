@@ -17,9 +17,22 @@ export const NETWORK_FAILURE_SPELLINGS = [
   'closed unexpectedly',
   'dns'
 ] as const
+export const NETWORK_FAILURE_CODES = [
+  'ConnectionRefused',
+  'ConnectionReset',
+  'EAI_AGAIN',
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+  'ENOTFOUND',
+  'ETIMEDOUT'
+] as const
 
 const NON_RETRYABLE_STATUSES: ReadonlySet<number> = new Set(NON_RETRYABLE_STATUS_CODES)
 const RETRYABLE_STATUSES: ReadonlySet<number> = new Set(RETRYABLE_STATUS_CODES)
+const NETWORK_FAILURE_CODE_SET: ReadonlySet<string> = new Set(NETWORK_FAILURE_CODES)
+const NETWORK_CAUSE_DEPTH_LIMIT = 6
 
 const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
   setup_download: {
@@ -104,9 +117,37 @@ const matchesNetworkSpelling = (message: string): boolean => {
   return NETWORK_FAILURE_SPELLINGS.some((spelling) => msg.includes(spelling))
 }
 
+const boundedCauseChain = (error: unknown): object[] => {
+  const chain: object[] = []
+  const seen = new Set<unknown>()
+  let current = error
+
+  while (
+    current !== null
+    && typeof current === 'object'
+    && !seen.has(current)
+    && chain.length < NETWORK_CAUSE_DEPTH_LIMIT
+  ) {
+    chain.push(current)
+    seen.add(current)
+    current = 'cause' in current
+      ? (current as { cause?: unknown }).cause
+      : undefined
+  }
+
+  return chain
+}
+
 const isNetworkError = (error: unknown): boolean => {
-  if (error instanceof Error) {
-    return matchesNetworkSpelling(error.message)
+  for (const entry of boundedCauseChain(error)) {
+    const message = entry instanceof Error
+      ? entry.message
+      : 'message' in entry && typeof (entry as { message?: unknown }).message === 'string'
+        ? (entry as { message: string }).message
+        : ''
+    const code = 'code' in entry ? (entry as { code?: unknown }).code : undefined
+    if (matchesNetworkSpelling(message)) return true
+    if (typeof code === 'string' && NETWORK_FAILURE_CODE_SET.has(code)) return true
   }
   return false
 }

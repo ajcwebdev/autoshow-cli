@@ -1,5 +1,6 @@
 import { isRecord } from '~/utils/rest-client'
 import { extname } from 'node:path'
+import { rm } from 'node:fs/promises'
 import { concatAndConvertToWav, convertAudioToWav, requireHostedTtsChunkScheduler, runTtsChunks, splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { finalizeTtsRun } from '~/cli/commands/process-steps/step-4-tts/tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
@@ -257,10 +258,10 @@ export const runMistralTts = async (
     } finally {
       if (completed) {
         for (const chunkPath of chunkPaths) {
-          await Bun.$`rm -f ${chunkPath}`.quiet().nothrow()
+          await rm(chunkPath, { force: true }).catch(() => {})
         }
         if (referenceAudio?.convertedPath) {
-          await Bun.$`rm -f ${referenceAudio.convertedPath}`.quiet().nothrow()
+          await rm(referenceAudio.convertedPath, { force: true }).catch(() => {})
         }
       }
     }

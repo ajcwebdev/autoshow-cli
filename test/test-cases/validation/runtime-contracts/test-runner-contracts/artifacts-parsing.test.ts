@@ -6,8 +6,9 @@ import {
 } from 'bun:test'
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { appendRunnerLog, cleanupTestOutputRoot, createRunArtifacts, writeLatestRunLog } from '../../../../test-runner/artifacts'
+import { appendRunnerLog, cleanupTestOutputRoot, createRunArtifacts, writeLatestRunLog, writeReportJson } from '../../../../test-runner/artifacts'
 import { parseJunit, parseTestcase, resolveTestcaseStatus } from '../../../../test-runner/parsers'
+import { buildTestReportData } from '../../../../test-runner/reports/test-report'
 import {
   COMMAND_OUTPUT_PARSE_TAIL_CHARS,
   lineHasTimedOutputPrefix,
@@ -184,6 +185,92 @@ describe('test-runner contracts', () => {
       expect(cases.filter((entry) => entry.status === 'failed')).toHaveLength(1)
       expect(cases.filter((entry) => entry.status === 'skipped')).toHaveLength(1)
     })
+
+  test('Bun 1.4 JUnit retry bytes produce final outcomes and accurate report fields', async () => {
+      const [bunMajor = 0, bunMinor = 0] = Bun.version.split('.').map(value => Number.parseInt(value, 10))
+      expect(bunMajor > 1 || (bunMajor === 1 && bunMinor >= 4)).toBe(true)
+
+      const dir = await makeTempDir('autoshow-validation-junit-retry-')
+      tempDirs.push(dir)
+      const artifacts = await createRunArtifacts(dir)
+      const retryStatePath = join(dir, 'retry-state.txt')
+      const result = Bun.spawnSync([
+        'bun',
+        '--no-env-file',
+        'test',
+        '--retry',
+        '1',
+        '--reporter',
+        'junit',
+        '--reporter-outfile',
+        artifacts.junitPath,
+        './test/test-utils/fixtures/junit-retry.fixture.ts',
+      ], {
+        cwd: process.cwd(),
+        env: {
+          ...process.env,
+          AUTOSHOW_JUNIT_RETRY_STATE: retryStatePath,
+          NO_COLOR: '1',
+        },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      })
+
+      expect(result.exitCode).toBe(1)
+      const junitBytes = await Bun.file(artifacts.junitPath).bytes()
+      expect(junitBytes.byteLength).toBeGreaterThan(0)
+      expect(new TextDecoder().decode(junitBytes)).toContain('JUNIT_FINAL_FAILURE')
+
+      const cases = await parseJunit(artifacts.junitPath)
+      expect(cases).toHaveLength(2)
+      const retried = cases.find(entry => entry.name === 'passes on its retry')
+      const failed = cases.find(entry => entry.name === 'keeps its final failure message')
+      expect(retried).toMatchObject({ status: 'passed', failureMessage: null })
+      expect(retried?.durationMs).toBeGreaterThan(0)
+      expect(failed).toMatchObject({ status: 'failed' })
+      expect(failed?.durationMs).toBeGreaterThan(0)
+      expect(failed?.failureMessage).toContain('JUNIT_FINAL_FAILURE')
+
+      const endedAtMs = Date.now()
+      const report = await buildTestReportData(
+        cases,
+        [],
+        artifacts,
+        new Date(endedAtMs).toISOString(),
+        endedAtMs,
+        ['test/test-utils/fixtures/junit-retry.fixture.ts', '--retry', '1']
+      )
+      await writeReportJson(artifacts, report)
+      const reportJson = await Bun.file(artifacts.reportJsonPath).json() as {
+        summary: {
+          total: number
+          passed: number
+          failed: number
+          skipped: number
+          cliMetricEligiblePassedCount: number
+          matchedMetricCount: number
+          unmatchedMetricCount: number
+          passedWithoutMetricsCount: number
+        }
+        tests: Array<{ name: string, status: string, durationMs: number }>
+        failures: Array<{ name: string, message: string }>
+      }
+      expect(reportJson.summary).toEqual({
+        total: 2,
+        passed: 1,
+        failed: 1,
+        skipped: 0,
+        cliMetricEligiblePassedCount: 0,
+        matchedMetricCount: 0,
+        unmatchedMetricCount: 0,
+        passedWithoutMetricsCount: 1,
+      })
+      expect(reportJson.tests.find(entry => entry.name === 'passes on its retry')).toMatchObject({ status: 'passed', durationMs: retried?.durationMs })
+      expect(reportJson.failures).toEqual([expect.objectContaining({
+        name: 'keeps its final failure message',
+        message: expect.stringContaining('JUNIT_FINAL_FAILURE'),
+      })])
+    }, 10_000)
 
   test('testcase status resolution prefers attribute messages over body text', () => {
       expect(resolveTestcaseStatus('<failure message="attr wins">body text</failure>'))

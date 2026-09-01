@@ -4,6 +4,7 @@ import { stripAnsi } from '~/utils/terminal-colors'
 import { getSemanticColumnName, isKeyLabelColumn, resolveTableColumns, shouldRenderHeader } from './human-table-columns'
 import { extractVerboseCellDetails, extractWidePathDetails } from './human-table-detail-lifting'
 import { getDisplayLabel, isCostSemanticColumn, isCountSemanticColumn, isDurationSemanticColumn, isSecondsSemanticColumn } from './human-table-labels'
+import { getTerminalDisplayWidth } from './human-table-width'
 import type { HumanLogTable, HumanLogTableAlign, HumanLogTableCell, HumanLogTableDetail, HumanLogTableRow } from '~/types'
 
 const tableIndent = '  '
@@ -79,7 +80,7 @@ const padColoredTableCell = (
   width: number,
   align: HumanLogTableAlign = 'left'
 ): string => {
-  const padding = ' '.repeat(Math.max(0, width - plainValue.length))
+  const padding = ' '.repeat(Math.max(0, width - getTerminalDisplayWidth(plainValue)))
   return align === 'right'
     ? `${padding}${coloredValue}`
     : `${coloredValue}${padding}`
@@ -223,7 +224,7 @@ const renderHumanTableDetails = (
         return renderedFirstLine
       }
 
-      const continuationIndent = `${tableIndent}${' '.repeat(label.length + 2)}`
+      const continuationIndent = `${tableIndent}${' '.repeat(getTerminalDisplayWidth(label) + 2)}`
       return [
         renderedFirstLine,
         ...restLines.map(line => `${continuationIndent}${line}`)
@@ -252,8 +253,8 @@ export const renderHumanTable = (table: HumanLogTable): string => {
   )
   const renderAlign = resolveRenderAlign(normalizedTable, columns, rows)
   const widths = columns.map((column, index) => Math.max(
-    renderHeader ? (headerValues[index]?.length ?? column.length) : 0,
-    ...rows.map(row => row[index]?.length ?? 0)
+    renderHeader ? getTerminalDisplayWidth(headerValues[index] ?? column) : 0,
+    ...rows.map(row => getTerminalDisplayWidth(row[index] ?? ''))
   ))
   const lines = [
     renderBorder(tableChars.topLeft, tableChars.topJoin, tableChars.topRight, widths),

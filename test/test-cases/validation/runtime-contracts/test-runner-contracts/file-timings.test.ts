@@ -6,7 +6,7 @@ import {
 } from 'bun:test'
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { medianDuration, readFileTimings, recordFileTimings } from '../../../../test-runner/file-timings'
+import { medianDuration, prepareBunFileTimings, readBunFileTimings, readFileTimings, recordFileTimings } from '../../../../test-runner/file-timings'
 import { readHistoricalLookups } from '../../../../test-runner/reports/history'
 import { isLongRunningTestFile } from '../../../../test-utils/timeouts'
 import type { ParsedJunitCase, TestRunArtifacts } from '~/types'
@@ -90,6 +90,34 @@ describe('test-runner file timings', () => {
 
     const historical = await readHistoricalLookups(fakeArtifacts(dir), cachePath)
     expect(historical.durationById.get(`${file}::slow`)).toBe(42)
+  })
+
+  test('native Bun scheduling starts warm from custom file medians without replacing per-test history', async () => {
+    const dir = await makeTempDir('autoshow-native-file-timings-')
+    tempDirs.push(dir)
+    const customPath = join(dir, 'file-timings.json')
+    const nativePath = join(dir, 'bun-file-timings.json')
+    const firstFile = 'test/test-cases/validation/first.test.ts'
+    const secondFile = 'test/test-cases/validation/second.test.ts'
+    await recordFileTimings([makeCase(firstFile, 'one', 80)], customPath)
+    await recordFileTimings([makeCase(firstFile, 'one', 120), makeCase(secondFile, 'two', 40)], customPath)
+
+    await prepareBunFileTimings(nativePath, customPath)
+
+    expect(await readBunFileTimings(nativePath)).toEqual({
+      version: 1,
+      files: {
+        [firstFile]: 100,
+        [secondFile]: 40
+      }
+    })
+    const custom = await readFileTimings(customPath)
+    expect(custom.testDurations.get(`${firstFile}::one`)).toBe(120)
+    expect(custom.testDurations.get(`${secondFile}::two`)).toBe(40)
+
+    await Bun.write(nativePath, JSON.stringify({ version: 1, files: { [firstFile]: 7 } }))
+    await prepareBunFileTimings(nativePath, customPath)
+    expect(await readBunFileTimings(nativePath)).toEqual({ version: 1, files: { [firstFile]: 7 } })
   })
 
   test('long-running timeout classification covers whisper-local and video files', () => {

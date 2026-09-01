@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { ReferenceTokenizerMetadata } from '~/types'
+import { registerMemoryPressureCache } from '~/utils/memory-pressure'
+import { IMMUTABLE_ASSET_ROOT } from '~/utils/runtime-paths'
 
 export const REFERENCE_TOKENIZER_METADATA: ReferenceTokenizerMetadata = {
   name: 'o200k_base',
@@ -8,7 +10,9 @@ export const REFERENCE_TOKENIZER_METADATA: ReferenceTokenizerMetadata = {
   rankDataSha256: '3a005bb166d080a740fda2b6764aa501ea0c016b6de2c39d789c684832b1943a'
 }
 
-export const REFERENCE_TOKENIZER_RANK_DATA_FILE = join(import.meta.dir, '..', 'tools', 'o200k-base-ranks.tiktoken.gz')
+export const REFERENCE_TOKENIZER_RANK_DATA_FILE = Bun.isStandaloneExecutable
+  ? join(IMMUTABLE_ASSET_ROOT, 'o200k-base-ranks.tiktoken.gz')
+  : join(IMMUTABLE_ASSET_ROOT, 'src', 'tools', 'o200k-base-ranks.tiktoken.gz')
 
 const CONTRACTION_SUFFIX = "'(?:[sS]|[tT]|[rR][eE]|[vV][eE]|[mM]|[lL][lL]|[dD])"
 const WHITESPACE_CLASS = '\\t\\n\\x0B\\f\\r \\x85\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000'
@@ -34,6 +38,22 @@ const bytesToKey = (bytes: Uint8Array): string => {
 }
 
 let cachedRanks: Map<string, number> | undefined
+
+export const clearReferenceTokenizerCache = (): number => {
+  const entries = cachedRanks?.size ?? 0
+  cachedRanks = undefined
+  return entries
+}
+
+export const getReferenceTokenizerCacheEntryCount = (): number => cachedRanks?.size ?? 0
+
+registerMemoryPressureCache({
+  name: 'reference-tokenizer-ranks',
+  clear: () => {
+    const entries = clearReferenceTokenizerCache()
+    return { released: entries > 0, entries }
+  }
+})
 
 const getRanks = (): Map<string, number> => {
   if (cachedRanks) return cachedRanks

@@ -23,8 +23,11 @@ import type {
 import { extractRestErrorMessage, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
 import { isRetryableStatus } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
+import { consumeBoundedTextStream } from '~/utils/bounded-text-stream'
 
 export const FISH_API_BASE_URL = 'https://api.fish.audio/v1'
+const MAX_FISH_TIMESTAMP_STREAM_BYTES = 128 * 1024 * 1024
+const MAX_FISH_TIMESTAMP_FRAME_CHARACTERS = 16 * 1024 * 1024
 
 export const createFishClient = (options: FishClientOptions) => {
   const apiKey = resolveCredential('fish', 'require', { stage: 'tts:fish', providedValue: options.apiKey, useProvidedValue: true, description: 'Fish Audio' })
@@ -138,30 +141,26 @@ export const createFishClient = (options: FishClientOptions) => {
       if (!response.body) {
         throw ValidationError('Fish Audio timestamp stream returned no response body.', { stage: 'fish:timestamp-stream' })
       }
-      const decoder = new TextDecoder()
       let buffer = ''
       let state: FishTimestampStreamState = emptyFishTimestampStreamState()
-      const reader = response.body.getReader()
-      try {
-        while (true) {
-          signal.throwIfAborted()
-          const { done, value } = await reader.read()
-          buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done })
+      await consumeBoundedTextStream(response.body, {
+        maxBytes: MAX_FISH_TIMESTAMP_STREAM_BYTES,
+        signal,
+        onText: (chunk) => {
+          buffer += chunk
           const { frames, rest } = splitFishSseFrames(buffer)
           buffer = rest
           for (const frame of frames) {
             const event = parseFishSseFrame(frame)
             if (event) state = reduceFishTimestampStreamEvent(state, event)
           }
-          if (done) {
-            const trailing = parseFishSseFrame(buffer)
-            if (trailing) state = reduceFishTimestampStreamEvent(state, trailing)
-            break
+          if (buffer.length > MAX_FISH_TIMESTAMP_FRAME_CHARACTERS) {
+            throw ValidationError('Fish Audio timestamp stream frame exceeded the bounded text limit.', { stage: 'fish:timestamp-stream' })
           }
         }
-      } finally {
-        reader.releaseLock()
-      }
+      })
+      const trailing = parseFishSseFrame(buffer)
+      if (trailing) state = reduceFishTimestampStreamEvent(state, trailing)
       const audio = Buffer.concat(state.audioChunks.map(chunk => Buffer.from(chunk)))
       if (audio.byteLength === 0) {
         throw ValidationError('Fish Audio timestamp stream returned empty audio.', { stage: 'fish:timestamp-stream' })

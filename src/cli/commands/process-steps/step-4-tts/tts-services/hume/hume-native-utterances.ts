@@ -10,6 +10,7 @@ import type {
   TimedToken,
   TtsRequestEvidenceScope,
 } from '~/types'
+import { rm } from 'node:fs/promises'
 import { HUME_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { UsageError, InfraError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
@@ -188,6 +189,6 @@ export const runHumeNativeUtterances = async (
     completed = true
     return finalized
   } finally {
-    if (completed) for (const path of allPaths) await Bun.$`rm -f ${path}`.quiet().nothrow()
+    if (completed) for (const path of allPaths) await rm(path, { force: true }).catch(() => {})
   }
 }

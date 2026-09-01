@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import {
+  clearReferenceTokenizerCache,
   countReferenceTokens,
   encodeReferenceTokens,
+  getReferenceTokenizerCacheEntryCount,
   REFERENCE_TOKENIZER_METADATA,
   REFERENCE_TOKENIZER_RANK_DATA_FILE
 } from '~/utils/reference-tokenizer'
@@ -53,5 +55,34 @@ describe('reference tokenizer', () => {
     expect(encodeReferenceTokens('<|endoftext|>')).not.toContain(199999)
     expect(encodeReferenceTokens('<|endofprompt|>')).not.toContain(200018)
     expect(countReferenceTokens('<|endoftext|>')).toBeGreaterThan(1)
+  })
+
+  test('clearing and rebuilding the rank cache preserves token IDs and counts', () => {
+    clearReferenceTokenizerCache()
+    const text = 'Cache reconstruction keeps café, 東京, and 🧭 stable.'
+    const before = encodeReferenceTokens(text)
+    expect(getReferenceTokenizerCacheEntryCount()).toBe(199998)
+    expect(clearReferenceTokenizerCache()).toBe(199998)
+    expect(getReferenceTokenizerCacheEntryCount()).toBe(0)
+
+    const after = encodeReferenceTokens(text)
+    expect(after).toEqual(before)
+    expect(countReferenceTokens(text)).toBe(before.length)
+    expect(getReferenceTokenizerCacheEntryCount()).toBe(199998)
+  })
+
+  test('the central memory-pressure listener evicts only the reconstructible rank cache', async () => {
+    encodeReferenceTokens('memory pressure fixture')
+    expect(getReferenceTokenizerCacheEntryCount()).toBe(199998)
+    expect(process.emit('memoryPressure', 'warning')).toBe(true)
+    expect(getReferenceTokenizerCacheEntryCount()).toBe(0)
+
+    const sourceFiles = await Array.fromAsync(new Bun.Glob('src/**/*.ts').scan({ onlyFiles: true }))
+    let listenerRegistrations = 0
+    for (const path of sourceFiles) {
+      const source = await Bun.file(path).text()
+      listenerRegistrations += source.match(/process\.on\(['"]memoryPressure['"]/g)?.length ?? 0
+    }
+    expect(listenerRegistrations).toBe(1)
   })
 })

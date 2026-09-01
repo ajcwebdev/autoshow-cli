@@ -1,11 +1,14 @@
 import { existsSync } from 'node:fs'
-import { basename, extname, isAbsolute, join, posix, relative, resolve } from 'node:path'
+import { basename, dirname, extname, isAbsolute, join, posix, relative, resolve } from 'node:path'
 import type { ResolvedRuntimeTool, ResolveRuntimeToolOptions, RuntimeToolId } from '~/types'
 
 const projectRootOverride = process.env['AUTOSHOW_PROJECT_ROOT']?.trim()
 export const PROJECT_ROOT = projectRootOverride
   ? resolve(projectRootOverride)
-  : resolve(import.meta.dir, '../..')
+  : Bun.isStandaloneExecutable
+    ? dirname(process.execPath)
+    : resolve(import.meta.dir, '../..')
+export const IMMUTABLE_ASSET_ROOT = Bun.isStandaloneExecutable ? import.meta.dir : PROJECT_ROOT
 export const toPosixPath = (value: string): string => value.replace(/\\/g, '/')
 export const toProjectDisplayPath = (absolutePath: string): string => {
   const rel = relative(PROJECT_ROOT, absolutePath)

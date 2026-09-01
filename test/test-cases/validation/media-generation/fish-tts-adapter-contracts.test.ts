@@ -6,6 +6,37 @@ import { AppError } from '~/utils/error-handler'
 import { expectProviderHttpError } from '../../../test-utils/rest-contract-helpers'
 
 describe('Fish Audio adapter contracts', () => {
+  test('decodes BOM-prefixed timestamp SSE across split UTF-8 chunks', async () => {
+    const event = `\uFEFFdata: ${JSON.stringify({
+      audio_base64: Buffer.from('audio').toString('base64'),
+      content: '東京 🧭',
+      alignment: { audio_duration: 0.5, segments: [{ text: '東京 🧭', start: 0, end: 0.5 }] },
+      chunk_seq: 0,
+      chunk_audio_offset_sec: 0
+    })}\n\n`
+    const bytes = new TextEncoder().encode(event)
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (const boundary of [1, 2, 5, 31, 32, bytes.length]) {
+          const start = boundary === 1 ? 0 : ([1, 2, 5, 31, 32].findLast(value => value < boundary) ?? 0)
+          controller.enqueue(bytes.subarray(start, boundary))
+        }
+        controller.close()
+      }
+    })
+    const client = createFishClient({
+      apiKey: 'test-fish-key',
+      fetchImpl: (async () => new Response(body, {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream' }
+      })) as unknown as typeof fetch
+    })
+
+    const result = await client.synthesizeTtsWithTimestamps({ text: '東京 🧭', reference_id: 'voice-id' })
+    expect(Buffer.from(result.audioBuffer).toString()).toBe('audio')
+    expect(result.timeline).toEqual([{ text: '東京 🧭', start: 0, end: 0.5, chunkSeq: 0 }])
+  })
+
   test('returns structured provider failures instead of usage errors or raw bodies', async () => {
     const client = createFishClient({
       apiKey: 'test-fish-key',

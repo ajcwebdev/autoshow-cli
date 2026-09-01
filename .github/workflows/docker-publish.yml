@@ -1,18 +1,149 @@
-name: Publish Docker Image to GHCR
+name: Verify and Publish Docker Image
 
 on:
+  pull_request:
   push:
     branches:
       - main
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
+  verify:
+    name: No-cost verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install supported Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Verify Bun pin
+        run: test "$(bun --version)" = "1.4.0"
+
+      - name: Install frozen dependencies
+        run: bun --no-env-file install --frozen-lockfile
+
+      - name: Install local image composition dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes imagemagick
+
+      - name: Run repository checks
+        run: |
+          bun --no-env-file run check
+          bun --no-env-file t --price
+
+      - name: Run local CLI smoke contracts
+        run: |
+          bun --no-env-file test test/test-cases/validation/cli/cli-help-contracts.test.ts
+          bun --no-env-file test test/test-cases/validation/cli/cli-usage-errors/
+          bun --no-env-file test test/test-cases/validation/cli/option-resolution-contracts/
+
+      - name: Run Bun migration contracts
+        run: |
+          bun --no-env-file test \
+            test/test-cases/validation/runtime-contracts/test-runner-contracts/console-harness.test.ts \
+            test/test-cases/validation/runtime-contracts/test-runner-contracts/artifacts-parsing.test.ts \
+            test/test-cases/validation/runtime-contracts/test-runner-contracts/file-timings.test.ts \
+            test/test-cases/validation/runtime-contracts/test-runner-contracts/process-price-orchestration.test.ts \
+            test/test-cases/validation/runtime-contracts/test-runner-contracts/args-selection.test.ts \
+            test/test-cases/validation/runtime-contracts/test-runner-contracts/budget-preflight.test.ts \
+            test/test-cases/validation/runtime-contracts/retry-abort-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/bun-native-migration-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/dependency-hygiene-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/profiling-recipes-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/reference-tokenizer-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/bounded-text-stream-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/process-tree-cleanup-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/jsonl-reader-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/bun-xml-adapter-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/logging-contracts/human-table-rendering.test.ts \
+            test/test-cases/validation/runtime-contracts/multipart-serialization-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/fetch-error-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/bun-version-alignment-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/maintenance-environment-contracts.test.ts \
+            test/test-cases/validation/media-generation/inworld-tts-websocket-adapter.test.ts \
+            test/test-cases/validation/media-generation/fish-tts-adapter-contracts.test.ts \
+            test/test-cases/validation/media-generation/fish-tts-timing-contracts.test.ts \
+            test/test-cases/validation/comic/comic-audio-execution-publication-contracts.test.ts \
+            test/test-cases/validation/comic/comic-image-composition-contracts.test.ts \
+            test/test-cases/validation/extract-stt/async-stt-lifecycle-adoption-contracts.test.ts \
+            test/test-cases/validation/media-generation/tts-compact-archive-contracts.test.ts \
+            test/test-cases/validation/extract-ocr/ocr-bun-image-normalization-contracts.test.ts \
+            test/test-cases/validation/setup/tar-gz-security-contracts.test.ts \
+            test/test-cases/validation/setup/setup-doctor-contracts.test.ts \
+            test/test-cases/validation/cli/docker-image-contracts.test.ts
+
+  package-hygiene:
+    name: Package hygiene
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install supported Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Install frozen dependencies
+        run: |
+          mkdir -p "${RUNNER_TEMP}/bun-package-home"
+          env -i PATH="${PATH}" HOME="${RUNNER_TEMP}/bun-package-home" CI=true bun install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: env -i PATH="${PATH}" HOME="${RUNNER_TEMP}/bun-package-home" CI=true bun audit
+
+      - name: Check dependency deduplication
+        run: env -i PATH="${PATH}" HOME="${RUNNER_TEMP}/bun-package-home" CI=true bun dedupe --check
+
+      - name: Record non-mutating dependency cleanup reviews
+        run: |
+          mkdir -p runtime/ci
+          env -i PATH="${PATH}" HOME="${RUNNER_TEMP}/bun-package-home" CI=true bun audit fix --dry-run > runtime/ci/audit-fix-dry-run.txt
+          env -i PATH="${PATH}" HOME="${RUNNER_TEMP}/bun-package-home" CI=true bun prune --dry-run > runtime/ci/prune-dry-run.txt
+
+      - name: Record production licenses
+        run: |
+          mkdir -p runtime/ci
+          env -i PATH="${PATH}" HOME="${RUNNER_TEMP}/bun-package-home" CI=true bun pm licenses --prod --json > runtime/ci/production-licenses.json
+
+      - name: Upload production license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-license-report
+          path: runtime/ci/production-licenses.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload dependency cleanup review
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-cleanup-review
+          path: |
+            runtime/ci/audit-fix-dry-run.txt
+            runtime/ci/prune-dry-run.txt
+          if-no-files-found: error
+          retention-days: 14
+
   build-amd64:
     name: Build AMD64 image
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    if: github.event_name == 'push'
+    needs:
+      - verify
+      - package-hygiene
+    permissions:
+      contents: read
+      packages: write
     outputs:
       digest: ${{ steps.build.outputs.digest }}
     steps:
@@ -39,6 +170,7 @@ jobs:
         id: build
         run: |
           set -euo pipefail
+          started_ns="$(date +%s%N)"
           image="ghcr.io/$(printf '%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
           created="$(git show -s --format=%cI "${GITHUB_SHA}")"
           version="$(jq -er '.version' package.json)"
@@ -66,10 +198,86 @@ jobs:
             *) printf 'Unexpected AMD64 image digest: %s\n' "${digest}" >&2; exit 1 ;;
           esac
           printf 'digest=%s\n' "${digest}" >> "${GITHUB_OUTPUT}"
+          printf 'build_duration_ms=%s\n' "$(( ($(date +%s%N) - started_ns) / 1000000 ))" >> "${GITHUB_OUTPUT}"
+
+      - name: Smoke and measure AMD64 image
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          BUILD_DURATION_MS: ${{ steps.build.outputs.build_duration_ms }}
+        run: |
+          set -euo pipefail
+          image="ghcr.io/$(printf '%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          image_ref="${image}@${IMAGE_DIGEST}"
+          report_dir="runtime/ci/docker-amd64"
+          mkdir -p "${report_dir}"
+          docker pull --platform linux/amd64 "${image_ref}" >/dev/null
+          test "$(docker run --rm --platform linux/amd64 --entrypoint bun "${image_ref}" --version)" = "1.4.0"
+          docker run --rm --platform linux/amd64 --entrypoint bun "${image_ref}" --no-env-file install --frozen-lockfile --production > "${report_dir}/production-install.log" 2>&1
+          docker run --rm --platform linux/amd64 "${image_ref}" --help > "${report_dir}/help.log" 2>&1
+          docker run --rm --platform linux/amd64 "${image_ref}" config --show --config-path /tmp/autoshow-smoke-config.json --no-color > "${report_dir}/config.log" 2>&1
+          docker run --rm --platform linux/amd64 "${image_ref}" setup --doctor --no-color > "${report_dir}/doctor.log" 2>&1
+          grep -F '1.4.0 (supported)' "${report_dir}/doctor.log"
+          help_samples="$({ for _ in 1 2 3 4 5; do start="$(date +%s%N)"; docker run --rm --platform linux/amd64 "${image_ref}" --help >/dev/null; printf '%s\n' "$(( ($(date +%s%N) - start) / 1000000 ))"; done; } | jq -s '.')"
+          prebuild_samples="$({ for _ in 1 2 3 4 5; do docker run --rm --platform linux/amd64 --entrypoint bun "${image_ref}" --no-env-file -e 'const start=performance.now();const p=Bun.spawn(["bun","--no-env-file","build","/app/src/cli/create-cli.ts","--target=bun","--outfile","/tmp/autoshow-cli-ci.js"],{stdout:"ignore",stderr:"pipe"});const stderr=await new Response(p.stderr).text();const code=await p.exited;if(code!==0)throw new Error(stderr);console.log(performance.now()-start)'; done; } | jq -s '.')"
+          fixture="${GITHUB_WORKSPACE}/test/fixtures/setup/managed-toolchain-smoke.pdf"
+          fixture_sha256="$(sha256sum "${fixture}" | cut -d ' ' -f 1)"
+          fixture_peak_samples="$({ for index in 1 2 3; do fixture_output="${RUNNER_TEMP}/autoshow-rss-amd64-${index}"; mkdir -p "${fixture_output}"; chmod 0777 "${fixture_output}"; docker run --rm --platform linux/amd64 --env NO_COLOR=1 --entrypoint /bin/sh --mount "type=bind,src=${fixture},dst=/benchmark/fixture.pdf,readonly" --mount "type=bind,src=${fixture_output},dst=/benchmark/output" "${image_ref}" -c 'set -eu; bun --no-env-file /app/src/cli/create-cli.ts extract /benchmark/fixture.pdf --provider tesseract --ocr-concurrency 1 --output-root /benchmark/output >/dev/null 2>&1; cat /sys/fs/cgroup/memory.peak'; done; } | jq -s '.')"
+          compiled_ref="autoshow-compiled-experiment:${GITHUB_SHA}-amd64"
+          compiled_started_ns="$(date +%s%N)"
+          docker buildx build --platform linux/amd64 --target compiled-experiment --load --tag "${compiled_ref}" .
+          compiled_build_duration_ms="$(( ($(date +%s%N) - compiled_started_ns) / 1000000 ))"
+          docker run --rm --platform linux/amd64 "${compiled_ref}" --help > "${report_dir}/compiled-help.log" 2>&1
+          docker run --rm --platform linux/amd64 "${compiled_ref}" config --show --config-path /tmp/autoshow-compiled-config.json --no-color > "${report_dir}/compiled-config.log" 2>&1
+          docker run --rm --platform linux/amd64 "${compiled_ref}" setup --doctor --no-color > "${report_dir}/compiled-doctor.log" 2>&1
+          compiled_path_fixture="${GITHUB_WORKSPACE}/test/test-cases/validation/comic/fixtures/structured-script-parser/handler-precedence.md"
+          docker run --rm --platform linux/amd64 --mount "type=bind,src=${compiled_path_fixture},dst=/benchmark/input.md,readonly" "${compiled_ref}" write /benchmark/input.md --price --no-color > "${report_dir}/compiled-paths.log" 2>&1
+          grep -F '1.4.0 (supported)' "${report_dir}/compiled-doctor.log"
+          grep -F 'Total estimated cost' "${report_dir}/compiled-paths.log"
+          grep -F 'Expected files' "${report_dir}/compiled-paths.log"
+          compiled_help_samples="$({ for _ in 1 2 3 4 5; do start="$(date +%s%N)"; docker run --rm --platform linux/amd64 "${compiled_ref}" --help >/dev/null; printf '%s\n' "$(( ($(date +%s%N) - start) / 1000000 ))"; done; } | jq -s '.')"
+          compiled_peak_samples="$({ for _ in 1 2 3; do docker run --rm --platform linux/amd64 --entrypoint /bin/sh "${compiled_ref}" -c '/app/autoshow --help >/dev/null 2>&1; cat /sys/fs/cgroup/memory.peak'; done; } | jq -s '.')"
+          jq -n \
+            --arg platform linux/amd64 \
+            --arg decision reject \
+            --arg reason 'The production image remains source-run unless the compiled target materially improves startup and memory without increasing image size or weakening asset/path behavior.' \
+            --argjson buildDurationMs "${compiled_build_duration_ms}" \
+            --argjson imageSizeBytes "$(docker image inspect "${compiled_ref}" --format '{{.Size}}')" \
+            --argjson sourceImageSizeBytes "$(docker image inspect "${image_ref}" --format '{{.Size}}')" \
+            --argjson coldHelpWallMs "${compiled_help_samples}" \
+            --argjson helpPeakRssBytes "${compiled_peak_samples}" \
+            '{platform:$platform,target:"compiled-experiment",decision:$decision,reason:$reason,measurements:{buildDurationMs:$buildDurationMs,imageSizeBytes:$imageSizeBytes,sourceImageSizeBytes:$sourceImageSizeBytes,coldHelpWallMs:$coldHelpWallMs,helpPeakRssBytes:$helpPeakRssBytes}}' \
+            > "${report_dir}/compiled-entrypoint-experiment.json"
+          jq -n \
+            --arg platform linux/amd64 \
+            --arg digest "${IMAGE_DIGEST}" \
+            --argjson buildDurationMs "${BUILD_DURATION_MS}" \
+            --argjson imageSizeBytes "$(docker image inspect "${image_ref}" --format '{{.Size}}')" \
+            --argjson helpSamples "${help_samples}" \
+            --argjson prebuildSamples "${prebuild_samples}" \
+            --arg fixtureSha256 "${fixture_sha256}" \
+            --argjson fixturePeakSamples "${fixture_peak_samples}" \
+            '{platform:$platform,digest:$digest,execution:"native GitHub runner",fixture:{path:"test/fixtures/setup/managed-toolchain-smoke.pdf",sha256:$fixtureSha256,workload:"local Tesseract OCR"},measurements:{buildDurationMs:$buildDurationMs,imageSizeBytes:$imageSizeBytes,coldHelpWallMs:$helpSamples,cliPrebuildMs:$prebuildSamples,fixturePeakRssBytes:$fixturePeakSamples}}' \
+            > "${report_dir}/measurements.json"
+
+      - name: Upload AMD64 verification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-verification-amd64
+          path: runtime/ci/docker-amd64
+          if-no-files-found: error
+          retention-days: 14
 
   build-arm64:
     name: Build ARM64 image
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    if: github.event_name == 'push'
+    needs:
+      - verify
+      - package-hygiene
+    permissions:
+      contents: read
+      packages: write
     outputs:
       digest: ${{ steps.build.outputs.digest }}
     steps:
@@ -96,6 +304,7 @@ jobs:
         id: build
         run: |
           set -euo pipefail
+          started_ns="$(date +%s%N)"
           image="ghcr.io/$(printf '%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
           created="$(git show -s --format=%cI "${GITHUB_SHA}")"
           version="$(jq -er '.version' package.json)"
@@ -123,10 +332,81 @@ jobs:
             *) printf 'Unexpected ARM64 image digest: %s\n' "${digest}" >&2; exit 1 ;;
           esac
           printf 'digest=%s\n' "${digest}" >> "${GITHUB_OUTPUT}"
+          printf 'build_duration_ms=%s\n' "$(( ($(date +%s%N) - started_ns) / 1000000 ))" >> "${GITHUB_OUTPUT}"
+
+      - name: Smoke and measure ARM64 image
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          BUILD_DURATION_MS: ${{ steps.build.outputs.build_duration_ms }}
+        run: |
+          set -euo pipefail
+          image="ghcr.io/$(printf '%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          image_ref="${image}@${IMAGE_DIGEST}"
+          report_dir="runtime/ci/docker-arm64"
+          mkdir -p "${report_dir}"
+          docker pull --platform linux/arm64 "${image_ref}" >/dev/null
+          test "$(docker run --rm --platform linux/arm64 --entrypoint bun "${image_ref}" --version)" = "1.4.0"
+          docker run --rm --platform linux/arm64 --entrypoint bun "${image_ref}" --no-env-file install --frozen-lockfile --production > "${report_dir}/production-install.log" 2>&1
+          docker run --rm --platform linux/arm64 "${image_ref}" --help > "${report_dir}/help.log" 2>&1
+          docker run --rm --platform linux/arm64 "${image_ref}" config --show --config-path /tmp/autoshow-smoke-config.json --no-color > "${report_dir}/config.log" 2>&1
+          docker run --rm --platform linux/arm64 "${image_ref}" setup --doctor --no-color > "${report_dir}/doctor.log" 2>&1
+          grep -F '1.4.0 (supported)' "${report_dir}/doctor.log"
+          help_samples="$({ for _ in 1 2 3 4 5; do start="$(date +%s%N)"; docker run --rm --platform linux/arm64 "${image_ref}" --help >/dev/null; printf '%s\n' "$(( ($(date +%s%N) - start) / 1000000 ))"; done; } | jq -s '.')"
+          prebuild_samples="$({ for _ in 1 2 3 4 5; do docker run --rm --platform linux/arm64 --entrypoint bun "${image_ref}" --no-env-file -e 'const start=performance.now();const p=Bun.spawn(["bun","--no-env-file","build","/app/src/cli/create-cli.ts","--target=bun","--outfile","/tmp/autoshow-cli-ci.js"],{stdout:"ignore",stderr:"pipe"});const stderr=await new Response(p.stderr).text();const code=await p.exited;if(code!==0)throw new Error(stderr);console.log(performance.now()-start)'; done; } | jq -s '.')"
+          fixture="${GITHUB_WORKSPACE}/test/fixtures/setup/managed-toolchain-smoke.pdf"
+          fixture_sha256="$(sha256sum "${fixture}" | cut -d ' ' -f 1)"
+          fixture_peak_samples="$({ for index in 1 2 3; do fixture_output="${RUNNER_TEMP}/autoshow-rss-arm64-${index}"; mkdir -p "${fixture_output}"; chmod 0777 "${fixture_output}"; docker run --rm --platform linux/arm64 --env NO_COLOR=1 --entrypoint /bin/sh --mount "type=bind,src=${fixture},dst=/benchmark/fixture.pdf,readonly" --mount "type=bind,src=${fixture_output},dst=/benchmark/output" "${image_ref}" -c 'set -eu; bun --no-env-file /app/src/cli/create-cli.ts extract /benchmark/fixture.pdf --provider tesseract --ocr-concurrency 1 --output-root /benchmark/output >/dev/null 2>&1; cat /sys/fs/cgroup/memory.peak'; done; } | jq -s '.')"
+          compiled_ref="autoshow-compiled-experiment:${GITHUB_SHA}-arm64"
+          compiled_started_ns="$(date +%s%N)"
+          docker buildx build --platform linux/arm64 --target compiled-experiment --load --tag "${compiled_ref}" .
+          compiled_build_duration_ms="$(( ($(date +%s%N) - compiled_started_ns) / 1000000 ))"
+          docker run --rm --platform linux/arm64 "${compiled_ref}" --help > "${report_dir}/compiled-help.log" 2>&1
+          docker run --rm --platform linux/arm64 "${compiled_ref}" config --show --config-path /tmp/autoshow-compiled-config.json --no-color > "${report_dir}/compiled-config.log" 2>&1
+          docker run --rm --platform linux/arm64 "${compiled_ref}" setup --doctor --no-color > "${report_dir}/compiled-doctor.log" 2>&1
+          compiled_path_fixture="${GITHUB_WORKSPACE}/test/test-cases/validation/comic/fixtures/structured-script-parser/handler-precedence.md"
+          docker run --rm --platform linux/arm64 --mount "type=bind,src=${compiled_path_fixture},dst=/benchmark/input.md,readonly" "${compiled_ref}" write /benchmark/input.md --price --no-color > "${report_dir}/compiled-paths.log" 2>&1
+          grep -F '1.4.0 (supported)' "${report_dir}/compiled-doctor.log"
+          grep -F 'Total estimated cost' "${report_dir}/compiled-paths.log"
+          grep -F 'Expected files' "${report_dir}/compiled-paths.log"
+          compiled_help_samples="$({ for _ in 1 2 3 4 5; do start="$(date +%s%N)"; docker run --rm --platform linux/arm64 "${compiled_ref}" --help >/dev/null; printf '%s\n' "$(( ($(date +%s%N) - start) / 1000000 ))"; done; } | jq -s '.')"
+          compiled_peak_samples="$({ for _ in 1 2 3; do docker run --rm --platform linux/arm64 --entrypoint /bin/sh "${compiled_ref}" -c '/app/autoshow --help >/dev/null 2>&1; cat /sys/fs/cgroup/memory.peak'; done; } | jq -s '.')"
+          jq -n \
+            --arg platform linux/arm64 \
+            --arg decision reject \
+            --arg reason 'The production image remains source-run unless the compiled target materially improves startup and memory without increasing image size or weakening asset/path behavior.' \
+            --argjson buildDurationMs "${compiled_build_duration_ms}" \
+            --argjson imageSizeBytes "$(docker image inspect "${compiled_ref}" --format '{{.Size}}')" \
+            --argjson sourceImageSizeBytes "$(docker image inspect "${image_ref}" --format '{{.Size}}')" \
+            --argjson coldHelpWallMs "${compiled_help_samples}" \
+            --argjson helpPeakRssBytes "${compiled_peak_samples}" \
+            '{platform:$platform,target:"compiled-experiment",decision:$decision,reason:$reason,measurements:{buildDurationMs:$buildDurationMs,imageSizeBytes:$imageSizeBytes,sourceImageSizeBytes:$sourceImageSizeBytes,coldHelpWallMs:$coldHelpWallMs,helpPeakRssBytes:$helpPeakRssBytes}}' \
+            > "${report_dir}/compiled-entrypoint-experiment.json"
+          jq -n \
+            --arg platform linux/arm64 \
+            --arg digest "${IMAGE_DIGEST}" \
+            --argjson buildDurationMs "${BUILD_DURATION_MS}" \
+            --argjson imageSizeBytes "$(docker image inspect "${image_ref}" --format '{{.Size}}')" \
+            --argjson helpSamples "${help_samples}" \
+            --argjson prebuildSamples "${prebuild_samples}" \
+            --arg fixtureSha256 "${fixture_sha256}" \
+            --argjson fixturePeakSamples "${fixture_peak_samples}" \
+            '{platform:$platform,digest:$digest,execution:"native GitHub runner",fixture:{path:"test/fixtures/setup/managed-toolchain-smoke.pdf",sha256:$fixtureSha256,workload:"local Tesseract OCR"},measurements:{buildDurationMs:$buildDurationMs,imageSizeBytes:$imageSizeBytes,coldHelpWallMs:$helpSamples,cliPrebuildMs:$prebuildSamples,fixturePeakRssBytes:$fixturePeakSamples}}' \
+            > "${report_dir}/measurements.json"
+
+      - name: Upload ARM64 verification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-verification-arm64
+          path: runtime/ci/docker-arm64
+          if-no-files-found: error
+          retention-days: 14
 
   publish-manifest:
     name: Publish multi-arch manifest
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
     needs:
       - build-amd64
       - build-arm64

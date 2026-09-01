@@ -32,16 +32,28 @@ import { isRecord } from '~/utils/value-helpers'
 import { pathExists } from '~/utils/filesystem'
 import { childEnv } from '~/utils/child-env'
 import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
+import { consumeBoundedTextStream } from '~/utils/bounded-text-stream'
 
 const TEST_OUTPUT_ROOT = 'output/test-output'
+const MAX_TEST_COMMAND_STREAM_BYTES = 64 * 1024 * 1024
 
 const sanitizeOutputRootSegment = (value: string): string =>
   value.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'run'
 
+export const testWorkerScratchSegment = (
+  workerId = process.env['BUN_TEST_WORKER_ID'],
+  pid = process.pid
+): string => {
+  const normalizedWorkerId = workerId?.trim()
+  return normalizedWorkerId
+    ? `w${sanitizeOutputRootSegment(normalizedWorkerId)}-p${pid}`
+    : `p${pid}`
+}
+
 const resolveTestOutputDir = (): string => {
   const artifactsDir = process.env['AUTOSHOW_TEST_ARTIFACTS_DIR']?.trim()
   if (artifactsDir) {
-    return join(artifactsDir, 'outputs', `p${process.pid}`)
+    return join(artifactsDir, 'outputs', testWorkerScratchSegment())
   }
 
   const explicit = process.env['AUTOSHOW_TEST_OUTPUT_DIR']?.trim()
@@ -49,7 +61,7 @@ const resolveTestOutputDir = (): string => {
     return explicit
   }
 
-  return join(TEST_OUTPUT_ROOT, 'local', `p${process.pid}`)
+  return join(TEST_OUTPUT_ROOT, 'local', testWorkerScratchSegment())
 }
 
 export const OUTPUT_DIR = resolveTestOutputDir()
@@ -246,23 +258,11 @@ const resolveCommandOutputRoot = async (
 }
 
 const readStreamText = async (stream: ReadableStream): Promise<string> => {
-  const reader = stream.getReader()
-  const decoder = new TextDecoder()
-  let full = ''
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      full += decoder.decode(value, { stream: true })
-    }
-
-    full += decoder.decode()
-  } finally {
-    reader.releaseLock()
-  }
-
-  return full
+  const result = await consumeBoundedTextStream(stream as ReadableStream<Uint8Array>, {
+    maxBytes: MAX_TEST_COMMAND_STREAM_BYTES,
+    retainText: true
+  })
+  return result.text
 }
 
 const resolveAdaptiveStateDir = (

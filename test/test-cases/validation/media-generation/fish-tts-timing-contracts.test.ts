@@ -17,6 +17,7 @@ import { collectFishTtsTargets, resolveFishNativeDialogueTurns } from '~/cli/com
 import { createTtsTargetSelection } from '~/cli/commands/process-steps/step-4-tts/tts-targets/tts-target-selection'
 import { runFishTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/run-fish-tts'
 import { createFishAdvancedProvider } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/fish-advanced-provider'
+import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { createMockWavBase64, createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
@@ -111,7 +112,13 @@ describe('Fish timestamped synthesis contracts', () => {
       chunk_audio_offset_sec: 0,
       alignment: { audio_duration: 0.05, segments: [{ text: 'Ready?', start: 0, end: 0.05 }] },
     }), { status: 200, headers: { 'content-type': 'text/event-stream', 'x-request-id': 'fish-ts-1' } }))
-    await runFishTts('Ready?', root, { model: 's2.1-pro', apiKey: 'local-test-key', voiceId: '7f92f8afb8ec43bf81429cc1c9199cb1', requestEvidence: evidence })
+    await runFishTts('Ready?', root, {
+      model: 's2.1-pro',
+      apiKey: 'local-test-key',
+      voiceId: '7f92f8afb8ec43bf81429cc1c9199cb1',
+      requestEvidence: evidence,
+      chunkScheduler: createHostedTtsChunkScheduler()
+    })
     expect(observations[0]).toMatchObject({
       serializerVersion: FISH_TIMESTAMP_SERIALIZER_VERSION,
       endpointKind: 'text-to-speech-stream-with-timestamps',

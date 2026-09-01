@@ -13,7 +13,7 @@ import {
   parseRunnerArgs,
   withDefaultTestConcurrency
 } from '../../../../test-runner/args'
-import { formatSelectedPathsLabel, orderTestFiles } from '../../../../test-runner/path-selection'
+import { formatSelectedPathsLabel, resolveSelectedFiles } from '../../../../test-runner/path-selection'
 import { VALIDATION_TEST_TIMEOUT_MS } from '../../../../test-utils/timeouts'
 
 const tempDirs: string[] = []
@@ -250,21 +250,12 @@ describe('test-runner contracts', () => {
       ])
     })
 
-  test('orderTestFiles hoists known-slow e2e files and keeps other files stable', () => {
+  test('path selection preserves discovery order for Bun native timing scheduling', () => {
     const validation = 'test/test-cases/validation/cli/cli-help-contracts.test.ts'
     const streaming = 'test/test-cases/e2e/service/step-1-download-e2e/download-input-types-streaming.test.ts'
     const other = 'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/glm-ocr.test.ts'
-    expect(orderTestFiles([validation, streaming, other])).toEqual([streaming, validation, other])
-
-    const unchanged = [validation, other]
-    expect(orderTestFiles(unchanged)).toEqual(unchanged)
-    expect(orderTestFiles(unchanged)).toHaveLength(unchanged.length)
-
-    expect(orderTestFiles([validation, streaming, other], new Map([
-      [validation, 50_000],
-      [other, 80_000],
-      [streaming, 10_000],
-    ]))).toEqual([other, validation, streaming])
+    expect(resolveSelectedFiles([validation, streaming, other], [])).toEqual([validation, streaming, other])
+    expect(resolveSelectedFiles([validation, streaming, other], ['test/test-cases/e2e/'])).toEqual([streaming, other])
   })
 
   test('path-selection labels strip the test/test-cases prefix for validation paths', () => {

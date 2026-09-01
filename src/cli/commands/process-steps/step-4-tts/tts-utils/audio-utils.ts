@@ -1,4 +1,5 @@
 import { resolve } from 'node:path'
+import { rm } from 'node:fs/promises'
 import type { HostedTtsChunkAdmissionToken, HostedTtsChunkScheduler, RunTtsChunksOptions, TtsMasteringProfile } from '~/types'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
@@ -109,7 +110,7 @@ export const concatAndConvertToWav = async (
 
     return wavPath
   } finally {
-    await Bun.$`rm -f ${concatListPath}`.quiet().nothrow()
+    await rm(concatListPath, { force: true }).catch(() => {})
   }
 }
 
