@@ -25,6 +25,7 @@ import { planCanonicalVoiceAudition, withCanonicalVoiceAuditionScheduler } from 
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { captureLogEvents } from '../../../../test-utils/console-capture'
+import { withEnv } from '../../../../test-utils/rest-contract-helpers'
 import { asCtx, expectUnknownCommand, makeTempRoot, parseRoot, registerUsageErrorCleanup } from './shared'
 
 registerUsageErrorCleanup()
@@ -123,10 +124,12 @@ test('voice capability sets match the active provider policy and reject retired 
       `${provider} is no longer supported for TTS or voice management.`
     )
   }
-  await rejectVoice(
-    ['voice', 'list', '--provider', 'inworld', '--cursor', 'next'],
-    'Inworld voice catalog is not paginated.'
-  )
+  await withEnv({ INWORLD_API_KEY: 'credential-free-pagination-fixture' }, async () => {
+    await rejectVoice(
+      ['voice', 'list', '--provider', 'inworld', '--cursor', 'next'],
+      'Inworld voice catalog is not paginated.'
+    )
+  })
   expectUnknownCommand(
     ['voice', 'save-reference', 'hero', '--model', 'voxtral-mini-tts-2603', '--price'],
     'voice save-reference'
@@ -630,10 +633,12 @@ test('voice list completes an unambiguous journal and refuses an ambiguous one u
   const ambiguousRoot = await writeJournal(ambiguousDraft.registrationId, ambiguous)
   try {
     await rejectVoice(['voice', 'list', ambiguousDraft.registrationId], AMBIGUOUS_VOICE_REDISPATCH_MESSAGE)
-    await rejectVoice(
-      ['voice', 'list', ambiguousDraft.registrationId, '--reconcile'],
-      'Fish reconciliation credentials do not match the provisioning account scope.'
-    )
+    await withEnv({ FISH_API_KEY: 'credential-mismatch-fixture' }, async () => {
+      await rejectVoice(
+        ['voice', 'list', ambiguousDraft.registrationId, '--reconcile'],
+        'Fish reconciliation credentials do not match the provisioning account scope.'
+      )
+    })
   } finally {
     await rm(ambiguousRoot, { recursive: true, force: true })
   }
