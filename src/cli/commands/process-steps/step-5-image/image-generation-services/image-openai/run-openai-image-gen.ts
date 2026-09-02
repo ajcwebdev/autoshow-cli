@@ -12,6 +12,35 @@ import {
   writeOpenAIImageResponseData
 } from '../../image-utils/image-output'
 
+type OpenAIImageUsageUnits = Pick<Step5Metadata, 'imageInputUnits' | 'textInputUnits' | 'totalInputUnits' | 'outputUnits' | 'totalUnits'>
+
+const readUsageUnits = (source: Record<string, unknown> | undefined, key: string): number | undefined => {
+  const value = source?.[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+const asRecord = (value: unknown): Record<string, unknown> | undefined => (
+  value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : undefined
+)
+
+export const parseOpenAIImageUsage = (usage: unknown): OpenAIImageUsageUnits => {
+  const record = asRecord(usage)
+  if (!record) return {}
+  const inputDetails = asRecord(record['input_tokens_details'])
+  const imageInputUnits = readUsageUnits(inputDetails, 'image_tokens')
+  const textInputUnits = readUsageUnits(inputDetails, 'text_tokens')
+  const totalInputUnits = readUsageUnits(record, 'input_tokens')
+  const outputUnits = readUsageUnits(record, 'output_tokens')
+  const totalUnits = readUsageUnits(record, 'total_tokens')
+  return {
+    ...(imageInputUnits !== undefined ? { imageInputUnits } : {}),
+    ...(textInputUnits !== undefined ? { textInputUnits } : {}),
+    ...(totalInputUnits !== undefined ? { totalInputUnits } : {}),
+    ...(outputUnits !== undefined ? { outputUnits } : {}),
+    ...(totalUnits !== undefined ? { totalUnits } : {})
+  }
+}
+
 export const runOpenAIImageGen = async (
   prompt: string,
   outputDir: string,
@@ -101,7 +130,8 @@ export const runOpenAIImageGen = async (
     imageFormat: options.outputFormat ?? 'png',
     requestMode: mode,
     ...(getFirstRevisedPrompt(result) ? { revisedPrompt: getFirstRevisedPrompt(result) } : {}),
-    ...(getProviderReturnedModel(options.model, result) ? { providerReturnedModel: getProviderReturnedModel(options.model, result) } : {})
+    ...(getProviderReturnedModel(options.model, result) ? { providerReturnedModel: getProviderReturnedModel(options.model, result) } : {}),
+    ...parseOpenAIImageUsage(result.usage)
   }
 
   return { imagePaths, metadata }

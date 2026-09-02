@@ -102,6 +102,7 @@ describe('revision evaluation contracts', () => {
     expect(() => parseRevisionPlan({ ...plan, createdAt: 'changed' })).toThrow('fingerprint mismatch')
     expect(() => parseRevisionPlan({ ...plan, unexpected: true })).toThrow('schema validation failed')
     expect(parseRevisionComparison(JSON.stringify(comparison(false))).fullContractPreference).toBe('image-b')
+    expect(parseRevisionComparison(JSON.stringify({ ...comparison(false), targetedDefectStatusImageA: 'partly-visible', targetedDefectStatusImageB: 'partly-visible', targetedDefectLowerIn: 'image-b' })).targetedDefectLowerIn).toBe('image-b')
     expect(() => parseRevisionComparison('{bad')).toThrow('malformed JSON')
     expect(() => parseRevisionComparison(JSON.stringify({ ...comparison(false), targetedDefectLowerIn: 'image-a' }))).toThrow('internally inconsistent')
     expect(() => parseRevisionComparison(JSON.stringify({ ...comparison(false), targetedIssueStatusImageA: 'present' }))).toThrow('missing or unexpected fields')
@@ -160,7 +161,7 @@ describe('revision evaluation contracts', () => {
     let comparisonCalls = 0
     const comparisonOrders: string[][] = []
     const first = await runRevisionEvaluation(fixture.options, {
-      requestImage: async input => { imageCalls += 1; expect(input.referenceImages[0]).toBe(fixture.canonicalPath); return { mode: 'edit', result: { imageBase64: candidateBytes.toString('base64') } } },
+      requestImage: async input => { imageCalls += 1; expect(input.referenceImages[0]).toBe(fixture.canonicalPath); return { mode: 'edit', result: { imageBase64: candidateBytes.toString('base64') }, usage: { imageInputUnits: 1290, textInputUnits: 35, outputUnits: 6240 } } },
       writeImage: async path => { await Bun.write(path, candidateBytes) },
       requestComparison: async input => { comparisonCalls += 1; comparisonOrders.push(input.imagePaths.slice(0, 2)); return { text: JSON.stringify(comparison(comparisonCalls === 2)), inputTokens: 10, outputTokens: 5 } },
       measureSimilarity: async () => ({ ssim: 0.8, normalizedRmse: 0.1 }),
@@ -173,9 +174,13 @@ describe('revision evaluation contracts', () => {
     expect(comparisonOrders[1]?.[0]).toEndWith('candidate.png')
     expect(comparisonOrders[1]?.[1]).toEndWith('original.png')
     expect(first.promotedPanels).toEqual([1])
+    expect(first.stats.totalInputImageTokens).toBe(1290)
+    expect(first.stats.totalInputTextTokens).toBe(35)
+    expect(first.stats.totalOutputImageTokens).toBe(6240)
     expect(Buffer.from(await Bun.file(fixture.canonicalPath).arrayBuffer()).toString('hex')).toBe(candidateBytes.toString('hex'))
     const resumed = await runRevisionEvaluation(fixture.options, { requestImage: async () => { throw new Error('must not redispatch image') }, requestComparison: async () => { throw new Error('must not redispatch comparison') }, measureSimilarity: async () => { throw new Error('must not recalculate completed metric') }, recordManifest: recordPublishedManifest })
     expect(resumed.promotedPanels).toEqual([1])
+    expect(resumed.stats.totalInputImageTokens).toBe(1290)
     expect(imageCalls).toBe(1)
     expect(comparisonCalls).toBe(2)
     const after = await loadRevisionPriceInventory(fixture.options)

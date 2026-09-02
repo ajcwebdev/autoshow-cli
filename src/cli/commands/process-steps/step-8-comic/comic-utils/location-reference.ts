@@ -2,16 +2,19 @@ import { existsSync, readFileSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
-import { combineCharacterSketchSheet } from '../comic-commands/character-sketch/character-sketch-sheet'
 import { checksumFile } from '../comic-commands/process-scenes/character-utils'
 import { loadCharacterCatalog } from './character-reference-config'
 import { AppValidationError, InfraError, ValidationError } from '~/utils/error-handler'
 import { getLocationReferencesDirectory, getSceneAssetsDirectory } from './project-paths'
-import type { CurrentLocationReference, LocationReferenceCatalog, LocationReferenceEntry, LocationReferenceSnapshot, LocationReferenceSnapshotManifest, LocationSketchManifest, LocationSketchRegistration, LocationSketchViewRegistration, LocationView } from '~/types'
+import type { CurrentLocationReference, LocationReferenceCatalog, LocationReferenceEntry, LocationReferenceSnapshotManifestV3, LocationReferenceSnapshotV3, LocationReferenceSnapshotView, LocationSketchManifest, LocationSketchRegistration, LocationSketchViewRegistration, LocationView, LocationViewLineage } from '~/types'
 import { atomicWriteJson } from '~/utils/filesystem'
 import { copyFileExact } from '~/utils/bun-file-io'
 
 export const LOCATION_VIEWS = ['establishing', 'reverse', 'side'] as const
+export const LOCATION_VIEW_LINEAGES = ['clean', 'mixed'] as const
+export const LOCATION_SNAPSHOT_SCHEMA_VERSION = 3
+export const LOCATION_SNAPSHOT_READABLE_VERSIONS = [2, 3] as const
+export const EXISTING_CANONICAL_ART_MODEL = 'existing-canonical-art'
 
 export const LOCATION_KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
@@ -20,12 +23,12 @@ const LOCATION_SKETCH_MANIFEST_FILENAME = 'location-sketches.json'
 export const LOCATION_SNAPSHOTS_FILENAME = 'location-references.json'
 
 export const getLocationsRoot = (): string => join(dirname(getCharactersRoot()), 'locations')
-export const getLocationReferencePath = (): string => join(getLocationsRoot(), LOCATION_REFERENCE_FILENAME)
+export const getLocationReferencePath = (locationsRoot: string = getLocationsRoot()): string => join(locationsRoot, LOCATION_REFERENCE_FILENAME)
 export const getLocationSketchManifestPath = (): string => join(getLocationsRoot(), LOCATION_SKETCH_MANIFEST_FILENAME)
 
-const resolveLocationAssetPath = (authoredPath: string, label: string): string => {
+export const resolveLocationAssetPath = (authoredPath: string, label: string, locationsRoot: string = getLocationsRoot()): string => {
   if (!authoredPath.trim() || isAbsolute(authoredPath)) throw ValidationError(`${label} must be a non-empty path relative to the locations root`, { stage: 'comic:location-reference' })
-  const root = resolve(getLocationsRoot())
+  const root = resolve(locationsRoot)
   const absolutePath = resolve(root, authoredPath)
   const relativePath = relative(root, absolutePath)
   if (!relativePath || relativePath === '..' || relativePath.startsWith(`..${sep}`) || isAbsolute(relativePath)) throw ValidationError(`${label} escapes the locations root`, { stage: 'comic:location-reference' })
@@ -75,8 +78,8 @@ const parseCatalog = (value: unknown, path: string): LocationReferenceCatalog =>
   return data as LocationReferenceCatalog
 }
 
-export const readLocationReferenceCatalog = async (): Promise<LocationReferenceCatalog> => {
-  const path = getLocationReferencePath()
+export const readLocationReferenceCatalog = async (locationsRoot: string = getLocationsRoot()): Promise<LocationReferenceCatalog> => {
+  const path = getLocationReferencePath(locationsRoot)
   if (!(await Bun.file(path).exists())) return createEmptyLocationCatalog()
   try { return parseCatalog(JSON.parse(await Bun.file(path).text()), path) }
   catch (error) {
@@ -85,8 +88,8 @@ export const readLocationReferenceCatalog = async (): Promise<LocationReferenceC
   }
 }
 
-export const readLocationReferenceCatalogSync = (): LocationReferenceCatalog => {
-  const path = getLocationReferencePath()
+export const readLocationReferenceCatalogSync = (locationsRoot: string = getLocationsRoot()): LocationReferenceCatalog => {
+  const path = getLocationReferencePath(locationsRoot)
   if (!existsSync(path)) return createEmptyLocationCatalog()
   try { return parseCatalog(JSON.parse(readFileSync(path, 'utf8')), path) }
   catch (error) {
@@ -109,8 +112,16 @@ export const resolveLocationCatalogEntry = (rawLocation: string, catalog: Locati
 
 const validViewRegistration = (value: unknown): value is LocationSketchViewRegistration => {
   const item = value as Partial<LocationSketchViewRegistration>
-  return !!item && LOCATION_VIEWS.includes(item.view as LocationView) && !!item.generationId?.trim() && !!item.image?.trim() && SHA256_PATTERN.test(item.imageSha256 ?? '') && !!item.model?.trim() && !!item.createdAt?.trim() && (item.priorGenerationId === undefined || !!item.priorGenerationId.trim())
+  return !!item && LOCATION_VIEWS.includes(item.view as LocationView) && !!item.generationId?.trim() && !!item.image?.trim() && SHA256_PATTERN.test(item.imageSha256 ?? '') && !!item.model?.trim() && !!item.createdAt?.trim() && (item.priorGenerationId === undefined || !!item.priorGenerationId.trim()) && (item.lineage === undefined || LOCATION_VIEW_LINEAGES.includes(item.lineage))
 }
+
+export const resolveLocationViewLineage = (model: string, inputViews: ReadonlyArray<Pick<LocationSketchViewRegistration, 'model' | 'lineage'>>): LocationViewLineage =>
+  inputViews.every(view => view.model === model && view.lineage !== 'mixed') ? 'clean' : 'mixed'
+
+export const describeMixedLocationLineage = (key: string, view: LocationView, establishing: Pick<LocationSketchViewRegistration, 'model'> | undefined): string | undefined =>
+  view !== 'establishing' && establishing && establishing.model === EXISTING_CANONICAL_ART_MODEL
+    ? `Lineage: establishing view for ${key} is ${EXISTING_CANONICAL_ART_MODEL}; a ${view} view generated from it is mixed lineage`
+    : undefined
 
 const parseSketchManifest = (value: unknown, path: string): LocationSketchManifest => {
   const data = value as { schemaVersion?: number; sketches?: unknown[] }
@@ -169,28 +180,42 @@ export const requireCurrentLocationReference = async (rawLocation: string): Prom
 
 export const getLocationReferenceSnapshotsPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), LOCATION_SNAPSHOTS_FILENAME)
 
-const snapshotCurrentLocationReference = async (runDirectory: string, current: CurrentLocationReference): Promise<LocationReferenceSnapshot> => {
+export const getLocationSnapshotViewFilename = (key: string, view: LocationView): string => `${key}--${view}.png`
+
+export const describeLocationSnapshotView = (key: string, view: LocationView): string => `${view} view of ${key}`
+
+const snapshotCurrentLocationReference = async (runDirectory: string, current: CurrentLocationReference): Promise<LocationReferenceSnapshotV3> => {
   const snapshotId = `${Date.now()}-${crypto.randomUUID().slice(0, 12)}`
-  const destination = join(getLocationReferencesDirectory(runDirectory), snapshotId, `${current.entry.key}--reference-sheet.png`)
-  await mkdir(dirname(destination), { recursive: true })
-  if (current.views.length === 1) await copyFileExact(current.views[0]!.imagePath, destination)
-  else await combineCharacterSketchSheet({ outputPath: destination, sources: current.views.map(view => ({ view: view.view as never, path: view.imagePath })) })
-  const snapshot: LocationReferenceSnapshot = {
-    schemaVersion: 2,
+  const directory = join(getLocationReferencesDirectory(runDirectory), snapshotId)
+  await mkdir(directory, { recursive: true })
+  const views: LocationReferenceSnapshotView[] = []
+  for (const view of current.views) {
+    const destination = join(directory, getLocationSnapshotViewFilename(current.entry.key, view.view))
+    await copyFileExact(view.imagePath, destination)
+    const copiedSha256 = await checksumFile(destination)
+    if (copiedSha256 !== view.imageSha256) throw InfraError(`Location ${view.view} snapshot copy for "${current.entry.key}" does not match the registered image`, { stage: 'comic:location-reference' })
+    views.push({
+      view: view.view,
+      generationId: view.generationId,
+      imageSha256: view.imageSha256,
+      path: relative(runDirectory, destination).replace(/\\/g, '/'),
+      label: describeLocationSnapshotView(current.entry.key, view.view),
+    })
+  }
+  return {
+    schemaVersion: LOCATION_SNAPSHOT_SCHEMA_VERSION,
     snapshotId,
     locationKey: current.entry.key,
     specification: current.entry.specification,
     sourceScripts: [...current.entry.sourceScripts],
-    sourceViews: current.views.map(view => ({ view: view.view, generationId: view.generationId, imageSha256: view.imageSha256 })),
-    sheet: { path: relative(runDirectory, destination).replace(/\\/g, '/'), sha256: await checksumFile(destination) },
+    views,
   }
-  return snapshot
 }
 
-export const createLocationReferenceSnapshots = async (runDirectory: string, locationKeys: string[]): Promise<LocationReferenceSnapshotManifest> => {
-  const snapshots: LocationReferenceSnapshot[] = []
+export const createLocationReferenceSnapshots = async (runDirectory: string, locationKeys: string[]): Promise<LocationReferenceSnapshotManifestV3> => {
+  const snapshots: LocationReferenceSnapshotV3[] = []
   for (const key of Array.from(new Set(locationKeys))) snapshots.push(await snapshotCurrentLocationReference(runDirectory, await requireCurrentLocationReference(key)))
-  const manifest: LocationReferenceSnapshotManifest = { schemaVersion: 2, snapshots }
+  const manifest: LocationReferenceSnapshotManifestV3 = { schemaVersion: LOCATION_SNAPSHOT_SCHEMA_VERSION, snapshots }
   await atomicWriteJson(getLocationReferenceSnapshotsPath(runDirectory), manifest)
   return manifest
 }

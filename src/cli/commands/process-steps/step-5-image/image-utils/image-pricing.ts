@@ -1,7 +1,7 @@
-import { getImageCost } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { getImageCost, getImageInputCostPer1M } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { validateBflImageModel, validateFalImageModel, validateGeminiImageModel, validateGrokImageModel, validateLumalabsImageModel, validateOpenAIImageModel, validateReplicateImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { deriveGenerationPricingProviders, IMAGE_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
-import type { EstimateImageCostOptions, ImageCostEstimate, ImageProvider, OpenAIImageOutputPricing, OpenAIImageQuality, ProviderModelSelectionSpec } from '~/types'
+import type { EstimateImageCostOptions, ImageCostEstimate, ImageProvider, OpenAIImageInputEstimate, OpenAIImageOutputPricing, OpenAIImageQuality, ProviderModelSelectionSpec } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { collectSelections, passThroughKeys } from '~/utils/pricing/model-selection'
 
@@ -35,7 +35,22 @@ const OPENAI_IMAGE_OUTPUT_PRICE_CENTS: Partial<Record<string, OpenAIImageOutputP
 }
 
 const OPENAI_IMAGE_LATENCY_NOTE = 'Low quality is fastest; square images are typically fastest; JPEG is faster than PNG; complex prompts can take up to about 2 minutes.'
-const OPENAI_IMAGE_INPUT_COST_NOTE = 'Estimate covers image output only; OpenAI also bills text and image input tokens when present.'
+export const OPENAI_IMAGE_INPUT_UNITS_PER_REFERENCE = 1000
+export const OPENAI_IMAGE_INPUT_COST_NOTE = 'Estimate covers image output; input images are modeled at 1,000 units per high-detail reference and priced at the registry image-input rate when one exists, else reported unpriced. OpenAI also bills text input units, which are not modeled.'
+
+export const estimateOpenAIImageInputUnits = (model: string, referenceInputs: number): OpenAIImageInputEstimate => {
+  const normalizedReferenceInputs = Math.max(0, Math.floor(referenceInputs))
+  const totalUnits = normalizedReferenceInputs * OPENAI_IMAGE_INPUT_UNITS_PER_REFERENCE
+  const ratePer1MCents = getImageInputCostPer1M('openai', model)
+  return {
+    unitsPerReference: OPENAI_IMAGE_INPUT_UNITS_PER_REFERENCE,
+    referenceInputs: normalizedReferenceInputs,
+    totalUnits,
+    ratePer1MCents,
+    costCents: ratePer1MCents === null ? null : (totalUnits / 1_000_000) * ratePer1MCents,
+    priced: ratePer1MCents !== null
+  }
+}
 
 const GEMINI_IMAGE_OUTPUT_PRICE_CENTS: Readonly<Record<string, Readonly<Record<string, number>>>> = {
   'gemini-3.1-flash-lite-image': { '1K': 3.36 },
@@ -118,13 +133,15 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
         const model = validateOpenAIImageModel(selection.model)
         const { costPerImageCents, note } = estimateOpenAIImageCost(model, options)
         const imageCount = Math.max(1, options.imageCount ?? 1)
+        const referencesPerCall = options.imageInputs?.length ?? 0
         estimates.push({
           provider: 'openai',
           model,
           imageCount,
           costPerImageCents,
           totalCost: costPerImageCents * imageCount,
-          note
+          note,
+          ...(referencesPerCall > 0 ? { imageInputEstimate: estimateOpenAIImageInputUnits(model, referencesPerCall * imageCount) } : {})
         })
         break
       }

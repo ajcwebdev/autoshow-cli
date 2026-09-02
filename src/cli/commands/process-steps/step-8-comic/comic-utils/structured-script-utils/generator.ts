@@ -1,9 +1,10 @@
-import { mkdir } from 'node:fs/promises'
+import { copyFile, mkdir } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { basename, dirname } from 'node:path'
 import * as v from 'valibot'
 import type { ComicLlmCommandOptionsBase, StructuredScriptRunStats } from '~/types'
 import { comicLog, err, formatCompactCost, formatDuration } from '../comic-logger'
-import { getStructuredScriptPath } from '../project-paths'
+import { getPreviousStructuredScriptPath, getStructuredScriptPath } from '../project-paths'
 import { reviewStructuredScriptWithLlm } from './llm-review'
 import { parseScriptMarkdownToStructuredData } from './structured-script-parser'
 import { calculateCost } from './usage-cost'
@@ -67,6 +68,9 @@ export const generateStructuredScript = async (
     const outputPath = getStructuredScriptPath(sceneSlug)
     await mkdir(dirname(outputPath), { recursive: true })
     const structuredBytes = `${JSON.stringify(structuredScript, null, 2)}\n`
+    // Keep the script this run is about to replace so "draft-scenes --only blocking --rebind" can
+    // recognize a segment that was split or merged rather than only one that was renumbered.
+    if (existsSync(outputPath)) await copyFile(outputPath, getPreviousStructuredScriptPath(sceneSlug))
     await Bun.write(outputPath, structuredBytes)
     await writeInitialComicStructureManifest({
       sceneRunDir: getSceneOutputDirectory(sceneSlug),

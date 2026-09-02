@@ -2,6 +2,7 @@ import * as v from 'valibot'
 import { UsageError, InternalError, ValidationError } from '~/utils/error-handler'
 import type { ComicGridSpec, ComicPageChunk, ComicPanelSelection, PanelBundleData, GenerateImagesTarget, ImageGenerationSize, SketchPanelRange } from '~/types'
 import { PanelBundleDataSchema } from '../../schemas/schemas'
+import { OFF_FRAME_PINNED_SENTENCE } from '../../comic-utils/blocking-plan-compile'
 
 const PANEL_SELECTOR_PART_PATTERN = /^(\d+)(?:-(\d+))?$/
 const GRID_SPEC_PATTERN = /^([1-9]\d*)x([1-9]\d*)$/i
@@ -262,23 +263,48 @@ export const buildComicPagePromptData = (
   if (bundleDataList.some(bundle => bundle.snapshotId !== firstBundle.snapshotId)) {
     throw ValidationError('Page image panels cannot mix character reference snapshot IDs', { stage: 'comic:page-utils' })
   }
+  const singleBundle = bundleDataList.length === 1 ? firstBundle : undefined
   return v.parse(PanelBundleDataSchema, {
     schemaVersion: 4,
     snapshotId: firstBundle.snapshotId,
     title: firstBundle.title,
     location: firstBundle.location,
     panels,
+    ...(singleBundle?.blocking ? { blocking: singleBundle.blocking } : {}),
+    ...(singleBundle?.planSha256 ? { planSha256: singleBundle.planSha256 } : {}),
   })
 }
+
+export const BLOCKING_LEDGER_AUTHORITY_SENTENCE = 'The resolved spatial contract is the only spatial authority. Never compromise between it and an older spatial phrase in the narrative brief.'
+
+export const SHOT_DIVERSITY_SENTENCE = 'Create shot diversity through camera distance, elevation, lens feel, foreground/background layering, pose, expression, eyeline, and selective cropping while staying on the declared side of the axis of action.'
+
+export const trimComicPagePromptData = (pagePromptData: PanelBundleData): Record<string, unknown> => ({
+  schemaVersion: pagePromptData.schemaVersion,
+  snapshotId: pagePromptData.snapshotId,
+  title: pagePromptData.title,
+  location: pagePromptData.location,
+  panels: pagePromptData.panels.map(panel => ({
+    number: panel.number,
+    description: panel.description,
+    ...(pagePromptData.blocking ? {} : { shotPlan: panel.shotPlan }),
+    characterKeys: panel.characterKeys,
+    speech: panel.speech,
+    locationKey: panel.locationKey,
+    ...(panel.designReferences ? { designReferences: panel.designReferences } : {}),
+  })),
+})
 
 export const buildComicPagePrompt = (
   pagePromptData: PanelBundleData,
   characterReferences: Array<{ key: string; referenceIndex: number; description: string }> = [],
-  locationReferences: Array<{ key: string; referenceIndex: number; specification: string }> = [],
+  locationReferences: Array<{ key: string; referenceIndex: number; specification: string; view?: string | undefined; supplementalViews?: Array<{ view: string; referenceIndex: number }> | undefined }> = [],
   designReferences: Array<{ key: string; referenceIndex: number; usage: string }> = [],
+  blockingLayoutReference?: { markerLegend: string } | undefined,
 ): string => {
   const panelCount = pagePromptData.panels.length
   const subPanelLabel = panelCount === 1 ? 'sub-panel' : 'sub-panels'
+  const blocking = panelCount === 1 ? pagePromptData.blocking : undefined
 
   const allReferencedKeys = characterReferences.map(reference => reference.key)
   const legend = characterReferences.length === 0
@@ -306,12 +332,26 @@ export const buildComicPagePrompt = (
               : '  - Use the specified offscreen/caption/voice attribution; do not attach it to a visible character.',
           ]
         })
+    const blockingLines = blocking
+      ? [
+          `  - Camera setup: ${blocking.lines.camera}`,
+          `  - Blocking ledger (screen space, compiled from the reviewed stage plan): ${blocking.lines.ledger.length > 0 ? '' : 'nobody is in frame.'}`,
+          ...blocking.lines.ledger.map(line => `    - ${line}`),
+          `  - Off-frame exclusion: Show only the characters in the blocking ledger. Every other on-stage character and that character's occupied seat or mark must remain completely outside the crop; do not draw those people. ${OFF_FRAME_PINNED_SENTENCE}`,
+          `  - ${blocking.lines.wardrobe}`,
+          `  - ${blocking.lines.extras}`,
+          `  - Temporary dressing state, not a visibility requirement: ${blocking.dressingInFrame || 'none declared'}. Render only the portion naturally inside the declared camera crop; never widen the shot to show it.`,
+          `  - Authoritative fixed-anchor visibility for this crop: ${blocking.lines.anchors} Anchors not named as inside this frame are not visibility requirements; do not widen the shot to include them.`,
+          ...(blockingLayoutReference ? ['  - Dense-cast screen-space layout: the final reference image. Follow its numbered marker positions, relative sizes, posture shapes, and facing arrows. It remains the final reference even when a repair seed is prepended.'] : []),
+        ]
+      : []
     return [
       `Sub-panel ${panel.number}:`,
       `  - Exact required visible characters: ${panel.characterKeys.length > 0 ? panel.characterKeys.join(', ') : 'none'}.`,
       `  - Referenced characters forbidden from this sub-panel: ${forbidden.length > 0 ? forbidden.join(', ') : 'none'}.`,
       `  - Script-derived visual description: ${panel.description}`,
-      `  - Exhaustive prose shot plan: ${panel.shotPlan}`,
+      ...(!blocking ? [`  - Exhaustive prose shot plan: ${panel.shotPlan}`] : []),
+      ...blockingLines,
       `  - Canonical location: ${locationKey}${locationReference ? ` (Reference ${locationReference.referenceIndex})` : ''}.`,
       `  - Canonical design references: ${panelDesignReferences.length > 0 ? panelDesignReferences.map(reference => `${reference.key} (Reference ${reference.referenceIndex}; ${reference.usage})`).join('; ') : 'none'}. Do not use a design reference in any sub-panel to which it is not mapped.`,
       ...speech,
@@ -331,7 +371,7 @@ export const buildComicPagePrompt = (
           : '- Use an ordered, clearly separated multi-panel page layout matching the explicit panels-per-image override.',
       '- Treat every immutable canonical location reference and its specification as canon for its mapped sub-panels. They define location identity, persistent world-space geometry, permanent architecture, fixed furniture and installed equipment, recurring spatial anchors, palette, and art style.',
       '- Treat every mapped immutable canonical design reference as exact visual canon for the named logo, prop, insignia, screen design, or other reusable graphic. Preserve its recognizable geometry, composition, and specified usage; do not redesign, relabel, or leak it into unmapped sub-panels.',
-      '- Preserve location topology, not a frozen composition: permanent anchors must keep the same relationships to the room and to one another unless the source explicitly changes the set as a story event. A new camera angle may crop, foreshorten, or reveal different anchors, but it must not relocate, remove, hide, duplicate, or redesign them.',
+      '- Preserve location topology, not a frozen composition: permanent anchors must keep the same relationships to the room and to one another unless the source explicitly changes the set as a story event. A new camera angle may crop, foreshorten, hide, or reveal different anchors, but it must not relocate, duplicate, mirror, or redesign any anchor that remains visible.',
       '- Before rendering, mentally map each permanent anchor from the canonical location image/specification into the requested camera. If the composition reveals an anchor\'s canonical part of the set, render that anchor there; cropping is not permission to leave an exposed canonical region empty or fill it with a relocated anchor.',
       '- Treat every named fixed anchor as a presence-and-geometry requirement whenever any of its support surface, wall zone, footprint, or expected silhouette is visible. Preserve fixed furniture footprint, silhouette, connectedness, orientation, edge count, and relationship to walls; perspective may foreshorten those properties but may not turn a straight run into a corner, L-shaped, wraparound, split, or freestanding form. Do not call a major anchor hidden merely because a character stands near it: either show the visible remainder around the character or frame its entire canonical region outside the image. Preserve each portable-but-recurring anchor on the same support surface and in the same world-space relationship to the fixed furniture; foreground placement caused by a new camera is allowed, physical relocation is not.',
       '- Preserve canonical anchor assemblies component by component. When a fixed support such as a desk, console, shelf, rack, berth, or counter is visible, render every named installed or recurring component whose canonical footprint falls on the visible portion of that support. Loose tools, generic clutter, speakers, lamps, or other plausible props never substitute for a named computer, keyboard, control unit, appliance, instrument, or other anchor. Occlusion is not an allowed continuity outcome: block characters and foreground props around a recognizable visible remainder of every anchor whose canonical region is in frame. If the composition cannot keep an anchor visibly identifiable, move its entire canonical region outside the crop instead of hiding it.',
@@ -342,7 +382,16 @@ export const buildComicPagePrompt = (
       '- Do not copy a location-sheet view as the panel camera unless the authored staging or shot plan explicitly requires it. The reference is a map of the set, not a mandatory camera template.',
       '- For every sub-panel, preserve that source panel\'s own staging, setting, and action and choose visually distinct framing appropriate to its specific story beat.',
       '- The `characterKeys` array in each source panel is exact and authoritative: show every listed character and no unlisted character in that sub-panel. Never carry a character forward from the location sheet or another sub-panel.',
-      '- Create shot diversity through camera distance, camera side, elevation, lens feel, foreground/background layering, character blocking, pose, expression, eyeline, and selective cropping. Do not create diversity by moving permanent set anchors. Do not flatten a sequence into repeated near-identical compositions merely to preserve continuity.',
+      ...(blocking
+        ? [
+            '- The blocking ledger and camera line together are the resolved spatial contract. They replace every camera, framing, screen-side, depth, facing, posture, seat, crop, and visible-cast phrase in the narrative brief. Use the narrative brief only for story action, expression, props, environment, and lettering.',
+            `- ${BLOCKING_LEDGER_AUTHORITY_SENTENCE}`,
+            '- The compiled in-frame anchor line is the resolved visibility contract for permanent set anchors. Render the named in-frame anchors and preserve the world-space topology of anything else that happens to be visible, but keep undeclared anchors outside the crop and never widen or flatten a close or medium shot merely to display the whole location.',
+            '- An off-frame roster entry with a named occupied seat or mark requires both that person and that entire seat or mark to remain outside the crop. Never reveal an empty chair or empty floor at an occupied off-frame mark.',
+            ...(blockingLayoutReference ? ['- The dense-cast blocking layout reference is a structural diagram only, never an art or identity reference. Use it solely for approximate screen side, depth, posture, facing, and relative placement. Do not copy its circles, arrows, numbers, flat colors, grid, or diagram styling into the comic art.'] : []),
+          ]
+        : []),
+      `- ${SHOT_DIVERSITY_SENTENCE} Do not create diversity by moving permanent set anchors. Do not flatten a sequence into repeated near-identical compositions merely to preserve continuity.`,
       '- Include every speech bubble exactly as written in the JSON.',
       '- Do not paraphrase, correct, translate, or omit speech text.',
       '- Place speech text only in the matching source panel.',
@@ -356,10 +405,17 @@ export const buildComicPagePrompt = (
       ? 'Location reference legend: none.'
       : [
           'Location reference legend (after all character references, in first-panel-appearance order):',
-          ...locationReferences.flatMap(reference => [
-            `- Reference ${reference.referenceIndex}: locationKey=${reference.key}; use only for sub-panels ${pagePromptData.panels.filter(panel => panel.locationKey === reference.key).map(panel => panel.number).join(', ')}.`,
-            `  Canonical location specification: ${reference.specification}`,
-          ]),
+          ...locationReferences.flatMap(reference => {
+            const subPanels = pagePromptData.panels.filter(panel => panel.locationKey === reference.key).map(panel => panel.number).join(', ')
+            const viewLabel = reference.view
+              ? `; registered view=${reference.view}${reference.view === 'establishing' ? '' : ' (camera-matched to the declared blocking camera; it is the primary map of the set for this panel)'}`
+              : ''
+            return [
+              `- Reference ${reference.referenceIndex}: locationKey=${reference.key}; use only for sub-panels ${subPanels}${viewLabel}.`,
+              `  Canonical location specification: ${reference.specification}`,
+              ...(reference.supplementalViews ?? []).map(extra => `- Reference ${extra.referenceIndex}: locationKey=${reference.key}; registered view=${extra.view}; supplemental map of the same set from the ${extra.view} camera for sub-panels ${subPanels}; use it only to keep fixed anchors consistent and never adopt it as the panel camera.`),
+            ]
+          }),
         ].join('\n'),
     designReferences.length === 0
       ? 'Design reference legend: none.'
@@ -367,7 +423,10 @@ export const buildComicPagePrompt = (
           'Design reference legend (after character and location references, in first-panel-appearance order):',
           ...designReferences.map(reference => `- Reference ${reference.referenceIndex}: designKey=${reference.key}; usage=${reference.usage}; use only for sub-panels ${pagePromptData.panels.filter(panel => (panel.designReferenceKeys ?? []).includes(reference.key)).map(panel => panel.number).join(', ')}.`),
         ].join('\n'),
+    blockingLayoutReference
+      ? `Blocking layout reference legend:\n- The final reference image is the deterministic screen-space structural guide for this panel. Numbered markers: ${blockingLayoutReference.markerLegend}. Larger/lower markers are nearer the camera; smaller/higher markers are farther away. Arrows point in the required facing direction, and body shapes encode posture. Do not render any diagram marks in the final art.`
+      : 'Blocking layout reference legend: none.',
     `Exact per-panel execution contract:\n${panelDirectives}`,
-    `Ordered page data:\n\`\`\`json\n${JSON.stringify(pagePromptData, null, 2)}\n\`\`\``,
+    `Ordered page data:\n\`\`\`json\n${JSON.stringify(trimComicPagePromptData(pagePromptData), null, 2)}\n\`\`\``,
   ].join('\n\n')
 }

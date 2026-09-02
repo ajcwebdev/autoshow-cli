@@ -1,4 +1,4 @@
-import type { CharacterCatalogService, CharacterKey, ComicSourceIdentity, ExpandedScriptBlock, LocationReferenceCatalog, StructuredScriptBeat, StructuredScriptData } from '~/types'
+import type { CharacterCatalogService, CharacterKey, ComicSourceIdentity, ExpandedScriptBlock, LocationReferenceCatalog, StagingDirectiveClassification, StructuredScriptBeat, StructuredScriptData } from '~/types'
 
 export type StructuredSourceSpan = StructuredScriptBeat['sourceSpans'][number]
 
@@ -35,6 +35,7 @@ export type StructuredScriptParserState = {
   hasDialogueInCurrentTurn: boolean
   continueDialogueAfterDirection: boolean
   pendingSoundDirectivePrompt: boolean
+  pendingStagingDirectivePrompt: boolean
 }
 
 type StructuredScriptMention = StructuredScriptBeat['rawMentions'][number]
@@ -76,6 +77,7 @@ type TextBlockClassification = {
 
 export type ClassifiedStructuredScriptBlock =
   | SoundDirectiveClassification
+  | StagingDirectiveClassification
   | BoldLabelClassification
   | { kind: 'panel-note'; block: string }
   | { kind: 'parenthetical'; block: string }

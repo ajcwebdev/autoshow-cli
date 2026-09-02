@@ -3,6 +3,7 @@ import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runGrokImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-grok/run-grok-image-gen'
 import { runOpenAIImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-openai/run-openai-image-gen'
+import { createImage } from '~/cli/commands/process-steps/step-8-comic/comic-image-services/comic-image-targets'
 import { installFetch, installOpenAIRestContractHooks, jsonResponse, withTempDir } from './shared'
 
 installOpenAIRestContractHooks()
@@ -144,6 +145,107 @@ describe('OpenAI REST image contracts', () => {
     const images = calls[0]?.form?.getAll('image[]') ?? []
     expect(images).toHaveLength(2)
     expect(images.every((image) => image instanceof File)).toBe(true)
+  })
+
+  test('OpenAI image edit captures returned usage as unit metadata', async () => {
+    process.env['OPENAI_API_KEY'] = 'openai-key'
+    const imageBytes = new Uint8Array([3, 3, 3])
+    installFetch(() => jsonResponse({
+      data: [{ b64_json: Buffer.from(imageBytes).toString('base64') }],
+      usage: {
+        total_tokens: 7565,
+        input_tokens: 1325,
+        output_tokens: 6240,
+        input_tokens_details: { text_tokens: 35, image_tokens: 1290 }
+      }
+    }))
+
+    await withTempDir(async (dir) => {
+      const refPath = join(dir, 'reference.png')
+      await writeFile(refPath, new Uint8Array([1, 2, 3]))
+
+      const result = await runOpenAIImageGen('Edit with usage', dir, {
+        model: 'gpt-image-2',
+        mode: 'edit',
+        inputs: [refPath]
+      })
+
+      expect(result.metadata).toMatchObject({
+        requestMode: 'edit',
+        imageInputUnits: 1290,
+        textInputUnits: 35,
+        totalInputUnits: 1325,
+        outputUnits: 6240,
+        totalUnits: 7565
+      })
+    })
+  })
+
+  test('OpenAI image generation ignores missing or malformed usage fields', async () => {
+    process.env['OPENAI_API_KEY'] = 'openai-key'
+    const imageBytes = new Uint8Array([2, 2, 2])
+    installFetch(() => jsonResponse({
+      data: [{ b64_json: Buffer.from(imageBytes).toString('base64') }],
+      usage: { input_tokens: 'many', output_tokens: 512, input_tokens_details: null }
+    }))
+
+    await withTempDir(async (dir) => {
+      const result = await runOpenAIImageGen('A test image', dir, { model: 'gpt-image-2' })
+      expect(result.metadata.outputUnits).toBe(512)
+      expect('imageInputUnits' in result.metadata).toBe(false)
+      expect('textInputUnits' in result.metadata).toBe(false)
+      expect('totalInputUnits' in result.metadata).toBe(false)
+      expect('totalUnits' in result.metadata).toBe(false)
+    })
+  })
+
+  test('comic createImage attaches the OpenAI edit usage to the generated image response', async () => {
+    process.env['OPENAI_API_KEY'] = 'openai-key'
+    const imageBytes = new Uint8Array([4, 4, 4])
+    const referenceBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
+    const calls = installFetch(() => jsonResponse({
+      data: [{ b64_json: Buffer.from(imageBytes).toString('base64') }],
+      usage: {
+        total_tokens: 7565,
+        input_tokens: 1325,
+        output_tokens: 6240,
+        input_tokens_details: { text_tokens: 35, image_tokens: 1290 }
+      }
+    }))
+
+    await withTempDir(async (dir) => {
+      const refPath = join(dir, 'reference.png')
+      await writeFile(refPath, referenceBytes)
+
+      const response = await createImage('Edit with usage', [refPath], 'gpt-image-2', '1536x1024', 'high')
+
+      expect(response.mode).toBe('edit')
+      expect(response.result.imageBase64).toBe(Buffer.from(imageBytes).toString('base64'))
+      expect(response.result.mimeType).toBe('image/png')
+      expect(response.usage).toEqual({
+        imageInputUnits: 1290,
+        textInputUnits: 35,
+        totalInputUnits: 1325,
+        outputUnits: 6240,
+        totalUnits: 7565
+      })
+    })
+
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.url).toContain('/images/edits')
+    expect(calls[0]?.form?.get('model')).toBe('gpt-image-2')
+  })
+
+  test('comic createImage omits usage when the provider returns none', async () => {
+    process.env['OPENAI_API_KEY'] = 'openai-key'
+    const imageBytes = new Uint8Array([5, 5, 5])
+    installFetch(() => jsonResponse({ data: [{ b64_json: Buffer.from(imageBytes).toString('base64') }] }))
+
+    await withTempDir(async () => {
+      const response = await createImage('Generate without usage', [], 'gpt-image-2', '1536x1024', 'high')
+      expect(response.mode).toBe('generate')
+      expect('usage' in response).toBe(false)
+    })
   })
 
   test('Grok image generation captures provider usage cost and returned model metadata', async () => {

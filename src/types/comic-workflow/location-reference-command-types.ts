@@ -1,4 +1,4 @@
-import type { ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, LlmModel, LocationPromotionTransactionBoundary, LocationPromotionTransactionRecord, LocationReferenceCatalog, LocationReferenceEntry, LocationSketchManifest, LocationSketchRegistration, LocationSketchViewRegistration, LocationView, ReferenceSketchCommandOptions } from '~/types'
+import type { ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, LlmModel, LocationPromotionTransactionBoundary, LocationPromotionTransactionRecord, LocationReferenceCatalog, LocationReferenceEntry, LocationSketchManifest, LocationSketchRegistration, LocationSketchViewRegistration, LocationView, LocationViewLineage, ReferenceSketchCommandOptions } from '~/types'
 
 export type LocationViewQaResult = {
   pass: boolean
@@ -19,9 +19,35 @@ export type LocationReferenceCommandDependencies = {
   requestImage?: typeof import('~/cli/commands/process-steps/step-8-comic/comic-image-services/comic-image-targets').createImage
   writeImage?: typeof import('~/cli/commands/process-steps/step-8-comic/comic-image-services/image-writer').writeGeneratedImage
   promoteImage?: (stagedPath: string, targetPath: string) => Promise<void>
-  judgeView?: (input: { imagePath: string; view: LocationView; specification: string; existingViewPaths: string[]; styleReference: string; model: string }) => Promise<LocationViewQaResult>
+  judgeView?: (input: LocationViewJudgeInput) => Promise<LocationViewQaResult>
   generationId?: () => string
   injectPromotionFault?: (boundary: LocationPromotionTransactionBoundary, transaction: Readonly<LocationPromotionTransactionRecord>) => void | Promise<void>
+}
+
+export type LocationViewJudgeInput = {
+  imagePath: string
+  view: LocationView
+  specification: string
+  existingViewPaths: string[]
+  styleReference: string
+  model: string
+  cameraFacts?: string | undefined
+}
+
+export type LocationViewAnchorProjection = {
+  key: string
+  projection: string
+  establishingProjection: string
+  inFrame: boolean
+}
+
+export type LocationViewCameraFacts = {
+  view: LocationView
+  cameraCell: { id: string; position: { x: number; y: number }; heightM: number; synthetic: boolean }
+  target: { x: number; y: number }
+  headingDeg: number
+  anchors: LocationViewAnchorProjection[]
+  text: string
 }
 
 export type ResolvedLocationReferenceRequest = {
@@ -52,6 +78,8 @@ export type LocationReferenceContext = {
   stylePath: string
   otherExisting: ExistingLocationView[]
   freshReferences: string[]
+  cameraFacts?: LocationViewCameraFacts
+  lineage: LocationViewLineage
 }
 
 export type LocationReferencePreparation = { kind: 'noop' } | LocationReferenceContext

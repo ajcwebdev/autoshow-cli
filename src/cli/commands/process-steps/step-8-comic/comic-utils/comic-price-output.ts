@@ -1,16 +1,37 @@
-import type { ComicPriceModelRow, FinalImageEstimateResult, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImagePricingEstimate, LogMetadata } from '~/types'
+import type { ComicPriceModelRow, FinalImageEstimateResult, FinalImageInputEstimate, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImagePricingEstimate, LogMetadata } from '~/types'
 import { estimateImageOutputCost, formatCost } from '../comic-image-services/image-costs'
 import { getImagePromptVariationLabel } from '../comic-commands/generate-images/prompt-variations'
 import { isGeminiImageModel } from './image-service'
 import { priceDetails, priceLine, priceNotice, priceRows } from './price-estimate-logging'
 
-export const IMAGE_ESTIMATE_BASIS_NOTE = 'Per-image output cost only. Token-based input costs are not estimated.'
+export const IMAGE_ESTIMATE_BASIS_NOTE = 'Per-image output cost only. Image input units are reported on the separate "Image input (modeled)" line when the estimate models them; text input costs are not estimated.'
 
 export const GEMINI_IMAGE_ESTIMATE_NOTE = 'Gemini costs use estimated1KImage (~$0.067/image) -- actual token costs vary.'
 
-export const JUDGE_COST_BASIS_NOTE = 'Judge cost is separate from image-generation cost; actual vision token usage may vary.'
+export const JUDGE_COST_BASIS_NOTE = 'Judge cost is separate from image-generation cost; actual vision token usage may vary. Each page-judge call is modeled at 8,000 input units (5,000 for the contract and its reference images, 1,000 for the blocking-ledger and audit-status paragraphs, and 2,000 for up to two low-detail roster identity cards) and 1,400 output units for the blockingAudit array.'
 
-export const PANEL_QA_BASIS_NOTE = 'Image input tokens and actual vision-token usage are not modeled, so provider charges may vary.'
+export const PANEL_QA_BASIS_NOTE = 'Image input units are modeled at 1,000 per reference image and priced only when the registry exposes an image-input rate; text input and actual vision usage are not modeled, so provider charges may vary.'
+
+export const printImageInputEstimate = (estimate: FinalImageInputEstimate | null): void => {
+  if (!estimate) return
+  const pricedLabel = estimate.costCents === null ? ' (unpriced)' : ` (~${formatCost(estimate.costCents / 100)})`
+  priceLine(
+    `Image input (modeled): ${estimate.totalUnits.toLocaleString('en-US')} units across ${estimate.referenceInputs.toLocaleString('en-US')} references${pricedLabel}`,
+    {
+      models: [...estimate.models],
+      unitsPerReference: estimate.unitsPerReference,
+      referenceInputs: estimate.referenceInputs,
+      imageInputUnits: estimate.totalUnits,
+      initialCalls: estimate.initialCalls,
+      initialReferenceInputs: estimate.initialReferenceInputs,
+      maximumRepairCalls: estimate.maximumRepairCalls,
+      maximumRepairReferenceInputs: estimate.maximumRepairReferenceInputs,
+      ratePer1MCents: estimate.ratePer1MCents,
+      costCents: estimate.costCents,
+      priced: estimate.priced
+    }
+  )
+}
 
 export const logImagePriceRows = (
   title: string,
@@ -53,7 +74,7 @@ export const logImagePriceRows = (
       : `Total: ~${formatCost(knownTotal)}`,
     { knownTotal, hasUnknownPricing: hasNullCost }
   )
-  priceLine(IMAGE_ESTIMATE_BASIS_NOTE, { inputTokenCostsModeled: false })
+  priceLine(IMAGE_ESTIMATE_BASIS_NOTE, { imageInputUnitsReportedSeparately: true, textInputModeled: false })
   if (hasGeminiModel) {
     priceNotice(GEMINI_IMAGE_ESTIMATE_NOTE, { provider: 'gemini', estimatedCostPerImage: 0.067 })
   }
@@ -229,7 +250,7 @@ export const printPanelQaEstimate = (
     }
   )
   if (result.pricing.repair) printImagePricingEstimate(result.pricing.repair, 'Comic Panel Repair Price Estimate')
-  priceLine(PANEL_QA_BASIS_NOTE, { imageInputTokensModeled: false, visionTokenUsageModeled: false })
+  priceLine(PANEL_QA_BASIS_NOTE, { imageInputUnitsModeled: true, visionUsageModeled: false })
 }
 
 export const printGridEstimate = (
@@ -302,6 +323,7 @@ export const printReadyFinalImageEstimate = (
       return
     }
     printPagePricingEstimate(result.pricing.primary)
+    printImageInputEstimate(result.pricing.imageInput)
     priceLine('Grouped pages use canonical character references followed by each distinct immutable location reference.')
     printPageQaEstimate(result)
     return
@@ -340,6 +362,7 @@ export const printReadyFinalImageEstimate = (
   }
   printImagePricingEstimate(result.pricing.primary)
   priceLine(`Initial image calls: ${result.modeEstimate.totalOutputs}`, { initialImageCalls: result.modeEstimate.totalOutputs })
+  printImageInputEstimate(result.pricing.imageInput)
   printPanelQaEstimate(result)
   printGridEstimate(result)
 }

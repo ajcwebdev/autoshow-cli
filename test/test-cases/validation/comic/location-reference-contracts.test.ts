@@ -153,7 +153,7 @@ describe('canonical location reference registration', () => {
       maximumAdditionalImageRepairs: 1,
       maximumAdditionalJudgeCalls: 1
     })
-    const imageTables = events.filter((event) => event.message === 'Comic Image Price Estimate')
+    const imageTables = events.filter((event) => event.message === 'Comic Image Price Estimate: 1 entries')
     expect(imageTables).toHaveLength(2)
     expect(imageTables.map((event) => event.metadata?.['totalOutputs'])).toEqual([1, 1])
   })

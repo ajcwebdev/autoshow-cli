@@ -1,8 +1,12 @@
 import type { DirectoryEntry } from '~/types'
+import { existsSync } from 'node:fs'
 import { mkdir, readdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { err, comicLog } from '../../comic-utils/comic-logger'
-import { getPanelPromptsDirectory, getPanelsDirectory } from '../../comic-utils/project-paths'
+import { getPanelPromptsDirectory, getPanelsDirectory, getSceneOutputDirectory } from '../../comic-utils/project-paths'
+import { getBlockingPanelLayoutGuidePath, getBlockingPlanPathForWorkspace } from '../../comic-utils/blocking-plan-paths'
+import { describeBlockingLayoutGuideMarkers, shouldUseBlockingLayoutGuide } from '../../comic-utils/blocking-layout-guide'
+import { sha256Bytes } from '~/utils/value-helpers'
 import { createImage } from '../../comic-image-services/comic-image-targets'
 import {
   createImageRunStats,
@@ -29,16 +33,20 @@ import type {
   ComicImageGenerationDependencies,
   GeneratePanelImagesOptions,
   ImagePromptVariation,
+  GenerateWithQaRepairResult,
   PageQaEntry,
   PanelRenderContext,
   PanelRenderResult,
 } from '~/types'
 import { judgeComicPage } from './comic-page-qa'
 import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
-import { DEFAULT_IMAGE_MODEL } from '../../comic-utils/image-size'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
-import { generateWithQaRepair } from './panel-qa-pipeline'
+import { failedQaRepairEvidenceFromError, generateWithQaRepair } from './panel-qa-pipeline'
+import { captureBloopers } from '../../comic-utils/blooper-ledger'
 import { runComicImageWorkItems } from './comic-image-work-items'
+
+/** Episode label for the blooper tree: the leading numeric group of the scene slug, else the slug itself. */
+export const resolveEpisodeLabel = (sceneSlug: string): string => /^(\d+)-/u.exec(sceneSlug)?.[1] ?? sceneSlug
 
 const renderSinglePanel = async (
   panelEntry: DirectoryEntry,
@@ -47,6 +55,18 @@ const renderSinglePanel = async (
   const resultStats = createImageRunStats()
   const qaEntries: Array<{ directory: string; entry: PageQaEntry }> = []
   const { sceneSlug, sceneDirectory, options, variations, useVariationOutputPaths, useModelSpecificFilenames, prompts, requestImage, writeImage, judge, requestRepairComparison, qaEnabled, judgeModel, maxRepairs, nextHostedIndex } = ctx
+  const recordRepairResult = (repairResult: GenerateWithQaRepairResult, outputDirectory: string): void => {
+    resultStats.imagesGenerated += repairResult.imagesGenerated
+    resultStats.totalDurationMs += repairResult.totalDurationMs
+    resultStats.totalInputTokens += repairResult.totalInputTokens
+    resultStats.totalOutputTokens += repairResult.totalOutputTokens
+    resultStats.totalInputImageTokens += repairResult.imageInputUnits
+    resultStats.totalInputTextTokens += repairResult.textInputUnits
+    resultStats.totalOutputImageTokens += repairResult.imageOutputUnits
+    resultStats.totalCost += repairResult.totalCostUsd
+    for (const costEntry of repairResult.costEntries) updateImageRunStatsWithCostFallback(costEntry.model, resultStats, options.quality, options.size)
+    if (repairResult.qaEntry) qaEntries.push({ directory: outputDirectory, entry: repairResult.qaEntry })
+  }
 
   try {
     const panelNumber = getPanelNumberFromName(panelEntry.name)!
@@ -91,9 +111,15 @@ const renderSinglePanel = async (
           useVariationOutputPaths ? variation : undefined,
           options.runId
         )
-        const resolvedReferences = resolveReferenceImages(panelDirectory, panelEntries, bundleData, model)
-        const referenceImages = resolvedReferences.all
-        const contractPrompt = buildComicPagePrompt(bundleData, resolvedReferences.characterReferences ?? [], resolvedReferences.locationReferences ?? [], resolvedReferences.designReferences ?? [])
+        const useBlockingLayoutGuide = options.blockingLayoutGuide === true && shouldUseBlockingLayoutGuide(bundleData.blocking)
+        const reservedSlots = (qaEnabled && maxRepairs > 0 ? 1 : 0) + (useBlockingLayoutGuide ? 1 : 0)
+        const resolvedReferences = resolveReferenceImages(panelDirectory, panelEntries, bundleData, model, { reserveSlots: reservedSlots })
+        const blockingLayoutPath = useBlockingLayoutGuide ? getBlockingPanelLayoutGuidePath(sceneSlug, panelNumber) : undefined
+        const referenceImages = blockingLayoutPath ? [...resolvedReferences.all, blockingLayoutPath] : resolvedReferences.all
+        const blockingLayoutReference = blockingLayoutPath && bundleData.blocking
+          ? { markerLegend: describeBlockingLayoutGuideMarkers(bundleData.blocking) }
+          : undefined
+        const contractPrompt = buildComicPagePrompt(bundleData, resolvedReferences.characterReferences ?? [], resolvedReferences.locationReferences ?? [], resolvedReferences.designReferences ?? [], blockingLayoutReference)
         const promptForVariation = prompts
           ? applyImagePromptVariation(contractPrompt, variation, prompts)
           : contractPrompt
@@ -122,17 +148,11 @@ const renderSinglePanel = async (
           qaEnabled,
           judgeModel,
           maxRepairs,
+          ...(options.blockingHardKeys?.length ? { blockingHardKeys: options.blockingHardKeys } : {}),
           nextHostedIndex,
         })
 
-        resultStats.imagesGenerated += repairResult.imagesGenerated
-        resultStats.totalDurationMs += repairResult.totalDurationMs
-        resultStats.totalInputTokens += repairResult.totalInputTokens
-        resultStats.totalOutputTokens += repairResult.totalOutputTokens
-        resultStats.totalCost += repairResult.totalCostUsd
-        for (const costEntry of repairResult.costEntries) {
-          updateImageRunStatsWithCostFallback(costEntry.model, resultStats, options.quality, options.size)
-        }
+        recordRepairResult(repairResult, dirname(outputPath))
 
         if (repairResult.status === 'skipped') {
           resultStats.imagesSkipped++
@@ -144,14 +164,19 @@ const renderSinglePanel = async (
             `refs=${referenceImages.length}`,
             `path=${outputPath}`,
           ])
-          if (repairResult.qaEntry) {
-            qaEntries.push({ directory: dirname(outputPath), entry: repairResult.qaEntry })
-          }
           continue
         }
 
-        if (repairResult.qaEntry) {
-          qaEntries.push({ directory: dirname(outputPath), entry: repairResult.qaEntry })
+        if (options.bloopers) {
+          await captureBloopers({
+            sceneSlug,
+            episode: resolveEpisodeLabel(sceneSlug),
+            runId: options.runId,
+            panelNumber,
+            promotedPath: outputPath,
+            attemptsDirectory: join(dirname(outputPath), 'attempts', `panel-${String(panelNumber).padStart(2, '0')}`),
+            imageModel: model,
+          })
         }
 
         comicLog.output('generated', 'panel', [
@@ -165,6 +190,8 @@ const renderSinglePanel = async (
       }
     }
   } catch (error) {
+    const failure = failedQaRepairEvidenceFromError(error)
+    if (failure) recordRepairResult(failure, failure.outputDirectory)
     err(`Failed to generate ${sceneSlug}/${panelEntry.name}:`, error instanceof Error ? error.message : String(error))
     return { stats: resultStats, qaEntries, error }
   }
@@ -217,16 +244,25 @@ export const generatePanelImages = async (
   }
 
   const preflightFailures: string[] = []
+  const blockingPlanPath = getBlockingPlanPathForWorkspace(getSceneOutputDirectory(sceneSlug))
+  const blockingPlanSha256 = existsSync(blockingPlanPath) ? sha256Bytes(new Uint8Array(await Bun.file(blockingPlanPath).arrayBuffer())) : null
   for (const panelEntry of panelDirectories) {
     const panelDirectory = join(sceneDirectory, panelEntry.name)
     try {
       const panelEntries = await readdir(panelDirectory, { withFileTypes: true })
       const promptFilename = getPromptBundleFilename(panelDirectory, panelEntries)
       const bundleData = extractPanelBundleData(await Bun.file(join(panelDirectory, promptFilename)).text())
+      if (bundleData.planSha256 !== undefined && bundleData.planSha256 !== blockingPlanSha256) {
+        preflightFailures.push(`Panel bundle plan hash ${bundleData.planSha256} does not match metadata/blocking-plan.json ${blockingPlanSha256 ?? 'missing'}; rerun draft-scenes --only panel-prompts`)
+      }
       for (const model of options.models) {
-        const references = resolveReferenceImages(panelDirectory, panelEntries, bundleData, model)
-        if (qaEnabled && maxRepairs > 0) validateReferenceImageCount(DEFAULT_IMAGE_MODEL, references.all.length + 1, `QA edits for ${panelEntry.name}`)
-        const missing = await Promise.all(references.all.map(async path => await Bun.file(path).exists() ? null : path))
+        const useBlockingLayoutGuide = options.blockingLayoutGuide === true && shouldUseBlockingLayoutGuide(bundleData.blocking)
+        const reservedSlots = (qaEnabled && maxRepairs > 0 ? 1 : 0) + (useBlockingLayoutGuide ? 1 : 0)
+        const references = resolveReferenceImages(panelDirectory, panelEntries, bundleData, model, { reserveSlots: reservedSlots })
+        const blockingLayoutPath = useBlockingLayoutGuide ? getBlockingPanelLayoutGuidePath(sceneSlug, getPanelNumberFromName(panelEntry.name)!) : undefined
+        const allReferences = blockingLayoutPath ? [...references.all, blockingLayoutPath] : references.all
+        validateReferenceImageCount(model, allReferences.length + (qaEnabled && maxRepairs > 0 ? 1 : 0), `Image and QA references for ${panelEntry.name}`)
+        const missing = await Promise.all(allReferences.map(async path => await Bun.file(path).exists() ? null : path))
         preflightFailures.push(...missing.filter((path): path is string => path !== null))
       }
     } catch (error) {
@@ -261,6 +297,12 @@ export const generatePanelImages = async (
     render: async panelEntry => await renderSinglePanel(panelEntry, renderContext),
     stats,
     qaEnabled,
+    qaHardFailure: {
+      message: count => `${count} panel QA hard failure(s); generated artifacts and QA reports were preserved.`,
+      stage: 'comic:panel-qa',
+    },
+    ...(options.stopOnProviderError === true ? { stopOnProviderError: true } : {}),
+    describeItem: panelEntry => panelEntry.name,
     itemFailure: { message: count => `${count} image generation task(s) failed`, stage: 'comic:generate-images' }
   })
 }

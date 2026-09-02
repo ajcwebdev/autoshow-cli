@@ -2,6 +2,8 @@ import {
   draftScenesFlags,
   comicGenerateAudioFlags,
   comicGenerateSlideshowFlags,
+  comicReviewNotesFlags,
+  comicReviewSheetFlags,
   generateImagesFlags,
   referenceSketchFlags
 } from '~/cli/flags/comic-flags'
@@ -10,7 +12,9 @@ import {
   DRAFT_SCENES_COMMAND,
   GENERATE_AUDIO_COMMAND,
   GENERATE_IMAGES_COMMAND,
-  REFERENCE_SKETCH_COMMAND
+  REFERENCE_SKETCH_COMMAND,
+  REVIEW_NOTES_COMMAND,
+  REVIEW_SHEET_COMMAND
 } from './cli-args'
 import {
   handleDraftScenes,
@@ -18,6 +22,8 @@ import {
   handleGenerateImages,
   handleGenerateSlideshow,
   handleReferenceSketch,
+  handleReviewNotes,
+  handleReviewSheet,
 } from './subcommand-handlers'
 import type { CliCommandDefinition } from '~/types'
 import { referenceVoiceCommandDefinition } from '../comic-commands/reference-voice/reference-voice-command'
@@ -29,11 +35,13 @@ const SCRIPT_PATH_PARAMETER = {
 
 const ARTIFACT_NOTE = 'Comic artifacts are read from input and written under output.'
 
-const DRAFT_SCENES_DESCRIPTION = 'Run script markdown to structured script JSON to draft prompt bundles to scene JSON to panel prompt bundles'
+const DRAFT_SCENES_DESCRIPTION = 'Run script markdown to structured script JSON to draft prompt bundles to a blocking plan to scene JSON to panel prompt bundles'
 const GENERATE_IMAGES_DESCRIPTION = 'Run panel prompt bundles to review sketches and/or final panel images'
 const REFERENCE_SKETCH_DESCRIPTION = 'Generate and register a character sheet or one canonical location view'
 const GENERATE_AUDIO_DESCRIPTION = 'Render approved character voices from an existing compatible structured comic scene'
 const GENERATE_SLIDESHOW_DESCRIPTION = 'Synchronize canonical still panels with one complete manifest-backed audio run using local FFmpeg'
+const REVIEW_NOTES_DESCRIPTION = 'Map a Markdown review-notes file onto reviewed panels and emit paste-ready staging directives'
+const REVIEW_SHEET_DESCRIPTION = 'Build a static per-panel review sheet with contracts, stage boards, canonical images, and QA evidence'
 
 export const draftScenesCommandDefinition = defineCliCommand({
   name: `comic ${DRAFT_SCENES_COMMAND}`,
@@ -45,10 +53,12 @@ export const draftScenesCommandDefinition = defineCliCommand({
       [`bun autoshow comic ${DRAFT_SCENES_COMMAND} 05-01`, 'Run every drafting stage for a scene'],
       [`bun autoshow comic ${DRAFT_SCENES_COMMAND} input/scripts/01-script/01-opening.md`, 'Run every drafting stage from an explicit script path'],
       [`bun autoshow comic ${DRAFT_SCENES_COMMAND} 05-01 --only panel-prompts`, 'Build only the panel prompt bundles'],
+      [`bun autoshow comic ${DRAFT_SCENES_COMMAND} 05-01 --only blocking --blocking-plan input/blocking/05-01.json`, 'Import a hand-authored blocking plan without calling any provider'],
       [`bun autoshow comic ${DRAFT_SCENES_COMMAND} 05-01 --price`, 'Estimate the drafting cost without calling any provider']
     ],
     notes: [
-      'Stages run in order: structure, prompt, scene, panel-prompts. --only runs a single stage.',
+      'Stages run in order: structure, prompt, blocking, scene, panel-prompts. --only runs a single stage; --no-blocking skips the blocking stage in a full run and drafts the scene plan-free.',
+      'The blocking stage binds to a reviewed metadata/scene.json automatically (writing metadata/blocking-bindings.json); --blocking-plan imports a plan and --rebind remaps citations, neither calling a provider.',
       `Panel prompt bundles produced here are consumed by bun autoshow comic ${GENERATE_IMAGES_COMMAND}.`,
       ARTIFACT_NOTE
     ]
@@ -144,6 +154,43 @@ export const referenceSketchCommandDefinition = defineCliCommand({
   }
 }, handleReferenceSketch)
 
+export const reviewNotesCommandDefinition = defineCliCommand({
+  name: `comic ${REVIEW_NOTES_COMMAND}`,
+  description: REVIEW_NOTES_DESCRIPTION,
+  parameters: [SCRIPT_PATH_PARAMETER],
+  flags: comicReviewNotesFlags,
+  help: {
+    examples: [
+      [`bun autoshow comic ${REVIEW_NOTES_COMMAND} 02-01 --notes docs/plans/episode-2-erik-review-notes.md`, 'Map review notes onto reviewed panels'],
+    ],
+    notes: [
+      'The notes file is Markdown whose "### Panel NN" headings hold the note text for each reviewed panel.',
+      'Each note is classified as blocking, camera, axis-break, costume, or extras by a documented keyword table and rendered as a paste-ready script directive beside its target beat and script line.',
+      'The command reads metadata/scene.json and metadata/structured-script.json, writes metadata/review/review-notes-<run-id>.md, and makes no provider call.',
+      ARTIFACT_NOTE,
+    ],
+  },
+}, handleReviewNotes)
+
+export const reviewSheetCommandDefinition = defineCliCommand({
+  name: `comic ${REVIEW_SHEET_COMMAND}`,
+  description: REVIEW_SHEET_DESCRIPTION,
+  parameters: [SCRIPT_PATH_PARAMETER],
+  flags: comicReviewSheetFlags,
+  help: {
+    examples: [
+      [`bun autoshow comic ${REVIEW_SHEET_COMMAND} 02-01`, 'Build the static per-panel review sheet'],
+      [`bun autoshow comic ${REVIEW_SHEET_COMMAND} 02-01 --export-doc`, 'Also write the shared-document export'],
+    ],
+    notes: [
+      'Writes metadata/review/review-sheet.html: one section per reviewed panel with its source segments, contract, stage board, canonical image, QA evidence, and a notes box.',
+      'The sheet is a single self-contained file with inline CSS and one small inline script; it loads no external resource and makes no provider call.',
+      'The notes box collects into the "### Panel NN" format that comic review-notes --notes reads back.',
+      ARTIFACT_NOTE,
+    ],
+  },
+}, handleReviewSheet)
+
 export const COMIC_SUBCOMMAND_DEFINITIONS = [
   draftScenesCommandDefinition,
   generateImagesCommandDefinition,
@@ -151,4 +198,6 @@ export const COMIC_SUBCOMMAND_DEFINITIONS = [
   generateSlideshowCommandDefinition,
   referenceSketchCommandDefinition,
   referenceVoiceCommandDefinition,
+  reviewNotesCommandDefinition,
+  reviewSheetCommandDefinition,
 ] as const satisfies readonly CliCommandDefinition[]

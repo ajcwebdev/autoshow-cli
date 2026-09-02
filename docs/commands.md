@@ -112,7 +112,7 @@ bun as <command>
 - Use `metadata` to inspect a source without downloading it, `download` when you need the file on disk, `extract` for transcripts, OCR, article text, X Space reports, or transcript videos, and `write` for hosted LLM text over local `.md` / `.txt` (including extract artifacts).
 - Use `tts`, `image`, `video`, and `music` for generation from text or prompts. Use `voice` to list or register voices without synthesizing speech.
 - Use `music --audio`, `--captions`, or `--batch` for local lyric videos from repo audio; hosted music uses a prompt or text file plus `--provider`.
-- Use `comic` for episode-script to comic production, including scene drafts, character sketches, panel and page images, dialogue and soundscape audio, and slideshows.
+- Use `comic` for episode-script to comic production, including scene drafts, blocking plans, character and location references, panel and page images, blocking and continuity QA, review artifacts, dialogue and soundscape audio, and slideshows.
 - Use `resume` to backfill missing providers in an existing output directory.
 - Use `config` to inspect or persist defaults. Use `links` to fetch provider documentation.
 
@@ -131,5 +131,6 @@ bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --p
 bun autoshow image "a sunset" --provider openai=gpt-image-2 --size 1024x1024 --quality low --price
 bun autoshow video "a sunset timelapse" --provider gemini=veo-3.1-lite-generate-preview --price
 bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental --price
+bun autoshow comic draft-scenes 02-01 --only blocking --price
 bun autoshow comic generate-images 02-01 --target images --panels 1-16 --price
 ```

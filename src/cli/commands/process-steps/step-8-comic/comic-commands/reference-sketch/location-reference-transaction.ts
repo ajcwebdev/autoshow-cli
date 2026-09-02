@@ -155,6 +155,7 @@ export const promoteLocationRegistrationTransaction = async (input: PromoteLocat
     model: input.model,
     createdAt: new Date().toISOString(),
     ...(input.priorTarget ? { priorGenerationId: input.priorTarget.generationId } : {}),
+    ...(input.lineage ? { lineage: input.lineage } : {}),
   }
   const nextViews = [...(input.prior?.views ?? []).filter(item => item.view !== input.view), nextView]
     .sort((left, right) => LOCATION_VIEWS.indexOf(left.view) - LOCATION_VIEWS.indexOf(right.view))

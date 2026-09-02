@@ -155,9 +155,13 @@ const writeManifestUnlocked = async (
   return parsed
 }
 
+// verifyArtifacts stays on by default. A stage that is deliberately replacing an artifact the current
+// manifest references must pass false, because verifying the recorded hash against the replacement bytes
+// is guaranteed to fail; the subsequent updateManifest re-stamps the ref and re-verifies the new graph.
 export const readManifest = async (
-  rootDir: string
-): Promise<PipelineManifest | undefined> => await readManifestUnlocked(rootDir)
+  rootDir: string,
+  options: { verifyArtifacts?: boolean } = {}
+): Promise<PipelineManifest | undefined> => await readManifestUnlocked(rootDir, options.verifyArtifacts ?? true)
 
 export const writeManifest = async (
   rootDir: string,

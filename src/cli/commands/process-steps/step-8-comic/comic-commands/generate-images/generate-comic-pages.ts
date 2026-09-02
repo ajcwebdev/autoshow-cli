@@ -6,6 +6,7 @@ import type {
   ComicPageGroup,
   ComicPagePanelSource,
   GenerateComicPagesOptions,
+  GenerateWithQaRepairResult,
   ImageGenerationModel,
   ImagePromptVariation,
   PageQaEntry,
@@ -45,9 +46,8 @@ import {
 } from './prompt-variations'
 import { judgeComicPage } from './comic-page-qa'
 import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
-import { DEFAULT_IMAGE_MODEL } from '../../comic-utils/image-size'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
-import { generateWithQaRepair } from './panel-qa-pipeline'
+import { failedQaRepairEvidenceFromError, generateWithQaRepair } from './panel-qa-pipeline'
 import { runComicImageWorkItems } from './comic-image-work-items'
 
 const readComicPagePanelSource = async (
@@ -106,6 +106,18 @@ const renderSinglePage = async (
   const qaEntries: Array<{ directory: string; entry: PageQaEntry }> = []
   const { variation, model, pageChunk } = item
   const { sceneSlug, options, useVariationOutputPaths, useModelSpecificFilenames, prompts, requestImage, writeImage, judgePage, qaEnabled, judgeModel, maxRepairs, nextHostedIndex } = ctx
+  const recordRepairResult = (repairResult: GenerateWithQaRepairResult, outputDirectory: string): void => {
+    resultStats.imagesGenerated += repairResult.imagesGenerated
+    resultStats.totalDurationMs += repairResult.totalDurationMs
+    resultStats.totalInputTokens += repairResult.totalInputTokens
+    resultStats.totalOutputTokens += repairResult.totalOutputTokens
+    resultStats.totalInputImageTokens += repairResult.imageInputUnits
+    resultStats.totalInputTextTokens += repairResult.textInputUnits
+    resultStats.totalOutputImageTokens += repairResult.imageOutputUnits
+    resultStats.totalCost += repairResult.totalCostUsd
+    for (const costEntry of repairResult.costEntries) updateImageRunStatsWithCostFallback(costEntry.model, resultStats, options.quality, options.size)
+    if (repairResult.qaEntry) qaEntries.push({ directory: outputDirectory, entry: repairResult.qaEntry })
+  }
 
   const outputPath = getPageComicImagePath(
     sceneSlug,
@@ -169,14 +181,7 @@ const renderSinglePage = async (
       nextHostedIndex,
     })
 
-    resultStats.imagesGenerated += repairResult.imagesGenerated
-    resultStats.totalDurationMs += repairResult.totalDurationMs
-    resultStats.totalInputTokens += repairResult.totalInputTokens
-    resultStats.totalOutputTokens += repairResult.totalOutputTokens
-    resultStats.totalCost += repairResult.totalCostUsd
-    for (const costEntry of repairResult.costEntries) {
-      updateImageRunStatsWithCostFallback(costEntry.model, resultStats, options.quality, options.size)
-    }
+    recordRepairResult(repairResult, dirname(outputPath))
 
     if (repairResult.status === 'skipped') {
       resultStats.imagesSkipped++
@@ -191,7 +196,6 @@ const renderSinglePage = async (
     }
 
     if (qaEnabled && repairResult.qaEntry) {
-      qaEntries.push({ directory: dirname(outputPath), entry: repairResult.qaEntry })
       comicLog.line(outputExists ? 'page QA reused' : 'page QA judged', [
         `page=${pageChunk.pageNumber}`,
         `model=${judgeModel}`,
@@ -200,6 +204,8 @@ const renderSinglePage = async (
       ])
     }
   } catch (error) {
+    const failure = failedQaRepairEvidenceFromError(error)
+    if (failure) recordRepairResult(failure, failure.outputDirectory)
     err(
       `Failed to generate ${sceneSlug}/page-${String(pageChunk.pageNumber).padStart(2, '0')}:`,
       error instanceof Error ? error.message : String(error)
@@ -277,7 +283,7 @@ export const generateComicPages = async (
       }
 
       const preflightReferences = await resolvePageReferences(pageChunk.panels, model)
-      if (qaEnabled && maxRepairs > 0) validateReferenceImageCount(DEFAULT_IMAGE_MODEL, preflightReferences.all.length + 1, `QA edits for page ${pageChunk.pageNumber}`)
+      if (qaEnabled && maxRepairs > 0) validateReferenceImageCount(model, preflightReferences.all.length + 1, `QA edits for page ${pageChunk.pageNumber}`)
       const missingReferences = await findMissingReferenceImageFiles(preflightReferences.all)
       missingReferences.forEach(reference => pendingReferenceFailures.add(reference))
     }

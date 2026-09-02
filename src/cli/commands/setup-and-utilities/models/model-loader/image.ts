@@ -9,6 +9,11 @@ export const getImageCost = (service: string, model: string): number => {
   return imageModel?.costPerImageCents ?? 0
 }
 
+export const getImageInputCostPer1M = (service: string, model: string): number | null => {
+  const imageModel = getModelRegistry().image[service]?.models[model]
+  return typeof imageModel?.imageInputCostPer1MCents === 'number' ? imageModel.imageInputCostPer1MCents : null
+}
+
 export const getImageEstimation = (service: string, model: string): ImageEstimation => {
   const modelMeta = getModelRegistry().image[service]?.models[model]
   return {

@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Compact index for ADR-001 through ADR-021. Nineteen records are Accepted · Passed, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 is Proposed · Pending. Dated hosted-model catalogs live in [docs/models](../models/). ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 022. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
+Compact index for ADR-001 through ADR-022. Twenty records are Accepted · Passed, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 is Proposed · Pending. Dated hosted-model catalogs live in [docs/models](../models/). ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 023. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
 
 ## Authoring and Maintenance
 
@@ -143,9 +143,15 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 - **Decision:** Deletes terminal tables and `--log-format`, makes one-line text and versioned `--json` results the two `bun autoshow` output modes, requires exactly one staged terminal result, and centralizes retry and polling ownership with conservative paid-create semantics.
 - **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-019](ADR-019-quiet-passing-test-console-output.md)
 
+**ADR 22: [ADR-022](ADR-022-compile-a-text-first-blocking-plan-into-a-panel-ledger.md)**
+
+- **Status:** Accepted · Passed
+- **Decision:** Authors scene staging as a validated `metadata/blocking-plan.json`, compiles it deterministically into a per-panel ledger that is the single source of truth for the image prompt and the page judge, adds an advisory blocking audit behind a per-key hard policy with a blocking-class restart lane, and records per-location geometry separately from the location specification hash.
+- **Related ADRs:** [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md), [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md)
+
 ## Consolidation Analysis
 
-No further consolidation is currently recommended. The current 21 records stay separate because they own different authorities and maintenance lifecycles.
+No further consolidation is currently recommended. The current 22 records stay separate because they own different authorities and maintenance lifecycles.
 
 ### Remaining Boundaries
 
@@ -203,37 +209,42 @@ Open follow-up work from ADRs and refresh reports, excluding never-ending refres
 - **Priority:** High
 - **Next step:** Isolate documentation verification from providers, network, and user configuration, then inventory every documented command, make `--price` results consistent, commit offline fixtures, classify unsafe commands as parse-only, cross-check flags and models, and publish documentation cost reports.
 
-**Item 2: [2026 Hosted-Model Refresh Report: LLMs](../models/04-llm-model-report.md)**
+**Item 2: [ADR-022](ADR-022-compile-a-text-first-blocking-plan-into-a-panel-ledger.md)**
+
+- **Priority:** High
+- **Next step:** Run the Phase 0 continuity baseline and the ten-panel prompt ablation as owner-run paid commands, then use their per-key precision to decide which blocking audit statuses `--blocking-hard-keys` promotes from advisory to hard; reviewed location geometry records and the deferred Phase 5 rendered blocking card remain pending behind that measurement.
+
+**Item 3: [2026 Hosted-Model Refresh Report: LLMs](../models/04-llm-model-report.md)**
 
 - **Priority:** Medium
 - **Next step:** Implement the remaining 2026-08-16 recommended selectors after confirming adapter fit and published pricing.
 
-**Item 3: [2026 Hosted-Model Refresh Report: OCR](../models/02-ocr-model-report.md)**
+**Item 4: [2026 Hosted-Model Refresh Report: OCR](../models/02-ocr-model-report.md)**
 
 - **Priority:** Medium
 - **Next step:** Promote provisional token-billed page heuristics and the benchmark-calibrated Florence compute-second estimate through approved ADR-012 calibration; blocked on immediate approval for each exact paid calibration run.
 
-**Item 4: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)**
+**Item 5: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)**
 
 - **Priority:** Medium
 - **Next step:** Collect reasoning-qualified token samples so OCR registry shapes can become promotion-eligible; blocked on explicit approval for paid provider runs.
 
-**Item 5: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
+**Item 6: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
 
 - **Priority:** Medium
 - **Next step:** Calibrate materially different reasoning levels and provisional model heuristics; deferred pending immediate approval for each exact paid run.
 
-**Item 6: [2026 Hosted-Model Refresh Report: TTS](../models/05-tts-model-report.md)**
+**Item 7: [2026 Hosted-Model Refresh Report: TTS](../models/05-tts-model-report.md)**
 
 - **Priority:** Low
 - **Next step:** Watch Cartesia for a dated Sonic 3.6 snapshot; do not register `sonic-preview`.
 
-**Item 7: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
+**Item 8: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
 
 - **Priority:** Low
 - **Next step:** Evaluate provider-specific reasoning levels outside the seven-value surface through explicit public-enum expansion.
 
-**Item 8: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)**
+**Item 9: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)**
 
 - **Priority:** Low
 - **Next step:** Run the two deferred cleanup reviews: remaining multi-use exported declarations, and remaining multi-reference non-exported declarations.

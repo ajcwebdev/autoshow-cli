@@ -37,6 +37,8 @@ const commandByDoc = {
   'process-steps/step-8-comic/04-reference-voice.md': comicCommand,
   'process-steps/step-8-comic/05-generate-audio.md': comicCommand,
   'process-steps/step-8-comic/06-generate-slideshow.md': comicCommand,
+  'process-steps/step-8-comic/07-review-notes.md': comicCommand,
+  'process-steps/step-8-comic/08-review-sheet.md': comicCommand,
   'process-steps/step-9-voice/00-voice-overview.md': voiceCommand,
   'process-steps/step-9-voice/01-list.md': voiceCommand,
   'process-steps/step-9-voice/02-consent.md': voiceCommand,

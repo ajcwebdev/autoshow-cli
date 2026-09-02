@@ -1,4 +1,23 @@
-import type { PanelBundleData } from '~/types'
+import type { BlockingAuditStatus, BlockingHardCandidateStatus, PanelBundleData } from '~/types'
+
+export type BlockingHardKeyPolicy = readonly BlockingHardCandidateStatus[]
+
+export type PageQaBlockingAuditEntry = {
+  subject: string
+  status: BlockingAuditStatus
+  note: string
+}
+
+export type PageQaCharacterCue = {
+  characterKey: string
+  distinguishFrom: Array<{ characterKey: string; cue: string }>
+}
+
+export type PageQaRosterCard = {
+  key: string
+  name?: string | undefined
+  path: string
+}
 
 export type PageQaResult = {
   panelStructure: { pass: boolean; observedPanelCount: number; observedPanelOrder: number[]; issues: string[] }
@@ -17,6 +36,9 @@ export type PageQaResult = {
     }>
     sourcePrecedence: boolean
     shotPlanMatch: boolean
+    blockingMatch?: boolean
+    axisSideMatch?: boolean
+    blockingAudit?: PageQaBlockingAuditEntry[]
     dialogueAccuracy: boolean
     dialogueIssueKind: 'none' | 'typography-only' | 'content'
     speakerAttribution: boolean
@@ -86,6 +108,7 @@ export type PageQaEntry = {
     repeatedHardFailures: string[]
     reason?: string
   }
+  blockingHardKeys?: BlockingHardKeyPolicy
   repairComparison?: {
     decision: 'clear-winner' | 'retain-original' | 'incomplete'
     reason: string
@@ -99,11 +122,15 @@ export type PageQaEntry = {
 export type PageQaRepairStagnationState = {
   consecutiveFailures: Record<string, number>
   restartedFromCanonicalReferences: boolean
+  bestFailureKeys: string[]
+  failureSignatures: string[]
+  attemptsWithoutStrictImprovement: number
 }
 
 export type PageQaRepairDecision = {
   action: 'accept' | 'edit' | 'restart' | 'stop'
   repeatedHardFailures: string[]
+  reason?: 'repeated-hard-failure' | 'constraint-oscillation'
   state: PageQaRepairStagnationState
 }
 
@@ -117,5 +144,8 @@ export type PageQaRequest = {
   characterReferences?: Array<{ key: string; description: string }> | undefined
   locationReferences?: Array<{ key: string; specification: string }> | undefined
   designReferences?: Array<{ key: string; usage: string }> | undefined
+  rosterCards?: PageQaRosterCard[] | undefined
+  characterCues?: PageQaCharacterCue[] | undefined
+  blockingHardKeys?: BlockingHardKeyPolicy | undefined
   model: string
 }

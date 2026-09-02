@@ -147,6 +147,21 @@ export const loadCharacterCatalog = (charactersRoot = getCharactersRoot()): Char
     for (const alias of authored.aliases) addLookup(alias, [key])
   }
 
+  for (const authored of config.characters) {
+    const key = asCharacterKey(authored.key)
+    if (authored.variantOf !== undefined) {
+      if (authored.variantOf === key) fail(configPath, `Character "${key}" variantOf "${authored.variantOf}" cannot name itself`)
+      if (!byKey.has(authored.variantOf)) fail(configPath, `Character "${key}" variantOf "${authored.variantOf}" is not a catalog key`)
+    }
+    for (const cue of authored.distinguishFrom ?? []) {
+      if (!CHARACTER_KEY_PATTERN.test(cue.characterKey) || !byKey.has(cue.characterKey as CharacterKey)) fail(configPath, `Character "${key}" distinguishFrom "${cue.characterKey}" is not a catalog key`)
+      if (!cue.cue.trim()) fail(configPath, `Character "${key}" distinguishFrom "${cue.characterKey}" must carry a non-empty cue`)
+    }
+    for (const [index, token] of (authored.wardrobe?.colorTokens ?? []).entries()) {
+      if (!token.trim()) fail(configPath, `Character "${key}" wardrobe colorTokens[${index}] must not be blank`)
+    }
+  }
+
   for (const group of config.groupAliases) {
     if (group.characterKeys.length === 0) fail(configPath, `group alias "${group.alias}" has no targets`)
     const keys = group.characterKeys.map(rawKey => {

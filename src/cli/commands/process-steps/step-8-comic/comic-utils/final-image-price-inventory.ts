@@ -27,6 +27,7 @@ import {
   getPanelComicImagePath,
 } from './scene-utils'
 import { isRecord } from '~/utils/value-helpers'
+import { shouldUseBlockingLayoutGuide } from './blocking-layout-guide'
 
 const readPricePanelInput = async (
   panelPromptsDir: string,
@@ -43,24 +44,27 @@ export const validatePriceReferenceGroup = async (
   panelPromptsDir: string,
   panelNumbers: readonly number[],
   models: readonly ImageGenerationModel[],
+  blockingLayoutGuide = false,
 ): Promise<number> => {
   const panels = await Promise.all(panelNumbers.map(number => readPricePanelInput(panelPromptsDir, number)))
   const primary = resolvePrimaryCharacterReferencesAcrossPanels(panels, { composeDerived: false })
   const locations = resolveLocationReferencesAcrossPanels(panels)
   const designs = resolveDesignReferencesAcrossPanels(panels)
+  const blockingLayoutGuideCount = blockingLayoutGuide && panels.length === 1 && shouldUseBlockingLayoutGuide(panels[0]?.bundleData.blocking) ? 1 : 0
   const locationPlaceholders = locations.map((_, index) => `__location-${index + 1}__`)
   const designPlaceholders = designs.map((_, index) => `__design-${index + 1}__`)
+  const blockingLayoutPlaceholders = Array.from({ length: blockingLayoutGuideCount }, (_, index) => `__blocking-layout-${index + 1}__`)
 
   for (const model of models) {
     applyReferenceImageLimits(
-      [...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders],
+      [...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders, ...blockingLayoutPlaceholders],
       [],
       [...locationPlaceholders, ...designPlaceholders],
       primary.missingPrimaryCharacterRefs,
       model,
     )
   }
-  return primary.primaryCharacterRefs.length + locations.length + designs.length
+  return primary.primaryCharacterRefs.length + locations.length + designs.length + blockingLayoutGuideCount
 }
 
 const isReusablePageQaReport = (
@@ -141,6 +145,7 @@ const buildPageInventory = async (
       panelPromptsDir,
       chunk.panelNumbers,
       request.models,
+      request.blockingLayoutGuide,
     )
     if (request.qa.enabled && request.qa.maxRepairs > 0) {
       validateReferenceImageCount(
@@ -189,6 +194,7 @@ const buildPanelInventory = async (
       panelPromptsDir,
       [panel.panelNumber],
       request.models,
+      request.blockingLayoutGuide,
     )
     if (request.qa.enabled && request.qa.maxRepairs > 0) {
       validateReferenceImageCount(

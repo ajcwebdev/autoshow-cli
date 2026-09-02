@@ -127,7 +127,7 @@ type PanelLedger = {
   planFingerprint: string
   panelNumber: number
   originalSha256: string
-  imageSlot?: { status: SlotStatus; attempts: number; startedAt: string; completedAt?: string; error?: string; estimatedCostUsd?: number }
+  imageSlot?: { status: SlotStatus; attempts: number; startedAt: string; completedAt?: string; error?: string; estimatedCostUsd?: number; usage?: { imageInputUnits: number; textInputUnits: number; outputUnits: number } }
   candidateSha256?: string
   comparisonSlots: Array<{ pass: 1 | 2; status: SlotStatus; attempts: number; startedAt: string; completedAt?: string; error?: string; usage?: { inputTokens: number; outputTokens: number; costUsd: number }; normalized?: RevisionComparisonNormalized }>
   similarity?: SimilarityMeasurements
@@ -331,8 +331,12 @@ const assertComparisonShape = (value: unknown): RevisionComparisonRaw => {
   const severity = (status: unknown): number | undefined => status === 'not-visible' ? 0 : status === 'partly-visible' ? 1 : status === 'visible' ? 2 : undefined
   const severityA = severity(record['targetedDefectStatusImageA'])
   const severityB = severity(record['targetedDefectStatusImageB'])
-  const expectedLower = severityA === undefined || severityB === undefined || severityA === severityB ? 'neither' : severityA < severityB ? 'image-a' : 'image-b'
-  if (record['targetedDefectLowerIn'] !== expectedLower) throw ValidationError('Revision comparison targeted-defect fields are internally inconsistent.', { stage: 'comic:revision-comparison' })
+  if (severityA === undefined || severityB === undefined) {
+    if (record['targetedDefectLowerIn'] !== 'neither') throw ValidationError('Revision comparison targeted-defect fields are internally inconsistent.', { stage: 'comic:revision-comparison' })
+  } else if (severityA !== severityB) {
+    const expectedLower = severityA < severityB ? 'image-a' : 'image-b'
+    if (record['targetedDefectLowerIn'] !== expectedLower) throw ValidationError('Revision comparison targeted-defect fields are internally inconsistent.', { stage: 'comic:revision-comparison' })
+  }
   return record as RevisionComparisonRaw
 }
 
@@ -512,7 +516,8 @@ const completeImageSlot = async (input: { loaded: LoadedRevisionPlan; entry: Loa
     await (dependencies.writeImage ?? writeGeneratedImage)(candidatePath, response.result.imageBase64, response.result.mimeType)
     ledger.candidateSha256 = await sha256File(candidatePath)
     const estimatedCostUsd = estimateImageOutputCost(REVISION_IMAGE_MODEL, options.quality ?? 'high', options.size ?? '1536x1024')
-    ledger.imageSlot = { ...imageSlot, status: 'completed', completedAt: now(), ...(estimatedCostUsd !== null ? { estimatedCostUsd } : {}) }
+    const usage = response.usage ? { imageInputUnits: response.usage.imageInputUnits ?? 0, textInputUnits: response.usage.textInputUnits ?? 0, outputUnits: response.usage.outputUnits ?? 0 } : undefined
+    ledger.imageSlot = { ...imageSlot, status: 'completed', completedAt: now(), ...(estimatedCostUsd !== null ? { estimatedCostUsd } : {}), ...(usage ? { usage } : {}) }
   } catch (error) {
     ledger.imageSlot = { ...imageSlot, status: 'ambiguous', completedAt: now(), error: error instanceof Error ? error.message : String(error) }
   }
@@ -616,6 +621,9 @@ export const runRevisionEvaluation = async (options: GenerateImagesCommandOption
   stats.totalCost = results.reduce((sum, ledger) => sum + (ledger.imageSlot?.estimatedCostUsd ?? 0) + ledger.comparisonSlots.reduce((subtotal, slot) => subtotal + (slot.usage?.costUsd ?? 0), 0), 0)
   stats.totalInputTokens = results.reduce((sum, ledger) => sum + ledger.comparisonSlots.reduce((subtotal, slot) => subtotal + (slot.usage?.inputTokens ?? 0), 0), 0)
   stats.totalOutputTokens = results.reduce((sum, ledger) => sum + ledger.comparisonSlots.reduce((subtotal, slot) => subtotal + (slot.usage?.outputTokens ?? 0), 0), 0)
+  stats.totalInputImageTokens = results.reduce((sum, ledger) => sum + (ledger.imageSlot?.usage?.imageInputUnits ?? 0), 0)
+  stats.totalInputTextTokens = results.reduce((sum, ledger) => sum + (ledger.imageSlot?.usage?.textInputUnits ?? 0), 0)
+  stats.totalOutputImageTokens = results.reduce((sum, ledger) => sum + (ledger.imageSlot?.usage?.outputUnits ?? 0), 0)
   const promotedPanels = results.filter(ledger => ledger.decision === 'clear-winner').map(ledger => ledger.panelNumber)
   const retainedOriginalPanels = results.filter(ledger => ledger.decision !== 'clear-winner').map(ledger => ledger.panelNumber)
   const sceneDirectory = getSceneOutputDirectory(options.sceneSlug)
@@ -671,7 +679,7 @@ export const runRevisionEvaluation = async (options: GenerateImagesCommandOption
     publishFinal,
     rollbackFinal,
   })
-  const runLedger = { schemaVersion: 1, mode: 'revision-evaluation', experimentId: loaded.plan.experimentId, sceneSlug: loaded.plan.sceneSlug, planFingerprint: loaded.plan.planFingerprint, imageModel: REVISION_IMAGE_MODEL, comparisonModel: REVISION_COMPARISON_MODEL, comparisonPasses: REVISION_COMPARISON_PASSES, promotionPolicy: 'clear-winners', imageSlots: { total: results.length, completed: stats.imagesGenerated, ambiguous: results.filter(item => item.imageSlot?.status === 'ambiguous').length }, comparisonSlots: { totalPossible: stats.imagesGenerated * 2, completed: completedComparisons, failedOrMalformedOrAmbiguous: results.reduce((sum, item) => sum + item.comparisonSlots.filter(slot => slot.status !== 'completed').length, 0) }, promotedPanels, retainedOriginalPanels, usage: { inputTokens: stats.totalInputTokens, outputTokens: stats.totalOutputTokens, estimatedAndRecordedCostUsd: stats.totalCost }, panels: results }
+  const runLedger = { schemaVersion: 1, mode: 'revision-evaluation', experimentId: loaded.plan.experimentId, sceneSlug: loaded.plan.sceneSlug, planFingerprint: loaded.plan.planFingerprint, imageModel: REVISION_IMAGE_MODEL, comparisonModel: REVISION_COMPARISON_MODEL, comparisonPasses: REVISION_COMPARISON_PASSES, promotionPolicy: 'clear-winners', imageSlots: { total: results.length, completed: stats.imagesGenerated, ambiguous: results.filter(item => item.imageSlot?.status === 'ambiguous').length }, comparisonSlots: { totalPossible: stats.imagesGenerated * 2, completed: completedComparisons, failedOrMalformedOrAmbiguous: results.reduce((sum, item) => sum + item.comparisonSlots.filter(slot => slot.status !== 'completed').length, 0) }, promotedPanels, retainedOriginalPanels, usage: { inputTokens: stats.totalInputTokens, outputTokens: stats.totalOutputTokens, imageInputUnits: stats.totalInputImageTokens, estimatedAndRecordedCostUsd: stats.totalCost }, panels: results }
   await atomicWriteJson(join(loaded.evidenceDirectory, 'revision-evaluation.json'), runLedger)
   return { evidenceDirectory: loaded.evidenceDirectory, planFingerprint: loaded.plan.planFingerprint, ledgers: results, stats, promotedPanels }
 }

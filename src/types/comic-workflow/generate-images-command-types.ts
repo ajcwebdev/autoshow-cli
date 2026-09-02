@@ -19,3 +19,18 @@ export type ComicImageWorkItemResult = {
   qaEntries: Array<{ directory: string, entry: PageQaEntry }>
   error?: unknown | undefined
 }
+
+export type CreditPreflightResult = {
+  provider: 'openai'
+  status: 'ok' | 'skipped-price-mode'
+}
+
+export type CreditPreflightDependencies = {
+  listModels?: () => Promise<{ status: number }>
+}
+
+export type ComicImageRunStop = {
+  item: string
+  reason: string
+  abandoned: number
+}

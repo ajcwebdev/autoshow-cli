@@ -119,8 +119,17 @@ bun autoshow voice list --provider elevenlabs --source account
 # Draft structured comic scenes with hosted OpenAI
 bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md
 
+# Import a hand-authored blocking plan instead of drafting one, with no provider call
+bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only blocking --blocking-plan input/blocking/01-01.json
+
 # Generate final comic panels with hosted OpenAI
 bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --image-model gpt-image-2
+
+# Audit existing canonical panels for cross-panel continuity without generating
+bun autoshow comic generate-images 01-01 --qa-only --max-repairs 0 --continuity-qa
+
+# Build the reviewer's panel-by-panel sheet locally
+bun autoshow comic review-sheet 01-01 --export-doc
 
 # Generate multi-speaker comic audio with hosted Hume
 bun autoshow comic generate-audio 01-01 --provider hume=octave-2 --profile default

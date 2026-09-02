@@ -5,8 +5,10 @@ export type DraftScenesLogMode = 'standalone' | 'nested'
 export type DraftScenesWorkflowDependencies = {
   runStructureScripts?: (options: DraftScenesCommandOptions) => Promise<unknown>
   runDraftPrompts?: (options: DraftScenesCommandOptions) => Promise<unknown>
+  runBlockingPlan?: (options: DraftScenesCommandOptions) => Promise<unknown>
   runSceneDraft?: (options: DraftScenesCommandOptions) => Promise<unknown>
   runPanelPrompts?: (options: PanelPromptsCommandOptions) => Promise<unknown>
+  runReconcileFromDirectives?: (options: DraftScenesCommandOptions) => Promise<unknown>
 }
 
 export type DraftScenesWorkflowResult = {

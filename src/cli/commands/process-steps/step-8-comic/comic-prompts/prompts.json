@@ -2,8 +2,8 @@
   "Scene Prompts": {
     "Prefix": "Create one comic panel from the source panel data.",
     "1st Panel": "This is the first panel of the scene. Establish the location, cast, and action clearly.",
-    "2nd Panel": "This is Panel 2. Continue from the previous panels of the scene without repeating the same camera.",
-    "3rd Panel": "This is Panel 3. Continue from the previous panels of the scene without repeating the same camera."
+    "2nd Panel": "This is Panel 2. Each final panel is generated from its own bundle; continuity is carried by the blocking ledger when a plan exists.",
+    "3rd Panel": "This is Panel 3. Each final panel is generated from its own bundle; continuity is carried by the blocking ledger when a plan exists."
   },
   "Sketch Prompts": {
     "Prefix": "Produce black-and-white rough sketch output only.",
