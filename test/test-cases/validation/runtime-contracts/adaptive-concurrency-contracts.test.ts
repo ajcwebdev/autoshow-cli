@@ -71,7 +71,7 @@ const spawnLeaseChild = (
       lockWaitMs: 5,
       lockStaleMs: 1000
     })
-    const lease = await acquireAdaptiveProviderLease(['tts/minimax'], config, {
+    const lease = await acquireAdaptiveProviderLease(['tts/speechify'], config, {
       command: '${label}',
       leaseTtlMs: 2000
     })
@@ -364,7 +364,7 @@ describe('adaptive scheduler contracts', () => {
 
     for (let attempt = 0; attempt < 200; attempt += 1) {
       const snapshot = await readAdaptiveConcurrencySnapshot(config)
-      if ((snapshot.groups['tts/minimax']?.active ?? 0) > 0) {
+      if ((snapshot.groups['tts/speechify']?.active ?? 0) > 0) {
         break
       }
       await Bun.sleep(2)
@@ -425,13 +425,13 @@ describe('adaptive scheduler contracts', () => {
     const beforeMs = Date.now()
     await recordAdaptivePressure(['image/openai'], 'rate-limit', config)
     await recordAdaptivePressure(['video/gemini'], 'transient', config)
-    await recordAdaptivePressure(['tts/minimax'], 'timeout', config)
+    await recordAdaptivePressure(['tts/speechify'], 'timeout', config)
 
     let snapshot = await readAdaptiveConcurrencySnapshot(config)
     expect(snapshot.groups['image/openai']?.limit).toBe(1)
     expect(snapshot.groups['image/openai']?.cooldownUntilMs ?? 0).toBeGreaterThan(beforeMs)
     expect(snapshot.groups['video/gemini']?.limit).toBe(2)
-    expect(snapshot.groups['tts/minimax']?.limit).toBe(1)
+    expect(snapshot.groups['tts/speechify']?.limit).toBe(1)
 
     await recordAdaptiveSuccess(['image/openai'], config)
     snapshot = await readAdaptiveConcurrencySnapshot(config)
@@ -469,7 +469,7 @@ describe('runCommand adaptive retry contracts', () => {
       'tts',
       'input/examples/tts/1-tts.md',
       '--provider',
-      'minimax=speech-2.8-turbo'
+      'speechify=simba-3.2'
     ], {
       env: {
         AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY: 'force',
@@ -496,7 +496,7 @@ describe('runCommand adaptive retry contracts', () => {
       'tts',
       'input/examples/tts/1-tts.md',
       '--provider',
-      'minimax=speech-2.8-turbo'
+      'speechify=simba-3.2'
     ], {
       env: {
         AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY: 'force',
@@ -520,7 +520,7 @@ describe('runCommand adaptive retry contracts', () => {
     expect(result.exitCode).toBe(1)
     expect(attempts).toEqual([1, 2])
     expect(result.stderr).toContain('Adaptive concurrency retry summary')
-    expect(result.stderr).toContain('groups=tts/minimax')
+    expect(result.stderr).toContain('groups=tts/speechify')
   })
 
   test('runner e2e selection flag enables adaptive scheduling for helper callers', async () => {
@@ -579,7 +579,7 @@ describe('runCommand adaptive retry contracts', () => {
       'tts',
       'input/examples/tts/1-tts.md',
       '--provider',
-      'minimax=speech-2.8-turbo'
+      'speechify=simba-3.2'
     ], {
       adaptiveStateDir: stateDir,
       adaptiveConfig: {

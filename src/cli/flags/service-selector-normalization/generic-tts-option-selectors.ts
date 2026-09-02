@@ -7,17 +7,17 @@ export const GENERIC_TTS_OPTION_PROVIDERS = {
   'tts-voice': {
     voiceIdentity: true,
     providers: [
-      'elevenlabs', 'minimax', 'grok', 'mistral', 'openai', 'speechify',
+      'elevenlabs', 'grok', 'mistral', 'openai', 'speechify',
       'hume', 'cartesia', 'inworld'
     ]
   },
   'tts-speed': {
     voiceIdentity: false,
-    providers: ['openai', 'minimax', 'elevenlabs']
+    providers: ['openai', 'elevenlabs']
   },
   'tts-language': {
     voiceIdentity: false,
-    providers: ['grok', 'speechify', 'cartesia', 'elevenlabs', 'minimax']
+    providers: ['grok', 'speechify', 'cartesia', 'elevenlabs']
   },
   'tts-ref-audio': {
     voiceIdentity: true,
@@ -25,7 +25,7 @@ export const GENERIC_TTS_OPTION_PROVIDERS = {
   },
   'tts-text-normalization': {
     voiceIdentity: false,
-    providers: ['grok', 'minimax', 'elevenlabs']
+    providers: ['grok', 'elevenlabs']
   },
   'tts-instructions': {
     voiceIdentity: false,
@@ -39,8 +39,8 @@ export const GENERIC_TTS_OPTION_PROVIDERS = {
 export type GenericTtsOptionFlag = keyof typeof GENERIC_TTS_OPTION_PROVIDERS
 
 const GENERIC_TTS_OPTION_FLAGS = Object.keys(GENERIC_TTS_OPTION_PROVIDERS) as GenericTtsOptionFlag[]
-const BOOLEAN_TTS_TEXT_NORMALIZATION_PROVIDERS = new Set<string>(['grok', 'minimax'])
-const RETIRED_TTS_PROVIDERS = new Set(['groq', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra'])
+const BOOLEAN_TTS_TEXT_NORMALIZATION_PROVIDERS = new Set<string>(['grok'])
+const RETIRED_TTS_PROVIDERS = new Set(['minimax', 'groq', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra'])
 
 export const assertNoVoiceIdentityWithDialogue = (
   options: Pick<TtsOptions, 'ttsSpeakers'>,

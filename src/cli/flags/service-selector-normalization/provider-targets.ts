@@ -2,7 +2,6 @@ import type { GenerationPricingProviders, GenerationSelectionDescriptor, Generat
 
 export const STANDALONE_TTS_PROVIDER_TARGETS = {
   elevenlabs: 'elevenlabs-tts',
-  minimax: 'minimax-tts',
   grok: 'grok-tts',
   mistral: 'mistral-tts',
   openai: 'openai-tts',
@@ -70,7 +69,6 @@ export const TTS_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   STANDALONE_TTS_PROVIDER_TARGETS,
   {
     elevenlabs: { modelsKey: 'elevenlabsTtsModels' },
-    minimax: { modelsKey: 'minimaxTtsModels' },
     grok: { modelsKey: 'grokTtsModels' },
     mistral: { modelsKey: 'mistralTtsModels' },
     openai: { modelsKey: 'openaiTtsModels' },

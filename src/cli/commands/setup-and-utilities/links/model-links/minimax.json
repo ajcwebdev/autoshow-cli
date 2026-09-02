@@ -11,16 +11,6 @@
       "https://platform.minimax.io/docs/api-reference/text-chat-openai.md",
       "https://platform.minimax.io/docs/api-reference/text-chat.md"
     ],
-    "TTS": [
-      "https://platform.minimax.io/docs/guides/speech-t2a-async.md",
-      "https://platform.minimax.io/docs/faq/system-voice-id.md",
-      "https://platform.minimax.io/docs/api-reference/speech-t2a-http.md",
-      "https://platform.minimax.io/docs/api-reference/speech-t2a-async-create.md",
-      "https://platform.minimax.io/docs/api-reference/speech-t2a-async-query.md",
-      "https://platform.minimax.io/docs/api-reference/voice-design-design.md",
-      "https://platform.minimax.io/docs/api-reference/voice-management-get.md",
-      "https://platform.minimax.io/docs/api-reference/voice-management-delete.md"
-    ],
     "Music": [
       "https://platform.minimax.io/docs/guides/music-generation.md",
       "https://platform.minimax.io/docs/api-reference/music-generation.md",

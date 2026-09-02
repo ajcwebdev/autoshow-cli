@@ -17,7 +17,6 @@ export const CAPABILITY_SOURCE_REFS: Record<TtsTarget['service'], string[]> = {
   speechify: ['https://docs.sws.speechify.com/tts/text-to-speech/get-started/models'],
   hume: ['https://dev.hume.ai/reference/text-to-speech-tts/synthesize-json'],
   cartesia: ['https://docs.cartesia.ai/build-with-cartesia/tts-models/sonic-3-5'],
-  minimax: ['https://platform.minimax.io/docs/api-reference/api-overview'],
   inworld: ['https://docs.inworld.ai/'],
 }
 

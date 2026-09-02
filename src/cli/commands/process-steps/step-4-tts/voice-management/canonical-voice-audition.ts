@@ -59,7 +59,6 @@ const targetOptions = (registration: VoiceRegistration): TtsOptions => {
   const model = registration.providerModel
   switch (registration.provider) {
     case 'elevenlabs': return { elevenlabsTtsModels: [model], elevenlabsVoiceId: voice }
-    case 'minimax': return { minimaxTtsModels: [model], minimaxTtsVoice: voice }
     case 'grok': return { grokTtsModels: [model], grokTtsVoice: voice }
     case 'mistral': return { mistralTtsModels: [model], mistralTtsVoice: voice }
     case 'openai': return { openaiTtsModels: [model], openaiVoiceId: voice }

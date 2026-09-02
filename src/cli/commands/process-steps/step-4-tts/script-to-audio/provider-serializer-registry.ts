@@ -105,12 +105,6 @@ const buildElevenLabsSerializer: SerializerBuilder = ({ strategy, controls }) =>
   }
 }
 
-const buildMiniMaxSerializer: SerializerBuilder = ({ voiceValue, controls }) => {
-  const voiceSetting = { voice_id: voiceValue, ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}), ...(controls.number('volume') !== undefined ? { vol: controls.number('volume') } : {}), ...(controls.number('pitch') !== undefined ? { pitch: controls.number('pitch') } : {}), ...(controls.string('emotion') ? { emotion: controls.string('emotion') } : {}), ...(controls.boolean('englishNormalization') === true ? { english_normalization: true } : {}) }
-  const pronunciationRules = controls.stringArray('pronunciations')?.map(item => item.trim()).filter(Boolean)
-  return { endpointKind: 'async-speech-synthesis-create', serializerVersion: 'minimax.tts.phase-0-v1', controls: { ...(controls.string('languageBoost') ? { languageBoost: controls.string('languageBoost') } : {}), voiceSetting, audioSetting: { format: 'mp3', audio_sample_rate: 32000, channel: 1 }, ...(pronunciationRules?.length ? { pronunciationRules } : {}) } }
-}
-
 const SERIALIZER_BUILDERS = {
   openai: buildOpenAiSerializer,
   grok: buildGrokSerializer,
@@ -120,7 +114,6 @@ const SERIALIZER_BUILDERS = {
   inworld: buildInworldSerializer,
   elevenlabs: buildElevenLabsSerializer,
   mistral: buildMistralSerializer,
-  minimax: buildMiniMaxSerializer,
 } satisfies Record<TtsProvider, SerializerBuilder>
 
 export const buildProviderSerializerDescriptor = (
@@ -163,7 +156,6 @@ export const resolveEffectiveProviderControls = (
       return controls
     }
     case 'elevenlabs': return resolveTtsTargetInvocationControls('elevenlabs', invocation, { languageCode: selection.elevenLabsLanguageCode, stability: selection.elevenLabsStability, similarityBoost: selection.elevenLabsSimilarityBoost, style: selection.elevenLabsStyle, ...(selection.elevenLabsUseSpeakerBoost ? { useSpeakerBoost: true } : {}), speed: selection.elevenLabsSpeed, seed: selection.elevenLabsSeed, textNormalization: selection.elevenLabsTextNormalization, pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators })
-    case 'minimax': return resolveTtsTargetInvocationControls('minimax', invocation, { languageBoost: selection.minimaxLanguageBoost, speed: selection.minimaxSpeed, volume: selection.minimaxVolume, pitch: selection.minimaxPitch, emotion: selection.minimaxEmotion, ...(selection.minimaxEnglishNormalization ? { englishNormalization: true } : {}), pronunciations: selection.minimaxPronunciations })
     case 'grok': return resolveTtsTargetInvocationControls('grok', invocation, { language: selection.grokLanguage, ...(selection.grokTextNormalization ? { textNormalization: true } : {}) })
     case 'mistral': return resolveTtsTargetInvocationControls('mistral', invocation, { responseFormat: 'wav' })
     case 'speechify': {
@@ -190,7 +182,6 @@ export const providerSerializerVoiceField = (
     case 'speechify': return 'voice_id'
     case 'elevenlabs': return strategy === 'native-dialogue' ? 'inputs[].voice_id' : 'path.voice_id'
     case 'mistral': return voiceKind === 'reference-asset' ? 'ref_audio' : 'voice_id'
-    case 'minimax': return 'voice_setting.voice_id'
     case 'inworld': return 'voiceId'
   }
 }

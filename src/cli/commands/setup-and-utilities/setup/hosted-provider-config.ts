@@ -175,14 +175,11 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'minimax',
     envVar: 'MINIMAX_API_KEY',
-    label: 'MiniMax write/TTS/video/music',
+    label: 'MiniMax write/video/music',
     hintUrl: 'https://platform.minimax.io/',
-    stages: ['write', 'tts', 'video', 'music', 'voice'],
-    ttsPreflight: { provider: 'minimax', label: 'MiniMax TTS' },
-    liveProbe: 'voice-catalog',
+    stages: ['write', 'video', 'music'],
     configPaths: [
       'defaults.llm.minimax',
-      'defaults.tts.minimaxTts',
       'defaults.music.minimaxMusic'
     ]
   },

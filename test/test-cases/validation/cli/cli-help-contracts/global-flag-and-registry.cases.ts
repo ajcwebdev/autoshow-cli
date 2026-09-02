@@ -34,10 +34,7 @@ import {
   SETUP_STEP_IDS,
   VIDEO_MODES
 } from '~/types'
-import {
-  SUPPORTED_MINIMAX_TTS_EMOTIONS,
-  SUPPORTED_WHISPER_MODELS
-} from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { SUPPORTED_WHISPER_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import {
   HELP_TREE_TIMEOUT_MS,
   advertisedFlagNames,
@@ -96,7 +93,6 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
     { command: 'metadata', label: '--url-provider', values: URL_ARTICLE_BACKENDS },
     { command: 'download', label: '--url-provider', values: URL_ARTICLE_BACKENDS },
     { command: 'extract', label: '--primary-ocr', values: Object.keys(WRITE_OCR_PROVIDER_TARGETS) },
-    { command: 'tts', label: '--minimax-tts-emotion', values: SUPPORTED_MINIMAX_TTS_EMOTIONS },
     { command: 'music', label: '--model', values: SUPPORTED_WHISPER_MODELS }
   ] as const
 

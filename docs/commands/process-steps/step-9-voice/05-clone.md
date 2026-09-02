@@ -10,13 +10,13 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice clone <subject-key> [flags]
 ```
 
-Store [consent](./02-consent.md) first and pass its locator as `--consent-ref`. API cloning supports ElevenLabs, MiniMax, Grok, Mistral, Cartesia, and Inworld. Hume cloning is completed in the Hume platform and then registered with [import](./03-import.md). OpenAI and Speechify cloning are deferred because their current consent workflows do not fit the common lifecycle contract. Grok creates include a deterministic attempt marker so `--reconcile` can find an ambiguous create without redispatch. Mistral uses the same crash-safe journal under `voice clone`; there is no `save-reference` subcommand.
+Store [consent](./02-consent.md) first and pass its locator as `--consent-ref`. API cloning supports ElevenLabs, Grok, Mistral, Cartesia, and Inworld. Hume cloning is completed in the Hume platform and then registered with [import](./03-import.md). OpenAI and Speechify cloning are deferred because their current consent workflows do not fit the common lifecycle contract. Grok creates include a deterministic attempt marker so `--reconcile` can find an ambiguous create without redispatch. Mistral uses the same crash-safe journal under `voice clone`; there is no `save-reference` subcommand.
 
 ### Options
 
 | Flag | Description |
 | --- | --- |
-| `--provider <name>` | Clone provider: `elevenlabs`, `minimax`, `grok`, `mistral`, `cartesia`, or `inworld` |
+| `--provider <name>` | Clone provider: `elevenlabs`, `grok`, `mistral`, `cartesia`, or `inworld` |
 | `--model <model>` | Provider TTS model used by this registration |
 | `--profile <key>` | Casting profile key |
 | `--voice-name <name>` | Desired provider account voice name |

@@ -11,7 +11,6 @@ type VoiceProviderCapabilities = Readonly<{
 
 export const VOICE_CAPABILITY_REGISTRY = {
   elevenlabs: { models: ['eleven_v3'], import: true, catalog: true, design: true, clone: true, lifecycle: true },
-  minimax: { models: ['speech-2.8-hd', 'speech-2.8-turbo'], import: true, catalog: true, design: true, clone: true, lifecycle: true },
   grok: { models: ['grok-tts'], import: true, catalog: true, design: false, clone: true, lifecycle: true },
   mistral: { models: ['voxtral-mini-tts-2603'], import: true, catalog: true, design: false, clone: true, lifecycle: true },
   openai: { models: ['gpt-4o-mini-tts-2025-12-15'], import: true, catalog: false, design: false, clone: false, lifecycle: false },

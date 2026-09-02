@@ -1,4 +1,4 @@
-import { validateCartesiaTtsVoice, validateElevenLabsTtsTextNormalization, validateGrokTtsLanguage, validateGrokTtsVoice, validateHumeTtsVoice, validateInworldTtsVoice, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateCartesiaTtsVoice, validateElevenLabsTtsTextNormalization, validateGrokTtsLanguage, validateGrokTtsVoice, validateHumeTtsVoice, validateInworldTtsVoice, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { CliFlagOccurrence, ResolvedModelOptions, TtsCliReferenceInput, TtsOptionResolutionAuthority, TtsOptionResolutionContext, TtsRuntimeOptionKey, TtsRuntimeOptions } from '~/types'
 import { parseOptionalNumberFlag, parseTtsDialogueFormat, readBooleanFlag, readOptionalStringFlag, readOptionalStringListFlag } from './flag-readers'
 import { validateCliValue } from './download-model-options'
@@ -104,7 +104,7 @@ export const resolveStandaloneMistralTtsSpeakerReferenceInputs = (
 }
 
 const TTS_MODEL_KEYS = [
-  'elevenlabsTtsModels', 'minimaxTtsModels',
+  'elevenlabsTtsModels',
   'grokTtsModels',
   'mistralTtsModels', 'openaiTtsModels',
   'speechifyTtsModels', 'humeTtsModels',
@@ -113,7 +113,6 @@ const TTS_MODEL_KEYS = [
 
 const TTS_SPEED_RANGES = {
   openai: { min: 0.25, max: 4 },
-  minimax: { min: 0.5, max: 2 },
   elevenlabs: { min: 0.7, max: 1.2 }
 } as const
 
@@ -155,9 +154,6 @@ const applyGenericTtsRuntimeOptions = (
       case 'inworld':
         options.inworldTtsVoice = readValidatedWhenSelected(voice, modelOptions.inworldTtsModels, validateInworldTtsVoice)
         break
-      case 'minimax':
-        options.minimaxTtsVoice = voice
-        break
       case 'elevenlabs':
         options.elevenlabsVoiceId = voice
         break
@@ -174,9 +170,6 @@ const applyGenericTtsRuntimeOptions = (
     switch (provider) {
       case 'openai':
         options.openaiTtsSpeed = parsed
-        break
-      case 'minimax':
-        options.minimaxTtsSpeed = parsed
         break
       case 'elevenlabs':
         options.elevenlabsTtsSpeed = parsed
@@ -199,9 +192,6 @@ const applyGenericTtsRuntimeOptions = (
       case 'elevenlabs':
         options.elevenlabsTtsLanguageCode = language
         break
-      case 'minimax':
-        options.minimaxTtsLanguageBoost = validateCliValue(validateMinimaxTtsLanguageBoost, language)
-        break
     }
   }
 
@@ -209,9 +199,6 @@ const applyGenericTtsRuntimeOptions = (
     switch (provider) {
       case 'grok':
         options.grokTtsTextNormalization = parseGenericTtsBooleanOption(value)
-        break
-      case 'minimax':
-        options.minimaxTtsEnglishNormalization = parseGenericTtsBooleanOption(value)
         break
       case 'elevenlabs':
         options.elevenlabsTtsTextNormalization = validateCliValue(
@@ -287,18 +274,6 @@ export const buildTtsOptions = (
     elevenlabsTtsSeed: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'elevenlabs-tts-seed'), 'elevenlabs-tts-seed', { min: 0, max: 4294967295, integer: true }),
     elevenlabsTtsTextNormalization: undefined,
     elevenlabsTtsPronunciationDictionaryLocators: readOptionalStringListFlag(flags, 'elevenlabs-tts-pronunciation-dictionary-locator'),
-    minimaxTtsVoice: undefined,
-    minimaxTtsLanguageBoost: undefined,
-    minimaxTtsSpeed: undefined,
-    minimaxTtsVolume: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'minimax-tts-volume'), 'minimax-tts-volume', { min: 0, max: 10, exclusiveMin: true }),
-    minimaxTtsPitch: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'minimax-tts-pitch'), 'minimax-tts-pitch', { min: -12, max: 12, integer: true }),
-    minimaxTtsEmotion: (() => {
-      const value = readOptionalStringFlag(flags, 'minimax-tts-emotion')
-      if (value === undefined) return undefined
-      return validateCliValue(validateMinimaxTtsEmotion, value)
-    })(),
-    minimaxTtsEnglishNormalization: false,
-    minimaxTtsPronunciations: readOptionalStringListFlag(flags, 'minimax-tts-pronunciation'),
     elevenlabsVoiceId: undefined,
   }
 

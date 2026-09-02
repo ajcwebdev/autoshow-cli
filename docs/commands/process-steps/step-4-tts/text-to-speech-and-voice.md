@@ -12,7 +12,6 @@ Durable voice registrations are documented separately in [`voice`](../step-9-voi
 - [Shared TTS Options](#shared-tts-options)
 - [TTS Services](#tts-services)
   - [ElevenLabs](#elevenlabs)
-  - [MiniMax](#minimax)
   - [Grok](#grok)
   - [Mistral](#mistral)
   - [OpenAI](#openai)
@@ -42,7 +41,6 @@ Hosted providers require API keys set in environment variables:
 OPENAI_API_KEY=...
 XAI_API_KEY=...
 ELEVENLABS_API_KEY=...
-MINIMAX_API_KEY=...
 MISTRAL_API_KEY=...
 SPEECHIFY_API_KEY=...
 HUME_API_KEY=...
@@ -120,22 +118,6 @@ bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --t
 ```
 
 ElevenLabs synthesis uses existing voices only. Single-voice text is limited to 5,000 characters. Multi-speaker `eleven_v3` supports up to 10 voices and documented v3 audio tags such as `[whispers]` and `[laughs]`.
-
-### MiniMax
-
-| Option   | Value                                                                                                                                                                            |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Selector | `--provider minimax[=<model>]`                                                                                                                                                   |
-| Models   | `speech-2.8-hd`, `speech-2.8-turbo`                                                                                                                                              |
-| Voice    | `--tts-voice <id>`, default `English_expressive_narrator`                                                                                                                        |
-| Controls | `--tts-language`, `--tts-speed`, `--minimax-tts-volume`, `--minimax-tts-pitch`, `--minimax-tts-emotion`, `--tts-text-normalization`, `--minimax-tts-pronunciation` |
-
-```bash
-bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-turbo --tts-voice English_expressive_narrator
-bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-hd --tts-language English --tts-speed 1.15 --minimax-tts-emotion calm
-```
-
-MiniMax TTS uses existing or preset voices. Multi-speaker dialogue synthesizes each turn separately. Pause markers `<#x#>` and interjections such as `(laughs)` are supported.
 
 ### Grok
 
@@ -251,7 +233,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider inworld=realtime-tts-2 -
 
 ## Pricing Notes
 
-The active registry ranks only the nine supported TTS providers. Historical rates for removed providers remain available to manifest and report readers but are excluded from selection, defaults, and `--all-providers` expansion.
+The active registry ranks only the eight supported TTS providers. Historical rates for removed providers remain available to manifest and report readers but are excluded from selection, defaults, and `--all-providers` expansion.
 
 | Nominal price | Active selectors |
 | ---: | --- |
@@ -261,8 +243,7 @@ The active registry ranks only the nine supported TTS providers. Historical rate
 | `$0.016` / 1K output chars | `mistral/voxtral-mini-tts-2603` |
 | `$0.025` / 1K chars | `inworld/realtime-tts-2` |
 | `$0.037375` / 1K chars | `cartesia/sonic-3.5-2026-05-04` |
-| `$0.06` / 1K chars | `minimax/speech-2.8-turbo` |
-| `$0.10` / 1K chars | `elevenlabs/eleven_v3`, `minimax/speech-2.8-hd` |
+| `$0.10` / 1K chars | `elevenlabs/eleven_v3` |
 | `$0.15` / 1K chars | `hume/octave-1`, `hume/octave-2` |
 
 ## Output
@@ -281,7 +262,6 @@ Every active provider supports local import, registration listing, approval, ret
 | Provider | Active synthesis models | Remote catalog and lifecycle | Design | Clone |
 | --- | --- | ---: | ---: | ---: |
 | ElevenLabs | `eleven_v3` | Yes | Yes | Yes |
-| MiniMax | `speech-2.8-hd`, `speech-2.8-turbo` | Yes | Yes | Yes |
 | Grok | `grok-tts` | Yes | No | Yes |
 | Mistral | `voxtral-mini-tts-2603` | Yes | No | Yes |
 | OpenAI | `gpt-4o-mini-tts-2025-12-15` | No | No | Deferred |

@@ -41,7 +41,7 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   }
   const samplePaths = repeatableFlag(ctx, 'sample')
   if (samplePaths.length === 0) throw UsageError(`${provider} instant voice clone requires at least one --sample.`)
-  if ((provider === 'cartesia' || provider === 'minimax' || provider === 'grok' || provider === 'mistral') && samplePaths.length !== 1) throw UsageError(`${provider} instant voice clone requires exactly one --sample.`)
+  if ((provider === 'cartesia' || provider === 'grok' || provider === 'mistral') && samplePaths.length !== 1) throw UsageError(`${provider} instant voice clone requires exactly one --sample.`)
   const consentRecordRef = requiredFlag(ctx, 'consent-ref')
   const consent = await loadVoiceConsentRecord(managedVoiceAssetStore, consentRecordRef)
   if (consent.subjectKey !== subjectKey) throw UsageError('Voice clone consent subject does not match the requested subject.')
@@ -100,9 +100,7 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
       })
     : provider === 'cartesia'
         ? advancedProvider('cartesia', { resolveCartesiaProtectedAsset: resolveProtectedAsset })
-        : provider === 'minimax'
-          ? advancedProvider('minimax', { resolveMiniMaxProtectedAsset: resolveDurationProtectedAsset })
-          : provider === 'grok'
+        : provider === 'grok'
             ? advancedProvider('grok', { resolveGrokProtectedAsset: resolveDurationProtectedAsset })
             : advancedProvider('inworld', {
               inworldApiKey: resolveCredential('inworld', 'require', { stage: 'voice:inworld', description: 'Inworld instant voice clone' }),

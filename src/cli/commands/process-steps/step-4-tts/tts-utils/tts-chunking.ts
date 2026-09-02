@@ -11,7 +11,6 @@ export const TTS_CHUNK_CHARACTER_LIMITS = {
   cartesia: 2000,
   hume: 2000,
   grok: 2000,
-  minimax: 2000,
   inworld: 2000,
 } as const satisfies Record<TtsProvider, number | undefined>
 

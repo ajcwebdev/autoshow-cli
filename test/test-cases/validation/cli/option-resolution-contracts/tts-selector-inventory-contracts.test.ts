@@ -5,7 +5,7 @@ import { STANDALONE_TTS_PROVIDER_TARGETS } from '~/cli/flags/service-selector-no
 
 describe('option resolution contracts', () => {
   test('hosted TTS exposes exactly the active providers', () => {
-    expect(TTS_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'grok', 'mistral', 'openai', 'speechify', 'hume', 'cartesia', 'inworld'])
+    expect(TTS_PROVIDERS).toEqual(['elevenlabs', 'grok', 'mistral', 'openai', 'speechify', 'hume', 'cartesia', 'inworld'])
     expect(Object.keys(STANDALONE_TTS_PROVIDER_TARGETS)).toEqual([...TTS_PROVIDERS])
     expect(Object.keys(getModelRegistry().tts).sort()).toEqual([...TTS_PROVIDERS].sort())
   })

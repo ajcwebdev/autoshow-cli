@@ -12,7 +12,6 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
 
   return {
     elevenlabsModels: options.elevenlabsTtsModels ?? [],
-    minimaxModels: options.minimaxTtsModels ?? [],
     grokModels: options.grokTtsModels ?? [],
     mistralModels: options.mistralTtsModels ?? [],
     openaiModels: options.openaiTtsModels ?? [],
@@ -22,14 +21,6 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     inworldModels: options.inworldTtsModels ?? [],
     speakerVoiceRegistry,
     multiSpeakerRequested: multiSpeaker,
-    minimaxVoiceId: trimmed(options.minimaxTtsVoice),
-    minimaxLanguageBoost: trimmed(options.minimaxTtsLanguageBoost),
-    minimaxSpeed: options.minimaxTtsSpeed,
-    minimaxVolume: options.minimaxTtsVolume,
-    minimaxPitch: options.minimaxTtsPitch,
-    minimaxEmotion: trimmed(options.minimaxTtsEmotion),
-    minimaxEnglishNormalization: options.minimaxTtsEnglishNormalization === true,
-    minimaxPronunciations: options.minimaxTtsPronunciations?.map((item) => item.trim()).filter(Boolean),
     openaiVoiceId: trimmed(options.openaiVoiceId),
     openaiInstructions: trimmed(options.openaiTtsInstructions),
     openaiSpeed: options.openaiTtsSpeed,

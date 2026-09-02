@@ -151,7 +151,6 @@ export const defaultVoiceValue = (target: TtsTarget): string => {
   switch (target.service) {
     case 'openai': return 'alloy'
     case 'grok': return 'eve'
-    case 'minimax': return 'English_expressive_narrator'
     case 'hume': return 'Male English Actor'
     case 'cartesia': return 'f786b574-daa5-4673-aa0c-cbe3e8534c02'
     case 'elevenlabs': return ELEVENLABS_DEFAULT_VOICE_ID

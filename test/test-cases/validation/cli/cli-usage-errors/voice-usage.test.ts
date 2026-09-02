@@ -108,12 +108,12 @@ afterEach(() => {
 })
 
 test('voice capability sets match the active provider policy and reject retired TTS providers', async () => {
-  expect(VOICE_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'grok', 'mistral', 'openai', 'speechify', 'hume', 'cartesia', 'inworld'])
-  expect(VOICE_CATALOG_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'grok', 'mistral', 'speechify', 'hume', 'cartesia', 'inworld'])
+  expect(VOICE_PROVIDERS).toEqual(['elevenlabs', 'grok', 'mistral', 'openai', 'speechify', 'hume', 'cartesia', 'inworld'])
+  expect(VOICE_CATALOG_PROVIDERS).toEqual(['elevenlabs', 'grok', 'mistral', 'speechify', 'hume', 'cartesia', 'inworld'])
   expect(VOICE_LIFECYCLE_PROVIDERS).toEqual(VOICE_CATALOG_PROVIDERS)
-  expect(DESIGN_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'hume', 'inworld'])
-  expect(CLONE_PROVIDERS).toEqual(['elevenlabs', 'minimax', 'grok', 'mistral', 'cartesia', 'inworld'])
-  for (const provider of ['groq', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra']) {
+  expect(DESIGN_PROVIDERS).toEqual(['elevenlabs', 'hume', 'inworld'])
+  expect(CLONE_PROVIDERS).toEqual(['elevenlabs', 'grok', 'mistral', 'cartesia', 'inworld'])
+  for (const provider of ['minimax', 'groq', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra']) {
     await rejectVoice(
       ['voice', 'import', 'hero', '--provider', provider, '--model', 'retired-model', '--voice-id', 'retired-voice', '--provenance-ref', 'project:casting', '--price'],
       `${provider} is no longer supported for TTS or voice management.`
@@ -137,7 +137,6 @@ test('voice import and zero-call catalog validation accept their exact capabilit
   await writeCharacterVoiceBriefCatalog(root, { schemaVersion: 1, briefs: [brief] })
   const imports = [
     ['elevenlabs', 'eleven_v3', 'hpp4J3VqNfWAUOO0d1Us'],
-    ['minimax', 'speech-2.8-hd', 'English_expressive_narrator'],
     ['grok', 'grok-tts', 'eve'],
     ['mistral', 'voxtral-mini-tts-2603', 'voice-existing'],
     ['openai', 'gpt-4o-mini-tts-2025-12-15', 'alloy'],
@@ -173,7 +172,6 @@ test('voice design price planning accepts exactly the design-capable providers w
   await writeCharacterVoiceBriefCatalog(root, { schemaVersion: 1, briefs: [brief] })
   const designs = [
     ['elevenlabs', 'eleven_v3', 'eleven_ttv_v3'],
-    ['minimax', 'speech-2.8-hd', 'voice-design'],
     ['hume', 'octave-2', 'octave-1'],
     ['inworld', 'realtime-tts-2', 'realtime-tts-2'],
   ] as const
@@ -191,7 +189,6 @@ test('voice design price planning accepts exactly the design-capable providers w
 test('canonical audition planning resolves every active TTS provider', () => {
   const providers = [
     ['elevenlabs', 'eleven_v3', 'hpp4J3VqNfWAUOO0d1Us'],
-    ['minimax', 'speech-2.8-hd', 'English_expressive_narrator'],
     ['grok', 'grok-tts', 'eve'],
     ['mistral', 'voxtral-mini-tts-2603', 'voice-existing'],
     ['openai', 'gpt-4o-mini-tts-2025-12-15', 'alloy'],
@@ -243,7 +240,7 @@ test('voice clone explains each intentionally deferred workflow', async () => {
 test('voice design rejects catalog-only providers and unknown synthesis models', async () => {
   await rejectVoice(
     ['voice', 'design', 'hero', '--provider', 'cartesia', '--model', 'sonic-3.5-2026-05-04', '--creation-model', 'voice-design', '--description', 'Warm, weathered guide', '--preview-text', 'A short representative passage.', '--price'],
-    'Voice Design currently supports elevenlabs, minimax, hume, inworld; the selected provider has no implemented text-prompt design adapter.'
+    'Voice Design currently supports elevenlabs, hume, inworld; the selected provider has no implemented text-prompt design adapter.'
   )
   await rejectVoice(
     ['voice', 'import', 'hero', '--provider', 'elevenlabs', '--model', 'eleven_multilingual_v2', '--voice-id', 'hpp4J3VqNfWAUOO0d1Us', '--provenance-ref', 'project:casting', '--price'],

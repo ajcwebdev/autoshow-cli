@@ -14,8 +14,8 @@ describe('option resolution contracts', () => {
       }))).toThrow('Grok TTS request control flags require selecting grok TTS')
 
       expect(() => collectTtsTargets(buildOptsFromFlags({
-        'minimax-tts-emotion': 'calm'
-      }))).toThrow('MiniMax TTS request control flags require selecting minimax TTS')
+        'tts-speed': 'minimax=1.1'
+      }))).toThrow('minimax is no longer supported for TTS')
 
       expect(() => collectTtsTargets(buildOptsFromFlags({
         'tts-speed': 'deepgram=1.1'

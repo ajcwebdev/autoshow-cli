@@ -37,7 +37,7 @@ Selectors use `provider[=model]`. Repeat a flag to run more than one provider. F
 | OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `fal`, `replicate`.                                                   |
 | URL   | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`.                                                                                                                                      |
 | LLM   | Hosted: `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`. Write has no local LLM.                                                                                       |
-| TTS   | Hosted: `elevenlabs`, `minimax`, `grok`, `mistral`, `openai`, `speechify`, `hume`, `cartesia`, `inworld`.                                                                                                         |
+| TTS   | Hosted: `elevenlabs`, `grok`, `mistral`, `openai`, `speechify`, `hume`, `cartesia`, `inworld`.                                                                                                                    |
 | Image | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                       |
 | Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                                 |
 | Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                                       |
@@ -86,7 +86,7 @@ Hosted commands require the matching environment variable:
 | `ANTHROPIC_API_KEY`      | Anthropic write/OCR                        |
 | `GROQ_API_KEY`           | Groq write/STT                             |
 | `DEEPINFRA_API_KEY`      | DeepInfra STT/OCR                          |
-| `MINIMAX_API_KEY`        | MiniMax write/TTS/music                    |
+| `MINIMAX_API_KEY`        | MiniMax write/video/music                  |
 | `ELEVENLABS_API_KEY`     | ElevenLabs TTS/music                       |
 | `ASSEMBLYAI_API_KEY`     | AssemblyAI STT                             |
 | `GLADIA_API_KEY`         | Gladia STT                                 |

@@ -21,17 +21,6 @@ export const openaiTts = {
   resolveExpectedSpeaker: async () => OPENAI_DEFAULT_TTS_VOICE,
 } as const
 
-export const minimaxTts = {
-  provider: 'minimax',
-  ttsService: 'minimax',
-  envVarKey: 'MINIMAX_API_KEY',
-  envVarDescription: 'MiniMax TTS',
-  inputPath: naturalShortTtsInputPath,
-  inputTitle: naturalShortTtsInputTitle,
-  extraArgs: ['--tts-voice', 'English_expressive_narrator'],
-  resolveExpectedSpeaker: async () => 'English_expressive_narrator',
-} as const
-
 export const elevenlabsTts = {
   provider: 'elevenlabs',
   ttsService: 'elevenlabs',

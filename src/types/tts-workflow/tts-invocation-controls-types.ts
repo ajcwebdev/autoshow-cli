@@ -18,15 +18,6 @@ type TtsInvocationControlsByProvider = {
     textNormalization?: OptionalControl<string>
     pronunciationDictionaryLocators?: OptionalControl<readonly string[]>
   }>
-  minimax: Readonly<{
-    languageBoost?: OptionalControl<string>
-    speed?: OptionalControl<number>
-    volume?: OptionalControl<number>
-    pitch?: OptionalControl<number>
-    emotion?: OptionalControl<string>
-    englishNormalization?: OptionalControl<boolean>
-    pronunciations?: OptionalControl<readonly string[]>
-  }>
   grok: Readonly<{
     language?: OptionalControl<string>
     textNormalization?: OptionalControl<boolean>

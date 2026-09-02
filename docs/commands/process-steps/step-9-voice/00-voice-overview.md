@@ -20,7 +20,7 @@ bun autoshow comic reference-voice <subcommand> [flags]
 
 Available actions are `list`, `consent`, `import`, `design`, `clone`, `audition`, `approve`, `retire`, and `delete`. Bare `voice` and `comic reference-voice` run `list`. Run `bun autoshow voice <action> --help` for the exact action flags.
 
-`voice import`, local listing, approval, retirement, and audition support all nine active TTS providers: ElevenLabs, MiniMax, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, and Inworld. Remote catalog and lifecycle operations support all except OpenAI. Design supports ElevenLabs, MiniMax, Hume, and Inworld. API clone supports ElevenLabs, MiniMax, Grok, Mistral, Cartesia, and Inworld.
+`voice import`, local listing, approval, retirement, and audition support all eight active TTS providers: ElevenLabs, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, and Inworld. Remote catalog and lifecycle operations support all except OpenAI. Design supports ElevenLabs, Hume, and Inworld. API clone supports ElevenLabs, Grok, Mistral, Cartesia, and Inworld.
 
 Voice management reads authored profiles from `input/characters/character-voices.json`. Profiles are independent of the visual character catalog. A minimal catalog is:
 
@@ -49,7 +49,6 @@ Hosted voice-management providers need the same API keys as TTS:
 
 ```bash
 ELEVENLABS_API_KEY=...
-MINIMAX_API_KEY=...
 XAI_API_KEY=...
 MISTRAL_API_KEY=...
 OPENAI_API_KEY=...

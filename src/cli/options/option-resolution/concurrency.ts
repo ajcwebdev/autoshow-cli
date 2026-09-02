@@ -35,7 +35,6 @@ const isGrokOnlyHostedTtsSelection = (modelOptions: ResolvedModelOptions): boole
 
   return ![
     hasSelectedTarget(modelOptions.elevenlabsTtsModels),
-    hasSelectedTarget(modelOptions.minimaxTtsModels),
     hasSelectedTarget(modelOptions.mistralTtsModels),
     hasSelectedTarget(modelOptions.openaiTtsModels),
     hasSelectedTarget(modelOptions.speechifyTtsModels),

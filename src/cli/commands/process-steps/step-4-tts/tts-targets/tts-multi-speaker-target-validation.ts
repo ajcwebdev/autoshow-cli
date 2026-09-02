@@ -18,7 +18,6 @@ export const validateMultiSpeakerTtsSelection = (
 
   const allProviderModels = [
     { provider: 'elevenlabs' as const, models: selection.elevenlabsModels },
-    { provider: 'minimax' as const, models: selection.minimaxModels },
     { provider: 'grok' as const, models: selection.grokModels },
     { provider: 'mistral' as const, models: selection.mistralModels },
     { provider: 'openai' as const, models: selection.openaiModels },

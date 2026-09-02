@@ -12,7 +12,7 @@ Durable registry, lifecycle, and capability policy belongs to [ADR-010](../adr/A
 
 ## TTS refresh and catalog narrowing
 
-The provider-by-provider entries below preserve the 2026-08-19 refresh record. On 2026-08-29, AutoShow removed Groq, Gemini, Deepgram, Replicate, and fal from active TTS. On 2026-09-01, AutoShow removed Fish entirely and removed DeepInfra TTS while preserving DeepInfra STT and OCR. The active TTS surface now contains nine providers: ElevenLabs, MiniMax, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, and Inworld.
+The provider-by-provider entries below preserve the 2026-08-19 refresh record. On 2026-08-29, AutoShow removed Groq, Gemini, Deepgram, Replicate, and fal from active TTS. On 2026-09-01, AutoShow removed Fish entirely, removed DeepInfra TTS while preserving DeepInfra STT and OCR, and removed MiniMax TTS while preserving MiniMax write, video, and music. The active TTS surface now contains eight providers: ElevenLabs, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, and Inworld.
 
 **Provider 1: Speechify**
 
