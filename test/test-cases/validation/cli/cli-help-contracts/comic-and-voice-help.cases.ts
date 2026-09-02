@@ -37,6 +37,10 @@ export const registerComicAndVoiceHelpCases = (): void => {
     expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--qa, --no-qa')
     expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--max-repairs')
     expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--qa-only')
+    expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--continuity-qa')
+    expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--continuity-only')
+    expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--labels')
+    expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--trusted-anchor-panel')
     expect(result.stdout).toContain('final default: 1; sketch default: 6')
     expect(result.stdout).toContain('bun autoshow comic draft-scenes <script-path> --only panel-prompts')
     expect(result.stdout).not.toContain('[--target prompts|images|sketches|both]')
@@ -52,7 +56,10 @@ export const registerComicAndVoiceHelpCases = (): void => {
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('$ bun autoshow comic draft-scenes <script-path> [flags]')
     expect(getFlagGroupSection(result.stdout, 'Scene Drafting')).toContain('--only')
-    expect(result.stdout).toContain('structure|prompt|scene|panel-prompts')
+    expect(result.stdout).toContain('structure|prompt|blocking|scene|panel-prompts')
+    expect(getFlagGroupSection(result.stdout, 'Scene Drafting')).toContain('--blocking, --no-blocking')
+    expect(getFlagGroupSection(result.stdout, 'Scene Drafting')).toContain('--blocking-plan')
+    expect(getFlagGroupSection(result.stdout, 'Scene Drafting')).toContain('--rebind')
     const flagsSection = getCommandFlagsSection(result.stdout)
     expect(flagsSection).not.toContain('--panels')
     expect(flagsSection).not.toContain('--target')
@@ -83,6 +90,29 @@ export const registerComicAndVoiceHelpCases = (): void => {
     expect(getFlagGroupSection(reference.stdout, 'Reference Sheet')).toContain('--location')
     expect(reference.stdout).toContain('Exactly one of --character or --location is required')
     expect(getCommandFlagsSection(reference.stdout)).not.toContain('--panels')
+  })
+
+  test.concurrent('comic review-notes help is scoped to its one local mapping flag', async () => {
+    const review = await loadHelp(['comic', 'review-notes', '--help'])
+
+    expect(review.exitCode).toBe(0)
+    expect(review.stdout).toContain('$ bun autoshow comic review-notes <script-path> [flags]')
+    expect(getFlagGroupSection(review.stdout, 'Comic Review')).toContain('--notes')
+    expect(review.stdout).toContain('makes no provider call')
+    expect(getCommandFlagsSection(review.stdout)).not.toContain('--price')
+    expect(getCommandFlagsSection(review.stdout)).not.toContain('--image-model')
+  })
+
+  test.concurrent('comic review-sheet help is scoped to its one local export flag', async () => {
+    const sheet = await loadHelp(['comic', 'review-sheet', '--help'])
+
+    expect(sheet.exitCode).toBe(0)
+    expect(sheet.stdout).toContain('$ bun autoshow comic review-sheet <script-path> [flags]')
+    expect(getFlagGroupSection(sheet.stdout, 'Comic Review')).toContain('--export-doc')
+    expect(sheet.stdout).toContain('makes no provider call')
+    expect(getCommandFlagsSection(sheet.stdout)).not.toContain('--price')
+    expect(getCommandFlagsSection(sheet.stdout)).not.toContain('--image-model')
+    expect(getCommandFlagsSection(sheet.stdout)).not.toContain('--notes')
   })
 
   test.concurrent('comic help subcommand routing matches the --help flag output', async () => {

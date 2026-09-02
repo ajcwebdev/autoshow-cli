@@ -10,6 +10,7 @@ import {
   IMAGE_SIZE_HELP
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/image-size'
 import { IMAGE_PROMPT_VARIATIONS } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/prompt-variations'
+import { BLOCKING_HARD_CANDIDATE_STATUSES } from '~/cli/commands/process-steps/step-8-comic/schemas/blocking-plan-schemas'
 import {
   COMIC_GRID_PANEL_SIZE,
   DEFAULT_FINAL_PANELS_PER_IMAGE,
@@ -46,9 +47,31 @@ const comicQaFlags = {
   'max-repairs': strFlag(colorizeHelpDescription('Maximum repair attempts after the initial image; stagnation may restart once or stop early'), '2')
 } as const satisfies CliFlagsDefinition
 
+const generateImagesBlooperFlags = {
+  bloopers: boolFlag(colorizeHelpDescription('Copy every non-promoted panel attempt into output/bloopers/ with a provenance sidecar for the blooper reel; opt-in and governed by the project policy for retaining failed attempts')),
+} as const satisfies CliFlagsDefinition
+
+const generateImagesUnattendedFlags = {
+  'stop-on-provider-error': boolFlag(colorizeHelpDescription('Abort the remaining panels on the first provider error instead of continuing; already written attempts are preserved and the run exits non-zero')),
+  'credit-preflight': boolFlag(colorizeHelpDescription('Verify the provider credential and account credit with one zero-cost models request before any paid call; in --price mode it only reports that it would run')),
+} as const satisfies CliFlagsDefinition
+
+const generateImagesBlockingFlags = {
+  'blocking-hard-keys': strFlag(colorizeHelpDescription(`Blocking audit statuses promoted from advisory to hard QA failures as a comma list: ${BLOCKING_HARD_CANDIDATE_STATUSES.join('|')}; default empty leaves every blocking status advisory`)),
+  'blocking-layout-guide': boolFlag(colorizeHelpDescription('Attach the compiled screen-space marker guide to dense single-panel blocking requests; experimental and off by default')),
+} as const satisfies CliFlagsDefinition
+
 const draftScenesStageFlags = {
-  only: strFlag(colorizeHelpDescription('Run one stage: structure|prompt|scene|panel-prompts')),
-  'llm-model': strFlag(colorizeHelpDescription('Text model for scene drafting'), DEFAULT_LLM_MODEL)
+  only: strFlag(colorizeHelpDescription('Run one stage: structure|prompt|blocking|scene|panel-prompts')),
+  blocking: {
+    description: colorizeHelpDescription('Enable or disable the blocking-plan stage in a full run (default: enabled); --no-blocking drafts the scene plan-free'),
+    type: Boolean,
+    negatable: true
+  },
+  'blocking-plan': strFlag(colorizeHelpDescription('Import a hand-authored blocking plan JSON for the blocking stage instead of drafting one; makes no provider call')),
+  rebind: boolFlag(colorizeHelpDescription('Remap the existing blocking plan citations to the current structured script by segment content hash and report unresolved ones; requires --only blocking and makes no provider call')),
+  'reconcile-from-directives': boolFlag(colorizeHelpDescription('Apply the script\'s CAMERA, BREAK-180, COSTUME, and EXTRAS staging directives to the reviewed scene and blocking plan without an LLM call; panel splits and merges are rejected')),
+  'llm-model': strFlag(colorizeHelpDescription('Text model for blocking-plan and scene drafting'), DEFAULT_LLM_MODEL)
 } as const satisfies CliFlagsDefinition
 
 export const draftScenesFlags = {
@@ -84,6 +107,13 @@ const generateImagesForceFlag = {
   }
 } as const satisfies CliFlagsDefinition
 
+const generateImagesContinuityFlags = {
+  'continuity-qa': boolFlag(colorizeHelpDescription('Run the audit-only continuity judge beside the page judge; requires --qa-only')),
+  'continuity-only': boolFlag(colorizeHelpDescription('Skip the page judge and run only the continuity judge; requires --continuity-qa')),
+  labels: strFlag(colorizeHelpDescription('Human continuity labels JSON in the qa/continuity-labels.json shape; adds per-key precision and recall to the continuity report and requires --continuity-qa')),
+  'trusted-anchor-panel': strFlag(colorizeHelpDescription('Panel number the continuity audit anchors on instead of the labels file value or panel 1; requires --continuity-qa')),
+} as const satisfies CliFlagsDefinition
+
 export const generateImagesFlags = {
   ...withHelpGroup(generateImagesPanelFlags, 'comic-panels'),
   ...withHelpGroup({ 'image-model': comicImageFlags['image-model'] }, 'comic-image'),
@@ -91,6 +121,10 @@ export const generateImagesFlags = {
   ...withHelpGroup(generateImagesRevisionFlags, 'comic-image'),
   ...withHelpGroup({ size: comicImageFlags.size, quality: comicImageFlags.quality }, 'comic-image'),
   ...withHelpGroup(comicQaFlags, 'comic-qa'),
+  ...withHelpGroup(generateImagesBlockingFlags, 'comic-qa'),
+  ...withHelpGroup(generateImagesContinuityFlags, 'comic-qa'),
+  ...withHelpGroup(generateImagesBlooperFlags, 'comic-run'),
+  ...withHelpGroup(generateImagesUnattendedFlags, 'comic-run'),
   ...withHelpGroup(generateImagesForceFlag, 'comic-run'),
   ...withHelpGroup(comicConcurrencyFlag, 'comic-run'),
   ...withHelpGroup(comicPriceFlag, 'pricing')
@@ -142,6 +176,22 @@ const comicPresentationPriceFlag = {
 export const comicGenerateSlideshowFlags = {
   ...withHelpGroup(comicPresentationFlags, 'comic-presentation'),
   ...withHelpGroup(comicPresentationPriceFlag, 'pricing'),
+} as const satisfies CliFlagsDefinition
+
+const comicReviewNotesInputFlags = {
+  notes: strFlag(colorizeHelpDescription('Markdown review-notes file whose ### Panel NN headings hold the notes for each reviewed panel'))
+} as const satisfies CliFlagsDefinition
+
+export const comicReviewNotesFlags = {
+  ...withHelpGroup(comicReviewNotesInputFlags, 'comic-review')
+} as const satisfies CliFlagsDefinition
+
+const comicReviewSheetInputFlags = {
+  'export-doc': boolFlag(colorizeHelpDescription('Also write metadata/review/export-doc.md with one "### Panel NN" heading and image line per panel for a shared document'))
+} as const satisfies CliFlagsDefinition
+
+export const comicReviewSheetFlags = {
+  ...withHelpGroup(comicReviewSheetInputFlags, 'comic-review')
 } as const satisfies CliFlagsDefinition
 
 const referenceSketchSheetFlags = {

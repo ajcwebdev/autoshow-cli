@@ -26,6 +26,8 @@ const stripStructuredScriptNullableOptionals = (data: unknown): unknown => {
     return data
   }
 
+  delete data['staging']
+
   const document = data['document']
   if (isRecord(document)) {
     deleteNullProperty(document, 'label')
@@ -92,7 +94,8 @@ const stripStructuredScriptNullableOptionals = (data: unknown): unknown => {
 const formatStructuredScriptReviewPrompt = (
   sourceMarkdown: string,
   provisional: StructuredScriptData,
-  characterNames: readonly string[]
+  characterNames: readonly string[],
+  characterAliasGuidance: string
 ): string => {
   return [
     'Review the structured script JSON against the original markdown script and correct any mistakes.',
@@ -109,10 +112,11 @@ const formatStructuredScriptReviewPrompt = (
     '- Keep `rawMentions` limited to exact character mentions present in each beat text.',
     '- Keep `sourceSegments` as deterministic source coverage records; do not paraphrase or omit source segment text.',
     '- Preserve `scene.soundscape` exactly. Sound directives, cue IDs, anchors, source spans, and required/optional policy are derived locally and must never be invented or changed.',
+    '- Do not return `staging`. Staging directives (BLOCKING, CAMERA, BREAK-180, COSTUME, EXTRAS, SKIP-PANELS) are derived locally and restored after review; they are never beats or source segments.',
     '- Preserve the parser-assigned `location` object on every beat and source segment exactly. Location keys are resolved locally from the canonical catalog and must never be guessed or changed.',
     '- Keep beat indexes sequential starting at 1.',
     '- Keep `scriptSlug` and `sourceFile` aligned to the source file shown below.',
-    `- Resolve character aliases to canonical names: ${getCharacterAliasGuidance()}.`,
+    `- Resolve character aliases to canonical names: ${characterAliasGuidance}.`,
     '',
     `Allowed canonical character keys: ${characterNames.join(', ')}`,
     '',
@@ -128,16 +132,25 @@ const formatStructuredScriptReviewPrompt = (
   ].join('\n')
 }
 
+export type StructuredScriptReviewDependencies = {
+  runStructuredLlm?: typeof runComicStructuredLlm
+  characterKeys?: readonly string[]
+  characterAliasGuidance?: string
+}
+
 export const reviewStructuredScriptWithLlm = async (
   sourceMarkdown: string,
   provisional: StructuredScriptData,
   model: LlmModel,
-  scheduling: Parameters<typeof runComicStructuredLlm>[3] = {}
+  scheduling: Parameters<typeof runComicStructuredLlm>[3] = {},
+  dependencies: StructuredScriptReviewDependencies = {}
 ): Promise<{ structuredScript: StructuredScriptData; response: StructuredScriptReviewResponse; durationMs: number }> => {
-  const characterNames = getCharacterKeys()
-  const prompt = formatStructuredScriptReviewPrompt(sourceMarkdown, provisional, characterNames)
+  const characterNames = dependencies.characterKeys ?? getCharacterKeys()
+  const characterAliasGuidance = dependencies.characterAliasGuidance ?? getCharacterAliasGuidance()
+  const prompt = formatStructuredScriptReviewPrompt(sourceMarkdown, provisional, characterNames, characterAliasGuidance)
   const requestStart = Date.now()
-  const { text, metadata } = await runComicStructuredLlm(prompt, {
+  const runStructuredLlm = dependencies.runStructuredLlm ?? runComicStructuredLlm
+  const { text, metadata } = await runStructuredLlm(prompt, {
     schemaName: STRUCTURED_SCRIPT_JSON_SCHEMA_NAME,
     valibotSchema: StructuredScriptDataSchema,
     jsonSchema: buildStructuredScriptJsonSchema(characterNames).schema,
@@ -158,6 +171,7 @@ export const reviewStructuredScriptWithLlm = async (
       beatLocations: provisional.beats.map(beat => beat.location),
       sceneLocation: provisional.scene.location,
       sceneSoundscape: provisional.scene.soundscape,
+      ...(provisional.staging !== undefined ? { staging: provisional.staging } : {}),
     }
   )
 

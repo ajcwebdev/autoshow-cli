@@ -1,4 +1,4 @@
-import type { ComicGridSpec, ComicPanelSelection, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImagePromptVariation, LlmModel } from '~/types'
+import type { ComicGridSpec, ComicPanelSelection, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImagePromptVariation, LlmModel, OpenAIImageInputEstimate } from '~/types'
 
 type FinalImageQaRequest =
   | { enabled: false }
@@ -14,6 +14,7 @@ export type FinalImageEstimateRequestBase = {
   selectionSpecified: boolean
   variations: readonly ImagePromptVariation[]
   variationsSpecified: boolean
+  blockingLayoutGuide: boolean
   qa: FinalImageQaRequest
 }
 
@@ -124,10 +125,19 @@ export type ImagePricingEstimate = {
   hasUnknown: boolean
 }
 
+export type FinalImageInputEstimate = OpenAIImageInputEstimate & {
+  models: readonly ImageGenerationModel[]
+  initialCalls: number
+  initialReferenceInputs: number
+  maximumRepairCalls: number
+  maximumRepairReferenceInputs: number
+}
+
 export type FinalImagePricingEstimate = {
   primary: ImagePricingEstimate
   repair: ImagePricingEstimate | null
   judgeCost: number | null
+  imageInput: FinalImageInputEstimate | null
   maximumModeledCost: number | null
 }
 

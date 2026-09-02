@@ -1,10 +1,14 @@
 import { referenceSketchCommand } from '../comic-commands/reference-sketch/reference-sketch-command'
 import { draftScenesCommand } from '../comic-commands/draft-scenes/draft-scenes-command'
 import { generateImagesCommand } from '../comic-commands/generate-images/generate-images-command'
+import { reviewNotesCommand } from '../comic-commands/review/review-notes-command'
+import { reviewSheetCommand } from '../comic-commands/review/review-sheet-command'
 import {
   coerceAndValidateDraftScenes,
   coerceAndValidateGenerateImages,
   coerceAndValidateReferenceSketch,
+  coerceAndValidateReviewNotes,
+  coerceAndValidateReviewSheet,
 } from './cli-args'
 import { resolveComicScriptReference, resolveSceneSlug } from './project-paths'
 import {
@@ -15,6 +19,7 @@ import {
 } from './price-estimate'
 import { UsageError, rethrowAsUsage } from '~/utils/error-handler'
 import { withCharacterCatalog } from './character-reference-config'
+import { runComicCreditPreflight } from './credit-preflight'
 import type { CliCommandHandler } from '~/types'
 import { generateComicAudio } from '../comic-commands/generate-audio/generate-audio-command'
 import { generateComicSlideshow } from '../comic-commands/generate-slideshow/generate-slideshow-command'
@@ -69,12 +74,32 @@ export const handleGenerateImages: CliCommandHandler = async (ctx) => {
     hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: parsed.concurrencyMode ?? 'ramp' })
   }
   if (parsed.price) {
+    if (parsed.creditPreflight) await runComicCreditPreflight({ price: true })
     await estimateGenerateImagesPrice(options)
     l.report.result({ command: 'comic generate-images', price: true, sceneSlug }, 'Comic image price complete')
     return
   }
+  if (parsed.creditPreflight) await runComicCreditPreflight({})
   await generateImagesCommand(options)
   l.report.result({ command: 'comic generate-images', price: false, sceneSlug }, 'Comic image generation complete')
+}
+
+export const handleReviewNotes: CliCommandHandler = async (ctx) => {
+  const parsed = rethrowAsUsage(() => coerceAndValidateReviewNotes(ctx))
+  const scriptPath = await resolveComicScriptReferenceOrUsage(parsed.scriptPath)
+  const sceneSlug = resolveSceneSlug(scriptPath)
+  const result = await withCharacterCatalog(async () => await reviewNotesCommand({ scriptPath, sceneSlug, notesPath: parsed.notes }))
+  l.report.result({ command: 'comic review-notes', price: false, sceneSlug }, 'Comic review notes complete')
+  return void result
+}
+
+export const handleReviewSheet: CliCommandHandler = async (ctx) => {
+  const parsed = rethrowAsUsage(() => coerceAndValidateReviewSheet(ctx))
+  const scriptPath = await resolveComicScriptReferenceOrUsage(parsed.scriptPath)
+  const sceneSlug = resolveSceneSlug(scriptPath)
+  const result = await reviewSheetCommand({ scriptPath, sceneSlug, ...(parsed.exportDoc ? { exportDoc: true } : {}) })
+  l.report.result({ command: 'comic review-sheet', price: false, sceneSlug }, 'Comic review sheet complete')
+  return void result
 }
 
 export const handleGenerateAudio: CliCommandHandler = async (ctx) => {

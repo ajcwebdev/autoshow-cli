@@ -246,6 +246,7 @@ const ImageModelSchema = v.strictObject({
   description: v.string(),
   ...PricingProvenanceFields,
   costPerImageCents: v.number(),
+  imageInputCostPer1MCents: v.optional(v.number(), undefined),
   referenceImages: v.optional(ImageReferenceCapabilitiesSchema, undefined),
   estimation: v.optional(v.object({
     costMultiplier: v.optional(v.number(), undefined),

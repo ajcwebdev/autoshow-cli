@@ -1,7 +1,8 @@
 import * as v from 'valibot'
 import { mkdir, readdir } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
-import type { ImageGenerationQuality, ImageGenerationSize, LocationReferenceCommandDependencies, LocationReferenceContext, LocationReferenceEntry, LocationReferencePreparation, LocationView, LocationViewGeneration, LocationViewQaReport, LocationViewQaResult, ReferenceSketchCommandOptions, ResolvedLocationReferenceRequest } from '~/types'
+import type { ImageGenerationQuality, ImageGenerationSize, LocationPlanEntry, LocationReferenceCommandDependencies, LocationReferenceContext, LocationReferenceEntry, LocationReferencePreparation, LocationSketchViewRegistration, LocationView, LocationViewCameraFacts, LocationViewGeneration, LocationViewJudgeInput, LocationViewQaReport, LocationViewQaResult, ReferenceSketchCommandOptions, ResolvedLocationReferenceRequest } from '~/types'
+import * as appLog from '~/utils/app-logger/app-logger'
 import { createImage } from '../../comic-image-services/comic-image-targets'
 import { writeGeneratedImage } from '../../comic-image-services/image-writer'
 import { checksumFile } from '../process-scenes/character-utils'
@@ -17,7 +18,9 @@ import { UsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
-import { getLocationsRoot, LOCATION_KEY_PATTERN, LOCATION_VIEWS, normalizeLocationKey, readLocationReferenceCatalog, readLocationSketchManifest, requireCurrentLocationReference, resolveRegisteredLocationImagePath } from '../../comic-utils/location-reference'
+import { describeMixedLocationLineage, getLocationsRoot, LOCATION_KEY_PATTERN, LOCATION_VIEWS, normalizeLocationKey, readLocationReferenceCatalog, readLocationSketchManifest, requireCurrentLocationReference, resolveLocationViewLineage, resolveRegisteredLocationImagePath } from '../../comic-utils/location-reference'
+import { findLocationPlan, readLocationPlans } from '../../comic-utils/location-plan-records'
+import { cameraHeadingDeg, nearestRegisteredView, normalizeDegrees, projectAnchor, projectPoint, round2 } from '../../comic-utils/blocking-geometry'
 import { promoteLocationRegistrationTransaction } from './location-reference-transaction'
 import { atomicWriteJson } from '~/utils/filesystem'
 
@@ -25,6 +28,64 @@ const CAMERA_CONTRACTS: Record<LocationView, string> = {
   establishing: 'Use a standing eye-level wide three-quarter establishing camera that clearly explains the location layout, depth, major fixed anchors, and traversable space. Keep the camera at adult standing height; never use aerial, isometric, overhead, bird\'s-eye, or plan views.',
   reverse: 'Use a materially opposite reverse camera looking back across the same space toward the establishing camera position. Reveal the reverse faces of fixed anchors and do not repeat or mirror the establishing composition.',
   side: 'Use a materially perpendicular side camera across the same space. Reveal a lateral relationship that neither the establishing nor reverse view shows; do not repeat, mirror, or slightly pan an existing composition.',
+}
+
+const IDEAL_VIEW_HEADINGS: Record<LocationView, readonly number[]> = { establishing: [0], reverse: [180], side: [90, 270] }
+const SYNTHETIC_CAMERA_HEIGHT_M = 1.6
+const SYNTHETIC_CAMERA_INSET_M = 0.5
+const CAMERA_FACTS_LENS = 'wide' as const
+
+const angularDistanceDeg = (a: number, b: number): number => {
+  const difference = Math.abs(normalizeDegrees(a) - normalizeDegrees(b))
+  return Math.min(difference, 360 - difference)
+}
+
+const describeHeading = (view: LocationView): string => view === 'reverse'
+  ? 'looking back toward the establishing camera position'
+  : view === 'side'
+    ? 'looking laterally across the room, perpendicular to the establishing axis'
+    : 'looking into the room from the establishing camera position'
+
+const syntheticCameraCell = (plan: LocationPlanEntry, view: LocationView): LocationViewCameraFacts['cameraCell'] => {
+  const { width, depth } = plan.roomExtent
+  const inset = Math.min(SYNTHETIC_CAMERA_INSET_M, depth / 4, width / 4)
+  const position = view === 'side'
+    ? { x: round2(width / 2 - inset), y: round2(depth / 2) }
+    : { x: 0, y: round2(depth - inset) }
+  return { id: `synthetic-${view}`, position, heightM: SYNTHETIC_CAMERA_HEIGHT_M, synthetic: true }
+}
+
+export const buildLocationViewCameraFacts = (plan: LocationPlanEntry, view: LocationView): LocationViewCameraFacts | undefined => {
+  if (view === 'establishing') return undefined
+  const target = { x: 0, y: round2(plan.roomExtent.depth / 2) }
+  const candidates = plan.cameraCells
+    .map(cell => {
+      const heading = cameraHeadingDeg({ position: cell.position, target, lens: CAMERA_FACTS_LENS })
+      return { cell: { id: cell.id, position: cell.position, heightM: cell.heightM, synthetic: false }, heading, deviation: Math.min(...IDEAL_VIEW_HEADINGS[view].map(ideal => angularDistanceDeg(heading, ideal))) }
+    })
+    .filter(candidate => nearestRegisteredView(candidate.heading) === view)
+    .sort((left, right) => left.deviation - right.deviation || left.cell.id.localeCompare(right.cell.id))
+  const cameraCell = candidates[0]?.cell ?? syntheticCameraCell(plan, view)
+  const setup = { position: cameraCell.position, target, lens: CAMERA_FACTS_LENS }
+  const establishingSetup = { position: { x: 0, y: 0 }, target, lens: CAMERA_FACTS_LENS }
+  const headingDeg = round2(cameraHeadingDeg(setup))
+  const anchors = plan.anchors.map(anchor => ({
+    key: anchor.key,
+    projection: projectAnchor(setup, anchor).projection,
+    establishingProjection: projectAnchor(establishingSetup, anchor).projection,
+    inFrame: projectPoint(setup, anchor.position).inFrame !== 'out',
+  }))
+  const inFrame = anchors.filter(anchor => anchor.inFrame)
+  const outOfFrame = anchors.filter(anchor => !anchor.inFrame)
+  const text = [
+    `Reviewed geometry for the ${view} view (frame: origin at the establishing camera's ground point, +x is screen-right in the establishing image, +y is depth away from the establishing camera, meters).`,
+    `Camera cell "${cameraCell.id}"${cameraCell.synthetic ? ' (synthesized from the reviewed room extent because no reviewed camera cell faces this way)' : ''} at x=${round2(cameraCell.position.x)} m, y=${round2(cameraCell.position.y)} m, ${round2(cameraCell.heightM)} m above the floor, aimed at the room center (x=${target.x} m, y=${target.y} m) with heading ${headingDeg} degrees, ${describeHeading(view)}.`,
+    `From this camera the reviewed anchors must appear as: ${inFrame.length > 0 ? inFrame.map(anchor => anchor.projection).join('; ') : 'none of the reviewed anchors fall inside the frame'}.`,
+    `Behind or beside this camera and therefore out of frame: ${outOfFrame.length > 0 ? outOfFrame.map(anchor => anchor.key).join('; ') : 'none'}.`,
+    `For contrast, the establishing view shows: ${anchors.map(anchor => anchor.establishingProjection).join('; ')}.`,
+    'Keep every anchor on the stated screen side and depth for this camera; never reproduce the establishing screen sides or the establishing camera axis.',
+  ].join(' ')
+  return { view, cameraCell, target, headingDeg, anchors, text }
 }
 
 const extractSceneLocation = (content: string): string | undefined => content.match(/^\*\*\s*((?:INT\.?|EXT\.?|INT\.?\/EXT\.?).*?)\s*\*\*\s*$/im)?.[1]
@@ -38,7 +99,7 @@ const collectMarkdown = async (directory: string): Promise<string[]> => {
   }))).flat().sort()
 }
 
-const collectLocationSourceScripts = async (key: string): Promise<Array<{ path: string; content: string }>> => {
+export const collectLocationSourceScripts = async (key: string): Promise<Array<{ path: string; content: string }>> => {
   const inputRoot = dirname(getLocationsRoot())
   const paths = await collectMarkdown(join(inputRoot, 'scripts'))
   const scripts = await Promise.all(paths.map(async path => ({ path, content: await Bun.file(path).text() })))
@@ -66,12 +127,18 @@ export const resolveLocationQaProvider = (model: string): 'openai' | 'gemini' =>
   return service
 }
 
-const judgeView = async (input: { imagePath: string; view: LocationView; specification: string; existingViewPaths: string[]; styleReference: string; model: string }): Promise<LocationViewQaResult> => {
+export const buildLocationViewJudgePrompt = (input: Pick<LocationViewJudgeInput, 'view' | 'specification' | 'cameraFacts'>): string => [
+  `Strictly judge this requested ${input.view} canonical location view. Camera contract: ${CAMERA_CONTRACTS[input.view]} It must match the stable features and visual language established by the supplied references, contain no people, copy no character/text/content from the style reference, preserve cross-view geometry, comply with the requested angle, and be materially distinct from every existing location view. For an establishing view with no existing location views, materiallyDistinctFromExistingViews must be true.`,
+  input.cameraFacts ? `Reviewed camera geometry for requestedAngleMatch and crossViewGeometryMatch: ${input.cameraFacts} Set requestedAngleMatch=false when the candidate's anchor screen sides or depth order contradict these projections or when it reproduces the establishing camera axis.` : undefined,
+  `Specification:\n${input.specification}`,
+].filter(Boolean).join(' ')
+
+const judgeView = async (input: LocationViewJudgeInput): Promise<LocationViewQaResult> => {
   const schema = { type: 'object', additionalProperties: false, properties: {
     pass: { type: 'boolean' }, stableFeaturesMatch: { type: 'boolean' }, crossViewGeometryMatch: { type: 'boolean' }, requestedAngleMatch: { type: 'boolean' }, materiallyDistinctFromExistingViews: { type: 'boolean' }, houseStyleMatch: { type: 'boolean' }, noPeople: { type: 'boolean' }, noCopiedStyleContent: { type: 'boolean' }, failedChecks: { type: 'array', items: { type: 'string' } }, editInstructions: { type: 'string' }, summary: { type: 'string' },
   }, required: ['pass', 'stableFeaturesMatch', 'crossViewGeometryMatch', 'requestedAngleMatch', 'materiallyDistinctFromExistingViews', 'houseStyleMatch', 'noPeople', 'noCopiedStyleContent', 'failedChecks', 'editInstructions', 'summary'] } as const
   const paths = [input.imagePath, ...input.existingViewPaths, input.styleReference]
-  const prompt = `Strictly judge this requested ${input.view} canonical location view. Camera contract: ${CAMERA_CONTRACTS[input.view]} It must match the stable features and visual language established by the supplied references, contain no people, copy no character/text/content from the style reference, preserve cross-view geometry, comply with the requested angle, and be materially distinct from every existing location view. For an establishing view with no existing location views, materiallyDistinctFromExistingViews must be true. Specification:\n${input.specification}`
+  const prompt = buildLocationViewJudgePrompt(input)
   const provider = resolveLocationQaProvider(input.model)
   const text = provider === 'openai'
     ? extractOpenAIResponseText(await createOpenAIResponse(getOpenAIClientConfig(), { model: input.model, input: [{ role: 'user', content: [
@@ -90,9 +157,10 @@ const judgeView = async (input: { imagePath: string; view: LocationView; specifi
   return JSON.parse(text) as LocationViewQaResult
 }
 
-const viewPrompt = (entry: LocationReferenceEntry, view: LocationView, revisionNotes?: string): string => [
+export const viewPrompt = (entry: LocationReferenceEntry, view: LocationView, revisionNotes?: string, cameraFacts?: string): string => [
   `Create one empty ${view} view of the canonical location "${entry.name}".`,
   CAMERA_CONTRACTS[view],
+  cameraFacts,
   `Stable specification:\n${entry.specification}`,
   view === 'establishing' ? 'Use the configured style reference strictly for its visual language. Do not copy its character, pose, setting, panels, labels, text, or narrative content.' : 'Use the existing canonical location views as geometry authorities. Show the same fixed space from the requested camera; do not redesign it.',
   'No people, humanoids, silhouettes, temporary props, action, damage, dialogue, captions, labels, or invented text.',
@@ -182,7 +250,15 @@ const loadLocationReferenceContext = async (
     ? uniquePaths([request.revise ? priorTarget && resolveRegisteredLocationImagePath(priorTarget.image) : undefined, stylePath])
     : uniquePaths([establishing?.imagePath, ...otherExisting.filter(item => item.view !== 'establishing').map(item => item.imagePath), stylePath])
   validateReferenceImageCount(request.model, freshReferences.length, `Initial location ${view} view`)
-  if (request.qaEnabled && request.maxRepairs > 0) validateReferenceImageCount(DEFAULT_IMAGE_MODEL, freshReferences.length + 1, `Location ${view} QA edit`)
+  if (request.qaEnabled && request.maxRepairs > 0) validateReferenceImageCount(request.model, freshReferences.length + 1, `Location ${view} QA edit`)
+  const lineageInputs: LocationSketchViewRegistration[] = view === 'establishing'
+    ? (request.revise && priorTarget ? [priorTarget] : [])
+    : [...(establishing ? [establishing] : []), ...otherExisting.filter(item => item.view !== 'establishing')]
+  const lineage = resolveLocationViewLineage(request.model, lineageInputs)
+  const lineageWarning = describeMixedLocationLineage(key, view, establishing)
+  if (lineageWarning) appLog.write('warn', lineageWarning, { category: 'command', metadata: { location: key, view, lineage } })
+  const plan = findLocationPlan(await readLocationPlans(), key)
+  const cameraFacts = plan ? buildLocationViewCameraFacts(plan, view) : undefined
   return {
     kind: 'ready',
     catalog,
@@ -193,6 +269,8 @@ const loadLocationReferenceContext = async (
     stylePath,
     otherExisting,
     freshReferences,
+    ...(cameraFacts ? { cameraFacts } : {}),
+    lineage,
   }
 }
 
@@ -237,11 +315,11 @@ const runLocationViewGeneration = async (
     const references = retryMode === 'edit' && current ? uniquePaths([current, ...context.freshReferences]) : context.freshReferences
     const repair = locationRepairPrompt(attempt, retryMode, lastQa)
     const path = join(attemptsRoot, `${view}-attempt-${attempt}.png`)
-    const attemptModel = retryMode === 'edit' ? DEFAULT_IMAGE_MODEL : model
+    const attemptModel = model
     const response = await runComicHostedRequest({
       concurrency: request.concurrency,
       hostedConcurrencyCoordinator: request.hostedConcurrencyCoordinator,
-    }, resolveComicImageProvider(attemptModel), 'comic-image', `location:${key}:${view}`, attempt, async () => await requestImage(`${viewPrompt(context.entry, view, request.notes)}\n\n${repair}`, references, attemptModel, size, quality))
+    }, resolveComicImageProvider(attemptModel), 'comic-image', `location:${key}:${view}`, attempt, async () => await requestImage(`${viewPrompt(context.entry, view, request.notes, context.cameraFacts?.text)}\n\n${repair}`, references, attemptModel, size, quality))
     await writeImage(path, response.result.imageBase64, response.result.mimeType)
     current = path
     if (!request.qaEnabled) break
@@ -249,7 +327,7 @@ const runLocationViewGeneration = async (
       lastQa = validateQaResult(await runComicHostedRequest({
         concurrency: request.concurrency,
         hostedConcurrencyCoordinator: request.hostedConcurrencyCoordinator,
-      }, resolveLocationQaProvider(request.qaModel), 'comic-qa', `location-qa:${key}:${view}`, attempt, async () => await judge({ imagePath: path, view, specification: context.entry.specification, existingViewPaths: context.otherExisting.map(item => item.imagePath), styleReference: context.stylePath, model: request.qaModel })))
+      }, resolveLocationQaProvider(request.qaModel), 'comic-qa', `location-qa:${key}:${view}`, attempt, async () => await judge({ imagePath: path, view, specification: context.entry.specification, existingViewPaths: context.otherExisting.map(item => item.imagePath), styleReference: context.stylePath, model: request.qaModel, ...(context.cameraFacts ? { cameraFacts: context.cameraFacts.text } : {}) })))
       await atomicWriteJson(join(attemptsRoot, `${view}-attempt-${attempt}-qa.json`), lastQa)
       qaReports.push({ view, attempt, retryMode, result: lastQa })
       await writeLocationQaReports(attemptsRoot, key, generationId, view, qaReports)
@@ -285,6 +363,7 @@ export const locationReferenceSketchCommand = async (
     generationId: generatedView.generationId,
     attemptsRoot: generatedView.attemptsRoot,
     stagedImagePath: generatedView.stagedImagePath,
+    lineage: preparedContext.lineage,
     ...(dependencies.promoteImage ? { promoteImage: dependencies.promoteImage } : {}),
     ...(dependencies.injectPromotionFault ? { injectFault: dependencies.injectPromotionFault } : {}),
   })

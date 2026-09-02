@@ -30,6 +30,7 @@ export const panelPromptsCommand = async (options: PanelPromptsCommandOptions): 
       sceneJsonPath,
       outputDir,
       concurrency: options.concurrency ?? DEFAULT_CLI_CONCURRENCY,
+      blocking: options.blocking,
     })
   } catch (error) {
     err('Scene processing failed:', error instanceof Error ? error.message : String(error))

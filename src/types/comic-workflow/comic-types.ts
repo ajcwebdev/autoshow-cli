@@ -1,5 +1,5 @@
 import type * as v from 'valibot'
-import type { ComicPanelSelection, DraftScenesCommandOptions, GenerateImagesCommandOptions } from '~/types'
+import type { ComicPanelSelection, DraftScenesCommandOptions, GenerateImagesCommandOptions, LocationView } from '~/types'
 
 export type ImageGenerationSize =
   | (typeof import('../image-workflow/image-services-image-types').IMAGE_GENERATION_SIZES)[number]
@@ -7,12 +7,21 @@ export type ImageGenerationSize =
 
 export type ImageGenerationQuality = (typeof import('../image-workflow/image-services-image-types').IMAGE_GENERATION_QUALITIES)[number]
 
+export type GeneratedImageUsage = {
+  imageInputUnits?: number | undefined
+  textInputUnits?: number | undefined
+  totalInputUnits?: number | undefined
+  outputUnits?: number | undefined
+  totalUnits?: number | undefined
+}
+
 export type GeneratedImageResponse = {
   mode: 'edit' | 'generate'
   result: {
     imageBase64: string
     mimeType?: string
   }
+  usage?: GeneratedImageUsage | undefined
 }
 
 export type ImageRunStats = {
@@ -63,6 +72,15 @@ export type ParsedGenerateBaseArgs = {
   promote?: 'clear-winners'
   qaModel?: ParsedLlmModel
   maxRepairs?: number
+  continuityQa?: boolean
+  continuityOnly?: boolean
+  labels?: string
+  trustedAnchorPanel?: number
+  blockingHardKeys?: NonNullable<GenerateImagesCommandOptions['blockingHardKeys']>
+  blockingLayoutGuide?: boolean
+  stopOnProviderError?: boolean
+  creditPreflight?: boolean
+  bloopers?: boolean
   concurrencyMode?: import('~/types').HostedConcurrencyMode
 }
 
@@ -82,6 +100,10 @@ export type ParsedDraftCommandArgs = {
   price?: boolean
   concurrency?: number
   concurrencyMode?: import('~/types').HostedConcurrencyMode
+  blocking?: boolean
+  blockingPlan?: string
+  rebind?: boolean
+  reconcileFromDirectives?: boolean
 }
 
 export type PanelBundleData = v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/schemas/schemas').PanelBundleDataSchema>
@@ -105,6 +127,8 @@ export type ResolvedReferenceImages = {
     specification: string
     referenceIndex: number
     path: string
+    view?: LocationView | undefined
+    supplementalViews?: Array<{ view: LocationView; referenceIndex: number; path: string; label: string }> | undefined
   }>
   designReferences?: Array<{
     key: string
@@ -112,9 +136,14 @@ export type ResolvedReferenceImages = {
     referenceIndex: number
     path: string
   }>
+  rosterCharacterReferences?: Array<{
+    key: string
+    name: string
+    path: string
+  }>
 }
 
 export type PrimaryCharacterReferenceState = Pick<
   ResolvedReferenceImages,
-  'primaryCharacterRefs' | 'missingPrimaryCharacterRefs' | 'characterReferences'
+  'primaryCharacterRefs' | 'missingPrimaryCharacterRefs' | 'characterReferences' | 'rosterCharacterReferences'
 >

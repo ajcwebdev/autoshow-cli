@@ -424,6 +424,9 @@ export const generateSceneSketches = async (
             }))
             const requestDurationMs = Date.now() - requestStart
             stats.totalDurationMs += requestDurationMs
+            stats.totalInputImageTokens += imageResponse.usage?.imageInputUnits ?? 0
+            stats.totalInputTextTokens += imageResponse.usage?.textInputUnits ?? 0
+            stats.totalOutputImageTokens += imageResponse.usage?.outputUnits ?? 0
 
             await writeImage(
               outputPath,

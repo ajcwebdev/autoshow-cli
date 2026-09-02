@@ -60,6 +60,13 @@ test('comic shorthand resolution errors name the expected directory and prefix',
     .rejects.toThrow('Expected exactly one Markdown file in "input/scripts/99-script" beginning with "01-"')
 })
 
+test('comic generate-images continuity flags require the QA-only audit chain', () => {
+  expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--continuity-only'])).toThrow('--continuity-only requires --continuity-qa')
+  expect(() => parseGenerateImagesArgs(['script.md', '--continuity-qa'])).toThrow('--continuity-qa requires --qa-only')
+  expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--labels', 'labels.json'])).toThrow('--labels requires --continuity-qa')
+  expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--continuity-qa', '--trusted-anchor-panel', 'two'])).toThrow('Invalid trusted anchor panel "two"')
+})
+
 test('comic generate-images rejects the prompts target as invalid', () => {
   expect(() => parseGenerateImagesArgs(['script.md', '--target', 'prompts'])).toThrow('Invalid target "prompts"')
 })

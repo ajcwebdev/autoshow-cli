@@ -4,7 +4,7 @@ import { mkdir, readdir } from 'node:fs/promises'
 import { extname, join, relative } from 'node:path'
 import type { ComicSourceIdentity, FinalPanelImageStageOptions, GenerateComicPagesOptions, GenerateImagesCommandOptions, GenerateImagesTarget, GenerateImagesWorkflowDependencies, GeneratePanelImagesOptions, ImageGenerationQuality, ImageGenerationSize, ImageRunStats, PipelineProviderState } from '~/types'
 import { DEFAULT_IMAGE_MODEL, validateImageSizeForModels } from '../../comic-utils/image-size'
-import { InfraError } from '~/utils/error-handler'
+import { InfraError, isAppError } from '~/utils/error-handler'
 import { ScenePromptDataSchema } from '../../schemas/schemas'
 import { comicLog, err, formatCompactCost, formatDuration, withSuppressedPipelineLogs } from '../../comic-utils/comic-logger'
 import { getPanelPromptsDirectory, getSceneJsonPath, getSceneMetadataDirectoryForWorkspace, getSceneOutputDirectory } from '../../comic-utils/project-paths'
@@ -56,6 +56,22 @@ const mergeImageStats = (target: ImageRunStats, source: ImageRunStats | void): v
   target.totalOutputUnattributedTokens += source.totalOutputUnattributedTokens
   target.totalCost += source.totalCost
   target.totalDurationMs += source.totalDurationMs
+}
+
+const failedImageRunStatsFromError = (error: unknown): ImageRunStats | undefined => {
+  const seen = new Set<unknown>()
+  let current: unknown = error
+  while (current instanceof Error && !seen.has(current)) {
+    seen.add(current)
+    if (isAppError(current)) {
+      const stats = current.metadata['imageRunStats']
+      if (stats && typeof stats === 'object' && !Array.isArray(stats) && typeof (stats as Record<string, unknown>)['imagesGenerated'] === 'number') return stats as ImageRunStats
+      current = current.cause
+    } else {
+      current = (current as Error & { cause?: unknown }).cause
+    }
+  }
+  return undefined
 }
 
 const collectImageArtifactRefs = async (sceneRunDir: string): Promise<Array<{ path: string, sha256: string }>> => {
@@ -118,6 +134,7 @@ const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Pr
         concurrencyMode: options.concurrencyMode,
         ...(options.panels !== undefined ? { panels: options.panels } : {}),
         ...(options.variations !== undefined ? { variations: options.variations } : {}),
+        ...(options.blockingLayoutGuide === true ? { blockingLayoutGuide: true } : {}),
       })
       const gridStats = await generateComicGridPages(sceneSlug, {
         models,
@@ -165,6 +182,10 @@ const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Pr
         qa: options.qa ?? true,
         ...(options.qaModel ? { qaModel: options.qaModel } : {}),
         maxRepairs: options.maxRepairs ?? 2,
+        ...(options.blockingHardKeys?.length ? { blockingHardKeys: options.blockingHardKeys } : {}),
+        ...(options.blockingLayoutGuide === true ? { blockingLayoutGuide: true } : {}),
+        ...(options.stopOnProviderError === true ? { stopOnProviderError: true } : {}),
+        ...(options.bloopers === true ? { bloopers: true } : {}),
       }
       return await generatePanelImages(sceneSlug, generationOptions)
     }
@@ -272,13 +293,18 @@ const runGenerateImagesCommand = async (
     comicLog.summary([
       `judged=${audit.entries.length}`,
       `hardFailures=${audit.entries.filter(entry => entry.hardFailure).length}`,
+      audit.continuity ? `continuityJudged=${audit.continuity.judged}` : undefined,
+      audit.continuity ? `continuityFindings=${audit.continuity.hardFailures}` : undefined,
+      audit.continuity ? `continuityAnchor=${audit.continuity.anchorPanel}` : undefined,
       'imageCalls=0',
       'repairCalls=0',
       `tokens=${(audit.inputTokens + audit.outputTokens).toLocaleString()}`,
       `cost=${formatCompactCost(audit.costUsd)}`,
       `duration=${formatDuration(Date.now() - startedAt)}`,
+      'imageInputUnits=0',
     ])
     comicLog.outputDirectory(audit.reportDirectory)
+    if (audit.continuity) comicLog.outputDirectory(join(sceneRunDir, audit.continuity.reportDirectory))
     return
   }
   if (options.revisionPlan) {
@@ -292,6 +318,7 @@ const runGenerateImagesCommand = async (
       `tokens=${(totals.totalInputTokens + totals.totalOutputTokens).toLocaleString()}`,
       `cost=${formatCompactCost(totals.totalCost)}`,
       `duration=${formatDuration(Date.now() - startedAt)}`,
+      `imageInputUnits=${totals.totalInputImageTokens.toLocaleString()}`,
     ])
     comicLog.outputDirectory(sceneRunDir)
     return
@@ -368,6 +395,7 @@ const runGenerateImagesCommand = async (
       mergeImageStats(totals, imageStats)
     }
   } catch (error) {
+    mergeImageStats(totals, failedImageRunStatsFromError(error))
     await updateImageManifest('failed', error)
     throw error
   }
@@ -380,6 +408,7 @@ const runGenerateImagesCommand = async (
     `cost=${formatCompactCost(totals.totalCost)}`,
     `api=${formatDuration(totals.totalDurationMs)}`,
     `duration=${formatDuration(Date.now() - startedAt)}`,
+    `imageInputUnits=${totals.totalInputImageTokens.toLocaleString()}`,
   ])
   comicLog.outputDirectory(sceneRunDir)
 }

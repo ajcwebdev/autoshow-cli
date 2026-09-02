@@ -3,14 +3,15 @@ import { dirname, join } from 'node:path'
 import type {
   GenerateWithQaRepairInput,
   GenerateWithQaRepairResult,
+  FailedQaRepairEvidence,
   PageQaEntry,
+  PageQaRepairDecision,
   PageQaRequest,
   QaRepairCostEntry,
   RepairCandidateComparisonJudgment,
 } from '~/types'
-import { ValidationError } from '~/utils/error-handler'
-import { advancePageQaRepairStagnation, applyPageQaRepairPolicy, createPageQaRepairStagnationState, decidePageQaRepairDispatch, readReusablePageQaEntry, resolveComicQaProvider } from './comic-page-qa'
-import { DEFAULT_IMAGE_MODEL } from '../../comic-utils/image-size'
+import { isAppError, ValidationError } from '~/utils/error-handler'
+import { advancePageQaRepairStagnation, applyPageQaRepairPolicy, createPageQaRepairStagnationState, decidePageQaRepairDispatch, getPageQaHardFailureKeys, isBlockingMaterialFailure, readReusablePageQaEntry, resolveComicQaProvider } from './comic-page-qa'
 import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 import { estimateLlmCostFromRegistry } from '../../comic-utils/structured-script-utils/llm-cost'
 import { buildComicRepairComparisonPrompt, decideComicRepairCandidate, parseComicRepairComparison, requestComicRepairComparison } from './comic-repair-comparison'
@@ -21,16 +22,30 @@ type QaAttemptTotals = {
   totalOutputTokens: number
   totalCostUsd: number
   imagesGenerated: number
+  imageInputUnits: number
+  textInputUnits: number
+  imageOutputUnits: number
   costEntries: QaRepairCostEntry[]
 }
 
 type QaAttemptAction = 'edit' | 'restart'
+
+type QaRestartReason = 'blocking-class' | 'repeated-hard-failure' | 'comparison-rejected'
 
 const resultWithTotals = (
   status: GenerateWithQaRepairResult['status'],
   qaEntry: PageQaEntry | undefined,
   totals: QaAttemptTotals
 ): GenerateWithQaRepairResult => ({ status, qaEntry, ...totals })
+
+export const failedQaRepairEvidenceFromError = (error: unknown): FailedQaRepairEvidence | undefined => {
+  if (!isAppError(error)) return undefined
+  const evidence = error.metadata['qaRepairFailure']
+  if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) return undefined
+  const record = evidence as Record<string, unknown>
+  if (record['status'] !== 'failed' || typeof record['outputDirectory'] !== 'string') return undefined
+  return evidence as FailedQaRepairEvidence
+}
 
 const recordQaUsage = (totals: QaAttemptTotals, entry: PageQaEntry): void => {
   totals.totalInputTokens += entry.usage.inputTokens
@@ -61,6 +76,8 @@ const judgeQaImage = async (
     characterReferences: input.resolvedReferences.characterReferences,
     locationReferences: input.resolvedReferences.locationReferences,
     designReferences: input.resolvedReferences.designReferences as PageQaRequest['designReferences'],
+    ...(input.kind === 'panel' && input.resolvedReferences.rosterCharacterReferences?.length ? { rosterCards: input.resolvedReferences.rosterCharacterReferences } : {}),
+    ...(input.blockingHardKeys?.length ? { blockingHardKeys: input.blockingHardKeys } : {}),
     model: input.judgeModel,
   })
 )
@@ -104,8 +121,12 @@ const buildRepairPrompts = (
       ? `Edit the first image only. Preserve everything already correct. Original contract remains authoritative. Failed checks and actionable repairs:\n${panelDetails}`
       : `Edit the first image only. Preserve everything already correct. Fix these hard failures:\n${pageDetails}`
     : ''
+  const blocking = input.bundleData.panels.length === 1 ? input.bundleData.blocking : undefined
+  const blockingLedger = restartFromCanonicalReferences && blocking
+    ? `\n\nThe reviewed blocking ledger is authoritative for this panel:\n- ${blocking.lines.camera}\n${blocking.lines.ledger.map(line => `- ${line}`).join('\n')}\n- ${blocking.lines.offFrame}\n- ${blocking.lines.wardrobe}\n- ${blocking.lines.extras}\n- ${blocking.lines.dressing}\n- ${blocking.lines.anchors}`
+    : ''
   const restart = restartFromCanonicalReferences
-    ? `Generate a completely new image from the canonical references and original contract. Do not preserve, imitate, or edit any prior failed image; the previous edit sequence stagnated. Correct these unresolved hard failures:\n${repairDetails}`
+    ? `Generate a completely new image from the canonical references and original contract. Do not preserve, imitate, or edit any prior failed image; the previous attempt did not produce an acceptable contract improvement. Correct these unresolved hard failures:\n${repairDetails}${blockingLedger}`
     : ''
   return { repair, restart }
 }
@@ -123,7 +144,7 @@ const runGenerationAttempt = async (input: {
   const attemptPath = join(attemptsDirectory, `attempt-${attempt}.png`)
   const restartFromCanonicalReferences = attempt > 0 && input.action === 'restart'
   const prompts = buildRepairPrompts(request, input.qaEntry, attempt, input.action)
-  const attemptModel = attempt > 0 ? DEFAULT_IMAGE_MODEL : request.model
+  const attemptModel = request.model
   const requestStart = Date.now()
   const imageResponse = await runComicHostedRequest(
     request.options,
@@ -140,6 +161,9 @@ const runGenerationAttempt = async (input: {
     })
   )
   totals.totalDurationMs += Date.now() - requestStart
+  totals.imageInputUnits += imageResponse.usage?.imageInputUnits ?? 0
+  totals.textInputUnits += imageResponse.usage?.textInputUnits ?? 0
+  totals.imageOutputUnits += imageResponse.usage?.outputUnits ?? 0
   await request.writeImage(attemptPath, imageResponse.result.imageBase64, imageResponse.result.mimeType)
   totals.costEntries.push({ model: attemptModel, quality: request.options.quality, size: request.options.size })
   totals.imagesGenerated += 1
@@ -155,7 +179,8 @@ const evaluateGenerationAttempt = async (input: {
   attemptsDirectory: string
   stagnationState: ReturnType<typeof createPageQaRepairStagnationState>
   totals: QaAttemptTotals
-}) => {
+  skipComparison: boolean
+}): Promise<{ qaEntry: PageQaEntry; decision: PageQaRepairDecision; blockingClassRestart: boolean }> => {
   let qaEntry: PageQaEntry
   try {
     qaEntry = await judgeQaImage(input.request, input.attemptPath)
@@ -164,8 +189,14 @@ const evaluateGenerationAttempt = async (input: {
     await Bun.write(join(input.attemptsDirectory, `attempt-${input.attempt}-qa-error.json`), `${JSON.stringify({ error: error instanceof Error ? error.message : String(error) }, null, 2)}\n`)
     throw error
   }
-  qaEntry = applyPageQaRepairPolicy({ ...qaEntry, outputFile: input.request.outputPath.split('/').at(-1)! }, input.attempt)
-  if (input.attempt > 0 && input.request.kind === 'panel' && input.baselinePath && input.baselineQaEntry?.result.panels[0]?.repairAssessment) {
+  const blockingHardKeys = input.request.blockingHardKeys ?? []
+  qaEntry = applyPageQaRepairPolicy({ ...qaEntry, outputFile: input.request.outputPath.split('/').at(-1)! }, input.attempt, blockingHardKeys)
+  const baselineHardFailures = input.baselineQaEntry ? getPageQaHardFailureKeys(input.baselineQaEntry, blockingHardKeys) : []
+  const candidateHardFailures = getPageQaHardFailureKeys(qaEntry, blockingHardKeys)
+  const baselineHardFailureSet = new Set(baselineHardFailures)
+  const candidateStrictlyDominates = baselineHardFailures.length > candidateHardFailures.length
+    && candidateHardFailures.every(failure => baselineHardFailureSet.has(failure))
+  if (!candidateStrictlyDominates && !input.skipComparison && input.attempt > 0 && input.request.kind === 'panel' && input.baselinePath && input.baselineQaEntry?.result.panels[0]?.repairAssessment) {
     const baselinePanel = input.baselineQaEntry.result.panels[0]
     const judgments: RepairCandidateComparisonJudgment[] = []
     const invalidPasses: Array<{ pass: 1 | 2; error: string }> = []
@@ -176,6 +207,7 @@ const evaluateGenerationAttempt = async (input: {
         targetedCorrection: baselinePanel?.editInstructions || 'Correct only the hard QA failure while preserving everything else.',
         preservationRequirements: baselinePanel?.repairAssessment?.preservationRequirements ?? [],
         panelData: input.request.bundleData,
+        blockingOnlyCorrection: isBlockingMaterialFailure(input.baselineQaEntry, blockingHardKeys),
       })
       const imagePaths = pass === 1
         ? [input.baselinePath, input.attemptPath, ...input.request.referenceImages]
@@ -210,16 +242,28 @@ const evaluateGenerationAttempt = async (input: {
     qaEntry = { ...qaEntry, repairComparison: { ...outcome, judgments, invalidPasses } }
     if (outcome.decision !== 'clear-winner') qaEntry = { ...qaEntry, repairPolicy: { action: 'retain-original', repeatedHardFailures: [], reason: outcome.reason } }
   }
-  const decision = advancePageQaRepairStagnation(input.stagnationState, qaEntry)
-  if (!qaEntry.repairPolicy && (decision.action === 'restart' || decision.action === 'stop')) qaEntry = { ...qaEntry, repairPolicy: { action: decision.action, repeatedHardFailures: decision.repeatedHardFailures } }
+  const decision = advancePageQaRepairStagnation(input.stagnationState, qaEntry, blockingHardKeys)
+  const blockingClassRestart = input.request.kind === 'panel'
+    && qaEntry.hardFailure
+    && !qaEntry.repairPolicy
+    && decision.action !== 'stop'
+    && input.attempt < input.request.maxRepairs
+    && isBlockingMaterialFailure(qaEntry, blockingHardKeys)
+  if (decision.action === 'stop') {
+    qaEntry = { ...qaEntry, repairPolicy: { action: 'stop', reason: decision.reason ?? 'repeated-hard-failure', repeatedHardFailures: decision.repeatedHardFailures } }
+  } else if (blockingClassRestart) {
+    qaEntry = { ...qaEntry, repairPolicy: { action: 'restart', reason: 'blocking-class', repeatedHardFailures: getPageQaHardFailureKeys(qaEntry, blockingHardKeys) } }
+  } else if (!qaEntry.repairPolicy && decision.action === 'restart') {
+    qaEntry = { ...qaEntry, repairPolicy: { action: 'restart', reason: decision.reason ?? 'repeated-hard-failure', repeatedHardFailures: decision.repeatedHardFailures } }
+  }
   await writeAttemptQaEvidence(input.attemptsDirectory, input.attempt, qaEntry)
-  return { qaEntry, decision }
+  return { qaEntry, decision, blockingClassRestart }
 }
 
 export const generateWithQaRepair = async (
   input: GenerateWithQaRepairInput
 ): Promise<GenerateWithQaRepairResult> => {
-  const totals: QaAttemptTotals = { totalDurationMs: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCostUsd: 0, imagesGenerated: 0, costEntries: [] }
+  const totals: QaAttemptTotals = { totalDurationMs: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCostUsd: 0, imagesGenerated: 0, imageInputUnits: 0, textInputUnits: 0, imageOutputUnits: 0, costEntries: [] }
   const preflight = await preflightExistingOutput(input, totals)
   if (preflight.result) return preflight.result
   let qaEntry = preflight.qaEntry
@@ -236,17 +280,25 @@ export const generateWithQaRepair = async (
   }
   let stagnationState = createPageQaRepairStagnationState()
   let action: QaAttemptAction = 'edit'
-  let stagnationStop: { attempt: number, repeatedHardFailures: string[] } | undefined
+  let restartReason: QaRestartReason | undefined
+  let stagnationStop: { attempt: number, repeatedHardFailures: string[], reason: PageQaRepairDecision['reason'] } | undefined
   let skippedRepair: { attempt: number; reason: string } | undefined
   let rejectedRepair: { attempt: number; reason: string } | undefined
+  const blockingHardKeys = input.blockingHardKeys ?? []
   if (input.qaEnabled && qaEntry?.hardFailure) {
-    const decision = advancePageQaRepairStagnation(stagnationState, qaEntry)
+    const decision = advancePageQaRepairStagnation(stagnationState, qaEntry, blockingHardKeys)
     stagnationState = decision.state
-    if (decision.action === 'restart') action = 'restart'
+    if (input.kind === 'panel' && input.maxRepairs > 0 && isBlockingMaterialFailure(qaEntry, blockingHardKeys)) {
+      action = 'restart'
+      restartReason = 'blocking-class'
+    } else if (decision.action === 'restart') {
+      action = 'restart'
+      restartReason = 'repeated-hard-failure'
+    }
   }
   const firstAttempt = input.outputExists ? 1 : 0
   for (let attempt = firstAttempt; attempt <= input.maxRepairs; attempt++) {
-    if (attempt > 0 && input.kind === 'panel' && qaEntry?.hardFailure) {
+    if (attempt > 0 && input.kind === 'panel' && qaEntry?.hardFailure && !(action === 'restart' && restartReason === 'blocking-class')) {
       const dispatch = decidePageQaRepairDispatch(qaEntry)
       if (dispatch.action === 'skip') {
         qaEntry = { ...qaEntry, repairPolicy: { action: 'skip', repeatedHardFailures: [], reason: dispatch.reason } }
@@ -263,33 +315,66 @@ export const generateWithQaRepair = async (
       await copyFile(attemptPath, input.outputPath)
       break
     }
-    const evaluated = await evaluateGenerationAttempt({ request: input, attempt, attemptPath, baselinePath, baselineQaEntry, attemptsDirectory, stagnationState, totals })
+    const skipComparison = attempt > 0 && action === 'restart' && restartReason === 'blocking-class'
+    const evaluated = await evaluateGenerationAttempt({ request: input, attempt, attemptPath, baselinePath, baselineQaEntry, attemptsDirectory, stagnationState, totals, skipComparison })
     qaEntry = evaluated.qaEntry
     stagnationState = evaluated.decision.state
     if (qaEntry.repairComparison?.decision !== undefined && qaEntry.repairComparison.decision !== 'clear-winner') {
-      rejectedRepair = { attempt, reason: qaEntry.repairComparison.reason }
-      if (baselineQaEntry) qaEntry = { ...baselineQaEntry, repairComparison: qaEntry.repairComparison, repairPolicy: { action: 'retain-original', repeatedHardFailures: [], reason: rejectedRepair.reason } }
+      const reason = qaEntry.repairComparison.reason
+      const repairComparison = qaEntry.repairComparison
+      if (evaluated.decision.action === 'stop') {
+        stagnationStop = { attempt, repeatedHardFailures: evaluated.decision.repeatedHardFailures, reason: evaluated.decision.reason }
+        if (baselineQaEntry) qaEntry = { ...baselineQaEntry, repairComparison, repairPolicy: { action: 'stop', reason: evaluated.decision.reason ?? 'repeated-hard-failure', repeatedHardFailures: evaluated.decision.repeatedHardFailures } }
+        break
+      }
+      if (baselineQaEntry) qaEntry = { ...baselineQaEntry, repairComparison: qaEntry.repairComparison, repairPolicy: { action: 'retain-original', repeatedHardFailures: [], reason } }
+      if (attempt < input.maxRepairs && baselinePath) {
+        currentPath = baselinePath
+        action = 'restart'
+        restartReason = 'comparison-rejected'
+        continue
+      }
+      rejectedRepair = { attempt, reason }
       break
     }
     if (!qaEntry.hardFailure) {
       await copyFile(attemptPath, input.outputPath)
       break
     }
-    if (evaluated.decision.action === 'stop') {
-      stagnationStop = { attempt, repeatedHardFailures: evaluated.decision.repeatedHardFailures }
+    if (!evaluated.blockingClassRestart && evaluated.decision.action === 'stop') {
+      stagnationStop = { attempt, repeatedHardFailures: evaluated.decision.repeatedHardFailures, reason: evaluated.decision.reason }
       break
     }
-    action = evaluated.decision.action === 'restart' ? 'restart' : 'edit'
+    if (evaluated.blockingClassRestart) {
+      action = 'restart'
+      restartReason = 'blocking-class'
+    } else if (evaluated.decision.action === 'restart') {
+      action = 'restart'
+      restartReason = 'repeated-hard-failure'
+    } else {
+      action = 'edit'
+      restartReason = undefined
+    }
   }
   if (input.qaEnabled && (qaEntry?.hardFailure || skippedRepair || rejectedRepair)) {
     const detail = skippedRepair
       ? `kept the current image because repair ${skippedRepair.attempt} was blocked by the conservative worthiness gate: ${skippedRepair.reason}`
       : rejectedRepair
         ? `kept the original because repair ${rejectedRepair.attempt} was not a unanimous regression-free improvement: ${rejectedRepair.reason}`
-        : stagnationStop
+        : stagnationStop?.reason === 'constraint-oscillation'
+          ? `stopped after repair ${stagnationStop.attempt} because the hard-failure set oscillated without a strict-subset improvement (${stagnationStop.repeatedHardFailures.join(', ')})`
+          : stagnationStop
       ? `stopped after repair ${stagnationStop.attempt} because ${stagnationStop.repeatedHardFailures.join(', ')} remained unresolved after a fresh canonical-reference restart`
       : `failed QA after ${input.maxRepairs} repairs`
-    throw ValidationError(`${input.kind === 'panel' ? 'Panel' : 'Page'} ${input.itemNumber} ${detail}; no canonical output was promoted.`, { stage: input.kind === 'panel' ? 'comic:panel-qa' : 'comic:page-qa' })
+    const failure: FailedQaRepairEvidence = {
+      ...resultWithTotals('failed', qaEntry, totals),
+      status: 'failed',
+      outputDirectory: dirname(input.outputPath),
+    }
+    throw ValidationError(`${input.kind === 'panel' ? 'Panel' : 'Page'} ${input.itemNumber} ${detail}; no canonical output was promoted.`, {
+      stage: input.kind === 'panel' ? 'comic:panel-qa' : 'comic:page-qa',
+      metadata: { qaRepairFailure: failure },
+    })
   }
   return resultWithTotals('generated', qaEntry, totals)
 }

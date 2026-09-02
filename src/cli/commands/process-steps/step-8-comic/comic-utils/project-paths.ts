@@ -41,6 +41,9 @@ export const getDesignReferencesDirectory = (sceneDirectory: string): string =>
 export const getStructuredScriptPath = (sceneSlug: string): string =>
   join(getSceneMetadataDirectoryForWorkspace(getSceneOutputDirectory(sceneSlug)), 'structured-script.json')
 
+export const getPreviousStructuredScriptPath = (sceneSlug: string): string =>
+  join(getSceneMetadataDirectoryForWorkspace(getSceneOutputDirectory(sceneSlug)), 'structured-script.previous.json')
+
 export const getDraftPromptPath = (sceneSlug: string): string =>
   join(getSceneMetadataDirectoryForWorkspace(getSceneOutputDirectory(sceneSlug)), 'draft-prompt.md')
 

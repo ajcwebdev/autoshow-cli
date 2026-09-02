@@ -61,7 +61,7 @@ export const writeInitialComicStructureManifest = async (input: {
     },
     presentation: {},
   }
-  const current = await readManifest(input.sceneRunDir)
+  const current = await readManifest(input.sceneRunDir, { verifyArtifacts: false })
   if (current) {
     if (current.command !== 'comic' || current.scope !== 'single' || current.items.length !== 1 || canonicalTtsJson(current.source) !== canonicalTtsJson(input.sourceIdentity)) {
       throw UsageError('Existing scene output does not belong to the exact canonical comic source; use a new run directory.')

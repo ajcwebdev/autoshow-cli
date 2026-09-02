@@ -164,12 +164,34 @@ input/characters/
   <canonical-source-image>
   <source-stem>--outline-sheet.png
 
+input/locations/
+  locations-reference.json
+  location-sketches.json
+  location-plans.json                # optional reviewed room geometry, hashed separately from the specification
+  plans/
+    <location-key>--floor-plan.png   # optional drawing behind a reviewed record
+
 output/<timestamp>_<scene-slug>/
   metadata/
     structured-script.json
+    structured-script.previous.json  # written only when a structure re-run replaces an existing script
     draft-prompt.md
     scene.json
     scene.invalid.json               # only when validation preserves invalid model output
+    blocking-prompt.md               # blocking drafter prompt, written by the prompt stage
+    blocking-plan.json               # reviewed stage marks and camera setups, written by the blocking stage
+    blocking-plan.invalid.json       # only when the blocking stage preserves an invalid plan candidate
+    blocking-bindings.json           # only in bind mode, when a reviewed scene.json predates the plan
+    blocking/                        # compiled by panel-prompts when a plan exists
+      plan-overview.svg
+      panel-NN.svg
+      panel-NN-layout.png             # dense ledgers only
+      blocking-ledger.md
+    review/                          # written by comic review-notes, review-sheet, and draft-scenes --reconcile-from-directives
+      review-notes-<run-id>.md
+      review-sheet.html
+      export-doc.md                  # only with comic review-sheet --export-doc
+      reconcile-<run-id>.json        # only with draft-scenes --reconcile-from-directives
     panel-prompts/
       source-coverage.json
       panel-NN/
@@ -182,10 +204,12 @@ output/<timestamp>_<scene-slug>/
           reference.<ext>             # when source and outline sheet are the same file
           sketch-sheet.png            # when source and outline sheet differ
           source.<ext>                # when source and outline sheet differ
-    location-references.json
+    location-references.json          # schemaVersion 3; readers still accept 2
     location-references/
       <snapshot-id>/
-        <location-key>--reference-sheet.png
+        <location-key>--establishing.png
+        <location-key>--reverse.png    # only when a reverse view is registered
+        <location-key>--side.png       # only when a side view is registered
     design-references.json           # only when reviewed panels declare design references
     design-references/
       <snapshot-id>/
@@ -193,6 +217,24 @@ output/<timestamp>_<scene-slug>/
   panels/
   pages/
   sketches/
+  qa/                                  # written only by generate-images --qa-only
+    panel-audit-<run-id>/
+      page-qa-report.json              # schemaVersion 6
+      page-qa-report.md
+      qa-only-audit.json
+    continuity-audit-<run-id>/         # only with --continuity-qa
+      stage-state.json
+      continuity-report.json
+      continuity-report.md
+      panel-NN-continuity.json
+    continuity-labels.json             # optional human labels, read by --labels; "labeled": false marks an unfilled template that --labels refuses
+
+<output-root>/bloopers/               # only with generate-images --bloopers; never canonical
+  bloopers.json
+  README.md
+  <episode>/<scene-slug>/
+    panel-NN-attempt-N.png
+    panel-NN-attempt-N.json
 ```
 
 ## Metadata

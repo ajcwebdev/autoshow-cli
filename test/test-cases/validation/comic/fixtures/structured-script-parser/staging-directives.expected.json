@@ -1,0 +1,417 @@
+{
+  "schemaVersion": 5,
+  "scriptSlug": "staging-directives",
+  "sourceFile": "input/staging-directives.md",
+  "sourceIdentity": {
+    "schemaVersion": 1,
+    "canonicalPath": "input/staging-directives.md",
+    "scriptSlug": "staging-directives",
+    "contentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "identityHash": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "document": {
+    "heading": "Episode Nine",
+    "title": "Episode Nine",
+    "metadata": [
+      {
+        "label": "Series",
+        "value": "AutoShow",
+        "raw": "Series: AutoShow"
+      }
+    ]
+  },
+  "scene": {
+    "heading": "Scene: \"Staging\"",
+    "section": "Scene",
+    "title": "Staging",
+    "location": {
+      "key": "cargo-bay",
+      "raw": "INT. CARGO BAY - NIGHT",
+      "type": "INT",
+      "place": "CARGO BAY - NIGHT"
+    },
+    "soundscape": {
+      "cues": [
+        {
+          "cueId": "fd3088486141abb0a8a7a8c3bca00042bc795dc47b5875604bdbbb6c55e06a71",
+          "kind": "action-sfx",
+          "prompt": "door hiss",
+          "required": true,
+          "anchor": {
+            "kind": "source-segment-edge",
+            "sourceSegmentId": "beat-0003",
+            "edge": "end",
+            "offsetMs": 0
+          },
+          "sourceSpan": {
+            "kind": "sound-effect",
+            "start": 711,
+            "end": 729,
+            "indexUnit": "unicode-scalar-value",
+            "text": "**SFX:** door hiss"
+          }
+        }
+      ],
+      "ambientBeds": []
+    }
+  },
+  "characterKeys": [
+    "captain",
+    "engineer"
+  ],
+  "beats": [
+    {
+      "index": 1,
+      "type": "direction",
+      "text": "The crew settles onto mismatched crates.",
+      "characterKeys": [],
+      "rawMentions": [],
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 274,
+          "end": 314,
+          "indexUnit": "unicode-scalar-value",
+          "text": "The crew settles onto mismatched crates."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "index": 2,
+      "type": "dialogue",
+      "text": "Everyone, listen up.",
+      "characterKeys": [
+        "captain"
+      ],
+      "rawMentions": [],
+      "speakerKey": "captain",
+      "speakerLabel": "CAPTAIN",
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 329,
+          "end": 349,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Everyone, listen up."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "index": 3,
+      "type": "dialogue",
+      "text": "We are listening.",
+      "characterKeys": [
+        "engineer"
+      ],
+      "rawMentions": [],
+      "speakerKey": "engineer",
+      "speakerLabel": "ENGINEER",
+      "delivery": "dry",
+      "sourceSpans": [
+        {
+          "kind": "delivery",
+          "start": 465,
+          "end": 468,
+          "indexUnit": "unicode-scalar-value",
+          "text": "dry"
+        },
+        {
+          "kind": "spoken-text",
+          "start": 472,
+          "end": 489,
+          "indexUnit": "unicode-scalar-value",
+          "text": "We are listening."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "index": 4,
+      "type": "direction",
+      "text": "Still ready.",
+      "characterKeys": [],
+      "rawMentions": [],
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 697,
+          "end": 709,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Still ready."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "index": 5,
+      "type": "panel-note",
+      "text": "COSTUME: this bracket note remains a panel note.",
+      "characterKeys": [],
+      "rawMentions": [],
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 858,
+          "end": 906,
+          "indexUnit": "unicode-scalar-value",
+          "text": "COSTUME: this bracket note remains a panel note."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "index": 6,
+      "type": "direction",
+      "text": "Stars wheel overhead.",
+      "characterKeys": [],
+      "rawMentions": [],
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 1041,
+          "end": 1062,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Stars wheel overhead."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    }
+  ],
+  "sourceSegments": [
+    {
+      "id": "beat-0001",
+      "type": "direction",
+      "text": "The crew settles onto mismatched crates.",
+      "rawMarkdown": "The crew settles onto mismatched crates.",
+      "beatIndex": 1,
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 274,
+          "end": 314,
+          "indexUnit": "unicode-scalar-value",
+          "text": "The crew settles onto mismatched crates."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "id": "beat-0002",
+      "type": "dialogue",
+      "text": "Everyone, listen up.",
+      "rawMarkdown": "**CAPTAIN**\nEveryone, listen up.",
+      "beatIndex": 2,
+      "speakerKey": "captain",
+      "speakerLabel": "CAPTAIN",
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 329,
+          "end": 349,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Everyone, listen up."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "id": "beat-0003",
+      "type": "dialogue",
+      "text": "We are listening.",
+      "rawMarkdown": "**ENGINEER**\n(dry)\nWe are listening.",
+      "beatIndex": 3,
+      "speakerKey": "engineer",
+      "speakerLabel": "ENGINEER",
+      "delivery": "dry",
+      "sourceSpans": [
+        {
+          "kind": "delivery",
+          "start": 465,
+          "end": 468,
+          "indexUnit": "unicode-scalar-value",
+          "text": "dry"
+        },
+        {
+          "kind": "spoken-text",
+          "start": 472,
+          "end": 489,
+          "indexUnit": "unicode-scalar-value",
+          "text": "We are listening."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "id": "beat-0004",
+      "type": "direction",
+      "text": "Still ready.",
+      "rawMarkdown": "Still ready.",
+      "beatIndex": 4,
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 697,
+          "end": 709,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Still ready."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "id": "beat-0005",
+      "type": "panel-note",
+      "text": "COSTUME: this bracket note remains a panel note.",
+      "rawMarkdown": "[COSTUME: this bracket note remains a panel note.]",
+      "beatIndex": 5,
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 858,
+          "end": 906,
+          "indexUnit": "unicode-scalar-value",
+          "text": "COSTUME: this bracket note remains a panel note."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "id": "beat-0006",
+      "type": "direction",
+      "text": "Stars wheel overhead.",
+      "rawMarkdown": "Stars wheel overhead.",
+      "beatIndex": 6,
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 1041,
+          "end": 1062,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Stars wheel overhead."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    }
+  ],
+  "staging": {
+    "blocking": [
+      {
+        "lineIndex": 8,
+        "afterSegmentId": null,
+        "state": "meeting-open",
+        "location": "cargo-bay",
+        "text": "CAPTAIN stands at the loading door facing the crew. ENGINEER sits at the terminal screen-right of the door, facing the Captain."
+      },
+      {
+        "lineIndex": 40,
+        "afterSegmentId": "beat-0005",
+        "state": "state-2",
+        "location": "cargo-bay",
+        "text": "Engineer stands and crosses to the loading door, facing the Captain."
+      }
+    ],
+    "camera": [
+      {
+        "lineIndex": 18,
+        "afterSegmentId": "beat-0002",
+        "panel": "next",
+        "text": "Low and wide from behind the crew, looking at the Captain at the door."
+      }
+    ],
+    "axisBreaks": [
+      {
+        "lineIndex": 26,
+        "afterSegmentId": "beat-0003",
+        "panel": 2,
+        "text": "The argument turns into a free-for-all; cross the line so the room feels unmoored."
+      }
+    ],
+    "costume": [
+      {
+        "lineIndex": 30,
+        "afterSegmentId": "beat-0003",
+        "character": "pilot",
+        "text": "Flight jacket torn at the left sleeve from here on."
+      }
+    ],
+    "extras": [
+      {
+        "lineIndex": 36,
+        "afterSegmentId": "beat-0004",
+        "group": "villagers",
+        "count": 12,
+        "exclude": [
+          "children",
+          "readable signs"
+        ],
+        "text": "Mixed ages and heights; picket signs stay blank."
+      }
+    ],
+    "skipPanels": {
+      "lineIndex": 42,
+      "reason": "previously-on recap"
+    }
+  }
+}

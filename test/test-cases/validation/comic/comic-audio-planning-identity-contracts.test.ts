@@ -54,6 +54,34 @@ describe('comic audio phase 2 contracts', () => {
     expect((await readManifest(sceneRunDir))?.source).toEqual(directIdentity)
   })
 
+  test('re-stamps the structure manifest when the same source re-parses to different structured bytes', async () => {
+    const root = await makeTempDir('autoshow-comic-structure-restamp-')
+    const sceneRunDir = join(root, 'run')
+    const sourceBytes = '# Episode\n\n## Scene\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n'
+    const sourcePath = join(root, 'scene.md')
+    await writeFile(sourcePath, sourceBytes)
+    const identity = await createComicSourceIdentity(sourcePath, sourceBytes)
+    await mkdir(join(sceneRunDir, 'metadata'), { recursive: true })
+
+    const stamp = async (structured: ReturnType<typeof buildStructured>) => {
+      const bytes = `${canonicalTtsJson(structured)}\n`
+      const ref = createStructuredScriptArtifactRef(bytes)
+      await writeFile(join(sceneRunDir, ref.path), bytes)
+      return { manifest: await writeInitialComicStructureManifest({ sceneRunDir, createdAt: CREATED_AT, sourceIdentity: identity, structuredScript: ref }), ref }
+    }
+
+    const first = await stamp(buildStructured(identity, sourceBytes))
+    // An LLM re-review of the same canonical script segments it differently, so the structured artifact
+    // the manifest still references is replaced before the manifest is re-stamped.
+    const rereviewed = { ...buildStructured(identity, sourceBytes), reviewNote: 'resegmented' } as ReturnType<typeof buildStructured>
+    const second = await stamp(rereviewed)
+    expect(second.ref.sha256).not.toBe(first.ref.sha256)
+    const item = second.manifest.items[0]
+    const comic = item?.metadata['comic'] as unknown as { audio: { structuredScript: { sha256: string } } }
+    expect(comic.audio.structuredScript.sha256).toBe(second.ref.sha256)
+    expect((await readManifest(sceneRunDir))?.source).toEqual(identity)
+  })
+
   test('preserves incompatible nonempty pinned directory contents without partial initialization', async () => {
     const root = await makeTempDir('autoshow-comic-audio-pinned-initialize-')
     const sourcePath = join(root, 'scene.md')

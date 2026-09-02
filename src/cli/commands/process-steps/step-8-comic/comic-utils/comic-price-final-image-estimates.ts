@@ -31,7 +31,7 @@ export const estimateFinalPanelImagesPrice = async (options: GenerateImagesComma
       inventory: loaded.inventory,
       modeEstimate,
       qaWork,
-      pricing: estimateFinalImagePricing(request, modeEstimate, qaWork),
+      pricing: estimateFinalImagePricing(request, modeEstimate, qaWork, loaded.inventory),
     })
     return
   }
@@ -45,7 +45,7 @@ export const estimateFinalPanelImagesPrice = async (options: GenerateImagesComma
       inventory: loaded.inventory,
       modeEstimate,
       qaWork,
-      pricing: estimateFinalImagePricing(request, modeEstimate, qaWork),
+      pricing: estimateFinalImagePricing(request, modeEstimate, qaWork, loaded.inventory),
     })
   }
 }

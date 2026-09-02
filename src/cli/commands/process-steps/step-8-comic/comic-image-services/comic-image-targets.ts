@@ -6,7 +6,7 @@ import { resolveImageService, SERVICE_TO_IMAGE_MODELS_FIELD } from '../comic-uti
 import { validateImageSizeForModels } from '../comic-utils/image-size'
 import { validateReferenceImageCount } from '../comic-utils/reference-capabilities'
 import { UsageError, InfraError, InternalError } from '~/utils/error-handler'
-import type { GeneratedImageResponse, ImageGenOptions, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize } from '~/types'
+import type { GeneratedImageResponse, GeneratedImageUsage, ImageGenOptions, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, Step5Metadata } from '~/types'
 
 const GEMINI_SIZE_TO_ASPECT_RATIO: Record<string, string> = {
   '1536x1024': '3:2',
@@ -26,6 +26,17 @@ const mimeTypeFromExtension = (extension: string): string | undefined => {
     default:
       return undefined
   }
+}
+
+export const extractGeneratedImageUsage = (metadata: Pick<Step5Metadata, 'imageInputUnits' | 'textInputUnits' | 'totalInputUnits' | 'outputUnits' | 'totalUnits'>): GeneratedImageUsage | undefined => {
+  const usage: GeneratedImageUsage = {
+    ...(metadata.imageInputUnits !== undefined ? { imageInputUnits: metadata.imageInputUnits } : {}),
+    ...(metadata.textInputUnits !== undefined ? { textInputUnits: metadata.textInputUnits } : {}),
+    ...(metadata.totalInputUnits !== undefined ? { totalInputUnits: metadata.totalInputUnits } : {}),
+    ...(metadata.outputUnits !== undefined ? { outputUnits: metadata.outputUnits } : {}),
+    ...(metadata.totalUnits !== undefined ? { totalUnits: metadata.totalUnits } : {}),
+  }
+  return Object.keys(usage).length > 0 ? usage : undefined
 }
 
 const buildImageGenOptions = (
@@ -83,7 +94,7 @@ export const createImage = async (
 
   const scratchDir = await mkdtemp(join(tmpdir(), 'comic-image-'))
   try {
-    const { imagePaths } = await target.run(normalizedPrompt, scratchDir, options)
+    const { imagePaths, metadata } = await target.run(normalizedPrompt, scratchDir, options)
     const primaryPath = imagePaths[0]
     if (!primaryPath) {
       throw InfraError(`Image target for "${model}" produced no image`, { stage: 'comic:image' })
@@ -92,6 +103,7 @@ export const createImage = async (
     const imageBytes = Buffer.from(await Bun.file(primaryPath).arrayBuffer())
     const imageBase64 = imageBytes.toString('base64')
     const mimeType = mimeTypeFromExtension(extname(primaryPath))
+    const usage = extractGeneratedImageUsage(metadata)
 
     return {
       mode: referenceImages.length > 0 ? 'edit' : 'generate',
@@ -99,6 +111,7 @@ export const createImage = async (
         imageBase64,
         ...(mimeType ? { mimeType } : {}),
       },
+      ...(usage ? { usage } : {}),
     }
   } finally {
     await rm(scratchDir, { recursive: true, force: true })

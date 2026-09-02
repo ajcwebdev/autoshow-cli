@@ -83,6 +83,21 @@ const openAIFetch = createProviderRestClient<OpenAIFetchOptions, OpenAIRestError
     )
 })
 
+export const openAIGetRequest = async <T = Record<string, unknown>>(
+  config: OpenAIRestConfig,
+  path: string,
+  options: OpenAIRequestOptions = {}
+): Promise<T> => {
+  const response = await openAIFetch({
+    config,
+    path,
+    method: 'GET',
+    signal: options.signal,
+    errorMessagePrefix: options.errorMessagePrefix ?? 'OpenAI request failed'
+  })
+  return await readJsonResponse(response, options.errorMessagePrefix ?? 'OpenAI response') as T
+}
+
 export const openAIJsonRequest = async <T = Record<string, unknown>>(
   config: OpenAIRestConfig,
   path: string,

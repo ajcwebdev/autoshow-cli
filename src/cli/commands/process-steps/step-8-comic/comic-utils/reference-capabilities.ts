@@ -25,10 +25,12 @@ export const trimOptionalContinuityReferences = (
   model: ImageGenerationModel,
   required: readonly string[],
   optional: readonly string[],
+  options: { reserveSlots?: number | undefined } = {},
 ): { references: string[]; trimmed: string[] } => {
   validateReferenceImageCount(model, required.length, 'Required character references')
   const { maxInputs } = getReferenceImageCapabilities(model)
-  const available = Math.max(0, maxInputs - required.length)
+  const reserveSlots = Math.max(0, Math.floor(options.reserveSlots ?? 0))
+  const available = Math.max(0, maxInputs - required.length - reserveSlots)
   return {
     references: [...required, ...optional.slice(0, available)],
     trimmed: optional.slice(available),

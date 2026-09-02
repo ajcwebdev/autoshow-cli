@@ -1,5 +1,5 @@
 import type { DirectoryEntry } from '../runtime-core/filesystem-types'
-import type { HostedConcurrencyCoordinator, HostedConcurrencyMode, PageQaEntry, PageQaRequest, PanelBundleData, GeneratedImageResponse, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, LlmModel, RepairCandidateComparisonRequest, RepairCandidateComparisonResponse, StructuredScriptData } from '~/types'
+import type { BlockingHardCandidateStatus, HostedConcurrencyCoordinator, HostedConcurrencyMode, PageQaEntry, PageQaRequest, PanelBundleData, GeneratedImageResponse, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, LlmModel, RepairCandidateComparisonRequest, RepairCandidateComparisonResponse, StructuredScriptData } from '~/types'
 
 type ComicHostedConcurrencyOptions = {
   concurrencyMode?: HostedConcurrencyMode | undefined
@@ -47,6 +47,15 @@ type ComicPanelGenerationOptionsBase = {
   promote?: 'clear-winners'
   qaModel?: LlmModel
   maxRepairs?: number
+  continuityQa?: boolean
+  continuityOnly?: boolean
+  labels?: string
+  trustedAnchorPanel?: number
+  blockingHardKeys?: BlockingHardCandidateStatus[]
+  blockingLayoutGuide?: boolean
+  stopOnProviderError?: boolean
+  creditPreflight?: boolean
+  bloopers?: boolean
 }
 
 export type CharacterSketchCommandOptions = Omit<ComicImageCommandOptionsBase, 'force'> & {
@@ -70,11 +79,15 @@ export type ReferenceSketchCommandOptions = Omit<ComicImageCommandOptionsBase, '
 
 export type ParsedReferenceSketchArgs = ReferenceSketchCommandOptions & { showHelp: boolean; price?: boolean }
 
-export type DraftScenesStage = 'structure' | 'prompt' | 'scene' | 'panel-prompts'
+export type DraftScenesStage = 'structure' | 'prompt' | 'blocking' | 'scene' | 'panel-prompts'
 
 export type DraftScenesCommandOptions = ComicScriptSceneCommandOptionsBase & ComicLlmCommandOptionsBase & {
   only?: DraftScenesStage
   concurrency?: number
+  blocking?: boolean
+  blockingPlan?: string
+  rebind?: boolean
+  reconcileFromDirectives?: boolean
 }
 
 export type ComicLlmResponseUsage = {
@@ -120,7 +133,7 @@ export type GenerateImagesCommandOptions = ComicScriptSceneCommandOptionsBase
   }
 
 export type GeneratePanelImagesOptions = ComicImageRunOptionsBase
-  & Pick<ComicPanelGenerationOptionsBase, 'panels' | 'variations' | 'qa' | 'qaModel' | 'maxRepairs'>
+  & Pick<ComicPanelGenerationOptionsBase, 'panels' | 'variations' | 'qa' | 'qaModel' | 'maxRepairs' | 'blockingHardKeys' | 'blockingLayoutGuide' | 'stopOnProviderError' | 'bloopers'>
 
 export type ParsedGenerateImagesArgs = GenerateImagesCommandOptions & { showHelp: boolean; price?: boolean }
 
@@ -188,6 +201,7 @@ export type GenerateSketchesCommandOptions = ComicSceneCommandOptionsBase & Comi
 export type PanelPromptsCommandOptions = ComicSceneCommandOptionsBase & {
   force?: boolean
   concurrency?: number
+  blocking?: boolean
 }
 
 export type CharacterSketchView = (typeof import('~/cli/commands/process-steps/step-8-comic/comic-commands/process-scenes/character-utils').CHARACTER_SKETCH_VIEWS)[number]

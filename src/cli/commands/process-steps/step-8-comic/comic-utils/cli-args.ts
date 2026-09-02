@@ -19,7 +19,9 @@ import {
   parsePanelSelector,
   validateComicGridOptions,
 } from '../comic-commands/generate-images/comic-page-utils'
+import { BLOCKING_HARD_CANDIDATE_STATUSES } from '../schemas/blocking-plan-schemas'
 import type {
+  BlockingHardCandidateStatus,
   ComicParsedArgs,
   ParsedDraftCommandArgs,
   ParsedGenerateBaseArgs,
@@ -29,6 +31,8 @@ import type {
   ParsedImageSize,
   ParsedLlmModel,
   ParsedReferenceSketchArgs,
+  ParsedReviewNotesArgs,
+  ParsedReviewSheetArgs,
 } from '~/types'
 
 export const DEFAULT_LLM_MODEL = 'gpt-5.6-sol'
@@ -38,8 +42,10 @@ export const REFERENCE_SKETCH_COMMAND = 'reference-sketch'
 export const DRAFT_SCENES_COMMAND = 'draft-scenes'
 export const GENERATE_IMAGES_COMMAND = 'generate-images'
 export const GENERATE_AUDIO_COMMAND = 'generate-audio'
+export const REVIEW_NOTES_COMMAND = 'review-notes'
+export const REVIEW_SHEET_COMMAND = 'review-sheet'
 
-const DRAFT_SCENES_ONLY_VALUES = ['structure', 'prompt', 'scene', 'panel-prompts'] as const
+const DRAFT_SCENES_ONLY_VALUES = ['structure', 'prompt', 'blocking', 'scene', 'panel-prompts'] as const
 const GENERATE_IMAGES_TARGET_VALUES = ['images', 'sketches', 'both'] as const
 
 const IMAGE_QUALITY_OPTIONS = new Set<string>(IMAGE_GENERATION_QUALITIES)
@@ -145,6 +151,38 @@ export const coerceAndValidateDraftScenes = (parsed: ComicParsedArgs): ParsedDra
   }
   if (concurrency !== undefined) output.concurrency = parseConcurrencyValue(concurrency)
   output.concurrencyMode = parseHostedConcurrencyMode(concurrencyMode)
+  const blocking = enabledFlag(parsed, 'blocking')
+  if (blocking !== undefined) output.blocking = blocking
+  const blockingPlan = stringFlag(parsed, 'blocking-plan')
+  if (parsed.rawParsed.explicitFlags.has('blocking-plan') && !blockingPlan) throw UsageError('--blocking-plan requires a plan JSON file path')
+  if (blockingPlan !== undefined) output.blockingPlan = blockingPlan
+  if (enabledFlag(parsed, 'rebind') === true) output.rebind = true
+  if (enabledFlag(parsed, 'reconcile-from-directives') === true) output.reconcileFromDirectives = true
+  if (output.reconcileFromDirectives) {
+    if (output.only !== undefined) throw UsageError('--reconcile-from-directives cannot be combined with --only; it is a standalone no-provider pass over the reviewed scene')
+    if (output.rebind) throw UsageError('--reconcile-from-directives cannot be combined with --rebind')
+    if (output.blockingPlan !== undefined) throw UsageError('--reconcile-from-directives cannot be combined with --blocking-plan')
+  }
+  if (output.rebind && output.only !== 'blocking') throw UsageError('--rebind requires --only blocking')
+  if (output.rebind && output.blockingPlan !== undefined) throw UsageError('--rebind cannot be combined with --blocking-plan')
+  if (output.blockingPlan !== undefined && output.only !== undefined && output.only !== 'blocking') throw UsageError('--blocking-plan only applies to the blocking stage; use --only blocking or a full run')
+  if (output.blocking === false && (output.only === 'blocking' || output.blockingPlan !== undefined || output.rebind)) throw UsageError('--no-blocking cannot be combined with --only blocking, --blocking-plan, or --rebind')
+  return output
+}
+
+export const coerceAndValidateReviewNotes = (parsed: ComicParsedArgs): ParsedReviewNotesArgs => {
+  const scriptPath = readScriptPath(parsed)
+  if (!scriptPath?.trim()) throw UsageError(`comic ${REVIEW_NOTES_COMMAND} requires <script-path>.`)
+  const notes = stringFlag(parsed, 'notes')
+  if (!notes?.trim()) throw UsageError(`comic ${REVIEW_NOTES_COMMAND} requires --notes <path> pointing at a Markdown file with ### Panel NN headings`)
+  return { showHelp: false, scriptPath, notes }
+}
+
+export const coerceAndValidateReviewSheet = (parsed: ComicParsedArgs): ParsedReviewSheetArgs => {
+  const scriptPath = readScriptPath(parsed)
+  if (!scriptPath?.trim()) throw UsageError(`comic ${REVIEW_SHEET_COMMAND} requires <script-path>.`)
+  const output: ParsedReviewSheetArgs = { showHelp: false, scriptPath }
+  if (enabledFlag(parsed, 'export-doc') === true) output.exportDoc = true
   return output
 }
 
@@ -205,6 +243,16 @@ export const coerceAndValidateGenerateImages = (parsed: ComicParsedArgs): Parsed
   const grid = stringFlag(parsed, 'grid')
   const variation = stringFlag(parsed, 'variation')
   const qaOnly = enabledFlag(parsed, 'qa-only') === true
+  const blockingHardKeys = stringFlag(parsed, 'blocking-hard-keys')
+  const blockingLayoutGuide = enabledFlag(parsed, 'blocking-layout-guide') === true
+  if (blockingLayoutGuide) output.blockingLayoutGuide = true
+  if (enabledFlag(parsed, 'bloopers') === true) output.bloopers = true
+  if (enabledFlag(parsed, 'stop-on-provider-error') === true) output.stopOnProviderError = true
+  if (enabledFlag(parsed, 'credit-preflight') === true) output.creditPreflight = true
+  const continuityQa = enabledFlag(parsed, 'continuity-qa') === true
+  const continuityOnly = enabledFlag(parsed, 'continuity-only') === true
+  const labels = stringFlag(parsed, 'labels')
+  const trustedAnchorPanel = stringFlag(parsed, 'trusted-anchor-panel')
   const revisionPlan = stringFlag(parsed, 'revision-plan')
   const comparisonPasses = stringFlag(parsed, 'comparison-passes')
   const promote = stringFlag(parsed, 'promote')
@@ -264,9 +312,35 @@ export const coerceAndValidateGenerateImages = (parsed: ComicParsedArgs): Parsed
     if (output.variations !== undefined) throw UsageError('--qa-only cannot be combined with --variation')
     if (output.force) throw UsageError('--qa-only cannot be combined with --force')
     if (output.imageModels !== undefined || output.size !== undefined || output.quality !== undefined) throw UsageError('--qa-only does not accept image-generation options')
+    if (blockingLayoutGuide) throw UsageError('--qa-only cannot be combined with --blocking-layout-guide')
     output.qa = true
     output.maxRepairs = 0
     output.panelsPerImage = 1
+  }
+
+  if (blockingHardKeys !== undefined) {
+    const keys = blockingHardKeys.split(',').map(key => key.trim()).filter(key => key.length > 0)
+    if (keys.length === 0) throw UsageError(`Invalid blocking hard key list "${blockingHardKeys}". Expected a comma list of: ${BLOCKING_HARD_CANDIDATE_STATUSES.join(', ')}`)
+    for (const key of keys) {
+      if (!(BLOCKING_HARD_CANDIDATE_STATUSES as readonly string[]).includes(key)) {
+        throw UsageError(`Invalid blocking hard key "${key}". Expected one of: ${BLOCKING_HARD_CANDIDATE_STATUSES.join(', ')}`)
+      }
+    }
+    output.blockingHardKeys = [...new Set(keys)] as BlockingHardCandidateStatus[]
+  }
+
+  if (continuityOnly && !continuityQa) throw UsageError('--continuity-only requires --continuity-qa')
+  if (continuityQa && !qaOnly) throw UsageError('--continuity-qa requires --qa-only')
+  if (labels !== undefined && !continuityQa) throw UsageError('--labels requires --continuity-qa')
+  if (trustedAnchorPanel !== undefined && !continuityQa) throw UsageError('--trusted-anchor-panel requires --continuity-qa')
+  if (continuityQa) output.continuityQa = true
+  if (continuityOnly) output.continuityOnly = true
+  if (labels !== undefined) output.labels = labels
+  if (trustedAnchorPanel !== undefined) {
+    if (!isPositiveInteger(trustedAnchorPanel)) {
+      throw UsageError(`Invalid trusted anchor panel "${trustedAnchorPanel}". Expected a positive integer like 1`)
+    }
+    output.trustedAnchorPanel = Number(trustedAnchorPanel)
   }
 
   if (revisionPlan !== undefined) {
@@ -276,6 +350,7 @@ export const coerceAndValidateGenerateImages = (parsed: ComicParsedArgs): Parsed
     if (output.grid) throw UsageError('--revision-plan cannot be combined with --grid')
     if (output.variations !== undefined) throw UsageError('--revision-plan cannot be combined with --variation')
     if (output.force) throw UsageError('--revision-plan cannot be combined with --force')
+    if (blockingLayoutGuide) throw UsageError('--revision-plan cannot be combined with --blocking-layout-guide')
     if (output.qa === false) throw UsageError('--revision-plan cannot be combined with --no-qa')
     if (output.maxRepairs !== undefined && output.maxRepairs !== 0) throw UsageError('--revision-plan requires --max-repairs 0')
     if (output.imageModels !== undefined && (output.imageModels.length !== 1 || output.imageModels[0] !== 'gpt-image-2')) throw UsageError('--revision-plan supports only --image-model gpt-image-2')
@@ -297,6 +372,8 @@ export const coerceAndValidateGenerateImages = (parsed: ComicParsedArgs): Parsed
   if (output.variations !== undefined && !targetRunsFinalImages) {
     throw UsageError('--variation only applies when --target is images or both')
   }
+  if (blockingLayoutGuide && !targetRunsFinalImages) throw UsageError('--blocking-layout-guide only applies when --target is images or both')
+  if (blockingLayoutGuide && !output.grid && (output.panelsPerImage ?? DEFAULT_FINAL_PANELS_PER_IMAGE) !== 1) throw UsageError('--blocking-layout-guide requires --panels-per-image 1')
   validateImageSizeForModels(output.size, output.imageModels)
   validateComicGridOptions(output.grid, {
     target,

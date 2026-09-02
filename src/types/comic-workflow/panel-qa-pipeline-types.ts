@@ -1,4 +1,4 @@
-import type { ComicImageGenerationDependencies, GenerateComicPagesOptions, GeneratePanelImagesOptions, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, PageQaEntry, PanelBundleData } from '~/types'
+import type { BlockingHardKeyPolicy, ComicImageGenerationDependencies, GenerateComicPagesOptions, GeneratePanelImagesOptions, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, PageQaEntry, PageQaRosterCard, PanelBundleData } from '~/types'
 
 export type QaRepairCostEntry = {
   model: ImageGenerationModel
@@ -23,6 +23,7 @@ export type GenerateWithQaRepairInput = {
     designReferences?: Array<{ path: string; key?: string; referenceIndex?: number; usage?: string }> | undefined
     characterReferences?: Array<{ key: string; referenceIndex?: number; description: string }> | undefined
     locationReferences?: Array<{ key: string; referenceIndex?: number; specification: string }> | undefined
+    rosterCharacterReferences?: PageQaRosterCard[] | undefined
   }
   sceneSlug: string
   options: GeneratePanelImagesOptions | GenerateComicPagesOptions
@@ -33,16 +34,25 @@ export type GenerateWithQaRepairInput = {
   qaEnabled: boolean
   judgeModel: string
   maxRepairs: number
+  blockingHardKeys?: BlockingHardKeyPolicy | undefined
   nextHostedIndex: () => number
 }
 
 export type GenerateWithQaRepairResult = {
-  status: 'skipped' | 'generated'
+  status: 'skipped' | 'generated' | 'failed'
   qaEntry: PageQaEntry | undefined
   imagesGenerated: number
   totalDurationMs: number
   totalInputTokens: number
   totalOutputTokens: number
   totalCostUsd: number
+  imageInputUnits: number
+  textInputUnits: number
+  imageOutputUnits: number
   costEntries: QaRepairCostEntry[]
+}
+
+export type FailedQaRepairEvidence = GenerateWithQaRepairResult & {
+  status: 'failed'
+  outputDirectory: string
 }

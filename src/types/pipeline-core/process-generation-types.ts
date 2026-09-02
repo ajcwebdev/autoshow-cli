@@ -53,6 +53,11 @@ export type Step5Metadata = {
   providerModeration?: unknown
   providerCostCents?: number | undefined
   providerCostSource?: GenerationProviderCostSource | undefined
+  imageInputUnits?: number | undefined
+  textInputUnits?: number | undefined
+  totalInputUnits?: number | undefined
+  outputUnits?: number | undefined
+  totalUnits?: number | undefined
   hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
 }
 

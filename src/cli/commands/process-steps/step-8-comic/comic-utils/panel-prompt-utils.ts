@@ -2,11 +2,11 @@ import type { DirectoryEntry } from '~/types'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import * as v from 'valibot'
-import type { ComicPanelSource, ImageGenerationModel, LocationReferenceSnapshotManifest, PanelBundleData, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedLocationReference, ResolvedReferenceImages } from '~/types'
+import type { ComicPanelSource, ImageGenerationModel, LocationReferenceSnapshot, LocationReferenceSnapshotManifest, LocationView, PanelBundleData, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedLocationReference, ResolvedLocationReferenceView, ResolveLocationReferenceOptions, ResolvedReferenceImages } from '~/types'
 import { PanelBundleDataSchema } from '../schemas/schemas'
 import { loadAndVerifyCharacterReferenceSnapshot } from './character-reference-snapshot'
-import { resolveCharacterIdentityReferences } from './character-identity-card'
-import { getLocationReferenceSnapshotsPath, LOCATION_SNAPSHOTS_FILENAME, LOCATION_VIEWS } from './location-reference'
+import { resolveCharacterIdentityReferences, resolveRosterCharacterReferences } from './character-identity-card'
+import { describeLocationSnapshotView, getLocationReferenceSnapshotsPath, LOCATION_SNAPSHOT_READABLE_VERSIONS, LOCATION_SNAPSHOTS_FILENAME, LOCATION_VIEWS } from './location-reference'
 import { resolveDesignReferencesAcrossPanels } from './design-reference'
 export { resolveDesignReferencesAcrossPanels } from './design-reference'
 import { trimOptionalContinuityReferences } from './reference-capabilities'
@@ -61,27 +61,81 @@ export const resolvePrimaryCharacterReferencesAcrossPanels = (panels: PanelPrima
   const keys = orderedKeys(panels)
   const characterReferences = resolveCharacterIdentityReferences(runDirectory, manifest, keys, { compose: options.composeDerived !== false })
   const primaryCharacterRefs = characterReferences.map(reference => reference.path)
+  const rosterCharacterReferences = resolveRosterCharacterReferences(runDirectory, manifest, keys)
   return {
     primaryCharacterRefs,
     missingPrimaryCharacterRefs: [],
     characterReferences,
+    ...(rosterCharacterReferences.length > 0 ? { rosterCharacterReferences } : {}),
   }
 }
 
 export const resolvePrimaryCharacterReferences = (panelDirectory: string, entries: DirectoryEntry[], bundleData: PanelBundleData): PrimaryCharacterReferenceState =>
   resolvePrimaryCharacterReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
 
-export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[]): ResolvedLocationReference[] => {
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/
+
+const hasOrderedViewProvenance = (views: ReadonlyArray<{ view: LocationView; generationId: string; imageSha256: string }> | undefined): boolean => {
+  if (!Array.isArray(views) || views.length === 0 || views[0]?.view !== 'establishing') return false
+  if (!views.every(view => LOCATION_VIEWS.includes(view.view) && !!view.generationId && SHA256_HEX_PATTERN.test(view.imageSha256))) return false
+  const indices = views.map(view => LOCATION_VIEWS.indexOf(view.view))
+  return new Set(indices).size === indices.length && !indices.some((index, position) => position > 0 && index <= indices[position - 1]!)
+}
+
+const verifySnapshotAsset = (runDirectory: string, relativePath: string, expectedSha256: string): string => {
+  const assetPath = resolve(runDirectory, relativePath)
+  if (!existsSync(assetPath)) throw InfraError(`Location snapshot asset is missing: ${relativePath}`, { stage: 'comic:location-reference' })
+  const actual = new Bun.CryptoHasher('sha256').update(readFileSync(assetPath)).digest('hex')
+  if (actual !== expectedSha256) throw ValidationError(`Location snapshot asset was modified: ${relativePath}`, { stage: 'comic:location-reference' })
+  return assetPath
+}
+
+const snapshotMatchesPanel = (snapshot: LocationReferenceSnapshot | undefined, expectedKey: string | undefined): snapshot is LocationReferenceSnapshot => {
+  if (!snapshot || (expectedKey && snapshot.locationKey !== expectedKey)) return false
+  if (snapshot.schemaVersion === 2) return !!snapshot.sheet?.path && hasOrderedViewProvenance(snapshot.sourceViews)
+  if (snapshot.schemaVersion === 3) return hasOrderedViewProvenance(snapshot.views) && snapshot.views.every(view => !!view.path && typeof view.label === 'string')
+  return false
+}
+
+const resolveSnapshotViews = (runDirectory: string, snapshot: LocationReferenceSnapshot): ResolvedLocationReferenceView[] => {
+  if (snapshot.schemaVersion === 2) {
+    const path = verifySnapshotAsset(runDirectory, snapshot.sheet.path, snapshot.sheet.sha256)
+    const label = snapshot.sourceViews.length === 1
+      ? describeLocationSnapshotView(snapshot.locationKey, 'establishing')
+      : `composed reference sheet of ${snapshot.locationKey} (${snapshot.sourceViews.map(view => view.view).join(', ')} views left to right)`
+    return [{ view: 'establishing', path, label }]
+  }
+  return snapshot.views.map(view => ({ view: view.view, path: verifySnapshotAsset(runDirectory, view.path, view.imageSha256), label: view.label }))
+}
+
+export const selectLocationSnapshotView = (views: readonly ResolvedLocationReferenceView[], preferred?: LocationView | undefined): ResolvedLocationReferenceView => {
+  const selected = (preferred ? views.find(view => view.view === preferred) : undefined) ?? views[0]
+  if (!selected) throw ValidationError('Location snapshot has no registered views', { stage: 'comic:location-reference' })
+  return selected
+}
+
+export const readLocationSnapshotManifest = (runDirectory: string): LocationReferenceSnapshotManifest => {
+  const pluralPath = getLocationReferenceSnapshotsPath(runDirectory)
+  if (!existsSync(pluralPath)) throw InfraError(`Missing ${LOCATION_SNAPSHOTS_FILENAME}. Run draft-scenes explicitly.`, { stage: 'comic:location-reference' })
+  const manifest = JSON.parse(readFileSync(pluralPath, 'utf8')) as LocationReferenceSnapshotManifest
+  if (!(LOCATION_SNAPSHOT_READABLE_VERSIONS as readonly number[]).includes(manifest.schemaVersion) || !Array.isArray(manifest.snapshots)) throw ValidationError(`Invalid location snapshot manifest: ${pluralPath}`, { stage: 'comic:location-reference' })
+  return manifest
+}
+
+const preferredViewForPanels = (panels: PanelPrimaryReferenceInput[], options: ResolveLocationReferenceOptions): LocationView | undefined => {
+  if (!options.cameraMatched || panels.length !== 1) return undefined
+  const nearestView = panels[0]?.bundleData.blocking?.camera.nearestView
+  return nearestView && (LOCATION_VIEWS as readonly string[]).includes(nearestView) ? nearestView : undefined
+}
+
+export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[], options: ResolveLocationReferenceOptions = {}): ResolvedLocationReference[] => {
   if (panels.length === 0) throw ValidationError('A location reference requires at least one panel', { stage: 'comic:location-reference' })
   const runDirectories = new Set(panels.map(panel => getSceneWorkspaceDirectoryForPanelPrompt(panel.panelDirectory)))
   if (runDirectories.size !== 1) throw ValidationError('Mixed run directories are not allowed in one image request', { stage: 'comic:location-reference' })
   const runDirectory = [...runDirectories][0]!
-  const pluralPath = getLocationReferenceSnapshotsPath(runDirectory)
-  if (!existsSync(pluralPath)) throw InfraError(`Missing ${LOCATION_SNAPSHOTS_FILENAME}. Run draft-scenes explicitly.`, { stage: 'comic:location-reference' })
-  const manifest = JSON.parse(readFileSync(pluralPath, 'utf8')) as LocationReferenceSnapshotManifest
-  if (manifest.schemaVersion !== 2 || !Array.isArray(manifest.snapshots)) throw ValidationError(`Invalid location snapshot manifest: ${pluralPath}`, { stage: 'comic:location-reference' })
-  const snapshots = manifest.snapshots
-  const byId = new Map(snapshots.map(snapshot => [snapshot.snapshotId, snapshot]))
+  const manifest = readLocationSnapshotManifest(runDirectory)
+  const byId = new Map(manifest.snapshots.map(snapshot => [snapshot.snapshotId, snapshot]))
+  const preferredView = preferredViewForPanels(panels, options)
   const ordered: ResolvedLocationReference[] = []
   const seen = new Set<string>()
   for (const input of panels) {
@@ -91,18 +145,14 @@ export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryRefere
     const expectedKey = panel.locationKey
     if (!snapshotId) throw ValidationError('Panel bundle omits its location snapshot ID', { stage: 'comic:location-reference' })
     const snapshot = byId.get(snapshotId)
-    const sourceViewIndices = snapshot?.sourceViews?.map(view => LOCATION_VIEWS.indexOf(view.view)) ?? []
-    const invalidProvenance = !!snapshot && (!Array.isArray(snapshot.sourceViews) || snapshot.sourceViews.length === 0 || snapshot.sourceViews[0]?.view !== 'establishing' || !snapshot.sourceViews.every(view => LOCATION_VIEWS.includes(view.view) && !!view.generationId && /^[a-f0-9]{64}$/.test(view.imageSha256)) || new Set(sourceViewIndices).size !== sourceViewIndices.length || sourceViewIndices.some((index, position) => position > 0 && index <= sourceViewIndices[position - 1]!))
-    if (!snapshot || snapshot.schemaVersion !== 2 || !snapshot.sheet?.path || invalidProvenance || (expectedKey && snapshot.locationKey !== expectedKey)) {
+    if (!snapshotMatchesPanel(snapshot, expectedKey)) {
       throw ValidationError(`Panel location snapshot ${snapshotId} does not match its manifest entry`, { stage: 'comic:location-reference' })
     }
     if (seen.has(snapshotId)) continue
-    const sheetPath = resolve(runDirectory, snapshot.sheet.path)
-    if (!existsSync(sheetPath)) throw InfraError(`Location snapshot asset is missing: ${snapshot.sheet.path}`, { stage: 'comic:location-reference' })
-    const actual = new Bun.CryptoHasher('sha256').update(readFileSync(sheetPath)).digest('hex')
-    if (actual !== snapshot.sheet.sha256) throw ValidationError(`Location snapshot asset was modified: ${snapshot.sheet.path}`, { stage: 'comic:location-reference' })
+    const views = resolveSnapshotViews(runDirectory, snapshot)
+    const selected = selectLocationSnapshotView(views, preferredView)
     seen.add(snapshotId)
-    ordered.push({ key: snapshot.locationKey, snapshotId, specification: snapshot.specification, path: sheetPath })
+    ordered.push({ key: snapshot.locationKey, snapshotId, specification: snapshot.specification, path: selected.path, view: selected.view, views })
   }
   return ordered
 }
@@ -154,7 +204,11 @@ export const resolveGroupedReferenceImages = (
     secondaryRefs: locationPaths,
     ...(primaryState.characterReferences ? { characterReferences: primaryState.characterReferences } : {}),
     locationReferences: locationReferences.map((reference, index) => ({
-      ...reference,
+      key: reference.key,
+      snapshotId: reference.snapshotId,
+      specification: reference.specification,
+      path: reference.path,
+      view: reference.view,
       referenceIndex: primaryCharacterRefs.length + index + 1,
     })),
     designReferences: designReferences.map((reference, index) => ({
@@ -170,18 +224,34 @@ export const findMissingReferenceImageFiles = async (paths: string[]): Promise<s
 }
 
 export const resolveReferenceImages = (
-  panelDirectory: string, entries: DirectoryEntry[], bundleData: PanelBundleData, model: ImageGenerationModel
+  panelDirectory: string, entries: DirectoryEntry[], bundleData: PanelBundleData, model: ImageGenerationModel, options: { reserveSlots?: number | undefined } = {}
 ): ResolvedReferenceImages => {
   const primary = resolvePrimaryCharacterReferences(panelDirectory, entries, bundleData)
   const prior: string[] = []
-  const locations = resolveLocationReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
+  const locations = resolveLocationReferencesAcrossPanels([{ panelDirectory, entries, bundleData }], { cameraMatched: true })
   const designs = resolveDesignReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
   const required = [...primary.primaryCharacterRefs, ...locations.map(location => location.path), ...designs.map(design => design.path)]
-  const limited = trimOptionalContinuityReferences(model, required, prior)
+  const supplementalViews = locations.flatMap(location => location.view === 'establishing'
+    ? []
+    : location.views.filter(view => view.view === 'establishing' && view.path !== location.path).map(view => ({ key: location.key, ...view })))
+  const reserveSlots = supplementalViews.length > 0 ? Math.max(1, options.reserveSlots ?? 0) : options.reserveSlots
+  const limited = trimOptionalContinuityReferences(model, required, [...prior, ...supplementalViews.map(view => view.path)], { reserveSlots })
+  if (limited.trimmed.length > 0) comicLog.line(`  Trimmed ${limited.trimmed.length} optional continuity reference(s) for ${model}`)
   return {
     ...buildResolved(limited.references, primary.primaryCharacterRefs, prior, locations.map(location => location.path), primary.missingPrimaryCharacterRefs),
     ...(primary.characterReferences ? { characterReferences: primary.characterReferences } : {}),
-    locationReferences: locations.map((location, index) => ({ ...location, referenceIndex: primary.primaryCharacterRefs.length + index + 1 })),
+    ...(primary.rosterCharacterReferences ? { rosterCharacterReferences: primary.rosterCharacterReferences } : {}),
+    locationReferences: locations.map((location, index) => ({
+      key: location.key,
+      snapshotId: location.snapshotId,
+      specification: location.specification,
+      path: location.path,
+      view: location.view,
+      referenceIndex: primary.primaryCharacterRefs.length + index + 1,
+      supplementalViews: supplementalViews
+        .filter(view => view.key === location.key && limited.references.includes(view.path))
+        .map(view => ({ view: view.view, referenceIndex: limited.references.indexOf(view.path) + 1, path: view.path, label: view.label })),
+    })),
     designReferences: designs.map((design, index) => ({ ...design, referenceIndex: primary.primaryCharacterRefs.length + locations.length + index + 1 })),
   }
 }

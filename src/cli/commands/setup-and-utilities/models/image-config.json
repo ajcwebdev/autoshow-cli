@@ -56,7 +56,7 @@
         "pricingCheckedAt": "2026-05-31",
         "pricingCurrency": "USD",
         "pricingTier": "Standard pay-as-you-go",
-        "pricingNotes": "Default registry rate is the published GPT Image 2 1024x1024 medium output-image estimate. Flexible size/quality estimates are handled in the OpenAI image pricing helper; text and image input tokens are not estimated locally.",
+        "pricingNotes": "Default registry rate is the published GPT Image 2 1024x1024 medium output-image estimate. Flexible size/quality estimates are handled in the OpenAI image pricing helper; image input units are modeled locally at 1,000 per reference image and priced only when imageInputCostPer1MCents is set; text input tokens are not estimated locally.",
         "costPerImageCents": 5.3,
         "estimation": {
           "costMultiplier": 1,
