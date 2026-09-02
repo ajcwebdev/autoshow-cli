@@ -222,7 +222,8 @@ jobs:
           docker run --rm --platform linux/amd64 "${image_ref}" --help > "${report_dir}/help.log" 2>&1
           docker run --rm --platform linux/amd64 "${image_ref}" config --show --config-path /tmp/autoshow-smoke-config.json --no-color > "${report_dir}/config.log" 2>&1
           docker run --rm --platform linux/amd64 "${image_ref}" setup --doctor --no-color > "${report_dir}/doctor.log" 2>&1
-          grep -F '1.4.0 (supported)' "${report_dir}/doctor.log"
+          grep -F 'Setup doctor:' "${report_dir}/doctor.log"
+          grep -F 'Setup doctor completed' "${report_dir}/doctor.log"
           help_samples="$({ for _ in 1 2 3 4 5; do start="$(date +%s%N)"; docker run --rm --platform linux/amd64 "${image_ref}" --help >/dev/null; printf '%s\n' "$(( ($(date +%s%N) - start) / 1000000 ))"; done; } | jq -s '.')"
           prebuild_samples="$({ for _ in 1 2 3 4 5; do docker run --rm --platform linux/amd64 --entrypoint bun "${image_ref}" --no-env-file -e 'const start=performance.now();const p=Bun.spawn(["bun","--no-env-file","build","/app/src/cli/create-cli.ts","--target=bun","--outfile","/tmp/autoshow-cli-ci.js"],{stdout:"ignore",stderr:"pipe"});const stderr=await new Response(p.stderr).text();const code=await p.exited;if(code!==0)throw new Error(stderr);console.log(performance.now()-start)'; done; } | jq -s '.')"
           fixture="${GITHUB_WORKSPACE}/test/fixtures/setup/managed-toolchain-smoke.pdf"
@@ -237,9 +238,10 @@ jobs:
           docker run --rm --platform linux/amd64 "${compiled_ref}" setup --doctor --no-color > "${report_dir}/compiled-doctor.log" 2>&1
           compiled_path_fixture="${GITHUB_WORKSPACE}/test/test-cases/validation/comic/fixtures/structured-script-parser/handler-precedence.md"
           docker run --rm --platform linux/amd64 --mount "type=bind,src=${compiled_path_fixture},dst=/benchmark/input.md,readonly" "${compiled_ref}" write /benchmark/input.md --price --no-color > "${report_dir}/compiled-paths.log" 2>&1
-          grep -F '1.4.0 (supported)' "${report_dir}/compiled-doctor.log"
-          grep -F 'Total estimated cost' "${report_dir}/compiled-paths.log"
-          grep -F 'Expected files' "${report_dir}/compiled-paths.log"
+          grep -F 'Setup doctor:' "${report_dir}/compiled-doctor.log"
+          grep -F 'Setup doctor completed' "${report_dir}/compiled-doctor.log"
+          grep -F 'Estimate:' "${report_dir}/compiled-paths.log"
+          grep -E 'Expected [0-9]+ files in ' "${report_dir}/compiled-paths.log"
           compiled_help_samples="$({ for _ in 1 2 3 4 5; do start="$(date +%s%N)"; docker run --rm --platform linux/amd64 "${compiled_ref}" --help >/dev/null; printf '%s\n' "$(( ($(date +%s%N) - start) / 1000000 ))"; done; } | jq -s '.')"
           compiled_peak_samples="$({ for _ in 1 2 3; do docker run --rm --platform linux/amd64 --entrypoint /bin/sh "${compiled_ref}" -c '/app/autoshow --help >/dev/null 2>&1; cat /sys/fs/cgroup/memory.peak'; done; } | jq -s '.')"
           jq -n \
@@ -356,7 +358,8 @@ jobs:
           docker run --rm --platform linux/arm64 "${image_ref}" --help > "${report_dir}/help.log" 2>&1
           docker run --rm --platform linux/arm64 "${image_ref}" config --show --config-path /tmp/autoshow-smoke-config.json --no-color > "${report_dir}/config.log" 2>&1
           docker run --rm --platform linux/arm64 "${image_ref}" setup --doctor --no-color > "${report_dir}/doctor.log" 2>&1
-          grep -F '1.4.0 (supported)' "${report_dir}/doctor.log"
+          grep -F 'Setup doctor:' "${report_dir}/doctor.log"
+          grep -F 'Setup doctor completed' "${report_dir}/doctor.log"
           help_samples="$({ for _ in 1 2 3 4 5; do start="$(date +%s%N)"; docker run --rm --platform linux/arm64 "${image_ref}" --help >/dev/null; printf '%s\n' "$(( ($(date +%s%N) - start) / 1000000 ))"; done; } | jq -s '.')"
           prebuild_samples="$({ for _ in 1 2 3 4 5; do docker run --rm --platform linux/arm64 --entrypoint bun "${image_ref}" --no-env-file -e 'const start=performance.now();const p=Bun.spawn(["bun","--no-env-file","build","/app/src/cli/create-cli.ts","--target=bun","--outfile","/tmp/autoshow-cli-ci.js"],{stdout:"ignore",stderr:"pipe"});const stderr=await new Response(p.stderr).text();const code=await p.exited;if(code!==0)throw new Error(stderr);console.log(performance.now()-start)'; done; } | jq -s '.')"
           fixture="${GITHUB_WORKSPACE}/test/fixtures/setup/managed-toolchain-smoke.pdf"
@@ -371,9 +374,10 @@ jobs:
           docker run --rm --platform linux/arm64 "${compiled_ref}" setup --doctor --no-color > "${report_dir}/compiled-doctor.log" 2>&1
           compiled_path_fixture="${GITHUB_WORKSPACE}/test/test-cases/validation/comic/fixtures/structured-script-parser/handler-precedence.md"
           docker run --rm --platform linux/arm64 --mount "type=bind,src=${compiled_path_fixture},dst=/benchmark/input.md,readonly" "${compiled_ref}" write /benchmark/input.md --price --no-color > "${report_dir}/compiled-paths.log" 2>&1
-          grep -F '1.4.0 (supported)' "${report_dir}/compiled-doctor.log"
-          grep -F 'Total estimated cost' "${report_dir}/compiled-paths.log"
-          grep -F 'Expected files' "${report_dir}/compiled-paths.log"
+          grep -F 'Setup doctor:' "${report_dir}/compiled-doctor.log"
+          grep -F 'Setup doctor completed' "${report_dir}/compiled-doctor.log"
+          grep -F 'Estimate:' "${report_dir}/compiled-paths.log"
+          grep -E 'Expected [0-9]+ files in ' "${report_dir}/compiled-paths.log"
           compiled_help_samples="$({ for _ in 1 2 3 4 5; do start="$(date +%s%N)"; docker run --rm --platform linux/arm64 "${compiled_ref}" --help >/dev/null; printf '%s\n' "$(( ($(date +%s%N) - start) / 1000000 ))"; done; } | jq -s '.')"
           compiled_peak_samples="$({ for _ in 1 2 3; do docker run --rm --platform linux/arm64 --entrypoint /bin/sh "${compiled_ref}" -c '/app/autoshow --help >/dev/null 2>&1; cat /sys/fs/cgroup/memory.peak'; done; } | jq -s '.')"
           jq -n \
