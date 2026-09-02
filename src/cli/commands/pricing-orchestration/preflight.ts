@@ -1,7 +1,6 @@
 import type { CommandPricingOptions, PreflightBudgetOptions, PreflightResult, ProcessCommand } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
-import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { buildAggregatedPriceEstimate } from './aggregate-pricing'
 
 export const evaluatePreflightEstimate = (
@@ -9,11 +8,12 @@ export const evaluatePreflightEstimate = (
   opts: PreflightBudgetOptions,
   maxCents: number | undefined
 ): PreflightResult => {
-  l.report.estimate(estimate)
-
   if (opts.price) {
+    l.report.price(estimate)
     return { estimate, shouldExit: true }
   }
+
+  l.report.estimate(estimate)
 
   if (maxCents !== undefined && estimate.totalEstimatedCost > maxCents) {
     if (!opts.allowOverBudget) {
@@ -21,13 +21,8 @@ export const evaluatePreflightEstimate = (
         `Estimated cost ${formatCents(estimate.totalEstimatedCost)} exceeds configured budget ${formatCents(maxCents)}. Use --allow-over-budget to proceed.`
       )
     }
-    l.write('warn', 'Pricing Budget', {
+    l.write('warn', `Estimated cost ${formatCents(estimate.totalEstimatedCost)} exceeds budget ${formatCents(maxCents)}; continuing by request`, {
       category: 'pricing',
-      humanTable: createKeyValueTable([
-        ['estimatedCost', formatCents(estimate.totalEstimatedCost)],
-        ['budget', formatCents(maxCents)],
-        ['action', 'continuing because --allow-over-budget is set']
-      ]),
       metadata: {
         estimatedCostCents: estimate.totalEstimatedCost,
         budgetCents: maxCents,

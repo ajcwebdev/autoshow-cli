@@ -18,7 +18,7 @@ const stubBunSleep = (): (() => void) => {
 describe('general retry-on-any-error contracts', () => {
   test('classifyFetchRetry retries unrecognized error types', () => {
     const decision = classifyFetchRetry(new Error('totally novel failure'), 'runtime_http_read')
-    expect(decision).toMatchObject({ shouldRetry: true, reason: 'unclassified error' })
+    expect(decision).toMatchObject({ shouldRetry: true, reasonCode: 'unclassified_infrastructure', reason: 'unclassified infrastructure error' })
   })
 
   test('classifyFetchRetry still refuses deterministic 4xx client errors', () => {
@@ -51,11 +51,13 @@ describe('general retry-on-any-error contracts', () => {
     )
     expect(classifyFetchRetry(error, 'runtime_http_create_conservative')).toMatchObject({
       shouldRetry: false,
-      reason: 'paid create outcome is ambiguous'
+      reasonCode: 'non_retryable_marked',
+      reason: 'error marked non-retryable'
     })
     expect(classifyFetchRetry(error, 'runtime_http_create_retriable')).toMatchObject({
-      shouldRetry: true,
-      reason: 'abort/timeout'
+      shouldRetry: false,
+      reasonCode: 'non_retryable_marked',
+      reason: 'error marked non-retryable'
     })
   })
 
@@ -71,14 +73,14 @@ describe('general retry-on-any-error contracts', () => {
       const counter = join(dir, 'count')
       const script = `n=$(cat ${counter} 2>/dev/null || echo 0); n=$((n+1)); echo $n > ${counter}; if [ $n -lt 2 ]; then exit 1; fi; printf ok`
       const result = await exec('sh', ['-c', script], {
-        retry: { operationName: 'flaky-exec' }
+        retry: { operationName: 'flaky-exec', shouldRetry: () => true }
       })
       expect(result.exitCode).toBe(0)
       expect(result.stdout.trim()).toBe('ok')
       expect(getRetryPolicyForClass('runtime_subprocess_transient')).toEqual({
         maxAttempts: 2,
         baseDelayMs: 1_000,
-        maxDelayMs: 5_000,
+        maxDelayMs: 1_000,
         jitter: false,
         exponential: false
       })
@@ -92,7 +94,7 @@ describe('general retry-on-any-error contracts', () => {
     const restoreSleep = stubBunSleep()
     try {
       const result = await exec('sh', ['-c', 'exit 7'], {
-        retry: { operationName: 'always-fails' }
+        retry: { operationName: 'always-fails', shouldRetry: () => true }
       })
       expect(result.exitCode).toBe(7)
     } finally {

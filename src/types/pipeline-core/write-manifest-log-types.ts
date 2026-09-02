@@ -21,7 +21,7 @@ export type ManifestLogIndexedRow<T> = {
   value: T
 }
 
-export type WriteManifestConsoleSummary = {
+export type WriteManifestSummary = {
   runSummary?: SummarySection
   promptUsage?: PromptUsageSection
   ocrCostCalculation?: OcrCostCalculationSection

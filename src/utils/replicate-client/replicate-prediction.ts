@@ -187,7 +187,7 @@ export const runReplicatePrediction = async (
         ...(signal ? { signal } : {})
       },
       'prediction create',
-      'runtime_http_create_retriable'
+      'runtime_http_create_conservative'
     )
     return parsePredictionPayload(payload, 'Replicate prediction create')
   }

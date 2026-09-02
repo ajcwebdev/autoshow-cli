@@ -1,5 +1,4 @@
 import type { AsyncSttLifecycleCleanupSnapshot, AsyncSttLifecycleContext, Step2RuntimeMetadata } from '~/types'
-import * as l from '~/utils/app-logger/app-logger'
 import { logSttCleanupFailure } from './stt-logging'
 
 export const deleteSttRemoteResource = async (options: {
@@ -18,7 +17,7 @@ export const deleteSttRemoteResource = async (options: {
     })
 
     if (!response.ok && response.status !== 404) {
-      logSttCleanupFailure(l, {
+      logSttCleanupFailure( {
         provider: options.provider,
         artifact: options.artifact,
         id: options.id,
@@ -29,7 +28,7 @@ export const deleteSttRemoteResource = async (options: {
 
     return true
   } catch (error) {
-    logSttCleanupFailure(l, {
+    logSttCleanupFailure( {
       provider: options.provider,
       artifact: options.artifact,
       id: options.id,

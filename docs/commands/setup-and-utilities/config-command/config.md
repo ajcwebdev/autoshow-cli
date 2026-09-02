@@ -204,4 +204,4 @@ Global flags:
 | Flag                             | Description                   |
 | -------------------------------- | ----------------------------- |
 | `--config-path`                  | Path to config file           |
-| `--verbose`, `--quiet`, `--json` | Runtime-only logging controls |
+| `--verbose`, `--quiet`, `--log-level`, `--json` | Runtime-only diagnostic and output controls; `--json` is never persisted |

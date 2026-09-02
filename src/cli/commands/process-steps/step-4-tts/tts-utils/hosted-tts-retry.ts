@@ -1,26 +1,21 @@
 import type { HostedTtsRetryAttemptContext, HostedTtsRetryOptions, RetryClassifier, RetryDecision } from '~/types'
-import { AppError } from '~/utils/error-handler'
-import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
+import { AppError, getErrorHeaders } from '~/utils/error-handler'
+import { classifyFetchRetry, parseRetryAfterMs, readRetrySignals, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { classifyHostedRateLimitPressure } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
 
 export const classifyHostedTtsRetry: RetryClassifier = (error) => {
+  if (readRetrySignals(error).retryable === false) {
+    return { shouldRetry: false, delayMs: 0, reasonCode: 'non_retryable_marked', reason: 'error marked non-retryable' }
+  }
   const hostedPressure = classifyHostedRateLimitPressure(error)
   return error instanceof Error && (error as Error & { ttsAdmissionAmbiguous?: boolean }).ttsAdmissionAmbiguous === true
-    ? { shouldRetry: false, delayMs: 0, reason: 'provider admission outcome is ambiguous' }
+    ? { shouldRetry: false, delayMs: 0, reasonCode: 'unsafe_paid_redispatch', reason: 'provider admission outcome is ambiguous' }
     : error instanceof AppError && (error.kind === 'usage' || error.kind === 'validation' || error.kind === 'internal')
-      ? { shouldRetry: false, delayMs: 0, reason: `deterministic ${error.kind} error` }
+      ? { shouldRetry: false, delayMs: 0, reasonCode: 'classifier_refused', reason: `deterministic ${error.kind} error` }
       : hostedPressure
-        ? { shouldRetry: true, delayMs: hostedPressure.retryAfterMs ?? hostedPressure.delayMs ?? 0, reason: hostedPressure.reason }
+        ? { shouldRetry: true, delayMs: hostedPressure.retryAfterMs ?? hostedPressure.delayMs ?? 0, reasonCode: 'provider_rejected_admission', reason: hostedPressure.reason }
         : classifyFetchRetry(error, 'runtime_http_create_conservative')
-}
-
-const getErrorHeaders = (error: unknown): Headers | undefined => {
-  if (error && typeof error === 'object' && 'headers' in error) {
-    const headers = (error as { headers: unknown }).headers
-    if (headers instanceof Headers) return headers
-  }
-  return undefined
 }
 
 const notifyHostedTtsSchedulerRetry = (
@@ -54,7 +49,7 @@ export const withHostedTtsRetry = async <T>(
   let retryReasonCode: string | undefined
   return await withRetry(
     {
-      retryClass: 'runtime_http_create_retriable',
+      retryClass: 'runtime_http_create_conservative',
       operationName: options.operationName,
       timeoutMs: options.timeoutMs ?? MEDIA_GENERATION_TIMEOUT_MS,
       abortSignal: options.abortSignal,
@@ -77,7 +72,7 @@ export const withHostedTtsRetry = async <T>(
       })
     },
     error => options.abortSignal?.aborted
-      ? { shouldRetry: false, delayMs: 0, reason: 'operation cancelled' }
+      ? { shouldRetry: false, delayMs: 0, reasonCode: 'classifier_refused', reason: 'operation cancelled' }
       : classifier(error)
   )
 }

@@ -1,6 +1,7 @@
 import type { RetryClass, Step2Metadata, SupadataHttpError, SupadataStage } from '~/types'
-import { ProviderError } from '~/utils/error-handler'
-import { httpResponseError } from '~/utils/rest-client'
+import { annotateAppError, ProviderError } from '~/utils/error-handler'
+import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
+import { isRetryableStatus } from '~/utils/retries'
 import { isSupadataPlanLimitExhausted } from '~/utils/supadata-plan-limit'
 import { describeSupadataUnsupportedSource } from './supadata'
 import { extractSupadataErrorMessage, isRecord } from './supadata-response-parsers'
@@ -48,13 +49,16 @@ export const toSupadataHttpError = (
   const message = extractSupadataErrorMessage(payload)
   return httpResponseError(
     `${messagePrefix} (${response.status}): ${message ?? 'Unknown error'}`,
-    response,
-    {
+    httpResponseOptions(response, {
       stage,
       retryClass,
-      rawResponse: payload,
-      ...(isSupadataPlanLimitExhausted(payload, message) ? { retryable: false } : {})
-    } satisfies Pick<SupadataHttpError, 'stage' | 'retryClass' | 'rawResponse'> & { retryable?: false }
+      retryable: isSupadataPlanLimitExhausted(payload, message)
+        ? false
+        : retryClass === 'runtime_http_create_conservative'
+          ? response.status === 425 || response.status === 429
+          : isRetryableStatus(response.status),
+      metadata: { rawResponse: payload }
+    })
   )
 }
 
@@ -64,13 +68,16 @@ export const attachSupadataErrorContext = (
   retryClass: RetryClass,
   rawResponse?: unknown
 ): never => {
-  const source = error instanceof Error ? error : ProviderError(String(error))
-  ;(source as SupadataHttpError).stage = stage
-  ;(source as SupadataHttpError).retryClass = retryClass
-  if (rawResponse !== undefined) {
-    ;(source as SupadataHttpError).rawResponse = rawResponse
-  }
-  throw source
+  throw annotateAppError(error, {
+    kind: 'provider_http',
+    stage,
+    retryClass,
+    metadata: {
+      stage,
+      retryClass,
+      ...(rawResponse !== undefined ? { rawResponse } : {})
+    }
+  })
 }
 
 export const buildSupadataUnsupportedSourceError = (

@@ -40,7 +40,7 @@ export const uploadAudio = async (
   const payload = await sttStageRequest({
     operationName: 'soniox-upload',
     stage: 'upload',
-    retryClass: 'runtime_http_create_retriable',
+    retryClass: 'runtime_http_create_conservative',
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'Soniox',
     schema: SonioxFileResponseSchema,
@@ -72,7 +72,7 @@ export const createTranscription = async (
   const payload = await sttStageRequest({
     operationName: 'soniox-create-transcription',
     stage: 'create',
-    retryClass: 'runtime_http_create_retriable',
+    retryClass: 'runtime_http_create_conservative',
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'Soniox',
     schema: SonioxTranscriptionStatusSchema,
@@ -101,7 +101,7 @@ export const pollTranscription = async (
   const { value, retryAfterMs } = await sttStageRequestWithRetryAfter({
     operationName: 'soniox-poll-transcription',
     stage: 'poll',
-    retryClass: 'runtime_http_read',
+    retryClass: 'runtime_http_poll',
     timeoutMs: POLL_REQUEST_TIMEOUT_MS,
     errorPrefix: 'Soniox',
     schema: SonioxTranscriptionStatusSchema,

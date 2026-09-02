@@ -7,7 +7,7 @@ import { validateData } from '~/utils/validate/validation'
 import { materializeMediaInput } from '~/utils/media-url'
 import { UsageError, ValidationError } from '~/utils/error-handler'
 import type { SpeechifyTtsCustomVoiceGender, SpeechifyTtsCustomVoiceOptions, SpeechifyTtsCustomVoiceResult, TtsCustomVoiceSampleAudio } from '~/types'
-import { httpResponseError } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 
 const SPEECHIFY_TTS_DEFAULT_CUSTOM_VOICE_LOCALE = 'en-US'
 const SPEECHIFY_TTS_DEFAULT_CUSTOM_VOICE_GENDER = 'notSpecified'
@@ -201,7 +201,9 @@ const createSpeechifyTtsCustomVoice = async (
 
       if (!response.ok) {
         const body = await readSpeechifyErrorBody(response)
-        throw httpResponseError(`Speechify TTS custom voice creation failed (${response.status}): ${body || 'No response body'}`, response)
+        throw httpResponseError(`Speechify TTS custom voice creation failed (${response.status}): ${body || 'No response body'}`, httpResponseOptions(response, {
+          stage: 'tts:speechify-voice', retryClass: 'runtime_http_create_conservative', retryable: response.status === 425 || response.status === 429, metadata: { provider: 'speechify' }
+        }))
       }
 
       return validateData(

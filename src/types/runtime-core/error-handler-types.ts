@@ -10,15 +10,26 @@ export type AppErrorKind =
 
 export type AppErrorOptions = {
   kind: AppErrorKind
+  stage: string
   hints?: string[]
   exitCode?: number
-  cause?: Error | undefined
+  cause?: unknown
   status?: number
   headers?: Headers
-  stage?: string
   retryClass?: RetryClass
   retryable?: boolean
   metadata?: Record<string, unknown>
 }
 
 export type ErrorChainEntry = Error & Record<string, unknown>
+
+export type UsageErrorOptions = {
+  hints?: string[]
+  usageMessage?: string
+  stage?: string
+  metadata?: Record<string, unknown>
+  cause?: unknown
+  retryable?: boolean
+}
+
+export type NonUsageAppErrorOptions = Omit<AppErrorOptions, 'kind' | 'stage'> & { stage?: string }

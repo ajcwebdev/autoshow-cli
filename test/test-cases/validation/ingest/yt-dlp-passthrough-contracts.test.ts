@@ -154,7 +154,7 @@ describe('yt-dlp passthrough mode resolution', () => {
 })
 
 describe('yt-dlp passthrough execution contracts', () => {
-  test('raw mode streams yt-dlp output and propagates raw exit codes', async () => {
+  test('raw mode streams yt-dlp output and reports child failures through the CLI error contract', async () => {
     const logDir = await makeTempDir('autoshow-raw-ytdlp-log-')
     tempDirs.push(logDir)
     const argsLogPath = join(logDir, 'args.txt')
@@ -181,7 +181,36 @@ describe('yt-dlp passthrough execution contracts', () => {
       '--fail-with-code',
       '7'
     ], { env, binDir: fakeBinDir })
-    expect(failed.exitCode).toBe(7)
+    expect(failed.exitCode).toBe(1)
+    expect(`${failed.stdout}\n${failed.stderr}`).toContain('yt-dlp exited with code 7')
+  })
+
+  test('JSON raw mode captures child output as diagnostics and emits one terminal result', async () => {
+    const logDir = await makeTempDir('autoshow-json-ytdlp-log-')
+    tempDirs.push(logDir)
+    const argsLogPath = join(logDir, 'args.txt')
+    const fakeBinDir = await createFakeYtDlpBinDir(argsLogPath)
+
+    const result = await runCommand([
+      'src/cli/create-cli.ts',
+      'download',
+      '--json',
+      '--config-path',
+      EMPTY_CONFIG_PATH,
+      '--',
+      '--version'
+    ], { env: fakeToolEnv(fakeBinDir), binDir: fakeBinDir })
+    const stdoutRecords = result.stdout.trim().split('\n').map(line => JSON.parse(line) as Record<string, unknown>)
+    const stderrRecords = result.stderr.trim().split('\n').filter(Boolean).map(line => JSON.parse(line) as Record<string, unknown>)
+
+    expect(result.exitCode).toBe(0)
+    expect(stdoutRecords).toHaveLength(1)
+    expect(stdoutRecords[0]).toMatchObject({ type: 'result', status: 'success', data: { childProcess: 'yt-dlp', childExitCode: 0 } })
+    expect(stderrRecords.every(record => record['type'] === 'log')).toBe(true)
+    expect(stderrRecords).toContainEqual(expect.objectContaining({
+      message: 'fake-yt-dlp-2026.05.12',
+      metadata: expect.objectContaining({ childProcess: 'yt-dlp', stream: 'stdout' })
+    }))
   })
 
   test('integrated passthrough forwards args for a direct media URL and keeps AutoShow tracking last', async () => {

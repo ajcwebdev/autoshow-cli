@@ -1,6 +1,5 @@
 import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import type { FinalizeTtsRunOptions, Step4Metadata } from '~/types'
-import * as l from '~/utils/app-logger/app-logger'
 
 export const finalizeTtsRun = ({
   service,
@@ -13,7 +12,7 @@ export const finalizeTtsRun = ({
   const processingTime = Date.now() - startTime
   const audioFile = Bun.file(audioPath)
 
-  logMediaGenerationStatus(l, {
+  logMediaGenerationStatus( {
     mediaType: 'tts',
     provider: service,
     model,

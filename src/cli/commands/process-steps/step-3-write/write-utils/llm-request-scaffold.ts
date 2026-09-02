@@ -1,6 +1,5 @@
 import { buildStep3Metadata, runWithLLMInstrumentation } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-instrumentation'
 import type { ExecuteLlmRequestSpec, LlmApiCallResult, Step3Metadata, StructuredRequestOptions } from '~/types'
-import * as l from '~/utils/app-logger/app-logger'
 import { ValidationError } from '~/utils/error-handler'
 import { withRetry } from '~/utils/retries'
 import { LLM_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
@@ -16,8 +15,7 @@ export const executeLlmRequest = async <TPrepared = undefined>(
   structuredOpts: StructuredRequestOptions | undefined,
   spec: ExecuteLlmRequestSpec<TPrepared>
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  try {
-    const prepared = spec.prepare?.() as TPrepared
+  const prepared = spec.prepare?.() as TPrepared
     const apiCall = (): Promise<LlmApiCallResult> => withRetry(
       {
         retryClass: 'runtime_http_create_conservative',
@@ -41,13 +39,5 @@ export const executeLlmRequest = async <TPrepared = undefined>(
     const instrumentation = await runWithLLMInstrumentation(prompt, apiCall)
     const metadata = buildStep3Metadata(spec.service, model, instrumentation, structuredOpts)
 
-    return { result: instrumentation.responseText, metadata }
-  } catch (error) {
-    l.error(`Failed to run ${spec.providerLabel} model`, {
-      category: 'pipeline',
-      error,
-      metadata: { provider: spec.providerLabel }
-    })
-    throw error
-  }
+  return { result: instrumentation.responseText, metadata }
 }

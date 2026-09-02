@@ -63,6 +63,7 @@ export const setupCommand = defineCliCommand({
     await runWithLogContext({ step: 'setup' }, async () => {
       await runModelDownloads(modelTargets)
     })
+    l.report.result({ mode: 'models', models: modelTargets }, 'Setup models complete')
     return
   }
 
@@ -71,7 +72,8 @@ export const setupCommand = defineCliCommand({
   }
 
   if (ctx.flags.doctor) {
-    await runDoctor({ strict: ctx.flags['strict'] === true })
+    const report = await runDoctor({ strict: ctx.flags['strict'] === true })
+    l.report.result({ mode: 'doctor', report }, report.hasWarnings ? 'Setup doctor completed with warnings' : 'Setup doctor complete')
     return
   }
 
@@ -96,5 +98,5 @@ export const setupCommand = defineCliCommand({
     })
   }
 
-  l.write('success', 'Setup complete', { category: 'command' })
+  l.report.result({ mode: 'setup', step, healthy }, 'Setup complete')
 })

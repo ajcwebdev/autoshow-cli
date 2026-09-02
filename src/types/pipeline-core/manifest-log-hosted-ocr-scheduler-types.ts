@@ -1,4 +1,4 @@
-import type { ManifestLogSection } from '~/types'
+import type { ManifestLogCollection } from '~/types'
 
 type HostedOcrSchedulerSummaryRow = {
   lane: string
@@ -12,4 +12,4 @@ type HostedOcrSchedulerSummaryRow = {
   targetShare: string
 }
 
-export type HostedOcrSchedulerSection = ManifestLogSection<HostedOcrSchedulerSummaryRow>
+export type HostedOcrSchedulerSection = ManifestLogCollection<HostedOcrSchedulerSummaryRow>

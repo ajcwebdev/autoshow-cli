@@ -247,8 +247,7 @@ export const videoCommand = defineCliCommand({
         (entry) => entry.processingTime
       ),
       totalTimeMs: metadata.reduce((sum, entry) => sum + entry.processingTime, 0),
-      totalCost: actual.totalCost,
-      includeOutputDir: false
+      totalCost: actual.totalCost
     }
   )
 })

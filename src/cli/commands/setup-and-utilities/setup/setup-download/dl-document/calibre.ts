@@ -38,7 +38,7 @@ const installCalibreTools = async (): Promise<void> => {
   if (platform === 'darwin') {
     await installManagedCalibreMacos()
     if (hasCalibreCliTools()) {
-      l.write('success', 'Calibre ebook-convert installed', { category: 'command' })
+      l.write('info', 'Calibre ebook-convert installed', { category: 'command' })
       return
     }
     throw InfraError('Calibre install completed but managed ebook-convert was not found', { stage: 'setup:calibre' })
@@ -47,13 +47,12 @@ const installCalibreTools = async (): Promise<void> => {
   if (platform === 'linux') {
     await runInherit('sudo', ['apt', 'install', '-y', 'calibre'])
     if (hasCalibreCliTools()) {
-      l.write('success', 'Calibre ebook-convert installed', { category: 'command' })
+      l.write('info', 'Calibre ebook-convert installed', { category: 'command' })
       return
     }
     throw InfraError('Calibre install completed but ebook-convert was not found on PATH', { stage: 'setup:calibre' })
   }
 
-  l.error('Unsupported platform for calibre auto-install', { category: 'command' })
   throw InternalError('Unsupported platform for calibre setup', { stage: 'setup:calibre' })
 }
 
@@ -61,7 +60,7 @@ const setupCalibreTools = async (): Promise<void> => {
   await installCalibreTools()
 
   if (shouldPrintCompletion()) {
-    l.write('success', 'Calibre ebook-convert setup complete', { category: 'command' })
+    l.write('info', 'Calibre ebook-convert setup complete', { category: 'command' })
   }
 }
 
@@ -70,6 +69,6 @@ export const setupCalibreDocumentTools = async (): Promise<void> => {
   await setupCalibreTools()
 
   if (shouldPrintCompletion()) {
-    l.write('success', 'Document tools setup complete', { category: 'command' })
+    l.write('info', 'Document tools setup complete', { category: 'command' })
   }
 }

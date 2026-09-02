@@ -69,7 +69,7 @@ const isCompletableJsonPrefix = (text: string): boolean => {
 }
 
 const throwMalformedJsonl = (label: string, error?: Error | null): never => {
-  throw UsageError(`${label} contains a malformed complete JSONL record.`, undefined, error ? { cause: error } : {})
+      throw UsageError(`${label} contains a malformed complete JSONL record.`, error ? { cause: error } : {})
 }
 
 export const parseJsonlBytes = (

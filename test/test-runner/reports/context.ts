@@ -3,7 +3,7 @@ import { basename, isAbsolute, resolve } from 'node:path'
 import type { MetricContext, ParsedCommandMetric, ParsedJunitCase, ReportTestContext, ServiceModelPair, TestRunArtifacts } from '~/types'
 import { readString } from '../utils'
 import { l } from '~/utils/app-logger/app-logger'
-import { hasErrorCode, serializeDiagnosticError } from '~/utils/error-handler'
+import { hasErrorCode } from '~/utils/error-handler'
 import { isObjectLike } from '~/utils/value-helpers'
 
 const COMMAND_KIND_NAMES = new Set(['setup', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music'])
@@ -413,7 +413,7 @@ const getMetricMetadata = async (
       if (!hasErrorCode(error, 'ENOENT')) {
         l.warn(`Could not read run metadata at ${metadataPath}; the report will omit it`, {
           category: 'artifact',
-          metadata: { metadataPath, error: serializeDiagnosticError(error) }
+          metadata: { metadataPath }, error: error
         })
       }
     }

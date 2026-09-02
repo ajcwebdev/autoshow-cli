@@ -3,9 +3,9 @@ import type { HostedOcrSchedulerRetryPressureHandler, RetryClassifier } from '~/
 export type OcrCreateRetryOptions = {
   classifier?: RetryClassifier | undefined
   onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
+  abortSignal?: AbortSignal | undefined
 }
 
 export type OcrPageRequestRetryOptions = OcrCreateRetryOptions & {
-  attempts?: number | undefined
   timeoutMs?: number | undefined
 }

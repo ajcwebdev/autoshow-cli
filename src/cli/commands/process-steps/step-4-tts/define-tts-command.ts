@@ -122,7 +122,7 @@ export const ttsCommand = defineCliCommand({
   ) {
     l.warn(
       'Skipping Mistral TTS in the all-provider run because no Mistral voice source was supplied. Pass --tts-voice mistral=VOICE_ID or --tts-ref-audio mistral=PATH to include it.',
-      { category: 'tts' }
+      { category: 'pipeline' }
     )
   }
 

@@ -1,6 +1,6 @@
-export { buildWriteManifestConsoleSummary } from './manifest-log-console-summary'
+export { buildWriteManifestSummary } from './manifest-log-console-summary'
 export {
-  logExtractManifestConsoleSummary,
+  logExtractManifestSummary,
   logManifestLocation,
-  logWriteManifestConsoleSummary
+  logWriteManifestSummary
 } from './manifest-log-console-logging'

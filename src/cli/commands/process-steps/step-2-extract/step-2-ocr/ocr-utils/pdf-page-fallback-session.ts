@@ -4,7 +4,6 @@ import { basename, join } from 'node:path'
 import { statPath as stat } from '~/utils/bun-file-io'
 import type { DocumentMetadata, FallbackAuditState, HostedOcrRun, InitialFallbackReason, OcrPdfChunkRange, PdfChunkPreparationSummary, RunHostedOcrPdfChunkFallbackOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { serializeDiagnosticError } from '~/utils/error-handler'
 import { createAdaptiveOcrPdfPageChunkCreator, createOcrPdfChunkWithLocalFallback } from './pdf-rasterized-chunking'
 import { getOcrPdfChunkRangePageCount } from './pdf-chunk-fallback-shared'
 import { remapOcrPagesToRange, remapOcrProviderUsageToRange } from './pdf-chunk-page-remap'
@@ -124,7 +123,7 @@ export const createPdfPageFallbackSession = async (
         void queueFallbackStateWrite(session).catch((stateWriteError: unknown) => {
           l.write('debug', `${options.serviceLabel}: deferred OCR PDF fallback state write failed`, {
             category: 'artifact',
-            metadata: { error: serializeDiagnosticError(stateWriteError) },
+            error: stateWriteError,
           })
         })
       },

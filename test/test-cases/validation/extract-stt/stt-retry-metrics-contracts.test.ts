@@ -28,6 +28,7 @@ describe('STT retry metrics contracts', () => {
     recordSttRetryMetric(metrics, ProviderError('bad request', { status: 400 }), {
       shouldRetry: false,
       delayMs: 0,
+      reasonCode: 'non_retryable_status',
       reason: 'non-retryable status 400'
     })
 

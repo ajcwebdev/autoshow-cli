@@ -230,7 +230,7 @@ describe('test-runner contracts', () => {
       ])
     })
 
-  test('bun test flags use a 10 minute default timeout and retry only for e2e-only selections', () => {
+  test('bun test flags use a 10 minute default timeout without automatic retries', () => {
       const validation = 'test/test-cases/validation/cli/cli-help-contracts.test.ts'
       const e2e = 'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/glm-ocr.test.ts'
       expect(buildBunTestFlags([validation], ['--bail'])).toEqual([
@@ -243,8 +243,6 @@ describe('test-runner contracts', () => {
       expect(buildBunTestFlags([e2e], [])).toEqual([
         '--timeout',
         String(VALIDATION_TEST_TIMEOUT_MS),
-        '--retry',
-        '1',
         `--max-concurrency=${DEFAULT_TEST_RUNNER_CONCURRENCY}`,
         `--parallel=${E2E_TEST_RUNNER_PARALLEL}`,
       ])

@@ -26,31 +26,31 @@ describe('Supadata plan-limit contracts', () => {
   test('a plan-limit 429 stops retrying while a burst 429 keeps retrying', () => {
     const planLimit = toSupadataHttpError(
       'create',
-      'runtime_http_create_retriable',
+      'runtime_http_create_conservative',
       response(429),
       { error: 'limit-exceeded', message: 'Limit Exceeded' }
     )
     expect(planLimit.message).toBe('Supadata request failed (429): Limit Exceeded')
     expect(extractErrorMetadata(planLimit)['retryable']).toBe(false)
-    expect(classifyFetchRetry(planLimit, 'runtime_http_create_retriable').shouldRetry).toBe(false)
+    expect(classifyFetchRetry(planLimit, 'runtime_http_create_conservative').shouldRetry).toBe(false)
 
     const burst = toSupadataHttpError(
       'create',
-      'runtime_http_create_retriable',
+      'runtime_http_create_conservative',
       response(429),
       { message: 'Too many requests, slow down' }
     )
-    expect(extractErrorMetadata(burst)['retryable']).toBeUndefined()
-    expect(classifyFetchRetry(burst, 'runtime_http_create_retriable').shouldRetry).toBe(true)
+    expect(extractErrorMetadata(burst)['retryable']).toBe(true)
+    expect(classifyFetchRetry(burst, 'runtime_http_create_conservative').shouldRetry).toBe(true)
   })
 
   test('plan-limit detection also applies to the poll stage', () => {
     const polled = toSupadataHttpError(
       'poll',
-      'runtime_http_read',
+      'runtime_http_poll',
       response(429),
       { error: 'limit-exceeded' }
     )
-    expect(classifyFetchRetry(polled, 'runtime_http_read').shouldRetry).toBe(false)
+    expect(classifyFetchRetry(polled, 'runtime_http_poll').shouldRetry).toBe(false)
   })
 })

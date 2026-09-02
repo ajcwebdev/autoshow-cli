@@ -24,7 +24,7 @@ export const claimPinnedRunDir = (claimant: string): string | undefined => {
   if (claimedBy !== undefined && claimedBy !== claimant) {
     throw UsageError(
       `--output-dir cannot be used for a run that creates more than one output directory (claimed by "${claimedBy}", then "${claimant}").`,
-      'Use --output-root to place multiple run directories under a shared base instead.'
+      { hints: ['Use --output-root to place multiple run directories under a shared base instead.'] }
     )
   }
 

@@ -67,13 +67,10 @@ describe('OCR resume contracts', () => {
       }), true)
     })
 
-    const locations = events.find((event) => event.message === 'Locations')
-    expect(locations?.humanTable?.rows).toContainEqual({
-      artifact: 'outputDir',
-      path: '/tmp/autoshow-ocr-blocked'
-    })
-    expect(events.some((event) => event.message === 'Retry OCR')).toBe(false)
-    expect(events.some((event) => event.message === 'Blocked OCR Providers')).toBe(true)
+    const locations = events.find((event) => event.metadata?.['outputDir'] === '/tmp/autoshow-ocr-blocked')
+    expect(locations?.message).toContain('Output retained')
+    expect(events.some((event) => event.message.startsWith('Retry OCR'))).toBe(false)
+    expect(events.some((event) => event.message.startsWith('Blocked OCR providers'))).toBe(true)
     expect(JSON.stringify(events)).not.toContain('retryOutputDir')
   })
 
@@ -93,16 +90,10 @@ describe('OCR resume contracts', () => {
       }), true)
     })
 
-    const locations = events.find((event) => event.message === 'Locations')
-    const retry = events.find((event) => event.message === 'Retry OCR')
-    expect(locations?.humanTable?.rows).toContainEqual({
-      artifact: 'retryOutputDir',
-      path: '/tmp/autoshow-ocr-retryable'
-    })
-    expect(retry?.humanTable?.rows).toContainEqual({
-      key: 'command',
-      value: 'bun autoshow resume <retryOutputDir>'
-    })
+    const locations = events.find((event) => event.metadata?.['retryOutputDir'] === '/tmp/autoshow-ocr-retryable')
+    const retry = events.find((event) => event.message.startsWith('Retry OCR'))
+    expect(locations?.message).toContain('Retry output retained')
+    expect(retry?.metadata?.['command']).toBe('bun autoshow resume /tmp/autoshow-ocr-retryable')
   })
 
   test('provider failure summary surfaces attempts, fallback page counts, and terminal reason', async () => {
@@ -127,17 +118,15 @@ describe('OCR resume contracts', () => {
       }), true)
     })
 
-    const failuresEvent = events.find((event) => event.message === 'Provider Failures')
-    expect(failuresEvent?.humanTable?.rows).toContainEqual(expect.objectContaining({
-      provider: `${anthropicTarget.service}/${anthropicTarget.model}`,
-      retryable: 'no',
-      attempts: '4',
-      pages: '15 ok / 1 failed / 4 canceled'
-    }))
-    expect(failuresEvent?.humanTable?.details).toContainEqual({
-      label: `${anthropicTarget.service}/${anthropicTarget.model} fallback`,
-      value: 'content_policy'
+    const failureEvent = events.find((event) => event.metadata?.['service'] === anthropicTarget.service)
+    expect(failureEvent?.metadata).toMatchObject({
+      model: anthropicTarget.model,
+      retryable: false,
+      attemptsMade: 4,
+      fallbackPages: { cached: 1, resumed: 0, succeeded: 14, failed: 1, canceled: 4 },
+      fallbackTerminalReason: 'content_policy'
     })
+    expect(failureEvent?.message).toContain('15 ok / 1 failed / 4 canceled pages')
   })
 
   test('provider failure summary omits attempts and page columns when audit fields are absent', async () => {
@@ -156,13 +145,10 @@ describe('OCR resume contracts', () => {
       }), true)
     })
 
-    const failuresEvent = events.find((event) => event.message === 'Provider Failures')
-    expect(failuresEvent?.humanTable?.rows).toContainEqual(expect.objectContaining({
-      provider: `${mistralTarget.service}/${mistralTarget.model}`,
-      retryable: 'yes',
-      attempts: '',
-      pages: ''
-    }))
-    expect(events.some((event) => event.message === 'Retry OCR')).toBe(true)
+    const failureEvent = events.find((event) => event.metadata?.['service'] === mistralTarget.service)
+    expect(failureEvent?.metadata).toMatchObject({ model: mistralTarget.model, retryable: true })
+    expect(failureEvent?.metadata?.['attemptsMade']).toBeUndefined()
+    expect(failureEvent?.metadata?.['fallbackPages']).toBeUndefined()
+    expect(events.some((event) => event.message.startsWith('Retry OCR'))).toBe(true)
   })
 })

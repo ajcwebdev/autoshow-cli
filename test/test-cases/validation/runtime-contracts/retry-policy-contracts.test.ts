@@ -54,7 +54,7 @@ describe('retry delay computation', () => {
         policy: { maxAttempts: 4, baseDelayMs: 1_000, maxDelayMs: 60_000, jitter: true, exponential: true }
       },
       alwaysFails(InfraError('transient')),
-      () => ({ shouldRetry: true, delayMs: 0, reason: 'forced' })
+      () => ({ shouldRetry: true, delayMs: 0, reasonCode: 'unclassified_infrastructure', reason: 'forced' })
     ))
 
     expect(sleeps).toHaveLength(3)
@@ -74,7 +74,7 @@ describe('retry delay computation', () => {
         policy: { maxAttempts: 3, baseDelayMs: 750, maxDelayMs: 60_000, jitter: false, exponential: false }
       },
       alwaysFails(InfraError('transient')),
-      () => ({ shouldRetry: true, delayMs: 0, reason: 'forced' })
+      () => ({ shouldRetry: true, delayMs: 0, reasonCode: 'unclassified_infrastructure', reason: 'forced' })
     ))
 
     expect(sleeps).toEqual([750, 750])
@@ -88,7 +88,7 @@ describe('retry delay computation', () => {
         policy: { maxAttempts: 5, baseDelayMs: 10_000, maxDelayMs: 12_000, jitter: false, exponential: true }
       },
       alwaysFails(InfraError('transient')),
-      () => ({ shouldRetry: true, delayMs: 0, reason: 'forced' })
+      () => ({ shouldRetry: true, delayMs: 0, reasonCode: 'unclassified_infrastructure', reason: 'forced' })
     ))
 
     expect(sleeps).toEqual([10_000, 12_000, 12_000, 12_000])

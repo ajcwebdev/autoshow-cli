@@ -63,7 +63,15 @@ jobs:
             test/test-cases/validation/runtime-contracts/process-tree-cleanup-contracts.test.ts \
             test/test-cases/validation/runtime-contracts/jsonl-reader-contracts.test.ts \
             test/test-cases/validation/runtime-contracts/bun-xml-adapter-contracts.test.ts \
-            test/test-cases/validation/runtime-contracts/logging-contracts/human-table-rendering.test.ts \
+            test/test-cases/validation/cli/json-output-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/logging-contracts/text-json-logging-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/output-vocabulary-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/app-error-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/retry-policy-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/retry-create-admission-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/retry-metadata-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/retry-vocabulary-contracts.test.ts \
+            test/test-cases/validation/runtime-contracts/hosted-concurrency-contracts.test.ts \
             test/test-cases/validation/runtime-contracts/multipart-serialization-contracts.test.ts \
             test/test-cases/validation/runtime-contracts/fetch-error-contracts.test.ts \
             test/test-cases/validation/runtime-contracts/bun-version-alignment-contracts.test.ts \

@@ -47,7 +47,7 @@ export const validateMultiSpeakerTtsSelection = (
   if (selected?.provider !== 'mistral') {
     throw UsageError(
       `--tts-speaker SPEAKER=path is supported only by one explicitly selected Mistral TTS target, not ${selected?.provider ?? 'the selected provider'}.`,
-      'Use existing provider voice IDs for this target, or run standalone `tts` with one Mistral provider and explicit reference paths.'
+      { hints: ['Use existing provider voice IDs for this target, or run standalone `tts` with one Mistral provider and explicit reference paths.'] }
     )
   }
   const protectedReferences = getMistralProtectedSpeakerReferences(options)
@@ -62,7 +62,7 @@ export const validateMultiSpeakerTtsSelection = (
   ) {
     throw UsageError(
       'Mistral dialogue reference paths must cross protected ingestion as exact per-speaker opaque assets before target collection.',
-      'Pass every SPEAKER=path mapping explicitly to standalone `tts`; config, inherited paths, and copied runtime options are not authorized.'
+      { hints: ['Pass every SPEAKER=path mapping explicitly to standalone `tts`; config, inherited paths, and copied runtime options are not authorized.'] }
     )
   }
 }

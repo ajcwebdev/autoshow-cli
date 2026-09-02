@@ -19,7 +19,6 @@ export type AdaptivePressureKind = 'rate-limit' | 'timeout' | 'transient'
 
 export type AdaptiveConcurrencyConfig = {
   stateDir: string
-  maxAttempts: number
   initialProviderLimit: number
   groupInitialLimits: Record<string, number>
   rateLimitCooldownMs: number

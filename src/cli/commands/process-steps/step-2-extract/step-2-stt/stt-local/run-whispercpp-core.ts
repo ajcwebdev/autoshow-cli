@@ -52,7 +52,7 @@ export const runWhisperCppTranscribe = async (
 
   try {
     if (segmentNumber && totalSegments) {
-      logSttSegmentLifecycle(l, { provider: name, action: 'started', segmentNumber, totalSegments, model: modelName })
+      logSttSegmentLifecycle( { provider: name, action: 'started', segmentNumber, totalSegments, model: modelName })
     }
     const startTime = Date.now()
     const segmentSuffix = segmentNumber ? `_segment_${String(segmentNumber).padStart(3, '0')}` : ''
@@ -92,8 +92,7 @@ export const runWhisperCppTranscribe = async (
           segmentDurationSeconds,
           totalDurationSeconds
         }), { category: 'pipeline' })
-      },
-      retry: { operationName: `${name}-transcription` }
+      }
     })
     if (result.exitCode !== 0) {
       throw InfraError(`${label} transcription failed: ${result.stderr}`, { stage: `stt:${name}` })
@@ -145,7 +144,7 @@ export const runWhisperCppTranscribe = async (
     const processingTime = Date.now() - startTime
     const tokenCount = countTokens(text)
     if (segmentNumber && totalSegments) {
-      logSttSegmentLifecycle(l, { provider: name, action: 'completed', segmentNumber, totalSegments, model: modelName, processingTimeMs: processingTime })
+      logSttSegmentLifecycle( { provider: name, action: 'completed', segmentNumber, totalSegments, model: modelName, processingTimeMs: processingTime })
     }
     await Bun.write(`${outputBase}.txt`, formatTranscriptText(segments))
     const metadata: Step2Metadata = {
@@ -177,9 +176,6 @@ export const runWhisperCppTranscribe = async (
       },
       metadata
     }
-  } catch (error) {
-    l.error(`Failed to transcribe audio`, { category: 'pipeline', error })
-    throw error
   } finally {
     await preparedInput?.cleanup()
   }

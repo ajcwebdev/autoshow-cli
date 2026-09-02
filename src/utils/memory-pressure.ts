@@ -1,11 +1,12 @@
 import type { MemoryPressureCache, MemoryPressureLevel } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
+import { InternalError } from '~/utils/error-handler'
 
 const reconstructibleCaches = new Map<string, MemoryPressureCache>()
 
 export const registerMemoryPressureCache = (cache: MemoryPressureCache): (() => void) => {
   if (reconstructibleCaches.has(cache.name)) {
-    throw new Error(`Memory-pressure cache already registered: ${cache.name}`)
+    throw InternalError(`Memory-pressure cache already registered: ${cache.name}`, { stage: 'runtime:memory-pressure' })
   }
   reconstructibleCaches.set(cache.name, cache)
   return () => {

@@ -1,13 +1,13 @@
 import type { HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleProviderRunWithStats, UrlArticleRunResult, UrlRequestOptions } from '~/types'
 import { AppError, isAppError } from '~/utils/error-handler'
-import { classifyFetchRetry, URL_ARTICLE_RETRY_POLICY, withRetry } from '~/utils/retries'
+import { classifyFetchRetry, getRetryPolicyForClass, withRetry } from '~/utils/retries'
 import { defuddleArticleAdapter } from './url-local/defuddle/run-defuddle-url'
 import { firecrawlArticleAdapter } from './url-services/firecrawl/run-firecrawl-url'
 import { glmReaderArticleAdapter } from './url-services/glm-reader/run-glm-reader-url'
 import { spiderArticleAdapter } from './url-services/spider/run-spider-url'
 import { supadataArticleAdapter } from './url-services/url-supadata/run-supadata-url'
 import { zyteArticleAdapter } from './url-services/zyte/run-zyte-url'
-import { getUrlRequestAttempts, getUrlRequestTimeoutMs } from './url-utils'
+import { getUrlRequestTimeoutMs } from './url-utils'
 
 export const URL_ARTICLE_PROVIDER_ADAPTERS: Record<HtmlArticleBackend, UrlArticleProviderAdapter> = {
   defuddle: defuddleArticleAdapter,
@@ -34,7 +34,7 @@ const enrichUrlRetryError = (
   }
 
   const elapsedMs = typeof error.metadata['elapsedMs'] === 'number' ? error.metadata['elapsedMs'] : undefined
-  const causeMessage = error.cause?.message ?? error.message
+  const causeMessage = error.cause instanceof Error ? error.cause.message : error.message
   const attempts = typeof error.metadata['attemptsMade'] === 'number' ? error.metadata['attemptsMade'] : attemptsMade
   const max = typeof error.metadata['maxAttempts'] === 'number' ? error.metadata['maxAttempts'] : maxAttempts
   return new AppError(
@@ -48,7 +48,7 @@ const enrichUrlRetryError = (
       ...(error.retryClass !== undefined ? { retryClass: error.retryClass } : {}),
       ...(error.retryable !== undefined ? { retryable: error.retryable } : {}),
       ...(error.status !== undefined ? { status: error.status } : {}),
-      ...(error.stage !== undefined ? { stage: error.stage } : {}),
+      stage: error.stage ?? 'extract:url',
       metadata: {
         ...error.metadata,
         attemptsMade: attempts,
@@ -69,7 +69,7 @@ export const runUrlArticleProviderWithStats = async (
 ): Promise<UrlArticleProviderRunWithStats> => {
   const adapter = getUrlArticleProviderAdapter(backend)
   const timeoutMs = getUrlRequestTimeoutMs(options)
-  const maxAttempts = getUrlRequestAttempts(options)
+  const maxAttempts = getRetryPolicyForClass('runtime_http_read').maxAttempts
   let attemptsMade = 0
 
   try {
@@ -77,11 +77,7 @@ export const runUrlArticleProviderWithStats = async (
       {
         retryClass: 'runtime_http_read',
         operationName: `url-article-${adapter.id}`,
-        timeoutMs,
-        policy: {
-          ...URL_ARTICLE_RETRY_POLICY,
-          maxAttempts
-        }
+        timeoutMs
       },
       async (signal) => {
         attemptsMade += 1

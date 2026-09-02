@@ -1,6 +1,5 @@
 import { basename } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
-import { createHumanTable, createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { ensureDirectory } from '~/utils/cli-utils'
 import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-child-output'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
@@ -75,17 +74,8 @@ export const logIncompleteOcrRunSummary = (
     retryable: retryableMissingCount,
     blocked: blockedCount
   }
-  l.write('warn', 'Run Status', {
+  l.write('warn', `OCR run ${runStatus.completionStatus}: ${runStatus.succeeded}/${runStatus.requested} providers succeeded`, {
     category: 'pipeline',
-    humanTable: createKeyValueTable([
-      ['completionStatus', runStatus.completionStatus],
-      ['requested', runStatus.requested],
-      ['succeeded', runStatus.succeeded],
-      ['failed', runStatus.failed],
-      ['missing', runStatus.missing],
-      ['retryable', runStatus.retryable],
-      ['blocked', runStatus.blocked]
-    ]),
     metadata: runStatus
   })
 
@@ -101,38 +91,17 @@ export const logIncompleteOcrRunSummary = (
       }
       return parts.join(' / ')
     }
-    const failureRows = extraction.step2Errors.map((failure) => ({
-      provider: `${failure.service}/${failure.model}`,
-      category: failure.failureKind ?? failure.category ?? 'unknown',
-      retryable: failure.retryable === false ? 'no' : 'yes',
-      attempts: typeof failure.attemptsMade === 'number' ? String(failure.attemptsMade) : '',
-      pages: failure.fallbackPages ? formatFallbackPages(failure.fallbackPages) : '',
-      errorFile: failure.errorFile ?? '',
-      reason: failure.blockedReason ?? failure.failureKind ?? failure.category ?? 'failed'
-    }))
-    const failureTable = createHumanTable(failureRows, ['provider', 'category', 'retryable', 'attempts', 'pages', 'errorFile', 'reason'])
-    l.write('warn', 'Provider Failures', {
+    l.write('warn', `${failedCount} OCR providers failed`, {
       category: 'pipeline',
-      humanTable: {
-        ...failureTable,
-        details: [
-          ...(failureTable.details ?? []),
-          ...extraction.step2Errors.flatMap((failure) => [
-            {
-              label: `${failure.service}/${failure.model} detail`,
-              value: failure.message
-            },
-            ...(failure.fallbackTerminalReason
-              ? [{
-                  label: `${failure.service}/${failure.model} fallback`,
-                  value: failure.fallbackTerminalReason
-                }]
-              : [])
-          ])
-        ]
-      },
       metadata: { failures: extraction.step2Errors }
     })
+    for (const failure of extraction.step2Errors) {
+      const pages = failure.fallbackPages ? `; ${formatFallbackPages(failure.fallbackPages)} pages` : ''
+      l.write('warn', `${failure.service}/${failure.model} failed: ${failure.message}${pages}`, {
+        category: 'pipeline',
+        metadata: failure
+      })
+    }
   }
 
   if (requestedMultipleProviders && extraction.ocrProviderMode !== 'pool' && Array.isArray(extraction.providerStates)) {
@@ -144,31 +113,21 @@ export const logIncompleteOcrRunSummary = (
         output: `${extraction.outputDir}/${String(state['artifactDir'])}/result.json`
       }))
     if (outputRows.length > 0) {
-      l.write('warn', 'Provider Outputs', {
+      l.write('warn', `Retained ${outputRows.length} successful provider outputs`, {
         category: 'artifact',
-        humanTable: createHumanTable(outputRows, ['provider', 'status', 'output']),
         metadata: { outputs: outputRows }
       })
     }
   }
 
-  l.write('warn', 'Locations', {
+  l.write('warn', `${retryableMissingCount > 0 ? 'Retry output' : 'Output'} retained at ${extraction.outputDir}`, {
     category: 'artifact',
-    humanTable: createKeyValueTable(
-      [[retryableMissingCount > 0 ? 'retryOutputDir' : 'outputDir', extraction.outputDir]],
-      'artifact',
-      'path'
-    )
+    metadata: { [retryableMissingCount > 0 ? 'retryOutputDir' : 'outputDir']: extraction.outputDir }
   })
 
   if (blockedCount > 0) {
-    l.write('warn', 'Blocked OCR Providers', {
+    l.write('warn', 'Blocked OCR providers will be skipped by automatic resume', {
       category: 'pipeline',
-      humanTable: createKeyValueTable([
-        ['automaticResume', 'skips blocked OCR providers'],
-        ['override', 'bun autoshow resume <outputDir> --provider provider=model'],
-        ['when', 'after intentional repair, policy, or model change']
-      ]),
       metadata: {
         automaticResume: 'skip-blocked-providers',
         command: `bun autoshow resume ${extraction.outputDir} --provider provider=model`,
@@ -178,12 +137,8 @@ export const logIncompleteOcrRunSummary = (
   }
 
   if (retryableMissingCount > 0) {
-    l.write('warn', 'Retry OCR', {
+    l.write('warn', `Retry OCR with bun autoshow resume ${extraction.outputDir}`, {
       category: 'pipeline',
-      humanTable: createKeyValueTable([
-        ['action', 'resume'],
-        ['command', 'bun autoshow resume <retryOutputDir>']
-      ]),
       metadata: {
         command: `bun autoshow resume ${extraction.outputDir}`,
         outputDir: extraction.outputDir

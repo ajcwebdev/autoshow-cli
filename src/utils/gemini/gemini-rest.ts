@@ -219,6 +219,7 @@ export const geminiPredictLongRunning = async (
     lastFrame?: GeminiInlineMedia | undefined
     referenceImages?: GeminiVideoReferenceImage[] | undefined
     video?: GeminiInlineMedia | undefined
+    abortSignal?: AbortSignal | undefined
   }
 ): Promise<GeminiVideoOperation> => {
   const body: Record<string, unknown> = {
@@ -239,17 +240,20 @@ export const geminiPredictLongRunning = async (
   const modelPath = normalizeGeminiModelPath(params.model)
   const { json } = await geminiJsonRequest(apiKey, `${encodePath(modelPath)}:predictLongRunning`, {
     method: 'POST',
-    body
+    body,
+    ...(params.abortSignal ? { abortSignal: params.abortSignal } : {})
   })
   return normalizeGeminiVideoOperation(json)
 }
 
 export const geminiGetOperation = async (
   apiKey: string,
-  operationName: string
+  operationName: string,
+  abortSignal?: AbortSignal
 ): Promise<GeminiVideoOperation> => {
   const { json } = await geminiJsonRequest(apiKey, encodePath(operationName), {
-    method: 'GET'
+    method: 'GET',
+    ...(abortSignal ? { abortSignal } : {})
   })
   return normalizeGeminiVideoOperation(json)
 }
@@ -375,6 +379,7 @@ export const geminiUploadFile = async (
   if (captured.truncated) {
     throw new AppError(`Gemini Files API upload response exceeded the ${captured.retainedBytes.toLocaleString()} byte response capture limit`, {
       kind: 'validation',
+      stage: 'gemini:upload-response',
       status: finalResponse.status,
       metadata: buildCaptureMetadata(captured)
     })
@@ -382,6 +387,7 @@ export const geminiUploadFile = async (
   if (typeof parsed === 'string') {
     throw new AppError(`Gemini Files API upload returned invalid JSON: ${sanitizeLogText(parsed.slice(0, 500))}`, {
       kind: 'validation',
+      stage: 'gemini:upload-response',
       status: finalResponse.status,
       metadata: buildCaptureMetadata(captured)
     })

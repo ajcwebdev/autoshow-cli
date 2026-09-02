@@ -23,17 +23,16 @@ const installMutool = async (): Promise<void> => {
 
   if (platform === 'darwin') {
     await installManagedMupdfMacos()
-    l.write('success', 'MuPDF tools installed', { category: 'command' })
+    l.write('info', 'MuPDF tools installed', { category: 'command' })
     return
   }
 
   if (platform === 'linux') {
     await runInherit('sudo', ['apt', 'install', '-y', 'mupdf-tools'])
-    l.write('success', 'MuPDF tools installed', { category: 'command' })
+    l.write('info', 'MuPDF tools installed', { category: 'command' })
     return
   }
 
-  l.error('Unsupported platform for mutool auto-install', { category: 'command' })
   throw InternalError('Unsupported platform for mutool setup', { stage: 'setup:mupdf' })
 }
 
@@ -52,18 +51,17 @@ const installQpdf = async (): Promise<void> => {
   if (platform === 'darwin') {
     await installManagedQpdfMacos()
     await refreshQpdfHealthCache({ repairManaged: false })
-    l.write('success', 'qpdf installed', { category: 'command' })
+    l.write('info', 'qpdf installed', { category: 'command' })
     return
   }
 
   if (platform === 'linux') {
     await runInherit('sudo', ['apt', 'install', '-y', 'qpdf'])
     await refreshQpdfHealthCache({ repairManaged: false })
-    l.write('success', 'qpdf installed', { category: 'command' })
+    l.write('info', 'qpdf installed', { category: 'command' })
     return
   }
 
-  l.error('Unsupported platform for qpdf auto-install', { category: 'command' })
   throw InternalError('Unsupported platform for qpdf setup', { stage: 'setup:qpdf' })
 }
 
@@ -72,6 +70,6 @@ export const setupDocumentTools = async (options: { printCompletion?: boolean } 
   await installQpdf()
 
   if (options.printCompletion !== false && shouldPrintCompletion()) {
-    l.write('success', 'Document tools setup complete', { category: 'command' })
+    l.write('info', 'Document tools setup complete', { category: 'command' })
   }
 }

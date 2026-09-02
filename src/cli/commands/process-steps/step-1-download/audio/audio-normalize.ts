@@ -395,9 +395,7 @@ export const materializeNormalizedAudioArtifact = async (
     args.push('-c:a', 'flac', '-compression_level', '12', '-y', outputPath)
   }
 
-  const result = await exec(getFfmpegBinary(), args, {
-    retry: { operationName: 'ffmpeg audio normalize' }
-  })
+  const result = await exec(getFfmpegBinary(), args)
   if (result.exitCode !== 0) {
     throw InfraError(`Failed to normalize audio artifact: ${result.stderr || result.stdout}`, { stage: 'download:audio' })
   }

@@ -3,12 +3,11 @@ import { joinOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { claimPinnedRunDir, getPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
 import { createUniqueDirectoryName } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
 import { loadConfig, resolveConfigPath, resolveMaxCents } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
-import type { GenerationCostStep, LogLevel, MediaGenerationStatus, PipelineProviderState, StepTimingCost, TableLogger } from '~/types'
+import type { GenerationCostStep, LogLevel, MediaGenerationStatus, PipelineProviderState, StepTimingCost } from '~/types'
 import { ensureDirectory } from '~/utils/cli-utils'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { UsageError, isUsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
-import { createDetailTable } from '~/utils/app-logger/human-table/human-table'
 import { createManifest, createPipelineItemFromRecord, writeManifest } from './pipeline-manifest'
 
 
@@ -19,49 +18,13 @@ const mediaLabels: Readonly<Record<MediaGenerationStatus['mediaType'], string>> 
   music: 'Music'
 }
 
-const outputCountLabels: Readonly<Record<MediaGenerationStatus['mediaType'], string>> = {
-  tts: 'chunks',
-  image: 'images',
-  video: 'outputs',
-  music: 'outputs'
-}
-
-const getMediaLogMessage = (summary: MediaGenerationStatus): string =>
-  summary.status === 'completed'
-    ? `${mediaLabels[summary.mediaType]} Result`
-    : `${mediaLabels[summary.mediaType]} Status`
-
-const buildMediaGenerationDetailEntries = (
-  summary: MediaGenerationStatus
-): Array<readonly [string, unknown]> => {
-  const entries: Array<readonly [string, unknown]> = [
-    ['providerModel', `${summary.provider}/${summary.model}`],
-    ['status', summary.status]
-  ]
-  if (summary.processingTimeMs != null) entries.push(['processingTimeMs', summary.processingTimeMs])
-  if (summary.outputCount != null) entries.push(['outputCount', summary.outputCount])
-  if (summary.detail) entries.push(['detail', summary.detail])
-  for (const artifact of summary.artifacts ?? []) {
-    entries.push([artifact.artifact, artifact.path])
-    if (artifact.detail !== undefined) {
-      entries.push([`${artifact.artifact} detail`, artifact.detail])
-    }
-  }
-  return entries
-}
-
 export const logMediaGenerationStatus = (
-  logger: TableLogger,
   summary: MediaGenerationStatus,
-  level: LogLevel = summary.status === 'completed' ? 'success' : 'info'
+  level: LogLevel = 'info'
 ): void => {
-  logger.write(level, getMediaLogMessage(summary), {
+  const count = summary.outputCount === undefined ? '' : ` with ${summary.outputCount} outputs`
+  l.write(level, `${mediaLabels[summary.mediaType]} ${summary.provider}/${summary.model} ${summary.status}${count}`, {
     category: 'pipeline',
-    humanTable: createDetailTable(buildMediaGenerationDetailEntries(summary), {
-      labels: {
-        outputCount: outputCountLabels[summary.mediaType]
-      }
-    }),
     metadata: summary
   })
 }
@@ -73,7 +36,7 @@ export const logGenStatus = (
   status: string,
   detail?: string
 ): void => {
-  logMediaGenerationStatus(l, {
+  logMediaGenerationStatus({
     mediaType,
     provider,
     model,
@@ -90,7 +53,7 @@ export const logGenCompleted = (
   paths: readonly string[],
   detail?: string
 ): void => {
-  logMediaGenerationStatus(l, {
+  logMediaGenerationStatus({
     mediaType,
     provider,
     model,
@@ -147,9 +110,9 @@ export const createGenerationOutputDir = async (
   const explicitOutputDir = claimPinnedRunDir(`generation:${label}`)
   if (explicitOutputDir !== undefined) {
     await ensureExplicitOutputDirectory(explicitOutputDir)
-    l.write('info', 'Run', {
+    l.write('info', `Using output directory ${explicitOutputDir}`, {
       category: 'command',
-      humanTable: createDetailTable([['outputDir', explicitOutputDir]])
+      metadata: { outputDir: explicitOutputDir }
     })
     return explicitOutputDir
   }
@@ -157,9 +120,9 @@ export const createGenerationOutputDir = async (
   const uniqueDirName = createUniqueDirectoryName(label)
   const outputDir = joinOutputRoot(uniqueDirName)
   await ensureDirectory(outputDir)
-  l.write('info', 'Run', {
+  l.write('info', `Created output directory ${outputDir}`, {
     category: 'command',
-    humanTable: createDetailTable([['outputDir', outputDir]])
+    metadata: { outputDir }
   })
   return outputDir
 }

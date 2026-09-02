@@ -13,7 +13,7 @@ import type {
 import { rm } from 'node:fs/promises'
 import { HUME_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { UsageError, InfraError } from '~/utils/error-handler'
-import { httpResponseError } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { concatAndConvertToWav } from '../../tts-utils/audio-utils'
 import { finalizeTtsRun } from '../../tts-utils/finalize-tts-run'
@@ -162,7 +162,9 @@ export const runHumeNativeUtterances = async (
         continuation
       }, attempt, async ({ accepted }) => {
         const response = await fetch(`${HUME_DEFAULT_BASE_URL}/v0/tts`, { method: 'POST', headers: { 'X-Hume-Api-Key': apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody), ...(signal ? { signal } : {}) })
-        if (!response.ok) throw httpResponseError(`Hume native utterance synthesis failed (${response.status}).`, response)
+        if (!response.ok) throw httpResponseError(`Hume native utterance synthesis failed (${response.status}).`, httpResponseOptions(response, {
+          stage: 'tts:hume-native', retryClass: 'runtime_http_create_conservative', retryable: response.status === 425 || response.status === 429, metadata: { provider: 'hume' }
+        }))
         await accepted({ fields: { httpStatus: response.status } })
         return await response.json() as { generations?: unknown, request_id?: unknown }
       }))

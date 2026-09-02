@@ -1,13 +1,13 @@
-import type { WriteManifestConsoleSummary, WriteManifestMetadata, WriteManifestSourceRefs } from '~/types'
+import type { WriteManifestMetadata, WriteManifestSourceRefs, WriteManifestSummary } from '~/types'
 import { buildOcrCostCalculation } from './manifest-log-ocr-cost'
 import { buildHostedOcrSchedulerSummary } from './manifest-log-hosted-ocr-scheduler'
 import { buildPromptUsage } from './manifest-log-prompt-usage'
 import { buildRunSummary } from './manifest-log-run-summary'
 
-export const buildWriteManifestConsoleSummary = (
+export const buildWriteManifestSummary = (
   metadata: WriteManifestMetadata,
   refs: WriteManifestSourceRefs = {}
-): WriteManifestConsoleSummary => {
+): WriteManifestSummary => {
   const runSummary = buildRunSummary(metadata)
   const promptUsage = buildPromptUsage(metadata, refs)
   const ocrCostCalculation = buildOcrCostCalculation(metadata)

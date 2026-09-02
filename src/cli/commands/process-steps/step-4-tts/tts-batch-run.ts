@@ -6,7 +6,7 @@ import { getPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
 import { assertCompatibleTtsDirectoryBatch, priceExistingTtsDirectoryBatch, resumeExistingTtsDirectoryBatch } from '~/cli/commands/setup-and-utilities/resume/generation/tts-batch-resume'
 import { buildPipelineItemRecord } from '~/cli/commands/process-steps/step-0-metadata/metadata-batch/pipeline-item-record-builder'
 import { sanitizeTitleSlug } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
-import { logBatchCompletionTable, logBatchItemStatus } from '~/cli/commands/process-steps/step-1-download/download-targets/download-batch/download-batch-summary'
+import { logBatchCompletion, logBatchItemStatus } from '~/cli/commands/process-steps/step-1-download/download-targets/download-batch/download-batch-summary'
 import { collectTextInputFiles } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import type {
   AggregatedPriceEstimate,
@@ -32,8 +32,6 @@ import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { UsageError, InfraError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
-import { formatDuration } from '~/utils/app-logger/formatters'
-import { createHumanTable, logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { validateTtsRenderInputsForTargets } from './run-tts'
 import { computeSuccessfulTtsBatchActualCost } from './tts-batch-summary'
 import { collectTtsTargets, getTtsArtifactFileName, mergeTtsExecutionReadinessObservations, validateTtsTargetsForExecution } from './tts-targets'
@@ -131,21 +129,8 @@ const logHostedTtsSchedulerSummary = (
     return
   }
 
-  l.write('info', 'Hosted TTS Scheduler Summary', {
-    category: 'general',
-    humanTable: createHumanTable(
-      telemetry.providers.map((provider) => ({
-        provider: provider.laneKey ?? provider.provider,
-        chunks: `${provider.completedChunks}/${provider.startedChunks}`,
-        limit: `${provider.currentLimit}/${provider.maxLimit}`,
-        retries: provider.retryCount,
-        rateLimits: provider.rateLimitCount,
-        queueP95: formatDuration(provider.queueWait.p95Ms),
-        activeP95: formatDuration(provider.activeLatency.p95Ms),
-        maxActive: provider.maxActive
-      })),
-      ['provider', 'chunks', 'limit', 'retries', 'rateLimits', 'queueP95', 'activeP95', 'maxActive']
-    ),
+  l.write('info', `Hosted TTS scheduler handled ${telemetry.providers.length} providers`, {
+    category: 'runtime',
     metadata: telemetry
   })
 }
@@ -311,7 +296,7 @@ export const runTtsDirectoryBatch = async (
 ): Promise<void> => {
   const inputFiles = await collectTextInputFiles(inputPath)
   if (inputFiles.length === 0) {
-    l.warn(`No .md or .txt files found in ${inputPath}`, { category: 'tts', metadata: { inputPath } })
+    l.warn(`No .md or .txt files found in ${inputPath}`, { category: 'pipeline', metadata: { inputPath } })
     return
   }
 
@@ -329,7 +314,7 @@ export const runTtsDirectoryBatch = async (
       }
       await assertCompatibleTtsDirectoryBatch(pinnedDir, existing, inputFiles, targets)
       if (ttsOptions.price) {
-        l.report.estimate(estimate)
+        l.report.price(estimate)
         return
       }
       enforceTtsBatchBudget(estimate.totalEstimatedCost, maxCents, ttsOptions.allowOverBudget)
@@ -367,6 +352,10 @@ export const runTtsDirectoryBatch = async (
   enforceTtsBatchBudget(estimateReport.totalEstimatedCost, maxCents, ttsOptions.allowOverBudget)
 
   if (ttsOptions.price) {
+    l.report.price({
+      steps: estimateReport.estimates.flatMap(estimate => estimate.steps),
+      totalEstimatedCost: estimateReport.totalEstimatedCost
+    })
     return
   }
 
@@ -403,11 +392,14 @@ export const runTtsDirectoryBatch = async (
     accumulators,
     source: batchSource
   })
-  logLocationsTable(l, [{ artifact: 'manifest', path: `${batchDir}/manifest.json` }])
+  l.write('info', `Manifest: ${batchDir}/manifest.json`, {
+    category: 'artifact',
+    metadata: { artifact: 'manifest', path: `${batchDir}/manifest.json` }
+  })
 
   if (concurrency > 1) {
     l.write('info', `Processing ${preparedInputs.length} TTS inputs with local/file concurrency ${concurrency}`, {
-    category: 'tts',
+    category: 'pipeline',
     metadata: { inputCount: preparedInputs.length, concurrency }
   })
   }
@@ -466,7 +458,7 @@ export const runTtsDirectoryBatch = async (
       : await hostedCoordinator.waitForRegisteredJobs(expectedHostedJobs, 1_000)
     if (!registeredAllJobs) {
       l.debug(`Hosted TTS scheduler registered ${hostedCoordinator.getRegisteredJobCount()}/${expectedHostedJobs} expected chunk jobs before release`, {
-        category: 'tts',
+        category: 'pipeline',
         metadata: { registeredJobs: hostedCoordinator.getRegisteredJobCount(), expectedHostedJobs }
       })
     }
@@ -558,7 +550,7 @@ export const runTtsDirectoryBatch = async (
     })
     return { ...manifest, source: completedBatchSource, items }
   })
-  logBatchCompletionTable(ok, partial, 0, fail)
+  logBatchCompletion(ok, partial, 0, fail)
   l.report.complete(batchDir, {
     manifest: 'manifest.json',
     ...Object.fromEntries(
@@ -578,11 +570,9 @@ export const runTtsDirectoryBatch = async (
       )
     )
   }, {
-    summaryMessage: 'TTS Batch Complete',
     totalTimeMs: actualBatchWallTimeMs,
     totalCost: actualTotalCost,
-    steps: [],
-    includeOutputDir: true
+    steps: []
   })
 
   await Promise.all(plans.map(async (plan, index) => {

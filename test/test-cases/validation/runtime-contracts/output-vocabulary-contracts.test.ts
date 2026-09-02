@@ -7,7 +7,7 @@ const TEST_CAPTURE_OWNERS = [
 ]
 
 const LOGGER_SINK_FILES = [
-  'src/utils/app-logger/sinks/human-sink.ts',
+  'src/utils/app-logger/sinks/text-sink.ts',
   'src/utils/app-logger/sinks/json-sink.ts',
   'src/utils/app-logger/core.ts',
   'src/utils/app-logger/result-emitter.ts'
@@ -32,6 +32,10 @@ const PROCESS_EXIT_ALLOWLIST = new Set([
 ])
 
 const ASSIGNED_ERROR_ALLOWLIST = new Set<string>([])
+const LOGGER_CONSTRUCTION_FILES = new Set([
+  'src/utils/app-logger/app-logger.ts',
+  'src/utils/app-logger/reporter.ts'
+])
 
 const CONSOLE_PATTERN = /(?<![\w.$])console\s*\.\s*(?:log|error|warn|info|debug)\s*\(/
 const PROCESS_WRITE_PATTERN = /process\s*\.\s*std(?:out|err)\s*\.\s*write\s*\(/
@@ -43,6 +47,9 @@ const BUILTIN_ERROR_THROW_PATTERN =
 const ASSIGNED_ERROR_PATTERN = /Object\s*\.\s*assign\s*\(\s*(?:\n\s*)?new\s+\w*Error\s*\(/
 
 const PROCESS_EXIT_PATTERN = /(?<![\w.$])process\s*\.\s*exit\s*\(/
+const TABLE_LOGGING_PATTERN = /\b(?:humanTable|humanSections|HumanLog\w*|TableLogger|tableLogDefinition|ManifestLogSection|WriteManifestConsoleSummary|console\.table)\b|write-manifest-log-columns|[┌┐└┘├┤┬┴┼╭╮╰╯]/
+const NESTED_LOG_ERROR_PATTERN = /metadata\s*:\s*\{[^{}]*\berror\s*:/s
+const LOGGER_INJECTION_PATTERN = /\blogger\s*:\s*(?:Pick<\s*)?Logger\b/
 
 const listSourceFiles = async (): Promise<string[]> => await listFilesUnder(SRC_ROOT)
 
@@ -69,6 +76,28 @@ describe('src output and error vocabulary contracts', () => {
 
   test('no duck-typed Object.assign(new Error(...)) provider errors in src', async () => {
     const violations = await scanWholeFile(ASSIGNED_ERROR_PATTERN, ASSIGNED_ERROR_ALLOWLIST)
+    expect(describeViolations(violations)).toEqual([])
+  })
+
+  test('production source contains no table logging vocabulary or glyphs', async () => {
+    const violations = await scanWholeFile(TABLE_LOGGING_PATTERN, new Set())
+    expect(describeViolations(violations)).toEqual([])
+  })
+
+  test('test source contains no retired table modules, types, fields, or glyphs', async () => {
+    const violations = await scanWholeFile(TABLE_LOGGING_PATTERN, new Set([
+      'test/test-cases/validation/runtime-contracts/output-vocabulary-contracts.test.ts'
+    ]), TEST_ROOT)
+    expect(describeViolations(violations)).toEqual([])
+  })
+
+  test('production call sites do not inject alternate loggers', async () => {
+    const violations = await scanWholeFile(LOGGER_INJECTION_PATTERN, LOGGER_CONSTRUCTION_FILES)
+    expect(describeViolations(violations)).toEqual([])
+  })
+
+  test('logger errors use the top-level error field rather than metadata.error', async () => {
+    const violations = await scanWholeFile(NESTED_LOG_ERROR_PATTERN, new Set())
     expect(describeViolations(violations)).toEqual([])
   })
 
@@ -104,6 +133,7 @@ describe('src output and error vocabulary contracts', () => {
       ...CONSOLE_ALLOWLIST,
       ...PLAIN_THROW_ALLOWLIST,
       ...ASSIGNED_ERROR_ALLOWLIST,
+      ...LOGGER_CONSTRUCTION_FILES,
       ...PROCESS_EXIT_ALLOWLIST,
       ...TEST_CAPTURE_OWNERS
     ].filter((file) => !present.has(file))

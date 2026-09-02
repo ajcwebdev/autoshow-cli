@@ -6,7 +6,6 @@ import { parseCommandOutputText } from '../test-runner/utils'
 import {
   acquireAdaptiveProviderLease,
   classifyAdaptivePressure,
-  formatAdaptiveRetrySummary,
   recordAdaptivePressure,
   recordAdaptiveSuccess,
   resolveAdaptiveConcurrencyConfig
@@ -26,7 +25,7 @@ import type {
   RunCommandOptions,
   RunCommandResult
 } from '~/types'
-import { hasErrorCode, serializeDiagnosticError } from '~/utils/error-handler'
+import { hasErrorCode } from '~/utils/error-handler'
 import { l } from '~/utils/app-logger/app-logger'
 import { isRecord } from '~/utils/value-helpers'
 import { pathExists } from '~/utils/filesystem'
@@ -359,33 +358,6 @@ const runCommandAttempt = async (
   }
 }
 
-const appendAttemptOutput = (
-  current: string,
-  next: string,
-  attempt: number,
-  streamLabel: 'stdout' | 'stderr'
-): string => {
-  if (attempt === 1) {
-    return next
-  }
-
-  const separator = `\n--- adaptive attempt ${attempt} ${streamLabel} ---\n`
-  return `${current}${separator}${next}`
-}
-
-const appendAdaptiveSummary = (
-  stderr: string,
-  records: AdaptiveCommandAttemptRecord[],
-  finalExitCode: number
-): string => {
-  const summary = formatAdaptiveRetrySummary(records, finalExitCode)
-  if (!summary) {
-    return stderr
-  }
-
-  return `${stderr.trimEnd()}\n\n${summary}\n`
-}
-
 const runCommandWithOptionalAdaptiveConcurrency = async (
   args: string[],
   env: Record<string, string | undefined>,
@@ -396,59 +368,28 @@ const runCommandWithOptionalAdaptiveConcurrency = async (
   adaptiveConfig: AdaptiveConcurrencyConfig | null
 ): Promise<CommandResultBase & { adaptiveRecords: AdaptiveCommandAttemptRecord[] }> => {
   const groups = adaptiveConfig ? extractAdaptiveProviderGroups(args) : []
-  const maxAttempts = adaptiveConfig && groups.length > 0 ? adaptiveConfig.maxAttempts : 1
   const adaptiveRecords: AdaptiveCommandAttemptRecord[] = []
-  let stdout = ''
-  let stderr = ''
-  let exitCode = 0
+  const lease = adaptiveConfig && groups.length > 0
+    ? await acquireAdaptiveProviderLease(groups, adaptiveConfig, { command: commandText, leaseTtlMs: timeoutMs + 60_000 })
+    : null
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const lease = adaptiveConfig && groups.length > 0
-      ? await acquireAdaptiveProviderLease(groups, adaptiveConfig, {
-          command: commandText,
-          leaseTtlMs: timeoutMs + 60_000,
-        })
-      : null
-
-    try {
-      const result = await runCommandAttempt(args, env, opts, attempt, timeoutMs, outputRoot)
-
-      stdout = appendAttemptOutput(stdout, result.stdout, attempt, 'stdout')
-      stderr = appendAttemptOutput(stderr, result.stderr, attempt, 'stderr')
-      exitCode = result.exitCode
-
-      if (!adaptiveConfig || groups.length === 0) {
-        break
-      }
-
+  try {
+    const result = await runCommandAttempt(args, env, opts, 1, timeoutMs, outputRoot)
+    if (adaptiveConfig && groups.length > 0) {
       if (result.exitCode === 0) {
         await recordAdaptiveSuccess(groups, adaptiveConfig)
-        break
+      } else {
+        const pressure = classifyAdaptivePressure(`${result.stdout}\n${result.stderr}`, result.exitCode, result.timedOut === true)
+        if (pressure) {
+          adaptiveRecords.push({ attempt: 1, exitCode: result.exitCode, pressure, groups })
+          await recordAdaptivePressure(groups, pressure, adaptiveConfig)
+        }
       }
-
-      const pressure = classifyAdaptivePressure(`${result.stdout}\n${result.stderr}`, result.exitCode, result.timedOut === true)
-      if (!pressure) {
-        break
-      }
-
-      adaptiveRecords.push({
-        attempt,
-        exitCode: result.exitCode,
-        pressure,
-        groups,
-      })
-      await recordAdaptivePressure(groups, pressure, adaptiveConfig)
-
-      if (attempt >= maxAttempts) {
-        stderr = appendAdaptiveSummary(stderr, adaptiveRecords, result.exitCode)
-        break
-      }
-    } finally {
-      await lease?.release()
     }
+    return { exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr, adaptiveRecords }
+  } finally {
+    await lease?.release()
   }
-
-  return { exitCode, stdout, stderr, adaptiveRecords }
 }
 
 export const injectGlobalCliFlags = (
@@ -512,7 +453,7 @@ const appendCommandMetricsRecord = async (
     testName: string | null
     runArtifacts: RunCommandArtifacts
     adaptiveConfig: AdaptiveConcurrencyConfig | null
-    adaptiveRetryAttempts: number
+    adaptivePressureSignals: number
   }
 ): Promise<void> => {
   const { runArtifacts, caller } = parts
@@ -535,7 +476,7 @@ const appendCommandMetricsRecord = async (
     estimatedProcessingTimeMs: runArtifacts.metadataSummary?.estimatedProcessingTimeMs ?? null,
     actualProcessingTimeMs: runArtifacts.metadataSummary?.actualProcessingTimeMs ?? null,
     adaptiveConcurrencyGroups: parts.adaptiveConfig ? extractAdaptiveProviderGroups(parts.args) : [],
-    adaptiveRetryAttempts: parts.adaptiveRetryAttempts,
+    adaptivePressureSignals: parts.adaptivePressureSignals,
   }
 
   try {
@@ -545,7 +486,7 @@ const appendCommandMetricsRecord = async (
     commandMetricsWriteWarned = true
     l.warn(`Could not append to the command metrics log at ${metricsLogPath}; pricing reports will be incomplete`, {
       category: 'pricing',
-      metadata: { metricsLogPath, error: serializeDiagnosticError(error) }
+      metadata: { metricsLogPath }, error: error
     })
   }
 }
@@ -594,7 +535,7 @@ export const runCommand = async (args: string[], opts?: RunCommandOptions): Prom
       testName,
       runArtifacts,
       adaptiveConfig,
-      adaptiveRetryAttempts: adaptiveRecords.length,
+      adaptivePressureSignals: adaptiveRecords.length,
     })
   }
 

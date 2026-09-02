@@ -1,7 +1,6 @@
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import { toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import type { OpenAICompatibleTranscriptionSegment, RawTranscriptionPayload, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
-import * as l from '~/utils/app-logger/app-logger'
 import { createOpenAITranscription } from '~/utils/openai/openai-client'
 import { withRetry } from '~/utils/retries'
 import { classifySttFetchRetryWithMetrics, createSttRetryMetrics } from '../stt-retry-metrics'
@@ -80,12 +79,12 @@ const withCompatibleTranscriptionRetry = async <T>(
 ): Promise<T> =>
   await withRetry(
     {
-      retryClass: 'runtime_http_create_retriable',
+      retryClass: 'runtime_http_create_conservative',
       operationName,
       timeoutMs: REQUEST_TIMEOUT_MS
     },
     operation,
-    classifySttFetchRetryWithMetrics(retryMetrics, 'runtime_http_create_retriable')
+    classifySttFetchRetryWithMetrics(retryMetrics, 'runtime_http_create_conservative')
   )
 
 export const runOpenAICompatibleSingleSpeakerStt = async (
@@ -121,7 +120,7 @@ export const runOpenAICompatibleSingleSpeakerStt = async (
   } = options
 
   if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, { provider: providerLabel, action: 'started', segmentNumber, totalSegments, model })
+    logSttSegmentLifecycle( { provider: providerLabel, action: 'started', segmentNumber, totalSegments, model })
   }
 
   const startTime = Date.now()

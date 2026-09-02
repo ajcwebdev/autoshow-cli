@@ -124,7 +124,7 @@ export const tryEnumerateYoutubeChannel = async (
     return null
   }
 
-  l.write('success', `Found ${items.length} items in YouTube channel/playlist`, { category: 'pipeline', metadata: { url, itemCount: items.length } })
+  l.write('info', `Found ${items.length} items in YouTube channel/playlist`, { category: 'pipeline', metadata: { url, itemCount: items.length } })
 
   const channelTitle = items[0]?.author
 

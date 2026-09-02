@@ -1,13 +1,15 @@
-import type { RetryClass, SttStageHttpError } from '~/types'
-import { ProviderError } from '~/utils/error-handler'
+import type { RetryClass } from '~/types'
+import { annotateAppError } from '~/utils/error-handler'
 
 export const attachSttStageErrorContext = (
   error: unknown,
   stage: string,
   retryClass: RetryClass
 ): never => {
-  const source = error instanceof Error ? error : ProviderError(String(error))
-  ;(source as SttStageHttpError).stage = stage
-  ;(source as SttStageHttpError).retryClass = retryClass
-  throw source
+  throw annotateAppError(error, {
+    kind: 'provider_http',
+    stage,
+    retryClass,
+    metadata: { stage, retryClass }
+  })
 }

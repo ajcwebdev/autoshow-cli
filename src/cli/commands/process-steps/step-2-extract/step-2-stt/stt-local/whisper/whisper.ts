@@ -122,7 +122,7 @@ export const setupWhisper = async (): Promise<void> => {
     await cleanupPath(repoDir)
   })
 
-  l.write('success', 'Whisper.cpp installed', { category: 'command' })
+  l.write('info', 'Whisper.cpp installed', { category: 'command' })
 }
 
 export const downloadWhisperModel = async (modelName: string): Promise<void> => {
@@ -151,13 +151,12 @@ export const downloadWhisperModel = async (modelName: string): Promise<void> => 
       }
     )
 
-    l.write('success', `Whisper model ${modelName} downloaded`, { category: 'command', metadata: { engine: 'whisper', model: modelName } })
+    l.write('info', `Whisper model ${modelName} downloaded`, { category: 'command', metadata: { engine: 'whisper', model: modelName } })
   }
 }
 
 export const ensureWhisperReady = async (modelName: string): Promise<void> => {
   if (!modelName) {
-    l.error('Model name required', { category: 'command' })
     throw InternalError('Model name required', { stage: 'setup:whisper' })
   }
 

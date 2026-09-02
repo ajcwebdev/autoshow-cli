@@ -1,20 +1,19 @@
 import { copyFile, rename, rm } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import type { DownloadAudioOptions, Step1Metadata, VideoMetadata } from '~/types'
-import * as l from '~/utils/app-logger/app-logger'
 import { downloadVideo } from './yt-utils'
 import { exec } from '~/utils/cli-utils'
 import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio'
 import { UsageError, InfraError } from '~/utils/error-handler'
 import { buildMediaStep1Slug, sanitizeTitleSlug } from './metadata-utils'
 import { MEDIA_EXTENSIONS } from '~/cli/commands/process-steps/step-0-metadata/formats/metadata-media-extensions'
-import { withRetry, classifyFetchRetry } from '~/utils/retries'
+import { withRetry, classifyFetchRetry, isRetryableStatus } from '~/utils/retries'
 import { MEDIA_DOWNLOAD_TIMEOUT_MS } from '~/utils/timeouts'
 import { materializeNormalizedAudioArtifact, planNormalizedAudioArtifact } from './audio-normalize'
 import { logAudioDownload, logAudioNormalize, logAudioOutput } from './audio-logging'
 import { getYtDlpBinary, hasYtDlpBinary } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
 import { hasRuntimeTool } from '~/utils/runtime-paths'
-import { httpResponseError } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 
 let ytDlpVersionVerified = false
 
@@ -115,7 +114,9 @@ const downloadDirectMediaUrl = async (url: string, outputDir: string): Promise<s
     async (signal) => {
       const r = await fetch(url, { ...(signal ? { signal } : {}) })
       if (!r.ok) {
-        throw httpResponseError(`Failed to download ${url}: HTTP ${r.status}`, r)
+        throw httpResponseError(`Failed to download ${url}: HTTP ${r.status}`, httpResponseOptions(r, {
+          stage: 'download:audio', retryClass: 'runtime_http_read', retryable: isRetryableStatus(r.status), metadata: { url }
+        }))
       }
       return r
     },
@@ -142,7 +143,7 @@ const normalizeDownloadedAudio = async (
   const preferredFileName = `${buildPreferredMediaBaseName(videoMetadata)}${plan.outputExtension}`
   const finalPath = await ensureUniqueOutputPath(outputDir, preferredFileName, inputPath)
 
-  logAudioNormalize(l, {
+  logAudioNormalize({
     status: 'planned',
     inputPath,
     outputPath: finalPath,
@@ -162,8 +163,7 @@ const verifyYtDlpVersion = async (): Promise<void> => {
     return
   }
 
-  try {
-    const result = await exec(getYtDlpBinary(), ['--version'])
+  const result = await exec(getYtDlpBinary(), ['--version'])
     
     if (result.exitCode !== 0) {
       throw InfraError('yt-dlp is not working properly', {
@@ -172,11 +172,7 @@ const verifyYtDlpVersion = async (): Promise<void> => {
       })
     }
 
-    ytDlpVersionVerified = true
-  } catch (error) {
-    l.error(`yt-dlp verification failed`, { category: 'pipeline', error })
-    throw error
-  }
+  ytDlpVersionVerified = true
 }
 
 const downloadDirectAudioUrl = async (url: string, outputDir: string): Promise<string> => {
@@ -189,7 +185,9 @@ const downloadDirectAudioUrl = async (url: string, outputDir: string): Promise<s
     async (signal) => {
       const r = await fetch(url, { redirect: 'follow', ...(signal ? { signal } : {}) })
       if (!r.ok) {
-        throw httpResponseError(`Direct download failed: ${r.status} ${r.statusText} (${url})`, r)
+        throw httpResponseError(`Direct download failed: ${r.status} ${r.statusText} (${url})`, httpResponseOptions(r, {
+          stage: 'download:audio', retryClass: 'runtime_http_read', retryable: isRetryableStatus(r.status), metadata: { url }
+        }))
       }
       return r
     },
@@ -238,13 +236,13 @@ export const downloadAudio = async (options: DownloadAudioOptions, videoMetadata
       audioPath = await normalizeDownloadedAudio(options.filePath, options.outputDir, videoMetadata)
     }
   } else if (options.directDownload && !hasYtDlpPassthroughArgs) {
-    logAudioDownload(l, {
+    logAudioDownload({
       source: 'direct-audio-url',
       status: 'started',
       target: options.outputDir
     })
     const rawPath = await downloadDirectAudioUrl(options.url as string, options.outputDir)
-    logAudioDownload(l, {
+    logAudioDownload({
       source: 'direct-audio-url',
       status: 'downloaded',
       target: rawPath
@@ -253,13 +251,13 @@ export const downloadAudio = async (options: DownloadAudioOptions, videoMetadata
       ? await finalizeDownloadedMedia(rawPath, options.outputDir, videoMetadata)
       : await normalizeDownloadedAudio(rawPath, options.outputDir, videoMetadata, { removeOriginal: true })
   } else if (!hasYtDlpPassthroughArgs && isDirectMediaUrl(options.url as string)) {
-    logAudioDownload(l, {
+    logAudioDownload({
       source: 'direct-media-url',
       status: 'started',
       target: options.outputDir
     })
     const mediaPath = await downloadDirectMediaUrl(options.url as string, options.outputDir)
-    logAudioDownload(l, {
+    logAudioDownload({
       source: 'direct-media-url',
       status: 'downloaded',
       target: mediaPath
@@ -297,7 +295,7 @@ export const downloadAudio = async (options: DownloadAudioOptions, videoMetadata
   const audioFile = Bun.file(audioPath)
   const audioFileSize = audioFile.size
   const audioFileName = basename(audioPath) || 'audio'
-  logAudioOutput(l, audioPath)
+  logAudioOutput(audioPath)
 
   const slug = buildMediaStep1Slug({
     ...(options.filePath ? { filePath: options.filePath } : {}),

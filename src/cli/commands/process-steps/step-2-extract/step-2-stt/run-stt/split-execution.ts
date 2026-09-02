@@ -1,4 +1,3 @@
-import * as l from '~/utils/app-logger/app-logger'
 import { InternalError } from '~/utils/error-handler'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import type { IndexedTranscriptionChunk, SplitLimitClassification, SplitPolicyTarget, Step2Metadata, SttTarget, SttTargetOptions, TranscriptionResult } from '~/types'
@@ -263,7 +262,7 @@ const logAdaptiveSplitRetryDecision = (
   audioFileSizeBytes: number,
   audioDurationSeconds: number | undefined
 ): void => {
-  logSttSplitDecision(l, target, buildSplitRetryDecision(
+  logSttSplitDecision( target, buildSplitRetryDecision(
     target,
     classification,
     segmentDurationMinutes,

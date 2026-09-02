@@ -77,7 +77,7 @@ export async function prepareHtmlArticle(
       } catch (defuddleError) {
         l.warn(`Defuddle article extraction failed; falling back to Firecrawl: ${formatErrorMessage(defuddleError)}`, {
           category: 'pipeline',
-          metadata: { fallbackBackend: 'firecrawl', error: serializeDiagnosticError(defuddleError) }
+          metadata: { fallbackBackend: 'firecrawl' }, error: defuddleError
         })
         try {
           article = await runUrlArticleProvider('firecrawl', source, sourceUrl, urlRunOptions)

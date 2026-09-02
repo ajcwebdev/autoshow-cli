@@ -4,9 +4,9 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-13
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-01
 - **Verification Status:** Passed
-- **Supersession:** Absorbs the timestamp and concise diagnostic-rendering decisions from the retired record "Optimize Price Preflight Performance, Test Concurrency, and Token-Efficient Logging"; that record's production metadata-cache and price-verification decisions are owned by [ADR-001](ADR-001-source-ingestion-and-normalization.md) and [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) respectively.
+- **Supersession:** Absorbs the timestamp and concise diagnostic-rendering decisions from the retired record "Optimize Price Preflight Performance, Test Concurrency, and Token-Efficient Logging". [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md) supersedes this record's logging/output contract and TTS-only ambiguous-redispatch scope. This record remains authoritative for the `AppError` vocabulary, single CLI error funnel, and standing source enforcement.
 
 ## Context
 
@@ -209,6 +209,7 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 - Related ADR: [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md)
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md)
 - Related ADR: [ADR-019](ADR-019-quiet-passing-test-console-output.md)
+- Related ADR: [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md)
 - `src/utils/error-handler.ts`
 - `src/utils/retries.ts`
 - `src/utils/app-logger/`

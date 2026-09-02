@@ -2,7 +2,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { validateData, validateDataSafe } from '~/utils/validate/validation'
 import { exec } from '~/utils/cli-utils'
 import { getFfprobeBinary } from '~/utils/runtime-paths'
-import { InfraError, serializeDiagnosticError } from '~/utils/error-handler'
+import { InfraError } from '~/utils/error-handler'
 import { YtDlpVideoInfoSchema, VideoMetadataSchema } from '~/types'
 import { MEDIA_EXTENSIONS } from '~/cli/commands/process-steps/step-0-metadata/formats/metadata-media-extensions'
 import { buildYtDlpFailureMessage, buildYtDlpMetadataArgs } from '~/cli/commands/process-steps/shared/shared-yt-dlp-options'
@@ -27,7 +27,7 @@ const writeVideoInfoCache = async (url: string, data: YtDlpVideoInfo): Promise<v
   } catch (error) {
     l.write('debug', 'Failed to cache yt-dlp video info', {
       category: 'artifact',
-      metadata: { cachePath: VIDEO_INFO_CACHE_FILE, url, error: serializeDiagnosticError(error) }
+      metadata: { cachePath: VIDEO_INFO_CACHE_FILE, url }, error: error
     })
   }
 }
@@ -62,7 +62,7 @@ export const getVideoInfo = async (url: string): Promise<YtDlpVideoInfo | null> 
     return videoInfoData
 
   } catch (error) {
-    l.error(`Failed to get video info`, { category: 'pipeline', error })
+    l.warn('Failed to get video info; using fallback metadata', { category: 'pipeline', error })
     return null
   }
 }
@@ -77,7 +77,7 @@ const extractVideoMetadata = async (url: string): Promise<VideoMetadata> => {
     
     return getFallbackMetadata(url)
   } catch (error) {
-    l.error(`Failed to extract video metadata`, { category: 'pipeline', error })
+    l.warn('Failed to extract video metadata; using fallback metadata', { category: 'pipeline', error })
     return getFallbackMetadata(url)
   }
 }
@@ -251,7 +251,7 @@ const writeLocalFileMetadataCache = async (
   } catch (error) {
     l.write('debug', 'Failed to cache local file metadata', {
       category: 'artifact',
-      metadata: { cachePath: LOCAL_FILE_METADATA_CACHE_FILE, filePath, error: serializeDiagnosticError(error) }
+      metadata: { cachePath: LOCAL_FILE_METADATA_CACHE_FILE, filePath }, error: error
     })
   }
 }

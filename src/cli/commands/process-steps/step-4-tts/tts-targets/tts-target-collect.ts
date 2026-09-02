@@ -24,7 +24,7 @@ export const preflightTtsTargetSelection = (
   if (typeof rawMistralReference === 'string' && rawMistralReference.trim()) {
     throw UsageError(
       'Mistral request reference audio must cross the protected ingestion boundary before target collection.',
-      'Pass the reference only through the standalone `tts` CLI edge, or create/import a voice with the shared `voice` command or `comic reference-voice` and synthesize with --mistral-tts-voice.'
+      { hints: ['Pass the reference only through the standalone `tts` CLI edge, or create/import a voice with the shared `voice` command or `comic reference-voice` and synthesize with --mistral-tts-voice.'] }
     )
   }
   const selection = createTtsTargetSelection(options)

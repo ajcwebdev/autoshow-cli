@@ -1,54 +1,17 @@
-import type { HumanLogTable, KeyValueEntry, OcrPagesProgress, OcrProviderLifecycle } from '~/types'
-import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
-import { defineTableLog } from '~/utils/app-logger/table-log-definition'
+import type { OcrPagesProgress, OcrProviderLifecycle } from '~/types'
+import * as l from '~/utils/app-logger/app-logger'
 
-const addOptionalEntry = (
-  entries: KeyValueEntry[],
-  key: string,
-  value: unknown
-): void => {
-  if (value !== undefined && value !== '') {
-    entries.push([key, value])
-  }
+export const logOcrProviderLifecycle = (lifecycle: OcrProviderLifecycle): void => {
+  const level = lifecycle.status === 'failed' ? 'warn' : 'info'
+  l.write(level, `OCR provider ${lifecycle.provider}: ${lifecycle.status}`, {
+    category: 'pipeline',
+    metadata: lifecycle
+  })
 }
 
-const buildOcrProviderLifecycleTableValue = (
-  lifecycle: OcrProviderLifecycle
-): HumanLogTable => {
-  const entries: KeyValueEntry[] = [
-    ['provider', lifecycle.provider],
-    ['model', lifecycle.model],
-    ['status', lifecycle.status]
-  ]
-  addOptionalEntry(entries, 'elapsedMs', lifecycle.elapsedMs)
-  addOptionalEntry(entries, 'reason', lifecycle.reason)
-  addOptionalEntry(entries, 'detail', lifecycle.detail)
-  return createKeyValueTable(entries)
+export const logOcrPagesProgress = (progress: OcrPagesProgress): void => {
+  l.write('info', `OCR pages: ${progress.ocrPages}/${progress.totalPages}, ${progress.status}`, {
+    category: 'pipeline',
+    metadata: progress
+  })
 }
-
-export const { buildTable: buildOcrProviderLifecycleTable, log: logOcrProviderLifecycle } = defineTableLog<OcrProviderLifecycle>({
-  title: 'OCR Provider',
-  category: 'pipeline',
-  buildTable: buildOcrProviderLifecycleTableValue,
-  level: lifecycle => lifecycle.status === 'succeeded' ? 'success' : lifecycle.status === 'failed' ? 'warn' : 'info',
-  metadata: lifecycle => lifecycle
-})
-
-const buildOcrPagesProgressTableValue = (
-  progress: OcrPagesProgress
-): HumanLogTable =>
-  createKeyValueTable([
-    ['status', progress.status],
-    ['ocrPages', progress.ocrPages],
-    ['totalPages', progress.totalPages],
-    ['renderConcurrency', progress.renderConcurrency],
-    ['ocrConcurrency', progress.ocrConcurrency]
-  ])
-
-export const { buildTable: buildOcrPagesProgressTable, log: logOcrPagesProgress } = defineTableLog<OcrPagesProgress>({
-  title: 'OCR Pages',
-  category: 'pipeline',
-  buildTable: buildOcrPagesProgressTableValue,
-  level: 'info',
-  metadata: progress => progress
-})

@@ -9,7 +9,7 @@ import { resolveCredential } from '~/utils/validate/env-utils'
 import { SPEECHIFY_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { validateDataSafe } from '~/utils/validate/validation'
 import { ValidationError } from '~/utils/error-handler'
-import { httpResponseError } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { readRestErrorText } from '~/utils/rest-client'
 
@@ -111,7 +111,9 @@ export const runSpeechifyTts = async (
 
       if (!response.ok) {
         const errText = await readRestErrorText(response)
-        throw httpResponseError(`Speechify TTS failed (${response.status}): ${errText}`, response)
+        throw httpResponseError(`Speechify TTS failed (${response.status}): ${errText}`, httpResponseOptions(response, {
+          stage: 'tts:speechify', retryClass: 'runtime_http_create_conservative', retryable: response.status === 425 || response.status === 429, metadata: { provider: 'speechify' }
+        }))
       }
       await accepted({ fields: { httpStatus: response.status } })
 

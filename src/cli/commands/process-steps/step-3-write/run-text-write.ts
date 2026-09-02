@@ -23,7 +23,7 @@ import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/comp
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { serializeOneOrMany } from '~/cli/commands/process-steps/target-runner'
 import { createManifest, createPipelineItemFromRecord, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
-import { logWriteManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
+import { logWriteManifestSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import { applySummaryArtifactNames, serializeStep3Results, writeWriteFlowArtifacts } from './write-artifact-finalization'
 
 const buildTextInputMetadata = (inputPath: string): VideoMetadata => {
@@ -184,7 +184,7 @@ export const runTextWrite = async (
   await writeManifest(outputDir, createManifest('write', 'single', [
     createPipelineItemFromRecord(outputDir, manifestMetadata, { status: 'full' })
   ]))
-  logWriteManifestConsoleSummary(outputDir, manifestMetadata, {
+  logWriteManifestSummary(outputDir, manifestMetadata, {
     promptArtifact: 'prompt.md',
     ...(step3Results.length === 1 && typeof renderedArtifacts.internalArtifacts['rendered'] === 'string'
       ? { step3RenderedOutput: renderedArtifacts.internalArtifacts['rendered'] }

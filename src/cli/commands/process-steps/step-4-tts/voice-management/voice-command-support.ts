@@ -190,11 +190,11 @@ export const requireBrief = async (subjectKey: string, profileKey: string) => {
 }
 
 export const reportVoiceResult = (message: string, data: Record<string, unknown>): void => {
-  l.report.result(data, { message })
+  l.report.result(data, message)
 }
 
 export const reportVoicePrice = (message: string, data: Record<string, unknown>): void => {
-  l.report.result({ dryRun: true, ...data }, { message, category: 'pricing' })
+  l.report.result({ dryRun: true, ...data }, message)
 }
 
 export const optionalConsent = async (reference: string | undefined): Promise<VoiceConsentRecord | undefined> =>

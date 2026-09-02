@@ -19,11 +19,12 @@ export const readEnv = (key: string): string | undefined => {
 }
 
 const missingCredentialError = (envVar: string, stage: string, description?: string): Error =>
-  new AppUsageError(
-    `${envVar} environment variable is required${description ? ` for ${description}` : ''}`,
-    hintsForMissingEnv(envVar),
-    { stage, retryable: false, metadata: { missingEnvVar: envVar } }
-  )
+  new AppUsageError(`${envVar} environment variable is required${description ? ` for ${description}` : ''}`, {
+    hints: hintsForMissingEnv(envVar),
+    stage,
+    retryable: false,
+    metadata: { missingEnvVar: envVar }
+  })
 
 export type CredentialObservation = {
   providerId: string

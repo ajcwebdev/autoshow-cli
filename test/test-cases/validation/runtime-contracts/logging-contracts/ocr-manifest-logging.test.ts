@@ -3,32 +3,30 @@ import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 import { getOcrTargetDirectoryName } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
 import { collectPartialStep2Metadata } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-partial-step2'
-import { buildWriteManifestConsoleSummary, logExtractManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
-import { renderHumanTable } from '~/utils/app-logger/human-table/human-table'
-import { stripAnsi } from '~/utils/terminal-colors'
+import { buildWriteManifestSummary, logExtractManifestSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import {
   createOcrCostDiagnosticsMetadata,
   createPartialOcrDiagnosticsMetadata
 } from './ocr-logging-fixtures'
-import { createCapturingLogger } from './shared'
+import { captureLogEvents } from '../../../../test-utils/console-capture'
 
 describe('OCR manifest logging contracts', () => {
-  test('extract manifest summary includes OCR cost calculation diagnostics', () => {
+  test('extract manifest summary includes OCR cost calculation diagnostics', async () => {
     const metadata = createOcrCostDiagnosticsMetadata()
-    const summary = buildWriteManifestConsoleSummary(metadata)
+    const summary = buildWriteManifestSummary(metadata)
 
-    expect(summary.runSummary?.rows[0]).toMatchObject({
+    expect(summary.runSummary?.entries[0]).toMatchObject({
       step: 'Extract',
       providerModel: 'openai/gpt-5.4-nano',
       predictedCostCents: 0.58044,
       actualCostCents: 0.3075
     })
-    expect(summary.promptUsage?.rows[0]).toMatchObject({
+    expect(summary.promptUsage?.entries[0]).toMatchObject({
       step: 'Extract',
       providerModel: 'openai/gpt-5.4-nano',
       usage: '6000/1500 tok'
     })
-    expect(summary.ocrCostCalculation?.rows[0]).toMatchObject({
+    expect(summary.ocrCostCalculation?.entries[0]).toMatchObject({
       providerModel: 'openai/gpt-5.4-nano',
       pages: 2,
       predictedInputs: '5972/3688 tok',
@@ -38,7 +36,7 @@ describe('OCR manifest logging contracts', () => {
       actualCostCents: 0.3075,
       deltaCents: -0.27294
     })
-    expect(summary.ocrCostCalculation?.rows[1]).toMatchObject({
+    expect(summary.ocrCostCalculation?.entries[1]).toMatchObject({
       providerModel: 'gemini/gemini-3.1-flash-lite',
       pages: 690,
       predictedInputs: '600000/300000 tok',
@@ -49,63 +47,41 @@ describe('OCR manifest logging contracts', () => {
       deltaCents: 14
     })
 
-    const { logger, writes } = createCapturingLogger()
     const outputDir = join(process.cwd(), 'autoshow-run')
-    logExtractManifestConsoleSummary(outputDir, metadata, {}, logger)
-    expect(writes.map(write => write.message)).toEqual([
-      'Locations',
-      'Run Summary',
-      'Prompt Usage',
-      'OCR Cost Calculation'
+    const { events } = await captureLogEvents(() => logExtractManifestSummary(outputDir, metadata))
+    expect(events.map(event => event.message)).toEqual([
+      `Manifest: ${join(outputDir, 'manifest.json')}`,
+      'Run summary: 1 steps',
+      'Prompt usage: 1 entries',
+      'OCR cost calculation: 2 providers'
     ])
-    expect(writes[0]?.options?.humanTable).toMatchObject({
-      columns: ['artifact', 'path'],
-      rows: [{ artifact: 'manifest', path: join(outputDir, 'manifest.json') }]
-    })
-    expect(writes[3]?.options?.humanTable?.columns).toEqual([
-      'providerModel',
-      'pages',
-      'predInputs',
-      'actInputs',
-      'rates',
-      'predCost',
-      'actCost',
-      'delta'
-    ])
-
-    const renderedOcrCost = summary.ocrCostCalculation?.humanTable
-      ? stripAnsi(renderHumanTable(summary.ocrCostCalculation.humanTable))
-      : ''
-    expect(renderedOcrCost).toContain('806511/401834 tok; retries p38,p447,p660 +111696 out')
-    expect(renderedOcrCost).toContain('6000/1500 tok')
+    expect(events[0]?.metadata).toMatchObject({ path: join(outputDir, 'manifest.json') })
+    expect(events[3]?.metadata?.['entries']).toEqual(summary.ocrCostCalculation?.entries)
   })
 
   test('extract manifest summary marks partial failed OCR provider usage', () => {
-    const summary = buildWriteManifestConsoleSummary(createPartialOcrDiagnosticsMetadata())
+    const summary = buildWriteManifestSummary(createPartialOcrDiagnosticsMetadata())
 
-    expect(summary.runSummary?.rows[1]).toMatchObject({
+    expect(summary.runSummary?.entries[1]).toMatchObject({
       step: 'Extract (partial)',
       providerModel: 'kimi/kimi-latest (failed partial)',
       actualCostSource: 'partial_provider_usage',
       actualInputMetric: 'pages',
       actualInputValue: 227
     })
-    expect(summary.promptUsage?.rows[1]).toMatchObject({
+    expect(summary.promptUsage?.entries[1]).toMatchObject({
       step: 'Extract (partial)',
       providerModel: 'kimi/kimi-latest (failed partial)',
       usage: '971207/107681 tok / 227/228 pages'
     })
-    expect(summary.ocrCostCalculation?.rows[1]).toMatchObject({
+    expect(summary.ocrCostCalculation?.entries[1]).toMatchObject({
       providerModel: 'kimi/kimi-latest (failed partial)',
       pages: '227/228',
       actualInputs: '971207/107681 tok; partial failed',
       actualCostCents: 0.7
     })
 
-    const renderedRunSummary = summary.runSummary?.humanTable
-      ? stripAnsi(renderHumanTable(summary.runSummary.humanTable))
-      : ''
-    expect(renderedRunSummary).toContain('kimi/kimi-latest (failed partial)')
+    expect(summary.runSummary?.entries[1]?.providerModel).toContain('kimi/kimi-latest (failed partial)')
   })
 
   test('partial OCR metadata aggregates local cached page-result tokens without leaking source names', async () => {

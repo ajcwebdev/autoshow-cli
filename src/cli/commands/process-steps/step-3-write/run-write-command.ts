@@ -109,8 +109,7 @@ export const runWriteCommand = async (
     await readPromptFileText(projectDefaults.promptFile).catch((error: unknown) => {
       throw UsageError(
         `write project mode requires ${projectDefaults.projectDir}/prompt.md or an explicit --prompt-file`,
-        undefined,
-        error instanceof Error ? { cause: error } : {}
+        { cause: error }
       )
     })
   }

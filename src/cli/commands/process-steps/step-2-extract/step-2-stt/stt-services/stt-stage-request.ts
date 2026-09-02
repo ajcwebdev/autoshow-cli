@@ -1,8 +1,8 @@
 import type { InferOutput } from 'valibot'
 import type { AsyncSttLifecycleMetrics, SttRequestMetrics, SttStageHttpError, SttStageRequestOptions, SttStageSchema } from '~/types'
 import { attachAsyncSttErrorContext, attachAsyncSttValidationContext } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
-import { httpResponseError } from '~/utils/rest-client'
-import { classifyFetchRetry, getSttStageRetryPolicy, parseRetryAfterMs, withRetry } from '~/utils/retries'
+import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
+import { classifyFetchRetry, isRetryableStatus, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
 import { getErrorStatus } from '~/utils/error-handler'
 
@@ -31,10 +31,6 @@ export const sttStageRequestWithRetryAfter = async <TSchema extends SttStageSche
       {
         retryClass,
         operationName: options.operationName,
-        ...(() => {
-          const policy = getSttStageRetryPolicy(retryClass)
-          return policy ? { policy } : {}
-        })(),
         timeoutMs: options.timeoutMs
       },
       async (signal) => {
@@ -47,12 +43,14 @@ export const sttStageRequestWithRetryAfter = async <TSchema extends SttStageSche
             : { message: await response.text(), rawResponse: undefined }
           throw httpResponseError(
             `${errorPrefix} ${failureLabel ?? stage} failed (${response.status}): ${failure.message}`,
-            response,
-            {
+            httpResponseOptions(response, {
               stage,
               retryClass,
-              ...(failure.rawResponse !== undefined ? { rawResponse: failure.rawResponse } : {})
-            }
+              retryable: retryClass === 'runtime_http_create_conservative'
+                ? response.status === 425 || response.status === 429
+                : isRetryableStatus(response.status),
+              metadata: failure.rawResponse !== undefined ? { rawResponse: failure.rawResponse } : {}
+            })
           ) satisfies SttStageHttpError
         }
 
@@ -79,7 +77,7 @@ export const sttStageRequestWithRetryAfter = async <TSchema extends SttStageSche
       retryAfterMs: result.retryAfterMs
     }
   } catch (error) {
-    return attachAsyncSttValidationContext<SttStageHttpError>(error, stage, retryClass, result.payload)
+    return attachAsyncSttValidationContext(error, stage, retryClass, result.payload)
   }
 }
 

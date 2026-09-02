@@ -10,7 +10,6 @@ import { classifySttProviderFailure, extractProviderRawResponse, resolveTransien
 import { getSttTargetDirectoryName, getSttTargetKey } from '../stt-targets'
 import { writeSttResultArtifact } from '../stt-utils/stt-result-artifacts'
 import { withMergedStep2Timings } from './recorded-step2'
-import { serializeDiagnosticError } from '~/utils/error-handler'
 
 export const markSttTargetSkipped = async (
   ctx: SttBatchWorkerContext,
@@ -181,7 +180,7 @@ export const runSttProviderTargetAtIndex = async (
     } catch (artifactError) {
       l.warn(`Failed to write STT provider diagnostics for ${target.service}/${target.model}: ${artifactError instanceof Error ? artifactError.message : String(artifactError)}`, {
         category: 'artifact',
-        metadata: { service: target.service, model: target.model, error: serializeDiagnosticError(artifactError) }
+        metadata: { service: target.service, model: target.model }, error: artifactError
       })
     }
 

@@ -138,10 +138,14 @@ export const exec = async (
         if (result.exitCode === 0) {
           return result
         }
+        if (!retry.shouldRetry(result)) {
+          return result
+        }
         lastResult = result
         throw InfraError(`${operationName} failed (exit code ${result.exitCode})`, {
           stage: 'exec',
-          metadata: { command, exitCode: result.exitCode }
+          retryable: true,
+          metadata: { command, childExitCode: result.exitCode }
         })
       }
     )
@@ -157,7 +161,7 @@ export const exec = async (
       metadata: {
         operation: operationName,
         command,
-        exitCode: lastResult.exitCode,
+        childExitCode: lastResult.exitCode,
         attemptsMade: metadata['attemptsMade'],
         maxAttempts: metadata['maxAttempts'],
         elapsedMs: metadata['elapsedMs'],
@@ -182,21 +186,11 @@ export const pick = <T extends object, K extends keyof T>(obj: T, keys: readonly
 }
 
 export const ensureDirectory = async (dirPath: string): Promise<void> => {
-  try {
-    await mkdir(dirPath, { recursive: true })
-  } catch (error) {
-    l.error(`Failed to create directory: ${dirPath}`, { category: 'artifact', error, metadata: { dirPath } })
-    throw error
-  }
+  await mkdir(dirPath, { recursive: true })
 }
 
 export const writeFile = async (filePath: string, content: string): Promise<void> => {
-  try {
-    await Bun.write(filePath, content)
-  } catch (error) {
-    l.error(`Failed to write file: ${filePath}`, { category: 'artifact', error, metadata: { filePath } })
-    throw error
-  }
+  await Bun.write(filePath, content)
 }
 
 export const fileExists = async (filePath: string): Promise<boolean> => {

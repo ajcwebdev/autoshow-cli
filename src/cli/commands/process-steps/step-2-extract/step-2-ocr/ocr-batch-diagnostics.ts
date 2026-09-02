@@ -3,7 +3,6 @@ import { join } from 'node:path'
 import { PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import type { OcrBatchDiagnosticTarget, OcrBatchDiagnosticsReport, PipelineManifest, TargetAccumulator } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { createHumanTable, logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { isRecord } from '~/utils/rest-client'
 
 export const OCR_BATCH_DIAGNOSTICS_FILE = 'ocr-batch-diagnostics.json'
@@ -180,21 +179,6 @@ export const deriveOcrBatchDiagnostics = (
   }
 }
 
-const diagnosticsTable = (report: OcrBatchDiagnosticsReport) => createHumanTable(
-  report.targets.map((target) => ({
-    target: `${target.provider}/${target.model}`,
-    items: String(target.affectedItems),
-    blockers: target.blockers.map((entry) => `${entry.category}:${entry.affectedItems}`).join(', '),
-    retries: target.retryPressure.retries,
-    estimatedCost: target.cost.estimatedCostCents.toFixed(4),
-    actualCost: target.cost.actualCostCents.toFixed(4),
-    partialCost: target.cost.partialProviderCostCents.toFixed(4),
-    unknownActual: target.cost.unknownActualCostItems,
-    estimateError: target.cost.estimateErrorPercent === undefined ? '' : `${target.cost.estimateErrorPercent.toFixed(1)}%`
-  })),
-  ['target', 'items', 'blockers', 'retries', 'estimatedCost', 'actualCost', 'partialCost', 'unknownActual', 'estimateError']
-)
-
 export const writeOcrBatchDiagnostics = async (
   batchDir: string
 ): Promise<OcrBatchDiagnosticsReport | undefined> => {
@@ -212,11 +196,13 @@ export const writeOcrBatchDiagnostics = async (
   const temporaryPath = `${outputPath}.${crypto.randomUUID()}.tmp`
   await writeFile(temporaryPath, `${JSON.stringify(report, null, 2)}\n`)
   await rename(temporaryPath, outputPath)
-  l.write('warn', 'OCR batch diagnostics', {
+  l.write('warn', `OCR batch diagnostics found ${report.targets.length} affected targets`, {
     category: 'artifact',
-    humanTable: diagnosticsTable(report),
     metadata: report
   })
-  logLocationsTable(l, [{ artifact: 'ocrBatchDiagnostics', path: outputPath }])
+  l.write('warn', `Wrote OCR batch diagnostics to ${outputPath}`, {
+    category: 'artifact',
+    metadata: { artifact: 'ocrBatchDiagnostics', path: outputPath }
+  })
   return report
 }

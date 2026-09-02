@@ -203,7 +203,7 @@ const runSingleUrlBackend = async (
     } catch (defuddleError) {
       l.warn(`Defuddle article extraction failed; falling back to Firecrawl: ${formatErrorMessage(defuddleError)}`, {
         category: 'pipeline',
-        metadata: { fallbackBackend: 'firecrawl', error: serializeDiagnosticError(defuddleError) }
+        metadata: { fallbackBackend: 'firecrawl' }, error: defuddleError
       })
       try {
         const run = await runUrlArticleProviderWithStats('firecrawl', source, sourceUrl, urlRunOptions)

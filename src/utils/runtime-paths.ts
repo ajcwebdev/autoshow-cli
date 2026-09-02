@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs'
 import { basename, dirname, extname, isAbsolute, join, posix, relative, resolve } from 'node:path'
 import type { ResolvedRuntimeTool, ResolveRuntimeToolOptions, RuntimeToolId } from '~/types'
+import { ValidationError } from '~/utils/error-handler'
 
 const projectRootOverride = process.env['AUTOSHOW_PROJECT_ROOT']?.trim()
 export const PROJECT_ROOT = projectRootOverride
@@ -32,10 +33,10 @@ export const toSourceIdentityDisplayPath = (
   const sourceRoot = mapping.sourceRoot?.trim()
   const aliasRoot = mapping.aliasRoot?.trim()
   if (!sourceRoot && !aliasRoot) return toPosixPath(toProjectDisplayPath(absolutePath))
-  if (!sourceRoot || !aliasRoot) throw new Error('AUTOSHOW_SOURCE_IDENTITY_ROOT and AUTOSHOW_SOURCE_IDENTITY_ALIAS must be set together.')
-  if (!isAbsolute(sourceRoot)) throw new Error('AUTOSHOW_SOURCE_IDENTITY_ROOT must be an absolute filesystem path.')
+  if (!sourceRoot || !aliasRoot) throw ValidationError('AUTOSHOW_SOURCE_IDENTITY_ROOT and AUTOSHOW_SOURCE_IDENTITY_ALIAS must be set together.', { stage: 'runtime:source-identity' })
+  if (!isAbsolute(sourceRoot)) throw ValidationError('AUTOSHOW_SOURCE_IDENTITY_ROOT must be an absolute filesystem path.', { stage: 'runtime:source-identity' })
   if (!posix.isAbsolute(aliasRoot) || aliasRoot.includes('\\') || aliasRoot.split('/').some(part => part === '.' || part === '..') || posix.normalize(aliasRoot) !== aliasRoot) {
-    throw new Error('AUTOSHOW_SOURCE_IDENTITY_ALIAS must be a normalized absolute POSIX path without traversal.')
+    throw ValidationError('AUTOSHOW_SOURCE_IDENTITY_ALIAS must be a normalized absolute POSIX path without traversal.', { stage: 'runtime:source-identity' })
   }
   const resolvedRoot = resolve(sourceRoot)
   const resolvedPath = resolve(absolutePath)

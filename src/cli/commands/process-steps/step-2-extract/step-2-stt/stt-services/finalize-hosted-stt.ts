@@ -1,4 +1,3 @@
-import * as l from '~/utils/app-logger/app-logger'
 import type { HostedSttFinalizeOptions, Step2Metadata, TranscriptionResult } from '~/types'
 import { logSttSegmentLifecycle } from '../stt-logging'
 import { buildTranscriptionWordEvidence } from '../stt-utils/stt-evidence'
@@ -49,7 +48,7 @@ export const finalizeHostedSttResult = async (
   }
 
   if (options.segmentNumber && options.totalSegments) {
-    logSttSegmentLifecycle(l, {
+    logSttSegmentLifecycle( {
       provider: options.lifecycleProvider ?? options.provider,
       action: 'completed',
       segmentNumber: options.segmentNumber,

@@ -1,5 +1,5 @@
 import * as l from '~/utils/app-logger/app-logger'
-import { InfraError, InternalError, serializeDiagnosticError } from '~/utils/error-handler'
+import { InfraError, InternalError } from '~/utils/error-handler'
 import type { LLMOptions, LLMTarget, PendingStructuredRunResult, RunLlmTargetsForStructuredPromptOptions, StructuredRequestOptions, StructuredRunResult, StructuredValidationContext, TranscriptionResult, VideoMetadata } from '~/types'
 import { buildPrompt as buildPromptFromUtils } from './write-utils/prompt-utils'
 import { resolvePromptNames } from '~/prompts/prompt-loader'
@@ -164,9 +164,9 @@ export const runLlmTargetsForStructuredPrompt = async (
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      l.error(`Failed to run ${target.label} model ${target.model}: ${message}`, {
+      l.warn(`Failed to run ${target.label} model ${target.model}: ${message}`, {
         category: 'pipeline',
-        metadata: { provider: target.label, service: target.service, model: target.model, error: serializeDiagnosticError(err) }
+        metadata: { provider: target.label, service: target.service, model: target.model }, error: err
       })
       failedTargetsByIndex[index] = `${target.service}/${target.model}: ${message}`
     }

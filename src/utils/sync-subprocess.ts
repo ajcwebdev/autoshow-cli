@@ -20,9 +20,9 @@ export type SyncCommandResult = {
   stderr: string
 }
 
-export class SyncCommandError extends Error {
+export class SyncCommandError extends AppInfrastructureError {
   readonly command: readonly string[]
-  readonly exitCode: number
+  readonly childExitCode: number
   readonly maxBufferExceeded: boolean
   readonly signalCode: string | undefined
   readonly stdout: string
@@ -34,10 +34,14 @@ export class SyncCommandError extends Error {
       : result.signalCode
         ? `signal ${result.signalCode}`
         : `exit code ${result.exitCode}`
-    super(`Command failed with ${reason}: ${command.join(' ')}`)
+    super(`Command failed with ${reason}: ${command.join(' ')}`, {
+      stage: 'subprocess:sync',
+      retryable: false,
+      metadata: { command, childExitCode: result.exitCode, maxBufferExceeded: result.maxBufferExceeded === true, signalCode: result.signalCode }
+    })
     this.name = 'SyncCommandError'
     this.command = command
-    this.exitCode = result.exitCode
+    this.childExitCode = result.exitCode
     this.maxBufferExceeded = result.maxBufferExceeded === true
     this.signalCode = result.signalCode
     this.stdout = result.stdout
@@ -91,3 +95,4 @@ export const runSyncCommandOrThrow = (
   if (!result.success) throw new SyncCommandError([command, ...args], result)
   return result.stdout
 }
+import { AppInfrastructureError } from '~/utils/error-handler'

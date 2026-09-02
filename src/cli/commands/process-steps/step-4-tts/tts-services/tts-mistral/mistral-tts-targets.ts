@@ -39,7 +39,7 @@ export const collectMistralTtsTargets = (
     if (!voiceId && !protectedReference && !selection.multiSpeakerRequested && !pricePlanningOnly) {
       throw UsageError(
         'Mistral TTS synthesis requires an existing voice ID or an explicitly authorized unnamed request reference.',
-        'Pass --mistral-tts-voice with an existing voice, or use standalone --mistral-tts-ref-audio so the reference crosses protected ingestion before target collection.'
+        { hints: ['Pass --mistral-tts-voice with an existing voice, or use standalone --mistral-tts-ref-audio so the reference crosses protected ingestion before target collection.'] }
       )
     }
 
@@ -82,7 +82,7 @@ export const collectMistralTtsTargets = (
         )) {
           throw UsageError(
             'Mistral dialogue reference invocation does not bind its exact protected speaker asset.',
-            'Pass each SPEAKER=path mapping explicitly to standalone `tts`; raw paths and copied invocation identities are rejected.'
+            { hints: ['Pass each SPEAKER=path mapping explicitly to standalone `tts`; raw paths and copied invocation identities are rejected.'] }
           )
         }
         const resolvedVoiceId = invocationVoice?.kind === 'id' ? invocationVoice.value : voiceId

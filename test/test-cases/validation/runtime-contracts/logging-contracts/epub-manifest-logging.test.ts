@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildWriteManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
-import { renderHumanTable } from '~/utils/app-logger/human-table/human-table'
-import { stripAnsi } from '~/utils/terminal-colors'
+import { buildWriteManifestSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 
 describe('EPUB manifest logging contracts', () => {
   test('native EPUB extract manifest summary displays sections instead of pages', () => {
@@ -34,14 +32,14 @@ describe('EPUB manifest logging contracts', () => {
       }
     }
 
-    const summary = buildWriteManifestConsoleSummary(metadata)
+    const summary = buildWriteManifestSummary(metadata)
 
-    expect(summary.promptUsage?.rows[0]).toMatchObject({
+    expect(summary.promptUsage?.entries[0]).toMatchObject({
       step: 'Extract',
       providerModel: 'extract/epub-text',
       usage: '9 sections'
     })
-    expect(summary.runSummary?.rows[0]).toMatchObject({
+    expect(summary.runSummary?.entries[0]).toMatchObject({
       step: 'Extract',
       providerModel: 'extract/epub-text',
       actualSpeed: '9 sections/min',
@@ -49,15 +47,8 @@ describe('EPUB manifest logging contracts', () => {
       actualInputValue: 9
     })
 
-    const renderedPromptUsage = summary.promptUsage?.humanTable
-      ? stripAnsi(renderHumanTable(summary.promptUsage.humanTable))
-      : ''
-    const renderedRunSummary = summary.runSummary?.humanTable
-      ? stripAnsi(renderHumanTable(summary.runSummary.humanTable))
-      : ''
-    expect(renderedPromptUsage).toContain('9 sections')
-    expect(renderedPromptUsage).not.toContain('9 pages')
-    expect(renderedRunSummary).toContain('9 sections/min')
+    expect(summary.promptUsage?.entries[0]?.usage).toBe('9 sections')
+    expect(summary.runSummary?.entries[0]?.actualSpeed).toBe('9 sections/min')
   })
 
   test('native EPUB extract manifest summary includes logical chapters when heading export expands one source section', () => {
@@ -89,17 +80,14 @@ describe('EPUB manifest logging contracts', () => {
       }
     }
 
-    const summary = buildWriteManifestConsoleSummary(metadata)
+    const summary = buildWriteManifestSummary(metadata)
 
-    expect(summary.promptUsage?.rows[0]).toMatchObject({
+    expect(summary.promptUsage?.entries[0]).toMatchObject({
       step: 'Extract',
       providerModel: 'extract/epub-text',
       usage: '1 section / 4 chapters'
     })
 
-    const renderedPromptUsage = summary.promptUsage?.humanTable
-      ? stripAnsi(renderHumanTable(summary.promptUsage.humanTable))
-      : ''
-    expect(renderedPromptUsage).toContain('1 section / 4 chapters')
+    expect(summary.promptUsage?.entries[0]?.usage).toBe('1 section / 4 chapters')
   })
 })

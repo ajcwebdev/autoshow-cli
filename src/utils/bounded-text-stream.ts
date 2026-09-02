@@ -1,31 +1,38 @@
 import type { BoundedTextStreamOptions, BoundedTextStreamResult } from '~/types'
+import { AppValidationError, ValidationError } from '~/utils/error-handler'
 
 const LINE_TRUNCATION_MARKER = '... [line truncated]'
 
 const normalizePositiveInteger = (value: number, label: string): number => {
   if (!Number.isFinite(value) || value <= 0) {
-    throw new RangeError(`${label} must be a positive finite number.`)
+    throw ValidationError(`${label} must be a positive finite number.`, { stage: 'runtime:text-stream' })
   }
   return Math.floor(value)
 }
 
-export class TextStreamByteLimitError extends Error {
+export class TextStreamByteLimitError extends AppValidationError {
   readonly limitBytes: number
   readonly observedBytes: number
 
   constructor(limitBytes: number, observedBytes: number) {
-    super(`Text stream exceeded the ${limitBytes}-byte limit after receiving ${observedBytes} bytes.`)
+    super(`Text stream exceeded the ${limitBytes}-byte limit after receiving ${observedBytes} bytes.`, {
+      stage: 'runtime:text-stream',
+      metadata: { limitBytes, observedBytes }
+    })
     this.name = 'TextStreamByteLimitError'
     this.limitBytes = limitBytes
     this.observedBytes = observedBytes
   }
 }
 
-export class TextStreamLineLimitError extends Error {
+export class TextStreamLineLimitError extends AppValidationError {
   readonly limitCharacters: number
 
   constructor(limitCharacters: number) {
-    super(`Text stream line exceeded the ${limitCharacters}-character limit.`)
+    super(`Text stream line exceeded the ${limitCharacters}-character limit.`, {
+      stage: 'runtime:text-stream',
+      metadata: { limitCharacters }
+    })
     this.name = 'TextStreamLineLimitError'
     this.limitCharacters = limitCharacters
   }

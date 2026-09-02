@@ -1,9 +1,9 @@
 import { describe,expect,test } from 'bun:test'
 import { ProviderError } from '~/utils/error-handler'
-import { classifyOcrCreateRetry,classifyOcrProviderFailure,OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS,OCR_RATE_LIMIT_RETRY_DELAY_MAX_MS,OCR_RATE_LIMIT_RETRY_DELAY_MIN_MS,OcrStructuredResponseError,withOcrPageRequestRetry } from './shared'
+import { classifyOcrCreateRetry, classifyOcrProviderFailure, OCR_CREATE_RETRY_POLICY, OCR_PAGE_REQUEST_ATTEMPTS, OcrStructuredResponseError, withOcrPageRequestRetry } from './shared'
 
 describe('OCR resilience contracts', () => {
-  test('DeepInfra page OCR uses bounded request retries and timeout classification keeps page context', async () => {
+  test('invalid admitted OCR responses do not enter the transport retry loop', async () => {
     let attempts = 0
     await expect(withOcrPageRequestRetry(
       'deepinfra-ocr page 7',
@@ -11,13 +11,9 @@ describe('OCR resilience contracts', () => {
         attempts += 1
         throw new OcrStructuredResponseError('DeepInfra OCR returned no text output.', '')
       },
-      {
-        attempts: 2,
-        timeoutMs: 1000,
-        classifier: () => ({ shouldRetry: true, delayMs: 1, reason: 'structured_response' })
-      }
-    )).rejects.toThrow('deepinfra-ocr page 7 failed after 2/2 attempts')
-    expect(attempts).toBe(2)
+      { timeoutMs: 1000 }
+    )).rejects.toThrow('DeepInfra OCR returned no text output')
+    expect(attempts).toBe(1)
 
     const timeoutCause = new Error('The operation was aborted due to timeout')
     timeoutCause.name = 'AbortError'
@@ -47,7 +43,6 @@ describe('OCR resilience contracts', () => {
           throw ProviderError('rate limited', { status: 429 })
         },
         {
-          attempts: 2,
           timeoutMs: 1000,
           onRetryable: pressure => {
             pressures.push(pressure)
@@ -60,19 +55,19 @@ describe('OCR resilience contracts', () => {
 
     expect(attempts).toBe(2)
     expect(sleeps).toHaveLength(1)
-    expect(sleeps[0]).toBeGreaterThanOrEqual(OCR_RATE_LIMIT_RETRY_DELAY_MIN_MS)
-    expect(sleeps[0]).toBeLessThanOrEqual(OCR_RATE_LIMIT_RETRY_DELAY_MAX_MS)
+    expect(sleeps[0]).toBeGreaterThanOrEqual(OCR_CREATE_RETRY_POLICY.baseDelayMs)
+    expect(sleeps[0]).toBeLessThanOrEqual(OCR_CREATE_RETRY_POLICY.maxDelayMs)
     expect(pressures).toHaveLength(1)
     expect(pressures[0]).toMatchObject({
       reason: 'retryable status 429',
       status: 429
     })
-    expect(pressures[0]?.delayMs).toBeGreaterThanOrEqual(OCR_RATE_LIMIT_RETRY_DELAY_MIN_MS)
-    expect(pressures[0]?.delayMs).toBeLessThanOrEqual(OCR_RATE_LIMIT_RETRY_DELAY_MAX_MS)
+    expect(pressures[0]?.delayMs).toBeGreaterThanOrEqual(OCR_CREATE_RETRY_POLICY.baseDelayMs)
+    expect(pressures[0]?.delayMs).toBeLessThanOrEqual(OCR_CREATE_RETRY_POLICY.maxDelayMs)
     expect(pressures[0]?.retryAfterMs).toBeUndefined()
   })
 
-  test('page request retry uses the extended default attempt budget for 429s', async () => {
+  test('page request retry uses the conservative create attempt budget for 429s', async () => {
     const previousSleep = Bun.sleep
     let attempts = 0
 
@@ -85,12 +80,12 @@ describe('OCR resilience contracts', () => {
           throw ProviderError('rate limited', { status: 429 })
         },
         { timeoutMs: 1000 }
-      )).rejects.toThrow(`kimi-ocr page 9 failed after ${OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS}/${OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS} attempts`)
+      )).rejects.toThrow(`kimi-ocr page 9 failed after ${OCR_PAGE_REQUEST_ATTEMPTS}/${OCR_PAGE_REQUEST_ATTEMPTS} attempts`)
     } finally {
       ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = previousSleep
     }
 
-    expect(attempts).toBe(OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS)
+    expect(attempts).toBe(OCR_PAGE_REQUEST_ATTEMPTS)
   })
 
   test('Kimi insufficient-balance 429 is a non-retryable quota blocker', async () => {
@@ -163,18 +158,22 @@ describe('OCR resilience contracts', () => {
     })
   })
 
-  test('transient OCR retry classification remains retryable', () => {
+  test('paid OCR create retries only explicitly rejected admissions', () => {
     expect(classifyOcrCreateRetry(ProviderError('try later', { status: 429 }))).toMatchObject({
       shouldRetry: true,
       reason: 'retryable status 429'
     })
-    expect(classifyOcrCreateRetry(ProviderError('upstream unavailable', { status: 503 }))).toMatchObject({
+    expect(classifyOcrCreateRetry(ProviderError('too early', { status: 425 }))).toMatchObject({
       shouldRetry: true,
-      reason: 'retryable status 503'
+      reason: 'retryable status 425'
+    })
+    expect(classifyOcrCreateRetry(ProviderError('upstream unavailable', { status: 503 }))).toMatchObject({
+      shouldRetry: false,
+      reasonCode: 'unsafe_paid_redispatch'
     })
     expect(classifyOcrCreateRetry(new TypeError('fetch failed'))).toMatchObject({
-      shouldRetry: true,
-      reason: 'network error'
+      shouldRetry: false,
+      reasonCode: 'unsafe_paid_redispatch'
     })
   })
 
@@ -195,9 +194,8 @@ describe('OCR resilience contracts', () => {
           throw ProviderError('rate limited', { status: 429, headers: new Headers({ 'retry-after': '2' }) })
         },
         {
-          attempts: 2,
           timeoutMs: 1000,
-          classifier: () => ({ shouldRetry: true, delayMs: 1, reason: 'retryable status 429' }),
+          classifier: () => ({ shouldRetry: true, delayMs: 1, reasonCode: 'retryable_status', reason: 'retryable status 429' }),
           onRetryable: pressure => {
             pressures.push(pressure)
           }

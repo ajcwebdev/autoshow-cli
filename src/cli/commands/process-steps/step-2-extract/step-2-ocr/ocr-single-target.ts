@@ -1,6 +1,6 @@
 import type { OcrSingleRunContext, ProcessDocumentOutput } from '~/types'
 import { l, runWithLogContext } from '~/utils/app-logger/app-logger'
-import { logExtractManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
+import { logExtractManifestSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import { writePipelineItemRecords } from '../../pipeline-manifest'
 import { writeExtractionArtifact, writeTextArtifactFiles } from './ocr-artifacts'
 import { buildDocumentMetadataPayload, buildSuccessfulResolvedProviderStates, resolveRecordedOcrStep2, toResolvedRequestedProviders } from './ocr-document-metadata'
@@ -8,7 +8,6 @@ import { buildExtractionOptionsForTarget } from './ocr-targets'
 import { persistHostedOcrTokenUsageProfiles } from './ocr-utils/hosted-ocr-token-profiles'
 import { persistHostedOcrThroughputProfiles } from './ocr-utils/hosted-ocr-throughput-profiles'
 import { runOcr } from './run-ocr'
-import { serializeDiagnosticError } from '~/utils/error-handler'
 
 export const runOcrSingleTarget = async (ctx: OcrSingleRunContext): Promise<ProcessDocumentOutput> => {
   const { outputDir, explicitTargets, opts, effectiveOpts, hostedOcrScheduler, step1Metadata, web, documentSource, extractFilePath, preparedMarkdown, preflightEstimate } = ctx
@@ -55,7 +54,7 @@ export const runOcrSingleTarget = async (ctx: OcrSingleRunContext): Promise<Proc
   }).catch((error) => {
     l.write('debug', `Failed to update hosted OCR throughput profiles: ${error instanceof Error ? error.message : String(error)}`, {
       category: 'artifact',
-      metadata: { profile: 'throughput', error: serializeDiagnosticError(error) }
+      metadata: { profile: 'throughput' }, error: error
     })
   })
   await persistHostedOcrTokenUsageProfiles(extracted.step2Metadata, {
@@ -63,10 +62,10 @@ export const runOcrSingleTarget = async (ctx: OcrSingleRunContext): Promise<Proc
   }).catch((error) => {
     l.write('debug', `Failed to update hosted OCR token profiles: ${error instanceof Error ? error.message : String(error)}`, {
       category: 'artifact',
-      metadata: { profile: 'token', error: serializeDiagnosticError(error) }
+      metadata: { profile: 'token' }, error: error
     })
   })
-  logExtractManifestConsoleSummary(outputDir, rootMetadata)
+  logExtractManifestSummary(outputDir, rootMetadata)
   await writeExtractionArtifact(
     outputDir,
     extracted.result,

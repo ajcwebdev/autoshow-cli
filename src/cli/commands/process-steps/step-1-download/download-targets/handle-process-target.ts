@@ -14,6 +14,8 @@ import { UsageError, InfraError } from '~/utils/error-handler'
 import { fileExists } from '~/utils/cli-utils'
 import { childEnv } from '~/utils/child-env'
 import * as l from '~/utils/app-logger/app-logger'
+import { isJsonResultActive } from '~/utils/app-logger/result-emitter'
+import { readBoundedTextStream } from '~/utils/bounded-capture'
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { runPreflight } from '~/cli/commands/pricing-orchestration/preflight'
 import { executeBatchPlan } from './download-batch/batch-executor'
@@ -67,21 +69,38 @@ const runRawYtDlp = async (args: string[]): Promise<void> => {
     await setupYtDependencies()
   }
 
+  const json = isJsonResultActive()
   const proc = Bun.spawn([getYtDlpBinary(), ...args], {
     env: childEnv(),
     stdin: 'inherit',
-    stdout: 'inherit',
-    stderr: 'inherit'
+    stdout: json ? 'pipe' : 'inherit',
+    stderr: json ? 'pipe' : 'inherit'
   })
-  const exitCode = await proc.exited
+  const [stdout, stderr, exitCode] = await Promise.all([
+    json ? readBoundedTextStream(proc.stdout ?? null, { maxBytes: 64 * 1024 }) : undefined,
+    json ? readBoundedTextStream(proc.stderr ?? null, { maxBytes: 64 * 1024 }) : undefined,
+    proc.exited
+  ])
+  if (stdout?.text.trim()) {
+    l.write('info', stdout.text, {
+      category: 'runtime',
+      metadata: { childProcess: 'yt-dlp', stream: 'stdout', totalBytes: stdout.totalBytes, truncated: stdout.truncated }
+    })
+  }
+  if (stderr?.text.trim()) {
+    l.write(exitCode === 0 ? 'info' : 'warn', stderr.text, {
+      category: 'runtime',
+      metadata: { childProcess: 'yt-dlp', stream: 'stderr', totalBytes: stderr.totalBytes, truncated: stderr.truncated }
+    })
+  }
   if (exitCode !== 0) {
     throw InfraError(`yt-dlp exited with code ${exitCode}`, {
       stage: 'download:yt-dlp-passthrough',
-      exitCode,
       retryable: false,
-      metadata: { ytDlpExitCode: exitCode }
+      metadata: { childExitCode: exitCode }
     })
   }
+  l.report.result({ childProcess: 'yt-dlp', childExitCode: exitCode }, 'yt-dlp complete')
 }
 
 const addExtractSelectorRoute = (
@@ -235,16 +254,20 @@ const runPriceAndBudgetPhase = async (input: {
 }): Promise<PreflightPhaseResult> => {
   const { command, options, preflightTargets } = input
   if (options.price) {
-    if (preflightTargets.length === 0) return { kind: 'reported' }
+    if (preflightTargets.length === 0) {
+      l.report.price({ steps: [], totalEstimatedCost: 0, notes: ['No priceable targets were selected.'] })
+      return { kind: 'reported' }
+    }
     if (preflightTargets.length === 1) {
       const target = preflightTargets[0] as string
       const estimate = await buildAggregatedPriceEstimate(command, target, options, undefined)
-      l.report.estimate(estimate)
+      l.report.price(estimate)
       if (await isHtmlArticleTarget(target, options) && hasConfiguredOcrProviderSelection(options)) l.warn(`${HTML_ARTICLE_OCR_FLAGS_IGNORED_WARNING.slice(0, -1)} during extraction pricing and execution.`, { category: 'pipeline' })
       l.report.expectedOutput('./output/<timestamp>_<label>/', await buildExpectedFilesList(command, options, target))
       return { kind: 'reported' }
     }
-    await reportSuitePriceEstimate(command, preflightTargets, options)
+    const suiteCost = await reportSuitePriceEstimate(command, preflightTargets, options)
+    l.report.price({ steps: [], totalEstimatedCost: suiteCost, notes: [`Suite estimate for ${preflightTargets.length} targets.`] })
     return { kind: 'reported' }
   }
   if (!shouldRunCommandPreflight(options, input.maxCents)) return { kind: 'continue' }

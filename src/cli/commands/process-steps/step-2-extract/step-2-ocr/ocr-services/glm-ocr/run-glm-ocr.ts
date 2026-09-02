@@ -1,4 +1,4 @@
-import { httpResponseError, isRecord } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions, isRecord } from '~/utils/rest-client'
 import { extname } from 'node:path'
 import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult } from '~/types'
 import { GlmOcrResponseSchema } from '~/types'
@@ -98,7 +98,12 @@ export const runGlmOcr = async (
         : undefined
       throw httpResponseError(
         `GLM OCR request failed (${response.status} ${response.statusText})${message ? `: ${message}` : ''}`,
-        response
+        httpResponseOptions(response, {
+          stage: 'ocr:glm',
+          retryClass: 'runtime_http_create_conservative',
+          retryable: response.status === 425 || response.status === 429,
+          metadata: { provider: 'glm' }
+        })
       )
     }
 

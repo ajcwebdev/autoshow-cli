@@ -50,6 +50,7 @@ describe('Bun 1.4 fetch error contracts', () => {
     expect(classifyPaidCreateRetry(error)).toEqual({
       shouldRetry: false,
       delayMs: 0,
+      reasonCode: 'unsafe_paid_redispatch',
       reason: 'paid create outcome is ambiguous'
     })
     expect(classifyPaidCreateRetry(new TypeError('fetch failed', {

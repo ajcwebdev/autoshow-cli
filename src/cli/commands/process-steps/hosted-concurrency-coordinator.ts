@@ -673,20 +673,21 @@ const throwHostedRecoveryExhausted = (
   const metadata = extractErrorMetadata(error)
   const status = typeof metadata['status'] === 'number' ? metadata['status'] : pressure.status
   const headers = toHeaders(metadata['headers'])
-  const stage = typeof metadata['stage'] === 'string' ? metadata['stage'] : undefined
+  const stage = typeof metadata['stage'] === 'string' ? metadata['stage'] : 'hosted:rate-limit-recovery'
   throw new AppError(`Hosted request rate-limit recovery exhausted after ${decision.pressureAttempt} pressure event(s) and ${decision.elapsedMs}ms.`, {
     kind: 'retry_exhausted',
     cause: toErrorCause(error),
     ...(typeof status === 'number' ? { status } : {}),
     ...(headers ? { headers } : {}),
-    ...(stage ? { stage } : {}),
-    retryable: true,
+    stage,
+    retryable: false,
     metadata: {
       ...metadata,
       pressureAttempt: decision.pressureAttempt,
       elapsedMs: decision.elapsedMs,
       remainingBudgetMs: decision.remainingBudgetMs,
       requiredDelayMs: decision.delayMs,
+      stopReasonCode: 'max_attempts',
       hostedConcurrencyLane: token.lane,
       hostedConcurrencyWorkClass: token.workClass,
       hostedConcurrencyWorkId: token.workId,

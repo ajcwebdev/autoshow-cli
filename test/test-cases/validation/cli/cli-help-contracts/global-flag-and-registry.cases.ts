@@ -25,7 +25,6 @@ import {
   WRITE_OCR_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { PDF_CHAPTER_MODES } from '~/cli/options/option-resolution/flag-readers'
-import { LOG_FORMAT_CHOICES } from '~/utils/app-logger/app-logger'
 import {
   IMAGE_GENERATION_QUALITIES,
   LOG_LEVELS,
@@ -121,7 +120,8 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
     const result = await loadHelp(['--help'])
 
     expect(result.stdout).toContain(LOG_LEVELS.join('|'))
-    expect(result.stdout).toContain(LOG_FORMAT_CHOICES.join('|'))
+    expect(result.stdout).toContain('--json')
+    expect(result.stdout).not.toContain('--log-format')
     for (const tool of RUNTIME_TOOL_IDS) {
       expect(result.stdout).toContain(tool)
     }

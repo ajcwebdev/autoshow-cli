@@ -1,4 +1,3 @@
-import * as l from '~/utils/app-logger/app-logger'
 import type { EffectiveSttProviderConcurrency, SttExtractionOptions, SttTarget } from '~/types'
 import { getSttEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { buildSpeakerCountHintWarning } from '../step-2-shared/inactive-flag-warnings'
@@ -58,7 +57,6 @@ export const logSpeakerCountHintSummary = (
   if (warning) {
     emitWarnOnce(warning, () => {
       logSttProviderSpeakerCountHints(
-        l,
         targets.map((target) => ({
           provider: formatSttTargetLabel(target),
           speakerCount: requestedSpeakerCount as number,
@@ -92,7 +90,6 @@ export const logEffectiveProviderConcurrency = (
 
   emitInfoOnce(dedupeKey, () => {
     logSttProviderConcurrency(
-      l,
       resolution,
       batchConcurrency,
       coordinatedAcrossBatch,

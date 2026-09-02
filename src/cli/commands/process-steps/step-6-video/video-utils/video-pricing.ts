@@ -17,7 +17,6 @@ import {
   isReplicateSeedanceVideoModel
 } from './video-normalization'
 import * as l from '~/utils/app-logger/app-logger'
-import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { collectSelections, passThroughKeys } from '~/utils/pricing/model-selection'
 
 export const VIDEO_PRICING_PROVIDERS = deriveGenerationPricingProviders(VIDEO_GENERATION_SELECTION) satisfies readonly ProviderModelSelectionSpec<EstimateVideoCostOptions, VideoProvider>[]
@@ -237,18 +236,8 @@ export const estimateVideoCosts = (options: EstimateVideoCostOptions): VideoCost
 export const estimateVideoCost = (options: EstimateVideoCostOptions): VideoCostEstimate => estimateVideoCosts(options)[0]!
 
 export const logVideoEstimate = (estimate: VideoCostEstimate): void => {
-  const entries: Array<readonly [string, string]> = [
-    ['Provider', estimate.provider],
-    ['Model', estimate.model],
-    ['Requested Duration', `${estimate.durationSeconds}s`],
-    ['Billed Duration', `${estimate.billedDurationSeconds}s`],
-    ['Cost Per Second', `${estimate.costPerSecond.toFixed(3)}¢`],
-    ['Total Cost', `${estimate.totalCost.toFixed(3)}¢`],
-    ...(estimate.note ? [['Note', estimate.note] as const] : [])
-  ]
-  l.write('info', `Estimated video cost for ${estimate.provider}/${estimate.model}`, {
+  l.write('info', `Estimated ${estimate.durationSeconds}s video with ${estimate.provider}/${estimate.model}: ${estimate.totalCost.toFixed(3)}¢`, {
     category: 'pricing',
-    humanTable: createKeyValueTable(entries),
     metadata: estimate
   })
 }

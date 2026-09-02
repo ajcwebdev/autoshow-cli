@@ -50,7 +50,12 @@ export const runPolledJob = async <TCreate, TPoll>(options: {
   validateCreate?: ((value: TCreate) => void) | undefined
   abortSignal?: AbortSignal | undefined
 }): Promise<{ created: TCreate, result: TPoll }> => {
-  const created = await runStep(options.create)
+  const created = await withRetry({
+    retryClass: 'runtime_http_create_conservative',
+    operationName: `${options.operationName}-create`,
+    ...(options.abortSignal ? { abortSignal: options.abortSignal } : {})
+  }, async (signal) => await runStep(options.create, signal), (error) =>
+    classifyFetchRetry(error, 'runtime_http_create_conservative'))
   options.validateCreate?.(created)
 
   const result = await pollUntil({
@@ -59,7 +64,7 @@ export const runPolledJob = async <TCreate, TPoll>(options: {
     deadlineMs: options.deadlineMs,
     pollFn: () => withRetry(
       {
-        retryClass: 'runtime_http_read',
+        retryClass: 'runtime_http_poll',
         operationName: `${options.operationName}-poll`,
         ...(options.abortSignal ? { abortSignal: options.abortSignal } : {})
       },
@@ -68,7 +73,7 @@ export const runPolledJob = async <TCreate, TPoll>(options: {
         options.onPoll?.(value)
         return value
       },
-      (error) => classifyFetchRetry(error, 'runtime_http_read')
+      (error) => classifyFetchRetry(error, 'runtime_http_poll')
     ),
     isDone: options.isDone,
     ...(options.isFailed ? { isFailed: options.isFailed } : {}),

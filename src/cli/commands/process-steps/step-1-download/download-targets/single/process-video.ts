@@ -12,7 +12,7 @@ import { logSpeakerCountHintSummary } from '~/cli/commands/process-steps/step-2-
 import { createMistralSttPassController } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-mistral/mistral-stt-pass-controller'
 import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 import { serializeOneOrMany } from '~/cli/commands/process-steps/target-runner'
-import { logWriteManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
+import { logWriteManifestSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import type { AggregatedPriceEstimate, ProcessVideoRuntimeOptions, ProcessingOptions, Step1Metadata, VideoMetadata } from '~/types'
 import { ensureDirectory } from '~/utils/cli-utils'
 import * as l from '~/utils/app-logger/app-logger'
@@ -137,7 +137,7 @@ export const processVideo = async (
     await writeManifest(outputDir, createManifest('extract', 'single', [
       createPipelineItemFromRecord(outputDir, processingMetadata, { status: completionStatus })
     ]))
-    logWriteManifestConsoleSummary(outputDir, processingMetadata, {
+    logWriteManifestSummary(outputDir, processingMetadata, {
       promptArtifact: 'prompt.md'
     })
 

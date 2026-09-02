@@ -444,23 +444,16 @@ describe('adaptive scheduler contracts', () => {
   })
 })
 
-describe('runCommand adaptive retry contracts', () => {
-  test('forced adaptive mode retries synthetic rate-limit pressure and succeeds', async () => {
+describe('runCommand adaptive pressure contracts', () => {
+  test('forced adaptive mode records rate-limit pressure without rerunning the command', async () => {
     const stateDir = await makeTempDir()
     const attempts: number[] = []
     const attemptRunner: RunCommandAttemptRunner = async ({ attempt }) => {
       attempts.push(attempt)
-      if (attempt === 1) {
-        return {
-          exitCode: 1,
-          stdout: '',
-          stderr: 'provider failed after 3/3 attempts: retryable status 429',
-        }
-      }
       return {
-        exitCode: 0,
-        stdout: 'ok\n',
-        stderr: '',
+        exitCode: 1,
+        stdout: '',
+        stderr: 'provider failed after 3/3 attempts: retryable status 429',
       }
     }
 
@@ -476,19 +469,19 @@ describe('runCommand adaptive retry contracts', () => {
       },
       adaptiveStateDir: stateDir,
       adaptiveConfig: {
-        maxAttempts: 3,
         rateLimitCooldownMs: 1,
         acquirePollMs: 1,
       },
       attemptRunner,
     })
 
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('ok')
-    expect(attempts).toEqual([1, 2])
+    const snapshot = await readAdaptiveConcurrencySnapshot(resolveAdaptiveConcurrencyConfig(stateDir))
+    expect(result.exitCode).toBe(1)
+    expect(attempts).toEqual([1])
+    expect(snapshot.groups['tts/speechify']?.failureStreak).toBe(1)
   })
 
-  test('persistent synthetic rate-limit failure includes adaptive diagnostics', async () => {
+  test('persistent synthetic rate-limit failure is returned unchanged after one attempt', async () => {
     const stateDir = await makeTempDir()
     const attempts: number[] = []
     const result = await runCommand([
@@ -503,7 +496,6 @@ describe('runCommand adaptive retry contracts', () => {
       },
       adaptiveStateDir: stateDir,
       adaptiveConfig: {
-        maxAttempts: 2,
         rateLimitCooldownMs: 1,
         acquirePollMs: 1,
       },
@@ -518,9 +510,8 @@ describe('runCommand adaptive retry contracts', () => {
     })
 
     expect(result.exitCode).toBe(1)
-    expect(attempts).toEqual([1, 2])
-    expect(result.stderr).toContain('Adaptive concurrency retry summary')
-    expect(result.stderr).toContain('groups=tts/speechify')
+    expect(attempts).toEqual([1])
+    expect(result.stderr).toBe('retryable status 429')
   })
 
   test('runner e2e selection flag enables adaptive scheduling for helper callers', async () => {
@@ -539,23 +530,15 @@ describe('runCommand adaptive retry contracts', () => {
       },
       adaptiveStateDir: stateDir,
       adaptiveConfig: {
-        maxAttempts: 3,
         rateLimitCooldownMs: 1,
         acquirePollMs: 1,
       },
       attemptRunner: async ({ attempt }) => {
         attempts.push(attempt)
-        if (attempt === 1) {
-          return {
-            exitCode: 1,
-            stdout: '',
-            stderr: 'deepinfra-stt-create failed after 2/2 attempts: retryable status 429',
-          }
-        }
         return {
-          exitCode: 0,
-          stdout: 'ok\n',
-          stderr: '',
+          exitCode: 1,
+          stdout: '',
+          stderr: 'deepinfra-stt-create failed after 2/2 attempts: retryable status 429',
         }
       },
     })
@@ -566,8 +549,8 @@ describe('runCommand adaptive retry contracts', () => {
     })
     const snapshot = await readAdaptiveConcurrencySnapshot(config)
 
-    expect(result.exitCode).toBe(0)
-    expect(attempts).toEqual([1, 2])
+    expect(result.exitCode).toBe(1)
+    expect(attempts).toEqual([1])
     expect(snapshot.groups['transcribe/deepinfra']?.limit).toBe(1)
   })
 
@@ -582,9 +565,7 @@ describe('runCommand adaptive retry contracts', () => {
       'speechify=simba-3.2'
     ], {
       adaptiveStateDir: stateDir,
-      adaptiveConfig: {
-        maxAttempts: 3,
-      },
+      adaptiveConfig: {},
       attemptRunner: async ({ attempt }) => {
         attempts.push(attempt)
         return {
@@ -597,6 +578,5 @@ describe('runCommand adaptive retry contracts', () => {
 
     expect(result.exitCode).toBe(1)
     expect(attempts).toEqual([1])
-    expect(result.stderr).not.toContain('Adaptive concurrency retry summary')
   })
 })

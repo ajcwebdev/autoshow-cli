@@ -2,9 +2,7 @@ import { appendFile } from 'node:fs/promises'
 import type { BudgetPreflightSummary, ExecutedPriceCommand, PriceCommandObservation, PriceCommandResult, PriceCommandSpec, TestRunArtifacts } from '~/types'
 import { l } from '~/utils/app-logger/app-logger'
 import { formatCost } from '~/utils/app-logger/formatters'
-import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { childEnv } from '~/utils/child-env'
-import { serializeDiagnosticError } from '~/utils/error-handler'
 import { appendCommandLog } from './artifacts'
 import { withEmptyPriceConfig } from './price-command-config'
 import { evaluatePriceObservations, toObservation } from './price-evaluation'
@@ -31,13 +29,13 @@ const writeCommandMetric = async (artifacts: TestRunArtifacts, record: Record<st
     commandMetricWriteWarned = true
     l.warn(`Could not append to the runner metrics log at ${artifacts.metricsLogPath}; pricing reports will be incomplete`, {
       category: 'pricing',
-      metadata: { metricsLogPath: artifacts.metricsLogPath, error: serializeDiagnosticError(error) }
+      metadata: { metricsLogPath: artifacts.metricsLogPath }, error: error
     })
   }
 }
 
 export const buildPriceSpawnArgs = (entry: PriceCommandSpec, artifacts: TestRunArtifacts): string[] => {
-  const spawnArgs = [...entry.args, '--output-root', `${artifacts.runDir}/outputs/price`]
+  const spawnArgs = [...entry.args, '--output-root', `${artifacts.runDir}/outputs/price`, '--json']
   const bundle = process.env['AUTOSHOW_TEST_CLI_BUNDLE']?.trim()
   const cliArgs = bundle && spawnArgs[0] === 'src/cli/create-cli.ts'
     ? [bundle, ...spawnArgs.slice(1)]
@@ -64,7 +62,7 @@ export const executePriceCommand = async (
     proc.exited
   ])
   const durationMs = Date.now() - start
-  const parsedCost = parseCommandEstimatedTotal(`${stdout}\n${stderr}`)
+  const parsedCost = parseCommandEstimatedTotal(stdout)
 
   await appendCommandLog(artifacts, `\n=== ${logLabel} ${entry.name} ===\ncmd: ${commandText}\nexit: ${exitCode}\nstdout:\n${stdout}\nstderr:\n${stderr}\n`)
   await writeCommandMetric(artifacts, {
@@ -102,11 +100,11 @@ export const logPriceCommandFailure = (executed: ExecutedPriceCommand, message: 
   }
 }
 
-export const logSkippedKeyTable = (label: string, summary: BudgetPreflightSummary): void => {
+export const logSkippedKeys = (label: string, summary: BudgetPreflightSummary): void => {
   if (summary.skipKeys.length === 0) return
   l.write('info', `${label} (${summary.skipKeys.length})`, {
     category: 'pricing',
-    humanTable: createKeyValueTable(summary.skippedEntries.map(entry => [entry.key, formatCost(entry.selectedCostCents)] as [string, string])),
+    metadata: { skippedEntries: summary.skippedEntries }
   })
 }
 
@@ -147,24 +145,11 @@ export const runPriceSuite = async (
 
   const evaluation = evaluatePriceObservations(suiteName, observations, budgetHundredthCents)
   const skippedCommands = evaluation.commandResults.filter(result => result.status === 'skipped').length
-  const summaryRows: [string, string][] = [
-    ['Commands checked', String(executionCommands.length)],
-    ['Commands failed', String(evaluation.failedCommands)],
-  ]
-  if (evaluation.budgetSummary) {
-    summaryRows.push(
-      ['Test keys checked', String(evaluation.budgetSummary.commandsChecked)],
-      ['Test keys runnable', String(evaluation.budgetSummary.commandsRunnable)],
-      ['Test keys skipped', String(evaluation.budgetSummary.commandsSkipped)],
-      ['Commands skipped (over-budget keys)', String(skippedCommands)],
-      ['Price report included estimated cost', formatCost(evaluation.totalEstimatedCostCents)],
-      ['Budget runnable estimate (max variant per key)', formatCost(evaluation.budgetSummary.runnableEstimatedCostCents)],
-    )
-  } else {
-    summaryRows.push(['Suite total estimated cost', formatCost(evaluation.totalEstimatedCostCents)])
-  }
-  l.write('success', `${suiteName} Pricing Summary`, { category: 'pricing', humanTable: createKeyValueTable(summaryRows) })
-  if (evaluation.budgetSummary) logSkippedKeyTable('Skipped test key list', evaluation.budgetSummary)
+  l.write('info', `${suiteName} pricing: ${executionCommands.length - evaluation.failedCommands}/${executionCommands.length} commands passed, ${formatCost(evaluation.totalEstimatedCostCents)}`, {
+    category: 'pricing',
+    metadata: { commandsChecked: executionCommands.length, commandsFailed: evaluation.failedCommands, commandsSkipped: skippedCommands, totalEstimatedCostCents: evaluation.totalEstimatedCostCents, budgetSummary: evaluation.budgetSummary }
+  })
+  if (evaluation.budgetSummary) logSkippedKeys('Skipped test key list', evaluation.budgetSummary)
   return {
     exitCode: evaluation.failedCommands > 0 ? 1 : 0,
     results: evaluation.commandResults,

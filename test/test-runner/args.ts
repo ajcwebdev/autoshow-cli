@@ -16,6 +16,8 @@ const UNSUPPORTED_CONCURRENCY_SPELLINGS = [
 
 const unsupportedConcurrencyMessage =
   'Error: --concurrency is not a Bun test runner flag. Use --max-concurrency=<n> for per-file test concurrency and --parallel=<n> for file-level worker parallelism.'
+const unsupportedRetryMessage =
+  'Error: test retry passthrough is disabled because every selected command and test must run at most once.'
 const missingBudgetMessage =
   'Error: --budget requires a whole-number value in hundredths of a cent (for example: --budget 100 for 1 cent)'
 
@@ -53,7 +55,6 @@ export const buildBunTestFlags = (files: string[], passthroughArgs: string[]): s
   return [
     '--timeout',
     String(VALIDATION_TEST_TIMEOUT_MS),
-    ...(e2eOnly ? ['--retry', '1'] : []),
     ...withDefaultTestConcurrency(passthroughArgs, { e2eOnly }),
   ]
 }
@@ -87,6 +88,9 @@ const consumeRunnerControlArg = (
   }
   if (isUnsupportedConcurrencyArg(arg)) {
     throw new Error(unsupportedConcurrencyMessage)
+  }
+  if (arg === '--retry' || arg.startsWith('--retry=')) {
+    throw new Error(unsupportedRetryMessage)
   }
 
   switch (arg) {

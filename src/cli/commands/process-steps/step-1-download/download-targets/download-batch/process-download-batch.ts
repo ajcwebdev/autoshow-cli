@@ -7,12 +7,10 @@ import type { BatchItemOutcome, BatchItemProcessor, BatchProcessResult, BatchRun
 import { ensureDirectory } from '~/utils/cli-utils'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import * as l from '~/utils/app-logger/app-logger'
-import { logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { getPipelineItemErrors, toBatchCommand } from './pipeline-item-record-state'
-import { buildBatchPartialFailureTable, logBatchCompletionTable } from './download-batch-summary'
+import { buildBatchPartialFailures, logBatchCompletion } from './download-batch-summary'
 import { executeBatchItem } from './execute-batch-item'
 import { writeOcrBatchDiagnostics } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-batch-diagnostics'
-import { serializeDiagnosticError } from '~/utils/error-handler'
 import { createResourceGate, runWithGate } from '~/utils/resource-gate'
 
 const prepareBatchRun = async (
@@ -55,7 +53,7 @@ const prepareBatchRun = async (
     : resolveRunDirectory(getOutputRoot(), batchLabel, 'batch')
   const batchDirName = basename(batchDir)
   await ensureDirectory(batchDir)
-  logLocationsTable(l, [{ artifact: 'outputDir', path: batchDir }])
+  l.write('info', `Batch output directory: ${batchDir}`, { category: 'artifact', metadata: { artifact: 'outputDir', path: batchDir } })
 
   const batchSource: BatchSummarySource | undefined = runOpts.source
     ? {
@@ -88,7 +86,7 @@ const prepareBatchRun = async (
   await writeManifest(batchDir, createManifest(toBatchCommand(command), 'batch', itemRecords.map((record) =>
     createPipelineItemFromRecord(batchDir, record, runOpts.extractRoute ? { extractRoute: runOpts.extractRoute } : {})
   ), batchSource))
-  logLocationsTable(l, [{ artifact: 'manifest', path: `${batchDir}/${PIPELINE_MANIFEST_FILE}` }])
+  l.write('info', `Manifest: ${batchDir}/${PIPELINE_MANIFEST_FILE}`, { category: 'artifact', metadata: { artifact: 'manifest', path: `${batchDir}/${PIPELINE_MANIFEST_FILE}` } })
 
   return { done: false, batchDir, batchDirName, batchSource, itemRecords }
 }
@@ -179,19 +177,16 @@ const finalizeBatch = async ({
   const { ok, partial, incomplete, fail } = acc.tally()
 
   if (acc.partialFailureRecords.length > 0) {
-    const partialFailureTable = buildBatchPartialFailureTable(acc.partialFailureRecords)
-    if (partialFailureTable.rows.length > 0) {
-      l.write('warn', 'Partial provider failures', {
+    const partialFailures = buildBatchPartialFailures(acc.partialFailureRecords)
+    if (partialFailures.length > 0) {
+      l.write('warn', `Partial provider failures affected ${partialFailures.length} providers`, {
         category: 'pipeline',
-        humanTable: partialFailureTable,
-        metadata: {
-          failures: partialFailureTable.rows
-        }
+        metadata: { failures: partialFailures }
       })
     }
   }
 
-  logBatchCompletionTable(ok, partial, incomplete, fail, sttLike)
+  logBatchCompletion(ok, partial, incomplete, fail, sttLike)
   const completedItems = acc.finalItemRecords.map((record) =>
     createPipelineItemFromRecord(batchDir, record, extractRoute ? { extractRoute } : {})
   )
@@ -266,9 +261,9 @@ export const processBatch = async <TOptions extends object>(
       } else {
         acc.recordRejectedItem(r.reason)
         const message = r.reason instanceof Error ? r.reason.message : String(r.reason)
-        l.error(`Batch item failed: ${message}`, {
+        l.warn(`Batch item failed: ${message}`, {
           category: 'pipeline',
-          metadata: { index, error: serializeDiagnosticError(r.reason) }
+          metadata: { index }, error: r.reason
         })
       }
     }

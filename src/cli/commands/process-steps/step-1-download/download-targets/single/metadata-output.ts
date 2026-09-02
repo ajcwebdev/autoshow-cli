@@ -1,6 +1,7 @@
 import { formatMetadataAsFrontmatter } from '~/cli/commands/process-steps/step-0-metadata/format-metadata-frontmatter'
 import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import * as l from '~/utils/app-logger/app-logger'
+import { stageResult } from '~/utils/app-logger/result-emitter'
 import type { DocumentMetadata, WebArticleMetadata } from '~/types'
 
 export const buildDocumentMetadataView = (
@@ -21,12 +22,18 @@ export const buildDocumentMetadataView = (
 })
 
 export const writeMetadataTerminalOutput = (metadata: Record<string, unknown>, markdown: boolean): void => {
+  const highlights = ['title', 'slug', 'duration', 'pageCount']
+    .flatMap((key) => metadata[key] === undefined ? [] : [`${key}=${String(metadata[key])}`])
+    .slice(0, 3)
+  const message = highlights.length > 0 ? `Metadata: ${highlights.join(', ')}` : 'Metadata complete'
   if (markdown) {
+    stageResult(metadata, message)
     process.stdout.write(formatMetadataAsFrontmatter(metadata) + '\n')
     return
   }
 
-  l.report.result(metadata, { message: 'Metadata' })
+  l.write('success', message, { category: 'artifact', metadata })
+  stageResult(metadata, message)
 }
 
 export const writeSavedMetadataArtifacts = async (
@@ -46,6 +53,9 @@ export const writeSavedMetadataArtifacts = async (
   }
 
   if (save) {
-    l.report.complete(outputDir, artifactFiles)
+    l.write('info', `Saved ${Object.keys(artifactFiles).length} metadata artifacts to ${outputDir}`, {
+      category: 'artifact',
+      metadata: { outputDir, files: artifactFiles }
+    })
   }
 }

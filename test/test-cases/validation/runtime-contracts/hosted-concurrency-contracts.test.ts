@@ -216,7 +216,7 @@ describe('hosted concurrency coordinator', () => {
         ocrAttempts += 1
         if (ocrAttempts === 1) throw ProviderError('rate limited', { status: 429 })
         return 'ocr-ok'
-      }, { attempts: 1, onRetryable })
+      }, { onRetryable })
     )
     await flushMicrotasks()
     expect(ocrAttempts).toBe(1)

@@ -1,4 +1,3 @@
-import * as l from '~/utils/app-logger/app-logger'
 import * as v from 'valibot'
 import type { GrokWord, Step2Metadata, TranscriptionEvidenceWord, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
@@ -176,7 +175,7 @@ export const runGrokStt = async (
   const apiKey = resolveCredential('grok', 'require', { stage: 'stt:grok', description: 'Grok transcription' })
 
   if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, { provider: 'grok', action: 'started', segmentNumber, totalSegments, model })
+    logSttSegmentLifecycle( { provider: 'grok', action: 'started', segmentNumber, totalSegments, model })
   }
 
   const startTime = Date.now()
@@ -190,7 +189,7 @@ export const runGrokStt = async (
   const payload = await sttStageRequest({
     operationName: 'grok-stt',
     stage: 'transcribe',
-    retryClass: 'runtime_http_create_retriable',
+    retryClass: 'runtime_http_create_conservative',
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'Grok',
     failureLabel: 'transcription',

@@ -1,5 +1,5 @@
-import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
-import type { AutoshowConfig, HostedProviderConfigurationLogMode, HostedProviderConfigurationRow, HostedProviderConfigurationSummary, HostedProviderEnvCheck, HostedProviderStatus, HumanLogTable, TableLogger } from '~/types'
+import type { AutoshowConfig, HostedProviderConfigurationLogMode, HostedProviderConfigurationRow, HostedProviderConfigurationSummary, HostedProviderEnvCheck, HostedProviderStatus } from '~/types'
+import * as l from '~/utils/app-logger/app-logger'
 import { InternalError } from '~/utils/error-handler'
 
 export const HOSTED_PROVIDER_ENV_CHECKS = [
@@ -461,48 +461,7 @@ export const summarizeHostedProviderRows = (
   }
 }
 
-export const buildHostedProviderConfigurationTable = (
-  rows: readonly HostedProviderConfigurationRow[]
-): HumanLogTable =>
-  createHumanTable(rows, ['provider', 'status', 'envKey', 'detail'])
-
-export const buildHostedProviderConfigurationSummaryTable = (
-  summary: HostedProviderConfigurationSummary
-): HumanLogTable =>
-  createHumanTable([{
-    present: `${summary.configured}/${summary.total}`,
-    missing: summary.missing,
-    detail: summary.missing === 0 ? 'all env vars set (presence only, not validated)' : `${summary.missing} missing`
-  }], ['present', 'missing', 'detail'])
-
-export const buildHostedProviderConfigurationLogTable = (
-  rows: readonly HostedProviderConfigurationRow[],
-  options: {
-    mode?: HostedProviderConfigurationLogMode | undefined
-  } = {}
-): HumanLogTable => {
-  const mode = options.mode ?? 'all'
-  if (mode === 'all') {
-    return buildHostedProviderConfigurationTable(rows)
-  }
-
-  const summary = summarizeHostedProviderRows(rows)
-  if (summary.missing === 0) {
-    return buildHostedProviderConfigurationSummaryTable(summary)
-  }
-
-  const table = buildHostedProviderConfigurationTable(rows.filter(row => row.status === 'missing'))
-  return {
-    ...table,
-    details: [
-      ...(table.details ?? []),
-      { label: 'configured', value: `${summary.configured}/${summary.total}` }
-    ]
-  }
-}
-
 export const logHostedProviderConfiguration = (
-  logger: TableLogger,
   options: {
     env?: Record<string, string | undefined>
     envVars?: readonly string[]
@@ -516,19 +475,16 @@ export const logHostedProviderConfiguration = (
     ...(options.config ? { config: options.config } : {})
   })
   const summary = summarizeHostedProviderRows(rows)
+  const providers = options.mode === 'missing' ? rows.filter(row => row.status === 'missing') : rows
 
-  logger.write('info', options.title ?? 'Hosted Provider Configuration', {
+  l.write(summary.missing > 0 ? 'warn' : 'info', `${options.title ?? 'Hosted provider configuration'}: ${summary.configured}/${summary.total} configured`, {
     category: 'command',
-    humanTable: buildHostedProviderConfigurationLogTable(
-      rows,
-      options.mode === undefined ? {} : { mode: options.mode }
-    ),
     metadata: {
       configured: summary.configured,
       missing: summary.missing,
       total: summary.total,
       mode: options.mode ?? 'all',
-      providers: rows
+      providers
     }
   })
 

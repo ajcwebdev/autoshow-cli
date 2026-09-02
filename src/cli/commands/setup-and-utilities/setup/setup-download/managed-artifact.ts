@@ -260,7 +260,7 @@ export const resolveSourceDeploymentTarget = async (): Promise<string> => {
   if (configured) {
     const version = normalizeMacosVersion(configured)
     if (!version) {
-      throw UsageError(`Invalid MACOSX_DEPLOYMENT_TARGET: ${configured}`, 'Use a MAJOR.MINOR macOS version, for example 15.0.')
+  throw UsageError(`Invalid MACOSX_DEPLOYMENT_TARGET: ${configured}`, { hints: ['Use a MAJOR.MINOR macOS version, for example 15.0.'] })
     }
     return version
   }

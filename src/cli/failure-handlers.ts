@@ -1,5 +1,5 @@
 import * as l from '~/utils/app-logger/app-logger'
-import { extractErrorHints, extractErrorMetadata, isAppError } from '~/utils/error-handler'
+import { extractErrorHints, isAppError } from '~/utils/error-handler'
 
 let handlersInstalled = false
 let fatalHandled = false
@@ -11,7 +11,7 @@ const handleFatal = (label: string, error: unknown): void => {
 
   fatalHandled = true
   if (isAppError(error)) {
-    l.error(`${label}: ${error.message}`, { category: 'command', metadata: { label, ...extractErrorMetadata(error) } })
+    l.error(`${label}: ${error.message}`, { category: 'command', metadata: { label }, error })
     for (const hint of extractErrorHints(error)) {
       l.write('info', hint, { category: 'command' })
     }
@@ -21,7 +21,7 @@ const handleFatal = (label: string, error: unknown): void => {
   const payloadLabel = error instanceof Error && error.name.length > 0
     ? `${label} (${error.name} payload redacted)`
     : `${label} (payload redacted)`
-  l.error(payloadLabel, { category: 'command' })
+  l.error(payloadLabel, { category: 'command', error })
   process.exit(1)
 }
 

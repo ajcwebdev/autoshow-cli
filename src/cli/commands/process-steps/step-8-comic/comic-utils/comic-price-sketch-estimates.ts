@@ -8,7 +8,7 @@ import { PANEL_DIRECTORY_PATTERN, getPanelNumberFromName } from './panel-prompt-
 import { getPanelPromptsDirectory } from './project-paths'
 import { getSketchComicImagePath } from './scene-utils'
 import { validatePriceReferenceGroup } from './final-image-price-inventory'
-import { priceDetails, priceNotice, priceTable } from './price-estimate-logging'
+import { priceDetails, priceNotice, priceRows } from './price-estimate-logging'
 import { printImageEstimateTable } from './comic-price-output'
 
 export const estimateGenerateSketchesPrice = async (
@@ -78,7 +78,7 @@ export const estimateGenerateSketchesPrice = async (
     const count = await validatePriceReferenceGroup(panelPromptsDir, chunkPanelNumbers, models)
     preflightRows.push({ panels: `${chunk.startPanelNumber}-${chunk.endPanelNumber}`, referencesRequired: count })
   }
-  priceTable(
+  priceRows(
     'Comic Reference Preflight (sketch chunks)',
     preflightRows,
     ['panels', 'referencesRequired'],
@@ -119,7 +119,7 @@ export const estimateGenerateSketchesPrice = async (
   }
   const sceneSketchCount: SceneSketchCount = { label, sketches: totalSketches, skipped }
 
-  priceTable(
+  priceRows(
     'Comic Sketch Chunks',
     [{
       scene: sceneSketchCount.label,

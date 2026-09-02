@@ -1,6 +1,7 @@
 import type { HappyScribeHttpError, HappyScribeStage, RetryClass } from '~/types'
-import { httpResponseError, isRecord } from '~/utils/rest-client'
-import { ProviderError } from '~/utils/error-handler'
+import { httpResponseError, httpResponseOptions, isRecord } from '~/utils/rest-client'
+import { annotateAppError } from '~/utils/error-handler'
+import { isRetryableStatus } from '~/utils/retries'
 export { isRecord }
 
 export const normalizeHappyScribeId = (value: unknown): string | undefined => {
@@ -63,18 +64,19 @@ export const toHappyScribeHttpError = (
   response: Response,
   payload: unknown,
   messagePrefix = 'Happy Scribe request failed'
-): HappyScribeHttpError => Object.assign(
+): HappyScribeHttpError =>
   httpResponseError(
     `${messagePrefix} (${response.status}): ${extractHappyScribeErrorMessage(payload) ?? 'Unknown error'}`,
-    response,
-    {
+    httpResponseOptions(response, {
       stage,
       retryClass,
-      rawResponse: payload
-    } satisfies Pick<HappyScribeHttpError, 'stage' | 'retryClass' | 'rawResponse'>
-  ),
-  { headers: buildHappyScribeRetryHeaders(response, payload) }
-)
+      headers: buildHappyScribeRetryHeaders(response, payload),
+      retryable: retryClass === 'runtime_http_create_conservative'
+        ? response.status === 425 || response.status === 429
+        : isRetryableStatus(response.status),
+      metadata: { rawResponse: payload }
+    })
+  )
 
 export const attachHappyScribeErrorContext = (
   error: unknown,
@@ -82,11 +84,14 @@ export const attachHappyScribeErrorContext = (
   retryClass: RetryClass,
   rawResponse?: unknown
 ): never => {
-  const source = error instanceof Error ? error : ProviderError(String(error))
-  ;(source as HappyScribeHttpError).stage = stage
-  ;(source as HappyScribeHttpError).retryClass = retryClass
-  if (rawResponse !== undefined) {
-    ;(source as HappyScribeHttpError).rawResponse = rawResponse
-  }
-  throw source
+  throw annotateAppError(error, {
+    kind: 'provider_http',
+    stage,
+    retryClass,
+    metadata: {
+      stage,
+      retryClass,
+      ...(rawResponse !== undefined ? { rawResponse } : {})
+    }
+  })
 }

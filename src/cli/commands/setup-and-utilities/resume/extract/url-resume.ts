@@ -25,11 +25,10 @@ getUrlTargetBackends,
 toUrlArticleTarget,
 uniqueUrlTargets
 } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-targets'
-import { logExtractManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
+import { logExtractManifestSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { buildArticleEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-article-estimates'
 import type { AggregatedPriceEstimate, HtmlArticleBackend, ProviderCompletionStatus, ResolvedStep2Execution, ResumeDisplayOptions, ResumeResult, ResumeTarget, Step2ProviderSelectionFilter, StepEstimate, UrlArticleResumePlan, UrlArticleResumeResult, UrlArticleTarget, UrlExtractionOptions, UrlProviderRunOutcome, WebArticleMetadata } from '~/types'
-import * as l from '~/utils/app-logger/app-logger'
 import { ValidationError } from '~/utils/error-handler'
 import { logResumeItem, logResumeSummary } from '../resume-logging'
 
@@ -167,7 +166,7 @@ const resumeUrlArticleProviders = async (
     failures
   })
   await writePipelineItemRecords(outputDir, 'extract', 'single', [manifestMetadata], { extractRoute: 'article' })
-  logExtractManifestConsoleSummary(outputDir, manifestMetadata)
+  logExtractManifestSummary(outputDir, manifestMetadata)
 
   return {
     outputDir,
@@ -277,7 +276,7 @@ export const resumeUrlArticleTarget = async (
       : `${index + 1}/${outputDirs.length}`
     const metadata = await readUrlArticleRunMetadata(outputDir)
     if (!metadata) {
-      logResumeItem(l, {
+      logResumeItem({
         item,
         status: 'skipped',
         outputDir,
@@ -293,7 +292,7 @@ export const resumeUrlArticleTarget = async (
       const noBackendsStatus = selectedTargets !== undefined ? 'full' : storedCompletionStatus
       const runStillIncomplete = storedCompletionStatus !== 'full'
       const selectedCompleteWithIncompleteRun = selectedTargets !== undefined && runStillIncomplete
-      logResumeItem(l, {
+      logResumeItem({
         item,
         status: noBackendsStatus,
         outputDir,
@@ -318,7 +317,7 @@ export const resumeUrlArticleTarget = async (
       continue
     }
 
-    logResumeItem(l, {
+    logResumeItem({
       item,
       status: 'processing',
       outputDir,
@@ -329,7 +328,7 @@ export const resumeUrlArticleTarget = async (
     const result = await resumeUrlArticleProviders(outputDir, opts, selectedTargets)
     if (result.completionStatus === 'full' || (selectedTargets !== undefined && result.selectedBackendsComplete)) {
       full += 1
-      logResumeItem(l, {
+      logResumeItem({
         item,
         status: 'full',
         outputDir,
@@ -340,7 +339,7 @@ export const resumeUrlArticleTarget = async (
       }, 'success')
     } else if (result.completionStatus === 'failed') {
       failed += 1
-      logResumeItem(l, {
+      logResumeItem({
         item,
         status: 'failed',
         outputDir,
@@ -349,7 +348,7 @@ export const resumeUrlArticleTarget = async (
       }, 'error')
     } else {
       incomplete += 1
-      logResumeItem(l, {
+      logResumeItem({
         item,
         status: 'incomplete',
         outputDir,
@@ -359,7 +358,7 @@ export const resumeUrlArticleTarget = async (
     }
   }
 
-  logResumeSummary(l, { full, incomplete, failed })
+  logResumeSummary({ full, incomplete, failed })
   await writeUpdatedUrlBatchManifest(target)
 
   if (incomplete > 0 || failed > 0) {

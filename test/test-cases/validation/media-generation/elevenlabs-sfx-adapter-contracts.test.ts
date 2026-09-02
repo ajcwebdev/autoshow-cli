@@ -123,7 +123,7 @@ describe('ElevenLabs Phase 1 sound-effect adapter', () => {
           ? { status: 429, headers: {}, body: new Uint8Array() }
           : { status: 200, headers: { 'content-type': 'audio/wav' }, body: createSyntheticWavBytes({ durationSeconds: 1, amplitude: 0.2, frequencyHz: 440 }) }
       } })
-      expect((await executeSoundEffectRenderPlan({ rootDir: retryRoot, plan: retryPlan, adapter: retryAdapter, maxAttempts: 3 })).result.status).toBe('succeeded')
+      expect((await executeSoundEffectRenderPlan({ rootDir: retryRoot, plan: retryPlan, adapter: retryAdapter })).result.status).toBe('succeeded')
       expect(retryCalls).toBe(2)
     } finally { await rm(retryRoot, { recursive: true, force: true }) }
 

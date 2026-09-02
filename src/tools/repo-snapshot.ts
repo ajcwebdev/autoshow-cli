@@ -5,10 +5,8 @@ import { join } from 'node:path'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
 import type { TreeNode } from '~/types'
 import { countReferenceTokens } from '~/utils/reference-tokenizer'
-import { serializeDiagnosticError } from '~/utils/error-handler'
 import { runSyncCommandOrThrow } from '~/utils/sync-subprocess'
 import * as l from '~/utils/app-logger/app-logger'
-import { createHumanTable, createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 
 const INCLUDED = (path: string): boolean => !path.includes('/') || path.startsWith('src/')
 
@@ -220,37 +218,21 @@ const run = async (): Promise<number> => {
       }
     })
 
-    l.write('success', `Successfully created ${outputFile}`, {
+    l.write('info', `Created ${outputFile}: ${formatCount(metrics.length)} files, ${formatCount(totalTokens)} tokens`, {
       category: 'artifact',
-      humanSections: [
-        {
-          title: `Top ${TOP_FILES_LENGTH} Files by Token Count`,
-          table: createHumanTable(topFileRows, ['rank', 'module', 'tokens', 'chars', 'share'], {
-            align: { tokens: 'right', chars: 'right', share: 'right' }
-          })
-        },
-        {
-          title: 'Pack Summary',
-          table: createKeyValueTable([
-            ['Total Files', `${formatCount(metrics.length)} files`],
-            ['Total Tokens', `${formatCount(totalTokens)} tokens (o200k_base)`],
-            ['Total Chars', `${formatCount(totalChars)} chars`],
-            ['Output file', outputFile]
-          ])
-        }
-      ],
       metadata: {
         outputFile,
         totalFiles: metrics.length,
         totalTokens,
-        totalChars
+        totalChars,
+        topFiles: topFileRows
       }
     })
     return 0
   } catch (error) {
     l.error(`Error creating repository snapshot: ${error instanceof Error ? error.message : String(error)}`, {
       category: 'command',
-      metadata: { error: serializeDiagnosticError(error) }
+      error: error
     })
     return 1
   } finally {

@@ -1,7 +1,6 @@
 import type { FetchUrlResult, LinksChangeStatus, LinksRefreshLinkMetadata, LinksRefreshMetadata, LinksSelection, LinksSelectionMode } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { isRecord } from '~/utils/rest-client'
-import { serializeDiagnosticError } from '~/utils/error-handler'
 import { countReferenceTokens, REFERENCE_TOKENIZER_METADATA } from '~/utils/reference-tokenizer'
 import { formatErrorMessage } from '~/utils/value-helpers'
 
@@ -35,7 +34,7 @@ export const readPreviousLinksRefreshMetadata = async (
   } catch (error) {
     l.warn(`Ignoring unreadable links refresh metadata sidecar ${sidecarPath}: ${formatErrorMessage(error)}`, {
       category: 'artifact',
-      metadata: { sidecarPath, error: serializeDiagnosticError(error) }
+      metadata: { sidecarPath }, error: error
     })
     return undefined
   }

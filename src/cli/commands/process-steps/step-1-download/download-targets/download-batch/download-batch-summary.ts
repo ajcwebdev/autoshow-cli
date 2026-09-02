@@ -3,7 +3,6 @@ import { derivePipelineItemRecord, readManifest } from '~/cli/commands/process-s
 import { formatSttTargetLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 import type { PipelineItemErrorRecord, PipelineItemRecord, PipelineItemStatus, SttBatchItemSummary, SttProviderSummary } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { createHumanTable, logBatchItemTable } from '~/utils/app-logger/human-table/human-table'
 import { getPipelineItemStatus, isRecord } from './pipeline-item-record-state'
 
 const getPipelineItemTitle = (
@@ -165,37 +164,6 @@ const summarizeSttItemRecords = (
     providers: parseSttProviderSummaries(record)
   }))
 
-const buildSttBatchFinalSummaryTable = (
-  records: PipelineItemRecord[]
-) => {
-  const summaries = summarizeSttItemRecords(records)
-  const rows = summaries.flatMap((summary, index) => {
-    const base = {
-      item: `${index + 1}/${summaries.length}`,
-      label: summary.label,
-      status: summary.completionStatus
-    }
-
-    if (summary.providers.length === 0) {
-      return [{
-        ...base,
-        provider: 'unavailable',
-        providerStatus: 'unavailable',
-        detail: ''
-      }]
-    }
-
-    return summary.providers.map((provider) => ({
-      ...base,
-      provider: provider.label,
-      providerStatus: provider.status,
-      detail: provider.message ?? ''
-    }))
-  })
-
-  return createHumanTable(rows, ['item', 'label', 'status', 'provider', 'providerStatus', 'detail'])
-}
-
 export const logSttBatchFinalSummary = async (batchDir: string): Promise<void> => {
   const manifest = await readManifest(batchDir).catch(() => undefined)
   if (!manifest || manifest.command !== 'extract' || manifest.scope !== 'batch') {
@@ -208,7 +176,6 @@ export const logSttBatchFinalSummary = async (batchDir: string): Promise<void> =
     return
   }
 
-  const table = buildSttBatchFinalSummaryTable(records)
   const hasFailed = summaries.some((summary) =>
     summary.completionStatus === 'failed'
     || summary.providers.some((provider) => provider.status === 'failed')
@@ -220,10 +187,10 @@ export const logSttBatchFinalSummary = async (batchDir: string): Promise<void> =
       provider.status === 'skipped' || provider.status === 'missing'
     )
   )
-  const level = hasFailed ? 'error' : hasWarnings ? 'warn' : 'success'
-  l.write(level, 'STT final provider status by item', {
+  const level = hasWarnings ? 'warn' : 'info'
+  const full = summaries.filter(summary => summary.completionStatus === 'full').length
+  l.write(level, `STT batch provider status: ${full}/${summaries.length} items complete`, {
     category: 'artifact',
-    humanTable: table,
     metadata: {
       items: summaries.map((summary, index) => ({
         item: `${index + 1}/${summaries.length}`,
@@ -235,30 +202,7 @@ export const logSttBatchFinalSummary = async (batchDir: string): Promise<void> =
   })
 }
 
-const buildNonSttBatchSummaryTable = (
-  ok: number,
-  partial: number,
-  fail: number
-) =>
-  createHumanTable([{
-    completed: ok,
-    full: ok - partial,
-    partial,
-    failed: fail
-  }], ['completed', 'full', 'partial', 'failed'])
-
-const buildSttBatchSummaryTable = (
-  ok: number,
-  incomplete: number,
-  fail: number
-) =>
-  createHumanTable([{
-    full: ok,
-    incomplete,
-    failed: fail
-  }], ['full', 'incomplete', 'failed'])
-
-export const buildBatchPartialFailureTable = (
+export const buildBatchPartialFailures = (
   records: PipelineItemErrorRecord[]
 ) => {
   const counts = new Map<string, number>()
@@ -279,7 +223,7 @@ export const buildBatchPartialFailureTable = (
     .sort((left, right) => left[0].localeCompare(right[0]))
     .map(([provider, failures]) => ({ provider, failures }))
 
-  return createHumanTable(rows, ['provider', 'failures'])
+  return rows
 }
 
 export const logBatchItemStatus = (
@@ -288,43 +232,27 @@ export const logBatchItemStatus = (
   status: 'processing' | 'done' | 'incomplete' | 'failed',
   detail?: string
 ): void => {
-  logBatchItemTable(l, [{
-    status,
-    input: item,
-    ...(detail ? { detail } : {})
-  }], { level })
+  l.write(level === 'success' ? 'info' : level, `${status}: ${item}${detail ? ` — ${detail}` : ''}`, {
+    category: 'pipeline',
+    metadata: { status, input: item, detail }
+  })
 }
 
-const buildBatchCompletionTable = (
-  ok: number,
-  partial: number,
-  incomplete: number,
-  fail: number,
-  sttLike = false
-)=> {
-  return sttLike
-    ? buildSttBatchSummaryTable(ok, incomplete, fail)
-    : buildNonSttBatchSummaryTable(ok, partial, fail)
-}
-
-export const logBatchCompletionTable = (
+export const logBatchCompletion = (
   ok: number,
   partial: number,
   incomplete: number,
   fail: number,
   sttLike = false
 ): void => {
-  l.write(
-    sttLike
-      ? (incomplete > 0 || fail > 0 ? 'warn' : 'success')
-      : (partial > 0 || fail > 0 ? 'warn' : 'success'),
-    'Batch Summary',
-    {
-      category: 'pipeline',
-      humanTable: buildBatchCompletionTable(ok, partial, incomplete, fail, sttLike),
-      metadata: sttLike
-        ? { full: ok, incomplete, failed: fail }
-        : { completed: ok, full: ok - partial, partial, failed: fail }
-    }
-  )
+  const hasWarnings = sttLike ? incomplete > 0 || fail > 0 : partial > 0 || fail > 0
+  const metadata = sttLike
+    ? { full: ok, incomplete, failed: fail }
+    : { completed: ok, full: ok - partial, partial, failed: fail }
+  l.write(hasWarnings ? 'warn' : 'info', sttLike
+    ? `Batch summary: ${ok} full, ${incomplete} incomplete, ${fail} failed`
+    : `Batch summary: ${ok - partial} full, ${partial} partial, ${fail} failed`, {
+    category: 'pipeline',
+    metadata
+  })
 }

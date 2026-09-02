@@ -59,7 +59,7 @@ describe('retry error contracts', () => {
         kind: 'retry_exhausted',
         status: 503,
         stage: 'poll',
-        retryable: true,
+        retryable: false,
         messageContains: 'test-provider-read failed after 2/2 attempts (max attempts reached,'
       }
     ) as AppError
@@ -92,9 +92,10 @@ describe('retry error contracts', () => {
       { instanceOf: AppError, kind: 'retry_exhausted', headers: { 'retry-after': '3' } }
     )
     expect(classifyFetchRetry(exhausted, 'runtime_http_read')).toEqual({
-      shouldRetry: true,
-      delayMs: 3_000,
-      reason: 'retryable status 429'
+      shouldRetry: false,
+      delayMs: 0,
+      reasonCode: 'non_retryable_marked',
+      reason: 'error marked non-retryable'
     })
   })
 

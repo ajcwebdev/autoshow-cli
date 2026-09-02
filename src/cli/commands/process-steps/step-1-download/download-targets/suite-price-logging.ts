@@ -1,7 +1,6 @@
-import { createSingleRowTable } from '~/utils/app-logger/human-table/human-table'
 import { formatEstimatedCost } from '~/utils/app-logger/formatters'
-import { defineTableLog } from '~/utils/app-logger/table-log-definition'
 import type { SuitePriceSummary } from '~/types'
+import * as l from '~/utils/app-logger/app-logger'
 
 export const buildSuitePriceSummaryRows = (
   summary: SuitePriceSummary
@@ -10,10 +9,9 @@ export const buildSuitePriceSummaryRows = (
   totalEstimatedCost: formatEstimatedCost(summary.totalEstimatedCost)
 }]
 
-export const { log: logSuitePriceSummary } = defineTableLog<SuitePriceSummary>({
-  title: 'Suite Cost Summary',
-  category: 'pricing',
-  buildTable: summary => createSingleRowTable(buildSuitePriceSummaryRows(summary)[0]!, ['checked', 'totalEstimatedCost']),
-  level: 'info',
-  metadata: summary => summary
-})
+export const logSuitePriceSummary = (summary: SuitePriceSummary): void => {
+  l.write('info', `Suite estimate: ${summary.checkedCount} ${summary.checkedLabel}, ${formatEstimatedCost(summary.totalEstimatedCost)}`, {
+    category: 'pricing',
+    metadata: summary
+  })
+}

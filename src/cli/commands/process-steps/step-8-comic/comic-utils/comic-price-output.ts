@@ -2,7 +2,7 @@ import type { ComicPriceModelRow, FinalImageEstimateResult, ImageGenerationModel
 import { estimateImageOutputCost, formatCost } from '../comic-image-services/image-costs'
 import { getImagePromptVariationLabel } from '../comic-commands/generate-images/prompt-variations'
 import { isGeminiImageModel } from './image-service'
-import { priceDetails, priceLine, priceNotice, priceTable } from './price-estimate-logging'
+import { priceDetails, priceLine, priceNotice, priceRows } from './price-estimate-logging'
 
 export const IMAGE_ESTIMATE_BASIS_NOTE = 'Per-image output cost only. Token-based input costs are not estimated.'
 
@@ -24,7 +24,7 @@ export const logImagePriceRows = (
   const hasNullCost = rows.some((row) => row.subtotal === null)
   const outputsColumn = `x${totalOutputs} ${outputLabel}${totalOutputs !== 1 ? 's' : ''}`
 
-  priceTable(
+  priceRows(
     title,
     rows.map((row) => ({
       model: row.modelLabel,
@@ -128,7 +128,7 @@ export const printImagePricingEstimate = (pricing: ImagePricingEstimate, title =
 }
 
 export const printPagePricingEstimate = (pricing: ImagePricingEstimate): void => {
-  priceTable(
+  priceRows(
     'Comic Page Price Estimate',
     pricing.rows.map((row) => ({
       model: row.modelLabel,
@@ -238,7 +238,7 @@ export const printGridEstimate = (
   const grid = result.modeEstimate.mode === 'grid' ? result.modeEstimate.grid : null
   if (!grid) return
 
-  priceTable(
+  priceRows(
     'Comic Grid Pages',
     [{
       scene: result.request.sceneSlug,
@@ -269,7 +269,7 @@ export const printReadyFinalImageEstimate = (
     && result.inventory.mode === 'page'
     && result.modeEstimate.mode === 'page'
   ) {
-    priceTable(
+    priceRows(
       'Comic Reference Preflight (pages)',
       result.inventory.pages.map((page) => ({ page: page.pageNumber, referencesRequired: page.referenceCount })),
       ['page', 'referencesRequired'],
@@ -278,7 +278,7 @@ export const printReadyFinalImageEstimate = (
         pages: result.inventory.pages.map((page) => ({ page: page.pageNumber, referenceCount: page.referenceCount }))
       }
     )
-    priceTable(
+    priceRows(
       'Comic Pages',
       [{
         scene: result.request.sceneSlug,
@@ -308,13 +308,13 @@ export const printReadyFinalImageEstimate = (
   }
 
   if (result.inventory.mode === 'page' || result.modeEstimate.mode === 'page') return
-  priceTable(
+  priceRows(
     'Comic Reference Preflight (panels)',
     result.inventory.panels.map((panel) => ({ panel: panel.panelNumber, referencesRequired: panel.referenceCount })),
     ['panel', 'referencesRequired'],
     { panels: result.inventory.panels.map((panel) => ({ panel: panel.panelNumber, referenceCount: panel.referenceCount })) }
   )
-  priceTable(
+  priceRows(
     'Comic Panels',
     [{
       scene: result.request.sceneSlug,

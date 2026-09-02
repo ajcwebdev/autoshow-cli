@@ -3,14 +3,14 @@ import { link, lstat, mkdir, open, readdir, realpath, rename, rm, rmdir } from '
 import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import type { ContainedArtifactFile, ImmutableArtifactFile, ReservedInvocationAttemptDirectory, SafeArtifactDirectory } from '~/types'
-import { AppInfrastructureError, UsageError, extractErrorMetadata, hasErrorCode } from '~/utils/error-handler'
+import { AppInfrastructureError, InfraError, UsageError, extractErrorMetadata, hasErrorCode } from '~/utils/error-handler'
+import { withRetry } from '~/utils/retries'
 
 const DIRECTORY_MODE = 0o700
 const FILE_MODE = 0o600
 const SAFE_INVOCATION_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/
 const ENCODED_PATH_SEPARATOR_OR_DOT = /%(?:2e|2f|5c)/i
 const CLAIM_OWNER_FILE = /^owner-([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.lock$/
-const CREATED_DIRECTORY_VISIBILITY_RETRY_DELAYS_MS = [25, 50, 100, 200, 400, 800, 1600] as const
 
 export class ArtifactReservationConflictError extends AppInfrastructureError {
   readonly code = 'ARTIFACT_RESERVATION_CONFLICT'
@@ -74,7 +74,7 @@ const inspectSafeRoot = async (rootDir: string): Promise<{ absolute: string, can
   } catch (error) {
     if (hasErrorCode(error, 'ENOENT')) {
       throw Object.assign(
-        UsageError(`Safe artifact root does not exist: ${absolute}`, undefined, error instanceof Error ? { cause: error } : {}),
+        UsageError(`Safe artifact root does not exist: ${absolute}`, { cause: error }),
         { metadata: { artifactState: MISSING_ARTIFACT_STATE } }
       )
     }
@@ -107,17 +107,28 @@ const retryCreatedArtifactVisibility = async <T>(
   path: string,
   label: string
 ): Promise<T> => {
-  let lastMissingError: unknown
-  for (const delayMs of [0, ...CREATED_DIRECTORY_VISIBILITY_RETRY_DELAYS_MS]) {
-    if (delayMs > 0) await new Promise(resolveDelay => setTimeout(resolveDelay, delayMs))
+  return await withRetry({
+    retryClass: 'filesystem_visibility',
+    operationName: 'safe-artifact-visibility',
+    retryLogMetadata: () => ({ path, label })
+  }, async () => {
     try {
       return await operation()
     } catch (error) {
       if (!hasErrorCode(error, 'ENOENT')) throw error
-      lastMissingError = error
+      throw InfraError(`${label} is not visible for safe inspection yet`, {
+        stage: 'tts:artifact-visibility',
+        cause: error,
+        retryable: true,
+        metadata: { path, label }
+      })
     }
-  }
-  throw UsageError(`${label} did not become visible for safe inspection: ${path}`, undefined, lastMissingError instanceof Error ? { cause: lastMissingError } : {})
+  }, () => ({
+    shouldRetry: true,
+    delayMs: 0,
+    reasonCode: 'filesystem_not_visible',
+    reason: `${label} is not visible yet`
+  }))
 }
 
 const inspectCreatedSafeDirectory = async (
@@ -188,7 +199,7 @@ const readExistingImmutableBytes = async (path: string): Promise<Buffer> => {
     return await handle.readFile()
   } catch (error) {
     if (hasErrorCode(error, 'ELOOP')) {
-      throw UsageError(`Immutable artifact path cannot be a symbolic link: ${path}`, undefined, error instanceof Error ? { cause: error } : {})
+      throw UsageError(`Immutable artifact path cannot be a symbolic link: ${path}`, { cause: error })
     }
     throw error
   } finally {
@@ -266,7 +277,7 @@ export const writeImmutableArtifactFile = async (
     }
   } catch (error) {
     if (hasErrorCode(error, 'ELOOP')) {
-      throw UsageError(`Immutable artifact destination cannot be a symbolic link: ${path}`, undefined, error instanceof Error ? { cause: error } : {})
+      throw UsageError(`Immutable artifact destination cannot be a symbolic link: ${path}`, { cause: error })
     }
     throw error
   } finally {
@@ -372,7 +383,7 @@ export const hardlinkContainedArtifact = async (
     const existing = await readExistingImmutableBytes(path)
     if (!existing.equals(source.bytes)) {
       throw Object.assign(
-        UsageError(`Hardlinked artifact already exists with different bytes: ${path}`, undefined, error instanceof Error ? { cause: error } : {}),
+        UsageError(`Hardlinked artifact already exists with different bytes: ${path}`, { cause: error }),
         { metadata: { artifactState: ARTIFACT_CONFLICT_STATE } }
       )
     }

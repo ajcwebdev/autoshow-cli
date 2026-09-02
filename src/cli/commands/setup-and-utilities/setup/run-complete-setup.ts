@@ -14,7 +14,6 @@ import { formatSetupElapsed, runWithSetupHeartbeat } from '~/cli/commands/setup-
 import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, ReclaimableWhisperCoremlArtifact, RunOptions, RunResult, SetupPlatform, SetupStepId } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { isJsonResultActive, isLogLevelEnabled } from '~/utils/app-logger/app-logger'
-import { createHumanTable, logKeyValueTable, logSingleRowTable } from '~/utils/app-logger/human-table/human-table'
 import { isCompactSetupMode, setCompactSetupMode } from '~/utils/setup-output-mode'
 import { extractErrorHints, InfraError, InternalError, serializeDiagnosticError } from '~/utils/error-handler'
 import {
@@ -230,12 +229,10 @@ const logPinnedVersions = async (): Promise<void> => {
   const formatVersion = (value: string): string =>
     /^[a-f0-9]{40}$/i.test(value) ? value.slice(0, 12) : value
   const pinned = await listPinnedDependencies()
-  logKeyValueTable(
-    l,
-    'Pinned Versions',
-    pinned.map(({ name, version }) => [name, formatVersion(version)] as [string, string]),
-    { category: 'command', keyLabel: 'dependency', valueLabel: 'version' }
-  )
+  l.write('info', `Using ${pinned.length} pinned dependency versions`, {
+    category: 'command',
+    metadata: { dependencies: pinned.map(({ name, version }) => ({ name, version: formatVersion(version) })) }
+  })
 }
 
 const validateBinary = async (name: string, path: string, args: string[]): Promise<void> => {
@@ -243,7 +240,7 @@ const validateBinary = async (name: string, path: string, args: string[]): Promi
   try {
     const result = await runCapture(path, args, { allowFailure: true })
     if (result.exitCode === 0 || result.exitCode === 1) {
-      logSetupToolStatus(l, { tool: name, status: 'ready', detail: path })
+      logSetupToolStatus({ tool: name, status: 'ready', detail: path })
     } else l.warn(`${name}: installed but exited ${result.exitCode} (may still work)`, {
       category: 'command',
       metadata: { tool: name, path, exitCode: result.exitCode, status: 'unhealthy' }
@@ -251,7 +248,7 @@ const validateBinary = async (name: string, path: string, args: string[]): Promi
   } catch (err) {
     l.warn(`${name}: could not execute — ${err instanceof Error ? err.message : String(err)}`, {
       category: 'command',
-      metadata: { tool: name, path, status: 'unexecutable', error: serializeDiagnosticError(err) }
+      metadata: { tool: name, path, status: 'unexecutable' }, error: err
     })
   }
 }
@@ -266,7 +263,7 @@ const logSetupProviderConfiguration = (
   title: string,
   envVars: readonly string[] = ALL_PROVIDER_ENV_KEYS
 ): HostedProviderConfigurationSummary =>
-  logHostedProviderConfiguration(l, {
+  logHostedProviderConfiguration({
     title,
     envVars,
     mode: shouldUseVerboseHumanOutput() ? 'all' : 'missing'
@@ -334,16 +331,8 @@ const logReclaimableWhisperCoremlArtifacts = async (): Promise<void> => {
   const artifacts = await collectReclaimableWhisperCoremlArtifacts()
   if (artifacts.length === 0) return
 
-  l.write('info', 'Reclaimable Legacy Whisper CoreML Artifacts', {
+  l.write('info', `${artifacts.length} legacy Whisper CoreML artifacts are reclaimable`, {
     category: 'artifact',
-    humanTable: createHumanTable(
-      artifacts.map(({ path, bytes }) => ({
-        path,
-        reclaimable: formatBytes(bytes),
-        action: 'safe to delete'
-      })),
-      ['path', 'reclaimable', 'action']
-    ),
     metadata: {
       artifacts,
       totalBytes: artifacts.reduce((total, artifact) => total + artifact.bytes, 0)
@@ -364,26 +353,18 @@ const pruneBuildTrees = async (): Promise<void> => {
 
   if (!shouldReportReclaimedBuildTrees(before)) return
 
-  logSingleRowTable(l, 'Reclaimed Build Trees', {
-    path: RUNTIME_BUILD_DIR,
-    reclaimed: formatBytes(before)
-  }, { category: 'artifact', columns: ['path', 'reclaimed'] })
+  l.write('info', `Reclaimed ${formatBytes(before)} from setup build trees`, {
+    category: 'artifact',
+    metadata: { path: RUNTIME_BUILD_DIR, reclaimedBytes: before }
+  })
 }
 
 const logSetupStepTimings = (): void => {
   const timings = [...getSetupStepTimings()].sort((a, b) => b.durationMs - a.durationMs)
   if (timings.length === 0) return
 
-  l.write('info', 'Setup Step Timings (concurrent wall clock)', {
+  l.write('info', `Setup timings recorded for ${timings.length} concurrent steps`, {
     category: 'command',
-    humanTable: createHumanTable(
-      timings.map(({ label, durationMs, ok }) => ({
-        step: label,
-        status: ok ? 'ok' : 'failed',
-        wallClockMs: durationMs
-      })),
-      ['step', 'status', 'wallClockMs']
-    ),
     metadata: { timings }
   })
 }
@@ -399,9 +380,8 @@ const logDetailedSetupPerformance = (
     startedOffsetMs: phase.startedOffsetMs,
     status: phase.ok ? 'ok' : 'failed'
   }))
-  l.write('debug', 'Setup Build Phase Timings', {
+  l.write('debug', `Setup build phase timings: ${rows.length} phases`, {
     category: 'command',
-    humanTable: createHumanTable(rows, ['component', 'phase', 'durationMs', 'startedOffsetMs', 'status']),
     metadata: {
       artifactPath: result.artifactPath,
       topology: result.artifact.topology,
@@ -434,40 +414,9 @@ const logSetupSummary = async (
   const runtimeBytes = await directorySize(RUNTIME_DIR)
   const healthy = missingTools.length === 0 && missingModels.length === 0
 
-  l.write(healthy ? 'success' : 'warn', 'Setup Summary', {
+  l.write(healthy ? 'info' : 'warn', `Setup ${healthy ? 'ready' : 'incomplete'} in ${formatSetupElapsed(Date.now() - startedAtMs)}; ${providerSummary.configured}/${providerSummary.total} hosted providers configured`, {
     category: 'command',
-    humanTable: createHumanTable([
-      {
-        item: 'elapsed',
-        status: formatSetupElapsed(Date.now() - startedAtMs),
-        detail: ''
-      },
-      {
-        item: 'disk',
-        status: formatBytes(runtimeBytes),
-        detail: `${RUNTIME_DIR} (model and tool caches also live outside this directory)`
-      },
-      {
-        item: 'local tools',
-        status: missingTools.length === 0 ? 'ready' : 'missing',
-        detail: missingTools.length === 0 ? 'all checked tools available' : missingTools.join(', ')
-      },
-      {
-        item: 'local models',
-        status: missingModels.length === 0 ? 'ready' : 'missing',
-        detail: missingModels.length === 0 ? 'default local assets available' : missingModels.join(', ')
-      },
-      {
-        item: 'hosted providers',
-        status: `${providerSummary.configured}/${providerSummary.total} present`,
-        detail: providerSummary.missing === 0 ? 'all env vars set' : `${providerSummary.missing} missing`
-      },
-      {
-        item: 'validation',
-        status: 'next',
-        detail: 'bun autoshow setup --doctor'
-      }
-    ], ['item', 'status', 'detail'])
+    metadata: { elapsedMs: Date.now() - startedAtMs, runtimeBytes, runtimeDir: RUNTIME_DIR, missingTools, missingModels, hostedProviders: providerSummary, next: 'bun autoshow setup --doctor' }
   })
 
   return healthy
@@ -528,7 +477,7 @@ const runFullSetup = async (): Promise<boolean> => {
     } catch (error) {
       l.warn(`Could not write setup performance artifact: ${error instanceof Error ? error.message : String(error)}`, {
       category: 'artifact',
-      metadata: { error: serializeDiagnosticError(error) }
+      error: error
     })
     }
   }
@@ -539,7 +488,7 @@ export const runCompleteSetup = async (): Promise<boolean> => await runFullSetup
 const runSetupTranscription = async (): Promise<void> => {
   await downloadWhisperModel('large-v3-turbo')
   logSetupProviderConfiguration('Transcription Provider Configuration', TRANSCRIPTION_PROVIDER_ENV_KEYS)
-  l.write('success', 'Transcription setup complete', { category: 'command' })
+  l.write('info', 'Transcription setup complete', { category: 'command' })
 }
 
 const runSetupMusic = async (): Promise<void> => {
@@ -569,7 +518,7 @@ const runSetupMusic = async (): Promise<void> => {
 
   await setupWhisper()
   await downloadWhisperModel('large-v3-turbo')
-  l.write('success', 'Music setup complete', { category: 'command' })
+  l.write('info', 'Music setup complete', { category: 'command' })
 }
 
 export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readonly string[]> => {
@@ -615,10 +564,10 @@ const applyRunOptions = async (step: SetupStepId, options?: { forceRedownload?: 
   const paths = await getForceRedownloadPaths(step)
   if (paths.length === 0) return
   await Promise.all(paths.map(p => rm(p, { recursive: true, force: true })))
-  logSingleRowTable(l, 'Force Redownload', {
-    step,
-    clearedArtifacts: paths.length
-  }, { category: 'artifact', columns: ['step', 'clearedArtifacts'] })
+  l.write('info', `Cleared ${paths.length} artifacts for forced ${step} redownload`, {
+    category: 'artifact',
+    metadata: { step, clearedArtifacts: paths.length, paths }
+  })
 }
 
 const executeStepOnce = async (step: SetupStepId): Promise<boolean> => {

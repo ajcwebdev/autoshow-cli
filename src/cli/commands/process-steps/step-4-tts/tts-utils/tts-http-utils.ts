@@ -1,4 +1,4 @@
-import { extractRestErrorMessage, httpResponseError, parseJsonOrText } from '~/utils/rest-client'
+import { extractRestErrorMessage, httpResponseError, httpResponseOptions, parseJsonOrText } from '~/utils/rest-client'
 
 export const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
 
@@ -31,7 +31,9 @@ export const fetchTtsAudioBytes = async (options: {
 
   if (!response.ok) {
     const errText = await readTtsHttpError(response)
-    throw httpResponseError(`${options.providerLabel} TTS failed (${response.status}): ${errText}`, response)
+    throw httpResponseError(`${options.providerLabel} TTS failed (${response.status}): ${errText}`, httpResponseOptions(response, {
+      stage: 'tts:provider', retryClass: 'runtime_http_create_conservative', retryable: response.status === 425 || response.status === 429, metadata: { provider: options.providerLabel }
+    }))
   }
 
   return new Uint8Array(await response.arrayBuffer())

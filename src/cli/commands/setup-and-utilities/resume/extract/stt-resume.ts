@@ -2,7 +2,6 @@ import { partialCompletionError } from '~/cli/commands/process-steps/step-2-extr
 import { isRecord } from '~/utils/rest-client'
 import { join, resolve as resolvePath } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
-import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import type { AggregatedPriceEstimate, NormalizedResumeProviderBatchRunOptions, PipelineItemRecord, ProviderResumePassResult, ResumeDisplayOptions, ResumeProviderBatchRunOptions, ResumeResult, ResumeSttEntry, ResumeTarget, SttExtractionOptions, SttResumePassContext, SttTarget } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { processStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/process-stt'
@@ -252,9 +251,8 @@ const runResumePass = async (
           const rows = [...context.partialFailureLabels.entries()]
             .sort((left, right) => left[0].localeCompare(right[0]))
             .map(([provider, failures]) => ({ provider, failures }))
-          l.write('warn', 'Partial provider failures', {
+          l.write('warn', `Partial provider failures affected ${rows.length} providers`, {
             category: 'pipeline',
-            humanTable: createHumanTable(rows, ['provider', 'failures']),
             metadata: { failures: rows }
           })
         }
@@ -263,12 +261,8 @@ const runResumePass = async (
           const snapshot = context.batchCoordinator.getSchedulerSnapshot()
           if (snapshot.providers.length > 0) {
             const rows = buildSttBatchSchedulerRows(snapshot)
-            l.write('info', 'STT batch backfill scheduler summary', {
+            l.write('info', `STT batch backfill scheduler handled ${rows.length} providers`, {
               category: 'pipeline',
-              humanTable: createHumanTable(
-                rows,
-                ['provider', 'kind', 'launchSlots', 'pollSlots', 'launched', 'completed', 'queueWaitMs', 'polls', 'blocked', 'degraded', 'backfill', 'warm']
-              ),
               metadata: { providers: rows }
             })
           }

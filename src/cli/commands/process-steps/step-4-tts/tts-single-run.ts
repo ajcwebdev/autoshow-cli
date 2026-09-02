@@ -36,7 +36,7 @@ export const getTtsInputKind = async (inputPath: string): Promise<'file' | 'dire
     }
   } catch (error) {
     if (hasErrorCode(error, 'ENOENT')) {
-      throw UsageError(`File not found: ${inputPath}`, undefined, error instanceof Error ? { cause: error } : {})
+    throw UsageError(`File not found: ${inputPath}`, { cause: error })
     }
     throw error
   }
@@ -290,8 +290,7 @@ const runPreparedTtsInput = async (
         (entry) => entry.processingTime
       ),
       totalTimeMs: run.metadata.reduce((sum, entry) => sum + entry.processingTime, 0),
-      totalCost: run.cost.actual.totalCost,
-      includeOutputDir: false
+      totalCost: run.cost.actual.totalCost
     }
   )
 

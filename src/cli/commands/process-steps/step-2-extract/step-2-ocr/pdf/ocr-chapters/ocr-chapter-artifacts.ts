@@ -13,7 +13,7 @@ import { resolveLlmCandidates } from './llm'
 import { parsePdfPageLabels } from './page-map'
 import { buildChapterSlug, cleanDetectedChapterTitle, cleanPageTextForExport, trimPageTextToHeading } from './text'
 import { parseTocEntriesFromPage } from './toc'
-import { InternalError, serializeDiagnosticError } from '~/utils/error-handler'
+import { InternalError } from '~/utils/error-handler'
 
 export const buildPdfChapterFiles = (
   pages: PageResult[],
@@ -175,7 +175,7 @@ export const buildPdfChapterArtifacts = async (input: {
         warnings.push(`LLM chapter fallback failed: ${message}`)
         l.warn(`PDF chapter LLM fallback failed: ${message}`, {
       category: 'pipeline',
-      metadata: { error: serializeDiagnosticError(error) }
+      error: error
     })
       }
     } else {

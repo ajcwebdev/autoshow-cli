@@ -1,7 +1,7 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import type { FallbackAuditState, HostedOcrIdentity, HostedOcrPageCacheValidation, HostedOcrRun, InitialFallbackReason, OcrPdfChunkRange, ParsedHostedOcrPageCache, PdfChunkPreparationSummary, RunHostedOcrPdfChunkFallbackOptions, StoredHostedOcrFallbackPage } from '~/types'
-import { serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
+import { ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
 import { findOcrStructuredResponseError } from '../ocr-structured-response-error'
@@ -189,7 +189,7 @@ export const cleanupFallbackPageInputs = async (
   } catch (error) {
     l.warn(`${serviceLabel}: failed to delete OCR fallback page inputs: ${error instanceof Error ? error.message : String(error)}`, {
       category: 'artifact',
-      metadata: { service: serviceLabel, error: serializeDiagnosticError(error) }
+      metadata: { service: serviceLabel }, error: error
     })
   }
 }

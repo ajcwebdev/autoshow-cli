@@ -1,6 +1,5 @@
 import type { HostedOcrRun, InitialFallbackReason, RunHostedOcrPdfChunkFallbackOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { serializeDiagnosticError } from '~/utils/error-handler'
 import { classifyOcrProviderFailure } from '../ocr-run-state'
 import { shouldFallbackToOcrPdfChunks } from './pdf-chunk-fallback-classifier'
 import { resolveInitialFallbackReason } from './pdf-chunk-fallback-state'
@@ -43,7 +42,7 @@ export const runHostedOcrWithPdfChunkFallback = async (
     const message = failure.message
     l.warn(`${options.serviceLabel}: full-document OCR failed (${message}); retrying PDF one page at a time`, {
       category: 'pipeline',
-      metadata: { service: options.serviceLabel, mode: 'single-page', failureCategory: failure.category, failureKind: failure.failureKind, retryable: failure.retryable, error: serializeDiagnosticError(error) },
+      metadata: { service: options.serviceLabel, mode: 'single-page', failureCategory: failure.category, failureKind: failure.failureKind, retryable: failure.retryable }, error: error,
     })
     return await runPdfPageFallback(options, totalPages, 'full-document-failure', {
       message,

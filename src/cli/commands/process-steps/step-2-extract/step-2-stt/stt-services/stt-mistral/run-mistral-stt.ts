@@ -1,5 +1,5 @@
 import { basename } from 'node:path'
-import type { DiarizationOptions, RetryClass, Step2Metadata, SttTranscribeHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
+import type { DiarizationOptions, RetryClass, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { MistralTranscriptionResponseSchema } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
@@ -11,16 +11,10 @@ import { resolveCredential } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 import { createMistralSttPassController } from './mistral-stt-pass-controller'
-import { isAppError, ProviderError } from '~/utils/error-handler'
-import { getErrorHeaders, getErrorStatus } from '~/utils/error-handler'
+import { annotateAppError, getErrorHeaders, getErrorStatus } from '~/utils/error-handler'
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 const MISTRAL_RATE_LIMIT_FALLBACK_COOLDOWN_MS = 60_000
-
-const isMistralRetryWrapper = (error: unknown): error is Error & { cause: Error } =>
-  isAppError(error)
-  && error.kind === 'retry_exhausted'
-  && error.cause instanceof Error
 
 const resolveMistralRateLimitCooldownMs = (
   error: unknown
@@ -31,16 +25,12 @@ const throwMistralErrorWithContext = (
   stage: 'transcribe',
   retryClass: RetryClass
 ): never => {
-  if (isMistralRetryWrapper(error)) {
-    ;(error.cause as SttTranscribeHttpError).stage = stage
-    ;(error.cause as SttTranscribeHttpError).retryClass = retryClass
-    throw error.cause
-  }
-
-  const source = error instanceof Error ? error : ProviderError(String(error))
-  ;(source as SttTranscribeHttpError).stage = stage
-  ;(source as SttTranscribeHttpError).retryClass = retryClass
-  throw source
+  throw annotateAppError(error, {
+    kind: 'provider_http',
+    stage,
+    retryClass,
+    metadata: { stage, retryClass }
+  })
 }
 
 const readSpeakerId = (segment: {
@@ -100,7 +90,7 @@ export const runMistralStt = async (
 
   const { model: modelName, segmentOffsetMinutes = 0, segmentNumber, totalSegments } = options
   if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, { provider: 'mistral', action: 'started', segmentNumber, totalSegments, model: modelName })
+    logSttSegmentLifecycle( { provider: 'mistral', action: 'started', segmentNumber, totalSegments, model: modelName })
   }
 
   const startTime = Date.now()
@@ -118,7 +108,7 @@ export const runMistralStt = async (
     const transcribeStartedAt = Date.now()
     rawPayload = await withRetry(
       {
-        retryClass: 'runtime_http_create_retriable',
+        retryClass: 'runtime_http_create_conservative',
         operationName: 'mistral-stt',
         timeoutMs: REQUEST_TIMEOUT_MS
       },
@@ -154,11 +144,12 @@ export const runMistralStt = async (
           return {
             shouldRetry: true,
             delayMs: resolveMistralRateLimitCooldownMs(error),
+            reasonCode: 'provider_rejected_admission',
             reason: 'retryable status 429'
           }
         }
 
-        const decision = classifyFetchRetry(error, 'runtime_http_create_retriable')
+        const decision = classifyFetchRetry(error, 'runtime_http_create_conservative')
         if (decision.shouldRetry) {
           retryCount += 1
         }
@@ -167,7 +158,7 @@ export const runMistralStt = async (
     )
     transcribeMs += Date.now() - transcribeStartedAt
   } catch (error) {
-    throwMistralErrorWithContext(error, 'transcribe', 'runtime_http_create_retriable')
+    throwMistralErrorWithContext(error, 'transcribe', 'runtime_http_create_conservative')
   }
 
   const payload = validateData(MistralTranscriptionResponseSchema, rawPayload, 'Mistral STT response')

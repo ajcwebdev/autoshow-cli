@@ -1,6 +1,5 @@
-import { httpResponseError, isRecord, parseJsonOrText } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions, isRecord, parseJsonOrText } from '~/utils/rest-client'
 import { ProviderError } from '~/utils/error-handler'
-import * as l from '~/utils/app-logger/app-logger'
 import type { RetryClass, ScrapeCreatorsHttpError, ScrapeCreatorsTranscriptEntry, ScrapeCreatorsTranscriptPayload, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { resolveCredential } from '~/utils/validate/env-utils'
@@ -112,12 +111,12 @@ const toScrapeCreatorsHttpError = (
   payload: unknown
 ): ScrapeCreatorsHttpError => httpResponseError(
   `ScrapeCreators transcript request failed (${response.status}): ${extractScrapeCreatorsErrorMessage(payload) ?? 'Unknown error'}`,
-  response,
-  {
+  httpResponseOptions(response, {
     stage: 'create',
-    retryClass: 'runtime_http_create_retriable' as RetryClass,
-    rawResponse: payload
-  } satisfies Partial<ScrapeCreatorsHttpError>
+    retryClass: 'runtime_http_create_conservative' as RetryClass,
+    retryable: response.status === 425 || response.status === 429,
+    metadata: { rawResponse: payload }
+  })
 )
 
 const buildScrapeCreatorsUnsupportedSourceError = (
@@ -244,7 +243,7 @@ export const runScrapeCreatorsStt = async (
   const apiKey = resolveCredential('scrapecreators', 'require', { stage: 'stt:scrapecreators', description: 'ScrapeCreators YouTube transcript retrieval' })
 
   if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, { provider: 'scrapecreators', action: 'started', segmentNumber, totalSegments, model: modelName })
+    logSttSegmentLifecycle( { provider: 'scrapecreators', action: 'started', segmentNumber, totalSegments, model: modelName })
   }
 
   const startTime = Date.now()
@@ -257,7 +256,7 @@ export const runScrapeCreatorsStt = async (
 
   const payload = await withRetry(
     {
-      retryClass: 'runtime_http_create_retriable',
+      retryClass: 'runtime_http_create_conservative',
       operationName: 'scrapecreators-youtube-transcript',
       timeoutMs: REQUEST_TIMEOUT_MS
     },
@@ -281,12 +280,12 @@ export const runScrapeCreatorsStt = async (
         throw Object.assign(
           ProviderError('ScrapeCreators returned an invalid transcript payload', {
             stage: 'create',
-            retryClass: 'runtime_http_create_retriable',
+            retryClass: 'runtime_http_create_conservative',
             retryable: false
           }),
           {
             stage: 'create',
-            retryClass: 'runtime_http_create_retriable' as RetryClass,
+            retryClass: 'runtime_http_create_conservative' as RetryClass,
             retryable: false,
             rawResponse: responsePayload
           }
@@ -296,7 +295,7 @@ export const runScrapeCreatorsStt = async (
       return parsed
     },
     (error) => {
-      const decision = classifyFetchRetry(error, 'runtime_http_create_retriable')
+      const decision = classifyFetchRetry(error, 'runtime_http_create_conservative')
       if (decision.shouldRetry) {
         retryCount += 1
         if ((error as { status?: unknown }).status === 429) {
@@ -314,7 +313,7 @@ export const runScrapeCreatorsStt = async (
   const offsetSeconds = segmentOffsetMinutes * 60
   const result = normalizeScrapeCreatorsTranscript(payload, offsetSeconds)
   await Bun.write(`${outputBase}.txt`, formatTranscriptText(result.segments))
-  logSttTranscriptOutput(l, {
+  logSttTranscriptOutput( {
     provider: 'scrapecreators',
     path: `${outputBase}.txt`,
     characters: result.text.length
@@ -346,7 +345,7 @@ export const runScrapeCreatorsStt = async (
   }
 
   if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, { provider: 'scrapecreators', action: 'completed', segmentNumber, totalSegments, model: modelName, processingTimeMs: processingTime })
+    logSttSegmentLifecycle( { provider: 'scrapecreators', action: 'completed', segmentNumber, totalSegments, model: modelName, processingTimeMs: processingTime })
   }
 
   return { result, metadata }

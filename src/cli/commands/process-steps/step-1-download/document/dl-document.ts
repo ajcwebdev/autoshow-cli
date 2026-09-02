@@ -50,9 +50,7 @@ const normalizeEbookToEpub = async (
   const ebookConvert = resolveEbookConvertCommand()
 
   const epubPath = join(tempDir, 'converted.epub')
-  const result = await exec(ebookConvert, [filePath, epubPath], {
-    retry: { operationName: 'Calibre ebook-convert' }
-  })
+  const result = await exec(ebookConvert, [filePath, epubPath])
   if (result.exitCode !== 0) {
     throw InfraError(
       `Calibre ebook-convert failed for ${filePath}: ${result.stderr || result.stdout || `exit code ${result.exitCode}`}`,

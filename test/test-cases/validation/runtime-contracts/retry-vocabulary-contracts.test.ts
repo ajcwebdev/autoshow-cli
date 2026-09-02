@@ -45,7 +45,8 @@ describe('src retry vocabulary contracts', () => {
 
   test('the retry class table has no dead classes', async () => {
     const source = await readFile(join(PROJECT_ROOT, 'src/types/runtime-core/retry-types.ts'), 'utf8')
-    const declared = [...source.matchAll(/^\s*\|\s*'([a-z_]+)'/gm)].map((match) => match[1])
+    const retryClassSource = source.slice(source.indexOf('export type RetryClass'), source.indexOf('export type RetryReasonCode'))
+    const declared = [...retryClassSource.matchAll(/^\s*\|\s*'([a-z_]+)'/gm)].map((match) => match[1])
     expect(declared.length).toBeGreaterThan(0)
 
     const files = await listFilesUnder(SRC_ROOT)

@@ -37,14 +37,14 @@ export const resolveStandaloneMistralTtsCliReferenceInput = (
   if (context.cliReferenceInput !== 'standalone-mistral') {
     throw UsageError(
       '--tts-ref-audio is an authorized edge input only for the standalone `tts` command.',
-      'Use standalone `tts` with an explicit request reference, or create/import a voice with the shared `voice` command or `comic reference-voice` and synthesize with --tts-voice.'
+      { hints: ['Use standalone `tts` with an explicit request reference, or create/import a voice with the shared `voice` command or `comic reference-voice` and synthesize with --tts-voice.'] }
     )
   }
   if (!context.explicitFlags?.has(TTS_REF_AUDIO_FLAG)) {
     const origin = context.configuredFlags?.has(TTS_REF_AUDIO_FLAG) ? 'Configured' : 'Inherited'
     throw UsageError(
       `${origin} --tts-ref-audio paths cannot be used as synthesis defaults.`,
-      'Pass an authorized unnamed reference explicitly for this standalone Mistral TTS request, or create/import a voice with the shared `voice` command or `comic reference-voice` and synthesize with --tts-voice.'
+      { hints: ['Pass an authorized unnamed reference explicitly for this standalone Mistral TTS request, or create/import a voice with the shared `voice` command or `comic reference-voice` and synthesize with --tts-voice.'] }
     )
   }
 
@@ -66,7 +66,7 @@ export const resolveStandaloneMistralTtsSpeakerReferenceInputs = (
   if (context.cliReferenceInput !== 'standalone-mistral') {
     throw UsageError(
       '--tts-speaker SPEAKER=path is an authorized edge input only for the standalone `tts` command.',
-      'Use standalone `tts` with one explicitly selected Mistral provider, or create/import voices with the shared `voice` command or `comic reference-voice`.'
+      { hints: ['Use standalone `tts` with one explicitly selected Mistral provider, or create/import voices with the shared `voice` command or `comic reference-voice`.'] }
     )
   }
 
@@ -89,7 +89,7 @@ export const resolveStandaloneMistralTtsSpeakerReferenceInputs = (
       const origin = context.configuredFlags?.has('tts-speaker') ? 'Configured' : 'Inherited'
       throw UsageError(
         `${origin} --tts-speaker SPEAKER=path mappings cannot be used as synthesis defaults.`,
-        'Pass each Mistral request reference explicitly to standalone `tts`, or create/import voices with the shared `voice` command or `comic reference-voice`.'
+        { hints: ['Pass each Mistral request reference explicitly to standalone `tts`, or create/import voices with the shared `voice` command or `comic reference-voice`.'] }
       )
     }
     if (raw !== undefined && explicitOccurrences.length > 0) {
@@ -241,7 +241,7 @@ export const buildTtsOptions = (
     const origin = originContext.configuredFlags?.has('tts-speaker') ? 'Configured' : 'Inherited'
     throw UsageError(
       `${origin} --tts-speaker SPEAKER=path mappings cannot enter generic TTS runtime options.`,
-      'Pass each path explicitly to standalone `tts` with one Mistral provider so it can cross protected ingestion, or use existing provider voice IDs.'
+      { hints: ['Pass each path explicitly to standalone `tts` with one Mistral provider so it can cross protected ingestion, or use existing provider voice IDs.'] }
     )
   }
 

@@ -92,7 +92,7 @@ export const runHttpAsyncSttProvider = async <
       const createResponse = await sttStageRequest({
         operationName: `${descriptor.service}-create-job`,
         stage: 'create',
-        retryClass: 'runtime_http_create_retriable',
+        retryClass: 'runtime_http_create_conservative',
         timeoutMs: REQUEST_TIMEOUT_MS,
         errorPrefix: descriptor.displayName,
         schema: descriptor.schemas.create,
@@ -112,7 +112,7 @@ export const runHttpAsyncSttProvider = async <
       const { value, retryAfterMs } = await sttStageRequestWithRetryAfter({
         operationName: `${descriptor.service}-poll-job`,
         stage: 'poll',
-        retryClass: 'runtime_http_read',
+        retryClass: 'runtime_http_poll',
         timeoutMs: POLL_REQUEST_TIMEOUT_MS,
         errorPrefix: descriptor.displayName,
         schema: descriptor.schemas.poll,

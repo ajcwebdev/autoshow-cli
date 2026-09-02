@@ -26,16 +26,13 @@ export const configCommand = defineCliCommand({
 
   if (flags['show'] === true) {
     const config = await loadConfig(resolvedPath)
-    l.report.result(
-      { configPath: resolvedPath, config },
-      { message: 'Config', category: 'command' }
-    )
+    l.report.result({ configPath: resolvedPath, config }, 'Config')
     return
   }
 
   if (flags['reset'] === true) {
     await writeConfig(resolvedPath, {})
-    l.write('success', `Config reset: ${resolvedPath}`, { category: 'command', metadata: { configPath: resolvedPath } })
+    l.report.result({ configPath: resolvedPath, config: {}, changed: true }, 'Config reset')
     return
   }
 
@@ -58,11 +55,12 @@ export const configCommand = defineCliCommand({
   if (Object.keys(patch).length === 0) {
     l.write('info', `No changes to write. Config path: ${resolvedPath}`, { category: 'command', metadata: { configPath: resolvedPath } })
     l.write('info', 'Use --show to print current config or --reset to clear it.', { category: 'command' })
+    l.report.result({ configPath: resolvedPath, changed: false }, 'No config changes')
     return
   }
 
   const current = await loadConfig(resolvedPath)
   const updated = deepMergeConfig(current as Record<string, unknown>, patch)
   await writeConfig(resolvedPath, updated)
-  l.write('success', `Config saved to ${resolvedPath}`, { category: 'command', metadata: { configPath: resolvedPath } })
+  l.report.result({ configPath: resolvedPath, config: updated, changed: true }, 'Config saved')
 })
