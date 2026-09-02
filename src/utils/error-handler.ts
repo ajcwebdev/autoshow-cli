@@ -138,11 +138,22 @@ export const isRetryExhaustedError = (error: unknown): boolean => {
   return false
 }
 
-export const hasErrorCode = (error: unknown, code: string): boolean =>
-  typeof error === 'object'
-  && error !== null
-  && 'code' in error
-  && (error as { code?: unknown }).code === code
+export const hasErrorCode = (error: unknown, code: string): boolean => {
+  const seen = new Set<unknown>()
+  let current = error
+
+  while (current !== null && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current)
+    if ('code' in current && (current as { code?: unknown }).code === code) {
+      return true
+    }
+    current = 'cause' in current
+      ? (current as { cause?: unknown }).cause
+      : undefined
+  }
+
+  return false
+}
 
 export function rethrowAsUsage<T>(fn: () => Promise<T>, fallbackHint?: string): Promise<T>
 export function rethrowAsUsage<T>(fn: () => T, fallbackHint?: string): T

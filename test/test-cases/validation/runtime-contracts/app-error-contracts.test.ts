@@ -8,6 +8,7 @@ import {
   collectErrorChain,
   extractErrorHints,
   extractErrorMetadata,
+  hasErrorCode,
   isAppError,
   isUsageError,
   normalizeExitCode,
@@ -88,6 +89,7 @@ describe('app error contracts', () => {
     inner.cause = outer
 
     expect(collectErrorChain(outer).map(error => error.message)).toEqual(['outer', 'inner'])
+    expect(hasErrorCode(InfraError('wrapped', { stage: 'test:code', cause: Object.assign(new Error('missing'), { code: 'ENOENT' }) }), 'ENOENT')).toBe(true)
   })
 
   test('serializeDiagnosticError redacts secrets and preserves custom fields and causes', () => {

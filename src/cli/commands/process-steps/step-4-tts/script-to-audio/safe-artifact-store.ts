@@ -123,12 +123,19 @@ const retryCreatedArtifactVisibility = async <T>(
         metadata: { path, label }
       })
     }
-  }, () => ({
-    shouldRetry: true,
-    delayMs: 0,
-    reasonCode: 'filesystem_not_visible',
-    reason: `${label} is not visible yet`
-  }))
+  }, (error) => hasErrorCode(error, 'ENOENT')
+    ? {
+        shouldRetry: true,
+        delayMs: 0,
+        reasonCode: 'filesystem_not_visible',
+        reason: `${label} is not visible yet`
+      }
+    : {
+        shouldRetry: false,
+        delayMs: 0,
+        reasonCode: 'classifier_refused',
+        reason: `${label} failed for a reason other than filesystem visibility`
+      })
 }
 
 const inspectCreatedSafeDirectory = async (
