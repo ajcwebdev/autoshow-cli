@@ -1,6 +1,7 @@
-import type { CliCommandContext, CliCommandDefinition, CliRootDefinition, LogFormat, LogLevel } from '~/types'
+import type { CliCommandContext, CliCommandDefinition, CliRootDefinition, LogLevel } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { clearSuppressedLogCategories, LOG_FORMAT_CHOICES, LOG_LEVEL_CHOICES, reconfigureLogger, runWithLogContext } from '~/utils/app-logger/app-logger'
+import { isJsonResultActive, LOG_LEVEL_CHOICES, reconfigureLogger, runWithLogContext } from '~/utils/app-logger/app-logger'
+import { setResultCommand, stageResult } from '~/utils/app-logger/result-emitter'
 import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { configurePinnedRunDir } from '~/cli/commands/process-steps/run-dir'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
@@ -12,9 +13,22 @@ import { renderCommandHelp, renderRootHelp } from './help-renderer'
 import { NativeUnknownFlagError } from './native-errors'
 import { cookieFlagNameFromSpelling, commandAcceptsGlobalFlag, unsupportedCookieFlagError, unsupportedGlobalFlagError } from './global-flag-support'
 import { getUnknownFlagSpellings } from './unknown-flag-spellings'
+import { UsageError } from '~/utils/error-handler'
 
 const formatVersion = (version: string): string =>
   version.startsWith('v') ? version : `v${version}`
+
+const PIPELINE_STEP_BY_COMMAND: Readonly<Record<string, string>> = {
+  metadata: 'step-0-metadata',
+  download: 'step-1-download',
+  extract: 'step-2-extract',
+  write: 'step-3-write',
+  tts: 'step-4-tts',
+  image: 'step-5-image',
+  video: 'step-6-video',
+  music: 'step-7-music',
+  comic: 'step-8-comic'
+}
 
 export const dispatchNativeCli = async (
   argv: string[],
@@ -24,16 +38,26 @@ export const dispatchNativeCli = async (
   const parsed = parseNativeCli(argv, commands, root.globalFlags)
 
   if (parsed.mode === 'help') {
+    const document = parsed.command
+      ? renderCommandHelp(root, parsed.command)
+      : renderRootHelp(root, commands)
+    const commandName = parsed.calledAs ?? parsed.command?.name ?? 'help'
+    setResultCommand(commandName)
+    stageResult({ document }, 'Help')
+    if (isJsonResultActive()) return
     if (parsed.command) {
-      console.log(renderCommandHelp(root, parsed.command))
+      console.log(document)
       return
     }
-    console.log(renderRootHelp(root, commands))
+    console.log(document)
     return
   }
 
   if (parsed.mode === 'version') {
-    console.log(formatVersion(root.version))
+    const version = formatVersion(root.version)
+    setResultCommand(parsed.calledAs ?? 'version')
+    stageResult({ version }, 'Version')
+    if (!isJsonResultActive()) console.log(version)
     return
   }
 
@@ -63,22 +87,20 @@ export const dispatchNativeCli = async (
   const logLevelFlag = typeof parsed.flags['log-level'] === 'string'
     ? parsed.flags['log-level'].trim().toLowerCase()
     : undefined
-  const logFormatFlag = typeof parsed.flags['log-format'] === 'string'
-    ? parsed.flags['log-format'].trim().toLowerCase()
-    : undefined
   const logLevel = LOG_LEVEL_CHOICES.includes(logLevelFlag as LogLevel) ? logLevelFlag as LogLevel : undefined
-  const logFormat = LOG_FORMAT_CHOICES.includes(logFormatFlag as Exclude<LogFormat, 'auto'>)
-    ? logFormatFlag as Exclude<LogFormat, 'auto'>
-    : undefined
 
-  clearSuppressedLogCategories()
   reconfigureLogger({
     verbose: parsed.flags['verbose'] === true,
     quiet: parsed.flags['quiet'] === true,
-    json: parsed.flags['json'] === true,
-    ...(logLevel ? { logLevel } : {}),
-    ...(logFormat ? { logFormat } : {})
+    json: isJsonResultActive(),
+    ...(logLevel ? { logLevel } : {})
   })
+
+  if (isJsonResultActive() && command.name === 'metadata' && parsed.flags['markdown'] === true) {
+    throw UsageError('--json cannot be combined with metadata --markdown because both own stdout', {
+      hints: ['Remove --markdown for the JSON result protocol, or remove --json for raw Markdown output.']
+    })
+  }
 
   const outputRoot = typeof parsed.flags['output-root'] === 'string' ? parsed.flags['output-root'] : undefined
   if (outputRoot) configureOutputRoot(outputRoot)
@@ -103,6 +125,8 @@ export const dispatchNativeCli = async (
   await applyConfiguredYtDlpAuth(configPathOverride)
 
   const store: Record<string, unknown> = { startedAtMs: Date.now() }
+  const commandName = (parsed.calledAs ?? command.name).trim().replace(/\s+/g, ' ')
+  setResultCommand(commandName)
   const ctx: CliCommandContext = {
     argv: parsed.argv,
     ...(parsed.calledAs ? { calledAs: parsed.calledAs } : {}),
@@ -113,16 +137,18 @@ export const dispatchNativeCli = async (
     store
   }
 
-  await runWithLogContext({ command: parsed.calledAs ?? command.name }, async () => {
+  const commandRoot = commandName.split(' ', 1)[0] as string
+  const pipelineStep = PIPELINE_STEP_BY_COMMAND[commandRoot]
+  await runWithLogContext({ command: commandName, ...(pipelineStep ? { step: pipelineStep } : {}) }, async () => {
     await command.handler(ctx)
   })
 
   const startedAtMs = store['startedAtMs']
   if (typeof startedAtMs === 'number') {
     const elapsedMs = Date.now() - startedAtMs
-    l.debug(`Command "${parsed.calledAs ?? command.name}" completed in ${elapsedMs}ms`, {
+    l.debug(`Command "${commandName}" completed in ${elapsedMs}ms`, {
       category: 'command',
-      metadata: { command: parsed.calledAs ?? command.name, elapsedMs }
+      metadata: { command: commandName, elapsedMs }
     })
   }
 }

@@ -10,7 +10,7 @@ import {
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { CARTESIA_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { ValidationError } from '~/utils/error-handler'
-import { httpResponseError } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { readRestErrorText } from '~/utils/rest-client'
 const CARTESIA_DEFAULT_VERSION = '2026-03-01'
@@ -100,7 +100,9 @@ export const runCartesiaTts = async (
 
       if (!response.ok) {
         const errText = await readRestErrorText(response)
-        throw httpResponseError(`Cartesia TTS failed (${response.status}): ${errText}`, response)
+        throw httpResponseError(`Cartesia TTS failed (${response.status}): ${errText}`, httpResponseOptions(response, {
+          stage: 'tts:cartesia', retryClass: 'runtime_http_create_conservative', retryable: response.status === 425 || response.status === 429, metadata: { provider: 'cartesia' }
+        }))
       }
       await accepted({ fields: { httpStatus: response.status } })
       return new Uint8Array(await response.arrayBuffer())

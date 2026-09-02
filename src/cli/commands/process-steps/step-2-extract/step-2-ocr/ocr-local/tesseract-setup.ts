@@ -24,17 +24,16 @@ const installTesseract = async (): Promise<void> => {
 
   if (platform === 'darwin') {
     await installManagedTesseractMacos()
-    l.write('success', 'Tesseract installed', { category: 'command' })
+    l.write('info', 'Tesseract installed', { category: 'command' })
     return
   }
 
   if (platform === 'linux') {
     await runInherit('sudo', ['apt', 'install', '-y', 'tesseract-ocr'])
-    l.write('success', 'Tesseract installed', { category: 'command' })
+    l.write('info', 'Tesseract installed', { category: 'command' })
     return
   }
 
-  l.error('Unsupported platform for tesseract auto-install', { category: 'command' })
   throw InternalError('Unsupported platform for tesseract setup', { stage: 'setup:tesseract' })
 }
 
@@ -49,7 +48,7 @@ const ensureEnglishLanguageData = async (): Promise<void> => {
     .filter(Boolean)
 
   if (langs.includes('eng')) {
-    l.write('success', 'Tesseract language data (eng) found', { category: 'command' })
+    l.write('info', 'Tesseract language data (eng) found', { category: 'command' })
     return
   }
 
@@ -68,6 +67,6 @@ export const setupTesseractOcr = async (): Promise<void> => {
   await ensureEnglishLanguageData()
 
   if (shouldPrintCompletion()) {
-    l.write('success', 'Extraction OCR setup complete', { category: 'command' })
+    l.write('info', 'Extraction OCR setup complete', { category: 'command' })
   }
 }

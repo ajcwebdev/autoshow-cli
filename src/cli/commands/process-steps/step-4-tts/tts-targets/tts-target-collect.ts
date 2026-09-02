@@ -4,7 +4,6 @@ import { collectCartesiaTtsTargets } from '../tts-services/cartesia/cartesia-tts
 import { collectInworldTtsTargets } from '../tts-services/inworld/inworld-tts-targets'
 import { collectGrokTtsTargets } from '../tts-services/tts-grok/grok-tts-targets'
 import { collectHumeTtsTargets } from '../tts-services/hume/hume-tts-targets'
-import { collectMinimaxTtsTargets } from '../tts-services/tts-minimax/minimax-tts-targets'
 import { collectMistralTtsTargets } from '../tts-services/tts-mistral/mistral-tts-targets'
 import { collectOpenAITtsTargets } from '../tts-services/tts-openai/openai-tts-targets'
 import { collectSpeechifyTtsTargets } from '../tts-services/speechify/speechify-tts-targets'
@@ -25,7 +24,7 @@ export const preflightTtsTargetSelection = (
   if (typeof rawMistralReference === 'string' && rawMistralReference.trim()) {
     throw UsageError(
       'Mistral request reference audio must cross the protected ingestion boundary before target collection.',
-      'Pass the reference only through the standalone `tts` CLI edge, or create/import a voice with the shared `voice` command or `comic reference-voice` and synthesize with --mistral-tts-voice.'
+      { hints: ['Pass the reference only through the standalone `tts` CLI edge, or create/import a voice with the shared `voice` command or `comic reference-voice` and synthesize with --mistral-tts-voice.'] }
     )
   }
   const selection = createTtsTargetSelection(options)
@@ -40,7 +39,6 @@ export const collectTtsTargets = (options: TtsOptions): TtsTarget[] => {
 
   const collected: TtsTarget[] = [
     ...collectElevenLabsTtsTargets(selection),
-    ...collectMinimaxTtsTargets(selection),
     ...collectGrokTtsTargets(selection),
     ...collectMistralTtsTargets(selection, mistralProtectedReference, mistralProtectedSpeakerReferences, {
       pricePlanning: options.price === true,

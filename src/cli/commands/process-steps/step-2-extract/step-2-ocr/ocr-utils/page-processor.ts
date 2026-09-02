@@ -10,7 +10,6 @@ import { logOcrPagesProgress } from '../ocr-logging'
 import { getCachedRenderedPageImage } from './preparation-cache'
 import { normalizeOcrPageConcurrency } from './ocr-page-concurrency'
 import { InfraError, InternalError } from '~/utils/error-handler'
-import { logRetryAttempt } from '~/utils/retries'
 import { logicalCpuCount } from '~/utils/logical-cpu-count'
 
 const LOW_CONFIDENCE_RERENDER_THRESHOLD = 40
@@ -192,7 +191,7 @@ export const processPages = async (
     const stageAByPage = new Map(stageA.map(page => [page.pageNumber, page]))
     const needingOcr = stageA.filter(p => p.needsOcr)
     if (needingOcr.length > 0) {
-      logOcrPagesProgress(l, {
+      logOcrPagesProgress({
         status: 'running',
         ocrPages: needingOcr.length,
         totalPages,
@@ -212,13 +211,10 @@ export const processPages = async (
         }
         let attempt = await runOcrAttempt(filePath, page.pageNumber, options.dpi, tempDir, options, effectiveOcrFn)
         if ((attempt.confidence ?? 100) < LOW_CONFIDENCE_RERENDER_THRESHOLD) {
-          logRetryAttempt({
-            operation: `tesseract-page-${page.pageNumber}`,
-            attempt: 1,
-            maxAttempts: 2,
-            reason: `confidence ${attempt.confidence ?? 'unknown'} below ${LOW_CONFIDENCE_RERENDER_THRESHOLD}`,
-            delayMs: 0
-          }, { retryClass: 'runtime_subprocess_transient', pageNumber: page.pageNumber, dpi: options.dpi + 100 })
+          l.write('info', `Re-rendering OCR page ${page.pageNumber} at ${options.dpi + 100} DPI after low confidence`, {
+            category: 'pipeline',
+            metadata: { operation: 'ocr_rerender', pageNumber: page.pageNumber, priorConfidence: attempt.confidence, dpi: options.dpi + 100 }
+          })
           attempt = await runOcrAttempt(filePath, page.pageNumber, options.dpi + 100, tempDir, options, effectiveOcrFn)
         }
         return {

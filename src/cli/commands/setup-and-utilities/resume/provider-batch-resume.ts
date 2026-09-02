@@ -246,7 +246,7 @@ export const runProviderResumePass = async <
     const providerLabels = config.getProviderLabels(entry.missingTargets)
     const wasComplete = entry.completionStatus === 'full' && entry.missingTargets.length === 0
     if (wasComplete) {
-      logResumeItem(l, {
+      logResumeItem({
         item: entryLabel,
         status: 'full',
         outputDir: entry.outputDir,
@@ -276,7 +276,7 @@ export const runProviderResumePass = async <
           context
         })
         : 'no matching failed or missing providers selected'
-      logResumeItem(l, {
+      logResumeItem({
         item: entryLabel,
         status: noMatchingStatus,
         outputDir: entry.outputDir,
@@ -290,7 +290,7 @@ export const runProviderResumePass = async <
     }
 
     attemptedEntries += 1
-    logResumeItem(l, {
+    logResumeItem({
       item: entryLabel,
       status: 'processing',
       outputDir: entry.outputDir,
@@ -310,7 +310,7 @@ export const runProviderResumePass = async <
     updatedRecords.push(withProviderResumeOutputDir(result.record, result.outputDir))
     addStatusToTotals(result.completionStatus, totals)
     await config.onProcessedResult?.({ target, opts, context, result })
-    logResumeItem(l, {
+    logResumeItem({
       item: entryLabel,
       status: result.completionStatus,
       outputDir: result.outputDir,
@@ -327,7 +327,7 @@ export const runProviderResumePass = async <
   }
 
   await config.afterPass?.({ target, opts, context })
-  logResumeSummary(l, totals)
+  logResumeSummary(totals)
 
   return {
     ok: totals.full,

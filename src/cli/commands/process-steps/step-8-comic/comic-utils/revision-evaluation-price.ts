@@ -3,11 +3,12 @@ import { estimateImageOutputCost, formatCost } from '../comic-image-services/ima
 import { loadRevisionPriceInventory, REVISION_COMPARISON_MODEL, REVISION_ESTIMATED_INPUT_TOKENS_PER_COMPARISON, REVISION_ESTIMATED_OUTPUT_TOKENS_PER_COMPARISON, REVISION_IMAGE_MODEL } from '../comic-commands/generate-images/revision-evaluation'
 import { estimateLlmCostFromRegistry } from './structured-script-utils/llm-cost'
 import { priceDetails, priceLine } from './price-estimate-logging'
+import { InternalError } from '~/utils/error-handler'
 
 export const estimateRevisionEvaluationPrice = async (options: GenerateImagesCommandOptions): Promise<void> => {
   const inventory = await loadRevisionPriceInventory(options)
   const imagePrice = estimateImageOutputCost(REVISION_IMAGE_MODEL, options.quality ?? 'high', options.size ?? '1536x1024')
-  if (imagePrice === null) throw new Error(`No image price is registered for ${REVISION_IMAGE_MODEL}.`)
+  if (imagePrice === null) throw InternalError(`No image price is registered for ${REVISION_IMAGE_MODEL}.`, { stage: 'comic:revision-price' })
   const comparisonInputTokens = inventory.comparisonCalls * REVISION_ESTIMATED_INPUT_TOKENS_PER_COMPARISON
   const comparisonOutputTokens = inventory.comparisonCalls * REVISION_ESTIMATED_OUTPUT_TOKENS_PER_COMPARISON
   const comparisonCost = estimateLlmCostFromRegistry(REVISION_COMPARISON_MODEL, comparisonInputTokens, comparisonOutputTokens)

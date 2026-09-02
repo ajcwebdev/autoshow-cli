@@ -17,7 +17,6 @@ const DEFAULT_LOCAL_MODEL_BY_FLAG = {
 
 const DEFAULT_HOSTED_TTS_MODEL_BY_FLAG = {
   'elevenlabs-tts': 'eleven_v3',
-  'minimax-tts': 'speech-2.8-turbo',
   'grok-tts': 'grok-tts',
   'mistral-tts': 'voxtral-mini-tts-2603',
   'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
@@ -334,7 +333,6 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   kimi: () => selectCheapestLlmModel('kimi'),
   together: () => 'glm-5.1',
   cerebras: () => selectCheapestLlmModel('cerebras'),
-  'minimax-tts': () => selectCheapestTtsModel('minimax'),
   'grok-tts': () => selectCheapestTtsModel('grok'),
   'mistral-tts': () => selectCheapestTtsModel('mistral'),
   'hume-tts': () => selectCheapestTtsModel('hume'),

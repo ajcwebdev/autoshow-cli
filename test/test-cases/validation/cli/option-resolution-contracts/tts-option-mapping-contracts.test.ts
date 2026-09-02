@@ -26,16 +26,11 @@ describe('option resolution contracts', () => {
       const opts = buildOptsFromFlags({
         'grok-tts': 'grok-tts',
         'tts-voice': 'grok=AB12CD34',
-        'tts-language': ['grok=pt-br', 'minimax=english', 'speechify=en-US', 'elevenlabs=en'],
-        'tts-text-normalization': ['grok=true', 'minimax=true', 'elevenlabs=AUTO'],
+        'tts-language': ['grok=pt-br', 'speechify=en-US', 'elevenlabs=en'],
+        'tts-text-normalization': ['grok=true', 'elevenlabs=AUTO'],
         'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
         'tts-instructions': 'openai=Speak with calm narration.',
-        'tts-speed': ['openai=1.25', 'minimax=1.2', 'elevenlabs=1.1'],
-        'minimax-tts': 'speech-2.8-hd',
-        'minimax-tts-volume': '2.5',
-        'minimax-tts-pitch': '-2',
-        'minimax-tts-emotion': 'CALM',
-        'minimax-tts-pronunciation': ['AutoShow/auto show', 'TTS/tee tee ess'],
+        'tts-speed': ['openai=1.25', 'elevenlabs=1.1'],
         'speechify-tts': 'simba-3.2',
         'elevenlabs-tts': 'eleven_v3',
         'elevenlabs-tts-stability': '0.4',
@@ -51,14 +46,6 @@ describe('option resolution contracts', () => {
       expect(opts.grokTtsTextNormalization).toBe(true)
       expect(opts.openaiTtsInstructions).toBe('Speak with calm narration.')
       expect(opts.openaiTtsSpeed).toBe(1.25)
-      expect(opts.minimaxTtsModels?.[0]).toBe('speech-2.8-hd')
-      expect(opts.minimaxTtsLanguageBoost).toBe('English')
-      expect(opts.minimaxTtsSpeed).toBe(1.2)
-      expect(opts.minimaxTtsVolume).toBe(2.5)
-      expect(opts.minimaxTtsPitch).toBe(-2)
-      expect(opts.minimaxTtsEmotion).toBe('calm')
-      expect(opts.minimaxTtsEnglishNormalization).toBe(true)
-      expect(opts.minimaxTtsPronunciations).toEqual(['AutoShow/auto show', 'TTS/tee tee ess'])
       expect(opts.speechifyTtsLanguage).toBe('en-US')
       expect(opts.elevenlabsTtsLanguageCode).toBe('en')
       expect(opts.elevenlabsTtsStability).toBe(0.4)
@@ -72,11 +59,6 @@ describe('option resolution contracts', () => {
 
       expect(() => buildOptsFromFlags({ 'grok-tts': 'grok-tts', 'tts-language': 'xx' })).toThrow('Invalid --grok-tts-language "xx"')
       expect(() => buildOptsFromFlags({ 'openai-tts': 'gpt-4o-mini-tts-2025-12-15', 'tts-speed': '0.1' })).toThrow('Invalid --tts-speed value "0.1"')
-      expect(() => buildOptsFromFlags({ 'minimax-tts': 'speech-2.8-hd', 'tts-language': 'Klingon' })).toThrow('Invalid --tts-language "Klingon"')
-      expect(() => buildOptsFromFlags({ 'minimax-tts': 'speech-2.8-hd', 'tts-speed': '0.4' })).toThrow('Invalid --tts-speed value "0.4"')
-      expect(() => buildOptsFromFlags({ 'minimax-tts-volume': '0' })).toThrow('Invalid --minimax-tts-volume value "0"')
-      expect(() => buildOptsFromFlags({ 'minimax-tts-pitch': '1.5' })).toThrow('Invalid --minimax-tts-pitch value "1.5"')
-      expect(() => buildOptsFromFlags({ 'minimax-tts-emotion': 'bored' })).toThrow('Invalid --minimax-tts-emotion "bored"')
       expect(() => buildOptsFromFlags({ 'hume-tts': 'octave-legacy' })).toThrow('Invalid model "octave-legacy" for --provider/--tts hume[=model]')
       expect(() => buildOptsFromFlags({ 'cartesia-tts': 'sonic-2' })).toThrow('Invalid model "sonic-2" for --provider/--tts cartesia[=model]')
       expect(() => buildOptsFromFlags({ 'elevenlabs-tts': 'eleven_v3', 'tts-text-normalization': 'always' })).toThrow('Invalid --elevenlabs-tts-text-normalization "always"')

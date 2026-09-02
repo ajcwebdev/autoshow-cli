@@ -2,10 +2,10 @@ import { basename, resolve as pathResolve } from 'node:path'
 import { statPath as stat } from '~/utils/bun-file-io'
 import * as l from '~/utils/app-logger/app-logger'
 import type { FetchRemoteHtmlOptions, HtmlArticleBackend, LocalHtmlReadResult, RemoteHtmlFetchResult, UrlArticleRunResult, UrlArticleScrapeRunner, UrlRequestOptions, WebArticleMetadata } from '~/types'
-import { isAbortError } from '~/utils/retries'
+import { isAbortError, isRetryableStatus } from '~/utils/retries'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { InfraError, ProviderError, ValidationError } from '~/utils/error-handler'
-import { httpResponseError, isRecord } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions, isRecord } from '~/utils/rest-client'
 import { formatErrorMessage } from '~/utils/value-helpers'
 
 export { formatErrorMessage }
@@ -131,12 +131,12 @@ export const createUrlProviderHttpError = (
   terminal = false
 ): Error => httpResponseError(
   `${providerLabel} ${action} failed (${response.status} ${response.statusText})${message ? `: ${message}` : ''}`,
-  response,
-  {
-    provider: providerLabel,
-    retryable: !terminal
-      && (response.status === 408 || response.status === 429 || response.status >= 500)
-  }
+  httpResponseOptions(response, {
+    stage: `url:${action}`,
+    retryClass: 'runtime_http_read',
+    retryable: !terminal && isRetryableStatus(response.status),
+    metadata: { provider: providerLabel }
+  })
 )
 
 export const withUrlProviderTimeout = async <T>(

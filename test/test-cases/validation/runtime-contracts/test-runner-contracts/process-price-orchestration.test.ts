@@ -65,6 +65,7 @@ describe('test-runner process and price orchestration', () => {
         '--price',
         '--output-root',
         '/tmp/test-output/run-id/outputs/price',
+        '--json',
       ])
     } finally {
       if (previous === undefined) delete process.env['AUTOSHOW_TEST_CLI_BUNDLE']

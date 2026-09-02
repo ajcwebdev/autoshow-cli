@@ -1,5 +1,4 @@
 import type { AsyncSttActiveJobContext, AsyncSttCompletedJobContext, AsyncSttCreationOutcome, AsyncSttLifecycleContext, AsyncSttPolledJobContext, AsyncSttUploadAssetResult, Step2Metadata, Step2RuntimeMetadata, TranscriptionResult } from '~/types'
-import * as l from '~/utils/app-logger/app-logger'
 import { InternalError } from '~/utils/error-handler'
 import { logSttAsyncJobLifecycle, logSttSegmentLifecycle } from './stt-logging'
 import { pollAsyncSttJobUntilComplete } from './async-stt-polling'
@@ -89,7 +88,7 @@ export const resumeOrCreateAsyncSttJob = async <TStatus, TTranscript, TUpload>(
   const segmentNumber = options.segment?.segmentNumber
   const totalSegments = options.segment?.totalSegments
   if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, {
+    logSttSegmentLifecycle( {
       provider: options.providerLogLabel,
       action: 'started',
       segmentNumber,
@@ -113,7 +112,7 @@ export const resumeOrCreateAsyncSttJob = async <TStatus, TTranscript, TUpload>(
     })
   }
 
-  logSttAsyncJobLifecycle(l, {
+  logSttAsyncJobLifecycle( {
     provider: `${options.providerLogLabel}/${options.modelName}`,
     action: activeJob.resumedExistingJob ? 'resumed' : 'created',
     remoteId: activeJob.jobId,
@@ -201,7 +200,7 @@ export const finalizeAsyncSttBuiltResult = async <TStatus, TTranscript, TUpload>
   const segmentNumber = options.segment?.segmentNumber
   const totalSegments = options.segment?.totalSegments
   if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, {
+    logSttSegmentLifecycle( {
       provider: options.providerLogLabel,
       action: 'completed',
       segmentNumber,

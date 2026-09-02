@@ -2,7 +2,6 @@ import { copyFile, mkdir, mkdtemp, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import * as l from '~/utils/app-logger/app-logger'
-import { serializeDiagnosticError } from '~/utils/error-handler'
 import type { ParsedYoutubeCue, Step2Metadata, SttProviderSuccess, SttTarget, TranscriptionEvidenceSegment, TranscriptionResult, YoutubeCaptionMetadataFile, YoutubeCaptionSelection, YoutubeCaptionTrack, YtDlpVideoInfo } from '~/types'
 import { exec } from '~/utils/cli-utils'
 import { getVideoInfo } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
@@ -411,7 +410,7 @@ const syncRootArtifact = async (
   await copyFile(fromPath, toPath).catch((error: unknown) => {
     l.write('debug', `Failed to mirror ${fileName} into the run output directory`, {
       category: 'artifact',
-      metadata: { fromPath, toPath, error: serializeDiagnosticError(error) }
+      metadata: { fromPath, toPath }, error: error
     })
   })
 }

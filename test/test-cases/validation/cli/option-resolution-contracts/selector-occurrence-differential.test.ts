@@ -51,7 +51,7 @@ const selectorCases = (): SelectorCase[] => {
 describe('selector occurrence differential', () => {
   test('preserves the flag-map and ordered-argv projections for selector spellings', () => {
     const cases = selectorCases()
-    expect(cases.length).toBeGreaterThanOrEqual(140)
+    expect(cases.length).toBeGreaterThanOrEqual(136)
 
     for (const entry of cases) {
       const argv = ['probe', ...entry.args]

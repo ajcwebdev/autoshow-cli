@@ -31,12 +31,6 @@ export const ttsRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/cartesia-sonic-3.5-2026-05-04.test.ts', [
     command('tts-cartesia-sonic-3.5-2026-05-04', 'tts-cartesia-sonic-3.5-2026-05-04', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'cartesia=sonic-3.5-2026-05-04', '--price']),
   ]),
-  ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/minimax-speech-2.8-turbo.test.ts', [
-    command('tts-minimax-speech-2.8-turbo', 'tts-minimax-speech-2.8-turbo', ['src/cli/create-cli.ts', 'tts', 'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/fixtures/natural-short.txt', '--provider', 'minimax=speech-2.8-turbo', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/minimax-speech-2.8-hd.test.ts', [
-    command('tts-minimax-speech-2.8-hd', 'tts-minimax-speech-2.8-hd', ['src/cli/create-cli.ts', 'tts', 'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/fixtures/natural-short.txt', '--provider', 'minimax=speech-2.8-hd', '--price']),
-  ]),
   ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/elevenlabs-eleven-v3.test.ts', [
     command('tts-elevenlabs-eleven_v3', 'tts-elevenlabs-eleven_v3', ['src/cli/create-cli.ts', 'tts', 'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/fixtures/natural-short.txt', '--provider', 'elevenlabs=eleven_v3', '--price']),
   ]),

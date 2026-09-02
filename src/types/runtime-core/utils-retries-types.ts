@@ -1,7 +1,9 @@
 export type RetryAttemptLog = {
   operation: string
-  attempt: number
+  failedAttempt: number
+  nextAttempt: number
   maxAttempts: number
   reason: string
+  reasonCode: import('~/types').RetryReasonCode
   delayMs: number
 }

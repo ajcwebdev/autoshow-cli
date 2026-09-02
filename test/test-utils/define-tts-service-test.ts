@@ -13,7 +13,7 @@ import {
   withOutputLifecycle
 } from './service-test-kit'
 import { readCanonicalRecord } from './manifest-helpers'
-import { isTransientMinimaxTtsFailure, TERMINAL_TTS_FAILURES } from './provider-failure-classifiers'
+import { TERMINAL_TTS_FAILURES } from './provider-failure-classifiers'
 import type { RunCommandResult, TtsExtraArgs } from '~/types'
 
 const resolveTtsExtraArgs = async (
@@ -114,15 +114,6 @@ export const defineTTSServiceTest = ({
       ]
 
       const outputDir = await runCommandAndExpectOutputDir(inputTitle, args, undefined, {
-        ...(ttsService === 'minimax'
-          ? {
-              transient: {
-                isTransient: isTransientMinimaxTtsFailure,
-                providerLabel: `transient MiniMax TTS error for ${model}`,
-                persistedLabel: `MiniMax transient TTS error persisted for ${model}`,
-              }
-            }
-          : {}),
         onResult: (result) => { throwOnKnownProviderFailure(ttsService, model, args, result) },
         classifyAvailability: false
       })

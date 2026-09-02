@@ -44,7 +44,7 @@ export const downloadWhisperfileBinary = async (modelName: string): Promise<void
 
   await makeExecutable(destination)
 
-  l.write('success', `Whisperfile model ${modelName} downloaded`, { category: 'command', metadata: { engine: 'whisperfile', model: modelName } })
+  l.write('info', `Whisperfile model ${modelName} downloaded`, { category: 'command', metadata: { engine: 'whisperfile', model: modelName } })
 }
 
 export const setupWhisperfile = async (modelName: string): Promise<void> => {
@@ -57,7 +57,6 @@ export const setupWhisperfile = async (modelName: string): Promise<void> => {
 
 export const ensureWhisperfileReady = async (modelName: string): Promise<void> => {
   if (!modelName) {
-    l.error('Model name required', { category: 'command' })
     throw InternalError('Model name required', { stage: 'setup:whisperfile' })
   }
 

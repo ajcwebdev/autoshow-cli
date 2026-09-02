@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import type { BatchListCacheEntry, FileFingerprint, MetadataTopLevelTargetInfo } from '~/types'
 import { fileExists } from '~/utils/cli-utils'
+import { InfraError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { fileFingerprintsMatch, getFileFingerprint, readJsonCacheMap, writeJsonCacheEntry } from '~/utils/file-fingerprint-cache'
 import { hasSupportedExtension, isLikelyUrl, isRawXSpaceId } from './metadata-input-classifier'
@@ -139,9 +140,12 @@ export const readInputList = async (filePath: string): Promise<string[]> => {
       await writeBatchListCache(filePath, valid, fingerprintAfterRead)
     }
     return valid
-  } catch {
-    l.error(`Failed to read input list at ${filePath}`, { category: 'pipeline', metadata: { filePath } })
-    return []
+  } catch (error) {
+    throw InfraError(`Failed to read input list at ${filePath}`, {
+      stage: 'metadata:input-list',
+      cause: error,
+      metadata: { filePath }
+    })
   }
 }
 

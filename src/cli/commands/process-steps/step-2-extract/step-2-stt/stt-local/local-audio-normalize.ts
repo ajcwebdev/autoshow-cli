@@ -23,9 +23,7 @@ export const prepareLocalSttInput = async (
       '-c:a', 'pcm_s16le',
       '-y',
       wavPath
-    ], {
-      retry: { operationName: 'ffmpeg STT input prepare' }
-    })
+    ])
 
     if (result.exitCode !== 0) {
       throw InfraError(`Failed to prepare local STT input: ${result.stderr}`, { stage: 'stt:local-normalize' })

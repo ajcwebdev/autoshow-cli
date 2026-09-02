@@ -1,6 +1,5 @@
 import { rm } from 'node:fs/promises'
 import { extname, join } from 'node:path'
-import * as l from '~/utils/app-logger/app-logger'
 import { exec } from '~/utils/cli-utils'
 import { MEDIA_EXTENSIONS } from '~/cli/commands/process-steps/step-0-metadata/formats/metadata-media-extensions'
 import { buildYtDlpDownloadArgs, buildYtDlpFailureMessage } from '~/cli/commands/process-steps/shared/shared-yt-dlp-options'
@@ -8,6 +7,7 @@ import { logAudioDownload } from './audio-logging'
 import { walkPaths } from '~/utils/filesystem'
 import { getYtDlpBinary } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
 import { InfraError } from '~/utils/error-handler'
+import { NETWORK_FAILURE_SPELLINGS } from '~/utils/retries'
 
 const DOWNLOADED_MEDIA_EXTENSIONS: ReadonlySet<string> = new Set(MEDIA_EXTENSIONS)
 
@@ -70,8 +70,7 @@ const findDownloadedAudio = async (
     if (options.strictSingleOutput === true) {
       throw buildNoPrimaryMediaError('output directory scan')
     }
-    l.error(`No files found in ${outputDir}`, { category: 'artifact', metadata: { outputDir } })
-    throw InfraError('No downloaded files found', { stage: 'download:audio' })
+    throw InfraError('No downloaded files found', { stage: 'download:audio', metadata: { outputDir } })
   }
   return first
 }
@@ -88,25 +87,31 @@ export const downloadVideo = async (
       ...options,
       downloadedPathLogFile
     })
-    logAudioDownload(l, {
+    logAudioDownload({
       source: 'yt-dlp',
       status: 'started',
       target: outputDir
     })
     const result = await exec(getYtDlpBinary(), args, {
-      retry: { operationName: 'yt-dlp download' }
+      retry: {
+        operationName: 'yt-dlp download',
+        shouldRetry: ({ stdout, stderr }) => {
+          const detail = `${stderr}\n${stdout}`.toLowerCase()
+          return NETWORK_FAILURE_SPELLINGS.some(spelling => detail.includes(spelling))
+            || /http error (?:408|425|429|5\d\d)\b/u.test(detail)
+        }
+      }
     })
 
     if (result.exitCode !== 0) {
       const details = result.stderr || result.stdout || 'unknown yt-dlp error'
       const message = buildYtDlpFailureMessage('download', details)
-      l.error(message, { category: 'pipeline' })
       throw InfraError(message, { stage: 'download:audio' })
     }
 
     const downloadedPath = await findTrackedDownloadedAudio(downloadedPathLogFile, strictSingleOutput)
       ?? await findDownloadedAudio(outputDir, { strictSingleOutput })
-    logAudioDownload(l, {
+    logAudioDownload({
       source: 'yt-dlp',
       status: 'downloaded',
       target: downloadedPath

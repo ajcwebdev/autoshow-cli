@@ -1,11 +1,10 @@
 import type { BudgetPreflightResult, BudgetPreflightSummary, BudgetPreflightVariant, ExecutedBudgetPreflightVariant, ExecutedPriceCommand, HeadBudgetResult, PriceCommandObservation, PriceCommandSpec, RunnerArgs, TestRunArtifacts } from '~/types'
 import { l } from '~/utils/app-logger/app-logger'
 import { formatCost } from '~/utils/app-logger/formatters'
-import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { argvKeyFor, hashBudgetPreflightInputs, readBudgetPreflightCache, writeBudgetPreflightCache } from './budget-preflight-cache'
 import { groupCommandsByKey, evaluatePriceObservations, toObservation } from './price-evaluation'
 import { resolvePriceSelection } from './price-commands/resolve'
-import { buildEmptyBudgetSummary, executePriceCommand, formatBudgetHundredthCents, logPriceCommandFailure, logSkippedKeyTable, PRICE_CONCURRENCY, withPriceExecutionConfig } from './price-execution'
+import { buildEmptyBudgetSummary, executePriceCommand, formatBudgetHundredthCents, logPriceCommandFailure, logSkippedKeys, PRICE_CONCURRENCY, withPriceExecutionConfig } from './price-execution'
 import { runWithConcurrency } from './process-execution'
 
 export const partitionBudgetCacheHits = (
@@ -78,18 +77,11 @@ export const collectOrderedVariantObservations = (
 }
 
 const logBudgetPreflightSummary = (suiteName: string, budgetSummary: BudgetPreflightSummary, variantCount: number): void => {
-  l.write('success', `${suiteName} Budget Preflight Summary`, {
+  l.write('info', `${suiteName} budget preflight: ${budgetSummary.commandsRunnable}/${budgetSummary.commandsChecked} runnable, ${formatCost(budgetSummary.runnableEstimatedCostCents)}`, {
     category: 'pricing',
-    humanTable: createKeyValueTable([
-      ['Test keys checked', String(budgetSummary.commandsChecked)],
-      ['Command variants checked', String(variantCount)],
-      ['Commands runnable', String(budgetSummary.commandsRunnable)],
-      ['Commands skipped', String(budgetSummary.commandsSkipped)],
-      ['Commands failed', String(budgetSummary.commandsFailed)],
-      ['Runnable estimated cost', formatCost(budgetSummary.runnableEstimatedCostCents)],
-    ]),
+    metadata: { ...budgetSummary, variantCount }
   })
-  logSkippedKeyTable('Skipped command list', budgetSummary)
+  logSkippedKeys('Skipped command list', budgetSummary)
 }
 
 export const runBudgetPreflight = async (

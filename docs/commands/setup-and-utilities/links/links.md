@@ -105,7 +105,7 @@ Accepted provider selectors are the lowercase names below.
 | `--kimi`           | `general`, `models`, `ocr`, `text`                                          |
 | `--ltx`            | `models`, `video`                                                           |
 | `--lumalabs`       | `general`, `image`, `models`, `video`                                       |
-| `--minimax`        | `general`, `music`, `text`, `tts`, `video`                                  |
+| `--minimax`        | `general`, `music`, `text`, `video`                                         |
 | `--mistral`        | `general`, `models`, `ocr`, `stt`, `tts`                                    |
 | `--openai`         | `general`, `image`, `models`, `ocr`, `text`, `tts`                          |
 | `--replicate`      | `general`, `models`                                                         |

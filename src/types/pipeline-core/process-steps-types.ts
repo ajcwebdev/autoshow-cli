@@ -1,4 +1,4 @@
-import type { HumanLogTable, InputFamily, JsonObject, TimingEntryBase, TimingStepEntry } from '~/types'
+import type { InputFamily, JsonObject, TimingEntryBase, TimingStepEntry } from '~/types'
 export type WriteStepKind = TimingStepEntry['step']
 
 export type WriteManifestMetadata = JsonObject
@@ -54,17 +54,15 @@ export type SummaryBaseRow = {
 export type TimingEntryLike = TimingEntryBase<WriteStepKind, NonNullable<TimingStepEntry['throughputUnit']>>
 
 
-export type ManifestLogSection<TRow> = {
-  columns: readonly string[]
-  humanTable: HumanLogTable
-  rows: TRow[]
+export type ManifestLogCollection<TEntry> = {
+  entries: TEntry[]
 }
 
-export type SummarySection = ManifestLogSection<WriteRunSummaryRow>
+export type SummarySection = ManifestLogCollection<WriteRunSummaryRow>
 
-export type PromptUsageSection = ManifestLogSection<WritePromptUsageRow>
+export type PromptUsageSection = ManifestLogCollection<WritePromptUsageRow>
 
-export type OcrCostCalculationSection = ManifestLogSection<OcrCostCalculationRow>
+export type OcrCostCalculationSection = ManifestLogCollection<OcrCostCalculationRow>
 
 
 export type Indexed<T> = {

@@ -1,8 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
-import { createHumanTable, createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
-import { logExtractManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
+import { logExtractManifestSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import { writePipelineItemRecords } from '../../pipeline-manifest'
 import { formatHtmlArticleOcrFlagsIgnoredWarning, hasConfiguredOcrProviderSelection } from '../step-2-shared/inactive-flag-warnings'
 import {
@@ -101,7 +100,7 @@ export const processUrlArticle = async (
   }
 
   await writePipelineItemRecords(outputDir, 'extract', 'single', [manifestMetadata], { extractRoute: 'article' })
-  logExtractManifestConsoleSummary(outputDir, manifestMetadata)
+  logExtractManifestSummary(outputDir, manifestMetadata)
 
   if (successes.length === 0) {
     const message = failures.length > 0
@@ -131,31 +130,25 @@ export const processUrlArticle = async (
       failed: failures.length,
       missing: providerStates.filter((state) => state.status === 'missing').length
     }
-    l.write('warn', 'Run Status', {
+    l.write('warn', `URL extraction ${runStatus.completionStatus}: ${runStatus.succeeded}/${runStatus.requested} providers succeeded`, {
       category: 'pipeline',
-      humanTable: createKeyValueTable([
-        ['completionStatus', runStatus.completionStatus],
-        ['requested', runStatus.requested],
-        ['succeeded', runStatus.succeeded],
-        ['failed', runStatus.failed],
-        ['missing', runStatus.missing]
-      ]),
       metadata: runStatus
     })
     if (failures.length > 0) {
-      l.write('warn', 'Failed URL Providers', {
+      l.write('warn', `${failures.length} URL providers failed`, {
         category: 'pipeline',
-        humanTable: createHumanTable(failures.map((failure) => ({
-          backend: failure.backend,
-          attempts: failure.attempts,
-          error: failure.message
-        })), ['backend', 'attempts', 'error']),
         metadata: { failures }
       })
+      for (const failure of failures) {
+        l.write('warn', `${failure.backend} failed after ${failure.attempts} attempts: ${failure.message}`, {
+          category: 'pipeline',
+          metadata: failure
+        })
+      }
     }
-    l.write('warn', 'Locations', {
+    l.write('warn', `Retry output retained at ${outputDir}`, {
       category: 'artifact',
-      humanTable: createKeyValueTable([['retryOutputDir', outputDir]], 'artifact', 'path')
+      metadata: { retryOutputDir: outputDir }
     })
   } else {
     l.report.complete(outputDir, artifactFiles, plan.allUrlMode

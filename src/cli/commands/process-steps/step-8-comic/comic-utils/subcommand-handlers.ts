@@ -19,6 +19,7 @@ import type { CliCommandHandler } from '~/types'
 import { generateComicAudio } from '../comic-commands/generate-audio/generate-audio-command'
 import { generateComicSlideshow } from '../comic-commands/generate-slideshow/generate-slideshow-command'
 import { createHostedConcurrencyCoordinator } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
+import * as l from '~/utils/app-logger/app-logger'
 
 const resolveComicScriptReferenceOrUsage = (scriptReference: string): Promise<string> =>
   rethrowAsUsage(() => resolveComicScriptReference(scriptReference))
@@ -34,10 +35,12 @@ export const handleReferenceSketch: CliCommandHandler = async (ctx) => {
   if (price) {
     if (parsedOptions.location) await estimateLocationReferencePrice(options)
     else await withCharacterCatalog(async () => await estimateCharacterSketchPrice(options))
+    l.report.result({ command: 'comic reference-sketch', price: true, target: parsedOptions.location ? 'location' : 'character' }, 'Comic reference sketch price complete')
     return
   }
   if (parsedOptions.location) await referenceSketchCommand(options)
   else await withCharacterCatalog(async () => await referenceSketchCommand(options))
+  l.report.result({ command: 'comic reference-sketch', price: false, target: parsedOptions.location ? 'location' : 'character' }, 'Comic reference sketch complete')
 }
 
 export const handleDraftScenes: CliCommandHandler = async (ctx) => {
@@ -52,6 +55,7 @@ export const handleDraftScenes: CliCommandHandler = async (ctx) => {
   }
   if (parsed.price) await estimateDraftScenesPrice(options)
   else await withCharacterCatalog(async () => await draftScenesCommand(options))
+  l.report.result({ command: 'comic draft-scenes', price: parsed.price === true, sceneSlug }, parsed.price ? 'Comic draft price complete' : 'Comic draft complete')
 }
 
 export const handleGenerateImages: CliCommandHandler = async (ctx) => {
@@ -66,9 +70,11 @@ export const handleGenerateImages: CliCommandHandler = async (ctx) => {
   }
   if (parsed.price) {
     await estimateGenerateImagesPrice(options)
+    l.report.result({ command: 'comic generate-images', price: true, sceneSlug }, 'Comic image price complete')
     return
   }
   await generateImagesCommand(options)
+  l.report.result({ command: 'comic generate-images', price: false, sceneSlug }, 'Comic image generation complete')
 }
 
 export const handleGenerateAudio: CliCommandHandler = async (ctx) => {
@@ -76,6 +82,7 @@ export const handleGenerateAudio: CliCommandHandler = async (ctx) => {
   if (typeof scriptReference !== 'string' || !scriptReference.trim()) throw UsageError('comic generate-audio requires <script-path>.')
   const scriptPath = await resolveComicScriptReferenceOrUsage(scriptReference)
   await generateComicAudio(ctx, scriptPath)
+  l.report.result({ command: 'comic generate-audio', price: ctx.flags['price'] === true, scriptPath }, ctx.flags['price'] === true ? 'Comic audio price complete' : 'Comic audio complete')
 }
 
 export const handleGenerateSlideshow: CliCommandHandler = async (ctx) => {
@@ -83,4 +90,5 @@ export const handleGenerateSlideshow: CliCommandHandler = async (ctx) => {
   if (typeof scriptReference !== 'string' || !scriptReference.trim()) throw UsageError('comic generate-slideshow requires <script-path>.')
   const scriptPath = await resolveComicScriptReferenceOrUsage(scriptReference)
   await generateComicSlideshow(ctx, scriptPath)
+  l.report.result({ command: 'comic generate-slideshow', price: ctx.flags['price'] === true, scriptPath }, ctx.flags['price'] === true ? 'Comic slideshow price complete' : 'Comic slideshow complete')
 }

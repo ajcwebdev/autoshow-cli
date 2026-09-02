@@ -42,10 +42,10 @@ const buildExportDeadlineError = (
     {
       kind: 'retry_exhausted',
       stage: 'result',
-      retryClass: 'runtime_http_read' satisfies RetryClass,
-      retryable: true,
+      retryClass: 'runtime_http_poll' satisfies RetryClass,
+      retryable: false,
       ...(cause instanceof Error ? { cause } : {}),
-      metadata: { provider: 'happyscribe', exportId, deadlineMs: pollDeadlineMs, stopReason: 'deadline exceeded' }
+      metadata: { provider: 'happyscribe', exportId, deadlineMs: pollDeadlineMs, stopReason: 'deadline exceeded', stopReasonCode: 'classifier_refused' }
     }
   )
 }
@@ -196,7 +196,7 @@ export const runHappyScribeStt = async (
           organizationId: selectedOrganization.id
         })
       } catch (error) {
-        attachHappyScribeErrorContext(error, 'create', 'runtime_http_create_retriable')
+        attachHappyScribeErrorContext(error, 'create', 'runtime_http_create_conservative')
       }
       if (!createdOrder) {
         throw ValidationError('Happy Scribe order creation did not return an order id', { stage: 'stt:happyscribe' })
@@ -230,7 +230,8 @@ export const runHappyScribeStt = async (
         try {
           const structuredPayload = await apiClient.fetchDownloadPayload(transcription.downloadUrl)
           return parseHappyScribeTranscriptPayload(structuredPayload, { offsetSeconds })
-        } catch {
+        } catch (error) {
+          return attachHappyScribeErrorContext(error, 'result', 'runtime_http_read')
         }
       }
 

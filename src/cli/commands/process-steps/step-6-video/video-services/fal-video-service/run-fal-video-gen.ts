@@ -1,4 +1,3 @@
-import * as l from '~/utils/app-logger/app-logger'
 import { mkdir } from 'node:fs/promises'
 import type { FalVideoModel, FalVideoOutput, Step6VideoMetadata, VideoMode } from '~/types'
 import { UsageError, InfraError } from '~/utils/error-handler'
@@ -103,16 +102,16 @@ export const runFalVideoGen = async (prompt: string, outputDir: string, options:
   const request = await buildFalVideoRequest(prompt, options)
   const estimate = estimateVideoCost({ falVideoModels: [options.model], videoDuration: request.duration, videoResolution: request.resolution, videoMode: options.mode })
   logVideoEstimate(estimate)
-  logMediaGenerationStatus(l, { mediaType: 'video', provider: 'fal', model: options.model, status: 'started', detail: options.mode })
+  logMediaGenerationStatus( { mediaType: 'video', provider: 'fal', model: options.model, status: 'started', detail: options.mode })
   const startTime = Date.now()
   await mkdir(outputDir, { recursive: true })
-  const result = await runFalQueue<FalVideoOutput>({ apiKey, endpointId: request.endpointId, input: request.input, pollIntervalMs: options.pollIntervalMs, operationName: 'fal-video-gen', onStatus: status => logMediaGenerationStatus(l, { mediaType: 'video', provider: 'fal', model: options.model, status: status.status }) })
+  const result = await runFalQueue<FalVideoOutput>({ apiKey, endpointId: request.endpointId, input: request.input, pollIntervalMs: options.pollIntervalMs, operationName: 'fal-video-gen', onStatus: status => logMediaGenerationStatus( { mediaType: 'video', provider: 'fal', model: options.model, status: status.status }) })
   const videoUrl = result.output.video?.url
   if (typeof videoUrl !== 'string') throw InfraError('fal.ai video generation completed without a video URL', { stage: 'video:fal' })
   const videoPath = `${outputDir}/generated-video.mp4`
   await Bun.write(videoPath, await downloadVideoOutputBytes(videoUrl, 'fal.ai'))
   const processingTime = Date.now() - startTime
-  logMediaGenerationStatus(l, { mediaType: 'video', provider: 'fal', model: options.model, status: 'completed', processingTimeMs: processingTime, outputCount: 1, artifacts: [{ artifact: 'video', path: videoPath }] })
+  logMediaGenerationStatus( { mediaType: 'video', provider: 'fal', model: options.model, status: 'completed', processingTimeMs: processingTime, outputCount: 1, artifacts: [{ artifact: 'video', path: videoPath }] })
   return {
     videoPath,
     metadata: {

@@ -1,6 +1,10 @@
 import { installProcessFailureHandlers } from '~/cli/failure-handlers'
-import { extractErrorHints, extractErrorMetadata, isUsageError, normalizeExitCode, usageMessage } from '~/utils/error-handler'
+import { extractErrorHints, extractErrorMetadata, formatErrorMessage, isUsageError, normalizeExitCode, usageMessage } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
+import { resetLoggerForInvocation } from '~/utils/app-logger/app-logger'
+import { createRunId } from '~/utils/app-logger/core'
+import { discardStagedResult, flushStagedResult, runWithResultInvocation, stageFailureResult } from '~/utils/app-logger/result-emitter'
+import { configureColor } from '~/utils/terminal-colors'
 import type { HelpCommandGroupKey } from '~/types'
 import {
   colorizeFlagDescriptions,
@@ -26,23 +30,58 @@ export const buildSetupNoOrphansArgs = (
   argv: readonly string[]
 ): string[] => ['--no-env-file', '--no-orphans', entrypoint, ...argv]
 
-const cliErrorHandler = (error: unknown): void => {
+const cliErrorHandler = (error: unknown): number => {
   if (isUsageError(error)) {
-    l.error(`Usage error: ${usageMessage(error)}`, { category: 'usage', metadata: extractErrorMetadata(error) })
+    l.error(`Usage error: ${usageMessage(error)}`, { category: 'usage', metadata: extractErrorMetadata(error), error })
     for (const hint of extractErrorHints(error)) {
       l.write('info', hint, { category: 'usage' })
     }
-    process.exit(2)
+    stageFailureResult(error, 2, usageMessage(error), extractErrorHints(error))
+    return 2
   }
 
   const exitCode = normalizeExitCode(error)
-  l.error('Command failed', { category: 'command', error })
+  const message = formatErrorMessage(error)
+  l.error(`Command failed: ${message}`, { category: 'command', error })
 
   for (const hint of extractErrorHints(error)) {
     l.write('info', hint, { category: 'command' })
   }
+  stageFailureResult(error, exitCode, message, extractErrorHints(error))
+  return exitCode
+}
 
-  process.exit(exitCode)
+export const preScanJsonMode = (argv: readonly string[]): boolean => {
+  let enabled = false
+  for (const arg of argv) {
+    if (arg === '--') break
+    if (arg === '--json') enabled = true
+    else if (arg === '--no-json') enabled = false
+    else if (arg.startsWith('--json=')) {
+      const value = arg.slice('--json='.length).trim().toLowerCase()
+      enabled = value !== 'false' && value !== '0' && value !== 'no'
+    }
+  }
+  return enabled
+}
+
+export const stripJsonProtocolArgs = (argv: readonly string[]): string[] => {
+  const out: string[] = []
+  let afterTerminator = false
+  for (const arg of argv) {
+    if (afterTerminator) {
+      out.push(arg)
+      continue
+    }
+    if (arg === '--') {
+      afterTerminator = true
+      out.push(arg)
+      continue
+    }
+    if (arg === '--json' || arg === '--no-json' || arg.startsWith('--json=')) continue
+    out.push(arg)
+  }
+  return out
 }
 
 const setCommandHelpGroup = (command: unknown, group: HelpCommandGroupKey): void => {
@@ -86,9 +125,32 @@ const applyUniversalHelpDescriptionColors = (): void => {
   helpDescriptionColorsApplied = true
 }
 
-const runCliInProcess = async (argv: string[]): Promise<void> => {
+export const runCliInProcess = async (argv: string[]): Promise<number> => {
   applyUniversalHelpDescriptionColors()
-  await dispatchNativeCli(argv, createNativeRootDefinition(), COMMAND_DEFINITIONS)
+  const json = preScanJsonMode(argv)
+  const runId = createRunId()
+  resetLoggerForInvocation(json, runId)
+  configureColor(json ? 'disable' : 'auto')
+
+  return await runWithResultInvocation({ json, runId }, async () => {
+    try {
+      await dispatchNativeCli(stripJsonProtocolArgs(argv), createNativeRootDefinition(), COMMAND_DEFINITIONS)
+      try {
+        flushStagedResult()
+        return 0
+      } catch (error) {
+        discardStagedResult()
+        const exitCode = cliErrorHandler(error)
+        flushStagedResult()
+        return exitCode
+      }
+    } catch (error) {
+      discardStagedResult()
+      const exitCode = cliErrorHandler(error)
+      flushStagedResult()
+      return exitCode
+    }
+  })
 }
 
 const main = async (): Promise<void> => {
@@ -109,15 +171,11 @@ const main = async (): Promise<void> => {
     process.exitCode = await proc.exited
     return
   }
-  await runCliInProcess(argv)
+  process.exitCode = await runCliInProcess(argv)
 }
 
 if (import.meta.main) {
   installProcessFailureHandlers()
 
-  try {
-    await main()
-  } catch (error) {
-    cliErrorHandler(error)
-  }
+  await main()
 }

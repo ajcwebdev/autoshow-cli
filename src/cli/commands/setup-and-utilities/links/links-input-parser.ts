@@ -54,8 +54,7 @@ export const readLinksInputFile = async (inputFilePath: string): Promise<string[
   } catch (error) {
     throw UsageError(
       `Failed to read links input file ${inputFilePath}: ${formatErrorMessage(error)}`,
-      undefined,
-      error instanceof Error ? { cause: error } : {}
+      { cause: error }
     )
   }
 

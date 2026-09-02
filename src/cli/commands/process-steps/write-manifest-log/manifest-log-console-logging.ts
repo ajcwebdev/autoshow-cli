@@ -1,18 +1,15 @@
-import type { Logger, WriteManifestMetadata, WriteManifestSourceRefs } from '~/types'
+import type { WriteManifestMetadata, WriteManifestSourceRefs } from '~/types'
 import { l } from '~/utils/app-logger/app-logger'
-import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { PIPELINE_MANIFEST_FILE } from '../pipeline-manifest'
-import { buildWriteManifestConsoleSummary } from './manifest-log-console-summary'
+import { buildWriteManifestSummary } from './manifest-log-console-summary'
 
 export const logManifestLocation = (
   outputDir: string,
-  logger: Pick<Logger, 'write'> = l,
   command = 'write'
 ): string => {
   const manifestPath = `${outputDir}/${PIPELINE_MANIFEST_FILE}`
-  logger.write('info', 'Locations', {
+  l.write('info', `Manifest: ${manifestPath}`, {
     category: 'artifact',
-    humanTable: createKeyValueTable([['manifest', manifestPath]], 'artifact', 'path'),
     metadata: {
       path: manifestPath,
       command
@@ -21,78 +18,67 @@ export const logManifestLocation = (
   return manifestPath
 }
 
-export const logWriteManifestConsoleSummary = (
+export const logWriteManifestSummary = (
   outputDir: string,
   metadata: WriteManifestMetadata,
-  refs: WriteManifestSourceRefs = {},
-  logger: Pick<Logger, 'write' | 'debug'> = l
+  refs: WriteManifestSourceRefs = {}
 ): void => {
-  logManifestConsoleSummary(outputDir, 'write', metadata, refs, logger)
+  logManifestSummary(outputDir, 'write', metadata, refs)
 }
 
-export const logExtractManifestConsoleSummary = (
+export const logExtractManifestSummary = (
   outputDir: string,
   metadata: WriteManifestMetadata,
-  refs: WriteManifestSourceRefs = {},
-  logger: Pick<Logger, 'write' | 'debug'> = l
+  refs: WriteManifestSourceRefs = {}
 ): void => {
-  logManifestConsoleSummary(outputDir, 'extract', metadata, refs, logger)
+  logManifestSummary(outputDir, 'extract', metadata, refs)
 }
 
-const logManifestConsoleSummary = (
+const logManifestSummary = (
   outputDir: string,
   command: string,
   metadata: WriteManifestMetadata,
-  refs: WriteManifestSourceRefs,
-  logger: Pick<Logger, 'write' | 'debug'>
+  refs: WriteManifestSourceRefs
 ): void => {
-  const summary = buildWriteManifestConsoleSummary(metadata, refs)
+  const summary = buildWriteManifestSummary(metadata, refs)
 
-  logManifestLocation(outputDir, logger, command)
+  logManifestLocation(outputDir, command)
 
   if (summary.runSummary) {
-    logger.write('info', 'Run Summary', {
+    l.write('info', `Run summary: ${summary.runSummary.entries.length} steps`, {
       category: 'artifact',
-      humanTable: summary.runSummary.humanTable,
       metadata: {
-        columns: summary.runSummary.columns,
-        rows: summary.runSummary.rows
+        entries: summary.runSummary.entries
       }
     })
   }
 
   if (summary.promptUsage) {
-    logger.write('info', 'Prompt Usage', {
+    l.write('info', `Prompt usage: ${summary.promptUsage.entries.length} entries`, {
       category: 'usage',
-      humanTable: summary.promptUsage.humanTable,
       metadata: {
-        columns: summary.promptUsage.columns,
-        rows: summary.promptUsage.rows
+        entries: summary.promptUsage.entries
       }
     })
   }
 
   if (summary.ocrCostCalculation) {
-    logger.write('info', 'OCR Cost Calculation', {
+    l.write('info', `OCR cost calculation: ${summary.ocrCostCalculation.entries.length} providers`, {
       category: 'usage',
-      humanTable: summary.ocrCostCalculation.humanTable,
       metadata: {
-        columns: summary.ocrCostCalculation.columns,
-        rows: summary.ocrCostCalculation.rows
+        entries: summary.ocrCostCalculation.entries
       }
     })
   }
 
   if (summary.hostedOcrScheduler) {
-    logger.write('info', 'Hosted OCR Scheduler', {
+    l.write('info', `Hosted OCR scheduler: ${summary.hostedOcrScheduler.entries.length} lanes`, {
       category: 'usage',
-      humanTable: summary.hostedOcrScheduler.humanTable,
       metadata: {
-        columns: summary.hostedOcrScheduler.columns,
-        rows: summary.hostedOcrScheduler.rows
+        entries: summary.hostedOcrScheduler.entries
       }
     })
   }
 
-  logger.debug(`Manifest item metadata:\n${JSON.stringify({ command, metadata }, null, 2)}`, { category: 'usage' })
+  l.debug('Manifest item metadata', { category: 'usage', metadata: { command, metadata } })
 }

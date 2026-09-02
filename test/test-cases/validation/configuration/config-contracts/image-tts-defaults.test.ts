@@ -77,26 +77,12 @@ describe('config image and TTS default contracts', () => {
     }, { merge: false })
   })
 
-  test('buildConfigPatchFromFlags saves and merges MiniMax TTS voice defaults', () => {
-    expectConfigPatchRoundTrip({
-      'minimax-tts': ['speech-2.8-turbo'],
-      'tts-voice': 'English_expressive_narrator'
-    }, 'tts', {
-      minimaxTts: ['speech-2.8-turbo'],
-      voice: 'English_expressive_narrator'
-    })
-  })
-
   test('buildConfigPatchFromFlags saves and merges TTS request-control defaults', () => {
     const requestControlFlags = {
       'tts-language': 'en',
       'tts-text-normalization': 'on',
       'tts-instructions': 'Speak with calm narration.',
       'tts-speed': '1.25',
-      'minimax-tts-volume': '2.5',
-      'minimax-tts-pitch': '-2',
-      'minimax-tts-emotion': 'calm',
-      'minimax-tts-pronunciation': ['AutoShow/auto show', 'TTS/tee tee ess'],
       'elevenlabs-tts-stability': '0.4',
       'elevenlabs-tts-similarity-boost': '0.8',
       'elevenlabs-tts-style': '0.2',
@@ -109,10 +95,6 @@ describe('config image and TTS default contracts', () => {
       textNormalization: 'on',
       instructions: 'Speak with calm narration.',
       speed: 1.25,
-      minimaxTtsVolume: 2.5,
-      minimaxTtsPitch: -2,
-      minimaxTtsEmotion: 'calm',
-      minimaxTtsPronunciations: ['AutoShow/auto show', 'TTS/tee tee ess'],
       elevenlabsTtsStability: 0.4,
       elevenlabsTtsSimilarityBoost: 0.8,
       elevenlabsTtsStyle: 0.2,

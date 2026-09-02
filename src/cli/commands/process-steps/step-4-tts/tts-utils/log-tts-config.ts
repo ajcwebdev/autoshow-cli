@@ -1,6 +1,5 @@
 import type { TtsConfigField } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import { AsyncLocalStorage } from 'node:async_hooks'
 
 const configLogScope = new AsyncLocalStorage<Set<string>>()
@@ -25,8 +24,8 @@ export const logTtsConfig = (provider: string, fields: readonly TtsConfigField[]
   if (logged?.has(key)) return
   logged?.add(key)
 
-  l.write('info', `${provider} TTS Config`, {
-    category: 'tts',
-    humanTable: createHumanTable(rows, ['setting', 'value'])
+  l.write('info', `${provider} TTS configuration: ${rows.length} settings`, {
+    category: 'pipeline',
+    metadata: { provider, settings: rows }
   })
 }

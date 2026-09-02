@@ -23,7 +23,6 @@ import {
   SUPPORTED_ELEVENLABS_TTS_MODELS,
   SUPPORTED_GROK_TTS_MODELS,
   SUPPORTED_HUME_TTS_MODELS,
-  SUPPORTED_MINIMAX_TTS_MODELS,
   SUPPORTED_MISTRAL_TTS_MODELS,
   SUPPORTED_OPENAI_TTS_MODELS,
   SUPPORTED_SPEECHIFY_TTS_MODELS
@@ -56,7 +55,6 @@ export type FetchFn = (input: string | URL | Request, init?: RequestInit) => Pro
 
 export type GroqModel = typeof SUPPORTED_GROQ_MODELS[number]
 export type ElevenlabsTtsModel = typeof SUPPORTED_ELEVENLABS_TTS_MODELS[number]
-export type MinimaxTtsModel = typeof SUPPORTED_MINIMAX_TTS_MODELS[number]
 export type GrokTtsModel = typeof SUPPORTED_GROK_TTS_MODELS[number]
 export type MistralTtsModel = typeof SUPPORTED_MISTRAL_TTS_MODELS[number]
 export type OpenAITtsModel = typeof SUPPORTED_OPENAI_TTS_MODELS[number]

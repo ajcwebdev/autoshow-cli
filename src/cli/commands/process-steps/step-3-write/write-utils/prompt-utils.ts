@@ -1,7 +1,6 @@
 import type { BuildPromptOptions, TranscriptionResult, VideoMetadata } from '~/types'
 import { formatTranscriptText } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import * as l from '~/utils/app-logger/app-logger'
-import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 
 const TRANSCRIPT_PREAMBLE = `This is a transcript with timestamps. Do not include advertisements in the summaries or descriptions. Do not actually write the transcript.`
 
@@ -39,17 +38,8 @@ export const buildPrompt = (
       options?.promptSourceProvider ? `source: ${options.promptSourceProvider}` : undefined
     ].filter((entry): entry is string => typeof entry === 'string')
     if (options?.suppressDiarizationLog !== true) {
-      l.write('info', 'Prompt Diarization', {
+      l.write('info', `Prompt diarization detected ${uniqueSpeakers.size} speakers`, {
         category: 'pipeline',
-        humanTable: createKeyValueTable([
-          ['detectedSpeakers', uniqueSpeakers.size],
-          ...(typeof options?.requestedSpeakerCount === 'number'
-            ? [['requestedSpeakerCount', options.requestedSpeakerCount] as const]
-            : []),
-          ...(options?.promptSourceProvider
-            ? [['sourceProvider', options.promptSourceProvider] as const]
-            : [])
-        ]),
         metadata: {
           detectedSpeakers: uniqueSpeakers.size,
           requestedSpeakerCount: options?.requestedSpeakerCount,

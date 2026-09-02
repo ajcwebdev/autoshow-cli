@@ -34,12 +34,6 @@ export const validateVoiceDesignRequest = (input: VoiceDesignRequestInput): Vali
     if (description.length < 30 || description.length > 250) throw UsageError('Inworld Voice Design description must contain 30-250 characters.')
     if (!previewText.trim()) throw UsageError('Inworld Voice Design preview text cannot be blank.')
     if (seed !== undefined) throw UsageError('Inworld Voice Design does not expose a deterministic seed.')
-  } else if (provider === 'minimax') {
-    if (creationModel !== 'voice-design') throw UsageError('MiniMax Voice Design creation model must be voice-design.')
-    if (candidateCount !== 1) throw UsageError('MiniMax Voice Design returns exactly one bounded preview per request.')
-    if (!description.trim()) throw UsageError('MiniMax Voice Design description cannot be blank.')
-    if (!previewText.trim() || previewText.length > 500) throw UsageError('MiniMax Voice Design preview text must contain 1-500 characters.')
-    if (seed !== undefined) throw UsageError('MiniMax Voice Design does not expose a deterministic seed.')
   } else if (provider === 'hume') {
     if (creationModel !== 'octave-1') throw UsageError('Hume Voice Design creation model must be octave-1.')
     if (candidateCount > 5) throw UsageError('Hume Voice Design supports one to five bounded previews per request.')

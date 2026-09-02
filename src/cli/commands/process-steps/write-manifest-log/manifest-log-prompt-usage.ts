@@ -1,5 +1,4 @@
 import type { PromptUsageSection, WriteManifestMetadata, WriteManifestSourceRefs, WritePromptUsageRow } from '~/types'
-import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
 import {
   buildProviderModelLabel,
@@ -15,7 +14,6 @@ import {
   isStep3Metadata,
   toArray
 } from './manifest-log-metadata'
-import { PROMPT_USAGE_COLUMNS } from './write-manifest-log-columns'
 
 const getEpubLogicalChapterCount = (entry: { extractionMethod: string, totalPages: number, chapterExport?: unknown }): number | undefined => {
   if (entry.extractionMethod !== 'epub-text') {
@@ -112,13 +110,6 @@ export const buildPromptUsage = (
   }
 
   return {
-    columns: PROMPT_USAGE_COLUMNS,
-    rows: filteredRows,
-    humanTable: createHumanTable(filteredRows.map((row) => ({
-      step: row.step,
-      providerModel: row.providerModel,
-      promptSource: row.promptSource ?? '',
-      usage: row.usage ?? ''
-    })), PROMPT_USAGE_COLUMNS)
+    entries: filteredRows
   }
 }

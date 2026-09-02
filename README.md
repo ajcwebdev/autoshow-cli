@@ -210,7 +210,13 @@ FORCE_COLOR=1              # force ANSI color in redirected output
 ```
 
 - Human logs use color on a TTY. `NO_COLOR` disables color; `FORCE_COLOR` enables it when output is redirected.
-- `--json` output is uncolored. Secrets are redacted from logs.
+- Text mode is the default and emits one physical line per event with a local `[HH:MM:SS.MMM]` timestamp.
+- `--json` writes versioned diagnostic records to stderr and exactly one terminal `type: "result"` record to stdout. It is uncolored, and secrets are redacted.
+- `--quiet`, `--verbose`, and `--log-level` filter diagnostics but never suppress the terminal JSON result. `--json=false` explicitly selects text mode.
+
+```bash
+bun autoshow write notes.md --json 2>diagnostics.jsonl | jq 'select(.type == "result") | .data'
+```
 
 ## Output Layout
 

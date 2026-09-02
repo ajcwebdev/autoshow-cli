@@ -2,7 +2,7 @@ import { basename } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import type { DocumentMetadata, GeminiContent, GeminiGenerateContentUsageMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult, RetryDecision } from '~/types'
 import { resolveCredential } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, serializeDiagnosticError } from '~/utils/error-handler'
+import { InfraError, InternalError } from '~/utils/error-handler'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { classifyOcrCreateRetry, OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry, withOcrSchemaRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
 import { getCachedCloudStagingObject } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/preparation-cache'
@@ -67,10 +67,8 @@ const shouldUploadFile = (fileSizeBytes: number, format: DocumentMetadata['forma
 
 const classifyGeminiOcrRetry = (error: unknown): RetryDecision => {
   const ocrDecision = classifyOcrCreateRetry(error)
-  if (ocrDecision.shouldRetry) {
-    return ocrDecision
-  }
-  return classifyGeminiRetry(error, 'runtime_http_create_retriable')
+  if (!ocrDecision.shouldRetry) return ocrDecision
+  return classifyGeminiRetry(error, 'runtime_http_create_conservative')
 }
 
 const hasGeminiUsageMetadata = (
@@ -336,7 +334,7 @@ export const runGeminiOcr = async (
             } catch (error) {
               l.warn(`Failed to delete Gemini OCR upload ${uploadedFileName}: ${error instanceof Error ? error.message : String(error)}`, {
         category: 'pipeline',
-        metadata: { provider: 'gemini', uploadedFileName, error: serializeDiagnosticError(error) }
+        metadata: { provider: 'gemini', uploadedFileName }, error: error
       })
             }
           }

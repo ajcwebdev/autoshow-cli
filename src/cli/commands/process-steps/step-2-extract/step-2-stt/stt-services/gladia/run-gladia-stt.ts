@@ -5,7 +5,6 @@ import { buildTranscriptionWordEvidence } from '~/cli/commands/process-steps/ste
 import { buildSegmentsFromWords, buildTranscriptionOutputBase, countTokens, formatSpeakerLabel, formatTranscriptText, resolveTranscriptionOutput, toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import type { AsyncSttLifecycleMetrics, GladiaNormalizedWord, GladiaStatusResponse, GladiaUtterance, HostedAsyncSttRunOptions, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { GladiaCreateResponseSchema, GladiaStatusResponseSchema, GladiaUploadResponseSchema } from '~/types'
-import * as l from '~/utils/app-logger/app-logger'
 import { InternalError } from '~/utils/error-handler'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
@@ -95,7 +94,7 @@ const uploadGladiaAudio = async (
 ) => await sttStageRequest({
   operationName: 'gladia-upload',
   stage: 'upload',
-  retryClass: 'runtime_http_create_retriable',
+  retryClass: 'runtime_http_create_conservative',
   timeoutMs: REQUEST_TIMEOUT_MS,
   errorPrefix: 'Gladia',
   schema: GladiaUploadResponseSchema,
@@ -126,7 +125,7 @@ const createGladiaTranscription = async (
   const createRecord = await sttStageRequest({
     operationName: 'gladia-create-transcription',
     stage: 'create',
-    retryClass: 'runtime_http_create_retriable',
+    retryClass: 'runtime_http_create_conservative',
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'Gladia',
     failureLabel: 'transcription creation',
@@ -157,7 +156,7 @@ const pollGladiaTranscription = async (
   const { value, retryAfterMs } = await sttStageRequestWithRetryAfter({
     operationName: 'gladia-poll-transcription',
     stage: 'poll',
-    retryClass: 'runtime_http_read',
+    retryClass: 'runtime_http_poll',
     timeoutMs: POLL_REQUEST_TIMEOUT_MS,
     errorPrefix: 'Gladia',
     failureLabel: 'polling',
@@ -193,7 +192,7 @@ export const runGladiaStt = async (
   const apiKey = resolveCredential('gladia', 'require', { stage: 'stt:gladia', description: 'Gladia transcription' })
 
   if (diarizationOptions?.speakerCount !== undefined) {
-    logSttDiarizationConfig(l, {
+    logSttDiarizationConfig( {
       provider: 'gladia',
       model: modelName,
       enabled: true,

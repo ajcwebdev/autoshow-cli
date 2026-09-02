@@ -1,5 +1,6 @@
 type ExecRetryOptions = {
   operationName?: string
+  shouldRetry: (result: CommandResultBase) => boolean
 }
 
 export type ExecOptions = {

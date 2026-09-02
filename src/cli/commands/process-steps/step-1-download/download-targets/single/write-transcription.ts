@@ -13,7 +13,6 @@ import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { InfraError, InternalError } from '~/utils/error-handler'
-import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 
 export const resolveWriteTranscription = async (
@@ -34,15 +33,8 @@ export const resolveWriteTranscription = async (
 
     if (captionTranscription) {
       if (sttTargets.length > 0) {
-        l.write('info', 'STT Provider Skips', {
+        l.write('info', `Skipping ${sttTargets.length} STT providers because YouTube captions were found`, {
           category: 'pipeline',
-          humanTable: createHumanTable(
-            sttTargets.map((target) => ({
-              provider: `${target.service}/${target.model}`,
-              reason: 'youtube-captions'
-            })),
-            ['provider', 'reason']
-          ),
           metadata: {
             reason: 'youtube-captions',
             skippedProviders: sttTargets.map((target) => `${target.service}/${target.model}`)

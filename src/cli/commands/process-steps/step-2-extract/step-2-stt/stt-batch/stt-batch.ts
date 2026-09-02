@@ -1,5 +1,4 @@
 import * as l from '~/utils/app-logger/app-logger'
-import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import type { BatchProcessResult, BatchRunOptions, SttExtractionOptions } from '~/types'
 import { collectSttTargets } from '../stt-targets'
 import { buildSttBatchSchedulerRows } from './stt-batch-policy'
@@ -86,12 +85,8 @@ export const runSttBatch = async (
     const snapshot = coordinator.getSchedulerSnapshot()
     if (snapshot.providers.length > 0) {
       const rows = buildSttBatchSchedulerRows(snapshot)
-      l.write('info', 'STT batch scheduler summary', {
+      l.write('info', `STT batch scheduler handled ${rows.length} providers`, {
         category: 'pipeline',
-        humanTable: createHumanTable(
-          rows,
-          ['provider', 'kind', 'launchSlots', 'pollSlots', 'launched', 'completed', 'queueWaitMs', 'polls', 'blocked', 'degraded', 'backfill', 'warm']
-        ),
         metadata: { providers: rows }
       })
     }

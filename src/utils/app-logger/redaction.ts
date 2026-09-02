@@ -1,4 +1,4 @@
-import type { HumanLogSection, HumanLogTable, HumanLogTableCell, LogContext, LogMetadata } from '~/types'
+import type { LogContext, LogMetadata } from '~/types'
 
 const REDACTED = 'REDACTED'
 
@@ -124,7 +124,7 @@ export const sanitizeLogText = (value: string): string => {
     return value
   }
 
-  return sanitizeEmailAddresses(
+  const sanitized = sanitizeEmailAddresses(
     sanitizeEnvAssignments(
       sanitizeDiagnosticIdentifiers(
         sanitizeQuerySecrets(
@@ -135,6 +135,7 @@ export const sanitizeLogText = (value: string): string => {
       )
     )
   )
+  return sanitized.replace(/[\r\n]+/g, ' ').replace(/\s{2,}/g, ' ').trim()
 }
 
 const normalizeFlagName = (flagName: string): string => {
@@ -235,10 +236,6 @@ const sanitizeLogValue = (value: unknown): unknown => {
   return sanitizeUnknown(value, 0, new WeakSet<object>())
 }
 
-export const sanitizeLogArgs = (args: readonly unknown[]): readonly unknown[] => {
-  return args.map(arg => sanitizeLogValue(arg))
-}
-
 export const sanitizeLogContext = (context: LogContext): LogContext => {
   const sanitized: Record<string, string | number | boolean | null | undefined> = {}
 
@@ -261,50 +258,3 @@ export const sanitizeLogMetadata = (metadata: LogMetadata): LogMetadata => {
   }
   return {}
 }
-
-const sanitizeHumanTableCell = (value: HumanLogTableCell): HumanLogTableCell => {
-  if (typeof value === 'string') {
-    return sanitizeLogText(value)
-  }
-
-  return value
-}
-
-export const sanitizeHumanTable = (table: HumanLogTable): HumanLogTable => ({
-  rows: table.rows.map((row) =>
-    Object.fromEntries(
-      Object.entries(row).map(([key, value]) => [sanitizeLogText(key), sanitizeHumanTableCell(value)])
-    ) as HumanLogTable['rows'][number]
-  ),
-  ...(table.columns ? { columns: table.columns.map(column => sanitizeLogText(column)) } : {}),
-  ...(table.details
-    ? {
-        details: table.details.map(detail => ({
-          label: sanitizeLogText(detail.label),
-          value: sanitizeHumanTableCell(detail.value)
-        }))
-      }
-    : {}),
-  ...(table.align
-    ? {
-        align: Object.fromEntries(
-          Object.entries(table.align).map(([column, align]) => [sanitizeLogText(column), align])
-        )
-      }
-    : {}),
-  ...(table.labels
-    ? {
-        labels: Object.fromEntries(
-          Object.entries(table.labels).map(([column, label]) => [sanitizeLogText(column), sanitizeLogText(label)])
-        )
-      }
-    : {})
-})
-
-export const sanitizeHumanSections = (
-  sections: readonly HumanLogSection[]
-): readonly HumanLogSection[] =>
-  sections.map(section => ({
-    title: sanitizeLogText(section.title),
-    table: sanitizeHumanTable(section.table)
-  }))

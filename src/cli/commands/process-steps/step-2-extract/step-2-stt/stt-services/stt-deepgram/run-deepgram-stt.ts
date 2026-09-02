@@ -1,4 +1,3 @@
-import * as l from '~/utils/app-logger/app-logger'
 import type { DeepgramAlternative, DeepgramResponse, DeepgramWords, Step2Metadata, SttSegmentRunOptions, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { DeepgramResponseSchema } from '~/types'
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
@@ -150,7 +149,7 @@ export const runDeepgramTranscribe = async (
 
   const { model: modelName, segmentOffsetMinutes = 0, segmentNumber, totalSegments } = options
   if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, { provider: 'deepgram', action: 'started', segmentNumber, totalSegments, model: modelName })
+    logSttSegmentLifecycle( { provider: 'deepgram', action: 'started', segmentNumber, totalSegments, model: modelName })
   }
 
   const startTime = Date.now()
@@ -167,7 +166,7 @@ export const runDeepgramTranscribe = async (
   const payload = await sttStageRequest({
     operationName: 'deepgram-stt',
     stage: 'transcribe',
-    retryClass: 'runtime_http_create_retriable',
+    retryClass: 'runtime_http_create_conservative',
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'Deepgram',
     failureLabel: 'transcription',

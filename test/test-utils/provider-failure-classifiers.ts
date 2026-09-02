@@ -171,22 +171,6 @@ export const isMinimaxTransientUnavailable = (output: string): boolean => {
   )
 }
 
-const MINIMAX_TTS_RETRIABLE_STAGE_PATTERN = new RegExp(
-  `MiniMax TTS (?:task query|download) failed \\((?:${RETRYABLE_STATUS_CODES.join('|')})\\)`,
-  'i'
-)
-const MINIMAX_TTS_REJECTED_CREATE_PATTERN = /MiniMax TTS task creation failed \((?:425|429)\)/i
-
-export const isTransientMinimaxTtsFailure = (output: string): boolean => {
-  const clean = stripAnsi(output)
-  return (
-    /minimax-tts-chunk-\d+: deadline exceeded/i.test(clean) ||
-    MINIMAX_TTS_RETRIABLE_STAGE_PATTERN.test(clean) ||
-    MINIMAX_TTS_REJECTED_CREATE_PATTERN.test(clean) ||
-    NETWORK_FAILURE_PATTERN.test(clean)
-  )
-}
-
 const isGroqTermsAcceptanceFailure = (output: string): boolean =>
   /requires terms acceptance/i.test(stripAnsi(output))
 

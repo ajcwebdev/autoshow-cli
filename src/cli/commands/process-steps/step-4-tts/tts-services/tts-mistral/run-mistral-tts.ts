@@ -52,7 +52,7 @@ const resolveVoiceSource = (
     if (!options.protectedReference) {
       throw UsageError(
         'Mistral reference audio must resolve from an opaque protected asset immediately before synthesis.',
-        'Use the standalone `tts` request-reference edge, or create/import a voice with the shared `voice` command or `comic reference-voice`.'
+        { hints: ['Use the standalone `tts` request-reference edge, or create/import a voice with the shared `voice` command or `comic reference-voice`.'] }
       )
     }
     return {

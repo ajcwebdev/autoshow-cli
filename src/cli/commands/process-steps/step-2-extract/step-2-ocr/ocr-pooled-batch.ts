@@ -5,7 +5,7 @@ import { extname, isAbsolute, join } from 'node:path'
 import type { DocumentMetadata, ExtractionMetadata, ExtractionOptions, ExtractionResult, OcrBatchRunContext, OcrPoolAttemptUsage, OcrPoolLedger, OcrPoolTargetState, OcrProviderFailureSummary, OcrTarget, ProcessDocumentOutput, RunOcrPagePoolOptions } from '~/types'
 import { ExtractionMetadataSchema } from '~/types'
 import { l, runWithLogContext } from '~/utils/app-logger/app-logger'
-import { UsageError, extractErrorMetadata, serializeDiagnosticError } from '~/utils/error-handler'
+import { UsageError, extractErrorMetadata } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 import { validateData } from '~/utils/validate/validation'
 import { writeFile } from '~/utils/cli-utils'
@@ -491,8 +491,7 @@ export const preflightPooledPageInputs = async (
         const detail = error instanceof Error && error.message.trim().length > 0 ? error.message.trim() : String(error)
         failure = UsageError(
           `--ocr-provider-mode pool could not normalize page ${pageNumber} into a compatible work unit: ${detail}`,
-          undefined,
-          error instanceof Error ? { cause: error } : {}
+          { cause: error }
         )
       }
     }
@@ -568,7 +567,7 @@ const createPooledPageAttemptRunner = (
     }
   } catch (error) {
     await writeOcrProviderError(absoluteArtifactDir, error, classifyOcrProviderFailure(error)).catch((writeError: unknown) => {
-      l.warn(`Could not write OCR failure diagnostics to ${absoluteArtifactDir}`, { category: 'artifact', metadata: { artifactDir: absoluteArtifactDir, error: serializeDiagnosticError(writeError) } })
+      l.warn(`Could not write OCR failure diagnostics to ${absoluteArtifactDir}`, { category: 'artifact', metadata: { artifactDir: absoluteArtifactDir }, error: writeError })
     })
     const failedUsage = usageFromError(error)
     await writeFile(join(absoluteArtifactDir, 'usage.json'), `${JSON.stringify({ providerMode: 'pool', pageNumber, attempt, provider: target.service, model: target.model, accepted: false, ...failedUsage }, null, 2)}\n`)

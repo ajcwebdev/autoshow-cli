@@ -1,46 +1,25 @@
-import { createSingleRowTable } from '~/utils/app-logger/human-table/human-table'
-import { defineTableLog } from '~/utils/app-logger/table-log-definition'
-import type { HumanLogTable, LogLevel, ResumeItemSummary, ResumeSuiteSummary, ResumeTotals, TableLogger } from '~/types'
+import type { LogLevel, ResumeItemSummary, ResumeSuiteSummary, ResumeTotals } from '~/types'
+import * as l from '~/utils/app-logger/app-logger'
 
-const buildResumeItemTable = (
-  summary: ResumeItemSummary
-): HumanLogTable =>
-  createSingleRowTable(summary, ['item', 'status', 'outputDir', 'providers', 'detail'])
-
-export const logResumeItem = (
-  logger: TableLogger,
-  summary: ResumeItemSummary,
-  level: LogLevel
-): void => {
-  logger.write(level, 'Resume Item', {
+export const logResumeItem = (summary: ResumeItemSummary, level: LogLevel): void => {
+  l.write(level === 'success' ? 'info' : level, `Resume item ${summary.item}: ${summary.status}`, {
     category: 'pipeline',
-    humanTable: buildResumeItemTable(summary),
     metadata: summary
   })
 }
 
-const buildResumeSummaryTableValue = (
-  totals: ResumeTotals
-): HumanLogTable =>
-  createSingleRowTable(totals, ['full', 'incomplete', 'failed'])
+export const logResumeSummary = (totals: ResumeTotals): void => {
+  const level = totals.incomplete > 0 || totals.failed > 0 ? 'warn' : 'info'
+  l.write(level, `Resume summary: ${totals.full} full, ${totals.incomplete} incomplete, ${totals.failed} failed`, {
+    category: 'pipeline',
+    metadata: totals
+  })
+}
 
-export const { buildTable: buildResumeSummaryTable, log: logResumeSummary } = defineTableLog<ResumeTotals>({
-  title: 'Resume Summary',
-  category: 'pipeline',
-  buildTable: buildResumeSummaryTableValue,
-  level: totals => totals.incomplete > 0 || totals.failed > 0 ? 'warn' : 'info',
-  metadata: totals => totals
-})
-
-const buildResumeSuiteSummaryTableValue = (
-  summary: ResumeSuiteSummary
-): HumanLogTable =>
-  createSingleRowTable(summary, ['directories', 'full', 'incomplete', 'failed'])
-
-export const { log: logResumeSuiteSummary } = defineTableLog<ResumeSuiteSummary>({
-  title: 'Resume Suite Summary',
-  category: 'pipeline',
-  buildTable: buildResumeSuiteSummaryTableValue,
-  level: summary => summary.incomplete > 0 || summary.failed > 0 ? 'warn' : 'info',
-  metadata: summary => summary
-})
+export const logResumeSuiteSummary = (summary: ResumeSuiteSummary): void => {
+  const level = summary.incomplete > 0 || summary.failed > 0 ? 'warn' : 'info'
+  l.write(level, `Resume suite: ${summary.directories} directories, ${summary.incomplete} incomplete, ${summary.failed} failed`, {
+    category: 'pipeline',
+    metadata: summary
+  })
+}

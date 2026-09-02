@@ -1,17 +1,16 @@
 import * as v from 'valibot'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { isMinimaxInstrumentalMusicModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import type { MinimaxLyricsGenerationResult, MinimaxMusicGenerationPayload, MinimaxMusicModel, MinimaxMusicResponse, RetryClassifier, Step7MusicMetadata } from '~/types'
+import type { MinimaxLyricsGenerationResult, MinimaxMusicGenerationPayload, MinimaxMusicModel, MinimaxMusicResponse, Step7MusicMetadata } from '~/types'
 import { MINIMAX_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import * as l from '~/utils/app-logger/app-logger'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { resolveCredential } from '~/utils/validate/env-utils'
-import { extractErrorMetadata, InfraError, InternalError, ProviderError, ValidationError } from '~/utils/error-handler'
+import { InfraError, InternalError, ProviderError, ValidationError } from '~/utils/error-handler'
 import { MinimaxBaseRespSchema, minimaxFetchJson, minimaxJsonRequestInit } from '~/utils/minimax-client/minimax-client'
 import { classifyPaidCreateRetry, withRetry } from '~/utils/retries'
 
 const REQUEST_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
-const INCOMPLETE_RESPONSE_RETRY_DELAY_MS = 3_000
 const MINIMAX_MUSIC_PROMPT_MAX_CHARS = 2000
 const MINIMAX_MUSIC_LYRICS_MAX_CHARS = 3500
 const MINIMAX_MUSIC_OUTPUT_FORMAT = 'hex'
@@ -173,20 +172,6 @@ const formatMusicResponseDetails = (payload: MinimaxMusicResponse): string => {
   return details.join(', ')
 }
 
-const INCOMPLETE_ENVELOPE_MARKER = 'minimaxMusicIncompleteEnvelope'
-
-const isIncompleteEnvelopeError = (error: unknown): boolean =>
-  extractErrorMetadata(error)[INCOMPLETE_ENVELOPE_MARKER] === true
-
-const classifyMinimaxMusicCreateRetry: RetryClassifier = (error) =>
-  isIncompleteEnvelopeError(error)
-    ? {
-      shouldRetry: true,
-      delayMs: INCOMPLETE_RESPONSE_RETRY_DELAY_MS,
-      reason: 'provider returned an incomplete success envelope'
-    }
-    : classifyPaidCreateRetry(error)
-
 const requestMusicGenerationWithIncompleteRetry = async (
   baseURL: string,
   apiKey: string,
@@ -204,14 +189,15 @@ const requestMusicGenerationWithIncompleteRetry = async (
           `MiniMax music generation returned an incomplete success response (${formatMusicResponseDetails(result)})`,
           {
             stage: 'music:minimax',
-            retryable: true,
-            metadata: { [INCOMPLETE_ENVELOPE_MARKER]: true }
+            retryable: false,
+            hints: ['The provider accepted the music request but returned no retained result. Do not redispatch automatically because another generation may be billed.'],
+            metadata: { acceptedButIncomplete: true, billingOutcome: 'ambiguous' }
           }
         )
       }
       return result
     },
-    classifyMinimaxMusicCreateRetry
+    classifyPaidCreateRetry
   )
 
 export const runMinimaxMusicGen = async (

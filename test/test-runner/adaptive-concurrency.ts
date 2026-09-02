@@ -3,7 +3,6 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { withProcessLock } from '~/utils/process-lock'
 import type {
-  AdaptiveCommandAttemptRecord,
   AdaptiveConcurrencyConfig,
   AdaptiveConcurrencySnapshot,
   AdaptiveGroupState,
@@ -24,7 +23,6 @@ import { isObjectLike } from '~/utils/value-helpers'
 const STATE_FILE = 'adaptive-concurrency.json'
 const LOCK_NAME = 'adaptive-concurrency-state'
 
-const DEFAULT_MAX_ATTEMPTS = 3
 const DEFAULT_INITIAL_PROVIDER_LIMIT = 10
 const DEFAULT_GROUP_INITIAL_LIMITS: Record<string, number> = {}
 const DEFAULT_RATE_LIMIT_COOLDOWN_MS = 60_000
@@ -44,7 +42,6 @@ export const resolveAdaptiveConcurrencyConfig = (
   overrides: Partial<Omit<AdaptiveConcurrencyConfig, 'stateDir'>> = {}
 ): AdaptiveConcurrencyConfig => ({
   stateDir,
-  maxAttempts: DEFAULT_MAX_ATTEMPTS,
   initialProviderLimit: DEFAULT_INITIAL_PROVIDER_LIMIT,
   rateLimitCooldownMs: DEFAULT_RATE_LIMIT_COOLDOWN_MS,
   transientCooldownMs: DEFAULT_TRANSIENT_COOLDOWN_MS,
@@ -376,24 +373,6 @@ export const classifyAdaptivePressure = (
     return 'transient'
   }
   return null
-}
-
-export const formatAdaptiveRetrySummary = (
-  records: AdaptiveCommandAttemptRecord[],
-  finalExitCode: number
-): string => {
-  if (records.length === 0) {
-    return ''
-  }
-
-  const lines = [
-    'Adaptive concurrency retry summary:',
-    `Final exit code: ${finalExitCode}`,
-  ]
-  for (const record of records) {
-    lines.push(`- attempt ${record.attempt}: ${record.pressure}; groups=${record.groups.join(', ')}`)
-  }
-  return lines.join('\n')
 }
 
 export const readAdaptiveConcurrencySnapshot = async (

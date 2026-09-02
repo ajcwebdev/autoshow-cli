@@ -136,19 +136,19 @@ export const planStandaloneMistralReference = async <T extends TtsOptions>(
   if (referenceInput.authorizationRef !== MISTRAL_CLI_REFERENCE_AUTHORIZATION) {
     throw UsageError(
       'Standalone Mistral request reference is missing its explicit CLI authorization.',
-      'Pass --mistral-tts-ref-audio explicitly to standalone `tts`, or create/import a voice with the shared `voice` command or `comic reference-voice` and synthesize with --mistral-tts-voice.'
+      { hints: ['Pass --mistral-tts-ref-audio explicitly to standalone `tts`, or create/import a voice with the shared `voice` command or `comic reference-voice` and synthesize with --mistral-tts-voice.'] }
     )
   }
   if (referenceInput.speakerKey) {
     throw UsageError(
       'Per-speaker Mistral reference inputs are not available in the Phase 0 standalone path.',
-      'Create or import each voice with the shared `voice` command or `comic reference-voice`, then use its existing voice ID in dialogue mappings.'
+      { hints: ['Create or import each voice with the shared `voice` command or `comic reference-voice`, then use its existing voice ID in dialogue mappings.'] }
     )
   }
   if (isMultiSpeakerRequested(options)) {
     throw UsageError(
       'Standalone Mistral request reference audio cannot be combined with dialogue voice mappings in Phase 0.',
-      'Create or import each voice with the shared `voice` command or `comic reference-voice`, then use its existing voice ID in SPEAKER=VOICE mappings.'
+      { hints: ['Create or import each voice with the shared `voice` command or `comic reference-voice`, then use its existing voice ID in SPEAKER=VOICE mappings.'] }
     )
   }
   const hasMistralTarget = Boolean(options.mistralTtsModels?.length)

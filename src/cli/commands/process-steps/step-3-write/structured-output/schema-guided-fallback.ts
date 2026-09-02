@@ -56,9 +56,11 @@ export const runSchemaGuidedFallback = async (
     if (attempt < maxAttempts) {
       logRetryAttempt({
         operation: `structured-schema-guided-${target.label.toLowerCase()}`,
-        attempt,
+        failedAttempt: attempt,
+        nextAttempt: attempt + 1,
         maxAttempts,
         reason: 'structured_response',
+        reasonCode: 'classifier_refused',
         delayMs: 0
       }, { provider: target.label, model, issue: lastIssue })
     }
@@ -70,13 +72,15 @@ export const runSchemaGuidedFallback = async (
       {
         kind: 'retry_exhausted',
         stage: 'write:schema-guided-fallback',
+        retryable: false,
         metadata: {
           provider: target.label,
           model,
           issue: lastIssue,
           attemptsMade: maxAttempts,
           maxAttempts,
-          stopReason: 'max attempts reached'
+          stopReason: 'max attempts reached',
+          stopReasonCode: 'max_attempts'
         }
       }
     )

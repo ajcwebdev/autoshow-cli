@@ -4,7 +4,7 @@ import {
   getGrokTtsVoices,
   getOpenAITtsVoices
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { CartesiaTtsModel, ElevenlabsTtsModel, GrokTtsModel, HumeTtsModel, InworldTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection, SpeechifyTtsModel } from '~/types'
+import type { CartesiaTtsModel, ElevenlabsTtsModel, GrokTtsModel, HumeTtsModel, InworldTtsModel, MistralTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection, SpeechifyTtsModel } from '~/types'
 import { createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 export const SUPPORTED_ELEVENLABS_TTS_MODELS = [
@@ -30,92 +30,9 @@ export const validateElevenLabsTtsTextNormalization = (value: string): string =>
   return normalized
 }
 
-export const SUPPORTED_MINIMAX_TTS_MODELS = [
-  'speech-2.8-hd',
-  'speech-2.8-turbo'
-] as const satisfies readonly string[]
-
-export const validateMinimaxTtsModel = createModelValidator<MinimaxTtsModel>(SUPPORTED_MINIMAX_TTS_MODELS, 'minimax-tts')
-
-const SUPPORTED_MINIMAX_TTS_LANGUAGE_BOOSTS = [
-  'Chinese',
-  'Chinese,Yue',
-  'English',
-  'Arabic',
-  'Russian',
-  'Spanish',
-  'French',
-  'Portuguese',
-  'German',
-  'Turkish',
-  'Dutch',
-  'Ukrainian',
-  'Vietnamese',
-  'Indonesian',
-  'Japanese',
-  'Italian',
-  'Korean',
-  'Thai',
-  'Polish',
-  'Romanian',
-  'Greek',
-  'Czech',
-  'Finnish',
-  'Hindi',
-  'Bulgarian',
-  'Danish',
-  'Hebrew',
-  'Malay',
-  'Persian',
-  'Slovak',
-  'Swedish',
-  'Croatian',
-  'Filipino',
-  'Hungarian',
-  'Norwegian',
-  'Slovenian',
-  'Catalan',
-  'Nynorsk',
-  'Tamil',
-  'Afrikaans',
-  'auto'
-] as const satisfies readonly string[]
-
-export const SUPPORTED_MINIMAX_TTS_EMOTIONS = [
-  'happy',
-  'sad',
-  'angry',
-  'fearful',
-  'disgusted',
-  'surprised',
-  'calm',
-  'fluent',
-  'whisper'
-] as const satisfies readonly string[]
-
 const normalizeListedValue = (value: string, allowedValues: readonly string[]): string | undefined => {
   const normalized = value.trim().toLowerCase()
   return allowedValues.find((candidate) => candidate.toLowerCase() === normalized)
-}
-
-export const validateMinimaxTtsLanguageBoost = (value: string): string => {
-  const normalized = normalizeListedValue(value, SUPPORTED_MINIMAX_TTS_LANGUAGE_BOOSTS)
-  if (!normalized) {
-    throw UsageError(
-      `Invalid --tts-language "${value}". Allowed values: ${formatAllowedValues(SUPPORTED_MINIMAX_TTS_LANGUAGE_BOOSTS)}`
-    )
-  }
-  return normalized
-}
-
-export const validateMinimaxTtsEmotion = (value: string): string => {
-  const normalized = normalizeListedValue(value, SUPPORTED_MINIMAX_TTS_EMOTIONS)
-  if (!normalized) {
-    throw UsageError(
-      `Invalid --minimax-tts-emotion "${value}". Allowed values: ${formatAllowedValues(SUPPORTED_MINIMAX_TTS_EMOTIONS)}`
-    )
-  }
-  return normalized
 }
 
 export const SUPPORTED_GROK_TTS_MODELS = [

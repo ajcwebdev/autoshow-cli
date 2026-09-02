@@ -4,12 +4,12 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-15
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-01
 - **Verification Status:** Passed
 
 ## Context
 
-`bun t` and `bun test` run in-process production code. The production logger writes tables and banners through `console`, so passing tests dump that output into the suite. Bun then prints `✓` or `✗` plus duration. The signal is inverted: passing tests are noisy, and failing-test logs are interleaved with unrelated concurrent output.
+`bun t` and `bun test` run in-process production code. The production text logger writes diagnostics through `console`, so passing tests can dump that output into the suite. Bun then prints `✓` or `✗` plus duration. The signal is inverted: passing tests are noisy, and failing-test logs are interleaved with unrelated concurrent output.
 
 Built-in reporters cannot invert that. JUnit is a post-run sidecar without per-test captured output, `--only-failures` still prints passing-test console writes while hiding result lines, and parallel workers share one stdout/stderr pipe, so the runner cannot reconstruct per-test logs after the fact.
 
@@ -20,7 +20,7 @@ Why now: a full `bun t --budget` run made the inverted console policy the domina
 **Option 1 (selected)**
 
 - **Option:** Preload harness that buffers `console.*` per test and flushes only on failure
-- **Pros:** Works for `bun test` and `bun t`; keeps Bun's `✓`/`✗` lines; captures in-process logger tables
+- **Pros:** Works for `bun test` and `bun t`; keeps Bun's `✓`/`✗` lines; captures in-process logger diagnostics
 - **Cons:** Extra preload; wrapping the test API adds a harness frame on failure stacks
 - **Quantitative Notes:** One preload, one fixture contract, no per-file import rewrite
 
@@ -106,7 +106,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-Implemented in `test/test-utils/test-console-harness.ts`, preloaded from `bunfig.toml`, with budget-preflight quieting in `test/test-runner/runner.ts`. Runner artifacts, CLI bundles, file-timings, and budget-preflight cache default to `output/test-output/` via `TEST_OUTPUT_ROOT` in `test/test-runner/artifacts.ts`.
+Implemented in `test/test-utils/test-console-harness.ts`, preloaded from `bunfig.toml`. Price preflight emits concise runner-owned progress through `test/test-runner/price-execution.ts`; there is no separate logger-quieting mechanism in `test/test-runner/runner.ts`. Runner artifacts, CLI bundles, file timings, and budget-preflight cache default to `output/test-output/` via `TEST_OUTPUT_ROOT` in `test/test-runner/artifacts.ts`.
 
 ## Test Plan
 
@@ -121,6 +121,7 @@ bun test test/test-cases/validation/runtime-contracts/test-runner-contracts/
 ## References
 
 - Related ADR: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md)
+- Related ADR: [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md)
 - `test/test-utils/test-console-harness.ts`
 - `test/test-runner/runner.ts`
 - `bunfig.toml`

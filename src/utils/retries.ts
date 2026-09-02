@@ -1,7 +1,6 @@
-import type { HumanLogTable, PollFailure, PollOptions, RetryAttemptLog, RetryClass, RetryClassifier, RetryContext, RetryDecision, RetryPolicy, RetrySignals } from '~/types'
-import { AppError, extractErrorMetadata } from '~/utils/error-handler'
+import type { PollFailure, PollOptions, RetryAttemptLog, RetryClass, RetryClassifier, RetryContext, RetryDecision, RetryPolicy, RetryReasonCode, RetrySignals } from '~/types'
+import { AppError, extractErrorMetadata, isAppError, isRetryExhaustedError, serializeDiagnosticError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
-import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 
 export const NON_RETRYABLE_STATUS_CODES = [400, 401, 402, 403, 404, 422] as const
 export const RETRYABLE_STATUS_CODES = [408, 425, 429, 500, 502, 503, 504] as const
@@ -29,6 +28,8 @@ export const NETWORK_FAILURE_CODES = [
   'ETIMEDOUT'
 ] as const
 
+export const MAX_PROVIDER_RETRY_AFTER_MS = 300_000
+
 const NON_RETRYABLE_STATUSES: ReadonlySet<number> = new Set(NON_RETRYABLE_STATUS_CODES)
 const RETRYABLE_STATUSES: ReadonlySet<number> = new Set(RETRYABLE_STATUS_CODES)
 const NETWORK_FAILURE_CODE_SET: ReadonlySet<string> = new Set(NETWORK_FAILURE_CODES)
@@ -42,15 +43,29 @@ const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
     jitter: true,
     exponential: true
   },
+  filesystem_visibility: {
+    maxAttempts: 3,
+    baseDelayMs: 100,
+    maxDelayMs: 100,
+    jitter: false,
+    exponential: false
+  },
   runtime_subprocess_transient: {
     maxAttempts: 2,
     baseDelayMs: 1_000,
-    maxDelayMs: 5_000,
+    maxDelayMs: 1_000,
     jitter: false,
     exponential: false
   },
   runtime_http_read: {
     maxAttempts: 4,
+    baseDelayMs: 1_000,
+    maxDelayMs: 15_000,
+    jitter: true,
+    exponential: true
+  },
+  runtime_http_poll: {
+    maxAttempts: 6,
     baseDelayMs: 1_000,
     maxDelayMs: 15_000,
     jitter: true,
@@ -74,19 +89,8 @@ const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
 
 export const getRetryPolicyForClass = (retryClass: RetryClass): RetryPolicy => ({ ...RETRY_POLICIES[retryClass] })
 
-export const STT_POLL_RETRY_POLICY: Partial<RetryPolicy> = { maxAttempts: 6 }
-
-export const getSttStageRetryPolicy = (retryClass: RetryClass): Partial<RetryPolicy> | undefined =>
-  retryClass === 'runtime_http_read' ? STT_POLL_RETRY_POLICY : undefined
-
-export const URL_ARTICLE_RETRY_POLICY: Partial<RetryPolicy> = {
-  baseDelayMs: 2_000,
-  maxDelayMs: 10_000,
-  jitter: true,
-  exponential: true
-}
-
 export const isRetryableStatus = (status: number): boolean => {
+  if (status === 501 || status === 505) return false
   if (RETRYABLE_STATUSES.has(status)) return true
   return status >= 500
 }
@@ -99,14 +103,15 @@ export const parseRetryAfterMs = (headers: Headers | undefined): number | undefi
   if (!value) return undefined
 
   const seconds = Number(value)
-  if (!Number.isNaN(seconds)) {
-    return seconds * 1_000
+  if (Number.isFinite(seconds)) {
+    const delayMs = seconds * 1_000
+    return delayMs > 0 ? Math.min(delayMs, MAX_PROVIDER_RETRY_AFTER_MS) : undefined
   }
 
   const date = Date.parse(value)
   if (!Number.isNaN(date)) {
     const delayMs = date - Date.now()
-    return delayMs > 0 ? delayMs : undefined
+    return delayMs > 0 ? Math.min(delayMs, MAX_PROVIDER_RETRY_AFTER_MS) : undefined
   }
 
   return undefined
@@ -174,7 +179,7 @@ export const isTimeoutError = (error: unknown): boolean => {
   return false
 }
 
-const readRetrySignals = (error: unknown): RetrySignals => {
+export const readRetrySignals = (error: unknown): RetrySignals => {
   const metadata = extractErrorMetadata(error)
   return {
     status: typeof metadata['status'] === 'number' ? metadata['status'] : undefined,
@@ -201,11 +206,30 @@ const getWrappedRetryCause = (error: unknown): unknown => {
 }
 
 export const classifyPaidCreateRetry = (error: unknown): RetryDecision => {
-  const { status, headers } = readRetrySignals(error)
+  const { status, retryable, headers } = readRetrySignals(error)
+  if (retryable === false) {
+    return { shouldRetry: false, delayMs: 0, reasonCode: 'non_retryable_marked', reason: 'error marked non-retryable' }
+  }
+  if (isRetryExhaustedError(error)) {
+    return { shouldRetry: false, delayMs: 0, reasonCode: 'nested_exhaustion', reason: 'nested retry or polling exhaustion' }
+  }
+  if (isAbortError(error) || isTimeoutError(error) || isNetworkError(error)) {
+    return { shouldRetry: false, delayMs: 0, reasonCode: 'unsafe_paid_redispatch', reason: 'paid create outcome is ambiguous' }
+  }
+  const metadata = extractErrorMetadata(error)
+  if (metadata['admissionDisposition'] === 'rejected' && retryable === true) {
+    return {
+      shouldRetry: true,
+      delayMs: parseRetryAfterMs(headers) ?? 0,
+      reasonCode: 'provider_rejected_admission',
+      reason: 'provider explicitly rejected the admission as retryable'
+    }
+  }
   if (status !== 425 && status !== 429) {
     return {
       shouldRetry: false,
       delayMs: 0,
+      reasonCode: 'unsafe_paid_redispatch',
       reason: status === undefined
         ? 'paid create outcome is ambiguous'
         : `paid create status ${status} is not safe to redispatch`
@@ -215,6 +239,7 @@ export const classifyPaidCreateRetry = (error: unknown): RetryDecision => {
   return {
     shouldRetry: true,
     delayMs: parseRetryAfterMs(headers) ?? 0,
+    reasonCode: 'provider_rejected_admission',
     reason: `provider rejected paid create with retryable status ${status}`
   }
 }
@@ -223,27 +248,34 @@ export const classifyRetryFloor = (error: unknown): RetryDecision => {
   const { status, retryable, headers } = readRetrySignals(error)
 
   if (retryable === false) {
-    return { shouldRetry: false, delayMs: 0, reason: 'error marked non-retryable' }
+    return { shouldRetry: false, delayMs: 0, reasonCode: 'non_retryable_marked', reason: 'error marked non-retryable' }
   }
 
-  if (status !== undefined && NON_RETRYABLE_STATUSES.has(status)) {
-    return { shouldRetry: false, delayMs: 0, reason: `non-retryable status ${status}` }
+  if (isRetryExhaustedError(error)) {
+    return { shouldRetry: false, delayMs: 0, reasonCode: 'nested_exhaustion', reason: 'nested retry or polling exhaustion' }
+  }
+
+  if (status !== undefined && !isRetryableStatus(status)) {
+    return { shouldRetry: false, delayMs: 0, reasonCode: 'non_retryable_status', reason: `non-retryable status ${status}` }
   }
 
   const reason = error instanceof Error ? error.message : String(error)
   if (status !== undefined && isRetryableStatus(status)) {
-    return { shouldRetry: true, delayMs: parseRetryAfterMs(headers) ?? 0, reason: `retryable status ${status}` }
+    return { shouldRetry: true, delayMs: parseRetryAfterMs(headers) ?? 0, reasonCode: 'retryable_status', reason: `retryable status ${status}` }
   }
 
-  return { shouldRetry: true, delayMs: parseRetryAfterMs(headers) ?? 0, reason }
+  if (isAppError(error) && error.kind !== 'infrastructure' && error.kind !== 'provider_http') {
+    return { shouldRetry: false, delayMs: 0, reasonCode: 'classifier_refused', reason: `${error.kind} failures are not transient` }
+  }
+  return { shouldRetry: true, delayMs: parseRetryAfterMs(headers) ?? 0, reasonCode: 'unclassified_infrastructure', reason }
 }
 
 export const classifyFetchRetry = (
   error: unknown,
   retryClass: RetryClass
 ): RetryDecision => {
-  const noRetry = (reason: string): RetryDecision => ({ shouldRetry: false, delayMs: 0, reason })
-  const doRetry = (delayMs: number, reason: string): RetryDecision => ({ shouldRetry: true, delayMs, reason })
+  const noRetry = (reason: string, reasonCode: RetryReasonCode): RetryDecision => ({ shouldRetry: false, delayMs: 0, reason, reasonCode })
+  const doRetry = (delayMs: number, reason: string, reasonCode: RetryReasonCode): RetryDecision => ({ shouldRetry: true, delayMs, reason, reasonCode })
 
   if (retryClass === 'runtime_http_create_conservative') {
     return classifyPaidCreateRetry(error)
@@ -252,32 +284,39 @@ export const classifyFetchRetry = (
   const { status, retryable, headers } = readRetrySignals(error)
 
   if (retryable === false) {
-    return noRetry('error marked non-retryable')
+    return noRetry('error marked non-retryable', 'non_retryable_marked')
+  }
+
+  if (isRetryExhaustedError(error)) {
+    return noRetry('nested retry or polling exhaustion', 'nested_exhaustion')
   }
 
   if (status !== undefined) {
     if (NON_RETRYABLE_STATUSES.has(status)) {
-      return noRetry(`non-retryable status ${status}`)
+      return noRetry(`non-retryable status ${status}`, 'non_retryable_status')
     }
 
     if (isRetryableStatus(status)) {
-      return doRetry(parseRetryAfterMs(headers) ?? 0, `retryable status ${status}`)
+      return doRetry(parseRetryAfterMs(headers) ?? 0, `retryable status ${status}`, 'retryable_status')
     }
 
-    return noRetry(`unexpected status ${status}`)
+    return noRetry(`unexpected status ${status}`, 'non_retryable_status')
   }
 
   const retryCause = getWrappedRetryCause(error)
 
   if (isAbortError(retryCause) || isTimeoutError(retryCause)) {
-    return doRetry(0, 'abort/timeout')
+    return doRetry(0, 'abort/timeout', 'timeout')
   }
 
   if (isNetworkError(retryCause)) {
-    return doRetry(0, 'network error')
+    return doRetry(0, 'network error', 'network_error')
   }
 
-  return doRetry(0, 'unclassified error')
+  if (isAppError(retryCause) && retryCause.kind !== 'infrastructure' && retryCause.kind !== 'provider_http') {
+    return noRetry(`${retryCause.kind} failures are not transient`, 'classifier_refused')
+  }
+  return doRetry(0, 'unclassified infrastructure error', 'unclassified_infrastructure')
 }
 
 const getRetryPolicy = (retryClass: RetryClass, overrides?: Partial<RetryPolicy>): RetryPolicy => {
@@ -344,31 +383,12 @@ const resolveAttemptSignal = (
   return timeoutSignal ?? abortSignal
 }
 
-const toErrorCause = (error: unknown): Error => {
-  if (error instanceof Error) {
-    return error
-  }
-  return new Error(error === undefined ? 'Unknown retry failure' : String(error))
-}
-
-export const buildRetryAttemptTable = (
-  summary: RetryAttemptLog
-): HumanLogTable =>
-  createKeyValueTable([
-    ['operation', summary.operation],
-    ['attempt', summary.attempt],
-    ['maxAttempts', summary.maxAttempts],
-    ['reason', summary.reason],
-    ['delayMs', summary.delayMs]
-  ])
-
 export const logRetryAttempt = (
   summary: RetryAttemptLog,
   metadata: Record<string, unknown> = {}
 ): void => {
-  l.write('warn', 'Retry Attempt', {
-    category: 'pipeline',
-    humanTable: buildRetryAttemptTable(summary),
+  l.write('warn', `Retrying ${summary.operation} in ${summary.delayMs}ms after attempt ${summary.failedAttempt}/${summary.maxAttempts}: ${summary.reason}`, {
+    category: 'retry',
     metadata: {
       ...summary,
       ...metadata
@@ -398,6 +418,7 @@ export const withRetry = async <T>(
   let retried = false
   let attemptsMade = 0
   let stopReason = 'max attempts reached'
+  let stopReasonCode: RetryReasonCode = 'max_attempts'
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     ctx.abortSignal?.throwIfAborted()
@@ -409,8 +430,14 @@ export const withRetry = async <T>(
       lastError = error
       attemptsMade = attempt + 1
 
-      const decision = decide(error)
-      if (decision.shouldRetry && readRetrySignals(error).status === 429 && typeof ctx.rateLimitMaxAttempts === 'number' && Number.isFinite(ctx.rateLimitMaxAttempts)) {
+      const retrySignals = readRetrySignals(error)
+      const classifiedDecision = decide(error)
+      const decision: RetryDecision = retrySignals.retryable === false
+        ? { shouldRetry: false, delayMs: 0, reason: 'error is explicitly non-retryable', reasonCode: 'non_retryable_marked' }
+        : isRetryExhaustedError(error)
+          ? { shouldRetry: false, delayMs: 0, reason: 'nested retry exhaustion is terminal', reasonCode: 'nested_exhaustion' }
+          : classifiedDecision
+      if (decision.shouldRetry && retrySignals.status === 429 && typeof ctx.rateLimitMaxAttempts === 'number' && Number.isFinite(ctx.rateLimitMaxAttempts)) {
         maxAttempts = Math.max(maxAttempts, Math.max(1, Math.floor(ctx.rateLimitMaxAttempts)))
       }
 
@@ -419,25 +446,45 @@ export const withRetry = async <T>(
           throw error
         }
         stopReason = decision.reason
+        stopReasonCode = decision.reasonCode ?? 'classifier_refused'
         break
       }
 
       const isLastAttempt = attempt >= maxAttempts - 1
       if (isLastAttempt && ctx.retryHookCanExtendAttempts !== true) {
         stopReason = 'max attempts reached'
+        stopReasonCode = 'max_attempts'
         break
       }
 
       const retryDelayHandled = await ctx.onRetryAttempt?.(error, decision) === true
+      const reasonCode = decision.reasonCode ?? 'unclassified_infrastructure'
+      const attemptMetadata = {
+        retryClass: ctx.retryClass,
+        stage: typeof extractErrorMetadata(error)['stage'] === 'string' ? extractErrorMetadata(error)['stage'] : ctx.operationName,
+        status: readRetrySignals(error).status,
+        cause: serializeDiagnosticError(error),
+        ...ctx.retryLogMetadata?.(error)
+      }
 
       if (retryDelayHandled) {
         retried = true
         maxAttempts = Math.max(maxAttempts, attempt + 2)
+        logRetryAttempt({
+          operation: ctx.operationName,
+          failedAttempt: attempt + 1,
+          nextAttempt: attempt + 2,
+          maxAttempts,
+          reason: decision.reason,
+          reasonCode,
+          delayMs: Math.max(0, Math.round(decision.delayMs))
+        }, attemptMetadata)
         continue
       }
 
       if (isLastAttempt) {
         stopReason = 'max attempts reached'
+        stopReasonCode = 'max_attempts'
         break
       }
 
@@ -445,11 +492,13 @@ export const withRetry = async <T>(
         retried = true
         logRetryAttempt({
           operation: ctx.operationName,
-          attempt: attempt + 1,
+          failedAttempt: attempt + 1,
+          nextAttempt: attempt + 2,
           maxAttempts,
           reason: decision.reason,
+          reasonCode,
           delayMs: decision.delayMs
-        }, { retryClass: ctx.retryClass, ...ctx.retryLogMetadata?.(error) })
+        }, attemptMetadata)
         await sleepWithAbortSignal(decision.delayMs, ctx.abortSignal)
         continue
       }
@@ -458,11 +507,13 @@ export const withRetry = async <T>(
       const delay = computeDelay(attempt, policy.baseDelayMs, policy.maxDelayMs, policy.exponential, policy.jitter)
       logRetryAttempt({
         operation: ctx.operationName,
-        attempt: attempt + 1,
+        failedAttempt: attempt + 1,
+        nextAttempt: attempt + 2,
         maxAttempts,
         reason: decision.reason,
+        reasonCode,
         delayMs: Math.round(delay)
-      }, { retryClass: ctx.retryClass, ...ctx.retryLogMetadata?.(error) })
+      }, attemptMetadata)
       await sleepWithAbortSignal(delay, ctx.abortSignal)
     }
   }
@@ -473,23 +524,32 @@ export const withRetry = async <T>(
   const headers = metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
   const stage = typeof metadata['stage'] === 'string' ? metadata['stage'] : undefined
   const retryable = typeof metadata['retryable'] === 'boolean' ? metadata['retryable'] : undefined
-  const retryClass = typeof metadata['retryClass'] === 'string' ? metadata['retryClass'] as RetryClass : ctx.retryClass
+  const {
+    status: _causeStatus,
+    headers: _causeHeaders,
+    stage: _causeStage,
+    retryable: _causeRetryable,
+    retryClass: _causeRetryClass,
+    ...causeMetadata
+  } = metadata
 
   throw new AppError(formatRetryExhaustedMessage(ctx.operationName, attemptsMade, maxAttempts, stopReason, elapsed), {
     kind: 'retry_exhausted',
-    cause: toErrorCause(lastError),
-    retryClass,
+    cause: lastError,
+    retryClass: ctx.retryClass,
     ...(typeof status === 'number' ? { status } : {}),
     ...(headers ? { headers } : {}),
-    ...(stage ? { stage } : {}),
-    ...(typeof retryable === 'boolean' ? { retryable } : {}),
+    stage: stage ?? ctx.operationName,
+    retryable: false,
     metadata: {
-      ...metadata,
+      ...causeMetadata,
       attemptsMade,
       maxAttempts,
       elapsedMs: elapsed,
       stopReason,
-      retryClass
+      stopReasonCode,
+      retryClass: ctx.retryClass,
+      ...(typeof retryable === 'boolean' ? { causeRetryable: retryable } : {})
     }
   })
 }
@@ -522,6 +582,8 @@ const throwPollExhausted = (
   throw new AppError(formatRetryExhaustedMessage(operationName, pollCount, maxAttempts, stopReason, elapsedMs), {
     kind: 'retry_exhausted',
     stage: operationName,
+    retryClass: 'runtime_http_poll',
+    retryable: false,
     metadata: {
       operationName,
       deadlineMs,
@@ -529,6 +591,8 @@ const throwPollExhausted = (
       maxAttempts,
       elapsedMs,
       stopReason,
+      stopReasonCode: stopReason === 'max polls reached' ? 'max_attempts' : 'classifier_refused',
+      retryClass: 'runtime_http_poll',
       pollCount,
       ...(lastPoll ? { lastPoll } : {})
     }

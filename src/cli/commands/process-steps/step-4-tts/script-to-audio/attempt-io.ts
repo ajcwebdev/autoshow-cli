@@ -155,7 +155,7 @@ export const readVerifiedJson = async <T>(rootDir: string, path: string, expecte
   try {
     retained = await readContainedArtifactFile(rootDir, contained(rootDir, path))
   } catch (error) {
-    throw UsageError(`${label} could not be read as a contained regular artifact: ${error instanceof Error ? error.message : String(error)}`, undefined, error instanceof Error ? { cause: error } : {})
+    throw UsageError(`${label} could not be read as a contained regular artifact: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
   }
   if (retained.sha256 !== expectedSha256) throw UsageError(`${label} checksum does not match retained canonical evidence.`)
   try {

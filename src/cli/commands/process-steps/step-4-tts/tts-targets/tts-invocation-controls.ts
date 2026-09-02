@@ -11,8 +11,6 @@ import type {
 import {
   validateElevenLabsTtsTextNormalization,
   validateGrokTtsLanguage,
-  validateMinimaxTtsEmotion,
-  validateMinimaxTtsLanguageBoost,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { UsageError } from '~/utils/error-handler'
 
@@ -33,15 +31,6 @@ const CONTROL_SPECS = {
     seed: { kind: 'number', min: 0, max: 4_294_967_295, integer: true },
     textNormalization: { kind: 'string', normalize: validateElevenLabsTtsTextNormalization },
     pronunciationDictionaryLocators: { kind: 'string-array' },
-  },
-  minimax: {
-    languageBoost: { kind: 'string', normalize: validateMinimaxTtsLanguageBoost },
-    speed: { kind: 'number', min: 0.5, max: 2 },
-    volume: { kind: 'number', min: 0, max: 10, exclusiveMin: true },
-    pitch: { kind: 'number', min: -12, max: 12, integer: true },
-    emotion: { kind: 'string', normalize: validateMinimaxTtsEmotion },
-    englishNormalization: { kind: 'boolean' },
-    pronunciations: { kind: 'string-array' },
   },
   grok: {
     language: { kind: 'string', normalize: validateGrokTtsLanguage },

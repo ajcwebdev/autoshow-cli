@@ -42,8 +42,7 @@ export const ocrImage = async (
     env: {
       OMP_THREAD_LIMIT: '2',
       TESSDATA_PREFIX: resolveTessdataPrefix()
-    },
-    retry: { operationName: 'Tesseract OCR' }
+    }
   })
   if (result.exitCode !== 0) {
     throw InfraError(result.stderr || `OCR failed for ${imagePath}`, { stage: 'ocr:tesseract' })

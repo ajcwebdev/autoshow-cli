@@ -11,7 +11,9 @@ import type {
   PipelineProviderState,
   ProcessCommand
 } from '~/types'
-import { UsageError } from '~/utils/error-handler'
+import { InfraError, isRetryExhaustedError, UsageError } from '~/utils/error-handler'
+import { withRetry } from '~/utils/retries'
+import * as l from '~/utils/app-logger/app-logger'
 import { writeFileExact } from '~/utils/bun-file-io'
 import { isRecord } from '~/utils/rest-client'
 import {
@@ -51,7 +53,7 @@ const readManifestUnlocked = async (
   try {
     raw = await Bun.file(manifestPath).json() as unknown
   } catch (error) {
-    throw UsageError(`Malformed canonical manifest at ${manifestPath}: ${error instanceof Error ? error.message : String(error)}`, undefined, error instanceof Error ? { cause: error } : {})
+    throw UsageError(`Malformed canonical manifest at ${manifestPath}: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
   }
   const manifest = parseManifest(rootDir, raw)
   if (!manifest) throw invalidManifestError(manifestPath, 'structure')
@@ -70,15 +72,36 @@ const verifyManifestProjectionArtifactsForWrite = async (
   previous?: PipelineManifest | undefined,
   updateOnly = false
 ): Promise<boolean> => {
-  const maxAttempts = hasConcurrentProviderWork(manifest) ? 3 : 1
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const valid = updateOnly && previous
-      ? await verifyManifestUpdateProjectionArtifacts(rootDir, previous, manifest)
-      : await verifyManifestProjectionArtifacts(rootDir, manifest)
-    if (valid) return true
-    if (attempt < maxAttempts) await Bun.sleep(100)
+  const verify = async (): Promise<boolean> => updateOnly && previous
+    ? await verifyManifestUpdateProjectionArtifacts(rootDir, previous, manifest)
+    : await verifyManifestProjectionArtifacts(rootDir, manifest)
+  if (!hasConcurrentProviderWork(manifest)) return await verify()
+  try {
+    return await withRetry({
+      retryClass: 'filesystem_visibility',
+      operationName: 'manifest-artifact-visibility',
+      retryLogMetadata: () => ({ rootDir })
+    }, async () => {
+      if (await verify()) return true
+      throw InfraError('Manifest projection artifacts are not visible yet', {
+        stage: 'manifest:artifact-visibility',
+        retryable: true,
+        metadata: { rootDir }
+      })
+    }, () => ({
+      shouldRetry: true,
+      delayMs: 0,
+      reasonCode: 'filesystem_not_visible',
+      reason: 'manifest projection artifacts are not visible yet'
+    }))
+  } catch (error) {
+    if (!isRetryExhaustedError(error)) throw error
+    l.warn('Manifest projection artifacts remained unavailable after local visibility checks', {
+      category: 'runtime',
+      metadata: { rootDir, handledRetryExhaustion: true }
+    })
+    return false
   }
-  return false
 }
 
 const manifestQueues = new Map<string, Promise<void>>()

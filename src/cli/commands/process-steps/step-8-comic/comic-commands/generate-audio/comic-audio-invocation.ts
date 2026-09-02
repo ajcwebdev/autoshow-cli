@@ -85,7 +85,6 @@ const withoutInheritedVoiceSelection = (options: TtsOptions): TtsOptions => ({
   mistralTtsVoice: undefined,
   openaiVoiceId: undefined,
   elevenlabsVoiceId: undefined,
-  minimaxTtsVoice: undefined,
   speechifyVoice: undefined,
   humeTtsVoice: undefined,
   cartesiaTtsVoice: undefined,
@@ -128,7 +127,7 @@ export const resolveComicAudioInvocation = async (ctx: CliCommandContext, script
   const baseOptions = withoutInheritedVoiceSelection(buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences, scope: 'tts' }) as TtsOptions)
   baseOptions.ttsAllowAmbiguousRedispatch = allowAmbiguousRedispatch
   baseOptions.ttsMaxGenerationSlots = maxGenerationSlots
-  if (allowAmbiguousRedispatch) l.write('warn', 'Ambiguous TTS redispatch is explicitly authorized for this run; a provider-admitted slot without retained audio may be purchased again.', { category: 'tts' })
+  if (allowAmbiguousRedispatch) l.write('warn', 'Ambiguous TTS redispatch is explicitly authorized for this run; a provider-admitted slot without retained audio may be purchased again.', { category: 'pipeline' })
   const compatible = await resolveCompatibleComicSceneRun({ scriptPath })
   await assertProtectedStoreOutputDisjoint(compatible.sceneRunDir, MANAGED_VOICE_STORE_ROOT)
   const dialoguePlan = createComicDialoguePlan({

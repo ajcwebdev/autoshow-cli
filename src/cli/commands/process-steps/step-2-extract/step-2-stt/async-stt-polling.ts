@@ -1,6 +1,6 @@
 import { pollUntil } from '~/utils/retries'
 import type { AsyncSttPoll, AsyncSttPollLoopOptions, PollStats, RetryClass } from '~/types'
-import { AppError, extractErrorMetadata, InfraError, isRetryExhaustedError, ProviderError } from '~/utils/error-handler'
+import { annotateAppError, AppError, extractErrorMetadata, InfraError, isRetryExhaustedError } from '~/utils/error-handler'
 
 export const DEFAULT_POLL_DEADLINE_MS = 10 * 60 * 1000
 
@@ -84,34 +84,32 @@ export const pollAsyncSttJobUntilComplete = async <TStatus>(
   }
 }
 
-export const attachAsyncSttErrorContext = <TError extends Error & { stage?: string, retryClass?: RetryClass }>(
+export const attachAsyncSttErrorContext = (
   error: unknown,
   stage: string,
   retryClass: RetryClass
 ): never => {
-  if (error instanceof Error && error.cause instanceof Error) {
-    ;(error.cause as unknown as TError).stage = stage
-    ;(error.cause as unknown as TError).retryClass = retryClass
-    throw error.cause
-  }
-
-  const source = error instanceof Error ? error : ProviderError(String(error))
-  ;(source as unknown as TError).stage = stage
-  ;(source as unknown as TError).retryClass = retryClass
-  throw source
+  throw annotateAppError(error, {
+    kind: 'provider_http',
+    stage,
+    retryClass,
+    metadata: { stage, retryClass }
+  })
 }
 
-export const attachAsyncSttValidationContext = <TError extends Error & { stage?: string, retryClass?: RetryClass, rawResponse?: unknown }>(
+export const attachAsyncSttValidationContext = (
   error: unknown,
   stage: string,
   retryClass: RetryClass,
   rawResponse: unknown
 ): never => {
-  const source = error instanceof Error ? error : ProviderError(String(error))
-  ;(source as unknown as TError).stage = stage
-  ;(source as unknown as TError).retryClass = retryClass
-  ;(source as unknown as TError).rawResponse = rawResponse
-  throw source
+  throw annotateAppError(error, {
+    kind: 'validation',
+    stage,
+    retryClass,
+    retryable: false,
+    metadata: { stage, retryClass, rawResponse }
+  })
 }
 
 export const buildAsyncSttPollingDeadlineError = (
@@ -125,14 +123,15 @@ export const buildAsyncSttPollingDeadlineError = (
     {
       kind: 'retry_exhausted',
       stage: 'poll',
-      retryClass: 'runtime_http_read' satisfies RetryClass,
-      retryable: true,
+      retryClass: 'runtime_http_poll' satisfies RetryClass,
+      retryable: false,
       ...(cause instanceof Error ? { cause } : {}),
       metadata: {
         provider,
         jobId,
         deadlineMs: pollDeadlineMs,
         stopReason: 'deadline exceeded',
+        stopReasonCode: 'classifier_refused',
         ...extractErrorMetadata(cause)
       }
     }
@@ -152,8 +151,8 @@ export const buildAsyncSttResumeProbeError = (
     {
       kind: 'retry_exhausted',
       stage: 'poll',
-      retryClass: 'runtime_http_read' satisfies RetryClass,
-      retryable: true,
+      retryClass: 'runtime_http_poll' satisfies RetryClass,
+      retryable: false,
       ...(cause instanceof Error ? { cause } : {}),
       metadata: {
         provider,
@@ -161,6 +160,7 @@ export const buildAsyncSttResumeProbeError = (
         probeCount,
         totalWaitMs,
         stopReason: 'resume probes exhausted',
+        stopReasonCode: 'max_attempts',
         ...extractErrorMetadata(cause)
       }
     }

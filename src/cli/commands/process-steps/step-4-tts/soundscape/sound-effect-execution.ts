@@ -1,8 +1,8 @@
 import { mkdir, readFile, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CacheEntry, CompactSfx, CompactSfxEntry, HostedConcurrencyCoordinator, PersistedSoundEffectResponse, SoundEffectAdapter, SoundEffectAdmissionStarted, SoundEffectAdmissionTerminal, SoundEffectGenerationResponse, SoundEffectLicenseUse, SoundEffectRenderPlan, SoundEffectRenderResult, SoundEffectRenderResultEntry, SoundEffectRenderTask, SoundEffectTarget, SoundscapePlan } from '~/types'
-import { AppError, UsageError, hasErrorCode } from '~/utils/error-handler'
-import { formatRetryExhaustedMessage, getRetryPolicyForClass, logRetryAttempt, sleepWithAbortSignal } from '~/utils/retries'
+import { UsageError, hasErrorCode } from '~/utils/error-handler'
+import { classifyPaidCreateRetry, withRetry } from '~/utils/retries'
 import { RUNTIME_DIR } from '~/utils/runtime-paths'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { isMissingArtifactError, readContainedArtifactFile, removeContainedDirectory, writeImmutableArtifactFile, writeReplaceableArtifactFile } from '../script-to-audio/safe-artifact-store'
@@ -361,21 +361,17 @@ const compactSucceededSoundEffectRender = async (rootDir: string, plan: SoundEff
   return { compact, ref: { path: written.relativePath, sha256: written.sha256 } }
 }
 
-const SOUND_EFFECT_REDISPATCH_POLICY = getRetryPolicyForClass('runtime_http_create_conservative')
-
 export const executeSoundEffectRenderPlan = async (input: {
   rootDir: string
   plan: SoundEffectRenderPlan
   adapter: SoundEffectAdapter
   concurrency?: number | undefined
   cancellation?: AbortSignal | undefined
-  maxAttempts?: number | undefined
   hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
 }): Promise<{ result: SoundEffectRenderResult, ref: { path: string, sha256: string }, compact?: CompactSfx | undefined }> => {
   validatePlan(input.plan)
   const cancellation = input.cancellation ?? new AbortController().signal
   const concurrency = Math.max(1, Math.min(input.concurrency ?? 2, 8, input.plan.tasks.length || 1))
-  const maxAttempts = Math.max(1, Math.min(input.maxAttempts ?? 3, 5))
   const entries = new Array<SoundEffectRenderResultEntry>(input.plan.tasks.length)
   let next = 0
   let canceled = false
@@ -395,88 +391,51 @@ export const executeSoundEffectRenderPlan = async (input: {
         if (retainedAdmission.blocker) throw UsageError(retainedAdmission.blocker)
         let response = retainedAdmission.recovered
         let resultSource: SoundEffectRenderResultEntry['source'] = response ? 'resume' : 'provider-dispatch'
-        let lastError: unknown
-        let retriedDispatch = false
-        let dispatchAttempts = 0
         let nextRequestOrdinal = retainedAdmission.nextOrdinal
         if (!response) {
           if (input.plan.target.provider === 'replicate') assertAudioGenDispatchEligible(input.plan.target.capabilityFixture)
-          for (let attempt = 1; ; attempt++) {
-            cancellation.throwIfAborted()
-            try {
-              const dispatch = async (): Promise<SoundEffectGenerationResponse> => {
-                const ordinal = nextRequestOrdinal++
-                await writeAdmissionStarted(input.rootDir, input.plan, task, ordinal)
-                try {
-                  const generated = await input.adapter.generate(task, input.plan.target, ordinal, cancellation)
-                  await writeAdmissionTerminal(input.rootDir, input.plan, task, ordinal, 'provider-succeeded', { response: generated })
-                  return generated
-                } catch (error) {
-                  const disposition = error instanceof SoundEffectProviderError ? error.admissionDisposition : 'ambiguous'
-                  await writeAdmissionTerminal(input.rootDir, input.plan, task, ordinal, disposition, { reason: sanitizeFailure(error) })
-                  throw error
-                }
-              }
-              response = input.hostedConcurrencyCoordinator
-                ? await runHostedConcurrencyRequest({
-                    coordinator: input.hostedConcurrencyCoordinator,
-                    admission: {
-                      provider: input.plan.target.provider,
-                      workClass: 'sound-effect',
-                      configuredLimit: concurrency,
-                      workId: input.plan.renderPlanId,
-                      unitIndex: index,
-                      context: { taskId: task.taskId },
-                      abortSignal: cancellation
-                    },
-                    classifyPressure: error => error instanceof SoundEffectProviderError && error.admissionDisposition === 'rejected'
-                      ? classifyHostedRateLimitPressure(error)
-                      : undefined
-                  }, async () => await dispatch())
-                : await dispatch()
-              break
-            } catch (error) {
-              lastError = error
-              const disposition = error instanceof SoundEffectProviderError ? error.admissionDisposition : 'ambiguous'
-              if (!(error instanceof SoundEffectProviderError) || !error.retryable || disposition !== 'rejected' || attempt >= maxAttempts) break
-
-              const delayMs = Math.round(SOUND_EFFECT_REDISPATCH_POLICY.baseDelayMs * Math.pow(2, attempt - 1))
-              retriedDispatch = true
-              dispatchAttempts = attempt
-              logRetryAttempt({
-                operation: `sound-effect-dispatch-${task.taskId}`,
-                attempt,
-                maxAttempts,
-                reason: 'provider rejected the paid create',
-                delayMs
-              }, {
-                retryClass: 'runtime_http_create_conservative',
-                provider: input.plan.target.provider,
-                taskId: task.taskId,
-                renderPlanId: input.plan.renderPlanId
-              })
-              await sleepWithAbortSignal(Math.min(delayMs, SOUND_EFFECT_REDISPATCH_POLICY.maxDelayMs), cancellation)
-            }
-          }
-        }
-        if (!response) {
-          if (!retriedDispatch) throw lastError ?? UsageError('Sound-effect provider returned no response.')
-          throw new AppError(
-            formatRetryExhaustedMessage(`sound-effect-dispatch-${task.taskId}`, dispatchAttempts, maxAttempts, 'max attempts reached', 0),
-            {
-              kind: 'retry_exhausted',
-              stage: 'soundscape:sound-effect',
-              retryClass: 'runtime_http_create_conservative',
-              ...(lastError instanceof Error ? { cause: lastError } : {}),
-              metadata: {
-                taskId: task.taskId,
-                renderPlanId: input.plan.renderPlanId,
-                attemptsMade: dispatchAttempts,
-                maxAttempts,
-                stopReason: 'max attempts reached'
+          response = await withRetry({
+            operationName: `sound-effect-dispatch-${task.taskId}`,
+            retryClass: 'runtime_http_create_conservative',
+            abortSignal: cancellation,
+            retryLogMetadata: () => ({
+              provider: input.plan.target.provider,
+              taskId: task.taskId,
+              renderPlanId: input.plan.renderPlanId,
+              workIdentity: task.requestIdentity
+            })
+          }, async () => {
+            const dispatch = async (): Promise<SoundEffectGenerationResponse> => {
+              const ordinal = nextRequestOrdinal++
+              await writeAdmissionStarted(input.rootDir, input.plan, task, ordinal)
+              try {
+                const generated = await input.adapter.generate(task, input.plan.target, ordinal, cancellation)
+                await writeAdmissionTerminal(input.rootDir, input.plan, task, ordinal, 'provider-succeeded', { response: generated })
+                return generated
+              } catch (error) {
+                const disposition = error instanceof SoundEffectProviderError ? error.admissionDisposition : 'ambiguous'
+                await writeAdmissionTerminal(input.rootDir, input.plan, task, ordinal, disposition, { reason: sanitizeFailure(error) })
+                throw error
               }
             }
-          )
+            return input.hostedConcurrencyCoordinator
+              ? await runHostedConcurrencyRequest({
+                  coordinator: input.hostedConcurrencyCoordinator,
+                  admission: {
+                    provider: input.plan.target.provider,
+                    workClass: 'sound-effect',
+                    configuredLimit: concurrency,
+                    workId: input.plan.renderPlanId,
+                    unitIndex: index,
+                    context: { taskId: task.taskId },
+                    abortSignal: cancellation
+                  },
+                  classifyPressure: error => error instanceof SoundEffectProviderError && error.admissionDisposition === 'rejected'
+                    ? classifyHostedRateLimitPressure(error)
+                    : undefined
+                }, async () => await dispatch())
+              : await dispatch()
+          }, classifyPaidCreateRetry)
         }
         const temporaryRoot = join(input.rootDir, 'audio', 'sound-effects', `.work-${crypto.randomUUID()}`)
         const temporary = join(temporaryRoot, `${task.requestIdentity}.audio`)

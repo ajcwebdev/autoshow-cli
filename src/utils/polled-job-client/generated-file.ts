@@ -1,6 +1,6 @@
 import { InfraError } from '~/utils/error-handler'
 import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
-import { httpResponseError } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 
 export const downloadGeneratedFile = async (options: {
@@ -37,11 +37,12 @@ export const downloadGeneratedFile = async (options: {
   )
 
 export const imageDownloadHttpError = (message: string, response: Response): Error =>
-  httpResponseError(message, response, {
+  httpResponseError(message, httpResponseOptions(response, {
     stage: 'result-download',
     retryClass: 'runtime_http_read',
-    retryable: isRetryableStatus(response.status)
-  })
+    retryable: isRetryableStatus(response.status),
+    metadata: {}
+  }))
 
 export const downloadGeneratedImage = async (options: {
   url: string
@@ -75,5 +76,10 @@ export const downloadGeneratedVideo = async (
   await downloadGeneratedFile({
     url: videoUrl,
     operationName: `${providerLabel.toLowerCase()}-video-download`,
-    errorFactory: (response) => httpResponseError(`${providerLabel} video download failed (${response.status})`, response)
+    errorFactory: (response) => httpResponseError(`${providerLabel} video download failed (${response.status})`, httpResponseOptions(response, {
+      stage: 'result-download',
+      retryClass: 'runtime_http_read',
+      retryable: isRetryableStatus(response.status),
+      metadata: { provider: providerLabel }
+    }))
   })

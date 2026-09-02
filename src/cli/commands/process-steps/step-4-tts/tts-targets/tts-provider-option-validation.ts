@@ -8,16 +8,6 @@ const requireProviderSelectionMessage = (
 ): string =>
   `${label} ${detail} require selecting ${provider} TTS with --provider/--tts ${provider}[=model] or an all-provider TTS run.`
 
-const hasMinimaxControls = (selection: TtsTargetSelection): boolean => Boolean(
-  selection.minimaxLanguageBoost
-  || typeof selection.minimaxSpeed === 'number'
-  || typeof selection.minimaxVolume === 'number'
-  || typeof selection.minimaxPitch === 'number'
-  || selection.minimaxEmotion
-  || selection.minimaxEnglishNormalization
-  || (selection.minimaxPronunciations && selection.minimaxPronunciations.length > 0)
-)
-
 const hasElevenLabsControls = (selection: TtsTargetSelection): boolean => Boolean(
   selection.elevenLabsLanguageCode
   || typeof selection.elevenLabsStability === 'number'
@@ -32,7 +22,6 @@ const hasElevenLabsControls = (selection: TtsTargetSelection): boolean => Boolea
 
 const validateRequiredProviderSelections = (selection: TtsTargetSelection): void => {
   const requirements = [
-    { enabled: hasMinimaxControls(selection), models: selection.minimaxModels, label: 'MiniMax TTS', provider: 'minimax', detail: 'request control flags' },
     { enabled: Boolean(selection.openaiInstructions || typeof selection.openaiSpeed === 'number'), models: selection.openaiModels, label: 'OpenAI TTS', provider: 'openai', detail: 'request control flags' },
     { enabled: Boolean(selection.inworldInstructions), models: selection.inworldModels, label: 'Inworld TTS', provider: 'inworld', detail: 'request control flags' },
     { enabled: Boolean(selection.grokLanguage || selection.grokTextNormalization), models: selection.grokModels, label: 'Grok TTS', provider: 'grok', detail: 'request control flags' },

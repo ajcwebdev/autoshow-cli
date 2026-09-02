@@ -8,7 +8,7 @@ import type { ElevenlabsTtsModel, ElevenLabsTtsRequestControls, ElevenLabsTtsVoi
 import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { ValidationError } from '~/utils/error-handler'
-import { httpResponseError } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 
 const parsePronunciationDictionaryLocator = (
@@ -132,7 +132,9 @@ export const runElevenLabsTts = async (
 
       if (!response.ok) {
         const errText = await readElevenLabsError(response)
-        throw httpResponseError(`ElevenLabs TTS failed (${response.status}): ${errText}`, response)
+        throw httpResponseError(`ElevenLabs TTS failed (${response.status}): ${errText}`, httpResponseOptions(response, {
+          stage: 'tts:elevenlabs', retryClass: 'runtime_http_create_conservative', retryable: response.status === 425 || response.status === 429, metadata: { provider: 'elevenlabs' }
+        }))
       }
       await accepted({ fields: { httpStatus: response.status } })
       return new Uint8Array(await response.arrayBuffer())

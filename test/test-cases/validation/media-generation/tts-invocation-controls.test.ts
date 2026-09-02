@@ -52,7 +52,7 @@ describe('per-turn TTS invocation controls', () => {
     const controls = normalizeTtsTurnControls({
       'dialogue-turn-001': {
         openai: { speed: 0.8 },
-        minimax: { pronunciations: ['AutoShow/Auto Show'] }
+        elevenlabs: { pronunciationDictionaryLocators: ['dictionary-id:version-id'] }
       },
       'dialogue-turn-002': {
         openai: { speed: 1.2 }
@@ -62,8 +62,8 @@ describe('per-turn TTS invocation controls', () => {
     expect(controls).toBeDefined()
     expect(Object.isFrozen(controls)).toBe(true)
     expect(Object.isFrozen(controls?.['dialogue-turn-001'])).toBe(true)
-    expect(Object.isFrozen(controls?.['dialogue-turn-001']?.minimax)).toBe(true)
-    expect(Object.isFrozen(controls?.['dialogue-turn-001']?.minimax?.['pronunciations'])).toBe(true)
+    expect(Object.isFrozen(controls?.['dialogue-turn-001']?.elevenlabs)).toBe(true)
+    expect(Object.isFrozen(controls?.['dialogue-turn-001']?.elevenlabs?.['pronunciationDictionaryLocators'])).toBe(true)
     expect(resolveTtsTurnControlOverrides('openai', 'dialogue-turn-002', controls)).toEqual({ speed: 1.2 })
 
     expect(() => normalizeTtsTurnControls({

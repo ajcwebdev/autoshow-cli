@@ -1,4 +1,3 @@
-import * as l from '~/utils/app-logger/app-logger'
 import { mkdir } from 'node:fs/promises'
 import type { FalImageFile, FalImageModel, FalImageOutput, Step5Metadata } from '~/types'
 import { UsageError, InfraError } from '~/utils/error-handler'
@@ -119,7 +118,7 @@ export const runFalImageGen = async (prompt: string, outputDir: string, options:
   const request = await buildRequest(prompt, { ...options, inputs: options.inputs ?? [] })
   const estimate = estimateImageCosts({ falImageModels: [options.model], imageCount: request.count, imageSize: request.metadataSize ?? options.imageSize })[0]
   if (estimate) logImageEstimate(estimate)
-  logMediaGenerationStatus(l, { mediaType: 'image', provider: 'fal', model: options.model, status: 'started', detail: request.mode })
+  logMediaGenerationStatus( { mediaType: 'image', provider: 'fal', model: options.model, status: 'started', detail: request.mode })
   const startTime = Date.now()
   await mkdir(outputDir, { recursive: true })
   const result = await runFalQueue<FalImageOutput>({
@@ -128,7 +127,7 @@ export const runFalImageGen = async (prompt: string, outputDir: string, options:
     input: request.input,
     pollIntervalMs: options.pollIntervalMs,
     operationName: 'fal-image-gen',
-    onStatus: status => logMediaGenerationStatus(l, { mediaType: 'image', provider: 'fal', model: options.model, status: status.status })
+    onStatus: status => logMediaGenerationStatus( { mediaType: 'image', provider: 'fal', model: options.model, status: status.status })
   })
   if (!Array.isArray(result.output.images)) throw InfraError('fal.ai image generation completed without images', { stage: 'image:fal' })
   const files = result.output.images.filter((value): value is FalImageFile => Boolean(value) && typeof value === 'object' && typeof (value as FalImageFile).url === 'string')
@@ -137,7 +136,7 @@ export const runFalImageGen = async (prompt: string, outputDir: string, options:
   const imagePaths = await Promise.all(files.map(async (file, index) => await downloadImageUrl(file.url as string, outputDir, index, extension)))
   const processingTime = Date.now() - startTime
   const outputDimensions = request.metadataSize?.split('x').map(Number)
-  logMediaGenerationStatus(l, { mediaType: 'image', provider: 'fal', model: options.model, status: 'completed', processingTimeMs: processingTime, outputCount: imagePaths.length, artifacts: imagePaths.map((path, index) => ({ artifact: index ? `image ${index + 1}` : 'image', path })) })
+  logMediaGenerationStatus( { mediaType: 'image', provider: 'fal', model: options.model, status: 'completed', processingTimeMs: processingTime, outputCount: imagePaths.length, artifacts: imagePaths.map((path, index) => ({ artifact: index ? `image ${index + 1}` : 'image', path })) })
   return {
     imagePaths,
     metadata: {

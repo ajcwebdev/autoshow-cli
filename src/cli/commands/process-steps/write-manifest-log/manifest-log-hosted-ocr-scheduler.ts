@@ -1,10 +1,7 @@
 import { isRecord } from '~/utils/rest-client'
 import type { HostedOcrSchedulerLaneTelemetry, HostedOcrSchedulerSection, HostedOcrSchedulerTargetTelemetry, WriteManifestMetadata } from '~/types'
-import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import { formatDuration } from '~/utils/app-logger/formatters'
 import { buildProviderModelLabel } from './manifest-log-formatting'
-
-const HOSTED_OCR_SCHEDULER_COLUMNS = ['lane', 'status', 'cap', 'capSource', 'peak', 'retryPressure', 'pause', 'pagesPerMinute', 'targetShare'] as const
 
 
 const parseTarget = (value: unknown): HostedOcrSchedulerTargetTelemetry | undefined => {
@@ -106,7 +103,7 @@ const formatTargetShare = (targets: HostedOcrSchedulerTargetTelemetry[]): string
 export const buildHostedOcrSchedulerSummary = (
   metadata: WriteManifestMetadata
 ): HostedOcrSchedulerSection | undefined => {
-  const rows = getSchedulerLanes(metadata).map((lane) => ({
+  const entries = getSchedulerLanes(metadata).map((lane) => ({
     lane: lane.laneKey,
     status: lane.status,
     cap: `${lane.currentCap}/${lane.maxCap}`,
@@ -118,13 +115,11 @@ export const buildHostedOcrSchedulerSummary = (
     targetShare: formatTargetShare(lane.targets)
   }))
 
-  if (rows.length === 0) {
+  if (entries.length === 0) {
     return undefined
   }
 
   return {
-    columns: HOSTED_OCR_SCHEDULER_COLUMNS,
-    rows,
-    humanTable: createHumanTable(rows, HOSTED_OCR_SCHEDULER_COLUMNS)
+    entries
   }
 }

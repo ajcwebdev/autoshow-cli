@@ -1,7 +1,6 @@
 import * as v from 'valibot'
 import * as appLog from '~/utils/app-logger/app-logger'
 import { formatDuration as formatSharedDuration } from '~/utils/app-logger/formatters'
-import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 
 export const formatDuration = formatSharedDuration
 
@@ -21,12 +20,7 @@ const compactParts = (
 }
 
 export const withSuppressedPipelineLogs = async <T>(run: () => Promise<T>): Promise<T> => {
-  const restore = appLog.suppressLogCategories(['pipeline'])
-  try {
-    return await run()
-  } finally {
-    restore()
-  }
+  return await appLog.runWithSuppressedLogCategories(['pipeline'], run)
 }
 
 export const comicLog = {
@@ -85,11 +79,7 @@ const errValidation = (error: v.ValiError<v.GenericSchema | v.GenericSchemaAsync
   const issues = flattenValidationIssues(error)
   appLog.write('error', 'Validation error', {
     category: 'command',
-    metadata: { issues },
-    humanTable: createHumanTable(
-      issues.map(({ path, message }) => ({ path: path || '(root)', message })),
-      ['path', 'message']
-    )
+    metadata: { issues }
   })
 }
 

@@ -2,7 +2,6 @@ import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { logSetupToolStatus } from '~/cli/commands/setup-and-utilities/setup/setup-logging'
 import type { DoctorCheck, ResolvedDefuddleCli, RunOptions, RunResult } from '~/types'
-import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
 import { getConfiguredBinDir, PROJECT_ROOT } from '~/utils/runtime-paths'
 import { pathExists } from '~/utils/filesystem'
@@ -175,7 +174,7 @@ const setupDefuddleCliUnlocked = async (): Promise<void> => {
   if (await pathExists(defuddleRuntimeBinaryPath)) {
     const verified = await verifyDefuddleCli(defuddleRuntimeBinaryPath)
     if (isPinnedDefuddleCli(verified)) {
-      logSetupToolStatus(l, {
+      logSetupToolStatus({
         tool: 'defuddle',
         status: 'ready',
         detail: `${defuddleRuntimeBinaryPath} (${verified.detail})`
@@ -184,7 +183,7 @@ const setupDefuddleCliUnlocked = async (): Promise<void> => {
     }
   }
 
-  logSetupToolStatus(l, {
+  logSetupToolStatus({
     tool: 'defuddle',
     status: 'installing',
     detail: `defuddle@${DEFUDDLE_CLI_VERSION}`
@@ -206,7 +205,7 @@ const setupDefuddleCliUnlocked = async (): Promise<void> => {
     throw InfraError(`Installed Defuddle CLI failed verification: ${verified.detail}`, { stage: 'extract:defuddle' })
   }
 
-  logSetupToolStatus(l, {
+  logSetupToolStatus({
     tool: 'defuddle',
     status: 'ready',
     detail: `${defuddleRuntimeBinaryPath} (${verified.detail})`

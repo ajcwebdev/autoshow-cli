@@ -1,23 +1,50 @@
 import { AppError, type AppProviderError, ProviderError } from '~/utils/error-handler'
 import { buildCaptureMetadata, readBoundedResponseText, redactPayloadPreview } from '~/utils/bounded-capture'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
-import type { BoundedCaptureResult, ProviderRestClientProfile } from '~/types'
+import type { BoundedCaptureResult, ProviderRestClientProfile, RetryClass } from '~/types'
 import { isRecord } from '~/utils/value-helpers'
 
 export { isRecord }
 
 export const trimTrailingSlashes = (value: string): string => value.replace(/\/+$/, '')
 
-export const httpResponseError = <TExtras extends object = Record<never, never>>(
-  message: string,
+export type HttpResponseErrorOptions<
+  TMetadata extends Record<string, unknown> = Record<string, unknown>,
+  TStage extends string = string
+> = {
+  stage: TStage
+  status: number
+  headers: Headers
+  retryable: boolean
+  metadata: TMetadata
+  retryClass?: RetryClass | undefined
+}
+
+export const httpResponseOptions = <TMetadata extends Record<string, unknown>, TStage extends string>(
   response: Response,
-  extras?: TExtras
-): AppProviderError & { status: number, headers: Headers } & TExtras =>
+  options: Omit<HttpResponseErrorOptions<TMetadata, TStage>, 'status' | 'headers'> & { headers?: Headers | undefined }
+): HttpResponseErrorOptions<TMetadata, TStage> => ({
+  ...options,
+  status: response.status,
+  headers: options.headers ?? response.headers
+})
+
+export const httpResponseError = <TMetadata extends Record<string, unknown>, TStage extends string>(
+  message: string,
+  options: HttpResponseErrorOptions<TMetadata, TStage>
+): AppProviderError & { stage: TStage, status: number, headers: Headers } & TMetadata =>
   Object.assign(
-    ProviderError(message, { status: response.status, headers: response.headers }),
-    extras,
-    { status: response.status, headers: response.headers }
-  ) as AppProviderError & { status: number, headers: Headers } & TExtras
+    ProviderError(message, {
+      stage: options.stage,
+      status: options.status,
+      headers: options.headers,
+      retryable: options.retryable,
+      ...(options.retryClass ? { retryClass: options.retryClass } : {}),
+      metadata: options.metadata
+    }),
+    options.metadata,
+    { status: options.status, headers: options.headers }
+  ) as AppProviderError & { stage: TStage, status: number, headers: Headers } & TMetadata
 
 export const parseJsonOrText = (rawText: string): unknown => {
   if (rawText.trim().length === 0) {
@@ -154,8 +181,8 @@ export const readJsonResponse = async (
   if (captured.truncated) {
     throw new AppError(`${errorMessagePrefix} exceeded the ${captured.retainedBytes.toLocaleString()} byte response capture limit`, {
       kind: 'validation',
+      stage: options.stage ?? 'rest:response-validation',
       status: response.status,
-      ...(options.stage !== undefined ? { stage: options.stage } : {}),
       metadata: buildCaptureMetadata(captured)
     })
   }
@@ -169,9 +196,9 @@ export const readJsonResponse = async (
   } catch (error) {
     throw new AppError(`${options.invalidJsonMessagePrefix ?? errorMessagePrefix} returned invalid JSON: ${sanitizeLogText(rawText.slice(0, 500))}`, {
       kind: 'validation',
+      stage: options.stage ?? 'rest:response-validation',
       cause: error instanceof Error ? error : new Error(String(error)),
       status: response.status,
-      ...(options.stage !== undefined ? { stage: options.stage } : {}),
       metadata: buildCaptureMetadata(captured)
     })
   }

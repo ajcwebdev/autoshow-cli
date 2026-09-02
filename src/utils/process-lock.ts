@@ -4,7 +4,7 @@ import { homedir, hostname } from 'node:os'
 import { join } from 'node:path'
 import type { ActiveProcessLockOwner, HeartbeatHealth, ProcessLockDirIdentity, ProcessLockOptions, ProcessLockOwner, ProcessLockOwnerReadResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { AppError, InfraError, serializeDiagnosticError } from '~/utils/error-handler'
+import { AppError, InfraError } from '~/utils/error-handler'
 import { formatRetryExhaustedMessage, sleepWithAbortSignal } from '~/utils/retries'
 import { formatErrorMessage } from '~/utils/value-helpers'
 
@@ -209,7 +209,7 @@ const removeStaleProcessLock = async (
     } catch (error) {
       l.warn(`Could not restore the process lock directory after a failed reap: ${lockDir}`, {
         category: 'pipeline',
-        metadata: { lockDir, reapDir, error: serializeDiagnosticError(error) }
+        metadata: { lockDir, reapDir }, error: error
       })
       return false
     }
@@ -308,6 +308,7 @@ export const withProcessLock = async <T,>(
           {
             kind: 'retry_exhausted',
             stage: 'lock:process',
+            retryable: false,
             ...(error instanceof Error ? { cause: error } : {}),
             metadata: {
               lockName,
@@ -316,7 +317,8 @@ export const withProcessLock = async <T,>(
               maxAttempts: waitAttempts,
               elapsedMs: waitedMs,
               waitTimeoutMs,
-              stopReason: 'lock wait timed out'
+              stopReason: 'lock wait timed out',
+              stopReasonCode: 'classifier_refused'
             }
           }
         )
@@ -356,9 +358,9 @@ export const withProcessLock = async <T,>(
           pid: activeOwner.pid,
           hostname: activeOwner.hostname,
           heartbeatFailureCount: heartbeatHealth.failureCount,
-          lastFailureAt: heartbeatHealth.lastFailureAt,
-          error: heartbeatHealth.lastError
-        }
+          lastFailureAt: heartbeatHealth.lastFailureAt
+        },
+        error
       })
     }).finally(() => {
       heartbeatRefresh = undefined

@@ -1,7 +1,7 @@
-import type { RetryClass, SttRequestMetrics, SupadataHttpError, SupadataJobStatus } from '~/types'
+import type { SttRequestMetrics, SupadataJobStatus } from '~/types'
 import { ProviderError } from '~/utils/error-handler'
-import { httpResponseError, parseJsonOrText, resolveRestPath } from '~/utils/rest-client'
-import { classifyFetchRetry, parseRetryAfterMs, STT_POLL_RETRY_POLICY, withRetry } from '~/utils/retries'
+import { httpResponseError, httpResponseOptions, parseJsonOrText, resolveRestPath } from '~/utils/rest-client'
+import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import {
   extractSupadataErrorMessage,
   parseSupadataJobStatus
@@ -23,7 +23,7 @@ export const fetchSupadataTranscript = async (
 ): Promise<{ status: number, headers: Headers, payload: unknown }> =>
   await withRetry(
     {
-      retryClass: 'runtime_http_create_retriable',
+      retryClass: 'runtime_http_create_conservative',
       operationName: 'supadata-create-transcript',
       timeoutMs: REQUEST_TIMEOUT_MS
     },
@@ -49,18 +49,17 @@ export const fetchSupadataTranscript = async (
       if (response.status === 206) {
         throw httpResponseError(
           `Supadata transcript unavailable (${response.status}): ${extractSupadataErrorMessage(payload) ?? 'Transcript unavailable'}`,
-          response,
-          {
+          httpResponseOptions(response, {
             stage: 'create',
-            retryClass: 'runtime_http_create_retriable',
+            retryClass: 'runtime_http_create_conservative',
             retryable: false,
-            rawResponse: payload
-          } satisfies Pick<SupadataHttpError, 'stage' | 'retryClass' | 'retryable' | 'rawResponse'>
+            metadata: { rawResponse: payload }
+          })
         )
       }
 
       if (!response.ok && response.status !== 202) {
-        throw toSupadataHttpError('create', 'runtime_http_create_retriable', response, payload)
+        throw toSupadataHttpError('create', 'runtime_http_create_conservative', response, payload)
       }
 
       return {
@@ -70,7 +69,7 @@ export const fetchSupadataTranscript = async (
       }
     },
     (error) => {
-      const decision = classifyFetchRetry(error, 'runtime_http_create_retriable')
+      const decision = classifyFetchRetry(error, 'runtime_http_create_conservative')
       if (decision.shouldRetry) {
         input.metrics?.onRetry?.((error as { status?: unknown }).status as number | undefined)
       }
@@ -88,9 +87,8 @@ export const pollSupadataTranscriptJob = async (
 ): Promise<{ status: SupadataJobStatus, retryAfterMs: number | null }> =>
   await withRetry(
     {
-      retryClass: 'runtime_http_read',
+      retryClass: 'runtime_http_poll',
       operationName: 'supadata-poll-transcript',
-      policy: STT_POLL_RETRY_POLICY,
       timeoutMs: POLL_REQUEST_TIMEOUT_MS
     },
     async (signal) => {
@@ -104,18 +102,17 @@ export const pollSupadataTranscriptJob = async (
       })
       const payload = parseJsonOrText(await response.text())
       if (!response.ok) {
-        throw toSupadataHttpError('poll', 'runtime_http_read', response, payload, 'Supadata polling failed')
+        throw toSupadataHttpError('poll', 'runtime_http_poll', response, payload, 'Supadata polling failed')
       }
 
       const parsed = parseSupadataJobStatus(payload)
       if (!parsed) {
-        throw Object.assign(
-          ProviderError('Supadata returned an invalid job status payload', {
-            stage: 'poll',
-            retryClass: 'runtime_http_read'
-          }),
-          { stage: 'poll', retryClass: 'runtime_http_read' as RetryClass, rawResponse: payload }
-        )
+        throw ProviderError('Supadata returned an invalid job status payload', {
+          stage: 'poll',
+          retryClass: 'runtime_http_poll',
+          retryable: false,
+          metadata: { rawResponse: payload }
+        })
       }
 
       return {
@@ -124,7 +121,7 @@ export const pollSupadataTranscriptJob = async (
       }
     },
     (error) => {
-      const decision = classifyFetchRetry(error, 'runtime_http_read')
+      const decision = classifyFetchRetry(error, 'runtime_http_poll')
       if (decision.shouldRetry) {
         input.metrics?.onRetry?.((error as { status?: unknown }).status as number | undefined)
       }

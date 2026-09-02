@@ -165,7 +165,7 @@ describe('Bun-native migration contracts', () => {
       throw new Error('runSyncCommandOrThrow unexpectedly accepted a failure')
     } catch (error) {
       expect(error).toBeInstanceOf(SyncCommandError)
-      expect(error).toMatchObject({ exitCode: 9, stderr: 'failed' })
+      expect(error).toMatchObject({ exitCode: 1, childExitCode: 9, stderr: 'failed' })
     }
   })
 

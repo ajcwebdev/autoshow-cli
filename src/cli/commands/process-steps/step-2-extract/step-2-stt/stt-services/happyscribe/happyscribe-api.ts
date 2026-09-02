@@ -1,7 +1,7 @@
 import { basename } from 'node:path'
-import type { HappyScribeApiClientOptions, HappyScribeExport, HappyScribeJsonRequestOptions, HappyScribeOrder, HappyScribePollResult, HappyScribeTranscription, RetryClass } from '~/types'
-import { ProviderError } from '~/utils/error-handler'
-import { classifyFetchRetry, getSttStageRetryPolicy, parseRetryAfterMs, withRetry } from '~/utils/retries'
+import type { HappyScribeApiClientOptions, HappyScribeExport, HappyScribeJsonRequestOptions, HappyScribeOrder, HappyScribePollResult, HappyScribeTranscription } from '~/types'
+import { getErrorStatus, ProviderError } from '~/utils/error-handler'
+import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import { HAPPYSCRIBE_STT_LANGUAGE } from './happyscribe'
 import { parseHappyScribeExport, parseHappyScribeOrder, parseHappyScribeSignedUploadUrl, parseHappyScribeTranscription } from './happyscribe-response-parsers'
 import { attachHappyScribeErrorContext, buildHappyScribeRetryHeaders, toHappyScribeHttpError } from './happyscribe-utils'
@@ -22,10 +22,6 @@ export const createHappyScribeApiClient = (
         {
           retryClass: requestOptions.retryClass,
           operationName: requestOptions.operationName,
-          ...(() => {
-            const policy = getSttStageRetryPolicy(requestOptions.retryClass)
-            return policy ? { policy } : {}
-          })(),
           timeoutMs: requestOptions.timeoutMs
         },
         async (signal) => {
@@ -113,7 +109,7 @@ export const createHappyScribeApiClient = (
     audioPath: string
   ): Promise<string> => await requestParsed({
     stage: 'upload',
-    retryClass: 'runtime_http_create_retriable',
+    retryClass: 'runtime_http_read',
     operationName: 'happyscribe-get-signed-upload',
     timeoutMs: REQUEST_TIMEOUT_MS,
     messagePrefix: 'Happy Scribe signed upload request failed',
@@ -172,7 +168,7 @@ export const createHappyScribeApiClient = (
     }
   ): Promise<HappyScribeOrder> => await requestParsed({
     stage: 'create',
-    retryClass: 'runtime_http_create_retriable',
+    retryClass: 'runtime_http_create_conservative',
     operationName: 'happyscribe-create-order',
     timeoutMs: REQUEST_TIMEOUT_MS,
     messagePrefix: 'Happy Scribe order creation failed',
@@ -194,7 +190,7 @@ export const createHappyScribeApiClient = (
     orderId: string
   ): Promise<HappyScribePollResult<HappyScribeOrder>> => await pollParsed({
     stage: 'poll',
-    retryClass: 'runtime_http_read',
+    retryClass: 'runtime_http_poll',
     operationName: 'happyscribe-poll-order',
     timeoutMs: POLL_REQUEST_TIMEOUT_MS,
     messagePrefix: 'Happy Scribe order poll failed',
@@ -218,7 +214,7 @@ export const createHappyScribeApiClient = (
     transcriptionId: string
   ): Promise<HappyScribeExport> => await requestParsed({
     stage: 'result',
-    retryClass: 'runtime_http_create_retriable',
+    retryClass: 'runtime_http_create_conservative',
     operationName: 'happyscribe-create-export',
     timeoutMs: REQUEST_TIMEOUT_MS,
     messagePrefix: 'Happy Scribe export creation failed',
@@ -235,7 +231,7 @@ export const createHappyScribeApiClient = (
     exportId: string
   ): Promise<HappyScribePollResult<HappyScribeExport>> => await pollParsed({
     stage: 'result',
-    retryClass: 'runtime_http_read',
+    retryClass: 'runtime_http_poll',
     operationName: 'happyscribe-poll-export',
     timeoutMs: POLL_REQUEST_TIMEOUT_MS,
     messagePrefix: 'Happy Scribe export poll failed',
@@ -246,48 +242,42 @@ export const createHappyScribeApiClient = (
   const fetchDownloadPayload = async (
     url: string
   ): Promise<unknown> => {
-    const candidates: Array<Record<string, string>> = [
-      { accept: 'application/json' },
-      {
-        accept: 'application/json',
-        authorization: `Bearer ${options.apiKey}`
-      }
-    ]
-
-    let lastError: unknown
-    for (const headers of candidates) {
-      try {
-        const response = await fetch(url, {
-          method: 'GET',
-          headers,
-          redirect: 'follow'
-        })
+    const configuredOrigin = new URL(options.baseURL).origin
+    const downloadOrigin = new URL(url).origin
+    const fetchCandidate = async (headers: Record<string, string>): Promise<unknown> =>
+      await withRetry({
+        retryClass: 'runtime_http_read',
+        operationName: 'happyscribe-download-transcript',
+        timeoutMs: POLL_REQUEST_TIMEOUT_MS
+      }, async (signal) => {
+        const response = await fetch(url, { method: 'GET', headers, redirect: 'follow', signal: signal ?? null })
         const payload = parseJsonOrText(await response.text())
         if (!response.ok) {
           throw toHappyScribeHttpError('result', 'runtime_http_read', response, payload, 'Happy Scribe transcript download failed')
         }
         if (typeof payload === 'string') {
-          throw Object.assign(
-            ProviderError('Happy Scribe transcript download did not return JSON', {
-              stage: 'result',
-              retryClass: 'runtime_http_read'
-            }),
-            {
-              stage: 'result',
-              retryClass: 'runtime_http_read' as RetryClass,
-              rawResponse: payload
-            }
-          )
+          throw ProviderError('Happy Scribe transcript download did not return JSON', {
+            stage: 'result',
+            retryClass: 'runtime_http_read',
+            retryable: false,
+            metadata: { rawResponse: payload }
+          })
         }
         return payload
-      } catch (error) {
-        lastError = error
-      }
-    }
+      }, (error) => classifyFetchRetry(error, 'runtime_http_read'))
 
-    throw lastError instanceof Error
-      ? lastError
-      : ProviderError(String(lastError), { stage: 'result', retryClass: 'runtime_http_read' })
+    try {
+      return await fetchCandidate({ accept: 'application/json' })
+    } catch (error) {
+      const status = getErrorStatus(error)
+      if ((status === 401 || status === 403) && downloadOrigin === configuredOrigin) {
+        return await fetchCandidate({
+          accept: 'application/json',
+          authorization: `Bearer ${options.apiKey}`
+        })
+      }
+      throw error
+    }
   }
 
   return {

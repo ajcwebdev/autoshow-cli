@@ -1,21 +1,19 @@
 import * as l from '~/utils/app-logger/app-logger'
-import { logSingleRowTable } from '~/utils/app-logger/human-table/human-table'
 import { logSuitePriceSummary } from './suite-price-logging'
 import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import type { CommandPricingOptions, PricingRuntimeOptions, ProcessCommand, WriteRuntimeOptions } from '~/types'
-import { serializeDiagnosticError } from '~/utils/error-handler'
 
 export const reportSuitePriceEstimate = async (
   command: ProcessCommand,
   targets: string[],
   opts: CommandPricingOptions | WriteRuntimeOptions
 ): Promise<number> => {
-  logSingleRowTable(l, 'Suite Price Estimate', {
-    itemType: targets.length === 1 ? 'target' : 'targets',
-    itemCount: targets.length
-  }, { category: 'pricing', columns: ['itemType', 'itemCount'] })
+  l.write('info', `Estimating price for ${targets.length} ${targets.length === 1 ? 'target' : 'targets'}`, {
+    category: 'pricing',
+    metadata: { itemType: targets.length === 1 ? 'target' : 'targets', itemCount: targets.length }
+  })
 
   let suiteTotalEstimatedCost = 0
   const concurrency = isExtractCommand(command) && 'sttPreflightConcurrency' in opts
@@ -33,12 +31,12 @@ export const reportSuitePriceEstimate = async (
       const message = error instanceof Error ? error.message : String(error)
       l.warn(`Price estimate failed for ${item}: ${message}`, {
         category: 'pricing',
-        metadata: { item, error: serializeDiagnosticError(error) }
+        metadata: { item }, error: error
       })
     }
   })
 
-  logSuitePriceSummary(l, {
+  logSuitePriceSummary({
     checkedLabel: targets.length === 1 ? 'command' : 'commands',
     checkedCount: targets.length - skipped,
     totalEstimatedCost: suiteTotalEstimatedCost

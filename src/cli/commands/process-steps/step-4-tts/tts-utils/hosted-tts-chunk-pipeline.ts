@@ -53,7 +53,7 @@ export const runHostedTtsChunkPipeline = async (
         || completedChunkCount % progressInterval === 0
       ) {
         l.write('info', `${providerLabel} TTS progress (${options.model}): ${completedChunkCount}/${chunks.length} chunks durably saved`, {
-          category: 'tts',
+          category: 'pipeline',
           metadata: {
             provider,
             model: options.model,

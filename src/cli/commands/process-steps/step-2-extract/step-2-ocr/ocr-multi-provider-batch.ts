@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import type { ExtractionMetadata, ExistingOcrRun, OcrBatchFinalization, OcrBatchRunContext, ProviderCompletionStatus, OcrMetadataOptions, OcrProviderFailureSummary, OcrProviderSuccess, OcrTarget, ProcessDocumentOutput, ResolvedStep2Execution } from '~/types'
 import { l, runWithLogContext } from '~/utils/app-logger/app-logger'
-import { logExtractManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
+import { logExtractManifestSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import { writeExtractionArtifact, writeProviderArtifacts } from './ocr-artifacts'
 import { buildDocumentMetadataPayload, resolveRecordedOcrStep2 } from './ocr-document-metadata'
 import { logOcrProviderLifecycle } from './ocr-logging'
@@ -30,7 +30,6 @@ import { persistHostedOcrThroughputProfiles } from './ocr-utils/hosted-ocr-throu
 import { runOcr } from './run-ocr'
 import { ProviderBatchCompletionError } from '../step-2-shared/provider-batch-state'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
-import { serializeDiagnosticError } from '~/utils/error-handler'
 
 class OcrBatchCompletionError extends ProviderBatchCompletionError {
   constructor(outputDir: string, completionStatus: ProviderCompletionStatus, message: string) {
@@ -120,7 +119,7 @@ const createOcrProviderTargetRunner = (params: {
     const providerStartedAt = Date.now()
     await mkdir(providerDir, { recursive: true })
 
-    logOcrProviderLifecycle(l, {
+    logOcrProviderLifecycle({
       provider: target.service,
       model: target.model,
       status: 'started'
@@ -150,7 +149,7 @@ const createOcrProviderTargetRunner = (params: {
       }
       failuresByIndex.delete(requestedIndex)
       queueCheckpointWrite()
-      logOcrProviderLifecycle(l, {
+      logOcrProviderLifecycle({
         provider: target.service,
         model: target.model,
         status: 'succeeded',
@@ -189,7 +188,7 @@ const createOcrProviderTargetRunner = (params: {
         ...(errorArtifacts.rawResponseFile ? { rawResponseFile: `providers/${providerDirName}/${errorArtifacts.rawResponseFile}` } : {})
       })
       queueCheckpointWrite()
-      logOcrProviderLifecycle(l, {
+      logOcrProviderLifecycle({
         provider: target.service,
         model: target.model,
         status: 'failed',
@@ -264,7 +263,7 @@ const finalizeOcrProviderBatch = async (params: {
   }).catch((error) => {
     l.write('debug', `Failed to update hosted OCR throughput profiles: ${error instanceof Error ? error.message : String(error)}`, {
       category: 'artifact',
-      metadata: { profile: 'throughput', error: serializeDiagnosticError(error) }
+      metadata: { profile: 'throughput' }, error: error
     })
   })
   await persistHostedOcrTokenUsageProfiles(step2Metadata, {
@@ -272,10 +271,10 @@ const finalizeOcrProviderBatch = async (params: {
   }).catch((error) => {
     l.write('debug', `Failed to update hosted OCR token profiles: ${error instanceof Error ? error.message : String(error)}`, {
       category: 'artifact',
-      metadata: { profile: 'token', error: serializeDiagnosticError(error) }
+      metadata: { profile: 'token' }, error: error
     })
   })
-  logExtractManifestConsoleSummary(outputDir, writtenMetadata)
+  logExtractManifestSummary(outputDir, writtenMetadata)
 
   return {
     providerStates,

@@ -1,11 +1,10 @@
 import { describe, expect, test } from 'bun:test'
-import { NETWORK_FAILURE_SPELLINGS, RETRYABLE_STATUS_CODES } from '~/utils/retries'
+import { NETWORK_FAILURE_SPELLINGS } from '~/utils/retries'
 import { isSupadataPlanLimitExhausted } from '~/utils/supadata-plan-limit'
 import {
   hasTransientRetryExhaustion,
   isNetworkFailureOutput,
   isSupadataPlanLimitFailure,
-  isTransientMinimaxTtsFailure,
   RATE_LIMIT_PATTERN
 } from '../../../test-utils/provider-failure-classifiers'
 
@@ -14,18 +13,6 @@ describe('transient predicate contracts', () => {
     for (const spelling of NETWORK_FAILURE_SPELLINGS) {
       expect(isNetworkFailureOutput(`Provider request failed: ${spelling}`)).toBe(true)
     }
-
-    expect(isTransientMinimaxTtsFailure('MiniMax TTS: Socket connection was closed unexpectedly')).toBe(true)
-  })
-
-  test('the MiniMax predicate does not re-run an ambiguous paid create', () => {
-    for (const status of RETRYABLE_STATUS_CODES.filter((code) => code !== 425 && code !== 429)) {
-      expect(isTransientMinimaxTtsFailure(`MiniMax TTS task creation failed (${status})`)).toBe(false)
-    }
-
-    expect(isTransientMinimaxTtsFailure('MiniMax TTS task creation failed (429)')).toBe(true)
-    expect(isTransientMinimaxTtsFailure('MiniMax TTS task query failed (503)')).toBe(true)
-    expect(isTransientMinimaxTtsFailure('MiniMax TTS download failed (502)')).toBe(true)
   })
 
   test('a retry-exhaustion banner counts only when its stop reason is transient', () => {

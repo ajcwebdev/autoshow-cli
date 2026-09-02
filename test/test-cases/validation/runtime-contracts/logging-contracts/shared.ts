@@ -1,7 +1,7 @@
 import { stripAnsi } from '~/utils/terminal-colors'
 import { withEnvSync } from '../../../../test-utils/rest-contract-helpers'
 
-export { captureConsole, createCapturingLogger } from '../../../../test-utils/console-capture'
+export { captureConsole } from '../../../../test-utils/console-capture'
 
 export const withColorEnv = <T>(
   env: { forceColor?: string | undefined; noColor?: string | undefined },

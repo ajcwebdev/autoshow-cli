@@ -52,8 +52,7 @@ const runLinks = async (
     .filter((url): url is string => typeof url === 'string')
   if (failedUrls.length > 0) {
     l.warn(
-      `Failed to fetch ${failedUrls.length}/${links.length} documentation URL${failedUrls.length === 1 ? '' : 's'} after retries:\n` +
-      failedUrls.map(url => `- ${url}`).join('\n'),
+      `Failed to fetch ${failedUrls.length}/${links.length} documentation URLs after retries`,
       { category: 'pipeline', metadata: { failedUrls, failedCount: failedUrls.length, urlCount: links.length } }
     )
   }
@@ -85,7 +84,7 @@ const runLinks = async (
     }
   } else {
     await Bun.write(outputPath, combinedContent)
-    l.write('success', `Wrote ${resolvedOutputPath} from ${links.length} URLs (${lineCount} lines)`, {
+    l.write('info', `Wrote ${resolvedOutputPath} from ${links.length} URLs (${lineCount} lines)`, {
     category: 'artifact',
     metadata: { outputPath: resolvedOutputPath, urlCount: links.length, lineCount }
   })
@@ -109,7 +108,7 @@ const runLinks = async (
     }
     await Bun.write(refreshMetadataPath, `${JSON.stringify(metadata, null, 2)}\n`)
     l.write(
-      'success',
+      'info',
       `Wrote ${refreshMetadataPath} (` +
       `${metadata.totals.newCount} new, ` +
       `${metadata.totals.changedCount} changed, ` +
@@ -158,5 +157,6 @@ export const linksCommand = defineCliCommand({
     ]
   }
 }, async (ctx) => {
-  await runLinks(parseLinksSelection(ctx))
+  const result = await runLinks(parseLinksSelection(ctx))
+  l.report.result(result, 'Links complete')
 })

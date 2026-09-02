@@ -1,4 +1,3 @@
-import * as l from '~/utils/app-logger/app-logger'
 import { basename } from 'node:path'
 import type { AggregatedPriceEstimate, ProcessSttRunOptions, SttExtractionOptions } from '~/types'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
@@ -53,7 +52,7 @@ export const processStt = async (
       })
     )
     const acquisitionTimeMs = Date.now() - acquisitionStartedAt
-    logSttAcquireSummary(l, {
+    logSttAcquireSummary( {
       item: prepared.step1Metadata.slug,
       sourceMedia: basename(prepared.outputArtifacts.sourceMediaPath),
       elapsedMs: acquisitionTimeMs,

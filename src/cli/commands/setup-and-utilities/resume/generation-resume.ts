@@ -1,6 +1,5 @@
 import { partialCompletionError } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-batch-state'
 import { isRecord } from '~/utils/rest-client'
-import * as l from '~/utils/app-logger/app-logger'
 import { createBatchedManifestUpdater, readManifest, updateManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { logResumeItem, logResumeSummary } from './resume-logging'
 import { getResumeProviderKey, resolveAdditiveResumeProviderSelection, uniqueResumeProviders } from './resume-provider-selection'
@@ -470,7 +469,7 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
     const unresolvedProviders = resolved.requestedProviders.filter(
       (provider) => !successKeys.has(getProviderKey(provider))
     )
-    logResumeItem(l, {
+    logResumeItem({
       item: itemLabel,
       status: 'full',
       outputDir: target.dir,
@@ -485,7 +484,7 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
             ? 'all selected providers already complete'
             : 'all providers already complete'
     }, 'success')
-    logResumeSummary(l, { full: 1, incomplete: 0, failed: 0 })
+    logResumeSummary({ full: 1, incomplete: 0, failed: 0 })
     return { full: 1, incomplete: 0, failed: 0 }
   }
 
@@ -493,7 +492,7 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
   const targetsToRun = await resolveGenerationTargetsToRunOrThrow(target, prep, config, opts)
 
   const providerLabels = targetsToRun.map((t) => `${t.service}/${t.model}`)
-  logResumeItem(l, {
+  logResumeItem({
     item: itemLabel,
     status: 'processing',
     outputDir: target.dir,
@@ -517,14 +516,14 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
       manifestUpdater
     })
   } catch (error) {
-    logResumeItem(l, {
+    logResumeItem({
       item: itemLabel,
       status: 'failed',
       outputDir: target.dir,
       providers: providerLabels,
       detail: error instanceof Error ? error.message : String(error)
     }, 'error')
-    logResumeSummary(l, { full: 0, incomplete: 0, failed: 1 })
+    logResumeSummary({ full: 0, incomplete: 0, failed: 1 })
     if (displayOptions.deferItemFailure) return { full: 0, incomplete: 0, failed: 1 }
     throw partialCompletionError(
       buildGenerationFailureMessage(config, 'failed', targetsToRun),
@@ -614,25 +613,25 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
       && selectedProviders
       && allProvidersSucceeded(selectedProviders, mergedSuccessKeys, getProviderKey)
     ) {
-      logResumeItem(l, {
+      logResumeItem({
         item: itemLabel,
         status: 'full',
         outputDir: target.dir,
         providers: providerLabels,
         detail: 'selected providers complete; canonical item still incomplete'
       }, 'success')
-      logResumeSummary(l, { full: 1, incomplete: 0, failed: 0 })
+      logResumeSummary({ full: 1, incomplete: 0, failed: 0 })
       return { full: 1, incomplete: 0, failed: 0 }
     }
 
-    logResumeItem(l, {
+    logResumeItem({
       item: itemLabel,
       status: 'incomplete',
       outputDir: target.dir,
       providers: providerLabels,
       detail: `${stillMissing.length} provider(s) still missing`
     }, 'warn')
-    logResumeSummary(l, { full: 0, incomplete: 1, failed: 0 })
+    logResumeSummary({ full: 0, incomplete: 1, failed: 0 })
     if (displayOptions.deferItemFailure) return { full: 0, incomplete: 1, failed: 0 }
     throw partialCompletionError(
       buildGenerationFailureMessage(config, 'incomplete', stillMissing),
@@ -640,14 +639,14 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
     )
   }
 
-  logResumeItem(l, {
+  logResumeItem({
     item: itemLabel,
     status: 'full',
     outputDir: target.dir,
     providers: providerLabels,
     detail: 'resume complete'
   }, 'success')
-  logResumeSummary(l, { full: 1, incomplete: 0, failed: 0 })
+  logResumeSummary({ full: 1, incomplete: 0, failed: 0 })
   return { full: 1, incomplete: 0, failed: 0 }
 }
 

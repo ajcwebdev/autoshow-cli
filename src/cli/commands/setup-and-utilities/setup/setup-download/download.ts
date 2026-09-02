@@ -5,7 +5,8 @@ import type { DownloadFlowId, DownloadRequest, DownloadTimeouts, DownloadWatchdo
 import { extractTarGzFile } from './tar-gz'
 import { withSetupDownloadSlot } from './download-admission'
 import { hasErrorCode, InfraError } from '~/utils/error-handler'
-import { httpResponseError } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
+import { isRetryableStatus } from '~/utils/retries'
 
 const DEFAULT_STALL_TIMEOUT_MS = 60_000
 const DEFAULT_TOTAL_TIMEOUT_MS = 15 * 60_000
@@ -182,9 +183,9 @@ const fetchToPartFile = async (req: DownloadRequest, timeouts: DownloadTimeouts)
       if (response.status === 416) {
         await discardPartialDownload(req.destination)
       }
-      throw httpResponseError(`bun-fetch download failed: HTTP ${response.status} ${response.statusText}`, response, {
-        stage: 'setup:download'
-      })
+      throw httpResponseError(`bun-fetch download failed: HTTP ${response.status} ${response.statusText}`, httpResponseOptions(response, {
+        stage: 'setup:download', retryClass: 'setup_download', retryable: isRetryableStatus(response.status), metadata: { url: req.url }
+      }))
     }
 
     watchdog.progress()

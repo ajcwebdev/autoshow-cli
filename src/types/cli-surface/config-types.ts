@@ -63,7 +63,6 @@ const StringOrStringListSchema = v.optional(v.union([v.string(), v.array(v.strin
 
 const TtsDefaultsSchema = v.strictObject({
   elevenlabsTts: ModelArraySchema,
-  minimaxTts: ModelArraySchema,
   grokTts: ModelArraySchema,
   mistralTts: ModelArraySchema,
   openaiTts: ModelArraySchema,
@@ -84,10 +83,6 @@ const TtsDefaultsSchema = v.strictObject({
   elevenlabsTtsUseSpeakerBoost: v.optional(v.boolean(), undefined),
   elevenlabsTtsSeed: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0)), undefined),
   elevenlabsTtsPronunciationDictionaryLocators: v.optional(v.array(v.string()), undefined),
-  minimaxTtsVolume: v.optional(v.pipe(v.number(), v.check(value => value > 0, 'Expected a number greater than 0'), v.maxValue(10)), undefined),
-  minimaxTtsPitch: v.optional(v.pipe(v.number(), v.integer(), v.minValue(-12), v.maxValue(12)), undefined),
-  minimaxTtsEmotion: v.optional(v.string(), undefined),
-  minimaxTtsPronunciations: v.optional(v.array(v.string()), undefined),
   providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   chunkConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
 })

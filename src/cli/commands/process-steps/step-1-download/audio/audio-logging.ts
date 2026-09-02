@@ -1,49 +1,17 @@
 import { basename } from 'node:path'
-import { createHumanTable, createKeyValueTable, createLocationsTable } from '~/utils/app-logger/human-table/human-table'
-import { defineTableLog } from '~/utils/app-logger/table-log-definition'
-import type { AudioDownloadSummary, AudioNormalizeSummary, HumanLogTable, TableLogger } from '~/types'
+import type { AudioDownloadSummary, AudioNormalizeSummary } from '~/types'
+import * as l from '~/utils/app-logger/app-logger'
 
-const buildAudioDownloadRows = (
-  summary: AudioDownloadSummary
-): Array<{ status: string, source: string, target: string, detail: string }> => [{
-  status: summary.status,
-  source: summary.source,
-  target: summary.target,
-  detail: summary.detail ?? ''
-}]
-
-const buildAudioDownloadTableValue = (
-  summary: AudioDownloadSummary
-): HumanLogTable =>
-  createHumanTable(buildAudioDownloadRows(summary), ['status', 'source', 'target', 'detail'])
-
-export const { log: logAudioDownload } = defineTableLog<AudioDownloadSummary>({
-  title: 'Audio Download',
-  category: 'pipeline',
-  buildTable: buildAudioDownloadTableValue,
-  level: summary => summary.status === 'downloaded' ? 'success' : 'info',
-  metadata: summary => summary
-})
-
-export const buildAudioNormalizeTable = (
-  summary: AudioNormalizeSummary
-): HumanLogTable =>
-  createKeyValueTable([
-    ['status', summary.status],
-    ['mode', summary.plan.mode],
-    ['codec', `${summary.plan.sourceCodecName}->${summary.plan.outputCodecName}`],
-    ['input', basename(summary.inputPath) || 'audio'],
-    ['output', basename(summary.outputPath) || 'audio'],
-    ['detail', summary.plan.reason]
-  ])
-
-export const logAudioNormalize = (
-  logger: TableLogger,
-  summary: AudioNormalizeSummary
-): void => {
-  logger.write('info', 'Audio Normalize', {
+export const logAudioDownload = (summary: AudioDownloadSummary): void => {
+  l.write('info', `Audio download: ${summary.status}, ${summary.target}`, {
     category: 'pipeline',
-    humanTable: buildAudioNormalizeTable(summary),
+    metadata: summary
+  })
+}
+
+export const logAudioNormalize = (summary: AudioNormalizeSummary): void => {
+  l.write('info', `Audio normalized: ${summary.status}, ${basename(summary.inputPath) || 'audio'} to ${basename(summary.outputPath) || 'audio'}`, {
+    category: 'pipeline',
     metadata: {
       status: summary.status,
       inputPath: summary.inputPath,
@@ -53,13 +21,6 @@ export const logAudioNormalize = (
   })
 }
 
-export const logAudioOutput = (
-  logger: TableLogger,
-  audioPath: string
-): void => {
-  logger.write('success', 'Audio Output', {
-    category: 'artifact',
-    humanTable: createLocationsTable([{ artifact: 'audio', path: audioPath }]),
-    metadata: { audioPath }
-  })
+export const logAudioOutput = (audioPath: string): void => {
+  l.write('info', `Audio output: ${audioPath}`, { category: 'artifact', metadata: { audioPath } })
 }

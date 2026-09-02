@@ -6,7 +6,7 @@ import { createGeminiRetryClassifier } from '~/cli/commands/process-steps/step-3
 import { withRetry } from '~/utils/retries'
 import { LLM_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
 import { resolveCredential } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
+import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 import { geminiDeleteFile, geminiFileDataPart, geminiGenerateContent, geminiUploadFile, geminiUserContent, waitForGeminiFileActive } from '~/utils/gemini/gemini-rest'
 import { buildTranscriptionOutputBase, countTokens, formatTranscriptText, resolveTranscriptionOutput, toTimestamp } from '../../stt-utils/stt-utils'
 import { detectCompressedTimingCoverage } from '../../stt-utils/stt-timing-quality'
@@ -226,7 +226,7 @@ export const runGeminiStt = async (
   const apiKey = resolveCredential('gemini', 'require', { stage: 'stt:gemini', description: 'Gemini transcription' })
 
   if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, { provider: 'gemini-stt', action: 'started', segmentNumber, totalSegments, model })
+    logSttSegmentLifecycle( { provider: 'gemini-stt', action: 'started', segmentNumber, totalSegments, model })
   }
 
   const startTime = Date.now()
@@ -241,7 +241,7 @@ export const runGeminiStt = async (
 
   const response = await withRetry(
     {
-      retryClass: 'runtime_http_create_retriable',
+      retryClass: 'runtime_http_create_conservative',
       operationName: 'gemini-stt',
       timeoutMs: LLM_REQUEST_TIMEOUT_MS
     },
@@ -289,13 +289,13 @@ export const runGeminiStt = async (
           } catch (error) {
             l.warn(`Failed to delete Gemini STT upload ${uploadedFileName}: ${error instanceof Error ? error.message : String(error)}`, {
         category: 'pipeline',
-        metadata: { provider: 'gemini', uploadedFileName, error: serializeDiagnosticError(error) }
+        metadata: { provider: 'gemini', uploadedFileName }, error: error
       })
           }
         }
       }
     },
-    createGeminiRetryClassifier('runtime_http_create_retriable')
+    createGeminiRetryClassifier('runtime_http_create_conservative')
   )
 
   const rawText = response.text?.trim() ?? ''
@@ -321,7 +321,7 @@ export const runGeminiStt = async (
 
   const processingTime = Date.now() - startTime
   if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, { provider: 'gemini-stt', action: 'completed', segmentNumber, totalSegments, model, processingTimeMs: processingTime })
+    logSttSegmentLifecycle( { provider: 'gemini-stt', action: 'completed', segmentNumber, totalSegments, model, processingTimeMs: processingTime })
   }
 
   const usage = response.usageMetadata

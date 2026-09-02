@@ -10,7 +10,7 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice design [subject-key] [flags]
 ```
 
-Voice design is a two-step operation for ElevenLabs, MiniMax, Hume, and Inworld. Without `--save`, `design` creates unapproved candidates. `--save <candidate-id>` creates exactly one selected provider resource. Never infer `--save` from `--candidates 1`. ElevenLabs remix requires `--source-voice-id` and `--eligibility-snapshot-hash`.
+Voice design is a two-step operation for ElevenLabs, Hume, and Inworld. Without `--save`, `design` creates unapproved candidates. `--save <candidate-id>` creates exactly one selected provider resource. Never infer `--save` from `--candidates 1`. ElevenLabs remix requires `--source-voice-id` and `--eligibility-snapshot-hash`.
 
 `--save` cannot be combined with preview flags (`--description`, `--preview-text`, `--candidates`, `--seed`, `--source-voice-id`, `--creation-model`). A saved registration must still pass [audition](./06-audition.md) and [approve](./07-approve.md) before comic rendering can use it. Ambiguous journals refuse until you pass `--reconcile`. Remove `--price` only when you intend to purchase provider previews or save one candidate.
 
@@ -18,7 +18,7 @@ Voice design is a two-step operation for ElevenLabs, MiniMax, Hume, and Inworld.
 
 | Flag | Description |
 | --- | --- |
-| `--provider <name>` | Design provider: `elevenlabs`, `minimax`, `hume`, or `inworld` |
+| `--provider <name>` | Design provider: `elevenlabs`, `hume`, or `inworld` |
 | `--model <model>` | Provider TTS model used by this registration |
 | `--profile <key>` | Casting profile key |
 | `--creation-model <model>` | Provider model used only to create candidates |

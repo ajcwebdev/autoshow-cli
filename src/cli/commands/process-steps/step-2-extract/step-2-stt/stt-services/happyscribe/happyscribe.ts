@@ -1,7 +1,7 @@
 import { HAPPYSCRIBE_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { resolveCredential } from '~/utils/validate/env-utils'
-import { httpResponseError, parseJsonOrText, resolveRestPath } from '~/utils/rest-client'
-import { classifyFetchRetry, withRetry } from '~/utils/retries'
+import { httpResponseError, httpResponseOptions, parseJsonOrText, resolveRestPath } from '~/utils/rest-client'
+import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
 import { UsageError, ValidationError } from '~/utils/error-handler'
 import type { HappyScribeOrganization, HappyScribeOrganizationSelection } from '~/types'
 import {
@@ -82,12 +82,12 @@ const listHappyScribeOrganizations = async (
       if (!response.ok) {
         throw httpResponseError(
           `Happy Scribe organizations lookup failed (${response.status}): ${extractHappyScribeErrorMessage(payload) ?? 'Unknown error'}`,
-          response,
-          {
+          httpResponseOptions(response, {
             stage: 'create',
             retryClass: 'runtime_http_read',
-            rawResponse: payload
-          }
+            retryable: isRetryableStatus(response.status),
+            metadata: { rawResponse: payload }
+          })
         )
       }
 
@@ -160,7 +160,7 @@ export const buildHappyScribeOrganizationResolutionError = (
       baseMessage,
       `Organizations: ${formatHappyScribeOrganizationChoices(selection.organizations)}.`
     ].join(' '),
-    'Pass --stt-happyscribe-organization-id <id> or save defaults.extract.stt.happyscribeOrganizationId with bun autoshow config.'
+    { hints: ['Pass --stt-happyscribe-organization-id <id> or save defaults.extract.stt.happyscribeOrganizationId with bun autoshow config.'] }
   )
 }
 

@@ -15,7 +15,7 @@ import type {
 import { rm } from 'node:fs/promises'
 import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { UsageError, InfraError } from '~/utils/error-handler'
-import { httpResponseError } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { concatAndConvertToWav } from '../../tts-utils/audio-utils'
 import { finalizeTtsRun } from '../../tts-utils/finalize-tts-run'
@@ -213,7 +213,9 @@ export const runElevenLabsNativeDialogue = async (
         const response = await fetch(`${ELEVENLABS_DEFAULT_BASE_URL}/text-to-dialogue/with-timestamps?${new URLSearchParams({ output_format: outputFormat })}`, {
           method: 'POST', headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody), ...(signal ? { signal } : {})
         })
-        if (!response.ok) throw httpResponseError(`ElevenLabs Text-to-Dialogue failed (${response.status}): ${await readElevenLabsError(response)}`, response)
+        if (!response.ok) throw httpResponseError(`ElevenLabs Text-to-Dialogue failed (${response.status}): ${await readElevenLabsError(response)}`, httpResponseOptions(response, {
+          stage: 'tts:elevenlabs-dialogue', retryClass: 'runtime_http_create_conservative', retryable: response.status === 425 || response.status === 429, metadata: { provider: 'elevenlabs' }
+        }))
         await accepted({ fields: { httpStatus: response.status } })
         return await response.json() as ElevenLabsDialogueTimingResponse & { audio_base64?: unknown }
       }))

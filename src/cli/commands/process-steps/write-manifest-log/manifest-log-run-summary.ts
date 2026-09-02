@@ -1,6 +1,4 @@
 import type { ManifestLogIndexedRow, SummaryBaseRow, SummarySection, WriteManifestMetadata, WriteRunSummaryRow } from '~/types'
-import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
-import { formatCost, formatDuration } from '~/utils/app-logger/formatters'
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
 import {
   buildMatchKey,
@@ -19,7 +17,6 @@ import {
   isStep3Metadata,
   toArray
 } from './manifest-log-metadata'
-import { SUMMARY_COLUMNS } from './write-manifest-log-columns'
 
 const buildStep2SummaryRows = (metadata: WriteManifestMetadata): SummaryBaseRow[] => {
   const extractionRows = toArray(metadata['step2'], isExtractionMetadata).map((entry) => {
@@ -97,7 +94,7 @@ export const buildRunSummary = (metadata: WriteManifestMetadata): SummarySection
   const estimatedTimingRows = indexRows(getTimingEntries(metadata, 'estimated'))
   const actualTimingRows = indexRows(getTimingEntries(metadata, 'actual'))
 
-  const rows = baseRows.map(({ key, occurrence, value }) => {
+  const entries = baseRows.map(({ key, occurrence, value }) => {
     const predictedCost = estimatedCostRows.get(key)?.[occurrence]
     const actualCost = actualCostRows.get(key)?.[occurrence]
     const predictedTime = estimatedTimingRows.get(key)?.[occurrence]
@@ -121,18 +118,6 @@ export const buildRunSummary = (metadata: WriteManifestMetadata): SummarySection
   })
 
   return {
-    columns: SUMMARY_COLUMNS,
-    rows,
-    humanTable: createHumanTable(rows.map((row) => ({
-      step: row.step,
-      providerModel: row.providerModel,
-      predCost: row.predictedCostCents === null ? '' : formatCost(row.predictedCostCents),
-      actCost: row.actualCostCents === null ? '' : formatCost(row.actualCostCents),
-      actSource: row.actualCostSource ?? '',
-      predTime: row.predictedTimeMs === null ? '' : formatDuration(row.predictedTimeMs),
-      actTime: row.actualTimeMs === null ? '' : formatDuration(row.actualTimeMs),
-      predSpeed: row.predictedSpeed ?? '',
-      actSpeed: row.actualSpeed ?? ''
-    })), SUMMARY_COLUMNS)
+    entries
   }
 }

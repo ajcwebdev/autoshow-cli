@@ -49,7 +49,6 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'together',
   'cerebras',
   'elevenlabs-tts',
-  'minimax-tts',
   'grok-tts',
   'mistral-tts',
   'openai-tts',

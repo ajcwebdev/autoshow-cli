@@ -1,6 +1,5 @@
 import type { RenderedTextArtifactResult, ShowNoteArtifactResult, Step3Metadata, StructuredRunResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { writeShowNoteArtifacts } from './show-note-artifacts'
 import { writeRenderedTextArtifacts } from './text-input-utils'
 
@@ -31,11 +30,10 @@ export const writeWriteFlowArtifacts = async (input: {
   })
 
   if (renderedArtifacts.externalFiles.length > 0) {
-    logLocationsTable(l, [{
-      artifact: 'renderedOutDir',
-      path: input.opts.renderedOutDir,
-      detail: `${renderedArtifacts.externalFiles.length} file${renderedArtifacts.externalFiles.length === 1 ? '' : 's'}`
-    }])
+    l.write('info', `Wrote ${renderedArtifacts.externalFiles.length} rendered files to ${input.opts.renderedOutDir}`, {
+      category: 'artifact',
+      metadata: { artifact: 'renderedOutDir', path: input.opts.renderedOutDir, files: renderedArtifacts.externalFiles }
+    })
   }
 
   const showNoteArtifacts = await writeShowNoteArtifacts({

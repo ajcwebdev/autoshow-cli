@@ -8,7 +8,6 @@ import { createManifest, createManifestItem, createPipelineItemFromRecord, PIPEL
 import { ensureDirectory, fileExists } from '~/utils/cli-utils'
 import { UsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
-import { createHumanTable, logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { LYRICS_CUE_LIMITS, buildTranscriptionCues } from './cue-builder'
 import { formatSrt, formatVtt, loadCaptionFile } from './captions'
 import { getOutputRoot, getOutputRootAbsolute } from '~/cli/commands/process-steps/output-root'
@@ -26,13 +25,9 @@ import type { CaptionCue, LyricsCueSource } from '~/types'
 import { PROJECT_ROOT, baseStem, resolveUserPath, toProjectDisplayPath } from '~/utils/runtime-paths'
 
 const logLyricsBatchSummary = (total: number, succeeded: number, failed: number): void => {
-  l.write(failed > 0 ? 'warn' : 'success', 'Batch Summary', {
+  l.write(failed > 0 ? 'warn' : 'info', `Lyrics-video batch: ${succeeded}/${total} succeeded, ${failed} failed`, {
     category: 'pipeline',
-    humanTable: createHumanTable([{
-      total,
-      succeeded,
-      failed
-    }], ['total', 'succeeded', 'failed'])
+    metadata: { total, succeeded, failed }
   })
 }
 const AUDIO_EXTENSIONS = new Set(['.wav', '.mp3', '.m4a', '.flac', '.ogg', '.aac'])
@@ -236,10 +231,10 @@ const processLyricsRun = async (options: {
         }
       })
     } else {
-      logLocationsTable(l, [{
-        artifact: 'musicLyricsVideo',
-        path: `${outputDirRelative}/${videoFileName}`
-      }])
+      l.write('info', `Wrote lyrics video to ${outputDirRelative}/${videoFileName}`, {
+        category: 'artifact',
+        metadata: { artifact: 'musicLyricsVideo', path: `${outputDirRelative}/${videoFileName}` }
+      })
     }
 
     await rm(tempDir, { recursive: true, force: true })
@@ -298,7 +293,7 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
     }
 
     if (price) {
-      l.report.estimate({
+      l.report.price({
         steps: [],
         totalEstimatedCost: 0,
         notes: [`Local lyric-video batch rendering for ${files.length} audio file(s) has no provider cost.`]
@@ -351,7 +346,7 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
           status: 'failed',
           error: message
         })
-        l.error(`Music lyric-video batch item failed: ${toProjectDisplayPath(audioPath)}`, {
+        l.warn(`Music lyric-video batch item failed: ${toProjectDisplayPath(audioPath)}`, {
           category: 'pipeline',
           error,
           metadata: { inputAudioPath: toProjectDisplayPath(audioPath), outputDir: childDirAbsolute }
@@ -370,8 +365,10 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
       font
     }))
 
-    logLocationsTable(l, [{ artifact: 'outputDir', path: batchDirRelative }])
-    logLocationsTable(l, [{ artifact: 'manifest', path: `${batchDirRelative}/${PIPELINE_MANIFEST_FILE}` }])
+    l.write('info', `Wrote lyrics-video batch to ${batchDirRelative}`, {
+      category: 'artifact',
+      metadata: { outputDir: batchDirRelative, manifest: `${batchDirRelative}/${PIPELINE_MANIFEST_FILE}` }
+    })
     logLyricsBatchSummary(items.length, succeeded, failed)
 
     if (failed > 0) {
@@ -393,7 +390,7 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
 
   const outputLabel = captionsPath ? baseStem(captionsPath) : baseStem(audioPath)
   if (price) {
-    l.report.estimate({
+    l.report.price({
       steps: [],
       totalEstimatedCost: 0,
       notes: ['Local lyric-video transcription and rendering have no provider cost.']

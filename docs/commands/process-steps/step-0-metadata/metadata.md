@@ -50,22 +50,14 @@ bun autoshow metadata <input>
 
 ## Output
 
-By default, metadata is printed to the terminal as a labeled key/value report. Use the global `--json` flag for JSON, or `--markdown` for Markdown frontmatter YAML. JSON and Markdown use camelCase field names such as `publishDate` and `channelURL`.
+By default, metadata prints one compact terminal summary. Use the global `--json` flag for the complete object under the terminal result's `data` field, or `--markdown` for Markdown frontmatter YAML. `--json` and `--markdown` cannot be combined because both own stdout. JSON and Markdown use camelCase field names such as `publishDate` and `channelURL`.
 
 The `slug` comes from the original filename when one exists. Otherwise it is derived from the title, and media slugs include the publish date.
 
 **Terminal output (default)**
 
 ```text
-[13:14:55.161] • Metadata
-  title: My Video Title
-  slug: 2025-07-22-my-video-title
-  duration: 12:34
-  channel: Channel Name
-  url: https://www.youtube.com/watch?v=...
-  publish date: 2025-07-22
-  thumbnail: https://i.ytimg.com/vi/.../maxresdefault.jpg
-  channel url: https://www.youtube.com/channel/...
+[13:14:55.161] ✓ Metadata: title=My Video Title, slug=2025-07-22-my-video-title, duration=12:34
 ```
 
 Media metadata may also include chapters and description when the source provides them.

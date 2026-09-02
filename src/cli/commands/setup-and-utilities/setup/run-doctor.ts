@@ -6,7 +6,6 @@ import { readDefuddleCliReadiness } from '~/cli/commands/process-steps/step-2-ex
 import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
 import type { AutoshowConfig, DoctorCheck, DoctorProbes, DoctorReport, DoctorSection, DoctorSeverity, DoctorStatus, ManagedArtifactToolId, RunResult, RuntimeToolId } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import { getHostedProviderConfiguredPaths, getMissingConfiguredHostedProviderCredentials, HOSTED_PROVIDER_ENV_CHECKS } from './hosted-provider-config'
 import { defaultWhisperModel, runCapture, whisperBinaryPath, whisperModelsDir } from './run-complete-setup'
 import {
@@ -522,21 +521,18 @@ export const collectDoctorReport = async (
   }
 }
 
-const sectionHasWarnings = (section: DoctorSection): boolean =>
-  section.checks.some(item => item.severity === 'warn' && item.status !== 'OK')
-
 const logDoctorSection = (section: DoctorSection): void => {
-  l.write(sectionHasWarnings(section) ? 'warn' : 'info', section.title, {
+  const warnings = section.checks.filter(item => item.severity === 'warn' && item.status !== 'OK')
+  l.debug(`${section.title}: ${section.checks.length - warnings.length}/${section.checks.length} checks passed`, {
     category: 'command',
-    humanTable: createHumanTable(
-      section.checks.map((item) => ({
-        status: item.status,
-        check: item.label,
-        detail: item.detail
-      })),
-      ['status', 'check', 'detail']
-    )
+    metadata: { section: section.title, checks: section.checks }
   })
+  for (const item of warnings) {
+    l.write('warn', `${section.title}: ${item.label} ${item.status} — ${item.detail}`, {
+      category: 'command',
+      metadata: { section: section.title, check: item }
+    })
+  }
 }
 
 export const runDoctor = async (
@@ -548,41 +544,28 @@ export const runDoctor = async (
     logDoctorSection(section)
   }
 
-  l.write(report.hasWarnings ? 'warn' : 'success', 'Setup Doctor Summary', {
+  const totalChecks = report.sections.reduce((total, section) => total + section.checks.length, 0)
+  const warningChecks = report.sections.flatMap(section => section.checks).filter(item => item.severity === 'warn' && item.status !== 'OK').length
+  l.write(report.hasWarnings ? 'warn' : 'info', `Setup doctor: ${totalChecks - warningChecks}/${totalChecks} checks passed, ${warningChecks} warnings`, {
     category: 'command',
-    humanTable: createHumanTable([
-      {
-        status: report.hasWarnings ? 'WARN' : 'OK',
-        check: 'overall',
-        detail: report.hasWarnings ? 'one or more local checks need attention' : 'no warning-level issues found'
-      }
-    ], ['status', 'check', 'detail'])
+    metadata: { hasWarnings: report.hasWarnings, totalChecks, warningChecks }
   })
 
   if (report.nextSteps.length > 0) {
-    l.write('info', 'Setup Next Steps', {
+    l.write('info', `${report.nextSteps.length} setup next steps available`, {
       category: 'command',
-      humanTable: createHumanTable(
-        report.nextSteps.map((step, index) => ({
-          step: index + 1,
-          action: step
-        })),
-        ['step', 'action']
-      )
+      metadata: { nextSteps: report.nextSteps }
     })
   }
 
   if (options.strict && report.missingConfiguredCredentialEnvVars.length > 0) {
     const missing = report.missingConfiguredCredentialEnvVars
-    throw new AppUsageError(
-      `Credential check failed: configured defaults require ${missing.join(', ')}.`,
-      missing.flatMap(hintsForMissingEnv),
-      {
+    throw new AppUsageError(`Credential check failed: configured defaults require ${missing.join(', ')}.`, {
+      hints: missing.flatMap(hintsForMissingEnv),
         stage: 'setup:doctor',
         retryable: false,
         metadata: { missingCredentialEnvVars: missing }
-      }
-    )
+    })
   }
 
   return report

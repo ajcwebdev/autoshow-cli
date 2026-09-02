@@ -1,7 +1,6 @@
 import { basename } from 'node:path'
 import type { AggregatedPriceEstimate, EffectiveSttProviderConcurrency, PreparedSttMedia, ProviderFailure, StepTimingCost, SttBatchCoordinator, SttBatchCostTiming, SttBatchDerivedState, SttExtractionOptions, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { logManifestLocation } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
@@ -141,7 +140,7 @@ export const finalizeSttBatchCostTiming = async ({
     ...(metadataErrors.length > 0 ? { errors: metadataErrors } : {})
   }, null, 2)
   await writePipelineItemRecords(outputDir, 'extract', 'single', [JSON.parse(metadataJson)], { extractRoute: 'media' })
-  logManifestLocation(outputDir, l, 'extract')
+  logManifestLocation(outputDir, 'extract')
   l.debug(`Canonical manifest item metadata:\n${metadataJson}`, { category: 'artifact' })
 
   return { cost, timing }
@@ -185,7 +184,7 @@ export const reportSttBatchOutcome = ({
   ]
 
   if (completionStatus === 'full') {
-    logSttProviderSkips(l, skippedProviderStates)
+    logSttProviderSkips( skippedProviderStates)
     const artifactFiles: Record<string, string> = {
       prompt: 'prompt.md',
       manifest: 'manifest.json'
@@ -222,7 +221,7 @@ export const reportSttBatchOutcome = ({
     return outputDir
   }
 
-  logSttRunStatus(l, {
+  logSttRunStatus( {
     completionStatus,
     requested: requestedTargets.length,
     succeeded: providerStateSummary.succeeded,
@@ -230,12 +229,12 @@ export const reportSttBatchOutcome = ({
     missing: missingProviders.length,
     skipped: providerStateSummary.skipped
   })
-  logSttProviderFailures(l, failures)
-  logSttProviderSkips(l, skippedProviderStates)
+  logSttProviderFailures( failures)
+  logSttProviderSkips( skippedProviderStates)
   l.warn('Output directory preserved for retry/backfill', { category: 'artifact' })
-  l.write('warn', 'Locations', {
+  l.write('warn', `Retry output retained at ${outputDir}`, {
     category: 'artifact',
-    humanTable: createKeyValueTable([['retryOutputDir', outputDir]], 'artifact', 'path')
+    metadata: { retryOutputDir: outputDir }
   })
 
   throw new SttPartialCompletionError(

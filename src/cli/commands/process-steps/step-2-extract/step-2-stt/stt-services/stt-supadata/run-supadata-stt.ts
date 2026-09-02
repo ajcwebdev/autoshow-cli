@@ -1,4 +1,3 @@
-import * as l from '~/utils/app-logger/app-logger'
 import type { AsyncSttLifecycleHooks, Step2Metadata, SupadataJobStatus, SupadataTranscriptPayload, TranscriptionResult } from '~/types'
 import { logSttTranscriptOutput } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import {
@@ -108,13 +107,14 @@ export const runSupadataStt = async (
   const providerPayloadError = (
     message: string,
     stage: 'create' | 'poll',
-    retryClass: 'runtime_http_create_retriable' | 'runtime_http_read',
-    rawResponse: unknown,
-    retryable?: false | undefined
-  ): Error => Object.assign(
-    ProviderError(message, { stage, retryClass, ...(retryable === false ? { retryable } : {}) }),
-    { stage, retryClass, ...(retryable === false ? { retryable } : {}), rawResponse }
-  )
+    retryClass: 'runtime_http_create_conservative' | 'runtime_http_poll',
+    rawResponse: unknown
+  ): Error => ProviderError(message, {
+    stage,
+    retryClass,
+    retryable: false,
+    metadata: { rawResponse }
+  })
 
   return await runAsyncSttJobLifecycle<SupadataJobStatus, SupadataTranscriptPayload>({
     outputDir,
@@ -148,7 +148,7 @@ export const runSupadataStt = async (
           metrics: lifecycleMetricsToCallbacks(metrics)
         })
       } catch (error) {
-        attachSupadataErrorContext(error, 'create', 'runtime_http_create_retriable')
+        attachSupadataErrorContext(error, 'create', 'runtime_http_create_conservative')
       }
       if (!createResult) {
         throw InfraError('Supadata transcript request did not return a response', { stage: 'stt:supadata' })
@@ -158,14 +158,14 @@ export const runSupadataStt = async (
       if (createResult.status === 202) {
         const jobPayload = parseSupadataJobPayload(createResult.payload)
         if (!jobPayload) {
-          throw providerPayloadError('Supadata returned 202 without a jobId', 'create', 'runtime_http_create_retriable', createResult.payload)
+          throw providerPayloadError('Supadata returned 202 without a jobId', 'create', 'runtime_http_create_conservative', createResult.payload)
         }
         return { jobId: jobPayload.jobId }
       }
 
       const transcriptPayload = parseSupadataTranscriptPayload(createResult.payload)
       if (!transcriptPayload) {
-        throw providerPayloadError('Supadata returned an invalid transcript payload', 'create', 'runtime_http_create_retriable', createResult.payload, false)
+          throw providerPayloadError('Supadata returned an invalid transcript payload', 'create', 'runtime_http_create_conservative', createResult.payload)
       }
       return { kind: 'completed', transcript: transcriptPayload }
     },
@@ -179,7 +179,7 @@ export const runSupadataStt = async (
           metrics: lifecycleMetricsToCallbacks(metrics)
         })
       } catch (error) {
-        attachSupadataErrorContext(error, 'poll', 'runtime_http_read')
+        attachSupadataErrorContext(error, 'poll', 'runtime_http_poll')
       }
       if (!polled) {
         throw InfraError('Supadata polling did not return a job status', { stage: 'stt:supadata' })
@@ -200,14 +200,14 @@ export const runSupadataStt = async (
         ...(finalStatus.availableLangs ? { availableLangs: finalStatus.availableLangs } : {})
       })
       if (!transcriptPayload) {
-        throw providerPayloadError('Supadata completed job without transcript content', 'poll', 'runtime_http_read', finalStatus)
+        throw providerPayloadError('Supadata completed job without transcript content', 'poll', 'runtime_http_poll', finalStatus)
       }
       return transcriptPayload
     },
     buildResult: async ({ transcript, runtime, processingTime, timings }) => {
       const result = normalizeSupadataTranscript(transcript, offsetSeconds)
       await Bun.write(`${outputBase}.txt`, formatTranscriptText(result.segments))
-      logSttTranscriptOutput(l, {
+      logSttTranscriptOutput( {
         provider: 'supadata',
         path: `${outputBase}.txt`,
         characters: result.text.length

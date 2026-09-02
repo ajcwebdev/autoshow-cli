@@ -19,7 +19,6 @@ export type TtsVoiceMatrixEnvKey =
   | 'MISTRAL_API_KEY'
   | 'OPENAI_API_KEY'
   | 'XAI_API_KEY'
-  | 'MINIMAX_API_KEY'
   | 'INWORLD_API_KEY'
   | 'DEEPINFRA_API_KEY'
 

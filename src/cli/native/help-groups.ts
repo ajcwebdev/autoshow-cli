@@ -20,7 +20,6 @@ export const HELP_FLAG_GROUPS = [
   ['transcript-video', 'Transcript Video'],
   ['writing', 'Writing'],
   ['tts-options', 'Text to Speech'],
-  ['tts-minimax', 'MiniMax TTS'],
   ['tts-dialogue', 'Multi-Speaker / Dialogue'],
   ['tts-elevenlabs', 'ElevenLabs TTS'],
   ['image-options', 'Image Options'],

@@ -5,7 +5,6 @@ import { buildSegmentsFromWords, buildTranscriptionOutputBase, countTokens, form
 import type { AsyncSttLifecycleMetrics, HostedAsyncSttRunOptions, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { AssemblyAiTranscriptResponseSchema } from '~/types'
 import { ASSEMBLYAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import * as l from '~/utils/app-logger/app-logger'
 import { InternalError, ValidationError } from '~/utils/error-handler'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import * as v from 'valibot'
@@ -41,7 +40,7 @@ const uploadAssemblyAiAudio = async (
   const uploadResult = await sttStageRequest({
     operationName: 'assemblyai-upload',
     stage: 'upload',
-    retryClass: 'runtime_http_create_retriable',
+    retryClass: 'runtime_http_create_conservative',
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'AssemblyAI',
     schema: v.unknown(),
@@ -77,7 +76,7 @@ const createAssemblyAiTranscript = async (
   const createResult = await sttStageRequest({
     operationName: 'assemblyai-create-transcript',
     stage: 'create',
-    retryClass: 'runtime_http_create_retriable',
+    retryClass: 'runtime_http_create_conservative',
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'AssemblyAI',
     failureLabel: 'transcript creation',
@@ -112,7 +111,7 @@ const pollAssemblyAiTranscript = async (
   const { value, retryAfterMs } = await sttStageRequestWithRetryAfter({
     operationName: 'assemblyai-poll-transcript',
     stage: 'poll',
-    retryClass: 'runtime_http_read',
+    retryClass: 'runtime_http_poll',
     timeoutMs: POLL_REQUEST_TIMEOUT_MS,
     errorPrefix: 'AssemblyAI',
     failureLabel: 'polling',
@@ -148,7 +147,7 @@ export const runAssemblyAiTranscribe = async (
   const apiKey = resolveCredential('assemblyai', 'require', { stage: 'stt:assemblyai', description: 'AssemblyAI transcription' })
 
   if (diarizationOptions?.speakerCount !== undefined) {
-    logSttDiarizationConfig(l, {
+    logSttDiarizationConfig( {
       provider: 'assemblyai',
       model: modelName,
       enabled: true,

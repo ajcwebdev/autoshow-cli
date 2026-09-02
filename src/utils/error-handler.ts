@@ -1,5 +1,5 @@
 import { sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
-import type { AppErrorKind, AppErrorOptions, ErrorChainEntry, RetryClass } from '~/types'
+import type { AppErrorKind, AppErrorOptions, ErrorChainEntry, NonUsageAppErrorOptions, RetryClass, UsageErrorOptions } from '~/types'
 import { isRecord } from '~/utils/value-helpers'
 
 const DEFAULT_EXIT_CODE_BY_KIND: Readonly<Record<AppErrorKind, number>> = {
@@ -22,24 +22,24 @@ export class AppError extends Error {
   readonly exitCode: number
   readonly status?: number
   readonly headers?: Headers
-  readonly stage?: string
+  readonly stage: string
   readonly retryClass?: RetryClass
   readonly retryable?: boolean
   readonly metadata: Record<string, unknown>
-  override cause?: Error
+  override cause?: unknown
 
   constructor(message: string, options: AppErrorOptions) {
-    super(message, options.cause ? { cause: options.cause } : undefined)
+    super(message, options.cause !== undefined ? { cause: options.cause } : undefined)
     this.name = 'AppError'
     this.kind = options.kind
     this.hints = [...(options.hints ?? [])]
     this.exitCode = normalizePositiveExitCode(options.exitCode) ?? DEFAULT_EXIT_CODE_BY_KIND[options.kind]
     this.metadata = { ...(options.metadata ?? {}) }
 
-    if (options.cause) this.cause = options.cause
+    if (options.cause !== undefined) this.cause = options.cause
     if (typeof options.status === 'number') this.status = options.status
     if (options.headers instanceof Headers) this.headers = options.headers
-    if (options.stage !== undefined) this.stage = options.stage
+    this.stage = options.stage
     if (options.retryClass !== undefined) this.retryClass = options.retryClass
     if (typeof options.retryable === 'boolean') this.retryable = options.retryable
   }
@@ -50,22 +50,15 @@ export class AppUsageError extends AppError {
 
   constructor(
     message: string,
-    hints?: string[],
-    options: {
-      usageMessage?: string
-      cause?: Error | undefined
-      stage?: string
-      retryable?: boolean
-      metadata?: Record<string, unknown>
-    } = {}
+    options: UsageErrorOptions = {}
   ) {
     super(message, {
       kind: 'usage',
       exitCode: 2,
-      ...(hints ? { hints } : {}),
-      ...(options.cause ? { cause: options.cause } : {}),
-      ...(options.stage !== undefined ? { stage: options.stage } : {}),
-      ...(typeof options.retryable === 'boolean' ? { retryable: options.retryable } : {}),
+      ...(options.hints ? { hints: options.hints } : {}),
+      ...(options.cause !== undefined ? { cause: options.cause } : {}),
+      stage: options.stage ?? 'cli:usage',
+      retryable: options.retryable ?? false,
       ...(options.metadata ? { metadata: options.metadata } : {})
     })
     this.name = 'AppUsageError'
@@ -74,61 +67,56 @@ export class AppUsageError extends AppError {
 }
 
 export class AppValidationError extends AppError {
-  constructor(message: string, options: Omit<AppErrorOptions, 'kind'> = {}) {
-    super(message, { ...options, kind: 'validation' })
+  constructor(message: string, options: NonUsageAppErrorOptions = {}) {
+    super(message, { ...options, kind: 'validation', stage: options.stage ?? 'validation', retryable: options.retryable ?? false })
     this.name = 'AppValidationError'
   }
 }
 
 export class AppProviderError extends AppError {
-  constructor(message: string, options: Omit<AppErrorOptions, 'kind'> = {}) {
-    super(message, { ...options, kind: 'provider_http' })
+  constructor(message: string, options: NonUsageAppErrorOptions = {}) {
+    super(message, { ...options, kind: 'provider_http', stage: options.stage ?? 'provider' })
     this.name = 'AppProviderError'
   }
 }
 
 export class AppInfrastructureError extends AppError {
-  constructor(message: string, options: Omit<AppErrorOptions, 'kind'> = {}) {
-    super(message, { ...options, kind: 'infrastructure' })
+  constructor(message: string, options: NonUsageAppErrorOptions = {}) {
+    super(message, { ...options, kind: 'infrastructure', stage: options.stage ?? 'infrastructure' })
     this.name = 'AppInfrastructureError'
   }
 }
 
 class AppInternalError extends AppError {
-  constructor(message: string, options: Omit<AppErrorOptions, 'kind'> = {}) {
-    super(message, { ...options, kind: 'internal' })
+  constructor(message: string, options: NonUsageAppErrorOptions = {}) {
+    super(message, { ...options, kind: 'internal', stage: options.stage ?? 'internal', retryable: options.retryable ?? false })
     this.name = 'AppInternalError'
   }
 }
 
 export const UsageError = (
   message: string,
-  hint?: string,
-  options: { cause?: Error | undefined } = {}
-): Error => new AppUsageError(
-  message,
-  hint ? [hint] : undefined,
-  options.cause ? { cause: options.cause } : {}
-)
+  options: UsageErrorOptions = {}
+): AppUsageError => new AppUsageError(message, options)
 
 export const InfraError = (
   message: string,
-  options: Omit<AppErrorOptions, 'kind'> = {}
+  options: NonUsageAppErrorOptions = {}
 ): AppInfrastructureError => new AppInfrastructureError(message, options)
 
 export const ProviderError = (
   message: string,
-  options: Omit<AppErrorOptions, 'kind'> = {}
+  options: NonUsageAppErrorOptions = {}
 ): AppProviderError => new AppProviderError(message, options)
 
 export const InternalError = (
   message: string,
-  options: Omit<AppErrorOptions, 'kind'> = {}
+  options: NonUsageAppErrorOptions = {}
 ): AppInternalError => new AppInternalError(message, options)
 
 export const ValidationError = (
   message: string,
-  options: Omit<AppErrorOptions, 'kind'> = {}
+  options: NonUsageAppErrorOptions = {}
 ): AppValidationError => new AppValidationError(message, options)
 
 export const isAppError = (error: unknown): error is AppError =>
@@ -150,11 +138,22 @@ export const isRetryExhaustedError = (error: unknown): boolean => {
   return false
 }
 
-export const hasErrorCode = (error: unknown, code: string): boolean =>
-  typeof error === 'object'
-  && error !== null
-  && 'code' in error
-  && (error as { code?: unknown }).code === code
+export const hasErrorCode = (error: unknown, code: string): boolean => {
+  const seen = new Set<unknown>()
+  let current = error
+
+  while (current !== null && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current)
+    if ('code' in current && (current as { code?: unknown }).code === code) {
+      return true
+    }
+    current = 'cause' in current
+      ? (current as { cause?: unknown }).cause
+      : undefined
+  }
+
+  return false
+}
 
 export function rethrowAsUsage<T>(fn: () => Promise<T>, fallbackHint?: string): Promise<T>
 export function rethrowAsUsage<T>(fn: () => T, fallbackHint?: string): T
@@ -168,8 +167,10 @@ export function rethrowAsUsage<T>(
     }
     throw UsageError(
       error instanceof Error ? error.message : String(error),
-      fallbackHint,
-      error instanceof Error ? { cause: error } : {}
+      {
+        ...(fallbackHint ? { hints: [fallbackHint] } : {}),
+        cause: error
+      }
     )
   }
   try {
@@ -189,15 +190,7 @@ export const normalizeExitCode = (error: unknown): number => {
   if (isAppError(error)) {
     return error.exitCode
   }
-
-  if (error instanceof Error && 'exitCode' in error) {
-    const exitCode = (error as Error & { exitCode?: unknown }).exitCode
-    const normalized = normalizePositiveExitCode(exitCode)
-    if (normalized !== undefined) {
-      return normalized
-    }
-  }
-  return isUsageError(error) ? 2 : 1
+  return 1
 }
 
 export const usageMessage = (error: unknown): string => {
@@ -254,7 +247,7 @@ const SAFE_CAUSE_METADATA_KEYS = [
 
 const ERROR_METADATA_CAUSE_DEPTH_LIMIT = 6
 
-const collectErrorMetadataChain = (error: unknown): object[] => {
+export const collectErrorMetadataChain = (error: unknown): object[] => {
   const chain: object[] = []
   const seen = new Set<unknown>()
   let current = error
@@ -286,8 +279,9 @@ const addMetadataValue = (
 }
 
 export const getErrorStatus = (error: unknown): number | undefined => {
-  if (error && typeof error === 'object' && 'status' in error) {
-    const status = (error as { status: unknown }).status
+  for (const entry of collectErrorMetadataChain(error)) {
+    if (!('status' in entry)) continue
+    const status = (entry as { status: unknown }).status
     if (typeof status === 'number') {
       return status
     }
@@ -296,8 +290,9 @@ export const getErrorStatus = (error: unknown): number | undefined => {
 }
 
 export const getErrorHeaders = (error: unknown): Headers | undefined => {
-  if (error && typeof error === 'object' && 'headers' in error) {
-    const headers = (error as { headers: unknown }).headers
+  for (const entry of collectErrorMetadataChain(error)) {
+    if (!('headers' in entry)) continue
+    const headers = (entry as { headers: unknown }).headers
     if (headers instanceof Headers) {
       return headers
     }
@@ -308,7 +303,8 @@ export const getErrorHeaders = (error: unknown): Headers | undefined => {
 export const extractErrorMetadata = (error: unknown): Record<string, unknown> => {
   const metadata: Record<string, unknown> = {}
 
-  for (const entry of collectErrorChain(error)) {
+  for (const entry of collectErrorMetadataChain(error)) {
+    const record = entry as Record<string, unknown>
     if (isAppError(entry)) {
       for (const [key, value] of Object.entries(entry.metadata)) {
         addMetadataValue(metadata, key, value)
@@ -316,7 +312,7 @@ export const extractErrorMetadata = (error: unknown): Record<string, unknown> =>
     }
 
     for (const key of PROVIDER_METADATA_KEYS) {
-      addMetadataValue(metadata, key, entry[key])
+      addMetadataValue(metadata, key, record[key])
     }
 
     for (const [key, value] of Object.entries(entry)) {
@@ -349,13 +345,18 @@ const keyedHintsFor = (error: unknown, metadata: Record<string, unknown>): strin
   const hints: string[] = []
   const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
   const category = typeof metadata['category'] === 'string' ? metadata['category'] : undefined
+  const blockedReason = typeof metadata['blockedReason'] === 'string' ? metadata['blockedReason'] : undefined
+  const quotaOrBilling = status === 402
+    || metadata['quota'] === true
+    || category === 'billing'
+    || category === 'quota'
+    || blockedReason === 'billing_required'
+    || blockedReason === 'insufficient_balance'
+    || blockedReason === 'quota_or_billing'
 
   if (isAppError(error)) {
     if (error.kind === 'usage') {
       hints.push(...error.hints)
-    }
-    if (error.kind === 'provider_http' && status === 429) {
-      hints.push('The provider rate-limited the request. Retry later or reduce provider concurrency.')
     }
     if (error.kind === 'retry_exhausted') {
       hints.push('Retry attempts were exhausted. Check the provider diagnostics for the final failure.')
@@ -367,6 +368,9 @@ const keyedHintsFor = (error: unknown, metadata: Record<string, unknown>): strin
   }
   if (status === 429 || category === 'rate_limit') {
     hints.push('The provider is rate limiting requests. Retry later or lower concurrency.')
+  }
+  if (quotaOrBilling) {
+    hints.push('Check the provider billing balance, quota, and account limits before retrying.')
   }
 
   return hints
@@ -499,4 +503,89 @@ export const serializeDiagnosticError = (error: unknown): Record<string, unknown
   return isRecord(sanitized)
     ? sanitized
     : { value: sanitizeLogText(String(sanitized)) }
+}
+
+export const formatErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message
+  if (error && typeof error === 'object' && 'message' in error && typeof (error as { message?: unknown }).message === 'string') {
+    return (error as { message: string }).message
+  }
+  return error === undefined ? 'Unknown error' : String(error)
+}
+
+type AnnotateAppErrorOptions = {
+  kind?: Exclude<AppErrorKind, 'retry_exhausted'>
+  stage: string
+  retryClass?: RetryClass
+  message?: string
+  metadata?: Record<string, unknown>
+  retryable?: boolean
+  hints?: string[]
+}
+
+export const annotateAppError = (
+  error: unknown,
+  options: AnnotateAppErrorOptions
+): AppError => {
+  if (isAppError(error)) {
+    Object.assign(error.metadata, {
+      stage: options.stage,
+      ...(options.retryClass ? { retryClass: options.retryClass } : {}),
+      ...(options.metadata ?? {})
+    })
+    return error
+  }
+
+  return new AppError(options.message ?? formatErrorMessage(error), {
+    kind: options.kind ?? 'infrastructure',
+    stage: options.stage,
+    ...(options.retryClass ? { retryClass: options.retryClass } : {}),
+    cause: error,
+    retryable: options.retryable ?? false,
+    ...(options.hints ? { hints: options.hints } : {}),
+    ...(options.metadata ? { metadata: options.metadata } : {})
+  })
+}
+
+const RESULT_CAUSE_DEPTH_LIMIT = 6
+
+const serializeResultCauseChain = (error: unknown): Array<Record<string, unknown>> => {
+  const causes: Array<Record<string, unknown>> = []
+  const seen = new Set<unknown>()
+  let current = error !== null && typeof error === 'object' && 'cause' in error
+    ? (error as { cause?: unknown }).cause
+    : undefined
+
+  while (current !== undefined && causes.length < RESULT_CAUSE_DEPTH_LIMIT && !seen.has(current)) {
+    seen.add(current)
+    causes.push(current instanceof Error
+      ? { name: current.name, message: sanitizeLogText(current.message) }
+      : current !== null && typeof current === 'object'
+        ? { name: 'ObjectCause', metadata: toDiagnosticValue(current) }
+        : { name: 'PrimitiveCause', value: toDiagnosticValue(current) })
+    current = current !== null && typeof current === 'object' && 'cause' in current
+      ? (current as { cause?: unknown }).cause
+      : undefined
+  }
+
+  if (current !== undefined) causes.push({ name: 'CauseChainTruncated', message: 'Additional causes were omitted.' })
+  return causes
+}
+
+export const serializeResultError = (error: unknown): Record<string, unknown> => {
+  const metadata = extractErrorMetadata(error)
+  const causes = serializeResultCauseChain(error)
+
+  const serialized: Record<string, unknown> = {
+    kind: isAppError(error) ? error.kind : 'internal',
+    name: error instanceof Error ? error.name : 'NonErrorThrown',
+    message: sanitizeLogText(formatErrorMessage(error)),
+    ...(typeof metadata['stage'] === 'string' ? { stage: metadata['stage'] } : {}),
+    ...(typeof metadata['status'] === 'number' ? { status: metadata['status'] } : {}),
+    ...(typeof metadata['retryClass'] === 'string' ? { retryClass: metadata['retryClass'] } : {}),
+    ...(typeof metadata['retryable'] === 'boolean' ? { retryable: metadata['retryable'] } : {}),
+    ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
+    ...(causes.length > 0 ? { causes } : {})
+  }
+  return sanitizeLogMetadata(serialized) as Record<string, unknown>
 }

@@ -1,5 +1,4 @@
 import type { AudioSegmentDescriptor } from '~/types'
-import * as l from '~/utils/app-logger/app-logger'
 import { exec, ensureDirectory } from '~/utils/cli-utils'
 import { planNormalizedAudioArtifact, resolveSplitAudioPlan } from '~/cli/commands/process-steps/step-1-download/audio/audio-normalize'
 import { logSttSplitSegments, logSttSplitSummary } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
@@ -86,7 +85,7 @@ export const splitAudioFile = async (audioPath: string, outputDir: string, segme
     throw InfraError(`Could not plan audio segments for splitting: ${audioPath}`, { stage: 'stt:audio-split' })
   }
 
-  logSttSplitSummary(l, {
+  logSttSplitSummary( {
     input: audioPath,
     segmentDurationMinutes,
     totalDurationSeconds: totalDuration,
@@ -113,16 +112,13 @@ export const splitAudioFile = async (audioPath: string, outputDir: string, segme
       ffmpegArgs.push('-c:a', 'flac', '-compression_level', '12', '-y', segmentPath)
     }
 
-    const result = await exec(getFfmpegBinary(), ffmpegArgs, {
-      retry: { operationName: 'ffmpeg audio split' }
-    })
+    const result = await exec(getFfmpegBinary(), ffmpegArgs)
 
     if (result.exitCode !== 0) {
-      l.error(`Failed to create segment ${i + 1}: ${result.stderr}`, {
-        category: 'pipeline',
-        metadata: { segmentNumber: i + 1, exitCode: result.exitCode, stderr: result.stderr }
+      throw InfraError(`Failed to create segment ${i + 1}`, {
+        stage: 'stt:audio-split',
+        metadata: { segmentNumber: i + 1, childExitCode: result.exitCode, stderr: result.stderr }
       })
-      throw InfraError(`Failed to create segment ${i + 1}`, { stage: 'stt:audio-split' })
     }
 
     segmentDescriptors.push({
@@ -131,7 +127,7 @@ export const splitAudioFile = async (audioPath: string, outputDir: string, segme
     } satisfies AudioSegmentDescriptor)
   }
 
-  logSttSplitSegments(l, segmentDescriptors)
+  logSttSplitSegments( segmentDescriptors)
   return segmentDescriptors
 }
 

@@ -85,15 +85,19 @@ export const runFalQueue = async <T>(options: {
           intervalMs: options.pollIntervalMs ?? 5_000,
           deadlineMs: MEDIA_GENERATION_TIMEOUT_MS,
           ...(options.abortSignal ? { abortSignal: options.abortSignal } : {}),
-          pollFn: async () => {
-            const response = await fetch(statusUrl, { headers, ...(options.abortSignal ? { signal: options.abortSignal } : {}) })
+          pollFn: async () => await withRetry({
+            retryClass: 'runtime_http_poll',
+            operationName: `${options.operationName}-poll`,
+            ...(options.abortSignal ? { abortSignal: options.abortSignal } : {})
+          }, async (signal) => {
+            const response = await fetch(statusUrl, { headers, ...(signal ? { signal } : {}) })
             if (!response.ok) {
               throw InfraError(`fal.ai queue status failed (${response.status}): ${await readErrorBody(response)}`, { stage: 'fal:queue', status: response.status })
             }
             const status = parseQueueStatus(await response.json() as unknown, 'fal.ai queue status')
             options.onStatus?.(status)
             return status
-          },
+          }, (error) => classifyFetchRetry(error, 'runtime_http_poll')),
           isDone: status => status.status.toUpperCase() === 'COMPLETED',
           isFailed: status => {
             const terminalStatus = status.status.toUpperCase()

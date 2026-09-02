@@ -1,6 +1,5 @@
 import type { ProviderCompletionStatus, YoutubeCaptionCompletionContext } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { logManifestLocation } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
@@ -35,15 +34,8 @@ export const completeYoutubeCaptionStt = async ({
   }
 
   if (requestedTargets.length > 0) {
-    l.write('info', 'STT Provider Skips', {
+    l.write('info', `Skipping ${requestedTargets.length} STT providers because YouTube captions were found`, {
       category: 'pipeline',
-      humanTable: createHumanTable(
-        requestedTargets.map((target) => ({
-          provider: formatSttTargetLabel(target),
-          reason: 'youtube-captions'
-        })),
-        ['provider', 'reason']
-      ),
       metadata: {
         reason: 'youtube-captions',
         skippedProviders: requestedTargets.map(formatSttTargetLabel)
@@ -100,7 +92,7 @@ export const completeYoutubeCaptionStt = async ({
     ...(timing ? { timing } : {})
   }, null, 2)
   await writePipelineItemRecords(outputDir, 'extract', 'single', [JSON.parse(metadataJson)], { extractRoute: 'media' })
-  logManifestLocation(outputDir, l, 'extract')
+  logManifestLocation(outputDir, 'extract')
   l.debug(`Canonical manifest item metadata:\n${metadataJson}`, { category: 'artifact' })
 
   const artifactFiles: Record<string, string> = {

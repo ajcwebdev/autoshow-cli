@@ -65,6 +65,7 @@ const collectPromptFilePaths = async (directory: string): Promise<string[]> => {
     if (directory === PROMPTS_DIR && hasErrorCode(error, 'ENOENT')) {
       throw new AppError(`Prompts registry directory not found at ${PROMPTS_DIR}`, {
         kind: 'infrastructure',
+        stage: 'prompts:registry',
         cause: error instanceof Error ? error : new Error(String(error)),
         metadata: { directory: PROMPTS_DIR }
       })
@@ -72,6 +73,7 @@ const collectPromptFilePaths = async (directory: string): Promise<string[]> => {
 
     throw new AppError(`Failed to read prompts registry directory at ${directory}`, {
       kind: 'infrastructure',
+      stage: 'prompts:registry',
       cause: error instanceof Error ? error : new Error(String(error)),
       metadata: { directory }
     })
@@ -110,6 +112,7 @@ const assertUniquePromptBasenames = (promptFiles: string[]): void => {
         `Prompt names are derived from JSON file basenames, so each prompt filename must be unique across ${PROMPTS_DIR}.`,
         {
           kind: 'validation',
+          stage: 'prompts:registry',
           metadata: { promptName, existingPath, filePath, promptsDir: PROMPTS_DIR }
         }
       )
@@ -192,6 +195,7 @@ const collectLeafPromptsFromRegistry = (
     if (stack.includes(name)) {
       throw new AppError(`Circular prompt include detected: ${[...stack, name].join(' → ')}`, {
         kind: 'validation',
+        stage: 'prompts:registry',
         metadata: { promptName: name, includeStack: [...stack, name] }
       })
     }
@@ -230,6 +234,7 @@ const loadPrompts = async (): Promise<PromptsRegistry> => {
   if (promptFiles.length === 0) {
     throw new AppError(`Prompts registry directory at ${PROMPTS_DIR} contains no .json files`, {
       kind: 'validation',
+      stage: 'prompts:registry',
       metadata: { promptsDir: PROMPTS_DIR }
     })
   }
@@ -243,6 +248,7 @@ const loadPrompts = async (): Promise<PromptsRegistry> => {
     } catch (error) {
       throw new AppError(`Failed to read prompt entry at ${filePath}`, {
         kind: 'infrastructure',
+        stage: 'prompts:registry',
         cause: error instanceof Error ? error : new Error(String(error)),
         metadata: { filePath }
       })
@@ -256,6 +262,7 @@ const loadPrompts = async (): Promise<PromptsRegistry> => {
       capture.append(fileContents)
       throw new AppError(`Failed to parse prompt entry at ${filePath}: invalid JSON`, {
         kind: 'validation',
+        stage: 'prompts:registry',
         cause: error instanceof Error ? error : new Error(String(error)),
         metadata: {
           filePath,

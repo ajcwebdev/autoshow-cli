@@ -255,7 +255,7 @@ export const dispatchResume = async (
   }
 
   if (outputDirs.length > 1 && estimates.length > 0) {
-    logSuitePriceSummary(l, {
+    logSuitePriceSummary({
       checkedLabel: estimates.length === 1 ? 'resume directory' : 'resume directories',
       checkedCount: estimates.length,
       totalEstimatedCost: estimates.reduce((sum, estimate) => sum + estimate.totalEstimatedCost, 0)
@@ -263,7 +263,7 @@ export const dispatchResume = async (
   }
 
   if (outputDirs.length > 1 && resumeResults.length > 0) {
-    logResumeSuiteSummary(l, {
+    logResumeSuiteSummary({
       directories: outputDirs.length,
       full: resumeResults.reduce((sum, result) => sum + result.full, 0),
       incomplete: resumeResults.reduce((sum, result) => sum + result.incomplete, 0),
@@ -274,4 +274,22 @@ export const dispatchResume = async (
   if (failures.length > 0) {
     throw buildResumeFailureError(failures)
   }
+
+  if (estimates.length > 0) {
+    l.report.price({
+      steps: estimates.flatMap(estimate => estimate.steps),
+      totalEstimatedCost: estimates.reduce((sum, estimate) => sum + estimate.totalEstimatedCost, 0)
+    })
+    return
+  }
+
+  l.report.result({
+    directories: outputDirs,
+    results: resumeResults,
+    totals: {
+      full: resumeResults.reduce((sum, result) => sum + result.full, 0),
+      incomplete: resumeResults.reduce((sum, result) => sum + result.incomplete, 0),
+      failed: resumeResults.reduce((sum, result) => sum + result.failed, 0)
+    }
+  }, 'Resume complete')
 }

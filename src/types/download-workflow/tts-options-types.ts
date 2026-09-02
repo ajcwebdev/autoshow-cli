@@ -24,15 +24,6 @@ export type TtsRuntimeOptions = {
   elevenlabsTtsSeed: number | undefined
   elevenlabsTtsTextNormalization: string | undefined
   elevenlabsTtsPronunciationDictionaryLocators: string[] | undefined
-  minimaxTtsModels: string[] | undefined
-  minimaxTtsVoice: string | undefined
-  minimaxTtsLanguageBoost: string | undefined
-  minimaxTtsSpeed: number | undefined
-  minimaxTtsVolume: number | undefined
-  minimaxTtsPitch: number | undefined
-  minimaxTtsEmotion: string | undefined
-  minimaxTtsEnglishNormalization: boolean
-  minimaxTtsPronunciations: string[] | undefined
   speechifyTtsModels: string[] | undefined
   speechifyVoice: string | undefined
   speechifyTtsLanguage: string | undefined

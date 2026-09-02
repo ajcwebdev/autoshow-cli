@@ -3,7 +3,7 @@ import type { DraftScenesCommandOptions, StructureScriptsCommandOptions } from '
 import { formatCost } from '../comic-image-services/image-costs'
 import { DEFAULT_LLM_MODEL } from './cli-args'
 import { getDraftPromptPath } from './project-paths'
-import { priceLine, priceNotice, priceTable } from './price-estimate-logging'
+import { priceLine, priceNotice, priceRows } from './price-estimate-logging'
 import { estimateLlmCostFromRegistry } from './structured-script-utils/llm-cost'
 
 export const ESTIMATED_OUTPUT_TOKENS_PER_LLM_CALL = 800
@@ -30,7 +30,7 @@ export const logLlmTokenEstimate = (
   const outputCost = estimateLlmCost(model, 0, totalOutputTokens)
   const totalCost = estimateLlmCost(model, tokens, totalOutputTokens)
 
-  priceTable(
+  priceRows(
     title,
     [{
       model,

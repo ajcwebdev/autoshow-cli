@@ -225,7 +225,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'llm-provider-concurrency': ['defaults', 'llm', 'providerConcurrency'],
   'llm-local-concurrency': ['defaults', 'llm', 'localConcurrency'],
   'elevenlabs-tts':    ['defaults', 'tts', 'elevenlabsTts'],
-  'minimax-tts':       ['defaults', 'tts', 'minimaxTts'],
   'grok-tts':          ['defaults', 'tts', 'grokTts'],
   'mistral-tts':       ['defaults', 'tts', 'mistralTts'],
   'openai-tts':        ['defaults', 'tts', 'openaiTts'],
@@ -246,10 +245,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'elevenlabs-tts-use-speaker-boost': ['defaults', 'tts', 'elevenlabsTtsUseSpeakerBoost'],
   'elevenlabs-tts-seed': ['defaults', 'tts', 'elevenlabsTtsSeed'],
   'elevenlabs-tts-pronunciation-dictionary-locator': ['defaults', 'tts', 'elevenlabsTtsPronunciationDictionaryLocators'],
-  'minimax-tts-volume': ['defaults', 'tts', 'minimaxTtsVolume'],
-  'minimax-tts-pitch': ['defaults', 'tts', 'minimaxTtsPitch'],
-  'minimax-tts-emotion': ['defaults', 'tts', 'minimaxTtsEmotion'],
-  'minimax-tts-pronunciation': ['defaults', 'tts', 'minimaxTtsPronunciations'],
   'tts-provider-concurrency': ['defaults', 'tts', 'providerConcurrency'],
   'tts-chunk-concurrency': ['defaults', 'tts', 'chunkConcurrency'],
   'gemini-image':      ['defaults', 'image', 'geminiImage'],
@@ -350,7 +345,7 @@ const readConfigFlagValue = (
 }
 
 const parseConfigValue = (flagName: string, rawValue: unknown): unknown => {
-  if ((flagName === 'minimax-tts-pronunciation' || flagName === 'elevenlabs-tts-pronunciation-dictionary-locator') && typeof rawValue === 'string') {
+  if (flagName === 'elevenlabs-tts-pronunciation-dictionary-locator' && typeof rawValue === 'string') {
     return [rawValue]
   }
   if (typeof rawValue !== 'string') return rawValue
@@ -365,7 +360,7 @@ const parseConfigValue = (flagName: string, rawValue: unknown): unknown => {
     'image-provider-concurrency',
     'video-provider-concurrency',
     'music-provider-concurrency',
-    'tts-speed', 'minimax-tts-volume', 'minimax-tts-pitch',
+    'tts-speed',
     'elevenlabs-tts-stability', 'elevenlabs-tts-similarity-boost', 'elevenlabs-tts-style',
     'elevenlabs-tts-seed',
     'replicate-video-seed'

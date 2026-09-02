@@ -1,4 +1,4 @@
-import type { HumanLogTableRow, SttBatchProviderProfile, SttBatchSchedulerSnapshot, SttProviderSlotSummary, SttTarget } from '~/types'
+import type { SttBatchProviderProfile, SttBatchSchedulerSnapshot, SttProviderSlotSummary, SttTarget } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { formatSttTargetLabel, getSttTargetKey } from '../stt-targets'
 
@@ -109,7 +109,7 @@ export const describeSttBatchProviderSlotLimits = (
 
 export const buildSttBatchSchedulerRows = (
   snapshot: SttBatchSchedulerSnapshot
-): HumanLogTableRow[] =>
+) =>
   snapshot.providers.map((provider) => ({
     provider: formatSttTargetLabel(provider),
     kind: provider.kind,

@@ -1,5 +1,4 @@
 import type { SttBatchWorkerContext, SttTarget } from '~/types'
-import * as l from '~/utils/app-logger/app-logger'
 import { logSttRecoveryPass } from '../stt-logging'
 import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import { runSttProviderTargetAtIndex } from './stt-batch-worker'
@@ -18,7 +17,7 @@ export const runSttRecoveryPasses = async (
     }
 
     let recoveredCount = 0
-    logSttRecoveryPass(l, {
+    logSttRecoveryPass( {
       pass,
       maxPasses: STT_RECOVERY_MAX_PASSES,
       failures: recoveryIndices.length,

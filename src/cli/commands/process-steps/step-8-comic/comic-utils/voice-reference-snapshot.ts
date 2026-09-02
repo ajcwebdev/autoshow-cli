@@ -189,7 +189,7 @@ export const loadVoiceReferenceManifest = async (input: {
   try {
     parsed = validateVoiceReferenceManifest(JSON.parse(new TextDecoder().decode(bytes)) as VoiceReferenceManifest)
   } catch (error) {
-    throw UsageError(`Retained voice snapshot is invalid: ${error instanceof Error ? error.message : String(error)}`, undefined, error instanceof Error ? { cause: error } : {})
+    throw UsageError(`Retained voice snapshot is invalid: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
   }
   if (parsed.snapshotId !== entry.snapshotId || parsed.sceneRunIdentity !== input.sceneRunIdentity || parsed.dialoguePlanId !== input.dialoguePlanId || parsed.createdAt !== entry.createdAt) throw UsageError('Retained voice snapshot does not bind its append-only scene/dialogue index entry.')
   return { manifest: parsed, ref: { path: relativePath, sha256: sha256Bytes(bytes) } }

@@ -30,24 +30,25 @@ describe('test-runner contracts', () => {
       expect(lineHasTimedOutputPrefix('✓ example [8.25ms]')).toBe(false)
     })
 
-  test('estimated-cost parser accepts readable totals and exact parenthetical cents', () => {
-      expect(parseCommandEstimatedTotal('Total estimated cost: $3.59 (358.690¢)')).toBe(358.690)
-      expect(parseCommandEstimatedTotal('Total estimated cost: free (0.000¢)')).toBe(0)
-      expect(parseCommandEstimatedTotal('Suite total estimated cost: $3.59')).toBe(359)
-      expect(parseCommandEstimatedTotal('Total estimated cost: 16.00¢')).toBe(16)
-      expect(parseCommandEstimatedTotal('Total estimated cost: free')).toBe(0)
-      expect(parseCommandEstimatedTotal('{"estimate":{"totalEstimatedCostCents":12.345}}')).toBe(12.345)
+  test('estimated-cost parser accepts only a successful terminal result envelope', () => {
+      const result = (cost: number): string => JSON.stringify({ schemaVersion: 1, type: 'result', status: 'success', data: { estimate: { totalEstimatedCostCents: cost } } })
+      expect(parseCommandEstimatedTotal(result(358.690))).toBe(358.690)
+      expect(parseCommandEstimatedTotal(result(0))).toBe(0)
+      expect(parseCommandEstimatedTotal('Total estimated cost: 16.00¢')).toBeNull()
+      expect(parseCommandEstimatedTotal('{"estimate":{"totalEstimatedCostCents":12.345}}')).toBeNull()
+      expect(parseCommandEstimatedTotal(JSON.stringify({ schemaVersion: 1, type: 'result', status: 'failure', data: { estimate: { totalEstimatedCostCents: 12.345 } } }))).toBeNull()
       expect(parseOutputDirFromText('outputDir: /tmp/autoshow/latest-run\n')).toBe('/tmp/autoshow/latest-run')
       expect(parseOutputDirFromText('manifest: /tmp/autoshow/latest-run/manifest.json\n')).toBe('/tmp/autoshow/latest-run')
     })
 
   test('output-dir and estimated-cost parsers only scan the last 64KB', () => {
       const padding = `${'x'.repeat(COMMAND_OUTPUT_PARSE_TAIL_CHARS + 1024)}\n`
-      const tail = 'outputDir: /tmp/autoshow/latest-run\nTotal estimated cost: 16.00¢\n'
-      expect(parseOutputDirFromText(`outputDir: /tmp/autoshow/stale-run\nTotal estimated cost: 1.00¢\n${padding}${tail}`)).toBe('/tmp/autoshow/latest-run')
-      expect(parseCommandEstimatedTotal(`outputDir: /tmp/autoshow/stale-run\nTotal estimated cost: 1.00¢\n${padding}${tail}`)).toBe(16)
-      expect(parseOutputDirFromText(`outputDir: /tmp/autoshow/stale-run\nTotal estimated cost: 1.00¢\n${padding}`)).toBeNull()
-      expect(parseCommandEstimatedTotal(`outputDir: /tmp/autoshow/stale-run\nTotal estimated cost: 1.00¢\n${padding}`)).toBeNull()
+      const terminalResult = JSON.stringify({ schemaVersion: 1, type: 'result', status: 'success', data: { estimate: { totalEstimatedCostCents: 16 } } })
+      const tail = `outputDir: /tmp/autoshow/latest-run\n${terminalResult}\n`
+      expect(parseOutputDirFromText(`outputDir: /tmp/autoshow/stale-run\n${padding}${tail}`)).toBe('/tmp/autoshow/latest-run')
+      expect(parseCommandEstimatedTotal(`outputDir: /tmp/autoshow/stale-run\n${padding}${tail}`)).toBe(16)
+      expect(parseOutputDirFromText(`outputDir: /tmp/autoshow/stale-run\n${padding}`)).toBeNull()
+      expect(parseCommandEstimatedTotal(`outputDir: /tmp/autoshow/stale-run\n${padding}`)).toBeNull()
     })
 
   test('test-output cleanup preserves latest.log only', async () => {

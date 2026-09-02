@@ -4,7 +4,6 @@ import { UsageError } from '~/utils/error-handler'
 const MULTI_SPEAKER_CAPABILITY: Partial<Record<TtsProvider, MultiSpeakerStrategy>> = {
   openai: 'segment-and-concat',
   elevenlabs: 'segment-and-concat',
-  minimax: 'segment-and-concat',
   grok: 'segment-and-concat',
   mistral: 'segment-and-concat',
   speechify: 'segment-and-concat',

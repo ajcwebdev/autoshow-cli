@@ -122,7 +122,7 @@ describe('async STT resume contracts', () => {
       }
       if (url.hostname === 'download.mock') {
         downloadAttempts += 1
-        if (downloadAttempts <= 2) {
+        if (downloadAttempts <= 4) {
           return jsonResponse({ error: 'export temporarily unavailable' }, { status: 503 })
         }
         return jsonResponse({
@@ -138,7 +138,7 @@ describe('async STT resume contracts', () => {
       model: 'auto',
       segmentOffsetMinutes: 0,
       lifecycle
-    })).rejects.toThrow('Happy Scribe transcript download failed')
+    })).rejects.toThrow('happyscribe-download-transcript failed after 4/4 attempts')
 
     const failedProvider = await readProvider(outputDir, target)
     expect(failedProvider?.metadata[ASYNC_STT_PROGRESS_METADATA_KEY]).toMatchObject({ whole: { runtime: {

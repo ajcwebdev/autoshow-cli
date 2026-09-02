@@ -2,9 +2,9 @@ import type { FetchFn, FetchUrlResult } from '~/types'
 import { extractHtmlToMarkdown } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/run-defuddle-url'
 import { runFirecrawlUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/firecrawl/run-firecrawl-url'
 import * as l from '~/utils/app-logger/app-logger'
-import { httpResponseError } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { InfraError, serializeDiagnosticError } from '~/utils/error-handler'
-import { classifyFetchRetry, withRetry } from '~/utils/retries'
+import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
 import { LINKS_FETCH_TIMEOUT_MS } from '~/utils/timeouts'
 import { formatErrorMessage } from '~/utils/value-helpers'
 
@@ -22,7 +22,9 @@ export const getFetchableDocumentationUrl = (url: string): string => {
 }
 
 export const createHttpFetchError = (response: Response): Error =>
-  httpResponseError(`HTTP ${response.status} ${response.statusText}`, response)
+  httpResponseError(`HTTP ${response.status} ${response.statusText}`, httpResponseOptions(response, {
+    stage: 'links:fetch', retryClass: 'runtime_http_read', retryable: isRetryableStatus(response.status), metadata: {}
+  }))
 
 export const downloadUrl = async (
   url: string,
@@ -81,7 +83,7 @@ export const fetchUrl = async (url: string, fetchImpl: FetchFn): Promise<FetchUr
       } catch (defuddleError) {
         l.warn(`Defuddle failed for ${url}; falling back to Firecrawl: ${formatErrorMessage(defuddleError)}`, {
           category: 'pipeline',
-          metadata: { url, fallbackBackend: 'firecrawl', error: serializeDiagnosticError(defuddleError) }
+          metadata: { url, fallbackBackend: 'firecrawl' }, error: defuddleError
         })
         try {
           content = (await runFirecrawlUrl(requestUrl, url)).markdown
@@ -112,7 +114,7 @@ export const fetchUrl = async (url: string, fetchImpl: FetchFn): Promise<FetchUr
   } catch (error) {
     l.warn(`Failed to fetch ${url}: ${formatErrorMessage(error)}`, {
       category: 'pipeline',
-      metadata: { url, error: serializeDiagnosticError(error) }
+      metadata: { url }, error: error
     })
     return {
       sourceUrl: url,

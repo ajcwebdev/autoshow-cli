@@ -18,7 +18,6 @@ const MATRIX_ENV_KEYS = [
   'MISTRAL_API_KEY',
   'OPENAI_API_KEY',
   'XAI_API_KEY',
-  'MINIMAX_API_KEY',
   'INWORLD_API_KEY'
 ] as const satisfies readonly TtsVoiceMatrixEnvKey[]
 
@@ -72,44 +71,6 @@ const cases: readonly VoiceMatrixCase[] = [
     readSerializedControl: call => {
       const settings = call.bodyJson?.['voice_settings'] as Record<string, unknown> | undefined
       return settings?.['speed']
-    }
-  },
-  {
-    provider: 'minimax',
-    envKey: 'MINIMAX_API_KEY',
-    flags: {
-      'minimax-tts': 'speech-2.8-hd',
-      'tts-voice': 'voice-captured',
-      'tts-speed': '0.8'
-    },
-    capturedVoice: 'voice-captured',
-    invocationVoices: ['voice-alice', 'voice-bob', 'voice-alice'],
-    invocationControls: [{ speed: 0.8 }, { speed: 1.2 }, { speed: 0.8 }],
-    respond: call => {
-      if (call.url.endsWith('/v1/t2a_async_v2')) {
-        return Response.json({
-          task_id: 'task-id',
-          base_resp: { status_code: 0, status_msg: 'success' }
-        })
-      }
-      if (call.url.includes('/v1/query/t2a_async_query_v2')) {
-        return Response.json({
-          status: 2,
-          file_id: 'speech-file-id',
-          base_resp: { status_code: 0, status_msg: 'success' }
-        })
-      }
-      if (call.url.includes('/v1/files/retrieve_content')) return byteResponse()
-      throw new Error(`Unexpected MiniMax request: ${call.method} ${call.url}`)
-    },
-    isSynthesisRequest: call => call.url.endsWith('/v1/t2a_async_v2'),
-    readSerializedVoice: call => {
-      const voiceSetting = call.bodyJson?.['voice_setting'] as Record<string, unknown> | undefined
-      return String(voiceSetting?.['voice_id'] ?? '')
-    },
-    readSerializedControl: call => {
-      const voiceSetting = call.bodyJson?.['voice_setting'] as Record<string, unknown> | undefined
-      return voiceSetting?.['speed']
     }
   },
   {

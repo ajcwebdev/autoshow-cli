@@ -234,8 +234,7 @@ const readReviewedPresentationScene = async (sceneRunDir: string): Promise<{ sce
     if (hasErrorCode(error, 'ENOENT')) {
       throw UsageError(
         `Reviewed comic scene is missing: ${join(sceneRunDir, path)}`,
-        undefined,
-        error instanceof Error ? { cause: error } : {}
+        { cause: error }
       )
     }
     throw error
@@ -307,7 +306,7 @@ export const resolvePresentationVisualInputs = async (
   }
   throw UsageError(
     `Comic slideshow visual preflight failed before provider dispatch; no exact compatible reviewed scene and complete canonical panel set was found for ${compatible.sourceIdentity.canonicalPath}.`,
-    `Checked: ${rejected.join('; ')}`
+    { hints: [`Checked: ${rejected.join('; ')}`] }
   )
 }
 

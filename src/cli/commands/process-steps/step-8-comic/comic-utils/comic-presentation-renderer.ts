@@ -222,8 +222,7 @@ const publishStagedImmutable = async (sceneRunDir: string, stagedPath: string, r
     const existing = await readContainedArtifactFile(sceneRunDir, relativePath)
     if (existing.sha256 !== sha256) throw UsageError(
         `Immutable comic presentation artifact conflicts with existing bytes: ${relativePath}`,
-        undefined,
-        error instanceof Error ? { cause: error } : {}
+        { cause: error }
       )
   }
   await rm(stagedPath, { force: true })

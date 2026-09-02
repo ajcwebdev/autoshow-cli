@@ -140,7 +140,7 @@ const checkAdvancedVoiceReadiness = async (
 ): Promise<TtsExecutionReadinessObservation> => {
   const targetKey = target.targetKey as string
   const voiceIds = [...new Set(target.readinessVoiceIds ?? [])]
-  if (voiceIds.length === 0 || !['elevenlabs', 'hume', 'minimax', 'cartesia', 'speechify', 'inworld'].includes(target.service)) {
+  if (voiceIds.length === 0 || !['elevenlabs', 'hume', 'cartesia', 'speechify', 'inworld'].includes(target.service)) {
     return { targetKey, accountState: 'available', status: 'ready' }
   }
   try {
@@ -169,36 +169,6 @@ const checkAdvancedVoiceReadiness = async (
       if (missingVoiceIds.length > 0) return advancedVoiceBlockedObservation(targetKey, 'inworld-voice-not-ready', `Approved Inworld voice ${missingVoiceIds.join(', ')} is missing or inaccessible for the configured account. Run \`bun autoshow voice list --provider inworld --source provider-library\` and update the casting profile before synthesis.`, false)
       return { targetKey, accountState: 'available', status: 'ready' }
     }
-    if (target.service === 'minimax') {
-      const response = await fetch('https://api.minimax.io/v1/get_voice', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ voice_type: 'all' })
-      })
-      if (!response.ok) {
-        throw ProviderError(`MiniMax voice catalog request failed (HTTP ${response.status}).`, {
-          stage: 'tts:readiness',
-          status: response.status,
-          headers: response.headers
-        })
-      }
-      const payload = await response.json() as Record<string, unknown>
-      const baseResponse = payload['base_resp']
-      const statusCode = baseResponse && typeof baseResponse === 'object' && !Array.isArray(baseResponse) ? (baseResponse as Record<string, unknown>)['status_code'] : undefined
-      if (typeof statusCode === 'number' && statusCode !== 0) {
-        throw ValidationError(`MiniMax voice catalog returned a failed base response (status_code ${statusCode}).`, {
-          stage: 'tts:readiness',
-          retryable: false,
-          metadata: { statusCode }
-        })
-      }
-      const availableIds = new Set(['system_voice', 'voice_cloning', 'voice_generation'].flatMap(key => {
-        const voices = payload[key]
-        return Array.isArray(voices) ? voices.flatMap(value => value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { voice_id?: unknown }).voice_id === 'string' ? [(value as { voice_id: string }).voice_id] : []) : []
-      }))
-      if (voiceIds.some(voiceId => !availableIds.has(voiceId))) return advancedVoiceBlockedObservation(targetKey, 'minimax-voice-not-ready', 'One or more approved MiniMax voices are missing, inactive, expired, or inaccessible for the configured account.', false)
-      return { targetKey, accountState: 'available', status: 'ready' }
-    }
     if (target.service === 'cartesia') {
       const results = await Promise.all(voiceIds.map(async voiceId => {
         const response = await fetch(`https://api.cartesia.ai/voices/${encodeURIComponent(voiceId)}`, { headers: { Authorization: `Bearer ${apiKey}`, 'Cartesia-Version': '2026-03-01' } })
@@ -220,7 +190,7 @@ const checkAdvancedVoiceReadiness = async (
     if (results.some(ready => !ready)) return advancedVoiceBlockedObservation(targetKey, 'speechify-voice-not-ready', 'One or more approved Speechify voices are missing, inaccessible, or unavailable for the selected model.', false)
     return { targetKey, accountState: 'available', status: 'ready' }
   } catch (error) {
-    const label = target.service === 'elevenlabs' ? 'ElevenLabs' : target.service === 'hume' ? 'Hume' : target.service === 'minimax' ? 'MiniMax' : target.service === 'cartesia' ? 'Cartesia' : target.service === 'inworld' ? 'Inworld' : 'Speechify'
+    const label = target.service === 'elevenlabs' ? 'ElevenLabs' : target.service === 'hume' ? 'Hume' : target.service === 'cartesia' ? 'Cartesia' : target.service === 'inworld' ? 'Inworld' : 'Speechify'
     const metadata = extractErrorMetadata(error)
     const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
     const retryable = metadata['retryable'] === false ? false : true

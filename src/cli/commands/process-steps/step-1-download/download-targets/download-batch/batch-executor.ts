@@ -1,6 +1,5 @@
 import { join } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
-import { logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { ensureDirectory } from '~/utils/cli-utils'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
@@ -182,7 +181,7 @@ const executeExtractBatchPlan = async (
 ): Promise<void> => {
   const batchDir = resolveRunDirectory(getOutputRoot(), batchPlan.label, 'batch')
   await ensureDirectory(batchDir)
-  logLocationsTable(l, [{ artifact: 'outputDir', path: batchDir }])
+  l.write('info', `Batch output directory: ${batchDir}`, { category: 'artifact', metadata: { artifact: 'outputDir', path: batchDir } })
 
   const { childPlans, manifestItems } = partitionExtractBatchPlan(batchDir, batchPlan)
   const source = batchPlan.source
@@ -197,7 +196,7 @@ const executeExtractBatchPlan = async (
   const initialManifest = createManifest('extract', 'batch', manifestItems, source)
 
   await writeManifest(batchDir, initialManifest)
-  logLocationsTable(l, [{ artifact: 'manifest', path: `${batchDir}/${PIPELINE_MANIFEST_FILE}` }])
+  l.write('info', `Manifest: ${batchDir}/${PIPELINE_MANIFEST_FILE}`, { category: 'artifact', metadata: { artifact: 'manifest', path: `${batchDir}/${PIPELINE_MANIFEST_FILE}` } })
 
   if (childPlans.media.items.length === 0 && childPlans.document.items.length === 0 && childPlans.article.items.length === 0 && childPlans['x-space'].items.length === 0) {
     l.warn('No supported inputs to process', { category: 'pipeline' })

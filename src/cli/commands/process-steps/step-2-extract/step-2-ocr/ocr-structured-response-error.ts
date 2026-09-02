@@ -5,9 +5,10 @@ import { sanitizeLogText } from '~/utils/app-logger/redaction'
 
 export class OcrStructuredResponseError extends AppValidationError {
   readonly rawResponse: string
+  readonly reaskable = true
 
-  constructor(message: string, rawResponse: string) {
-    super(message, { stage: 'ocr:structured-response', retryable: false })
+  constructor(message: string, rawResponse: string, cause?: unknown) {
+    super(message, { stage: 'ocr:structured-response', retryable: false, ...(cause !== undefined ? { cause } : {}) })
     this.name = 'OcrStructuredResponseError'
     this.rawResponse = rawResponse
   }

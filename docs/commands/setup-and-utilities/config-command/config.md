@@ -182,7 +182,7 @@ Write has no local LLM. TTS, image, video, and hosted music generation have no l
 bun autoshow config \
   --stt groq=whisper-large-v3-turbo \
   --llm groq=openai/gpt-oss-20b \
-  --tts minimax=speech-2.8-turbo \
+  --tts speechify=simba-3.2 \
   --image openai=gpt-image-2 \
   --video ltx=ltx-2-3-fast \
   --music minimax=music-3.0
@@ -204,4 +204,4 @@ Global flags:
 | Flag                             | Description                   |
 | -------------------------------- | ----------------------------- |
 | `--config-path`                  | Path to config file           |
-| `--verbose`, `--quiet`, `--json` | Runtime-only logging controls |
+| `--verbose`, `--quiet`, `--log-level`, `--json` | Runtime-only diagnostic and output controls; `--json` is never persisted |

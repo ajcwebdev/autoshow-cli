@@ -1,6 +1,4 @@
 import type { OcrCostCalculationRow, OcrCostCalculationSection, WriteManifestMetadata } from '~/types'
-import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
-import { formatCost } from '~/utils/app-logger/formatters'
 import {
   buildProviderModelLabel,
   formatInputSummary,
@@ -10,7 +8,6 @@ import {
   getRecord
 } from './manifest-log-formatting'
 import { isRecord } from './manifest-log-metadata'
-import { OCR_COST_COLUMNS } from './write-manifest-log-columns'
 
 const getOcrDiagnostics = (metadata: WriteManifestMetadata): Record<string, unknown>[] => {
   const cost = metadata['cost']
@@ -79,7 +76,7 @@ export const buildOcrCostCalculation = (metadata: WriteManifestMetadata): OcrCos
     return undefined
   }
 
-  const rows: OcrCostCalculationRow[] = diagnostics.map((entry) => {
+  const entries: OcrCostCalculationRow[] = diagnostics.map((entry) => {
     const provider = typeof entry['provider'] === 'string' ? entry['provider'] : 'ocr'
     const model = typeof entry['model'] === 'string' ? entry['model'] : 'unknown'
     const predictedCostInputs = getRecord(entry, 'predictedCostInputs')
@@ -106,21 +103,6 @@ export const buildOcrCostCalculation = (metadata: WriteManifestMetadata): OcrCos
   })
 
   return {
-    columns: OCR_COST_COLUMNS,
-    rows,
-    humanTable: createHumanTable(rows.map((row) => ({
-      providerModel: row.providerModel,
-      pages: row.pages === null
-        ? ''
-        : typeof row.pages === 'number'
-          ? formatNumber(row.pages)
-          : row.pages,
-      predInputs: row.predictedInputs ?? '',
-      actInputs: row.actualInputs ?? '',
-      rates: row.rates ?? '',
-      predCost: row.predictedCostCents === null ? '' : formatCost(row.predictedCostCents),
-      actCost: row.actualCostCents === null ? '' : formatCost(row.actualCostCents),
-      delta: row.deltaCents === null ? '' : formatCost(row.deltaCents)
-    })), OCR_COST_COLUMNS)
+    entries
   }
 }

@@ -1,6 +1,5 @@
 import * as l from '~/utils/app-logger/app-logger'
-import { createDetailTable, createHumanTable } from '~/utils/app-logger/human-table/human-table'
-import type { HumanLogTableRow, LogMetadata } from '~/types'
+import type { LogMetadata } from '~/types'
 
 export const priceLine = (message: string, metadata?: LogMetadata): void => {
   l.write('info', message, {
@@ -23,20 +22,18 @@ export const priceDetails = (
 ): void => {
   l.write('info', title, {
     category: 'pricing',
-    humanTable: createDetailTable(entries),
-    ...(metadata ? { metadata } : {})
+    metadata: { ...metadata, details: Object.fromEntries(entries) }
   })
 }
 
-export const priceTable = (
+export const priceRows = (
   title: string,
-  rows: readonly HumanLogTableRow[],
-  columns: readonly string[],
+  rows: ReadonlyArray<Record<string, unknown>>,
+  _columns: readonly string[],
   metadata?: LogMetadata
 ): void => {
-  l.write('info', title, {
+  l.write('info', `${title}: ${rows.length} entries`, {
     category: 'pricing',
-    humanTable: createHumanTable(rows, columns),
-    ...(metadata ? { metadata } : {})
+    metadata: { ...metadata, rows }
   })
 }

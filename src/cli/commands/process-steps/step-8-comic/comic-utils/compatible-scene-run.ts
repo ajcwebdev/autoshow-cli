@@ -94,7 +94,7 @@ export const resolveCompatibleComicSceneRun = async (input: {
       if (info) throw UsageError('pinned path exists but is not a directory')
       return await initializeWorkspaceDir(directory, sourceIdentity, exactSourceText)
     } catch (error) {
-      throw UsageError(`Pinned comic output is not compatible with the exact source and structured-script v5: ${error instanceof Error ? error.message : String(error)}`, undefined, error instanceof Error ? { cause: error } : {})
+      throw UsageError(`Pinned comic output is not compatible with the exact source and structured-script v5: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
     }
   }
 
@@ -115,6 +115,6 @@ export const resolveCompatibleComicSceneRun = async (input: {
   }
   throw UsageError(
     `No compatible existing comic scene run was found for ${sourceIdentity.canonicalPath}. Run comic draft-scenes first; this downstream workflow never creates a fresh scene run.`,
-    ...(rejected.length > 0 ? [`Skipped incompatible candidates: ${rejected.join('; ')}`] : [])
+    ...(rejected.length > 0 ? [{ hints: [`Skipped incompatible candidates: ${rejected.join('; ')}`] }] : [])
   )
 }

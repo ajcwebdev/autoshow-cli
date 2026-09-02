@@ -17,7 +17,7 @@ export type HappyScribeApiClientOptions = {
   onRetry?: ((error: unknown) => void) | undefined
 }
 
-type HappyScribeRetryPolicyClass = 'runtime_http_create_retriable' | 'runtime_http_read'
+type HappyScribeRetryPolicyClass = 'runtime_http_create_retriable' | 'runtime_http_create_conservative' | 'runtime_http_read' | 'runtime_http_poll'
 
 export type HappyScribeJsonRequestOptions = {
   stage: HappyScribeStage

@@ -25,7 +25,6 @@ import {
   WRITE_OCR_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { PDF_CHAPTER_MODES } from '~/cli/options/option-resolution/flag-readers'
-import { LOG_FORMAT_CHOICES } from '~/utils/app-logger/app-logger'
 import {
   IMAGE_GENERATION_QUALITIES,
   LOG_LEVELS,
@@ -34,10 +33,7 @@ import {
   SETUP_STEP_IDS,
   VIDEO_MODES
 } from '~/types'
-import {
-  SUPPORTED_MINIMAX_TTS_EMOTIONS,
-  SUPPORTED_WHISPER_MODELS
-} from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { SUPPORTED_WHISPER_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import {
   HELP_TREE_TIMEOUT_MS,
   advertisedFlagNames,
@@ -96,7 +92,6 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
     { command: 'metadata', label: '--url-provider', values: URL_ARTICLE_BACKENDS },
     { command: 'download', label: '--url-provider', values: URL_ARTICLE_BACKENDS },
     { command: 'extract', label: '--primary-ocr', values: Object.keys(WRITE_OCR_PROVIDER_TARGETS) },
-    { command: 'tts', label: '--minimax-tts-emotion', values: SUPPORTED_MINIMAX_TTS_EMOTIONS },
     { command: 'music', label: '--model', values: SUPPORTED_WHISPER_MODELS }
   ] as const
 
@@ -125,7 +120,8 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
     const result = await loadHelp(['--help'])
 
     expect(result.stdout).toContain(LOG_LEVELS.join('|'))
-    expect(result.stdout).toContain(LOG_FORMAT_CHOICES.join('|'))
+    expect(result.stdout).toContain('--json')
+    expect(result.stdout).not.toContain('--log-format')
     for (const tool of RUNTIME_TOOL_IDS) {
       expect(result.stdout).toContain(tool)
     }

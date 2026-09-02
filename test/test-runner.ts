@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { l } from '~/utils/app-logger/app-logger'
-import { normalizeExitCode, serializeDiagnosticError } from '~/utils/error-handler'
+import { normalizeExitCode } from '~/utils/error-handler'
 import { installTimestampedConsole, runTestRunner } from './test-runner/runner'
 
 installTimestampedConsole()
@@ -10,7 +10,7 @@ const reportFatal = (label: string, err: unknown): never => {
   l.error(label, { category: 'command', error: err })
   l.write('error', 'Fatal runner diagnostics', {
     category: 'command',
-    metadata: { error: serializeDiagnosticError(err) }
+    error: err
   })
   process.exit(normalizeExitCode(err))
 }
@@ -25,7 +25,7 @@ try {
   l.error('Test runner failed', { category: 'command', error })
   l.write('error', 'Runner failure diagnostics', {
     category: 'command',
-    metadata: { error: serializeDiagnosticError(error) }
+    error: error
   })
 }
 process.exit(exitCode)

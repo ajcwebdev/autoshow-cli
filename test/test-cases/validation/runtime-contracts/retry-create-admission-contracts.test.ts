@@ -7,6 +7,7 @@ describe('retry error contracts', () => {
   test('TTS admission distinguishes definite client rejection from ambiguous outcomes through wrapped causes', () => {
     const wrappedBadRequest = new AppError('target failed', {
       kind: 'infrastructure',
+      stage: 'test:retry',
       cause: ProviderError('invalid voice', { status: 400, headers: new Headers({ 'x-request-id': 'req-400' }) })
     })
     const statuses = [408, 409, 500, 502, 503]
@@ -23,7 +24,7 @@ describe('retry error contracts', () => {
     expect(classifyPaidCreateRetry(ProviderError('rate limited', {
       status: 429,
       headers: new Headers({ 'retry-after': '2' })
-    }))).toEqual({ shouldRetry: true, delayMs: 2_000, reason: 'provider rejected paid create with retryable status 429' })
+    }))).toEqual({ shouldRetry: true, delayMs: 2_000, reasonCode: 'provider_rejected_admission', reason: 'provider rejected paid create with retryable status 429' })
     expect(classifyPaidCreateRetry(ProviderError('unavailable', { status: 503 }))).toMatchObject({ shouldRetry: false })
     expect(classifyPaidCreateRetry(new TypeError('fetch failed'))).toMatchObject({ shouldRetry: false })
     expect(classifyPaidCreateRetry(new DOMException('timed out', 'TimeoutError'))).toMatchObject({ shouldRetry: false })

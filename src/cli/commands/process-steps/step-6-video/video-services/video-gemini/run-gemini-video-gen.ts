@@ -8,6 +8,7 @@ import { normalizeGeminiDuration, normalizeGeminiResolution } from '~/cli/comman
 import { pollUntil } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { geminiDownloadFile, geminiGetOperation, geminiPredictLongRunning } from '~/utils/gemini/gemini-rest'
+import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import {
   videoMediaReferenceToGeminiInlineData,
   videoMediaReferenceToGeminiVideoImage
@@ -66,7 +67,11 @@ export const runGeminiVideoGen = async (
     : undefined
 
   const startTime = Date.now()
-  let operation = await geminiPredictLongRunning(apiKey, {
+  let operation = await withRetry({
+    retryClass: 'runtime_http_create_conservative',
+    operationName: 'gemini-video-create',
+    ...(options.abortSignal ? { abortSignal: options.abortSignal } : {})
+  }, async (signal) => await geminiPredictLongRunning(apiKey, {
     model: options.model,
     ...(resolvedPrompt !== undefined ? { prompt: resolvedPrompt } : {}),
     ...(options.aspectRatio ? { aspectRatio: options.aspectRatio } : {}),
@@ -76,23 +81,28 @@ export const runGeminiVideoGen = async (
     ...(image ? { image } : {}),
     ...(lastFrame ? { lastFrame } : {}),
     ...(referenceImages ? { referenceImages } : {}),
-    ...(inputVideo ? { video: inputVideo } : {})
-  })
+    ...(inputVideo ? { video: inputVideo } : {}),
+    ...(signal ? { abortSignal: signal } : {})
+  }), (error) => classifyFetchRetry(error, 'runtime_http_create_conservative'))
 
   const completedOp = await pollUntil({
     operationName: 'gemini-video-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
     ...(options.abortSignal ? { abortSignal: options.abortSignal } : {}),
-    pollFn: async () => {
+    pollFn: async () => await withRetry({
+      retryClass: 'runtime_http_poll',
+      operationName: 'gemini-video-poll',
+      ...(options.abortSignal ? { abortSignal: options.abortSignal } : {})
+    }, async (signal) => {
       logGenStatus('video', 'gemini', options.model, 'in_progress')
       const operationName = operation.name
       if (!operationName) {
         throw InfraError('Gemini video generation did not return an operation name', { stage: 'video:gemini' })
       }
-      operation = await geminiGetOperation(apiKey, operationName)
+      operation = await geminiGetOperation(apiKey, operationName, signal)
       return operation
-    },
+    }, (error) => classifyFetchRetry(error, 'runtime_http_poll')),
     isDone: (op) => op.done === true,
     isFailed: (op) => {
       if (op.error) {

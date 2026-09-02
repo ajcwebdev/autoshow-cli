@@ -14,8 +14,7 @@ const canonicalProspectivePath = async (input: string): Promise<string> => {
       if (!hasErrorCode(error, 'ENOENT')) {
         throw UsageError(
       'Unable to inspect the TTS output/protected-store path boundary.',
-      undefined,
-      error instanceof Error ? { cause: error } : {}
+      { cause: error }
     )
       }
     }
@@ -57,7 +56,7 @@ export const assertProtectedStoreOutputDisjoint = async (
   ) {
     throw UsageError(
       'Output and the protected voice asset store must be disjoint directories.',
-      'Choose an --output-dir/--output-root outside the protected runtime store and do not connect them through a symbolic link.'
+      { hints: ['Choose an --output-dir/--output-root outside the protected runtime store and do not connect them through a symbolic link.'] }
     )
   }
 }

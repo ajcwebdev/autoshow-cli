@@ -5,7 +5,6 @@ import type { ActualCostBreakdown, AggregatedPriceEstimate, EstimatedCostBreakdo
 import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { formatDuration, formatEstimatedCostWithExactCents } from '~/utils/app-logger/formatters'
-import { createDetailTable } from '~/utils/app-logger/human-table/human-table'
 import { buildTtsBatchEstimateSummary } from './tts-batch-summary'
 
 const formatCents = (amount: number): string => `${amount.toFixed(3)}¢`
@@ -35,12 +34,8 @@ export const reportTtsBatchEstimates = async (
 
   for (const prepared of preparedInputs) {
     if (logItems) {
-      l.write('info', 'TTS Price Item', {
+      l.write('info', `Estimating TTS input ${prepared.inputPath}: ${prepared.ttsCharacterCount} characters`, {
         category: 'pricing',
-        humanTable: createDetailTable([
-          ['input', prepared.inputPath],
-          ['characters', prepared.ttsCharacterCount]
-        ]),
         metadata: {
           input: prepared.inputPath,
           characters: prepared.ttsCharacterCount
@@ -60,21 +55,13 @@ export const reportTtsBatchEstimates = async (
     preparedInputs,
     targets
   })
-  l.write('info', 'TTS Batch Estimate', {
+  l.write('info', `TTS batch estimate: ${summary.inputCount} inputs, ${formatEstimatedCostWithExactCents(summary.totalEstimatedCost)}, ${formatDuration(summary.estimatedWallTimeMs)}`, {
     category: 'pricing',
-    humanTable: createDetailTable([
-      ['inputs', summary.inputCount],
-      ['batchConcurrency', summary.batchConcurrency],
-      ['ttsChunkConcurrency', summary.ttsChunkConcurrency],
-      ['totalEstimatedProcessingTime', formatDuration(summary.totalEstimatedProcessingTimeMs)],
-      ['estimatedWallTime', formatDuration(summary.estimatedWallTimeMs)],
-      ['totalEstimatedCost', formatEstimatedCostWithExactCents(summary.totalEstimatedCost)]
-    ]),
     metadata: summary
   })
 
   if (logItems) {
-    logSuitePriceSummary(l, {
+    logSuitePriceSummary({
       checkedLabel: preparedInputs.length === 1 ? 'TTS input' : 'TTS inputs',
       checkedCount: preparedInputs.length,
       totalEstimatedCost: summary.totalEstimatedCost

@@ -8,14 +8,14 @@ const downloadWhisper = async (model: string): Promise<void> => {
   const whisperModel = validateWhisperModel(model)
   l.write('info', `Downloading whisper model: ${whisperModel}`, { category: 'command', metadata: { engine: 'whisper', model: whisperModel } })
   await downloadWhisperModel(whisperModel)
-  l.write('success', `Download complete: ${whisperModel}`, { category: 'command', metadata: { engine: 'whisper', model: whisperModel } })
+  l.write('info', `Download complete: ${whisperModel}`, { category: 'command', metadata: { engine: 'whisper', model: whisperModel } })
 }
 
 const downloadWhisperfile = async (model: string): Promise<void> => {
   const whisperfileModel = validateWhisperfileModel(model)
   l.write('info', `Downloading whisperfile model: ${whisperfileModel}`, { category: 'command', metadata: { engine: 'whisperfile', model: whisperfileModel } })
   await downloadWhisperfileBinary(whisperfileModel)
-  l.write('success', `Download complete: whisperfile:${whisperfileModel}`, { category: 'command', metadata: { engine: 'whisperfile', model: whisperfileModel } })
+  l.write('info', `Download complete: whisperfile:${whisperfileModel}`, { category: 'command', metadata: { engine: 'whisperfile', model: whisperfileModel } })
 }
 
 const runModelDownload = async (model: string): Promise<void> => {

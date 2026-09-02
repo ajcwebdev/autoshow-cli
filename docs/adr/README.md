@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Compact index for ADR-001 through ADR-020. Eighteen records are Accepted · Passed, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 is Proposed · Pending. Dated hosted-model catalogs live in [docs/models](../models/). ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 021. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
+Compact index for ADR-001 through ADR-021. Nineteen records are Accepted · Passed, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 is Proposed · Pending. Dated hosted-model catalogs live in [docs/models](../models/). ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 022. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
 
 ## Authoring and Maintenance
 
@@ -51,7 +51,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 
 - **Status:** Accepted · Passed
 - **Decision:** Unifies the diagnostic vocabulary across `src/` and `test/`: typed `AppError` as the throw contract, `src/utils/app-logger/` as the output channel, shared CLI usage and provider-failure classification, rate-limit recovery, TTS ambiguous-redispatch authorization, and concise diagnostic rendering, all enforced by standing source-scan tests with documented allowlists.
-- **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-005](ADR-005-reduce-environment-variable-surface-area.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md), [ADR-019](ADR-019-quiet-passing-test-console-output.md)
+- **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-005](ADR-005-reduce-environment-variable-surface-area.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md), [ADR-019](ADR-019-quiet-passing-test-console-output.md), [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md)
 
 **ADR 7: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)**
 
@@ -129,7 +129,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 
 - **Status:** Accepted · Passed
 - **Decision:** Passing tests print only the result line; failing tests keep that line plus the captured console output from that test. JUnit remains a post-run sidecar.
-- **Related ADRs:** [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md)
+- **Related ADRs:** [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md)
 
 **ADR 20: [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)**
 
@@ -137,9 +137,15 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 - **Decision:** Confines `write` to LLM text generation over `.md` / `.txt` input. Extract is the prior command for URLs, media, documents, and X Spaces. TTS, image, video, and music remain standalone follow-on commands. `write` does not run, price, or flag extract or generation work.
 - **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md)
 
+**ADR 21: [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md)**
+
+- **Status:** Accepted · Passed
+- **Decision:** Deletes terminal tables and `--log-format`, makes one-line text and versioned `--json` results the two `bun autoshow` output modes, requires exactly one staged terminal result, and centralizes retry and polling ownership with conservative paid-create semantics.
+- **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-019](ADR-019-quiet-passing-test-console-output.md)
+
 ## Consolidation Analysis
 
-No further consolidation is currently recommended. The current 20 records stay separate because they own different authorities and maintenance lifecycles.
+No further consolidation is currently recommended. The current 21 records stay separate because they own different authorities and maintenance lifecycles.
 
 ### Remaining Boundaries
 

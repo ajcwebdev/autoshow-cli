@@ -90,7 +90,7 @@ describe('retry error contracts', () => {
     const startedAt = Date.now()
     const run = exec(process.execPath, ['-e', 'setTimeout(() => {}, 10_000)'], {
       signal: controller.signal,
-      retry: { operationName: 'abortable subprocess' }
+      retry: { operationName: 'abortable subprocess', shouldRetry: () => true }
     })
     setTimeout(() => controller.abort(cancellation), 20)
     await expect(run).rejects.toBe(cancellation)

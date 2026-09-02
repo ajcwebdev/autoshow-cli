@@ -7,9 +7,9 @@ import { getAudioDuration } from '~/cli/commands/process-steps/step-2-extract/st
 import { withRetry, classifyFetchRetry } from '~/utils/retries'
 import { readElevenLabsError } from './elevenlabs-utils'
 import { materializeMediaInput } from '~/utils/media-url'
-import { InfraError, serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
+import { InfraError, ValidationError } from '~/utils/error-handler'
 import type { ElevenLabsTtsIvcContext, ElevenLabsTtsIvcOptions, ElevenLabsTtsIvcResult, TtsCustomVoiceSampleAudio } from '~/types'
-import { httpResponseError } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 
 const ELEVENLABS_IVC_BEST_PRACTICE_MIN_SECONDS = 10
@@ -73,20 +73,20 @@ export const validateElevenLabsTtsIvcAudio = async (
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     l.warn(`Could not determine ElevenLabs TTS IVC reference audio duration; continuing anyway: ${message}`, {
-      category: 'tts',
-      metadata: { provider: 'elevenlabs', error: serializeDiagnosticError(error) }
+      category: 'pipeline',
+      metadata: { provider: 'elevenlabs' }, error: error
     })
   }
 
   if (durationSeconds !== undefined && Number.isFinite(durationSeconds) && durationSeconds > 0) {
     if (durationSeconds < ELEVENLABS_IVC_BEST_PRACTICE_MIN_SECONDS) {
       l.warn(`ElevenLabs IVC reference audio is short (${durationSeconds.toFixed(2)}s); longer, varied speech samples usually improve clone consistency.`, {
-      category: 'tts',
+      category: 'pipeline',
       metadata: { provider: 'elevenlabs', durationSeconds }
     })
     } else if (durationSeconds > ELEVENLABS_IVC_BEST_PRACTICE_MAX_SECONDS) {
       l.warn(`ElevenLabs IVC reference audio is longer than the usual short-sample guidance (${durationSeconds.toFixed(2)}s); continuing without trimming.`, {
-      category: 'tts',
+      category: 'pipeline',
       metadata: { provider: 'elevenlabs', durationSeconds }
     })
     }
@@ -138,7 +138,9 @@ const createElevenLabsTtsIvcVoice = async (
 
       if (!response.ok) {
         const errText = await readElevenLabsError(response)
-        throw httpResponseError(`ElevenLabs IVC voice creation failed (${response.status}): ${errText}`, response)
+        throw httpResponseError(`ElevenLabs IVC voice creation failed (${response.status}): ${errText}`, httpResponseOptions(response, {
+          stage: 'tts:elevenlabs-ivc', retryClass: 'runtime_http_create_conservative', retryable: response.status === 425 || response.status === 429, metadata: { provider: 'elevenlabs' }
+        }))
       }
 
       let payload: unknown

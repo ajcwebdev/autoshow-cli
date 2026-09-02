@@ -3,7 +3,6 @@ import { validateBflImageModel, validateFalImageModel, validateGeminiImageModel,
 import { deriveGenerationPricingProviders, IMAGE_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import type { EstimateImageCostOptions, ImageCostEstimate, ImageProvider, OpenAIImageOutputPricing, OpenAIImageQuality, ProviderModelSelectionSpec } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { collectSelections, passThroughKeys } from '~/utils/pricing/model-selection'
 
 export const IMAGE_PRICING_PROVIDERS = deriveGenerationPricingProviders(IMAGE_GENERATION_SELECTION) satisfies readonly ProviderModelSelectionSpec<EstimateImageCostOptions, ImageProvider>[]
@@ -215,17 +214,8 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
 }
 
 export const logImageEstimate = (estimate: ImageCostEstimate): void => {
-  const entries: Array<readonly [string, string]> = [
-    ['Provider', estimate.provider],
-    ['Model', estimate.model],
-    ['Image Count', String(estimate.imageCount)],
-    ['Cost Per Image', `${estimate.costPerImageCents.toFixed(3)}¢`],
-    ['Total Cost', `${estimate.totalCost.toFixed(3)}¢`],
-    ...(estimate.note ? [['Note', estimate.note] as const] : [])
-  ]
-  l.write('info', `Estimated image cost for ${estimate.provider}/${estimate.model}`, {
+  l.write('info', `Estimated ${estimate.imageCount} images with ${estimate.provider}/${estimate.model}: ${estimate.totalCost.toFixed(3)}¢`, {
     category: 'pricing',
-    humanTable: createKeyValueTable(entries),
     metadata: estimate
   })
 }

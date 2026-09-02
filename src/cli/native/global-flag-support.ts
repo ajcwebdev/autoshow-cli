@@ -46,19 +46,19 @@ export const unsupportedGlobalFlagError = (commandName: string, flagName: string
   if (flagName === 'output-dir') {
     return UsageError(
       `--output-dir is not supported by "${commandName}" because it does not create a run directory.`,
-      'Use --output-root to change the base output directory.'
+      { hints: ['Use --output-root to change the base output directory.'] }
     )
   }
   if (flagName === 'characters-root') {
     return UsageError(
       `--characters-root is not supported by "${commandName}".`,
-      'Use bun autoshow voice or bun autoshow comic.'
+      { hints: ['Use bun autoshow voice or bun autoshow comic.'] }
     )
   }
   if (flagName === 'allow-over-budget') {
     return UsageError(
       `--allow-over-budget is not supported by "${commandName}".`,
-      'Use --allow-over-budget with pipeline and generation commands that check costs.'
+      { hints: ['Use --allow-over-budget with pipeline and generation commands that check costs.'] }
     )
   }
   return UsageError(`--${flagName} is not supported by "${commandName}".`)
@@ -67,5 +67,5 @@ export const unsupportedGlobalFlagError = (commandName: string, flagName: string
 export const unsupportedCookieFlagError = (commandName: string, flagName: string): Error =>
   UsageError(
     `--${flagName} is not supported by "${commandName}".`,
-    'Use bun autoshow config --cookies <file> or bun autoshow config --cookies-from-browser <browser>.'
+    { hints: ['Use bun autoshow config --cookies <file> or bun autoshow config --cookies-from-browser <browser>.'] }
   )

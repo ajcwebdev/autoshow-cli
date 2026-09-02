@@ -1,4 +1,3 @@
-import * as l from '~/utils/app-logger/app-logger'
 import type { SplitPolicyTarget, Step2Metadata, SttTarget, SttTargetOptions, TranscriptionResult } from '~/types'
 import { dispatchStt } from './dispatch'
 import { ensureSttTargetSetup } from '../bootstrap'
@@ -62,7 +61,7 @@ const logAutoSplitDecision = (
     return
   }
 
-  logSttSplitDecision(l, target, splitDecision, {
+  logSttSplitDecision( target, splitDecision, {
     trigger: 'auto',
     audioPath
   })
