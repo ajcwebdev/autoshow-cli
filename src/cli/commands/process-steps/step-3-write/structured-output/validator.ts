@@ -63,7 +63,8 @@ const normalizeStructuredValue = (
 
   if (context.leafPromptNames.length <= 1) {
     const preset = context.presetNames[0]
-    return preset && isSongLyricsPreset(preset)
+    // Chapter adaptations explicitly ask the model to choose a source-derived song title.
+    return preset && isSongLyricsPreset(preset) && preset !== 'rapSongChapterLyrics'
       ? normalizeSongLyricsValue(value, title)
       : value
   }
@@ -75,7 +76,7 @@ const normalizeStructuredValue = (
   const normalized: Record<string, unknown> = { ...value }
   for (const [index, promptName] of context.leafPromptNames.entries()) {
     const preset = context.presetNames[index]
-    if (!preset || !isSongLyricsPreset(preset)) {
+    if (!preset || !isSongLyricsPreset(preset) || preset === 'rapSongChapterLyrics') {
       continue
     }
 

@@ -44,6 +44,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       expect(parseReasoningEffort('low')).toBe('low')
       expect(parseReasoningEffort('medium')).toBe('medium')
       expect(parseReasoningEffort('high')).toBe('high')
+      expect(parseReasoningEffort('xhigh')).toBe('xhigh')
       expect(parseReasoningEffort('max')).toBe('max')
     })
 

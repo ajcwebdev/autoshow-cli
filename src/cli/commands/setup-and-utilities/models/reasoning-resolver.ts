@@ -10,6 +10,7 @@ export const NORMALIZED_REASONING_EFFORTS = [
   'low',
   'medium',
   'high',
+  'xhigh',
   'max'
 ] as const
 

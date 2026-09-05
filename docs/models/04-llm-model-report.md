@@ -240,3 +240,21 @@ Closes the extract (OCR) side of the 2026-08-16 P1 write+extract recommendations
 - Write provider adapters: `src/cli/commands/process-steps/step-3-write/`
 - Primary-source snapshots: `src/cli/commands/setup-and-utilities/links/model-links/`
 - 2026-08-16 text-catalog dump: `bun autoshow links --claude models --gemini models --grok models --openai models`
+
+## 2026-09-05 Claude Fable 5.1 write support
+
+Added `claude-fable-5-1` to the write registry while retaining `claude-fable-5`. [Anthropic’s model overview](https://platform.claude.com/docs/en/models/fable-5-1/overview) lists standard rates of $10 per million input tokens and $50 per million output tokens, with always-on adaptive thinking and default high effort. The CLI delegates default effort to the provider and rejects disabled thinking.
+
+The existing Anthropic write adapter uses native `output_config.format` JSON schemas, which the [migration guide](https://platform.claude.com/docs/en/models/fable-5-1/migration-guide) recommends for schema-conformant JSON. It does not force tool use, which Fable 5.1 rejects. Mocked REST contracts cover the chapter lyric schema with default and supported named efforts, selector resolution, rates, and rejection of unsupported reasoning before HTTP. Timing estimates inherit the existing Fable heuristic and have not been calibrated against a live Fable 5.1 run.
+
+## 2026-09-05 GPT-6 Astra write support
+
+Added `gpt-6-astra` to write while retaining all existing OpenAI selectors. [Official OpenAI documentation](https://developers.openai.com/api/docs/models/gpt-6-astra) lists $10 per million input tokens, $1 cached input, and $50 output; requests above 272K input tokens use $20 input, $2 cached input, and $75 output for the entire request. Standard uncached rates drive estimates; cache writes and alternate service tiers are excluded. Timing remains an uncalibrated heuristic.
+
+The existing Responses API adapter supports its native structured outputs. Astra accepts `low`, `medium`, `high`, `xhigh`, and `max`; the CLI now recognizes `xhigh` and still validates each model’s supported efforts. Default requests omit reasoning overrides, while disabled and minimal reasoning are rejected for Astra. Mocked lyric-schema requests and pricing boundary tests cover the addition. Account access has not been verified with a live provider request.
+
+## Chapter rap output alignment
+
+`rapSongChapter` retains the model-generated source-derived song title rather than replacing it with the transcript filename. Its schema now matches the enhanced prompt: 2–6 intro and chorus lines, 12–20 lines per verse, and 2–8 bridge lines. The long-rap preset retains its fixed section lengths. Local regression tests cover chapter title preservation and all section boundaries.
+
+Native structured write calls now persist each returned response and its usage metadata before validation. If an automatic validation retry fails, the prior response remains available as a validation envelope instead of being discarded. A mocked insufficient-credit retry verifies response preservation.

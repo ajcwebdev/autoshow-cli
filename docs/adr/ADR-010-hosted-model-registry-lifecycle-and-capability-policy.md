@@ -109,7 +109,7 @@ New models may temporarily reuse the nearest same-family token, latency, or dura
 
 ### Normalized reasoning capability
 
-Expose `--reasoning-effort <default|disabled|minimal|low|medium|high|max>` as the single public reasoning control for hosted LLM-backed write and OCR workflows and central consumers that dispatch through them.
+Expose `--reasoning-effort <default|disabled|minimal|low|medium|high|xhigh|max>` as the single public reasoning control for hosted LLM-backed write and OCR workflows and central consumers that dispatch through them.
 
 Each model declares whether reasoning is unsupported, optional, or required; whether `disabled` is legal; and which named levels it accepts. Unsupported combinations fail before pricing or dispatch; the CLI never silently downgrades, promotes, or reinterprets an effort.
 

@@ -31,6 +31,38 @@ const structuredSchema: ResolvedStructuredSchema = {
   }
 }
 
+test('a failed native validation retry preserves the paid response and its usage', async () => {
+  const tempDir = await makeTempDir('autoshow-paid-response-preservation-')
+  try {
+    let attempts = 0
+    const metadata = buildMetadata('anthropic', 'anthropic-credit-test')
+    const results = await runLlmTargetsForStructuredPrompt({
+      prompt: 'Summarize this input.',
+      outputDir: tempDir,
+      targets: [{
+        service: 'anthropic', model: 'anthropic-credit-test', label: 'Anthropic',
+        run: async () => {
+          attempts++
+          if (attempts > 1) throw new Error('Your credit balance is too low')
+          return { result: '{"unexpected":"paid content"}', metadata }
+        }
+      }],
+      structuredSchema,
+      structuredValidationContext: { leafPromptNames: ['content'], presetNames: [] }
+    })
+    expect(attempts).toBe(2)
+    expect(results).toHaveLength(1)
+    expect(results[0]?.parsedJson).toMatchObject({ _raw: '{"unexpected":"paid content"}' })
+    expect(results[0]?.metadata).toMatchObject({ inputTokenCount: 1, outputTokenCount: 1, validationFailed: true })
+    expect(await Bun.file(join(tempDir, 'text.json')).json()).toMatchObject({ _raw: '{"unexpected":"paid content"}' })
+    expect(await Bun.file(join(tempDir, 'raw-response-anthropic-credit-test-attempt-1.json')).json()).toEqual({
+      result: '{"unexpected":"paid content"}', metadata
+    })
+  } finally {
+    await rm(tempDir, { recursive: true, force: true })
+  }
+})
+
 test('stubbed LLM targets use capability retry budgets and persist one failure envelope', async () => {
   const tempDir = await makeTempDir('autoshow-structured-failure-')
   try {

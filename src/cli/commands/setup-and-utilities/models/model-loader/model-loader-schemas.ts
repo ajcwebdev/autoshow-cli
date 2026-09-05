@@ -120,7 +120,7 @@ const ReasoningCapabilitiesSchema = v.pipe(
   v.strictObject({
     support: v.picklist(['unsupported', 'optional', 'required']),
     allowDisabled: v.optional(v.boolean(), undefined),
-    supportedEfforts: v.optional(v.array(v.picklist(['minimal', 'low', 'medium', 'high', 'max'])), undefined)
+    supportedEfforts: v.optional(v.array(v.picklist(['minimal', 'low', 'medium', 'high', 'xhigh', 'max'])), undefined)
   }),
   v.check(
     (capabilities) => capabilities.support !== 'unsupported'

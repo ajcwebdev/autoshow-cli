@@ -120,6 +120,12 @@ export const runLlmTargetsForStructuredPrompt = async (
         }
 
         let response = await target.run(options.prompt, target.model, structuredOpts)
+        const persistResponse = async (attempt: number): Promise<void> => {
+          const stem = buildTargetFileStem(target, modelCounts)
+          await Bun.write(`${options.outputDir}/raw-response-${stem}-attempt-${attempt}.json`, JSON.stringify(response, null, 2))
+        }
+        // Preserve paid response text and usage before validation or another request can fail.
+        await persistResponse(1)
         let validation = parseAndValidateStructured(options.structuredSchema.schema, response.result, options.structuredValidationContext)
 
         for (let retry = 1; !validation.success && retry <= validationRetryBudget; retry++) {
@@ -127,7 +133,16 @@ export const runLlmTargetsForStructuredPrompt = async (
             category: 'pipeline',
             metadata: { provider: target.label, model: target.model, retry, retryBudget: validationRetryBudget, issue: validation.issue }
           })
-          response = await target.run(options.prompt, target.model, structuredOpts)
+          try {
+            response = await target.run(options.prompt, target.model, structuredOpts)
+          } catch (err) {
+            l.warn(`Structured validation retry failed for ${target.label}/${target.model}; preserving the previous response`, {
+              category: 'pipeline',
+              metadata: { provider: target.label, model: target.model, retry }, error: err
+            })
+            break
+          }
+          await persistResponse(retry + 1)
           validation = parseAndValidateStructured(options.structuredSchema.schema, response.result, options.structuredValidationContext)
         }
 

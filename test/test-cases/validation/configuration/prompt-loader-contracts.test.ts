@@ -13,13 +13,13 @@ const MARKDOWN_PROMPT_SNAPSHOT = {
   chapterTitles: 'e91ae6e183edd26e3305c19d82f26b34fd6cf68c714bced765118da2c90b7dec',
   chapterTitlesAndQuotes: 'c8caa808537d6b1b7effb1e21fe99fb0f363a51f15e483a62807b5dc4a4a2f02',
   contentStrategy: 'dc2d2d671bb21355189873f853b34392589cb2bc48a8b0d1079743a085b367f3',
-  countrySong: 'e9abb2e058fedf7d379bb1e2e612ec33b1fb33c6fc45e5e0cc6ba852a5c321cb',
+  countrySong: '3c70ce12ab12265dada4e12bcd682c241a3aa11c692134adad2ed2d872c1a141',
   emailNewsletter: 'cc08617ff2e8ea8b56f9e00c70ca6025dbe3ab89dc261e5a45fd32d259321e49',
   facebook: 'ccb0f3edcfa3d8dbb19ddb18f3bfef3134740ddadcdf19dae30b5a1b5a0ecf7c',
   faq: '928e611f34f3d8be222118d50aa6e4971c86d1aefdc9e2140df77dde17c2cf19',
-  folkSong: '8cb27d9f135ebddde840cbc10f28e2c0728b591c81afb3e4c53e23e17ceb97b8',
+  folkSong: 'fa20d35417beac6ba10346f789f2e1d57489a41a8575169563c98b1b18d6d252',
   instagram: '9e0fc9faed4e4096fec96f4d76af8d3db141fa1c05a5f68c9d074a82d9db293d',
-  jazzSong: '0a0e6cb962dfa80084bb7b119a81890ef4ef95d239e19643f8a9702e67741e3c',
+  jazzSong: '79ce55c663c7ecdc6c9b69c47873692dce90852cd94b8d7b2385388cbd15c479',
   keyMoments: '12119912254b17068dfb1957e1b3d37d3f8969f5d85c4e9e402e65d925411496',
   linkedin: 'c593a110f35ea48b7bca806e72b02db84b848f4363ab7a3a0aec2be0052d48d2',
   longChapters: 'a3b9d8f8cfb78b861b23ae04e0c8addf45a16fef526e8599d011c5343c2326bc',
@@ -28,13 +28,13 @@ const MARKDOWN_PROMPT_SNAPSHOT = {
   metadata: '296c2d14f8ba2c63846d10b05c4bf33d0e4cdd92e1cf2d3e362b35a72a9c85ff',
   pdfChapterBoundaries: '3ec0f79e37ad8f358d45b45246176348310c6244a1e9ae5a18d3673159f67422',
   poetryCollection: '1a3cde0d00aaad1234c651840e63c24d4ded9f2c317a26387b4828b3577bc833',
-  popSong: '35485f45fe09458d7a8a62f71effce3365d5e9aba8e45a8f350edfb55ad55493',
+  popSong: '11ddaf97d446673d48a67f6d6a062769bcf7ececb6b35ef68a42f3cb89d5a74b',
   questions: 'bc6211e86975ad7b454a49b0bde581de3d85e93b2ecd657e2efb8667da033e25',
   quotes: '60b990695179204ff5dbc0278fda7b37fa58bc232d4286ff4c55c27647c6e1f2',
-  rapSong: '7697f173c4925e331f23ceac0534e67db508f74d1dd8026469c4c1db8d82c87a',
-  rapSongChapter: '21125259d263cc0208b0b2ca1615c9e8166073b1c549318136807264414c26a5',
-  rapSongLong: 'c7890d28eb437d53f4a760f40ce690e354ccef4f6d40abec9ef1eeb00371f2ef',
-  rockSong: '1f7a513e96fd567cb3536129499a5044f1d7c63e947442b7b4e1dd00eafddf46',
+  rapSong: 'b878f63611bad3f34ac2fd9c14323193e4e01dc80463abb0508b631a48f139c6',
+  rapSongChapter: '2109fc5180a1007cda496c1ecd0b810ea711f30b9551dbad76ccba1e75af46d9',
+  rapSongLong: '2f80d2edcde52f3e3abb6eb37e30697df632a438a2da8d1a8faad590335de91c',
+  rockSong: 'dd95a09981c53b03d89a0fcafec003bbc93510cbdc1ec8e478445af32d9724f7',
   screenplay: 'e34dbfcea0400550285bc959a016d67c1d9f0524c467eafe40f4aacca245169e',
   seoArticle: '36f388032f84ad978ef76e72f363b31bd6eef732c9e3cc6bc1ceb7eeb469dc88',
   shortChapters: '82f6cc6d2bd966c8d9395d69f0b3dbb1892d061d61a93b8768cc6b347c07a2a1',
@@ -349,7 +349,7 @@ describe('prompt loader contracts', () => {
     expect(staleValidation.success).toBe(false)
   })
 
-  test('chapter rap song lyric schema mirrors the long rap structure', async () => {
+  test('chapter rap song lyric schema accepts the enhanced preset section ranges', async () => {
     const schema = await resolveStructuredSchema(['rapSongChapter'])
     const required = getRequiredStringKeys(schema.jsonSchema, 'rapSongChapter')
 
@@ -361,6 +361,34 @@ describe('prompt loader contracts', () => {
       JSON.stringify(buildExtendedRapSongPayload())
     )
     expect(validation.success).toBe(true)
+    const bounds = {
+      intro: [2, 6], verse1: [12, 20], chorus1: [2, 6], verse2: [12, 20],
+      chorus2: [2, 6], verse3: [12, 20], bridge: [2, 8], chorus3: [2, 6]
+    }
+    for (const [section, [min, max]] of Object.entries(bounds)) {
+      for (const length of [min!, max!]) {
+        expect(parseAndValidateStructured(schema.schema, JSON.stringify({
+          ...buildExtendedRapSongPayload(), [section]: makeLines(section, length)
+        })).success).toBe(true)
+      }
+      for (const length of [min! - 1, max! + 1]) {
+        expect(parseAndValidateStructured(schema.schema, JSON.stringify({
+          ...buildExtendedRapSongPayload(), [section]: makeLines(section, length)
+        })).success).toBe(false)
+      }
+    }
+  })
+
+  test('chapter rap preserves its generated song title instead of the transcript filename', async () => {
+    const schema = await resolveStructuredSchema(['rapSongChapter'])
+    const payload = { ...buildExtendedRapSongPayload(), title: 'The Sealed File' }
+    const validation = parseAndValidateStructured(schema.schema, JSON.stringify(payload), {
+      leafPromptNames: schema.leafPromptNames,
+      presetNames: schema.presetNames,
+      songLyricsTitle: 'transcription'
+    })
+    expect(validation.success).toBe(true)
+    if (validation.success) expect(validation.value).toMatchObject({ title: 'The Sealed File' })
   })
 
   test('song lyric validation overrides the title before storage', async () => {

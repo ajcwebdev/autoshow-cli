@@ -9,6 +9,9 @@ import {
 } from '~/utils/anthropic/anthropic-client'
 import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 import { extractErrorMetadata } from '~/utils/error-handler'
+import { resolveStructuredSchema } from '~/cli/commands/process-steps/step-3-write/structured-output/schema-resolver'
+import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 
 const envKeys = ['ANTHROPIC_API_KEY']
 
@@ -29,6 +32,54 @@ const structuredOpts: StructuredRequestOptions = {
 }
 
 describe('Anthropic REST contracts', () => {
+  test('Fable 5.1 resolves alongside Fable 5 with documented pricing', () => {
+    expect(buildOptsFromFlags({ anthropic: 'claude-fable-5-1' }).anthropicModels).toEqual(['claude-fable-5-1'])
+    expect(buildOptsFromFlags({ anthropic: 'claude-fable-5' }).anthropicModels).toEqual(['claude-fable-5'])
+    expect(getModelRegistry().llm['anthropic']?.models['claude-fable-5-1']).toMatchObject({
+      inputCostPer1MCents: 1000,
+      outputCostPer1MCents: 5000,
+      reasoning: { support: 'required', allowDisabled: false }
+    })
+  })
+
+  for (const effort of ['default', 'low', 'medium', 'high', 'max'] as const) {
+    test(`Fable 5.1 sends native lyric JSON with ${effort} reasoning and no forced tools`, async () => {
+      process.env['ANTHROPIC_API_KEY'] = 'anthropic-key'
+      const schema = await resolveStructuredSchema(['rapSongChapter'])
+      const calls = installMockFetch(() => Response.json({
+        model: 'claude-fable-5-1',
+        content: [{ type: 'thinking', thinking: '' }, { type: 'text', text: '{"title":"A file"}' }],
+        usage: { input_tokens: 100, output_tokens: 20 }
+      }))
+      const result = await runAnthropicModel('Adapt the transcript.', 'claude-fable-5-1', {
+        ...structuredOpts,
+        schema: schema.jsonSchema,
+        ...(effort === 'default' ? {} : { requestedReasoningEffort: effort })
+      })
+      expect(calls).toHaveLength(1)
+      expect(calls[0]?.bodyJson?.['output_config']).toEqual({
+        ...(effort === 'default' ? {} : { effort }),
+        format: { type: 'json_schema', schema: schema.jsonSchema }
+      })
+      expect(calls[0]?.bodyJson).not.toHaveProperty('tools')
+      expect(calls[0]?.bodyJson).not.toHaveProperty('tool_choice')
+      // Omission preserves Fable 5.1's always-on adaptive thinking.
+      expect(calls[0]?.bodyJson).not.toHaveProperty('thinking')
+      expect(result.result).toBe('{"title":"A file"}')
+      expect(result.metadata.effectiveReasoningEffort).toBe(effort)
+    })
+  }
+
+  test('Fable 5.1 rejects disabled and unsupported reasoning before HTTP', async () => {
+    const calls = installMockFetch(() => { throw new Error('Unexpected provider call') })
+    for (const effort of ['disabled', 'minimal'] as const) {
+      await expect(runAnthropicModel('Adapt the transcript.', 'claude-fable-5-1', {
+        ...structuredOpts, requestedReasoningEffort: effort
+      })).rejects.toThrow('does not support')
+    }
+    expect(calls).toHaveLength(0)
+  })
+
   test('Anthropic write sends documented message headers and extracts text blocks', async () => {
     process.env['ANTHROPIC_API_KEY'] = 'anthropic-key'
 

@@ -79,7 +79,7 @@ Project lyric draft mode is enabled when the input is `./output/<name>/text` or 
 | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--llm <provider[=model]>`                                          | Select an LLM provider as `provider[=model]`; repeat to run multiple providers/models                                                                                             |
 | `--all-providers`                                                   | Run every hosted LLM provider                                                                                                                                                     |
-| `--reasoning-effort <policy>`                                       | Set reasoning effort / thinking policy: `default`, `disabled`, `minimal`, `low`, `medium`, `high`, or `max`                                                                       |
+| `--reasoning-effort <policy>`                                       | Set reasoning effort / thinking policy: `default`, `disabled`, `minimal`, `low`, `medium`, `high`, `xhigh`, or `max`                                                                       |
 | `--batch-limit <n\|all>`                                             | Limit batch size or process all items (`all`); default `5`                                                                                                                        |
 | `--batch-order <newest\|oldest>`                                    | Choose batch item order; default `newest`                                                                                                                                         |
 | `--batch-concurrency <n>`                                           | Batch items to process concurrently; default `7`                                                                                                                                  |
@@ -119,7 +119,7 @@ Step selectors accept `provider[=model]`. Omitting the model resolves to the che
 | Option   | Value                                                                                     |
 | -------- | ----------------------------------------------------------------------------------------- |
 | Selector | `--llm openai[=<model>]`                                                                  |
-| Models   | `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano` |
+| Models   | `gpt-6-astra`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano` |
 | Default  | Passing `--llm openai` uses `gpt-5.6-luna`                                                |
 
 ```bash
