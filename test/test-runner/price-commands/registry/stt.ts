@@ -13,7 +13,7 @@ export const sttRegistry: PriceSelectionEntry[] = [
   ]),
   ...exact('test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisper/whisper-large-v3-turbo.test.ts', [
     command('transcribe-whisper-large-v3-turbo', 'transcribe-whisper-large-v3-turbo', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'whisper=large-v3-turbo', '--price']),
-    command('transcribe-whisper-tiny-split', 'transcribe-whisper-tiny-split', ['src/cli/create-cli.ts', 'extract', 'input/examples/video/2-video.mp4', '--provider', 'whisper=tiny', '--split', '--price']),
+    command('transcribe-whisper-tiny-split', 'transcribe-whisper-tiny-split', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'whisper=tiny', '--split', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-stt-e2e/stt-services/assemblyai-current-models.test.ts', [
     command('transcribe-assemblyai-universal-3-5-pro', 'transcribe-assemblyai-universal-3-5-pro', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'assemblyai=universal-3-5-pro', '--price']),
