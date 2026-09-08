@@ -1,15 +1,12 @@
 import { expect } from 'bun:test'
-import { budgetedTest } from '../../../../test-utils/budget'
 import { runCommand, findLatestDirectory } from '../../../../test-utils/test-helpers'
 import { readCanonicalRecord } from '../../../../test-utils/manifest-helpers'
-import { requireConfiguredEnvVars } from '../../../../test-utils/service-test-kit'
+import { defineBudgetedLiveServiceTest } from '../../../../test-utils/service-test-kit'
 import { expectArtifact, requireDefined } from '../../../../test-utils/value-assertions'
 
 const MUSIC_GEN_TITLE = 'music-gen'
 
-budgetedTest('music-multi-minimax-music-3.0-gemini-lyria-3-pro-preview', 'multi-provider run produces per-provider filenames and array metadata', async () => {
-  await requireConfiguredEnvVars(['MINIMAX_API_KEY', 'GEMINI_API_KEY'], 'MINIMAX_API_KEY and GEMINI_API_KEY both required')
-
+defineBudgetedLiveServiceTest('music-multi-minimax-music-3.0-gemini-lyria-3-pro-preview', 'multi-provider run produces per-provider filenames and array metadata', ['MINIMAX_API_KEY', 'GEMINI_API_KEY'], async () => {
   const result = await runCommand(
     [
       'src/cli/create-cli.ts',

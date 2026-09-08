@@ -1,3 +1,4 @@
+import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import {
   describe,
   expect,
@@ -41,6 +42,7 @@ describe('TTS provider service contracts', () => {
       })
 
       const result = await runSpeechifyTts('a'.repeat(2100), dir, {
+        chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 4, concurrencyMode: 'immediate' }),
         model: 'simba-3.2',
         voiceId: 'narrator_voice',
         language: 'en-US'
@@ -126,6 +128,7 @@ describe('TTS provider service contracts', () => {
       })
 
       const runPromise = runSpeechifyTts(`${'A'.repeat(2000)} ${'B'.repeat(100)}`, dir, {
+        chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 4, concurrencyMode: 'immediate' }),
         model: 'simba-3.2',
         voiceId: 'narrator_voice',
         chunkConcurrency: 2
@@ -159,7 +162,7 @@ describe('TTS provider service contracts', () => {
       return Response.json({ audio_data: createMockWavBase64() })
     })
 
-    await runSpeechifyTts('Simba 3.2.', dir, { model: 'simba-3.2', voiceId: 'geffen_32', language: 'en-US' })
+    await runSpeechifyTts('Simba 3.2.', dir, { chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 4, concurrencyMode: 'immediate' }), model: 'simba-3.2', voiceId: 'geffen_32', language: 'en-US' })
 
     expect(calls.map((call) => ({ model: call.bodyJson?.['model'], voice: call.bodyJson?.['voice_id'], language: call.bodyJson?.['language'] }))).toEqual([
       { model: 'simba-3.2', voice: 'geffen_32', language: 'en-US' }
@@ -198,6 +201,7 @@ describe('TTS provider service contracts', () => {
         }
       )
       const result = await runSpeechifyTts('Speechify custom voice synthesis.', dir, {
+        chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 4, concurrencyMode: 'immediate' }),
         model: 'simba-3.2',
         voiceId: customVoice.voiceId
       })

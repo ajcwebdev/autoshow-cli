@@ -254,6 +254,28 @@
           "supportedEfforts": ["low", "medium", "high"]
         }
       },
+      "gemini-3.8-flash": {
+        "description": "Gemini 3.8 Flash writing",
+        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricingCheckedAt": "2026-09-08",
+        "pricingCurrency": "USD",
+        "pricingTier": "Gemini API paid Standard",
+        "pricingNotes": "Google lists Gemini 3.8 Flash Standard pricing at $1.50/1M input tokens and $7.50/1M output tokens effective 2027-01-01, with introductory pricing of $0.75/1M input tokens and $3.75/1M output tokens through 2026-12-31 and no published context tiers. AutoShow conservatively records the standard rates, so estimates overstate cost during the introductory window. Free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored. Automatic date transitions are unsupported; recheck the tariff and refresh all three workflow price paths by 2027-01-01.",
+        "inputCostPer1MCents": 150,
+        "outputCostPer1MCents": 750,
+        "estimation": {
+          "costMultiplier": 0.8395,
+          "msPer1KTokens": 2537
+        },
+        "reasoning": {
+          "support": "optional",
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      },
       "gemini-3.7-flash": {
         "description": "Gemini 3.7 Flash — latest balanced Gemini model",
         "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -623,6 +645,54 @@
           "allowDisabled": true,
           "supportedEfforts": []
         }
+      },
+      "glm-5.3": {
+        "description": "GLM-5.3 - 1M context, 128K maximum output; text writing",
+        "pricingSourceUrl": "https://docs.z.ai/guides/overview/pricing",
+        "pricingCheckedAt": "2026-09-08",
+        "pricingCurrency": "USD",
+        "pricingTier": "Z.AI standard API token pricing",
+        "pricingNotes": "Standard direct Z.ai rates per million tokens: $1.4 input, $0.26 cached input, $4.4 output. Estimates and observed-token costs use uncached standard rates; cached usage is retained as metadata, not an automatic discount. Cache storage is currently limited-time free; future storage charges, batch discounts, enterprise pricing, taxes and credits are excluded. The inherited latency heuristic is uncalibrated.",
+        "inputCostPer1MCents": 140,
+        "outputCostPer1MCents": 440,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KTokens": 14146
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": [
+            "low",
+            "high",
+            "max"
+          ]
+        },
+        "cachedInputCostPer1MCents": 26
+      },
+      "glm-5.3-flash": {
+        "description": "GLM-5.3-FLASH - 1M context, 128K maximum output; text writing",
+        "pricingSourceUrl": "https://docs.z.ai/guides/overview/pricing",
+        "pricingCheckedAt": "2026-09-08",
+        "pricingCurrency": "USD",
+        "pricingTier": "Z.AI standard API token pricing",
+        "pricingNotes": "Standard direct Z.ai rates per million tokens: $0.15 input, $0.03 cached input, $0.5 output. Estimates and observed-token costs use uncached standard rates; cached usage is retained as metadata, not an automatic discount. Cache storage is currently limited-time free; future storage charges, batch discounts, enterprise pricing, taxes and credits are excluded. The inherited latency heuristic is uncalibrated. Separate temporary promotion: $0.075 input, $0.015 cached input and $0.25 output per million tokens until 2026-09-09T16:00:00Z (September 9 at 24:00 UTC+8). Conservative standard rates apply before and after expiry; no automatic date transition or promotional discount is applied.",
+        "inputCostPer1MCents": 15,
+        "outputCostPer1MCents": 50,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KTokens": 14146
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": [
+            "low",
+            "high",
+            "max"
+          ]
+        },
+        "cachedInputCostPer1MCents": 3
       }
     }
   },
@@ -713,6 +783,78 @@
           "support": "optional",
           "allowDisabled": true,
           "supportedEfforts": []
+        }
+      },
+      "kimi-k3": {
+        "description": "moonshotai/Kimi-K3 via Together AI - 1,048,576 token context; text writing with native structured output",
+        "pricingSourceUrl": "https://docs.together.ai/docs/serverless/models",
+        "pricingCheckedAt": "2026-09-08",
+        "pricingCurrency": "USD",
+        "pricingTier": "Together AI serverless token pricing",
+        "pricingNotes": "Together AI lists moonshotai/Kimi-K3 at $3.00/1M input, $0.30/1M cached input and $15.00/1M output tokens. Estimates and observed-token costs use uncached input rates; cached usage is metadata only. Reasoning is included in completion usage, not charged twice. Direct-provider promotions do not apply. Batch discounts, enterprise pricing, taxes and credits are excluded. The inherited latency heuristic is uncalibrated.",
+        "inputCostPer1MCents": 300,
+        "cachedInputCostPer1MCents": 30,
+        "outputCostPer1MCents": 1500,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KTokens": 18000
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": [
+            "low",
+            "high",
+            "max"
+          ]
+        }
+      },
+      "glm-5.3": {
+        "description": "zai-org/GLM-5.3 via Together AI - 1,048,575 token context; text writing with native structured output",
+        "pricingSourceUrl": "https://docs.together.ai/docs/serverless/models",
+        "pricingCheckedAt": "2026-09-08",
+        "pricingCurrency": "USD",
+        "pricingTier": "Together AI serverless token pricing",
+        "pricingNotes": "Together AI lists zai-org/GLM-5.3 at $1.40/1M input, $0.26/1M cached input and $4.40/1M output tokens. Estimates and observed-token costs use uncached input rates; cached usage is metadata only. Reasoning is included in completion usage, not charged twice. Direct-provider promotions do not apply. Batch discounts, enterprise pricing, taxes and credits are excluded. The inherited latency heuristic is uncalibrated.",
+        "inputCostPer1MCents": 140,
+        "cachedInputCostPer1MCents": 26,
+        "outputCostPer1MCents": 440,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KTokens": 18000
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": [
+            "low",
+            "high",
+            "max"
+          ]
+        }
+      },
+      "glm-5.3-flash": {
+        "description": "zai-org/GLM-5.3-Flash via Together AI - 1,048,575 token context; text writing with native structured output",
+        "pricingSourceUrl": "https://docs.together.ai/docs/serverless/models",
+        "pricingCheckedAt": "2026-09-08",
+        "pricingCurrency": "USD",
+        "pricingTier": "Together AI serverless token pricing",
+        "pricingNotes": "Together AI lists zai-org/GLM-5.3-Flash at $0.15/1M input, $0.03/1M cached input and $0.50/1M output tokens. Estimates and observed-token costs use uncached input rates; cached usage is metadata only. Reasoning is included in completion usage, not charged twice. Direct-provider promotions do not apply. Batch discounts, enterprise pricing, taxes and credits are excluded. The inherited latency heuristic is uncalibrated.",
+        "inputCostPer1MCents": 15,
+        "cachedInputCostPer1MCents": 3,
+        "outputCostPer1MCents": 50,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KTokens": 18000
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": false,
+          "supportedEfforts": [
+            "low",
+            "high",
+            "max"
+          ]
         }
       }
     }

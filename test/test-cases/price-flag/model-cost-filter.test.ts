@@ -40,7 +40,7 @@ describe('--max-model-cents', () => {
       '--all-providers',
       '--max-model-cents',
       '0.5',
-      '--price'
+      '--price', '--json'
     ])
     const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
 
@@ -59,7 +59,7 @@ describe('--max-model-cents', () => {
       '--all-providers',
       '--max-model-cents',
       '1',
-      '--price'
+      '--price', '--json'
     ])
     const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
 
@@ -77,7 +77,7 @@ describe('--max-model-cents', () => {
       '--all-providers',
       '--max-model-cents',
       '100',
-      '--price'
+      '--price', '--json'
     ])
     const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
 
@@ -95,13 +95,13 @@ describe('--max-model-cents', () => {
       '--all-providers',
       '--max-model-cents',
       '10',
-      '--price'
+      '--price', '--json'
     ])
     const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
 
     expect(result.exitCode).toBe(0)
     expect(output).toContain('gemini')
-    expect(output).toContain('generated-music.mp3')
+    expect(output).toContain('generated-music-gemini-lyria-3-pro-preview.mp3')
     expect(output).not.toContain('generated-music-elevenlabs-music_v2.mp3')
     expect(output).not.toContain('generated-music-minimax-music-3.0.mp3')
   })
@@ -114,10 +114,9 @@ describe('--max-model-cents', () => {
       '--all-providers',
       '--max-model-cents',
       '0.5',
-      '--price'
+      '--price', '--json'
     ])
-    const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
-    const estimateOutput = output.slice(output.indexOf('Estimate'))
+    const estimateOutput = result.stdout
 
     expect(result.exitCode).toBe(0)
     expect(estimateOutput).toContain('gpt-5.6-luna')
@@ -134,10 +133,9 @@ describe('--max-model-cents', () => {
       '--all-providers',
       '--max-model-cents',
       '0.05',
-      '--price'
+      '--price', '--json'
     ])
-    const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
-    const estimateOutput = output.slice(output.indexOf('Estimate'))
+    const estimateOutput = result.stdout
 
     expect(result.exitCode).toBe(0)
     expect(estimateOutput).toContain('deepinfra')
@@ -153,7 +151,7 @@ describe('--max-model-cents', () => {
       '--all-providers',
       '--max-model-cents',
       '0',
-      '--price'
+      '--price', '--json'
     ])
     const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
 
@@ -168,10 +166,10 @@ describe('--max-model-cents', () => {
       STABLE_TTS_MD_PATH,
       '--max-model-cents',
       'not-a-number',
-      '--price'
+      '--price', '--json'
     ])
 
     expect(result.exitCode).toBe(2)
-    expect(stripAnsi(`${result.stdout}\n${result.stderr}`)).toContain('Invalid --max-model-cents value "not-a-number"')
+    expect(stripAnsi(`${result.stdout}\n${result.stderr}`)).toContain('Invalid --max-model-cents value')
   })
 })

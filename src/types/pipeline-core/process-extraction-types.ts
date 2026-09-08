@@ -1,3 +1,4 @@
+import { MistralOcrPageMetadataSchema } from './mistral-ocr-metadata-types'
 import * as v from 'valibot'
 import type { DocFormat, HostedOcrScheduler, ProviderIdentityBase } from '~/types'
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
@@ -79,7 +80,8 @@ const PageResultSchema = v.object({
   pageNumber: v.number(),
   method: v.picklist(['text', 'ocr', 'skipped']),
   text: v.string(),
-  confidence: v.optional(v.number(), undefined)
+  confidence: v.optional(v.number(), undefined),
+  mistralOcr: v.optional(MistralOcrPageMetadataSchema, undefined)
 })
 
 export const ExtractionResultSchema = v.object({

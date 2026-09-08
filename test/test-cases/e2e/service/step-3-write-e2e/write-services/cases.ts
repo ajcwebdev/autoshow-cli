@@ -1,6 +1,7 @@
 export const openaiWrite = {
   provider: 'openai',
   llmService: 'openai',
+  requiresEnvVar: { key: 'OPENAI_API_KEY', description: 'OpenAI models' },
 } as const
 
 export const anthropicWrite = {
@@ -43,4 +44,10 @@ export const kimiWrite = {
   provider: 'kimi',
   llmService: 'kimi',
   requiresEnvVar: { key: 'KIMI_API_KEY', description: 'Kimi models' },
+} as const
+
+export const togetherWrite = {
+  provider: 'together',
+  llmService: 'together',
+  requiresEnvVar: { key: 'TOGETHER_API_KEY', description: 'Together writing models' },
 } as const

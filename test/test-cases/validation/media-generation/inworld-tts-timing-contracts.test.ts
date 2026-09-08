@@ -1,3 +1,4 @@
+import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import type { NormalizedTiming, TtsRequestEvidenceScope, TtsSerializedRequestObservation } from '~/types'
 import { describe, expect, test } from 'bun:test'
 import { buildInworldTtsRequestBody, INWORLD_TTS_SERIALIZER_VERSION, normalizeInworldTimestampInfo } from '~/cli/commands/process-steps/step-4-tts/tts-services/inworld/inworld-tts-request'
@@ -79,6 +80,7 @@ describe('Inworld REST timing contracts', () => {
     const result = await runInworldTts('Hello [sigh] world', root, {
       model: 'realtime-tts-2',
       apiKey: 'local-test-key',
+      chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 1 }),
       voiceId: 'Dennis',
       steeringPrompt: 'Sound tired',
       requestEvidence: evidence

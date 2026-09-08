@@ -1,4 +1,4 @@
-import { sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
+import { sanitizeArtifactMetadata, sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
 import type { AppErrorKind, AppErrorOptions, ErrorChainEntry, NonUsageAppErrorOptions, RetryClass, UsageErrorOptions } from '~/types'
 import { isRecord } from '~/utils/value-helpers'
 
@@ -499,7 +499,7 @@ export const serializeDiagnosticError = (error: unknown): Record<string, unknown
     ? serializeError(error)
     : toDiagnosticValue(error)
   const normalized = isRecord(raw) ? raw : { value: raw }
-  const sanitized = sanitizeLogMetadata(normalized)
+  const sanitized = sanitizeArtifactMetadata(normalized)
   return isRecord(sanitized)
     ? sanitized
     : { value: sanitizeLogText(String(sanitized)) }

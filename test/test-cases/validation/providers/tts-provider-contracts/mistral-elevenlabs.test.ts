@@ -1,3 +1,4 @@
+import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import {
   describe,
   expect,
@@ -35,6 +36,7 @@ describe('TTS provider service contracts', () => {
       const calls = installMockFetch(() => Response.json({ audio_data: createMockWavBase64() }))
 
       const result = await runMistralTts('Mistral reference synthesis.', dir, {
+        chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 4, concurrencyMode: 'immediate' }),
         model: 'voxtral-mini-tts-2603',
         refAudioPath: sourcePath,
         protectedReference: {
@@ -100,6 +102,7 @@ describe('TTS provider service contracts', () => {
       const calls = installMockFetch(() => new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } }))
 
       const result = await runElevenLabsTts('ElevenLabs control synthesis.', dir, {
+        chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 4, concurrencyMode: 'immediate' }),
         model: 'eleven_v3',
         voiceId: 'voice_existing123',
         controls: {
@@ -156,7 +159,7 @@ describe('TTS provider service contracts', () => {
       return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
     })
 
-    await runElevenLabsTts('New ElevenLabs model.', dir, { model: 'eleven_v3', voiceId: 'voice_existing123' })
+    await runElevenLabsTts('New ElevenLabs model.', dir, { chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 4, concurrencyMode: 'immediate' }), model: 'eleven_v3', voiceId: 'voice_existing123' })
 
     expect(calls.map((call) => call.bodyJson?.['model_id'])).toEqual(['eleven_v3'])
     expect(resolveTtsChunkCharacterLimit('elevenlabs', 'eleven_v3')).toBe(5000)
@@ -172,6 +175,7 @@ describe('TTS provider service contracts', () => {
       })
 
       const result = await runElevenLabsTts(`${'A'.repeat(5000)} ${'B'.repeat(100)}`, dir, {
+        chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 4, concurrencyMode: 'immediate' }),
         model: 'eleven_v3',
         voiceId: 'voice_existing123'
       })
@@ -219,6 +223,7 @@ describe('TTS provider service contracts', () => {
       })
 
       const runPromise = runElevenLabsTts(`${'A'.repeat(5000)} ${'B'.repeat(5000)} ${'C'.repeat(100)}`, dir, {
+        chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 4, concurrencyMode: 'immediate' }),
         model: 'eleven_v3',
         voiceId: 'voice_existing123',
         chunkConcurrency: 3

@@ -6,12 +6,12 @@ import { pushGenerationEstimates } from './cost-steps-shared'
 
 const estimateImageTargetCost = (
   target: NonNullable<ComputeEstimatedCostsInput['imageTargets']>[number],
-  input: Pick<ComputeEstimatedCostsInput, 'imageSize' | 'imageQuality'>
+  input: Pick<ComputeEstimatedCostsInput, 'imageSize' | 'imageQuality' | 'imageInputs'>
 ): { provider: Step5Metadata['imageService'], model: string, imageCount: number, totalCost: number } => {
   const imageCount = Math.max(1, target.count)
   const imageSize = target.imageSize ?? input.imageSize
   const imageQuality = target.imageQuality ?? input.imageQuality
-  const sharedOptions = { imageSize, imageQuality, imageCount }
+  const sharedOptions = { imageSize, imageQuality, imageCount, imageInputs: input.imageInputs }
   const estimate = estimateImageCosts({
     ...sharedOptions,
     ...optionsForService(IMAGE_PRICING_PROVIDERS, target.service, target.model)
@@ -21,7 +21,9 @@ const estimateImageTargetCost = (
     provider: target.service,
     model: target.model,
     imageCount,
-    totalCost: costPerImageCents * imageCount
+    totalCost: target.service === 'grok' && target.model === 'grok-imagine-image-2.0'
+      ? estimate?.totalCost ?? costPerImageCents * imageCount
+      : costPerImageCents * imageCount
   }
 }
 
@@ -36,7 +38,8 @@ export const buildImageCostSteps = (input: ComputeEstimatedCostsInput): CostStep
         ...selectionOptions,
         imageSize: input.imageSize,
         imageQuality: input.imageQuality,
-        imageCount: input.imageCount
+        imageCount: input.imageCount,
+        imageInputs: input.imageInputs
       })
 
   return pushGenerationEstimates(

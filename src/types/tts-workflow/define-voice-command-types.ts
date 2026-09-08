@@ -16,8 +16,8 @@ export const VOICE_CAPABILITY_REGISTRY = {
   openai: { models: ['gpt-4o-mini-tts-2025-12-15'], import: true, catalog: false, design: false, clone: false, lifecycle: false },
   speechify: { models: ['simba-3.2'], import: true, catalog: true, design: false, clone: false, lifecycle: true },
   hume: { models: ['octave-1', 'octave-2'], import: true, catalog: true, design: true, clone: false, lifecycle: true },
-  cartesia: { models: ['sonic-3.5-2026-05-04'], import: true, catalog: true, design: false, clone: true, lifecycle: true },
-  inworld: { models: ['realtime-tts-2'], import: true, catalog: true, design: true, clone: true, lifecycle: true },
+  cartesia: { models: ['sonic-3.5-2026-05-04', 'sonic-3.6-2026-08-27'], import: true, catalog: true, design: false, clone: true, lifecycle: true },
+  inworld: { models: ['realtime-tts-2', 'realtime-tts-2-flash'], import: true, catalog: true, design: true, clone: true, lifecycle: true },
 } as const satisfies Record<TtsProvider, VoiceProviderCapabilities>
 
 type ProviderWithCapability<K extends keyof Omit<VoiceProviderCapabilities, 'models'>> = {

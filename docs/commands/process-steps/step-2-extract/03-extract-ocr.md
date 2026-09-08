@@ -158,7 +158,7 @@ Detection is local-first: PDF bookmarks, TOC pages, and heading heuristics. `--p
 | Option   | Value                                 |
 | -------- | ------------------------------------- |
 | Selector | `--provider mistral[=<model>]`        |
-| Models   | `mistral-ocr-2512`, `mistral-ocr-4-0` |
+| Models   | `mistral-ocr-2512`, `mistral-ocr-4-0`, `mistral-ocr-4-1` |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider mistral=mistral-ocr-2512
@@ -199,7 +199,7 @@ Bare `--provider kimi` defaults to `kimi-k2.6`. Direct or rendered image uploads
 | Option   | Value                                                                                     |
 | -------- | ----------------------------------------------------------------------------------------- |
 | Selector | `--provider openai[=<model>]`                                                             |
-| Models   | `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano` |
+| Models   | `gpt-6-astra`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano` |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider openai=gpt-5.6-sol
@@ -228,7 +228,7 @@ Bare `--provider grok` defaults to `grok-4.3`. Direct images and rendered pages 
 | Option   | Value                                                                                       |
 | -------- | ------------------------------------------------------------------------------------------- |
 | Selector | `--provider anthropic[=<model>]`                                                            |
-| Models   | `claude-fable-5`, `claude-opus-4-8`, `claude-sonnet-5`, `claude-sonnet-4-6`, `claude-haiku-4-5`, `claude-opus-5` |
+| Models   | `claude-fable-5-1`, `claude-fable-5`, `claude-opus-4-8`, `claude-sonnet-5`, `claude-sonnet-4-6`, `claude-haiku-4-5`, `claude-opus-5` |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider anthropic=claude-haiku-4-5
@@ -239,10 +239,16 @@ Bare `--provider anthropic` defaults to `claude-haiku-4-5`. Direct images are ca
 
 ### Gemini OCR
 
+Gemini 3.8 Flash is available as `gemini-3.8-flash` for writing/OCR (`gemini`) and prompted audio extraction (`gemini-stt`), with existing selectors and defaults preserved. Writing and OCR support low/medium/high reasoning; minimal and disabled are rejected. STT uses the provider default thinking level (medium), without a reasoning override. Requests omit legacy sampling controls; the transport rejects incompatible 3.8 settings before dispatch. Audio timestamps remain generated, with no native word alignment claim.
+
+Pricing checked 2026-09-08: introductory $0.75/$3.75 per million input/output tokens through 2026-12-31, then $1.50/$7.50 starting 2027-01-01. AutoShow follows its existing conservative policy and uses the standard rates for estimates and usage-based cost calculations even during the introductory window. Automatic date transitions are unsupported; recheck the tariff and refresh all three price paths by 2027-01-01. STT uses a $0.1728/hour audio-input baseline (32 tokens/second), then accounts for prompt, candidate and thinking tokens from returned usage. OCR page and writing/STT latency heuristics are reused and provisional; caching and discounted service tiers are excluded.
+
+Sources: [model specification](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash), [migration guide](https://ai.google.dev/gemini-api/docs/latest-model?hl=en), [pricing](https://ai.google.dev/gemini-api/docs/pricing).
+
 | Option   | Value                                                                                     |
 | -------- | ----------------------------------------------------------------------------------------- |
 | Selector | `--provider gemini[=<model>]`                                                             |
-| Models   | `gemini-3.1-pro-preview`, `gemini-3.7-flash`, `gemini-3.5-flash`, `gemini-3.6-flash`, `gemini-3.5-flash-lite` |
+| Models   | `gemini-3.1-pro-preview`, `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.5-flash`, `gemini-3.6-flash`, `gemini-3.5-flash-lite` |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.5-flash-lite
@@ -331,3 +337,17 @@ DeepInfra VLMs render PDF and EPUB pages as PNG, accept PNG/JPG/WEBP up to 20 MB
 | DeepInfra `mistralai/Mistral-Small-3.2-24B-Instruct-2506` | ⚠️ 2025-06-20 | $0.075 / $0.20 per 1M tokens (≈$0.69/1k pages) | 1/5       |
 | DeepInfra `meta-llama/Llama-4-Scout-17B-16E-Instruct`     | ❌ 2025-04-05 | $0.10 / $0.30 per 1M tokens (≈$0.94/1k pages)  | 3/5       |
 | DeepInfra `google/gemma-3-27b-it`                         | ❌ 2025-03-12 | $0.08 / $0.16 per 1M tokens (≈$0.71/1k pages)  | 2/5       |
+
+## OCR additions — 2026-09-08
+
+`--provider openai=gpt-6-astra` and `--provider anthropic=claude-fable-5-1` are now accepted OCR targets. Existing selectors and bare provider defaults are preserved. Both accept images and documents through the existing OCR pipeline. Astra uses Responses native JSON pages for multi-page input and plain text for single pages. Fable uses Messages with the existing schema-guided JSON prompt, Files API PDF upload and page normalization; it does not force tool use.
+
+Astra accepts `low`, `medium`, `high`, `xhigh` and `max` reasoning; Fable accepts `low`, `medium`, `high` and `max`. Both reject disabled/minimal reasoning. Omitted effort delegates to the provider, including Fable's always-on adaptive thinking at default high effort. [Astra specification](https://developers.openai.com/api/docs/models/gpt-6-astra), [Fable specification](https://platform.claude.com/docs/en/models/fable-5-1/overview).
+
+Both use $10/$50 per million uncached input/output tokens. Above 272,000 input tokens, Astra charges the entire request at $20/$75; its separate cache-read rates are $1/M and $2/M respectively. Fable cache reads cost $0.25/M. AutoShow records cache rates as metadata but retains uncached estimates and observed-token cost calculations, so displayed costs do not apply cache savings. The Anthropic adapter does not request prompt caching. Cache-write charges, special service tiers and discounts are excluded. Inherited page/token/latency heuristics remain provisional without paid calibration. [Astra pricing](https://developers.openai.com/api/docs/models/gpt-6-astra), [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing).
+
+## Mistral OCR 4.1 addition — 2026-09-08
+
+`mistral-ocr-4-1` is available alongside `mistral-ocr-2512` and `mistral-ocr-4-0`; the bare Mistral default remains `mistral-ocr-2512`. It uses the existing OCR PDF/image endpoint and requests `include_blocks: true` with `confidence_scores_granularity: "block"`. Structured page artifacts retain `pages[].mistralOcr.blocks` (labels, bounding boxes, content, image/table references and optional block confidence scores) and `pages[].mistralOcr.confidence_scores` (page aggregates). Provider field names and score values are preserved, including null scores for non-text blocks. Missing metadata is accepted. Extracted prose still comes exclusively from page markdown; scores do not replace the separate Tesseract confidence field or alter page ordering. Word confidence and other provider metadata, including image/table payloads, are not retained by this integration. See the [OCR processor contract](https://docs.mistral.ai/studio/document-processing/basic_ocr).
+
+The [OCR 4.1 tariff](https://docs.mistral.ai/models/ocr-4-1), checked 2026-09-08, is $4 per 1,000 ordinary pages and $5 per 1,000 annotated pages. CLI estimates use the ordinary rate, including block/confidence extraction. The estimator exposes the annotated rate separately for pricing only; it rejects annotated estimates when no verified tariff is configured for the model. AutoShow does not expose or send `bbox_annotation_format`, `document_annotation_format` or `document_annotation_prompt`. Mistral supports those schema-based [annotation options](https://docs.mistral.ai/studio/document-processing/annotations), but annotation generation and annotation response artifacts remain unsupported. Batch discounts, taxes and credits are excluded; the inherited latency heuristic has not been calibrated with paid inference.

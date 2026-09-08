@@ -13,6 +13,7 @@ import {
   LTX_DURATION_SECONDS,
   LTX_FAST_1080P_DURATION_SECONDS,
   LTX_RESOLUTIONS,
+  LTX_25_RESOLUTIONS,
   LUMA_ASPECT_RATIOS,
   LUMA_DURATION_SECONDS,
   LUMA_RESOLUTIONS,
@@ -36,20 +37,21 @@ export const videoGenFlags = {
   duration: strFlag(`Video duration in seconds: ${formatValuesByProvider([
     { provider: 'Gemini Veo', values: GEMINI_DURATION_SECONDS },
     { provider: 'Luma Labs', values: LUMA_DURATION_SECONDS, note: 'rounds to the nearer value' },
-    { provider: 'LTX', values: LTX_DURATION_SECONDS, note: `the Fast model at 1920x1080 also accepts ${formatValueList(ltxFastOnlyDurations)}` }
+    { provider: 'LTX', values: LTX_DURATION_SECONDS, note: `2.3 Fast at 1920x1080 and 2.5 Fast at 720p/1080p in either orientation also accept ${formatValueList(ltxFastOnlyDurations)}` }
   ])}, ${formatRange(GROK_VIDEO_DURATION_RANGE)} (Grok), ${formatRange(REPLICATE_HAPPYHORSE_DURATION_RANGE)} (Replicate HappyHorse), ${formatRange(REPLICATE_SEEDANCE_DURATION_RANGE)} (Replicate Seedance, where ${REPLICATE_SEEDANCE_DURATION_RANGE[0]} means the model default), 5-15 (fal.ai H3), 1-15 (fal.ai PixVerse C1)`),
   'aspect-ratio': strFlag(`Video aspect ratio: ${formatValuesByProvider([
     { provider: 'Replicate', values: REPLICATE_COMMON_ASPECT_RATIOS },
     { provider: 'Luma Labs', values: LUMA_ASPECT_RATIOS },
     { provider: 'Grok', values: GROK_VIDEO_ASPECT_RATIOS },
-    { provider: 'LTX 2.3', values: LTX_ASPECT_RATIOS },
+    { provider: 'LTX 2.3/2.5', values: LTX_ASPECT_RATIOS },
     { provider: 'fal.ai H3', values: FAL_H3_ASPECT_RATIOS },
     { provider: 'fal.ai PixVerse C1', values: FAL_PIXVERSE_ASPECT_RATIOS }
   ])}; Replicate Seedance also supports ${formatValueList(seedanceExtraAspectRatios)}; Gemini forwards any ratio to the Veo API unvalidated`),
   resolution: strFlag(`Video resolution: ${formatValuesByProvider([
     { provider: 'Gemini', values: GEMINI_VIDEO_RESOLUTIONS, note: '4k requires Veo 3.1 standard/Fast' },
     { provider: 'Grok', values: GROK_VIDEO_RESOLUTIONS },
-    { provider: 'LTX', values: LTX_RESOLUTIONS },
+    { provider: 'LTX 2.3', values: LTX_RESOLUTIONS },
+    { provider: 'LTX 2.5', values: LTX_25_RESOLUTIONS },
     { provider: 'Replicate', values: REPLICATE_VIDEO_RESOLUTIONS, note: 'narrower on some models' },
     { provider: 'Luma Labs', values: LUMA_RESOLUTIONS },
     { provider: 'fal.ai H3', values: FAL_H3_RESOLUTIONS },

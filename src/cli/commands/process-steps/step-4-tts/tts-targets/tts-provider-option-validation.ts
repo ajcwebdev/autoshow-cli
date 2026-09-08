@@ -1,3 +1,5 @@
+import { validateInworldTtsSteering } from '../tts-services/inworld/inworld-tts-request'
+import { validateCartesiaTtsLanguage } from '../tts-services/cartesia/cartesia-tts-request'
 import type { TtsTargetSelection } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 
@@ -48,4 +50,6 @@ const validateOpenAiInstructions = (selection: TtsTargetSelection): void => {
 export const validateTtsProviderOptions = (selection: TtsTargetSelection): void => {
   validateRequiredProviderSelections(selection)
   validateOpenAiInstructions(selection)
+  for (const model of selection.inworldModels) validateInworldTtsSteering(model, selection.inworldInstructions)
+  for (const model of selection.cartesiaModels) validateCartesiaTtsLanguage(model, selection.cartesiaLanguage)
 }

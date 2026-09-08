@@ -1,3 +1,4 @@
+import { setupTtsFixtureCredentials } from '../../../test-utils/tts-fixture-credentials'
 import { describe } from 'bun:test'
 import {
   registerAmbiguousAdmissionAndOrphanCases,
@@ -20,3 +21,5 @@ describe('TTS completed-render recovery', () => {
   registerDurableOrphanCases()
   registerTransitiveLocalCompositionCases()
 })
+
+setupTtsFixtureCredentials()

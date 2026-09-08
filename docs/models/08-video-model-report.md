@@ -4,7 +4,7 @@
 
 - **Report Status:** Current
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-08-19
+- **Date Updated:** 2026-09-08
 
 This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](01-stt-model-report.md), [OCR](02-ocr-model-report.md), [URL scraping](03-url-model-report.md), [LLMs](04-llm-model-report.md), [TTS](05-tts-model-report.md), [Music](06-music-model-report.md), [Image](07-image-model-report.md).
 
@@ -289,3 +289,15 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model
 - Historical cost reconstruction: `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
 - 2026-08-16 xAI Imagine snapshot: `bun autoshow links --grok video` (`https://docs.x.ai/developers/model-capabilities/video/generation.md`)
 - MiniMax H3: https://platform.minimax.io/docs/guides/video-generation.md, https://platform.minimax.io/docs/api-reference/video-generation-v2-create.md
+
+## 2026-09-08 P1 LTX additions
+
+Added `ltx-2-5-fast` and `ltx-2-5-pro` alongside both 2.3 selectors. The bare LTX default remains `ltx-2-3-fast`. The active catalog now has 18 selectors across 6 providers. Model discovery and all-video expansion include both additions.
+
+Both additions support text, image and first/last-frame interpolation at 720p, 1080p, 1440p and 4K in landscape or portrait. Requests explicitly use 24 fps, default 8 seconds and 1080p/16:9. Fast accepts even durations 6–20 seconds at 720p/1080p and 6/8/10 seconds at higher resolutions; Pro accepts 6/8/10 seconds throughout. Unsupported duration combinations fail before dispatch. Legacy 2.3 rounding and limits are preserved. The current [LTX 2.5 matrix](https://docs.ltx.io/models/ltx-2-5) supersedes the launch notice's narrower Pro resolution support. The provider's other frame rates, automatic duration, camera motion and audio-to-video are not exposed by this CLI. Extend, retake and reframe are not supported on 2.5.
+
+The new models use `https://api.ltx.io/v2/text-to-video` or `/v2/image-to-video`, with existing `LTXV_API_KEY` resolution. Interpolation serializes `last_frame_uri`. Polling preserves job identity and timestamps, downloads `result.video_url` into the normal MP4 artifact and reports registry fallback costs. The old 2.3 API host and wire contract remain unchanged. [Async API](https://docs.ltx.io/async-jobs)
+
+Published resolution-specific rates in cents per output second are Fast 9/13/19/30 and Pro 12/17/25/39 for 720p/1080p/1440p/4K. Text/image/interpolation use the same tariff, without the old generation's multiplier. Pricing was checked on 2026-09-08; taxes, discounts, credits and enterprise rates are excluded. Latency inherits the 2.3 12,000 ms per output second heuristic and remains provisional. [Pricing](https://docs.ltx.io/pricing)
+
+Local mocked contracts cover the full exposed capability and pricing matrix, 48 successful serialized requests, polling, MP4 normalization, error paths, no-resubmission behavior and preservation of existing 2.3 behavior. No paid inference or account-access validation was performed.

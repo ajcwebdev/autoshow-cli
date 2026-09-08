@@ -40,10 +40,10 @@ describe('OpenAI REST audio and STT contracts', () => {
     expect(calls[1]?.form?.get('file')).toBeInstanceOf(File)
   })
 
-  test('OpenAI-compatible STT retries transient transcription create failures', async () => {
+  test('OpenAI-compatible STT retries explicitly rejected transcription creates', async () => {
     const calls = installFetch(() => {
       if (calls.length === 1) {
-        return jsonResponse({ error: { message: 'Service Unavailable' } }, { status: 503 })
+        return jsonResponse({ error: { message: 'Too Many Requests' } }, { status: 429 })
       }
 
       return jsonResponse({
@@ -135,8 +135,8 @@ describe('OpenAI REST audio and STT contracts', () => {
         status: 400,
         stage: 'transcribe'
       })
-      expect(error).toMatchObject({ retryClass: 'runtime_http_create_retriable' })
-      expect(error.message).toStartWith('grok-stt failed after 2/4 attempts')
+      expect(error).toMatchObject({ retryClass: 'runtime_http_create_conservative' })
+      expect(error.message).toStartWith('grok-stt failed after 2/2 attempts')
       expect(error.cause).toMatchObject({
         message: 'Grok transcription failed (400): bad audio',
         rawResponse: { error: { message: 'bad audio' } }

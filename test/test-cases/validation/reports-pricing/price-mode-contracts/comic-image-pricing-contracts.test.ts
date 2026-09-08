@@ -119,8 +119,8 @@ describe('price mode contracts', () => {
         reusedReports: 1,
         maximumAdditionalImageEdits: 14,
         maximumAdditionalJudgeCalls: 14,
-        estimatedInputTokens: 35_000,
-        estimatedOutputTokens: 8_400
+        estimatedInputTokens: 56_000,
+        estimatedOutputTokens: 9_800
       })
 
       const forcedRequest = { ...request, force: true }
@@ -200,8 +200,8 @@ describe('price mode contracts', () => {
         maximumComparisonJudgeCalls: 8,
         maximumAdditionalJudgeCalls: 12,
         maximumTotalJudgeCalls: 14,
-        estimatedInputTokens: 82_000,
-        estimatedOutputTokens: 16_800
+        estimatedInputTokens: 100_000,
+        estimatedOutputTokens: 18_000
       })
 
       const forcedEstimate = estimatePanelMode({ ...request, force: true }, inventory)

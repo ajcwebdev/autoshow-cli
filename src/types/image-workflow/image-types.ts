@@ -21,6 +21,8 @@ export type ImageTarget = ProviderTargetBase<ImageProvider> & {
 export type ImageCostEstimate = CostEstimateBase<ImageProvider> & {
   imageCount: number
   costPerImageCents: number
+  inputImageCount?: number | undefined
+  inputImageCostCents?: number | undefined
   imageInputEstimate?: OpenAIImageInputEstimate | undefined
 }
 

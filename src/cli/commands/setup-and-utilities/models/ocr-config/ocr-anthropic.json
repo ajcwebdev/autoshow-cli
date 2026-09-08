@@ -3,6 +3,32 @@
     "description": "Anthropic Claude OCR via Messages API",
     "type": "api",
     "models": {
+      "claude-fable-5-1": {
+        "description": "Claude Fable 5.1 OCR",
+        "pricingSourceUrl": "https://platform.claude.com/docs/en/models/fable-5-1/overview",
+        "pricingCheckedAt": "2026-09-08",
+        "pricingCurrency": "USD",
+        "pricingTier": "Claude API standard token pricing",
+        "pricingNotes": "Claude Fable 5.1 standard rates are $10/$50 per million input/output tokens, with $0.25/M cache reads and $12.50/M (5m) or $20/M (1h) cache writes. OCR uses uncached input/output rates; cached rates are metadata only and cache-dependent savings are not applied as an unconditional discount. This adapter does not request prompt caching. Batch, fast mode, taxes and credits are excluded. Adaptive thinking is always on, with default high effort. Page/token/latency heuristics are inherited from Fable 5 and remain uncalibrated.",
+        "costPerMInputTokensCents": 1000,
+        "costPerMOutputTokensCents": 5000,
+        "limits": {
+          "imageBytes": 5242880,
+          "notes": "https://platform.claude.com/docs/en/build-with-claude/pdf-support.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
+        },
+        "estimation": {
+          "promptTokensPerPage": 2024,
+          "completionTokensPerPage": 869,
+          "costMultiplier": 1,
+          "msPerPage": 11827
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": ["low", "medium", "high", "max"]
+        },
+        "costPerMCachedInputTokensCents": 25
+      },
       "claude-fable-5": {
         "description": "Claude Fable 5 OCR",
         "pricingSourceUrl": "https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en",

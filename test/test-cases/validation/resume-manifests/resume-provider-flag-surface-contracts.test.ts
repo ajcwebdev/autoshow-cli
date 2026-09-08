@@ -224,11 +224,11 @@ describe('resume provider flag surface', () => {
     expectResumeLacksFlags(REMOVED_PROVIDER_NAMED_FLAGS)
   })
 
-  test('no resume flag is named after a selectable provider', () => {
+  test('resume has only the explicit DeepInfra response-format provider control', () => {
     const offenders = Object.keys(resumeFlags).filter((flag) =>
       RESUME_PROVIDER_NAMES.some((provider) => flag.startsWith(`${provider}-`))
     )
-    expect(offenders, 'resume flags must not be named after a provider').toEqual([])
+    expect(offenders).toEqual(['deepinfra-stt-response-format'])
   })
 
   test('resume keeps generic TTS options in place of provider-specific tuning', () => {
@@ -249,14 +249,14 @@ describe('resume provider flag surface', () => {
 
   test('resume accepts generic video mode and input flags but not provider-specific video flags', () => {
     expectResumeHasFlags([
-      'video-mode',
-      'video-generate-audio',
-      'video-input-image',
-      'video-last-frame',
-      'video-reference-image',
-      'video-input-video',
-      'video-reference-video',
-      'video-reference-audio'
+      'mode',
+      'generate-audio',
+      'input-image',
+      'last-frame',
+      'reference-image',
+      'input-video',
+      'reference-video',
+      'reference-audio'
     ])
     expectResumeLacksFlags([
       'replicate-video-multi-prompt',

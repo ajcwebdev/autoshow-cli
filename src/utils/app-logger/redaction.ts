@@ -119,7 +119,7 @@ const sanitizeDiagnosticIdentifiers = (value: string): string => {
     })
 }
 
-export const sanitizeLogText = (value: string): string => {
+export const sanitizeArtifactText = (value: string): string => {
   if (value.length === 0) {
     return value
   }
@@ -135,8 +135,11 @@ export const sanitizeLogText = (value: string): string => {
       )
     )
   )
-  return sanitized.replace(/[\r\n]+/g, ' ').replace(/\s{2,}/g, ' ').trim()
+  return sanitized
 }
+
+export const sanitizeLogText = (value: string): string =>
+  sanitizeArtifactText(value).replace(/[\r\n]+/g, ' ').replace(/\s{2,}/g, ' ').trim()
 
 const normalizeFlagName = (flagName: string): string => {
   return flagName.replace(/^--?/, '').toLowerCase()
@@ -147,9 +150,9 @@ const isSensitiveObjectKey = (key: string): boolean => {
   return SENSITIVE_FLAG_NAMES.has(normalized) || SENSITIVE_OBJECT_KEY_PATTERN.test(normalized)
 }
 
-const sanitizeUnknown = (value: unknown, depth: number, seen: WeakSet<object>): unknown => {
+const sanitizeUnknown = (value: unknown, depth: number, seen: WeakSet<object>, sanitizeText = sanitizeLogText): unknown => {
   if (typeof value === 'string') {
-    return sanitizeLogText(value)
+    return sanitizeText(value)
   }
 
   if (
@@ -171,14 +174,14 @@ const sanitizeUnknown = (value: unknown, depth: number, seen: WeakSet<object>): 
   }
 
   if (value instanceof URL) {
-    return sanitizeLogText(value.toString())
+    return sanitizeText(value.toString())
   }
 
   if (value instanceof Headers) {
     return Object.fromEntries(
       [...value.entries()].map(([key, entryValue]) => [
         key,
-        isSensitiveObjectKey(key) ? REDACTED : sanitizeUnknown(entryValue, depth + 1, seen)
+        isSensitiveObjectKey(key) ? REDACTED : sanitizeUnknown(entryValue, depth + 1, seen, sanitizeText)
       ])
     )
   }
@@ -191,26 +194,26 @@ const sanitizeUnknown = (value: unknown, depth: number, seen: WeakSet<object>): 
 
     const out: Record<string, unknown> = {
       name: value.name,
-      message: sanitizeLogText(value.message),
-      ...(value.stack ? { stack: sanitizeLogText(value.stack) } : {})
+      message: sanitizeText(value.message),
+      ...(value.stack ? { stack: sanitizeText(value.stack) } : {})
     }
 
     for (const [key, entryValue] of Object.entries(value)) {
       if (key === 'name' || key === 'message' || key === 'stack' || key === 'cause') {
         continue
       }
-      out[key] = isSensitiveObjectKey(key) ? REDACTED : sanitizeUnknown(entryValue, depth + 1, seen)
+      out[key] = isSensitiveObjectKey(key) ? REDACTED : sanitizeUnknown(entryValue, depth + 1, seen, sanitizeText)
     }
 
     if ('cause' in value && value.cause !== undefined) {
-      out['cause'] = sanitizeUnknown(value.cause, depth + 1, seen)
+      out['cause'] = sanitizeUnknown(value.cause, depth + 1, seen, sanitizeText)
     }
 
     return out
   }
 
   if (Array.isArray(value)) {
-    return value.map(item => sanitizeUnknown(item, depth + 1, seen))
+    return value.map(item => sanitizeUnknown(item, depth + 1, seen, sanitizeText))
   }
 
   if (typeof value === 'object') {
@@ -223,13 +226,13 @@ const sanitizeUnknown = (value: unknown, depth: number, seen: WeakSet<object>): 
     const entries = Object.entries(objectValue)
     const out: Record<string, unknown> = {}
     for (const [key, entryValue] of entries) {
-      out[key] = isSensitiveObjectKey(key) ? REDACTED : sanitizeUnknown(entryValue, depth + 1, seen)
+      out[key] = isSensitiveObjectKey(key) ? REDACTED : sanitizeUnknown(entryValue, depth + 1, seen, sanitizeText)
     }
 
     return out
   }
 
-  return sanitizeLogText(String(value))
+  return sanitizeText(String(value))
 }
 
 const sanitizeLogValue = (value: unknown): unknown => {
@@ -258,3 +261,7 @@ export const sanitizeLogMetadata = (metadata: LogMetadata): LogMetadata => {
   }
   return {}
 }
+
+/** Redact saved diagnostics without discarding their line and paragraph boundaries. */
+export const sanitizeArtifactMetadata = (metadata: LogMetadata): LogMetadata =>
+  sanitizeUnknown(metadata, 0, new WeakSet<object>(), sanitizeArtifactText) as LogMetadata

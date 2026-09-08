@@ -1,6 +1,7 @@
 import type { Step3Metadata } from '~/types'
 
 export type NormalizedLlmUsage = {
+  cachedInputTokenCount?: number | undefined
   inputTokenCount?: number | undefined
   outputTokenCount?: number | undefined
   totalTokenCount?: number | undefined

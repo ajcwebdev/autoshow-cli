@@ -1,3 +1,4 @@
+import { cartesiaTtsRequestControls, cartesiaTtsVoiceField } from '../tts-services/cartesia/cartesia-tts-request'
 import type {
   AttemptTurn,
   ProtectedAssetRef,
@@ -16,7 +17,7 @@ import {
 import { UsageError } from '~/utils/error-handler'
 import { resolveTtsTargetInvocationControls } from '../tts-targets/tts-invocation-controls'
 import { ELEVENLABS_TTS_OUTPUT_FORMAT } from '../tts-services/tts-elevenlabs/elevenlabs-utils'
-import { INWORLD_TTS_SERIALIZER_VERSION } from '../tts-services/inworld/inworld-tts-request'
+import { INWORLD_TTS_SERIALIZER_VERSION, inworldTtsRequestControls } from '../tts-services/inworld/inworld-tts-request'
 import { SCHEMA_VERSION } from './attempt-shared'
 
 export type ProviderSerializerDescriptor = Readonly<{
@@ -53,17 +54,14 @@ const controlReader = (effectiveControls: Readonly<Record<string, unknown>>): Co
 
 const buildOpenAiSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'openai.tts.phase-0-v1', controls: { responseFormat: 'wav', ...(controls.string('instructions') ? { instructions: controls.string('instructions') } : {}), ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}) } })
 const buildGrokSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'grok.tts.phase-0-v1', controls: { language: controls.string('language') ?? 'auto', textNormalization: controls.boolean('textNormalization') === true, outputFormat: { codec: 'wav', sample_rate: 24000 } } })
-const buildCartesiaSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'cartesia.tts.phase-0-v1', controls: { ...(controls.string('language') ? { language: controls.string('language') } : {}), outputFormat: { container: 'wav', encoding: 'pcm_s16le', sample_rate: 24000 }, version: '2026-03-01' } })
+const buildCartesiaSerializer: SerializerBuilder = ({ target, controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'cartesia.tts.phase-0-v1', controls: cartesiaTtsRequestControls(target.model, controls.string('language')) })
 const buildSpeechifySerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'speechify.tts.phase-0-v1', controls: { audioFormat: 'wav', ...(controls.string('language') ? { language: controls.string('language') } : {}) } })
 const buildMistralSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'mistral.tts.phase-0-v1', controls: { stream: false, responseFormat: controls.string('responseFormat') ?? 'wav' } })
 const buildHumeSerializer: SerializerBuilder = ({ target, strategy, controls }) => strategy === 'native-utterances'
   ? { endpointKind: 'native-utterance-synthesis', serializerVersion: 'hume.native-utterances.phase-3-v1', controls: { version: '2', format: { type: 'mp3' }, numGenerations: 1, includeTimestampTypes: ['word', 'phoneme'] } }
   : { endpointKind: 'speech-synthesis', serializerVersion: 'hume.tts.phase-0-v1', controls: { version: target.model === 'octave-1' ? '1' : '2', format: { type: 'mp3' }, numGenerations: 1, ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}), ...(controls.number('trailingSilence') !== undefined ? { trailingSilence: controls.number('trailingSilence') } : {}), ...(controls.string('description') ? { description: controls.string('description') } : {}) } }
 
-const buildInworldSerializer: SerializerBuilder = ({ controls }) => {
-  const steeringPrompt = controls.string('steeringPrompt')
-  return { endpointKind: 'realtime-tts', serializerVersion: INWORLD_TTS_SERIALIZER_VERSION, controls: { format: 'wav', timestampType: 'WORD', audioConfig: { audioEncoding: 'WAV', sampleRateHertz: 48000 }, ...(steeringPrompt ? { steeringPrompt } : {}) } }
-}
+const buildInworldSerializer: SerializerBuilder = ({ target, controls }) => ({ endpointKind: 'realtime-tts', serializerVersion: INWORLD_TTS_SERIALIZER_VERSION, controls: inworldTtsRequestControls(target.model, controls.string('steeringPrompt')) })
 
 const buildElevenLabsSerializer: SerializerBuilder = ({ strategy, controls }) => {
   if (strategy === 'native-dialogue') return {
@@ -177,7 +175,7 @@ export const providerSerializerVoiceField = (
   switch (target.service) {
     case 'openai': return 'voice'
     case 'grok': return 'voice_id'
-    case 'cartesia': return 'voice.id'
+    case 'cartesia': return cartesiaTtsVoiceField(target.model)
     case 'hume': return strategy === 'native-utterances' ? 'utterances[].voice.id' : 'utterances[].voice'
     case 'speechify': return 'voice_id'
     case 'elevenlabs': return strategy === 'native-dialogue' ? 'inputs[].voice_id' : 'path.voice_id'

@@ -139,6 +139,7 @@ export const runWriteCommand = async (
 
     const suiteCost = await reportSuitePriceEstimate('write', files, effectiveOptions)
     if (effectiveOptions.price) {
+      l.report.price({ steps: [], totalEstimatedCost: suiteCost })
       if (projectDefaults) {
         l.report.expectedOutput('./output/<timestamp>_text/', expectedWriteArtifactFiles(effectiveOptions))
       }

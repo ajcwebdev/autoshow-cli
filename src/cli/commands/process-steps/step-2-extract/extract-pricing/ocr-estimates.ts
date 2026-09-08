@@ -152,11 +152,17 @@ const resolveExtractInputPageCountUncached = async (input: string): Promise<numb
 
 export const estimateMistralOcrCost = async (
   modelRaw: string,
-  input: string
+  input: string,
+  options: HostedOcrEstimateOptions & { annotated?: boolean } = {}
 ): Promise<{ provider: 'mistral', model: string, pageCount: number, costPer1kPagesCents: number, totalCost: number }> => {
   const model = validateMistralOcrModel(modelRaw)
   const pricing = getExtractPricing('mistral', model)
-  const costPer1kPagesCents = pricing.costPer1kPagesCents ?? 200
+  const costPer1kPagesCents = options.annotated
+    ? pricing.costPer1kAnnotatedPagesCents
+    : pricing.costPer1kPagesCents ?? 200
+  if (costPer1kPagesCents === undefined) {
+    throw ValidationError(`Annotated OCR pricing is not configured for ${model}`, { stage: 'ocr:pricing' })
+  }
   const pageCount = await resolveExtractInputPageCountForPricing(input)
 
   return {

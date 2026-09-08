@@ -62,7 +62,7 @@ The provider-by-provider entries below preserve the 2026-08-19 refresh record. O
 **Provider 10: Inworld**
 
 - **Provider:** Inworld
-- **2026 decision and active implementation:** Added `realtime-tts-2` ($25/1M chars, API ID `inworld-tts-2`). Removed legacy 1.5 Max/Mini and Flash variants.
+- **2026 decision and active implementation:** Added `realtime-tts-2` ($25/1M chars, API ID `inworld-tts-2`). Legacy 1.5 Max/Mini remain removed. Step 6 restores `realtime-tts-2-flash` with explicit capability validation ($15/1M chars, API ID `inworld-tts-2-flash`).
 
 **Provider 11: DeepInfra**
 
@@ -81,7 +81,7 @@ The provider-by-provider entries below preserve the 2026-08-19 refresh record. O
 
 ### Refused / do not reimplement
 
-These seven selectors are permanently retired. Direct selection fails with replacement guidance.
+These six selectors are retired. Direct selection fails with replacement guidance.
 
 **Refused selector 1: `elevenlabs/eleven_multilingual_v2`**
 
@@ -95,31 +95,25 @@ These seven selectors are permanently retired. Direct selection fails with repla
 - **Replacement:** `eleven_v3`
 - **Why not come back:** Latency sibling of retired generation
 
-**Refused selector 3: `inworld/realtime-tts-2-flash`**
-
-- **Refused selector:** `inworld/realtime-tts-2-flash`
-- **Replacement:** `realtime-tts-2`
-- **Why not come back:** Latency sibling rejecting `--tts-instructions`
-
-**Refused selector 4: `speechify/simba-3.0`**
+**Refused selector 3: `speechify/simba-3.0`**
 
 - **Refused selector:** `speechify/simba-3.0`
 - **Replacement:** `simba-3.2`
 - **Why not come back:** Superseded by current Speechify default
 
-**Refused selector 5: `openai/tts-1`**
+**Refused selector 4: `openai/tts-1`**
 
 - **Refused selector:** `openai/tts-1`
 - **Replacement:** `gpt-4o-mini-tts-2025-12-15`
 - **Why not come back:** Classic model rejecting instruction steering
 
-**Refused selector 6: `openai/tts-1-hd`**
+**Refused selector 5: `openai/tts-1-hd`**
 
 - **Refused selector:** `openai/tts-1-hd`
 - **Replacement:** `gpt-4o-mini-tts-2025-12-15`
 - **Why not come back:** Classic model rejecting instruction steering
 
-**Refused selector 7: `groq/canopylabs/orpheus-arabic-saudi`**
+**Refused selector 6: `groq/canopylabs/orpheus-arabic-saudi`**
 
 - **Refused selector:** `groq/canopylabs/orpheus-arabic-saudi`
 - **Replacement:** `canopylabs/orpheus-v1-english`
@@ -127,7 +121,7 @@ These seven selectors are permanently retired. Direct selection fails with repla
 
 ## Watches and deferrals
 
-Cartesia Sonic 3.6 is documented as a beta on the moving alias `sonic-preview` (44 languages, locale codes such as `en-GB`, Odia/Urdu, improved Hinglish). AutoShow stays on the fixed snapshot `sonic-3.5-2026-05-04`. Do not register `sonic-preview`. Add 3.6 only when Cartesia publishes a dated snapshot ID comparable to `sonic-3.5-2026-05-04`.
+Cartesia now publishes stable `sonic-3.6-2026-08-27`, added alongside the existing 3.5 snapshot. The moving `sonic-preview` alias remains excluded.
 
 Grok TTS speed, output-format, `replace`, and timestamp controls remain deferred; the 2026-08-16 xAI Voice snapshot is from `bun autoshow links --grok tts` (`https://docs.x.ai/developers/model-capabilities/audio/text-to-speech.md`).
 
@@ -135,12 +129,12 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model
 
 ## API / Type Impact
 
-- The active hosted TTS surface contains exactly the supported selectors for 11 providers.
+- The active hosted TTS surface contains the supported selectors for eight providers.
 - Removed selectors are excluded from active CLI help, configuration defaults, and expansion lists, while remaining parseable in historical manifests and pricing readers.
 
 ## Follow-up Actions
 
-- [ ] Watch Cartesia for a dated Sonic 3.6 snapshot; do not register `sonic-preview` — Deferred until a fixed 3.6 ID exists
+- [x] Added the dated Sonic 3.6 snapshot on 2026-09-08; `sonic-preview` remains excluded.
 
 ## Test Plan
 
@@ -160,3 +154,15 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model
 - TTS provider adapters: `src/cli/commands/process-steps/step-4-tts/`
 - Resume handlers: `src/cli/commands/setup-and-utilities/resume/`
 - 2026-08-16 xAI Voice snapshot: `bun autoshow links --grok tts` (`https://docs.x.ai/developers/model-capabilities/audio/text-to-speech.md`)
+
+## P1 TTS additions — 2026-09-08
+
+Select `--provider cartesia=sonic-3.6-2026-08-27` or `--provider inworld=realtime-tts-2-flash`. Existing bare-provider defaults remain Sonic 3.5 and Realtime TTS 2; all-model expansion includes both additions. Flash maps to API ID `inworld-tts-2-flash`. Inworld's public Flash addition supersedes the previous local retirement decision; it rejects `--tts-instructions` and per-turn steering because the API documents instructions only for TTS 2. Voice design still requires the existing creation model.
+
+Sonic 3.6 uses `/tts/bytes` with API version `2026-08-14`, a voice ID string and WAV PCM s16le at 24 kHz. Its 44 base language codes include Odia (`or`) and Urdu (`ur`); `--tts-language` accepts these base codes, while locale/accent controls remain unexposed. Existing professional clones are compatible; voice access remains account-dependent. The older snapshot retains its original version and voice object. AutoShow keeps its conservative 2,000-character Cartesia chunk budget; the checked Bytes contract does not specify a numeric input ceiling. [Model and voice compatibility](https://docs.cartesia.ai/build-with-cartesia/tts-models/latest), [Bytes contract](https://docs.cartesia.ai/api-reference/tts/bytes).
+
+Cartesia's estimate is an explicit Scale subscription allocation: $299 / 8,000,000 credits × approximately one credit per character = $37.375/M characters (3.7375 cents/1K). This assumes full credit utilization; it is not a universal marginal or overage tariff. Preprocessing, unused credits, other plans, cloning and enterprise terms can change the invoice. [Credit metering](https://docs.cartesia.ai/pricing), [Subscription plans](https://www.cartesia.ai/pricing).
+
+Flash uses the existing REST endpoint, single stock/custom voice ID, WAV at 48 kHz, word timestamp request and 2,000-character input limit. Language is detected automatically; both Inworld models advertise 200+ languages/locales. The default voice alias still resolves to Dennis. Other host audio encodings are not exposed by this synthesis adapter. Missing alignment remains explicitly unavailable. Flash estimates use the $15/M-character on-demand rate, excluding subscription discounts. [Models](https://docs.inworld.ai/tts/tts-models), [REST parameters](https://docs.inworld.ai/api-reference/ttsAPI/texttospeech/synthesize-speech), [Pricing](https://inworld.ai/pricing).
+
+New-model request controls include model identity in paid segment hashes; the request body and canonical render target also identify the model. Legacy request controls and serializer versions remain stable for retained work. Completed audio and ambiguous-slot reconciliation continue through the existing resume pipeline. Verification uses synthetic audio and mocked transport; account access, latency and speech quality have not been tested through paid inference.

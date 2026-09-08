@@ -1,7 +1,7 @@
 import { writeFile } from '~/utils/cli-utils'
 import type { OcrProviderFailureSummary } from '~/types'
 import { AppValidationError, collectErrorChain, extractErrorMetadata, serializeDiagnosticError } from '~/utils/error-handler'
-import { sanitizeLogText } from '~/utils/app-logger/redaction'
+import { sanitizeArtifactText, sanitizeLogText } from '~/utils/app-logger/redaction'
 
 export class OcrStructuredResponseError extends AppValidationError {
   readonly rawResponse: string
@@ -30,7 +30,7 @@ export const writeInvalidOcrStructuredResponse = async (
     return undefined
   }
 
-  await writeFile(`${providerDir}/invalid-structured-response.txt`, sanitizeLogText(structuredError.rawResponse))
+  await writeFile(`${providerDir}/invalid-structured-response.txt`, sanitizeArtifactText(structuredError.rawResponse))
   await writeFile(`${providerDir}/invalid-structured-response.json`, JSON.stringify({
     error: sanitizeLogText(structuredError.message),
     rawResponseFile: 'invalid-structured-response.txt'

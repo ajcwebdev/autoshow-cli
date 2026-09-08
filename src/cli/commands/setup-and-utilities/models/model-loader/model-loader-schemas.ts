@@ -139,6 +139,7 @@ const ExtractModelSchema = v.pipe(
     description: v.string(),
     ...PricingProvenanceFields,
     costPer1kPagesCents: v.optional(v.number(), undefined),
+    costPer1kAnnotatedPagesCents: v.optional(v.number(), undefined),
     costPerMInputTokensCents: v.optional(v.number(), undefined),
     costPerMCachedInputTokensCents: v.optional(v.number(), undefined),
     costPerMOutputTokensCents: v.optional(v.number(), undefined),

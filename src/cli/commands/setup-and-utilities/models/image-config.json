@@ -83,6 +83,20 @@
           "costMultiplier": 1,
           "msPerImage": 6080
         }
+      },
+      "grok-imagine-image-2.0": {
+        "referenceImages": { "supported": true, "maxInputs": 5 },
+        "description": "Grok Imagine Image 2.0 — generation and editing with explicit low/medium quality",
+        "pricingSourceUrl": "https://docs.x.ai/developers/models/grok-imagine-image-2.0",
+        "pricingCheckedAt": "2026-09-08",
+        "pricingCurrency": "USD",
+        "pricingTier": "Standard pay-as-you-go",
+        "pricingNotes": "Output prices: low 1K/2K = 4/6 cents; medium 1K/2K = 6/8 cents. Input images add 1 cent each per request. Local defaults pin low for generation, medium for editing, and 1K resolution. Latency inherits the older model provisionally; no paid calibration.",
+        "costPerImageCents": 4,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerImage": 6080
+        }
       }
     }
   },

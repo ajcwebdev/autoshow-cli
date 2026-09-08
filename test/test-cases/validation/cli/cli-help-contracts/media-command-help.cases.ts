@@ -177,6 +177,8 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(imageResult.stdout).toContain('wan-video/wan-2.7-image')
     expect(videoResult.stdout).toContain('ltx')
     expect(videoResult.stdout).toContain('ltx-2-3-fast')
+    expect(videoResult.stdout).toContain('LTX 2.5')
+    expect(videoResult.stdout).toContain('1440p')
     expect(videoResult.stdout).not.toContain('wan-video/wan-2.7-t2v')
     expect(imageResult.stdout).toContain('--provider-concurrency')
     expect(imageResult.stdout).not.toContain('--local-concurrency')

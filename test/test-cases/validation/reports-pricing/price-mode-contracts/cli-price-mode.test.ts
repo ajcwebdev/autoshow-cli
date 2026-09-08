@@ -9,37 +9,37 @@ import { makeTempDir } from '../../../../test-utils/temp-dirs'
 const priceCases: Array<{ label: string; args: string[]; expected: string | string[]; env?: Record<string, string | undefined> }> = [
   {
     label: 'metadata',
-    args: ['metadata', 'input/examples/document/1-document.pdf', '--price'],
-    expected: 'Total estimated cost'
+    args: ['metadata', 'input/examples/document/1-document.pdf', '--price', '--json'],
+    expected: 'totalEstimatedCostCents'
   },
   {
     label: 'write',
-    args: ['write', STABLE_TTS_MD_PATH, '--llm', 'openai=gpt-5.4-nano', '--price'],
-    expected: 'Expected files'
+    args: ['write', STABLE_TTS_MD_PATH, '--llm', 'openai=gpt-5.4-nano', '--price', '--json'],
+    expected: '"files"'
   },
   {
     label: 'extract',
-    args: ['extract', LOCAL_EXAMPLE_AUDIO_PATH, '--provider', 'whisper=tiny', '--price'],
-    expected: 'Total estimated cost'
+    args: ['extract', LOCAL_EXAMPLE_AUDIO_PATH, '--provider', 'whisper=tiny', '--price', '--json'],
+    expected: 'totalEstimatedCostCents'
   },
   {
     label: 'tts',
-    args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--price'],
+    args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--price', '--json'],
     expected: 'speech'
   },
   {
     label: 'image',
-    args: ['image', 'a sunset over a lake', '--provider', 'openai=gpt-image-2', '--price'],
+    args: ['image', 'a sunset over a lake', '--provider', 'openai=gpt-image-2', '--price', '--json'],
     expected: 'generated-image'
   },
   {
     label: 'video',
-    args: ['video', 'a sunset over a lake', '--provider', 'gemini=veo-3.1-fast-generate-preview', '--price'],
+    args: ['video', 'a sunset over a lake', '--provider', 'gemini=veo-3.1-fast-generate-preview', '--price', '--json'],
     expected: 'video'
   },
   {
     label: 'music',
-    args: ['music', 'an ambient piano song', '--provider', 'minimax=music-3.0', '--price'],
+    args: ['music', 'an ambient piano song', '--provider', 'minimax=music-3.0', '--price', '--json'],
     expected: 'music'
   }
 ]
@@ -69,7 +69,7 @@ describe('price mode contracts', () => {
       'elevenlabs=eleven_v3',
       '--tts-ref-audio',
       'input/examples/audio/anthony-voice.mp3',
-      '--price'
+      '--price', '--json'
     ])
 
     expect(result.exitCode).toBe(2)
@@ -85,14 +85,14 @@ describe('price mode contracts', () => {
         'input/examples/document/3-document.pdf',
         '--provider',
         'kimi=kimi-k2.6',
-        '--price'
+        '--price', '--json'
       ])
 
       expect(result.exitCode).toBe(0)
       expect(result.outputDir).toBeNull()
       const output = `${result.stdout}\n${result.stderr}`
-      expect(output).toContain('3 pages')
-      expect(output).not.toContain('1 pages')
+      expect(output).toContain('"pages":3')
+      expect(output).not.toContain('"pages":1')
     })
 
   test('price JSON result omits estimate note fields', async () => {
@@ -104,8 +104,7 @@ describe('price mode contracts', () => {
         'openai=gpt-5.5',
         '--llm',
         'groq=openai/gpt-oss-20b',
-        '--price',
-        '--json'
+        '--price', '--json'
       ])
 
       expect(result.exitCode).toBe(0)
@@ -141,7 +140,7 @@ describe('price mode contracts', () => {
           '2',
           '--output-dir',
           outputDir,
-          '--price'
+          '--price', '--json'
         ], {
           env: { XAI_API_KEY: '' }
         })
@@ -151,18 +150,18 @@ describe('price mode contracts', () => {
         expect(existsSync(outputDir)).toBe(false)
 
         const output = `${result.stdout}\n${result.stderr}`
-        expect(output).toContain('TTS Price Item')
+        expect(output).toContain('Estimating TTS input')
         expect(output).toContain('01-first.md')
         expect(output).toContain('02-second.txt')
         expect(output).not.toContain('ignore.json')
         expect(output).toContain('grok-tts')
-        expect(output).toContain('TTS Batch Estimate')
-        expect(output).toContain('batch concurrency')
-        expect(output).toContain('tts chunk concurrency')
-        expect(output).toContain('total estimated processing time')
-        expect(output).toContain('estimated wall time')
-        expect(output).toContain('total estimated cost')
-        expect(output).toContain('Suite Cost Summary')
+        expect(output).toContain('TTS batch estimate')
+        expect(output).toContain('batchConcurrency')
+        expect(output).toContain('ttsChunkConcurrency')
+        expect(output).toContain('totalEstimatedProcessingTimeMs')
+        expect(output).toContain('estimatedWallTimeMs')
+        expect(output).toContain('totalEstimatedCost')
+        expect(output).toContain('Suite estimate:')
         expect(output).toContain('2 TTS inputs')
       } finally {
         await rm(dir, { recursive: true, force: true })
@@ -175,13 +174,13 @@ describe('price mode contracts', () => {
         'music',
         '--audio',
         'input/examples/lyrics/01-example-song.mp3',
-        '--price'
+        '--price', '--json'
       ])
 
       expect(result.exitCode).toBe(0)
       expect(result.outputDir).toBeNull()
       const output = `${result.stdout}\n${result.stderr}`
-      expect(output).toContain('Total estimated cost: free')
+      expect(output).toContain('"totalEstimatedCostCents":0')
       expect(output).toContain('01-example-song.mp4')
     })
 })

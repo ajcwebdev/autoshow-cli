@@ -16,7 +16,8 @@ export const SUPPORTED_OPENAI_IMAGE_MODELS = [
 export const validateOpenAIImageModel = createRetiringModelValidator<OpenAIImageModel>('image', 'openai', SUPPORTED_OPENAI_IMAGE_MODELS, 'openai-image')
 
 export const SUPPORTED_GROK_IMAGE_MODELS = [
-  'grok-imagine-image-quality'
+  'grok-imagine-image-quality',
+  'grok-imagine-image-2.0'
 ] as const satisfies readonly string[]
 
 export const validateGrokImageModel = createRetiringModelValidator<GrokImageModel>('image', 'grok', SUPPORTED_GROK_IMAGE_MODELS, 'grok-image')

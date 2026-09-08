@@ -54,6 +54,19 @@
           "costMultiplier": 1,
           "msPerSecond": 906
         }
+      },
+      "lyria-3.5": {
+        "description": "Lyria 3.5 — public preview full-song generation through Gemini Interactions",
+        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricingCheckedAt": "2026-09-08",
+        "pricingCurrency": "USD",
+        "pricingTier": "Gemini API paid Standard Lyria pricing",
+        "pricingNotes": "Paid Standard price is $0.08 per song request, independent of prompted duration, including generated lyrics. Free tier, discounts, taxes and credits are excluded. Duration and latency estimates are provisional; no paid calibration was performed.",
+        "costPerTrackCents": 8,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 906
+        }
       }
     }
   }

@@ -48,6 +48,15 @@ const resolveCreateRetryOptions = (
   ? { classifier: classifierOrOptions }
   : classifierOrOptions ?? {}
 
+const withProviderRetryAfter = (classifier: RetryClassifier): RetryClassifier => (error) => {
+  const decision = classifier(error)
+  if (!decision.shouldRetry) return decision
+  return {
+    ...decision,
+    delayMs: Math.max(decision.delayMs, parseRetryAfterMs(getErrorHeaders(error)) ?? 0)
+  }
+}
+
 export const withOcrCreateRetry = async <T>(
   operationName: string,
   operation: (signal?: AbortSignal) => Promise<T>,
@@ -61,7 +70,7 @@ export const withOcrCreateRetry = async <T>(
     ...(options.abortSignal ? { abortSignal: options.abortSignal } : {}),
     onRetryAttempt: (error, decision) => notifyRetryablePressure(options.onRetryable, error, decision),
     retryHookCanExtendAttempts: options.onRetryable?.managesHostedRateLimitRecovery === true
-  }, operation, options.classifier ?? classifyOcrCreateRetry)
+  }, operation, withProviderRetryAfter(options.classifier ?? classifyOcrCreateRetry))
 }
 
 export const runResponseReasks = async <TResponse, TResult>(options: {
@@ -129,4 +138,4 @@ export const withOcrPageRequestRetry = async <T>(
   ...(options.abortSignal ? { abortSignal: options.abortSignal } : {}),
   onRetryAttempt: (error, decision) => notifyRetryablePressure(options.onRetryable, error, decision),
   retryHookCanExtendAttempts: options.onRetryable?.managesHostedRateLimitRecovery === true
-}, operation, options.classifier ?? classifyOcrCreateRetry)
+}, operation, withProviderRetryAfter(options.classifier ?? classifyOcrCreateRetry))

@@ -32,7 +32,7 @@ describe('option resolution contracts', () => {
     })
 
   test('Together write model validator accepts public selectors and rejects raw provider IDs', () => {
-      const expectedAllowed = 'Allowed values: kimi-k2.6, glm-5.1'
+      const expectedAllowed = 'Allowed values: kimi-k2.6, glm-5.1, kimi-k3, glm-5.3, glm-5.3-flash'
 
       expect(validateTogetherModel('kimi-k2.6')).toBe('kimi-k2.6')
       expect(validateTogetherModel('glm-5.1')).toBe('glm-5.1')
@@ -70,7 +70,7 @@ describe('option resolution contracts', () => {
       expect(validateKimiOcrModel('kimi-k3')).toBe('kimi-k3')
 
       expect(() => validateMistralOcrModel('mistral-ocr-2405')).toThrow('Invalid model "mistral-ocr-2405" for --provider/--ocr mistral[=model]')
-      expect(() => validateMistralOcrModel('mistral-ocr-latest')).toThrow('Invalid model "mistral-ocr-latest" for --provider/--ocr mistral[=model]. Allowed values: mistral-ocr-2512, mistral-ocr-4-0')
+      expect(() => validateMistralOcrModel('mistral-ocr-latest')).toThrow('Invalid model "mistral-ocr-latest" for --provider/--ocr mistral[=model]. Allowed values: mistral-ocr-2512, mistral-ocr-4-0, mistral-ocr-4-1')
       expect(() => validateAnthropicOcrModel('claude-mythos-5')).toThrow('Invalid model "claude-mythos-5" for --provider/--ocr anthropic[=model]')
       expect(() => validateOpenAIOcrModel('gpt-5.6')).toThrow('Invalid model "gpt-5.6" for --provider/--ocr openai[=model]')
       expect(() => validateGrokOcrModel('grok-4.20-0309-reasoning')).toThrow('Invalid model "grok-4.20-0309-reasoning" for --provider/--ocr grok[=model]')

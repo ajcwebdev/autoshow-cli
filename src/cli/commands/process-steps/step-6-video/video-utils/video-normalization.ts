@@ -181,12 +181,16 @@ export const normalizeGrokVideoAspectRatio = (aspectRatio: string | undefined): 
   return aspectRatio && allowed.has(aspectRatio) ? aspectRatio : '16:9'
 }
 
+export const isLtx25Model = (model: LtxVideoModel): boolean => model === 'ltx-2-5-fast' || model === 'ltx-2-5-pro'
+
 const isLtxFastModel = (model: LtxVideoModel): boolean => model.endsWith('-fast')
 
-export const normalizeLtxVideoResolution = (resolution: string | undefined): '1080p' | '4k' => {
+export const normalizeLtxVideoResolution = (resolution: string | undefined, model?: LtxVideoModel): '720p' | '1080p' | '1440p' | '4k' => {
   if (resolution === undefined || resolution === '') return '1080p'
   if (resolution === '1080p' || resolution === '4k') return resolution
-  throw UsageError(`Invalid --resolution value "${resolution}" for LTX. Expected ${LTX_RESOLUTIONS.join(' or ')}.`)
+  if (model && isLtx25Model(model) && (resolution === '720p' || resolution === '1440p')) return resolution
+  const allowed = model && isLtx25Model(model) ? LTX_25_RESOLUTIONS : LTX_RESOLUTIONS
+  throw UsageError(`Invalid --resolution value "${resolution}" for LTX. Expected ${allowed.join(' or ')}.`)
 }
 
 export const normalizeLtxVideoAspectRatio = (model: LtxVideoModel, aspectRatio: string | undefined): '16:9' | '9:16' => {
@@ -201,8 +205,10 @@ export const normalizeLtxVideoSize = (
   resolution: string | undefined,
   aspectRatio: string | undefined
 ): string => {
-  const normalizedResolution = normalizeLtxVideoResolution(resolution)
+  const normalizedResolution = normalizeLtxVideoResolution(resolution, model)
   const normalizedAspectRatio = normalizeLtxVideoAspectRatio(model, aspectRatio)
+  if (normalizedResolution === '720p') return normalizedAspectRatio === '9:16' ? '720x1280' : '1280x720'
+  if (normalizedResolution === '1440p') return normalizedAspectRatio === '9:16' ? '1440x2560' : '2560x1440'
   if (normalizedResolution === '4k') return normalizedAspectRatio === '9:16' ? '2160x3840' : '3840x2160'
   return normalizedAspectRatio === '9:16' ? '1080x1920' : '1920x1080'
 }
@@ -232,6 +238,7 @@ export const normalizeLumaVideoAspectRatio = (aspectRatio: string | undefined): 
 export const LTX_DURATION_SECONDS = [6, 8, 10] as const
 export const LTX_FAST_1080P_DURATION_SECONDS = [6, 8, 10, 12, 14, 16, 18, 20] as const
 const LTX_EXTEND_DURATION_RANGE = [2, 20] as const
+export const LTX_25_RESOLUTIONS = ['720p', '1080p', '1440p', '4k'] as const
 export const LTX_RESOLUTIONS = ['1080p', '4k'] as const
 export const LTX_ASPECT_RATIOS = ['16:9', '9:16'] as const
 
@@ -241,6 +248,19 @@ export const normalizeLtxVideoDuration = (
   duration: number | undefined,
   mode?: string | undefined
 ): LtxVideoDurationSeconds => {
+  if (isLtx25Model(model)) {
+    if (mode !== undefined && !['text', 'image-to-video', 'interpolate'].includes(mode)) {
+      throw UsageError(`--mode ${mode} is not supported by ltx/${model}.`)
+    }
+    // All CLI LTX requests explicitly use 24 fps. Higher frame rates and automatic duration are not exposed.
+    const longClip = model === 'ltx-2-5-fast' && ['1280x720', '720x1280', '1920x1080', '1080x1920'].includes(size)
+    const allowed: readonly number[] = longClip ? LTX_FAST_1080P_DURATION_SECONDS : LTX_DURATION_SECONDS
+    const requested = duration === undefined ? 8 : duration
+    if (!allowed.includes(requested)) {
+      throw UsageError(`Invalid --duration value "${duration}" for LTX ${model} at ${size}/24 fps. Expected ${allowed.join(', ')}.`)
+    }
+    return requested as LtxVideoDurationSeconds
+  }
   if (mode === 'extend') {
     const [min, max] = LTX_EXTEND_DURATION_RANGE
     if (typeof duration !== 'number' || !Number.isFinite(duration)) return 8

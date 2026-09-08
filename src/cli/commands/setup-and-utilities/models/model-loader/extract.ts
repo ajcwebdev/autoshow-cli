@@ -8,6 +8,7 @@ export const getExtractPricing = (
   model: string
 ): {
   costPer1kPagesCents?: number
+  costPer1kAnnotatedPagesCents?: number
   inputCostPer1MCents?: number
   cachedInputCostPer1MCents?: number
   outputCostPer1MCents?: number
@@ -25,6 +26,9 @@ export const getExtractPricing = (
     ?? getRetiredModelRate('extract', service, model)
   if (!extractModel) return {}
   return {
+    ...(extractModel.costPer1kAnnotatedPagesCents !== undefined
+      ? { costPer1kAnnotatedPagesCents: extractModel.costPer1kAnnotatedPagesCents }
+      : {}),
     ...(extractModel.costPer1kPagesCents !== undefined
       ? { costPer1kPagesCents: extractModel.costPer1kPagesCents }
       : {}),

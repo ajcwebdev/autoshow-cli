@@ -63,7 +63,8 @@ export const parseJsonLines = (text: string): unknown[] =>
     .filter(line => line.startsWith('{') && line.endsWith('}'))
     .flatMap((line) => {
       try {
-        return [JSON.parse(line) as unknown]
+        const value: unknown = JSON.parse(line)
+        return [isRecord(value) && value['type'] === 'result' && value['schemaVersion'] === 1 ? value['data'] : value]
       } catch {
         return []
       }

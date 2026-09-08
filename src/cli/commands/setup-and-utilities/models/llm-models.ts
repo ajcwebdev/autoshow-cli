@@ -19,6 +19,7 @@ export const SUPPORTED_GROQ_MODELS = [
 
 export const SUPPORTED_GEMINI_MODELS = [
   'gemini-3.1-pro-preview',
+  'gemini-3.8-flash',
   'gemini-3.7-flash',
   'gemini-3.6-flash',
   'gemini-3.5-flash',
@@ -46,7 +47,9 @@ export const SUPPORTED_GROK_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_GLM_MODELS = [
-  'glm-5.1'
+  'glm-5.1',
+  'glm-5.3',
+  'glm-5.3-flash'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_KIMI_MODELS = [
@@ -56,7 +59,10 @@ export const SUPPORTED_KIMI_MODELS = [
 
 export const SUPPORTED_TOGETHER_MODELS = [
   'kimi-k2.6',
-  'glm-5.1'
+  'glm-5.1',
+  'kimi-k3',
+  'glm-5.3',
+  'glm-5.3-flash'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_CEREBRAS_MODELS = [

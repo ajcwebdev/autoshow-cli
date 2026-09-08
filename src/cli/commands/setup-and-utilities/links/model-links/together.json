@@ -14,7 +14,10 @@
       "https://www.together.ai/models/openai-whisper-large-v3",
       "https://www.together.ai/models/parakeet-tdt-0-6b-v3",
       "https://raw.githubusercontent.com/togethercomputer/skills/refs/heads/main/skills/together-audio/references/stt-models.md",
-      "https://docs.together.ai/docs/dedicated-endpoints/models.md"
+      "https://docs.together.ai/docs/dedicated-endpoints/models.md",
+      "https://docs.together.ai/docs/kimi-k3-quickstart",
+      "https://www.together.ai/models/glm-5-3",
+      "https://www.together.ai/models/glm-5-3-flash"
     ],
     "STT": [
       "https://docs.together.ai/reference/audio-transcriptions",

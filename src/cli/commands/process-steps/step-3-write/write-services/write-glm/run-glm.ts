@@ -24,7 +24,12 @@ export const runGlmModel = async (
     customizeRequestBody: (requestBody) => {
       requestBody['stream'] = false
       requestBody['max_tokens'] = 16000
-      if (policy.effective === 'disabled') {
+      if (model === 'glm-5.3' || model === 'glm-5.3-flash') {
+        requestBody['thinking'] = { type: 'enabled' }
+        if (policy.effective === 'low' || policy.effective === 'high' || policy.effective === 'max') {
+          requestBody['reasoning_effort'] = policy.effective
+        }
+      } else if (policy.effective === 'disabled') {
         requestBody['thinking'] = { type: 'disabled' }
       }
     },

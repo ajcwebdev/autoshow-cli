@@ -138,7 +138,7 @@ MiniMax ignores `--duration`. When `--lyrics-file` is omitted, generated lyrics 
 | Option              | Value                                                                                |
 | ------------------- | ------------------------------------------------------------------------------------ |
 | Selector            | `--provider gemini[=<model>]`                                                        |
-| Models              | `lyria-3-pro-preview`                                                                |
+| Models              | `lyria-3.5` (public preview), `lyria-3-pro-preview` (default)                                                                |
 | Duration            | `--duration <seconds>` is a prompt hint; `--price` estimates 120s when omitted       |
 | Lyrics/instrumental | `--lyrics-file <path>` or `--instrumental`                                           |
 
@@ -149,6 +149,12 @@ bun autoshow music input/examples/tts/1-tts.md --provider gemini=lyria-3-pro-pre
 ```
 
 `--instrumental` takes precedence over `--lyrics-file` and logs a warning.
+
+`--provider gemini=lyria-3.5` selects the public preview through Gemini Interactions. Bare `--provider gemini` stays on `lyria-3-pro-preview` and its existing GenerateContent route. Both cost $0.08 per song request; lyrics and requested duration do not add a per-minute charge. Lyria 3.5 latency estimates inherit the provisional Pro baseline.
+
+Lyria 3.5 accepts a nonempty text prompt, optional lyrics and instrumental instructions. Duration must be positive and finite; it is included only as a prompt hint, not an exact-length API control. The 120-second fallback is an estimate, not a measured output duration or provider maximum. The API supports text and up to ten images, but this CLI exposes text only; image, audio-reference, video and multi-turn editing inputs are unavailable. Default MP3 output is retained; the API's optional WAV output is unexposed. See the [model specification](https://ai.google.dev/gemini-api/docs/models/lyria-3.5), [music contract](https://ai.google.dev/gemini-api/docs/music-generation) and [pricing](https://ai.google.dev/gemini-api/docs/pricing).
+
+All Interactions model-output blocks are read in order. The first MP3 uses the normal music filename; further audio blocks remain separate `generated-music-gemini-lyria-3.5-part-<n>.mp3` files. Lyrics and JSON song-structure descriptions are preserved verbatim as combined text in `generated-music-gemini-lyria-3.5.txt` and `generatedText` metadata. They are not converted into verified word timings. Sidecar names are model-specific even for single-target runs, are recorded in the artifact map and stay stable during additive resume. Provider errors, incomplete interactions, missing audio and invalid audio payloads fail without automatic redispatch.
 
 ### Lyric-Video Rendering
 
@@ -180,6 +186,7 @@ With `--captions`, output names come from the caption file, not the audio file. 
 
 | Provider                      | Released      | Duration                          | Duration control | Instrumental        | Lyrics                          | Output                     | Pricing                                        | Cost rank |
 | ----------------------------- | ------------- | --------------------------------- | ---------------- | ------------------- | ------------------------------- | -------------------------- | ---------------------------------------------- | --------- |
-| MiniMax `music-3.0`           | ✅ 2026-08-13 | ✅ Up to 5 minutes billed         | ❌ Ignored       | ✅ `--instrumental` | ✅ `--lyrics-file` or generated | ✅ 44.1 kHz / 256 kbps MP3 | $0.15/track (+$0.01 generated lyrics)          | 2/3       |
-| ElevenLabs `music_v2`         | ✅ 2026-05-26 | ✅ 3–600s                         | ✅ `--duration`  | ✅ `--instrumental` | ✅ `--lyrics-file` with sections | ✅ 48 kHz / 192 kbps MP3   | $0.15/min ($0.45 at the 180s default estimate) | 3/3       |
-| Gemini `lyria-3-pro-preview`  | ✅ 2026-03-25 | ⚠️ Default 120s, no published max | ⚠️ Prompt only   | ✅ `--instrumental` | ⚠️ File appended to prompt      | ❌ MP3, rate unpublished   | $0.08/track                                    | 1/3       |
+| Gemini `lyria-3.5` | ⚠️ Public preview, September 2026 | ⚠️ Full song; 120s estimate | ⚠️ Prompt only | ✅ `--instrumental` | ✅ File or generated text/structure | ✅ 44.1 kHz stereo MP3 | $0.08/song request | 1/4 (tie) |
+| MiniMax `music-3.0`           | ✅ 2026-08-13 | ✅ Up to 5 minutes billed         | ❌ Ignored       | ✅ `--instrumental` | ✅ `--lyrics-file` or generated | ✅ 44.1 kHz / 256 kbps MP3 | $0.15/track (+$0.01 generated lyrics)          | 3/4       |
+| ElevenLabs `music_v2`         | ✅ 2026-05-26 | ✅ 3–600s                         | ✅ `--duration`  | ✅ `--instrumental` | ✅ `--lyrics-file` with sections | ✅ 48 kHz / 192 kbps MP3   | $0.15/min ($0.45 at the 180s default estimate) | 4/4       |
+| Gemini `lyria-3-pro-preview`  | ✅ 2026-03-25 | ⚠️ Default 120s, no published max | ⚠️ Prompt only   | ✅ `--instrumental` | ⚠️ File appended to prompt      | ❌ MP3, rate unpublished   | $0.08/track                                    | 1/4 (tie) |

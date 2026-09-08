@@ -1,4 +1,4 @@
-import { beforeAll } from 'bun:test'
+import { beforeAll, test } from 'bun:test'
 import { budgetedTest, E2E_TEST_TIMEOUT_MS } from './budget'
 import {
   runCommand,
@@ -90,10 +90,15 @@ export const getMissingConfiguredEnvVarKeysSync = (
 export const defineBudgetedLiveServiceTest = (
   budgetKey: Parameters<typeof budgetedTest>[0],
   name: string,
-  _envVarKeys: readonly (string | undefined)[],
+  envVarKeys: readonly (string | undefined)[],
   fn: () => void | Promise<void>,
   timeoutMs: number = E2E_TEST_TIMEOUT_MS
 ): void => {
+  // CLI children disable implicit dotenv loading and receive exported credentials only.
+  if (envVarKeys.some(key => key && !process.env[key]?.trim())) {
+    test.skip(name, fn)
+    return
+  }
   budgetedTest(budgetKey, name, fn, timeoutMs)
 }
 

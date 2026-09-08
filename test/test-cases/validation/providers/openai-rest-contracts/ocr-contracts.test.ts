@@ -14,7 +14,7 @@ const CHAT_OCR_OPTIONS = { dpi: 300, password: undefined, outputDir: '', ocrPrep
 const dataUrl = (mime: string, bytes: Uint8Array): string =>
   `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`
 
-const STRUCTURED_OUTPUT_MODELS = ['gpt-5.5', 'gpt-5.4-mini'] as const
+const STRUCTURED_OUTPUT_MODELS = ['gpt-6-astra', 'gpt-5.5', 'gpt-5.4-mini'] as const
 
 describe('OpenAI REST OCR contracts', () => {
   test('OpenAI OCR sends data URLs and returns response usage token metadata', async () => {
@@ -54,7 +54,7 @@ describe('OpenAI REST OCR contracts', () => {
         usage: { input_tokens: 234, output_tokens: 56 }
       }))
 
-      await withOcrDocumentFixture({ slug: 'document', format: 'png', pageCount: 2 }, async ({ path, metadata }) => {
+      await withOcrDocumentFixture({ slug: 'document', format: model === 'gpt-6-astra' ? 'pdf' : 'png', pageCount: 2 }, async ({ path, metadata }) => {
         const result = await runOpenAIOcr(path, metadata, model, OPENAI_BASE)
 
         expect(result.pages).toEqual([

@@ -1,8 +1,9 @@
+import { writeGeminiMusicInteraction } from './gemini-music-interactions'
 import type { GeminiMusicModel, GeminiMusicResponsePart, Step7MusicMetadata } from '~/types'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import * as l from '~/utils/app-logger/app-logger'
-import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
+import { geminiCreateMusicInteraction, geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 export const GEMINI_PRO_DEFAULT_DURATION_SECONDS = 120
 
@@ -100,6 +101,9 @@ const buildGeminiMusicPrompt = async (
     forceInstrumental?: boolean | undefined
   }
 ): Promise<{ prompt: string, lyricsSource: Step7MusicMetadata['lyricsSource'], intendedDurationSeconds: number }> => {
+  if (typeof prompt !== 'string' || !prompt.trim()) {
+    throw ValidationError('Gemini music requires a nonempty text prompt', { stage: 'music:gemini' })
+  }
   const parts = [prompt.trim()]
   const intendedDurationSeconds = resolveIntendedDurationSeconds(options.durationSeconds)
 
@@ -154,13 +158,13 @@ export const runGeminiMusicGen = async (
   logGenStatus('music', 'gemini', options.model, 'started')
 
   const startTime = Date.now()
-  const response = await geminiGenerateContent(apiKey, {
-    model: options.model,
-    contents: geminiPrompt
-  })
-
-  const parts = response.candidates?.flatMap((candidate) => candidate.content?.parts ?? []) ?? []
-  const audioResult = await writeGeminiMusicInlineAudio(parts, musicPath)
+  const audioResult = options.model === 'lyria-3.5'
+    ? await writeGeminiMusicInteraction(await geminiCreateMusicInteraction(apiKey, geminiPrompt), outputDir)
+    : await (async () => {
+      const response = await geminiGenerateContent(apiKey, { model: options.model, contents: geminiPrompt })
+      const parts = response.candidates?.flatMap((candidate) => candidate.content?.parts ?? []) ?? []
+      return await writeGeminiMusicInlineAudio(parts, musicPath)
+    })()
   const processingTime = Date.now() - startTime
   const musicFile = Bun.file(musicPath)
 

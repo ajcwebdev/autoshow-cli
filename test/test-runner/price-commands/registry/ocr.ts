@@ -62,4 +62,16 @@ export const ocrRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-glm-reader.test.ts', [
     command('extract-glm-reader-url', 'extract-glm-reader-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--provider', 'glm-reader', '--price']),
   ]),
+  ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/gemini-3.8-flash.test.ts', [
+    command('extract-gemini-gemini-3.8-flash', 'extract-gemini-gemini-3.8-flash', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'gemini=gemini-3.8-flash', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/anthropic-claude-fable-5-1.test.ts', [
+    command('extract-anthropic-claude-fable-5-1', 'extract-anthropic-claude-fable-5-1', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'anthropic=claude-fable-5-1', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/openai-gpt-6-astra.test.ts', [
+    command('extract-openai-gpt-6-astra', 'extract-openai-gpt-6-astra', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'openai=gpt-6-astra', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/mistral-ocr-4-1.test.ts', [
+    command('extract-mistral-mistral-ocr-4-1', 'extract-mistral-mistral-ocr-4-1', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'mistral=mistral-ocr-4-1', '--price']),
+  ]),
 ]

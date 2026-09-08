@@ -35,6 +35,6 @@ export const expectPriceEstimateForModel = (
   expect(result.exitCode).toBe(0)
   expect(result.outputDir).toBeNull()
   const output = `${result.stdout}\n${result.stderr}`
-  expect(output).toContain('Cost Estimate')
+  expect(output).toContain('Estimate:')
   expect(output).toContain(model)
 }

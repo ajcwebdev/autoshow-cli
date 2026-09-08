@@ -12,139 +12,153 @@ import { setupGeminiRestContractFixture } from './gemini-rest-contract-fixture'
 const { withTempDir } = setupGeminiRestContractFixture()
 
 describe('Gemini REST contracts', () => {
-  test('Gemini STT sends inline audio content parts and structured schema', async () => {
-    process.env['GEMINI_API_KEY'] = 'gemini-key'
-    await withTempDir(async (dir) => {
-      const audioPath = join(dir, 'clip.mp3')
-      await writeFile(audioPath, new Uint8Array([1, 2, 3]))
-      const calls = installFetch(() => jsonResponse({
-        candidates: [{
-          content: {
-            parts: [{
-              text: JSON.stringify({
-                text: 'hello world',
-                segments: [{ start: 0, end: 1, text: 'hello world' }]
-              })
-            }]
-          }
-        }],
-        usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 6 }
-      }))
+  for (const model of ['gemini-3.6-flash', 'gemini-3.8-flash']) {
+    test(`Gemini STT sends inline audio content parts and structured schema (${model})`, async () => {
+      process.env['GEMINI_API_KEY'] = 'gemini-key'
+      await withTempDir(async (dir) => {
+        const audioPath = join(dir, 'clip.mp3')
+        await writeFile(audioPath, new Uint8Array([1, 2, 3]))
+        const calls = installFetch(() => jsonResponse({
+          candidates: [{
+            content: {
+              parts: [{
+                text: JSON.stringify({
+                  text: 'hello world',
+                  segments: [{ start: 0, end: 1, text: 'hello world' }]
+                })
+              }]
+            }
+          }],
+          usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 6 }
+        }))
 
-      const result = await runGeminiStt(audioPath, dir, {
-        model: 'gemini-3.6-flash',
-        segmentOffsetMinutes: 0,
-        audioDurationSeconds: 1
-      })
+        const result = await runGeminiStt(audioPath, dir, {
+          model,
+          segmentOffsetMinutes: 0,
+          audioDurationSeconds: 1
+        })
 
-      expect(result.result.text).toBe('hello world')
-      expect(calls).toHaveLength(1)
-      const parts = (((calls[0]?.bodyJson?.['contents'] as unknown[])[0] as Record<string, unknown>)['parts'] as Array<Record<string, unknown>>)
-      expect(parts[0]).toMatchObject({ text: expect.stringContaining('Transcribe the provided audio exactly') })
-      expect(parts[1]).toMatchObject({
-        inlineData: {
-          mimeType: 'audio/mpeg',
-          data: Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')
+        expect(result.result.text).toBe('hello world')
+        expect(result.result.evidence).toMatchObject({ source: 'gemini:prompted-audio-timing', timingQuality: 'generated', capabilities: { hasNativeWordTiming: false } })
+        expect(calls[0]?.url).toContain(`/models/${model}:generateContent`)
+        for (const key of ['temperature', 'topP', 'topK', 'candidateCount']) {
+          expect(calls[0]?.bodyJson?.['generationConfig']).not.toHaveProperty(key)
         }
-      })
-      expect(calls[0]?.bodyJson?.['generationConfig']).toMatchObject({
-        responseMimeType: 'application/json'
+        expect(calls).toHaveLength(1)
+        const parts = (((calls[0]?.bodyJson?.['contents'] as unknown[])[0] as Record<string, unknown>)['parts'] as Array<Record<string, unknown>>)
+        expect(parts[0]).toMatchObject({ text: expect.stringContaining('Transcribe the provided audio exactly') })
+        expect(parts[1]).toMatchObject({
+          inlineData: {
+            mimeType: 'audio/mpeg',
+            data: Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')
+          }
+        })
+        expect(calls[0]?.bodyJson?.['generationConfig']).toMatchObject({
+          responseMimeType: 'application/json'
+        })
       })
     })
-  })
+  }
 
-  test('Gemini OCR sends inline document content parts and structured schema', async () => {
-    process.env['GEMINI_API_KEY'] = 'gemini-key'
-    await withTempDir(async (dir) => {
-      const imagePath = join(dir, 'page.png')
-      await writeFile(imagePath, new Uint8Array([8, 7, 6]))
-      const calls = installFetch(() => jsonResponse({
-        candidates: [{
-          content: {
-            parts: [{ text: JSON.stringify({ pages: [{ pageNumber: 1, text: 'OCR text' }] }) }]
+  for (const model of ['gemini-3.5-flash-lite', 'gemini-3.8-flash']) {
+    test(`Gemini OCR sends inline document content parts and structured schema (${model})`, async () => {
+      process.env['GEMINI_API_KEY'] = 'gemini-key'
+      await withTempDir(async (dir) => {
+        const imagePath = join(dir, 'page.png')
+        await writeFile(imagePath, new Uint8Array([8, 7, 6]))
+        const calls = installFetch(() => jsonResponse({
+          candidates: [{
+            content: {
+              parts: [{ text: JSON.stringify({ pages: [{ pageNumber: 1, text: 'OCR text' }] }) }]
+            }
+          }],
+          usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 5, thoughtsTokenCount: 7 }
+        }))
+
+        const metadata: DocumentMetadata = {
+          slug: 'page',
+          pageCount: 1,
+          format: 'png',
+          fileSize: 3
+        }
+        const result = await runGeminiOcr(imagePath, metadata, model)
+
+        expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'OCR text' }])
+        expect(result.promptTokens).toBe(12)
+        expect(result.completionTokens).toBe(12)
+        expect(result.providerUsage).toEqual([{
+          provider: 'gemini',
+          model,
+          attempt: 1,
+          usageRole: 'success',
+          purpose: 'ocr-page',
+          promptTokens: 12,
+          completionTokens: 12,
+          usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 5, thoughtsTokenCount: 7 }
+        }])
+        for (const key of ['temperature', 'topP', 'topK', 'candidateCount']) {
+          expect(calls[0]?.bodyJson?.['generationConfig']).not.toHaveProperty(key)
+        }
+        expect(calls).toHaveLength(1)
+        expect(calls[0]?.url).toBe(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`)
+        const parts = (((calls[0]?.bodyJson?.['contents'] as unknown[])[0] as Record<string, unknown>)['parts'] as Array<Record<string, unknown>>)
+        expect(parts[0]).toMatchObject({ text: expect.stringContaining('Perform OCR') })
+        expect(parts[1]).toMatchObject({
+          inlineData: {
+            mimeType: 'image/png',
+            data: Buffer.from(new Uint8Array([8, 7, 6])).toString('base64')
           }
-        }],
-        usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 5, thoughtsTokenCount: 7 }
-      }))
-
-      const metadata: DocumentMetadata = {
-        slug: 'page',
-        pageCount: 1,
-        format: 'png',
-        fileSize: 3
-      }
-      const result = await runGeminiOcr(imagePath, metadata, 'gemini-3.5-flash-lite')
-
-      expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'OCR text' }])
-      expect(result.promptTokens).toBe(12)
-      expect(result.completionTokens).toBe(12)
-      expect(result.providerUsage).toEqual([{
-        provider: 'gemini',
-        model: 'gemini-3.5-flash-lite',
-        attempt: 1,
-        usageRole: 'success',
-        purpose: 'ocr-page',
-        promptTokens: 12,
-        completionTokens: 12,
-        usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 5, thoughtsTokenCount: 7 }
-      }])
-      expect(calls).toHaveLength(1)
-      expect(calls[0]?.url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent')
-      const parts = (((calls[0]?.bodyJson?.['contents'] as unknown[])[0] as Record<string, unknown>)['parts'] as Array<Record<string, unknown>>)
-      expect(parts[0]).toMatchObject({ text: expect.stringContaining('Perform OCR') })
-      expect(parts[1]).toMatchObject({
-        inlineData: {
-          mimeType: 'image/png',
-          data: Buffer.from(new Uint8Array([8, 7, 6])).toString('base64')
-        }
-      })
-      expect(calls[0]?.bodyJson?.['generationConfig']).toMatchObject({
-        responseMimeType: 'application/json',
-        maxOutputTokens: 8192,
-        thinkingConfig: {
-          thinkingLevel: 'LOW'
-        }
+        })
+        expect(calls[0]?.bodyJson?.['generationConfig']).toMatchObject({
+          responseMimeType: 'application/json',
+          maxOutputTokens: 8192,
+          thinkingConfig: {
+            thinkingLevel: 'LOW'
+          }
+        })
       })
     })
-  })
+  }
 
-  test('Gemini OCR caps multi-page max output tokens', async () => {
-    process.env['GEMINI_API_KEY'] = 'gemini-key'
-    await withTempDir(async (dir) => {
-      const pdfPath = join(dir, 'document.pdf')
-      await writeFile(pdfPath, new Uint8Array([37, 80, 68, 70]))
-      const calls = installFetch(() => jsonResponse({
-        candidates: [{
-          content: {
-            parts: [{
-              text: JSON.stringify({
-                pages: [
-                  { pageNumber: 1, text: 'one' },
-                  { pageNumber: 2, text: 'two' },
-                  { pageNumber: 3, text: 'three' }
-                ]
-              })
-            }]
-          }
-        }]
-      }))
+  for (const model of ['gemini-3.5-flash-lite', 'gemini-3.8-flash']) {
+    test(`Gemini OCR caps multi-page max output tokens (${model})`, async () => {
+      process.env['GEMINI_API_KEY'] = 'gemini-key'
+      await withTempDir(async (dir) => {
+        const pdfPath = join(dir, 'document.pdf')
+        await writeFile(pdfPath, new Uint8Array([37, 80, 68, 70]))
+        const calls = installFetch(() => jsonResponse({
+          candidates: [{
+            content: {
+              parts: [{
+                text: JSON.stringify({
+                  pages: [
+                    { pageNumber: 1, text: 'one' },
+                    { pageNumber: 2, text: 'two' },
+                    { pageNumber: 3, text: 'three' }
+                  ]
+                })
+              }]
+            }
+          }]
+        }))
 
-      await runGeminiOcr(pdfPath, {
-        slug: 'document',
-        pageCount: 3,
-        format: 'pdf',
-        fileSize: 4
-      }, 'gemini-3.5-flash-lite')
+        await runGeminiOcr(pdfPath, {
+          slug: 'document',
+          pageCount: 3,
+          format: 'pdf',
+          fileSize: 4
+        }, model)
 
-      expect(calls[0]?.url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent')
-      const parts = (((calls[0]?.bodyJson?.['contents'] as unknown[])[0] as Record<string, unknown>)['parts'] as Array<Record<string, unknown>>)
-      expect(parts[1]).toMatchObject({ inlineData: { mimeType: 'application/pdf' } })
-      expect(calls[0]?.bodyJson?.['generationConfig']).toMatchObject({
-        responseMimeType: 'application/json',
-        maxOutputTokens: 65536
+        expect(calls[0]?.url).toBe(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`)
+        const parts = (((calls[0]?.bodyJson?.['contents'] as unknown[])[0] as Record<string, unknown>)['parts'] as Array<Record<string, unknown>>)
+        expect(parts[1]).toMatchObject({ inlineData: { mimeType: 'application/pdf' } })
+        expect(calls[0]?.bodyJson?.['generationConfig']).toMatchObject({
+          responseMimeType: 'application/json',
+          maxOutputTokens: 65536
+        })
       })
     })
-  })
+  }
 
   test('Gemini OCR rolls schema-retry thought tokens into usage totals', async () => {
     process.env['GEMINI_API_KEY'] = 'gemini-key'
@@ -191,22 +205,18 @@ describe('Gemini REST contracts', () => {
         8192,
         8192
       ])
-      const retryEvents = events.filter((event) => event.level === 'warn' && event.message === 'Retry Attempt')
+      const retryEvents = events.filter((event) => event.level === 'warn' && event.metadata?.['reasonCode'] === 'invalid_response_reask')
       expect(retryEvents).toHaveLength(1)
       const retryMetadata = requireDefined(retryEvents[0], 'schema retry event').metadata as Record<string, unknown>
       expect(retryMetadata).toMatchObject({
         operation: 'gemini-ocr',
-        attempt: 1,
-        maxAttempts: 3,
-        reason: 'structured_response',
+        admittedResponse: 1,
+        maxAdmittedResponses: 3,
+        reasonCode: 'invalid_response_reask',
         provider: 'gemini',
         pageCount: 1,
         pageNumber: 1,
-        retryClass: 'runtime_http_create_retriable',
         failureReason: 'Gemini OCR returned no pages.',
-        ocrSchemaAttempts: 3,
-        ocrCreateAttempts: 4,
-        maxPaidRequests: 12,
         malformedOutput: 'Gemini OCR returned malformed output for page-000660.png on attempt 1/3 (7 output tokens) (Gemini OCR returned no pages.); retrying'
       })
       expect(JSON.stringify(retryMetadata)).not.toContain('{\"pages\":[]}')

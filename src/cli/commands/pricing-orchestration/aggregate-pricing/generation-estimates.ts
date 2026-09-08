@@ -19,7 +19,8 @@ export const buildImageEstimates = (opts: EstimateImageCostOptions): ImageStepEs
     ...pick(opts, IMAGE_PRICING_MODEL_KEYS),
     imageSize: opts.imageSize,
     imageQuality: opts.imageQuality,
-    imageCount: opts.imageCount
+    imageCount: opts.imageCount,
+    imageInputs: opts.imageInputs
   }).map((estimate) => {
     const estimation = getImageEstimation(estimate.provider, estimate.model)
     return {

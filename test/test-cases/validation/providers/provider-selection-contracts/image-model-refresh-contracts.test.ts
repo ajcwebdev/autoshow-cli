@@ -21,7 +21,7 @@ describe('image model refresh contracts', () => {
     ])
   })
 
-  test('active image registries contain 22 selectors after retirement', () => {
+  test('active image registries contain 23 selectors after retirement', () => {
     expect(SUPPORTED_REPLICATE_IMAGE_MODELS).toEqual([
       'bytedance/seedream-4.5',
       'bytedance/seedream-5-lite',
@@ -37,9 +37,9 @@ describe('image model refresh contracts', () => {
       'reve/2.1'
     ])
     const targets = collectImageTargets(buildOptsFromFlags({ 'all-image': true }))
-    expect(targets).toHaveLength(22)
-    expect(targets.filter(target => target.service === 'grok').map(target => target.model)).toEqual(['grok-imagine-image-quality'])
-    expect(SUPPORTED_GROK_IMAGE_MODELS).toEqual(['grok-imagine-image-quality'])
+    expect(targets).toHaveLength(23)
+    expect(targets.filter(target => target.service === 'grok').map(target => target.model)).toEqual(['grok-imagine-image-quality', 'grok-imagine-image-2.0'])
+    expect(SUPPORTED_GROK_IMAGE_MODELS).toEqual(['grok-imagine-image-quality', 'grok-imagine-image-2.0'])
   })
 
   test('retired selectors fail with refresh-report replacement guidance', () => {

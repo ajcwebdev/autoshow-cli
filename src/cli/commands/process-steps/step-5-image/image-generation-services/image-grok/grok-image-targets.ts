@@ -1,34 +1,17 @@
 import type { GrokImageModel, ImageGenOptions, ImageTarget } from '~/types'
 import { validateGrokImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ensureGrokImageGenSetup } from './grok-image-gen'
-import { normalizeGrokImageResolution, runGrokImageGen } from './run-grok-image-gen'
-import {
-  assertNoUnsupportedFlags,
-  hasEditInputs,
-  unsupportedFlagError,
-  validateEnumOption,
-  validateImageCount
-} from '../../image-utils/image-target-validation'
-import {
-  GROK_IMAGE_INPUT_MIME_TYPES,
-  validateImageInputReferences
-} from '../../image-utils/image-inputs'
-
-export const GROK_IMAGE_ASPECT_RATIO_VALUES = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '2:1', '1:2', '19.5:9', '9:19.5', '20:9', '9:20', 'auto'] as const
-export const GROK_IMAGE_SIZE_VALUES = ['1K', '2K'] as const
-export const GROK_IMAGE_COUNT_RANGE = [1, 10] as const
-
-const GROK_ASPECT_RATIOS = new Set<string>(GROK_IMAGE_ASPECT_RATIO_VALUES)
+import { runGrokImageGen } from './run-grok-image-gen'
+import { assertNoUnsupportedFlags, hasEditInputs } from '../../image-utils/image-target-validation'
+import { resolveGrokImageOptions } from './grok-image-options'
+export { GROK_IMAGE_ASPECT_RATIO_VALUES, GROK_IMAGE_SIZE_VALUES, GROK_IMAGE_COUNT_RANGE } from './grok-image-options'
 
 export const collectGrokImageTargets = (options: ImageGenOptions): ImageTarget[] => {
   const models = options.grokImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: GrokImageModel = validateGrokImageModel(rawModel)
-    validateImageCount('Grok', model, options.imageCount, ...GROK_IMAGE_COUNT_RANGE)
-    validateEnumOption('Grok', model, 'aspect-ratio', options.imageAspectRatio, GROK_ASPECT_RATIOS)
-    normalizeGrokImageResolution(options.imageSize)
+    resolveGrokImageOptions(model, options)
     assertNoUnsupportedFlags(options, [
-      'imageQuality',
       'imageFormat',
       'imageBackground',
       'imageResponseMode',
@@ -38,16 +21,7 @@ export const collectGrokImageTargets = (options: ImageGenOptions): ImageTarget[]
     ], {
       provider: 'Grok',
       model,
-      hint: 'Supported Grok image options: --count, --aspect-ratio, --size 1K|2K, and up to three --input references.'
-    })
-    if (hasEditInputs(options) && model !== 'grok-imagine-image-quality') {
-      throw unsupportedFlagError('Grok', model, ['--input'], 'xAI documents image editing for grok-imagine-image-quality; use grok-imagine-image-quality for edit/reference inputs.')
-    }
-    validateImageInputReferences(options.imageInputs, {
-      provider: 'Grok',
-      model,
-      allowedMimeTypes: GROK_IMAGE_INPUT_MIME_TYPES,
-      maxInputs: 3
+      hint: 'Supported Grok image options: --count, --aspect-ratio, --size 1K|2K, --input; Image 2.0 also supports --quality low|medium|auto and five references.'
     })
 
     return [{
@@ -61,7 +35,8 @@ export const collectGrokImageTargets = (options: ImageGenOptions): ImageTarget[]
           inputs: options.imageInputs,
           count: options.imageCount,
           aspectRatio: options.imageAspectRatio,
-          imageSize: options.imageSize
+          imageSize: options.imageSize,
+          imageQuality: options.imageQuality
         })
       }
     }]

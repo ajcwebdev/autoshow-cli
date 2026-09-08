@@ -11,13 +11,13 @@ test('multi-provider --price prints both TTS targets and renamed output files', 
     'elevenlabs=eleven_v3',
     '--provider',
     'openai=gpt-4o-mini-tts-2025-12-15',
-    '--price'
+    '--price', '--json'
   ])
 
   expect(result.exitCode).toBe(0)
   expect(result.outputDir).toBeNull()
   const output = `${result.stdout}\n${result.stderr}`
-  expect(output).toContain('Cost Estimate')
+  expect(output).toContain('Estimate:')
   expect(output).toContain('elevenlabs')
   expect(output).toContain('eleven_v3')
   expect(output).toContain('openai')

@@ -75,14 +75,14 @@ test('write --price auto-detects prose .txt targets as text input instead of bat
     'src/cli/create-cli.ts',
     'write',
     prosePath,
-    '--price'
+    '--price', '--json'
   ], { env: { AUTOSHOW_TEST_OUTPUT_DIR: OUTPUT_DIR } })
 
   const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
   expect(result.exitCode).toBe(0)
   expect(output).not.toContain('running write in text-input mode')
   expect(output).not.toContain('No valid inputs found')
-  expect(output).toContain('Expected files')
+  expect(output).toContain('"files"')
 }, E2E_TEST_TIMEOUT_MS)
 
 test('write --price errors on nonexistent local targets instead of estimating', async () => {
@@ -92,13 +92,13 @@ test('write --price errors on nonexistent local targets instead of estimating', 
     'src/cli/create-cli.ts',
     'write',
     missingPath,
-    '--price'
+    '--price', '--json'
   ], { env: { AUTOSHOW_TEST_OUTPUT_DIR: OUTPUT_DIR } })
 
   const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
   expect(result.exitCode).toBe(2)
   expect(output).toContain(`Input does not exist: ${missingPath}`)
-  expect(output).not.toContain('Total estimated cost')
+  expect(output).not.toContain('totalEstimatedCostCents')
 }, E2E_TEST_TIMEOUT_MS)
 
 test('write project directory --price reports rendered lyric outputs without creating a run directory', async () => {
@@ -109,14 +109,14 @@ test('write project directory --price reports rendered lyric outputs without cre
     'src/cli/create-cli.ts',
     'write',
     project.textDir,
-    '--price'
+    '--price', '--json'
   ], { env: { AUTOSHOW_TEST_OUTPUT_DIR: OUTPUT_DIR } })
 
   expect(result.exitCode).toBe(0)
   expect(result.outputDir).toBeNull()
 
   const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
-  expect(output).toContain('Expected files')
+  expect(output).toContain('"files"')
   expect(output).toContain(`${toCliDisplayPath(project.lyricsDir)}/*.md`)
   expect(await fileExists(project.lyricsDir)).toBe(false)
 

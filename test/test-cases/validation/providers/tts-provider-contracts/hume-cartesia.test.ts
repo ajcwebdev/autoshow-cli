@@ -1,3 +1,4 @@
+import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import {
   describe,
   expect,
@@ -21,6 +22,7 @@ describe('TTS provider service contracts', () => {
       })
 
       const result = await runHumeTts(`${'a'.repeat(2000)} ${'b'.repeat(100)}`, dir, {
+        chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 1 }),
         model: 'octave-2'
       })
 
@@ -62,10 +64,12 @@ describe('TTS provider service contracts', () => {
       })
 
       await runHumeTts('Hume UUID voice synthesis.', idDir, {
+        chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 1 }),
         model: 'octave-2',
         voice: '123e4567-e89b-12d3-a456-426614174000'
       })
       await runHumeTts('Hume named voice synthesis.', providerDir, {
+        chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 1 }),
         model: 'octave-2',
         voice: 'Studio Voice'
       })
@@ -86,6 +90,7 @@ describe('TTS provider service contracts', () => {
       const calls = installMockFetch(() => new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } }))
 
       await runHumeTts('Directed synthesis.', dir, {
+        chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 1 }),
         model: 'octave-1',
         voice: '123e4567-e89b-12d3-a456-426614174000',
         description: 'quiet reassurance'
@@ -110,6 +115,7 @@ describe('TTS provider service contracts', () => {
       })
 
       await expect(runHumeTts('Hume error synthesis.', dir, {
+        chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 1 }),
         model: 'octave-2'
       })).rejects.toThrow('Hume TTS failed (400): bad hume')
     })
@@ -124,6 +130,7 @@ describe('TTS provider service contracts', () => {
       })
 
       const result = await runCartesiaTts(`${'a'.repeat(2000)} ${'b'.repeat(100)}`, dir, {
+        chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 1 }),
         model: 'sonic-3.5-2026-05-04',
         voiceId: 'voice-id-123',
         language: 'en'
@@ -168,6 +175,7 @@ describe('TTS provider service contracts', () => {
       })
 
       await expect(runCartesiaTts('Cartesia error synthesis.', dir, {
+        chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 1 }),
         model: 'sonic-3.5-2026-05-04'
       })).rejects.toThrow('Cartesia TTS failed (400): bad cartesia')
     })

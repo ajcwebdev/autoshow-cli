@@ -107,7 +107,7 @@ export const estimateMusicCosts = (options: EstimateMusicCostOptions): MusicCost
           durationSeconds: options.musicDuration ?? DEFAULT_GEMINI_PRO_MUSIC_DURATION_SECONDS,
           totalCost: baseCost,
           lyricsSource,
-          note: `Gemini Lyria 3 Pro is billed per song request; timing estimate uses ${options.musicDuration ?? DEFAULT_GEMINI_PRO_MUSIC_DURATION_SECONDS}s.`
+          note: `Gemini ${model} is billed per song request; timing estimate uses ${options.musicDuration ?? DEFAULT_GEMINI_PRO_MUSIC_DURATION_SECONDS}s.`
         })
         break
       }

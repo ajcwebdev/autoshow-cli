@@ -18,6 +18,8 @@ export const HELP_FLAG_GROUPS = [
   ['article-extraction', 'Article Extraction'],
   ['batch-processing', 'Batch Processing'],
   ['transcript-video', 'Transcript Video'],
+  ['captions', 'Captions'],
+  ['transcript-review', 'Transcript Review'],
   ['writing', 'Writing'],
   ['tts-options', 'Text to Speech'],
   ['tts-dialogue', 'Multi-Speaker / Dialogue'],

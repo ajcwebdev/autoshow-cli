@@ -8,16 +8,11 @@ import { imageReferenceToDataUrl, isHttpUrl } from '../../image-utils/image-inpu
 import {
   getFirstRevisedPrompt,
   getImageFileNames,
-  getProviderReturnedModel,
   writeOpenAIImageResponseData
 } from '../../image-utils/image-output'
-
-export const normalizeGrokImageResolution = (size: string | undefined): string | undefined => {
-  if (size === undefined || size.length === 0) return undefined
-  const normalized = size.toLowerCase()
-  if (normalized === '1k' || normalized === '2k') return normalized
-  throw UsageError(`Invalid --size value "${size}" for Grok. Expected 1K or 2K.`)
-}
+import { estimateImageCosts } from '../../image-utils/image-pricing'
+import { resolveGrokImageOptions } from './grok-image-options'
+export { normalizeGrokImageResolution } from './grok-image-options'
 
 export const runGrokImageGen = async (
   prompt: string,
@@ -29,13 +24,21 @@ export const runGrokImageGen = async (
     count?: number | undefined
     aspectRatio?: string | undefined
     imageSize?: string | undefined
+    imageQuality?: string | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
+  const resolved = resolveGrokImageOptions(options.model, {
+    imageSize: options.imageSize,
+    imageQuality: options.imageQuality,
+    imageInputs: options.inputs,
+    imageCount: options.count,
+    imageAspectRatio: options.aspectRatio
+  })
+  if (options.mode !== undefined && options.mode !== resolved.mode) {
+    throw UsageError('Grok edit mode requires --input references; generation mode cannot include references.')
+  }
+  const { resolution, quality, mode, imageCount: count } = resolved
   const apiKey = resolveCredential('grok', 'require', { stage: 'image:grok', description: 'Grok image generation' })
-
-  const resolution = normalizeGrokImageResolution(options.imageSize)
-  const mode = options.mode ?? 'generation'
-  const count = Math.max(1, options.count ?? 1)
   const startTime = Date.now()
 
   logGenStatus('image', 'grok', options.model, 'started', mode)
@@ -57,7 +60,8 @@ export const runGrokImageGen = async (
           n: count,
           ...(imageRefs.length === 1 ? { image: imageRefs[0] } : { images: imageRefs }),
           ...(options.aspectRatio ? { aspect_ratio: options.aspectRatio } : {}),
-          ...(resolution ? { resolution } : {})
+          ...(resolution ? { resolution } : {}),
+          ...(quality ? { quality } : {})
         }
         return await openAIJsonRequest<OpenAIImageResponse>(clientConfig, '/images/edits', body, {
           errorMessagePrefix: 'Grok image edit failed'
@@ -69,7 +73,8 @@ export const runGrokImageGen = async (
         response_format: 'b64_json',
         n: count,
         ...(options.aspectRatio ? { aspect_ratio: options.aspectRatio } : {}),
-        ...(resolution ? { resolution } : {})
+        ...(resolution ? { resolution } : {}),
+        ...(quality ? { quality } : {})
       }, { errorMessagePrefix: 'Grok image generation failed' })
 
   const imagePaths = await writeOpenAIImageResponseData(result, outputDir, 'jpg')
@@ -83,6 +88,12 @@ export const runGrokImageGen = async (
     ? result.usage['cost_in_usd_ticks']
     : undefined
   const providerCostCents = usageCostRaw !== undefined ? usageCostRaw / 100_000_000 : undefined
+  const fallbackCost = options.model === 'grok-imagine-image-2.0' && providerCostCents === undefined
+    ? estimateImageCosts({
+        grokImageModels: [options.model], imageCount: imagePaths.length,
+        imageSize: resolution, imageQuality: quality, imageInputs: options.inputs
+      })[0]?.totalCost
+    : undefined
   const moderation = result.data?.[0]?.['respect_moderation'] ?? result['respect_moderation']
 
   logGenCompleted('image', 'grok', options.model, processingTime, imagePaths)
@@ -100,9 +111,12 @@ export const runGrokImageGen = async (
       imageHeight: undefined,
       requestMode: mode,
       ...(getFirstRevisedPrompt(result) ? { revisedPrompt: getFirstRevisedPrompt(result) } : {}),
-      ...(getProviderReturnedModel(options.model, result) ? { providerReturnedModel: getProviderReturnedModel(options.model, result) } : {}),
+      ...(typeof result.model === 'string' && result.model.length > 0 ? { providerReturnedModel: result.model } : {}),
+      ...(quality ? { imageQuality: quality, imageSize: resolution } : {}),
       ...(usageCostRaw !== undefined ? { usageCostRaw } : {}),
-      ...(providerCostCents !== undefined ? { providerCostCents, providerCostSource: 'provider_usage' as const } : {}),
+      ...(providerCostCents !== undefined
+        ? { providerCostCents, providerCostSource: 'provider_usage' as const }
+        : fallbackCost !== undefined ? { providerCostCents: fallbackCost, providerCostSource: 'registry_fallback' as const } : {}),
       ...(moderation !== undefined ? { providerModeration: moderation } : {})
     }
   }

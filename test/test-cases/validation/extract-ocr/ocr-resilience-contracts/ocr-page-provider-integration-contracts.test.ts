@@ -5,7 +5,7 @@ import { basePdfMetadata,join,jsonResponse,rm,runKimiOcr } from './shared'
 
 describe('OCR resilience contracts', () => {
 
-  test('Kimi image OCR uses page-level bounded retry attempts for structured page failures', async () => {
+  test('Kimi image OCR preserves a truncated admitted response without transport redispatch', async () => {
     const previousFetch = globalThis.fetch
     const previousSleep = Bun.sleep
     const previousEnv = {
@@ -45,9 +45,9 @@ describe('OCR resilience contracts', () => {
         outputDir: tempDir,
         ocrPreparationCache: undefined,
         ocrConcurrency: undefined
-      })).rejects.toThrow('kimi-ocr input image failed after 2/2 attempts')
+      })).rejects.toThrow('stopped at the max completion token limit')
 
-      expect(attempts).toBe(2)
+      expect(attempts).toBe(1)
     } finally {
       globalThis.fetch = previousFetch
       ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = previousSleep

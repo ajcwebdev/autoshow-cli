@@ -12,6 +12,7 @@ import { getWhisperModelIntegrity, resolveWhisperModelMinBytes } from './whisper
 import { InternalError } from '~/utils/error-handler'
 import { recordSetupPerformancePhase } from '~/cli/commands/setup-and-utilities/setup/setup-performance'
 import { logicalCpuCount } from '~/utils/logical-cpu-count'
+import { withProcessLock } from '~/utils/process-lock'
 
 const whisperBaseUrl = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main'
 const fileExists = async (path: string): Promise<boolean> => {
@@ -52,7 +53,7 @@ const readWhisperTag = async (): Promise<string> => {
   return await readDependencyTag('whisper.cpp') ?? 'v1.7.4'
 }
 
-export const setupWhisper = async (): Promise<void> => {
+const setupWhisperUnlocked = async (): Promise<void> => {
   if (await fileExists(whisperBinaryPath)) {
     const check = await runCapture(whisperBinaryPath, ['--help'], { allowFailure: true })
     if (check.exitCode === 0) {
@@ -124,6 +125,9 @@ export const setupWhisper = async (): Promise<void> => {
 
   l.write('info', 'Whisper.cpp installed', { category: 'command' })
 }
+
+export const setupWhisper = async (): Promise<void> =>
+  withProcessLock(`setup-whisper-${whisperBuildDir}`, setupWhisperUnlocked)
 
 export const downloadWhisperModel = async (modelName: string): Promise<void> => {
   await mkdir(whisperModelsDir, { recursive: true })

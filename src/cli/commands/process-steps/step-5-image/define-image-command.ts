@@ -76,7 +76,8 @@ const runImageCommand = async (
     applyCostMultipliers: false,
     imageTargets: estimatedImageTargets,
     imageSize: imageOpts.imageSize,
-    imageQuality: imageOpts.imageQuality
+    imageQuality: imageOpts.imageQuality,
+    imageInputs: imageOpts.imageInputs
   })
   const actual = computeActualCosts({ step5: metadata })
   const cost = {

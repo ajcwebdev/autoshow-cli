@@ -150,7 +150,9 @@ describe('canonical TTS resume', () => {
       const sourceIdentity = await createFileTtsSourceIdentity(inputPath, text)
       const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text)
       const target = { ...ttsTarget(), voice: 'alloy' }
-      const failed = await materializeFailedProviderState({ rootDir: dir, target, text, sourceIdentity, dialoguePlan })
+      const failed = await withEnv({ OPENAI_API_KEY: 'configured-for-local-resume-fixture' }, async () =>
+        await materializeFailedProviderState({ rootDir: dir, target, text, sourceIdentity, dialoguePlan })
+      )
       await writeManifest(dir, createManifest('tts', 'single', [createManifestItem(dir, {
         input: canonicalFileInput(sourceIdentity),
         status: 'failed',
@@ -161,11 +163,13 @@ describe('canonical TTS resume', () => {
       let providerCalls = 0
       const runnable = successfulTarget(target, () => { providerCalls += 1 })
 
-      await resumeGenerationTarget(
-        resumeTarget(dir),
-        { ...ttsResumeConfig, collectTargets: () => [runnable] },
-        {} as TtsOptions
-      )
+      await withEnv({ OPENAI_API_KEY: 'configured-for-local-resume-fixture' }, async () => {
+        await resumeGenerationTarget(
+          resumeTarget(dir),
+          { ...ttsResumeConfig, collectTargets: () => [runnable] },
+          {} as TtsOptions
+        )
+      })
 
       const provider = (await readManifest(dir))?.items[0]?.providers[0]
       const projection = provider?.result?.['ttsAudio'] as CanonicalAudioProviderProjection

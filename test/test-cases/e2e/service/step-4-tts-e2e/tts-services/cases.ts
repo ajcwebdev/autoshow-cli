@@ -65,3 +65,10 @@ export const cartesiaTts = {
   envVarKey: 'CARTESIA_API_KEY',
   envVarDescription: 'Cartesia TTS',
 } as const
+
+export const inworldTts = {
+  provider: 'inworld',
+  ttsService: 'inworld',
+  envVarKey: 'INWORLD_API_KEY',
+  envVarDescription: 'Inworld TTS',
+} as const

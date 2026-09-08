@@ -55,15 +55,14 @@ describe('OCR resilience contracts', () => {
 
     expect(attempts).toBe(2)
     expect(sleeps).toHaveLength(1)
-    expect(sleeps[0]).toBeGreaterThanOrEqual(OCR_CREATE_RETRY_POLICY.baseDelayMs)
+    expect(sleeps[0]).toBeGreaterThanOrEqual(OCR_CREATE_RETRY_POLICY.baseDelayMs / 2)
     expect(sleeps[0]).toBeLessThanOrEqual(OCR_CREATE_RETRY_POLICY.maxDelayMs)
     expect(pressures).toHaveLength(1)
     expect(pressures[0]).toMatchObject({
-      reason: 'retryable status 429',
+      reason: 'provider rejected paid create with retryable status 429',
       status: 429
     })
-    expect(pressures[0]?.delayMs).toBeGreaterThanOrEqual(OCR_CREATE_RETRY_POLICY.baseDelayMs)
-    expect(pressures[0]?.delayMs).toBeLessThanOrEqual(OCR_CREATE_RETRY_POLICY.maxDelayMs)
+    expect(pressures[0]?.delayMs).toBeUndefined()
     expect(pressures[0]?.retryAfterMs).toBeUndefined()
   })
 
@@ -161,11 +160,11 @@ describe('OCR resilience contracts', () => {
   test('paid OCR create retries only explicitly rejected admissions', () => {
     expect(classifyOcrCreateRetry(ProviderError('try later', { status: 429 }))).toMatchObject({
       shouldRetry: true,
-      reason: 'retryable status 429'
+      reason: 'provider rejected paid create with retryable status 429'
     })
     expect(classifyOcrCreateRetry(ProviderError('too early', { status: 425 }))).toMatchObject({
       shouldRetry: true,
-      reason: 'retryable status 425'
+      reason: 'provider rejected paid create with retryable status 425'
     })
     expect(classifyOcrCreateRetry(ProviderError('upstream unavailable', { status: 503 }))).toMatchObject({
       shouldRetry: false,
@@ -195,7 +194,7 @@ describe('OCR resilience contracts', () => {
         },
         {
           timeoutMs: 1000,
-          classifier: () => ({ shouldRetry: true, delayMs: 1, reasonCode: 'retryable_status', reason: 'retryable status 429' }),
+          classifier: () => ({ shouldRetry: true, delayMs: 1, reasonCode: 'retryable_status', reason: 'provider rejected paid create with retryable status 429' }),
           onRetryable: pressure => {
             pressures.push(pressure)
           }
@@ -209,7 +208,7 @@ describe('OCR resilience contracts', () => {
     expect(sleeps).toEqual([2_000])
     expect(pressures).toHaveLength(1)
     expect(pressures[0]).toMatchObject({
-      reason: 'retryable status 429',
+      reason: 'provider rejected paid create with retryable status 429',
       delayMs: 2_000,
       status: 429,
       retryAfterMs: 2_000

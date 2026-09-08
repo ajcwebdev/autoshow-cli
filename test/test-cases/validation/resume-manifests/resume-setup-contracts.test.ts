@@ -159,7 +159,7 @@ test('resume rejects a missing output directory before reaching provider validat
   const missingDir = join(tmpdir(), `autoshow-missing-resume-${Date.now()}`)
   const result = await runCommand([
     'src/cli/create-cli.ts',
-    'resume',
+    'resume', '--json',
     missingDir,
     '--provider',
     'deepgram=not-a-deepgram-model'
@@ -231,7 +231,7 @@ test('resume reports every missing output directory', async () => {
   const missingTwo = join(root, 'missing-two')
   const result = await runCommand([
     'src/cli/create-cli.ts',
-    'resume',
+    'resume', '--json',
     missingOne,
     missingTwo
   ], {
@@ -271,7 +271,7 @@ test('resume continues after a failed directory and summarizes at the end', asyn
 
   const result = await runCommand([
     'src/cli/create-cli.ts',
-    'resume',
+    'resume', '--json',
     missingDir,
     completeRunDir
   ], {
@@ -282,7 +282,12 @@ test('resume continues after a failed directory and summarizes at the end', asyn
   expect(result.exitCode).toBe(2)
   expect(output).toContain(missingDir)
   expect(output).toContain(completeRunDir)
-  expect(output).toContain('all providers already complete')
+  const completedEvent = result.stderr.trim().split('\n').map(line => JSON.parse(line))
+    .find(event => event.type === 'log' && event.message === 'Resume item 2/2: full')
+  expect(completedEvent?.metadata).toMatchObject({
+    outputDir: completeRunDir,
+    detail: 'all providers already complete'
+  })
   expect(output).toContain('Resume failed for 1 output directory')
 })
 
@@ -295,7 +300,7 @@ test('multi-directory resume labels single-run items and logs a suite summary', 
 
   const result = await runCommand([
     'src/cli/create-cli.ts',
-    'resume',
+    'resume', '--json',
     firstRunDir,
     secondRunDir
   ], {
@@ -306,7 +311,7 @@ test('multi-directory resume labels single-run items and logs a suite summary', 
   expect(result.exitCode).toBe(0)
   expect(output).toContain('1/2')
   expect(output).toContain('2/2')
-  expect(output).toContain('Resume Suite Summary')
+  expect(output).toContain('Resume suite:')
   expect(output).toContain('directories')
 })
 
@@ -355,7 +360,7 @@ test('explicit OCR resume succeeds when selected providers are complete and mani
 
   const result = await runCommand([
     'src/cli/create-cli.ts',
-    'resume',
+    'resume', '--json',
     runDir,
     '--provider',
     'openai=gpt-5.6-sol'
@@ -382,7 +387,7 @@ test('resume --price reports a dry-run estimate and leaves manifests unchanged',
 
   const result = await runCommand([
     'src/cli/create-cli.ts',
-    'resume',
+    'resume', '--json',
     runDir,
     '--price'
   ], {
@@ -392,7 +397,7 @@ test('resume --price reports a dry-run estimate and leaves manifests unchanged',
   const output = `${result.stdout}\n${result.stderr}`
   expect(result.exitCode).toBe(0)
   expect(result.outputDir).toBeNull()
-  expect(output).toContain('Cost Estimate')
+  expect(output).toContain('Estimate:')
   expect(output).toContain('gpt-4o-mini-tts-2025-12-15')
   expect(await Bun.file(manifestPath).text()).toBe(before)
 })
@@ -422,7 +427,7 @@ test('resume --price logs per-directory estimates and a suite total', async () =
 
   const result = await runCommand([
     'src/cli/create-cli.ts',
-    'resume',
+    'resume', '--json',
     firstRunDir,
     secondRunDir,
     '--price'
@@ -432,8 +437,15 @@ test('resume --price logs per-directory estimates and a suite total', async () =
 
   const output = `${result.stdout}\n${result.stderr}`
   expect(result.exitCode).toBe(0)
-  expect(output.match(/Cost Estimate/g)?.length ?? 0).toBe(2)
-  expect(output).toContain('Suite Cost Summary')
+  const events = result.stderr.trim().split('\n').map(line => JSON.parse(line))
+  const estimateEvents = events.filter(event => event.type === 'log' && event.level === 'info' && event.message.startsWith('Estimate:'))
+  expect(estimateEvents).toHaveLength(2)
+  const terminalResult = JSON.parse(result.stdout)
+  expect(terminalResult).toMatchObject({ type: 'result', status: 'success', data: { dryRun: true } })
+  expect(terminalResult.data.estimate.totalEstimatedCostCents).toBe(
+    estimateEvents.reduce((sum, event) => sum + event.metadata.estimate.totalEstimatedCostCents, 0)
+  )
+  expect(output).toContain('Suite estimate:')
   expect(output).toContain('2 resume directories')
 })
 
@@ -446,7 +458,7 @@ test('write resume --price estimates selected missing LLM providers without prov
 
   const result = await runCommand([
     'src/cli/create-cli.ts',
-    'resume',
+    'resume', '--json',
     runDir,
     '--provider',
     'groq=openai/gpt-oss-20b',
@@ -457,7 +469,7 @@ test('write resume --price estimates selected missing LLM providers without prov
 
   const output = `${result.stdout}\n${result.stderr}`
   expect(result.exitCode).toBe(0)
-  expect(output).toContain('Cost Estimate')
+  expect(output).toContain('Estimate:')
   expect(output).toContain('openai/gpt-oss-20b')
   expect(await Bun.file(manifestPath).text()).toBe(before)
 })
@@ -474,7 +486,7 @@ test('resume --price fails when resumable source metadata is missing', async () 
 
   const result = await runCommand([
     'src/cli/create-cli.ts',
-    'resume',
+    'resume', '--json',
     runDir,
     '--price'
   ], {
@@ -493,7 +505,7 @@ test('resume rejects positional outputs after the separator', async () => {
 
   const result = await runCommand([
     'src/cli/create-cli.ts',
-    'resume',
+    'resume', '--json',
     completeRunDir,
     '--',
     join(root, 'after-separator')
@@ -502,7 +514,9 @@ test('resume rejects positional outputs after the separator', async () => {
   })
 
   expect(result.exitCode).toBe(2)
-  expect(`${result.stdout}\n${result.stderr}`).toContain('Unexpected positional outputs after "--" for "resume"')
+  const terminalResult = JSON.parse(result.stdout)
+  expect(terminalResult.error).toMatchObject({ kind: 'usage', stage: 'cli:usage' })
+  expect(terminalResult.error.message).toContain('Unexpected positional outputs after "--" for "resume"')
 })
 
 test('setup focused model downloads cannot be combined with targeted steps', async () => {

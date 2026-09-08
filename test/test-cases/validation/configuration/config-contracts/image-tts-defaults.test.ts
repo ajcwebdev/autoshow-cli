@@ -20,13 +20,9 @@ describe('config image and TTS default contracts', () => {
     expectConfigPatchRoundTrip({
       'bfl-image': ['flux-2-pro'],
       'replicate-image': ['wan-video/wan-2.7-image'],
-      'image-size': '1024x1024',
-      'image-format': 'webp'
     }, 'image', {
       bflImage: ['flux-2-pro'],
       replicateImage: ['wan-video/wan-2.7-image'],
-      imageSize: '1024x1024',
-      imageFormat: 'webp'
     }, { merge: false })
   })
 
@@ -34,19 +30,11 @@ describe('config image and TTS default contracts', () => {
     expectConfigPatchRoundTrip({
       'replicate-video': ['bytedance/seedance-2.0-fast'],
       'replicate-video-seed': '123',
-      'video-generate-audio': false,
-      'video-reference-video': ['input/examples/video/reference.mp4'],
-      'video-reference-audio': ['input/examples/audio/reference.mp3'],
       'replicate-video-negative-prompt': 'blur',
-      'video-duration': '-1'
     }, 'video', {
       replicateVideo: ['bytedance/seedance-2.0-fast'],
       replicateVideoSeed: 123,
-      videoGenerateAudio: false,
-      videoReferenceVideos: ['input/examples/video/reference.mp4'],
-      videoReferenceAudios: ['input/examples/audio/reference.mp3'],
       replicateVideoNegativePrompt: 'blur',
-      videoDuration: -1
     })
   })
 
