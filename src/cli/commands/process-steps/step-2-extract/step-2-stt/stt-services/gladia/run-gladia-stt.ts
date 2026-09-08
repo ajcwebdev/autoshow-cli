@@ -6,7 +6,7 @@ import { buildTranscriptionWordEvidence } from '~/cli/commands/process-steps/ste
 import { buildSegmentsFromWords, buildTranscriptionOutputBase, countTokens, formatSpeakerLabel, formatTranscriptText, resolveTranscriptionOutput, toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import type { AsyncSttLifecycleMetrics, GladiaNormalizedWord, GladiaStatusResponse, GladiaUtterance, HostedAsyncSttRunOptions, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { GladiaCreateResponseSchema, GladiaStatusResponseSchema, GladiaUploadResponseSchema } from '~/types'
-import { InternalError } from '~/utils/error-handler'
+import { InternalError, ProviderError } from '~/utils/error-handler'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
 import { getGladiaBaseUrl } from './gladia'
@@ -253,7 +253,7 @@ export const runGladiaStt = async (
       if (options.nativeSubtitles) for (const format of ['srt', 'vtt'] as const) {
         await saveNativeSubtitle(outputBase, format, async () => {
           const subtitle = finalStatus.result?.transcription?.subtitles?.find(item => item.format === format)
-          if (!subtitle) throw new Error('Gladia did not return requested ' + format + ' subtitles')
+          if (!subtitle) throw ProviderError('Gladia did not return requested ' + format + ' subtitles', { stage: 'stt:subtitle-export', retryable: false })
           return subtitle.subtitles
         })
       }

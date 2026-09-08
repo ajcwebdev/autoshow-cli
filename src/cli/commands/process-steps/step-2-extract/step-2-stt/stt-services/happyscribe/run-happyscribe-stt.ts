@@ -26,7 +26,7 @@ import {
   attachHappyScribeErrorContext
 } from './happyscribe-utils'
 import { parseHappyScribeTranscriptPayload } from './parse-happyscribe-transcript'
-import { AppError, InfraError, ValidationError } from '~/utils/error-handler'
+import { AppError, InfraError, ValidationError, ProviderError } from '~/utils/error-handler'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { getErrorStatus } from '~/utils/error-handler'
 
@@ -299,10 +299,10 @@ export const runHappyScribeStt = async (
           })
           lifecycleMetrics!.pollCount += polled.pollCount
           lifecycleMetrics!.pollSleepMs += polled.pollSleepMs
-          if (!polled.status.downloadLink) throw new Error('Subtitle export is missing download_link')
+          if (!polled.status.downloadLink) throw ProviderError('Subtitle export is missing download_link', { stage: 'stt:subtitle-export', retryable: false })
           lifecycleMetrics!.requestCount += 1
           const subtitle = await apiClient.fetchDownloadPayload(polled.status.downloadLink, 'text')
-          if (typeof subtitle !== 'string') throw new Error('Subtitle export did not return text')
+          if (typeof subtitle !== 'string') throw ProviderError('Subtitle export did not return text', { stage: 'stt:subtitle-export', retryable: false })
           return subtitle
         })
       }
