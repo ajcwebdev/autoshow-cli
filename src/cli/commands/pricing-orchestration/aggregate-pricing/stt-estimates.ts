@@ -16,9 +16,10 @@ const EXACT_COST_MULTIPLIER = 1
 const buildCloudSttEstimate = async (
   provider: string,
   model: string,
-  durationSeconds: number
+  durationSeconds: number,
+  diarizationOptions?: SttTarget['diarizationOptions']
 ): Promise<SttStepEstimate> => {
-  const totalCost = computeBilledSttCost(provider, model, durationSeconds).cost
+  const totalCost = computeBilledSttCost(provider, model, durationSeconds, diarizationOptions).cost
   return { step: 'stt', provider, model, durationSeconds, totalCost, costMultiplier: EXACT_COST_MULTIPLIER }
 }
 
@@ -137,7 +138,7 @@ export const buildSttEstimatesForTargets = async (
       continue
     }
 
-    estimates.push(await buildCloudSttEstimate(target.service, target.model, durationSeconds))
+    estimates.push(await buildCloudSttEstimate(target.service, target.model, durationSeconds, target.diarizationOptions))
   }
 
   return estimates

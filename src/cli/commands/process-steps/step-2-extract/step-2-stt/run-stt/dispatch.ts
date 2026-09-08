@@ -18,6 +18,11 @@ import { runSupadataStt } from '../stt-services/stt-supadata/run-supadata-stt'
 import { runTogetherStt } from '../stt-services/together/run-together-stt'
 
 const minimalOptions = (context: SttDispatchContext) => ({
+  diarizationOptions: context.target.diarizationOptions,
+  nativeSubtitles: context.target.nativeSubtitles,
+  nativeResponseFormat: context.target.nativeResponseFormat,
+  grokSttVerbatim: context.target.grokSttVerbatim,
+  supadataChunkSize: context.target.supadataChunkSize,
   model: context.target.model,
   segmentOffsetMinutes: context.segmentOffsetMinutes,
   segmentNumber: context.segmentNumber,
@@ -97,7 +102,8 @@ export const dispatchStt = async (
   segmentNumber?: number,
   totalSegments?: number,
   whisperProgress?: WhisperProgressWindow | undefined
-): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => await sttDispatchers[target.service]({
+): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
+  const dispatched = await sttDispatchers[target.service]({
   target,
   audioPath,
   outputDir,
@@ -107,3 +113,7 @@ export const dispatchStt = async (
   totalSegments,
   whisperProgress
 })
+  if (dispatched.result.evidence) dispatched.result.evidence.sourceOffsetSeconds = segmentOffsetMinutes * 60
+  if (target.diarizationOptions) dispatched.metadata.diarizationOptions = target.diarizationOptions
+  return dispatched
+}

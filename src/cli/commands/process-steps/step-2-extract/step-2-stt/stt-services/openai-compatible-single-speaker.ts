@@ -1,6 +1,7 @@
+import { isRecord } from '~/utils/rest-client'
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
-import { toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-import type { OpenAICompatibleTranscriptionSegment, RawTranscriptionPayload, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
+import { buildSegmentsFromWords, formatSpeakerLabel, toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
+import type { OpenAICompatibleTranscriptionSegment, TranscriptionEvidenceWord, RawTranscriptionPayload, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { createOpenAITranscription } from '~/utils/openai/openai-client'
 import { withRetry } from '~/utils/retries'
 import { classifySttFetchRetryWithMetrics, createSttRetryMetrics } from '../stt-retry-metrics'
@@ -21,8 +22,9 @@ const parseSegments = (
 
   const segments: TranscriptionSegment[] = []
   for (const segment of raw) {
+    if (!isRecord(segment)) continue
     const entry = segment as OpenAICompatibleTranscriptionSegment
-    if (typeof entry.start !== 'number' || typeof entry.end !== 'number' || typeof entry.text !== 'string') {
+    if (typeof entry.start !== 'number' || typeof entry.end !== 'number' || !Number.isFinite(entry.start) || !Number.isFinite(entry.end) || entry.start < 0 || entry.end < entry.start || typeof entry.text !== 'string') {
       continue
     }
 
@@ -34,11 +36,45 @@ const parseSegments = (
     segments.push({
       start: toTimestamp(entry.start + offsetSeconds),
       end: toTimestamp(entry.end + offsetSeconds),
-      text
+      text,
+      ...(typeof entry.speaker_id === 'string' || typeof entry.speaker_id === 'number' ? { speaker: formatSpeakerLabel(entry.speaker_id) } : {})
     })
   }
 
   return repairZeroDurationMonotonicSegments(segments, { knownEndSeconds }).segments
+}
+
+export const parseCompatibleSttWords = (payload: RawTranscriptionPayload, offsetSeconds: number): TranscriptionEvidenceWord[] => {
+  const nested = Array.isArray(payload.speaker_segments) ? payload.speaker_segments.flatMap(segment =>
+    isRecord(segment) && Array.isArray(segment['words']) ? segment['words'].map(word =>
+      isRecord(word) ? { ...word, speaker_id: word['speaker_id'] ?? segment['speaker_id'] } : word
+    ) : []
+  ) : []
+  const top = Array.isArray(payload.words) ? payload.words : []
+  const identity = (entry: unknown): string => {
+    if (!isRecord(entry)) return ''
+    const text = entry['word'] ?? entry['text']
+    return JSON.stringify([entry['start'], entry['end'], typeof text === 'string' ? text.trim() : text])
+  }
+  const topByIdentity = new Map(top.filter(isRecord).map(entry => [identity(entry), entry]))
+  const nestedIdentities = new Set(nested.map(identity))
+  const entries = [
+    ...nested.map(entry => isRecord(entry) ? { ...topByIdentity.get(identity(entry)), ...entry } : entry),
+    ...top.filter(entry => !nestedIdentities.has(identity(entry)))
+  ]
+  const seen = new Set<string>()
+  return entries.flatMap(entry => {
+    if (!isRecord(entry)) return []
+    const text = entry['word'] ?? entry['text']
+    const start = entry['start'], end = entry['end']
+    if (typeof text !== 'string' || !text.trim() || typeof start !== 'number' || typeof end !== 'number' || !Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end < start) return []
+    const speakerId = entry['speaker_id'] ?? entry['speaker']
+    const speaker = typeof speakerId === 'string' || typeof speakerId === 'number' ? formatSpeakerLabel(speakerId) : undefined
+    const key = JSON.stringify([start, end, text, speaker])
+    if (seen.has(key)) return []
+    seen.add(key)
+    return [{ startSeconds: start + offsetSeconds, endSeconds: end + offsetSeconds, text: text.trim(), normalized: text.trim().toLowerCase(), ...(speaker ? { speaker } : {}), ...(typeof entry['confidence'] === 'number' ? { confidence: entry['confidence'] } : {}), timingSource: 'native' as const }]
+  }).sort((a, b) => a.startSeconds - b.startSeconds || a.endSeconds - b.endSeconds)
 }
 
 const normalizeBaseURL = (baseURL: string): string =>
@@ -100,7 +136,7 @@ export const runOpenAICompatibleSingleSpeakerStt = async (
     segmentNumber?: number | undefined
     totalSegments?: number | undefined
     audioDurationSeconds?: number | undefined
-    formFields?: Record<string, string> | undefined
+    formFields?: Record<string, string | string[]> | undefined
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const {
@@ -115,7 +151,7 @@ export const runOpenAICompatibleSingleSpeakerStt = async (
     audioDurationSeconds,
     formFields = {
       response_format: 'verbose_json',
-      'timestamp_granularities[]': 'segment'
+      'timestamp_granularities[]': ['word', 'segment']
     }
   } = options
 
@@ -132,7 +168,7 @@ export const runOpenAICompatibleSingleSpeakerStt = async (
     const form = new FormData()
     form.append('model', model)
     for (const [key, value] of Object.entries(formFields)) {
-      form.append(key, value)
+      for (const item of Array.isArray(value) ? value : [value]) form.append(key, item)
     }
     form.append('file', Bun.file(audioPath))
     return form
@@ -158,7 +194,9 @@ export const runOpenAICompatibleSingleSpeakerStt = async (
   const knownEndSeconds = typeof audioDurationSeconds === 'number' && Number.isFinite(audioDurationSeconds)
     ? offsetSeconds + audioDurationSeconds
     : undefined
-  const segments = parseSegments(payload.segments, offsetSeconds, knownEndSeconds)
+  const evidenceWords = parseCompatibleSttWords(payload, offsetSeconds)
+  const parsedSegments = parseSegments(payload.speaker_segments ?? payload.segments, offsetSeconds, knownEndSeconds)
+  const segments = parsedSegments.length > 0 ? parsedSegments : buildSegmentsFromWords(evidenceWords.map(word => ({ start: word.startSeconds, end: word.endSeconds, text: word.text, speaker: word.speaker })), 0)
   const text = typeof payload.text === 'string'
     ? payload.text.trim()
     : segments.map((segment) => segment.text).join(' ').trim()
@@ -177,7 +215,7 @@ export const runOpenAICompatibleSingleSpeakerStt = async (
     rateLimitCount: retryMetrics.rateLimitCount,
     text,
     segments,
-    evidenceWords: [],
+    evidenceWords,
     rawResponse: payload
   })
 }

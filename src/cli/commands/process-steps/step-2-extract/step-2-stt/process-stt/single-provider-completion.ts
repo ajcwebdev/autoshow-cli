@@ -1,3 +1,4 @@
+import { exportSttCaptions } from '~/cli/commands/process-steps/step-2-extract/run-caption-export'
 import type { ProviderCompletionStatus, SttSingleProviderCompletionContext, SttTarget } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
@@ -146,6 +147,9 @@ export const completeSingleProviderStt = async ({
     prompt: 'prompt.md',
     manifest: 'manifest.json'
   }
+
+  Object.assign(artifactFiles, await exportSttCaptions(outputDir, options.captionExportFlags, ['.']))
+  if (options.sttAudioProfile === 'lossless') artifactFiles['audioTimeline'] = 'source-timeline.json'
 
   l.report.complete(outputDir, artifactFiles, {
     steps: buildSingleStepSummaries(acquisitionTimeMs, transcription.metadata, actual),

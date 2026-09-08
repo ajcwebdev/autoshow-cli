@@ -37,7 +37,8 @@ const GEMINI_STT_JSON_SCHEMA = {
         properties: {
           start: { type: 'number' },
           end: { type: 'number' },
-          text: { type: 'string' }
+          text: { type: 'string' },
+          speaker: { type: 'string' }
         }
       }
     }
@@ -108,14 +109,14 @@ export const computeGeminiSttBillingFromUsage = (
   }
 }
 
-const buildSttPrompt = (audioDurationSeconds?: number | undefined): string => [
+const buildSttPrompt = (audioDurationSeconds?: number | undefined, diarize = false): string => [
   'Transcribe the provided audio exactly.',
   'Return only JSON with this shape: {"text": string, "segments": [{"start": number, "end": number, "text": string}]}.',
   'Use seconds from the start of this audio for start and end.',
   ...(typeof audioDurationSeconds === 'number' && Number.isFinite(audioDurationSeconds)
     ? [`The audio duration is ${audioDurationSeconds.toFixed(3)} seconds; keep all segment times within that range.`]
     : []),
-  'Do not summarize, translate, explain, or add speaker labels.'
+  diarize ? 'Do not summarize, translate, or explain. Add a speaker string to each segment using consistent anonymous IDs, only when supported by the audio.' : 'Do not summarize, translate, explain, or add speaker labels.'
 ].join(' ')
 
 const getAudioMimeType = (filePath: string): string => {
@@ -172,7 +173,7 @@ const normalizeGeminiSegments = (
     if (typeof entry !== 'object' || entry === null) {
       continue
     }
-    const raw = entry as { start?: unknown, end?: unknown, text?: unknown }
+    const raw = entry as { start?: unknown, end?: unknown, text?: unknown, speaker?: unknown }
     if (typeof raw.start !== 'number' || typeof raw.end !== 'number' || typeof raw.text !== 'string') {
       continue
     }
@@ -183,6 +184,7 @@ const normalizeGeminiSegments = (
     segments.push({
       start: toTimestamp(raw.start + offsetSeconds),
       end: toTimestamp(raw.end + offsetSeconds),
+      ...(typeof raw.speaker === 'string' && raw.speaker ? { speaker: raw.speaker } : {}),
       text
     })
   }
@@ -215,6 +217,7 @@ export const runGeminiStt = async (
   audioPath: string,
   outputDir: string,
   options: {
+    diarizationOptions?: { enabled?: boolean | undefined } | undefined
     model: string
     segmentOffsetMinutes: number
     segmentNumber?: number | undefined
@@ -232,7 +235,7 @@ export const runGeminiStt = async (
   const startTime = Date.now()
   const offsetSeconds = segmentOffsetMinutes * 60
   const outputBase = buildTranscriptionOutputBase(outputDir, segmentNumber)
-  const prompt = buildSttPrompt(audioDurationSeconds)
+  const prompt = buildSttPrompt(audioDurationSeconds, options.diarizationOptions?.enabled)
   const mimeType = getAudioMimeType(audioPath)
   const fileSizeBytes = Bun.file(audioPath).size
   if (fileSizeBytes > GEMINI_FILE_UPLOAD_BYTES) {
@@ -331,12 +334,13 @@ export const runGeminiStt = async (
       text: finalText,
       segments: finalSegments,
       evidence: {
+        source: 'gemini:prompted-audio-timing',
         capabilities: {
           hasNativeWordTiming: false,
           hasConfidence: false,
-          hasSpeakerLabels: false
+          hasSpeakerLabels: finalSegments.some(segment => segment.speaker !== undefined)
         },
-        timingQuality: parsed && parsed.segments.length > 0 && !timingIsCompressed ? 'segment_interpolated' : 'coarse',
+        timingQuality: parsed && parsed.segments.length > 0 && !timingIsCompressed ? 'generated' : 'coarse',
         rawResponse: response
       }
     },

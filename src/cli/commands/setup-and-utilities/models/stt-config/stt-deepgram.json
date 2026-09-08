@@ -4,13 +4,13 @@
     "type": "api",
     "models": {
       "nova-3": {
-        "description": "Nova-3 — diarization-inclusive pre-recorded transcription",
+        "description": "Nova-3 \u2014 diarization-inclusive pre-recorded transcription",
         "pricingSourceUrl": "https://deepgram.com/pricing",
-        "pricingCheckedAt": "2026-08-03",
+        "pricingCheckedAt": "2026-09-07",
         "pricingCurrency": "USD",
         "pricingTier": "Pay As You Go",
-        "pricingNotes": "Nova-3 Monolingual pre-recorded pricing is $0.0077/min and Speaker Diarization is $0.0020/min. AutoShow always sends diarize=true, so estimates use $0.0097/min ($0.582/hr). Free credits, Growth discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerHourCents": 58.2,
+        "pricingNotes": "Nova-3 Monolingual pre-recorded pay-as-you-go costs $0.0043/min ($0.258/hour). Speaker diarization is included for pre-recorded audio, so disabling it does not reduce the rate. Streaming rates and promotional rates do not apply. Discounts, taxes and credits are excluded.",
+        "costPerHourCents": 25.8,
         "limits": {
           "effectiveBytes": 2147483648,
           "directUploadBytes": 2147483648,

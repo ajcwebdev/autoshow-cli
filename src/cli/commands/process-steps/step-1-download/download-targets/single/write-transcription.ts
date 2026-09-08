@@ -1,4 +1,4 @@
-import { mkdir, rm } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { sttTarget } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/orchestrator'
 import { selectPrimaryPromptProvider } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-prompt'
@@ -123,7 +123,7 @@ export const resolveWriteTranscription = async (
             ...(typeof failure.status === 'number' ? { status: failure.status } : {})
           }, null, 2))
         } else {
-          await rm(providerDir, { recursive: true, force: true })
+          await Bun.write(join(providerDir, 'error.json'), JSON.stringify({ service: target.service, model: target.model, message: failure.message, stage: failure.stage }, null, 2))
         }
 
         failuresByIndex.set(index, failure)
@@ -145,7 +145,6 @@ export const resolveWriteTranscription = async (
     sttFailures = [...failuresByIndex.values()]
 
     if (successfulSttProviders.length === 0) {
-      await rm(providersDir, { recursive: true, force: true })
       throw InfraError(sttFailures.map((failure) => `${failure.service}/${failure.model}: ${failure.message}`).join('; '), { stage: 'write:video' })
     }
 

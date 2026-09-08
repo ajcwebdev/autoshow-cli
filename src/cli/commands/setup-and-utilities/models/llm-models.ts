@@ -3,6 +3,7 @@ import type { GroqModel } from '~/types'
 import { createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 export const SUPPORTED_OPENAI_MODELS = [
+  'gpt-6-astra',
   'gpt-5.6-sol',
   'gpt-5.6-terra',
   'gpt-5.6-luna',
@@ -25,6 +26,7 @@ export const SUPPORTED_GEMINI_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_ANTHROPIC_MODELS = [
+  'claude-fable-5-1',
   'claude-fable-5',
   'claude-opus-4-8',
   'claude-sonnet-5',

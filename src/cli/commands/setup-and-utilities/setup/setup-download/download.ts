@@ -1,6 +1,7 @@
+import { withProcessLock } from '~/utils/process-lock'
 import { mkdir, open, rename, rm } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
-import { dirname } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import type { DownloadFlowId, DownloadRequest, DownloadTimeouts, DownloadWatchdog, PartialDownloadMetadata } from '~/types'
 import { extractTarGzFile } from './tar-gz'
 import { withSetupDownloadSlot } from './download-admission'
@@ -180,8 +181,11 @@ const fetchToPartFile = async (req: DownloadRequest, timeouts: DownloadTimeouts)
     })
 
     if (!response.ok) {
-      if (response.status === 416) {
+      if (response.status === 416 && resumeFrom > 0) {
+        await response.body?.cancel()
         await discardPartialDownload(req.destination)
+        watchdog.stop()
+        return await fetchToPartFile(req, timeouts)
       }
       throw httpResponseError(`bun-fetch download failed: HTTP ${response.status} ${response.statusText}`, httpResponseOptions(response, {
         stage: 'setup:download', retryClass: 'setup_download', retryable: isRetryableStatus(response.status), metadata: { url: req.url }
@@ -223,14 +227,18 @@ const extractDownloadedArchive = async (
   })
 }
 
-export const downloadFile = async (req: DownloadRequest): Promise<void> => {
+export const downloadFile = async (req: DownloadRequest): Promise<void> => withProcessLock(`setup-download-${resolve(req.destination)}`, async () => downloadFileUnlocked(req))
+
+const downloadFileUnlocked = async (req: DownloadRequest): Promise<void> => {
   const timeouts = resolveDownloadTimeouts(req)
   const mode = req.mode ?? 'file'
   const partPath = partFilePath(req.destination)
 
   await mkdir(dirname(partPath), { recursive: true })
 
-  const bytes = await withSetupDownloadSlot(async () => await fetchToPartFile(req, timeouts))
+  const partialSize = await getFileSize(partPath)
+  const completePartial = req.sha256 && partialSize !== null && await hashFile(partPath) === normalizeSha256(req.sha256)
+  const bytes = completePartial ? partialSize! : await withSetupDownloadSlot(async () => await fetchToPartFile(req, timeouts))
 
   if (req.sha256) {
     const actual = await hashFile(partPath)

@@ -76,7 +76,7 @@ const buildPlan = (
 const probeMediaFile = async (inputPath: string): Promise<MediaProbe> => {
   const result = await exec(getFfprobeBinary(), [
     '-v', 'error',
-    '-show_entries', 'format=format_name,duration,bit_rate:stream=index,codec_type,codec_name,sample_rate,channels,bit_rate:stream_disposition=attached_pic',
+    '-show_entries', 'format=format_name,duration,bit_rate:stream=index,codec_type,codec_name,sample_rate,channels,bit_rate,start_time:stream_disposition=attached_pic',
     '-of', 'json',
     inputPath
   ])
@@ -96,6 +96,7 @@ const probeMediaFile = async (inputPath: string): Promise<MediaProbe> => {
   }
 
   const audioStream: AudioStreamProbe = {
+    startTimeSeconds: toFiniteNumber(audioStreamRaw.start_time),
     index: typeof audioStreamRaw.index === 'number' ? audioStreamRaw.index : 0,
     codecName: audioStreamRaw.codec_name.toLowerCase(),
     sampleRate: toFiniteNumber(audioStreamRaw.sample_rate),
@@ -180,6 +181,8 @@ const resolveNormalizedAudioPlan = (
   const sourceExtension = getLowercaseExtension(inputPath)
   const codecName = probe.audioStream.codecName
   const isAudioOnly = probe.hasVideo === false
+
+  if (profile === 'lossless') return buildPlan(profile, 'transcode-pcm', '.wav', 'wav', codecName, 'pcm_f32le', 'preserve decoded float32 samples at the original sample rate and channel count')
 
   if (profile === 'hosted-stt') {
     if (isHostedPreserveCandidate(inputPath, probe)) {
@@ -367,6 +370,8 @@ export const materializeNormalizedAudioArtifact = async (
 
   if (plan.mode === 'copy-stream') {
     args.push('-c:a', 'copy', '-f', plan.outputFormat, '-y', outputPath)
+  } else if (plan.mode === 'transcode-pcm') {
+    args.push('-c:a', 'pcm_f32le', '-map_metadata', '-1', '-map_chapters', '-1', '-f', 'wav', '-y', outputPath)
   } else if (plan.mode === 'transcode-aac') {
     args.push('-c:a', 'aac', '-profile:a', 'aac_low')
     if (plan.targetBitRate !== undefined) {

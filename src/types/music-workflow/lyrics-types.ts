@@ -8,6 +8,8 @@ export type CaptionCue = TimedTextRangeBase<number> & {
 export type LyricsCueSource = 'caption-file' | 'whisper-words' | 'whisper-segments'
 
 export type CueBuildLimits = {
+  maxCharactersPerLine?: number | undefined
+  maxLinesPerCue?: number | undefined
   maxWordsPerCue: number
   maxCharactersPerCue: number
   maxCueDurationSeconds: number

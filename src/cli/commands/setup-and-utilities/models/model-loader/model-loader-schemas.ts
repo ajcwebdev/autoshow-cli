@@ -7,6 +7,7 @@ const SttEstimationSchema = v.object({
 })
 
 const SttBillingSchema = v.object({
+  diarizationCostPerHourCents: v.optional(v.number(), undefined),
   roundingIncrementSeconds: v.optional(v.number(), undefined),
   minimumSeconds: v.optional(v.number(), undefined)
 })
@@ -120,7 +121,7 @@ const ReasoningCapabilitiesSchema = v.pipe(
   v.strictObject({
     support: v.picklist(['unsupported', 'optional', 'required']),
     allowDisabled: v.optional(v.boolean(), undefined),
-    supportedEfforts: v.optional(v.array(v.picklist(['minimal', 'low', 'medium', 'high', 'max'])), undefined)
+    supportedEfforts: v.optional(v.array(v.picklist(['minimal', 'low', 'medium', 'high', 'xhigh', 'max'])), undefined)
   }),
   v.check(
     (capabilities) => capabilities.support !== 'unsupported'

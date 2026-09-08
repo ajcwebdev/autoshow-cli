@@ -147,6 +147,7 @@ export const finalizeSttBatchCostTiming = async ({
 }
 
 export const reportSttBatchOutcome = ({
+  captionFiles = {},
   outputDir,
   requestedTargets,
   prepared,
@@ -156,6 +157,7 @@ export const reportSttBatchOutcome = ({
   promptSource,
   derived
 }: {
+  captionFiles?: Record<string, string>
   outputDir: string
   requestedTargets: SttTarget[]
   prepared: PreparedSttMedia
@@ -186,6 +188,7 @@ export const reportSttBatchOutcome = ({
   if (completionStatus === 'full') {
     logSttProviderSkips( skippedProviderStates)
     const artifactFiles: Record<string, string> = {
+      ...captionFiles,
       prompt: 'prompt.md',
       manifest: 'manifest.json'
     }

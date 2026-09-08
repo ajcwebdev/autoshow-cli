@@ -100,6 +100,7 @@ const parseStoredStep2Metadata = (value: unknown): Step2Metadata | undefined => 
 
   return {
     transcriptionService: value['transcriptionService'],
+    ...(isRecord(value['diarizationOptions']) ? { diarizationOptions: value['diarizationOptions'] as Step2Metadata['diarizationOptions'] } : {}),
     transcriptionModel: value['transcriptionModel'],
     processingTime: value['processingTime'],
     tokenCount: value['tokenCount'],
@@ -122,6 +123,10 @@ export const toRequestedProvider = (target: SttTarget): SttRequestedProvider => 
   service: target.service,
   model: target.model,
   local: target.local,
+  ...(target.grokSttVerbatim ? { grokSttVerbatim: true } : {}),
+  ...(target.supadataChunkSize !== undefined ? { supadataChunkSize: target.supadataChunkSize } : {}),
+  ...(target.nativeResponseFormat ? { nativeResponseFormat: target.nativeResponseFormat } : {}),
+  ...(target.nativeSubtitles ? { nativeSubtitles: true } : {}),
   ...(target.diarizationOptions ? { diarizationOptions: target.diarizationOptions } : {})
 })
 
@@ -146,6 +151,10 @@ const parseStoredRequestedTarget = (value: unknown): SttTarget | undefined => {
     service: value['service'],
     model: value['model'],
     local: value['local'] === true,
+    ...(value['grokSttVerbatim'] === true ? { grokSttVerbatim: true } : {}),
+    ...(typeof value['supadataChunkSize'] === 'number' ? { supadataChunkSize: value['supadataChunkSize'] } : {}),
+    ...(value['nativeResponseFormat'] === 'srt' || value['nativeResponseFormat'] === 'vtt' ? { nativeResponseFormat: value['nativeResponseFormat'] } : {}),
+    ...(value['nativeSubtitles'] === true ? { nativeSubtitles: true } : {}),
     ...(isRecord(value['diarizationOptions']) ? { diarizationOptions: value['diarizationOptions'] as SttTarget['diarizationOptions'] } : {})
   }
 }
@@ -269,6 +278,13 @@ export const readExistingSttRun = async (
     return { successes, providerStates }
   }
 
+  const storedTargets = parseStoredRequestedTargets(raw)
+  for (const target of requestedTargets) {
+    const previous = storedTargets.find(item => getSttTargetKey(item) === getSttTargetKey(target))
+    if (previous && (previous.diarizationOptions?.enabled !== target.diarizationOptions?.enabled || previous.diarizationOptions?.speakerCount !== target.diarizationOptions?.speakerCount || previous.nativeResponseFormat !== target.nativeResponseFormat || previous.grokSttVerbatim !== target.grokSttVerbatim || previous.supadataChunkSize !== target.supadataChunkSize)) {
+      throw UsageError('Cannot resume ' + target.service + '/' + target.model + ' with changed diarization or response-format settings. Resume with the saved settings or use a new output directory.')
+    }
+  }
   const storedProviderStates = parseStoredProviderStateMap(raw)
   for (const [key, value] of storedProviderStates) {
     providerStates.set(key, value)

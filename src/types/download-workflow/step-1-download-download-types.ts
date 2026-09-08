@@ -30,6 +30,7 @@ export type AudioNormalizeSummary = {
 }
 
 export type FfprobeStream = {
+  start_time?: unknown
   index?: unknown
   codec_type?: unknown
   codec_name?: unknown
@@ -50,12 +51,13 @@ export type FfprobePayload = {
   format?: unknown
 }
 
-export type NormalizedAudioExtension = '.mp3' | '.m4a' | '.ogg' | '.flac'
-export type NormalizedAudioFormat = 'mp3' | 'ipod' | 'ogg' | 'flac'
-export type AudioNormalizationMode = 'copy-file' | 'copy-stream' | 'transcode-aac' | 'transcode-mp3' | 'transcode-flac'
-export type AudioNormalizationProfile = 'default' | 'hosted-stt' | 'hosted-stt-mp3'
+export type NormalizedAudioExtension = '.mp3' | '.m4a' | '.ogg' | '.flac' | '.wav'
+export type NormalizedAudioFormat = 'mp3' | 'ipod' | 'ogg' | 'flac' | 'wav'
+export type AudioNormalizationMode = 'copy-file' | 'copy-stream' | 'transcode-aac' | 'transcode-mp3' | 'transcode-flac' | 'transcode-pcm'
+export type AudioNormalizationProfile = 'default' | 'hosted-stt' | 'hosted-stt-mp3' | 'lossless'
 
 export type AudioStreamProbe = {
+  startTimeSeconds?: number | undefined
   index: number
   codecName: string
   sampleRate?: number | undefined

@@ -225,7 +225,17 @@ const PRESET_REGISTRY = {
     chorus3: v.pipe(v.array(TextSchema), v.length(4))
   }),
   rapSongLongLyrics: RapSongExtendedLyricsSchema,
-  rapSongChapterLyrics: RapSongExtendedLyricsSchema,
+  rapSongChapterLyrics: v.object({
+    title: TextSchema,
+    intro: v.pipe(v.array(TextSchema), v.minLength(2), v.maxLength(6)),
+    verse1: v.pipe(v.array(TextSchema), v.minLength(12), v.maxLength(20)),
+    chorus1: v.pipe(v.array(TextSchema), v.minLength(2), v.maxLength(6)),
+    verse2: v.pipe(v.array(TextSchema), v.minLength(12), v.maxLength(20)),
+    chorus2: v.pipe(v.array(TextSchema), v.minLength(2), v.maxLength(6)),
+    verse3: v.pipe(v.array(TextSchema), v.minLength(12), v.maxLength(20)),
+    bridge: v.pipe(v.array(TextSchema), v.minLength(2), v.maxLength(8)),
+    chorus3: v.pipe(v.array(TextSchema), v.minLength(2), v.maxLength(6))
+  }),
   poetryCollection: v.object({
     title: TextSchema,
     theme: TextSchema,

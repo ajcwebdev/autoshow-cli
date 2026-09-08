@@ -1,5 +1,5 @@
 import { constants as fsConstants } from 'node:fs'
-import { copyFile, link, mkdtemp, rm } from 'node:fs/promises'
+import { copyFile, link, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import { hasYtDlpBinary } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
@@ -13,6 +13,7 @@ import { statPath as stat } from '~/utils/bun-file-io'
 import { hasRuntimeTool } from '~/utils/runtime-paths'
 import { InfraError } from '~/utils/error-handler'
 import { getAudioDuration } from './stt-utils/audio-splitter'
+import { decodedAudioHash } from '../verify-caption-media'
 
 const DEFAULT_STT_ACQUIRE_CONCURRENCY = 2
 
@@ -110,9 +111,20 @@ const stageSourceMediaArtifact = async (
     sourcePath: string,
     options: { removeOriginal?: boolean } = {}
   ): Promise<string> => {
-    const { plan } = await planNormalizedAudioArtifact(sourcePath, profile)
+    const { plan, probe } = await planNormalizedAudioArtifact(sourcePath, profile)
     const stagedPath = join(workspaceDir, `source_media${plan.outputExtension}`)
     await materializeNormalizedAudioArtifact(sourcePath, stagedPath, plan)
+    if (profile === 'lossless') {
+      const [sourceHash, preparedHash] = await Promise.all([decodedAudioHash(sourcePath), decodedAudioHash(stagedPath)])
+      if (sourceHash !== preparedHash) throw InfraError('Lossless audio preparation changed decoded samples; no transcription was submitted.', { stage: 'stt:media-acquisition' })
+      await writeFile(join(workspaceDir, 'source-timeline.json'), JSON.stringify({
+        schemaVersion: 1, source: source.filePath ? resolve(source.filePath) : source.url,
+        profile, sampleFormat: 'float32', channels: probe.audioStream.channels, sampleRate: probe.audioStream.sampleRate,
+        audioToVideoOffsetSeconds: probe.audioStream.startTimeSeconds ?? 0,
+        mapping: 'video time = provider audio time + audioToVideoOffsetSeconds; apply once at caption export',
+        decodedPcmSha256: sourceHash, decodedSamplesMatch: true
+      }, null, 2) + '\n')
+    }
     if (options.removeOriginal && sourcePath !== stagedPath) {
       await rm(sourcePath, { force: true })
     }
@@ -259,7 +271,7 @@ export const prepareSttMedia = async (
   options: SttAcquireArtifactOptions
 ): Promise<PreparedSttMedia> => {
   const { source, targets, outputDir } = options
-  const sourceMediaProfile = resolveSourceMediaProfile(targets)
+  const sourceMediaProfile = options.audioProfile === 'lossless' ? 'lossless' : resolveSourceMediaProfile(targets)
   const resolvedSource = await resolveSttSource(source)
   const workspaceDir = await mkdtemp(join(tmpdir(), 'autoshow-stt-acquire-'))
   const timings: PreparedSttMedia['timings'] = {}
@@ -283,9 +295,10 @@ export const prepareSttMedia = async (
     if (outputPaths.sourceMediaPath !== sourceMediaExecutionPath) {
       await materializeOutputArtifact(sourceMediaExecutionPath, outputPaths.sourceMediaPath)
     }
+    if (sourceMediaProfile === 'lossless' && outputDir) await copyFile(join(workspaceDir, 'source-timeline.json'), join(outputDir, 'source-timeline.json'))
 
     const primaryStats = await stat(outputPaths.primaryFilePath)
-    const durationSeconds = await probeDurationSeconds(sourceMediaExecutionPath, resolvedSource.metadata)
+    const durationSeconds = sourceMediaProfile === 'lossless' ? await getAudioDuration(sourceMediaExecutionPath) : await probeDurationSeconds(sourceMediaExecutionPath, resolvedSource.metadata)
     const step1Metadata: Step1Metadata = {
       ...resolvedSource.metadata,
       slug: buildMediaStep1Slug(source, resolvedSource.metadata),

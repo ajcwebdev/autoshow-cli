@@ -42,6 +42,7 @@ export const normalizeSupadataTranscript = (
     text: finalText,
     segments: finalSegments,
     evidence: {
+      source: 'supadata:auto',
       ...(chunks.length > 0 ? { segments: buildEvidenceSegments(chunks, offsetSeconds) } : {}),
       capabilities: {
         hasNativeWordTiming: false,

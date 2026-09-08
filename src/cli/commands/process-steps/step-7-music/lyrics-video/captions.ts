@@ -61,7 +61,7 @@ export const formatSrt = (cues: CaptionCue[]): string => {
   return body.length > 0 ? `${body}\n` : ''
 }
 
-const parseCaptionCues = (raw: string, format: 'vtt' | 'srt'): CaptionCue[] => {
+export const parseCaptionCues = (raw: string, format: 'vtt' | 'srt'): CaptionCue[] => {
   const source = raw.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n')
   const blocks = source.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean)
   const cues: Array<Omit<CaptionCue, 'index'>> = []

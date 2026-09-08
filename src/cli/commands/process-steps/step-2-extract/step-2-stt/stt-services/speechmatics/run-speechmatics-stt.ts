@@ -17,23 +17,28 @@ const buildSpeechmaticsUrl = (baseURL: string, path: string): string =>
   new URL(path, baseURL).toString()
 
 export const buildSpeechmaticsTranscriptionConfig = (
-  modelName: string
+  modelName: string,
+  diarize = true,
+  nativeSubtitles = false
 ): Record<string, unknown> => ({
   type: 'transcription',
+  ...(nativeSubtitles ? { output_config: { srt_overrides: { max_line_length: 42, max_lines: 2 } } } : {}),
   transcription_config: {
     model: modelName,
     language: 'multi',
-    diarization: 'speaker'
+    diarization: diarize ? 'speaker' : 'none'
   }
 })
 
 const buildCreateForm = (
   audioPath: string,
-  modelName: string
+  modelName: string,
+  diarize = true,
+  nativeSubtitles = false
 ): FormData => {
   const form = new FormData()
   form.append('data_file', Bun.file(audioPath), basename(audioPath))
-  form.append('config', JSON.stringify(buildSpeechmaticsTranscriptionConfig(modelName)))
+  form.append('config', JSON.stringify(buildSpeechmaticsTranscriptionConfig(modelName, diarize, nativeSubtitles)))
   return form
 }
 
@@ -181,7 +186,7 @@ export const runSpeechmaticsStt = async (
     job: (jobId) => `/v2/jobs/${jobId}`,
     transcript: (jobId) => `/v2/jobs/${jobId}/transcript?format=json-v2`
   },
-  buildCreateForm,
+  buildCreateForm: (path, model) => buildCreateForm(path, model, options.diarizationOptions?.enabled, options.nativeSubtitles),
   pollIntervals: { initialMs: INITIAL_POLL_INTERVAL_MS, maxMs: MAX_POLL_INTERVAL_MS },
   schemas: {
     create: SpeechmaticsCreateJobResponseSchema,

@@ -206,6 +206,12 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'stt-happyscribe-organization-id': ['defaults', 'extract', 'stt', 'happyscribeOrganizationId'],
   'stt-supadata-lang':     ['defaults', 'extract', 'stt', 'supadataLang'],
   'stt-scrapecreators-lang': ['defaults', 'extract', 'stt', 'scrapecreatorsLang'],
+  'diarization': ['defaults', 'extract', 'stt', 'diarization'],
+  'native-subtitles': ['defaults', 'extract', 'stt', 'nativeSubtitles'],
+  'stt-audio-profile': ['defaults', 'extract', 'stt', 'audioProfile'],
+  'deepinfra-stt-response-format': ['defaults', 'extract', 'stt', 'deepinfraResponseFormat'],
+  'stt-grok-verbatim': ['defaults', 'extract', 'stt', 'grokVerbatim'],
+  'stt-supadata-chunk-size': ['defaults', 'extract', 'stt', 'supadataChunkSize'],
   'speaker-count':     ['defaults', 'extract', 'stt', 'speakerCount'],
   'split':             ['defaults', 'extract', 'stt', 'split'],
   'stt-provider-concurrency': ['defaults', 'extract', 'stt', 'providerConcurrency'],
@@ -350,7 +356,7 @@ const parseConfigValue = (flagName: string, rawValue: unknown): unknown => {
   }
   if (typeof rawValue !== 'string') return rawValue
   const numericFlags = new Set([
-    'speaker-count', 'ocr-dpi', 'length', 'batch-limit', 'batch-concurrency',
+    'speaker-count', 'stt-supadata-chunk-size', 'ocr-dpi', 'length', 'batch-limit', 'batch-concurrency',
     'max-cents',
     'provider-concurrency', 'local-concurrency',
     'llm-provider-concurrency', 'llm-local-concurrency',

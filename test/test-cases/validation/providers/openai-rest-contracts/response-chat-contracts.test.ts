@@ -8,10 +8,57 @@ import { CEREBRAS_DEFAULT_BASE_URL, MINIMAX_DEFAULT_BASE_URL, TOGETHER_DEFAULT_B
 import { OpenAIRestError, createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { installFetch, installOpenAIRestContractHooks, jsonResponse, structuredOpts } from './shared'
 import { expectProviderHttpError } from '../../../../test-utils/rest-contract-helpers'
+import { resolveStructuredSchema } from '~/cli/commands/process-steps/step-3-write/structured-output/schema-resolver'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 
 installOpenAIRestContractHooks()
 
 describe('OpenAI REST response and chat contracts', () => {
+  test('Astra selector preserves the exact model ID and supports xhigh', () => {
+    const opts = buildOptsFromFlags({ openai: 'gpt-6-astra', 'reasoning-effort': 'xhigh' })
+    expect(opts.openaiModels).toEqual(['gpt-6-astra'])
+    expect(opts.reasoningEffort).toBe('xhigh')
+    expect(buildOptsFromFlags({ openai: 'gpt-5.6-sol' }).openaiModels).toEqual(['gpt-5.6-sol'])
+  })
+
+  for (const effort of [undefined, 'default', 'low', 'medium', 'high', 'xhigh', 'max'] as const) {
+    test(`Astra sends native chapter lyric schema with ${effort ?? 'omitted'} reasoning`, async () => {
+      process.env['OPENAI_API_KEY'] = 'openai-key'
+      const schema = await resolveStructuredSchema(['rapSongChapter'])
+      const calls = installFetch(() => jsonResponse({
+        model: 'gpt-6-astra', output_text: '{"title":"A file"}',
+        usage: { input_tokens: 100, output_tokens: 20, total_tokens: 120 }
+      }))
+      const result = await runOpenAIModel('Adapt the transcript.', 'gpt-6-astra', {
+        ...structuredOpts, schema: schema.jsonSchema, requestedReasoningEffort: effort
+      })
+      expect(calls).toHaveLength(1)
+      expect(calls[0]?.url).toEndWith('/responses')
+      expect(calls[0]?.bodyJson).toMatchObject({
+        model: 'gpt-6-astra', text: { format: { type: 'json_schema', strict: true, schema: schema.jsonSchema } }
+      })
+      if (effort === undefined || effort === 'default') {
+        expect(calls[0]?.bodyJson).not.toHaveProperty('reasoning')
+      } else {
+        expect(calls[0]?.bodyJson?.['reasoning']).toEqual({ effort })
+      }
+      expect(result.metadata).toMatchObject({ llmModel: 'gpt-6-astra', effectiveReasoningEffort: effort ?? 'default' })
+    })
+  }
+
+  test('Astra rejects disabled/minimal reasoning and Sol rejects xhigh before HTTP', async () => {
+    const calls = installFetch(() => { throw new Error('Unexpected provider call') })
+    for (const effort of ['disabled', 'minimal'] as const) {
+      await expect(runOpenAIModel('Adapt.', 'gpt-6-astra', {
+        ...structuredOpts, requestedReasoningEffort: effort
+      })).rejects.toThrow('does not support')
+    }
+    await expect(runOpenAIModel('Adapt.', 'gpt-5.6-sol', {
+      ...structuredOpts, requestedReasoningEffort: 'xhigh'
+    })).rejects.toThrow('does not support')
+    expect(calls).toHaveLength(0)
+  })
+
   test('Responses requests use bearer JSON REST and extract output_text content parts', async () => {
     const calls = installFetch(() => jsonResponse({
       output: [{

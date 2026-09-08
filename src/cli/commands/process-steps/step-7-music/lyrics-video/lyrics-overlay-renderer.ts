@@ -35,6 +35,8 @@ export const formatSpeakerDisplayLabel = (speaker: string): string => {
     return trimmed
   }
 
+  const scoped = trimmed.match(/^chunk-(\d+)\/(.+)$/)
+  if (scoped) return 'Chunk ' + scoped[1] + ' / ' + formatSpeakerDisplayLabel(scoped[2]!)
   const withoutPrefix = trimmed.replace(/^speakers?[\s_-]*/i, '')
   if (/^\d+$/.test(withoutPrefix)) {
     return `Speaker ${String(Number(withoutPrefix))}`

@@ -267,6 +267,31 @@ const collectStructuredCandidates = (
   return buckets
 }
 
+// Word arrays are structural, not competing transcript candidates. Flatten every
+// paragraph and carry its speaker down to words that have no explicit attribution.
+const collectHappyScribeWords = (
+  value: unknown,
+  inheritedSpeaker?: string,
+  wordContext = false,
+  depth = 0
+): TranscriptionEvidenceWord[] => {
+  if (depth > 12) return []
+  if (Array.isArray(value)) {
+    return value.flatMap(entry => collectHappyScribeWords(entry, inheritedSpeaker, wordContext, depth + 1))
+  }
+  if (!isRecord(value)) return []
+  const speaker = resolveSpeakerLabel(value['speaker_number'] ?? value['speakerNumber'] ?? value['speaker'] ?? value['speaker_id']) ?? inheritedSpeaker
+  if ((wordContext || value['type'] === 'word' || typeof value['word'] === 'string') && !Array.isArray(value['words'])) {
+    const word = parseWord(value)
+    return word ? [{ ...word, ...(word.speaker ?? speaker ? { speaker: word.speaker ?? speaker } : {}) }] : []
+  }
+  return Object.entries(value).flatMap(([key, nested]) =>
+    typeof nested === 'object' && nested !== null
+      ? collectHappyScribeWords(nested, speaker, key === 'words' || value['type'] === 'word', depth + 1)
+      : []
+  )
+}
+
 const toEvidenceSegmentsFromWords = (
   words: TranscriptionEvidenceWord[]
 ): TranscriptionEvidenceSegment[] =>
@@ -300,9 +325,13 @@ export const parseHappyScribeTranscriptPayload = (
 ): TranscriptionResult => {
   const offsetSeconds = options.offsetSeconds ?? 0
   const candidates = collectStructuredCandidates(payload)
-  const bestWords = candidates.arrays
-    .map((array) => array.map(parseWord).filter((word): word is TranscriptionEvidenceWord => word !== undefined))
-    .sort((left, right) => right.length - left.length)[0] ?? []
+  const structuredWords = collectHappyScribeWords(payload)
+  // Accept a root array explicitly containing words, but never promote arbitrary
+  // timed paragraph text to native word evidence.
+  const bestWords = structuredWords.length > 0 ? structuredWords
+    : Array.isArray(payload) && payload.every(entry => isRecord(entry) && (entry['type'] === 'word' || typeof entry['word'] === 'string'))
+      ? payload.map(parseWord).filter((word): word is TranscriptionEvidenceWord => word !== undefined)
+      : []
   const bestSegments = candidates.arrays
     .map((array) => array.map(parseSegment).filter((segment): segment is TranscriptionEvidenceSegment => segment !== undefined))
     .sort((left, right) =>

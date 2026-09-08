@@ -1,4 +1,5 @@
-import { mkdir, rm } from 'node:fs/promises'
+import { toTimestamp } from '../stt-utils/stt-utils'
+import { mkdir, rm, rename } from 'node:fs/promises'
 import type { Step2Metadata, TranscriptionResult, WhisperCppProvider, WhisperCppTranscribeOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
@@ -10,6 +11,11 @@ import { resolve } from 'node:path'
 import { pollUntil } from '~/utils/retries'
 import { prepareLocalSttInput } from './local-audio-normalize'
 import { InfraError, isRetryExhaustedError } from '~/utils/error-handler'
+
+export const selectWhisperCaptionArgs = (help: string, nativeSubtitles = false): string[] => [
+  ...(help.includes('-sow') || help.includes('--split-on-word') ? ['-sow'] : []),
+  ...(nativeSubtitles ? ['-osrt', '-ovtt', '-olrc'].filter(flag => help.includes(flag)) : [])
+]
 
 const WHISPER_JSON_WAIT_TIMEOUT_MS = 3000
 const WHISPER_JSON_WAIT_POLL_MS = 100
@@ -59,6 +65,11 @@ export const runWhisperCppTranscribe = async (
     const outputDirAbs = resolve(outputDir)
     await mkdir(outputDirAbs, { recursive: true })
     const outputBase = resolve(outputDirAbs, `transcription${segmentSuffix}`)
+    const helpInvocation = await resolveInvocation(modelName, ['--help'])
+    const helpOutput = await exec(helpInvocation.command, helpInvocation.args, { signal: AbortSignal.timeout(15_000), maxBufferBytes: 128 * 1024 })
+      .then(result => result.stdout + result.stderr)
+      .catch(() => '')
+    const captionArgs = selectWhisperCaptionArgs(helpOutput, options.nativeSubtitles)
     preparedInput = await prepareLocalSttInput(audioPath, tempPrefix)
     const baseArgs = [
       '-f', preparedInput.audioPath,
@@ -66,9 +77,11 @@ export const runWhisperCppTranscribe = async (
       '-np',
       '-pp',
       '-of', outputBase,
-      '-ojf'
+      '-ojf',
+      ...captionArgs
     ]
     const { command, args, modelDescriptor } = await resolveInvocation(modelName, baseArgs)
+    await Bun.write(outputBase + '.engine.json', JSON.stringify({ provider: name, model: modelName, modelDescriptor, command, args, captionArgs, help: helpOutput }, null, 2) + '\n')
     let lastLoggedProgress: number | null = null
     l.debug(formatWhisperProgressMessage(0, {
       segmentNumber,
@@ -118,21 +131,12 @@ export const runWhisperCppTranscribe = async (
     if (segmentOffsetMinutes > 0) {
       const offsetSeconds = segmentOffsetMinutes * 60
       segments = segments.map(seg => {
-        const partsS = seg.start.split(':')
-        const partsE = seg.end.split(':')
-        const s = parseInt(partsS[0]!) * 3600 + parseInt(partsS[1]!) * 60 + parseInt(partsS[2]!) + offsetSeconds
-        const e = parseInt(partsE[0]!) * 3600 + parseInt(partsE[1]!) * 60 + parseInt(partsE[2]!) + offsetSeconds
-        const sh = Math.floor(s / 3600)
-        const sm = Math.floor((s % 3600) / 60)
-        const ss = s % 60
-        const eh = Math.floor(e / 3600)
-        const em = Math.floor((e % 3600) / 60)
-        const es = e % 60
-        return {
-          ...seg,
-          start: `${String(sh).padStart(2, '0')}:${String(sm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`,
-          end: `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}:${String(es).padStart(2, '0')}`
+        const toSeconds = (stamp: string): number => {
+          const [hours, minutes, seconds] = stamp.replace(',', '.').split(':').map(Number)
+          return hours! * 3600 + minutes! * 60 + seconds!
         }
+        return { ...seg, start: toTimestamp(toSeconds(seg.start) + offsetSeconds), end: toTimestamp(toSeconds(seg.end) + offsetSeconds) }
+
       })
       const shiftedWords = words.map(w => ({ ...w, start: w.start + offsetSeconds, end: w.end + offsetSeconds }))
       words = shiftedWords
@@ -140,6 +144,9 @@ export const runWhisperCppTranscribe = async (
     }
     if (!preserveJson) {
       await rm(jsonFile, { force: true })
+    }
+    if (options.nativeSubtitles) for (const format of ['srt', 'vtt', 'lrc']) {
+      if (await fileExists(outputBase + '.' + format)) await rename(outputBase + '.' + format, outputBase + '.native.' + format)
     }
     const processingTime = Date.now() - startTime
     const tokenCount = countTokens(text)
@@ -163,14 +170,15 @@ export const runWhisperCppTranscribe = async (
             endSeconds: word.end,
             text: word.word,
             normalized: word.word.toLowerCase(),
-            timingSource: 'native'
+            ...(word.confidence !== undefined ? { confidence: word.confidence } : {}),
+            timingSource: word.repaired ? 'repaired' : 'token_derived'
           })),
           capabilities: {
-            hasNativeWordTiming: true,
-            hasConfidence: false,
+            hasNativeWordTiming: words.some(word => !word.repaired && word.end > word.start),
+            hasConfidence: words.some(word => word.confidence !== undefined),
             hasSpeakerLabels: false
           },
-          timingQuality: 'native_word',
+          timingQuality: words.some(word => word.repaired) ? 'mixed' : words.length > 0 ? 'native_word' : 'coarse',
           rawResponse
         }
       },

@@ -211,7 +211,8 @@ export const createHappyScribeApiClient = (
   })
 
   const createExport = async (
-    transcriptionId: string
+    transcriptionId: string,
+    format: 'json' | 'srt' | 'vtt' = 'json'
   ): Promise<HappyScribeExport> => await requestParsed({
     stage: 'result',
     retryClass: 'runtime_http_create_conservative',
@@ -220,7 +221,7 @@ export const createHappyScribeApiClient = (
     messagePrefix: 'Happy Scribe export creation failed',
     request: post('/exports', {
       export: {
-        format: 'json',
+        format,
         transcription_ids: [transcriptionId]
       }
     }),
@@ -240,7 +241,8 @@ export const createHappyScribeApiClient = (
   })
 
   const fetchDownloadPayload = async (
-    url: string
+    url: string,
+    format: 'json' | 'text' = 'json'
   ): Promise<unknown> => {
     const configuredOrigin = new URL(options.baseURL).origin
     const downloadOrigin = new URL(url).origin
@@ -251,11 +253,12 @@ export const createHappyScribeApiClient = (
         timeoutMs: POLL_REQUEST_TIMEOUT_MS
       }, async (signal) => {
         const response = await fetch(url, { method: 'GET', headers, redirect: 'follow', signal: signal ?? null })
-        const payload = parseJsonOrText(await response.text())
+        const raw = await response.text()
+        const payload = format === 'text' ? raw : parseJsonOrText(raw)
         if (!response.ok) {
           throw toHappyScribeHttpError('result', 'runtime_http_read', response, payload, 'Happy Scribe transcript download failed')
         }
-        if (typeof payload === 'string') {
+        if (format === 'json' && typeof payload === 'string') {
           throw ProviderError('Happy Scribe transcript download did not return JSON', {
             stage: 'result',
             retryClass: 'runtime_http_read',
@@ -267,12 +270,12 @@ export const createHappyScribeApiClient = (
       }, (error) => classifyFetchRetry(error, 'runtime_http_read'))
 
     try {
-      return await fetchCandidate({ accept: 'application/json' })
+      return await fetchCandidate({ accept: format === 'json' ? 'application/json' : 'text/plain' })
     } catch (error) {
       const status = getErrorStatus(error)
       if ((status === 401 || status === 403) && downloadOrigin === configuredOrigin) {
         return await fetchCandidate({
-          accept: 'application/json',
+          accept: format === 'json' ? 'application/json' : 'text/plain',
           authorization: `Bearer ${options.apiKey}`
         })
       }

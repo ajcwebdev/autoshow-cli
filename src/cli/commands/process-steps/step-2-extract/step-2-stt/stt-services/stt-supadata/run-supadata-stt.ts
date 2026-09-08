@@ -40,6 +40,7 @@ export const runSupadataStt = async (
   _audioPath: string,
   outputDir: string,
   options: {
+    supadataChunkSize?: number | undefined
     model: string
     sourceUrl?: string | undefined
     language?: string | undefined
@@ -140,6 +141,7 @@ export const runSupadataStt = async (
       let createResult: Awaited<ReturnType<typeof fetchSupadataTranscript>> | undefined
       try {
         createResult = await fetchSupadataTranscript({
+          chunkSize: options.supadataChunkSize,
           baseURL,
           apiKey,
           sourceUrl,

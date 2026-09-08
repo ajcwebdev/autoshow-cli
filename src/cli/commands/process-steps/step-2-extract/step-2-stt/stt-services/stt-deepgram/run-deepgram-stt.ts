@@ -29,10 +29,10 @@ const inferDeepgramMimeType = (audioPath: string, fallback?: string | undefined)
   return fallback ?? 'application/octet-stream'
 }
 
-const buildDeepgramUrl = (baseURL: string, modelName: string): string => {
+const buildDeepgramUrl = (baseURL: string, modelName: string, diarize = true): string => {
   const url = new URL('/v1/listen', baseURL)
   url.searchParams.set('model', modelName)
-  url.searchParams.set('diarize', 'true')
+  url.searchParams.set('diarize', String(diarize))
   url.searchParams.set('utterances', 'true')
   url.searchParams.set('punctuate', 'true')
   url.searchParams.set('smart_format', 'true')
@@ -134,6 +134,7 @@ const evidenceWordsFromDeepgram = (
         text,
         normalized: text.toLowerCase(),
         ...(word.speaker !== undefined ? { speaker: formatSpeakerLabel(word.speaker) } : {}),
+        ...(word.confidence !== undefined ? { confidence: word.confidence } : {}),
         timingSource: 'native' as const
       }
     })
@@ -176,7 +177,7 @@ export const runDeepgramTranscribe = async (
       requestCount += 1
     }),
     attachError: attachSttStageErrorContext,
-    doFetch: async (signal) => await fetch(buildDeepgramUrl(baseURL, modelName), {
+    doFetch: async (signal) => await fetch(buildDeepgramUrl(baseURL, modelName, options.diarizationOptions?.enabled), {
       method: 'POST',
       headers: {
         Authorization: `Token ${apiKey}`,

@@ -21,6 +21,16 @@ const buildStep3CostMetadata = (overrides: Partial<Step3Metadata> = {}): Step3Me
 })
 
 describe('price mode contracts', () => {
+  test('Astra pricing changes for the whole request strictly above 272K input tokens', () => {
+    const rates = requireDefined(getLlmCost('openai', 'gpt-6-astra'), 'Astra pricing')
+    const standard = computeTokenCost(rates, 272_000, 1000)
+    const long = computeTokenCost(rates, 272_001, 1000)
+    expect(standard).toMatchObject({ inputCostPer1MCents: 1000, outputCostPer1MCents: 5000, totalCost: 277 })
+    expect(long).toMatchObject({ inputCostPer1MCents: 2000, outputCostPer1MCents: 7500 })
+    expect(long.totalCost).toBeCloseTo(551.502)
+    const entry = requireDefined(getModelRegistry().llm['openai']?.models['gpt-6-astra'], 'Astra registry entry')
+    expect(entry.tokenPricingBands?.map((band) => band.cachedInputCostPer1MCents)).toEqual([100, 200])
+  })
 
   test('shared token pricing helper applies OpenAI long-context bands', () => {
       const rates = requireDefined(getLlmCost('openai', 'gpt-5.5'), 'GPT-5.5 pricing')

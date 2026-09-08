@@ -1,6 +1,7 @@
 import type { BatchRuntimeOptions, HostedConcurrencyRuntimeOptions, ModelCostFilterRuntimeOptions } from '~/types'
 
 export type SttRuntimeOptions = {
+  sttAudioProfile?: 'default' | 'lossless' | undefined
   whisperModels: string[] | undefined
   whisperfileModels: string[] | undefined
   deepinfraSttModels: string[] | undefined
@@ -20,6 +21,12 @@ export type SttRuntimeOptions = {
   togetherSttModels: string[] | undefined
   supadataLang: string | undefined
   scrapecreatorsLang: string | undefined
+  grokSttVerbatim?: boolean | undefined
+  supadataChunkSize?: number | undefined
+  deepinfraSttResponseFormat?: string | undefined
+  captionExportFlags?: Record<string, unknown> | undefined
+  nativeSubtitles?: boolean | undefined
+  diarization?: boolean | undefined
   diarizationSpeakerCount: number | undefined
   sttProviderConcurrency: number
   sttLocalConcurrency: number

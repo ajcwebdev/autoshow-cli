@@ -48,7 +48,7 @@ const parseEvidenceWord = (
       ? { speaker: value['speaker'] }
       : {}),
     ...(typeof value['confidence'] === 'number' ? { confidence: value['confidence'] } : {}),
-    timingSource: value['timingSource'] === 'native' ? 'native' : 'interpolated'
+    timingSource: value['timingSource'] === 'native' || value['timingSource'] === 'generated' || value['timingSource'] === 'token_derived' || value['timingSource'] === 'caption_span' || value['timingSource'] === 'repaired' ? value['timingSource'] : 'interpolated'
   }
 }
 
@@ -77,7 +77,7 @@ const parseEvidenceCapabilities = (
 const parseEvidenceTimingQuality = (
   value: unknown
 ): TranscriptionEvidenceTimingQuality | undefined => {
-  if (value === 'native_word' || value === 'segment_interpolated' || value === 'coarse') {
+  if (value === 'native_word' || value === 'segment_interpolated' || value === 'coarse' || value === 'mixed' || value === 'generated') {
     return value
   }
 
@@ -115,6 +115,9 @@ const parseTranscriptionEvidence = (
     ...(words.length > 0 ? { words } : {}),
     ...(capabilities ? { capabilities } : {}),
     ...(timingQuality ? { timingQuality } : {}),
+    ...(typeof value['sourceOffsetSeconds'] === 'number' ? { sourceOffsetSeconds: value['sourceOffsetSeconds'] } : {}),
+    ...(typeof value['source'] === 'string' ? { source: value['source'] } : {}),
+    ...(Array.isArray(value['chunkEvidence']) ? { chunkEvidence: value['chunkEvidence'].map(parseTranscriptionEvidence).filter((entry): entry is TranscriptionEvidence => entry !== undefined) } : {}),
     ...('rawResponse' in value ? { rawResponse: value['rawResponse'] } : {})
   }
 }

@@ -25,7 +25,7 @@ export type TranscriptionEvidenceWord = SecondsTimedTextRangeBase & {
   normalized: string
   speaker?: string | undefined
   confidence?: number | undefined
-  timingSource: 'native' | 'interpolated'
+  timingSource: 'native' | 'interpolated' | 'generated' | 'token_derived' | 'caption_span' | 'repaired'
 }
 
 export type TranscriptionEvidenceCapabilities = {
@@ -34,7 +34,7 @@ export type TranscriptionEvidenceCapabilities = {
   hasSpeakerLabels: boolean
 }
 
-export type TranscriptionEvidenceTimingQuality = 'native_word' | 'segment_interpolated' | 'coarse'
+export type TranscriptionEvidenceTimingQuality = 'native_word' | 'segment_interpolated' | 'coarse' | 'mixed' | 'generated'
 
 export type TranscriptionEvidence = {
   segments?: TranscriptionEvidenceSegment[] | undefined
@@ -42,6 +42,9 @@ export type TranscriptionEvidence = {
   capabilities?: Partial<TranscriptionEvidenceCapabilities> | undefined
   timingQuality?: TranscriptionEvidenceTimingQuality | undefined
   rawResponse?: unknown
+  chunkEvidence?: TranscriptionEvidence[] | undefined
+  source?: string | undefined
+  sourceOffsetSeconds?: number | undefined
 }
 
 export type TranscriptionResult = {
@@ -72,6 +75,7 @@ export type Step2RuntimeMetadata = {
 }
 
 export type Step2Metadata = {
+  diarizationOptions?: DiarizationOptions | undefined
   transcriptionService: 'whisper' | 'whisperfile' | 'deepgram' | 'deepinfra' | 'soniox' | 'speechmatics' | 'rev' | 'groq' | 'grok' | 'mistral' | 'assemblyai' | 'gladia' | 'happyscribe' | 'supadata' | 'scrapecreators' | 'gemini-stt' | 'together' | 'youtube-captions'
   transcriptionModel: string
   processingTime: number

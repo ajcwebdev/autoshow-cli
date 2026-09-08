@@ -23,6 +23,8 @@ export type TranscribeEngineCapabilities = {
 export type RawTranscriptionPayload = {
   text?: unknown
   segments?: unknown
+  words?: unknown
+  speaker_segments?: unknown
 }
 
 export type SonioxTranscriptionStatus = v.InferOutput<typeof SonioxTranscriptionStatusSchema>
@@ -53,6 +55,10 @@ export type Step2TimingMetadata = {
 }
 
 export type SttTarget = ProviderIdentityBase<TranscribeEngine> & {
+  grokSttVerbatim?: boolean | undefined
+  supadataChunkSize?: number | undefined
+  nativeResponseFormat?: 'srt' | 'vtt' | undefined
+  nativeSubtitles?: boolean | undefined
   local: boolean
   diarizationOptions?: DiarizationOptions | undefined
 }
@@ -118,7 +124,7 @@ export type SttCompletionContextBase = {
   processStart: number
 }
 
-export type SttRequestedProvider = Pick<SttTarget, 'service' | 'model' | 'local' | 'diarizationOptions'>
+export type SttRequestedProvider = Pick<SttTarget, 'service' | 'model' | 'local' | 'diarizationOptions' | 'nativeSubtitles' | 'nativeResponseFormat' | 'grokSttVerbatim' | 'supadataChunkSize'>
 
 export type SttRecordedProviderError = ProviderErrorSummaryFields & {
   skipped?: boolean | undefined
@@ -451,7 +457,7 @@ export type YoutubeCaptionSelection = {
   track: YoutubeCaptionTrack
 }
 
-export type ParsedYoutubeCue = SecondsTimedTextRangeBase
+export type ParsedYoutubeCue = SecondsTimedTextRangeBase & { speaker?: string | undefined }
 
 export type YoutubeCaptionMetadataFile = {
   captionKind: 'manual' | 'auto'

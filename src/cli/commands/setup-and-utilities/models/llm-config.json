@@ -3,6 +3,42 @@
     "description": "OpenAI language models",
     "type": "api",
     "models": {
+      "gpt-6-astra": {
+        "description": "GPT-6 Astra — flagship reasoning model",
+        "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+        "pricingCheckedAt": "2026-09-05",
+        "pricingCurrency": "USD",
+        "pricingTier": "OpenAI API standard token pricing",
+        "pricingNotes": "OpenAI lists GPT-6 Astra Standard pricing at $10/1M input, $1/1M cached input, $12.50/1M cache write, and $50/1M output tokens. Above 272K input tokens, the full request uses $20/1M input, $2/1M cached input, and $75/1M output. Estimates use uncached standard rates. Cache writes, batch/flex discounts, fast mode, regional uplifts, enterprise pricing, taxes, and provider credits are ignored. Timing is an uncalibrated heuristic inherited from the previous flagship.",
+        "inputCostPer1MCents": 1000,
+        "cachedInputCostPer1MCents": 100,
+        "outputCostPer1MCents": 5000,
+        "tokenPricingBands": [
+          {
+            "label": "standard-short-context",
+            "maxInputTokens": 272000,
+            "inputCostPer1MCents": 1000,
+            "cachedInputCostPer1MCents": 100,
+            "outputCostPer1MCents": 5000
+          },
+          {
+            "label": "standard-long-context",
+            "minInputTokens": 272001,
+            "inputCostPer1MCents": 2000,
+            "cachedInputCostPer1MCents": 200,
+            "outputCostPer1MCents": 7500
+          }
+        ],
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KTokens": 4125
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": ["low", "medium", "high", "xhigh", "max"]
+        }
+      },
       "gpt-5.6-sol": {
         "description": "GPT-5.6 Sol — flagship GPT-5.6 tier",
         "pricingSourceUrl": "https://developers.openai.com/api/docs/pricing",
@@ -296,6 +332,25 @@
     "description": "Anthropic Claude language models",
     "type": "api",
     "models": {
+      "claude-fable-5-1": {
+        "description": "Claude Fable 5.1 — always-on adaptive reasoning",
+        "pricingSourceUrl": "https://platform.claude.com/docs/en/models/fable-5-1/overview",
+        "pricingCheckedAt": "2026-09-05",
+        "pricingCurrency": "USD",
+        "pricingTier": "Claude API standard token pricing",
+        "pricingNotes": "Anthropic lists Claude Fable 5.1 standard pricing at $10/1M input tokens and $50/1M output tokens. Adaptive thinking is always on with default high effort; disabled thinking and forced tool choice are unsupported. Native JSON outputs use output_config.format. Prompt caching, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "inputCostPer1MCents": 1000,
+        "outputCostPer1MCents": 5000,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KTokens": 4524
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": ["low", "medium", "high", "max"]
+        }
+      },
       "claude-fable-5": {
         "description": "Claude Fable 5 — highest-capability widely released Claude model",
         "pricingSourceUrl": "https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en",

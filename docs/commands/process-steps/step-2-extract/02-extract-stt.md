@@ -6,6 +6,7 @@ Media inputs are downloaded and transcribed with hosted speech-to-text engines.
 
 - [STT Environment](#stt-environment)
 - [Shared STT Options](#shared-stt-options)
+- [Caption Export](#caption-export)
 - [Transcript Videos](#transcript-videos)
 - [STT Services](#stt-services)
   - [AssemblyAI](#assemblyai)
@@ -26,7 +27,7 @@ Media inputs are downloaded and transcribed with hosted speech-to-text engines.
 - [STT Notes](#stt-notes)
 - [Provider Capabilities](#provider-capabilities)
   - [Diarization](#diarization)
-  - [No Diarization](#no-diarization)
+  - [Diarization Off by Default](#diarization-off-by-default)
   - [Direct URL](#direct-url)
 
 See the [`extract` overview](./01-extract.md) for input routing and default media transcription. Hosted STT is selected with `--provider`.
@@ -56,6 +57,8 @@ On `extract` and `resume`, pass `--provider provider[=model]`. On `config`, pass
 
 ## Shared STT Options
 
+Fresh asynchronous transcription jobs and subtitle exports using the shared STT polling loop wait up to 30 minutes for completion. A polling timeout retains the existing remote job identity for recovery.
+
 | Flag                                  | Description                                                                                                                                                                       |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--all-providers`                     | Enable every broadly applicable hosted STT provider/model for the input source; Supadata is included for supported public URLs, and ScrapeCreators is included for YouTube URLs   |
@@ -84,6 +87,49 @@ bun autoshow extract https://ajc.pics/autoshow/examples/2-video.mp4 --provider d
 # Process a whole YouTube channel batch with caption-first routing
 bun autoshow extract https://www.youtube.com/@channelname --youtube-captions --batch-limit all
 ```
+
+## Caption Export
+
+Generate captions directly from an audio or video file with `--captions`. The selected STT model runs once; caption export uses its saved timing evidence and writes `captions.srt`, `captions.vtt`, and `captions.json` beside `result.json`. Multiple providers each get captions in their own provider directory. This also works with media URLs, media batches, split transcription, and the YouTube caption-first path. Normal provider pricing applies to transcription; local caption generation adds no provider call. `--price` estimates transcription without running it.
+
+```bash
+bun autoshow extract audio.mp3 --provider groq --captions
+bun autoshow extract video.mp4 --provider groq --captions --caption-mode word --output-dir output/video-captions
+bun autoshow extract interview.mp4 --provider deepgram=nova-3 --diarization --captions --caption-format vtt
+```
+
+Caption formatting is validated before transcription. If caption generation fails, the completed transcript and evidence remain available; retry the saved-result command below to adjust captions without paying for transcription again.
+
+Export locally from a provider's saved `result.json`, or a directory containing that file. This path needs no audio, model, API credentials, or video rendering. Use a new `--output-dir` for each layout; existing caption files are protected from overwrite.
+
+```bash
+bun autoshow extract output/<run>/providers/<provider-model>/result.json --captions --output-dir output/captions-phrases
+bun autoshow extract --captions --transcript-result output/<run>/providers/<provider-model>/result.json --caption-mode word --caption-format vtt --no-caption-speakers --output-dir output/captions-words
+```
+
+| Flag | Behavior |
+| --- | --- |
+| `--caption-format srt\|vtt\|both` | Defaults to both formats. |
+| `--caption-mode phrase\|word` | Defaults to readable phrases. Word mode emits one evidence word/token span per cue. A provider-formatted multiword span retains its original bounds. |
+| `--no-caption-speakers` | Hides speaker prefixes in the exported files without changing provider evidence. |
+| `--caption-max-words`, `--caption-max-characters` | Phrase grouping budgets; defaults are 10 words and 58 characters. Indivisible words can exceed a character budget. |
+| `--caption-max-duration`, `--caption-break-gap` | Cue-duration and silence-gap budgets in seconds; defaults are 5 and 0.9. Native word boundaries are preserved. |
+| `--caption-line-width`, `--caption-max-lines` | Defaults are 42 characters and 2 lines. Long words and added speaker prefixes can exceed these layout budgets. |
+| `--caption-max-cps` | Reading-speed threshold, default 20 characters/second. Violations are recorded without moving measured word timing. |
+
+The export includes `captions.json` with timing quality, inferred-word counts, invalid-word counts, layout warnings, and cue boundaries. Partial word evidence falls back only for uncovered timed text. Text with no usable timed word or segment causes an actionable error. Segment-only providers can produce word-mode cues through explicit interpolation, reported as estimated timing. Gemini timing remains generated; YouTube inline timestamps remain caption spans. Millisecond serialization does not establish millisecond acoustic accuracy.
+
+### Provider controls
+
+`--diarization` and `--no-diarization` control AssemblyAI, Deepgram, Gladia, Grok, Mistral, Soniox, Speechmatics, and Together. Defaults remain provider-specific; Together is off unless enabled or given a speaker count. `--speaker-count` is supported by AssemblyAI, Gladia, and Together. Together sends matching minimum/maximum speaker bounds. Both configured Together models share this request contract; Parakeet diarization still needs provider/model-specific live validation. Gemini supports optional generated speaker hypotheses; these are not acoustically aligned speaker measurements. Unsupported providers, including Happy Scribe's undocumented off switch, report the ignored toggle. Hide their labels at export with `--no-caption-speakers`.
+
+Chunked diarized results scope speaker labels as `chunk-N/speaker-ID`. The same numeric speaker in two independently transcribed chunks is not assumed to be the same person. Raw chunk evidence and source offsets survive save/load. Resume rejects changes to transcription-affecting settings instead of silently reusing incompatible results.
+
+`--native-subtitles` opts into native artifacts from the same inference or completed job: AssemblyAI SRT/VTT; Gladia SRT/VTT; Happy Scribe SRT/VTT; Speechmatics SRT; whisper.cpp/whisperfile SRT/VTT/LRC. Local engines probe their installed help before enabling optional flags and save invocation/model/help provenance in `transcription.engine.json`. Native artifacts are named `transcription.native.srt/vtt` (with segment suffixes for split jobs) and retain provider-relative timestamps within split chunks. Use local export of the combined `result.json` for a full-recording timeline. Hosted exports may consume requests, quota, or provider credits. Export failures create separate error artifacts and retain structured transcription evidence. Adding this option when resuming an already successful target does not trigger another transcription or retroactively fetch exports; use local re-export for those results.
+
+DeepInfra defaults to verbose JSON with words and segments. `--deepinfra-stt-response-format srt|vtt` explicitly selects a native text response in one inference request, preserving subtitle cue timing instead of word evidence. It never retranscribes simply to fetch a second format. Prefer verbose JSON plus local export when precise word evidence matters.
+
+Grok's `--stt-grok-verbatim` disables display formatting and requests filler words. Supadata's `--stt-supadata-chunk-size <characters>` controls chunk readability; it does not add word alignment. These options, diarization, native subtitles, and DeepInfra response format are supported in persistent STT configuration and resume.
 
 ## Transcript Videos
 
@@ -297,6 +343,8 @@ Bare `--provider together` defaults to `nvidia/parakeet-tdt-0.6b-v3`.
 
 ## STT Pricing
 
+The 2026-09-07 pricing check lists AssemblyAI Universal-3.5 Pro at $0.21/hour plus $0.02/hour for diarization ($0.23/hour by default); disabling diarization removes the add-on. Deepgram Nova-3 monolingual prerecorded audio is $0.0043/minute ($0.258/hour), with diarization included. Estimates use these prerecorded rates, not streaming promotions. [AssemblyAI pricing](https://www.assemblyai.com/pricing), [Deepgram pricing](https://deepgram.com/pricing).
+
 - **Happy Scribe**: Estimated at `$0.01/min` from audio duration.
 - **Supadata**: Reference rate of `$10 / 1,000 credits` (`1.00 cent/credit`). Native transcripts estimate 1 credit per request; generated transcripts estimate ~2 credits/min. `auto` mode estimates the higher rate.
 - **ScrapeCreators**: Reference rate of `$47 / 25,000 credits` (`0.188 cents/request`), charging per retrieval request regardless of duration.
@@ -328,21 +376,21 @@ Pricing is the AutoShow estimate rate. Cost rank orders models cheapest-first wi
 | Soniox `stt-async-v5`          | ✅ 2026-06-11 | ✅ Speaker diarization | ❌ Not exposed       | ✅ Native words            | ⚠️ Smart formatting included        | ✅ 5 hours            | ⚠️ 500 MiB           | $0.10/hr  | 1/8       |
 | Gladia `solaria-3`             | ✅ 2026-06-10 | ✅ Speaker labels      | ✅ `--speaker-count` | ✅ Native words            | ❌ None                             | ⚠️ 2 hours 15 minutes | ⚠️ 1000 MiB          | $0.61/hr  | 8/8       |
 | Grok `speech-to-text`          | ✅ 2026-05    | ✅ Speaker diarization | ❌ Not exposed       | ✅ Native words            | ✅ Formatting                       | ✅ No documented cap  | ⚠️ 500 MiB           | $0.10/hr  | 1/8       |
-| Mistral `voxtral-mini-2602`    | ✅ 2026-02-04 | ✅ Speaker diarization | ❌ Not exposed       | ⚠️ Segment timestamps only | ❌ None                             | ⚠️ ~3 hours           | ⚠️ 500 MiB           | $0.12/hr  | 2/8       |
-| Deepgram `nova-3`              | ⚠️ 2025-02-12 | ✅ Speaker diarization | ❌ Not exposed       | ✅ Native words            | ✅ Punctuation and smart formatting | ✅ No documented cap  | ✅ 2 GiB             | $0.582/hr | 6/8       |
+| Mistral `voxtral-mini-2602`    | ✅ 2026-02-04 | ✅ Speaker diarization | ❌ Not exposed       | ✅ Native words without diarization | ❌ None                             | ⚠️ ~3 hours           | ⚠️ 500 MiB           | $0.12/hr  | 2/8       |
+| Deepgram `nova-3`              | ⚠️ 2025-02-12 | ✅ Speaker diarization | ❌ Not exposed       | ✅ Native words            | ✅ Punctuation and smart formatting | ✅ No documented cap  | ✅ 2 GiB             | $0.258/hr | 6/8       |
 | Happy Scribe `auto`            | ❌ 2017       | ✅ Speaker labels      | ❌ Not exposed       | ⚠️ Words when available    | ❌ None                             | ✅ No documented cap  | ✅ No documented cap | $0.60/hr  | 7/8       |
 
-### No Diarization
+### Diarization Off by Default
 
 | Provider                                  | Released      | Word timestamps            | Duration             | File size                 | Pricing   | Cost rank |
 | ----------------------------------------- | ------------- | -------------------------- | -------------------- | ------------------------- | --------- | --------- |
 | Gemini `gemini-3.6-flash`                 | ✅ 2026-07    | ❌ Segment timestamps only | ✅ No documented cap | ❌ 20 MiB / 2 GiB         | $0.173/hr | 7/7       |
-| Together `nvidia/parakeet-tdt-0.6b-v3`    | ⚠️ 2025-08-14 | ⚠️ Segment timestamps only | ⚠️ 4 hours           | ⚠️ 500 MiB                | $0.09/hr  | 4/7       |
-| DeepInfra `openai/whisper-large-v3-turbo` | ❌ 2024-09    | ⚠️ Segment timestamps only | ✅ No documented cap | ✅ No documented cap      | $0.012/hr | 1/7       |
-| Groq `whisper-large-v3-turbo`             | ❌ 2024-09    | ⚠️ Segment timestamps only | ✅ No documented cap | ❌ 25 MiB                 | $0.04/hr  | 3/7       |
-| DeepInfra `openai/whisper-large-v3`       | ❌ 2023-11    | ⚠️ Segment timestamps only | ✅ No documented cap | ✅ No documented cap      | $0.027/hr | 2/7       |
-| Groq `whisper-large-v3`                   | ❌ 2023-11    | ⚠️ Segment timestamps only | ✅ No documented cap | ❌ 25 MiB                 | $0.111/hr | 6/7       |
-| Together `openai/whisper-large-v3`        | ❌ 2023-11    | ⚠️ Segment timestamps only | ⚠️ 4 hours           | ❌ 20 MiB                 | $0.09/hr  | 4/7       |
+| Together `nvidia/parakeet-tdt-0.6b-v3`    | ⚠️ 2025-08-14 | ✅ Native words | ⚠️ 4 hours           | ⚠️ 500 MiB                | $0.09/hr  | 4/7       |
+| DeepInfra `openai/whisper-large-v3-turbo` | ❌ 2024-09    | ✅ Native words | ✅ No documented cap | ✅ No documented cap      | $0.012/hr | 1/7       |
+| Groq `whisper-large-v3-turbo`             | ❌ 2024-09    | ✅ Native words | ✅ No documented cap | ❌ 25 MiB                 | $0.04/hr  | 3/7       |
+| DeepInfra `openai/whisper-large-v3`       | ❌ 2023-11    | ✅ Native words | ✅ No documented cap | ✅ No documented cap      | $0.027/hr | 2/7       |
+| Groq `whisper-large-v3`                   | ❌ 2023-11    | ✅ Native words | ✅ No documented cap | ❌ 25 MiB                 | $0.111/hr | 6/7       |
+| Together `openai/whisper-large-v3`        | ❌ 2023-11    | ✅ Native words | ⚠️ 4 hours           | ❌ 20 MiB                 | $0.09/hr  | 4/7       |
 
 ### Direct URL
 
@@ -354,3 +402,61 @@ Supadata and ScrapeCreators transcribe from the original public source URL.
 | ScrapeCreators `youtube-transcript` | ❌ 2024-06 | ✅ Yes  | ❌ YouTube only                                      | ❌ Cue times only     | ⚠️ Retrieves existing captions    | ✅ No documented cap | ✅ No upload        | $0.00188/request                          | 1/2       |
 
 Use `--split` for long files. AutoShow also splits automatically when a provider duration or size cap would be exceeded.
+
+### Reproducible transcription, review, and caption workflow
+
+Use the CLI for audio preparation, provider execution, review packets, applying approved edits, caption generation, and container verification. Human or agent review supplies editorial decisions by editing JSON data; no custom executable script is needed. The review/apply commands are entirely offline and do not invoke an LLM or STT provider.
+
+```bash
+# Paid transcription: run once after approving the provider and estimate.
+bun autoshow extract "input/video.mp4" --provider assemblyai=universal-3-5-pro --diarization --stt-audio-profile lossless --output-dir output/episode/raw --json
+
+# Offline: export words with stable indices and a source-bound edit template.
+bun autoshow extract output/episode/raw/result.json --transcript-review --output-dir output/episode/review --json
+
+# Review transcript-review.json and edit only the edits array in edits.json.
+bun autoshow extract output/episode/raw/result.json --transcript-edits output/episode/review/edits.json --output-dir output/episode/reviewed --json
+
+# Offline: use audioToVideoOffsetSeconds from raw/source-timeline.json (0 in this example).
+bun autoshow extract "input/video.mp4" --captions --transcript-result output/episode/reviewed/result.json --caption-offset 0 --no-caption-speakers --embed-captions --caption-container both --output-dir output/episode/final --json
+```
+
+`--stt-audio-profile lossless` decodes the first audio stream to float32 PCM WAV at its original sample rate and channel count. Before submission, the CLI verifies that the source and prepared audio decode to identical samples. It retains the prepared audio and `source-timeline.json`, including the original audio start offset. This preserves decoded audio; it cannot recover information already lost in the source codec. The default profile continues to use the existing provider-oriented audio preparation. The profile can also be configured as `defaults.extract.stt.audioProfile`.
+
+Each entry in the template's `edits` array has this shape (indices and text below are illustrative):
+
+```json
+{
+  "startWord": 12,
+  "deleteCount": 1,
+  "expectedText": "Helo,",
+  "replacement": "Hello,",
+  "reason": "Correct a spelling error without changing the spoken word."
+}
+```
+
+Keep the template's `schemaVersion` and `sourceSha256`. Indices are zero-based and always address the original review packet. The CLI rejects stale source hashes, unexpected original text, overlapping edits, replacements crossing source segments or speakers, and existing output artifacts. Equal-count substitutions retain each original word's boundaries; changed word counts interpolate explicitly within the selected span. Unselected words retain their timing. An empty replacement explicitly deletes the selected words and may span speakers or remove entire segments; removed segments are retained in the provenance sidecar. Review packets expose invalid source timing and invalid review word indices so malformed repetition can be inspected and explicitly removed offline. Apply rejects any invalid word timing remaining in the reviewed result. `transcript-edits.json` records reasons, original and replacement words, timing decisions, removed segments, and the source evidence path. The source result remains unmodified. Review uncertain wording against the recording; contextual plausibility alone does not establish what was spoken.
+
+For multiple videos, repeat these commands with a distinct episode directory. Embedding currently takes one local video per invocation. If caption formatting or embedding fails, use the saved result in an offline command; do not resubmit transcription. A failed or ambiguous provider submission requires reconciliation before any paid retry.
+
+Embedding validates the extracted subtitle text and millisecond cue timings, audio/video stream payload hashes, every audio/video packet's presentation time within container precision, and retained chapters before publishing each completed video. `caption-embedding.json` records the checks. These automated checks establish faithful packaging, not acoustic alignment accuracy or visual playback quality; playback remains a separate review step.
+
+### Container options and compatibility
+
+Use `--captions --embed-captions` with a local video to transcribe once, retain standalone SRT/VTT, and embed an English subtitle track into a separate video. `--caption-container mp4|mkv|both` defaults to MP4 for an MP4 source and MKV otherwise. Video and audio streams are copied without re-encoding. The source remains untouched. Use a player that supports standard selectable MP4/MKV subtitle tracks; select English in its subtitle menu. Captions are not forced. Other output containers are not supported.
+
+To embed an existing transcript with zero provider calls:
+
+```bash
+bun autoshow extract video.mp4 --captions --transcript-result consensus/result.json --embed-captions --caption-container both --no-caption-speakers --output-dir output/captioned-episode
+```
+
+This produces `captioned.mp4` (mov_text), `captioned.mkv` (SubRip), `captions.srt`, `captions.vtt`, `captions.json`, and `caption-embedding.json`. Terminal JSON includes the video paths. Phrase grouping and two lines per cue are the defaults; `--no-caption-speakers` hides generic speaker labels while retaining identities in transcript evidence. Embedding requires both standalone formats, so omit `--caption-format` or select `both`.
+
+Chapters, metadata, and compatible existing subtitle tracks are retained. MP4 chapter data is represented as container chapters, with that mapping recorded in `caption-embedding.json`. Unsupported streams are reported before fresh transcription: for example, an existing MP4 mov_text track cannot be copied directly to MKV, and an MKV ASS track cannot be copied directly to MP4. Choose a compatible container or prepare a separate compatible source. No arbitrary data streams are silently discarded.
+
+Each container is written to a temporary file, probed, and its new subtitle track extracted to verify cue text and timings before exclusive publication. Existing outputs are never overwritten. A later failure can leave an earlier completed container and the transcription artifacts intact; retry from the saved result into a new output directory to avoid repeating transcription.
+
+Saved word boundaries should already use the source video timeline; otherwise pass `--caption-offset <seconds>` to shift exported cues without modifying evidence. Fresh embedding defaults to the source audio start offset and records the applied value in `captions.json`; offline retries from its original result need that same offset. When transcribing separately extracted audio, record and apply its start offset exactly once during consensus alignment. `alignConsensusWords` aligns adjudicated words against ordered, canonically labeled provider words, uses median boundaries only when all supporting timings agree within 150 ms, and flags missing or conflicting evidence in its decisions sidecar. Interpolation and timestamp serialization precision do not establish acoustic alignment accuracy.
+
+Mistral diarization uses segment timestamps: the API rejects diarization with word timestamps even with `stream=true`. With diarization disabled, Mistral returns native word timestamps. Segment spans are never labeled as native word evidence. Obtaining both requires separately authorized requests and local alignment of the two results. Mistral requests and fresh asynchronous STT polling allow 30 minutes.
