@@ -47,7 +47,17 @@ const mergeSplitTranscriptionChunks = (
   chunks: IndexedTranscriptionChunk[]
 ): { result: TranscriptionResult, metadata: Step2Metadata } => {
   const orderedChunks = [...chunks].sort((left, right) => left.segmentIndex - right.segmentIndex)
-  const segmentResults = orderedChunks.map((entry) => entry.data)
+  const segmentResults = orderedChunks.map((entry) => {
+    const label = (speaker: string | undefined): string | undefined => speaker ? `chunk-${entry.segmentIndex + 1}/${speaker}` : undefined
+    const result = entry.data.result
+    return { ...entry.data, result: { ...result,
+      segments: result.segments.map(segment => ({ ...segment, speaker: label(segment.speaker) })),
+      ...(result.evidence ? { evidence: { ...result.evidence,
+        words: result.evidence.words?.map(word => ({ ...word, speaker: label(word.speaker) })),
+        segments: result.evidence.segments?.map(segment => ({ ...segment, speaker: label(segment.speaker) }))
+      } } : {})
+    } }
+  })
 
   const combinedResult = {
     text: segmentResults.map(s => s.result.text).join(' '),
@@ -115,6 +125,7 @@ const mergeSplitTranscriptionChunks = (
     result: combinedResult,
     metadata: {
       transcriptionService: segmentResults[0]!.metadata.transcriptionService,
+      ...(segmentResults[0]!.metadata.diarizationOptions ? { diarizationOptions: segmentResults[0]!.metadata.diarizationOptions } : {}),
       transcriptionModel: segmentResults[0]!.metadata.transcriptionModel,
       processingTime: totalProcessingTime,
       tokenCount: totalTokenCount,

@@ -1,3 +1,4 @@
+import { saveNativeSubtitle } from '../../stt-utils/native-subtitles'
 import { basename } from 'node:path'
 import { buildAsyncSttPollingDeadlineError, buildAsyncSttResumeProbeError, runAsyncSttJobLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { logSttDiarizationConfig } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
@@ -20,9 +21,11 @@ const POLL_REQUEST_TIMEOUT_MS = 60 * 1000
 export const buildGladiaCreateRequest = (
   audioUrl: string,
   model: string,
-  diarizationOptions?: { enabled?: boolean | undefined, speakerCount?: number | undefined }
+  diarizationOptions?: { enabled?: boolean | undefined, speakerCount?: number | undefined },
+  nativeSubtitles = false
 ): Record<string, unknown> => ({
   audio_url: audioUrl,
+  ...(nativeSubtitles ? { subtitles: true, subtitles_config: { formats: ['srt', 'vtt'] } } : {}),
   model,
   diarization: diarizationOptions?.enabled ?? true,
   ...(diarizationOptions?.speakerCount !== undefined
@@ -120,7 +123,8 @@ const createGladiaTranscription = async (
   audioUrl: string,
   modelName: string,
   diarizationOptions: HostedAsyncSttRunOptions['diarizationOptions'],
-  metrics: AsyncSttLifecycleMetrics
+  metrics: AsyncSttLifecycleMetrics,
+  nativeSubtitles = false
 ): Promise<string> => {
   const createRecord = await sttStageRequest({
     operationName: 'gladia-create-transcription',
@@ -139,7 +143,7 @@ const createGladiaTranscription = async (
         'x-gladia-key': apiKey,
         'content-type': 'application/json'
       },
-      body: JSON.stringify(buildGladiaCreateRequest(audioUrl, modelName, diarizationOptions)),
+      body: JSON.stringify(buildGladiaCreateRequest(audioUrl, modelName, diarizationOptions, nativeSubtitles)),
       signal: signal ?? null
     })
   })
@@ -239,12 +243,22 @@ export const runGladiaStt = async (
           upload.value,
           modelName,
           diarizationOptions,
-          metrics
+          metrics,
+          options.nativeSubtitles
         )
       }
     },
     pollJob: async (jobId, metrics) => await pollGladiaTranscription(baseURL, apiKey, jobId, metrics),
-    getTranscript: async (_jobId, _metrics, finalStatus) => finalStatus,
+    getTranscript: async (_jobId, _metrics, finalStatus) => {
+      if (options.nativeSubtitles) for (const format of ['srt', 'vtt'] as const) {
+        await saveNativeSubtitle(outputBase, format, async () => {
+          const subtitle = finalStatus.result?.transcription?.subtitles?.find(item => item.format === format)
+          if (!subtitle) throw new Error('Gladia did not return requested ' + format + ' subtitles')
+          return subtitle.subtitles
+        })
+      }
+      return finalStatus
+    },
     isComplete: (status) => status.status === 'done',
     isFailed: (status) => status.status === 'error'
       ? `Gladia transcription failed: ${status.message ?? (typeof status.error_code === 'number' ? `error code ${status.error_code}` : 'unknown error')}`

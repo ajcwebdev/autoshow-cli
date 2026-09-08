@@ -1,3 +1,5 @@
+import { resolveCaptionWordCoverage } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/caption-word-coverage'
+import { ValidationError } from '~/utils/error-handler'
 import type { CaptionCue, CueBuildLimits, LyricsCueSource, TranscriptionEvidenceWord, TranscriptionResult, TranscriptionSegment } from '~/types'
 
 export const LYRICS_CUE_LIMITS: CueBuildLimits = {
@@ -29,7 +31,7 @@ const shouldInsertSpace = (currentText: string, nextToken: string): boolean => {
   }
 
   const first = nextToken[0]!
-  if (',.;:!?)]}'.includes(first) || first === '\'') {
+  if (',.;:!?)]}'.includes(first) || /^(?:['’](?:s|re|ve|ll|d|m)?|n['’]t)$/i.test(nextToken)) {
     return false
   }
 
@@ -64,7 +66,7 @@ const flushWordCue = (
   }
 
   const start = words[0]!.startSeconds
-  const end = Math.max(words[words.length - 1]!.endSeconds, start + 0.1)
+  const end = Math.max(...words.map(word => word.endSeconds), start + 0.001)
   if (end <= start) {
     return
   }
@@ -105,14 +107,21 @@ const buildFromWords = (
     }
 
     const projectedText = appendCueToken(currentText, token)
+    let projectedLines = 1
+    let lineLength = 0
+    for (const token of projectedText.split(/\s+/)) {
+      const nextLength = lineLength === 0 ? token.length : lineLength + 1 + token.length
+      if (lineLength > 0 && nextLength > (limits.maxCharactersPerLine ?? Infinity)) {
+        projectedLines++
+        lineLength = token.length
+      } else lineLength = nextLength
+    }
     const previousWord = currentWords[currentWords.length - 1]
     const gapFromPrevious = previousWord ? word.startSeconds - previousWord.endSeconds : 0
     const currentDuration = previousWord && currentWords[0]
-      ? previousWord.endSeconds - currentWords[0]!.startSeconds
+      ? word.endSeconds - currentWords[0]!.startSeconds
       : 0
     const speakerChanged = previousWord !== undefined
-      && word.speaker !== undefined
-      && previousWord.speaker !== undefined
       && word.speaker !== previousWord.speaker
 
     if (
@@ -122,6 +131,7 @@ const buildFromWords = (
         speakerChanged
         || gapFromPrevious >= limits.hardBreakGapSeconds
         || countedWords(currentWords) >= limits.maxWordsPerCue
+        || projectedLines > (limits.maxLinesPerCue ?? Infinity)
         || projectedText.length > limits.maxCharactersPerCue
         || currentDuration >= limits.maxCueDurationSeconds
       )
@@ -190,7 +200,11 @@ export const buildTranscriptionCues = (
   transcription: TranscriptionResult,
   limits: CueBuildLimits
 ): { cues: CaptionCue[], source: LyricsCueSource } => {
-  const words = transcription.evidence?.words ?? []
+  const coverage = resolveCaptionWordCoverage(transcription)
+  if (coverage.uncoveredText && (transcription.evidence?.words?.length ?? 0) > 0) {
+    throw ValidationError('Transcript text has no matching timed words or segments. Repair the saved result before exporting captions.', { stage: 'captions:coverage' })
+  }
+  const words = (transcription.evidence?.words?.length ?? 0) > 0 ? coverage.words : []
   const wordCues = buildFromWords(words, limits)
   if (wordCues.length > 0) {
     return { cues: wordCues, source: 'whisper-words' }

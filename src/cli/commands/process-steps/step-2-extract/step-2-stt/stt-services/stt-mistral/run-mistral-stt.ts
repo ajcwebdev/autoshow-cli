@@ -13,7 +13,7 @@ import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 import { createMistralSttPassController } from './mistral-stt-pass-controller'
 import { annotateAppError, getErrorHeaders, getErrorStatus } from '~/utils/error-handler'
 
-const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
+const REQUEST_TIMEOUT_MS = 30 * 60 * 1000
 const MISTRAL_RATE_LIMIT_FALLBACK_COOLDOWN_MS = 60_000
 
 const resolveMistralRateLimitCooldownMs = (
@@ -119,8 +119,9 @@ export const runMistralStt = async (
             const form = new FormData()
             form.append('model', modelName)
             form.append('file', new File([fileBytes], basename(audioPath)))
-            form.append('diarize', 'true')
-            form.append('timestamp_granularities', 'segment')
+            const diarize = options.diarizationOptions?.enabled ?? true
+            form.append('diarize', String(diarize))
+            form.append('timestamp_granularities', diarize ? 'segment' : 'word')
             return await mistralMultipartRequest({
               apiKey,
               baseURL,
@@ -163,7 +164,7 @@ export const runMistralStt = async (
 
   const payload = validateData(MistralTranscriptionResponseSchema, rawPayload, 'Mistral STT response')
   const segments = toSegments(payload.segments ?? [], offsetSeconds)
-  if (segments.every(seg => seg.speaker === undefined)) {
+  if (options.diarizationOptions?.enabled !== false && segments.every(seg => seg.speaker === undefined)) {
     l.warn('Mistral diarization is enabled but the API returned no speaker labels for this audio', { category: 'pipeline' })
   }
   const textFromPayload = (payload.text ?? '').trim()
@@ -183,7 +184,12 @@ export const runMistralStt = async (
     rateLimitCount,
     text,
     segments,
-    evidenceWords: [],
-    rawResponse: payload
+    evidenceWords: options.diarizationOptions?.enabled !== false ? [] : (payload.segments ?? []).filter(segment => segment.text.trim() && Number.isFinite(segment.start) && Number.isFinite(segment.end) && segment.start >= 0 && segment.end >= segment.start).map(segment => ({
+      startSeconds: segment.start + offsetSeconds, endSeconds: segment.end + offsetSeconds,
+      text: segment.text.trim(), normalized: segment.text.trim().toLowerCase(),
+      ...(readSpeakerId(segment) !== undefined ? { speaker: formatSpeakerLabel(readSpeakerId(segment)) } : {}),
+      timingSource: 'native' as const
+    })),
+    rawResponse: rawPayload
   })
 }

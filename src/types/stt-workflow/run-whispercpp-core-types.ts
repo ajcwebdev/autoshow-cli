@@ -1,4 +1,5 @@
 export type WhisperCppTranscribeOptions = {
+  nativeSubtitles?: boolean | undefined
   model: string
   segmentOffsetMinutes: number
   segmentNumber?: number | undefined

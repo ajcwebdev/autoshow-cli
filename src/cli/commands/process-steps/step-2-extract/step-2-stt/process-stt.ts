@@ -20,6 +20,7 @@ export const processStt = async (
   preflightEstimate?: AggregatedPriceEstimate,
   runOptions: ProcessSttRunOptions = {}
 ): Promise<string> => {
+  if (options.captionExportFlags) options = { ...options, captionExportFlags: { ...options.captionExportFlags, 'caption-video-source': source.filePath } }
   const processStart = Date.now()
   const requestedTargets = runOptions.requestedTargets ?? collectSttTargetsForSource(options, source)
   const mistralPassController = runOptions.mistralPassController
@@ -48,6 +49,7 @@ export const processStt = async (
       await prepareSttMedia({
         source,
         targets: requestedTargets,
+        audioProfile: options.sttAudioProfile,
         outputDir
       })
     )
@@ -58,7 +60,7 @@ export const processStt = async (
       elapsedMs: acquisitionTimeMs,
       sourceMediaMs: prepared.timings.sourceMediaMs
     })
-    logSpeakerCountHintSummary(requestedTargets, options.diarizationSpeakerCount)
+    logSpeakerCountHintSummary(requestedTargets, options.diarizationSpeakerCount, options.diarization)
 
     const youtubeCaptionOutputDir = await completeYoutubeCaptionStt({
       sourceUrl: source.url,

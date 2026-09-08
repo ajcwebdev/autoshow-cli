@@ -1,3 +1,4 @@
+import { saveNativeSubtitle, fetchNativeSubtitle } from './stt-utils/native-subtitles'
 import type { InferOutput } from 'valibot'
 import type {
   AsyncSttLifecycleMetrics,
@@ -127,7 +128,17 @@ export const runHttpAsyncSttProvider = async <
 
       return { status: descriptor.readPollResponse(value), retryAfterMs }
     },
-    getTranscript: async (jobId, metrics) => await getTranscript(jobId, lifecycleMetricsToCallbacks(metrics)),
+    getTranscript: async (jobId, metrics) => {
+      const transcript = await getTranscript(jobId, lifecycleMetricsToCallbacks(metrics))
+      if (options.nativeSubtitles && descriptor.service === 'speechmatics') {
+        await Bun.write(outputBase + '-provider-response.json', JSON.stringify(transcript))
+        await saveNativeSubtitle(outputBase, 'srt', async () => {
+          metrics.requestCount += 1
+          return await fetchNativeSubtitle(url('/v2/jobs/' + encodeURIComponent(jobId) + '/transcript?format=srt'), authHeaders)
+        })
+      }
+      return transcript
+    },
     isComplete: descriptor.isComplete,
     isFailed: descriptor.failureMessage,
     buildDeadlineError: (jobId, pollDeadlineMs, cause) =>

@@ -17,7 +17,7 @@ const STT_ENGINE_CAPABILITIES = {
   supadata: { diarizationByDefault: false, supportsSpeakerCountHint: false },
   scrapecreators: { diarizationByDefault: false, supportsSpeakerCountHint: false },
   'gemini-stt': { diarizationByDefault: false, supportsSpeakerCountHint: false },
-  together: { diarizationByDefault: false, supportsSpeakerCountHint: false },
+  together: { diarizationByDefault: false, supportsSpeakerCountHint: true },
   whisper: { diarizationByDefault: false, supportsSpeakerCountHint: false },
   whisperfile: { diarizationByDefault: false, supportsSpeakerCountHint: false },
   'youtube-captions': { diarizationByDefault: false, supportsSpeakerCountHint: false }
@@ -36,6 +36,12 @@ export const resolveDiarizationOptions = (
   const diarizationOptions: DiarizationOptions = capabilities.diarizationByDefault
     ? { enabled: true }
     : {}
+
+  if (options.diarization !== undefined && ((capabilities.diarizationByDefault && engine !== 'happyscribe') || engine === 'together' || engine === 'gemini-stt')) {
+    diarizationOptions.enabled = options.diarization
+  }
+  if (diarizationOptions.enabled === false) return diarizationOptions
+  if (engine === 'together' && speakerCount !== undefined) diarizationOptions.enabled = true
 
   if (speakerCount === undefined) {
     return Object.keys(diarizationOptions).length > 0 ? diarizationOptions : undefined

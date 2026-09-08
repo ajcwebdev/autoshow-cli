@@ -328,6 +328,12 @@ export const handleProcessTarget = async (
     l.write('info', `Forwarding ${doubleDash.ytDlpPassthroughArgs.length} passthrough arg(s) to yt-dlp`, { category: 'pipeline', metadata: { passthroughArgCount: doubleDash.ytDlpPassthroughArgs.length } })
   }
   const planned = await planTargetExecutionPhase({ command, resolvedTarget: doubleDash.resolvedTarget, options: normalized.options, selectorPlan: normalized.selectorPlan })
+  if (normalized.options.captionExportFlags) {
+    for (const target of planned.preflightTargets) {
+      const routing = await resolveInputRoutingForCommand(command, target, normalized.options)
+      if (routing.family !== 'media') throw UsageError('--captions requires audio/video input or a saved STT result.json.')
+    }
+  }
   if (normalized.options.maxModelCents !== undefined) {
     while (true) {
       const estimates: AggregatedPriceEstimate[] = []

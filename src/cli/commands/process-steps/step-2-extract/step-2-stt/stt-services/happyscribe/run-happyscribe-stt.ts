@@ -1,3 +1,4 @@
+import { saveNativeSubtitle } from '../../stt-utils/native-subtitles'
 import type { AsyncSttLifecycleHooks, AsyncSttLifecycleMetrics, HappyScribeExport, HappyScribeOrder, HappyScribeTranscription, RetryClass, Step2Metadata, TranscriptionResult } from '~/types'
 import {
   buildAsyncSttPollingDeadlineError,
@@ -93,6 +94,7 @@ export const runHappyScribeStt = async (
   audioPath: string,
   outputDir: string,
   options: {
+    nativeSubtitles?: boolean | undefined
     model: string
     happyscribeOrganizationId?: string | undefined
     segmentOffsetMinutes: number
@@ -103,6 +105,7 @@ export const runHappyScribeStt = async (
     lifecycle?: AsyncSttLifecycleHooks | undefined
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
+  let completedTranscriptionId: string | undefined
   const {
     model: modelName,
     happyscribeOrganizationId,
@@ -225,6 +228,8 @@ export const runHappyScribeStt = async (
       }
 
       billing = buildBillingMetadata(modelName, audioDurationSeconds, completedOrder, transcription)
+      completedTranscriptionId = transcriptionId
+
 
       if (transcription.downloadUrl) {
         try {
@@ -276,6 +281,32 @@ export const runHappyScribeStt = async (
     buildResumeProbeError: (jobId, probeCount, totalWaitMs, cause) => buildAsyncSttResumeProbeError('Happy Scribe', 'order', jobId, probeCount, totalWaitMs, cause),
     buildResult: async ({ transcript: result, runtime, processingTime, timings }) => {
       await Bun.write(`${outputBase}.txt`, formatTranscriptText(result.segments))
+      await Bun.write(outputBase + '-result.json', JSON.stringify(result))
+      if (options.nativeSubtitles && completedTranscriptionId && lifecycleMetrics) for (const format of ['srt', 'vtt'] as const) {
+        await saveNativeSubtitle(outputBase, format, async () => {
+          const exported = await apiClient.createExport(completedTranscriptionId!, format)
+          lifecycleMetrics!.createCount += 1
+          const polled = await pollAsyncSttJobUntilComplete({
+            jobId: exported.id,
+            initialPollIntervalMs: INITIAL_POLL_INTERVAL_MS,
+            maxPollIntervalMs: MAX_POLL_INTERVAL_MS,
+            audioDurationSeconds,
+            buildDeadlineError: (id, deadline, cause) => buildExportDeadlineError(id, deadline, cause),
+            poll: async () => await apiClient.pollExport(exported.id),
+            isComplete: value => value.state === 'ready',
+            isFailed: value => value.state === 'failed' || value.state === 'expired' ? 'Subtitle export failed' : undefined,
+            withPollSlot: lifecycle?.withPollSlot
+          })
+          lifecycleMetrics!.pollCount += polled.pollCount
+          lifecycleMetrics!.pollSleepMs += polled.pollSleepMs
+          if (!polled.status.downloadLink) throw new Error('Subtitle export is missing download_link')
+          lifecycleMetrics!.requestCount += 1
+          const subtitle = await apiClient.fetchDownloadPayload(polled.status.downloadLink, 'text')
+          if (typeof subtitle !== 'string') throw new Error('Subtitle export did not return text')
+          return subtitle
+        })
+      }
+
 
       return {
         result,

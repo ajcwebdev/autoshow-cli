@@ -1,3 +1,4 @@
+import { withProcessLock } from '~/utils/process-lock'
 import { cp, mkdir, rename, rm, symlink } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { readDependencyUrlAndSha256 } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
@@ -299,7 +300,9 @@ export const installManagedFfmpegMacos = async (): Promise<void> => {
   })
 }
 
-export const installManagedMupdfMacos = async (): Promise<void> => {
+export const installManagedMupdfMacos = async (): Promise<void> => withProcessLock(`setup-mupdf-${mupdfBuildDir}`, installManagedMupdfMacosUnlocked)
+
+const installManagedMupdfMacosUnlocked = async (): Promise<void> => {
   if (await hasValidManagedSourcePayload('mupdf')) {
     await createSymlinkShim(mutoolInstalledBinaryPath, mutoolManagedBinaryPath)
     return

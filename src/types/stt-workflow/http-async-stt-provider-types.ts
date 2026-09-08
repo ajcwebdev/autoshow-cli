@@ -9,6 +9,7 @@ import type {
 } from '~/types'
 
 export type HttpAsyncSttRunOptions = {
+  nativeSubtitles?: boolean | undefined
   model: string
   segmentOffsetMinutes: number
   segmentNumber?: number | undefined

@@ -1,5 +1,6 @@
-import { describe,expect,test } from 'bun:test'
+import { describe,expect,spyOn,test } from 'bun:test'
 import { runAsyncSttJobLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
+import { buildAsyncSttPollingDeadlineError } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-stt-polling'
 import type { MatrixOptions,MatrixStatus,Step2Metadata,Step2RuntimeMetadata } from '~/types'
 
 describe('async STT resume contracts', () => {
@@ -34,6 +35,56 @@ describe('async STT resume contracts', () => {
         }
       }),
       ...overrides
+    })
+
+    test('a fresh transcription can finish after twenty minutes without creating another job', async () => {
+      let now = Date.now()
+      const clock = spyOn(Date, 'now').mockImplementation(() => now)
+      let creates = 0
+      let polls = 0
+      try {
+        const actual = await runAsyncSttJobLifecycle(createMatrixOptions({
+          audioDurationSeconds: 24 * 60,
+          createJob: async () => { creates++; return { jobId: 'slow-job', status: { state: 'queued' } } },
+          pollJob: async () => {
+            polls++
+            if (polls === 1) now += 20 * 60 * 1000
+            return { status: { state: polls === 1 ? 'queued' : 'completed' }, retryAfterMs: null }
+          }
+        }))
+        expect(actual.result.text).toBe('done')
+        expect(actual.metadata.runtime?.remoteJobId).toBe('slow-job')
+        expect(creates).toBe(1)
+        expect(polls).toBe(2)
+      } finally {
+        clock.mockRestore()
+      }
+    })
+
+    test('an unfinished transcription times out at thirty minutes and retains its job identity', async () => {
+      let now = Date.now()
+      const clock = spyOn(Date, 'now').mockImplementation(() => now)
+      let polls = 0
+      const writes: Step2RuntimeMetadata[] = []
+      try {
+        await expect(runAsyncSttJobLifecycle(createMatrixOptions({
+          pollJob: async () => {
+            polls++
+            now += 10 * 60 * 1000
+            return { status: { state: 'queued' }, retryAfterMs: null }
+          },
+          lifecycle: {
+            writeProgressMetadata: async (_key, metadata) => {
+              if (metadata.runtime) writes.push(metadata.runtime)
+            }
+          },
+          buildDeadlineError: (jobId, deadlineMs, cause) => buildAsyncSttPollingDeadlineError('Matrix', jobId, deadlineMs, cause)
+        }))).rejects.toThrow('deadline exceeded after 1800000ms')
+        expect(polls).toBe(3)
+        expect(writes.at(-1)).toMatchObject({ remoteJobId: 'job-1', stage: 'polling' })
+      } finally {
+        clock.mockRestore()
+      }
     })
 
     const asyncSttStageFailureMatrix: Array<{

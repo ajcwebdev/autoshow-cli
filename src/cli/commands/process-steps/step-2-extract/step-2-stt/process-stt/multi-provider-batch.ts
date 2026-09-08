@@ -1,3 +1,4 @@
+import { exportSttCaptions } from '../../run-caption-export'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { ExistingSttRun, ProviderFailure, SttBatchWorkerContext, SttMultiProviderBatchContext, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
@@ -135,7 +136,10 @@ export const runMultiProviderSttBatch = async ({
     derived
   })
 
+  const captionFiles = await exportSttCaptions(outputDir, options.captionExportFlags, derived.successfulProviders.map(entry => entry.relativeDir ?? '.'))
+
   return reportSttBatchOutcome({
+    captionFiles,
     outputDir,
     requestedTargets,
     prepared,

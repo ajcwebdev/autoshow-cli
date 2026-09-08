@@ -6,7 +6,9 @@ describe('Together STT REST contracts', () => {
     for (const model of ['openai/whisper-large-v3', 'nvidia/parakeet-tdt-0.6b-v3']) {
       expect(buildTogetherSttFormFields(model)).toEqual({
         response_format: 'verbose_json',
-        'timestamp_granularities[]': 'segment'
+        'timestamp_granularities[0]': 'word',
+        'timestamp_granularities[1]': 'segment',
+        diarize: 'false'
       })
     }
   })
@@ -14,12 +16,16 @@ describe('Together STT REST contracts', () => {
   test('sends a decoding prompt only to the Whisper family', () => {
     expect(buildTogetherSttFormFields('openai/whisper-large-v3', '  AutoShow names  ')).toEqual({
       response_format: 'verbose_json',
-      'timestamp_granularities[]': 'segment',
+      'timestamp_granularities[0]': 'word',
+        'timestamp_granularities[1]': 'segment',
+        diarize: 'false',
       prompt: 'AutoShow names'
     })
     expect(buildTogetherSttFormFields('nvidia/parakeet-tdt-0.6b-v3', 'AutoShow names')).toEqual({
       response_format: 'verbose_json',
-      'timestamp_granularities[]': 'segment'
+      'timestamp_granularities[0]': 'word',
+        'timestamp_granularities[1]': 'segment',
+        diarize: 'false'
     })
   })
 })

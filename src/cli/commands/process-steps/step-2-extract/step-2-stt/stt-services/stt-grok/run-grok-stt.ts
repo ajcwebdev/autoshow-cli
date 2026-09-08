@@ -11,7 +11,7 @@ import { sttStageRequest } from '../stt-stage-request'
 import { attachSttStageErrorContext } from '../../stt-error-context'
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 
-const GrokSttWordSchema = v.object({
+const GrokSttWordSchema = v.looseObject({
   text: v.string(),
   start: v.number(),
   end: v.number(),
@@ -19,7 +19,7 @@ const GrokSttWordSchema = v.object({
   speaker: v.optional(v.union([v.string(), v.number()]), undefined)
 })
 
-export const GrokSttResponseSchema = v.object({
+export const GrokSttResponseSchema = v.looseObject({
   text: v.string(),
   language: v.optional(v.string(), undefined),
   duration: v.optional(v.number(), undefined),
@@ -165,6 +165,8 @@ export const runGrokStt = async (
   audioPath: string,
   outputDir: string,
   options: {
+    diarizationOptions?: { enabled?: boolean | undefined } | undefined
+    grokSttVerbatim?: boolean | undefined
     model: string
     segmentOffsetMinutes: number
     segmentNumber?: number | undefined
@@ -202,9 +204,10 @@ export const runGrokStt = async (
     attachError: attachSttStageErrorContext,
     doFetch: async (signal) => {
       const form = new FormData()
-      form.append('format', 'true')
+      form.append('format', String(!options.grokSttVerbatim))
+      if (options.grokSttVerbatim) form.append('filler_words', 'true')
       form.append('language', 'en')
-      form.append('diarize', 'true')
+      form.append('diarize', String(options.diarizationOptions?.enabled ?? true))
       form.append('file', Bun.file(audioPath))
 
       return await fetch(`${baseURL}/stt`, {

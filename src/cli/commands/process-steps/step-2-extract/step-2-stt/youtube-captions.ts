@@ -132,23 +132,31 @@ const parseYoutubeVttCues = (input: string): ParsedYoutubeCue[] => {
       continue
     }
 
-    const text = lines
-      .slice(timingIndex + 1)
-      .map(stripCueText)
-      .filter((line) => line.length > 0)
-      .join(' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-
-    if (text.length === 0) {
-      continue
+    const rawText = lines.slice(timingIndex + 1).join(' ')
+    let spanStart = startSeconds
+    let spanText = ''
+    let speaker: string | undefined
+    const flush = (end: number): void => {
+      const text = stripCueText(spanText)
+      if (text && end > spanStart) cues.push({ startSeconds: spanStart, endSeconds: end, text, ...(speaker ? { speaker } : {}) })
+      spanText = ''
     }
-
-    cues.push({
-      startSeconds,
-      endSeconds: Math.max(startSeconds, endSeconds),
-      text
-    })
+    for (const part of rawText.split(/(<[^>]+>)/g)) {
+      const timestamp = part.match(/^<((?:\d+:)?\d{2}:\d{2}\.\d{3})>$/)
+      const voice = part.match(/^<v(?:\.[^ ]+)?\s+([^>]+)>$/)
+      if (timestamp) {
+        const boundary = parseVttTimestampSeconds(timestamp[1]!)
+        if (boundary !== null && boundary >= spanStart && boundary <= endSeconds) {
+          flush(boundary)
+          spanStart = boundary
+        }
+      } else if (voice) {
+        speaker = voice[1]!.trim()
+      } else {
+        spanText += part
+      }
+    }
+    flush(endSeconds)
   }
 
   return cues
@@ -192,7 +200,8 @@ const collapseAutoCaptionCues = (cues: ParsedYoutubeCue[]): ParsedYoutubeCue[] =
       continue
     }
 
-    const dedupedText = removeRepeatedPrefix(previous.text, cue.text)
+    const dedupedText = previous.endSeconds > cue.startSeconds && previous.speaker === cue.speaker
+      ? removeRepeatedPrefix(previous.text, cue.text) : cue.text
     if (dedupedText.length === 0) {
       previous.endSeconds = Math.max(previous.endSeconds, cue.endSeconds)
       continue
@@ -210,7 +219,7 @@ const collapseAutoCaptionCues = (cues: ParsedYoutubeCue[]): ParsedYoutubeCue[] =
 const finalizeCueBoundaries = (cues: ParsedYoutubeCue[]): ParsedYoutubeCue[] =>
   cues.map((cue, index) => {
     const nextCue = cues[index + 1]
-    const boundedEnd = nextCue && nextCue.startSeconds < cue.endSeconds
+    const boundedEnd = nextCue && nextCue.speaker === cue.speaker && nextCue.startSeconds > cue.startSeconds && nextCue.startSeconds < cue.endSeconds
       ? nextCue.startSeconds
       : cue.endSeconds
 
@@ -232,7 +241,8 @@ const toTranscriptionResult = (
   const evidenceSegments: TranscriptionEvidenceSegment[] = cleanedCues.map((cue) => ({
     startSeconds: cue.startSeconds,
     endSeconds: cue.endSeconds,
-    text: cue.text
+    text: cue.text,
+    ...(cue.speaker ? { speaker: cue.speaker } : {})
   }))
 
   return {
@@ -240,14 +250,16 @@ const toTranscriptionResult = (
     segments: cleanedCues.map((cue) => ({
       start: toTimestamp(cue.startSeconds),
       end: toTimestamp(cue.endSeconds),
-      text: cue.text
+      text: cue.text,
+    ...(cue.speaker ? { speaker: cue.speaker } : {})
     })),
     evidence: {
+      source: 'youtube:' + selection.kind + ':caption-spans',
       segments: evidenceSegments,
       capabilities: {
         hasNativeWordTiming: false,
         hasConfidence: false,
-        hasSpeakerLabels: false
+        hasSpeakerLabels: cleanedCues.some(cue => cue.speaker !== undefined)
       },
       timingQuality: 'segment_interpolated',
       rawResponse: {
@@ -259,7 +271,7 @@ const toTranscriptionResult = (
   }
 }
 
-const buildYoutubeCaptionTranscription = (
+export const buildYoutubeCaptionTranscription = (
   vttText: string,
   selection: YoutubeCaptionSelection
 ): TranscriptionResult | null => {

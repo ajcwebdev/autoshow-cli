@@ -1,6 +1,8 @@
 import type { AsyncSttLifecycleHooks, DiarizationOptions } from '~/types'
 
 export type SttSegmentRunOptions = {
+  diarizationOptions?: DiarizationOptions | undefined
+  nativeSubtitles?: boolean | undefined
   model: string
   segmentOffsetMinutes: number
   segmentNumber?: number | undefined

@@ -115,7 +115,7 @@ export type AggregatedPriceEstimate = {
   notes?: string[]
 }
 
-type SttPricingTarget = ProviderIdentityBase<Step2Metadata['transcriptionService']>
+type SttPricingTarget = ProviderIdentityBase<Step2Metadata['transcriptionService']> & Pick<Step2Metadata, 'diarizationOptions'>
 
 type LlmPricingTarget = ProviderIdentityBase<Step3Metadata['llmService']> & {
   inputTokens?: number

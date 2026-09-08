@@ -53,5 +53,5 @@ export const computeTtsCost = (
   }
 }
 
-export const computeSttCost = (service: string, model: string, durationSeconds: number): number =>
-  computeBilledSttCost(service, model, durationSeconds).cost
+export const computeSttCost = (service: string, model: string, durationSeconds: number, diarizationOptions?: import('~/types').DiarizationOptions): number =>
+  computeBilledSttCost(service, model, durationSeconds, diarizationOptions).cost

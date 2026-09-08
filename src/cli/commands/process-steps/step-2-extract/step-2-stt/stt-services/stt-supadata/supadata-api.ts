@@ -17,6 +17,7 @@ export const fetchSupadataTranscript = async (
     apiKey: string
     sourceUrl: string
     modelName: string
+    chunkSize?: number | undefined
     language?: string | undefined
     metrics?: SttRequestMetrics | undefined
   }
@@ -32,6 +33,7 @@ export const fetchSupadataTranscript = async (
       const requestUrl = new URL(resolveRestPath(input.baseURL, '/transcript'))
       requestUrl.searchParams.set('url', input.sourceUrl)
       requestUrl.searchParams.set('text', 'false')
+      if (input.chunkSize !== undefined) requestUrl.searchParams.set('chunkSize', String(input.chunkSize))
       requestUrl.searchParams.set('mode', input.modelName)
       if (input.modelName !== 'generate' && typeof input.language === 'string' && input.language.trim().length > 0) {
         requestUrl.searchParams.set('lang', input.language.trim())

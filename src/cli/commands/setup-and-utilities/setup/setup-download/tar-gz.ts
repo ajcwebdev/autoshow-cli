@@ -227,6 +227,7 @@ const extractTarStreamInto = async (
     new DecompressionStream('gzip') as unknown as TransformStream<Uint8Array, Uint8Array>
   )
   const seenPaths = new Set<string>()
+  const explicitDirectories = new Set<string>()
   const symlinkPaths = new Set<string>()
   const directoryModes: Array<{ path: string, mode: number }> = []
   let globalPax: PaxAttributes = {}
@@ -280,7 +281,12 @@ const extractTarStreamInto = async (
     if (size > maxEntryBytes) throw archiveError(`Tar entry exceeds the ${maxEntryBytes} byte limit: ${rawPath}`)
     const relativePath = sanitizeArchivePath(rawPath, stripComponents)
     if (!relativePath) return { typeFlag, remaining: size, paddingRemaining: roundToBlock(size) - size }
-    if (seenPaths.has(relativePath)) throw archiveError(`Duplicate tar target rejected: ${relativePath}`)
+    if (seenPaths.has(relativePath)) {
+      // Source archives can repeat directory headers when appending vendored trees.
+      // Permit only an existing explicit directory, never a file or symlink replacement.
+      if (typeFlag === '5' && size === 0 && explicitDirectories.has(relativePath)) return { typeFlag, remaining: 0, paddingRemaining: 0 }
+      throw archiveError(`Duplicate tar target rejected: ${relativePath}`)
+    }
     assertNoSymlinkAncestor(relativePath, symlinkPaths)
     seenPaths.add(relativePath)
     const destinationPath = join(stagingRoot, relativePath)
@@ -290,6 +296,7 @@ const extractTarStreamInto = async (
     if (typeFlag === '5') {
       if (size !== 0) throw archiveError(`Tar directory contains an unexpected payload: ${relativePath}`)
       await mkdir(destinationPath, { recursive: true, mode: mode | 0o700 })
+      explicitDirectories.add(relativePath)
       directoryModes.push({ path: destinationPath, mode })
       return { typeFlag, remaining: 0, paddingRemaining: 0 }
     }

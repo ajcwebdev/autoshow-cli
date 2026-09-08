@@ -1,3 +1,4 @@
+import { exportSttCaptions } from '~/cli/commands/process-steps/step-2-extract/run-caption-export'
 import { createManifest, createPipelineItemFromRecord, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
@@ -60,6 +61,7 @@ export const processVideo = async (
           ...(options.filePath !== undefined ? { filePath: options.filePath } : {})
         },
         targets: sttTargets,
+        audioProfile: processingOptions.sttAudioProfile,
         outputDir
       })
     )
@@ -159,6 +161,9 @@ export const processVideo = async (
       successfulSttProviders,
       step3Results: []
     })
+
+    Object.assign(artifactFiles, await exportSttCaptions(outputDir, processingOptions.captionExportFlags, successfulSttProviders.map(entry => entry.relativeDir ?? '.'), options.filePath))
+    if (processingOptions.sttAudioProfile === 'lossless') artifactFiles['audioTimeline'] = 'source-timeline.json'
 
     l.report.complete(outputDir, artifactFiles, { steps: stepSummaries, totalTimeMs: totalTime, totalCost: cost.actual.totalCost })
 

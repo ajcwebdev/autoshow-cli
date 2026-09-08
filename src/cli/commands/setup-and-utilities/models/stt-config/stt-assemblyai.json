@@ -4,12 +4,12 @@
     "type": "api",
     "models": {
       "universal-3-5-pro": {
-        "description": "Universal-3.5 Pro — flagship multilingual transcription with diarization",
+        "description": "Universal-3.5 Pro \u2014 flagship multilingual transcription with diarization",
         "pricingSourceUrl": "https://www.assemblyai.com/pricing",
-        "pricingCheckedAt": "2026-08-03",
+        "pricingCheckedAt": "2026-09-07",
         "pricingCurrency": "USD",
         "pricingTier": "AssemblyAI pay-as-you-go transcription pricing",
-        "pricingNotes": "AssemblyAI lists Universal-3.5 Pro transcription at $0.15/hour and speaker diarization at $0.08/hour, for a diarization-inclusive effective rate of $0.23/hour. Billing is per second. The timing estimate is provisionally reused from Universal-3 Pro until an explicitly approved calibration run is available. Free allowance, volume discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "pricingNotes": "Universal-3.5 Pro pre-recorded transcription is $0.21/hour plus $0.02/hour for speaker diarization. The default inclusive rate is $0.23/hour; disabling diarization subtracts the add-on. Free allowances, discounts, taxes and credits are excluded. Timing estimates remain provisional.",
         "costPerHourCents": 23,
         "limits": {
           "effectiveBytes": 2362232013,
@@ -21,6 +21,9 @@
         "estimation": {
           "costMultiplier": 1,
           "msPerSecond": 188
+        },
+        "billing": {
+          "diarizationCostPerHourCents": 2
         }
       }
     }

@@ -7,6 +7,7 @@ const SttEstimationSchema = v.object({
 })
 
 const SttBillingSchema = v.object({
+  diarizationCostPerHourCents: v.optional(v.number(), undefined),
   roundingIncrementSeconds: v.optional(v.number(), undefined),
   minimumSeconds: v.optional(v.number(), undefined)
 })

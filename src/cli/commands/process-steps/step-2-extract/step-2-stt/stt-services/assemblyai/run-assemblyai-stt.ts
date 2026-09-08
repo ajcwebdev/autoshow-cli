@@ -1,3 +1,4 @@
+import { saveNativeSubtitle, fetchNativeSubtitle } from '../../stt-utils/native-subtitles'
 import { buildAsyncSttPollingDeadlineError, buildAsyncSttResumeProbeError, runAsyncSttJobLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { logSttDiarizationConfig } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import { buildTranscriptionWordEvidence } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-evidence'
@@ -19,12 +20,13 @@ const POLL_REQUEST_TIMEOUT_MS = 60 * 1000
 export const buildAssemblyAiTranscriptRequest = (
   audioUrl: string,
   model: string,
-  speakerCount?: number | undefined
+  speakerCount?: number | undefined,
+  diarize = true
 ): Record<string, unknown> => ({
   audio_url: audioUrl,
   speech_models: [model],
-  speaker_labels: true,
-  ...(speakerCount === undefined ? {} : { speakers_expected: speakerCount })
+  speaker_labels: diarize,
+  ...(!diarize || speakerCount === undefined ? {} : { speakers_expected: speakerCount })
 })
 
 const formatSpeaker = (speaker: string | undefined): string | undefined => {
@@ -71,7 +73,8 @@ const createAssemblyAiTranscript = async (
   audioUrl: string,
   modelName: string,
   speakerCount: number | undefined,
-  metrics: AsyncSttLifecycleMetrics
+  metrics: AsyncSttLifecycleMetrics,
+  diarize = true
 ): Promise<string> => {
   const createResult = await sttStageRequest({
     operationName: 'assemblyai-create-transcript',
@@ -90,7 +93,7 @@ const createAssemblyAiTranscript = async (
         'authorization': apiKey,
         'content-type': 'application/json'
       },
-      body: JSON.stringify(buildAssemblyAiTranscriptRequest(audioUrl, modelName, speakerCount)),
+      body: JSON.stringify(buildAssemblyAiTranscriptRequest(audioUrl, modelName, speakerCount, diarize)),
       signal: signal ?? null
     })
   })
@@ -188,12 +191,22 @@ export const runAssemblyAiTranscribe = async (
           upload.value,
           modelName,
           diarizationOptions?.speakerCount,
-          metrics
+          metrics,
+          diarizationOptions?.enabled
         )
       }
     },
     pollJob: async (jobId, metrics) => await pollAssemblyAiTranscript(apiKey, jobId, metrics),
-    getTranscript: async (_jobId, _metrics, finalStatus) => finalStatus,
+    getTranscript: async (jobId, metrics, finalStatus) => {
+      if (options.nativeSubtitles) await Bun.write(outputBase + '-provider-response.json', JSON.stringify(finalStatus))
+      if (options.nativeSubtitles) for (const format of ['srt', 'vtt'] as const) {
+        await saveNativeSubtitle(outputBase, format, async () => {
+          metrics.requestCount += 1
+          return await fetchNativeSubtitle(new URL('/v2/transcript/' + encodeURIComponent(jobId) + '/' + format + '?chars_per_caption=42', ASSEMBLYAI_DEFAULT_BASE_URL).toString(), { authorization: apiKey })
+        })
+      }
+      return finalStatus
+    },
     isComplete: (status) => status.status === 'completed',
     isFailed: (status) => status.status === 'error'
       ? `AssemblyAI transcription failed: ${status.error ?? 'unknown error'}`

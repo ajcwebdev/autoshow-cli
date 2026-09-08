@@ -1,3 +1,4 @@
+import { resolveCaptionWordCoverage } from '../step-2-stt/stt-utils/caption-word-coverage'
 import { isRecord } from '~/utils/rest-client'
 import { copyFile, mkdir, readdir, rm } from 'node:fs/promises'
 import { dirname, extname, join, resolve } from 'node:path'
@@ -546,6 +547,7 @@ const processTranscriptVideoRun = async (
 
   try {
     const cueBuildStartedAt = Date.now()
+    const coverage = resolveCaptionWordCoverage(source.transcription.result)
     const built = buildCuesFromTranscriptionResult(source.transcription.result)
     const cues = built.cues
     const cueSource = source.transcription.source === 'transcript-text' ? 'transcript-text' : built.cueSource
@@ -607,6 +609,9 @@ const processTranscriptVideoRun = async (
         ...(source.transcription.model ? { model: source.transcription.model } : {})
       },
       transcript: {
+        timingQuality: source.transcription.result.evidence?.timingQuality === 'generated' ? 'generated' : coverage.inferredWords > 0 ? 'mixed' : source.transcription.result.evidence?.timingQuality ?? 'coarse',
+        inferredWordCount: coverage.inferredWords,
+        invalidWordCount: coverage.invalidWords,
         cueSource,
         cueCount: cues.length,
         speakerCount: collectSpeakerInventory(cues).length,

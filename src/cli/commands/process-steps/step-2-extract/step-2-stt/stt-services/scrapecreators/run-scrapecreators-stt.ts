@@ -190,6 +190,7 @@ const normalizeScrapeCreatorsTranscript = (
     text: finalText,
     segments: finalSegments,
     evidence: {
+      source: 'scrapecreators:youtube-transcript',
       segments: transcript.flatMap((entry) => {
         const text = entry.text.trim()
         if (text.length === 0) {

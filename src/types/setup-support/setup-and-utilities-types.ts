@@ -80,6 +80,7 @@ export type LumalabsVideoModel = typeof SUPPORTED_LUMALABS_VIDEO_MODELS[number]
 export type FalVideoModel = typeof SUPPORTED_FAL_VIDEO_MODELS[number]
 
 export type SttBilling = {
+  diarizationCostPerHourCents?: number
   roundingIncrementSeconds?: number
   minimumSeconds?: number
 }

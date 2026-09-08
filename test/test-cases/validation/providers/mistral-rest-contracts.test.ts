@@ -48,6 +48,8 @@ describe('Mistral REST contracts', () => {
     expect(file).toMatchObject({ name: '0-audio-short.mp3' })
     expect((file as File).size).toBeGreaterThan(0)
     expect(result.text).toBe('Hello from Mistral.')
+    expect(result.evidence?.capabilities?.hasNativeWordTiming).toBe(false)
+    expect(result.evidence?.words ?? []).toHaveLength(0)
     expect(result.segments[0]).toMatchObject({
       start: '00:01:01.200',
       end: '00:01:02.800',

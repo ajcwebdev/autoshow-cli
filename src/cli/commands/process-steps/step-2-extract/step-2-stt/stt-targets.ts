@@ -1,3 +1,4 @@
+import { UsageError } from '~/utils/error-handler'
 import type { Step2ProviderSelectionFilter, SttSource, SttSourceEligibility, SttTarget, SttTargetBuildOptions } from '~/types'
 import { SUPPORTED_SCRAPECREATORS_STT_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { collectStep2ProviderSelections } from '../step-2-shared/provider-registry'
@@ -40,11 +41,17 @@ const buildSttTarget = (
 ): SttTarget => {
   const service = provider as SttTarget['service']
   const model = selectedModel ?? service
+  const responseFormat = options.deepinfraSttResponseFormat
+  if (responseFormat !== undefined && !['verbose_json', 'srt', 'vtt'].includes(responseFormat)) throw UsageError('--deepinfra-stt-response-format must be verbose_json, srt, or vtt.')
 
   return {
     service,
     model,
     local: LOCAL_STT_SERVICES.has(service),
+    ...(service === 'grok' && options.grokSttVerbatim ? { grokSttVerbatim: true } : {}),
+    ...(service === 'supadata' && options.supadataChunkSize !== undefined ? { supadataChunkSize: options.supadataChunkSize } : {}),
+    ...(service === 'deepinfra' && (responseFormat === 'srt' || responseFormat === 'vtt') ? { nativeResponseFormat: responseFormat } : {}),
+    ...(options.nativeSubtitles ? { nativeSubtitles: true } : {}),
     ...(LOCAL_STT_SERVICES.has(service)
       ? {}
       : { diarizationOptions: resolveDiarizationOptions(options, service) })

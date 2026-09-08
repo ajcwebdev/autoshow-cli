@@ -28,6 +28,13 @@ export const buildProcessingOptions = (
     happyscribeOrganizationId: runtimeOptions.happyscribeOrganizationId,
     supadataLang: runtimeOptions.supadataLang,
     scrapecreatorsLang: runtimeOptions.scrapecreatorsLang,
+    grokSttVerbatim: runtimeOptions.grokSttVerbatim,
+    supadataChunkSize: runtimeOptions.supadataChunkSize,
+    deepinfraSttResponseFormat: runtimeOptions.deepinfraSttResponseFormat,
+    captionExportFlags: runtimeOptions.captionExportFlags,
+    sttAudioProfile: runtimeOptions.sttAudioProfile,
+    nativeSubtitles: runtimeOptions.nativeSubtitles,
+    diarization: runtimeOptions.diarization,
     diarizationSpeakerCount: runtimeOptions.diarizationSpeakerCount,
     split: runtimeOptions.split,
     outputDir

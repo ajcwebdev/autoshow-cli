@@ -1,3 +1,4 @@
+import * as l from '~/utils/app-logger/app-logger'
 import type { EffectiveSttProviderConcurrency, SttExtractionOptions, SttTarget } from '~/types'
 import { getSttEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { buildSpeakerCountHintWarning } from '../step-2-shared/inactive-flag-warnings'
@@ -46,8 +47,16 @@ export const resolveEffectiveSttProviderConcurrency = (
 
 export const logSpeakerCountHintSummary = (
   targets: SttTarget[],
-  requestedSpeakerCount: number | undefined
+  requestedSpeakerCount: number | undefined,
+  requestedDiarization?: boolean
 ): void => {
+  if (requestedDiarization !== undefined) {
+    const ignored = targets.filter(target => target.service === 'happyscribe' || (!getSttEngineCapabilities(target.service).diarizationByDefault && target.service !== 'together' && target.service !== 'gemini-stt'))
+    if (ignored.length) {
+      const message = 'Diarization toggle is unsupported and ignored for: ' + ignored.map(formatSttTargetLabel).join(', ') + '. Use --no-caption-speakers during local export to hide labels.'
+      emitWarnOnce(message, () => l.warn(message, { category: 'pipeline' }))
+    }
+  }
   const warning = buildSpeakerCountHintWarning(
     targets,
     requestedSpeakerCount,

@@ -27,7 +27,8 @@ const computeSttTargetStep = (
   service: string,
   model: string,
   durationSeconds: number,
-  input: Pick<ComputeEstimatedCostsInput, 'sourceUrl'>
+  input: Pick<ComputeEstimatedCostsInput, 'sourceUrl'>,
+  diarizationOptions?: import('~/types').DiarizationOptions
 ): EstimatedStepEntry => {
   if (service === 'supadata') {
     const { totalCost } = estimateSupadataCost(model, durationSeconds, { sourceUrl: input.sourceUrl })
@@ -39,7 +40,7 @@ const computeSttTargetStep = (
     return { step: 'stt', provider: service, model, cost: totalCost, costMultiplier: EXACT_COST_MULTIPLIER, durationSeconds: 0 }
   }
 
-  const cost = computeSttCost(service, model, durationSeconds)
+  const cost = computeSttCost(service, model, durationSeconds, diarizationOptions)
   return { step: 'stt', provider: service, model, cost, costMultiplier: EXACT_COST_MULTIPLIER, durationSeconds }
 }
 
@@ -57,7 +58,7 @@ export const buildSttCostSteps = (input: ComputeEstimatedCostsInput): CostStepsR
 
   if (explicitSttTargets.length > 0) {
     for (const target of explicitSttTargets) {
-      push(computeSttTargetStep(target.service, target.model, durationSeconds, input))
+      push(computeSttTargetStep(target.service, target.model, durationSeconds, input, target.diarizationOptions))
     }
   } else {
     for (const { field, provider } of STT_FIELD_MAP) {

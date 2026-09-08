@@ -2,7 +2,7 @@ import { pollUntil } from '~/utils/retries'
 import type { AsyncSttPoll, AsyncSttPollLoopOptions, PollStats, RetryClass } from '~/types'
 import { annotateAppError, AppError, extractErrorMetadata, InfraError, isRetryExhaustedError } from '~/utils/error-handler'
 
-export const DEFAULT_POLL_DEADLINE_MS = 10 * 60 * 1000
+export const DEFAULT_POLL_DEADLINE_MS = 30 * 60 * 1000
 
 export const MAX_POLL_DEADLINE_MS = 30 * 60 * 1000
 

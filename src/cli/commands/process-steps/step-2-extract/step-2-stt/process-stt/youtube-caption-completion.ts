@@ -1,3 +1,4 @@
+import { exportSttCaptions } from '~/cli/commands/process-steps/step-2-extract/run-caption-export'
 import type { ProviderCompletionStatus, YoutubeCaptionCompletionContext } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
@@ -104,6 +105,8 @@ export const completeYoutubeCaptionStt = async ({
     prompt: 'prompt.md',
     manifest: 'manifest.json'
   }
+
+  Object.assign(artifactFiles, await exportSttCaptions(outputDir, options.captionExportFlags, [captionTranscription.relativeDir ?? '.']))
 
   l.report.complete(outputDir, artifactFiles, {
     steps: buildSingleStepSummaries(acquisitionTimeMs, captionTranscription.metadata, actual),

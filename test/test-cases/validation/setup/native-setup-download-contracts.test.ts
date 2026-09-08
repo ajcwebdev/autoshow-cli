@@ -118,6 +118,52 @@ describe('native tar.gz extraction', () => {
   })
 })
 
+describe('MuPDF setup recovery', () => {
+  test('accepts repeated directory headers while retaining both trees', async () => {
+    const destination = await makeTempDir()
+    await extractTarGzBuffer(createTarGz([
+      {type:'directory',path:'vendor'}, {type:'file',path:'vendor/a',content:'a'},
+      {type:'directory',path:'vendor'}, {type:'file',path:'vendor/b',content:'b'}
+    ]), {destination})
+    expect(await Bun.file(join(destination,'vendor/a')).text()).toBe('a')
+    expect(await Bun.file(join(destination,'vendor/b')).text()).toBe('b')
+  })
+
+  test('still rejects file replacement by a directory', async () => {
+    await expect(extractTarGzBuffer(createTarGz([
+      {type:'file',path:'vendor',content:'a'}, {type:'directory',path:'vendor'}
+    ]), {destination:await makeTempDir()})).rejects.toThrow('Duplicate tar target')
+  })
+
+  test('reuses a checksum-complete partial download without requesting an invalid range', async () => {
+    const destination = join(await makeTempDir(),'asset')
+    await Bun.write(`${destination}.part`, 'complete')
+    const calls = installMockFetch(() => { throw new Error('Unexpected network call') })
+    await downloadFile({url:'https://example.test/a',destination,sha256:new Bun.CryptoHasher('sha256').update('complete').digest('hex')})
+    expect(calls).toHaveLength(0)
+    expect(await Bun.file(destination).text()).toBe('complete')
+  })
+
+  test('restarts an unsatisfiable partial range once', async () => {
+    const destination = join(await makeTempDir(),'asset'), url = 'https://example.test/a'
+    await Bun.write(`${destination}.part`, 'obsolete')
+    await Bun.write(`${destination}.part.json`, JSON.stringify({url}))
+    const calls = installMockFetch(call => call.headers.has('range') ? new Response(null,{status:416}) : new Response('fresh'))
+    await downloadFile({url,destination})
+    expect(calls).toHaveLength(2)
+    expect(await Bun.file(destination).text()).toBe('fresh')
+  })
+
+  test('serializes concurrent downloads sharing a partial-file path', async () => {
+    const destination = join(await makeTempDir(),'asset')
+    let active = 0, peak = 0
+    installMockFetch(async () => { active++; peak=Math.max(peak,active); await Bun.sleep(20); active--; return new Response('payload') })
+    await Promise.all([downloadFile({url:'https://example.test/a',destination}),downloadFile({url:'https://example.test/a',destination})])
+    expect(peak).toBe(1)
+    expect(await Bun.file(destination).text()).toBe('payload')
+  })
+})
+
 describe('managed download checksum validation', () => {
   test('validates sha256 before writing downloaded files', async () => {
     const destination = join(await makeTempDir(), 'asset.txt')

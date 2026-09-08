@@ -1,15 +1,19 @@
-import type { Step2Metadata, TranscriptionResult } from '~/types'
+import type { DiarizationOptions, Step2Metadata, TranscriptionResult } from '~/types'
 import { TOGETHER_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleSingleSpeakerStt } from '../openai-compatible-single-speaker'
 
 export const buildTogetherSttFormFields = (
   model: string,
-  prompt?: string | undefined
-): Record<string, string> => {
-  const fields: Record<string, string> = {
+  prompt?: string | undefined,
+  diarizationOptions?: DiarizationOptions
+): Record<string, string | string[]> => {
+  const fields: Record<string, string | string[]> = {
     response_format: 'verbose_json',
-    'timestamp_granularities[]': 'segment'
+    'timestamp_granularities[0]': 'word',
+    'timestamp_granularities[1]': 'segment',
+    diarize: String(diarizationOptions?.enabled ?? false),
+    ...(diarizationOptions?.enabled && diarizationOptions.speakerCount ? { min_speakers: String(diarizationOptions.speakerCount), max_speakers: String(diarizationOptions.speakerCount) } : {})
   }
   const normalizedPrompt = prompt?.trim()
   if (model === 'openai/whisper-large-v3' && normalizedPrompt) {
@@ -23,6 +27,7 @@ export const runTogetherStt = async (
   outputDir: string,
   options: {
     model: string
+    diarizationOptions?: DiarizationOptions | undefined
     segmentOffsetMinutes: number
     segmentNumber?: number | undefined
     totalSegments?: number | undefined
@@ -38,7 +43,7 @@ export const runTogetherStt = async (
     apiKey,
     baseURL: TOGETHER_DEFAULT_BASE_URL,
     model,
-    formFields: buildTogetherSttFormFields(model),
+    formFields: buildTogetherSttFormFields(model, undefined, options.diarizationOptions),
     segmentOffsetMinutes,
     segmentNumber,
     totalSegments,

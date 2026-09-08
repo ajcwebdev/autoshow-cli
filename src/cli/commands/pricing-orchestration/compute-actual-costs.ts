@@ -129,8 +129,8 @@ const computeActualSttCharge = (
   }
 
   return {
-    cost: computeSttCost(service, model, durationSeconds),
-    costSource: zeroCostSource(service, computeSttCost(service, model, durationSeconds), 'computed_usage'),
+    cost: computeSttCost(service, model, durationSeconds, metadata.diarizationOptions),
+    costSource: zeroCostSource(service, computeSttCost(service, model, durationSeconds, metadata.diarizationOptions), 'computed_usage'),
     inputMetric: 'durationSeconds',
     inputValue: durationSeconds
   }

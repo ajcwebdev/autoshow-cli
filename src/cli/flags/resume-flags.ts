@@ -43,8 +43,14 @@ const resumeProviderSelectionFlags = {
 } as const satisfies CliFlagsDefinition
 
 const resumeTranscriptionOptionNames = [
+  'stt-audio-profile',
   'youtube-captions',
   'speaker-count',
+  'diarization',
+  'native-subtitles',
+  'deepinfra-stt-response-format',
+  'stt-grok-verbatim',
+  'stt-supadata-chunk-size',
   'split',
   'stt-segment-concurrency',
   'stt-preflight-concurrency'

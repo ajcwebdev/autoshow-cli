@@ -17,6 +17,7 @@ export const getSttBilling = (service: string, model: string): SttBilling => {
   const billing = getModelRegistry().stt[service]?.models[model]?.billing
     ?? getRetiredModelRate('stt', service, model)?.billing
   return {
+    ...(billing?.diarizationCostPerHourCents !== undefined ? { diarizationCostPerHourCents: billing.diarizationCostPerHourCents } : {}),
     ...(billing?.roundingIncrementSeconds !== undefined
       ? { roundingIncrementSeconds: billing.roundingIncrementSeconds }
       : {}),
