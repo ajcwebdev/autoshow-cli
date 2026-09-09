@@ -1,3 +1,4 @@
+import { assertRequiredImageModel } from '~/utils/required-image-model'
 import type { EstimateImageCostOptions, EstimateMusicCostOptions, ImageStepEstimate, MusicStepEstimate, VideoEstimateOptions, VideoStepEstimate } from '~/types'
 import { estimateImageCosts, IMAGE_PRICING_MODEL_KEYS, IMAGE_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { estimateVideoCosts, VIDEO_PRICING_MODEL_KEYS, VIDEO_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
@@ -19,8 +20,10 @@ export const buildImageEstimates = (opts: EstimateImageCostOptions): ImageStepEs
     ...pick(opts, IMAGE_PRICING_MODEL_KEYS),
     imageSize: opts.imageSize,
     imageQuality: opts.imageQuality,
-    imageCount: opts.imageCount
+    imageCount: opts.imageCount,
+    imageInputs: opts.imageInputs
   }).map((estimate) => {
+    assertRequiredImageModel(estimate.model, estimate.provider)
     const estimation = getImageEstimation(estimate.provider, estimate.model)
     return {
       step: 'image' as const,

@@ -39,7 +39,7 @@ describe('OCR resume contracts', () => {
       const { events } = await captureLogEvents(async () => {
         await resumeOcrTarget(ocrResumeTarget(tempDir), {} as OcrExtractionOptions)
       })
-      const resumeItem = events.find((event) => event.message === 'Resume Item')
+      const resumeItem = events.find((event) => event.message.startsWith('Resume item '))
 
       expect(resumeItem?.metadata?.['detail']).toBe('only blocked OCR providers remain')
       expect(JSON.stringify(events)).not.toContain('no matching failed or missing providers selected')

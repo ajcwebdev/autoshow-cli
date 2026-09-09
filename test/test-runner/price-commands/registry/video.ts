@@ -44,4 +44,10 @@ export const videoRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/step-6-video-gen-e2e/fal-pixverse-c1.test.ts', [
     command('video-fal-fal-ai/pixverse/c1', 'video-fal-fal-ai/pixverse/c1', ['src/cli/create-cli.ts', 'video', 'a static shot of a tiny red dot on white background', '--provider', 'fal=fal-ai/pixverse/c1', '--duration', '1', '--resolution', '360p', '--price']),
   ]),
+  ...exact('test/test-cases/e2e/service/step-6-video-gen-e2e/ltx-2-5-fast.test.ts', [
+    command('video-ltx-ltx-2-5-fast', 'video-ltx-ltx-2-5-fast', ['src/cli/create-cli.ts', 'video', 'a static shot of a tiny red dot on white background', '--provider', 'ltx=ltx-2-5-fast', '--duration', '6', '--resolution', '720p', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/step-6-video-gen-e2e/ltx-2-5-pro.test.ts', [
+    command('video-ltx-ltx-2-5-pro', 'video-ltx-ltx-2-5-pro', ['src/cli/create-cli.ts', 'video', 'a static shot of a tiny red dot on white background', '--provider', 'ltx=ltx-2-5-pro', '--duration', '6', '--resolution', '720p', '--price']),
+  ]),
 ]

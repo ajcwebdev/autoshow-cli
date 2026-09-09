@@ -53,8 +53,8 @@ describe('Inworld AI Phase 3 Contracts', () => {
     })
     const catalog = await provider.catalog?.list()
     expect(catalog?.entries).toEqual([
-      expect.objectContaining({ resourceId: 'Alex', source: 'provider-library', origin: 'provider-stock', state: 'available', modelIds: ['realtime-tts-2'] }),
-      expect.objectContaining({ resourceId: 'workspace__guide', source: 'account', origin: 'imported-custom', state: 'available', modelIds: ['realtime-tts-2'] }),
+      expect.objectContaining({ resourceId: 'Alex', source: 'provider-library', origin: 'provider-stock', state: 'available', modelIds: ['realtime-tts-2', 'realtime-tts-2-flash'] }),
+      expect.objectContaining({ resourceId: 'workspace__guide', source: 'account', origin: 'imported-custom', state: 'available', modelIds: ['realtime-tts-2', 'realtime-tts-2-flash'] }),
       expect.objectContaining({ resourceId: 'workspace__professional', source: 'account', origin: 'professional-clone', state: 'available' })
     ])
     for (const feature of ['voice-catalog', 'voice-design', 'instant-clone', 'voice-delete', 'word-timing', 'phoneme-timing']) {

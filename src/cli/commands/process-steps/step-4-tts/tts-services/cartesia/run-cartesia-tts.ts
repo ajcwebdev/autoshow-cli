@@ -13,7 +13,7 @@ import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { readRestErrorText } from '~/utils/rest-client'
-const CARTESIA_DEFAULT_VERSION = '2026-03-01'
+import { buildCartesiaTtsRequestBody, cartesiaTtsApiVersion, cartesiaTtsRequestControls, cartesiaTtsVoiceField, validateCartesiaTtsLanguage } from './cartesia-tts-request'
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
 
@@ -33,9 +33,9 @@ export const runCartesiaTts = async (
   const apiKey = resolveCredential('cartesia', 'require', { stage: 'tts:cartesia', description: 'Cartesia TTS' })
 
   const baseURL = trimTrailingSlash(CARTESIA_DEFAULT_BASE_URL)
-  const version = CARTESIA_DEFAULT_VERSION
+  const version = cartesiaTtsApiVersion(options.model)
   const voice = validateCartesiaTtsVoice(options.voiceId?.trim() || CARTESIA_DEFAULT_TTS_VOICE)
-  const language = options.language?.trim() || undefined
+  const language = validateCartesiaTtsLanguage(options.model, options.language)
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.cartesia)
 
   if (chunks.length === 0) {
@@ -64,26 +64,16 @@ export const runCartesiaTts = async (
     chunkScheduler: options.chunkScheduler,
     requestEvidence: options.requestEvidence,
     fetchChunkAudio: async ({ chunk, chunkIndex, signal, requestAttempt, retryReasonCode }) => {
-      const requestBody = {
-        model_id: options.model,
-        transcript: chunk,
-        voice: { mode: 'id', id: voice },
-        ...(language ? { language } : {}),
-        output_format: { container: 'wav', encoding: 'pcm_s16le', sample_rate: 24000 }
-      }
+      const requestBody = buildCartesiaTtsRequestBody(options.model, chunk, voice, language)
       return await dispatchTtsProviderRequest(options.requestEvidence, {
         chunkIndex,
         endpointKind: 'speech-synthesis',
         serializerVersion: 'cartesia.tts.phase-0-v1',
         serializedRequest: { path: '/tts/bytes', version, body: requestBody },
         providerText: chunk,
-        voiceField: 'voice.id',
+        voiceField: cartesiaTtsVoiceField(options.model),
         voices: [{ kind: 'provider-id', value: voice }],
-        requestControls: {
-          ...(language ? { language } : {}),
-          outputFormat: requestBody.output_format,
-          version
-        },
+        requestControls: cartesiaTtsRequestControls(options.model, language),
         continuation: { kind: 'none' }
       }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
         const response = await fetch(`${baseURL}/tts/bytes`, {

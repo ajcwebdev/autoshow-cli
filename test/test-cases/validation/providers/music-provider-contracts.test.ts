@@ -84,7 +84,7 @@ describe('music provider contracts', () => {
       }) as typeof fetch, async () => {
         const opts = buildOptsFromFlags({
           'minimax-music': 'music-3.0',
-          'music-instrumental': true
+          'instrumental': true
         })
         const [target] = collectMusicTargets(opts)
         expect(target).toBeDefined()

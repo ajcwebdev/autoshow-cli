@@ -204,7 +204,8 @@ export const validateHumeTtsVoice = (voice: string): string => {
 }
 
 export const SUPPORTED_CARTESIA_TTS_MODELS = [
-  'sonic-3.5-2026-05-04'
+  'sonic-3.5-2026-05-04',
+  'sonic-3.6-2026-08-27'
 ] as const satisfies readonly string[]
 
 export const CARTESIA_DEFAULT_TTS_VOICE = 'f786b574-daa5-4673-aa0c-cbe3e8534c02'
@@ -220,7 +221,8 @@ export const validateCartesiaTtsVoice = (voice: string): string => {
 }
 
 export const SUPPORTED_INWORLD_TTS_MODELS = [
-  'realtime-tts-2'
+  'realtime-tts-2',
+  'realtime-tts-2-flash'
 ] as const satisfies readonly string[]
 
 export const INWORLD_DEFAULT_TTS_VOICE = 'voice_inworld_standard_en'

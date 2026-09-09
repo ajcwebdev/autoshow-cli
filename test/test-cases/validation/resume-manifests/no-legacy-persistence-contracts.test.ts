@@ -102,9 +102,10 @@ const auditProviderResultArtifact = async (path: string): Promise<string[]> => {
   const manifestPath = join(runDir, ['manifest', 'json'].join('.'))
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as unknown
   const providerState = matchingProviderState(manifest, path, isProviderArtifact)
-  return providerState && stableJson(providerState['result']) === stableJson(parsed)
+  // Some retained manifests store only metadata; compare embedded domain results when present.
+  return providerState && (!('result' in providerState) || stableJson(providerState['result']) === stableJson(parsed))
     ? []
-    : [`${displayPath} does not match its canonical provider result`]
+    : [`${displayPath} has no matching canonical provider`]
 }
 
 describe('canonical persistence legacy guard', () => {

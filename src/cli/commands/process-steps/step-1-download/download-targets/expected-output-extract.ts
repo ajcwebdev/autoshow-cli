@@ -12,10 +12,10 @@ const POOLED_OCR_ATTEMPT_ARTIFACTS = [
 ] as const
 
 const getExpectedOcrExportArtifacts = (
-  opts: Pick<OcrRuntimeOptions, 'chapterFiles' | 'chapterChunkLimitChars'>,
+  opts: Pick<OcrRuntimeOptions, 'chapterFiles' | 'chapterChunkLimitChars' | 'docxMarkdown'>,
   routing?: ResolvedInputRouting
 ): string[] => {
-  const artifacts: string[] = []
+  const artifacts: string[] = opts.docxMarkdown ? ['extraction.md'] : []
   const sourceKind = routing?.resolvedStep2.sourceKind
   const epubChaptersAutomatic = sourceKind === 'epub' && shouldExportEpubChapters(opts.chapterFiles)
   if (opts.chapterFiles === true || epubChaptersAutomatic) {

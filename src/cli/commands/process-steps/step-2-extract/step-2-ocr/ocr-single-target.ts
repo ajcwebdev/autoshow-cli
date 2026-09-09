@@ -48,6 +48,7 @@ export const runOcrSingleTarget = async (ctx: OcrSingleRunContext): Promise<Proc
     ocrLocalConcurrency: opts.ocrLocalConcurrency,
     hostedOcrScheduler: hostedOcrScheduler.snapshot()
   })
+  if (singleTargetOpts.docxMarkdown) rootMetadata['docxMarkdown'] = { path: 'extraction.md', format: 'markdown' }
   await writePipelineItemRecords(outputDir, 'extract', 'single', [rootMetadata], { extractRoute: 'document' })
   await persistHostedOcrThroughputProfiles(hostedOcrScheduler.snapshot(), {
     completionStatus: 'full'

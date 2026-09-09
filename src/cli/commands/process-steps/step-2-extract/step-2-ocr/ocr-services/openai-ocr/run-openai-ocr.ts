@@ -9,6 +9,7 @@ import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/model
 import { OcrStructuredResponseError } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-structured-response-error'
 
 const OPENAI_NATIVE_STRUCTURED_MODELS = new Set([
+  'gpt-6-astra',
   'gpt-5.6-sol',
   'gpt-5.6-terra',
   'gpt-5.6-luna',

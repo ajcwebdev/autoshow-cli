@@ -1,10 +1,9 @@
 import { expect } from 'bun:test'
-import { budgetedTest } from '../../../../../test-utils/budget'
 
 import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import { cleanupOutputDir } from '../../../../../test-utils/test-helpers'
 import {
-  requireConfiguredEnvVar,
+  defineBudgetedLiveServiceTest,
   runCommandAndExpectOutputDir
 } from '../../../../../test-utils/service-test-kit'
 import type { OcrE2eExtractMetadata } from '~/types'
@@ -12,9 +11,7 @@ import { expectArtifact } from '../../../../../test-utils/value-assertions'
 
 const articleUrl = 'https://ajcwebdev.com'
 
-budgetedTest('extract-glm-reader-url', 'bun autoshow extract https://ajcwebdev.com --provider glm-reader', async () => {
-  await requireConfiguredEnvVar('GLM_API_KEY', 'GLM_API_KEY not configured')
-
+defineBudgetedLiveServiceTest('extract-glm-reader-url', 'bun autoshow extract https://ajcwebdev.com --provider glm-reader', ['GLM_API_KEY'], async () => {
   let outputDir: string | null = null
 
   try {

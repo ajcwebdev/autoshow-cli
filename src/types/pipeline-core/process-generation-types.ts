@@ -137,6 +137,8 @@ export type Step7MusicMetadata = {
   generatedSongTitle?: string | undefined
   generatedStyleTags?: string | undefined
   generatedText?: string | undefined
+  generatedTextFileName?: string | undefined
+  additionalAudioFileNames?: string[] | undefined
   compositionPlanChunkCount?: number | undefined
   hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
 }

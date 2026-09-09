@@ -9,7 +9,9 @@
     ],
     "Models": [
       "https://docs.z.ai/guides/llm/glm-5.1.md",
-      "https://docs.z.ai/guides/vlm/glm-ocr.md"
+      "https://docs.z.ai/guides/vlm/glm-ocr.md",
+      "https://docs.z.ai/guides/llm/glm-5.3",
+      "https://docs.z.ai/guides/vlm/glm-5.3-flash"
     ],
     "Text": [
       "https://docs.z.ai/guides/overview/migrate-to-glm-new.md",

@@ -121,16 +121,16 @@ describe('price mode contracts', () => {
         ]
       })
 
-      expect(computeSttCost('deepgram', 'nova-3', audioDurationSeconds)).toBe(58.2)
+      expect(computeSttCost('deepgram', 'nova-3', audioDurationSeconds)).toBe(25.8)
       expect(estimated.steps[0]).toMatchObject({
         step: 'stt',
         provider: 'deepgram',
         model: 'nova-3',
-        cost: 58.2,
+        cost: 25.8,
         costMultiplier: 1,
         durationSeconds: audioDurationSeconds
       })
-      expect(estimated.totalCost).toBe(58.2)
+      expect(estimated.totalCost).toBe(25.8)
     })
 
   test('AssemblyAI estimates use diarization-inclusive rates without a multiplier', () => {

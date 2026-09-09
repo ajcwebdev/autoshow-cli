@@ -21,6 +21,7 @@ export type OcrRuntimeOptions = {
   geminiOcrModels: string[] | undefined
   deepinfraOcrModels: string[] | undefined
   primaryOcr: string | undefined
+  docxMarkdown?: boolean | undefined
   chapterFiles: boolean | undefined
   chapterChunkLimitChars: number | undefined
   pdfChapterMode: 'local' | 'auto' | 'llm'

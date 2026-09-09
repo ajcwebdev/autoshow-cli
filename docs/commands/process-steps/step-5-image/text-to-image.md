@@ -123,15 +123,22 @@ OpenAI is the only provider that accepts `--mask`. `gpt-image-2` rejects `--back
 | Option         | Value                                                                                                       |
 | -------------- | ----------------------------------------------------------------------------------------------------------- |
 | Selector       | `--provider grok[=<model>]`                                                                                 |
-| Models         | `grok-imagine-image-quality`                                                                                |
+| Models         | `grok-imagine-image-quality` (bare default), `grok-imagine-image-2.0`                                                                                |
 | Size           | `--size 1K\|2K`                                                                                             |
 | Aspect ratio   | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` |
 | Count          | `--count 1-10`                                                                                              |
-| Edit/reference | Up to 3 `--input` images                                                                                    |
+| Edit/reference | PNG/JPEG files, data URLs or public URLs: up to 3 for Quality, 5 for Image 2.0                                                                                    |
+
+Image 2.0 also accepts `21:9` and `5:2`. Its `--quality low|medium|auto` resolves locally: omitted or `auto` means `low` for generation and `medium` for editing. Omitted size resolves to `1K`. Both values are sent explicitly; `high` and sizes outside `1K|2K` are rejected. The existing Quality selector continues to reject `--quality`.
+
+Image 2.0 output prices are $0.04/$0.06 at low 1K/2K and $0.06/$0.08 at medium 1K/2K, plus $0.01 per input image per request. Estimates include requested output count and reference charges; returned provider cost takes precedence when available. [xAI model pricing](https://docs.x.ai/developers/models/grok-imagine-image-2.0).
+
+xAI schedules `grok-imagine-image-quality` to redirect to Image 2.0 at low quality on November 2, 2026. The CLI keeps the selector and bare default, and records the serving model from responses. Select Image 2.0 explicitly for its pricing and controls; the older selector retains its existing local estimate. [Alias transition](https://docs.x.ai/developers/migration/imagine-image-quality-nov-2).
 
 ```bash
 bun autoshow image "a futuristic observatory at sunset" --provider grok=grok-imagine-image-quality --aspect-ratio 16:9 --size 1K --count 4
 bun autoshow image "turn the reference into a glossy magazine ad on a warm kitchen counter" --provider grok=grok-imagine-image-quality --input input/reference.jpg --size 1K
+bun autoshow image "a geometric lighthouse poster" --provider grok=grok-imagine-image-2.0 --quality medium --size 2K
 ```
 
 ### BFL
@@ -210,6 +217,7 @@ Rows are newest first. Pricing is the per-image estimate.
 
 | Provider                                           | Released   | References | Max resolution           | Aspect ratio    | Count | Formats        | Pricing                         |
 | -------------------------------------------------- | ---------- | ---------- | ------------------------ | --------------- | ----- | -------------- | ------------------------------- |
+| Grok `grok-imagine-image-2.0` | 2026-08 | Up to 5 | 2K | 16 ratios | 1–10 | JPEG | $0.04–$0.08/output + $0.01/input |
 | fal.ai `alibaba/qwen-image-3`                      | 2026-07-21 | Up to 3    | 2048 text / 1440 edit    | Use `--size`    | 1–4   | png/jpeg/webp  | $0.0051/image                   |
 | fal.ai `reve/2.1`                                  | 2026-07-09 | 1          | Unpublished              | 18 ratios       | 1–4   | png/jpeg/webp  | $0.25/image                     |
 | Replicate `bytedance/seedream-5-pro`               | 2026-07-08 | Up to 10   | 2K                       | 9 ratios        | 1     | png/jpeg       | $0.045/image                    |

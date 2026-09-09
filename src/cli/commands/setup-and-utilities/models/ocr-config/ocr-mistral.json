@@ -40,6 +40,26 @@
         "reasoning": {
           "support": "unsupported"
         }
+      },
+      "mistral-ocr-4-1": {
+        "description": "Mistral OCR 4.1",
+        "pricingSourceUrl": "https://docs.mistral.ai/models/ocr-4-1",
+        "pricingCheckedAt": "2026-09-08",
+        "pricingCurrency": "USD",
+        "pricingTier": "Mistral La Plateforme public pricing",
+        "pricingNotes": "Ordinary OCR costs $4 per 1,000 pages; document/bbox annotations cost $5 per 1,000 annotated pages. Block extraction and confidence requests use ordinary OCR pricing. AutoShow does not expose annotation requests; the annotated tariff is available separately for pricing only. Discounts, batch rates, taxes and credits are excluded. The inherited latency heuristic is uncalibrated for 4.1.",
+        "costPer1kPagesCents": 400,
+        "limits": {
+          "notes": "https://docs.mistral.ai/api/endpoint/ocr documents the Mistral OCR API and OCR 4 model card. AutoShow does not enforce a numeric Mistral OCR file-size or page-count cap from that source."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 2957
+        },
+        "reasoning": {
+          "support": "unsupported"
+        },
+        "costPer1kAnnotatedPagesCents": 500
       }
     }
   }

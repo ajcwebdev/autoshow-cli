@@ -16,7 +16,7 @@ test('mistral --price works with an existing voice source', async () => {
     `mistral=${MISTRAL_TTS_MODEL}`,
     '--tts-voice',
     'voice_abc123',
-    '--price'
+    '--price', '--json'
   ])
 
   expectPriceEstimateForModel(result, MISTRAL_TTS_MODEL)
@@ -29,7 +29,7 @@ test('all-provider --price uses an internal Mistral planning voice when none is 
     'tts',
     STABLE_TTS_MD_PATH,
     '--all-providers',
-    '--price'
+    '--price', '--json'
   ])
 
   expectPriceEstimateForModel(result, MISTRAL_TTS_MODEL)
@@ -47,7 +47,7 @@ test('mistral rejects voice and reference audio together before API request in p
     'voice_abc123',
     '--tts-ref-audio',
     MISTRAL_REF_AUDIO_PATH,
-    '--price'
+    '--price', '--json'
   ])
 
   expect(result.exitCode).toBe(2)

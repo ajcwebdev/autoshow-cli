@@ -1,3 +1,4 @@
+import { UsageError } from '~/utils/error-handler'
 import type { InworldTtsModel, InworldTtsRequestInput, NormalizedTiming, TimedToken, TtsTimingIdentity } from '~/types'
 
 export const INWORLD_TTS_SERIALIZER_VERSION = 'inworld.tts.phase-3-v3'
@@ -5,10 +6,29 @@ export const INWORLD_TTS_SERIALIZER_VERSION = 'inworld.tts.phase-3-v3'
 export const resolveInworldTtsApiModelId = (model: InworldTtsModel): string => {
   switch (model) {
     case 'realtime-tts-2': return 'inworld-tts-2'
+    case 'realtime-tts-2-flash': return 'inworld-tts-2-flash'
+  }
+}
+
+export const validateInworldTtsSteering = (model: string, steeringPrompt?: string): void => {
+  if (model === 'realtime-tts-2-flash' && steeringPrompt?.trim()) {
+    throw UsageError('Inworld realtime-tts-2-flash does not support steering instructions; select realtime-tts-2 or remove the instructions.')
+  }
+}
+
+export const inworldTtsRequestControls = (model: string, steeringPrompt?: string) => {
+  validateInworldTtsSteering(model, steeringPrompt)
+  return {
+    ...(model === 'realtime-tts-2-flash' ? { modelId: 'inworld-tts-2-flash' } : {}),
+    format: 'wav', timestampType: 'WORD', audioConfig: { audioEncoding: 'WAV', sampleRateHertz: 48000 },
+    ...(steeringPrompt ? { steeringPrompt } : {})
   }
 }
 
 export const buildInworldTtsRequestBody = (input: InworldTtsRequestInput): Readonly<Record<string, unknown>> => {
+  validateInworldTtsSteering(input.model, input.steeringPrompt)
+  if (!input.text.trim() || input.text.length > 2000) throw UsageError('Inworld REST TTS text must contain 1–2000 characters.')
+  if (!input.voiceId.trim()) throw UsageError('Inworld voice ID cannot be blank.')
   return {
     text: input.text,
     voiceId: input.voiceId,

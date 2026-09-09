@@ -1,3 +1,4 @@
+import { setupTtsFixtureCredentials } from '../../../test-utils/tts-fixture-credentials'
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 import { createBatchedManifestUpdater, createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, readManifest, updateManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
@@ -365,3 +366,5 @@ describe('canonical TTS resume — item-scoped and batch scope', () => {
     })
   })
 })
+
+setupTtsFixtureCredentials()

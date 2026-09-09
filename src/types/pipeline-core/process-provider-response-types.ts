@@ -1,3 +1,4 @@
+import { MistralOcrPageMetadataSchema } from './mistral-ocr-metadata-types'
 import * as v from 'valibot'
 
 const GladiaWordSchema = v.looseObject({
@@ -91,6 +92,7 @@ export const MistralTranscriptionResponseSchema = v.looseObject({
 })
 
 const MistralOcrPageSchema = v.object({
+  ...MistralOcrPageMetadataSchema.entries,
   index: v.number(),
   markdown: v.string()
 })

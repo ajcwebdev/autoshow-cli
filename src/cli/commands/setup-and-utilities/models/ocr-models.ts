@@ -3,7 +3,8 @@ import { createRetiringModelValidator } from '~/cli/commands/setup-and-utilities
 
 export const SUPPORTED_MISTRAL_OCR_MODELS = [
   'mistral-ocr-2512',
-  'mistral-ocr-4-0'
+  'mistral-ocr-4-0',
+  'mistral-ocr-4-1'
 ] as const satisfies readonly string[]
 
 export const validateMistralOcrModel = createModelValidator(SUPPORTED_MISTRAL_OCR_MODELS, 'mistral-ocr')
@@ -22,6 +23,7 @@ export const SUPPORTED_KIMI_OCR_MODELS = [
 export const validateKimiOcrModel = createModelValidator(SUPPORTED_KIMI_OCR_MODELS, 'kimi-ocr')
 
 export const SUPPORTED_OPENAI_OCR_MODELS = [
+  'gpt-6-astra',
   'gpt-5.6-sol',
   'gpt-5.6-terra',
   'gpt-5.6-luna',
@@ -42,6 +44,7 @@ export const SUPPORTED_GROK_OCR_MODELS = [
 export const validateGrokOcrModel = createModelValidator(SUPPORTED_GROK_OCR_MODELS, 'grok-ocr')
 
 export const SUPPORTED_ANTHROPIC_OCR_MODELS = [
+  'claude-fable-5-1',
   'claude-fable-5',
   'claude-opus-4-8',
   'claude-sonnet-5',
@@ -54,6 +57,7 @@ export const validateAnthropicOcrModel = createModelValidator(SUPPORTED_ANTHROPI
 
 export const SUPPORTED_GEMINI_OCR_MODELS = [
   'gemini-3.1-pro-preview',
+  'gemini-3.8-flash',
   'gemini-3.7-flash',
   'gemini-3.5-flash',
   'gemini-3.6-flash',

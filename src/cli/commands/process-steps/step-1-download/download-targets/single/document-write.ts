@@ -47,6 +47,7 @@ export const buildExtractionCallOpts = (target: string, baseDir: string, opts: D
     }
   }
 
+  extractionOpts.docxMarkdown = opts.docxMarkdown
   if (opts.password) {
     extractionOpts.password = opts.password
   }

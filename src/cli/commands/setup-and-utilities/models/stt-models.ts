@@ -72,6 +72,7 @@ export const SUPPORTED_SCRAPECREATORS_STT_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_GEMINI_STT_MODELS = [
+  'gemini-3.8-flash',
   'gemini-3.6-flash'
 ] as const satisfies readonly string[]
 

@@ -1,3 +1,4 @@
+import { GROK_IMAGE_2_INPUT_PRICE_CENTS, GROK_IMAGE_2_OUTPUT_PRICE_CENTS, resolveGrokImageOptions } from '../image-generation-services/image-grok/grok-image-options'
 import { getImageCost, getImageInputCostPer1M } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { validateBflImageModel, validateFalImageModel, validateGeminiImageModel, validateGrokImageModel, validateLumalabsImageModel, validateOpenAIImageModel, validateReplicateImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { deriveGenerationPricingProviders, IMAGE_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
@@ -147,6 +148,19 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
       }
       case 'grok': {
         const model = validateGrokImageModel(selection.model)
+        if (model === 'grok-imagine-image-2.0') {
+          const { quality, resolution, imageCount } = resolveGrokImageOptions(model, options)
+          const costPerImageCents = GROK_IMAGE_2_OUTPUT_PRICE_CENTS[quality!][resolution!]
+          const inputImageCount = options.imageInputs?.length ?? 0
+          const inputImageCostCents = inputImageCount * GROK_IMAGE_2_INPUT_PRICE_CENTS
+          estimates.push({
+            provider: 'grok', model, imageCount, costPerImageCents,
+            totalCost: costPerImageCents * imageCount + inputImageCostCents,
+            inputImageCount, inputImageCostCents,
+            note: `Published xAI ${resolution} ${quality} output price plus ${inputImageCount} input images at 1 cent each per request. Account discounts and taxes excluded.`
+          })
+          break
+        }
         const costPerImageCents = getImageCost('grok', model)
         const imageCount = Math.max(1, options.imageCount ?? 1)
         estimates.push({

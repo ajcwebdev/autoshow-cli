@@ -1,13 +1,13 @@
 import type { HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleProviderRunWithStats, UrlArticleRunResult, UrlRequestOptions } from '~/types'
 import { AppError, isAppError } from '~/utils/error-handler'
-import { classifyFetchRetry, getRetryPolicyForClass, withRetry } from '~/utils/retries'
+import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { defuddleArticleAdapter } from './url-local/defuddle/run-defuddle-url'
 import { firecrawlArticleAdapter } from './url-services/firecrawl/run-firecrawl-url'
 import { glmReaderArticleAdapter } from './url-services/glm-reader/run-glm-reader-url'
 import { spiderArticleAdapter } from './url-services/spider/run-spider-url'
 import { supadataArticleAdapter } from './url-services/url-supadata/run-supadata-url'
 import { zyteArticleAdapter } from './url-services/zyte/run-zyte-url'
-import { getUrlRequestTimeoutMs } from './url-utils'
+import { getUrlRequestAttempts, getUrlRequestTimeoutMs } from './url-utils'
 
 export const URL_ARTICLE_PROVIDER_ADAPTERS: Record<HtmlArticleBackend, UrlArticleProviderAdapter> = {
   defuddle: defuddleArticleAdapter,
@@ -69,7 +69,7 @@ export const runUrlArticleProviderWithStats = async (
 ): Promise<UrlArticleProviderRunWithStats> => {
   const adapter = getUrlArticleProviderAdapter(backend)
   const timeoutMs = getUrlRequestTimeoutMs(options)
-  const maxAttempts = getRetryPolicyForClass('runtime_http_read').maxAttempts
+  const maxAttempts = getUrlRequestAttempts(options)
   let attemptsMade = 0
 
   try {
@@ -77,7 +77,8 @@ export const runUrlArticleProviderWithStats = async (
       {
         retryClass: 'runtime_http_read',
         operationName: `url-article-${adapter.id}`,
-        timeoutMs
+        timeoutMs,
+        policy: { maxAttempts }
       },
       async (signal) => {
         attemptsMade += 1

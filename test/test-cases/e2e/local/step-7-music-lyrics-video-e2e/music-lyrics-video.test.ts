@@ -211,11 +211,18 @@ budgetedTest('transcribe-whisper-tiny', 'music lyric-video batch writes one batc
     'music',
     '--batch',
     BATCH_INPUT_DIR,
+    '--json',
     '--model',
     'tiny'
   ], { timeoutMs: LONG_E2E_TEST_TIMEOUT_MS })
 
-  expect(result.exitCode).toBe(0)
+  expect(result.exitCode, result.stderr).toBe(0)
+  const terminalResult = JSON.parse(result.stdout)
+  expect(terminalResult).toMatchObject({
+    type: 'result',
+    status: 'success',
+    data: { dryRun: false, metrics: { total: 2, succeeded: 2, failed: 0 } }
+  })
   expect(result.outputDir).not.toBeNull()
 
   if (result.outputDir) {

@@ -1,3 +1,5 @@
+import { copyFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import type { MusicGenOptions, MusicTarget, Step7MusicMetadata } from '~/types'
 import { runMediaFileTargets } from '~/cli/commands/process-steps/media-file-target-runner'
 import { UsageError } from '~/utils/error-handler'
@@ -26,8 +28,25 @@ export const runMusicTargets = async (
       noProviderMessage: 'No provider produced music',
       hostedWorkClass: 'music',
       workspacePrefix: '.music-tmp',
-      runTarget: async (target, targetPrompt, workspaceDir) =>
-        await target.run(targetPrompt, workspaceDir).then(({ musicPath, metadata }) => ({ filePath: musicPath, metadata })),
+      runTarget: async (target, targetPrompt, workspaceDir) => {
+        const { musicPath, metadata } = await target.run(targetPrompt, workspaceDir)
+        // Scope sidecars by model even for a single target so additive resume keeps their names stable.
+        const stem = getMusicArtifactFileName(target, false).replace(/\.mp3$/, '')
+        const promoted = { ...metadata }
+        if (metadata.generatedTextFileName) {
+          promoted.generatedTextFileName = `${stem}.txt`
+          await copyFile(join(workspaceDir, metadata.generatedTextFileName), join(outputDir, promoted.generatedTextFileName))
+        }
+        if (metadata.additionalAudioFileNames) {
+          promoted.additionalAudioFileNames = []
+          for (const [index, name] of metadata.additionalAudioFileNames.entries()) {
+            const finalName = `${stem}-part-${index + 2}.mp3`
+            await copyFile(join(workspaceDir, name), join(outputDir, finalName))
+            promoted.additionalAudioFileNames.push(finalName)
+          }
+        }
+        return { filePath: musicPath, metadata: promoted }
+      },
       getArtifactFileName: getMusicArtifactFileName,
       finalizeMetadata: (metadata, finalFileName, finalPath) => ({
         ...metadata,

@@ -56,6 +56,7 @@ export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => 
     configuredFlags
   )
 
+  if (mergedFlags['docx-markdown'] === true && (useTesseract || OCR_MODEL_KEYS.some(key => { const value = modelOptions[key]; return Array.isArray(value) ? value.length > 0 : Boolean(value) }))) throw UsageError('--docx-markdown requires native extraction; remove configured OCR provider selections.')
   return {
     ...pick(modelOptions, OCR_MODEL_KEYS),
     ocrConcurrency: resolvedOcrConcurrency,
@@ -83,6 +84,7 @@ export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => 
     password: readOptionalStringFlag(mergedFlags, 'password'),
     useTesseract,
     primaryOcr: readOptionalStringFlag(mergedFlags, 'primary-ocr'),
+    docxMarkdown: readOptionalBooleanFlag(mergedFlags, 'docx-markdown'),
     chapterFiles: readOptionalBooleanFlag(mergedFlags, 'chapters'),
     chapterChunkLimitChars: epubLengthThousands === undefined ? undefined : epubLengthThousands * 1000,
     pdfChapterMode,

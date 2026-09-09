@@ -13,6 +13,15 @@ import { loadE2eTestSources } from './e2e-test-sources'
 import { auditBudgetKeyCoverage, indexBudgetSkippableSelectors } from './budget-coverage-audit'
 
 describe('test-runner contracts', () => {
+  test('live service registration retains inspectable budget keys', () => {
+    const inspected = inspectBudgetSource('live.ts', `
+      defineBudgetedLiveServiceTest('extract-firecrawl-url', 'article', ['FIRECRAWL_API_KEY'], () => {})
+      defineBudgetedLiveServiceTest(['music-one', 'music-two'], 'music', ['FIRST_KEY', 'SECOND_KEY'], () => {})
+    `)
+    expect(inspected.keys).toEqual(['extract-firecrawl-url', 'music-one', 'music-two'])
+    expect(inspected.issues).toEqual([])
+  })
+
   test('budget source inspection handles nested literal shapes without scanner false positives', () => {
     const inspected = inspectBudgetSource('fixture.ts', `
       // defineVideoServiceTest({ videoService: 'comment', models: [{ model: 'ignored' }] })

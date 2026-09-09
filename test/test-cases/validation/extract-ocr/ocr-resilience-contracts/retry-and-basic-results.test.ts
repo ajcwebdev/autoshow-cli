@@ -14,19 +14,19 @@ import {
 } from './shared'
 
 describe('OCR resilience contracts', () => {
-  test('OCR retry policy and timeout defaults are aggressive and env parsing is strict', () => {
+  test('OCR retry policy uses conservative paid-create defaults', () => {
     expect(OCR_REQUEST_TIMEOUT_MS).toBe(60 * 60_000)
     expect(OCR_PAGE_REQUEST_ATTEMPTS).toBe(2)
     expect(OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS).toBe(6)
     expect(OCR_PAGE_REQUEST_TIMEOUT_MS).toBe(5 * 60_000)
     expect(HOSTED_OCR_PDF_PAGE_FALLBACK_THRESHOLD).toBe(20)
     expect(OCR_SCHEMA_RETRY_ATTEMPTS).toBe(3)
-    expect(OCR_CREATE_RETRY_POLICY).toEqual(getRetryPolicyForClass('runtime_http_create_retriable'))
+    expect(OCR_CREATE_RETRY_POLICY).toEqual(getRetryPolicyForClass('runtime_http_create_conservative'))
     expect(OCR_PAGE_REQUEST_RETRY_POLICY).toEqual({
-      ...getRetryPolicyForClass('runtime_http_create_retriable'),
+      ...getRetryPolicyForClass('runtime_http_create_conservative'),
       maxAttempts: 2
     })
-    expect(classifyOcrCreateRetry(new DOMException('deadline exceeded', 'TimeoutError')).shouldRetry).toBe(true)
+    expect(classifyOcrCreateRetry(new DOMException('deadline exceeded', 'TimeoutError')).shouldRetry).toBe(false)
 
   })
 

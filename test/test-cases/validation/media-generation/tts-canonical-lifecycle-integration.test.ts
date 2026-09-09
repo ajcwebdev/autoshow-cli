@@ -1,3 +1,4 @@
+import { setupTtsFixtureCredentials } from '../../../test-utils/tts-fixture-credentials'
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -251,3 +252,5 @@ describe('canonical standalone TTS lifecycle persistence', () => {
     })
   })
 })
+
+setupTtsFixtureCredentials()

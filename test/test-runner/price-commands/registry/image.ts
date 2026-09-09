@@ -46,4 +46,7 @@ export const imageRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/lumalabs-uni-1-max.test.ts', [
     command('image-lumalabs-uni-1-max', 'image-lumalabs-uni-1-max', ['src/cli/create-cli.ts', 'image', 'a sunset', '--provider', 'lumalabs=uni-1-max', '--aspect-ratio', '16:9', '--format', 'png', '--price']),
   ]),
+  ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/grok-imagine-image-2.0.test.ts', [
+    command('image-grok-grok-imagine-image-2.0', 'image-grok-grok-imagine-image-2.0', ['src/cli/create-cli.ts', 'image', 'A simple blue cube on a white background', '--provider', 'grok=grok-imagine-image-2.0', '--size', '1K', '--aspect-ratio', '1:1', '--quality', 'low', '--price']),
+  ]),
 ]

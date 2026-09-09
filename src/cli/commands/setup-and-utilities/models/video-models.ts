@@ -19,7 +19,9 @@ export const validateGrokVideoModel = createModelValidator<GrokVideoModel>(SUPPO
 
 export const SUPPORTED_LTX_VIDEO_MODELS = [
   'ltx-2-3-fast',
-  'ltx-2-3-pro'
+  'ltx-2-3-pro',
+  'ltx-2-5-fast',
+  'ltx-2-5-pro'
 ] as const satisfies readonly string[]
 
 export const validateLtxVideoModel = createModelValidator<LtxVideoModel>(SUPPORTED_LTX_VIDEO_MODELS, 'ltx-video')

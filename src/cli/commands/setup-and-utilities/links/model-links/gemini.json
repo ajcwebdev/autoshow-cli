@@ -11,6 +11,7 @@
     "Models": [
       "https://ai.google.dev/gemini-api/docs/models.md.txt",
       "https://ai.google.dev/gemini-api/docs/latest-model.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash.md.txt",
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.7-flash.md.txt",
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.6-flash.md.txt",
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash.md.txt",
@@ -49,7 +50,9 @@
     ],
     "Music": [
       "https://ai.google.dev/gemini-api/docs/music-generation.md.txt",
-      "https://ai.google.dev/gemini-api/docs/models/lyria-3-pro-preview.md.txt"
+      "https://ai.google.dev/gemini-api/docs/models/lyria-3-pro-preview.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/lyria-3.5.md.txt",
+      "https://ai.google.dev/api/interactions-api"
     ]
   }
 }

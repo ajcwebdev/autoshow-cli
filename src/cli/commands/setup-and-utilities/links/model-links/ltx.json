@@ -1,7 +1,8 @@
 {
   "LTX": {
     "Models": [
-      "https://docs.ltx.video/models.md"
+      "https://docs.ltx.video/models.md",
+      "https://docs.ltx.io/models/ltx-2-5.md"
     ],
     "Video": [
       "https://docs.ltx.video/welcome.md",
@@ -19,7 +20,11 @@
       "https://docs.ltx.video/api-documentation/api-reference/video-generation/image-to-video.md",
       "https://docs.ltx.video/api-documentation/api-reference/video-generation/audio-to-video.md",
       "https://docs.ltx.video/api-documentation/api-reference/video-generation/retake.md",
-      "https://docs.ltx.video/api-documentation/api-reference/video-generation/extend.md"
+      "https://docs.ltx.video/api-documentation/api-reference/video-generation/extend.md",
+      "https://docs.ltx.io/pricing.md",
+      "https://docs.ltx.io/async-jobs.md",
+      "https://docs.ltx.io/api-documentation/api-reference/async-video-generation/submit-text-to-video.md",
+      "https://docs.ltx.io/api-documentation/api-reference/async-video-generation/submit-image-to-video.md"
     ]
   }
 }

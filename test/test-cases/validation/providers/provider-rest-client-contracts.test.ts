@@ -10,7 +10,7 @@ import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle 
 import type { ClientCase } from '~/types'
 
 setupContractSuiteLifecycle({
-  envKeys: [],
+  envKeys: ['AUTOSHOW_DISABLE_HTTP_KEEPALIVE'],
   tempPrefix: 'autoshow-provider-rest-client-',
   restoreBunSleep: true,
   beforeEachExtra: () => {
@@ -155,6 +155,22 @@ describe('provider REST client differential contracts', () => {
       })
       await captureError(client)
       expect((capturedInit as { timeout?: unknown } | undefined)?.timeout).toBe(false)
+      expect(capturedInit?.keepalive).toBeUndefined()
+    }
+  })
+
+  test('container keepalive opt-out reaches every shared REST provider without redispatch', async () => {
+    process.env['AUTOSHOW_DISABLE_HTTP_KEEPALIVE'] = '1'
+    for (const client of clients) {
+      let capturedInit: Parameters<typeof fetch>[1]
+      const calls = installMockFetch((_call, _input, init) => {
+        capturedInit = init
+        throw new TypeError('socket connection was closed unexpectedly')
+      })
+      await captureError(client)
+      expect(capturedInit?.keepalive).toBe(false)
+      expect((capturedInit as { timeout?: unknown } | undefined)?.timeout).toBe(false)
+      expect(calls).toHaveLength(1)
     }
   })
 

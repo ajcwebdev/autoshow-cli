@@ -3,6 +3,48 @@
     "description": "OpenAI GPT OCR via Responses API",
     "type": "api",
     "models": {
+      "gpt-6-astra": {
+        "description": "GPT-6 Astra OCR",
+        "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+        "pricingCheckedAt": "2026-09-08",
+        "pricingCurrency": "USD",
+        "pricingTier": "OpenAI API standard token pricing",
+        "pricingNotes": "GPT-6 Astra standard rates are $10/$50 per million input/output tokens and $1/M cache reads. Above 272,000 input tokens, the full request uses $20/$75 and $2/M cache reads. OCR estimates and observed-usage cost calculations use uncached rates; cached rates are metadata only, never an unconditional discount. Cache writes ($12.50/M short context, $25/M long context), batch/flex, fast mode, regional uplifts, taxes and credits are excluded. Page/token/latency heuristics are inherited from Sol and remain uncalibrated.",
+        "costPerMInputTokensCents": 1000,
+        "costPerMCachedInputTokensCents": 100,
+        "costPerMOutputTokensCents": 5000,
+        "limits": {
+          "pdfBytes": 52428800,
+          "notes": "https://developers.openai.com/api/docs/guides/images-vision.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
+        },
+        "estimation": {
+          "promptTokensPerPage": 1625,
+          "completionTokensPerPage": 940,
+          "costMultiplier": 1,
+          "msPerPage": 9497
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": ["low", "medium", "high", "xhigh", "max"]
+        },
+        "tokenPricingBands": [
+          {
+            "label": "standard-short-context",
+            "maxInputTokens": 272000,
+            "inputCostPer1MCents": 1000,
+            "cachedInputCostPer1MCents": 100,
+            "outputCostPer1MCents": 5000
+          },
+          {
+            "label": "standard-long-context",
+            "minInputTokens": 272001,
+            "inputCostPer1MCents": 2000,
+            "cachedInputCostPer1MCents": 200,
+            "outputCostPer1MCents": 7500
+          }
+        ]
+      },
       "gpt-5.6-sol": {
         "description": "GPT-5.6 Sol OCR",
         "pricingSourceUrl": "https://developers.openai.com/api/docs/pricing",

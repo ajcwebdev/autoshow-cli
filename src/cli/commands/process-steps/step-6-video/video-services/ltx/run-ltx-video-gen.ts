@@ -4,6 +4,7 @@ import { UsageError, InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import {
+  isLtx25Model,
   normalizeLtxVideoAspectRatio,
   normalizeLtxVideoDuration,
   normalizeLtxVideoResolution,
@@ -13,6 +14,7 @@ import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-vi
 import { formatPolledJobError, runPolledJob } from '~/utils/polled-job-client/polled-job'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
+import { validateModeInputs } from '../../video-utils/video-mode-validation'
 import { videoMediaReferenceToUrlOrDataUrl } from '../../video-utils/video-media-inputs'
 const LTX_BASE_URL = 'https://api.ltx.video'
 const POLL_INTERVAL_MS = 5_000
@@ -62,12 +64,10 @@ export const runLtxVideoGen = async (
     inputVideo?: string | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
-  const apiKey = resolveCredential('ltx', 'require', { stage: 'video:ltx', description: 'LTX video generation' })
-
   const mode = options.mode ?? 'text'
   const endpoint = resolveLtxEndpoint(mode)
   const size = normalizeLtxVideoSize(options.model, options.resolution, options.aspectRatio)
-  const resolution = normalizeLtxVideoResolution(options.resolution)
+  const resolution = normalizeLtxVideoResolution(options.resolution, options.model)
   const aspectRatio = normalizeLtxVideoAspectRatio(options.model, options.aspectRatio)
   const duration = normalizeLtxVideoDuration(options.model, size, options.durationSeconds, mode)
   const fps = mode === 'extend' ? undefined : 24
@@ -75,6 +75,12 @@ export const runLtxVideoGen = async (
   if (mode === 'text') {
     requireLtxPrompt(resolvedPrompt)
   }
+
+  if (isLtx25Model(options.model)) {
+    validateModeInputs({ videoInputImage: options.inputImage, videoLastFrame: options.lastFrameImage, videoInputVideo: options.inputVideo }, mode)
+  }
+  const apiKey = resolveCredential('ltx', 'require', { stage: 'video:ltx', description: 'LTX video generation' })
+  const baseUrl = isLtx25Model(options.model) ? 'https://api.ltx.io' : LTX_BASE_URL
 
   logGenStatus('video', 'ltx', options.model, 'started')
 
@@ -131,7 +137,7 @@ export const runLtxVideoGen = async (
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
     create: {
-      url: `${LTX_BASE_URL}/v2/${endpoint}`,
+      url: `${baseUrl}/v2/${endpoint}`,
       init: { method: 'POST', headers, body: JSON.stringify(requestBody) },
       schema: LtxCreateVideoResponseSchema,
       context: 'LTX video generation create response',
@@ -139,7 +145,7 @@ export const runLtxVideoGen = async (
       errorMessage: `LTX video ${mode} request failed`
     },
     poll: (created) => ({
-      url: `${LTX_BASE_URL}/v2/${endpoint}/${encodeURIComponent(created.id)}`,
+      url: `${baseUrl}/v2/${endpoint}/${encodeURIComponent(created.id)}`,
       init: { method: 'GET', headers },
       schema: LtxPollVideoResponseSchema,
       context: 'LTX video generation query response',

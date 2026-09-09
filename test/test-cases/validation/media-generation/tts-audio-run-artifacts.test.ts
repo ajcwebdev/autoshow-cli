@@ -1,3 +1,4 @@
+import { setupTtsFixtureCredentials } from '../../../test-utils/tts-fixture-credentials'
 import { describe, expect, test } from 'bun:test'
 import { mkdir, readFile, symlink } from 'node:fs/promises'
 import { unlinkPath as unlink } from '~/utils/bun-file-io'
@@ -321,3 +322,5 @@ describe('TTS Phase 0 audio-run artifacts', () => {
     })
   })
 })
+
+setupTtsFixtureCredentials()

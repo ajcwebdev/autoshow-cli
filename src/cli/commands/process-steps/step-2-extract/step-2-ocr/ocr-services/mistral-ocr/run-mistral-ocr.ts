@@ -36,7 +36,8 @@ export const runMistralOcr = async (
             type: 'document_url',
             document_url: `data:application/pdf;base64,${base64}`
           },
-          include_image_base64: false
+          include_image_base64: false,
+          ...(model === 'mistral-ocr-4-1' ? { include_blocks: true, confidence_scores_granularity: 'block' } : {})
         }
       }), { onRetryable })
     : await withOcrCreateRetry('mistral-ocr', async (signal) => await mistralJsonRequest({
@@ -51,7 +52,8 @@ export const runMistralOcr = async (
             type: 'image_url',
             image_url: `data:${imageMimeType(filePath)};base64,${base64}`
           },
-          include_image_base64: false
+          include_image_base64: false,
+          ...(model === 'mistral-ocr-4-1' ? { include_blocks: true, confidence_scores_granularity: 'block' } : {})
         }
       }), { onRetryable })
 
@@ -59,7 +61,13 @@ export const runMistralOcr = async (
   const pages: PageResult[] = payload.pages.map(page => ({
     pageNumber: page.index,
     method: 'ocr',
-    text: page.markdown
+    text: page.markdown,
+    ...(page.blocks !== undefined || page.confidence_scores !== undefined
+      ? { mistralOcr: {
+          ...(page.blocks !== undefined ? { blocks: page.blocks } : {}),
+          ...(page.confidence_scores !== undefined ? { confidence_scores: page.confidence_scores } : {})
+        } }
+      : {})
   }))
 
   return { pages, extractionMethod: 'mistral-ocr' }

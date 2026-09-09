@@ -16,6 +16,11 @@ const GEMINI_STT_PRICING_BY_MODEL: Record<string, {
   inputCostPer1MTokensCents: number
   outputCostPer1MTokensCents: number
 }> = {
+  // Conservative standard rates; introductory discount and refresh date are in stt-gemini-stt.json.
+  'gemini-3.8-flash': {
+    inputCostPer1MTokensCents: 150,
+    outputCostPer1MTokensCents: 750
+  },
   'gemini-3.6-flash': {
     inputCostPer1MTokensCents: 150,
     outputCostPer1MTokensCents: 750

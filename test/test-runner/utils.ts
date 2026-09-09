@@ -55,7 +55,18 @@ const parseEstimatedTotalFromClean = (clean: string): number | null => {
 }
 
 const parseOutputDirFromClean = (clean: string): string | null => {
+  for (const line of clean.trim().split('\n').reverse()) {
+    try {
+      const record = JSON.parse(line) as Record<string, unknown>
+      if (record?.['schemaVersion'] !== 1 || record['type'] !== 'result') continue
+      const data = record['data'] as Record<string, unknown> | undefined
+      if (data?.['dryRun'] === true) return null
+      if (typeof data?.['outputDir'] === 'string') return data['outputDir']
+    } catch { /* Text output is parsed below. */ }
+  }
   const patterns = [
+    /(?:^|\n)[^{\n]*?Complete: \d+ artifacts?, (.+?)(?:, (?:\d[\w .]*))?\r?$/gm,
+    /(?:^|\n)[^{\n]*?Manifest: ([^\n\r]+\/manifest\.json)/g,
     /(?:^|\n)\s*(?:outputDir|output dir|retryOutputDir|retry output dir):\s*([^\n\r]+)/g,
     /(?:^|\n)\s*(?:manifest):\s*([^\n\r]+\/manifest\.json)/g,
     /"artifact"\s*:\s*"outputDir"[\s\S]*?"path"\s*:\s*"([^"\n\r]+)"/g,

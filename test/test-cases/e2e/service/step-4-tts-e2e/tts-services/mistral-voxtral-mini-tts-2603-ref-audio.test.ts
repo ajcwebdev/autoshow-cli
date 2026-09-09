@@ -1,15 +1,13 @@
 import { readFile } from 'node:fs/promises'
 import { expect } from 'bun:test'
-import { budgetedTest, E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
+import { E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
 import { findLatestDirectory, runCommand, STABLE_TTS_MD_PATH, STABLE_TTS_MD_TITLE } from '../../../../../test-utils/test-helpers'
 import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
-import { requireConfiguredEnvVar } from '../../../../../test-utils/service-test-kit'
+import { defineBudgetedLiveServiceTest } from '../../../../../test-utils/service-test-kit'
 import { mistralRefAudioPath, mistralTtsModels } from './cases'
 import { expectArtifact } from '../../../../../test-utils/value-assertions'
 
-budgetedTest('tts-mistral-voxtral-mini-tts-2603-ref-audio', 'mistral reference audio generates speech.wav', async () => {
-  await requireConfiguredEnvVar('MISTRAL_API_KEY', 'MISTRAL_API_KEY is required for Mistral TTS test')
-
+defineBudgetedLiveServiceTest('tts-mistral-voxtral-mini-tts-2603-ref-audio', 'mistral reference audio generates speech.wav', ['MISTRAL_API_KEY'], async () => {
   const result = await runCommand([
     'src/cli/create-cli.ts',
     'tts',

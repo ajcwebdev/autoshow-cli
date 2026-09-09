@@ -3,7 +3,7 @@ import { basename, join } from 'node:path'
 import type { FallbackAuditState, HostedOcrIdentity, HostedOcrPageCacheValidation, HostedOcrRun, InitialFallbackReason, OcrPdfChunkRange, ParsedHostedOcrPageCache, PdfChunkPreparationSummary, RunHostedOcrPdfChunkFallbackOptions, StoredHostedOcrFallbackPage } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
-import { sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
+import { sanitizeArtifactText, sanitizeArtifactMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
 import { findOcrStructuredResponseError } from '../ocr-structured-response-error'
 import {
   HOSTED_OCR_PDF_PAGE_FALLBACK_MODE,
@@ -141,7 +141,7 @@ export const writeFallbackState = async (
   const auditRollup = auditPages !== undefined
     ? summarizeFallbackAudit(auditPages, totalPages)
     : undefined
-  const payload = sanitizeLogMetadata({
+  const payload = sanitizeArtifactMetadata({
     version: HOSTED_OCR_PDF_PAGE_FALLBACK_VERSION,
     mode: HOSTED_OCR_PDF_PAGE_FALLBACK_MODE,
     totalPages,
@@ -247,7 +247,7 @@ export const writeInvalidFallbackPageResponse = async (
   }
 
   await mkdir(getFallbackPageResultsDir(fallbackDir), { recursive: true })
-  await Bun.write(getFallbackPageInvalidResponsePath(fallbackDir, pageNumber), sanitizeLogText(structuredError.rawResponse))
+  await Bun.write(getFallbackPageInvalidResponsePath(fallbackDir, pageNumber), sanitizeArtifactText(structuredError.rawResponse))
 }
 
 export const writeFallbackPartialText = async (

@@ -15,6 +15,19 @@
           "costMultiplier": 1,
           "msPer1KChars": 3000
         }
+      },
+      "sonic-3.6-2026-08-27": {
+        "description": "Cartesia Sonic 3.6 stable pinned snapshot; 44 languages",
+        "pricingSourceUrl": "https://cartesia.ai/pricing",
+        "pricingCheckedAt": "2026-09-08",
+        "pricingCurrency": "USD",
+        "pricingTier": "Cartesia Scale monthly subscription allocation estimate",
+        "pricingNotes": "Scale costs $299/month for 8,000,000 credits; standard TTS uses approximately one credit per character (https://docs.cartesia.ai/pricing). At full credit utilization this is $37.375/M characters, or 3.7375 cents/1K. This is an allocation estimate, not a universal pay-as-you-go or overage rate. Preprocessing, unused credits, other plans, clones, taxes and enterprise terms can change actual costs.",
+        "costPer1kCharsCents": 3.7375,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 3000
+        }
       }
     }
   }

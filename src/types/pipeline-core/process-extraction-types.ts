@@ -1,3 +1,4 @@
+import { MistralOcrPageMetadataSchema } from './mistral-ocr-metadata-types'
 import * as v from 'valibot'
 import type { DocFormat, HostedOcrScheduler, ProviderIdentityBase } from '~/types'
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
@@ -60,6 +61,7 @@ export const ExtractionOptionsSchema = v.object({
   deepinfraOcrModels: v.optional(v.array(v.string()), undefined),
   configPath: v.optional(v.string(), undefined),
   primaryOcr: v.optional(v.string(), undefined),
+  docxMarkdown: v.optional(v.boolean(), undefined),
   chapterFiles: v.optional(v.boolean(), undefined),
   chapterChunkLimitChars: v.optional(v.pipe(v.number(), v.minValue(1)), undefined),
   pdfChapterMode: v.optional(v.picklist(['local', 'auto', 'llm']), 'local'),
@@ -79,7 +81,8 @@ const PageResultSchema = v.object({
   pageNumber: v.number(),
   method: v.picklist(['text', 'ocr', 'skipped']),
   text: v.string(),
-  confidence: v.optional(v.number(), undefined)
+  confidence: v.optional(v.number(), undefined),
+  mistralOcr: v.optional(MistralOcrPageMetadataSchema, undefined)
 })
 
 export const ExtractionResultSchema = v.object({

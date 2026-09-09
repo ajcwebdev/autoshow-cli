@@ -46,4 +46,22 @@ export const writeRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/step-3-write-e2e/write-services/kimi-k2.6.test.ts', [
     command('write-kimi-kimi-k2.6', 'write-kimi-kimi-k2.6', ['src/cli/create-cli.ts', 'write', WRITE_PRICE_INPUT, '--llm', 'kimi=kimi-k2.6', '--prompt', 'shortSummary', '--price']),
   ]),
+  ...exact('test/test-cases/e2e/service/step-3-write-e2e/write-services/gemini-3.8-flash.test.ts', [
+    command('write-gemini-gemini-3.8-flash', 'write-gemini-gemini-3.8-flash', ['src/cli/create-cli.ts', 'write', 'input/examples/tts/0-tts-short.txt', '--llm', 'gemini=gemini-3.8-flash', '--prompt', 'shortSummary', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/step-3-write-e2e/write-services/glm-5.3.test.ts', [
+    command('write-glm-glm-5.3', 'write-glm-glm-5.3', ['src/cli/create-cli.ts', 'write', 'input/examples/tts/0-tts-short.txt', '--llm', 'glm=glm-5.3', '--prompt', 'shortSummary', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/step-3-write-e2e/write-services/glm-5.3-flash.test.ts', [
+    command('write-glm-glm-5.3-flash', 'write-glm-glm-5.3-flash', ['src/cli/create-cli.ts', 'write', 'input/examples/tts/0-tts-short.txt', '--llm', 'glm=glm-5.3-flash', '--prompt', 'shortSummary', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/step-3-write-e2e/write-services/together-kimi-k3.test.ts', [
+    command('write-together-kimi-k3', 'write-together-kimi-k3', ['src/cli/create-cli.ts', 'write', 'input/examples/tts/0-tts-short.txt', '--llm', 'together=kimi-k3', '--prompt', 'shortSummary', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/step-3-write-e2e/write-services/together-glm-5.3.test.ts', [
+    command('write-together-glm-5.3', 'write-together-glm-5.3', ['src/cli/create-cli.ts', 'write', 'input/examples/tts/0-tts-short.txt', '--llm', 'together=glm-5.3', '--prompt', 'shortSummary', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/step-3-write-e2e/write-services/together-glm-5.3-flash.test.ts', [
+    command('write-together-glm-5.3-flash', 'write-together-glm-5.3-flash', ['src/cli/create-cli.ts', 'write', 'input/examples/tts/0-tts-short.txt', '--llm', 'together=glm-5.3-flash', '--prompt', 'shortSummary', '--price']),
+  ]),
 ]

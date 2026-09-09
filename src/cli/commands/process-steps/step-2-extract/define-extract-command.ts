@@ -64,6 +64,7 @@ const captionFlags = {
 } as const satisfies CliFlagsDefinition
 
 const extractFlags = {
+  'docx-markdown': { description: 'Write extraction.md preserving local DOCX formatting (no providers)', type: Boolean },
   ...withHelpGroup({
     'transcript-review': { description: 'Export an offline word-indexed review packet and edit template from a saved result.json', type: Boolean },
     'transcript-edits': { description: 'Apply a reviewed edits.json to a saved transcript offline; save new result, transcript, and provenance', type: String }
@@ -103,6 +104,15 @@ export const extractCommand = defineCliCommand({
     ]
   }
 }, async (ctx) => {
+  if (ctx.flags['docx-markdown'] === true) {
+    const input = ctx.parameters.input
+    if (!input || !input.toLowerCase().endsWith('.docx') || !((await stat(input).catch(() => undefined))?.isFile())) throw UsageError('--docx-markdown requires a local DOCX file.')
+    const allowed = new Set(['docx-markdown', 'price', 'output-dir', 'output-root', 'json', 'quiet', 'verbose', 'log-level', 'color'])
+    for (const flag of ctx.rawParsed.explicitFlags) if (!allowed.has(flag)) throw UsageError(`--${flag} cannot be combined with --docx-markdown.`)
+    // Validate ZIP/XML before pricing or creating a workspace.
+    const { readDocxMarkdown } = await import('./step-2-ocr/office/docx-markdown')
+    await readDocxMarkdown(input)
+  }
   if (ctx.flags['transcript-review'] === true || ctx.flags['transcript-edits'] !== undefined) {
     if (ctx.flags['transcript-review'] === true && ctx.flags['transcript-edits'] !== undefined) throw UsageError('--transcript-review and --transcript-edits are separate operations.')
     if (ctx.flags['captions'] === true || ctx.flags['transcript-video'] === true || ctx.flags['embed-captions'] === true || ctx.flags['price'] === true || ctx.rawParsed.explicitFlags.has('provider')) throw UsageError('Transcript review/apply is an offline operation; use separate commands for transcription, pricing, and captions.')

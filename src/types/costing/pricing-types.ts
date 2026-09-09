@@ -186,6 +186,7 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   falImageModels?: string[] | undefined
   imageSize?: string | undefined
   imageQuality?: string | undefined
+  imageInputs?: string[] | undefined
   imageCount?: number | undefined
   geminiVideoModels?: string[] | undefined
   grokVideoModels?: string[] | undefined

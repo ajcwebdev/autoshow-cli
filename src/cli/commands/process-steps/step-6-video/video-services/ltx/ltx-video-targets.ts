@@ -2,7 +2,7 @@ import type { LtxVideoModel, VideoGenOptions, VideoMode, VideoTarget } from '~/t
 import { validateLtxVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { runLtxVideoGen } from './run-ltx-video-gen'
 import { isSupportedOrSkippedForAllVideo } from '../../video-utils/video-mode-validation'
-import { normalizeLtxVideoSize } from '../../video-utils/video-normalization'
+import { normalizeLtxVideoSize, normalizeLtxVideoDuration } from '../../video-utils/video-normalization'
 import { validateVideoMediaReferences } from '../../video-utils/video-media-inputs'
 
 const getLtxSupportedVideoModes = (model: LtxVideoModel): readonly VideoMode[] => {
@@ -18,7 +18,8 @@ export const collectLtxVideoTargets = (options: VideoGenOptions, mode: VideoMode
     if (!isSupportedOrSkippedForAllVideo(options, 'ltx', model, mode, getLtxSupportedVideoModes(model))) {
       return []
     }
-    normalizeLtxVideoSize(model, options.videoResolution, options.videoAspectRatio)
+    const size = normalizeLtxVideoSize(model, options.videoResolution, options.videoAspectRatio)
+    normalizeLtxVideoDuration(model, size, options.videoDuration, mode)
     if (options.videoInputImage) {
       validateVideoMediaReferences([options.videoInputImage], { flagName: '--input-image', provider: 'ltx', model, kind: 'image' })
     }

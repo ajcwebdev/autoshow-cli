@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { readManifest, resolveManifestRelativePath } from '~/cli/commands/process-steps/pipeline-manifest'
-import { readHostedOcrTokenUsageProfiles, resolveHostedOcrModeFromExtractionMethod, resolveHostedOcrTokenPageCountBand } from '../step-2-ocr/ocr-utils/hosted-ocr-token-profiles'
+import { readHostedOcrTokenUsageProfilesForAudit, resolveHostedOcrModeFromExtractionMethod, resolveHostedOcrTokenPageCountBand } from '../step-2-ocr/ocr-utils/hosted-ocr-token-profiles'
 import { isTokenPricedOcrProvider } from '~/types'
 import type { AuditOcrTokenShapesOptions, HostedOcrTokenReasoningPolicy, HostedOcrTokenUsageProfile, OcrTokenShapeAuditBucket, OcrTokenShapeAuditMetric, OcrTokenShapeAuditReport, PipelineManifestItem, TokenPricedOcrProvider, TokenShapeSample } from '~/types'
 import { selectHostedOcrTokenUsageProfile } from '~/utils/pricing/ocr-token-pricing'
@@ -234,7 +234,7 @@ export const auditOcrTokenShapes = async (
   }
   const profiles = options.profilePath === undefined
     ? []
-    : (await readHostedOcrTokenUsageProfiles(options.profilePath)).profiles.filter((profile) =>
+    : (await readHostedOcrTokenUsageProfilesForAudit(options.profilePath)).profiles.filter((profile) =>
         targetSelected(profile.provider, profile.model, options.includeAllTokenProviders))
   const excludedSamples: OcrTokenShapeAuditReport['excludedSamples'] = {
     failed: 0,

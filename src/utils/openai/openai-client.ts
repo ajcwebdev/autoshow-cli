@@ -1,3 +1,4 @@
+import { assertRequiredImageModel } from '~/utils/required-image-model'
 import type { OpenAIChatCompletionResponse, OpenAIErrorFields, OpenAIFetchOptions, OpenAIImageResponse, OpenAIRequestOptions, OpenAIResponsesResponse, OpenAIRestConfig } from '~/types'
 import { OPENAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { redactPayloadPreview } from '~/utils/bounded-capture'
@@ -67,6 +68,7 @@ const openAIFetch = createProviderRestClient<OpenAIFetchOptions, OpenAIRestError
         method: options.method ?? 'POST',
         headers,
         body: options.body,
+        ...(options.config.redirect !== undefined ? { redirect: options.config.redirect } : {}),
         ...(options.signal ? { signal: options.signal } : {})
       }
     }
@@ -195,21 +197,25 @@ export const createOpenAIImage = async (
   config: OpenAIRestConfig,
   body: Record<string, unknown>,
   options: OpenAIRequestOptions = {}
-): Promise<OpenAIImageResponse> =>
-  await openAIJsonRequest<OpenAIImageResponse>(config, '/images/generations', body, {
+): Promise<OpenAIImageResponse> => {
+  assertRequiredImageModel(body['model'], 'openai')
+  return await openAIJsonRequest<OpenAIImageResponse>(config, '/images/generations', body, {
     ...options,
     errorMessagePrefix: options.errorMessagePrefix ?? 'OpenAI image generation failed'
   })
+}
 
 export const createOpenAIImageEdit = async (
   config: OpenAIRestConfig,
   form: FormData,
   options: OpenAIRequestOptions = {}
-): Promise<OpenAIImageResponse> =>
-  await openAIMultipartRequest<OpenAIImageResponse>(config, '/images/edits', form, {
+): Promise<OpenAIImageResponse> => {
+  assertRequiredImageModel(form.get('model'), 'openai')
+  return await openAIMultipartRequest<OpenAIImageResponse>(config, '/images/edits', form, {
     ...options,
     errorMessagePrefix: options.errorMessagePrefix ?? 'OpenAI image edit failed'
   })
+}
 
 export const extractOpenAIResponseText = (response: OpenAIResponsesResponse): string | undefined => {
   if (typeof response.output_text === 'string') {

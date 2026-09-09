@@ -15,6 +15,22 @@
           "costMultiplier": 1,
           "msPer1KChars": 2500
         }
+      },
+      "realtime-tts-2-flash": {
+        "description": "Inworld Realtime TTS 2 Flash; API model inworld-tts-2-flash; 200+ languages and locales",
+        "pricingSourceUrl": "https://inworld.ai/pricing",
+        "pricingCheckedAt": "2026-09-08",
+        "pricingCurrency": "USD",
+        "pricingTier": "Inworld AI On-Demand TTS pricing",
+        "pricingNotes": "Flash uses $15/M characters on demand. Subscription discounts, free credits, taxes and enterprise terms are excluded. Latency is uncalibrated; existing estimation timing is retained.",
+        "costPer1kCharsCents": 1.5,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 2500
+        },
+        "limits": {
+          "maxInputCharacters": 2000
+        }
       }
     }
   }

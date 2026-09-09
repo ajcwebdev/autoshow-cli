@@ -133,6 +133,22 @@ export const readHostedOcrTokenUsageProfiles: (
   profilePath?: string | undefined
 ) => Promise<HostedOcrTokenUsageProfileStore> = tokenUsageProfileStore.read
 
+/** Historical aggregates are audit evidence only, never runtime pricing profiles. */
+export const readHostedOcrTokenUsageProfilesForAudit = async (
+  profilePath: string
+): Promise<{ profiles: HostedOcrTokenUsageProfile[] }> => {
+  const raw: unknown = await Bun.file(profilePath).json()
+  if (isRecord(raw) && raw['version'] === 1 && Array.isArray(raw['profiles'])) {
+    return {
+      profiles: raw['profiles'].flatMap((entry: unknown) => {
+        const profile = isRecord(entry) ? parseProfile({ ...entry, effectiveReasoningEffort: 'unspecified' }) : undefined
+        return profile ? [profile] : []
+      })
+    }
+  }
+  return await readHostedOcrTokenUsageProfiles(profilePath)
+}
+
 const readHostedOcrTokenUsageProfilesSync: (
   profilePath?: string | undefined
 ) => HostedOcrTokenUsageProfileStore = tokenUsageProfileStore.readSync

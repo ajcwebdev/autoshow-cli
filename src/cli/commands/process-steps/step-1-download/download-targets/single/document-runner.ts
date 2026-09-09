@@ -178,6 +178,7 @@ export const processOcrSingle = async (
   } else {
     artifactFiles['extraction'] = 'extraction.txt'
   }
+  if (opts.docxMarkdown) artifactFiles['markdown'] = 'extraction.md'
   await appendChapterExportArtifacts(artifactFiles, extraction.step2Metadata, extraction.outputDir)
 
   const requestedCount = extraction.requestedProviders?.length ?? 0

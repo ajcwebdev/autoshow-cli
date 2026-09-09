@@ -292,7 +292,7 @@ const inspectCallExpression = (
     return
   }
   const callName = call.expression.text
-  if (callName === 'budgetedTest') {
+  if (callName === 'budgetedTest' || callName === 'defineBudgetedLiveServiceTest') {
     inspectBudgetedTestCall(file, call, state)
   }
   if (callName === 'defineGenerationServiceTest') {

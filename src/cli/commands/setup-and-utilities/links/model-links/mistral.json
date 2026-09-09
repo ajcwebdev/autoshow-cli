@@ -16,6 +16,9 @@
       "https://raw.githubusercontent.com/mistralai/client-ts/refs/heads/main/docs/sdks/transcriptions/README.md"
     ],
     "OCR": [
+      "https://docs.mistral.ai/models/ocr-4-1",
+      "https://docs.mistral.ai/studio/document-processing/basic_ocr",
+      "https://docs.mistral.ai/studio/document-processing/annotations",
       "https://docs.mistral.ai/studio-api/document-processing/basic_ocr",
       "https://docs.mistral.ai/api/endpoint/ocr",
       "https://raw.githubusercontent.com/mistralai/client-ts/refs/heads/main/docs/sdks/ocr/README.md",

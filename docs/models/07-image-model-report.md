@@ -4,7 +4,7 @@
 
 - **Report Status:** Current
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-08-19
+- **Date Updated:** 2026-09-08
 
 This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](01-stt-model-report.md), [OCR](02-ocr-model-report.md), [URL scraping](03-url-model-report.md), [LLMs](04-llm-model-report.md), [TTS](05-tts-model-report.md), [Music](06-music-model-report.md), [Video](08-video-model-report.md).
 
@@ -161,3 +161,11 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model
 - Image provider adapters: `src/cli/commands/process-steps/step-5-image/`
 - Historical cost reconstruction: `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
 - 2026-08-16 xAI Imagine snapshot: `bun autoshow links --grok image` (`https://docs.x.ai/developers/model-capabilities/imagine.md`)
+
+## P1 addition: Grok Imagine Image 2.0 (2026-09-08)
+
+Added `grok-imagine-image-2.0` alongside `grok-imagine-image-quality`, bringing the active image registry to 23 selectors across seven providers. The bare Grok default remains Quality. Image 2.0 uses JSON generation/edit endpoints, up to five PNG/JPEG references, and adds `21:9` and `5:2` aspect ratios. Existing file, public URL and data URL input handling is retained; provider Files API IDs are not exposed. [Generation contract](https://docs.x.ai/developers/model-capabilities/images/generation), [editing contract](https://docs.x.ai/developers/model-capabilities/images/editing), [multiple references](https://docs.x.ai/developers/model-capabilities/images/multi-image-editing).
+
+The CLI pins omitted/auto quality to low for generation and medium for editing, and resolution to 1K. Explicit low/medium at 1K/2K is supported; high quality and other sizes fail locally. Output costs are 4/6 cents for low 1K/2K and 6/8 cents for medium 1K/2K, plus one cent per input image per request. The estimate includes input charges and output count. Returned model, revised prompt, moderation and usage cost are retained with generated artifacts. The 6,080 ms/image latency baseline is inherited provisionally; no paid calibration ran. [Model pricing](https://docs.x.ai/developers/models/grok-imagine-image-2.0).
+
+On November 2, 2026, xAI plans to serve the Quality slug through Image 2.0 at low quality. Local code preserves the older selector, controls and estimate; callers wanting the new model's exact pricing matrix should select Image 2.0 explicitly. Returned model identity records provider redirects without rewriting the requested selector. [Migration notice](https://docs.x.ai/developers/migration/imagine-image-quality-nov-2).

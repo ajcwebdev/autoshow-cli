@@ -73,7 +73,9 @@ describe('provider selection contracts', () => {
     ])
     expect(allOpts.ltxVideoModels).toEqual([
       'ltx-2-3-fast',
-      'ltx-2-3-pro'
+      'ltx-2-3-pro',
+      'ltx-2-5-fast',
+      'ltx-2-5-pro'
     ])
     expect(allOpts.replicateVideoModels).toEqual([
       'alibaba/happyhorse-1.1',
@@ -119,12 +121,14 @@ describe('provider selection contracts', () => {
     })
 
     expect(allOpts.geminiMusicModels).toEqual([
-      'lyria-3-pro-preview'
+      'lyria-3-pro-preview',
+      'lyria-3.5'
     ])
     expect(collectMusicTargets(allOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'elevenlabs:music_v2',
       'minimax:music-3.0',
-      'gemini:lyria-3-pro-preview'
+      'gemini:lyria-3-pro-preview',
+      'gemini:lyria-3.5'
     ])
   })
 })

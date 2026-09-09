@@ -169,6 +169,18 @@ const extractGeminiResponseText = (response: GeminiGenerateContentResponse): str
   return found ? text : undefined
 }
 
+// Music uses a single synchronous request; do not automatically redispatch song generation.
+export const geminiCreateMusicInteraction = async (apiKey: string, input: string): Promise<unknown> => {
+  if (typeof input !== 'string' || input.trim().length === 0) {
+    throw ValidationError('Lyria 3.5 requires a nonempty text prompt; image/audio inputs are not exposed by this music adapter.', { stage: 'music:gemini' })
+  }
+  const { json } = await geminiJsonRequest(apiKey, 'interactions', {
+    method: 'POST',
+    body: { model: 'lyria-3.5', input }
+  })
+  return json
+}
+
 export const geminiGenerateContent = async (
   apiKey: string,
   params: {
@@ -180,6 +192,20 @@ export const geminiGenerateContent = async (
     abortSignal?: AbortSignal | undefined
   }
 ): Promise<GeminiGenerateContentResponse> => {
+  if (params.model.replace(/^models\//, '') === 'gemini-3.8-flash' && params.generationConfig) {
+    const config = params.generationConfig
+    for (const key of ['temperature', 'topP', 'topK', 'top_p', 'top_k', 'candidateCount', 'candidate_count']) {
+      if (config[key] !== undefined) {
+        throw ValidationError(`gemini-3.8-flash does not support ${key}; omit this generation option.`, { stage: 'gemini:rest' })
+      }
+    }
+    const thinking = config['thinkingConfig'] as Record<string, unknown> | undefined
+    if (thinking && (thinking['thinkingBudget'] !== undefined || (
+      thinking['thinkingLevel'] !== undefined && !['LOW', 'MEDIUM', 'HIGH'].includes(String(thinking['thinkingLevel']).toUpperCase())
+    ))) {
+      throw ValidationError('gemini-3.8-flash requires thinkingLevel LOW, MEDIUM or HIGH; omit thinkingBudget.', { stage: 'gemini:rest' })
+    }
+  }
   const body: Record<string, unknown> = {
     contents: normalizeGeminiContents(params.contents)
   }

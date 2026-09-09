@@ -60,7 +60,7 @@ const getAdapterDefaultReasoningEffort = (
       return model === 'kimi-k3' ? 'low' : 'disabled'
     }
     if (service === 'glm') {
-      return 'disabled'
+      return model === 'glm-5.3' || model === 'glm-5.3-flash' ? 'default' : 'disabled'
     }
   }
 

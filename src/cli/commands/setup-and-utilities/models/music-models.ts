@@ -24,7 +24,8 @@ export const isMinimaxInstrumentalMusicModel = (
   (MINIMAX_INSTRUMENTAL_MUSIC_MODELS as readonly string[]).includes(model)
 
 export const SUPPORTED_GEMINI_MUSIC_MODELS = [
-  'lyria-3-pro-preview'
+  'lyria-3-pro-preview',
+  'lyria-3.5'
 ] as const satisfies readonly string[]
 
 export const validateGeminiMusicModel = createRetiringModelValidator<GeminiMusicModel>('music', 'gemini', SUPPORTED_GEMINI_MUSIC_MODELS, 'gemini-music')

@@ -143,10 +143,16 @@ Claude Fable 5 requires 30-day data retention and is unavailable under ZDR.
 
 ### Gemini
 
+Gemini 3.8 Flash is available as `gemini-3.8-flash` for writing/OCR (`gemini`) and prompted audio extraction (`gemini-stt`), with existing selectors and defaults preserved. Writing and OCR support low/medium/high reasoning; minimal and disabled are rejected. STT uses the provider default thinking level (medium), without a reasoning override. Requests omit legacy sampling controls; the transport rejects incompatible 3.8 settings before dispatch. Audio timestamps remain generated, with no native word alignment claim.
+
+Pricing checked 2026-09-08: introductory $0.75/$3.75 per million input/output tokens through 2026-12-31, then $1.50/$7.50 starting 2027-01-01. AutoShow follows its existing conservative policy and uses the standard rates for estimates and usage-based cost calculations even during the introductory window. Automatic date transitions are unsupported; recheck the tariff and refresh all three price paths by 2027-01-01. STT uses a $0.1728/hour audio-input baseline (32 tokens/second), then accounts for prompt, candidate and thinking tokens from returned usage. OCR page and writing/STT latency heuristics are reused and provisional; caching and discounted service tiers are excluded.
+
+Sources: [model specification](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash), [migration guide](https://ai.google.dev/gemini-api/docs/latest-model?hl=en), [pricing](https://ai.google.dev/gemini-api/docs/pricing).
+
 | Option   | Value                                                                                     |
 | -------- | ----------------------------------------------------------------------------------------- |
 | Selector | `--llm gemini[=<model>]`                                                                  |
-| Models   | `gemini-3.1-pro-preview`, `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
+| Models   | `gemini-3.1-pro-preview`, `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
 | Default  | Passing `--llm gemini` uses `gemini-3.5-flash-lite`                                       |
 
 ```bash
@@ -200,7 +206,7 @@ Grok 4.5 and Grok 4.6 price estimates use `$2 / 1M input` and `$6 / 1M output` t
 | Option   | Value                              |
 | -------- | ---------------------------------- |
 | Selector | `--llm glm[=<model>]`              |
-| Models   | `glm-5.1`                          |
+| Models   | `glm-5.1`, `glm-5.3`, `glm-5.3-flash` |
 | Default  | Passing `--llm glm` uses `glm-5.1` |
 
 ```bash
@@ -226,7 +232,7 @@ Kimi K3 thinking is on by default; `--reasoning-effort` can change it.
 | Option   | Value                                   |
 | -------- | --------------------------------------- |
 | Selector | `--llm together[=<model>]`              |
-| Models   | `kimi-k2.6`, `glm-5.1`                  |
+| Models   | `kimi-k2.6`, `glm-5.1`, `kimi-k3`, `glm-5.3`, `glm-5.3-flash` |
 | Default  | Passing `--llm together` uses `glm-5.1` |
 
 ```bash
@@ -367,3 +373,30 @@ Marks: ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Recency: cur
 | Groq `openai/gpt-oss-20b`       | ❌ 2025-08-05  | ✅ Optional through high      | ❌ Unpublished | ✅ Native                  | $0.075 / $0.30 per 1M tokens  | 1/30      |
 | Groq `openai/gpt-oss-120b`      | ❌ 2025-08-05  | ✅ Optional through high      | ❌ Unpublished | ✅ Native                  | $0.15 / $0.60 per 1M tokens   | 2/30      |
 | Cerebras `gpt-oss-120b`         | ❌ 2025-08-05  | ❌ Unsupported                | ❌ 131K        | ⚠️ Strict-mode normalized | $0.35 / $0.75 per 1M tokens   | 3/30      |
+
+## Direct GLM 5.3 additions — 2026-09-08
+
+Writing accepts `--llm glm=glm-5.3` and `--llm glm=glm-5.3-flash`, alongside `glm-5.1`. Bare `--llm glm` still selects 5.1; both additions participate in `--all-llm`. Both models require reasoning and accept `--reasoning-effort low`, `high` or `max`. Omitted/default effort leaves the provider default (max); disabled, minimal, medium and xhigh are rejected before HTTP. The existing 5.1 default still disables thinking. See the [flagship contract](https://docs.z.ai/guides/llm/glm-5.3) and [Flash contract](https://docs.z.ai/guides/vlm/glm-5.3-flash).
+
+Both use direct Z.ai Chat Completions with text messages, enabled thinking and the existing 16,000-token request cap (below their published 128K output maximum and 1M context). Structured writing requests JSON-object output through the existing fallback path. Responses preserve returned model identity, provider input/output/total usage and raw usage; valid cached input counts appear in `providerUsage.cachedInputTokenCount` as a subset of prompt tokens. Reasoning content is not inserted into prose or counted again on top of completion usage. Missing usage retains local token-count fallback. Flash vision input, GLM 5.2 and Together additions are outside this integration. See the [API contract](https://docs.z.ai/api-reference/llm/chat-completion).
+
+Standard direct prices per million input/cached-input/output tokens are $1.40/$0.26/$4.40 for 5.3 and $0.15/$0.03/$0.50 for Flash. Flash's separate 50% promotion is $0.075/$0.015/$0.25 through September 9, 2026 at 24:00 UTC+8, expiring at `2026-09-09T16:00:00Z`. Estimates and observed-token costs use standard uncached rates before and after expiry, so they overstate promotional or cached charges. No automatic promotion transition or cache discount is applied. Cache storage is currently temporarily free; future storage charges, batch/enterprise discounts, taxes and credits are excluded. Latency heuristics are inherited and uncalibrated. [Pricing checked September 8, 2026](https://docs.z.ai/guides/overview/pricing).
+
+
+## Together hosted writing additions — 2026-09-08
+
+Together accepts these additional short selectors. `--llm together` still selects `glm-5.1`; `kimi-k2.6` and `glm-5.1` keep their original host mappings. `--all-llm` includes all five Together choices. These selectors are scoped to Together and do not change direct Kimi or GLM behavior.
+
+| Selector | Exact Together API ID | Input / cached input / output USD per million tokens |
+| --- | --- | --- |
+| `kimi-k3` | `moonshotai/Kimi-K3` | $3.00 / $0.30 / $15.00 |
+| `glm-5.3` | `zai-org/GLM-5.3` | $1.40 / $0.26 / $4.40 |
+| `glm-5.3-flash` | `zai-org/GLM-5.3-Flash` | $0.15 / $0.03 / $0.50 |
+
+Together's [serverless catalog](https://docs.together.ai/docs/serverless/models) lists native structured output for all three and context limits of 1,048,576 tokens for K3 and 1,048,575 for both GLMs. Estimates and observed-token costs use flat uncached rates. Cached input rates are metadata only; no direct-provider promotion, automatic cached discount, batch discount, enterprise rate, tax or credit is applied. Latency heuristics remain uncalibrated.
+
+All three accept `--reasoning-effort low`, `high` or `max`; omitted/default effort leaves the host default unchanged. Together K3 also accepts `disabled`, serialized as `reasoning: { enabled: false }`. Its [host quickstart](https://docs.together.ai/docs/kimi-k3-quickstart) documents max as the default and a 131,072-token completion budget, which AutoShow now uses. Reasoning and final text share this budget. The explicit low/high/max list and developer guide take precedence over the conflicting medium value in the quickstart parameter table and TypeScript comment; unsupported minimal/medium/xhigh values fail locally.
+
+The [GLM 5.3 host page](https://www.together.ai/models/glm-5-3) documents always-enabled thinking and max default. The [Flash host page](https://www.together.ai/models/glm-5-3-flash) documents low/high/max but no disable contract, so AutoShow rejects disabled for both GLM additions. Named efforts use Together's top-level `reasoning_effort`; no direct Z.ai `thinking` field is sent. Both retain AutoShow's 32,768-token request cap. This is a local budget, not a claimed host output maximum: Together's checked pages publish context limits but no separate GLM output ceiling. Host context-limit validation remains authoritative. Large reasoning traces can exhaust the local cap before completing the answer.
+
+The existing Chat Completions transport sends text messages and native JSON Schema for structured writing, with the established fallback without `response_format` on compatible schema errors. Final prose reads only message content. Metadata retains returned model identity, raw usage and normalized prompt/completion/total tokens, including valid cached-input counts as a subset of prompt usage, with fallback to Together's top-level `cached_tokens` when the nested counter is unavailable. Reasoning tokens included in completion usage are counted once. Missing usage retains local token-count fallback. Vision/OCR, tools and multi-turn thinking replay are outside this writing addition; no paid access check was performed.

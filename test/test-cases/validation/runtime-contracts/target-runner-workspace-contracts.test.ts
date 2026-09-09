@@ -1,3 +1,4 @@
+import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { afterEach, describe, expect, test } from 'bun:test'
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -25,6 +26,7 @@ describe('target runner workspace preservation', () => {
       outputDir: root,
       chunkExtension: 'mp3',
       chunkConcurrency: 1,
+      chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 1, concurrencyMode: 'immediate' }),
       startTime: Date.now(),
       fetchChunkAudio: async ({ chunkIndex }) => {
         if (chunkIndex === 2) throw new TypeError('fetch failed')

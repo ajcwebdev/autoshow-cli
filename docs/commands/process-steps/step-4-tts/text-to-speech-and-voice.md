@@ -204,7 +204,7 @@ Hume is synthesis-only: pass an existing stock or custom voice ID with `--tts-vo
 | Option   | Value                                                                    |
 | -------- | ------------------------------------------------------------------------ |
 | Selector | `--provider cartesia[=<model>]`                                          |
-| Models   | `sonic-3.5-2026-05-04`                                                   |
+| Models   | `sonic-3.5-2026-05-04`, `sonic-3.6-2026-08-27`                                                   |
 | Voice    | `--tts-voice <voice-id>`, default `f786b574-daa5-4673-aa0c-cbe3e8534c02` |
 | Language | `--tts-language <code>`                                                  |
 
@@ -220,7 +220,7 @@ Transcripts may include SSML-like `<speed>`, `<volume>`, `<emotion>`, `<break>`,
 | Option   | Value                                                   |
 | -------- | ------------------------------------------------------- |
 | Selector | `--provider inworld[=<model>]`                          |
-| Models   | `realtime-tts-2`                                        |
+| Models   | `realtime-tts-2`, `realtime-tts-2-flash`                                        |
 | Voice    | `--tts-voice <id>`, default `voice_inworld_standard_en` |
 | Controls | `--tts-instructions <text>`                             |
 
@@ -241,6 +241,8 @@ The active registry ranks only the eight supported TTS providers. Historical rat
 | About `$0.0126` / 1K chars | `openai/gpt-4o-mini-tts-2025-12-15` |
 | `$0.015` / 1K chars | `grok/grok-tts` |
 | `$0.016` / 1K output chars | `mistral/voxtral-mini-tts-2603` |
+| `$0.015` / 1K chars | `inworld/realtime-tts-2-flash` |
+| `$0.037375` / 1K chars (Scale allocation estimate) | `cartesia/sonic-3.6-2026-08-27` |
 | `$0.025` / 1K chars | `inworld/realtime-tts-2` |
 | `$0.037375` / 1K chars | `cartesia/sonic-3.5-2026-05-04` |
 | `$0.10` / 1K chars | `elevenlabs/eleven_v3` |
@@ -267,7 +269,19 @@ Every active provider supports local import, registration listing, approval, ret
 | OpenAI | `gpt-4o-mini-tts-2025-12-15` | No | No | Deferred |
 | Speechify | `simba-3.2` | Yes | No | Deferred |
 | Hume | `octave-1`, `octave-2` | Yes | Yes | External UI |
-| Cartesia | `sonic-3.5-2026-05-04` | Yes | No | Yes |
-| Inworld | `realtime-tts-2` | Yes | Yes | Yes |
+| Cartesia | `sonic-3.5-2026-05-04`, `sonic-3.6-2026-08-27` | Yes | No | Yes |
+| Inworld | `realtime-tts-2`, `realtime-tts-2-flash` | Yes | Yes | Yes |
 
 Use `voice` for durable catalog, design, clone, inspection, and deletion operations. `tts` consumes an existing voice or request-scoped reference and never creates a remote voice.
+
+## P1 TTS additions — 2026-09-08
+
+Select `--provider cartesia=sonic-3.6-2026-08-27` or `--provider inworld=realtime-tts-2-flash`. Existing bare-provider defaults remain Sonic 3.5 and Realtime TTS 2; all-model expansion includes both additions. Flash maps to API ID `inworld-tts-2-flash`. Inworld's public Flash addition supersedes the previous local retirement decision; it rejects `--tts-instructions` and per-turn steering because the API documents instructions only for TTS 2. Voice design still requires the existing creation model.
+
+Sonic 3.6 uses `/tts/bytes` with API version `2026-08-14`, a voice ID string and WAV PCM s16le at 24 kHz. Its 44 base language codes include Odia (`or`) and Urdu (`ur`); `--tts-language` accepts these base codes, while locale/accent controls remain unexposed. Existing professional clones are compatible; voice access remains account-dependent. The older snapshot retains its original version and voice object. AutoShow keeps its conservative 2,000-character Cartesia chunk budget; the checked Bytes contract does not specify a numeric input ceiling. [Model and voice compatibility](https://docs.cartesia.ai/build-with-cartesia/tts-models/latest), [Bytes contract](https://docs.cartesia.ai/api-reference/tts/bytes).
+
+Cartesia's estimate is an explicit Scale subscription allocation: $299 / 8,000,000 credits × approximately one credit per character = $37.375/M characters (3.7375 cents/1K). This assumes full credit utilization; it is not a universal marginal or overage tariff. Preprocessing, unused credits, other plans, cloning and enterprise terms can change the invoice. [Credit metering](https://docs.cartesia.ai/pricing), [Subscription plans](https://www.cartesia.ai/pricing).
+
+Flash uses the existing REST endpoint, single stock/custom voice ID, WAV at 48 kHz, word timestamp request and 2,000-character input limit. Language is detected automatically; both Inworld models advertise 200+ languages/locales. The default voice alias still resolves to Dennis. Other host audio encodings are not exposed by this synthesis adapter. Missing alignment remains explicitly unavailable. Flash estimates use the $15/M-character on-demand rate, excluding subscription discounts. [Models](https://docs.inworld.ai/tts/tts-models), [REST parameters](https://docs.inworld.ai/api-reference/ttsAPI/texttospeech/synthesize-speech), [Pricing](https://inworld.ai/pricing).
+
+New-model request controls include model identity in paid segment hashes; the request body and canonical render target also identify the model. Legacy request controls and serializer versions remain stable for retained work. Completed audio and ambiguous-slot reconciliation continue through the existing resume pipeline. Verification uses synthetic audio and mocked transport; account access, latency and speech quality have not been tested through paid inference.

@@ -8,6 +8,7 @@ import {
   normalizeGrokVideoDuration,
   normalizeGrokVideoExtensionDuration,
   normalizeGrokVideoResolution,
+  normalizeLtxVideoResolution,
   normalizeLtxVideoDuration,
   normalizeLtxVideoSize,
   normalizeReplicateVideoResolution,
@@ -114,7 +115,8 @@ const estimateLtxCost = (model: LtxVideoModel, options: EstimateVideoCostOptions
   const isExtend = mode === 'extend'
   const costPerSecond = isExtend
     ? 10
-    : (meta?.baseCostPerSecondCents ?? 0) * getLtxSizeResolutionMultiplier(size)
+    : meta?.costPerSecondByResolutionCents?.[normalizeLtxVideoResolution(options.videoResolution, model)]
+      ?? (meta?.baseCostPerSecondCents ?? 0) * getLtxSizeResolutionMultiplier(size)
 
   return {
     provider: 'ltx',

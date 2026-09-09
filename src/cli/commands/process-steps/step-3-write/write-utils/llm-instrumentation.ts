@@ -48,7 +48,12 @@ const normalizeLlmProviderUsage = (usage: unknown): NormalizedLlmUsage | undefin
     return undefined
   }
 
+  const promptDetails = usage['prompt_tokens_details']
+  const cachedInputTokenCount = isRecord(promptDetails) ? finiteNumber(promptDetails['cached_tokens']) : undefined
+
   return {
+    ...(cachedInputTokenCount !== undefined && cachedInputTokenCount >= 0 && inputTokenCount !== undefined && cachedInputTokenCount <= inputTokenCount
+      ? { cachedInputTokenCount } : {}),
     ...(inputTokenCount !== undefined ? { inputTokenCount } : {}),
     ...(outputTokenCount !== undefined ? { outputTokenCount } : {}),
     ...(totalTokenCount !== undefined ? { totalTokenCount } : {})

@@ -121,7 +121,9 @@
     "description": "LTX video generation",
     "type": "api",
     "resolutions": [
+      "720p",
       "1080p",
+      "1440p",
       "4k"
     ],
     "billedDurations": [
@@ -156,6 +158,44 @@
         "pricingTier": "LTX API public pricing",
         "pricingNotes": "Text-to-video and image-to-video are priced at $0.08/s for 1920x1080 or 1080x1920, with 2560x1440/1440x2560 at 2x and 3840x2160/2160x3840 at 4x. Extension is estimated at $0.10/s and LTX may bill context frames. Discounts, enterprise pricing, taxes, and provider credits are ignored.",
         "baseCostPerSecondCents": 8,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 12000
+        }
+      },
+      "ltx-2-5-fast": {
+        "description": "LTX-2.5 Fast text/image video generation and first-to-last-frame interpolation",
+        "pricingSourceUrl": "https://docs.ltx.io/pricing",
+        "pricingCheckedAt": "2026-09-08",
+        "pricingCurrency": "USD",
+        "pricingTier": "LTX API public pricing",
+        "pricingNotes": "Text/image/interpolation pricing per output second at 720p/1080p/1440p/4K. CLI sends 24 fps and fixed duration (default 8s). No extend, retake or reframe. Discounts, enterprise pricing, taxes and credits excluded. Latency inherited from 2.3 and provisional.",
+        "baseCostPerSecondCents": 13,
+        "costPerSecondByResolutionCents": {
+          "720p": 9,
+          "1080p": 13,
+          "1440p": 19,
+          "4k": 30
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 12000
+        }
+      },
+      "ltx-2-5-pro": {
+        "description": "LTX-2.5 Pro text/image video generation and first-to-last-frame interpolation",
+        "pricingSourceUrl": "https://docs.ltx.io/pricing",
+        "pricingCheckedAt": "2026-09-08",
+        "pricingCurrency": "USD",
+        "pricingTier": "LTX API public pricing",
+        "pricingNotes": "Text/image/interpolation pricing per output second at 720p/1080p/1440p/4K. CLI sends 24 fps and fixed duration (default 8s). No extend, retake or reframe. Discounts, enterprise pricing, taxes and credits excluded. Latency inherited from 2.3 and provisional.",
+        "baseCostPerSecondCents": 17,
+        "costPerSecondByResolutionCents": {
+          "720p": 12,
+          "1080p": 17,
+          "1440p": 25,
+          "4k": 39
+        },
         "estimation": {
           "costMultiplier": 1,
           "msPerSecond": 12000

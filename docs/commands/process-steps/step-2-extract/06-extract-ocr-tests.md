@@ -1,5 +1,7 @@
 # Step 2 Tests: OCR
 
+The no-cost `test/test-cases/validation/extraction/` directory contains the six migrated DOCX formatter contracts plus CLI tests for zero-cost/no-write preflight, Markdown artifact registration, unchanged ordinary extraction, invalid ZIP/XML, missing document entries, remote-input rejection, and provider-option rejection.
+
 Local OCR validation plus hosted OCR and article-extraction coverage for `extract`.
 
 Safety: these `bun t` commands document human service/e2e coverage and may call paid or quota-limited providers. Do not run them for agent verification without explicit approval for that exact run.

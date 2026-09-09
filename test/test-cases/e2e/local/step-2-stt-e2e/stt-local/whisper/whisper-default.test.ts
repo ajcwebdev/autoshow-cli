@@ -72,7 +72,7 @@ budgetedTest('transcribe-whisper-split', 'split mode processes audio in segments
   )
 
   expect(result.exitCode).toBe(0)
-  expect(stripAnsi(result.stderr)).toContain('STT Segment')
+  expect(stripAnsi(result.stderr)).toMatch(/whisper STT segment \d+\/\d+ completed/)
 
   const outputDir = result.outputDir ?? await findLatestDirectory(STABLE_EXAMPLE_AUDIO_TITLE, result.outputRoot)
   expect(outputDir).not.toBeNull()

@@ -9,6 +9,7 @@ export type Step3Metadata = {
   outputTokenCount: number
   tokenCountSource?: 'provider_usage' | 'local_count' | undefined
   providerUsage?: {
+    cachedInputTokenCount?: number | undefined
     inputTokenCount?: number | undefined
     outputTokenCount?: number | undefined
     totalTokenCount?: number | undefined

@@ -93,7 +93,7 @@ describe('generation pricing model-selection tables', () => {
 
     for (const provider of VIDEO_PRICING_PROVIDERS) {
       for (const model of VIDEO_MODELS[provider.service]) {
-        for (const videoDuration of [undefined, 5, 8]) {
+        for (const videoDuration of [undefined, model.startsWith('ltx-2-5-') ? 6 : 5, 8]) {
           const singularOptions = { ...optionsForService(VIDEO_PRICING_PROVIDERS, provider.service, model), videoDuration }
           const pluralOptions = { ...optionsForService(VIDEO_PRICING_PROVIDERS, provider.service, [model]), videoDuration }
           expect(estimateVideoCosts(pluralOptions)).toEqual(estimateVideoCosts(singularOptions))

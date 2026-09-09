@@ -375,6 +375,9 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
       failWithExitCode(`Music lyric-video batch completed with ${failed} failed item(s)`, 1)
     }
 
+    l.report.complete(batchDirRelative, { manifest: PIPELINE_MANIFEST_FILE }, {
+      metrics: { total: items.length, succeeded, failed }
+    })
     return
   }
 

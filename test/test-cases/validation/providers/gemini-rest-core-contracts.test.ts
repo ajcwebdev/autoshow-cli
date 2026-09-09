@@ -117,41 +117,43 @@ describe('Gemini REST contracts', () => {
     expect(calls).toHaveLength(1)
   })
 
-  test('Gemini LLM structured output sends response JSON schema', async () => {
-    process.env['GEMINI_API_KEY'] = 'gemini-key'
-    let requestSignal: AbortSignal | null | undefined
-    const calls = installFetch((_call, _input, init) => {
-      requestSignal = init?.signal
-      return jsonResponse({
-        candidates: [{ content: { parts: [{ text: '{"title":"Done"}' }] } }]
+  for (const model of ['gemini-3.5-flash-lite', 'gemini-3.8-flash']) {
+    test(`Gemini LLM structured output sends response JSON schema (${model})`, async () => {
+      process.env['GEMINI_API_KEY'] = 'gemini-key'
+      let requestSignal: AbortSignal | null | undefined
+      const calls = installFetch((_call, _input, init) => {
+        requestSignal = init?.signal
+        return jsonResponse({
+          candidates: [{ content: { parts: [{ text: '{"title":"Done"}' }] } }]
+        })
       })
-    })
 
-    const result = await runGeminiModel('Write a title.', 'gemini-3.5-flash-lite', {
-      strategy: 'schema-guided',
-      schemaName: 'Title',
-      strict: true,
-      requestedReasoningEffort: 'minimal',
-      schema: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['title'],
-        properties: { title: { type: 'string' } }
-      }
-    })
+      const result = await runGeminiModel('Write a title.', model, {
+        strategy: 'schema-guided',
+        schemaName: 'Title',
+        strict: true,
+        requestedReasoningEffort: model === 'gemini-3.8-flash' ? 'medium' : 'minimal',
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['title'],
+          properties: { title: { type: 'string' } }
+        }
+      })
 
-    expect(result.result).toBe('{"title":"Done"}')
-    expect(calls[0]?.url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent')
-    expect(calls[0]?.bodyJson?.['generationConfig']).toEqual({
-      responseMimeType: 'application/json',
-      responseJsonSchema: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['title'],
-        properties: { title: { type: 'string' } }
-      },
-      thinkingConfig: { thinkingLevel: 'MINIMAL' }
+      expect(result.result).toBe('{"title":"Done"}')
+      expect(calls[0]?.url).toBe(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`)
+      expect(calls[0]?.bodyJson?.['generationConfig']).toEqual({
+        responseMimeType: 'application/json',
+        responseJsonSchema: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['title'],
+          properties: { title: { type: 'string' } }
+        },
+        thinkingConfig: { thinkingLevel: model === 'gemini-3.8-flash' ? 'MEDIUM' : 'MINIMAL' }
+      })
+      expect(requestSignal).toBeInstanceOf(AbortSignal)
     })
-    expect(requestSignal).toBeInstanceOf(AbortSignal)
-  })
+  }
 })
