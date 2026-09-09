@@ -1,3 +1,4 @@
+import { ValidationError } from '~/utils/error-handler';
 import { openZip, readZipEntryData } from '~/cli/commands/process-steps/step-1-download/document/zip-xml-utils';
 import { XML } from "bun";
 
@@ -185,7 +186,7 @@ function titleCase(text: string): string {
 export async function readDocxMarkdown(inputPath: string): Promise<string> {
   const { buf, entries } = await openZip(inputPath);
   const entry = entries.get('word/document.xml');
-  if (!entry) throw new Error('Could not read word/document.xml');
+  if (!entry) throw ValidationError('Could not read word/document.xml', { stage: 'extract:docx-markdown' });
   return documentXmlToMarkdown(readZipEntryData(buf, entry).toString('utf8'), inputPath);
 }
 
@@ -194,13 +195,13 @@ export function documentXmlToMarkdown(xml: string, inputPath = "word/document.xm
   try {
     parsed = XML.parse(xml, { compact: false });
   } catch (error) {
-    if (error instanceof SyntaxError) throw new Error(`Invalid word/document.xml: ${error.message}`);
+    if (error instanceof SyntaxError) throw ValidationError(`Invalid word/document.xml: ${error.message}`, { stage: 'extract:docx-markdown', cause: error });
     throw error;
   }
 
   const documentNode = localName(parsed.name) === "document" ? parsed : undefined;
   const body = documentNode && descendants(documentNode, new Set(["body"]))[0];
-  if (!body) throw new Error(`DOCX has no Word document body: ${inputPath}`);
+  if (!body) throw ValidationError(`DOCX has no Word document body: ${inputPath}`, { stage: 'extract:docx-markdown' });
 
   const lines: string[] = [];
   let frontMatter = true;

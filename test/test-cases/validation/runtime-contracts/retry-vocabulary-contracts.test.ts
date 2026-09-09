@@ -7,6 +7,8 @@ import { describeSourceVocabularyViolations as describeViolations, listSourceVoc
 const RETRY_ENGINE = 'src/utils/retries.ts'
 
 const PACING_SLEEP_ALLOWLIST = new Set([
+  // Local fixture response latency exercises silent sockets; this is not retry backoff.
+  'src/cli/commands/setup-and-utilities/setup/network-check.ts',
   RETRY_ENGINE,
   'src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-mistral/mistral-stt-pass-controller.ts',
   'src/cli/commands/process-steps/step-4-tts/voice-management/canonical-voice-audition.ts'

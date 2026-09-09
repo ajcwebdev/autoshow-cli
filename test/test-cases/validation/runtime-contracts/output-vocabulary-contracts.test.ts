@@ -14,6 +14,8 @@ const LOGGER_SINK_FILES = [
 ]
 
 const PAYLOAD_STDOUT_FILES = [
+  // The diagnostic owns fixture readiness JSON and the non-JSON-mode probe payload.
+  'src/cli/commands/setup-and-utilities/setup/network-check.ts',
   'src/cli/native/dispatcher.ts',
   'src/cli/commands/process-steps/step-1-download/download-targets/single/metadata-output.ts',
   'src/tools/analyze-typescript-complexity.ts',

@@ -45,6 +45,16 @@ jobs:
           bun --no-env-file test test/test-cases/validation/cli/cli-usage-errors/
           bun --no-env-file test test/test-cases/validation/cli/option-resolution-contracts/
 
+      - name: Run Docker and DOCX contracts
+        run: |
+          bun --no-env-file test \
+            test/test-cases/validation/extraction/ \
+            test/test-cases/validation/cli/network-check-contracts.test.ts \
+            test/test-cases/validation/cli/required-image-model-contracts.test.ts \
+            test/test-cases/validation/cli/docker-workspace-invocation.test.ts \
+            test/test-cases/validation/providers/provider-rest-client-contracts.test.ts \
+            test/test-cases/validation/providers/openai-rest-contracts/
+
       - name: Run Bun migration contracts
         run: |
           bun --no-env-file test \

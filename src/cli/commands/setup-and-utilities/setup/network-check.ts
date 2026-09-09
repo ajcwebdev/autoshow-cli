@@ -38,16 +38,16 @@ async function performNetworkProbe(url: URL, client: unknown, timeoutMs: number)
   try {
     const signal = AbortSignal.timeout(timeoutMs)
     const readiness = await fetch(new URL('/ready', url), { signal, timeout: false, keepalive: false, redirect: 'error' })
-    if (!readiness.ok || (await readiness.json() as { ready?: boolean }).ready !== true) throw new Error('Fixture is not ready')
+    if (!readiness.ok || (await readiness.json() as { ready?: boolean }).ready !== true) throw InfraError('Fixture is not ready', { stage: 'setup:network-check' })
     let body: { output_text?: unknown }
     if (client === 'rest') {
       body = await createOpenAIResponse({ apiKey: 'local-test-only', baseURL: url.origin, redirect: 'error' }, { model: 'local-fixture', input: 'local-only probe' }, { signal })
     } else {
       const response = await fetch(new URL('/responses', url), { signal, timeout: false, redirect: 'error', ...(client === 'fetch-no-keepalive' ? { keepalive: false } : {}) })
-      if (!response.ok) throw new Error(`Fixture HTTP ${response.status}`)
+      if (!response.ok) throw InfraError(`Fixture HTTP ${response.status}`, { stage: 'setup:network-check' })
       body = await response.json() as { output_text?: unknown }
     }
-    if (body.output_text !== 'ok') throw new Error('Unexpected fixture response')
+    if (body.output_text !== 'ok') throw InfraError('Unexpected fixture response', { stage: 'setup:network-check' })
     return { client, passed: true, elapsedSeconds: (performance.now() - start) / 1000 }
   } catch (error) {
     return { client, passed: false, elapsedSeconds: (performance.now() - start) / 1000, error: error instanceof Error ? error.message : String(error) }
