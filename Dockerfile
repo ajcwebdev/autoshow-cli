@@ -76,6 +76,7 @@ LABEL org.opencontainers.image.url="https://github.com/ajcwebdev/autoshow-cli/pk
 
 ENV NODE_ENV=production
 ENV HOME=/home/bun
+ENV AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1
 
 RUN set -eux; \
     apt-get update; \

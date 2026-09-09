@@ -9,6 +9,13 @@ const dockerfilePath = resolve(repositoryRoot, 'Dockerfile')
 const dockerDocsPath = resolve(repositoryRoot, 'docs/docker.md')
 const scriptsPath = resolve(repositoryRoot, 'scripts')
 
+test('all Docker runtime targets opt out of Bun TCP keepalive for silent provider requests', async () => {
+  const dockerfile = await readFile(dockerfilePath, 'utf8')
+  const runtimeBase = dockerfile.slice(dockerfile.indexOf('AS runtime-base'), dockerfile.indexOf('FROM runtime-base AS runtime'))
+  expect(runtimeBase).toContain('ENV AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1')
+  expect(dockerfile).toContain('FROM runtime-base AS compiled-experiment')
+})
+
 test('Docker yt-dlp pin matches resolved native setup metadata in both directions', async () => {
   const dockerfile = await readFile(dockerfilePath, 'utf8')
   const dockerArgs = Object.fromEntries(

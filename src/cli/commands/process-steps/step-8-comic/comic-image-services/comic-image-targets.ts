@@ -1,3 +1,4 @@
+import { assertRequiredImageModel } from '~/utils/required-image-model'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { extname, join } from 'node:path'
@@ -76,6 +77,7 @@ export const createImage = async (
   validateImageSizeForModels(size, [model])
   if (referenceImages.length > 0) validateReferenceImageCount(model, referenceImages.length, 'Image request')
 
+  assertRequiredImageModel(model)
   const service = resolveImageService(model)
   if (!service) {
     throw UsageError(`Unknown image model "${model}". It is not present in the central image registry.`)

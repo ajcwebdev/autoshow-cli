@@ -25,6 +25,7 @@ export const writeTextArtifactFiles = async (
 ): Promise<void> => {
   const topLevelDirs = [...new Set(
     files
+      .filter(file => file.relativePath.includes('/'))
       .map((file) => file.relativePath.split('/')[0])
       .filter((dir): dir is string => typeof dir === 'string' && dir.length > 0)
   )]

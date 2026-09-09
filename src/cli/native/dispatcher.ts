@@ -1,3 +1,4 @@
+import { enforceImageCommandPolicy } from '~/utils/required-image-model'
 import type { CliCommandContext, CliCommandDefinition, CliRootDefinition, LogLevel } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { isJsonResultActive, LOG_LEVEL_CHOICES, reconfigureLogger, runWithLogContext } from '~/utils/app-logger/app-logger'
@@ -65,6 +66,8 @@ export const dispatchNativeCli = async (
   if (command === undefined) {
     return
   }
+
+  enforceImageCommandPolicy(parsed.calledAs ?? command.name, parsed.flags, parsed.rawParsed.flagOccurrences)
 
   const unknownFlagSpellings = getUnknownFlagSpellings(parsed.rawParsed)
   const unknownCookieFlag = unknownFlagSpellings

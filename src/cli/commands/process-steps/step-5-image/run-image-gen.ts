@@ -1,3 +1,4 @@
+import { assertRequiredImageModel } from '~/utils/required-image-model'
 import { rename } from 'node:fs/promises'
 import { basename } from 'node:path'
 import type { ImageGenOptions, ImageResult, ImageTarget, Step5Metadata } from '~/types'
@@ -50,6 +51,7 @@ export const runImageTargets = async (
   outputDir: string,
   options: ImageGenOptions
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata[] }> => {
+  for (const target of targets) assertRequiredImageModel(target.model, target.service)
   const successes = await runTargets<ImageTarget, ImageResult>({
     targets,
     outputDir,

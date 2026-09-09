@@ -1,6 +1,8 @@
 import type { RestClientConfigBase, RestFetchOptionsBase, RestRequestOptionsBase } from '~/types'
 
-export type OpenAIRestConfig = RestClientConfigBase
+export type OpenAIRestConfig = RestClientConfigBase & {
+  redirect?: RequestInit['redirect'] | undefined
+}
 
 export type OpenAIRequestOptions = RestRequestOptionsBase & {
   errorMessagePrefix?: string | undefined

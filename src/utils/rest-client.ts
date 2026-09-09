@@ -99,7 +99,14 @@ export const createProviderRestClient = <TOptions, TError extends Error>(
     const request = profile.buildRequest(options)
 
     try {
-      const init: RequestInit & { timeout: false } = { ...request.init, timeout: false }
+      // Bun's TCP keepalive can reset silent requests through Docker Desktop
+      // after ~70s even with its HTTP idle timeout disabled. The image opts out;
+      // native callers retain connection pooling unless they request this mode.
+      const init: RequestInit & { timeout: false } = {
+        ...request.init,
+        timeout: false,
+        ...(process.env['AUTOSHOW_DISABLE_HTTP_KEEPALIVE'] === '1' ? { keepalive: false } : {})
+      }
       const response = await fetch(request.url, init)
       if (response.ok) {
         return response

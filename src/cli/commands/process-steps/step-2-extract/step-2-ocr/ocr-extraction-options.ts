@@ -17,6 +17,7 @@ export const resolveOcrExtractionOptions = (
     languages: rawOpts.languages ?? 'eng',
     outputFormat: rawOpts.outputFormat ?? 'text',
     password: rawOpts.password,
+    docxMarkdown: rawOpts.docxMarkdown,
     renderConcurrency: rawOpts.renderConcurrency,
     ocrConcurrency: rawOpts.ocrConcurrency,
     ocrConcurrencyMode,

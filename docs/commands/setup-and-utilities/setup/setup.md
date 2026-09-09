@@ -1,5 +1,7 @@
 # setup
 
+`setup --network-check serve|probe` runs a local delayed-response fixture or a bounded probe, separately from installation and doctor. It needs no provider credentials. Use `--probe-url http://host.docker.internal:8787 --probe-client rest --delay-seconds 150` to exercise the shared REST transport from Docker; `fetch` and `fetch-no-keepalive` are diagnostic controls. See [Docker-only network diagnostics](../../../docker.md#docker-only-network-diagnostic) for readiness, loopback publishing, deadlines, and fixture cleanup.
+
 Install local runtimes and prerequisite tools. Use `--models` to pre-download local STT models without running inference.
 
 ## Outline

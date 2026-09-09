@@ -1,3 +1,4 @@
+import { runNetworkCheck } from './network-check'
 import { defineCliCommand } from '~/cli/native/native-types'
 import { setupFlags } from '~/cli/flags/setup-flags'
 import { UsageError, InfraError } from '~/utils/error-handler'
@@ -43,6 +44,12 @@ export const setupCommand = defineCliCommand({
     ]
   }
 }, async (ctx) => {
+  if (ctx.flags['network-check'] !== undefined) {
+    for (const flag of [...FOCUSED_SETUP_CONFLICT_FLAGS, 'price']) if (ctx.rawParsed.explicitFlags.has(flag)) throw UsageError(`--network-check cannot be combined with --${flag}`)
+    await runNetworkCheck(ctx.flags)
+    return
+  }
+  for (const flag of ['probe-url', 'probe-client', 'delay-seconds', 'port']) if (ctx.rawParsed.explicitFlags.has(flag)) throw UsageError(`--${flag} requires --network-check`)
   const usedModelsFlag = ctx.rawParsed.explicitFlags.has('models')
   const modelTargets = normalizeStringArrayFlag(ctx.flags.models)
 

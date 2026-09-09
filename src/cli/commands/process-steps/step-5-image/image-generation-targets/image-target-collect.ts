@@ -1,3 +1,4 @@
+import { assertRequiredImageModel } from '~/utils/required-image-model'
 import type { ImageGenOptions, ImageTarget } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { collectGeminiImageTargets } from '../image-generation-services/image-gemini/gemini-image-targets'
@@ -24,6 +25,7 @@ export const collectImageTargets = (options: ImageGenOptions): ImageTarget[] => 
     ...collectLumalabsImageTargets(options),
     ...collectFalImageTargets(options)
   ], options, 'image')
+  for (const target of targets) assertRequiredImageModel(target.model, target.service)
   const referenceCount = options.imageInputs?.length ?? 0
   for (const target of targets) validateImageReferenceCapabilities(target.model, referenceCount)
   return targets

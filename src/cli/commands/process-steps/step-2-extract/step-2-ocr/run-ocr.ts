@@ -107,6 +107,10 @@ export const runOcr = async (
   }
 
   let artifactFiles = extracted.artifactFiles
+  if (opts.docxMarkdown) {
+    const { readDocxMarkdown } = await import('./office/docx-markdown')
+    artifactFiles = [...(artifactFiles ?? []), { relativePath: 'extraction.md', text: await readDocxMarkdown(filePath) }]
+  }
   let chapterExportSummary = extracted.chapterExportSummary
   let pdfChapterDetectionSummary = extracted.pdfChapterDetectionSummary
 

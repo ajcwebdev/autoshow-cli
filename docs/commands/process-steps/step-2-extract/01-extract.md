@@ -1,5 +1,7 @@
 # extract
 
+Opt into `extract local.docx --docx-markdown` to retain Word formatting in `extraction.md` alongside the normal text and manifest. The exact command plus `--price` validates the local ZIP/XML without output writes and costs zero. Provider flags and configured OCR providers are incompatible; ordinary extraction stays unchanged. Review and promotion remain separate. See [Docker invocation and DOCX details](../../../docker.md#local-docx-markdown).
+
 Routes each input to the right step-2 extractor: media to STT, documents/images to OCR, article HTML to URL extraction, and X/Twitter links to the X API.
 
 ## Outline
