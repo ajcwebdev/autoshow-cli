@@ -6,9 +6,9 @@
 - **Date Created:** 2026-08-03
 - **Date Updated:** 2026-09-08
 
-This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](01-stt-model-report.md), [OCR](02-ocr-model-report.md), [URL scraping](03-url-model-report.md), [LLMs](04-llm-model-report.md), [TTS](05-tts-model-report.md), [Music](06-music-model-report.md), [Image](07-image-model-report.md).
+This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](../step-2-extract/05-stt-model-report.md), [OCR](../step-2-extract/06-ocr-model-report.md), [URL scraping](../step-2-extract/07-url-model-report.md), [LLMs](../step-3-write/02-llm-model-report.md), [TTS](../step-4-tts/02-tts-model-report.md), [Music](../step-7-music/02-music-model-report.md), [Image](../step-5-image/02-image-model-report.md).
 
-Durable registry, lifecycle, and capability policy belongs to [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); paid approvals, calibration results, artifact repair evidence, and generated-report contracts belong to [ADR-012](../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md). Latency and token heuristics for new or replacement selectors reuse the closest prior per-provider baseline and stay provisional until an approved ADR-012 calibration promotes them.
+Durable registry, lifecycle, and capability policy belongs to [ADR-010](../../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); paid approvals, calibration results, artifact repair evidence, and generated-report contracts belong to [ADR-012](../../../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md). Latency and token heuristics for new or replacement selectors reuse the closest prior per-provider baseline and stay provisional until an approved ADR-012 calibration promotes them.
 
 ## Video refresh
 
@@ -262,7 +262,7 @@ Compared the active video catalog plus the xAI Imagine snapshot from `bun autosh
 
 Also add Grok `grok-imagine-video-1.5` `reference_audios` (up to 3 TTS `voice_id`s; audio-only R2V allowed). Keep current Grok limits: edit/extend on `grok-imagine-video` only, 1080p on 1.5 text/image-to-video, reference-to-video capped at 720p. Ignore 1.5 aliases.
 
-The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model-report.md)) also recorded the P3 video recommendation `gemini-omni-flash`, pending confirmation that the existing Veo adapter can host it.
+The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](../step-3-write/02-llm-model-report.md)) also recorded the P3 video recommendation `gemini-omni-flash`, pending confirmation that the existing Veo adapter can host it.
 
 ## API / Type Impact
 
@@ -281,9 +281,9 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model
 
 ## References
 
-- Related ADR: [ADR-002](../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) — Pipeline state and resume identity
-- Related ADR: [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Durable registry/lifecycle/capability policy
-- Related ADR: [ADR-012](../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md) — Benchmark evidence and generated reports
+- Related ADR: [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) — Pipeline state and resume identity
+- Related ADR: [ADR-010](../../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Durable registry/lifecycle/capability policy
+- Related ADR: [ADR-012](../../../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md) — Benchmark evidence and generated reports
 - Hosted model registries: `src/cli/commands/setup-and-utilities/models/`
 - Video provider adapters: `src/cli/commands/process-steps/step-6-video/`
 - Historical cost reconstruction: `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`

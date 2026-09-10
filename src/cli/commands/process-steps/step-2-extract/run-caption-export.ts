@@ -7,7 +7,7 @@ import { resolveRunDirectory } from '../run-dir'
 import { parseStoredTranscriptionResult } from './step-2-stt/stt-utils/stt-result-artifacts'
 import { resolveCaptionWordCoverage } from './step-2-stt/stt-utils/caption-word-coverage'
 import { buildTranscriptionCues, TRANSCRIPT_CUE_LIMITS } from '../step-7-music/lyrics-video/cue-builder'
-import { formatSrt, formatVtt } from '../step-7-music/lyrics-video/captions'
+import { formatEditorCaptions, resolveCaptionFormats } from './caption-editor-formats'
 import { UsageError, ValidationError } from '~/utils/error-handler'
 
 export const runCaptionExport = async (input: string | undefined, flags: Record<string, unknown>, destination?: string, videoSource?: string): Promise<string> => {
@@ -15,7 +15,7 @@ export const runCaptionExport = async (input: string | undefined, flags: Record<
   if (typeof source !== 'string' || !source.trim()) throw UsageError('--captions requires a saved result.json file or a directory containing result.json.')
   let path = resolve(source)
   if ((await stat(path)).isDirectory()) path = join(path, 'result.json')
-  const { format, mode, lineWidth, maxLines, maxCps, limits } = validateCaptionOptions(flags)
+  const { formats, mode, lineWidth, maxLines, maxCps, limits } = validateCaptionOptions(flags)
   const result = parseStoredTranscriptionResult(await Bun.file(path).json())
   if (!result) throw ValidationError('Invalid saved STT result; expected text, segments, and optional evidence.')
   const coverage = resolveCaptionWordCoverage(result)
@@ -52,14 +52,17 @@ export const runCaptionExport = async (input: string | undefined, flags: Record<
     l.report.result({ dryRun: true, estimate: { steps: [], totalEstimatedCostCents: 0 } }, 'Caption export provider cost: 0 cents')
     return path
   }
-  const escapedCues = captionCues.map(cue => ({ ...cue, text: cue.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }))
   const output = destination ?? resolve(resolveRunDirectory(getOutputRootAbsolute(), 'captions', 'captions'))
+  const serialized = formats.map(format => ({ format, content: formatEditorCaptions(format, captionCues) }))
+  for (const name of ['captions.json', ...formats.map(format => `captions.${format}`)]) {
+    if (await stat(join(output, name)).catch(() => undefined)) throw ValidationError(`Caption export already exists at ${join(output, name)}; choose a new output directory.`)
+  }
   await mkdir(output, { recursive: true })
   // Exclusive creation protects existing exports and provider artifacts.
-  if (format !== 'vtt') await writeFile(join(output, 'captions.srt'), formatSrt(escapedCues), { flag: 'wx' })
-  if (format !== 'srt') await writeFile(join(output, 'captions.vtt'), formatVtt(escapedCues), { flag: 'wx' })
+  for (const { format, content } of serialized) await writeFile(join(output, `captions.${format}`), content, { flag: 'wx' })
   await writeFile(join(output, 'captions.json'), JSON.stringify({
-    source: path, sourceTimelineOffsetSeconds, mode, limits, lineWidth, maxLines, maxCps, displayTimingAdjustments,
+    source: path, sourceTimelineOffsetSeconds, formats, mode, limits, lineWidth, maxLines, maxCps, displayTimingAdjustments,
+    formatNotes: [...(formats.includes('lrc') ? ['LRC stores cue starts only, rounded to centiseconds. Full ranges remain in this sidecar.'] : []), ...(formats.includes('ass') ? ['ASS display times are rounded to centiseconds, with a minimum one-centisecond display duration. Full ranges remain in this sidecar.'] : [])],
     timingQuality: result.evidence?.timingQuality === 'generated' ? 'generated' : coverage.inferredWords > 0 ? ((result.evidence?.words?.length ?? 0) > 0 ? 'mixed' : 'segment_interpolated') : result.evidence?.timingQuality ?? 'coarse',
     layoutWarnings: captionCues.flatMap(cue => [
       ...(cue.text.length / (cue.end - cue.start) > maxCps ? [{ cue: cue.index, reason: 'reading-speed' }] : []),
@@ -75,18 +78,17 @@ export const runCaptionExport = async (input: string | undefined, flags: Record<
   if (!destination) l.report.complete(output, {
     ...embedded,
     json: 'captions.json',
-    ...(format !== 'vtt' ? { srt: 'captions.srt' } : {}),
-    ...(format !== 'srt' ? { vtt: 'captions.vtt' } : {})
+    ...Object.fromEntries(formats.map(format => [format, `captions.${format}`]))
   }, { metrics: { cueCount: captionCues.length, inferredWords: coverage.inferredWords, invalidWords: coverage.invalidWords } })
   return output
 }
 
 export const validateCaptionOptions = (flags: Record<string, unknown>) => {
   const format = flags['caption-format'] ?? 'both'
-  if (flags['embed-captions'] === true && format !== 'both') throw UsageError('--embed-captions retains SRT and VTT; use --caption-format both.')
+  const formats = resolveCaptionFormats(format)
+  if (flags['embed-captions'] === true && (!formats.includes('srt') || !formats.includes('vtt'))) throw UsageError('--embed-captions retains SRT and VTT; use --caption-format both or all.')
   const mode = flags['caption-mode'] ?? 'phrase'
   if (flags['caption-offset'] !== undefined && !Number.isFinite(Number(flags['caption-offset']))) throw UsageError('--caption-offset must be a finite number of seconds.')
-  if (!['srt', 'vtt', 'both'].includes(String(format))) throw UsageError('--caption-format must be srt, vtt, or both.')
   if (!['word', 'phrase'].includes(String(mode))) throw UsageError('--caption-mode must be word or phrase.')
   const positive = (key: string, fallback: number): number => {
     const value = flags[key] === undefined ? fallback : Number(flags[key])
@@ -107,7 +109,7 @@ export const validateCaptionOptions = (flags: Record<string, unknown>) => {
     hardBreakGapSeconds: positive('caption-break-gap', TRANSCRIPT_CUE_LIMITS.hardBreakGapSeconds)
   }
   if (![limits.maxWordsPerCue, limits.maxCharactersPerCue].every(Number.isInteger)) throw UsageError('Caption word and character limits must be integers.')
-  return { format, mode, lineWidth, maxLines, maxCps, limits }
+  return { format, formats, mode, lineWidth, maxLines, maxCps, limits }
 }
 
 // Run after provider success has been persisted, outside provider retry loops.
@@ -132,8 +134,7 @@ export const exportSttCaptions = async (outputDir: string, flags: Record<string,
     }
     const suffix = directory === '.' ? '' : `-${directory}`
     files[`captionExportMetadata${suffix}`] = join(directory, 'captions.json')
-    if (flags['caption-format'] !== 'vtt') files[`srt${suffix}`] = join(directory, 'captions.srt')
-    if (flags['caption-format'] !== 'srt') files[`vtt${suffix}`] = join(directory, 'captions.vtt')
+    for (const format of resolveCaptionFormats(flags['caption-format'])) files[`${format}${suffix}`] = join(directory, `captions.${format}`)
   }
   return files
 }

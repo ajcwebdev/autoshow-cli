@@ -29,4 +29,4 @@ bun t test/test-cases/e2e/service/step-6-video-gen-e2e/ --budget 2500
 ## Related Docs
 
 - [Testing Overview](../../testing.md)
-- [Video](text-to-video-services.md)
+- [Video](01-text-to-video-services.md)

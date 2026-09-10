@@ -19,23 +19,51 @@ const STT_ENGINE_CAPABILITIES = {
   whisper: { diarizationByDefault: false, supportsSpeakerCountHint: false },
   whisperfile: { diarizationByDefault: false, supportsSpeakerCountHint: false },
   'youtube-captions': { diarizationByDefault: false, supportsSpeakerCountHint: false }
-} as const satisfies Record<TranscribeEngine, TranscribeEngineCapabilities>
+} as const satisfies Record<TranscribeEngine, Pick<TranscribeEngineCapabilities, 'diarizationByDefault' | 'supportsSpeakerCountHint'>>
+
+// Model overrides describe the implemented request contract, separately from live
+// validation. A shared endpoint does not prove feature parity between its models.
+const STT_MODEL_CAPABILITIES: Partial<Record<TranscribeEngine, Record<string, Partial<TranscribeEngineCapabilities>>>> = {
+  together: {
+    'openai/whisper-large-v3': { diarizationValidation: 'documented' },
+    // 2026-09-10: live two-speaker sample returned speaker segments and words.
+    // Some native words had zero duration; this verifies diarization support,
+    // not acoustic word-boundary accuracy. See docs/adr/ADR-009-extract-execution-and-artifact-contracts.md#together-parakeet-live-validation.
+    'nvidia/parakeet-tdt-0.6b-v3': { diarizationValidation: 'live-tested' }
+  },
+  mistral: {
+    'voxtral-mini-2602': { nativeWordTiming: 'without-diarization' }
+  }
+}
 
 export const getSttEngineCapabilities = (
-  engine: TranscribeEngine
-): TranscribeEngineCapabilities => STT_ENGINE_CAPABILITIES[engine]
+  engine: TranscribeEngine,
+  model?: string
+): TranscribeEngineCapabilities => {
+  const defaults = STT_ENGINE_CAPABILITIES[engine]
+  const hasDiarization = defaults.diarizationByDefault || engine === 'together' || engine === 'gemini-stt'
+  return {
+    ...defaults,
+    supportsDiarizationToggle: hasDiarization && engine !== 'happyscribe',
+    diarizationKind: engine === 'gemini-stt' ? 'generated' : hasDiarization ? 'native' : 'unavailable',
+    diarizationValidation: hasDiarization ? 'documented' : 'unsupported',
+    nativeWordTiming: ['supadata', 'scrapecreators', 'gemini-stt', 'youtube-captions', 'rev'].includes(engine) ? 'unavailable' : engine === 'mistral' ? 'without-diarization' : 'available',
+    ...(model ? STT_MODEL_CAPABILITIES[engine]?.[model] : {})
+  }
+}
 
 export const resolveDiarizationOptions = (
   options: SttDiarizationFlagOptions,
-  engine: TranscribeEngine
+  engine: TranscribeEngine,
+  model?: string
 ): DiarizationOptions | undefined => {
   const speakerCount = options.diarizationSpeakerCount
-  const capabilities = STT_ENGINE_CAPABILITIES[engine]
+  const capabilities = getSttEngineCapabilities(engine, model)
   const diarizationOptions: DiarizationOptions = capabilities.diarizationByDefault
     ? { enabled: true }
     : {}
 
-  if (options.diarization !== undefined && ((capabilities.diarizationByDefault && engine !== 'happyscribe') || engine === 'together' || engine === 'gemini-stt')) {
+  if (options.diarization !== undefined && capabilities.supportsDiarizationToggle) {
     diarizationOptions.enabled = options.diarization
   }
   if (diarizationOptions.enabled === false) return diarizationOptions

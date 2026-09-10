@@ -6,11 +6,11 @@
 - **Date Created:** 2026-08-03
 - **Date Updated:** 2026-08-22
 
-This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](01-stt-model-report.md), [URL scraping](03-url-model-report.md), [LLMs](04-llm-model-report.md), [TTS](05-tts-model-report.md), [Music](06-music-model-report.md), [Image](07-image-model-report.md), [Video](08-video-model-report.md).
+This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](05-stt-model-report.md), [URL scraping](07-url-model-report.md), [LLMs](../step-3-write/02-llm-model-report.md), [TTS](../step-4-tts/02-tts-model-report.md), [Music](../step-7-music/02-music-model-report.md), [Image](../step-5-image/02-image-model-report.md), [Video](../step-6-video/02-video-model-report.md).
 
-Durable registry, lifecycle, and capability policy belongs to [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); paid approvals, calibration results, artifact repair evidence, and generated-report contracts belong to [ADR-012](../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md). Latency and token heuristics for new or replacement selectors reuse the closest prior per-provider baseline and stay provisional until an approved ADR-012 calibration promotes them.
+Durable registry, lifecycle, and capability policy belongs to [ADR-010](../../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); paid approvals, calibration results, artifact repair evidence, and generated-report contracts belong to [ADR-012](../../../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md). Latency and token heuristics for new or replacement selectors reuse the closest prior per-provider baseline and stay provisional until an approved ADR-012 calibration promotes them.
 
-The 2026 additions of hosted LLM selectors to the shared write and OCR registries (OpenAI GPT-5.6 tiers, Anthropic Claude 5 family, xAI Grok, Google Gemini, and Moonshot Kimi) are recorded in the [LLM report](04-llm-model-report.md) because those selectors share one registry across both commands. This report records OCR-specific catalog audits and the OCR provider-surface expansion.
+The 2026 additions of hosted LLM selectors to the shared write and OCR registries (OpenAI GPT-5.6 tiers, Anthropic Claude 5 family, xAI Grok, Google Gemini, and Moonshot Kimi) are recorded in the [LLM report](../step-3-write/02-llm-model-report.md) because those selectors share one registry across both commands. This report records OCR-specific catalog audits and the OCR provider-surface expansion.
 
 ## Additional OCR audits
 
@@ -106,7 +106,7 @@ Excluded from expansion:
 
 ## 2026-08-22 Replicate and fal OCR retirement
 
-Implemented 2026-08-22 from the then-current combined report under [docs/benchmarks/ocr](../benchmarks/ocr/combined-comparison-report.md). Removed 5 selectors and the Replicate and fal OCR services. Keep Mistral (`mistral-ocr-4-0`, `mistral-ocr-2512`) and GLM (`glm-ocr`) as dedicated OCR, plus the remaining vision LLMs. Active hosted count: 33 − 5 = 28. Direct `extract --provider replicate` and `extract --provider fal` are unknown OCR providers. Replicate and fal remain active for image and video, and Replicate remains active for comic sound effects; both were removed from TTS on 2026-08-29. Historical-manifest and pricing readers retain the retired per-1k-page rates. The retired provider run artifacts were removed after this decision; the aggregate quality, cost, and speed metrics below are the retained historical benchmark record from 12 runs / 19 pages.
+Implemented 2026-08-22 from the then-current combined report under [docs/benchmarks/ocr](../../../benchmarks/ocr/combined-comparison-report.md). Removed 5 selectors and the Replicate and fal OCR services. Keep Mistral (`mistral-ocr-4-0`, `mistral-ocr-2512`) and GLM (`glm-ocr`) as dedicated OCR, plus the remaining vision LLMs. Active hosted count: 33 − 5 = 28. Direct `extract --provider replicate` and `extract --provider fal` are unknown OCR providers. Replicate and fal remain active for image and video, and Replicate remains active for comic sound effects; both were removed from TTS on 2026-08-29. Historical-manifest and pricing readers retain the retired per-1k-page rates. The retired provider run artifacts were removed after this decision; the aggregate quality, cost, and speed metrics below are the retained historical benchmark record from 12 runs / 19 pages.
 
 **Provider 1: Replicate `datalab-to/ocr`**
 
@@ -217,11 +217,11 @@ Page heuristics stay provisional until an approved ADR-012 calibration promotes 
 
 ## References
 
-- Related ADR: [ADR-008](../adr/ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — Provider-lane scheduling
-- Related ADR: [ADR-009](../adr/ADR-009-extract-execution-and-artifact-contracts.md) — OCR execution and artifact contracts
-- Related ADR: [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Durable registry/lifecycle/capability policy
-- Related ADR: [ADR-012](../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md) — Benchmark evidence and generated reports
-- Related ADR: [ADR-015](../adr/ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md) — Multi-provider OCR page pool architecture
+- Related ADR: [ADR-008](../../../adr/ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — Provider-lane scheduling
+- Related ADR: [ADR-009](../../../adr/ADR-009-extract-execution-and-artifact-contracts.md) — OCR execution and artifact contracts
+- Related ADR: [ADR-010](../../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Durable registry/lifecycle/capability policy
+- Related ADR: [ADR-012](../../../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md) — Benchmark evidence and generated reports
+- Related ADR: [ADR-015](../../../adr/ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md) — Multi-provider OCR page pool architecture
 - Hosted model registries: `src/cli/commands/setup-and-utilities/models/`
 - OCR provider adapters: `src/cli/commands/process-steps/step-2-extract/`
 - Historical cost reconstruction: `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`

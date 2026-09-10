@@ -12,6 +12,7 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
   - [Examples](#examples)
   - [Behavior](#behavior)
   - [Blocking plan](#blocking-plan)
+  - [Reconcile from directives](#reconcile-from-directives)
 
 ## draft-scenes
 

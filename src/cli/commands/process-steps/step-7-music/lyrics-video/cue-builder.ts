@@ -207,11 +207,11 @@ export const buildTranscriptionCues = (
   const words = (transcription.evidence?.words?.length ?? 0) > 0 ? coverage.words : []
   const wordCues = buildFromWords(words, limits)
   if (wordCues.length > 0) {
-    return { cues: wordCues, source: 'whisper-words' }
+    return { cues: wordCues, source: 'transcript-words' }
   }
 
   return {
     cues: buildFromSegments(transcription.segments),
-    source: 'whisper-segments'
+    source: 'transcript-segments'
   }
 }

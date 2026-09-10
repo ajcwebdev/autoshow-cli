@@ -44,4 +44,4 @@ bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-feed-or
 ## Related Docs
 
 - [Testing Overview](../../testing.md)
-- [Download](download-file.md)
+- [Download](01-download-file.md)

@@ -2,7 +2,6 @@ import { afterAll, beforeAll, expect, test } from 'bun:test'
 import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises'
 import { LONG_E2E_TEST_TIMEOUT_MS } from '../../../test-utils/timeouts'
 import {
-  EXAMPLE_SHORT_AUDIO_URL,
   LOCAL_EXAMPLE_SHORT_AUDIO_PATH,
   OUTPUT_DIR,
   fileExists,
@@ -11,7 +10,7 @@ import {
 import { readCanonicalManifest, writeProviderResultFixture, writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 import { expectArtifact } from '../../../test-utils/value-assertions'
 
-const SHORT_AUDIO_PATH = EXAMPLE_SHORT_AUDIO_URL
+const SHORT_AUDIO_PATH = LOCAL_EXAMPLE_SHORT_AUDIO_PATH
 const FIXTURE_RUN_DIR = `${OUTPUT_DIR}/transcript-video-fixture-run`
 const FIXTURE_TEXT_PATH = `${FIXTURE_RUN_DIR}/transcription.txt`
 

@@ -18,18 +18,28 @@ import type { CliCommandDefinition, CliFlagDefinition, DocumentedFlag, FlagTable
 
 const docsRoot = resolve(import.meta.dir, '../../../../docs/commands')
 const configDoc = 'setup-and-utilities/config-command/config.md'
+const modelReportDocs = [
+  'process-steps/step-2-extract/05-stt-model-report.md',
+  'process-steps/step-2-extract/06-ocr-model-report.md',
+  'process-steps/step-2-extract/07-url-model-report.md',
+  'process-steps/step-3-write/02-llm-model-report.md',
+  'process-steps/step-4-tts/02-tts-model-report.md',
+  'process-steps/step-5-image/02-image-model-report.md',
+  'process-steps/step-6-video/02-video-model-report.md',
+  'process-steps/step-7-music/02-music-model-report.md'
+] as const
 const commandByDoc = {
-  'process-steps/step-0-metadata/metadata.md': metadataCommand,
-  'process-steps/step-1-download/download-file.md': downloadCommand,
+  'process-steps/step-0-metadata/01-metadata.md': metadataCommand,
+  'process-steps/step-1-download/01-download-file.md': downloadCommand,
   'process-steps/step-2-extract/01-extract.md': extractCommand,
   'process-steps/step-2-extract/02-extract-stt.md': extractCommand,
   'process-steps/step-2-extract/03-extract-ocr.md': extractCommand,
   'process-steps/step-2-extract/04-extract-url.md': extractCommand,
-  'process-steps/step-3-write/write-text.md': writeCommand,
-  'process-steps/step-4-tts/text-to-speech-and-voice.md': ttsCommand,
-  'process-steps/step-5-image/text-to-image.md': imageCommand,
-  'process-steps/step-6-video/text-to-video-services.md': videoCommand,
-  'process-steps/step-7-music/text-to-music-services.md': musicCommand,
+  'process-steps/step-3-write/01-write-text.md': writeCommand,
+  'process-steps/step-4-tts/01-text-to-speech-and-voice.md': ttsCommand,
+  'process-steps/step-5-image/01-text-to-image.md': imageCommand,
+  'process-steps/step-6-video/01-text-to-video-services.md': videoCommand,
+  'process-steps/step-7-music/01-text-to-music-services.md': musicCommand,
   'process-steps/step-8-comic/00-comic-overview.md': comicCommand,
   'process-steps/step-8-comic/01-draft-scenes.md': comicCommand,
   'process-steps/step-8-comic/02-reference-sketch.md': comicCommand,
@@ -232,30 +242,14 @@ test('documented flag scanner preserves negated flags', () => {
   ])
 })
 
-const numberedParentCommands = [
-  { prefix: 'process-steps/step-8-comic/', command: comicCommand, overview: 'comic-overview' },
-  { prefix: 'process-steps/step-9-voice/', command: voiceCommand, overview: 'voice-overview' },
-] as const
-
-const numberedSubcommandFromDoc = (doc: string): string | undefined => {
-  const parent = numberedParentCommands.find((entry) => doc.startsWith(entry.prefix))
-  if (parent === undefined) return undefined
-  const file = doc.slice(parent.prefix.length)
-  const match = /^[0-9]+-(.+)\.md$/.exec(file)
-  if (match === null || match[1] === parent.overview) return undefined
-  return `${parent.command.name} ${match[1]}`
-}
-
-const commandForTable = (doc: string, heading: string | undefined): CliCommandDefinition => {
+const commandForDoc = (doc: string): CliCommandDefinition => {
   const command = commandByDoc[doc as keyof typeof commandByDoc]
-  const wanted = numberedSubcommandFromDoc(doc) ?? (
-    command === comicCommand && heading !== undefined ? `comic ${heading}` : undefined
-  )
-  if (wanted === undefined) return command
+  if (command !== comicCommand && command !== voiceCommand) return command
+  if (doc.endsWith(`/00-${command.name}-overview.md`)) return command
 
-  const parent = command === voiceCommand ? voiceCommand : comicCommand
-  const subcommand = parent.subcommands?.find((candidate) => candidate.name === wanted)
-  if (subcommand === undefined) throw new Error(`${doc}: flag table is not under a ${parent.name} subcommand heading`)
+  const name = doc.match(/\/\d+-(.+)\.md$/)?.[1]
+  const subcommand = command.subcommands?.find((candidate) => candidate.name === `${command.name} ${name}`)
+  if (subcommand === undefined) throw new Error(`${doc}: document does not name a registered ${command.name} subcommand`)
   return subcommand
 }
 
@@ -272,17 +266,28 @@ const registrationFor = (
 }
 
 const isTestDoc = (doc: string): boolean => doc === 'testing.md' || doc.endsWith('-tests.md')
+const isModelReportDoc = (doc: string): boolean => doc.endsWith('-model-report.md')
 
 test('command doc flag tables name only flags registered by that command', async () => {
   const docs = (await Array.fromAsync(new Bun.Glob('**/*.md').scan({ cwd: docsRoot }))).sort()
-  expect(docs.filter((doc) => doc !== configDoc && !isTestDoc(doc))).toEqual(Object.keys(commandByDoc).sort())
+  // Preserve the report inventory without treating historical flags as current CLI usage.
+  expect(docs.filter(isModelReportDoc)).toEqual([...modelReportDocs].sort())
+  const commandDocs = docs.filter((doc) => doc !== configDoc && !isTestDoc(doc) && !isModelReportDoc(doc))
+  expect(commandDocs).toEqual(Object.keys(commandByDoc).sort())
+
+  for (const parent of [comicCommand, voiceCommand]) {
+    const documentedSubcommands = commandDocs
+      .filter((doc) => commandByDoc[doc as keyof typeof commandByDoc] === parent)
+      .map((doc) => commandForDoc(doc).name)
+      .filter((name) => name !== parent.name).sort()
+    expect(documentedSubcommands).toEqual((parent.subcommands ?? []).map((subcommand) => subcommand.name).sort())
+  }
 
   const unregistered: string[] = []
-  for (const doc of docs) {
-    if (doc === configDoc || isTestDoc(doc)) continue
+  for (const doc of commandDocs) {
     const markdown = await Bun.file(resolve(docsRoot, doc)).text()
+    const command = commandForDoc(doc)
     for (const flag of documentedFlags(markdown)) {
-      const command = commandForTable(doc, flag.heading)
       const registrations = { ...GLOBAL_FLAG_DEFINITIONS, ...command.flags }
       if (registrationFor(flag.name, registrations) === undefined) {
         unregistered.push(`${doc}:${flag.line} --${flag.name} (${command.name})`)

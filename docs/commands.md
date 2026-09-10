@@ -4,6 +4,7 @@
 
 - [Quick Start](#quick-start)
 - [Command Map](#command-map)
+- [Model Refresh Reports](#model-refresh-reports)
 - [Selection Guide](#selection-guide)
 - [Pricing Preflight](#pricing-preflight)
 
@@ -93,19 +94,30 @@ bun as <command>
 ## Command Map
 
 - `setup`: [setup](./commands/setup-and-utilities/setup/setup.md) — install local runtimes and pre-download STT models
-- `metadata`: [metadata](./commands/process-steps/step-0-metadata/metadata.md) — inspect source metadata without downloading
-- `download`: [download](./commands/process-steps/step-1-download/download-file.md) — download or stage a source before extraction
+- `metadata`: [metadata](./commands/process-steps/step-0-metadata/01-metadata.md) — inspect source metadata without downloading
+- `download`: [download](./commands/process-steps/step-1-download/01-download-file.md) — download or stage a source before extraction
 - `extract`: [extract](./commands/process-steps/step-2-extract/01-extract.md) — transcribe media, extract documents or articles, report on X Spaces, or render transcript videos
-- `write`: [write](./commands/process-steps/step-3-write/write-text.md) — generate hosted LLM text from local `.md` / `.txt`
-- `tts`: [tts](./commands/process-steps/step-4-tts/text-to-speech-and-voice.md) — generate speech from text
+- `write`: [write](./commands/process-steps/step-3-write/01-write-text.md) — generate hosted LLM text from local `.md` / `.txt`
+- `tts`: [tts](./commands/process-steps/step-4-tts/01-text-to-speech-and-voice.md) — generate speech from text
 - `voice`: [voice](./commands/process-steps/step-9-voice/00-voice-overview.md) — list and register provider voices
-- `image`: [image](./commands/process-steps/step-5-image/text-to-image.md) — generate or edit images
-- `video`: [video](./commands/process-steps/step-6-video/text-to-video-services.md) — generate, extend, or edit video
-- `music`: [music](./commands/process-steps/step-7-music/text-to-music-services.md) — generate music or render local lyric videos
+- `image`: [image](./commands/process-steps/step-5-image/01-text-to-image.md) — generate or edit images
+- `video`: [video](./commands/process-steps/step-6-video/01-text-to-video-services.md) — generate, extend, or edit video
+- `music`: [music](./commands/process-steps/step-7-music/01-text-to-music-services.md) — generate music or render local lyric videos
 - `comic`: [comic](./commands/process-steps/step-8-comic/00-comic-overview.md) — turn episode scripts into comics
 - `resume`: [resume](./commands/setup-and-utilities/resume/resume.md) — backfill missing providers in an existing run
 - `config`: [config](./commands/setup-and-utilities/config-command/config.md) — inspect or persist CLI defaults
 - `links`: [links](./commands/setup-and-utilities/links/links.md) — fetch curated provider documentation
+
+## Model Refresh Reports
+
+Dated model changes, pricing decisions, and validation evidence live beside the relevant command guides:
+
+- Extraction: [STT](./commands/process-steps/step-2-extract/05-stt-model-report.md), [OCR](./commands/process-steps/step-2-extract/06-ocr-model-report.md), and [URL scraping](./commands/process-steps/step-2-extract/07-url-model-report.md).
+- Writing: [LLMs](./commands/process-steps/step-3-write/02-llm-model-report.md).
+- Speech: [TTS](./commands/process-steps/step-4-tts/02-tts-model-report.md).
+- Images: [Image models](./commands/process-steps/step-5-image/02-image-model-report.md).
+- Video: [Video models](./commands/process-steps/step-6-video/02-video-model-report.md).
+- Music: [Music models](./commands/process-steps/step-7-music/02-music-model-report.md).
 
 ## Selection Guide
 

@@ -51,16 +51,26 @@ export const logSpeakerCountHintSummary = (
   requestedDiarization?: boolean
 ): void => {
   if (requestedDiarization !== undefined) {
-    const ignored = targets.filter(target => target.service === 'happyscribe' || (!getSttEngineCapabilities(target.service).diarizationByDefault && target.service !== 'together' && target.service !== 'gemini-stt'))
+    const ignored = targets.filter(target => !getSttEngineCapabilities(target.service, target.model).supportsDiarizationToggle)
     if (ignored.length) {
       const message = 'Diarization toggle is unsupported and ignored for: ' + ignored.map(formatSttTargetLabel).join(', ') + '. Use --no-caption-speakers during local export to hide labels.'
       emitWarnOnce(message, () => l.warn(message, { category: 'pipeline' }))
     }
   }
+  for (const target of targets) {
+    const capabilities = getSttEngineCapabilities(target.service, target.model)
+    if (target.diarizationOptions?.enabled !== true) continue
+    const message = capabilities.diarizationValidation === 'provisional'
+      ? `${formatSttTargetLabel(target)} diarization uses the common provider API contract and has not been validated for this model.`
+      : capabilities.nativeWordTiming === 'without-diarization'
+        ? `${formatSttTargetLabel(target)} returns segment timing with diarization enabled. Use --no-diarization for native word timing; caption word mode estimates boundaries from segments.`
+        : undefined
+    if (message) emitWarnOnce(message, () => l.warn(message, { category: 'pipeline' }))
+  }
   const warning = buildSpeakerCountHintWarning(
     targets,
     requestedSpeakerCount,
-    (target) => getSttEngineCapabilities(target.service).supportsSpeakerCountHint,
+    (target) => getSttEngineCapabilities(target.service, target.model).supportsSpeakerCountHint && target.diarizationOptions?.enabled !== false,
     formatSttTargetLabel
   )
   if (warning) {
@@ -69,7 +79,7 @@ export const logSpeakerCountHintSummary = (
         targets.map((target) => ({
           provider: formatSttTargetLabel(target),
           speakerCount: requestedSpeakerCount as number,
-          support: getSttEngineCapabilities(target.service).supportsSpeakerCountHint ? 'honored' : 'ignored'
+          support: getSttEngineCapabilities(target.service, target.model).supportsSpeakerCountHint && target.diarizationOptions?.enabled !== false ? 'honored' : 'ignored'
         }))
       )
     })

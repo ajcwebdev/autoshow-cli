@@ -54,7 +54,7 @@ const buildSttTarget = (
     ...(options.nativeSubtitles ? { nativeSubtitles: true } : {}),
     ...(LOCAL_STT_SERVICES.has(service)
       ? {}
-      : { diarizationOptions: resolveDiarizationOptions(options, service) })
+      : { diarizationOptions: resolveDiarizationOptions(options, service, model) })
   } satisfies SttTarget
 }
 

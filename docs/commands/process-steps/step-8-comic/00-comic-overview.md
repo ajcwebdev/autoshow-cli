@@ -35,7 +35,7 @@ GEMINI_API_KEY=...
 XAI_API_KEY=...
 ```
 
-Other image providers (BFL, Replicate, Luma Labs) and TTS or sound-effect providers need their own keys. See [Supported Models](#supported-models), [TTS](../step-4-tts/text-to-speech-and-voice.md), and [voice](../step-9-voice/00-voice-overview.md).
+Other image providers (BFL, Replicate, Luma Labs) and TTS or sound-effect providers need their own keys. See [Supported Models](#supported-models), [TTS](../step-4-tts/01-text-to-speech-and-voice.md), and [voice](../step-9-voice/00-voice-overview.md).
 
 `--price` estimates cost without provider calls or writes. `draft-scenes --only prompt`, `draft-scenes --only panel-prompts`, `draft-scenes --only blocking --blocking-plan <path>`, `draft-scenes --only blocking --rebind`, `draft-scenes --reconcile-from-directives`, `review-notes`, and `review-sheet` are local and make no provider calls.
 
@@ -197,7 +197,7 @@ Later stages resume the latest existing run directory for the scene. A full `dra
 
 ### Image Models
 
-`--image-model` accepts OpenAI, Google Gemini, xAI Grok, BFL, Replicate, and Luma Labs model IDs. fal.ai image models are not available on comic. The default is `gpt-image-2`. See [`image`](../step-5-image/text-to-image.md) for the full catalog.
+`--image-model` accepts OpenAI, Google Gemini, xAI Grok, BFL, Replicate, and Luma Labs model IDs. fal.ai image models are not available on comic. The default is `gpt-image-2`. See [`image`](../step-5-image/01-text-to-image.md) for the full catalog.
 
 | Model                         | Provider |
 | ----------------------------- | -------- |
@@ -214,7 +214,7 @@ Pass multiple models with `--image-model` to generate each panel with every mode
 
 ### Text Models (LLM)
 
-`--llm-model` accepts the same hosted text model IDs as [`write`](../step-3-write/write-text.md). The default is `gpt-5.6-sol` for scene drafting.
+`--llm-model` accepts the same hosted text model IDs as [`write`](../step-3-write/01-write-text.md). The default is `gpt-5.6-sol` for scene drafting.
 
 ## Command Docs
 

@@ -25,7 +25,7 @@ export type TranscriptionEvidenceWord = SecondsTimedTextRangeBase & {
   normalized: string
   speaker?: string | undefined
   confidence?: number | undefined
-  timingSource: 'native' | 'interpolated' | 'generated' | 'token_derived' | 'caption_span' | 'repaired'
+  timingSource: 'native' | 'interpolated' | 'generated' | 'token_derived' | 'caption_span' | 'repaired' | 'aligned'
 }
 
 export type TranscriptionEvidenceCapabilities = {
@@ -34,7 +34,7 @@ export type TranscriptionEvidenceCapabilities = {
   hasSpeakerLabels: boolean
 }
 
-export type TranscriptionEvidenceTimingQuality = 'native_word' | 'segment_interpolated' | 'coarse' | 'mixed' | 'generated'
+export type TranscriptionEvidenceTimingQuality = 'native_word' | 'segment_interpolated' | 'coarse' | 'mixed' | 'generated' | 'aligned'
 
 export type TranscriptionEvidence = {
   segments?: TranscriptionEvidenceSegment[] | undefined

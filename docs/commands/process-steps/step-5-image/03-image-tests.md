@@ -29,4 +29,4 @@ bun t test/test-cases/e2e/service/step-5-image-gen-e2e/ --budget 2500
 ## Related Docs
 
 - [Testing Overview](../../testing.md)
-- [Image Command](text-to-image.md)
+- [Image Command](01-text-to-image.md)

@@ -6,9 +6,9 @@
 - **Date Created:** 2026-08-03
 - **Date Updated:** 2026-08-22
 
-This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [OCR](02-ocr-model-report.md), [URL scraping](03-url-model-report.md), [LLMs](04-llm-model-report.md), [TTS](05-tts-model-report.md), [Music](06-music-model-report.md), [Image](07-image-model-report.md), [Video](08-video-model-report.md).
+This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [OCR](06-ocr-model-report.md), [URL scraping](07-url-model-report.md), [LLMs](../step-3-write/02-llm-model-report.md), [TTS](../step-4-tts/02-tts-model-report.md), [Music](../step-7-music/02-music-model-report.md), [Image](../step-5-image/02-image-model-report.md), [Video](../step-6-video/02-video-model-report.md).
 
-Durable registry, lifecycle, and capability policy belongs to [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); paid approvals, calibration results, artifact repair evidence, and generated-report contracts belong to [ADR-012](../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md). Latency and token heuristics for new or replacement selectors reuse the closest prior per-provider baseline and stay provisional until an approved ADR-012 calibration promotes them.
+Durable registry, lifecycle, and capability policy belongs to [ADR-010](../../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); paid approvals, calibration results, artifact repair evidence, and generated-report contracts belong to [ADR-012](../../../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md). Latency and token heuristics for new or replacement selectors reuse the closest prior per-provider baseline and stay provisional until an approved ADR-012 calibration promotes them.
 
 ## STT refresh
 
@@ -53,7 +53,7 @@ Compacted STT resume prioritizes canonical `result.json` before falling back to 
 
 ## 2026-08-22 speaker-aware STT refresh
 
-Implemented 2026-08-22 from the then-current speaker-aware combined report under [docs/benchmarks/stt-with-speakers](../benchmarks/stt-with-speakers/combined-comparison-report.md). Removed 5 selectors and the Rev STT service. Keep `universal-3-5-pro`, `melia-1`, and `solaria-3`. Active hosted count: 22 − 5 = 17. Direct selection of the removed IDs fails with same-service replacement guidance where the provider surface remains; `--provider rev` is an unknown provider. Historical-manifest and pricing readers retain support for the retired rates. The retired provider run artifacts were removed after this decision; the aggregate quality, cost, and speed metrics below are the retained historical benchmark record.
+Implemented 2026-08-22 from the then-current speaker-aware combined report under [docs/benchmarks/stt-with-speakers](../../../benchmarks/stt-with-speakers/combined-comparison-report.md). Removed 5 selectors and the Rev STT service. Keep `universal-3-5-pro`, `melia-1`, and `solaria-3`. Active hosted count: 22 − 5 = 17. Direct selection of the removed IDs fails with same-service replacement guidance where the provider surface remains; `--provider rev` is an unknown provider. Historical-manifest and pricing readers retain support for the retired rates. The retired provider run artifacts were removed after this decision; the aggregate quality, cost, and speed metrics below are the retained historical benchmark record.
 
 **Provider 1: AssemblyAI `universal-2`**
 
@@ -105,9 +105,9 @@ Implemented 2026-08-22 from the then-current speaker-aware combined report under
 
 ## Watches and deferrals
 
-deAPI whisper diarization is not a catalog tweak. deAPI STT is not implemented; curated links exist only. Upstream `WhisperLargeV3` has no diarization. `WhisperLargeV3Ct2` adds `diarize=true` and `ts_level: "word"` at +50% of the duration price (segment timestamps stay free). Adding that model is part of the deferred deAPI STT architecture decision in [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), not this refresh.
+deAPI whisper diarization is not a catalog tweak. deAPI STT is not implemented; curated links exist only. Upstream `WhisperLargeV3` has no diarization. `WhisperLargeV3Ct2` adds `diarize=true` and `ts_level: "word"` at +50% of the duration price (segment timestamps stay free). Adding that model is part of the deferred deAPI STT architecture decision in [ADR-010](../../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), not this refresh.
 
-The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model-report.md)) excluded `gpt-4o-mini-transcribe-2025-12-15` because OpenAI STT remains deferred to a separate architecture decision, and excluded live/realtime/speech-to-speech transports (`gemini-3.1-flash-live-preview`, `gemini-3.5-live-translate-preview`, `gpt-realtime-2.1`, `gpt-realtime-2.1-mini`, `grok-voice-think-fast-2.0`).
+The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](../step-3-write/02-llm-model-report.md)) excluded `gpt-4o-mini-transcribe-2025-12-15` because OpenAI STT remains deferred to a separate architecture decision, and excluded live/realtime/speech-to-speech transports (`gemini-3.1-flash-live-preview`, `gemini-3.5-live-translate-preview`, `gpt-realtime-2.1`, `gpt-realtime-2.1-mini`, `grok-voice-think-fast-2.0`).
 
 ## API / Type Impact
 
@@ -127,9 +127,9 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model
 
 ## References
 
-- Related ADR: [ADR-002](../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) — Pipeline state and resume identity
-- Related ADR: [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Durable registry/lifecycle/capability policy
-- Related ADR: [ADR-012](../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md) — Benchmark evidence and generated reports
+- Related ADR: [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) — Pipeline state and resume identity
+- Related ADR: [ADR-010](../../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Durable registry/lifecycle/capability policy
+- Related ADR: [ADR-012](../../../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md) — Benchmark evidence and generated reports
 - Hosted model registries: `src/cli/commands/setup-and-utilities/models/`
 - STT provider adapters: `src/cli/commands/process-steps/step-2-extract/`
 - Resume handlers: `src/cli/commands/setup-and-utilities/resume/`

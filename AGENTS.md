@@ -6,15 +6,17 @@
   - `bun test test/test-cases/validation/cli/cli-usage-errors/`
   - `bun test test/test-cases/validation/cli/option-resolution-contracts/`
 - Never run `bun run t` or `bun test/test-runner.ts` unless the user explicitly asks for the full suite.
-- Never run smoke or e2e tests that can make third-party API calls with any cost, billing, quota, or price association.
+- Keep default smoke and e2e verification local and no-cost. Paid smoke or e2e coverage must directly serve the requested task and qualify for automatic approval under the Paid Provider Execution Rules below, or receive explicit user approval.
 
 # Paid Provider Execution Rules
 
-- Never run CLI commands that can call paid or quota-limited third-party providers unless the user explicitly approves that exact paid run immediately beforehand.
-- Treat commands such as `bun autoshow extract ... --provider openai`, `--provider gemini`, `--provider mistral`, `--provider deepinfra`, hosted STT/TTS/image/video/music generation, or any command with provider API flags as paid-provider runs, not verification.
-- For provider failure debugging, run only local/no-cost preparation and validation steps, such as PDF repair, file inspection, manifest inspection, and local chunk/render smoke checks. Then report the exact provider command for the user to run themselves.
-- Do not interpret a generic instruction like “do it”, “try it”, or “rerun it” as approval to spend provider credits. Ask for explicit approval naming the provider command and expected cost/risk instead.
-- If a paid-provider process is accidentally started, stop it promptly and report what was run.
+- An individual paid-provider run is automatically approved when its estimated total cost is strictly less than $0.01 USD. A planned combination of related paid-provider runs is automatically approved when its combined estimated total cost is strictly less than $0.10 USD. Do not ask for additional confirmation for runs within these thresholds.
+- Estimate costs before execution using price preflight or known provider rates, including applicable minimum billing, add-ons, and billable retries. Track cumulative spending for a combination; do not split related work into new combinations to reset the threshold.
+- If the applicable estimate is unknown or reaches or exceeds its threshold, obtain explicit user approval naming the exact command or combination and expected cost/risk before execution. These spending thresholds do not authorize unrelated work.
+- Treat commands such as `bun autoshow extract ... --provider openai`, `--provider gemini`, `--provider mistral`, `--provider deepinfra`, hosted STT/TTS/image/video/music generation, or any command with provider API flags as paid-provider execution even when validating a change. Apply the spending rules instead of classifying these commands as no-cost verification.
+- For provider failure debugging, perform local/no-cost preparation and validation first, such as PDF repair, file inspection, manifest inspection, and local chunk/render smoke checks. Then run provider commands covered by automatic or explicit approval; otherwise report the exact proposed command and request approval.
+- Generic instructions like “do it”, “try it”, or “rerun it” do not override the thresholds. Within the thresholds, automatic approval is sufficient; outside them, obtain explicit approval for the exact paid run or combination.
+- If an unapproved paid-provider process is accidentally started, stop it promptly and report what was run.
 
 # Work Preservation & Slot Recovery Rules
 

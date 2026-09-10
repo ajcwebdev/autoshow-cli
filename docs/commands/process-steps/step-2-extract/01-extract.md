@@ -57,7 +57,7 @@ Local STT, OCR, and URL engines are free. Install them with [`bun autoshow setup
 
 Whisperfile downloads its selected model on first use; to pre-download, run `bun autoshow setup --step whisperfile` (default `tiny`) or `bun autoshow setup --models whisperfile:<model>`.
 
-Neither local engine supports diarization or `--speaker-count`. Both emit word timestamps.
+Neither local engine supports diarization or `--speaker-count`. Both emit word timestamps. See [local timing and speaker workflows](./02-extract-stt.md#local-timing-and-speaker-workflows) for reference comparison, forced alignment, Whisper calibration, channel extraction/merge, and reviewed speaker-label mapping.
 
 #### Whisper.cpp
 
@@ -137,6 +137,6 @@ bun autoshow extract https://www.youtube.com/@channelname --batch-limit all
 
 ## Detailed Extract Docs
 
-- [STT extraction](./02-extract-stt.md): hosted engines, provider flags, examples, pricing, and STT output notes.
+- [STT extraction](./02-extract-stt.md): hosted engines, provider flags, captions, local timing/alignment/channel workflows, examples, pricing, and STT output notes.
 - [OCR extraction](./03-extract-ocr.md): document/image routing, hosted OCR engines, EPUB/PDF behavior, pricing, and OCR output notes.
 - [URL and X extraction](./04-extract-url.md): remote article URLs, hosted article backends, X/Twitter Space inputs, and X output notes.

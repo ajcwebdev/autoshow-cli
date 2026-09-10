@@ -153,4 +153,4 @@ No provider-backed test or paid suite is part of ADR verification.
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md)
 - `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-slideshow/generate-slideshow-command.ts`
 - `src/cli/flags/comic-flags.ts`
-- `docs/commands/process-steps/step-8-comic/06-generate-slideshow.md`
+- [comic generate-slideshow](../commands/process-steps/step-8-comic/06-generate-slideshow.md)

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-10
 - **Verification Status:** Passed
 - **Supersession:** URL execution moved to ADR-009, and pipeline state, resume, and dry-run planning belong to ADR-002. This record remains accepted authority for source classification, supported ebook normalization, discovery caches, and the normalized handoff to execution.
 
@@ -130,6 +130,16 @@ Negative outcomes:
 
 The convertible-ebook registry is `src/cli/commands/process-steps/step-0-metadata/formats/metadata-convertible-ebooks.ts`. Calibre conversion runs during document download in `src/cli/commands/process-steps/step-1-download/document/dl-document.ts`. Discovery caches use `src/utils/file-fingerprint-cache.ts`.
 
+### Bun 1.4 XML Evaluation
+
+The 2026-08-31 evaluation retained the existing XML scanner after completing the Bun.XML adapter comparison. This preserves tolerant feed parsing and the raw inner XML required by EPUB and Office consumers.
+
+`src/utils/bun-xml-adapter.ts` owns the Bun.XML call, always requests `compact: false`, validates the returned representation, preserves mixed child ordering, and bounds source bytes, element depth, and node count. The golden corpus covers RSS, Atom, namespaces, namespaced attributes, CDATA, comments, processing instructions, named and numeric entities, repeated and self-closing tags, mixed content, DOCX, PPTX, XLSX, ODF, EPUB, malformed input, truncation, size, node-count, and depth limits.
+
+The existing scanner remains the production implementation. Bun.XML is deliberately strict where current feed handling is tolerant, and it returns normalized mixed-content text instead of the raw inner XML slices required by current EPUB and Office consumers. The side-by-side contracts record both compatible stable fields and these parity failures, so no consumer is silently changed.
+
+The synthetic 12,000-item XML and 16,000-page normalization workload completed in 121.60 ms and retained a 3,951,966-byte profiled heap. This diagnostic baseline came from the same macOS ARM64 Bun 1.4.0 capture recorded under ignored `runtime/profiling/bun-runtime/2026-08-31T22-45-35-532Z-all/`; it does not establish a native-parser performance improvement. Reproduction is documented in the [profiling guide](../commands/testing.md#profiling).
+
 ## API / Type Impact
 
 Convertible ebook runs record:
@@ -161,3 +171,5 @@ Do not run hosted OCR, paid-provider, smoke, e2e, or full-suite tests for this A
 - `src/types/document-processing/convertible-ebooks-types.ts`
 - `src/utils/file-fingerprint-cache.ts`
 - `test/test-cases/validation/extract-ocr/epub-contracts/normalizable-ebooks.test.ts`
+- `src/utils/bun-xml-adapter.ts`
+- `test/test-cases/validation/runtime-contracts/bun-xml-adapter-contracts.test.ts`

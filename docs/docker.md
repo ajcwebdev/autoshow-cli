@@ -2,7 +2,7 @@
 
 The supported container runtime is Bun 1.4.0, pinned in `Dockerfile` to the reviewed multi-architecture `oven/bun:1.4.0-slim` digest. Native development and CI use the same exact version from `package.json`; `bun autoshow setup --doctor` reports a warning when the running Bun version differs.
 
-The published image continues to run the TypeScript source entrypoint. `Dockerfile` also contains a non-published `compiled-experiment` target used on native AMD64 and ARM64 CI runners. That target is measured separately and is not the default or production stage because its embedded Bun runtime currently increases the packaging payload. See `docs/benchmarks/bun-1-4-native-api-evaluations.md` for the decision and acceptance gates.
+The published image continues to run the TypeScript source entrypoint. `Dockerfile` also contains a non-published `compiled-experiment` target used on native AMD64 and ARM64 CI runners. That target is measured separately and is not the default or production stage because its embedded Bun runtime currently increases the packaging payload. See the [compiled Docker entrypoint evaluation](adr/ADR-014-distribute-the-cli-as-a-docker-image.md#compiled-entrypoint-evaluation) for the decision and acceptance gates.
 
 AutoShow publishes a Docker image with the CLI and common local tools so you can run without installing Bun or those tools on the host. Pre-built `linux/amd64` and `linux/arm64` images are on GitHub Container Registry (GHCR), tagged `latest` and by full commit SHA.
 
@@ -30,7 +30,33 @@ To build locally from source:
 docker build -t autoshow-cli:local .
 ```
 
-To capture a no-provider, platform-specific runtime baseline before or after a Bun image change, run `bun baseline:docker --platform all --repeats 5 --fixture-repeats 3`. Raw command logs and samples go under the ignored `runtime/profiling/bun-docker-baseline/` directory. The checked results and measurement definitions are in [Bun 1.3 Docker Baseline](benchmarks/bun-1-3-docker-baseline.md) and [Bun 1.4 Docker Validation](benchmarks/bun-1-4-docker-validation.md).
+### Runtime Validation
+
+The local, no-cost baseline command builds separate platform images, verifies their architecture and Bun version, runs all measurements, and writes exact command arrays plus raw samples under the ignored `runtime/profiling/bun-docker-baseline/` directory:
+
+```sh
+bun baseline:docker --platform all --repeats 5 --fixture-repeats 3
+```
+
+After building and verifying the intended platform images, reuse them to collect samples with `--skip-build`. The recorded Bun 1.3 baseline used this sequence:
+
+```sh
+bun baseline:docker --platform all --repeats 5 --fixture-repeats 3 --skip-build
+```
+
+For a before/after Bun pin comparison, use the first command with the same Docker host, fixture, sample counts, and execution modes. Compare medians and raw samples; do not compare a native row with an emulated row.
+
+The historical results, source identities, measurement definitions, and native CI gates are archived in [ADR-014](adr/ADR-014-distribute-the-cli-as-a-docker-image.md#bun-14-migration-evidence).
+
+To compare dotenv parsing without printing credential values, run:
+
+```sh
+bun compare:env
+```
+
+Pass `--platform linux/amd64` or `--platform linux/arm64` to select a Docker architecture explicitly. A changed, missing, or added parsed result makes the command fail.
+
+The dotenv probe compares the local `.env` against the exact Bun 1.3.14 and Bun 1.4.0 base images and records only key names and one-run salted hashes under ignored `runtime/profiling/bun-env-compat/`. The salt and credential values are not retained. The historical compatibility result is archived in [ADR-005](adr/ADR-005-reduce-environment-variable-surface-area.md#bun-14-dotenv-compatibility).
 
 The examples below use `autoshow-cli:local`. Substitute `ghcr.io/ajcwebdev/autoshow-cli:latest` if you pulled the published image.
 

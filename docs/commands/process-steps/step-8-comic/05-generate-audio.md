@@ -2,7 +2,9 @@
 
 `generate-audio` consumes an existing compatible scene run and approved current voice registrations. It never creates, clones, approves, or deletes voices during synthesis.
 
-See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, and the full walkthrough. Provider models, voices, and delivery markup are in [TTS](../step-4-tts/text-to-speech-and-voice.md).
+Provider models, voices, and delivery markup are in [TTS](../step-4-tts/01-text-to-speech-and-voice.md).
+
+See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, and the full walkthrough.
 
 ## Outline
 

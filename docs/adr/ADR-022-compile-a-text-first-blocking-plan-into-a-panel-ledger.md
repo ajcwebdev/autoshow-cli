@@ -167,5 +167,5 @@ bun test test/test-cases/validation/providers/openai-rest-contracts/image-comic-
 - `src/cli/commands/process-steps/step-8-comic/schemas/blocking-plan-schemas.ts`
 - `src/cli/commands/process-steps/step-8-comic/comic-utils/blocking-plan-compile.ts`
 - `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-qa.ts`
-- `docs/commands/process-steps/step-8-comic/01-draft-scenes.md`
-- `docs/commands/process-steps/step-8-comic/03-generate-images.md`
+- [comic draft-scenes](../commands/process-steps/step-8-comic/01-draft-scenes.md)
+- [comic generate-images](../commands/process-steps/step-8-comic/03-generate-images.md)

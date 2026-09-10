@@ -29,4 +29,4 @@ bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/ --budget 2500
 ## Related Docs
 
 - [Testing Overview](../../testing.md)
-- [Write Command](write-text.md)
+- [Write Command](01-write-text.md)

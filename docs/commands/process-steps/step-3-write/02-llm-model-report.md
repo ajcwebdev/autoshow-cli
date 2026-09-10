@@ -6,11 +6,11 @@
 - **Date Created:** 2026-08-03
 - **Date Updated:** 2026-08-22
 
-This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](01-stt-model-report.md), [OCR](02-ocr-model-report.md), [URL scraping](03-url-model-report.md), [TTS](05-tts-model-report.md), [Music](06-music-model-report.md), [Image](07-image-model-report.md), [Video](08-video-model-report.md).
+This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](../step-2-extract/05-stt-model-report.md), [OCR](../step-2-extract/06-ocr-model-report.md), [URL scraping](../step-2-extract/07-url-model-report.md), [TTS](../step-4-tts/02-tts-model-report.md), [Music](../step-7-music/02-music-model-report.md), [Image](../step-5-image/02-image-model-report.md), [Video](../step-6-video/02-video-model-report.md).
 
-Durable registry, lifecycle, and capability policy belongs to [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); paid approvals, calibration results, artifact repair evidence, and generated-report contracts belong to [ADR-012](../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md). Latency and token heuristics for new or replacement selectors reuse the closest prior per-provider baseline and stay provisional until an approved ADR-012 calibration promotes them.
+Durable registry, lifecycle, and capability policy belongs to [ADR-010](../../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); paid approvals, calibration results, artifact repair evidence, and generated-report contracts belong to [ADR-012](../../../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md). Latency and token heuristics for new or replacement selectors reuse the closest prior per-provider baseline and stay provisional until an approved ADR-012 calibration promotes them.
 
-This report records the hosted text-model changes, including selector additions shared by the write and OCR registries. The OCR-specific service expansion and catalog audits are recorded in the [OCR report](02-ocr-model-report.md).
+This report records the hosted text-model changes, including selector additions shared by the write and OCR registries. The OCR-specific service expansion and catalog audits are recorded in the [OCR report](../step-2-extract/06-ocr-model-report.md).
 
 ## Write and OCR refresh
 
@@ -48,7 +48,7 @@ This report records the hosted text-model changes, including selector additions 
 ### Additional LLM audits
 
 - MiniMax structured-output gate remains negative: `MiniMax-M3` lacks `response_format`/`json_schema` support, retaining the compatibility fallback and schema-guided strategy.
-- The companion Mistral OCR catalog dedup is recorded in the [OCR report](02-ocr-model-report.md).
+- The companion Mistral OCR catalog dedup is recorded in the [OCR report](../step-2-extract/06-ocr-model-report.md).
 
 ## 2026-08-16 Claude/Gemini/Grok/OpenAI text-catalog gap audit
 
@@ -140,7 +140,7 @@ Current write coverage already includes Anthropic `claude-fable-5`, `claude-opus
 - **Category:** tts
 - **Rationale:** Documented audio replacement for retiring `gpt-4o-audio` / `gpt-audio` families; confirm it fits the hosted TTS lifecycle before adding.
 
-Excluded from this refresh under [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md):
+Excluded from this refresh under [ADR-010](../../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md):
 
 **Selector 1: `gpt-5.6`**
 
@@ -211,7 +211,7 @@ Implements the two P1 write recommendations from the 2026-08-16 text-catalog gap
 
 ## 2026-08-22 Gemini 3.7 Flash, Grok 4.6, and Claude Sonnet 4.6 OCR additions
 
-Closes the extract (OCR) side of the 2026-08-16 P1 write+extract recommendations for `gemini-3.7-flash` and `grok-4.6`, and adds write-only sibling `claude-sonnet-4-6` to OCR. Write selectors, expansion order, and bare `--llm` defaults are unchanged. OCR expansion inserts `gemini-3.7-flash` after `gemini-3.1-pro-preview`, `grok-4.6` after `grok-4.5`, and `claude-sonnet-4-6` after `claude-sonnet-5`. Pricing, reasoning, and page heuristics match the write registries plus the closest prior OCR sibling; see the [OCR report](02-ocr-model-report.md).
+Closes the extract (OCR) side of the 2026-08-16 P1 write+extract recommendations for `gemini-3.7-flash` and `grok-4.6`, and adds write-only sibling `claude-sonnet-4-6` to OCR. Write selectors, expansion order, and bare `--llm` defaults are unchanged. OCR expansion inserts `gemini-3.7-flash` after `gemini-3.1-pro-preview`, `grok-4.6` after `grok-4.5`, and `claude-sonnet-4-6` after `claude-sonnet-5`. Pricing, reasoning, and page heuristics match the write registries plus the closest prior OCR sibling; see the [OCR report](../step-2-extract/06-ocr-model-report.md).
 
 ## API / Type Impact
 
@@ -232,10 +232,10 @@ Closes the extract (OCR) side of the 2026-08-16 P1 write+extract recommendations
 
 ## References
 
-- Related ADR: [ADR-002](../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) — Pipeline state and resume identity
-- Related ADR: [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Durable registry/lifecycle/capability policy
-- Related ADR: [ADR-011](../adr/ADR-011-add-refresh-metadata-to-links.md) — Curated primary-source refreshes
-- Related ADR: [ADR-012](../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md) — Benchmark evidence and generated reports
+- Related ADR: [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) — Pipeline state and resume identity
+- Related ADR: [ADR-010](../../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Durable registry/lifecycle/capability policy
+- Related ADR: [ADR-011](../../../adr/ADR-011-add-refresh-metadata-to-links.md) — Curated primary-source refreshes
+- Related ADR: [ADR-012](../../../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md) — Benchmark evidence and generated reports
 - Hosted model registries: `src/cli/commands/setup-and-utilities/models/`
 - Write provider adapters: `src/cli/commands/process-steps/step-3-write/`
 - Primary-source snapshots: `src/cli/commands/setup-and-utilities/links/model-links/`

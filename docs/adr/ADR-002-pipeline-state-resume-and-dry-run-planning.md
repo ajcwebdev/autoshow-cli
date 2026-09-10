@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-10
 - **Verification Status:** Passed
 
 ## Context
@@ -180,6 +180,44 @@ Negative outcomes:
 - Shared execution and resume selection inventories: `src/cli/flags/service-selector-normalization/provider-targets.ts` and `src/cli/flags/service-selector-normalization/extract-selectors.ts`
 - Pooled OCR page persistence and resume: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts` and `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`
 
+### Bun 1.4 Journal and Tokenizer Evidence
+
+The 2026-08-31 evaluation adopted Bun.JSONL for parsing only. These journal-reader contracts preserve the existing artifact and recovery boundaries.
+
+The TTS journal readers, projection admission-journal reader, and test-metrics reader now share `src/utils/jsonl-reader.ts`. The adapter uses `Bun.JSONL.parseChunk()` for complete records, handles UTF-8 BOM bytes, accepts a valid final record without a newline, ignores only a structurally incomplete or torn-UTF-8 final suffix, and rejects malformed complete records.
+
+The migration does not change journal writes. `O_APPEND`, `O_NOFOLLOW`, file permissions, `fsync`, containment, symlink rejection, retained byte checksums, snapshot validation, and ambiguous paid-dispatch refusal remain in their existing artifact and recovery code.
+
+The initial complete capture ran on macOS ARM64 with Bun 1.4.0. The ignored evidence is under `runtime/profiling/bun-runtime/2026-08-31T22-45-35-532Z-all/`. CPU-profiled CLI help completed in 110.36 ms and the CPU-profiled no-cost price inventory completed in 2,333.79 ms; these durations include profiler overhead and are comparison baselines, not unprofiled startup claims.
+
+**Before load**
+
+- **Cache entries:** 0
+- **Profiled heap bytes:** 2,050,968
+- **Token hash:** not loaded
+
+**After load**
+
+- **Cache entries:** 199,998
+- **Profiled heap bytes:** 21,144,252
+- **Token hash:** `1bb6c00c…c561b`
+
+**After eviction and GC**
+
+- **Cache entries:** 0
+- **Profiled heap bytes:** 2,917,478
+- **Token hash:** `1bb6c00c…c561b`
+
+**After reconstruction**
+
+- **Cache entries:** 199,998
+- **Profiled heap bytes:** 21,149,377
+- **Token hash:** `1bb6c00c…c561b`
+
+Eviction reduced the profiled heap by 86.20% relative to the loaded state. Reconstruction returned to within 0.03% of the loaded profile and produced the identical complete token hash, supporting eviction of this cache while leaving durable and in-flight state untouched.
+
+The reference-tokenizer map is reconstructible planning data. Its eviction evidence does not authorize deletion of journals, paid audio, or in-flight dispatch state. The [profiling guide](../commands/testing.md#profiling) documents the four-state capture, complete token-hash comparison, and metadata contract.
+
 ## API / Type Impact
 
 - Each pipeline output root has exactly one unversioned `manifest.json`.
@@ -223,3 +261,7 @@ Do not run live paid provider, smoke, or e2e tests that call third-party APIs.
 - `src/cli/commands/process-steps/pipeline-manifest.ts`
 - `src/cli/commands/setup-and-utilities/resume/`
 - `src/cli/flags/resume-flags.ts`
+- `src/utils/jsonl-reader.ts`
+- `src/utils/reference-tokenizer.ts`
+- `test/test-cases/validation/runtime-contracts/jsonl-reader-contracts.test.ts`
+- `test/test-cases/validation/runtime-contracts/reference-tokenizer-contracts.test.ts`

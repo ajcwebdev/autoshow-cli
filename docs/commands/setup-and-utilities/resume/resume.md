@@ -32,7 +32,7 @@ bun autoshow resume <outputDirs...> [flags]
 
 `--provider` is repeatable. On extract directories, the same flag selects STT, OCR, or URL backends based on the original run. Provider names match the original command; `bun autoshow resume --help` lists the current names.
 
-See [`extract`](../../process-steps/step-2-extract/01-extract.md), [`write`](../../process-steps/step-3-write/write-text.md), [`tts`](../../process-steps/step-4-tts/text-to-speech-and-voice.md), [`image`](../../process-steps/step-5-image/text-to-image.md), [`video`](../../process-steps/step-6-video/text-to-video-services.md), and [`music`](../../process-steps/step-7-music/text-to-music-services.md) for catalogs and option meanings.
+See [`extract`](../../process-steps/step-2-extract/01-extract.md), [`write`](../../process-steps/step-3-write/01-write-text.md), [`tts`](../../process-steps/step-4-tts/01-text-to-speech-and-voice.md), [`image`](../../process-steps/step-5-image/01-text-to-image.md), [`video`](../../process-steps/step-6-video/01-text-to-video-services.md), and [`music`](../../process-steps/step-7-music/01-text-to-music-services.md) for catalogs and option meanings.
 
 Automatic OCR resume skips providers that failed with a non-retryable error such as quota, billing, account suspension, content policy, or auth. If only those providers remain, it reports `only blocked OCR providers remain` instead of rerunning them. Pass `--provider provider=model` to retry a blocked provider after the cause is fixed.
 
@@ -119,7 +119,7 @@ These flags match [`extract`](../../process-steps/step-2-extract/01-extract.md).
 
 ## TTS Options
 
-Resume accepts only provider-neutral TTS options. See [`tts`](../../process-steps/step-4-tts/text-to-speech-and-voice.md) for option meanings.
+Resume accepts only provider-neutral TTS options. See [`tts`](../../process-steps/step-4-tts/01-text-to-speech-and-voice.md) for option meanings.
 
 | Flag                                              | Description                                                          |
 | ------------------------------------------------- | -------------------------------------------------------------------- |
@@ -135,7 +135,7 @@ Resume accepts only provider-neutral TTS options. See [`tts`](../../process-step
 
 ## Image, Video, And Music Options
 
-Image, video, and music resume use the same short option names as the standalone commands. The stored target determines which domain owns shared names such as `--duration` and `--aspect-ratio`. See [`image`](../../process-steps/step-5-image/text-to-image.md), [`video`](../../process-steps/step-6-video/text-to-video-services.md), and [`music`](../../process-steps/step-7-music/text-to-music-services.md) for option meanings.
+Image, video, and music resume use the same short option names as the standalone commands. The stored target determines which domain owns shared names such as `--duration` and `--aspect-ratio`. See [`image`](../../process-steps/step-5-image/01-text-to-image.md), [`video`](../../process-steps/step-6-video/01-text-to-video-services.md), and [`music`](../../process-steps/step-7-music/01-text-to-music-services.md) for option meanings.
 
 | Target | Option flags                                                                                                                                                                                                                    |
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

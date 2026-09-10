@@ -59,4 +59,4 @@ Headers are filled in from the panel where the panel already answers them, and l
 
 Paste each directive into the source script immediately after its target beat. Directives are parsed like `**SFX:**` blocks: they never become a beat or a coverage segment, and the structured-script parser stores them under `staging`. See [writing blocking notes](./01-draft-scenes.md) for how the blocking stage consumes them.
 
-Next: [comic overview](./00-comic-overview.md).
+Next: [comic overview](./00-comic-overview.md#overview).

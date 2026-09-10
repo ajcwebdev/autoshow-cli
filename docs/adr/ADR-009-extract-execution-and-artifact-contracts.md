@@ -4,9 +4,9 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-11
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-10
 - **Verification Status:** Passed
-- **Supersession:** Absorbs OCR architecture, ordinal-first chapter filenames, and URL extraction contracts into this extract-execution record. This record remains accepted authority for Step 2 URL, OCR, and STT execution plus public extract artifacts.
+- **Supersession:** Absorbs OCR architecture, ordinal-first chapter filenames, URL extraction contracts, and the September 7–10, 2026 STT caption audit, implementation, and follow-up reports consolidated as “STT captions and word timing: consolidated report.” This record remains accepted authority for Step 2 URL, OCR, and STT execution plus public extract artifacts.
 
 ## Context
 
@@ -18,7 +18,9 @@ OCR is the widest extract surface: local engine choice, hosted failure handling,
 
 Public chapter paths also disagreed. Native EPUB export used logical order, such as `chapters/01-title.txt`, while PDF chapter detection used the source page, such as `chapters/011-title.txt`. A shared artifact contract must sort by reading order while retaining the source locator and split-part behavior.
 
-Why now: hosted OCR estimates were drifting against billed usage, repeated deterministic blockers were only visible per item, and chapter producers emitted incompatible public paths.
+STT caption export also exposed incomplete word coverage, lost fractional offsets, and unqualified timing and speaker labels. Provider words, reconstructed tokens, generated timestamps, and retrieved caption spans carry different evidence. Fixing a downstream caption artifact must preserve successful transcription and avoid repeating provider inference.
+
+Why now: hosted OCR estimates and diagnostics, incompatible chapter paths, and the September 2026 STT audit required explicit execution and artifact contracts; completed STT follow-ups now supply the evidence needed to retire their temporary reports.
 
 ## Options Considered
 
@@ -93,6 +95,29 @@ Why now: hosted OCR estimates were drifting against billed usage, repeated deter
 - **Cons:** Preserves inconsistent first-token meaning and sorting
 - **Quantitative Notes:** n/a
 
+### STT timing and caption artifacts
+
+**Option 1 (selected)**
+
+- **Option:** Preserve canonical timing evidence and derive coverage-checked captions and explicit local alignment artifacts from it
+- **Pros:** Retains complete text, original boundaries, provenance, and successful provider work; supports offline regeneration and measured comparison
+- **Cons:** Requires provenance, coverage checks, and visible limits on inferred timing
+- **Quantitative Notes:** Five local subtitle formats; the September 2026 implementation increased word/token capture from 9 of 15 integrations to 12 of 15
+
+**Option 2**
+
+- **Option:** Depend on native subtitle exports or the existing transcript-video renderer
+- **Pros:** Reuses provider formatting or an established rendering path
+- **Cons:** Leaves integrations without native exports uncovered and couples caption files to inference or video rendering
+- **Quantitative Notes:** Rejected; only seven direct native export routes were documented in the audit
+
+**Option 3**
+
+- **Option:** Replace missing or invalid provider boundaries with uniformly spaced words and treat automatic alignment as verified timing
+- **Pros:** Produces superficially consistent word cues
+- **Cons:** Hides source defects, confuses interpolation with acoustic evidence, and can support unjustified accuracy claims
+- **Quantitative Notes:** Rejected; the live Parakeet sample contained 12 zero-duration entries among 24 words, and the short automatic reference retained five low-confidence words
+
 ## Decision
 
 Step 2 execution is domain-owned above shared provider identity. URL, OCR, and STT own adapters, retries, response handling, normalized output, and artifacts. Canonical progress and resume eligibility stay in [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)'s manifest.
@@ -100,6 +125,7 @@ Step 2 execution is domain-owned above shared provider identity. URL, OCR, and S
 This applies to:
 
 - URL, OCR, and STT execution, retries, response handling, normalized domain output, and Step 2 artifact writes.
+- STT timing provenance, caption exports, local alignment and comparison, channel merging, and reviewed speaker-label reconciliation.
 - Native EPUB and ebook chapter files, PDF chapter-detection files, and split parts produced by `--length <n>`.
 - Routes that write chapter files or extract artifacts; reruns recreate files under the current names.
 
@@ -146,6 +172,20 @@ Every direct chapter producer writes `chapters/<ordinal>-<source-locator>-<slug>
 
 Ordinal and split-part fields use two digits below 100 generated files and three digits at 100 or more. Source locators are padded to at least three digits and never truncated. Split files append `-part-NN` to the same base.
 
+### STT timing and caption artifacts
+
+Persist numeric word ranges, text, confidence, speakers, raw/chunk evidence, and applied source offsets in `result.json` before derived caption work. Preserve distinctions between native, token-derived, aligned, generated, repaired, caption-span, interpolated, and mixed timing. A schema-parsed `rawResponse` is retained evidence, not a guarantee that every original wire field survived. Keep fractional offsets and apply each source offset once. Scope local speaker IDs by chunk or channel; equal IDs alone do not establish a shared identity.
+
+Caption export checks finite, nonnegative, positive-duration intervals, duplicate spans, and complete transcript coverage. Preserve valid overlaps and original provider boundaries. Infer intervals for uncovered or invalid word evidence only when usable segment bounds exist, count those inferences, and fail when uncovered text has no usable timing. Reading and layout warnings do not move canonical measurements. `captions.json` records cue timing, quality, invalid/inferred counts, format limits, and warnings; it is derived output and never resume authority.
+
+Fresh-media extraction transcribes once per selected model, saves canonical results and successful provider state, then exports captions outside transcription retry loops. Saved-result export is local and requires neither audio nor a renderer. Validate options before inference, protect existing output files, and emit the normal single terminal result. Optional native subtitle exports reuse the same inference or completed job; export failure preserves transcription and writes diagnostics. Native split-chunk files retain provider-relative time; combined-result export uses the recording timeline. Adding native exports to an already successful resumed target does not create retroactive export jobs. Resume rejects changed transcription settings that would reuse incompatible evidence.
+
+Diarization capability resolution includes the concrete model and distinguishes documented, provisional, and live-tested support. Together defaults off. Mistral `voxtral-mini-2602` uses native word timing only with diarization off; diarization uses segments, and timestamp requests omit its incompatible language field. Generated Gemini timestamps and speaker hypotheses, retrieved captions, and channel labels do not become native acoustic measurements or verified identities.
+
+Local forced alignment requires supplied text with complete, positive, non-overlapping segment coverage and explicit installed model/runtime paths. Preserve original evidence and hashes; mark new timing as aligned and `manuallyVerified: false`. Reject low-confidence publication at the configured threshold while retaining diagnostics. Compare ordered lexical matches, coverage, boundary errors, tolerance bands, speaker-label agreement, and signed drift; reject invalid intervals for scoring. Probe installed Whisper capabilities, mark DTW midpoint-derived ranges as repaired, retain rejected variants, and leave transcription defaults unchanged after calibration.
+
+Channel extraction preserves every stream/channel at its original sample rate and verifies decoded sample hashes. Merge validates full text coverage, applies offsets once, preserves overlaps, and rejects already merged results. Speaker reconciliation requires an explicit map tied to the source SHA-256 and a review reason; it does not infer identity acoustically. Operational flags, setup, schemas, and examples live in the [STT command guide](../commands/process-steps/step-2-extract/02-extract-stt.md) and its [local timing and speaker workflows section](../commands/process-steps/step-2-extract/02-extract-stt.md#local-timing-and-speaker-workflows).
+
 ## Rationale
 
 - Tesseract provided the best performance-to-complexity ratio in local testing while avoiding multi-engine dependency and maintenance costs.
@@ -156,6 +196,9 @@ Ordinal and split-part fields use two digits below 100 generated files and three
 - Explicit URL routes and one extract/resume selector inventory keep domain behavior and newly added providers selectable without inferred routes or a second spelling list.
 - Logical ordinal first makes EPUB and PDF chapter paths sort by reading order, while a real source locator preserves debugging traceability.
 - Distinct fan-out and pool artifacts keep comparison results and composite output from being mistaken for each other, and behavior-complete cache identity prevents incompatible page reuse.
+- Complete text coverage and explicit timing provenance prevent dropped speech or inferred caption intervals from masquerading as native word evidence.
+- Persisting successful STT work before caption export enables local recovery without repeating inference or provider charges.
+- Automatic-reference measurements and model-specific live validation support bounded conclusions without implying general acoustic accuracy or speaker identity.
 
 ## Consequences
 
@@ -169,6 +212,7 @@ Positive outcomes:
 - Actionable OCR batches emit one deterministic, sanitized blocker/cost diagnostic; clean batches remain quiet.
 - Fan-out keeps complete per-provider results; pool writes one composite extraction in original page order.
 - EPUB and PDF chapters share one public path shape that sorts by reading order and retains source position.
+- Saved STT results can generate complete captions and local timing analyses while preserving source evidence and successful transcription.
 
 Negative outcomes:
 
@@ -176,6 +220,7 @@ Negative outcomes:
 - Provider failure classifiers and profile schemas require maintenance as hosted APIs change.
 - Clean profiles can become stale as provider routing, limits, models, account tiers, or reasoning defaults change.
 - Pool mode does not provide complete per-provider outputs.
+- Automatic alignment and model capability evidence require explicit confidence, language, overlap, and sample-size qualifications; timestamp precision alone cannot establish accuracy.
 
 ## Trade-offs
 
@@ -214,9 +259,119 @@ Negative outcomes:
 - **Gain:** Attempt-level cost and failure attribution
 - **Sacrifice:** More provider artifact and telemetry records
 
+**Trade-off 8**
+
+- **Gain:** Complete caption text, auditable timing transformations, and local recovery from saved STT evidence
+- **Sacrifice:** More provenance and validation artifacts; some exports or measurements fail when evidence cannot support them
+
 ## Implementation Note
 
 URL extraction lives under `src/cli/commands/process-steps/step-2-extract/step-2-url/`. OCR execution, chapter filenames, and batch diagnostics live under `src/cli/commands/process-steps/step-2-extract/step-2-ocr/`. Extract and resume provider names are projected from `src/cli/flags/service-selector-normalization/extract-selectors.ts` and `src/cli/flags/service-selector-normalization/provider-targets.ts`. Token-shape audit is `src/tools/audit-ocr-token-shapes.ts`.
+
+### Bun 1.4 Image Routing
+
+The 2026-08-31 evaluation retained the existing TIFF routing after checking Bun.Image capabilities by platform.
+
+A synthetic one-pixel red TIFF golden verifies metadata and PNG pixels on macOS and Windows, where Bun 1.4 advertises TIFF decoding. Production TIFF routing remains on the existing direct-provider or ImageMagick paths because Linux and the supported Docker image still require ImageMagick. ImageMagick also remains the comic compositing engine because Bun.Image has no composition operation.
+
+The removal of redundant Bun.Image constructor declarations is recorded separately in [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md#bun-14-image-declarations).
+
+### STT Caption and Timing Archive
+
+This section retains the lasting decisions and dated evidence from the September 7 audit and implementation and September 10 follow-ups. All requested STT implementation and execution follow-ups were completed on 2026-09-10. The automatic-reference limitations below bound the supported claims; they are not outstanding implementation items.
+
+#### Audit and Completed Implementation
+
+The 2026-09-07 audit covered 15 registered STT integrations and 28 configured model/mode entries: 11 hosted integrations with 13 entries, two URL services with two entries, and two local engines with 13 entries. Separate YouTube-caption retrieval made 16 paths and 29 entries. Residual Rev catalog entries and unregistered OpenAI-hosted transcription were excluded. These counts describe that audit snapshot, not a current model inventory.
+
+Word/token capture paths increased from 9 of 15 integrations and 20 of 28 entries to 12 of 15 and 25 of 28 after adding DeepInfra, Together, and Mistral. Seven direct native subtitle routes were documented, covering 19 entries; counting Deepgram's official client-side converter separately made eight provider-supplied routes and 20 entries. Initially none of the registered STT integrations persisted native subtitles, while YouTube separately retained VTT. Implementation added optional same-job exports for AssemblyAI, Gladia, Happy Scribe, and Speechmatics, installed-engine exports for whisper.cpp/whisperfile, and an explicit DeepInfra SRT/VTT response alternative. Capture availability does not imply successful live validation or accurate acoustic boundaries across all models.
+
+The Happy Scribe reproduction lost all but the largest paragraph's word array and omitted inherited speakers; flattening now retains every structured paragraph. Local Whisper reconstruction preserves fragments, contractions, confidence, and fractional later-chunk offsets. Soniox reconstruction respects native token, language, and speaker boundaries, including contractions and non-space-delimited text, without inventing intra-token boundaries. Evidence merging reports mixed quality and scopes speaker IDs. YouTube roll-up deduplication is limited to overlapping, matching-speaker spans, preserving later repeated speech. Shared video cues use `transcript-words` / `transcript-segments` labels and expose invalid/inferred counts.
+
+The implementation added local CTC alignment, reference comparison, Whisper DTW calibration, verified channel extraction/merge, reviewed speaker maps, and ASS/TTML/LRC alongside SRT/VTT. Provider controls and native exports persist through configuration and requested-target state. Happy Scribe has no implemented/documented diarization off switch; export can hide labels. Mistral's incompatible simultaneous diarization/native-word recommendation was corrected. The dated AssemblyAI and Deepgram rate corrections remain in the [STT pricing record](../commands/process-steps/step-2-extract/02-extract-stt.md#stt-pricing); ongoing model/pricing governance stays in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md).
+
+The implementation lives in `src/cli/commands/process-steps/step-2-extract/`: `run-caption-export.ts`, `caption-editor-formats.ts`, `run-stt-timing-workflow.ts`, `run-local-forced-alignment.ts`, `calibrate-whisper-timing.ts`, and `stt-channel-workflows.ts`, with provider adapters and evidence/coverage/alignment helpers under `step-2-stt/`. The local emission backend is `scripts/stt-ctc-emissions.py`.
+
+#### Automatic Reference Construction
+
+The user requested the best automatic references available from existing local files instead of manual annotation. Both references are English and explicitly carry `manuallyVerified: false`. The findings and quantitative results are retained in this ADR so the historical conclusion does not depend on ignored runtime files. Detailed evidence remains in the local [artifact index](../../output/stt-caption-followup.cNwSmx/followup-artifacts.json) under `output/stt-caption-followup.cNwSmx/`; raw outputs, failed attempts, working audio, and model/runtime files remain ignored and were preserved.
+
+**Alignment backend**
+
+- **Model:** `facebook/wav2vec2-base-960h`, revision `22aad52d435eb6dbaf354bdad9b0da84ce7d6156`; model-weight SHA-256 `8aa76ab2243c81747a1f832954586bc566090c83a0ac167df6f31f0fa917d74a`
+- **Runtime:** Python 3.12, Torch 2.14.0, Transformers 4.57.6; installed dependencies frozen in [scripts/stt-alignment-requirements.txt](../../scripts/stt-alignment-requirements.txt)
+- **Method:** Local CTC alignment with 16 kHz mono PCM16 and a 20 ms output frame grid; source/model fingerprints and preprocessing retained; remote model code disabled
+- **Limits:** Alignment cannot recover omitted speech, adjudicate wording, separate overlapping mono voices, or infer speakers. Confidence summarizes emission scores, not a calibrated probability. Other languages, number handling, and broader acoustic claims need their own validated references.
+
+**Short reference**
+
+- **Input:** Existing `input/examples/audio/0-audio-short.mp3`, six seconds
+- **Text:** 23 words selected automatically from the beginning of `docs/benchmarks/stt-with-speakers/1-audio/consensus-transcription.txt`, using the local short-transcription word count; no manual re-adjudication
+- **Confidence:** The default `0.1` threshold rejected five words. A fresh exploratory run at `0.001` aligned all 23; the five scores of approximately `0.0021`–`0.0927` remained flagged. The default stayed `0.1`.
+- **Evidence:** `reference-text.json`, `short-automatic-reference/result.json`, and `short-automatic-reference/alignment.json` beneath the artifact directory; the initial rejected `automatic-reference/` attempt was retained
+
+**Late reference**
+
+- **Input:** Existing `input/examples/audio/5-audio.mp3`, 300.016 seconds; a local whisper.cpp base transcription produced 1,027 word entries
+- **Text and timeline:** 36 ASR-derived words at 245.900–257.960 seconds, with 250 ms padding at each end for alignment; no independent text verification
+- **Confidence:** All 36 words passed the default `0.1` threshold; candidate boundaries stayed in source-audio time with offsets applied once
+- **Evidence:** `long-recording-seed/result.json`, `late-automatic-reference/result.json`, `late-candidate.json`, and `late-comparison/timing-comparison.json` beneath the artifact directory
+
+#### Timing Measurements
+
+These 2026-09-10 measurements describe agreement with the automatic CTC references. All median and p95 pairs below are absolute start/end differences in milliseconds. Coverage includes unmatched words; boundary statistics include only ordered lexical matches. DTW intervals derive from adjacent token-center midpoints and are marked repaired. The calibration records retain individual matches, confidence, tolerance bands, raw results, invocation/help, elapsed runtime, and fingerprints.
+
+**whisper.cpp tiny, short sample**
+
+- **Standard:** 21/23 matched; median 70 / 60 ms; p95 300 / 260 ms
+- **DTW:** 21/23 matched; median 150 / 200 ms; p95 250 / 340 ms
+- **Outcome:** Standard preferred for this reference; evidence in `whisper-calibration-final/calibration.json`
+
+**whisper.cpp base, short sample**
+
+- **Standard:** 22/23 matched; median 100 / 60 ms; p95 219 / 287.5 ms
+- **DTW:** 22/23 matched; median 45 / 105 ms; p95 158 / 239 ms
+- **Outcome:** DTW slightly preferred by combined median; evidence in `whisper-base-calibration/calibration.json`
+
+**whisper.cpp large-v3-turbo, short sample**
+
+- **Standard:** Rejected from scoring because three words had zero-length intervals at 5.990 seconds; raw evidence retained
+- **DTW:** 23/23 matched; median 40 / 80 ms; p95 100 / 218 ms
+- **Outcome:** Only the DTW variant was valid; calibration remained partial in `whisper-turbo-calibration-final/calibration.json`
+
+**whisperfile tiny, short sample**
+
+- **Standard:** 21/23 matched; median 70 / 60 ms; p95 300 / 260 ms
+- **DTW:** Not run because the installed bundle did not advertise support
+- **Outcome:** Standard measured successfully; evidence in `whisperfile-calibration-final/calibration.json`
+
+**whisper.cpp base, late excerpt**
+
+- **Standard:** 36/36 matched; median 80 / 205 ms; p95 375 / 430 ms
+- **Signed drift:** Mean start/end differences +18.9 / +171.1 ms at minute four
+- **Outcome:** Evidence in `late-comparison/timing-comparison.json`; one late excerpt does not establish complete long-recording drift
+
+No transcription defaults changed. Results varied by model, the short reference retained uncertain words, and the corpus contained only two automatic English excerpts. These results do not establish a hosted-provider ranking, multilingual or overlapping-speaker accuracy, calibrated confidence, number normalization accuracy, or verified speaker identity. Broader manually verified references would be needed to make those claims.
+
+#### Channel and Format Evidence
+
+The real stereo `input/examples/audio/1-audio.mp3` was split at 44.1 kHz with zero-second stream offsets. Both extracted channels' decoded sample hashes matched their respective source channel and each other. This fixture contains identical mixes, not isolated speakers. `stereo-channel-validation/channels.json` retains the measurements. Synthetic distinct-channel contracts cover offsets, overlaps, complete text, scoped labels, and reviewed mapping without equating channels with people.
+
+All five subtitle formats were produced from the 23-word short reference. `automatic-captions/format-validation.json` records 23 TTML XML cues with unchanged text and FFmpeg decoding of ASS with unchanged display text after removing generated font tags. These establish serialization/decoding, not subjective player readability. ASS rounds to centiseconds with a one-centisecond minimum and rejects unsafe literal braces/control sequences; LRC has centisecond starts only. The sidecar retains full ranges and format limits. Individual word cues are implemented; ASS karaoke and VTT inline-word authoring are not additional modes.
+
+#### Together Parakeet Live Validation
+
+The four existing local Parakeet benchmark results were non-diarized and lacked word evidence. One explicitly approved six-second Together `nvidia/parakeet-tdt-0.6b-v3` run completed on 2026-09-10 at 06:11:26 UTC, with diarization, matching minimum/maximum speaker bounds of two, and word/segment verbose JSON. The historical invocation was:
+
+```bash
+bun autoshow extract input/examples/audio/0-audio-short.mp3 --provider together=nvidia/parakeet-tdt-0.6b-v3 --diarization --speaker-count 2 --captions --caption-mode word --output-dir output/stt-caption-followup.cNwSmx/parakeet-live --json
+```
+
+It returned two speaker segments (`SPEAKER_01`, `SPEAKER_00`) and 24 word entries. Duplicate top-level/nested words were represented once. Twelve entries had positive duration and twelve had identical start/end values. Normalized evidence retained all provider text, speakers, and timestamps. SRT/VTT export preserved all 24 words, reported 12 invalid and 12 inferred timings, and retained `timingQuality: mixed`; canonical native intervals were not overwritten.
+
+The CLI computed 0.015 cents ($0.00015) from six seconds of usage at the catalog rate, with `costSource: computed_usage`; this was not an independently verified invoice. Exactly one paid run occurred, with no additional paid retry or native-export request. CLI duration was 986 ms, including 910 ms attributed to transcription. Local evidence includes `parakeet-live/result.json`, `parakeet-live/manifest.json`, `parakeet-live/captions.json`, and `parakeet-validation.json`; the artifact index fingerprints these results.
+
+Capability metadata became `diarizationValidation: live-tested` and the provisional warning was removed. This records observed two-speaker endpoint compatibility on one sample, not verified identity or uniformly valid native words. The automatic reference had 23 words and was not independent acoustic ground truth, so this run was excluded from timing rankings. An anonymous local regression fixture reproduces the observed point-timestamp response and explicit caption fallback without provider calls. Future execution authorization follows [AGENTS.md](../../AGENTS.md#paid-provider-execution-rules).
 
 ## API / Type Impact
 
@@ -227,6 +382,8 @@ URL extraction lives under `src/cli/commands/process-steps/step-2-extract/step-2
 - `ocr-batch-diagnostics.json` is a versioned, regenerable projection of the final canonical batch manifest, not resume authority.
 - Chapter naming adds no CLI flag. The public path shape is `NN-PPP-title` for PDF and `NN-III-title` for EPUB, with dynamic widths and split suffixes.
 - `extract` and `resume` accept the same route-qualified STT and OCR provider names.
+- STT results retain word evidence and timing provenance; caption sidecars expose invalid/inferred counts and format precision. Diarization capabilities are model-aware and separate documented from live-tested support.
+- Local alignment, comparison, calibration, channel, and reviewed-speaker operations emit separate derived artifacts; they preserve source files and expose zero-provider-cost price preflight.
 
 ## Test Plan
 
@@ -241,6 +398,9 @@ bun test test/test-cases/validation/extract-ocr/ocr-resume-failure-target-contra
 bun test test/test-cases/validation/extract-ocr/ocr-resume-provider-state-contracts.test.ts
 bun test test/test-cases/validation/reports-pricing/price-mode-contracts/ocr-token-usage-profiles.test.ts
 bun test test/test-cases/validation/providers/provider-selection-contracts/selection-inventory-contracts.test.ts
+bun test test/test-cases/validation/extract-stt/
+bun test test/test-cases/validation/providers/openai-rest-contracts/audio-stt-contracts.test.ts
+bun test test/test-cases/validation/media-generation/transcript-video-contracts.test.ts
 bun test test/test-cases/validation/cli/cli-help-contracts.test.ts
 bun test test/test-cases/validation/cli/cli-usage-errors/
 bun test test/test-cases/validation/cli/option-resolution-contracts/
@@ -255,8 +415,18 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 7. Token profiles reject identifying data and unhealthy samples, and token-priced OCR keeps `costMultiplier: 1`.
 8. Extract public and resume selectors stay equal to the canonical STT/OCR target maps.
 9. Help and usage contracts keep OCR mode and concurrency flags stable.
+10. STT contracts preserve all text, numeric boundaries, source offsets, overlaps, and provenance; local captions and alignment operations expose invalid/inferred timing without changing provider evidence.
+11. Compatible-STT request contracts cover model-specific diarization, timestamp fields, and safe retries with mocked endpoints; transcript-video contracts exercise local media and saved evidence.
 
 Do not run hosted OCR providers, paid-provider, smoke, e2e, or full-suite tests for this ADR.
+
+### STT Verification History
+
+The September 7 audit passed `bun run check` and nine local contracts with 39 assertions; it reproduced Happy Scribe truncation and missing inherited speakers. The implementation subsequently passed 310 selected tests across 50 files, and direct-media integration passed 287 across 42 files. These are separate passes, not additive counts or full-suite coverage. Early price preflights passed 105/123 commands; 18 OCR cases failed during MuPDF setup/page counting. Exploratory checks also exposed two compatible-STT retry expectation failures and two transcript-video output-discovery failures.
+
+The September 10 follow-ups passed `bun run check`, `git diff --check`, 328 selected tests across 52 files, and 136/136 price commands. Those selected contracts no longer reproduced the earlier retry, video, or OCR-preparation failures. Installed Whisper engines and the CTC backend were exercised separately on the existing audio. After the Parakeet run, 46 targeted local contracts across three files, both static checks, and a fresh 136/136 price pass succeeded. Report consolidation also passed both static checks and 136/136 price commands. No full smoke/e2e suite was run.
+
+Run price preflight and contract tests sequentially: an initial concurrent run let the price runner's test-output cleanup remove a video fixture; the sequential rerun passed. The explicit-audio video contract uses an existing local fixture. Evidence under the retained artifact directory includes `local-contracts-final.log`, `final-timing-contracts.log`, `final-overlap-contracts.log`, `parakeet-local-contracts.log`, `price-verification.log`, and `parakeet-final-price-verification.log`.
 
 ## Follow-up Actions
 
@@ -274,9 +444,14 @@ Do not run hosted OCR providers, paid-provider, smoke, e2e, or full-suite tests 
 - Related ADR: [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
 - Extract command documentation: [`docs/commands/process-steps/step-2-extract/01-extract.md`](../commands/process-steps/step-2-extract/01-extract.md)
 - OCR command documentation: [`docs/commands/process-steps/step-2-extract/03-extract-ocr.md`](../commands/process-steps/step-2-extract/03-extract-ocr.md)
+- STT command documentation: [`docs/commands/process-steps/step-2-extract/02-extract-stt.md`](../commands/process-steps/step-2-extract/02-extract-stt.md)
+- Local STT timing, alignment, and channels: [STT command guide — Local Timing and Speaker Workflows](../commands/process-steps/step-2-extract/02-extract-stt.md#local-timing-and-speaker-workflows)
 - Resume command documentation: [`docs/commands/setup-and-utilities/resume/resume.md`](../commands/setup-and-utilities/resume/resume.md)
 - `src/cli/commands/process-steps/step-2-extract/step-2-url/`
 - `src/cli/commands/process-steps/step-2-extract/step-2-ocr/`
+- `src/cli/commands/process-steps/step-2-extract/step-2-stt/`
+- `test/test-cases/validation/extract-stt/stt-caption-followup-contracts.test.ts`
 - `src/cli/flags/service-selector-normalization/extract-selectors.ts`
 - `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-artifact-filenames.ts`
 - `test/test-cases/validation/extract-ocr/chapter-artifact-filenames.test.ts`
+- `test/test-cases/validation/extract-ocr/ocr-bun-image-normalization-contracts.test.ts`

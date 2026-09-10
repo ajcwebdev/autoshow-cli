@@ -6,9 +6,9 @@
 - **Date Created:** 2026-08-03
 - **Date Updated:** 2026-09-01
 
-This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](01-stt-model-report.md), [OCR](02-ocr-model-report.md), [URL scraping](03-url-model-report.md), [LLMs](04-llm-model-report.md), [Music](06-music-model-report.md), [Image](07-image-model-report.md), [Video](08-video-model-report.md).
+This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](../step-2-extract/05-stt-model-report.md), [OCR](../step-2-extract/06-ocr-model-report.md), [URL scraping](../step-2-extract/07-url-model-report.md), [LLMs](../step-3-write/02-llm-model-report.md), [Music](../step-7-music/02-music-model-report.md), [Image](../step-5-image/02-image-model-report.md), [Video](../step-6-video/02-video-model-report.md).
 
-Durable registry, lifecycle, and capability policy belongs to [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); paid approvals, calibration results, artifact repair evidence, and generated-report contracts belong to [ADR-012](../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md). Latency and token heuristics for new or replacement selectors reuse the closest prior per-provider baseline and stay provisional until an approved ADR-012 calibration promotes them.
+Durable registry, lifecycle, and capability policy belongs to [ADR-010](../../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); paid approvals, calibration results, artifact repair evidence, and generated-report contracts belong to [ADR-012](../../../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md). Latency and token heuristics for new or replacement selectors reuse the closest prior per-provider baseline and stay provisional until an approved ADR-012 calibration promotes them.
 
 ## TTS refresh and catalog narrowing
 
@@ -114,7 +114,7 @@ Cartesia now publishes stable `sonic-3.6-2026-08-27`, added alongside the existi
 
 Grok TTS speed, output-format, `replace`, and timestamp controls remain deferred; the 2026-08-16 xAI Voice snapshot is from `bun autoshow links --grok tts` (`https://docs.x.ai/developers/model-capabilities/audio/text-to-speech.md`).
 
-The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model-report.md)) also recorded P3 TTS recommendations for `gemini-2.5-flash-preview-tts`, `gemini-2.5-pro-preview-tts`, and `gpt-audio-1.5`.
+The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](../step-3-write/02-llm-model-report.md)) also recorded P3 TTS recommendations for `gemini-2.5-flash-preview-tts`, `gemini-2.5-pro-preview-tts`, and `gpt-audio-1.5`.
 
 ## API / Type Impact
 
@@ -133,12 +133,12 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model
 
 ## References
 
-- Related ADR: [ADR-002](../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) — Pipeline state and resume identity
-- Related ADR: [ADR-008](../adr/ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — Provider-lane scheduling
-- Related ADR: [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Durable registry/lifecycle/capability policy
-- Related ADR: [ADR-012](../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md) — Benchmark evidence and generated reports
-- Related ADR: [ADR-013](../adr/ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md) — Character voice and multi-speaker architecture
-- Related ADR: [ADR-017](../adr/ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — Soundscape and added TTS provider implementation phases
+- Related ADR: [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) — Pipeline state and resume identity
+- Related ADR: [ADR-008](../../../adr/ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — Provider-lane scheduling
+- Related ADR: [ADR-010](../../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Durable registry/lifecycle/capability policy
+- Related ADR: [ADR-012](../../../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md) — Benchmark evidence and generated reports
+- Related ADR: [ADR-013](../../../adr/ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md) — Character voice and multi-speaker architecture
+- Related ADR: [ADR-017](../../../adr/ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — Soundscape and added TTS provider implementation phases
 - Hosted model registries: `src/cli/commands/setup-and-utilities/models/`
 - TTS provider adapters: `src/cli/commands/process-steps/step-4-tts/`
 - Resume handlers: `src/cli/commands/setup-and-utilities/resume/`

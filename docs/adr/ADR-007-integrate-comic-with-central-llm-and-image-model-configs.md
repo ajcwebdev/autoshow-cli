@@ -161,7 +161,7 @@ Verification uses local fixtures and mocked providers without executing live hos
 - Related ADR: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md) — removal of parallel override/client plumbing
 - Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — shared hosted admission, pressure recovery, and clean-ramp price planning
 - Related ADR: [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — links selection modes and refresh artifacts
-- `docs/commands/process-steps/step-8-comic/00-comic-overview.md`
+- [comic](../commands/process-steps/step-8-comic/00-comic-overview.md)
 - `docs/commands/setup-and-utilities/links/links.md`
 - `src/cli/native/native-parser.ts`
 - `src/cli/native/dispatcher.ts`

@@ -86,6 +86,10 @@ describe('caption evidence and export', () => {
     expect(words[0]).toMatchObject({ speaker: 'speaker-2', startSeconds: 1800.125 })
     for (const model of ['openai/whisper-large-v3', 'nvidia/parakeet-tdt-0.6b-v3']) {
       expect(buildTogetherSttFormFields(model, undefined, { enabled: true, speakerCount: 2 })).toMatchObject({ diarize: 'true', min_speakers: '2', max_speakers: '2' })
+      const disabled = buildTogetherSttFormFields(model, undefined, { enabled: false, speakerCount: 2 })
+      expect(disabled).toMatchObject({ diarize: 'false' })
+      expect(disabled).not.toHaveProperty('min_speakers')
+      expect(disabled).not.toHaveProperty('max_speakers')
     }
   })
 

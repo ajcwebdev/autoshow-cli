@@ -36,4 +36,4 @@ Local lyric-video rendering has no provider cost.
 ## Related Docs
 
 - [Testing Overview](../../testing.md)
-- [Music Services](text-to-music-services.md)
+- [Music Services](01-text-to-music-services.md)

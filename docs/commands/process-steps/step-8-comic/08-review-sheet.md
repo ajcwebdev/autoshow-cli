@@ -40,4 +40,4 @@ bun autoshow comic review-sheet input/scripts/02-script/01-mandatory-meeting.md
 
 `metadata/review/review-sheet.html`, plus `metadata/review/export-doc.md` with `--export-doc`. Both are rewritten in place on every run; neither is versioned by run id, because they are a current view of the scene rather than evidence.
 
-Next: [comic overview](./00-comic-overview.md).
+Next: [comic overview](./00-comic-overview.md#overview).

@@ -70,7 +70,7 @@ const toSegments = (
     }
 
     currentText += token.text
-    segmentEndMs = endMs
+    segmentEndMs = Math.max(segmentEndMs ?? endMs, endMs)
     lastEndMs = endMs
 
     const trimmed = currentText.trimEnd()
@@ -88,48 +88,50 @@ const toEvidenceWords = (
   offsetSeconds: number
 ): TranscriptionEvidenceWord[] => {
   const words: TranscriptionEvidenceWord[] = []
-  let currentSpeaker: string | undefined
-
+  const chunks: SonioxTranscriptResponse['tokens'][] = []
   for (const token of tokens) {
-    if (typeof token.start_ms !== 'number' || typeof token.end_ms !== 'number') {
-      continue
+    const chunk = chunks.at(-1)
+    const previous = chunk?.at(-1)
+    if (!chunk || !previous || formatSpeakerLabel(token.speaker) !== formatSpeakerLabel(previous.speaker)
+      || token.language !== previous.language
+      || (typeof token.start_ms === 'number' && typeof previous.end_ms === 'number' && token.start_ms - previous.end_ms > SILENCE_BREAK_MS)) {
+      chunks.push([token])
+    } else chunk.push(token)
+  }
+  for (const chunk of chunks) {
+    const text = chunk.map(token => token.text).join('')
+    let segmenter: Intl.Segmenter
+    try { segmenter = new Intl.Segmenter(chunk[0]?.language ?? undefined, { granularity: 'word' }) }
+    catch { segmenter = new Intl.Segmenter(undefined, { granularity: 'word' }) }
+    const starts = new Set([...segmenter.segment(text)].filter(span => span.isWordLike).map(span => span.index))
+    const groups: SonioxTranscriptResponse['tokens'][] = []
+    let position = 0
+    for (const token of chunk) {
+      // Only split at provider-token boundaries. A token spanning several
+      // linguistic words keeps its original interval; no intra-token times exist.
+      const startsWord = Array.from({ length: token.text.length }, (_, i) => position + i).some(index => starts.has(index))
+      if (groups.length === 0 || (startsWord && groups.at(-1)!.some(part => /[\p{L}\p{N}]/u.test(part.text)))) groups.push([token])
+      else groups.at(-1)!.push(token)
+      position += token.text.length
     }
-
-    const textValue = token.text.trim()
-    if (textValue.length === 0) {
-      continue
-    }
-
-    const speaker = formatSpeakerLabel(token.speaker)
-    const previous = words[words.length - 1]
-    const startsNewWord = previous === undefined
-      || /^\s/.test(token.text)
-      || speaker !== currentSpeaker
-
-    if (startsNewWord) {
+    for (const group of groups) {
+      const text = group.map(token => token.text).join('').trim()
+      if (!text) continue
+      const timed = group.filter(token => typeof token.start_ms === 'number' && typeof token.end_ms === 'number'
+        && Number.isFinite(token.start_ms) && Number.isFinite(token.end_ms) && token.start_ms >= 0 && token.end_ms > token.start_ms)
+      if (timed.length === 0) continue
+      const confidence = timed.flatMap(token => typeof token.confidence === 'number' && Number.isFinite(token.confidence) && token.confidence >= 0 && token.confidence <= 1 ? [token.confidence] : [])
+      const speaker = formatSpeakerLabel(group[0]?.speaker)
       words.push({
-        startSeconds: (token.start_ms / 1000) + offsetSeconds,
-        endSeconds: (token.end_ms / 1000) + offsetSeconds,
-        text: textValue,
-        normalized: textValue.toLowerCase(),
+        startSeconds: Math.min(...timed.map(token => token.start_ms!)) / 1000 + offsetSeconds,
+        endSeconds: Math.max(...timed.map(token => token.end_ms!)) / 1000 + offsetSeconds,
+        text, normalized: text.toLowerCase(),
         ...(speaker ? { speaker } : {}),
-        ...(typeof token.confidence === 'number' ? { confidence: token.confidence } : {}),
-        timingSource: 'native'
+        ...(confidence.length ? { confidence: Math.min(...confidence) } : {}),
+        timingSource: group.some(token => /[\p{L}\p{N}]/u.test(token.text) && !timed.includes(token)) ? 'repaired' : group.length > 1 ? 'token_derived' : 'native'
       })
-      currentSpeaker = speaker
-      continue
-    }
-
-    previous.text += textValue
-    previous.normalized = previous.text.toLowerCase()
-    previous.endSeconds = (token.end_ms / 1000) + offsetSeconds
-    if (typeof token.confidence === 'number') {
-      previous.confidence = previous.confidence === undefined
-        ? token.confidence
-        : Math.min(previous.confidence, token.confidence)
     }
   }
-
   return words
 }
 

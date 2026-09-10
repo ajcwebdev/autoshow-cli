@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-13
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-10
 - **Verification Status:** Passed
 - **Supersession:** The removed container-detection interface and its runtime consequences moved to [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md). This record remains accepted authority for the environment-variable surface.
 
@@ -132,6 +132,14 @@ The reduced surface is in place. `.env.example` lists only functional credential
 
 Carrying files include `src/utils/base-urls.ts`, `src/utils/runtime-paths.ts`, `src/cli/commands/setup-and-utilities/setup/hosted-provider-config.ts`, and `src/utils/validate/env-utils.ts`.
 
+### Bun 1.4 Dotenv Compatibility
+
+Evaluation date: 2026-08-31. The following result covers the local configuration used for the migration, rather than arbitrary dotenv inputs.
+
+The redacted compatibility probe compared the local `.env` with the exact Bun 1.3.14 and Bun 1.4.0 base images. All 36 discovered keys produced matching parsed values. The report contains key names and one-run salted SHA-256 hashes only; it contains no credential values and does not retain the salt. The raw report is stored under the ignored `runtime/profiling/bun-env-compat/` directory.
+
+The [runtime validation instructions](../docker.md#runtime-validation) retain the redacted comparison command and architecture selectors. Future compatibility checks must preserve the no-value-output boundary.
+
 ## Keep (with rationale)
 
 **Keep 1**
@@ -170,3 +178,4 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 - `src/utils/runtime-paths.ts`
 - `src/cli/commands/setup-and-utilities/setup/hosted-provider-config.ts`
 - `src/utils/validate/env-utils.ts`
+- `scripts/bun-env-compat.ts`

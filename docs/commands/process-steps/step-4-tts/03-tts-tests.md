@@ -41,4 +41,4 @@ The mapped TTS price preflight covers the active synthesis files, including the 
 ## Related Docs
 
 - [Testing Overview](../../testing.md)
-- [TTS Command](text-to-speech-and-voice.md)
+- [TTS Command](01-text-to-speech-and-voice.md)

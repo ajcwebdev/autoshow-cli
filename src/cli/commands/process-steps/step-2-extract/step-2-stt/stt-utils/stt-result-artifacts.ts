@@ -48,7 +48,7 @@ const parseEvidenceWord = (
       ? { speaker: value['speaker'] }
       : {}),
     ...(typeof value['confidence'] === 'number' ? { confidence: value['confidence'] } : {}),
-    timingSource: value['timingSource'] === 'native' || value['timingSource'] === 'generated' || value['timingSource'] === 'token_derived' || value['timingSource'] === 'caption_span' || value['timingSource'] === 'repaired' ? value['timingSource'] : 'interpolated'
+    timingSource: value['timingSource'] === 'native' || value['timingSource'] === 'generated' || value['timingSource'] === 'token_derived' || value['timingSource'] === 'caption_span' || value['timingSource'] === 'repaired' || value['timingSource'] === 'aligned' ? value['timingSource'] : 'interpolated'
   }
 }
 
@@ -77,7 +77,7 @@ const parseEvidenceCapabilities = (
 const parseEvidenceTimingQuality = (
   value: unknown
 ): TranscriptionEvidenceTimingQuality | undefined => {
-  if (value === 'native_word' || value === 'segment_interpolated' || value === 'coarse' || value === 'mixed' || value === 'generated') {
+  if (value === 'native_word' || value === 'segment_interpolated' || value === 'coarse' || value === 'mixed' || value === 'generated' || value === 'aligned') {
     return value
   }
 

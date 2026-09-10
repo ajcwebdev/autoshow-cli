@@ -6,9 +6,9 @@
 - **Date Created:** 2026-08-03
 - **Date Updated:** 2026-09-08
 
-This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](01-stt-model-report.md), [OCR](02-ocr-model-report.md), [URL scraping](03-url-model-report.md), [LLMs](04-llm-model-report.md), [TTS](05-tts-model-report.md), [Music](06-music-model-report.md), [Video](08-video-model-report.md).
+This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](../step-2-extract/05-stt-model-report.md), [OCR](../step-2-extract/06-ocr-model-report.md), [URL scraping](../step-2-extract/07-url-model-report.md), [LLMs](../step-3-write/02-llm-model-report.md), [TTS](../step-4-tts/02-tts-model-report.md), [Music](../step-7-music/02-music-model-report.md), [Video](../step-6-video/02-video-model-report.md).
 
-Durable registry, lifecycle, and capability policy belongs to [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); paid approvals, calibration results, artifact repair evidence, and generated-report contracts belong to [ADR-012](../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md). Latency and token heuristics for new or replacement selectors reuse the closest prior per-provider baseline and stay provisional until an approved ADR-012 calibration promotes them.
+Durable registry, lifecycle, and capability policy belongs to [ADR-010](../../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); paid approvals, calibration results, artifact repair evidence, and generated-report contracts belong to [ADR-012](../../../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md). Latency and token heuristics for new or replacement selectors reuse the closest prior per-provider baseline and stay provisional until an approved ADR-012 calibration promotes them.
 
 ## Image refresh
 
@@ -138,7 +138,7 @@ Compared the active image catalog plus the xAI Imagine snapshot from `bun autosh
 
 `grok-imagine-image-2.0` does not exist and was not added. The existing `grok-imagine-image-quality` selector remains active with its current generation and edit/reference behavior.
 
-The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model-report.md)) also excluded `gemini-2.5-flash-image` and `imagen-4.0-*` as superseded image generations; Nano Banana 2 / Pro are already registered.
+The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](../step-3-write/02-llm-model-report.md)) also excluded `gemini-2.5-flash-image` and `imagen-4.0-*` as superseded image generations; Nano Banana 2 / Pro are already registered.
 
 ## API / Type Impact
 
@@ -153,10 +153,10 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model
 
 ## References
 
-- Related ADR: [ADR-002](../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) — Pipeline state and resume identity
-- Related ADR: [ADR-007](../adr/ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md) — Shared model consumers
-- Related ADR: [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Durable registry/lifecycle/capability policy
-- Related ADR: [ADR-012](../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md) — Benchmark evidence and generated reports
+- Related ADR: [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) — Pipeline state and resume identity
+- Related ADR: [ADR-007](../../../adr/ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md) — Shared model consumers
+- Related ADR: [ADR-010](../../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Durable registry/lifecycle/capability policy
+- Related ADR: [ADR-012](../../../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md) — Benchmark evidence and generated reports
 - Hosted model registries: `src/cli/commands/setup-and-utilities/models/`
 - Image provider adapters: `src/cli/commands/process-steps/step-5-image/`
 - Historical cost reconstruction: `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
