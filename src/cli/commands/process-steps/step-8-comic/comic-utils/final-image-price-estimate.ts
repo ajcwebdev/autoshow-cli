@@ -44,6 +44,7 @@ export const normalizeFinalImageEstimateRequest = (
   const mode = selectFinalImageEstimateMode(options.grid, panelsPerImage)
   const base: FinalImageEstimateRequestBase = {
     sceneSlug: options.sceneSlug,
+    ...(options.recoveryRunId ? { runId: options.recoveryRunId } : {}),
     models: options.imageModels ? [...options.imageModels] : [DEFAULT_IMAGE_MODEL],
     size: options.size ?? COMIC_GRID_PANEL_SIZE,
     quality: options.quality ?? 'high',

@@ -129,7 +129,7 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --targe
 bun autoshow comic generate-images 01-01 --qa-only --max-repairs 0 --continuity-qa
 
 # Build the reviewer's panel-by-panel sheet locally
-bun autoshow comic review-sheet 01-01 --export-doc
+bun autoshow comic review 01-01 --export-doc
 
 # Generate multi-speaker comic audio with hosted Hume
 bun autoshow comic generate-audio 01-01 --provider hume=octave-2 --profile default

@@ -73,7 +73,7 @@ const parseChildLink = (
   if (new Set(targetKeys).size !== targetKeys.length) {
     return undefined
   }
-  const audioArtifactDirs = providers.flatMap((provider) => provider?.targetKey ? [provider.artifactDir] : [])
+  const audioArtifactDirs = providers.flatMap((provider) => provider?.operation === 'tts-synthesis' || provider?.operation === 'comic-audio' ? [provider.artifactDir] : [])
   if (new Set(audioArtifactDirs).size !== audioArtifactDirs.length) {
     return undefined
   }

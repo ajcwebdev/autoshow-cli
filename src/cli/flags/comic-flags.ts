@@ -194,6 +194,11 @@ export const comicReviewSheetFlags = {
   ...withHelpGroup(comicReviewSheetInputFlags, 'comic-review')
 } as const satisfies CliFlagsDefinition
 
+export const comicReviewFlags = {
+  ...comicReviewNotesFlags,
+  ...comicReviewSheetFlags,
+} as const satisfies CliFlagsDefinition
+
 const referenceSketchSheetFlags = {
   character: strFlag(colorizeHelpDescription('Catalog character key (mutually exclusive with --location)')),
   location: strFlag(colorizeHelpDescription('Canonical location key (mutually exclusive with --character)')),

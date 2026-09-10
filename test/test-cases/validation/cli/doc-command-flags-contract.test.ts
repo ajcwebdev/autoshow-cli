@@ -44,11 +44,9 @@ const commandByDoc = {
   'process-steps/step-8-comic/01-draft-scenes.md': comicCommand,
   'process-steps/step-8-comic/02-reference-sketch.md': comicCommand,
   'process-steps/step-8-comic/03-generate-images.md': comicCommand,
-  'process-steps/step-8-comic/04-reference-voice.md': comicCommand,
-  'process-steps/step-8-comic/05-generate-audio.md': comicCommand,
-  'process-steps/step-8-comic/06-generate-slideshow.md': comicCommand,
-  'process-steps/step-8-comic/07-review-notes.md': comicCommand,
-  'process-steps/step-8-comic/08-review-sheet.md': comicCommand,
+  'process-steps/step-8-comic/04-generate-audio.md': comicCommand,
+  'process-steps/step-8-comic/05-generate-slideshow.md': comicCommand,
+  'process-steps/step-8-comic/06-review.md': comicCommand,
   'process-steps/step-9-voice/00-voice-overview.md': voiceCommand,
   'process-steps/step-9-voice/01-list.md': voiceCommand,
   'process-steps/step-9-voice/02-consent.md': voiceCommand,
@@ -280,7 +278,7 @@ test('command doc flag tables name only flags registered by that command', async
       .filter((doc) => commandByDoc[doc as keyof typeof commandByDoc] === parent)
       .map((doc) => commandForDoc(doc).name)
       .filter((name) => name !== parent.name).sort()
-    expect(documentedSubcommands).toEqual((parent.subcommands ?? []).map((subcommand) => subcommand.name).sort())
+    expect(documentedSubcommands).toEqual((parent.subcommands ?? []).filter((subcommand) => subcommand.help?.hidden !== true).map((subcommand) => subcommand.name).sort())
   }
 
   const unregistered: string[] = []

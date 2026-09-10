@@ -8,6 +8,7 @@ import type {
   TtsProvider,
   TypedProviderSynthesisSettings,
   ComicPresentationMetadata,
+  ComicRecoveryState,
 } from '~/types'
 
 export type ComicSourceIdentity = {
@@ -114,6 +115,7 @@ type ComicStageRecord =
 
 export type CanonicalComicItemMetadata = {
   schemaVersion: 1
+  recovery?: ComicRecoveryState | undefined
   stages: {
     structure: ComicStageRecord
     image: ComicStageRecord

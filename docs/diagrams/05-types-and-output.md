@@ -187,10 +187,10 @@ output/<timestamp>_<scene-slug>/
       panel-NN.svg
       panel-NN-layout.png             # dense ledgers only
       blocking-ledger.md
-    review/                          # written by comic review-notes, review-sheet, and draft-scenes --reconcile-from-directives
+    review/                          # written by comic review and draft-scenes --reconcile-from-directives
       review-notes-<run-id>.md
       review-sheet.html
-      export-doc.md                  # only with comic review-sheet --export-doc
+      export-doc.md                  # only with comic review --export-doc
       reconcile-<run-id>.json        # only with draft-scenes --reconcile-from-directives
     panel-prompts/
       source-coverage.json

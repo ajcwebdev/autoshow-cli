@@ -52,7 +52,7 @@ bun autoshow comic generate-audio 01-01 --all-providers --price
 
 ### Behavior
 
-- With `--output-dir`, the command uses that exact directory: a populated directory must already be a compatible scene run, and a missing or empty directory is initialized as a fresh scene workspace. Without it, the command scans matching timestamped scene directories newest-first and uses a compatible match.
+- With `--output-dir`, execution uses that exact directory: a populated directory must already be a compatible scene run, and a missing or empty directory is initialized as a fresh scene workspace. Price planning requires an existing compatible run and never initializes an output directory. Without a pinned directory, the command scans matching timestamped scene directories newest-first and uses a compatible match.
 - Every spoken line is synthesized. `--pacing-profile loose-comedy` maps `beat`, `pause`/`moment`, and `long`/`heavy` cues to fixed silences and adds a short gap between turns. Compound speech overlaps unless `--role` casts the label to one subject.
 - Every speaking subject needs one approved registration for each selected provider/model/profile. After those registrations exist, a later run may use any subset of those targets.
 - `--mode auto` uses native multi-speaker synthesis when the provider and scene allow it, otherwise segmented per-turn synthesis. `native` fails when native synthesis is not possible. `segmented` always synthesizes each turn independently. ElevenLabs `eleven_v3` and Hume `octave-2` can use native grouped synthesis when the dialogue is eligible. Overlaps and local voice effects (radio, intercom, telephone, computer) force segmented rendering.
@@ -60,6 +60,7 @@ bun autoshow comic generate-audio 01-01 --all-providers --price
 - Authored `**SFX:**`, `**VOCAL SFX:**`, `**AMBIENCE:**`, `[[SFX: ...]]`, and `[[VOCAL SFX: ...]]` directives require `--sfx-provider` unless a previous run already recorded that target. Directives are required unless prefixed with `OPTIONAL`. Optional `{duration: 2.5s, gain: -3dB, pan: -0.4}` envelopes set duration and mix.
 - Scenes with no spoken lines complete locally with no dialogue audio.
 - Final audio is 48 kHz stereo 24-bit PCM WAV at `audio/final/<target-key>.wav`, with `audio/<target-key>/render.json` and `audio/<target-key>/timeline.json`.
-- `--slideshow` checks reviewed panels and local video encoding before any provider dispatch, then runs [generate-slideshow](./06-generate-slideshow.md) once audio completes. `--price` and `--max-generation-slots` skip that render.
+- `--slideshow` checks reviewed panels and local video encoding before any provider dispatch, then runs [generate-slideshow](./05-generate-slideshow.md) once audio completes. `--price` and `--max-generation-slots` skip that render.
+- Audio and pending `--slideshow` intent are saved together before synthesis. Use [`resume <run-directory> --price` and `resume <run-directory>`](../../setup-and-utilities/resume/resume.md#comic-recovery) to restore the original targets and settings, reuse completed audio slots, and finish requested local presentation work. The one-run generation-slot limit and ambiguous-redispatch authorization are not carried into recovery.
 
-Next: [generate-slideshow](./06-generate-slideshow.md).
+Next: [generate-slideshow](./05-generate-slideshow.md).

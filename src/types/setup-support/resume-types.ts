@@ -26,7 +26,7 @@ export type ResumeSuiteSummary = ResumeTotals & {
   directories: number
 }
 
-export type ResumeTargetKind = 'extract' | 'write' | 'tts' | 'image' | 'video' | 'music'
+export type ResumeTargetKind = 'extract' | 'write' | 'tts' | 'image' | 'video' | 'music' | 'comic'
 
 export type ResumeTarget = {
   kind: ResumeTargetKind

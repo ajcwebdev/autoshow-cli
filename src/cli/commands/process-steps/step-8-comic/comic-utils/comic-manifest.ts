@@ -147,6 +147,7 @@ export const updateComicAudioManifest = async (input: {
       ...item.metadata,
       ...(input.ttsEvaluation ? { tts: input.ttsEvaluation } : {}),
       comic: {
+        ...prior,
         schemaVersion: 1,
         stages: { ...prior.stages, audio: input.stage, presentation: presentationStage },
         audio: input.audio,

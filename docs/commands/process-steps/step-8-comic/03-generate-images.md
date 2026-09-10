@@ -74,6 +74,7 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --outpu
 ### Behavior
 
 - Requires reviewed scene JSON and panel prompt bundles from `draft-scenes`.
+- Ordinary generation saves recovery intent in the canonical manifest before dispatch, including the original image run ID and all rendering and QA choices. Use [`resume <run-directory> --price` and `resume <run-directory>`](../../setup-and-utilities/resume/resume.md#comic-recovery) to inspect and continue that request while reusing completed images. Forced regeneration, audits, and revision evaluation remain explicit operations; older incomplete runs without exact intent are blocked.
 - Sketch panel selections must be contiguous. Use `--target images` for non-contiguous lists such as `1,3,7`.
 - `--panels-per-image` above 1 and `--grid` write page images under `pages/`. A `--grid` last page leaves unused cells blank.
 - Variation and multi-model runs nest outputs as `panels/<run-id>/<variation>/<model>/`, `pages/<run-id>/<variation>/<model>/`, and `sketches/<run-id>/<model>/`.
@@ -133,4 +134,4 @@ Revision `--price` validates the same plan, source hashes, panel contracts, orig
 
 When a direct host invocation must reuse a scene manifest authored under another immutable workspace mount, set `AUTOSHOW_SOURCE_IDENTITY_ROOT` to the absolute physical host workspace and `AUTOSHOW_SOURCE_IDENTITY_ALIAS` to the normalized absolute POSIX identity root stored in the manifest, such as `/workspace`. Both variables are required together. This mapping changes only the hash-bound source identity path for files contained by the physical root; it does not redirect file reads, change AutoShow's own project root, or alias paths outside that root.
 
-Next: [reference-voice](./04-reference-voice.md).
+Next: [voice registration](../step-9-voice/00-voice-overview.md).

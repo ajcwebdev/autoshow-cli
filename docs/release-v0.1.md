@@ -138,7 +138,7 @@ bun autoshow comic draft-scenes 05-01
 
 ### Step 9: voice
 
-[`voice`](./commands/process-steps/step-9-voice/00-voice-overview.md) lists and registers provider voices without synthesizing speech. `comic reference-voice` is the comic-native alias. Registrations live under `input/characters/`.
+[`voice`](./commands/process-steps/step-9-voice/00-voice-overview.md) lists and registers provider voices for standalone and comic workflows without synthesizing speech. `comic reference-voice` remains a deprecated compatibility alias. Registrations live under `input/characters/`.
 
 Example:
 

@@ -1,6 +1,6 @@
 # voice
 
-Manage durable provider voice registrations separately from speech synthesis. `comic reference-voice` is the comic-native alias of the same command surface.
+Manage durable provider voice registrations separately from speech synthesis. Use this command for both standalone and comic character voices.
 
 ## Outline
 
@@ -15,10 +15,11 @@ Manage durable provider voice registrations separately from speech synthesis. `c
 
 ```bash
 bun autoshow voice <subcommand> [flags]
-bun autoshow comic reference-voice <subcommand> [flags]
 ```
 
-Available actions are `list`, `consent`, `import`, `design`, `clone`, `audition`, `approve`, `retire`, and `delete`. Bare `voice` and `comic reference-voice` run `list`. Run `bun autoshow voice <action> --help` for the exact action flags.
+Available actions are `list`, `consent`, `import`, `design`, `clone`, `audition`, `approve`, `retire`, and `delete`. Bare `voice` runs `list`. Run `bun autoshow voice <action> --help` for the exact action flags.
+
+`comic reference-voice <action>` remains a deprecated compatibility alias for one release, with the same flags and behavior and a deprecation notice. Its bare form also runs `list`. See the [comic migration table](../step-8-comic/00-comic-overview.md#deprecated-aliases) for replacements and the removal policy.
 
 `voice import`, local listing, approval, retirement, and audition support all eight active TTS providers: ElevenLabs, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, and Inworld. Remote catalog and lifecycle operations support all except OpenAI. Design supports ElevenLabs, Hume, and Inworld. API clone supports ElevenLabs, Grok, Mistral, Cartesia, and Inworld.
 

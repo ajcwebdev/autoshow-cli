@@ -64,7 +64,7 @@ Global flags:
 | `--log-level`           | Minimum log level: `debug`, `info`, `success`, `warn`, or `error`.                                                                                                                                                                                                                                      |
 | `--color`, `--no-color` | Force ANSI colors on or off instead of auto-detecting the TTY.                                                                                                                                                                                                                                          |
 
-Comic subcommands (`draft-scenes`, `generate-images`, `generate-audio`, `generate-slideshow`, `reference-sketch`, and `reference-voice`) are first-class children of `comic`.
+Comic subcommands (`draft-scenes`, `generate-images`, `generate-audio`, `generate-slideshow`, `reference-sketch`, and `review`) are first-class children of `comic`. Character voice management uses `voice`. The deprecated `comic reference-voice`, `comic review-sheet`, and `comic review-notes` aliases remain callable during the [compatibility window](../commands/process-steps/step-8-comic/00-comic-overview.md#deprecated-aliases).
 
 ## Command Surface
 
@@ -81,11 +81,11 @@ Processing and generation:
   extract   Step 1 + Step 2 extraction
   write     Step 3 LLM text generation from local .md/.txt
   tts       standalone TTS for .md/.txt files or directories
-  voice     standalone voice registration and lifecycle management
+  voice     voice registration and lifecycle management for standalone and comic use
   image     standalone image generation
   video     standalone video generation
   music     standalone music generation or local lyric-video rendering
-  comic     nested draft-scenes, generate-images, generate-audio, generate-slideshow, reference-sketch, and reference-voice workflows
+  comic     nested draft-scenes, generate-images, generate-audio, generate-slideshow, reference-sketch, and review workflows
 ```
 
 Help and version are built into the root command. Process commands share the same target planning except for standalone generation modes. `extract --transcript-video` renders a captioned video from an existing extract run or from explicit `--audio` plus `--transcript-result`/`--transcript-text`.

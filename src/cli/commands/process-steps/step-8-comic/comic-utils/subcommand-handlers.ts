@@ -7,6 +7,7 @@ import {
   coerceAndValidateDraftScenes,
   coerceAndValidateGenerateImages,
   coerceAndValidateReferenceSketch,
+  coerceAndValidateReview,
   coerceAndValidateReviewNotes,
   coerceAndValidateReviewSheet,
 } from './cli-args'
@@ -84,12 +85,18 @@ export const handleGenerateImages: CliCommandHandler = async (ctx) => {
   l.report.result({ command: 'comic generate-images', price: false, sceneSlug }, 'Comic image generation complete')
 }
 
+export const handleReview: CliCommandHandler = async (ctx) => {
+  const parsed = rethrowAsUsage(() => coerceAndValidateReview(ctx))
+  if ('notes' in parsed) await handleReviewNotes(ctx)
+  else await handleReviewSheet(ctx)
+}
+
 export const handleReviewNotes: CliCommandHandler = async (ctx) => {
   const parsed = rethrowAsUsage(() => coerceAndValidateReviewNotes(ctx))
   const scriptPath = await resolveComicScriptReferenceOrUsage(parsed.scriptPath)
   const sceneSlug = resolveSceneSlug(scriptPath)
   const result = await withCharacterCatalog(async () => await reviewNotesCommand({ scriptPath, sceneSlug, notesPath: parsed.notes }))
-  l.report.result({ command: 'comic review-notes', price: false, sceneSlug }, 'Comic review notes complete')
+  l.report.result({ command: ctx.command?.name ?? 'comic review-notes', price: false, sceneSlug }, 'Comic review notes complete')
   return void result
 }
 
@@ -98,7 +105,7 @@ export const handleReviewSheet: CliCommandHandler = async (ctx) => {
   const scriptPath = await resolveComicScriptReferenceOrUsage(parsed.scriptPath)
   const sceneSlug = resolveSceneSlug(scriptPath)
   const result = await reviewSheetCommand({ scriptPath, sceneSlug, ...(parsed.exportDoc ? { exportDoc: true } : {}) })
-  l.report.result({ command: 'comic review-sheet', price: false, sceneSlug }, 'Comic review sheet complete')
+  l.report.result({ command: ctx.command?.name ?? 'comic review-sheet', price: false, sceneSlug }, 'Comic review sheet complete')
   return void result
 }
 

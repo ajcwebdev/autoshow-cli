@@ -13,10 +13,11 @@ import { logResumeSuiteSummary } from './resume-logging'
 import * as l from '~/utils/app-logger/app-logger'
 import type { AggregatedPriceEstimate, CliFlagOccurrence, ExtractRoute, ExtractSelectorInputRoutes, HostedConcurrencyCoordinator, PipelineManifest, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind } from '~/types'
 import { UsageError } from '~/utils/error-handler'
+import { assertComicResumeFlags, planComicResume } from './comic/comic-resume'
 import { getResumeHandler } from './resume-registry'
 import { formatErrorMessage } from '~/utils/value-helpers'
 
-const SUPPORTED_RESUME_KINDS = new Set<ResumeTargetKind>(['extract', 'write', 'tts', 'image', 'video', 'music'])
+const SUPPORTED_RESUME_KINDS = new Set<ResumeTargetKind>(['extract', 'write', 'tts', 'image', 'video', 'music', 'comic'])
 
 const PROVIDER_TARGETS_BY_KIND = {
   write: WRITE_LLM_PROVIDER_TARGETS,
@@ -24,7 +25,7 @@ const PROVIDER_TARGETS_BY_KIND = {
   image: STANDALONE_IMAGE_PROVIDER_TARGETS,
   video: STANDALONE_VIDEO_PROVIDER_TARGETS,
   music: STANDALONE_MUSIC_PROVIDER_TARGETS
-} as const satisfies Record<Exclude<ResumeTargetKind, 'extract'>, Record<string, string>>
+} as const satisfies Record<Exclude<ResumeTargetKind, 'extract' | 'comic'>, Record<string, string>>
 
 const ALL_PROVIDERS_TARGET_BY_KIND = {
   write: 'all-llm',
@@ -32,7 +33,7 @@ const ALL_PROVIDERS_TARGET_BY_KIND = {
   image: 'all-image',
   video: 'all-video',
   music: 'all-music'
-} as const satisfies Record<Exclude<ResumeTargetKind, 'extract'>, string>
+} as const satisfies Record<Exclude<ResumeTargetKind, 'extract' | 'comic'>, string>
 
 const ALL_LOCAL_TARGET_BY_KIND = {
   write: undefined,
@@ -40,7 +41,7 @@ const ALL_LOCAL_TARGET_BY_KIND = {
   image: undefined,
   video: undefined,
   music: undefined
-} as const satisfies Record<Exclude<ResumeTargetKind, 'extract'>, string | undefined>
+} as const satisfies Record<Exclude<ResumeTargetKind, 'extract' | 'comic'>, string | undefined>
 
 const extractRoutesForTarget = (
   target: ResumeTarget
@@ -104,7 +105,7 @@ const resolveExplicitResumeTarget = async (
     if (target) {
       return target
     }
-    throw UsageError(`Resume supports only extract, write, TTS, image, video, and music manifests. Found "${manifest.command}" at ${manifestPath}.`)
+    throw UsageError(`Resume supports only extract, write, TTS, image, video, music, and comic manifests. Found "${manifest.command}" at ${manifestPath}.`)
   }
 
   throw UsageError(`Could not find ${PIPELINE_MANIFEST_FILE} under ${dir}.`)
@@ -116,6 +117,10 @@ export const normalizeResumeSelectorFlagsForTarget = (
   explicitFlags: Set<string>,
   flagOccurrences: readonly CliFlagOccurrence[]
 ): ResumeSelectorNormalizationResult => {
+  if (target.kind === 'comic') {
+    assertComicResumeFlags(explicitFlags)
+    return { flags, explicitFlags, flagOccurrences: [...flagOccurrences] }
+  }
   if (target.kind === 'extract') {
     const routes = extractRoutesForTarget(target)
     return normalizeExtractGenericSelectorFlags(flags, explicitFlags, flagOccurrences, routes)
@@ -183,6 +188,15 @@ const dispatchSingleResume = async (
   const target = await resolveExplicitResumeTarget(outputDirInput)
   const rawExplicitFlags = new Set(flagOccurrences.map((occurrence) => occurrence.name))
   const normalized = normalizeResumeSelectorFlagsForTarget(target, rawFlags, rawExplicitFlags, flagOccurrences)
+  if (target.kind === 'comic') {
+    const options = { allowAmbiguousRedispatch: rawFlags['allow-ambiguous-redispatch'] === true }
+    if (rawFlags['price'] === true) {
+      const plan = await planComicResume(target, options.allowAmbiguousRedispatch)
+      l.report.estimate(plan.estimate)
+      return { estimate: plan.estimate, comicPlan: { directory: target.dir, ready: plan.ready, stages: plan.stages } }
+    }
+    return { result: await getResumeHandler('comic').resume(target, options, normalized.explicitFlags, displayOptions) }
+  }
   const configPathOverride = typeof rawFlags['config-path'] === 'string' ? rawFlags['config-path'] : undefined
   const resolvedConfigPath = await resolveConfigPath(configPathOverride)
   const config = await loadConfig(resolvedConfigPath)
@@ -231,6 +245,7 @@ export const dispatchResume = async (
   const failures: Array<{ outputDir: string, message: string }> = []
   const estimates: AggregatedPriceEstimate[] = []
   const resumeResults: ResumeResult[] = []
+  const comicPlans: NonNullable<ResumeDispatchOutcome['comicPlan']>[] = []
   const sharedHostedConcurrency: { current?: HostedConcurrencyCoordinator | undefined } = {}
 
   for (let index = 0; index < outputDirs.length; index++) {
@@ -243,6 +258,7 @@ export const dispatchResume = async (
         outputDirs.length > 1 ? { itemLabel: `${index + 1}/${outputDirs.length}` } : {},
         sharedHostedConcurrency
       )
+      if (outcome.comicPlan) comicPlans.push(outcome.comicPlan)
       if (outcome.estimate) {
         estimates.push(outcome.estimate)
       }
@@ -273,6 +289,11 @@ export const dispatchResume = async (
 
   if (failures.length > 0) {
     throw buildResumeFailureError(failures)
+  }
+
+  if (estimates.length > 0 && comicPlans.length > 0) {
+    l.report.result({ steps: estimates.flatMap(estimate => estimate.steps), totalEstimatedCost: estimates.reduce((sum, estimate) => sum + estimate.totalEstimatedCost, 0), comicPlans }, 'Resume price complete')
+    return
   }
 
   if (estimates.length > 0) {

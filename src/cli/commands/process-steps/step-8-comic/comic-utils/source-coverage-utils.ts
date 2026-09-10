@@ -272,10 +272,11 @@ export const writePanelPromptCoverageReport = async (
 }
 
 export const assertPanelPromptSourceCoverage = async (
-  sceneSlug: string
+  sceneSlug: string,
+  options: { writeReport?: boolean } = {},
 ): Promise<SourceCoverageReport> => {
   const report = await verifyPanelPromptSourceCoverage(sceneSlug)
-  await writePanelPromptCoverageReport(sceneSlug, report)
+  if (options.writeReport !== false) await writePanelPromptCoverageReport(sceneSlug, report)
   assertSourceCoverageReportComplete(report)
   return report
 }

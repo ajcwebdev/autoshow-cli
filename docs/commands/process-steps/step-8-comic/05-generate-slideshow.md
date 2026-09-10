@@ -20,7 +20,7 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 | `--audio-target <provider=model>` | Select an exact complete canonical audio target when automatic selection is ambiguous | inferred |
 | `--untimed-panel-ms <n>`          | Hold duration for a panel with no dialogue or discrete effect                         | `2000`   |
 | `--fps <n>`                       | Constant output frame rate from 1 through 120                                         | `30`     |
-| `--price`                         | Report the local render cost and exit without writes                                  | `false`  |
+| `--price`                         | Validate scene, panels, audio, and timeline readiness; report local cost without writes | `false`  |
 
 ### Examples
 
@@ -38,3 +38,4 @@ bun autoshow comic generate-slideshow 01-01 --price
 - Inline sound effects follow their dialogue panel; block effects follow the nearest preceding action or panel note. Missing or ambiguous ownership fails.
 - Dialogue and effects within one panel keep their relative timing and overlap. Audio across panels plays in reviewed order. Untimed panels hold for `--untimed-panel-ms`. Ambience loops for the full presentation, or silence if none exists.
 - Rendering is local hard-cut stills: H.264 video with AAC audio, and no motion, transitions, or rescaling. Success writes `presentation/final/slideshow.wav` and `presentation/final/slideshow.mp4`.
+- Validated rendering options and input hashes are recorded before rendering. [`resume <run-directory>`](../../setup-and-utilities/resume/resume.md#comic-recovery) can finish that local request, including a pending `generate-audio --slideshow` request. Missing or changed upstream media block recovery; completed presentations are checked against current dependencies before being reused.

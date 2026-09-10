@@ -6,6 +6,7 @@ type FinalImageQaRequest =
 
 export type FinalImageEstimateRequestBase = {
   sceneSlug: string
+  runId?: string
   models: readonly ImageGenerationModel[]
   size: ImageGenerationSize
   quality: ImageGenerationQuality

@@ -6,8 +6,14 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-10
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-10
 - **Verification Status:** Passed
+
+## Amendment: One Voice-Management Entry Point (2026-09-10)
+
+Use `voice <action>` for both standalone and comic character voice management. The `comic reference-voice` group remains a deprecated forwarding alias for one compatibility release, including its default `list` action and all nine children. Direct help and runtime notices name the canonical command; the ordinary comic menu omits the alias. Removal requires a later announced breaking CLI release.
+
+This replaces the normal alias usage described below without changing voice provisioning, consent, audition, approval, retirement, deletion, storage, or result behavior. The original command examples remain historical evidence. Current instructions are in the [voice overview](../commands/process-steps/step-9-voice/00-voice-overview.md), with the CLI consolidation recorded in [ADR-007](./ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md#amendment-canonical-voice-and-review-commands-2026-09-10).
 
 ## Context
 

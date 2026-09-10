@@ -2,6 +2,7 @@ import {
   draftScenesFlags,
   comicGenerateAudioFlags,
   comicGenerateSlideshowFlags,
+  comicReviewFlags,
   comicReviewNotesFlags,
   comicReviewSheetFlags,
   generateImagesFlags,
@@ -13,6 +14,7 @@ import {
   GENERATE_AUDIO_COMMAND,
   GENERATE_IMAGES_COMMAND,
   REFERENCE_SKETCH_COMMAND,
+  REVIEW_COMMAND,
   REVIEW_NOTES_COMMAND,
   REVIEW_SHEET_COMMAND
 } from './cli-args'
@@ -22,11 +24,13 @@ import {
   handleGenerateImages,
   handleGenerateSlideshow,
   handleReferenceSketch,
+  handleReview,
   handleReviewNotes,
   handleReviewSheet,
 } from './subcommand-handlers'
 import type { CliCommandDefinition } from '~/types'
 import { referenceVoiceCommandDefinition } from '../comic-commands/reference-voice/reference-voice-command'
+import * as l from '~/utils/app-logger/app-logger'
 
 const SCRIPT_PATH_PARAMETER = {
   key: '<script-path>',
@@ -154,23 +158,50 @@ export const referenceSketchCommandDefinition = defineCliCommand({
   }
 }, handleReferenceSketch)
 
+export const reviewCommandDefinition = defineCliCommand({
+  name: `comic ${REVIEW_COMMAND}`,
+  description: 'Build a local review sheet or map supplied review notes to staging directives',
+  parameters: [SCRIPT_PATH_PARAMETER],
+  flags: comicReviewFlags,
+  help: {
+    examples: [
+      ['bun autoshow comic review 02-01', 'Build the per-panel HTML review sheet'],
+      ['bun autoshow comic review 02-01 --export-doc', 'Also export a shared-document review sheet'],
+      ['bun autoshow comic review 02-01 --notes review/pass-2.md', 'Map supplied notes to paste-ready staging directives'],
+    ],
+    notes: [
+      'Without --notes, writes metadata/review/review-sheet.html; --export-doc also writes metadata/review/export-doc.md.',
+      'Supplying --notes selects notes processing only and cannot be combined with --export-doc. Notes use Markdown ### Panel NN headings.',
+      'Notes processing writes metadata/review/review-notes-<run-id>.md and never rewrites the source script or reviewed scene.',
+      'Both modes read local artifacts and make no provider call. Only notes processing requires the character catalog.',
+      'Deprecated aliases: comic review-sheet and comic review-notes retain their original flags for one compatibility release.',
+      ARTIFACT_NOTE,
+    ],
+  },
+}, handleReview)
+
 export const reviewNotesCommandDefinition = defineCliCommand({
   name: `comic ${REVIEW_NOTES_COMMAND}`,
   description: REVIEW_NOTES_DESCRIPTION,
   parameters: [SCRIPT_PATH_PARAMETER],
   flags: comicReviewNotesFlags,
   help: {
+    hidden: true,
     examples: [
       [`bun autoshow comic ${REVIEW_NOTES_COMMAND} 02-01 --notes docs/plans/episode-2-erik-review-notes.md`, 'Map review notes onto reviewed panels'],
     ],
     notes: [
+      'Deprecated: use comic review <script-path> --notes <path>. This alias is retained for one compatibility release.',
       'The notes file is Markdown whose "### Panel NN" headings hold the note text for each reviewed panel.',
       'Each note is classified as blocking, camera, axis-break, costume, or extras by a documented keyword table and rendered as a paste-ready script directive beside its target beat and script line.',
       'The command reads metadata/scene.json and metadata/structured-script.json, writes metadata/review/review-notes-<run-id>.md, and makes no provider call.',
       ARTIFACT_NOTE,
     ],
   },
-}, handleReviewNotes)
+}, async (ctx) => {
+  l.warn('comic review-notes is deprecated; use comic review <script-path> --notes <path>.', { category: 'command' })
+  await handleReviewNotes(ctx)
+})
 
 export const reviewSheetCommandDefinition = defineCliCommand({
   name: `comic ${REVIEW_SHEET_COMMAND}`,
@@ -178,18 +209,23 @@ export const reviewSheetCommandDefinition = defineCliCommand({
   parameters: [SCRIPT_PATH_PARAMETER],
   flags: comicReviewSheetFlags,
   help: {
+    hidden: true,
     examples: [
       [`bun autoshow comic ${REVIEW_SHEET_COMMAND} 02-01`, 'Build the static per-panel review sheet'],
       [`bun autoshow comic ${REVIEW_SHEET_COMMAND} 02-01 --export-doc`, 'Also write the shared-document export'],
     ],
     notes: [
+      'Deprecated: use comic review <script-path> [--export-doc]. This alias is retained for one compatibility release.',
       'Writes metadata/review/review-sheet.html: one section per reviewed panel with its source segments, contract, stage board, canonical image, QA evidence, and a notes box.',
       'The sheet is a single self-contained file with inline CSS and one small inline script; it loads no external resource and makes no provider call.',
-      'The notes box collects into the "### Panel NN" format that comic review-notes --notes reads back.',
+      'The notes box collects into the "### Panel NN" format that comic review <script-path> --notes <path> reads back.',
       ARTIFACT_NOTE,
     ],
   },
-}, handleReviewSheet)
+}, async (ctx) => {
+  l.warn('comic review-sheet is deprecated; use comic review <script-path> [--export-doc].', { category: 'command' })
+  await handleReviewSheet(ctx)
+})
 
 export const COMIC_SUBCOMMAND_DEFINITIONS = [
   draftScenesCommandDefinition,
@@ -197,6 +233,7 @@ export const COMIC_SUBCOMMAND_DEFINITIONS = [
   generateAudioCommandDefinition,
   generateSlideshowCommandDefinition,
   referenceSketchCommandDefinition,
+  reviewCommandDefinition,
   referenceVoiceCommandDefinition,
   reviewNotesCommandDefinition,
   reviewSheetCommandDefinition,

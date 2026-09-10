@@ -1,6 +1,6 @@
 # comic
 
-Draft comic scenes from episode scripts, compile a blocking plan into per-panel stage ledgers, generate panel and page images under blocking and continuity QA, build reviewer artifacts, manage character voices, render multi-speaker scene audio, and synchronize panels into a local still-image MP4.
+Draft comic scenes from episode scripts, compile a blocking plan into per-panel stage ledgers, generate panel and page images under blocking and continuity QA, build reviewer artifacts, render multi-speaker scene audio, and synchronize panels into a local still-image MP4. Manage character voices with [`voice`](../step-9-voice/00-voice-overview.md).
 
 ## Outline
 
@@ -12,6 +12,7 @@ Draft comic scenes from episode scripts, compile a blocking plan into per-panel 
 - [Output](#output)
 - [Supported Models](#supported-models)
 - [Command Docs](#command-docs)
+- [Deprecated Aliases](#deprecated-aliases)
 
 ## Overview
 
@@ -20,10 +21,10 @@ Draft comic scenes from episode scripts, compile a blocking plan into per-panel 
 1. Start from episode script Markdown under `input/scripts/` and [draft the scene](./01-draft-scenes.md): structured script JSON, draft prompt, blocking plan, scene JSON, then panel prompt bundles.
 2. Create reusable [character and location reference images](./02-reference-sketch.md) before panel prompts consume them.
 3. [Generate review sketches and final panel images](./03-generate-images.md).
-4. Turn a reviewer's Markdown into a structured change plan with [review-notes](./07-review-notes.md), and publish the panel-by-panel [review sheet](./08-review-sheet.md) the reviewer marks up.
-5. Register and approve [character voices](./04-reference-voice.md).
-6. [Render multi-speaker scene audio](./05-generate-audio.md).
-7. [Synchronize panels into a slideshow](./06-generate-slideshow.md).
+4. Publish the panel-by-panel [review sheet](./06-review.md#review-sheet) with `review`, then turn a reviewer's Markdown into a structured change plan with [`review --notes`](./06-review.md#notes-processing).
+5. Register and approve [character voices](../step-9-voice/00-voice-overview.md).
+6. [Render multi-speaker scene audio](./04-generate-audio.md).
+7. [Synchronize panels into a slideshow](./05-generate-slideshow.md).
 
 ## Setup
 
@@ -37,7 +38,7 @@ XAI_API_KEY=...
 
 Other image providers (BFL, Replicate, Luma Labs) and TTS or sound-effect providers need their own keys. See [Supported Models](#supported-models), [TTS](../step-4-tts/01-text-to-speech-and-voice.md), and [voice](../step-9-voice/00-voice-overview.md).
 
-`--price` estimates cost without provider calls or writes. `draft-scenes --only prompt`, `draft-scenes --only panel-prompts`, `draft-scenes --only blocking --blocking-plan <path>`, `draft-scenes --only blocking --rebind`, `draft-scenes --reconcile-from-directives`, `review-notes`, and `review-sheet` are local and make no provider calls.
+Where supported, `--price` estimates cost without provider calls or writes. `draft-scenes --only prompt`, `draft-scenes --only panel-prompts`, `draft-scenes --only blocking --blocking-plan <path>`, `draft-scenes --only blocking --rebind`, `draft-scenes --reconcile-from-directives`, and both `review` modes are local and make no provider calls. `review` does not have a pricing option.
 
 ### Character and Location Catalogs
 
@@ -61,11 +62,11 @@ bun autoshow comic draft-scenes <script-path> [--only structure|prompt|blocking|
 bun autoshow comic reference-sketch (--character <key> | --location <key> [--view establishing|reverse|side]) [--revise --notes <text>] [--price]
 bun autoshow comic generate-images <script-path> [--target images|sketches|both] [--panels <all|range|list>] [--blocking-hard-keys <list>] [--bloopers] [--stop-on-provider-error] [--credit-preflight] [--price]
 bun autoshow comic generate-images <script-path> --qa-only --continuity-qa [--continuity-only] [--labels <path>] [--trusted-anchor-panel <n>] [--price]
-bun autoshow comic reference-voice <subcommand> [flags]
+bun autoshow voice <subcommand> [flags]
 bun autoshow comic generate-audio <script-path> [--provider <provider[=model]>] [--price]
 bun autoshow comic generate-slideshow <script-path> [--audio-target <provider=model>] [--price]
-bun autoshow comic review-notes <script-path> --notes <path>
-bun autoshow comic review-sheet <script-path> [--export-doc]
+bun autoshow comic review <script-path> --notes <path>
+bun autoshow comic review <script-path> [--export-doc]
 ```
 
 `<script-path>` also accepts episode-scene shorthand: `01-01` resolves to the single Markdown file in `input/scripts/01-script/` whose filename starts with `01-`.
@@ -126,16 +127,16 @@ Final panel images land under `output/<timestamp>_01-opening/panels/`.
 ### 5. Publish the review sheet and apply reviewer notes
 
 ```bash
-bun autoshow comic review-sheet input/scripts/01-script/01-opening.md --export-doc
-bun autoshow comic review-notes input/scripts/01-script/01-opening.md --notes notes/01-opening-review.md
+bun autoshow comic review input/scripts/01-script/01-opening.md --export-doc
+bun autoshow comic review input/scripts/01-script/01-opening.md --notes notes/01-opening-review.md
 bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --reconcile-from-directives
 ```
 
-`review-sheet` writes a self-contained `metadata/review/review-sheet.html` with every reviewed panel's contract, stage board, canonical image, and QA route. `review-notes` turns the reviewer's Markdown reply into a structured change plan, and `--reconcile-from-directives` applies the script's own `**CAMERA:**`, `**BREAK-180:**`, `**COSTUME:**`, and `**EXTRAS:**` directives without an LLM call. None of the three calls a provider.
+`review` writes a self-contained `metadata/review/review-sheet.html` with every reviewed panel's contract, stage board, canonical image, and QA route. `review --notes` turns the reviewer's Markdown reply into a structured change plan, and `--reconcile-from-directives` applies the script's own `**CAMERA:**`, `**BREAK-180:**`, `**COSTUME:**`, and `**EXTRAS:**` directives without an LLM call. None of the three calls a provider.
 
 ### 6. Register voices, render audio, and build the slideshow
 
-After images exist, register [character voices](./04-reference-voice.md), [render scene audio](./05-generate-audio.md), then [build the slideshow](./06-generate-slideshow.md):
+After images exist, register [character voices](../step-9-voice/00-voice-overview.md), [render scene audio](./04-generate-audio.md), then [build the slideshow](./05-generate-slideshow.md):
 
 ```bash
 bun autoshow comic generate-audio input/scripts/01-script/01-opening.md
@@ -191,6 +192,8 @@ input/locations/
 
 Later stages resume the latest existing run directory for the scene. A full `draft-scenes` run or `--only structure` starts a fresh run directory. `generate-images` resumes only a run that already contains `metadata/scene.json`. Pass global `--output-dir <path>` to pin an explicit run directory.
 
+For an interrupted recorded request, use [`resume <run-directory> --price` followed by `resume <run-directory>`](../../setup-and-utilities/resume/resume.md#comic-recovery). Recovery restores saved image, audio, and presentation choices, including the original image output run ID and pending slideshow intent. It reuses completed work, leaves unrequested stages alone, and reports missing intent or changed dependencies instead of selecting new defaults. Explicit comic commands still own preparation, approvals, new rendering choices, and provider comparisons.
+
 `draft-scenes --only panel-prompts` copies registered character and location references into `assets/`.
 
 ## Supported Models
@@ -221,8 +224,19 @@ Pass multiple models with `--image-model` to generate each panel with every mode
 - [draft-scenes](./01-draft-scenes.md)
 - [reference-sketch](./02-reference-sketch.md)
 - [generate-images](./03-generate-images.md)
-- [reference-voice](./04-reference-voice.md)
-- [generate-audio](./05-generate-audio.md)
-- [generate-slideshow](./06-generate-slideshow.md)
-- [review-notes](./07-review-notes.md)
-- [review-sheet](./08-review-sheet.md)
+- [generate-audio](./04-generate-audio.md)
+- [generate-slideshow](./05-generate-slideshow.md)
+- [review](./06-review.md)
+
+## Deprecated Aliases
+
+These spellings remain callable for one compatibility release and emit deprecation notices. Their direct `--help` pages retain the original flags and name the replacements; the ordinary comic menu lists the six canonical subcommands. Removal requires a later announced breaking CLI release.
+
+| Deprecated invocation | Canonical invocation |
+| --- | --- |
+| `comic reference-voice` | `voice list` |
+| `comic reference-voice <action> ...` | `voice <action> ...` |
+| `comic review-sheet <script> [--export-doc]` | `comic review <script> [--export-doc]` |
+| `comic review-notes <script> --notes <path>` | `comic review <script> --notes <path>` |
+
+Voice aliases keep the same providers, consent requirements, flags, and result behavior. Review aliases keep their original mode-specific validation, result identifiers, and artifact paths. Use the canonical invocations in new scripts.

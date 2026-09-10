@@ -18,6 +18,10 @@ export const registerComicAndVoiceHelpCases = (): void => {
     for (const subcommand of comicSubcommands) {
       expect(subcommandSection).toContain(`  ${subcommand}`)
     }
+    expect(comicSubcommands.sort()).toEqual(['draft-scenes', 'generate-audio', 'generate-images', 'generate-slideshow', 'reference-sketch', 'review'])
+    for (const alias of ['reference-voice', 'review-notes', 'review-sheet']) {
+      expect(subcommandSection).not.toContain(`  ${alias}`)
+    }
     expect(subcommandSection).toContain('Run panel prompt bundles to review sketches and/or final panel images')
     expect(result.stdout).toContain('bun autoshow comic <subcommand> --help')
     expect(getCommandFlagsSection(result.stdout)).toBe('')
@@ -92,11 +96,24 @@ export const registerComicAndVoiceHelpCases = (): void => {
     expect(getCommandFlagsSection(reference.stdout)).not.toContain('--panels')
   })
 
-  test.concurrent('comic review-notes help is scoped to its one local mapping flag', async () => {
+  test.concurrent('comic review help explains both local modes and their conflict', async () => {
+    const review = await loadHelp(['comic', 'review', '--help'])
+    expect(review.exitCode).toBe(0)
+    expect(review.stdout).toContain('$ bun autoshow comic review <script-path> [flags]')
+    expect(getFlagGroupSection(review.stdout, 'Comic Review')).toContain('--notes')
+    expect(getFlagGroupSection(review.stdout, 'Comic Review')).toContain('--export-doc')
+    expect(review.stdout).toContain('cannot be combined with --export-doc')
+    expect(getCommandFlagsSection(review.stdout)).not.toContain('--price')
+    const viaHelp = await loadHelp(['comic', 'help', 'review'])
+    expect(viaHelp.stdout).toBe(review.stdout)
+  })
+
+  test.concurrent('deprecated review-notes help preserves its one local mapping flag', async () => {
     const review = await loadHelp(['comic', 'review-notes', '--help'])
 
     expect(review.exitCode).toBe(0)
     expect(review.stdout).toContain('$ bun autoshow comic review-notes <script-path> [flags]')
+    expect(review.stdout).toContain('Deprecated: use comic review <script-path> --notes <path>')
     expect(getFlagGroupSection(review.stdout, 'Comic Review')).toContain('--notes')
     expect(review.stdout).toContain('makes no provider call')
     expect(getCommandFlagsSection(review.stdout)).not.toContain('--price')
@@ -108,6 +125,7 @@ export const registerComicAndVoiceHelpCases = (): void => {
 
     expect(sheet.exitCode).toBe(0)
     expect(sheet.stdout).toContain('$ bun autoshow comic review-sheet <script-path> [flags]')
+    expect(sheet.stdout).toContain('Deprecated: use comic review <script-path> [--export-doc]')
     expect(getFlagGroupSection(sheet.stdout, 'Comic Review')).toContain('--export-doc')
     expect(sheet.stdout).toContain('makes no provider call')
     expect(getCommandFlagsSection(sheet.stdout)).not.toContain('--price')
@@ -137,6 +155,7 @@ export const registerComicAndVoiceHelpCases = (): void => {
     const result = await loadHelp(['comic', 'reference-voice', '--help'])
 
     expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('Deprecated: use bun autoshow voice <action>')
     expect(VOICE_PUBLIC_ACTIONS).toContain('clone')
     expect(VOICE_PUBLIC_ACTIONS).toContain('list')
     expect(VOICE_PUBLIC_ACTIONS).not.toContain('status')
@@ -159,6 +178,7 @@ export const registerComicAndVoiceHelpCases = (): void => {
     for (const action of VOICE_PUBLIC_ACTIONS) {
       const voiceHelp = await loadHelp(['voice', action, '--help'])
       const comicHelp = await loadHelp(['comic', 'reference-voice', action, '--help'])
+      expect(comicHelp.stdout).toContain(`Deprecated: use voice ${action}`)
       expect(advertisedFlagNames(getCommandFlagsSection(comicHelp.stdout))).toEqual(
         advertisedFlagNames(getCommandFlagsSection(voiceHelp.stdout))
       )

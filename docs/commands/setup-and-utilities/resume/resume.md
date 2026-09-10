@@ -1,6 +1,6 @@
 # resume
 
-Backfill missing provider outputs in an existing run or batch directory.
+Backfill missing provider outputs or continue recorded comic stages in an existing run directory.
 
 ## Usage
 
@@ -12,9 +12,9 @@ bun autoshow resume <outputDirs...> [flags]
 
 ## Behavior
 
-- Supported targets: `extract` (STT, OCR, URL article), write LLM, TTS, image, video, and music.
-- With no provider flags, `resume` retries providers that are still missing or failed. Write LLM resume requires explicit `--provider` or `--all-providers`.
-- Provider flags are additive: selected provider/models are added to the retry set, and already-successful providers are skipped.
+- Supported targets: `extract` (STT, OCR, URL article), write LLM, TTS, image, video, music, and canonical single-scene comic runs.
+- For standalone runs, `resume` retries missing or failed providers. Write LLM resume requires explicit `--provider` or `--all-providers`.
+- Standalone provider flags are additive: selected provider/models are added to the retry set, and already-successful providers are skipped. Comic recovery restores recorded choices and rejects provider overrides.
 - Successful outputs are kept if some providers fail.
 - Multiple directories are processed sequentially with the same flags. Per-directory failures do not stop later directories; all failures are reported at the end.
 - Parent `extract` batch directories resume their linked media, document, or article children. X Space runs are not resumable.
@@ -23,6 +23,8 @@ bun autoshow resume <outputDirs...> [flags]
 - `resume` exits with code `2` when items are still incomplete or failed after the backfill attempt.
 
 ## Provider Selection
+
+These selectors apply to standalone and extract runs. See [Comic Recovery](#comic-recovery) for comic directories.
 
 | Flag                          | Description                                                                                              |
 | ----------------------------- | -------------------------------------------------------------------------------------------------------- |
@@ -77,6 +79,8 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider minimax=musi
 
 ## Shared Flags
 
+Comic directories accept `--price`, `--allow-ambiguous-redispatch`, and global logging and binary-path controls. Their recorded concurrency settings are restored; the other controls below apply to standalone and extract runs.
+
 | Flag                                   | Description                                                                              |
 | -------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `--price`                              | Estimate the providers resume would run and exit without provider calls or writes        |
@@ -84,6 +88,26 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider minimax=musi
 | `--provider-concurrency <n>`           | Max hosted providers/models running in parallel for one item                             |
 | `--local-concurrency <n>`              | Max local providers/models running in parallel for one item                              |
 | `--concurrency-mode <ramp\|immediate>` | Ramp hosted concurrency from one request (`ramp`, default) or start at the configured cap (`immediate`) |
+
+## Comic Recovery
+
+```bash
+bun autoshow resume ./output/comic-run --price
+bun autoshow resume ./output/comic-run --price --json
+bun autoshow resume ./output/comic-run
+```
+
+Recovery continues only requested image, audio, and presentation work, in that order. New generation requests store their resolved options and input identities in `manifest.json`. Images retain the original output run ID, panel selection, models, variations, grouping, and QA settings. Audio retains explicit provider/model targets, casting and delivery choices, and render identities. Current configuration defaults never select replacement providers. Completed compatible runs are no-ops, and unrequested stages remain unrequested.
+
+Price planning verifies the source and retained artifacts without provider calls or writes. Each stage reports `reuse`, `resume`, `not-requested`, `blocked`, or `after-audio`. With `--json`, the normal result includes `data.comicPlans`, with a directory, `ready` boolean, and stage details for each comic run. A valid but blocked plan returns a successful inspection result with `ready: false`; its total includes only work that could be priced and is not a complete budget. Execution refuses a blocked plan. Invalid manifests or unavailable source evidence fail inspection.
+
+`generate-audio --slideshow` saves the pending presentation request with the audio intent before synthesis. Recovery reuses completed audio slots and finishes the local slideshow after audio completes. Its timeline is checked again after audio publication. A presentation-only recovery never generates missing images, voices, or sound effects. Slideshow readiness still requires canonical `panels/panel-NN.png` inputs; image output variants are not automatically selected or promoted.
+
+Older incomplete runs without exact recovery intent, changed inputs or casting, stale presentation dependencies, and unpriced provider work are blockers. Image estimates include modeled QA and repair costs rather than a billing cap. Forced image regeneration, audits, and revision evaluation remain explicit `comic generate-images` operations. Source preparation, reference creation, voice approvals, provider additions, and rendering changes also use their existing commands.
+
+Comic recovery rejects provider, model, rendering, configuration-path, character-root, output-path, and concurrency overrides. Keep those invocations separate from additive standalone resumes. The existing `--allow-ambiguous-redispatch` control can authorize another attempt for an admitted TTS slot with no recoverable audio, which may purchase it again; completed slots remain reusable. Sound-effect admission blockers retain their own reconciliation rules.
+
+See the [comic overview](../../process-steps/step-8-comic/00-comic-overview.md), [image generation](../../process-steps/step-8-comic/03-generate-images.md), [audio generation](../../process-steps/step-8-comic/04-generate-audio.md), and [local slideshow](../../process-steps/step-8-comic/05-generate-slideshow.md) for preparation and explicit stage operations.
 
 ## Write Options
 

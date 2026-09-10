@@ -1,6 +1,7 @@
 import type { PipelineManifestItem, PipelineProviderState } from '~/types'
 import { isRecord } from '~/utils/rest-client'
 import { aggregateComicStageStatus } from './comic-stage-status'
+import { isComicRecoveryState } from './comic-recovery-parser'
 import { hasOnlyKeys, isSha256, isStrictArtifactRelativePath, ITEM_STATUS_SET, PROVIDER_STATUS_SET } from './guards'
 
 type ComicStage = {
@@ -129,7 +130,8 @@ export const expectedComicItemStatus = (
   const metadata = item.metadata['comic']
   if (
     !isRecord(metadata)
-    || !hasOnlyKeys(metadata, ['schemaVersion', 'stages', 'audio', 'presentation'])
+    || !hasOnlyKeys(metadata, ['schemaVersion', 'stages', 'audio', 'presentation', 'recovery'])
+    || (metadata['recovery'] !== undefined && !isComicRecoveryState(metadata['recovery']))
     || metadata['schemaVersion'] !== 1
     || !isRecord(metadata['stages'])
     || !hasOnlyKeys(metadata['stages'], ['structure', 'image', 'audio', 'presentation'])
