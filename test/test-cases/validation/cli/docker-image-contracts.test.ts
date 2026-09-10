@@ -59,7 +59,9 @@ test('Docker documentation exposes only reviewed repository scripts and direct i
     'bun-profile.ts',
     'docker-acceptance',
     'docker-bun-baseline.ts',
-    'profile-workloads'
+    'profile-workloads',
+    'stt-alignment-requirements.txt',
+    'stt-ctc-emissions.py'
   ])
   expect(dockerDocs).toContain('bun autoshow extract content/book/book.epub')
   expect(dockerDocs).toContain('docker run --rm -i')
