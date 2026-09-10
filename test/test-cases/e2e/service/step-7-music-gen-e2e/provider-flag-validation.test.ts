@@ -1,13 +1,3 @@
-import { test, expect } from 'bun:test'
-import {
-  runCommand,
-} from '../../../../test-utils/test-helpers'
+import { defineNativeRejections } from '../../../../test-utils/native-rejection-scenarios'
 
-test('requires a music provider flag', async () => {
-  const result = await runCommand(
-    ['src/cli/create-cli.ts', 'music', 'an ambient piano song'],
-  )
-  expect(result.exitCode).toBe(2)
-  expect(`${result.stdout}\n${result.stderr}`).toContain('Specify a music generation provider')
-})
-
+defineNativeRejections('step-7-music-gen-e2e/provider-flag-validation.test.ts')
