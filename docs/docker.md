@@ -9,7 +9,7 @@ AutoShow publishes a Docker image with the CLI and common local tools so you can
 The image includes:
 
 - `ffmpeg` and `ffprobe`
-- `yt-dlp`
+- `yt-dlp` 2026.08.19 and Deno 2.9.6 for YouTube JavaScript challenges
 - Tesseract OCR with English language data
 - MuPDF `mutool`
 - `qpdf`
@@ -17,6 +17,8 @@ The image includes:
 - CMake, Make, GCC/G++, and development headers for Whisper compilation
 
 It does not include heavyweight local STT, LLM, or TTS engines, model weights, Defuddle, or provider credentials.
+
+Deno is copied from its pinned official multi-architecture image and is detected automatically by yt-dlp. yt-dlp bundles its challenge solver scripts; no runtime script download is enabled. Bun remains the CLI runtime. See the [yt-dlp JavaScript runtime requirements](https://github.com/yt-dlp/yt-dlp/wiki/EJS).
 
 ## Pull or Build
 

@@ -52,6 +52,16 @@ test('Docker yt-dlp pin matches resolved native setup metadata in both direction
   expect(runtimeStage).toContain('COPY --from=fetch /usr/local/bin/yt-dlp /usr/local/bin/yt-dlp')
 })
 
+test('Docker supplies a pinned native Deno runtime for yt-dlp in every runtime target', async () => {
+  const dockerfile = await readFile(dockerfilePath, 'utf8')
+  expect(dockerfile).toContain('ARG DENO_BASE_IMAGE=denoland/deno:bin-2.9.6@sha256:4cf0029b9aeeeed5efcbb71828737f0d7c8c8a20072df960e51a5679ef0d21ba')
+  expect(dockerfile).toContain('FROM ${DENO_BASE_IMAGE} AS youtube-js')
+  const runtimeBase = dockerfile.slice(dockerfile.indexOf('AS runtime-base'), dockerfile.indexOf('FROM runtime-base AS runtime'))
+  expect(runtimeBase).toContain('COPY --from=youtube-js /deno /usr/local/bin/deno')
+  expect(runtimeBase).toContain('RUN deno --version && yt-dlp --version')
+  expect(dockerfile).toContain('FROM runtime-base AS compiled-experiment')
+})
+
 test('Docker documentation exposes only reviewed repository scripts and direct image invocation', async () => {
   const dockerDocs = await readFile(dockerDocsPath, 'utf8')
 

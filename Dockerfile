@@ -1,6 +1,9 @@
 # syntax=docker/dockerfile:1.6
 
 ARG BUN_BASE_IMAGE=oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61
+ARG DENO_BASE_IMAGE=denoland/deno:bin-2.9.6@sha256:4cf0029b9aeeeed5efcbb71828737f0d7c8c8a20072df960e51a5679ef0d21ba
+
+FROM ${DENO_BASE_IMAGE} AS youtube-js
 
 FROM ${BUN_BASE_IMAGE} AS deps
 
@@ -51,8 +54,8 @@ RUN bun --no-env-file build src/cli/create-cli.ts \
 
 FROM --platform=$BUILDPLATFORM ${BUN_BASE_IMAGE} AS fetch
 
-ARG YT_DLP_URL=https://github.com/yt-dlp/yt-dlp/releases/download/2026.06.09/yt-dlp
-ARG YT_DLP_SHA256=e5d57466682cfa9d61e9cf7c8a4f09b00f4a62af37d3bbdc4bcffdf63615feac
+ARG YT_DLP_URL=https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp
+ARG YT_DLP_SHA256=1fa6733c37ea6fb51c99ad8fe785e7b7e5f3246c9b980230329d4fb72ed8d4d6
 
 RUN set -eux; \
     YT_DLP_URL="${YT_DLP_URL}" bun --no-env-file -e 'const url = process.env.YT_DLP_URL; const response = await fetch(url); if (!response.ok || !response.body) throw new Error(`yt-dlp download failed: ${response.status}`); const writer = Bun.file("/usr/local/bin/yt-dlp").writer(); for await (const chunk of response.body) writer.write(chunk); await writer.end();'; \
@@ -109,6 +112,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=fetch /usr/local/bin/yt-dlp /usr/local/bin/yt-dlp
+COPY --from=youtube-js /deno /usr/local/bin/deno
+
+RUN deno --version && yt-dlp --version
 
 WORKDIR /app
 
