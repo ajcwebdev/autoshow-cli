@@ -22,11 +22,11 @@ const depsJsonPath = join(IMMUTABLE_ASSET_ROOT, 'config/deps.json')
 const DEFAULT_DEPENDENCY_METADATA: DependencyMetadata = {
   'whisper.cpp': { tag: 'v1.7.4' },
   'yt-dlp': {
-    version: '2026.06.09',
-    url: 'https://github.com/yt-dlp/yt-dlp/releases/download/2026.06.09/yt-dlp_macos',
-    sha256: 'b82c3626952e6c14eaf654cc565866775ffd0b9ffb7021628ac59b42c2f4f244',
-    linuxUrl: 'https://github.com/yt-dlp/yt-dlp/releases/download/2026.06.09/yt-dlp',
-    linuxSha256: 'e5d57466682cfa9d61e9cf7c8a4f09b00f4a62af37d3bbdc4bcffdf63615feac'
+    version: '2026.08.19',
+    url: 'https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_macos',
+    sha256: '0f192b7ec147ab6288885d6351d9ab67367640029b4377576ef46dd79cf7b202',
+    linuxUrl: 'https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp',
+    linuxSha256: '1fa6733c37ea6fb51c99ad8fe785e7b7e5f3246c9b980230329d4fb72ed8d4d6'
   },
   ffmpeg: {
     version: '8.1.1',

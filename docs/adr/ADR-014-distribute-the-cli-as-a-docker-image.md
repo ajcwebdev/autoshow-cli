@@ -13,7 +13,7 @@ The original image contract passed. Verification remains pending for the native 
 
 AutoShow is a Bun-native, run-to-completion CLI, not a server. Native onboarding requires Bun plus a host setup flow that installs or builds local tools and optional model assets.
 
-The Docker image should give container users a useful local baseline without shipping every AutoShow capability. That local-lite set is `ffmpeg`, `ffprobe`, `yt-dlp`, Tesseract OCR with English data, MuPDF `mutool`, `qpdf`, and Calibre `ebook-convert`. Heavy local STT, LLM, and TTS engines, model weights, Defuddle, and hosted-provider credentials stay outside the image.
+The Docker image should give container users a useful local baseline without shipping every AutoShow capability. That local-lite set is `ffmpeg`, `ffprobe`, `yt-dlp` with Deno for YouTube JavaScript challenges, Tesseract OCR with English data, MuPDF `mutool`, `qpdf`, and Calibre `ebook-convert`. Heavy local STT, LLM, and TTS engines, model weights, Defuddle, and hosted-provider credentials stay outside the image.
 
 Alpine Bun images cannot install Calibre from their package repositories. Debian slim can install the full local-lite set through `apt`.
 
