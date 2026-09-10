@@ -14,6 +14,7 @@ The image includes:
 - MuPDF `mutool`
 - `qpdf`
 - Calibre `ebook-convert`
+- CMake, Make, GCC/G++, and development headers for Whisper compilation
 
 It does not include heavyweight local STT, LLM, or TTS engines, model weights, Defuddle, or provider credentials.
 
@@ -164,4 +165,114 @@ bun test test/test-cases/validation/extraction/ test/test-cases/validation/cli/r
 bun test test/test-cases/validation/cli/option-resolution-contracts/ test/test-cases/validation/cli/native-cli-parser-contracts.test.ts test/test-cases/validation/cli/docker-image-contracts.test.ts test/test-cases/validation/providers/provider-rest-client-contracts.test.ts test/test-cases/validation/providers/openai-rest-contracts/
 ```
 
-Container acceptance additionally builds the runtime image, checks version/help, converts a synthetic DOCX with a zero-cost preflight, rejects noncompliant models with exit 64, and completes the 150-second delayed REST probe through the host gateway. Use only temporary fixture data and clean up the specifically named fixture container.
+The focused DOCX and delayed-network diagnostics above are separate from published-image acceptance. Published-image acceptance uses `bun t:docker` below and always tests the pulled image.
+
+## Published `latest` acceptance
+
+`bun t:docker` is a separate acceptance runner for `ghcr.io/ajcwebdev/autoshow-cli:latest`. It does not participate in ordinary Bun test discovery or the paid-provider runner. Every invocation pulls `latest`, fails if that pull fails, resolves the tag once, and runs the CLI against the resulting immutable digest. `--platform` must match the Docker daemon's native architecture; emulation is not accepted for acceptance results.
+
+```bash
+bun t:docker
+bun t:docker --suite core
+bun t:docker --suite network --platform linux/arm64
+bun t:docker --suite models
+bun t:docker --suite models --model whisper:medium
+bun t:docker --suite models --model whisperfile:large-v3 --platform linux/amd64
+bun t:docker --help
+```
+
+The default `all` selection contains 51 cases: 28 core, 20 model, and 3 public-network cases. Core includes Tesseract, native EPUB extraction, local HTTP/RSS downloads, Defuddle fixture extraction, caption rerendering, default-write price resolution, and CLI rejection contracts. Model cases execute all five Whisper and eight Whisperfile selectors, plus default selection, splitting, lyric transcription, and batching. Network cases require successful YouTube, Twitch, and public Defuddle extraction. Public-site failures are classified separately and fail acceptance; there are no successful skips. A new local registry selector fails coverage checks until a scenario and CI shard are added.
+
+Acceptance invokes the image's normal entrypoint and normal non-root user. It never rebuilds the image, mounts checkout source over `/app`, substitutes a host CLI, or passes provider credentials or host `.env` files. CLI execution is restricted to exact registered command arrays, with an empty explicit config. Hosted-provider rejection cases run with `--network none`; `write --price` resolves the hosted default without dispatching inference. Tests share download definitions, download/STT artifact assertions, and service rejection definitions with native tests through an explicit adapter. Manifests are inspected through a path-mapping view; the original artifacts remain unchanged.
+
+Fixtures are authored synthetic PDF/EPUB documents, caption text, and generated media in the run workspace. Models transcribe the checksum-pinned, 11-second [whisper.cpp JFK sample](https://github.com/ggml-org/whisper.cpp/blob/v1.7.4/samples/jfk.wav). Media preparation and video stream checks use FFmpeg, MuPDF, Python, Bun, and ffprobe inside the pulled image. Core uses a two-second synthetic tone where speech recognition is not involved. Local HTTP/RSS and article fixtures run in another container from the same digest on an internal Docker network with no host-published ports. Inference and local file cases have networking disabled; setup downloads and the three public cases use ordinary bridge networking. No host FFmpeg or local model installation is required.
+
+Provisioning uses `setup --step whisper-binary`, `setup --models whisper:<model>`, `setup --models whisperfile:<model>`, and `setup --step defuddle`. A fresh container repeats model/Defuddle setup offline, and inference runs in another fresh container. Installed assets persist under `runtime/docker-acceptance/cache/linux-amd64/` or `linux-arm64/`, with separate runtime and home mounts. The home mount also preserves Whisperfile loader assets. On Linux, a network-disabled ownership helper mounts only these two cache directories and runs `chown` as root to restore the image user’s ownership after CI cache extraction; every CLI and setup command still uses the image’s normal user. Inference is sequential per worker. A cache lock prevents concurrent runs from modifying the same architecture's assets; use a different `--cache` directory for an independent worker. An abandoned lock includes `owner.json`; verify that run has stopped before removing only its lock directory. Do not delete model caches or outputs to retry.
+
+Setup and each case have separate bounded deadlines: 1,800 and 1,200 seconds by default. Override them with `--setup-timeout SECONDS` and `--case-timeout SECONDS` (1–7,200). Provisioning errors, missing engines, failed model downloads, timeouts, unsupported execution, assertion failures, and empty selections all fail acceptance. Interruption and timeout cleanup removes only containers owned by this invocation. Outputs, partial downloads, completed models, and setup diagnostics remain available for inspection and reuse.
+
+Plan for at least 16 GB of Docker memory for the largest models, CPU time for inference and Whisper compilation, and approximately 30 GB of free disk for all model assets plus the image, build files, rendered videos, and retained run evidence. A single model shard needs substantially less disk. These are planning allowances, not measured minimums; constrained workers can fail or time out. The 13 selector downloads are several gigabytes in aggregate. `--suite core` installs only Defuddle and uses the image's document/media tools.
+
+Each invocation creates `runtime/docker-acceptance/runs/<timestamp>-<id>/`, or a new directory supplied through `--output`. An existing output directory is rejected so old artifacts cannot satisfy new assertions. Evidence includes `image.json` (requested tag, digest, native platform, image ID, revision, CLI version, image size, user, entrypoint), `results.json` (selection, execution counts, per-case durations, outcomes, failure categories), numbered command/exit/stdout/stderr logs, fixtures, all output manifests and artifacts, and a provisioning inventory with setup/CMake diagnostics. Console output is bounded; full subprocess logs stay on disk. Exits are 0 for a complete pass, 1 for acceptance/infrastructure failure, and 2 for invalid runner arguments.
+
+### Coverage inventory
+
+Paths in this table are relative to `test/test-cases/e2e/`. Shared definitions are in `test/scenarios/local-cli-contracts.ts`; native tests remain available.
+
+| Existing scenario | Container equivalent or native reason |
+| --- | --- |
+| `local/step-1-download-e2e/download-input-types-local-file`: local audio, local document | `download-local-audio`, `download-local-document`; native local audio now uses an actual local file |
+| `local/step-1-download-e2e/download-input-types-direct-url`: direct audio, direct video, URL list with limit 1 | `download-direct-audio`, `download-direct-video`, `download-url-list`; deterministic container HTTP fixtures |
+| `local/step-1-download-e2e/download-input-types-feed-or-channel`: RSS with image/audio enclosures and limit 1 | `download-rss`; internal RSS fixture and batch/source/child-manifest assertions |
+| `local/step-1-download-e2e/download-input-types-streaming`: YouTube, Twitch | `download-youtube`, `download-twitch`; same public URLs, success required |
+| `local/step-2-ocr-e2e/ocr-local/ocr-options`: PDF default, PDF JSON | `ocr-pdf-default`, `ocr-pdf-json` |
+| Same file: image default versus explicit Tesseract | `ocr-image-default`, `ocr-image-explicit`; assert identical local extraction method and correct default/explicit provider origin |
+| Same file: EPUB cleaned text, default chapter exports with length, no-chapters chunks | `epub-text`, `epub-chapters`, `epub-chunks` |
+| Same file: PDF chapter detection and diagnostics | `pdf-chapters` |
+| Same file: ignored image chapter flags | `ocr-ignored-chapters` |
+| Same file: public Defuddle URL extraction | `defuddle-public`; additional deterministic `defuddle-fixture` proves local installation reuse |
+| `local/step-2-stt-e2e/stt-local/whisper/whisper-default`: default, explicit tiny/base, split audio | `stt-whisper-default`, `stt-whisper-tiny`, `stt-whisper-base`, `stt-split-audio` |
+| `local/step-2-stt-e2e/stt-local/whisper/whisper-large-v3-turbo`: explicit turbo, split video | `stt-whisper-large-v3-turbo`, `stt-split-video` |
+| `local/step-2-stt-e2e/stt-local/whisperfile/whisperfile-default`: explicit tiny | `stt-whisperfile-tiny`; additional `stt-whisperfile-default` tests an omitted model |
+| Additional supported Whisper selectors | `stt-whisper-small`, `stt-whisper-medium` |
+| Additional supported Whisperfile selectors | `stt-whisperfile-tiny.en`, `stt-whisperfile-small`, `stt-whisperfile-small.en`, `stt-whisperfile-medium`, `stt-whisperfile-medium.en`, `stt-whisperfile-large-v2`, `stt-whisperfile-large-v3` |
+| `local/step-3-write-e2e/write-local/write-project-lyrics`: cheapest hosted LLM default resolution | Original resolver test remains native because it directly tests an internal API; `write-default-price` checks the packaged CLI's resolution without generation |
+| `local/step-7-music-lyrics-video-e2e/music-lyrics-video`: edited-caption rerender, explicit tiny transcription, default turbo transcription, batch manifest | `lyrics-rerender`, `lyrics-explicit`, `lyrics-default`, `lyrics-batch`; short fixtures replace longer example audio; validate captions, H.264/1080p output, provider metadata, cleanup, and batch children |
+| `service/step-4-tts-e2e/tts-services/mistral-validation`: invalid model, missing voice source | `reject-mistral-model`, `reject-mistral-voice` |
+| `service/step-4-tts-e2e/tts-services/mistral-voxtral-mini-tts-2603-voice`: unknown voice-name flag | `reject-mistral-voice-name` |
+| `service/step-4-tts-e2e/tts-services/mistral-dialogue-ref-audio`: remote reference rejection without disclosure | `reject-mistral-remote-reference` |
+| `service/step-5-image-gen-e2e/bfl-validation`: unsupported aspect ratio, invalid size | `reject-bfl-aspect`, `reject-bfl-size` |
+| `service/step-5-image-gen-e2e/lumalabs-validation`: unsupported size, invalid ratio, invalid format | `reject-luma-size`, `reject-luma-aspect`, `reject-luma-format` |
+| `service/step-7-music-gen-e2e/provider-flag-validation`: missing provider | `reject-music-provider` |
+| `service/step-4-tts-e2e/tts-services/inworld-realtime-tts-2`: collects Inworld target | Remains a native internal-selector contract; it has no CLI rejection or artifact workflow to port |
+| Other service e2e tests | Hosted generation/transcription/extraction requires provider credits or quota and is excluded; no live-provider suite is imported |
+
+### Publication and verification
+
+The publishing workflow holds a workflow-level concurrency lock from verification through acceptance, with cancellation disabled, so a concurrent release cannot replace `latest` during validation. After the multiarchitecture manifest is published, 30 native jobs run core, public-network, and one shard per engine/model on both `ubuntu-24.04` and `ubuntu-24.04-arm`. Every job still pulls `latest` and checks `--expected-digest` and `--expected-revision` against publication outputs. All matrix failures reach the `Published latest acceptance` aggregate check. Artifacts and local asset caches are saved on failure; CI restores host ownership before archiving cache directories, including private Calibre configuration directories. There is no rollback or retagging. This workflow check does not itself change repository branch-protection settings. GitHub documents [workflow concurrency](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency).
+
+Run the ordinary checks independently from acceptance:
+
+```bash
+bun run check
+bun t --price
+bun --no-env-file test test/test-cases/validation/docker-acceptance/ test/test-cases/validation/cli/docker-image-contracts.test.ts
+bun --no-env-file test test/test-cases/validation/cli/cli-help-contracts.test.ts test/test-cases/validation/cli/cli-usage-errors/ test/test-cases/validation/cli/option-resolution-contracts/
+```
+
+Harness contracts exercise pull failure, immutable references, literal arguments, mount and batch-path mapping, credential isolation, command/network allowlisting, timeout cleanup, native architecture enforcement, exact model/CI coverage, and nonzero test counts without Docker or provider requests. A separate encoder regression contract covers FFmpeg builds that list NVIDIA/AMD encoders without usable hardware; lyric rendering now probes a synthetic frame before selecting hardware and otherwise uses libx264.
+
+Bare local STT selectors now resolve their engine's `tiny` model before provider selection. This also preserves explicit provider origin: `extract speech.mp3 --provider whisperfile` selects Whisperfile instead of falling through to Whisper. A native regression checks both bare local selectors without inference.
+
+### Recorded acceptance run
+
+On September 8, 2026 (America/Chicago), the published digest `sha256:fed678e1c4ddaa9740dfcdda563682713f5baa34447308a11f1a3363d3c414d0`, revision `456e391f53c5667d0bd5cd639a8ed3017132b6ec`, passed 38 of 51 cases on a native ARM64 Docker daemon. The image predates the changes described above.
+
+| Suite | Result | Remaining published-image failures |
+| --- | --- | --- |
+| Core | 27/28 passed | Caption rerender selected NVIDIA without its driver |
+| Models | 8/20 passed | Eleven Whisper-dependent cases were blocked by missing CMake; bare Whisperfile selected Whisper |
+| Public network | 3/3 passed | None; YouTube, Twitch, and public Defuddle succeeded |
+
+All eight explicit Whisperfile selectors completed inference. A second fresh-container run reused the cached tiny model successfully. Evidence and model caches are retained under `runtime/docker-acceptance/`: `local-core`, `local-models`, `local-network`, and `local-cache-final` contain the reports and logs. The current source includes the prerequisite, encoder, and selector fixes, but acceptance of those fixes requires publication and another run. Native AMD64 acceptance is pending CI; the size experiment below does not establish it. Local verification passed `bun run check`, all 140 `bun t --price` commands, and 292 targeted no-cost contracts.
+
+### Whisper prerequisites and size evidence
+
+The production Dockerfile adds one isolated layer containing CMake, Make, GCC, G++, and libc development headers. The compiler packages bring their required C++/OpenMP development dependencies. The [pinned whisper.cpp build](https://github.com/ggml-org/whisper.cpp/blob/v1.7.4/CMakeLists.txt) defaults optional curl, SDL, and FFmpeg integration off, so those development libraries are not added. Models and engines are still provisioned at runtime through the CLI.
+
+Native build jobs record total image bytes and the exact prerequisite layer bytes in `whisper-toolchain-size.json`, along with raw `docker history --human=false` evidence, and include the result in the workflow summary. A minimal container invocation materializes lazy image layers before reading history sizes. Size is informational and never an acceptance threshold. For a separate local before/after packaging measurement, run the following only after acceptance has finished:
+
+```bash
+env -i PATH="$PATH" HOME="$HOME" bun --no-env-file scripts/docker-acceptance/measure-whisper-toolchain.ts
+```
+
+This experiment resolves the published base digest, builds a derived image containing only the exact prerequisite layer, and compares image bytes on both architectures. It records results under `runtime/docker-acceptance/size/`; AMD64 measurement on an ARM64 daemon may use emulation. These derived images are never used by `bun t:docker`, and their measurements do not imply native acceptance success. Native CI measurements remain authoritative for the published build.
+
+Measured against the published digest recorded above on September 8, 2026, using Docker's `image inspect .Size` field:
+
+| Platform | Before (bytes) | With prerequisites (bytes) | Increase (bytes) | Execution |
+| --- | ---: | ---: | ---: | --- |
+| `linux/arm64` | 628,722,833 | 733,797,480 | 105,074,647 (105.1 MB) | Native ARM64 |
+| `linux/amd64` | 644,107,779 | 758,319,856 | 114,212,077 (114.2 MB) | Emulated on ARM64 |
+
+The raw measurements, build logs, derived Dockerfiles, and image histories are retained in `runtime/docker-acceptance/size/2026-09-09T03-44-02.571Z/`. This measures the prerequisite layer added to the old published image; it is not a measurement of a newly published application revision.

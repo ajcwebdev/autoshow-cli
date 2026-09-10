@@ -1,38 +1,4 @@
-import { expect } from 'bun:test'
-
-import { defineSingleCaseTest, setupDownloadInputTypeLifecycle } from './download-input-types.shared'
-import type { DownloadE2eSingleCase } from '~/types'
-import { expectArtifact } from '../../../../test-utils/value-assertions'
-
-const singleCases: DownloadE2eSingleCase[] = [
-  {
-    name: 'download local audio input',
-    input: 'https://ajc.pics/autoshow/examples/1-audio.mp3',
-    suffix: '1-audio',
-    checks: async (metadata, outputDir) => {
-      expect(metadata.step1?.audioFileName).toBeDefined()
-      expect((metadata.step1?.audioFileSize ?? 0) > 0).toBe(true)
-      expect(metadata.step1?.slug).toBe('1-audio')
-      expect(metadata.step1?.audioFileName?.endsWith('.mp3')).toBe(true)
-      const audioPath = `${outputDir}/${metadata.step1?.audioFileName ?? ''}`
-      await expectArtifact(audioPath)
-    },
-  },
-  {
-    name: 'download local document input',
-    input: 'input/examples/document/1-document.pdf',
-    suffix: '1-document',
-    checks: async metadata => {
-      expect(metadata.step1?.format).toBe('pdf')
-      expect((metadata.step1?.pageCount ?? 0) > 0).toBe(true)
-      expect((metadata.step1?.fileSize ?? 0) > 0).toBe(true)
-      expect(metadata.step1?.slug).toBe('1-document')
-    },
-  },
-]
+import { defineSharedDownloadCases, setupDownloadInputTypeLifecycle } from './download-input-types.shared'
 
 setupDownloadInputTypeLifecycle(['1-audio', '1-document'])
-
-for (const tc of singleCases) {
-  defineSingleCaseTest(tc)
-}
+defineSharedDownloadCases(['download-local-audio', 'download-local-document'])

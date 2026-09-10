@@ -5,9 +5,18 @@ import { getFfmpegBinary } from '~/utils/runtime-paths'
 let encoderPromise: Promise<string> | undefined
 let ffmpegFiltersPromise: Promise<string> | undefined
 
-export const checkFfmpegEncoder = async (encoder: string): Promise<boolean> => {
-  const result = await exec(getFfmpegBinary(), ['-hide_banner', '-encoders'])
-  return result.exitCode === 0 && result.stdout.includes(encoder)
+export const checkFfmpegEncoder = async (encoder: string, execute = exec): Promise<boolean> => {
+  // FFmpeg can list hardware encoders whose device or driver is unavailable in a container.
+  // Encode one synthetic frame before choosing hardware for the full render.
+  try {
+    const result = await execute(getFfmpegBinary(), [
+      '-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'color=c=black:s=320x240:r=1',
+      '-frames:v', '1', '-an', '-c:v', encoder, '-pix_fmt', 'yuv420p', '-f', 'null', '-'
+    ], { signal: AbortSignal.timeout(5000), maxBufferBytes: 4096 })
+    return result.exitCode === 0
+  } catch {
+    return false
+  }
 }
 
 export const readFfmpegFilters = async (): Promise<string> => {
@@ -23,22 +32,15 @@ export const hasFfmpegFilter = async (filterName: string): Promise<boolean> => {
   return filters.split('\n').some((line) => line.trim().split(/\s+/).includes(filterName))
 }
 
-export const detectLyricsEncoder = async (): Promise<string> => {
-  if (!encoderPromise) {
-    encoderPromise = (async () => {
-      if (process.platform === 'darwin' && await checkFfmpegEncoder('h264_videotoolbox')) {
-        return 'h264_videotoolbox'
-      }
-      if (await checkFfmpegEncoder('h264_nvenc')) {
-        return 'h264_nvenc'
-      }
-      if (await checkFfmpegEncoder('h264_amf')) {
-        return 'h264_amf'
-      }
-      return 'libx264'
-    })()
-  }
+export const selectLyricsEncoder = async (probe = checkFfmpegEncoder, platform = process.platform): Promise<string> => {
+  if (platform === 'darwin' && await probe('h264_videotoolbox')) return 'h264_videotoolbox'
+  if (await probe('h264_nvenc')) return 'h264_nvenc'
+  if (await probe('h264_amf')) return 'h264_amf'
+  return 'libx264'
+}
 
+export const detectLyricsEncoder = async (): Promise<string> => {
+  encoderPromise ??= selectLyricsEncoder()
   return await encoderPromise
 }
 

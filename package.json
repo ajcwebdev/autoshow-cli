@@ -23,7 +23,8 @@
     "t:provider": "bun --no-env-file test/test-runner.ts",
     "autoshow": "bun src/cli/create-cli.ts",
     "as": "bun autoshow",
-    "setup": "bun autoshow setup"
+    "setup": "bun autoshow setup",
+    "t:docker": "env -i PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file scripts/docker-acceptance/docker-runner.ts"
   },
   "dependencies": {
     "@valibot/to-json-schema": "1.7.1",

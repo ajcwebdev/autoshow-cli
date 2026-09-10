@@ -4,6 +4,7 @@ import { InternalError } from '~/utils/error-handler'
 import type { CheapestLlmSelection, CheapestTtsSelection, CheapestVideoSelection, Step3Metadata, TtsProvider } from '~/types'
 import { STANDALONE_TTS_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { DEFAULT_DEEPINFRA_OCR_MODEL } from './ocr-models'
+import { DEFAULT_WHISPERFILE_MODEL } from './stt-models'
 import {
   selectCheapestDefaultTextVideoCandidate,
   selectCheapestVideoCandidateSelection
@@ -13,6 +14,8 @@ const PERFORMANCE_TIE_BREAKERS = ['mini', 'nano', 'micro', 'flash', 'turbo', 'fa
 
 const DEFAULT_LOCAL_MODEL_BY_FLAG = {
   whisper: 'tiny',
+  'whisper-stt': 'tiny',
+  'whisperfile-stt': DEFAULT_WHISPERFILE_MODEL,
 } as const satisfies Record<string, string>
 
 const DEFAULT_HOSTED_TTS_MODEL_BY_FLAG = {

@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+# Hold this lock through post-publication acceptance, not only manifest creation.
+concurrency:
+  group: autoshow-ghcr-${{ github.event_name == 'push' && 'latest' || github.ref }}
+  cancel-in-progress: false
+
 jobs:
   verify:
     name: No-cost verification
@@ -48,6 +53,7 @@ jobs:
       - name: Run Docker and DOCX contracts
         run: |
           bun --no-env-file test \
+            test/test-cases/validation/docker-acceptance/ \
             test/test-cases/validation/extraction/ \
             test/test-cases/validation/cli/network-check-contracts.test.ts \
             test/test-cases/validation/cli/required-image-model-contracts.test.ts \
@@ -227,7 +233,15 @@ jobs:
           report_dir="runtime/ci/docker-amd64"
           mkdir -p "${report_dir}"
           docker pull --platform linux/amd64 "${image_ref}" >/dev/null
-          test "$(docker run --rm --platform linux/amd64 --entrypoint bun "${image_ref}" --version)" = "1.4.0"
+          # Materialize lazy image layers before reading their sizes.
+          test "$(docker run --rm --platform linux/amd64 --network none --entrypoint bun "${image_ref}" --version)" = "1.4.0"
+          docker history --no-trunc --human=false --format '{{json .}}' "${image_ref}" > "${report_dir}/image-history.jsonl"
+          jq -s --arg platform linux/amd64 --argjson imageSizeBytes "$(docker image inspect "${image_ref}" --format '{{.Size}}')" '
+            [.[] | select(.CreatedBy | contains("install -y --no-install-recommends cmake make gcc g++ libc6-dev")) | .Size | tonumber] as $layers
+            | if ($layers | length) != 1 then error("Missing isolated Whisper toolchain layer") else
+              {platform:$platform,imageSizeBytes:$imageSizeBytes,toolchainLayerBytes:$layers[0],comparison:"isolated apt layer; informational, no size threshold"} end
+          ' "${report_dir}/image-history.jsonl" > "${report_dir}/whisper-toolchain-size.json"
+          printf 'Whisper toolchain size (%s): `%s`\n' 'amd64' "$(cat "${report_dir}/whisper-toolchain-size.json")" >> "${GITHUB_STEP_SUMMARY}"
           docker run --rm --platform linux/amd64 --entrypoint bun "${image_ref}" --no-env-file install --frozen-lockfile --production > "${report_dir}/production-install.log" 2>&1
           docker run --rm --platform linux/amd64 "${image_ref}" --help > "${report_dir}/help.log" 2>&1
           docker run --rm --platform linux/amd64 "${image_ref}" config --show --config-path /tmp/autoshow-smoke-config.json --no-color > "${report_dir}/config.log" 2>&1
@@ -278,6 +292,7 @@ jobs:
             > "${report_dir}/measurements.json"
 
       - name: Upload AMD64 verification evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: docker-verification-amd64
@@ -363,7 +378,15 @@ jobs:
           report_dir="runtime/ci/docker-arm64"
           mkdir -p "${report_dir}"
           docker pull --platform linux/arm64 "${image_ref}" >/dev/null
-          test "$(docker run --rm --platform linux/arm64 --entrypoint bun "${image_ref}" --version)" = "1.4.0"
+          # Materialize lazy image layers before reading their sizes.
+          test "$(docker run --rm --platform linux/arm64 --network none --entrypoint bun "${image_ref}" --version)" = "1.4.0"
+          docker history --no-trunc --human=false --format '{{json .}}' "${image_ref}" > "${report_dir}/image-history.jsonl"
+          jq -s --arg platform linux/arm64 --argjson imageSizeBytes "$(docker image inspect "${image_ref}" --format '{{.Size}}')" '
+            [.[] | select(.CreatedBy | contains("install -y --no-install-recommends cmake make gcc g++ libc6-dev")) | .Size | tonumber] as $layers
+            | if ($layers | length) != 1 then error("Missing isolated Whisper toolchain layer") else
+              {platform:$platform,imageSizeBytes:$imageSizeBytes,toolchainLayerBytes:$layers[0],comparison:"isolated apt layer; informational, no size threshold"} end
+          ' "${report_dir}/image-history.jsonl" > "${report_dir}/whisper-toolchain-size.json"
+          printf 'Whisper toolchain size (%s): `%s`\n' 'arm64' "$(cat "${report_dir}/whisper-toolchain-size.json")" >> "${GITHUB_STEP_SUMMARY}"
           docker run --rm --platform linux/arm64 --entrypoint bun "${image_ref}" --no-env-file install --frozen-lockfile --production > "${report_dir}/production-install.log" 2>&1
           docker run --rm --platform linux/arm64 "${image_ref}" --help > "${report_dir}/help.log" 2>&1
           docker run --rm --platform linux/arm64 "${image_ref}" config --show --config-path /tmp/autoshow-smoke-config.json --no-color > "${report_dir}/config.log" 2>&1
@@ -414,6 +437,7 @@ jobs:
             > "${report_dir}/measurements.json"
 
       - name: Upload ARM64 verification evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: docker-verification-arm64
@@ -430,6 +454,8 @@ jobs:
     needs:
       - build-amd64
       - build-arm64
+    outputs:
+      digest: ${{ steps.publish.outputs.digest }}
     steps:
       - name: Log in to GitHub Container Registry
         env:
@@ -438,6 +464,7 @@ jobs:
         run: printf '%s' "${GITHUB_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
 
       - name: Create and verify multi-arch manifest
+        id: publish
         env:
           AMD64_DIGEST: ${{ needs.build-amd64.outputs.digest }}
           ARM64_DIGEST: ${{ needs.build-arm64.outputs.digest }}
@@ -455,3 +482,93 @@ jobs:
             | index("amd64") != null and index("arm64") != null
           ' >/dev/null
           docker buildx imagetools inspect "${image}:${GITHUB_SHA}"
+          digest="$(docker buildx imagetools inspect --format '{{.Manifest.Digest}}' "${image}:latest")"
+          test "${#digest}" = 71
+          printf 'digest=%s\n' "${digest}" >> "${GITHUB_OUTPUT}"
+
+  acceptance:
+    name: GHCR acceptance (${{ matrix.arch }}, ${{ matrix.shard }})
+    needs: publish-manifest
+    runs-on: ${{ matrix.arch == 'amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        shard: [core, network, 'whisper:tiny', 'whisper:base', 'whisper:small', 'whisper:medium', 'whisper:large-v3-turbo', 'whisperfile:tiny', 'whisperfile:tiny.en', 'whisperfile:small', 'whisperfile:small.en', 'whisperfile:medium', 'whisperfile:medium.en', 'whisperfile:large-v2', 'whisperfile:large-v3']
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install supported Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Install frozen dependencies
+        run: bun --no-env-file install --frozen-lockfile
+
+      - name: Restore local assets
+        id: assets
+        uses: actions/cache/restore@v4
+        with:
+          path: runtime/docker-acceptance/cache
+          key: docker-local-v1-${{ matrix.arch }}-${{ matrix.shard }}-${{ hashFiles('Dockerfile', 'src/cli/commands/setup-and-utilities/**', 'src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/**', 'src/cli/commands/process-steps/step-2-extract/step-2-url/url-local/**') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: docker-local-v1-${{ matrix.arch }}-${{ matrix.shard }}-${{ hashFiles('Dockerfile', 'src/cli/commands/setup-and-utilities/**', 'src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/**', 'src/cli/commands/process-steps/step-2-extract/step-2-url/url-local/**') }}-
+
+      - name: Accept published latest through its CLI
+        env:
+          SHARD: ${{ matrix.shard }}
+          PLATFORM: linux/${{ matrix.arch }}
+          EXPECTED_DIGEST: ${{ needs.publish-manifest.outputs.digest }}
+        run: |
+          set -euo pipefail
+          if [ "${SHARD}" = core ] || [ "${SHARD}" = network ]; then
+            set -- --suite "${SHARD}"
+          else
+            set -- --suite models --model "${SHARD}"
+          fi
+          bun t:docker "$@" --platform "${PLATFORM}" \
+            --expected-digest "${EXPECTED_DIGEST}" --expected-revision "${GITHUB_SHA}" \
+            --output runtime/docker-acceptance/evidence
+
+      - name: Make local assets readable for archiving
+        if: always()
+        run: |
+          if [ -d runtime/docker-acceptance/cache ]; then
+            sudo chown -R "$(id -u):$(id -g)" runtime/docker-acceptance/cache
+          fi
+
+      - name: Retain local assets even after failure
+        if: always() && steps.assets.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: runtime/docker-acceptance/cache
+          key: ${{ steps.assets.outputs.cache-primary-key }}
+
+      - name: Upload acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghcr-acceptance-${{ matrix.arch }}-${{ strategy.job-index }}
+          path: runtime/docker-acceptance/evidence
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  acceptance-required:
+    name: Published latest acceptance
+    if: always() && github.event_name == 'push'
+    needs: [publish-manifest, acceptance]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every native shard
+        env:
+          PUBLICATION: ${{ needs.publish-manifest.result }}
+          ACCEPTANCE: ${{ needs.acceptance.result }}
+        run: |
+          if [ "${PUBLICATION}" != success ] || [ "${ACCEPTANCE}" != success ]; then
+            printf 'Publication: %s; acceptance: %s. Inspect job evidence; this check does not roll back or retag latest.\n' "${PUBLICATION}" "${ACCEPTANCE}" >> "${GITHUB_STEP_SUMMARY}"
+            exit 1
+          fi
+          printf '%s\n' 'All core, model, and public-network cases passed on native AMD64 and ARM64.' >> "${GITHUB_STEP_SUMMARY}"

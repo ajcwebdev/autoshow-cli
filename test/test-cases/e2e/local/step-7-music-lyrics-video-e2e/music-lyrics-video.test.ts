@@ -12,7 +12,7 @@ import {
 } from '../../../../test-utils/test-helpers'
 import { readCanonicalManifest, readCanonicalRecord } from '../../../../test-utils/manifest-helpers'
 import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
-import { exec } from '~/utils/cli-utils'
+import { createNativeScenarioAdapter } from '../../../../test-utils/native-scenario-adapter'
 import { expectArtifact } from '../../../../test-utils/value-assertions'
 
 const SHORT_AUDIO_PATH = 'input/examples/audio/0-audio-short.mp3'
@@ -28,19 +28,7 @@ const BATCH_INPUT_ROOT = 'input/test-fixtures'
 const BATCH_INPUT_DIR = `${BATCH_INPUT_ROOT}/music-lyrics-batch`
 
 const probeVideoStream = async (videoPath: string): Promise<{ codecName: string, width: number, height: number }> => {
-  const result = await exec('ffprobe', [
-    '-v', 'error',
-    '-select_streams', 'v:0',
-    '-show_entries', 'stream=codec_name,width,height',
-    '-of', 'json',
-    videoPath
-  ])
-
-  expect(result.exitCode).toBe(0)
-  const parsed = JSON.parse(result.stdout) as {
-    streams?: Array<{ codec_name?: string, width?: number, height?: number }>
-  }
-  const stream = parsed.streams?.[0]
+  const stream = await createNativeScenarioAdapter().probe(videoPath)
   return {
     codecName: stream?.codec_name ?? '',
     width: stream?.width ?? 0,

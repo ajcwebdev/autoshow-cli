@@ -1,7 +1,9 @@
 import { test, expect, beforeAll, afterAll } from 'bun:test'
 import { readdir } from 'node:fs/promises'
+import { assertDownloadOnly, assertDownloadRecord, downloadScenarios, PUBLIC_DOWNLOADS, DOWNLOAD_TIMESTAMPED_CHILD_DIR_PATTERN } from '../../../../scenarios/local-cli-contracts'
 import { basename, dirname, join, resolve } from 'node:path'
-import { cleanupOutputDir, cleanupTestOutput, fileExists, findLatestDirectory, runCommand } from '../../../../test-utils/test-helpers'
+import { cleanupOutputDir, cleanupTestOutput, fileExists, findLatestDirectory } from '../../../../test-utils/test-helpers'
+import { createNativeScenarioAdapter } from '../../../../test-utils/native-scenario-adapter'
 import { readCanonicalItemRecords, readCanonicalSource, readCanonicalRecord } from '../../../../test-utils/manifest-helpers'
 import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
 import { expectArtifact } from '../../../../test-utils/value-assertions'
@@ -15,7 +17,6 @@ import type {
 } from '~/types'
 
 const createdDirs = new Set<string>()
-const TIMESTAMPED_CHILD_DIR_PATTERN = /^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{3}_/
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
   if (typeof value !== 'object' || value === null) {
@@ -149,21 +150,13 @@ export const setupDownloadInputTypeLifecycle = (suffixes: string[]): void => {
 }
 
 const assertDownloadOnlyArtifacts = async (outputDir: string, metadata: DownloadE2eMetadata): Promise<void> => {
-  expect(await fileExists(`${outputDir}/transcription.txt`)).toBe(false)
-  expect(await fileExists(`${outputDir}/extraction.txt`)).toBe(false)
-  expect(await fileExists(`${outputDir}/text.json`)).toBe(false)
-  expect(await fileExists(`${outputDir}/prompt.md`)).toBe(false)
-  expect(metadata.step2).toBeUndefined()
-  expect(metadata.step3).toBeUndefined()
+  await assertDownloadOnly(outputDir, { ...metadata })
 }
 
 export const defineSingleCaseTest = (tc: DownloadE2eSingleCase): void => {
   test(tc.name, async () => {
     const input = await resolveCaseInput(tc.input)
-    const result = await runCommand(
-      ['src/cli/create-cli.ts', 'download', input],
-      { testName: tc.name }
-    )
+    const result = await createNativeScenarioAdapter({}, { testName: tc.name }).execute(['download', input])
     expect(result.exitCode).toBe(0)
 
     const outputDir = await resolveSingleOutputDir(result, tc.suffix)
@@ -185,14 +178,11 @@ export const defineBatchCaseTest = (tc: DownloadE2eBatchCase): void => {
   test(tc.name, async () => {
     const input = await resolveCaseInput(tc.input)
 
-    const result = await runCommand([
-      'src/cli/create-cli.ts',
+    const result = await createNativeScenarioAdapter({}, { testName: tc.name }).execute([
       'download',
       input,
       ...tc.extraArgs,
-    ], {
-      testName: tc.name
-    })
+    ])
     expect(result.exitCode).toBe(0)
 
     const batchDir = await resolveBatchOutputDir(result.outputDir, result.outputRoot)
@@ -219,7 +209,7 @@ export const defineBatchCaseTest = (tc: DownloadE2eBatchCase): void => {
       .map(entry => join(batchDir, entry.name))
       .sort()
     for (const itemDir of itemDirs) {
-      expect(basename(itemDir)).not.toMatch(TIMESTAMPED_CHILD_DIR_PATTERN)
+      expect(basename(itemDir)).not.toMatch(DOWNLOAD_TIMESTAMPED_CHILD_DIR_PATTERN)
     }
     if (tc.expectedSelectedCount !== undefined) {
       expect(itemDirs.length).toBe(tc.expectedSelectedCount)
@@ -254,4 +244,24 @@ export const defineBatchCaseTest = (tc: DownloadE2eBatchCase): void => {
     expect(metadata.step1).toBeDefined()
     await assertDownloadOnlyArtifacts(firstItemDir, metadata)
   })
+}
+
+export function defineSharedDownloadCases(ids: string[], feed: () => string = () => ''): void {
+  const fixture = (name: string): string => ({ audio: 'input/examples/audio/1-audio.mp3', pdf: 'input/examples/document/1-document.pdf', urls: 'input/examples/batch/2-direct-urls.md' }[name] ?? '')
+  const cases = downloadScenarios(fixture, PUBLIC_DOWNLOADS, feed()).filter(item => ids.includes(item.id))
+  if (cases.length === 0 || cases.length !== ids.length) throw new Error('Missing native download scenarios')
+  for (const scenario of cases) {
+    if (scenario.batch) {
+      defineBatchCaseTest({ name: scenario.name, input: scenario.kind === 'podcast_rss' ? feed : scenario.input, extraArgs: scenario.args, expectedSourceKind: scenario.kind as 'url_list' | 'podcast_rss', expectedSelectedCount: 1 })
+    } else {
+      defineSingleCaseTest({
+        name: scenario.name, input: scenario.input,
+        checks: async (metadata, dir) => {
+          await assertDownloadRecord(scenario.kind, metadata, dir)
+          if (scenario.id === 'download-local-audio') expect(metadata.step1?.slug).toBe('1-audio')
+          if (scenario.id === 'download-local-document') expect(metadata.step1?.slug).toBe('1-document')
+        }
+      })
+    }
+  }
 }

@@ -3,10 +3,9 @@ import { readFile } from 'node:fs/promises'
 import { afterAll, beforeAll } from 'bun:test'
 import { LOCAL_EXAMPLE_AUDIO_PATH } from '../../../../test-utils/test-helpers'
 import {
-  defineBatchCaseTest,
+  defineSharedDownloadCases,
   setupDownloadInputTypeLifecycle,
 } from './download-input-types.shared'
-import type { DownloadE2eBatchCase } from '~/types'
 
 let feedServer: Server | null = null
 let feedBaseUrl = ''
@@ -73,18 +72,5 @@ afterAll(async () => {
   feedServer = null
 })
 
-const batchCases: DownloadE2eBatchCase[] = [
-  {
-    name: 'download RSS feed input',
-    input: () => `${feedBaseUrl}/feed`,
-    extraArgs: ['--batch-limit', '1'],
-    expectedSourceKind: 'podcast_rss',
-    expectedSelectedCount: 1,
-  },
-]
-
 setupDownloadInputTypeLifecycle([])
-
-for (const tc of batchCases) {
-  defineBatchCaseTest(tc)
-}
+defineSharedDownloadCases(['download-rss'], () => `${feedBaseUrl}/feed`)

@@ -57,6 +57,7 @@ test('Docker documentation exposes only reviewed repository scripts and direct i
   expect(existsSync(scriptsPath) ? (await readdir(scriptsPath)).sort() : []).toEqual([
     'bun-env-compat.ts',
     'bun-profile.ts',
+    'docker-acceptance',
     'docker-bun-baseline.ts',
     'profile-workloads'
   ])

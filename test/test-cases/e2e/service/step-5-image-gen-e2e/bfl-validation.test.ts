@@ -1,35 +1,3 @@
-import { expect, test } from 'bun:test'
-import { runCommand } from '../../../../test-utils/test-helpers'
+import { defineNativeRejections } from '../../../../test-utils/native-rejection-scenarios'
 
-test('rejects unsupported BFL shared image flags', async () => {
-  const result = await runCommand([
-    'src/cli/create-cli.ts',
-    'image',
-    'a sunset',
-    '--provider',
-    'bfl=flux-2-pro',
-    '--aspect-ratio',
-    '1:1'
-  ])
-  const output = `${result.stdout}\n${result.stderr}`
-
-  expect(result.exitCode).toBe(2)
-  expect(output).toContain('--aspect-ratio is not supported by BFL/flux-2-pro')
-})
-
-test('rejects invalid BFL image size values', async () => {
-  const result = await runCommand([
-    'src/cli/create-cli.ts',
-    'image',
-    'a sunset',
-    '--provider',
-    'bfl=flux-2-pro',
-    '--size',
-    '1024'
-  ])
-  const output = `${result.stdout}\n${result.stderr}`
-
-  expect(result.exitCode).toBe(2)
-  expect(output).toContain('Invalid --size value "1024" for BFL')
-})
-
+defineNativeRejections('step-5-image-gen-e2e/bfl-validation.test.ts')
