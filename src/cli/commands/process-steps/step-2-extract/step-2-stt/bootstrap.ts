@@ -19,7 +19,6 @@ const toBootstrapProviderId = (
     case 'deepgram':
     case 'soniox':
     case 'speechmatics':
-    case 'groq':
     case 'grok':
     case 'mistral':
     case 'assemblyai':

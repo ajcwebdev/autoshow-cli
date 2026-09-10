@@ -12,7 +12,7 @@ Durable registry, lifecycle, and capability policy belongs to [ADR-010](../adr/A
 
 ## TTS refresh and catalog narrowing
 
-The provider-by-provider entries below preserve the 2026-08-19 refresh record. On 2026-08-29, AutoShow removed Groq, Gemini, Deepgram, Replicate, and fal from active TTS. On 2026-09-01, AutoShow removed Fish entirely, removed DeepInfra TTS while preserving DeepInfra STT and OCR, and removed MiniMax TTS while preserving MiniMax write, video, and music. The active TTS surface now contains eight providers: ElevenLabs, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, and Inworld.
+The provider-by-provider entries below preserve the 2026-08-19 refresh record. On 2026-08-29, AutoShow removed Gemini, Deepgram, Replicate, and fal from active TTS. On 2026-09-01, AutoShow removed Fish entirely, removed DeepInfra TTS while preserving DeepInfra STT and OCR, and removed MiniMax TTS while preserving MiniMax write, video, and music. The active TTS surface now contains eight providers: ElevenLabs, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, and Inworld.
 
 **Provider 1: Speechify**
 
@@ -44,44 +44,39 @@ The provider-by-provider entries below preserve the 2026-08-19 refresh record. O
 - **Provider:** Mistral
 - **2026 decision and active implementation:** Retained canonical API ID `voxtral-mini-tts-2603`.
 
-**Provider 7: Groq**
-
-- **Provider:** Groq
-- **2026-08-19 historical implementation:** Retained English Orpheus (`canopylabs/orpheus-v1-english`, default voice `abdullah`). Retired narrow Arabic selector. Groq TTS was removed from the active surface on 2026-08-29.
-
-**Provider 8: xAI**
+**Provider 7: xAI**
 
 - **Provider:** xAI
 - **2026 decision and active implementation:** Kept `grok-tts` product selector; expanded stock voices to 26 documented IDs with `eve` default.
 
-**Provider 9: Gemini**
+**Provider 8: Gemini**
 
 - **Provider:** Gemini
 - **2026-08-19 historical implementation:** Kept `gemini-3.1-flash-tts-preview` with 30 prebuilt voices supporting single and two-speaker synthesis. Gemini TTS was removed from the active surface on 2026-08-29.
 
-**Provider 10: Inworld**
+**Provider 9: Inworld**
 
 - **Provider:** Inworld
 - **2026 decision and active implementation:** Added `realtime-tts-2` ($25/1M chars, API ID `inworld-tts-2`). Legacy 1.5 Max/Mini remain removed. Step 6 restores `realtime-tts-2-flash` with explicit capability validation ($15/1M chars, API ID `inworld-tts-2-flash`).
 
-**Provider 11: DeepInfra**
+**Provider 10: DeepInfra**
 
 - **Provider:** DeepInfra
 - **2026-08-19 historical implementation:** Added Chatterbox, MiMo, and Qwen TTS models. DeepInfra TTS was removed from the active surface on 2026-09-01; DeepInfra STT and OCR remain active.
 
-**Provider 12: Replicate**
+**Provider 11: Replicate**
 
 - **Provider:** Replicate
 - **2026-08-19 historical implementation:** Added pinned `jaaari/kokoro-82m` ($0.00022/pred). Removed unmaintained community variants lacking compatible schemas. Replicate TTS was removed from the active surface on 2026-08-29.
 
-**Provider 13: Fish**
+**Provider 12: Fish**
 
 - **Provider:** Fish
 - **2026-08-19 historical implementation:** Standardized on `s2.1-pro` as the sole synthesis model with native dialogue and timestamps. Fish was removed entirely on 2026-09-01.
 
 ### Refused / do not reimplement
 
-These six selectors are retired. Direct selection fails with replacement guidance.
+These five selectors are retired. Direct selection fails with replacement guidance.
 
 **Refused selector 1: `elevenlabs/eleven_multilingual_v2`**
 
@@ -112,12 +107,6 @@ These six selectors are retired. Direct selection fails with replacement guidanc
 - **Refused selector:** `openai/tts-1-hd`
 - **Replacement:** `gpt-4o-mini-tts-2025-12-15`
 - **Why not come back:** Classic model rejecting instruction steering
-
-**Refused selector 6: `groq/canopylabs/orpheus-arabic-saudi`**
-
-- **Refused selector:** `groq/canopylabs/orpheus-arabic-saudi`
-- **Replacement:** `canopylabs/orpheus-v1-english`
-- **Why not come back:** Narrow 200-character WAV-only model without vocal directions
 
 ## Watches and deferrals
 

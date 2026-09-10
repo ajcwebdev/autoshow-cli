@@ -52,7 +52,6 @@ describe('provider selection contracts', () => {
       'deepgram-stt',
       'soniox-stt',
       'speechmatics-stt',
-      'groq-stt',
       'grok-stt',
       'mistral-stt',
       'assemblyai-stt',

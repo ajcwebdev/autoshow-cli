@@ -16,7 +16,6 @@ describe('config provider and concurrency default contracts', () => {
       glm: 'glm-5.1',
       kimi: 'kimi-k2.6',
       together: ['kimi-k2.6', 'glm-5.1'],
-      cerebras: ['gpt-oss-120b', 'zai-glm-4.7'],
       'llm-provider-concurrency': '3',
       'llm-local-concurrency': '1',
       'tesseract-ocr': true,
@@ -30,7 +29,7 @@ describe('config provider and concurrency default contracts', () => {
       'ocr-local-concurrency': '2',
       'batch-limit': '7',
       'max-cents': '25'
-    }, new Set(['openai', 'grok', 'glm', 'kimi', 'together', 'cerebras', 'llm-provider-concurrency', 'llm-local-concurrency', 'tesseract-ocr', 'openai-ocr', 'grok-ocr', 'deepinfra-ocr', 'kimi-ocr', 'ocr-dpi', 'ocr-concurrency', 'ocr-provider-concurrency', 'ocr-local-concurrency', 'batch-limit', 'max-cents']))).toEqual({
+    }, new Set(['openai', 'grok', 'glm', 'kimi', 'together', 'llm-provider-concurrency', 'llm-local-concurrency', 'tesseract-ocr', 'openai-ocr', 'grok-ocr', 'deepinfra-ocr', 'kimi-ocr', 'ocr-dpi', 'ocr-concurrency', 'ocr-provider-concurrency', 'ocr-local-concurrency', 'batch-limit', 'max-cents']))).toEqual({
       defaults: {
         llm: {
           openai: ['gpt-5.4-mini'],
@@ -38,7 +37,6 @@ describe('config provider and concurrency default contracts', () => {
           glm: ['glm-5.1'],
           kimi: ['kimi-k2.6'],
           together: ['kimi-k2.6', 'glm-5.1'],
-          cerebras: ['gpt-oss-120b', 'zai-glm-4.7'],
           providerConcurrency: 3,
           localConcurrency: 1
         },

@@ -12,7 +12,7 @@ import { UsageError } from '~/utils/error-handler'
 
 export const STT_MODEL_KEYS = [
   'whisperModels', 'whisperfileModels',
-  'deepinfraSttModels', 'groqSttModels',
+  'deepinfraSttModels',
   'grokSttModels', 'deepgramSttModels',
   'sonioxSttModels', 'speechmaticsSttModels',
   'mistralSttModels',

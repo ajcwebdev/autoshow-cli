@@ -56,14 +56,14 @@ describe('resume target-aware provider selectors', () => {
   test('normalizes --provider for generation resume targets', () => {
     const write = normalizeResumeSelectorFlagsForTarget(
       target('write'),
-      { provider: ['together=kimi-k2.6', 'cerebras=zai-glm-4.7'] },
+      { provider: ['together=kimi-k2.6', 'glm=glm-5.1'] },
       new Set(['provider']),
-      ['resume', 'out', '--provider', 'together=kimi-k2.6', '--provider', 'cerebras=zai-glm-4.7']
+      ['resume', 'out', '--provider', 'together=kimi-k2.6', '--provider', 'glm=glm-5.1']
     )
     expect(write.flags['together']).toBe('kimi-k2.6')
-    expect(write.flags['cerebras']).toBe('zai-glm-4.7')
+    expect(write.flags['glm']).toBe('glm-5.1')
     expect(buildOpts(write.flags, write.explicitFlags, write.flagOccurrences).togetherModels).toEqual(['kimi-k2.6'])
-    expect(buildOpts(write.flags, write.explicitFlags, write.flagOccurrences).cerebrasModels).toEqual(['zai-glm-4.7'])
+    expect(buildOpts(write.flags, write.explicitFlags, write.flagOccurrences).glmModels).toEqual(['glm-5.1'])
 
     const image = normalizeResumeSelectorFlagsForTarget(
       target('image'),

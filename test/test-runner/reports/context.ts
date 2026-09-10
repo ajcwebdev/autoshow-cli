@@ -40,7 +40,6 @@ const KNOWN_SERVICE_HINTS: Array<{ pattern: RegExp, service: string }> = [
   { pattern: /\bopenai\b/i, service: 'openai' },
   { pattern: /\banthropic\b/i, service: 'anthropic' },
   { pattern: /\bgemini\b/i, service: 'gemini' },
-  { pattern: /\bgroq\b/i, service: 'groq' },
   { pattern: /\bgrok\b/i, service: 'grok' },
   { pattern: /\bminimax\b/i, service: 'minimax' },
   { pattern: /\belevenlabs\b/i, service: 'elevenlabs' },

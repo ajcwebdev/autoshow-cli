@@ -125,4 +125,4 @@ Do not use file size, dimensions, bitrate, duration, length, output existence, s
 
 Use only local fixture or metadata-only checks unless the user explicitly approves a paid provider run.
 
-Do not run smoke or e2e tests that can reach OpenAI, Anthropic, Gemini, Mistral, AWS, Google Cloud, ElevenLabs, MiniMax, deAPI, Deepgram, Groq, Grok, Firecrawl, or other paid providers.
+Do not run smoke or e2e tests that can reach OpenAI, Anthropic, Gemini, Mistral, AWS, Google Cloud, ElevenLabs, MiniMax, deAPI, Deepgram, Grok, Firecrawl, or other paid providers.

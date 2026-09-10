@@ -3,7 +3,7 @@
 ## Summary
 
 - Input text: `0-tts-short.txt` (16 characters, 3 words)
-- Total providers: 16 (0 local, 16 cloud)
+- Total providers: 14 (0 local, 14 cloud)
 - Mode: full
 - Human speech score: 55% naturalnessScore + 45% speechQualityScore
 - Naturalness score target weights: 45% UTMOSv2 MOS, 25% NISQA-TTS naturalness MOS, 20% paid audio-judge rubric, 10% prosody heuristics
@@ -32,13 +32,12 @@
 |    6 | `openai/tts-1`                        | cloud |       88.96 |       84.54 |          94.37 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
 |    7 | `minimax/speech-2.8-hd`               | cloud |       87.64 |       78.54 |          98.76 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
 |    8 | `grok/grok-tts`                       | cloud |       85.83 |       77.97 |          95.43 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-|    9 | `groq/canopylabs/orpheus-v1-english`  | cloud |       84.50 |       75.28 |          95.78 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-|   10 | `elevenlabs/eleven_v3`                | cloud |       84.17 |       76.64 |          93.37 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-|   11 | `gemini/gemini-3.1-flash-tts-preview` | cloud |       83.31 |       77.29 |          90.66 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-|   12 | `cartesia/sonic-3.5`                  | cloud |       82.68 |       74.99 |          92.07 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-|   13 | `cartesia/sonic-3`                    | cloud |       80.15 |       83.70 |          75.81 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-|   14 | `openai/gpt-4o-mini-tts`              | cloud |       77.78 |       68.41 |          89.23 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-|   15 | `mistral/voxtral-mini-tts-2603`       | cloud |       75.84 |       75.29 |          76.51 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|   9 | `elevenlabs/eleven_v3`                | cloud |       84.17 |       76.64 |          93.37 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|   10 | `gemini/gemini-3.1-flash-tts-preview` | cloud |       83.31 |       77.29 |          90.66 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|   11 | `cartesia/sonic-3.5`                  | cloud |       82.68 |       74.99 |          92.07 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|   12 | `cartesia/sonic-3`                    | cloud |       80.15 |       83.70 |          75.81 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|   13 | `openai/gpt-4o-mini-tts`              | cloud |       77.78 |       68.41 |          89.23 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|   14 | `mistral/voxtral-mini-tts-2603`       | cloud |       75.84 |       75.29 |          76.51 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
 
 ## Best By Group
 
@@ -49,7 +48,7 @@
 
 - **Best overall**: `openai/tts-1-hd` (91.75/100)
 - **Best cloud**: `openai/tts-1-hd` (91.75/100)
-- 16 provider(s) have low score coverage. Full mode already ran; remaining low coverage usually means external MOS/DNS metrics are missing (`utmosv2Mos`, `nisqaTtsNaturalnessMos`, `nisqaQualityMos`, `dnsmosMos`). Supply `--tts-metric-fixtures` from external scorers for higher confidence.
+- 14 provider(s) have low score coverage. Full mode already ran; remaining low coverage usually means external MOS/DNS metrics are missing (`utmosv2Mos`, `nisqaTtsNaturalnessMos`, `nisqaQualityMos`, `dnsmosMos`). Supply `--tts-metric-fixtures` from external scorers for higher confidence.
 
 ## Provider Details
 
@@ -461,57 +460,7 @@
 
 ---
 
-### 9. `groq/canopylabs/orpheus-v1-english` (cloud)
-
-| Metric         | Score |
-| -------------- | ----: |
-| Human Speech   | 84.50 |
-| Naturalness    | 75.28 |
-| Speech Quality | 95.78 |
-| Confidence     |   Low |
-
-**Naturalness Components**
-
-| Component              | Score | Weight | Source                |
-| ---------------------- | ----: | -----: | --------------------- |
-| utmosv2Mos             |   n/a |    45% | utmosv2               |
-| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
-| paidAudioJudgeRubric   | 88.00 |    20% | openai/gpt-audio      |
-| prosodyHeuristics      | 49.85 |    10% | ffmpeg-pcm-heuristics |
-
-**Speech Quality Components**
-
-| Component                   |  Score | Weight | Source                |
-| --------------------------- | -----: | -----: | --------------------- |
-| nisqaQualityMos             |    n/a |    35% | nisqa                 |
-| dnsmos                      |    n/a |    25% | dnsmos                |
-| roundtripSttIntelligibility | 100.00 |    25% | median-roundtrip-wer  |
-| signalHygiene               |  88.74 |    15% | ffmpeg-pcm-heuristics |
-
-**Signal Metrics**
-
-- Duration: 2.00s
-- Peak: -2.0 dBFS, RMS: -19.6 dBFS
-- Clipping: 0.000%, Silence: 46.2%
-- Loudness range: 27.5 dB
-- Pauses: 2 (median 0.32s)
-
-**Prosody Metrics**
-
-- Speaking rate: 90 WPM
-- Characters/sec: 8.0
-- Detected pauses: 2 (expected ~1)
-
-**Roundtrip STT**
-
-| Engine                     |       WER |
-| -------------------------- | --------: |
-| assemblyai/universal-3-pro |     0.00% |
-| **Median**                 | **0.00%** |
-
----
-
-### 10. `elevenlabs/eleven_v3` (cloud)
+### 9. `elevenlabs/eleven_v3` (cloud)
 
 | Metric         | Score |
 | -------------- | ----: |
@@ -561,7 +510,7 @@
 
 ---
 
-### 11. `gemini/gemini-3.1-flash-tts-preview` (cloud)
+### 10. `gemini/gemini-3.1-flash-tts-preview` (cloud)
 
 | Metric         | Score |
 | -------------- | ----: |
@@ -615,7 +564,7 @@
 
 ---
 
-### 12. `cartesia/sonic-3.5` (cloud)
+### 11. `cartesia/sonic-3.5` (cloud)
 
 | Metric         | Score |
 | -------------- | ----: |
@@ -665,7 +614,7 @@
 
 ---
 
-### 13. `cartesia/sonic-3` (cloud)
+### 12. `cartesia/sonic-3` (cloud)
 
 | Metric         | Score |
 | -------------- | ----: |
@@ -715,7 +664,7 @@
 
 ---
 
-### 14. `openai/gpt-4o-mini-tts` (cloud)
+### 13. `openai/gpt-4o-mini-tts` (cloud)
 
 | Metric         | Score |
 | -------------- | ----: |
@@ -769,7 +718,7 @@
 
 ---
 
-### 15. `mistral/voxtral-mini-tts-2603` (cloud)
+### 14. `mistral/voxtral-mini-tts-2603` (cloud)
 
 | Metric         | Score |
 | -------------- | ----: |
@@ -816,7 +765,6 @@
 | -------------------------- | ---------: |
 | assemblyai/universal-3-pro |     33.33% |
 | **Median**                 | **33.33%** |
-
 
 ## Warnings
 

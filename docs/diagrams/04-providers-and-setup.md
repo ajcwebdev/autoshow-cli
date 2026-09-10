@@ -33,10 +33,10 @@ Selectors use `provider[=model]`. Repeat a flag to run more than one provider. F
 
 | Step  | Providers                                                                                                                                                                                                                |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| STT   | Local: `whisper`, `whisperfile`. Hosted: `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`. |
+| STT   | Local: `whisper`, `whisperfile`. Hosted: `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`. |
 | OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `fal`, `replicate`.                                                   |
 | URL   | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`.                                                                                                                                      |
-| LLM   | Hosted: `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`. Write has no local LLM.                                                                                       |
+| LLM   | Hosted: `openai`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`. Write has no local LLM.                                                                                       |
 | TTS   | Hosted: `elevenlabs`, `grok`, `mistral`, `openai`, `speechify`, `hume`, `cartesia`, `inworld`.                                                                                                                    |
 | Image | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                       |
 | Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                                 |
@@ -75,7 +75,6 @@ Hosted commands require the matching environment variable:
 | `GEMINI_API_KEY`         | Gemini write/STT/OCR/image/video/music     |
 | `GLM_API_KEY`            | GLM write/OCR                              |
 | `KIMI_API_KEY`           | Kimi write/OCR                             |
-| `CEREBRAS_API_KEY`       | Cerebras write                             |
 | `LTXV_API_KEY`           | LTX video                                  |
 | `MISTRAL_API_KEY`        | Mistral STT/OCR/TTS                        |
 | `BFL_API_KEY`            | BFL image                                  |
@@ -84,7 +83,6 @@ Hosted commands require the matching environment variable:
 | `STABILITY_API_KEY`      | Stability AI sound effects                 |
 | `REPLICATE_API_TOKEN`    | Replicate image/video                      |
 | `ANTHROPIC_API_KEY`      | Anthropic write/OCR                        |
-| `GROQ_API_KEY`           | Groq write/STT                             |
 | `DEEPINFRA_API_KEY`      | DeepInfra STT/OCR                          |
 | `MINIMAX_API_KEY`        | MiniMax write/video/music                  |
 | `ELEVENLABS_API_KEY`     | ElevenLabs TTS/music                       |

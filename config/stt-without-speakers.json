@@ -12,10 +12,6 @@
         "deepinfraStt": [
           "openai/whisper-large-v3-turbo",
           "openai/whisper-large-v3"
-        ],
-        "groqStt": [
-          "whisper-large-v3-turbo",
-          "whisper-large-v3"
         ]
       }
     }

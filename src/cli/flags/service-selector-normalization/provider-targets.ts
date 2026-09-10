@@ -118,7 +118,6 @@ export const WRITE_STT_PROVIDER_TARGETS = {
   deepgram: 'deepgram-stt',
   soniox: 'soniox-stt',
   speechmatics: 'speechmatics-stt',
-  groq: 'groq-stt',
   grok: 'grok-stt',
   mistral: 'mistral-stt',
   assemblyai: 'assemblyai-stt',
@@ -146,7 +145,6 @@ export const WRITE_OCR_PROVIDER_TARGETS = {
 
 export const WRITE_LLM_PROVIDER_TARGETS = {
   openai: 'openai',
-  groq: 'groq',
   gemini: 'gemini',
   anthropic: 'anthropic',
   minimax: 'minimax',
@@ -154,14 +152,12 @@ export const WRITE_LLM_PROVIDER_TARGETS = {
   glm: 'glm',
   kimi: 'kimi',
   together: 'together',
-  cerebras: 'cerebras'
 } as const satisfies Record<string, string>
 
 export const WRITE_LLM_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   WRITE_LLM_PROVIDER_TARGETS,
   {
     openai: { modelsKey: 'openaiModels' },
-    groq: { modelsKey: 'groqModels' },
     gemini: { modelsKey: 'geminiModels' },
     anthropic: { modelsKey: 'anthropicModels' },
     minimax: { modelsKey: 'minimaxModels' },
@@ -169,7 +165,6 @@ export const WRITE_LLM_GENERATION_SELECTION = defineGenerationSelectionDescripto
     glm: { modelsKey: 'glmModels' },
     kimi: { modelsKey: 'kimiModels' },
     together: { modelsKey: 'togetherModels' },
-    cerebras: { modelsKey: 'cerebrasModels' }
   }
 )
 

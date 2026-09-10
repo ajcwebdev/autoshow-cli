@@ -1,5 +1,4 @@
 import { createModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
-import type { GroqModel } from '~/types'
 import { createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 export const SUPPORTED_OPENAI_MODELS = [
@@ -10,11 +9,6 @@ export const SUPPORTED_OPENAI_MODELS = [
   'gpt-5.5',
   'gpt-5.4-mini',
   'gpt-5.4-nano'
-] as const satisfies readonly string[]
-
-export const SUPPORTED_GROQ_MODELS = [
-  'openai/gpt-oss-20b',
-  'openai/gpt-oss-120b'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_GEMINI_MODELS = [
@@ -65,16 +59,8 @@ export const SUPPORTED_TOGETHER_MODELS = [
   'glm-5.3-flash'
 ] as const satisfies readonly string[]
 
-export const SUPPORTED_CEREBRAS_MODELS = [
-  'gpt-oss-120b',
-  'zai-glm-4.7'
-] as const satisfies readonly string[]
-
 const _validateOpenAI = createModelValidator(SUPPORTED_OPENAI_MODELS, 'openai')
 export const validateOpenAIModel = (model: string): string => _validateOpenAI(model)
-
-const _validateGroqRaw = createModelValidator<GroqModel>(SUPPORTED_GROQ_MODELS, 'groq')
-export const validateGroqModel = (model: string): GroqModel => _validateGroqRaw(model)
 
 export const validateGeminiModel = createRetiringModelValidator('llm', 'gemini', SUPPORTED_GEMINI_MODELS, 'gemini')
 export const validateAnthropicModel = createModelValidator(SUPPORTED_ANTHROPIC_MODELS, 'anthropic')
@@ -83,4 +69,3 @@ export const validateGrokModel = createModelValidator(SUPPORTED_GROK_MODELS, 'gr
 export const validateGlmModel = createModelValidator(SUPPORTED_GLM_MODELS, 'glm')
 export const validateKimiModel = createModelValidator(SUPPORTED_KIMI_MODELS, 'kimi')
 export const validateTogetherModel = createModelValidator(SUPPORTED_TOGETHER_MODELS, 'together')
-export const validateCerebrasModel = createModelValidator(SUPPORTED_CEREBRAS_MODELS, 'cerebras')

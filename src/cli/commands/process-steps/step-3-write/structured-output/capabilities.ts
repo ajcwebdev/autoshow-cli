@@ -6,11 +6,6 @@ const CAPABILITIES: Record<LLMService, ProviderStructuredCapability> = {
     strictMode: true,
     validationRetryBudget: 0
   },
-  'groq': {
-    nativeStructuredOutput: true,
-    strictMode: true,
-    validationRetryBudget: 0
-  },
   'anthropic': {
     nativeStructuredOutput: true,
     strictMode: false,
@@ -46,11 +41,6 @@ const CAPABILITIES: Record<LLMService, ProviderStructuredCapability> = {
     strictMode: true,
     validationRetryBudget: 1
   },
-  'cerebras': {
-    nativeStructuredOutput: true,
-    strictMode: true,
-    validationRetryBudget: 1
-  }
 }
 
 export const resolveStructuredStrategy = (service: LLMService): StructuredStrategy => {

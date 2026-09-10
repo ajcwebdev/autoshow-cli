@@ -15,7 +15,6 @@ Media inputs are downloaded and transcribed with hosted speech-to-text engines.
   - [Gemini STT](#gemini-stt)
   - [Gladia](#gladia)
   - [Grok STT](#grok-stt)
-  - [Groq](#groq)
   - [Happy Scribe](#happy-scribe)
   - [Mistral](#mistral)
   - [ScrapeCreators](#scrapecreators)
@@ -46,7 +45,6 @@ On `extract` and `resume`, pass `--provider provider[=model]`. On `config`, pass
 | Gemini STT     | `GEMINI_API_KEY`         |
 | Gladia         | `GLADIA_API_KEY`         |
 | Grok STT       | `XAI_API_KEY`            |
-| Groq           | `GROQ_API_KEY`           |
 | Happy Scribe   | `HAPPYSCRIBE_API_KEY`    |
 | Mistral        | `MISTRAL_API_KEY`        |
 | ScrapeCreators | `SCRAPECREATORS_API_KEY` |
@@ -93,8 +91,8 @@ bun autoshow extract https://www.youtube.com/@channelname --youtube-captions --b
 Generate captions directly from an audio or video file with `--captions`. The selected STT model runs once; caption export uses its saved timing evidence and writes `captions.srt`, `captions.vtt`, and `captions.json` beside `result.json`. Multiple providers each get captions in their own provider directory. This also works with media URLs, media batches, split transcription, and the YouTube caption-first path. Normal provider pricing applies to transcription; local caption generation adds no provider call. `--price` estimates transcription without running it.
 
 ```bash
-bun autoshow extract audio.mp3 --provider groq --captions
-bun autoshow extract video.mp4 --provider groq --captions --caption-mode word --output-dir output/video-captions
+bun autoshow extract audio.mp3 --provider deepinfra --captions
+bun autoshow extract video.mp4 --provider deepinfra --captions --caption-mode word --output-dir output/video-captions
 bun autoshow extract interview.mp4 --provider deepgram=nova-3 --diarization --captions --caption-format vtt
 ```
 
@@ -236,17 +234,6 @@ Bare `--provider gladia` selects `solaria-3`. `solaria-3` is English, French, Ge
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider grok=speech-to-text
 ```
 
-### Groq
-
-| Option   | Value                                        |
-| -------- | -------------------------------------------- |
-| Selector | `--provider groq[=<model>]`                  |
-| Models   | `whisper-large-v3-turbo`, `whisper-large-v3` |
-
-```bash
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider groq
-```
-
 ### Happy Scribe
 
 | Option       | Value                                    |
@@ -354,7 +341,7 @@ The 2026-09-07 pricing check lists AssemblyAI Universal-3.5 Pro at $0.21/hour pl
 - **Happy Scribe**: Estimated at `$0.01/min` from audio duration.
 - **Supadata**: Reference rate of `$10 / 1,000 credits` (`1.00 cent/credit`). Native transcripts estimate 1 credit per request; generated transcripts estimate ~2 credits/min. `auto` mode estimates the higher rate.
 - **ScrapeCreators**: Reference rate of `$47 / 25,000 credits` (`0.188 cents/request`), charging per retrieval request regardless of duration.
-- **Duration-priced hosted providers** (AssemblyAI, Deepgram, DeepInfra, Gladia, Grok STT, Groq, Mistral, Soniox, Speechmatics, Together): Estimated based on media duration and published provider per-hour rates.
+- **Duration-priced hosted providers** (AssemblyAI, Deepgram, DeepInfra, Gladia, Grok STT, Mistral, Soniox, Speechmatics, Together): Estimated based on media duration and published provider per-hour rates.
 - **Token-priced providers** (Gemini STT): Estimated from media duration at 32 audio tokens per second; completed runs record the token usage the API returns.
 
 ## STT Notes
@@ -390,13 +377,11 @@ Pricing is the AutoShow estimate rate. Cost rank orders models cheapest-first wi
 
 | Provider                                  | Released      | Word timestamps            | Duration             | File size                 | Pricing   | Cost rank |
 | ----------------------------------------- | ------------- | -------------------------- | -------------------- | ------------------------- | --------- | --------- |
-| Gemini `gemini-3.6-flash`                 | ✅ 2026-07    | ❌ Segment timestamps only | ✅ No documented cap | ❌ 20 MiB / 2 GiB         | $0.173/hr | 7/7       |
-| Together `nvidia/parakeet-tdt-0.6b-v3`    | ⚠️ 2025-08-14 | ✅ Native words | ⚠️ 4 hours           | ⚠️ 500 MiB                | $0.09/hr  | 4/7       |
-| DeepInfra `openai/whisper-large-v3-turbo` | ❌ 2024-09    | ✅ Native words | ✅ No documented cap | ✅ No documented cap      | $0.012/hr | 1/7       |
-| Groq `whisper-large-v3-turbo`             | ❌ 2024-09    | ✅ Native words | ✅ No documented cap | ❌ 25 MiB                 | $0.04/hr  | 3/7       |
-| DeepInfra `openai/whisper-large-v3`       | ❌ 2023-11    | ✅ Native words | ✅ No documented cap | ✅ No documented cap      | $0.027/hr | 2/7       |
-| Groq `whisper-large-v3`                   | ❌ 2023-11    | ✅ Native words | ✅ No documented cap | ❌ 25 MiB                 | $0.111/hr | 6/7       |
-| Together `openai/whisper-large-v3`        | ❌ 2023-11    | ✅ Native words | ⚠️ 4 hours           | ❌ 20 MiB                 | $0.09/hr  | 4/7       |
+| Gemini `gemini-3.6-flash`                 | ✅ 2026-07    | ❌ Segment timestamps only | ✅ No documented cap | ❌ 20 MiB / 2 GiB         | $0.173/hr | 5/5       |
+| Together `nvidia/parakeet-tdt-0.6b-v3`    | ⚠️ 2025-08-14 | ✅ Native words | ⚠️ 4 hours           | ⚠️ 500 MiB                | $0.09/hr  | 3/5       |
+| DeepInfra `openai/whisper-large-v3-turbo` | ❌ 2024-09    | ✅ Native words | ✅ No documented cap | ✅ No documented cap      | $0.012/hr | 1/5       |
+| DeepInfra `openai/whisper-large-v3`       | ❌ 2023-11    | ✅ Native words | ✅ No documented cap | ✅ No documented cap      | $0.027/hr | 2/5       |
+| Together `openai/whisper-large-v3`        | ❌ 2023-11    | ✅ Native words | ⚠️ 4 hours           | ❌ 20 MiB                 | $0.09/hr  | 3/5       |
 
 ### Direct URL
 

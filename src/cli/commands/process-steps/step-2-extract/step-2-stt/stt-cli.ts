@@ -1,14 +1,12 @@
 import type { DiarizationOptions, ProviderSpec, Step2ProviderSelectionFilter, SttDiarizationFlagOptions, SttSelectionOptions, TranscribeEngine, TranscribeEngineCapabilities } from '~/types'
 import { collectStep2ProviderSpecs } from '../step-2-shared/provider-registry'
 
-
 const STT_ENGINE_CAPABILITIES = {
   deepinfra: { diarizationByDefault: false, supportsSpeakerCountHint: false },
   deepgram: { diarizationByDefault: true, supportsSpeakerCountHint: false },
   soniox: { diarizationByDefault: true, supportsSpeakerCountHint: false },
   speechmatics: { diarizationByDefault: true, supportsSpeakerCountHint: false },
   rev: { diarizationByDefault: true, supportsSpeakerCountHint: false },
-  groq: { diarizationByDefault: false, supportsSpeakerCountHint: false },
   grok: { diarizationByDefault: true, supportsSpeakerCountHint: false },
   mistral: { diarizationByDefault: true, supportsSpeakerCountHint: false },
   assemblyai: { diarizationByDefault: true, supportsSpeakerCountHint: true },

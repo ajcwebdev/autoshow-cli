@@ -68,14 +68,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     configPaths: ['defaults.llm.kimi', 'defaults.extract.ocr.kimiOcr']
   },
   {
-    providerId: 'cerebras',
-    envVar: 'CEREBRAS_API_KEY',
-    label: 'Cerebras write',
-    hintUrl: 'https://cloud.cerebras.ai/',
-    stages: ['write'],
-    configPaths: ['defaults.llm.cerebras']
-  },
-  {
     providerId: 'ltx',
     envVar: 'LTXV_API_KEY',
     label: 'LTX video',
@@ -149,17 +141,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     hintUrl: 'https://console.anthropic.com/settings/keys',
     stages: ['write', 'ocr'],
     configPaths: ['defaults.llm.anthropic', 'defaults.extract.ocr.anthropicOcr']
-  },
-  {
-    providerId: 'groq',
-    envVar: 'GROQ_API_KEY',
-    label: 'Groq write/STT',
-    hintUrl: 'https://console.groq.com/keys',
-    stages: ['write', 'stt'],
-    configPaths: [
-      'defaults.llm.groq',
-      'defaults.extract.stt.groqStt'
-    ]
   },
   {
     providerId: 'deepinfra',

@@ -32,7 +32,7 @@ bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU"
 
 # extract media, documents, articles, and X Spaces
 bun autoshow extract "https://www.youtube.com/watch?v=u1-WHqATSQU"
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider groq=whisper-large-v3
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepinfra=openai/whisper-large-v3
 bun autoshow extract input/examples/document/1-document.pdf
 bun autoshow extract https://example.com/article --all-providers
 bun autoshow extract "https://x.com/i/spaces/1DXxyRYNejbKM"
@@ -123,7 +123,7 @@ Most hosted or mixed-provider commands accept `--price` to print an estimated co
 `music --audio` and `music --batch` are local lyric-video modes, so `--price` reports a free estimate and the expected render files.
 
 ```bash
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider groq=whisper-large-v3 --price
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepinfra=openai/whisper-large-v3 --price
 bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct --price
 bun autoshow extract https://example.com/article --all-providers --price
 bun autoshow write output/<extract-run>/transcription.txt --llm openai=gpt-5.5 --price

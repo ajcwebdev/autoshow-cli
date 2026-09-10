@@ -120,7 +120,7 @@ describe('--max-model-cents', () => {
 
     expect(result.exitCode).toBe(0)
     expect(estimateOutput).toContain('gpt-5.6-luna')
-    expect(estimateOutput).toContain('openai/gpt-oss-20b')
+    expect(estimateOutput).toContain('glm-5.3-flash')
     expect(estimateOutput).not.toContain('claude-opus')
     expect(estimateOutput).not.toContain('gpt-5.6-sol')
   })

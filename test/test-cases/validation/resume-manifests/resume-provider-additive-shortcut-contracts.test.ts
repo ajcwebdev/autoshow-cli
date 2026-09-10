@@ -158,11 +158,11 @@ describe('resume all-shortcut additive selection', () => {
   test('write resume records successful partial LLM results and exits incomplete for failed targets', async () => {
     const env = snapshotEnv([
       'TOGETHER_API_KEY',
-      'CEREBRAS_API_KEY'
+      'GLM_API_KEY'
     ])
     try {
       process.env['TOGETHER_API_KEY'] = 'together-key'
-      process.env['CEREBRAS_API_KEY'] = 'cerebras-key'
+      process.env['GLM_API_KEY'] = 'glm-key'
 
       await withTempDir('autoshow-write-resume-partial-', async (dir) => {
         await writeSingleManifestFixture(dir, 'write', {
@@ -181,10 +181,10 @@ describe('resume all-shortcut additive selection', () => {
         await Bun.write(join(dir, 'prompt.md'), 'Prompt')
 
         installMockFetch((call) => {
-          if (call.headers.get('authorization') === 'Bearer cerebras-key') {
+          if (call.headers.get('authorization') === 'Bearer glm-key') {
             return jsonResponse({
               error: {
-                message: 'Model zai-glm-4.7 does not exist or you do not have access to it.'
+                message: 'Model glm-5.1 does not exist or you do not have access to it.'
               }
             }, { status: 404 })
           }
@@ -198,9 +198,9 @@ describe('resume all-shortcut additive selection', () => {
 
         const normalized = normalizeResumeSelectorFlagsForTarget(
           target('write', dir),
-          { provider: ['together=kimi-k2.6', 'cerebras=zai-glm-4.7'] },
+          { provider: ['together=kimi-k2.6', 'glm=glm-5.1'] },
           new Set(['provider']),
-          ['resume', dir, '--provider', 'together=kimi-k2.6', '--provider', 'cerebras=zai-glm-4.7']
+          ['resume', dir, '--provider', 'together=kimi-k2.6', '--provider', 'glm=glm-5.1']
         )
         const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.flagOccurrences)
 
@@ -212,7 +212,7 @@ describe('resume all-shortcut additive selection', () => {
             kind: 'infrastructure',
             stage: 'resume:generation',
             exitCode: 2,
-            message: 'Write resume still has 1 incomplete provider(s): cerebras/zai-glm-4.7'
+            message: 'Write resume still has 1 incomplete provider(s): glm/glm-5.1'
           })
         }
 
@@ -223,12 +223,12 @@ describe('resume all-shortcut additive selection', () => {
           : [item?.metadata['step3'] as Step3Metadata]
         const togetherEntry = step3.find((entry) => `${entry.llmService}/${entry.llmModel}` === 'together/kimi-k2.6')
         expect(step3.map((entry) => `${entry.llmService}/${entry.llmModel}`)).toContain('together/kimi-k2.6')
-        expect(step3.map((entry) => `${entry.llmService}/${entry.llmModel}`)).not.toContain('cerebras/zai-glm-4.7')
+        expect(step3.map((entry) => `${entry.llmService}/${entry.llmModel}`)).not.toContain('glm/glm-5.1')
         expect(togetherEntry).toBeDefined()
         expect(await Bun.file(join(dir, togetherEntry!.outputFileName)).exists()).toBe(true)
         expect(item?.providers).toEqual(expect.arrayContaining([
           expect.objectContaining({ service: 'together', model: 'kimi-k2.6', status: 'succeeded' }),
-          expect.objectContaining({ service: 'cerebras', model: 'zai-glm-4.7', status: 'missing' })
+          expect.objectContaining({ service: 'glm', model: 'glm-5.1', status: 'missing' })
         ]))
       })
     } finally {

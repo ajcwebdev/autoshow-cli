@@ -8,15 +8,9 @@ describe('structured output provider capability contracts', () => {
     expect(shouldApplyStrictMode('together', true)).toBe(true)
   })
 
-  test('Cerebras uses native strict structured output', () => {
-    expect(resolveStructuredStrategy('cerebras')).toBe('native')
-    expect(shouldApplyStrictMode('cerebras', true)).toBe(true)
-  })
-
   test('every provider has an explicit validation retry budget', () => {
     const expected: Record<LLMService, number> = {
       openai: 0,
-      groq: 0,
       anthropic: 1,
       gemini: 1,
       minimax: 2,
@@ -24,7 +18,6 @@ describe('structured output provider capability contracts', () => {
       glm: 1,
       kimi: 1,
       together: 1,
-      cerebras: 1
     }
 
     for (const [service, budget] of Object.entries(expected) as Array<[LLMService, number]>) {

@@ -14,7 +14,6 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(getFlagGroupSection(result.stdout, 'Text to Speech')).toContain('--tts-chunk-concurrency')
     expect(getFlagGroupSection(result.stdout, 'Batch Processing')).toContain('--batch-concurrency')
     expect(result.stdout).not.toContain('Deepgram TTS')
-    expect(result.stdout).not.toContain('Groq TTS')
     expect(result.stdout).not.toContain('Gemini TTS')
     expect(result.stdout).not.toContain('Replicate TTS')
     expect(result.stdout).not.toContain('fal TTS')

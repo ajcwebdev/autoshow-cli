@@ -50,13 +50,11 @@ const SERVICE_FILE_SUFFIX: Record<Step3Metadata['llmService'], string> = {
   openai: 'chatgpt',
   anthropic: 'claude',
   gemini: 'gemini',
-  groq: 'groq',
   minimax: 'minimax',
   grok: 'grok',
   glm: 'glm',
   kimi: 'kimi',
   together: 'together',
-  cerebras: 'cerebras'
 }
 
 const sanitizeModelName = (model: string): string =>
@@ -73,13 +71,11 @@ const SERVICE_DISPLAY_LABEL: Record<Step3Metadata['llmService'], string> = {
   openai: 'ChatGPT',
   anthropic: 'Claude',
   gemini: 'Gemini',
-  groq: 'Groq',
   minimax: 'MiniMax',
   grok: 'Grok',
   glm: 'GLM',
   kimi: 'Kimi',
   together: 'Together',
-  cerebras: 'Cerebras'
 }
 
 const toRegistryLlmService = (service: Step3Metadata['llmService']): string =>

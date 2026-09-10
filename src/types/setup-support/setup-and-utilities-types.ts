@@ -8,9 +8,6 @@ SUPPORTED_LUMALABS_IMAGE_MODELS,
 SUPPORTED_OPENAI_IMAGE_MODELS,
 SUPPORTED_REPLICATE_IMAGE_MODELS,
 } from '~/cli/commands/setup-and-utilities/models/image-models'
-import {
-SUPPORTED_GROQ_MODELS
-} from '~/cli/commands/setup-and-utilities/models/llm-models'
 import { ModelRegistrySchema } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import {
 SUPPORTED_ELEVENLABS_MUSIC_MODELS,
@@ -53,7 +50,6 @@ export type ModelLinksData = Record<string, Record<string, string[]>>
 
 export type FetchFn = (input: string | URL | Request, init?: RequestInit) => Promise<Response>
 
-export type GroqModel = typeof SUPPORTED_GROQ_MODELS[number]
 export type ElevenlabsTtsModel = typeof SUPPORTED_ELEVENLABS_TTS_MODELS[number]
 export type GrokTtsModel = typeof SUPPORTED_GROK_TTS_MODELS[number]
 export type MistralTtsModel = typeof SUPPORTED_MISTRAL_TTS_MODELS[number]

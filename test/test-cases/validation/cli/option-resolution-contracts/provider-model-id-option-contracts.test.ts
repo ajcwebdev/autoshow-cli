@@ -2,7 +2,6 @@ import { describe,expect,test } from 'bun:test'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import {
 validateAnthropicOcrModel,
-validateCerebrasModel,
 validateGeminiOcrModel,
 validateGrokModel,
 validateGrokOcrModel,
@@ -18,17 +17,6 @@ describe('option resolution contracts', () => {
 
   test('MiniMax write model validator accepts M3', () => {
       expect(validateMinimaxModel('MiniMax-M3')).toBe('MiniMax-M3')
-    })
-
-  test('Cerebras write model validator accepts public selectors and rejects raw dedicated IDs', () => {
-      const expectedAllowed = 'Allowed values: gpt-oss-120b, zai-glm-4.7'
-
-      expect(validateCerebrasModel('gpt-oss-120b')).toBe('gpt-oss-120b')
-      expect(validateCerebrasModel('zai-glm-4.7')).toBe('zai-glm-4.7')
-      expect(() => validateCerebrasModel('kimi-k2.6')).toThrow(`Invalid model "kimi-k2.6" for --llm cerebras[=model]. ${expectedAllowed}`)
-      expect(() => validateCerebrasModel('glm-5.1')).toThrow(`Invalid model "glm-5.1" for --llm cerebras[=model]. ${expectedAllowed}`)
-      expect(() => validateCerebrasModel('moonshotai/Kimi-K2.6')).toThrow(`Invalid model "moonshotai/Kimi-K2.6" for --llm cerebras[=model]. ${expectedAllowed}`)
-      expect(() => validateCerebrasModel('zai-org/GLM-5.1')).toThrow(`Invalid model "zai-org/GLM-5.1" for --llm cerebras[=model]. ${expectedAllowed}`)
     })
 
   test('Together write model validator accepts public selectors and rejects raw provider IDs', () => {
@@ -83,7 +71,6 @@ describe('option resolution contracts', () => {
       const glmDefault = resolveCheapestModelForFlag('glm')
       const kimiDefault = resolveCheapestModelForFlag('kimi')
       const togetherDefault = resolveCheapestModelForFlag('together')
-      const cerebrasDefault = resolveCheapestModelForFlag('cerebras')
       const deepgramDefault = resolveCheapestModelForFlag('deepgram-stt')
       const assemblyaiDefault = resolveCheapestModelForFlag('assemblyai-stt')
       const gladiaDefault = resolveCheapestModelForFlag('gladia-stt')
@@ -109,7 +96,6 @@ describe('option resolution contracts', () => {
         glm: true,
         kimi: true,
         together: true,
-        cerebras: true,
         'deepgram-stt': true,
         'assemblyai-stt': true,
         'gladia-stt': true,
@@ -135,7 +121,6 @@ describe('option resolution contracts', () => {
       expect(glmDefault).toBeDefined()
       expect(kimiDefault).toBe('kimi-k2.6')
       expect(togetherDefault).toBe('glm-5.1')
-      expect(cerebrasDefault).toBe('gpt-oss-120b')
       expect(deepgramDefault).toBeDefined()
       expect(assemblyaiDefault).toBe('universal-3-5-pro')
       expect(gladiaDefault).toBe('solaria-3')
@@ -160,7 +145,6 @@ describe('option resolution contracts', () => {
       expect(glmDefault).toBe(opts.glmModels?.[0])
       expect(kimiDefault).toBe(opts.kimiModels?.[0])
       expect(togetherDefault).toBe(opts.togetherModels?.[0])
-      expect(cerebrasDefault).toBe(opts.cerebrasModels?.[0])
       expect(opts.deepgramSttModels?.[0]).toBe(deepgramDefault)
       expect(opts.assemblyaiSttModels?.[0]).toBe(assemblyaiDefault)
       expect(opts.gladiaSttModels?.[0]).toBe(gladiaDefault)

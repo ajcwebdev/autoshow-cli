@@ -29,7 +29,6 @@ describe('option resolution contracts', () => {
         glm: 'glm-5.1',
         kimi: 'kimi-k2.6',
         together: 'glm-5.1',
-        cerebras: 'gpt-oss-120b',
         'mistral-stt': 'voxtral-mini-2602',
         'grok-stt': 'speech-to-text',
         'together-stt': 'openai/whisper-large-v3',
@@ -80,7 +79,6 @@ describe('option resolution contracts', () => {
       expect(opts.glmModels?.[0]).toBe('glm-5.1')
       expect(opts.kimiModels?.[0]).toBe('kimi-k2.6')
       expect(opts.togetherModels?.[0]).toBe('glm-5.1')
-      expect(opts.cerebrasModels?.[0]).toBe('gpt-oss-120b')
       expect(opts.mistralSttModels?.[0]).toBe('voxtral-mini-2602')
       expect(opts.grokSttModels?.[0]).toBe('speech-to-text')
       expect(opts.togetherSttModels?.[0]).toBe('openai/whisper-large-v3')

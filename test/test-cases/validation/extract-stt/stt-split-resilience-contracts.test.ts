@@ -10,9 +10,14 @@ import { planAudioSplitSegments } from '~/cli/commands/process-steps/step-2-extr
 import { resolveSplitSegmentOutputDir } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/run-stt/split-execution'
 import type { SplitPolicyTarget } from '~/types'
 
-const GROQ = {
-  service: 'groq',
-  model: 'whisper-large-v3-turbo'
+const DEEPINFRA = {
+  service: 'deepinfra',
+  model: 'openai/whisper-large-v3-turbo'
+} satisfies SplitPolicyTarget
+
+const TOGETHER = {
+  service: 'together',
+  model: 'openai/whisper-large-v3'
 } satisfies SplitPolicyTarget
 
 const GLADIA = {
@@ -71,9 +76,9 @@ describe('STT split resilience contracts', () => {
   })
 
   test('byte-cap and hard duration-cap policies split for capacity-limited providers', () => {
-    expect(resolveSttSplitPolicy(GROQ).requestBudgetSeconds).toBeUndefined()
+    expect(resolveSttSplitPolicy(DEEPINFRA).requestBudgetSeconds).toBeUndefined()
 
-    const byteDecision = resolveTranscriptionSplitDecision(GROQ, {
+    const byteDecision = resolveTranscriptionSplitDecision(TOGETHER, {
       audioFileSizeBytes: 100 * 1024 * 1024,
       audioDurationSeconds: 1800,
       splitRequested: false

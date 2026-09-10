@@ -56,14 +56,6 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
 
   describe('resolveReasoningPolicy - Adapter Defaults & Explicit Overrides', () => {
     it('returns adapter defaults only when the flag is omitted', () => {
-      const groqPolicy = resolveReasoningPolicy({
-        step: 'llm',
-        service: 'groq',
-        model: 'openai/gpt-oss-120b',
-        requestedReasoningEffort: undefined
-      })
-      expect(groqPolicy.effective).toBe('low')
-
       const geminiOcrPolicy = resolveReasoningPolicy({
         step: 'extract',
         service: 'gemini',
@@ -99,14 +91,14 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
     })
 
     it('accepts valid supported explicit effort overrides', () => {
-      const groqPolicy = resolveReasoningPolicy({
+      const openaiPolicy = resolveReasoningPolicy({
         step: 'llm',
-        service: 'groq',
-        model: 'openai/gpt-oss-120b',
+        service: 'openai',
+        model: 'gpt-5.5',
         requestedReasoningEffort: 'medium'
       })
-      expect(groqPolicy.requested).toBe('medium')
-      expect(groqPolicy.effective).toBe('medium')
+      expect(openaiPolicy.requested).toBe('medium')
+      expect(openaiPolicy.effective).toBe('medium')
 
       const geminiPolicy = resolveReasoningPolicy({
         step: 'llm',

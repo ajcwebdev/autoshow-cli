@@ -33,13 +33,6 @@ export const gladiaTranscription = {
   envVarDescription: 'Gladia transcription',
 } as const
 
-export const groqWhisper = {
-  provider: 'groq',
-  sttService: 'groq',
-  envVarKey: 'GROQ_API_KEY',
-  envVarDescription: 'Groq whisper transcription',
-} as const
-
 export const grokSpeechToText = {
   provider: 'grok',
   sttService: 'grok',

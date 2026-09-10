@@ -62,7 +62,7 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_run --all-local
 # Append write LLM providers to an existing write run
 bun autoshow resume ./output/2026-06-10_16-33-20-777_write \
   --provider together=kimi-k2.6 \
-  --provider cerebras=gpt-oss-120b
+  --provider glm=glm-5.1
 
 # Retry or append extract providers
 bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider glm=glm-ocr

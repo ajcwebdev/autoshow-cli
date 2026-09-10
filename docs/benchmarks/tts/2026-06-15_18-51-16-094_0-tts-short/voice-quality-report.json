@@ -34,13 +34,13 @@
     "Cost, processing speed, and provider latency are excluded from human-speech scoring.",
     "Full mode fails when a configured paid scoring call is attempted and returns an error or unusable response."
   ],
-  "providerCount": 15,
+  "providerCount": 14,
   "local": {
     "count": 0,
     "providers": []
   },
   "cloud": {
-    "count": 15,
+    "count": 14,
     "providers": [
       {
         "providerKey": "openai/tts-1-hd",
@@ -1511,189 +1511,6 @@
         "rank": 8
       },
       {
-        "providerKey": "groq/canopylabs/orpheus-v1-english",
-        "ttsService": "groq",
-        "ttsModel": "canopylabs/orpheus-v1-english",
-        "speaker": "troy",
-        "group": "cloud",
-        "audioFileName": "speech-groq-canopylabs-orpheus-v1-english.wav",
-        "audioFileSize": 64074,
-        "audioExists": true,
-        "originalAudioProperties": {
-          "durationSeconds": 1.999875,
-          "sampleRate": 16000,
-          "channels": 1,
-          "bitrate": 256312,
-          "codec": "pcm_s16le"
-        },
-        "naturalnessScore": 75.28172503128589,
-        "speechQualityScore": 95.7765114809978,
-        "humanSpeechScore": 84.50437893365626,
-        "scoreCoverage": {
-          "naturalness": {
-            "availableWeight": 0.30000000000000004,
-            "totalWeight": 0.9999999999999999
-          },
-          "speechQuality": {
-            "availableWeight": 0.4,
-            "totalWeight": 1
-          },
-          "humanSpeech": {
-            "availableWeight": 1,
-            "totalWeight": 1
-          }
-        },
-        "componentScores": {
-          "naturalness": {
-            "utmosv2Mos": {
-              "score": null,
-              "weight": 0.45,
-              "status": "missing",
-              "source": "utmosv2",
-              "note": "UTMOSv2 MOS was not available. Provide --metric-fixtures with utmosv2Mos or run a UTMOSv2 scorer externally."
-            },
-            "nisqaTtsNaturalnessMos": {
-              "score": null,
-              "weight": 0.25,
-              "status": "missing",
-              "source": "nisqa-tts",
-              "note": "NISQA-TTS naturalness MOS was not available. Provide --metric-fixtures with nisqaTtsNaturalnessMos."
-            },
-            "paidAudioJudgeRubric": {
-              "score": 88,
-              "weight": 0.2,
-              "status": "scored",
-              "source": "openai/gpt-audio",
-              "note": "Paid audio-judge rubric naturalness score.",
-              "details": {
-                "pronunciationScore": 95,
-                "prosodyScore": 90,
-                "artifactScore": 85,
-                "confidence": 0.95
-              }
-            },
-            "prosodyHeuristics": {
-              "score": 49.84517509385767,
-              "weight": 0.1,
-              "status": "scored",
-              "source": "ffmpeg-pcm-heuristics",
-              "note": "Prosody heuristic score from speaking rate, pause ratio, pause distribution, and loudness motion.",
-              "details": {
-                "speechWordsPerMinute": 90.00562535158447,
-                "speakingRateCharsPerSecond": 8.000500031251953,
-                "expectedPauseCount": 1,
-                "detectedPauseCount": 2,
-                "pauseCountRatio": 2,
-                "rateScore": 46.16250054089919,
-                "pauseRatioScore": 32.41985031471875,
-                "pauseCountScore": 85.71428571428572,
-                "loudnessRangeScore": 54.06629609753656
-              }
-            }
-          },
-          "speechQuality": {
-            "nisqaQualityMos": {
-              "score": null,
-              "weight": 0.35,
-              "status": "missing",
-              "source": "nisqa",
-              "note": "NISQA quality MOS was not available. Provide --metric-fixtures with nisqaQualityMos or NISQA dimensions."
-            },
-            "dnsmos": {
-              "score": null,
-              "weight": 0.25,
-              "status": "missing",
-              "source": "dnsmos",
-              "note": "DNSMOS was not available. Provide --metric-fixtures with dnsmosMos or dnsmos.overallMos."
-            },
-            "roundtripSttIntelligibility": {
-              "score": 100,
-              "weight": 0.25,
-              "status": "scored",
-              "source": "median-roundtrip-wer",
-              "note": "Intelligibility score from median WER across available STT engines.",
-              "details": {
-                "medianWer": 0,
-                "engines": [
-                  {
-                    "engine": "assemblyai/universal-3-pro",
-                    "wer": 0
-                  }
-                ]
-              }
-            },
-            "signalHygiene": {
-              "score": 88.7373639493275,
-              "weight": 0.15,
-              "status": "scored",
-              "source": "ffmpeg-pcm-heuristics",
-              "note": "Signal hygiene score from clipping, loudness, silence ratio, loudness range, discontinuities, and DC offset.",
-              "details": {
-                "durationSeconds": 1.999875,
-                "peakDbfs": -2.0440095634443085,
-                "rmsDbfs": -19.58229908246655,
-                "clippingRatio": 0,
-                "silenceRatio": 0.4624664041502594,
-                "loudnessRangeDb": 27.512044468295613,
-                "abruptDiscontinuitiesPerSecond": 0,
-                "dcOffset": -0.00001970986528943215,
-                "initialSilenceSeconds": 0.1271875,
-                "finalSilenceSeconds": 0.400375,
-                "pauseCount": 2,
-                "medianPauseSeconds": 0.3198125,
-                "maxPauseSeconds": 0.400375
-              }
-            }
-          }
-        },
-        "metricDetails": {
-          "signalMetrics": {
-            "durationSeconds": 1.999875,
-            "peakDbfs": -2.0440095634443085,
-            "rmsDbfs": -19.58229908246655,
-            "clippingRatio": 0,
-            "silenceRatio": 0.4624664041502594,
-            "loudnessRangeDb": 27.512044468295613,
-            "abruptDiscontinuitiesPerSecond": 0,
-            "dcOffset": -0.00001970986528943215,
-            "initialSilenceSeconds": 0.1271875,
-            "finalSilenceSeconds": 0.400375,
-            "pauseCount": 2,
-            "medianPauseSeconds": 0.3198125,
-            "maxPauseSeconds": 0.400375
-          },
-          "prosodyMetrics": {
-            "speechWordsPerMinute": 90.00562535158447,
-            "speakingRateCharsPerSecond": 8.000500031251953,
-            "expectedPauseCount": 1,
-            "detectedPauseCount": 2,
-            "pauseCountRatio": 2,
-            "rateScore": 46.16250054089919,
-            "pauseRatioScore": 32.41985031471875,
-            "pauseCountScore": 85.71428571428572,
-            "loudnessRangeScore": 54.06629609753656
-          },
-          "roundtripStt": {
-            "medianWer": 0,
-            "engines": [
-              {
-                "engine": "assemblyai/universal-3-pro",
-                "transcript": "Short test line.",
-                "wer": 0
-              }
-            ]
-          }
-        },
-        "missingMetrics": [
-          "naturalness.utmosv2Mos",
-          "naturalness.nisqaTtsNaturalnessMos",
-          "speechQuality.nisqaQualityMos",
-          "speechQuality.dnsmos"
-        ],
-        "warnings": [],
-        "rank": 9
-      },
-      {
         "providerKey": "elevenlabs/eleven_v3",
         "ttsService": "elevenlabs",
         "ttsModel": "eleven_v3",
@@ -1874,7 +1691,7 @@
           "speechQuality.dnsmos"
         ],
         "warnings": [],
-        "rank": 10
+        "rank": 9
       },
       {
         "providerKey": "gemini/gemini-3.1-flash-tts-preview",
@@ -2059,7 +1876,7 @@
         "warnings": [
           "Abrupt waveform discontinuities detected"
         ],
-        "rank": 11
+        "rank": 10
       },
       {
         "providerKey": "cartesia/sonic-3.5",
@@ -2242,7 +2059,7 @@
           "speechQuality.dnsmos"
         ],
         "warnings": [],
-        "rank": 12
+        "rank": 11
       },
       {
         "providerKey": "cartesia/sonic-3",
@@ -2425,7 +2242,7 @@
           "speechQuality.dnsmos"
         ],
         "warnings": [],
-        "rank": 13
+        "rank": 12
       },
       {
         "providerKey": "openai/gpt-4o-mini-tts",
@@ -2610,7 +2427,7 @@
         "warnings": [
           "Silence ratio is high at 55.5%"
         ],
-        "rank": 14
+        "rank": 13
       },
       {
         "providerKey": "mistral/voxtral-mini-tts-2603",
@@ -2793,12 +2610,12 @@
           "speechQuality.dnsmos"
         ],
         "warnings": [],
-        "rank": 15
+        "rank": 14
       }
     ]
   },
   "overall": {
-    "count": 15,
+    "count": 14,
     "providers": [
       {
         "providerKey": "openai/tts-1-hd",
@@ -4269,189 +4086,6 @@
         "rank": 8
       },
       {
-        "providerKey": "groq/canopylabs/orpheus-v1-english",
-        "ttsService": "groq",
-        "ttsModel": "canopylabs/orpheus-v1-english",
-        "speaker": "troy",
-        "group": "cloud",
-        "audioFileName": "speech-groq-canopylabs-orpheus-v1-english.wav",
-        "audioFileSize": 64074,
-        "audioExists": true,
-        "originalAudioProperties": {
-          "durationSeconds": 1.999875,
-          "sampleRate": 16000,
-          "channels": 1,
-          "bitrate": 256312,
-          "codec": "pcm_s16le"
-        },
-        "naturalnessScore": 75.28172503128589,
-        "speechQualityScore": 95.7765114809978,
-        "humanSpeechScore": 84.50437893365626,
-        "scoreCoverage": {
-          "naturalness": {
-            "availableWeight": 0.30000000000000004,
-            "totalWeight": 0.9999999999999999
-          },
-          "speechQuality": {
-            "availableWeight": 0.4,
-            "totalWeight": 1
-          },
-          "humanSpeech": {
-            "availableWeight": 1,
-            "totalWeight": 1
-          }
-        },
-        "componentScores": {
-          "naturalness": {
-            "utmosv2Mos": {
-              "score": null,
-              "weight": 0.45,
-              "status": "missing",
-              "source": "utmosv2",
-              "note": "UTMOSv2 MOS was not available. Provide --metric-fixtures with utmosv2Mos or run a UTMOSv2 scorer externally."
-            },
-            "nisqaTtsNaturalnessMos": {
-              "score": null,
-              "weight": 0.25,
-              "status": "missing",
-              "source": "nisqa-tts",
-              "note": "NISQA-TTS naturalness MOS was not available. Provide --metric-fixtures with nisqaTtsNaturalnessMos."
-            },
-            "paidAudioJudgeRubric": {
-              "score": 88,
-              "weight": 0.2,
-              "status": "scored",
-              "source": "openai/gpt-audio",
-              "note": "Paid audio-judge rubric naturalness score.",
-              "details": {
-                "pronunciationScore": 95,
-                "prosodyScore": 90,
-                "artifactScore": 85,
-                "confidence": 0.95
-              }
-            },
-            "prosodyHeuristics": {
-              "score": 49.84517509385767,
-              "weight": 0.1,
-              "status": "scored",
-              "source": "ffmpeg-pcm-heuristics",
-              "note": "Prosody heuristic score from speaking rate, pause ratio, pause distribution, and loudness motion.",
-              "details": {
-                "speechWordsPerMinute": 90.00562535158447,
-                "speakingRateCharsPerSecond": 8.000500031251953,
-                "expectedPauseCount": 1,
-                "detectedPauseCount": 2,
-                "pauseCountRatio": 2,
-                "rateScore": 46.16250054089919,
-                "pauseRatioScore": 32.41985031471875,
-                "pauseCountScore": 85.71428571428572,
-                "loudnessRangeScore": 54.06629609753656
-              }
-            }
-          },
-          "speechQuality": {
-            "nisqaQualityMos": {
-              "score": null,
-              "weight": 0.35,
-              "status": "missing",
-              "source": "nisqa",
-              "note": "NISQA quality MOS was not available. Provide --metric-fixtures with nisqaQualityMos or NISQA dimensions."
-            },
-            "dnsmos": {
-              "score": null,
-              "weight": 0.25,
-              "status": "missing",
-              "source": "dnsmos",
-              "note": "DNSMOS was not available. Provide --metric-fixtures with dnsmosMos or dnsmos.overallMos."
-            },
-            "roundtripSttIntelligibility": {
-              "score": 100,
-              "weight": 0.25,
-              "status": "scored",
-              "source": "median-roundtrip-wer",
-              "note": "Intelligibility score from median WER across available STT engines.",
-              "details": {
-                "medianWer": 0,
-                "engines": [
-                  {
-                    "engine": "assemblyai/universal-3-pro",
-                    "wer": 0
-                  }
-                ]
-              }
-            },
-            "signalHygiene": {
-              "score": 88.7373639493275,
-              "weight": 0.15,
-              "status": "scored",
-              "source": "ffmpeg-pcm-heuristics",
-              "note": "Signal hygiene score from clipping, loudness, silence ratio, loudness range, discontinuities, and DC offset.",
-              "details": {
-                "durationSeconds": 1.999875,
-                "peakDbfs": -2.0440095634443085,
-                "rmsDbfs": -19.58229908246655,
-                "clippingRatio": 0,
-                "silenceRatio": 0.4624664041502594,
-                "loudnessRangeDb": 27.512044468295613,
-                "abruptDiscontinuitiesPerSecond": 0,
-                "dcOffset": -0.00001970986528943215,
-                "initialSilenceSeconds": 0.1271875,
-                "finalSilenceSeconds": 0.400375,
-                "pauseCount": 2,
-                "medianPauseSeconds": 0.3198125,
-                "maxPauseSeconds": 0.400375
-              }
-            }
-          }
-        },
-        "metricDetails": {
-          "signalMetrics": {
-            "durationSeconds": 1.999875,
-            "peakDbfs": -2.0440095634443085,
-            "rmsDbfs": -19.58229908246655,
-            "clippingRatio": 0,
-            "silenceRatio": 0.4624664041502594,
-            "loudnessRangeDb": 27.512044468295613,
-            "abruptDiscontinuitiesPerSecond": 0,
-            "dcOffset": -0.00001970986528943215,
-            "initialSilenceSeconds": 0.1271875,
-            "finalSilenceSeconds": 0.400375,
-            "pauseCount": 2,
-            "medianPauseSeconds": 0.3198125,
-            "maxPauseSeconds": 0.400375
-          },
-          "prosodyMetrics": {
-            "speechWordsPerMinute": 90.00562535158447,
-            "speakingRateCharsPerSecond": 8.000500031251953,
-            "expectedPauseCount": 1,
-            "detectedPauseCount": 2,
-            "pauseCountRatio": 2,
-            "rateScore": 46.16250054089919,
-            "pauseRatioScore": 32.41985031471875,
-            "pauseCountScore": 85.71428571428572,
-            "loudnessRangeScore": 54.06629609753656
-          },
-          "roundtripStt": {
-            "medianWer": 0,
-            "engines": [
-              {
-                "engine": "assemblyai/universal-3-pro",
-                "transcript": "Short test line.",
-                "wer": 0
-              }
-            ]
-          }
-        },
-        "missingMetrics": [
-          "naturalness.utmosv2Mos",
-          "naturalness.nisqaTtsNaturalnessMos",
-          "speechQuality.nisqaQualityMos",
-          "speechQuality.dnsmos"
-        ],
-        "warnings": [],
-        "rank": 9
-      },
-      {
         "providerKey": "elevenlabs/eleven_v3",
         "ttsService": "elevenlabs",
         "ttsModel": "eleven_v3",
@@ -4632,7 +4266,7 @@
           "speechQuality.dnsmos"
         ],
         "warnings": [],
-        "rank": 10
+        "rank": 9
       },
       {
         "providerKey": "gemini/gemini-3.1-flash-tts-preview",
@@ -4817,7 +4451,7 @@
         "warnings": [
           "Abrupt waveform discontinuities detected"
         ],
-        "rank": 11
+        "rank": 10
       },
       {
         "providerKey": "cartesia/sonic-3.5",
@@ -5000,7 +4634,7 @@
           "speechQuality.dnsmos"
         ],
         "warnings": [],
-        "rank": 12
+        "rank": 11
       },
       {
         "providerKey": "cartesia/sonic-3",
@@ -5183,7 +4817,7 @@
           "speechQuality.dnsmos"
         ],
         "warnings": [],
-        "rank": 13
+        "rank": 12
       },
       {
         "providerKey": "openai/gpt-4o-mini-tts",
@@ -5368,7 +5002,7 @@
         "warnings": [
           "Silence ratio is high at 55.5%"
         ],
-        "rank": 14
+        "rank": 13
       },
       {
         "providerKey": "mistral/voxtral-mini-tts-2603",
@@ -5551,7 +5185,7 @@
           "speechQuality.dnsmos"
         ],
         "warnings": [],
-        "rank": 15
+        "rank": 14
       }
     ]
   },
@@ -5920,7 +5554,7 @@
         "speechQuality.dnsmos"
       ],
       "warnings": [],
-      "rank": 3
+      "rank": 2
     },
     {
       "providerKey": "hume/octave-2",
@@ -6105,7 +5739,7 @@
       "warnings": [
         "Abrupt waveform discontinuities detected"
       ],
-      "rank": 4
+      "rank": 3
     },
     {
       "providerKey": "minimax/speech-2.8-turbo",
@@ -6288,7 +5922,7 @@
         "speechQuality.dnsmos"
       ],
       "warnings": [],
-      "rank": 5
+      "rank": 4
     },
     {
       "providerKey": "deepgram/aura-2-thalia-en",
@@ -6471,7 +6105,7 @@
         "speechQuality.dnsmos"
       ],
       "warnings": [],
-      "rank": 6
+      "rank": 5
     },
     {
       "providerKey": "openai/tts-1",
@@ -6656,7 +6290,7 @@
       "warnings": [
         "Abrupt waveform discontinuities detected"
       ],
-      "rank": 7
+      "rank": 6
     },
     {
       "providerKey": "minimax/speech-2.8-hd",
@@ -6839,7 +6473,7 @@
         "speechQuality.dnsmos"
       ],
       "warnings": [],
-      "rank": 8
+      "rank": 7
     },
     {
       "providerKey": "grok/grok-tts",
@@ -7022,190 +6656,7 @@
         "speechQuality.dnsmos"
       ],
       "warnings": [],
-      "rank": 9
-    },
-    {
-      "providerKey": "groq/canopylabs/orpheus-v1-english",
-      "ttsService": "groq",
-      "ttsModel": "canopylabs/orpheus-v1-english",
-      "speaker": "troy",
-      "group": "cloud",
-      "audioFileName": "speech-groq-canopylabs-orpheus-v1-english.wav",
-      "audioFileSize": 64074,
-      "audioExists": true,
-      "originalAudioProperties": {
-        "durationSeconds": 1.999875,
-        "sampleRate": 16000,
-        "channels": 1,
-        "bitrate": 256312,
-        "codec": "pcm_s16le"
-      },
-      "naturalnessScore": 75.28172503128589,
-      "speechQualityScore": 95.7765114809978,
-      "humanSpeechScore": 84.50437893365626,
-      "scoreCoverage": {
-        "naturalness": {
-          "availableWeight": 0.30000000000000004,
-          "totalWeight": 0.9999999999999999
-        },
-        "speechQuality": {
-          "availableWeight": 0.4,
-          "totalWeight": 1
-        },
-        "humanSpeech": {
-          "availableWeight": 1,
-          "totalWeight": 1
-        }
-      },
-      "componentScores": {
-        "naturalness": {
-          "utmosv2Mos": {
-            "score": null,
-            "weight": 0.45,
-            "status": "missing",
-            "source": "utmosv2",
-            "note": "UTMOSv2 MOS was not available. Provide --metric-fixtures with utmosv2Mos or run a UTMOSv2 scorer externally."
-          },
-          "nisqaTtsNaturalnessMos": {
-            "score": null,
-            "weight": 0.25,
-            "status": "missing",
-            "source": "nisqa-tts",
-            "note": "NISQA-TTS naturalness MOS was not available. Provide --metric-fixtures with nisqaTtsNaturalnessMos."
-          },
-          "paidAudioJudgeRubric": {
-            "score": 88,
-            "weight": 0.2,
-            "status": "scored",
-            "source": "openai/gpt-audio",
-            "note": "Paid audio-judge rubric naturalness score.",
-            "details": {
-              "pronunciationScore": 95,
-              "prosodyScore": 90,
-              "artifactScore": 85,
-              "confidence": 0.95
-            }
-          },
-          "prosodyHeuristics": {
-            "score": 49.84517509385767,
-            "weight": 0.1,
-            "status": "scored",
-            "source": "ffmpeg-pcm-heuristics",
-            "note": "Prosody heuristic score from speaking rate, pause ratio, pause distribution, and loudness motion.",
-            "details": {
-              "speechWordsPerMinute": 90.00562535158447,
-              "speakingRateCharsPerSecond": 8.000500031251953,
-              "expectedPauseCount": 1,
-              "detectedPauseCount": 2,
-              "pauseCountRatio": 2,
-              "rateScore": 46.16250054089919,
-              "pauseRatioScore": 32.41985031471875,
-              "pauseCountScore": 85.71428571428572,
-              "loudnessRangeScore": 54.06629609753656
-            }
-          }
-        },
-        "speechQuality": {
-          "nisqaQualityMos": {
-            "score": null,
-            "weight": 0.35,
-            "status": "missing",
-            "source": "nisqa",
-            "note": "NISQA quality MOS was not available. Provide --metric-fixtures with nisqaQualityMos or NISQA dimensions."
-          },
-          "dnsmos": {
-            "score": null,
-            "weight": 0.25,
-            "status": "missing",
-            "source": "dnsmos",
-            "note": "DNSMOS was not available. Provide --metric-fixtures with dnsmosMos or dnsmos.overallMos."
-          },
-          "roundtripSttIntelligibility": {
-            "score": 100,
-            "weight": 0.25,
-            "status": "scored",
-            "source": "median-roundtrip-wer",
-            "note": "Intelligibility score from median WER across available STT engines.",
-            "details": {
-              "medianWer": 0,
-              "engines": [
-                {
-                  "engine": "assemblyai/universal-3-pro",
-                  "wer": 0
-                }
-              ]
-            }
-          },
-          "signalHygiene": {
-            "score": 88.7373639493275,
-            "weight": 0.15,
-            "status": "scored",
-            "source": "ffmpeg-pcm-heuristics",
-            "note": "Signal hygiene score from clipping, loudness, silence ratio, loudness range, discontinuities, and DC offset.",
-            "details": {
-              "durationSeconds": 1.999875,
-              "peakDbfs": -2.0440095634443085,
-              "rmsDbfs": -19.58229908246655,
-              "clippingRatio": 0,
-              "silenceRatio": 0.4624664041502594,
-              "loudnessRangeDb": 27.512044468295613,
-              "abruptDiscontinuitiesPerSecond": 0,
-              "dcOffset": -0.00001970986528943215,
-              "initialSilenceSeconds": 0.1271875,
-              "finalSilenceSeconds": 0.400375,
-              "pauseCount": 2,
-              "medianPauseSeconds": 0.3198125,
-              "maxPauseSeconds": 0.400375
-            }
-          }
-        }
-      },
-      "metricDetails": {
-        "signalMetrics": {
-          "durationSeconds": 1.999875,
-          "peakDbfs": -2.0440095634443085,
-          "rmsDbfs": -19.58229908246655,
-          "clippingRatio": 0,
-          "silenceRatio": 0.4624664041502594,
-          "loudnessRangeDb": 27.512044468295613,
-          "abruptDiscontinuitiesPerSecond": 0,
-          "dcOffset": -0.00001970986528943215,
-          "initialSilenceSeconds": 0.1271875,
-          "finalSilenceSeconds": 0.400375,
-          "pauseCount": 2,
-          "medianPauseSeconds": 0.3198125,
-          "maxPauseSeconds": 0.400375
-        },
-        "prosodyMetrics": {
-          "speechWordsPerMinute": 90.00562535158447,
-          "speakingRateCharsPerSecond": 8.000500031251953,
-          "expectedPauseCount": 1,
-          "detectedPauseCount": 2,
-          "pauseCountRatio": 2,
-          "rateScore": 46.16250054089919,
-          "pauseRatioScore": 32.41985031471875,
-          "pauseCountScore": 85.71428571428572,
-          "loudnessRangeScore": 54.06629609753656
-        },
-        "roundtripStt": {
-          "medianWer": 0,
-          "engines": [
-            {
-              "engine": "assemblyai/universal-3-pro",
-              "transcript": "Short test line.",
-              "wer": 0
-            }
-          ]
-        }
-      },
-      "missingMetrics": [
-        "naturalness.utmosv2Mos",
-        "naturalness.nisqaTtsNaturalnessMos",
-        "speechQuality.nisqaQualityMos",
-        "speechQuality.dnsmos"
-      ],
-      "warnings": [],
-      "rank": 10
+      "rank": 8
     },
     {
       "providerKey": "elevenlabs/eleven_v3",
@@ -7388,7 +6839,7 @@
         "speechQuality.dnsmos"
       ],
       "warnings": [],
-      "rank": 11
+      "rank": 9
     },
     {
       "providerKey": "gemini/gemini-3.1-flash-tts-preview",
@@ -7573,7 +7024,7 @@
       "warnings": [
         "Abrupt waveform discontinuities detected"
       ],
-      "rank": 12
+      "rank": 10
     },
     {
       "providerKey": "cartesia/sonic-3.5",
@@ -7756,7 +7207,7 @@
         "speechQuality.dnsmos"
       ],
       "warnings": [],
-      "rank": 13
+      "rank": 11
     },
     {
       "providerKey": "cartesia/sonic-3",
@@ -7939,7 +7390,7 @@
         "speechQuality.dnsmos"
       ],
       "warnings": [],
-      "rank": 14
+      "rank": 12
     },
     {
       "providerKey": "openai/gpt-4o-mini-tts",
@@ -8124,7 +7575,7 @@
       "warnings": [
         "Silence ratio is high at 55.5%"
       ],
-      "rank": 15
+      "rank": 13
     },
     {
       "providerKey": "mistral/voxtral-mini-tts-2603",
@@ -8307,7 +7758,7 @@
         "speechQuality.dnsmos"
       ],
       "warnings": [],
-      "rank": 16
+      "rank": 14
     }
   ],
   "warnings": [

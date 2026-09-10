@@ -59,8 +59,8 @@ bun autoshow extract input/examples/document/1-epub.epub --provider openai=gpt-5
 # Transcribe locally without diarization using Whisperfile
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider whisperfile=tiny
 
-# Transcribe with hosted Groq without diarization
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider groq=whisper-large-v3
+# Transcribe with hosted DeepInfra without diarization
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepinfra=openai/whisper-large-v3
 
 # Transcribe with hosted Deepgram speaker diarization
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepgram=nova-3

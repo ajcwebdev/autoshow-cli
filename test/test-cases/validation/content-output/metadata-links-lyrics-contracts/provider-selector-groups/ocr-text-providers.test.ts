@@ -2,13 +2,9 @@ import { expect, test } from 'bun:test'
 import { expectLinksUsageError } from '../links-usage-errors'
 import {
   collectLinks,
-  getDefaultLinksOutputFileName,
   parseLinksArgv,
 } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import {
-  CEREBRAS_ALL_LINKS,
-  CEREBRAS_MODELS_LINKS,
-  CEREBRAS_TEXT_LINKS,
   FIRECRAWL_URL_LINKS,
   GLM_OCR_LINKS,
   GLM_MODELS_LINKS,
@@ -85,62 +81,6 @@ test('links selector accepts glm provider with separate ocr and url sections', (
   ])
 })
 
-test('links selector accepts cerebras provider with general and text sections', async () => {
-  const cerebrasSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--cerebras'
-  ])
-
-  expect(cerebrasSelection.serviceSelections.get('cerebras')).toEqual([])
-  expect(collectLinks(
-    cerebrasSelection.serviceSelections,
-    cerebrasSelection.globalSections
-  )).toEqual(CEREBRAS_ALL_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    cerebrasSelection.serviceSelections,
-    cerebrasSelection.globalSections
-  )).toBe('cerebras-all-links.md')
-
-  const cerebrasTextSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--cerebras',
-    'text'
-  ])
-
-  expect(collectLinks(
-    cerebrasTextSelection.serviceSelections,
-    cerebrasTextSelection.globalSections
-  )).toEqual(CEREBRAS_TEXT_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    cerebrasTextSelection.serviceSelections,
-    cerebrasTextSelection.globalSections
-  )).toBe('cerebras-text-links.md')
-
-  const cerebrasModelsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--cerebras',
-    'models'
-  ])
-
-  expect(collectLinks(
-    cerebrasModelsSelection.serviceSelections,
-    cerebrasModelsSelection.globalSections
-  )).toEqual(CEREBRAS_MODELS_LINKS)
-
-  await expectLinksUsageError([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--cerebras',
-    'ocr'
-  ], 'Unknown links section(s) for --cerebras: ocr')
-})
 
 test('links selector accepts kimi provider with general text and ocr sections', async () => {
   const kimiSelection = parseLinksArgv([

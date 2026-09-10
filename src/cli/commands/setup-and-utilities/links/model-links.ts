@@ -2,7 +2,6 @@ import assemblyLinks from './model-links/assembly.json'
 import betterAuthLinks from './model-links/better-auth.json'
 import bflLinks from './model-links/bfl.json'
 import cartesiaLinks from './model-links/cartesia.json'
-import cerebrasLinks from './model-links/cerebras.json'
 import claudeLinks from './model-links/claude.json'
 import deapiLinks from './model-links/deapi.json'
 import deepgramLinks from './model-links/deepgram.json'
@@ -15,7 +14,6 @@ import geminiLinks from './model-links/gemini.json'
 import gladiaLinks from './model-links/gladia.json'
 import glmLinks from './model-links/glm.json'
 import grokLinks from './model-links/grok.json'
-import groqLinks from './model-links/groq.json'
 import happyscribeLinks from './model-links/happyscribe.json'
 import humeLinks from './model-links/hume.json'
 import inworldLinks from './model-links/inworld.json'
@@ -44,7 +42,6 @@ import type { ModelLinksData } from '~/types'
 
 const providerLinks = [
   elevenlabsLinks,
-  groqLinks,
   togetherLinks,
   driveLinks,
   openaiLinks,
@@ -64,7 +61,6 @@ const providerLinks = [
   betterAuthLinks,
   bflLinks,
   cartesiaLinks,
-  cerebrasLinks,
   deapiLinks,
   deepgramLinks,
   deepinfraLinks,

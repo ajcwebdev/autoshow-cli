@@ -3,7 +3,6 @@ import { InfraError, InternalError } from '~/utils/error-handler'
 import type { LLMOptions, LLMTarget, PendingStructuredRunResult, RunLlmTargetsForStructuredPromptOptions, StructuredRequestOptions, StructuredRunResult, StructuredValidationContext, TranscriptionResult, VideoMetadata } from '~/types'
 import { buildPrompt as buildPromptFromUtils } from './write-utils/prompt-utils'
 import { resolvePromptNames } from '~/prompts/prompt-loader'
-import { runGroqModel } from './write-services/write-groq/run-groq'
 import { runOpenAIModel } from './write-services/write-openai/run-openai'
 import { runGeminiModel } from './write-services/write-gemini/run-gemini'
 import { runAnthropicModel } from './write-services/write-anthropic/run-anthropic'
@@ -12,7 +11,6 @@ import { runGrokModel } from './write-services/write-grok/run-grok'
 import { runGlmModel } from './write-services/write-glm/run-glm'
 import { runKimiModel } from './write-services/kimi/run-kimi'
 import { runTogetherModel } from './write-services/write-together/run-together'
-import { runCerebrasModel } from './write-services/write-cerebras/run-cerebras'
 import { resolveStructuredStrategy, resolveValidationRetryBudget, shouldApplyStrictMode } from './structured-output/capabilities'
 import { buildStructuredInstructionSuffix, resolveStructuredSchema } from './structured-output/schema-resolver'
 import { isSongLyricsPreset } from './structured-output/preset-registry'
@@ -57,13 +55,11 @@ export const collectLlmTargets = (options: LLMOptions): LLMTarget[] => {
   appendTargets('gemini', 'Gemini', options.geminiModels, runGeminiModel)
   appendTargets('anthropic', 'Anthropic', options.anthropicModels, runAnthropicModel)
   appendTargets('openai', 'OpenAI', options.openaiModels, runOpenAIModel)
-  appendTargets('groq', 'Groq', options.groqModels, runGroqModel)
   appendTargets('minimax', 'MiniMax', options.minimaxModels, runMinimaxModel)
   appendTargets('grok', 'Grok', options.grokModels, runGrokModel)
   appendTargets('glm', 'GLM', options.glmModels, runGlmModel)
   appendTargets('kimi', 'Kimi', options.kimiModels, runKimiModel)
   appendTargets('together', 'Together', options.togetherModels, runTogetherModel)
-  appendTargets('cerebras', 'Cerebras', options.cerebrasModels, runCerebrasModel)
 
   return filterModelCostTargets(targets, options, 'llm')
 }

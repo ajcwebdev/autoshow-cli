@@ -86,7 +86,7 @@ test('stubbed LLM targets use capability retry budgets and persist one failure e
         target('openai', 'openai-zero', 'not json'),
         target('anthropic', 'anthropic-one', 'not json'),
         target('minimax', 'minimax-two', 'not json'),
-        target('groq', 'groq-success', '{"content":"valid output"}')
+        target('grok', 'grok-success', '{"content":"valid output"}')
       ],
       structuredSchema,
       structuredValidationContext: { leafPromptNames: ['content'], presetNames: [] }
@@ -96,7 +96,7 @@ test('stubbed LLM targets use capability retry budgets and persist one failure e
       openai: 1,
       anthropic: 2,
       minimax: 3,
-      groq: 1
+      grok: 1
     })
     expect(requestOptions.get('openai')?.every((options) => options.strategy === 'native')).toBe(true)
     expect(requestOptions.get('anthropic')?.every((options) => options.strategy === 'native')).toBe(true)

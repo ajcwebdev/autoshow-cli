@@ -44,7 +44,6 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
     'fish:voice-design-1': { costPer1kCharsCents: 20 },
     'minimax:speech-2.8-hd': { costPer1kCharsCents: 10 },
     'minimax:speech-2.8-turbo': { costPer1kCharsCents: 6 },
-    'groq:canopylabs/orpheus-v1-english': { costPer1kCharsCents: 2.2 },
     'gemini:gemini-3.1-flash-tts-preview': { inputCostPer1MCharsCents: 100, outputCostPer1MCharsCents: 2000 },
     'deepgram:aura-2-thalia-en': { costPer1kCharsCents: 3 },
     'deepgram:aura-2-andromeda-en': { costPer1kCharsCents: 3 },
@@ -145,7 +144,6 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
     'cartesia:sonic-3.5': { costPer1kCharsCents: 3.7375 },
     'elevenlabs:eleven_flash_v2_5': { costPer1kCharsCents: 5 },
     'elevenlabs:eleven_multilingual_v2': { costPer1kCharsCents: 10 },
-    'groq:canopylabs/orpheus-arabic-saudi': { costPer1kCharsCents: 4 },
     'openai:gpt-4o-mini-tts': { inputCostPer1MCharsCents: 60, outputCostPer1MCharsCents: 1200 },
     'openai:tts-1': { inputCostPer1MCharsCents: 0, outputCostPer1MCharsCents: 1500 },
     'openai:tts-1-hd': { inputCostPer1MCharsCents: 0, outputCostPer1MCharsCents: 3000 },
@@ -212,7 +210,6 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
   tts: {
     'elevenlabs:eleven_flash_v2_5': 'eleven_v3',
     'elevenlabs:eleven_multilingual_v2': 'eleven_v3',
-    'groq:canopylabs/orpheus-arabic-saudi': 'canopylabs/orpheus-v1-english',
     'openai:tts-1': 'gpt-4o-mini-tts-2025-12-15',
     'openai:tts-1-hd': 'gpt-4o-mini-tts-2025-12-15',
     'speechify:simba-3.0': 'simba-3.2'

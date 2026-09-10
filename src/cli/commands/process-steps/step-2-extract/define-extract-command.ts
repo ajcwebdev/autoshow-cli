@@ -90,7 +90,7 @@ export const extractCommand = defineCliCommand({
   help: {
     examples: [
       ['bun autoshow extract https://youtube.com/watch?v=abc', 'Transcribe media with the default Whisper tiny STT model'],
-      ['bun autoshow extract video.mp4 --provider groq --captions --caption-mode word', 'Transcribe media once and save synced SRT/VTT captions'],
+      ['bun autoshow extract video.mp4 --provider deepinfra --captions --caption-mode word', 'Transcribe media once and save synced SRT/VTT captions'],
       ['bun autoshow extract file.mp3 --provider assemblyai=universal-3-5-pro', 'Transcribe media with AssemblyAI STT'],
       ['bun autoshow extract video.mp4 --provider assemblyai=universal-3-5-pro --stt-audio-profile lossless', 'Transcribe verified float32 PCM and save its source timeline'],
       ['bun autoshow extract output/raw/result.json --transcript-review --output-dir output/review', 'Export an offline review packet and editable JSON template'],

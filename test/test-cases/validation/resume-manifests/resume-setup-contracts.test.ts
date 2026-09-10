@@ -404,7 +404,7 @@ test('resume --price reports a dry-run estimate and leaves manifests unchanged',
 
 test('stored retired TTS providers are inspectable history but cannot be resumed or dispatched', async () => {
   const target: ResumeTarget = { kind: 'tts', scope: 'single', dir: '/tmp/autoshow-retired-tts-history', manifestPath: '/tmp/autoshow-retired-tts-history/manifest.json' }
-  for (const service of ['groq', 'gemini', 'deepgram', 'replicate', 'fal']) {
+  for (const service of ['gemini', 'deepgram', 'replicate', 'fal']) {
     const provider = {
       service,
       model: 'historical-model',
@@ -461,16 +461,16 @@ test('write resume --price estimates selected missing LLM providers without prov
     'resume', '--json',
     runDir,
     '--provider',
-    'groq=openai/gpt-oss-20b',
+    'grok=grok-4.3',
     '--price'
   ], {
-    env: { NO_COLOR: '1', GROQ_API_KEY: '' }
+    env: { NO_COLOR: '1', XAI_API_KEY: '' }
   })
 
   const output = `${result.stdout}\n${result.stderr}`
   expect(result.exitCode).toBe(0)
   expect(output).toContain('Estimate:')
-  expect(output).toContain('openai/gpt-oss-20b')
+  expect(output).toContain('grok-4.3')
   expect(await Bun.file(manifestPath).text()).toBe(before)
 })
 

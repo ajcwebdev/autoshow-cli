@@ -1,6 +1,6 @@
 import type { OpenAIRestConfig, Step3Metadata, StructuredRequestOptions } from '~/types'
 
-export type OpenAICompatibleChatService = Extract<Step3Metadata['llmService'], 'groq' | 'grok' | 'glm' | 'kimi' | 'together' | 'cerebras'>
+export type OpenAICompatibleChatService = Extract<Step3Metadata['llmService'], 'grok' | 'glm' | 'kimi' | 'together'>
 
 export type RunOpenAICompatibleChatModelOptions = {
   prompt: string
