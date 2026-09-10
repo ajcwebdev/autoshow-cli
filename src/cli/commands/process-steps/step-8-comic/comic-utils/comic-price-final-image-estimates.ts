@@ -1,4 +1,5 @@
 import type { FinalImageEstimateResult, GenerateImagesCommandOptions } from '~/types'
+import { InternalError } from '~/utils/error-handler'
 import { DEFAULT_FINAL_PANELS_PER_IMAGE, validateComicGridOptions } from '../comic-commands/generate-images/comic-page-utils'
 import { validateImageSizeForModels } from './image-size'
 import { estimateFinalImagePricing, estimatePageMode, estimatePanelMode, estimateQaWork, normalizeFinalImageEstimateRequest } from './final-image-price-estimate'
@@ -46,7 +47,7 @@ export const buildFinalPanelImageEstimate = async (options: GenerateImagesComman
       pricing: estimateFinalImagePricing(request, modeEstimate, qaWork, loaded.inventory),
     }
   }
-  throw new Error('Comic image estimate inventory does not match the selected mode.')
+  throw InternalError('Comic image estimate inventory does not match the selected mode.')
 }
 
 export const estimateFinalPanelImagesPrice = async (options: GenerateImagesCommandOptions): Promise<void> => {
