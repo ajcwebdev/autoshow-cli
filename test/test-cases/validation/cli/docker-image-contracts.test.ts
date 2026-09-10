@@ -3,6 +3,7 @@ import { readFile,readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { readDependencyUrlAndSha256 } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
+import { SUPPORTED_BUN_VERSION } from '~/utils/bun-version'
 
 const repositoryRoot = resolve(import.meta.dir, '../../../..')
 const dockerfilePath = resolve(repositoryRoot, 'Dockerfile')
@@ -100,7 +101,7 @@ test('Docker publication is blocked by exact-version no-cost verification and pa
 
   expect(workflow.on).toHaveProperty('pull_request')
   expect(workflow.on).toHaveProperty('push')
-  expect(verify?.steps?.find(step => step.name === 'Install supported Bun')?.with?.['bun-version']).toBe('1.4.0')
+  expect(verify?.steps?.find(step => step.name === 'Install supported Bun')?.with?.['bun-version']).toBe(SUPPORTED_BUN_VERSION)
   expect(verifyRuns).toContain('bun --no-env-file install --frozen-lockfile')
   expect(verifyRuns).toContain('bun --no-env-file run check')
   expect(verifyRuns).toContain('bun --no-env-file t --price')

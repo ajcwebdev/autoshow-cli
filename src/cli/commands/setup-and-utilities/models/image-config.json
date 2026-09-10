@@ -46,7 +46,7 @@
     }
   },
   "openai": {
-    "description": "OpenAI DALL-E / GPT Image generation",
+    "description": "OpenAI GPT Image generation and editing",
     "type": "api",
     "referenceImages": { "supported": true, "maxInputs": 16 },
     "models": {
@@ -58,6 +58,42 @@
         "pricingTier": "Standard pay-as-you-go",
         "pricingNotes": "Default registry rate is the published GPT Image 2 1024x1024 medium output-image estimate. Flexible size/quality estimates are handled in the OpenAI image pricing helper; image input units are modeled locally at 1,000 per reference image and priced only when imageInputCostPer1MCents is set; text input tokens are not estimated locally.",
         "costPerImageCents": 5.3,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerImage": 21594
+        }
+      },
+      "gpt-image-2.5-flare": {
+        "description": "GPT Image 2.5 Flare — fast everyday generation, reference-led variations, and editing",
+        "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-image-2.5-flare",
+        "pricingCheckedAt": "2026-09-10",
+        "pricingCurrency": "USD",
+        "pricingTier": "Standard pay-as-you-go",
+        "pricingNotes": "September 8 release (snapshot: gpt-image-2.5-flare-2026-09-08). Default output estimate: 439 tokens for 1024x1024 medium from the GPT Image 2.5 calculator in the image-generation guide, not the Image 2 table. Auto uses this provisional planning assumption. USD/M tokens: text input 5 (cached 1.25), image input 8 (cached 2), image output 30. Actual costs use returned usage at uncached rates; text output is not billed. Input estimates use 1,000 tokens per reference per output, exclude prompt tokens and cache discounts, and are not spending bounds. Latency inherits Image 2 provisionally; no paid calibration.",
+        "costPerImageCents": 1.317,
+        "textInputCostPer1MCents": 500,
+        "cachedTextInputCostPer1MCents": 125,
+        "imageInputCostPer1MCents": 800,
+        "cachedImageInputCostPer1MCents": 200,
+        "imageOutputCostPer1MCents": 3000,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerImage": 21594
+        }
+      },
+      "gpt-image-2.5-sunburst": {
+        "description": "GPT Image 2.5 Sunburst — detailed creative work and precise edits that preserve visual identity",
+        "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst",
+        "pricingCheckedAt": "2026-09-10",
+        "pricingCurrency": "USD",
+        "pricingTier": "Standard pay-as-you-go",
+        "pricingNotes": "September 8 release (snapshot: gpt-image-2.5-sunburst-2026-09-08). Default output estimate: 439 tokens for 1024x1024 medium from the GPT Image 2.5 calculator in the image-generation guide, not the Image 2 table. Auto uses this provisional planning assumption. USD/M tokens: text input 5 (cached 1.25), image input 8 (cached 2), image output 30. Actual costs use returned usage at uncached rates; text output is not billed. Input estimates use 1,000 tokens per reference per output, exclude prompt tokens and cache discounts, and are not spending bounds. Latency inherits Image 2 provisionally; no paid calibration.",
+        "costPerImageCents": 1.317,
+        "textInputCostPer1MCents": 500,
+        "cachedTextInputCostPer1MCents": 125,
+        "imageInputCostPer1MCents": 800,
+        "cachedImageInputCostPer1MCents": 200,
+        "imageOutputCostPer1MCents": 3000,
         "estimation": {
           "costMultiplier": 1,
           "msPerImage": 21594

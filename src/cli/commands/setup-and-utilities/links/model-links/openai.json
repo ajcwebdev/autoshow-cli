@@ -29,6 +29,8 @@
       "https://developers.openai.com/api/reference/resources/audio/subresources/voices/methods/create/index.md"
     ],
     "Image": [
+      "https://developers.openai.com/api/docs/models/gpt-image-2.5-flare.md",
+      "https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst.md",
       "https://developers.openai.com/api/docs/guides/image-generation.md",
       "https://developers.openai.com/api/docs/guides/tools-image-generation.md",
       "https://developers.openai.com/api/reference/resources/images/index.md",

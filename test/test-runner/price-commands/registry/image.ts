@@ -2,6 +2,10 @@ import type { PriceSelectionEntry } from '~/types'
 import { command, exact } from '../helpers'
 
 export const imageRegistry: PriceSelectionEntry[] = [
+  ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/openai-gpt-image-25.test.ts', [
+    command('image-openai-gpt-image-2.5-flare', 'image-openai-gpt-image-2.5-flare', ['src/cli/create-cli.ts', 'image', 'A simple green triangle', '--provider', 'openai=gpt-image-2.5-flare', '--size', '1024x1024', '--quality', 'low', '--background', 'transparent', '--format', 'png', '--price']),
+    command('image-openai-gpt-image-2.5-sunburst', 'image-openai-gpt-image-2.5-sunburst', ['src/cli/create-cli.ts', 'image', 'A simple blue circle', '--provider', 'openai=gpt-image-2.5-sunburst', '--size', '1024x1024', '--quality', 'low', '--price']),
+  ]),
   ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/openai-gpt-image-2.test.ts', [
     command('image-openai-gpt-image-2', 'image-openai-gpt-image-2', ['src/cli/create-cli.ts', 'image', 'a sunset', '--provider', 'openai=gpt-image-2', '--size', '1024x1536', '--quality', 'low', '--price']),
   ]),

@@ -35,6 +35,13 @@ const parseReferenceSketchArgs = (args: string[]) =>
   coerceAndValidateReferenceSketch(parseSubcommandArgs(args, referenceSketchCommandDefinition))
 
 describe('option resolution contracts', () => {
+  test('comic accepts Image 2.5 models, custom sizes, and extended quality', () => {
+    for (const model of ['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst']) {
+      const opts = parseGenerateImagesArgs(['script.md', '--image-model', model, '--size', '2048x1152', '--quality', 'xhigh'])
+      expect(opts).toMatchObject({ imageModels: [model], size: '2048x1152', quality: 'xhigh' })
+      expect(parseReferenceSketchArgs(['--character', 'engineer', '--image-model', model, '--quality', 'max']).quality).toBe('max')
+    }
+  })
   test('comic scene drafting defaults to gpt-5.6-sol', () => {
     expect(DEFAULT_LLM_MODEL).toBe('gpt-5.6-sol')
   })

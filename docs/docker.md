@@ -1,6 +1,6 @@
 # Docker
 
-The supported container runtime is Bun 1.4.0, pinned in `Dockerfile` to the reviewed multi-architecture `oven/bun:1.4.0-slim` digest. Native development and CI use the same exact version from `package.json`; `bun autoshow setup --doctor` reports a warning when the running Bun version differs.
+The supported container runtime is Bun 1.4.2, pinned in `Dockerfile` to the reviewed multi-architecture `oven/bun:1.4.2-slim` digest. Native development and CI use the same exact version from `package.json`; `bun autoshow setup --doctor` reports a warning when the running Bun version differs.
 
 The published image continues to run the TypeScript source entrypoint. `Dockerfile` also contains a non-published `compiled-experiment` target used on native AMD64 and ARM64 CI runners. That target is measured separately and is not the default or production stage because its embedded Bun runtime currently increases the packaging payload. See the [compiled Docker entrypoint evaluation](adr/ADR-014-distribute-the-cli-as-a-docker-image.md#compiled-entrypoint-evaluation) for the decision and acceptance gates.
 

@@ -14,6 +14,7 @@ export const HELP_FLAG_GROUPS = [
   ['pipeline', 'Pipeline Selection'],
   ['batch-download', 'Batch / Download'],
   ['transcription', 'Transcription / STT'],
+  ['timing', 'Transcript Timing'],
   ['ocr-document', 'OCR / Document Extraction'],
   ['article-extraction', 'Article Extraction'],
   ['batch-processing', 'Batch Processing'],

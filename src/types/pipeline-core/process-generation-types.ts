@@ -57,6 +57,7 @@ export type Step5Metadata = {
   textInputUnits?: number | undefined
   totalInputUnits?: number | undefined
   outputUnits?: number | undefined
+  imageOutputUnits?: number | undefined
   totalUnits?: number | undefined
   hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
 }

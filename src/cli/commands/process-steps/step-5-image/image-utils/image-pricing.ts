@@ -5,6 +5,10 @@ import { deriveGenerationPricingProviders, IMAGE_GENERATION_SELECTION } from '~/
 import type { EstimateImageCostOptions, ImageCostEstimate, ImageProvider, OpenAIImageInputEstimate, OpenAIImageOutputPricing, OpenAIImageQuality, ProviderModelSelectionSpec } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { collectSelections, passThroughKeys } from '~/utils/pricing/model-selection'
+import { isOpenAIImage25Model } from '~/cli/commands/setup-and-utilities/models/image-models'
+import { estimateOpenAIImage25Output } from './openai-image-pricing'
+import { OPENAI_IMAGE_COUNT_RANGE, validateOpenAIImageOptions } from '../image-generation-services/image-openai/openai-image-options'
+import { validateImageCount } from './image-target-validation'
 
 export const IMAGE_PRICING_PROVIDERS = deriveGenerationPricingProviders(IMAGE_GENERATION_SELECTION) satisfies readonly ProviderModelSelectionSpec<EstimateImageCostOptions, ImageProvider>[]
 
@@ -84,6 +88,7 @@ const estimateOpenAIImageCost = (
   model: string,
   options: Pick<EstimateImageCostOptions, 'imageSize' | 'imageQuality'>
 ): { costPerImageCents: number, note: string } => {
+  if (isOpenAIImage25Model(model)) return estimateOpenAIImage25Output(model, options)
   const pricing = OPENAI_IMAGE_OUTPUT_PRICE_CENTS[model]
   if (!pricing) {
     return {
@@ -132,17 +137,19 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
       }
       case 'openai': {
         const model = validateOpenAIImageModel(selection.model)
+        validateOpenAIImageOptions(model, options)
+        const imageCount = validateImageCount('OpenAI', model, options.imageCount, ...OPENAI_IMAGE_COUNT_RANGE)
         const { costPerImageCents, note } = estimateOpenAIImageCost(model, options)
-        const imageCount = Math.max(1, options.imageCount ?? 1)
         const referencesPerCall = options.imageInputs?.length ?? 0
+        const imageInputEstimate = referencesPerCall > 0 ? estimateOpenAIImageInputUnits(model, referencesPerCall * imageCount) : undefined
         estimates.push({
           provider: 'openai',
           model,
           imageCount,
           costPerImageCents,
-          totalCost: costPerImageCents * imageCount,
+          totalCost: costPerImageCents * imageCount + (imageInputEstimate?.costCents ?? 0),
           note,
-          ...(referencesPerCall > 0 ? { imageInputEstimate: estimateOpenAIImageInputUnits(model, referencesPerCall * imageCount) } : {})
+          ...(imageInputEstimate ? { imageInputEstimate } : {})
         })
         break
       }

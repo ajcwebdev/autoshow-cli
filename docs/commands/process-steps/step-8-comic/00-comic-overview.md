@@ -205,6 +205,8 @@ For an interrupted recorded request, use [`resume <run-directory> --price` follo
 | Model                         | Provider |
 | ----------------------------- | -------- |
 | `gpt-image-2`                 | OpenAI   |
+| `gpt-image-2.5-flare` | OpenAI |
+| `gpt-image-2.5-sunburst` | OpenAI |
 | `gemini-3.1-flash-lite-image` | Google   |
 | `gemini-3.1-flash-image`      | Google   |
 | `gemini-3-pro-image`          | Google   |

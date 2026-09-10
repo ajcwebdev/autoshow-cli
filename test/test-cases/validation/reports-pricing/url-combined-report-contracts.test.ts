@@ -520,9 +520,15 @@ describe('committed URL combined dashboard', () => {
 
     const normalizedSummary = normalizeMarkdownTable(summary)
     const normalizedUrlSection = normalizeMarkdownTable(urlSection)
+    const inventory = summary.split('## Source Inventory\n')[1]?.split('\n## ')[0] ?? ''
+    const inventoryRows = [...inventory.matchAll(/^\|\s*[a-z-]+\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*$/gm)]
+    const totalReports = inventoryRows.reduce((sum, row) => sum + Number(row[1]), 0)
+    const totalProviderRows = inventoryRows.reduce((sum, row) => sum + Number(row[2]), 0)
+    const groups = new Set(inventoryRows.flatMap(row => row[3]!.split(',').map(group => group.trim())))
 
     expect(normalizedSummary).toContain(`| url | ${report.runCount} | ${report.providerRowCount} | local, service |`)
-    expect(normalizedSummary).toContain('| **Total** | **41** | **545** | **5 groups** |')
+    expect(inventoryRows.length).toBeGreaterThan(0)
+    expect(normalizedSummary).toContain(`| **Total** | **${totalReports}** | **${totalProviderRows}** | **${groups.size} groups** |`)
     expect(urlSection).not.toContain('2/2 runs')
 
     for (const expectedRow of expectedUrlRankingRows(report)) {

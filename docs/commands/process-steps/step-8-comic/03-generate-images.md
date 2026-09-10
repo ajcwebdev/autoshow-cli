@@ -47,8 +47,8 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
 | `--image-model <model[,model...]>` | Use one or more supported image models (see [Supported Models](./00-comic-overview.md#supported-models))                               | `gpt-image-2`           |
 | `--variation <name[,name...]>`     | Generate final images with one or more prompt variations: `canonical`, `animation-polish`, `cinematic-depth`                           | none                    |
-| `--size <size>`                    | Image size: `1536x1024`, `1024x1024`, `1024x1536`, `auto`, or a custom `WIDTHxHEIGHT` size for `gpt-image-2`                           | `1536x1024`             |
-| `--quality <quality>`              | `low`, `medium`, `high`, or `auto`; only OpenAI applies it, and other providers use their own defaults                                 | `high`                  |
+| `--size <size>` | Image size: `1536x1024`, `1024x1024`, `1024x1536`, `auto`, or a custom `WIDTHxHEIGHT` size for OpenAI GPT Image 2/2.5 | `1536x1024` |
+| `--quality <quality>` | `low`, `medium`, `high`, or `auto`; Image 2.5 also supports `xhigh` and `max`. Only OpenAI applies this flag; other providers use their defaults. | `high` |
 | `--panels-per-image <n>`           | Number of ordered panels per generated image                                                                                           | final `1`; sketches `6` |
 | `--grid <columns>x<rows>`          | Compose generated individual final panels into local page grids, such as `2x3`; requires `--panels-per-image 1` and `--size 1536x1024` | none                    |
 

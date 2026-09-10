@@ -4,7 +4,7 @@
 
 - **Report Status:** Current
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-09-08
+- **Date Updated:** 2026-09-10
 
 This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](../step-2-extract/05-stt-model-report.md), [OCR](../step-2-extract/06-ocr-model-report.md), [URL scraping](../step-2-extract/07-url-model-report.md), [LLMs](../step-3-write/02-llm-model-report.md), [TTS](../step-4-tts/02-tts-model-report.md), [Music](../step-7-music/02-music-model-report.md), [Video](../step-6-video/02-video-model-report.md).
 
@@ -161,6 +161,16 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](../step-3-wr
 - Image provider adapters: `src/cli/commands/process-steps/step-5-image/`
 - Historical cost reconstruction: `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
 - 2026-08-16 xAI Imagine snapshot: `bun autoshow links --grok image` (`https://docs.x.ai/developers/model-capabilities/imagine.md`)
+
+## P1 addition: GPT Image 2.5 Flare and Sunburst (2026-09-10)
+
+Added `gpt-image-2.5-flare` and `gpt-image-2.5-sunburst` alongside `gpt-image-2`, bringing the active image registry to 25 selectors across seven providers. Flare becomes the bare OpenAI provider default under the cheapest-model policy. Comic retains its existing explicit default and accepts either new model through `--image-model`. The September 8 snapshots are `gpt-image-2.5-flare-2026-09-08` and `gpt-image-2.5-sunburst-2026-09-08`; the CLI exposes the two requested undated selectors, recording the serving snapshot when OpenAI returns it. [Flare](https://developers.openai.com/api/docs/models/gpt-image-2.5-flare), [Sunburst](https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst).
+
+Both use the existing JSON generation and multipart editing transports with up to 16 references, optional masks, custom sizes, and PNG/JPEG/WebP output. Added `xhigh` and `max` quality and transparent PNG/WebP support, with local rejection of incompatible options in selection, price planning, and transport. Examples emphasize Flare for iteration, Sunburst for focused edits, and explicit instructions about the requested change and details to preserve. [Image API guide](https://developers.openai.com/api/docs/guides/image-generation).
+
+Pricing uses the guide's GPT Image 2.5 calculator, checked September 10, including its ties-to-even grid rounding. The 1024×1024 medium default is 439 output tokens ($0.01317), not Image 2's $0.053 estimate. Explicit sizes and all five quality levels receive their own output estimates. Omitted/auto settings assume 1024-square medium for planning while requests retain auto. Image inputs use the existing provisional 1,000-token-per-reference-per-output heuristic and are included in aggregate totals at $8/M tokens; prompt inputs and caching discounts remain excluded. Complete returned usage is priced at $5/M text input, $8/M image input, and $30/M image output; text output is unbilled. Cached rates ($1.25/M text, $2/M image) are recorded but not applied because the documented Images usage schema does not attribute cached tokens by modality. Missing or incomplete usage retains the output estimate fallback. [Calculator](https://developers.openai.com/api/docs/guides/image-generation#cost-and-latency), [rates](https://developers.openai.com/api/docs/pricing#image-generation-models), [usage schema](https://developers.openai.com/api/reference/resources/images/methods/generate).
+
+Latency inherits the existing 21,594 ms/image baseline provisionally. Published speed improvements are not treated as local measurements. Verification uses mocked generation/edit responses, pricing and selector contracts, CLI help/usage/option checks, `bun run check`, and `bun t --price`; no paid calibration or provider execution is required.
 
 ## P1 addition: Grok Imagine Image 2.0 (2026-09-08)
 

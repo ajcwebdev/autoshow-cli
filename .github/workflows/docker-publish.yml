@@ -26,10 +26,10 @@ jobs:
       - name: Install supported Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.4.0
+          bun-version: 1.4.2
 
       - name: Verify Bun pin
-        run: test "$(bun --version)" = "1.4.0"
+        run: test "$(bun --version)" = "1.4.2"
 
       - name: Install frozen dependencies
         run: bun --no-env-file install --frozen-lockfile
@@ -113,7 +113,7 @@ jobs:
       - name: Install supported Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.4.0
+          bun-version: 1.4.2
 
       - name: Install frozen dependencies
         run: |
@@ -234,7 +234,7 @@ jobs:
           mkdir -p "${report_dir}"
           docker pull --platform linux/amd64 "${image_ref}" >/dev/null
           # Materialize lazy image layers before reading their sizes.
-          test "$(docker run --rm --platform linux/amd64 --network none --entrypoint bun "${image_ref}" --version)" = "1.4.0"
+          test "$(docker run --rm --platform linux/amd64 --network none --entrypoint bun "${image_ref}" --version)" = "1.4.2"
           docker history --no-trunc --human=false --format '{{json .}}' "${image_ref}" > "${report_dir}/image-history.jsonl"
           jq -s --arg platform linux/amd64 --argjson imageSizeBytes "$(docker image inspect "${image_ref}" --format '{{.Size}}')" '
             [.[] | select(.CreatedBy | contains("install -y --no-install-recommends cmake make gcc g++ libc6-dev")) | .Size | tonumber] as $layers
@@ -379,7 +379,7 @@ jobs:
           mkdir -p "${report_dir}"
           docker pull --platform linux/arm64 "${image_ref}" >/dev/null
           # Materialize lazy image layers before reading their sizes.
-          test "$(docker run --rm --platform linux/arm64 --network none --entrypoint bun "${image_ref}" --version)" = "1.4.0"
+          test "$(docker run --rm --platform linux/arm64 --network none --entrypoint bun "${image_ref}" --version)" = "1.4.2"
           docker history --no-trunc --human=false --format '{{json .}}' "${image_ref}" > "${report_dir}/image-history.jsonl"
           jq -s --arg platform linux/arm64 --argjson imageSizeBytes "$(docker image inspect "${image_ref}" --format '{{.Size}}')" '
             [.[] | select(.CreatedBy | contains("install -y --no-install-recommends cmake make gcc g++ libc6-dev")) | .Size | tonumber] as $layers
@@ -503,7 +503,7 @@ jobs:
       - name: Install supported Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.4.0
+          bun-version: 1.4.2
 
       - name: Install frozen dependencies
         run: bun --no-env-file install --frozen-lockfile

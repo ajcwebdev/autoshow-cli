@@ -56,7 +56,7 @@ The `image` and `resume` commands use the same short option names, including `--
 | `--concurrency-mode <ramp\|immediate>` | Ramp from one request (`ramp`, default) or start at the configured cap (`immediate`)                    |
 | `--aspect-ratio <ratio>`               | Provider-dependent aspect ratio control                                                                 |
 | `--size <size>`                        | Provider-dependent size or resolution control                                                           |
-| `--quality <q>`                        | OpenAI quality: `low`, `medium`, `high`, or `auto`                                                      |
+| `--quality <q>` | OpenAI quality: `low`, `medium`, `high`, or `auto`; GPT Image 2.5 also accepts `xhigh` and `max` |
 | `--format <fmt>`                       | Output format: `png`, `jpeg`, or `webp` depending on provider                                           |
 | `--background <bg>`                    | OpenAI background mode: `transparent`, `opaque`, or `auto`                                              |
 | `--count <n>`                          | Number of images per request (OpenAI/Grok: `1-10`, Replicate Wan/fal.ai: `1-4`)                         |
@@ -72,8 +72,8 @@ The `image` and `resume` commands use the same short option names, including `--
 See [Provider Capabilities](#provider-capabilities) for the per-model reference, resolution, aspect-ratio, count, format, and price matrix.
 
 ```bash
-bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png --output-dir output/mug-base
-bun autoshow image "make the mug matte black, keep the same camera angle, and place it on a walnut desk" --provider openai=gpt-image-2 --input output/mug-base/generated-image.png --format webp --compression 80 --output-dir output/mug-edit
+bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2.5-flare --size 1024x1024 --quality medium --format png --output-dir output/mug-base
+bun autoshow image "make only the mug matte black; preserve the logo, camera angle, lighting, and background" --provider openai=gpt-image-2.5-sunburst --input output/mug-base/generated-image.png --quality xhigh --format webp --compression 80 --output-dir output/mug-edit
 bun autoshow image "a serene mountain lake at dawn" --all-providers --price
 bun autoshow image "a serene mountain lake at dawn" --all-providers --max-model-cents 5 --price
 ```
@@ -104,19 +104,24 @@ bun autoshow image "a detailed editorial data visualization" --provider gemini=g
 | Option            | Value                                                                   |
 | ----------------- | ----------------------------------------------------------------------- |
 | Selector          | `--provider openai[=<model>]`                                           |
-| Models            | `gpt-image-2`                                                           |
+| Models | `gpt-image-2.5-flare` (bare default), `gpt-image-2.5-sunburst`, `gpt-image-2` |
 | Size              | `auto`, `1024x1024`, `1536x1024`, `1024x1536`, or custom `WIDTHxHEIGHT` |
-| Quality           | `--quality low\|medium\|high\|auto`                                     |
+| Quality | `--quality low\|medium\|high\|xhigh\|max\|auto`; `xhigh` and `max` require Image 2.5 |
 | Format/background | `--format png\|jpeg\|webp`, `--background transparent\|opaque\|auto`    |
 | Count             | `--count 1-10`                                                          |
-| Edit/reference    | `--input` with optional `--mask`                                        |
+| Edit/reference | Up to 16 ordered `--input` references with optional `--mask` |
 
 ```bash
-bun autoshow image "a product sketch of the same travel mug concept" --provider openai=gpt-image-2 --size 1024x1024 --quality low
-bun autoshow image "replace the background with a sunlit forest" --provider openai=gpt-image-2 --input input/product.png --mask input/mask.png --format webp
+bun autoshow image "Product concept: enamel travel mug. Composition: centered front view. Style: pencil sketch on white. Preserve: proportions from the reference." --provider openai=gpt-image-2.5-flare --input input/product.png --size 1024x1024 --quality low
+bun autoshow image "Change only the mug color to blue. Preserve the logo, lighting, camera angle, and background." --provider openai=gpt-image-2.5-sunburst --input input/product.png --mask input/mask.png --quality xhigh --format webp
+bun autoshow image "A clean cutout of a red camping mug with no background" --provider openai=gpt-image-2.5-flare --background transparent --format png --size 1024x1024 --quality medium --price
 ```
 
-OpenAI is the only provider that accepts `--mask`. `gpt-image-2` rejects `--background transparent`.
+Flare suits rapid drafts and everyday generation; Sunburst suits precise edits and polished assets. For successive edits, pass the previous output back through `--input`, describe the change, and state what should stay consistent. A saved sketch can also serve as a reference image. [Flare](https://developers.openai.com/api/docs/models/gpt-image-2.5-flare), [Sunburst](https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst).
+
+OpenAI is the only provider that accepts `--mask`. Image 2.5 supports transparency with PNG or WebP; JPEG with transparency fails locally. `gpt-image-2` rejects transparency and the two new quality levels. Custom dimensions must be multiples of 16, within a 3:1 aspect ratio, at most 3840 pixels per edge, and between 655,360 and 8,294,400 total pixels. OpenAI labels sizes above 2560×1440 experimental. [Output controls](https://developers.openai.com/api/docs/guides/image-generation#customize-image-output).
+
+Image 2.5 pricing uses its own output-token calculator for each size and quality. At 1024×1024, estimated output costs are $0.00588 (low), $0.01317 (medium), $0.05268 (high), $0.09366 (xhigh), and $0.21072 (max). Omitted/`auto` dimensions assume 1024×1024 for planning, and omitted/`auto` quality assumes medium; requests still send `auto`. The estimate adds 1,000 modeled image-input tokens per reference per output at $8/M tokens and excludes prompt tokens and caching discounts. These estimates are not spending limits. Recorded costs use complete returned token usage at uncached rates, with option-aware output estimates as fallback. [Calculator and token rates](https://developers.openai.com/api/docs/guides/image-generation#cost-and-latency).
 
 ### Grok
 
@@ -217,6 +222,7 @@ Rows are newest first. Pricing is the per-image estimate.
 
 | Provider                                           | Released   | References | Max resolution           | Aspect ratio    | Count | Formats        | Pricing                         |
 | -------------------------------------------------- | ---------- | ---------- | ------------------------ | --------------- | ----- | -------------- | ------------------------------- |
+| OpenAI `gpt-image-2.5-flare` / `gpt-image-2.5-sunburst` | 2026-09-08 | Up to 16 | Custom ≤3840 | Use `--size` | 1–10 | png/jpeg/webp | $0.01317/output at 1024-square medium; inputs extra |
 | Grok `grok-imagine-image-2.0` | 2026-08 | Up to 5 | 2K | 16 ratios | 1–10 | JPEG | $0.04–$0.08/output + $0.01/input |
 | fal.ai `alibaba/qwen-image-3`                      | 2026-07-21 | Up to 3    | 2048 text / 1440 edit    | Use `--size`    | 1–4   | png/jpeg/webp  | $0.0051/image                   |
 | fal.ai `reve/2.1`                                  | 2026-07-09 | 1          | Unpublished              | 18 ratios       | 1–4   | png/jpeg/webp  | $0.25/image                     |

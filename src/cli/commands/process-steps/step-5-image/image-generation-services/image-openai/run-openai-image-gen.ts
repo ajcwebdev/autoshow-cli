@@ -5,6 +5,9 @@ import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/gene
 import { getOpenAIClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/openai-utils'
 import { createOpenAIImage, createOpenAIImageEdit } from '~/utils/openai/openai-client'
 import { appendImageReferenceToForm } from '../../image-utils/image-inputs'
+import { computeOpenAIImageUsageCostCents } from '../../image-utils/openai-image-pricing'
+import { OPENAI_IMAGE_COUNT_RANGE, validateOpenAIImageOptions } from './openai-image-options'
+import { validateImageCount } from '../../image-utils/image-target-validation'
 import {
   getFirstRevisedPrompt,
   getImageFileNames,
@@ -12,11 +15,11 @@ import {
   writeOpenAIImageResponseData
 } from '../../image-utils/image-output'
 
-type OpenAIImageUsageUnits = Pick<Step5Metadata, 'imageInputUnits' | 'textInputUnits' | 'totalInputUnits' | 'outputUnits' | 'totalUnits'>
+type OpenAIImageUsageUnits = Pick<Step5Metadata, 'imageInputUnits' | 'textInputUnits' | 'totalInputUnits' | 'outputUnits' | 'imageOutputUnits' | 'totalUnits'>
 
 const readUsageUnits = (source: Record<string, unknown> | undefined, key: string): number | undefined => {
   const value = source?.[key]
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined
 }
 
 const asRecord = (value: unknown): Record<string, unknown> | undefined => (
@@ -31,12 +34,14 @@ export const parseOpenAIImageUsage = (usage: unknown): OpenAIImageUsageUnits => 
   const textInputUnits = readUsageUnits(inputDetails, 'text_tokens')
   const totalInputUnits = readUsageUnits(record, 'input_tokens')
   const outputUnits = readUsageUnits(record, 'output_tokens')
+  const imageOutputUnits = readUsageUnits(asRecord(record['output_tokens_details']), 'image_tokens')
   const totalUnits = readUsageUnits(record, 'total_tokens')
   return {
     ...(imageInputUnits !== undefined ? { imageInputUnits } : {}),
     ...(textInputUnits !== undefined ? { textInputUnits } : {}),
     ...(totalInputUnits !== undefined ? { totalInputUnits } : {}),
     ...(outputUnits !== undefined ? { outputUnits } : {}),
+    ...(imageOutputUnits !== undefined ? { imageOutputUnits } : {}),
     ...(totalUnits !== undefined ? { totalUnits } : {})
   }
 }
@@ -57,6 +62,8 @@ export const runOpenAIImageGen = async (
     compression?: number | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
+  validateOpenAIImageOptions(options.model, { imageSize: options.size, imageQuality: options.quality, imageFormat: options.outputFormat, imageBackground: options.background, imageCompression: options.compression })
+  const count = validateImageCount('OpenAI', options.model, options.count, ...OPENAI_IMAGE_COUNT_RANGE)
   const mode = options.mode ?? 'generation'
   logGenStatus('image', 'openai', options.model, 'started', mode)
 
@@ -67,7 +74,6 @@ export const runOpenAIImageGen = async (
   await mkdir(outputDir, { recursive: true })
 
   const ext = options.outputFormat === 'jpeg' ? 'jpg' : (options.outputFormat ?? 'png')
-  const count = Math.max(1, options.count ?? 1)
 
   const result = mode === 'edit'
     ? await (async () => {
@@ -116,6 +122,8 @@ export const runOpenAIImageGen = async (
 
   logGenCompleted('image', 'openai', options.model, processingTime, imagePaths)
 
+  const usage = parseOpenAIImageUsage(result.usage)
+  const providerCostCents = computeOpenAIImageUsageCostCents(options.model, usage)
   const metadata: Step5Metadata = {
     imageService: 'openai',
     imageModel: options.model,
@@ -131,7 +139,8 @@ export const runOpenAIImageGen = async (
     requestMode: mode,
     ...(getFirstRevisedPrompt(result) ? { revisedPrompt: getFirstRevisedPrompt(result) } : {}),
     ...(getProviderReturnedModel(options.model, result) ? { providerReturnedModel: getProviderReturnedModel(options.model, result) } : {}),
-    ...parseOpenAIImageUsage(result.usage)
+    ...usage,
+    ...(providerCostCents !== undefined ? { providerCostCents, providerCostSource: 'provider_usage' } : {})
   }
 
   return { imagePaths, metadata }

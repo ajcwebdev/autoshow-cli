@@ -111,7 +111,7 @@ const parseLlmModel = (value: string): ParsedLlmModel => {
 
 const parseImageQuality = (value: string): ParsedImageQuality => {
   if (!IMAGE_QUALITY_OPTIONS.has(value)) {
-    throw UsageError(`Invalid quality "${value}". Expected one of: low, medium, high, auto`)
+    throw UsageError(`Invalid quality "${value}". Expected one of: ${IMAGE_GENERATION_QUALITIES.join(', ')}`)
   }
   return value as ParsedImageQuality
 }

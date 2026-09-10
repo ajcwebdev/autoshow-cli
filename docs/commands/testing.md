@@ -117,7 +117,7 @@ bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/ --budget 2500
 
 ## No-Cost CI Gate
 
-Pull requests and pushes to `main` run the exact Bun 1.4.0 verification job in `.github/workflows/docker-publish.yml`. It disables automatic env-file loading, installs from the frozen v2 lockfile, runs the same work as `bun run check` and `bun t --price`, runs the three approved CLI smoke selections, and runs the explicit local-only Bun migration contracts. The workflow supplies no provider credentials and does not run the full suite, unclassified shards, smoke/e2e selections, or provider-backed commands.
+Pull requests and pushes to `main` run the exact Bun 1.4.2 verification job in `.github/workflows/docker-publish.yml`. It disables automatic env-file loading, installs from the frozen v2 lockfile, runs the same work as `bun run check` and `bun t --price`, runs the three approved CLI smoke selections, and runs the explicit local-only Bun migration contracts. The workflow supplies no provider credentials and does not run the full suite, unclassified shards, smoke/e2e selections, or provider-backed commands.
 
 The AMD64 and ARM64 Docker publication jobs depend on both no-cost verification and package hygiene. On their native runners they prove the production frozen install, run help/config/setup-doctor smokes, record image size plus five cold-help samples, five prebuild samples, and three local-fixture peak-RSS samples, and upload the evidence. They run only for pushes, so a failure prevents the multi-architecture manifest from being published and pull requests never publish images.
 

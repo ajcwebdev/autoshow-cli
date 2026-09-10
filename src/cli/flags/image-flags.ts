@@ -26,8 +26,8 @@ const seedreamOnlyAspectRatios = REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES.filter(
 
 export const imageGenFlags = {
   'aspect-ratio': strFlag(`Image aspect ratio: ${formatUniqueValueList(...imageAspectRatioLists)} (provider-specific support; Replicate Seedream also supports ${formatValueList(seedreamOnlyAspectRatios)})`),
-  size: strFlag(`Image size/resolution: ${formatValueList(GEMINI_IMAGE_SIZE_VALUES)} (Gemini/Replicate Wan), ${formatValueList(OPENAI_FIXED_IMAGE_SIZE_VALUES)} or flexible WIDTHxHEIGHT for OpenAI gpt-image-2, ${formatValueList(GROK_IMAGE_SIZE_VALUES)} (Grok), or WIDTHxHEIGHT for BFL/Replicate/fal.ai custom sizing`),
-  quality: strFlag(`Image quality: ${formatValueList(IMAGE_GENERATION_QUALITIES)} (OpenAI, default: auto); Grok Image 2.0: low|medium|auto (auto pins low for generation, medium for editing)`),
+  size: strFlag(`Image size/resolution: ${formatValueList(GEMINI_IMAGE_SIZE_VALUES)} (Gemini/Replicate Wan), ${formatValueList(OPENAI_FIXED_IMAGE_SIZE_VALUES)} or flexible WIDTHxHEIGHT for OpenAI GPT Image 2/2.5, ${formatValueList(GROK_IMAGE_SIZE_VALUES)} (Grok), or WIDTHxHEIGHT for BFL/Replicate/fal.ai custom sizing`),
+  quality: strFlag(`Image quality: ${formatValueList(IMAGE_GENERATION_QUALITIES)} (OpenAI, default: auto; xhigh/max require GPT Image 2.5); Grok Image 2.0: low|medium|auto (auto pins low for generation, medium for editing)`),
   format: strFlag(`Image output format: ${formatUniqueValueList(OPENAI_IMAGE_FORMAT_VALUES, BFL_OUTPUT_FORMATS)} (OpenAI/fal.ai default: png; BFL default: jpeg; Replicate seedream-5-lite supports png|jpeg)`),
   background: strFlag(`Image background: ${formatValueList(OPENAI_IMAGE_BACKGROUND_VALUES)} (OpenAI, default: auto)`),
   count: strFlag(`Number of images to generate in one provider request where supported: ${formatValuesByProvider([

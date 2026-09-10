@@ -6,6 +6,8 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
   stt: {
     'assemblyai:universal-2': { costPerHourCents: 17 },
     'gladia:solaria-1': { costPerHourCents: 61 },
+    'groq:whisper-large-v3': { costPerHourCents: 11.1 },
+    'groq:whisper-large-v3-turbo': { costPerHourCents: 4 },
     'speechmatics:enhanced': { costPerHourCents: 40 },
     'rev:machine': {
       costPerHourCents: 20,
