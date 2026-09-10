@@ -1,5 +1,5 @@
 import type * as v from 'valibot'
-import { MinimaxMusicResponseSchema } from '~/cli/commands/process-steps/step-7-music/music-services/music-minimax/run-minimax-music-gen'
+import { MinimaxMusicResponseSchema } from '~/cli/commands/audio/music/music-services/music-minimax/run-minimax-music-gen'
 import type { HostedConcurrencyRuntimeOptions, MusicProvider, MusicRuntimeOptions, ProviderModelBase, ProviderTargetBase, ResourceGate, Step7MusicMetadata } from '~/types'
 
 export type MusicGenOptions = Partial<MusicRuntimeOptions> & HostedConcurrencyRuntimeOptions & {

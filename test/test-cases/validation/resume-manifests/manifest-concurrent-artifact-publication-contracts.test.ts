@@ -7,10 +7,10 @@ import {
   readManifest,
   updateManifest,
   writeManifest,
-} from '~/cli/commands/process-steps/pipeline-manifest'
-import { createCurrentTtsRenderAttempt } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
-import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
-import { createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
+} from '~/cli/commands/command-shared/pipeline-manifest'
+import { createCurrentTtsRenderAttempt } from '~/cli/commands/audio/tts/script-to-audio/current-render-attempt'
+import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/audio/tts/script-to-audio/item-dialogue-plan-artifact'
+import { createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/audio/tts/script-to-audio/generic-dialogue-plan'
 import type { CanonicalAudioProviderProjection, TtsTarget } from '~/types'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { withTempDir } from '../../../test-utils/temp-dirs'

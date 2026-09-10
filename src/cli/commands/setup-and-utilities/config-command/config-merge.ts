@@ -9,7 +9,7 @@ import {
 import {
   getStep2ProviderConfigPathEntries,
   getStep2ProviderSelectionFlagNames
-} from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+} from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import {
   STANDALONE_IMAGE_PROVIDER_TARGETS,
   STANDALONE_MUSIC_PROVIDER_TARGETS,

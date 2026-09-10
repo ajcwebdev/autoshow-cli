@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import * as v from 'valibot'
 import { FLAG_TO_CONFIG_PATH } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { getStep2ProviderEntries } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { getStep2ProviderEntries } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import {
   STANDALONE_IMAGE_PROVIDER_TARGETS,
   STANDALONE_MUSIC_PROVIDER_TARGETS,
@@ -14,7 +14,7 @@ import {
 import { AutoshowConfigSchema } from '~/types'
 import type { ModelBinding, ModelRegistry } from '~/types'
 
-const configDocPath = resolve(import.meta.dir, '../../../../../docs/commands/setup-and-utilities/config-command/config.md')
+const configDocPath = resolve(import.meta.dir, '../../../../../docs/commands/setup-and-utilities/config.md')
 
 const bindingsForTargets = (
   registryStep: keyof ModelRegistry,

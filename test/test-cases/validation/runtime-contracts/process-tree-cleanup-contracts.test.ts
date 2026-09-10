@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { buildSetupNoOrphansArgs, SETUP_NO_ORPHANS_MARKER, shouldRelaunchSetupWithNoOrphans } from '~/cli/create-cli'
-import { createFileTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
+import { createFileTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/audio/tts/script-to-audio/generic-dialogue-plan'
 import { ttsResumeConfig } from '~/cli/commands/setup-and-utilities/resume/generation/tts-resume'
 import type { TtsOptions } from '~/types'
 import { withTempDir } from '../../../test-utils/temp-dirs'
@@ -134,12 +134,12 @@ describe('staged process-tree cleanup', () => {
 
   test('production filesystem cleanup uses node fs APIs instead of shell subprocesses', async () => {
     const files = [
-      'src/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-collection.ts',
-      'src/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils.ts',
-      'src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-pipeline.ts',
-      'src/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/elevenlabs-native-dialogue.ts',
-      'src/cli/commands/process-steps/step-4-tts/tts-services/tts-mistral/run-mistral-tts.ts',
-      'src/cli/commands/process-steps/step-4-tts/tts-services/hume/hume-native-utterances.ts'
+      'src/cli/commands/sources/metadata/metadata-targets/metadata-input-collection.ts',
+      'src/cli/commands/audio/tts/tts-utils/audio-utils.ts',
+      'src/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-pipeline.ts',
+      'src/cli/commands/audio/tts/tts-services/tts-elevenlabs/elevenlabs-native-dialogue.ts',
+      'src/cli/commands/audio/tts/tts-services/tts-mistral/run-mistral-tts.ts',
+      'src/cli/commands/audio/tts/tts-services/hume/hume-native-utterances.ts'
     ]
     const source = (await Promise.all(files.map(async (path) => await readFile(path, 'utf8')))).join('\n')
     expect(source).not.toContain('Bun.$')

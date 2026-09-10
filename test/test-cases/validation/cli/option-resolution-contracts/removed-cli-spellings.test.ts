@@ -8,10 +8,10 @@ import {
 } from '../../../../test-utils/cli-assertions'
 import {
   draftScenesCommandDefinition
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
+} from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_VIDEO_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { VOICE_PUBLIC_ACTIONS } from '~/cli/commands/process-steps/step-4-tts/voice-management/define-voice-command'
+import { VOICE_PUBLIC_ACTIONS } from '~/cli/commands/audio/voice/define-voice-command'
 import { SETUP_STEP_IDS } from '~/types'
 
 const removedSetupCommand = ['so', 'ck'].join('')

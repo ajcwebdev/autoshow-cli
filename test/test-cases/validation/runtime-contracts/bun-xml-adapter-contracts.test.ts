@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { parsePodcastFeedXml } from '~/cli/commands/process-steps/step-0-metadata/metadata-sources/metadata-podcast-rss'
+import { parsePodcastFeedXml } from '~/cli/commands/sources/metadata/metadata-sources/metadata-podcast-rss'
 import { findOrderedXmlElements, orderedXmlText, parseOrderedXml } from '~/utils/bun-xml-adapter'
 import { firstTagAttr, firstTagText, scanTagBlocks } from '~/utils/xml-scan'
 

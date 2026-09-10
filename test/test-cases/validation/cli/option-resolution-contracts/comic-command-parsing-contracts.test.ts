@@ -4,20 +4,20 @@ chunkComicPagePanels,
 DEFAULT_FINAL_PANELS_PER_IMAGE,
 DEFAULT_SKETCH_PANELS_PER_IMAGE,
 parseComicGridSpec
-} from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-utils'
+} from '~/cli/commands/visuals/comic/comic-commands/generate-images/comic-page-utils'
 import {
 coerceAndValidateDraftScenes,
 coerceAndValidateGenerateImages,
 coerceAndValidateReferenceSketch,
 DEFAULT_LLM_MODEL
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
+} from '~/cli/commands/visuals/comic/comic-utils/cli-args'
 import {
 draftScenesCommandDefinition,
 generateAudioCommandDefinition,
 generateImagesCommandDefinition,
 generateSlideshowCommandDefinition,
 referenceSketchCommandDefinition
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
+} from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'

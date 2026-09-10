@@ -1,9 +1,9 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
-import { getOcrTargetDirectoryName } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
-import { collectPartialStep2Metadata } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-partial-step2'
-import { buildWriteManifestSummary, logExtractManifestSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
+import { getOcrTargetDirectoryName } from '~/cli/commands/text/ocr/ocr-targets'
+import { collectPartialStep2Metadata } from '~/cli/commands/text/ocr/ocr-partial-step2'
+import { buildWriteManifestSummary, logExtractManifestSummary } from '~/cli/commands/command-shared/write-manifest-log/write-manifest-log'
 import {
   createOcrCostDiagnosticsMetadata,
   createPartialOcrDiagnosticsMetadata

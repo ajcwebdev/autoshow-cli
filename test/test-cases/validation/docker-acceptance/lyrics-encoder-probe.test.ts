@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { checkFfmpegEncoder, selectLyricsEncoder } from '~/cli/commands/process-steps/step-7-music/lyrics-video/lyrics-ffmpeg-plan'
+import { checkFfmpegEncoder, selectLyricsEncoder } from '~/cli/commands/audio/music/lyrics-video/lyrics-ffmpeg-plan'
 import type { ExecResult } from '~/types'
 
 const result = (exitCode: number): ExecResult => ({ exitCode, stdout: 'h264_nvenc', stderr: exitCode ? 'Cannot load libcuda.so.1' : '', stdoutBytes: 10, stderrBytes: 0, stdoutTruncated: false, stderrTruncated: false })

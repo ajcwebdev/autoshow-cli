@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { buildExtractionCallOpts } from '~/cli/commands/process-steps/step-1-download/download-targets/single/document-write'
-import { buildExpectedFilesList } from '~/cli/commands/process-steps/step-1-download/download-targets/expected-output'
+import { buildExtractionCallOpts } from '~/cli/commands/sources/download/download-targets/single/document-write'
+import { buildExpectedFilesList } from '~/cli/commands/sources/download/download-targets/expected-output'
 import {
   AUTO_PDF_CHAPTER_EXPORT_MIN_PAGES,
   resolvePdfChapterDetectionMode,
   shouldAttemptPdfChapterExport,
   shouldExportEpubChapters
-} from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-export-defaults'
+} from '~/cli/commands/text/ocr/chapter-export-defaults'
 import {
   DEFAULT_ALL_PROVIDER_CONCURRENCY,
   DEFAULT_CLI_CONCURRENCY
@@ -15,11 +15,11 @@ import {
 import {
   HOSTED_URL_ARTICLE_BACKENDS,
   URL_ARTICLE_BACKENDS
-} from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+} from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import {
   DEFAULT_URL_REQUEST_ATTEMPTS,
   DEFAULT_URL_REQUEST_TIMEOUT_MS
-} from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-utils'
+} from '~/cli/commands/text/url/url-utils'
 
 describe('option resolution contracts', () => {
   test('buildOptsFromFlags maps representative CLI flags to runtime options', () => {

@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
+import { withHostedTtsRetry } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-retry'
 import type { TtsFixtureTargetOptions, TtsTarget } from '~/types'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { ProviderError } from '~/utils/error-handler'

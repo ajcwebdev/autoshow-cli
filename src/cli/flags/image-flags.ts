@@ -3,14 +3,14 @@ import { boolFlag, formatProviderList, formatRange, formatUniqueValueList, forma
 import { IMAGE_GENERATION_QUALITIES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
-import { GEMINI_IMAGE_RESPONSE_MODES, GEMINI_IMAGE_SIZE_VALUES, GEMINI_NATIVE_ASPECT_RATIO_VALUES } from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-gemini/gemini-image-targets'
-import { GROK_IMAGE_ASPECT_RATIO_VALUES, GROK_IMAGE_COUNT_RANGE, GROK_IMAGE_SIZE_VALUES } from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-grok/grok-image-targets'
-import { OPENAI_FIXED_IMAGE_SIZE_VALUES, OPENAI_IMAGE_BACKGROUND_VALUES, OPENAI_IMAGE_COMPRESSION_RANGE, OPENAI_IMAGE_COUNT_RANGE, OPENAI_IMAGE_FORMAT_VALUES } from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-openai/openai-image-targets'
-import { BFL_OUTPUT_FORMATS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/bfl/run-bfl-image-gen'
-import { LUMALABS_ASPECT_RATIOS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/lumalabs/run-lumalabs-image-gen'
-import { LUMALABS_MAX_IMAGE_INPUTS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/lumalabs/lumalabs-image-targets'
-import { REPLICATE_QWEN_ASPECT_RATIO_VALUES, REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES, REPLICATE_WAN_IMAGE_COUNT_RANGE } from '~/cli/commands/process-steps/step-5-image/image-generation-services/replicate/run-replicate-image-gen'
-import { FAL_IMAGE_COUNT_RANGE, FAL_REVE_ASPECT_RATIOS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/fal-image-service/run-fal-image-gen'
+import { GEMINI_IMAGE_RESPONSE_MODES, GEMINI_IMAGE_SIZE_VALUES, GEMINI_NATIVE_ASPECT_RATIO_VALUES } from '~/cli/commands/visuals/image/image-generation-services/image-gemini/gemini-image-targets'
+import { GROK_IMAGE_ASPECT_RATIO_VALUES, GROK_IMAGE_COUNT_RANGE, GROK_IMAGE_SIZE_VALUES } from '~/cli/commands/visuals/image/image-generation-services/image-grok/grok-image-targets'
+import { OPENAI_FIXED_IMAGE_SIZE_VALUES, OPENAI_IMAGE_BACKGROUND_VALUES, OPENAI_IMAGE_COMPRESSION_RANGE, OPENAI_IMAGE_COUNT_RANGE, OPENAI_IMAGE_FORMAT_VALUES } from '~/cli/commands/visuals/image/image-generation-services/image-openai/openai-image-targets'
+import { BFL_OUTPUT_FORMATS } from '~/cli/commands/visuals/image/image-generation-services/bfl/run-bfl-image-gen'
+import { LUMALABS_ASPECT_RATIOS } from '~/cli/commands/visuals/image/image-generation-services/lumalabs/run-lumalabs-image-gen'
+import { LUMALABS_MAX_IMAGE_INPUTS } from '~/cli/commands/visuals/image/image-generation-services/lumalabs/lumalabs-image-targets'
+import { REPLICATE_QWEN_ASPECT_RATIO_VALUES, REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES, REPLICATE_WAN_IMAGE_COUNT_RANGE } from '~/cli/commands/visuals/image/image-generation-services/replicate/run-replicate-image-gen'
+import { FAL_IMAGE_COUNT_RANGE, FAL_REVE_ASPECT_RATIOS } from '~/cli/commands/visuals/image/image-generation-services/fal-image-service/run-fal-image-gen'
 
 const imageAspectRatioLists = [
   GROK_IMAGE_ASPECT_RATIO_VALUES,

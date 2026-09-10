@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { createManifest, createManifestItem, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
-import { auditOcrTokenShapes } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-token-shape-audit'
+import { createManifest, createManifestItem, writeManifest } from '~/cli/commands/command-shared/pipeline-manifest'
+import { auditOcrTokenShapes } from '~/cli/commands/text/ocr/ocr-pricing/ocr-token-shape-audit'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 
 const writeKimiRun = async (

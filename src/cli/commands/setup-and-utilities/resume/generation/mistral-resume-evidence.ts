@@ -1,5 +1,5 @@
-import { validateProviderVoiceRef } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
-import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-request-reference-policy'
+import { validateProviderVoiceRef } from '~/cli/commands/audio/tts/script-to-audio/contract-validation'
+import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/audio/voice/voice-assets/mistral-request-reference-policy'
 import { UsageError } from '~/utils/error-handler'
 import type { PipelineProviderState, ProtectedAssetRef, ProtectedVoiceAssetStore, ProviderVoiceRef } from '~/types'
 import { readRetainedTtsResolvedVoices } from './tts-resume-source-context'

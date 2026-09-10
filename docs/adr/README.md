@@ -172,7 +172,7 @@ No further consolidation is currently recommended. The current 22 records stay s
 **ADR set 1: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) + [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)**
 
 - **Recommendation:** Keep separate.
-- **Current rationale:** Durable hosted-model policy and benchmark proof have different maintenance lifecycles. Dated refresh history lives in the per-modality reports under `docs/commands/process-steps/`.
+- **Current rationale:** Durable hosted-model policy and benchmark proof have different maintenance lifecycles. Dated refresh history lives in the per-modality reports under `docs/commands/`.
 
 **ADR set 2: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) + [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)**
 
@@ -233,12 +233,12 @@ Open follow-up work from ADRs and refresh reports, excluding never-ending refres
 - **Priority:** High
 - **Next step:** Review native AMD64 and ARM64 production validation and compiled-entrypoint experiment artifacts left open by the 2026-08-31 evaluation. Local ARM64 success does not close native AMD64 verification; retain the source production entrypoint unless the documented acceptance gates pass.
 
-**Item 4: [2026 Hosted-Model Refresh Report: LLMs](../commands/process-steps/step-3-write/02-llm-model-report.md)**
+**Item 4: [2026 Hosted-Model Refresh Report: LLMs](../commands/text/write/model-report.md)**
 
 - **Priority:** Medium
 - **Next step:** Implement the remaining 2026-08-16 recommended selectors after confirming adapter fit and published pricing.
 
-**Item 5: [2026 Hosted-Model Refresh Report: OCR](../commands/process-steps/step-2-extract/06-ocr-model-report.md)**
+**Item 5: [2026 Hosted-Model Refresh Report: OCR](../commands/text/ocr/model-report.md)**
 
 - **Priority:** Medium
 - **Next step:** Promote provisional token-billed page heuristics and the benchmark-calibrated Florence compute-second estimate through approved ADR-012 calibration; blocked on immediate approval for each exact paid calibration run.
@@ -253,7 +253,7 @@ Open follow-up work from ADRs and refresh reports, excluding never-ending refres
 - **Priority:** Medium
 - **Next step:** Calibrate materially different reasoning levels and provisional model heuristics; deferred pending immediate approval for each exact paid run.
 
-**Item 8: [2026 Hosted-Model Refresh Report: TTS](../commands/process-steps/step-4-tts/02-tts-model-report.md)**
+**Item 8: [2026 Hosted-Model Refresh Report: TTS](../commands/audio/tts/model-report.md)**
 
 - **Priority:** Low
 - **Next step:** Watch Cartesia for a dated Sonic 3.6 snapshot; do not register `sonic-preview`.

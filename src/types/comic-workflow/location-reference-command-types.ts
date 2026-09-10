@@ -16,8 +16,8 @@ export type LocationViewQaResult = {
 
 export type LocationReferenceCommandDependencies = {
   aggregateSpecification?: (input: { key: string; scripts: Array<{ path: string; content: string }>; model: string }) => Promise<{ name: string; specification: string }>
-  requestImage?: typeof import('~/cli/commands/process-steps/step-8-comic/comic-image-services/comic-image-targets').createImage
-  writeImage?: typeof import('~/cli/commands/process-steps/step-8-comic/comic-image-services/image-writer').writeGeneratedImage
+  requestImage?: typeof import('~/cli/commands/visuals/comic/comic-image-services/comic-image-targets').createImage
+  writeImage?: typeof import('~/cli/commands/visuals/comic/comic-image-services/image-writer').writeGeneratedImage
   promoteImage?: (stagedPath: string, targetPath: string) => Promise<void>
   judgeView?: (input: LocationViewJudgeInput) => Promise<LocationViewQaResult>
   generationId?: () => string

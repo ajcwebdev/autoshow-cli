@@ -1,6 +1,6 @@
 import type * as v from 'valibot'
 
-export type DesignReferenceSnapshotManifest = v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/comic-utils/design-reference').DesignReferenceSnapshotManifestSchema>
+export type DesignReferenceSnapshotManifest = v.InferOutput<typeof import('~/cli/commands/visuals/comic/comic-utils/design-reference').DesignReferenceSnapshotManifestSchema>
 
 export type SceneDesignReference = { key: string; sourcePath: string; usage: string }
 

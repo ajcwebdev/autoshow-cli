@@ -1,6 +1,6 @@
 import type { FetchFn, FetchUrlResult } from '~/types'
-import { extractHtmlToMarkdown } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/run-defuddle-url'
-import { runFirecrawlUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/firecrawl/run-firecrawl-url'
+import { extractHtmlToMarkdown } from '~/cli/commands/text/url/url-local/defuddle/run-defuddle-url'
+import { runFirecrawlUrl } from '~/cli/commands/text/url/url-services/firecrawl/run-firecrawl-url'
 import * as l from '~/utils/app-logger/app-logger'
 import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { InfraError, serializeDiagnosticError } from '~/utils/error-handler'

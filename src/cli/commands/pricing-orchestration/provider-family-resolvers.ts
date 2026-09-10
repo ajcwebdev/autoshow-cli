@@ -1,5 +1,5 @@
 import { getExtractEstimation, getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { estimateOcrTokenUsage } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
+import { estimateOcrTokenUsage } from '~/cli/commands/text/ocr/ocr-pricing/ocr-estimates'
 import { isTokenPricedOcrProvider } from '~/types'
 import type { CostSource, EstimatedStepEntry, ExtractionMetadata, NormalizedReasoningEffort, StepCostEntry, TokenPricedOcrProvider } from '~/types'
 import { applyCostMultiplier } from './cost-helpers'

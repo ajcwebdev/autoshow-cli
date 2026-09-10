@@ -1,7 +1,7 @@
 import type * as v from 'valibot'
 
 export type CharacterReferenceConfig =
-  v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/schemas/schemas').CharacterReferenceSchema>
+  v.InferOutput<typeof import('~/cli/commands/visuals/comic/schemas/schemas').CharacterReferenceSchema>
 
 declare const characterKeyBrand: unique symbol
 export type CharacterKey = string & { readonly [characterKeyBrand]?: true }

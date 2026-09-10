@@ -4,8 +4,8 @@ import { parseOptionalNumberFlag, parseTtsDialogueFormat, readBooleanFlag, readO
 import { validateCliValue } from './download-model-options'
 import { pick } from '~/utils/cli-utils'
 import { UsageError } from '~/utils/error-handler'
-import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-request-reference-policy'
-import { parseSpeakerVoiceMappings } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
+import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/audio/voice/voice-assets/mistral-request-reference-policy'
+import { parseSpeakerVoiceMappings } from '~/cli/commands/audio/tts/dialogue-normalizer'
 import {
   parseGenericTtsBooleanOption,
   parseGenericTtsOptionValue,

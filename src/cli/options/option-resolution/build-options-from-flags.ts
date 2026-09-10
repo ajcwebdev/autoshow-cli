@@ -1,4 +1,4 @@
-import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
+import { getOutputRoot } from '~/cli/commands/command-shared/output-root'
 import type { BuildOptsDefaults, BuildOptsResolutionContext, ResolvedFlagContext } from '~/types'
 import {
   parseHostedConcurrencyMode,
@@ -20,7 +20,7 @@ import { buildImageOptions } from './image-options'
 import { buildMusicOptions } from './music-options'
 import { buildVideoOptions } from './video-options'
 import { buildBatchOptions } from './batch-options'
-import { createHostedConcurrencyCoordinator } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
+import { createHostedConcurrencyCoordinator } from '~/cli/commands/command-shared/hosted-concurrency-coordinator'
 
 export { collectRepeatableModelFlagOccurrences, REPEATABLE_MODEL_FLAGS, normalizeModelFlagOccurrences } from './model-flag-selection'
 

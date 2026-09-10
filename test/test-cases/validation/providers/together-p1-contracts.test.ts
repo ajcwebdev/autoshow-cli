@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { runTogetherModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-together/run-together'
+import { runTogetherModel } from '~/cli/commands/text/write/write-services/write-together/run-together'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { validateTogetherModel } from '~/cli/commands/setup-and-utilities/models/llm-models'
 import { getLlmCost, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'

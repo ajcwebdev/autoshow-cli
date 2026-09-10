@@ -64,7 +64,7 @@ Global flags:
 | `--log-level`           | Minimum log level: `debug`, `info`, `success`, `warn`, or `error`.                                                                                                                                                                                                                                      |
 | `--color`, `--no-color` | Force ANSI colors on or off instead of auto-detecting the TTY.                                                                                                                                                                                                                                          |
 
-Comic subcommands (`draft-scenes`, `generate-images`, `generate-audio`, `generate-slideshow`, `reference-sketch`, and `review`) are first-class children of `comic`. Character voice management uses `voice`. The deprecated `comic reference-voice`, `comic review-sheet`, and `comic review-notes` aliases remain callable during the [compatibility window](../commands/process-steps/step-8-comic/00-comic-overview.md#deprecated-aliases).
+Comic subcommands (`draft-scenes`, `generate-images`, `generate-audio`, `generate-slideshow`, `reference-sketch`, and `review`) are first-class children of `comic`. Character voice management uses `voice`. The deprecated `comic reference-voice`, `comic review-sheet`, and `comic review-notes` aliases remain callable during the [compatibility window](../commands/visuals/comic/00-comic-overview.md#deprecated-aliases).
 
 ## Command Surface
 

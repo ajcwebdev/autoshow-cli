@@ -189,7 +189,7 @@ The formatter uses the existing ZIP central-directory reader and Bun XML APIs, p
 Run `bun run check`, then the explicit validation paths below. These suites exercise local fixtures, parser/policy boundaries, artifacts, documented shell invocation, REST serialization, and Docker contracts without provider requests. Require nonzero test counts; never substitute the full provider test runner.
 
 ```bash
-bun test test/test-cases/validation/extraction/ test/test-cases/validation/cli/required-image-model-contracts.test.ts test/test-cases/validation/cli/network-check-contracts.test.ts test/test-cases/validation/cli/docker-workspace-invocation.test.ts
+bun test test/test-cases/validation/text/ocr/docx-markdown.test.ts test/test-cases/validation/text/ocr/docx-command-contracts.test.ts test/test-cases/validation/cli/required-image-model-contracts.test.ts test/test-cases/validation/cli/network-check-contracts.test.ts test/test-cases/validation/cli/docker-workspace-invocation.test.ts
 bun test test/test-cases/validation/cli/option-resolution-contracts/ test/test-cases/validation/cli/native-cli-parser-contracts.test.ts test/test-cases/validation/cli/docker-image-contracts.test.ts test/test-cases/validation/providers/provider-rest-client-contracts.test.ts test/test-cases/validation/providers/openai-rest-contracts/
 ```
 
@@ -233,30 +233,30 @@ Paths in this table are relative to `test/test-cases/e2e/`. Shared definitions a
 
 | Existing scenario | Container equivalent or native reason |
 | --- | --- |
-| `local/step-1-download-e2e/download-input-types-local-file`: local audio, local document | `download-local-audio`, `download-local-document`; native local audio now uses an actual local file |
-| `local/step-1-download-e2e/download-input-types-direct-url`: direct audio, direct video, URL list with limit 1 | `download-direct-audio`, `download-direct-video`, `download-url-list`; deterministic container HTTP fixtures |
-| `local/step-1-download-e2e/download-input-types-feed-or-channel`: RSS with image/audio enclosures and limit 1 | `download-rss`; internal RSS fixture and batch/source/child-manifest assertions |
-| `local/step-1-download-e2e/download-input-types-streaming`: YouTube, Twitch | `download-youtube`, `download-twitch`; same public URLs, success required |
-| `local/step-2-ocr-e2e/ocr-local/ocr-options`: PDF default, PDF JSON | `ocr-pdf-default`, `ocr-pdf-json` |
+| `local/sources/download/download-input-types-local-file`: local audio, local document | `download-local-audio`, `download-local-document`; native local audio now uses an actual local file |
+| `local/sources/download/download-input-types-direct-url`: direct audio, direct video, URL list with limit 1 | `download-direct-audio`, `download-direct-video`, `download-url-list`; deterministic container HTTP fixtures |
+| `local/sources/download/download-input-types-feed-or-channel`: RSS with image/audio enclosures and limit 1 | `download-rss`; internal RSS fixture and batch/source/child-manifest assertions |
+| `local/sources/download/download-input-types-streaming`: YouTube, Twitch | `download-youtube`, `download-twitch`; same public URLs, success required |
+| `local/text/ocr/ocr-options`: PDF default, PDF JSON | `ocr-pdf-default`, `ocr-pdf-json` |
 | Same file: image default versus explicit Tesseract | `ocr-image-default`, `ocr-image-explicit`; assert identical local extraction method and correct default/explicit provider origin |
 | Same file: EPUB cleaned text, default chapter exports with length, no-chapters chunks | `epub-text`, `epub-chapters`, `epub-chunks` |
 | Same file: PDF chapter detection and diagnostics | `pdf-chapters` |
 | Same file: ignored image chapter flags | `ocr-ignored-chapters` |
 | Same file: public Defuddle URL extraction | `defuddle-public`; additional deterministic `defuddle-fixture` proves local installation reuse |
-| `local/step-2-stt-e2e/stt-local/whisper/whisper-default`: default, explicit tiny/base, split audio | `stt-whisper-default`, `stt-whisper-tiny`, `stt-whisper-base`, `stt-split-audio` |
-| `local/step-2-stt-e2e/stt-local/whisper/whisper-large-v3-turbo`: explicit turbo, split video | `stt-whisper-large-v3-turbo`, `stt-split-video` |
-| `local/step-2-stt-e2e/stt-local/whisperfile/whisperfile-default`: explicit tiny | `stt-whisperfile-tiny`; additional `stt-whisperfile-default` tests an omitted model |
+| `local/stt/whisper/whisper-default`: default, explicit tiny/base, split audio | `stt-whisper-default`, `stt-whisper-tiny`, `stt-whisper-base`, `stt-split-audio` |
+| `local/stt/whisper/whisper-large-v3-turbo`: explicit turbo, split video | `stt-whisper-large-v3-turbo`, `stt-split-video` |
+| `local/stt/whisperfile/whisperfile-default`: explicit tiny | `stt-whisperfile-tiny`; additional `stt-whisperfile-default` tests an omitted model |
 | Additional supported Whisper selectors | `stt-whisper-small`, `stt-whisper-medium` |
 | Additional supported Whisperfile selectors | `stt-whisperfile-tiny.en`, `stt-whisperfile-small`, `stt-whisperfile-small.en`, `stt-whisperfile-medium`, `stt-whisperfile-medium.en`, `stt-whisperfile-large-v2`, `stt-whisperfile-large-v3` |
-| `local/step-3-write-e2e/write-local/write-project-lyrics`: cheapest hosted LLM default resolution | Original resolver test remains native because it directly tests an internal API; `write-default-price` checks the packaged CLI's resolution without generation |
-| `local/step-7-music-lyrics-video-e2e/music-lyrics-video`: edited-caption rerender, explicit tiny transcription, default turbo transcription, batch manifest | `lyrics-rerender`, `lyrics-explicit`, `lyrics-default`, `lyrics-batch`; short fixtures replace longer example audio; validate captions, H.264/1080p output, provider metadata, cleanup, and batch children |
-| `service/step-4-tts-e2e/tts-services/mistral-validation`: invalid model, missing voice source | `reject-mistral-model`, `reject-mistral-voice` |
-| `service/step-4-tts-e2e/tts-services/mistral-voxtral-mini-tts-2603-voice`: unknown voice-name flag | `reject-mistral-voice-name` |
-| `service/step-4-tts-e2e/tts-services/mistral-dialogue-ref-audio`: remote reference rejection without disclosure | `reject-mistral-remote-reference` |
-| `service/step-5-image-gen-e2e/bfl-validation`: unsupported aspect ratio, invalid size | `reject-bfl-aspect`, `reject-bfl-size` |
-| `service/step-5-image-gen-e2e/lumalabs-validation`: unsupported size, invalid ratio, invalid format | `reject-luma-size`, `reject-luma-aspect`, `reject-luma-format` |
-| `service/step-7-music-gen-e2e/provider-flag-validation`: missing provider | `reject-music-provider` |
-| `service/step-4-tts-e2e/tts-services/inworld-realtime-tts-2`: collects Inworld target | Remains a native internal-selector contract; it has no CLI rejection or artifact workflow to port |
+| `local/text/write/write-project-lyrics`: cheapest hosted LLM default resolution | Original resolver test remains native because it directly tests an internal API; `write-default-price` checks the packaged CLI's resolution without generation |
+| `local/audio/music/music-lyrics-video`: edited-caption rerender, explicit tiny transcription, default turbo transcription, batch manifest | `lyrics-rerender`, `lyrics-explicit`, `lyrics-default`, `lyrics-batch`; short fixtures replace longer example audio; validate captions, H.264/1080p output, provider metadata, cleanup, and batch children |
+| `service/audio/tts/mistral-validation`: invalid model, missing voice source | `reject-mistral-model`, `reject-mistral-voice` |
+| `service/audio/tts/mistral-voxtral-mini-tts-2603-voice`: unknown voice-name flag | `reject-mistral-voice-name` |
+| `service/audio/tts/mistral-dialogue-ref-audio`: remote reference rejection without disclosure | `reject-mistral-remote-reference` |
+| `service/visuals/image/bfl-validation`: unsupported aspect ratio, invalid size | `reject-bfl-aspect`, `reject-bfl-size` |
+| `service/visuals/image/lumalabs-validation`: unsupported size, invalid ratio, invalid format | `reject-luma-size`, `reject-luma-aspect`, `reject-luma-format` |
+| `service/audio/music/provider-flag-validation`: missing provider | `reject-music-provider` |
+| `service/audio/tts/inworld-realtime-tts-2`: collects Inworld target | Remains a native internal-selector contract; it has no CLI rejection or artifact workflow to port |
 | Other service e2e tests | Hosted generation/transcription/extraction requires provider credits or quota and is excluded; no live-provider suite is imported |
 
 ### Publication and verification

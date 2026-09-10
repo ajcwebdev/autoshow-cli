@@ -1,5 +1,5 @@
 import { describe,expect,test } from 'bun:test'
-import { classifyTtsProviderAdmissionError } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/tts-request-evidence'
+import { classifyTtsProviderAdmissionError } from '~/cli/commands/audio/tts/script-to-audio/tts-request-evidence'
 import { AppError,ProviderError } from '~/utils/error-handler'
 import { classifyFetchRetry,classifyPaidCreateRetry } from '~/utils/retries'
 

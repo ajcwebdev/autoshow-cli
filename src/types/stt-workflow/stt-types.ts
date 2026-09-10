@@ -10,10 +10,10 @@ SpeechmaticsTranscriptResponseSchema
 } from '~/types'
 
 export type SttBatchCoordinator =
-  import('~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch-coordinator').SttBatchCoordinator
+  import('~/cli/commands/stt/stt-batch/stt-batch-coordinator').SttBatchCoordinator
 
 export type MistralSttPassController =
-  import('~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-mistral/mistral-stt-pass-controller').MistralSttPassController
+  import('~/cli/commands/stt/diarization/stt-mistral/mistral-stt-pass-controller').MistralSttPassController
 
 export type TranscribeEngineCapabilities = {
   diarizationByDefault: boolean

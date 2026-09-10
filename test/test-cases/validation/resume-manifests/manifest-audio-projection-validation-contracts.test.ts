@@ -3,7 +3,7 @@ import {
 createManifest,
 createManifestItem,
 writeManifest
-} from '~/cli/commands/process-steps/pipeline-manifest'
+} from '~/cli/commands/command-shared/pipeline-manifest'
 import type { PipelineProviderState } from '~/types'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { withTempDir } from '../../../test-utils/temp-dirs'

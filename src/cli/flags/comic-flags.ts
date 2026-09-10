@@ -4,18 +4,18 @@ import { colorizeHelpDescription } from '~/cli/help-colors'
 import {
   DEFAULT_LLM_MODEL,
   DEFAULT_QA_MODEL
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
+} from '~/cli/commands/visuals/comic/comic-utils/cli-args'
 import {
   DEFAULT_IMAGE_MODEL,
   IMAGE_SIZE_HELP
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/image-size'
-import { IMAGE_PROMPT_VARIATIONS } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/prompt-variations'
-import { BLOCKING_HARD_CANDIDATE_STATUSES } from '~/cli/commands/process-steps/step-8-comic/schemas/blocking-plan-schemas'
+} from '~/cli/commands/visuals/comic/comic-utils/image-size'
+import { IMAGE_PROMPT_VARIATIONS } from '~/cli/commands/visuals/comic/comic-commands/generate-images/prompt-variations'
+import { BLOCKING_HARD_CANDIDATE_STATUSES } from '~/cli/commands/visuals/comic/schemas/blocking-plan-schemas'
 import {
   COMIC_GRID_PANEL_SIZE,
   DEFAULT_FINAL_PANELS_PER_IMAGE,
   DEFAULT_SKETCH_PANELS_PER_IMAGE
-} from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-utils'
+} from '~/cli/commands/visuals/comic/comic-commands/generate-images/comic-page-utils'
 import { DEFAULT_CONCURRENCY_FLAG_VALUE } from '~/utils/concurrency-defaults'
 import { IMAGE_GENERATION_QUALITIES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'

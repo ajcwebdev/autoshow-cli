@@ -1,16 +1,16 @@
-import { normalizeDialogueSpeakerKey } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
-import { planCurrentTtsRenderIdentity } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
-import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
+import { normalizeDialogueSpeakerKey } from '~/cli/commands/audio/tts/dialogue-normalizer'
+import { planCurrentTtsRenderIdentity } from '~/cli/commands/audio/tts/script-to-audio/current-render-attempt'
+import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
 import {
   attachMistralProtectedReference,
   attachMistralProtectedSpeakerReferences,
   promoteMistralProtectedSpeakerReferences
-} from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-protected-reference-binding'
-import { createProtectedVoiceAssetStore } from '~/cli/commands/process-steps/step-4-tts/voice-assets/protected-voice-asset-store'
+} from '~/cli/commands/audio/voice/voice-assets/mistral-protected-reference-binding'
+import { createProtectedVoiceAssetStore } from '~/cli/commands/audio/voice/voice-assets/protected-voice-asset-store'
 import {
   MISTRAL_REQUEST_REFERENCE_STORE_ID,
   MISTRAL_REQUEST_REFERENCE_STORE_ROOT
-} from '~/cli/commands/process-steps/step-4-tts/voice-assets/standalone-mistral-reference'
+} from '~/cli/commands/audio/voice/voice-assets/standalone-mistral-reference'
 import { deriveGenerationResumeModelFields, TTS_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import type { GenerationResumeProviderIdentity, PipelineManifestItem, ProtectedAssetRef, ProtectedVoiceAssetStore, ResumeTarget, TtsOptions, TtsTarget } from '~/types'
 import { UsageError } from '~/utils/error-handler'

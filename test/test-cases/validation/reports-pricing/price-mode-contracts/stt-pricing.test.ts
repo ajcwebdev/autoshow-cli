@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { computeGeminiSttBillingFromUsage } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/gemini-stt/run-gemini-stt'
+import { computeGeminiSttBillingFromUsage } from '~/cli/commands/stt/diarization-off-by-default/gemini-stt/run-gemini-stt'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
 import { computeSttCost } from '~/cli/commands/pricing-orchestration/cost-helpers'

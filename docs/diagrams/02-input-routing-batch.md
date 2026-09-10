@@ -85,7 +85,7 @@ extract route
 | `x_space`      | `x-space`     | X Space route                                     |
 | `unsupported`  | none          | skipped in batch, usage error for a single target |
 
-Local `.html`/`.htm` files classify as `html_article`. `.acsm` is unsupported. Supported document and image extensions are listed in [Types, Metadata & Output Layout](05-types-and-output.md#type-reference).
+Local `.html`/`.htm` files classify as `html_article`. `.acsm` is unsupported. Supported document and image extensions are listed in [extract input routing](../commands/extract.md#input-routing).
 
 ## Command Matrix
 

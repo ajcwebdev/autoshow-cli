@@ -1,65 +1,73 @@
 import { expect, test } from 'bun:test'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { linksCommand } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import { resumeCommand } from '~/cli/commands/setup-and-utilities/resume/define-resume-command'
 import { setupCommand } from '~/cli/commands/setup-and-utilities/setup/define-setup-command'
-import { metadataCommand } from '~/cli/commands/process-steps/step-0-metadata/define-metadata-command'
-import { downloadCommand } from '~/cli/commands/process-steps/step-1-download/define-download-command'
-import { extractCommand } from '~/cli/commands/process-steps/step-2-extract/define-extract-command'
-import { writeCommand } from '~/cli/commands/process-steps/step-3-write/define-write-command'
-import { ttsCommand } from '~/cli/commands/process-steps/step-4-tts/define-tts-command'
-import { imageCommand } from '~/cli/commands/process-steps/step-5-image/define-image-command'
-import { videoCommand } from '~/cli/commands/process-steps/step-6-video/define-video-command'
-import { musicCommand } from '~/cli/commands/process-steps/step-7-music/define-music-command'
-import { comicCommand } from '~/cli/commands/process-steps/step-8-comic/define-comic-command'
-import { voiceCommand } from '~/cli/commands/process-steps/step-4-tts/voice-management/define-voice-command'
+import { metadataCommand } from '~/cli/commands/sources/metadata/define-metadata-command'
+import { downloadCommand } from '~/cli/commands/sources/download/define-download-command'
+import { extractCommand } from '~/cli/commands/command-shared/extract-routing/define-extract-command'
+import { writeCommand } from '~/cli/commands/text/write/define-write-command'
+import { ttsCommand } from '~/cli/commands/audio/tts/define-tts-command'
+import { imageCommand } from '~/cli/commands/visuals/image/define-image-command'
+import { videoCommand } from '~/cli/commands/visuals/video/define-video-command'
+import { musicCommand } from '~/cli/commands/audio/music/define-music-command'
+import { comicCommand } from '~/cli/commands/visuals/comic/define-comic-command'
+import { voiceCommand } from '~/cli/commands/audio/voice/define-voice-command'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import type { CliCommandDefinition, CliFlagDefinition, DocumentedFlag, FlagTableRows, ScannerState } from '~/types'
 
 const docsRoot = resolve(import.meta.dir, '../../../../docs/commands')
-const configDoc = 'setup-and-utilities/config-command/config.md'
+const configDoc = 'setup-and-utilities/config.md'
 const modelReportDocs = [
-  'process-steps/step-2-extract/05-stt-model-report.md',
-  'process-steps/step-2-extract/06-ocr-model-report.md',
-  'process-steps/step-2-extract/07-url-model-report.md',
-  'process-steps/step-3-write/02-llm-model-report.md',
-  'process-steps/step-4-tts/02-tts-model-report.md',
-  'process-steps/step-5-image/02-image-model-report.md',
-  'process-steps/step-6-video/02-video-model-report.md',
-  'process-steps/step-7-music/02-music-model-report.md'
+  'stt/model-report.md',
+  'text/ocr/model-report.md',
+  'text/url/model-report.md',
+  'text/write/model-report.md',
+  'audio/tts/model-report.md',
+  'visuals/image/model-report.md',
+  'visuals/video/model-report.md',
+  'audio/music/model-report.md'
 ] as const
 const commandByDoc = {
-  'process-steps/step-0-metadata/01-metadata.md': metadataCommand,
-  'process-steps/step-1-download/01-download-file.md': downloadCommand,
-  'process-steps/step-2-extract/01-extract.md': extractCommand,
-  'process-steps/step-2-extract/02-extract-stt.md': extractCommand,
-  'process-steps/step-2-extract/03-extract-ocr.md': extractCommand,
-  'process-steps/step-2-extract/04-extract-url.md': extractCommand,
-  'process-steps/step-3-write/01-write-text.md': writeCommand,
-  'process-steps/step-4-tts/01-text-to-speech-and-voice.md': ttsCommand,
-  'process-steps/step-5-image/01-text-to-image.md': imageCommand,
-  'process-steps/step-6-video/01-text-to-video-services.md': videoCommand,
-  'process-steps/step-7-music/01-text-to-music-services.md': musicCommand,
-  'process-steps/step-8-comic/00-comic-overview.md': comicCommand,
-  'process-steps/step-8-comic/01-draft-scenes.md': comicCommand,
-  'process-steps/step-8-comic/02-reference-sketch.md': comicCommand,
-  'process-steps/step-8-comic/03-generate-images.md': comicCommand,
-  'process-steps/step-8-comic/04-generate-audio.md': comicCommand,
-  'process-steps/step-8-comic/05-generate-slideshow.md': comicCommand,
-  'process-steps/step-8-comic/06-review.md': comicCommand,
-  'process-steps/step-9-voice/00-voice-overview.md': voiceCommand,
-  'process-steps/step-9-voice/01-list.md': voiceCommand,
-  'process-steps/step-9-voice/02-consent.md': voiceCommand,
-  'process-steps/step-9-voice/03-import.md': voiceCommand,
-  'process-steps/step-9-voice/04-design.md': voiceCommand,
-  'process-steps/step-9-voice/05-clone.md': voiceCommand,
-  'process-steps/step-9-voice/06-audition.md': voiceCommand,
-  'process-steps/step-9-voice/07-approve.md': voiceCommand,
-  'process-steps/step-9-voice/08-retire.md': voiceCommand,
-  'process-steps/step-9-voice/09-delete.md': voiceCommand,
-  'setup-and-utilities/links/links.md': linksCommand,
-  'setup-and-utilities/resume/resume.md': resumeCommand,
-  'setup-and-utilities/setup/setup.md': setupCommand
+  'sources/metadata/overview.md': metadataCommand,
+  'sources/download/overview.md': downloadCommand,
+  'extract.md': extractCommand,
+  'stt/overview.md': extractCommand,
+  'stt/local/overview.md': extractCommand,
+  'stt/diarization/overview.md': extractCommand,
+  'stt/diarization-off-by-default/overview.md': extractCommand,
+  'stt/direct-url/overview.md': extractCommand,
+  'stt/workflows/captions/overview.md': extractCommand,
+  'stt/workflows/timing/overview.md': extractCommand,
+  'stt/workflows/transcript-review/overview.md': extractCommand,
+  'stt/workflows/transcript-video/overview.md': extractCommand,
+  'text/ocr/overview.md': extractCommand,
+  'text/url/overview.md': extractCommand,
+  'text/write/overview.md': writeCommand,
+  'audio/tts/overview.md': ttsCommand,
+  'visuals/image/overview.md': imageCommand,
+  'visuals/video/overview.md': videoCommand,
+  'audio/music/overview.md': musicCommand,
+  'visuals/comic/00-comic-overview.md': comicCommand,
+  'visuals/comic/01-draft-scenes.md': comicCommand,
+  'visuals/comic/02-reference-sketch.md': comicCommand,
+  'visuals/comic/03-generate-images.md': comicCommand,
+  'visuals/comic/04-generate-audio.md': comicCommand,
+  'visuals/comic/05-generate-slideshow.md': comicCommand,
+  'visuals/comic/06-review.md': comicCommand,
+  'audio/voice/00-voice-overview.md': voiceCommand,
+  'audio/voice/01-list.md': voiceCommand,
+  'audio/voice/02-consent.md': voiceCommand,
+  'audio/voice/03-import.md': voiceCommand,
+  'audio/voice/04-design.md': voiceCommand,
+  'audio/voice/05-clone.md': voiceCommand,
+  'audio/voice/06-audition.md': voiceCommand,
+  'audio/voice/07-approve.md': voiceCommand,
+  'audio/voice/08-retire.md': voiceCommand,
+  'audio/voice/09-delete.md': voiceCommand,
+  'setup-and-utilities/links.md': linksCommand,
+  'setup-and-utilities/resume.md': resumeCommand,
+  'setup-and-utilities/setup.md': setupCommand
 } as const satisfies Record<string, CliCommandDefinition>
 
 const tableCells = (line: string): string[] =>
@@ -263,8 +271,40 @@ const registrationFor = (
   return negated?.negatable === true ? negated : undefined
 }
 
-const isTestDoc = (doc: string): boolean => doc === 'testing.md' || doc.endsWith('-tests.md')
-const isModelReportDoc = (doc: string): boolean => doc.endsWith('-model-report.md')
+const isTestDoc = (doc: string): boolean => doc === 'testing.md' || doc.endsWith('/tests.md')
+const isModelReportDoc = (doc: string): boolean => doc.endsWith('/model-report.md')
+
+test('command documentation links and section anchors resolve after relocation', async () => {
+  const docs = await Array.fromAsync(new Bun.Glob('**/*.md').scan({ cwd: docsRoot }))
+  const problems: string[] = []
+  for (const doc of docs) {
+    const file = resolve(docsRoot, doc)
+    const markdown = (await Bun.file(file).text()).replace(/^```[^\n]*\n.*?^```[^\n]*$/gms, '')
+    for (const match of markdown.matchAll(/\]\(([^\s)]+)\)/g)) {
+      const link = match[1]!
+      if (/^<?[a-z]+:/i.test(link)) continue
+      const [path = '', anchor] = link.split('#')
+      const target = path ? resolve(dirname(file), path) : file
+      if (!target.endsWith('.md')) continue
+      if (!await Bun.file(target).exists()) {
+        problems.push(`${doc}: missing ${link}`)
+        continue
+      }
+      if (!anchor) continue
+      const content = (await Bun.file(target).text()).replace(/^```[^\n]*\n.*?^```[^\n]*$/gms, '')
+      const counts = new Map<string, number>()
+      const anchors = [...content.matchAll(/^#{1,6}\s+(.+)$/gm)].map(heading => {
+        const slug = heading[1]!.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').toLowerCase().replace(/[^\p{L}\p{N}_ -]/gu, '').replaceAll(' ', '-')
+        const count = counts.get(slug) ?? 0
+        counts.set(slug, count + 1)
+        return count ? `${slug}-${count}` : slug
+      })
+      anchors.push(...[...content.matchAll(/(?:id|name)=["']([^"']+)["']/g)].map(match => match[1]!))
+      if (!anchors.includes(decodeURIComponent(anchor))) problems.push(`${doc}: missing anchor ${link}`)
+    }
+  }
+  expect(problems).toEqual([])
+})
 
 test('command doc flag tables name only flags registered by that command', async () => {
   const docs = (await Array.fromAsync(new Bun.Glob('**/*.md').scan({ cwd: docsRoot }))).sort()

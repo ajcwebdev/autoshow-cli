@@ -176,7 +176,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-Managed macOS tools resolve through `src/utils/runtime-paths.ts` and install from `src/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools.ts`. Download resume, checksum verification, and bounded transfer concurrency live under `src/cli/commands/setup-and-utilities/setup/setup-download/`. Setup orchestration, summary reporting, and `setup --doctor` live under `src/cli/commands/setup-and-utilities/setup/`. User-facing behavior is documented in `docs/commands/setup-and-utilities/setup/setup.md`.
+Managed macOS tools resolve through `src/utils/runtime-paths.ts` and install from `src/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools.ts`. Download resume, checksum verification, and bounded transfer concurrency live under `src/cli/commands/setup-and-utilities/setup/setup-download/`. Setup orchestration, summary reporting, and `setup --doctor` live under `src/cli/commands/setup-and-utilities/setup/`. User-facing behavior is documented in `docs/commands/setup-and-utilities/setup.md`.
 
 ### Bun 1.4 Archive Extraction
 
@@ -208,7 +208,7 @@ bun test test/test-cases/validation/setup/
 - Related ADR: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md)
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
 - Related ADR: [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)
-- `docs/commands/setup-and-utilities/setup/setup.md`
+- `docs/commands/setup-and-utilities/setup.md`
 - `src/utils/runtime-paths.ts`
 - `src/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools.ts`
 - `src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts`

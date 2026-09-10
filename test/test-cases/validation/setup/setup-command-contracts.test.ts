@@ -87,7 +87,7 @@ describe('setup command contracts', () => {
       'src/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio.ts',
       'src/cli/commands/setup-and-utilities/setup/setup-download/dl-document/document.ts',
       'src/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre.ts',
-      'src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-local/tesseract-setup.ts'
+      'src/cli/commands/text/ocr/ocr-local/tesseract-setup.ts'
     ]
     const source = (await Promise.all(sourceFiles.map(async (path) => await Bun.file(path).text()))).join('\n')
 
@@ -194,12 +194,12 @@ describe('setup command contracts', () => {
       ])
       expect(artifacts.every(({ bytes }) => bytes > 0)).toBe(true)
 
-      const whisperSource = await Bun.file('src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper.ts').text()
-      const runtimeSource = await Bun.file('src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/run-whisper.ts').text()
+      const whisperSource = await Bun.file('src/cli/commands/stt/local/whisper/whisper.ts').text()
+      const runtimeSource = await Bun.file('src/cli/commands/stt/local/whisper/run-whisper.ts').text()
       expect(whisperSource.toLowerCase()).not.toContain('coreml')
       expect(runtimeSource.toLowerCase()).not.toContain('coreml')
-      expect(await Bun.file('src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper-scripts/convert-whisper-to-coreml.py').exists()).toBe(false)
-      expect(await Bun.file('src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper-scripts/validate-coreml.py').exists()).toBe(false)
+      expect(await Bun.file('src/cli/commands/stt/local/whisper/whisper-scripts/convert-whisper-to-coreml.py').exists()).toBe(false)
+      expect(await Bun.file('src/cli/commands/stt/local/whisper/whisper-scripts/validate-coreml.py').exists()).toBe(false)
     } finally {
       await rm(root, { recursive: true, force: true })
     }

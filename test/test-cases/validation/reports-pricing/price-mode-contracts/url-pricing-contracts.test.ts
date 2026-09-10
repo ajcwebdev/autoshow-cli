@@ -1,7 +1,7 @@
 import { describe,expect,test } from 'bun:test'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
-import { resolveExtractionProviderModel } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-costs'
+import { resolveExtractionProviderModel } from '~/cli/commands/text/ocr/ocr-costs'
 import type { ExtractionMetadata } from '~/types'
 
 describe('price mode contracts', () => {

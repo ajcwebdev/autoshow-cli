@@ -15,7 +15,7 @@ The two local review operations now share `comic review <script>`. Its default w
 
 `comic review-sheet` and `comic review-notes` remain deprecated aliases for the same compatibility release, preserving their original flags, validation, and result identifiers. Their direct help documents the replacements. Alias removal requires a later announced breaking CLI release. Comic now has six canonical immediate subcommands; the three deprecated entries remain registered for compatibility.
 
-This amendment supersedes the command-surface recommendations below that present `comic reference-voice` as a normal entry point. The original decision remains as historical context. Current usage and migration details live in the [comic overview](../commands/process-steps/step-8-comic/00-comic-overview.md), [review guide](../commands/process-steps/step-8-comic/06-review.md), and [voice overview](../commands/process-steps/step-9-voice/00-voice-overview.md). Shared provider infrastructure and domain responsibilities are unchanged.
+This amendment supersedes the command-surface recommendations below that present `comic reference-voice` as a normal entry point. The original decision remains as historical context. Current usage and migration details live in the [comic overview](../commands/visuals/comic/00-comic-overview.md), [review guide](../commands/visuals/comic/06-review.md), and [voice overview](../commands/audio/voice/00-voice-overview.md). Shared provider infrastructure and domain responsibilities are unchanged.
 
 ## Context
 
@@ -144,7 +144,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-Comic model resolution, native nested `comic` commands, shared hosted admission, and native `links` parsing live in `src/cli/commands/process-steps/step-8-comic/define-comic-command.ts`, `src/cli/commands/setup-and-utilities/links/define-links-command.ts`, and the native parser, dispatcher, and help renderer under `src/cli/native/`.
+Comic model resolution, native nested `comic` commands, shared hosted admission, and native `links` parsing live in `src/cli/commands/visuals/comic/define-comic-command.ts`, `src/cli/commands/setup-and-utilities/links/define-links-command.ts`, and the native parser, dispatcher, and help renderer under `src/cli/native/`.
 
 ## Test Plan
 
@@ -154,7 +154,7 @@ bun test test/test-cases/validation/cli/native-cli-parser-contracts.test.ts
 bun test test/test-cases/validation/cli/cli-usage-errors/
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 bun test test/test-cases/validation/content-output/metadata-links-lyrics-contracts/selector-validation.test.ts
-bun test test/test-cases/validation/comic/comic-character-*-contracts.test.ts
+bun test test/test-cases/validation/visuals/comic/comic-character-*-contracts.test.ts
 ```
 
 1. Typecheck and unique-source check pass against the native comic and `links` command definitions.
@@ -171,10 +171,10 @@ Verification uses local fixtures and mocked providers without executing live hos
 - Related ADR: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md) — removal of parallel override/client plumbing
 - Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — shared hosted admission, pressure recovery, and clean-ramp price planning
 - Related ADR: [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — links selection modes and refresh artifacts
-- [comic](../commands/process-steps/step-8-comic/00-comic-overview.md)
-- `docs/commands/setup-and-utilities/links/links.md`
+- [comic](../commands/visuals/comic/00-comic-overview.md)
+- `docs/commands/setup-and-utilities/links.md`
 - `src/cli/native/native-parser.ts`
 - `src/cli/native/dispatcher.ts`
 - `src/cli/native/help-renderer.ts`
-- `src/cli/commands/process-steps/step-8-comic/define-comic-command.ts`
+- `src/cli/commands/visuals/comic/define-comic-command.ts`
 - `src/cli/commands/setup-and-utilities/links/define-links-command.ts`

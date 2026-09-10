@@ -1,5 +1,5 @@
 import { getMusicEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { estimateMusicCosts, MUSIC_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
+import { estimateMusicCosts, MUSIC_PRICING_PROVIDERS } from '~/cli/commands/audio/music/music-utils/music-pricing'
 import type { ComputeEstimatedCostsInput, CostStepsResult } from '~/types'
 import { optionsForService } from '~/utils/pricing/model-selection'
 import { pushGenerationEstimates } from './cost-steps-shared'

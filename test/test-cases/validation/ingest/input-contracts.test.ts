@@ -3,16 +3,16 @@ import { readFileSync } from 'node:fs'
 import { rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import ts from 'typescript'
-import { isLikelyInputListFile } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-collection'
-import { planProcessTargetBatchExecution, resolveProcessTargetPlan } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-process-target-plan'
-import { classifyInputFamily, classifyUrlInput } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
-import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-routing'
-import { resolveSingleTargetRouteDecision } from '~/cli/commands/process-steps/step-1-download/download-targets/single/single-target-routing'
+import { isLikelyInputListFile } from '~/cli/commands/sources/metadata/metadata-targets/metadata-input-collection'
+import { planProcessTargetBatchExecution, resolveProcessTargetPlan } from '~/cli/commands/sources/metadata/metadata-targets/metadata-process-target-plan'
+import { classifyInputFamily, classifyUrlInput } from '~/cli/commands/sources/metadata/metadata-targets/metadata-input-classifier'
+import { resolveInputRoutingForCommand } from '~/cli/commands/sources/metadata/metadata-targets/metadata-input-routing'
+import { resolveSingleTargetRouteDecision } from '~/cli/commands/sources/download/download-targets/single/single-target-routing'
 import type { SingleTargetInputCategory, SingleTargetRoute } from '~/types'
-import { withTemporaryDirectDocument } from '~/cli/commands/process-steps/step-1-download/download-targets/single/temporary-direct-document'
-import { resolveXSpaceDownloadTarget } from '~/cli/commands/process-steps/step-1-download/download-targets/single/x-space-runner'
+import { withTemporaryDirectDocument } from '~/cli/commands/sources/download/download-targets/single/temporary-direct-document'
+import { resolveXSpaceDownloadTarget } from '~/cli/commands/sources/download/download-targets/single/x-space-runner'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { WRITE_NON_TEXT_INPUT_MESSAGE } from '~/cli/commands/process-steps/step-3-write/run-write-command'
+import { WRITE_NON_TEXT_INPUT_MESSAGE } from '~/cli/commands/text/write/run-write-command'
 import { STABLE_TTS_MD_PATH, runCommand } from '../../../test-utils/test-helpers'
 import { makeTempDir } from '../../../test-utils/temp-dirs'
 
@@ -144,7 +144,7 @@ describe('input classification contracts', () => {
 
     const runner = declarations(resolve(
       process.cwd(),
-      'src/cli/commands/process-steps/step-1-download/download-targets/single/single-target-runner.ts'
+      'src/cli/commands/sources/download/download-targets/single/single-target-runner.ts'
     ))
     const coordinator = runner.get('processSingleTarget')
     expect(coordinator).toBeDefined()
@@ -157,7 +157,7 @@ describe('input classification contracts', () => {
 
     const cleanupDeclarations = declarations(resolve(
       process.cwd(),
-      'src/cli/commands/process-steps/step-1-download/download-targets/single/temporary-direct-document.ts'
+      'src/cli/commands/sources/download/download-targets/single/temporary-direct-document.ts'
     ))
     const cleanupBoundary = cleanupDeclarations.get('withTemporaryDirectDocument')
     expect(cleanupBoundary).toBeDefined()

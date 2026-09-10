@@ -5,6 +5,7 @@ import { musicRegistry } from './music'
 import { ocrRegistry } from './ocr'
 import { sttRegistry } from './stt'
 import { ttsRegistry } from './tts'
+import { urlRegistry } from './url'
 import { videoRegistry } from './video'
 import { writeRegistry } from './write'
 
@@ -17,4 +18,5 @@ export const BUDGET_PRICE_SELECTION_REGISTRY: PriceSelectionEntry[] = [
   ...videoRegistry,
   ...musicRegistry,
   ...ocrRegistry,
+  ...urlRegistry,
 ]

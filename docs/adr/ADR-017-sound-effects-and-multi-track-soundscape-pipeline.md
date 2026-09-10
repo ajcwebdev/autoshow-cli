@@ -162,7 +162,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-`comic generate-audio` accepts `--sfx-provider`, `--sfx-license-use`, `--sfx-concurrency`, and `--soundscape-timing-policy` in `src/cli/flags/comic-flags.ts`. Directive parsing lives in `src/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/soundscape-directives.ts`. Planning, routing, mixing, and the three dedicated adapters live under `src/cli/commands/process-steps/step-4-tts/soundscape/`. Public types live in `src/types/soundscape-workflow/`.
+`comic generate-audio` accepts `--sfx-provider`, `--sfx-license-use`, `--sfx-concurrency`, and `--soundscape-timing-policy` in `src/cli/flags/comic-flags.ts`. Directive parsing lives in `src/cli/commands/visuals/comic/comic-utils/structured-script-utils/soundscape-directives.ts`. Planning, routing, mixing, and the three dedicated adapters live under `src/cli/commands/audio/tts/soundscape/`. Public types live in `src/types/soundscape-workflow/`.
 
 ## Test Plan
 
@@ -171,13 +171,13 @@ Run the default no-cost repository verification and targeted offline soundscape 
 ```bash
 bun run check
 bun t --price
-bun test test/test-cases/validation/comic/soundscape-schema-contracts.test.ts
-bun test test/test-cases/validation/comic/soundscape-timeline-contracts.test.ts
-bun test test/test-cases/validation/comic/soundscape-mixer-contracts.test.ts
-bun test test/test-cases/validation/comic/comic-soundscape-artifact-contracts.test.ts
-bun test test/test-cases/validation/media-generation/elevenlabs-sfx-adapter-contracts.test.ts
-bun test test/test-cases/validation/media-generation/replicate-audiogen-adapter-contracts.test.ts
-bun test test/test-cases/validation/media-generation/stability-stable-audio-adapter-contracts.test.ts
+bun test test/test-cases/validation/visuals/comic/soundscape-schema-contracts.test.ts
+bun test test/test-cases/validation/visuals/comic/soundscape-timeline-contracts.test.ts
+bun test test/test-cases/validation/visuals/comic/soundscape-mixer-contracts.test.ts
+bun test test/test-cases/validation/visuals/comic/comic-soundscape-artifact-contracts.test.ts
+bun test test/test-cases/validation/audio/music/elevenlabs-sfx-adapter-contracts.test.ts
+bun test test/test-cases/validation/audio/music/replicate-audiogen-adapter-contracts.test.ts
+bun test test/test-cases/validation/audio/music/stability-stable-audio-adapter-contracts.test.ts
 git diff --check
 ```
 

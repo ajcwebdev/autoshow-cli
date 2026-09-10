@@ -1,6 +1,6 @@
 import { join } from 'node:path'
-import { getGenerationTargetKey } from '~/cli/commands/process-steps/generation-command-utils'
-import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord } from '~/cli/commands/process-steps/pipeline-manifest'
+import { getGenerationTargetKey } from '~/cli/commands/command-shared/generation-command-utils'
+import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord } from '~/cli/commands/command-shared/pipeline-manifest'
 import type { PipelineItemRecord, ProviderBatchResumeConfig, ProviderIdentity, ResolvedFlagOptions, ResumeFakeMetadata, ResumeFakeProviderResumeEntry, ResumeTarget } from '~/types'
 import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 import { isRecord } from '../../../test-utils/test-helpers'

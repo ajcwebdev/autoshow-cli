@@ -1,4 +1,4 @@
-export type LocationView = (typeof import('~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference').LOCATION_VIEWS)[number]
+export type LocationView = (typeof import('~/cli/commands/visuals/comic/comic-utils/location-reference').LOCATION_VIEWS)[number]
 
 export type LocationReferenceEntry = {
   key: string

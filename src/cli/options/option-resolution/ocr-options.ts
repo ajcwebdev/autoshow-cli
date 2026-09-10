@@ -1,4 +1,4 @@
-import { isStep2BooleanProviderSelected } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { isStep2BooleanProviderSelected } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import type { OcrRuntimeOptions, OcrRuntimeOptionKey, OutputFormat, ResolvedFlagContext } from '~/types'
 import {
   parseIntWithDefault,

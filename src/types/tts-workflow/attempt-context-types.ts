@@ -71,7 +71,7 @@ export type AttemptContext = {
   journal: RenderAdmissionJournalSnapshot
   journalSequence: number
   journalFile: WrittenJson<RenderAdmissionJournalSnapshot> | undefined
-  attemptReservation: Awaited<ReturnType<typeof import('~/cli/commands/process-steps/step-4-tts/script-to-audio/safe-artifact-store').reserveInvocationAttemptDirectory>> | undefined
+  attemptReservation: Awaited<ReturnType<typeof import('~/cli/commands/audio/tts/script-to-audio/safe-artifact-store').reserveInvocationAttemptDirectory>> | undefined
   events: CanonicalAudioProviderProjection['renderHistory'][number]['events']
   pointerEvents: CanonicalAudioProviderProjection['pointerEvents']
   currentProjection: CanonicalAudioProviderProjection

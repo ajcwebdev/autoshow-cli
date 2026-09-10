@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { runGlmModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-glm/run-glm'
+import { runGlmModel } from '~/cli/commands/text/write/write-services/write-glm/run-glm'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { validateGlmModel } from '~/cli/commands/setup-and-utilities/models/llm-models'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'

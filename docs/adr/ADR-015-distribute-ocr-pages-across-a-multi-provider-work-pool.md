@@ -140,9 +140,9 @@ Negative outcomes:
 
 ## Implementation Note
 
-Pool assignment, admission, retirement, and composite assembly live under `src/cli/commands/process-steps/step-2-extract/step-2-ocr/`. Canonical `ocrPool` persistence is `src/cli/commands/process-steps/pipeline-manifest.ts`. `--ocr-provider-mode` is resolved for `extract`, `write`, `resume`, and configuration files.
+Pool assignment, admission, retirement, and composite assembly live under `src/cli/commands/text/ocr/`. Canonical `ocrPool` persistence is `src/cli/commands/command-shared/pipeline-manifest.ts`. `--ocr-provider-mode` is resolved for `extract`, `write`, `resume`, and configuration files.
 
-Pooled price preflights are `src/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates.ts`. Actual cost rollups are `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`.
+Pooled price preflights are `src/cli/commands/text/ocr/ocr-pricing/build-extract-estimates.ts`. Actual cost rollups are `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`.
 
 ## API / Type Impact
 
@@ -156,7 +156,7 @@ Pooled price preflights are `src/cli/commands/process-steps/step-2-extract/extra
 
 ```bash
 bun run check
-bun test test/test-cases/validation/extract-ocr/ocr-page-pool-*-contracts.test.ts
+bun test test/test-cases/validation/text/ocr/ocr-page-pool-*-contracts.test.ts
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 ```
 
@@ -170,9 +170,9 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 - Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — shared queue, work selection, target admission, and lane policy
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — OCR execution, artifacts, failures, cache identity, and diagnostics
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — model identity, lifecycle, capabilities, reasoning, and pricing provenance
-- `src/cli/commands/process-steps/step-2-extract/step-2-ocr/`
-- `src/cli/commands/process-steps/pipeline-manifest.ts`
+- `src/cli/commands/text/ocr/`
+- `src/cli/commands/command-shared/pipeline-manifest.ts`
 - `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`
-- `src/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates.ts`
+- `src/cli/commands/text/ocr/ocr-pricing/build-extract-estimates.ts`
 - `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
-- `test/test-cases/validation/extract-ocr/ocr-page-pool-*-contracts.test.ts`
+- `test/test-cases/validation/text/ocr/ocr-page-pool-*-contracts.test.ts`

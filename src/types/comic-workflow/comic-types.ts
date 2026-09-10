@@ -43,13 +43,13 @@ export type LlmModel = string
 
 export type ImageGenerationModel = string
 
-export type PromptsConfig = v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/schemas/schemas').PromptsConfigSchema>
+export type PromptsConfig = v.InferOutput<typeof import('~/cli/commands/visuals/comic/schemas/schemas').PromptsConfigSchema>
 
-export type StructuredScriptData = v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/schemas/schemas').StructuredScriptDataSchema>
+export type StructuredScriptData = v.InferOutput<typeof import('~/cli/commands/visuals/comic/schemas/schemas').StructuredScriptDataSchema>
 
 export type StructuredScriptSourceSegment = StructuredScriptData['sourceSegments'][number]
 
-export type ScenePromptData = v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/schemas/schemas').ScenePromptDataSchema>
+export type ScenePromptData = v.InferOutput<typeof import('~/cli/commands/visuals/comic/schemas/schemas').ScenePromptDataSchema>
 
 export type ParsedGenerateBaseArgs = {
   showHelp: boolean
@@ -106,7 +106,7 @@ export type ParsedDraftCommandArgs = {
   reconcileFromDirectives?: boolean
 }
 
-export type PanelBundleData = v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/schemas/schemas').PanelBundleDataSchema>
+export type PanelBundleData = v.InferOutput<typeof import('~/cli/commands/visuals/comic/schemas/schemas').PanelBundleDataSchema>
 
 export type ResolvedReferenceImages = {
   all: string[]

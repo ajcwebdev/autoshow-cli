@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import { normalizeExtractGenericSelectorFlags } from '~/cli/flags/service-selector-normalization/extract-selectors'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
+import { collectSttTargets } from '~/cli/commands/stt/stt-targets'
 import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrences'
 
 test('bare local provider selectors keep the requested engine and use its default model', () => {

@@ -1,5 +1,5 @@
 import type { ResolvedFlagContext, VideoRuntimeOptions } from '~/types'
-import { VIDEO_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
+import { VIDEO_PRICING_MODEL_KEYS } from '~/cli/commands/visuals/video/video-utils/video-pricing'
 import {
   parseOptionalIntFlag,
   parseOptionalNumberFlag,

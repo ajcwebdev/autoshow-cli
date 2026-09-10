@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { writeCommand } from '~/cli/commands/process-steps/step-3-write/define-write-command'
+import { writeCommand } from '~/cli/commands/text/write/define-write-command'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'

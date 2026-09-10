@@ -1,5 +1,5 @@
 import type { ComputeEstimatedProcessingTimesInput, TimingStepEntry, TimingStepsResult } from '~/types'
-import { estimateTtsSynthesisProcessingTimeMs } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
+import { estimateTtsSynthesisProcessingTimeMs } from '~/cli/commands/audio/tts/tts-utils/tts-chunking'
 import { getTtsEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { roundMs, withNormalizedTiming } from './timing-shared'
 

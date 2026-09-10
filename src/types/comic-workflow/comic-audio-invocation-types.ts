@@ -14,10 +14,10 @@ export type ResolvedComicAudioInvocation = {
   allowAmbiguousRedispatch: boolean
   maxGenerationSlots: number | undefined
   sfxSelector: string | undefined
-  sfxLicenseUseClassification: ReturnType<typeof import('~/cli/commands/process-steps/step-8-comic/comic-utils/comic-soundscape-workflow').parseSoundEffectLicenseUseClassification>
+  sfxLicenseUseClassification: ReturnType<typeof import('~/cli/commands/visuals/comic/comic-utils/comic-soundscape-workflow').parseSoundEffectLicenseUseClassification>
   sfxConcurrency: number
   presentationRequested: boolean
   baseOptions: TtsOptions
-  compatible: Awaited<ReturnType<typeof import('~/cli/commands/process-steps/step-8-comic/comic-utils/compatible-scene-run').resolveCompatibleComicSceneRun>>
-  dialoguePlan: ReturnType<typeof import('~/cli/commands/process-steps/step-8-comic/comic-utils/comic-dialogue-plan').createComicDialoguePlan>
+  compatible: Awaited<ReturnType<typeof import('~/cli/commands/visuals/comic/comic-utils/compatible-scene-run').resolveCompatibleComicSceneRun>>
+  dialoguePlan: ReturnType<typeof import('~/cli/commands/visuals/comic/comic-utils/comic-dialogue-plan').createComicDialoguePlan>
 }

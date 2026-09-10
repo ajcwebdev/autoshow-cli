@@ -1,5 +1,5 @@
 import { getImageCost, getImageEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { estimateImageCosts, IMAGE_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
+import { estimateImageCosts, IMAGE_PRICING_PROVIDERS } from '~/cli/commands/visuals/image/image-utils/image-pricing'
 import type { ComputeEstimatedCostsInput, CostStepsResult, Step5Metadata } from '~/types'
 import { optionsForService } from '~/utils/pricing/model-selection'
 import { pushGenerationEstimates } from './cost-steps-shared'

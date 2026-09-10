@@ -3,19 +3,19 @@ import { join } from 'node:path'
 import {
 buildComicPagePrompt,
 buildComicPagePromptData
-} from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-utils'
-import { applyImagePromptVariation } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/prompt-variations'
+} from '~/cli/commands/visuals/comic/comic-commands/generate-images/comic-page-utils'
+import { applyImagePromptVariation } from '~/cli/commands/visuals/comic/comic-commands/generate-images/prompt-variations'
 import {
 buildSketchPrompt
-} from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-sketches/generate-scene-sketches'
+} from '~/cli/commands/visuals/comic/comic-commands/generate-sketches/generate-scene-sketches'
 import {
 getSceneOutputDirectory
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/project-paths'
+} from '~/cli/commands/visuals/comic/comic-utils/project-paths'
 import {
 getPageComicImageFilename,
 getPageComicImagePath,
 getPanelComicImagePath
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/scene-utils'
+} from '~/cli/commands/visuals/comic/comic-utils/scene-utils'
 import type { PanelBundleData,PromptsConfig } from '~/types'
 
 const engineeringBayLocation = { key: 'engineering-bay', raw: 'INT. ENGINEERING BAY' }

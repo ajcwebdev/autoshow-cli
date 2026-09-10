@@ -2,16 +2,16 @@ import { describe,expect,test } from 'bun:test'
 import {
 PROJECTION_ARTIFACT_GRAPH_LINK_PASSES,
 validateProjectionArtifactGraphLinks
-} from '~/cli/commands/process-steps/pipeline-manifest/projection-artifact-graph'
+} from '~/cli/commands/command-shared/pipeline-manifest/projection-artifact-graph'
 import {
 collectNestedProjectionArtifactReferences
-} from '~/cli/commands/process-steps/pipeline-manifest/projection-artifact-references'
+} from '~/cli/commands/command-shared/pipeline-manifest/projection-artifact-references'
 import {
 decodeProjectionArtifactBytes,
 visitProjectionArtifactReference
-} from '~/cli/commands/process-steps/pipeline-manifest/projection-artifact-verifier'
-import { createGraphLinkContext } from '~/cli/commands/process-steps/pipeline-manifest/projection-artifact-link-context'
-import { validateBatchResultProvenanceLinks } from '~/cli/commands/process-steps/pipeline-manifest/projection-artifact-admission-audio-links'
+} from '~/cli/commands/command-shared/pipeline-manifest/projection-artifact-verifier'
+import { createGraphLinkContext } from '~/cli/commands/command-shared/pipeline-manifest/projection-artifact-link-context'
+import { validateBatchResultProvenanceLinks } from '~/cli/commands/command-shared/pipeline-manifest/projection-artifact-admission-audio-links'
 import type { ProjectionArtifactReference } from '~/types'
 
 const ARTIFACT_HASHES = {

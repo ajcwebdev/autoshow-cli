@@ -1,0 +1,55 @@
+import { expect, test } from 'bun:test'
+import { STABLE_TTS_MD_PATH } from '../../../../../test-utils/test-helpers'
+import {
+  MISTRAL_REF_AUDIO_PATH,
+  MISTRAL_TTS_MODEL,
+  expectPriceEstimateForModel,
+  runTtsPriceCommand
+} from './shared'
+
+test('mistral --price works with an existing voice source', async () => {
+  const result = await runTtsPriceCommand([
+    'src/cli/create-cli.ts',
+    'tts',
+    STABLE_TTS_MD_PATH,
+    '--provider',
+    `mistral=${MISTRAL_TTS_MODEL}`,
+    '--tts-voice',
+    'voice_abc123',
+    '--price', '--json'
+  ])
+
+  expectPriceEstimateForModel(result, MISTRAL_TTS_MODEL)
+  expect(`${result.stdout}\n${result.stderr}`).toContain('speech')
+})
+
+test('all-provider --price uses an internal Mistral planning voice when none is supplied', async () => {
+  const result = await runTtsPriceCommand([
+    'src/cli/create-cli.ts',
+    'tts',
+    STABLE_TTS_MD_PATH,
+    '--all-providers',
+    '--price', '--json'
+  ])
+
+  expectPriceEstimateForModel(result, MISTRAL_TTS_MODEL)
+  expect(`${result.stdout}\n${result.stderr}`).not.toContain('requires an existing voice ID')
+})
+
+test('mistral rejects voice and reference audio together before API request in price mode', async () => {
+  const result = await runTtsPriceCommand([
+    'src/cli/create-cli.ts',
+    'tts',
+    STABLE_TTS_MD_PATH,
+    '--provider',
+    `mistral=${MISTRAL_TTS_MODEL}`,
+    '--tts-voice',
+    'voice_abc123',
+    '--tts-ref-audio',
+    MISTRAL_REF_AUDIO_PATH,
+    '--price', '--json'
+  ])
+
+  expect(result.exitCode).toBe(2)
+  expect(`${result.stdout}\n${result.stderr}`).toContain('Use either --mistral-tts-voice or --mistral-tts-ref-audio, not both')
+})

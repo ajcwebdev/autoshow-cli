@@ -12,8 +12,8 @@ export type StructuredScriptEnvelope = {
   content: string
   scriptPath: string
   scriptFile: string
-  documentHeading: ReturnType<typeof import('~/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/markdown-blocks').parseHeading>
-  sceneHeading: ReturnType<typeof import('~/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/markdown-blocks').parseHeading>
+  documentHeading: ReturnType<typeof import('~/cli/commands/visuals/comic/comic-utils/structured-script-utils/markdown-blocks').parseHeading>
+  sceneHeading: ReturnType<typeof import('~/cli/commands/visuals/comic/comic-utils/structured-script-utils/markdown-blocks').parseHeading>
   metadata: StructuredScriptData['document']['metadata']
   locationRaw: string
   locationCatalog: LocationReferenceCatalog

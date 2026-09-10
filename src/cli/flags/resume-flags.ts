@@ -20,7 +20,7 @@ import { musicGenFlags } from './music-flags'
 import type { CliFlagsDefinition } from '~/types'
 import { EXTRACT_PUBLIC_SELECTOR_FLAGS } from './service-selector-normalization/extract-selectors'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
-import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { URL_ARTICLE_BACKENDS } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 
 const extractProvidersFor = (kind: 'stt' | 'ocr'): Record<string, unknown> =>
   Object.fromEntries(Object.entries(EXTRACT_PUBLIC_SELECTOR_FLAGS).filter(([, targets]) => targets[kind] !== undefined))

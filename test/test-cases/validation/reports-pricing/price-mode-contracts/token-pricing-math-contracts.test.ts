@@ -1,5 +1,5 @@
 import { describe,expect,test } from 'bun:test'
-import { estimateLlmCostFromRegistry } from '~/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/llm-cost'
+import { estimateLlmCostFromRegistry } from '~/cli/commands/visuals/comic/comic-utils/structured-script-utils/llm-cost'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
 
 describe('price mode contracts', () => {

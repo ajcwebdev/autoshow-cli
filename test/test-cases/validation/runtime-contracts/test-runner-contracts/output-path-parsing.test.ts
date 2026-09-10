@@ -3,7 +3,7 @@ import { mkdir } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { runCommand, STABLE_EXAMPLE_AUDIO_URL } from '../../../../test-utils/test-helpers'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
-import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
+import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/command-shared/pipeline-manifest'
 import { writeSingleManifestFixture } from '../../../../test-utils/manifest-helpers'
 
 describe('test-runner output path parsing', () => {

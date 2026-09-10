@@ -6,19 +6,19 @@ import { runCommand } from '../../../../test-utils/test-helpers'
 import {
   GEMINI_IMAGE_RESPONSE_MODES,
   GEMINI_IMAGE_SIZE_VALUES
-} from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-gemini/gemini-image-targets'
+} from '~/cli/commands/visuals/image/image-generation-services/image-gemini/gemini-image-targets'
 import {
   OPENAI_FIXED_IMAGE_SIZE_VALUES,
   OPENAI_IMAGE_BACKGROUND_VALUES
-} from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-openai/openai-image-targets'
+} from '~/cli/commands/visuals/image/image-generation-services/image-openai/openai-image-targets'
 import {
   GEMINI_VIDEO_RESOLUTIONS,
   GROK_VIDEO_ASPECT_RATIOS,
   LUMA_ASPECT_RATIOS,
   LUMA_RESOLUTIONS,
   REPLICATE_VIDEO_RESOLUTIONS
-} from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
-import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+} from '~/cli/commands/visuals/video/video-utils/video-normalization'
+import { URL_ARTICLE_BACKENDS } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import {
   STANDALONE_VIDEO_PROVIDER_TARGETS,
   WRITE_LLM_PROVIDER_TARGETS,

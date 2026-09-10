@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { cloneFileExtension, cloneMediaType } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-command-support'
+import { cloneFileExtension, cloneMediaType } from '~/cli/commands/audio/voice/voice-command-support'
 import { createSyntheticWavBytes } from '../../../../../test-utils/media-fixtures'
 
 describe('protected voice audio media type resolution', () => {

@@ -1,0 +1,95 @@
+import { assertRequiredImageModel } from '~/utils/required-image-model'
+import { rename } from 'node:fs/promises'
+import { basename } from 'node:path'
+import type { ImageGenOptions, ImageResult, ImageTarget, Step5Metadata } from '~/types'
+import { sanitizeModelName, runTargets } from '~/cli/commands/command-shared/target-runner'
+import { InfraError, InternalError } from '~/utils/error-handler'
+import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
+import {
+  collectImageTargets,
+  getImageArtifactFileNames,
+} from './image-generation-targets'
+
+const finalizeTargetArtifacts = async (
+  outputDir: string,
+  target: ImageTarget,
+  result: ImageResult,
+  singleTarget: boolean
+): Promise<ImageResult> => {
+  const sourceFileNames = result.imagePaths.map((imagePath) => basename(imagePath))
+  const finalFileNames = getImageArtifactFileNames(target, sourceFileNames, singleTarget)
+  const finalImagePaths: string[] = []
+
+  for (const [index, imagePath] of result.imagePaths.entries()) {
+    const finalFileName = finalFileNames[index]
+    if (!finalFileName) continue
+
+    const finalPath = singleTarget ? imagePath : `${outputDir}/${finalFileName}`
+    if (!singleTarget) await rename(imagePath, finalPath)
+    finalImagePaths.push(finalPath)
+  }
+
+  const primaryPath = finalImagePaths[0]
+  if (!primaryPath) {
+    throw InfraError(`No finalized image artifacts were produced for ${target.service}/${target.model}`, { stage: 'image:run' })
+  }
+
+  return {
+    imagePaths: finalImagePaths,
+    metadata: {
+      ...result.metadata,
+      imageCount: finalImagePaths.length,
+      imageFileNames: finalFileNames,
+      imageFileSize: Bun.file(primaryPath).size,
+    }
+  }
+}
+
+export const runImageTargets = async (
+  targets: ImageTarget[],
+  prompt: string,
+  outputDir: string,
+  options: ImageGenOptions
+): Promise<{ imagePaths: string[], metadata: Step5Metadata[] }> => {
+  for (const target of targets) assertRequiredImageModel(target.model, target.service)
+  const successes = await runTargets<ImageTarget, ImageResult>({
+    targets,
+    outputDir,
+    stepLabel: 'image',
+    noProviderMessage: 'No provider produced images',
+    concurrency: {
+      provider: options.imageProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY,
+      local: DEFAULT_CLI_CONCURRENCY
+    },
+    getWorkspaceDir: (dir, target) =>
+      `${dir}/.image-tmp-${target.service}-${sanitizeModelName(target.model)}`,
+    resourceGate: options.generationResourceGate,
+    hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
+    hostedWorkClass: 'image',
+    runTarget: async (target, workspaceDir) =>
+      target.run(prompt, workspaceDir, options),
+    finalizeTarget: async (target, result, singleTarget) =>
+      finalizeTargetArtifacts(outputDir, target, result, singleTarget),
+  })
+
+  return {
+    imagePaths: successes.flatMap((entry) => entry.imagePaths),
+    metadata: successes.map((entry) => ({
+      ...entry.metadata,
+      ...(options.hostedConcurrencyCoordinator ? { hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot() } : {})
+    }))
+  }
+}
+
+export const runImageGen = async (
+  prompt: string,
+  outputDir: string,
+  options: ImageGenOptions
+): Promise<{ imagePaths: string[], metadata: Step5Metadata[] }> => {
+  const targets = collectImageTargets(options)
+  if (targets.length === 0) {
+    throw InternalError('No image provider configured', { stage: 'image:run' })
+  }
+
+  return await runImageTargets(targets, prompt, outputDir, options)
+}

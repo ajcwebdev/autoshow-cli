@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { LLMService } from '~/types'
-import { resolveStructuredStrategy, resolveValidationRetryBudget, shouldApplyStrictMode } from '~/cli/commands/process-steps/step-3-write/structured-output/capabilities'
+import { resolveStructuredStrategy, resolveValidationRetryBudget, shouldApplyStrictMode } from '~/cli/commands/text/write/structured-output/capabilities'
 
 describe('structured output provider capability contracts', () => {
   test('Together uses native strict structured output', () => {

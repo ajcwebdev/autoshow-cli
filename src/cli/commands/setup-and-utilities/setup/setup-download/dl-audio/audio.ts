@@ -6,7 +6,7 @@ import { downloadFile } from '~/cli/commands/setup-and-utilities/setup/setup-dow
 import { withRetry } from '~/utils/retries'
 import { makeExecutable } from '~/utils/filesystem'
 import { hasRuntimeTool, resolveRuntimeToolInfo, ytDlpManagedBinaryPath } from '~/utils/runtime-paths'
-import { hasYtDlpBinary } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
+import { hasYtDlpBinary } from '~/cli/commands/command-shared/shared-yt-dlp-binary'
 import { readDependencyUrlAndSha256 } from '../../dependency-metadata'
 import { hasManagedFfmpegBuild, installManagedFfmpegMacos, installManagedYtDlpMacos } from '../macos-managed-tools'
 import { isCompactSetupMode } from '~/utils/setup-output-mode'

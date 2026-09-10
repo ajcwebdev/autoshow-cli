@@ -1,6 +1,6 @@
 import { SUPPORTED_WHISPER_MODELS, validateWhisperModel, validateWhisperfileModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { downloadWhisperModel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/bootstrap'
-import { downloadWhisperfileBinary } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisperfile/whisperfile'
+import { downloadWhisperModel } from '~/cli/commands/stt/bootstrap'
+import { downloadWhisperfileBinary } from '~/cli/commands/stt/local/whisperfile/whisperfile'
 import * as l from '~/utils/app-logger/app-logger'
 import { UsageError } from '~/utils/error-handler'
 

@@ -1,5 +1,5 @@
 import { getVideoEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { estimateVideoCosts, VIDEO_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
+import { estimateVideoCosts, VIDEO_PRICING_PROVIDERS } from '~/cli/commands/visuals/video/video-utils/video-pricing'
 import type { ComputeEstimatedCostsInput, CostStepsResult } from '~/types'
 import { optionsForService } from '~/utils/pricing/model-selection'
 import { pushGenerationEstimates } from './cost-steps-shared'

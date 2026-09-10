@@ -10,16 +10,16 @@ import {
   updateSingleManifestProviderState,
   updateManifest,
   writeManifest
-} from '~/cli/commands/process-steps/pipeline-manifest'
+} from '~/cli/commands/command-shared/pipeline-manifest'
 import { PROCESS_COMMANDS } from '~/types'
 import type { CanonicalAudioProviderProjection, PipelineManifest, PipelineProviderState, TtsTarget } from '~/types'
 import { policySkippedTtsProviderState } from '../../../test-utils/tts-provider-state-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
-import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
-import { createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
-import { appendCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
-import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
+import { runTtsForTargets } from '~/cli/commands/audio/tts/run-tts'
+import { createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/audio/tts/script-to-audio/generic-dialogue-plan'
+import { appendCurrentTtsProviderState } from '~/cli/commands/audio/tts/script-to-audio/current-render-artifacts'
+import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/audio/tts/script-to-audio/item-dialogue-plan-artifact'
 import { requireDefined } from '../../../test-utils/value-assertions'
 
 const provider = (

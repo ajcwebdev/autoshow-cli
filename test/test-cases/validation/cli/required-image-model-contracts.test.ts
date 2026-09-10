@@ -3,9 +3,9 @@ import { parseNativeCli } from '~/cli/native/native-parser'
 import { createNativeRootDefinition } from '~/cli/native/root-definition'
 import { COMMAND_DEFINITIONS } from '~/cli/command-definitions'
 import { enforceImageCommandPolicy, assertRequiredImageModel } from '~/utils/required-image-model'
-import { collectImageTargets } from '~/cli/commands/process-steps/step-5-image/image-generation-targets'
-import { runImageTargets } from '~/cli/commands/process-steps/step-5-image/run-image-gen'
-import { createImage } from '~/cli/commands/process-steps/step-8-comic/comic-image-services/comic-image-targets'
+import { collectImageTargets } from '~/cli/commands/visuals/image/image-generation-targets'
+import { runImageTargets } from '~/cli/commands/visuals/image/run-image-gen'
+import { createImage } from '~/cli/commands/visuals/comic/comic-image-services/comic-image-targets'
 const original = process.env['AUTOSHOW_REQUIRED_IMAGE_MODEL']
 afterEach(() => { if (original === undefined) delete process.env['AUTOSHOW_REQUIRED_IMAGE_MODEL']; else process.env['AUTOSHOW_REQUIRED_IMAGE_MODEL'] = original })
 function check(args: string[]) {

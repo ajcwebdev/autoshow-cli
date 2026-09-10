@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
+import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import type { TtsProvider } from '~/types'
 

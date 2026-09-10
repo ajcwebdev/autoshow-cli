@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildDocumentPrompt } from '~/cli/commands/process-steps/step-1-download/download-targets/single/document-write-prompt'
+import { buildDocumentPrompt } from '~/cli/commands/sources/download/download-targets/single/document-write-prompt'
 
 describe('pricing and prompt ownership contracts', () => {
   test('provider-neutral pricing utilities never import CLI command implementations', async () => {
@@ -13,8 +13,8 @@ describe('pricing and prompt ownership contracts', () => {
   })
 
   test('retired deep OCR helper paths are absent', async () => {
-    expect(await Bun.file('src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/doc-prompt-utils.ts').exists()).toBe(false)
-    expect(await Bun.file('src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/extract-pricing.ts').exists()).toBe(false)
+    expect(await Bun.file('src/cli/commands/text/ocr/ocr-utils/doc-prompt-utils.ts').exists()).toBe(false)
+    expect(await Bun.file('src/cli/commands/text/ocr/ocr-utils/extract-pricing.ts').exists()).toBe(false)
   })
 
   test('the Step 1 document-write prompt preserves the established prompt contract', () => {

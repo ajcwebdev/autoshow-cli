@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { REPEATABLE_MODEL_FLAGS } from '~/cli/flags/service-selector-normalization/repeatable-model-flags'
-import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-routing'
+import { resolveInputRoutingForCommand } from '~/cli/commands/sources/metadata/metadata-targets/metadata-input-routing'
 import {
   STANDALONE_IMAGE_PROVIDER_TARGETS,
   STANDALONE_MUSIC_PROVIDER_TARGETS,
@@ -8,9 +8,9 @@ import {
   STANDALONE_VIDEO_PROVIDER_TARGETS,
   WRITE_LLM_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { collectOcrProviderSpecs } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-cli'
-import { collectSttProviderSpecs } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-cli'
-import { getStep2ProviderEntries } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { collectOcrProviderSpecs } from '~/cli/commands/text/ocr/ocr-cli'
+import { collectSttProviderSpecs } from '~/cli/commands/stt/stt-cli'
+import { getStep2ProviderEntries } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import type { OcrSelectionOptions, SttSelectionOptions } from '~/types'
 
 const EXPECTED_REPEATABLE_MODEL_FLAGS = [

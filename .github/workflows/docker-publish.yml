@@ -54,7 +54,8 @@ jobs:
         run: |
           bun --no-env-file test \
             test/test-cases/validation/docker-acceptance/ \
-            test/test-cases/validation/extraction/ \
+            test/test-cases/validation/text/ocr/docx-markdown.test.ts \
+            test/test-cases/validation/text/ocr/docx-command-contracts.test.ts \
             test/test-cases/validation/cli/network-check-contracts.test.ts \
             test/test-cases/validation/cli/required-image-model-contracts.test.ts \
             test/test-cases/validation/cli/docker-workspace-invocation.test.ts \
@@ -92,12 +93,12 @@ jobs:
             test/test-cases/validation/runtime-contracts/fetch-error-contracts.test.ts \
             test/test-cases/validation/runtime-contracts/bun-version-alignment-contracts.test.ts \
             test/test-cases/validation/runtime-contracts/maintenance-environment-contracts.test.ts \
-            test/test-cases/validation/media-generation/inworld-tts-websocket-adapter.test.ts \
-            test/test-cases/validation/comic/comic-audio-execution-publication-contracts.test.ts \
-            test/test-cases/validation/comic/comic-image-composition-contracts.test.ts \
-            test/test-cases/validation/extract-stt/async-stt-lifecycle-adoption-contracts.test.ts \
-            test/test-cases/validation/media-generation/tts-compact-archive-contracts.test.ts \
-            test/test-cases/validation/extract-ocr/ocr-bun-image-normalization-contracts.test.ts \
+            test/test-cases/validation/audio/tts/inworld-tts-websocket-adapter.test.ts \
+            test/test-cases/validation/visuals/comic/comic-audio-execution-publication-contracts.test.ts \
+            test/test-cases/validation/visuals/comic/comic-image-composition-contracts.test.ts \
+            test/test-cases/validation/stt/async-stt-lifecycle-adoption-contracts.test.ts \
+            test/test-cases/validation/audio/tts/tts-compact-archive-contracts.test.ts \
+            test/test-cases/validation/text/ocr/ocr-bun-image-normalization-contracts.test.ts \
             test/test-cases/validation/setup/tar-gz-security-contracts.test.ts \
             test/test-cases/validation/setup/setup-doctor-contracts.test.ts \
             test/test-cases/validation/cli/docker-image-contracts.test.ts
@@ -260,7 +261,7 @@ jobs:
           docker run --rm --platform linux/amd64 "${compiled_ref}" --help > "${report_dir}/compiled-help.log" 2>&1
           docker run --rm --platform linux/amd64 "${compiled_ref}" config --show --config-path /tmp/autoshow-compiled-config.json --no-color > "${report_dir}/compiled-config.log" 2>&1
           docker run --rm --platform linux/amd64 "${compiled_ref}" setup --doctor --no-color > "${report_dir}/compiled-doctor.log" 2>&1
-          compiled_path_fixture="${GITHUB_WORKSPACE}/test/test-cases/validation/comic/fixtures/structured-script-parser/handler-precedence.md"
+          compiled_path_fixture="${GITHUB_WORKSPACE}/test/test-cases/validation/visuals/comic/fixtures/structured-script-parser/handler-precedence.md"
           docker run --rm --platform linux/amd64 --mount "type=bind,src=${compiled_path_fixture},dst=/benchmark/input.md,readonly" "${compiled_ref}" write /benchmark/input.md --price --no-color > "${report_dir}/compiled-paths.log" 2>&1
           grep -F 'Setup doctor:' "${report_dir}/compiled-doctor.log"
           grep -F 'Setup doctor completed' "${report_dir}/compiled-doctor.log"
@@ -405,7 +406,7 @@ jobs:
           docker run --rm --platform linux/arm64 "${compiled_ref}" --help > "${report_dir}/compiled-help.log" 2>&1
           docker run --rm --platform linux/arm64 "${compiled_ref}" config --show --config-path /tmp/autoshow-compiled-config.json --no-color > "${report_dir}/compiled-config.log" 2>&1
           docker run --rm --platform linux/arm64 "${compiled_ref}" setup --doctor --no-color > "${report_dir}/compiled-doctor.log" 2>&1
-          compiled_path_fixture="${GITHUB_WORKSPACE}/test/test-cases/validation/comic/fixtures/structured-script-parser/handler-precedence.md"
+          compiled_path_fixture="${GITHUB_WORKSPACE}/test/test-cases/validation/visuals/comic/fixtures/structured-script-parser/handler-precedence.md"
           docker run --rm --platform linux/arm64 --mount "type=bind,src=${compiled_path_fixture},dst=/benchmark/input.md,readonly" "${compiled_ref}" write /benchmark/input.md --price --no-color > "${report_dir}/compiled-paths.log" 2>&1
           grep -F 'Setup doctor:' "${report_dir}/compiled-doctor.log"
           grep -F 'Setup doctor completed' "${report_dir}/compiled-doctor.log"
@@ -513,8 +514,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: runtime/docker-acceptance/cache
-          key: docker-local-v1-${{ matrix.arch }}-${{ matrix.shard }}-${{ hashFiles('Dockerfile', 'src/cli/commands/setup-and-utilities/**', 'src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/**', 'src/cli/commands/process-steps/step-2-extract/step-2-url/url-local/**') }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: docker-local-v1-${{ matrix.arch }}-${{ matrix.shard }}-${{ hashFiles('Dockerfile', 'src/cli/commands/setup-and-utilities/**', 'src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/**', 'src/cli/commands/process-steps/step-2-extract/step-2-url/url-local/**') }}-
+          key: docker-local-v1-${{ matrix.arch }}-${{ matrix.shard }}-${{ hashFiles('Dockerfile', 'src/cli/commands/setup-and-utilities/**', 'src/cli/commands/stt/local/**', 'src/cli/commands/text/url/url-local/**') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: docker-local-v1-${{ matrix.arch }}-${{ matrix.shard }}-${{ hashFiles('Dockerfile', 'src/cli/commands/setup-and-utilities/**', 'src/cli/commands/stt/local/**', 'src/cli/commands/text/url/url-local/**') }}-
 
       - name: Prepare optional YouTube authentication
         if: matrix.shard == 'network'

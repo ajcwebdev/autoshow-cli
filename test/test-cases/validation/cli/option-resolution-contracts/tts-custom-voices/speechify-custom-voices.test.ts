@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
+import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
 
 describe('Speechify custom voice option contracts', () => {
   test('Speechify synthesis accepts an already provisioned voice ID', () => {

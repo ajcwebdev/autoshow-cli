@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { MistralVoiceManagementRequest, ProviderVoiceRef } from '~/types'
-import { createMistralAdvancedProvider } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-mistral/mistral-advanced-provider'
+import { createMistralAdvancedProvider } from '~/cli/commands/audio/tts/tts-services/tts-mistral/mistral-advanced-provider'
 
 const CHECKED_AT = '2026-08-29T00:00:00.000Z'
 const protectedSample = { storeId: 'voice_store', assetId: `sha256_${'a'.repeat(64)}`, sha256: 'a'.repeat(64) }

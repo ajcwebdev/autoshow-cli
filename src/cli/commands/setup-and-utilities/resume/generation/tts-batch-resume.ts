@@ -1,6 +1,6 @@
 import { realpath } from 'node:fs/promises'
 import { join } from 'node:path'
-import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
+import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/command-shared/pipeline-manifest'
 import { priceGenerationTarget, resumeGenerationTarget } from '../generation-resume'
 import { ttsResumeConfig } from './tts-resume'
 import type { AggregatedPriceEstimate, PipelineManifest, ResumeResult, ResumeTarget, TtsOptions, TtsTarget } from '~/types'

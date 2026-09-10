@@ -230,9 +230,9 @@ Negative outcomes:
 
 ## Implementation Note
 
-The run-scoped hosted admission coordinator, five-second ramp, 429 recovery, and telemetry live in `src/cli/commands/process-steps/hosted-concurrency-coordinator.ts`. Clean-ramp price estimates use `src/utils/hosted-concurrency-estimator.ts`. Flag defaults live in `src/utils/concurrency-defaults.ts` and resolve through `src/cli/options/option-resolution/concurrency.ts`.
+The run-scoped hosted admission coordinator, five-second ramp, 429 recovery, and telemetry live in `src/cli/commands/command-shared/hosted-concurrency-coordinator.ts`. Clean-ramp price estimates use `src/utils/hosted-concurrency-estimator.ts`. Flag defaults live in `src/utils/concurrency-defaults.ts` and resolve through `src/cli/options/option-resolution/concurrency.ts`.
 
-Hosted TTS chunk dispatch is in `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts`. Multi-speaker turns use `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts`. Hosted OCR page scheduling is in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler.ts`. STT segment execution is in `src/cli/commands/process-steps/step-2-extract/step-2-stt/`. Provider target fan-out is in `src/cli/commands/process-steps/provider-target-scheduler.ts`. Hidden `--stt-preflight-concurrency` and `--url-provider-concurrency` bound STT duration probes and URL-target fan-out; they are not public nested hosted-lane controls.
+Hosted TTS chunk dispatch is in `src/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-scheduler.ts`. Multi-speaker turns use `src/cli/commands/audio/tts/dialogue-work-selector.ts`. Hosted OCR page scheduling is in `src/cli/commands/text/ocr/ocr-utils/hosted-ocr-scheduler.ts`. STT segment execution is in `src/cli/commands/stt/`. Provider target fan-out is in `src/cli/commands/command-shared/provider-target-scheduler.ts`. Hidden `--stt-preflight-concurrency` and `--url-provider-concurrency` bound STT duration probes and URL-target fan-out; they are not public nested hosted-lane controls.
 
 ## API / Type Impact
 
@@ -267,12 +267,12 @@ Do not run live paid provider, smoke, or e2e tests that call third-party APIs.
 - Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md) — Multi-speaker script-to-audio contracts and generation slots
 - Related ADR: [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md) — Multi-provider OCR page pool architecture
 - `src/utils/concurrency-defaults.ts`
-- `src/cli/commands/process-steps/hosted-concurrency-coordinator.ts`
+- `src/cli/commands/command-shared/hosted-concurrency-coordinator.ts`
 - `src/utils/hosted-concurrency-estimator.ts`
 - `src/cli/options/option-resolution/concurrency.ts`
-- `src/cli/commands/process-steps/provider-target-scheduler.ts`
-- `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts`
-- `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts`
-- `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler.ts`
-- `src/cli/commands/process-steps/step-2-extract/step-2-stt/`
+- `src/cli/commands/command-shared/provider-target-scheduler.ts`
+- `src/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-scheduler.ts`
+- `src/cli/commands/audio/tts/dialogue-work-selector.ts`
+- `src/cli/commands/text/ocr/ocr-utils/hosted-ocr-scheduler.ts`
+- `src/cli/commands/stt/`
 - `test/test-cases/validation/runtime-contracts/hosted-concurrency-contracts.test.ts`

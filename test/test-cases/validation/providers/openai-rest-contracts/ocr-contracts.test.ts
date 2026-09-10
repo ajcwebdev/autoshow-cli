@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { runDeepinfraOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/deepinfra-ocr/run-deepinfra-ocr'
-import { runGrokOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/grok-ocr/run-grok-ocr'
-import { runKimiOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/kimi-ocr/run-kimi-ocr'
-import { runOpenAIOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/openai-ocr/run-openai-ocr'
+import { runDeepinfraOcr } from '~/cli/commands/text/ocr/ocr-services/deepinfra-ocr/run-deepinfra-ocr'
+import { runGrokOcr } from '~/cli/commands/text/ocr/ocr-services/grok-ocr/run-grok-ocr'
+import { runKimiOcr } from '~/cli/commands/text/ocr/ocr-services/kimi-ocr/run-kimi-ocr'
+import { runOpenAIOcr } from '~/cli/commands/text/ocr/ocr-services/openai-ocr/run-openai-ocr'
 import { installFetch, installOpenAIRestContractHooks, jsonResponse, withOcrDocumentFixture } from './shared'
 
 installOpenAIRestContractHooks()

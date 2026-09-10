@@ -46,7 +46,7 @@ RUN bun --no-env-file build src/cli/create-cli.ts \
       --asset=src/cli/commands/setup-and-utilities/models/ocr-config \
       --asset=src/cli/commands/setup-and-utilities/models/stt-config \
       --asset=src/cli/commands/setup-and-utilities/models/tts-config \
-      --asset=src/cli/commands/process-steps/step-8-comic/comic-prompts/prompts.json \
+      --asset=src/cli/commands/visuals/comic/comic-prompts/prompts.json \
       --asset-naming='[dir]/[name].[ext]' \
       --metafile=/app/compiled-entrypoint-metafile.json \
       --metafile-md=/app/compiled-entrypoint-metafile.md \

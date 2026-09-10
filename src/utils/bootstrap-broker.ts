@@ -1,5 +1,5 @@
-import { ensureWhisperReady } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper'
-import { ensureWhisperfileReady } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisperfile/whisperfile'
+import { ensureWhisperReady } from '~/cli/commands/stt/local/whisper/whisper'
+import { ensureWhisperfileReady } from '~/cli/commands/stt/local/whisperfile/whisperfile'
 import type { BootstrapHandler } from '~/types'
 import { InternalError } from '~/utils/error-handler'
 import { resolveCredential } from '~/utils/validate/env-utils'

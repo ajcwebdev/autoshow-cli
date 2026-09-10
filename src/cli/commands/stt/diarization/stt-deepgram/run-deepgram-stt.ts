@@ -1,0 +1,216 @@
+import type { DeepgramAlternative, DeepgramResponse, DeepgramWords, Step2Metadata, SttSegmentRunOptions, TranscriptionResult, TranscriptionSegment } from '~/types'
+import { DeepgramResponseSchema } from '~/types'
+import { logSttSegmentLifecycle } from '~/cli/commands/stt/stt-logging'
+import {
+  appendToken,
+  buildSegmentsFromWords,
+  formatSpeakerLabel,
+  toTimestamp
+} from '~/cli/commands/stt/stt-utils/stt-utils'
+import { DEEPGRAM_DEFAULT_BASE_URL } from '~/utils/base-urls'
+import { resolveCredential } from '~/utils/validate/env-utils'
+import { finalizeHostedSttResult } from '../../stt-shared/finalize-hosted-stt'
+import { createSttRetryMetrics, sttRetryMetricsToCallbacks } from '../../stt-retry-metrics'
+import { sttStageRequest } from '../../stt-shared/stt-stage-request'
+import { attachSttStageErrorContext } from '../../stt-error-context'
+
+const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
+
+const inferDeepgramMimeType = (audioPath: string, fallback?: string | undefined): string => {
+  const lower = audioPath.toLowerCase()
+  if (lower.endsWith('.mp3') || lower.endsWith('.mpga')) return 'audio/mpeg'
+  if (lower.endsWith('.wav')) return 'audio/wav'
+  if (lower.endsWith('.m4a') || lower.endsWith('.mp4')) return 'audio/mp4'
+  if (lower.endsWith('.aac')) return 'audio/aac'
+  if (lower.endsWith('.flac')) return 'audio/flac'
+  if (lower.endsWith('.ogg') || lower.endsWith('.opus')) return 'audio/ogg'
+  if (lower.endsWith('.webm')) return 'audio/webm'
+  if (lower.endsWith('.mpeg')) return 'audio/mpeg'
+  return fallback ?? 'application/octet-stream'
+}
+
+const buildDeepgramUrl = (baseURL: string, modelName: string, diarize = true): string => {
+  const url = new URL('/v1/listen', baseURL)
+  url.searchParams.set('model', modelName)
+  url.searchParams.set('diarize', String(diarize))
+  url.searchParams.set('utterances', 'true')
+  url.searchParams.set('punctuate', 'true')
+  url.searchParams.set('smart_format', 'true')
+  return url.toString()
+}
+
+const selectPrimaryAlternative = (
+  payload: DeepgramResponse
+): DeepgramAlternative | undefined => {
+  const firstChannel = payload.results.channels[0]
+  return firstChannel?.alternatives?.[0]
+}
+
+const toTextFromWords = (
+  words: DeepgramWords | undefined
+): string => {
+  if (!words) {
+    return ''
+  }
+
+  let text = ''
+  for (const word of words) {
+    const token = (word.punctuated_word ?? word.word ?? '').trim()
+    if (token.length === 0) {
+      continue
+    }
+    text = appendToken(text, token)
+  }
+
+  return text.trim()
+}
+
+const segmentsFromUtterances = (
+  utterances: DeepgramResponse['results']['utterances'] | undefined,
+  offsetSeconds: number
+): TranscriptionSegment[] => {
+  if (!utterances) {
+    return []
+  }
+
+  const segments: TranscriptionSegment[] = []
+  for (const utterance of utterances) {
+    const text = utterance.transcript.trim()
+    if (text.length === 0) {
+      continue
+    }
+
+    const speaker = formatSpeakerLabel(utterance.speaker)
+    segments.push({
+      start: toTimestamp(utterance.start + offsetSeconds),
+      end: toTimestamp(utterance.end + offsetSeconds),
+      text,
+      ...(speaker ? { speaker } : {})
+    })
+  }
+
+  return segments
+}
+
+const segmentsFromWords = (
+  words: DeepgramWords | undefined,
+  offsetSeconds: number
+): TranscriptionSegment[] => {
+  if (!words) {
+    return []
+  }
+
+  return buildSegmentsFromWords(
+    words
+      .map((word) => ({
+        start: word.start ?? 0,
+        end: word.end ?? word.start ?? 0,
+        text: (word.punctuated_word ?? word.word ?? '').trim(),
+        speaker: formatSpeakerLabel(word.speaker)
+      }))
+      .filter((word) => word.text.length > 0),
+    offsetSeconds
+  )
+}
+
+const evidenceWordsFromDeepgram = (
+  words: DeepgramWords | undefined,
+  offsetSeconds: number
+) => {
+  if (!words) {
+    return []
+  }
+
+  return words
+    .map((word) => {
+      const text = (word.punctuated_word ?? word.word ?? '').trim()
+      if (text.length === 0 || typeof word.start !== 'number' || typeof word.end !== 'number') {
+        return null
+      }
+
+      return {
+        startSeconds: word.start + offsetSeconds,
+        endSeconds: word.end + offsetSeconds,
+        text,
+        normalized: text.toLowerCase(),
+        ...(word.speaker !== undefined ? { speaker: formatSpeakerLabel(word.speaker) } : {}),
+        ...(word.confidence !== undefined ? { confidence: word.confidence } : {}),
+        timingSource: 'native' as const
+      }
+    })
+    .filter((word): word is NonNullable<typeof word> => word !== null)
+}
+
+export const runDeepgramTranscribe = async (
+  audioPath: string,
+  outputDir: string,
+  options: SttSegmentRunOptions
+): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
+  const apiKey = resolveCredential('deepgram', 'require', { stage: 'stt:deepgram', description: 'Deepgram transcription' })
+
+  const { model: modelName, segmentOffsetMinutes = 0, segmentNumber, totalSegments } = options
+  if (segmentNumber && totalSegments) {
+    logSttSegmentLifecycle( { provider: 'deepgram', action: 'started', segmentNumber, totalSegments, model: modelName })
+  }
+
+  const startTime = Date.now()
+  const offsetSeconds = segmentOffsetMinutes * 60
+
+  const file = Bun.file(audioPath)
+  const mimeType = inferDeepgramMimeType(audioPath, file.type)
+  const baseURL = DEEPGRAM_DEFAULT_BASE_URL
+  let transcribeMs = 0
+  let requestCount = 0
+  const retryMetrics = createSttRetryMetrics()
+
+  const transcribeStartedAt = Date.now()
+  const payload = await sttStageRequest({
+    operationName: 'deepgram-stt',
+    stage: 'transcribe',
+    retryClass: 'runtime_http_create_conservative',
+    timeoutMs: REQUEST_TIMEOUT_MS,
+    errorPrefix: 'Deepgram',
+    failureLabel: 'transcription',
+    schema: DeepgramResponseSchema,
+    schemaLabel: 'Deepgram STT response',
+    metrics: sttRetryMetricsToCallbacks(retryMetrics, () => {
+      requestCount += 1
+    }),
+    attachError: attachSttStageErrorContext,
+    doFetch: async (signal) => await fetch(buildDeepgramUrl(baseURL, modelName, options.diarizationOptions?.enabled), {
+      method: 'POST',
+      headers: {
+        Authorization: `Token ${apiKey}`,
+        'Content-Type': mimeType
+      },
+      body: file,
+      signal: signal ?? null
+    })
+  })
+  transcribeMs += Date.now() - transcribeStartedAt
+
+  const primaryAlternative = selectPrimaryAlternative(payload)
+  const transcript = (primaryAlternative?.transcript ?? '').trim()
+  const utteranceSegments = segmentsFromUtterances(payload.results.utterances, offsetSeconds)
+  const wordSegments = segmentsFromWords(primaryAlternative?.words, offsetSeconds)
+  const segments = utteranceSegments.length > 0 ? utteranceSegments : wordSegments
+  const text = transcript || toTextFromWords(primaryAlternative?.words)
+  const evidenceWords = evidenceWordsFromDeepgram(primaryAlternative?.words, offsetSeconds)
+  return await finalizeHostedSttResult({
+    provider: 'deepgram',
+    model: modelName,
+    outputDir,
+    segmentNumber,
+    totalSegments,
+    offsetSeconds,
+    startTime,
+    transcribeMs,
+    requestCount,
+    retryCount: retryMetrics.retryCount,
+    rateLimitCount: retryMetrics.rateLimitCount,
+    text,
+    segments,
+    evidenceWords,
+    rawResponse: payload
+  })
+}

@@ -14,7 +14,7 @@ import { extractAdaptiveProviderGroups } from '../test-runner/adaptive-provider-
 import { parseConfiguredEnvValueFromDotEnv } from './env-file'
 import { readOutputMetadataSummary } from './output-metadata-summary'
 import { E2E_TEST_TIMEOUT_MS } from './timeouts'
-import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
+import { configureOutputRoot } from '~/cli/commands/command-shared/output-root'
 import type {
   AdaptiveCommandAttemptRecord,
   AdaptiveConcurrencyConfig,

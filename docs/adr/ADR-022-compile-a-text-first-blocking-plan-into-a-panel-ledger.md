@@ -132,7 +132,7 @@ The plan schema, validators, and geometry helpers are `schemas/blocking-plan-sch
 
 ```
 bun run check
-bun test test/test-cases/validation/comic
+bun test test/test-cases/validation/visuals/comic
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 bun test test/test-cases/validation/cli/cli-help-contracts.test.ts
 bun test test/test-cases/validation/cli/doc-command-flags-contract.test.ts
@@ -164,8 +164,8 @@ bun test test/test-cases/validation/providers/openai-rest-contracts/image-comic-
 - Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)
 - Related ADR: [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md)
 - Related ADR: [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md)
-- `src/cli/commands/process-steps/step-8-comic/schemas/blocking-plan-schemas.ts`
-- `src/cli/commands/process-steps/step-8-comic/comic-utils/blocking-plan-compile.ts`
-- `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-qa.ts`
-- [comic draft-scenes](../commands/process-steps/step-8-comic/01-draft-scenes.md)
-- [comic generate-images](../commands/process-steps/step-8-comic/03-generate-images.md)
+- `src/cli/commands/visuals/comic/schemas/blocking-plan-schemas.ts`
+- `src/cli/commands/visuals/comic/comic-utils/blocking-plan-compile.ts`
+- `src/cli/commands/visuals/comic/comic-commands/generate-images/comic-page-qa.ts`
+- [comic draft-scenes](../commands/visuals/comic/01-draft-scenes.md)
+- [comic generate-images](../commands/visuals/comic/03-generate-images.md)

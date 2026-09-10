@@ -1,6 +1,6 @@
 import { describe,expect,test } from 'bun:test'
 import { join } from 'node:path'
-import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
+import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/command-shared/pipeline-manifest'
 import { normalizeResumeSelectorFlagsForTarget as normalizeResumeSelectorOccurrencesForTarget } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import type { CliFlagOccurrence,ResumeTarget } from '~/types'

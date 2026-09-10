@@ -1,6 +1,6 @@
 import type { CliFlagDefinition, HtmlArticleBackend, OcrRuntimeOptions, ProviderIdentityBase, Step2Modality, Step2ProviderSelectionOrigin, SttRuntimeOptions } from '~/types'
-import type { STEP2_OCR_PROVIDER_REGISTRY } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry/ocr-providers'
-import type { STEP2_STT_PROVIDER_REGISTRY } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry/stt-providers'
+import type { STEP2_OCR_PROVIDER_REGISTRY } from '~/cli/commands/command-shared/extract-routing/provider-registry/ocr-providers'
+import type { STEP2_STT_PROVIDER_REGISTRY } from '~/cli/commands/command-shared/extract-routing/provider-registry/stt-providers'
 
 export type Step2ProviderOptionSurface = SttRuntimeOptions & OcrRuntimeOptions
 

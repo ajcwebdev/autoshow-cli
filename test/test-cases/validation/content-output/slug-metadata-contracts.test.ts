@@ -3,8 +3,8 @@ import {
   buildDocumentStep1Slug,
   buildMediaStep1Slug,
   getSourceBasenameWithoutExtension
-} from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
-import { formatMetadataAsFrontmatter } from '~/cli/commands/process-steps/step-0-metadata/format-metadata-frontmatter'
+} from '~/cli/commands/sources/download/download-audio/metadata-utils'
+import { formatMetadataAsFrontmatter } from '~/cli/commands/sources/metadata/format-metadata-frontmatter'
 
 describe('slug and metadata contracts', () => {
   test('local file basenames strip only the final extension', () => {

@@ -63,7 +63,7 @@ describe('test-runner contracts', () => {
     })
 
   test('price config isolation leaves non-CLI runner commands unchanged', () => {
-      const args = ['test/test-runner.ts', 'test/test-cases/e2e/local/step-3-write-e2e', '--price']
+      const args = ['test/test-runner.ts', 'test/test-cases/e2e/local/text/write', '--price']
 
       expect(withEmptyPriceConfig(args)).toEqual(args)
     })
@@ -71,7 +71,7 @@ describe('test-runner contracts', () => {
   test('price-flag, validation, and setup paths stay mappedless in price selection', () => {
       const allFiles = [
         'test/test-cases/setup/tts-models/tts-setup.test.ts',
-        'test/test-cases/price-flag/write-price.test.ts',
+        'test/test-cases/price-flag/text/write/write-price.test.ts',
         'test/test-cases/validation/test-runner-contracts.test.ts'
       ]
 
@@ -91,17 +91,24 @@ describe('test-runner contracts', () => {
 
   test('price mode uses e2e path selections', () => {
       const allFiles = [
-        'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/mistral-ocr-2512.test.ts',
-        'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-firecrawl.test.ts',
-        'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-glm-reader.test.ts'
+        'test/test-cases/e2e/service/text/ocr/mistral-ocr-2512.test.ts',
+        'test/test-cases/e2e/service/text/url/url-firecrawl.test.ts',
+        'test/test-cases/e2e/service/text/url/url-glm-reader.test.ts'
       ]
 
-      const selected = resolvePriceSelection(allFiles, ['test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/'])
+      const selected = resolvePriceSelection(allFiles, ['test/test-cases/e2e/service/text/ocr/'])
       const keys = selected.commands.map((command) => command.key)
 
-      expect(selected.suiteName).toBe('Selected paths: service/step-2-ocr-e2e/ocr-services')
+      expect(selected.suiteName).toBe('Selected paths: service/text/ocr')
       expect(keys).toContain('extract-mistral-mistral-ocr-2512')
-      expect(keys).toContain('extract-firecrawl-url')
+      expect(keys).not.toContain('extract-firecrawl-url')
+
+      const urlSelection = resolvePriceSelection(allFiles, ['test/test-cases/e2e/service/text/url/'])
+      expect(urlSelection.suiteName).toBe('Selected paths: service/text/url')
+      expect(urlSelection.commands.map(command => command.key)).toEqual([
+        'extract-firecrawl-url',
+        'extract-glm-reader-url',
+      ])
     })
 
   test('price mode with no path filters resolves all mapped tests', () => {
@@ -137,15 +144,15 @@ describe('test-runner contracts', () => {
 
   test('specific e2e files resolve only their mapped price commands', () => {
       const allFiles = [
-        'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/mistral-ocr-2512.test.ts',
-        'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-firecrawl.test.ts'
+        'test/test-cases/e2e/service/text/ocr/mistral-ocr-2512.test.ts',
+        'test/test-cases/e2e/service/text/url/url-firecrawl.test.ts'
       ]
 
       const serviceModelKeys = resolvePriceSelection(allFiles, [
-        'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/mistral-ocr-2512.test.ts'
+        'test/test-cases/e2e/service/text/ocr/mistral-ocr-2512.test.ts'
       ]).commands.map((command) => command.key)
       const firecrawlKeys = resolvePriceSelection(allFiles, [
-        'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-firecrawl.test.ts'
+        'test/test-cases/e2e/service/text/url/url-firecrawl.test.ts'
       ]).commands.map((command) => command.key)
 
       expect(serviceModelKeys).toContain('extract-mistral-mistral-ocr-2512')
@@ -155,15 +162,15 @@ describe('test-runner contracts', () => {
 
   test('price path selections match path boundaries', () => {
       const allFiles = [
-        'test/test-cases/e2e/service/step-7-music-gen-e2e/elevenlabs-music.test.ts',
-        'test/test-cases/e2e/service/step-7-music-gen-e2e/minimax-music-3.0.test.ts',
-        'test/test-cases/e2e/service/step-7-music-gen-e2e/gemini-lyria-3-pro-preview.test.ts',
-        'test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video.test.ts'
+        'test/test-cases/e2e/service/audio/music/elevenlabs-music.test.ts',
+        'test/test-cases/e2e/service/audio/music/minimax-music-3.0.test.ts',
+        'test/test-cases/e2e/service/audio/music/gemini-lyria-3-pro-preview.test.ts',
+        'test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts'
       ]
 
-      const musicKeys = resolvePriceSelection(allFiles, ['test/test-cases/e2e/service/step-7-music-gen-e2e/'])
+      const musicKeys = resolvePriceSelection(allFiles, ['test/test-cases/e2e/service/audio/music/'])
         .commands.map((command) => command.key)
-      const lyricsVideoKeys = resolvePriceSelection(allFiles, ['test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/'])
+      const lyricsVideoKeys = resolvePriceSelection(allFiles, ['test/test-cases/e2e/local/audio/music/'])
         .commands.map((command) => command.key)
 
       expect(musicKeys).toContain('music-elevenlabs-music_v2')

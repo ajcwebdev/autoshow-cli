@@ -1,11 +1,11 @@
 import type { SttEstimateOptions, SttStepEstimate, SttTarget } from '~/types'
-import { resolveSttInputDurationSeconds } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-duration'
-import { collectSttTargetsForSource, sttSourceFromInput } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
+import { resolveSttInputDurationSeconds } from '~/cli/commands/stt/stt-utils/stt-duration'
+import { collectSttTargetsForSource, sttSourceFromInput } from '~/cli/commands/stt/stt-targets'
 import {
   buildHappyScribeRegistryEstimate,
   resolveHappyScribePriceNotes
-} from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/happyscribe/happyscribe-pricing'
-import { resolveYoutubeCaptionEstimateTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/youtube-captions'
+} from '~/cli/commands/stt/diarization/happyscribe/happyscribe-pricing'
+import { resolveYoutubeCaptionEstimateTargets } from '~/cli/commands/stt/direct-url/youtube-captions'
 import { getSttCost } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { computeBilledSttCost } from '~/cli/commands/pricing-orchestration/stt-billing'
 import { estimateSupadataCost } from '~/cli/commands/pricing-orchestration/supadata-pricing'

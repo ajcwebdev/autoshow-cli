@@ -126,7 +126,7 @@ Shared planning validates exact source identity and the retained artifact graph,
 
 `resume --price` performs no provider calls, output initialization, reference imports, coverage-report writes, or manifest updates. Its ordinary JSON result adds `comicPlans` with per-directory readiness and stage details. A successfully inspected blocked plan has `ready: false`; a partial known-cost total is not a complete budget. Execution refuses blocked plans. Invalid canonical manifests or source evidence still fail inspection. Slideshow planning checks reviewed visuals, selected audio, timeline reconciliation, and available FFmpeg H.264 encoders; a pending audio dependency receives its final timeline check after audio completes.
 
-Older incomplete stages with no exact intent, changed inputs or voice evidence, forced image regeneration, and unpriced provider work require an explicit stage invocation after review. Unrequested work stays unrequested, and compatible complete runs make no writes. This amendment adds no fresh-run planner, public mode flag, public image run-ID override, migration mechanism, or second persistence authority. Standalone additive selection continues to follow the earlier decision. Usage is documented under [Comic Recovery](../commands/setup-and-utilities/resume/resume.md#comic-recovery); local presentation remains governed by [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md).
+Older incomplete stages with no exact intent, changed inputs or voice evidence, forced image regeneration, and unpriced provider work require an explicit stage invocation after review. Unrequested work stays unrequested, and compatible complete runs make no writes. This amendment adds no fresh-run planner, public mode flag, public image run-ID override, migration mechanism, or second persistence authority. Standalone additive selection continues to follow the earlier decision. Usage is documented under [Comic Recovery](../commands/setup-and-utilities/resume.md#comic-recovery); local presentation remains governed by [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md).
 
 ## Rationale
 
@@ -186,11 +186,11 @@ Negative outcomes:
 
 ## Implementation Note
 
-- Canonical `manifest.json` read/write and mixed-route child links: `src/cli/commands/process-steps/pipeline-manifest/`
+- Canonical `manifest.json` read/write and mixed-route child links: `src/cli/commands/command-shared/pipeline-manifest/`
 - Provider-neutral `resume --price` flag: `src/cli/flags/resume-flags.ts`
 - Resume target resolution and dry-run planning: `src/cli/commands/setup-and-utilities/resume/`
 - Shared execution and resume selection inventories: `src/cli/flags/service-selector-normalization/provider-targets.ts` and `src/cli/flags/service-selector-normalization/extract-selectors.ts`
-- Pooled OCR page persistence and resume: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts` and `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`
+- Pooled OCR page persistence and resume: `src/cli/commands/text/ocr/ocr-pooled-batch.ts` and `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`
 
 ### Bun 1.4 Journal and Tokenizer Evidence
 
@@ -270,7 +270,7 @@ Do not run live paid provider, smoke, or e2e tests that call third-party APIs.
 - Related ADR: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)
 - Related ADR: [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md)
 - Related ADR: [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
-- `src/cli/commands/process-steps/pipeline-manifest.ts`
+- `src/cli/commands/command-shared/pipeline-manifest.ts`
 - `src/cli/commands/setup-and-utilities/resume/`
 - `src/cli/flags/resume-flags.ts`
 - `src/utils/jsonl-reader.ts`

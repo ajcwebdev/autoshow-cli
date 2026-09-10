@@ -5,13 +5,13 @@ import {
   createHostedConcurrencyCoordinator,
   recoverHostedConcurrencyRequest,
   runHostedConcurrencyRequest,
-} from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
+} from '~/cli/commands/command-shared/hosted-concurrency-coordinator'
 import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
-import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
-import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
-import { createHostedOcrScheduler } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
-import { withOcrPageRequestRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
+import { createHostedTtsChunkScheduler } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-scheduler'
+import { withHostedTtsRetry } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-retry'
+import { createHostedOcrScheduler } from '~/cli/commands/text/ocr/ocr-utils/hosted-ocr-scheduler'
+import { withOcrPageRequestRetry } from '~/cli/commands/text/ocr/ocr-utils/ocr-retry'
 import type { HostedConcurrencyAdmissionToken } from '~/types'
 import { createManualTimerClock } from '../../../test-utils/manual-timer-clock'
 

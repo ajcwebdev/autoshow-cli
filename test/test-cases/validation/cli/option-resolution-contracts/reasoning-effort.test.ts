@@ -2,9 +2,9 @@ import { describe, expect, it } from 'bun:test'
 import { rm } from 'node:fs/promises'
 import * as v from 'valibot'
 import type { ExtractionOptions, LLMTarget, PipelineManifestItem, ResolvedStructuredSchema, Step3Metadata, StructuredRequestOptions, WriteRuntimeOptions } from '~/types'
-import { resolveOcrExtractionOptions } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-extraction-options'
-import { runLlmTargetsForStructuredPrompt } from '~/cli/commands/process-steps/step-3-write/run-llm'
-import { writeResumeConfig } from '~/cli/commands/setup-and-utilities/resume/write/write-resume'
+import { resolveOcrExtractionOptions } from '~/cli/commands/text/ocr/ocr-extraction-options'
+import { runLlmTargetsForStructuredPrompt } from '~/cli/commands/text/write/run-llm'
+import { writeResumeConfig } from '~/cli/commands/setup-and-utilities/resume/resume-write/write-resume'
 import {
   applyAnthropicReasoning,
   applyOpenAIResponsesReasoning
@@ -15,7 +15,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { buildLlmEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/llm-estimates'
-import { buildExtractEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates'
+import { buildExtractEstimates } from '~/cli/commands/text/ocr/ocr-pricing/build-extract-estimates'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const structuredSchema: ResolvedStructuredSchema = {

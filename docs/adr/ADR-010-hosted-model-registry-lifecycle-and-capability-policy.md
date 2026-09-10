@@ -6,7 +6,7 @@
 - **Date Created:** 2026-07-13
 - **Date Updated:** 2026-08-22
 - **Verification Status:** Passed
-- **Supersession:** Replaces per-modality registry and reasoning configurations. Owns the durable registry, lifecycle, capability, and reasoning policy shared by the write, OCR, STT, TTS, music, image, and video registries. Dated provider/model refresh history belongs to the 2026 hosted-model refresh reports under `docs/commands/process-steps/`; paid-approval gates, calibration evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
+- **Supersession:** Replaces per-modality registry and reasoning configurations. Owns the durable registry, lifecycle, capability, and reasoning policy shared by the write, OCR, STT, TTS, music, image, and video registries. Dated provider/model refresh history belongs to the 2026 hosted-model refresh reports under `docs/commands/`; paid-approval gates, calibration evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
 
 ## Context
 
@@ -68,7 +68,7 @@ This applies to:
 It does not apply to:
 
 - Local inference template controls.
-- Dated refresh chronology (recorded in the 2026 hosted-model refresh reports under `docs/commands/process-steps/`).
+- Dated refresh chronology (recorded in the 2026 hosted-model refresh reports under `docs/commands/`).
 - Benchmark evidence and calibration records (governed by [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)).
 
 ### Concrete selector identity and eligibility
@@ -179,7 +179,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The policy ships in the hosted registries under `src/cli/commands/setup-and-utilities/models/` and the shared selector inventories under `src/cli/flags/service-selector-normalization/`. User-facing reasoning behavior is documented in `docs/commands/process-steps/step-3-write/01-write-text.md`. Dated catalogs live in the 2026 hosted-model refresh reports under `docs/commands/process-steps/`. The 2026-08-22 speaker-aware STT catalog cut — removing Rev and retiring `universal-2`, `solaria-1`, and `enhanced` while keeping `universal-3-5-pro`, `melia-1`, and `solaria-3` — applies this retirement contract and is recorded in [the STT refresh report](../commands/process-steps/step-2-extract/05-stt-model-report.md) from [docs/benchmarks/stt-with-speakers](../benchmarks/stt-with-speakers/combined-comparison-report.md).
+The policy ships in the hosted registries under `src/cli/commands/setup-and-utilities/models/` and the shared selector inventories under `src/cli/flags/service-selector-normalization/`. User-facing reasoning behavior is documented in `docs/commands/text/write/overview.md`. Dated catalogs live in the 2026 hosted-model refresh reports under `docs/commands/`. The 2026-08-22 speaker-aware STT catalog cut — removing Rev and retiring `universal-2`, `solaria-1`, and `enhanced` while keeping `universal-3-5-pro`, `melia-1`, and `solaria-3` — applies this retirement contract and is recorded in [the STT refresh report](../commands/stt/model-report.md) from [docs/benchmarks/stt-with-speakers](../benchmarks/stt-with-speakers/combined-comparison-report.md).
 
 ## API / Type Impact
 
@@ -225,6 +225,6 @@ Verification is local and no-cost.
 - Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md) — character voice and multi-speaker architecture
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — soundscape and multi-track pipeline
 - Related reports: [2026 hosted-model refresh reports](../commands.md#model-refresh-reports), stored beside their process-step command guides
-- `docs/commands/process-steps/step-3-write/01-write-text.md`
+- `docs/commands/text/write/overview.md`
 - `src/cli/commands/setup-and-utilities/models/`
 - `src/cli/flags/service-selector-normalization/`

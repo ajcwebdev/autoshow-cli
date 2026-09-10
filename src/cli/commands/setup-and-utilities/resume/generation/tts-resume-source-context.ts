@@ -14,14 +14,14 @@ import type {
 } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
-import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
+import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from '~/cli/commands/audio/tts/script-to-audio/contract-identity'
 import {
   validateGenericTtsDialoguePlan,
   validateGenericTtsSourceIdentity,
   validateProviderRenderPlanIdentity
-} from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
+} from '~/cli/commands/audio/tts/script-to-audio/contract-validation'
 import { resolveUserPath } from '~/utils/runtime-paths'
-import { parseTtsDialoguePlanArtifactRef, readTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
+import { parseTtsDialoguePlanArtifactRef, readTtsDialoguePlanArtifact } from '~/cli/commands/audio/tts/script-to-audio/item-dialogue-plan-artifact'
 import { isContainedPath } from '~/utils/filesystem'
 const SOURCE_IDENTITY_FILE = 'source-identity.json'
 const DIALOGUE_PLAN_FILE = 'dialogue-plan.json'

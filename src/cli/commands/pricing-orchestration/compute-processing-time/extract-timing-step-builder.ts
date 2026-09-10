@@ -1,6 +1,6 @@
 import type { ComputeEstimatedProcessingTimesInput, EstimateConfidence, ExtractStepBuildParams, TimingStepEntry } from '~/types'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { resolveHostedOcrEstimateCap } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
+import { resolveHostedOcrEstimateCap } from '~/cli/commands/text/ocr/ocr-utils/hosted-ocr-scheduler'
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
 import { resolveEstimatedExtractProcessingMs } from '../provider-family-resolvers'

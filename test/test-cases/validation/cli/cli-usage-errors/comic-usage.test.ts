@@ -2,14 +2,14 @@ import { expect, test } from 'bun:test'
 import {
   coerceAndValidateDraftScenes,
   coerceAndValidateGenerateImages
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
+} from '~/cli/commands/visuals/comic/comic-utils/cli-args'
 import {
   draftScenesCommandDefinition,
   generateImagesCommandDefinition,
   generateSlideshowCommandDefinition
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
-import { generateComicSlideshow } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-slideshow/generate-slideshow-command'
-import { resolveComicScriptReference } from '~/cli/commands/process-steps/step-8-comic/comic-utils/project-paths'
+} from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
+import { generateComicSlideshow } from '~/cli/commands/visuals/comic/comic-commands/generate-slideshow/generate-slideshow-command'
+import { resolveComicScriptReference } from '~/cli/commands/visuals/comic/comic-utils/project-paths'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { asCtx, expectUnknownCommand, parseRoot } from './shared'

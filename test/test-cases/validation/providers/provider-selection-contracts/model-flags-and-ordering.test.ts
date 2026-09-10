@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
-import { collectSttTargets, collectSttTargetsForSource } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
+import { collectExplicitOcrTargets } from '~/cli/commands/text/ocr/ocr-targets'
+import { collectSttTargets, collectSttTargetsForSource } from '~/cli/commands/stt/stt-targets'
 import {
   collectStep2ProviderSelections,
   collectStep2ProviderSpecs,
@@ -10,9 +10,9 @@ import {
   LOCAL_URL_ARTICLE_BACKENDS,
   URL_ARTICLE_BACKENDS,
   getStep2ProviderSelectionFlagNames
-} from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
-import { resolveOcrStep2ExecutionFromFormat } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/resolved-step2'
-import { isLocalUrlBackend } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-targets'
+} from '~/cli/commands/command-shared/extract-routing/provider-registry'
+import { resolveOcrStep2ExecutionFromFormat } from '~/cli/commands/command-shared/extract-routing/resolved-step2'
+import { isLocalUrlBackend } from '~/cli/commands/text/url/url-targets'
 import { formatModelSelector } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 describe('provider selection contracts', () => {

@@ -1,5 +1,5 @@
 import type { MusicRuntimeOptions, ResolvedFlagContext } from '~/types'
-import { MUSIC_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
+import { MUSIC_PRICING_MODEL_KEYS } from '~/cli/commands/audio/music/music-utils/music-pricing'
 import {
   parseOptionalIntFlag,
   readBooleanFlag,

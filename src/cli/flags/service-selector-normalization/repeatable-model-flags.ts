@@ -7,8 +7,8 @@ import {
   WRITE_OCR_PROVIDER_TARGETS,
   WRITE_STT_PROVIDER_TARGETS
 } from './provider-targets'
-import { STEP2_OCR_PROVIDER_REGISTRY } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry/ocr-providers'
-import { STEP2_STT_PROVIDER_REGISTRY } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry/stt-providers'
+import { STEP2_OCR_PROVIDER_REGISTRY } from '~/cli/commands/command-shared/extract-routing/provider-registry/ocr-providers'
+import { STEP2_STT_PROVIDER_REGISTRY } from '~/cli/commands/command-shared/extract-routing/provider-registry/stt-providers'
 import type { ModelFlag } from '~/types'
 
 const projectModelFlags = <

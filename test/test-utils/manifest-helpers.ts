@@ -8,7 +8,7 @@ import {
   readManifest,
   writeManifest,
   writePipelineItemRecords
-} from '~/cli/commands/process-steps/pipeline-manifest'
+} from '~/cli/commands/command-shared/pipeline-manifest'
 import type { ExtractRoute, MultiProviderManifestFixtureOptions, PipelineManifest, PipelineManifestItem, PipelineProviderState, ProcessCommand } from '~/types'
 import { isRecord } from '~/utils/value-helpers'
 

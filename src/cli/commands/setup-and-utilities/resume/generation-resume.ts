@@ -1,6 +1,6 @@
-import { partialCompletionError } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-batch-state'
+import { partialCompletionError } from '~/cli/commands/command-shared/provider-batch-state'
 import { isRecord } from '~/utils/rest-client'
-import { createBatchedManifestUpdater, readManifest, updateManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { createBatchedManifestUpdater, readManifest, updateManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import { logResumeItem, logResumeSummary } from './resume-logging'
 import { getResumeProviderKey, resolveAdditiveResumeProviderSelection, uniqueResumeProviders } from './resume-provider-selection'
 import { UsageError } from '~/utils/error-handler'

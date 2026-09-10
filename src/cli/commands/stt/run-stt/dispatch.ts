@@ -1,0 +1,117 @@
+import type { Step2Metadata, SttDispatchContext, SttDispatcher, SttTarget, SttTargetOptions, TranscriptionResult, WhisperProgressWindow } from '~/types'
+import { InternalError, UsageError } from '~/utils/error-handler'
+import { runWhisperTranscribe } from '../local/whisper/run-whisper'
+import { runWhisperfileTranscribe } from '../local/whisperfile/run-whisperfile'
+import { runAssemblyAiTranscribe } from '../diarization/assemblyai/run-assemblyai-stt'
+import { runDeepgramTranscribe } from '../diarization/stt-deepgram/run-deepgram-stt'
+import { runDeepinfraTranscribe } from '../diarization-off-by-default/deepinfra/run-deepinfra-stt'
+import { runGeminiStt } from '../diarization-off-by-default/gemini-stt/run-gemini-stt'
+import { runGladiaStt } from '../diarization/gladia/run-gladia-stt'
+import { runGrokStt } from '../diarization/stt-grok/run-grok-stt'
+import { runHappyScribeStt } from '../diarization/happyscribe/run-happyscribe-stt'
+import { runMistralStt } from '../diarization/stt-mistral/run-mistral-stt'
+import { runScrapeCreatorsStt } from '../direct-url/scrapecreators/run-scrapecreators-stt'
+import { runSonioxStt } from '../diarization/soniox/run-soniox-stt'
+import { runSpeechmaticsStt } from '../diarization/speechmatics/run-speechmatics-stt'
+import { runSupadataStt } from '../direct-url/stt-supadata/run-supadata-stt'
+import { runTogetherStt } from '../diarization-off-by-default/together/run-together-stt'
+
+const minimalOptions = (context: SttDispatchContext) => ({
+  diarizationOptions: context.target.diarizationOptions,
+  nativeSubtitles: context.target.nativeSubtitles,
+  nativeResponseFormat: context.target.nativeResponseFormat,
+  grokSttVerbatim: context.target.grokSttVerbatim,
+  supadataChunkSize: context.target.supadataChunkSize,
+  model: context.target.model,
+  segmentOffsetMinutes: context.segmentOffsetMinutes,
+  segmentNumber: context.segmentNumber,
+  totalSegments: context.totalSegments
+})
+
+const basicOptions = (context: SttDispatchContext) => ({
+  ...minimalOptions(context),
+  audioDurationSeconds: context.options.audioDurationSeconds
+})
+
+const asyncJobOptions = (context: SttDispatchContext) => ({
+  ...basicOptions(context),
+  diarizationOptions: context.target.diarizationOptions,
+  runMode: context.options.runMode,
+  lifecycle: context.options.asyncLifecycle
+})
+
+const whisperOptions = (context: SttDispatchContext) => ({
+  ...basicOptions(context),
+  segmentStartSeconds: context.whisperProgress?.segmentStartSeconds,
+  segmentDurationSeconds: context.whisperProgress?.segmentDurationSeconds,
+  totalDurationSeconds: context.whisperProgress?.totalDurationSeconds,
+  preserveJson: true
+})
+
+const sttDispatchers = {
+  deepgram: async context => await runDeepgramTranscribe(context.audioPath, context.outputDir, minimalOptions(context)),
+  deepinfra: async context => await runDeepinfraTranscribe(context.audioPath, context.outputDir, basicOptions(context)),
+  soniox: async context => await runSonioxStt(context.audioPath, context.outputDir, asyncJobOptions(context)),
+  speechmatics: async context => await runSpeechmaticsStt(context.audioPath, context.outputDir, asyncJobOptions(context)),
+  rev: async () => {
+    throw UsageError('Rev STT is retired and cannot dispatch. Start a new target with an active STT provider.')
+  },
+  grok: async context => await runGrokStt(context.audioPath, context.outputDir, minimalOptions(context)),
+  whisper: async context => await runWhisperTranscribe(context.audioPath, context.outputDir, whisperOptions(context)),
+  whisperfile: async context => await runWhisperfileTranscribe(context.audioPath, context.outputDir, whisperOptions(context)),
+  mistral: async context => await runMistralStt(context.audioPath, context.outputDir, {
+    ...minimalOptions(context),
+    diarizationOptions: context.target.diarizationOptions,
+    passController: context.options.mistralPassController
+  }),
+  assemblyai: async context => await runAssemblyAiTranscribe(context.audioPath, context.outputDir, asyncJobOptions(context)),
+  gladia: async context => await runGladiaStt(context.audioPath, context.outputDir, asyncJobOptions(context)),
+  happyscribe: async context => await runHappyScribeStt(context.audioPath, context.outputDir, {
+    ...basicOptions(context),
+    happyscribeOrganizationId: context.options.happyscribeOrganizationId,
+    runMode: context.options.runMode,
+    lifecycle: context.options.asyncLifecycle
+  }),
+  supadata: async context => await runSupadataStt(context.audioPath, context.outputDir, {
+    ...basicOptions(context),
+    sourceUrl: context.options.sourceUrl,
+    language: context.options.language,
+    runMode: context.options.runMode,
+    lifecycle: context.options.asyncLifecycle
+  }),
+  scrapecreators: async context => await runScrapeCreatorsStt(context.audioPath, context.outputDir, {
+    ...minimalOptions(context),
+    sourceUrl: context.options.sourceUrl,
+    language: context.options.language
+  }),
+  'gemini-stt': async context => await runGeminiStt(context.audioPath, context.outputDir, basicOptions(context)),
+  together: async context => await runTogetherStt(context.audioPath, context.outputDir, basicOptions(context)),
+  'youtube-captions': async () => {
+    throw InternalError('youtube-captions is resolved before STT provider dispatch', { stage: 'stt:dispatch' })
+  }
+} satisfies Record<SttTarget['service'], SttDispatcher>
+
+export const dispatchStt = async (
+  target: SttTarget,
+  audioPath: string,
+  outputDir: string,
+  segmentOffsetMinutes: number,
+  options: SttTargetOptions,
+  segmentNumber?: number,
+  totalSegments?: number,
+  whisperProgress?: WhisperProgressWindow | undefined
+): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
+  const dispatched = await sttDispatchers[target.service]({
+  target,
+  audioPath,
+  outputDir,
+  segmentOffsetMinutes,
+  options,
+  segmentNumber,
+  totalSegments,
+  whisperProgress
+})
+  if (dispatched.result.evidence) dispatched.result.evidence.sourceOffsetSeconds = segmentOffsetMinutes * 60
+  if (target.diarizationOptions) dispatched.metadata.diarizationOptions = target.diarizationOptions
+  return dispatched
+}

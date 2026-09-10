@@ -1,4 +1,4 @@
-import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { URL_ARTICLE_BACKENDS } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import {
   STANDALONE_IMAGE_PROVIDER_TARGETS,
   STANDALONE_MUSIC_PROVIDER_TARGETS,

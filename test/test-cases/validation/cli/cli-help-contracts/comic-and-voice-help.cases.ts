@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { VOICE_PUBLIC_ACTIONS } from '~/cli/commands/process-steps/step-4-tts/voice-management/define-voice-command'
+import { VOICE_PUBLIC_ACTIONS } from '~/cli/commands/audio/voice/define-voice-command'
 import {
   advertisedFlagNames,
   comicSubcommands,

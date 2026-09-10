@@ -11,16 +11,20 @@ const CACHE_VERSION = 1
 const CACHE_PATH = join(TEST_OUTPUT_ROOT, '.test-cache', 'budget-preflight.json')
 
 const PRICING_SOURCE_FILES = [
-  'src/cli/commands/process-steps/step-5-image/image-utils/image-pricing.ts',
-  'src/cli/commands/process-steps/step-6-video/video-utils/video-pricing.ts',
-  'src/cli/commands/process-steps/step-7-music/music-utils/music-pricing.ts',
-  'src/cli/commands/process-steps/step-4-tts/tts-utils/tts-pricing.ts',
-  'src/cli/commands/process-steps/step-3-write/write-utils/llm-pricing.ts',
+  'src/cli/commands/visuals/image/image-utils/image-pricing.ts',
+  'src/cli/commands/visuals/video/video-utils/video-pricing.ts',
+  'src/cli/commands/audio/music/music-utils/music-pricing.ts',
+  'src/cli/commands/audio/tts/tts-utils/tts-pricing.ts',
+  'src/cli/commands/text/write/write-utils/llm-pricing.ts',
+  'src/cli/commands/text/ocr/ocr-pricing/build-extract-estimates.ts',
+  'src/cli/commands/text/ocr/ocr-pricing/ocr-estimates.ts',
+  'src/cli/commands/text/url/url-pricing/build-article-estimates.ts',
+  'src/cli/commands/text/url/url-pricing/url-estimates.ts',
   'src/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates.ts',
   'src/utils/pricing/scrapecreators-pricing.ts',
   'src/utils/pricing/token-pricing.ts',
   'src/utils/pricing/ocr-token-pricing.ts',
-  'src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/happyscribe/happyscribe-pricing.ts',
+  'src/cli/commands/stt/diarization/happyscribe/happyscribe-pricing.ts',
   'src/cli/commands/pricing-orchestration/supadata-pricing.ts',
   EMPTY_PRICE_CONFIG_PATH
 ] as const

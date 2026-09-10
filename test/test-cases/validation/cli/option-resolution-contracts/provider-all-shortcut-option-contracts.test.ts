@@ -1,7 +1,7 @@
 import { describe,expect,test } from 'bun:test'
-import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
-import { getStep2AllShortcutModelExpansions } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
-import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
+import { collectExplicitOcrTargets } from '~/cli/commands/text/ocr/ocr-targets'
+import { getStep2AllShortcutModelExpansions } from '~/cli/commands/command-shared/extract-routing/provider-registry'
+import { collectSttTargets } from '~/cli/commands/stt/stt-targets'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import {
 DEFAULT_ALL_PROVIDER_CONCURRENCY,

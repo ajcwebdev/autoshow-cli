@@ -21,7 +21,7 @@ The [recorded comic recovery amendment in ADR-002](ADR-002-pipeline-state-resume
 
 Presentation intent is recorded before rendering. The `generate-audio --slideshow` shortcut saves its pending presentation request and exact audio-plan dependency atomically with audio intent before synthesis, so a checkpoint does not lose the final local step. Resume reuses retained audio, then validates the final timeline and renders locally. Missing upstream media or changed dependency identities block recovery. Completed presentations are compared against a newly derived plan using their retained options and selected audio target, including older presentations without recovery intent, before being treated as no-ops.
 
-This does not automate selecting image variants, promoting generated panels, preparing scenes, or generating missing dialogue or sound effects. The existing canonical panel and complete audio requirements remain in force. Usage is maintained in [generate-slideshow](../commands/process-steps/step-8-comic/05-generate-slideshow.md) and [resume](../commands/setup-and-utilities/resume/resume.md#comic-recovery).
+This does not automate selecting image variants, promoting generated panels, preparing scenes, or generating missing dialogue or sound effects. The existing canonical panel and complete audio requirements remain in force. Usage is maintained in [generate-slideshow](../commands/visuals/comic/05-generate-slideshow.md) and [resume](../commands/setup-and-utilities/resume.md#comic-recovery).
 
 ## Options Considered
 
@@ -127,7 +127,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-`comic generate-slideshow` ships in `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-slideshow/`. Flags live in `src/cli/flags/comic-flags.ts`.
+`comic generate-slideshow` ships in `src/cli/commands/visuals/comic/comic-commands/generate-slideshow/`. Flags live in `src/cli/flags/comic-flags.ts`.
 
 ## Test Plan
 
@@ -136,8 +136,8 @@ Run the default verification, price-only suite, and targeted local contracts:
 ```bash
 bun run check
 bun t --price
-bun test test/test-cases/validation/comic/comic-presentation-contracts.test.ts
-bun test test/test-cases/validation/comic/comic-presentation-ffmpeg-contracts.test.ts
+bun test test/test-cases/validation/visuals/comic/comic-presentation-contracts.test.ts
+bun test test/test-cases/validation/visuals/comic/comic-presentation-ffmpeg-contracts.test.ts
 bun test test/test-cases/validation/cli/cli-help-contracts.test.ts
 bun test test/test-cases/validation/cli/cli-usage-errors/
 bun test test/test-cases/validation/cli/option-resolution-contracts/
@@ -159,6 +159,6 @@ No provider-backed test or paid suite is part of ADR verification.
 - Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)
 - Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md)
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md)
-- `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-slideshow/generate-slideshow-command.ts`
+- `src/cli/commands/visuals/comic/comic-commands/generate-slideshow/generate-slideshow-command.ts`
 - `src/cli/flags/comic-flags.ts`
-- [comic generate-slideshow](../commands/process-steps/step-8-comic/05-generate-slideshow.md)
+- [comic generate-slideshow](../commands/visuals/comic/05-generate-slideshow.md)

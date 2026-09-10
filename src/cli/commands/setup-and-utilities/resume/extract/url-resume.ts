@@ -1,8 +1,8 @@
-import { partialCompletionError } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-batch-state'
+import { partialCompletionError } from '~/cli/commands/command-shared/provider-batch-state'
 import { isRecord } from '~/utils/rest-client'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import { createPipelineItemFromRecord, derivePipelineItemRecord, PIPELINE_MANIFEST_FILE, readManifest, readSinglePipelineItemRecord, resolveManifestRelativePath, writeManifest, writePipelineItemRecords } from '~/cli/commands/process-steps/pipeline-manifest'
+import { createPipelineItemFromRecord, derivePipelineItemRecord, PIPELINE_MANIFEST_FILE, readManifest, readSinglePipelineItemRecord, resolveManifestRelativePath, writeManifest, writePipelineItemRecords } from '~/cli/commands/command-shared/pipeline-manifest'
 import {
 buildManifestMetadata,
 buildProviderStates,
@@ -17,17 +17,17 @@ parseStoredUrlBackends,
 runAllUrlBackends,
 writeExtractionArtifact,
 writeUrlProviderArtifacts
-} from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-run-state'
+} from '~/cli/commands/text/url/url-run-state'
 import {
 collectUrlTargets,
 getUrlProviderArtifactDir,
 getUrlTargetBackends,
 toUrlArticleTarget,
 uniqueUrlTargets
-} from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-targets'
-import { logExtractManifestSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
+} from '~/cli/commands/text/url/url-targets'
+import { logExtractManifestSummary } from '~/cli/commands/command-shared/write-manifest-log/write-manifest-log'
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
-import { buildArticleEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-article-estimates'
+import { buildArticleEstimates } from '~/cli/commands/text/url/url-pricing/build-article-estimates'
 import type { AggregatedPriceEstimate, HtmlArticleBackend, ProviderCompletionStatus, ResolvedStep2Execution, ResumeDisplayOptions, ResumeResult, ResumeTarget, Step2ProviderSelectionFilter, StepEstimate, UrlArticleResumePlan, UrlArticleResumeResult, UrlArticleTarget, UrlExtractionOptions, UrlProviderRunOutcome, WebArticleMetadata } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
 import { logResumeItem, logResumeSummary } from '../resume-logging'
