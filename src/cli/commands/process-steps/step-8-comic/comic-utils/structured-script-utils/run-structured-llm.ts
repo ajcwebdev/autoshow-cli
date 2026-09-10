@@ -9,7 +9,6 @@ import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 
 const SERVICE_TO_LLM_OPTION_FIELD: Record<string, keyof LLMOptions> = {
   openai: 'openaiModels',
-  groq: 'groqModels',
   gemini: 'geminiModels',
   anthropic: 'anthropicModels',
   minimax: 'minimaxModels',
@@ -17,7 +16,6 @@ const SERVICE_TO_LLM_OPTION_FIELD: Record<string, keyof LLMOptions> = {
   glm: 'glmModels',
   kimi: 'kimiModels',
   together: 'togetherModels',
-  cerebras: 'cerebrasModels',
 }
 
 const resolveComicLlmTarget = (modelId: string): LLMTarget => {

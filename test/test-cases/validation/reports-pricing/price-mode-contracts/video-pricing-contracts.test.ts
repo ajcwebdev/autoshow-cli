@@ -168,7 +168,7 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('grok')).toBe('grok-4.3')
       expect(resolveCheapestModelForFlag('glm')).toBe('glm-5.1')
       expect(resolveCheapestModelForFlag('kimi')).toBe('kimi-k2.6')
-      expect(resolveCheapestModelForFlag('openai-image')).toBe('gpt-image-2')
+      expect(resolveCheapestModelForFlag('openai-image')).toBe('gpt-image-2.5-flare')
       expect(resolveCheapestModelForFlag('gemini-image')).toBe('gemini-3.1-flash-lite-image')
       expect(resolveCheapestModelForFlag('bfl-image')).toBe('flux-2-klein-4b')
       expect(resolveCheapestModelForFlag('recraft-image')).toBeUndefined()

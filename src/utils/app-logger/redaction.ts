@@ -43,7 +43,6 @@ const SENSITIVE_FLAG_NAMES = new Set<string>([
   'openai-api-key',
   'anthropic-api-key',
   'gemini-api-key',
-  'groq-api-key',
   'mistral-api-key',
   'assemblyai-api-key',
   'gladia-api-key',

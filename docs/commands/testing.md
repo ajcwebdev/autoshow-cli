@@ -53,14 +53,14 @@ The `t:provider` entrypoint is reserved for an explicitly approved provider run.
 ## Step Test Pages
 
 - [Setup Tests](setup-and-utilities/setup/setup-tests.md)
-- [Step 1 Tests: Download](process-steps/step-1-download/download-tests.md)
-- [Step 2 Tests: STT](process-steps/step-2-extract/05-extract-stt-tests.md)
-- [Step 2 Tests: OCR](process-steps/step-2-extract/06-extract-ocr-tests.md)
-- [Step 3 Service Tests: Write](process-steps/step-3-write/write-tests.md)
-- [Step 4 Service Tests: TTS](process-steps/step-4-tts/tts-tests.md)
-- [Step 5 Service Tests: Image](process-steps/step-5-image/image-tests.md)
-- [Step 6 Service Tests: Video](process-steps/step-6-video/video-tests.md)
-- [Step 7 Tests: Music](process-steps/step-7-music/music-tests.md)
+- [Step 1 Tests: Download](process-steps/step-1-download/02-download-tests.md)
+- [Step 2 Tests: STT](process-steps/step-2-extract/08-extract-stt-tests.md)
+- [Step 2 Tests: OCR](process-steps/step-2-extract/09-extract-ocr-tests.md)
+- [Step 3 Service Tests: Write](process-steps/step-3-write/03-write-tests.md)
+- [Step 4 Service Tests: TTS](process-steps/step-4-tts/03-tts-tests.md)
+- [Step 5 Service Tests: Image](process-steps/step-5-image/03-image-tests.md)
+- [Step 6 Service Tests: Video](process-steps/step-6-video/03-video-tests.md)
+- [Step 7 Tests: Music](process-steps/step-7-music/03-music-tests.md)
 
 ## Shared Runner Behavior
 
@@ -117,7 +117,7 @@ bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/ --budget 2500
 
 ## No-Cost CI Gate
 
-Pull requests and pushes to `main` run the exact Bun 1.4.0 verification job in `.github/workflows/docker-publish.yml`. It disables automatic env-file loading, installs from the frozen v2 lockfile, runs the same work as `bun run check` and `bun t --price`, runs the three approved CLI smoke selections, and runs the explicit local-only Bun migration contracts. The workflow supplies no provider credentials and does not run the full suite, unclassified shards, smoke/e2e selections, or provider-backed commands.
+Pull requests and pushes to `main` run the exact Bun 1.4.2 verification job in `.github/workflows/docker-publish.yml`. It disables automatic env-file loading, installs from the frozen v2 lockfile, runs the same work as `bun run check` and `bun t --price`, runs the three approved CLI smoke selections, and runs the explicit local-only Bun migration contracts. The workflow supplies no provider credentials and does not run the full suite, unclassified shards, smoke/e2e selections, or provider-backed commands.
 
 The AMD64 and ARM64 Docker publication jobs depend on both no-cost verification and package hygiene. On their native runners they prove the production frozen install, run help/config/setup-doctor smokes, record image size plus five cold-help samples, five prebuild samples, and three local-fixture peak-RSS samples, and upload the evidence. They run only for pushes, so a failure prevents the multi-architecture manifest from being published and pull requests never publish images.
 
@@ -140,7 +140,33 @@ A clean production frozen install measured 26,096 KiB before and after `bun prun
 
 ## Profiling
 
-The no-cost `profile:cpu`, `profile:heap`, `profile:tokenizer`, `profile:bundle`, and `profile:all` scripts use a clean environment and write generated artifacts beneath ignored `runtime/profiling/bun-runtime/` directories. See [Bun 1.4 Profiling Recipes](../benchmarks/bun-1-4-profiling-recipes.md) for the workloads, metadata contract, and before/after comparison procedure.
+AutoShow keeps generated CPU profiles, heap profiles, bundle metafiles, compiled probe bundles, logs, and metadata under the ignored `runtime/profiling/bun-runtime/` directory. Every profiling run records the exact child commands, Bun version, package-manager pin, platform, architecture, duration, exit status, and the fact that dotenv loading was disabled. The recipes inherit only `HOME` and `PATH`; they do not receive provider credentials and do not execute provider calls.
+
+### CPU profiles
+
+Run `bun profile:cpu` to generate Markdown CPU profiles for `autoshow --help` startup and the no-cost `bun t --price` path. The command writes `cli-help.cpu.md`, `test-price.cpu.md`, child logs, and `metadata.json` into one timestamped run directory.
+
+Use the same recipe before and after a startup or price-planning optimization, then compare the profile summaries and the command durations in the two metadata files. This recipe does not run test cases or provider commands.
+
+### Heap profile
+
+Run `bun profile:heap` to exercise a deterministic synthetic RSS/XML workload and a large synthetic OCR-style page-normalization workload under `--heap-prof-md`. The fixture contains no user or source-book content. The run writes `local-parsing-normalization.heap.md`, a checksum-bearing workload observation, child logs, and metadata.
+
+### Reference-tokenizer cache profile
+
+Run `bun profile:tokenizer` to record four separate Markdown heap profiles: before the rank map is loaded, after the 199,998-entry map is loaded, after explicit eviction and forced garbage collection, and after deterministic reconstruction. `reference-tokenizer-memory-summary.json` records the total heap parsed from each profile, cache entry counts, memory-usage counters, and token-ID hashes. The after-load and after-reconstruction hashes must match.
+
+### Bundle analysis
+
+Run `bun profile:bundle` to build the same `src/cli/create-cli.ts` entrypoint used by the test prebuild and generate both JSON and Markdown metafiles. The accompanying `bundle-inventory.json` lists the largest input modules, dynamic imports, prompt JSON files and bytes, the tokenizer rank asset, and source-layout references using `import.meta.dir`. Review that inventory before moving assets, changing dynamic imports, or experimenting with a standalone executable.
+
+### Complete capture
+
+Run `bun profile:all` to execute all four no-cost recipes into one timestamped directory. Any recipe accepts `--output-dir <path>` after the script selector when invoked directly, for example `env -i PATH="$PATH" HOME="$HOME" bun --no-env-file scripts/bun-profile.ts bundle --output-dir runtime/profiling/bun-runtime/before-bundle-change`.
+
+Generated artifacts are diagnostic evidence and are not committed. Checked benchmark summaries should contain only aggregate measurements, fixture identities, commands, and conclusions.
+
+Historical Bun 1.4 measurements are archived with the decisions they support: [XML and normalization in ADR-001](../adr/ADR-001-source-ingestion-and-normalization.md#bun-14-xml-evaluation), [CPU and tokenizer evidence in ADR-002](../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md#bun-14-journal-and-tokenizer-evidence), and [bundle packaging in ADR-014](../adr/ADR-014-distribute-the-cli-as-a-docker-image.md#bundle-inventory-supporting-the-packaging-decision).
 
 ## Cross-Cutting Coverage
 

@@ -14,10 +14,13 @@ export const comicCommand = defineCliCommand({
       ['bun autoshow comic generate-slideshow 05-01', 'Render a synchronized still-panel MP4 locally'],
       ['bun autoshow comic reference-sketch --character hero', 'Generate a character reference sheet'],
       ['bun autoshow comic reference-sketch --location cargo-bay', 'Generate a canonical location reference'],
+      ['bun autoshow comic review 05-01 --export-doc', 'Build the local review sheet and document export'],
+      ['bun autoshow voice list', 'Manage character voices with the shared voice command'],
       ['bun autoshow comic generate-images --help', 'Show the flags for one subcommand']
     ],
     notes: [
       'Each subcommand has its own flags: bun autoshow comic <subcommand> --help',
+      'Use voice for character voice registrations. Deprecated aliases reference-voice, review-sheet, and review-notes remain callable for one compatibility release; use their --help for replacements.',
       'Comic artifacts are read from input and written under output.'
     ]
   }

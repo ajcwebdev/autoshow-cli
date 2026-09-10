@@ -128,6 +128,8 @@ export type GenerateImagesCommandOptions = ComicScriptSceneCommandOptionsBase
   & ComicPanelGenerationOptionsBase
   & {
     target?: GenerateImagesTarget
+    /** Internal recovery binding; never exposed as a CLI override. */
+    recoveryRunId?: string
     grid?: ComicGridSpec
     concurrency?: number
   }

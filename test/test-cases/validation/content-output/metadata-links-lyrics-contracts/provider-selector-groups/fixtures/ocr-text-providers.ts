@@ -2,8 +2,6 @@ import { providerLinks, sectionLinks } from './registry'
 
 export const GLM_OCR_LINKS = sectionLinks('GLM', 'OCR')
 
-export const CEREBRAS_TEXT_LINKS = sectionLinks('Cerebras', 'Text')
-export const CEREBRAS_ALL_LINKS = providerLinks('Cerebras')
 
 export const KIMI_TEXT_LINKS = sectionLinks('Kimi', 'Text')
 export const KIMI_OCR_LINKS = sectionLinks('Kimi', 'OCR')

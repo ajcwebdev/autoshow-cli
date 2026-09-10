@@ -6,7 +6,6 @@ import { resolveLLMDefaults } from '~/cli/options/option-resolution/model-option
 const hasConfiguredLlmProvider = (opts: ResolvedLLMModelOptions): boolean =>
   [
     ...(opts.openaiModels ?? []),
-    ...(opts.groqModels ?? []),
     ...(opts.geminiModels ?? []),
     ...(opts.anthropicModels ?? []),
     ...(opts.minimaxModels ?? []),
@@ -14,7 +13,6 @@ const hasConfiguredLlmProvider = (opts: ResolvedLLMModelOptions): boolean =>
     ...(opts.glmModels ?? []),
     ...(opts.kimiModels ?? []),
     ...(opts.togetherModels ?? []),
-    ...(opts.cerebrasModels ?? [])
   ].some((value) => typeof value === 'string' && value.length > 0)
 
 export const buildExtractionCallOpts = (target: string, baseDir: string, opts: DocumentExtractionOptions): Partial<ExtractionOptions> => {

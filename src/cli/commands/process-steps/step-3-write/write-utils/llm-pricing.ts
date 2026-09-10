@@ -3,7 +3,6 @@ import type { LlmRateEstimate, ResolvedLLMConfig } from '~/types'
 
 const SERVICE_ORDER: Array<{ service: string, modelKey: keyof ResolvedLLMConfig }> = [
   { service: 'openai', modelKey: 'openaiModels' },
-  { service: 'groq', modelKey: 'groqModels' },
   { service: 'gemini', modelKey: 'geminiModels' },
   { service: 'anthropic', modelKey: 'anthropicModels' },
   { service: 'minimax', modelKey: 'minimaxModels' },
@@ -11,7 +10,6 @@ const SERVICE_ORDER: Array<{ service: string, modelKey: keyof ResolvedLLMConfig 
   { service: 'glm', modelKey: 'glmModels' },
   { service: 'kimi', modelKey: 'kimiModels' },
   { service: 'together', modelKey: 'togetherModels' },
-  { service: 'cerebras', modelKey: 'cerebrasModels' },
 ]
 
 export const estimateLlmRates = (llmConfig: ResolvedLLMConfig): LlmRateEstimate[] => {

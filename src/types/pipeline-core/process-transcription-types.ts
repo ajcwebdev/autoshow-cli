@@ -25,7 +25,7 @@ export type TranscriptionEvidenceWord = SecondsTimedTextRangeBase & {
   normalized: string
   speaker?: string | undefined
   confidence?: number | undefined
-  timingSource: 'native' | 'interpolated' | 'generated' | 'token_derived' | 'caption_span' | 'repaired'
+  timingSource: 'native' | 'interpolated' | 'generated' | 'token_derived' | 'caption_span' | 'repaired' | 'aligned'
 }
 
 export type TranscriptionEvidenceCapabilities = {
@@ -34,7 +34,7 @@ export type TranscriptionEvidenceCapabilities = {
   hasSpeakerLabels: boolean
 }
 
-export type TranscriptionEvidenceTimingQuality = 'native_word' | 'segment_interpolated' | 'coarse' | 'mixed' | 'generated'
+export type TranscriptionEvidenceTimingQuality = 'native_word' | 'segment_interpolated' | 'coarse' | 'mixed' | 'generated' | 'aligned'
 
 export type TranscriptionEvidence = {
   segments?: TranscriptionEvidenceSegment[] | undefined
@@ -76,7 +76,7 @@ export type Step2RuntimeMetadata = {
 
 export type Step2Metadata = {
   diarizationOptions?: DiarizationOptions | undefined
-  transcriptionService: 'whisper' | 'whisperfile' | 'deepgram' | 'deepinfra' | 'soniox' | 'speechmatics' | 'rev' | 'groq' | 'grok' | 'mistral' | 'assemblyai' | 'gladia' | 'happyscribe' | 'supadata' | 'scrapecreators' | 'gemini-stt' | 'together' | 'youtube-captions'
+  transcriptionService: 'whisper' | 'whisperfile' | 'deepgram' | 'deepinfra' | 'soniox' | 'speechmatics' | 'rev' | 'grok' | 'mistral' | 'assemblyai' | 'gladia' | 'happyscribe' | 'supadata' | 'scrapecreators' | 'gemini-stt' | 'together' | 'youtube-captions'
   transcriptionModel: string
   processingTime: number
   tokenCount: number

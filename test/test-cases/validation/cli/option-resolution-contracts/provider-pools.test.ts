@@ -56,10 +56,10 @@ describe('option resolution contracts', () => {
       })
       const targets: LLMTarget[] = [
         target('openai', 'hosted-a'),
-        target('groq', 'hosted-b'),
+        target('anthropic', 'hosted-b'),
         target('glm', 'hosted-glm'),
         target('together', 'hosted-together'),
-        target('cerebras', 'hosted-cerebras'),
+        target('kimi', 'hosted-kimi'),
         target('gemini', 'hosted-c')
       ]
       const active = { hosted: 0, total: 0 }

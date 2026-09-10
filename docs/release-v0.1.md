@@ -47,7 +47,7 @@ Each section summarizes the step, links to the command docs, and shows one repre
 
 ### Step 0: metadata
 
-[`metadata`](./commands/process-steps/step-0-metadata/metadata.md) inspects source metadata without downloading the source. It accepts media files and URLs, documents, images, HTML, URL lists, X Spaces, feeds, channels, and directories. It prints JSON by default, Markdown with `--markdown`, and can save a run directory with `--save`.
+[`metadata`](./commands/process-steps/step-0-metadata/01-metadata.md) inspects source metadata without downloading the source. It accepts media files and URLs, documents, images, HTML, URL lists, X Spaces, feeds, channels, and directories. It prints JSON by default, Markdown with `--markdown`, and can save a run directory with `--save`.
 
 Example:
 
@@ -57,7 +57,7 @@ bun autoshow metadata input/examples/document/1-document.pdf
 
 ### Step 1: download
 
-[`download`](./commands/process-steps/step-1-download/download-file.md) fetches or stages a source and stops before extraction. Media and X Space runs save audio or best-quality video; document, image, and article runs save the source plus `manifest.json`.
+[`download`](./commands/process-steps/step-1-download/01-download-file.md) fetches or stages a source and stops before extraction. Media and X Space runs save audio or best-quality video; document, image, and article runs save the source plus `manifest.json`.
 
 Example:
 
@@ -77,7 +77,7 @@ bun autoshow extract input/examples/document/1-document.pdf --format json
 
 ### Step 3: write
 
-[`write`](./commands/process-steps/step-3-write/write-text.md) generates hosted LLM text from local `.md` or `.txt` input. Run `extract` first for URLs, media, documents, or HTML. There is no local LLM; omitting `--llm` selects the cheapest hosted model. Typical outputs are `text.json` plus optional rendered Markdown and show notes.
+[`write`](./commands/process-steps/step-3-write/01-write-text.md) generates hosted LLM text from local `.md` or `.txt` input. Run `extract` first for URLs, media, documents, or HTML. There is no local LLM; omitting `--llm` selects the cheapest hosted model. Typical outputs are `text.json` plus optional rendered Markdown and show notes.
 
 Example:
 
@@ -87,7 +87,7 @@ bun autoshow write output/<extract-run>/transcription.txt
 
 ### Step 4: tts
 
-[`tts`](./commands/process-steps/step-4-tts/text-to-speech-and-voice.md) generates speech from local `.md` or `.txt` files using hosted TTS providers. Runs write `speech.wav` and `manifest.json`.
+[`tts`](./commands/process-steps/step-4-tts/01-text-to-speech-and-voice.md) generates speech from local `.md` or `.txt` files using hosted TTS providers. Runs write `speech.wav` and `manifest.json`.
 
 Example:
 
@@ -97,7 +97,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2
 
 ### Step 5: image
 
-[`image`](./commands/process-steps/step-5-image/text-to-image.md) generates images from text prompts and runs supported edit and reference workflows. Default runs write `generated-image.png` (or the selected format) plus `manifest.json`.
+[`image`](./commands/process-steps/step-5-image/01-text-to-image.md) generates images from text prompts and runs supported edit and reference workflows. Default runs write `generated-image.png` (or the selected format) plus `manifest.json`.
 
 Example:
 
@@ -107,7 +107,7 @@ bun autoshow image "a premium product photo of a mountain observatory brochure" 
 
 ### Step 6: video
 
-[`video`](./commands/process-steps/step-6-video/text-to-video-services.md) generates hosted `.mp4` videos from text prompts, images, references, or input-video modes. Default runs write `generated-video.mp4` plus `manifest.json`.
+[`video`](./commands/process-steps/step-6-video/01-text-to-video-services.md) generates hosted `.mp4` videos from text prompts, images, references, or input-video modes. Default runs write `generated-video.mp4` plus `manifest.json`.
 
 Example:
 
@@ -117,7 +117,7 @@ bun autoshow video "animate the product on a slow turntable" --provider ltx=ltx-
 
 ### Step 7: music
 
-[`music`](./commands/process-steps/step-7-music/text-to-music-services.md) either generates hosted `.mp3` music from prompts or renders local lyric videos from audio files.
+[`music`](./commands/process-steps/step-7-music/01-text-to-music-services.md) either generates hosted `.mp3` music from prompts or renders local lyric videos from audio files.
 
 Examples:
 
@@ -138,7 +138,7 @@ bun autoshow comic draft-scenes 05-01
 
 ### Step 9: voice
 
-[`voice`](./commands/process-steps/step-9-voice/00-voice-overview.md) lists and registers provider voices without synthesizing speech. `comic reference-voice` is the comic-native alias. Registrations live under `input/characters/`.
+[`voice`](./commands/process-steps/step-9-voice/00-voice-overview.md) lists and registers provider voices for standalone and comic workflows without synthesizing speech. `comic reference-voice` remains a deprecated compatibility alias. Registrations live under `input/characters/`.
 
 Example:
 

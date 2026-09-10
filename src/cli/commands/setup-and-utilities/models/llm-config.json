@@ -174,48 +174,6 @@
       }
     }
   },
-  "groq": {
-    "description": "Groq cloud LLM inference",
-    "type": "api",
-    "models": {
-      "openai/gpt-oss-20b": {
-        "description": "GPT OSS 20B — open-weight model via Groq",
-        "pricingSourceUrl": "https://groq.com/pricing",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Groq on-demand token pricing",
-        "pricingNotes": "Groq lists openai/gpt-oss-20b at $0.075/1M uncached input tokens, $0.0375/1M cached input tokens, and $0.30/1M output tokens. AutoShow uses uncached input pricing. Batch, cached-input discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MCents": 7.5,
-        "outputCostPer1MCents": 30,
-        "estimation": {
-          "costMultiplier": 0.7815,
-          "msPer1KTokens": 557
-        },
-        "reasoning": {
-          "support": "optional",
-          "supportedEfforts": ["low", "medium", "high"]
-        }
-      },
-      "openai/gpt-oss-120b": {
-        "description": "GPT OSS 120B — open-weight model via Groq",
-        "pricingSourceUrl": "https://groq.com/pricing",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Groq on-demand token pricing",
-        "pricingNotes": "Groq lists openai/gpt-oss-120b at $0.15/1M uncached input tokens, $0.075/1M cached input tokens, and $0.60/1M output tokens. AutoShow uses uncached input pricing. Batch, cached-input discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MCents": 15,
-        "outputCostPer1MCents": 60,
-        "estimation": {
-          "costMultiplier": 0.848,
-          "msPer1KTokens": 688
-        },
-        "reasoning": {
-          "support": "optional",
-          "supportedEfforts": ["low", "medium", "high"]
-        }
-      }
-    }
-  },
   "gemini": {
     "description": "Google Gemini language models",
     "type": "api",
@@ -855,46 +813,6 @@
             "high",
             "max"
           ]
-        }
-      }
-    }
-  },
-  "cerebras": {
-    "description": "Cerebras public endpoint language models via OpenAI-compatible chat completions",
-    "type": "api",
-    "models": {
-      "gpt-oss-120b": {
-        "description": "OpenAI GPT OSS 120B via Cerebras public endpoint - 131K context",
-        "pricingSourceUrl": "https://api.cerebras.ai/public/v1/models",
-        "pricingCheckedAt": "2026-06-13",
-        "pricingCurrency": "USD",
-        "pricingTier": "Cerebras public endpoint token pricing",
-        "pricingNotes": "The Cerebras public model catalog lists gpt-oss-120b prompt tokens at $0.00000035/token and completion tokens at $0.00000075/token. AutoShow reports those as $0.35/1M input tokens and $0.75/1M output tokens. Batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MCents": 35,
-        "outputCostPer1MCents": 75,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPer1KTokens": 18000
-        },
-        "reasoning": {
-          "support": "unsupported"
-        }
-      },
-      "zai-glm-4.7": {
-        "description": "Z.ai GLM 4.7 Preview via Cerebras public endpoint - 131K context",
-        "pricingSourceUrl": "https://api.cerebras.ai/public/v1/models",
-        "pricingCheckedAt": "2026-06-13",
-        "pricingCurrency": "USD",
-        "pricingTier": "Cerebras public endpoint token pricing",
-        "pricingNotes": "The Cerebras public model catalog lists zai-glm-4.7 prompt tokens at $0.00000225/token and completion tokens at $0.00000275/token. AutoShow reports those as $2.25/1M input tokens and $2.75/1M output tokens. The model is marked preview. Batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MCents": 225,
-        "outputCostPer1MCents": 275,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPer1KTokens": 18000
-        },
-        "reasoning": {
-          "support": "unsupported"
         }
       }
     }

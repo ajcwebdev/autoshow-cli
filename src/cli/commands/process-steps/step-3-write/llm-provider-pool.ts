@@ -6,7 +6,6 @@ const isHostedLlmTarget = (
   target: Pick<LLMTarget, 'service'>
 ): boolean =>
   target.service === 'openai'
-  || target.service === 'groq'
   || target.service === 'gemini'
   || target.service === 'anthropic'
   || target.service === 'minimax'
@@ -14,7 +13,6 @@ const isHostedLlmTarget = (
   || target.service === 'glm'
   || target.service === 'kimi'
   || target.service === 'together'
-  || target.service === 'cerebras'
 
 export const runLlmProviderTargetPools = async (
   targets: LLMTarget[],

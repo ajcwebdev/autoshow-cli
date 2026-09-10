@@ -48,9 +48,6 @@ const handlers: Record<string, BootstrapHandler> = {
   'speechmatics-stt': {
     ensure: async (): Promise<void> => { resolveCredential('speechmatics', 'require', { stage: 'stt:speechmatics', description: 'Speechmatics transcription' }) }
   },
-  'groq-stt': {
-    ensure: async (): Promise<void> => { resolveCredential('groq', 'require', { stage: 'stt:groq', description: 'Groq transcription' }) }
-  },
   'grok-stt': {
     ensure: async (): Promise<void> => { resolveCredential('grok', 'require', { stage: 'stt:grok', description: 'Grok transcription' }) }
   },

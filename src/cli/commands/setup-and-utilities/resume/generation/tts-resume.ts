@@ -198,7 +198,7 @@ export const resolveStoredTtsTargetsForResume = async (
   item: PipelineManifestItem,
   protectedStore?: ProtectedVoiceAssetStore
 ): Promise<TtsTarget[]> => {
-  const retired = providers.find(provider => ['groq', 'gemini', 'deepgram', 'replicate', 'fal'].includes(provider.service))
+  const retired = providers.find(provider => ['gemini', 'deepgram', 'replicate', 'fal'].includes(provider.service))
   if (retired) throw UsageError(`Stored TTS provider ${retired.service} is no longer supported for TTS and cannot be resumed or dispatched. Inspect the manifest as history, then select a supported provider for a new TTS run.`)
   const ordinaryProviders = providers.filter((provider) => provider.service !== 'mistral')
   const resolved = collectGenerationTargetsForProviders(
@@ -220,7 +220,6 @@ export const resolveStoredTtsTargetsForResume = async (
   ))
   return resolved
 }
-
 
 const resolveTtsResumeArtifactRoot = (
   states: readonly PipelineProviderState[]

@@ -121,15 +121,15 @@ describe('provider selection contracts', () => {
     ])
 
     const writeNormalized = normalizeWriteStepSelectorFlags({
-      llm: ['grok=grok-4.5', 'together=kimi-k2.6', 'together=glm-5.1', 'cerebras=gpt-oss-120b', 'cerebras=zai-glm-4.7']
+      llm: ['grok=grok-4.5', 'together=kimi-k2.6', 'together=glm-5.1', 'anthropic=claude-haiku-4-5', 'anthropic=claude-sonnet-4-6']
     }, new Set(['llm']))
     const writeOpts = buildOptsFromFlags(writeNormalized.flags, {}, writeNormalized.explicitFlags)
     expect(writeOpts.grokModels).toEqual(['grok-4.5'])
     expect(writeOpts.grokModels?.[0]).toBe('grok-4.5')
     expect(writeOpts.togetherModels).toEqual(['kimi-k2.6', 'glm-5.1'])
     expect(writeOpts.togetherModels?.[0]).toBe('kimi-k2.6')
-    expect(writeOpts.cerebrasModels).toEqual(['gpt-oss-120b', 'zai-glm-4.7'])
-    expect(writeOpts.cerebrasModels?.[0]).toBe('gpt-oss-120b')
+    expect(writeOpts.anthropicModels).toEqual(['claude-haiku-4-5', 'claude-sonnet-4-6'])
+    expect(writeOpts.anthropicModels?.[0]).toBe('claude-haiku-4-5')
 
     const imageArgNormalized = normalizeGenericProviderSelectorFlags(
       {
@@ -242,7 +242,7 @@ describe('provider selection contracts', () => {
       dir: '/tmp/write-run',
       manifestPath: '/tmp/write-run/manifest.json'
     }, {
-      provider: ['together=kimi-k2.6', 'together=glm-5.1', 'cerebras=gpt-oss-120b', 'cerebras=zai-glm-4.7']
+      provider: ['together=kimi-k2.6', 'together=glm-5.1', 'anthropic=claude-haiku-4-5', 'anthropic=claude-sonnet-4-6']
     }, new Set(['provider']), [
       'resume',
       '/tmp/write-run',
@@ -251,20 +251,20 @@ describe('provider selection contracts', () => {
       '--provider',
       'together=glm-5.1',
       '--provider',
-      'cerebras=gpt-oss-120b',
+      'anthropic=claude-haiku-4-5',
       '--provider',
-      'cerebras=zai-glm-4.7'
+      'anthropic=claude-sonnet-4-6'
     ])
     const opts = buildOptsFromFlags(normalized.flags, {}, normalized.explicitFlags, { flagOccurrences: normalized.flagOccurrences })
 
     expect(normalized.flagOccurrences.map(({ name, value }) => ({ name, value }))).toEqual([
       { name: 'together', value: 'kimi-k2.6' },
       { name: 'together', value: 'glm-5.1' },
-      { name: 'cerebras', value: 'gpt-oss-120b' },
-      { name: 'cerebras', value: 'zai-glm-4.7' }
+      { name: 'anthropic', value: 'claude-haiku-4-5' },
+      { name: 'anthropic', value: 'claude-sonnet-4-6' }
     ])
     expect(opts.togetherModels).toEqual(['kimi-k2.6', 'glm-5.1'])
-    expect(opts.cerebrasModels).toEqual(['gpt-oss-120b', 'zai-glm-4.7'])
+    expect(opts.anthropicModels).toEqual(['claude-haiku-4-5', 'claude-sonnet-4-6'])
   })
 
   test('write resume filenames keep duplicate short model selectors service-qualified', () => {
@@ -295,8 +295,8 @@ describe('provider selection contracts', () => {
     const selectedTargets = [
       { service: 'together' as const, model: 'kimi-k2.6' },
       { service: 'together' as const, model: 'glm-5.1' },
-      { service: 'cerebras' as const, model: 'gpt-oss-120b' },
-      { service: 'cerebras' as const, model: 'zai-glm-4.7' }
+      { service: 'anthropic' as const, model: 'claude-haiku-4-5' },
+      { service: 'anthropic' as const, model: 'claude-sonnet-4-6' }
     ]
     const reservedFileNames = new Set(existingEntries.map((entry) => entry.outputFileName))
 
@@ -317,13 +317,13 @@ describe('provider selection contracts', () => {
       selectedTargets,
       existingEntries,
       reservedFileNames
-    })).toBe('text-gpt-oss-120b.json')
+    })).toBe('text-claude-haiku-4-5.json')
     expect(buildWriteResumeOutputFileName({
       target: selectedTargets[3]!,
       selectedTargets,
       existingEntries,
       reservedFileNames
-    })).toBe('text-zai-glm-4.7.json')
+    })).toBe('text-claude-sonnet-4-6.json')
   })
 
   test('extract generic provider selectors route to STT or OCR internal keys', () => {

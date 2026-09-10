@@ -41,12 +41,6 @@ export const sttRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/step-2-stt-e2e/stt-services/speechmatics-current-models.test.ts', [
     command('transcribe-speechmatics-melia-1', 'transcribe-speechmatics-melia-1', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'speechmatics=melia-1', '--price']),
   ]),
-  ...exact('test/test-cases/e2e/service/step-2-stt-e2e/stt-services/groq-whisper-large-v3.test.ts', [
-    command('transcribe-groq-whisper-large-v3', 'transcribe-groq-whisper-large-v3', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'groq=whisper-large-v3', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/service/step-2-stt-e2e/stt-services/groq-whisper-large-v3-turbo.test.ts', [
-    command('transcribe-groq-whisper-large-v3-turbo', 'transcribe-groq-whisper-large-v3-turbo', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'groq=whisper-large-v3-turbo', '--price']),
-  ]),
   ...exact('test/test-cases/e2e/service/step-2-stt-e2e/stt-services/grok-speech-to-text.test.ts', [
     command('transcribe-grok-speech-to-text', 'transcribe-grok-speech-to-text', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'grok=speech-to-text', '--price']),
   ]),

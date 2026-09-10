@@ -26,7 +26,6 @@ const WRITE_LLM_PROVIDER_FLAGS = deriveGenerationResumeProviderFlags(
 
 const LLM_SERVICES = new Set<Step3Metadata['llmService']>([
   'openai',
-  'groq',
   'gemini',
   'anthropic',
   'minimax',
@@ -34,7 +33,6 @@ const LLM_SERVICES = new Set<Step3Metadata['llmService']>([
   'glm',
   'kimi',
   'together',
-  'cerebras'
 ])
 
 const EXTRACT_ESTIMATE_PROVIDERS = new Set<ExtractEstimateTarget['provider']>([
@@ -53,7 +51,6 @@ const EXTRACT_ESTIMATE_PROVIDERS = new Set<ExtractEstimateTarget['provider']>([
   'supadata',
   'zyte'
 ])
-
 
 const isStep3Metadata = (value: unknown): value is Step3Metadata =>
   isRecord(value)

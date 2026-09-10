@@ -13,6 +13,7 @@ import { resolveComicScriptReference } from '~/cli/commands/process-steps/step-8
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { asCtx, expectUnknownCommand, parseRoot } from './shared'
+import { captureLogEvents } from '../../../../test-utils/console-capture'
 
 const parseGenerateImagesArgs = (args: string[]) =>
   coerceAndValidateGenerateImages(parseCommandInvocation(
@@ -102,7 +103,13 @@ test('comic reference-voice is a nested alias of the public voice verbs', async 
   const listed = parseRoot(['comic', 'reference-voice'])
   expect(listed.mode).toBe('command')
   expect(listed.command?.name).toBe('comic reference-voice list')
-  await listed.command!.handler(asCtx(listed))
+  const alias = await captureLogEvents(async () => await listed.command!.handler(asCtx(listed)))
+  expect(alias.events.some(event => event.message.includes('comic reference-voice list is deprecated; use voice list'))).toBe(true)
+  const canonicalParsed = parseRoot(['voice'])
+  const canonical = await captureLogEvents(async () => await canonicalParsed.command!.handler(asCtx(canonicalParsed)))
+  expect(canonical.events.some(event => event.message.includes('deprecated'))).toBe(false)
+  expect(alias.events.filter(event => !event.message.includes('deprecated')).map(event => ({ message: event.message, metadata: event.metadata })))
+    .toEqual(canonical.events.map(event => ({ message: event.message, metadata: event.metadata })))
   await reject(
     ['comic', 'reference-voice', 'consent', '--revoke', 'protected-consent:v1:STORE:ASSET:SHA256', '--actor-id', 'casting_editor'],
     '--reason is required.'

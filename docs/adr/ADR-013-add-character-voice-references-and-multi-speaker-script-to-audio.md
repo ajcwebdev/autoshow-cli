@@ -6,8 +6,14 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-10
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-10
 - **Verification Status:** Passed
+
+## Amendment: One Voice-Management Entry Point (2026-09-10)
+
+Use `voice <action>` for both standalone and comic character voice management. The `comic reference-voice` group remains a deprecated forwarding alias for one compatibility release, including its default `list` action and all nine children. Direct help and runtime notices name the canonical command; the ordinary comic menu omits the alias. Removal requires a later announced breaking CLI release.
+
+This replaces the normal alias usage described below without changing voice provisioning, consent, audition, approval, retirement, deletion, storage, or result behavior. The original command examples remain historical evidence. Current instructions are in the [voice overview](../commands/process-steps/step-9-voice/00-voice-overview.md), with the CLI consolidation recorded in [ADR-007](./ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md#amendment-canonical-voice-and-review-commands-2026-09-10).
 
 ## Context
 
@@ -310,7 +316,7 @@ Do not run hosted TTS commands, live voice creation, provider smoke tests, or e2
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — TTS model contracts and voice capability boundaries
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — soundscape pipeline downstream of this dialogue contract
 - Related ADR: [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md) — downstream panel synchronization and still-image presentation
-- Related report: [2026 Hosted-Model Refresh Report: TTS](../models/05-tts-model-report.md) — TTS catalog refresh history
+- Related report: [2026 Hosted-Model Refresh Report: TTS](../commands/process-steps/step-4-tts/02-tts-model-report.md) — TTS catalog refresh history
 - `src/cli/commands/process-steps/step-4-tts/define-tts-command.ts`
 - `src/cli/commands/process-steps/step-4-tts/voice-management/define-voice-command.ts`
 - `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-audio/generate-audio-command.ts`

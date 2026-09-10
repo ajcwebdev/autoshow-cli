@@ -14,7 +14,6 @@ const envKeys = [
   'DEEPGRAM_API_KEY',
   'DEEPINFRA_API_KEY',
   'MINIMAX_API_KEY',
-  'CEREBRAS_API_KEY',
   'TOGETHER_API_KEY'
 ]
 export const installFetch = installMockFetch

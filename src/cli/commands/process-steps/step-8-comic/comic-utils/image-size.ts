@@ -3,9 +3,10 @@ import {
 } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
 import type { ImageGenerationModel, ImageGenerationSize } from '~/types'
+import { supportsOpenAIFlexibleImageSize } from '~/cli/commands/setup-and-utilities/models/image-models'
 
 export const DEFAULT_IMAGE_MODEL: ImageGenerationModel = 'gpt-image-2'
-const GPT_IMAGE_2_MODEL = 'gpt-image-2'
+const CUSTOM_SIZE_MODELS = 'gpt-image-2 or GPT Image 2.5 (Flare/Sunburst)'
 
 const IMAGE_SIZE_OPTIONS = new Set<string>(IMAGE_GENERATION_SIZES)
 const CUSTOM_IMAGE_SIZE_PATTERN = /^(\d+)x(\d+)$/
@@ -14,7 +15,7 @@ const MAX_CUSTOM_IMAGE_PIXELS = 8_294_400
 const MAX_CUSTOM_IMAGE_EDGE = 3_840
 const MAX_CUSTOM_IMAGE_ASPECT_RATIO = 3
 
-export const IMAGE_SIZE_HELP = `${IMAGE_GENERATION_SIZES.join(', ')}, or a custom WIDTHxHEIGHT size for ${GPT_IMAGE_2_MODEL}`
+export const IMAGE_SIZE_HELP = `${IMAGE_GENERATION_SIZES.join(', ')}, or a custom WIDTHxHEIGHT size for ${CUSTOM_SIZE_MODELS}`
 
 const isPresetImageGenerationSize = (
   value: string
@@ -78,9 +79,9 @@ export const validateImageSizeForModels = (
   validateCustomImageDimensions(size, dimensions)
 
   const selectedModels = models && models.length > 0 ? models : [DEFAULT_IMAGE_MODEL]
-  if (!selectedModels.every(model => model === GPT_IMAGE_2_MODEL)) {
+  if (!selectedModels.every(supportsOpenAIFlexibleImageSize)) {
     throw ValidationError(
-      `Custom size "${size}" requires every selected image model to be ${GPT_IMAGE_2_MODEL}; ` +
+      `Custom size "${size}" requires every selected image model to be ${CUSTOM_SIZE_MODELS}; ` +
       `selected models: ${selectedModels.join(', ')}`,
       { stage: 'comic:image-size' }
     )

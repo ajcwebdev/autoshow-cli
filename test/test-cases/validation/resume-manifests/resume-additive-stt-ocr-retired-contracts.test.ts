@@ -183,7 +183,7 @@ describe('additive resume provider selection', () => {
     const resumedRoot: SttTarget = { service: 'whisper', model: 'large-v3-turbo', local: true }
     const freshSuccess: SttTarget = { service: 'assemblyai', model: 'universal-2', local: false }
     const currentFailure: SttTarget = { service: 'deepgram', model: 'nova-3', local: false }
-    const freshFailure: SttTarget = { service: 'groq', model: 'whisper-large-v3-turbo', local: false }
+    const freshFailure: SttTarget = { service: 'deepinfra', model: 'openai/whisper-large-v3-turbo', local: false }
     const untouched: SttTarget = { service: 'speechmatics', model: 'melia-1', local: false }
     const attemptedSkip: SttTarget = { service: 'soniox', model: 'stt-rt-v4', local: false }
     const schedulerSkip: SttTarget = { service: 'together', model: 'openai/whisper-large-v3', local: false }
@@ -225,7 +225,7 @@ describe('additive resume provider selection', () => {
       { artifactDir: '.', status: 'succeeded', attempts: 3 },
       { artifactDir: 'providers/assemblyai-universal-2', status: 'succeeded', attempts: 1 },
       { artifactDir: 'providers/deepgram-nova-3', status: 'failed', attempts: 5 },
-      { artifactDir: 'providers/groq-whisper-large-v3-turbo', status: 'failed', attempts: 1 },
+      { artifactDir: 'providers/deepinfra-openai_whisper-large-v3-turbo', status: 'failed', attempts: 1 },
       { artifactDir: 'providers/speechmatics-melia-1', status: 'missing', attempts: 2 }
     ])
     expect(states[5]).toMatchObject({ status: 'skipped', attempts: 4 })

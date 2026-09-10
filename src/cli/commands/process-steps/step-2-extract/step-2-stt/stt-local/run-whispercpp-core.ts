@@ -10,7 +10,7 @@ import { exec, fileExists } from '~/utils/cli-utils'
 import { resolve } from 'node:path'
 import { pollUntil } from '~/utils/retries'
 import { prepareLocalSttInput } from './local-audio-normalize'
-import { InfraError, isRetryExhaustedError } from '~/utils/error-handler'
+import { InfraError, ValidationError, isRetryExhaustedError } from '~/utils/error-handler'
 
 export const selectWhisperCaptionArgs = (help: string, nativeSubtitles = false): string[] => [
   ...(help.includes('-sow') || help.includes('--split-on-word') ? ['-sow'] : []),
@@ -70,6 +70,7 @@ export const runWhisperCppTranscribe = async (
       .then(result => result.stdout + result.stderr)
       .catch(() => '')
     const captionArgs = selectWhisperCaptionArgs(helpOutput, options.nativeSubtitles)
+    if (options.dtwPreset && !/(?:^|\s)(?:-dtw|--dtw)(?:\s|$)/m.test(helpOutput)) throw ValidationError(`${label} does not advertise DTW support in its installed help output.`)
     preparedInput = await prepareLocalSttInput(audioPath, tempPrefix)
     const baseArgs = [
       '-f', preparedInput.audioPath,
@@ -78,6 +79,7 @@ export const runWhisperCppTranscribe = async (
       '-pp',
       '-of', outputBase,
       '-ojf',
+      ...(options.dtwPreset ? ['--dtw', options.dtwPreset] : []),
       ...captionArgs
     ]
     const { command, args, modelDescriptor } = await resolveInvocation(modelName, baseArgs)

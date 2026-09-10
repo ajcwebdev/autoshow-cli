@@ -28,7 +28,7 @@ test('Soniox sub-word tokens merge into whole evidence words', () => {
     startSeconds: 0.63,
     endSeconds: 1.05,
     speaker: '1',
-    timingSource: 'native'
+    timingSource: 'token_derived'
   })
   expect(words[1]?.confidence).toBeCloseTo(0.79, 5)
   expect(words[3]).toMatchObject({ text: 'Thanks', speaker: '2' })
@@ -59,7 +59,7 @@ test('transcript cues use native word timings instead of interpolating segment s
 
   const { cues, source } = buildTranscriptionCues(transcription, TRANSCRIPT_CUE_LIMITS)
 
-  expect(source).toBe('whisper-words')
+  expect(source).toBe('transcript-words')
   expect(cues[0]?.start).toBeCloseTo(4.1, 5)
   expect(cues).toHaveLength(2)
   expect(cues[0]).toMatchObject({ text: 'one two', speaker: '1' })
@@ -76,7 +76,7 @@ test('transcript cues fall back to segment stamps when a provider has no word ti
 
   const { cues, source } = buildTranscriptionCues(transcription, TRANSCRIPT_CUE_LIMITS)
 
-  expect(source).toBe('whisper-segments')
+  expect(source).toBe('transcript-segments')
   expect(cues[0]?.start).toBeCloseTo(1.5, 5)
   expect(cues[0]?.end).toBeCloseTo(3.25, 5)
   expect(cues[0]?.speaker).toBe('speaker-0')

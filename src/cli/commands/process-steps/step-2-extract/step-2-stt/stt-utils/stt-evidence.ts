@@ -32,7 +32,7 @@ export const buildTranscriptionWordEvidence = (options: {
         || evidenceSegments.some((segment) => segment.speaker !== undefined)
         || segments.some((segment) => segment.speaker !== undefined)
     },
-    timingQuality: complete && words.length > 0 && words.every(word => word.timingSource === 'native' || word.timingSource === 'token_derived') ? 'native_word' : words.length > 0 ? 'mixed' : 'segment_interpolated',
+    timingQuality: complete && words.length > 0 && words.every(word => word.timingSource === 'aligned') ? 'aligned' : complete && words.length > 0 && words.every(word => word.timingSource === 'native' || word.timingSource === 'token_derived') ? 'native_word' : words.length > 0 ? 'mixed' : 'segment_interpolated',
     ...(options.rawResponse !== undefined ? { rawResponse: options.rawResponse } : {})
   }
 }
@@ -55,6 +55,7 @@ export const mergeTranscriptionEvidence = (
 
   const timingQuality: TranscriptionEvidenceTimingQuality = defined.length === evidences.length && defined.every(evidence => evidence.timingQuality === 'native_word' && (evidence.words?.length ?? 0) > 0)
     ? 'native_word'
+    : defined.length === evidences.length && defined.every(evidence => evidence.timingQuality === 'aligned' && (evidence.words?.length ?? 0) > 0) ? 'aligned'
     : words.length > 0 ? 'mixed'
     : defined.every(evidence => evidence.timingQuality === 'generated') ? 'generated'
     : defined.some(evidence => evidence.timingQuality === 'segment_interpolated') ? 'segment_interpolated' : 'coarse'

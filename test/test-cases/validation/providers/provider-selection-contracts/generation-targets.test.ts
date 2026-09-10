@@ -48,7 +48,9 @@ describe('provider selection contracts', () => {
       'gemini-3-pro-image'
     ])
     expect(allOpts.openaiImageModels).toEqual([
-      'gpt-image-2'
+      'gpt-image-2',
+      'gpt-image-2.5-flare',
+      'gpt-image-2.5-sunburst'
     ])
     expect(allOpts.bflImageModels).toEqual([
       'flux-2-klein-4b',

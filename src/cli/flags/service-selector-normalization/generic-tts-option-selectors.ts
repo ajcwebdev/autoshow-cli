@@ -40,7 +40,7 @@ export type GenericTtsOptionFlag = keyof typeof GENERIC_TTS_OPTION_PROVIDERS
 
 const GENERIC_TTS_OPTION_FLAGS = Object.keys(GENERIC_TTS_OPTION_PROVIDERS) as GenericTtsOptionFlag[]
 const BOOLEAN_TTS_TEXT_NORMALIZATION_PROVIDERS = new Set<string>(['grok'])
-const RETIRED_TTS_PROVIDERS = new Set(['minimax', 'groq', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra'])
+const RETIRED_TTS_PROVIDERS = new Set(['minimax', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra'])
 
 export const assertNoVoiceIdentityWithDialogue = (
   options: Pick<TtsOptions, 'ttsSpeakers'>,

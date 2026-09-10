@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-10
 - **Verification Status:** Passed
 - **Supersession:** Docker distribution is governed separately by [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md). This record remains accepted authority for host setup reliability and toolchain lifecycle.
 
@@ -178,6 +178,18 @@ Negative outcomes:
 
 Managed macOS tools resolve through `src/utils/runtime-paths.ts` and install from `src/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools.ts`. Download resume, checksum verification, and bounded transfer concurrency live under `src/cli/commands/setup-and-utilities/setup/setup-download/`. Setup orchestration, summary reporting, and `setup --doctor` live under `src/cli/commands/setup-and-utilities/setup/`. User-facing behavior is documented in `docs/commands/setup-and-utilities/setup/setup.md`.
 
+### Bun 1.4 Archive Extraction
+
+The 2026-08-31 evaluation adopted streamed staged tar extraction and rejected direct `Bun.Archive.extract()` for setup downloads. This was a completed implementation decision on the evaluated Bun 1.4.0 runtime.
+
+The production setup downloader now feeds `Bun.file(path).stream()` through `DecompressionStream("gzip")` and incrementally parses and writes tar payloads into a newly created staging directory. It no longer loads the compressed download with `arrayBuffer()` or expands the complete archive with `Bun.gunzipSync()`.
+
+The extraction boundary applies PAX, global extended, GNU long-name, and GNU long-link metadata; verifies header checksums, padding, end markers, truncation, byte and entry limits; rejects absolute, traversal, Windows-style, duplicate, unsupported, and hard-link entries; prevents writes through archived symlinks; preserves executable modes; refuses a non-empty destination; and atomically renames the validated staging root into place. Failure cleanup is confined to the newly created staging directory. The ZIP central-directory implementation remains separate.
+
+A macOS ARM64 memory check used a tar.gz that expands to 134,223,872 bytes. The streamed extractor peaked at 41,762,816 bytes RSS, while the former `arrayBuffer()` plus `Bun.gunzipSync()` shape peaked at 147,111,936 bytes RSS. The same check exposed binary values in macOS `SCHILY.xattr.*` PAX extensions; the parser now ignores unsupported extension values while continuing to require valid UTF-8 for the supported `path`, `linkpath`, and `size` fields, with a regression contract covering that case.
+
+Direct `Bun.Archive.extract()` was rejected for this production path on Bun 1.4.0. A `Bun.Archive` created from in-memory tar or gzip bytes can extract the archive, but a `Bun.Archive` created from a file-backed `Bun.file()` reports an unrecognized archive on the validated macOS ARM64 host. Buffering the complete file first would retain the memory defect this phase is intended to remove. The native files view also does not expose enough link and duplicate metadata to serve as the security preflight boundary.
+
 ## Test Plan
 
 ```bash
@@ -201,3 +213,4 @@ bun test test/test-cases/validation/setup/
 - `src/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools.ts`
 - `src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts`
 - `test/test-cases/validation/setup/`
+- `test/test-cases/validation/runtime-contracts/bun-native-migration-contracts.test.ts`

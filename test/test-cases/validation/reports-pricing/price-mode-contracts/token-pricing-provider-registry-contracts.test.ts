@@ -44,36 +44,6 @@ describe('price mode contracts', () => {
       expect(getModelRegistry().llm['openai']?.models['gpt-5.6-luna']?.cachedInputCostPer1MCents).toBe(2)
     })
 
-  test('Cerebras LLM pricing uses public endpoint catalog rates', () => {
-      expect(getLlmCost('cerebras', 'gpt-oss-120b')).toMatchObject({
-        inputCostPer1MCents: 35,
-        outputCostPer1MCents: 75
-      })
-      expect(getLlmCost('cerebras', 'zai-glm-4.7')).toMatchObject({
-        inputCostPer1MCents: 225,
-        outputCostPer1MCents: 275
-      })
-
-      const gptOssEntry = getModelRegistry().llm['cerebras']?.models['gpt-oss-120b']
-      const glmEntry = getModelRegistry().llm['cerebras']?.models['zai-glm-4.7']
-      if (!gptOssEntry || !glmEntry) {
-        throw new Error('Missing Cerebras registry entries')
-      }
-
-      expect(gptOssEntry).toMatchObject({
-        pricingSourceUrl: 'https://api.cerebras.ai/public/v1/models',
-        pricingCheckedAt: '2026-06-13',
-        pricingTier: 'Cerebras public endpoint token pricing'
-      })
-      expect(gptOssEntry.pricingNotes).toContain('$0.35/1M input tokens')
-      expect(glmEntry).toMatchObject({
-        pricingSourceUrl: 'https://api.cerebras.ai/public/v1/models',
-        pricingCheckedAt: '2026-06-13',
-        pricingTier: 'Cerebras public endpoint token pricing'
-      })
-      expect(glmEntry.pricingNotes).toContain('The model is marked preview')
-    })
-
   test('Together LLM pricing uses serverless rates in estimates', () => {
       expect(getLlmCost('together', 'kimi-k2.6')).toMatchObject({
         inputCostPer1MCents: 120,

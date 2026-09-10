@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-10
 - **Verification Status:** Passed
 
 ## Context
@@ -14,6 +14,14 @@ Comic produces reviewed still panels, canonical dialogue audio, and ADR-017 soun
 The presentation stage must stay derived and non-destructive: it may consume ADR-013 and ADR-017 artifacts, but must not mutate source runs, generate replacement media, infer fuzzy matches, crop or rescale approved art, or introduce generated motion. Local rendering must resume and rerun without provider calls. Audio runs in other output directories must reuse reviewed panels without copying files by hand or failing after paid generation completes.
 
 Why now: canonical panel, dialogue, and soundscape artifacts are sufficiently provenance-rich to produce a synchronized local MP4 without another generative provider.
+
+## Amendment: presentation recovery through resume, 2026-09-10
+
+The [recorded comic recovery amendment in ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md#amendment-recorded-comic-recovery-2026-09-10) extends existing `resume` to requested presentation work. `comic generate-slideshow` remains the explicit local rendering command. Its price mode now validates scene, panels, audio, timeline, and encoder availability before reporting zero cost; read-only visual planning predicts import paths without copying files.
+
+Presentation intent is recorded before rendering. The `generate-audio --slideshow` shortcut saves its pending presentation request and exact audio-plan dependency atomically with audio intent before synthesis, so a checkpoint does not lose the final local step. Resume reuses retained audio, then validates the final timeline and renders locally. Missing upstream media or changed dependency identities block recovery. Completed presentations are compared against a newly derived plan using their retained options and selected audio target, including older presentations without recovery intent, before being treated as no-ops.
+
+This does not automate selecting image variants, promoting generated panels, preparing scenes, or generating missing dialogue or sound effects. The existing canonical panel and complete audio requirements remain in force. Usage is maintained in [generate-slideshow](../commands/process-steps/step-8-comic/05-generate-slideshow.md) and [resume](../commands/setup-and-utilities/resume/resume.md#comic-recovery).
 
 ## Options Considered
 
@@ -153,4 +161,4 @@ No provider-backed test or paid suite is part of ADR verification.
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md)
 - `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-slideshow/generate-slideshow-command.ts`
 - `src/cli/flags/comic-flags.ts`
-- `docs/commands/process-steps/step-8-comic/06-generate-slideshow.md`
+- [comic generate-slideshow](../commands/process-steps/step-8-comic/05-generate-slideshow.md)

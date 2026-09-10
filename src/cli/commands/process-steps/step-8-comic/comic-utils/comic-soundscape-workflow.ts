@@ -157,7 +157,7 @@ export const planComicSoundscapePrice = async (input: {
   selector?: string | undefined
   licenseUseClassification?: SoundEffectLicenseUseClassification | undefined
   retainedPlanRef?: { path: string, sha256: string } | undefined
-}): Promise<{ renderPlan?: SoundEffectRenderPlan | undefined, summary: string }> => {
+}): Promise<{ renderPlan?: SoundEffectRenderPlan | undefined, summary: string, estimate?: Awaited<ReturnType<typeof planSoundEffectResumePrice>> }> => {
   const renderPlan = await resolveSoundEffectPlan({
     rootDir: input.rootDir,
     soundscapePlan: input.plan,
@@ -168,7 +168,7 @@ export const planComicSoundscapePrice = async (input: {
   if (!renderPlan) return { summary: 'soundscape: 0 authored generation tasks, 0.0000 USD, no SFX target setup' }
   const estimate = await planSoundEffectResumePrice(input.rootDir, renderPlan)
   const amount = estimate.amount === null ? 'unknown' : estimate.amount.toFixed(4)
-  return { renderPlan, summary: `soundscape ${renderPlan.target.provider}/${renderPlan.target.model}: ${estimate.unresolvedTaskCount} unresolved, ${estimate.cachedTaskCount} cache, ${estimate.resumedTaskCount} resume, ${amount} ${estimate.currency}` }
+  return { renderPlan, estimate, summary: `soundscape ${renderPlan.target.provider}/${renderPlan.target.model}: ${estimate.unresolvedTaskCount} unresolved, ${estimate.cachedTaskCount} cache, ${estimate.resumedTaskCount} resume, ${amount} ${estimate.currency}` }
 }
 
 const requireSoundscapeProviderApiKey = (provider: string): string =>

@@ -86,16 +86,20 @@ describe('caption evidence and export', () => {
     expect(words[0]).toMatchObject({ speaker: 'speaker-2', startSeconds: 1800.125 })
     for (const model of ['openai/whisper-large-v3', 'nvidia/parakeet-tdt-0.6b-v3']) {
       expect(buildTogetherSttFormFields(model, undefined, { enabled: true, speakerCount: 2 })).toMatchObject({ diarize: 'true', min_speakers: '2', max_speakers: '2' })
+      const disabled = buildTogetherSttFormFields(model, undefined, { enabled: false, speakerCount: 2 })
+      expect(disabled).toMatchObject({ diarize: 'false' })
+      expect(disabled).not.toHaveProperty('min_speakers')
+      expect(disabled).not.toHaveProperty('max_speakers')
     }
   })
 
-  for (const service of ['groq', 'deepinfra'] as const) for (const model of ['whisper-large-v3', 'whisper-large-v3-turbo']) {
+  for (const service of ['deepinfra'] as const) for (const model of ['whisper-large-v3', 'whisper-large-v3-turbo']) {
     test(service + '/' + model + ' captures words in the same request', async () => {
       const calls = installFetch(() => jsonResponse({ text: 'Hello', words: [{ word: 'Hello', start: .125, end: .875 }], segments: [{ start: .125, end: .875, text: 'Hello' }] }))
       await withTempDir(async dir => {
         const audio = join(dir, 'fixture.wav')
         await Bun.write(audio, 'fixture')
-        const { result } = await runOpenAICompatibleSingleSpeakerStt(audio, dir, { service, providerLabel: service, apiKey: 'fixture', baseURL: 'https://fixture.invalid/v1', model: service === 'deepinfra' ? 'openai/' + model : model, segmentOffsetMinutes: 30 })
+        const { result } = await runOpenAICompatibleSingleSpeakerStt(audio, dir, { service, providerLabel: service, apiKey: 'fixture', baseURL: 'https://fixture.invalid/v1', model: 'openai/' + model, segmentOffsetMinutes: 30 })
         expect(calls).toHaveLength(1)
         expect(calls[0]?.form?.getAll('timestamp_granularities[]')).toEqual(['word', 'segment'])
         expect(result.evidence?.words?.[0]).toMatchObject({ startSeconds: 1800.125, endSeconds: 1800.875 })
@@ -335,7 +339,7 @@ describe('caption evidence and export', () => {
         import { appendFileSync } from 'node:fs'
         globalThis.fetch = async (input, init) => {
           const url = String(input)
-          if (!url.includes('api.groq.com/openai/v1/audio/transcriptions')) throw new Error('Network blocked by caption contract test: ' + url)
+          if (!url.includes('api.deepinfra.com/v1/audio/transcriptions')) throw new Error('Network blocked by caption contract test: ' + url)
           appendFileSync(${JSON.stringify(calls)}, 'transcribe\\n')
           if (init.body instanceof FormData) {
             const file = init.body.get('file')
@@ -350,8 +354,8 @@ describe('caption evidence and export', () => {
         const generate = Bun.spawn(['runtime/bin/ffmpeg', '-v', 'error', '-f', 'lavfi', '-i', 'anullsrc=r=16000:cl=mono', ...(extension === 'mp4' ? ['-f', 'lavfi', '-i', 'color=c=black:s=32x32', '-c:v', 'mpeg4', '-c:a', 'aac'] : []), '-t', '1', source], { stdout: 'pipe', stderr: 'pipe' })
         const generatedError = await new Response(generate.stderr).text()
         expect({ code: await generate.exited, generatedError }).toMatchObject({ code: 0 })
-        const child = Bun.spawn([process.execPath, '--no-env-file', '--preload', preload, 'src/cli/create-cli.ts', 'extract', source, '--provider', 'groq=whisper-large-v3', ...(scenario === 'multi' ? ['--provider', 'groq=whisper-large-v3-turbo'] : []), '--captions', ...(scenario === 'mp4' ? ['--embed-captions', '--caption-container', 'both', '--stt-audio-profile', 'lossless'] : []), '--json', '--caption-mode', 'word', '--no-caption-speakers', '--config-path', config, '--output-dir', output], {
-          stdout: 'pipe', stderr: 'pipe', env: { PATH: process.env['PATH'] ?? '', HOME: dir, GROQ_API_KEY: 'fixture-no-network' }
+        const child = Bun.spawn([process.execPath, '--no-env-file', '--preload', preload, 'src/cli/create-cli.ts', 'extract', source, '--provider', 'deepinfra=openai/whisper-large-v3', ...(scenario === 'multi' ? ['--provider', 'deepinfra=openai/whisper-large-v3-turbo'] : []), '--captions', ...(scenario === 'mp4' ? ['--embed-captions', '--caption-container', 'both', '--stt-audio-profile', 'lossless'] : []), '--json', '--caption-mode', 'word', '--no-caption-speakers', '--config-path', config, '--output-dir', output], {
+          stdout: 'pipe', stderr: 'pipe', env: { PATH: process.env['PATH'] ?? '', HOME: dir, DEEPINFRA_API_KEY: 'fixture-no-network' }
         })
         const [stdout, stderr, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited])
         expect({ code, stderr, stdout }).toMatchObject({ code: 0 })
@@ -374,8 +378,8 @@ describe('caption evidence and export', () => {
         }
         if (scenario === 'wav') {
           for (const extra of [['--price'], ['--caption-line-width', '0']]) {
-            const validation = Bun.spawn([process.execPath, '--no-env-file', '--preload', preload, 'src/cli/create-cli.ts', 'extract', source, '--provider', 'groq', '--captions', '--json', '--config-path', config, ...extra], {
-              stdout: 'pipe', stderr: 'pipe', env: { PATH: process.env['PATH'] ?? '', HOME: dir, GROQ_API_KEY: 'fixture-no-network' }
+            const validation = Bun.spawn([process.execPath, '--no-env-file', '--preload', preload, 'src/cli/create-cli.ts', 'extract', source, '--provider', 'deepinfra', '--captions', '--json', '--config-path', config, ...extra], {
+              stdout: 'pipe', stderr: 'pipe', env: { PATH: process.env['PATH'] ?? '', HOME: dir, DEEPINFRA_API_KEY: 'fixture-no-network' }
             })
             const [validationOut, validationErr, validationCode] = await Promise.all([new Response(validation.stdout).text(), new Response(validation.stderr).text(), validation.exited])
             if (extra[0] === '--price') expect({ validationCode, validationOut, validationErr }).toMatchObject({ validationCode: 0 })

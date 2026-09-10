@@ -85,7 +85,6 @@ Accepted provider selectors are the lowercase names below.
 | `--better-auth`    | `general`                                                                   |
 | `--bfl`            | `image`, `models`                                                           |
 | `--cartesia`       | `general`, `models`, `tts`                                                  |
-| `--cerebras`       | `general`, `models`, `text`                                                 |
 | `--claude`         | `general`, `models`, `ocr`, `text`                                          |
 | `--deapi`          | `general`, `models`, `stt`                                                  |
 | `--deepgram`       | `stt`                                                                       |
@@ -98,7 +97,6 @@ Accepted provider selectors are the lowercase names below.
 | `--gladia`         | `general`, `stt`                                                            |
 | `--glm`            | `general`, `models`, `ocr`, `text`, `url`                                   |
 | `--grok`           | `general`, `image`, `models`, `stt`, `text`, `tts`, `video`                 |
-| `--groq`           | `general`, `models`, `stt`, `text`                                          |
 | `--happyscribe`    | `stt`                                                                       |
 | `--hume`           | `general`, `tts`                                                            |
 | `--inworld`        | `general`, `models`, `tts`                                                  |

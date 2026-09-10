@@ -1,9 +1,10 @@
-import { posix } from 'node:path'
-import type { CliCommandContext, ResolvedPanelTimeline } from '~/types'
+import { join, posix } from 'node:path'
+import type { CliCommandContext, ComicRecoveryFlags, CompatibleComicSceneRun, ResolvedPanelTimeline } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
-import { canonicalTtsJson } from '../../../step-4-tts/script-to-audio/contract-identity'
+import { canonicalTtsJson, hashCanonicalTtsValue } from '../../../step-4-tts/script-to-audio/contract-identity'
 import { resolveCompatibleComicSceneRun } from '../../comic-utils/compatible-scene-run'
+import { captureComicRecoveryInputs, completeComicRecoveryIntent, recordComicRecoveryIntent } from '../../comic-utils/comic-recovery-intent'
 import { updateComicPresentationManifest } from '../../comic-utils/comic-manifest'
 import {
   createComicPresentationPlan,
@@ -16,6 +17,7 @@ import {
   loadPresentationAudio,
   loadPresentationDialoguePlan,
   preparePresentationVisualInputs,
+  resolvePresentationVisualInputs,
 } from '../../comic-utils/comic-presentation-inputs'
 import {
   PRESENTATION_ARCHIVE_PATH,
@@ -23,6 +25,7 @@ import {
   presentationRunAsArchive,
   publishComicPresentationFinal,
   renderComicPresentation,
+  selectPresentationVideoEncoder,
   validateComicPresentationRun,
 } from '../../comic-utils/comic-presentation-renderer'
 
@@ -37,22 +40,35 @@ const parsePositiveInteger = (value: unknown, fallback: number, label: string, m
   return Number(value)
 }
 
-
-
-export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath: string): Promise<void> => {
+const parseSlideshowOptions = (ctx: CliCommandContext) => {
   const flags = ctx.flags as Record<string, unknown>
   const untimedPanelMs = parsePositiveInteger(flags['untimed-panel-ms'], DEFAULT_UNTIMED_PANEL_MS, '--untimed-panel-ms')
   const fps = parsePositiveInteger(flags['fps'], DEFAULT_FPS, '--fps', 120)
   const audioTarget = typeof flags['audio-target'] === 'string' && flags['audio-target'].trim() ? flags['audio-target'].trim() : undefined
   if (audioTarget && !/^[^=\s]+=[^=\s]+$/u.test(audioTarget)) throw UsageError('--audio-target must use <provider>=<model>.')
-  if (flags['price'] === true) {
-    l.write('info', 'Comic slideshow price: $0.00 (local FFmpeg presentation; no writes).', { category: 'pricing' })
-    return
-  }
+  const recordedFlags: ComicRecoveryFlags = { fps: String(fps), 'untimed-panel-ms': String(untimedPanelMs), ...(audioTarget ? { 'audio-target': audioTarget } : {}) }
+  return { untimedPanelMs, fps, audioTarget, recordedFlags }
+}
 
-  const compatible = await resolveCompatibleComicSceneRun({ scriptPath })
+export const planPendingComicSlideshow = async (ctx: CliCommandContext, compatible: CompatibleComicSceneRun, afterAudio: string) => {
+  const { recordedFlags } = parseSlideshowOptions(ctx)
+  const visual = await resolvePresentationVisualInputs(compatible)
+  await selectPresentationVideoEncoder()
+  const inputs = await captureComicRecoveryInputs(compatible.sceneRunDir, [join(visual.sourceDir, visual.sceneRef.path), ...visual.panels.map(panel => join(visual.sourceDir, panel.path))])
+  return { stage: 'presentation' as const, flags: recordedFlags, inputs, planHash: hashCanonicalTtsValue({ flags: recordedFlags, inputs, afterAudio }), afterAudio }
+}
+
+export const recordPendingComicSlideshow = async (ctx: CliCommandContext, compatible: CompatibleComicSceneRun, afterAudio: string): Promise<void> => {
+  await recordComicRecoveryIntent({ rootDir: compatible.sceneRunDir, sourceIdentity: compatible.sourceIdentity, ...await planPendingComicSlideshow(ctx, compatible, afterAudio) })
+}
+
+export const planComicSlideshow = async (ctx: CliCommandContext, scriptPath: string, materialize = false) => {
+  const { untimedPanelMs, fps, audioTarget, recordedFlags } = parseSlideshowOptions(ctx)
+  const compatible = await resolveCompatibleComicSceneRun({ scriptPath, readOnly: true })
+  const visualSource = await resolvePresentationVisualInputs(compatible)
+  await selectPresentationVideoEncoder()
   const [visuals, dialogue, audio] = await Promise.all([
-    preparePresentationVisualInputs(compatible),
+    preparePresentationVisualInputs(compatible, visualSource, !materialize),
     loadPresentationDialoguePlan(compatible),
     loadPresentationAudio(compatible, audioTarget),
   ])
@@ -104,6 +120,23 @@ export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath:
     soundBindings,
     untimedPanelMs,
   }))
+  return { compatible, presentationPlan, timeline, recordedFlags, visualSource }
+}
+
+export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath: string): Promise<void> => {
+  const price = ctx.flags['price'] === true
+  const planned = await planComicSlideshow(ctx, scriptPath, !price)
+  if (price) {
+    l.write('info', 'Comic slideshow ready: $0.00 (verified local FFmpeg presentation; no writes).', { category: 'pricing' })
+    return
+  }
+  const { compatible, presentationPlan, timeline, recordedFlags, visualSource } = planned
+  const inputs = await captureComicRecoveryInputs(compatible.sceneRunDir, [join(visualSource.sourceDir, visualSource.sceneRef.path), ...visualSource.panels.map(panel => join(visualSource.sourceDir, panel.path)), ...compatible.comicMetadata.stages.audio.artifactRefs.map(ref => ref.path)])
+  // Preserve the original pending audio dependency during recovery.
+  const priorIntent = ctx.store['comicResume'] === true ? compatible.comicMetadata.recovery?.presentation : undefined
+  const retainedSelection = compatible.comicMetadata.stages.presentation.status === 'full' && compatible.comicMetadata.presentation.selectedPresentationId === presentationPlan.presentationId
+  const planHash = priorIntent?.planHash ?? (retainedSelection ? compatible.comicMetadata.recovery?.presentation?.planHash : undefined) ?? hashCanonicalTtsValue({ flags: recordedFlags, inputs })
+  if (!priorIntent && !retainedSelection) await recordComicRecoveryIntent({ rootDir: compatible.sceneRunDir, sourceIdentity: compatible.sourceIdentity, stage: 'presentation', flags: recordedFlags, inputs, planHash })
   const retained = await loadCompactPresentation(compatible.sceneRunDir, presentationPlan.presentationId)
   const completed = retained
     ? { presentation: retained.presentation, run: validateComicPresentationRun(presentationRunAsArchive(retained.presentation, retained.ref.sha256)), runRef: retained.ref }
@@ -138,6 +171,7 @@ export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath:
       publishFinal: async () => await publishComicPresentationFinal(compatible.sceneRunDir, completed.run),
     })
   }
+  await completeComicRecoveryIntent(compatible.sceneRunDir, 'presentation', planHash)
   l.write('info', alreadyPublished
     ? `Comic slideshow already complete; verified immutable checksums: ${compatible.sceneRunDir}`
     : `Comic slideshow complete: ${compatible.sceneRunDir}/presentation/final/slideshow.mp4`, {

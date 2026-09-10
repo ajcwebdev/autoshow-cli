@@ -15,7 +15,7 @@ describe('grouped report contracts', () => {
   test('Text comparison report emits metadata ranking surfaces without provider APIs', async () => {
       const runDir = await makeTempRoot('autoshow-text-consensus-')
       await writeFile(join(runDir, 'openai-output.md'), 'OpenAI text output.\n')
-      await writeFile(join(runDir, 'groq-output.md'), 'Groq text output.\n')
+      await writeFile(join(runDir, 'grok-output.md'), 'Grok text output.\n')
       await writeFile(join(runDir, 'minimax-output.md'), 'MiniMax text output.\n')
 
       await writeSingleManifestFixture(runDir, 'write', {
@@ -31,15 +31,15 @@ describe('grouped report contracts', () => {
               outputFileName: 'openai-output.md'
             },
             {
-              llmService: 'groq',
-              llmModel: 'openai/gpt-oss-120b',
+              llmService: 'grok',
+              llmModel: 'grok-4.3',
               processingTime: 6000,
               inputTokenCount: 10000,
               outputTokenCount: 2000,
               tokenCountSource: 'provider',
               providerUsage: { prompt_tokens: 10000, completion_tokens: 2000, total_tokens: 12000 },
               rawProviderUsage: { queue_time: 0.01 },
-              outputFileName: 'groq-output.md'
+              outputFileName: 'grok-output.md'
             },
             {
               llmService: 'minimax',
@@ -56,7 +56,7 @@ describe('grouped report contracts', () => {
             actual: {
               steps: [
                 { step: 'llm', provider: 'openai', model: 'gpt-5.4-nano', cost: 0.4 },
-                { step: 'llm', provider: 'groq', model: 'openai/gpt-oss-120b', cost: 1.2 },
+                { step: 'llm', provider: 'grok', model: 'grok-4.3', cost: 1.2 },
                 { step: 'llm', provider: 'minimax', model: 'MiniMax-M3', cost: 3.6 }
               ]
             }
@@ -65,7 +65,7 @@ describe('grouped report contracts', () => {
             actual: {
               steps: [
                 { step: 'llm', provider: 'openai', model: 'gpt-5.4-nano', processingTimeMs: 2400, msPerUnit: 800 },
-                { step: 'llm', provider: 'groq', model: 'openai/gpt-oss-120b', processingTimeMs: 6000, msPerUnit: 300 },
+                { step: 'llm', provider: 'grok', model: 'grok-4.3', processingTimeMs: 6000, msPerUnit: 300 },
                 { step: 'llm', provider: 'minimax', model: 'MiniMax-M3', processingTimeMs: 2500, msPerUnit: 700 }
               ]
             }
@@ -97,7 +97,7 @@ describe('grouped report contracts', () => {
         outputTokenCount: 1000,
         outputExists: true
       })
-      expect(report.providerGroups.service.providers.find((provider) => provider.providerKey === 'groq/openai/gpt-oss-120b')).toMatchObject({
+      expect(report.providerGroups.service.providers.find((provider) => provider.providerKey === 'grok/grok-4.3')).toMatchObject({
         inputTokenCount: 10000,
         outputTokenCount: 2000,
         providerUsage: { total_tokens: 12000 },
@@ -106,11 +106,11 @@ describe('grouped report contracts', () => {
       expect(report.rankingSurfaces.local.price).toHaveLength(0)
       expect(report.rankingSurfaces.service.price.map((entry) => entry.providerKey)).toEqual([
         'openai/gpt-5.4-nano',
-        'groq/openai/gpt-oss-120b',
+        'grok/grok-4.3',
         'minimax/MiniMax-M3'
       ])
       expect(report.rankingSurfaces.service.speed.map((entry) => [entry.providerKey, entry.metric, entry.value])).toEqual([
-        ['groq/openai/gpt-oss-120b', 'msPerUnit', 300],
+        ['grok/grok-4.3', 'msPerUnit', 300],
         ['minimax/MiniMax-M3', 'msPerUnit', 700],
         ['openai/gpt-5.4-nano', 'msPerUnit', 800]
       ])

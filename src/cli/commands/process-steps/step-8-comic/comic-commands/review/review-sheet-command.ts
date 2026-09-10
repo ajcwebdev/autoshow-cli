@@ -138,7 +138,7 @@ export const buildReviewSheetHtml = (result: Omit<ReviewSheetResult, 'outputPath
     '<body>',
     `<h1>Review sheet: ${escapeHtml(result.sceneTitle)}</h1>`,
     `<p>Scene <code>${escapeHtml(result.sceneSlug)}</code>. ${result.panels.length} panels. This page makes no network request and generates nothing; it is a static reading and note-taking surface.</p>`,
-    '<p>Type notes below each panel, then press Collect notes to build a <code>### Panel NN</code> Markdown block for <code>comic review-notes --notes</code>.</p>',
+    '<p>Type notes below each panel, then press Collect notes to build a <code>### Panel NN</code> Markdown block for <code>comic review &lt;script-path&gt; --notes &lt;path&gt;</code>.</p>',
     '<p><button type="button" id="collect">Collect notes</button></p>',
     '<pre id="collected">Collected notes appear here.</pre>',
     ...sections,

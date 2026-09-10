@@ -77,6 +77,7 @@ export const resolveCompatibleComicSceneRun = async (input: {
   scriptPath: string
   outputDir?: string | undefined
   outputRoot?: string | undefined
+  readOnly?: boolean | undefined
 }): Promise<CompatibleComicSceneRun> => {
   const sourceBytes = new Uint8Array(await Bun.file(input.scriptPath).arrayBuffer())
   const exactSourceText = new TextDecoder().decode(sourceBytes)
@@ -88,10 +89,11 @@ export const resolveCompatibleComicSceneRun = async (input: {
       const info = await stat(directory).catch(() => null)
       if (info && info.isDirectory()) {
         const entries = await readdir(directory)
-        if (entries.length === 0) return await initializeWorkspaceDir(directory, sourceIdentity, exactSourceText)
+        if (entries.length === 0 && !input.readOnly) return await initializeWorkspaceDir(directory, sourceIdentity, exactSourceText)
         return await inspectCandidate(directory, sourceIdentity, exactSourceText)
       }
       if (info) throw UsageError('pinned path exists but is not a directory')
+      if (input.readOnly) throw UsageError('read-only planning requires an existing canonical scene run')
       return await initializeWorkspaceDir(directory, sourceIdentity, exactSourceText)
     } catch (error) {
       throw UsageError(`Pinned comic output is not compatible with the exact source and structured-script v5: ${error instanceof Error ? error.message : String(error)}`, { cause: error })

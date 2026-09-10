@@ -1,12 +1,18 @@
 # extract STT
 
-Media inputs are downloaded and transcribed with hosted speech-to-text engines.
+Transcribe media with hosted or local speech-to-text engines. Saved results support caption export, transcript review, and local timing and speaker workflows.
 
 ## Outline
 
 - [STT Environment](#stt-environment)
 - [Shared STT Options](#shared-stt-options)
 - [Caption Export](#caption-export)
+- [Local Timing and Speaker Workflows](#local-timing-and-speaker-workflows)
+  - [Compare saved word timing](#compare-saved-word-timing)
+  - [Force-align supplied text locally](#force-align-supplied-text-locally)
+  - [Calibrate installed Whisper timing](#calibrate-installed-whisper-timing)
+  - [Preserve and transcribe separate channels](#preserve-and-transcribe-separate-channels)
+  - [Reconcile speakers across chunks or channels](#reconcile-speakers-across-chunks-or-channels)
 - [Transcript Videos](#transcript-videos)
 - [STT Services](#stt-services)
   - [AssemblyAI](#assemblyai)
@@ -15,7 +21,6 @@ Media inputs are downloaded and transcribed with hosted speech-to-text engines.
   - [Gemini STT](#gemini-stt)
   - [Gladia](#gladia)
   - [Grok STT](#grok-stt)
-  - [Groq](#groq)
   - [Happy Scribe](#happy-scribe)
   - [Mistral](#mistral)
   - [ScrapeCreators](#scrapecreators)
@@ -46,7 +51,6 @@ On `extract` and `resume`, pass `--provider provider[=model]`. On `config`, pass
 | Gemini STT     | `GEMINI_API_KEY`         |
 | Gladia         | `GLADIA_API_KEY`         |
 | Grok STT       | `XAI_API_KEY`            |
-| Groq           | `GROQ_API_KEY`           |
 | Happy Scribe   | `HAPPYSCRIBE_API_KEY`    |
 | Mistral        | `MISTRAL_API_KEY`        |
 | ScrapeCreators | `SCRAPECREATORS_API_KEY` |
@@ -93,8 +97,8 @@ bun autoshow extract https://www.youtube.com/@channelname --youtube-captions --b
 Generate captions directly from an audio or video file with `--captions`. The selected STT model runs once; caption export uses its saved timing evidence and writes `captions.srt`, `captions.vtt`, and `captions.json` beside `result.json`. Multiple providers each get captions in their own provider directory. This also works with media URLs, media batches, split transcription, and the YouTube caption-first path. Normal provider pricing applies to transcription; local caption generation adds no provider call. `--price` estimates transcription without running it.
 
 ```bash
-bun autoshow extract audio.mp3 --provider groq --captions
-bun autoshow extract video.mp4 --provider groq --captions --caption-mode word --output-dir output/video-captions
+bun autoshow extract audio.mp3 --provider deepinfra --captions
+bun autoshow extract video.mp4 --provider deepinfra --captions --caption-mode word --output-dir output/video-captions
 bun autoshow extract interview.mp4 --provider deepgram=nova-3 --diarization --captions --caption-format vtt
 ```
 
@@ -109,7 +113,7 @@ bun autoshow extract --captions --transcript-result output/<run>/providers/<prov
 
 | Flag | Behavior |
 | --- | --- |
-| `--caption-format srt\|vtt\|both` | Defaults to both formats. |
+| `--caption-format srt\|vtt\|both\|ass\|ttml\|lrc\|all` | Defaults to SRT and VTT (`both`). `all` writes all five formats. |
 | `--caption-mode phrase\|word` | Defaults to readable phrases. Word mode emits one evidence word/token span per cue. A provider-formatted multiword span retains its original bounds. |
 | `--no-caption-speakers` | Hides speaker prefixes in the exported files without changing provider evidence. |
 | `--caption-max-words`, `--caption-max-characters` | Phrase grouping budgets; defaults are 10 words and 58 characters. Indivisible words can exceed a character budget. |
@@ -119,9 +123,19 @@ bun autoshow extract --captions --transcript-result output/<run>/providers/<prov
 
 The export includes `captions.json` with timing quality, inferred-word counts, invalid-word counts, layout warnings, and cue boundaries. Partial word evidence falls back only for uncovered timed text. Text with no usable timed word or segment causes an actionable error. Segment-only providers can produce word-mode cues through explicit interpolation, reported as estimated timing. Gemini timing remains generated; YouTube inline timestamps remain caption spans. Millisecond serialization does not establish millisecond acoustic accuracy.
 
+ASS and LRC store centiseconds; LRC stores cue starts without ends. The JSON sidecar retains full ranges and records those format limits. TTML preserves millisecond ranges, Unicode text, and explicit line breaks. ASS rejects literal braces or ASS control sequences in transcript text because they cannot be safely preserved as plain display text; choose SRT, VTT, or TTML for those transcripts. Every format uses the same coverage-checked timeline, and exports preserve existing files. [TTML specification](https://www.w3.org/TR/ttml1/), [ASS format guide](https://github.com/libass/libass/wiki/ASS-File-Format-Guide).
+
+### Export aligned or reconciled captions
+
+Use the saved `result.json` from [local alignment or speaker reconciliation](#local-timing-and-speaker-workflows) with the same caption exporter. Confidence-related provenance remains in the source result.
+
+```bash
+bun autoshow extract output/aligned/result.json --captions --caption-mode word --caption-format all --output-dir output/aligned-captions --json
+```
+
 ### Provider controls
 
-`--diarization` and `--no-diarization` control AssemblyAI, Deepgram, Gladia, Grok, Mistral, Soniox, Speechmatics, and Together. Defaults remain provider-specific; Together is off unless enabled or given a speaker count. `--speaker-count` is supported by AssemblyAI, Gladia, and Together. Together sends matching minimum/maximum speaker bounds. Both configured Together models share this request contract; Parakeet diarization still needs provider/model-specific live validation. Gemini supports optional generated speaker hypotheses; these are not acoustically aligned speaker measurements. Unsupported providers, including Happy Scribe's undocumented off switch, report the ignored toggle. Hide their labels at export with `--no-caption-speakers`.
+`--diarization` and `--no-diarization` control AssemblyAI, Deepgram, Gladia, Grok, Mistral, Soniox, Speechmatics, and Together. Defaults remain provider-specific; Together is off unless enabled or given a speaker count. `--speaker-count` is supported by AssemblyAI, Gladia, and Together and is ignored when diarization is explicitly disabled. Together sends matching minimum/maximum speaker bounds. Capability resolution is model-aware: Together Whisper has documented diarization, and Parakeet's diarization was live-tested on a two-speaker sample on 2026-09-10. That Parakeet response contained 24 speaker-labeled word entries, including 12 zero-length intervals; caption export preserved all text and reported 12 inferred timings. This confirms endpoint compatibility, not acoustic accuracy or uniformly usable native boundaries. Mistral warns that diarization uses segment timing; disable diarization for native words. Gemini supports optional generated speaker hypotheses; these are not acoustically aligned speaker measurements. Unsupported providers, including Happy Scribe's undocumented off switch, report the ignored toggle. Hide their labels at export with `--no-caption-speakers`.
 
 Chunked diarized results scope speaker labels as `chunk-N/speaker-ID`. The same numeric speaker in two independently transcribed chunks is not assumed to be the same person. Raw chunk evidence and source offsets survive save/load. Resume rejects changes to transcription-affecting settings instead of silently reusing incompatible results.
 
@@ -130,6 +144,118 @@ Chunked diarized results scope speaker labels as `chunk-N/speaker-ID`. The same 
 DeepInfra defaults to verbose JSON with words and segments. `--deepinfra-stt-response-format srt|vtt` explicitly selects a native text response in one inference request, preserving subtitle cue timing instead of word evidence. It never retranscribes simply to fetch a second format. Prefer verbose JSON plus local export when precise word evidence matters.
 
 Grok's `--stt-grok-verbatim` disables display formatting and requests filler words. Supadata's `--stt-supadata-chunk-size <characters>` controls chunk readability; it does not add word alignment. These options, diarization, native subtitles, and DeepInfra response format are supported in persistent STT configuration and resume.
+
+## Local Timing and Speaker Workflows
+
+These `extract` operations work with local audio and saved `result.json` files. They never submit a hosted provider request. Each operation supports `--json`, `--output-dir`, and zero-provider-cost `--price`; run operations separately and use a fresh output directory. Provider and caption options are rejected on timing operations. Failed operations preserve completed artifacts and working files for inspection.
+
+### Compare saved word timing
+
+```bash
+bun autoshow extract output/candidate/result.json --timing-reference output/reference/result.json --output-dir output/timing-comparison --json
+```
+
+`timing-comparison.json` records ordered lexical matches, reference and candidate coverage, unmatched word indices, absolute start/end differences (median, p95, maximum), the fraction of matched words with both boundaries within 50/100/250 ms, signed drift by minute, timing provenance, and exact canonical speaker-label agreement. Coverage uses all words; boundary statistics use matched words. These tolerance bands are evaluation settings, not accuracy promises. Empty or invalid word intervals are rejected rather than interpolated for measurement.
+
+Compare matching excerpts when transcripts diverge substantially. Lexical matching preserves order and repeated words but does not infer where an excerpt belongs in a longer candidate. Divergent comparisons are bounded to 20 million alignment cells; identical text uses a linear path. Speaker scores require matching canonical labels, so reconcile reviewed identities first when providers or chunks use different labels.
+
+The report preserves the reference's provenance and identifies references lacking provenance as unverified. It measures agreement with that reference. Automatic alignment, provider confidence, or millisecond timestamp storage cannot independently establish acoustic accuracy. A manually verified reference is still needed for a defensible acoustic accuracy claim.
+
+### Force-align supplied text locally
+
+The optional backend uses a local Wav2Vec2 CTC model. The verified setup below uses the English `facebook/wav2vec2-base-960h` model and 16 kHz mono audio. Model inference and alignment run locally; explicit setup downloads public packages and model weights. The transcription command never downloads a model or executes remote model code. [Official model card](https://huggingface.co/facebook/wav2vec2-base-960h).
+
+Run setup once if the runtime is absent:
+
+```bash
+uv venv --python 3.12 runtime/venvs/stt-alignment
+uv pip install --python runtime/venvs/stt-alignment/bin/python -r scripts/stt-alignment-requirements.txt
+runtime/venvs/stt-alignment/bin/python - <<'PY'
+from huggingface_hub import snapshot_download
+snapshot_download(
+    repo_id="facebook/wav2vec2-base-960h",
+    revision="22aad52d435eb6dbaf354bdad9b0da84ce7d6156",
+    local_dir="runtime/models/alignment/wav2vec2-base-960h",
+    allow_patterns=["*.json", "model.safetensors"],
+    token=False,
+)
+PY
+```
+
+Supply a saved transcript whose segments cover its complete text. Each segment must have a positive, non-overlapping range of at most 30 seconds in the input audio's timeline. A minimal transcript has this shape:
+
+```json
+{
+  "text": "Hello there.",
+  "segments": [
+    { "start": "00:00:01.000", "end": "00:00:02.500", "text": "Hello there.", "speaker": "Host" }
+  ]
+}
+```
+
+```bash
+bun autoshow extract audio.wav --align-transcript output/reviewed/result.json --alignment-model runtime/models/alignment/wav2vec2-base-960h --alignment-python runtime/venvs/stt-alignment/bin/python --output-dir output/aligned --json
+```
+
+The command decodes each supplied segment from the first audio stream to mono PCM16 at 16 kHz, computes CTC log probabilities, and finds a monotonic alignment with blank transitions between repeated labels. Word ranges derive from occupied acoustic frames. Original spelling and punctuation remain display text, including standalone punctuation attached to an adjacent word; unsupported letters or numerals fail explicitly. Spell numbers as spoken in the supplied text when the vocabulary cannot represent digits. Do not omit unheard or unsupported words merely to obtain a successful alignment. Other languages require an appropriate locally installed character-vocabulary CTC model and their own validation; this setup establishes English support only. [CTC alignment method](https://github.com/pytorch/audio/blob/main/examples/tutorials/forced_alignment_tutorial.py).
+
+The aligner cannot restore missing transcript content, adjudicate wording, separate overlapping mono speech, or infer speakers. Edit the transcript from the recording when needed; separate channels before alignment when different voices have isolated channels. Speaker labels are inherited from the supplied segments. Timing is relative to the supplied audio, with each segment offset applied once. A source video's additional audio offset must be handled separately when exporting captions.
+
+`--alignment-min-confidence` defaults to `0.1`. A word below the requested threshold prevents publication of `result.json`; `alignment.json` and `alignment-work/` remain available. Confidence summarizes model emission scores and is not a calibrated probability that the word or boundary is correct. Exploratory automatic references can explicitly lower the threshold; all words below `0.1` remain listed as low-confidence even when accepted. A high score does not turn an automatic reference into verified ground truth.
+
+Successful output contains `result.json`, `alignment.json`, and retained clips/emissions under `alignment-work/`. Source transcript and audio SHA-256 fingerprints, model-file hashes, runtime version, preprocessing, and confidence decisions are recorded. Original provider evidence is retained as chunk evidence. New timing is marked `aligned`, with `hasNativeWordTiming: false` and `referenceProvenance.manuallyVerified: false`.
+
+### Calibrate installed Whisper timing
+
+```bash
+bun autoshow extract audio.wav --calibrate-whisper --timing-reference output/aligned/result.json --whisper-engine whisper --whisper-calibration-model tiny --output-dir output/whisper-calibration --json
+bun autoshow extract audio.wav --calibrate-whisper --timing-reference output/aligned/result.json --whisper-engine whisperfile --whisper-calibration-model tiny --output-dir output/whisperfile-calibration --json
+```
+
+The engine defaults to `whisper` and the model to `tiny`. Both must already be installed. Calibration runs standard timing and, when the executable advertises support, the model's DTW preset. A recorded reference audio fingerprint must match the input. Each variant retains raw JSON, normalized results, native subtitle artifacts supported by that executable, and command/model/help provenance. Unsupported DTW is recorded without turning a successful standard run into a failure. Invalid word boundaries or DTW centers exclude that variant from ranking and are recorded under `rejectedVariants`; remaining variants can still be measured. If none can be measured, the command saves its diagnostics and fails. It never repairs an invalid standard interval merely to produce a score.
+
+Whisper DTW returns token centers, expressed in native centiseconds. The comparison derives intervals from adjacent-center midpoints and marks those word boundaries `repaired`; they are not native measured word start/end pairs. `calibration.json` ranks variants by lexical coverage, then combined median start/end difference, and records elapsed local runtime. It never changes transcription defaults, and it makes no recommendation when no words match. A result applies only to the selected reference, engine, model, and executable version. [Whisper CLI implementation](https://github.com/ggml-org/whisper.cpp/blob/master/examples/cli/cli.cpp).
+
+### Preserve and transcribe separate channels
+
+```bash
+bun autoshow extract stereo.wav --split-channels --output-dir output/channels --json
+```
+
+Every audio stream is inspected. Inputs must contain at least two channels in total, with at most 16 channels per stream. Each channel is saved as float32 PCM WAV at its original sample rate. Decoded sample SHA-256 verification checks that extraction preserved that channel exactly. `channels.json` records stream/channel identity, source offsets, and hashes; `channel-results.json` is a template for associating completed transcripts with those channels.
+
+Audio channel identity is not speaker identity. Stereo channels may contain the same mix, as in the existing one-minute example recording, and cannot then separate people. No general mono speaker-clustering capability is implied.
+
+Transcribe the separated files with an already installed local engine:
+
+```bash
+bun autoshow extract output/channels/stream-0-channel-1.wav --provider whisper=tiny --output-dir output/channel-1 --json
+bun autoshow extract output/channels/stream-0-channel-2.wav --provider whisper=tiny --output-dir output/channel-2 --json
+```
+
+Fill each template entry's `result` with that channel's saved `result.json` path. Absolute paths are accepted; relative paths resolve from the manifest directory. Keep `offsetSeconds` from extraction unless you have independently established another source timeline. Then merge:
+
+```bash
+bun autoshow extract output/channels/channel-results.json --merge-channel-results --output-dir output/channel-merge --json
+```
+
+The merge validates full text coverage and usable timing, applies each channel's source offset once, sorts events chronologically while preserving overlaps, and scopes speaker labels by channel. Original raw evidence, per-channel source fingerprints, and applied offsets remain available. Already merged channel results are rejected to prevent accidental repeated offset application. Each original channel should appear only once; duplicate audio or cross-talk is not automatically deduplicated.
+
+### Reconcile speakers across chunks or channels
+
+```bash
+bun autoshow extract output/channel-merge/result.json --speaker-map-template --output-dir output/speaker-review --json
+```
+
+Edit the generated `speaker-map.json`: keep `schemaVersion` and `sourceSha256`, give `reason` a nonempty review explanation, and map exact existing labels to canonical labels. For example, reviewed evidence may justify mapping `chunk-1/speaker-0` and `chunk-2/speaker-1` to the same `Host` label. Matching numeric IDs, chronology, or similar wording alone does not establish that identity. Leave uncertain labels separate.
+
+```bash
+bun autoshow extract output/channel-merge/result.json --speaker-map output/speaker-review/speaker-map.json --output-dir output/reconciled --json
+```
+
+The source fingerprint prevents applying a map to a different result. Unknown source labels and empty targets are rejected. Only explicitly mapped labels change in normalized words, segments, and applicable chunk evidence; original raw responses and the source file remain unchanged. `speaker-reconciliation.json` records the map, source, and review reason. This is explicit reconciliation, not automatic acoustic speaker identification.
+
+Use [caption export](#export-aligned-or-reconciled-captions) to turn the aligned or reconciled result into subtitle files.
 
 ## Transcript Videos
 
@@ -234,17 +360,6 @@ Bare `--provider gladia` selects `solaria-3`. `solaria-3` is English, French, Ge
 
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider grok=speech-to-text
-```
-
-### Groq
-
-| Option   | Value                                        |
-| -------- | -------------------------------------------- |
-| Selector | `--provider groq[=<model>]`                  |
-| Models   | `whisper-large-v3-turbo`, `whisper-large-v3` |
-
-```bash
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider groq
 ```
 
 ### Happy Scribe
@@ -354,7 +469,7 @@ The 2026-09-07 pricing check lists AssemblyAI Universal-3.5 Pro at $0.21/hour pl
 - **Happy Scribe**: Estimated at `$0.01/min` from audio duration.
 - **Supadata**: Reference rate of `$10 / 1,000 credits` (`1.00 cent/credit`). Native transcripts estimate 1 credit per request; generated transcripts estimate ~2 credits/min. `auto` mode estimates the higher rate.
 - **ScrapeCreators**: Reference rate of `$47 / 25,000 credits` (`0.188 cents/request`), charging per retrieval request regardless of duration.
-- **Duration-priced hosted providers** (AssemblyAI, Deepgram, DeepInfra, Gladia, Grok STT, Groq, Mistral, Soniox, Speechmatics, Together): Estimated based on media duration and published provider per-hour rates.
+- **Duration-priced hosted providers** (AssemblyAI, Deepgram, DeepInfra, Gladia, Grok STT, Mistral, Soniox, Speechmatics, Together): Estimated based on media duration and published provider per-hour rates.
 - **Token-priced providers** (Gemini STT): Estimated from media duration at 32 audio tokens per second; completed runs record the token usage the API returns.
 
 ## STT Notes
@@ -390,13 +505,11 @@ Pricing is the AutoShow estimate rate. Cost rank orders models cheapest-first wi
 
 | Provider                                  | Released      | Word timestamps            | Duration             | File size                 | Pricing   | Cost rank |
 | ----------------------------------------- | ------------- | -------------------------- | -------------------- | ------------------------- | --------- | --------- |
-| Gemini `gemini-3.6-flash`                 | ✅ 2026-07    | ❌ Segment timestamps only | ✅ No documented cap | ❌ 20 MiB / 2 GiB         | $0.173/hr | 7/7       |
-| Together `nvidia/parakeet-tdt-0.6b-v3`    | ⚠️ 2025-08-14 | ✅ Native words | ⚠️ 4 hours           | ⚠️ 500 MiB                | $0.09/hr  | 4/7       |
-| DeepInfra `openai/whisper-large-v3-turbo` | ❌ 2024-09    | ✅ Native words | ✅ No documented cap | ✅ No documented cap      | $0.012/hr | 1/7       |
-| Groq `whisper-large-v3-turbo`             | ❌ 2024-09    | ✅ Native words | ✅ No documented cap | ❌ 25 MiB                 | $0.04/hr  | 3/7       |
-| DeepInfra `openai/whisper-large-v3`       | ❌ 2023-11    | ✅ Native words | ✅ No documented cap | ✅ No documented cap      | $0.027/hr | 2/7       |
-| Groq `whisper-large-v3`                   | ❌ 2023-11    | ✅ Native words | ✅ No documented cap | ❌ 25 MiB                 | $0.111/hr | 6/7       |
-| Together `openai/whisper-large-v3`        | ❌ 2023-11    | ✅ Native words | ⚠️ 4 hours           | ❌ 20 MiB                 | $0.09/hr  | 4/7       |
+| Gemini `gemini-3.6-flash`                 | ✅ 2026-07    | ❌ Segment timestamps only | ✅ No documented cap | ❌ 20 MiB / 2 GiB         | $0.173/hr | 5/5       |
+| Together `nvidia/parakeet-tdt-0.6b-v3`    | ⚠️ 2025-08-14 | ✅ Native words | ⚠️ 4 hours           | ⚠️ 500 MiB                | $0.09/hr  | 3/5       |
+| DeepInfra `openai/whisper-large-v3-turbo` | ❌ 2024-09    | ✅ Native words | ✅ No documented cap | ✅ No documented cap      | $0.012/hr | 1/5       |
+| DeepInfra `openai/whisper-large-v3`       | ❌ 2023-11    | ✅ Native words | ✅ No documented cap | ✅ No documented cap      | $0.027/hr | 2/5       |
+| Together `openai/whisper-large-v3`        | ❌ 2023-11    | ✅ Native words | ⚠️ 4 hours           | ❌ 20 MiB                 | $0.09/hr  | 3/5       |
 
 ### Direct URL
 
@@ -457,7 +570,7 @@ To embed an existing transcript with zero provider calls:
 bun autoshow extract video.mp4 --captions --transcript-result consensus/result.json --embed-captions --caption-container both --no-caption-speakers --output-dir output/captioned-episode
 ```
 
-This produces `captioned.mp4` (mov_text), `captioned.mkv` (SubRip), `captions.srt`, `captions.vtt`, `captions.json`, and `caption-embedding.json`. Terminal JSON includes the video paths. Phrase grouping and two lines per cue are the defaults; `--no-caption-speakers` hides generic speaker labels while retaining identities in transcript evidence. Embedding requires both standalone formats, so omit `--caption-format` or select `both`.
+This produces `captioned.mp4` (mov_text), `captioned.mkv` (SubRip), `captions.srt`, `captions.vtt`, `captions.json`, and `caption-embedding.json`. Terminal JSON includes the video paths. Phrase grouping and two lines per cue are the defaults; `--no-caption-speakers` hides generic speaker labels while retaining identities in transcript evidence. Embedding requires both standalone formats, so omit `--caption-format` or select `both` or `all`.
 
 Chapters, metadata, and compatible existing subtitle tracks are retained. MP4 chapter data is represented as container chapters, with that mapping recorded in `caption-embedding.json`. Unsupported streams are reported before fresh transcription: for example, an existing MP4 mov_text track cannot be copied directly to MKV, and an MKV ASS track cannot be copied directly to MP4. Choose a compatible container or prepare a separate compatible source. No arbitrary data streams are silently discarded.
 

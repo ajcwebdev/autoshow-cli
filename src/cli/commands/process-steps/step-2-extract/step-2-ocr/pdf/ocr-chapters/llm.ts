@@ -58,14 +58,12 @@ const buildLlmOptions = (
   llmLocalConcurrency: DEFAULT_CLI_CONCURRENCY,
   promptBuilder,
   ...(service === 'openai' ? { openaiModels: [model] } : {}),
-  ...(service === 'groq' ? { groqModels: [model] } : {}),
   ...(service === 'gemini' ? { geminiModels: [model] } : {}),
   ...(service === 'anthropic' ? { anthropicModels: [model] } : {}),
   ...(service === 'minimax' ? { minimaxModels: [model] } : {}),
   ...(service === 'grok' ? { grokModels: [model] } : {}),
   ...(service === 'glm' ? { glmModels: [model] } : {}),
   ...(service === 'together' ? { togetherModels: [model] } : {}),
-  ...(service === 'cerebras' ? { cerebrasModels: [model] } : {})
 })
 
 export const resolveLlmCandidates = async (input: {

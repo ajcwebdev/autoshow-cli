@@ -38,11 +38,6 @@ export const SUPPORTED_SPEECHMATICS_STT_MODELS = [
   'melia-1'
 ] as const satisfies readonly string[]
 
-export const SUPPORTED_GROQ_STT_MODELS = [
-  'whisper-large-v3-turbo',
-  'whisper-large-v3'
-] as const satisfies readonly string[]
-
 export const SUPPORTED_GROK_STT_MODELS = [
   'speech-to-text'
 ] as const satisfies readonly string[]
@@ -87,7 +82,6 @@ export const validateDeepgramSttModel = createModelValidator(SUPPORTED_DEEPGRAM_
 export const validateDeepinfraSttModel = createModelValidator(SUPPORTED_DEEPINFRA_STT_MODELS, 'deepinfra-stt', 'This selector only accepts DeepInfra OpenAI-compatible Whisper models.')
 export const validateSonioxSttModel = createModelValidator(SUPPORTED_SONIOX_STT_MODELS, 'soniox-stt')
 export const validateSpeechmaticsSttModel = createRetiringModelValidator('stt', 'speechmatics', SUPPORTED_SPEECHMATICS_STT_MODELS, 'speechmatics-stt')
-export const validateGroqSttModel = createModelValidator(SUPPORTED_GROQ_STT_MODELS, 'groq-stt', 'This selector only accepts Groq Whisper API models.')
 export const validateGrokSttModel = createModelValidator(SUPPORTED_GROK_STT_MODELS, 'grok-stt')
 export const validateMistralSttModel = createModelValidator(SUPPORTED_MISTRAL_STT_MODELS, 'mistral-stt')
 export const validateAssemblyaiSttModel = createRetiringModelValidator('stt', 'assemblyai', SUPPORTED_ASSEMBLYAI_STT_MODELS, 'assemblyai-stt')

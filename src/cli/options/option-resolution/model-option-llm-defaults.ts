@@ -3,7 +3,6 @@ import { selectCheapestDefaultLlmSelection } from '~/cli/commands/setup-and-util
 
 export const buildLLMModelOptions = (config: ResolvedLLMConfig): ResolvedLLMModelOptions => ({
   openaiModels: config.openaiModels,
-  groqModels: config.groqModels,
   geminiModels: config.geminiModels,
   anthropicModels: config.anthropicModels,
   minimaxModels: config.minimaxModels,
@@ -11,14 +10,12 @@ export const buildLLMModelOptions = (config: ResolvedLLMConfig): ResolvedLLMMode
   glmModels: config.glmModels,
   kimiModels: config.kimiModels,
   togetherModels: config.togetherModels,
-  cerebrasModels: config.cerebrasModels,
 })
 
 const first = (models: string[] | undefined): string | undefined => models?.[0]
 
 export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): ResolvedLLMConfig => {
   const openaiModels = opts.openaiModels
-  const groqModels = opts.groqModels
   const geminiModels = opts.geminiModels
   const anthropicModels = opts.anthropicModels
   const minimaxModels = opts.minimaxModels
@@ -26,10 +23,8 @@ export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): Reso
   const glmModels = opts.glmModels
   const kimiModels = opts.kimiModels
   const togetherModels = opts.togetherModels
-  const cerebrasModels = opts.cerebrasModels
   const anySelected = [
     openaiModels?.length,
-    groqModels?.length,
     geminiModels?.length,
     anthropicModels?.length,
     minimaxModels?.length,
@@ -37,7 +32,6 @@ export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): Reso
     glmModels?.length,
     kimiModels?.length,
     togetherModels?.length,
-    cerebrasModels?.length
   ].some((value) => typeof value === 'number' && value > 0)
 
   const cheapest = anySelected ? undefined : selectCheapestDefaultLlmSelection()
@@ -49,7 +43,6 @@ export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): Reso
     ?? (cheapest?.provider === provider ? [cheapest.model] as T : undefined)
 
   const resolvedOpenai = withDefault(openaiModels, 'openai')
-  const resolvedGroq = withDefault(groqModels, 'groq')
   const resolvedGemini = withDefault(geminiModels, 'gemini')
   const resolvedAnthropic = withDefault(anthropicModels, 'anthropic')
   const resolvedMinimax = withDefault(minimaxModels, 'minimax')
@@ -57,11 +50,9 @@ export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): Reso
   const resolvedGlm = withDefault(glmModels, 'glm')
   const resolvedKimi = withDefault(kimiModels, 'kimi')
   const resolvedTogether = withDefault(togetherModels, 'together')
-  const resolvedCerebras = withDefault(cerebrasModels, 'cerebras')
 
   return {
     openaiModels: resolvedOpenai,
-    groqModels: resolvedGroq,
     geminiModels: resolvedGemini,
     anthropicModels: resolvedAnthropic,
     minimaxModels: resolvedMinimax,
@@ -69,20 +60,16 @@ export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): Reso
     glmModels: resolvedGlm,
     kimiModels: resolvedKimi,
     togetherModels: resolvedTogether,
-    cerebrasModels: resolvedCerebras,
     llmService: resolvedOpenai?.length ? 'openai'
-      : resolvedGroq?.length ? 'groq'
-        : resolvedGemini?.length ? 'gemini'
-          : resolvedAnthropic?.length ? 'anthropic'
-            : resolvedMinimax?.length ? 'minimax'
-              : resolvedGrok?.length ? 'grok'
-                : resolvedGlm?.length ? 'glm'
-                  : resolvedKimi?.length ? 'kimi'
-                    : resolvedTogether?.length ? 'together'
-                      : resolvedCerebras?.length ? 'cerebras'
-                        : cheapest?.provider,
+      : resolvedGemini?.length ? 'gemini'
+        : resolvedAnthropic?.length ? 'anthropic'
+          : resolvedMinimax?.length ? 'minimax'
+            : resolvedGrok?.length ? 'grok'
+              : resolvedGlm?.length ? 'glm'
+                : resolvedKimi?.length ? 'kimi'
+                  : resolvedTogether?.length ? 'together'
+                    : cheapest?.provider,
     llmModel: first(resolvedOpenai)
-      ?? first(resolvedGroq)
       ?? first(resolvedGemini)
       ?? first(resolvedAnthropic)
       ?? first(resolvedMinimax)
@@ -90,7 +77,6 @@ export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): Reso
       ?? first(resolvedGlm)
       ?? first(resolvedKimi)
       ?? first(resolvedTogether)
-      ?? first(resolvedCerebras)
       ?? cheapest?.model
       ?? '',
   }

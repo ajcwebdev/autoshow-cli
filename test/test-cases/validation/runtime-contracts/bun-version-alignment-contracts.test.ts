@@ -28,7 +28,14 @@ describe('Bun version alignment contracts', () => {
     expect(Object.keys(lockfile.packages ?? {})).toContain('bun-types')
     expect((lockfile.packages?.['@types/bun'] as unknown[] | undefined)?.[0]).toBe(`@types/bun@${SUPPORTED_BUN_VERSION}`)
     expect((lockfile.packages?.['bun-types'] as unknown[] | undefined)?.[0]).toBe(`bun-types@${SUPPORTED_BUN_VERSION}`)
-    expect(dockerfile).toContain(`oven/bun:${SUPPORTED_BUN_VERSION}-slim@sha256:e0ee68d16ccb9927bf02aa7dd8fd4bf3369ee6d46da04faa72b05ce8bfd135f6`)
+    expect(dockerfile).toContain(`oven/bun:${SUPPORTED_BUN_VERSION}-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61`)
+
+    const workflow = await Bun.file('.github/workflows/docker-publish.yml').text()
+    const setupVersions = [...workflow.matchAll(/bun-version: (\S+)/g)].map(([, version]) => version)
+    const runtimeVersions = [...workflow.matchAll(/--version\)" = "([^"]+)"/g)].map(([, version]) => version)
+    expect(setupVersions).toHaveLength(3)
+    expect(runtimeVersions).toHaveLength(3)
+    expect(new Set([...setupVersions, ...runtimeVersions])).toEqual(new Set([SUPPORTED_BUN_VERSION]))
   })
 
   test('exact-version, age-gate, and isolated-linker install policies remain enabled', async () => {

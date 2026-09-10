@@ -5,7 +5,6 @@ export type SttRuntimeOptions = {
   whisperModels: string[] | undefined
   whisperfileModels: string[] | undefined
   deepinfraSttModels: string[] | undefined
-  groqSttModels: string[] | undefined
   grokSttModels: string[] | undefined
   deepgramSttModels: string[] | undefined
   sonioxSttModels: string[] | undefined

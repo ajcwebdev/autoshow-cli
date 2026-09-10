@@ -1,10 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { runOpenAICompatibleChatModel } from '~/cli/commands/process-steps/step-3-write/write-services/openai-compatible-chat'
-import { runCerebrasModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-cerebras/run-cerebras'
 import { runTogetherModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-together/run-together'
 import { runMinimaxModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-minimax/run-minimax'
 import { runOpenAIModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/run-openai'
-import { CEREBRAS_DEFAULT_BASE_URL, MINIMAX_DEFAULT_BASE_URL, TOGETHER_DEFAULT_BASE_URL } from '~/utils/base-urls'
+import { MINIMAX_DEFAULT_BASE_URL, TOGETHER_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { OpenAIRestError, createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { installFetch, installOpenAIRestContractHooks, jsonResponse, structuredOpts } from './shared'
 import { expectProviderHttpError } from '../../../../test-utils/rest-contract-helpers'
@@ -287,146 +286,6 @@ describe('OpenAI REST response and chat contracts', () => {
       'MiniMax chat completion failed (1008): invalid request'
     )
     expect(calls).toHaveLength(1)
-  })
-
-  test('Cerebras write requires API key before issuing REST calls', async () => {
-    await expect(runCerebrasModel('Draft this.', 'gpt-oss-120b')).rejects.toThrow('CEREBRAS_API_KEY')
-  })
-
-  test('Cerebras write sends public model IDs with native strict schema', async () => {
-    process.env['CEREBRAS_API_KEY'] = 'cerebras-key'
-
-    const calls = installFetch(() => jsonResponse({
-      model: 'gpt-oss-120b',
-      choices: [{ message: { content: '{"summary":"cerebras"}' } }],
-      usage: { prompt_tokens: 8, completion_tokens: 3, total_tokens: 11 }
-    }))
-
-    const result = await runCerebrasModel('Draft this.', 'gpt-oss-120b', structuredOpts)
-
-    expect(result.result).toBe('{"summary":"cerebras"}')
-    expect(calls).toHaveLength(1)
-    expect(calls[0]).toMatchObject({
-      url: `${CEREBRAS_DEFAULT_BASE_URL}/chat/completions`,
-      method: 'POST',
-      bodyJson: {
-        model: 'gpt-oss-120b',
-        messages: [{ role: 'user', content: 'Draft this.' }],
-        max_completion_tokens: 40960,
-        stream: false,
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'summary',
-            strict: true
-          }
-        }
-      }
-    })
-    expect(calls[0]?.headers.get('authorization')).toBe('Bearer cerebras-key')
-    expect(result.metadata).toMatchObject({
-      llmService: 'cerebras',
-      llmModel: 'gpt-oss-120b',
-      providerReturnedModel: 'gpt-oss-120b'
-    })
-  })
-
-  test('Cerebras structured schema omits unsupported strict-mode validation keywords', async () => {
-    process.env['CEREBRAS_API_KEY'] = 'cerebras-key'
-
-    const schemaWithUnsupportedKeywords = {
-      type: 'object',
-      additionalProperties: false,
-      required: ['summary', 'tags'],
-      properties: {
-        summary: {
-          type: 'string',
-          minLength: 1,
-          maxLength: 180,
-          pattern: '^.+$',
-          format: 'text'
-        },
-        tags: {
-          type: 'array',
-          minItems: 1,
-          maxItems: 3,
-          items: {
-            type: 'string',
-            minLength: 1,
-            maxLength: 32
-          }
-        }
-      }
-    }
-
-    const calls = installFetch(() => jsonResponse({
-      model: 'gpt-oss-120b',
-      choices: [{ message: { content: '{"summary":"cerebras","tags":["public"]}' } }],
-      usage: { prompt_tokens: 8, completion_tokens: 3, total_tokens: 11 }
-    }))
-
-    await runCerebrasModel('Draft this.', 'gpt-oss-120b', {
-      schemaName: 'summary_tags',
-      schema: schemaWithUnsupportedKeywords,
-      strict: true,
-      strategy: 'native'
-    })
-
-    const responseFormat = calls[0]?.bodyJson?.['response_format'] as Record<string, unknown> | undefined
-    const jsonSchema = responseFormat?.['json_schema'] as Record<string, unknown> | undefined
-    const sentSchema = jsonSchema?.['schema']
-    expect(sentSchema).toEqual({
-      type: 'object',
-      additionalProperties: false,
-      required: ['summary', 'tags'],
-      properties: {
-        summary: { type: 'string' },
-        tags: {
-          type: 'array',
-          items: { type: 'string' }
-        }
-      }
-    })
-    expect(schemaWithUnsupportedKeywords.properties.summary.minLength).toBe(1)
-    expect(schemaWithUnsupportedKeywords.properties.tags.minItems).toBe(1)
-  })
-
-  test('Cerebras write targets the default endpoint and sends preview public model ID directly', async () => {
-    process.env['CEREBRAS_API_KEY'] = 'cerebras-key'
-
-    const calls = installFetch(() => jsonResponse({
-      model: 'zai-glm-4.7',
-      choices: [{ message: { content: 'Cerebras preview response.' } }],
-      usage: { prompt_tokens: 4, completion_tokens: 2, total_tokens: 6 }
-    }))
-
-    const result = await runCerebrasModel('Draft this.', 'zai-glm-4.7')
-
-    expect(result.result).toBe('Cerebras preview response.')
-    expect(calls).toHaveLength(1)
-    expect(calls[0]).toMatchObject({
-      url: `${CEREBRAS_DEFAULT_BASE_URL}/chat/completions`,
-      method: 'POST',
-      bodyJson: {
-        model: 'zai-glm-4.7',
-        max_completion_tokens: 40960,
-        stream: false
-      }
-    })
-  })
-
-  test('Cerebras write preserves public endpoint REST errors', async () => {
-    process.env['CEREBRAS_API_KEY'] = 'cerebras-key'
-
-    installFetch(() => jsonResponse({
-      error: {
-        message: 'Model zai-glm-4.7 does not exist or you do not have access to it.'
-      }
-    }, { status: 404 }))
-
-    await expect(runCerebrasModel('Draft this.', 'zai-glm-4.7')).rejects.toThrow(
-      'OpenAI Chat Completions request failed (404): Model zai-glm-4.7 does not exist or you do not have access to it.'
-    )
   })
 
   test('Together write maps selectors to provider model IDs with bearer auth', async () => {

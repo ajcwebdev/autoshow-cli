@@ -5,7 +5,6 @@ import {
   SUPPORTED_DEEPGRAM_STT_MODELS,
   SUPPORTED_SONIOX_STT_MODELS,
   SUPPORTED_SPEECHMATICS_STT_MODELS,
-  SUPPORTED_GROQ_STT_MODELS,
   SUPPORTED_GROK_STT_MODELS,
   SUPPORTED_MISTRAL_STT_MODELS,
   SUPPORTED_ASSEMBLYAI_STT_MODELS,
@@ -21,7 +20,6 @@ import {
   validateDeepgramSttModel,
   validateSonioxSttModel,
   validateSpeechmaticsSttModel,
-  validateGroqSttModel,
   validateGrokSttModel,
   validateMistralSttModel,
   validateAssemblyaiSttModel,
@@ -56,11 +54,6 @@ export const STEP2_STT_PROVIDER_REGISTRY = [
     supportedModels: SUPPORTED_SPEECHMATICS_STT_MODELS,
     validateModel: validateSpeechmaticsSttModel,
     description: buildModelDescription('Speechmatics STT model', SUPPORTED_SPEECHMATICS_STT_MODELS)
-  }),
-  sttModelProvider('groq', 'groqStt', {
-    supportedModels: SUPPORTED_GROQ_STT_MODELS,
-    validateModel: validateGroqSttModel,
-    description: buildModelDescription('Groq Whisper STT model (API, billed)', SUPPORTED_GROQ_STT_MODELS)
   }),
   sttModelProvider('grok', 'grokStt', {
     supportedModels: SUPPORTED_GROK_STT_MODELS,

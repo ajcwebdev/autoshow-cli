@@ -170,16 +170,3 @@ export const isMinimaxTransientUnavailable = (output: string): boolean => {
     NETWORK_FAILURE_PATTERN.test(clean)
   )
 }
-
-const isGroqTermsAcceptanceFailure = (output: string): boolean =>
-  /requires terms acceptance/i.test(stripAnsi(output))
-
-export const TERMINAL_TTS_FAILURES: Record<string, {
-  matches: (output: string) => boolean
-  describe: (model: string) => string
-}> = {
-  groq: {
-    matches: isGroqTermsAcceptanceFailure,
-    describe: (model) => `Groq terms acceptance is required for ${model}`,
-  },
-}

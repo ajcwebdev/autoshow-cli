@@ -28,12 +28,6 @@ export const writeRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/step-3-write-e2e/write-services/gemini-3.5-flash-lite.test.ts', [
     command('write-gemini-gemini-3.5-flash-lite', 'write-gemini-gemini-3.5-flash-lite', ['src/cli/create-cli.ts', 'write', WRITE_PRICE_INPUT, '--llm', 'gemini=gemini-3.5-flash-lite', '--price']),
   ]),
-  ...exact('test/test-cases/e2e/service/step-3-write-e2e/write-services/groq-openai-gpt-oss-20b.test.ts', [
-    command('write-groq-openai/gpt-oss-20b', 'write-groq-openai/gpt-oss-20b', ['src/cli/create-cli.ts', 'write', WRITE_PRICE_INPUT, '--llm', 'groq=openai/gpt-oss-20b', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/service/step-3-write-e2e/write-services/groq-openai-gpt-oss-120b.test.ts', [
-    command('write-groq-openai/gpt-oss-120b', 'write-groq-openai/gpt-oss-120b', ['src/cli/create-cli.ts', 'write', WRITE_PRICE_INPUT, '--llm', 'groq=openai/gpt-oss-120b', '--prompt', 'shortSummary', '--price']),
-  ]),
   ...exact('test/test-cases/e2e/service/step-3-write-e2e/write-services/minimax-m3.test.ts', [
     command('write-minimax-MiniMax-M3', 'write-minimax-MiniMax-M3', ['src/cli/create-cli.ts', 'write', WRITE_PRICE_INPUT, '--llm', 'minimax=MiniMax-M3', '--prompt', 'shortSummary', '--price']),
   ]),

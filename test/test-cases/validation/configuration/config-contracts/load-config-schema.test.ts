@@ -15,7 +15,6 @@ describe('config load schema contracts', () => {
           glm: ['glm-5.1'],
           kimi: ['kimi-k2.6'],
           together: ['kimi-k2.6', 'glm-5.1'],
-          cerebras: ['gpt-oss-120b', 'zai-glm-4.7'],
           providerConcurrency: 3,
           localConcurrency: 1
         },
@@ -113,7 +112,7 @@ describe('config load schema contracts', () => {
   })
 
   test('obsolete TTS provider keys fail with migration guidance', async () => {
-    for (const key of ['groqTts', 'geminiTts', 'deepgramTts', 'replicateTts', 'falTts']) {
+    for (const key of ['geminiTts', 'deepgramTts', 'replicateTts', 'falTts']) {
       const configPath = await writeTempConfig({ defaults: { tts: { [key]: ['historical-model'] } } })
       await expect(loadConfig(configPath)).rejects.toThrow(`TTS provider configuration ${key} is no longer supported.`)
     }

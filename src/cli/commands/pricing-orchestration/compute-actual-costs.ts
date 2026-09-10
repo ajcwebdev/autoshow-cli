@@ -5,6 +5,8 @@ import {
   getRetiredModelRate
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { estimateImageCosts } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
+import { isOpenAIImage25Model } from '~/cli/commands/setup-and-utilities/models/image-models'
+import { computeOpenAIImageUsageCostCents } from '~/cli/commands/process-steps/step-5-image/image-utils/openai-image-pricing'
 import { estimateVideoCost } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import { isCostSource, isTokenPricedOcrProvider } from '~/types'
 import type { ActualCostBreakdown, ComputeActualCostsInput, CostSource, ExtractionMetadata, Step2Metadata, Step5Metadata, Step6VideoMetadata, StepCostEntry } from '~/types'
@@ -205,7 +207,7 @@ const computeImageFallbackCost = (
 ): number => {
   if (
     metadata.imageService === 'openai'
-    && metadata.imageModel === 'gpt-image-2'
+    && (metadata.imageModel === 'gpt-image-2' || isOpenAIImage25Model(metadata.imageModel))
   ) {
     const estimate = estimateImageCosts({
       openaiImageModels: [metadata.imageModel],
@@ -371,9 +373,10 @@ export const computeActualCosts = (input: ComputeActualCostsInput): ActualCostBr
       },
       image: (metadata) => {
         const imageCount = Math.max(1, metadata.imageCount)
+        const usageCost = metadata.imageService === 'openai' ? computeOpenAIImageUsageCostCents(metadata.imageModel, metadata) : undefined
         const cost = typeof metadata.providerCostCents === 'number'
           ? metadata.providerCostCents
-          : computeImageFallbackCost(metadata, imageCount)
+          : usageCost ?? computeImageFallbackCost(metadata, imageCount)
         steps.push({
           step: 'image',
           provider: metadata.imageService,
@@ -381,7 +384,7 @@ export const computeActualCosts = (input: ComputeActualCostsInput): ActualCostBr
           cost,
           costSource: typeof metadata.providerCostCents === 'number'
             ? normalizeCostSource(metadata.providerCostSource, 'provider_quote')
-            : 'registry_fallback',
+            : usageCost !== undefined ? 'provider_usage' : 'registry_fallback',
           inputMetric: 'images',
           inputValue: imageCount
         })

@@ -18,6 +18,10 @@ export type MistralSttPassController =
 export type TranscribeEngineCapabilities = {
   diarizationByDefault: boolean
   supportsSpeakerCountHint: boolean
+  supportsDiarizationToggle: boolean
+  diarizationKind: 'native' | 'generated' | 'unavailable'
+  diarizationValidation: 'documented' | 'live-tested' | 'provisional' | 'unsupported'
+  nativeWordTiming: 'available' | 'without-diarization' | 'unavailable'
 }
 
 export type RawTranscriptionPayload = {

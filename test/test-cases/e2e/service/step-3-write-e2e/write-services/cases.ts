@@ -16,12 +16,6 @@ export const geminiWrite = {
   requiresEnvVar: { key: 'GEMINI_API_KEY', description: 'Gemini API' },
 } as const
 
-export const groqWrite = {
-  provider: 'groq',
-  llmService: 'groq',
-  requiresEnvVar: { key: 'GROQ_API_KEY', description: 'Groq models' },
-} as const
-
 export const minimaxWrite = {
   provider: 'minimax',
   llmService: 'minimax',

@@ -113,6 +113,7 @@ const buildPageOutputInventory = (
       [...panelNumbers],
       pathParts.model,
       pathParts.variation,
+      request.runId,
     )
     const reportPath = join(dirname(outputPath), 'page-qa-report.json')
     return {
@@ -215,6 +216,7 @@ const buildPanelInventory = async (
             panel.panelNumber,
             pathParts.model,
             pathParts.variation,
+            request.runId,
           ))
         }),
       })),
@@ -249,6 +251,7 @@ const buildGridInventory = (
         chunk.panelNumbers,
         pathParts.model,
         pathParts.variation,
+        request.runId,
       )
       return {
         model,

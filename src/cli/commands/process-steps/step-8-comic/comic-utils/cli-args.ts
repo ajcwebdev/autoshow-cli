@@ -42,6 +42,7 @@ export const REFERENCE_SKETCH_COMMAND = 'reference-sketch'
 export const DRAFT_SCENES_COMMAND = 'draft-scenes'
 export const GENERATE_IMAGES_COMMAND = 'generate-images'
 export const GENERATE_AUDIO_COMMAND = 'generate-audio'
+export const REVIEW_COMMAND = 'review'
 export const REVIEW_NOTES_COMMAND = 'review-notes'
 export const REVIEW_SHEET_COMMAND = 'review-sheet'
 
@@ -110,7 +111,7 @@ const parseLlmModel = (value: string): ParsedLlmModel => {
 
 const parseImageQuality = (value: string): ParsedImageQuality => {
   if (!IMAGE_QUALITY_OPTIONS.has(value)) {
-    throw UsageError(`Invalid quality "${value}". Expected one of: low, medium, high, auto`)
+    throw UsageError(`Invalid quality "${value}". Expected one of: ${IMAGE_GENERATION_QUALITIES.join(', ')}`)
   }
   return value as ParsedImageQuality
 }
@@ -170,20 +171,30 @@ export const coerceAndValidateDraftScenes = (parsed: ComicParsedArgs): ParsedDra
   return output
 }
 
-export const coerceAndValidateReviewNotes = (parsed: ComicParsedArgs): ParsedReviewNotesArgs => {
+export const coerceAndValidateReviewNotes = (parsed: ComicParsedArgs, commandName = REVIEW_NOTES_COMMAND): ParsedReviewNotesArgs => {
   const scriptPath = readScriptPath(parsed)
-  if (!scriptPath?.trim()) throw UsageError(`comic ${REVIEW_NOTES_COMMAND} requires <script-path>.`)
+  if (!scriptPath?.trim()) throw UsageError(`comic ${commandName} requires <script-path>.`)
   const notes = stringFlag(parsed, 'notes')
-  if (!notes?.trim()) throw UsageError(`comic ${REVIEW_NOTES_COMMAND} requires --notes <path> pointing at a Markdown file with ### Panel NN headings`)
+  if (!notes?.trim()) throw UsageError(`comic ${commandName} requires --notes <path> pointing at a Markdown file with ### Panel NN headings`)
   return { showHelp: false, scriptPath, notes }
 }
 
-export const coerceAndValidateReviewSheet = (parsed: ComicParsedArgs): ParsedReviewSheetArgs => {
+export const coerceAndValidateReviewSheet = (parsed: ComicParsedArgs, commandName = REVIEW_SHEET_COMMAND): ParsedReviewSheetArgs => {
   const scriptPath = readScriptPath(parsed)
-  if (!scriptPath?.trim()) throw UsageError(`comic ${REVIEW_SHEET_COMMAND} requires <script-path>.`)
+  if (!scriptPath?.trim()) throw UsageError(`comic ${commandName} requires <script-path>.`)
   const output: ParsedReviewSheetArgs = { showHelp: false, scriptPath }
   if (enabledFlag(parsed, 'export-doc') === true) output.exportDoc = true
   return output
+}
+
+export const coerceAndValidateReview = (parsed: ComicParsedArgs): ParsedReviewNotesArgs | ParsedReviewSheetArgs => {
+  if (parsed.rawParsed.explicitFlags.has('notes')) {
+    if (parsed.rawParsed.explicitFlags.has('export-doc')) {
+      throw UsageError('comic review --notes cannot be combined with --export-doc. Omit --notes to export the review sheet.')
+    }
+    return coerceAndValidateReviewNotes(parsed, REVIEW_COMMAND)
+  }
+  return coerceAndValidateReviewSheet(parsed, REVIEW_COMMAND)
 }
 
 export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): ParsedReferenceSketchArgs => {

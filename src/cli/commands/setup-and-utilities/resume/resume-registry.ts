@@ -1,3 +1,4 @@
+import { comicResumeHandler } from './comic/comic-resume'
 import { join } from 'node:path'
 import type { AggregatedPriceEstimate, ExtractResumeOptions, ExtractRoute, ExtractRouteResumeHandler, OcrExtractionOptions, OcrTarget, PipelineManifest, PipelineManifestChildLink, ResumeHandler, ResumeResult, ResumeTarget, SttExtractionOptions, StepEstimate, SttTarget, UrlArticleTarget, UrlExtractionOptions } from '~/types'
 import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
@@ -456,6 +457,7 @@ const videoResumeHandler = buildGenerationResumeHandler('video', videoResumeConf
 const musicResumeHandler = buildGenerationResumeHandler('music', musicResumeConfig)
 
 const RESUME_HANDLERS = {
+  comic: comicResumeHandler,
   extract: extractResumeHandler,
   write: writeResumeHandler,
   tts: ttsResumeHandler,
@@ -464,6 +466,6 @@ const RESUME_HANDLERS = {
   music: musicResumeHandler
 } as const
 
-export const getResumeHandler = (
-  kind: ResumeTarget['kind']
-) => RESUME_HANDLERS[kind]
+export const getResumeHandler = <TKind extends ResumeTarget['kind']>(
+  kind: TKind
+): typeof RESUME_HANDLERS[TKind] => RESUME_HANDLERS[kind]

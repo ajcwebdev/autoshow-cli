@@ -8,7 +8,6 @@ import { runDeepinfraTranscribe } from '../stt-services/deepinfra/run-deepinfra-
 import { runGeminiStt } from '../stt-services/gemini-stt/run-gemini-stt'
 import { runGladiaStt } from '../stt-services/gladia/run-gladia-stt'
 import { runGrokStt } from '../stt-services/stt-grok/run-grok-stt'
-import { runGroqTranscribe } from '../stt-services/stt-groq/run-whisper-groq'
 import { runHappyScribeStt } from '../stt-services/happyscribe/run-happyscribe-stt'
 import { runMistralStt } from '../stt-services/stt-mistral/run-mistral-stt'
 import { runScrapeCreatorsStt } from '../stt-services/scrapecreators/run-scrapecreators-stt'
@@ -57,7 +56,6 @@ const sttDispatchers = {
   rev: async () => {
     throw UsageError('Rev STT is retired and cannot dispatch. Start a new target with an active STT provider.')
   },
-  groq: async context => await runGroqTranscribe(context.audioPath, context.outputDir, basicOptions(context)),
   grok: async context => await runGrokStt(context.audioPath, context.outputDir, minimalOptions(context)),
   whisper: async context => await runWhisperTranscribe(context.audioPath, context.outputDir, whisperOptions(context)),
   whisperfile: async context => await runWhisperfileTranscribe(context.audioPath, context.outputDir, whisperOptions(context)),

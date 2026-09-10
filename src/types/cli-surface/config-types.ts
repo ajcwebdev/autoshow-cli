@@ -19,7 +19,6 @@ const ExtractSttDefaultsSchema = v.strictObject({
   whisper: ModelArraySchema,
   youtubeCaptions: v.optional(v.boolean(), undefined),
   deepinfraStt: ModelArraySchema,
-  groqStt: ModelArraySchema,
   grokStt: ModelArraySchema,
   deepgramStt: ModelArraySchema,
   sonioxStt: ModelArraySchema,
@@ -52,7 +51,6 @@ const ExtractSttDefaultsSchema = v.strictObject({
 
 const LlmDefaultsSchema = v.strictObject({
   openai: ModelArraySchema,
-  groq: ModelArraySchema,
   gemini: ModelArraySchema,
   anthropic: ModelArraySchema,
   minimax: ModelArraySchema,
@@ -60,7 +58,6 @@ const LlmDefaultsSchema = v.strictObject({
   glm: ModelArraySchema,
   kimi: ModelArraySchema,
   together: ModelArraySchema,
-  cerebras: ModelArraySchema,
   providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   localConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
 })

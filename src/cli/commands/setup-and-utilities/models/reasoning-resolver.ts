@@ -53,9 +53,6 @@ const getAdapterDefaultReasoningEffort = (
   model: string
 ): NormalizedReasoningEffort => {
   if (step === 'llm') {
-    if (service === 'groq' && model.startsWith('openai/gpt-oss-')) {
-      return 'low'
-    }
     if (service === 'kimi') {
       return model === 'kimi-k3' ? 'low' : 'disabled'
     }

@@ -9,11 +9,17 @@ const outputDirParameter = [{
 
 export const resumeCommand = defineCliCommand({
   name: 'resume',
-  description: 'Resume missing provider outputs in an existing run or batch directory',
+  description: 'Resume missing outputs or recorded comic stages in an existing run directory',
   parameters: outputDirParameter,
   flags: resumeFlags,
   help: {
+    notes: [
+      'Comic runs restore recorded image, audio, and presentation choices. Provider, rendering, and configuration overrides are rejected.',
+      'For comic --price results, inspect stage blockers and comicPlans[].ready before execution; unrequested stages stay unrequested.',
+    ],
     examples: [
+      ['bun autoshow resume ./output/comic-run --price', 'Inspect recorded comic recovery work and blockers without calls or writes'],
+      ['bun autoshow resume ./output/comic-run', 'Continue recorded comic choices; use explicit comic commands to change them'],
       ['bun autoshow resume ./output/2026-04-22_12-00-00-000_item', 'Resume a single run directory in place'],
       ['bun autoshow resume ./output/run-a ./output/run-b ./output/run-c', 'Resume multiple output directories sequentially'],
       ['bun autoshow resume ./output/2026-04-22_12-00-00-000_batch', 'Resume a batch directory in place'],

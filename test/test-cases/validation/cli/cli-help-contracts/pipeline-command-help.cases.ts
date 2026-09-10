@@ -195,6 +195,8 @@ export const registerPipelineCommandHelpCases = (): void => {
     const result = await loadHelp(['resume', '--help'])
 
     expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('Comic runs restore recorded image, audio, and presentation choices.')
+    expect(result.stdout).toContain('comicPlans[].ready')
     expect(result.stdout).toContain('--provider')
     expect(getFlagGroupSection(result.stdout, 'Provider Selection')).not.toContain('--url-provider')
     expect(result.stdout).toContain('--all-providers')

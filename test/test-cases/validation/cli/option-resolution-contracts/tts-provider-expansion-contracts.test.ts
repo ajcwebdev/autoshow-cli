@@ -14,7 +14,7 @@ describe('option resolution contracts', () => {
       hume: opts.humeTtsModels, cartesia: opts.cartesiaTtsModels, inworld: opts.inworldTtsModels,
     }
     expect(Object.entries(selections).filter(([, models]) => (models?.length ?? 0) > 0).map(([provider]) => provider)).toEqual([...ACTIVE_TTS_PROVIDERS])
-    for (const retired of ['minimax', 'groq', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra']) expect(selections).not.toHaveProperty(retired)
+    for (const retired of ['minimax', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra']) expect(selections).not.toHaveProperty(retired)
   })
 
   test('--all-tts rejects special-input modes that need explicit references', () => {

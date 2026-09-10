@@ -3,7 +3,7 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 
 describe('option resolution contracts', () => {
 
-  test('--all-llm expands OpenAI, Anthropic, Grok, GLM, Kimi, Together, and Cerebras to their supported models', () => {
+  test('--all-llm expands OpenAI, Anthropic, Grok, GLM, Kimi, Together to their supported models', () => {
       const opts = buildOptsFromFlags({ 'all-llm': true })
 
       expect(opts.openaiModels).toEqual(['gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.4-mini', 'gpt-5.4-nano'])
@@ -17,7 +17,6 @@ describe('option resolution contracts', () => {
       expect(opts.glmModels).toEqual(['glm-5.1', 'glm-5.3', 'glm-5.3-flash'])
       expect(opts.kimiModels).toEqual(['kimi-k2.6', 'kimi-k3'])
       expect(opts.togetherModels).toEqual(['kimi-k2.6', 'glm-5.1', 'kimi-k3', 'glm-5.3', 'glm-5.3-flash'])
-      expect(opts.cerebrasModels).toEqual(['gpt-oss-120b', 'zai-glm-4.7'])
     })
 
   test('priority OCR model additions are available without changing provider defaults', () => {

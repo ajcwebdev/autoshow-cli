@@ -40,7 +40,7 @@ export const helpSurfaces = flattenCommands(renderableCommands)
 
 const comicCommand = COMMAND_DEFINITIONS.find((command) => command.name === 'comic')
 if (comicCommand === undefined) throw new Error('comic command is not registered')
-export const comicSubcommands = (comicCommand.subcommands ?? []).map((subcommand) =>
+export const comicSubcommands = (comicCommand.subcommands ?? []).filter((subcommand) => subcommand.help?.hidden !== true).map((subcommand) =>
   subcommand.name.startsWith('comic ') ? subcommand.name.slice('comic '.length) : subcommand.name
 )
 

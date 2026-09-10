@@ -11,7 +11,15 @@ export const validateGeminiImageModel = createRetiringModelValidator<GeminiImage
 
 export const SUPPORTED_OPENAI_IMAGE_MODELS = [
   'gpt-image-2',
+  'gpt-image-2.5-flare',
+  'gpt-image-2.5-sunburst',
 ] as const satisfies readonly string[]
+
+export const isOpenAIImage25Model = (model: string): boolean =>
+  model === 'gpt-image-2.5-flare' || model === 'gpt-image-2.5-sunburst'
+
+export const supportsOpenAIFlexibleImageSize = (model: string): boolean =>
+  model === 'gpt-image-2' || isOpenAIImage25Model(model)
 
 export const validateOpenAIImageModel = createRetiringModelValidator<OpenAIImageModel>('image', 'openai', SUPPORTED_OPENAI_IMAGE_MODELS, 'openai-image')
 

@@ -4,8 +4,18 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-17
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-10
 - **Verification Status:** Passed
+
+## Amendment: Canonical Voice and Review Commands (2026-09-10)
+
+Voice management now uses the canonical `voice` command for both standalone and comic workflows. `comic reference-voice` already forwarded to the same nine voice handlers, so it added a second command vocabulary without a distinct capability. Its group and children remain callable as deprecated aliases for one compatibility release, with direct help and runtime notices. The ordinary comic menu omits the group. Provider selection, consent, character-root resolution, and result behavior remain shared.
+
+The two local review operations now share `comic review <script>`. Its default writes the HTML sheet; `--export-doc` also writes the shared-document export; `--notes <path>` processes notes only. Combining `--notes` and `--export-doc` fails before artifact writes. Only notes processing requires the character catalog. Existing artifact names and overwrite/history behavior remain intact, and neither mode edits the source script or calls a provider. The canonical result identifier is `comic review`.
+
+`comic review-sheet` and `comic review-notes` remain deprecated aliases for the same compatibility release, preserving their original flags, validation, and result identifiers. Their direct help documents the replacements. Alias removal requires a later announced breaking CLI release. Comic now has six canonical immediate subcommands; the three deprecated entries remain registered for compatibility.
+
+This amendment supersedes the command-surface recommendations below that present `comic reference-voice` as a normal entry point. The original decision remains as historical context. Current usage and migration details live in the [comic overview](../commands/process-steps/step-8-comic/00-comic-overview.md), [review guide](../commands/process-steps/step-8-comic/06-review.md), and [voice overview](../commands/process-steps/step-9-voice/00-voice-overview.md). Shared provider infrastructure and domain responsibilities are unchanged.
 
 ## Context
 
@@ -161,7 +171,7 @@ Verification uses local fixtures and mocked providers without executing live hos
 - Related ADR: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md) — removal of parallel override/client plumbing
 - Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — shared hosted admission, pressure recovery, and clean-ramp price planning
 - Related ADR: [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — links selection modes and refresh artifacts
-- `docs/commands/process-steps/step-8-comic/00-comic-overview.md`
+- [comic](../commands/process-steps/step-8-comic/00-comic-overview.md)
 - `docs/commands/setup-and-utilities/links/links.md`
 - `src/cli/native/native-parser.ts`
 - `src/cli/native/dispatcher.ts`

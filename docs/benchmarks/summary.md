@@ -2,7 +2,7 @@
 
 Static cross-run ranking report built from the current `provider-comparison-report.json` and `reference-comparison-report.json` files under `docs/benchmarks`.
 
-Costs are lower-is-better and converted from cents to USD. Speeds are lower-is-better and converted from milliseconds to seconds. Auto-quality and human quality are higher-is-better. Averages use only observed rows for the exact `providerKey`; coverage shows observed category runs.
+Costs are lower-is-better and converted from cents to USD. Speeds are lower-is-better and converted from milliseconds to seconds, except writing speeds which retain milliseconds per 1K tokens. Auto-quality and human quality are higher-is-better. Averages use only observed rows for the exact `providerKey`; coverage shows observed category runs.
 
 ## Source Inventory
 
@@ -13,15 +13,16 @@ Costs are lower-is-better and converted from cents to USD. Speeds are lower-is-b
 | ocr                  |      14 |           305 | local, thirdPartyService |
 | stt-with-speakers    |       4 |            32 | local, thirdPartyServiceDiarization, thirdPartyServiceNonDiarization |
 | stt-without-speakers |       4 |            28 | local, thirdPartyServiceDiarization, thirdPartyServiceNonDiarization |
-| tts                  |       4 |            84 | local, service |
+| tts | 4 | 131 | local, service |
 | url                  |       7 |            37 | local, service |
 | video                |       2 |            17 | local, service |
-| **Total**            | **41** | **545** | **5 groups** |
+| write | 1 | 15 | local, service |
+| **Total** | **42** | **607** | **5 groups** |
 
 ## Method
 
 - Cost rankings use report `price.value` values; values are converted from cents to USD.
-- Speed rankings use report `speed.value` values; values are converted from milliseconds to seconds.
+- Speed rankings use report `speed.value` values; values are converted from milliseconds to seconds, except writing speeds which retain milliseconds per 1K tokens.
 - Auto-quality uses `rankingSurfaces.*.automatedQuality`, except OCR and STT where it uses `metricRankings.*.qualityScore`.
 - Human quality uses only explicit `rankingSurfaces.*.humanQuality` entries; automated scores are not used as proxies.
 - Groups remain separate, and full rankings are shown without top-N truncation.
@@ -485,7 +486,7 @@ _Unavailable: no speed entries are present for `tts/local` in the current report
 
 #### Auto-Quality Ranking
 
-_Unavailable: no automatedQuality / qualityScore entries are present for `tts/local` in the current report files._
+_Unavailable: no automatedQuality entries are present for `tts/local` in the current report files._
 
 #### Human Quality Ranking
 
@@ -495,95 +496,117 @@ _Unavailable: no humanQuality entries are present for `tts/local` in the current
 
 #### Cost Ranking
 
-| Rank | Provider/model                      |     Runs | Average |
-| ---: | ----------------------------------- | -------: | ------: |
-|    1 | speechify/simba-3.0                 | 4/4 runs | $0.0054 |
-|    2 | speechify/simba-3.2                 | 4/4 runs | $0.0054 |
-|    3 | speechify/simba-english             | 4/4 runs | $0.0054 |
-|    4 | openai/gpt-4o-mini-tts              | 4/4 runs | $0.0068 |
-|    5 | openai/gpt-4o-mini-tts-2025-12-15   | 4/4 runs | $0.0068 |
-|    6 | grok/grok-tts                       | 4/4 runs | $0.0081 |
-|    7 | openai/tts-1                        | 4/4 runs | $0.0081 |
-|    8 | mistral/voxtral-mini-tts-2603       | 4/4 runs | $0.0087 |
-|    9 | gemini/gemini-3.1-flash-tts-preview | 4/4 runs | $0.0114 |
-|   10 | groq/canopylabs/orpheus-v1-english  | 4/4 runs | $0.0119 |
-|   11 | deepgram/aura-2-thalia-en           | 4/4 runs | $0.0163 |
-|   12 | openai/tts-1-hd                     | 4/4 runs | $0.0163 |
-|   13 | cartesia/sonic-3                    | 4/4 runs | $0.0203 |
-|   14 | cartesia/sonic-3.5                  | 4/4 runs | $0.0203 |
-|   15 | cartesia/sonic-3.5-2026-05-04       | 4/4 runs | $0.0203 |
-|   16 | elevenlabs/eleven_flash_v2_5        | 4/4 runs | $0.0271 |
-|   17 | minimax/speech-2.8-turbo            | 4/4 runs | $0.0326 |
-|   18 | elevenlabs/eleven_multilingual_v2   | 4/4 runs | $0.0542 |
-|   19 | elevenlabs/eleven_v3                | 4/4 runs | $0.0542 |
-|   20 | minimax/speech-2.8-hd               | 4/4 runs | $0.0542 |
-|   21 | hume/octave-2                       | 4/4 runs | $0.0814 |
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | deepinfra/XiaomiMiMo/MiMo-V2.5-tts | 4/4 runs | $0.0000 |
+| 2 | deepinfra/XiaomiMiMo/MiMo-V2.5-tts-voicedesign | 4/4 runs | $0.0000 |
+| 3 | deepinfra/ResembleAI/chatterbox-multilingual | 3/4 runs | $0.0002 |
+| 4 | replicate/jaaari/kokoro-82m | 4/4 runs | $0.0002 |
+| 5 | deepinfra/ResembleAI/chatterbox-turbo | 4/4 runs | $0.0005 |
+| 6 | speechify/simba-3.0 | 4/4 runs | $0.0054 |
+| 7 | speechify/simba-3.2 | 4/4 runs | $0.0054 |
+| 8 | speechify/simba-english | 4/4 runs | $0.0054 |
+| 9 | openai/gpt-4o-mini-tts | 4/4 runs | $0.0068 |
+| 10 | openai/gpt-4o-mini-tts-2025-12-15 | 4/4 runs | $0.0068 |
+| 11 | grok/grok-tts | 4/4 runs | $0.0081 |
+| 12 | inworld/realtime-tts-2-flash | 4/4 runs | $0.0081 |
+| 13 | openai/tts-1 | 4/4 runs | $0.0081 |
+| 14 | mistral/voxtral-mini-tts-2603 | 4/4 runs | $0.0087 |
+| 15 | deepinfra/Qwen/Qwen3-TTS | 4/4 runs | $0.0109 |
+| 16 | deepinfra/Qwen/Qwen3-TTS-VoiceDesign | 4/4 runs | $0.0109 |
+| 17 | gemini/gemini-3.1-flash-tts-preview | 4/4 runs | $0.0114 |
+| 18 | inworld/realtime-tts-2 | 4/4 runs | $0.0136 |
+| 19 | deepgram/aura-2-thalia-en | 4/4 runs | $0.0163 |
+| 20 | openai/tts-1-hd | 4/4 runs | $0.0163 |
+| 21 | cartesia/sonic-3 | 4/4 runs | $0.0203 |
+| 22 | cartesia/sonic-3.5 | 4/4 runs | $0.0203 |
+| 23 | cartesia/sonic-3.5-2026-05-04 | 4/4 runs | $0.0203 |
+| 24 | elevenlabs/eleven_flash_v2_5 | 4/4 runs | $0.0271 |
+| 25 | fish/fish-speech-1.5 | 4/4 runs | $0.0271 |
+| 26 | fish/s1 | 4/4 runs | $0.0271 |
+| 27 | minimax/speech-2.8-turbo | 4/4 runs | $0.0326 |
+| 28 | elevenlabs/eleven_multilingual_v2 | 4/4 runs | $0.0542 |
+| 29 | elevenlabs/eleven_v3 | 4/4 runs | $0.0542 |
+| 30 | fish/s2-pro | 4/4 runs | $0.0542 |
+| 31 | minimax/speech-2.8-hd | 4/4 runs | $0.0542 |
+| 32 | hume/octave-2 | 4/4 runs | $0.0814 |
+| 33 | fish/voice-design-1 | 4/4 runs | $0.1085 |
 
 #### Speed Ranking
 
-| Rank | Provider/model                      |     Runs | Average |
-| ---: | ----------------------------------- | -------: | ------: |
-|    1 | elevenlabs/eleven_flash_v2_5        | 4/4 runs |   1.44s |
-|    2 | cartesia/sonic-3.5-2026-05-04       | 4/4 runs |   4.53s |
-|    3 | cartesia/sonic-3.5                  | 4/4 runs |   5.60s |
-|    4 | speechify/simba-3.2                 | 4/4 runs |   4.94s |
-|    5 | speechify/simba-3.0                 | 4/4 runs |   5.30s |
-|    6 | elevenlabs/eleven_multilingual_v2   | 4/4 runs |   5.96s |
-|    7 | cartesia/sonic-3                    | 4/4 runs |   8.37s |
-|    8 | hume/octave-2                       | 4/4 runs |   6.70s |
-|    9 | groq/canopylabs/orpheus-v1-english  | 4/4 runs |   8.36s |
-|   10 | mistral/voxtral-mini-tts-2603       | 4/4 runs |   5.61s |
-|   11 | speechify/simba-english             | 4/4 runs |   5.87s |
-|   12 | grok/grok-tts                       | 4/4 runs |  14.87s |
-|   13 | openai/tts-1-hd                     | 4/4 runs |   6.27s |
-|   14 | openai/gpt-4o-mini-tts              | 4/4 runs | 132.32s |
-|   15 | openai/tts-1                        | 4/4 runs |  80.55s |
-|   16 | openai/gpt-4o-mini-tts-2025-12-15   | 4/4 runs |   7.65s |
-|   17 | deepgram/aura-2-thalia-en           | 4/4 runs |  19.82s |
-|   18 | elevenlabs/eleven_v3                | 4/4 runs |  24.46s |
-|   19 | gemini/gemini-3.1-flash-tts-preview | 4/4 runs |  25.37s |
-|   20 | minimax/speech-2.8-turbo            | 4/4 runs |  45.26s |
-|   21 | minimax/speech-2.8-hd               | 4/4 runs |  98.43s |
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | elevenlabs/eleven_flash_v2_5 | 4/4 runs | 1.44s |
+| 2 | cartesia/sonic-3.5-2026-05-04 | 4/4 runs | 4.53s |
+| 3 | speechify/simba-3.2 | 4/4 runs | 4.94s |
+| 4 | speechify/simba-3.0 | 4/4 runs | 5.30s |
+| 5 | cartesia/sonic-3.5 | 4/4 runs | 5.60s |
+| 6 | mistral/voxtral-mini-tts-2603 | 4/4 runs | 5.61s |
+| 7 | speechify/simba-english | 4/4 runs | 5.87s |
+| 8 | elevenlabs/eleven_multilingual_v2 | 4/4 runs | 5.96s |
+| 9 | openai/tts-1-hd | 4/4 runs | 6.27s |
+| 10 | replicate/jaaari/kokoro-82m | 4/4 runs | 6.54s |
+| 11 | hume/octave-2 | 4/4 runs | 6.70s |
+| 12 | inworld/realtime-tts-2-flash | 4/4 runs | 6.98s |
+| 13 | openai/gpt-4o-mini-tts-2025-12-15 | 4/4 runs | 7.65s |
+| 14 | fish/fish-speech-1.5 | 4/4 runs | 7.88s |
+| 15 | cartesia/sonic-3 | 4/4 runs | 8.37s |
+| 16 | fish/s2-pro | 4/4 runs | 9.46s |
+| 17 | fish/s1 | 4/4 runs | 10.87s |
+| 18 | inworld/realtime-tts-2 | 4/4 runs | 11.72s |
+| 19 | fish/voice-design-1 | 4/4 runs | 13.21s |
+| 20 | grok/grok-tts | 4/4 runs | 14.87s |
+| 21 | deepgram/aura-2-thalia-en | 4/4 runs | 19.82s |
+| 22 | deepinfra/XiaomiMiMo/MiMo-V2.5-tts-voicedesign | 4/4 runs | 20.48s |
+| 23 | deepinfra/XiaomiMiMo/MiMo-V2.5-tts | 4/4 runs | 21.06s |
+| 24 | elevenlabs/eleven_v3 | 4/4 runs | 24.46s |
+| 25 | gemini/gemini-3.1-flash-tts-preview | 4/4 runs | 25.37s |
+| 26 | deepinfra/Qwen/Qwen3-TTS | 4/4 runs | 25.63s |
+| 27 | deepinfra/Qwen/Qwen3-TTS-VoiceDesign | 4/4 runs | 29.87s |
+| 28 | deepinfra/ResembleAI/chatterbox-multilingual | 3/4 runs | 43.43s |
+| 29 | minimax/speech-2.8-turbo | 4/4 runs | 45.26s |
+| 30 | deepinfra/ResembleAI/chatterbox-turbo | 4/4 runs | 48.83s |
+| 31 | openai/tts-1 | 4/4 runs | 80.55s |
+| 32 | minimax/speech-2.8-hd | 4/4 runs | 98.43s |
+| 33 | openai/gpt-4o-mini-tts | 4/4 runs | 132.32s |
 
 #### Auto-Quality Ranking
 
-| Rank | Provider/model                      |     Runs |   Average |
-| ---: | ----------------------------------- | -------: | --------: |
-|    1 | cartesia/sonic-3.5                  | 3/4 runs | 88.71/100 |
-|    2 | elevenlabs/eleven_v3                | 3/4 runs | 86.34/100 |
-|    3 | gemini/gemini-3.1-flash-tts-preview | 3/4 runs | 88.48/100 |
-|    4 | grok/grok-tts                       | 3/4 runs | 88.12/100 |
-|    5 | openai/gpt-4o-mini-tts              | 3/4 runs | 88.67/100 |
-|    6 | hume/octave-2                       | 3/4 runs | 87.70/100 |
-|    7 | minimax/speech-2.8-hd               | 3/4 runs | 87.86/100 |
-|    8 | minimax/speech-2.8-turbo            | 3/4 runs | 87.59/100 |
-|    9 | speechify/simba-english             | 3/4 runs | 88.28/100 |
-|   10 | openai/tts-1-hd                     | 3/4 runs | 88.44/100 |
-|   11 | cartesia/sonic-3                    | 3/4 runs | 76.50/100 |
-|   12 | deepgram/aura-2-thalia-en           | 3/4 runs | 83.94/100 |
-|   13 | groq/canopylabs/orpheus-v1-english  | 3/4 runs | 84.19/100 |
-|   14 | openai/tts-1                        | 3/4 runs | 84.72/100 |
-|   15 | mistral/voxtral-mini-tts-2603       | 3/4 runs | 73.15/100 |
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | cartesia/sonic-3.5 | 1/4 runs | 100.00/100 |
+| 2 | deepgram/aura-2-thalia-en | 1/4 runs | 100.00/100 |
+| 3 | elevenlabs/eleven_v3 | 1/4 runs | 100.00/100 |
+| 4 | gemini/gemini-3.1-flash-tts-preview | 1/4 runs | 100.00/100 |
+| 5 | grok/grok-tts | 1/4 runs | 100.00/100 |
+| 6 | hume/octave-2 | 1/4 runs | 100.00/100 |
+| 7 | minimax/speech-2.8-hd | 1/4 runs | 100.00/100 |
+| 8 | minimax/speech-2.8-turbo | 1/4 runs | 100.00/100 |
+| 9 | openai/gpt-4o-mini-tts | 1/4 runs | 100.00/100 |
+| 10 | openai/tts-1 | 1/4 runs | 100.00/100 |
+| 11 | openai/tts-1-hd | 1/4 runs | 100.00/100 |
+| 12 | speechify/simba-english | 1/4 runs | 100.00/100 |
+| 13 | cartesia/sonic-3 | 1/4 runs | 66.67/100 |
+| 14 | mistral/voxtral-mini-tts-2603 | 1/4 runs | 66.67/100 |
 
 #### Human Quality Ranking
 
-| Rank | Provider/model                      |     Runs |   Average |
-| ---: | ----------------------------------- | -------: | --------: |
-|    1 | openai/tts-1-hd                     | 1/4 runs | 91.75/100 |
-|    2 | speechify/simba-english             | 1/4 runs | 91.72/100 |
-|    3 | hume/octave-2                       | 1/4 runs | 91.35/100 |
-|    4 | minimax/speech-2.8-turbo            | 1/4 runs | 90.71/100 |
-|    5 | deepgram/aura-2-thalia-en           | 1/4 runs | 89.08/100 |
-|    6 | openai/tts-1                        | 1/4 runs | 88.96/100 |
-|    7 | minimax/speech-2.8-hd               | 1/4 runs | 87.64/100 |
-|    8 | grok/grok-tts                       | 1/4 runs | 85.83/100 |
-|    9 | groq/canopylabs/orpheus-v1-english  | 1/4 runs | 84.50/100 |
-|   10 | elevenlabs/eleven_v3                | 1/4 runs | 84.17/100 |
-|   11 | gemini/gemini-3.1-flash-tts-preview | 1/4 runs | 83.31/100 |
-|   12 | cartesia/sonic-3.5                  | 1/4 runs | 82.68/100 |
-|   13 | cartesia/sonic-3                    | 1/4 runs | 80.15/100 |
-|   14 | openai/gpt-4o-mini-tts              | 1/4 runs | 77.78/100 |
-|   15 | mistral/voxtral-mini-tts-2603       | 1/4 runs | 75.84/100 |
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | openai/tts-1-hd | 1/4 runs | 91.75/100 |
+| 2 | speechify/simba-english | 1/4 runs | 91.72/100 |
+| 3 | hume/octave-2 | 1/4 runs | 91.35/100 |
+| 4 | minimax/speech-2.8-turbo | 1/4 runs | 90.71/100 |
+| 5 | deepgram/aura-2-thalia-en | 1/4 runs | 89.08/100 |
+| 6 | openai/tts-1 | 1/4 runs | 88.96/100 |
+| 7 | minimax/speech-2.8-hd | 1/4 runs | 87.64/100 |
+| 8 | grok/grok-tts | 1/4 runs | 85.83/100 |
+| 9 | elevenlabs/eleven_v3 | 1/4 runs | 84.17/100 |
+| 10 | gemini/gemini-3.1-flash-tts-preview | 1/4 runs | 83.31/100 |
+| 11 | cartesia/sonic-3.5 | 1/4 runs | 82.68/100 |
+| 12 | cartesia/sonic-3 | 1/4 runs | 80.15/100 |
+| 13 | openai/gpt-4o-mini-tts | 1/4 runs | 77.78/100 |
+| 14 | mistral/voxtral-mini-tts-2603 | 1/4 runs | 75.84/100 |
 
 ## URL
 
@@ -715,3 +738,72 @@ _Unavailable: no humanQuality entries are present for `video/local` in the curre
 
 _Unavailable: no humanQuality entries are present for `video/service` in the current report files._
 
+## Write
+
+### local
+
+#### Cost Ranking
+
+_Unavailable: no price entries are present for `write/local` in the current report files._
+
+#### Speed Ranking
+
+_Unavailable: no speed entries are present for `write/local` in the current report files._
+
+#### Auto-Quality Ranking
+
+_Unavailable: no automatedQuality entries are present for `write/local` in the current report files._
+
+#### Human Quality Ranking
+
+_Unavailable: no humanQuality entries are present for `write/local` in the current report files._
+
+### service
+
+#### Cost Ranking
+
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | openai/gpt-5.4-nano | 1/1 runs | $0.0001 |
+| 2 | gemini/gemini-3.1-flash-lite | 1/1 runs | $0.0002 |
+| 3 | gemini/gemini-3.1-flash-lite-preview | 1/1 runs | $0.0002 |
+| 4 | openai/gpt-5.4-mini | 1/1 runs | $0.0005 |
+| 5 | kimi/kimi-k2.6 | 1/1 runs | $0.0005 |
+| 6 | minimax/MiniMax-M3 | 1/1 runs | $0.0007 |
+| 7 | together/kimi-k2.6 | 1/1 runs | $0.0007 |
+| 8 | together/glm-5.1 | 1/1 runs | $0.0008 |
+| 9 | anthropic/claude-haiku-4-5 | 1/1 runs | $0.0008 |
+| 10 | grok/grok-4.3 | 1/1 runs | $0.0008 |
+| 11 | glm/glm-5.1 | 1/1 runs | $0.0009 |
+| 12 | gemini/gemini-3.1-pro-preview | 1/1 runs | $0.0014 |
+| 13 | anthropic/claude-sonnet-4-6 | 1/1 runs | $0.0025 |
+| 14 | openai/gpt-5.5 | 1/1 runs | $0.0033 |
+| 15 | anthropic/claude-opus-4-8 | 1/1 runs | $0.0056 |
+
+#### Speed Ranking
+
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | gemini/gemini-3.1-flash-lite | 1/1 runs | 1616.896 ms/1K tokens |
+| 2 | gemini/gemini-3.1-flash-lite-preview | 1/1 runs | 1635.659 ms/1K tokens |
+| 3 | openai/gpt-5.4-nano | 1/1 runs | 2205.231 ms/1K tokens |
+| 4 | openai/gpt-5.4-mini | 1/1 runs | 2474.542 ms/1K tokens |
+| 5 | anthropic/claude-haiku-4-5 | 1/1 runs | 2570.790 ms/1K tokens |
+| 6 | openai/gpt-5.5 | 1/1 runs | 3319.672 ms/1K tokens |
+| 7 | anthropic/claude-opus-4-8 | 1/1 runs | 3401.776 ms/1K tokens |
+| 8 | glm/glm-5.1 | 1/1 runs | 3760.748 ms/1K tokens |
+| 9 | together/glm-5.1 | 1/1 runs | 4339.623 ms/1K tokens |
+| 10 | kimi/kimi-k2.6 | 1/1 runs | 4509.677 ms/1K tokens |
+| 11 | anthropic/claude-sonnet-4-6 | 1/1 runs | 5349.630 ms/1K tokens |
+| 12 | minimax/MiniMax-M3 | 1/1 runs | 5958.438 ms/1K tokens |
+| 13 | together/kimi-k2.6 | 1/1 runs | 8740.977 ms/1K tokens |
+| 14 | grok/grok-4.3 | 1/1 runs | 8885.400 ms/1K tokens |
+| 15 | gemini/gemini-3.1-pro-preview | 1/1 runs | 13780.583 ms/1K tokens |
+
+#### Auto-Quality Ranking
+
+_Unavailable: no automatedQuality entries are present for `write/service` in the current report files._
+
+#### Human Quality Ranking
+
+_Unavailable: no humanQuality entries are present for `write/service` in the current report files._

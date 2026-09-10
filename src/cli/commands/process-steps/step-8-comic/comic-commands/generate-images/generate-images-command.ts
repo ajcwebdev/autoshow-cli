@@ -22,6 +22,8 @@ import { createImageRunStats } from '../../comic-image-services/image-costs'
 import { readManifest } from '../../../pipeline-manifest'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { canonicalTargetKey, sha256Bytes } from '../../../step-4-tts/script-to-audio/contract-identity'
+import { completeComicRecoveryIntent, recordComicRecoveryIntent } from '../../comic-utils/comic-recovery-intent'
+import { captureComicImageRecoveryInputs, comicImageRecoveryFlags, comicImageRecoveryHash } from '../../comic-utils/comic-image-recovery'
 import { updateComicImageManifest } from '../../comic-utils/comic-manifest'
 import { resolveCompatibleComicSceneRun } from '../../comic-utils/compatible-scene-run'
 import { runQaOnlyPanelAudit } from './qa-only-panel-audit'
@@ -132,6 +134,12 @@ const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Pr
         concurrency,
         hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
         concurrencyMode: options.concurrencyMode,
+        qa: options.qa ?? true,
+        ...(options.qaModel ? { qaModel: options.qaModel } : {}),
+        maxRepairs: options.maxRepairs ?? 2,
+        ...(options.blockingHardKeys?.length ? { blockingHardKeys: options.blockingHardKeys } : {}),
+        ...(options.stopOnProviderError === true ? { stopOnProviderError: true } : {}),
+        ...(options.bloopers === true ? { bloopers: true } : {}),
         ...(options.panels !== undefined ? { panels: options.panels } : {}),
         ...(options.variations !== undefined ? { variations: options.variations } : {}),
         ...(options.blockingLayoutGuide === true ? { blockingLayoutGuide: true } : {}),
@@ -225,7 +233,8 @@ const runGenerateImagesCommand = async (
   const finalPanelsPerImage = options.panelsPerImage ?? DEFAULT_FINAL_PANELS_PER_IMAGE
   const sketchPanelsPerImage = options.panelsPerImage ?? DEFAULT_SKETCH_PANELS_PER_IMAGE
   const concurrency = options.concurrency ?? DEFAULT_CLI_CONCURRENCY
-  const runId = createComicRunId()
+  const runId = options.recoveryRunId ?? createComicRunId()
+  const recoveryOptions = { ...options, recoveryRunId: runId }
   const startedAt = Date.now()
   const totals = createImageRunStats()
 
@@ -354,10 +363,13 @@ const runGenerateImagesCommand = async (
       sceneRunDir,
       sourceIdentity: canonicalManifest.source as ComicSourceIdentity,
       providers: imageProviderState(status, error),
-      artifactRefs: status === 'succeeded' ? await collectImageArtifactRefs(sceneRunDir) : [],
+      artifactRefs: await collectImageArtifactRefs(sceneRunDir),
     })
   }
 
+  if (canonicalManifest && Object.keys(dependencies).length === 0) {
+    await recordComicRecoveryIntent({ rootDir: sceneRunDir, sourceIdentity: canonicalManifest.source as ComicSourceIdentity, stage: 'image', flags: comicImageRecoveryFlags(options), inputs: await captureComicImageRecoveryInputs(sceneRunDir, true), planHash: comicImageRecoveryHash(recoveryOptions), imageRunId: runId })
+  }
   await updateImageManifest('running')
 
   try {
@@ -400,6 +412,7 @@ const runGenerateImagesCommand = async (
     throw error
   }
   await updateImageManifest('succeeded')
+  if (Object.keys(dependencies).length === 0) await completeComicRecoveryIntent(sceneRunDir, 'image', comicImageRecoveryHash(recoveryOptions))
 
   comicLog.summary([
     `generated=${totals.imagesGenerated}`,

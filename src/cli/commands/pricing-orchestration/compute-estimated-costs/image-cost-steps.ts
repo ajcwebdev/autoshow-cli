@@ -21,9 +21,7 @@ const estimateImageTargetCost = (
     provider: target.service,
     model: target.model,
     imageCount,
-    totalCost: target.service === 'grok' && target.model === 'grok-imagine-image-2.0'
-      ? estimate?.totalCost ?? costPerImageCents * imageCount
-      : costPerImageCents * imageCount
+    totalCost: estimate?.totalCost ?? costPerImageCents * imageCount
   }
 }
 

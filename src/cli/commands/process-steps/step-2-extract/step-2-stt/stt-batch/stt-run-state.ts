@@ -24,7 +24,6 @@ const STT_SERVICES = new Set<SttTarget['service']>([
   'soniox',
   'speechmatics',
   'rev',
-  'groq',
   'mistral',
   'assemblyai',
   'gladia',
@@ -35,7 +34,6 @@ const STT_SERVICES = new Set<SttTarget['service']>([
   'together',
   'youtube-captions'
 ])
-
 
 const isSttService = (value: unknown): value is SttTarget['service'] =>
   typeof value === 'string' && STT_SERVICES.has(value as SttTarget['service'])

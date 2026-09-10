@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-10
 - **Verification Status:** Passed
 
 ## Context
@@ -119,6 +119,14 @@ Negative outcomes:
 
 Single-use exports were removed or inlined and private single-parent aliases were folded into their parents. Remaining files live in subsystem and workflow directories under `src/types/`. `src/types/index.ts` is the only root file and the sole public `~/types` barrel. `src/types/migrated/` was removed without compatibility shims.
 
+### Bun 1.4 Image Declarations
+
+The 2026-08-31 evaluation removed redundant runtime declarations after confirming that Bun supplied the full type surface.
+
+Inspection of the installed `@types/bun@1.4.0` and `bun-types@1.4.0` declarations found the complete Bun.Image constructor, metadata, pipeline, and encoder declarations. All three runtime casts and all parallel local constructor declarations were removed. Production and tests now use `Bun.Image` directly, and the contract suite fails if a local constructor shim returns.
+
+The separate decision to retain TIFF conversion and ImageMagick routing is archived in [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md#bun-14-image-routing).
+
 ## API / Type Impact
 
 Single-use names are not part of the public `~/types` barrel. In-tree imports continue to use `~/types`. Deep paths under `src/types/` follow subsystem directories and are not a supported public API.
@@ -145,3 +153,4 @@ bun run check
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
 - `src/types/`
 - `src/types/index.ts`
+- `test/test-cases/validation/runtime-contracts/bun-native-migration-contracts.test.ts`

@@ -1,10 +1,10 @@
 TTS CONSENSUS EVALUATION
 Run: 2026-06-15_18-51-16-094_0-tts-short
 
-This evaluation uses canonical manifest metadata, the temporary consensus packet, local ffprobe measurements, the committed voice-quality report, and the committed comparison reports. No audio was subjectively listened to or judged.
+This evaluation uses retained canonical manifest metadata and comparison-report evidence. No provider calls or new audio scoring were performed.
 
-The report ranks 34 successful third-party service outputs and no local outputs. All 13 corrected current-model targets succeeded for this run. Failed Inworld realtime-tts-1.5-max and realtime-tts-1.5-mini attempts are retired historical selectors and are excluded in favor of the successful current TTS-2 and TTS-2 Flash outputs.
+The report ranks 33 third-party service outputs and no local outputs. Price and speed rankings include every retained output.
 
-Price and speed rankings cover all 34 successful outputs using manifest cost and processing-time evidence. voice-quality-report.json supplies median roundtrip WER and humanSpeechScore evidence for 15 historical providers, so automated-quality and human-quality rankings cover those 15 providers only. The 19 successful outputs without retained quality evidence are not assigned inferred scores. Duration, bitrate, file size, speaking rate, cost, and speed are not treated as quality proxies.
+Automated quality covers 14 outputs using retained roundtrip WER measurements. Human quality covers 14 outputs using retained humanSpeechScore measurements. Duration, bitrate, file size, speaking rate, cost, and speed are not treated as quality proxies.
 
-See provider-comparison-report.md and provider-comparison-report.json for the complete local/service ranking surfaces, compatibility aliases, and unavailable reasons.
+See provider-comparison-report.md and provider-comparison-report.json for the complete local/service ranking surfaces and unavailable reasons.

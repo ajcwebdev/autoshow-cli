@@ -249,6 +249,10 @@ const ImageModelSchema = v.strictObject({
   ...PricingProvenanceFields,
   costPerImageCents: v.number(),
   imageInputCostPer1MCents: v.optional(v.number(), undefined),
+  textInputCostPer1MCents: v.optional(v.number(), undefined),
+  cachedTextInputCostPer1MCents: v.optional(v.number(), undefined),
+  cachedImageInputCostPer1MCents: v.optional(v.number(), undefined),
+  imageOutputCostPer1MCents: v.optional(v.number(), undefined),
   referenceImages: v.optional(ImageReferenceCapabilitiesSchema, undefined),
   estimation: v.optional(v.object({
     costMultiplier: v.optional(v.number(), undefined),

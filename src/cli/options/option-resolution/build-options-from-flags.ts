@@ -46,7 +46,6 @@ export const buildOptsFromFlags = (
   const modelOptions = readRuntimeModelOptions(mergedFlags, rawModelOccurrences, allShortcutFlags, defaults)
   const {
     openaiModels,
-    groqModels,
     geminiModels,
     anthropicModels,
     minimaxModels,
@@ -54,7 +53,6 @@ export const buildOptsFromFlags = (
     glmModels,
     kimiModels,
     togetherModels,
-    cerebrasModels,
   } = modelOptions
   const allUrlSelected = allShortcutFlags['all-url']
   const allLocalUrlSelected = allShortcutFlags['all-local-url']
@@ -97,7 +95,6 @@ export const buildOptsFromFlags = (
     whisperExplicit,
     step2SelectionOrigins,
     openaiModels,
-    groqModels,
     geminiModels,
     anthropicModels,
     minimaxModels,
@@ -105,7 +102,6 @@ export const buildOptsFromFlags = (
     glmModels,
     kimiModels,
     togetherModels,
-    cerebrasModels,
     ...buildSttOptions(scopeIncludes('extract', 'download', 'metadata') ? ctx : inactiveCtx),
     ...buildOcrOptions(scopeIncludes('extract', 'download', 'metadata') ? ctx : inactiveCtx),
     llmProviderConcurrency: resolveProviderConcurrency(mergedFlags, 'llm-provider-concurrency', allShortcutFlags['all-llm'], explicitFlags, configuredFlags),

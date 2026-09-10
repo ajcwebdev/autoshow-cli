@@ -103,7 +103,7 @@ describe('price mode contracts', () => {
         '--llm',
         'openai=gpt-5.5',
         '--llm',
-        'groq=openai/gpt-oss-20b',
+        'grok=grok-4.3',
         '--price', '--json'
       ])
 

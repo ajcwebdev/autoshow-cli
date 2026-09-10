@@ -12,8 +12,9 @@ import { priceDetails, priceNotice, priceRows } from './price-estimate-logging'
 import { printImageEstimateTable } from './comic-price-output'
 
 export const estimateGenerateSketchesPrice = async (
-  options: GenerateSketchesCommandOptions
-): Promise<void> => {
+  options: GenerateSketchesCommandOptions,
+  runId?: string,
+) => {
   const { sceneSlug } = options
   const models = options.imageModels ?? [DEFAULT_IMAGE_MODEL]
   const size: ImageGenerationSize = options.size ?? '1536x1024'
@@ -93,7 +94,8 @@ export const estimateGenerateSketchesPrice = async (
           sceneSlug,
           sketchChunk.startPanelNumber,
           sketchChunk.endPanelNumber,
-          useModelSpecificFilenames ? model : undefined
+          useModelSpecificFilenames ? model : undefined,
+          runId,
         )
         return existsSync(outputPath)
       })
@@ -104,6 +106,10 @@ export const estimateGenerateSketchesPrice = async (
   }
 
   const totalSketches = selectedSketchChunks.length - skipped
+  const outputsByModel = models.map(model => {
+    const missing = selectedSketchChunks.map((chunk, index) => ({ chunk, index })).filter(({ chunk }) => force || !existsSync(getSketchComicImagePath(sceneSlug, chunk.startPanelNumber, chunk.endPanelNumber, useModelSpecificFilenames ? model : undefined, runId)))
+    return { model, outputs: missing.length, referenceInputs: missing.reduce((sum, { index }) => sum + preflightRows[index]!.referencesRequired, 0) }
+  })
   const firstSelectedSketchChunk = selectedSketchChunks[0]
   const lastSelectedSketchChunk = selectedSketchChunks.at(-1)
   let label = sceneSlug
@@ -137,8 +143,9 @@ export const estimateGenerateSketchesPrice = async (
       skipped: sceneSketchCount.skipped,
       totalCost: 0
     })
-    return
+    return { models, size, quality, totalSketches, outputsByModel }
   }
 
   printImageEstimateTable(models, quality, size, totalSketches, 'sketch')
+  return { models, size, quality, totalSketches, outputsByModel }
 }

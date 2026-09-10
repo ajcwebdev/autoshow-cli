@@ -154,7 +154,7 @@ Explicit CLI flags > config file defaults > native CLI defaults
 
 Only flags explicitly typed on the command line override config values. Native CLI defaults do not overwrite saved config defaults.
 
-If you type any provider/model selector for a step family at runtime, configured provider selections for that family are replaced instead of merged. For example, passing `--llm openai=...` on `write` suppresses configured Gemini and Groq LLM defaults for that run.
+If you type any provider/model selector for a step family at runtime, configured provider selections for that family are replaced instead of merged. For example, passing `--llm openai=...` on `write` suppresses configured Gemini and Anthropic LLM defaults for that run.
 
 ## Pricing And Budgets
 
@@ -180,8 +180,8 @@ Write has no local LLM. TTS, image, video, and hosted music generation have no l
 
 ```bash
 bun autoshow config \
-  --stt groq=whisper-large-v3-turbo \
-  --llm groq=openai/gpt-oss-20b \
+  --stt deepinfra=openai/whisper-large-v3-turbo \
+  --llm grok=grok-4.3 \
   --tts speechify=simba-3.2 \
   --image openai=gpt-image-2 \
   --video ltx=ltx-2-3-fast \

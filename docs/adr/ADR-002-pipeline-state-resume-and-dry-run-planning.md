@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-10
 - **Verification Status:** Passed
 
 ## Context
@@ -116,6 +116,18 @@ Resume starts a new run with `--concurrency-mode` or the configuration default.
 
 When an OCR item ran in pool mode, its page progress and accepted results live in that item. Resume keeps the stored mode, continues only unfinished pages, and never re-executes accepted pages. A fan-out item cannot resume as a pool, and a pool cannot resume as fan-out. `--ocr-provider-mode` exists only to detect an explicit mismatch with the stored mode; omitting it preserves the stored setting. Explicitly selecting a previously retired target re-enables that target without invalidating accepted pages. `resume --price` estimates only unfinished pages and does not write artifacts or manifests.
 
+### Amendment: recorded comic recovery, 2026-09-10
+
+The existing `resume` command also accepts canonical single-scene comic manifests. Initial generation and deliberate changes remain under the existing comic subcommands. Comic recovery is narrower than additive standalone recovery: it accepts price and existing TTS reconciliation controls, restores recorded options, and rejects provider, rendering, configuration, output-directory, character-root, and concurrency overrides. Ambient configuration cannot supply replacement choices for a comic run.
+
+`metadata.comic.recovery` is optional validated state inside the existing `manifest.json`, with one intent per requested image, audio, or presentation stage. Each intent binds resolved flags, input hashes, character-root location, a plan identity, and invocation completion. Images also bind the original output run ID, because creating a fresh run ID would bypass retained panels. Audio plans bind explicit targets, voice snapshots, dialogue and soundscape identities, and TTS render identities. One-run checkpoint limits and ambiguous-redispatch authorization are not persisted. Audio and an accompanying slideshow request are recorded in one manifest update before synthesis.
+
+Shared planning validates exact source identity and the retained artifact graph, then orders image, audio, and presentation recovery. Stage results distinguish reuse, pending execution, unrequested work, blockers, and presentation awaiting audio. Optional presentation dependencies are checked independently of aggregate item status, including completed presentations created before recovery intent existed. Execution re-reads state and revalidates dependencies before each stage. Existing comic QA, TTS slot reconciliation, sound-effect admission rules, and local presentation publication retain ownership of their outputs.
+
+`resume --price` performs no provider calls, output initialization, reference imports, coverage-report writes, or manifest updates. Its ordinary JSON result adds `comicPlans` with per-directory readiness and stage details. A successfully inspected blocked plan has `ready: false`; a partial known-cost total is not a complete budget. Execution refuses blocked plans. Invalid canonical manifests or source evidence still fail inspection. Slideshow planning checks reviewed visuals, selected audio, timeline reconciliation, and available FFmpeg H.264 encoders; a pending audio dependency receives its final timeline check after audio completes.
+
+Older incomplete stages with no exact intent, changed inputs or voice evidence, forced image regeneration, and unpriced provider work require an explicit stage invocation after review. Unrequested work stays unrequested, and compatible complete runs make no writes. This amendment adds no fresh-run planner, public mode flag, public image run-ID override, migration mechanism, or second persistence authority. Standalone additive selection continues to follow the earlier decision. Usage is documented under [Comic Recovery](../commands/setup-and-utilities/resume/resume.md#comic-recovery); local presentation remains governed by [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md).
+
 ## Rationale
 
 - A single canonical manifest removes duplicated route inference and competing run-state files.
@@ -180,6 +192,44 @@ Negative outcomes:
 - Shared execution and resume selection inventories: `src/cli/flags/service-selector-normalization/provider-targets.ts` and `src/cli/flags/service-selector-normalization/extract-selectors.ts`
 - Pooled OCR page persistence and resume: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts` and `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`
 
+### Bun 1.4 Journal and Tokenizer Evidence
+
+The 2026-08-31 evaluation adopted Bun.JSONL for parsing only. These journal-reader contracts preserve the existing artifact and recovery boundaries.
+
+The TTS journal readers, projection admission-journal reader, and test-metrics reader now share `src/utils/jsonl-reader.ts`. The adapter uses `Bun.JSONL.parseChunk()` for complete records, handles UTF-8 BOM bytes, accepts a valid final record without a newline, ignores only a structurally incomplete or torn-UTF-8 final suffix, and rejects malformed complete records.
+
+The migration does not change journal writes. `O_APPEND`, `O_NOFOLLOW`, file permissions, `fsync`, containment, symlink rejection, retained byte checksums, snapshot validation, and ambiguous paid-dispatch refusal remain in their existing artifact and recovery code.
+
+The initial complete capture ran on macOS ARM64 with Bun 1.4.0. The ignored evidence is under `runtime/profiling/bun-runtime/2026-08-31T22-45-35-532Z-all/`. CPU-profiled CLI help completed in 110.36 ms and the CPU-profiled no-cost price inventory completed in 2,333.79 ms; these durations include profiler overhead and are comparison baselines, not unprofiled startup claims.
+
+**Before load**
+
+- **Cache entries:** 0
+- **Profiled heap bytes:** 2,050,968
+- **Token hash:** not loaded
+
+**After load**
+
+- **Cache entries:** 199,998
+- **Profiled heap bytes:** 21,144,252
+- **Token hash:** `1bb6c00c…c561b`
+
+**After eviction and GC**
+
+- **Cache entries:** 0
+- **Profiled heap bytes:** 2,917,478
+- **Token hash:** `1bb6c00c…c561b`
+
+**After reconstruction**
+
+- **Cache entries:** 199,998
+- **Profiled heap bytes:** 21,149,377
+- **Token hash:** `1bb6c00c…c561b`
+
+Eviction reduced the profiled heap by 86.20% relative to the loaded state. Reconstruction returned to within 0.03% of the loaded profile and produced the identical complete token hash, supporting eviction of this cache while leaving durable and in-flight state untouched.
+
+The reference-tokenizer map is reconstructible planning data. Its eviction evidence does not authorize deletion of journals, paid audio, or in-flight dispatch state. The [profiling guide](../commands/testing.md#profiling) documents the four-state capture, complete token-hash comparison, and metadata contract.
+
 ## API / Type Impact
 
 - Each pipeline output root has exactly one unversioned `manifest.json`.
@@ -223,3 +273,7 @@ Do not run live paid provider, smoke, or e2e tests that call third-party APIs.
 - `src/cli/commands/process-steps/pipeline-manifest.ts`
 - `src/cli/commands/setup-and-utilities/resume/`
 - `src/cli/flags/resume-flags.ts`
+- `src/utils/jsonl-reader.ts`
+- `src/utils/reference-tokenizer.ts`
+- `test/test-cases/validation/runtime-contracts/jsonl-reader-contracts.test.ts`
+- `test/test-cases/validation/runtime-contracts/reference-tokenizer-contracts.test.ts`

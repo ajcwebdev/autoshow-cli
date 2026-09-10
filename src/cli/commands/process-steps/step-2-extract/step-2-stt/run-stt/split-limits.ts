@@ -4,7 +4,6 @@ const SPLIT_RETRY_ON_TOO_LARGE_ENGINES = new Set<string>([
   'deepgram',
   'deepinfra',
   'speechmatics',
-  'groq',
   'grok',
   'mistral',
   'assemblyai',

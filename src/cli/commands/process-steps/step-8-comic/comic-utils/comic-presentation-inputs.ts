@@ -312,7 +312,8 @@ export const resolvePresentationVisualInputs = async (
 
 export const preparePresentationVisualInputs = async (
   compatible: CompatibleComicSceneRun,
-  resolvedInputs?: Omit<PresentationVisualInputs, 'imported'>
+  resolvedInputs?: Omit<PresentationVisualInputs, 'imported'>,
+  readOnly = false,
 ): Promise<PresentationVisualInputs> => {
   const loaded = resolvedInputs ?? await resolvePresentationVisualInputs(compatible)
   if (resolve(loaded.sourceDir) === resolve(compatible.sceneRunDir)) return { ...loaded, imported: false }
@@ -322,6 +323,13 @@ export const preparePresentationVisualInputs = async (
     panels: loaded.panels.map(panel => ({ panelNumber: panel.panelNumber, sha256: panel.sha256, width: panel.width, height: panel.height })),
   })
   const bundleRoot = `presentation/inputs/${bundleId}`
+  if (readOnly) return {
+    scene: loaded.scene,
+    sceneRef: { path: `${bundleRoot}/reviewed-scene.json`, sha256: loaded.sceneRef.sha256 },
+    panels: loaded.panels.map(panel => ({ ...panel, path: `${bundleRoot}/panels/panel-${String(panel.panelNumber).padStart(2, '0')}.png` })),
+    sourceDir: loaded.sourceDir,
+    imported: true,
+  }
   const sceneBytes = new Uint8Array(await readFile(join(loaded.sourceDir, loaded.sceneRef.path)))
   const writtenScene = await writeImmutableArtifactFile(compatible.sceneRunDir, `${bundleRoot}/reviewed-scene.json`, sceneBytes)
   if (writtenScene.sha256 !== loaded.sceneRef.sha256) throw UsageError('Reviewed comic scene changed while its immutable presentation input bundle was being imported.')

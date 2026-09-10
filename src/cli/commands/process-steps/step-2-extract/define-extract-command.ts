@@ -1,4 +1,5 @@
 import { preflightCaptionEmbedding } from './embed-caption-tracks'
+import { runSttTimingWorkflow, sttTimingFlags } from './run-stt-timing-workflow'
 import { runTranscriptReview } from './run-transcript-review'
 import { stat } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -49,8 +50,8 @@ const transcriptVideoFlags = {
 const captionFlags = {
   'embed-captions': { description: 'Embed selectable English subtitles into a copy of a local video (requires --captions)', type: Boolean, default: false, negatable: false },
   'caption-container': { description: 'Embedded video container: mp4|mkv|both (default source MP4/MKV, otherwise MKV)', type: String },
-  captions: { description: 'Generate SRT/VTT from audio/video, or export offline from a saved result.json', type: Boolean, default: false, negatable: false },
-  'caption-format': { description: 'Caption output: srt|vtt|both', type: String },
+  captions: { description: 'Generate captions from audio/video, or export SRT/VTT/ASS/TTML/LRC offline from a saved result.json', type: Boolean, default: false, negatable: false },
+  'caption-format': { description: 'Caption output: srt|vtt|both|ass|ttml|lrc|all (default both)', type: String },
   'caption-offset': { description: 'Caption time offset in seconds (saved results default 0; fresh embedding uses source audio start)', type: String },
   'caption-mode': { description: 'Caption grouping: word|phrase', type: String },
   'caption-speakers': { description: 'Include speaker labels in exported captions (default on)', type: Boolean, negatable: true },
@@ -64,6 +65,7 @@ const captionFlags = {
 } as const satisfies CliFlagsDefinition
 
 const extractFlags = {
+  ...withHelpGroup(sttTimingFlags, 'timing'),
   'docx-markdown': { description: 'Write extraction.md preserving local DOCX formatting (no providers)', type: Boolean },
   ...withHelpGroup({
     'transcript-review': { description: 'Export an offline word-indexed review packet and edit template from a saved result.json', type: Boolean },
@@ -90,11 +92,15 @@ export const extractCommand = defineCliCommand({
   help: {
     examples: [
       ['bun autoshow extract https://youtube.com/watch?v=abc', 'Transcribe media with the default Whisper tiny STT model'],
-      ['bun autoshow extract video.mp4 --provider groq --captions --caption-mode word', 'Transcribe media once and save synced SRT/VTT captions'],
+      ['bun autoshow extract video.mp4 --provider deepinfra --captions --caption-mode word', 'Transcribe media once and save synced SRT/VTT captions'],
       ['bun autoshow extract file.mp3 --provider assemblyai=universal-3-5-pro', 'Transcribe media with AssemblyAI STT'],
       ['bun autoshow extract video.mp4 --provider assemblyai=universal-3-5-pro --stt-audio-profile lossless', 'Transcribe verified float32 PCM and save its source timeline'],
       ['bun autoshow extract output/raw/result.json --transcript-review --output-dir output/review', 'Export an offline review packet and editable JSON template'],
       ['bun autoshow extract output/raw/result.json --transcript-edits output/review/edits.json --output-dir output/clean', 'Apply reviewed edits offline with timing provenance'],
+      ['bun autoshow extract output/raw/result.json --timing-reference output/reference/result.json', 'Measure saved word timing against a reference offline'],
+      ['bun autoshow extract audio.wav --align-transcript output/reviewed/result.json --alignment-model runtime/models/alignment/wav2vec2-base-960h --alignment-python runtime/venvs/stt-alignment/bin/python', 'Align transcript text with an installed local CTC model'],
+      ['bun autoshow extract audio.wav --calibrate-whisper --timing-reference output/aligned/result.json', 'Compare installed Whisper standard and DTW word timing locally'],
+      ['bun autoshow extract stereo.wav --split-channels', 'Separate audio channels and verify decoded sample hashes'],
       ['bun autoshow extract document.pdf --provider mistral=mistral-ocr-2512', 'Extract text from a document with Mistral OCR'],
       ['bun autoshow extract https://example.com/article --provider spider', 'Extract a remote article with a URL backend'],
       ['bun autoshow extract output/<extract-run-dir> --transcript-video', 'Render a synced speaker transcript video from a media extract run'],
@@ -104,6 +110,7 @@ export const extractCommand = defineCliCommand({
     ]
   }
 }, async (ctx) => {
+  if (await runSttTimingWorkflow(ctx.parameters.input, ctx.flags, ctx.rawParsed.explicitFlags)) return
   if (ctx.flags['docx-markdown'] === true) {
     const input = ctx.parameters.input
     if (!input || !input.toLowerCase().endsWith('.docx') || !((await stat(input).catch(() => undefined))?.isFile())) throw UsageError('--docx-markdown requires a local DOCX file.')

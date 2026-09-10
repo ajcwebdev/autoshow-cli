@@ -2,7 +2,6 @@ import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/
 import { filterModelNamesByLifecycle, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import {
   SUPPORTED_OPENAI_MODELS,
-  SUPPORTED_GROQ_MODELS,
   SUPPORTED_GEMINI_MODELS,
   SUPPORTED_ANTHROPIC_MODELS,
   SUPPORTED_MINIMAX_MODELS,
@@ -10,7 +9,6 @@ import {
   SUPPORTED_GLM_MODELS,
   SUPPORTED_KIMI_MODELS,
   SUPPORTED_TOGETHER_MODELS,
-  SUPPORTED_CEREBRAS_MODELS,
   SUPPORTED_ELEVENLABS_TTS_MODELS,
   SUPPORTED_GROK_TTS_MODELS,
   SUPPORTED_MISTRAL_TTS_MODELS,
@@ -57,7 +55,6 @@ const STEP2_PROVIDER_ENTRIES = [
 const ALL_SHORTCUT_MODEL_EXPANSIONS: Partial<Record<RepeatableModelFlag, { shortcut: AllShortcutFlag, supported: readonly string[] }>> = {
   ...STEP2_ALL_SHORTCUT_MODEL_EXPANSIONS,
   openai: { shortcut: 'all-llm', supported: SUPPORTED_OPENAI_MODELS },
-  groq: { shortcut: 'all-llm', supported: SUPPORTED_GROQ_MODELS },
   gemini: { shortcut: 'all-llm', supported: SUPPORTED_GEMINI_MODELS },
   anthropic: { shortcut: 'all-llm', supported: SUPPORTED_ANTHROPIC_MODELS },
   minimax: { shortcut: 'all-llm', supported: SUPPORTED_MINIMAX_MODELS },
@@ -65,7 +62,6 @@ const ALL_SHORTCUT_MODEL_EXPANSIONS: Partial<Record<RepeatableModelFlag, { short
   glm: { shortcut: 'all-llm', supported: SUPPORTED_GLM_MODELS },
   kimi: { shortcut: 'all-llm', supported: SUPPORTED_KIMI_MODELS },
   together: { shortcut: 'all-llm', supported: SUPPORTED_TOGETHER_MODELS },
-  cerebras: { shortcut: 'all-llm', supported: SUPPORTED_CEREBRAS_MODELS },
   'elevenlabs-tts': { shortcut: 'all-tts', supported: SUPPORTED_ELEVENLABS_TTS_MODELS },
   'grok-tts': { shortcut: 'all-tts', supported: SUPPORTED_GROK_TTS_MODELS },
   'mistral-tts': { shortcut: 'all-tts', supported: SUPPORTED_MISTRAL_TTS_MODELS },

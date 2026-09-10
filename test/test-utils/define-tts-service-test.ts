@@ -7,14 +7,12 @@ import {
 import { E2E_TEST_TIMEOUT_MS } from './budget'
 import {
   defineBudgetedLiveServiceTest,
-  formatCommandFailureDiagnostics,
   requireConfiguredEnvVar,
   runCommandAndExpectOutputDir,
   withOutputLifecycle
 } from './service-test-kit'
 import { readCanonicalRecord } from './manifest-helpers'
-import { TERMINAL_TTS_FAILURES } from './provider-failure-classifiers'
-import type { RunCommandResult, TtsExtraArgs } from '~/types'
+import type { TtsExtraArgs } from '~/types'
 
 const resolveTtsExtraArgs = async (
   extraArgs: TtsExtraArgs | undefined,
@@ -22,24 +20,6 @@ const resolveTtsExtraArgs = async (
 ): Promise<readonly string[]> => {
   if (!extraArgs) return []
   return typeof extraArgs === 'function' ? await extraArgs(model) : extraArgs
-}
-
-const throwOnKnownProviderFailure = (
-  ttsService: string,
-  model: string,
-  args: string[],
-  result: RunCommandResult
-): void => {
-  if (result.exitCode === 0) {
-    return
-  }
-
-  const terminalFailure = TERMINAL_TTS_FAILURES[ttsService]
-  if (!terminalFailure || !terminalFailure.matches(`${result.stdout}\n${result.stderr}`)) {
-    return
-  }
-
-  throw new Error(`${terminalFailure.describe(model)}\n${formatCommandFailureDiagnostics(args, result)}`)
 }
 
 const assertTtsArtifacts = async (
@@ -114,7 +94,6 @@ export const defineTTSServiceTest = ({
       ]
 
       const outputDir = await runCommandAndExpectOutputDir(inputTitle, args, undefined, {
-        onResult: (result) => { throwOnKnownProviderFailure(ttsService, model, args, result) },
         classifyAvailability: false
       })
 

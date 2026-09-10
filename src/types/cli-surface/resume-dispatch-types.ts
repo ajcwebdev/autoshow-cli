@@ -1,4 +1,4 @@
-import type { AggregatedPriceEstimate, CliFlagOccurrence, ResumeResult } from '~/types'
+import type { AggregatedPriceEstimate, CliFlagOccurrence, ComicRecoveryStagePlan, ResumeResult } from '~/types'
 
 export type ResumeSelectorNormalizationResult = {
   flags: Record<string, unknown>
@@ -7,6 +7,7 @@ export type ResumeSelectorNormalizationResult = {
 }
 
 export type ResumeDispatchOutcome = {
+  comicPlan?: { directory: string; ready: boolean; stages: ComicRecoveryStagePlan[] } | undefined
   estimate?: AggregatedPriceEstimate | undefined
   result?: ResumeResult | undefined
 }
