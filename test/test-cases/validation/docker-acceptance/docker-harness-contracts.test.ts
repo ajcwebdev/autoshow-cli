@@ -18,7 +18,7 @@ afterAll(async () => { for (const root of roots) await rm(root, { recursive: tru
 const digest = `sha256:${'a'.repeat(64)}`
 const pinned = `ghcr.io/ajcwebdev/autoshow-cli@${digest}`
 
-async function harness(options: { pullFails?: boolean; timeout?: boolean } = {}) {
+async function harness(options: { pullFails?: boolean; timeout?: boolean; imageArchitecture?: string; imageDigest?: string } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'autoshow-docker-contract-'))
   roots.push(root)
   const calls: string[][] = []
@@ -29,9 +29,12 @@ async function harness(options: { pullFails?: boolean; timeout?: boolean } = {})
     let timedOut = false
     if (args[0] === 'info') stdout = '"aarch64"'
     if (args[0] === 'pull') { stdout = `Digest: ${digest}\n`; if (options.pullFails) exitCode = 1 }
+    if (args[0] === 'image' && args.includes('--platform')) {
+      return { exitCode: 125, stdout: '', stderr: 'unknown flag: --platform', timedOut: false, durationMs: 1 }
+    }
     if (args[0] === 'image') stdout = JSON.stringify([{
-      Id: 'sha256:local-config', Os: 'linux', Architecture: 'arm64', Size: 123,
-      RepoDigests: [pinned], Config: { User: 'bun', Entrypoint: ['bun', '--no-env-file', '/app/src/cli/create-cli.ts'], Env: ['HOME=/home/bun'], Labels: { 'org.opencontainers.image.revision': 'c'.repeat(40) } }
+      Id: 'sha256:local-config', Os: 'linux', Architecture: options.imageArchitecture ?? 'arm64', Size: 123,
+      RepoDigests: [options.imageDigest ?? pinned], Config: { User: 'bun', Entrypoint: ['bun', '--no-env-file', '/app/src/cli/create-cli.ts'], Env: ['HOME=/home/bun'], Labels: { 'org.opencontainers.image.revision': 'c'.repeat(40) } }
     }])
     if (args[0] === 'run' && options.timeout) { await onTimeout?.(); exitCode = 137; timedOut = true }
     return { exitCode, stdout, stderr: exitCode ? 'fixture failure' : '', timedOut, durationMs: 1 }
@@ -67,7 +70,7 @@ test('latest is pulled once and all CLI and helper containers use its immutable 
   await engine.container(['-v', 'error', '/results/literal/video.mp4'], 'none', 100, 'ffprobe')
   expect(identity.digest).toBe(digest)
   expect(calls.filter(call => call[0] === 'pull')).toEqual([['pull', '--platform', 'linux/arm64', REQUESTED_IMAGE]])
-  expect(calls.find(call => call[0] === 'image')).toEqual(['image', 'inspect', '--platform', 'linux/arm64', pinned])
+  expect(calls.find(call => call[0] === 'image')).toEqual(['image', 'inspect', pinned])
   const runs = calls.filter(call => call[0] === 'run')
   expect(runs).toHaveLength(2)
   for (const run of runs) {
@@ -93,6 +96,18 @@ test('cross-architecture requests fail before pulling and unexpected publication
   engine.options.expectedDigest = `sha256:${'b'.repeat(64)}`
   await expect(engine.resolveImage()).rejects.toThrow('latest changed')
   expect(calls.some(call => call[0] === 'run')).toBe(false)
+})
+
+test('native digest inspection rejects a mismatched architecture or digest before execution', async () => {
+  for (const [options, message] of [
+    [{ imageArchitecture: 'amd64' }, 'Pulled architecture differs from native daemon'],
+    [{ imageDigest: `ghcr.io/ajcwebdev/autoshow-cli@sha256:${'b'.repeat(64)}` }, 'Image inspection did not confirm the pulled digest']
+  ] as const) {
+    const { engine, calls } = await harness(options)
+    await expect(engine.resolveImage()).rejects.toThrow(message)
+    expect(engine.identity).toBeUndefined()
+    expect(calls.some(call => call[0] === 'run')).toBe(false)
+  }
 })
 
 test('unregistered commands and network changes fail before Docker execution', async () => {

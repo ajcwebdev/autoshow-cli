@@ -87,7 +87,9 @@ export class DockerEngine {
     const digest = digests[0]!
     const reference = `${IMAGE_REPOSITORY}@${digest}`
     // Inspect by the pull's digest as well: another client could now replace the local tag.
-    const inspection = this.requireSuccess(await this.command(['image', 'inspect', '--platform', platform, reference]), 'Inspect pulled digest')
+    // The pull and architecture check enforce native execution without requiring
+    // image inspect --platform, which older Docker clients do not support.
+    const inspection = this.requireSuccess(await this.command(['image', 'inspect', reference]), 'Inspect pulled digest')
     const [image] = JSON.parse(inspection.stdout) as Array<{ Id: string; Os: string; Architecture: string; Size: number; RepoDigests: string[]; Config: { Labels?: Record<string, string>; User: string; Entrypoint: string[]; Env: string[] } }>
     assert(image, 'Missing pulled image inspection')
     assert(image.RepoDigests.includes(reference), 'Image inspection did not confirm the pulled digest')
