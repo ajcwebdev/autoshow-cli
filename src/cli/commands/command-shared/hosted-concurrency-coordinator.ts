@@ -14,7 +14,6 @@ import type {
   ProviderLaneCompletionStatus,
   ProviderLaneIdentity,
   ProviderLanePressureFeedback,
-  RecoveryState,
   TokenState,
   Waiter
 } from '~/types'
@@ -23,7 +22,9 @@ import { normalizePositiveInt } from '~/utils/value-helpers'
 import { resolveHostedRecoveryBackoff } from './hosted-concurrency-recovery-policy'
 import { projectHostedConcurrencyLane } from './hosted-concurrency-telemetry'
 import { resolveHostedLaneRamp, resolveHostedReleaseOutcome, selectHostedLaneWaiter } from './hosted-lane-transition-policy'
-import { createProviderLaneIdentity, DEFAULT_PROVIDER_LANE_SCOPE_LABEL } from './provider-lane-contract'
+import { LaneRecoveryState } from './lane-recovery-state'
+import { DEFAULT_PROVIDER_LANE_SCOPE_LABEL, createProviderLaneIdentity } from './provider-lane-contract'
+import { LaneWakeTimer, drainProviderLane, extendProviderLanePause, reduceProviderLaneLimit, trimProviderLaneHistory } from './provider-lane-drain'
 
 export { recoverHostedConcurrencyRequest, runHostedConcurrencyRequest } from './hosted-concurrency-request'
 export { classifyHostedRateLimitPressure } from './hosted-rate-limit-pressure'
@@ -32,21 +33,12 @@ const DEFAULT_HOSTED_CONCURRENCY_MODE: HostedConcurrencyMode = 'ramp'
 const HOSTED_CONCURRENCY_RAMP_INTERVAL_MS = 5_000
 const HOSTED_CONCURRENCY_RECOVERY_BUDGET_MS = 5 * 60_000
 
-const EVENT_HISTORY_LIMIT = 100
 
 const recoveryKeyFor = (laneKey: string, workId: string, unitIndex: number): string =>
   `${laneKey}\u0000${workId}\u0000${unitIndex}`
 
-const lanePrefix = (laneKey: string): string => `${laneKey}\u0000`
-
 const abortReason = (signal: AbortSignal): unknown =>
   signal.reason ?? new DOMException('The operation was aborted.', 'AbortError')
-
-const trimHistory = <T>(items: T[]): void => {
-  if (items.length > EVENT_HISTORY_LIMIT) {
-    items.splice(0, items.length - EVENT_HISTORY_LIMIT)
-  }
-}
 
 class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
   readonly mode: HostedConcurrencyMode
@@ -54,11 +46,9 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
   readonly #recoveryBudgetMs: number
   readonly #now: () => number
   readonly #random: () => number
-  readonly #setTimer: (callback: () => void, delayMs: number) => ReturnType<typeof setTimeout>
-  readonly #clearTimer: (timer: ReturnType<typeof setTimeout>) => void
+  readonly #wake: LaneWakeTimer<LaneState>
   readonly #lanes = new Map<string, LaneState>()
   readonly #tokens = new WeakMap<HostedConcurrencyAdmissionToken, TokenState>()
-  readonly #recoveryByWork = new Map<string, RecoveryState>()
   #disposed = false
   #disposeReason: unknown
 
@@ -68,8 +58,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
     this.#recoveryBudgetMs = Math.max(1, Math.floor(options.recoveryBudgetMs ?? HOSTED_CONCURRENCY_RECOVERY_BUDGET_MS))
     this.#now = options.now ?? Date.now
     this.#random = options.random ?? Math.random
-    this.#setTimer = options.setTimer ?? ((callback, delayMs) => setTimeout(callback, delayMs))
-    this.#clearTimer = options.clearTimer ?? clearTimeout
+    this.#wake = new LaneWakeTimer({ now: this.#now, setTimer: options.setTimer ?? setTimeout, clearTimer: options.clearTimer ?? clearTimeout })
   }
 
   async acquire(admission: HostedConcurrencyAdmission): Promise<HostedConcurrencyAdmissionToken> {
@@ -129,19 +118,19 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
     else lane.failed += 1
 
     const outcome = resolveHostedReleaseOutcome(tokenState, token.recoveryProbe, status)
-    if (outcome.clearProbe) lane.recoveryProbeActive = false
+    if (outcome.clearProbe) lane.recovery.probeActive = false
     if (outcome.discardRecovery) {
-      this.#recoveryByWork.delete(tokenState.recoveryKey)
+      lane.recovery.byWork.delete(tokenState.recoveryKey)
       if (outcome.recordFailure) lane.recoveryFailures += 1
       this.#finishRecoveryIfDrained(lane)
     }
     if (outcome.finishRecovery) {
       this.#clearLaneRecovery(lane)
-      lane.recovering = false
-      lane.rampingAfterRecovery = lane.currentLimit < lane.configuredLimit
+      lane.recovery.recovering = false
+      lane.recovery.rampingAfterRecovery = lane.currentLimit < lane.configuredLimit
       this.#finishPause(lane)
       lane.pauseUntilMs = 0
-      lane.nextRampAtMs = lane.rampingAfterRecovery && lane.waiters.length > 0
+      lane.nextRampAtMs = lane.recovery.rampingAfterRecovery && lane.waiters.length > 0
         ? this.#now() + this.#rampIntervalMs
         : undefined
     }
@@ -183,12 +172,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
 
     const lane = tokenState.lane
     const now = this.#now()
-    const recovery = this.#recoveryByWork.get(tokenState.recoveryKey) ?? {
-      firstPressureAtMs: now,
-      pressureAttempt: 0
-    }
-    recovery.pressureAttempt += 1
-    this.#recoveryByWork.set(tokenState.recoveryKey, recovery)
+    const recovery = lane.recovery.begin(tokenState.recoveryKey, now)
 
     const { delayMs, elapsedMs, remainingBudgetMs } = resolveHostedRecoveryBackoff(
       recovery, feedback, now, this.#recoveryBudgetMs, this.#random()
@@ -212,7 +196,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
     if (lane.pauseStartedAtMs === undefined) {
       lane.pauseStartedAtMs = now
     }
-    lane.pauseUntilMs = Math.max(lane.pauseUntilMs, now + delayMs)
+    lane.pauseUntilMs = extendProviderLanePause(lane.pauseUntilMs, now, delayMs).untilMs
     tokenState.recoveryRetryApproved = true
     this.#drain(lane)
     return {
@@ -232,9 +216,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
     delayMs: number
   ): void {
     const previousLimit = lane.currentLimit
-    lane.currentLimit = Math.max(1, Math.floor(lane.currentLimit / 2))
-    lane.recovering = true
-    lane.rampingAfterRecovery = false
+    lane.currentLimit = reduceProviderLaneLimit(lane.currentLimit)
     lane.nextRampAtMs = undefined
     this.#recordTransition(lane, previousLimit, lane.currentLimit, 'rate-limit')
 
@@ -251,7 +233,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
       nextLimit: lane.currentLimit
     }
     lane.pressureEvents.push(pressureEvent)
-    trimHistory(lane.pressureEvents)
+    trimProviderLaneHistory(lane.pressureEvents)
 
   }
 
@@ -259,11 +241,8 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
     lane.recoveryFailures += 1
     tokenState.recoveryFailureRecorded = true
     tokenState.recoveryRetryApproved = false
-    this.#recoveryByWork.delete(tokenState.recoveryKey)
-    if (![...this.#recoveryByWork.keys()].some((key) => key.startsWith(lanePrefix(lane.lane.laneKey)))) {
-      lane.recovering = false
-      lane.rampingAfterRecovery = lane.currentLimit < lane.configuredLimit
-    }
+    lane.recovery.byWork.delete(tokenState.recoveryKey)
+    lane.recovery.finishIfDrained(lane.currentLimit, lane.configuredLimit)
   }
 
   snapshot(): HostedConcurrencyTelemetry {
@@ -281,11 +260,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
     this.#disposed = true
     this.#disposeReason = reason
     for (const lane of this.#lanes.values()) {
-      if (lane.wakeTimer !== undefined) {
-        this.#clearTimer(lane.wakeTimer)
-        lane.wakeTimer = undefined
-        lane.wakeAtMs = undefined
-      }
+      this.#wake.clear(lane)
       const waiters = lane.waiters.splice(0)
       for (const waiter of waiters) {
         this.#detachAbort(waiter)
@@ -323,7 +298,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
     if (existing) {
       if (configuredLimit > existing.configuredLimit) {
         existing.configuredLimit = configuredLimit
-        if (this.mode === 'immediate' && !existing.recovering && !existing.rampingAfterRecovery) {
+        if (this.mode === 'immediate' && !existing.recovery.recovering && !existing.recovery.rampingAfterRecovery) {
           const previousLimit = existing.currentLimit
           existing.currentLimit = configuredLimit
           this.#recordTransition(existing, previousLimit, existing.currentLimit, 'registered-cap')
@@ -347,9 +322,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
       classes: new Map(),
       rampTransitions: [],
       pressureEvents: [],
-      recovering: false,
-      recoveryProbeActive: false,
-      rampingAfterRecovery: false,
+      recovery: new LaneRecoveryState(),
       pauseUntilMs: 0,
       pauseDurationMs: 0,
       recoveryProbes: 0,
@@ -380,14 +353,15 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
     }
     this.#finishPause(lane)
 
-    while (lane.active < lane.currentLimit) {
-      const waiterIndex = selectHostedLaneWaiter(lane, this.#recoveryByWork)
-      if (waiterIndex < 0) break
-      const [waiter] = lane.waiters.splice(waiterIndex, 1)
-      if (!waiter) break
-      this.#admit(waiter)
-      if (lane.recovering) break
-    }
+    drainProviderLane({
+      canAdmit: () => lane.active < lane.currentLimit,
+      pick: () => {
+        const index = selectHostedLaneWaiter(lane, lane.recovery.byWork)
+        return index < 0 ? undefined : lane.waiters.splice(index, 1)[0]
+      },
+      start: waiter => this.#admit(waiter),
+      stopAfterAdmission: () => lane.recovery.recovering,
+    })
 
     const decision = resolveHostedLaneRamp(lane, now, this.#rampIntervalMs)
     switch (decision.kind) {
@@ -405,7 +379,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
         const previousLimit = lane.currentLimit
         lane.currentLimit = decision.limit
         this.#recordTransition(lane, previousLimit, lane.currentLimit, decision.reason)
-        lane.rampingAfterRecovery = decision.rampingAfterRecovery
+        lane.recovery.rampingAfterRecovery = decision.rampingAfterRecovery
         lane.nextRampAtMs = decision.nextRampAtMs
         this.#drain(lane)
       }
@@ -415,14 +389,14 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
   #admit(waiter: Waiter): void {
     const { lane, classState, admission } = waiter
     this.#detachAbort(waiter)
-    const recoveryProbe = lane.recovering && this.#recoveryByWork.has(waiter.recoveryKey)
+    const recoveryProbe = lane.recovery.recovering && lane.recovery.byWork.has(waiter.recoveryKey)
     lane.active += 1
     lane.activePeak = Math.max(lane.activePeak, lane.active)
     lane.admitted += 1
     classState.active += 1
     classState.activePeak = Math.max(classState.activePeak, classState.active)
     if (recoveryProbe) {
-      lane.recoveryProbeActive = true
+      lane.recovery.probeActive = true
       lane.recoveryProbes += 1
     }
     const token: HostedConcurrencyAdmissionToken = Object.freeze({
@@ -460,27 +434,14 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
       nextLimit,
       reason
     })
-    trimHistory(lane.rampTransitions)
+    trimProviderLaneHistory(lane.rampTransitions)
   }
 
   #scheduleWake(lane: LaneState, atMs: number): void {
-    if (lane.wakeTimer !== undefined && (lane.wakeAtMs ?? Number.POSITIVE_INFINITY) <= atMs) return
-    this.#clearWake(lane)
-    lane.wakeAtMs = atMs
-    lane.wakeTimer = this.#setTimer(() => {
-      lane.wakeTimer = undefined
-      lane.wakeAtMs = undefined
-      this.#drain(lane)
-    }, Math.max(0, atMs - this.#now()))
+    this.#wake.schedule(lane, atMs, () => this.#drain(lane))
   }
 
-  #clearWake(lane: LaneState): void {
-    if (lane.wakeTimer !== undefined) {
-      this.#clearTimer(lane.wakeTimer)
-      lane.wakeTimer = undefined
-      lane.wakeAtMs = undefined
-    }
-  }
+  #clearWake(lane: LaneState): void { this.#wake.clear(lane) }
 
   #finishPause(lane: LaneState): void {
     if (lane.pauseStartedAtMs === undefined) return
@@ -491,16 +452,11 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
   }
 
   #clearLaneRecovery(lane: LaneState): void {
-    const prefix = lanePrefix(lane.lane.laneKey)
-    for (const key of this.#recoveryByWork.keys()) {
-      if (key.startsWith(prefix)) this.#recoveryByWork.delete(key)
-    }
+    lane.recovery.clear()
   }
 
   #finishRecoveryIfDrained(lane: LaneState): void {
-    if ([...this.#recoveryByWork.keys()].some((key) => key.startsWith(lanePrefix(lane.lane.laneKey)))) return
-    lane.recovering = false
-    lane.rampingAfterRecovery = lane.currentLimit < lane.configuredLimit
+    if (!lane.recovery.finishIfDrained(lane.currentLimit, lane.configuredLimit)) return
     this.#finishPause(lane)
     lane.pauseUntilMs = 0
   }

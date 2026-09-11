@@ -1,4 +1,5 @@
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { readFileBytes, readUtf8FileExact, writeFileExact } from '~/utils/bun-file-io'
+import { mkdir, readdir } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { join, resolve } from 'node:path'
 import type { BudgetPreflightCacheFile, PriceCommandSpec } from '~/types'
@@ -79,7 +80,7 @@ const localArgvFiles = (commands: readonly PriceCommandSpec[]): string[] => {
 const hashFileContents = async (paths: readonly string[]): Promise<string> => {
   const contents = await Promise.all(paths.map(async (path) => {
     try {
-      return await readFile(path)
+      return await readFileBytes(path)
     } catch {
       return 'missing'
     }
@@ -118,7 +119,7 @@ export const readBudgetPreflightCache = async (
   fingerprint: string
 ): Promise<Map<string, number>> => {
   try {
-    const parsed = JSON.parse(await readFile(CACHE_PATH, 'utf8')) as BudgetPreflightCacheFile
+    const parsed = JSON.parse(await readUtf8FileExact(CACHE_PATH)) as BudgetPreflightCacheFile
     if (parsed.version !== CACHE_VERSION || parsed.fingerprint !== fingerprint || !Array.isArray(parsed.entries)) {
       return new Map()
     }
@@ -146,5 +147,5 @@ export const writeBudgetPreflightCache = async (
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([argvKey, costCents]) => ({ argvKey, costCents }))
   }
-  await writeFile(CACHE_PATH, `${JSON.stringify(payload, null, 2)}\n`)
+  await writeFileExact(CACHE_PATH, `${JSON.stringify(payload, null, 2)}\n`)
 }

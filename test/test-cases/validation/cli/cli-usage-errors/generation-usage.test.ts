@@ -63,7 +63,7 @@ test('music rejects mixed hosted generation and lyric-video modes', async () => 
     'Do not combine hosted music flags'
   )
   await reject(
-    ['music', '--audio', STABLE_EXAMPLE_AUDIO_URL, '--output-dir', 'output/music-run'],
+    ['music', '--audio', STABLE_EXAMPLE_AUDIO_URL, '--duration', '30'],
     'Do not combine hosted music flags'
   )
   await reject(

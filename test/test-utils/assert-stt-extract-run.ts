@@ -1,4 +1,5 @@
-import assert from 'node:assert/strict'
+import { expect } from 'bun:test'
+import { requireCondition } from './require-condition'
 import { artifactExists as fileExists, assertContains } from '../scenarios/local-cli-contracts'
 import { readCanonicalRecord } from './manifest-helpers'
 import type { SttExtractRunExpectation } from '~/types'
@@ -8,30 +9,30 @@ export const assertSttExtractRun = async (
   expectation: SttExtractRunExpectation,
   readRecord = readCanonicalRecord
 ): Promise<void> => {
-  assert.equal(await fileExists(`${outputDir}/transcription.txt`), true)
+  expect(await fileExists(`${outputDir}/transcription.txt`)).toBe(true)
 
   const transcriptContent = await Bun.file(`${outputDir}/transcription.txt`).text()
-  assert(transcriptContent.length > 0)
+  requireCondition(transcriptContent.length > 0)
   if (typeof expectation.transcriptMatch === 'string') {
-    assert(transcriptContent.includes(expectation.transcriptMatch))
+    requireCondition(transcriptContent.includes(expectation.transcriptMatch))
   } else {
-    assert.match(transcriptContent, expectation.transcriptMatch)
+    expect(transcriptContent).toMatch(expectation.transcriptMatch)
   }
 
-  assert.equal(await fileExists(`${outputDir}/result.json`), true)
-  assert.equal(await fileExists(`${outputDir}/transcription.evidence.json`), false)
-  assert.equal(await fileExists(`${outputDir}/transcription.raw.json`), false)
-  assert.equal(await fileExists(`${outputDir}/prompt.md`), expectation.expectPrompt)
-  assert.equal(await fileExists(`${outputDir}/text.json`), false)
+  expect(await fileExists(`${outputDir}/result.json`)).toBe(true)
+  expect(await fileExists(`${outputDir}/transcription.evidence.json`)).toBe(false)
+  expect(await fileExists(`${outputDir}/transcription.raw.json`)).toBe(false)
+  expect(await fileExists(`${outputDir}/prompt.md`)).toBe(expectation.expectPrompt)
+  expect(await fileExists(`${outputDir}/text.json`)).toBe(false)
 
   const metadata = await readRecord(outputDir)
   const step2 = metadata['step2'] as { transcriptionService?: string, transcriptionModel?: string } | undefined
-  assert.equal(step2?.transcriptionService, expectation.target.service)
+  expect(step2?.transcriptionService).toBe(expectation.target.service)
   if (expectation.modelMatch.equals !== undefined) {
-    assert.equal(step2?.transcriptionModel, expectation.modelMatch.equals)
+    expect(step2?.transcriptionModel).toBe(expectation.modelMatch.equals)
   } else {
-    assert(expectation.modelMatch.contains, 'Expected a nonempty model descriptor')
-    assert(step2?.transcriptionModel?.includes(expectation.modelMatch.contains))
+    requireCondition(expectation.modelMatch.contains, 'Expected a nonempty model descriptor')
+    requireCondition(step2?.transcriptionModel?.includes(expectation.modelMatch.contains))
   }
 
   const { service, model, local, origin } = expectation.target
@@ -52,9 +53,9 @@ export const assertSttExtractRun = async (
       status: 'succeeded'
     }])
   }
-  assert.deepEqual(metadata['missingProviders'], [])
+  expect(metadata['missingProviders']).toStrictEqual([])
 
   if (expectation.splitSegmentsDir !== false) {
-    assert.equal(await fileExists(`${outputDir}/${expectation.splitSegmentsDir}`), true)
+    expect(await fileExists(`${outputDir}/${expectation.splitSegmentsDir}`)).toBe(true)
   }
 }

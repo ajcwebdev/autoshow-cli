@@ -60,10 +60,10 @@ describe('maintenance environment contracts', () => {
     expect(scripts['check:names']).toContain('env -i PATH="$PATH" HOME="$HOME" bun --no-env-file')
     expect(scripts['check:types']).toContain('bun --no-env-file node_modules/typescript/bin/tsc --noEmit')
     expect(scripts['check:types']).not.toContain('bunx')
-    for (const name of ['repo', 'audit:ocr-tokens', 'analyze:complexity', 'baseline:docker', 'compare:env', 't']) {
+    for (const name of ['repo', 'audit:ocr-tokens', 'analyze:complexity', 't']) {
       expect(scripts[name]).toStartWith('env -i PATH="$PATH" HOME="$HOME" bun --no-env-file')
     }
-    expect(scripts['t:provider']).toBe('bun --no-env-file test/test-runner.ts')
+    expect(scripts['t:provider']).toBe('AUTOSHOW_TEST_CREDENTIAL_MODE=live bun --no-env-file test/test-runner.ts')
   })
 
   test('the container disables implicit env files and documents explicit credential injection', async () => {

@@ -1,5 +1,8 @@
 {
   "Whisperfile": {
+    "LLMSTXT": [
+      "https://docs.mozilla.ai/llms.txt"
+    ],
     "STT": [
       "https://docs.mozilla.ai/llamafile/whisperfile/index.md",
       "https://docs.mozilla.ai/llamafile/whisperfile/getting-started.md",

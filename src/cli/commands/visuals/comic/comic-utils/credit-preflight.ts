@@ -11,9 +11,10 @@ const describeStatus = (status: number): string =>
   status === 401 ? 'the configured OpenAI credential was rejected'
     : status === 402 ? 'the OpenAI account has insufficient credit'
       : status === 403 ? 'the configured OpenAI credential is not permitted to use this account'
-        : 'the OpenAI account is rate limited or out of quota'
+        : status === 429 ? 'the OpenAI account is rate limited or out of quota'
+          : 'model-list access could not be established'
 
-/** Zero-cost credential and credit check: one GET of the provider's model list before any paid call. */
+/** Read-only model-list access check; does not establish credit or generation admission. */
 export const runComicCreditPreflight = async (
   options: { provider?: 'openai'; price?: boolean | undefined },
   dependencies: CreditPreflightDependencies = {},
@@ -24,16 +25,16 @@ export const runComicCreditPreflight = async (
     return { provider, status: 'skipped-price-mode' }
   }
   const listModels = dependencies.listModels ?? (async () => {
-    await openAIGetRequest(getOpenAIClientConfig(), '/models', { errorMessagePrefix: 'OpenAI credit preflight failed' })
+    await openAIGetRequest(getOpenAIClientConfig(), '/models', { errorMessagePrefix: 'OpenAI model-list preflight failed', signal: AbortSignal.timeout(10_000) })
     return { status: 200 }
   })
   try {
     const response = await listModels()
-    if (BLOCKING_STATUSES.has(response.status)) {
+    if (response.status < 200 || response.status >= 300) {
       throw UsageError(`Credit preflight failed for provider ${provider}: ${describeStatus(response.status)} (HTTP ${response.status}). No image was generated.`, { stage: 'comic:credit-preflight' })
     }
-    comicLog.line(`  credit preflight ok provider=${provider}`)
-    return { provider, status: 'ok' }
+    comicLog.line(`  model-list access confirmed provider=${provider}; credit and generation admission remain unverified`)
+    return { provider, status: 'ok', authentication: 'accepted', operationAdmission: 'unverified' }
   } catch (error) {
     const status = error instanceof OpenAIRestError ? error.status : undefined
     if (status !== undefined && BLOCKING_STATUSES.has(status)) {

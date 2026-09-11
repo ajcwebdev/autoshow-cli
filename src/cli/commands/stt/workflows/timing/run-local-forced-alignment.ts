@@ -1,11 +1,13 @@
-import { mkdir, stat } from 'node:fs/promises'
+import { readAlignmentModel } from './stt-onnx-model'
+import { computeOnnxEmissions, loadAlignmentRuntime } from './stt-onnx-emissions'
+import { statPath } from '~/utils/bun-file-io'
+import { mkdir } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import type { TranscriptionEvidenceWord } from '~/types'
-import { getFfmpegBinary } from '~/utils/runtime-paths'
+import { getFfmpegBinary, PROJECT_ROOT } from '~/utils/runtime-paths'
 import { UsageError, ValidationError } from '~/utils/error-handler'
 import { captionTextKey, captionTimestampSeconds } from '../captions/caption-word-coverage'
-import { alignCtcWords, type CtcWordInput } from './ctc-word-alignment'
+import { alignCtcWords } from './ctc-word-alignment'
 import { hashLocalTimingFile, readLocalTimingResult, requireLocalTimingFile, runTimingCommand, writeLocalTimingFiles } from './stt-local-workspace'
 
 export const tokenizeAlignmentWords = (text: string): string[] => {
@@ -26,9 +28,8 @@ export const runLocalForcedAlignment = async (audioInput: string, transcriptInpu
   const audio = await requireLocalTimingFile(audioInput)
   const audioSha256 = await hashLocalTimingFile(audio)
   const saved = await readLocalTimingResult(transcriptInput)
-  const model = flags['alignment-model'], python = flags['alignment-python'] ?? 'python3'
-  if (typeof model !== 'string' || !(await stat(model).catch(() => undefined))?.isDirectory()) throw UsageError('--align-transcript requires --alignment-model pointing to a local Wav2Vec2 CTC model directory. See the STT guide for offline setup.')
-  if (typeof python !== 'string' || !python.trim()) throw UsageError('--alignment-python must name a Python executable with the alignment dependencies installed.')
+  const model = flags['alignment-model']
+  if (typeof model !== 'string' || !(await statPath(model).catch(() => undefined))?.isDirectory()) throw UsageError('--align-transcript requires --alignment-model pointing to a local Wav2Vec2 CTC ONNX model directory. See the STT guide for offline setup.')
   const minimumConfidence = Number(flags['alignment-min-confidence'] ?? .1)
   if (!Number.isFinite(minimumConfidence) || minimumConfidence < 0 || minimumConfidence > 1) throw UsageError('--alignment-min-confidence must be between 0 and 1.')
   const segments = saved.result.segments.map(segment => ({ ...segment, begin: captionTimestampSeconds(segment.start), finish: captionTimestampSeconds(segment.end) }))
@@ -36,20 +37,30 @@ export const runLocalForcedAlignment = async (audioInput: string, transcriptInpu
   if (captionTextKey(segments.map(segment => segment.text).join(' ')) !== captionTextKey(saved.result.text)) throw ValidationError('Transcript segments must cover the complete text before forced alignment.')
   const ordered = segments.toSorted((a, b) => a.begin - b.begin)
   if (ordered.some((segment, index) => index > 0 && segment.begin < ordered[index - 1]!.finish)) throw ValidationError('Forced alignment cannot resolve overlapping speech on one channel. Separate channels or provide non-overlapping reviewed spans.')
+  const localModel = await readAlignmentModel(model)
+  const worker = join(PROJECT_ROOT, 'src/cli/commands/stt/workflows/timing/stt-onnx-worker.js')
+  const workerBun = Bun.isStandaloneExecutable ? Bun.which('bun') : undefined
+  if (Bun.isStandaloneExecutable) {
+    if (!workerBun || !await Bun.file(worker).exists()) throw UsageError('Compiled alignment requires Bun on PATH and the bundled src/cli/commands/stt/workflows/timing/stt-onnx-worker.js. See the STT timing guide for compiled packaging.')
+  } else loadAlignmentRuntime()
   const work = join(output, 'alignment-work')
-  for (const path of [work, join(output, 'result.json'), join(output, 'alignment.json')]) if (await stat(path).catch(() => undefined)) throw ValidationError(`Alignment output already exists at ${path}; choose a new --output-dir.`)
+  for (const path of [work, join(output, 'result.json'), join(output, 'alignment.json')]) if (await statPath(path).catch(() => undefined)) throw ValidationError(`Alignment output already exists at ${path}; choose a new --output-dir.`)
   await mkdir(work, { recursive: true })
   const clips = []
   for (const [index, segment] of segments.entries()) {
     const clip = join(work, `${index}.wav`)
     await runTimingCommand(getFfmpegBinary(), ['-v', 'error', '-nostdin', '-n', '-i', audio, '-ss', String(segment.begin), '-t', String(segment.finish - segment.begin), '-map', '0:a:0', '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', clip])
-    clips.push({ audio: clip, words: tokenizeAlignmentWords(segment.text) })
+    clips.push({ audio: resolve(clip), words: tokenizeAlignmentWords(segment.text) })
   }
-  const manifest = join(work, 'clips.json'), emissions = join(work, 'emissions.json')
   await writeLocalTimingFiles(work, { 'clips.json': clips })
-  const script = fileURLToPath(new URL('../../../../../../scripts/stt-ctc-emissions.py', import.meta.url))
-  await runTimingCommand(python, [script, resolve(model), manifest, emissions])
-  const response = await Bun.file(emissions).json() as { schemaVersion: number; backend: string; torchVersion: string; modelHashes: Record<string, string>; clips: Array<{ frames: number[][]; words: CtcWordInput[]; blank: number; separator?: number; frameSeconds: number }> }
+  let response: Awaited<ReturnType<typeof computeOnnxEmissions>>
+  if (workerBun) {
+    await runTimingCommand(workerBun, ['--no-env-file', worker, resolve(model), resolve(work, 'clips.json'), resolve(work, 'emissions.json'), PROJECT_ROOT])
+    response = await Bun.file(join(work, 'emissions.json')).json() as typeof response
+  } else {
+    response = await computeOnnxEmissions(localModel, clips)
+    await writeLocalTimingFiles(work, { 'emissions.json': response })
+  }
   if (response.schemaVersion !== 1 || response.clips.length !== segments.length) throw ValidationError('Local alignment backend returned an invalid clip count or schema.')
   const words: TranscriptionEvidenceWord[] = []
   const review = []
@@ -62,7 +73,7 @@ export const runLocalForcedAlignment = async (audioInput: string, transcriptInpu
       words.push({ ...word, startSeconds: word.startSeconds + segment.begin, endSeconds: Math.min(word.endSeconds + segment.begin, segment.finish), normalized: word.text.toLowerCase(), timingSource: 'aligned', ...(segment.speaker ? { speaker: segment.speaker } : {}) })
     }
   }
-  const provenance = { schemaVersion: 1, source: saved.source, sourceSha256: saved.sha256, audio, audioSha256, preparation: { sampleRate: 16000, channels: 1, sampleFormat: 'PCM16', segmentTimes: 'audio-relative seconds' }, model: resolve(model), modelHashes: response.modelHashes, backend: response.backend, torchVersion: response.torchVersion, minimumConfidence, review,
+  const provenance = { schemaVersion: 1, source: saved.source, sourceSha256: saved.sha256, audio, audioSha256, preparation: { sampleRate: 16000, channels: 1, sampleFormat: 'PCM16', segmentTimes: 'audio-relative seconds' }, model: resolve(model), modelHashes: response.modelHashes, backend: response.backend, runtimeVersion: response.runtimeVersion, minimumConfidence, review,
     lowConfidenceWords: words.flatMap((word, index) => (word.confidence ?? 0) < .1 ? [{ index, text: word.text, confidence: word.confidence }] : []),
     policy: 'CTC alignment of supplied text within non-overlapping source spans; text is not automatically verified. Unsupported letters/numbers are rejected; punctuation remains display text. Speaker labels are inherited, not inferred. Words below the requested confidence threshold prevent publication of an aligned result. Original evidence and working audio are retained.' }
   if (review.length) {

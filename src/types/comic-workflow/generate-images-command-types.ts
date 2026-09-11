@@ -23,6 +23,8 @@ export type ComicImageWorkItemResult = {
 export type CreditPreflightResult = {
   provider: 'openai'
   status: 'ok' | 'skipped-price-mode'
+  authentication?: 'accepted'
+  operationAdmission?: 'unverified'
 }
 
 export type CreditPreflightDependencies = {

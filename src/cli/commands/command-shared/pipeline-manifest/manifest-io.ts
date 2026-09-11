@@ -15,6 +15,7 @@ import { withRetry } from '~/utils/retries'
 import { assertAppendOnlyAudioProjection, assertAppendOnlyManifestAudioState } from './audio-projection-structure'
 import {
   expectedTtsItemStatus,
+  hydrateComicManifestDefaults,
   parseManifest
 } from './manifest-parse'
 import { createManifest, createPipelineItemFromRecord, derivePipelineItemRecord, matchesManifestProvider } from './manifest-record-projection'
@@ -44,7 +45,8 @@ const readManifestUnlocked = async (
   } catch (error) {
     throw UsageError(`Malformed canonical manifest at ${manifestPath}: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
   }
-  const manifest = parseManifest(rootDir, raw)
+  const decoded = parseManifest(rootDir, raw)
+  const manifest = decoded && hydrateComicManifestDefaults(decoded)
   if (!manifest) throw invalidManifestError(manifestPath, 'structure')
   if (verifyArtifacts && !await verifyManifestProjectionArtifacts(rootDir, manifest)) throw invalidManifestError(manifestPath, 'artifact-graph')
   return manifest
@@ -129,7 +131,8 @@ const writeManifestUnlocked = async (
     ...manifest,
     updatedAt: new Date().toISOString()
   }
-  const parsed = parseManifest(rootDir, next)
+  const decoded = parseManifest(rootDir, next)
+  const parsed = decoded && hydrateComicManifestDefaults(decoded)
   if (!parsed) throw invalidManifestError(manifestPath, 'structure')
   if (previous) assertAppendOnlyManifestAudioState(previous, parsed)
   if (!await verifyManifestProjectionArtifactsForWrite(rootDir, parsed, previous, updateOnly)) throw invalidManifestError(manifestPath, 'artifact-graph')

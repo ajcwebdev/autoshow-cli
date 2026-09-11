@@ -1,5 +1,8 @@
 {
   "Elevenlabs": {
+    "LLMSTXT": [
+      "https://elevenlabs.io/docs/llms.txt"
+    ],
     "General": [
       "https://elevenlabs.io/docs/overview/intro.md",
       "https://elevenlabs.io/docs/api-reference/introduction.md",

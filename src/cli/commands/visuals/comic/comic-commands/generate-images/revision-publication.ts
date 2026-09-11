@@ -1,4 +1,5 @@
-import { copyFile, readdir, rename } from 'node:fs/promises'
+import { copyFileExact } from '~/utils/bun-file-io'
+import { readdir, rename } from 'node:fs/promises'
 import { basename, join, relative } from 'node:path'
 import type { GenerateImagesCommandOptions, ImageRunStats } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
@@ -12,7 +13,7 @@ import { ledgerPathFor, panelDirectoryName, sha256File } from './revision-eviden
 
 const atomicPromote = async (candidatePath: string, canonicalPath: string, expectedCandidateSha256: string): Promise<string> => {
   const temporary = `${canonicalPath}.revision-${crypto.randomUUID()}.tmp`
-  await copyFile(candidatePath, temporary)
+  await copyFileExact(candidatePath, temporary)
   if (await sha256File(temporary) !== expectedCandidateSha256) throw ValidationError(`Staged revision bytes do not match candidate ${basename(candidatePath)}.`, { stage: 'comic:revision-promotion' })
   await rename(temporary, canonicalPath)
   const actual = await sha256File(canonicalPath)

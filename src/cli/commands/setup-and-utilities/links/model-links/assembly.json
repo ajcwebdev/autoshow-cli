@@ -1,5 +1,8 @@
 {
   "Assembly": {
+    "LLMSTXT": [
+      "https://www.assemblyai.com/docs/llms.txt"
+    ],
     "Models": [
       "https://www.assemblyai.com/docs/pre-recorded-audio/universal-3-5-pro.md",
       "https://www.assemblyai.com/docs/pre-recorded-audio/universal-2.md"

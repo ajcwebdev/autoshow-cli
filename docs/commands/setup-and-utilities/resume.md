@@ -22,6 +22,8 @@ bun autoshow resume <outputDirs...> [flags]
 - `resume` updates the existing output directory in place.
 - `resume` exits with code `2` when items are still incomplete or failed after the backfill attempt.
 
+Shared flags follow the existing manifest: `--format` controls OCR output or image encoding, `--aspect-ratio` controls image or video shape, and `--duration` controls video or music length. `bun autoshow resume --help-topic run-specific` lists those meanings together; `--help-topic concurrency` compares item, target, segment, page, and chunk limits. Comic recovery retains the recorded choices and rejects these rendering/provider overrides.
+
 ## Provider Selection
 
 These selectors apply to standalone and extract runs. See [Comic Recovery](#comic-recovery) for comic directories.

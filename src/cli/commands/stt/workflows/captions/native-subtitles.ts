@@ -1,4 +1,5 @@
-import { writeFile } from 'node:fs/promises'
+import { writeFileExact } from '~/utils/bun-file-io'
+
 import { ProviderError } from '~/utils/error-handler'
 
 // Export failure must never turn completed, potentially paid ASR into a retry.
@@ -10,9 +11,9 @@ export const saveNativeSubtitle = async (
   try {
     const text = await load()
     if (!text.trim() || !text.includes('-->')) throw ProviderError('Provider returned no recognizable subtitle cues', { stage: 'stt:subtitle-export', retryable: false })
-    await writeFile(`${outputBase}.native.${format}`, text)
+    await writeFileExact(`${outputBase}.native.${format}`, text)
   } catch (error) {
-    await writeFile(`${outputBase}.native.${format}.error.json`, JSON.stringify({
+    await writeFileExact(`${outputBase}.native.${format}.error.json`, JSON.stringify({
       format, error: error instanceof Error ? error.message : String(error),
       recovery: 'Canonical JSON transcription is retained. Export local captions from result.json without another transcription.'
     }, null, 2) + '\n')

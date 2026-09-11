@@ -7,12 +7,12 @@ describe('Bun profiling recipes', () => {
     for (const name of ['profile:cpu', 'profile:heap', 'profile:bundle', 'profile:tokenizer', 'profile:all']) {
       const script = packageJson.scripts?.[name] ?? ''
       expect(`${name}:clean`).toBe(`${name}:${script.startsWith('env -i ') ? 'clean' : 'inherited'}`)
-      expect(script).toContain('bun --no-env-file scripts/bun-profile.ts')
+      expect(script).toContain('bun --no-env-file src/tools/bun-profile.ts')
     }
   })
 
   test('runner records versioned metadata and all required Bun 1.4 profile surfaces', async () => {
-    const source = await readFile('scripts/bun-profile.ts', 'utf8')
+    const source = await readFile('src/tools/bun-profile.ts', 'utf8')
     expect(source).toContain("'--cpu-prof-md'")
     expect(source).toContain("'--heap-prof-md'")
     expect(source).toContain('--metafile-md=')
@@ -23,9 +23,9 @@ describe('Bun profiling recipes', () => {
   })
 
   test('bundle and heap inventories stay synthetic and cover runtime assets', async () => {
-    const runner = await readFile('scripts/bun-profile.ts', 'utf8')
-    const localWorkload = await readFile('scripts/profile-workloads/local-parsing-normalization.ts', 'utf8')
-    const tokenizerWorkload = await readFile('scripts/profile-workloads/reference-tokenizer-memory.ts', 'utf8')
+    const runner = await readFile('src/tools/bun-profile.ts', 'utf8')
+    const localWorkload = await readFile('src/tools/profile-workloads/local-parsing-normalization.ts', 'utf8')
+    const tokenizerWorkload = await readFile('src/tools/profile-workloads/reference-tokenizer-memory.ts', 'utf8')
     expect(runner).toContain('dynamicImports')
     expect(runner).toContain('sourceLayoutReferences')
     expect(runner).toContain('referenceTokenizer')

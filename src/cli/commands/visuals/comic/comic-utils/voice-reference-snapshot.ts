@@ -1,4 +1,5 @@
-import { mkdir, readFile, rename, rm } from 'node:fs/promises'
+import { readFileBytes } from '~/utils/bun-file-io'
+import { mkdir, rename, rm } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import type {
   ApprovedVoiceSnapshotEntry,
@@ -184,7 +185,7 @@ export const loadVoiceReferenceManifest = async (input: {
   const entry = matchingEntries[0]
   if (!entry) return undefined
   const relativePath = `assets/voice-references/${entry.snapshotId}/voice-reference-snapshot.json`
-  const bytes = new Uint8Array(await readFile(join(input.sceneRunDir, relativePath)))
+  const bytes = new Uint8Array(await readFileBytes(join(input.sceneRunDir, relativePath)))
   let parsed: VoiceReferenceManifest
   try {
     parsed = validateVoiceReferenceManifest(JSON.parse(new TextDecoder().decode(bytes)) as VoiceReferenceManifest)

@@ -27,8 +27,7 @@ const HOSTED_MUSIC_FLAGS = [
   'provider',
   'duration',
   'lyrics-file',
-  'instrumental',
-  'output-dir'
+  'instrumental'
 ] as const
 
 const LYRIC_VIDEO_FLAGS = [
@@ -160,6 +159,12 @@ export const musicCommand = defineCliCommand({
   parameters: [{ key: '[input]', description: 'Hosted music prompt or path to a local .md/.txt file' }],
   flags: musicCommandFlags,
   help: {
+    beforeFlags: [
+      'Hosted mode: music <prompt> [--provider provider[=model]]. Local mode: music --audio <file> [--captions <file>] or music --batch <dir>.',
+      `Do not combine a hosted prompt or hosted flags (${HOSTED_MUSIC_FLAGS.map(name => `--${name}`).join(', ')}) with lyric-video flags (${LYRIC_VIDEO_FLAGS.map(name => `--${name}`).join(', ')}).`,
+      '--audio and --captions cannot be combined with --batch. Local mode requires --audio or --batch.',
+      '--output-dir pins the hosted run, single lyric-video run, or lyric-video batch parent directory. --price performs read-only planning.',
+    ],
     examples: [
       ['bun autoshow music "cinematic orchestral trailer, dramatic strings and percussion" --provider elevenlabs=music_v2', 'Generate music with ElevenLabs Music v2'],
       ['bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental', 'Generate instrumental music with MiniMax Music 3.0'],

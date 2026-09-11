@@ -105,7 +105,9 @@ export const parseCommandArgv = (
   for (let index = 1; index < argv.length; index++) {
     const arg = argv[index] as string
     if (arg === '--') {
-      doubleDash = argv.slice(index + 1)
+      if (command.parametersAfterDoubleDash) {
+        positional.push(...argv.slice(index + 1).map((value, offset) => ({ value, index: index + offset + 1 })))
+      } else doubleDash = argv.slice(index + 1)
       break
     }
     if (

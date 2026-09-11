@@ -172,7 +172,7 @@ export async function probeAudio(audioPath: string): Promise<AudioProperties> {
       "-of", "json",
       audioPath,
     ],
-    { stdout: "pipe", stderr: "pipe" },
+    { env: Object.fromEntries(["PATH", "HOME"].flatMap(key => process.env[key] === undefined ? [] : [[key, process.env[key]!]])), stdout: "pipe", stderr: "pipe" },
   );
   const output = await new Response(proc.stdout).text();
   const exitCode = await proc.exited;

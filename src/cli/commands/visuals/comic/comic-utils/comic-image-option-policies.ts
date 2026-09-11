@@ -1,3 +1,4 @@
+import { assertQaOnlyRule } from './comic-qa-only-contract'
 import type {
   BlockingHardCandidateStatus,
   ParsedGenerateImagesArgs,
@@ -36,15 +37,15 @@ export const applyComicQaOnlyPolicy = (state: ComicImageOptionState) => {
   const { output, qaOnly, blockingLayoutGuide } = state
   const target = output.target ?? 'images'
   if (qaOnly) {
-    if (target !== 'images') throw UsageError('--qa-only requires --target images')
-    if (output.qa === false) throw UsageError('--qa-only cannot be combined with --no-qa')
-    if (output.maxRepairs !== undefined && output.maxRepairs !== 0) throw UsageError('--qa-only requires --max-repairs 0')
-    if (output.panelsPerImage !== undefined && output.panelsPerImage !== 1) throw UsageError('--qa-only requires --panels-per-image 1')
-    if (output.grid) throw UsageError('--qa-only cannot be combined with --grid')
-    if (output.variations !== undefined) throw UsageError('--qa-only cannot be combined with --variation')
-    if (output.force) throw UsageError('--qa-only cannot be combined with --force')
-    if (output.imageModels !== undefined || output.size !== undefined || output.quality !== undefined) throw UsageError('--qa-only does not accept image-generation options')
-    if (blockingLayoutGuide) throw UsageError('--qa-only cannot be combined with --blocking-layout-guide')
+    assertQaOnlyRule('target', target === 'images')
+    assertQaOnlyRule('qa', output.qa !== false)
+    assertQaOnlyRule('repairs', output.maxRepairs === undefined || output.maxRepairs === 0)
+    assertQaOnlyRule('panels', output.panelsPerImage === undefined || output.panelsPerImage === 1)
+    assertQaOnlyRule('grid', !output.grid)
+    assertQaOnlyRule('variation', output.variations === undefined)
+    assertQaOnlyRule('force', !output.force)
+    assertQaOnlyRule('image', output.imageModels === undefined && output.size === undefined && output.quality === undefined)
+    assertQaOnlyRule('guide', !blockingLayoutGuide)
     output.qa = true
     output.maxRepairs = 0
     output.panelsPerImage = 1

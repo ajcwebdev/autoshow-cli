@@ -1,5 +1,8 @@
 {
   "Speechify": {
+    "LLMSTXT": [
+      "https://docs.speechify.ai/llms.txt"
+    ],
     "Models": [
       "https://docs.speechify.ai/build/guides/concepts/models.md"
     ],

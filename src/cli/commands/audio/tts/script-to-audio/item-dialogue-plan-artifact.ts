@@ -1,4 +1,5 @@
-import { lstat, readFile, realpath } from 'node:fs/promises'
+import { readFileBytes } from '~/utils/bun-file-io'
+import { lstat, realpath } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import type { GenericTtsDialoguePlan, PipelineProviderState, TtsDialoguePlanArtifactRef } from '~/types'
 import { UsageError } from '~/utils/error-handler'
@@ -97,7 +98,7 @@ export const readTtsDialoguePlanArtifact = async (
   }
   const entry = await lstat(candidate)
   if (!entry.isFile()) throw UsageError('Canonical TTS dialogue-plan artifact is not a regular file.')
-  const bytes = await readFile(candidate)
+  const bytes = await readFileBytes(candidate)
   if (sha256Bytes(bytes) !== reference.sha256) {
     throw UsageError('Canonical TTS dialogue-plan artifact checksum does not match its provider options.')
   }

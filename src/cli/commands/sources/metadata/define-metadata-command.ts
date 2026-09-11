@@ -2,12 +2,13 @@ import { defineCliCommand } from '~/cli/native/native-types'
 import { metadataFlags } from '~/cli/flags/metadata-flags'
 import { handleProcessTarget } from '~/cli/commands/sources/download/download-targets/handle-process-target'
 
-const inputParameter = [{ key: '[input]', description: 'URL, local file, directory, URL list (.md/.txt), or X Space/post' }] as const
+const inputParameter = [{ key: '<input>', description: 'URL, local file, directory, URL list (.md/.txt), or X Space/post' }] as const
 
 export const metadataCommand = defineCliCommand({
   name: 'metadata',
   description: 'Collect and display metadata for media, documents, articles, or X Spaces without downloading',
   parameters: inputParameter,
+  parametersAfterDoubleDash: true,
   flags: metadataFlags,
   help: {
     examples: [

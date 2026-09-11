@@ -1,3 +1,4 @@
+import { normalizeCredentialValue } from '~/utils/validate/credential-value'
 import type { AutoshowConfig, HostedProviderConfigurationLogMode, HostedProviderConfigurationRow, HostedProviderConfigurationSummary, HostedProviderEnvCheck, HostedProviderStatus } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InternalError } from '~/utils/error-handler'
@@ -51,10 +52,11 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'glm',
     envVar: 'GLM_API_KEY',
-    label: 'GLM write/OCR',
+    label: 'GLM write/OCR/URL',
     hintUrl: 'https://docs.z.ai/',
-    stages: ['write', 'ocr'],
+    stages: ['write', 'ocr', 'url'],
     configPaths: [
+      'defaults.extract.url.provider=glm-reader',
       'defaults.llm.glm',
       'defaults.extract.ocr.glmOcr'
     ]
@@ -156,9 +158,9 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'minimax',
     envVar: 'MINIMAX_API_KEY',
-    label: 'MiniMax write/video/music',
+    label: 'MiniMax write/music',
     hintUrl: 'https://platform.minimax.io/',
-    stages: ['write', 'video', 'music'],
+    stages: ['write', 'music'],
     configPaths: [
       'defaults.llm.minimax',
       'defaults.music.minimaxMusic'
@@ -279,7 +281,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     label: 'Supadata STT/URL',
     hintUrl: 'https://supadata.ai/',
     stages: ['stt', 'url'],
-    configPaths: ['defaults.extract.stt.supadataStt']
+    configPaths: ['defaults.extract.url.provider=supadata', 'defaults.extract.stt.supadataStt']
   },
   {
     providerId: 'scrapecreators',
@@ -295,7 +297,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     label: 'Firecrawl URL',
     hintUrl: 'https://www.firecrawl.dev/',
     stages: ['url'],
-    configPaths: []
+    configPaths: ['defaults.extract.url.provider=firecrawl']
   },
   {
     providerId: 'spider',
@@ -303,7 +305,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     label: 'Spider URL',
     hintUrl: 'https://spider.cloud/',
     stages: ['url'],
-    configPaths: []
+    configPaths: ['defaults.extract.url.provider=spider']
   },
   {
     providerId: 'zyte',
@@ -311,7 +313,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     label: 'Zyte URL',
     hintUrl: 'https://www.zyte.com/',
     stages: ['url'],
-    configPaths: []
+    configPaths: ['defaults.extract.url.provider=zyte']
   },
   {
     providerId: 'x-spaces',
@@ -353,8 +355,7 @@ export const findHostedTtsCredential = (
     .find(check => check.ttsPreflight?.provider === provider)
 
 const configuredEnv = (env: Record<string, string | undefined>, envVar: string): boolean => {
-  const value = env[envVar]
-  return typeof value === 'string' && value.trim().length > 0
+  return normalizeCredentialValue(env[envVar]) !== undefined
 }
 
 const getConfigPathValue = (config: AutoshowConfig | undefined, path: string): unknown => {
@@ -375,7 +376,11 @@ const isConfiguredValue = (value: unknown): boolean => {
 export const getHostedProviderConfiguredPaths = (
   config: AutoshowConfig | undefined,
   paths: readonly string[]
-): string[] => paths.filter(path => isConfiguredValue(getConfigPathValue(config, path)))
+): string[] => paths.filter(path => {
+  const [key, expected] = path.split('=')
+  const value = getConfigPathValue(config, key!)
+  return expected === undefined ? isConfiguredValue(value) : value === expected
+})
 
 export const getMissingConfiguredHostedProviderCredentials = (
   env: Record<string, string | undefined>,

@@ -73,8 +73,9 @@ test('concurrent Defuddle setup callers share a single managed install', async (
   const managedDefuddleBin = join(
     defuddleRuntimeDir,
     'node_modules',
-    '.bin',
-    process.platform === 'win32' ? 'defuddle.cmd' : 'defuddle'
+    'defuddle',
+    'dist',
+    'cli.js'
   )
   const backupDir = `${defuddleRuntimeDir}.autoshow-test-${Date.now()}-${Math.random().toString(16).slice(2)}`
   const hadRuntimeDir = await pathExists(defuddleRuntimeDir)
@@ -103,7 +104,8 @@ test('concurrent Defuddle setup callers share a single managed install', async (
     if (executable === fakeOverrideBin && args[0] === '--version') {
       return spawnResult('', 'invalid override defuddle', 1)
     }
-    if (executable === 'bun' && args[0] === 'install') {
+    if (executable === process.execPath && args.includes('install')) {
+      expect(args).toEqual(['--no-env-file', 'install', '--frozen-lockfile', '--ignore-scripts'])
       installCalls += 1
       activeInstalls += 1
       maxActiveInstalls = Math.max(maxActiveInstalls, activeInstalls)
@@ -113,7 +115,7 @@ test('concurrent Defuddle setup callers share a single managed install', async (
       const exited = (async (): Promise<number> => {
         try {
           await Bun.sleep(25)
-          await mkdir(join(cwd, 'node_modules', '.bin'), { recursive: true })
+          await mkdir(join(cwd, 'node_modules', 'defuddle', 'dist'), { recursive: true })
           await writeFile(managedDefuddleBin, '#!/usr/bin/env bun\n')
           await chmod(managedDefuddleBin, 0o755)
           return 0
@@ -123,8 +125,8 @@ test('concurrent Defuddle setup callers share a single managed install', async (
       })()
       return spawnResult('', '', exited)
     }
-    if (executable === managedDefuddleBin && args[0] === '--version') {
-      return spawnResult('0.17.0\n', '', 0)
+    if (executable === process.execPath && args.includes(managedDefuddleBin) && args.includes('--version')) {
+      return spawnResult('0.19.3\n', '', 0)
     }
     throw new Error(`Unexpected spawn: ${commandArgs.join(' ')}`)
   }) as typeof Bun.spawn

@@ -28,6 +28,7 @@ import { DEFAULT_CONCURRENCY_FLAG_VALUE } from '~/utils/concurrency-defaults'
 import { IMAGE_GENERATION_QUALITIES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
 import { sharedConcurrencyFlags } from './shared-flags'
+import { REFERENCE_LOCATION_ONLY_FLAGS } from './reference-option-contract'
 
 const comicPriceFlag = {
   price: boolFlag(colorizeHelpDescription('Dry run: estimate API cost without making any calls'))
@@ -250,7 +251,12 @@ const referenceSketchSheetFlags = {
 export const referenceSketchFlags = {
   ...withHelpGroup(referenceSketchSheetFlags, 'comic-reference'),
   ...withHelpGroup(comicImageFlags, 'comic-image'),
-  ...withHelpGroup(comicQaFlags, 'comic-qa'),
+  ...withHelpGroup(pickFlags(comicQaFlags, ['qa', 'qa-model', 'max-repairs']), 'comic-qa'),
   ...withHelpGroup(comicConcurrencyFlag, 'comic-run'),
   ...withHelpGroup(comicPriceFlag, 'pricing')
 } as const satisfies CliFlagsDefinition
+
+for (const name of REFERENCE_LOCATION_ONLY_FLAGS) {
+  const flag = referenceSketchFlags[name]
+  if (flag) flag.description = `Location only: ${flag.description}`
+}

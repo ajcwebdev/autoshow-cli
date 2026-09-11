@@ -1,3 +1,4 @@
+import { childEnv } from '~/utils/child-env'
 import { join } from 'node:path'
 import type { GenerateImagesCommandOptions } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
@@ -44,7 +45,7 @@ const buildRevisionPrompt = (entry: LoadedRevisionEntry): string => [
 const runFfmpegMetric = async (originalPath: string, candidatePath: string, filter: 'ssim' | 'psnr'): Promise<string> => {
   const normalize = 'scale=384:256:flags=lanczos,setsar=1,format=yuv444p'
   const filterGraph = `[0:v]${normalize}[original];[1:v]${normalize}[candidate];[original][candidate]${filter}`
-  const process = Bun.spawn([getFfmpegBinary(), '-hide_banner', '-nostdin', '-i', originalPath, '-i', candidatePath, '-filter_complex', filterGraph, '-f', 'null', '-'], { stdout: 'pipe', stderr: 'pipe' })
+  const process = Bun.spawn([getFfmpegBinary(), '-hide_banner', '-nostdin', '-i', originalPath, '-i', candidatePath, '-filter_complex', filterGraph, '-f', 'null', '-'], { env: childEnv(), stdout: 'pipe', stderr: 'pipe' })
   const [, stderr, exitCode] = await Promise.all([new Response(process.stdout).text(), new Response(process.stderr).text(), process.exited])
   if (exitCode !== 0) throw ValidationError(`FFmpeg ${filter} comparison failed: ${stderr.trim()}`, { stage: 'comic:revision-similarity' })
   return stderr

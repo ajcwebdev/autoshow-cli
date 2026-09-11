@@ -1,6 +1,7 @@
+import { copyFileExact } from '~/utils/bun-file-io'
 import { writeTranscriptVideoAss, writeTranscriptVideoCaptions, writeTranscriptVideoManifest } from './transcript-video-artifacts'
 import { resolveCaptionWordCoverage } from '../captions/caption-word-coverage'
-import { copyFile, mkdir, rm } from 'node:fs/promises'
+import { mkdir, rm } from 'node:fs/promises'
 import { dirname, extname, join, resolve } from 'node:path'
 import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/command-shared/pipeline-manifest'
 import { resolveRunDirectory } from '~/cli/commands/command-shared/run-dir'
@@ -57,7 +58,7 @@ const processTranscriptVideoRun = async (
     let backgroundRelativePath: string | undefined
     if (imagePath) {
       backgroundRelativePath = `background${extname(imagePath).toLowerCase()}`
-      await copyFile(imagePath, join(tempDir, backgroundRelativePath))
+      await copyFileExact(imagePath, join(tempDir, backgroundRelativePath))
     }
 
     const renderStartedAt = Date.now()
@@ -78,7 +79,7 @@ const processTranscriptVideoRun = async (
     })
     const renderMs = Date.now() - renderStartedAt
 
-    await copyFile(renderedVideoPath, videoPath)
+    await copyFileExact(renderedVideoPath, videoPath)
 
     const totalMs = Date.now() - startedAt
     await writeTranscriptVideoManifest({

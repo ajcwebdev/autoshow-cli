@@ -3,14 +3,11 @@ import {
   CARTESIA_GENERAL_LINKS,
   CARTESIA_MODELS_LINKS,
   CARTESIA_TTS_LINKS,
-  DEAPI_ALL_LINKS,
-  DEAPI_GENERAL_LINKS,
-  DEAPI_MODELS_LINKS,
-  DEAPI_STT_LINKS,
   GROK_ALL_LINKS,
   GROK_MODELS_LINKS,
   GROK_STT_LINKS,
   GROK_TTS_LINKS,
+  HUME_ALL_LINKS,
   HUME_GENERAL_LINKS,
   HUME_TTS_LINKS,
   INWORLD_ALL_LINKS,
@@ -57,7 +54,7 @@ registerProviderSelectorCases([
   {
     name: 'links selector accepts hume provider with general and tts sections',
     provider: 'hume',
-    all: { expected: [...HUME_GENERAL_LINKS, ...HUME_TTS_LINKS], outputFileName: 'hume-all-links.md' },
+    all: { expected: HUME_ALL_LINKS, outputFileName: 'hume-all-links.md' },
     selections: [
       { sections: ['tts'], expected: HUME_TTS_LINKS, outputFileName: 'hume-tts-links.md' },
       { sections: ['general', 'tts'], expected: [...HUME_GENERAL_LINKS, ...HUME_TTS_LINKS], outputFileName: 'hume-general-tts-links.md' }
@@ -74,17 +71,6 @@ registerProviderSelectorCases([
       { sections: ['general', 'tts'], expected: [...INWORLD_GENERAL_LINKS, ...INWORLD_TTS_LINKS], outputFileName: 'inworld-general-tts-links.md' }
     ],
     invalid: { sections: ['stt'], message: 'Unknown links section(s) for --inworld: stt' }
-  },
-  {
-    name: 'links selector accepts deapi provider with general models and stt sections',
-    provider: 'deapi',
-    all: { expected: DEAPI_ALL_LINKS, outputFileName: 'deapi-all-links.md' },
-    selections: [
-      { sections: ['stt'], expected: DEAPI_STT_LINKS, outputFileName: 'deapi-stt-links.md' },
-      { sections: ['models'], expected: DEAPI_MODELS_LINKS },
-      { sections: ['general', 'stt'], expected: [...DEAPI_GENERAL_LINKS, ...DEAPI_STT_LINKS], outputFileName: 'deapi-general-stt-links.md' }
-    ],
-    invalid: { sections: ['tts'], message: 'Unknown links section(s) for --deapi: tts' }
   },
   {
     name: 'links selector accepts grok provider with models and tts sections',

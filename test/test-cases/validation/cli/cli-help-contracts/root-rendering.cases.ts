@@ -121,7 +121,7 @@ export const registerRootRenderingCases = (): void => {
       expect(result.stdout.split('\n').filter((line) => line.length > 0 && line.trim() === '')).toEqual([])
     }
 
-    const voice = await loadHelp(['voice', '--help'])
+    const voice = await loadHelp(['voice', 'import', '--help'])
     const description = 'Register an existing ElevenLabs voice'
     const descriptionLine = voice.stdout.split('\n').find((line) => line.includes(description))
     expect(descriptionLine).toBeDefined()

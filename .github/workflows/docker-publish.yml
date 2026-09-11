@@ -21,10 +21,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Install supported Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
           bun-version: 1.4.2
 
@@ -109,10 +109,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Install supported Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
           bun-version: 1.4.2
 
@@ -139,7 +139,7 @@ jobs:
           env -i PATH="${PATH}" HOME="${RUNNER_TEMP}/bun-package-home" CI=true bun pm licenses --prod --json > runtime/ci/production-licenses.json
 
       - name: Upload production license report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: production-license-report
           path: runtime/ci/production-licenses.json
@@ -147,7 +147,7 @@ jobs:
           retention-days: 14
 
       - name: Upload dependency cleanup review
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: dependency-cleanup-review
           path: |
@@ -175,13 +175,25 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git init .
-          git fetch --depth 1 "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${GITHUB_SHA}"
+          umask 077
+          credential_helper="$(mktemp)"
+          trap 'rm -f "$credential_helper"' EXIT
+          cat > "$credential_helper" <<'HELPER'
+          #!/bin/sh
+          if [ "$1" = get ]; then
+            printf 'username=x-access-token\npassword=%s\n' "$GITHUB_TOKEN"
+          fi
+          HELPER
+          chmod 700 "$credential_helper"
+          GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c "credential.helper=$credential_helper" fetch --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "${GITHUB_SHA}"
           git checkout --detach FETCH_HEAD
 
       - name: Create Buildx builder
-        run: |
-          docker buildx create --name autoshow-builder --driver docker-container --use
-          docker buildx inspect --bootstrap
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+        with:
+          name: autoshow-builder
+          version: v0.37.0
+          driver-opts: image=moby/buildkit:v0.33.0@sha256:6c2fa84a6b61ccd72899dde4239f8d5717f05f9a8ca6f3cad185fb1a95a94de3
 
       - name: Log in to GitHub Container Registry
         env:
@@ -236,6 +248,11 @@ jobs:
           docker pull --platform linux/amd64 "${image_ref}" >/dev/null
           # Materialize lazy image layers before reading their sizes.
           test "$(docker run --rm --platform linux/amd64 --network none --entrypoint bun "${image_ref}" --version)" = "1.4.2"
+          test "$(uname -m)" = "x86_64"
+          test "$(docker info --format '{{.Architecture}}')" = "x86_64"
+          mkdir -p docs/reports/release-evidence/amd64
+          docker run --rm --platform linux/amd64 --network none --entrypoint bun --mount "type=bind,src=${GITHUB_WORKSPACE}/test/docker-acceptance/native-image-acceptance.ts,dst=/app/test/docker-acceptance/native-image-acceptance.ts,readonly" "${image_ref}" --no-env-file /app/test/docker-acceptance/native-image-acceptance.ts x64 > docs/reports/release-evidence/amd64/rendering.log 2>&1
+          jq -n --arg digest "${IMAGE_DIGEST}" --arg architecture amd64 '{digest:$digest,architecture:$architecture,native:true,network:"none",status:"passed"}' > docs/reports/release-evidence/amd64/native-acceptance.json
           docker history --no-trunc --human=false --format '{{json .}}' "${image_ref}" > "${report_dir}/image-history.jsonl"
           docker run --rm --platform linux/amd64 --entrypoint bun "${image_ref}" --no-env-file install --frozen-lockfile --production > "${report_dir}/production-install.log" 2>&1
           docker run --rm --platform linux/amd64 "${image_ref}" --help > "${report_dir}/help.log" 2>&1
@@ -286,12 +303,55 @@ jobs:
             '{platform:$platform,digest:$digest,execution:"native GitHub runner",fixture:{path:"test/fixtures/setup/managed-toolchain-smoke.pdf",sha256:$fixtureSha256,workload:"local Tesseract OCR"},measurements:{buildDurationMs:$buildDurationMs,imageSizeBytes:$imageSizeBytes,coldHelpWallMs:$helpSamples,cliPrebuildMs:$prebuildSamples,fixturePeakRssBytes:$fixturePeakSamples}}' \
             > "${report_dir}/measurements.json"
 
+      - name: Record the exact shipped image graph
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          image="ghcr.io/$(printf '%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')@${IMAGE_DIGEST}"
+          printf 'DEPENDENCY_SCAN_IMAGE=%s\n' "${image}" >> "${GITHUB_ENV}"
+          docker image inspect "${image}" > runtime/ci/docker-amd64/image-identity.json
+          docker run --rm --network none --entrypoint sh "${image}" -c 'dpkg-query -W -f="\${Package}\t\${Version}\t\${Architecture}\n"' > runtime/ci/docker-amd64/debian-packages.tsv
+          docker run --rm --network none --entrypoint tar "${image}" -czf - /usr/share/doc > runtime/ci/docker-amd64/native-notices.tar.gz
+
+      - name: Inventory the exact shipped image
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
+        with:
+          image: ${{ env.DEPENDENCY_SCAN_IMAGE }}
+          syft-version: v1.51.1
+          format: spdx-json
+          output-file: runtime/ci/docker-amd64/image.spdx.json
+          upload-artifact: false
+
+      - name: Audit the exact shipped image
+        uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e
+        with:
+          sbom: runtime/ci/docker-amd64/image.spdx.json
+          grype-version: v0.118.0
+          output-format: json
+          output-file: runtime/ci/docker-amd64/image-advisories.json
+          fail-build: false
+          severity-cutoff: high
+      - name: Record dispositions for every high and critical advisory
+        run: docker run --rm --network none --entrypoint bun --mount "type=bind,src=${GITHUB_WORKSPACE}/runtime/ci/docker-amd64,dst=/evidence,readonly" "${DEPENDENCY_SCAN_IMAGE}" --no-env-file src/tools/triage-image-advisories.ts /evidence --scan-name image-advisories.json > docs/reports/release-evidence/amd64/advisory-triage.json
+
+      - name: Gate actionable high severity image findings
+        uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e
+        with:
+          sbom: runtime/ci/docker-amd64/image.spdx.json
+          grype-version: v0.118.0
+          output-format: json
+          output-file: runtime/ci/docker-amd64/image-advisories-fixable.json
+          only-fixed: true
+          severity-cutoff: high
+
       - name: Upload AMD64 verification evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: docker-verification-amd64
-          path: runtime/ci/docker-amd64
+          path: |
+            runtime/ci/docker-amd64
+            docs/reports/release-evidence/amd64
           if-no-files-found: error
           retention-days: 14
 
@@ -314,13 +374,25 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git init .
-          git fetch --depth 1 "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${GITHUB_SHA}"
+          umask 077
+          credential_helper="$(mktemp)"
+          trap 'rm -f "$credential_helper"' EXIT
+          cat > "$credential_helper" <<'HELPER'
+          #!/bin/sh
+          if [ "$1" = get ]; then
+            printf 'username=x-access-token\npassword=%s\n' "$GITHUB_TOKEN"
+          fi
+          HELPER
+          chmod 700 "$credential_helper"
+          GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c "credential.helper=$credential_helper" fetch --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "${GITHUB_SHA}"
           git checkout --detach FETCH_HEAD
 
       - name: Create Buildx builder
-        run: |
-          docker buildx create --name autoshow-builder --driver docker-container --use
-          docker buildx inspect --bootstrap
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+        with:
+          name: autoshow-builder
+          version: v0.37.0
+          driver-opts: image=moby/buildkit:v0.33.0@sha256:6c2fa84a6b61ccd72899dde4239f8d5717f05f9a8ca6f3cad185fb1a95a94de3
 
       - name: Log in to GitHub Container Registry
         env:
@@ -375,6 +447,11 @@ jobs:
           docker pull --platform linux/arm64 "${image_ref}" >/dev/null
           # Materialize lazy image layers before reading their sizes.
           test "$(docker run --rm --platform linux/arm64 --network none --entrypoint bun "${image_ref}" --version)" = "1.4.2"
+          test "$(uname -m)" = "aarch64"
+          test "$(docker info --format '{{.Architecture}}')" = "aarch64"
+          mkdir -p docs/reports/release-evidence/arm64
+          docker run --rm --platform linux/arm64 --network none --entrypoint bun --mount "type=bind,src=${GITHUB_WORKSPACE}/test/docker-acceptance/native-image-acceptance.ts,dst=/app/test/docker-acceptance/native-image-acceptance.ts,readonly" "${image_ref}" --no-env-file /app/test/docker-acceptance/native-image-acceptance.ts arm64 > docs/reports/release-evidence/arm64/rendering.log 2>&1
+          jq -n --arg digest "${IMAGE_DIGEST}" --arg architecture arm64 '{digest:$digest,architecture:$architecture,native:true,network:"none",status:"passed"}' > docs/reports/release-evidence/arm64/native-acceptance.json
           docker history --no-trunc --human=false --format '{{json .}}' "${image_ref}" > "${report_dir}/image-history.jsonl"
           docker run --rm --platform linux/arm64 --entrypoint bun "${image_ref}" --no-env-file install --frozen-lockfile --production > "${report_dir}/production-install.log" 2>&1
           docker run --rm --platform linux/arm64 "${image_ref}" --help > "${report_dir}/help.log" 2>&1
@@ -425,12 +502,55 @@ jobs:
             '{platform:$platform,digest:$digest,execution:"native GitHub runner",fixture:{path:"test/fixtures/setup/managed-toolchain-smoke.pdf",sha256:$fixtureSha256,workload:"local Tesseract OCR"},measurements:{buildDurationMs:$buildDurationMs,imageSizeBytes:$imageSizeBytes,coldHelpWallMs:$helpSamples,cliPrebuildMs:$prebuildSamples,fixturePeakRssBytes:$fixturePeakSamples}}' \
             > "${report_dir}/measurements.json"
 
+      - name: Record the exact shipped image graph
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          image="ghcr.io/$(printf '%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')@${IMAGE_DIGEST}"
+          printf 'DEPENDENCY_SCAN_IMAGE=%s\n' "${image}" >> "${GITHUB_ENV}"
+          docker image inspect "${image}" > runtime/ci/docker-arm64/image-identity.json
+          docker run --rm --network none --entrypoint sh "${image}" -c 'dpkg-query -W -f="\${Package}\t\${Version}\t\${Architecture}\n"' > runtime/ci/docker-arm64/debian-packages.tsv
+          docker run --rm --network none --entrypoint tar "${image}" -czf - /usr/share/doc > runtime/ci/docker-arm64/native-notices.tar.gz
+
+      - name: Inventory the exact shipped image
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
+        with:
+          image: ${{ env.DEPENDENCY_SCAN_IMAGE }}
+          syft-version: v1.51.1
+          format: spdx-json
+          output-file: runtime/ci/docker-arm64/image.spdx.json
+          upload-artifact: false
+
+      - name: Audit the exact shipped image
+        uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e
+        with:
+          sbom: runtime/ci/docker-arm64/image.spdx.json
+          grype-version: v0.118.0
+          output-format: json
+          output-file: runtime/ci/docker-arm64/image-advisories.json
+          fail-build: false
+          severity-cutoff: high
+      - name: Record dispositions for every high and critical advisory
+        run: docker run --rm --network none --entrypoint bun --mount "type=bind,src=${GITHUB_WORKSPACE}/runtime/ci/docker-arm64,dst=/evidence,readonly" "${DEPENDENCY_SCAN_IMAGE}" --no-env-file src/tools/triage-image-advisories.ts /evidence --scan-name image-advisories.json > docs/reports/release-evidence/arm64/advisory-triage.json
+
+      - name: Gate actionable high severity image findings
+        uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e
+        with:
+          sbom: runtime/ci/docker-arm64/image.spdx.json
+          grype-version: v0.118.0
+          output-format: json
+          output-file: runtime/ci/docker-arm64/image-advisories-fixable.json
+          only-fixed: true
+          severity-cutoff: high
+
       - name: Upload ARM64 verification evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: docker-verification-arm64
-          path: runtime/ci/docker-arm64
+          path: |
+            runtime/ci/docker-arm64
+            docs/reports/release-evidence/arm64
           if-no-files-found: error
           retention-days: 14
 
@@ -487,10 +607,10 @@ jobs:
         shard: [core, network, 'whisperfile:tiny', 'whisperfile:tiny.en', 'whisperfile:small', 'whisperfile:small.en']
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Install supported Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
           bun-version: 1.4.2
 
@@ -499,7 +619,7 @@ jobs:
 
       - name: Restore local assets
         id: assets
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: runtime/docker-acceptance/cache
           key: docker-local-v1-${{ matrix.arch }}-${{ matrix.shard }}-${{ hashFiles('Dockerfile', 'src/cli/commands/setup-and-utilities/**', 'src/cli/commands/stt/local/**', 'src/cli/commands/text/url/url-local/**') }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -530,14 +650,14 @@ jobs:
 
       - name: Retain local assets even after failure
         if: always() && steps.assets.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: runtime/docker-acceptance/cache
           key: ${{ steps.assets.outputs.cache-primary-key }}
 
       - name: Upload acceptance evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ghcr-acceptance-${{ matrix.arch }}-${{ strategy.job-index }}
           path: runtime/docker-acceptance/evidence

@@ -1,4 +1,5 @@
-import { readdir, readFile } from 'node:fs/promises'
+import { readUtf8FileExact } from '~/utils/bun-file-io'
+import { readdir } from 'node:fs/promises'
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
 import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { LeafPromptSchema } from '~/prompts/prompt-loader'
@@ -333,7 +334,7 @@ export const readPromptFileText = async (filePath: string | undefined): Promise<
     throw InfraError(`Prompt file is not a regular file: ${filePath}`, { stage: 'write:text-input' })
   }
 
-  const text = await readFile(filePath, 'utf8')
+  const text = await readUtf8FileExact(filePath)
   const normalized = text.trim()
   promptFileCache.set(filePath, normalized)
   return normalized.length > 0 ? normalized : undefined
@@ -359,7 +360,7 @@ export const readPromptFile = async (filePath: string | undefined): Promise<Prom
     throw InfraError(`Prompt file is not a regular file: ${filePath}`, { stage: 'write:text-input' })
   }
 
-  const text = await readFile(filePath, 'utf8')
+  const text = await readUtf8FileExact(filePath)
   const normalized = text.trim()
 
   if (normalized.length === 0) {
@@ -407,7 +408,7 @@ const loadTrackTitles = async (filePath: string | undefined): Promise<Map<string
     throw InfraError(`Track list is not a regular file: ${filePath}`, { stage: 'write:text-input' })
   }
 
-  const content = await readFile(filePath, 'utf8')
+  const content = await readUtf8FileExact(filePath)
   const tracks = new Map<string, string>()
   for (const line of content.split(/\r?\n/)) {
     const match = line.match(TRACK_LINE_PATTERN)

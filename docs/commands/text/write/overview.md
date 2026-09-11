@@ -57,14 +57,14 @@ TOGETHER_API_KEY=...
 ## Usage
 
 ```bash
-bun autoshow write [input] [flags]
+bun autoshow write <input> [flags]
 ```
 
-`write` accepts only local `.md` / `.txt` files or directories of those files. A `.md` or `.txt` file is always treated as source text, not as a URL or file-path list. `--llm` selects one or more hosted writers. URLs, media, documents, HTML, and X Spaces must go through `extract` first; then pass the extracted `.txt` / `.md` to `write`.
+`write` accepts only local `.md` / `.txt` files or directories of those files. A `.md` or `.txt` file is always treated as source text, not as a URL or file-path list. `--provider` selects one or more hosted writers. `--llm` remains a compatibility alias with the same additive saved-default behavior; repeat either selector to choose multiple targets, and do not combine the two spellings. Use `bun autoshow write --help-topic providers` for selector details. URLs, media, documents, HTML, and X Spaces must go through `extract` first; then pass the extracted `.txt` / `.md` to `write`.
 
 ```bash
 bun autoshow extract video.mp4 --provider deepgram
-bun autoshow write output/<extract-run>/transcription.txt --llm openai --prompt shortSummary --rendered-text
+bun autoshow write output/<extract-run>/transcription.txt --provider openai --prompt shortSummary --rendered-text
 ```
 
 Project lyric draft mode is enabled when the input is `./output/<name>/text` or a `.md` / `.txt` file under that directory. In that mode, `write` reads `./output/<name>/prompt.md` by default, uses `./output/<name>/tracks.md` when present, and writes rendered markdown drafts to `./output/<name>/lyrics`.
@@ -95,8 +95,8 @@ Project lyric draft mode is enabled when the input is `./output/<name>/text` or 
 See [Provider Capabilities](#provider-capabilities) for the per-model reasoning, context, structured-output, and pricing matrix.
 
 ```bash
-bun autoshow write output/<extract-run>/transcription.txt --llm openai=gpt-5.5 --prompt shortSummary longSummary
-bun autoshow write notes.md --llm openai=gpt-5.5 --prompt blog
+bun autoshow write output/<extract-run>/transcription.txt --provider openai=gpt-5.5 --prompt shortSummary longSummary
+bun autoshow write notes.md --provider openai=gpt-5.5 --prompt blog
 bun autoshow write ./output/demo/text --prompt rockSong
 bun autoshow write ./output/demo/text --price
 bun autoshow write ./output/demo/text --all-providers --max-model-cents 50 --price
@@ -119,8 +119,8 @@ Step selectors accept `provider[=model]`. Omitting the model resolves to the che
 | Default  | Passing `--llm openai` uses `gpt-5.6-luna`                                                |
 
 ```bash
-bun autoshow write output/<extract-run>/transcription.txt --llm openai=gpt-5.6-sol
-bun autoshow write output/<extract-run>/transcription.txt --llm openai=gpt-5.5 --llm openai=gpt-5.4-mini
+bun autoshow write output/<extract-run>/transcription.txt --provider openai=gpt-5.6-sol
+bun autoshow write output/<extract-run>/transcription.txt --provider openai=gpt-5.5 --provider openai=gpt-5.4-mini
 ```
 
 ### Anthropic
@@ -132,7 +132,7 @@ bun autoshow write output/<extract-run>/transcription.txt --llm openai=gpt-5.5 -
 | Default  | Passing `--llm anthropic` uses `claude-haiku-4-5`                                                                |
 
 ```bash
-bun autoshow write output/<extract-run>/transcription.txt --llm anthropic=claude-fable-5
+bun autoshow write output/<extract-run>/transcription.txt --provider anthropic=claude-fable-5
 ```
 
 Claude Fable 5 requires 30-day data retention and is unavailable under ZDR.
@@ -152,7 +152,7 @@ Sources: [model specification](https://ai.google.dev/gemini-api/docs/models/gemi
 | Default  | Passing `--llm gemini` uses `gemini-3.5-flash-lite`                                       |
 
 ```bash
-bun autoshow write output/<extract-run>/transcription.txt --llm gemini=gemini-3.6-flash
+bun autoshow write output/<extract-run>/transcription.txt --provider gemini=gemini-3.6-flash
 ```
 
 Gemini 3.7 Flash `--price` estimates use the standard `$1.50 / $7.50` rates effective 2027-01-01, overstating cost during the introductory `$0.75 / $3.75` window through 2026-12-31. Gemini 3.1 Pro Preview is `$4.00 / $18.00` per 1M tokens above 200K.
@@ -166,7 +166,7 @@ Gemini 3.7 Flash `--price` estimates use the standard `$1.50 / $7.50` rates effe
 | Default  | Passing `--llm minimax` uses `MiniMax-M3` |
 
 ```bash
-bun autoshow write output/<extract-run>/transcription.txt --llm minimax=MiniMax-M3
+bun autoshow write output/<extract-run>/transcription.txt --provider minimax=MiniMax-M3
 ```
 
 Above 512K input tokens, MiniMax is `$1.20 / 1M input` and `$4.80 / 1M output`.
@@ -180,7 +180,7 @@ Above 512K input tokens, MiniMax is `$1.20 / 1M input` and `$4.80 / 1M output`.
 | Default  | Passing `--llm grok` uses `grok-4.3` |
 
 ```bash
-bun autoshow write output/<extract-run>/transcription.txt --llm grok=grok-4.5
+bun autoshow write output/<extract-run>/transcription.txt --provider grok=grok-4.5
 ```
 
 Grok 4.5 and Grok 4.6 price estimates use `$2 / 1M input` and `$6 / 1M output` through 200K input tokens, then `$4 / 1M input` and `$12 / 1M output` above 200K.
@@ -194,7 +194,7 @@ Grok 4.5 and Grok 4.6 price estimates use `$2 / 1M input` and `$6 / 1M output` t
 | Default  | Passing `--llm glm` uses `glm-5.1` |
 
 ```bash
-bun autoshow write output/<extract-run>/transcription.txt --llm glm=glm-5.1
+bun autoshow write output/<extract-run>/transcription.txt --provider glm=glm-5.1
 ```
 
 ### Kimi
@@ -206,7 +206,7 @@ bun autoshow write output/<extract-run>/transcription.txt --llm glm=glm-5.1
 | Default  | Passing `--llm kimi` uses `kimi-k2.6` |
 
 ```bash
-bun autoshow write output/<extract-run>/transcription.txt --llm kimi=kimi-k3
+bun autoshow write output/<extract-run>/transcription.txt --provider kimi=kimi-k3
 ```
 
 Kimi K3 thinking is on by default; `--reasoning-effort` can change it.
@@ -220,7 +220,7 @@ Kimi K3 thinking is on by default; `--reasoning-effort` can change it.
 | Default  | Passing `--llm together` uses `glm-5.1` |
 
 ```bash
-bun autoshow write output/<extract-run>/transcription.txt --llm together=kimi-k2.6
+bun autoshow write output/<extract-run>/transcription.txt --provider together=kimi-k2.6
 ```
 
 ## Prompts
@@ -300,7 +300,7 @@ bun autoshow write output/<extract-run>/transcription.txt --llm together=kimi-k2
 
 ```bash
 bun autoshow extract video.mp4 --provider deepgram
-bun autoshow write output/<extract-run>/transcription.txt --llm openai --prompt shortSummary --rendered-text
+bun autoshow write output/<extract-run>/transcription.txt --provider openai --prompt shortSummary --rendered-text
 bun autoshow tts output/<write-run>/text.md --provider elevenlabs
 bun autoshow music output/<write-run>/text.md --provider elevenlabs
 bun autoshow image "$(cat output/<write-run>/text.md)" --provider openai

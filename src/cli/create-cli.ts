@@ -1,3 +1,4 @@
+import { childEnv } from '~/utils/child-env'
 import { installProcessFailureHandlers } from '~/cli/failure-handlers'
 import { extractErrorHints, extractErrorMetadata, formatErrorMessage, isUsageError, normalizeExitCode, usageMessage } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
@@ -23,7 +24,7 @@ export const shouldRelaunchSetupWithNoOrphans = (
   argv: readonly string[],
   env: Readonly<Record<string, string | undefined>> = process.env,
   isStandaloneExecutable = Bun.isStandaloneExecutable
-): boolean => !isStandaloneExecutable && argv[0] === 'setup' && env[SETUP_NO_ORPHANS_MARKER] !== '1'
+): boolean => !isStandaloneExecutable && argv[0] === 'setup' && !argv.some(arg => arg === '--doctor' || arg.startsWith('--doctor=')) && env[SETUP_NO_ORPHANS_MARKER] !== '1'
 
 export const buildSetupNoOrphansArgs = (
   entrypoint: string,
@@ -153,6 +154,8 @@ export const runCliInProcess = async (argv: string[]): Promise<number> => {
   })
 }
 
+export const buildSetupChildEnv = (): Record<string, string> => childEnv({ allow: ['TMPDIR', 'AUTOSHOW_PROJECT_ROOT', 'AUTOSHOW_DISABLE_HTTP_KEEPALIVE'], set: { [SETUP_NO_ORPHANS_MARKER]: '1' } })
+
 const main = async (): Promise<void> => {
   const argv = Bun.argv.slice(2)
   if (shouldRelaunchSetupWithNoOrphans(argv)) {
@@ -160,10 +163,7 @@ const main = async (): Promise<void> => {
       process.execPath,
       ...buildSetupNoOrphansArgs(import.meta.path, argv)
     ], {
-      env: {
-        ...process.env,
-        [SETUP_NO_ORPHANS_MARKER]: '1'
-      },
+      env: buildSetupChildEnv(),
       stdin: 'inherit',
       stdout: 'inherit',
       stderr: 'inherit'

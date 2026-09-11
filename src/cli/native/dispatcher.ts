@@ -39,9 +39,15 @@ export const dispatchNativeCli = async (
   const parsed = parseNativeCli(argv, commands, root.globalFlags)
 
   if (parsed.mode === 'help') {
+    const options = { topic: typeof parsed.flags['help-topic'] === 'string' ? parsed.flags['help-topic'] : undefined }
+    for (const argument of argv) {
+      if (argument === '--') break
+      if (argument === '--color' || argument === '--color=true') configureColor('force')
+      if (argument === '--no-color' || argument === '--color=false') configureColor('disable')
+    }
     const document = parsed.command
-      ? renderCommandHelp(root, parsed.command)
-      : renderRootHelp(root, commands)
+      ? renderCommandHelp(root, parsed.command, options)
+      : renderRootHelp(root, commands, options)
     const commandName = parsed.calledAs ?? parsed.command?.name ?? 'help'
     setResultCommand(commandName)
     stageResult({ document }, 'Help')

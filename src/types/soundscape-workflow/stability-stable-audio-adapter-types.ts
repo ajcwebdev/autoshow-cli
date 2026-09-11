@@ -1,8 +1,5 @@
-type StabilityStableAudioEndpoint =
-  typeof import('~/cli/commands/audio/tts/soundscape/stability-stable-audio-adapter').STABILITY_STABLE_AUDIO_ENDPOINT
-
 export type StabilitySoundEffectSerializedRequest = {
-  path: StabilityStableAudioEndpoint
+  path: string
   body: {
     prompt: string
     duration: number
@@ -11,9 +8,9 @@ export type StabilitySoundEffectSerializedRequest = {
 }
 
 export type StabilitySoundEffectHttpRequest = (input: {
-  method: 'POST'
-  path: StabilityStableAudioEndpoint
+  method: 'POST' | 'GET'
+  path: string
   headers: Record<string, string>
-  body: FormData
+  body?: FormData | undefined
   cancellation: AbortSignal
 }) => Promise<{ status: number, headers?: Headers | Record<string, string> | undefined, body: Uint8Array }>

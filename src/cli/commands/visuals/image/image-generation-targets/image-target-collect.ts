@@ -27,6 +27,6 @@ export const collectImageTargets = (options: ImageGenOptions): ImageTarget[] => 
   ], options, 'image')
   for (const target of targets) assertRequiredImageModel(target.model, target.service)
   const referenceCount = options.imageInputs?.length ?? 0
-  for (const target of targets) validateImageReferenceCapabilities(target.model, referenceCount)
+  for (const target of targets) validateImageReferenceCapabilities(target.model, referenceCount, target.service)
   return targets
 }

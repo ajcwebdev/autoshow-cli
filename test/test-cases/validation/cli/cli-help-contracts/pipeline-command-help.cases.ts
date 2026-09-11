@@ -1,3 +1,4 @@
+import { helpText } from './shared'
 import { expect, test } from 'bun:test'
 import { FLAG_TO_CONFIG_PATH } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 import {
@@ -51,7 +52,7 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(documentSection).toContain('--ocr-provider-mode')
     expect(documentSection).toContain('fanout|pool')
     expect(documentSection).toContain('Local OCR defaults to 10')
-    expect(documentSection).toContain('hosted OCR defaults to auto')
+    expect(helpText(documentSection)).toContain('hosted OCR defaults to auto')
     expect(documentSection).toContain('--chapters')
     expect(documentSection).toContain('--no-chapters')
     expect(articleSection).toContain('--url-provider-concurrency')
@@ -113,7 +114,7 @@ export const registerPipelineCommandHelpCases = (): void => {
 
     expect(writeResult.exitCode).toBe(0)
     expect(configResult.exitCode).toBe(0)
-    const pipelineSection = getFlagGroupSection(writeResult.stdout, 'Pipeline Selection')
+    const pipelineSection = getFlagGroupSection(writeResult.stdout, 'Provider Selection')
     expect(pipelineSection).toContain('--provider-concurrency')
     expect(pipelineSection).toContain('--concurrency-mode')
     expect(pipelineSection).toContain('--all-providers')
@@ -173,7 +174,7 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(configResult.stdout).toContain('--ocr')
     expect(configResult.stdout).toContain('--llm')
     expect(configResult.stdout).toContain('--tts')
-    expect(configResult.stdout).toContain('gemini|openai|grok|bfl|replicate')
+    expect(helpText(configResult.stdout)).toContain('gemini|openai|grok|bfl|replicate')
     expect(configResult.stdout).toContain('--tts-chunk-concurrency')
     expect(writeResult.stdout).not.toContain('Grok-only uses 50')
     expect(configResult.stdout).toContain('Grok-only uses 50')
@@ -209,8 +210,8 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(getFlagGroupSection(result.stdout, 'OCR / Document Extraction')).not.toContain('--batch-concurrency')
     expect(getFlagGroupSection(result.stdout, 'Text to Speech')).toContain('--tts-voice')
     expect(getFlagGroupSection(result.stdout, 'Image Options')).toContain('--size')
-    expect(getFlagGroupSection(result.stdout, 'Video Options')).toContain('--aspect-ratio')
-    expect(getFlagGroupSection(result.stdout, 'Hosted Music')).toContain('--duration')
+    expect(getFlagGroupSection(result.stdout, 'Run-specific Options')).toContain('--aspect-ratio')
+    expect(getFlagGroupSection(result.stdout, 'Run-specific Options')).toContain('--duration')
     expect(result.stdout).toContain('STT:')
     expect(result.stdout).toContain('OCR:')
     expect(result.stdout).toContain('TTS:')

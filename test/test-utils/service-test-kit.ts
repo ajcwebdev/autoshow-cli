@@ -1,3 +1,4 @@
+import { liveCredentialContext } from './live-credential-context'
 import { beforeAll, test } from 'bun:test'
 import { budgetedTest, E2E_TEST_TIMEOUT_MS } from './budget'
 import {
@@ -95,11 +96,12 @@ export const defineBudgetedLiveServiceTest = (
   timeoutMs: number = E2E_TEST_TIMEOUT_MS
 ): void => {
   // CLI children disable implicit dotenv loading and receive exported credentials only.
-  if (envVarKeys.some(key => key && !process.env[key]?.trim())) {
+  if (process.env['AUTOSHOW_TEST_CREDENTIAL_MODE'] !== 'live' || getMissingConfiguredEnvVarKeysSync(envVarKeys).length > 0) {
     test.skip(name, fn)
     return
   }
-  budgetedTest(budgetKey, name, fn, timeoutMs)
+  const credentials = Object.fromEntries(envVarKeys.flatMap(key => key ? [[key, readConfiguredEnvVarSync(key)!]] : []))
+  budgetedTest(budgetKey, name, () => liveCredentialContext.run(credentials, fn), timeoutMs)
 }
 
 const requireConfiguredValue = <T>(

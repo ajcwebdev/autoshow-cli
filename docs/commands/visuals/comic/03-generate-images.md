@@ -4,6 +4,8 @@
 
 See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, and the full walkthrough.
 
+`bun autoshow comic generate-images --help-topic audit` shows the QA-only constraints. Audit mode requires `--target images`, `--panels-per-image 1`, and `--max-repairs 0` (the audit defaults). It rejects `--no-qa`, `--grid`, `--variation`, `--force`, `--image-model`, `--size`, `--quality`, `--blocking-layout-guide`, and revision mode; it does not generate, repair, or promote images.
+
 ## Outline
 
 - [generate-images](#generate-images)

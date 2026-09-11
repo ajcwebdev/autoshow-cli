@@ -1,4 +1,5 @@
-import { mkdir, stat } from 'node:fs/promises'
+import { statPath } from '~/utils/bun-file-io'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { TranscriptionEvidenceWord, TranscriptionResult } from '~/types'
 import { AppValidationError, ValidationError, UsageError } from '~/utils/error-handler'
@@ -42,7 +43,7 @@ export const calibrateWhisperTiming = async (audioInput: string, referencePath: 
   validateMeasuredWords(reference.result.evidence?.words ?? [], 'Calibration reference')
   const presets: Record<string, string> = { tiny: 'tiny', 'tiny.en': 'tiny.en', small: 'small', 'small.en': 'small.en', medium: 'medium', 'medium.en': 'medium.en', 'large-v2': 'large.v2', 'large-v3': 'large.v3' }
   if (typeof model !== 'string' || !presets[model]) throw UsageError('--whisper-calibration-model must name a supported installed Whisperfile model.')
-  for (const name of ['standard', 'dtw', 'calibration.json']) if (await stat(join(output, name)).catch(() => undefined)) throw ValidationError(`Calibration output already exists at ${join(output, name)}; choose a new --output-dir.`)
+  for (const name of ['standard', 'dtw', 'calibration.json']) if (await statPath(join(output, name)).catch(() => undefined)) throw ValidationError(`Calibration output already exists at ${join(output, name)}; choose a new --output-dir.`)
   const run = runWhisperfileTranscribe
   const variants = []
   const unsupportedVariants: Array<{ mode: string; reason: string }> = []

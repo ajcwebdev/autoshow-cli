@@ -2,6 +2,8 @@
 
 Generate a video from a text prompt or input image with one or more hosted video providers and models.
 
+Without an explicit provider, a text prompt in text mode selects the cheapest target. A positional image infers `--mode image-to-video` and selects all video providers; narrow it with `--provider` and preview with `--price`, for example `bun autoshow video input/example.png --provider grok=grok-imagine-video --price`. A positional image cannot be combined with other image/frame/video input flags. Use `--help-topic provider:grok` for the registry model inventory and option details.
+
 ## Outline
 
 - [Setup](#setup)
@@ -165,7 +167,7 @@ bun autoshow video "transition between studio frames" --provider ltx=ltx-2-3-pro
 | Option       | Value                                                                                                                                                            |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Selector     | `--provider replicate[=<model>]`                                                                                                                                 |
-| Models       | `alibaba/happyhorse-1.1`, `bytedance/seedance-2.0`, `bytedance/seedance-2.0-fast`, `kwaivgi/kling-v3-video`, `kwaivgi/kling-v3-omni-video`, `pixverse/pixverse-v6` |
+| Models       | `alibaba/happyhorse-1.1`, `bytedance/seedance-2.5`, `bytedance/seedance-2.0`, `bytedance/seedance-2.0-fast`, `kwaivgi/kling-v3-video`, `kwaivgi/kling-v3-omni-video`, `pixverse/pixverse-v6` |
 | Duration     | Happy Horse/Kling `3`–`15`s, PixVerse `5\|8\|10\|15`s, Seedance `-1`–`15`s (default `5`s)                                                                         |
 | Aspect ratio | Happy Horse `16:9`, `9:16`, `1:1`, `4:3`, `3:4`; Kling/PixVerse `16:9`, `9:16`, `1:1`; Seedance adds `21:9`, `9:21`, `adaptive` (default `16:9`)                   |
 
@@ -176,7 +178,7 @@ bun autoshow video "multi-shot launch" --provider replicate=kwaivgi/kling-v3-vid
 
 - Kling Video 3.0 supports multi-shot prompts via `--replicate-video-multi-prompt` and `--replicate-video-negative-prompt`. Kling Omni adds reference images, video, and editing.
 - PixVerse V6 supports `--generate-audio`, `--replicate-video-multi-clip`, and `--replicate-video-negative-prompt`.
-- Seedance `--duration -1` lets the model choose duration and is billed as 5 seconds.
+- Seedance 2.0 `--duration -1` lets the model choose duration; its legacy preflight assumes 5 seconds. Seedance 2.5 budgets automatic duration at its 30-second maximum; reported output duration is used after generation.
 - All Replicate models accept `--replicate-video-seed`.
 
 ### Luma Labs
@@ -245,3 +247,26 @@ bun autoshow video "product turntable" --provider fal=fal-ai/pixverse/c1 --mode 
 | LTX `ltx-2-3-pro`                                                   | 2026       | ✅            | ✅             | ❌                 | ✅          | ❌   | ✅     | 6–10s; extend 2–20s    | 4K             | 16:9 or 9:16    | No                    | No         | $0.08/s at 1080p (4x at 4K; extend $0.10/s)     | 6/18         |
 | fal.ai `fal-ai/pixverse/c1`                                         | 2026       | ✅            | ✅             | ✅                 | ✅          | ❌   | ❌     | 1–15s                  | 1080p          | 8 ratios        | `--generate-audio`    | Up to 7    | $0.005/s                                        | 1/18         |
 | Gemini `veo-3.1-generate-preview` / `veo-3.1-fast-generate-preview` | 2025-10-15 | ✅            | ✅             | ✅                 | ✅          | ❌   | ✅     | 4 / 6 / 8s             | 4K             | Any             | No                    | Up to 3    | $0.40/s / $0.10/s at 720p                       | 18/18 / 8/18 |
+
+### Seedance 2.5 and H3 Max routes
+
+Replicate `bytedance/seedance-2.5` supports text, image, first/last-frame interpolation, and reference generation at 480p or 720p. Duration is 4–30 seconds or `-1` for automatic duration, default 5. First/last frames require `adaptive` aspect ratio, which is selected when omitted; they cannot be combined with reference media. References support 30 images, 10 videos and 10 audios, with 30 seconds combined per timed modality. Audio references require an image or video. Native audio defaults on. Edit/extend task signaling is not exposed. Output-second rates are $0.1028/$0.2312 without video references and $0.4304/$0.9676 with video references at 480p/720p; input-video duration is not separately charged on this host. [Replicate schema and billing](https://replicate.com/bytedance/seedance-2.5)
+
+For fal, select the exact route and matching `--mode`:
+
+| Models/routes | Modes | Duration | Resolution |
+| --- | --- | --- | --- |
+| `bytedance/seedance-2.5/text-to-video` | `text` | 4–30 seconds or `-1` | 480p, 720p, 1080p |
+| `bytedance/seedance-2.5/image-to-video` | `image-to-video`, `interpolate` | 4–30 seconds or `-1` | 480p, 720p, 1080p |
+| `bytedance/seedance-2.5/reference-to-video` | `reference-to-video` | 4–30 seconds or `-1` | 480p, 720p, 1080p |
+| `minimax/h3-max/text-to-video`, `minimax/h3-max-turbo/text-to-video` | `text` | 5–15 seconds | 480p, 768p, 1080p |
+| `minimax/h3-max/image-to-video`, `minimax/h3-max-turbo/image-to-video` | `image-to-video`, `interpolate` | 5–15 seconds | 480p, 768p, 1080p |
+
+fal Seedance supports 30 images, 10 videos and 10 audios. Timed references must be 1.8–30.2 seconds each and total at most 30.2 seconds per modality. Its token-based billing includes reference-video and output duration; video references apply a 0.6 rate multiplier. Preflight uses the published approximate 16:9 second equivalents and budgets unknown reference-video duration at 30.2 seconds. Actual dimensions affect the bill. Audio on/off has the same rate. Image routes follow the input frame's aspect ratio. [fal Seedance](https://fal.ai/models/bytedance/seedance-2.5/reference-to-video)
+
+H3 Max requests use balanced prompt expansion and native audio, with no audio toggle. Estimates always use regular rates: $0.05/$0.08/$0.16 per output second at 480p/768p/1080p; Turbo is half. This conservatively excludes the promotional discount ending September 14, 2026. [fal H3 Max pricing](https://fal.ai/minimax-h3-max)
+
+```bash
+bun autoshow video "a lighthouse at dusk" --provider replicate=bytedance/seedance-2.5 --duration 10 --resolution 720p --price
+bun autoshow video "a lighthouse at dusk" --provider fal=minimax/h3-max-turbo/text-to-video --duration 5 --resolution 768p --price
+```

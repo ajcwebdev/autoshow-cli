@@ -1,3 +1,4 @@
+import { validateImageReferenceCapabilities } from '~/cli/commands/setup-and-utilities/models/image-reference-capabilities'
 import { mkdir } from 'node:fs/promises'
 import type { JsonObject, ReplicateImageModel, ReplicateImageRequestMode, ReplicateImageSize, Step5Metadata } from '~/types'
 import { UsageError, InfraError } from '~/utils/error-handler'
@@ -16,6 +17,8 @@ const REPLICATE_SEEDREAM_MODELS = new Set<ReplicateImageModel>([
 ])
 
 const REPLICATE_QWEN_MODELS = new Set<ReplicateImageModel>([
+  'alibaba/qwen-image-3',
+  'alibaba/qwen-image-3-pro',
   'qwen/qwen-image-2-pro',
   'qwen/qwen-image-2'
 ])
@@ -257,7 +260,7 @@ export const getReplicateImageExtension = (
   return 'png'
 }
 
-const buildReplicateImageInput = async (
+export const buildReplicateImageInput = async (
   prompt: string,
   options: {
     model: ReplicateImageModel
@@ -268,6 +271,7 @@ const buildReplicateImageInput = async (
     outputFormat?: string | undefined
   }
 ): Promise<{ input: JsonObject, imageSize?: ReplicateImageSize | undefined, count: number, mode: ReplicateImageRequestMode }> => {
+  validateImageReferenceCapabilities(options.model, options.inputs.length, 'replicate')
   const references = await Promise.all(options.inputs.map(imageReferenceToUrlOrDataUrl))
   const mode: ReplicateImageRequestMode = references.length > 0 ? 'edit' : 'generation'
 

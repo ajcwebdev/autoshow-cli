@@ -36,7 +36,7 @@ const designCommand = defineCliCommand({
   flags: {
     provider: commonRegistrationFlags.provider, model: commonRegistrationFlags.model, profile: commonRegistrationFlags.profile,
     'creation-model': strFlag('Provider model used only to create candidates'), description: strFlag('Provider voice design/remix description'),
-    'preview-text': strFlag('100-1000 character preview passage'), candidates: strFlag('Bounded candidate count'), seed: strFlag('Optional non-negative deterministic seed'),
+    'preview-text': strFlag('Preview passage; ElevenLabs requires 100-1000 characters, other design providers require nonempty text'), candidates: strFlag('Bounded candidate count'), seed: strFlag('Optional non-negative deterministic seed'),
     'source-voice-id': strFlag('ElevenLabs remix source voice ID'), 'eligibility-snapshot-hash': strFlag('Dated ElevenLabs remix eligibility proof SHA-256'),
     save: strFlag('Candidate ID to materialize as a durable provider voice'),
     'subject-key': strFlag('Canonical character or role key when --save is set'),
@@ -117,6 +117,25 @@ const listCommand = defineCliCommand({
   }
 }, handleList)
 
+const voiceExamples = [
+      ['bun autoshow voice list', 'Print the local registration catalog and current index'],
+      ['bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --provenance-ref project:casting', 'Register an existing ElevenLabs voice'],
+      ['bun autoshow voice list --provider elevenlabs --source account', 'Inspect an ElevenLabs account catalog'],
+      ['bun autoshow voice list --provider cartesia --source provider-library --price', 'Validate Cartesia catalog discovery without provider calls'],
+      ['bun autoshow voice design hero --provider elevenlabs --model eleven_v3 --creation-model eleven_ttv_v3 --description "Warm, weathered guide" --preview-text "The trail opens into a quiet valley at sunrise. Keep your voice warm and steady as you guide the group toward the old wooden bridge ahead." --price', 'Plan ElevenLabs Voice Design v3 without provider calls'],
+      ['bun autoshow voice design hero --provider inworld --model realtime-tts-2 --creation-model realtime-tts-2 --description "Warm, weathered guide with a grounded midrange" --preview-text "A representative passage." --price', 'Plan Inworld Voice Design without provider calls'],
+      ['bun autoshow voice clone hero --provider elevenlabs --model eleven_v3 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan an ElevenLabs clone without provider calls or writes'],
+      ['bun autoshow voice clone hero --provider cartesia --model sonic-3.5-2026-05-04 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a Cartesia instant clone without provider calls'],
+      ['bun autoshow voice clone hero --provider mistral --model voxtral-mini-tts-2603 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a crash-safe Mistral saved-reference clone without provider calls'],
+      ['bun autoshow voice design --save CANDIDATE_ID --provider elevenlabs --subject-key hero --voice-name HeroGuide --provenance-ref project:casting --price', 'Plan saving one selected design candidate without provider calls'],
+      ['bun autoshow voice audition vr_123 --generation-id SHA256 --representative-line "We leave at dawn." --price', 'Estimate a canonical audition without provider calls'],
+      ['bun autoshow voice approve vr_123 --generation-id SHA256 --actor-id editor', 'Approve an audition locally']
+] as const
+
+for (const command of [listCommand, importCommand, designCommand, cloneCommand, auditionCommand, approveCommand]) {
+  command.help = { ...command.help, examples: voiceExamples.filter(([example]) => example.startsWith(`bun autoshow ${command.name} `) || example === `bun autoshow ${command.name}`) }
+}
+
 export const VOICE_SUBCOMMAND_DEFINITIONS = [listCommand, consentCommand, importCommand, designCommand, cloneCommand, auditionCommand, approveCommand, retireCommand, deleteCommand] as const satisfies readonly CliCommandDefinition[]
 
 export const voiceActionName = (commandName: string): string =>
@@ -130,18 +149,9 @@ export const voiceCommand = defineCliCommand({
   subcommands: VOICE_SUBCOMMAND_DEFINITIONS,
   help: {
     examples: [
-      ['bun autoshow voice list', 'Print the local registration catalog and current index'],
-      ['bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --provenance-ref project:casting', 'Register an existing ElevenLabs voice'],
-      ['bun autoshow voice list --provider elevenlabs --source account', 'Inspect an ElevenLabs account catalog'],
-      ['bun autoshow voice list --provider cartesia --source provider-library --price', 'Validate Cartesia catalog discovery without provider calls'],
-      ['bun autoshow voice design hero --provider elevenlabs --model eleven_v3 --creation-model eleven_ttv_v3 --description "Warm, weathered guide" --preview-text "A representative passage of at least one hundred characters..." --price', 'Plan ElevenLabs Voice Design v3 without provider calls'],
-      ['bun autoshow voice design hero --provider inworld --model realtime-tts-2 --creation-model realtime-tts-2 --description "Warm, weathered guide with a grounded midrange" --preview-text "A representative passage." --price', 'Plan Inworld Voice Design without provider calls'],
-      ['bun autoshow voice clone hero --provider elevenlabs --model eleven_v3 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan an ElevenLabs clone without provider calls or writes'],
-      ['bun autoshow voice clone hero --provider cartesia --model sonic-3.5-2026-05-04 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a Cartesia instant clone without provider calls'],
-      ['bun autoshow voice clone hero --provider mistral --model voxtral-mini-tts-2603 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a crash-safe Mistral saved-reference clone without provider calls'],
-      ['bun autoshow voice design --save CANDIDATE_ID --provider elevenlabs --subject-key hero --voice-name HeroGuide --provenance-ref project:casting --price', 'Plan saving one selected design candidate without provider calls'],
-      ['bun autoshow voice audition vr_123 --generation-id SHA256 --representative-line "We leave at dawn." --price', 'Estimate a canonical audition without provider calls'],
-      ['bun autoshow voice approve vr_123 --generation-id SHA256 --actor-id editor', 'Approve an audition locally']
+      ['bun autoshow voice list', 'Inspect the local registration catalog'],
+      ['bun autoshow voice import --help', 'Register an existing provider voice'],
+      ['bun autoshow voice audition --help', 'Audition a registration before approving it'],
     ],
     notes: [
       'Each subcommand has its own flags: bun autoshow voice <subcommand> --help',

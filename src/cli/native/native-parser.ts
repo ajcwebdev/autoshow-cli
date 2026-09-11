@@ -5,6 +5,7 @@ import {
   NativeNoSuchCommandError
 } from './native-errors'
 import { buildInitialFlags, buildShortFlagMap, findNativeFlagValueEnd } from './native-flag-parser'
+import { takeHelpTopic } from './help-topic-request'
 
 const createCommandMap = (
   commands: readonly CliCommandDefinition[]
@@ -131,7 +132,7 @@ const parseCommandTreeArgv = (
   ], subcommand, globalFlags)
 }
 
-export const parseNativeCli = (
+const parseNativeArgv = (
   argv: string[],
   commands: readonly CliCommandDefinition[],
   globalFlags: CliFlagsDefinition
@@ -240,3 +241,10 @@ export const parseNativeCli = (
 }
 
 export { parseCommandArgv, parseCommandInvocation } from './native-command-arguments'
+
+export const parseNativeCli = (argv: string[], commands: readonly CliCommandDefinition[], globalFlags: CliFlagsDefinition): CliParseResult => {
+  const request = takeHelpTopic(argv)
+  const parsed = parseNativeArgv(request.argv, commands, globalFlags)
+  if (request.topic !== undefined) parsed.flags['help-topic'] = request.topic
+  return parsed
+}

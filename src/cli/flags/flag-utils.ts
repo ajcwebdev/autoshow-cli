@@ -86,3 +86,16 @@ export const pickFlags = (
   }
   return picked
 }
+
+export const composeFlags = (groups: readonly CliFlagsDefinition[], shared: CliFlagsDefinition = {}): CliFlagsDefinition => {
+  const result: CliFlagsDefinition = {}
+  for (const group of groups) {
+    for (const [name, definition] of Object.entries(group)) {
+      if (Object.hasOwn(result, name) && !Object.hasOwn(shared, name)) {
+        throw new Error(`Duplicate CLI flag --${name}; define its shared contract explicitly.`)
+      }
+      result[name] = definition
+    }
+  }
+  return { ...result, ...shared }
+}

@@ -1,3 +1,5 @@
+import { REFERENCE_LOCATION_ONLY_FLAGS } from '~/cli/flags/reference-option-contract'
+import { getUnknownFlagSpellings } from '~/cli/native/unknown-flag-spellings'
 import { parseHostedConcurrencyMode } from '~/cli/options/option-resolution/flag-readers'
 import type {
   ComicParsedArgs,
@@ -198,6 +200,11 @@ export const coerceAndValidateReview = (parsed: ComicParsedArgs): ParsedReviewNo
 }
 
 export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): ParsedReferenceSketchArgs => {
+  if (parsed.rawParsed.explicitFlags.has('qa-only') || getUnknownFlagSpellings(parsed.rawParsed).includes('--qa-only')) throw UsageError('--qa-only is not supported by comic reference-sketch; use comic generate-images for panel audits.')
+  if (stringFlag(parsed, 'character')) {
+    const unsupported = REFERENCE_LOCATION_ONLY_FLAGS.find(name => parsed.rawParsed.explicitFlags.has(name))
+    if (unsupported) throw UsageError(`--${unsupported} is only valid with --location`)
+  }
   const output: ParsedReferenceSketchArgs = { showHelp: false }
   const character = stringFlag(parsed, 'character')
   const location = stringFlag(parsed, 'location')

@@ -28,6 +28,7 @@ export const validateLtxVideoModel = createModelValidator<LtxVideoModel>(SUPPORT
 
 export const SUPPORTED_REPLICATE_VIDEO_MODELS = [
   'alibaba/happyhorse-1.1',
+  'bytedance/seedance-2.5',
   'bytedance/seedance-2.0',
   'bytedance/seedance-2.0-fast',
   'kwaivgi/kling-v3-video',
@@ -44,6 +45,13 @@ export const SUPPORTED_LUMALABS_VIDEO_MODELS = [
 export const validateLumalabsVideoModel = createModelValidator<LumalabsVideoModel>(SUPPORTED_LUMALABS_VIDEO_MODELS, 'lumalabs-video')
 
 export const SUPPORTED_FAL_VIDEO_MODELS = [
+  'bytedance/seedance-2.5/text-to-video',
+  'bytedance/seedance-2.5/image-to-video',
+  'bytedance/seedance-2.5/reference-to-video',
+  'minimax/h3-max/text-to-video',
+  'minimax/h3-max/image-to-video',
+  'minimax/h3-max-turbo/text-to-video',
+  'minimax/h3-max-turbo/image-to-video',
   'minimax/h3',
   'fal-ai/pixverse/c1'
 ] as const satisfies readonly string[]

@@ -1,4 +1,5 @@
-import { mkdir, readFile, rename, rm } from 'node:fs/promises'
+import { readUtf8FileExact } from '~/utils/bun-file-io'
+import { mkdir, rename, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type {
   CanonicalDialoguePlanNode,
@@ -159,7 +160,7 @@ export const writeComicDialoguePlan = async (
   const bytes = `${canonicalTtsJson(plan)}\n`
   await mkdir(dirname(path), { recursive: true })
   if (await Bun.file(path).exists()) {
-    if (await readFile(path, 'utf8') !== bytes) throw UsageError('Create-only comic dialogue plan conflicts with existing bytes.')
+    if (await readUtf8FileExact(path) !== bytes) throw UsageError('Create-only comic dialogue plan conflicts with existing bytes.')
   } else {
     await Bun.write(path, bytes)
   }

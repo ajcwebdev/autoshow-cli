@@ -58,11 +58,10 @@ export const withFakeEbookConvert = async <T>(
   const fakeMutoolPath = join(binDir, 'mutool')
   await writeFile(fakeConvertPath, [
     '#!/usr/bin/env bun',
-    "import { copyFileSync } from 'node:fs'",
     `const source = ${JSON.stringify(EXAMPLE_EPUB_PATH)}`,
     'const output = process.argv.at(-1)',
     'if (!output) process.exit(2)',
-    'copyFileSync(source, output)'
+    'await Bun.write(output, Bun.file(source), { createPath: false })'
   ].join('\n'))
   await writeFile(fakeMutoolPath, [
     '#!/usr/bin/env bun',

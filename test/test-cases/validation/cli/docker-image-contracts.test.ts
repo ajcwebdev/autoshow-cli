@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { readFile,readdir } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { readDependencyUrlAndSha256 } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
@@ -8,7 +8,6 @@ import { SUPPORTED_BUN_VERSION } from '~/utils/bun-version'
 const repositoryRoot = resolve(import.meta.dir, '../../../..')
 const dockerfilePath = resolve(repositoryRoot, 'Dockerfile')
 const dockerDocsPath = resolve(repositoryRoot, 'docs/docker.md')
-const scriptsPath = resolve(repositoryRoot, 'scripts')
 
 test('all Docker runtime targets opt out of Bun TCP keepalive for silent provider requests', async () => {
   const dockerfile = await readFile(dockerfilePath, 'utf8')
@@ -62,18 +61,10 @@ test('Docker supplies a pinned native Deno runtime for yt-dlp in every runtime t
   expect(dockerfile).toContain('FROM runtime-base AS compiled-experiment')
 })
 
-test('Docker documentation exposes only reviewed repository scripts and direct image invocation', async () => {
+test('Docker documentation supports direct image invocation without a root scripts directory', async () => {
   const dockerDocs = await readFile(dockerDocsPath, 'utf8')
 
-  expect(existsSync(scriptsPath) ? (await readdir(scriptsPath)).sort() : []).toEqual([
-    'bun-env-compat.ts',
-    'bun-profile.ts',
-    'docker-acceptance',
-    'docker-bun-baseline.ts',
-    'profile-workloads',
-    'stt-alignment-requirements.txt',
-    'stt-ctc-emissions.py'
-  ])
+  expect(existsSync(resolve(repositoryRoot, 'scripts'))).toBe(false)
   expect(dockerDocs).toContain('bun autoshow extract content/book/book.epub')
   expect(dockerDocs).toContain('docker run --rm -i')
 })

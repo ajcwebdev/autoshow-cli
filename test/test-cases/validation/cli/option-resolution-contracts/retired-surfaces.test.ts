@@ -80,7 +80,7 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
   {
     flag: 'deepinfra-ocr',
     model: 'PaddlePaddle/PaddleOCR-VL-0.9B',
-    message: 'Invalid model "PaddlePaddle/PaddleOCR-VL-0.9B" for --provider/--ocr deepinfra[=model]. Allowed values: google/gemma-3-27b-it, meta-llama/Llama-4-Scout-17B-16E-Instruct, mistralai/Mistral-Small-3.2-24B-Instruct-2506, Qwen/Qwen3-VL-235B-A22B-Instruct, Qwen/Qwen3-VL-30B-A3B-Instruct'
+    message: 'Invalid model "PaddlePaddle/PaddleOCR-VL-0.9B" for --provider/--ocr deepinfra[=model]. Allowed values: google/gemma-3-27b-it, google/gemma-4-31B-it, google/gemma-4-26B-A4B-it, meta-llama/Llama-4-Scout-17B-16E-Instruct, mistralai/Mistral-Small-3.2-24B-Instruct-2506, Qwen/Qwen3-VL-235B-A22B-Instruct, Qwen/Qwen3-VL-30B-A3B-Instruct'
   },
   {
     flag: 'assemblyai-stt',

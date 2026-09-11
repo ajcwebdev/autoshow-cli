@@ -1,4 +1,5 @@
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { readUtf8FileExact, writeFileExact } from '~/utils/bun-file-io'
+import { mkdir, rename, rm } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { homedir, hostname } from 'node:os'
 import { join } from 'node:path'
@@ -55,7 +56,7 @@ const getLockOwnerPath = (lockDir: string): string => join(lockDir, LOCK_OWNER_F
 const readProcessLockOwnerState = async (lockDir: string): Promise<ProcessLockOwnerReadResult> => {
   const ownerPath = getLockOwnerPath(lockDir)
   try {
-    const parsed = JSON.parse(await readFile(ownerPath, 'utf-8')) as Record<string, unknown>
+    const parsed = JSON.parse(await readUtf8FileExact(ownerPath)) as Record<string, unknown>
     return {
       owner: {
       ...(typeof parsed['ownerId'] === 'string' ? { ownerId: parsed['ownerId'] } : {}),
@@ -101,7 +102,7 @@ const writeProcessLockOwner = async (
 ): Promise<void> => {
   const ownerPath = getLockOwnerPath(lockDir)
   const tempOwnerPath = join(lockDir, `${LOCK_OWNER_FILE}.${owner.ownerId}.${crypto.randomUUID()}.tmp`)
-  await writeFile(tempOwnerPath, JSON.stringify(owner, null, 2))
+  await writeFileExact(tempOwnerPath, JSON.stringify(owner, null, 2))
   await rename(tempOwnerPath, ownerPath)
 }
 

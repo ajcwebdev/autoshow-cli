@@ -130,7 +130,7 @@ describe('unattended comic image runs', () => {
   })
 
   test('passes a healthy credit preflight and fails fast on a payment-required response', async () => {
-    expect(await runComicCreditPreflight({}, { listModels: async () => ({ status: 200 }) })).toEqual({ provider: 'openai', status: 'ok' })
+    expect(await runComicCreditPreflight({}, { listModels: async () => ({ status: 200 }) })).toEqual({ provider: 'openai', status: 'ok', authentication: 'accepted', operationAdmission: 'unverified' })
     await expect(runComicCreditPreflight({}, { listModels: async () => ({ status: 402 }) })).rejects.toThrow('the OpenAI account has insufficient credit (HTTP 402). No image was generated.')
     await expect(runComicCreditPreflight({}, { listModels: async () => ({ status: 401 }) })).rejects.toThrow('the configured OpenAI credential was rejected (HTTP 401)')
     let requests = 0

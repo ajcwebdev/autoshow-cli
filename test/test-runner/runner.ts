@@ -5,6 +5,7 @@ import { parseRunnerArgs } from './args'
 import {
   appendRunnerLog,
   cleanupRunArtifacts,
+  closeArtifactLogs,
   cleanupTestOutputRoot,
   createRunArtifacts,
   writeJsonFile,
@@ -172,24 +173,29 @@ export const runTestRunner = async (argv: string[]): Promise<number> => {
   installTimestampedConsole()
   l.write('info', `Test run artifacts: ${normalizeRepoPath(artifacts.runDir)}`, { category: 'artifact' })
 
-  const [, , budgetHead] = await Promise.all([
-    args.preserveTestOutput
-      ? Promise.resolve()
-      : cleanupTestOutputRoot(artifacts.rootDir, { keepRunDir: artifacts.runDir, preserveActiveRuns: true }),
-    prebuildTestCliBundle(artifacts),
-    prepareBudgetPreflight(args, allFiles, artifacts),
-  ])
-  appendRunnerLog(artifacts, `Run ID: ${artifacts.runId}\nStarted: ${artifacts.startedAtIso}\nArgs: ${argv.slice(2).join(' ')}\n`)
-
   let exitCode = 0
   try {
+    appendRunnerLog(artifacts, `Run ID: ${artifacts.runId}\nStarted: ${artifacts.startedAtIso}\nArgs: ${argv.slice(2).join(' ')}\n`)
+    // Settle concurrent producers before ending their log streams on failure.
+    const preparation = await Promise.allSettled([
+      args.preserveTestOutput
+        ? Promise.resolve()
+        : cleanupTestOutputRoot(artifacts.rootDir, { keepRunDir: artifacts.runDir, preserveActiveRuns: true }),
+      prebuildTestCliBundle(artifacts),
+      prepareBudgetPreflight(args, allFiles, artifacts),
+    ])
+    for (const result of preparation) if (result.status === 'rejected') throw result.reason
+    const budgetResult = preparation[2]
+    if (budgetResult.status !== 'fulfilled') throw budgetResult.reason
     exitCode = args.priceMode
       ? await runPriceMode(args, allFiles, artifacts, argv)
-      : await runStandardTestMode(args, allFiles, artifacts, argv, budgetHead)
+      : await runStandardTestMode(args, allFiles, artifacts, argv, budgetResult.value)
   } catch (error) {
     exitCode = 1
     await writeFallbackReport(args, artifacts, argv, error)
     l.error('Test run failed', { category: 'command', error })
+  } finally {
+    await closeArtifactLogs(artifacts)
   }
 
   const latestLogPath = await writeLatestRunLog(artifacts, exitCode)

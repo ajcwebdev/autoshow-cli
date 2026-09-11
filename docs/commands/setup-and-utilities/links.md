@@ -43,9 +43,17 @@ Each run creates a timestamped directory under `output/` (or `--output-root`) an
 
 ## Selection syntax
 
+`bun autoshow links --help-topic providers` lists the current local registry without fetching any pages. The generic selector accepts a provider name, with section names following it; generation-style `provider=model` values do not apply to documentation links. Registry keys such as `claude` and `assembly` are retained.
+
+```bash
+bun autoshow links --provider openai models --provider gemini text
+```
+
+Legacy selectors such as `--openai` remain accepted and may be mixed with `--provider`. Each selector scopes subsequent sections until the next selector, preserving existing ordering.
+
 - With no sections or provider selectors, `links` fetches every curated URL in the registry.
 - Bare section names before the first provider selector are global selections. They fetch that section across every provider that has it.
-- A provider selector such as `--openai` starts a provider-scoped selection. Bare tokens after it are treated as section names for that provider until the next provider selector.
+- A provider selector such as `--provider openai` or `--openai` starts a provider-scoped selection. Bare tokens after it are treated as section names for that provider until the next provider selector.
 - A provider selector with no sections fetches every curated section for that provider.
 - Provider selectors and section names are case-insensitive.
 - Unknown providers or unknown sections exit with a usage error.
@@ -77,50 +85,45 @@ Input file mode is standalone. Do not combine it with provider selectors, sectio
 
 ## Supported providers
 
-Accepted provider selectors are the lowercase names below.
+The curated registry covers services currently implemented in AutoShow. Accepted provider selectors are the lowercase names below. Fetch other documentation through direct URL or input file mode.
 
-| Provider selector  | Sections                                                                    |
-| ------------------ | --------------------------------------------------------------------------- |
-| `--assembly`       | `models`, `stt`                                                             |
-| `--better-auth`    | `general`                                                                   |
-| `--bfl`            | `image`, `models`                                                           |
-| `--cartesia`       | `general`, `models`, `tts`                                                  |
-| `--claude`         | `general`, `models`, `ocr`, `text`                                          |
-| `--deapi`          | `general`, `models`, `stt`                                                  |
-| `--deepgram`       | `stt`                                                                       |
-| `--deepinfra`      | `general`, `models`, `ocr`, `stt`                                           |
-| `--drive`          | `general`                                                                   |
-| `--elevenlabs`     | `general`, `models`, `music`, `tts`                                         |
-| `--fal`            | `general`, `image`, `video`                                                 |
-| `--firecrawl`      | `general`, `url`                                                            |
-| `--gemini`         | `general`, `image`, `models`, `music`, `ocr`, `stt`, `text`, `video`        |
-| `--gladia`         | `general`, `stt`                                                            |
-| `--glm`            | `general`, `models`, `ocr`, `text`, `url`                                   |
-| `--grok`           | `general`, `image`, `models`, `stt`, `text`, `tts`, `video`                 |
-| `--happyscribe`    | `stt`                                                                       |
-| `--hume`           | `general`, `tts`                                                            |
-| `--inworld`        | `general`, `models`, `tts`                                                  |
-| `--kimi`           | `general`, `models`, `ocr`, `text`                                          |
-| `--ltx`            | `models`, `video`                                                           |
-| `--lumalabs`       | `general`, `image`, `models`, `video`                                       |
-| `--minimax`        | `general`, `music`, `text`, `video`                                         |
-| `--mistral`        | `general`, `models`, `ocr`, `stt`, `tts`                                    |
-| `--openai`         | `general`, `image`, `models`, `ocr`, `text`, `tts`                          |
-| `--replicate`      | `general`, `models`                                                         |
-| `--resend`         | `general`                                                                   |
-| `--rev`            | `general`, `stt`                                                            |
-| `--runway`         | `general`, `models`                                                         |
-| `--scrapecreators` | `general`, `stt`, `url`                                                     |
-| `--solidbase`      | `general`                                                                   |
-| `--soniox`         | `stt`                                                                       |
-| `--speechify`      | `models`, `tts`                                                             |
-| `--speechmatics`   | `general`, `stt`                                                            |
-| `--spider`         | `general`, `url`                                                            |
-| `--supadata`       | `general`, `stt`, `url`                                                     |
-| `--together`       | `general`, `models`, `stt`, `text`                                          |
-| `--whisperfile`    | `stt`                                                                       |
-| `--x`              | `general`, `url`                                                            |
-| `--zyte`           | `general`, `url`                                                            |
+See the [llms.txt comparison report](../../reports/high-priority-metareport-2026-09-11.md#consolidated-source-decisions) for recommended documentation additions, overlapping URLs, and exclusions based on the implemented provider features.
+
+| Provider selector | Sections | Root index |
+| --- | --- | --- |
+| `--assembly` | `llmstxt`, `models`, `stt` | [llms.txt](https://www.assemblyai.com/docs/llms.txt) |
+| `--bfl` | `image`, `llmstxt`, `models` | [llms.txt](https://docs.bfl.ml/llms.txt) |
+| `--cartesia` | `general`, `llmstxt`, `models`, `tts` | [llms.txt](https://docs.cartesia.ai/llms.txt) |
+| `--claude` | `general`, `llmstxt`, `models`, `ocr`, `text` | [llms.txt](https://platform.claude.com/llms.txt) |
+| `--deepgram` | `llmstxt`, `stt` | [llms.txt](https://developers.deepgram.com/llms.txt) |
+| `--deepinfra` | `general`, `llmstxt`, `models`, `ocr`, `stt` | [llms.txt](https://docs.deepinfra.com/llms.txt) |
+| `--elevenlabs` | `general`, `llmstxt`, `models`, `music`, `tts` | [llms.txt](https://elevenlabs.io/docs/llms.txt) |
+| `--fal` | `general`, `image`, `llmstxt`, `video` | [llms.txt](https://fal.ai/docs/llms.txt) |
+| `--firecrawl` | `general`, `llmstxt`, `url` | [llms.txt](https://docs.firecrawl.dev/llms.txt) |
+| `--gemini` | `general`, `image`, `llmstxt`, `models`, `music`, `ocr`, `stt`, `text`, `video` | [llms.txt](https://ai.google.dev/gemini-api/docs/llms.txt) |
+| `--gladia` | `general`, `llmstxt`, `stt` | [llms.txt](https://docs.gladia.io/llms.txt) |
+| `--glm` | `general`, `llmstxt`, `models`, `ocr`, `text`, `url` | [llms.txt](https://docs.z.ai/llms.txt) |
+| `--grok` | `general`, `image`, `llmstxt`, `models`, `stt`, `text`, `tts`, `video` | [llms.txt](https://docs.x.ai/llms.txt) |
+| `--happyscribe` | `llmstxt`, `stt` | [llms.txt](https://www.happyscribe.com/llms.txt) |
+| `--hume` | `general`, `llmstxt`, `tts` | [llms.txt](https://dev.hume.ai/llms.txt) |
+| `--inworld` | `general`, `llmstxt`, `models`, `tts` | [llms.txt](https://docs.inworld.ai/llms.txt) |
+| `--kimi` | `general`, `llmstxt`, `models`, `ocr`, `text` | [llms.txt](https://platform.kimi.ai/docs/llms.txt) |
+| `--ltx` | `llmstxt`, `models`, `video` | [llms.txt](https://docs.ltx.io/llms.txt) |
+| `--lumalabs` | `general`, `image`, `llmstxt`, `models`, `video` | [llms.txt](https://lumalabs.ai/llms.txt) |
+| `--minimax` | `general`, `llmstxt`, `music`, `text` | [llms.txt](https://platform.minimax.io/docs/llms.txt) |
+| `--mistral` | `general`, `llmstxt`, `models`, `ocr`, `stt`, `tts` | [llms.txt](https://docs.mistral.ai/llms.txt) |
+| `--openai` | `general`, `image`, `llmstxt`, `models`, `ocr`, `text`, `tts` | [llms.txt](https://developers.openai.com/llms.txt) |
+| `--replicate` | `general`, `llmstxt`, `models` | [llms.txt](https://replicate.com/docs/llms.txt) |
+| `--scrapecreators` | `general`, `llmstxt`, `stt` | [llms.txt](https://docs.scrapecreators.com/llms.txt) |
+| `--soniox` | `llmstxt`, `stt` | [llms.txt](https://soniox.com/docs/llms.txt) |
+| `--speechify` | `llmstxt`, `models`, `tts` | [llms.txt](https://docs.speechify.ai/llms.txt) |
+| `--speechmatics` | `general`, `llmstxt`, `stt` | [llms.txt](https://docs.speechmatics.com/llms.txt) |
+| `--spider` | `general`, `llmstxt`, `url` | [llms.txt](https://spider.cloud/llms.txt) |
+| `--supadata` | `general`, `llmstxt`, `stt`, `url` | [llms.txt](https://docs.supadata.ai/llms.txt) |
+| `--together` | `general`, `llmstxt`, `models`, `stt`, `text` | [llms.txt](https://docs.together.ai/llms.txt) |
+| `--whisperfile` | `llmstxt`, `stt` | [llms.txt](https://docs.mozilla.ai/llms.txt) |
+| `--x` | `general`, `llmstxt`, `url` | [llms.txt](https://docs.x.com/llms.txt) |
+| `--zyte` | `general`, `llmstxt`, `url` | [llms.txt](https://docs.zyte.com/llms.txt) |
 
 ## Global sections
 
@@ -128,6 +131,7 @@ Accepted section tokens outside provider selectors:
 
 - `general`
 - `image`
+- `llmstxt`
 - `models`
 - `music`
 - `ocr`
@@ -138,6 +142,10 @@ Accepted section tokens outside provider selectors:
 - `video`
 
 Section availability depends on the provider.
+
+The `llmstxt` section contains exactly one root `llms.txt` URL per provider. `bun autoshow links llmstxt` fetches all root indexes; `bun autoshow links --openai llmstxt` fetches only OpenAI's index. Root indexes are listed in the provider table above and were checked on 2026-09-11.
+
+Indexes use the documentation root where available, which may live under a path such as `/docs/`. HappyScribe and Luma use their main website roots because their current API documentation hosts did not expose a root index. Whisperfile uses the shared Mozilla.ai documentation root, which includes Whisperfile. Replicate's model-specific `llms.txt` files remain in `models`; only its documentation root index belongs to `llmstxt`.
 
 ## Examples
 
@@ -153,6 +161,12 @@ bun autoshow links tts
 
 # Fetch all model docs across every provider
 bun autoshow links models
+
+# Fetch only the root llms.txt indexes across every provider
+bun autoshow links llmstxt
+
+# Fetch one provider's root llms.txt index
+bun autoshow links --openai llmstxt
 
 # Fetch one remote docs page
 bun autoshow links https://example.com/docs
@@ -170,7 +184,7 @@ bun autoshow links --openai general text
 bun autoshow links --hume tts --cartesia tts
 
 # Mix a global section with provider-specific sections
-bun autoshow links tts --openai general text --minimax video
+bun autoshow links tts --openai general text --fal video
 
 # Update refresh metadata without rewriting the markdown bundle
 bun autoshow links --refresh-only --openai models

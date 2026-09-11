@@ -64,3 +64,5 @@ bun autoshow comic generate-audio 01-01 --all-providers --price
 - Audio and pending `--slideshow` intent are saved together before synthesis. Use [`resume <run-directory> --price` and `resume <run-directory>`](../../setup-and-utilities/resume.md#comic-recovery) to restore the original targets and settings, reuse completed audio slots, and finish requested local presentation work. The one-run generation-slot limit and ambiguous-redispatch authorization are not carried into recovery.
 
 Next: [generate-slideshow](./05-generate-slideshow.md).
+
+Stability `stable-audio-3` sound effects use asynchronous creation and result polling. Prompts allow 10,000 Unicode scalars and requested duration is 1–380 seconds; AutoShow defaults to 8 seconds. Each successful generation costs $0.26 regardless of duration. Poll failures after acceptance block automatic redispatch; completed audio and retained request identities remain reusable. Older serializer plans can reuse completed assets but cannot submit through the obsolete route. [Stability API](https://platform.stability.ai/docs/api-reference), [credit pricing](https://platform.stability.ai/pricing)

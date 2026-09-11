@@ -172,8 +172,11 @@ Use command-first order for all examples and scripts:
 bun autoshow <command> [input] [flags]
 bun autoshow help <command>       # preferred targeted help
 bun autoshow <command> --help
+bun autoshow <command> --help-topic <topic>
 bun autoshow --version
 ```
+
+Full help lists available topics. Focused help works without an input or command execution: try `extract --help-topic documents`, `video --help-topic provider:grok`, or `resume --help-topic concurrency`. It keeps complete flag values while wrapping descriptions for the terminal; redirected output uses 120 columns. `--help` remains the complete reference.
 
 - Use `bun autoshow extract <input> --provider whisperfile=tiny`, not `bun autoshow --provider whisperfile=tiny extract <input>`.
 - Inputs can be URLs, local files, directories, `.md`/`.txt` URL lists, or prompt strings for `image`, `video`, and `music`.

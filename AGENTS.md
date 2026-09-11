@@ -1,3 +1,9 @@
+# Repository Structure Rules
+
+- Python source files (`.py`) are prohibited in this repository. Never create, add, or generate them.
+- A root-level `scripts/` directory is prohibited. Place application code and runtime helpers under `src/`, maintenance utilities under `src/tools/`, and tests and test harnesses under `test/`.
+- Never create a new root-level directory for any reason. Use the existing repository structure and place new subdirectories beneath appropriate existing directories.
+
 # Agent Verification Rules
 
 - Use `bun run check` and `bun t --price` for the default verification pass.
@@ -43,3 +49,13 @@
 # Markdown
 
 ALl markdown documents should be written with unwrapped prose and not hard-wrapped Markdown.
+
+# Report Files
+
+- Save all agent-created reports exclusively under `docs/reports/`, including audits, comparisons, evaluations, research summaries, and implementation reviews. Never save reports in the repository root, command documentation folders, or other locations.
+- Classify reports by their purpose and content, not their filename. Task-specific migration notes, dependency installation/evidence write-ups, environment inventories, and generated reference summaries are reports even when their names do not contain `report`.
+- Default to one self-contained Markdown report per task. Include conclusions, decision tables, verification commands/results, and provenance in that report instead of creating separate summary JSON/CSV files or log directories.
+- When original evidence must be retained for replay or detailed inspection, keep it in one compressed `.evidence.zip` archive alongside the report under `docs/reports/`. Link the archive once and identify its useful entries in the report; preserve original bytes and include a checksum manifest inside the archive. Prefer regenerating routine help captures and test logs over retaining new copies after every run.
+- Report generators should update a marked section of the existing report or emit to stdout by default; they must not create a file per command, provider, architecture, or verification attempt. Create loose supporting artifacts only when they are a requested deliverable or an actual tool/test input that requires a standalone file.
+- When updating an existing report outside `docs/reports/`, move it and its supporting artifacts there and update references, relative links, generator output paths, and affected tests so nothing recreates or depends on the old location.
+- Before completing a task, review the report and supporting documentation files created or updated during the session, including untracked files. Move any report outside `docs/reports/` into that directory before finishing; do not limit this check to filenames containing `report`.

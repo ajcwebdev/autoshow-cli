@@ -1,5 +1,6 @@
+import { readUtf8FileExact } from '~/utils/bun-file-io'
 import { existsSync } from 'node:fs'
-import { link, mkdir, readFile } from 'node:fs/promises'
+import { link, mkdir } from 'node:fs/promises'
 import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { dirname, join, resolve } from 'node:path'
 import type {
@@ -73,7 +74,7 @@ export const writeCreateOnlyJson = async (path: string, value: unknown): Promise
   await mkdir(dirname(path), { recursive: true })
   const bytes = `${JSON.stringify(value, null, 2)}\n`
   if (existsSync(path)) {
-    if (await readFile(path, 'utf8') !== bytes) throw ValidationError(`Create-only voice artifact conflicts with existing bytes at ${path}.`, { stage: 'comic:voice-registry' })
+    if (await readUtf8FileExact(path) !== bytes) throw ValidationError(`Create-only voice artifact conflicts with existing bytes at ${path}.`, { stage: 'comic:voice-registry' })
     return
   }
   const temporary = `${path}.tmp-${crypto.randomUUID()}`
@@ -81,7 +82,7 @@ export const writeCreateOnlyJson = async (path: string, value: unknown): Promise
   try {
     await link(temporary, path)
   } catch (error) {
-    if (hasErrorCode(error, 'EEXIST') && await readFile(path, 'utf8') === bytes) return
+    if (hasErrorCode(error, 'EEXIST') && await readUtf8FileExact(path) === bytes) return
     throw error
   } finally {
     await unlink(temporary).catch(() => undefined)
@@ -94,7 +95,7 @@ const readJson = async (path: string, missingValue?: unknown): Promise<unknown> 
     throw InfraError(`Voice artifact not found at ${path}.`, { stage: 'comic:voice-registry' })
   }
   try {
-    return JSON.parse(await readFile(path, 'utf8')) as unknown
+    return JSON.parse(await readUtf8FileExact(path)) as unknown
   } catch (error) {
     throw ValidationError(`Voice artifact contains invalid JSON at ${path}.`, { stage: 'comic:voice-registry', ...(error instanceof Error ? { cause: error } : {}) })
   }

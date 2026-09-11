@@ -1,4 +1,5 @@
-import { copyFile, mkdir } from 'node:fs/promises'
+import { copyFileExact } from '~/utils/bun-file-io'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { GenerateImagesCommandOptions } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
@@ -17,13 +18,13 @@ import { publishRevisionResults } from './revision-publication'
 export const runRevisionEvaluation = async (options: GenerateImagesCommandOptions, dependencies: RevisionEvaluationDependencies = {}): Promise<RevisionEvaluationResult> => {
   const loaded = await loadRevisionEvaluationPlan(options)
   await mkdir(loaded.evidenceDirectory, { recursive: true })
-  await copyFile(loaded.planPath, join(loaded.evidenceDirectory, 'revision-plan.json'))
+  await copyFileExact(loaded.planPath, join(loaded.evidenceDirectory, 'revision-plan.json'))
   const imageIndexByPanel = new Map(loaded.entries.map((entry, index) => [entry.panelNumber, index]))
   const results = await mapWithConcurrency(options.concurrency ?? DEFAULT_CLI_CONCURRENCY, loaded.entries, async entry => {
     const state = await loadOrCreateLedger(loaded, entry)
     await reconcileCompletedComparisonNormalization({ ledger: state.ledger, ledgerPath: state.path, panelDirectory: state.directory, now: dependencies.now ?? (() => new Date().toISOString()) })
     const originalEvidencePath = join(state.directory, 'original.png')
-    if (!(await Bun.file(originalEvidencePath).exists())) await copyFile(entry.originalPath, originalEvidencePath)
+    if (!(await Bun.file(originalEvidencePath).exists())) await copyFileExact(entry.originalPath, originalEvidencePath)
     if (await sha256File(originalEvidencePath) !== entry.original.sha256) throw ValidationError(`Panel ${entry.panelNumber} original evidence hash does not match the frozen plan.`, { stage: 'comic:revision-evaluation' })
     await completeImageSlot({ loaded, entry, ledger: state.ledger, ledgerPath: state.path, panelDirectory: state.directory, options, dependencies, hostedIndex: imageIndexByPanel.get(entry.panelNumber)! })
     if (state.ledger.imageSlot?.status === 'completed') {

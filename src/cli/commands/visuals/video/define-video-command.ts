@@ -88,7 +88,7 @@ const buildPricingOptionsForTargets = <T extends VideoRuntimeOptions>(
   ))
 })
 
-const resolveVideoInput = (
+export const resolveVideoInput = (
   input: string,
   flags: Record<string, unknown>
 ): { prompt: string | undefined, kind: 'image' | 'text' } => {
@@ -114,14 +114,32 @@ const resolveVideoInput = (
   return { prompt: undefined, kind: 'image' }
 }
 
+export const applyDefaultVideoSelection = (flags: Record<string, unknown>, inputKind: 'image' | 'text'): void => {
+  if (!hasVideoProviderSelection(flags)) {
+    if (inputKind === 'image') {
+      flags['all-video'] = true
+    } else if (flags['mode'] === 'text') {
+      const selection = selectCheapestDefaultTextVideoSelection()
+      setSingleVideoProviderSelection(flags, selection.provider, selection.model)
+    }
+  }
+}
+
 export const videoCommand = defineCliCommand({
   name: 'video',
   description: 'Generate a video from a text prompt or input image',
   parameters: [{ key: '<input>', description: 'Text prompt or image path, URL, or data URL for video generation' }],
   flags: videoCommandFlags,
   help: {
+    beforeFlags: [
+      'Without --provider: text mode selects the cheapest target; positional image input infers image-to-video and selects all video providers. Use --provider to narrow the run.',
+    ],
+    notes: [
+      'Without --provider, a text prompt in text mode selects the cheapest target; a positional image selects all video providers.',
+      'A positional image infers --mode image-to-video and cannot be combined with other input-image, last-frame, reference-image, or input-video flags. Use --provider to limit targets and --price to preview cost.',
+    ],
     examples: [
-      ['bun autoshow video input/ajc.png', 'Generate image-to-video outputs from an input image'],
+      ['bun autoshow video input/ajc.png --provider grok=grok-imagine-video --price', 'Estimate image-to-video for one explicit target'],
       ['bun autoshow video "a cinematic mountain sunrise"', 'Generate text-to-video with the cheapest default target'],
       ['bun autoshow video "a cinematic mountain sunrise" --provider gemini=veo-3.1-lite-generate-preview', 'Generate video with Gemini Veo'],
       ['bun autoshow video "a cat playing piano" --provider grok=grok-imagine-video', 'Generate video with Grok'],
@@ -150,14 +168,7 @@ export const videoCommand = defineCliCommand({
     { allProvidersTarget: 'all-video' }
   )
 
-  if (!hasVideoProviderSelection(providerNormalized.flags)) {
-    if (resolvedInput.kind === 'image') {
-      providerNormalized.flags['all-video'] = true
-    } else if (providerNormalized.flags['mode'] === 'text') {
-      const selection = selectCheapestDefaultTextVideoSelection()
-      setSingleVideoProviderSelection(providerNormalized.flags, selection.provider, selection.model)
-    }
-  }
+  applyDefaultVideoSelection(providerNormalized.flags, resolvedInput.kind)
 
   const videoOpts: StandaloneVideoCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences, scope: 'video' })
   let videoTargets = collectVideoTargets(videoOpts)
@@ -205,6 +216,7 @@ export const videoCommand = defineCliCommand({
     videoAspectRatio: videoOpts.videoAspectRatio,
     videoResolution: videoOpts.videoResolution,
     videoMode: videoOpts.videoMode,
+    falVideoReferenceVideoCount: videoOpts.videoReferenceVideos?.length ?? 0,
     replicateVideoReferenceVideoCount: countReplicateInputVideos(videoOpts),
     grokInputImageCount: countGrokInputImages(videoOpts),
     grokInputVideoDurationSeconds: metadata.find((entry) => entry.videoGenService === 'grok' && typeof entry.inputVideoDurationSeconds === 'number')?.inputVideoDurationSeconds
