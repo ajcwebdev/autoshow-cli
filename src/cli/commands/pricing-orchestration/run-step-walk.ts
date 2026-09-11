@@ -9,6 +9,7 @@ import { toArray } from '~/utils/text-utils'
 import { isObjectLike } from '~/utils/value-helpers'
 
 const WHISPER_MODEL_PATH_PATTERN = /ggml-([a-z0-9.-]+)\.bin/i
+const WHISPERFILE_MODEL_PATH_PATTERN = /(?:^|\/)whisper-([^/]+)\.llamafile$/i
 
 const isTranscriptionMetadata = (value: unknown): value is Step2Metadata =>
   isObjectLike(value) && 'transcriptionService' in value
@@ -32,12 +33,18 @@ const classifyStep2 = (value: unknown): ClassifiedStep2 | undefined => {
 }
 
 export const resolveTranscriptionModel = (metadata: Step2Metadata): string => {
-  if (metadata.transcriptionService !== 'whisper') {
+  if (metadata.transcriptionService === 'whisper') {
+    const match = metadata.transcriptionModel.match(WHISPER_MODEL_PATH_PATTERN)
+    if (match && typeof match[1] === 'string' && match[1].length > 0) {
+      return match[1]
+    }
     return metadata.transcriptionModel
   }
-  const match = metadata.transcriptionModel.match(WHISPER_MODEL_PATH_PATTERN)
-  if (match && typeof match[1] === 'string' && match[1].length > 0) {
-    return match[1]
+  if (metadata.transcriptionService === 'whisperfile') {
+    const match = metadata.transcriptionModel.match(WHISPERFILE_MODEL_PATH_PATTERN)
+    if (match && typeof match[1] === 'string' && match[1].length > 0) {
+      return match[1]
+    }
   }
   return metadata.transcriptionModel
 }

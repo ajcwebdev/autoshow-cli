@@ -88,6 +88,7 @@ export type DraftScenesCommandOptions = ComicScriptSceneCommandOptionsBase & Com
   blockingPlan?: string
   rebind?: boolean
   reconcileFromDirectives?: boolean
+  panelCount?: number
 }
 
 export type ComicLlmResponseUsage = {

@@ -1,5 +1,6 @@
 import {
   draftScenesFlags,
+  draftTreatmentFlags,
   comicGenerateAudioFlags,
   comicGenerateSlideshowFlags,
   comicReviewFlags,
@@ -11,6 +12,7 @@ import {
 import { defineCliCommand } from '~/cli/native/native-types'
 import {
   DRAFT_SCENES_COMMAND,
+  DRAFT_TREATMENT_COMMAND,
   GENERATE_AUDIO_COMMAND,
   GENERATE_IMAGES_COMMAND,
   REFERENCE_SKETCH_COMMAND,
@@ -20,6 +22,7 @@ import {
 } from './cli-args'
 import {
   handleDraftScenes,
+  handleDraftTreatment,
   handleGenerateAudio,
   handleGenerateImages,
   handleGenerateSlideshow,
@@ -37,8 +40,14 @@ const SCRIPT_PATH_PARAMETER = {
   description: 'Path to a script markdown file, or NN-SC shorthand (e.g. 01-01 or input/scripts/01-script/01-opening.md)'
 } as const
 
+const TREATMENT_PATH_PARAMETER = {
+  key: '<treatment-path>',
+  description: 'Path to a prose treatment as .md, .txt, or .pdf (e.g. input/camp.md)'
+} as const
+
 const ARTIFACT_NOTE = 'Comic artifacts are read from input and written under output.'
 
+const DRAFT_TREATMENT_DESCRIPTION = 'Adapt a prose treatment into a fixed-count episode script plus bootstrapped character and location catalog entries'
 const DRAFT_SCENES_DESCRIPTION = 'Run script markdown to structured script JSON to draft prompt bundles to a blocking plan to scene JSON to panel prompt bundles'
 const GENERATE_IMAGES_DESCRIPTION = 'Run panel prompt bundles to review sketches and/or final panel images'
 const REFERENCE_SKETCH_DESCRIPTION = 'Generate and register a character sheet or one canonical location view'
@@ -46,6 +55,27 @@ const GENERATE_AUDIO_DESCRIPTION = 'Render approved character voices from an exi
 const GENERATE_SLIDESHOW_DESCRIPTION = 'Synchronize canonical still panels with one complete manifest-backed audio run using local FFmpeg'
 const REVIEW_NOTES_DESCRIPTION = 'Map a Markdown review-notes file onto reviewed panels and emit paste-ready staging directives'
 const REVIEW_SHEET_DESCRIPTION = 'Build a static per-panel review sheet with contracts, stage boards, canonical images, and QA evidence'
+
+export const draftTreatmentCommandDefinition = defineCliCommand({
+  name: `comic ${DRAFT_TREATMENT_COMMAND}`,
+  description: DRAFT_TREATMENT_DESCRIPTION,
+  parameters: [TREATMENT_PATH_PARAMETER],
+  flags: draftTreatmentFlags,
+  help: {
+    examples: [
+      [`bun autoshow comic ${DRAFT_TREATMENT_COMMAND} input/camp.md --episode 02 --speaker papa-bear`, 'Draft a ten-panel script and catalog entries from a treatment'],
+      [`bun autoshow comic ${DRAFT_TREATMENT_COMMAND} input/camp.md --panel-count 8 --slug camp-manzanita --style-seed camp-manzanita--style-seed.png`, 'Choose the panel count, slug, and style seed image'],
+      [`bun autoshow comic ${DRAFT_TREATMENT_COMMAND} input/camp-manzanita-treatment.pdf --price`, 'Estimate the drafting call from a PDF treatment without provider calls'],
+    ],
+    notes: [
+      'Makes one structured LLM call plus one validator retry, then writes input/scripts/<episode>-script/<scene>-<slug>.md so the NN-SC shorthand works for every later stage.',
+      'Narration is written under NARRATION labels; quoted lines from --speaker characters become their dialogue and every other quote is folded into narration.',
+      'New characters and locations are merged into the catalogs without touching existing keys. The style seed PNG named by --style-seed must already exist under the characters root.',
+      `Continue with bun autoshow comic ${DRAFT_SCENES_COMMAND} <episode>-<scene> --only structure, reference-sketch for every new key, then --only scene --panel-count <n>.`,
+      ARTIFACT_NOTE
+    ]
+  }
+}, handleDraftTreatment)
 
 export const draftScenesCommandDefinition = defineCliCommand({
   name: `comic ${DRAFT_SCENES_COMMAND}`,
@@ -228,6 +258,7 @@ export const reviewSheetCommandDefinition = defineCliCommand({
 })
 
 export const COMIC_SUBCOMMAND_DEFINITIONS = [
+  draftTreatmentCommandDefinition,
   draftScenesCommandDefinition,
   generateImagesCommandDefinition,
   generateAudioCommandDefinition,

@@ -5,15 +5,18 @@ import type { CharacterVoiceBrief, ProtectedAssetRef, VoiceAuditionManifest, Voi
 import {
   approveVoiceRegistration,
   beginVoiceRegistrationDeletion,
+  loadApprovedVoiceAudition,
   loadCurrentVoiceRegistrationIndex,
   loadVoiceRegistrationCatalog,
   recordVoiceAudition,
   requireCurrentVoiceRegistration,
   resolveCharacterVoiceRegistryPaths,
+  resolveVoiceReferenceGenerationRoot,
   transitionVoiceRegistrationLifecycle,
   writeCharacterVoiceBriefCatalog,
 } from '~/cli/commands/audio/voice/character-voice-registry'
-import { buildReadyVoiceRegistrationDraft } from '~/cli/commands/audio/voice/voice-registration-management'
+import { buildReadyVoiceRegistrationDraft, importExistingVoiceRegistration } from '~/cli/commands/audio/voice/voice-registration-management'
+import { existsSync } from 'node:fs'
 import { computeVoiceAuditionId } from '~/cli/commands/audio/voice/voice-management-contracts'
 import { validateVoiceRegistration } from '~/cli/commands/audio/voice/voice-management-contracts'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
@@ -183,6 +186,33 @@ describe('Phase 1 comic voice reference artifacts', () => {
     const catalog = await loadVoiceRegistrationCatalog(root)
     expect(catalog.registrations).toHaveLength(4)
     expect((await loadCurrentVoiceRegistrationIndex(root, catalog)).selections).toEqual([])
+  })
+
+  test('a provider-stock import of a role-prefixed subject writes its audition where the encoded reader looks', async () => {
+    const root = await makeRoot()
+    const registration = await importExistingVoiceRegistration({
+      charactersRoot: root,
+      subjectKey: 'role:narrator',
+      profileKey: 'default',
+      provider: 'hume',
+      providerModel: 'octave-2',
+      resourceId: '176a55b1-4468-4736-8878-db82729667c1',
+      origin: 'provider-stock',
+      brief: { ...brief, subjectKey: 'role:narrator' },
+      provenanceRef: 'project:test-casting',
+      capabilityFixtureHash: 'b'.repeat(64),
+    })
+    expect(registration.approval.state).toBe('approved')
+    const generationRoot = resolveVoiceReferenceGenerationRoot(root, registration)
+    expect(generationRoot).not.toContain('role:narrator')
+    expect(existsSync(join(generationRoot, 'audition-manifest.json'))).toBe(true)
+    expect(existsSync(join(generationRoot, 'registration-snapshot.json'))).toBe(true)
+    expect(existsSync(join(resolveCharacterVoiceRegistryPaths(root).referencesRoot, 'role:narrator'))).toBe(false)
+    const audition = await loadApprovedVoiceAudition(root, registration)
+    expect(registration.approvedAuditionId).toBeDefined()
+    expect(audition.auditionId).toBe(registration.approvedAuditionId ?? '')
+    const current = await loadCurrentVoiceRegistrationIndex(root)
+    expect(current.selections.map(selection => selection.subjectKey)).toEqual(['role:narrator'])
   })
 
   test('registration generation identity rejects mutated lifecycle bytes', () => {

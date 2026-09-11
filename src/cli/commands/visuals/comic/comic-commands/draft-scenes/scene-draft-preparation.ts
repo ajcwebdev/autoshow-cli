@@ -1,4 +1,4 @@
-import type { GenerateSceneJsonOptions, SceneDraftRequest, SceneDraftResponse } from '~/types'
+import type { GenerateSceneJsonOptions, SceneDraftRequest, SceneDraftResponse, ScenePanelCountContract } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
 import { sha256Bytes } from '~/utils/value-helpers'
 import { loadCharacterCatalog } from '../../comic-utils/character-reference-config'
@@ -11,6 +11,7 @@ import {
 import { runComicStructuredLlm } from '../../comic-utils/structured-script-utils/run-structured-llm'
 import { buildSceneJsonSchema, ScenePromptDataSchema, StructuredScriptDataSchema } from '../../schemas/schemas'
 import { SCENE_DRAFT_MAX_ATTEMPTS_WITH_PLAN, STAGE } from './scene-draft-defaults'
+import { appendPanelCountSection, buildPanelCountContract } from './scene-panel-count-contract'
 
 const requestSceneFromProvider = (options: GenerateSceneJsonOptions) => async (request: SceneDraftRequest): Promise<SceneDraftResponse> => {
   const { text, metadata } = await runComicStructuredLlm(request.prompt, {
@@ -29,6 +30,16 @@ const requestSceneFromProvider = (options: GenerateSceneJsonOptions) => async (r
     outputTokens: metadata.outputTokenCount,
     returnedModel: metadata.providerReturnedModel ?? metadata.llmModel,
   }
+}
+
+const resolvePanelCountContract = async (
+  options: GenerateSceneJsonOptions,
+  structuredScriptPath: string,
+  planStructuredScript: Awaited<ReturnType<typeof parseJsonFile<typeof StructuredScriptDataSchema>>> | undefined,
+): Promise<ScenePanelCountContract | undefined> => {
+  if (options.panelCount === undefined) return undefined
+  const structuredScript = planStructuredScript ?? await parseJsonFile(structuredScriptPath, StructuredScriptDataSchema)
+  return buildPanelCountContract(structuredScript, options.panelCount, structuredScriptPath)
 }
 
 export const prepareSceneDraft = async (sceneSlug: string, options: GenerateSceneJsonOptions) => {
@@ -58,10 +69,12 @@ export const prepareSceneDraft = async (sceneSlug: string, options: GenerateScen
       segmentIds: segmentOrder,
     }
     : {})
-  const basePrompt = blockingPlan ? appendScenePlanSection(content, blockingPlan.plan) : stripScenePlanSection(content)
+  const planPrompt = blockingPlan ? appendScenePlanSection(content, blockingPlan.plan) : stripScenePlanSection(content)
+  const panelCountContract = await resolvePanelCountContract(options, structuredScriptPath, planStructuredScript)
+  const basePrompt = panelCountContract ? appendPanelCountSection(planPrompt, panelCountContract) : planPrompt
   const requestScene = options.requestScene ?? requestSceneFromProvider(options)
-  const maxAttempts = blockingPlan ? SCENE_DRAFT_MAX_ATTEMPTS_WITH_PLAN : 1
-  return { catalog, structuredScriptPath, blockingPlan, planStructuredScript, segmentOrder, sceneJsonSchema, basePrompt, requestScene, maxAttempts }
+  const maxAttempts = blockingPlan || panelCountContract ? SCENE_DRAFT_MAX_ATTEMPTS_WITH_PLAN : 1
+  return { catalog, structuredScriptPath, blockingPlan, planStructuredScript, segmentOrder, sceneJsonSchema, basePrompt, requestScene, maxAttempts, panelCountContract }
 }
 
 export type SceneDraftPreparation = NonNullable<Awaited<ReturnType<typeof prepareSceneDraft>>>

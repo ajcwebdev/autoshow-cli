@@ -30,3 +30,5 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider w
 ```
 
 Whisperfile requires an explicit model selector. It is included by `--all-local`.
+
+Local engine quality and speed evidence for the 1-minute, 10-minute, and 40-minute without-speakers fixtures lives in [`docs/benchmarks/stt-local`](../../../benchmarks/stt-local/). Use `config/stt-local.json` to select every supported whisper.cpp and whisperfile model at `--local-concurrency 1`.

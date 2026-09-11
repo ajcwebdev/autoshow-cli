@@ -16,7 +16,7 @@ Draft comic scenes from episode scripts, compile a blocking plan into per-panel 
 
 ## Overview
 
-`comic` is a staged pipeline. Run the public subcommands in this order:
+`comic` is a staged pipeline. A prose treatment can enter it through [`draft-treatment`](./07-draft-treatment.md), which writes the episode script and bootstraps catalog entries before step 1. Run the public subcommands in this order:
 
 1. Start from episode script Markdown under `input/scripts/` and [draft the scene](./01-draft-scenes.md): structured script JSON, draft prompt, blocking plan, scene JSON, then panel prompt bundles.
 2. Create reusable [character and location reference images](./02-reference-sketch.md) before panel prompts consume them.
@@ -38,7 +38,7 @@ XAI_API_KEY=...
 
 Other image providers (BFL, Replicate, Luma Labs) and TTS or sound-effect providers need their own keys. See [Supported Models](#supported-models), [TTS](../../audio/tts/overview.md), and [voice](../../audio/voice/00-voice-overview.md).
 
-Where supported, `--price` estimates cost without provider calls or writes. `draft-scenes --only prompt`, `draft-scenes --only panel-prompts`, `draft-scenes --only blocking --blocking-plan <path>`, `draft-scenes --only blocking --rebind`, `draft-scenes --reconcile-from-directives`, and both `review` modes are local and make no provider calls. `review` does not have a pricing option.
+Where supported, `--price` estimates cost without provider calls or writes. `draft-treatment --price`, `draft-scenes --only prompt`, `draft-scenes --only panel-prompts`, `draft-scenes --only blocking --blocking-plan <path>`, `draft-scenes --only blocking --rebind`, `draft-scenes --reconcile-from-directives`, and both `review` modes are local and make no provider calls. `review` does not have a pricing option.
 
 ### Character and Location Catalogs
 
@@ -46,9 +46,13 @@ Where supported, `--price` estimates cost without provider calls or writes. `dra
 
 Location configuration lives in `input/locations/locations-reference.json`. Set `styleImage` to a project image whose visual language should guide new location views. If the location catalog does not exist, comic creates it using the first character catalog image as the style reference.
 
+Every comic stage loads the character catalog, and loading fails when a character has neither its source image nor its `generationReference` image on disk. Keep every style seed named by a `generationReference` under `input/characters/` before running any stage, including `draft-scenes --only structure`.
+
 ## Runtime Paths
 
 - Episode scripts: `input/scripts/NN-script/*.md`
+- Prose treatments: any `.md`, `.txt`, or `.pdf` file, for example `input/camp.md`
+- Treatment run (source copy, prompt, model responses, validated draft, parser preview, merge report): `output/<YYYY-MM-DD_HH-MM-SS-mmm>_<slug>-treatment/`
 - Character catalog and outline sheets: `input/characters/`
 - Location catalog and reference views: `input/locations/`
 - Optional reviewed per-location geometry records and their floor-plan drawings: `input/locations/location-plans.json` and `input/locations/plans/`
@@ -58,7 +62,8 @@ Location configuration lives in `input/locations/locations-reference.json`. Set 
 ## Usage
 
 ```bash
-bun autoshow comic draft-scenes <script-path> [--only structure|prompt|blocking|scene|panel-prompts] [--no-blocking] [--blocking-plan <path>] [--rebind] [--reconcile-from-directives] [--price]
+bun autoshow comic draft-treatment <treatment-path> [--panel-count <n|min-max>] [--voice-pacing exclusive|mixed] [--episode <NN>] [--scene <SC>] [--slug <text>] [--speaker <key>] [--style-seed <filename>] [--catalog-policy skip-existing|fail] [--force] [--price]
+bun autoshow comic draft-scenes <script-path> [--only structure|prompt|blocking|scene|panel-prompts] [--no-blocking] [--blocking-plan <path>] [--rebind] [--reconcile-from-directives] [--panel-count <n>] [--price]
 bun autoshow comic reference-sketch (--character <key> | --location <key> [--view establishing|reverse|side]) [--revise --notes <text>] [--price]
 bun autoshow comic generate-images <script-path> [--target images|sketches|both] [--panels <all|range|list>] [--blocking-hard-keys <list>] [--bloopers] [--stop-on-provider-error] [--credit-preflight] [--price]
 bun autoshow comic generate-images <script-path> --qa-only --continuity-qa [--continuity-only] [--labels <path>] [--trusted-anchor-panel <n>] [--price]
@@ -69,7 +74,7 @@ bun autoshow comic review <script-path> --notes <path>
 bun autoshow comic review <script-path> [--export-doc]
 ```
 
-`<script-path>` also accepts episode-scene shorthand: `01-01` resolves to the single Markdown file in `input/scripts/01-script/` whose filename starts with `01-`.
+`<script-path>` also accepts episode-scene shorthand: `01-01` resolves to the single Markdown file in `input/scripts/01-script/` whose filename starts with `01-`. `draft-treatment` writes its script as `input/scripts/<episode>-script/<scene>-<slug>.md`, so a treatment drafted with `--episode 02` is addressed as `02-01` afterwards.
 
 ## Walkthrough: 01-opening
 
@@ -174,6 +179,20 @@ output/<YYYY-MM-DD_HH-MM-SS-mmm>_01-opening/
   panels/
   pages/
   sketches/
+output/<YYYY-MM-DD_HH-MM-SS-mmm>_<slug>-treatment/
+  metadata/treatment/
+    source.<ext>
+    source.txt
+    prompt.md
+    response-attempt-N.json
+    treatment.json
+    treatment.invalid.json           # only when both drafting attempts fail
+    structured-script.preview.json
+    script.md
+    merge-report.json
+    merge-report.md
+input/scripts/
+  <episode>-script/<scene>-<slug>.md   # written by draft-treatment
 input/characters/
   characters-reference.json
   character-sketches.json
@@ -223,6 +242,7 @@ Pass multiple models with `--image-model` to generate each panel with every mode
 
 ## Command Docs
 
+- [draft-treatment](./07-draft-treatment.md)
 - [draft-scenes](./01-draft-scenes.md)
 - [reference-sketch](./02-reference-sketch.md)
 - [generate-images](./03-generate-images.md)

@@ -55,6 +55,7 @@ const commandByDoc = {
   'visuals/comic/04-generate-audio.md': comicCommand,
   'visuals/comic/05-generate-slideshow.md': comicCommand,
   'visuals/comic/06-review.md': comicCommand,
+  'visuals/comic/07-draft-treatment.md': comicCommand,
   'audio/voice/00-voice-overview.md': voiceCommand,
   'audio/voice/01-list.md': voiceCommand,
   'audio/voice/02-consent.md': voiceCommand,

@@ -11,6 +11,8 @@ export const runWhisperfileTranscribe = async (
     name: 'whisperfile',
     label: 'Whisperfile',
     tempPrefix: 'autoshow-whisperfile-',
+    passthroughExtensions: ['.wav', '.mp3', '.flac', '.ogg'],
+    convertFormat: 'mp3',
     resolveInvocation: async (modelName, baseArgs) => {
       const whisperfileBinary = whisperfileBinaryPath(modelName)
       return {

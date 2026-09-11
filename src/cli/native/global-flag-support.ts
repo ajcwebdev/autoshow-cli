@@ -15,6 +15,7 @@ const ALLOW_OVER_BUDGET_COMMANDS = new Set([
   'image',
   'video',
   'music',
+  'comic draft-treatment',
   'comic draft-scenes',
   'comic generate-images',
   'comic generate-audio',

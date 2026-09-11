@@ -22,5 +22,7 @@ export type WhisperCppProvider = {
   name: 'whisper' | 'whisperfile'
   label: string
   tempPrefix: string
+  passthroughExtensions?: readonly string[]
+  convertFormat?: 'wav' | 'mp3'
   resolveInvocation: (modelName: string, baseArgs: string[]) => Promise<WhisperCppInvocation>
 }

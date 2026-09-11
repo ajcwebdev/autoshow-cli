@@ -60,7 +60,7 @@ const collectModelIdentities = (
 const normalizeHistoricalIdentity = (
   identity: HistoricalIdentity
 ): HistoricalIdentity => {
-  if (identity.category === 'stt' && identity.service === 'whisper') {
+  if (identity.category === 'stt' && (identity.service === 'whisper' || identity.service === 'whisperfile')) {
     const model = resolveTranscriptionModel({
       transcriptionService: identity.service,
       transcriptionModel: identity.model
@@ -79,6 +79,21 @@ const isActiveModel = (identity: HistoricalIdentity): boolean => {
 }
 
 describe('historical model rate contracts', () => {
+  test('resolveTranscriptionModel maps whisper.cpp and whisperfile artifact paths', () => {
+    expect(resolveTranscriptionModel({
+      transcriptionService: 'whisper',
+      transcriptionModel: '/models/ggml-tiny.bin'
+    } as Step2Metadata)).toBe('tiny')
+    expect(resolveTranscriptionModel({
+      transcriptionService: 'whisperfile',
+      transcriptionModel: '/runtime/bin/whisperfile/whisper-tiny.en.llamafile'
+    } as Step2Metadata)).toBe('tiny.en')
+    expect(resolveTranscriptionModel({
+      transcriptionService: 'whisperfile',
+      transcriptionModel: 'tiny'
+    } as Step2Metadata)).toBe('tiny')
+  })
+
   test('every committed benchmark step model resolves through active or retired rates', async () => {
     const identities: HistoricalIdentity[] = []
     let runCount = 0

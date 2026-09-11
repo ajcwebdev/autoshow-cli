@@ -74,6 +74,9 @@ bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=v
 bun autoshow music --audio input/examples/lyrics/01-example-song.mp3
 bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental
 
+# adapt a prose treatment into a fixed-count comic script plus catalog entries
+bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear
+
 # inspect or set persistent defaults
 bun autoshow config --show
 bun autoshow config --llm openai=gpt-5.5 --batch-limit 20 --max-cents 50
@@ -121,7 +124,7 @@ Dated model changes, pricing decisions, and validation evidence live beside the 
 - Use `metadata` to inspect a source without downloading it, `download` when you need the file on disk, `extract` for transcripts, OCR, article text, X Space reports, or transcript videos, and `write` for hosted LLM text over local `.md` / `.txt` (including extract artifacts).
 - Use `tts`, `image`, `video`, and `music` for generation from text or prompts. Use `voice` to list or register voices without synthesizing speech.
 - Use `music --audio`, `--captions`, or `--batch` for local lyric videos from repo audio; hosted music uses a prompt or text file plus `--provider`.
-- Use `comic` for episode-script to comic production, including scene drafts, blocking plans, character and location references, panel and page images, blocking and continuity QA, review artifacts, dialogue and soundscape audio, and slideshows.
+- Use `comic` for episode-script to comic production, including scene drafts, blocking plans, character and location references, panel and page images, blocking and continuity QA, review artifacts, dialogue and soundscape audio, and slideshows. Use `comic draft-treatment` to turn a prose treatment into that episode script and its catalog entries first.
 - Use `resume` to backfill missing providers in an existing output directory.
 - Use `config` to inspect or persist defaults. Use `links` to fetch provider documentation.
 
@@ -140,6 +143,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --p
 bun autoshow image "a sunset" --provider openai=gpt-image-2 --size 1024x1024 --quality low --price
 bun autoshow video "a sunset timelapse" --provider gemini=veo-3.1-lite-generate-preview --price
 bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental --price
+bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear --price
 bun autoshow comic draft-scenes 02-01 --only blocking --price
 bun autoshow comic generate-images 02-01 --target images --panels 1-16 --price
 ```

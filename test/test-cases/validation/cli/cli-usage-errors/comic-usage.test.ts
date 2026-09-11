@@ -1,10 +1,12 @@
 import { expect, test } from 'bun:test'
 import {
   coerceAndValidateDraftScenes,
+  coerceAndValidateDraftTreatment,
   coerceAndValidateGenerateImages
 } from '~/cli/commands/visuals/comic/comic-utils/cli-args'
 import {
   draftScenesCommandDefinition,
+  draftTreatmentCommandDefinition,
   generateImagesCommandDefinition,
   generateSlideshowCommandDefinition
 } from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
@@ -28,6 +30,41 @@ const parseDraftScenesArgs = (args: string[]) =>
     draftScenesCommandDefinition,
     GLOBAL_FLAG_DEFINITIONS
   ))
+
+const parseDraftTreatmentArgs = (args: string[]) =>
+  coerceAndValidateDraftTreatment(parseCommandInvocation(
+    [draftTreatmentCommandDefinition.name, ...args],
+    draftTreatmentCommandDefinition,
+    GLOBAL_FLAG_DEFINITIONS
+  ))
+
+test('comic draft-treatment rejects malformed drafting flags', () => {
+  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--panel-count', '0'])).toThrow('Invalid panel count "0"')
+  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--panel-count', '61'])).toThrow('Invalid panel count "61"')
+  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--panel-count', '25-20'])).toThrow('The range minimum must not exceed its maximum')
+  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--panel-count', '0-5'])).toThrow('Invalid panel count "0-5"')
+  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--voice-pacing', 'loose'])).toThrow('Invalid voice pacing "loose"')
+  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--episode', '2'])).toThrow('Invalid episode "2"')
+  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--scene', 'one'])).toThrow('Invalid scene "one"')
+  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--slug', 'Camp Manzanita'])).toThrow('Invalid slug "Camp Manzanita"')
+  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--speaker', 'Papa Bear'])).toThrow('Invalid speaker "Papa Bear"')
+  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--style-seed', '../seed.png'])).toThrow('Invalid style seed "../seed.png"')
+  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--style-seed', 'seed.jpg'])).toThrow('Invalid style seed "seed.jpg"')
+  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--catalog-policy', 'nope'])).toThrow('Invalid catalog policy "nope"')
+  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--llm-model', 'not-a-model'])).toThrow('Invalid llm model "not-a-model"')
+  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--panels', '1-4'])).toThrow('Unexpected flag: --panels')
+})
+
+test('comic draft-treatment requires the treatment path parameter', () => {
+  expect(() => parseRoot(['comic', 'draft-treatment'])).toThrow('Missing required parameter: treatment-path')
+})
+
+test('comic draft-scenes panel-count only applies to the scene stage', () => {
+  expect(() => parseDraftScenesArgs(['script.md', '--panel-count', 'ten'])).toThrow('Invalid panel count "ten"')
+  expect(() => parseDraftScenesArgs(['script.md', '--panel-count', '4', '--only', 'structure'])).toThrow('--panel-count only applies to the scene stage')
+  expect(() => parseDraftScenesArgs(['script.md', '--panel-count', '4', '--only', 'scene', '--rebind'])).toThrow('--panel-count cannot be combined with --rebind')
+  expect(() => parseDraftScenesArgs(['script.md', '--panel-count', '4', '--reconcile-from-directives'])).toThrow('--panel-count cannot be combined with --reconcile-from-directives')
+})
 
 test('comic generate-images rejects invalid page selection flags', () => {
   expect(() => parseGenerateImagesArgs(['script.md', '--panels', '4-2'])).toThrow('Invalid panels "4-2"')

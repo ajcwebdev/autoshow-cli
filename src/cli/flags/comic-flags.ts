@@ -6,6 +6,14 @@ import {
   DEFAULT_QA_MODEL
 } from '~/cli/commands/visuals/comic/comic-utils/cli-args'
 import {
+  DEFAULT_TREATMENT_CATALOG_POLICY,
+  DEFAULT_TREATMENT_PANEL_COUNT,
+  DEFAULT_TREATMENT_SCENE_NUMBER,
+  DEFAULT_TREATMENT_VOICE_PACING,
+  TREATMENT_CATALOG_POLICIES,
+  TREATMENT_VOICE_PACINGS
+} from '~/cli/commands/visuals/comic/comic-commands/draft-treatment/treatment-defaults'
+import {
   DEFAULT_IMAGE_MODEL,
   IMAGE_SIZE_HELP
 } from '~/cli/commands/visuals/comic/comic-utils/image-size'
@@ -71,12 +79,37 @@ const draftScenesStageFlags = {
   'blocking-plan': strFlag(colorizeHelpDescription('Import a hand-authored blocking plan JSON for the blocking stage instead of drafting one; makes no provider call')),
   rebind: boolFlag(colorizeHelpDescription('Remap the existing blocking plan citations to the current structured script by segment content hash and report unresolved ones; requires --only blocking and makes no provider call')),
   'reconcile-from-directives': boolFlag(colorizeHelpDescription('Apply the script\'s CAMERA, BREAK-180, COSTUME, and EXTRAS staging directives to the reviewed scene and blocking plan without an LLM call; panel splits and merges are rejected')),
+  'panel-count': strFlag(colorizeHelpDescription('Require exactly this many panels from the scene stage, one per authored [Panel N] note in order, with one validator retry; only applies to the scene stage')),
   'llm-model': strFlag(colorizeHelpDescription('Text model for blocking-plan and scene drafting'), DEFAULT_LLM_MODEL)
 } as const satisfies CliFlagsDefinition
 
 export const draftScenesFlags = {
   ...withHelpGroup(draftScenesStageFlags, 'comic-stages'),
   ...withHelpGroup(comicConcurrencyFlag, 'comic-run'),
+  ...withHelpGroup(comicPriceFlag, 'pricing')
+} as const satisfies CliFlagsDefinition
+
+const draftTreatmentStageFlags = {
+  'panel-count': strFlag(colorizeHelpDescription('Number of panels to fit the treatment into, exact or a range such as 20-25'), String(DEFAULT_TREATMENT_PANEL_COUNT)),
+  'voice-pacing': strFlag(colorizeHelpDescription(`How narration and dialogue share panels: ${TREATMENT_VOICE_PACINGS.join('|')}; exclusive gives each panel one voice and groups consecutive panels into runs`), DEFAULT_TREATMENT_VOICE_PACING),
+  episode: strFlag(colorizeHelpDescription('Two-digit episode number that selects input/scripts/<NN>-script/; defaults to the next unused number')),
+  scene: strFlag(colorizeHelpDescription('Two-digit scene prefix for the generated script filename'), DEFAULT_TREATMENT_SCENE_NUMBER),
+  slug: strFlag(colorizeHelpDescription('Kebab-case script slug; defaults to the treatment title')),
+  speaker: strListFlag(colorizeHelpDescription('Character key whose quoted lines become dialogue instead of narration; repeatable')),
+  'style-seed': strFlag(colorizeHelpDescription('PNG filename under the characters root written as every new character\'s generationReference; defaults to <slug>--style-seed.png')),
+  'catalog-policy': strFlag(colorizeHelpDescription(`How an existing catalog key is handled: ${TREATMENT_CATALOG_POLICIES.join('|')}`), DEFAULT_TREATMENT_CATALOG_POLICY),
+  force: {
+    description: colorizeHelpDescription('Overwrite an existing script at the target path'),
+    type: Boolean,
+    default: false,
+    negatable: false
+  },
+  'llm-model': strFlag(colorizeHelpDescription('Text model for the treatment drafting call'), DEFAULT_LLM_MODEL)
+} as const satisfies CliFlagsDefinition
+
+export const draftTreatmentFlags = {
+  ...withHelpGroup(draftTreatmentStageFlags, 'comic-treatment'),
+  ...withHelpGroup({ 'concurrency-mode': sharedConcurrencyFlags['concurrency-mode'] }, 'comic-run'),
   ...withHelpGroup(comicPriceFlag, 'pricing')
 } as const satisfies CliFlagsDefinition
 

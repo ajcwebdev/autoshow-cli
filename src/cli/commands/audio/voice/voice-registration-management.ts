@@ -20,7 +20,7 @@ import type {
 import { UsageError } from '~/utils/error-handler'
 import { assertProtectedStoreOutputDisjoint } from './voice-assets/protected-output-boundary'
 import { hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../tts/script-to-audio/contract-identity'
-import { appendVoiceRegistration, hashCharacterVoiceBrief, loadCurrentVoiceRegistrationIndex, loadVoiceRegistrationCatalog, recordVoiceProvisioningOutcome, resolveCharacterVoiceRegistryPaths, writeCreateOnlyJson } from './character-voice-registry'
+import { appendVoiceRegistration, hashCharacterVoiceBrief, loadCurrentVoiceRegistrationIndex, loadVoiceRegistrationCatalog, recordVoiceProvisioningOutcome, resolveCharacterVoiceRegistryPaths, resolveVoiceReferenceGenerationRoot, writeCreateOnlyJson } from './character-voice-registry'
 import { assertVoiceConsentAllows, computeVoiceAuditionId, validateVoiceAuditionManifest, validateVoiceConsentRecord, validateVoiceRegistration } from './voice-management-contracts'
 import { createMistralSavedVoice, inspectMistralSavedVoice, mistralAccountScopeHash } from './mistral-voice-management'
 import { runCrashSafeVoiceProvisioning } from './provisioning-journal'
@@ -231,13 +231,8 @@ export const importExistingVoiceRegistration = async (input: {
     await appendVoiceRegistration(input.charactersRoot, registration)
 
     const paths = resolveCharacterVoiceRegistryPaths(input.charactersRoot)
-    const refDir = join(
-      paths.referencesRoot,
-      registration.subjectKey,
-      registration.provider,
-      registration.registrationId,
-      registration.generationId
-    )
+    // Resolve through the registry so encoded subject keys such as role:narrator land where every reader looks.
+    const refDir = resolveVoiceReferenceGenerationRoot(input.charactersRoot, registration)
     await writeCreateOnlyJson(join(refDir, 'audition-manifest.json'), audition)
     await writeCreateOnlyJson(join(refDir, 'registration-snapshot.json'), registration)
 

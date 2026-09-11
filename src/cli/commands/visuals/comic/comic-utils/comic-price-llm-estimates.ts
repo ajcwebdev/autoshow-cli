@@ -125,9 +125,12 @@ export const estimateSceneDraftPrice = async (options: DraftScenesCommandOptions
   const content = await Bun.file(draftPromptPath).text()
   const blockingPlan = options.blocking === false ? undefined : await readBlockingPlanIfPresent(sceneSlug)
   const promptText = blockingPlan ? appendScenePlanSection(content, blockingPlan.plan) : stripScenePlanSection(content)
-  const { panelEstimate, panelBasis } = await estimateScenePanelCount(sceneSlug)
+  const { panelEstimate, panelBasis } = options.panelCount !== undefined
+    ? { panelEstimate: options.panelCount, panelBasis: '--panel-count contract' }
+    : await estimateScenePanelCount(sceneSlug)
   const outputUnitsPerCall = SCENE_DRAFT_OUTPUT_UNITS_FIXED + SCENE_DRAFT_OUTPUT_UNITS_PER_PANEL * panelEstimate
-  const maximumCalls = blockingPlan ? SCENE_DRAFT_MAX_CALLS_WITH_PLAN : 1
+  const retryable = Boolean(blockingPlan) || options.panelCount !== undefined
+  const maximumCalls = retryable ? SCENE_DRAFT_MAX_CALLS_WITH_PLAN : 1
   logLlmTokenEstimate(
     'Comic - Price Estimate: draft-scenes --only scene',
     model,
@@ -137,7 +140,7 @@ export const estimateSceneDraftPrice = async (options: DraftScenesCommandOptions
     {
       maximumCalls,
       outputUnitsPerCall,
-      basisNote: `Scene estimate: input units ~ chars / 4 (${blockingPlan ? 'including the blocking plan section' : 'no blocking plan section'}), no cache discount, output ${SCENE_DRAFT_OUTPUT_UNITS_FIXED} fixed units plus ${SCENE_DRAFT_OUTPUT_UNITS_PER_PANEL} units per panel across an estimated ${panelEstimate} panel${panelEstimate === 1 ? '' : 's'} (${panelBasis}); maximum calls ${maximumCalls}${blockingPlan ? ' including one retry that appends blocking validator errors' : ''}`,
+      basisNote: `Scene estimate: input units ~ chars / 4 (${blockingPlan ? 'including the blocking plan section' : 'no blocking plan section'}), no cache discount, output ${SCENE_DRAFT_OUTPUT_UNITS_FIXED} fixed units plus ${SCENE_DRAFT_OUTPUT_UNITS_PER_PANEL} units per panel across an estimated ${panelEstimate} panel${panelEstimate === 1 ? '' : 's'} (${panelBasis}); maximum calls ${maximumCalls}${retryable ? ' including one retry that appends validator errors' : ''}`,
       metadata: {
         stage: 'draft-scenes:scene',
         panelEstimate,
@@ -145,6 +148,7 @@ export const estimateSceneDraftPrice = async (options: DraftScenesCommandOptions
         outputUnitsFixed: SCENE_DRAFT_OUTPUT_UNITS_FIXED,
         outputUnitsPerPanel: SCENE_DRAFT_OUTPUT_UNITS_PER_PANEL,
         blockingPlan: blockingPlan ? blockingPlan.planSha256 : null,
+        panelCount: options.panelCount ?? null,
       },
     }
   )

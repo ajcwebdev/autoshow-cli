@@ -135,6 +135,7 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](../text/writ
 - Resume handlers: `src/cli/commands/setup-and-utilities/resume/`
 - STT without-speakers benchmark artifacts: `docs/benchmarks/stt-without-speakers/`
 - STT with-speakers benchmark artifacts: `docs/benchmarks/stt-with-speakers/`
+- STT local whisper.cpp/whisperfile benchmark artifacts: `docs/benchmarks/stt-local/`
 
 ## 2026-09-08 Gemini 3.8 Flash addition
 

@@ -22,7 +22,8 @@ const validateCharacterCatalogRelations = (config: CharacterReferenceConfig, con
   }
 }
 
-export const buildCharacterCatalogIndex = (root: string, configPath: string, config: CharacterReferenceConfig) => {
+export const buildCharacterCatalogIndex = (root: string, configPath: string, config: CharacterReferenceConfig, options: { verifyAssets?: boolean | undefined } = {}) => {
+  const verifyAssets = options.verifyAssets ?? true
   const byKey = new Map<CharacterKey, CharacterCatalogEntry>()
   const byLookup = new Map<string, readonly CharacterKey[]>()
   const sourcePaths = new Set<string>()
@@ -78,7 +79,7 @@ export const buildCharacterCatalogIndex = (root: string, configPath: string, con
       fail(configPath, 'character asset paths must be unique across source images and outline sheets')
     }
     const hasSource = existsSync(sourcePath) && statSync(sourcePath).isFile()
-    if (!hasSource) {
+    if (verifyAssets && !hasSource) {
       const bootstrapReferencePath = generationReferencePath ?? fail(configPath, `source image for "${key}" was not found at ${sourcePath}`)
       if (sourcePath !== outlineSheetPath) {
         fail(configPath, `character "${key}" may omit its source image only when image and outlineSheet name the same canonical destination`)

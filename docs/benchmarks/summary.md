@@ -11,13 +11,14 @@ Costs are lower-is-better and converted from cents to USD. Speeds are lower-is-b
 | image                |       2 |            26 | local, service |
 | music                |       4 |            16 | local, service |
 | ocr                  |      14 |           305 | local, thirdPartyService |
+| stt-local            |       3 |            39 | local, thirdPartyServiceDiarization, thirdPartyServiceNonDiarization |
 | stt-with-speakers    |       4 |            32 | local, thirdPartyServiceDiarization, thirdPartyServiceNonDiarization |
 | stt-without-speakers |       4 |            28 | local, thirdPartyServiceDiarization, thirdPartyServiceNonDiarization |
-| tts | 4 | 131 | local, service |
+| tts                  |       4 |           131 | local, service |
 | url                  |       7 |            37 | local, service |
 | video                |       2 |            17 | local, service |
-| write | 1 | 15 | local, service |
-| **Total** | **42** | **607** | **5 groups** |
+| write                |       1 |            15 | local, service |
+| **Total**            | **45** | **646** | **5 groups** |
 
 ## Method
 
@@ -471,6 +472,130 @@ _Unavailable: no entries are present in the current STT report files._
 
 _Unavailable: no humanQuality entries are present for `stt-without-speakers/thirdPartyServiceDiarization` in the current report files._
 
+
+## STT Local
+
+### local
+
+#### Cost Ranking
+
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | whisperfile/small.en | 3/3 runs | $0.00 |
+| 2 | whisperfile/medium | 3/3 runs | $0.00 |
+| 3 | whisperfile/medium.en | 3/3 runs | $0.00 |
+| 4 | whisperfile/large-v2 | 3/3 runs | $0.00 |
+| 5 | whisper/large-v3-turbo | 3/3 runs | $0.00 |
+| 6 | whisper/medium | 3/3 runs | $0.00 |
+| 7 | whisper/small | 3/3 runs | $0.00 |
+| 8 | whisper/base | 3/3 runs | $0.00 |
+| 9 | whisperfile/tiny.en | 3/3 runs | $0.00 |
+| 10 | whisperfile/small | 3/3 runs | $0.00 |
+| 11 | whisperfile/tiny | 3/3 runs | $0.00 |
+| 12 | whisper/tiny | 3/3 runs | $0.00 |
+| 13 | whisperfile/large-v3 | 3/3 runs | $0.00 |
+
+#### Speed Ranking
+
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | whisperfile/tiny | 3/3 runs | 16.43s |
+| 2 | whisper/tiny | 3/3 runs | 16.46s |
+| 3 | whisperfile/tiny.en | 3/3 runs | 17.33s |
+| 4 | whisper/base | 3/3 runs | 22.02s |
+| 5 | whisper/small | 3/3 runs | 41.52s |
+| 6 | whisperfile/small.en | 3/3 runs | 70.86s |
+| 7 | whisper/large-v3-turbo | 3/3 runs | 71.25s |
+| 8 | whisperfile/small | 3/3 runs | 80.33s |
+| 9 | whisper/medium | 3/3 runs | 97.60s |
+| 10 | whisperfile/medium.en | 3/3 runs | 204.40s |
+| 11 | whisperfile/medium | 3/3 runs | 208.04s |
+| 12 | whisperfile/large-v2 | 3/3 runs | 398.42s |
+| 13 | whisperfile/large-v3 | 3/3 runs | 412.68s |
+
+#### Realtime Throughput Ranking
+
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | whisperfile/tiny | 3/3 runs | 62.53× realtime |
+| 2 | whisper/tiny | 3/3 runs | 62.40× realtime |
+| 3 | whisperfile/tiny.en | 3/3 runs | 59.29× realtime |
+| 4 | whisper/base | 3/3 runs | 46.66× realtime |
+| 5 | whisper/small | 3/3 runs | 24.74× realtime |
+| 6 | whisperfile/small.en | 3/3 runs | 14.50× realtime |
+| 7 | whisper/large-v3-turbo | 3/3 runs | 14.42× realtime |
+| 8 | whisperfile/small | 3/3 runs | 12.79× realtime |
+| 9 | whisper/medium | 3/3 runs | 10.53× realtime |
+| 10 | whisperfile/medium.en | 3/3 runs | 5.03× realtime |
+| 11 | whisperfile/medium | 3/3 runs | 4.94× realtime |
+| 12 | whisperfile/large-v2 | 3/3 runs | 2.58× realtime |
+| 13 | whisperfile/large-v3 | 3/3 runs | 2.49× realtime |
+
+#### Auto-Quality Ranking
+
+| Rank | Provider/model | Runs | Average |
+| ---: | --- | ---: | ---: |
+| 1 | whisperfile/small.en | 3/3 runs | 94.25/100 quality score |
+| 2 | whisperfile/medium | 3/3 runs | 94.11/100 quality score |
+| 3 | whisperfile/medium.en | 3/3 runs | 94.08/100 quality score |
+| 4 | whisperfile/large-v2 | 3/3 runs | 93.97/100 quality score |
+| 5 | whisper/large-v3-turbo | 3/3 runs | 93.91/100 quality score |
+| 6 | whisper/medium | 3/3 runs | 93.64/100 quality score |
+| 7 | whisper/small | 3/3 runs | 92.97/100 quality score |
+| 8 | whisper/base | 3/3 runs | 92.43/100 quality score |
+| 9 | whisperfile/tiny.en | 3/3 runs | 91.56/100 quality score |
+| 10 | whisperfile/small | 3/3 runs | 90.32/100 quality score |
+| 11 | whisperfile/tiny | 3/3 runs | 88.90/100 quality score |
+| 12 | whisper/tiny | 3/3 runs | 88.32/100 quality score |
+| 13 | whisperfile/large-v3 | 3/3 runs | 62.77/100 quality score |
+
+#### Human Quality Ranking
+
+_Unavailable: no humanQuality entries are present for `stt-local/local` in the current report files._
+
+### thirdPartyServiceNonDiarization
+
+#### Cost Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Speed Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Realtime Throughput Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Auto-Quality Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Human Quality Ranking
+
+_Unavailable: no humanQuality entries are present for `stt-local/thirdPartyServiceNonDiarization` in the current report files._
+
+### thirdPartyServiceDiarization
+
+#### Cost Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Speed Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Realtime Throughput Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Auto-Quality Ranking
+
+_Unavailable: no entries are present in the current STT report files._
+
+#### Human Quality Ranking
+
+_Unavailable: no humanQuality entries are present for `stt-local/thirdPartyServiceDiarization` in the current report files._
 
 ## TTS
 

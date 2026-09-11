@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { compactArchive, discoverArchiveRuns, isRunDirectory } from '../../../../.codex/skills/consensus/scripts/shared/compact_archive'
+import { compactRunResults } from '../../../../.codex/skills/consensus/scripts/stt/compact_provider_results'
 import { runSyncCommand } from '~/utils/sync-subprocess'
 import { createTempDirTracker } from '../../../test-utils/temp-dirs'
 
@@ -9,6 +10,43 @@ const tracker = createTempDirTracker('autoshow-compact-archive-')
 afterEach(tracker.cleanup)
 
 const runner = resolve(import.meta.dir, '../../../../.codex/skills/consensus/scripts/run.ts')
+
+test('compact-results keeps whisper rawResponse and drops whisperfile rawResponse', async () => {
+  const root = await tracker.make()
+  const bulky = {
+    text: 'hello',
+    segments: [{ start: '00:00:00', end: '00:00:01', text: 'hello' }],
+    evidence: {
+      words: [{ word: 'hello', start: 0, end: 1 }],
+      segments: [{ startSeconds: 0, endSeconds: 1, text: 'hello' }],
+      rawResponse: { bulky: true },
+      capabilities: { hasSpeakerLabels: false },
+      timingQuality: 'ok',
+    },
+  }
+  for (const name of ['whisper-tiny', 'whisperfile-tiny']) {
+    const providerDir = join(root, 'providers', name)
+    mkdirSync(providerDir, { recursive: true })
+    writeFileSync(join(providerDir, 'result.json'), `${JSON.stringify(bulky)}\n`)
+  }
+
+  const stats = compactRunResults(root)
+  expect(stats.map((stat) => stat.directoryName).sort()).toEqual(['whisper-tiny', 'whisperfile-tiny'])
+  const byName = Object.fromEntries(stats.map((stat) => [stat.directoryName, stat]))
+  expect(byName['whisper-tiny']?.keptRawResponse).toBe(true)
+  expect(byName['whisper-tiny']?.droppedRawResponse).toBe(false)
+  expect(byName['whisperfile-tiny']?.keptRawResponse).toBe(false)
+  expect(byName['whisperfile-tiny']?.droppedRawResponse).toBe(true)
+
+  const whisper = JSON.parse(readFileSync(join(root, 'providers', 'whisper-tiny', 'result.json'), 'utf8')) as {
+    evidence: Record<string, unknown>
+  }
+  const whisperfile = JSON.parse(readFileSync(join(root, 'providers', 'whisperfile-tiny', 'result.json'), 'utf8')) as {
+    evidence: Record<string, unknown>
+  }
+  expect(whisper.evidence['rawResponse']).toEqual({ bulky: true })
+  expect(whisperfile.evidence['rawResponse']).toBeUndefined()
+})
 
 function writeRun(root: string, name: string): string {
   const runDir = join(root, name)

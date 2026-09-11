@@ -41,6 +41,7 @@ const runSceneDraftStage = async (options: DraftScenesCommandOptions) => {
       model: llmModel,
       concurrency: options.concurrency,
       blocking: options.blocking,
+      panelCount: options.panelCount,
       hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
       concurrencyMode: options.concurrencyMode
     })

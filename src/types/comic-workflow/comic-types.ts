@@ -104,6 +104,7 @@ export type ParsedDraftCommandArgs = {
   blockingPlan?: string
   rebind?: boolean
   reconcileFromDirectives?: boolean
+  panelCount?: number
 }
 
 export type PanelBundleData = v.InferOutput<typeof import('~/cli/commands/visuals/comic/schemas/schemas').PanelBundleDataSchema>

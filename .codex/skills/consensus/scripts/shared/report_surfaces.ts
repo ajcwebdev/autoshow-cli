@@ -113,6 +113,7 @@ const CATEGORY_TITLES: Record<ConsensusCategory, string> = {
 const SERVICE_GROUP_VALUES = new Set(["cloud", "hosted", "service", "thirdparty", "thirdpartydiarization", "thirdpartynondiarization"]);
 const LOCAL_PROVIDER_HINTS = [
   "tesseract",
+  "whisperfile",
   "whisper",
   "local",
 ];

@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Compact index for ADR-001 through ADR-022. Nineteen records are Accepted · Passed, ADR-014 is Accepted · Pending while native Bun migration evidence awaits review, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 is Proposed · Pending. Dated hosted-model catalogs live in [model refresh reports](../commands.md#model-refresh-reports). ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 023. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
+Compact index for ADR-001 through ADR-023. Nineteen records are Accepted · Passed, ADR-014 is Accepted · Pending while native Bun migration evidence awaits review, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 and ADR-023 are Proposed · Pending. Dated hosted-model catalogs live in [model refresh reports](../commands.md#model-refresh-reports). ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 024. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
 
 ## Authoring and Maintenance
 
@@ -148,6 +148,12 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 - **Status:** Accepted · Passed
 - **Decision:** Authors scene staging as a validated `metadata/blocking-plan.json`, compiles it deterministically into a per-panel ledger that is the single source of truth for the image prompt and the page judge, adds an advisory blocking audit behind a per-key hard policy with a blocking-class restart lane, and records per-location geometry separately from the location specification hash.
 - **Related ADRs:** [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md), [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md)
+**ADR 23: [ADR-023](ADR-023-draft-episode-scripts-from-prose-treatments.md)**
+
+- **Status:** Proposed · Pending
+- **Decision:** Adds `comic draft-treatment`, which adapts a prose treatment into a fixed-count episode script in the exact parser shape, bootstraps character and location catalog entries without touching existing keys, and records its artifacts in a treatment run; adds the `draft-scenes --panel-count` contract so the scene stage keeps the authored panel count.
+- **Related ADRs:** [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md), [ADR-022](ADR-022-compile-a-text-first-blocking-plan-into-a-panel-ledger.md)
+
 
 ## Bun 1.4 Migration Archive
 

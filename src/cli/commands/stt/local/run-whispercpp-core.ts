@@ -71,7 +71,10 @@ export const runWhisperCppTranscribe = async (
       .catch(() => '')
     const captionArgs = selectWhisperCaptionArgs(helpOutput, options.nativeSubtitles)
     if (options.dtwPreset && !/(?:^|\s)(?:-dtw|--dtw)(?:\s|$)/m.test(helpOutput)) throw ValidationError(`${label} does not advertise DTW support in its installed help output.`)
-    preparedInput = await prepareLocalSttInput(audioPath, tempPrefix)
+    preparedInput = await prepareLocalSttInput(audioPath, tempPrefix, {
+      passthroughExtensions: provider.passthroughExtensions,
+      convertFormat: provider.convertFormat
+    })
     const baseArgs = [
       '-f', preparedInput.audioPath,
       '-ml', '1',

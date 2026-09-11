@@ -73,6 +73,14 @@ describe('grouped report contracts', () => {
           processingTime: 3000,
           hasSpeakerLabels: false,
           segments: [{ start: '00:00:00', end: '00:00:08', text: 'Alpha beta. Gamma delta.' }]
+        },
+        {
+          dir: 'whisperfile-tiny',
+          provider: 'whisperfile',
+          model: 'tiny',
+          processingTime: 1100,
+          hasSpeakerLabels: false,
+          segments: [{ start: '00:00:00', end: '00:00:08', text: 'Alpha beta. Gamma delta.' }]
         }
       ]
 
@@ -123,16 +131,16 @@ describe('grouped report contracts', () => {
   	    expect(report.providers).toBeUndefined()
 	    expect(report.audioDurationSeconds).toBe(8)
   	    expectMetricRankings(report.metricRankings, ['local', 'thirdPartyServiceNonDiarization', 'thirdPartyServiceDiarization'] as const)
-  	    expect(report.providerGroups.local.count).toBe(1)
+      expect(report.providerGroups.local.count).toBe(2)
   	    expect(report.providerGroups.thirdPartyServiceDiarization.count).toBe(2)
   	    expect(report.providerGroups.thirdPartyServiceNonDiarization.count).toBe(2)
   	    expect(report.providerGroups.thirdPartyServiceDiarization.providers.every((provider) => provider.supportsDiarization === true && provider.diarizationSupport === 'supported')).toBe(true)
 	    expect(report.providerGroups.thirdPartyServiceDiarization.providers.map((provider) => provider.realtimeFactor)).toEqual([8, 4])
 	    expect(report.providerGroups.thirdPartyServiceDiarization.providers.every((provider) => provider.audioDurationSeconds === 8)).toBe(true)
   	    expect(report.providerGroups.thirdPartyServiceNonDiarization.providers.every((provider) => provider.supportsDiarization === false && provider.diarizationSupport === 'not-supported')).toBe(true)
-  	    expect(report.metricRankings.local.price).toHaveLength(1)
-  	    expect(report.metricRankings.local.speed).toHaveLength(1)
-  	    expect(report.metricRankings.local.qualityScore).toHaveLength(1)
+      expect(report.metricRankings.local.price).toHaveLength(2)
+      expect(report.metricRankings.local.speed).toHaveLength(2)
+      expect(report.metricRankings.local.qualityScore).toHaveLength(2)
   	    expect(report.metricRankings.thirdPartyServiceDiarization.price).toHaveLength(2)
   	    expect(report.metricRankings.thirdPartyServiceDiarization.speed).toHaveLength(2)
   	    expect(report.metricRankings.thirdPartyServiceDiarization.qualityScore).toHaveLength(2)

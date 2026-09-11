@@ -128,6 +128,9 @@ bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=v
 ```
 
 ```bash
+# Adapt a prose treatment into a ten-panel episode script plus catalog entries with hosted OpenAI
+bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear
+
 # Draft structured comic scenes with hosted OpenAI
 bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md
 

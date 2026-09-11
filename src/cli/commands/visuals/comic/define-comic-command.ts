@@ -7,6 +7,7 @@ export const comicCommand = defineCliCommand({
   subcommands: COMIC_SUBCOMMAND_DEFINITIONS,
   help: {
     examples: [
+      ['bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear', 'Draft a fixed-count episode script and catalog entries from a prose treatment'],
       ['bun autoshow comic draft-scenes 05-01', 'Draft structured scene JSON'],
       ['bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only panel-prompts', 'Build panel prompt bundles'],
       ['bun autoshow comic generate-images 05-01 --panels-per-image 6', 'Generate page images'],

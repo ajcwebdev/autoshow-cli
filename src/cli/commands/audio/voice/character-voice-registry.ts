@@ -258,6 +258,9 @@ const referenceGenerationRoot = (paths: CharacterVoiceRegistryPaths, registratio
   return join(paths.referencesRoot, voiceSubjectArtifactKey(registration.subjectKey), registration.provider, registration.registrationId, registration.generationId)
 }
 
+export const resolveVoiceReferenceGenerationRoot = (charactersRoot: string, registration: VoiceRegistration): string =>
+  referenceGenerationRoot(resolveCharacterVoiceRegistryPaths(charactersRoot), registration)
+
 const writeRegistrationArtifacts = async (
   paths: CharacterVoiceRegistryPaths,
   registration: VoiceRegistration,

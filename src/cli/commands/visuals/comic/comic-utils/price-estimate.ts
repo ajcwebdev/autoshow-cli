@@ -11,6 +11,7 @@ import { estimateQaOnlyPanelAuditPrice } from './qa-only-price-estimate'
 import { estimateRevisionEvaluationPrice } from './revision-evaluation-price'
 
 export { estimateDraftScenesPrice } from './comic-price-llm-estimates'
+export { estimateDraftTreatmentPrice } from '../comic-commands/draft-treatment/treatment-price-estimate'
 export { estimateCharacterSketchPrice, estimateLocationReferencePrice } from './comic-price-reference-estimates'
 
 export const estimateGenerateImagesPrice = async (

@@ -1,10 +1,12 @@
 import { referenceSketchCommand } from '../comic-commands/reference-sketch/reference-sketch-command'
 import { draftScenesCommand } from '../comic-commands/draft-scenes/draft-scenes-command'
+import { draftTreatmentCommand } from '../comic-commands/draft-treatment/draft-treatment-command'
 import { generateImagesCommand } from '../comic-commands/generate-images/generate-images-command'
 import { reviewNotesCommand } from '../comic-commands/review/review-notes-command'
 import { reviewSheetCommand } from '../comic-commands/review/review-sheet-command'
 import {
   coerceAndValidateDraftScenes,
+  coerceAndValidateDraftTreatment,
   coerceAndValidateGenerateImages,
   coerceAndValidateReferenceSketch,
   coerceAndValidateReview,
@@ -15,6 +17,7 @@ import { resolveComicScriptReference, resolveSceneSlug } from './project-paths'
 import {
   estimateCharacterSketchPrice,
   estimateDraftScenesPrice,
+  estimateDraftTreatmentPrice,
   estimateGenerateImagesPrice,
   estimateLocationReferencePrice,
 } from './price-estimate'
@@ -47,6 +50,35 @@ export const handleReferenceSketch: CliCommandHandler = async (ctx) => {
   if (parsedOptions.location) await referenceSketchCommand(options)
   else await withCharacterCatalog(async () => await referenceSketchCommand(options))
   l.report.result({ command: 'comic reference-sketch', price: false, target: parsedOptions.location ? 'location' : 'character' }, 'Comic reference sketch complete')
+}
+
+export const handleDraftTreatment: CliCommandHandler = async (ctx) => {
+  const { showHelp: _showHelp, price, ...parsed } = rethrowAsUsage(() => coerceAndValidateDraftTreatment(ctx))
+  const options = {
+    ...parsed,
+    hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: parsed.concurrencyMode ?? 'ramp' })
+  }
+  if (price) {
+    await estimateDraftTreatmentPrice(options)
+    l.report.result({ command: 'comic draft-treatment', price: true, treatmentPath: parsed.treatmentPath, panelRange: `${parsed.panelRange.minimum}-${parsed.panelRange.maximum}`, voicePacing: parsed.voicePacing }, 'Comic treatment price complete')
+    return
+  }
+  const result = await draftTreatmentCommand(options)
+  l.report.result({
+    command: 'comic draft-treatment',
+    price: false,
+    treatmentPath: parsed.treatmentPath,
+    scriptPath: result.scriptPath,
+    shorthand: result.shorthand,
+    runDirectory: result.runDirectory,
+    attempts: result.attempts,
+    panelCount: result.panelCount,
+    voiceSwitches: result.voiceSwitches,
+    charactersAdded: result.report.charactersAdded.length,
+    charactersSkipped: result.report.charactersSkipped.length,
+    locationsAdded: result.report.locationsAdded.length,
+    locationsSkipped: result.report.locationsSkipped.length,
+  }, 'Comic treatment draft complete')
 }
 
 export const handleDraftScenes: CliCommandHandler = async (ctx) => {
