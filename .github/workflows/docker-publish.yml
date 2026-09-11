@@ -505,16 +505,6 @@ jobs:
           key: docker-local-v1-${{ matrix.arch }}-${{ matrix.shard }}-${{ hashFiles('Dockerfile', 'src/cli/commands/setup-and-utilities/**', 'src/cli/commands/stt/local/**', 'src/cli/commands/text/url/url-local/**') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: docker-local-v1-${{ matrix.arch }}-${{ matrix.shard }}-${{ hashFiles('Dockerfile', 'src/cli/commands/setup-and-utilities/**', 'src/cli/commands/stt/local/**', 'src/cli/commands/text/url/url-local/**') }}-
 
-      - name: Prepare optional YouTube authentication
-        if: matrix.shard == 'network'
-        env:
-          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
-        run: |
-          umask 077
-          if [ -n "${YOUTUBE_COOKIES}" ]; then
-            printf '%s\n' "${YOUTUBE_COOKIES}" > "${RUNNER_TEMP}/autoshow-youtube.cookies.txt"
-          fi
-
       - name: Accept published latest through its CLI
         env:
           SHARD: ${{ matrix.shard }}
@@ -527,16 +517,9 @@ jobs:
           else
             set -- --suite models --model "${SHARD}"
           fi
-          if [ "${SHARD}" = network ] && [ -s "${RUNNER_TEMP}/autoshow-youtube.cookies.txt" ]; then
-            set -- "$@" --youtube-cookies "${RUNNER_TEMP}/autoshow-youtube.cookies.txt"
-          fi
           bun t:docker "$@" --platform "${PLATFORM}" \
             --expected-digest "${EXPECTED_DIGEST}" --expected-revision "${GITHUB_SHA}" \
             --output runtime/docker-acceptance/evidence
-
-      - name: Remove temporary YouTube authentication
-        if: always() && matrix.shard == 'network'
-        run: rm -f "${RUNNER_TEMP}/autoshow-youtube.cookies.txt"
 
       - name: Make local assets readable for archiving
         if: always()

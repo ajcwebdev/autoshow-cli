@@ -5,9 +5,6 @@ import { IMAGE_REPOSITORY, nativePlatform, REQUESTED_IMAGE } from './docker-opti
 import type { DockerOptions, Platform } from './docker-options'
 import { runDockerProcess } from './docker-process'
 import type { ProcessOutcome, ProcessRunner } from './docker-process'
-import { PUBLIC_DOWNLOADS } from '../../test/scenarios/local-cli-contracts'
-import { withDockerYoutubeCookies, YOUTUBE_AUTH_LAUNCHER } from './docker-youtube-auth'
-import type { DockerYoutubeAuth } from './docker-youtube-auth'
 
 export interface ImageIdentity {
   requestedTag: string
@@ -142,25 +139,15 @@ export class DockerEngine {
 
   async cli(args: string[], outputId: string, network: string, timeoutMs = this.options.caseTimeoutMs): Promise<ProcessOutcome> {
     assert.equal(this.authorized.get(JSON.stringify(args)), network, `Command is outside the no-cost acceptance allowlist: ${JSON.stringify(args)}`)
-    if (this.options.youtubeCookies && outputId === 'download-youtube') {
-      assert.deepEqual(args, ['download', PUBLIC_DOWNLOADS.youtube], 'YouTube authentication requires the registered YouTube download')
-      assert.equal(network, 'bridge', 'YouTube authentication requires its public network')
-      assert(this.identity)
-      return withDockerYoutubeCookies(this.options.youtubeCookies, [this.options.output, this.options.cache], auth =>
-        this.container(['-c', YOUTUBE_AUTH_LAUNCHER, 'autoshow-youtube-auth', ...this.identity!.entrypoint,
-          ...args, '--no-color', '--output-root', `/results/${outputId}`], network, timeoutMs, 'sh', false, auth))
-    }
     return this.container([...args, '--config-path', '/fixtures/empty-config.json', '--no-color', '--output-root', `/results/${outputId}`], network, timeoutMs)
   }
 
-  async container(args: string[], network: string, timeoutMs: number, entrypoint?: string, writableFixtures = false, youtubeAuth?: DockerYoutubeAuth): Promise<ProcessOutcome> {
+  async container(args: string[], network: string, timeoutMs: number, entrypoint?: string, writableFixtures = false): Promise<ProcessOutcome> {
     assert(this.identity)
     assert(!this.interrupted, 'Acceptance interrupted')
     const name = `${this.runId}-${++this.sequence}`
     const mounts = this.mounts.map(mount => mount.container === '/fixtures' && writableFixtures ? { ...mount, readonly: false } : mount)
-    if (youtubeAuth) mounts.push(youtubeAuth.mount)
     const argv = containerArguments(this.identity, name, this.runId, mounts, network, args, entrypoint)
-    if (youtubeAuth) argv.splice(1, 0, '--group-add', String(youtubeAuth.groupId))
     return this.ownedCommand(name, argv, timeoutMs)
   }
 
