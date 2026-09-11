@@ -1,7 +1,8 @@
+import { statPath } from '~/utils/bun-file-io'
 import { preflightCaptionEmbedding } from '../../stt/workflows/captions/embed-caption-tracks'
 import { runSttTimingWorkflow, sttTimingFlags } from '../../stt/workflows/timing/run-stt-timing-workflow'
 import { runTranscriptReview } from '../../stt/workflows/transcript-review/run-transcript-review'
-import { stat } from 'node:fs/promises'
+
 import { join } from 'node:path'
 import { runCaptionExport, validateCaptionOptions } from '../../stt/workflows/captions/run-caption-export'
 import { defineCliCommand } from '~/cli/native/native-types'
@@ -66,7 +67,7 @@ const captionFlags = {
 
 const extractFlags = {
   ...withHelpGroup(sttTimingFlags, 'timing'),
-  'docx-markdown': { description: 'Write extraction.md preserving local DOCX formatting (no providers)', type: Boolean },
+  'docx-markdown': { description: 'Write extraction.md preserving local DOCX formatting (no providers)', type: Boolean, help: { group: 'ocr-document' } },
   ...withHelpGroup({
     'transcript-review': { description: 'Export an offline word-indexed review packet and edit template from a saved result.json', type: Boolean },
     'transcript-edits': { description: 'Apply a reviewed edits.json to a saved transcript offline; save new result, transcript, and provenance', type: String }
@@ -98,7 +99,7 @@ export const extractCommand = defineCliCommand({
       ['bun autoshow extract output/raw/result.json --transcript-review --output-dir output/review', 'Export an offline review packet and editable JSON template'],
       ['bun autoshow extract output/raw/result.json --transcript-edits output/review/edits.json --output-dir output/clean', 'Apply reviewed edits offline with timing provenance'],
       ['bun autoshow extract output/raw/result.json --timing-reference output/reference/result.json', 'Measure saved word timing against a reference offline'],
-      ['bun autoshow extract audio.wav --align-transcript output/reviewed/result.json --alignment-model runtime/models/alignment/wav2vec2-base-960h --alignment-python runtime/venvs/stt-alignment/bin/python', 'Align transcript text with an installed local CTC model'],
+      ['bun autoshow extract audio.wav --align-transcript output/reviewed/result.json --alignment-model runtime/models/alignment/wav2vec2-base-960h-onnx', 'Align transcript text with an installed local CTC model'],
       ['bun autoshow extract audio.wav --calibrate-whisper --timing-reference output/aligned/result.json', 'Compare installed Whisperfile standard and DTW word timing locally'],
       ['bun autoshow extract stereo.wav --split-channels', 'Separate audio channels and verify decoded sample hashes'],
       ['bun autoshow extract document.pdf --provider mistral=mistral-ocr-2512', 'Extract text from a document with Mistral OCR'],
@@ -113,7 +114,7 @@ export const extractCommand = defineCliCommand({
   if (await runSttTimingWorkflow(ctx.parameters.input, ctx.flags, ctx.rawParsed.explicitFlags)) return
   if (ctx.flags['docx-markdown'] === true) {
     const input = ctx.parameters.input
-    if (!input || !input.toLowerCase().endsWith('.docx') || !((await stat(input).catch(() => undefined))?.isFile())) throw UsageError('--docx-markdown requires a local DOCX file.')
+    if (!input || !input.toLowerCase().endsWith('.docx') || !((await statPath(input).catch(() => undefined))?.isFile())) throw UsageError('--docx-markdown requires a local DOCX file.')
     const allowed = new Set(['docx-markdown', 'price', 'output-dir', 'output-root', 'json', 'quiet', 'verbose', 'log-level', 'color'])
     for (const flag of ctx.rawParsed.explicitFlags) if (!allowed.has(flag)) throw UsageError(`--${flag} cannot be combined with --docx-markdown.`)
     // Validate ZIP/XML before pricing or creating a workspace.
@@ -132,7 +133,7 @@ export const extractCommand = defineCliCommand({
     if (ctx.flags['caption-container'] !== undefined && ctx.flags['embed-captions'] !== true) throw UsageError('--caption-container requires --embed-captions.')
     if (ctx.flags['embed-captions'] === true) await preflightCaptionEmbedding(ctx.parameters.input, ctx.flags['caption-container'])
     const source = ctx.parameters.input
-    const savedResult = typeof ctx.flags['transcript-result'] === 'string' || (typeof source === 'string' && (source.toLowerCase().endsWith('.json') || ((await stat(source).catch(() => undefined))?.isDirectory() && await Bun.file(join(source, 'result.json')).exists())))
+    const savedResult = typeof ctx.flags['transcript-result'] === 'string' || (typeof source === 'string' && (source.toLowerCase().endsWith('.json') || ((await statPath(source).catch(() => undefined))?.isDirectory() && await Bun.file(join(source, 'result.json')).exists())))
     if (savedResult) {
       const incompatible = ['audio', 'transcript-text', 'font', 'keep-tmp', 'native-subtitles', 'diarization', 'stt-audio-profile', 'deepinfra-stt-response-format', 'stt-grok-verbatim', 'stt-supadata-chunk-size'].filter(flag => ctx.rawParsed.explicitFlags.has(flag))
       if (incompatible.length) throw UsageError('These options do not apply to saved-result caption export: ' + incompatible.map(flag => '--' + flag).join(', '))

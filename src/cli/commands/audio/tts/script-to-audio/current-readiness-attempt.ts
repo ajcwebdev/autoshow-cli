@@ -1,29 +1,27 @@
 import { readdir } from 'node:fs/promises'
-import { isAbsolute, relative, sep } from 'node:path'
+import { isAbsolute,relative,sep } from 'node:path'
 import type {
-  AccountCapabilityObservation,
-  CanonicalAudioProviderProjection,
-  CanonicalReadinessAttempt,
-  PipelineProviderState,
-  ProviderReadinessResult,
-  ResolvedVoiceBinding,
-  SanitizedProviderError,
-  CreateCurrentTtsBlockedReadinessStateOptions,
-  WrittenJson,
+AccountCapabilityObservation,
+CanonicalAudioProviderProjection,
+CanonicalReadinessAttempt,
+CreateCurrentTtsBlockedReadinessStateOptions,
+PipelineProviderState,
+ProviderReadinessResult,
+ResolvedVoiceBinding,
+SanitizedProviderError
 } from '~/types'
 import { UsageError } from '~/utils/error-handler'
+import { writeJsonCreateOnly } from './attempt-io'
 import {
-  planCurrentTtsReadiness,
-} from './current-render-attempt'
-import {
-  canonicalTtsJson,
-  hashCanonicalTtsValue,
+hashCanonicalTtsValue
 } from './contract-identity'
 import {
-  projectCanonicalAudioProviderStatus,
-  validateAccountCapabilityObservation,
+projectCanonicalAudioProviderStatus,
+validateAccountCapabilityObservation,
 } from './contract-validation'
-import { writeImmutableArtifactFile } from './safe-artifact-store'
+import {
+planCurrentTtsReadiness,
+} from './current-render-attempt'
 const LOCAL_ACTOR = { namespace: 'local-user' as const, actorId: 'current-cli-user' }
 
 const withIdentity = <T extends Record<string, unknown>, K extends string>(
@@ -31,12 +29,6 @@ const withIdentity = <T extends Record<string, unknown>, K extends string>(
   field: K
 ): T & Record<K, string> =>
   ({ ...value, [field]: hashCanonicalTtsValue(value) }) as T & Record<K, string>
-
-const writeJsonCreateOnly = async <T>(rootDir: string, path: string, value: T): Promise<WrittenJson<T>> => {
-  const bytes = `${canonicalTtsJson(value)}\n`
-  const written = await writeImmutableArtifactFile(rootDir, contained(rootDir, path), bytes)
-  return { value, path, sha256: written.sha256 }
-}
 
 const contained = (root: string, path: string): string => {
   const value = relative(root, path)
@@ -176,29 +168,17 @@ export const createCurrentTtsBlockedReadinessState = async (
     readinessResult
   )
   const projectedError = selfError ?? PEER_READINESS_ERROR
-  const canonicalReadinessAttempt: CanonicalReadinessAttempt = options.readiness.status === 'blocked'
-    ? {
-        sequence: 1,
-        branchPlanId: plan.branchPlan.branchPlanId,
-        readinessResultRef: contained(targetDir, readinessFile.path),
-        readinessResultHash: readinessFile.sha256,
-        accountObservationHashes: [capabilityObservation.observationHash],
-        at: checkedAt,
-        status: 'blocked',
-        admissionDisposition: 'self-blocked',
-        error: projectedError
-      }
-    : {
-        sequence: 1,
-        branchPlanId: plan.branchPlan.branchPlanId,
-        readinessResultRef: contained(targetDir, readinessFile.path),
-        readinessResultHash: readinessFile.sha256,
-        accountObservationHashes: [capabilityObservation.observationHash],
-        at: checkedAt,
-        status: 'ready',
-        admissionDisposition: 'peer-blocked',
-        error: projectedError
-      }
+  const canonicalReadinessAttempt = {
+    sequence: 1,
+    branchPlanId: plan.branchPlan.branchPlanId,
+    readinessResultRef: contained(targetDir, readinessFile.path),
+    readinessResultHash: readinessFile.sha256,
+    accountObservationHashes: [capabilityObservation.observationHash],
+    at: checkedAt,
+    status: options.readiness.status,
+    admissionDisposition: options.readiness.status === 'blocked' ? 'self-blocked' : 'peer-blocked',
+    error: projectedError
+  } as CanonicalReadinessAttempt
   const projection: CanonicalAudioProviderProjection = {
     activeWork: {
       kind: 'branch',

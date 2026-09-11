@@ -1,4 +1,5 @@
-import { copyFile, rm } from 'node:fs/promises'
+import { copyFileExact } from '~/utils/bun-file-io'
+import { rm } from 'node:fs/promises'
 import { extname } from 'node:path'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
@@ -349,7 +350,7 @@ export const materializeNormalizedAudioArtifact = async (
 
   if (plan.mode === 'copy-file') {
     if (inputPath !== outputPath) {
-      await copyFile(inputPath, outputPath)
+      await copyFileExact(inputPath, outputPath)
     }
     return
   }

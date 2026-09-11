@@ -11,7 +11,7 @@ import { fetchUrl } from './links-fetcher'
 import { readLinksInputFile } from './links-input-parser'
 import { getLinksRefreshMetadataPath, resolveDefaultLinksOutputPath } from './links-output'
 import { buildLinksRefreshMetadata, hashRefreshContent, normalizeMarkdownForRefresh, readPreviousLinksRefreshMetadata } from './links-refresh-metadata'
-import { assertKnownSections, collectLinks, knownSections, linksFlags, parseLinksSelection } from './links-selection'
+import { assertKnownSections, collectLinks, knownProviders, knownSections, linksFlags, parseLinksSelection } from './links-selection'
 
 export { getDefaultLinksOutputFileName, getDefaultLinksInputOutputFileName, getDefaultLinksDirectUrlOutputFileName, getLinksRefreshMetadataPath } from './links-output'
 export { collectLinks } from './links-selection'
@@ -144,13 +144,17 @@ export const runLinksWithArgv = async (
 export const linksCommand = defineCliCommand({
   name: 'links',
   description: 'Fetch provider documentation markdown and write a combined file',
-  parameters: [{ key: '[selection...]', description: `Documentation section(s) (${knownSections.join('|')}), one URL, or one .md/.txt URL list; sections listed after a --<provider> selector scope to that provider` }],
+  parameters: [{ key: '[selection...]', description: `Documentation section(s) (${knownSections.join('|')}), one URL, or one .md/.txt URL list; sections after --provider <name> scope to that provider` }],
   flags: linksFlags,
   help: {
+    topics: { providers: { description: 'Provider keys and positional section scoping', flags: ['provider'], notes: [`Known providers: ${knownProviders.join(', ')}.`, 'Sections before any provider selector apply globally. Each selector scopes following sections until the next selector; legacy --<provider> switches remain supported.'] } },
     examples: [
       ['bun autoshow links', 'Fetch all provider documentation'],
       ['bun autoshow links stt', 'Fetch STT documentation across every provider'],
       ['bun autoshow links models', 'Fetch model documentation across every provider'],
+      ['bun autoshow links llmstxt', 'Fetch root llms.txt indexes across every provider'],
+      ['bun autoshow links --provider openai models --provider gemini text', 'Fetch distinct sections from two providers'],
+      ['bun autoshow links --openai llmstxt', 'Fetch one provider root llms.txt index'],
       ['bun autoshow links --openai models', 'Fetch one provider section with a provider selector'],
       ['bun autoshow links https://example.com/docs', 'Fetch one documentation URL'],
       ['bun autoshow links urls.md', 'Fetch documentation URLs listed in a local file']

@@ -1,5 +1,8 @@
 {
   "Grok": {
+    "LLMSTXT": [
+      "https://docs.x.ai/llms.txt"
+    ],
     "General": [
       "https://docs.x.ai/overview.md",
       "https://docs.x.ai/developers/quickstart.md",

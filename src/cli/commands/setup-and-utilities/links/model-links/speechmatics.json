@@ -1,5 +1,8 @@
 {
   "Speechmatics": {
+    "LLMSTXT": [
+      "https://docs.speechmatics.com/llms.txt"
+    ],
     "General": [
       "https://docs.speechmatics.com/get-started/authentication.md"
     ],

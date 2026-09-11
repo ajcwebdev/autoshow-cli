@@ -1,5 +1,7 @@
+import { unlinkPath } from '~/utils/bun-file-io'
+import { childEnv } from '~/utils/child-env'
 import { parseCaptionCues } from '../../../audio/music/lyrics-video/captions'
-import { lstat, link, unlink, writeFile } from 'node:fs/promises'
+import { lstat, link, writeFile } from 'node:fs/promises'
 import { extname, join, resolve } from 'node:path'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
 import { UsageError, ValidationError } from '~/utils/error-handler'
@@ -10,7 +12,7 @@ type CaptionStream = { index: number; start_time?: string; codec_type: string; c
 type CaptionProbe = { streams: CaptionStream[]; chapters?: { start_time: string; end_time: string; tags?: Record<string, string> }[] }
 
 const capture = async (args: string[]): Promise<string> => {
-  const child = Bun.spawn(args, { stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' })
+  const child = Bun.spawn(args, { env: childEnv(), stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' })
   const [stdout, stderr, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited])
   if (code !== 0) throw ValidationError(`Caption media command failed (${code}): ${stderr.trim()}`)
   return stdout
@@ -88,7 +90,7 @@ export const embedCaptionTracks = async (source: string, subtitle: string, outpu
       await link(temporary, join(outputDir, name))
       files[container] = name
     } finally {
-      await unlink(temporary).catch(() => undefined)
+      await unlinkPath(temporary).catch(() => undefined)
     }
   }
   await writeFile(join(outputDir, 'caption-embedding.json'), JSON.stringify({ source: resolve(source), files, verification, streamMapping: streams.map(stream => stream.index), chapterDataStreams: original.streams.filter(stream => chapterTrack(stream, original)).map(stream => stream.index), note: 'MP4 chapter data tracks are represented by mapped chapters in each output container. Audio/video and compatible subtitle streams are copied without re-encoding. Packet and cue checks do not establish acoustic transcription accuracy.' }, null, 2) + '\n', { flag: 'wx' })

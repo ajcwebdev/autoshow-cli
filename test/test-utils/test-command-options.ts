@@ -1,5 +1,5 @@
+import { liveCredentialContext } from './live-credential-context'
 import { resolve } from 'node:path'
-import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import { childEnv } from '~/utils/child-env'
 
 const TEST_CONFIG_PATH = resolve(import.meta.dir, 'fixtures/empty-autoshow-config.json')
@@ -23,7 +23,6 @@ export const CLI_SOURCE_ENTRY = 'src/cli/create-cli.ts'
 
 const BASE_CHILD_ENV = childEnv({
   allow: [
-    ...HOSTED_PROVIDER_ENV_CHECKS.map(provider => provider.envVar),
     'AUTOSHOW_PROJECT_ROOT',
     'AUTOSHOW_TEST_CLI_BUNDLE'
   ]
@@ -90,6 +89,7 @@ export const injectGlobalCliFlags = (
 
 export const buildChildEnv = (optsEnv: Record<string, string | undefined> | undefined): Record<string, string | undefined> => ({
   ...BASE_CHILD_ENV,
+  ...liveCredentialContext.getStore(),
   FORCE_COLOR: '0',
   ...(optsEnv ?? {})
 })

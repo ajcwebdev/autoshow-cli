@@ -13,6 +13,9 @@ export const resumeCommand = defineCliCommand({
   parameters: outputDirParameter,
   flags: resumeFlags,
   help: {
+    beforeFlags: [
+      'The existing manifest determines each shared flag meaning. Comic runs restore recorded choices and reject provider, rendering, and configuration overrides.',
+    ],
     notes: [
       'Comic runs restore recorded image, audio, and presentation choices. Provider, rendering, and configuration overrides are rejected.',
       'For comic --price results, inspect stage blockers and comicPlans[].ready before execution; unrequested stages stay unrequested.',

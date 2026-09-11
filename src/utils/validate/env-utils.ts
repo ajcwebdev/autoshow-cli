@@ -1,3 +1,4 @@
+import { normalizeCredentialValue } from './credential-value'
 import { AppUsageError, extractErrorMetadata, InternalError } from '~/utils/error-handler'
 import { findHostedProviderCredential, HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import type { HostedProviderEnvCheck } from '~/types'
@@ -14,8 +15,7 @@ export const hintsForMissingEnv = (key: string): string[] => [
 ]
 
 export const readEnv = (key: string): string | undefined => {
-  const val = process.env[key]?.trim()
-  return val || undefined
+  return normalizeCredentialValue(process.env[key])
 }
 
 const missingCredentialError = (envVar: string, stage: string, description?: string): Error =>
@@ -33,7 +33,6 @@ export type CredentialObservation = {
   hintUrl: string
   stages: readonly string[]
   available: boolean
-  value?: string | undefined
   message: string
   hints: string[]
 }
@@ -64,7 +63,7 @@ const observeCredentialSpec = (
   const rawValue = options.useProvidedValue
     ? options.providedValue
     : (options.env ?? process.env)[spec.envVar]
-  const value = rawValue?.trim() || undefined
+  const value = normalizeCredentialValue(rawValue)
   const description = options.description ?? spec.label
   return {
     providerId: spec.providerId,
@@ -73,7 +72,6 @@ const observeCredentialSpec = (
     hintUrl: spec.hintUrl,
     stages: spec.stages,
     available: value !== undefined,
-    ...(value ? { value } : {}),
     message: `${spec.envVar} environment variable is required for ${description}`,
     hints: hintsForMissingEnv(spec.envVar)
   }
@@ -96,10 +94,11 @@ export function resolveCredential (
 ): CredentialObservation | string {
   const observation = observeCredentialSpec(requireKnownCredential(providerId), options)
   if (mode === 'observe') return observation
-  if (!observation.value) {
+  const value = normalizeCredentialValue(options.useProvidedValue ? options.providedValue : (options.env ?? process.env)[observation.envVar])
+  if (!value) {
     throw missingCredentialError(observation.envVar, options.stage ?? 'credential', options.description ?? observation.label)
   }
-  return observation.value
+  return value
 }
 
 export const missingCredentialEnvVar = (error: unknown): string | undefined => {

@@ -1,3 +1,4 @@
+import { childEnv } from './child-env'
 export type SyncCommandStdio = 'pipe' | 'inherit' | 'ignore'
 
 export type SyncCommandOptions = {
@@ -66,7 +67,7 @@ export const runSyncCommand = (
   const stdio = options.stdio
   const result = Bun.spawnSync([command, ...args], {
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
-    ...(options.env === undefined ? {} : { env: options.env }),
+    env: childEnv({ set: options.env }),
     stdin: options.stdin ?? stdio ?? 'ignore',
     stdout: options.stdout ?? stdio ?? 'pipe',
     stderr: options.stderr ?? stdio ?? 'pipe',

@@ -1,22 +1,42 @@
 import { describe, expect, test } from 'bun:test'
-import { createServer, type Server, type Socket } from 'node:net'
-import type { AddressInfo } from 'node:net'
 import { extractErrorMetadata, serializeDiagnosticError } from '~/utils/error-handler'
 import { classifyFetchRetry, classifyPaidCreateRetry } from '~/utils/retries'
 
-const listen = async (server: Server): Promise<number> => {
-  await new Promise<void>((resolve, reject) => {
-    server.once('error', reject)
-    server.listen(0, '127.0.0.1', resolve)
+// Deliberately bypass HTTP normalization to exercise real malformed bodies.
+const malformedServer = (response: string, disconnect: boolean) => {
+  const bytes = Buffer.from(response)
+  const sockets = new Set<Bun.Socket<{ offset: number; started: boolean }>>()
+  const send = (socket: Bun.Socket<{ offset: number; started: boolean }>): void => {
+    const written = socket.write(bytes.subarray(socket.data.offset))
+    socket.data.offset += Math.max(0, written)
+    if (socket.data.offset === bytes.length && disconnect) socket.end()
+  }
+  const server = Bun.listen<{ offset: number; started: boolean }>({
+    hostname: '127.0.0.1',
+    port: 0,
+    socket: {
+      open(socket) {
+        socket.data = { offset: 0, started: false }
+        sockets.add(socket)
+      },
+      data(socket) {
+        if (socket.data.started) return
+        socket.data.started = true
+        send(socket)
+      },
+      drain(socket) { if (socket.data.offset < bytes.length) send(socket) },
+      close(socket) { sockets.delete(socket) },
+      error(socket) { socket.terminate(); sockets.delete(socket) }
+    }
   })
-  return (server.address() as AddressInfo).port
-}
-
-const close = async (server: Server, sockets: Set<Socket>): Promise<void> => {
-  for (const socket of sockets) socket.destroy()
-  await new Promise<void>((resolve, reject) => {
-    server.close(error => error ? reject(error) : resolve())
-  })
+  return {
+    port: server.port,
+    close() {
+      server.stop(true)
+      for (const socket of sockets) socket.terminate()
+      sockets.clear()
+    }
+  }
 }
 
 describe('Bun 1.4 fetch error contracts', () => {
@@ -73,13 +93,8 @@ describe('Bun 1.4 fetch error contracts', () => {
   })
 
   test('aborting after response arrival rejects the body and marks it used', async () => {
-    const sockets = new Set<Socket>()
-    const server = createServer(socket => {
-      sockets.add(socket)
-      socket.once('close', () => sockets.delete(socket))
-      socket.write('HTTP/1.1 200 OK\r\nContent-Length: 100\r\nConnection: close\r\n\r\npartial')
-    })
-    const port = await listen(server)
+    const server = malformedServer('HTTP/1.1 200 OK\r\nContent-Length: 100\r\nConnection: close\r\n\r\npartial', false)
+    const port = server.port
     const controller = new AbortController()
 
     try {
@@ -89,18 +104,13 @@ describe('Bun 1.4 fetch error contracts', () => {
       await expect(response.text()).rejects.toMatchObject({ name: 'AbortError' })
       expect(response.bodyUsed).toBe(true)
     } finally {
-      await close(server, sockets)
+      server.close()
     }
   })
 
   test('a failed response-body read still marks bodyUsed', async () => {
-    const sockets = new Set<Socket>()
-    const server = createServer(socket => {
-      sockets.add(socket)
-      socket.once('close', () => sockets.delete(socket))
-      socket.end('HTTP/1.1 200 OK\r\nContent-Length: 10\r\nConnection: close\r\n\r\nshort')
-    })
-    const port = await listen(server)
+    const server = malformedServer('HTTP/1.1 200 OK\r\nContent-Length: 10\r\nConnection: close\r\n\r\nshort', true)
+    const port = server.port
 
     try {
       const response = await fetch(`http://127.0.0.1:${port}/truncated`)
@@ -108,7 +118,7 @@ describe('Bun 1.4 fetch error contracts', () => {
       await expect(response.arrayBuffer()).rejects.toBeInstanceOf(TypeError)
       expect(response.bodyUsed).toBe(true)
     } finally {
-      await close(server, sockets)
+      server.close()
     }
   })
 

@@ -4,6 +4,8 @@
 
 See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, and the full walkthrough.
 
+`--view`, `--llm-model`, `--qa`, `--no-qa`, `--qa-model`, and `--max-repairs` require `--location`; explicit character-mode combinations are rejected before generation. `--qa-only` is unsupported and rejected for both reference kinds. Use `comic generate-images --qa-only` for existing panel audits.
+
 ## Outline
 
 - [reference-sketch](#reference-sketch)

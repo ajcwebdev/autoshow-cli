@@ -1,3 +1,4 @@
+import { SETUP_FOCUSED_MODE_FLAGS, SETUP_NETWORK_DEPENDENT_FLAGS, SETUP_MODE_NOTES } from '~/cli/flags/setup-mode-contract'
 import { runNetworkCheck } from './network-check'
 import { defineCliCommand } from '~/cli/native/native-types'
 import { setupFlags } from '~/cli/flags/setup-flags'
@@ -10,13 +11,7 @@ import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import type { SetupStepId } from '~/types'
 
 const VALID_SETUP_STEPS: SetupStepId[] = ['yt-dlp', 'defuddle', 'whisperfile', 'calibre', 'all', 'transcription', 'music']
-const FOCUSED_SETUP_CONFLICT_FLAGS = [
-  'models',
-  'doctor',
-  'strict',
-  'step',
-  'force-redownload'
-] as const
+const FOCUSED_SETUP_CONFLICT_FLAGS = SETUP_FOCUSED_MODE_FLAGS
 
 const normalizeStringArrayFlag = (value: unknown): string[] => {
   if (Array.isArray(value)) {
@@ -34,10 +29,12 @@ export const setupCommand = defineCliCommand({
   description: 'Install local dependencies and required tools',
   flags: setupFlags,
   help: {
+    beforeFlags: SETUP_MODE_NOTES,
     examples: [
       ['bun autoshow setup', 'Install all dependencies'],
       ['bun autoshow setup --models tiny.en --models whisperfile:small', 'Download whisperfile models without running inference'],
       ['bun autoshow setup --step whisperfile', 'Download the default whisperfile model (tiny)'],
+      ['bun autoshow setup --network-check serve --port 8787', 'Serve a local diagnostic fixture'],
       ['bun autoshow setup --doctor', 'Check prerequisites without installing'],
       ['bun autoshow setup --step defuddle', 'Install the managed Defuddle CLI'],
       ['bun autoshow setup --step whisperfile --force-redownload', 'Reinstall the default whisperfile bundle']
@@ -49,7 +46,7 @@ export const setupCommand = defineCliCommand({
     await runNetworkCheck(ctx.flags)
     return
   }
-  for (const flag of ['probe-url', 'probe-client', 'delay-seconds', 'port']) if (ctx.rawParsed.explicitFlags.has(flag)) throw UsageError(`--${flag} requires --network-check`)
+  for (const flag of SETUP_NETWORK_DEPENDENT_FLAGS) if (ctx.rawParsed.explicitFlags.has(flag)) throw UsageError(`--${flag} requires --network-check`)
   const usedModelsFlag = ctx.rawParsed.explicitFlags.has('models')
   const modelTargets = normalizeStringArrayFlag(ctx.flags.models)
 

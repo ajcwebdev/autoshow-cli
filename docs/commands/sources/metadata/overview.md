@@ -2,6 +2,8 @@
 
 Collect and display metadata for media, documents, articles, or X Spaces without downloading files, running transcription, extraction, or LLM steps.
 
+An input is required: `bun autoshow metadata <input> [flags]`. Use `--` before a literal input that could otherwise be parsed as a flag.
+
 ## Outline
 
 - [Supported Inputs](#supported-inputs)

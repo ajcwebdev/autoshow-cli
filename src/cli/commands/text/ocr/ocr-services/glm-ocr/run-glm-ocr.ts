@@ -1,11 +1,13 @@
-import { httpResponseError, httpResponseOptions, isRecord } from '~/utils/rest-client'
-import { extname } from 'node:path'
-import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult } from '~/types'
-import { GlmOcrResponseSchema } from '~/types'
+import { dirname, extname } from 'node:path'
+import { validateGlmOcrModel } from '~/cli/commands/setup-and-utilities/models/ocr-models'
+import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { withOcrCreateRetry } from '~/cli/commands/text/ocr/ocr-utils/ocr-retry'
+import type { ChatImageOcrOptions, DocumentMetadata, NormalizedReasoningEffort, PageResult } from '~/types'
+import { GlmOcrResponseSchema } from '~/types'
+import { httpResponseError, httpResponseOptions, isRecord } from '~/utils/rest-client'
 import { validateData } from '~/utils/validate/validation'
 import { ensureGlmApiKey, resolveGlmBaseUrl } from './glm'
-import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { runGlmVisionOcr } from './glm-vision-ocr'
 
 
 const cleanString = (value: unknown): string | undefined => {
@@ -44,10 +46,7 @@ export const runGlmOcr = async (
   filePath: string,
   step1Metadata: DocumentMetadata,
   model: string,
-  options: {
-    onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
-    reasoningEffort?: NormalizedReasoningEffort | undefined
-  } = {}
+  options: Partial<ChatImageOcrOptions> = {}
 ): Promise<{
   pages: PageResult[]
   extractionMethod: 'glm-ocr'
@@ -58,6 +57,11 @@ export const runGlmOcr = async (
   requestedReasoningEffort?: NormalizedReasoningEffort | undefined
   effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
 }> => {
+  validateGlmOcrModel(model)
+  if (model === 'glm-5.3-flash') {
+    const run = await runGlmVisionOcr(filePath, step1Metadata, model, { ...options, dpi: options.dpi ?? 144, outputDir: options.outputDir ?? dirname(filePath) })
+    return { ...run, markdown: run.pages.map(page => page.text).join('\n\n') }
+  }
   const policy = resolveReasoningPolicy({
     step: 'extract',
     service: 'glm',

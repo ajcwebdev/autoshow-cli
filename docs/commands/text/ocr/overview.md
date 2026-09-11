@@ -201,13 +201,15 @@ Bare `--provider mistral` defaults to `mistral-ocr-2512`.
 | Option   | Value                      |
 | -------- | -------------------------- |
 | Selector | `--provider glm[=<model>]` |
-| Models   | `glm-ocr`                  |
+| Models   | `glm-ocr`, `glm-5.3-flash`                  |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider glm=glm-ocr
 ```
 
 Caps: images up to 10 MB, PDFs up to 50 MB and 100 pages.
+
+GLM Flash uses vision chat with one rendered PNG/JPEG page per request and a 10 MiB application limit. Its reasoning is mandatory; `--reasoning-effort low|high|max` is supported and `disabled` fails locally. The adapter extracts only final content and rejects token-limit truncation. Estimates use $0.15/M input and $0.50/M output tokens; observed completion usage includes any billable reasoning. Dedicated `glm-ocr` keeps its layout endpoint and native PDF support. [GLM Flash](https://docs.z.ai/guides/vlm/glm-5.3-flash), [pricing](https://docs.z.ai/guides/overview/pricing)
 
 ### Kimi OCR
 
@@ -291,12 +293,14 @@ Bare `--provider gemini` defaults to `gemini-3.5-flash-lite`. Caps include inlin
 | Option   | Value                                                                                                                                                                                       |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Selector | `--provider deepinfra[=<model>]`                                                                                                                                                            |
-| Models   | `google/gemma-3-27b-it`, `meta-llama/Llama-4-Scout-17B-16E-Instruct`, `mistralai/Mistral-Small-3.2-24B-Instruct-2506`, `Qwen/Qwen3-VL-235B-A22B-Instruct`, `Qwen/Qwen3-VL-30B-A3B-Instruct` |
+| Models   | `google/gemma-4-31B-it`, `google/gemma-4-26B-A4B-it`, `google/gemma-3-27b-it`, `meta-llama/Llama-4-Scout-17B-16E-Instruct`, `mistralai/Mistral-Small-3.2-24B-Instruct-2506`, `Qwen/Qwen3-VL-235B-A22B-Instruct`, `Qwen/Qwen3-VL-30B-A3B-Instruct` |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct
 bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=Qwen/Qwen3-VL-235B-A22B-Instruct
 ```
+
+Gemma 4 31B and 26B A4B use one image per chat request, at most 20 MiB and 8,192 requested output tokens. Reasoning defaults to disabled; optional `low|medium|high` effort is supported. Only final content is extracted. Input/output rates per million tokens are $0.13/$0.38 for [31B](https://deepinfra.com/google/gemma-4-31B-it) and $0.07/$0.34 for [26B A4B](https://deepinfra.com/google/gemma-4-26B-A4B-it). Page-token preflight estimates are uncalibrated heuristics; completed requests use reported token counts.
 
 Bare `--provider deepinfra` defaults to `Qwen/Qwen3-VL-30B-A3B-Instruct`. Uploads are capped at 20 MB per image.
 

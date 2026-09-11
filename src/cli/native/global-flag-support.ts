@@ -40,7 +40,7 @@ export const commandAcceptsGlobalFlag = (commandName: string, flagName: string):
 
 export const globalFlagsForCommand = (flags: CliFlagsDefinition, commandName: string): CliFlagsDefinition =>
   Object.fromEntries(
-    Object.entries(flags).filter(([name]) => commandAcceptsGlobalFlag(commandName, name))
+    Object.entries(flags).filter(([name]) => commandAcceptsGlobalFlag(commandName, name) && !(commandName === 'comic generate-slideshow' && name === 'allow-over-budget'))
   ) as CliFlagsDefinition
 
 export const unsupportedGlobalFlagError = (commandName: string, flagName: string): Error => {

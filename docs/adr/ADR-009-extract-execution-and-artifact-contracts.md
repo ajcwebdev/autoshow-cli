@@ -290,7 +290,7 @@ The Happy Scribe reproduction lost all but the largest paragraph's word array an
 
 The implementation added local CTC alignment, reference comparison, whisperfile DTW calibration, verified channel extraction/merge, reviewed speaker maps, and ASS/TTML/LRC alongside SRT/VTT. Provider controls and native exports persist through configuration and requested-target state. Happy Scribe has no implemented/documented diarization off switch; export can hide labels. Mistral's incompatible simultaneous diarization/native-word recommendation was corrected. The dated AssemblyAI and Deepgram rate corrections remain in the [STT pricing record](../commands/stt/overview.md#stt-pricing); ongoing model/pricing governance stays in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md).
 
-The implementation lives in `src/cli/commands/command-shared/step-2-extract/`: `run-caption-export.ts`, `caption-editor-formats.ts`, `run-stt-timing-workflow.ts`, `run-local-forced-alignment.ts`, `calibrate-whisper-timing.ts`, and `stt-channel-workflows.ts`, with provider adapters and evidence/coverage/alignment helpers under `step-2-stt/`. The local emission backend is `scripts/stt-ctc-emissions.py`.
+The implementation lives in `src/cli/commands/command-shared/step-2-extract/`: `run-caption-export.ts`, `caption-editor-formats.ts`, `run-stt-timing-workflow.ts`, `run-local-forced-alignment.ts`, `calibrate-whisper-timing.ts`, and `stt-channel-workflows.ts`, with provider adapters and evidence/coverage/alignment helpers under `step-2-stt/`. The current local emission backend is `src/cli/commands/stt/workflows/timing/stt-onnx-emissions.ts`.
 
 #### Automatic Reference Construction
 
@@ -299,7 +299,7 @@ The user requested the best automatic references available from existing local f
 **Alignment backend**
 
 - **Model:** `facebook/wav2vec2-base-960h`, revision `22aad52d435eb6dbaf354bdad9b0da84ce7d6156`; model-weight SHA-256 `8aa76ab2243c81747a1f832954586bc566090c83a0ac167df6f31f0fa917d74a`
-- **Runtime:** Python 3.12, Torch 2.14.0, Transformers 4.57.6; installed dependencies frozen in [scripts/stt-alignment-requirements.txt](../../scripts/stt-alignment-requirements.txt)
+- **Runtime:** Python 3.12, Torch 2.14.0, Transformers 4.57.6 at the time of this historical measurement. The current [TypeScript/ONNX workflow](../commands/stt/workflows/timing/overview.md#force-align-supplied-text-locally) replaces that retired runtime; these measurements have not been re-established with ONNX.
 - **Method:** Local CTC alignment with 16 kHz mono PCM16 and a 20 ms output frame grid; source/model fingerprints and preprocessing retained; remote model code disabled
 - **Limits:** Alignment cannot recover omitted speech, adjudicate wording, separate overlapping mono voices, or infer speakers. Confidence summarizes emission scores, not a calibrated probability. Other languages, number handling, and broader acoustic claims need their own validated references.
 

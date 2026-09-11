@@ -32,6 +32,11 @@ export const linksProviderFlags = Object.fromEntries(knownProviders.map((provide
 }])) as CliFlagsDefinition
 
 export const linksFlags = {
+  provider: {
+    description: `Scope following sections to one provider; repeatable: ${knownProviders.join('|')}`,
+    type: [String],
+    consumeAdjacentValues: false,
+  },
   refresh: {
     description: 'Write refresh metadata sidecar with per-link hashes and token counts',
     type: Boolean,
@@ -70,6 +75,13 @@ export const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection 
   for (const token of orderedTokens) {
     if (token.kind === 'flag') {
       const { name, raw } = token.occurrence
+      if (name === 'provider') {
+        const provider = String(token.occurrence.value).trim().toLowerCase()
+        if (!serviceKeySet.has(provider)) throw UsageError(`Unknown links provider "${provider}". Known providers: ${knownProviders.join(', ')}.`)
+        currentService = provider
+        if (!serviceSelections.has(provider)) serviceSelections.set(provider, [])
+        continue
+      }
       if (name === 'refresh' || name === 'refresh-only' || !serviceKeySet.has(name)) continue
       const equalsIndex = raw.indexOf('=')
       if (equalsIndex !== -1) {

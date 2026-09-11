@@ -1,14 +1,14 @@
 import { afterAll, expect, test } from 'bun:test'
 import { chmod, mkdtemp, mkdir, rm } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
-import { DockerEngine, containerArguments, mapArtifactPath } from '../../../../scripts/docker-acceptance/docker-engine'
-import { REQUESTED_IMAGE, parseDockerOptions } from '../../../../scripts/docker-acceptance/docker-options'
-import { createDockerProcessRunner, dockerClientEnvironment } from '../../../../scripts/docker-acceptance/docker-process'
-import type { ProcessRunner } from '../../../../scripts/docker-acceptance/docker-process'
-import { acceptancePassed, discoverOutputDir, runDockerAcceptance } from '../../../../scripts/docker-acceptance/docker-runner'
-import { dockerScenarios, mappedManifest, MODEL_SELECTORS, selectDockerScenarios } from '../../../../scripts/docker-acceptance/docker-scenarios'
-import { containerFixture } from '../../../../scripts/docker-acceptance/docker-fixtures'
+import { DockerEngine, containerArguments, mapArtifactPath } from '../../../docker-acceptance/docker-engine'
+import { REQUESTED_IMAGE, parseDockerOptions } from '../../../docker-acceptance/docker-options'
+import { createDockerProcessRunner, dockerClientEnvironment } from '../../../../src/tools/docker-process'
+import type { ProcessRunner } from '../../../../src/tools/docker-process'
+import { acceptancePassed, discoverOutputDir, runDockerAcceptance } from '../../../docker-acceptance/docker-runner'
+import { dockerScenarios, mappedManifest, MODEL_SELECTORS, selectDockerScenarios } from '../../../docker-acceptance/docker-scenarios'
+import { containerFixture } from '../../../docker-acceptance/docker-fixtures'
 import { rejectionScenarios } from '../../../scenarios/local-cli-contracts'
 import type { LocalExecutionAdapter } from '../../../scenarios/local-cli-contracts'
 
@@ -250,4 +250,21 @@ test('runner parsing bounds timeouts and preserves native model selection', () =
 
 test('production image has no dedicated STT compiler layer', async () => {
   expect(await Bun.file('Dockerfile').text()).not.toContain('cmake make gcc g++ libc6-dev')
+})
+
+test('acceptance guards and strict matchers run standalone with useful diagnostics', async () => {
+  const guard = resolve('test/test-utils/require-condition.ts')
+  const source = `import { expect } from 'bun:test';
+    import { requireCondition } from ${JSON.stringify(guard)};
+    requireCondition({ ok: true }, 'present');
+    expect({ a: [1, 2] }).toStrictEqual({ a: [1, 2] });
+    expect(() => expect({ a: undefined }).toStrictEqual({})).toThrow();
+    expect(() => expect([, 1]).toStrictEqual([undefined, 1])).toThrow();
+    requireCondition(null, 'fixture guard failed');`
+  const child = Bun.spawn([process.execPath, '--no-env-file', '-e', source], {
+    env: { PATH: process.env['PATH'] }, stdout: 'pipe', stderr: 'pipe'
+  })
+  const [code, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()])
+  expect(code).toBe(1)
+  expect(stderr).toContain('fixture guard failed')
 })

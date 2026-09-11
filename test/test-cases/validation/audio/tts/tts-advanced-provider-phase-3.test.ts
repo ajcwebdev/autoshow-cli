@@ -492,3 +492,13 @@ describe('Phase 3 native planning, prepared text, timing, and continuation', () 
     expect(bodies[1]).toEqual(expect.objectContaining({ context: { generation_id: 'batch-1-selected' }, utterances: [expect.objectContaining({ voice: { id: 'voice-b' }, trailing_silence: 0.2 })] }))
   })
 })
+
+test('Hume readiness rejects an unbounded catalog before requesting more pages', async () => {
+  let calls = 0
+  const fetchImpl = (async () => {
+    calls++
+    return Response.json({ page_number: 0, page_size: 100, total_pages: 1000, voices_page: [] })
+  }) as unknown as typeof fetch
+  await expect(listHumeVoiceIdsForReadiness('synthetic', fetchImpl)).rejects.toThrow('exceeds 20 pages')
+  expect(calls).toBe(1)
+})

@@ -10,7 +10,8 @@ export const SUPPORTED_MISTRAL_OCR_MODELS = [
 export const validateMistralOcrModel = createModelValidator(SUPPORTED_MISTRAL_OCR_MODELS, 'mistral-ocr')
 
 export const SUPPORTED_GLM_OCR_MODELS = [
-  'glm-ocr'
+  'glm-ocr',
+  'glm-5.3-flash'
 ] as const satisfies readonly string[]
 
 export const validateGlmOcrModel = createModelValidator(SUPPORTED_GLM_OCR_MODELS, 'glm-ocr')
@@ -70,6 +71,8 @@ export const DEFAULT_DEEPINFRA_OCR_MODEL = 'Qwen/Qwen3-VL-30B-A3B-Instruct'
 
 export const SUPPORTED_DEEPINFRA_OCR_MODELS = [
   'google/gemma-3-27b-it',
+  'google/gemma-4-31B-it',
+  'google/gemma-4-26B-A4B-it',
   'meta-llama/Llama-4-Scout-17B-16E-Instruct',
   'mistralai/Mistral-Small-3.2-24B-Instruct-2506',
   'Qwen/Qwen3-VL-235B-A22B-Instruct',

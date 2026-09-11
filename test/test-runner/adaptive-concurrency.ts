@@ -1,5 +1,6 @@
+import { readUtf8FileExact, writeFileExact } from '~/utils/bun-file-io'
 import { stripAnsi } from '~/utils/terminal-colors'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { withProcessLock } from '~/utils/process-lock'
 import type {
@@ -120,7 +121,7 @@ const parseGroupState = (
 
 const readSchedulerState = async (config: AdaptiveConcurrencyConfig): Promise<AdaptiveSchedulerState> => {
   try {
-    const parsed = JSON.parse(await readFile(statePath(config), 'utf8')) as unknown
+    const parsed = JSON.parse(await readUtf8FileExact(statePath(config))) as unknown
     if (!isObjectLike(parsed) || parsed['schemaVersion'] !== 1 || !isObjectLike(parsed['groups'])) {
       return emptyState()
     }
@@ -149,7 +150,7 @@ const writeSchedulerState = async (
 ): Promise<void> => {
   await mkdir(config.stateDir, { recursive: true })
   state.updatedAt = new Date().toISOString()
-  await writeFile(statePath(config), `${JSON.stringify(state, null, 2)}\n`)
+  await writeFileExact(statePath(config), `${JSON.stringify(state, null, 2)}\n`)
 }
 
 const withStateLock = async <T,>(

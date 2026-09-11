@@ -142,3 +142,16 @@ export const advanceJournal = async (
     capturedAt,
   })
 }
+
+type WithoutSequence<T> = T extends unknown ? Omit<T, 'sequence'> : never
+
+export const appendJournalTransition = async (
+  ctx: AttemptContext,
+  requestOrdinal: number,
+  transition: WithoutSequence<RenderAdmissionJournalSnapshot['requests'][number]['transitions'][number]>
+): Promise<void> => {
+  const requests = ctx.journal.requests.map(entry => entry.requestOrdinal === requestOrdinal
+    ? { ...entry, transitions: [...entry.transitions, { ...transition, sequence: entry.transitions.length + 1 }] }
+    : entry)
+  await advanceJournal(ctx, requests)
+}

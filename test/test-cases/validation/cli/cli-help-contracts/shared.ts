@@ -48,7 +48,7 @@ export const helpArgv = (commandName: string): string[] => [...commandName.split
 
 export const advertisedFlagNames = (section: string): string[] =>
   section.split('\n').flatMap((line) => {
-    const match = line.match(/^ {2,4}--([a-z0-9-]+)/)
+    const match = line.match(/^ {2,4}--([a-z0-9-]+)(?:, (?:--no-[a-z0-9-]+|-[a-z]))* +(?:String|Boolean|Array<String>)(?:\s|$)/)
     return match?.[1] === undefined ? [] : [match[1]]
   })
 
@@ -116,3 +116,6 @@ export const getCommandFlagsSection = (output: string): string => {
   const end = output.indexOf('\nGlobal Flags\n', start)
   return output.slice(start, end === -1 ? output.length : end)
 }
+
+// Prose assertions ignore terminal wrapping; structural/width tests use raw output.
+export const helpText = (value: string): string => value.replace(/\|\n +/g, '|').replace(/\s+/g, ' ')

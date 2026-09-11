@@ -1,4 +1,7 @@
-import { appendFile, mkdir, readdir, readFile, rm } from 'node:fs/promises'
+import { appendFileSync } from 'node:fs'
+import { AppendLogSink } from './append-log-sink'
+import { readUtf8FileExact } from '~/utils/bun-file-io'
+import { mkdir, readdir, rm } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import type { RunnerLogHandle, TestRunArtifacts } from '~/types'
 import { formatTimestampForDir } from './utils'
@@ -12,11 +15,12 @@ const COMMAND_LOG_TAIL_BYTES = 256 * 1024
 
 export const TEST_OUTPUT_ROOT = resolve(process.cwd(), 'output/test-output')
 
-const runnerLogHandles = new WeakMap<TestRunArtifacts, RunnerLogHandle>()
+const runnerLogHandles = new WeakMap<TestRunArtifacts, RunnerLogHandle & { sink: AppendLogSink }>()
+const commandLogSinks = new WeakMap<TestRunArtifacts, AppendLogSink>()
 
 const readTextIfExists = async (path: string): Promise<string> => {
   try {
-    return await readFile(path, 'utf8')
+    return await readUtf8FileExact(path)
   } catch {
     return ''
   }
@@ -55,8 +59,10 @@ const readJsonIfExists = async (path: string): Promise<Record<string, unknown> |
 }
 
 const openRunnerLogSink = (artifacts: TestRunArtifacts): void => {
-  const handle: RunnerLogHandle = {
-    writer: Bun.file(artifacts.runnerLogPath).writer(),
+  const sink = new AppendLogSink(artifacts.runnerLogPath)
+  const handle: RunnerLogHandle & { sink: AppendLogSink } = {
+    sink,
+    writer: sink.writer,
     pendingBytes: 0,
     closed: false,
     flushTimer: setInterval(() => {
@@ -79,8 +85,15 @@ const endRunnerLogSink = async (artifacts: TestRunArtifacts): Promise<void> => {
   handle.closed = true
   clearInterval(handle.flushTimer)
   handle.pendingBytes = 0
-  await handle.writer.end()
+  await handle.sink.close()
   runnerLogHandles.delete(artifacts)
+}
+
+export const closeArtifactLogs = async (artifacts: TestRunArtifacts): Promise<void> => {
+  const command = commandLogSinks.get(artifacts)
+  commandLogSinks.delete(artifacts)
+  const results = await Promise.allSettled([endRunnerLogSink(artifacts), command?.close()])
+  for (const result of results) if (result.status === 'rejected') throw result.reason
 }
 
 const ensureParentDirectory = async (path: string): Promise<void> => {
@@ -214,7 +227,7 @@ export const cleanupTestOutputRoot = async (
 }
 
 export const cleanupRunArtifacts = async (artifacts: TestRunArtifacts): Promise<void> => {
-  await endRunnerLogSink(artifacts)
+  await closeArtifactLogs(artifacts)
   await rm(artifacts.runDir, { recursive: true, force: true })
 }
 
@@ -267,7 +280,13 @@ export const createRunArtifacts = async (rootDir = TEST_OUTPUT_ROOT): Promise<Te
     startedAtMs,
     startedAtIso,
   }
-  openRunnerLogSink(artifacts)
+  try {
+    openRunnerLogSink(artifacts)
+    commandLogSinks.set(artifacts, new AppendLogSink(commandLogPath))
+  } catch (error) {
+    await closeArtifactLogs(artifacts)
+    throw error
+  }
   return artifacts
 }
 
@@ -283,12 +302,19 @@ export const appendRunnerLog = (artifacts: TestRunArtifacts, text: string): void
     return
   }
 
-  void appendFile(artifacts.runnerLogPath, text)
+  // Calls outside the owned run lifecycle must finish before returning.
+  appendFileSync(artifacts.runnerLogPath, text)
 }
 
 export const appendCommandLog = async (artifacts: TestRunArtifacts, text: string): Promise<void> => {
+  const owned = commandLogSinks.get(artifacts)
+  if (owned) {
+    await owned.append(text)
+    return
+  }
   await ensureParentDirectory(artifacts.commandLogPath)
-  await appendFile(artifacts.commandLogPath, text)
+  const sink = new AppendLogSink(artifacts.commandLogPath)
+  try { await sink.append(text) } finally { await sink.close() }
 }
 
 export const writeReportJson = async (
@@ -311,7 +337,7 @@ export const writeLatestRunLog = async (
   artifacts: TestRunArtifacts,
   exitCode: number
 ): Promise<string> => {
-  await endRunnerLogSink(artifacts)
+  await closeArtifactLogs(artifacts)
   const latestLogPath = resolve(artifacts.rootDir, LATEST_LOG_FILE)
   const [reportText, runnerLog, commandLog] = await Promise.all([
     readTextIfExists(artifacts.reportJsonPath),

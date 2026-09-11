@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.6
+# syntax=docker/dockerfile:1.6@sha256:ac85f380a63b13dfcefa89046420e1781752bab202122f8f50032edf31be0021
 
 ARG BUN_BASE_IMAGE=oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61
 ARG DENO_BASE_IMAGE=denoland/deno:bin-2.9.6@sha256:4cf0029b9aeeeed5efcbb71828737f0d7c8c8a20072df960e51a5679ef0d21ba
@@ -24,6 +24,8 @@ RUN bun --no-env-file install --frozen-lockfile
 COPY tsconfig.json ./
 COPY config ./config
 COPY src ./src
+
+RUN bun --no-env-file build src/cli/commands/stt/workflows/timing/stt-onnx-worker.ts --target=bun --outfile=/app/stt-onnx-worker.js
 
 RUN bun --no-env-file build src/cli/create-cli.ts \
       --compile \
@@ -65,6 +67,7 @@ RUN set -eux; \
 FROM ${BUN_BASE_IMAGE} AS runtime-base
 
 ARG DEBIAN_FRONTEND=noninteractive
+ARG DEBIAN_SNAPSHOT=20260910T000000Z
 ARG AUTOSHOW_VERSION=0.1.0
 ARG BUILD_DATE=unknown
 ARG VCS_REF=unknown
@@ -82,11 +85,17 @@ ENV HOME=/home/bun
 ENV AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1
 
 RUN set -eux; \
+    sed -i "s|http://deb.debian.org/debian-security|https://snapshot.debian.org/archive/debian-security/${DEBIAN_SNAPSHOT}|g; s|http://deb.debian.org/debian|https://snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}|g" /etc/apt/sources.list.d/debian.sources; \
+    printf 'Acquire::Check-Valid-Until "false";\n' > /etc/apt/apt.conf.d/99snapshot; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
       ca-certificates \
       calibre \
       ffmpeg \
+      imagemagick \
+      pango1.0-tools \
+      fontconfig \
+      fonts-dejavu-core \
       mupdf-tools \
       python3 \
       qpdf \
@@ -111,6 +120,7 @@ COPY --from=youtube-js /deno /usr/local/bin/deno
 RUN deno --version && yt-dlp --version
 
 WORKDIR /app
+COPY --chown=bun:bun config/defuddle ./config/defuddle
 
 FROM runtime-base AS runtime
 
@@ -131,6 +141,8 @@ CMD ["help"]
 FROM runtime-base AS compiled-experiment
 
 COPY --from=build-deps --chown=bun:bun /app/autoshow /app/autoshow
+COPY --from=build-deps --chown=bun:bun /app/stt-onnx-worker.js /app/src/cli/commands/stt/workflows/timing/stt-onnx-worker.js
+COPY --chown=bun:bun config/stt-alignment ./config/stt-alignment
 COPY --from=build-deps --chown=bun:bun /app/compiled-entrypoint-metafile.json /app/compiled-entrypoint-metafile.json
 COPY --from=build-deps --chown=bun:bun /app/compiled-entrypoint-metafile.md /app/compiled-entrypoint-metafile.md
 RUN set -eux; \
@@ -142,5 +154,9 @@ USER bun
 
 ENTRYPOINT ["/app/autoshow"]
 CMD ["help"]
+
+FROM runtime AS alignment
+COPY --chown=bun:bun config/stt-alignment ./config/stt-alignment
+RUN bun --no-env-file install --cwd config/stt-alignment --frozen-lockfile --ignore-scripts
 
 FROM runtime AS production

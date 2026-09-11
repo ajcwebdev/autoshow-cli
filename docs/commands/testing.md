@@ -2,9 +2,9 @@
 
 Shared `bun t` runner behavior plus the local and service test coverage map for the AutoShow CLI. Capability test pages live beside their command docs and are indexed in [Command Test Pages](#command-test-pages).
 
-Default local verification is `bun run check` followed by `bun t --price`. Price mode estimates mapped commands without executing provider tests. The other `bun t` commands below may call paid or quota-limited providers. Do not use them as a default verification pass without explicit approval for that exact run.
+Default local verification is `bun run check` followed by `bun t --price`. Price mode estimates mapped commands without executing provider tests. The default runner uses fixture mode and does not forward provider credentials. Hosted execution requires explicit live mode, a credential allowlist, and valid budget evidence; apply the repository spending policy before running it.
 
-`bun run check` starts `check:names` and `check:types` concurrently with `bun run --parallel`. Each maintenance child receives only `PATH` and `HOME`, disables automatic env-file loading, and calls the installed TypeScript 6.0.3 compiler directly. The `repo`, OCR-token audit, complexity analysis, Docker baseline, env-compatibility probe, and default custom test-runner scripts use the same minimal environment boundary. Normal `bun autoshow` commands still load `.env` because provider commands legitimately require credentials.
+`bun run check` starts `check:names` and `check:types` concurrently with `bun run --parallel`. Each maintenance child receives only `PATH` and `HOME`, disables automatic env-file loading, and calls the installed TypeScript 6.0.3 compiler directly. The `repo`, OCR-token audit, complexity analysis, and default custom test-runner scripts use the same minimal environment boundary. Docker baseline, env-compatibility and acceptance launchers additionally preserve the shared Docker host/context/TLS connection settings described in the [environment reference](../reports/high-priority-metareport-2026-09-11.md#environment-reference). Normal `bun autoshow` commands still load `.env` because provider commands legitimately require credentials.
 
 ## Outline
 
@@ -38,18 +38,15 @@ bun t test/test-cases/e2e/local/sources/download/download-input-types-direct-url
 bun t test/test-cases/e2e/local/sources/download/download-input-types-streaming.test.ts
 bun t test/test-cases/e2e/local/sources/download/download-input-types-feed-or-channel.test.ts
 
-# service command suites; exported credentials only, with automatic .env loading disabled
-bun --no-env-file run t:provider test/test-cases/e2e/service/text/ocr/
-bun --no-env-file run t:provider test/test-cases/e2e/service/text/url/
-bun --no-env-file run t:provider test/test-cases/e2e/service/stt/
-bun --no-env-file run t:provider test/test-cases/e2e/service/text/write/
-bun --no-env-file run t:provider test/test-cases/e2e/service/audio/tts/
-bun --no-env-file run t:provider test/test-cases/e2e/service/visuals/image/
-bun --no-env-file run t:provider test/test-cases/e2e/service/visuals/video/
-bun --no-env-file run t:provider test/test-cases/e2e/service/audio/music/
+# Example live selection: export OPENAI_API_KEY through your normal secret channel first.
+# Only the listed credential reaches workers; this example uses a 0.5-cent budget.
+AUTOSHOW_TEST_CREDENTIAL_KEYS='["OPENAI_API_KEY"]' \
+  bun --no-env-file run t:provider --budget 50 test/test-cases/e2e/service/audio/tts/
 ```
 
-The `t:provider` entrypoint is reserved for an explicitly approved provider run. Export only the credential required by that exact selection before invoking it; the command does not auto-load `.env`.
+`t:provider` selects live mode and disables automatic `.env` loading. Set `AUTOSHOW_TEST_CREDENTIAL_KEYS` to a JSON array of the registered credential names required by the selected files, and export those values. Tests needing unlisted or missing credentials are skipped. The runner generates evaluated/skip manifests from `--budget`; missing or corrupt evidence cannot admit hosted callbacks. A budget may skip every selected test when no estimate fits. Choose the selection and budget according to the repository spending policy.
+
+Direct live `bun --no-env-file test` execution requires `AUTOSHOW_TEST_CREDENTIAL_MODE=live` plus valid `AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS` and `AUTOSHOW_TEST_BUDGET_SKIP_KEYS` JSON arrays from an evaluated plan. Shared helpers read normalized exports only and never fall back to `.env`. Each live callback forwards only its declared credentials to CLI children.
 
 ## Command Test Pages
 
@@ -70,7 +67,7 @@ Command source, documentation, validation, and price tests use the `sources`, `s
 
 - Pass file or directory paths under `test/test-cases/` to select tests.
 - Passing tests print only the result line (`✓`, name, duration). Failing tests keep that `✗` line and the captured console output from that test.
-- `--max-concurrency` and `--parallel` default to the machine's available parallelism. E2E-only selections default `--parallel` to 32 and retry once. Pass `--max-concurrency=<n>` or `--parallel=<n>` to override; `--concurrency` is not a Bun test flag and is rejected.
+- `--max-concurrency` and `--parallel` default to the machine's available parallelism. E2E-only selections default `--parallel` to 32; automatic test retries are disabled. Pass `--max-concurrency=<n>` or `--parallel=<n>` to override; `--concurrency` is not a Bun test flag and is rejected.
 - On Bun 1.4, `--parallel` implies isolated test files. Use `--no-isolate` only as a temporary diagnostic escape hatch for a confirmed isolation or preload regression; it is not a supported default because it weakens file-level state separation.
 - The runner gives Bun `--timings=output/test-output/.test-cache/bun-file-timings.json --update-timings`, so Bun schedules slow files first and balances timing-aware shards. The native file cache is seeded once from AutoShow's historical file medians; the separate custom cache remains the source of per-test estimates in `report.json`.
 - Parallel scratch roots include `BUN_TEST_WORKER_ID` and the worker process ID. The worker ID partitions Bun's scheduling lanes while the process ID keeps independently launched local runs distinct.
@@ -166,7 +163,7 @@ Run `bun profile:bundle` to build the same `src/cli/create-cli.ts` entrypoint us
 
 ### Complete capture
 
-Run `bun profile:all` to execute all four no-cost recipes into one timestamped directory. Any recipe accepts `--output-dir <path>` after the script selector when invoked directly, for example `env -i PATH="$PATH" HOME="$HOME" bun --no-env-file scripts/bun-profile.ts bundle --output-dir runtime/profiling/bun-runtime/before-bundle-change`.
+Run `bun profile:all` to execute all four no-cost recipes into one timestamped directory. Any recipe accepts `--output-dir <path>` after the script selector when invoked directly, for example `env -i PATH="$PATH" HOME="$HOME" bun --no-env-file src/tools/bun-profile.ts bundle --output-dir runtime/profiling/bun-runtime/before-bundle-change`.
 
 Generated artifacts are diagnostic evidence and are not committed. Checked benchmark summaries should contain only aggregate measurements, fixture identities, commands, and conclusions.
 

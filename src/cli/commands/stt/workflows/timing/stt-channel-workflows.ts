@@ -1,4 +1,5 @@
-import { mkdir, stat } from 'node:fs/promises'
+import { statPath } from '~/utils/bun-file-io'
+import { mkdir } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import type { TranscriptionResult } from '~/types'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
@@ -17,7 +18,7 @@ export const splitSttChannels = async (input: string, output: string) => {
     return Array.from({ length: stream.channels }, (_, channel) => ({ id: `stream-${stream.index}-channel-${channel + 1}`, streamIndex: stream.index, channelIndex: channel, sampleRate: Number(stream.sample_rate), offsetSeconds: Number(stream.start_time ?? 0) }))
   })
   if (channels.length < 2 || channels.some(channel => !Number.isFinite(channel.offsetSeconds))) throw ValidationError('Channel separation requires at least two audio channels across the local media streams and valid source offsets.')
-  for (const name of ['channels.json', 'channel-results.json', ...channels.map(channel => `${channel.id}.wav`)]) if (await stat(join(output, name)).catch(() => undefined)) throw ValidationError(`Channel output already exists at ${join(output, name)}. Choose a new --output-dir.`)
+  for (const name of ['channels.json', 'channel-results.json', ...channels.map(channel => `${channel.id}.wav`)]) if (await statPath(join(output, name)).catch(() => undefined)) throw ValidationError(`Channel output already exists at ${join(output, name)}. Choose a new --output-dir.`)
   await mkdir(output, { recursive: true })
   const completed = []
   for (const channel of channels) {

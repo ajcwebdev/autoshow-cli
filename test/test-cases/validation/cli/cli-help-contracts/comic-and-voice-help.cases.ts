@@ -1,3 +1,4 @@
+import { helpText } from './shared'
 import { expect, test } from 'bun:test'
 import { VOICE_PUBLIC_ACTIONS } from '~/cli/commands/audio/voice/define-voice-command'
 import {
@@ -45,7 +46,7 @@ export const registerComicAndVoiceHelpCases = (): void => {
     expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--continuity-only')
     expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--labels')
     expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--trusted-anchor-panel')
-    expect(result.stdout).toContain('final default: 1; sketch default: 6')
+    expect(helpText(result.stdout)).toContain('final default: 1; sketch default: 6')
     expect(result.stdout).toContain('bun autoshow comic draft-scenes <script-path> --only panel-prompts')
     expect(result.stdout).not.toContain('[--target prompts|images|sketches|both]')
     const flagsSection = getCommandFlagsSection(result.stdout)

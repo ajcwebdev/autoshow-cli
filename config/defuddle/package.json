@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "dependencies": {
+    "defuddle": "0.19.3"
+  }
+}

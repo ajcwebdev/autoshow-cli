@@ -166,7 +166,7 @@ bun autoshow image "place the subject in a cozy cabin kitchen" --provider bfl=fl
 | Option       | Value                                                                                                                                                                                                      |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Selector     | `--provider replicate[=<model>]`                                                                                                                                                                           |
-| Models       | `bytedance/seedream-4.5`, `bytedance/seedream-5-lite`, `bytedance/seedream-5-pro`, `qwen/qwen-image-2-pro`, `qwen/qwen-image-2`, `wan-video/wan-2.7-image-pro`, `wan-video/wan-2.7-image`                  |
+| Models       | `bytedance/seedream-4.5`, `bytedance/seedream-5-lite`, `bytedance/seedream-5-pro`, `alibaba/qwen-image-3`, `alibaba/qwen-image-3-pro`, `qwen/qwen-image-2-pro`, `qwen/qwen-image-2`, `wan-video/wan-2.7-image-pro`, `wan-video/wan-2.7-image`                  |
 | Size         | Seedream 4.5 `2K`/`4K`/`WIDTHxHEIGHT`; Seedream 5 Lite `2K`/`3K`; Seedream 5 Pro `1K`/`2K`; Wan `1K`/`2K`/`WIDTHxHEIGHT` (`4K` on `wan-video/wan-2.7-image-pro` text-to-image only); not supported by Qwen |
 | Aspect ratio | Seedream and Qwen models only                                                                                                                                                                              |
 | Count        | `--count 1-4` (Wan models); 1 image per request for others                                                                                                                                                 |
@@ -177,6 +177,8 @@ bun autoshow image "place the subject in a cozy cabin kitchen" --provider bfl=fl
 bun autoshow image "a polished launch poster for a sci-fi audio drama" --provider replicate=wan-video/wan-2.7-image --size 2K --count 2
 bun autoshow image "place the subject on a rustic breakfast table" --provider replicate=bytedance/seedream-4.5 --input input/subject.jpg --aspect-ratio 1:1
 ```
+
+Bare `--provider replicate` now selects Qwen Image 3 through the existing cheapest-model tie-break. Replicate Qwen Image 3 and 3 Pro support generation and single-image editing with `--input`; editing retains the reference aspect ratio. Use `--aspect-ratio` for generation. Explicit size, count, and output-format controls are unsupported. They cost $0.03 and $0.04 per output image respectively. The identically named fal Qwen 3 keeps its separate pricing and reference limits. [Qwen 3](https://replicate.com/alibaba/qwen-image-3), [Qwen 3 Pro](https://replicate.com/alibaba/qwen-image-3-pro)
 
 ### Luma Labs
 

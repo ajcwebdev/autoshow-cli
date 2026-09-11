@@ -18,24 +18,18 @@ The report preserves the reference's provenance and identifies references lackin
 
 ### Force-align supplied text locally
 
-The optional backend uses a local Wav2Vec2 CTC model. The verified setup below uses the English `facebook/wav2vec2-base-960h` model and 16 kHz mono audio. Model inference and alignment run locally; explicit setup downloads public packages and model weights. The transcription command never downloads a model or executes remote model code. [Official model card](https://huggingface.co/facebook/wav2vec2-base-960h).
+The optional backend runs a local Wav2Vec2 CTC ONNX model through TypeScript and ONNX Runtime 1.29.0 on the CPU. It accepts mono 16 kHz audio. Model inference and alignment stay offline; explicit setup downloads the frozen runtime graph and pinned public model assets. The extraction command never installs packages, downloads models, or executes model-supplied code. See the [ONNX Runtime JavaScript binding](https://onnxruntime.ai/docs/get-started/with-javascript/node.html) and [ONNX model repository](https://huggingface.co/onnx-community/wav2vec2-base-960h-ONNX/tree/729c1a6730fb549c20a1c73a3d3f96f11020225e).
 
-Run setup once if the runtime is absent:
+Install the optional runtime and English model once from the repository root:
 
 ```bash
-uv venv --python 3.12 runtime/venvs/stt-alignment
-uv pip install --python runtime/venvs/stt-alignment/bin/python -r scripts/stt-alignment-requirements.txt
-runtime/venvs/stt-alignment/bin/python - <<'PY'
-from huggingface_hub import snapshot_download
-snapshot_download(
-    repo_id="facebook/wav2vec2-base-960h",
-    revision="22aad52d435eb6dbaf354bdad9b0da84ce7d6156",
-    local_dir="runtime/models/alignment/wav2vec2-base-960h",
-    allow_patterns=["*.json", "model.safetensors"],
-    token=False,
-)
-PY
+bun --no-env-file install --cwd config/stt-alignment --frozen-lockfile --ignore-scripts
+bun --no-env-file src/tools/install-alignment-model.ts
 ```
+
+The installer downloads approximately 378 MB, verifies fixed SHA-256 hashes, reuses matching files, and preserves conflicting files. A model directory must contain `config.json`, `preprocessor_config.json`, `vocab.json`, and one self-contained `model.onnx`. Symlinks, duplicate JSON keys, executable dispatch metadata, PyTorch weights, and models with adapters are rejected. Existing PyTorch model folders require a separate ONNX model directory. The retired `--alignment-python` option is no longer accepted.
+
+The frozen runtime graph is in `config/stt-alignment/`; CPU binaries are available for macOS and Linux on x64 and ARM64. The optional Docker `alignment` target installs this graph. The default image omits the optional runtime and model weights. A compiled CLI requires Bun on PATH, the installed native package under `config/stt-alignment/node_modules/`, and the bundled `src/cli/commands/stt/workflows/timing/stt-onnx-worker.js` beside its project root. The compiled Docker target includes the worker and frozen package manifest; install the optional graph before aligning. To package the worker locally, run `bun build src/cli/commands/stt/workflows/timing/stt-onnx-worker.ts --target=bun --outfile=<distribution>/src/cli/commands/stt/workflows/timing/stt-onnx-worker.js`. The worker avoids the standalone executable’s external-package resolution limitation. Run the synthetic offline backend checks with `bun test test/test-cases/validation/stt/workflows/timing/stt-onnx-alignment.test.ts` after installing the optional graph.
 
 Supply a saved transcript whose segments cover its complete text. Each segment must have a positive, non-overlapping range of at most 30 seconds in the input audio's timeline. A minimal transcript has this shape:
 
@@ -49,7 +43,7 @@ Supply a saved transcript whose segments cover its complete text. Each segment m
 ```
 
 ```bash
-bun autoshow extract audio.wav --align-transcript output/reviewed/result.json --alignment-model runtime/models/alignment/wav2vec2-base-960h --alignment-python runtime/venvs/stt-alignment/bin/python --output-dir output/aligned --json
+bun autoshow extract audio.wav --align-transcript output/reviewed/result.json --alignment-model runtime/models/alignment/wav2vec2-base-960h-onnx --output-dir output/aligned --json
 ```
 
 The command decodes each supplied segment from the first audio stream to mono PCM16 at 16 kHz, computes CTC log probabilities, and finds a monotonic alignment with blank transitions between repeated labels. Word ranges derive from occupied acoustic frames. Original spelling and punctuation remain display text, including standalone punctuation attached to an adjacent word; unsupported letters or numerals fail explicitly. Spell numbers as spoken in the supplied text when the vocabulary cannot represent digits. Do not omit unheard or unsupported words merely to obtain a successful alignment. Other languages require an appropriate locally installed character-vocabulary CTC model and their own validation; this setup establishes English support only. [CTC alignment method](https://github.com/pytorch/audio/blob/main/examples/tutorials/forced_alignment_tutorial.py).

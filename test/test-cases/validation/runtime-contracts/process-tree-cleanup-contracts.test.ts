@@ -132,7 +132,7 @@ describe('staged process-tree cleanup', () => {
     })
   })
 
-  test('production filesystem cleanup uses node fs APIs instead of shell subprocesses', async () => {
+  test('production filesystem cleanup uses filesystem APIs instead of shell subprocesses', async () => {
     const files = [
       'src/cli/commands/sources/metadata/metadata-targets/metadata-input-collection.ts',
       'src/cli/commands/audio/tts/tts-utils/audio-utils.ts',
@@ -147,6 +147,6 @@ describe('staged process-tree cleanup', () => {
     expect(source).not.toContain('test -d')
     expect(source).toContain("from 'node:fs/promises'")
     expect(source).toContain('await rm(')
-    expect(source).toContain('await stat(')
+    expect(source).toContain('await statPath(')
   })
 })

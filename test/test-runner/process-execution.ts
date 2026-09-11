@@ -1,7 +1,7 @@
+import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { RunnerStreamLabel, TestRunArtifacts } from '~/types'
-import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import { l } from '~/utils/app-logger/app-logger'
 import { consumeBoundedTextStream } from '~/utils/bounded-text-stream'
 import { childEnv } from '~/utils/child-env'
@@ -85,14 +85,24 @@ export const buildTestWorkerEnv = (
   preserveTestOutput: boolean,
   envOverrides: Record<string, string>
 ): Record<string, string> => {
-  const runnerControlKeys = Object.keys(process.env).filter(key => key.startsWith('AUTOSHOW_TEST_'))
+  const runnerControlKeys = ['AUTOSHOW_TEST_CLI_BUNDLE', 'AUTOSHOW_TEST_CONCURRENT', 'AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY', 'AUTOSHOW_TEST_OUTPUT_DIR']
+  const live = process.env['AUTOSHOW_TEST_CREDENTIAL_MODE'] === 'live'
+  let credentialKeys: unknown = []
+  try {
+    if (live) credentialKeys = JSON.parse(process.env['AUTOSHOW_TEST_CREDENTIAL_KEYS'] ?? '[]')
+  } catch {
+    throw new Error('AUTOSHOW_TEST_CREDENTIAL_KEYS must be a JSON array of registered credential names')
+  }
+  const knownKeys = new Set<string>(HOSTED_PROVIDER_ENV_CHECKS.map(provider => provider.envVar))
+  if (!Array.isArray(credentialKeys) || !credentialKeys.every(key => typeof key === 'string' && knownKeys.has(key))) throw new Error('AUTOSHOW_TEST_CREDENTIAL_KEYS must be a JSON array of registered credential names')
   const workerEnv = childEnv({
     allow: [
-      ...HOSTED_PROVIDER_ENV_CHECKS.map(provider => provider.envVar),
       ...runnerControlKeys,
+      ...credentialKeys,
       'AUTOSHOW_PROJECT_ROOT'
     ]
   })
+  workerEnv['AUTOSHOW_TEST_CREDENTIAL_MODE'] = live ? 'live' : 'fixture'
   workerEnv['FORCE_COLOR'] = '1'
   workerEnv['AUTOSHOW_TEST_ARTIFACTS_DIR'] = artifacts.runDir
   workerEnv['AUTOSHOW_TEST_COMMAND_LOG'] = artifacts.commandLogPath

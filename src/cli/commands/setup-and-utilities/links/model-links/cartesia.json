@@ -1,5 +1,8 @@
 {
   "Cartesia": {
+    "LLMSTXT": [
+      "https://docs.cartesia.ai/llms.txt"
+    ],
     "General": [
       "https://docs.cartesia.ai/get-started/overview.md",
       "https://docs.cartesia.ai/get-started/authenticate-your-client-applications.md",

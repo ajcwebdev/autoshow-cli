@@ -1,4 +1,4 @@
-import { dirname, isAbsolute, normalize, relative, resolve } from 'node:path'
+import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { stripAnsi } from '~/utils/terminal-colors'
 
 export const COMMAND_OUTPUT_PARSE_TAIL_CHARS = 64 * 1024
@@ -10,7 +10,7 @@ export const normalizeRepoPath = (path: string | null | undefined): string | nul
 
   const trimmed = path.trim().replace(/^file:\/\//, '')
   const abs = isAbsolute(trimmed) ? trimmed : resolve(process.cwd(), trimmed)
-  return normalize(relative(process.cwd(), abs)).replace(/\\/g, '/')
+  return (relative(process.cwd(), abs) || '.').replace(/\\/g, '/')
 }
 
 export const getFiniteNumber = (value: unknown): number | null =>

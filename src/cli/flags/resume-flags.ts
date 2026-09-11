@@ -12,7 +12,7 @@ import {
   sharedConcurrencyFlags,
   transcriptionFlags
 } from './shared-flags'
-import { formatProviderList, pickFlags, strListFlag, withHelpGroup } from './flag-utils'
+import { composeFlags, formatProviderList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import { dialogueTtsCommandOptionNames, genericTtsOptionFlags, ttsFlags } from './tts-flags'
 import { imageGenFlags, imageGenerationOptionNames, imageInputOptionNames, imageProviderSpecificOptionNames } from './image-flags'
 import { videoGenFlags, videoGenerationOptionNames, videoInputOptionNames } from './video-flags'
@@ -56,26 +56,30 @@ const resumeTranscriptionOptionNames = [
   'stt-preflight-concurrency'
 ] as const
 
-export const resumeFlags = {
-  ...withHelpGroup(resumeProviderSelectionFlags, 'provider-selection'),
-  ...withHelpGroup(priceFlag, 'pricing'),
-  ...withHelpGroup(pickFlags(batchFlags, ['batch-concurrency']), 'batch-processing'),
-  ...withHelpGroup(pickFlags(transcriptionFlags, resumeTranscriptionOptionNames), 'transcription'),
-  ...withHelpGroup({ ...ocrInputFlags, ...ocrTuningFlags, ...ocrProviderModeFlag, ...reasoningEffortFlag }, 'ocr-document'),
-  ...withHelpGroup(articleTuningFlags, 'article-extraction'),
-  ...withHelpGroup(promptFlag, 'writing'),
-  ...withHelpGroup({
+export const resumeFlags = composeFlags([
+  withHelpGroup(resumeProviderSelectionFlags, 'provider-selection'),
+  withHelpGroup(priceFlag, 'pricing'),
+  withHelpGroup(pickFlags(batchFlags, ['batch-concurrency']), 'batch-processing'),
+  withHelpGroup(pickFlags(transcriptionFlags, resumeTranscriptionOptionNames), 'transcription'),
+  withHelpGroup({ ...ocrInputFlags, ...ocrTuningFlags, ...ocrProviderModeFlag, ...reasoningEffortFlag }, 'ocr-document'),
+  withHelpGroup(articleTuningFlags, 'article-extraction'),
+  withHelpGroup(promptFlag, 'writing'),
+  withHelpGroup({
     ...genericTtsOptionFlags,
     ...pickFlags(ttsFlags, dialogueTtsCommandOptionNames)
   }, 'tts-options'),
-  ...withHelpGroup(pickFlags(imageGenFlags, [
+  withHelpGroup(pickFlags(imageGenFlags, [
     ...imageGenerationOptionNames,
     ...imageInputOptionNames,
     ...imageProviderSpecificOptionNames
   ]), 'image-options'),
-  ...withHelpGroup(pickFlags(videoGenFlags, [
+  withHelpGroup(pickFlags(videoGenFlags, [
     ...videoGenerationOptionNames,
     ...videoInputOptionNames
   ]), 'video-options'),
-  ...withHelpGroup(musicGenFlags, 'hosted-music')
-} as const satisfies CliFlagsDefinition
+  withHelpGroup(musicGenFlags, 'hosted-music')
+], withHelpGroup({
+  format: strFlag(`OCR run: ${ocrInputFlags.format.description}. Image run: ${imageGenFlags.format.description}`),
+  'aspect-ratio': strFlag(`Image run: ${imageGenFlags['aspect-ratio'].description}. Video run: ${videoGenFlags['aspect-ratio'].description}`),
+  duration: strFlag(`Video run: ${videoGenFlags.duration.description}. Music run: ${musicGenFlags.duration.description}`),
+}, 'run-specific'))

@@ -1,5 +1,8 @@
 {
   "Fal": {
+    "LLMSTXT": [
+      "https://fal.ai/docs/llms.txt"
+    ],
     "General": [
       "https://docs.fal.ai/model-apis/model-endpoints/queue",
       "https://docs.fal.ai/model-apis/model-endpoints/webhooks",

@@ -19,10 +19,10 @@ export const selectHostedLaneWaiter = (
   lane: Readonly<LaneState>,
   recoveryKeys: ReadonlyMap<string, unknown>
 ): number => {
-  if (lane.active >= lane.currentLimit || (lane.recovering && lane.recoveryProbeActive)) return -1
+  if (lane.active >= lane.currentLimit || (lane.recovery.recovering && lane.recovery.probeActive)) return -1
   return lane.waiters.findIndex(waiter =>
     waiter.classState.active < waiter.classState.configuredLimit
-    && (!lane.recovering || recoveryKeys.has(waiter.recoveryKey))
+    && (!lane.recovery.recovering || recoveryKeys.has(waiter.recoveryKey))
   )
 }
 
@@ -37,7 +37,7 @@ export const resolveHostedLaneRamp = (
   intervalMs: number
 ): HostedRampDecision => {
   if (lane.waiters.length === 0) return { kind: 'idle' }
-  if (lane.recovering || lane.currentLimit >= lane.configuredLimit) return { kind: 'unchanged' }
+  if (lane.recovery.recovering || lane.currentLimit >= lane.configuredLimit) return { kind: 'unchanged' }
   const atMs = lane.nextRampAtMs ?? now + intervalMs
   if (atMs > now) return { kind: 'wake', atMs }
   const limit = Math.min(lane.configuredLimit, lane.currentLimit + 1)
@@ -46,7 +46,7 @@ export const resolveHostedLaneRamp = (
     kind: 'ramp',
     limit,
     nextRampAtMs: reachedCap ? undefined : now + intervalMs,
-    rampingAfterRecovery: !reachedCap && lane.rampingAfterRecovery,
-    reason: lane.rampingAfterRecovery ? 'recovery-ramp' : 'startup-ramp'
+    rampingAfterRecovery: !reachedCap && lane.recovery.rampingAfterRecovery,
+    reason: lane.recovery.rampingAfterRecovery ? 'recovery-ramp' : 'startup-ramp'
   }
 }

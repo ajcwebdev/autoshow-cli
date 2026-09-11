@@ -29,6 +29,8 @@ export type EstimateVideoCostOptions = Partial<Pick<VideoRuntimeOptions,
 >> & {
   grokInputImageCount?: number | undefined
   grokInputVideoDurationSeconds?: number | undefined
+  falVideoReferenceVideoCount?: number | undefined
+  falInputVideoDurationSeconds?: number | undefined
   replicateVideoReferenceVideoCount?: number | undefined
   replicateInputVideoDurationSeconds?: number | undefined
 }

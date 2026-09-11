@@ -1,4 +1,5 @@
-import { mkdir, readdir, readFile } from 'node:fs/promises'
+import { readFileBytes } from '~/utils/bun-file-io'
+import { mkdir, readdir } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { join, resolve } from 'node:path'
 import * as v from 'valibot'
@@ -62,7 +63,7 @@ const inspectCandidate = async (
   const structuredRef = comic.audio.structuredScript
   if (!structuredRef || structuredRef.artifactSchemaVersion !== 5) throw UsageError('candidate does not retain structured-script v5')
   const structuredPath = join(sceneRunDir, structuredRef.path)
-  const bytes = new Uint8Array(await readFile(structuredPath))
+  const bytes = new Uint8Array(await readFileBytes(structuredPath))
   if (sha256Bytes(bytes) !== structuredRef.sha256) throw UsageError('candidate structured script checksum does not match canonical state')
   const structuredScript = v.parse(StructuredScriptDataSchema, JSON.parse(new TextDecoder().decode(bytes)))
   validateComicSourceIdentity(structuredScript.sourceIdentity)

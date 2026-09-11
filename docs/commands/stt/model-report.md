@@ -105,7 +105,7 @@ Implemented 2026-08-22 from the then-current speaker-aware combined report under
 
 ## Watches and deferrals
 
-deAPI whisper diarization is not a catalog tweak. deAPI STT is not implemented; curated links exist only. Upstream `WhisperLargeV3` has no diarization. `WhisperLargeV3Ct2` adds `diarize=true` and `ts_level: "word"` at +50% of the duration price (segment timestamps stay free). Adding that model is part of the deferred deAPI STT architecture decision in [ADR-010](../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), not this refresh.
+deAPI whisper diarization is not a catalog tweak. deAPI STT is not implemented. Upstream `WhisperLargeV3` has no diarization. `WhisperLargeV3Ct2` adds `diarize=true` and `ts_level: "word"` at +50% of the duration price (segment timestamps stay free). Adding that model is part of the deferred deAPI STT architecture decision in [ADR-010](../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), not this refresh.
 
 The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](../text/write/model-report.md)) excluded `gpt-4o-mini-transcribe-2025-12-15` because OpenAI STT remains deferred to a separate architecture decision, and excluded live/realtime/speech-to-speech transports (`gemini-3.1-flash-live-preview`, `gemini-3.5-live-translate-preview`, `gpt-realtime-2.1`, `gpt-realtime-2.1-mini`, `grok-voice-think-fast-2.0`).
 

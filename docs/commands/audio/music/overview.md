@@ -56,7 +56,7 @@ bun autoshow music --batch input/<dir>
 | Hosted generation     | `<prompt-or-text-file>` with `--provider` | Generates music with hosted ElevenLabs, MiniMax, or Gemini APIs and writes MP3 outputs |
 | Lyric-video rendering | `--audio <file>` or `--batch <dir>`       | Uses local whisperfile captions and ffmpeg rendering to write MP4/VTT/SRT outputs          |
 
-Do not mix hosted generation flags with lyric-video flags.
+Do not mix a hosted prompt or `--provider`, `--all-providers`, `--duration`, `--lyrics-file`, or `--instrumental` with local `--audio`, `--captions`, `--batch`, `--model`, or `--font`. `--audio` and `--captions` cannot be combined with `--batch`. `--output-dir` pins the hosted run, single lyric-video run, or lyric-video batch parent directory. `--price` reports the pinned path without rendering or creating the run directory. Use `bun autoshow music --help-topic overview` for the mode contract.
 
 ## Shared Music Options
 
@@ -173,7 +173,7 @@ With `--captions`, output names come from the caption file, not the audio file. 
 - **Multi-target hosted runs**: write `generated-music-<provider>-<sanitized-model>.mp3` per target and `manifest.json`.
 - **Lyric-video single runs**: write `<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`.
 - **Lyric-video batch runs**: write `<slug>/<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`.
-- **`--output-dir`**: pins an exact output directory; filenames remain provider-deterministic.
+- **`--output-dir`**: pins an exact hosted or local output directory, including the parent directory for a lyric-video batch; individual batch items keep their child directories.
 - **`manifest.json`**: records single-run metadata including `music` array, `cost`, and `timing`.
 
 ## Notes

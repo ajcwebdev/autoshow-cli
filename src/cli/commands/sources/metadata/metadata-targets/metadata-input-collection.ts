@@ -1,4 +1,5 @@
-import { readdir, stat } from 'node:fs/promises'
+import { statPath } from '~/utils/bun-file-io'
+import { readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import type { BatchListCacheEntry, FileFingerprint, MetadataTopLevelTargetInfo } from '~/types'
@@ -188,7 +189,7 @@ export const isLikelyInputListFile = async (filePath: string): Promise<boolean> 
 
 const isDirectoryPath = async (path: string): Promise<boolean> => {
   try {
-    return (await stat(path)).isDirectory()
+    return (await statPath(path)).isDirectory()
   } catch {
     return false
   }

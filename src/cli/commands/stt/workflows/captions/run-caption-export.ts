@@ -1,6 +1,7 @@
+import { statPath } from '~/utils/bun-file-io'
 import { embedCaptionTracks, probeCaptionMedia } from './embed-caption-tracks'
 import * as l from '~/utils/app-logger/app-logger'
-import { mkdir, stat, writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { getOutputRootAbsolute } from '../../../command-shared/output-root'
 import { resolveRunDirectory } from '../../../command-shared/run-dir'
@@ -14,7 +15,7 @@ export const runCaptionExport = async (input: string | undefined, flags: Record<
   const source = flags['transcript-result'] ?? input
   if (typeof source !== 'string' || !source.trim()) throw UsageError('--captions requires a saved result.json file or a directory containing result.json.')
   let path = resolve(source)
-  if ((await stat(path)).isDirectory()) path = join(path, 'result.json')
+  if ((await statPath(path)).isDirectory()) path = join(path, 'result.json')
   const { formats, mode, lineWidth, maxLines, maxCps, limits } = validateCaptionOptions(flags)
   const result = parseStoredTranscriptionResult(await Bun.file(path).json())
   if (!result) throw ValidationError('Invalid saved STT result; expected text, segments, and optional evidence.')
@@ -55,7 +56,7 @@ export const runCaptionExport = async (input: string | undefined, flags: Record<
   const output = destination ?? resolve(resolveRunDirectory(getOutputRootAbsolute(), 'captions', 'captions'))
   const serialized = formats.map(format => ({ format, content: formatEditorCaptions(format, captionCues) }))
   for (const name of ['captions.json', ...formats.map(format => `captions.${format}`)]) {
-    if (await stat(join(output, name)).catch(() => undefined)) throw ValidationError(`Caption export already exists at ${join(output, name)}; choose a new output directory.`)
+    if (await statPath(join(output, name)).catch(() => undefined)) throw ValidationError(`Caption export already exists at ${join(output, name)}; choose a new output directory.`)
   }
   await mkdir(output, { recursive: true })
   // Exclusive creation protects existing exports and provider artifacts.

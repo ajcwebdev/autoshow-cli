@@ -1,5 +1,8 @@
 {
   "Spider": {
+    "LLMSTXT": [
+      "https://spider.cloud/llms.txt"
+    ],
     "General": [
       "https://spider.cloud/docs/overview",
       "https://spider.cloud/api-keys",

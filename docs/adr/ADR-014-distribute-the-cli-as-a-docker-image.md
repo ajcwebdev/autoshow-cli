@@ -303,7 +303,7 @@ bun test test/test-cases/validation/cli/docker-image-contracts.test.ts
 - `docs/docker.md`
 - `test/test-cases/validation/cli/docker-image-contracts.test.ts`
 - `src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts`
-- `scripts/docker-bun-baseline.ts`
-- `scripts/bun-profile.ts`
+- `src/tools/docker-bun-baseline.ts`
+- `src/tools/bun-profile.ts`
 - [Runtime validation guide](../docker.md#runtime-validation)
 - [Profiling guide](../commands/testing.md#profiling)

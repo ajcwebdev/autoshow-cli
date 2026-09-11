@@ -1,3 +1,4 @@
+import { helpText } from './shared'
 import { expect, test } from 'bun:test'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { commandAcceptsGlobalFlag, globalFlagsForCommand } from '~/cli/native/global-flag-support'
@@ -59,18 +60,18 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
     const llmProviders = Object.keys(WRITE_LLM_PROVIDER_TARGETS).join('|')
     const videoProviders = Object.keys(STANDALONE_VIDEO_PROVIDER_TARGETS).join('|')
 
-    expect(extract.stdout).toContain('whisperfile')
-    expect(extract.stdout).toContain(urlBackends)
-    expect(write.stdout).toContain(llmProviders)
-    expect(write.stdout).toContain('(default: cheapest hosted)')
-    expect(write.stdout).not.toContain('--stt')
-    expect(config.stdout).toContain(llmProviders)
-    expect(config.stdout).toContain('(default: cheapest hosted)')
-    expect(config.stdout).toMatch(/--stt[^\n]*whisperfile/)
-    expect(resume.stdout).toContain(`URL: ${urlBackends}`)
-    expect(resume.stdout).toContain(`video: ${videoProviders}`)
-    expect(resume.stdout).toContain('(default: cheapest hosted)')
-    expect(tts.stdout).toContain('repeatable (default: cheapest hosted)')
+    expect(helpText(extract.stdout)).toContain('whisperfile')
+    expect(helpText(extract.stdout)).toContain(urlBackends)
+    expect(helpText(write.stdout)).toContain(llmProviders)
+    expect(helpText(write.stdout)).toContain('(default: cheapest hosted)')
+    expect(helpText(write.stdout)).not.toContain('--stt')
+    expect(helpText(config.stdout)).toContain(llmProviders)
+    expect(helpText(config.stdout)).toContain('(default: cheapest hosted)')
+    expect(helpText(config.stdout)).toMatch(/--stt[^\n]*whisperfile/)
+    expect(helpText(resume.stdout)).toContain(`URL: ${urlBackends}`)
+    expect(helpText(resume.stdout)).toContain(`video: ${videoProviders}`)
+    expect(helpText(resume.stdout)).toContain('(default: cheapest hosted)')
+    expect(helpText(tts.stdout)).toContain('repeatable (default: cheapest hosted)')
   })
 
   const derivedHelpLists = [

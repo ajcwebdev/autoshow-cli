@@ -1,13 +1,25 @@
+import { withProcessLock } from '~/utils/process-lock'
 import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { logSetupToolStatus } from '~/cli/commands/setup-and-utilities/setup/setup-logging'
 import type { DoctorCheck, ResolvedDefuddleCli, RunOptions, RunResult } from '~/types'
 import { InfraError } from '~/utils/error-handler'
-import { getConfiguredBinDir, PROJECT_ROOT } from '~/utils/runtime-paths'
+import { getConfiguredBinDir, PROJECT_ROOT, IMMUTABLE_ASSET_ROOT } from '~/utils/runtime-paths'
 import { pathExists } from '~/utils/filesystem'
 import { childEnv } from '~/utils/child-env'
 
-const DEFUDDLE_CLI_VERSION = '0.17.0'
+const DEFUDDLE_CLI_VERSION = '0.19.3'
+
+const frozenFiles = ['package.json', 'bun.lock', 'bunfig.toml'] as const
+const frozenDir = join(IMMUTABLE_ASSET_ROOT, 'config/defuddle')
+const hasFrozenInstall = async (): Promise<boolean> => {
+  for (const name of frozenFiles) {
+    const installed = Bun.file(join(defuddleRuntimeDir, name))
+    if (!await installed.exists() || await installed.text() !== await Bun.file(join(frozenDir, name)).text()) return false
+  }
+  const marker = Bun.file(join(defuddleRuntimeDir, '.frozen-install'))
+  return await marker.exists() && (await marker.text()).trim() === DEFUDDLE_CLI_VERSION
+}
 
 const RUNTIME = join(PROJECT_ROOT, 'runtime')
 let defuddleCliSetupPromise: Promise<void> | undefined
@@ -21,8 +33,9 @@ export const defuddleRuntimeDir = join(RUNTIME, 'defuddle')
 const defuddleRuntimeBinaryPath = join(
   defuddleRuntimeDir,
   'node_modules',
-  '.bin',
-  process.platform === 'win32' ? 'defuddle.cmd' : 'defuddle'
+  'defuddle',
+  'dist',
+  'cli.js'
 )
 
 const readStream = async (stream: ReadableStream<Uint8Array> | null | undefined): Promise<string> =>
@@ -98,7 +111,8 @@ export const runDefuddleCliCapture = async (
   args: string[],
   options: RunOptions = {}
 ): Promise<RunResult> =>
-  await runCapture(binaryPath, args, options)
+  await runCapture(binaryPath === defuddleRuntimeBinaryPath ? (Bun.isStandaloneExecutable ? 'bun' : process.execPath) : binaryPath,
+    binaryPath === defuddleRuntimeBinaryPath ? ['--no-env-file', binaryPath, ...args] : args, options)
 
 const verifyDefuddleCli = async (binaryPath: string): Promise<{ ok: boolean, detail: string }> => {
   let result: RunResult
@@ -124,7 +138,7 @@ const verifyDefuddleCli = async (binaryPath: string): Promise<{ ok: boolean, det
 }
 
 const isPinnedDefuddleCli = (verified: { ok: boolean, detail: string }): boolean =>
-  verified.ok && verified.detail.includes(DEFUDDLE_CLI_VERSION)
+  verified.ok && verified.detail.trim() === DEFUDDLE_CLI_VERSION
 
 const DEFUDDLE_SETUP_NEXT_STEP = 'bun autoshow setup --step defuddle'
 
@@ -141,7 +155,7 @@ export const readDefuddleCliReadiness = async (): Promise<DoctorCheck> => {
   }
 
   const verified = await verifyDefuddleCli(resolved.path)
-  if (verified.ok) {
+  if (verified.ok && (resolved.source !== 'runtime' || (isPinnedDefuddleCli(verified) && await hasFrozenInstall()))) {
     return {
       label: 'defuddle',
       status: 'OK',
@@ -150,10 +164,12 @@ export const readDefuddleCliReadiness = async (): Promise<DoctorCheck> => {
     }
   }
 
-  const detail = `${resolved.path} failed --version: ${verified.detail}`
+  const detail = verified.ok
+    ? `${resolved.path} requires the frozen defuddle@${DEFUDDLE_CLI_VERSION} installation`
+    : `${resolved.path} failed --version: ${verified.detail}`
   return {
     label: 'defuddle',
-    status: detail.toLowerCase().includes('failed') ? 'WARN' : 'MISSING',
+    status: 'WARN',
     detail,
     severity: 'warn',
     nextStep: DEFUDDLE_SETUP_NEXT_STEP
@@ -162,18 +178,15 @@ export const readDefuddleCliReadiness = async (): Promise<DoctorCheck> => {
 
 const writeRuntimePackageJson = async (): Promise<void> => {
   await mkdir(defuddleRuntimeDir, { recursive: true })
-  await Bun.write(join(defuddleRuntimeDir, 'package.json'), `${JSON.stringify({
-    private: true,
-    dependencies: {
-      defuddle: DEFUDDLE_CLI_VERSION
-    }
-  }, null, 2)}\n`)
+  for (const name of frozenFiles) {
+    await Bun.write(join(defuddleRuntimeDir, name), await Bun.file(join(frozenDir, name)).text())
+  }
 }
 
 const setupDefuddleCliUnlocked = async (): Promise<void> => {
   if (await pathExists(defuddleRuntimeBinaryPath)) {
     const verified = await verifyDefuddleCli(defuddleRuntimeBinaryPath)
-    if (isPinnedDefuddleCli(verified)) {
+    if (isPinnedDefuddleCli(verified) && await hasFrozenInstall()) {
       logSetupToolStatus({
         tool: 'defuddle',
         status: 'ready',
@@ -189,10 +202,10 @@ const setupDefuddleCliUnlocked = async (): Promise<void> => {
     detail: `defuddle@${DEFUDDLE_CLI_VERSION}`
   })
 
-  await rm(defuddleRuntimeDir, { recursive: true, force: true })
+  await rm(join(defuddleRuntimeDir, '.frozen-install'), { force: true })
   await writeRuntimePackageJson()
 
-  const install = await runCapture('bun', ['install'], {
+  const install = await runCapture(Bun.isStandaloneExecutable ? 'bun' : process.execPath, ['--no-env-file', 'install', '--frozen-lockfile', '--ignore-scripts'], {
     cwd: defuddleRuntimeDir,
     allowFailure: true
   })
@@ -205,6 +218,7 @@ const setupDefuddleCliUnlocked = async (): Promise<void> => {
     throw InfraError(`Installed Defuddle CLI failed verification: ${verified.detail}`, { stage: 'extract:defuddle' })
   }
 
+  await Bun.write(join(defuddleRuntimeDir, '.frozen-install'), `${DEFUDDLE_CLI_VERSION}\n`)
   logSetupToolStatus({
     tool: 'defuddle',
     status: 'ready',
@@ -214,7 +228,7 @@ const setupDefuddleCliUnlocked = async (): Promise<void> => {
 
 export const setupDefuddleCli = async (): Promise<void> => {
   if (!defuddleCliSetupPromise) {
-    defuddleCliSetupPromise = setupDefuddleCliUnlocked().finally(() => {
+    defuddleCliSetupPromise = withProcessLock('setup-defuddle-runtime', setupDefuddleCliUnlocked).finally(() => {
       defuddleCliSetupPromise = undefined
     })
   }
@@ -229,7 +243,7 @@ export const ensureDefuddleCliSetup = async (): Promise<string> => {
       return resolved.path
     }
 
-    if (resolved.source === 'runtime' && isPinnedDefuddleCli(verified)) {
+    if (resolved.source === 'runtime' && isPinnedDefuddleCli(verified) && await hasFrozenInstall()) {
       return resolved.path
     }
 

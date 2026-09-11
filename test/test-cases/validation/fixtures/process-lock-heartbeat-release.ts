@@ -1,5 +1,5 @@
 import { mock } from 'bun:test'
-import * as fsPromises from 'node:fs/promises'
+import * as fileIO from '~/utils/bun-file-io'
 import { join } from 'node:path'
 
 const lockRoot = process.env['LOCK_ROOT']
@@ -9,16 +9,16 @@ if (!lockRoot) {
 
 const lockName = 'heartbeat-release'
 const ownerTempPrefix = `${join(lockRoot, lockName, 'owner.json')}.`
-const actualWriteFile = fsPromises.writeFile
+const actualWriteFile = fileIO.writeFileExact
 let ownerTempWriteCount = 0
 let resolveHeartbeatStarted: (() => void) | undefined
 const heartbeatStarted = new Promise<void>((resolve) => {
   resolveHeartbeatStarted = resolve
 })
 
-mock.module('node:fs/promises', () => ({
-  ...fsPromises,
-  writeFile: async (...args: Parameters<typeof actualWriteFile>): Promise<void> => {
+mock.module('~/utils/bun-file-io', () => ({
+  ...fileIO,
+  writeFileExact: async (...args: Parameters<typeof actualWriteFile>): Promise<void> => {
     const [path] = args
     if (typeof path === 'string' && path.startsWith(ownerTempPrefix) && path.endsWith('.tmp')) {
       ownerTempWriteCount += 1

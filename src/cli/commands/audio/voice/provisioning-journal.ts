@@ -1,5 +1,6 @@
+import { readUtf8FileExact } from '~/utils/bun-file-io'
 import { existsSync } from 'node:fs'
-import { readdir, readFile } from 'node:fs/promises'
+import { readdir } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import type {
   VoiceIssuedResource,
@@ -31,7 +32,7 @@ const loadAttemptPath = async (path: string): Promise<VoiceProvisioningAttempt> 
   if (!existsSync(path)) throw UsageError('Voice provisioning attempt journal was not found.')
   let attempt: VoiceProvisioningAttempt
   try {
-    attempt = JSON.parse(await readFile(path, 'utf8')) as VoiceProvisioningAttempt
+    attempt = JSON.parse(await readUtf8FileExact(path)) as VoiceProvisioningAttempt
   } catch (error) {
     throw ValidationError('Voice provisioning attempt journal contains invalid JSON.', { stage: 'voice:provisioning', ...(error instanceof Error ? { cause: error } : {}) })
   }

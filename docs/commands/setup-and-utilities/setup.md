@@ -4,6 +4,8 @@
 
 Install local runtimes and prerequisite tools. Use `--models` to pre-download local STT models without running inference.
 
+`--network-check` cannot be combined with `--models`, `--doctor`, `--strict`, `--step`, or `--force-redownload`. Its `--probe-url`, `--probe-client`, `--delay-seconds`, and `--port` controls require network-check mode. `--strict` requires `--doctor`. `--models` selects model download mode, `--doctor` selects diagnostics, and other invocations use installation mode; help groups these controls separately.
+
 ## Outline
 
 - [Usage](#usage)

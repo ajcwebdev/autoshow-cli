@@ -21,6 +21,7 @@ export const GLOBAL_FLAG_DEFINITIONS = {
     negatable: false
   },
   'config-path': strFlag(colorizeHelpDescription('Path to config file (default: config/autoshow.json in project root)')),
+  'help-topic': strFlag('Show focused help and exit; use --help to list available topics'),
   'output-root': strFlag(colorizeHelpDescription('Base output directory under which per-step subdirectories are created (default: ./output)')),
   'output-dir': strFlag(colorizeHelpDescription('Pin the run directory instead of a timestamped output/<timestamp>_<slug> dir')),
   'characters-root': strFlag(colorizeHelpDescription('Directory of comic character reference images and characters-reference.json (default: input/characters)')),

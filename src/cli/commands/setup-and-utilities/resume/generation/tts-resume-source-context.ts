@@ -1,4 +1,5 @@
-import { lstat, readFile, realpath } from 'node:fs/promises'
+import { readFileBytes } from '~/utils/bun-file-io'
+import { lstat, realpath } from 'node:fs/promises'
 import { isAbsolute, join, resolve } from 'node:path'
 import type {
   CanonicalAudioProviderProjection,
@@ -81,7 +82,7 @@ const readJsonRecord = async (
   expectedSha256?: string | undefined
 ): Promise<Record<string, unknown>> => {
   const path = await assertRealPathWithoutSymlinks(canonicalArtifactRoot, relativePath, 'file', label)
-  const bytes = await readFile(path)
+  const bytes = await readFileBytes(path)
   if (expectedSha256 !== undefined && sha256Bytes(bytes) !== expectedSha256) {
     throw UsageError(`Stored TTS ${label} checksum does not match its canonical reference. Rebuild this output before resuming it.`)
   }

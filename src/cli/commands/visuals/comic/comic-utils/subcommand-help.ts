@@ -1,3 +1,5 @@
+import { QA_ONLY_MODE_NOTES } from './comic-qa-only-contract'
+import { REFERENCE_LOCATION_OPTIONS_NOTE } from '~/cli/flags/reference-option-contract'
 import {
   draftScenesFlags,
   draftTreatmentFlags,
@@ -105,6 +107,8 @@ export const generateImagesCommandDefinition = defineCliCommand({
   parameters: [SCRIPT_PATH_PARAMETER],
   flags: generateImagesFlags,
   help: {
+    beforeFlags: QA_ONLY_MODE_NOTES,
+    topics: { audit: { description: 'QA-only constraints and judge options', groups: ['comic-qa'], notes: QA_ONLY_MODE_NOTES } },
     examples: [
       [`bun autoshow comic ${GENERATE_IMAGES_COMMAND} 05-01`, 'Generate final panel images for a scene'],
       [`bun autoshow comic ${GENERATE_IMAGES_COMMAND} 05-01 --target sketches --panels 1-4`, 'Generate review sketches for panels 1 through 4'],
@@ -172,6 +176,7 @@ export const referenceSketchCommandDefinition = defineCliCommand({
   description: REFERENCE_SKETCH_DESCRIPTION,
   flags: referenceSketchFlags,
   help: {
+    beforeFlags: [REFERENCE_LOCATION_OPTIONS_NOTE, '--qa-only is not supported here. Use comic generate-images --qa-only to audit existing panels.'],
     examples: [
       [`bun autoshow comic ${REFERENCE_SKETCH_COMMAND} --character hero`, 'Generate a character reference sheet'],
       [`bun autoshow comic ${REFERENCE_SKETCH_COMMAND} --location cargo-bay`, 'Generate a canonical location reference'],
