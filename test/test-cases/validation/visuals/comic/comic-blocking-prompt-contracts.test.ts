@@ -4,24 +4,24 @@ import { mkdir, readdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { configureCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import { configureOutputRoot } from '~/cli/commands/command-shared/output-root'
+import { rebindBlockingPlan } from '~/cli/commands/visuals/comic/comic-commands/draft-scenes/blocking-plan-rebind'
 import { draftScenesCommand, getDraftSceneStages } from '~/cli/commands/visuals/comic/comic-commands/draft-scenes/draft-scenes-command'
 import { generateBlockingPlan } from '~/cli/commands/visuals/comic/comic-commands/draft-scenes/generate-blocking-plan'
-import { generateStructuredScript } from '~/cli/commands/visuals/comic/comic-utils/structured-script-utils/generator'
-import { rebindBlockingPlan } from '~/cli/commands/visuals/comic/comic-commands/draft-scenes/blocking-plan-rebind'
 import { generateSceneJson, SCENE_DRAFT_RETRY_HEADER } from '~/cli/commands/visuals/comic/comic-commands/draft-scenes/generate-scene-json'
-import { generatePanelImages } from '~/cli/commands/visuals/comic/comic-commands/generate-images/generate-panel-images'
 import { BLOCKING_LEDGER_AUTHORITY_SENTENCE, buildComicPagePrompt, buildComicPagePromptData, SHOT_DIVERSITY_SENTENCE } from '~/cli/commands/visuals/comic/comic-commands/generate-images/comic-page-utils'
+import { generatePanelImages } from '~/cli/commands/visuals/comic/comic-commands/generate-images/generate-panel-images'
 import { panelPromptsCommand } from '~/cli/commands/visuals/comic/comic-commands/panel-prompts/panel-prompts-command'
-import { getBlockingDirectory, getBlockingPanelLayoutGuidePath, getBlockingPlanPath, getBlockingPromptPath } from '~/cli/commands/visuals/comic/comic-utils/blocking-plan-paths'
 import { OFF_FRAME_PINNED_SENTENCE } from '~/cli/commands/visuals/comic/comic-utils/blocking-plan-compile'
+import { getBlockingDirectory, getBlockingPanelLayoutGuidePath, getBlockingPlanPath, getBlockingPromptPath } from '~/cli/commands/visuals/comic/comic-utils/blocking-plan-paths'
 import { BLOCKING_DRAFTER_PINNED_SENTENCE, SCENE_PLAN_PINNED_SENTENCE } from '~/cli/commands/visuals/comic/comic-utils/blocking-plan-prompt'
 import { coerceAndValidateDraftScenes } from '~/cli/commands/visuals/comic/comic-utils/cli-args'
 import { estimateDraftScenesPrice, SCENE_DRAFT_OUTPUT_UNITS_FIXED, SCENE_DRAFT_OUTPUT_UNITS_PER_PANEL } from '~/cli/commands/visuals/comic/comic-utils/comic-price-llm-estimates'
 import { validatePriceReferenceGroup } from '~/cli/commands/visuals/comic/comic-utils/final-image-price-inventory'
 import { generateJsonPrompt, SCENE_PLAN_SECTION_MARKER } from '~/cli/commands/visuals/comic/comic-utils/json-prompt-utils'
 import { extractPanelBundleData, getPromptBundleFilename } from '~/cli/commands/visuals/comic/comic-utils/panel-prompt-utils'
-import { getDraftPromptPath, getPanelPromptsDirectory, getPreviousStructuredScriptPath, getSceneJsonPath, getStructuredScriptPath } from '~/cli/commands/visuals/comic/comic-utils/project-paths'
+import { getDraftPromptPath, getInvalidSceneJsonPath, getPanelPromptsDirectory, getPreviousStructuredScriptPath, getSceneJsonPath, getStructuredScriptPath } from '~/cli/commands/visuals/comic/comic-utils/project-paths'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
+import { generateStructuredScript } from '~/cli/commands/visuals/comic/comic-utils/structured-script-utils/generator'
 import { draftScenesCommandDefinition } from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
@@ -216,6 +216,40 @@ describe('scene drafting against a blocking plan', () => {
     })
     expect(attempts).toBe(2)
     expect(existsSync(getSceneJsonPath(slug))).toBe(false)
+  })
+
+  test('retains the validation error when invalid-candidate evidence cannot be written', async () => {
+    const { slug, workspace } = await prepareWorkspace()
+    await importFixturePlan(slug, workspace)
+    await captureLogEvents(async () => { await generateJsonPrompt(slug) })
+    await mkdir(getInvalidSceneJsonPath(slug), { recursive: true })
+    let attempts = 0
+    const { events } = await captureLogEvents(async () => {
+      await expect(generateSceneJson(slug, {
+        model: 'gpt-5.6-sol',
+        requestScene: async () => { attempts++; return { text: JSON.stringify(sceneWithout('bishop')), inputTokens: 100, outputTokens: 200 } },
+      })).rejects.toThrow('contradicts the blocking plan after 2 attempts')
+    })
+    expect(attempts).toBe(2)
+    expect(events.some(event => event.message.startsWith('Could not save invalid scene draft candidate:'))).toBe(true)
+    expect(existsSync(getSceneJsonPath(slug))).toBe(false)
+  })
+
+  test('does not retry schema failures even when a blocking plan is present', async () => {
+    const { slug, workspace } = await prepareWorkspace()
+    await importFixturePlan(slug, workspace)
+    await captureLogEvents(async () => { await generateJsonPrompt(slug) })
+    let attempts = 0
+    await captureLogEvents(async () => {
+      await expect(generateSceneJson(slug, {
+        model: 'gpt-5.6-sol',
+        requestScene: async () => { attempts++; return { text: '{}' } },
+      })).rejects.toThrow()
+    })
+    expect(attempts).toBe(1)
+    const evidence = JSON.parse(await Bun.file(getInvalidSceneJsonPath(slug)).text())
+    expect(evidence.output).toEqual({})
+    expect(evidence.validationError).toBeString()
   })
 
   test('a plan-free run makes exactly one call, adds no plan section, and stamps no plan hash', async () => {

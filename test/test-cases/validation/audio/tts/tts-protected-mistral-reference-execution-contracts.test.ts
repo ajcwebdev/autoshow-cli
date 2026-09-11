@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CanonicalAudioProviderProjection, ProtectedVoiceAssetStore, TtsTarget } from '~/types'
 import { createProtectedVoiceAssetStore } from '~/cli/commands/audio/voice/voice-assets/protected-voice-asset-store'
@@ -188,6 +188,31 @@ describe('standalone Mistral protected request references', () => {
 
     await runTtsDirectoryBatch(inputDir, options, targets, undefined)
     expect(ingestCalls).toBe(0)
+  })
+
+  test('directory batch price mode cannot ingest references, dispatch providers, or create a run directory', async () => {
+    const root = await makeRoot()
+    const inputDir = join(root, 'inputs')
+    await mkdir(inputDir)
+    await Bun.write(join(inputDir, 'first.txt'), 'Price this input without creating execution artifacts.')
+    let ingestCalls = 0
+    let dispatchCalls = 0
+    const { options, targets } = await plannedExecution(
+      join(root, 'reference.wav'),
+      admissionStore(() => { ingestCalls++; throw new Error('price mode must not ingest') })
+    )
+    options.price = true
+    configurePinnedRunDir(join(root, 'run'))
+    const guardedTargets = targets.map((target): TtsTarget => ({
+      ...target,
+      run: async () => { dispatchCalls++; throw new Error('price mode must not dispatch') }
+    }))
+
+    await runTtsDirectoryBatch(inputDir, options, guardedTargets, undefined)
+
+    expect(ingestCalls).toBe(0)
+    expect(dispatchCalls).toBe(0)
+    expect(await readdir(root)).not.toContain('run')
   })
 
   test('an over-budget input is rejected before execution ingestion', async () => {

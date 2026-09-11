@@ -1,52 +1,39 @@
-import type { DirectoryEntry } from '~/types'
 import { existsSync } from 'node:fs'
 import { mkdir, readdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { err, comicLog } from '../../comic-utils/comic-logger'
-import { getPanelPromptsDirectory, getPanelsDirectory, getSceneOutputDirectory } from '../../comic-utils/project-paths'
-import { getBlockingPanelLayoutGuidePath, getBlockingPlanPathForWorkspace } from '../../comic-utils/blocking-plan-paths'
-import { describeBlockingLayoutGuideMarkers, shouldUseBlockingLayoutGuide } from '../../comic-utils/blocking-layout-guide'
+import type {
+  ComicImageGenerationDependencies, DirectoryEntry, GeneratePanelImagesOptions,
+  ImagePromptVariation, PageQaEntry,
+  PanelRenderContext,
+  PanelRenderResult
+} from '~/types'
+import { ValidationError } from '~/utils/error-handler'
 import { sha256Bytes } from '~/utils/value-helpers'
 import { createImage } from '../../comic-image-services/comic-image-targets'
 import {
-  createImageRunStats,
-  updateImageRunStatsWithCostFallback,
+  createImageRunStats
 } from '../../comic-image-services/image-costs'
 import { writeGeneratedImage } from '../../comic-image-services/image-writer'
+import { shouldUseBlockingLayoutGuide } from '../../comic-utils/blocking-layout-guide'
+import { getBlockingPanelLayoutGuidePath, getBlockingPlanPathForWorkspace } from '../../comic-utils/blocking-plan-paths'
+import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
+import { err } from '../../comic-utils/comic-logger'
 import {
   extractPanelBundleData,
   getPanelNumberFromName,
   getPromptBundleFilename,
-  normalizePromptBundle,
-  resolvePrimaryCharacterReferences,
   resolveReferenceImages,
-  resolveScenePanelDirectories,
+  resolveScenePanelDirectories
 } from '../../comic-utils/panel-prompt-utils'
-import { buildComicPagePrompt, selectComicPanels } from './comic-page-utils'
-import { getPanelComicImagePath, loadPromptsConfig } from '../../comic-utils/scene-utils'
-import {
-  applyImagePromptVariation,
-  getImagePromptVariationLabel,
-} from './prompt-variations'
-import { InfraError, ValidationError } from '~/utils/error-handler'
-import type {
-  ComicImageGenerationDependencies,
-  GeneratePanelImagesOptions,
-  ImagePromptVariation,
-  GenerateWithQaRepairResult,
-  PageQaEntry,
-  PanelRenderContext,
-  PanelRenderResult,
-} from '~/types'
-import { judgeComicPage } from './comic-page-qa'
-import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
+import { getPanelPromptsDirectory, getPanelsDirectory, getSceneOutputDirectory } from '../../comic-utils/project-paths'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
-import { failedQaRepairEvidenceFromError, generateWithQaRepair } from './panel-qa-pipeline'
-import { captureBloopers } from '../../comic-utils/blooper-ledger'
+import { loadPromptsConfig } from '../../comic-utils/scene-utils'
 import { runComicImageWorkItems } from './comic-image-work-items'
-
-/** Episode label for the blooper tree: the leading numeric group of the scene slug, else the slug itself. */
-export const resolveEpisodeLabel = (sceneSlug: string): string => /^(\d+)-/u.exec(sceneSlug)?.[1] ?? sceneSlug
+import { judgeComicPage } from './comic-page-qa'
+import { selectComicPanels } from './comic-page-utils'
+import { preparePanelPrompt, preparePanelRepairRequest } from './comic-panel-request-preparation'
+import { presentPanelRepairResult, recordPanelRepairResult } from './comic-panel-result-presentation'
+import { failedQaRepairEvidenceFromError, generateWithQaRepair } from './panel-qa-pipeline'
 
 const renderSinglePanel = async (
   panelEntry: DirectoryEntry,
@@ -54,144 +41,26 @@ const renderSinglePanel = async (
 ): Promise<PanelRenderResult> => {
   const resultStats = createImageRunStats()
   const qaEntries: Array<{ directory: string; entry: PageQaEntry }> = []
-  const { sceneSlug, sceneDirectory, options, variations, useVariationOutputPaths, useModelSpecificFilenames, prompts, requestImage, writeImage, judge, requestRepairComparison, qaEnabled, judgeModel, maxRepairs, nextHostedIndex } = ctx
-  const recordRepairResult = (repairResult: GenerateWithQaRepairResult, outputDirectory: string): void => {
-    resultStats.imagesGenerated += repairResult.imagesGenerated
-    resultStats.totalDurationMs += repairResult.totalDurationMs
-    resultStats.totalInputTokens += repairResult.totalInputTokens
-    resultStats.totalOutputTokens += repairResult.totalOutputTokens
-    resultStats.totalInputImageTokens += repairResult.imageInputUnits
-    resultStats.totalInputTextTokens += repairResult.textInputUnits
-    resultStats.totalOutputImageTokens += repairResult.imageOutputUnits
-    resultStats.totalCost += repairResult.totalCostUsd
-    for (const costEntry of repairResult.costEntries) updateImageRunStatsWithCostFallback(costEntry.model, resultStats, options.quality, options.size)
-    if (repairResult.qaEntry) qaEntries.push({ directory: outputDirectory, entry: repairResult.qaEntry })
-  }
+  const { sceneSlug, sceneDirectory, options, variations } = ctx
+
 
   try {
-    const panelNumber = getPanelNumberFromName(panelEntry.name)!
-    const panelDirectory = join(sceneDirectory, panelEntry.name)
-    const panelEntries = await readdir(panelDirectory, { withFileTypes: true })
-    const promptFilename = getPromptBundleFilename(panelDirectory, panelEntries)
-    const promptContent = await Bun.file(join(panelDirectory, promptFilename)).text()
-
-    if (!promptContent.trim()) {
-      throw ValidationError(`Prompt bundle "${promptFilename}" is empty`, { stage: 'comic:generate-images' })
-    }
-
-    const normalizedPrompt = normalizePromptBundle(promptContent)
-    if (!normalizedPrompt) {
-      throw ValidationError(`Prompt bundle "${promptFilename}" became empty after normalization`, { stage: 'comic:generate-images' })
-    }
-
-    const bundleData = extractPanelBundleData(promptContent)
-    const primaryCharacterReferenceState = resolvePrimaryCharacterReferences(
-      panelDirectory,
-      panelEntries,
-      bundleData,
-    )
-    if (primaryCharacterReferenceState.missingPrimaryCharacterRefs.length > 0) {
-      throw InfraError(
-        `Missing character reference images in ${panelEntry.name}: ` +
-        `${primaryCharacterReferenceState.missingPrimaryCharacterRefs.join(', ')}. ` +
-        `Re-run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" ` +
-        `after generating any missing character sketches.`,
-        { stage: 'comic:generate-images' }
-      )
-    }
-
+    const prepared = await preparePanelPrompt(panelEntry, sceneDirectory)
     await mkdir(getPanelsDirectory(sceneSlug), { recursive: true })
 
     for (const variation of variations) {
       for (const model of options.models) {
-        const outputPath = getPanelComicImagePath(
-          sceneSlug,
-          panelNumber,
-          useVariationOutputPaths ? model : useModelSpecificFilenames ? model : undefined,
-          useVariationOutputPaths ? variation : undefined,
-          options.runId
-        )
-        const useBlockingLayoutGuide = options.blockingLayoutGuide === true && shouldUseBlockingLayoutGuide(bundleData.blocking)
-        const reservedSlots = (qaEnabled && maxRepairs > 0 ? 1 : 0) + (useBlockingLayoutGuide ? 1 : 0)
-        const resolvedReferences = resolveReferenceImages(panelDirectory, panelEntries, bundleData, model, { reserveSlots: reservedSlots })
-        const blockingLayoutPath = useBlockingLayoutGuide ? getBlockingPanelLayoutGuidePath(sceneSlug, panelNumber) : undefined
-        const referenceImages = blockingLayoutPath ? [...resolvedReferences.all, blockingLayoutPath] : resolvedReferences.all
-        const blockingLayoutReference = blockingLayoutPath && bundleData.blocking
-          ? { markerLegend: describeBlockingLayoutGuideMarkers(bundleData.blocking) }
-          : undefined
-        const contractPrompt = buildComicPagePrompt(bundleData, resolvedReferences.characterReferences ?? [], resolvedReferences.locationReferences ?? [], resolvedReferences.designReferences ?? [], blockingLayoutReference)
-        const promptForVariation = prompts
-          ? applyImagePromptVariation(contractPrompt, variation, prompts)
-          : contractPrompt
+        const request = await preparePanelRepairRequest(prepared, ctx, variation, model)
+        const repairResult = await generateWithQaRepair(request)
 
-        const canonicalExists = await Bun.file(outputPath).exists()
-        const outputExists = !options.force && canonicalExists
+        recordPanelRepairResult(resultStats, qaEntries, options, repairResult, dirname(request.outputPath))
 
-        const repairResult = await generateWithQaRepair({
-          kind: 'panel',
-          itemNumber: panelNumber,
-          outputPath,
-          canonicalExists,
-          outputExists,
-          force: Boolean(options.force),
-          model,
-          promptForVariation,
-          referenceImages,
-          bundleData,
-          resolvedReferences,
-          sceneSlug,
-          options,
-          requestImage,
-          writeImage,
-          judge,
-          requestRepairComparison,
-          qaEnabled,
-          judgeModel,
-          maxRepairs,
-          ...(options.blockingHardKeys?.length ? { blockingHardKeys: options.blockingHardKeys } : {}),
-          nextHostedIndex,
-        })
-
-        recordRepairResult(repairResult, dirname(outputPath))
-
-        if (repairResult.status === 'skipped') {
-          resultStats.imagesSkipped++
-          comicLog.output('skipped', 'panel', [
-            `id=panel-${String(panelNumber).padStart(2, '0')}`,
-            `panel=${panelNumber}`,
-            `model=${model}`,
-            useVariationOutputPaths ? `variation=${getImagePromptVariationLabel(variation)}` : undefined,
-            `refs=${referenceImages.length}`,
-            `path=${outputPath}`,
-          ])
-          continue
-        }
-
-        if (options.bloopers) {
-          await captureBloopers({
-            sceneSlug,
-            episode: resolveEpisodeLabel(sceneSlug),
-            runId: options.runId,
-            panelNumber,
-            promotedPath: outputPath,
-            attemptsDirectory: join(dirname(outputPath), 'attempts', `panel-${String(panelNumber).padStart(2, '0')}`),
-            imageModel: model,
-          })
-        }
-
-        comicLog.output('generated', 'panel', [
-          `id=panel-${String(panelNumber).padStart(2, '0')}`,
-          `panel=${panelNumber}`,
-          `model=${model}`,
-          useVariationOutputPaths ? `variation=${getImagePromptVariationLabel(variation)}` : undefined,
-          `refs=${referenceImages.length}`,
-          `path=${outputPath}`,
-        ])
+        await presentPanelRepairResult(repairResult, request, ctx, variation, resultStats)
       }
     }
   } catch (error) {
     const failure = failedQaRepairEvidenceFromError(error)
-    if (failure) recordRepairResult(failure, failure.outputDirectory)
+    if (failure) recordPanelRepairResult(resultStats, qaEntries, options, failure, failure.outputDirectory)
     err(`Failed to generate ${sceneSlug}/${panelEntry.name}:`, error instanceof Error ? error.message : String(error))
     return { stats: resultStats, qaEntries, error }
   }
@@ -306,3 +175,5 @@ export const generatePanelImages = async (
     itemFailure: { message: count => `${count} image generation task(s) failed`, stage: 'comic:generate-images' }
   })
 }
+
+export { resolveEpisodeLabel } from './comic-panel-result-presentation'

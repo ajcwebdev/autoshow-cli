@@ -1,36 +1,25 @@
 import { mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { statPath as stat } from '~/utils/bun-file-io'
 import { tmpdir } from 'node:os'
-import { extname, isAbsolute, join } from 'node:path'
-import type { DocumentMetadata, ExtractionMetadata, ExtractionOptions, ExtractionResult, OcrBatchRunContext, OcrPoolAttemptUsage, OcrPoolLedger, OcrPoolTargetState, OcrProviderFailureSummary, OcrTarget, ProcessDocumentOutput, RunOcrPagePoolOptions } from '~/types'
-import { ExtractionMetadataSchema } from '~/types'
-import { l, runWithLogContext } from '~/utils/app-logger/app-logger'
-import { UsageError, extractErrorMetadata } from '~/utils/error-handler'
-import { isRecord } from '~/utils/rest-client'
-import { validateData } from '~/utils/validate/validation'
-import { writeFile } from '~/utils/cli-utils'
-import { writePipelineItemRecords } from '../../command-shared/pipeline-manifest'
-import { buildDocumentMetadataPayload, resolveRecordedOcrStep2 } from './ocr-document-metadata'
-import { writeExtractionArtifact, writeProviderArtifacts } from './ocr-artifacts'
-import { buildOcrOutput } from './ocr-result'
-import { classifyOcrProviderFailure, getOcrTargetKey, toRequestedProvider } from './ocr-run-state'
-import { buildExtractionOptionsForTarget, getOcrTargetDirectoryName } from './ocr-targets'
-import { defaultOcrPoolLaneKey, isLocalOcrTarget, runOcrPagePool } from './ocr-provider-pool'
-import { runOcr } from './run-ocr'
-import { createRenderedPngPageChunk } from './ocr-utils/pdf-chunk-fallback'
-import { resolveHostedDirectImageInputStrategy } from './hosted-ocr'
+import { join } from 'node:path'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import type { DocumentMetadata, ExtractionOptions, OcrBatchRunContext, OcrPoolLedger, OcrTarget, ProcessDocumentOutput, RunOcrPagePoolOptions } from '~/types'
+import { l, runWithLogContext } from '~/utils/app-logger/app-logger'
+import { writeFile } from '~/utils/cli-utils'
+import { UsageError } from '~/utils/error-handler'
+import { writePipelineItemRecords } from '../../command-shared/pipeline-manifest'
+import { resolveHostedDirectImageInputStrategy } from './hosted-ocr'
+import { writeExtractionArtifact, writeProviderArtifacts } from './ocr-artifacts'
+import { buildDocumentMetadataPayload, resolveRecordedOcrStep2 } from './ocr-document-metadata'
+import { buildCompositeOutput, projectPooledOcrResult, targetProviderStates, usageFromError, usageFromMetadata } from './ocr-pool-projection'
+import type { PooledPageInputProvider } from './ocr-pooled-page-inputs'
+import { createPooledPageInputProvider, preflightPooledPageInputs, toHostedEngine } from './ocr-pooled-page-inputs'
+import { defaultOcrPoolLaneKey, isLocalOcrTarget, runOcrPagePool } from './ocr-provider-pool'
+import { classifyOcrProviderFailure, getOcrTargetKey, toRequestedProvider } from './ocr-run-state'
 import { writeOcrProviderError } from './ocr-structured-response-error'
-import { extractCbzImages } from './ocr-image/image-ocr'
+import { buildExtractionOptionsForTarget, getOcrTargetDirectoryName } from './ocr-targets'
+import { runOcr } from './run-ocr'
 
 const POOL_IMAGE_FORMATS = new Set(['png', 'jpg', 'tif', 'webp', 'bmp', 'gif'])
-const OCR_POOL_SERVICES = new Set<OcrTarget['service']>(['tesseract', 'mistral', 'glm', 'kimi', 'openai', 'grok', 'anthropic', 'gemini', 'deepinfra'])
-
-const isOcrPoolService = (value: unknown): value is OcrTarget['service'] =>
-  typeof value === 'string' && OCR_POOL_SERVICES.has(value as OcrTarget['service'])
-
-const toHostedEngine = (target: OcrTarget): Exclude<import('~/types').HostedExtractOcrEngine, never> =>
-  `${target.service}-ocr` as import('~/types').HostedExtractOcrEngine
 
 export const assertOcrPoolCompatible = (
   ctx: {
@@ -64,328 +53,6 @@ const attemptRelativeDir = (pageNumber: number, target: OcrTarget, attempt: numb
 
 export const getOcrPoolAttemptRelativeDir = attemptRelativeDir
 
-const usageFromMetadata = (metadata: ExtractionMetadata): OcrPoolAttemptUsage => ({
-  ...(typeof metadata.requestedReasoningEffort === 'string' ? { requestedReasoningEffort: metadata.requestedReasoningEffort } : {}),
-  ...(typeof metadata.effectiveReasoningEffort === 'string' ? { effectiveReasoningEffort: metadata.effectiveReasoningEffort } : {}),
-  ...(typeof metadata.promptTokens === 'number' ? { promptTokens: metadata.promptTokens } : {}),
-  ...(typeof metadata.completionTokens === 'number' ? { completionTokens: metadata.completionTokens } : {}),
-  ...(typeof metadata.providerCostCents === 'number' ? { providerCostCents: metadata.providerCostCents } : {}),
-  ...(typeof metadata.providerCostSource === 'string' ? { providerCostSource: metadata.providerCostSource } : {}),
-  ...(metadata.ocrProviderUsage ? { providerUsage: metadata.ocrProviderUsage } : {})
-})
-
-const numberFromRecord = (value: Record<string, unknown>, key: string): number | undefined =>
-  typeof value[key] === 'number' && Number.isFinite(value[key]) ? value[key] as number : undefined
-
-const usageFromError = (error: unknown): OcrPoolAttemptUsage => {
-  const metadata = extractErrorMetadata(error)
-  const usage = isRecord(metadata['usage']) ? metadata['usage'] : metadata
-  const providerUsage = Array.isArray(metadata['providerUsage'])
-    ? metadata['providerUsage'].filter(isRecord)
-    : undefined
-  return {
-    ...(numberFromRecord(usage, 'promptTokens') !== undefined ? { promptTokens: numberFromRecord(usage, 'promptTokens') } : {}),
-    ...(numberFromRecord(usage, 'completionTokens') !== undefined ? { completionTokens: numberFromRecord(usage, 'completionTokens') } : {}),
-    ...(numberFromRecord(usage, 'providerCostCents') !== undefined ? { providerCostCents: numberFromRecord(usage, 'providerCostCents') } : {}),
-    ...(typeof usage['providerCostSource'] === 'string' ? { providerCostSource: usage['providerCostSource'] } : {}),
-    ...(providerUsage && providerUsage.length > 0 ? { providerUsage } : {})
-  }
-}
-
-const finiteNumber = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isFinite(value)
-
-const nonNegativeNumber = (value: unknown): value is number =>
-  finiteNumber(value) && value >= 0
-
-const containedArtifactDir = (value: unknown): value is string =>
-  typeof value === 'string'
-  && value.length > 0
-  && !isAbsolute(value)
-  && !value.split(/[\\/]/u).some((segment) => segment === '..')
-
-const validStoredAttempt = (value: unknown): boolean =>
-  isRecord(value)
-  && Number.isInteger(value['attempt'])
-  && nonNegativeNumber(value['attempt'])
-  && typeof value['claimId'] === 'string'
-  && isOcrPoolService(value['provider'])
-  && typeof value['model'] === 'string'
-  && typeof value['laneKey'] === 'string'
-  && ['running', 'accepted', 'failed', 'ambiguous', 'interrupted'].includes(String(value['status']))
-  && nonNegativeNumber(value['startedAtMs'])
-  && containedArtifactDir(value['artifactDir'])
-
-const validStoredAcceptedPage = (value: unknown): boolean =>
-  isRecord(value)
-  && isOcrPoolService(value['provider'])
-  && typeof value['model'] === 'string'
-  && Number.isInteger(value['attempt'])
-  && nonNegativeNumber(value['attempt'])
-  && nonNegativeNumber(value['acceptedAtMs'])
-  && nonNegativeNumber(value['durationMs'])
-  && containedArtifactDir(value['artifactDir'])
-  && isRecord(value['result'])
-  && Number.isInteger(value['result']['pageNumber'])
-  && ['text', 'ocr', 'skipped'].includes(String(value['result']['method']))
-  && typeof value['result']['text'] === 'string'
-
-const validStoredPage = (value: unknown): boolean => {
-  if (!isRecord(value) || !Number.isInteger(value['pageNumber']) || !nonNegativeNumber(value['pageNumber']) || !Array.isArray(value['attempts']) || !value['attempts'].every(validStoredAttempt)) return false
-  const status = value['status']
-  if (!['pending', 'claimed', 'accepted', 'exhausted'].includes(String(status))) return false
-  if (status === 'accepted') return validStoredAcceptedPage(value['accepted'])
-  if (value['accepted'] !== undefined) return false
-  if (status !== 'claimed') return value['claim'] === undefined
-  const claim = value['claim']
-  return isRecord(claim)
-    && typeof claim['claimId'] === 'string'
-    && typeof claim['targetKey'] === 'string'
-    && typeof claim['laneKey'] === 'string'
-    && Number.isInteger(claim['attempt'])
-    && nonNegativeNumber(claim['claimedAtMs'])
-}
-
-const validStoredTarget = (value: unknown): boolean =>
-  isRecord(value)
-  && isOcrPoolService(value['service'])
-  && typeof value['model'] === 'string'
-  && typeof value['targetKey'] === 'string'
-  && typeof value['laneKey'] === 'string'
-  && typeof value['local'] === 'boolean'
-  && ['eligible', 'running', 'succeeded', 'retired'].includes(String(value['status']))
-  && nonNegativeNumber(value['attempts'])
-  && nonNegativeNumber(value['acceptedPages'])
-  && nonNegativeNumber(value['active'])
-  && nonNegativeNumber(value['activePeak'])
-
-const validStoredLane = (value: unknown): boolean =>
-  isRecord(value)
-  && typeof value['laneKey'] === 'string'
-  && isOcrPoolService(value['service'])
-  && typeof value['local'] === 'boolean'
-  && Number.isInteger(value['cap'])
-  && finiteNumber(value['cap'])
-  && value['cap'] > 0
-  && ['eligible', 'retired'].includes(String(value['status']))
-  && nonNegativeNumber(value['active'])
-  && nonNegativeNumber(value['activePeak'])
-
-const validStoredTelemetry = (value: unknown): boolean => {
-  if (!isRecord(value)) return false
-  const numberKeys = ['queueDepth', 'queueDepthPeak', 'claims', 'acceptedPages', 'requeues', 'handoffs', 'exhaustedPages', 'duplicateCommitsPrevented', 'ambiguousAttempts', 'interruptedClaimsRecovered', 'retryPressure', 'pauseTimeMs']
-  const mapKeys = ['targetActivePeaks', 'laneCaps', 'targetPageShare', 'targetThroughputPagesPerMinute']
-  return numberKeys.every((key) => nonNegativeNumber(value[key]))
-    && Array.isArray(value['retiredTargets'])
-    && value['retiredTargets'].every((entry) => typeof entry === 'string')
-    && Array.isArray(value['retiredLanes'])
-    && value['retiredLanes'].every((entry) => typeof entry === 'string')
-    && mapKeys.every((key) => isRecord(value[key]))
-}
-
-const storedPoolLedger = (value: unknown): OcrPoolLedger | undefined => {
-  if (!isRecord(value)
-    || value['mode'] !== 'pool'
-    || !Number.isInteger(value['totalPages'])
-    || !finiteNumber(value['totalPages'])
-    || value['totalPages'] < 1
-    || !['running', 'full', 'incomplete'].includes(String(value['status']))
-    || !Array.isArray(value['pages'])
-    || value['pages'].length !== value['totalPages']
-    || !value['pages'].every(validStoredPage)
-    || new Set(value['pages'].map((page) => (page as Record<string, unknown>)['pageNumber'])).size !== value['totalPages']
-    || !value['pages'].every((page) => Number((page as Record<string, unknown>)['pageNumber']) >= 1 && Number((page as Record<string, unknown>)['pageNumber']) <= Number(value['totalPages']))
-    || !Array.isArray(value['targets'])
-    || !value['targets'].every(validStoredTarget)
-    || !Array.isArray(value['lanes'])
-    || !value['lanes'].every(validStoredLane)
-    || !validStoredTelemetry(value['telemetry'])) {
-    return undefined
-  }
-  const ledger = structuredClone(value) as OcrPoolLedger
-  const targetByKey = new Map(ledger.targets.map((target) => [target.targetKey, target]))
-  const laneByKey = new Map(ledger.lanes.map((lane) => [lane.laneKey, lane]))
-  if (targetByKey.size !== ledger.targets.length || laneByKey.size !== ledger.lanes.length) return undefined
-  const internallyConsistent = ledger.pages.every((page) => {
-    const attemptsValid = page.attempts.every((attempt, index) => {
-      const target = targetByKey.get(getOcrTargetKey({ service: attempt.provider, model: attempt.model }))
-      return attempt.attempt === index + 1 && target?.laneKey === attempt.laneKey
-    })
-    if (!attemptsValid) return false
-    if (page.status === 'accepted') {
-      const acceptedTarget = page.accepted
-        ? targetByKey.get(getOcrTargetKey({ service: page.accepted.provider, model: page.accepted.model }))
-        : undefined
-      return acceptedTarget !== undefined
-        && page.accepted?.result.pageNumber === page.pageNumber
-        && page.attempts.some((attempt) =>
-          attempt.status === 'accepted'
-          && attempt.attempt === page.accepted?.attempt
-          && attempt.provider === page.accepted?.provider
-          && attempt.model === page.accepted?.model
-        )
-    }
-    if (page.status === 'claimed') {
-      const claimedTarget = page.claim ? targetByKey.get(page.claim.targetKey) : undefined
-      return claimedTarget?.laneKey === page.claim?.laneKey
-        && page.attempts.some((attempt) =>
-        attempt.status === 'running'
-        && attempt.claimId === page.claim?.claimId
-        && attempt.attempt === page.claim?.attempt
-        && getOcrTargetKey({ service: attempt.provider, model: attempt.model }) === page.claim?.targetKey
-      )
-    }
-    return page.attempts.every((attempt) => attempt.status !== 'running')
-  })
-  const targetStateConsistent = ledger.targets.every((target) => {
-    const lane = laneByKey.get(target.laneKey)
-    const attempts = ledger.pages.flatMap((page) => page.attempts.filter((attempt) =>
-      attempt.provider === target.service && attempt.model === target.model
-    ))
-    const acceptedPagesForTarget = ledger.pages.filter((page) =>
-      page.accepted?.provider === target.service && page.accepted.model === target.model
-    ).length
-    return target.targetKey === getOcrTargetKey(target)
-      && lane?.service === target.service
-      && lane.local === target.local
-      && target.attempts === attempts.length
-      && target.acceptedPages === acceptedPagesForTarget
-  })
-  const acceptedPages = ledger.pages.filter((page) => page.status === 'accepted').length
-  const exhaustedPages = ledger.pages.filter((page) => page.status === 'exhausted').length
-  if (!internallyConsistent
-    || !targetStateConsistent
-    || ledger.telemetry.acceptedPages !== acceptedPages
-    || ledger.telemetry.exhaustedPages !== exhaustedPages
-    || (ledger.status === 'full' && acceptedPages !== ledger.totalPages)) {
-    return undefined
-  }
-  return ledger
-}
-
-export const parseStoredOcrPoolLedger = storedPoolLedger
-
-const aggregateTargetUsage = (ledger: OcrPoolLedger): Array<Record<string, unknown>> =>
-  ledger.targets.map((target) => {
-    const attempts = ledger.pages.flatMap((page) => page.attempts.filter((attempt) =>
-      attempt.provider === target.service && attempt.model === target.model && attempt.status !== 'running'
-    ))
-    const providerUsage = attempts.flatMap((attempt) => attempt.providerUsage ?? [])
-    const promptTokens = attempts.reduce((sum, attempt) => sum + (attempt.promptTokens ?? 0), 0)
-    const completionTokens = attempts.reduce((sum, attempt) => sum + (attempt.completionTokens ?? 0), 0)
-    const providerCostCents = attempts.reduce((sum, attempt) => sum + (attempt.providerCostCents ?? 0), 0)
-    const hasProviderCost = attempts.some((attempt) => typeof attempt.providerCostCents === 'number')
-    const providerCostSources = [...new Set(attempts.flatMap((attempt) =>
-      typeof attempt.providerCostSource === 'string' ? [attempt.providerCostSource] : []
-    ))]
-    const acceptedPages = ledger.pages.filter((page) =>
-      page.accepted?.provider === target.service && page.accepted.model === target.model
-    ).length
-    const effectivePolicies = [...new Set(attempts.flatMap((attempt) =>
-      typeof attempt.effectiveReasoningEffort === 'string' ? [attempt.effectiveReasoningEffort] : []
-    ))]
-    return {
-      provider: target.service,
-      model: target.model,
-      attemptedPages: attempts.length,
-      acceptedPages,
-      failedOrAmbiguousAttempts: attempts.filter((attempt) => attempt.status !== 'accepted').length,
-      promptTokens,
-      completionTokens,
-      ...(hasProviderCost ? { providerCostCents } : {}),
-      ...(providerCostSources.length === 1 ? { providerCostSource: providerCostSources[0] } : {}),
-      ...(providerUsage.length > 0 ? { providerUsage } : {}),
-      ...(effectivePolicies.length === 1 ? { effectiveReasoningEffort: effectivePolicies[0] } : {}),
-      ocrMode: 'pool'
-    }
-  })
-
-const buildCompositeOutput = (
-  ctx: OcrBatchRunContext,
-  ledger: OcrPoolLedger,
-  startedAtMs: number
-): { result: ExtractionResult, metadata: ExtractionMetadata } => {
-  const pages = ledger.pages
-    .flatMap((page) => page.accepted ? [{ ...page.accepted.result, pageNumber: page.pageNumber }] : [])
-    .sort((left, right) => left.pageNumber - right.pageNumber)
-  const attempts = ledger.pages.flatMap((page) => page.attempts.filter((attempt) => attempt.status !== 'running'))
-  const promptTokens = attempts.reduce((sum, attempt) => sum + (attempt.promptTokens ?? 0), 0)
-  const completionTokens = attempts.reduce((sum, attempt) => sum + (attempt.completionTokens ?? 0), 0)
-  const providerCostCents = attempts.reduce((sum, attempt) => sum + (attempt.providerCostCents ?? 0), 0)
-  const hasProviderCost = attempts.some((attempt) => typeof attempt.providerCostCents === 'number')
-  const providerUsage = attempts.flatMap((attempt) => (attempt.providerUsage ?? []).map((entry) => ({
-    providerMode: 'pool',
-    pageNumber: ledger.pages.find((page) => page.attempts.includes(attempt))?.pageNumber,
-    attempt: attempt.attempt,
-    accepted: attempt.status === 'accepted',
-    provider: attempt.provider,
-    model: attempt.model,
-    ...entry
-  })))
-  const built = buildOcrOutput({
-    start: startedAtMs,
-    pages,
-    extractionMethod: 'ocr-pool',
-    step1Metadata: ctx.step1Metadata,
-    opts: ctx.effectiveOpts,
-    inputFamily: ctx.step1Metadata.format === 'pdf' ? 'pdf' : ctx.step1Metadata.format === 'cbz' ? 'cbz' : 'image',
-    normalizedFrom: undefined,
-    conversionChain: undefined,
-    outputFidelity: 'composite-page-text',
-    canonicalText: undefined,
-    reportedTotalPages: ledger.totalPages,
-    ocrService: undefined,
-    promptTokens: attempts.length > 0 ? promptTokens : undefined,
-    completionTokens: attempts.length > 0 ? completionTokens : undefined,
-    providerCostCents: hasProviderCost ? providerCostCents : undefined,
-    providerCostSource: hasProviderCost ? 'provider_usage' : undefined,
-    ocrProviderUsage: providerUsage.length > 0 ? providerUsage : undefined,
-    pdfChunkPreparation: undefined,
-    chapterExportSummary: undefined,
-    pdfChapterDetectionSummary: undefined,
-    artifactFiles: undefined
-  })
-  return {
-    result: built.result,
-    metadata: validateData(ExtractionMetadataSchema, {
-      ...built.step2Metadata,
-      ocrProviderMode: 'pool',
-      ocrPoolTargetUsage: aggregateTargetUsage(ledger)
-    }, 'pooled OCR extraction metadata')
-  }
-}
-
-const targetProviderStates = (
-  ledger: OcrPoolLedger
-): Array<Record<string, unknown>> => ledger.targets.map((target) => ({
-  service: target.service,
-  model: target.model,
-  artifactDir: `providers/${getOcrTargetDirectoryName(target)}`,
-  status: target.status === 'retired'
-    ? 'failed'
-    : ledger.status === 'running' ? 'running' : 'succeeded',
-  attempts: target.attempts,
-  metadata: {},
-  ...(target.lastFailure ? { error: target.lastFailure } : {})
-}))
-
-const targetFailure = (target: OcrPoolTargetState): OcrProviderFailureSummary | undefined => {
-  if (target.status !== 'retired' || !target.lastFailure) return undefined
-  const failure = target.lastFailure
-  return {
-    message: typeof failure['message'] === 'string' ? failure['message'] : `${target.service}/${target.model} retired from the OCR pool`,
-    category: typeof failure['category'] === 'string' ? failure['category'] as OcrProviderFailureSummary['category'] : 'unknown',
-    failureKind: typeof failure['failureKind'] === 'string' ? failure['failureKind'] as OcrProviderFailureSummary['failureKind'] : 'unknown',
-    retryable: failure['retryable'] === true,
-    ...(failure['quota'] === true ? { quota: true } : {}),
-    ...(failure['providerWide'] === true ? { providerWide: true } : {}),
-    ...(typeof failure['blockedReason'] === 'string' ? { blockedReason: failure['blockedReason'] } : {}),
-    ...(typeof failure['attemptsMade'] === 'number' ? { attemptsMade: failure['attemptsMade'] } : {}),
-    ...(typeof failure['elapsedMs'] === 'number' ? { elapsedMs: failure['elapsedMs'] } : {}),
-    ...(typeof failure['errorFile'] === 'string' ? { errorFile: failure['errorFile'] } : {})
-  }
-}
-
 const mergeHostedSchedulerTelemetry = (
   ctx: OcrBatchRunContext & { restoredLedger?: OcrPoolLedger | undefined },
   ledger: OcrPoolLedger
@@ -405,99 +72,6 @@ const mergeHostedSchedulerTelemetry = (
 type PooledOcrContext = OcrBatchRunContext & {
   restoredLedger?: OcrPoolLedger | undefined
   reenabledTargets?: OcrTarget[] | undefined
-}
-
-type PreparedPageInput = { path: string, metadata: OcrBatchRunContext['step1Metadata'] }
-
-export type PooledPageInputProvider = {
-  totalPages: number
-  preparePage: (pageNumber: number) => Promise<PreparedPageInput>
-}
-
-const normalizedImageFormat = (path: string): DocumentMetadata['format'] => {
-  const extension = extname(path).slice(1).toLowerCase()
-  if (extension === 'jpeg') return 'jpg'
-  if (extension === 'tiff') return 'tif'
-  return extension as DocumentMetadata['format']
-}
-
-const createPooledPageInputProvider = async (
-  ctx: PooledOcrContext,
-  pageWorkspace: string
-): Promise<PooledPageInputProvider> => {
-  const cbzImages = ctx.step1Metadata.format === 'cbz'
-    ? await extractCbzImages(ctx.extractFilePath, join(pageWorkspace, 'cbz-pages'))
-    : undefined
-  if (cbzImages?.length === 0) throw UsageError('--ocr-provider-mode pool requires the CBZ input to contain at least one supported image page.')
-  if (cbzImages) {
-    for (const imagePath of cbzImages) {
-      const imageFormat = normalizedImageFormat(imagePath)
-      for (const target of ctx.requestedTargets) {
-        if (!isLocalOcrTarget(target) && resolveHostedDirectImageInputStrategy(imageFormat, toHostedEngine(target)) === 'unsupported') {
-          throw UsageError(`${target.service}/${target.model} cannot normalize a ${imageFormat.toUpperCase()} CBZ page into a compatible pooled page work unit.`)
-        }
-      }
-    }
-  }
-  const promises = new Map<number, Promise<PreparedPageInput>>()
-  const renderPdfPage = createRenderedPngPageChunk(ctx.effectiveOpts.dpi ?? 300, ctx.effectiveOpts.ocrPreparationCache)
-  const preparePage = (pageNumber: number): Promise<PreparedPageInput> => {
-    const existing = promises.get(pageNumber)
-    if (existing) return existing
-    const promise = (async (): Promise<PreparedPageInput> => {
-      if (cbzImages) {
-        const imagePath = cbzImages[pageNumber - 1]
-        if (!imagePath) throw UsageError(`CBZ pooled OCR page ${pageNumber} does not exist.`)
-        const imageStats = await stat(imagePath)
-        return { path: imagePath, metadata: { ...ctx.step1Metadata, pageCount: 1, fileSize: imageStats.size, format: normalizedImageFormat(imagePath) } }
-      }
-      if (ctx.step1Metadata.format !== 'pdf') return { path: ctx.extractFilePath, metadata: { ...ctx.step1Metadata, pageCount: 1 } }
-      const pageDir = join(pageWorkspace, 'page-inputs')
-      await mkdir(pageDir, { recursive: true })
-      const pagePath = join(pageDir, `page-${String(pageNumber).padStart(6, '0')}.png`)
-      await renderPdfPage(
-        ctx.extractFilePath,
-        pagePath,
-        { startPage: pageNumber, endPage: pageNumber },
-        ctx.effectiveOpts.password
-      )
-      const pageStats = await stat(pagePath)
-      return { path: pagePath, metadata: { ...ctx.step1Metadata, pageCount: 1, fileSize: pageStats.size, format: 'png' } }
-    })()
-    promises.set(pageNumber, promise)
-    promise.catch(() => {
-      if (promises.get(pageNumber) === promise) promises.delete(pageNumber)
-    })
-    return promise
-  }
-  return { totalPages: cbzImages?.length ?? Math.max(1, ctx.step1Metadata.pageCount), preparePage }
-}
-
-export const preflightPooledPageInputs = async (
-  provider: PooledPageInputProvider,
-  concurrency = 8
-): Promise<void> => {
-  const requestedConcurrency = Number.isFinite(concurrency) ? Math.max(1, Math.floor(concurrency)) : 1
-  const workerCount = Math.max(1, Math.min(provider.totalPages, requestedConcurrency))
-  let nextPage = 1
-  let failure: unknown
-  const worker = async (): Promise<void> => {
-    while (failure === undefined) {
-      const pageNumber = nextPage++
-      if (pageNumber > provider.totalPages) return
-      try {
-        await provider.preparePage(pageNumber)
-      } catch (error) {
-        const detail = error instanceof Error && error.message.trim().length > 0 ? error.message.trim() : String(error)
-        failure = UsageError(
-          `--ocr-provider-mode pool could not normalize page ${pageNumber} into a compatible work unit: ${detail}`,
-          { cause: error }
-        )
-      }
-    }
-  }
-  await Promise.all(Array.from({ length: workerCount }, worker))
-  if (failure !== undefined) throw failure
 }
 
 const validatePooledReasoningPolicies = (ctx: PooledOcrContext): void => {
@@ -590,49 +164,6 @@ const classifyPooledPageFailure: (
   }
 }
 
-const projectPooledOcrResult = (
-  ctx: PooledOcrContext,
-  ledger: OcrPoolLedger,
-  startedAtMs: number
-): ProcessDocumentOutput => {
-  const composite = buildCompositeOutput(ctx, ledger, startedAtMs)
-  const failures: NonNullable<ProcessDocumentOutput['step2Errors']> = ledger.targets.flatMap(target => {
-    const failure = targetFailure(target)
-    return failure ? [{
-      service: target.service,
-      model: target.model,
-      message: failure.message,
-      category: failure.category,
-      failureKind: failure.failureKind,
-      retryable: failure.retryable,
-      ...(failure.quota === true ? { quota: true } : {}),
-      ...(failure.providerWide === true ? { providerWide: true } : {}),
-      ...(failure.blockedReason ? { blockedReason: failure.blockedReason } : {}),
-      ...(typeof failure.attemptsMade === 'number' ? { attemptsMade: failure.attemptsMade } : {}),
-      ...(failure.errorFile ? { errorFile: failure.errorFile } : {}),
-    }] : []
-  })
-  l.write(ledger.status === 'full' ? 'info' : 'warn', `Pooled OCR ${ledger.status}: ${ledger.telemetry.acceptedPages}/${ledger.totalPages} pages accepted`, {
-    category: 'pipeline',
-    metadata: { status: ledger.status, acceptedPages: ledger.telemetry.acceptedPages, totalPages: ledger.totalPages },
-  })
-  return {
-    result: composite.result,
-    step1Metadata: ctx.step1Metadata,
-    step2Metadata: composite.metadata,
-    completionStatus: ledger.status === 'full' ? 'full' : 'incomplete',
-    requestedProviders: ctx.requestedTargets.map(toRequestedProvider),
-    providerStates: targetProviderStates(ledger),
-    missingProviders: [],
-    blockedProviders: ledger.targets.filter(target => target.status === 'retired').map(target => toRequestedProvider(target)),
-    ocrProviderMode: 'pool',
-    ocrPool: ledger,
-    ...(ctx.web ? { web: ctx.web } : {}),
-    ...(failures.length > 0 ? { step2Errors: failures } : {}),
-    outputDir: ctx.outputDir,
-  }
-}
-
 export const runOcrPooledBatch = async (ctx: PooledOcrContext): Promise<ProcessDocumentOutput> => {
   assertOcrPoolCompatible(ctx)
   const startedAtMs = Date.now()
@@ -667,3 +198,9 @@ export const runOcrPooledBatch = async (ctx: PooledOcrContext): Promise<ProcessD
     await rm(pageWorkspace, { recursive: true, force: true })
   }
 }
+
+export { parseStoredOcrPoolLedger } from './ocr-pool-ledger-validation'
+
+export { preflightPooledPageInputs } from './ocr-pooled-page-inputs'
+
+export type { PooledPageInputProvider } from './ocr-pooled-page-inputs'

@@ -151,6 +151,10 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 
 No provider-backed test or paid suite is part of ADR verification.
 
+### Recovery verification recorded on 2026-09-10
+
+The implementation review recorded 23 passing presentation regression tests across three files after adding encoder readiness and explicit redispatch coverage. FFmpeg rendered actual synthetic slideshow outputs locally while provider responses were mocked. The [comic recovery contracts](../../test/test-cases/validation/resume-manifests/comic-resume-contracts.test.ts) demonstrated that a two-turn audio checkpoint reused its first segment, synthesized only the second, and completed the pending slideshow. Separate presentation-only recovery made no additional provider calls. Completed runs remained byte-identical under repeated price and execution checks, and stale presentation dependencies blocked reuse even without new recovery intent. This establishes local recovery behavior in those fixtures; production performance and live-provider reliability were not measured.
+
 ## References
 
 - Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)

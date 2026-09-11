@@ -1,6 +1,6 @@
 import { setupTtsFixtureCredentials } from '../../../../test-utils/tts-fixture-credentials'
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
 import { createManifest, createManifestItem, readManifest, writeManifest } from '~/cli/commands/command-shared/pipeline-manifest'
@@ -153,7 +153,17 @@ describe('canonical standalone TTS lifecycle persistence', () => {
       await Bun.write(join(inputDir, 'first.txt'), 'First batch fixture.')
       await Bun.write(join(inputDir, 'second.txt'), 'Second batch fixture.')
       configurePinnedRunDir(outputDir)
-      const beforeProvider = async () => await expectCompletePreparedCardinality(outputDir, 2, 2)
+      const retainedSegment = createSyntheticWavBytes({ durationSeconds: 0.1, amplitude: 0.2, frequencyHz: 440 })
+      const cachedPaths = new Set<string>()
+      const beforeProvider = async () => {
+        await expectCompletePreparedCardinality(outputDir, 2, 2)
+        for (const entry of await readdir(outputDir, { withFileTypes: true })) {
+          if (!entry.isDirectory() || !entry.name.startsWith('.tts-')) continue
+          const cachePath = join(outputDir, entry.name, 'retained-segment.wav')
+          cachedPaths.add(cachePath)
+          await Bun.write(cachePath, retainedSegment)
+        }
+      }
       const targets = [
         openaiTarget('gpt-4o-mini-tts-2025-12-15', 'success', beforeProvider),
         openaiTarget('gpt-4o-mini-tts', 'failure', beforeProvider)
@@ -167,6 +177,10 @@ describe('canonical standalone TTS lifecycle persistence', () => {
       const artifactDirs = manifest?.items.flatMap((item) => item.providers.map((provider) => provider.artifactDir)) ?? []
       expect(new Set(artifactDirs).size).toBe(4)
       expect(artifactDirs.every((path) => path.startsWith('items/'))).toBe(true)
+      expect(cachedPaths.size).toBe(2)
+      for (const cachePath of cachedPaths) {
+        expect(Buffer.from(await Bun.file(cachePath).arrayBuffer()).equals(retainedSegment)).toBe(true)
+      }
     })
   })
 

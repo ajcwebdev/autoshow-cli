@@ -13,6 +13,10 @@
 
 Use `voice <action>` for both standalone and comic character voice management. The `comic reference-voice` group remains a deprecated forwarding alias for one compatibility release, including its default `list` action and all nine children. Direct help and runtime notices name the canonical command; the ordinary comic menu omits the alias. Removal requires a later announced breaking CLI release.
 
+Flags, provider capabilities, character-root resolution, and bare-invocation listing remain unchanged. Runtime warnings use the normal logger and respect quiet and log-level controls. The nine handlers were already shared, so this change consolidates vocabulary and documentation. Comic walkthroughs, release guidance, and voice-related error hints now use `voice`; the duplicate comic voice guide was removed in favor of the existing voice guides.
+
+The same review rejected proposal 2B, a single voice creation command. Import, design, and clone had a 23-key union with six shared command-local flag keys, excluding globals and positional operands, on 2026-09-10. Local registration, paid design preview/save, and authorized sample cloning remain different operations; a mode selector would not remove their steps, consent, or lifecycle rules. Consent, audition, approval, retirement, and deletion also stay distinct: approval can promote existing evidence locally, audition can synthesize paid audio, retirement changes local lifecycle state, and deletion can remove a remote resource.
+
 This replaces the normal alias usage described below without changing voice provisioning, consent, audition, approval, retirement, deletion, storage, or result behavior. The original command examples remain historical evidence. Current instructions are in the [voice overview](../commands/audio/voice/00-voice-overview.md), with the CLI consolidation recorded in [ADR-007](./ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md#amendment-canonical-voice-and-review-commands-2026-09-10).
 
 ## Context

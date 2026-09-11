@@ -1,43 +1,10 @@
-import type { AvailabilityWaiter, ProviderFailureSummary, ProviderState, SttBatchAttemptDecision, SttBatchBlockedProviderReason, SttBatchCoordinatedTargetSelection, SttBatchProviderAvailability, SttBatchProviderProfile, SttBatchProviderStatsSnapshot, SttBatchSchedulerSnapshot, SttTarget } from '~/types'
+import type { ProviderFailureSummary, ProviderState, SttBatchAttemptDecision, SttBatchBlockedProviderReason, SttBatchCoordinatedTargetSelection, SttBatchProviderAvailability, SttBatchProviderProfile, SttBatchSchedulerSnapshot, SttTarget } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
-import { formatSttTargetLabel, getSttTargetKey } from '../stt-targets'
+import { getSttTargetKey } from '../stt-targets'
 import { getSttBatchProviderProfile } from './stt-batch-policy'
-import { createProviderLaneIdentity } from '~/cli/commands/command-shared/provider-lane-contract'
-
-
-
-
-
-const MAX_PROVIDER_COOLDOWN_MS = 5 * 60 * 1000
-const RETRYABLE_FAILURE_DEGRADE_THRESHOLD = 2
-
-const cloneBlockedReason = (
-  reason: SttBatchBlockedProviderReason
-): SttBatchBlockedProviderReason => ({
-  service: reason.service,
-  model: reason.model,
-  local: reason.local,
-  message: reason.message,
-  retryable: reason.retryable,
-  ...(reason.stage ? { stage: reason.stage } : {}),
-  ...(typeof reason.status === 'number' ? { status: reason.status } : {}),
-  ...(reason.degraded === true ? { degraded: true } : {})
-})
-
-const wakeWaiters = (waiters: AvailabilityWaiter[]): void => {
-  const pending = waiters.splice(0)
-  for (const waiter of pending) {
-    waiter.notify()
-  }
-}
-
-const normalizeCooldownMs = (value: number | undefined): number | undefined => {
-  if (!Number.isFinite(value) || (value ?? 0) <= 0) {
-    return undefined
-  }
-
-  return Math.min(MAX_PROVIDER_COOLDOWN_MS, Math.round(value as number))
-}
+import { cloneBlockedReason, resolveSttProviderFailure } from './stt-coordination-transitions'
+import { runWithSttPollSlot, waitForSttAvailability, wakeWaiters } from './stt-coordination-waiters'
+import { projectSttCoordinatorSnapshot } from './stt-coordination-telemetry'
 
 export class SttBatchCoordinator {
   readonly #providerStates = new Map<string, ProviderState>()
@@ -91,22 +58,6 @@ export class SttBatchCoordinator {
     return state.warmupComplete
       ? launchSlotLimit
       : Math.min(1, launchSlotLimit)
-  }
-
-  #buildDegradedReason(
-    target: SttTarget,
-    failure: ProviderFailureSummary
-  ): SttBatchBlockedProviderReason {
-    return {
-      service: target.service,
-      model: target.model,
-      local: target.local,
-      message: `Deferred remaining live-batch work after repeated failures: ${failure.message}`,
-      retryable: true,
-      ...(failure.stage ? { stage: failure.stage } : {}),
-      ...(typeof failure.status === 'number' ? { status: failure.status } : {}),
-      degraded: true
-    }
   }
 
   peekProviderAvailability(target: SttTarget): SttBatchProviderAvailability {
@@ -219,32 +170,7 @@ export class SttBatchCoordinator {
     }
 
     const state = this.#getState(target)
-    while (state.pollActiveCount >= profile.pollSlotLimit) {
-      await new Promise<void>((resolve) => {
-        const waiter: AvailabilityWaiter = {
-          resolved: false,
-          notify: () => {
-            if (waiter.resolved) {
-              return
-            }
-            waiter.resolved = true
-            state.pollWaiters = state.pollWaiters.filter((entry) => entry !== waiter)
-            resolve()
-          }
-        }
-
-        state.pollWaiters.push(waiter)
-      })
-    }
-
-    state.pollActiveCount += 1
-    state.stats.pollCount += 1
-    try {
-      return await fn()
-    } finally {
-      state.pollActiveCount = Math.max(0, state.pollActiveCount - 1)
-      wakeWaiters(state.pollWaiters)
-    }
+    return await runWithSttPollSlot(state, profile.pollSlotLimit, fn)
   }
 
   async waitForAvailability(targets: SttTarget[]): Promise<void> {
@@ -272,33 +198,7 @@ export class SttBatchCoordinator {
       }
     }
 
-    await new Promise<void>((resolve) => {
-      const waiter: AvailabilityWaiter = {
-        resolved: false,
-        notify: () => {
-          if (waiter.resolved) {
-            return
-          }
-          waiter.resolved = true
-          if (waiter.timer) {
-            clearTimeout(waiter.timer)
-          }
-          for (const target of uniqueTargets) {
-            const state = this.#getState(target)
-            state.waiters = state.waiters.filter((entry) => entry !== waiter)
-          }
-          resolve()
-        }
-      }
-
-      if (nearestCooldownMs !== undefined && nearestCooldownMs > 0) {
-        waiter.timer = setTimeout(waiter.notify, nearestCooldownMs)
-      }
-
-      for (const target of uniqueTargets) {
-        this.#getState(target).waiters.push(waiter)
-      }
-    })
+    await waitForSttAvailability(uniqueTargets.map(target => this.#getState(target)), nearestCooldownMs)
   }
 
   reportProviderSuccess(target: SttTarget): void {
@@ -335,77 +235,12 @@ export class SttBatchCoordinator {
       state.activeCount -= 1
     }
 
-    if (options.blockedReason && !state.blockedReason) {
-      state.blockedReason = cloneBlockedReason(options.blockedReason)
-      state.cooldownUntil = undefined
-      if (options.blockedReason.degraded) {
-        state.stats.degradedCount += 1
-      } else {
-        state.stats.blockedCount += 1
-      }
-      wakeWaiters(state.waiters)
-      return
-    }
-
-    if (failure.retryable) {
-      state.consecutiveRetryableFailures += 1
-      if (state.consecutiveRetryableFailures >= RETRYABLE_FAILURE_DEGRADE_THRESHOLD && !state.blockedReason) {
-        state.blockedReason = this.#buildDegradedReason(target, failure)
-        state.cooldownUntil = undefined
-        state.stats.degradedCount += 1
-        wakeWaiters(state.waiters)
-        return
-      }
-    } else {
-      state.consecutiveRetryableFailures = 0
-    }
-
-    if (!state.blockedReason) {
-      const cooldownMs = normalizeCooldownMs(options.cooldownMs)
-      if (cooldownMs !== undefined) {
-        state.cooldownUntil = Math.max(state.cooldownUntil ?? 0, Date.now() + cooldownMs)
-      } else {
-        this.#clearExpiredCooldown(state)
-      }
-    }
-
+    Object.assign(state, resolveSttProviderFailure(target, state, failure, options, Date.now()))
     wakeWaiters(state.waiters)
   }
 
   getSchedulerSnapshot(): SttBatchSchedulerSnapshot {
-    return {
-      providers: [...this.#providerStates.entries()]
-        .map(([key, state]) => {
-          const [service, ...modelParts] = key.split(':')
-          const model = modelParts.join(':')
-          const target = {
-            service: service as SttTarget['service'],
-            model,
-            local: false
-          }
-          const profile = this.#getProfile(target)
-
-          return {
-            lane: createProviderLaneIdentity(target.service, target.model),
-            service: target.service,
-            model: target.model,
-            kind: profile.kind,
-            launchSlotLimit: profile.launchSlotLimit,
-            pollSlotLimit: profile.pollSlotLimit,
-            launchedCount: state.stats.launchedCount,
-            completedCount: state.stats.completedCount,
-            blockedCount: state.stats.blockedCount,
-            degradedCount: state.stats.degradedCount,
-            queueWaitMs: state.stats.queueWaitMs,
-            pollCount: state.stats.pollCount,
-            backfillCount: state.stats.backfillCount,
-            warmupComplete: state.warmupComplete
-          } satisfies SttBatchProviderStatsSnapshot
-        })
-        .sort((left, right) =>
-          formatSttTargetLabel(left).localeCompare(formatSttTargetLabel(right))
-        )
-    }
+    return projectSttCoordinatorSnapshot(this.#providerStates, this.#batchConcurrency)
   }
 }
 

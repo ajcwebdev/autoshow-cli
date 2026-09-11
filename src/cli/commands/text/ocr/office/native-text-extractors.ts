@@ -1,5 +1,8 @@
-import type { PageResult, RtfState, ZipXmlFormat, ZipXmlPage } from '~/types'
 import { extractDocx, extractOdf, extractPptx, extractXlsx } from '~/cli/commands/sources/download/document/zip-xml-utils'
+import type { PageResult, RtfState, ZipXmlFormat, ZipXmlPage } from '~/types'
+import { applyRtfControl } from './rtf-control-application'
+import { decodeRtfControl, skipRtfFallbackChars } from './rtf-control-tokens'
+
 const ZIP_XML_FORMATS = new Set(['docx', 'pptx', 'xlsx', 'odf'] as const)
 
 export const isZipXmlFormat = (format: string): format is ZipXmlFormat =>
@@ -45,54 +48,6 @@ export const runZipXmlExtract = async (
   }
 }
 
-const RTF_IGNORED_DESTINATIONS = new Set([
-  'annotation',
-  'author',
-  'colortbl',
-  'datastore',
-  'fonttbl',
-  'footer',
-  'footerf',
-  'footerl',
-  'footerr',
-  'footnote',
-  'generator',
-  'header',
-  'headerf',
-  'headerl',
-  'headerr',
-  'info',
-  'listoverridetable',
-  'listtable',
-  'object',
-  'pict',
-  'revtbl',
-  'rsidtbl',
-  'stylesheet',
-  'themedata',
-  'xmlnstbl'
-])
-
-const isAsciiLetter = (value: string | undefined): boolean =>
-  value !== undefined && /[a-zA-Z]/.test(value)
-
-const isAsciiDigit = (value: string | undefined): boolean =>
-  value !== undefined && /[0-9]/.test(value)
-
-const skipRtfFallbackChars = (rtf: string, start: number, count: number): number => {
-  let index = start
-  let skipped = 0
-  while (index < rtf.length && skipped < count) {
-    if (rtf[index] === '\\' && rtf[index + 1] === "'") {
-      index += 4
-    } else {
-      index++
-    }
-    skipped++
-  }
-  return index
-}
-
 const extractRtfText = (rtf: string): string => {
   const stack: RtfState[] = [{ ignored: false, uc: 1 }]
   let output = ''
@@ -125,118 +80,11 @@ const extractRtfText = (rtf: string): string => {
       continue
     }
 
-    const next = rtf[index + 1]
-    if (next === undefined) {
-      index++
-      continue
-    }
-
-    if (next === '\\' || next === '{' || next === '}') {
-      append(next)
-      index += 2
-      continue
-    }
-
-    if (next === '*') {
-      state().ignored = true
-      index += 2
-      continue
-    }
-
-    if (next === "'") {
-      const hex = rtf.slice(index + 2, index + 4)
-      const code = Number.parseInt(hex, 16)
-      if (Number.isFinite(code)) append(String.fromCharCode(code))
-      index += 4
-      continue
-    }
-
-    if (!isAsciiLetter(next)) {
-      switch (next) {
-        case '~':
-          append(' ')
-          break
-        case '-':
-          append('')
-          break
-        case '_':
-          append('-')
-          break
-        case '\n':
-        case '\r':
-          break
-        default:
-          append(next)
-      }
-      index += 2
-      continue
-    }
-
-    let wordEnd = index + 1
-    while (isAsciiLetter(rtf[wordEnd])) wordEnd++
-    const word = rtf.slice(index + 1, wordEnd)
-
-    let numberEnd = wordEnd
-    if (rtf[numberEnd] === '-' || isAsciiDigit(rtf[numberEnd])) {
-      numberEnd++
-      while (isAsciiDigit(rtf[numberEnd])) numberEnd++
-    }
-    const numberRaw = rtf.slice(wordEnd, numberEnd)
-    const number = numberRaw.length > 0 ? Number.parseInt(numberRaw, 10) : undefined
-
-    index = numberEnd
-    if (rtf[index] === ' ') index++
-
-    if (RTF_IGNORED_DESTINATIONS.has(word)) {
-      state().ignored = true
-      continue
-    }
-
-    if (state().ignored) {
-      continue
-    }
-
-    switch (word) {
-      case 'par':
-      case 'line':
-        append('\n')
-        break
-      case 'tab':
-        append('\t')
-        break
-      case 'emdash':
-        append('--')
-        break
-      case 'endash':
-        append('-')
-        break
-      case 'lquote':
-      case 'rquote':
-        append("'")
-        break
-      case 'ldblquote':
-      case 'rdblquote':
-        append('"')
-        break
-      case 'bullet':
-        append('*')
-        break
-      case 'uc':
-        if (number !== undefined && Number.isFinite(number) && number >= 0) {
-          state().uc = number
-        }
-        break
-      case 'u': {
-        if (number === undefined || !Number.isFinite(number)) break
-        const codePoint = number < 0 ? number + 65536 : number
-        try {
-          append(String.fromCodePoint(codePoint))
-        } catch {
-        }
-        index = skipRtfFallbackChars(rtf, index, state().uc)
-        break
-      }
-    }
+    const token = decodeRtfControl(rtf, index)
+    const applied = applyRtfControl(token, state())
+    stack[stack.length - 1] = applied.state
+    output += applied.text
+    index = skipRtfFallbackChars(rtf, token.end, applied.fallbackChars)
   }
 
   return output

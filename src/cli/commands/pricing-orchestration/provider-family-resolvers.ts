@@ -1,9 +1,10 @@
 import { getExtractEstimation, getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { estimateOcrTokenUsage } from '~/cli/commands/text/ocr/ocr-pricing/ocr-estimates'
+import type { CostSource, EstimatedStepEntry, ExtractionMetadata, StepCostEntry, TokenPricedOcrProvider } from '~/types'
 import { isTokenPricedOcrProvider } from '~/types'
-import type { CostSource, EstimatedStepEntry, ExtractionMetadata, NormalizedReasoningEffort, StepCostEntry, TokenPricedOcrProvider } from '~/types'
-import { applyCostMultiplier } from './cost-helpers'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
+import type { EstimatedExtractTarget, ExtractCostEstimateInput } from './extraction-estimate-evidence'
+import { resolveExtractTokenEvidence } from './extraction-estimate-evidence'
+import { estimatePagePricedExtraction, projectExtractTokenEstimate } from './extraction-estimate-projection'
 
 const PAGE_PRICED_EXTRACT_PROVIDERS = new Set([
   'defuddle',
@@ -121,47 +122,15 @@ export const resolveActualExtractCostEntry = (
 }
 
 export const resolveEstimatedExtractCostEntry = (
-  target: {
-    provider: string
-    model: string
-    pageCount?: number | undefined
-    promptTokens?: number | undefined
-    completionTokens?: number | undefined
-    effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
-    ocrMode?: string | undefined
-    tokenEstimateSource?: 'exact' | 'profile' | 'blended-profile' | 'registry' | undefined
-    tokenEstimateConfidence?: 'none' | 'sparse' | 'healthy' | undefined
-    tokenProfileSampleCount?: number | undefined
-    tokenProfilePromptTokensPerPage?: number | undefined
-    tokenProfileCompletionTokensPerPage?: number | undefined
-    estimateType?: 'heuristic' | 'exact' | undefined
-  },
-  input: {
-    extractPageCount?: number | undefined
-    applyCostMultipliers?: boolean | undefined
-    hostedOcrTokenProfilePath?: string | undefined
-  }
+  target: EstimatedExtractTarget,
+  input: ExtractCostEstimateInput
 ): EstimatedStepEntry => {
   const estimation = getExtractEstimation(target.provider, target.model)
   const costMultiplier = input.applyCostMultipliers === false ? 1 : estimation.costMultiplier
   const pageCount = target.pageCount ?? input.extractPageCount ?? 0
 
   if (isPagePricedExtractProvider(target.provider)) {
-    const extractPricing = getExtractPricing(target.provider, target.model)
-    const cost = applyCostMultiplier(
-      (pageCount / 1000) * (extractPricing.costPer1kPagesCents ?? 0),
-      costMultiplier
-    )
-    return {
-      step: 'extract',
-      provider: target.provider,
-      model: target.model,
-      cost,
-      costMultiplier,
-      ...(typeof extractPricing.costPer1kPagesCents === 'number' ? { costPer1kPagesCents: extractPricing.costPer1kPagesCents } : {}),
-      ...(typeof target.pageCount === 'number' ? { pageCount: target.pageCount } : {}),
-      estimateType: target.estimateType ?? 'exact'
-    }
+    return estimatePagePricedExtraction(target, pageCount, costMultiplier)
   }
 
   if (!isTokenPricedOcrProvider(target.provider)) {
@@ -177,17 +146,8 @@ export const resolveEstimatedExtractCostEntry = (
   }
 
   const extractPricing = getExtractPricing(target.provider, target.model)
-  const hasExactPromptTokens = typeof target.promptTokens === 'number'
-  const hasExactCompletionTokens = typeof target.completionTokens === 'number'
-  const heuristicTokens = hasExactPromptTokens && hasExactCompletionTokens
-    ? undefined
-    : estimateOcrTokenUsage(target.provider, target.model, pageCount, {
-        ocrMode: target.ocrMode,
-        profilePath: input.hostedOcrTokenProfilePath,
-        effectiveReasoningEffort: target.effectiveReasoningEffort
-      })
-  const promptTokens = hasExactPromptTokens ? target.promptTokens as number : heuristicTokens?.promptTokens ?? 0
-  const completionTokens = hasExactCompletionTokens ? target.completionTokens as number : heuristicTokens?.completionTokens ?? 0
+  const evidence = resolveExtractTokenEvidence(target.provider, target, input, pageCount)
+  const { promptTokens, completionTokens } = evidence
   const tokenCost = computeTokenCost(
     {
       inputCostPer1MCents: extractPricing.inputCostPer1MCents ?? 0,
@@ -200,43 +160,7 @@ export const resolveEstimatedExtractCostEntry = (
     costMultiplier
   )
 
-  return {
-    step: 'extract',
-    provider: target.provider,
-    model: target.model,
-    cost: tokenCost.totalCost,
-    costMultiplier,
-    ...(typeof extractPricing.inputCostPer1MCents === 'number' ? { inputCostPer1MCents: tokenCost.inputCostPer1MCents } : {}),
-    ...(typeof extractPricing.outputCostPer1MCents === 'number' ? { outputCostPer1MCents: tokenCost.outputCostPer1MCents } : {}),
-    ...(typeof target.pageCount === 'number' ? { pageCount: target.pageCount } : {}),
-    ...(typeof target.ocrMode === 'string' ? { ocrMode: target.ocrMode } : {}),
-    promptTokens,
-    completionTokens,
-    tokenEstimateSource: hasExactPromptTokens && hasExactCompletionTokens
-      ? 'exact'
-      : heuristicTokens?.tokenEstimateSource ?? target.tokenEstimateSource ?? 'registry',
-    tokenEstimateConfidence: hasExactPromptTokens && hasExactCompletionTokens
-      ? 'healthy'
-      : heuristicTokens?.tokenEstimateConfidence ?? target.tokenEstimateConfidence ?? 'none',
-    ...(typeof heuristicTokens?.tokenProfileSampleCount === 'number'
-      ? { tokenProfileSampleCount: heuristicTokens.tokenProfileSampleCount }
-      : typeof target.tokenProfileSampleCount === 'number'
-        ? { tokenProfileSampleCount: target.tokenProfileSampleCount }
-        : {}),
-    ...(typeof heuristicTokens?.tokenProfilePromptTokensPerPage === 'number'
-      ? { tokenProfilePromptTokensPerPage: heuristicTokens.tokenProfilePromptTokensPerPage }
-      : typeof target.tokenProfilePromptTokensPerPage === 'number'
-        ? { tokenProfilePromptTokensPerPage: target.tokenProfilePromptTokensPerPage }
-        : {}),
-    ...(typeof heuristicTokens?.tokenProfileCompletionTokensPerPage === 'number'
-      ? { tokenProfileCompletionTokensPerPage: heuristicTokens.tokenProfileCompletionTokensPerPage }
-      : typeof target.tokenProfileCompletionTokensPerPage === 'number'
-        ? { tokenProfileCompletionTokensPerPage: target.tokenProfileCompletionTokensPerPage }
-        : {}),
-    ...(typeof tokenCost.pricingBand === 'string' ? { pricingBand: tokenCost.pricingBand } : {}),
-    ...(typeof tokenCost.pricingNote === 'string' ? { pricingNote: tokenCost.pricingNote } : {}),
-    estimateType: target.estimateType ?? (hasExactPromptTokens && hasExactCompletionTokens ? 'exact' : 'heuristic')
-  }
+  return projectExtractTokenEstimate(target, extractPricing, costMultiplier, evidence, tokenCost)
 }
 
 export const resolveEstimatedExtractProcessingMs = (

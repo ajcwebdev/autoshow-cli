@@ -26,8 +26,8 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 2: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Owns the command-neutral batch work plan, the canonical pipeline `manifest.json` including the pooled OCR page ledger, execution-to-resume selection parity, non-mutating `resume --price`, and rejection of superseded manifest formats. Archives Bun.JSONL parsing contracts and the measured distinction between evictable tokenizer data and durable recovery state.
-- **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md), [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md), [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
+- **Decision:** Owns the command-neutral batch work plan, the canonical pipeline `manifest.json` including the pooled OCR page ledger, execution-to-resume selection parity, non-mutating `resume --price`, and rejection of superseded manifest formats. Archives [recorded comic recovery and its fixture evidence](ADR-002-pipeline-state-resume-and-dry-run-planning.md#amendment-recorded-comic-recovery-2026-09-10), Bun.JSONL parsing contracts, and the measured distinction between evictable tokenizer data and durable recovery state.
+- **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md), [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md), [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md), [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
 
 **ADR 3: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)**
 
@@ -56,8 +56,8 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 7: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Integrates comic with the central model infrastructure, native command tree, and shared hosted coordinator for LLM/image/QA/dialogue/SFX work; retires comic's parallel model, parser, dispatcher, and help stacks and moves links selection onto the native parse boundary.
-- **Related ADRs:** [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-005](ADR-005-reduce-environment-variable-surface-area.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-011](ADR-011-add-refresh-metadata-to-links.md)
+- **Decision:** Integrates comic with the central model infrastructure, native command tree, and shared hosted coordinator for LLM/image/QA/dialogue/SFX work; retires comic's parallel model, parser, dispatcher, and help stacks and moves links selection onto the native parse boundary. Archives the [2026-09-10 command consolidation choices, rejected alternatives, compatibility window, and verification](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md#consolidation-selection-and-rejected-alternatives).
+- **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-005](ADR-005-reduce-environment-variable-surface-area.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-011](ADR-011-add-refresh-metadata-to-links.md), [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md)
 
 **ADR 8: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md)**
 
@@ -92,7 +92,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 13: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Establishes shared character-voice, provisioning, capability, native/segmented rendering, timing, compact scene-run output retention, hosted dialogue scheduling, and ambiguous-redispatch contracts; requires truthful capability behavior across TTS providers; and provides durable voice management contracts. Fish examples in the decision are historical because Fish support was removed on 2026-09-01.
+- **Decision:** Establishes shared character-voice, provisioning, capability, native/segmented rendering, timing, compact scene-run output retention, hosted dialogue scheduling, and ambiguous-redispatch contracts; requires truthful capability behavior across TTS providers; and provides durable voice management contracts. Archives [canonical voice management and the rejection of merged lifecycle actions](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md#amendment-one-voice-management-entry-point-2026-09-10). Fish examples in the decision are historical because Fish support was removed on 2026-09-01.
 - **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md), [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md)
 
 **ADR 14: [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)**
@@ -122,7 +122,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 18: [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Adds the local manifest-backed still-panel presentation layer: exact source reconciliation, panel-owned dialogue and effects, sequential timing, derived audio recomposition, immutable resume, and same-size H.264/AAC hard-cut rendering without provider calls or source-run mutation.
+- **Decision:** Adds the local manifest-backed still-panel presentation layer: exact source reconciliation, panel-owned dialogue and effects, sequential timing, derived audio recomposition, immutable resume, and same-size H.264/AAC hard-cut rendering without provider calls or source-run mutation. Archives [presentation recovery through `resume`](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md#amendment-presentation-recovery-through-resume-2026-09-10) and local FFmpeg verification evidence.
 - **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md), [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md)
 
 **ADR 19: [ADR-019](ADR-019-quiet-passing-test-console-output.md)**
@@ -267,3 +267,8 @@ Open follow-up work from ADRs and refresh reports, excluding never-ending refres
 
 - **Priority:** Low
 - **Next step:** Run the two deferred cleanup reviews: remaining multi-use exported declarations, and remaining multi-reference non-exported declarations.
+
+**Item 11: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)**
+
+- **Priority:** Low
+- **Next step:** After the compatibility release, remove deprecated `comic reference-voice`, `comic review-sheet`, and `comic review-notes` aliases in a later announced breaking CLI release.

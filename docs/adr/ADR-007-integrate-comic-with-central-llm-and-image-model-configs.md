@@ -11,11 +11,49 @@
 
 Voice management now uses the canonical `voice` command for both standalone and comic workflows. `comic reference-voice` already forwarded to the same nine voice handlers, so it added a second command vocabulary without a distinct capability. Its group and children remain callable as deprecated aliases for one compatibility release, with direct help and runtime notices. The ordinary comic menu omits the group. Provider selection, consent, character-root resolution, and result behavior remain shared.
 
-The two local review operations now share `comic review <script>`. Its default writes the HTML sheet; `--export-doc` also writes the shared-document export; `--notes <path>` processes notes only. Combining `--notes` and `--export-doc` fails before artifact writes. Only notes processing requires the character catalog. Existing artifact names and overwrite/history behavior remain intact, and neither mode edits the source script or calls a provider. The canonical result identifier is `comic review`.
+The two local review operations now share `comic review <script>`. Its default writes the HTML sheet; `--export-doc` also writes the shared-document export; `--notes <path>` processes notes only, without regenerating the sheet. Missing script operands, blank notes paths, and unknown flags are rejected. Combining `--notes` and `--export-doc` fails before catalog loading or artifact writes. Only notes processing requires the character catalog. Both modes are local and expose no `--price` option. The canonical result identifier is `comic review`, with the existing result payload fields.
 
-`comic review-sheet` and `comic review-notes` remain deprecated aliases for the same compatibility release, preserving their original flags, validation, and result identifiers. Their direct help documents the replacements. Alias removal requires a later announced breaking CLI release. Comic now has six canonical immediate subcommands; the three deprecated entries remain registered for compatibility.
+The sheet and optional export refresh `metadata/review/review-sheet.html` and `metadata/review/export-doc.md` in place; notes produce `metadata/review/review-notes-<run-id>.md`. Notes preserve authored scripts, scene JSON, structured scripts, unmatched-note reporting, and unresolved script-line reporting. Generated sheets direct reviewers to the canonical notes invocation. The human review round trip still requires two invocations separated by review.
+
+`comic review-sheet` and `comic review-notes` remain deprecated aliases for the same compatibility release, preserving their original flags, validation, and result identifiers. Their direct help documents the replacements, and execution emits deprecation notices through the normal logger. Warning visibility follows the normal quiet and log-level controls for all three deprecated entries. Alias removal requires a later announced breaking CLI release.
 
 This amendment supersedes the command-surface recommendations below that present `comic reference-voice` as a normal entry point. The original decision remains as historical context. Current usage and migration details live in the [comic overview](../commands/visuals/comic/00-comic-overview.md), [review guide](../commands/visuals/comic/06-review.md), and [voice overview](../commands/audio/voice/00-voice-overview.md). Shared provider infrastructure and domain responsibilities are unchanged.
+
+### Consolidation selection and rejected alternatives
+
+The 2026-09-10 consolidation review implemented canonical voice management (proposal 1A), the combined local review command (1B), and recorded comic recovery through the existing `resume` command (the selected extension of 3B). Resume had rejected comic manifests despite retained stage and provider state. The [ADR-002 recovery amendment](ADR-002-pipeline-state-resume-and-dry-run-planning.md#amendment-recorded-comic-recovery-2026-09-10) closes that gap while keeping initial generation, human checkpoints, and explicit rerenders separate. The original universal `comic build` interface, automatic fresh-run planning, and broad media execution abstraction were excluded.
+
+Loading registered definitions without invoking handlers counted 14 top-level commands and 13 global flags at the review date. Canonical immediate comic entries fell from eight to six: `draft-scenes`, `reference-sketch`, `generate-images`, `generate-audio`, `generate-slideshow`, and `review`. Registered immediate entries grew from eight to nine while the three deprecated entries remained. The nine canonical voice actions and nine nested compatibility aliases were unchanged. Recovery added no public command or comic-specific resume flag. These are historical surface counts; the voice handlers were already shared, so the consolidation did not eliminate nine implementations.
+
+The selection favored clear actions, shallow nesting, consistent vocabulary, and stable automation. Rankings were engineering judgments based on registered definitions and implementation; usage frequency, production time savings, and spending reductions were not measured. The following four alternatives were rejected as competing consolidation projects. They are not a parallel roadmap. Flag counts below are command-local keys at the review date, excluding globals and positional operands.
+
+**Proposal 2A: one comic rendering command (rejected)**
+
+- **Option:** Merge image, audio, and slideshow generation behind an `--outputs` selector
+- **Pros:** Fewer public rendering command names
+- **Cons:** Adds mode validation and a larger help surface; weakens the independent local slideshow boundary owned by [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md). Images followed by the existing audio `--slideshow` shortcut already covers prepared-scene generation in two invocations.
+- **Quantitative Notes:** Image, audio, and slideshow commands had 28, 18, and 4 flags; their union was 47, with only `--price` shared by all three
+
+**Proposal 2B: one voice creation command (rejected)**
+
+- **Option:** Replace import, design, and clone with one mode-selecting command
+- **Pros:** Fewer public voice creation command names
+- **Cons:** Local registration, paid design preview/save, and authorized sample cloning retain different consent and lifecycle boundaries, as archived in [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md#amendment-one-voice-management-entry-point-2026-09-10)
+- **Quantitative Notes:** A mode selector would replace three names without removing the underlying operations
+
+**Proposal 2C: broad selector and execution-control alignment (rejected)**
+
+- **Option:** Normalize selectors and execution-control flags across commands
+- **Pros:** Addresses some real vocabulary differences
+- **Cons:** Concurrency controls govern different units of work, and public renaming does not fix recovery. Only internal normalization needed by the comic adapter was selected; no repository-wide flag migration was scheduled.
+- **Quantitative Notes:** No measured recovery benefit from public renaming
+
+**Proposal 3A: common media-job execution and publication (rejected)**
+
+- **Option:** Add a shared media execution and publication lifecycle
+- **Pros:** Potential further implementation reuse
+- **Cons:** Comic image targets already reuse standalone targets, and comic audio already uses shared TTS rendering and scheduling. A broader lifecycle risks mixing ordinary generation with comic QA and artifact ownership; the recovery adapter addresses the demonstrated gap.
+- **Quantitative Notes:** Further abstraction savings were unmeasured
 
 ## Context
 
@@ -165,12 +203,25 @@ bun test test/test-cases/validation/visuals/comic/comic-character-*-contracts.te
 
 Verification uses local fixtures and mocked providers without executing live hosted generation commands.
 
+### Consolidation verification recorded on 2026-09-10
+
+The implementation review recorded 299 passing tests across 47 files for the initial voice/review consolidation, including combined review behavior and compatibility aliases. A later CLI pass recorded 280 tests across 45 files covering help, usage errors, option resolution, documentation flags, JSON output, and comic workspace documentation. These overlapping passes are separate evidence snapshots. The [review command contracts](../../test/test-cases/validation/visuals/comic/comic-review-command-contracts.test.ts) retain coverage for both modes, catalog boundaries, unchanged source artifacts, and rejection before writes.
+
+`bun run check` passed, and `bun t --price` passed all 136 mapped pricing commands without provider execution. Recovery-specific evidence and its limits are retained in [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md#comic-recovery-verification-recorded-on-2026-09-10) and [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md#recovery-verification-recorded-on-2026-09-10). The recorded verification used local files, synthetic media, mocked provider responses, and read-only price preflights; it did not establish live-provider reliability or production performance gains.
+
+## Follow-up Actions
+
+- [ ] Remove `comic reference-voice`, `comic review-sheet`, and `comic review-notes` compatibility aliases — Pending a later announced breaking CLI release after the compatibility release
+
 ## References
 
+- Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — recorded comic recovery and price planning
 - Related ADR: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md) — shared type and ownership boundaries
 - Related ADR: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md) — removal of parallel override/client plumbing
 - Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — shared hosted admission, pressure recovery, and clean-ramp price planning
 - Related ADR: [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — links selection modes and refresh artifacts
+- Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md) — canonical voice management and distinct lifecycle actions
+- Related ADR: [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md) — independent local slideshow rendering and recovery
 - [comic](../commands/visuals/comic/00-comic-overview.md)
 - `docs/commands/setup-and-utilities/links.md`
 - `src/cli/native/native-parser.ts`

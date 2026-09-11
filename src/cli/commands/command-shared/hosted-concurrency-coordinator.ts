@@ -2,14 +2,11 @@ import type {
   ClassState,
   HostedConcurrencyAdmission,
   HostedConcurrencyAdmissionToken,
-  HostedConcurrencyClassTelemetry,
   HostedConcurrencyCoordinator,
   HostedConcurrencyCoordinatorOptions,
-  HostedConcurrencyLaneTelemetry,
   HostedConcurrencyMode,
   HostedConcurrencyPressureDecision,
   HostedConcurrencyPressureEvent,
-  HostedConcurrencyRequestOptions,
   HostedConcurrencyRampTransition,
   HostedConcurrencyTelemetry,
   HostedConcurrencyWorkClass,
@@ -21,15 +18,20 @@ import type {
   TokenState,
   Waiter
 } from '~/types'
-import { createProviderLaneIdentity, DEFAULT_PROVIDER_LANE_SCOPE_LABEL } from './provider-lane-contract'
-import { AppError, extractErrorMetadata, InternalError } from '~/utils/error-handler'
+import { InternalError } from '~/utils/error-handler'
 import { normalizePositiveInt } from '~/utils/value-helpers'
+import { resolveHostedRecoveryBackoff } from './hosted-concurrency-recovery-policy'
+import { projectHostedConcurrencyLane } from './hosted-concurrency-telemetry'
+import { resolveHostedLaneRamp, resolveHostedReleaseOutcome, selectHostedLaneWaiter } from './hosted-lane-transition-policy'
+import { createProviderLaneIdentity, DEFAULT_PROVIDER_LANE_SCOPE_LABEL } from './provider-lane-contract'
+
+export { recoverHostedConcurrencyRequest, runHostedConcurrencyRequest } from './hosted-concurrency-request'
+export { classifyHostedRateLimitPressure } from './hosted-rate-limit-pressure'
 
 const DEFAULT_HOSTED_CONCURRENCY_MODE: HostedConcurrencyMode = 'ramp'
 const HOSTED_CONCURRENCY_RAMP_INTERVAL_MS = 5_000
 const HOSTED_CONCURRENCY_RECOVERY_BUDGET_MS = 5 * 60_000
 
-const RATE_LIMIT_BACKOFF_MS = [2_000, 4_000, 8_000, 16_000, 30_000] as const
 const EVENT_HISTORY_LIMIT = 100
 
 const recoveryKeyFor = (laneKey: string, workId: string, unitIndex: number): string =>
@@ -126,34 +128,22 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
     else if (status === 'canceled') lane.canceled += 1
     else lane.failed += 1
 
-    if (tokenState.pressureReported && status !== 'succeeded') {
-      lane.recoveryProbeActive = false
-      if (!tokenState.recoveryRetryApproved) {
-        this.#recoveryByWork.delete(tokenState.recoveryKey)
-        if (!tokenState.recoveryFailureRecorded) lane.recoveryFailures += 1
-        this.#finishRecoveryIfDrained(lane)
-      }
-    }
-
-    if (token.recoveryProbe && !tokenState.pressureReported && status !== 'succeeded') {
-      lane.recoveryProbeActive = false
+    const outcome = resolveHostedReleaseOutcome(tokenState, token.recoveryProbe, status)
+    if (outcome.clearProbe) lane.recoveryProbeActive = false
+    if (outcome.discardRecovery) {
       this.#recoveryByWork.delete(tokenState.recoveryKey)
-      lane.recoveryFailures += 1
+      if (outcome.recordFailure) lane.recoveryFailures += 1
       this.#finishRecoveryIfDrained(lane)
     }
-
-    if (token.recoveryProbe || (tokenState.pressureReported && status === 'succeeded')) {
-      lane.recoveryProbeActive = false
-      if (status === 'succeeded') {
-        this.#clearLaneRecovery(lane)
-        lane.recovering = false
-        lane.rampingAfterRecovery = lane.currentLimit < lane.configuredLimit
-        this.#finishPause(lane)
-        lane.pauseUntilMs = 0
-        lane.nextRampAtMs = lane.rampingAfterRecovery && lane.waiters.length > 0
-          ? this.#now() + this.#rampIntervalMs
-          : undefined
-      }
+    if (outcome.finishRecovery) {
+      this.#clearLaneRecovery(lane)
+      lane.recovering = false
+      lane.rampingAfterRecovery = lane.currentLimit < lane.configuredLimit
+      this.#finishPause(lane)
+      lane.pauseUntilMs = 0
+      lane.nextRampAtMs = lane.rampingAfterRecovery && lane.waiters.length > 0
+        ? this.#now() + this.#rampIntervalMs
+        : undefined
     }
 
     this.#drain(lane)
@@ -200,50 +190,14 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
     recovery.pressureAttempt += 1
     this.#recoveryByWork.set(tokenState.recoveryKey, recovery)
 
-    const backoffIndex = Math.min(recovery.pressureAttempt - 1, RATE_LIMIT_BACKOFF_MS.length - 1)
-    const baseDelayMs: number = RATE_LIMIT_BACKOFF_MS[backoffIndex] ?? 30_000
-    const random = Math.min(1, Math.max(0, this.#random()))
-    const jitteredDelayMs = Math.round(baseDelayMs * (0.5 + random * 0.5))
-    const requestedDelayMs = Math.max(
-      0,
-      feedback.delayMs ?? 0,
-      feedback.retryAfterMs ?? 0
+    const { delayMs, elapsedMs, remainingBudgetMs } = resolveHostedRecoveryBackoff(
+      recovery, feedback, now, this.#recoveryBudgetMs, this.#random()
     )
-    const delayMs = Math.max(jitteredDelayMs, requestedDelayMs)
-    const elapsedMs = Math.max(0, now - recovery.firstPressureAtMs)
-    const remainingBudgetMs = Math.max(0, this.#recoveryBudgetMs - elapsedMs)
 
-    const previousLimit = lane.currentLimit
-    lane.currentLimit = Math.max(1, Math.floor(lane.currentLimit / 2))
-    lane.recovering = true
-    lane.rampingAfterRecovery = false
-    lane.nextRampAtMs = undefined
-    this.#recordTransition(lane, previousLimit, lane.currentLimit, 'rate-limit')
-
-    const pressureEvent: HostedConcurrencyPressureEvent = {
-      atMs: now,
-      workId: token.workId,
-      unitIndex: token.unitIndex,
-      workClass: token.workClass,
-      ...(typeof feedback.status === 'number' ? { status: feedback.status } : {}),
-      reason: feedback.reason,
-      ...(typeof feedback.retryAfterMs === 'number' ? { retryAfterMs: feedback.retryAfterMs } : {}),
-      backoffMs: delayMs,
-      previousLimit,
-      nextLimit: lane.currentLimit
-    }
-    lane.pressureEvents.push(pressureEvent)
-    trimHistory(lane.pressureEvents)
+    this.#beginRateLimitRecovery(lane, token, feedback, now, delayMs)
 
     if (delayMs > remainingBudgetMs) {
-      lane.recoveryFailures += 1
-      tokenState.recoveryFailureRecorded = true
-      tokenState.recoveryRetryApproved = false
-      this.#recoveryByWork.delete(tokenState.recoveryKey)
-      if (![...this.#recoveryByWork.keys()].some((key) => key.startsWith(lanePrefix(lane.lane.laneKey)))) {
-        lane.recovering = false
-        lane.rampingAfterRecovery = lane.currentLimit < lane.configuredLimit
-      }
+      this.#exhaustRateLimitRecovery(lane, tokenState)
       this.#drain(lane)
       return {
         retry: false,
@@ -270,12 +224,54 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
     }
   }
 
+  #beginRateLimitRecovery(
+    lane: LaneState,
+    token: HostedConcurrencyAdmissionToken,
+    feedback: ProviderLanePressureFeedback,
+    now: number,
+    delayMs: number
+  ): void {
+    const previousLimit = lane.currentLimit
+    lane.currentLimit = Math.max(1, Math.floor(lane.currentLimit / 2))
+    lane.recovering = true
+    lane.rampingAfterRecovery = false
+    lane.nextRampAtMs = undefined
+    this.#recordTransition(lane, previousLimit, lane.currentLimit, 'rate-limit')
+
+    const pressureEvent: HostedConcurrencyPressureEvent = {
+      atMs: now,
+      workId: token.workId,
+      unitIndex: token.unitIndex,
+      workClass: token.workClass,
+      ...(typeof feedback.status === 'number' ? { status: feedback.status } : {}),
+      reason: feedback.reason,
+      ...(typeof feedback.retryAfterMs === 'number' ? { retryAfterMs: feedback.retryAfterMs } : {}),
+      backoffMs: delayMs,
+      previousLimit,
+      nextLimit: lane.currentLimit
+    }
+    lane.pressureEvents.push(pressureEvent)
+    trimHistory(lane.pressureEvents)
+
+  }
+
+  #exhaustRateLimitRecovery(lane: LaneState, tokenState: TokenState): void {
+    lane.recoveryFailures += 1
+    tokenState.recoveryFailureRecorded = true
+    tokenState.recoveryRetryApproved = false
+    this.#recoveryByWork.delete(tokenState.recoveryKey)
+    if (![...this.#recoveryByWork.keys()].some((key) => key.startsWith(lanePrefix(lane.lane.laneKey)))) {
+      lane.recovering = false
+      lane.rampingAfterRecovery = lane.currentLimit < lane.configuredLimit
+    }
+  }
+
   snapshot(): HostedConcurrencyTelemetry {
     return {
       version: 1,
       mode: this.mode,
       lanes: [...this.#lanes.values()]
-        .map((lane) => this.#snapshotLane(lane))
+        .map((lane) => projectHostedConcurrencyLane(lane, this.#now()))
         .sort((left, right) => left.lane.laneKey.localeCompare(right.lane.laneKey))
     }
   }
@@ -385,7 +381,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
     this.#finishPause(lane)
 
     while (lane.active < lane.currentLimit) {
-      const waiterIndex = this.#selectWaiterIndex(lane)
+      const waiterIndex = selectHostedLaneWaiter(lane, this.#recoveryByWork)
       if (waiterIndex < 0) break
       const [waiter] = lane.waiters.splice(waiterIndex, 1)
       if (!waiter) break
@@ -393,48 +389,27 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
       if (lane.recovering) break
     }
 
-    if (lane.waiters.length === 0) {
-      lane.nextRampAtMs = undefined
-      this.#clearWake(lane)
-      return
-    }
-
-    if (lane.recovering) {
-      return
-    }
-    if (lane.currentLimit < lane.configuredLimit) {
-      lane.nextRampAtMs ??= now + this.#rampIntervalMs
-      if (lane.nextRampAtMs <= now) {
-        const previousLimit = lane.currentLimit
-        lane.currentLimit = Math.min(lane.configuredLimit, lane.currentLimit + 1)
-        this.#recordTransition(
-          lane,
-          previousLimit,
-          lane.currentLimit,
-          lane.rampingAfterRecovery ? 'recovery-ramp' : 'startup-ramp'
-        )
-        if (lane.currentLimit >= lane.configuredLimit) {
-          lane.rampingAfterRecovery = false
-          lane.nextRampAtMs = undefined
-        } else {
-          lane.nextRampAtMs = now + this.#rampIntervalMs
-        }
-        this.#drain(lane)
+    const decision = resolveHostedLaneRamp(lane, now, this.#rampIntervalMs)
+    switch (decision.kind) {
+      case 'idle':
+        lane.nextRampAtMs = undefined
+        this.#clearWake(lane)
         return
+      case 'unchanged':
+        return
+      case 'wake':
+        lane.nextRampAtMs = decision.atMs
+        this.#scheduleWake(lane, decision.atMs)
+        return
+      case 'ramp': {
+        const previousLimit = lane.currentLimit
+        lane.currentLimit = decision.limit
+        this.#recordTransition(lane, previousLimit, lane.currentLimit, decision.reason)
+        lane.rampingAfterRecovery = decision.rampingAfterRecovery
+        lane.nextRampAtMs = decision.nextRampAtMs
+        this.#drain(lane)
       }
-      this.#scheduleWake(lane, lane.nextRampAtMs)
     }
-  }
-
-  #selectWaiterIndex(lane: LaneState): number {
-    if (lane.recovering) {
-      if (lane.recoveryProbeActive) return -1
-      return lane.waiters.findIndex((waiter) =>
-        this.#recoveryByWork.has(waiter.recoveryKey)
-        && waiter.classState.active < waiter.classState.configuredLimit
-      )
-    }
-    return lane.waiters.findIndex((waiter) => waiter.classState.active < waiter.classState.configuredLimit)
   }
 
   #admit(waiter: Waiter): void {
@@ -537,206 +512,9 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
     }
   }
 
-  #snapshotLane(lane: LaneState): HostedConcurrencyLaneTelemetry {
-    const now = this.#now()
-    const livePauseMs = lane.pauseStartedAtMs === undefined
-      ? 0
-      : Math.max(0, Math.min(now, lane.pauseUntilMs) - lane.pauseStartedAtMs)
-    const classes: HostedConcurrencyClassTelemetry[] = [...lane.classes.entries()]
-      .map(([workClass, state]) => ({
-        workClass,
-        configuredLimit: state.configuredLimit,
-        active: state.active,
-        activePeak: state.activePeak,
-        queued: lane.waiters.filter((waiter) => waiter.admission.workClass === workClass).length
-      }))
-      .sort((left, right) => left.workClass.localeCompare(right.workClass))
-    return {
-      lane: lane.lane,
-      configuredLimit: lane.configuredLimit,
-      currentLimit: lane.currentLimit,
-      active: lane.active,
-      activePeak: lane.activePeak,
-      queuedWork: lane.waiters.length,
-      queuedPeak: lane.queuedPeak,
-      admitted: lane.admitted,
-      completed: lane.completed,
-      failed: lane.failed,
-      canceled: lane.canceled,
-      rampTransitions: lane.rampTransitions.slice(),
-      pressureEvents: lane.pressureEvents.slice(),
-      pauseDurationMs: Math.round(lane.pauseDurationMs + livePauseMs),
-      recoveryProbes: lane.recoveryProbes,
-      recoveryFailures: lane.recoveryFailures,
-      classes
-    }
-  }
+
 }
 
 export const createHostedConcurrencyCoordinator = (
   options: HostedConcurrencyCoordinatorOptions = {}
 ): HostedConcurrencyCoordinator => new HostedConcurrencyCoordinatorImpl(options)
-
-const readNestedErrorValue = (error: unknown, key: string): unknown => {
-  const seen = new Set<unknown>()
-  let current = error
-  while (current && typeof current === 'object' && !seen.has(current)) {
-    seen.add(current)
-    if (key in current) return (current as Record<string, unknown>)[key]
-    if (current instanceof AppError && key in current.metadata) return current.metadata[key]
-    current = 'cause' in current ? (current as { cause?: unknown }).cause : undefined
-  }
-  return undefined
-}
-
-const readHeader = (headers: unknown, name: string): string | undefined => {
-  if (headers instanceof Headers) return headers.get(name) ?? undefined
-  if (headers && typeof headers === 'object' && 'get' in headers && typeof headers.get === 'function') {
-    const value = (headers.get as (key: string) => unknown)(name)
-    return typeof value === 'string' ? value : undefined
-  }
-  if (!headers || typeof headers !== 'object') return undefined
-  const entry = Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase())
-  const value = entry?.[1]
-  if (Array.isArray(value)) return value.find((item): item is string => typeof item === 'string')
-  if (typeof value === 'number') return String(value)
-  return typeof value === 'string' ? value : undefined
-}
-
-const toHeaders = (headers: unknown): Headers | undefined => {
-  if (headers instanceof Headers) return headers
-  if (!headers || typeof headers !== 'object') return undefined
-  const normalized = new Headers()
-  for (const [key, value] of Object.entries(headers)) {
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        if (typeof item === 'string' || typeof item === 'number') normalized.append(key, String(item))
-      }
-    } else if (typeof value === 'string' || typeof value === 'number') {
-      normalized.append(key, String(value))
-    }
-  }
-  return [...normalized.keys()].length > 0 ? normalized : undefined
-}
-
-export const classifyHostedRateLimitPressure = (
-  error: unknown
-): ProviderLanePressureFeedback | undefined => {
-  const status = readNestedErrorValue(error, 'status')
-  const category = readNestedErrorValue(error, 'category')
-  const code = readNestedErrorValue(error, 'code')
-  const messages: string[] = []
-  const seen = new Set<unknown>()
-  let current = error
-  while (current && typeof current === 'object' && !seen.has(current)) {
-    seen.add(current)
-    if (current instanceof Error) messages.push(current.message)
-    current = 'cause' in current ? (current as { cause?: unknown }).cause : undefined
-  }
-  const message = messages.join(' ').toLowerCase()
-  const classificationText = `${typeof category === 'string' ? category : ''} ${typeof code === 'string' ? code : ''} ${message}`.toLowerCase()
-  if (/billing|payment required|insufficient (?:balance|credit)|quota[_\s-]*(?:exhaust|exceed|deplet)|exceed(?:ed|s|ing)? (?:your )?(?:current )?quota|quota[_\s-]*limit[_\s-]*(?:reached|exhaust)|check your plan|authentication|unauthorized|validation/.test(classificationText)) {
-    return undefined
-  }
-  const explicitlyRateLimited = status === 429
-    || (typeof category === 'string' && /rate.?limit|too.?many.?requests|concurrenc/i.test(category))
-    || (typeof code === 'string' && /rate.?limit|too.?many.?requests|concurrenc/i.test(code))
-    || /rate[-\s]?limit|too many requests|provider concurrency|concurrency limit/.test(message)
-  if (!explicitlyRateLimited) return undefined
-  const headers = readNestedErrorValue(error, 'headers')
-  let retryAfterMs: number | undefined
-  const rawRetryAfter = readHeader(headers, 'retry-after')
-  if (rawRetryAfter !== undefined) {
-    const seconds = Number(rawRetryAfter)
-    if (Number.isFinite(seconds)) retryAfterMs = Math.max(0, seconds * 1_000)
-    else {
-      const atMs = Date.parse(rawRetryAfter)
-      if (Number.isFinite(atMs)) retryAfterMs = Math.max(0, atMs - Date.now())
-    }
-  }
-  return {
-    reason: typeof category === 'string' ? category : 'rate-limit',
-    ...(typeof status === 'number' ? { status } : {}),
-    ...(typeof retryAfterMs === 'number' ? { retryAfterMs } : {})
-  }
-}
-
-const toErrorCause = (error: unknown): Error =>
-  error instanceof Error ? error : new Error(error === undefined ? 'Unknown hosted request failure' : String(error))
-
-const throwHostedRecoveryExhausted = (
-  error: unknown,
-  pressure: ProviderLanePressureFeedback,
-  decision: HostedConcurrencyPressureDecision,
-  token: HostedConcurrencyAdmissionToken
-): never => {
-  const metadata = extractErrorMetadata(error)
-  const status = typeof metadata['status'] === 'number' ? metadata['status'] : pressure.status
-  const headers = toHeaders(metadata['headers'])
-  const stage = typeof metadata['stage'] === 'string' ? metadata['stage'] : 'hosted:rate-limit-recovery'
-  throw new AppError(`Hosted request rate-limit recovery exhausted after ${decision.pressureAttempt} pressure event(s) and ${decision.elapsedMs}ms.`, {
-    kind: 'retry_exhausted',
-    cause: toErrorCause(error),
-    ...(typeof status === 'number' ? { status } : {}),
-    ...(headers ? { headers } : {}),
-    stage,
-    retryable: false,
-    metadata: {
-      ...metadata,
-      pressureAttempt: decision.pressureAttempt,
-      elapsedMs: decision.elapsedMs,
-      remainingBudgetMs: decision.remainingBudgetMs,
-      requiredDelayMs: decision.delayMs,
-      stopReasonCode: 'max_attempts',
-      hostedConcurrencyLane: token.lane,
-      hostedConcurrencyWorkClass: token.workClass,
-      hostedConcurrencyWorkId: token.workId,
-      hostedConcurrencyUnitIndex: token.unitIndex
-    }
-  })
-}
-
-export const recoverHostedConcurrencyRequest = async (options: {
-  coordinator: HostedConcurrencyCoordinator
-  admission: HostedConcurrencyAdmission
-  token: HostedConcurrencyAdmissionToken
-  error: unknown
-  pressure?: ProviderLanePressureFeedback | undefined
-}): Promise<HostedConcurrencyAdmissionToken> => {
-  const pressure = options.pressure ?? classifyHostedRateLimitPressure(options.error)
-  if (!pressure) throw options.error
-  const decision = options.coordinator.reportRateLimit(options.token, pressure)
-  options.coordinator.release(options.token, 'failed')
-  if (!decision.retry) {
-    throwHostedRecoveryExhausted(options.error, pressure, decision, options.token)
-  }
-  return await options.coordinator.acquire(options.admission)
-}
-
-export const runHostedConcurrencyRequest = async <T>(
-  options: HostedConcurrencyRequestOptions,
-  task: (token: HostedConcurrencyAdmissionToken) => Promise<T>
-): Promise<T> => {
-  const classifyPressure = options.classifyPressure ?? classifyHostedRateLimitPressure
-  let token = await options.coordinator.acquire(options.admission)
-  while (true) {
-    try {
-      const result = await task(token)
-      options.coordinator.release(token, 'succeeded')
-      return result
-    } catch (error) {
-      const pressure = classifyPressure(error)
-      if (!pressure) {
-        options.coordinator.release(token, options.admission.abortSignal?.aborted === true ? 'canceled' : 'failed')
-        throw error
-      }
-      token = await recoverHostedConcurrencyRequest({
-        coordinator: options.coordinator,
-        admission: options.admission,
-        token,
-        error,
-        pressure
-      })
-    }
-  }
-}

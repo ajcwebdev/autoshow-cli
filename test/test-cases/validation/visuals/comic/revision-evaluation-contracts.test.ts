@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { dirname, join, relative } from 'node:path'
 import { mkdir } from 'node:fs/promises'
-import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
+import { dirname, join, relative } from 'node:path'
+import { canonicalTargetKey } from '~/cli/commands/audio/tts/script-to-audio/contract-identity'
 import {
   buildRevisionComparisonPrompt,
   computeRevisionPlanFingerprint,
@@ -13,13 +13,13 @@ import {
   parseRevisionComparison,
   parseRevisionPlan,
   runRevisionEvaluation,
-  type RevisionEvaluationDependencies,
   type RevisionComparisonRaw,
+  type RevisionEvaluationDependencies,
   type RevisionPlan,
 } from '~/cli/commands/visuals/comic/comic-commands/generate-images/revision-evaluation'
 import { createComicSourceIdentity, createStructuredScriptArtifactRef } from '~/cli/commands/visuals/comic/comic-utils/comic-audio-contracts'
 import { recordComicImageRevision, updateComicImageManifest, writeInitialComicStructureManifest } from '~/cli/commands/visuals/comic/comic-utils/comic-manifest'
-import { canonicalTargetKey } from '~/cli/commands/audio/tts/script-to-audio/contract-identity'
+import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
 import type { GenerateImagesCommandOptions, PanelBundleData, PipelineProviderState } from '~/types'
 import { getFfmpegBinary, PROJECT_ROOT, toPosixPath } from '~/utils/runtime-paths'
 import { withLocalTestDir } from '../../../../test-utils/temp-dirs'
@@ -186,6 +186,69 @@ describe('revision evaluation contracts', () => {
     const after = await loadRevisionPriceInventory(fixture.options)
     expect(after.imageCalls).toBe(0)
     expect(after.comparisonCalls).toBe(0)
+  }))
+
+  for (const failAfterPublication of [false, true]) {
+    test(`preserves completed revision evidence when publication fails ${failAfterPublication ? 'after promotion and rolls back' : 'before promotion'}`, async () => await withLocalTestDir('revision-publication-failure', async root => {
+      const fixture = await createFixture(root)
+      const candidateBytes = Buffer.from('recoverable-candidate')
+      let comparisons = 0
+      const failure = new Error('injected publication failure')
+      await expect(runRevisionEvaluation(fixture.options, {
+        requestImage: async () => ({ mode: 'edit', result: { imageBase64: candidateBytes.toString('base64') } }),
+        writeImage: async path => { await Bun.write(path, candidateBytes) },
+        requestComparison: async () => ({ text: JSON.stringify(comparison(++comparisons === 2)), inputTokens: 2, outputTokens: 1 }),
+        measureSimilarity: async () => ({ ssim: 0.8, normalizedRmse: 0.1 }),
+        recordManifest: async input => {
+          try {
+            if (failAfterPublication) {
+              await input.publishFinal?.()
+              expect(await sha256File(fixture.canonicalPath)).toBe(sha256Bytes(candidateBytes))
+            }
+            throw failure
+          } catch (error) {
+            await input.rollbackFinal?.()
+            throw error
+          }
+        },
+      })).rejects.toBe(failure)
+      expect(await sha256File(fixture.canonicalPath)).toBe(sha256Bytes(fixture.originalBytes))
+      const inventory = await loadRevisionPriceInventory(fixture.options)
+      expect(inventory.imageCalls).toBe(0)
+      expect(inventory.comparisonCalls).toBe(0)
+      expect(await Bun.file(join(inventory.loaded.evidenceDirectory, 'panel-01', 'candidate.png')).text()).toBe(candidateBytes.toString())
+      const resumed = await runRevisionEvaluation(fixture.options, {
+        requestImage: async () => { throw new Error('completed image must be reused') },
+        requestComparison: async () => { throw new Error('completed comparison must be reused') },
+        measureSimilarity: async () => { throw new Error('completed measurement must be reused') },
+        recordManifest: recordPublishedManifest,
+      })
+      expect(resumed.promotedPanels).toEqual([1])
+      expect(await sha256File(fixture.canonicalPath)).toBe(sha256Bytes(candidateBytes))
+    }))
+  }
+
+  test('makes an interrupted comparison terminal while retaining completed image and other-pass evidence', async () => await withLocalTestDir('revision-comparison-ambiguity', async root => {
+    const fixture = await createFixture(root)
+    let comparisons = 0
+    const first = await runRevisionEvaluation(fixture.options, {
+      requestImage: async () => ({ mode: 'edit', result: { imageBase64: 'Y2FuZGlkYXRl' } }),
+      writeImage: async path => { await Bun.write(path, 'candidate') },
+      requestComparison: async () => ({ text: JSON.stringify(comparison(++comparisons === 2)), inputTokens: 2, outputTokens: 1 }),
+      measureSimilarity: async () => ({ ssim: 0.8, normalizedRmse: 0.1 }),
+      recordManifest: async () => undefined,
+    })
+    const ledger = first.ledgers[0]!
+    ledger.comparisonSlots[0]!.status = 'in-flight'
+    await Bun.write(join(first.evidenceDirectory, 'panel-01', 'panel-ledger.json'), JSON.stringify(ledger))
+    const resumed = await runRevisionEvaluation(fixture.options, {
+      requestImage: async () => { throw new Error('image must not dispatch') },
+      requestComparison: async () => { throw new Error('comparison must not dispatch') },
+      recordManifest: recordPublishedManifest,
+    })
+    expect(resumed.ledgers[0]!.comparisonSlots.map(slot => slot.status)).toEqual(['ambiguous', 'completed'])
+    expect(resumed.promotedPanels).toEqual([])
+    expect(await sha256File(fixture.canonicalPath)).toBe(sha256Bytes(fixture.originalBytes))
   }))
 
   test('still evaluates a frozen false positive but never promotes it', async () => await withLocalTestDir('revision-false-positive', async root => {

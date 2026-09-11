@@ -1,80 +1,22 @@
-import { existsSync } from 'node:fs'
-import * as v from 'valibot'
 import { mkdir, readdir } from 'node:fs/promises'
 import { extname, join, relative } from 'node:path'
-import type { ComicSourceIdentity, FinalPanelImageStageOptions, GenerateComicPagesOptions, GenerateImagesCommandOptions, GenerateImagesTarget, GenerateImagesWorkflowDependencies, GeneratePanelImagesOptions, ImageGenerationQuality, ImageGenerationSize, ImageRunStats, PipelineProviderState } from '~/types'
-import { DEFAULT_IMAGE_MODEL, validateImageSizeForModels } from '../../comic-utils/image-size'
-import { InfraError, isAppError } from '~/utils/error-handler'
-import { ScenePromptDataSchema } from '../../schemas/schemas'
+import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
+import type { ComicSourceIdentity, FinalPanelImageStageOptions, GenerateImagesCommandOptions, GenerateImagesWorkflowDependencies, ImageRunStats, PipelineProviderState } from '~/types'
+import { InfraError } from '~/utils/error-handler'
+import { canonicalTargetKey, sha256Bytes } from '../../../../audio/tts/script-to-audio/contract-identity'
+import { captureComicImageRecoveryInputs, comicImageRecoveryFlags, comicImageRecoveryHash } from '../../comic-utils/comic-image-recovery'
 import { comicLog, err, formatCompactCost, formatDuration, withSuppressedPipelineLogs } from '../../comic-utils/comic-logger'
-import { getPanelPromptsDirectory, getSceneJsonPath, getSceneMetadataDirectoryForWorkspace, getSceneOutputDirectory } from '../../comic-utils/project-paths'
-import { beginSceneRun, findLatestSceneRunDirectory } from '../../comic-utils/scene-run-context'
-import { createComicRunId } from '../../comic-utils/comic-run-id'
-import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
+import { updateComicImageManifest } from '../../comic-utils/comic-manifest'
+import { completeComicRecoveryIntent, recordComicRecoveryIntent } from '../../comic-utils/comic-recovery-intent'
+import { getSceneOutputDirectory } from '../../comic-utils/project-paths'
 import { assertPanelPromptSourceCoverage } from '../../comic-utils/source-coverage-utils'
-import { generateSketchesCommand } from '../generate-sketches/generate-sketches-command'
-import { COMIC_GRID_PANEL_SIZE, DEFAULT_FINAL_PANELS_PER_IMAGE, DEFAULT_SKETCH_PANELS_PER_IMAGE, panelSelectionToSketchRange, validateComicGridOptions } from './comic-page-utils'
+import { createFinalGridOptions, createFinalPageOptions, createFinalPanelOptions, prepareFinalPanelStage } from './comic-final-image-stage-options'
+import { runComicImageAuditMode, runComicImageGenerationMode, runComicImageRevisionMode } from './comic-image-run-modes'
+import { prepareComicImageRun } from './comic-image-run-preparation'
+import { failedImageRunStatsFromError, mergeImageStats } from './comic-image-run-statistics'
 import { generateComicGridPages } from './generate-comic-grid-pages'
 import { generateComicPages } from './generate-comic-pages'
 import { generatePanelImages } from './generate-panel-images'
-import { getImagePromptVariationLabel } from './prompt-variations'
-import { createImageRunStats } from '../../comic-image-services/image-costs'
-import { readManifest } from '../../../../command-shared/pipeline-manifest'
-import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
-import { canonicalTargetKey, sha256Bytes } from '../../../../audio/tts/script-to-audio/contract-identity'
-import { completeComicRecoveryIntent, recordComicRecoveryIntent } from '../../comic-utils/comic-recovery-intent'
-import { captureComicImageRecoveryInputs, comicImageRecoveryFlags, comicImageRecoveryHash } from '../../comic-utils/comic-image-recovery'
-import { updateComicImageManifest } from '../../comic-utils/comic-manifest'
-import { resolveCompatibleComicSceneRun } from '../../comic-utils/compatible-scene-run'
-import { runQaOnlyPanelAudit } from './qa-only-panel-audit'
-import { runRevisionEvaluation } from './revision-evaluation'
-
-const DEFAULT_IMAGE_SIZE: ImageGenerationSize = COMIC_GRID_PANEL_SIZE
-const DEFAULT_IMAGE_QUALITY: ImageGenerationQuality = 'high'
-
-const getGenerateImagesTarget = (target: GenerateImagesCommandOptions['target']): GenerateImagesTarget => {
-  return target ?? 'images'
-}
-
-const panelPromptsExist = async (sceneSlug: string): Promise<boolean> => {
-  const dir = getPanelPromptsDirectory(sceneSlug)
-  if (!existsSync(dir)) return false
-  const entries = await readdir(dir, { withFileTypes: true })
-  return entries.some(entry => entry.isDirectory() && !entry.name.startsWith('.'))
-}
-
-const mergeImageStats = (target: ImageRunStats, source: ImageRunStats | void): void => {
-  if (!source) return
-
-  target.imagesGenerated += source.imagesGenerated
-  target.imagesSkipped += source.imagesSkipped
-  target.totalInputTokens += source.totalInputTokens
-  target.totalInputTextTokens += source.totalInputTextTokens
-  target.totalInputImageTokens += source.totalInputImageTokens
-  target.totalInputUnattributedTokens += source.totalInputUnattributedTokens
-  target.totalOutputTokens += source.totalOutputTokens
-  target.totalOutputTextTokens += source.totalOutputTextTokens
-  target.totalOutputImageTokens += source.totalOutputImageTokens
-  target.totalOutputUnattributedTokens += source.totalOutputUnattributedTokens
-  target.totalCost += source.totalCost
-  target.totalDurationMs += source.totalDurationMs
-}
-
-const failedImageRunStatsFromError = (error: unknown): ImageRunStats | undefined => {
-  const seen = new Set<unknown>()
-  let current: unknown = error
-  while (current instanceof Error && !seen.has(current)) {
-    seen.add(current)
-    if (isAppError(current)) {
-      const stats = current.metadata['imageRunStats']
-      if (stats && typeof stats === 'object' && !Array.isArray(stats) && typeof (stats as Record<string, unknown>)['imagesGenerated'] === 'number') return stats as ImageRunStats
-      current = current.cause
-    } else {
-      current = (current as Error & { cause?: unknown }).cause
-    }
-  }
-  return undefined
-}
 
 const collectImageArtifactRefs = async (sceneRunDir: string): Promise<Array<{ path: string, sha256: string }>> => {
   const paths: string[] = []
@@ -90,27 +32,10 @@ const collectImageArtifactRefs = async (sceneRunDir: string): Promise<Array<{ pa
   return await Promise.all(paths.map(async path => ({ path: relative(sceneRunDir, path).split('\\').join('/'), sha256: sha256Bytes(new Uint8Array(await Bun.file(path).arrayBuffer())) })))
 }
 
-const formatPanelSelection = (panels: GenerateImagesCommandOptions['panels']): string => {
-  if (!panels || panels === 'all') return 'all'
-  return panels.join(',')
-}
-
 const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Promise<ImageRunStats> => {
-  const { sceneSlug, runId, concurrency } = options
-  const panelsPerImage = options.panelsPerImage ?? DEFAULT_FINAL_PANELS_PER_IMAGE
-  const usePageMode = !options.grid && panelsPerImage > 1
-  const stageLabel = options.grid ? 'Grid' : usePageMode ? 'Page' : 'Image'
-
-  const models = options.imageModels ?? [DEFAULT_IMAGE_MODEL]
-  const size: ImageGenerationSize = options.size ?? DEFAULT_IMAGE_SIZE
-  const quality: ImageGenerationQuality = options.quality ?? DEFAULT_IMAGE_QUALITY
-  const force = options.force ?? false
-  validateImageSizeForModels(size, models)
-  validateComicGridOptions(options.grid, {
-    target: 'images',
-    size,
-    panelsPerImage,
-  })
+  const { sceneSlug } = options
+  const prepared = prepareFinalPanelStage(options)
+  const { usePageMode, stageLabel } = prepared
 
   try {
     await mkdir(getSceneOutputDirectory(sceneSlug), { recursive: true })
@@ -125,77 +50,18 @@ const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Pr
 
   try {
     if (options.grid) {
-      const panelStats = await generatePanelImages(sceneSlug, {
-        models,
-        size,
-        quality,
-        force,
-        runId,
-        concurrency,
-        hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
-        concurrencyMode: options.concurrencyMode,
-        qa: options.qa ?? true,
-        ...(options.qaModel ? { qaModel: options.qaModel } : {}),
-        maxRepairs: options.maxRepairs ?? 2,
-        ...(options.blockingHardKeys?.length ? { blockingHardKeys: options.blockingHardKeys } : {}),
-        ...(options.stopOnProviderError === true ? { stopOnProviderError: true } : {}),
-        ...(options.bloopers === true ? { bloopers: true } : {}),
-        ...(options.panels !== undefined ? { panels: options.panels } : {}),
-        ...(options.variations !== undefined ? { variations: options.variations } : {}),
-        ...(options.blockingLayoutGuide === true ? { blockingLayoutGuide: true } : {}),
-      })
-      const gridStats = await generateComicGridPages(sceneSlug, {
-        models,
-        force,
-        runId,
-        concurrency,
-        panels: options.panels ?? 'all',
-        grid: options.grid,
-        ...(options.variations !== undefined ? { variations: options.variations } : {}),
-      } as any)
+      const panelStats = await generatePanelImages(sceneSlug, createFinalPanelOptions(options, prepared))
+      const gridStats = await generateComicGridPages(sceneSlug, createFinalGridOptions(options, prepared))
       mergeImageStats(panelStats, gridStats)
       return panelStats
     }
 
     if (usePageMode) {
-      const pageOptions: GenerateComicPagesOptions = {
-        models,
-        size,
-        quality,
-        force,
-        runId,
-        concurrency,
-        hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
-        concurrencyMode: options.concurrencyMode,
-        panels: options.panels ?? 'all',
-        panelsPerImage,
-        ...(options.variations !== undefined ? { variations: options.variations } : {}),
-        qa: options.qa ?? true,
-        ...(options.qaModel ? { qaModel: options.qaModel } : {}),
-        maxRepairs: options.maxRepairs ?? 2,
-      }
-      return await generateComicPages(sceneSlug, pageOptions)
+
+      return await generateComicPages(sceneSlug, createFinalPageOptions(options, prepared))
     } else {
-      const generationOptions: GeneratePanelImagesOptions = {
-        models,
-        size,
-        quality,
-        force,
-        runId,
-        concurrency,
-        hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
-        concurrencyMode: options.concurrencyMode,
-        ...(options.panels !== undefined ? { panels: options.panels } : {}),
-        ...(options.variations !== undefined ? { variations: options.variations } : {}),
-        qa: options.qa ?? true,
-        ...(options.qaModel ? { qaModel: options.qaModel } : {}),
-        maxRepairs: options.maxRepairs ?? 2,
-        ...(options.blockingHardKeys?.length ? { blockingHardKeys: options.blockingHardKeys } : {}),
-        ...(options.blockingLayoutGuide === true ? { blockingLayoutGuide: true } : {}),
-        ...(options.stopOnProviderError === true ? { stopOnProviderError: true } : {}),
-        ...(options.bloopers === true ? { bloopers: true } : {}),
-      }
-      return await generatePanelImages(sceneSlug, generationOptions)
+
+      return await generatePanelImages(sceneSlug, createFinalPanelOptions(options, prepared))
     }
   } catch (error) {
     err(`${stageLabel} generation failed:`, error instanceof Error ? error.message : String(error))
@@ -210,128 +76,10 @@ const runGenerateImagesCommand = async (
   options: GenerateImagesCommandOptions,
   dependencies: GenerateImagesWorkflowDependencies = {}
 ): Promise<void> => {
-  const { sceneSlug } = options
-
-  const latestRunDir = findLatestSceneRunDirectory(sceneSlug)
-  const resumeLatest = latestRunDir !== undefined
-    && existsSync(join(getSceneMetadataDirectoryForWorkspace(latestRunDir), 'scene.json'))
-  beginSceneRun(sceneSlug, resumeLatest && latestRunDir
-    ? { outputDir: latestRunDir }
-    : {})
-  const sceneRunDir = getSceneOutputDirectory(sceneSlug)
-  let canonicalManifest = await readManifest(sceneRunDir)
-  if (!canonicalManifest && Object.keys(dependencies).length === 0) throw InfraError('Comic image generation requires a canonical comic manifest from structured-script v5. Re-run comic draft-scenes for a clean scene run.', { stage: 'comic:generate-images' })
-  if (Object.keys(dependencies).length === 0) canonicalManifest = (await resolveCompatibleComicSceneRun({ scriptPath: options.scriptPath, outputDir: sceneRunDir })).manifest
-
-  const target = getGenerateImagesTarget(options.target)
-  const runSketches = dependencies.runSketches ?? generateSketchesCommand
-  const runImages = dependencies.runImages ?? runFinalPanelImageStage
-  const checkPanelPromptSourceCoverage = dependencies.checkPanelPromptSourceCoverage ?? assertPanelPromptSourceCoverage
-  const models = options.imageModels ?? [DEFAULT_IMAGE_MODEL]
-  const size: ImageGenerationSize = options.size ?? DEFAULT_IMAGE_SIZE
-  const quality: ImageGenerationQuality = options.quality ?? DEFAULT_IMAGE_QUALITY
-  const finalPanelsPerImage = options.panelsPerImage ?? DEFAULT_FINAL_PANELS_PER_IMAGE
-  const sketchPanelsPerImage = options.panelsPerImage ?? DEFAULT_SKETCH_PANELS_PER_IMAGE
-  const concurrency = options.concurrency ?? DEFAULT_CLI_CONCURRENCY
-  const runId = options.recoveryRunId ?? createComicRunId()
-  const recoveryOptions = { ...options, recoveryRunId: runId }
-  const startedAt = Date.now()
-  const totals = createImageRunStats()
-
-  validateImageSizeForModels(size, models)
-  validateComicGridOptions(options.grid, {
-    target,
-    size,
-    panelsPerImage: finalPanelsPerImage,
-  })
-  comicLog.header('comic generate-images', [
-    `scene=${sceneSlug}`,
-    `target=${target}`,
-  ])
-
-  const checkScenesExist = dependencies.checkScenesExist ?? (async (slug: string) => {
-    return existsSync(getSceneJsonPath(slug))
-  })
-  const checkPromptsExist = dependencies.checkPromptsExist ?? panelPromptsExist
-
-  if (!(await checkScenesExist(sceneSlug)) || !(await checkPromptsExist(sceneSlug))) {
-    throw InfraError(
-      `Reviewed schemaVersion 4 scene and panel bundles are required. Run "bun autoshow comic draft-scenes ${options.scriptPath}" explicitly; generate-images never drafts or upgrades artifacts.`,
-      { stage: 'comic:generate-images' },
-    )
-  }
-  if (!dependencies.checkScenesExist) {
-    try {
-      v.parse(ScenePromptDataSchema, JSON.parse(await Bun.file(getSceneJsonPath(sceneSlug)).text()))
-    } catch (error) {
-      throw InfraError(
-        `Reviewed schemaVersion 4 scene JSON is required. Run "bun autoshow comic draft-scenes ${options.scriptPath}" explicitly; older scenes cannot enter controlled image generation.`,
-        { stage: 'comic:generate-images', cause: error instanceof Error ? error : undefined },
-      )
-    }
-  }
-
-  const coverageReport = await checkPanelPromptSourceCoverage(sceneSlug)
-  comicLog.line('inputs ready', [
-    'draft=reviewed-v4',
-    'prompts=reviewed-v4',
-    `coverage=${coverageReport.coveredSegments}/${coverageReport.totalSegments}`,
-  ])
-  comicLog.line('config', [
-    `target=${target}`,
-    `models=${models.join(',')}`,
-    `size=${size}`,
-    `quality=${quality}`,
-    `concurrency=${concurrency}`,
-    `run=${runId}`,
-    `panels=${formatPanelSelection(options.panels)}`,
-    `finalPanelsPerImage=${finalPanelsPerImage}`,
-    `sketchPanelsPerImage=${sketchPanelsPerImage}`,
-    options.grid ? `grid=${options.grid.columns}x${options.grid.rows}` : undefined,
-    options.variations !== undefined
-      ? `variations=${options.variations.map(getImagePromptVariationLabel).join(',')}`
-      : undefined,
-    options.force ? 'force=true' : undefined,
-    options.qaOnly ? 'qaOnly=true' : undefined,
-    options.revisionPlan ? `revisionPlan=${options.revisionPlan}` : undefined,
-  ])
-
-  if (canonicalManifest && (canonicalManifest.command !== 'comic' || !canonicalManifest.source)) throw InfraError('Comic image generation found a canonical manifest for another workflow.', { stage: 'comic:generate-images' })
-  if (options.qaOnly) {
-    const audit = await runQaOnlyPanelAudit(options)
-    comicLog.summary([
-      `judged=${audit.entries.length}`,
-      `hardFailures=${audit.entries.filter(entry => entry.hardFailure).length}`,
-      audit.continuity ? `continuityJudged=${audit.continuity.judged}` : undefined,
-      audit.continuity ? `continuityFindings=${audit.continuity.hardFailures}` : undefined,
-      audit.continuity ? `continuityAnchor=${audit.continuity.anchorPanel}` : undefined,
-      'imageCalls=0',
-      'repairCalls=0',
-      `tokens=${(audit.inputTokens + audit.outputTokens).toLocaleString()}`,
-      `cost=${formatCompactCost(audit.costUsd)}`,
-      `duration=${formatDuration(Date.now() - startedAt)}`,
-      'imageInputUnits=0',
-    ])
-    comicLog.outputDirectory(audit.reportDirectory)
-    if (audit.continuity) comicLog.outputDirectory(join(sceneRunDir, audit.continuity.reportDirectory))
-    return
-  }
-  if (options.revisionPlan) {
-    const runRevision = dependencies.runRevisionEvaluation ?? (async revisionOptions => (await runRevisionEvaluation(revisionOptions)).stats)
-    const revisionStats = await runRevision(options)
-    mergeImageStats(totals, revisionStats)
-    comicLog.summary([
-      `generated=${totals.imagesGenerated}`,
-      `skipped=${totals.imagesSkipped}`,
-      `comparisons=${totals.totalInputTokens + totals.totalOutputTokens > 0 ? 'recorded' : 'none-recorded'}`,
-      `tokens=${(totals.totalInputTokens + totals.totalOutputTokens).toLocaleString()}`,
-      `cost=${formatCompactCost(totals.totalCost)}`,
-      `duration=${formatDuration(Date.now() - startedAt)}`,
-      `imageInputUnits=${totals.totalInputImageTokens.toLocaleString()}`,
-    ])
-    comicLog.outputDirectory(sceneRunDir)
-    return
-  }
+  const context = await prepareComicImageRun(options, dependencies)
+  const { sceneRunDir, canonicalManifest, target, models, size, quality, finalPanelsPerImage, runId, recoveryOptions, startedAt, totals } = context
+  if (options.qaOnly) return await runComicImageAuditMode(options, context)
+  if (options.revisionPlan) return await runComicImageRevisionMode(options, dependencies, context)
   const imageProviderState = (status: PipelineProviderState['status'], error?: unknown): PipelineProviderState[] => models.map((model) => {
     const service = findRegistryServiceForModel('image', model)
     if (!service) throw InfraError(`Comic image model ${model} is missing its central provider identity.`, { stage: 'comic:generate-images' })
@@ -373,39 +121,7 @@ const runGenerateImagesCommand = async (
   await updateImageManifest('running')
 
   try {
-    if (target === 'sketches' || target === 'both') {
-      const sketchPanels = panelSelectionToSketchRange(options.panels)
-      const sketchStats = await runSketches({
-        sceneSlug,
-        imageModels: models,
-        size,
-        quality,
-        runId,
-        concurrency,
-        hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
-        concurrencyMode: options.concurrencyMode,
-        ...(options.force !== undefined ? { force: options.force } : {}),
-        ...(sketchPanels !== undefined ? { sketchPanels } : {}),
-        panelsPerImage: sketchPanelsPerImage,
-      })
-      mergeImageStats(totals, sketchStats)
-    }
-
-    if (target === 'images' || target === 'both') {
-      const imageStats = await runImages({
-        ...options,
-        imageModels: models,
-        size,
-        quality,
-        panelsPerImage: finalPanelsPerImage,
-        qa: options.qa ?? true,
-        ...(options.qaModel ? { qaModel: options.qaModel } : {}),
-        maxRepairs: options.maxRepairs ?? 2,
-        runId,
-        concurrency,
-      })
-      mergeImageStats(totals, imageStats)
-    }
+    await runComicImageGenerationMode(options, dependencies, context, runFinalPanelImageStage)
   } catch (error) {
     mergeImageStats(totals, failedImageRunStatsFromError(error))
     await updateImageManifest('failed', error)

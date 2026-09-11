@@ -1,4 +1,4 @@
-import { test, expect } from 'bun:test'
+import { expect, test } from 'bun:test'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -50,6 +50,14 @@ test('CLI review and edit application preserve evidence, distinguish interpolati
     }
     await writeEdits([], 'stale')
     expect((await run(['--transcript-edits', edits, '--output-dir', join(dir, 'stale')])).code).not.toBe(0)
+    await writeEdits([{ startWord: 2, deleteCount: 2, expectedText: 'there. Yes.', replacement: '', reason: 'Explicit deletion across speaker turns' }])
+    const deletionDir = join(dir, 'cross-turn-deletion')
+    expect((await run(['--transcript-edits', edits, '--output-dir', deletionDir])).code).toBe(0)
+    expect((await Bun.file(join(deletionDir, 'result.json')).json()).text).toBe('Hello there')
+    expect((await Bun.file(join(deletionDir, 'transcript-edits.json')).json()).removedSegments).toHaveLength(1)
+    await writeEdits([{ startWord: 0, deleteCount: 4, expectedText: 'Hello there there. Yes.', replacement: '', reason: 'Entire transcript deletion' }])
+    expect((await run(['--transcript-edits', edits, '--output-dir', join(dir, 'empty')])).code).not.toBe(0)
+    expect(await Bun.file(source).text()).toBe(original)
     const invalidTimingSource = JSON.stringify({ text: 'Hello Mmm. Mmm. Yes.', segments: [
       { start: '00:00:00.100', end: '00:00:00.400', text: 'Hello', speaker: 'speaker-A' },
       { start: '00:00:00.500', end: '00:00:00.800', text: 'Mmm. Mmm.', speaker: 'speaker-B' },

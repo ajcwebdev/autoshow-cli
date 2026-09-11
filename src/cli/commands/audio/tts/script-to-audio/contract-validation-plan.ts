@@ -1,139 +1,16 @@
-import type { CanonicalAudioProviderProjection, HybridRepairDependencies, ProviderRenderPlan, VoiceCapabilityFeature } from '~/types'
+import type { CanonicalAudioProviderProjection, HybridRepairDependencies, ProviderRenderPlan } from '~/types'
 import { UsageError } from '~/utils/error-handler'
-import { canonicalTargetKey, computeRenderIdentity, computeVoiceContextKey, hashCanonicalRecordWithout, hashCanonicalTtsValue } from './contract-identity'
-import { assertExactStringSet, assertSha256, assertUnique, SHA256, validatePlannedCost, validateTypedSettings } from './contract-validation-primitives'
-import { validatePreparedProviderText, validateProviderVoiceRef } from './contract-validation-capability'
-import { SEGMENTED_COMPOSITION_VERSION } from './attempt-shared'
-
-export const capabilityFeatureForStrategy = (strategy: ProviderRenderPlan['strategy']): VoiceCapabilityFeature => {
-  if (strategy === 'native-dialogue') return 'native-dialogue'
-  if (strategy === 'native-utterances') return 'native-utterances'
-  return 'turn-synthesis'
-}
+import { assertSha256, assertUnique } from './contract-validation-primitives'
+import { validateRenderPlanBatches } from './render-plan-batch-validation'
+import { validateRenderPlanHeader } from './render-plan-header-validation'
+import { validateRenderPlanTurns } from './render-plan-turn-validation'
+import { validateRenderPlanVoiceContext } from './render-plan-voice-context-validation'
 
 export const validateProviderRenderPlanIdentity = (plan: ProviderRenderPlan): ProviderRenderPlan => {
-  if (plan.schemaVersion !== 1) throw UsageError('Provider render plan requires schemaVersion 1.')
-  const expectedTarget = canonicalTargetKey(plan.operation, plan.provider, plan.model, plan.transport)
-  if (plan.targetKey !== expectedTarget) throw UsageError('Provider render plan targetKey does not match its operation/adapter identity.')
-  const expectedPlanId = hashCanonicalRecordWithout(plan as unknown as Record<string, unknown>, ['renderPlanId', 'renderIdentity'])
-  if (plan.renderPlanId !== expectedPlanId) throw UsageError('Provider render plan has an invalid renderPlanId.')
-  const expectedRenderIdentity = computeRenderIdentity({
-    renderPlanId: plan.renderPlanId,
-    targetKey: plan.targetKey,
-    strategy: plan.strategy,
-    voiceContextKey: plan.voiceContextKey,
-    synthesisSettingsHash: plan.synthesisSettingsHash,
-    outputProfileHash: plan.outputProfileHash
-  })
-  if (plan.renderIdentity !== expectedRenderIdentity) {
-    throw UsageError('Provider render plan has an invalid voice-aware renderIdentity.')
-  }
-  const feature = capabilityFeatureForStrategy(plan.strategy)
-  const legacyOutputProfileHash = hashCanonicalTtsValue(plan.requestedOutput)
-  const currentOutputProfileHash = hashCanonicalTtsValue({ requestedOutput: plan.requestedOutput, compositionVersion: SEGMENTED_COMPOSITION_VERSION })
-  if (
-    plan.requiredCapabilityScopeHashes.length === 0
-    || plan.requiredCapabilityScopeHashes.some((hash) => !SHA256.test(hash))
-    || !SHA256.test(plan.capabilityFixtureHash)
-    || !SHA256.test(plan.synthesisSettingsHash)
-    || !SHA256.test(plan.outputProfileHash)
-    || (plan.outputProfileHash !== legacyOutputProfileHash && (plan.strategy !== 'segmented' || plan.outputProfileHash !== currentOutputProfileHash))
-  ) {
-    throw UsageError(`Provider render plan requires valid ${feature} capability, settings, and output identities.`)
-  }
-  assertUnique(plan.requiredCapabilityScopeHashes, 'Provider render capability scopes')
-  assertUnique(plan.resolvedVoiceRevisionHashes, 'Provider render voice revisions')
-  if (plan.batches.length === 0 || plan.batches.some((batch) => batch.generationSlots.length === 0)) {
-    throw UsageError('Provider render plan requires non-empty batches and generation slots.')
-  }
-  if (!plan.requestedOutput.codec.trim() || !plan.requestedOutput.container.trim()) {
-    throw UsageError('Provider render plan requires a concrete requested audio codec and container.')
-  }
-  validatePlannedCost(plan.plannedCost, 'Provider render planned cost')
-
-  const turns = plan.nodes.flatMap((node) => node.kind === 'turn' ? [node.turn] : node.turns)
-  if (turns.length === 0) throw UsageError('Provider render plan requires speakable resolved turns.')
-  if (plan.nodes.some(node => node.kind === 'overlap' && (!node.groupId.trim() || node.turns.length < 2))) throw UsageError('Provider render overlap nodes require a stable group ID and at least two resolved turns.')
-  assertUnique(turns.map((turn) => turn.turnId), 'Provider render turn IDs')
-  for (const turn of turns) {
-    if (!turn.turnId.trim() || !turn.sourceSegmentId.trim() || !turn.subjectKey.trim() || !turn.originalSpeakerLabel.trim() || !turn.canonicalText.trim()) {
-      throw UsageError('Provider render turn identity and canonical text must not be empty.')
-    }
-    validatePreparedProviderText(turn.providerText)
-    if (turn.providerText.canonicalText !== turn.canonicalText) {
-      throw UsageError('Prepared provider text must bind the exact canonical turn text.')
-    }
-    validateTypedSettings(turn.providerControls, 'Provider turn controls')
-    if (turn.providerDelivery) validateTypedSettings(turn.providerDelivery, 'Provider turn delivery')
-    validateProviderVoiceRef(turn.voice.providerVoice)
-    if (turn.voice.providerVoice.provider !== plan.provider || turn.voice.providerModel !== plan.model) {
-      throw UsageError('Resolved voice binding does not match the provider render target.')
-    }
-    if (turn.voice.settingsSchema !== turn.voice.synthesisSettings.settingsSchema) {
-      throw UsageError('Resolved voice settings schema does not match its synthesis settings payload.')
-    }
-    validateTypedSettings(turn.voice.synthesisSettings, 'Resolved voice synthesis settings')
-  }
-
-  const batchIds = plan.batches.map((batch) => batch.batchId)
-  assertUnique(batchIds, 'Provider render batch IDs')
-  const slotIds = plan.batches.flatMap((batch) => batch.generationSlots.map((slot) => slot.generationSlotId))
-  assertUnique(slotIds, 'Provider render generation slot IDs')
-  const orderedTurnIds = plan.batches.flatMap((batch) => batch.orderedTurnIds)
-  if (plan.strategy !== 'hybrid') {
-    assertExactStringSet(orderedTurnIds, turns.map((turn) => turn.turnId), 'Provider render batch turn coverage')
-  } else if (orderedTurnIds.some((turnId) => !turns.some((turn) => turn.turnId === turnId))) {
-    throw UsageError('Hybrid provider render batch references an unknown turn.')
-  }
-  for (const [batchIndex, batch] of plan.batches.entries()) {
-    if (batch.orderedTurnIds.length === 0) throw UsageError('Provider render batch requires ordered turns.')
-    assertUnique(batch.orderedTurnIds, 'Provider render batch turn IDs')
-    validateTypedSettings(batch.requestControls, 'Provider batch request controls')
-    validatePlannedCost(batch.plannedCost, 'Provider batch planned cost')
-    if (batch.generationSlots.some((slot, index) =>
-      slot.slotIndex !== index
-      || !Number.isInteger(slot.requestedTakeCount)
-      || slot.requestedTakeCount < 1
-    )) {
-      throw UsageError('Provider generation slots require contiguous zero-based indexes and positive take counts.')
-    }
-    for (const slot of batch.generationSlots) validatePlannedCost(slot.plannedCost, 'Provider generation-slot planned cost')
-    if (batch.continuation.kind === 'prior-batch-selection') {
-      const predecessorBatchId = batch.continuation.predecessorBatchId
-      const predecessorIndex = plan.batches.findIndex((entry) => entry.batchId === predecessorBatchId)
-      if (predecessorIndex < 0 || predecessorIndex >= batchIndex) {
-        throw UsageError('Provider continuation must reference an earlier batch in the same render plan.')
-      }
-    }
-  }
-
-  if (plan.voiceContext.kind === 'approved-snapshot') {
-    const snapshotId = plan.voiceContext.snapshotId
-    if (
-      turns.some((turn) => turn.voice.kind !== 'approved-snapshot' || turn.voice.snapshotId !== snapshotId)
-      || plan.voiceContextKey !== computeVoiceContextKey(plan.voiceContext)
-    ) {
-      throw UsageError('Approved provider render voice context key does not match its snapshot.')
-    }
-  } else {
-    const transientTurns = turns.map((turn) => {
-      if (turn.voice.kind !== 'transient-provider-voice') {
-        throw UsageError('Transient provider render context requires only transient voice bindings.')
-      }
-      return { turnId: turn.turnId, bindingIdentityHash: turn.voice.identityHash }
-    })
-    const declaredBindingIdentities = [...plan.voiceContext.bindingIdentityHashes].sort()
-    const actualBindingIdentities = transientTurns.map((turn) => turn.bindingIdentityHash).sort()
-    if (
-      declaredBindingIdentities.length !== actualBindingIdentities.length
-      || declaredBindingIdentities.some((identity, index) => identity !== actualBindingIdentities[index])
-    ) {
-      throw UsageError('Provider render transient binding identities must exactly match its turn bindings.')
-    }
-    if (plan.voiceContextKey !== computeVoiceContextKey({ kind: 'transient', turns: transientTurns })) {
-      throw UsageError('Transient provider render voice context key does not match its exact turn bindings.')
-    }
-  }
+  validateRenderPlanHeader(plan)
+  const turns = validateRenderPlanTurns(plan)
+  validateRenderPlanBatches(plan, turns)
+  validateRenderPlanVoiceContext(plan, turns)
   if (plan.strategy === 'hybrid') validateHybridRepairDependencies(plan.repair)
   return plan
 }
@@ -166,7 +43,6 @@ export const projectCanonicalAudioProviderStatus = (
   return { status: event.status, attempts: event.attempt }
 }
 
-
 export const validateHybridRepairDependencies = (
   repair: HybridRepairDependencies
 ): HybridRepairDependencies => {
@@ -197,3 +73,5 @@ export const validateHybridRepairDependencies = (
   }
   return repair
 }
+
+export { capabilityFeatureForStrategy } from './render-plan-header-validation'

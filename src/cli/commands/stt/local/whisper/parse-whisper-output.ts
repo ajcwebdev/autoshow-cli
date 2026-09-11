@@ -2,6 +2,7 @@ import type { TranscriptionSegment, WhisperJsonOutput } from '~/types'
 import { WhisperJsonOutputSchema } from '~/types'
 import { validateJson } from '~/utils/validate/validation'
 import { clampSegmentsToKnownEnd, clampWordTimingsToKnownEnd } from '../../workflows/timing/stt-timing-quality'
+import { appendWhisperSegmentText, cleanWhisperSegmentText, resolveWhisperSegmentBreak } from './whisper-aggregation-policy'
 
 export const parseWhisperJson = (
   jsonContent: string,
@@ -50,9 +51,6 @@ export const extractWhisperWords = (
 
 const aggregateWordSegments = (wordSegments: WhisperJsonOutput['transcription']): TranscriptionSegment[] => {
   const segments: TranscriptionSegment[] = []
-  const targetWordsPerSegment = 35
-  const minWordsPerSegment = 20
-  const maxWordsPerSegment = 45
   let currentText = ''
   let segmentStart = ''
   let segmentEnd = ''
@@ -74,55 +72,18 @@ const aggregateWordSegments = (wordSegments: WhisperJsonOutput['transcription'])
     const currentStartTime = parseTimestamp(wordSeg.timestamps.from)
     const prevEndTime = prevSeg ? parseTimestamp(prevSeg.timestamps.to) : 0
     const gapFromPrev = prevSeg ? currentStartTime - prevEndTime : 1000
-    const needsSpaceBefore = currentText.length > 0 &&
-                             !currentText.endsWith("'") &&
-                             !text.startsWith("'") &&
-                             gapFromPrev > 10
-    const needsPunctuationBefore = gapFromPrev > 800 &&
-                                   currentText.length > 0 &&
-                                   !currentText.match(/[.!?,]$/)
-    if (needsPunctuationBefore && currentText.length > 0) {
-      if (gapFromPrev > 1500) {
-        currentText = currentText.trimEnd() + '.'
-        isNewSentence = true
-      } else if (gapFromPrev > 800) {
-        currentText = currentText.trimEnd() + ','
-      }
-    }
-    if (needsSpaceBefore) {
-      currentText += ' '
-    }
-    if (isNewSentence && text.length > 0 && !text.match(/^[.!?,]/)) {
-      text = text.charAt(0).toUpperCase() + text.slice(1)
-      isNewSentence = false
-    }
-    currentText += text
+    const appended = appendWhisperSegmentText(currentText, text, isNewSentence, gapFromPrev)
+    currentText = appended.currentText
+    text = appended.text
+    isNewSentence = appended.isNewSentence
     const currentFullText = currentText.trim()
     actualWordCount = currentFullText.split(/\s+/).filter(w => w.length > 0).length
     segmentEnd = formatTimestampForDisplay(wordSeg.timestamps.to)
     const isLastSegment = i === wordSegments.length - 1
     const nextGap = nextSeg ? parseTimestamp(nextSeg.timestamps.from) - parseTimestamp(wordSeg.timestamps.to) : 0
-    const hasVeryLongPause = nextGap > 3000
-    const hasModerateBreak = nextGap > 1500 && actualWordCount >= minWordsPerSegment
-    const reachedTargetWords = actualWordCount >= targetWordsPerSegment
-    const reachedMaxWords = actualWordCount >= maxWordsPerSegment
-    const naturalBreak = (text.trim().match(/[.!?]$/) || hasVeryLongPause) && actualWordCount >= minWordsPerSegment
-    const shouldBreak = isLastSegment ||
-                       reachedMaxWords ||
-                       (reachedTargetWords && (hasModerateBreak || naturalBreak)) ||
-                       (hasVeryLongPause && actualWordCount >= 10) ||
-                       (naturalBreak && hasModerateBreak)
+    const { shouldBreak, hasVeryLongPause } = resolveWhisperSegmentBreak(text, actualWordCount, nextGap, isLastSegment)
     if (shouldBreak) {
-      let cleanedText = currentFullText
-        .replace(/\s+/g, ' ')
-        .replace(/\s+([,.!?;:])/g, '$1')
-        .replace(/([A-Za-z])([,.!?;:])([A-Za-z])/g, '$1$2 $3')
-      if (!cleanedText.match(/[.!?]$/) && (isLastSegment || hasVeryLongPause)) {
-        cleanedText += '.'
-      }
-      if (cleanedText.length > 0 && !cleanedText.match(/^[A-Z]/)) {
-        cleanedText = cleanedText.charAt(0).toUpperCase() + cleanedText.slice(1)
-      }
+      const cleanedText = cleanWhisperSegmentText(currentFullText, isLastSegment || hasVeryLongPause)
       if (cleanedText.length > 0) {
         segments.push({
           start: segmentStart,
@@ -138,17 +99,7 @@ const aggregateWordSegments = (wordSegments: WhisperJsonOutput['transcription'])
     i++
   }
   if (currentText.trim().length > 0) {
-    let cleanedText = currentText
-      .trim()
-      .replace(/\s+/g, ' ')
-      .replace(/\s+([,.!?;:])/g, '$1')
-      .replace(/([A-Za-z])([,.!?;:])([A-Za-z])/g, '$1$2 $3')
-    if (!cleanedText.match(/[.!?]$/)) {
-      cleanedText += '.'
-    }
-    if (!cleanedText.match(/^[A-Z]/)) {
-      cleanedText = cleanedText.charAt(0).toUpperCase() + cleanedText.slice(1)
-    }
+    const cleanedText = cleanWhisperSegmentText(currentText.trim(), true)
     segments.push({
       start: segmentStart,
       end: segmentEnd,
