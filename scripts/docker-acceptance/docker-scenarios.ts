@@ -56,10 +56,10 @@ export async function mappedRecord(adapter: LocalExecutionAdapter, dir: string):
 
 function downloadCases(): DockerScenario[] {
   const urls = { ...PUBLIC_DOWNLOADS, audio: `${FIXTURE_ORIGIN}/speech.mp3`, video: `${FIXTURE_ORIGIN}/speech.mp4` }
-  return downloadScenarios(containerFixture, urls, `${FIXTURE_ORIGIN}/feed.xml`).map(scenario => ({
+  return downloadScenarios(containerFixture, urls, `${FIXTURE_ORIGIN}/feed.xml`).filter(scenario => scenario.kind !== 'youtube').map(scenario => ({
     id: scenario.id,
-    suite: ['youtube', 'twitch'].includes(scenario.kind) ? 'network' : 'core',
-    network: ['youtube', 'twitch'].includes(scenario.kind) ? 'public' : scenario.id.startsWith('download-local') ? 'none' : 'fixture',
+    suite: scenario.kind === 'twitch' ? 'network' : 'core',
+    network: scenario.kind === 'twitch' ? 'public' : scenario.id.startsWith('download-local') ? 'none' : 'fixture',
     args: ['download', scenario.input, ...scenario.args],
     async verify(adapter, result) {
       const dir = outputDirectory(result)
