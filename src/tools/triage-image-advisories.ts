@@ -1,3 +1,4 @@
+import { UsageError } from '~/utils/error-handler'
 import { mkdir } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
@@ -52,13 +53,13 @@ if (import.meta.main) {
     console.log('Usage: bun src/tools/triage-image-advisories.ts <evidence-directory> [output-under-docs/reports] [--scan-name advisories.json]\nGroups a retained Grype scan. Defaults to JSON on stdout.')
   } else {
     const [evidence, output] = positionals
-    if (!evidence || positionals.length > 2) throw new Error('Expected an evidence directory and optional output path; use --help.')
+    if (!evidence || positionals.length > 2) throw UsageError('Expected an evidence directory and optional output path; use --help.')
     if (output) {
       const path = relative(resolve('docs/reports'), resolve(output))
-      if (!path || path === '..' || path.startsWith('../') || isAbsolute(path)) throw new Error('Report artifacts must be stored under docs/reports/')
+      if (!path || path === '..' || path.startsWith('../') || isAbsolute(path)) throw UsageError('Report artifacts must be stored under docs/reports/')
     }
     const identities = await Bun.file(resolve(evidence, 'image-identity.json')).json() as ImageIdentity[]
-    if (!identities[0]?.Id || !identities[0].Architecture) throw new Error('Expected docker image inspect evidence with an image ID and architecture.')
+    if (!identities[0]?.Id || !identities[0].Architecture) throw UsageError('Expected docker image inspect evidence with an image ID and architecture.')
     const result = triageImageAdvisories(await Bun.file(resolve(evidence, values['scan-name'])).bytes(), identities[0])
     if (output) {
       await mkdir(dirname(resolve(output)), { recursive: true })

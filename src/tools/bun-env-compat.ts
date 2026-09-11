@@ -1,3 +1,4 @@
+import { InfraError } from '~/utils/error-handler'
 import { dockerClientEnvironment } from './docker-process'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { basename, dirname, resolve } from 'node:path'
@@ -94,7 +95,7 @@ const extractKeys = (source: string): string[] =>
 const currentBunImage = async (): Promise<string> => {
   const dockerfile = await readFile(resolve(PROJECT_ROOT, 'Dockerfile'), 'utf8')
   const image = dockerfile.match(/^ARG BUN_BASE_IMAGE=(\S+)$/m)?.[1]
-  if (!image) throw new Error('Could not resolve BUN_BASE_IMAGE from Dockerfile')
+  if (!image) throw InfraError('Could not resolve BUN_BASE_IMAGE from Dockerfile')
   return image
 }
 
@@ -125,11 +126,11 @@ const probeImage = async (input: {
     new Response(proc.stderr).text(),
     proc.exited
   ])
-  if (exitCode !== 0) throw new Error(`Docker env probe failed for ${input.image}: ${stderr || stdout}`)
+  if (exitCode !== 0) throw InfraError(`Docker env probe failed for ${input.image}: ${stderr || stdout}`)
   try {
     return JSON.parse(stdout) as ProbeResult
   } catch (error) {
-    throw new Error(`Could not parse redacted env probe output for ${input.image}: ${error instanceof Error ? error.message : String(error)}`)
+    throw InfraError(`Could not parse redacted env probe output for ${input.image}: ${error instanceof Error ? error.message : String(error)}`)
   }
 }
 
@@ -137,7 +138,7 @@ const main = async (): Promise<void> => {
   const options = parseOptions(Bun.argv.slice(2))
   const envSource = await readFile(options.envFile, 'utf8')
   const keys = extractKeys(envSource)
-  if (keys.length === 0) throw new Error(`No dotenv keys were found in ${options.envFile}`)
+  if (keys.length === 0) throw InfraError(`No dotenv keys were found in ${options.envFile}`)
 
   const probeDir = await mkdtemp(resolve(tmpdir(), 'autoshow-bun-env-'))
   try {

@@ -20,7 +20,7 @@ export const ALIGNMENT_RUNTIME_VERSION = '1.29.0'
 export const loadAlignmentRuntime = (projectRoot = PROJECT_ROOT): OnnxRuntime => {
   try {
     const require = createRequire(join(projectRoot, 'config/stt-alignment/package.json'))
-    if ((require('onnxruntime-node/package.json') as { version: string }).version !== ALIGNMENT_RUNTIME_VERSION) throw new Error('Runtime version differs from the frozen alignment graph.')
+    if ((require('onnxruntime-node/package.json') as { version: string }).version !== ALIGNMENT_RUNTIME_VERSION) throw UsageError('Runtime version differs from the frozen alignment graph.')
     return require('onnxruntime-node') as OnnxRuntime
   } catch (cause) {
     throw UsageError(`Local ONNX alignment runtime is unavailable. Run bun --no-env-file install --cwd config/stt-alignment --frozen-lockfile --ignore-scripts with the supported Bun version. ${cause instanceof Error ? cause.message : String(cause)}`)

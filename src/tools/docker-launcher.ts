@@ -1,3 +1,4 @@
+import { UsageError } from '~/utils/error-handler'
 import { dockerClientEnvironment } from './docker-process'
 
 const scripts: Record<string, string> = {
@@ -7,7 +8,7 @@ const scripts: Record<string, string> = {
 }
 
 const script = scripts[Bun.argv[2] ?? '']
-if (!script) throw new Error('Expected Docker launcher: baseline, compare, or acceptance')
+if (!script) throw UsageError('Expected Docker launcher: baseline, compare, or acceptance')
 const child = Bun.spawn([process.execPath, '--no-env-file', script, ...Bun.argv.slice(3)], {
   env: dockerClientEnvironment(process.env),
   stdin: 'inherit', stdout: 'inherit', stderr: 'inherit'

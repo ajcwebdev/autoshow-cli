@@ -1,3 +1,4 @@
+import { ValidationError, UsageError } from '~/utils/error-handler'
 import {
   clearReferenceTokenizerCache,
   encodeReferenceTokens,
@@ -8,7 +9,7 @@ type ProfileState = 'before-load' | 'after-load' | 'after-eviction' | 'after-rec
 
 const state = Bun.argv[2] as ProfileState | undefined
 if (!state || !['before-load', 'after-load', 'after-eviction', 'after-reconstruction'].includes(state)) {
-  throw new Error('Expected tokenizer profile state: before-load, after-load, after-eviction, or after-reconstruction')
+  throw UsageError('Expected tokenizer profile state: before-load, after-load, after-eviction, or after-reconstruction')
 }
 
 const fixture = Array.from({ length: 4000 }, (_, index) =>
@@ -31,7 +32,7 @@ if (state === 'after-eviction' || state === 'after-reconstruction') {
 }
 if (state === 'after-reconstruction') {
   rebuiltHash = tokenHash(encodeReferenceTokens(fixture))
-  if (rebuiltHash !== baselineHash) throw new Error('Reference tokenizer changed after cache reconstruction')
+  if (rebuiltHash !== baselineHash) throw ValidationError('Reference tokenizer changed after cache reconstruction')
 }
 
 process.stdout.write(`${JSON.stringify({

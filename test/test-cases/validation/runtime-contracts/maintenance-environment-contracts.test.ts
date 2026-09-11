@@ -56,7 +56,8 @@ describe('maintenance environment contracts', () => {
     }
     const scripts = packageJson.scripts ?? {}
 
-    expect(scripts['check']).toBe('bun run --parallel check:names check:types')
+    expect(scripts['check']).toBe('bun run --parallel check:structure check:names check:types')
+    expect(scripts['check:structure']).toContain('env -i PATH="$PATH" HOME="$HOME" bun --no-env-file')
     expect(scripts['check:names']).toContain('env -i PATH="$PATH" HOME="$HOME" bun --no-env-file')
     expect(scripts['check:types']).toContain('bun --no-env-file node_modules/typescript/bin/tsc --noEmit')
     expect(scripts['check:types']).not.toContain('bunx')

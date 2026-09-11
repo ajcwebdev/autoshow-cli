@@ -1,3 +1,4 @@
+import { ValidationError } from '~/utils/error-handler'
 import { join } from 'node:path'
 import { COMMAND_DEFINITIONS } from '~/cli/create-cli'
 import { getCommandHelpInventory, RETIRED_HELP_COMMANDS } from '~/cli/native/help-inventory'
@@ -32,7 +33,7 @@ export const generateHelpAuditInventory = async (): Promise<string> => {
   const start = report.indexOf(startMarker)
   const end = report.indexOf(endMarker)
   if (start < 0 || end < start || report.indexOf(startMarker, start + startMarker.length) !== -1 || report.indexOf(endMarker, end + endMarker.length) !== -1) {
-    throw new Error('The help audit report must contain exactly one matching help-inventory marker pair.')
+    throw ValidationError('The help audit report must contain exactly one matching help-inventory marker pair.')
   }
   const updated = `${report.slice(0, start)}${startMarker}\n${markdown}${endMarker}${report.slice(end + endMarker.length)}`
   await Bun.write(reportPath, updated)

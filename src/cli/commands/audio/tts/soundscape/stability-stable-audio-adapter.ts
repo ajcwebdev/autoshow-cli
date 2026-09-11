@@ -8,7 +8,7 @@ import type {
   StabilitySoundEffectSerializedRequest,
 } from '~/types'
 import { sleepWithAbortSignal } from '~/utils/retry-abortable-delay'
-import { UsageError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import { canonicalTargetKey, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { SoundEffectProviderError } from './sound-effect-errors'
 import { resolveCredential } from '~/utils/validate/env-utils'
@@ -169,7 +169,7 @@ export const createStabilitySoundEffectAdapter = (options: {
       let providerRequestId: string
       try {
         const payload = JSON.parse(new TextDecoder().decode(response.body)) as { id?: unknown }
-        if (typeof payload.id !== 'string' || !/^[a-zA-Z0-9_-]+$/u.test(payload.id)) throw new Error('Invalid generation ID')
+        if (typeof payload.id !== 'string' || !/^[a-zA-Z0-9_-]+$/u.test(payload.id)) throw ValidationError('Invalid generation ID')
         providerRequestId = payload.id
       } catch {
         throw new SoundEffectProviderError('Stable Audio accepted a submission without a valid generation ID.', false, 'ambiguous')

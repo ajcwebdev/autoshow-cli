@@ -1,3 +1,4 @@
+import { InfraError } from '~/utils/error-handler'
 import { mkdir, readFile, stat } from 'node:fs/promises'
 import { basename, relative, resolve } from 'node:path'
 
@@ -123,7 +124,7 @@ const main = async (): Promise<void> => {
     commandRecords.push(record)
     await writeMetadata()
     if (exitCode !== 0) {
-      throw new Error(`Profiling command failed (${label}, exit ${exitCode}). See ${relativePath(stderrPath)}.`)
+      throw InfraError(`Profiling command failed (${label}, exit ${exitCode}). See ${relativePath(stderrPath)}.`)
     }
     return { record, stdout }
   }

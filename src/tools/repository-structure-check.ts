@@ -1,3 +1,4 @@
+import { InfraError } from '~/utils/error-handler'
 import { readdirSync, statSync } from 'node:fs'
 
 // Existing root directories are the fixed baseline. New directories belong below them.
@@ -10,7 +11,7 @@ export const findRepositoryStructureViolations = (rootDirectories: string[], pro
 
 if (import.meta.main) {
   const listing = Bun.spawnSync(['git', 'ls-files', '--cached', '--others', '--exclude-standard', '-z'], { stdout: 'pipe', stderr: 'pipe' })
-  if (listing.exitCode !== 0) throw new Error(listing.stderr.toString())
+  if (listing.exitCode !== 0) throw InfraError(listing.stderr.toString())
   const files = listing.stdout.toString().split('\0').filter(path => {
     try { return statSync(path).isFile() } catch { return false }
   })

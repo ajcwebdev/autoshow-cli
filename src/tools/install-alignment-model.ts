@@ -1,3 +1,4 @@
+import { InfraError, UsageError } from '~/utils/error-handler'
 import { link, mkdir, open, unlink } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 
@@ -20,18 +21,18 @@ if (import.meta.main) {
   if (args[0] === '--help' || args[0] === '-h') {
     console.log('Usage: bun src/tools/install-alignment-model.ts [model-directory]\nDownloads the pinned English Wav2Vec2 ONNX model (378 MB). Verifies SHA-256 and reuses matching files. Defaults to runtime/models/alignment/wav2vec2-base-960h-onnx.')
   } else {
-    if (args.length > 1 || args[0]?.startsWith('-')) throw new Error('Expected an optional model directory; use --help.')
+    if (args.length > 1 || args[0]?.startsWith('-')) throw UsageError('Expected an optional model directory; use --help.')
     const root = resolve(args[0] ?? 'runtime/models/alignment/wav2vec2-base-960h-onnx')
     await mkdir(root, { recursive: true })
     for (const asset of ALIGNMENT_MODEL_FILES) {
       const path = join(root, asset.name)
       if (await Bun.file(path).exists()) {
-        if (Bun.file(path).size !== asset.size || await hashFile(path) !== asset.sha256) throw new Error(`Existing model file differs from the pinned asset: ${path}. File preserved; choose a new model directory.`)
+        if (Bun.file(path).size !== asset.size || await hashFile(path) !== asset.sha256) throw InfraError(`Existing model file differs from the pinned asset: ${path}. File preserved; choose a new model directory.`)
         console.log(`Verified cached ${asset.name}`)
         continue
       }
       const response = await fetch(`https://huggingface.co/onnx-community/wav2vec2-base-960h-ONNX/resolve/${ALIGNMENT_MODEL_REVISION}/${asset.source}`, { signal: AbortSignal.timeout(10 * 60_000) })
-      if (!response.ok || !response.body) throw new Error(`Model download failed: ${response.status} ${asset.source}`)
+      if (!response.ok || !response.body) throw InfraError(`Model download failed: ${response.status} ${asset.source}`)
       const temporary = join(dirname(root), `.alignment-${asset.name}.${crypto.randomUUID()}.partial`)
       const file = await open(temporary, 'wx')
       const hash = new Bun.CryptoHasher('sha256')
@@ -39,13 +40,13 @@ if (import.meta.main) {
       try {
         for await (const bytes of response.body) {
           size += bytes.length
-          if (size > asset.size) throw new Error(`Download exceeds pinned size: ${asset.name}`)
+          if (size > asset.size) throw InfraError(`Download exceeds pinned size: ${asset.name}`)
           hash.update(bytes)
           let offset = 0
           while (offset < bytes.length) offset += (await file.write(bytes, offset)).bytesWritten
         }
       } finally { await file.close() }
-      if (size !== asset.size || hash.digest('hex') !== asset.sha256) throw new Error(`Downloaded asset failed integrity verification: ${asset.name}. Partial file retained at ${temporary}.`)
+      if (size !== asset.size || hash.digest('hex') !== asset.sha256) throw InfraError(`Downloaded asset failed integrity verification: ${asset.name}. Partial file retained at ${temporary}.`)
       await link(temporary, path)
       await unlink(temporary)
       console.log(`Installed ${asset.name}`)

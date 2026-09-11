@@ -1,3 +1,4 @@
+import { ValidationError } from '~/utils/error-handler'
 import { HOSTED_PROVIDER_ENV_CHECKS } from '../cli/commands/setup-and-utilities/setup/hosted-provider-config'
 
 export const renderEnvironmentReference = (): string => `## Environment reference
@@ -27,7 +28,7 @@ export const updateEnvironmentReferenceSection = (document: string): string => {
   const end = document.indexOf(ENVIRONMENT_REFERENCE_END)
   const section = `${ENVIRONMENT_REFERENCE_START}\n${renderEnvironmentReference()}${ENVIRONMENT_REFERENCE_END}`
   if (start === -1 && end === -1) return `${document.trimEnd()}\n\n${section}\n`
-  if (start < 0 || end < start || document.indexOf(ENVIRONMENT_REFERENCE_START, start + 1) >= 0 || document.indexOf(ENVIRONMENT_REFERENCE_END, end + 1) >= 0) throw new Error('Consolidated report has invalid environment section markers.')
+  if (start < 0 || end < start || document.indexOf(ENVIRONMENT_REFERENCE_START, start + 1) >= 0 || document.indexOf(ENVIRONMENT_REFERENCE_END, end + 1) >= 0) throw ValidationError('Consolidated report has invalid environment section markers.')
   return document.slice(0, start) + section + document.slice(end + ENVIRONMENT_REFERENCE_END.length)
 }
 

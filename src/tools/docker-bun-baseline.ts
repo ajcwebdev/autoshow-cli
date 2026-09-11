@@ -1,3 +1,4 @@
+import { InfraError } from '~/utils/error-handler'
 import { dockerClientEnvironment } from './docker-process'
 import { chmod, mkdir, readFile } from 'node:fs/promises'
 import { basename, resolve } from 'node:path'
@@ -201,7 +202,7 @@ const run = async (
   if (options.echo && stdout.length > 0) process.stdout.write(stdout)
   if (options.echo && stderr.length > 0) process.stderr.write(stderr)
   if (exitCode !== 0 && options.allowFailure !== true) {
-    throw new Error(`Command failed with exit code ${exitCode}: ${fullCommand.join(' ')}\n${stderr || stdout}`)
+    throw InfraError(`Command failed with exit code ${exitCode}: ${fullCommand.join(' ')}\n${stderr || stdout}`)
   }
   return capture
 }
@@ -229,7 +230,7 @@ const median = (values: number[]): number => {
   const value = sorted.length % 2 === 0
     ? ((sorted[midpoint - 1] ?? 0) + (sorted[midpoint] ?? 0)) / 2
     : sorted[midpoint]
-  if (value === undefined) throw new Error('Cannot calculate a median without samples')
+  if (value === undefined) throw InfraError('Cannot calculate a median without samples')
   return value
 }
 
@@ -247,7 +248,7 @@ const parseJsonOutput = <T>(capture: CommandCapture, label: string): T => {
   try {
     return JSON.parse(capture.stdout.trim()) as T
   } catch (error) {
-    throw new Error(`Could not parse ${label} JSON: ${error instanceof Error ? error.message : String(error)}\n${capture.stdout}`)
+    throw InfraError(`Could not parse ${label} JSON: ${error instanceof Error ? error.message : String(error)}\n${capture.stdout}`)
   }
 }
 
@@ -298,7 +299,7 @@ const measurePlatform = async (input: {
     Size: number
   }>(inspect, 'docker image inspect')
   if (image.Architecture !== architecture) {
-    throw new Error(`Expected ${architecture} image, received ${image.Architecture}`)
+    throw InfraError(`Expected ${architecture} image, received ${image.Architecture}`)
   }
 
   const helpSamples: number[] = []
@@ -338,7 +339,7 @@ const measurePlatform = async (input: {
     commands.push(memory.command)
     await Bun.write(resolve(platformDir, `fixture-${String(index + 1).padStart(2, '0')}.log`), `${memory.stdout}${memory.stderr}`)
     const peak = memory.stdout.match(/AUTOSHOW_PEAK_RSS_BYTES=(\d+)/)?.[1]
-    if (!peak) throw new Error(`Peak RSS marker missing for ${platform}`)
+    if (!peak) throw InfraError(`Peak RSS marker missing for ${platform}`)
     fixturePeakSamples.push(Number.parseInt(peak, 10))
   }
 
@@ -412,18 +413,18 @@ The JSON artifact beside this file contains every sample, exact command array, D
 const main = async (): Promise<void> => {
   const options = parseOptions(Bun.argv.slice(2))
   const fixture = Bun.file(options.fixturePath)
-  if (!await fixture.exists()) throw new Error(`Fixture does not exist: ${options.fixturePath}`)
+  if (!await fixture.exists()) throw InfraError(`Fixture does not exist: ${options.fixturePath}`)
   const fixtureSha256 = await sha256(options.fixturePath)
-  if (fixtureSha256 !== DEFAULT_FIXTURE_SHA256) throw new Error(`Baseline fixture SHA-256 mismatch: expected ${DEFAULT_FIXTURE_SHA256}, received ${fixtureSha256}`)
+  if (fixtureSha256 !== DEFAULT_FIXTURE_SHA256) throw InfraError(`Baseline fixture SHA-256 mismatch: expected ${DEFAULT_FIXTURE_SHA256}, received ${fixtureSha256}`)
 
   await mkdir(options.outputDir, { recursive: true })
   const dockerfileText = await Bun.file(resolve(PROJECT_ROOT, 'Dockerfile')).text()
   const baseImage = dockerfileText.match(/^ARG BUN_BASE_IMAGE=(\S+)$/m)?.[1]
   const bunPin = baseImage?.match(/^oven\/bun:([0-9]+\.[0-9]+\.[0-9]+)-slim@sha256:/)?.[1]
-  if (!baseImage || !bunPin) throw new Error('Could not resolve the exact Bun slim image and digest from Dockerfile')
+  if (!baseImage || !bunPin) throw InfraError('Could not resolve the exact Bun slim image and digest from Dockerfile')
 
   const packageJson = await Bun.file(resolve(PROJECT_ROOT, 'package.json')).json() as { version?: string }
-  if (!packageJson.version) throw new Error('package.json version is missing')
+  if (!packageJson.version) throw InfraError('package.json version is missing')
   const vcsRef = (await run('git', ['rev-parse', 'HEAD'])).stdout.trim()
   const buildDate = (await run('git', ['show', '-s', '--format=%cI', 'HEAD'])).stdout.trim()
   const dirty = (await run('git', ['status', '--short'])).stdout.trim().length > 0
