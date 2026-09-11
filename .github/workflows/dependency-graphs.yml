@@ -80,6 +80,15 @@ jobs:
           docker run --rm --network none --entrypoint bun autoshow-audit:${{ github.sha }} --no-env-file -e 'import {readDependencyMetadata} from "./src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts"; console.log(JSON.stringify(await readDependencyMetadata(), null, 2))' > runtime/dependency-evidence/native-source-pins.json
           cp src/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-distribution-policy.ts runtime/dependency-evidence/native-distribution-policy.ts
           cp src/cli/commands/stt/local/whisperfile/whisperfile-artifacts.ts runtime/dependency-evidence/model-artifact-pins.ts
+      - name: Verify native image rendering offline
+        run: |
+          case "$(docker info --format '{{.Architecture}}')" in
+            x86_64|amd64) daemon_arch=amd64; bun_arch=x64 ;;
+            aarch64|arm64) daemon_arch=arm64; bun_arch=arm64 ;;
+            *) echo 'Unsupported Docker daemon architecture' >&2; exit 1 ;;
+          esac
+          test "${daemon_arch}" = "${{ matrix.platform.arch }}"
+          docker run --rm --network none --platform linux/${{ matrix.platform.arch }} --entrypoint bun --mount "type=bind,src=${GITHUB_WORKSPACE}/test/docker-acceptance/native-image-acceptance.ts,dst=/app/test/docker-acceptance/native-image-acceptance.ts,readonly" autoshow-audit:${{ github.sha }} --no-env-file /app/test/docker-acceptance/native-image-acceptance.ts "${bun_arch}"
       - name: Verify optional ONNX backend offline
         if: matrix.target == 'alignment'
         run: |
