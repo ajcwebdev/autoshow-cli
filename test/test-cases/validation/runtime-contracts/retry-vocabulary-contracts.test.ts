@@ -5,21 +5,23 @@ import { PROJECT_ROOT } from '~/utils/runtime-paths'
 import { describeSourceVocabularyViolations as describeViolations, listSourceVocabularyFiles as listFilesUnder, scanSourceVocabulary as scan, scanWholeSourceFiles as scanWholeFile, SOURCE_VOCABULARY_SRC_ROOT as SRC_ROOT, SOURCE_VOCABULARY_TEST_ROOT as TEST_ROOT, stripSourceComments as stripComments } from './source-vocabulary-scanner'
 
 const RETRY_ENGINE = 'src/utils/retries.ts'
+const RETRY_DELAY = 'src/utils/retry-abortable-delay.ts'
+const RETRY_POLICY = 'src/utils/retry-policy.ts'
 
 const PACING_SLEEP_ALLOWLIST = new Set([
   // Local fixture response latency exercises silent sockets; this is not retry backoff.
   'src/cli/commands/setup-and-utilities/setup/network-check.ts',
-  RETRY_ENGINE,
+  RETRY_DELAY,
   'src/cli/commands/stt/diarization/stt-mistral/mistral-stt-pass-controller.ts',
   'src/cli/commands/audio/voice/canonical-voice-audition.ts'
 ])
 
 const POLICY_MODULE_ALLOWLIST = new Set([
-  RETRY_ENGINE,
+  RETRY_POLICY,
   'src/cli/commands/text/ocr/ocr-utils/ocr-retry.ts'
 ])
 
-const RETRY_PRIMITIVE_ALLOWLIST = new Set([RETRY_ENGINE])
+const RETRY_PRIMITIVE_ALLOWLIST = new Set([RETRY_DELAY, RETRY_POLICY])
 
 const BACKOFF_SLEEP_PATTERN = /(?:\bawait\s+Bun\s*\.\s*sleep\s*\()|(?:setTimeout\s*\(\s*resolve\b)/
 
@@ -60,6 +62,7 @@ describe('src retry vocabulary contracts', () => {
     const unused = declared.filter((retryClass) => !sources.some(({ path, text }) =>
       path !== 'src/types/runtime-core/retry-types.ts'
       && path !== RETRY_ENGINE
+      && path !== RETRY_POLICY
       && text.includes(`'${retryClass}'`)
     ))
     expect(unused).toEqual([])

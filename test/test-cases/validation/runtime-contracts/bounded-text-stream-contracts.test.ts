@@ -100,7 +100,7 @@ describe('bounded text stream', () => {
     const paths = [
       'src/utils/bounded-capture.ts',
       'test/test-runner/process-execution.ts',
-      'test/test-utils/test-helpers.ts'
+      'test/test-utils/test-command-execution.ts'
     ]
     for (const path of paths) {
       const source = await readFile(path, 'utf8')
