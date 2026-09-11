@@ -17,58 +17,58 @@ import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import type { CliCommandDefinition, CliFlagDefinition, DocumentedFlag, FlagTableRows, ScannerState } from '~/types'
 
 const docsRoot = resolve(import.meta.dir, '../../../../docs/commands')
-const configDoc = 'setup-and-utilities/config.md'
+const configDoc = '00-setup-and-utilities/config.md'
 const modelReportDocs = [
-  'stt/model-report.md',
-  'text/ocr/model-report.md',
-  'text/url/model-report.md',
-  'text/write/model-report.md',
-  'audio/tts/model-report.md',
-  'visuals/image/model-report.md',
-  'visuals/video/model-report.md',
-  'audio/music/model-report.md'
+  '../reports/model-refresh-stt.md',
+  '../reports/model-refresh-ocr.md',
+  '../reports/model-refresh-url.md',
+  '../reports/model-refresh-write.md',
+  '../reports/model-refresh-tts.md',
+  '../reports/model-refresh-image.md',
+  '../reports/model-refresh-video.md',
+  '../reports/model-refresh-music.md'
 ] as const
 const commandByDoc = {
-  'sources/metadata/overview.md': metadataCommand,
-  'sources/download/overview.md': downloadCommand,
+  '01-sources/metadata/overview.md': metadataCommand,
+  '01-sources/download/overview.md': downloadCommand,
   'extract.md': extractCommand,
-  'stt/overview.md': extractCommand,
-  'stt/local/overview.md': extractCommand,
-  'stt/diarization/overview.md': extractCommand,
-  'stt/diarization-off-by-default/overview.md': extractCommand,
-  'stt/direct-url/overview.md': extractCommand,
-  'stt/workflows/captions/overview.md': extractCommand,
-  'stt/workflows/timing/overview.md': extractCommand,
-  'stt/workflows/transcript-review/overview.md': extractCommand,
-  'stt/workflows/transcript-video/overview.md': extractCommand,
-  'text/ocr/overview.md': extractCommand,
-  'text/url/overview.md': extractCommand,
-  'text/write/overview.md': writeCommand,
-  'audio/tts/overview.md': ttsCommand,
-  'visuals/image/overview.md': imageCommand,
-  'visuals/video/overview.md': videoCommand,
-  'audio/music/overview.md': musicCommand,
-  'visuals/comic/00-comic-overview.md': comicCommand,
-  'visuals/comic/01-draft-scenes.md': comicCommand,
-  'visuals/comic/02-reference-sketch.md': comicCommand,
-  'visuals/comic/03-generate-images.md': comicCommand,
-  'visuals/comic/04-generate-audio.md': comicCommand,
-  'visuals/comic/05-generate-slideshow.md': comicCommand,
-  'visuals/comic/06-review.md': comicCommand,
-  'visuals/comic/07-draft-treatment.md': comicCommand,
-  'audio/voice/00-voice-overview.md': voiceCommand,
-  'audio/voice/01-list.md': voiceCommand,
-  'audio/voice/02-consent.md': voiceCommand,
-  'audio/voice/03-import.md': voiceCommand,
-  'audio/voice/04-design.md': voiceCommand,
-  'audio/voice/05-clone.md': voiceCommand,
-  'audio/voice/06-audition.md': voiceCommand,
-  'audio/voice/07-approve.md': voiceCommand,
-  'audio/voice/08-retire.md': voiceCommand,
-  'audio/voice/09-delete.md': voiceCommand,
-  'setup-and-utilities/links.md': linksCommand,
-  'setup-and-utilities/resume.md': resumeCommand,
-  'setup-and-utilities/setup.md': setupCommand
+  '02-stt/overview.md': extractCommand,
+  '02-stt/local/overview.md': extractCommand,
+  '02-stt/diarization/overview.md': extractCommand,
+  '02-stt/diarization-off-by-default/overview.md': extractCommand,
+  '02-stt/direct-url/overview.md': extractCommand,
+  '02-stt/workflows/captions/overview.md': extractCommand,
+  '02-stt/workflows/timing/overview.md': extractCommand,
+  '02-stt/workflows/transcript-review/overview.md': extractCommand,
+  '02-stt/workflows/transcript-video/overview.md': extractCommand,
+  '03-text/ocr/overview.md': extractCommand,
+  '03-text/url/overview.md': extractCommand,
+  '03-text/write/overview.md': writeCommand,
+  '04-audio/tts/overview.md': ttsCommand,
+  '05-visuals/image/overview.md': imageCommand,
+  '05-visuals/video/overview.md': videoCommand,
+  '04-audio/music/overview.md': musicCommand,
+  '05-visuals/comic/00-comic-overview.md': comicCommand,
+  '05-visuals/comic/01-draft-scenes.md': comicCommand,
+  '05-visuals/comic/02-reference-sketch.md': comicCommand,
+  '05-visuals/comic/03-generate-images.md': comicCommand,
+  '05-visuals/comic/04-generate-audio.md': comicCommand,
+  '05-visuals/comic/05-generate-slideshow.md': comicCommand,
+  '05-visuals/comic/06-review.md': comicCommand,
+  '05-visuals/comic/07-draft-treatment.md': comicCommand,
+  '04-audio/voice/00-voice-overview.md': voiceCommand,
+  '04-audio/voice/01-list.md': voiceCommand,
+  '04-audio/voice/02-consent.md': voiceCommand,
+  '04-audio/voice/03-import.md': voiceCommand,
+  '04-audio/voice/04-design.md': voiceCommand,
+  '04-audio/voice/05-clone.md': voiceCommand,
+  '04-audio/voice/06-audition.md': voiceCommand,
+  '04-audio/voice/07-approve.md': voiceCommand,
+  '04-audio/voice/08-retire.md': voiceCommand,
+  '04-audio/voice/09-delete.md': voiceCommand,
+  '00-setup-and-utilities/links.md': linksCommand,
+  '00-setup-and-utilities/resume.md': resumeCommand,
+  '00-setup-and-utilities/setup.md': setupCommand
 } as const satisfies Record<string, CliCommandDefinition>
 
 const tableCells = (line: string): string[] =>
@@ -273,10 +273,9 @@ const registrationFor = (
 }
 
 const isTestDoc = (doc: string): boolean => doc === 'testing.md' || doc.endsWith('/tests.md')
-const isModelReportDoc = (doc: string): boolean => doc.endsWith('/model-report.md')
 
 test('command documentation links and section anchors resolve after relocation', async () => {
-  const docs = await Array.fromAsync(new Bun.Glob('**/*.md').scan({ cwd: docsRoot }))
+  const docs = [...await Array.fromAsync(new Bun.Glob('**/*.md').scan({ cwd: docsRoot })), ...modelReportDocs]
   const problems: string[] = []
   for (const doc of docs) {
     const file = resolve(docsRoot, doc)
@@ -310,8 +309,8 @@ test('command documentation links and section anchors resolve after relocation',
 test('command doc flag tables name only flags registered by that command', async () => {
   const docs = (await Array.fromAsync(new Bun.Glob('**/*.md').scan({ cwd: docsRoot }))).sort()
   // Preserve the report inventory without treating historical flags as current CLI usage.
-  expect(docs.filter(isModelReportDoc)).toEqual([...modelReportDocs].sort())
-  const commandDocs = docs.filter((doc) => doc !== configDoc && !isTestDoc(doc) && !isModelReportDoc(doc))
+  for (const doc of modelReportDocs) expect(await Bun.file(resolve(docsRoot, doc)).exists()).toBe(true)
+  const commandDocs = docs.filter((doc) => doc !== configDoc && !isTestDoc(doc))
   expect(commandDocs).toEqual(Object.keys(commandByDoc).sort())
 
   for (const parent of [comicCommand, voiceCommand]) {

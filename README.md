@@ -27,7 +27,7 @@ These examples cover the primary workflows. Where both local and hosted executio
 
 ### Sources
 
-Inspect [metadata](./docs/commands/sources/metadata/overview.md) and [download](./docs/commands/sources/download/overview.md) source files.
+Inspect [metadata](./docs/commands/01-sources/metadata/overview.md) and [download](./docs/commands/01-sources/download/overview.md) source files.
 
 ```bash
 # Inspect metadata without downloading
@@ -39,7 +39,7 @@ bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU"
 
 ### STT
 
-[Transcribe media](./docs/commands/stt/overview.md) with local engines, hosted diarization, providers with diarization off by default, or direct URL services. The [extract overview](./docs/commands/extract.md) explains routing.
+[Transcribe media](./docs/commands/02-stt/overview.md) with local engines, hosted diarization, providers with diarization off by default, or direct URL services. The [extract overview](./docs/commands/extract.md) explains routing.
 
 ```bash
 # Transcribe locally without diarization using Whisperfile
@@ -54,7 +54,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider d
 
 ### Text
 
-Extract [OCR](./docs/commands/text/ocr/overview.md) and [URL text](./docs/commands/text/url/overview.md), then [write](./docs/commands/text/write/overview.md) from saved text.
+Extract [OCR](./docs/commands/03-text/ocr/overview.md) and [URL text](./docs/commands/03-text/url/overview.md), then [write](./docs/commands/03-text/write/overview.md) from saved text.
 
 ```bash
 # Extract an article URL locally with Defuddle
@@ -91,7 +91,7 @@ bun autoshow write notes.md --llm openai=gpt-5.5 --prompt shortSummary
 
 ### Audio
 
-Generate [speech](./docs/commands/audio/tts/overview.md) and [music](./docs/commands/audio/music/overview.md), and manage [voices](./docs/commands/audio/voice/00-voice-overview.md).
+Generate [speech](./docs/commands/04-audio/tts/overview.md) and [music](./docs/commands/04-audio/music/overview.md), and manage [voices](./docs/commands/04-audio/voice/00-voice-overview.md).
 
 ```bash
 # Generate speech with hosted OpenAI
@@ -114,7 +114,7 @@ bun autoshow voice list --provider elevenlabs --source account
 
 ### Visuals
 
-Generate [images](./docs/commands/visuals/image/overview.md), [comics](./docs/commands/visuals/comic/00-comic-overview.md), and [video](./docs/commands/visuals/video/overview.md).
+Generate [images](./docs/commands/05-visuals/image/overview.md), [comics](./docs/commands/05-visuals/comic/00-comic-overview.md), and [video](./docs/commands/05-visuals/video/overview.md).
 
 ```bash
 # Generate an image with hosted OpenAI

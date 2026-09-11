@@ -7,33 +7,30 @@
 # Agent Verification Rules
 
 - Use `bun run check` and `bun t --price` for the default verification pass.
-- For smoke coverage, run only targeted local/no-cost tests that do not call third-party APIs, such as:
+- Keep default smoke and e2e verification targeted, local, and no-cost, without third-party API calls. Paid coverage must directly serve the requested task and satisfy the Paid Provider Execution Rules below. Local smoke examples:
   - `bun test test/test-cases/validation/cli/cli-help-contracts.test.ts`
   - `bun test test/test-cases/validation/cli/cli-usage-errors/`
   - `bun test test/test-cases/validation/cli/option-resolution-contracts/`
-- Never run `bun run t` or `bun test/test-runner.ts` unless the user explicitly asks for the full suite.
-- Keep default smoke and e2e verification local and no-cost. Paid smoke or e2e coverage must directly serve the requested task and qualify for automatic approval under the Paid Provider Execution Rules below, or receive explicit user approval.
+- Full-suite execution requires explicit user authorization, regardless of command spelling or entry point. Verified price-only preflight such as `bun t --price` is allowed.
 
 # Paid Provider Execution Rules
 
 - An individual paid-provider run is automatically approved when its estimated total cost is strictly less than $0.01 USD. A planned combination of related paid-provider runs is automatically approved when its combined estimated total cost is strictly less than $0.10 USD. Do not ask for additional confirmation for runs within these thresholds.
 - Estimate costs before execution using price preflight or known provider rates, including applicable minimum billing, add-ons, and billable retries. Track cumulative spending for a combination; do not split related work into new combinations to reset the threshold.
-- If the applicable estimate is unknown or reaches or exceeds its threshold, obtain explicit user approval naming the exact command or combination and expected cost/risk before execution. These spending thresholds do not authorize unrelated work.
-- Treat commands such as `bun autoshow extract ... --provider openai`, `--provider gemini`, `--provider mistral`, `--provider deepinfra`, hosted STT/TTS/image/video/music generation, or any command with provider API flags as paid-provider execution even when validating a change. Apply the spending rules instead of classifying these commands as no-cost verification.
-- For provider failure debugging, perform local/no-cost preparation and validation first, such as PDF repair, file inspection, manifest inspection, and local chunk/render smoke checks. Then run provider commands covered by automatic or explicit approval; otherwise report the exact proposed command and request approval.
-- Generic instructions like “do it”, “try it”, or “rerun it” do not override the thresholds. Within the thresholds, automatic approval is sufficient; outside them, obtain explicit approval for the exact paid run or combination.
+- If the applicable estimate is unknown or reaches or exceeds its threshold, obtain explicit user approval naming the exact command or combination and expected cost/risk before execution. Generic instructions like “do it”, “try it”, or “rerun it” do not override the thresholds. These spending thresholds do not authorize unrelated work.
+- Apply these rules to any execution that can incur provider charges, including verification, regardless of command or provider flags. Exclude price-only and mocked execution only when verified to make no billable provider calls.
+- For provider failure debugging, complete local/no-cost preparation and validation first, then apply these spending rules to any billable execution.
 - If an unapproved paid-provider process is accidentally started, stop it promptly and report what was run.
 
 # Work Preservation & Slot Recovery Rules
 
 - Never delete output directories or temporary TTS working directories (`rm -rf output/...` or `.tts-tmp-...`) when a process is interrupted, fails, or requires configuration adjustments. Deleting output directories destroys cached audio segment files that were already synthesized and paid for, forcing duplicate provider API calls and double billing.
-- When a TTS run is blocked with `automatic redispatch is blocked pending reconciliation`, pass `--allow-ambiguous-redispatch`. This flag safely reconciles the in-flight slot, reuses all completed segment audio files already saved on disk, and resumes synthesis without deleting output directories or losing work.
+- When a TTS run is blocked with `automatic redispatch is blocked pending reconciliation`, preserve cached outputs and apply the Paid Provider Execution Rules before using `--allow-ambiguous-redispatch`. The flag reuses completed segment audio on disk but can repurchase missing audio for a slot whose earlier provider request may already have been billed; include that potential cost in the estimate.
 
 # Git Command Rules
 
-- Never run git commands that modify repository state (e.g. `git add`, `git commit`, `git mv`, `git rm`, `git checkout`, `git reset`, `git push`, `git stash`). Use plain filesystem commands (`mv`, `rm`, `mkdir`) for file operations instead.
-- Only read-only git commands are allowed (e.g. `git status`, `git diff`, `git log`, `git grep`, `git show`).
-- Leave staging and committing to the user unless they explicitly ask for it.
+- Always work on `staging`. Never create another branch, including temporary, verification, feature, or agent-named branches. Authorization to commit, push, or open a pull request does not authorize creating or switching to another branch.
+- Use read-only Git commands by default. Git mutations require an explicit user request for the action; leave staging and committing to the user otherwise. Branch creation and switching remain prohibited even when other Git mutations are requested. Use plain filesystem commands (`mv`, `rm`, `mkdir`) for file operations.
 
 # Pre-Commit Book Privacy Rules
 
@@ -48,14 +45,10 @@
 
 # Markdown
 
-ALl markdown documents should be written with unwrapped prose and not hard-wrapped Markdown.
+Do not hard-wrap Markdown prose.
 
 # Report Files
 
-- Save all agent-created reports exclusively under `docs/reports/`, including audits, comparisons, evaluations, research summaries, and implementation reviews. Never save reports in the repository root, command documentation folders, or other locations.
-- Classify reports by their purpose and content, not their filename. Task-specific migration notes, dependency installation/evidence write-ups, environment inventories, and generated reference summaries are reports even when their names do not contain `report`.
-- Default to one self-contained Markdown report per task. Include conclusions, decision tables, verification commands/results, and provenance in that report instead of creating separate summary JSON/CSV files or log directories.
-- When original evidence must be retained for replay or detailed inspection, keep it in one compressed `.evidence.zip` archive alongside the report under `docs/reports/`. Link the archive once and identify its useful entries in the report; preserve original bytes and include a checksum manifest inside the archive. Prefer regenerating routine help captures and test logs over retaining new copies after every run.
-- Report generators should update a marked section of the existing report or emit to stdout by default; they must not create a file per command, provider, architecture, or verification attempt. Create loose supporting artifacts only when they are a requested deliverable or an actual tool/test input that requires a standalone file.
-- When updating an existing report outside `docs/reports/`, move it and its supporting artifacts there and update references, relative links, generator output paths, and affected tests so nothing recreates or depends on the old location.
-- Before completing a task, review the report and supporting documentation files created or updated during the session, including untracked files. Move any report outside `docs/reports/` into that directory before finishing; do not limit this check to filenames containing `report`.
+- Location: Save agent task reports under `docs/reports/`. Classify by purpose and content, not filename: audits, comparisons, evaluations, research summaries, implementation reviews, migration notes, dependency/evidence write-ups, environment inventories, and generated reference summaries are reports. Preserve established benchmark artifacts and generators in their existing locations; they are exempt from relocation.
+- Packaging: Default to one self-contained Markdown report per task with conclusions, decision tables, verification commands/results, and provenance, rather than separate summary JSON/CSV files or log directories. If original evidence is needed, keep it in one adjacent compressed `.evidence.zip` archive, preserving original bytes and including a checksum manifest; link it once and identify useful entries in the report. Regenerate routine help captures and test logs by default. Create loose supporting artifacts only for requested deliverables or actual tool/test inputs that require standalone files.
+- Maintenance: Agent task report generators should update a marked section of the existing report or emit to stdout by default, never create a file per command, provider, architecture, or verification attempt. When updating a report outside `docs/reports/` that is not covered by the established benchmark exception, move it and its supporting artifacts there and update references, relative links, generator output paths, and affected tests. Before finishing, review all reports and supporting documentation created or updated during the session, including untracked files, and relocate misplaced reports subject to the benchmark exception above.

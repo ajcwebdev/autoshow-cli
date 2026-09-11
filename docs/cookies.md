@@ -106,7 +106,7 @@ Expected:
 - Doctor reports a missing cookies file: fix the path or run `bun autoshow config --cookies <file>`. AutoShow will not fall back while a cookies file is configured.
 - Browser import still fails: try a more specific profile such as `chrome:Default`, or export a dedicated `cookies.txt` file.
 - A fresh exported file still fails: confirm it starts with a Netscape cookie header, includes YouTube auth cookies, and was not committed or moved to a path with unreadable permissions.
-- Cookies still are not enough: forward extra `yt-dlp` options with `download` after a bare `--`, for example `bun autoshow download <url> -- --user-agent "…"` or `-- --extractor-args "youtube:player_client=web"`. Passthrough is accepted only by `download`, and only for media URL inputs. Configure cookies with `bun autoshow config` first; do not pass `--cookies` through the `--` boundary. See [yt-dlp Passthrough](commands/sources/download/overview.md#yt-dlp-passthrough).
+- Cookies still are not enough: forward extra `yt-dlp` options with `download` after a bare `--`, for example `bun autoshow download <url> -- --user-agent "…"` or `-- --extractor-args "youtube:player_client=web"`. Passthrough is accepted only by `download`, and only for media URL inputs. Configure cookies with `bun autoshow config` first; do not pass `--cookies` through the `--` boundary. See [yt-dlp Passthrough](commands/01-sources/download/overview.md#yt-dlp-passthrough).
 
 ## References
 

@@ -123,4 +123,4 @@ bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bea
 - `src/cli/commands/visuals/comic/comic-commands/draft-treatment/treatment-script-renderer.ts`
 - `src/cli/commands/visuals/comic/comic-commands/draft-treatment/treatment-catalog-merge.ts`
 - `src/cli/commands/visuals/comic/comic-commands/draft-scenes/scene-panel-count-contract.ts`
-- `docs/commands/visuals/comic/07-draft-treatment.md`
+- `docs/commands/05-visuals/comic/07-draft-treatment.md`

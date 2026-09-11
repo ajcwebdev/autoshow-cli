@@ -135,7 +135,7 @@ Negative outcomes:
 - [x] Price and resume write as LLM-only
   `write --price` and `resume` of write runs estimate and continue step 3 only. Extract resume stays on `extract`.
 - [x] Update docs, help, and executable examples
-  `docs/commands/text/write/overview.md`, README examples, diagrams, and ADR-016 fixtures chain `extract` then `write`. Help contracts reject extract flags on `write`.
+  `docs/commands/03-text/write/overview.md`, README examples, diagrams, and ADR-016 fixtures chain `extract` then `write`. Help contracts reject extract flags on `write`.
 - [x] Fold this break into the leftover-surface cleanup
   Implement with `docs/reports/04-legacy-report-2026-08-21.md` section 6. Dual `--stt` / `--ocr` write selectors, `ProcessingOptions` write fields on download/extract, and write-shaped `skipLLM` are gone because write no longer runs extract.
 
@@ -181,5 +181,5 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 - `src/cli/commands/text/write/run-text-write.ts`
 - `src/cli/commands/text/write/define-write-command.ts`
 - `src/cli/commands/sources/download/download-targets/handle-process-target.ts`
-- `docs/commands/text/write/overview.md`
+- `docs/commands/03-text/write/overview.md`
 - `docs/reports/04-legacy-report-2026-08-21.md`

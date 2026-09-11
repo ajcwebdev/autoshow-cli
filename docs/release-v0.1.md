@@ -47,7 +47,7 @@ Each section summarizes the step, links to the command docs, and shows one repre
 
 ### Step 0: metadata
 
-[`metadata`](./commands/sources/metadata/overview.md) inspects source metadata without downloading the source. It accepts media files and URLs, documents, images, HTML, URL lists, X Spaces, feeds, channels, and directories. It prints JSON by default, Markdown with `--markdown`, and can save a run directory with `--save`.
+[`metadata`](./commands/01-sources/metadata/overview.md) inspects source metadata without downloading the source. It accepts media files and URLs, documents, images, HTML, URL lists, X Spaces, feeds, channels, and directories. It prints JSON by default, Markdown with `--markdown`, and can save a run directory with `--save`.
 
 Example:
 
@@ -57,7 +57,7 @@ bun autoshow metadata input/examples/document/1-document.pdf
 
 ### Step 1: download
 
-[`download`](./commands/sources/download/overview.md) fetches or stages a source and stops before extraction. Media and X Space runs save audio or best-quality video; document, image, and article runs save the source plus `manifest.json`.
+[`download`](./commands/01-sources/download/overview.md) fetches or stages a source and stops before extraction. Media and X Space runs save audio or best-quality video; document, image, and article runs save the source plus `manifest.json`.
 
 Example:
 
@@ -77,7 +77,7 @@ bun autoshow extract input/examples/document/1-document.pdf --format json
 
 ### Step 3: write
 
-[`write`](./commands/text/write/overview.md) generates hosted LLM text from local `.md` or `.txt` input. Run `extract` first for URLs, media, documents, or HTML. There is no local LLM; omitting `--llm` selects the cheapest hosted model. Typical outputs are `text.json` plus optional rendered Markdown and show notes.
+[`write`](./commands/03-text/write/overview.md) generates hosted LLM text from local `.md` or `.txt` input. Run `extract` first for URLs, media, documents, or HTML. There is no local LLM; omitting `--llm` selects the cheapest hosted model. Typical outputs are `text.json` plus optional rendered Markdown and show notes.
 
 Example:
 
@@ -87,7 +87,7 @@ bun autoshow write output/<extract-run>/transcription.txt
 
 ### Step 4: tts
 
-[`tts`](./commands/audio/tts/overview.md) generates speech from local `.md` or `.txt` files using hosted TTS providers. Runs write `speech.wav` and `manifest.json`.
+[`tts`](./commands/04-audio/tts/overview.md) generates speech from local `.md` or `.txt` files using hosted TTS providers. Runs write `speech.wav` and `manifest.json`.
 
 Example:
 
@@ -97,7 +97,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2
 
 ### Step 5: image
 
-[`image`](./commands/visuals/image/overview.md) generates images from text prompts and runs supported edit and reference workflows. Default runs write `generated-image.png` (or the selected format) plus `manifest.json`.
+[`image`](./commands/05-visuals/image/overview.md) generates images from text prompts and runs supported edit and reference workflows. Default runs write `generated-image.png` (or the selected format) plus `manifest.json`.
 
 Example:
 
@@ -107,7 +107,7 @@ bun autoshow image "a premium product photo of a mountain observatory brochure" 
 
 ### Step 6: video
 
-[`video`](./commands/visuals/video/overview.md) generates hosted `.mp4` videos from text prompts, images, references, or input-video modes. Default runs write `generated-video.mp4` plus `manifest.json`.
+[`video`](./commands/05-visuals/video/overview.md) generates hosted `.mp4` videos from text prompts, images, references, or input-video modes. Default runs write `generated-video.mp4` plus `manifest.json`.
 
 Example:
 
@@ -117,7 +117,7 @@ bun autoshow video "animate the product on a slow turntable" --provider ltx=ltx-
 
 ### Step 7: music
 
-[`music`](./commands/audio/music/overview.md) either generates hosted `.mp3` music from prompts or renders local lyric videos from audio files.
+[`music`](./commands/04-audio/music/overview.md) either generates hosted `.mp3` music from prompts or renders local lyric videos from audio files.
 
 Examples:
 
@@ -128,7 +128,7 @@ bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=ly
 
 ### Step 8: comic
 
-[`comic`](./commands/visuals/comic/00-comic-overview.md) turns episode scripts into staged comic workflows: scene drafts, character and location references, panel and page images, dialogue and soundscape audio, and slideshows. Scripts live under `input/scripts/`; scene runs write `output/<timestamp>_<scene-slug>/`.
+[`comic`](./commands/05-visuals/comic/00-comic-overview.md) turns episode scripts into staged comic workflows: scene drafts, character and location references, panel and page images, dialogue and soundscape audio, and slideshows. Scripts live under `input/scripts/`; scene runs write `output/<timestamp>_<scene-slug>/`.
 
 Example:
 
@@ -138,7 +138,7 @@ bun autoshow comic draft-scenes 05-01
 
 ### Step 9: voice
 
-[`voice`](./commands/audio/voice/00-voice-overview.md) lists and registers provider voices for standalone and comic workflows without synthesizing speech. `comic reference-voice` remains a deprecated compatibility alias. Registrations live under `input/characters/`.
+[`voice`](./commands/04-audio/voice/00-voice-overview.md) lists and registers provider voices for standalone and comic workflows without synthesizing speech. `comic reference-voice` remains a deprecated compatibility alias. Registrations live under `input/characters/`.
 
 Example:
 
@@ -152,7 +152,7 @@ These commands support the pipeline but are not process steps.
 
 ### setup
 
-[`setup`](./commands/setup-and-utilities/setup.md) installs local runtimes, downloads local models, and verifies prerequisites with `--doctor`.
+[`setup`](./commands/00-setup-and-utilities/setup.md) installs local runtimes, downloads local models, and verifies prerequisites with `--doctor`.
 
 Examples:
 
@@ -164,7 +164,7 @@ bun autoshow setup --models base
 
 ### config
 
-[`config`](./commands/setup-and-utilities/config.md) inspects or persists defaults in `config/autoshow.json`, including provider and model choices, generation options, pricing thresholds, and cookie authentication.
+[`config`](./commands/00-setup-and-utilities/config.md) inspects or persists defaults in `config/autoshow.json`, including provider and model choices, generation options, pricing thresholds, and cookie authentication.
 
 Examples:
 
@@ -176,7 +176,7 @@ bun autoshow config --reset
 
 ### links
 
-[`links`](./commands/setup-and-utilities/links.md) fetches curated provider documentation into a timestamped run directory under `output/`.
+[`links`](./commands/00-setup-and-utilities/links.md) fetches curated provider documentation into a timestamped run directory under `output/`.
 
 Example:
 
@@ -186,7 +186,7 @@ bun autoshow links stt
 
 ### resume
 
-[`resume`](./commands/setup-and-utilities/resume.md) fills missing provider outputs in an existing run directory that contains `manifest.json`.
+[`resume`](./commands/00-setup-and-utilities/resume.md) fills missing provider outputs in an existing run directory that contains `manifest.json`.
 
 Example:
 

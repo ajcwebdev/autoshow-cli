@@ -9,7 +9,7 @@ import { stripAnsi } from '~/utils/terminal-colors'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
 
 export const generateHelpAuditInventory = async (): Promise<string> => {
-  const reportPath = join(PROJECT_ROOT, 'docs/reports/help-output-audit/help-output-audit-report.md')
+  const reportPath = join(PROJECT_ROOT, 'docs/reports/02-help-output-audit/help-output-audit-report.md')
   const report = await Bun.file(reportPath).text()
   const root = createNativeRootDefinition()
   const entries = getCommandHelpInventory(COMMAND_DEFINITIONS)

@@ -2,6 +2,14 @@ docs/links
 !docs/links/.gitkeep
 docs/todo
 docs/reports/*
+!docs/reports/model-refresh-stt.md
+!docs/reports/model-refresh-ocr.md
+!docs/reports/model-refresh-url.md
+!docs/reports/model-refresh-write.md
+!docs/reports/model-refresh-tts.md
+!docs/reports/model-refresh-music.md
+!docs/reports/model-refresh-image.md
+!docs/reports/model-refresh-video.md
 
 .DS_Store
 node_modules/

@@ -4,7 +4,7 @@ Shared `bun t` runner behavior plus the local and service test coverage map for 
 
 Default local verification is `bun run check` followed by `bun t --price`. Price mode estimates mapped commands without executing provider tests. The default runner uses fixture mode and does not forward provider credentials. Hosted execution requires explicit live mode, a credential allowlist, and valid budget evidence; apply the repository spending policy before running it.
 
-`bun run check` starts `check:names` and `check:types` concurrently with `bun run --parallel`. Each maintenance child receives only `PATH` and `HOME`, disables automatic env-file loading, and calls the installed TypeScript 6.0.3 compiler directly. The `repo`, OCR-token audit, complexity analysis, and default custom test-runner scripts use the same minimal environment boundary. Docker baseline, env-compatibility and acceptance launchers additionally preserve the shared Docker host/context/TLS connection settings described in the [environment reference](../reports/high-priority-metareport-2026-09-11.md#environment-reference). Normal `bun autoshow` commands still load `.env` because provider commands legitimately require credentials.
+`bun run check` starts `check:structure`, `check:names`, and `check:types` concurrently with `bun run --parallel`. Each maintenance child receives only `PATH` and `HOME`, disables automatic env-file loading, and calls the installed TypeScript 6.0.3 compiler directly. The `repo`, OCR-token audit, complexity analysis, and default custom test-runner scripts use the same minimal environment boundary. Docker baseline, env-compatibility and acceptance launchers additionally preserve the shared Docker host/context/TLS connection settings listed in the [environment inventory](../../src/tools/environment-reference.ts). Normal `bun autoshow` commands still load `.env` because provider commands legitimately require credentials.
 
 ## Outline
 
@@ -52,16 +52,16 @@ Direct live `bun --no-env-file test` execution requires `AUTOSHOW_TEST_CREDENTIA
 
 Command source, documentation, validation, and price tests use the `sources`, `stt`, `text`, `audio`, and `visuals` capability groups. E2E tests retain `local/` and `service/` as their first level. Shared CLI, configuration, runtime, pricing, resume, setup, provider, and mixed-feature contracts remain in their shared locations.
 
-- [Setup Tests](setup-and-utilities/setup.md#testing)
-- [Download Tests](sources/download/tests.md)
-- [STT Tests](stt/tests.md)
-- [OCR Tests](text/ocr/tests.md)
-- [URL Tests](text/url/tests.md)
-- [Write Service Tests](text/write/tests.md)
-- [TTS Service Tests](audio/tts/tests.md)
-- [Image Service Tests](visuals/image/tests.md)
-- [Video Service Tests](visuals/video/tests.md)
-- [Music Tests](audio/music/tests.md)
+- [Setup Tests](00-setup-and-utilities/setup.md#testing)
+- [Download Tests](01-sources/download/tests.md)
+- [STT Tests](02-stt/tests.md)
+- [OCR Tests](03-text/ocr/tests.md)
+- [URL Tests](03-text/url/tests.md)
+- [Write Service Tests](03-text/write/tests.md)
+- [TTS Service Tests](04-audio/tts/tests.md)
+- [Image Service Tests](05-visuals/image/tests.md)
+- [Video Service Tests](05-visuals/video/tests.md)
+- [Music Tests](04-audio/music/tests.md)
 
 ## Shared Runner Behavior
 

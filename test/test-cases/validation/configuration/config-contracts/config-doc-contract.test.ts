@@ -14,7 +14,7 @@ import {
 import { AutoshowConfigSchema } from '~/types'
 import type { ModelBinding, ModelRegistry } from '~/types'
 
-const configDocPath = resolve(import.meta.dir, '../../../../../docs/commands/setup-and-utilities/config.md')
+const configDocPath = resolve(import.meta.dir, '../../../../../docs/commands/00-setup-and-utilities/config.md')
 
 const bindingsForTargets = (
   registryStep: keyof ModelRegistry,

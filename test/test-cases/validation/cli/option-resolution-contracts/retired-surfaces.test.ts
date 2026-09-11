@@ -121,7 +121,7 @@ describe('retired surfaces', () => {
   test('removed command trees stay off disk', () => {
     expect(existsSync(resolve('src/cli/commands/setup-and-utilities/benchmark'))).toBe(false)
     expect(existsSync(resolve('src/types/benchmarks'))).toBe(false)
-    expect(existsSync(resolve('docs/commands/setup-and-utilities/benchmark/benchmark.md'))).toBe(false)
+    expect(existsSync(resolve('docs/commands/00-setup-and-utilities/benchmark/benchmark.md'))).toBe(false)
     expect(existsSync(resolve('src/cli/commands/text/ocr/ocr-services/replicate-ocr'))).toBe(false)
     expect(existsSync(resolve('src/cli/commands/text/ocr/ocr-services/fal-ocr'))).toBe(false)
     expect(existsSync(resolve('src/cli/commands/setup-and-utilities/models/ocr-config/ocr-replicate.json'))).toBe(false)
