@@ -19,7 +19,7 @@ import { EXTRACT_PUBLIC_SELECTOR_FLAGS } from './service-selector-normalization/
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 
 const extractProviderSelectionFlags = {
-  provider: strListFlag(`STT/OCR: ${formatProviderList(EXTRACT_PUBLIC_SELECTOR_FLAGS)} (defaults: whisper=tiny or tesseract)\nURL: ${URL_ARTICLE_BACKENDS.join('|')} (default: defuddle)\nrepeatable as provider[=model]`),
+  provider: strListFlag(`STT/OCR: ${formatProviderList(EXTRACT_PUBLIC_SELECTOR_FLAGS)} (defaults: whisperfile=tiny or tesseract)\nURL: ${URL_ARTICLE_BACKENDS.join('|')} (default: defuddle)\nrepeatable as provider[=model]`),
   ...booleanAllProvidersFlag,
   ...booleanAllLocalFlag,
   ...sharedConcurrencyFlags

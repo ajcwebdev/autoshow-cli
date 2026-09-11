@@ -1,9 +1,9 @@
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import { copyFile, mkdir, readdir, rm } from 'node:fs/promises'
-import { validateWhisperModel } from '~/cli/commands/setup-and-utilities/models/stt-models'
+import { validateWhisperfileModel } from '~/cli/commands/setup-and-utilities/models/stt-models'
 import { ensureProviderReady } from '~/utils/bootstrap-broker'
 import { reserveBatchChildOutputDir } from '~/cli/commands/command-shared/batch-child-output'
-import { runWhisperTranscribe } from '~/cli/commands/stt/local/whisper/run-whisper'
+import { runWhisperfileTranscribe } from '~/cli/commands/stt/local/whisperfile/run-whisperfile'
 import { createManifest, createManifestItem, createPipelineItemFromRecord, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import { ensureDirectory, fileExists } from '~/utils/cli-utils'
 import { UsageError, InfraError, ValidationError } from '~/utils/error-handler'
@@ -124,9 +124,9 @@ const processLyricsRun = async (options: {
         throw ValidationError(`Caption file contained no usable cues: ${toProjectDisplayPath(captionsPath)}`, { stage: 'music:lyrics-video' })
       }
     } else {
-      await ensureProviderReady(`whisper:${model}`)
+      await ensureProviderReady(`whisperfile:${model}`)
       const transcriptionStartedAt = Date.now()
-      const whisperRun = await runWhisperTranscribe(audioPath, tempDir, {
+      const whisperRun = await runWhisperfileTranscribe(audioPath, tempDir, {
         model,
         segmentOffsetMinutes: 0
       })
@@ -136,7 +136,7 @@ const processLyricsRun = async (options: {
       cues = builtCues.cues
       cueSource = builtCues.source
       if (cues.length === 0) {
-        throw InfraError('Whisper produced no usable lyric cues', { stage: 'music:lyrics-video' })
+        throw InfraError('Whisperfile produced no usable lyric cues', { stage: 'music:lyrics-video' })
       }
     }
 
@@ -183,7 +183,7 @@ const processLyricsRun = async (options: {
         ...(captionsPath ? { captionsPath: toProjectDisplayPath(captionsPath) } : {})
       },
       transcription: {
-        mode: captionsPath ? 'captions' : 'whisper',
+        mode: captionsPath ? 'captions' : 'whisperfile',
         ...(captionsPath ? {} : { model }),
         ...(transcriptionDescriptor ? { descriptor: transcriptionDescriptor } : {}),
         cueSource,
@@ -268,7 +268,7 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
   const batch = typeof batchFlag === 'string' && batchFlag.length > 0
   const audioFlag = typeof flags['audio'] === 'string' ? flags['audio'] : undefined
   const captionsFlag = typeof flags['captions'] === 'string' ? flags['captions'] : undefined
-  const modelRaw = typeof flags['model'] === 'string' ? flags['model'] : 'large-v3-turbo'
+  const modelRaw = typeof flags['model'] === 'string' ? flags['model'] : 'small.en'
   const font = typeof flags['font'] === 'string' && flags['font'].trim().length > 0 ? flags['font'] : 'DejaVu Sans'
   const price = flags['price'] === true
 
@@ -283,7 +283,7 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
     throw UsageError('Missing --audio (or use --batch <dir>)')
   }
 
-  const model = validateWhisperModel(modelRaw)
+  const model = validateWhisperfileModel(modelRaw)
 
   if (batch) {
     const inputRoot = resolveUserPath(batchFlag!)
@@ -303,7 +303,7 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
     }
 
     await ensureDirectory(outputRoot)
-    await ensureProviderReady(`whisper:${model}`)
+    await ensureProviderReady(`whisperfile:${model}`)
     const batchDirRelative = resolveRunDirectory(getOutputRoot(), 'music-lyrics-batch', 'music-lyrics-batch')
     const batchDirAbsolute = resolve(PROJECT_ROOT, batchDirRelative)
     await ensureDirectory(batchDirAbsolute)

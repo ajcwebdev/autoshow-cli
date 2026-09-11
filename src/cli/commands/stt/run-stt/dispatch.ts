@@ -1,6 +1,5 @@
-import type { Step2Metadata, SttDispatchContext, SttDispatcher, SttTarget, SttTargetOptions, TranscriptionResult, WhisperProgressWindow } from '~/types'
+import type { Step2Metadata, SttDispatchContext, SttDispatcher, SttTarget, SttTargetOptions, TranscriptionResult, WhisperfileProgressWindow } from '~/types'
 import { InternalError, UsageError } from '~/utils/error-handler'
-import { runWhisperTranscribe } from '../local/whisper/run-whisper'
 import { runWhisperfileTranscribe } from '../local/whisperfile/run-whisperfile'
 import { runAssemblyAiTranscribe } from '../diarization/assemblyai/run-assemblyai-stt'
 import { runDeepgramTranscribe } from '../diarization/stt-deepgram/run-deepgram-stt'
@@ -57,7 +56,6 @@ const sttDispatchers = {
     throw UsageError('Rev STT is retired and cannot dispatch. Start a new target with an active STT provider.')
   },
   grok: async context => await runGrokStt(context.audioPath, context.outputDir, minimalOptions(context)),
-  whisper: async context => await runWhisperTranscribe(context.audioPath, context.outputDir, whisperOptions(context)),
   whisperfile: async context => await runWhisperfileTranscribe(context.audioPath, context.outputDir, whisperOptions(context)),
   mistral: async context => await runMistralStt(context.audioPath, context.outputDir, {
     ...minimalOptions(context),
@@ -99,7 +97,7 @@ export const dispatchStt = async (
   options: SttTargetOptions,
   segmentNumber?: number,
   totalSegments?: number,
-  whisperProgress?: WhisperProgressWindow | undefined
+  whisperProgress?: WhisperfileProgressWindow | undefined
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const dispatched = await sttDispatchers[target.service]({
   target,

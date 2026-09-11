@@ -7,7 +7,8 @@ import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilitie
 import type { AutoshowConfig, DoctorCheck, DoctorProbes, DoctorReport, DoctorSection, DoctorSeverity, DoctorStatus, ManagedArtifactToolId, RunResult, RuntimeToolId } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { getHostedProviderConfiguredPaths, getMissingConfiguredHostedProviderCredentials, HOSTED_PROVIDER_ENV_CHECKS } from './hosted-provider-config'
-import { defaultWhisperModel, runCapture, whisperBinaryPath, whisperModelsDir } from './run-complete-setup'
+import { runCapture, whisperfileBinaryPath, whisperfileDir } from './run-complete-setup'
+import { DEFAULT_WHISPERFILE_MODEL } from '../models/stt-models'
 import {
   ebookConvertManagedBinaryPath,
   englishTrainedDataPath,
@@ -79,21 +80,6 @@ const check = (
   severity: options.severity ?? (status === 'WARN' ? 'warn' : 'info'),
   ...(options.nextStep ? { nextStep: options.nextStep } : {})
 })
-
-const checkCommand = (
-  probes: DoctorProbes,
-  label: string,
-  command: string,
-  options: { nextStep?: string, severity?: DoctorSeverity } = {}
-): DoctorCheck => {
-  const found = probes.which(command)
-  return found
-    ? check('OK', label, found)
-    : check('MISSING', label, 'not found', {
-      severity: options.severity ?? 'warn',
-      ...(options.nextStep ? { nextStep: options.nextStep } : {})
-    })
-}
 
 const DOCTOR_RUNTIME_TOOLS: Partial<Record<RuntimeToolId, { managedPath: string }>> = {
   ffmpeg: { managedPath: ffmpegManagedBinaryPath },
@@ -265,7 +251,6 @@ const collectSystemBuildToolChecks = async (probes: DoctorProbes): Promise<Docto
   title: 'System/build tools',
   checks: [
     checkBunRuntime(probes.bunVersion),
-    checkCommand(probes, 'cmake', 'cmake', { nextStep: 'install cmake with your system package manager' }),
     await checkMusicRenderer(probes)
   ]
 })
@@ -284,7 +269,7 @@ const checkManagedBinary = async (
     })
   }
 
-  const result = await probes.run(path, args)
+  const result = await probes.run('sh', [path, ...args])
   const okExitCodes = options.okExitCodes ?? [0]
   if (okExitCodes.includes(result.exitCode)) {
     const detail = result.stdout.trim() || result.stderr.trim() || path
@@ -329,8 +314,8 @@ const collectManagedRuntimeChecks = async (probes: DoctorProbes): Promise<Doctor
       defuddle.status === 'OK' || defuddle.nextStep
         ? defuddle
         : { ...defuddle, nextStep: 'bun autoshow setup --step defuddle' },
-      await checkManagedBinary(probes, 'runtime/bin/whisper-cli', whisperBinaryPath, ['--help'], {
-        nextStep: 'bun autoshow setup --step whisper-binary'
+      await checkManagedBinary(probes, 'whisperfile tiny', whisperfileBinaryPath(DEFAULT_WHISPERFILE_MODEL), ['--help'], {
+        nextStep: 'bun autoshow setup --step whisperfile'
       })
     ]
   }
@@ -346,16 +331,16 @@ const checkModelFile = async (
     ? check('OK', label, path)
     : check('MISSING', label, `${path} not found`, { severity: 'warn', nextStep })
 
-const collectInstalledWhisperModelsCheck = async (probes: DoctorProbes): Promise<DoctorCheck> => {
-  const entries = await probes.listDirectory(whisperModelsDir)
+const collectInstalledWhisperfileModelsCheck = async (probes: DoctorProbes): Promise<DoctorCheck> => {
+  const entries = await probes.listDirectory(whisperfileDir)
   const modelFiles = entries
-    .filter(name => /^ggml-.+\.bin$/.test(name))
+    .filter(name => /^whisper-.+\.llamafile$/.test(name))
     .sort()
 
   return check(
     'INFO',
-    'installed whisper model files',
-    modelFiles.length > 0 ? modelFiles.join(', ') : `none found in ${whisperModelsDir}`
+    'installed whisperfile model files',
+    modelFiles.length > 0 ? modelFiles.join(', ') : `none found in ${whisperfileDir}`
   )
 }
 
@@ -364,17 +349,11 @@ const collectLocalModelAssetChecks = async (probes: DoctorProbes): Promise<Docto
   checks: [
     await checkModelFile(
       probes,
-      `default whisper model ${defaultWhisperModel}`,
-      `${whisperModelsDir}/ggml-${defaultWhisperModel}.bin`,
-      'bun autoshow setup --step whisper-model'
+      `default whisperfile model ${DEFAULT_WHISPERFILE_MODEL}`,
+      whisperfileBinaryPath(DEFAULT_WHISPERFILE_MODEL),
+      'bun autoshow setup --step whisperfile'
     ),
-    await checkModelFile(
-      probes,
-      'music whisper model large-v3-turbo',
-      `${whisperModelsDir}/ggml-large-v3-turbo.bin`,
-      'bun autoshow setup'
-    ),
-    await collectInstalledWhisperModelsCheck(probes)
+    await collectInstalledWhisperfileModelsCheck(probes)
   ]
 })
 

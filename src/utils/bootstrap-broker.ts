@@ -1,10 +1,9 @@
-import { ensureWhisperReady } from '~/cli/commands/stt/local/whisper/whisper'
 import { ensureWhisperfileReady } from '~/cli/commands/stt/local/whisperfile/whisperfile'
 import type { BootstrapHandler } from '~/types'
 import { InternalError } from '~/utils/error-handler'
 import { resolveCredential } from '~/utils/validate/env-utils'
 
-const DEFAULT_WHISPER_MODEL = 'tiny'
+import { DEFAULT_WHISPERFILE_MODEL } from '~/cli/commands/setup-and-utilities/models/stt-models'
 const cache = new Map<string, Promise<void>>()
 
 const parseProviderToken = (
@@ -30,11 +29,8 @@ const parseProviderToken = (
 }
 
 const handlers: Record<string, BootstrapHandler> = {
-  whisper: {
-    ensure: async (model) => await ensureWhisperReady(model ?? DEFAULT_WHISPER_MODEL)
-  },
   whisperfile: {
-    ensure: async (model) => await ensureWhisperfileReady(model ?? DEFAULT_WHISPER_MODEL)
+    ensure: async (model) => await ensureWhisperfileReady(model ?? DEFAULT_WHISPERFILE_MODEL)
   },
   'deepgram-stt': {
     ensure: async (): Promise<void> => { resolveCredential('deepgram', 'require', { stage: 'stt:deepgram', description: 'Deepgram transcription' }) }

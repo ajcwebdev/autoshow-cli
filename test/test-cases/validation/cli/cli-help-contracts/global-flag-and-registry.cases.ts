@@ -33,7 +33,7 @@ import {
   SETUP_STEP_IDS,
   VIDEO_MODES
 } from '~/types'
-import { SUPPORTED_WHISPER_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { SUPPORTED_WHISPERFILE_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import {
   HELP_TREE_TIMEOUT_MS,
   advertisedFlagNames,
@@ -92,7 +92,7 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
     { command: 'metadata', label: '--url-provider', values: URL_ARTICLE_BACKENDS },
     { command: 'download', label: '--url-provider', values: URL_ARTICLE_BACKENDS },
     { command: 'extract', label: '--primary-ocr', values: Object.keys(WRITE_OCR_PROVIDER_TARGETS) },
-    { command: 'music', label: '--model', values: SUPPORTED_WHISPER_MODELS }
+    { command: 'music', label: '--model', values: SUPPORTED_WHISPERFILE_MODELS }
   ] as const
 
   test.concurrent('every derived help list documents each value its validator accepts', async () => {

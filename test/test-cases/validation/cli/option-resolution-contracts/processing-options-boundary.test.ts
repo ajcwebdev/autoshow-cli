@@ -106,7 +106,7 @@ describe('processing-options boundary differential', () => {
 
     expect(options.youtubeCaptions).toBe(runtimeOptions.youtubeCaptions)
     expect(options.split).toBe(runtimeOptions.split)
-    expect(options.whisperModels).toBe(runtimeOptions.whisperModels)
+    expect(options.whisperfileModels).toBe(runtimeOptions.whisperfileModels)
     expect('skipLLM' in options).toBe(false)
     expect('prompts' in options).toBe(false)
     expect('llmProviderConcurrency' in options).toBe(false)

@@ -11,7 +11,7 @@ import { pick } from '~/utils/cli-utils'
 import { UsageError } from '~/utils/error-handler'
 
 export const STT_MODEL_KEYS = [
-  'whisperModels', 'whisperfileModels',
+  'whisperfileModels',
   'deepinfraSttModels',
   'grokSttModels', 'deepgramSttModels',
   'sonioxSttModels', 'speechmaticsSttModels',

@@ -1,31 +1,32 @@
-import { toTimestamp } from '../stt-utils/stt-utils'
+import { whisperfileBinaryPath } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
+import { toTimestamp } from '../../stt-utils/stt-utils'
 import { mkdir, rm, rename } from 'node:fs/promises'
-import type { Step2Metadata, TranscriptionResult, WhisperCppProvider, WhisperCppTranscribeOptions } from '~/types'
+import type { Step2Metadata, TranscriptionResult, WhisperfileTranscribeOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { logSttSegmentLifecycle } from '~/cli/commands/stt/stt-logging'
 import { countTokens, formatTranscriptText } from '~/cli/commands/stt/stt-utils/stt-utils'
-import { parseWhisperJson, extractWhisperWords } from './whisper/parse-whisper-output'
-import { formatWhisperProgressMessage, parseWhisperProgressPercent } from './whisper/whisper-progress'
+import { parseWhisperfileJson, extractWhisperfileWords } from './parse-whisperfile-output'
+import { formatWhisperfileProgressMessage, parseWhisperfileProgressPercent } from './whisperfile-progress'
 import { exec, fileExists } from '~/utils/cli-utils'
 import { resolve } from 'node:path'
 import { pollUntil } from '~/utils/retries'
-import { prepareLocalSttInput } from './local-audio-normalize'
+import { prepareLocalSttInput } from '../local-audio-normalize'
 import { InfraError, ValidationError, isRetryExhaustedError } from '~/utils/error-handler'
 
-export const selectWhisperCaptionArgs = (help: string, nativeSubtitles = false): string[] => [
+export const selectWhisperfileCaptionArgs = (help: string, nativeSubtitles = false): string[] => [
   ...(help.includes('-sow') || help.includes('--split-on-word') ? ['-sow'] : []),
   ...(nativeSubtitles ? ['-osrt', '-ovtt', '-olrc'].filter(flag => help.includes(flag)) : [])
 ]
 
-const WHISPER_JSON_WAIT_TIMEOUT_MS = 3000
-const WHISPER_JSON_WAIT_POLL_MS = 100
+const WHISPERFILE_JSON_WAIT_TIMEOUT_MS = 3000
+const WHISPERFILE_JSON_WAIT_POLL_MS = 100
 
-const waitForWhisperJson = async (jsonFile: string, providerName: string): Promise<boolean> => {
+const waitForWhisperfileJson = async (jsonFile: string, providerName: string): Promise<boolean> => {
   try {
     await pollUntil({
       operationName: `${providerName}-json-output`,
-      intervalMs: WHISPER_JSON_WAIT_POLL_MS,
-      deadlineMs: WHISPER_JSON_WAIT_TIMEOUT_MS,
+      intervalMs: WHISPERFILE_JSON_WAIT_POLL_MS,
+      deadlineMs: WHISPERFILE_JSON_WAIT_TIMEOUT_MS,
       pollFn: async () => await fileExists(jsonFile),
       isDone: (exists) => exists
     })
@@ -36,13 +37,15 @@ const waitForWhisperJson = async (jsonFile: string, providerName: string): Promi
   }
 }
 
-export const runWhisperCppTranscribe = async (
+export const transcribeWhisperfile = async (
   audioPath: string,
   outputDir: string,
-  options: WhisperCppTranscribeOptions,
-  provider: WhisperCppProvider
+  options: WhisperfileTranscribeOptions
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const { name, label, tempPrefix, resolveInvocation } = provider
+  const name = 'whisperfile'
+  const label = 'Whisperfile'
+  const tempPrefix = 'autoshow-whisperfile-'
+  const resolveInvocation = async (model: string, args: string[]) => ({ command: 'sh', args: [whisperfileBinaryPath(model), ...args], modelDescriptor: whisperfileBinaryPath(model) })
   const {
     model: modelName,
     segmentOffsetMinutes = 0,
@@ -69,11 +72,11 @@ export const runWhisperCppTranscribe = async (
     const helpOutput = await exec(helpInvocation.command, helpInvocation.args, { signal: AbortSignal.timeout(15_000), maxBufferBytes: 128 * 1024 })
       .then(result => result.stdout + result.stderr)
       .catch(() => '')
-    const captionArgs = selectWhisperCaptionArgs(helpOutput, options.nativeSubtitles)
+    const captionArgs = selectWhisperfileCaptionArgs(helpOutput, options.nativeSubtitles)
     if (options.dtwPreset && !/(?:^|\s)(?:-dtw|--dtw)(?:\s|$)/m.test(helpOutput)) throw ValidationError(`${label} does not advertise DTW support in its installed help output.`)
     preparedInput = await prepareLocalSttInput(audioPath, tempPrefix, {
-      passthroughExtensions: provider.passthroughExtensions,
-      convertFormat: provider.convertFormat
+      passthroughExtensions: ['.wav', '.mp3', '.flac', '.ogg'],
+      convertFormat: 'mp3'
     })
     const baseArgs = [
       '-f', preparedInput.audioPath,
@@ -88,7 +91,7 @@ export const runWhisperCppTranscribe = async (
     const { command, args, modelDescriptor } = await resolveInvocation(modelName, baseArgs)
     await Bun.write(outputBase + '.engine.json', JSON.stringify({ provider: name, model: modelName, modelDescriptor, command, args, captionArgs, help: helpOutput }, null, 2) + '\n')
     let lastLoggedProgress: number | null = null
-    l.debug(formatWhisperProgressMessage(0, {
+    l.debug(formatWhisperfileProgressMessage(0, {
       segmentNumber,
       totalSegments,
       segmentStartSeconds,
@@ -98,12 +101,12 @@ export const runWhisperCppTranscribe = async (
     lastLoggedProgress = 0
     const result = await exec(command, args, {
       onStderrLine: (line) => {
-        const progressPercent = parseWhisperProgressPercent(line)
+        const progressPercent = parseWhisperfileProgressPercent(line)
         if (progressPercent === null || progressPercent === lastLoggedProgress) {
           return
         }
         lastLoggedProgress = progressPercent
-        l.debug(formatWhisperProgressMessage(progressPercent, {
+        l.debug(formatWhisperfileProgressMessage(progressPercent, {
           segmentNumber,
           totalSegments,
           segmentStartSeconds,
@@ -116,7 +119,7 @@ export const runWhisperCppTranscribe = async (
       throw InfraError(`${label} transcription failed: ${result.stderr}`, { stage: `stt:${name}` })
     }
     const jsonFile = `${outputBase}.json`
-    const jsonReady = await waitForWhisperJson(jsonFile, name)
+    const jsonReady = await waitForWhisperfileJson(jsonFile, name)
     if (!jsonReady) {
       const commandOutput = result.stderr.trim() || result.stdout.trim()
       const outputDirExists = await fileExists(outputDirAbs)
@@ -130,9 +133,9 @@ export const runWhisperCppTranscribe = async (
     const jsonText = await Bun.file(jsonFile).text()
     const rawResponse = JSON.parse(jsonText) as unknown
     const maxRelativeEndSeconds = segmentDurationSeconds ?? audioDurationSeconds ?? totalDurationSeconds
-    let words = extractWhisperWords(jsonText, { maxEndSeconds: maxRelativeEndSeconds })
+    let words = extractWhisperfileWords(jsonText, { maxEndSeconds: maxRelativeEndSeconds })
     await Bun.write(`${outputBase}.words.json`, JSON.stringify(words))
-    let { text, segments } = parseWhisperJson(jsonText, { maxEndSeconds: maxRelativeEndSeconds })
+    let { text, segments } = parseWhisperfileJson(jsonText, { maxEndSeconds: maxRelativeEndSeconds })
     if (segmentOffsetMinutes > 0) {
       const offsetSeconds = segmentOffsetMinutes * 60
       segments = segments.map(seg => {

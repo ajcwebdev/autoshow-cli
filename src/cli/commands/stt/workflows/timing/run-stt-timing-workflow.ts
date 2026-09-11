@@ -11,8 +11,8 @@ import { runLocalForcedAlignment } from './run-local-forced-alignment'
 
 export const sttTimingFlags = {
   'timing-reference': { description: 'Compare saved word timing with this reference result.json (also used by --calibrate-whisper)', type: String },
-  'calibrate-whisper': { description: 'Compare installed Whisper standard/DTW timing against --timing-reference using local audio', type: Boolean },
-  'whisper-engine': { description: 'Calibration engine: whisper|whisperfile (default whisper)', type: String },
+  'calibrate-whisper': { description: 'Compare installed Whisperfile standard/DTW timing against --timing-reference using local audio', type: Boolean },
+  'whisper-engine': { description: 'Calibration engine: whisperfile (default whisperfile)', type: String },
   'whisper-calibration-model': { description: 'Installed model for local timing calibration (default tiny)', type: String },
   'align-transcript': { description: 'Force-align this saved transcript to local input audio using an installed CTC model', type: String },
   'alignment-model': { description: 'Local Wav2Vec2 CTC model directory; never downloaded by alignment', type: String },

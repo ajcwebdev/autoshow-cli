@@ -12,7 +12,7 @@ describe('test-runner test-kind classification', () => {
       ['/stt/example.test.ts', 'extract a page', 'transcribe'],
       ['/text/ocr/example.test.ts', 'generate music', 'extract'],
       ['/text/url/example.test.ts', 'generate music', 'extract'],
-      ['/e2e/local/stt/whisper/example.test.ts', 'extract a page', 'transcribe'],
+      ['/e2e/local/stt/whisperfile/example.test.ts', 'extract a page', 'transcribe'],
       ['/e2e/service/stt/diarization/example.test.ts', 'extract a page', 'transcribe'],
       ['/e2e/service/stt/diarization-off-by-default/example.test.ts', 'extract a page', 'transcribe'],
       ['/e2e/service/stt/direct-url/example.test.ts', 'extract a page', 'transcribe'],

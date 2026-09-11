@@ -24,7 +24,7 @@ Generate music from a text prompt with hosted providers, or render local lyric v
 bun autoshow setup --step music
 ```
 
-The music setup step checks hosted music API keys and lyric-video tools: `ffmpeg`, `ffprobe`, `whisper-cli`, and the local Whisper `large-v3-turbo` model.
+The music setup step checks hosted music API keys and lyric-video tools: `ffmpeg`, `ffprobe`, and the local whisperfile `small.en` bundle.
 
 ### Environment
 
@@ -54,7 +54,7 @@ bun autoshow music --batch input/<dir>
 | Mode                  | Required input                            | Description                                                                            |
 | --------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------- |
 | Hosted generation     | `<prompt-or-text-file>` with `--provider` | Generates music with hosted ElevenLabs, MiniMax, or Gemini APIs and writes MP3 outputs |
-| Lyric-video rendering | `--audio <file>` or `--batch <dir>`       | Uses local Whisper captions and ffmpeg rendering to write MP4/VTT/SRT outputs          |
+| Lyric-video rendering | `--audio <file>` or `--batch <dir>`       | Uses local whisperfile captions and ffmpeg rendering to write MP4/VTT/SRT outputs          |
 
 Do not mix hosted generation flags with lyric-video flags.
 
@@ -83,8 +83,8 @@ Lyric-video flags:
 | ------------------- | -------------------------------------------------------------------------------------------------- |
 | `--batch <dir>`     | Process every supported audio file under directory recursively                                     |
 | `--audio <file>`    | Single-run lyric-video audio file                                                                  |
-| `--captions <file>` | Edited `.vtt` or `.srt` file; skips Whisper and rerenders only                                     |
-| `--model <name>`    | Local Whisper model: `tiny`, `base`, `small`, `medium`, `large-v3-turbo`; default `large-v3-turbo` |
+| `--captions <file>` | Edited `.vtt` or `.srt` file; skips whisperfile and rerenders only                                     |
+| `--model <name>`    | Whisperfile model: `tiny`, `tiny.en`, `small`, `small.en`, `medium`, `medium.en`, `large-v2`, `large-v3`; default `small.en` |
 | `--font <name>`     | Font family for lyric overlays; default `DejaVu Sans`                                              |
 
 See [Provider Capabilities](#provider-capabilities) for the per-model matrix.

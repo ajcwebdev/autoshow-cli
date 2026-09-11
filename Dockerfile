@@ -105,12 +105,6 @@ RUN set -eux; \
     chmod 0755 /usr/local/bin/tesseract; \
     rm -rf /var/lib/apt/lists/* /root/.cache/* /tmp/*
 
-# Keep the Whisper build prerequisites in one layer so CI can report its exact size.
-# GCC/G++ pull in libc and libstdc++ headers; no hosted engines or model weights.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends cmake make gcc g++ libc6-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY --from=fetch /usr/local/bin/yt-dlp /usr/local/bin/yt-dlp
 COPY --from=youtube-js /deno /usr/local/bin/deno
 

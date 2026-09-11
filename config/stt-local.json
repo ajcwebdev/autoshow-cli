@@ -3,22 +3,11 @@
     "extract": {
       "stt": {
         "localConcurrency": 1,
-        "whisper": [
-          "tiny",
-          "base",
-          "small",
-          "medium",
-          "large-v3-turbo"
-        ],
         "whisperfile": [
           "tiny",
           "tiny.en",
           "small",
-          "small.en",
-          "medium",
-          "medium.en",
-          "large-v2",
-          "large-v3"
+          "small.en"
         ]
       }
     }

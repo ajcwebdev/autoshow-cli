@@ -61,7 +61,6 @@ describe('provider selection contracts', () => {
       'scrapecreators-stt',
       'gemini-stt',
       'together-stt',
-      'whisper-stt',
       'whisperfile-stt'
     ])
   })
@@ -177,7 +176,7 @@ describe('provider selection contracts', () => {
 
   test('target collection preserves provider ordering and deduplicates repeated models', () => {
     const sttOpts = buildOptsFromFlags({
-      'whisper-stt': ['base', 'base'],
+      'whisperfile-stt': ['small', 'small'],
       'assemblyai-stt': ['universal-3-5-pro', 'universal-3-5-pro']
     })
     const ocrSpecs = collectStep2ProviderSpecs('ocr', {
@@ -193,7 +192,7 @@ describe('provider selection contracts', () => {
 
     expect(collectSttTargets(sttOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'assemblyai:universal-3-5-pro',
-      'whisper:base'
+      'whisperfile:small'
     ])
     expect(ocrSpecs).toEqual([
       { provider: 'tesseract', model: 'tesseract' },
@@ -219,7 +218,7 @@ describe('provider selection contracts', () => {
     expect(services).toContain('mistral')
     expect(services).not.toContain('rev')
     expect(services).not.toContain('reverb')
-    expect(services).not.toContain('whisper')
+    expect(services).not.toContain('whisperfile')
     expect(supadataTargets).toEqual([{
       service: 'supadata',
       model: 'auto',
@@ -247,7 +246,7 @@ describe('provider selection contracts', () => {
     const localOpts = buildOptsFromFlags({ 'all-local-stt': true })
     const localServices = collectSttTargets(localOpts).map((target) => target.service)
     expect(localServices).not.toContain('reverb')
-    expect(localServices).toContain('whisper')
+    expect(localServices).toContain('whisperfile')
     expect(localServices).not.toContain('deepgram')
     expect(localServices).not.toContain('mistral')
   })

@@ -24,9 +24,7 @@ const TOTAL_TIMEOUT_MS_BY_FLOW: Record<DownloadFlowId, number> = {
   tessdata: DEFAULT_TOTAL_TIMEOUT_MS,
   'libjpeg-turbo-source': DEFAULT_TOTAL_TIMEOUT_MS,
   'qpdf-source': DEFAULT_TOTAL_TIMEOUT_MS,
-  'whisper-model': LARGE_ASSET_TOTAL_TIMEOUT_MS,
   'whisperfile-binary': LARGE_ASSET_TOTAL_TIMEOUT_MS,
-  'whisper-source': DEFAULT_TOTAL_TIMEOUT_MS
 }
 
 export const resolveDownloadTimeouts = (req: DownloadRequest): DownloadTimeouts => {

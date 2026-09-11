@@ -3,9 +3,9 @@ import { join } from 'node:path'
 import type { TranscriptionEvidenceWord, TranscriptionResult } from '~/types'
 import { AppValidationError, ValidationError, UsageError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
-import { runWhisperTranscribe } from '../../local/whisper/run-whisper'
+import { validateWhisperfileModel } from '~/cli/commands/setup-and-utilities/models/stt-models'
 import { runWhisperfileTranscribe } from '../../local/whisperfile/run-whisperfile'
-import { extractWhisperWords } from '../../local/whisper/parse-whisper-output'
+import { extractWhisperfileWords } from '../../local/whisperfile/parse-whisperfile-output'
 import { evaluateWordTiming, validateMeasuredWords } from './stt-word-metrics'
 import { toTimestamp } from '../../stt-utils/stt-utils'
 import { hashLocalTimingFile, readLocalTimingResult, requireLocalTimingFile, writeLocalTimingFiles } from './stt-local-workspace'
@@ -13,30 +13,37 @@ import { hashLocalTimingFile, readLocalTimingResult, requireLocalTimingFile, wri
 export const dtwWordEvidence = (raw: unknown): TranscriptionEvidenceWord[] => {
   const data = raw as { transcription?: Array<{ offsets: { to: number }; tokens?: Array<{ text: string; t_dtw: number; p?: number }> }> }
   const tokens = (data.transcription ?? []).flatMap(segment => (segment.tokens ?? []).filter(token => token.text?.trim() && !/^\[.*\]$/.test(token.text.trim()) && Number.isFinite(token.t_dtw) && token.t_dtw >= 0).map(token => ({ ...token, center: token.t_dtw / 100, segmentEnd: segment.offsets.to / 1000 })))
-  if (!tokens.length) throw ValidationError('Whisper returned no usable DTW token centers. Its installed bundle/model combination cannot be calibrated.')
-  if (tokens.some((token, index) => index > 0 && token.center < tokens[index - 1]!.center)) throw ValidationError('Whisper returned non-monotonic DTW token centers; retain the raw result for review.')
+  if (!tokens.length) throw ValidationError('Whisperfile returned no usable DTW token centers. Its installed bundle/model combination cannot be calibrated.')
+  if (tokens.some((token, index) => index > 0 && token.center < tokens[index - 1]!.center)) throw ValidationError('Whisperfile returned non-monotonic DTW token centers; retain the raw result for review.')
   const transcription = tokens.map((token, index) => {
     const previous = tokens[index - 1], next = tokens[index + 1]
     const start = previous ? (previous.center + token.center) / 2 : Math.max(0, token.center - .01)
     const end = next ? (token.center + next.center) / 2 : Math.max(token.center + .01, token.segmentEnd)
     return { text: token.text, timestamps: { from: toTimestamp(start), to: toTimestamp(Math.max(start + .001, end)) }, offsets: { from: start * 1000, to: end * 1000 }, tokens: [{ p: token.p }] }
   })
-  return extractWhisperWords(JSON.stringify({ transcription })).map(word => ({ text: word.word, normalized: word.word.toLowerCase(), startSeconds: word.start, endSeconds: word.end, ...(word.confidence !== undefined ? { confidence: word.confidence } : {}), timingSource: 'repaired' }))
+  return extractWhisperfileWords(JSON.stringify({ transcription })).map(word => ({ text: word.word, normalized: word.word.toLowerCase(), startSeconds: word.start, endSeconds: word.end, ...(word.confidence !== undefined ? { confidence: word.confidence } : {}), timingSource: 'repaired' }))
+}
+
+export const resolveWhisperfileCalibration = (flags: Record<string, unknown>) => {
+  const engine = flags['whisper-engine'] ?? 'whisperfile'
+  if (engine !== 'whisperfile') throw UsageError('--whisper-engine must be whisperfile.')
+  const model = flags['whisper-calibration-model'] ?? 'tiny'
+  if (typeof model !== 'string') throw UsageError('--whisper-calibration-model must name a supported installed whisperfile model.')
+  return { engine, model: validateWhisperfileModel(model) }
 }
 
 export const calibrateWhisperTiming = async (audioInput: string, referencePath: string, flags: Record<string, unknown>, output: string) => {
+  const { engine, model } = resolveWhisperfileCalibration(flags)
   const audio = await requireLocalTimingFile(audioInput)
   const audioSha256 = await hashLocalTimingFile(audio)
   const reference = await readLocalTimingResult(referencePath)
   const referenceProvenance = isRecord(reference.data) && isRecord(reference.data['referenceProvenance']) ? reference.data['referenceProvenance'] : { kind: 'unverified' }
   if (typeof referenceProvenance['audioSha256'] === 'string' && referenceProvenance['audioSha256'] !== audioSha256) throw ValidationError('Calibration audio does not match the reference audio fingerprint. Use the matching source recording.')
   validateMeasuredWords(reference.result.evidence?.words ?? [], 'Calibration reference')
-  const engine = flags['whisper-engine'] ?? 'whisper', model = flags['whisper-calibration-model'] ?? 'tiny'
-  if (engine !== 'whisper' && engine !== 'whisperfile') throw UsageError('--whisper-engine must be whisper or whisperfile.')
-  const presets: Record<string, string> = { tiny: 'tiny', 'tiny.en': 'tiny.en', base: 'base', 'base.en': 'base.en', small: 'small', 'small.en': 'small.en', medium: 'medium', 'medium.en': 'medium.en', 'large-v2': 'large.v2', 'large-v3': 'large.v3', 'large-v3-turbo': 'large.v3.turbo' }
-  if (typeof model !== 'string' || !presets[model]) throw UsageError('--whisper-calibration-model must name a supported installed Whisper model.')
+  const presets: Record<string, string> = { tiny: 'tiny', 'tiny.en': 'tiny.en', small: 'small', 'small.en': 'small.en', medium: 'medium', 'medium.en': 'medium.en', 'large-v2': 'large.v2', 'large-v3': 'large.v3' }
+  if (typeof model !== 'string' || !presets[model]) throw UsageError('--whisper-calibration-model must name a supported installed Whisperfile model.')
   for (const name of ['standard', 'dtw', 'calibration.json']) if (await stat(join(output, name)).catch(() => undefined)) throw ValidationError(`Calibration output already exists at ${join(output, name)}; choose a new --output-dir.`)
-  const run = engine === 'whisper' ? runWhisperTranscribe : runWhisperfileTranscribe
+  const run = runWhisperfileTranscribe
   const variants = []
   const unsupportedVariants: Array<{ mode: string; reason: string }> = []
   const rejectedVariants: Array<{ mode: string; reason: string; result: string }> = []

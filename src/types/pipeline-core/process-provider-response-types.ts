@@ -136,7 +136,7 @@ export const GlmOcrResponseSchema = v.looseObject({
   request_id: v.optional(v.string(), undefined)
 })
 
-const WhisperJsonSegmentSchema = v.looseObject({
+const WhisperfileJsonSegmentSchema = v.looseObject({
   tokens: v.optional(v.array(v.looseObject({ p: v.optional(v.number(), undefined) })), undefined),
   timestamps: v.object({
     from: v.string(),
@@ -149,8 +149,8 @@ const WhisperJsonSegmentSchema = v.looseObject({
   text: v.string()
 })
 
-export const WhisperJsonOutputSchema = v.object({
-  transcription: v.array(WhisperJsonSegmentSchema)
+export const WhisperfileJsonOutputSchema = v.object({
+  transcription: v.array(WhisperfileJsonSegmentSchema)
 })
 
 const AssemblyAiUtteranceSchema = v.looseObject({

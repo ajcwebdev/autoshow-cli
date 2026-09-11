@@ -13,7 +13,7 @@ describe('config LLM default contracts', () => {
   })
 
   test('every repeatable model flag resolves bare selection or has a named downstream default', () => {
-    const downstreamDefaultFlags = new Set(['whisper-stt', 'whisperfile-stt'])
+    const downstreamDefaultFlags = new Set(['whisperfile-stt', 'whisperfile-stt'])
     const missing = REPEATABLE_MODEL_FLAGS
       .filter((flag) => resolveCheapestModelForFlag(flag) === undefined && !downstreamDefaultFlags.has(flag))
 

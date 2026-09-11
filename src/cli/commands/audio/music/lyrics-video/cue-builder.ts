@@ -162,7 +162,7 @@ const buildFromWords = (
   return cues
 }
 
-const parseWhisperSegmentTimestamp = (timestamp: string): number => {
+const parseWhisperfileSegmentTimestamp = (timestamp: string): number => {
   const match = timestamp.match(/^(\d{2}):(\d{2}):(\d{2})(?:[.,](\d{1,3}))?$/)
   if (!match) {
     return Number.NaN
@@ -176,8 +176,8 @@ const buildFromSegments = (segments: TranscriptionSegment[]): CaptionCue[] => {
   const cues: CaptionCue[] = []
 
   for (const segment of segments) {
-    const start = parseWhisperSegmentTimestamp(segment.start)
-    const end = parseWhisperSegmentTimestamp(segment.end)
+    const start = parseWhisperfileSegmentTimestamp(segment.start)
+    const end = parseWhisperfileSegmentTimestamp(segment.end)
     const text = normalizeCueText(segment.text)
 
     if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start || text.length === 0) {

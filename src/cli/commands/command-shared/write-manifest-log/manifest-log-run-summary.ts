@@ -4,7 +4,7 @@ import {
   buildMatchKey,
   buildProviderModelLabel,
   formatPersistedWriteManifestThroughput,
-  resolveWhisperModel
+  resolveWhisperfileModel
 } from './manifest-log-formatting'
 import {
   getActualCostBreakdown,
@@ -45,8 +45,8 @@ const buildStep2SummaryRows = (metadata: WriteManifestMetadata): SummaryBaseRow[
 
   const transcriptionRows = toArray(metadata['step2'], isStep2Metadata).map((entry) => {
     const provider = entry.transcriptionService
-    const model = provider === 'whisper'
-      ? resolveWhisperModel(entry.transcriptionModel)
+    const model = provider === 'whisperfile'
+      ? resolveWhisperfileModel(entry.transcriptionModel)
       : entry.transcriptionModel
     return {
       stepKey: 'stt' as const,

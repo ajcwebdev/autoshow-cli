@@ -9,7 +9,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import type { SetupStepId } from '~/types'
 
-const VALID_SETUP_STEPS: SetupStepId[] = ['yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile', 'calibre', 'all', 'transcription', 'music']
+const VALID_SETUP_STEPS: SetupStepId[] = ['yt-dlp', 'defuddle', 'whisperfile', 'calibre', 'all', 'transcription', 'music']
 const FOCUSED_SETUP_CONFLICT_FLAGS = [
   'models',
   'doctor',
@@ -36,11 +36,11 @@ export const setupCommand = defineCliCommand({
   help: {
     examples: [
       ['bun autoshow setup', 'Install all dependencies'],
-      ['bun autoshow setup --models base --models whisperfile:small', 'Download Whisper and whisperfile models without running inference'],
+      ['bun autoshow setup --models tiny.en --models whisperfile:small', 'Download whisperfile models without running inference'],
       ['bun autoshow setup --step whisperfile', 'Download the default whisperfile model (tiny)'],
       ['bun autoshow setup --doctor', 'Check prerequisites without installing'],
       ['bun autoshow setup --step defuddle', 'Install the managed Defuddle CLI'],
-      ['bun autoshow setup --step whisper-binary --force-redownload', 'Reinstall whisper binary']
+      ['bun autoshow setup --step whisperfile --force-redownload', 'Reinstall the default whisperfile bundle']
     ]
   }
 }, async (ctx) => {

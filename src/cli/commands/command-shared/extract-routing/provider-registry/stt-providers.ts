@@ -1,5 +1,4 @@
 import {
-  SUPPORTED_WHISPER_MODELS,
   SUPPORTED_WHISPERFILE_MODELS,
   SUPPORTED_DEEPINFRA_STT_MODELS,
   SUPPORTED_DEEPGRAM_STT_MODELS,
@@ -14,7 +13,6 @@ import {
   SUPPORTED_SCRAPECREATORS_STT_MODELS,
   SUPPORTED_GEMINI_STT_MODELS,
   SUPPORTED_TOGETHER_STT_MODELS,
-  validateWhisperModel,
   validateWhisperfileModel,
   validateDeepinfraSttModel,
   validateDeepgramSttModel,
@@ -102,13 +100,6 @@ export const STEP2_STT_PROVIDER_REGISTRY = [
     supportedModels: SUPPORTED_TOGETHER_STT_MODELS,
     validateModel: validateTogetherSttModel,
     description: buildModelDescription('Together batch STT model (API, billed)', SUPPORTED_TOGETHER_STT_MODELS)
-  }),
-  sttModelProvider('whisper', 'whisper', {
-    bootstrapProviderId: 'whisper',
-    allShortcut: 'all-local-stt',
-    supportedModels: SUPPORTED_WHISPER_MODELS,
-    validateModel: validateWhisperModel,
-    description: 'Local whisper.cpp model (free): tiny|base|small|medium|large-v3-turbo'
   }),
   sttModelProvider('whisperfile', 'whisperfile', {
     bootstrapProviderId: 'whisperfile',

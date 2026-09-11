@@ -13,7 +13,7 @@ A walkthrough of `extract` then `write` from invocation through the files they l
 Example commands:
 
 ```bash
-bun autoshow extract "https://youtube.com/watch?v=abc123" --provider whisper=small
+bun autoshow extract "https://youtube.com/watch?v=abc123" --provider whisperfile=small
 bun autoshow write output/<extract-run>/transcription.txt --llm openai --rendered-text --prompt-md
 ```
 
@@ -36,7 +36,7 @@ Step 1: metadata and download
   |
   v
 Step 2: transcription
-  +--> run local Whisper `small`
+  +--> run local whisperfile `small`
   +--> write transcription.txt and result.json
   +--> write extract manifest.json
   |
@@ -86,6 +86,6 @@ With more than one STT selection, extract provider-specific files move under `pr
 
 ## Credentials and Runtime
 
-Hosted provider API keys are listed in [Providers, Models & Setup](04-providers-and-setup.md#hosted-provider-env-checks). This extract example uses local Whisper, so it needs no STT key; `write` still requires a configured LLM key.
+Hosted provider API keys are listed in [Providers, Models & Setup](04-providers-and-setup.md#hosted-provider-env-checks). This extract example uses local whisperfile, so it needs no STT key; `write` still requires a configured LLM key.
 
 Runtime settings come from flags and `config/autoshow.json`. The CLI reads environment variables only for provider API keys and `NO_COLOR` / `FORCE_COLOR`. `NO_COLOR` disables color whenever the variable is present, including when its value is an empty string; a non-empty, non-zero `FORCE_COLOR` takes precedence. `--color` / `--no-color` override both color variables.

@@ -7,11 +7,11 @@ import { getSttTargetKey } from './stt-targets'
 export const buildProviderModelLabel = (
   metadata: Pick<Step2Metadata, 'transcriptionService' | 'transcriptionModel'>
 ): string => {
-  const provider = metadata.transcriptionService === 'whisper' ? 'whisper.cpp' : metadata.transcriptionService
-  const model = metadata.transcriptionService === 'whisper'
+  const provider = metadata.transcriptionService
+  const model = metadata.transcriptionService === 'whisperfile'
     ? basename(metadata.transcriptionModel.split(' | ')[0] ?? metadata.transcriptionModel)
-      .replace(/^ggml-/, '')
-      .replace(/\.bin$/, '')
+      .replace(/^whisper-/, '')
+      .replace(/\.llamafile$/, '')
     : metadata.transcriptionModel
 
   return `${provider}/${model}`
@@ -20,12 +20,12 @@ export const buildProviderModelLabel = (
 export const buildTimingProviderModelLabel = (
   metadata: Pick<Step2Metadata, 'transcriptionService' | 'transcriptionModel'>
 ): string => {
-  if (metadata.transcriptionService !== 'whisper') {
+  if (metadata.transcriptionService !== 'whisperfile') {
     return buildProviderModelLabel(metadata)
   }
 
   const whisperModelPath = metadata.transcriptionModel.split(' | ')[0] ?? metadata.transcriptionModel
-  return `whisper/${basename(whisperModelPath)}`
+  return `whisperfile/${basename(whisperModelPath)}`
 }
 
 export const buildPromptFile = async (

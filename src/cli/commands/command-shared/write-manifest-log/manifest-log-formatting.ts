@@ -1,7 +1,7 @@
 import type { TimingEntryLike, WriteStepKind } from '~/types'
 import { formatCost } from '~/utils/app-logger/formatters'
 
-const WHISPER_MODEL_PATH_PATTERN = /ggml-([a-z0-9.-]+)\.bin/i
+const WHISPERFILE_MODEL_PATH_PATTERN = /(?:^|\/)whisper-([^/]+)\.llamafile$/i
 
 const trimTrailingZeroes = (value: string): string =>
   value.replace(/\.0+($|[^0-9])/, '$1').replace(/(\.\d*?)0+($|[^0-9])/, '$1$2')
@@ -26,9 +26,9 @@ export const formatTokenCount = (value: number): string => {
   return `${rounded} tok`
 }
 
-export const resolveWhisperModel = (value: string): string => {
+export const resolveWhisperfileModel = (value: string): string => {
   const primary = value.split(' | ')[0] ?? value
-  const match = primary.match(WHISPER_MODEL_PATH_PATTERN)
+  const match = primary.match(WHISPERFILE_MODEL_PATH_PATTERN)
   if (match?.[1]) {
     return match[1]
   }
@@ -39,8 +39,8 @@ const normalizeProviderForMatch = (_step: WriteStepKind, provider: string): stri
   provider
 
 const normalizeModelForMatch = (step: WriteStepKind, provider: string, model: string): string => {
-  if (step === 'stt' && provider === 'whisper') {
-    return resolveWhisperModel(model)
+  if (step === 'stt' && provider === 'whisperfile') {
+    return resolveWhisperfileModel(model)
   }
   return model
 }
@@ -52,7 +52,7 @@ export const buildMatchKey = (step: WriteStepKind, provider: string, model: stri
 }
 
 export const buildProviderModelLabel = (provider: string, model: string): string => {
-  const displayProvider = provider === 'whisper' ? 'whisper.cpp' : provider
+  const displayProvider = provider
   return `${displayProvider}/${model}`
 }
 

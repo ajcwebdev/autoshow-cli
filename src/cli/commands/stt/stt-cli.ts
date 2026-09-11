@@ -16,7 +16,6 @@ const STT_ENGINE_CAPABILITIES = {
   scrapecreators: { diarizationByDefault: false, supportsSpeakerCountHint: false },
   'gemini-stt': { diarizationByDefault: false, supportsSpeakerCountHint: false },
   together: { diarizationByDefault: false, supportsSpeakerCountHint: true },
-  whisper: { diarizationByDefault: false, supportsSpeakerCountHint: false },
   whisperfile: { diarizationByDefault: false, supportsSpeakerCountHint: false },
   'youtube-captions': { diarizationByDefault: false, supportsSpeakerCountHint: false }
 } as const satisfies Record<TranscribeEngine, Pick<TranscribeEngineCapabilities, 'diarizationByDefault' | 'supportsSpeakerCountHint'>>
@@ -88,7 +87,7 @@ export const collectSttProviderSpecs = (
   const specs = collectStep2ProviderSpecs('stt', options, filter)
 
   if (specs.length === 0 && !filter?.includeOrigins) {
-    specs.push({ provider: 'whisper', model: options.whisperModels?.[0] ?? 'tiny' })
+    specs.push({ provider: 'whisperfile', model: options.whisperfileModels?.[0] ?? 'tiny' })
   }
 
   return specs

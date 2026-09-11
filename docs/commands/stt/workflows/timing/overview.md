@@ -60,14 +60,13 @@ The aligner cannot restore missing transcript content, adjudicate wording, separ
 
 Successful output contains `result.json`, `alignment.json`, and retained clips/emissions under `alignment-work/`. Source transcript and audio SHA-256 fingerprints, model-file hashes, runtime version, preprocessing, and confidence decisions are recorded. Original provider evidence is retained as chunk evidence. New timing is marked `aligned`, with `hasNativeWordTiming: false` and `referenceProvenance.manuallyVerified: false`.
 
-### Calibrate installed Whisper timing
+### Calibrate installed whisperfile timing
 
 ```bash
-bun autoshow extract audio.wav --calibrate-whisper --timing-reference output/aligned/result.json --whisper-engine whisper --whisper-calibration-model tiny --output-dir output/whisper-calibration --json
 bun autoshow extract audio.wav --calibrate-whisper --timing-reference output/aligned/result.json --whisper-engine whisperfile --whisper-calibration-model tiny --output-dir output/whisperfile-calibration --json
 ```
 
-The engine defaults to `whisper` and the model to `tiny`. Both must already be installed. Calibration runs standard timing and, when the executable advertises support, the model's DTW preset. A recorded reference audio fingerprint must match the input. Each variant retains raw JSON, normalized results, native subtitle artifacts supported by that executable, and command/model/help provenance. Unsupported DTW is recorded without turning a successful standard run into a failure. Invalid word boundaries or DTW centers exclude that variant from ranking and are recorded under `rejectedVariants`; remaining variants can still be measured. If none can be measured, the command saves its diagnostics and fails. It never repairs an invalid standard interval merely to produce a score.
+The engine flag accepts only `whisperfile` and defaults to it and the model to `tiny`. The selected bundle must already be installed. The removed `whisper` engine is rejected. Calibration runs standard timing and, when the executable advertises support, the model's DTW preset. A recorded reference audio fingerprint must match the input. Each variant retains raw JSON, normalized results, native subtitle artifacts supported by that executable, and command/model/help provenance. Unsupported DTW is recorded without turning a successful standard run into a failure. Invalid word boundaries or DTW centers exclude that variant from ranking and are recorded under `rejectedVariants`; remaining variants can still be measured. If none can be measured, the command saves its diagnostics and fails. It never repairs an invalid standard interval merely to produce a score.
 
 Whisper DTW returns token centers, expressed in native centiseconds. The comparison derives intervals from adjacent-center midpoints and marks those word boundaries `repaired`; they are not native measured word start/end pairs. `calibration.json` ranks variants by lexical coverage, then combined median start/end difference, and records elapsed local runtime. It never changes transcription defaults, and it makes no recommendation when no words match. A result applies only to the selected reference, engine, model, and executable version. [Whisper CLI implementation](https://github.com/ggml-org/whisper.cpp/blob/master/examples/cli/cli.cpp).
 
@@ -84,8 +83,8 @@ Audio channel identity is not speaker identity. Stereo channels may contain the 
 Transcribe the separated files with an already installed local engine:
 
 ```bash
-bun autoshow extract output/channels/stream-0-channel-1.wav --provider whisper=tiny --output-dir output/channel-1 --json
-bun autoshow extract output/channels/stream-0-channel-2.wav --provider whisper=tiny --output-dir output/channel-2 --json
+bun autoshow extract output/channels/stream-0-channel-1.wav --provider whisperfile=tiny --output-dir output/channel-1 --json
+bun autoshow extract output/channels/stream-0-channel-2.wav --provider whisperfile=tiny --output-dir output/channel-2 --json
 ```
 
 Fill each template entry's `result` with that channel's saved `result.json` path. Absolute paths are accepted; relative paths resolve from the manifest directory. Keep `offsetSeconds` from extraction unless you have independently established another source timeline. Then merge:

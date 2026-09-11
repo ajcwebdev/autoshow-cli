@@ -121,7 +121,7 @@ describe('test-runner file timings', () => {
   })
 
   test('long-running timeout classification covers whisper-local and video files', () => {
-    expect(isLongRunningTestFile('test/test-cases/e2e/local/stt/whisper/whisper-default.test.ts')).toBe(true)
+    expect(isLongRunningTestFile('test/test-cases/e2e/local/stt/whisperfile/whisperfile-default.test.ts')).toBe(true)
     expect(isLongRunningTestFile('test/test-cases/e2e/local/stt/whisperfile/whisperfile-default.test.ts')).toBe(true)
     expect(isLongRunningTestFile('test/test-cases/e2e/service/visuals/video/fal-video.test.ts')).toBe(true)
     expect(isLongRunningTestFile('test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts')).toBe(true)

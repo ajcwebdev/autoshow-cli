@@ -67,9 +67,9 @@ describe('grouped report contracts', () => {
           segments: [{ start: '00:00:00', end: '00:00:08', text: 'Alpha beta. Gamma delta.' }]
         },
         {
-          dir: 'whisper-base',
-          provider: 'whisper',
-          model: 'base',
+          dir: 'whisperfile-small',
+          provider: 'whisperfile',
+          model: 'small',
           processingTime: 3000,
           hasSpeakerLabels: false,
           segments: [{ start: '00:00:00', end: '00:00:08', text: 'Alpha beta. Gamma delta.' }]

@@ -30,7 +30,6 @@ const targetValues = <const Targets extends Readonly<Record<string, string>>>(
 ): Array<Targets[keyof Targets]> => Object.values(targets) as Array<Targets[keyof Targets]>
 
 const STT_MODEL_FLAG_ORDER = [
-  WRITE_STT_PROVIDER_TARGETS.whisper,
   WRITE_STT_PROVIDER_TARGETS.whisperfile,
   WRITE_STT_PROVIDER_TARGETS.deepinfra,
   WRITE_STT_PROVIDER_TARGETS.grok,

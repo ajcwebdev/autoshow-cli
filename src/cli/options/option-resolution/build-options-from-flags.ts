@@ -62,7 +62,7 @@ export const buildOptsFromFlags = (
     flagOccurrences
   })
   const step2SelectionOrigins = resolveStep2SelectionOrigins(mergedFlags, explicitFlags, rawModelOccurrences, allShortcutFlags, configuredFlags)
-  const whisperExplicit = step2SelectionOrigins['whisper-stt'] === 'explicit' || step2SelectionOrigins['whisper-stt'] === 'all-shortcut'
+  const whisperfileExplicit = step2SelectionOrigins['whisperfile-stt'] === 'explicit' || step2SelectionOrigins['whisperfile-stt'] === 'all-shortcut'
 
   const ctx: ResolvedFlagContext = {
     mergedFlags,
@@ -92,7 +92,7 @@ export const buildOptsFromFlags = (
     outputRootDir: getOutputRoot(),
     configPath: readOptionalStringFlag(mergedFlags, 'config-path'),
     youtubeCaptions: readBooleanFlag(mergedFlags, 'youtube-captions'),
-    whisperExplicit,
+    whisperfileExplicit,
     step2SelectionOrigins,
     openaiModels,
     geminiModels,

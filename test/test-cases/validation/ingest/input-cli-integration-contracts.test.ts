@@ -92,7 +92,7 @@ describe('input classification contracts', () => {
       'write',
       STABLE_TTS_MD_PATH,
       '--stt',
-      'whisper=tiny',
+      'whisperfile=tiny',
       '--stt',
       'assemblyai=universal-3-5-pro',
       '--price'

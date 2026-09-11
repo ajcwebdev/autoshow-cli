@@ -97,7 +97,7 @@ export const buildSttEstimatesForTargets = async (
   }
 
   const needsDuration = targets.some((target) =>
-    target.service !== 'whisper'
+    target.service !== 'whisperfile'
     && target.service !== 'youtube-captions'
     && target.service !== 'scrapecreators'
   )
@@ -110,11 +110,11 @@ export const buildSttEstimatesForTargets = async (
       continue
     }
 
-    if (target.service === 'whisper') {
-      const sttCost = getSttCost('whisper', target.model)
+    if (target.service === 'whisperfile') {
+      const sttCost = getSttCost('whisperfile', target.model)
       estimates.push({
         step: 'stt',
-        provider: 'whisper',
+        provider: 'whisperfile',
         model: target.model,
         durationSeconds: 0,
         totalCost: sttCost.costPerHourCents ?? 0,

@@ -40,7 +40,7 @@ For backfilling missing provider outputs from an existing run or batch, see [`re
 | Directory batches                                                                                         | Mixed routing per discovered item                    |
 | URL-list batches (`.md` / `.txt`)                                                                         | Mixed routing per listed URL                         |
 
-With no engine flag, media uses local Whisper.cpp `tiny`, PDFs and images use local Tesseract, and remote articles use local `defuddle`. Local HTML files always use `defuddle`. X/Twitter inputs produce metadata rather than a transcript.
+With no engine flag, media uses local whisperfile `tiny`, PDFs and images use local Tesseract, and remote articles use local `defuddle`. Local HTML files always use `defuddle`. X/Twitter inputs produce metadata rather than a transcript.
 
 ## Common Options
 
@@ -68,7 +68,7 @@ Local STT, OCR, and URL engines are free. Install them with [`bun autoshow setup
 
 | Capability | Local engines |
 | --- | --- |
-| [STT](stt/local/overview.md) | Whisper.cpp and Whisperfile, with word timestamps and no diarization |
+| [STT](stt/local/overview.md) | Whisperfile, with word timestamps and no diarization |
 | [OCR](text/ocr/overview.md#local-ocr) | Tesseract, native document extraction, and ebook conversion |
 | [URL](text/url/overview.md#local-url) | Defuddle for article HTML |
 

@@ -50,7 +50,7 @@ describe('provider selection contracts', () => {
       'all-local-url': true
     })
     const localMixedOpts = buildOptsFromFlags(localMixedNormalized.flags, {}, localMixedNormalized.explicitFlags)
-    expect(collectSttTargets(localMixedOpts).map((target) => target.service)).toContain('whisper')
+    expect(collectSttTargets(localMixedOpts).map((target) => target.service)).toContain('whisperfile')
     expect(collectExplicitOcrTargets(localMixedOpts).map((target) => target.service)).toEqual([
       'tesseract'
     ])

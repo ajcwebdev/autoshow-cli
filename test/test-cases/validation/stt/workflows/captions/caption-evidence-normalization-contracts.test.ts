@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
-import { selectWhisperCaptionArgs } from '~/cli/commands/stt/local/run-whispercpp-core'
-import { extractWhisperWords } from '~/cli/commands/stt/local/whisper/parse-whisper-output'
+import { selectWhisperfileCaptionArgs } from '~/cli/commands/stt/local/whisperfile/transcribe'
+import { extractWhisperfileWords } from '~/cli/commands/stt/local/whisperfile/parse-whisperfile-output'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectSttTargets } from '~/cli/commands/stt/stt-targets'
 import { GladiaStatusResponseSchema } from '~/types'
@@ -115,11 +115,11 @@ describe('caption evidence normalization contracts', () => {
       text, timestamps: { from: '00:00:00.' + String(125 + i * 100), to: '00:00:00.' + String(225 + i * 100) },
       offsets: { from: 125 + i * 100, to: 225 + i * 100 }, tokens: [{ p: .95 - i * .01 }]
     })) })
-    const words = extractWhisperWords(json)
+    const words = extractWhisperfileWords(json)
     expect(words.map(w => w.word)).toEqual(["Don't", 'stop.'])
     expect(words[0]).toMatchObject({ start: .125, end: .425 })
     expect(words[0]?.confidence).toBeCloseTo(.93)
-    expect(extractWhisperWords(json, { maxEndSeconds: .55 })[1]).toMatchObject({ end: .55, repaired: true })
+    expect(extractWhisperfileWords(json, { maxEndSeconds: .55 })[1]).toMatchObject({ end: .55, repaired: true })
   })
 
   test('flags reach provider targets including explicit opt-out and optional Together diarization', () => {
@@ -137,9 +137,9 @@ describe('caption evidence normalization contracts', () => {
   })
 
   test('local caption flags follow each installed engine capability', () => {
-    expect(selectWhisperCaptionArgs('-sow --split-on-word -osrt -ovtt -olrc', true)).toEqual(['-sow', '-osrt', '-ovtt', '-olrc'])
-    expect(selectWhisperCaptionArgs('-osrt -ovtt', true)).toEqual(['-osrt', '-ovtt'])
-    expect(selectWhisperCaptionArgs('', true)).toEqual([])
-    expect(selectWhisperCaptionArgs('-sow -osrt', false)).toEqual(['-sow'])
+    expect(selectWhisperfileCaptionArgs('-sow --split-on-word -osrt -ovtt -olrc', true)).toEqual(['-sow', '-osrt', '-ovtt', '-olrc'])
+    expect(selectWhisperfileCaptionArgs('-osrt -ovtt', true)).toEqual(['-osrt', '-ovtt'])
+    expect(selectWhisperfileCaptionArgs('', true)).toEqual([])
+    expect(selectWhisperfileCaptionArgs('-sow -osrt', false)).toEqual(['-sow'])
   })
 })

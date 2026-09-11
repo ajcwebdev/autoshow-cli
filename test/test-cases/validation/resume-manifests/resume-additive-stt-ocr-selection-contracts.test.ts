@@ -18,14 +18,14 @@ describe('additive resume provider selection', () => {
         mkdir(ocrDir, { recursive: true })
       ])
 
-      const whisper: SttTarget = { service: 'whisper', model: 'tiny', local: true }
+      const whisperfile: SttTarget = { service: 'whisperfile', model: 'tiny', local: true }
       const deepgram: SttTarget = { service: 'deepgram', model: 'nova-3', local: false }
       await writeSingleManifestFixture(sttDir, 'extract', {
         step1: { url: 'file:///tmp/audio.mp3' },
         completionStatus: 'full',
-        requestedProviders: [whisper],
+        requestedProviders: [whisperfile],
         providerStates: [{
-          service: 'whisper',
+          service: 'whisperfile',
           model: 'tiny',
           local: true,
           artifactDir: '.',
@@ -68,8 +68,8 @@ describe('additive resume provider selection', () => {
           dir: sttDir,
           manifestPath: join(sttDir, PIPELINE_MANIFEST_FILE)
         },
-        [whisper],
-        { youtubeCaptions: false, currentTargets: [whisper] }
+        [whisperfile],
+        { youtubeCaptions: false, currentTargets: [whisperfile] }
       )).resolves.toBe(false)
 
       await expect(hasResumableOcrTargetWork(
@@ -97,13 +97,13 @@ describe('additive resume provider selection', () => {
 
   test('STT resume price estimates only missing stored providers', async () => {
     await withTempDir('autoshow-stt-resume-price-targets-', async (dir) => {
-      const whisper: SttTarget = { service: 'whisper', model: 'tiny', local: true }
+      const whisperfile: SttTarget = { service: 'whisperfile', model: 'tiny', local: true }
       const deepgram: SttTarget = { service: 'deepgram', model: 'nova-3', local: false }
       await writeSingleManifestFixture(dir, 'extract', {
         step1: { url: 'file:///tmp/audio.mp3' },
         completionStatus: 'incomplete',
-        requestedProviders: [whisper, deepgram],
-        missingProviders: [whisper],
+        requestedProviders: [whisperfile, deepgram],
+        missingProviders: [whisperfile],
         providerStates: [{
           ...deepgram,
           artifactDir: 'providers/deepgram-nova-3',
@@ -134,7 +134,7 @@ describe('additive resume provider selection', () => {
         manifestPath: join(dir, PIPELINE_MANIFEST_FILE)
       }, {} as ResolvedFlagOptions)
 
-      expect(estimate.steps.map((step) => `${step.provider}/${step.model}`)).toEqual(['whisper/tiny'])
+      expect(estimate.steps.map((step) => `${step.provider}/${step.model}`)).toEqual(['whisperfile/tiny'])
     })
   })
 })

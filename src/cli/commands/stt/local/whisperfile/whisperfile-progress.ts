@@ -1,12 +1,12 @@
-import type { WhisperProgressLogContext } from '~/types'
+import type { WhisperfileProgressLogContext } from '~/types'
 
-const WHISPER_PROGRESS_PATTERN = /whisper_print_progress_callback:\s+progress =\s*(\d+)%/
+const WHISPERFILE_PROGRESS_PATTERN = /whisper_print_progress_callback:\s+progress =\s*(\d+)%/
 
 const clampPercent = (value: number): number => {
   return Math.max(0, Math.min(100, value))
 }
 
-const renderWhisperProgressBar = (percent: number, width: number = 24): string => {
+const renderWhisperfileProgressBar = (percent: number, width: number = 24): string => {
   const clamped = clampPercent(percent)
   const filled = Math.round((clamped / 100) * width)
   if (filled >= width) {
@@ -18,8 +18,8 @@ const renderWhisperProgressBar = (percent: number, width: number = 24): string =
   return `[${'='.repeat(filled - 1)}>${' '.repeat(width - filled)}]`
 }
 
-export const parseWhisperProgressPercent = (line: string): number | null => {
-  const match = line.trim().match(WHISPER_PROGRESS_PATTERN)
+export const parseWhisperfileProgressPercent = (line: string): number | null => {
+  const match = line.trim().match(WHISPERFILE_PROGRESS_PATTERN)
   if (!match || !match[1]) {
     return null
   }
@@ -32,9 +32,9 @@ export const parseWhisperProgressPercent = (line: string): number | null => {
   return clampPercent(parsed)
 }
 
-const computeWhisperOverallPercent = (
+const computeWhisperfileOverallPercent = (
   segmentPercent: number,
-  context: WhisperProgressLogContext
+  context: WhisperfileProgressLogContext
 ): number | null => {
   if (!context.totalSegments || context.totalSegments <= 1) {
     return null
@@ -54,20 +54,20 @@ const computeWhisperOverallPercent = (
   return clampPercent((completedSeconds / context.totalDurationSeconds) * 100)
 }
 
-export const formatWhisperProgressMessage = (
+export const formatWhisperfileProgressMessage = (
   segmentPercent: number,
-  context: WhisperProgressLogContext = {}
+  context: WhisperfileProgressLogContext = {}
 ): string => {
   const safeSegmentPercent = clampPercent(segmentPercent)
-  const overallPercent = computeWhisperOverallPercent(safeSegmentPercent, context)
+  const overallPercent = computeWhisperfileOverallPercent(safeSegmentPercent, context)
   if (overallPercent !== null && context.segmentNumber && context.totalSegments) {
     const roundedOverallPercent = Math.round(overallPercent)
-    return `Whisper progress ${renderWhisperProgressBar(roundedOverallPercent)} ${roundedOverallPercent}% overall (segment ${context.segmentNumber}/${context.totalSegments}: ${safeSegmentPercent}%)`
+    return `Whisperfile progress ${renderWhisperfileProgressBar(roundedOverallPercent)} ${roundedOverallPercent}% overall (segment ${context.segmentNumber}/${context.totalSegments}: ${safeSegmentPercent}%)`
   }
 
   if (context.segmentNumber && context.totalSegments && context.totalSegments > 1) {
-    return `Whisper progress ${renderWhisperProgressBar(safeSegmentPercent)} ${safeSegmentPercent}% (segment ${context.segmentNumber}/${context.totalSegments})`
+    return `Whisperfile progress ${renderWhisperfileProgressBar(safeSegmentPercent)} ${safeSegmentPercent}% (segment ${context.segmentNumber}/${context.totalSegments})`
   }
 
-  return `Whisper progress ${renderWhisperProgressBar(safeSegmentPercent)} ${safeSegmentPercent}%`
+  return `Whisperfile progress ${renderWhisperfileProgressBar(safeSegmentPercent)} ${safeSegmentPercent}%`
 }

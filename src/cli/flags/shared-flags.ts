@@ -37,13 +37,13 @@ export const booleanAllLocalFlag = {
 } as const satisfies CliFlagsDefinition
 
 export const stepProviderSelectorFlags = {
-  stt: strListFlag(`Write pipeline STT provider[=model]: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisper=tiny)`),
+  stt: strListFlag(`Write pipeline STT provider[=model]: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisperfile=tiny)`),
   ocr: strListFlag(`Write pipeline OCR provider[=model]: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (default: tesseract)`),
   llm: strListFlag(`LLM provider[=model]: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`)
 } as const satisfies CliFlagsDefinition
 
 export const configPipelineSelectorFlags = {
-  stt: strListFlag(`Default STT provider[=model] persisted for the extract command: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisper=tiny)`),
+  stt: strListFlag(`Default STT provider[=model] persisted for the extract command: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisperfile=tiny)`),
   ocr: strListFlag(`Default OCR provider[=model] persisted for the extract command: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (default: tesseract)`),
   llm: strListFlag(`Default LLM provider[=model] persisted for the write command: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`)
 } as const satisfies CliFlagsDefinition

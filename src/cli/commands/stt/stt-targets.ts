@@ -8,7 +8,6 @@ import { isSupadataSupportedSourceUrl } from './direct-url/stt-supadata/supadata
 
 
 const LOCAL_STT_SERVICES = new Set<SttTarget['service']>([
-  'whisper',
   'whisperfile'
 ])
 
@@ -29,7 +28,7 @@ const formatSttTargetModel = (target: Pick<SttTarget, 'service' | 'model'>): str
   target.model
 
 export const formatSttTargetLabel = (target: Pick<SttTarget, 'service' | 'model'>): string =>
-  `${target.service === 'whisper' ? 'whisper.cpp' : target.service}/${formatSttTargetModel(target)}`
+  `${target.service}/${formatSttTargetModel(target)}`
 
 export const getSttTargetDirectoryName = (target: Pick<SttTarget, 'service' | 'model'>): string =>
   `${sanitizeSegment(target.service)}-${sanitizeSegment(target.model)}`

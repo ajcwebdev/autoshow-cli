@@ -5,7 +5,7 @@ import { collectSttTargets } from '~/cli/commands/stt/stt-targets'
 import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrences'
 
 test('bare local provider selectors keep the requested engine and use its default model', () => {
-  for (const provider of ['whisper', 'whisperfile'] as const) {
+  for (const provider of ['whisperfile'] as const) {
     const flags = { provider: [provider] }
     const explicit = new Set(['provider'])
     const normalized = normalizeExtractGenericSelectorFlags(flags, explicit, flagOccurrencesFromValues(flags, explicit), { media: true, document: false, article: false })

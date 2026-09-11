@@ -20,7 +20,6 @@ export const DependencyMetadataSchema = v.record(v.string(), DependencyEntrySche
 const depsJsonPath = join(IMMUTABLE_ASSET_ROOT, 'config/deps.json')
 
 const DEFAULT_DEPENDENCY_METADATA: DependencyMetadata = {
-  'whisper.cpp': { tag: 'v1.7.4' },
   'yt-dlp': {
     version: '2026.08.19',
     url: 'https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_macos',

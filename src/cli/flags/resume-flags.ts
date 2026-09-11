@@ -29,7 +29,7 @@ const resumeProviderSelectionFlags = {
   ...booleanAllProvidersFlag,
   ...booleanAllLocalFlag,
   provider: strListFlag([
-    `STT: ${formatProviderList(extractProvidersFor('stt'))} (default: whisper=tiny)`,
+    `STT: ${formatProviderList(extractProvidersFor('stt'))} (default: whisperfile=tiny)`,
     `OCR: ${formatProviderList(extractProvidersFor('ocr'))} (default: tesseract)`,
     `URL: ${URL_ARTICLE_BACKENDS.join('|')} (default: defuddle)`,
     `LLM: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`,

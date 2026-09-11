@@ -3,17 +3,11 @@ import { command, exact } from '../helpers'
 
 // Probe local copies of the media fixtures so pricing does not depend on remote media latency.
 export const sttRegistry: PriceSelectionEntry[] = [
-  ...exact('test/test-cases/e2e/local/stt/whisper/whisper-default.test.ts', [
-    command('transcribe-whisper-tiny', 'transcribe-whisper-tiny', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'whisper=tiny', '--price']),
-    command('transcribe-whisper-base', 'transcribe-whisper-base', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'whisper=base', '--price']),
-    command('transcribe-whisper-split', 'transcribe-whisper-split', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--split', '--provider', 'whisper=tiny', '--price']),
-  ]),
   ...exact('test/test-cases/e2e/local/stt/whisperfile/whisperfile-default.test.ts', [
-    command('transcribe-whisperfile-tiny', 'transcribe-whisperfile-tiny', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'whisperfile=tiny', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/local/stt/whisper/whisper-large-v3-turbo.test.ts', [
-    command('transcribe-whisper-large-v3-turbo', 'transcribe-whisper-large-v3-turbo', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'whisper=large-v3-turbo', '--price']),
-    command('transcribe-whisper-tiny-split', 'transcribe-whisper-tiny-split', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'whisper=tiny', '--split', '--price']),
+    ...['tiny', 'tiny.en', 'small', 'small.en'].map(model => command(`transcribe-whisperfile-${model}`, `transcribe-whisperfile-${model}`, ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', `whisperfile=${model}`, '--price'])),
+    command('transcribe-whisperfile-default', 'transcribe-whisperfile-default', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--price']),
+    command('transcribe-whisperfile-omitted-model', 'transcribe-whisperfile-omitted-model', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'whisperfile', '--price']),
+    command('transcribe-whisperfile-split', 'transcribe-whisperfile-split', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'whisperfile=tiny', '--split', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/stt/diarization/assemblyai-current-models.test.ts', [
     command('transcribe-assemblyai-universal-3-5-pro', 'transcribe-assemblyai-universal-3-5-pro', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'assemblyai=universal-3-5-pro', '--price']),
@@ -58,8 +52,8 @@ export const sttRegistry: PriceSelectionEntry[] = [
     command('transcribe-scrapecreators-youtube-transcript', 'transcribe-scrapecreators-youtube-transcript', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'scrapecreators=youtube-transcript', '--price']),
   ]),
   ...exact('test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts', [
-    command('transcribe-whisper-tiny', 'transcribe-whisper-tiny', ['src/cli/create-cli.ts', 'music', '--audio', 'input/examples/audio/0-audio-short.mp3', '--model', 'tiny', '--price']),
-    command('transcribe-whisper-large-v3-turbo', 'transcribe-whisper-large-v3-turbo', ['src/cli/create-cli.ts', 'music', '--audio', 'input/examples/lyrics/01-example-song.mp3', '--price']),
+    command('transcribe-whisperfile-tiny', 'transcribe-whisperfile-tiny', ['src/cli/create-cli.ts', 'music', '--audio', 'input/examples/audio/0-audio-short.mp3', '--model', 'tiny', '--price']),
+    command('transcribe-whisperfile-small.en', 'transcribe-whisperfile-small.en', ['src/cli/create-cli.ts', 'music', '--audio', 'input/examples/lyrics/01-example-song.mp3', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/gemini-3.8-flash.test.ts', [
     command('transcribe-gemini-stt-gemini-3.8-flash', 'transcribe-gemini-stt-gemini-3.8-flash', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'gemini=gemini-3.8-flash', '--price']),

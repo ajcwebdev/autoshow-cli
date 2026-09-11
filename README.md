@@ -175,7 +175,7 @@ bun autoshow <command> --help
 bun autoshow --version
 ```
 
-- Use `bun autoshow extract <input> --provider whisper=tiny`, not `bun autoshow --provider whisper=tiny extract <input>`.
+- Use `bun autoshow extract <input> --provider whisperfile=tiny`, not `bun autoshow --provider whisperfile=tiny extract <input>`.
 - Inputs can be URLs, local files, directories, `.md`/`.txt` URL lists, or prompt strings for `image`, `video`, and `music`.
 - If an input begins with `-`, prefix it so it is not parsed as a flag: `bun autoshow write ./-myfile`.
 - If the literal input collides with a command name, use the explicit command form: `bun autoshow metadata setup`.

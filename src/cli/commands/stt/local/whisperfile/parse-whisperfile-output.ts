@@ -1,14 +1,14 @@
-import type { TranscriptionSegment, WhisperJsonOutput } from '~/types'
-import { WhisperJsonOutputSchema } from '~/types'
+import type { TranscriptionSegment, WhisperfileJsonOutput } from '~/types'
+import { WhisperfileJsonOutputSchema } from '~/types'
 import { validateJson } from '~/utils/validate/validation'
 import { clampSegmentsToKnownEnd, clampWordTimingsToKnownEnd } from '../../workflows/timing/stt-timing-quality'
-import { appendWhisperSegmentText, cleanWhisperSegmentText, resolveWhisperSegmentBreak } from './whisper-aggregation-policy'
+import { appendWhisperfileSegmentText, cleanWhisperfileSegmentText, resolveWhisperfileSegmentBreak } from './whisperfile-aggregation-policy'
 
-export const parseWhisperJson = (
+export const parseWhisperfileJson = (
   jsonContent: string,
   options: { maxEndSeconds?: number | undefined } = {}
 ): { text: string, segments: TranscriptionSegment[] } => {
-  const data = validateJson(WhisperJsonOutputSchema, jsonContent, 'Whisper JSON output')
+  const data = validateJson(WhisperfileJsonOutputSchema, jsonContent, 'Whisper JSON output')
   const wordSegments = data.transcription.filter(seg => seg.text.trim().length > 0)
   const aggregatedSegments = clampSegmentsToKnownEnd(
     aggregateWordSegments(wordSegments),
@@ -18,11 +18,11 @@ export const parseWhisperJson = (
   return { text: fullText, segments: aggregatedSegments }
 }
 
-export const extractWhisperWords = (
+export const extractWhisperfileWords = (
   jsonContent: string,
   options: { maxEndSeconds?: number | undefined } = {}
 ): Array<{ start: number; end: number; word: string; confidence?: number; repaired?: boolean }> => {
-  const data = validateJson(WhisperJsonOutputSchema, jsonContent, 'Whisper JSON output words')
+  const data = validateJson(WhisperfileJsonOutputSchema, jsonContent, 'Whisper JSON output words')
   const words: Array<{ start: number, end: number, word: string; confidence?: number; repaired?: boolean }> = []
   const usesLeadingSpaces = data.transcription.some(segment => /^\s/.test(segment.text))
   for (const segment of data.transcription) {
@@ -49,7 +49,7 @@ export const extractWhisperWords = (
   }))
 }
 
-const aggregateWordSegments = (wordSegments: WhisperJsonOutput['transcription']): TranscriptionSegment[] => {
+const aggregateWordSegments = (wordSegments: WhisperfileJsonOutput['transcription']): TranscriptionSegment[] => {
   const segments: TranscriptionSegment[] = []
   let currentText = ''
   let segmentStart = ''
@@ -72,7 +72,7 @@ const aggregateWordSegments = (wordSegments: WhisperJsonOutput['transcription'])
     const currentStartTime = parseTimestamp(wordSeg.timestamps.from)
     const prevEndTime = prevSeg ? parseTimestamp(prevSeg.timestamps.to) : 0
     const gapFromPrev = prevSeg ? currentStartTime - prevEndTime : 1000
-    const appended = appendWhisperSegmentText(currentText, text, isNewSentence, gapFromPrev)
+    const appended = appendWhisperfileSegmentText(currentText, text, isNewSentence, gapFromPrev)
     currentText = appended.currentText
     text = appended.text
     isNewSentence = appended.isNewSentence
@@ -81,9 +81,9 @@ const aggregateWordSegments = (wordSegments: WhisperJsonOutput['transcription'])
     segmentEnd = formatTimestampForDisplay(wordSeg.timestamps.to)
     const isLastSegment = i === wordSegments.length - 1
     const nextGap = nextSeg ? parseTimestamp(nextSeg.timestamps.from) - parseTimestamp(wordSeg.timestamps.to) : 0
-    const { shouldBreak, hasVeryLongPause } = resolveWhisperSegmentBreak(text, actualWordCount, nextGap, isLastSegment)
+    const { shouldBreak, hasVeryLongPause } = resolveWhisperfileSegmentBreak(text, actualWordCount, nextGap, isLastSegment)
     if (shouldBreak) {
-      const cleanedText = cleanWhisperSegmentText(currentFullText, isLastSegment || hasVeryLongPause)
+      const cleanedText = cleanWhisperfileSegmentText(currentFullText, isLastSegment || hasVeryLongPause)
       if (cleanedText.length > 0) {
         segments.push({
           start: segmentStart,
@@ -99,7 +99,7 @@ const aggregateWordSegments = (wordSegments: WhisperJsonOutput['transcription'])
     i++
   }
   if (currentText.trim().length > 0) {
-    const cleanedText = cleanWhisperSegmentText(currentText.trim(), true)
+    const cleanedText = cleanWhisperfileSegmentText(currentText.trim(), true)
     segments.push({
       start: segmentStart,
       end: segmentEnd,

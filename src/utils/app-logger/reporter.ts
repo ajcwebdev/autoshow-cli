@@ -3,7 +3,7 @@ import { stageResult } from '~/utils/app-logger/result-emitter'
 import { stepEstimateToReport } from '~/utils/pricing/step-estimate-fields'
 import type { AggregatedPriceEstimate, CompleteOptions, Logger, Reporter, StepEstimate } from '~/types'
 
-const formatSttProvider = (provider: string): string => provider === 'whisper' ? 'whisper.cpp' : provider
+const formatSttProvider = (provider: string): string => provider
 
 const formatEstimateIdentity = (estimate: StepEstimate): Pick<StepEstimate, 'provider' | 'model'> => ({
   provider: estimate.step === 'stt' ? formatSttProvider(estimate.provider) : estimate.provider,

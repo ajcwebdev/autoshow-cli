@@ -5,7 +5,7 @@ import {
   formatCount,
   formatPromptUsageTokenPair,
   formatTokenCount,
-  resolveWhisperModel
+  resolveWhisperfileModel
 } from './manifest-log-formatting'
 import {
   getPartialStep2Entries,
@@ -84,8 +84,8 @@ export const buildPromptUsage = (
   }
 
   for (const entry of toArray(metadata['step2'], isStep2Metadata)) {
-    const model = entry.transcriptionService === 'whisper'
-      ? resolveWhisperModel(entry.transcriptionModel)
+    const model = entry.transcriptionService === 'whisperfile'
+      ? resolveWhisperfileModel(entry.transcriptionModel)
       : entry.transcriptionModel
     rows.push({
       step: 'Transcribe',

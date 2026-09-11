@@ -130,7 +130,7 @@ const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['write', 'https://example.com/a.mp3', '--music-duration', '20'], flag: '--music-duration' },
   { argv: ['write', 'https://example.com/a.mp3', '--tts-speaker', 'Host=Jasper'], flag: '--tts-speaker' },
   { argv: ['write', 'https://example.com/a.mp3', '--elevenlabs-tts-stability', '0.4'], flag: '--elevenlabs-tts-stability' },
-  { argv: ['write', 'notes.md', '--stt', 'whisper'], flag: '--stt' },
+  { argv: ['write', 'notes.md', '--stt', 'whisperfile'], flag: '--stt' },
   { argv: ['write', 'notes.md', '--ocr', 'tesseract'], flag: '--ocr' },
   { argv: ['write', 'notes.md', '--text-input'], flag: '--text-input' },
   { argv: ['write', 'notes.md', '--youtube-captions'], flag: '--youtube-captions' },

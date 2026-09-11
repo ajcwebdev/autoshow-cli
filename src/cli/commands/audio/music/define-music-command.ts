@@ -166,7 +166,7 @@ export const musicCommand = defineCliCommand({
       ['bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=lyria-3-pro-preview', 'Generate a Lyria 3 Pro song with Gemini'],
       ['bun autoshow music input/examples/tts/1-tts.md --provider minimax=music-3.0', 'Use a local markdown file as the prompt body'],
       ['bun autoshow music --audio input/examples/lyrics/01-example-song.mp3', 'Render a lyric video from local audio'],
-      ['bun autoshow music --audio input/examples/lyrics/01-example-song.mp3 --captions output/<run-dir>/01-example-song.vtt', 'Rerender from edited captions without rerunning Whisper'],
+      ['bun autoshow music --audio input/examples/lyrics/01-example-song.mp3 --captions output/<run-dir>/01-example-song.vtt', 'Rerender from edited captions without rerunning Whisperfile'],
       ['bun autoshow music --batch input --model small', 'Render lyric videos for every supported audio file under input directory']
     ]
   }

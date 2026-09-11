@@ -41,7 +41,7 @@ bun autoshow write input/examples/scripts/1-script.md --config-path ./input/my-a
 
 ```bash
 bun autoshow config --llm openai=gpt-5.4-mini
-bun autoshow config --stt whisper=large-v3-turbo
+bun autoshow config --stt whisperfile=small.en
 bun autoshow config --stt happyscribe=auto --stt-happyscribe-organization-id org_123
 bun autoshow config --ocr tesseract
 bun autoshow config --ocr mistral=mistral-ocr-2512 --ocr-language eng --ocr-dpi 300
@@ -79,7 +79,7 @@ Representative JSON shape:
     },
     "extract": {
       "stt": {
-        "whisper": ["large-v3-turbo"],
+        "whisperfile": ["small.en"],
         "speakerCount": 2
       },
       "ocr": {
@@ -170,7 +170,7 @@ bun autoshow config --max-cents 50
 
 ```bash
 bun autoshow config \
-  --stt whisper=tiny \
+  --stt whisperfile=tiny \
   --ocr tesseract
 ```
 

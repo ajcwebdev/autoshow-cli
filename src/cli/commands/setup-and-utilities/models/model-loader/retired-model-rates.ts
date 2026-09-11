@@ -4,6 +4,12 @@ export const modelRateKey = (service: string, model: string): string => `${servi
 
 export const RETIRED_MODEL_RATES: RetiredModelRates = {
   stt: {
+    // Retained exclusively for immutable historical benchmark reports.
+    'whisper:tiny': { costPerHourCents: 0 },
+    'whisper:base': { costPerHourCents: 0 },
+    'whisper:small': { costPerHourCents: 0 },
+    'whisper:medium': { costPerHourCents: 0 },
+    'whisper:large-v3-turbo': { costPerHourCents: 0 },
     'assemblyai:universal-2': { costPerHourCents: 17 },
     'gladia:solaria-1': { costPerHourCents: 61 },
     'groq:whisper-large-v3': { costPerHourCents: 11.1 },

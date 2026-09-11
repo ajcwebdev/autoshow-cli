@@ -45,7 +45,7 @@ Doctor also reports YouTube cookie configuration and whether a configured cookie
 Valid `--step` values:
 
 ```text
-yt-dlp | defuddle | whisper-binary | whisper-model | whisperfile | calibre | all | transcription | music
+yt-dlp | defuddle | whisperfile | calibre | all | transcription | music
 ```
 
 Isolated steps assume their prerequisites are already present. On a clean machine, prefer `bun autoshow setup`.
@@ -60,33 +60,34 @@ bun autoshow setup --step calibre
 # local URL article extraction
 bun autoshow setup --step defuddle
 
-# Whisper binary only
-bun autoshow setup --step whisper-binary
-
-# default Whisper model only
-bun autoshow setup --step whisper-model
-
 # default whisperfile model (tiny)
 bun autoshow setup --step whisperfile
 
-# Whisper large-v3-turbo
+# whisperfile tiny and transcription provider configuration
 bun autoshow setup --step transcription
 
-# lyric-video tools and Whisper large-v3-turbo
+# lyric-video tools and whisperfile small.en
 bun autoshow setup --step music
 ```
 
 ## Model Downloads
 
+Ordinary setup (`setup`, `setup --step whisperfile`, or `setup --step transcription`) installs only whisperfile `tiny` for local STT. `setup --step music` installs `small.en` after checking the music prerequisites. Missing explicitly selected models can also download on demand during transcription.
+
+Install the four recommended models explicitly with repeatable `--models` flags:
+
 ```bash
-bun autoshow setup --models base
-bun autoshow setup --models whisperfile:small
-bun autoshow setup --models whisperfile:large-v3
+bun autoshow setup --models tiny --models tiny.en --models small --models whisperfile:small.en
 ```
 
-`--models` downloads a Whisper or whisperfile model without running inference. Use the `whisperfile:` prefix for names that overlap with Whisper (`tiny`, `small`, `medium`). An optional `whisper:` prefix is also accepted.
+Optional larger models remain supported and require explicit selection:
 
-Supported whisperfile models: `tiny`, `tiny.en`, `small`, `small.en`, `medium`, `medium.en`, `large-v2`, `large-v3`.
+```bash
+bun autoshow setup --models whisperfile:medium --models whisperfile:medium.en
+bun autoshow setup --models whisperfile:large-v2 --models whisperfile:large-v3
+```
+
+Bare names and `whisperfile:<model>` are equivalent. `--models` downloads without inference; all selectors are validated before downloading. The removed `whisper:` prefix and `whisper-binary`/`whisper-model` setup steps are rejected.
 
 ## Testing
 

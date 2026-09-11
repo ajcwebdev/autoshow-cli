@@ -14,7 +14,7 @@ AutoShow requires a local-lite tool set — FFmpeg and `ffprobe`, `yt-dlp`, MuPD
 
 Several issues motivated unifying this lifecycle:
 
-1. **Host provisioning drift.** macOS setup previously used Homebrew for several tools while other dependencies already lived under `runtime/`. Homebrew installs mutated global system state, varied by machine, and drifted from the managed runtime used for `whisper-cli`, whisperfile, and local models.
+1. **Host provisioning drift.** macOS setup previously used Homebrew for several tools while other dependencies already lived under `runtime/`. Homebrew installs mutated global system state, varied by machine, and drifted from the managed runtime used for whisperfile, and local models.
 2. **Download reliability and integrity.** Setup downloads used total-transfer timeouts that aborted large assets on ordinary bandwidth. Retries restarted from byte zero, downloads lacked checksum verification, and unthrottled concurrent downloads saturated the link.
 3. **Truthful reporting and diagnostics.** Setup could exit 0 after failed steps, and `setup --doctor` inspected version flags rather than whether the installed binaries actually run.
 4. **Hermetic toolchain delivery.** Upstream MuPDF and qpdf releases do not publish prebuilt macOS CLI binaries, so those tools have to be compiled without picking up Homebrew libraries.
@@ -132,7 +132,7 @@ It does not apply to:
 
 ## Rationale
 
-- **Host provisioning:** Treating local dependencies as managed runtime assets under `runtime/` aligns macOS with the pattern already used for `whisper-cli`, whisperfile, Defuddle, and model assets. It pins versions and avoids mutating host system state.
+- **Host provisioning:** Treating local dependencies as managed runtime assets under `runtime/` aligns macOS with the pattern already used for whisperfile, Defuddle, and model assets. It pins versions and avoids mutating host system state.
 - **Source builds:** Compiling MuPDF and qpdf from pinned source preserves exact versions and hermetic linkage without Apple Developer signing, notarization, or binary distribution infrastructure.
 - **Acquisition and reporting:** Stall-based timeouts and resumable downloads decouple reliability from bandwidth and file size. Bounding transfer concurrency prevents network contention, and truthful exit codes make incomplete installs fail closed.
 

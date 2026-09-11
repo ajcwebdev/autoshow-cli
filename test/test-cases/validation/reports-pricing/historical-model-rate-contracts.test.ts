@@ -79,11 +79,11 @@ const isActiveModel = (identity: HistoricalIdentity): boolean => {
 }
 
 describe('historical model rate contracts', () => {
-  test('resolveTranscriptionModel maps whisper.cpp and whisperfile artifact paths', () => {
+  test('resolveTranscriptionModel maps active bundles and archived artifact paths', () => {
     expect(resolveTranscriptionModel({
       transcriptionService: 'whisper',
       transcriptionModel: '/models/ggml-tiny.bin'
-    } as Step2Metadata)).toBe('tiny')
+    })).toBe('tiny')
     expect(resolveTranscriptionModel({
       transcriptionService: 'whisperfile',
       transcriptionModel: '/runtime/bin/whisperfile/whisper-tiny.en.llamafile'
@@ -91,7 +91,7 @@ describe('historical model rate contracts', () => {
     expect(resolveTranscriptionModel({
       transcriptionService: 'whisperfile',
       transcriptionModel: 'tiny'
-    } as Step2Metadata)).toBe('tiny')
+    })).toBe('tiny')
   })
 
   test('every committed benchmark step model resolves through active or retired rates', async () => {

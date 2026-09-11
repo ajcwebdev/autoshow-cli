@@ -14,7 +14,6 @@ The image includes:
 - MuPDF `mutool`
 - `qpdf`
 - Calibre `ebook-convert`
-- CMake, Make, GCC/G++, and development headers for Whisper compilation
 
 It does not include heavyweight local STT, LLM, or TTS engines, model weights, Defuddle, or provider credentials.
 
@@ -204,12 +203,12 @@ bun t:docker
 bun t:docker --suite core
 bun t:docker --suite network --platform linux/arm64
 bun t:docker --suite models
-bun t:docker --suite models --model whisper:medium
+bun t:docker --suite models --model whisperfile:small.en
 bun t:docker --suite models --model whisperfile:large-v3 --platform linux/amd64
 bun t:docker --help
 ```
 
-The default `all` selection contains 51 cases: 28 core, 20 model, and 3 public-network cases. Core includes Tesseract, native EPUB extraction, local HTTP/RSS downloads, Defuddle fixture extraction, caption rerendering, default-write price resolution, and CLI rejection contracts. Model cases execute all five Whisper and eight Whisperfile selectors, plus default selection, splitting, lyric transcription, and batching. Network cases require successful YouTube, Twitch, and public Defuddle extraction. Public-site failures are classified separately and fail acceptance; there are no successful skips. A new local registry selector fails coverage checks until a scenario and CI shard are added.
+The default `all` selection contains 42 cases: 28 core, 11 model, and 3 public-network cases. Core includes Tesseract, native EPUB extraction, local HTTP/RSS downloads, Defuddle fixture extraction, caption rerendering, default-write price resolution, and CLI rejection contracts. Model cases execute the four recommended whisperfile selectors (`tiny`, `tiny.en`, `small`, `small.en`), plus default selection, splitting, lyric transcription, and batching. Network cases require successful YouTube, Twitch, and public Defuddle extraction. Public-site failures are classified separately and fail acceptance; there are no successful skips. Optional larger whisperfile bundles remain usable through explicit selection but are outside the acceptance matrix.
 
 Acceptance invokes the image's normal entrypoint and normal non-root user. It never rebuilds the image, mounts checkout source over `/app`, substitutes a host CLI, or passes hosted-provider credentials or host `.env` files. CLI execution is restricted to exact registered command arrays, with an empty explicit config except for the optional YouTube cookie source below. Hosted-provider rejection cases run with `--network none`; `write --price` resolves the hosted default without dispatching inference. Tests share download definitions, download/STT artifact assertions, and service rejection definitions with native tests through an explicit adapter. Manifests are inspected through a path-mapping view; the original artifacts remain unchanged.
 
@@ -217,13 +216,13 @@ YouTube can require sign-in from GitHub-hosted runners even when the same anonym
 
 CI reads the optional `YOUTUBE_COOKIES` repository secret only in the two network shards. Its value must be the contents of a dedicated YouTube cookie file, not a complete browser cookie export. The workflow writes it under `RUNNER_TEMP` with owner-only permissions and removes it after acceptance, including failures. Without that secret the test remains anonymous and still requires a successful download. See [cookie setup](cookies.md) for export instructions; authentication does not turn failed public requests into passing or skipped tests.
 
-Fixtures are authored synthetic PDF/EPUB documents, caption text, and generated media in the run workspace. Models transcribe the checksum-pinned, 11-second [whisper.cpp JFK sample](https://github.com/ggml-org/whisper.cpp/blob/v1.7.4/samples/jfk.wav). Media preparation and video stream checks use FFmpeg, MuPDF, Python, Bun, and ffprobe inside the pulled image. Core uses a two-second synthetic tone where speech recognition is not involved. Local HTTP/RSS and article fixtures run in another container from the same digest on an internal Docker network with no host-published ports. Inference and local file cases have networking disabled; setup downloads and the three public cases use ordinary bridge networking. No host FFmpeg or local model installation is required.
+Fixtures are authored synthetic PDF/EPUB documents, caption text, and generated media in the run workspace. Models transcribe the checksum-pinned, 11-second [OpenAI Whisper JFK sample](https://github.com/openai/whisper/blob/v20250625/tests/jfk.flac). Media preparation and video stream checks use FFmpeg, MuPDF, Python, Bun, and ffprobe inside the pulled image. Core uses a two-second synthetic tone where speech recognition is not involved. Local HTTP/RSS and article fixtures run in another container from the same digest on an internal Docker network with no host-published ports. Inference and local file cases have networking disabled; setup downloads and the three public cases use ordinary bridge networking. No host FFmpeg or local model installation is required.
 
-Provisioning uses `setup --step whisper-binary`, `setup --models whisper:<model>`, `setup --models whisperfile:<model>`, and `setup --step defuddle`. A fresh container repeats model/Defuddle setup offline, and inference runs in another fresh container. Installed assets persist under `runtime/docker-acceptance/cache/linux-amd64/` or `linux-arm64/`, with separate runtime and home mounts. The home mount also preserves Whisperfile loader assets. On Linux, a network-disabled ownership helper mounts only these two cache directories and runs `chown` as root to restore the image user’s ownership after CI cache extraction; every CLI and setup command still uses the image’s normal user. Inference is sequential per worker. A cache lock prevents concurrent runs from modifying the same architecture's assets; use a different `--cache` directory for an independent worker. An abandoned lock includes `owner.json`; verify that run has stopped before removing only its lock directory. Do not delete model caches or outputs to retry.
+Provisioning uses `setup --models whisperfile:<model>`, and `setup --step defuddle`. A fresh container repeats model/Defuddle setup offline, and inference runs in another fresh container. Installed assets persist under `runtime/docker-acceptance/cache/linux-amd64/` or `linux-arm64/`, with separate runtime and home mounts. The home mount also preserves Whisperfile loader assets. On Linux, a network-disabled ownership helper mounts only these two cache directories and runs `chown` as root to restore the image user’s ownership after CI cache extraction; every CLI and setup command still uses the image’s normal user. Inference is sequential per worker. A cache lock prevents concurrent runs from modifying the same architecture's assets; use a different `--cache` directory for an independent worker. An abandoned lock includes `owner.json`; verify that run has stopped before removing only its lock directory. Do not delete model caches or outputs to retry.
 
 Setup and each case have separate bounded deadlines: 1,800 and 1,200 seconds by default. Override them with `--setup-timeout SECONDS` and `--case-timeout SECONDS` (1–7,200). Provisioning errors, missing engines, failed model downloads, timeouts, unsupported execution, assertion failures, and empty selections all fail acceptance. Interruption and timeout cleanup removes only containers owned by this invocation. Outputs, partial downloads, completed models, and setup diagnostics remain available for inspection and reuse.
 
-Plan for at least 16 GB of Docker memory for the largest models, CPU time for inference and Whisper compilation, and approximately 30 GB of free disk for all model assets plus the image, build files, rendered videos, and retained run evidence. A single model shard needs substantially less disk. These are planning allowances, not measured minimums; constrained workers can fail or time out. The 13 selector downloads are several gigabytes in aggregate. `--suite core` installs only Defuddle and uses the image's document/media tools.
+Allow disk space for the four recommended bundles, the image, rendered videos, and retained run evidence. Model inference requires CPU and memory; constrained workers can fail or time out. A single model shard uses less disk than the complete model suite. Optional larger models are outside this acceptance suite. `--suite core` installs only Defuddle and uses the image's document/media tools.
 
 Each invocation creates `runtime/docker-acceptance/runs/<timestamp>-<id>/`, or a new directory supplied through `--output`. An existing output directory is rejected so old artifacts cannot satisfy new assertions. Evidence includes `image.json` (requested tag, digest, native platform, image ID, revision, CLI version, image size, user, entrypoint), `results.json` (selection, execution counts, per-case durations, outcomes, failure categories), numbered command/exit/stdout/stderr logs, fixtures, all output manifests and artifacts, and a provisioning inventory with setup/CMake diagnostics. Console output is bounded; full subprocess logs stay on disk. Exits are 0 for a complete pass, 1 for acceptance/infrastructure failure, and 2 for invalid runner arguments.
 
@@ -243,11 +242,9 @@ Paths in this table are relative to `test/test-cases/e2e/`. Shared definitions a
 | Same file: PDF chapter detection and diagnostics | `pdf-chapters` |
 | Same file: ignored image chapter flags | `ocr-ignored-chapters` |
 | Same file: public Defuddle URL extraction | `defuddle-public`; additional deterministic `defuddle-fixture` proves local installation reuse |
-| `local/stt/whisper/whisper-default`: default, explicit tiny/base, split audio | `stt-whisper-default`, `stt-whisper-tiny`, `stt-whisper-base`, `stt-split-audio` |
-| `local/stt/whisper/whisper-large-v3-turbo`: explicit turbo, split video | `stt-whisper-large-v3-turbo`, `stt-split-video` |
 | `local/stt/whisperfile/whisperfile-default`: explicit tiny | `stt-whisperfile-tiny`; additional `stt-whisperfile-default` tests an omitted model |
-| Additional supported Whisper selectors | `stt-whisper-small`, `stt-whisper-medium` |
-| Additional supported Whisperfile selectors | `stt-whisperfile-tiny.en`, `stt-whisperfile-small`, `stt-whisperfile-small.en`, `stt-whisperfile-medium`, `stt-whisperfile-medium.en`, `stt-whisperfile-large-v2`, `stt-whisperfile-large-v3` |
+| Default and split transcription | `stt-default`, `stt-whisperfile-default`, `stt-split-audio`, `stt-split-video` |
+| Additional recommended whisperfile selectors | `stt-whisperfile-tiny.en`, `stt-whisperfile-small`, `stt-whisperfile-small.en` |
 | `local/text/write/write-project-lyrics`: cheapest hosted LLM default resolution | Original resolver test remains native because it directly tests an internal API; `write-default-price` checks the packaged CLI's resolution without generation |
 | `local/audio/music/music-lyrics-video`: edited-caption rerender, explicit tiny transcription, default turbo transcription, batch manifest | `lyrics-rerender`, `lyrics-explicit`, `lyrics-default`, `lyrics-batch`; short fixtures replace longer example audio; validate captions, H.264/1080p output, provider metadata, cleanup, and batch children |
 | `service/audio/tts/mistral-validation`: invalid model, missing voice source | `reject-mistral-model`, `reject-mistral-voice` |
@@ -274,7 +271,7 @@ bun --no-env-file test test/test-cases/validation/cli/cli-help-contracts.test.ts
 
 Harness contracts exercise pull failure, immutable references, literal arguments, mount and batch-path mapping, credential isolation, command/network allowlisting, timeout cleanup, native architecture enforcement, exact model/CI coverage, and nonzero test counts without Docker or provider requests. A separate encoder regression contract covers FFmpeg builds that list NVIDIA/AMD encoders without usable hardware; lyric rendering now probes a synthetic frame before selecting hardware and otherwise uses libx264.
 
-Bare local STT selectors now resolve their engine's `tiny` model before provider selection. This also preserves explicit provider origin: `extract speech.mp3 --provider whisperfile` selects Whisperfile instead of falling through to Whisper. A native regression checks both bare local selectors without inference.
+The default provider and a bare `--provider whisperfile` both select `tiny`. Native contracts cover omitted provider/model selection and split audio; Docker also covers split video.
 
 ### Recorded acceptance run
 
@@ -286,19 +283,11 @@ On September 8, 2026 (America/Chicago), the published digest `sha256:fed678e1c4d
 | Models | 8/20 passed | Eleven Whisper-dependent cases were blocked by missing CMake; bare Whisperfile selected Whisper |
 | Public network | 3/3 passed | None; YouTube, Twitch, and public Defuddle succeeded |
 
-All eight explicit Whisperfile selectors completed inference. A second fresh-container run reused the cached tiny model successfully. Evidence and model caches are retained under `runtime/docker-acceptance/`: `local-core`, `local-models`, `local-network`, and `local-cache-final` contain the reports and logs. The current source includes the prerequisite, encoder, and selector fixes, but acceptance of those fixes requires publication and another run. Native AMD64 acceptance is pending CI; the size experiment below does not establish it. Local verification passed `bun run check`, all 140 `bun t --price` commands, and 292 targeted no-cost contracts.
+All eight explicit Whisperfile selectors completed inference. A second fresh-container run reused the cached tiny model successfully. Evidence and model caches are retained under `runtime/docker-acceptance/`: `local-core`, `local-models`, `local-network`, and `local-cache-final` contain the reports and logs. The current source removes whisper.cpp and its compiler prerequisites; the dated results above describe the prior image. Native AMD64 acceptance is pending CI; the size experiment below does not establish it. Local verification passed `bun run check`, all 140 `bun t --price` commands, and 292 targeted no-cost contracts.
 
-### Whisper prerequisites and size evidence
+### Historical compiler layer size evidence
 
-The production Dockerfile adds one isolated layer containing CMake, Make, GCC, G++, and libc development headers. The compiler packages bring their required C++/OpenMP development dependencies. The [pinned whisper.cpp build](https://github.com/ggml-org/whisper.cpp/blob/v1.7.4/CMakeLists.txt) defaults optional curl, SDL, and FFmpeg integration off, so those development libraries are not added. Models and engines are still provisioned at runtime through the CLI.
-
-Native build jobs record total image bytes and the exact prerequisite layer bytes in `whisper-toolchain-size.json`, along with raw `docker history --human=false` evidence, and include the result in the workflow summary. A minimal container invocation materializes lazy image layers before reading history sizes. Size is informational and never an acceptance threshold. For a separate local before/after packaging measurement, run the following only after acceptance has finished:
-
-```bash
-env -i PATH="$PATH" HOME="$HOME" bun --no-env-file scripts/docker-acceptance/measure-whisper-toolchain.ts
-```
-
-This experiment resolves the published base digest, builds a derived image containing only the exact prerequisite layer, and compares image bytes on both architectures. It records results under `runtime/docker-acceptance/size/`; AMD64 measurement on an ARM64 daemon may use emulation. These derived images are never used by `bun t:docker`, and their measurements do not imply native acceptance success. Native CI measurements remain authoritative for the published build.
+The dedicated whisper.cpp compiler layer, measurement script, and CI assertions have been removed. The following historical measurements and their retained evidence describe the prior layer, not the current image.
 
 Measured against the published digest recorded above on September 8, 2026, using Docker's `image inspect .Size` field:
 

@@ -170,7 +170,7 @@ Examples:
 
 ```bash
 bun autoshow config --show
-bun autoshow config --llm openai=gpt-5.4-mini --stt whisper=base --max-cents 50
+bun autoshow config --llm openai=gpt-5.4-mini --stt whisperfile=small --max-cents 50
 bun autoshow config --reset
 ```
 

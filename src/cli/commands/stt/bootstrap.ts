@@ -3,16 +3,11 @@ import { ensureProviderReady } from '~/utils/bootstrap-broker'
 import { UsageError } from '~/utils/error-handler'
 import { getStep2BootstrapProviderId } from '../command-shared/extract-routing/provider-registry'
 
-export {
-  downloadWhisperModel
-} from './local/whisper/whisper'
 
 const toBootstrapProviderId = (
   target: Pick<SttTarget, 'service' | 'model'>
 ): string => {
   switch (target.service) {
-    case 'whisper':
-      return `whisper:${target.model}`
     case 'whisperfile':
       return `whisperfile:${target.model}`
     case 'deepinfra':

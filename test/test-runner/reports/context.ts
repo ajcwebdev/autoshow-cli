@@ -62,7 +62,7 @@ const KNOWN_SERVICE_HINTS: Array<{ pattern: RegExp, service: string }> = [
   { pattern: /\bglm(?:-reader)?\b/i, service: 'glm' },
   { pattern: /\bkimi\b/i, service: 'kimi' },
   { pattern: /\brunway\b/i, service: 'runway' },
-  { pattern: /\bwhisper\b/i, service: 'whisper' },
+  { pattern: /\bwhisper\b/i, service: 'whisperfile' },
 ]
 
 const cleanValue = (value: string | null | undefined): string | null => {

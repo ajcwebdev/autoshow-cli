@@ -5,7 +5,7 @@ export const E2E_TEST_TIMEOUT_MS = HOSTED_E2E_TEST_TIMEOUT_MS
 
 export const isLongRunningTestFile = (file: string): boolean => {
   const normalized = file.replace(/\\/g, '/')
-  return /\/local\/stt\/whisper(file)?\//.test(normalized)
+  return /\/local\/stt\/whisperfile\//.test(normalized)
     || normalized.includes('/e2e/service/visuals/video/')
     || normalized.includes('/e2e/local/audio/music/')
     || normalized.endsWith('/transcript-video-contracts.test.ts')

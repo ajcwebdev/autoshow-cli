@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { parseWhisperJson, extractWhisperWords } from '~/cli/commands/stt/local/whisper/parse-whisper-output'
+import { parseWhisperfileJson, extractWhisperfileWords } from '~/cli/commands/stt/local/whisperfile/parse-whisperfile-output'
 import {
   detectCompressedTimingCoverage,
   repairZeroDurationMonotonicSegments
@@ -62,8 +62,8 @@ describe('STT normalization contracts', () => {
       ]
     })
 
-    const words = extractWhisperWords(whisperJson, { maxEndSeconds: 10 })
-    const parsed = parseWhisperJson(whisperJson, { maxEndSeconds: 10 })
+    const words = extractWhisperfileWords(whisperJson, { maxEndSeconds: 10 })
+    const parsed = parseWhisperfileJson(whisperJson, { maxEndSeconds: 10 })
 
     expect(words.at(-1)?.end).toBe(10)
     expect(parsed.segments.at(-1)?.end).toBe('00:00:10.000')

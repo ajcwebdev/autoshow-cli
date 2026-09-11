@@ -19,7 +19,6 @@ const PAGE_PRICED_EXTRACT_PROVIDERS = new Set([
 ])
 
 const LOCAL_ZERO_PROVIDERS = new Set([
-  'whisper',
   'whisperfile',
   'youtube-captions',
   'tesseract'

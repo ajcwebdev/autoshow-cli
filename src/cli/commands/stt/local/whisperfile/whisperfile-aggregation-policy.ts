@@ -1,5 +1,5 @@
 
-export const appendWhisperSegmentText = (currentText: string, text: string, isNewSentence: boolean, gapFromPrev: number) => {
+export const appendWhisperfileSegmentText = (currentText: string, text: string, isNewSentence: boolean, gapFromPrev: number) => {
   const needsSpaceBefore = currentText.length > 0 &&
                            !currentText.endsWith("'") &&
                            !text.startsWith("'") &&
@@ -26,7 +26,7 @@ export const appendWhisperSegmentText = (currentText: string, text: string, isNe
   return { currentText, text, isNewSentence }
 }
 
-export const resolveWhisperSegmentBreak = (text: string, actualWordCount: number, nextGap: number, isLastSegment: boolean) => {
+export const resolveWhisperfileSegmentBreak = (text: string, actualWordCount: number, nextGap: number, isLastSegment: boolean) => {
   const targetWordsPerSegment = 35
   const minWordsPerSegment = 20
   const maxWordsPerSegment = 45
@@ -43,7 +43,7 @@ export const resolveWhisperSegmentBreak = (text: string, actualWordCount: number
   return { shouldBreak, hasVeryLongPause }
 }
 
-export const cleanWhisperSegmentText = (text: string, terminal: boolean): string => {
+export const cleanWhisperfileSegmentText = (text: string, terminal: boolean): string => {
   let cleanedText = text
     .replace(/\s+/g, ' ')
     .replace(/\s+([,.!?;:])/g, '$1')

@@ -165,7 +165,7 @@ describe('resume target-aware provider selectors', () => {
       ['resume', 'out', '--all-local']
     )
     expect(stt.flags['all-local-stt']).toBe(true)
-    expect(buildOpts(stt.flags, stt.explicitFlags, stt.flagOccurrences).whisperModels).toBeDefined()
+    expect(buildOpts(stt.flags, stt.explicitFlags, stt.flagOccurrences).whisperfileModels).toBeDefined()
 
     const ocr = normalizeResumeSelectorFlagsForTarget(
       target('extract', '/tmp/autoshow-resume-document', 'document'),

@@ -225,7 +225,7 @@ export type ProviderState = {
 
 export type ProviderFailureSummary = Pick<SttProviderFailureSummary, 'message' | 'retryable' | 'stage' | 'status'>
 
-export type WhisperProgressLogContext = {
+export type WhisperfileProgressLogContext = {
   segmentNumber?: number | undefined
   totalSegments?: number | undefined
   segmentStartSeconds?: number | undefined

@@ -21,12 +21,12 @@ test('STT media acquisition stages and materializes local source media without p
 
   const firstPrepared = await prepareSttMedia({
     source,
-    targets: [{ service: 'whisper', model: 'tiny', local: true }],
+    targets: [{ service: 'whisperfile', model: 'tiny', local: true }],
     outputDir: firstOutputDir
   })
   const secondPrepared = await prepareSttMedia({
     source,
-    targets: [{ service: 'whisper', model: 'tiny', local: true }],
+    targets: [{ service: 'whisperfile', model: 'tiny', local: true }],
     outputDir: secondOutputDir
   })
 
@@ -71,7 +71,7 @@ test('STT media acquisition keeps local and hosted staging profiles distinct', a
   const source = { filePath: sourcePath }
   const localPrepared = await prepareSttMedia({
     source,
-    targets: [{ service: 'whisper', model: 'tiny', local: true }],
+    targets: [{ service: 'whisperfile', model: 'tiny', local: true }],
     outputDir: await makeTempDir('autoshow-stt-acquire-local-')
   })
   const hostedPrepared = await prepareSttMedia({

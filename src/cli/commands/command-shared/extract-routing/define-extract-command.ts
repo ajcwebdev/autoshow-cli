@@ -91,7 +91,7 @@ export const extractCommand = defineCliCommand({
   flags: extractFlags,
   help: {
     examples: [
-      ['bun autoshow extract https://youtube.com/watch?v=abc', 'Transcribe media with the default Whisper tiny STT model'],
+      ['bun autoshow extract https://youtube.com/watch?v=abc', 'Transcribe media with the default Whisperfile tiny STT model'],
       ['bun autoshow extract video.mp4 --provider deepinfra --captions --caption-mode word', 'Transcribe media once and save synced SRT/VTT captions'],
       ['bun autoshow extract file.mp3 --provider assemblyai=universal-3-5-pro', 'Transcribe media with AssemblyAI STT'],
       ['bun autoshow extract video.mp4 --provider assemblyai=universal-3-5-pro --stt-audio-profile lossless', 'Transcribe verified float32 PCM and save its source timeline'],
@@ -99,7 +99,7 @@ export const extractCommand = defineCliCommand({
       ['bun autoshow extract output/raw/result.json --transcript-edits output/review/edits.json --output-dir output/clean', 'Apply reviewed edits offline with timing provenance'],
       ['bun autoshow extract output/raw/result.json --timing-reference output/reference/result.json', 'Measure saved word timing against a reference offline'],
       ['bun autoshow extract audio.wav --align-transcript output/reviewed/result.json --alignment-model runtime/models/alignment/wav2vec2-base-960h --alignment-python runtime/venvs/stt-alignment/bin/python', 'Align transcript text with an installed local CTC model'],
-      ['bun autoshow extract audio.wav --calibrate-whisper --timing-reference output/aligned/result.json', 'Compare installed Whisper standard and DTW word timing locally'],
+      ['bun autoshow extract audio.wav --calibrate-whisper --timing-reference output/aligned/result.json', 'Compare installed Whisperfile standard and DTW word timing locally'],
       ['bun autoshow extract stereo.wav --split-channels', 'Separate audio channels and verify decoded sample hashes'],
       ['bun autoshow extract document.pdf --provider mistral=mistral-ocr-2512', 'Extract text from a document with Mistral OCR'],
       ['bun autoshow extract https://example.com/article --provider spider', 'Extract a remote article with a URL backend'],

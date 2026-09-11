@@ -107,7 +107,7 @@ test('music lyric-video rerender uses edited captions, cleans tmp on success, an
   }
 }, LONG_E2E_TEST_TIMEOUT_MS)
 
-budgetedTest('transcribe-whisper-tiny', 'music lyric-video transcribes local audio with whisper and cleans tmp by default', async () => {
+budgetedTest('transcribe-whisperfile-tiny', 'music lyric-video transcribes local audio with whisperfile and cleans tmp by default', async () => {
   await cleanupTestOutput(SHORT_AUDIO_SUFFIX)
 
   const result = await runCommand([
@@ -136,10 +136,10 @@ budgetedTest('transcribe-whisper-tiny', 'music lyric-video transcribes local aud
     expect(manifest.command).toBe('music')
     expect(record['mode']).toBe('lyric-video')
     const transcription = record['transcription'] as Record<string, unknown>
-    expect(transcription['mode']).toBe('whisper')
+    expect(transcription['mode']).toBe('whisperfile')
     expect(transcription['model']).toBe('tiny')
     expect(typeof transcription['descriptor']).toBe('string')
-    expect(String(transcription['descriptor'])).toContain('ggml-tiny')
+    expect(String(transcription['descriptor'])).toContain('whisper-tiny.llamafile')
     expect(Number(transcription['cueCount'])).toBeGreaterThan(0)
 
     const vtt = await Bun.file(`${outputDir}/0-audio-short.vtt`).text()
@@ -147,7 +147,7 @@ budgetedTest('transcribe-whisper-tiny', 'music lyric-video transcribes local aud
   }
 }, LONG_E2E_TEST_TIMEOUT_MS)
 
-budgetedTest('transcribe-whisper-large-v3-turbo', 'bun autoshow music --audio input/examples/lyrics/01-example-song.mp3 renders the bundled example with the default whisper model', async () => {
+budgetedTest('transcribe-whisperfile-small.en', 'bun autoshow music --audio input/examples/lyrics/01-example-song.mp3 renders the bundled example with the default whisperfile model', async () => {
   await cleanupTestOutput(EXAMPLE_SONG_SUFFIX)
 
   const result = await runCommand([
@@ -175,10 +175,10 @@ budgetedTest('transcribe-whisper-large-v3-turbo', 'bun autoshow music --audio in
     expect(record['mode']).toBe('lyric-video')
 
     const transcription = record['transcription'] as Record<string, unknown>
-    expect(transcription['mode']).toBe('whisper')
-    expect(transcription['model']).toBe('large-v3-turbo')
+    expect(transcription['mode']).toBe('whisperfile')
+    expect(transcription['model']).toBe('small.en')
     expect(typeof transcription['descriptor']).toBe('string')
-    expect(String(transcription['descriptor'])).toContain('ggml-large-v3-turbo')
+    expect(String(transcription['descriptor'])).toContain('whisper-small.en.llamafile')
     expect(Number(transcription['cueCount'])).toBeGreaterThan(0)
 
     const render = record['render'] as Record<string, unknown>
@@ -191,7 +191,7 @@ budgetedTest('transcribe-whisper-large-v3-turbo', 'bun autoshow music --audio in
   }
 }, LONG_E2E_TEST_TIMEOUT_MS)
 
-budgetedTest('transcribe-whisper-tiny', 'music lyric-video batch writes one batch-scoped canonical manifest and child lyric items for the configured input tree', async () => {
+budgetedTest('transcribe-whisperfile-tiny', 'music lyric-video batch writes one batch-scoped canonical manifest and child lyric items for the configured input tree', async () => {
   await cleanupTestOutput(BATCH_SUFFIX)
 
   const result = await runCommand([

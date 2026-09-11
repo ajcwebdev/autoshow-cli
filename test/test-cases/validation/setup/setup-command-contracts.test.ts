@@ -1,5 +1,3 @@
-import { mkdir, rm, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
@@ -10,7 +8,6 @@ import { requireDefined } from '../../../test-utils/value-assertions'
 import { CALIBRE_REQUIRED_TOOLS } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre'
 import { readDependencyMetadata } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
 import {
-  collectReclaimableWhisperCoremlArtifacts,
   getForceRedownloadPaths
 } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import {
@@ -20,7 +17,6 @@ import {
   resolveRuntimeToolInfo,
   ytDlpManagedBinaryPath
 } from '~/utils/runtime-paths'
-import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 describe('setup command contracts', () => {
   test('setup rejects the retired ACSM step and omits retired steps from valid values', async () => {
@@ -124,17 +120,16 @@ describe('setup command contracts', () => {
     })
   })
 
-  test('full setup covers doctor-managed local OCR runtimes and Whisper models without CoreML conversion', async () => {
+  test('full setup installs only tiny and music setup selects small.en', async () => {
     const source = await Bun.file('src/cli/commands/setup-and-utilities/setup/run-complete-setup.ts').text()
-
-    expect(source).toContain("const defaultMusicWhisperModel = 'large-v3-turbo'")
-    expect(source).toContain('await downloadWhisperModel(defaultWhisperModel)')
-    expect(source).toContain('await downloadWhisperModel(defaultMusicWhisperModel)')
-    expect(source).not.toContain('convertWhisperModelToCoreml')
-    expect(source).not.toContain('fetchWhisperModel')
+    expect(source).toContain("const defaultMusicWhisperfileModel = 'small.en'")
+    expect(source).toContain('await setupWhisperfile(DEFAULT_WHISPERFILE_MODEL)')
+    expect(source).toContain('await setupWhisperfile(defaultMusicWhisperfileModel)')
     expect(source).toContain("{ label: 'OCR', run: setupTesseractOcr }")
-    expect(source).toContain("['tesseract', hasRuntimeTool('tesseract')]")
-    expect(source).toContain('[`whisper ${defaultMusicWhisperModel}`, await pathExists(`${whisperModelsDir}/ggml-${defaultMusicWhisperModel}.bin`)]')
+    const all = await getForceRedownloadPaths('all')
+    expect(all.filter(path => path.endsWith('.llamafile')).map(path => path.split('/').at(-1))).toEqual(['whisper-tiny.llamafile'])
+    expect(await getForceRedownloadPaths('transcription')).toEqual(await getForceRedownloadPaths('whisperfile'))
+    expect((await getForceRedownloadPaths('music')).map(path => path.split('/').at(-1))).toEqual(['whisper-small.en.llamafile'])
   })
 
   test('macOS owned tool resolution prefers overrides then managed runtime without PATH fallback', () => {
@@ -171,39 +166,6 @@ describe('setup command contracts', () => {
     expect(combinedSource).not.toContain('test -x')
   })
 
-  test('retired Whisper CoreML artifacts are reclaimable but no longer provisioned or recorded at runtime', async () => {
-    const root = await makeTempDir('autoshow-retired-coreml-')
-    try {
-      const coremlEnvDir = join(root, 'bin', 'whisper-coreml-env')
-      const modelsDir = join(root, 'models')
-      const compiledEncoder = join(modelsDir, 'ggml-tiny-encoder.mlmodelc')
-      const packagedEncoder = join(modelsDir, 'ggml-base-encoder.mlpackage')
-      await mkdir(coremlEnvDir, { recursive: true })
-      await mkdir(compiledEncoder, { recursive: true })
-      await mkdir(packagedEncoder, { recursive: true })
-      await mkdir(join(modelsDir, 'not-an-encoder'), { recursive: true })
-      await writeFile(join(coremlEnvDir, 'python'), 'legacy env')
-      await writeFile(join(compiledEncoder, 'model.mil'), 'legacy compiled encoder')
-      await writeFile(join(packagedEncoder, 'Manifest.json'), '{}')
-
-      const artifacts = await collectReclaimableWhisperCoremlArtifacts({ coremlEnvDir, modelsDir })
-      expect(artifacts.map(({ path }) => path)).toEqual([
-        coremlEnvDir,
-        packagedEncoder,
-        compiledEncoder
-      ])
-      expect(artifacts.every(({ bytes }) => bytes > 0)).toBe(true)
-
-      const whisperSource = await Bun.file('src/cli/commands/stt/local/whisper/whisper.ts').text()
-      const runtimeSource = await Bun.file('src/cli/commands/stt/local/whisper/run-whisper.ts').text()
-      expect(whisperSource.toLowerCase()).not.toContain('coreml')
-      expect(runtimeSource.toLowerCase()).not.toContain('coreml')
-      expect(await Bun.file('src/cli/commands/stt/local/whisper/whisper-scripts/convert-whisper-to-coreml.py').exists()).toBe(false)
-      expect(await Bun.file('src/cli/commands/stt/local/whisper/whisper-scripts/validate-coreml.py').exists()).toBe(false)
-    } finally {
-      await rm(root, { recursive: true, force: true })
-    }
-  })
 
   test('Calibre setup only requires ebook-convert for ebook normalization', () => {
     const tools = [...CALIBRE_REQUIRED_TOOLS]

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { readdir } from 'node:fs/promises'
 import { basename, join, resolve } from 'node:path'
-import { SUPPORTED_WHISPER_MODELS, SUPPORTED_WHISPERFILE_MODELS } from '../../src/cli/commands/setup-and-utilities/models/stt-models'
+import { SUPPORTED_WHISPERFILE_MODELS } from '../../src/cli/commands/setup-and-utilities/models/stt-models'
 import { selectCheapestDefaultLlmSelection } from '../../src/cli/commands/setup-and-utilities/models/cheapest-models'
 import { derivePipelineItemRecord } from '../../src/cli/commands/command-shared/pipeline-manifest'
 import type { OcrE2eExtractMetadata, PipelineManifest } from '../../src/types'
@@ -13,9 +13,7 @@ import { containerFixture, FIXTURE_ORIGIN } from './docker-fixtures'
 import type { DockerOptions, Suite } from './docker-options'
 
 export const MODEL_SELECTORS = [
-  'whisper:tiny', 'whisper:base', 'whisper:small', 'whisper:medium', 'whisper:large-v3-turbo',
   'whisperfile:tiny', 'whisperfile:tiny.en', 'whisperfile:small', 'whisperfile:small.en',
-  'whisperfile:medium', 'whisperfile:medium.en', 'whisperfile:large-v2', 'whisperfile:large-v3'
 ] as const
 export type ModelSelector = typeof MODEL_SELECTORS[number]
 export interface DockerScenario {
@@ -161,7 +159,7 @@ function ocrCases(): DockerScenario[] {
 }
 
 function sttCase(id: string, selector: ModelSelector, args: string[], origin: 'default' | 'explicit', split = false): DockerScenario {
-  const [service, model] = selector.split(':') as ['whisper' | 'whisperfile', string]
+  const [service, model] = selector.split(':') as ['whisperfile', string]
   return {
     id, suite: 'models', network: 'none', model: selector, args,
     async verify(adapter, result) {
@@ -169,12 +167,12 @@ function sttCase(id: string, selector: ModelSelector, args: string[], origin: 'd
       await assertSttExtractRun(dir, {
         transcriptMatch: /\[\d{2}:\d{2}:\d{2}(?:\.\d{3})?\]/,
         target: { service, model, local: true, origin },
-        modelMatch: { contains: service === 'whisper' ? `ggml-${model}` : `whisper-${model}.llamafile` },
+        modelMatch: { contains: `whisper-${model}.llamafile` },
         expectPrompt: true, resolvedStep2: true, providerStates: true,
         splitSegmentsDir: split ? 'split-attempts/pass_001/segments' : false
       }, path => mappedRecord(adapter, path))
       assert.match(await Bun.file(join(dir, 'transcription.txt')).text(), /country|nation|americans/i, 'Known speech was not recognized')
-      if (split) assert.match(`${result.stdout}\n${result.stderr}`, /whisper STT segment \d+\/\d+ completed/)
+      if (split) assert.match(`${result.stdout}\n${result.stderr}`, /whisperfile STT segment \d+\/\d+ completed/)
     }
   }
 }
@@ -187,7 +185,7 @@ function lyricCase(id: string, mode: 'captions' | 'tiny' | 'default' | 'batch'):
   if (batch) args.push('--json')
   return {
     id, suite: mode === 'captions' ? 'core' : 'models', network: 'none', args,
-    ...(mode === 'captions' ? {} : { model: mode === 'default' ? 'whisper:large-v3-turbo' : 'whisper:tiny' }),
+    ...(mode === 'captions' ? {} : { model: mode === 'default' ? 'whisperfile:small.en' : 'whisperfile:tiny' }),
     async verify(adapter, result) {
       const dir = outputDirectory(result)
       const manifest = await mappedManifest(adapter, dir)
@@ -207,11 +205,11 @@ function lyricCase(id: string, mode: 'captions' | 'tiny' | 'default' | 'batch'):
         for (const ext of ['mp4', 'vtt', 'srt']) await assertArtifact(join(childDir, `${stem}.${ext}`))
         assert.equal(await artifactExists(join(childDir, '.lyrics-tmp')), false)
         const transcription = record['transcription'] as Record<string, unknown>
-        assert.equal(transcription['mode'], mode === 'captions' ? 'captions' : 'whisper')
+        assert.equal(transcription['mode'], mode === 'captions' ? 'captions' : 'whisperfile')
         if (mode !== 'captions') {
-          const model = mode === 'default' ? 'large-v3-turbo' : 'tiny'
+          const model = mode === 'default' ? 'small.en' : 'tiny'
           assert.equal(transcription['model'], model)
-          assert(String(transcription['descriptor']).includes(`ggml-${model}`))
+          assert(String(transcription['descriptor']).includes(`whisper-${model}.llamafile`))
           assert(Number(transcription['cueCount']) > 0)
         }
         const vtt = await Bun.file(join(childDir, `${stem}.vtt`)).text()
@@ -242,10 +240,10 @@ export function dockerScenarios(): DockerScenario[] {
       }
     })),
     ...MODEL_SELECTORS.map(selector => sttCase(`stt-${selector.replace(':', '-')}`, selector, ['extract', containerFixture('audio'), '--provider', selector.replace(':', '=')], 'explicit')),
-    sttCase('stt-whisper-default', 'whisper:tiny', ['extract', containerFixture('audio')], 'default'),
+    sttCase('stt-default', 'whisperfile:tiny', ['extract', containerFixture('audio')], 'default'),
     sttCase('stt-whisperfile-default', 'whisperfile:tiny', ['extract', containerFixture('audio'), '--provider', 'whisperfile'], 'explicit'),
-    sttCase('stt-split-audio', 'whisper:tiny', ['extract', containerFixture('audio'), '--provider', 'whisper=tiny', '--split'], 'explicit', true),
-    sttCase('stt-split-video', 'whisper:tiny', ['extract', containerFixture('video'), '--provider', 'whisper=tiny', '--split'], 'explicit', true),
+    sttCase('stt-split-audio', 'whisperfile:tiny', ['extract', containerFixture('audio'), '--provider', 'whisperfile=tiny', '--split'], 'explicit', true),
+    sttCase('stt-split-video', 'whisperfile:tiny', ['extract', containerFixture('video'), '--provider', 'whisperfile=tiny', '--split'], 'explicit', true),
     lyricCase('lyrics-rerender', 'captions'), lyricCase('lyrics-explicit', 'tiny'), lyricCase('lyrics-default', 'default'), lyricCase('lyrics-batch', 'batch'),
     {
       id: 'write-default-price', suite: 'core', network: 'none', args: ['write', containerFixture('text'), '--price', '--json'],
@@ -267,7 +265,7 @@ export function dockerScenarios(): DockerScenario[] {
 }
 
 export function selectDockerScenarios(options: Pick<DockerOptions, 'suite' | 'model'>, all = dockerScenarios()): DockerScenario[] {
-  const supported = [...SUPPORTED_WHISPER_MODELS.map(model => `whisper:${model}`), ...SUPPORTED_WHISPERFILE_MODELS.map(model => `whisperfile:${model}`)].sort()
+  const supported = ['tiny', 'tiny.en', 'small', 'small.en'].map(model => `whisperfile:${model}`).sort()
   assert.deepEqual([...MODEL_SELECTORS].sort(), supported, 'Supported local selectors changed; update acceptance scenarios and CI shards')
   const registryRoot = resolve(import.meta.dir, '../../src/cli/commands/setup-and-utilities/models')
   const localModels: string[] = []
@@ -277,7 +275,7 @@ export function selectDockerScenarios(options: Pick<DockerOptions, 'suite' | 'mo
       if (config?.type === 'local') for (const model of Object.keys(config.models ?? {})) localModels.push(`${provider}:${model}`)
     }
   }
-  assert.deepEqual(localModels.sort(), [...MODEL_SELECTORS, 'defuddle:defuddle'].sort(), 'Local model registry changed; add acceptance coverage')
+  assert.deepEqual(localModels.sort(), [...SUPPORTED_WHISPERFILE_MODELS.map(model => `whisperfile:${model}`), 'defuddle:defuddle'].sort(), 'Local model registry changed; add acceptance coverage')
   assert(all.some(scenario => scenario.id === 'ocr-image-explicit' && scenario.args.includes('tesseract')), 'Missing Tesseract coverage')
   assert(all.some(scenario => scenario.id === 'defuddle-fixture'), 'Missing Defuddle coverage')
   assert.equal(new Set(all.map(scenario => scenario.id)).size, all.length, 'Duplicate scenario IDs')

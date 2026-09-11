@@ -15,7 +15,6 @@ import {
 } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { EXTRACT_PUBLIC_SELECTOR_FLAGS } from '~/cli/flags/service-selector-normalization/extract-selectors'
 import {
-  validateWhisperModel,
   validateWhisperfileModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
@@ -82,7 +81,7 @@ describe('model validation selector contracts', () => {
   test('every registered model validator rejects an invalid model in-process', () => {
     const failures: string[] = []
     for (const flag of getModelValidatorFlags()) {
-      if (flag === 'whisper' || flag === 'whisperfile') {
+      if (flag === 'whisperfile') {
         continue
       }
       try {
@@ -98,9 +97,6 @@ describe('model validation selector contracts', () => {
   })
 
   test('irregular local STT keys name their real spellings', () => {
-    expect(() => validateWhisperModel('bogus')).toThrow(
-      'Invalid model "bogus" for --provider/--stt whisper[=model]. This selector uses local whisper.cpp models.'
-    )
     expect(() => validateWhisperfileModel('bogus')).toThrow(
       'Invalid model "bogus" for --provider/--stt whisperfile[=model]. This selector uses local whisperfile models.'
     )

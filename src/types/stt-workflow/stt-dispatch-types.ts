@@ -1,6 +1,6 @@
 import type { Step2Metadata, SttTarget, SttTargetOptions, TranscriptionResult } from '~/types'
 
-export type WhisperProgressWindow = {
+export type WhisperfileProgressWindow = {
   segmentStartSeconds: number
   segmentDurationSeconds: number
   totalDurationSeconds: number
@@ -14,7 +14,7 @@ export type SttDispatchContext = {
   options: SttTargetOptions
   segmentNumber?: number | undefined
   totalSegments?: number | undefined
-  whisperProgress?: WhisperProgressWindow | undefined
+  whisperProgress?: WhisperfileProgressWindow | undefined
 }
 
 export type SttDispatcher = (

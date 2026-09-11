@@ -115,7 +115,7 @@ Single runs and batches use the same shape:
       "metadata": {},
       "providers": [
         {
-          "service": "whisper",
+          "service": "whisperfile",
           "model": "small",
           "local": true,
           "artifactDir": ".",
@@ -151,7 +151,6 @@ Managed installs live under `runtime/` in the project checkout. `--bin-dir` over
 ```
 runtime/
   bin/                           # managed binaries, including whisperfile models
-  models/                        # local Whisper models
   tools/                         # installed tool prefixes
 ```
 

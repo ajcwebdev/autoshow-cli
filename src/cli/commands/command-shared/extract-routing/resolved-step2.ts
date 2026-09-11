@@ -101,8 +101,8 @@ export const resolveSttStep2Execution = (
     route: 'stt',
     sourceKind: 'media',
     providers: [{
-      service: 'whisper',
-      model: options.whisperModels?.[0] ?? 'tiny',
+      service: 'whisperfile',
+      model: options.whisperfileModels?.[0] ?? 'tiny',
       origin: 'default'
     }]
   }

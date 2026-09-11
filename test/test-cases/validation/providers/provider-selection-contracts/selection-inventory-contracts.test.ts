@@ -14,7 +14,6 @@ import { getStep2ProviderEntries } from '~/cli/commands/command-shared/extract-r
 import type { OcrSelectionOptions, SttSelectionOptions } from '~/types'
 
 const EXPECTED_REPEATABLE_MODEL_FLAGS = [
-  'whisper-stt',
   'whisperfile-stt',
   'deepinfra-stt',
   'grok-stt',
@@ -85,8 +84,7 @@ const STT_SELECTION_PROBE = {
   scrapecreatorsSttModels: undefined,
   geminiSttModels: ['gemini-3-flash-preview'],
   togetherSttModels: ['openai/whisper-large-v3'],
-  whisperModels: ['tiny'],
-  whisperfileModels: undefined,
+  whisperfileModels: ['tiny'],
   step2SelectionOrigins: {
     'gemini-stt': 'explicit',
     'together-stt': 'explicit'

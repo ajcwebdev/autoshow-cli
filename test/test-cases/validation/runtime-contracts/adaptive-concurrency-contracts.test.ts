@@ -96,7 +96,7 @@ afterEach(tempDirs.cleanup)
 describe('adaptive provider group parser', () => {
   test('remote provider mirrors exactly cover target registries minus named local engines', () => {
     const expectedLocalProviders = {
-      stt: ['whisper', 'whisperfile'],
+      stt: ['whisperfile'],
       ocr: ['tesseract'],
       url: ['defuddle'],
       llm: [],
@@ -140,7 +140,7 @@ describe('adaptive provider group parser', () => {
       'video',
       'music',
       'all-providers',
-      'whisper',
+      'whisperfile',
       'deepinfra',
     ]
     const targetRegistries = {
@@ -258,7 +258,7 @@ describe('adaptive provider group parser', () => {
       'extract',
       'input/examples/audio/1-audio.mp3',
       '--stt',
-      'whisper=tiny'
+      'whisperfile=tiny'
     ])).toEqual([])
   })
 })

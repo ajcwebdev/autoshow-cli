@@ -1,34 +1,17 @@
 # Local STT
 
-Whisper and Whisperfile run locally without provider API credentials. See the [STT overview](../overview.md) for shared options and [setup](../../setup-and-utilities/setup.md) for installation.
-
-Whisperfile downloads its selected model on first use; to pre-download, run `bun autoshow setup --step whisperfile` (default `tiny`) or `bun autoshow setup --models whisperfile:<model>`.
-
-Neither local engine supports diarization or `--speaker-count`. Both emit word timestamps. See [local timing and speaker workflows](../workflows/timing/overview.md#local-timing-and-speaker-workflows) for reference comparison, forced alignment, Whisper calibration, channel extraction/merge, and reviewed speaker-label mapping.
-
-## Whisper.cpp
-
-| Option   | Value                                               |
-| -------- | --------------------------------------------------- |
-| Selector | default, or `--provider whisper[=<model>]`          |
-| Models   | `tiny`, `base`, `small`, `medium`, `large-v3-turbo` |
+Whisperfile runs locally without provider API credentials and is the default STT provider. Ordinary transcription uses `tiny`; music lyric-video transcription uses `small.en`. See the [STT overview](../overview.md) for shared options and [setup](../../setup-and-utilities/setup.md) for installation.
 
 ```bash
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider whisper=large-v3-turbo
+bun autoshow extract audio.mp3
+bun autoshow extract audio.mp3 --provider whisperfile
+bun autoshow extract audio.mp3 --provider whisperfile=small.en
+bun autoshow setup --step whisperfile
+bun autoshow setup --models tiny --models tiny.en --models small --models whisperfile:small.en
 ```
 
-## Whisperfile
+The full supported catalog is `tiny`, `tiny.en`, `small`, `small.en`, `medium`, `medium.en`, `large-v2`, and `large-v3`. Optional larger bundles can be downloaded explicitly with repeatable `--models` flags or provisioned on demand by an explicit transcription model selection. Default setup installs only `tiny`. Automated native and Docker model coverage and `config/stt-local.json` use only `tiny`, `tiny.en`, `small`, and `small.en`.
 
-| Option   | Value                                                                                 |
-| -------- | ------------------------------------------------------------------------------------- |
-| Selector | `--provider whisperfile=<model>`                                                      |
-| Models   | `tiny`, `tiny.en`, `small`, `small.en`, `medium`, `medium.en`, `large-v2`, `large-v3` |
+Whisperfile emits word timestamps and supports optional native SRT/VTT/LRC artifacts when advertised by the installed bundle. It does not support diarization or `--speaker-count`. See [local timing and speaker workflows](../workflows/timing/overview.md#local-timing-and-speaker-workflows) for reference comparison, forced alignment, whisperfile calibration, channel extraction/merge, and reviewed speaker-label mapping.
 
-```bash
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider whisperfile=tiny
-```
-
-Whisperfile requires an explicit model selector. It is included by `--all-local`.
-
-Local engine quality and speed evidence for the 1-minute, 10-minute, and 40-minute without-speakers fixtures lives in [`docs/benchmarks/stt-local`](../../../benchmarks/stt-local/). Use `config/stt-local.json` to select every supported whisper.cpp and whisperfile model at `--local-concurrency 1`.
+Historical local engine quality and speed evidence remains unchanged in [`docs/benchmarks/stt-local`](../../../benchmarks/stt-local/). Those artifacts include the removed whisper.cpp integration; they are not the current provider or automated model catalog.

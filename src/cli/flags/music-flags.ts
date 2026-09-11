@@ -1,4 +1,4 @@
-import { SUPPORTED_WHISPER_MODELS } from '~/cli/commands/setup-and-utilities/models/stt-models'
+import { SUPPORTED_WHISPERFILE_MODELS } from '~/cli/commands/setup-and-utilities/models/stt-models'
 import { booleanAllProvidersFlag, modelCostFilterFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
 import { boolFlag, formatProviderList, formatRange, formatValueList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import type { CliFlagsDefinition } from '~/types'
@@ -16,8 +16,8 @@ export const musicGenFlags = {
 const musicLyricVideoFlags = {
   batch: strFlag('Render lyric videos for all supported audio files under directory recursively'),
   audio: strFlag('Single lyric-video audio file'),
-  captions: strFlag('Optional VTT or SRT file for rerendering without Whisper'),
-  model: strFlag(`Local whisper.cpp model for lyric-video captions: ${formatValueList(SUPPORTED_WHISPER_MODELS)}`, 'large-v3-turbo'),
+  captions: strFlag('Optional VTT or SRT file for rerendering without Whisperfile'),
+  model: strFlag(`Local whisperfile model for lyric-video captions: ${formatValueList(SUPPORTED_WHISPERFILE_MODELS)}`, 'small.en'),
   font: strFlag('Font family used for rendered lyric-video captions', 'DejaVu Sans')
 } as const satisfies CliFlagsDefinition
 

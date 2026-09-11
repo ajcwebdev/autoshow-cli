@@ -237,12 +237,6 @@ jobs:
           # Materialize lazy image layers before reading their sizes.
           test "$(docker run --rm --platform linux/amd64 --network none --entrypoint bun "${image_ref}" --version)" = "1.4.2"
           docker history --no-trunc --human=false --format '{{json .}}' "${image_ref}" > "${report_dir}/image-history.jsonl"
-          jq -s --arg platform linux/amd64 --argjson imageSizeBytes "$(docker image inspect "${image_ref}" --format '{{.Size}}')" '
-            [.[] | select(.CreatedBy | contains("install -y --no-install-recommends cmake make gcc g++ libc6-dev")) | .Size | tonumber] as $layers
-            | if ($layers | length) != 1 then error("Missing isolated Whisper toolchain layer") else
-              {platform:$platform,imageSizeBytes:$imageSizeBytes,toolchainLayerBytes:$layers[0],comparison:"isolated apt layer; informational, no size threshold"} end
-          ' "${report_dir}/image-history.jsonl" > "${report_dir}/whisper-toolchain-size.json"
-          printf 'Whisper toolchain size (%s): `%s`\n' 'amd64' "$(cat "${report_dir}/whisper-toolchain-size.json")" >> "${GITHUB_STEP_SUMMARY}"
           docker run --rm --platform linux/amd64 --entrypoint bun "${image_ref}" --no-env-file install --frozen-lockfile --production > "${report_dir}/production-install.log" 2>&1
           docker run --rm --platform linux/amd64 "${image_ref}" --help > "${report_dir}/help.log" 2>&1
           docker run --rm --platform linux/amd64 "${image_ref}" config --show --config-path /tmp/autoshow-smoke-config.json --no-color > "${report_dir}/config.log" 2>&1
@@ -382,12 +376,6 @@ jobs:
           # Materialize lazy image layers before reading their sizes.
           test "$(docker run --rm --platform linux/arm64 --network none --entrypoint bun "${image_ref}" --version)" = "1.4.2"
           docker history --no-trunc --human=false --format '{{json .}}' "${image_ref}" > "${report_dir}/image-history.jsonl"
-          jq -s --arg platform linux/arm64 --argjson imageSizeBytes "$(docker image inspect "${image_ref}" --format '{{.Size}}')" '
-            [.[] | select(.CreatedBy | contains("install -y --no-install-recommends cmake make gcc g++ libc6-dev")) | .Size | tonumber] as $layers
-            | if ($layers | length) != 1 then error("Missing isolated Whisper toolchain layer") else
-              {platform:$platform,imageSizeBytes:$imageSizeBytes,toolchainLayerBytes:$layers[0],comparison:"isolated apt layer; informational, no size threshold"} end
-          ' "${report_dir}/image-history.jsonl" > "${report_dir}/whisper-toolchain-size.json"
-          printf 'Whisper toolchain size (%s): `%s`\n' 'arm64' "$(cat "${report_dir}/whisper-toolchain-size.json")" >> "${GITHUB_STEP_SUMMARY}"
           docker run --rm --platform linux/arm64 --entrypoint bun "${image_ref}" --no-env-file install --frozen-lockfile --production > "${report_dir}/production-install.log" 2>&1
           docker run --rm --platform linux/arm64 "${image_ref}" --help > "${report_dir}/help.log" 2>&1
           docker run --rm --platform linux/arm64 "${image_ref}" config --show --config-path /tmp/autoshow-smoke-config.json --no-color > "${report_dir}/config.log" 2>&1
@@ -496,7 +484,7 @@ jobs:
       fail-fast: false
       matrix:
         arch: [amd64, arm64]
-        shard: [core, network, 'whisper:tiny', 'whisper:base', 'whisper:small', 'whisper:medium', 'whisper:large-v3-turbo', 'whisperfile:tiny', 'whisperfile:tiny.en', 'whisperfile:small', 'whisperfile:small.en', 'whisperfile:medium', 'whisperfile:medium.en', 'whisperfile:large-v2', 'whisperfile:large-v3']
+        shard: [core, network, 'whisperfile:tiny', 'whisperfile:tiny.en', 'whisperfile:small', 'whisperfile:small.en']
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

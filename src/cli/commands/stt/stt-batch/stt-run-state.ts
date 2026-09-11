@@ -18,7 +18,7 @@ import {
 } from '../../command-shared/provider-batch-state'
 
 const STT_SERVICES = new Set<SttTarget['service']>([
-  'whisper',
+  'whisperfile',
   'deepgram',
   'deepinfra',
   'soniox',

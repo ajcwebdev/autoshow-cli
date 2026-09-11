@@ -24,7 +24,7 @@ Groups describe current defaults, including the optional speaker capabilities of
 
 | Group | Providers |
 | --- | --- |
-| [Local](local/overview.md) | Whisper, Whisperfile |
+| [Local](local/overview.md) | Whisperfile |
 | [Diarization](diarization/overview.md) | AssemblyAI, Deepgram, Gladia, Grok, Happy Scribe, Mistral, Soniox, Speechmatics |
 | [Diarization off by default](diarization-off-by-default/overview.md) | DeepInfra, Gemini, Together |
 | [Direct URL](direct-url/overview.md) | Supadata, ScrapeCreators; also documents YouTube caption fallback |
@@ -88,7 +88,7 @@ bun autoshow extract https://www.youtube.com/@channelname --youtube-captions --b
 
 Chunked diarized results scope speaker labels as `chunk-N/speaker-ID`. The same numeric speaker in two independently transcribed chunks is not assumed to be the same person. Raw chunk evidence and source offsets survive save/load. Resume rejects changes to transcription-affecting settings instead of silently reusing incompatible results.
 
-`--native-subtitles` opts into native artifacts from the same inference or completed job: AssemblyAI SRT/VTT; Gladia SRT/VTT; Happy Scribe SRT/VTT; Speechmatics SRT; whisper.cpp/whisperfile SRT/VTT/LRC. Local engines probe their installed help before enabling optional flags and save invocation/model/help provenance in `transcription.engine.json`. Native artifacts are named `transcription.native.srt/vtt` (with segment suffixes for split jobs) and retain provider-relative timestamps within split chunks. Use local export of the combined `result.json` for a full-recording timeline. Hosted exports may consume requests, quota, or provider credits. Export failures create separate error artifacts and retain structured transcription evidence. Adding this option when resuming an already successful target does not trigger another transcription or retroactively fetch exports; use local re-export for those results.
+`--native-subtitles` opts into native artifacts from the same inference or completed job: AssemblyAI SRT/VTT; Gladia SRT/VTT; Happy Scribe SRT/VTT; Speechmatics SRT; whisperfile SRT/VTT/LRC. Local engines probe their installed help before enabling optional flags and save invocation/model/help provenance in `transcription.engine.json`. Native artifacts are named `transcription.native.srt/vtt` (with segment suffixes for split jobs) and retain provider-relative timestamps within split chunks. Use local export of the combined `result.json` for a full-recording timeline. Hosted exports may consume requests, quota, or provider credits. Export failures create separate error artifacts and retain structured transcription evidence. Adding this option when resuming an already successful target does not trigger another transcription or retroactively fetch exports; use local re-export for those results.
 
 DeepInfra defaults to verbose JSON with words and segments. `--deepinfra-stt-response-format srt|vtt` explicitly selects a native text response in one inference request, preserving subtitle cue timing instead of word evidence. It never retranscribes simply to fetch a second format. Prefer verbose JSON plus local export when precise word evidence matters.
 

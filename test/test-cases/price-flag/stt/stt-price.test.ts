@@ -7,7 +7,7 @@ test('whisper model tiny --price prints estimate', async () => {
     'extract',
     LOCAL_EXAMPLE_AUDIO_PATH,
     '--provider',
-    'whisper=tiny',
+    'whisperfile=tiny',
     '--price'
   ])
 
