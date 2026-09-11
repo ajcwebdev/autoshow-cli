@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { runGrokImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-grok/run-grok-image-gen'
-import { runOpenAIImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-openai/run-openai-image-gen'
-import { createImage } from '~/cli/commands/process-steps/step-8-comic/comic-image-services/comic-image-targets'
+import { runGrokImageGen } from '~/cli/commands/visuals/image/image-generation-services/image-grok/run-grok-image-gen'
+import { runOpenAIImageGen } from '~/cli/commands/visuals/image/image-generation-services/image-openai/run-openai-image-gen'
+import { createImage } from '~/cli/commands/visuals/comic/comic-image-services/comic-image-targets'
 import { installFetch, installOpenAIRestContractHooks, jsonResponse, withTempDir } from './shared'
 
 installOpenAIRestContractHooks()

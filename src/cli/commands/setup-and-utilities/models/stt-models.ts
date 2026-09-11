@@ -1,13 +1,5 @@
 import { createModelValidator, createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
-export const SUPPORTED_WHISPER_MODELS = [
-  'tiny',
-  'base',
-  'small',
-  'medium',
-  'large-v3-turbo'
-] as const satisfies readonly string[]
-
 export const SUPPORTED_WHISPERFILE_MODELS = [
   'tiny',
   'tiny.en',
@@ -76,7 +68,6 @@ export const SUPPORTED_TOGETHER_STT_MODELS = [
   'nvidia/parakeet-tdt-0.6b-v3'
 ] as const satisfies readonly string[]
 
-export const validateWhisperModel = createModelValidator(SUPPORTED_WHISPER_MODELS, 'whisper', 'This selector uses local whisper.cpp models.')
 export const validateWhisperfileModel = createModelValidator(SUPPORTED_WHISPERFILE_MODELS, 'whisperfile', 'This selector uses local whisperfile models.')
 export const validateDeepgramSttModel = createModelValidator(SUPPORTED_DEEPGRAM_STT_MODELS, 'deepgram-stt')
 export const validateDeepinfraSttModel = createModelValidator(SUPPORTED_DEEPINFRA_STT_MODELS, 'deepinfra-stt', 'This selector only accepts DeepInfra OpenAI-compatible Whisper models.')

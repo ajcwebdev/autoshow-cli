@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { buildProcessingOptions } from '~/cli/commands/process-steps/step-1-download/download-targets/single/media-runner'
-import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
+import { buildProcessingOptions } from '~/cli/commands/sources/download/download-targets/single/media-runner'
+import { collectSttTargets } from '~/cli/commands/stt/stt-targets'
 import type { MatrixCase, ProcessingOptions, ProcessingSource, ResolvedFlagOptions } from '~/types'
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrences'
@@ -106,7 +106,7 @@ describe('processing-options boundary differential', () => {
 
     expect(options.youtubeCaptions).toBe(runtimeOptions.youtubeCaptions)
     expect(options.split).toBe(runtimeOptions.split)
-    expect(options.whisperModels).toBe(runtimeOptions.whisperModels)
+    expect(options.whisperfileModels).toBe(runtimeOptions.whisperfileModels)
     expect('skipLLM' in options).toBe(false)
     expect('prompts' in options).toBe(false)
     expect('llmProviderConcurrency' in options).toBe(false)

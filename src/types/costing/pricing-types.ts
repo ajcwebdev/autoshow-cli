@@ -15,7 +15,7 @@ type ReasoningEstimateFields = {
 }
 
 type SttModelOverrides = Partial<Pick<SttRuntimeOptions,
-  | 'whisperModels' | 'whisperfileModels' | 'deepinfraSttModels' | 'grokSttModels' | 'deepgramSttModels'
+  | 'whisperfileModels' | 'deepinfraSttModels' | 'grokSttModels' | 'deepgramSttModels'
   | 'sonioxSttModels' | 'speechmaticsSttModels' | 'mistralSttModels' | 'assemblyaiSttModels'
   | 'gladiaSttModels' | 'happyscribeSttModels' | 'supadataSttModels' | 'scrapecreatorsSttModels'
   | 'geminiSttModels' | 'togetherSttModels'
@@ -144,7 +144,6 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   applyCostMultipliers?: boolean | undefined
   sourceUrl?: string | undefined
   sttTargets?: SttPricingTarget[] | undefined
-  whisperModels?: string[] | undefined
   extractTargets?: Array<TokenProfileEstimateFields & {
     provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal' | HtmlArticleBackend
     model: string

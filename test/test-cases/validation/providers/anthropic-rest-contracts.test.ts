@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { runAnthropicModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-anthropic/run-anthropic'
+import { runAnthropicModel } from '~/cli/commands/text/write/write-services/write-anthropic/run-anthropic'
 import type { StructuredRequestOptions } from '~/types'
 import {
   ANTHROPIC_FILES_API_BETA,
@@ -9,7 +9,7 @@ import {
 } from '~/utils/anthropic/anthropic-client'
 import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 import { extractErrorMetadata } from '~/utils/error-handler'
-import { resolveStructuredSchema } from '~/cli/commands/process-steps/step-3-write/structured-output/schema-resolver'
+import { resolveStructuredSchema } from '~/cli/commands/text/write/structured-output/schema-resolver'
 import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 

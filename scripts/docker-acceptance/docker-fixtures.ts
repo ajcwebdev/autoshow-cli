@@ -41,9 +41,9 @@ with ZipFile(root/'document.epub', 'w') as z:
 `
 
 const SPEECH_SCRIPT = String.raw`
-const url = 'https://raw.githubusercontent.com/ggml-org/whisper.cpp/v1.7.4/samples/jfk.wav';
-const expected = '59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e';
-const path = '/app/runtime/acceptance-fixtures/jfk.wav';
+const url = 'https://raw.githubusercontent.com/openai/whisper/v20250625/tests/jfk.flac';
+const expected = '63a4b1e4c1dc655ac70961ffbf518acd249df237e5a0152faae9a4a836949715';
+const path = '/app/runtime/acceptance-fixtures/jfk.flac';
 const hash = bytes => new Bun.CryptoHasher('sha256').update(bytes).digest('hex');
 let bytes = await Bun.file(path).exists() ? await Bun.file(path).bytes() : undefined;
 if (!bytes || hash(bytes) !== expected) {
@@ -53,7 +53,7 @@ if (!bytes || hash(bytes) !== expected) {
   if (hash(bytes) !== expected) throw new Error('Speech fixture checksum mismatch');
   await Bun.write(path, bytes);
 }
-await Bun.write('/fixtures/speech.wav', bytes);
+await Bun.write('/fixtures/speech.flac', bytes);
 console.log(JSON.stringify({url,sha256:expected,bytes:bytes.length}));
 `
 
@@ -72,7 +72,10 @@ export async function prepareDockerFixtures(engine: DockerEngine, speech: boolea
   }
   await tool('python3', ['-c', DOCUMENT_SCRIPT])
   await tool('mutool', ['draw', '-r', '120', '-o', '/fixtures/document.png', '/fixtures/document.pdf', '1'])
-  if (speech) await tool('bun', ['--no-env-file', '-e', SPEECH_SCRIPT], 'bridge')
+  if (speech) {
+    await tool('bun', ['--no-env-file', '-e', SPEECH_SCRIPT], 'bridge')
+    await tool('ffmpeg', ['-y', '-i', '/fixtures/speech.flac', '-ar', '16000', '-ac', '1', '/fixtures/speech.wav'])
+  }
   else await tool('ffmpeg', ['-y', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=2', '-ar', '16000', '-ac', '1', '/fixtures/speech.wav'])
   await tool('ffmpeg', ['-y', '-i', '/fixtures/speech.wav', '/fixtures/speech.mp3'])
   await tool('ffmpeg', ['-y', '-f', 'lavfi', '-i', 'color=c=blue:s=320x240:r=10', '-i', '/fixtures/speech.wav', '-shortest', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '/fixtures/speech.mp4'])

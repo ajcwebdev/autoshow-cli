@@ -6,19 +6,19 @@ import { runCommand } from '../../../../test-utils/test-helpers'
 import {
   GEMINI_IMAGE_RESPONSE_MODES,
   GEMINI_IMAGE_SIZE_VALUES
-} from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-gemini/gemini-image-targets'
+} from '~/cli/commands/visuals/image/image-generation-services/image-gemini/gemini-image-targets'
 import {
   OPENAI_FIXED_IMAGE_SIZE_VALUES,
   OPENAI_IMAGE_BACKGROUND_VALUES
-} from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-openai/openai-image-targets'
+} from '~/cli/commands/visuals/image/image-generation-services/image-openai/openai-image-targets'
 import {
   GEMINI_VIDEO_RESOLUTIONS,
   GROK_VIDEO_ASPECT_RATIOS,
   LUMA_ASPECT_RATIOS,
   LUMA_RESOLUTIONS,
   REPLICATE_VIDEO_RESOLUTIONS
-} from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
-import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+} from '~/cli/commands/visuals/video/video-utils/video-normalization'
+import { URL_ARTICLE_BACKENDS } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import {
   STANDALONE_VIDEO_PROVIDER_TARGETS,
   WRITE_LLM_PROVIDER_TARGETS,
@@ -33,7 +33,7 @@ import {
   SETUP_STEP_IDS,
   VIDEO_MODES
 } from '~/types'
-import { SUPPORTED_WHISPER_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { SUPPORTED_WHISPERFILE_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import {
   HELP_TREE_TIMEOUT_MS,
   advertisedFlagNames,
@@ -92,7 +92,7 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
     { command: 'metadata', label: '--url-provider', values: URL_ARTICLE_BACKENDS },
     { command: 'download', label: '--url-provider', values: URL_ARTICLE_BACKENDS },
     { command: 'extract', label: '--primary-ocr', values: Object.keys(WRITE_OCR_PROVIDER_TARGETS) },
-    { command: 'music', label: '--model', values: SUPPORTED_WHISPER_MODELS }
+    { command: 'music', label: '--model', values: SUPPORTED_WHISPERFILE_MODELS }
   ] as const
 
   test.concurrent('every derived help list documents each value its validator accepts', async () => {

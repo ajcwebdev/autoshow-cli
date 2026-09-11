@@ -370,6 +370,9 @@ function sttSummaryIdentity(rootDir: string): { slug: string; heading: string } 
   if (slug === "stt-without-speakers") {
     return { slug, heading: "STT Without Speakers" };
   }
+  if (slug === "stt-local") {
+    return { slug, heading: "STT Local" };
+  }
   return { slug: slug || "stt", heading: "STT" };
 }
 

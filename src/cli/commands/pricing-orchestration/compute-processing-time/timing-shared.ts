@@ -1,6 +1,6 @@
 import type { ComputeEstimatedProcessingTimesInput, EstimateConfidence, NormalizedTimingFields, TimingBasisDefinition, TimingScope, TimingStepEntry } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
-import { findHostedOcrThroughputProfile } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-throughput-profiles'
+import { findHostedOcrThroughputProfile } from '~/cli/commands/text/ocr/ocr-utils/hosted-ocr-throughput-profiles'
 import { roundMetric } from '~/utils/value-helpers'
 
 const OCR_HOSTED_PROVIDERS = new Set([

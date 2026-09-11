@@ -15,7 +15,7 @@ export type ParsedHostedOcrPageCache = {
 
 export type StoredHostedOcrFallbackPage = {
   version: number
-  mode: typeof import('~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/pdf-chunk-fallback-shared').HOSTED_OCR_PDF_PAGE_FALLBACK_MODE
+  mode: typeof import('~/cli/commands/text/ocr/ocr-utils/pdf-chunk-fallback-shared').HOSTED_OCR_PDF_PAGE_FALLBACK_MODE
   totalPages: number
   pageNumber: number
   sourceFile: string

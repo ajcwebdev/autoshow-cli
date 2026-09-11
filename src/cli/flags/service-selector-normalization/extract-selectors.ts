@@ -1,5 +1,5 @@
 import { readInjectedConfigFlags } from '~/cli/options/option-resolution/build-options-config-flags'
-import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { URL_ARTICLE_BACKENDS } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import { WRITE_OCR_PROVIDER_TARGETS, WRITE_STT_PROVIDER_TARGETS } from './provider-targets'
 import type { CliFlagOccurrence, ExtractPublicSelectorTarget, ExtractSelectorInputRoutes, SelectorNormalizationResult } from '~/types'
 import { UsageError } from '~/utils/error-handler'

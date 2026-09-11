@@ -28,7 +28,7 @@ export type RuntimeModelKeyStem = {
     : never
 }[Extract<keyof Step2ProviderOptionSurface, string>]
 
-export type SttRuntimeModelKeyStem = Extract<RuntimeModelKeyStem, `${string}Stt` | 'whisper' | 'whisperfile'>
+export type SttRuntimeModelKeyStem = Extract<RuntimeModelKeyStem, `${string}Stt` | 'whisperfile'>
 export type OcrRuntimeModelKeyStem = Extract<RuntimeModelKeyStem, `${string}Ocr`>
 
 export type RuntimeModelsKey<Stem extends RuntimeModelKeyStem> = Extract<keyof Step2ProviderOptionSurface, `${Stem}Models`>

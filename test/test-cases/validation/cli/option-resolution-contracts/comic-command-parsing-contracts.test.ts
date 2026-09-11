@@ -4,25 +4,27 @@ chunkComicPagePanels,
 DEFAULT_FINAL_PANELS_PER_IMAGE,
 DEFAULT_SKETCH_PANELS_PER_IMAGE,
 parseComicGridSpec
-} from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-utils'
+} from '~/cli/commands/visuals/comic/comic-commands/generate-images/comic-page-utils'
 import {
 coerceAndValidateDraftScenes,
+coerceAndValidateDraftTreatment,
 coerceAndValidateGenerateImages,
 coerceAndValidateReferenceSketch,
 DEFAULT_LLM_MODEL
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
+} from '~/cli/commands/visuals/comic/comic-utils/cli-args'
 import {
 draftScenesCommandDefinition,
+draftTreatmentCommandDefinition,
 generateAudioCommandDefinition,
 generateImagesCommandDefinition,
 generateSlideshowCommandDefinition,
 referenceSketchCommandDefinition
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
+} from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 
-const parseSubcommandArgs = (args: string[], command: typeof draftScenesCommandDefinition | typeof generateImagesCommandDefinition | typeof generateAudioCommandDefinition | typeof generateSlideshowCommandDefinition | typeof referenceSketchCommandDefinition) =>
+const parseSubcommandArgs = (args: string[], command: typeof draftScenesCommandDefinition | typeof draftTreatmentCommandDefinition | typeof generateImagesCommandDefinition | typeof generateAudioCommandDefinition | typeof generateSlideshowCommandDefinition | typeof referenceSketchCommandDefinition) =>
   parseCommandInvocation([command.name, ...args], command, GLOBAL_FLAG_DEFINITIONS)
 
 const parseDraftScenesArgs = (args: string[]) =>
@@ -30,6 +32,9 @@ const parseDraftScenesArgs = (args: string[]) =>
 
 const parseGenerateImagesArgs = (args: string[]) =>
   coerceAndValidateGenerateImages(parseSubcommandArgs(args, generateImagesCommandDefinition))
+
+const parseDraftTreatmentArgs = (args: string[]) =>
+  coerceAndValidateDraftTreatment(parseSubcommandArgs(args, draftTreatmentCommandDefinition))
 
 const parseReferenceSketchArgs = (args: string[]) =>
   coerceAndValidateReferenceSketch(parseSubcommandArgs(args, referenceSketchCommandDefinition))
@@ -44,6 +49,25 @@ describe('option resolution contracts', () => {
   })
   test('comic scene drafting defaults to gpt-5.6-sol', () => {
     expect(DEFAULT_LLM_MODEL).toBe('gpt-5.6-sol')
+  })
+
+  test('comic draft-treatment resolves defaults, repeatable speakers, and explicit overrides', () => {
+    const defaults = parseDraftTreatmentArgs(['input/camp.md'])
+    expect(defaults).toMatchObject({ treatmentPath: 'input/camp.md', panelRange: { minimum: 10, maximum: 10 }, voicePacing: 'exclusive', scene: '01', speakers: [], catalogPolicy: 'skip-existing' })
+    expect(defaults.episode).toBeUndefined()
+    expect(defaults.slug).toBeUndefined()
+    expect(defaults.styleSeed).toBeUndefined()
+    expect(defaults.force).toBeUndefined()
+    expect(defaults.price).toBeUndefined()
+    const explicit = parseDraftTreatmentArgs(['input/camp.md', '--panel-count', '8', '--episode', '02', '--scene', '03', '--slug', 'camp-manzanita', '--speaker', 'papa-bear', '--speaker', 'nick,papa-bear', '--style-seed', 'camp-manzanita--style-seed.png', '--catalog-policy', 'fail', '--force', '--llm-model', 'gpt-5.6-sol', '--price'])
+    expect(parseDraftTreatmentArgs(['input/camp.md', '--panel-count', '20-25', '--voice-pacing', 'mixed'])).toMatchObject({ panelRange: { minimum: 20, maximum: 25 }, voicePacing: 'mixed' })
+    expect(explicit).toMatchObject({ panelRange: { minimum: 8, maximum: 8 }, episode: '02', scene: '03', slug: 'camp-manzanita', speakers: ['papa-bear', 'nick'], styleSeed: 'camp-manzanita--style-seed.png', catalogPolicy: 'fail', force: true, llmModel: 'gpt-5.6-sol', price: true })
+  })
+
+  test('comic draft-scenes accepts --panel-count for the scene stage only', () => {
+    expect(parseDraftScenesArgs(['script.md', '--only', 'scene', '--panel-count', '10']).panelCount).toBe(10)
+    expect(parseDraftScenesArgs(['script.md', '--panel-count', '6']).panelCount).toBe(6)
+    expect(parseDraftScenesArgs(['script.md']).panelCount).toBeUndefined()
   })
 
   test('comic reference-sketch requires exactly one reference mode', () => {

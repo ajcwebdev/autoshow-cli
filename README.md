@@ -4,7 +4,7 @@ Bun-native CLI for turning media, documents, and text prompts into metadata, dow
 
 It supports local and API-backed engines across STT and OCR, plus hosted LLM, TTS, image, video, and music workflows. Defaults can be persisted in `config/autoshow.json`, and runnable commands perform cost preflight before execution.
 
-For command-specific details, use `bun autoshow help <command>` or browse the docs in [`docs/`](./docs/).
+For command-specific details, use `bun autoshow help <command>` or browse the docs in [`docs/`](./docs).
 
 `bun autoshow` is the primary command. `bun as <command>` is a shorter equivalent, for example `bun as links --help`.
 
@@ -25,7 +25,9 @@ bun autoshow setup
 
 These examples cover the primary workflows. Where both local and hosted execution are supported, both are shown. See the [command overview](./docs/commands.md) for the command map and selection guide, and the linked command pages for provider lists, flags, and advanced options.
 
-### Metadata and Download
+### Sources
+
+Inspect [metadata](./docs/commands/sources/metadata/overview.md) and [download](./docs/commands/sources/download/overview.md) source files.
 
 ```bash
 # Inspect metadata without downloading
@@ -35,7 +37,24 @@ bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU"
 bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU"
 ```
 
-### Extract
+### STT
+
+[Transcribe media](./docs/commands/stt/overview.md) with local engines, hosted diarization, providers with diarization off by default, or direct URL services. The [extract overview](./docs/commands/extract.md) explains routing.
+
+```bash
+# Transcribe locally without diarization using Whisperfile
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider whisperfile=tiny
+
+# Transcribe with hosted DeepInfra without diarization
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepinfra=openai/whisper-large-v3
+
+# Transcribe with hosted Deepgram speaker diarization
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepgram=nova-3
+```
+
+### Text
+
+Extract [OCR](./docs/commands/text/ocr/overview.md) and [URL text](./docs/commands/text/url/overview.md), then [write](./docs/commands/text/write/overview.md) from saved text.
 
 ```bash
 # Extract an article URL locally with Defuddle
@@ -55,18 +74,7 @@ bun autoshow extract input/examples/document/1-epub.epub
 
 # Extract an EPUB with hosted OpenAI OCR
 bun autoshow extract input/examples/document/1-epub.epub --provider openai=gpt-5.4-nano
-
-# Transcribe locally without diarization using Whisperfile
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider whisperfile=tiny
-
-# Transcribe with hosted DeepInfra without diarization
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepinfra=openai/whisper-large-v3
-
-# Transcribe with hosted Deepgram speaker diarization
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepgram=nova-3
 ```
-
-### Write
 
 ```bash
 # Transcribe media, then write a summary
@@ -81,7 +89,9 @@ bun autoshow write output/<extract-run>/extraction.txt --llm openai=gpt-5.5 --pr
 bun autoshow write notes.md --llm openai=gpt-5.5 --prompt shortSummary
 ```
 
-### TTS and Music
+### Audio
+
+Generate [speech](./docs/commands/audio/tts/overview.md) and [music](./docs/commands/audio/music/overview.md), and manage [voices](./docs/commands/audio/voice/00-voice-overview.md).
 
 ```bash
 # Generate speech with hosted OpenAI
@@ -94,7 +104,17 @@ bun autoshow music --audio input/examples/lyrics/01-example-song.mp3
 bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental
 ```
 
-### Image and Video
+```bash
+# Register an existing provider voice locally without making a provider call
+bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --origin provider-stock --provenance-ref project:casting
+
+# Discover voices from a hosted ElevenLabs account
+bun autoshow voice list --provider elevenlabs --source account
+```
+
+### Visuals
+
+Generate [images](./docs/commands/visuals/image/overview.md), [comics](./docs/commands/visuals/comic/00-comic-overview.md), and [video](./docs/commands/visuals/video/overview.md).
 
 ```bash
 # Generate an image with hosted OpenAI
@@ -107,14 +127,9 @@ bun autoshow video "animate the mug on a slow turntable" --provider gemini=veo-3
 bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=veo-3.1-lite-generate-preview
 ```
 
-### Comic and Voice
-
 ```bash
-# Register an existing provider voice locally without making a provider call
-bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --origin provider-stock --provenance-ref project:casting
-
-# Discover voices from a hosted ElevenLabs account
-bun autoshow voice list --provider elevenlabs --source account
+# Adapt a prose treatment into a ten-panel episode script plus catalog entries with hosted OpenAI
+bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear
 
 # Draft structured comic scenes with hosted OpenAI
 bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md
@@ -160,7 +175,7 @@ bun autoshow <command> --help
 bun autoshow --version
 ```
 
-- Use `bun autoshow extract <input> --provider whisper=tiny`, not `bun autoshow --provider whisper=tiny extract <input>`.
+- Use `bun autoshow extract <input> --provider whisperfile=tiny`, not `bun autoshow --provider whisperfile=tiny extract <input>`.
 - Inputs can be URLs, local files, directories, `.md`/`.txt` URL lists, or prompt strings for `image`, `video`, and `music`.
 - If an input begins with `-`, prefix it so it is not parsed as a flag: `bun autoshow write ./-myfile`.
 - If the literal input collides with a command name, use the explicit command form: `bun autoshow metadata setup`.

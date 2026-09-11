@@ -1,6 +1,6 @@
 import { describe,expect,test } from 'bun:test'
-import { estimatePageMode,estimatePanelMode,estimateQaWork,normalizeFinalImageEstimateRequest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/final-image-price-estimate'
-import { resolveFinalImageOutputPathParts } from '~/cli/commands/process-steps/step-8-comic/comic-utils/final-image-price-inventory'
+import { estimatePageMode,estimatePanelMode,estimateQaWork,normalizeFinalImageEstimateRequest } from '~/cli/commands/visuals/comic/comic-utils/final-image-price-estimate'
+import { resolveFinalImageOutputPathParts } from '~/cli/commands/visuals/comic/comic-utils/final-image-price-inventory'
 import type { FinalImageOutputInventory,FinalImagePageInventory,FinalImagePanelInventory } from '~/types'
 
 describe('price mode contracts', () => {

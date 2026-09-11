@@ -1,7 +1,7 @@
 import { describe,expect,test } from 'bun:test'
 import {
 collectProjectionArtifactReferences
-} from '~/cli/commands/process-steps/pipeline-manifest/projection-artifact-references'
+} from '~/cli/commands/command-shared/pipeline-manifest/projection-artifact-references'
 
 const ARTIFACT_HASHES = {
   branch: '1'.repeat(64),

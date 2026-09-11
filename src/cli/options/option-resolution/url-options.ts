@@ -1,11 +1,11 @@
 import {
   HOSTED_URL_ARTICLE_BACKENDS,
   LOCAL_URL_ARTICLE_BACKENDS
-} from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+} from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import {
   DEFAULT_URL_REQUEST_ATTEMPTS,
   DEFAULT_URL_REQUEST_TIMEOUT_MS
-} from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-utils'
+} from '~/cli/commands/text/url/url-utils'
 import { UsageError } from '~/utils/error-handler'
 import type { CliFlagOccurrence, HtmlArticleBackend, UrlRuntimeOptions } from '~/types'
 import {

@@ -8,7 +8,6 @@ import {
   validateGlmModel,
   validateKimiModel,
   validateTogetherModel,
-  validateWhisperModel,
   validateWhisperfileModel,
   validateDeepinfraSttModel,
   validateDeepgramSttModel,
@@ -85,15 +84,7 @@ export const readRuntimeModelOptions = (
     return normalized.length > 0 ? normalized : undefined
   }
 
-  const selectedWhisperModels = readValidatedMany('whisper-stt', validateWhisperModel)
-  const whisperPathActive = selectedWhisperModels !== undefined
-    || mergedFlags['whisper-stt'] !== undefined
-    || allShortcutFlags['all-local-stt']
-  const whisperModels = selectedWhisperModels
-    ?? (whisperPathActive ? [validateCliValue(validateWhisperModel, 'tiny')] : undefined)
-
   return {
-    whisperModels,
     whisperfileModels: readValidatedMany('whisperfile-stt', validateWhisperfileModel),
     deepinfraSttModels: readValidatedMany('deepinfra-stt', validateDeepinfraSttModel),
     grokSttModels: readValidatedMany('grok-stt', validateGrokSttModel),

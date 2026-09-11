@@ -1,15 +1,15 @@
 import { assertRequiredImageModel } from '~/utils/required-image-model'
 import type { EstimateImageCostOptions, EstimateMusicCostOptions, ImageStepEstimate, MusicStepEstimate, VideoEstimateOptions, VideoStepEstimate } from '~/types'
-import { estimateImageCosts, IMAGE_PRICING_MODEL_KEYS, IMAGE_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
-import { estimateVideoCosts, VIDEO_PRICING_MODEL_KEYS, VIDEO_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
-import { estimateMusicCosts, MUSIC_PRICING_MODEL_KEYS, MUSIC_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
+import { estimateImageCosts, IMAGE_PRICING_MODEL_KEYS, IMAGE_PRICING_PROVIDERS } from '~/cli/commands/visuals/image/image-utils/image-pricing'
+import { estimateVideoCosts, VIDEO_PRICING_MODEL_KEYS, VIDEO_PRICING_PROVIDERS } from '~/cli/commands/visuals/video/video-utils/video-pricing'
+import { estimateMusicCosts, MUSIC_PRICING_MODEL_KEYS, MUSIC_PRICING_PROVIDERS } from '~/cli/commands/audio/music/music-utils/music-pricing'
 import {
   getImageEstimation,
   getMusicEstimation,
   getVideoEstimation
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { applyCostMultiplier } from '~/cli/commands/pricing-orchestration/cost-helpers'
-import { tryResolveLocalVideoDurationSeconds } from '~/cli/commands/process-steps/step-6-video/video-utils/video-media-inputs'
+import { tryResolveLocalVideoDurationSeconds } from '~/cli/commands/visuals/video/video-utils/video-media-inputs'
 import { collectSelections, hasAnySelection } from '~/utils/pricing/model-selection'
 import { pick } from '~/utils/cli-utils'
 

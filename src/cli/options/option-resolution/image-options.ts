@@ -1,5 +1,5 @@
 import type { ImageRuntimeOptions, ResolvedFlagContext } from '~/types'
-import { IMAGE_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
+import { IMAGE_PRICING_MODEL_KEYS } from '~/cli/commands/visuals/image/image-utils/image-pricing'
 import {
   parseOptionalNumberFlag,
   parseOptionalPositiveIntFlag,

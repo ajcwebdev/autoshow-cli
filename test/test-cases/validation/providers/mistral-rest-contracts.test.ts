@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { runMistralOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/mistral-ocr/run-mistral-ocr'
-import { runMistralStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-mistral/run-mistral-stt'
+import { runMistralOcr } from '~/cli/commands/text/ocr/ocr-services/mistral-ocr/run-mistral-ocr'
+import { runMistralStt } from '~/cli/commands/stt/diarization/stt-mistral/run-mistral-stt'
 import type { DocumentMetadata } from '~/types'
 import { mistralJsonRequest, normalizeMistralBaseUrl } from '~/utils/mistral/mistral-client'
 import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'

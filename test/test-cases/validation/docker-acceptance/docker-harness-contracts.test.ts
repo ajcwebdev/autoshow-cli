@@ -7,7 +7,6 @@ import { REQUESTED_IMAGE, parseDockerOptions } from '../../../../scripts/docker-
 import { createDockerProcessRunner, dockerClientEnvironment } from '../../../../scripts/docker-acceptance/docker-process'
 import type { ProcessRunner } from '../../../../scripts/docker-acceptance/docker-process'
 import { acceptancePassed, discoverOutputDir, runDockerAcceptance } from '../../../../scripts/docker-acceptance/docker-runner'
-import { whisperToolchainLayer } from '../../../../scripts/docker-acceptance/measure-whisper-toolchain'
 import { dockerScenarios, mappedManifest, MODEL_SELECTORS, selectDockerScenarios } from '../../../../scripts/docker-acceptance/docker-scenarios'
 import { containerFixture } from '../../../../scripts/docker-acceptance/docker-fixtures'
 import { rejectionScenarios } from '../../../scenarios/local-cli-contracts'
@@ -191,17 +190,17 @@ test('mount mapping handles absolute and relative batch paths, spaces, and rejec
   expect(await Bun.file(join(manifestDir, 'manifest.json')).json()).toEqual(manifest)
 })
 
-test('every supported selector executes inference and CI contains every native shard', async () => {
+test('every recommended selector executes inference and CI contains every native shard', async () => {
   const all = selectDockerScenarios({ suite: 'all' })
-  expect(MODEL_SELECTORS).toHaveLength(13)
+  expect(MODEL_SELECTORS).toHaveLength(4)
   for (const model of MODEL_SELECTORS) {
     const cases = selectDockerScenarios({ suite: 'models', model })
     expect(cases.length).toBeGreaterThan(0)
     expect(cases.some(item => item.args[0] === 'extract' && item.args.includes(model.replace(':', '=')))).toBe(true)
     expect(cases.every(item => item.network === 'none')).toBe(true)
   }
-  expect(() => selectDockerScenarios({ suite: 'models', model: 'whisper:unknown' })).toThrow('No scenarios')
-  expect(() => selectDockerScenarios({ suite: 'all' }, all.filter(item => item.model !== 'whisper:medium'))).toThrow('Missing inference')
+  expect(() => selectDockerScenarios({ suite: 'models', model: 'whisperfile:unknown' })).toThrow('No scenarios')
+  expect(() => selectDockerScenarios({ suite: 'all' }, all.filter(item => item.model !== 'whisperfile:small'))).toThrow('Missing inference')
   const workflow = Bun.YAML.parse(await Bun.file('.github/workflows/docker-publish.yml').text()) as {
     concurrency: { 'cancel-in-progress': boolean; group: string }
     jobs: Record<string, { needs?: string | string[]; if?: string; 'runs-on'?: string; strategy?: { 'fail-fast': boolean; matrix: { arch: string[]; shard: string[] } }; steps?: Array<{ if?: string; uses?: string }> }>
@@ -242,15 +241,13 @@ test('no-cost service CLI rejections are imported as data and require disabled n
 
 test('runner parsing bounds timeouts and preserves native model selection', () => {
   expect(parseDockerOptions([]).suite).toBe('all')
-  expect(() => parseDockerOptions(['--model', 'whisper:tiny'])).toThrow('requires')
+  expect(() => parseDockerOptions(['--model', 'whisperfile:tiny'])).toThrow('requires')
   expect(() => parseDockerOptions(['--case-timeout', '0'])).toThrow('1–7200')
   expect(() => parseDockerOptions(['--setup-timeout', '8000'])).toThrow('1–7200')
   expect(() => parseDockerOptions(['--suite', 'core', '--suite', 'all'])).toThrow('Repeated')
   expect(() => parseDockerOptions(['--output', '/tmp/a,b'])).toThrow('commas')
 })
 
-test('size experiments use the exact isolated production prerequisite layer', async () => {
-  const layer = whisperToolchainLayer(await Bun.file('Dockerfile').text())
-  expect(layer).toContain('cmake make gcc g++ libc6-dev')
-  expect(layer).toContain('rm -rf /var/lib/apt/lists/*')
+test('production image has no dedicated STT compiler layer', async () => {
+  expect(await Bun.file('Dockerfile').text()).not.toContain('cmake make gcc g++ libc6-dev')
 })

@@ -80,7 +80,7 @@ describe('test-runner process and price orchestration', () => {
       process.env['OPENAI_API_KEY'] = 'provider-fixture'
       process.env['AUTOSHOW_UNRELATED_SECRET'] = 'must-not-leak'
       const env = buildTestWorkerEnv(
-        ['test/test-cases/e2e/service/step-4-tts-e2e/example.test.ts'],
+        ['test/test-cases/e2e/service/audio/tts/example.test.ts'],
         artifacts,
         true,
         { AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY: '0' }

@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
-import { LUMALABS_MAX_IMAGE_INPUTS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/lumalabs/lumalabs-image-targets'
-import { ELEVENLABS_MAX_DURATION_SECONDS, ELEVENLABS_MIN_DURATION_SECONDS } from '~/cli/commands/process-steps/step-7-music/music-services/music-elevenlabs/run-elevenlabs-music-gen'
+import { LUMALABS_MAX_IMAGE_INPUTS } from '~/cli/commands/visuals/image/image-generation-services/lumalabs/lumalabs-image-targets'
+import { ELEVENLABS_MAX_DURATION_SECONDS, ELEVENLABS_MIN_DURATION_SECONDS } from '~/cli/commands/audio/music/music-services/music-elevenlabs/run-elevenlabs-music-gen'
 import { getFlagGroupSection, loadHelp } from './shared'
 
 export const registerMediaCommandHelpCases = (): void => {

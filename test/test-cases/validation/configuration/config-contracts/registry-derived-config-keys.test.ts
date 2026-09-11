@@ -4,7 +4,7 @@ import { FLAG_TO_CONFIG_PATH } from '~/cli/commands/setup-and-utilities/config-c
 import {
   getStep2ProviderConfigPathEntries,
   getStep2ProviderEntries
-} from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+} from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import { AutoshowConfigSchema } from '~/types'
 import type { Step2Command } from '~/types'
 import { writeTempConfig } from './shared'

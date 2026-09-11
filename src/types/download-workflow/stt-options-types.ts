@@ -2,7 +2,6 @@ import type { BatchRuntimeOptions, HostedConcurrencyRuntimeOptions, ModelCostFil
 
 export type SttRuntimeOptions = {
   sttAudioProfile?: 'default' | 'lossless' | undefined
-  whisperModels: string[] | undefined
   whisperfileModels: string[] | undefined
   deepinfraSttModels: string[] | undefined
   grokSttModels: string[] | undefined

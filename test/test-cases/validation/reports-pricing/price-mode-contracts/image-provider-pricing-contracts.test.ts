@@ -1,6 +1,6 @@
 import { describe,expect,test } from 'bun:test'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
-import { estimateImageCosts } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
+import { estimateImageCosts } from '~/cli/commands/visuals/image/image-utils/image-pricing'
 
 describe('price mode contracts', () => {
 

@@ -9,9 +9,7 @@ export type DownloadFlowId =
   | 'tessdata'
   | 'libjpeg-turbo-source'
   | 'qpdf-source'
-  | 'whisper-model'
   | 'whisperfile-binary'
-  | 'whisper-source'
 
 export type DownloadRequest = {
   url: string

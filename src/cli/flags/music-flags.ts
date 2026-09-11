@@ -1,11 +1,11 @@
-import { SUPPORTED_WHISPER_MODELS } from '~/cli/commands/setup-and-utilities/models/stt-models'
+import { SUPPORTED_WHISPERFILE_MODELS } from '~/cli/commands/setup-and-utilities/models/stt-models'
 import { booleanAllProvidersFlag, modelCostFilterFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
 import { boolFlag, formatProviderList, formatRange, formatValueList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import type { CliFlagsDefinition } from '~/types'
 import { STANDALONE_MUSIC_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
-import { ELEVENLABS_MAX_DURATION_SECONDS, ELEVENLABS_MIN_DURATION_SECONDS } from '~/cli/commands/process-steps/step-7-music/music-services/music-elevenlabs/run-elevenlabs-music-gen'
-import { GEMINI_PRO_DEFAULT_DURATION_SECONDS } from '~/cli/commands/process-steps/step-7-music/music-services/music-gemini/run-gemini-music-gen'
-import { DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
+import { ELEVENLABS_MAX_DURATION_SECONDS, ELEVENLABS_MIN_DURATION_SECONDS } from '~/cli/commands/audio/music/music-services/music-elevenlabs/run-elevenlabs-music-gen'
+import { GEMINI_PRO_DEFAULT_DURATION_SECONDS } from '~/cli/commands/audio/music/music-services/music-gemini/run-gemini-music-gen'
+import { DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS } from '~/cli/commands/audio/music/music-utils/music-pricing'
 
 export const musicGenFlags = {
   duration: strFlag(`Music duration in seconds: ElevenLabs configurable from ${formatRange([ELEVENLABS_MIN_DURATION_SECONDS, ELEVENLABS_MAX_DURATION_SECONDS])} (default: ${DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS}); Gemini Lyria Pro uses the requested duration (default: ${GEMINI_PRO_DEFAULT_DURATION_SECONDS})`),
@@ -16,8 +16,8 @@ export const musicGenFlags = {
 const musicLyricVideoFlags = {
   batch: strFlag('Render lyric videos for all supported audio files under directory recursively'),
   audio: strFlag('Single lyric-video audio file'),
-  captions: strFlag('Optional VTT or SRT file for rerendering without Whisper'),
-  model: strFlag(`Local whisper.cpp model for lyric-video captions: ${formatValueList(SUPPORTED_WHISPER_MODELS)}`, 'large-v3-turbo'),
+  captions: strFlag('Optional VTT or SRT file for rerendering without Whisperfile'),
+  model: strFlag(`Local whisperfile model for lyric-video captions: ${formatValueList(SUPPORTED_WHISPERFILE_MODELS)}`, 'small.en'),
   font: strFlag('Font family used for rendered lyric-video captions', 'DejaVu Sans')
 } as const satisfies CliFlagsDefinition
 

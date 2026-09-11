@@ -1,7 +1,7 @@
 import { describe,expect,test } from 'bun:test'
-import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
-import { getStep2AllShortcutModelExpansions } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
-import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
+import { collectExplicitOcrTargets } from '~/cli/commands/text/ocr/ocr-targets'
+import { getStep2AllShortcutModelExpansions } from '~/cli/commands/command-shared/extract-routing/provider-registry'
+import { collectSttTargets } from '~/cli/commands/stt/stt-targets'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import {
 DEFAULT_ALL_PROVIDER_CONCURRENCY,
@@ -49,7 +49,7 @@ describe('option resolution contracts', () => {
       expect(expansions['soniox-stt']?.supported).toEqual(['stt-async-v5'])
       expect(expansions['speechmatics-stt']?.supported).toEqual(['melia-1'])
       expect(expansions['together-stt']?.supported).toEqual(['openai/whisper-large-v3', 'nvidia/parakeet-tdt-0.6b-v3'])
-      expect(expansions['whisper-stt']?.shortcut).toBe('all-local-stt')
+      expect(expansions['whisperfile-stt']?.shortcut).toBe('all-local-stt')
       expect(expansions['scrapecreators-stt']).toBeUndefined()
       expect(expansions['openai-ocr']?.shortcut).toBe('all-ocr')
       expect(expansions['grok-ocr']?.shortcut).toBe('all-ocr')
@@ -71,7 +71,7 @@ describe('option resolution contracts', () => {
       expect(collectSttTargets(sttOpts).map((target) => target.service)).toContain('grok')
       expect(collectSttTargets(sttOpts).map((target) => target.service)).toContain('mistral')
       expect(collectSttTargets(sttOpts).map((target) => target.service)).not.toContain('scrapecreators')
-      expect(collectSttTargets(sttOpts).map((target) => target.service)).not.toContain('whisper')
+      expect(collectSttTargets(sttOpts).map((target) => target.service)).not.toContain('whisperfile')
       expect(collectSttTargets(sttOpts).map((target) => target.service)).not.toContain('reverb')
       const ocrTargets = collectExplicitOcrTargets(ocrOpts)
       expect(ocrTargets.map((target) => target.service)).not.toContain('tesseract')
@@ -102,7 +102,7 @@ describe('option resolution contracts', () => {
       expect(ocrTargets.map((target) => `${target.service}:${target.model}`)).not.toContain('anthropic:claude-mythos-5')
       expect(ocrTargets.map((target) => `${target.service}:${target.model}`)).not.toContain('deepinfra:PaddlePaddle/PaddleOCR-VL-0.9B')
       expect(collectSttTargets(localSttOpts).map((target) => target.service)).not.toContain('reverb')
-      expect(collectSttTargets(localSttOpts).map((target) => target.service)).toContain('whisper')
+      expect(collectSttTargets(localSttOpts).map((target) => target.service)).toContain('whisperfile')
       expect(collectExplicitOcrTargets(localOcrOpts).map((target) => target.service)).toEqual([
         'tesseract'
       ])

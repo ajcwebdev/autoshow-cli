@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { runFalImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/fal-image-service/run-fal-image-gen'
-import { runFalVideoGen } from '~/cli/commands/process-steps/step-6-video/video-services/fal-video-service/run-fal-video-gen'
+import { runFalImageGen } from '~/cli/commands/visuals/image/image-generation-services/fal-image-service/run-fal-image-gen'
+import { runFalVideoGen } from '~/cli/commands/visuals/video/video-services/fal-video-service/run-fal-video-gen'
 import type { FalImageModel, FalVideoModel } from '~/types'
 import { bytesResponse, installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 

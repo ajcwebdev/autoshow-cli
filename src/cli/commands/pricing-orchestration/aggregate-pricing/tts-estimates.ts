@@ -1,5 +1,5 @@
 import type { TtsOptions, TtsStepEstimate, TtsTarget } from '~/types'
-import { estimateTtsCosts, estimateTtsTargetCosts } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-pricing'
+import { estimateTtsCosts, estimateTtsTargetCosts } from '~/cli/commands/audio/tts/tts-utils/tts-pricing'
 import { getTtsEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { applyCostMultiplier } from '~/cli/commands/pricing-orchestration/cost-helpers'
 

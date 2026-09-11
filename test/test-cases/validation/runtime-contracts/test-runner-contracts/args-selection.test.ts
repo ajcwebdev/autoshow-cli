@@ -176,12 +176,12 @@ describe('test-runner contracts', () => {
 
   test('adaptive e2e selection detection covers helper-defined service tests', () => {
       expect(isE2EOnlyTestSelection([
-        'test/test-cases/e2e/service/step-2-stt-e2e/stt-services/deepinfra-openai-whisper-large-v3.test.ts',
-        'test/test-cases/e2e/service/step-2-stt-e2e/stt-services/deepinfra-openai-whisper-large-v3-turbo.test.ts',
+        'test/test-cases/e2e/service/stt/diarization-off-by-default/deepinfra-openai-whisper-large-v3.test.ts',
+        'test/test-cases/e2e/service/stt/diarization-off-by-default/deepinfra-openai-whisper-large-v3-turbo.test.ts',
       ])).toBe(true)
 
       expect(isE2EOnlyTestSelection([
-        'test/test-cases/e2e/service/step-2-stt-e2e/stt-services/deepinfra-openai-whisper-large-v3.test.ts',
+        'test/test-cases/e2e/service/stt/diarization-off-by-default/deepinfra-openai-whisper-large-v3.test.ts',
         'test/test-cases/validation/cli-help-contracts.test.ts',
       ])).toBe(false)
     })
@@ -232,7 +232,7 @@ describe('test-runner contracts', () => {
 
   test('bun test flags use a 10 minute default timeout without automatic retries', () => {
       const validation = 'test/test-cases/validation/cli/cli-help-contracts.test.ts'
-      const e2e = 'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/glm-ocr.test.ts'
+      const e2e = 'test/test-cases/e2e/service/text/ocr/glm-ocr.test.ts'
       expect(buildBunTestFlags([validation], ['--bail'])).toEqual([
         '--timeout',
         String(VALIDATION_TEST_TIMEOUT_MS),
@@ -250,8 +250,8 @@ describe('test-runner contracts', () => {
 
   test('path selection preserves discovery order for Bun native timing scheduling', () => {
     const validation = 'test/test-cases/validation/cli/cli-help-contracts.test.ts'
-    const streaming = 'test/test-cases/e2e/service/step-1-download-e2e/download-input-types-streaming.test.ts'
-    const other = 'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/glm-ocr.test.ts'
+    const streaming = 'test/test-cases/e2e/service/sources/download/download-input-types-streaming.test.ts'
+    const other = 'test/test-cases/e2e/service/text/ocr/glm-ocr.test.ts'
     expect(resolveSelectedFiles([validation, streaming, other], [])).toEqual([validation, streaming, other])
     expect(resolveSelectedFiles([validation, streaming, other], ['test/test-cases/e2e/'])).toEqual([streaming, other])
   })
@@ -259,6 +259,6 @@ describe('test-runner contracts', () => {
   test('path-selection labels strip the test/test-cases prefix for validation paths', () => {
       expect(formatSelectedPathsLabel(['test/test-cases/validation/runtime-contracts/'])).toBe('Selected paths: validation/runtime-contracts')
       expect(formatSelectedPathsLabel(['test/test-cases/validation/'])).toBe('Selected paths: validation')
-      expect(formatSelectedPathsLabel(['test/test-cases/e2e/service/step-4-tts-e2e/tts-services/'])).toBe('Selected paths: service/step-4-tts-e2e/tts-services')
+      expect(formatSelectedPathsLabel(['test/test-cases/e2e/service/audio/tts/'])).toBe('Selected paths: service/audio/tts')
     })
 })

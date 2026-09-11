@@ -1,9 +1,16 @@
+import { createGenerationOutputDir } from '~/cli/commands/command-shared/generation-command-utils'
+import { getPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
+import { configureModelCostFilter } from '~/cli/commands/pricing-orchestration/model-cost-filter'
+import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
+import { enforceTtsBatchBudget } from '~/cli/commands/audio/tts/tts-batch-estimates'
+import { getInputStem } from '~/cli/commands/audio/tts/tts-batch-plan'
+import * as l from '~/utils/app-logger/app-logger'
 import { realpath } from 'node:fs/promises'
 import { join } from 'node:path'
-import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
+import { readManifest, PIPELINE_MANIFEST_FILE } from '~/cli/commands/command-shared/pipeline-manifest'
 import { priceGenerationTarget, resumeGenerationTarget } from '../generation-resume'
 import { ttsResumeConfig } from './tts-resume'
-import type { AggregatedPriceEstimate, PipelineManifest, ResumeResult, ResumeTarget, TtsOptions, TtsTarget } from '~/types'
+import type { AggregatedPriceEstimate, PipelineManifest, ResumeResult, ResumeTarget, StandaloneTtsCommandOptions, TtsOptions, TtsTarget } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { resolveUserPath } from '~/utils/runtime-paths'
 
@@ -80,3 +87,37 @@ export const resumeExistingTtsDirectoryBatch = async (
   explicitFlags: Set<string> = new Set()
 ): Promise<ResumeResult> =>
   await resumeGenerationTarget(createTtsBatchResumeTarget(batchDir), ttsResumeConfig, opts, explicitFlags)
+
+export const attachExistingTtsDirectoryBatch = async (
+  inputPath: string,
+  inputFiles: string[],
+  ttsOptions: StandaloneTtsCommandOptions,
+  targets: TtsTarget[],
+  maxCents: number | undefined
+): Promise<boolean> => {
+  const pinnedDir = getPinnedRunDir()
+  if (pinnedDir) {
+    const existing = await readManifest(pinnedDir)
+    if (existing?.command === 'tts' && existing.scope === 'batch') {
+      let estimate = await priceExistingTtsDirectoryBatch(pinnedDir, ttsOptions)
+      if (ttsOptions.maxModelCents !== undefined) {
+        const excludedTargets = configureModelCostFilter(ttsOptions, [estimate])
+        targets = collectTtsTargets(ttsOptions)
+        if (excludedTargets.length > 0) {
+          estimate = await priceExistingTtsDirectoryBatch(pinnedDir, ttsOptions)
+        }
+      }
+      await assertCompatibleTtsDirectoryBatch(pinnedDir, existing, inputFiles, targets)
+      if (ttsOptions.price) {
+        l.report.price(estimate)
+        return true
+      }
+      enforceTtsBatchBudget(estimate.totalEstimatedCost, maxCents, ttsOptions.allowOverBudget)
+      await createGenerationOutputDir(getInputStem(inputPath))
+      await resumeExistingTtsDirectoryBatch(pinnedDir, ttsOptions)
+      return true
+    }
+  }
+
+  return false
+}

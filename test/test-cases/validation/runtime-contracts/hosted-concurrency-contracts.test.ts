@@ -1,18 +1,18 @@
 import { describe, expect, test } from 'bun:test'
-import { ProviderError } from '~/utils/error-handler'
+import { createHostedTtsChunkScheduler } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-scheduler'
+import { withHostedTtsRetry } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-retry'
 import {
   classifyHostedRateLimitPressure,
   createHostedConcurrencyCoordinator,
   recoverHostedConcurrencyRequest,
   runHostedConcurrencyRequest,
-} from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
+} from '~/cli/commands/command-shared/hosted-concurrency-coordinator'
+import { createHostedOcrScheduler } from '~/cli/commands/text/ocr/ocr-utils/hosted-ocr-scheduler'
+import { withOcrPageRequestRetry } from '~/cli/commands/text/ocr/ocr-utils/ocr-retry'
+import type { HostedConcurrencyAdmissionToken } from '~/types'
+import { ProviderError } from '~/utils/error-handler'
 import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
-import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
-import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
-import { createHostedOcrScheduler } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
-import { withOcrPageRequestRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
-import type { HostedConcurrencyAdmissionToken } from '~/types'
 import { createManualTimerClock } from '../../../test-utils/manual-timer-clock'
 
 const createClock = () => createManualTimerClock<ReturnType<typeof setTimeout>>(
@@ -272,4 +272,43 @@ describe('clean hosted ramp price model', () => {
     expect(estimateHostedConcurrencyWallTimeMs(work, 12, 'immediate')).toBe(100_000)
     expect(estimateHostedConcurrencyWallTimeMs([1_000, 1_000, 1_000], 12, 'ramp')).toBe(3_000)
   })
+})
+
+describe('hosted release transition traces', () => {
+  for (const status of ['succeeded', 'failed', 'canceled'] as const) {
+    for (const recoveryBudgetMs of [1_000, 10_000]) {
+      test(`pressure followed by ${status} with budget ${recoveryBudgetMs} preserves recovery and release idempotency`, async () => {
+        const clock = createClock()
+        const coordinator = createHostedConcurrencyCoordinator({ mode: 'immediate', recoveryBudgetMs, now: clock.now, random: () => 1, setTimer: clock.setTimer, clearTimer: clock.clearTimer })
+        try {
+          const token = await coordinator.acquire(admission('openai', 0, 4))
+          const decision = coordinator.reportRateLimit(token, { status: 429, reason: 'rate limit' })
+          expect(decision.retry).toBe(recoveryBudgetMs === 10_000)
+          coordinator.release(token, status)
+          const released = coordinator.snapshot()
+          coordinator.release(token, 'succeeded')
+          expect(coordinator.snapshot()).toEqual(released)
+          expect(released.lanes[0]).toMatchObject({ active: 0, currentLimit: 2, completed: status === 'succeeded' ? 1 : 0, recoveryFailures: recoveryBudgetMs === 1_000 ? 1 : 0 })
+          if (status !== 'succeeded' && decision.retry) {
+            const retry = coordinator.acquire(admission('openai', 0, 4))
+            const unrelated = coordinator.acquire(admission('openai', 1, 4))
+            await clock.advance(2_000)
+            const probe = await retry
+            expect(probe.recoveryProbe).toBe(true)
+            expect(coordinator.snapshot().lanes[0]).toMatchObject({ active: 1, queuedWork: 1, recoveryProbes: 1 })
+            coordinator.release(probe, 'failed')
+            expect((await unrelated).recoveryProbe).toBe(false)
+            expect(coordinator.snapshot().lanes[0]).toMatchObject({ recoveryFailures: 1, queuedWork: 0 })
+          } else {
+            const next = await coordinator.acquire(admission('openai', 1, 4))
+            expect(next.recoveryProbe).toBe(false)
+            coordinator.release(next)
+          }
+        } finally {
+          coordinator.dispose()
+          expect(clock.timerCount()).toBe(0)
+        }
+      })
+    }
+  }
 })

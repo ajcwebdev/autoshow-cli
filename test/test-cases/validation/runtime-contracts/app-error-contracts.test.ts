@@ -17,7 +17,7 @@ import {
   usageMessage
 } from '~/utils/error-handler'
 import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
-import { attachAsyncSttErrorContext } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-stt-polling'
+import { attachAsyncSttErrorContext } from '~/cli/commands/stt/async-stt-polling'
 
 describe('app error contracts', () => {
   test('AppError stores classification, exit code, hints, metadata, and cause', () => {

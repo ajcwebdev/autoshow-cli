@@ -1,4 +1,4 @@
-import { MEDIA_EXTENSIONS } from '~/cli/commands/process-steps/step-0-metadata/formats/metadata-media-extensions'
+import { MEDIA_EXTENSIONS } from '~/cli/commands/sources/metadata/formats/metadata-media-extensions'
 import type { SupadataPricingContext } from '~/types'
 
 const SUPADATA_GENERATE_CREDITS_PER_MINUTE = 2

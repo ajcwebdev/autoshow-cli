@@ -285,7 +285,7 @@ describe('resumable downloads', () => {
 describe('download timeout budgets', () => {
   test('large-asset flows get a longer total budget than the default flow', () => {
     const defaultTimeouts = resolveDownloadTimeouts({ url: '', destination: '' })
-    const modelTimeouts = resolveDownloadTimeouts({ url: '', destination: '', flowId: 'whisper-model' })
+    const modelTimeouts = resolveDownloadTimeouts({ url: '', destination: '', flowId: 'whisperfile-binary' })
 
     expect(modelTimeouts.totalTimeoutMs).toBeGreaterThan(defaultTimeouts.totalTimeoutMs)
     expect(modelTimeouts.stallTimeoutMs).toBe(defaultTimeouts.stallTimeoutMs)
@@ -588,11 +588,11 @@ describe('managed macOS qpdf setup', () => {
 
 describe('GitHub archive URLs', () => {
   test('builds tag and commit archive URLs', () => {
-    expect(buildGithubArchiveUrl({ owner: 'ggerganov', repo: 'whisper.cpp', ref: 'v1.7.4' })).toBe(
-      'https://github.com/ggerganov/whisper.cpp/archive/refs/tags/v1.7.4.tar.gz'
+    expect(buildGithubArchiveUrl({ owner: 'ggerganov', repo: 'whisperfile', ref: 'v1.7.4' })).toBe(
+      'https://github.com/ggerganov/whisperfile/archive/refs/tags/v1.7.4.tar.gz'
     )
-    expect(buildGithubCommitArchiveUrl({ owner: 'ggerganov', repo: 'whisper.cpp', ref: 'abc123' })).toBe(
-      'https://github.com/ggerganov/whisper.cpp/archive/abc123.tar.gz'
+    expect(buildGithubCommitArchiveUrl({ owner: 'ggerganov', repo: 'whisperfile', ref: 'abc123' })).toBe(
+      'https://github.com/ggerganov/whisperfile/archive/abc123.tar.gz'
     )
   })
 })

@@ -85,7 +85,6 @@ export async function runDockerAcceptance(options: DockerOptions, engine = new D
     await ready.get(key)
   }
   async function provisionModel(selector: ModelSelector): Promise<void> {
-    if (selector.startsWith('whisper:')) await once('whisper-binary', () => provision(['setup', '--step', 'whisper-binary']))
     await once(selector, async () => {
       await provision(['setup', '--models', selector])
       // A second disposable container must find the model with downloads disabled.

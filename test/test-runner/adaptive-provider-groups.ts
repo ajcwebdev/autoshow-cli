@@ -1,4 +1,4 @@
-import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { URL_ARTICLE_BACKENDS } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import {
   STANDALONE_IMAGE_PROVIDER_TARGETS,
   STANDALONE_MUSIC_PROVIDER_TARGETS,
@@ -10,7 +10,7 @@ import {
 } from '~/cli/flags/service-selector-normalization/provider-targets'
 import type { AdaptiveProviderFlagValue, AdaptiveProviderGroup, AdaptiveProviderGroupKind, SimpleMediaCommand } from '~/types'
 
-const LOCAL_STT_PROVIDERS = ['whisper', 'whisperfile'] as const satisfies readonly (keyof typeof WRITE_STT_PROVIDER_TARGETS)[]
+const LOCAL_STT_PROVIDERS = ['whisperfile'] as const satisfies readonly (keyof typeof WRITE_STT_PROVIDER_TARGETS)[]
 const LOCAL_OCR_PROVIDERS = ['tesseract'] as const satisfies readonly (keyof typeof WRITE_OCR_PROVIDER_TARGETS)[]
 const LOCAL_URL_PROVIDERS = ['defuddle'] as const satisfies readonly (typeof URL_ARTICLE_BACKENDS)[number][]
 const LOCAL_LLM_PROVIDERS = [] as const satisfies readonly (keyof typeof WRITE_LLM_PROVIDER_TARGETS)[]
@@ -79,7 +79,7 @@ const CORE_VALUE_FLAGS = [
   'video',
   'music',
   'all-providers',
-  'whisper',
+  'whisperfile',
   'deepinfra',
 ] as const
 
@@ -230,7 +230,7 @@ const inferExtractKind = (input: string | null, provider: string): 'transcribe' 
   if (extension && DOCUMENT_EXTENSIONS.has(extension)) {
     return 'extract'
   }
-  if (provider.includes('stt') || provider === 'whisper') {
+  if (provider.includes('stt') || provider === 'whisperfile') {
     return 'transcribe'
   }
   if (provider.includes('ocr') || provider === 'tesseract') {

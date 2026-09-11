@@ -47,7 +47,7 @@ describe('harness global flag injection', () => {
   })
 
   test('leaves non-processing commands and non-CLI entrypoints untouched', () => {
-    const setupArgs = [CLI_SOURCE_ENTRY, 'setup', 'whisper']
+    const setupArgs = [CLI_SOURCE_ENTRY, 'setup', 'whisperfile']
     expect(injectGlobalCliFlags(setupArgs, OUTPUT_ROOT, '/opt/bin')).toBe(setupArgs)
 
     const bundleArgs = ['dist/cli.js', 'tts', 'input.md']

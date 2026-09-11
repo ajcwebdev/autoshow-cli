@@ -5,7 +5,7 @@ import { COMMAND_DEFINITIONS, HELP_COMMAND_GROUP_BY_NAME } from '~/cli/command-d
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { NativeNoSuchCommandError } from '~/cli/native/native-errors'
 import { parseCommandInvocation, parseNativeCli } from '~/cli/native/native-parser'
-import { generateImagesCommandDefinition } from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
+import { generateImagesCommandDefinition } from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { formatModelSelector } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import { validateMinimaxModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
@@ -122,8 +122,8 @@ describe('retired surfaces', () => {
     expect(existsSync(resolve('src/cli/commands/setup-and-utilities/benchmark'))).toBe(false)
     expect(existsSync(resolve('src/types/benchmarks'))).toBe(false)
     expect(existsSync(resolve('docs/commands/setup-and-utilities/benchmark/benchmark.md'))).toBe(false)
-    expect(existsSync(resolve('src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/replicate-ocr'))).toBe(false)
-    expect(existsSync(resolve('src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/fal-ocr'))).toBe(false)
+    expect(existsSync(resolve('src/cli/commands/text/ocr/ocr-services/replicate-ocr'))).toBe(false)
+    expect(existsSync(resolve('src/cli/commands/text/ocr/ocr-services/fal-ocr'))).toBe(false)
     expect(existsSync(resolve('src/cli/commands/setup-and-utilities/models/ocr-config/ocr-replicate.json'))).toBe(false)
     expect(existsSync(resolve('src/cli/commands/setup-and-utilities/models/ocr-config/ocr-fal.json'))).toBe(false)
   })

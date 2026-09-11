@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { processBatch } from '~/cli/commands/process-steps/step-1-download/download-targets/download-batch/process-download-batch'
-import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
-import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
+import { processBatch } from '~/cli/commands/sources/download/download-targets/download-batch/process-download-batch'
+import { readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
+import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
 import type { BatchSource, PipelineManifest, ProcessCommand } from '~/types'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 

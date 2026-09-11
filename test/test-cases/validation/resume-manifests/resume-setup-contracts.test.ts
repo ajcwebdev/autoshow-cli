@@ -8,15 +8,15 @@ import { parseNativeCli } from '~/cli/native/native-parser'
 import { createNativeRootDefinition } from '~/cli/native/root-definition'
 import { renderCommandHelp } from '~/cli/native/help-renderer'
 import { runCommand } from '../../../test-utils/test-helpers'
-import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord, writePipelineItemRecords } from '~/cli/commands/process-steps/pipeline-manifest'
+import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord, writePipelineItemRecords } from '~/cli/commands/command-shared/pipeline-manifest'
 import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 import { dispatchResume } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
 import { resolveStoredTtsTargetsForResume } from '~/cli/commands/setup-and-utilities/resume/generation/tts-resume'
 import type { GenerationResumeProviderIdentity, PipelineManifestItem, PipelineProviderState, ResumeTarget, Step3Metadata, TtsOptions, TtsTarget } from '~/types'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
-import { createFileTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
-import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
-import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
+import { createFileTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/audio/tts/script-to-audio/generic-dialogue-plan'
+import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/audio/tts/script-to-audio/item-dialogue-plan-artifact'
+import { runTtsForTargets } from '~/cli/commands/audio/tts/run-tts'
 import { makeTempDir } from '../../../test-utils/temp-dirs'
 import { policySkippedTtsProviderState as policySkippedTtsState } from '../../../test-utils/tts-provider-state-fixtures'
 
@@ -520,7 +520,7 @@ test('resume rejects positional outputs after the separator', async () => {
 })
 
 test('setup focused model downloads cannot be combined with targeted steps', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'setup', '--models', 'base', '--step', 'defuddle'])
+  const result = await runCommand(['src/cli/create-cli.ts', 'setup', '--models', 'tiny', '--step', 'defuddle'])
 
   expect(result.exitCode).toBe(2)
   expect(`${result.stdout}\n${result.stderr}`).toContain('--models cannot be combined with --step')

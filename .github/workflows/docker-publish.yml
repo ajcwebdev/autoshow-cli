@@ -54,7 +54,8 @@ jobs:
         run: |
           bun --no-env-file test \
             test/test-cases/validation/docker-acceptance/ \
-            test/test-cases/validation/extraction/ \
+            test/test-cases/validation/text/ocr/docx-markdown.test.ts \
+            test/test-cases/validation/text/ocr/docx-command-contracts.test.ts \
             test/test-cases/validation/cli/network-check-contracts.test.ts \
             test/test-cases/validation/cli/required-image-model-contracts.test.ts \
             test/test-cases/validation/cli/docker-workspace-invocation.test.ts \
@@ -92,12 +93,12 @@ jobs:
             test/test-cases/validation/runtime-contracts/fetch-error-contracts.test.ts \
             test/test-cases/validation/runtime-contracts/bun-version-alignment-contracts.test.ts \
             test/test-cases/validation/runtime-contracts/maintenance-environment-contracts.test.ts \
-            test/test-cases/validation/media-generation/inworld-tts-websocket-adapter.test.ts \
-            test/test-cases/validation/comic/comic-audio-execution-publication-contracts.test.ts \
-            test/test-cases/validation/comic/comic-image-composition-contracts.test.ts \
-            test/test-cases/validation/extract-stt/async-stt-lifecycle-adoption-contracts.test.ts \
-            test/test-cases/validation/media-generation/tts-compact-archive-contracts.test.ts \
-            test/test-cases/validation/extract-ocr/ocr-bun-image-normalization-contracts.test.ts \
+            test/test-cases/validation/audio/tts/inworld-tts-websocket-adapter.test.ts \
+            test/test-cases/validation/visuals/comic/comic-audio-execution-publication-contracts.test.ts \
+            test/test-cases/validation/visuals/comic/comic-image-composition-contracts.test.ts \
+            test/test-cases/validation/stt/async-stt-lifecycle-adoption-contracts.test.ts \
+            test/test-cases/validation/audio/tts/tts-compact-archive-contracts.test.ts \
+            test/test-cases/validation/text/ocr/ocr-bun-image-normalization-contracts.test.ts \
             test/test-cases/validation/setup/tar-gz-security-contracts.test.ts \
             test/test-cases/validation/setup/setup-doctor-contracts.test.ts \
             test/test-cases/validation/cli/docker-image-contracts.test.ts
@@ -236,12 +237,6 @@ jobs:
           # Materialize lazy image layers before reading their sizes.
           test "$(docker run --rm --platform linux/amd64 --network none --entrypoint bun "${image_ref}" --version)" = "1.4.2"
           docker history --no-trunc --human=false --format '{{json .}}' "${image_ref}" > "${report_dir}/image-history.jsonl"
-          jq -s --arg platform linux/amd64 --argjson imageSizeBytes "$(docker image inspect "${image_ref}" --format '{{.Size}}')" '
-            [.[] | select(.CreatedBy | contains("install -y --no-install-recommends cmake make gcc g++ libc6-dev")) | .Size | tonumber] as $layers
-            | if ($layers | length) != 1 then error("Missing isolated Whisper toolchain layer") else
-              {platform:$platform,imageSizeBytes:$imageSizeBytes,toolchainLayerBytes:$layers[0],comparison:"isolated apt layer; informational, no size threshold"} end
-          ' "${report_dir}/image-history.jsonl" > "${report_dir}/whisper-toolchain-size.json"
-          printf 'Whisper toolchain size (%s): `%s`\n' 'amd64' "$(cat "${report_dir}/whisper-toolchain-size.json")" >> "${GITHUB_STEP_SUMMARY}"
           docker run --rm --platform linux/amd64 --entrypoint bun "${image_ref}" --no-env-file install --frozen-lockfile --production > "${report_dir}/production-install.log" 2>&1
           docker run --rm --platform linux/amd64 "${image_ref}" --help > "${report_dir}/help.log" 2>&1
           docker run --rm --platform linux/amd64 "${image_ref}" config --show --config-path /tmp/autoshow-smoke-config.json --no-color > "${report_dir}/config.log" 2>&1
@@ -260,7 +255,7 @@ jobs:
           docker run --rm --platform linux/amd64 "${compiled_ref}" --help > "${report_dir}/compiled-help.log" 2>&1
           docker run --rm --platform linux/amd64 "${compiled_ref}" config --show --config-path /tmp/autoshow-compiled-config.json --no-color > "${report_dir}/compiled-config.log" 2>&1
           docker run --rm --platform linux/amd64 "${compiled_ref}" setup --doctor --no-color > "${report_dir}/compiled-doctor.log" 2>&1
-          compiled_path_fixture="${GITHUB_WORKSPACE}/test/test-cases/validation/comic/fixtures/structured-script-parser/handler-precedence.md"
+          compiled_path_fixture="${GITHUB_WORKSPACE}/test/test-cases/validation/visuals/comic/fixtures/structured-script-parser/handler-precedence.md"
           docker run --rm --platform linux/amd64 --mount "type=bind,src=${compiled_path_fixture},dst=/benchmark/input.md,readonly" "${compiled_ref}" write /benchmark/input.md --price --no-color > "${report_dir}/compiled-paths.log" 2>&1
           grep -F 'Setup doctor:' "${report_dir}/compiled-doctor.log"
           grep -F 'Setup doctor completed' "${report_dir}/compiled-doctor.log"
@@ -381,12 +376,6 @@ jobs:
           # Materialize lazy image layers before reading their sizes.
           test "$(docker run --rm --platform linux/arm64 --network none --entrypoint bun "${image_ref}" --version)" = "1.4.2"
           docker history --no-trunc --human=false --format '{{json .}}' "${image_ref}" > "${report_dir}/image-history.jsonl"
-          jq -s --arg platform linux/arm64 --argjson imageSizeBytes "$(docker image inspect "${image_ref}" --format '{{.Size}}')" '
-            [.[] | select(.CreatedBy | contains("install -y --no-install-recommends cmake make gcc g++ libc6-dev")) | .Size | tonumber] as $layers
-            | if ($layers | length) != 1 then error("Missing isolated Whisper toolchain layer") else
-              {platform:$platform,imageSizeBytes:$imageSizeBytes,toolchainLayerBytes:$layers[0],comparison:"isolated apt layer; informational, no size threshold"} end
-          ' "${report_dir}/image-history.jsonl" > "${report_dir}/whisper-toolchain-size.json"
-          printf 'Whisper toolchain size (%s): `%s`\n' 'arm64' "$(cat "${report_dir}/whisper-toolchain-size.json")" >> "${GITHUB_STEP_SUMMARY}"
           docker run --rm --platform linux/arm64 --entrypoint bun "${image_ref}" --no-env-file install --frozen-lockfile --production > "${report_dir}/production-install.log" 2>&1
           docker run --rm --platform linux/arm64 "${image_ref}" --help > "${report_dir}/help.log" 2>&1
           docker run --rm --platform linux/arm64 "${image_ref}" config --show --config-path /tmp/autoshow-smoke-config.json --no-color > "${report_dir}/config.log" 2>&1
@@ -405,7 +394,7 @@ jobs:
           docker run --rm --platform linux/arm64 "${compiled_ref}" --help > "${report_dir}/compiled-help.log" 2>&1
           docker run --rm --platform linux/arm64 "${compiled_ref}" config --show --config-path /tmp/autoshow-compiled-config.json --no-color > "${report_dir}/compiled-config.log" 2>&1
           docker run --rm --platform linux/arm64 "${compiled_ref}" setup --doctor --no-color > "${report_dir}/compiled-doctor.log" 2>&1
-          compiled_path_fixture="${GITHUB_WORKSPACE}/test/test-cases/validation/comic/fixtures/structured-script-parser/handler-precedence.md"
+          compiled_path_fixture="${GITHUB_WORKSPACE}/test/test-cases/validation/visuals/comic/fixtures/structured-script-parser/handler-precedence.md"
           docker run --rm --platform linux/arm64 --mount "type=bind,src=${compiled_path_fixture},dst=/benchmark/input.md,readonly" "${compiled_ref}" write /benchmark/input.md --price --no-color > "${report_dir}/compiled-paths.log" 2>&1
           grep -F 'Setup doctor:' "${report_dir}/compiled-doctor.log"
           grep -F 'Setup doctor completed' "${report_dir}/compiled-doctor.log"
@@ -495,7 +484,7 @@ jobs:
       fail-fast: false
       matrix:
         arch: [amd64, arm64]
-        shard: [core, network, 'whisper:tiny', 'whisper:base', 'whisper:small', 'whisper:medium', 'whisper:large-v3-turbo', 'whisperfile:tiny', 'whisperfile:tiny.en', 'whisperfile:small', 'whisperfile:small.en', 'whisperfile:medium', 'whisperfile:medium.en', 'whisperfile:large-v2', 'whisperfile:large-v3']
+        shard: [core, network, 'whisperfile:tiny', 'whisperfile:tiny.en', 'whisperfile:small', 'whisperfile:small.en']
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -513,8 +502,18 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: runtime/docker-acceptance/cache
-          key: docker-local-v1-${{ matrix.arch }}-${{ matrix.shard }}-${{ hashFiles('Dockerfile', 'src/cli/commands/setup-and-utilities/**', 'src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/**', 'src/cli/commands/process-steps/step-2-extract/step-2-url/url-local/**') }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: docker-local-v1-${{ matrix.arch }}-${{ matrix.shard }}-${{ hashFiles('Dockerfile', 'src/cli/commands/setup-and-utilities/**', 'src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/**', 'src/cli/commands/process-steps/step-2-extract/step-2-url/url-local/**') }}-
+          key: docker-local-v1-${{ matrix.arch }}-${{ matrix.shard }}-${{ hashFiles('Dockerfile', 'src/cli/commands/setup-and-utilities/**', 'src/cli/commands/stt/local/**', 'src/cli/commands/text/url/url-local/**') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: docker-local-v1-${{ matrix.arch }}-${{ matrix.shard }}-${{ hashFiles('Dockerfile', 'src/cli/commands/setup-and-utilities/**', 'src/cli/commands/stt/local/**', 'src/cli/commands/text/url/url-local/**') }}-
+
+      - name: Prepare optional YouTube authentication
+        if: matrix.shard == 'network'
+        env:
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
+        run: |
+          umask 077
+          if [ -n "${YOUTUBE_COOKIES}" ]; then
+            printf '%s\n' "${YOUTUBE_COOKIES}" > "${RUNNER_TEMP}/autoshow-youtube.cookies.txt"
+          fi
 
       - name: Accept published latest through its CLI
         env:
@@ -528,9 +527,16 @@ jobs:
           else
             set -- --suite models --model "${SHARD}"
           fi
+          if [ "${SHARD}" = network ] && [ -s "${RUNNER_TEMP}/autoshow-youtube.cookies.txt" ]; then
+            set -- "$@" --youtube-cookies "${RUNNER_TEMP}/autoshow-youtube.cookies.txt"
+          fi
           bun t:docker "$@" --platform "${PLATFORM}" \
             --expected-digest "${EXPECTED_DIGEST}" --expected-revision "${GITHUB_SHA}" \
             --output runtime/docker-acceptance/evidence
+
+      - name: Remove temporary YouTube authentication
+        if: always() && matrix.shard == 'network'
+        run: rm -f "${RUNNER_TEMP}/autoshow-youtube.cookies.txt"
 
       - name: Make local assets readable for archiving
         if: always()

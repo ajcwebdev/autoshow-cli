@@ -9,7 +9,7 @@ derivePipelineItemRecord,
 readManifest,
 updateManifest,
 writeManifest
-} from '~/cli/commands/process-steps/pipeline-manifest'
+} from '~/cli/commands/command-shared/pipeline-manifest'
 import type { PipelineManifest,PipelineProviderState } from '~/types'
 import { PROCESS_COMMANDS } from '~/types'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'

@@ -1,5 +1,5 @@
 import { describe,expect,test } from 'bun:test'
-import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
+import { withHostedTtsRetry } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-retry'
 import { exec } from '~/utils/cli-utils'
 import { ProviderError } from '~/utils/error-handler'
 import { pollUntil } from '~/utils/retries'

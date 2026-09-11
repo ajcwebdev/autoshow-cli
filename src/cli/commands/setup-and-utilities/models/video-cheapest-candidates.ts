@@ -1,6 +1,6 @@
 import type { CheapestVideoSelection } from '~/types'
 import { InternalError } from '~/utils/error-handler'
-import { estimateVideoCost } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
+import { estimateVideoCost } from '~/cli/commands/visuals/video/video-utils/video-pricing'
 import { getModelRegistry } from './model-loader'
 
 export type CheapestVideoProvider = 'gemini' | 'grok' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'

@@ -50,7 +50,7 @@ caption extraction
          fall back to selected STT providers
 ```
 
-Local STT providers are `whisper` and `whisperfile`. All others are hosted.
+The local STT provider is `whisperfile`. All others are hosted.
 
 Output layout:
 
@@ -211,7 +211,7 @@ music lyric-video mode
   |
   +--> caption source:
   |      --captions -> parse VTT/SRT
-  |      no captions -> run local whisper.cpp (--model, default large-v3-turbo) and create lyric cues
+  |      no captions -> run local whisperfile (--model, default small.en) and create lyric cues
   |
   +--> render with ffmpeg
   |

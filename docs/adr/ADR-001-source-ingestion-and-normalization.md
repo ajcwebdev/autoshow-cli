@@ -128,7 +128,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The convertible-ebook registry is `src/cli/commands/process-steps/step-0-metadata/formats/metadata-convertible-ebooks.ts`. Calibre conversion runs during document download in `src/cli/commands/process-steps/step-1-download/document/dl-document.ts`. Discovery caches use `src/utils/file-fingerprint-cache.ts`.
+The convertible-ebook registry is `src/cli/commands/sources/metadata/formats/metadata-convertible-ebooks.ts`. Calibre conversion runs during document download in `src/cli/commands/sources/download/document/dl-document.ts`. Discovery caches use `src/utils/file-fingerprint-cache.ts`.
 
 ### Bun 1.4 XML Evaluation
 
@@ -153,7 +153,7 @@ Convertible ebook runs record:
 
 ```bash
 bun run check
-bun test test/test-cases/validation/extract-ocr/epub-contracts/normalizable-ebooks.test.ts
+bun test test/test-cases/validation/text/ocr/epub-contracts/normalizable-ebooks.test.ts
 ```
 
 1. Convertible ebook detection, alias resolution, Calibre conversion to EPUB, and original-format metadata.
@@ -166,10 +166,10 @@ Do not run hosted OCR, paid-provider, smoke, e2e, or full-suite tests for this A
 - Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
 - Related ADR: [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md)
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
-- `src/cli/commands/process-steps/step-0-metadata/formats/metadata-convertible-ebooks.ts`
-- `src/cli/commands/process-steps/step-1-download/document/dl-document.ts`
+- `src/cli/commands/sources/metadata/formats/metadata-convertible-ebooks.ts`
+- `src/cli/commands/sources/download/document/dl-document.ts`
 - `src/types/document-processing/convertible-ebooks-types.ts`
 - `src/utils/file-fingerprint-cache.ts`
-- `test/test-cases/validation/extract-ocr/epub-contracts/normalizable-ebooks.test.ts`
+- `test/test-cases/validation/text/ocr/epub-contracts/normalizable-ebooks.test.ts`
 - `src/utils/bun-xml-adapter.ts`
 - `test/test-cases/validation/runtime-contracts/bun-xml-adapter-contracts.test.ts`

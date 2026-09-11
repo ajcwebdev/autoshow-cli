@@ -62,7 +62,7 @@ const KNOWN_SERVICE_HINTS: Array<{ pattern: RegExp, service: string }> = [
   { pattern: /\bglm(?:-reader)?\b/i, service: 'glm' },
   { pattern: /\bkimi\b/i, service: 'kimi' },
   { pattern: /\brunway\b/i, service: 'runway' },
-  { pattern: /\bwhisper\b/i, service: 'whisper' },
+  { pattern: /\bwhisper\b/i, service: 'whisperfile' },
 ]
 
 const cleanValue = (value: string | null | undefined): string | null => {
@@ -444,13 +444,13 @@ export const buildMetricContext = async (
 type TestKindRule = Readonly<{ pattern: RegExp, kind: string }>
 
 const TEST_KIND_PATH_RULES: readonly TestKindRule[] = [
-  { pattern: /\/step-7-music-gen-e2e\//, kind: 'music' },
-  { pattern: /\/step-6-video-gen-e2e\//, kind: 'video' },
-  { pattern: /\/step-5-image-gen-e2e\//, kind: 'image' },
-  { pattern: /\/step-4-tts-e2e\//, kind: 'tts' },
-  { pattern: /\/step-3-write-e2e\//, kind: 'write' },
-  { pattern: /\/step-2-stt-e2e\//, kind: 'transcribe' },
-  { pattern: /\/step-2-ocr-e2e\//, kind: 'extract' },
+  { pattern: /\/audio\/music\//, kind: 'music' },
+  { pattern: /\/visuals\/video\//, kind: 'video' },
+  { pattern: /\/visuals\/image\//, kind: 'image' },
+  { pattern: /\/audio\/tts\//, kind: 'tts' },
+  { pattern: /\/text\/write\//, kind: 'write' },
+  { pattern: /\/stt\//, kind: 'transcribe' },
+  { pattern: /\/text\/(ocr|url)\//, kind: 'extract' },
 ]
 
 const TEST_KIND_NAME_RULES: readonly TestKindRule[] = [

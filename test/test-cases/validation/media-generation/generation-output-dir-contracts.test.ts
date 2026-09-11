@@ -2,8 +2,8 @@ import { afterEach, expect, test } from 'bun:test'
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { basename, join } from 'node:path'
-import { createGenerationOutputDir } from '~/cli/commands/process-steps/generation-command-utils'
-import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
+import { createGenerationOutputDir } from '~/cli/commands/command-shared/generation-command-utils'
+import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
 import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []

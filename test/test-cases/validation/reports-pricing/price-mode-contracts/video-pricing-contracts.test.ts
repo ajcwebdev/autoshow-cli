@@ -1,6 +1,6 @@
 import { describe,expect,test } from 'bun:test'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
-import { estimateVideoCosts } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
+import { estimateVideoCosts } from '~/cli/commands/visuals/video/video-utils/video-pricing'
 import {
 resolveCheapestModelForFlag,
 selectCheapestDefaultTextVideoSelection,

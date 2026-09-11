@@ -4,10 +4,10 @@ import {
   getMusicModelMeta,
   getRetiredModelRate
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { estimateImageCosts } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
+import { estimateImageCosts } from '~/cli/commands/visuals/image/image-utils/image-pricing'
 import { isOpenAIImage25Model } from '~/cli/commands/setup-and-utilities/models/image-models'
-import { computeOpenAIImageUsageCostCents } from '~/cli/commands/process-steps/step-5-image/image-utils/openai-image-pricing'
-import { estimateVideoCost } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
+import { computeOpenAIImageUsageCostCents } from '~/cli/commands/visuals/image/image-utils/openai-image-pricing'
+import { estimateVideoCost } from '~/cli/commands/visuals/video/video-utils/video-pricing'
 import { isCostSource, isTokenPricedOcrProvider } from '~/types'
 import type { ActualCostBreakdown, ComputeActualCostsInput, CostSource, ExtractionMetadata, Step2Metadata, Step5Metadata, Step6VideoMetadata, StepCostEntry } from '~/types'
 import {

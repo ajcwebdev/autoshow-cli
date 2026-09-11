@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { collectVideoTargets, getVideoArtifactFileName } from '~/cli/commands/process-steps/step-6-video/video-targets'
+import { collectVideoTargets, getVideoArtifactFileName } from '~/cli/commands/visuals/video/video-targets'
 
 describe('option resolution contracts', () => {
   test('Luma Labs video resolution follows the documented Ray 3.2 values', () => {

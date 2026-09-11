@@ -1,5 +1,5 @@
 import { UsageError } from '~/utils/error-handler'
-import { auditOcrTokenShapes } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-token-shape-audit'
+import { auditOcrTokenShapes } from '~/cli/commands/text/ocr/ocr-pricing/ocr-token-shape-audit'
 
 const args = Bun.argv.slice(2)
 const runDirectories: string[] = []

@@ -1,6 +1,6 @@
 import type * as v from 'valibot'
 
-type LocationPlanSchemas = typeof import('~/cli/commands/process-steps/step-8-comic/comic-utils/location-plan-records')
+type LocationPlanSchemas = typeof import('~/cli/commands/visuals/comic/comic-utils/location-plan-records')
 
 export type LocationPlanRecord = v.InferOutput<LocationPlanSchemas['LocationPlanRecordSchema']>
 export type LocationPlanEntry = v.InferOutput<LocationPlanSchemas['LocationPlanEntrySchema']>

@@ -1,22 +1,22 @@
 import { afterEach, expect, test } from 'bun:test'
 import { writeFile } from 'node:fs/promises'
 import type { CharacterVoiceBrief, ProviderVoiceRef, TtsProvider } from '~/types'
-import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
+import { configureCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import {
   appendVoiceRegistration,
   resolveCharacterVoiceRegistryPaths,
   resolveRegistrationGeneration,
   writeCharacterVoiceBriefCatalog
-} from '~/cli/commands/process-steps/step-4-tts/voice-management/character-voice-registry'
+} from '~/cli/commands/audio/voice/character-voice-registry'
 import {
   CLONE_PROVIDERS,
   DESIGN_PROVIDERS,
   VOICE_CATALOG_PROVIDERS,
   VOICE_LIFECYCLE_PROVIDERS,
   VOICE_PROVIDERS,
-} from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-command-support'
-import { buildReadyVoiceRegistrationDraft } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-registration-management'
-import { planCanonicalVoiceAudition, withCanonicalVoiceAuditionScheduler } from '~/cli/commands/process-steps/step-4-tts/voice-management/canonical-voice-audition'
+} from '~/cli/commands/audio/voice/voice-command-support'
+import { buildReadyVoiceRegistrationDraft } from '~/cli/commands/audio/voice/voice-registration-management'
+import { planCanonicalVoiceAudition, withCanonicalVoiceAuditionScheduler } from '~/cli/commands/audio/voice/canonical-voice-audition'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { captureLogEvents } from '../../../../test-utils/console-capture'

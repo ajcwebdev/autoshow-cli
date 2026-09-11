@@ -2,11 +2,11 @@ import { describe, expect, test } from 'bun:test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { withTempDir } from '../../../test-utils/temp-dirs'
-import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
+import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/command-shared/pipeline-manifest'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { priceOcrTarget } from '~/cli/commands/setup-and-utilities/resume/extract/ocr-resume'
 import { hasResumableSttTargetWork, priceSttTarget } from '~/cli/commands/setup-and-utilities/resume/extract/stt-resume'
-import { buildProviderStates as buildSttProviderStates, readExistingSttRun } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-run-state'
+import { buildProviderStates as buildSttProviderStates, readExistingSttRun } from '~/cli/commands/stt/stt-batch/stt-run-state'
 import type { OcrTarget, ResolvedFlagOptions, ResumeTarget, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
 import { readCanonicalRecord, writeProviderResultFixture, writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 
@@ -180,7 +180,7 @@ describe('additive resume provider selection', () => {
   })
 
   test('STT provider-state reconciliation preserves artifact locations and one attempt per run', () => {
-    const resumedRoot: SttTarget = { service: 'whisper', model: 'large-v3-turbo', local: true }
+    const resumedRoot: SttTarget = { service: 'whisperfile', model: 'small.en', local: true }
     const freshSuccess: SttTarget = { service: 'assemblyai', model: 'universal-2', local: false }
     const currentFailure: SttTarget = { service: 'deepgram', model: 'nova-3', local: false }
     const freshFailure: SttTarget = { service: 'deepinfra', model: 'openai/whisper-large-v3-turbo', local: false }
@@ -212,7 +212,7 @@ describe('additive resume provider selection', () => {
       [5, { message: 'provider classified this attempt as skipped', retryable: false, skipped: true }]
     ])
     const existingStates = new Map<string, SttProviderState>([
-      ['whisper:large-v3-turbo', { ...resumedRoot, artifactDir: '.', status: 'succeeded', attempts: 3 }],
+      ['whisperfile:small.en', { ...resumedRoot, artifactDir: '.', status: 'succeeded', attempts: 3 }],
       ['deepgram:nova-3', { ...currentFailure, artifactDir: 'providers/deepgram-nova-3', status: 'failed', attempts: 5 }],
       ['speechmatics:melia-1', { ...untouched, artifactDir: 'providers/speechmatics-melia-1', status: 'missing', attempts: 2 }],
       ['soniox:stt-rt-v4', { ...attemptedSkip, artifactDir: 'providers/soniox-stt-rt-v4', status: 'skipped', attempts: 4 }],

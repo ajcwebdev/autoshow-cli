@@ -8,25 +8,25 @@ DEFAULT_SKETCH_PANELS_PER_IMAGE,
 panelSelectionToSketchRange,
 parsePanelSelector,
 selectComicPanels
-} from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-utils'
+} from '~/cli/commands/visuals/comic/comic-commands/generate-images/comic-page-utils'
 import {
 resolveSketchChunks,
 selectSketchPanelRange
-} from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-sketches/generate-scene-sketches'
+} from '~/cli/commands/visuals/comic/comic-commands/generate-sketches/generate-scene-sketches'
 import {
 coerceAndValidateDraftScenes,
 coerceAndValidateGenerateImages
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
+} from '~/cli/commands/visuals/comic/comic-utils/cli-args'
 import {
 resolveComicScriptReference
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/project-paths'
+} from '~/cli/commands/visuals/comic/comic-utils/project-paths'
 import {
 draftScenesCommandDefinition,
 generateAudioCommandDefinition,
 generateImagesCommandDefinition,
 generateSlideshowCommandDefinition,
 referenceSketchCommandDefinition
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
+} from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'

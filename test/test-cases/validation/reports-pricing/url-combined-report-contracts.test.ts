@@ -17,7 +17,7 @@ import {
   LONG_SEQUENCE_DISTANCE_METHOD
 } from '../../../../.codex/skills/consensus/scripts/url/url_consensus_lib'
 import type { UrlCombinedArtifact, UrlCombinedFixtureProvider } from '~/types'
-import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
+import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/command-shared/pipeline-manifest'
 import { makeTempDirSync } from '../../../test-utils/temp-dirs'
 
 const tempRoots: string[] = []

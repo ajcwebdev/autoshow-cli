@@ -3,7 +3,7 @@ import { imageResumeConfig } from '~/cli/commands/setup-and-utilities/resume/gen
 import { musicResumeConfig } from '~/cli/commands/setup-and-utilities/resume/generation/music-resume'
 import { ttsResumeConfig } from '~/cli/commands/setup-and-utilities/resume/generation/tts-resume'
 import { videoResumeConfig } from '~/cli/commands/setup-and-utilities/resume/generation/video-resume'
-import { writeResumeConfig } from '~/cli/commands/setup-and-utilities/resume/write/write-resume'
+import { writeResumeConfig } from '~/cli/commands/setup-and-utilities/resume/resume-write/write-resume'
 import { imageGenerationOptionNames,imageInputOptionNames,imageProviderSpecificOptionNames } from '~/cli/flags/image-flags'
 import { musicGenFlags } from '~/cli/flags/music-flags'
 import { resumeFlags } from '~/cli/flags/resume-flags'
@@ -140,21 +140,21 @@ describe('resume provider flag surface', () => {
       'src/cli/commands/setup-and-utilities/resume/extract/stt-resume.ts',
       'src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts',
       'src/cli/commands/setup-and-utilities/resume/extract/url-resume.ts',
-      'src/cli/commands/setup-and-utilities/resume/write/write-resume.ts',
+      'src/cli/commands/setup-and-utilities/resume/resume-write/write-resume.ts',
       'src/cli/commands/setup-and-utilities/resume/generation/tts-resume.ts',
       'src/cli/commands/setup-and-utilities/resume/generation/image-resume.ts',
       'src/cli/commands/setup-and-utilities/resume/generation/video-resume.ts',
       'src/cli/commands/setup-and-utilities/resume/generation/music-resume.ts'
     ]
     const removedStepLocalModules = [
-      'src/cli/commands/process-steps/generation-resume-utils.ts',
-      'src/cli/commands/process-steps/step-2-extract/step-2-stt/resume.ts',
-      'src/cli/commands/process-steps/step-2-extract/step-2-ocr/resume.ts',
-      'src/cli/commands/process-steps/step-2-extract/step-2-url/resume.ts',
-      'src/cli/commands/process-steps/step-4-tts/resume.ts',
-      'src/cli/commands/process-steps/step-5-image/resume.ts',
-      'src/cli/commands/process-steps/step-6-video/resume.ts',
-      'src/cli/commands/process-steps/step-7-music/resume.ts'
+      'src/cli/commands/command-shared/generation-resume-utils.ts',
+      'src/cli/commands/stt/resume.ts',
+      'src/cli/commands/text/ocr/resume.ts',
+      'src/cli/commands/text/url/resume.ts',
+      'src/cli/commands/audio/tts/resume.ts',
+      'src/cli/commands/visuals/image/resume.ts',
+      'src/cli/commands/visuals/video/resume.ts',
+      'src/cli/commands/audio/music/resume.ts'
     ]
 
     for (const modulePath of migratedModules) {
@@ -165,9 +165,9 @@ describe('resume provider flag surface', () => {
     }
 
     const registry = await Bun.file('src/cli/commands/setup-and-utilities/resume/resume-registry.ts').text()
-    const sttBatch = await Bun.file('src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch.ts').text()
+    const sttBatch = await Bun.file('src/cli/commands/stt/stt-batch/stt-batch.ts').text()
     expect(registry).toContain('./extract/stt-resume')
-    expect(registry).toContain('./write/write-resume')
+    expect(registry).toContain('./resume-write/write-resume')
     expect(registry).toContain('./generation/tts-resume')
     expect(sttBatch).toContain('~/cli/commands/setup-and-utilities/resume/extract/stt-resume')
     for (const stalePath of removedStepLocalModules) {

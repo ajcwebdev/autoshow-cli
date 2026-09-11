@@ -1,27 +1,27 @@
-import { partialCompletionError } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-batch-state'
+import { partialCompletionError } from '~/cli/commands/command-shared/provider-batch-state'
 import { isRecord } from '~/utils/rest-client'
 import { DocumentMetadataSchema } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { validateData } from '~/utils/validate/validation'
-import { processOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/process-ocr'
-import { downloadDocumentUrlToTempFile } from '~/cli/commands/process-steps/step-1-download/document/resolve-document-source'
+import { processOcr } from '~/cli/commands/text/ocr/process-ocr'
+import { downloadDocumentUrlToTempFile } from '~/cli/commands/sources/download/document/resolve-document-source'
 import {
   buildMissingTargetsFromEntry,
   hasOnlyBlockedMissingTargetsFromEntry,
   resolveCanonicalCompletionStatus,
   parseStoredRequestedTargets
-} from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-run-state'
-import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord } from '~/cli/commands/process-steps/pipeline-manifest'
+} from '~/cli/commands/text/ocr/ocr-run-state'
+import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord } from '~/cli/commands/command-shared/pipeline-manifest'
 import type { AggregatedPriceEstimate, NormalizedReasoningEffort, OcrExtractionOptions, OcrPoolLedger, OcrProviderMode, OcrResumePassContext, OcrTarget, PipelineItemRecord, PreparedDocument, ProviderCompletionStatus, ProviderResumePassResult, ResolvedStep2Execution, ResumeDisplayOptions, ResumeOcrEntry, ResumeResult, ResumeTarget, Step1SourceRef, WebArticleMetadata } from '~/types'
 import { resolveAdditiveResumeProviderSelection } from '../resume-provider-selection'
 import { hasResumableProviderTargetWork, priceProviderResumeTarget, providerResumeSourceInput, resolveProviderResumeOutputDir, runProviderResumePass, selectedProviderTargetsComplete, selectedProvidersCompleteResult, toProviderResumeResult, toProviderResumeSource, withProviderResumeOutputDir } from '../provider-batch-resume'
-import { buildExtractEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates'
+import { buildExtractEstimates } from '~/cli/commands/text/ocr/ocr-pricing/build-extract-estimates'
 import { isNormalizedReasoningEffort, resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
-import { writeOcrBatchDiagnostics } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-batch-diagnostics'
-import { getStep2ActiveModelsForService } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { writeOcrBatchDiagnostics } from '~/cli/commands/text/ocr/ocr-batch-diagnostics'
+import { getStep2ActiveModelsForService } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { getOcrTargetKey } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-run-state'
-import { parseStoredOcrPoolLedger } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch'
+import { getOcrTargetKey } from '~/cli/commands/text/ocr/ocr-run-state'
+import { parseStoredOcrPoolLedger } from '~/cli/commands/text/ocr/ocr-pooled-batch'
 
 const storedOcrProviderMode = (record: Record<string, unknown>): OcrProviderMode =>
   record['ocrProviderMode'] === 'pool' ? 'pool' : 'fanout'

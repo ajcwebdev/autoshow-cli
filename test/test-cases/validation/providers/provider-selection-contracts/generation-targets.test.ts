@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { collectImageTargets } from '~/cli/commands/process-steps/step-5-image/image-generation-targets'
-import { collectVideoTargets } from '~/cli/commands/process-steps/step-6-video/video-targets'
-import { collectMusicTargets } from '~/cli/commands/process-steps/step-7-music/music-targets'
+import { collectImageTargets } from '~/cli/commands/visuals/image/image-generation-targets'
+import { collectVideoTargets } from '~/cli/commands/visuals/video/video-targets'
+import { collectMusicTargets } from '~/cli/commands/audio/music/music-targets'
 
 describe('provider selection contracts', () => {
   test('BFL/Replicate image and remaining video flags select targets and participate in all-provider shortcuts', () => {

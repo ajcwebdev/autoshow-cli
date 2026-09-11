@@ -1,5 +1,5 @@
 import { describe,expect,test } from 'bun:test'
-import { estimateMusicCosts } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
+import { estimateMusicCosts } from '~/cli/commands/audio/music/music-utils/music-pricing'
 
 describe('price mode contracts', () => {
 

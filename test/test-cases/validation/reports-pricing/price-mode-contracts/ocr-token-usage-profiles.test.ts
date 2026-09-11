@@ -1,11 +1,11 @@
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
-import { estimateOcrTokenUsage } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
+import { estimateOcrTokenUsage } from '~/cli/commands/text/ocr/ocr-pricing/ocr-estimates'
 import {
   persistHostedOcrTokenUsageProfiles,
   readHostedOcrTokenUsageProfiles
-} from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-token-profiles'
+} from '~/cli/commands/text/ocr/ocr-utils/hosted-ocr-token-profiles'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
 import type { ExtractionMetadata } from '~/types'

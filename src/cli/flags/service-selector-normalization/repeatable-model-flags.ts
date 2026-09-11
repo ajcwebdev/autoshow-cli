@@ -7,8 +7,8 @@ import {
   WRITE_OCR_PROVIDER_TARGETS,
   WRITE_STT_PROVIDER_TARGETS
 } from './provider-targets'
-import { STEP2_OCR_PROVIDER_REGISTRY } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry/ocr-providers'
-import { STEP2_STT_PROVIDER_REGISTRY } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry/stt-providers'
+import { STEP2_OCR_PROVIDER_REGISTRY } from '~/cli/commands/command-shared/extract-routing/provider-registry/ocr-providers'
+import { STEP2_STT_PROVIDER_REGISTRY } from '~/cli/commands/command-shared/extract-routing/provider-registry/stt-providers'
 import type { ModelFlag } from '~/types'
 
 const projectModelFlags = <
@@ -30,7 +30,6 @@ const targetValues = <const Targets extends Readonly<Record<string, string>>>(
 ): Array<Targets[keyof Targets]> => Object.values(targets) as Array<Targets[keyof Targets]>
 
 const STT_MODEL_FLAG_ORDER = [
-  WRITE_STT_PROVIDER_TARGETS.whisper,
   WRITE_STT_PROVIDER_TARGETS.whisperfile,
   WRITE_STT_PROVIDER_TARGETS.deepinfra,
   WRITE_STT_PROVIDER_TARGETS.grok,

@@ -2,16 +2,14 @@ import { mkdir, readdir, rm } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
 import type { DirectoryEntry } from '~/types'
 import { join } from 'node:path'
-import { setupTesseractOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-local/tesseract-setup'
-import { downloadWhisperModel, setupWhisper } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper'
-import { setupWhisperfile } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisperfile/whisperfile'
+import { setupTesseractOcr } from '~/cli/commands/text/ocr/ocr-local/tesseract-setup'
+import { setupWhisperfile } from '~/cli/commands/stt/local/whisperfile/whisperfile'
 import { DEFAULT_WHISPERFILE_MODEL } from '~/cli/commands/setup-and-utilities/models/stt-models'
-import { defuddleRuntimeDir, setupDefuddleCli } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/defuddle-cli'
+import { defuddleRuntimeDir, setupDefuddleCli } from '~/cli/commands/text/url/url-local/defuddle/defuddle-cli'
 import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio'
 import { setupCalibreDocumentTools } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre'
-import { logSetupToolStatus } from '~/cli/commands/setup-and-utilities/setup/setup-logging'
 import { formatSetupElapsed, runWithSetupHeartbeat } from '~/cli/commands/setup-and-utilities/setup/setup-heartbeat'
-import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, ReclaimableWhisperCoremlArtifact, RunOptions, RunResult, SetupPlatform, SetupStepId } from '~/types'
+import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, RunOptions, RunResult, SetupPlatform, SetupStepId } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { isJsonResultActive, isLogLevelEnabled } from '~/utils/app-logger/app-logger'
 import { isCompactSetupMode, setCompactSetupMode } from '~/utils/setup-output-mode'
@@ -50,10 +48,6 @@ import { childEnv } from '~/utils/child-env'
 
 const RUNTIME = RUNTIME_DIR
 
-export const whisperBinaryPath = join(RUNTIME, 'bin/whisper-cli')
-export const whisperLibDir = join(RUNTIME, 'bin/lib')
-export const whisperBuildDir = join(RUNTIME, 'build/whisper.cpp')
-export const whisperModelsDir = join(RUNTIME, 'models/whisper')
 export const whisperfileDir = join(RUNTIME, 'bin/whisperfile')
 export const whisperfileBinaryPath = (model: string): string => join(whisperfileDir, `whisper-${model}.llamafile`)
 const readStream = async (stream: ReadableStream<Uint8Array> | null | undefined): Promise<string> =>
@@ -204,8 +198,7 @@ export const detectPlatform = (): SetupPlatform => {
   return 'unknown'
 }
 
-export const defaultWhisperModel = 'tiny'
-const defaultMusicWhisperModel = 'large-v3-turbo'
+const defaultMusicWhisperfileModel = 'small.en'
 
 const withCompactSetup = async (fn: () => Promise<void>): Promise<void> => {
   const previous = isCompactSetupMode()
@@ -219,8 +212,6 @@ const ensureRuntimeDirs = async (): Promise<void> => {
   await Promise.all([
     mkdir(RUNTIME_BIN_DIR, { recursive: true }),
     mkdir(RUNTIME_TOOLS_DIR, { recursive: true }),
-    mkdir(whisperBuildDir, { recursive: true }),
-    mkdir(whisperModelsDir, { recursive: true }),
     mkdir(whisperfileDir, { recursive: true })
   ])
 }
@@ -233,24 +224,6 @@ const logPinnedVersions = async (): Promise<void> => {
     category: 'command',
     metadata: { dependencies: pinned.map(({ name, version }) => ({ name, version: formatVersion(version) })) }
   })
-}
-
-const validateBinary = async (name: string, path: string, args: string[]): Promise<void> => {
-  if (!await pathExists(path)) { l.warn(`${name}: not found at ${path}`, { category: 'command', metadata: { tool: name, path, status: 'missing' } }); return }
-  try {
-    const result = await runCapture(path, args, { allowFailure: true })
-    if (result.exitCode === 0 || result.exitCode === 1) {
-      logSetupToolStatus({ tool: name, status: 'ready', detail: path })
-    } else l.warn(`${name}: installed but exited ${result.exitCode} (may still work)`, {
-      category: 'command',
-      metadata: { tool: name, path, exitCode: result.exitCode, status: 'unhealthy' }
-    })
-  } catch (err) {
-    l.warn(`${name}: could not execute — ${err instanceof Error ? err.message : String(err)}`, {
-      category: 'command',
-      metadata: { tool: name, path, status: 'unexecutable' }, error: err
-    })
-  }
 }
 
 const TRANSCRIPTION_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.extract.stt.')
@@ -301,44 +274,6 @@ const walkDirectorySize = async (root: string): Promise<number> => {
 }
 
 const directorySize = async (root: string): Promise<number> => await walkDirectorySize(root)
-
-export const collectReclaimableWhisperCoremlArtifacts = async (options: {
-  coremlEnvDir?: string
-  modelsDir?: string
-} = {}): Promise<ReclaimableWhisperCoremlArtifact[]> => {
-  const coremlEnvDir = options.coremlEnvDir ?? join(RUNTIME_BIN_DIR, 'whisper-coreml-env')
-  const modelsDir = options.modelsDir ?? whisperModelsDir
-  const paths: string[] = []
-
-  if (await pathExists(coremlEnvDir)) paths.push(coremlEnvDir)
-
-  try {
-    const encoderPackages = (await readdir(modelsDir, { withFileTypes: true }))
-      .filter((entry) => entry.isDirectory() && (entry.name.endsWith('.mlmodelc') || entry.name.endsWith('.mlpackage')))
-      .map((entry) => join(modelsDir, entry.name))
-      .sort()
-    paths.push(...encoderPackages)
-  } catch {
-  }
-
-  return await Promise.all(paths.map(async (path) => ({
-    path,
-    bytes: await directorySize(path)
-  })))
-}
-
-const logReclaimableWhisperCoremlArtifacts = async (): Promise<void> => {
-  const artifacts = await collectReclaimableWhisperCoremlArtifacts()
-  if (artifacts.length === 0) return
-
-  l.write('info', `${artifacts.length} legacy Whisper CoreML artifacts are reclaimable`, {
-    category: 'artifact',
-    metadata: {
-      artifacts,
-      totalBytes: artifacts.reduce((total, artifact) => total + artifact.bytes, 0)
-    }
-  })
-}
 
 const RECLAIMED_BUILD_TREE_MIN_BYTES = 10 * 1024 * 1024
 
@@ -396,7 +331,6 @@ const logSetupSummary = async (
   providerSummary: HostedProviderConfigurationSummary
 ): Promise<boolean> => {
   const localToolChecks = [
-    ['whisper-cli', await pathExists(whisperBinaryPath)] as const,
     ['ffmpeg', hasRuntimeTool('ffmpeg')] as const,
     ['ffprobe', hasRuntimeTool('ffprobe')] as const,
     ['yt-dlp', hasRuntimeTool('yt-dlp')] as const,
@@ -406,8 +340,7 @@ const logSetupSummary = async (
     ['qpdf', hasRuntimeTool('qpdf')] as const
   ]
   const localModelChecks = [
-    [`whisper ${defaultWhisperModel}`, await pathExists(`${whisperModelsDir}/ggml-${defaultWhisperModel}.bin`)] as const,
-    [`whisper ${defaultMusicWhisperModel}`, await pathExists(`${whisperModelsDir}/ggml-${defaultMusicWhisperModel}.bin`)] as const
+    [`whisperfile ${DEFAULT_WHISPERFILE_MODEL}`, await pathExists(whisperfileBinaryPath(DEFAULT_WHISPERFILE_MODEL))] as const
   ]
   const missingTools = localToolChecks.filter(([, ok]) => !ok).map(([name]) => name)
   const missingModels = localModelChecks.filter(([, ok]) => !ok).map(([name]) => name)
@@ -446,11 +379,9 @@ const runFullSetup = async (): Promise<boolean> => {
         { label: 'media tools', run: setupYtDependencies },
         { label: 'Defuddle', run: setupDefuddleCli },
         {
-          label: 'Whisper',
+          label: 'Whisperfile',
           run: async () => {
-            await setupWhisper()
-            await downloadWhisperModel(defaultWhisperModel)
-            await downloadWhisperModel(defaultMusicWhisperModel)
+            await setupWhisperfile(DEFAULT_WHISPERFILE_MODEL)
           }
         },
         { label: 'document tools', run: setupCalibreDocumentTools },
@@ -458,10 +389,7 @@ const runFullSetup = async (): Promise<boolean> => {
       ])
     })
 
-    await validateBinary('whisper-cli', whisperBinaryPath, ['--help'])
-
     await pruneBuildTrees()
-    await logReclaimableWhisperCoremlArtifacts()
     logSetupStepTimings()
     healthy = await logSetupSummary(startedAtMs, providerSummary)
 
@@ -486,7 +414,7 @@ const runFullSetup = async (): Promise<boolean> => {
 export const runCompleteSetup = async (): Promise<boolean> => await runFullSetup()
 
 const runSetupTranscription = async (): Promise<void> => {
-  await downloadWhisperModel('large-v3-turbo')
+  await setupWhisperfile(DEFAULT_WHISPERFILE_MODEL)
   logSetupProviderConfiguration('Transcription Provider Configuration', TRANSCRIPTION_PROVIDER_ENV_KEYS)
   l.write('info', 'Transcription setup complete', { category: 'command' })
 }
@@ -516,25 +444,17 @@ const runSetupMusic = async (): Promise<void> => {
     )
   }
 
-  await setupWhisper()
-  await downloadWhisperModel('large-v3-turbo')
+  await setupWhisperfile(defaultMusicWhisperfileModel)
   l.write('info', 'Music setup complete', { category: 'command' })
 }
 
 export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readonly string[]> => {
-  const whisperModelPath = `${whisperModelsDir}/ggml-${defaultWhisperModel}.bin`
-  const lyricsWhisperModelPath = `${whisperModelsDir}/ggml-${defaultMusicWhisperModel}.bin`
   switch (step) {
-    case 'whisper-binary': return [whisperBinaryPath, whisperBuildDir]
-    case 'whisper-model': return [whisperModelPath]
+    case 'transcription':
     case 'whisperfile': return [whisperfileBinaryPath(DEFAULT_WHISPERFILE_MODEL)]
     case 'defuddle': return [defuddleRuntimeDir]
-    case 'music': return [whisperBinaryPath, whisperBuildDir, lyricsWhisperModelPath]
+    case 'music': return [whisperfileBinaryPath(defaultMusicWhisperfileModel)]
     case 'all': return [
-      whisperBinaryPath,
-      whisperBuildDir,
-      whisperModelPath,
-      lyricsWhisperModelPath,
       whisperfileBinaryPath(DEFAULT_WHISPERFILE_MODEL),
       defuddleRuntimeDir,
       ytDlpManagedBinaryPath,
@@ -554,7 +474,6 @@ export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readon
     ]
     case 'yt-dlp': return [ytDlpManagedBinaryPath, ffmpegManagedBinaryPath, ffprobeManagedBinaryPath, ffmpegBuildDir, ffmpegToolDir, lameBuildDir, lameToolDir]
     case 'calibre': return [mutoolManagedBinaryPath, mupdfBuildDir, mupdfToolDir, qpdfManagedBinaryPath, qpdfBuildDir, qpdfToolDir, ebookConvertManagedBinaryPath, calibreToolDir]
-    case 'transcription': return []
     default: { const exhaustive: never = step; throw InternalError(`Unknown setup step: ${exhaustive}`, { stage: 'setup:run' }) }
   }
 }
@@ -574,8 +493,6 @@ const executeStepOnce = async (step: SetupStepId): Promise<boolean> => {
   switch (step) {
     case 'all': return await runCompleteSetup()
     case 'yt-dlp': await setupYtDependencies(); return true
-    case 'whisper-binary': await setupWhisper(); return true
-    case 'whisper-model': await downloadWhisperModel(defaultWhisperModel); return true
     case 'whisperfile': await setupWhisperfile(DEFAULT_WHISPERFILE_MODEL); return true
     case 'defuddle': await setupDefuddleCli(); return true
     case 'calibre': await setupCalibreDocumentTools(); return true

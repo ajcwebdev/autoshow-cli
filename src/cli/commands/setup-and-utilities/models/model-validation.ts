@@ -23,7 +23,6 @@ const SELECTOR_CATEGORIES = [
 ] as const satisfies readonly { stepFlag: string, targets: Record<string, string> }[]
 
 const IRREGULAR_SELECTORS: Record<string, string> = {
-  whisper: '--provider/--stt whisper[=model]',
   whisperfile: '--provider/--stt whisperfile[=model]'
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildWriteManifestSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
+import { buildWriteManifestSummary } from '~/cli/commands/command-shared/write-manifest-log/write-manifest-log'
 
 describe('EPUB manifest logging contracts', () => {
   test('native EPUB extract manifest summary displays sections instead of pages', () => {

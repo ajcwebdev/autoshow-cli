@@ -22,8 +22,8 @@ import {
   REPLICATE_SEEDANCE_ASPECT_RATIOS,
   REPLICATE_SEEDANCE_DURATION_RANGE,
   REPLICATE_VIDEO_RESOLUTIONS
-} from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
-import { FAL_H3_ASPECT_RATIOS, FAL_H3_RESOLUTIONS, FAL_PIXVERSE_ASPECT_RATIOS, FAL_PIXVERSE_RESOLUTIONS } from '~/cli/commands/process-steps/step-6-video/video-services/fal-video-service/run-fal-video-gen'
+} from '~/cli/commands/visuals/video/video-utils/video-normalization'
+import { FAL_H3_ASPECT_RATIOS, FAL_H3_RESOLUTIONS, FAL_PIXVERSE_ASPECT_RATIOS, FAL_PIXVERSE_RESOLUTIONS } from '~/cli/commands/visuals/video/video-services/fal-video-service/run-fal-video-gen'
 
 const seedanceExtraAspectRatios = REPLICATE_SEEDANCE_ASPECT_RATIOS.filter(
   (ratio) => !(REPLICATE_COMMON_ASPECT_RATIOS as readonly string[]).includes(ratio)

@@ -2,9 +2,9 @@ import { describe, expect, test } from 'bun:test'
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { collectLeafPrompts, getAvailablePromptNames, resolvePromptNames } from '~/prompts/prompt-loader'
-import { resolveStructuredSchema } from '~/cli/commands/process-steps/step-3-write/structured-output/schema-resolver'
-import { parseAndValidateStructured } from '~/cli/commands/process-steps/step-3-write/structured-output/validator'
-import { readPromptFile } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
+import { resolveStructuredSchema } from '~/cli/commands/text/write/structured-output/schema-resolver'
+import { parseAndValidateStructured } from '~/cli/commands/text/write/structured-output/validator'
+import { readPromptFile } from '~/cli/commands/text/write/text-input-utils'
 import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const MARKDOWN_PROMPT_SNAPSHOT = {

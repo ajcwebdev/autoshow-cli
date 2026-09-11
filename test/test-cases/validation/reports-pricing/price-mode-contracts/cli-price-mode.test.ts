@@ -19,7 +19,7 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
   },
   {
     label: 'extract',
-    args: ['extract', LOCAL_EXAMPLE_AUDIO_PATH, '--provider', 'whisper=tiny', '--price', '--json'],
+    args: ['extract', LOCAL_EXAMPLE_AUDIO_PATH, '--provider', 'whisperfile=tiny', '--price', '--json'],
     expected: 'totalEstimatedCostCents'
   },
   {

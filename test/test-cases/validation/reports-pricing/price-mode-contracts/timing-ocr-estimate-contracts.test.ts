@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { collectEstimatedExtractTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-costs'
+import { collectEstimatedExtractTargets } from '~/cli/commands/text/ocr/ocr-costs'
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { buildOcrTimingMetadata, missingHostedOcrProfilePath } from './shared'

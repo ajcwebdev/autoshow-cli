@@ -5,12 +5,12 @@ import {
   imageReferenceToDataUrl,
   imageReferenceToInlineDataPart,
   validateImageInputReferences
-} from '~/cli/commands/process-steps/step-5-image/image-utils/image-inputs'
+} from '~/cli/commands/visuals/image/image-utils/image-inputs'
 import {
   validateVideoMediaReferences,
   videoMediaReferenceToGeminiInlineData,
   videoMediaReferenceToUrlOrDataUrl
-} from '~/cli/commands/process-steps/step-6-video/video-utils/video-media-inputs'
+} from '~/cli/commands/visuals/video/video-utils/video-media-inputs'
 import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
 const tempDirs = setupContractSuiteLifecycle({ envKeys: [], tempPrefix: 'autoshow-media-reference-' })

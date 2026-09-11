@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { runOcrProviderTargetPools, isLocalOcrTarget } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool'
-import { runLlmProviderTargetPools } from '~/cli/commands/process-steps/step-3-write/llm-provider-pool'
+import { runOcrProviderTargetPools, isLocalOcrTarget } from '~/cli/commands/text/ocr/ocr-provider-pool'
+import { runLlmProviderTargetPools } from '~/cli/commands/text/write/llm-provider-pool'
 import type { LLMTarget, OcrTarget, Step3Metadata } from '~/types'
 
 describe('option resolution contracts', () => {

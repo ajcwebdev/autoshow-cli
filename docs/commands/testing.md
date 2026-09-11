@@ -1,6 +1,6 @@
 # Testing
 
-Shared `bun t` runner behavior plus the local and service test coverage map for the AutoShow CLI. Per-step test pages live beside their command docs and are indexed in [Step Test Pages](#step-test-pages).
+Shared `bun t` runner behavior plus the local and service test coverage map for the AutoShow CLI. Capability test pages live beside their command docs and are indexed in [Command Test Pages](#command-test-pages).
 
 Default local verification is `bun run check` followed by `bun t --price`. Price mode estimates mapped commands without executing provider tests. The other `bun t` commands below may call paid or quota-limited providers. Do not use them as a default verification pass without explicit approval for that exact run.
 
@@ -10,7 +10,7 @@ Default local verification is `bun run check` followed by `bun t --price`. Price
 
 - [Local Quick Start](#local-quick-start)
 - [Service Quick Start](#service-quick-start)
-- [Step Test Pages](#step-test-pages)
+- [Command Test Pages](#command-test-pages)
 - [Shared Runner Behavior](#shared-runner-behavior)
 - [Price Preflight](#price-preflight)
 - [No-Cost CI Gate](#no-cost-ci-gate)
@@ -23,44 +23,48 @@ Default local verification is `bun run check` followed by `bun t --price`. Price
 ```bash
 # local e2e coverage
 bun t \
-  test/test-cases/e2e/local/step-1-download-e2e/download-input-types-local-file.test.ts \
-  test/test-cases/e2e/local/step-2-ocr-e2e/ocr-local/ \
-  test/test-cases/e2e/local/step-2-stt-e2e/stt-local/ \
-  test/test-cases/e2e/local/step-3-write-e2e/write-local/ \
-  test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video.test.ts
+  test/test-cases/e2e/local/sources/download/download-input-types-local-file.test.ts \
+  test/test-cases/e2e/local/text/ocr/ \
+  test/test-cases/e2e/local/stt/ \
+  test/test-cases/e2e/local/text/write/ \
+  test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts
 ```
 
 ## Service Quick Start
 
 ```bash
 # network-backed download coverage
-bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-direct-url.test.ts
-bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-streaming.test.ts
-bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-feed-or-channel.test.ts
+bun t test/test-cases/e2e/local/sources/download/download-input-types-direct-url.test.ts
+bun t test/test-cases/e2e/local/sources/download/download-input-types-streaming.test.ts
+bun t test/test-cases/e2e/local/sources/download/download-input-types-feed-or-channel.test.ts
 
 # service command suites; exported credentials only, with automatic .env loading disabled
-bun --no-env-file run t:provider test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/
-bun --no-env-file run t:provider test/test-cases/e2e/service/step-2-stt-e2e/stt-services/
-bun --no-env-file run t:provider test/test-cases/e2e/service/step-3-write-e2e/write-services/
-bun --no-env-file run t:provider test/test-cases/e2e/service/step-4-tts-e2e/tts-services/
-bun --no-env-file run t:provider test/test-cases/e2e/service/step-5-image-gen-e2e/
-bun --no-env-file run t:provider test/test-cases/e2e/service/step-6-video-gen-e2e/
-bun --no-env-file run t:provider test/test-cases/e2e/service/step-7-music-gen-e2e/
+bun --no-env-file run t:provider test/test-cases/e2e/service/text/ocr/
+bun --no-env-file run t:provider test/test-cases/e2e/service/text/url/
+bun --no-env-file run t:provider test/test-cases/e2e/service/stt/
+bun --no-env-file run t:provider test/test-cases/e2e/service/text/write/
+bun --no-env-file run t:provider test/test-cases/e2e/service/audio/tts/
+bun --no-env-file run t:provider test/test-cases/e2e/service/visuals/image/
+bun --no-env-file run t:provider test/test-cases/e2e/service/visuals/video/
+bun --no-env-file run t:provider test/test-cases/e2e/service/audio/music/
 ```
 
 The `t:provider` entrypoint is reserved for an explicitly approved provider run. Export only the credential required by that exact selection before invoking it; the command does not auto-load `.env`.
 
-## Step Test Pages
+## Command Test Pages
 
-- [Setup Tests](setup-and-utilities/setup/setup-tests.md)
-- [Step 1 Tests: Download](process-steps/step-1-download/02-download-tests.md)
-- [Step 2 Tests: STT](process-steps/step-2-extract/08-extract-stt-tests.md)
-- [Step 2 Tests: OCR](process-steps/step-2-extract/09-extract-ocr-tests.md)
-- [Step 3 Service Tests: Write](process-steps/step-3-write/03-write-tests.md)
-- [Step 4 Service Tests: TTS](process-steps/step-4-tts/03-tts-tests.md)
-- [Step 5 Service Tests: Image](process-steps/step-5-image/03-image-tests.md)
-- [Step 6 Service Tests: Video](process-steps/step-6-video/03-video-tests.md)
-- [Step 7 Tests: Music](process-steps/step-7-music/03-music-tests.md)
+Command source, documentation, validation, and price tests use the `sources`, `stt`, `text`, `audio`, and `visuals` capability groups. E2E tests retain `local/` and `service/` as their first level. Shared CLI, configuration, runtime, pricing, resume, setup, provider, and mixed-feature contracts remain in their shared locations.
+
+- [Setup Tests](setup-and-utilities/setup.md#testing)
+- [Download Tests](sources/download/tests.md)
+- [STT Tests](stt/tests.md)
+- [OCR Tests](text/ocr/tests.md)
+- [URL Tests](text/url/tests.md)
+- [Write Service Tests](text/write/tests.md)
+- [TTS Service Tests](audio/tts/tests.md)
+- [Image Service Tests](visuals/image/tests.md)
+- [Video Service Tests](visuals/video/tests.md)
+- [Music Tests](audio/music/tests.md)
 
 ## Shared Runner Behavior
 
@@ -108,7 +112,7 @@ Setup relaunches only the `setup` command under Bun's `--no-orphans` mode. The r
 
 ```bash
 bun t --price
-bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/ --budget 2500
+bun t test/test-cases/e2e/service/text/write/ --budget 2500
 ```
 
 - `--price` with no path filters resolves all mapped test price commands.
@@ -170,11 +174,11 @@ Historical Bun 1.4 measurements are archived with the decisions they support: [X
 
 ## Cross-Cutting Coverage
 
-No-cost suites that are not tied to a single step:
+No-cost suites that are shared across commands:
 
 - `test/test-cases/validation/cli/option-resolution-contracts/` covers model-option resolution.
 - `test/test-cases/validation/providers/provider-selection-contracts/` covers provider-flag acceptance, rejection, and shared flags.
 - `test/test-cases/validation/reports-pricing/price-mode-contracts/` covers price-mode behavior.
-- `test/test-cases/validation/ingest/html-url-backends-contracts/` covers URL article contracts.
+- `test/test-cases/validation/text/url/html-url-backends-contracts/` covers URL article contracts.
 - `test/test-cases/validation/providers/` and `test/test-cases/validation/resume-manifests/` cover provider contracts and resume manifests.
 - `test/test-cases/price-flag/` covers `--price` for STT, OCR, write, TTS, image, video, and music.

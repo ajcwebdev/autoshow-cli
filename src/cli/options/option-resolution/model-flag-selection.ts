@@ -38,7 +38,7 @@ import {
   getStep2ProviderEntries,
   getStep2AllShortcutModelExpansions,
   isStep2BooleanProviderSelected
-} from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+} from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import { REPEATABLE_MODEL_FLAGS } from '~/cli/flags/service-selector-normalization/repeatable-model-flags'
 import type { AllShortcutFlag, CliFlagOccurrence, FlagOccurrenceValue, RepeatableModelFlag, Step2ProviderSelectionOrigin } from '~/types'
 import { readBooleanFlag } from './flag-readers'

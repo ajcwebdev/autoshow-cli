@@ -8,10 +8,10 @@ import {
 } from '../../../../test-utils/cli-assertions'
 import {
   draftScenesCommandDefinition
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
+} from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_VIDEO_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { VOICE_PUBLIC_ACTIONS } from '~/cli/commands/process-steps/step-4-tts/voice-management/define-voice-command'
+import { VOICE_PUBLIC_ACTIONS } from '~/cli/commands/audio/voice/define-voice-command'
 import { SETUP_STEP_IDS } from '~/types'
 
 const removedSetupCommand = ['so', 'ck'].join('')
@@ -130,7 +130,7 @@ const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['write', 'https://example.com/a.mp3', '--music-duration', '20'], flag: '--music-duration' },
   { argv: ['write', 'https://example.com/a.mp3', '--tts-speaker', 'Host=Jasper'], flag: '--tts-speaker' },
   { argv: ['write', 'https://example.com/a.mp3', '--elevenlabs-tts-stability', '0.4'], flag: '--elevenlabs-tts-stability' },
-  { argv: ['write', 'notes.md', '--stt', 'whisper'], flag: '--stt' },
+  { argv: ['write', 'notes.md', '--stt', 'whisperfile'], flag: '--stt' },
   { argv: ['write', 'notes.md', '--ocr', 'tesseract'], flag: '--ocr' },
   { argv: ['write', 'notes.md', '--text-input'], flag: '--text-input' },
   { argv: ['write', 'notes.md', '--youtube-captions'], flag: '--youtube-captions' },

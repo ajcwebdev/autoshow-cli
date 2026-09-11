@@ -15,6 +15,7 @@ describe('combined-report metric ranking contracts', () => {
     ['ocr', 3, ['local', 'thirdPartyService']],
     ['stt-with-speakers', 4, ['local', 'thirdPartyServiceNonDiarization', 'thirdPartyServiceDiarization']],
     ['stt-without-speakers', 4, ['local', 'thirdPartyServiceNonDiarization', 'thirdPartyServiceDiarization']],
+    ['stt-local', 4, ['local', 'thirdPartyServiceNonDiarization', 'thirdPartyServiceDiarization']],
     ['url', 2, ['local', 'service']]
   ] as const) {
     test(`generated ${directory} artifacts rank cost, speed, and quality per group`, () => {
@@ -156,6 +157,22 @@ describe('combined dashboard metric table sorting', () => {
     )
     expect(html).toContain('class="provider-sort"')
     expect(html).toContain('name="sort-thirdPartyServiceDiarization"')
+    expect(html).toContain('value="quality" checked')
+    expect(html).toContain('value="speed"')
+    expect(html).toContain('value="cost"')
+    expect(html).toContain('class="tablewrap sort-quality"')
+    expect(html).toContain('class="tablewrap sort-speed"')
+    expect(html).toContain('class="tablewrap sort-cost"')
+    expect(html).not.toMatch(/<script[\s>]/i)
+  })
+
+  test('committed stt-local dashboard exposes quality, cost, and speed sorts', () => {
+    const html = readFileSync(
+      join(projectRoot, 'docs', 'benchmarks', 'stt-local', 'combined-comparison-report.html'),
+      'utf8',
+    )
+    expect(html).toContain('class="provider-sort"')
+    expect(html).toContain('name="sort-local"')
     expect(html).toContain('value="quality" checked')
     expect(html).toContain('value="speed"')
     expect(html).toContain('value="cost"')

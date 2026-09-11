@@ -14,7 +14,7 @@ export const configCommand = defineCliCommand({
   help: {
     examples: [
       ['bun autoshow config --show', 'Print current config'],
-      ['bun autoshow config --llm openai=gpt-5.4-mini --stt whisper=base', 'Set default LLM and STT model'],
+      ['bun autoshow config --llm openai=gpt-5.4-mini --stt whisperfile=small', 'Set default LLM and STT model'],
       ['bun autoshow config --cookies-from-browser chrome', 'Persist YouTube browser-cookie import'],
       ['bun autoshow config --reset', 'Clear all saved config']
     ]

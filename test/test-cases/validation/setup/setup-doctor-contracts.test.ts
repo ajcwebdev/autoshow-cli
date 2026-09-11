@@ -31,7 +31,7 @@ const makeDoctorProbes = (overrides: Partial<DoctorProbes> = {}): Partial<Doctor
   env: {},
   which: (command: string) => `/usr/bin/${command}`,
   pathExists: async () => true,
-  listDirectory: async () => ['ggml-tiny.bin', 'ggml-large-v3-turbo.bin'],
+  listDirectory: async () => ['whisper-tiny.llamafile', 'whisper-small.en.llamafile'],
   directoryHasFiles: async () => true,
   run: async (command: string, args: string[]) => {
     if (command.includes('tesseract') && args.includes('--list-langs')) {
@@ -94,19 +94,16 @@ describe('setup doctor contracts', () => {
 
   test('doctor reports missing managed runtimes and local model assets', async () => {
     const missingPathFragments = [
-      '/runtime/bin/whisper-cli',
-      'ggml-tiny.bin',
-      'ggml-large-v3-turbo.bin'
+      'whisper-tiny.llamafile',
+      'whisper-small.en.llamafile'
     ]
     const report = await collectDoctorReport(makeDoctorProbes({
       pathExists: async (path) => !missingPathFragments.some(fragment => path.includes(fragment))
     }))
 
-    expect(findDoctorCheck(report, 'runtime/bin/whisper-cli').status).toBe('MISSING')
-    expect(findDoctorCheck(report, 'default whisper model tiny').status).toBe('MISSING')
-    expect(findDoctorCheck(report, 'music whisper model large-v3-turbo').status).toBe('MISSING')
-    expect(findDoctorCheck(report, 'music whisper model large-v3-turbo').nextStep).toBe('bun autoshow setup')
-    expect(report.nextSteps).toContain('bun autoshow setup --step whisper-binary')
+    expect(findDoctorCheck(report, 'whisperfile tiny').status).toBe('MISSING')
+    expect(findDoctorCheck(report, 'default whisperfile model tiny').status).toBe('MISSING')
+    expect(report.nextSteps).toContain('bun autoshow setup --step whisperfile')
   })
 
   test('doctor reports managed macOS media document and OCR tool readiness', async () => {
@@ -352,7 +349,6 @@ describe('setup doctor contracts', () => {
   test('transcription setup env keys cover registered engines with explicit local exceptions', () => {
     const prefix = 'defaults.extract.stt.'
     const enginesWithoutHostedCredentials = new Set<string>([
-      'whisper-stt',
       'whisperfile-stt'
     ])
     const expected = new Set<string>()

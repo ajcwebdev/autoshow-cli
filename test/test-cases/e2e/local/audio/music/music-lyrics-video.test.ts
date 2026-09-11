@@ -1,0 +1,242 @@
+import { afterAll, beforeAll, expect, test } from 'bun:test'
+import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises'
+import { basename, resolve } from 'node:path'
+import { budgetedTest, LONG_E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
+import {
+  cleanupTestOutput,
+  ensurePageImageFixture,
+  fileExists,
+  findLatestDirectory,
+  OUTPUT_DIR,
+  runCommand
+} from '../../../../../test-utils/test-helpers'
+import { readCanonicalManifest, readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
+import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/command-shared/pipeline-manifest'
+import { createNativeScenarioAdapter } from '../../../../../test-utils/native-scenario-adapter'
+import { expectArtifact } from '../../../../../test-utils/value-assertions'
+
+const SHORT_AUDIO_PATH = 'input/examples/audio/0-audio-short.mp3'
+const SHORT_AUDIO_SUFFIX = 'music-lyrics-0-audio-short'
+const RERENDER_SUFFIX = 'music-lyrics-0-audio-short-fixed'
+const EXAMPLE_SONG_AUDIO_PATH = 'input/examples/lyrics/01-example-song.mp3'
+const EXAMPLE_SONG_SUFFIX = 'music-lyrics-01-example-song'
+const BATCH_SUFFIX = 'music-lyrics-batch'
+const CAPTION_FIXTURE_DIR = `${OUTPUT_DIR}/music-lyrics-fixtures`
+const CAPTION_FIXTURE_PATH = `${CAPTION_FIXTURE_DIR}/0-audio-short-fixed.vtt`
+const MATCHING_IMAGE_PATH = 'input/examples/audio/0-audio-short.png'
+const BATCH_INPUT_ROOT = 'input/test-fixtures'
+const BATCH_INPUT_DIR = `${BATCH_INPUT_ROOT}/music-lyrics-batch`
+
+const probeVideoStream = async (videoPath: string): Promise<{ codecName: string, width: number, height: number }> => {
+  const stream = await createNativeScenarioAdapter().probe(videoPath)
+  return {
+    codecName: stream?.codec_name ?? '',
+    width: stream?.width ?? 0,
+    height: stream?.height ?? 0
+  }
+}
+
+beforeAll(async () => {
+  await cleanupTestOutput(SHORT_AUDIO_SUFFIX)
+  await cleanupTestOutput(RERENDER_SUFFIX)
+  await cleanupTestOutput(EXAMPLE_SONG_SUFFIX)
+  await cleanupTestOutput(BATCH_SUFFIX)
+  await mkdir(CAPTION_FIXTURE_DIR, { recursive: true })
+  await rm(BATCH_INPUT_DIR, { recursive: true, force: true })
+  await mkdir(BATCH_INPUT_DIR, { recursive: true })
+  await writeFile(CAPTION_FIXTURE_PATH, [
+    'WEBVTT',
+    '',
+    '00:00:00.000 --> 00:00:00.800',
+    'short line one',
+    '',
+    '00:00:00.900 --> 00:00:01.800',
+    'short line two',
+    ''
+  ].join('\n'))
+  await ensurePageImageFixture(MATCHING_IMAGE_PATH)
+  await copyFile(SHORT_AUDIO_PATH, `${BATCH_INPUT_DIR}/01-batch-one.mp3`)
+  await copyFile(SHORT_AUDIO_PATH, `${BATCH_INPUT_DIR}/02-batch-two.mp3`)
+})
+
+afterAll(async () => {
+  await cleanupTestOutput(SHORT_AUDIO_SUFFIX)
+  await cleanupTestOutput(RERENDER_SUFFIX)
+  await cleanupTestOutput(EXAMPLE_SONG_SUFFIX)
+  await cleanupTestOutput(BATCH_SUFFIX)
+  await rm(CAPTION_FIXTURE_DIR, { recursive: true, force: true })
+  await rm(BATCH_INPUT_ROOT, { recursive: true, force: true })
+  await rm(MATCHING_IMAGE_PATH, { force: true })
+})
+
+test('music lyric-video rerender uses edited captions, cleans tmp on success, and writes fixed render outputs', async () => {
+  await cleanupTestOutput(RERENDER_SUFFIX)
+
+  const result = await runCommand([
+    'src/cli/create-cli.ts',
+    'music',
+    '--audio',
+    SHORT_AUDIO_PATH,
+    '--captions',
+    CAPTION_FIXTURE_PATH
+  ], { timeoutMs: LONG_E2E_TEST_TIMEOUT_MS })
+
+  expect(result.exitCode).toBe(0)
+
+  const outputDir = result.outputDir ?? await findLatestDirectory(RERENDER_SUFFIX, result.outputRoot)
+  expect(outputDir).not.toBeNull()
+
+  if (outputDir) {
+    await expectArtifact(`${outputDir}/0-audio-short-fixed.mp4`)
+    await expectArtifact(`${outputDir}/0-audio-short-fixed.vtt`)
+    await expectArtifact(`${outputDir}/0-audio-short-fixed.srt`)
+    expect(await fileExists(`${outputDir}/.lyrics-tmp`)).toBe(false)
+
+    const manifest = await readCanonicalManifest(outputDir)
+    const record = await readCanonicalRecord(outputDir)
+    expect(manifest.command).toBe('music')
+    expect(record['mode']).toBe('lyric-video')
+    expect((record['transcription'] as Record<string, unknown>)['mode']).toBe('captions')
+    expect((record['render'] as Record<string, unknown>)['backgroundMode']).toBe('image')
+    expect((record['artifacts'] as Record<string, unknown>)['tempDirKept']).toBeUndefined()
+
+    const videoStream = await probeVideoStream(`${outputDir}/0-audio-short-fixed.mp4`)
+    expect(videoStream.codecName).toBe('h264')
+    expect(videoStream.width).toBe(1920)
+    expect(videoStream.height).toBe(1080)
+  }
+}, LONG_E2E_TEST_TIMEOUT_MS)
+
+budgetedTest('transcribe-whisperfile-tiny', 'music lyric-video transcribes local audio with whisperfile and cleans tmp by default', async () => {
+  await cleanupTestOutput(SHORT_AUDIO_SUFFIX)
+
+  const result = await runCommand([
+    'src/cli/create-cli.ts',
+    'music',
+    '--audio',
+    SHORT_AUDIO_PATH,
+    '--model',
+    'tiny'
+  ], { timeoutMs: LONG_E2E_TEST_TIMEOUT_MS })
+
+  expect(result.exitCode).toBe(0)
+
+  const outputDir = result.outputDir ?? await findLatestDirectory(SHORT_AUDIO_SUFFIX, result.outputRoot)
+  expect(outputDir).not.toBeNull()
+
+  if (outputDir) {
+    await expectArtifact(`${outputDir}/0-audio-short.mp4`)
+    await expectArtifact(`${outputDir}/0-audio-short.vtt`)
+    await expectArtifact(`${outputDir}/0-audio-short.srt`)
+    await expectArtifact(`${outputDir}/${PIPELINE_MANIFEST_FILE}`)
+    expect(await fileExists(`${outputDir}/.lyrics-tmp`)).toBe(false)
+
+    const manifest = await readCanonicalManifest(outputDir)
+    const record = await readCanonicalRecord(outputDir)
+    expect(manifest.command).toBe('music')
+    expect(record['mode']).toBe('lyric-video')
+    const transcription = record['transcription'] as Record<string, unknown>
+    expect(transcription['mode']).toBe('whisperfile')
+    expect(transcription['model']).toBe('tiny')
+    expect(typeof transcription['descriptor']).toBe('string')
+    expect(String(transcription['descriptor'])).toContain('whisper-tiny.llamafile')
+    expect(Number(transcription['cueCount'])).toBeGreaterThan(0)
+
+    const vtt = await Bun.file(`${outputDir}/0-audio-short.vtt`).text()
+    expect(vtt).toContain('WEBVTT')
+  }
+}, LONG_E2E_TEST_TIMEOUT_MS)
+
+budgetedTest('transcribe-whisperfile-small.en', 'bun autoshow music --audio input/examples/lyrics/01-example-song.mp3 renders the bundled example with the default whisperfile model', async () => {
+  await cleanupTestOutput(EXAMPLE_SONG_SUFFIX)
+
+  const result = await runCommand([
+    'src/cli/create-cli.ts',
+    'music',
+    '--audio',
+    EXAMPLE_SONG_AUDIO_PATH
+  ], { timeoutMs: LONG_E2E_TEST_TIMEOUT_MS })
+
+  expect(result.exitCode).toBe(0)
+
+  const outputDir = result.outputDir ?? await findLatestDirectory(EXAMPLE_SONG_SUFFIX, result.outputRoot)
+  expect(outputDir).not.toBeNull()
+
+  if (outputDir) {
+    await expectArtifact(`${outputDir}/01-example-song.mp4`)
+    await expectArtifact(`${outputDir}/01-example-song.vtt`)
+    await expectArtifact(`${outputDir}/01-example-song.srt`)
+    await expectArtifact(`${outputDir}/${PIPELINE_MANIFEST_FILE}`)
+    expect(await fileExists(`${outputDir}/.lyrics-tmp`)).toBe(false)
+
+    const manifest = await readCanonicalManifest(outputDir)
+    const record = await readCanonicalRecord(outputDir)
+    expect(manifest.command).toBe('music')
+    expect(record['mode']).toBe('lyric-video')
+
+    const transcription = record['transcription'] as Record<string, unknown>
+    expect(transcription['mode']).toBe('whisperfile')
+    expect(transcription['model']).toBe('small.en')
+    expect(typeof transcription['descriptor']).toBe('string')
+    expect(String(transcription['descriptor'])).toContain('whisper-small.en.llamafile')
+    expect(Number(transcription['cueCount'])).toBeGreaterThan(0)
+
+    const render = record['render'] as Record<string, unknown>
+    expect(render['backgroundMode']).toBe('image')
+
+    const videoStream = await probeVideoStream(`${outputDir}/01-example-song.mp4`)
+    expect(videoStream.codecName).toBe('h264')
+    expect(videoStream.width).toBe(1920)
+    expect(videoStream.height).toBe(1080)
+  }
+}, LONG_E2E_TEST_TIMEOUT_MS)
+
+budgetedTest('transcribe-whisperfile-tiny', 'music lyric-video batch writes one batch-scoped canonical manifest and child lyric items for the configured input tree', async () => {
+  await cleanupTestOutput(BATCH_SUFFIX)
+
+  const result = await runCommand([
+    'src/cli/create-cli.ts',
+    'music',
+    '--batch',
+    BATCH_INPUT_DIR,
+    '--json',
+    '--model',
+    'tiny'
+  ], { timeoutMs: LONG_E2E_TEST_TIMEOUT_MS })
+
+  expect(result.exitCode, result.stderr).toBe(0)
+  const terminalResult = JSON.parse(result.stdout)
+  expect(terminalResult).toMatchObject({
+    type: 'result',
+    status: 'success',
+    data: { dryRun: false, metrics: { total: 2, succeeded: 2, failed: 0 } }
+  })
+  expect(result.outputDir).not.toBeNull()
+
+  if (result.outputDir) {
+    const batchDir = resolve(process.cwd(), result.outputDir)
+    await expectArtifact(`${batchDir}/${PIPELINE_MANIFEST_FILE}`)
+
+    const manifest = await readCanonicalManifest(batchDir)
+    expect(manifest.command).toBe('music')
+    expect(manifest.source?.['mode']).toBe('lyric-video')
+    expect(manifest.items).toHaveLength(2)
+    const childDirNames = manifest.items
+      .map((item) => basename(String(item.outputDir)))
+      .sort()
+    expect(childDirNames).toEqual(['01-batch-one', '02-batch-two'])
+
+    for (const item of manifest.items) {
+      expect(item.status).toBe('full')
+      if (!item.outputDir) {
+        throw new Error('Expected music batch item outputDir')
+      }
+      const childDir = resolve(batchDir, item.outputDir)
+      await expectArtifact(`${childDir}/${PIPELINE_MANIFEST_FILE}`)
+      const childManifest = await readCanonicalManifest(childDir)
+      const childRecord = await readCanonicalRecord(childDir)
+      expect(childManifest.command).toBe('music')
+      expect(childRecord['mode']).toBe('lyric-video')
+    }
+  }
+}, LONG_E2E_TEST_TIMEOUT_MS)

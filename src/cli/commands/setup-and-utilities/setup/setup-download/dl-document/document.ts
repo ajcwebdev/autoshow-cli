@@ -4,7 +4,7 @@ import { hasHealthyManagedSourceInstall, installManagedMupdfMacos, installManage
 import { isRuntimeToolHealthy } from '../tool-health'
 import { isCompactSetupMode } from '~/utils/setup-output-mode'
 import { InternalError } from '~/utils/error-handler'
-import { refreshQpdfHealthCache, resolveHealthyQpdfToolInfo } from '~/cli/commands/process-steps/step-1-download/document/qpdf-health'
+import { refreshQpdfHealthCache, resolveHealthyQpdfToolInfo } from '~/cli/commands/sources/download/document/qpdf-health'
 import { resolveRuntimeToolInfo } from '~/utils/runtime-paths'
 
 const shouldPrintCompletion = (): boolean => !isCompactSetupMode()

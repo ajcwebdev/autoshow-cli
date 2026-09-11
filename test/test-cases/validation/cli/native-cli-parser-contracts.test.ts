@@ -164,6 +164,17 @@ const root: CliRootDefinition = {
 }
 
 describe('native CLI parser contracts', () => {
+  test('preserves missing-value precedence while discovering subcommands after adjacent flags', () => {
+    const flags = {
+      ...globalFlags,
+      'config-path': { ...globalFlags['config-path'], consumeAdjacentValues: true }
+    }
+    const argv = ['nested', '--config-path', '--quiet', 'extra']
+
+    expect(() => parseNativeCli(argv, commands, flags)).toThrow(NativeMissingFlagValueError)
+    expect(() => parseNativeCli(argv, commands, flags)).toThrow('--config-path')
+  })
+
   test('parses booleans, strings, repeatable strings, equals values, shorts, defaults, and explicit flags', () => {
     const parsed = parseNativeCli([
       'run',

@@ -16,7 +16,6 @@ const ConcurrencyDefaultsSchema = v.strictObject({
 })
 
 const ExtractSttDefaultsSchema = v.strictObject({
-  whisper: ModelArraySchema,
   youtubeCaptions: v.optional(v.boolean(), undefined),
   deepinfraStt: ModelArraySchema,
   grokStt: ModelArraySchema,

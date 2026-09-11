@@ -3,18 +3,18 @@ import {
   estimateImageCosts,
   IMAGE_PRICING_MODEL_KEYS,
   IMAGE_PRICING_PROVIDERS
-} from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
+} from '~/cli/commands/visuals/image/image-utils/image-pricing'
 import {
   estimateVideoCost,
   estimateVideoCosts,
   VIDEO_PRICING_MODEL_KEYS,
   VIDEO_PRICING_PROVIDERS
-} from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
+} from '~/cli/commands/visuals/video/video-utils/video-pricing'
 import {
   estimateMusicCosts,
   MUSIC_PRICING_MODEL_KEYS,
   MUSIC_PRICING_PROVIDERS
-} from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
+} from '~/cli/commands/audio/music/music-utils/music-pricing'
 import {
   SUPPORTED_BFL_IMAGE_MODELS,
   SUPPORTED_FAL_IMAGE_MODELS,

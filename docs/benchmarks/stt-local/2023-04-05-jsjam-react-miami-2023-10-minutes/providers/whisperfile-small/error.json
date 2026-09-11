@@ -1,0 +1,16 @@
+{
+  "service": "whisperfile",
+  "model": "small",
+  "message": "Whisperfile transcription completed but no JSON output was produced at /Users/ajc/c/autoshow-cli/docs/benchmarks/stt-local/2023-04-05-jsjam-react-miami-2023-10-minutes/providers/whisperfile-small/transcription.json (output dir exists: true). Command output:\nerror: failed to read audio file '/var/folders/3j/rtjlfscn5kb5mjh2shh77h840000gn/T/autoshow-whisperfile-vgfih5/input.wav'",
+  "stage": "stt:whisperfile",
+  "error": {
+    "name": "AppInfrastructureError",
+    "message": "Whisperfile transcription completed but no JSON output was produced at /Users/ajc/c/autoshow-cli/docs/benchmarks/stt-local/2023-04-05-jsjam-react-miami-2023-10-minutes/providers/whisperfile-small/transcription.json (output dir exists: true). Command output:\nerror: failed to read audio file '/var/folders/3j/rtjlfscn5kb5mjh2shh77h840000gn/T/autoshow-whisperfile-vgfih5/input.wav'",
+    "stack": "AppInfrastructureError: Whisperfile transcription completed but no JSON output was produced at /Users/ajc/c/autoshow-cli/docs/benchmarks/stt-local/2023-04-05-jsjam-react-miami-2023-10-minutes/providers/whisperfile-small/transcription.json (output dir exists: true). Command output:\nerror: failed to read audio file '/var/folders/3j/rtjlfscn5kb5mjh2shh77h840000gn/T/autoshow-whisperfile-vgfih5/input.wav'\n    at InfraError (/Users/ajc/c/autoshow-cli/src/utils/error-handler.ts:105:34)\n    at <anonymous> (/Users/ajc/c/autoshow-cli/src/cli/commands/stt/local/run-whispercpp-core.ts:120:13)\n    at async <anonymous> (/Users/ajc/c/autoshow-cli/src/cli/commands/stt/local/whisperfile/run-whisperfile.ts:10:9)\n    at async <anonymous> (/Users/ajc/c/autoshow-cli/src/cli/commands/stt/run-stt/dispatch.ts:61:39)\n    at async <anonymous> (/Users/ajc/c/autoshow-cli/src/cli/commands/stt/run-stt/dispatch.ts:104:50)\n    at async <anonymous> (/Users/ajc/c/autoshow-cli/src/cli/commands/stt/run-stt/target-orchestration.ts:32:33)\n    at async <anonymous> (/Users/ajc/c/autoshow-cli/src/cli/commands/stt/run-stt/target-orchestration.ts:33:75)\n    at async <anonymous> (/Users/ajc/c/autoshow-cli/src/cli/commands/stt/run-stt/target-orchestration.ts:125:33)\n    at async <anonymous> (/Users/ajc/c/autoshow-cli/src/cli/commands/stt/process-stt/stt-batch-worker.ts:101:13)\n    at async <anonymous> (/Users/ajc/c/autoshow-cli/src/utils/app-logger/context-store.ts:20:29)\n    at async <anonymous> (/Users/ajc/c/autoshow-cli/src/cli/commands/stt/process-stt/stt-batch-worker.ts:100:33)\n    at async <anonymous> (/Users/ajc/c/autoshow-cli/src/cli/commands/stt/process-stt/stt-batch-recovery.ts:28:13)",
+    "kind": "infrastructure",
+    "hints": [],
+    "exitCode": 1,
+    "stage": "stt:whisperfile",
+    "metadata": {}
+  }
+}

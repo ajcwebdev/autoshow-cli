@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { createBatchedManifestUpdater, createManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { createBatchedManifestUpdater, createManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 
 describe('canonical manifest update batching', () => {
   test('coalesces concurrent logical updates into one durable commit', async () => {

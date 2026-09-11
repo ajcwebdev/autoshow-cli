@@ -13,8 +13,6 @@ import {
 const PERFORMANCE_TIE_BREAKERS = ['mini', 'nano', 'micro', 'flash', 'turbo', 'fast', 'small']
 
 const DEFAULT_LOCAL_MODEL_BY_FLAG = {
-  whisper: 'tiny',
-  'whisper-stt': 'tiny',
   'whisperfile-stt': DEFAULT_WHISPERFILE_MODEL,
 } as const satisfies Record<string, string>
 

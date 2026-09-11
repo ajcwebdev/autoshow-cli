@@ -88,6 +88,7 @@ export type DraftScenesCommandOptions = ComicScriptSceneCommandOptionsBase & Com
   blockingPlan?: string
   rebind?: boolean
   reconcileFromDirectives?: boolean
+  panelCount?: number
 }
 
 export type ComicLlmResponseUsage = {
@@ -206,7 +207,7 @@ export type PanelPromptsCommandOptions = ComicSceneCommandOptionsBase & {
   blocking?: boolean
 }
 
-export type CharacterSketchView = (typeof import('~/cli/commands/process-steps/step-8-comic/comic-commands/process-scenes/character-utils').CHARACTER_SKETCH_VIEWS)[number]
+export type CharacterSketchView = (typeof import('~/cli/commands/visuals/comic/comic-commands/process-scenes/character-utils').CHARACTER_SKETCH_VIEWS)[number]
 
 export type StructureScriptsCommandOptions = ComicScriptSceneCommandOptionsBase & ComicLlmCommandOptionsBase
 

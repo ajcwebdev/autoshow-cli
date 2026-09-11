@@ -29,7 +29,7 @@ export type DoctorProbes = {
   readDefuddleCliReadiness: () => Promise<DoctorCheck>
   resolveConfigPath: () => Promise<string>
   loadConfig: (path: string) => Promise<AutoshowConfig>
-  inspectYtDlpAuthState: () => Promise<Awaited<ReturnType<typeof import('~/cli/commands/process-steps/shared/shared-yt-dlp-options').inspectYtDlpAuthState>>>
+  inspectYtDlpAuthState: () => Promise<Awaited<ReturnType<typeof import('~/cli/commands/command-shared/shared-yt-dlp-options').inspectYtDlpAuthState>>>
   validateManagedArtifact: (tool: ManagedArtifactToolId) => Promise<ManagedArtifactValidation>
 }
 

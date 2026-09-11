@@ -182,9 +182,9 @@ Fresh-media extraction transcribes once per selected model, saves canonical resu
 
 Diarization capability resolution includes the concrete model and distinguishes documented, provisional, and live-tested support. Together defaults off. Mistral `voxtral-mini-2602` uses native word timing only with diarization off; diarization uses segments, and timestamp requests omit its incompatible language field. Generated Gemini timestamps and speaker hypotheses, retrieved captions, and channel labels do not become native acoustic measurements or verified identities.
 
-Local forced alignment requires supplied text with complete, positive, non-overlapping segment coverage and explicit installed model/runtime paths. Preserve original evidence and hashes; mark new timing as aligned and `manuallyVerified: false`. Reject low-confidence publication at the configured threshold while retaining diagnostics. Compare ordered lexical matches, coverage, boundary errors, tolerance bands, speaker-label agreement, and signed drift; reject invalid intervals for scoring. Probe installed Whisper capabilities, mark DTW midpoint-derived ranges as repaired, retain rejected variants, and leave transcription defaults unchanged after calibration.
+Local forced alignment requires supplied text with complete, positive, non-overlapping segment coverage and explicit installed model/runtime paths. Preserve original evidence and hashes; mark new timing as aligned and `manuallyVerified: false`. Reject low-confidence publication at the configured threshold while retaining diagnostics. Compare ordered lexical matches, coverage, boundary errors, tolerance bands, speaker-label agreement, and signed drift; reject invalid intervals for scoring. Probe installed whisperfile capabilities, mark DTW midpoint-derived ranges as repaired, retain rejected variants, and leave transcription defaults unchanged after calibration.
 
-Channel extraction preserves every stream/channel at its original sample rate and verifies decoded sample hashes. Merge validates full text coverage, applies offsets once, preserves overlaps, and rejects already merged results. Speaker reconciliation requires an explicit map tied to the source SHA-256 and a review reason; it does not infer identity acoustically. Operational flags, setup, schemas, and examples live in the [STT command guide](../commands/process-steps/step-2-extract/02-extract-stt.md) and its [local timing and speaker workflows section](../commands/process-steps/step-2-extract/02-extract-stt.md#local-timing-and-speaker-workflows).
+Channel extraction preserves every stream/channel at its original sample rate and verifies decoded sample hashes. Merge validates full text coverage, applies offsets once, preserves overlaps, and rejects already merged results. Speaker reconciliation requires an explicit map tied to the source SHA-256 and a review reason; it does not infer identity acoustically. Operational flags, setup, schemas, and examples live in the [STT command guide](../commands/stt/overview.md) and its [local timing and speaker workflows section](../commands/stt/workflows/timing/overview.md#local-timing-and-speaker-workflows).
 
 ## Rationale
 
@@ -266,7 +266,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-URL extraction lives under `src/cli/commands/process-steps/step-2-extract/step-2-url/`. OCR execution, chapter filenames, and batch diagnostics live under `src/cli/commands/process-steps/step-2-extract/step-2-ocr/`. Extract and resume provider names are projected from `src/cli/flags/service-selector-normalization/extract-selectors.ts` and `src/cli/flags/service-selector-normalization/provider-targets.ts`. Token-shape audit is `src/tools/audit-ocr-token-shapes.ts`.
+URL extraction lives under `src/cli/commands/text/url/`. OCR execution, chapter filenames, and batch diagnostics live under `src/cli/commands/text/ocr/`. Extract and resume provider names are projected from `src/cli/flags/service-selector-normalization/extract-selectors.ts` and `src/cli/flags/service-selector-normalization/provider-targets.ts`. Token-shape audit is `src/tools/audit-ocr-token-shapes.ts`.
 
 ### Bun 1.4 Image Routing
 
@@ -284,13 +284,13 @@ This section retains the lasting decisions and dated evidence from the September
 
 The 2026-09-07 audit covered 15 registered STT integrations and 28 configured model/mode entries: 11 hosted integrations with 13 entries, two URL services with two entries, and two local engines with 13 entries. Separate YouTube-caption retrieval made 16 paths and 29 entries. Residual Rev catalog entries and unregistered OpenAI-hosted transcription were excluded. These counts describe that audit snapshot, not a current model inventory.
 
-Word/token capture paths increased from 9 of 15 integrations and 20 of 28 entries to 12 of 15 and 25 of 28 after adding DeepInfra, Together, and Mistral. Seven direct native subtitle routes were documented, covering 19 entries; counting Deepgram's official client-side converter separately made eight provider-supplied routes and 20 entries. Initially none of the registered STT integrations persisted native subtitles, while YouTube separately retained VTT. Implementation added optional same-job exports for AssemblyAI, Gladia, Happy Scribe, and Speechmatics, installed-engine exports for whisper.cpp/whisperfile, and an explicit DeepInfra SRT/VTT response alternative. Capture availability does not imply successful live validation or accurate acoustic boundaries across all models.
+Word/token capture paths increased from 9 of 15 integrations and 20 of 28 entries to 12 of 15 and 25 of 28 after adding DeepInfra, Together, and Mistral. Seven direct native subtitle routes were documented, covering 19 entries; counting Deepgram's official client-side converter separately made eight provider-supplied routes and 20 entries. Initially none of the registered STT integrations persisted native subtitles, while YouTube separately retained VTT. Implementation added optional same-job exports for AssemblyAI, Gladia, Happy Scribe, and Speechmatics, installed-engine exports for whisperfile, and an explicit DeepInfra SRT/VTT response alternative. Capture availability does not imply successful live validation or accurate acoustic boundaries across all models.
 
-The Happy Scribe reproduction lost all but the largest paragraph's word array and omitted inherited speakers; flattening now retains every structured paragraph. Local Whisper reconstruction preserves fragments, contractions, confidence, and fractional later-chunk offsets. Soniox reconstruction respects native token, language, and speaker boundaries, including contractions and non-space-delimited text, without inventing intra-token boundaries. Evidence merging reports mixed quality and scopes speaker IDs. YouTube roll-up deduplication is limited to overlapping, matching-speaker spans, preserving later repeated speech. Shared video cues use `transcript-words` / `transcript-segments` labels and expose invalid/inferred counts.
+The Happy Scribe reproduction lost all but the largest paragraph's word array and omitted inherited speakers; flattening now retains every structured paragraph. Local whisperfile reconstruction preserves fragments, contractions, confidence, and fractional later-chunk offsets. Soniox reconstruction respects native token, language, and speaker boundaries, including contractions and non-space-delimited text, without inventing intra-token boundaries. Evidence merging reports mixed quality and scopes speaker IDs. YouTube roll-up deduplication is limited to overlapping, matching-speaker spans, preserving later repeated speech. Shared video cues use `transcript-words` / `transcript-segments` labels and expose invalid/inferred counts.
 
-The implementation added local CTC alignment, reference comparison, Whisper DTW calibration, verified channel extraction/merge, reviewed speaker maps, and ASS/TTML/LRC alongside SRT/VTT. Provider controls and native exports persist through configuration and requested-target state. Happy Scribe has no implemented/documented diarization off switch; export can hide labels. Mistral's incompatible simultaneous diarization/native-word recommendation was corrected. The dated AssemblyAI and Deepgram rate corrections remain in the [STT pricing record](../commands/process-steps/step-2-extract/02-extract-stt.md#stt-pricing); ongoing model/pricing governance stays in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md).
+The implementation added local CTC alignment, reference comparison, whisperfile DTW calibration, verified channel extraction/merge, reviewed speaker maps, and ASS/TTML/LRC alongside SRT/VTT. Provider controls and native exports persist through configuration and requested-target state. Happy Scribe has no implemented/documented diarization off switch; export can hide labels. Mistral's incompatible simultaneous diarization/native-word recommendation was corrected. The dated AssemblyAI and Deepgram rate corrections remain in the [STT pricing record](../commands/stt/overview.md#stt-pricing); ongoing model/pricing governance stays in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md).
 
-The implementation lives in `src/cli/commands/process-steps/step-2-extract/`: `run-caption-export.ts`, `caption-editor-formats.ts`, `run-stt-timing-workflow.ts`, `run-local-forced-alignment.ts`, `calibrate-whisper-timing.ts`, and `stt-channel-workflows.ts`, with provider adapters and evidence/coverage/alignment helpers under `step-2-stt/`. The local emission backend is `scripts/stt-ctc-emissions.py`.
+The implementation lives in `src/cli/commands/command-shared/step-2-extract/`: `run-caption-export.ts`, `caption-editor-formats.ts`, `run-stt-timing-workflow.ts`, `run-local-forced-alignment.ts`, `calibrate-whisper-timing.ts`, and `stt-channel-workflows.ts`, with provider adapters and evidence/coverage/alignment helpers under `step-2-stt/`. The local emission backend is `scripts/stt-ctc-emissions.py`.
 
 #### Automatic Reference Construction
 
@@ -320,6 +320,8 @@ The user requested the best automatic references available from existing local f
 #### Timing Measurements
 
 These 2026-09-10 measurements describe agreement with the automatic CTC references. All median and p95 pairs below are absolute start/end differences in milliseconds. Coverage includes unmatched words; boundary statistics include only ordered lexical matches. DTW intervals derive from adjacent token-center midpoints and are marked repaired. The calibration records retain individual matches, confidence, tolerance bands, raw results, invocation/help, elapsed runtime, and fingerprints.
+
+The whisper.cpp measurements below are historical. Current local transcription and calibration use whisperfile; the removed engine cannot be selected.
 
 **whisper.cpp tiny, short sample**
 
@@ -390,17 +392,17 @@ Capability metadata became `diarizationValidation: live-tested` and the provisio
 ```bash
 bun run check
 bun t --price
-bun test test/test-cases/validation/extract-ocr/chapter-artifact-filenames.test.ts
-bun test test/test-cases/validation/extract-ocr/ocr-batch-diagnostics.test.ts
-bun test test/test-cases/validation/extract-ocr/ocr-page-pool-*-contracts.test.ts
-bun test test/test-cases/validation/extract-ocr/ocr-resilience-contracts/
-bun test test/test-cases/validation/extract-ocr/ocr-resume-failure-target-contracts.test.ts
-bun test test/test-cases/validation/extract-ocr/ocr-resume-provider-state-contracts.test.ts
+bun test test/test-cases/validation/text/ocr/chapter-artifact-filenames.test.ts
+bun test test/test-cases/validation/text/ocr/ocr-batch-diagnostics.test.ts
+bun test test/test-cases/validation/text/ocr/ocr-page-pool-*-contracts.test.ts
+bun test test/test-cases/validation/text/ocr/ocr-resilience-contracts/
+bun test test/test-cases/validation/text/ocr/ocr-resume-failure-target-contracts.test.ts
+bun test test/test-cases/validation/text/ocr/ocr-resume-provider-state-contracts.test.ts
 bun test test/test-cases/validation/reports-pricing/price-mode-contracts/ocr-token-usage-profiles.test.ts
 bun test test/test-cases/validation/providers/provider-selection-contracts/selection-inventory-contracts.test.ts
-bun test test/test-cases/validation/extract-stt/
+bun test test/test-cases/validation/stt/
 bun test test/test-cases/validation/providers/openai-rest-contracts/audio-stt-contracts.test.ts
-bun test test/test-cases/validation/media-generation/transcript-video-contracts.test.ts
+bun test test/test-cases/validation/stt/workflows/transcript-video/transcript-video-contracts.test.ts
 bun test test/test-cases/validation/cli/cli-help-contracts.test.ts
 bun test test/test-cases/validation/cli/cli-usage-errors/
 bun test test/test-cases/validation/cli/option-resolution-contracts/
@@ -442,16 +444,16 @@ Run price preflight and contract tests sequentially: an initial concurrent run l
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
 - Related ADR: [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md)
 - Related ADR: [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
-- Extract command documentation: [`docs/commands/process-steps/step-2-extract/01-extract.md`](../commands/process-steps/step-2-extract/01-extract.md)
-- OCR command documentation: [`docs/commands/process-steps/step-2-extract/03-extract-ocr.md`](../commands/process-steps/step-2-extract/03-extract-ocr.md)
-- STT command documentation: [`docs/commands/process-steps/step-2-extract/02-extract-stt.md`](../commands/process-steps/step-2-extract/02-extract-stt.md)
-- Local STT timing, alignment, and channels: [STT command guide — Local Timing and Speaker Workflows](../commands/process-steps/step-2-extract/02-extract-stt.md#local-timing-and-speaker-workflows)
-- Resume command documentation: [`docs/commands/setup-and-utilities/resume/resume.md`](../commands/setup-and-utilities/resume/resume.md)
-- `src/cli/commands/process-steps/step-2-extract/step-2-url/`
-- `src/cli/commands/process-steps/step-2-extract/step-2-ocr/`
-- `src/cli/commands/process-steps/step-2-extract/step-2-stt/`
-- `test/test-cases/validation/extract-stt/stt-caption-followup-contracts.test.ts`
+- Extract command documentation: [`docs/commands/extract.md`](../commands/extract.md)
+- OCR command documentation: [`docs/commands/text/ocr/overview.md`](../commands/text/ocr/overview.md)
+- STT command documentation: [`docs/commands/stt/overview.md`](../commands/stt/overview.md)
+- Local STT timing, alignment, and channels: [STT command guide — Local Timing and Speaker Workflows](../commands/stt/workflows/timing/overview.md#local-timing-and-speaker-workflows)
+- Resume command documentation: [`docs/commands/setup-and-utilities/resume.md`](../commands/setup-and-utilities/resume.md)
+- `src/cli/commands/text/url/`
+- `src/cli/commands/text/ocr/`
+- `src/cli/commands/stt/`
+- `test/test-cases/validation/stt/workflows/captions/stt-caption-followup-contracts.test.ts`
 - `src/cli/flags/service-selector-normalization/extract-selectors.ts`
-- `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-artifact-filenames.ts`
-- `test/test-cases/validation/extract-ocr/chapter-artifact-filenames.test.ts`
-- `test/test-cases/validation/extract-ocr/ocr-bun-image-normalization-contracts.test.ts`
+- `src/cli/commands/text/ocr/chapter-artifact-filenames.ts`
+- `test/test-cases/validation/text/ocr/chapter-artifact-filenames.test.ts`
+- `test/test-cases/validation/text/ocr/ocr-bun-image-normalization-contracts.test.ts`

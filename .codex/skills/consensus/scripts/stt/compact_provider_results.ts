@@ -52,9 +52,11 @@ export function compactResult(resultPath: string): CompactionStat {
     ? payload["provider"]
     : directoryName.startsWith("gemini-stt")
       ? "gemini-stt"
-      : directoryName.startsWith("whisper")
-        ? "whisper"
-        : "";
+      : directoryName.startsWith("whisperfile")
+        ? "whisperfile"
+        : directoryName.startsWith("whisper")
+          ? "whisper"
+          : "";
 
   let droppedWords = false;
   let droppedEvidenceSegments = false;

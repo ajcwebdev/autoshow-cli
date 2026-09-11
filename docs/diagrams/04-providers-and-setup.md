@@ -33,7 +33,7 @@ Selectors use `provider[=model]`. Repeat a flag to run more than one provider. F
 
 | Step  | Providers                                                                                                                                                                                                                |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| STT   | Local: `whisper`, `whisperfile`. Hosted: `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`. |
+| STT   | Local: `whisperfile`. Hosted: `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`. |
 | OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `fal`, `replicate`.                                                   |
 | URL   | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`.                                                                                                                                      |
 | LLM   | Hosted: `openai`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`. Write has no local LLM.                                                                                       |
@@ -54,7 +54,7 @@ install local tools in parallel
   |
   +--> ffmpeg, ffprobe, yt-dlp
   +--> Defuddle
-  +--> Whisper binary and models (tiny, large-v3-turbo)
+  +--> Whisperfile bundle (tiny)
   +--> mutool, qpdf, ebook-convert
   +--> Tesseract
   |
@@ -62,7 +62,7 @@ install local tools in parallel
 print setup summary
 ```
 
-`--step` runs one of `yt-dlp`, `defuddle`, `whisper-binary`, `whisper-model`, `whisperfile`, `calibre`, `transcription`, or `music` in isolation.
+`--step` runs one of `yt-dlp`, `defuddle`, `whisperfile`, `calibre`, `transcription`, or `music` in isolation.
 
 ## Hosted Provider Env Checks
 
@@ -112,7 +112,7 @@ Hosted commands require the matching environment variable:
 | `metadata` X Space           | none                                                            | `X_BEARER_TOKEN`                |
 | `download` media             | ffmpeg/ffprobe, yt-dlp                                          | Cookies when needed             |
 | `download` X Space           | ffmpeg/ffprobe, yt-dlp                                          | `X_BEARER_TOKEN`; cookies when needed |
-| `extract` media              | ffmpeg/ffprobe, yt-dlp, plus Whisper or whisperfile for local STT | Selected hosted STT key       |
+| `extract` media              | ffmpeg/ffprobe, yt-dlp, plus whisperfile for local STT | Selected hosted STT key       |
 | `extract` document OCR       | mutool and Tesseract when selected; Calibre for conversion      | Selected hosted OCR key         |
 | `extract` article            | Defuddle                                                        | Selected hosted URL key         |
 | `extract` X Space            | none                                                            | `X_BEARER_TOKEN`                |
@@ -122,4 +122,4 @@ Hosted commands require the matching environment variable:
 | `image`                      | none                                                            | Selected hosted image key       |
 | `video`                      | source image or video when required                             | Selected hosted video key       |
 | `music` hosted               | none                                                            | Selected hosted music key       |
-| `music --audio`/`--batch`    | ffmpeg, ffprobe, and local Whisper `large-v3-turbo`             | none                            |
+| `music --audio`/`--batch`    | ffmpeg, ffprobe, and local whisperfile `small.en`             | none                            |

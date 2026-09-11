@@ -11,6 +11,7 @@ export interface DockerOptions {
   model?: string
   expectedDigest?: string
   expectedRevision?: string
+  youtubeCookies?: string
   output: string
   cache: string
   setupTimeoutMs: number
@@ -22,6 +23,7 @@ export const DOCKER_HELP = `Usage: bun t:docker [--suite all|core|models|network
   --model ENGINE:MODEL       Select one models shard (requires --suite models)
   --output PATH              New evidence directory (default runtime/docker-acceptance/runs/<unique-id>)
   --cache PATH               Persistent assets (default runtime/docker-acceptance/cache)
+  --youtube-cookies PATH     YouTube cookie file outside evidence/cache (all/network only)
   --setup-timeout SECONDS    Setup/download deadline, 1–7200 (default 1800)
   --case-timeout SECONDS     Per-case deadline, 1–7200 (default 1200)
   --expected-digest DIGEST   Fail if latest differs from the published manifest (CI)
@@ -29,7 +31,7 @@ export const DOCKER_HELP = `Usage: bun t:docker [--suite all|core|models|network
   --help                    Print help without starting Docker
 
 Every run pulls GHCR latest and uses its immutable digest. Platforms must match the Docker daemon's native architecture.
-No hosted inference or credentials. Model/public downloads need internet. Failures retain evidence and caches.
+No hosted inference or provider credentials. Optional YouTube cookies reach only its download container. Model/public downloads need internet. Failures retain evidence and caches.
 Exit: 0 all selected cases passed; 1 acceptance/infrastructure failure; 2 invalid arguments.
 `
 
@@ -52,6 +54,7 @@ export function parseDockerOptions(args: string[]): DockerOptions {
       case '--model': options.model = value; break
       case '--output': options.output = resolve(value); break
       case '--cache': options.cache = resolve(value); break
+      case '--youtube-cookies': options.youtubeCookies = resolve(value); break
       case '--expected-digest': assert(/^sha256:[a-f0-9]{64}$/.test(value), 'Invalid --expected-digest'); options.expectedDigest = value; break
       case '--expected-revision': assert(/^[a-f0-9]{40}$/.test(value), 'Invalid --expected-revision'); options.expectedRevision = value; break
       case '--setup-timeout': case '--case-timeout': {
@@ -63,6 +66,7 @@ export function parseDockerOptions(args: string[]): DockerOptions {
     }
   }
   assert(!options.model || options.suite === 'models', '--model requires --suite models')
+  assert(!options.youtubeCookies || ['all', 'network'].includes(options.suite), '--youtube-cookies requires --suite all or network')
   // Docker --mount uses CSV; spaces are safe, commas and newlines are not supported here.
   for (const path of [options.output, options.cache]) assert(!/[,\r\n]/.test(path), 'Mount paths cannot contain commas or newlines')
   assert(options.output !== options.cache && !options.output.startsWith(`${options.cache}/`) && !options.cache.startsWith(`${options.output}/`), 'Evidence and cache paths must be separate')

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { VOICE_PUBLIC_ACTIONS } from '~/cli/commands/process-steps/step-4-tts/voice-management/define-voice-command'
+import { VOICE_PUBLIC_ACTIONS } from '~/cli/commands/audio/voice/define-voice-command'
 import {
   advertisedFlagNames,
   comicSubcommands,
@@ -18,7 +18,7 @@ export const registerComicAndVoiceHelpCases = (): void => {
     for (const subcommand of comicSubcommands) {
       expect(subcommandSection).toContain(`  ${subcommand}`)
     }
-    expect(comicSubcommands.sort()).toEqual(['draft-scenes', 'generate-audio', 'generate-images', 'generate-slideshow', 'reference-sketch', 'review'])
+    expect(comicSubcommands.sort()).toEqual(['draft-scenes', 'draft-treatment', 'generate-audio', 'generate-images', 'generate-slideshow', 'reference-sketch', 'review'])
     for (const alias of ['reference-voice', 'review-notes', 'review-sheet']) {
       expect(subcommandSection).not.toContain(`  ${alias}`)
     }
@@ -64,10 +64,37 @@ export const registerComicAndVoiceHelpCases = (): void => {
     expect(getFlagGroupSection(result.stdout, 'Scene Drafting')).toContain('--blocking, --no-blocking')
     expect(getFlagGroupSection(result.stdout, 'Scene Drafting')).toContain('--blocking-plan')
     expect(getFlagGroupSection(result.stdout, 'Scene Drafting')).toContain('--rebind')
+    expect(getFlagGroupSection(result.stdout, 'Scene Drafting')).toContain('--panel-count')
     const flagsSection = getCommandFlagsSection(result.stdout)
     expect(flagsSection).not.toContain('--panels')
     expect(flagsSection).not.toContain('--target')
     expect(flagsSection).not.toContain('--character')
+  })
+
+  test.concurrent('comic draft-treatment help is scoped to treatment drafting', async () => {
+    const result = await loadHelp(['comic', 'draft-treatment', '--help'])
+
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('$ bun autoshow comic draft-treatment <treatment-path> [flags]')
+    const treatment = getFlagGroupSection(result.stdout, 'Treatment Drafting')
+    expect(treatment).toContain('--panel-count')
+    expect(treatment).toContain('--voice-pacing')
+    expect(treatment).toContain('--episode')
+    expect(treatment).toContain('--scene')
+    expect(treatment).toContain('--slug')
+    expect(treatment).toContain('--speaker')
+    expect(treatment).toContain('--style-seed')
+    expect(treatment).toContain('--catalog-policy')
+    expect(treatment).toContain('--force')
+    expect(treatment).toContain('--llm-model')
+    expect(getFlagGroupSection(result.stdout, 'Pricing')).toContain('--price')
+    expect(result.stdout).toContain('NARRATION')
+    expect(result.stdout).toContain('input/scripts/<episode>-script/<scene>-<slug>.md')
+    const flagsSection = getCommandFlagsSection(result.stdout)
+    expect(flagsSection).not.toContain('--panels')
+    expect(flagsSection).not.toContain('--target')
+    expect(flagsSection).not.toContain('--only')
+    expect(flagsSection).not.toContain('--image-model')
   })
 
   test.concurrent('comic generate-slideshow help documents its local synchronization contract', async () => {

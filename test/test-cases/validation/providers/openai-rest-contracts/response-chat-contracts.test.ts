@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'bun:test'
-import { runOpenAICompatibleChatModel } from '~/cli/commands/process-steps/step-3-write/write-services/openai-compatible-chat'
-import { runTogetherModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-together/run-together'
-import { runMinimaxModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-minimax/run-minimax'
-import { runOpenAIModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/run-openai'
+import { runOpenAICompatibleChatModel } from '~/cli/commands/text/write/write-services/openai-compatible-chat'
+import { runTogetherModel } from '~/cli/commands/text/write/write-services/write-together/run-together'
+import { runMinimaxModel } from '~/cli/commands/text/write/write-services/write-minimax/run-minimax'
+import { runOpenAIModel } from '~/cli/commands/text/write/write-services/write-openai/run-openai'
 import { MINIMAX_DEFAULT_BASE_URL, TOGETHER_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { OpenAIRestError, createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { installFetch, installOpenAIRestContractHooks, jsonResponse, structuredOpts } from './shared'
 import { expectProviderHttpError } from '../../../../test-utils/rest-contract-helpers'
-import { resolveStructuredSchema } from '~/cli/commands/process-steps/step-3-write/structured-output/schema-resolver'
+import { resolveStructuredSchema } from '~/cli/commands/text/write/structured-output/schema-resolver'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 
 installOpenAIRestContractHooks()

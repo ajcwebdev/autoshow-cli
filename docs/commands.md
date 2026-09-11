@@ -74,6 +74,9 @@ bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=v
 bun autoshow music --audio input/examples/lyrics/01-example-song.mp3
 bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental
 
+# adapt a prose treatment into a fixed-count comic script plus catalog entries
+bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear
+
 # inspect or set persistent defaults
 bun autoshow config --show
 bun autoshow config --llm openai=gpt-5.5 --batch-limit 20 --max-cents 50
@@ -93,38 +96,35 @@ bun as <command>
 
 ## Command Map
 
-- `setup`: [setup](./commands/setup-and-utilities/setup/setup.md) — install local runtimes and pre-download STT models
-- `metadata`: [metadata](./commands/process-steps/step-0-metadata/01-metadata.md) — inspect source metadata without downloading
-- `download`: [download](./commands/process-steps/step-1-download/01-download-file.md) — download or stage a source before extraction
-- `extract`: [extract](./commands/process-steps/step-2-extract/01-extract.md) — transcribe media, extract documents or articles, report on X Spaces, or render transcript videos
-- `write`: [write](./commands/process-steps/step-3-write/01-write-text.md) — generate hosted LLM text from local `.md` / `.txt`
-- `tts`: [tts](./commands/process-steps/step-4-tts/01-text-to-speech-and-voice.md) — generate speech from text
-- `voice`: [voice](./commands/process-steps/step-9-voice/00-voice-overview.md) — list and register provider voices
-- `image`: [image](./commands/process-steps/step-5-image/01-text-to-image.md) — generate or edit images
-- `video`: [video](./commands/process-steps/step-6-video/01-text-to-video-services.md) — generate, extend, or edit video
-- `music`: [music](./commands/process-steps/step-7-music/01-text-to-music-services.md) — generate music or render local lyric videos
-- `comic`: [comic](./commands/process-steps/step-8-comic/00-comic-overview.md) — turn episode scripts into comics
-- `resume`: [resume](./commands/setup-and-utilities/resume/resume.md) — backfill missing providers in an existing run
-- `config`: [config](./commands/setup-and-utilities/config-command/config.md) — inspect or persist CLI defaults
-- `links`: [links](./commands/setup-and-utilities/links/links.md) — fetch curated provider documentation
+`extract` is the shared entrypoint for STT, OCR, and URL text. See the [extract overview](./commands/extract.md) for input routing and common options.
+
+| Capability | Commands and guides |
+| --- | --- |
+| Sources | [`metadata`](./commands/sources/metadata/overview.md), [`download`](./commands/sources/download/overview.md) |
+| STT | [`extract` media](./commands/stt/overview.md): [local](./commands/stt/local/overview.md), [diarization](./commands/stt/diarization/overview.md), [diarization off by default](./commands/stt/diarization-off-by-default/overview.md), [direct URL](./commands/stt/direct-url/overview.md) |
+| Text | [`write`](./commands/text/write/overview.md), [`extract` OCR](./commands/text/ocr/overview.md), [`extract` URL](./commands/text/url/overview.md) |
+| Audio | [`tts`](./commands/audio/tts/overview.md), [`voice`](./commands/audio/voice/00-voice-overview.md), [`music`](./commands/audio/music/overview.md) |
+| Visuals | [`image`](./commands/visuals/image/overview.md), [`comic`](./commands/visuals/comic/00-comic-overview.md), [`video`](./commands/visuals/video/overview.md) |
+
+STT workflows have separate guides for [captions](./commands/stt/workflows/captions/overview.md), [timing and speakers](./commands/stt/workflows/timing/overview.md), [transcript review](./commands/stt/workflows/transcript-review/overview.md), and [transcript videos](./commands/stt/workflows/transcript-video/overview.md).
+
+Setup and utilities: [`setup`](./commands/setup-and-utilities/setup.md) installs prerequisites, [`config`](./commands/setup-and-utilities/config.md) manages defaults, [`resume`](./commands/setup-and-utilities/resume.md) backfills missing provider outputs, and [`links`](./commands/setup-and-utilities/links.md) fetches provider documentation.
 
 ## Model Refresh Reports
 
 Dated model changes, pricing decisions, and validation evidence live beside the relevant command guides:
 
-- Extraction: [STT](./commands/process-steps/step-2-extract/05-stt-model-report.md), [OCR](./commands/process-steps/step-2-extract/06-ocr-model-report.md), and [URL scraping](./commands/process-steps/step-2-extract/07-url-model-report.md).
-- Writing: [LLMs](./commands/process-steps/step-3-write/02-llm-model-report.md).
-- Speech: [TTS](./commands/process-steps/step-4-tts/02-tts-model-report.md).
-- Images: [Image models](./commands/process-steps/step-5-image/02-image-model-report.md).
-- Video: [Video models](./commands/process-steps/step-6-video/02-video-model-report.md).
-- Music: [Music models](./commands/process-steps/step-7-music/02-music-model-report.md).
+- STT: [Speech recognition models](./commands/stt/model-report.md).
+- Text: [Writing models](./commands/text/write/model-report.md), [OCR models](./commands/text/ocr/model-report.md), and [URL backends](./commands/text/url/model-report.md).
+- Audio: [TTS models](./commands/audio/tts/model-report.md) and [music models](./commands/audio/music/model-report.md).
+- Visuals: [Image models](./commands/visuals/image/model-report.md) and [video models](./commands/visuals/video/model-report.md).
 
 ## Selection Guide
 
 - Use `metadata` to inspect a source without downloading it, `download` when you need the file on disk, `extract` for transcripts, OCR, article text, X Space reports, or transcript videos, and `write` for hosted LLM text over local `.md` / `.txt` (including extract artifacts).
 - Use `tts`, `image`, `video`, and `music` for generation from text or prompts. Use `voice` to list or register voices without synthesizing speech.
 - Use `music --audio`, `--captions`, or `--batch` for local lyric videos from repo audio; hosted music uses a prompt or text file plus `--provider`.
-- Use `comic` for episode-script to comic production, including scene drafts, blocking plans, character and location references, panel and page images, blocking and continuity QA, review artifacts, dialogue and soundscape audio, and slideshows.
+- Use `comic` for episode-script to comic production, including scene drafts, blocking plans, character and location references, panel and page images, blocking and continuity QA, review artifacts, dialogue and soundscape audio, and slideshows. Use `comic draft-treatment` to turn a prose treatment into that episode script and its catalog entries first.
 - Use `resume` to backfill missing providers in an existing output directory.
 - Use `config` to inspect or persist defaults. Use `links` to fetch provider documentation.
 
@@ -143,6 +143,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --p
 bun autoshow image "a sunset" --provider openai=gpt-image-2 --size 1024x1024 --quality low --price
 bun autoshow video "a sunset timelapse" --provider gemini=veo-3.1-lite-generate-preview --price
 bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental --price
+bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear --price
 bun autoshow comic draft-scenes 02-01 --only blocking --price
 bun autoshow comic generate-images 02-01 --target images --panels 1-16 --price
 ```

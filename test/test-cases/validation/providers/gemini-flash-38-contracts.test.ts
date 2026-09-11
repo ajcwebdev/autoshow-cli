@@ -8,7 +8,7 @@ import { validateGeminiSttModel } from '~/cli/commands/setup-and-utilities/model
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import { getLlmCost, getExtractPricing, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { computeGeminiSttBillingFromUsage } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/gemini-stt/run-gemini-stt'
+import { computeGeminiSttBillingFromUsage } from '~/cli/commands/stt/diarization-off-by-default/gemini-stt/run-gemini-stt'
 import { installMockFetch, jsonResponse } from '../../../test-utils/rest-contract-helpers'
 import { setupGeminiRestContractFixture } from './gemini-rest-contract-fixture'
 

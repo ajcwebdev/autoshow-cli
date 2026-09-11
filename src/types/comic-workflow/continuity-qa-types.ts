@@ -13,7 +13,7 @@ export type ContinuityFurnitureStatus = 'same' | 'rotated' | 'mirrored' | 'redes
 
 export type ContinuityRepairRoute = 'none' | 'edit' | 'restart' | 'redraft'
 
-export type ContinuityJudgeResult = v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/continuity-qa').ContinuityJudgeResultSchema>
+export type ContinuityJudgeResult = v.InferOutput<typeof import('~/cli/commands/visuals/comic/comic-commands/generate-images/continuity-qa').ContinuityJudgeResultSchema>
 
 export type ContinuityJudgeResultExpectation = {
   panelNumber: number
@@ -184,7 +184,7 @@ export type ContinuityStageState = {
   panels: Array<ContinuityAuditPlanPanel & { observedStageState: string | null }>
 }
 
-export type ContinuityLabelsFile = v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/comic-utils/continuity-labels').ContinuityLabelsSchema>
+export type ContinuityLabelsFile = v.InferOutput<typeof import('~/cli/commands/visuals/comic/comic-utils/continuity-labels').ContinuityLabelsSchema>
 
 export type ContinuityLabelKeyMetrics = {
   key: ContinuityHardKey

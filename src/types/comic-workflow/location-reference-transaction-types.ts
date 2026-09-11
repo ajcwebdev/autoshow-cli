@@ -1,6 +1,6 @@
 import type { LocationReferenceCatalog, LocationReferenceEntry, LocationSketchManifest, LocationSketchRegistration, LocationSketchViewRegistration, LocationView, LocationViewLineage } from '~/types'
 
-export type LocationPromotionTransactionBoundary = (typeof import('~/cli/commands/process-steps/step-8-comic/comic-commands/reference-sketch/location-reference-transaction').LOCATION_PROMOTION_TRANSACTION_BOUNDARIES)[number]
+export type LocationPromotionTransactionBoundary = (typeof import('~/cli/commands/visuals/comic/comic-commands/reference-sketch/location-reference-transaction').LOCATION_PROMOTION_TRANSACTION_BOUNDARIES)[number]
 
 export type LocationPromotionFileRecord = {
   path: string

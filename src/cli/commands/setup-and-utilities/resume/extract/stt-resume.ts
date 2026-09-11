@@ -1,23 +1,23 @@
-import { partialCompletionError } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-batch-state'
+import { partialCompletionError } from '~/cli/commands/command-shared/provider-batch-state'
 import { isRecord } from '~/utils/rest-client'
 import { join, resolve as resolvePath } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import type { AggregatedPriceEstimate, NormalizedResumeProviderBatchRunOptions, PipelineItemRecord, ProviderResumePassResult, ResumeDisplayOptions, ResumeProviderBatchRunOptions, ResumeResult, ResumeSttEntry, ResumeTarget, SttExtractionOptions, SttResumePassContext, SttTarget } from '~/types'
 import { UsageError } from '~/utils/error-handler'
-import { processStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/process-stt'
-import { logSttBatchFinalSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/download-batch/download-batch-summary'
-import { buildSttBatchSchedulerRows } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch-policy'
-import { SttBatchCoordinator } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch-coordinator'
+import { processStt } from '~/cli/commands/stt/process-stt'
+import { logSttBatchFinalSummary } from '~/cli/commands/sources/download/download-targets/download-batch/download-batch-summary'
+import { buildSttBatchSchedulerRows } from '~/cli/commands/stt/stt-batch/stt-batch-policy'
+import { SttBatchCoordinator } from '~/cli/commands/stt/stt-batch/stt-batch-coordinator'
 import {
   buildMissingTargetsFromEntry,
   resolveCanonicalCompletionStatus,
   isSttPartialCompletionError,
   parseStoredRequestedTargets
-} from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-run-state'
-import { collectSttTargets, formatSttTargetLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
-import { getStep2ActiveModelsForService } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
-import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord } from '~/cli/commands/process-steps/pipeline-manifest'
-import { YOUTUBE_CAPTIONS_SERVICE } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/youtube-captions'
+} from '~/cli/commands/stt/stt-batch/stt-run-state'
+import { collectSttTargets, formatSttTargetLabel } from '~/cli/commands/stt/stt-targets'
+import { getStep2ActiveModelsForService } from '~/cli/commands/command-shared/extract-routing/provider-registry'
+import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord } from '~/cli/commands/command-shared/pipeline-manifest'
+import { YOUTUBE_CAPTIONS_SERVICE } from '~/cli/commands/stt/direct-url/youtube-captions'
 import { resolveAdditiveResumeProviderSelection } from '../resume-provider-selection'
 import { hasResumableProviderTargetWork, priceProviderResumeTarget, providerResumeSourceInput, resolveProviderResumeOutputDir, runProviderResumePass, selectedProviderTargetsComplete, selectedProvidersCompleteResult, toProviderResumeResult, toProviderResumeSource } from '../provider-batch-resume'
 import { buildSttEstimatesForTargets } from '~/cli/commands/pricing-orchestration/aggregate-pricing/stt-estimates'

@@ -22,7 +22,7 @@ export type RecoveryFinalizationInput = {
     state: PipelineProviderState
     onProviderState?: ((state: PipelineProviderState) => Promise<void>) | undefined
   }
-  pure: ReturnType<typeof import('~/cli/commands/process-steps/step-4-tts/script-to-audio/attempt-planning').buildPureCurrentTtsRenderPlan>
+  pure: ReturnType<typeof import('~/cli/commands/audio/tts/script-to-audio/attempt-planning').buildPureCurrentTtsRenderPlan>
   resultProjection: CanonicalAudioProviderProjection
   retainedRender: CanonicalAudioProviderProjection['renderHistory'][number]
   renderRoot: string

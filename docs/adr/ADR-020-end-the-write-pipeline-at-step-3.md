@@ -135,13 +135,13 @@ Negative outcomes:
 - [x] Price and resume write as LLM-only
   `write --price` and `resume` of write runs estimate and continue step 3 only. Extract resume stays on `extract`.
 - [x] Update docs, help, and executable examples
-  `docs/commands/process-steps/step-3-write/01-write-text.md`, README examples, diagrams, and ADR-016 fixtures chain `extract` then `write`. Help contracts reject extract flags on `write`.
+  `docs/commands/text/write/overview.md`, README examples, diagrams, and ADR-016 fixtures chain `extract` then `write`. Help contracts reject extract flags on `write`.
 - [x] Fold this break into the leftover-surface cleanup
   Implement with `docs/reports/04-legacy-report-2026-08-21.md` section 6. Dual `--stt` / `--ocr` write selectors, `ProcessingOptions` write fields on download/extract, and write-shaped `skipLLM` are gone because write no longer runs extract.
 
 ## Implementation Note
 
-Text-only `write` now routes through `src/cli/commands/process-steps/step-3-write/run-write-command.ts` and `runTextWrite`. It no longer enters `handleProcessTarget` and no longer advertises extract flags. `runTextWrite` remains the LLM execution path. Command-scoped config merge stops injecting extract and generation defaults into write. `skipLLM` is gone from `buildOptsFromFlags`.
+Text-only `write` now routes through `src/cli/commands/text/write/run-write-command.ts` and `runTextWrite`. It no longer enters `handleProcessTarget` and no longer advertises extract flags. `runTextWrite` remains the LLM execution path. Command-scoped config merge stops injecting extract and generation defaults into write. `skipLLM` is gone from `buildOptsFromFlags`.
 
 ## API / Type Impact
 
@@ -178,8 +178,8 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
 - Related ADR: [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md)
 - `src/cli/flags/write-flags.ts`
-- `src/cli/commands/process-steps/step-3-write/run-text-write.ts`
-- `src/cli/commands/process-steps/step-3-write/define-write-command.ts`
-- `src/cli/commands/process-steps/step-1-download/download-targets/handle-process-target.ts`
-- `docs/commands/process-steps/step-3-write/01-write-text.md`
+- `src/cli/commands/text/write/run-text-write.ts`
+- `src/cli/commands/text/write/define-write-command.ts`
+- `src/cli/commands/sources/download/download-targets/handle-process-target.ts`
+- `docs/commands/text/write/overview.md`
 - `docs/reports/04-legacy-report-2026-08-21.md`

@@ -1,4 +1,4 @@
-import { cleanPageTextForExport } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/pdf/ocr-chapters/text'
+import { cleanPageTextForExport } from '~/cli/commands/text/ocr/pdf/ocr-chapters/text'
 import { firstTagText, scanTagBlocks } from '~/utils/xml-scan'
 
 const ITEM_COUNT = 12000

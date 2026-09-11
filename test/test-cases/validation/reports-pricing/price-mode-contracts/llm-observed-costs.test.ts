@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildStep3Metadata, runWithLLMInstrumentation } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-instrumentation'
+import { buildStep3Metadata, runWithLLMInstrumentation } from '~/cli/commands/text/write/write-utils/llm-instrumentation'
 import { getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { CommandPricingOptions } from '~/types'
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'

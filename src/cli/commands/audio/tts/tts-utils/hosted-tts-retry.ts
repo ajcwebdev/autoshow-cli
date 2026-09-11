@@ -1,0 +1,78 @@
+import type { HostedTtsRetryAttemptContext, HostedTtsRetryOptions, RetryClassifier, RetryDecision } from '~/types'
+import { AppError, getErrorHeaders } from '~/utils/error-handler'
+import { classifyFetchRetry, parseRetryAfterMs, readRetrySignals, withRetry } from '~/utils/retries'
+import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
+import { classifyHostedRateLimitPressure } from '~/cli/commands/command-shared/hosted-concurrency-coordinator'
+
+export const classifyHostedTtsRetry: RetryClassifier = (error) => {
+  if (readRetrySignals(error).retryable === false) {
+    return { shouldRetry: false, delayMs: 0, reasonCode: 'non_retryable_marked', reason: 'error marked non-retryable' }
+  }
+  const hostedPressure = classifyHostedRateLimitPressure(error)
+  return error instanceof Error && (error as Error & { ttsAdmissionAmbiguous?: boolean }).ttsAdmissionAmbiguous === true
+    ? { shouldRetry: false, delayMs: 0, reasonCode: 'unsafe_paid_redispatch', reason: 'provider admission outcome is ambiguous' }
+    : error instanceof AppError && (error.kind === 'usage' || error.kind === 'validation' || error.kind === 'internal')
+      ? { shouldRetry: false, delayMs: 0, reasonCode: 'classifier_refused', reason: `deterministic ${error.kind} error` }
+      : hostedPressure
+        ? { shouldRetry: true, delayMs: hostedPressure.retryAfterMs ?? hostedPressure.delayMs ?? 0, reasonCode: 'provider_rejected_admission', reason: hostedPressure.reason }
+        : classifyFetchRetry(error, 'runtime_http_create_conservative')
+}
+
+const notifyHostedTtsSchedulerRetry = (
+  options: HostedTtsRetryOptions,
+  error: unknown,
+  decision: RetryDecision
+): void | boolean | Promise<void | boolean> => {
+  if (!options.chunkScheduler || !options.admission) {
+    return
+  }
+
+  options.chunkScheduler.notifyRetry(options.admission)
+
+  const pressure = classifyHostedRateLimitPressure(error)
+  if (pressure) {
+    return options.chunkScheduler.notifyRateLimit(options.admission, {
+      ...pressure,
+      retryAfterMs: pressure.retryAfterMs ?? parseRetryAfterMs(getErrorHeaders(error)),
+      delayMs: Math.max(pressure.delayMs ?? 0, decision.delayMs)
+    }, error)
+  }
+}
+
+export const withHostedTtsRetry = async <T>(
+  options: HostedTtsRetryOptions,
+  operation: (signal: AbortSignal | undefined, attempt: HostedTtsRetryAttemptContext) => Promise<T>
+): Promise<T> => {
+  options.abortSignal?.throwIfAborted()
+  const classifier = options.classifier ?? classifyHostedTtsRetry
+  let attempt = 0
+  let retryReasonCode: string | undefined
+  return await withRetry(
+    {
+      retryClass: 'runtime_http_create_conservative',
+      operationName: options.operationName,
+      timeoutMs: options.timeoutMs ?? MEDIA_GENERATION_TIMEOUT_MS,
+      abortSignal: options.abortSignal,
+      ...(options.policy ? { policy: options.policy } : {}),
+      retryHookCanExtendAttempts: options.chunkScheduler?.usesSharedHostedRateLimitRecovery() === true,
+      onRetryAttempt: (error, decision) => {
+        retryReasonCode = decision.reason
+        return notifyHostedTtsSchedulerRetry(options, error, decision)
+      }
+    },
+    async (attemptSignal) => {
+      const signals = [attemptSignal, options.abortSignal]
+        .filter((signal): signal is AbortSignal => signal !== undefined)
+      const signal = signals.length > 1 ? AbortSignal.any(signals) : signals[0]
+      signal?.throwIfAborted()
+      attempt += 1
+      return await operation(signal, {
+        attempt,
+        ...(retryReasonCode ? { retryReasonCode } : {})
+      })
+    },
+    error => options.abortSignal?.aborted
+      ? { shouldRetry: false, delayMs: 0, reasonCode: 'classifier_refused', reason: 'operation cancelled' }
+      : classifier(error)
+  )
+}

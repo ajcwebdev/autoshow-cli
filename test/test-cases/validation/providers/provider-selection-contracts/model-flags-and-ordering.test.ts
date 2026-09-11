@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
-import { collectSttTargets, collectSttTargetsForSource } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
+import { collectExplicitOcrTargets } from '~/cli/commands/text/ocr/ocr-targets'
+import { collectSttTargets, collectSttTargetsForSource } from '~/cli/commands/stt/stt-targets'
 import {
   collectStep2ProviderSelections,
   collectStep2ProviderSpecs,
@@ -10,9 +10,9 @@ import {
   LOCAL_URL_ARTICLE_BACKENDS,
   URL_ARTICLE_BACKENDS,
   getStep2ProviderSelectionFlagNames
-} from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
-import { resolveOcrStep2ExecutionFromFormat } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/resolved-step2'
-import { isLocalUrlBackend } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-targets'
+} from '~/cli/commands/command-shared/extract-routing/provider-registry'
+import { resolveOcrStep2ExecutionFromFormat } from '~/cli/commands/command-shared/extract-routing/resolved-step2'
+import { isLocalUrlBackend } from '~/cli/commands/text/url/url-targets'
 import { formatModelSelector } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 describe('provider selection contracts', () => {
@@ -61,7 +61,6 @@ describe('provider selection contracts', () => {
       'scrapecreators-stt',
       'gemini-stt',
       'together-stt',
-      'whisper-stt',
       'whisperfile-stt'
     ])
   })
@@ -177,7 +176,7 @@ describe('provider selection contracts', () => {
 
   test('target collection preserves provider ordering and deduplicates repeated models', () => {
     const sttOpts = buildOptsFromFlags({
-      'whisper-stt': ['base', 'base'],
+      'whisperfile-stt': ['small', 'small'],
       'assemblyai-stt': ['universal-3-5-pro', 'universal-3-5-pro']
     })
     const ocrSpecs = collectStep2ProviderSpecs('ocr', {
@@ -193,7 +192,7 @@ describe('provider selection contracts', () => {
 
     expect(collectSttTargets(sttOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'assemblyai:universal-3-5-pro',
-      'whisper:base'
+      'whisperfile:small'
     ])
     expect(ocrSpecs).toEqual([
       { provider: 'tesseract', model: 'tesseract' },
@@ -219,7 +218,7 @@ describe('provider selection contracts', () => {
     expect(services).toContain('mistral')
     expect(services).not.toContain('rev')
     expect(services).not.toContain('reverb')
-    expect(services).not.toContain('whisper')
+    expect(services).not.toContain('whisperfile')
     expect(supadataTargets).toEqual([{
       service: 'supadata',
       model: 'auto',
@@ -247,7 +246,7 @@ describe('provider selection contracts', () => {
     const localOpts = buildOptsFromFlags({ 'all-local-stt': true })
     const localServices = collectSttTargets(localOpts).map((target) => target.service)
     expect(localServices).not.toContain('reverb')
-    expect(localServices).toContain('whisper')
+    expect(localServices).toContain('whisperfile')
     expect(localServices).not.toContain('deepgram')
     expect(localServices).not.toContain('mistral')
   })

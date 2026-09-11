@@ -16,10 +16,10 @@ import {
 import { formatProviderList, strListFlag, withHelpGroup } from './flag-utils'
 import type { CliFlagsDefinition } from '~/types'
 import { EXTRACT_PUBLIC_SELECTOR_FLAGS } from './service-selector-normalization/extract-selectors'
-import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { URL_ARTICLE_BACKENDS } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 
 const extractProviderSelectionFlags = {
-  provider: strListFlag(`STT/OCR: ${formatProviderList(EXTRACT_PUBLIC_SELECTOR_FLAGS)} (defaults: whisper=tiny or tesseract)\nURL: ${URL_ARTICLE_BACKENDS.join('|')} (default: defuddle)\nrepeatable as provider[=model]`),
+  provider: strListFlag(`STT/OCR: ${formatProviderList(EXTRACT_PUBLIC_SELECTOR_FLAGS)} (defaults: whisperfile=tiny or tesseract)\nURL: ${URL_ARTICLE_BACKENDS.join('|')} (default: defuddle)\nrepeatable as provider[=model]`),
   ...booleanAllProvidersFlag,
   ...booleanAllLocalFlag,
   ...sharedConcurrencyFlags

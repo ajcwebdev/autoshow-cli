@@ -1,6 +1,6 @@
 import { UsageError } from '~/utils/error-handler'
 import type { BatchOrder, CliFlagOccurrence, HostedConcurrencyMode, HtmlArticleBackend } from '~/types'
-import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { URL_ARTICLE_BACKENDS } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import { formatQuotedChoiceList } from '~/utils/value-helpers'
 
 export const parseIntWithDefault = (value: string | undefined, fallback: number): number => {

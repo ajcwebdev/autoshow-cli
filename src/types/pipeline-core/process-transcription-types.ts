@@ -76,7 +76,7 @@ export type Step2RuntimeMetadata = {
 
 export type Step2Metadata = {
   diarizationOptions?: DiarizationOptions | undefined
-  transcriptionService: 'whisper' | 'whisperfile' | 'deepgram' | 'deepinfra' | 'soniox' | 'speechmatics' | 'rev' | 'grok' | 'mistral' | 'assemblyai' | 'gladia' | 'happyscribe' | 'supadata' | 'scrapecreators' | 'gemini-stt' | 'together' | 'youtube-captions'
+  transcriptionService: 'whisperfile' | 'deepgram' | 'deepinfra' | 'soniox' | 'speechmatics' | 'rev' | 'grok' | 'mistral' | 'assemblyai' | 'gladia' | 'happyscribe' | 'supadata' | 'scrapecreators' | 'gemini-stt' | 'together' | 'youtube-captions'
   transcriptionModel: string
   processingTime: number
   tokenCount: number

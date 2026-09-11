@@ -9,8 +9,8 @@ import {
 } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import { commandAcceptsGlobalFlag } from '~/cli/native/global-flag-support'
 import { commandCreatesRunDirectory } from '~/cli/native/run-directory-support'
-import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
-import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
+import { configureOutputRoot } from '~/cli/commands/command-shared/output-root'
+import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const DIRECT_URL = 'blob:https://example.com/docs'

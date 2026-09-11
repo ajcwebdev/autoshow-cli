@@ -1,4 +1,4 @@
-import { configureYtDlpAuth } from '~/cli/commands/process-steps/shared/shared-yt-dlp-options'
+import { configureYtDlpAuth } from '~/cli/commands/command-shared/shared-yt-dlp-options'
 import { loadConfig, resolveConfigPath } from './config-loader'
 
 export const applyConfiguredYtDlpAuth = async (configPathOverride?: string): Promise<void> => {

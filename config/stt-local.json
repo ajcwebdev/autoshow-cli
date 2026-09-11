@@ -1,0 +1,15 @@
+{
+  "defaults": {
+    "extract": {
+      "stt": {
+        "localConcurrency": 1,
+        "whisperfile": [
+          "tiny",
+          "tiny.en",
+          "small",
+          "small.en"
+        ]
+      }
+    }
+  }
+}

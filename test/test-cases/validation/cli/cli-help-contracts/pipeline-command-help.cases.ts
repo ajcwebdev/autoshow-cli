@@ -217,7 +217,7 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(result.stdout).toContain('image:')
     expect(result.stdout).toContain('video:')
     expect(result.stdout).toContain('music:')
-    expect(result.stdout).toContain('whisper')
+    expect(result.stdout).toContain('whisperfile')
     expect(result.stdout).toContain('tesseract')
     expect(result.stdout).toContain('bfl')
     expect(result.stdout).not.toContain('recraft')
@@ -255,7 +255,7 @@ export const registerPipelineCommandHelpCases = (): void => {
 
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('bun autoshow config --show')
-    expect(result.stdout).toContain('bun autoshow config --llm openai=gpt-5.4-mini --stt whisper=base')
+    expect(result.stdout).toContain('bun autoshow config --llm openai=gpt-5.4-mini --stt whisperfile=small')
     expect(result.stdout).toContain('bun autoshow config --reset')
     expect(result.stdout).not.toContain('bun as config')
   })

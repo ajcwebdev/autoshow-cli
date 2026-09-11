@@ -13,6 +13,12 @@ import { loadE2eTestSources } from './e2e-test-sources'
 import { auditBudgetKeyCoverage, indexBudgetSkippableSelectors } from './budget-coverage-audit'
 
 describe('test-runner contracts', () => {
+  test('every price selector resolves to a discovered e2e test', async () => {
+    const sources = await loadE2eTestSources()
+    const files = new Set(sources.map(source => source.file))
+    expect(BUDGET_PRICE_SELECTION_REGISTRY.filter(entry => entry.selectorKind === 'file' && !files.has(entry.selector)).map(entry => entry.selector)).toEqual([])
+  })
+
   test('live service registration retains inspectable budget keys', () => {
     const inspected = inspectBudgetSource('live.ts', `
       defineBudgetedLiveServiceTest('extract-firecrawl-url', 'article', ['FIRECRAWL_API_KEY'], () => {})
@@ -111,7 +117,7 @@ describe('test-runner contracts', () => {
   })
 
   test('budget-skip entries are emitted from skipped entry keys', () => {
-      const evaluation = evaluatePriceObservations('Selected paths: step-3-write-e2e/write-services/openai-gpt-5.5.test.ts', [
+      const evaluation = evaluatePriceObservations('Selected paths: text/write/openai-gpt-5.5.test.ts', [
         {
           name: 'write-openai-gpt-5.5',
           key: 'write-openai-gpt-5.5',
@@ -248,7 +254,7 @@ describe('test-runner contracts', () => {
     })
 
   test('Replicate image live tests resolve all seven exact budget keys', () => {
-      const file = 'test/test-cases/e2e/service/step-5-image-gen-e2e/replicate-image.test.ts'
+      const file = 'test/test-cases/e2e/service/visuals/image/replicate-image.test.ts'
       const keys = resolvePriceSelection([file], [file], { budgetSkippableOnly: true }).commands.map(command => command.key)
 
       expect(keys).toEqual([
@@ -263,7 +269,7 @@ describe('test-runner contracts', () => {
     })
 
   test('a 0.10 cent threshold marks all seven Replicate image keys over budget', () => {
-      const file = 'test/test-cases/e2e/service/step-5-image-gen-e2e/replicate-image.test.ts'
+      const file = 'test/test-cases/e2e/service/visuals/image/replicate-image.test.ts'
       const commands = resolvePriceSelection([file], [file], { budgetSkippableOnly: true }).commands
       const observations = commands.map((command) =>
         toObservation(command, { exitCode: 0, durationMs: 0, parsedCost: 1 })
@@ -296,13 +302,13 @@ describe('test-runner contracts', () => {
 
   test('TTS service budget preflight includes active service entries', () => {
       const allFiles = [
-        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/grok-tts.test.ts',
-        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/cartesia-sonic-3.5-2026-05-04.test.ts',
-        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/openai-gpt-4o-mini-tts-2025-12-15.test.ts',
+        'test/test-cases/e2e/service/audio/tts/grok-tts.test.ts',
+        'test/test-cases/e2e/service/audio/tts/cartesia-sonic-3.5-2026-05-04.test.ts',
+        'test/test-cases/e2e/service/audio/tts/openai-gpt-4o-mini-tts-2025-12-15.test.ts',
       ]
 
       const keys = resolvePriceSelection(allFiles, [
-        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/'
+        'test/test-cases/e2e/service/audio/tts/'
       ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
 
       expect(keys).toContain('tts-grok-grok-tts')
@@ -312,19 +318,19 @@ describe('test-runner contracts', () => {
 
   test('music selected-file budget preflight includes keys for live ElevenLabs music skips', () => {
       const allFiles = [
-        'test/test-cases/e2e/service/step-7-music-gen-e2e/elevenlabs-music.test.ts',
-        'test/test-cases/e2e/service/step-7-music-gen-e2e/gemini-lyria-3-pro-preview.test.ts',
-        'test/test-cases/e2e/service/step-7-music-gen-e2e/minimax-music-3.0.test.ts',
-        'test/test-cases/e2e/service/step-7-music-gen-e2e/minimax-music-3.0-gemini-lyria-3-pro-preview.test.ts'
+        'test/test-cases/e2e/service/audio/music/elevenlabs-music.test.ts',
+        'test/test-cases/e2e/service/audio/music/gemini-lyria-3-pro-preview.test.ts',
+        'test/test-cases/e2e/service/audio/music/minimax-music-3.0.test.ts',
+        'test/test-cases/e2e/service/audio/music/minimax-music-3.0-gemini-lyria-3-pro-preview.test.ts'
       ]
 
       const elevenlabsKeys = resolvePriceSelection(allFiles, [
-        'test/test-cases/e2e/service/step-7-music-gen-e2e/'
+        'test/test-cases/e2e/service/audio/music/'
       ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
       expect(elevenlabsKeys).toContain('music-elevenlabs-music_v2')
 
       const minimaxKeys = resolvePriceSelection(allFiles, [
-        'test/test-cases/e2e/service/step-7-music-gen-e2e/'
+        'test/test-cases/e2e/service/audio/music/'
       ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
       expect(minimaxKeys).toContain('music-multi-minimax-music-3.0-gemini-lyria-3-pro-preview')
       for (const model of MINIMAX_INSTRUMENTAL_MUSIC_MODELS) {
@@ -333,7 +339,7 @@ describe('test-runner contracts', () => {
       expect(minimaxKeys).not.toContain('music-minimax-' + 'music-2' + '.5')
 
       const geminiKeys = resolvePriceSelection(allFiles, [
-        'test/test-cases/e2e/service/step-7-music-gen-e2e/gemini-lyria-3-pro-preview.test.ts'
+        'test/test-cases/e2e/service/audio/music/gemini-lyria-3-pro-preview.test.ts'
       ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
       expect(geminiKeys).toContain('music-gemini-lyria-3-pro-preview')
       expect(geminiKeys).not.toContain('music-gemini-lyria-3-clip-preview')

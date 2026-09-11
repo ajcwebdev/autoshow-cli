@@ -1,14 +1,14 @@
 import { describe,expect,test } from 'bun:test'
 import {
 coerceAndValidateGenerateImages
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
+} from '~/cli/commands/visuals/comic/comic-utils/cli-args'
 import {
 draftScenesCommandDefinition,
 generateAudioCommandDefinition,
 generateImagesCommandDefinition,
 generateSlideshowCommandDefinition,
 referenceSketchCommandDefinition
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
+} from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
 import {
 comicGenerateAudioFlags,
 comicGenerateSlideshowFlags,

@@ -4,13 +4,18 @@ import { inferTestKind } from '../../../../test-runner/reports/context'
 describe('test-runner test-kind classification', () => {
   test('path rules take precedence over conflicting title hints', () => {
     const collisions = [
-      ['/step-7-music-gen-e2e/example.test.ts', 'extract a document', 'music'],
-      ['/step-6-video-gen-e2e/example.test.ts', 'transcribe speech.wav', 'video'],
-      ['/step-5-image-gen-e2e/example.test.ts', 'generate music', 'image'],
-      ['/step-4-tts-e2e/example.test.ts', 'generate an image', 'tts'],
-      ['/step-3-write-e2e/example.test.ts', 'generate a video', 'write'],
-      ['/step-2-stt-e2e/example.test.ts', 'extract a page', 'transcribe'],
-      ['/step-2-ocr-e2e/example.test.ts', 'generate music', 'extract'],
+      ['/audio/music/example.test.ts', 'extract a document', 'music'],
+      ['/visuals/video/example.test.ts', 'transcribe speech.wav', 'video'],
+      ['/visuals/image/example.test.ts', 'generate music', 'image'],
+      ['/audio/tts/example.test.ts', 'generate an image', 'tts'],
+      ['/text/write/example.test.ts', 'generate a video', 'write'],
+      ['/stt/example.test.ts', 'extract a page', 'transcribe'],
+      ['/text/ocr/example.test.ts', 'generate music', 'extract'],
+      ['/text/url/example.test.ts', 'generate music', 'extract'],
+      ['/e2e/local/stt/whisperfile/example.test.ts', 'extract a page', 'transcribe'],
+      ['/e2e/service/stt/diarization/example.test.ts', 'extract a page', 'transcribe'],
+      ['/e2e/service/stt/diarization-off-by-default/example.test.ts', 'extract a page', 'transcribe'],
+      ['/e2e/service/stt/direct-url/example.test.ts', 'extract a page', 'transcribe'],
     ] as const
 
     for (const [file, name, expected] of collisions) {

@@ -1,6 +1,6 @@
 import { basename, extname, join } from 'node:path'
 import type { LinksSelection } from '~/types'
-import { createGenerationOutputDir } from '~/cli/commands/process-steps/generation-command-utils'
+import { createGenerationOutputDir } from '~/cli/commands/command-shared/generation-command-utils'
 import { getFetchableDocumentationUrl } from './links-fetcher'
 
 export const normalizeTokens = (tokens: string[]): string[] => [...new Set(tokens.map(token => token.toLowerCase()))].sort()

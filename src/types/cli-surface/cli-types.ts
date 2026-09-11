@@ -15,7 +15,7 @@ export type SharedPipelineOptions = {
   outputRootDir: string
   configPath: string | undefined
   youtubeCaptions: boolean
-  whisperExplicit: boolean
+  whisperfileExplicit: boolean
   step2SelectionOrigins: Partial<Record<string, Step2ProviderSelectionOrigin>>
 }
 

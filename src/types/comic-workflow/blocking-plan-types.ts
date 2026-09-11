@@ -1,7 +1,7 @@
 import type * as v from 'valibot'
 import type { CharacterCatalogService, HostedConcurrencyRuntimeOptions, LlmModel, StructuredScriptData } from '~/types'
 
-type BlockingSchemas = typeof import('~/cli/commands/process-steps/step-8-comic/schemas/blocking-plan-schemas')
+type BlockingSchemas = typeof import('~/cli/commands/visuals/comic/schemas/blocking-plan-schemas')
 
 export type BlockingPlan = v.InferOutput<BlockingSchemas['BlockingPlanSchema']>
 export type BlockingPlanDraft = v.InferOutput<BlockingSchemas['BlockingPlanDraftSchema']>

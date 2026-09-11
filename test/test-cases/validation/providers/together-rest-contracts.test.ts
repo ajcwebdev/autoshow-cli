@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildTogetherSttFormFields } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/together/run-together-stt'
+import { buildTogetherSttFormFields } from '~/cli/commands/stt/diarization-off-by-default/together/run-together-stt'
 
 describe('Together STT REST contracts', () => {
   test('builds verbose segment requests for each current batch model', () => {

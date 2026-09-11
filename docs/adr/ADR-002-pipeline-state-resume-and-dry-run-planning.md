@@ -118,15 +118,17 @@ When an OCR item ran in pool mode, its page progress and accepted results live i
 
 ### Amendment: recorded comic recovery, 2026-09-10
 
-The existing `resume` command also accepts canonical single-scene comic manifests. Initial generation and deliberate changes remain under the existing comic subcommands. Comic recovery is narrower than additive standalone recovery: it accepts price and existing TTS reconciliation controls, restores recorded options, and rejects provider, rendering, configuration, output-directory, character-root, and concurrency overrides. Ambient configuration cannot supply replacement choices for a comic run.
+The existing `resume` command also accepts canonical single-scene comic manifests. The dispatcher previously rejected those manifests despite retained comic stage and provider state. This was the selected 3B recovery extension in the [CLI consolidation decision](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md#consolidation-selection-and-rejected-alternatives), implemented as a registry adapter. Initial generation and deliberate changes remain under the existing comic subcommands. Comic recovery is narrower than additive standalone recovery: it accepts price and existing TTS reconciliation controls, restores recorded options, and rejects provider, rendering, configuration, output-directory, character-root, and concurrency overrides. Ambient configuration cannot supply replacement choices for a comic run.
 
 `metadata.comic.recovery` is optional validated state inside the existing `manifest.json`, with one intent per requested image, audio, or presentation stage. Each intent binds resolved flags, input hashes, character-root location, a plan identity, and invocation completion. Images also bind the original output run ID, because creating a fresh run ID would bypass retained panels. Audio plans bind explicit targets, voice snapshots, dialogue and soundscape identities, and TTS render identities. One-run checkpoint limits and ambiguous-redispatch authorization are not persisted. Audio and an accompanying slideshow request are recorded in one manifest update before synthesis.
 
-Shared planning validates exact source identity and the retained artifact graph, then orders image, audio, and presentation recovery. Stage results distinguish reuse, pending execution, unrequested work, blockers, and presentation awaiting audio. Optional presentation dependencies are checked independently of aggregate item status, including completed presentations created before recovery intent existed. Execution re-reads state and revalidates dependencies before each stage. Existing comic QA, TTS slot reconciliation, sound-effect admission rules, and local presentation publication retain ownership of their outputs.
+Image intent preserves panel/model selection, size, quality, grouping, variations, and QA settings. Execution and price inventory use the original output run ID; planning counts missing outputs per model and includes unfinished QA on retained images. Partial failures record retained image hashes. Input checks bind prompt bundles, reviewed scene, blocking evidence, reference assets, and locally prepared character identity cards. Multiple image models may share the comic workspace while audio artifact-directory uniqueness remains enforced.
 
-`resume --price` performs no provider calls, output initialization, reference imports, coverage-report writes, or manifest updates. Its ordinary JSON result adds `comicPlans` with per-directory readiness and stage details. A successfully inspected blocked plan has `ready: false`; a partial known-cost total is not a complete budget. Execution refuses blocked plans. Invalid canonical manifests or source evidence still fail inspection. Slideshow planning checks reviewed visuals, selected audio, timeline reconciliation, and available FFmpeg H.264 encoders; a pending audio dependency receives its final timeline check after audio completes.
+Shared planning validates exact source identity and the retained artifact graph, then orders image, audio, and presentation recovery. Stage actions are `reuse`, `resume`, `not-requested`, `blocked`, or `after-audio`. Optional presentation dependencies are checked independently of aggregate item status, including completed presentations created before recovery intent existed. Execution re-reads state and revalidates dependencies before each stage. Existing comic QA, TTS slot reconciliation, sound-effect admission rules, and local presentation publication retain ownership of their outputs. The existing `--allow-ambiguous-redispatch` control remains available for unresolved admitted TTS slots, with the same possible repurchase semantics; it does not replace sound-effect admission reconciliation.
 
-Older incomplete stages with no exact intent, changed inputs or voice evidence, forced image regeneration, and unpriced provider work require an explicit stage invocation after review. Unrequested work stays unrequested, and compatible complete runs make no writes. This amendment adds no fresh-run planner, public mode flag, public image run-ID override, migration mechanism, or second persistence authority. Standalone additive selection continues to follow the earlier decision. Usage is documented under [Comic Recovery](../commands/setup-and-utilities/resume/resume.md#comic-recovery); local presentation remains governed by [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md).
+`resume --price` performs no provider calls, output initialization, reference imports, coverage-report writes, or manifest updates. Its ordinary JSON result adds `data.comicPlans` with per-directory readiness and stage details. A successfully inspected blocked plan has `ready: false`; a partial known-cost total is not a complete budget. Execution refuses blocked plans. Invalid canonical manifests or source evidence still fail inspection. Unpriced provider work blocks shared recovery, and modeled QA/repair estimates are not billing caps. Slideshow planning checks reviewed visuals, selected audio, timeline reconciliation, and available FFmpeg H.264 encoders; a pending audio dependency receives its final timeline check after audio completes.
+
+Older incomplete stages with no exact intent, changed inputs or voice evidence, forced image regeneration, QA-only audits, revision evaluation, and unpriced provider work require an explicit stage invocation after review. Missing preparation, new reference assets, voice approvals, provider comparisons, source edits, and rendering changes also remain explicit. Recovery does not select or promote image variants into canonical `panels/panel-NN.png` files. Presentation still requires complete audio. Unrequested work stays unrequested, and compatible complete runs make no provider calls or writes. This amendment adds no fresh-run planner, public mode flag, public image run-ID override, migration mechanism, or second persistence authority. Standalone additive selection continues to follow the earlier decision. Usage is documented under [Comic Recovery](../commands/setup-and-utilities/resume.md#comic-recovery); local presentation remains governed by [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md).
 
 ## Rationale
 
@@ -186,11 +188,11 @@ Negative outcomes:
 
 ## Implementation Note
 
-- Canonical `manifest.json` read/write and mixed-route child links: `src/cli/commands/process-steps/pipeline-manifest/`
+- Canonical `manifest.json` read/write and mixed-route child links: `src/cli/commands/command-shared/pipeline-manifest/`
 - Provider-neutral `resume --price` flag: `src/cli/flags/resume-flags.ts`
 - Resume target resolution and dry-run planning: `src/cli/commands/setup-and-utilities/resume/`
 - Shared execution and resume selection inventories: `src/cli/flags/service-selector-normalization/provider-targets.ts` and `src/cli/flags/service-selector-normalization/extract-selectors.ts`
-- Pooled OCR page persistence and resume: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts` and `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`
+- Pooled OCR page persistence and resume: `src/cli/commands/text/ocr/ocr-pooled-batch.ts` and `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`
 
 ### Bun 1.4 Journal and Tokenizer Evidence
 
@@ -260,18 +262,29 @@ bun test test/test-cases/validation/providers/provider-selection-contracts/selec
 
 Do not run live paid provider, smoke, or e2e tests that call third-party APIs.
 
+### Comic recovery verification recorded on 2026-09-10
+
+The implementation review recorded 190 passing recovery, manifest, media, and pricing tests across 39 files in the broader pass. After refining per-model pricing, unfinished QA, reference binding, and manifest directory validation, the final affected recovery/image pass recorded 140 tests across 27 files. These are overlapping verification snapshots. The [comic recovery contracts](../../test/test-cases/validation/resume-manifests/comic-resume-contracts.test.ts) contained 12 scenarios covering single- and multi-model image reuse, unfinished QA on retained panels and pages, audio checkpoints, local presentation recovery, JSON readiness, and recovery blockers.
+
+Synthetic image recovery retained the first panel and made exactly one additional mocked image request for the missing panel in the original output directory. A two-turn audio checkpoint retained its first segment and synthesized only the second. Repeated price and execution checks left completed runs byte-identical; changed prompt inputs, stale presentation dependencies, missing voice evidence, insufficient historical intent, and ambiguous audio admission blocked recovery. Pending and presentation-only slideshow evidence is retained in [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md#recovery-verification-recorded-on-2026-09-10).
+
+The demonstrated result was correct recovery and artifact reuse in local fixtures with mocked provider responses. Production time savings, spending reductions, and live-provider failure recovery were not benchmarked. The 136-command mapped price pass recorded in [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md#consolidation-verification-recorded-on-2026-09-10) was separate from these synthetic recovery contracts.
+
 ## References
 
 - Related ADR: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
 - Related ADR: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md)
+- Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)
 - Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md)
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
 - Related ADR: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)
 - Related ADR: [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md)
+- Related ADR: [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md)
 - Related ADR: [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
-- `src/cli/commands/process-steps/pipeline-manifest.ts`
+- `src/cli/commands/command-shared/pipeline-manifest.ts`
 - `src/cli/commands/setup-and-utilities/resume/`
+- `src/cli/commands/setup-and-utilities/resume/resume-comic/comic-resume.ts`
 - `src/cli/flags/resume-flags.ts`
 - `src/utils/jsonl-reader.ts`
 - `src/utils/reference-tokenizer.ts`

@@ -2,7 +2,7 @@ import { DEFAULT_CONCURRENCY_FLAG_VALUE } from '~/utils/concurrency-defaults'
 import { OUTPUT_FORMATS } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
 import { boolFlag, formatProviderList, formatValueList, strFlag, strListFlag } from './flag-utils'
-import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { URL_ARTICLE_BACKENDS } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import { PDF_CHAPTER_MODES } from '~/cli/options/option-resolution/flag-readers'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS, WRITE_OCR_PROVIDER_TARGETS, WRITE_STT_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 
@@ -37,13 +37,13 @@ export const booleanAllLocalFlag = {
 } as const satisfies CliFlagsDefinition
 
 export const stepProviderSelectorFlags = {
-  stt: strListFlag(`Write pipeline STT provider[=model]: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisper=tiny)`),
+  stt: strListFlag(`Write pipeline STT provider[=model]: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisperfile=tiny)`),
   ocr: strListFlag(`Write pipeline OCR provider[=model]: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (default: tesseract)`),
   llm: strListFlag(`LLM provider[=model]: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`)
 } as const satisfies CliFlagsDefinition
 
 export const configPipelineSelectorFlags = {
-  stt: strListFlag(`Default STT provider[=model] persisted for the extract command: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisper=tiny)`),
+  stt: strListFlag(`Default STT provider[=model] persisted for the extract command: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisperfile=tiny)`),
   ocr: strListFlag(`Default OCR provider[=model] persisted for the extract command: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (default: tesseract)`),
   llm: strListFlag(`Default LLM provider[=model] persisted for the write command: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`)
 } as const satisfies CliFlagsDefinition

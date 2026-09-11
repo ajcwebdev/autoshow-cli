@@ -1,0 +1,166 @@
+import { describe, expect, test } from 'bun:test'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
+import { runTts } from '~/cli/commands/audio/tts/run-tts'
+import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
+import {
+  assertDialogueFormatIsUsable,
+  detectVoiceKind,
+  isMultiSpeakerRequested,
+  normalizeDialogueText,
+  parseSpeakerVoiceMappings
+} from '~/cli/commands/audio/tts/dialogue-normalizer'
+import { createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
+import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
+import { readWavSamples, segmentRms } from './tts-provider-contracts/shared'
+
+const tempDirs = setupContractSuiteLifecycle({
+  envKeys: ['OPENAI_API_KEY'],
+  tempPrefix: 'autoshow-tts-dialogue-order-'
+})
+
+describe('TTS dialogue contracts', () => {
+  test('labeled normalization accepts canonical speaker lines and rejects unknown speakers', () => {
+    const registry = parseSpeakerVoiceMappings([
+      'DUCO=input/examples/audio/anthony-voice.mp3'
+    ])
+
+    expect(normalizeDialogueText('DUCO: Hello there.', 'labeled', registry).normalizedText)
+      .toBe('DUCO: Hello there.')
+    expect(() => normalizeDialogueText('CHAT: Hello Duco.', 'labeled', registry))
+      .toThrow('No --tts-speaker mapping found for speaker CHAT')
+  })
+
+  test('multi-speaker validates provider selection and speaker mappings', () => {
+    expect(() => collectTtsTargets(buildOptsFromFlags({
+      'tts-dialogue-format': 'screenplay',
+      'tts-speaker': ['DUCO=voice_duco']
+    }))).toThrow('requires at least one TTS provider')
+
+    expect(() => collectTtsTargets(buildOptsFromFlags({
+      'mistral-tts': 'voxtral-mini-tts-2603',
+      'tts-speaker': ['DUCO=voice_duco']
+    }))).toThrow('Dialogue TTS requires --tts-dialogue-format screenplay|labeled.')
+
+    expect(() => collectTtsTargets(buildOptsFromFlags({
+      'mistral-tts': 'voxtral-mini-tts-2603',
+      'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
+      'tts-dialogue-format': 'labeled',
+      'tts-speaker': ['DUCO=alloy', 'CHAT=onyx']
+    }))).toThrow('requires exactly one TTS provider')
+  })
+
+  test('a dialogue format without speakers is inert unless it was typed explicitly', () => {
+    const opts = buildOptsFromFlags({
+      'mistral-tts': 'voxtral-mini-tts-2603',
+      'tts-voice': 'voice-existing',
+      'tts-dialogue-format': 'screenplay'
+    })
+
+    expect(isMultiSpeakerRequested(opts)).toBe(false)
+    const targets = collectTtsTargets(opts)
+    expect(targets.length).toBe(1)
+    expect(targets[0]?.multiSpeakerStrategy).toBeUndefined()
+
+    expect(() => assertDialogueFormatIsUsable(opts)).not.toThrow()
+    expect(() => assertDialogueFormatIsUsable(opts, new Set(['tts-dialogue-format'])))
+      .toThrow('--tts-dialogue-format requires at least one --tts-speaker SPEAKER=VOICE mapping.')
+
+    const dialogueOpts = buildOptsFromFlags({
+      'mistral-tts': 'voxtral-mini-tts-2603',
+      'tts-dialogue-format': 'screenplay',
+      'tts-speaker': ['DUCO=voice_duco']
+    })
+    expect(isMultiSpeakerRequested(dialogueOpts)).toBe(true)
+    expect(() => assertDialogueFormatIsUsable(dialogueOpts, new Set(['tts-dialogue-format']))).not.toThrow()
+  })
+
+  test('parseSpeakerVoiceMappings parses voice IDs and ref audio paths', () => {
+    const registry = parseSpeakerVoiceMappings([
+      'Host=Kore',
+      'Guest=input/audio/voice.mp3'
+    ])
+    expect(registry.entries.length).toBe(2)
+    expect(registry.entries[0]?.voiceKind).toBe('id')
+    expect(registry.entries[0]?.voice).toBe('Kore')
+    expect(registry.entries[1]?.voiceKind).toBe('ref-audio')
+    expect(registry.entries[1]?.voice).toBe('input/audio/voice.mp3')
+  })
+
+  test('detectVoiceKind classifies voice IDs and ref audio paths', () => {
+    expect(detectVoiceKind('Kore')).toBe('id')
+    expect(detectVoiceKind('alloy')).toBe('id')
+    expect(detectVoiceKind('input/audio/voice.mp3')).toBe('ref-audio')
+    expect(detectVoiceKind('voice.wav')).toBe('ref-audio')
+    expect(detectVoiceKind('https://example.com/audio.mp3')).toBe('ref-audio')
+    expect(detectVoiceKind('C:\\audio\\voice.m4a')).toBe('ref-audio')
+  })
+
+  test('detectVoiceKind recognizes bare audio filenames beyond the common containers', () => {
+    for (const value of ['clip.opus', 'clip.oga', 'clip.aiff', 'clip.aif', 'clip.wma', 'clip.amr', 'clip.caf', 'clip.m4b', 'clip.weba', 'clip.mka', 'clip.au', 'clip.pcm']) {
+      expect(detectVoiceKind(value)).toBe('ref-audio')
+    }
+    expect(detectVoiceKind('Kore')).toBe('id')
+    expect(detectVoiceKind('gpt-4o.mini')).toBe('id')
+  })
+
+  test('new --tts-speaker flag works with voice IDs for multi-speaker', () => {
+    const targets = collectTtsTargets(buildOptsFromFlags({
+      'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
+      'tts-dialogue-format': 'labeled',
+      'tts-speaker': ['Alice=alloy', 'Bob=onyx']
+    }))
+    expect(targets.length).toBe(1)
+    expect(targets[0]?.service).toBe('openai')
+    expect(targets[0]?.multiSpeakerStrategy).toBe('segment-and-concat')
+  })
+
+  test('hosted segment-and-concat preserves dialogue turn order under concurrent segment scheduling', async () => {
+    const dir = await tempDirs.make()
+    const observedVoicesByInput = new Map<string, string>()
+    const audioByMarker = new Map([
+      ['A', createSyntheticWavBytes({ durationSeconds: 0.25, amplitude: 0.2, frequencyHz: 440 })],
+      ['B', createSyntheticWavBytes({ durationSeconds: 0.25, amplitude: 0.5, frequencyHz: 440 })],
+      ['C', createSyntheticWavBytes({ durationSeconds: 0.25, amplitude: 0.9, frequencyHz: 440 })]
+    ])
+
+    process.env['OPENAI_API_KEY'] = 'openai-key'
+    installMockFetch((call) => {
+      const input = String(call.bodyJson?.['input'] ?? '')
+      observedVoicesByInput.set(input, String(call.bodyJson?.['voice'] ?? ''))
+      const marker = input.charAt(0)
+      return new Response(audioByMarker.get(marker) ?? audioByMarker.get('A'), {
+        status: 200,
+        headers: { 'content-type': 'audio/wav' }
+      })
+    })
+
+    const result = await runTts([
+      'Alice: Alpha turn.',
+      'Bob: Bravo turn.',
+      'Alice: Charlie turn.'
+    ].join('\n'), dir, buildOptsFromFlags({
+      'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
+      'tts-dialogue-format': 'labeled',
+      'tts-speaker': ['Alice=alloy', 'Bob=onyx']
+    }))
+
+    expect(result.metadata[0]?.chunkCount).toBe(3)
+    expect(observedVoicesByInput).toEqual(new Map([
+      ['Alpha turn.', 'alloy'],
+      ['Bravo turn.', 'onyx'],
+      ['Charlie turn.', 'alloy']
+    ]))
+    const samples = await readWavSamples(result.audioPaths[0] as string)
+    const rmsValues = [0, 1, 2].map((index) => segmentRms(samples, index, 3))
+    expect(rmsValues[0] as number).toBeLessThan(rmsValues[1] as number)
+    expect(rmsValues[1] as number).toBeLessThan(rmsValues[2] as number)
+  }, 10_000)
+
+  test('raw ref-audio speakers cannot enter generic runtime options', () => {
+    expect(() => collectTtsTargets(buildOptsFromFlags({
+      'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
+      'tts-dialogue-format': 'labeled',
+      'tts-speaker': ['DUCO=input/examples/audio/anthony-voice.mp3', 'CHAT=input/examples/audio/voice.mp3']
+    }))).toThrow('--tts-speaker SPEAKER=path mappings cannot enter generic TTS runtime options')
+  })
+})
