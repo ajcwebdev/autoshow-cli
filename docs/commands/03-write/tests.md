@@ -28,5 +28,5 @@ bun t test/test-cases/e2e/service/text/write/ --budget 2500
 
 ## Related Docs
 
-- [Testing Overview](../../testing.md)
+- [Testing Overview](../testing.md)
 - [Write Command](overview.md)

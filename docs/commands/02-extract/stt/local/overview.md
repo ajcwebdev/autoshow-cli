@@ -1,6 +1,6 @@
 # Local STT
 
-Whisperfile runs locally without provider API credentials and is the default STT provider. Ordinary transcription uses `tiny`; music lyric-video transcription uses `small.en`. See the [STT overview](../overview.md) for shared options and [setup](../../00-setup-and-utilities/setup.md) for installation.
+Whisperfile runs locally without provider API credentials and is the default STT provider. Ordinary transcription uses `tiny`; music lyric-video transcription uses `small.en`. See the [STT overview](../overview.md) for shared options and [setup](../../../00-setup-and-utilities/setup.md) for installation.
 
 ```bash
 bun autoshow extract audio.mp3
@@ -14,4 +14,4 @@ The full supported catalog is `tiny`, `tiny.en`, `small`, `small.en`, `medium`, 
 
 Whisperfile emits word timestamps and supports optional native SRT/VTT/LRC artifacts when advertised by the installed bundle. It does not support diarization or `--speaker-count`. See [local timing and speaker workflows](../workflows/timing/overview.md#local-timing-and-speaker-workflows) for reference comparison, forced alignment, whisperfile calibration, channel extraction/merge, and reviewed speaker-label mapping.
 
-Historical local engine quality and speed evidence remains unchanged in [`docs/benchmarks/stt-local`](../../../benchmarks/stt-local/). Those artifacts include the removed whisper.cpp integration; they are not the current provider or automated model catalog.
+Historical local engine quality and speed evidence remains unchanged in [`docs/benchmarks/stt-local`](../../../../benchmarks/stt-local/). Those artifacts include the removed whisper.cpp integration; they are not the current provider or automated model catalog.

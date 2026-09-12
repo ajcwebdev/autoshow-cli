@@ -43,5 +43,5 @@ bun t test/test-cases/e2e/local/stt/whisperfile/ --price
 
 ## Related Docs
 
-- [Testing Overview](../testing.md)
+- [Testing Overview](../../testing.md)
 - [extract STT](overview.md)

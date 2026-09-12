@@ -439,7 +439,7 @@ const collectYoutubeCookieChecks = async (probes: DoctorProbes): Promise<DoctorC
       ? check('OK', 'YouTube cookies file', cookieDetail)
       : check('MISSING', 'YouTube cookies file', cookieDetail, {
         severity: 'warn',
-        nextStep: 'docs/cookies.md'
+        nextStep: 'docs/commands/00-setup-and-utilities/cookies.md'
       }))
   } else if (youtubeStatus.configuredMode === 'cookies-from-browser') {
     checks.push(check('OK', 'YouTube cookies source', 'browser import via bun autoshow setup --cookies-from-browser'))
@@ -449,7 +449,7 @@ const collectYoutubeCookieChecks = async (probes: DoctorProbes): Promise<DoctorC
 
   if (youtubeStatus.warning) {
     checks.push(check('WARN', 'YouTube cookies warning', youtubeStatus.warning, {
-      nextStep: 'docs/cookies.md'
+      nextStep: 'docs/commands/00-setup-and-utilities/cookies.md'
     }))
   }
 

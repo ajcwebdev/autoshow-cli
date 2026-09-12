@@ -1,14 +1,10 @@
 # autoshow-cli
 
-Bun-native CLI for turning media, documents, and text prompts into metadata, downloads, transcripts, OCR extracts, summaries, and generated speech, images, video, or music.
-
-It supports local and API-backed engines across STT and OCR, plus hosted LLM, TTS, image, video, and music workflows. Defaults can be persisted in `config/autoshow.json`, and runnable commands perform cost preflight before execution.
-
-For command-specific details, use `bun autoshow help <command>` or browse the docs in [`docs/`](./docs).
-
-`bun autoshow` is the primary command. `bun as <command>` is a shorter equivalent, for example `bun as links --help`.
+Bun-native CLI for extracting text from media, documents, and web pages, writing summaries, and generating speech, images, video, music, and comics. STT, OCR, and article extraction support local engines; hosted workflows use provider APIs.
 
 ## Quick Start
+
+From a checkout with Bun installed:
 
 ```bash
 bun install
@@ -16,265 +12,112 @@ bun autoshow setup --doctor
 bun autoshow setup
 ```
 
-- `setup --doctor` verifies prerequisites, API keys, and config without installing anything.
-- Local workflows can run without service API keys; service-backed commands require the relevant provider credentials.
-- Docker users can build the image with `docker build -t autoshow-cli:local .`; see [docs/docker.md](./docs/docker.md).
-- If YouTube starts blocking `yt-dlp`, persist cookies with `bun autoshow setup` as described in [docs/cookies.md](./docs/cookies.md).
+`setup --doctor` checks prerequisites, configuration, and API-key presence without installing anything or calling providers. `setup` installs local runtimes and tools. For hosted workflows, add the relevant credentials to `.env`; each command guide lists its variables.
+
+See [setup](./docs/commands/00-setup-and-utilities/setup.md) for targeted installs and model downloads, [Docker](./docs/docker.md) for container usage, and [YouTube cookies](./docs/commands/00-setup-and-utilities/cookies.md) for sign-in or bot-check failures.
+
+## Command Guide
+
+| Command | Use it to |
+| --- | --- |
+| [`metadata`](./docs/commands/01-sources/metadata/overview.md) | Inspect a source without downloading it. |
+| [`download`](./docs/commands/01-sources/download/overview.md) | Download or stage a source before extraction. |
+| [`extract`](./docs/commands/02-extract/overview.md) | Transcribe media, extract document text, or read articles. |
+| [`write`](./docs/commands/03-write/overview.md) | Generate summaries, show notes, or other writing from local Markdown or text. |
+| [`tts`](./docs/commands/04-audio/tts/overview.md) | Generate speech from local text. |
+| [`voice`](./docs/commands/04-audio/voice/00-voice-overview.md) | Discover and manage reusable provider voices. |
+| [`image`](./docs/commands/05-visuals/image/overview.md) | Generate or edit images. |
+| [`video`](./docs/commands/05-visuals/video/overview.md) | Generate video from prompts, images, or supported video inputs. |
+| [`music`](./docs/commands/04-audio/music/overview.md) | Generate music or render local lyric videos. |
+| [`comic`](./docs/commands/05-visuals/comic/00-comic-overview.md) | Turn treatments and scripts into comic artwork, audio, and slideshows. |
+| [`setup`](./docs/commands/00-setup-and-utilities/setup.md) | Install tools, check prerequisites, and save defaults. |
+| [`resume`](./docs/commands/00-setup-and-utilities/resume.md) | Recover incomplete runs or fill missing provider outputs. |
+| [`links`](./docs/commands/00-setup-and-utilities/links.md) | Fetch curated provider documentation. |
+
+`extract` chooses its route from the input. Its detailed guides cover [speech-to-text](./docs/commands/02-extract/stt/overview.md), [documents and OCR](./docs/commands/02-extract/ocr/overview.md), and [web pages](./docs/commands/02-extract/url/overview.md).
 
 ## Common Workflows
 
-These examples cover the primary workflows. Where both local and hosted execution are supported, both are shown. See the [command overview](./docs/commands.md) for the command map and selection guide, and the linked command pages for provider lists, flags, and advanced options.
-
-### Sources
-
-Inspect [metadata](./docs/commands/01-sources/metadata/overview.md) and [download](./docs/commands/01-sources/download/overview.md) source files.
+### Inspect and Download
 
 ```bash
-# Inspect metadata without downloading
 bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU"
-
-# Download a source without extracting it
 bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU"
 ```
 
-### STT
+### Transcribe and Summarize
 
-[Transcribe media](./docs/commands/02-stt/overview.md) with local engines, hosted diarization, providers with diarization off by default, or direct URL services. The [extract overview](./docs/commands/extract.md) explains routing.
+Transcribe locally, then send the saved transcript to a hosted writer:
 
 ```bash
-# Transcribe locally without diarization using Whisperfile
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider whisperfile=tiny
-
-# Transcribe with hosted DeepInfra without diarization
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepinfra=openai/whisper-large-v3
-
-# Transcribe with hosted Deepgram speaker diarization
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepgram=nova-3
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider whisperfile=tiny --output-dir output/transcript
+bun autoshow write output/transcript/transcription.txt --provider openai=gpt-5.5 --prompt shortSummary takeaways
 ```
 
-### Text
+`write` accepts local `.md` and `.txt` files or directories of those files. Use `extract` first for URLs, media, and documents. Hosted transcription and speaker diarization options are in the [STT guide](./docs/commands/02-extract/stt/overview.md).
 
-Extract [OCR](./docs/commands/03-text/ocr/overview.md) and [URL text](./docs/commands/03-text/url/overview.md), then [write](./docs/commands/03-text/write/overview.md) from saved text.
+### Extract Articles and Documents
+
+These examples use local extraction:
 
 ```bash
-# Extract an article URL locally with Defuddle
 bun autoshow extract https://example.com/article --provider defuddle
-
-# Extract an article URL with hosted Firecrawl
-bun autoshow extract https://example.com/article --provider firecrawl
-
-# Extract a PDF locally with Tesseract
-bun autoshow extract input/examples/document/1-document.pdf --provider tesseract --format json
-
-# Extract a PDF with hosted OpenAI OCR
-bun autoshow extract input/examples/document/1-document.pdf --provider openai=gpt-5.4-nano --format json
-
-# Extract native text and chapters from an EPUB locally
+bun autoshow extract input/examples/document/1-document.pdf --provider tesseract
 bun autoshow extract input/examples/document/1-epub.epub
-
-# Extract an EPUB with hosted OpenAI OCR
-bun autoshow extract input/examples/document/1-epub.epub --provider openai=gpt-5.4-nano
 ```
 
-```bash
-# Transcribe media, then write a summary
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3
-bun autoshow write output/<extract-run>/transcription.txt --llm openai=gpt-5.5 --prompt shortSummary takeaways
+Pass a directory or a newline-delimited URL list for a batch. See [batch inputs](./docs/commands/02-extract/overview.md#batch-inputs) for limits, ordering, and concurrency.
 
-# Extract an article, then write a blog post
-bun autoshow extract https://example.com/article
-bun autoshow write output/<extract-run>/extraction.txt --llm openai=gpt-5.5 --prompt blog
+### Generate Media
 
-# Write from a local markdown file
-bun autoshow write notes.md --llm openai=gpt-5.5 --prompt shortSummary
-```
-
-### Audio
-
-Generate [speech](./docs/commands/04-audio/tts/overview.md) and [music](./docs/commands/04-audio/music/overview.md), and manage [voices](./docs/commands/04-audio/voice/00-voice-overview.md).
+These examples use hosted providers:
 
 ```bash
-# Generate speech with hosted OpenAI
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15
-
-# Render a lyric video locally from existing audio
-bun autoshow music --audio input/examples/lyrics/01-example-song.mp3
-
-# Generate instrumental music with hosted MiniMax
+bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2 --size 1024x1024
+bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=veo-3.1-lite-generate-preview
 bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental
 ```
 
-```bash
-# Register an existing provider voice locally without making a provider call
-bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --origin provider-stock --provenance-ref project:casting
+The command guides cover provider choices, editing, voice registration, and staged comic production.
 
-# Discover voices from a hosted ElevenLabs account
-bun autoshow voice list --provider elevenlabs --source account
-```
+## Configuration and Pricing
 
-### Visuals
-
-Generate [images](./docs/commands/05-visuals/image/overview.md), [comics](./docs/commands/05-visuals/comic/00-comic-overview.md), and [video](./docs/commands/05-visuals/video/overview.md).
-
-```bash
-# Generate an image with hosted OpenAI
-bun autoshow image "a clean studio product photo of a red enamel camping mug" --provider openai=gpt-image-2 --size 1024x1024 --output-dir output/mug-image
-
-# Animate the generated image with hosted Gemini
-bun autoshow video "animate the mug on a slow turntable" --provider gemini=veo-3.1-fast-generate-preview --mode image-to-video --input-image output/mug-image/generated-image.png --output-dir output/mug-video
-
-# Generate a video with hosted Gemini
-bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=veo-3.1-lite-generate-preview
-```
-
-```bash
-# Adapt a prose treatment into a ten-panel episode script plus catalog entries with hosted OpenAI
-bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear
-
-# Draft structured comic scenes with hosted OpenAI
-bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md
-
-# Import a hand-authored blocking plan instead of drafting one, with no provider call
-bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only blocking --blocking-plan input/blocking/01-01.json
-
-# Generate final comic panels with hosted OpenAI
-bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --image-model gpt-image-2
-
-# Audit existing canonical panels for cross-panel continuity without generating
-bun autoshow comic generate-images 01-01 --qa-only --max-repairs 0 --continuity-qa
-
-# Build the reviewer's panel-by-panel sheet locally
-bun autoshow comic review 01-01 --export-doc
-
-# Generate multi-speaker comic audio with hosted Hume
-bun autoshow comic generate-audio 01-01 --provider hume=octave-2 --profile default
-
-# Synchronize comic panels with a complete audio run using local FFmpeg
-bun autoshow comic generate-slideshow 01-01
-```
-
-## Command Map
-
-| Area                | Commands                                           |
-| ------------------- | -------------------------------------------------- |
-| Inspect and process | `metadata`, `download`, `extract`, `write`         |
-| Generate            | `tts`, `voice`, `image`, `video`, `music`, `comic` |
-| Setup & Utilities   | `setup`, `links`, `resume`                         |
-
-- `write` generates structured LLM text from local `.md` or `.txt` files, writes JSON and rendered markdown, and can fan out across multiple LLM providers. Transcribe URLs or media with `extract` first.
-- `setup --models` pre-downloads local STT runtimes without running inference, for example `bun autoshow setup --models tiny` or `bun autoshow setup --models whisperfile:small`.
-
-## Usage Basics
-
-Use command-first order for all examples and scripts:
-
-```bash
-bun autoshow <command> [input] [flags]
-bun autoshow help <command>       # preferred targeted help
-bun autoshow <command> --help
-bun autoshow <command> --help-topic <topic>
-bun autoshow --version
-```
-
-Full help lists available topics. Focused help works without an input or command execution: try `extract --help-topic documents`, `video --help-topic provider:grok`, or `resume --help-topic concurrency`. It keeps complete flag values while wrapping descriptions for the terminal; redirected output uses 120 columns. `--help` remains the complete reference.
-
-- Use `bun autoshow extract <input> --provider whisperfile=tiny`, not `bun autoshow --provider whisperfile=tiny extract <input>`.
-- Inputs can be URLs, local files, directories, `.md`/`.txt` URL lists, or prompt strings for `image`, `video`, and `music`.
-- If an input begins with `-`, prefix it so it is not parsed as a flag: `bun autoshow write ./-myfile`.
-- If the literal input collides with a command name, use the explicit command form: `bun autoshow metadata setup`.
-- `.acsm` files are unsupported. Obtain a lawful readable EPUB or PDF outside AutoShow before processing the book.
-
-### Batch Inputs
-
-Batch mode is selected from the input type rather than a separate subcommand:
-
-```bash
-# Newline-delimited URLs
-bun autoshow extract input/examples/batch/2-urls.md
-
-# Process files plus 2-urls.md inside the directory
-bun autoshow extract input
-
-# Process local files in an input subdirectory
-bun autoshow extract input/examples/document
-```
-
-Common batch controls:
-
-- `--batch-limit <n|all>`
-- `--batch-order newest|oldest`
-- `--batch-concurrency`
-
-## Config, Pricing, and Logging
-
-Persistent defaults live in `config/autoshow.json`. You can save provider choices, model defaults, prompts, extract options, voices, batch settings, and pricing thresholds.
+Save defaults in `config/autoshow.json` through `setup`. Explicit runtime flags override saved settings.
 
 ```bash
 bun autoshow setup --show
 bun autoshow setup --llm openai=gpt-5.5 --batch-limit 20 --max-cents 50
-bun autoshow setup --tts elevenlabs=eleven_v3 --tts-voice hpp4J3VqNfWAUOO0d1Us
-bun autoshow setup --reset
 ```
 
-Pricing and budget behavior:
-
-- Runnable commands estimate cost before execution.
-- `--price` is the estimate-only mode.
-- `--allow-over-budget` overrides a configured hard budget for a single run.
-- `--config-path` lets you use an alternate config file on any command.
-
-Logging controls:
+Hosted and mixed-provider runs estimate cost before execution. Append `--price` to preview the estimate without running the job or making paid provider calls:
 
 ```bash
-# CLI flags
-bun autoshow write notes.md --verbose
-bun autoshow write notes.md --quiet
-bun autoshow write notes.md --json
-
-# Environment variables
-NO_COLOR=1                 # disable ANSI color in human logs and help
-FORCE_COLOR=1              # force ANSI color in redirected output
+bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2 --size 1024x1024 --price
 ```
 
-- Human logs use color on a TTY. `NO_COLOR` disables color; `FORCE_COLOR` enables it when output is redirected.
-- Text mode is the default and emits one physical line per event with a local `[HH:MM:SS.MMM]` timestamp.
-- `--json` writes versioned diagnostic records to stderr and exactly one terminal `type: "result"` record to stdout. It is uncolored, and secrets are redacted.
-- `--quiet`, `--verbose`, and `--log-level` filter diagnostics but never suppress the terminal JSON result. `--json=false` explicitly selects text mode.
+`--max-cents` sets a hard budget; `--allow-over-budget` overrides it for one run. Provider plans can affect actual billing. See [configuration and budgets](./docs/commands/00-setup-and-utilities/setup.md#setting-defaults-and-configuration) for saved providers, voices, prompts, and other defaults.
+
+## Help and Output
+
+Use command-first syntax: `bun autoshow <command> [input] [flags]`. `bun as <command>` is a shorter equivalent.
 
 ```bash
-bun autoshow write notes.md --json 2>diagnostics.jsonl | jq 'select(.type == "result") | .data'
+bun autoshow help extract
+bun autoshow --version
 ```
 
-## Output Layout
+Most artifact-producing runs save a timestamped directory under `output/`, containing `manifest.json` and the command's output files. Use `--output-dir <dir>` to choose the run directory. Command pages describe their artifacts; [resume](./docs/commands/00-setup-and-utilities/resume.md) explains how to continue an existing run.
 
-Most artifact-producing runs write a timestamped directory under `output/` with `manifest.json` plus the files for the steps that ran. Commands that create a run directory accept `--output-dir <dir>` to pin that directory instead of a timestamped `output/<timestamp>_<slug>` path.
-
-Typical artifacts include:
-
-- downloaded media or converted documents
-- `prompt.md`
-- `transcription.txt`
-- extracted text or OCR output
-- `providers/<backend>/extraction.txt` and `providers/<backend>/result.json` for `extract <url> --all-providers`
-- `text.json`
-- generated speech, image, video, or music files
-- `manifest.json`
-- `metadata.md` for `metadata --markdown --save`
-
-Mixed `extract` batches write a parent directory with nested `media/`, `document/`, `article/`, and `x-space/` child directories.
-
-Notable exceptions:
-
-- `metadata --save` reports `manifest.json`, and `metadata --markdown --save` also reports `metadata.md`
-- utility commands such as `setup` do not use the `output/` run-directory pattern
+See [CLI usage](./docs/commands/00-setup-and-utilities/usage.md) for focused help, logging, and JSON output for scripts.
 
 ## Development
 
+Run the default local checks and price-only preflight:
+
 ```bash
 bun run check
-bun test test/test-cases/validation/cli/cli-help-contracts.test.ts
-bun test test/test-cases/validation/cli/cli-usage-errors/
-bun test test/test-cases/validation/cli/option-resolution-contracts/
+bun t --price
 ```
 
-`bun run check` is the default verification pass. The three `bun test` commands are a no-cost smoke set. `bun t`, `bun run t`, and `bun test/test-runner.ts` may call paid or quota-limited providers and should only be run when that exact run is explicitly approved.
+The [testing guide](./docs/commands/testing.md) covers targeted smoke tests and provider verification. Full-suite execution requires explicit approval under [repository rules](./AGENTS.md). Architecture details live in [diagrams](./docs/diagrams.md) and [design decisions](./docs/adr/README.md); dated provider changes live in [model refresh reports](./docs/reports/).

@@ -183,6 +183,6 @@ export const buildYtDlpFailureMessage = (
 
   return [
     `yt-dlp ${operation} failed. ${cleanDetails}`,
-    'Hint: YouTube blocked the anonymous request. See docs/cookies.md, or run bun autoshow setup --cookies-from-browser chrome or bun autoshow setup --cookies /absolute/path/to/cookies.txt.'
+    'Hint: YouTube blocked the anonymous request. See docs/commands/00-setup-and-utilities/cookies.md, or run bun autoshow setup --cookies-from-browser chrome or bun autoshow setup --cookies /absolute/path/to/cookies.txt.'
   ].join('\n')
 }

@@ -20,6 +20,16 @@ Default local verification is `bun run check` followed by `bun t --price`. Price
 
 ## Local Quick Start
 
+For a targeted CLI smoke pass without provider calls:
+
+```bash
+bun test test/test-cases/validation/cli/cli-help-contracts.test.ts
+bun test test/test-cases/validation/cli/cli-usage-errors/
+bun test test/test-cases/validation/cli/option-resolution-contracts/
+```
+
+For local extraction and rendering coverage:
+
 ```bash
 # local e2e coverage
 bun t \
@@ -54,10 +64,10 @@ Command source, documentation, validation, and price tests use the `sources`, `s
 
 - [Setup Tests](00-setup-and-utilities/setup.md#testing)
 - [Download Tests](01-sources/download/tests.md)
-- [STT Tests](02-stt/tests.md)
-- [OCR Tests](03-text/ocr/tests.md)
-- [URL Tests](03-text/url/tests.md)
-- [Write Service Tests](03-text/write/tests.md)
+- [STT Tests](02-extract/stt/tests.md)
+- [OCR Tests](02-extract/ocr/tests.md)
+- [URL Tests](02-extract/url/tests.md)
+- [Write Service Tests](03-write/tests.md)
 - [TTS Service Tests](04-audio/tts/tests.md)
 - [Image Service Tests](05-visuals/image/tests.md)
 - [Video Service Tests](05-visuals/video/tests.md)

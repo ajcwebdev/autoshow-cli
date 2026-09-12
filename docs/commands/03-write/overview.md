@@ -290,7 +290,7 @@ bun autoshow write output/<extract-run>/transcription.txt --provider together=ki
 
 ## Notes
 
-- Resume of a write run uses the top-level [`resume`](../../00-setup-and-utilities/resume.md) command, not a `write` flag.
+- Resume of a write run uses the top-level [`resume`](../00-setup-and-utilities/resume.md) command, not a `write` flag.
 - Shorthands such as `write demo` or `write ./output/demo` do not enable project lyric draft mode; the input must be `./output/<name>/text` or a file under that directory.
 - Project lyric draft mode requires `./output/<name>/prompt.md` unless `--prompt-file` is supplied. Explicit `--prompt-file`, `--track-list`, and `--rendered-out-dir` values override the project defaults.
 

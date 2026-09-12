@@ -15,7 +15,7 @@ Remote article URLs default to local `defuddle` extraction and can run hosted ar
 - [X Space Output](#x-space-output)
 - [X Space Notes](#x-space-notes)
 
-See the [`extract` overview](../../extract.md) for input routing and default article extraction.
+See the [`extract` overview](../overview.md) for input routing and default article extraction.
 
 ## Local URL
 

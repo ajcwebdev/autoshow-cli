@@ -25,7 +25,7 @@ Documents and images route through hosted OCR or native text extraction dependin
 - [Incomplete Runs and Blocked Providers](#incomplete-runs-and-blocked-providers)
 - [Provider Capabilities](#provider-capabilities)
 
-See the [`extract` overview](../../extract.md) for input routing and default document/image OCR. Remote article URLs are documented separately in [URL and X extraction](../url/overview.md).
+See the [`extract` overview](../overview.md) for input routing and default document/image OCR. Remote article URLs are documented separately in [URL and X extraction](../url/overview.md).
 
 Standalone `extract` and `resume` use `--provider provider[=model]` for document/OCR inputs. `config` uses `--ocr provider[=model]`.
 

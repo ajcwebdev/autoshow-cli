@@ -238,7 +238,7 @@ Pass multiple models with `--image-model` to generate each panel with every mode
 
 ### Text Models (LLM)
 
-`--llm-model` accepts the same hosted text model IDs as [`write`](../../03-text/write/overview.md). The default is `gpt-5.6-sol` for scene drafting.
+`--llm-model` accepts the same hosted text model IDs as [`write`](../../03-write/overview.md). The default is `gpt-5.6-sol` for scene drafting.
 
 ## Command Docs
 

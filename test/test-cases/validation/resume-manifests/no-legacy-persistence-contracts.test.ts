@@ -15,7 +15,6 @@ const scanRoots = [
   resolve(repositoryRoot, 'docs/benchmarks'),
   resolve(repositoryRoot, 'docs/diagrams'),
   resolve(repositoryRoot, 'docs/diagrams.md'),
-  resolve(repositoryRoot, 'docs/release-v0.1.md'),
   resolve(repositoryRoot, 'docs/adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md'),
   resolve(repositoryRoot, '.codex/skills/consensus'),
   resolve(repositoryRoot, 'README.md')

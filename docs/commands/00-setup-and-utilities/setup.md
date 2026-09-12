@@ -43,7 +43,7 @@ bun autoshow setup --doctor --strict
 
 API-key checks are presence-only: doctor reports whether each managed variable is set, not whether the key is valid. Warnings do not change the default exit code. `--strict` exits 2 when a configured default needs a missing provider credential. Doctor does not make live provider calls. It reads `.env` from the working directory; exported environment variables win over file values.
 
-Doctor also reports YouTube cookie configuration and whether a configured cookies file is readable. If YouTube starts challenging anonymous `yt-dlp` requests, configure cookies using [docs/cookies.md](../../cookies.md).
+Doctor also reports YouTube cookie configuration and whether a configured cookies file is readable. If YouTube starts challenging anonymous `yt-dlp` requests, follow the [YouTube cookies guide](cookies.md).
 
 ## Targeted Setup Steps
 

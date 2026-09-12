@@ -12,7 +12,7 @@ Transcribe media with hosted or local speech-to-text engines. Saved results supp
 - [STT Pricing](#stt-pricing)
 - [STT Notes](#stt-notes)
 
-See the [`extract` overview](../extract.md) for input routing and default media transcription. Hosted STT is selected with `--provider`.
+See the [`extract` overview](../overview.md) for input routing and default media transcription. Hosted STT is selected with `--provider`.
 
 `--provider` selectors accept an omitted model value and then resolve to the cheapest or default supported model. Model-selecting selectors are repeatable, including repeated selectors from the same provider.
 
@@ -117,6 +117,6 @@ The 2026-09-07 pricing check lists AssemblyAI Universal-3.5 Pro at $0.21/hour pl
 - Single-provider runs write root `transcription.txt` and `result.json`. Multi-provider runs write outputs per provider under `providers/<service>-<model>/`.
 - `--youtube-captions` is English-only and applies to YouTube inputs. When captions are found, hosted STT providers are skipped.
 - STT batch roots include `manifest.json` with item status.
-- Backfill existing STT outputs with top-level [`resume`](../00-setup-and-utilities/resume.md).
+- Backfill existing STT outputs with top-level [`resume`](../../00-setup-and-utilities/resume.md).
 
-See the [model report](../../reports/model-refresh-stt.md) for historical model changes and the [testing guide](tests.md) for verification coverage.
+See the [model report](../../../reports/model-refresh-stt.md) for historical model changes and the [testing guide](tests.md) for verification coverage.

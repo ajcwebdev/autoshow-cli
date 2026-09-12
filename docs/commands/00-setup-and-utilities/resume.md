@@ -36,7 +36,7 @@ These selectors apply to standalone and extract runs. See [Comic Recovery](#comi
 
 `--provider` is repeatable. On extract directories, the same flag selects STT, OCR, or URL backends based on the original run. Provider names match the original command; `bun autoshow resume --help` lists the current names.
 
-See [`extract`](../extract.md), [`write`](../03-text/write/overview.md), [`tts`](../04-audio/tts/overview.md), [`image`](../05-visuals/image/overview.md), [`video`](../05-visuals/video/overview.md), and [`music`](../04-audio/music/overview.md) for catalogs and option meanings.
+See [`extract`](../02-extract/overview.md), [`write`](../03-write/overview.md), [`tts`](../04-audio/tts/overview.md), [`image`](../05-visuals/image/overview.md), [`video`](../05-visuals/video/overview.md), and [`music`](../04-audio/music/overview.md) for catalogs and option meanings.
 
 Automatic OCR resume skips providers that failed with a non-retryable error such as quota, billing, account suspension, content policy, or auth. If only those providers remain, it reports `only blocked OCR providers remain` instead of rerunning them. Pass `--provider provider=model` to retry a blocked provider after the cause is fixed.
 
@@ -122,7 +122,7 @@ Write resumes reuse the stored `prompt.md` and run only the selected LLM provide
 
 ## Extract Options
 
-These flags match [`extract`](../extract.md). Meanings are the same unless noted.
+These flags match [`extract`](../02-extract/overview.md). Meanings are the same unless noted.
 
 | Flag                                | Description                                                                                                              |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
