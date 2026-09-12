@@ -48,10 +48,10 @@ import {
 
 export const registerGlobalFlagAndRegistryCases = (): void => {
   test.concurrent('provider help lists are derived from the supported selector registries', async () => {
-    const [extract, write, config, resume, tts] = await Promise.all([
+    const [extract, write, setup, resume, tts] = await Promise.all([
       loadHelp(['extract', '--help']),
       loadHelp(['write', '--help']),
-      loadHelp(['config', '--help']),
+      loadHelp(['setup', '--help']),
       loadHelp(['resume', '--help']),
       loadHelp(['tts', '--help'])
     ])
@@ -65,9 +65,9 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
     expect(helpText(write.stdout)).toContain(llmProviders)
     expect(helpText(write.stdout)).toContain('(default: cheapest hosted)')
     expect(helpText(write.stdout)).not.toContain('--stt')
-    expect(helpText(config.stdout)).toContain(llmProviders)
-    expect(helpText(config.stdout)).toContain('(default: cheapest hosted)')
-    expect(helpText(config.stdout)).toMatch(/--stt[^\n]*whisperfile/)
+    expect(helpText(setup.stdout)).toContain(llmProviders)
+    expect(helpText(setup.stdout)).toContain('(default: cheapest hosted)')
+    expect(helpText(setup.stdout)).toMatch(/--stt[^\n]*whisperfile/)
     expect(helpText(resume.stdout)).toContain(`URL: ${urlBackends}`)
     expect(helpText(resume.stdout)).toContain(`video: ${videoProviders}`)
     expect(helpText(resume.stdout)).toContain('(default: cheapest hosted)')
@@ -209,7 +209,7 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
       expect(globalFlagsSection).toContain('--allow-over-budget')
     }
 
-    for (const command of ['config', 'setup', 'links', 'voice', 'comic reference-voice']) {
+    for (const command of ['setup', 'links', 'voice', 'comic reference-voice']) {
       const result = await loadHelp(helpArgv(command))
       expect(result.exitCode).toBe(0)
       const globalFlagsSection = result.stdout.slice(result.stdout.indexOf('\nGlobal Flags\n'))
@@ -222,7 +222,7 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
   }, HELP_TREE_TIMEOUT_MS)
 
   test.concurrent('command help does not advertise --model-path', async () => {
-    for (const command of ['write', 'resume', 'tts', 'config', 'extract', 'voice', 'comic']) {
+    for (const command of ['write', 'resume', 'tts', 'setup', 'extract', 'voice', 'comic']) {
       const result = await loadHelp(helpArgv(command))
       expect(result.exitCode).toBe(0)
       expect(result.stdout).not.toContain('--model-path')
@@ -240,7 +240,7 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
       expect(globalFlagsSection).toContain('--characters-root')
     }
 
-    for (const command of ['extract', 'config', 'write']) {
+    for (const command of ['extract', 'setup', 'write']) {
       const result = await loadHelp(helpArgv(command))
       expect(result.exitCode).toBe(0)
       const globalFlagsSection = result.stdout.slice(result.stdout.indexOf('\nGlobal Flags\n'))
@@ -253,12 +253,12 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
     expect(root.stdout).toContain('--output-root')
   }, HELP_TREE_TIMEOUT_MS)
 
-  test.concurrent('cookie flags appear on config help and leave the global surface', async () => {
-    const config = await loadHelp(['config', '--help'])
-    expect(config.exitCode).toBe(0)
-    expect(getCommandFlagsSection(config.stdout)).toContain('--cookies')
-    expect(getCommandFlagsSection(config.stdout)).toContain('--cookies-from-browser')
-    expect(getCommandFlagsSection(config.stdout)).toContain('Auth')
+  test.concurrent('cookie flags appear on setup help and leave the global surface', async () => {
+    const setup = await loadHelp(['setup', '--help'])
+    expect(setup.exitCode).toBe(0)
+    expect(getCommandFlagsSection(setup.stdout)).toContain('--cookies')
+    expect(getCommandFlagsSection(setup.stdout)).toContain('--cookies-from-browser')
+    expect(getCommandFlagsSection(setup.stdout)).toContain('Auth')
 
     for (const command of ['download', 'extract', 'write']) {
       const result = await loadHelp(helpArgv(command))

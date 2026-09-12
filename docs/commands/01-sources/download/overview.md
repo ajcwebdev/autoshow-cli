@@ -145,6 +145,6 @@ bun autoshow download input/examples/batch/2-urls.md --batch-limit all
 
 Setup details are in [`setup.md`](../../00-setup-and-utilities/setup.md).
 
-For YouTube inputs, anonymous `yt-dlp` requests may be rate-limited or challenged. Persist cookies once with `bun autoshow config --cookies <file>` or `bun autoshow config --cookies-from-browser <browser>`, then rerun `download`.
+For YouTube inputs, anonymous `yt-dlp` requests may be rate-limited or challenged. Persist cookies once with `bun autoshow setup --cookies <file>` or `bun autoshow setup --cookies-from-browser <browser>`, then rerun `download`.
 
 For X post URL inputs, set `X_BEARER_TOKEN` so AutoShow can resolve the linked Space before downloading. X Space downloads may need the same cookie setup as other authenticated media sources.

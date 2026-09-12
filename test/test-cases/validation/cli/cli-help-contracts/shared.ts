@@ -58,8 +58,10 @@ export const visibleFlagNames = (flags: CliFlagsDefinition | undefined): string[
     .map(([name]) => name)
     .sort()
 
-const findHelpCommand = (name: string) =>
-  helpSurfaces.find((command) => command.name === name)
+const findHelpCommand = (name: string) => {
+  const resolved = name === 'config' ? 'setup' : name
+  return helpSurfaces.find((command) => command.name === resolved)
+}
 
 export const loadHelp = async (args: string[]): Promise<HelpResult> => {
   if (args[0] === 'benchmark') {

@@ -68,5 +68,5 @@ export const unsupportedGlobalFlagError = (commandName: string, flagName: string
 export const unsupportedCookieFlagError = (commandName: string, flagName: string): Error =>
   UsageError(
     `--${flagName} is not supported by "${commandName}".`,
-    { hints: ['Use bun autoshow config --cookies <file> or bun autoshow config --cookies-from-browser <browser>.'] }
+    { hints: ['Use bun autoshow setup --cookies <file> or bun autoshow setup --cookies-from-browser <browser>.'] }
   )

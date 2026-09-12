@@ -19,7 +19,7 @@ bun autoshow setup
 - `setup --doctor` verifies prerequisites, API keys, and config without installing anything.
 - Local workflows can run without service API keys; service-backed commands require the relevant provider credentials.
 - Docker users can build the image with `docker build -t autoshow-cli:local .`; see [docs/docker.md](./docs/docker.md).
-- If YouTube starts blocking `yt-dlp`, persist cookies with `bun autoshow config` as described in [docs/cookies.md](./docs/cookies.md).
+- If YouTube starts blocking `yt-dlp`, persist cookies with `bun autoshow setup` as described in [docs/cookies.md](./docs/cookies.md).
 
 ## Common Workflows
 
@@ -159,7 +159,7 @@ bun autoshow comic generate-slideshow 01-01
 | ------------------- | -------------------------------------------------- |
 | Inspect and process | `metadata`, `download`, `extract`, `write`         |
 | Generate            | `tts`, `voice`, `image`, `video`, `music`, `comic` |
-| Setup & Utilities   | `setup`, `config`, `links`, `resume`               |
+| Setup & Utilities   | `setup`, `links`, `resume`                         |
 
 - `write` generates structured LLM text from local `.md` or `.txt` files, writes JSON and rendered markdown, and can fan out across multiple LLM providers. Transcribe URLs or media with `extract` first.
 - `setup --models` pre-downloads local STT runtimes without running inference, for example `bun autoshow setup --models tiny` or `bun autoshow setup --models whisperfile:small`.
@@ -210,10 +210,10 @@ Common batch controls:
 Persistent defaults live in `config/autoshow.json`. You can save provider choices, model defaults, prompts, extract options, voices, batch settings, and pricing thresholds.
 
 ```bash
-bun autoshow config --show
-bun autoshow config --llm openai=gpt-5.5 --batch-limit 20 --max-cents 50
-bun autoshow config --tts elevenlabs=eleven_v3 --tts-voice hpp4J3VqNfWAUOO0d1Us
-bun autoshow config --reset
+bun autoshow setup --show
+bun autoshow setup --llm openai=gpt-5.5 --batch-limit 20 --max-cents 50
+bun autoshow setup --tts elevenlabs=eleven_v3 --tts-voice hpp4J3VqNfWAUOO0d1Us
+bun autoshow setup --reset
 ```
 
 Pricing and budget behavior:
@@ -266,7 +266,7 @@ Mixed `extract` batches write a parent directory with nested `media/`, `document
 Notable exceptions:
 
 - `metadata --save` reports `manifest.json`, and `metadata --markdown --save` also reports `metadata.md`
-- utility commands such as `config` and `setup` do not use the `output/` run-directory pattern
+- utility commands such as `setup` do not use the `output/` run-directory pattern
 
 ## Development
 

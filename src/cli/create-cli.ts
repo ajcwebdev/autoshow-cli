@@ -24,7 +24,8 @@ export const shouldRelaunchSetupWithNoOrphans = (
   argv: readonly string[],
   env: Readonly<Record<string, string | undefined>> = process.env,
   isStandaloneExecutable = Bun.isStandaloneExecutable
-): boolean => !isStandaloneExecutable && argv[0] === 'setup' && !argv.some(arg => arg === '--doctor' || arg.startsWith('--doctor=')) && env[SETUP_NO_ORPHANS_MARKER] !== '1'
+): boolean => !isStandaloneExecutable && argv[0] === 'setup' && !argv.some(arg => arg === '--doctor' || arg.startsWith('--doctor=') || arg === '--show' || arg === '--reset') && env[SETUP_NO_ORPHANS_MARKER] !== '1'
+
 
 export const buildSetupNoOrphansArgs = (
   entrypoint: string,

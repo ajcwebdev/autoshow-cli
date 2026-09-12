@@ -108,12 +108,12 @@ export const registerPipelineCommandHelpCases = (): void => {
   })
 
 
-  test.concurrent('write and config help expose shared selectors and concurrency flags', async () => {
+  test.concurrent('write and setup help expose shared selectors and concurrency flags', async () => {
     const writeResult = await loadHelp(['write', '--help'])
-    const configResult = await loadHelp(['config', '--help'])
+    const setupResult = await loadHelp(['setup', '--help'])
 
     expect(writeResult.exitCode).toBe(0)
-    expect(configResult.exitCode).toBe(0)
+    expect(setupResult.exitCode).toBe(0)
     const pipelineSection = getFlagGroupSection(writeResult.stdout, 'Provider Selection')
     expect(pipelineSection).toContain('--provider-concurrency')
     expect(pipelineSection).toContain('--concurrency-mode')
@@ -123,12 +123,12 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(pipelineSection).not.toContain('--all-local')
     expect(getFlagGroupSection(writeResult.stdout, 'Batch Processing')).toContain('--batch-limit')
     expect(getFlagGroupSection(writeResult.stdout, 'Pricing')).toContain('--max-model-cents')
-    expect(getFlagGroupSection(configResult.stdout, 'Concurrency')).toContain('--provider-concurrency')
-    expect(getFlagGroupSection(configResult.stdout, 'Concurrency')).toContain('--local-concurrency')
-    expect(getFlagGroupSection(configResult.stdout, 'Concurrency')).toContain('--concurrency-mode')
-    expect(getFlagGroupSection(configResult.stdout, 'Batch / Download')).toContain('--batch-concurrency')
-    expect(getFlagGroupSection(configResult.stdout, 'Pricing')).not.toContain('--provider-concurrency')
-    expect(getFlagGroupSection(configResult.stdout, 'Pricing')).not.toContain('--local-concurrency')
+    expect(getFlagGroupSection(setupResult.stdout, 'Concurrency')).toContain('--provider-concurrency')
+    expect(getFlagGroupSection(setupResult.stdout, 'Concurrency')).toContain('--local-concurrency')
+    expect(getFlagGroupSection(setupResult.stdout, 'Concurrency')).toContain('--concurrency-mode')
+    expect(getFlagGroupSection(setupResult.stdout, 'Batch / Download')).toContain('--batch-concurrency')
+    expect(getFlagGroupSection(setupResult.stdout, 'Pricing')).not.toContain('--provider-concurrency')
+    expect(getFlagGroupSection(setupResult.stdout, 'Pricing')).not.toContain('--local-concurrency')
     expect(writeResult.stdout).not.toContain('\n  Transcription / STT\n')
     expect(writeResult.stdout).not.toContain('\n  OCR / Document Extraction\n')
     expect(writeResult.stdout).not.toContain('\n  Article Extraction\n')
@@ -137,13 +137,13 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(writeResult.stdout).not.toContain('\n  Image Options\n')
     expect(writeResult.stdout).not.toContain('\n  Video Options\n')
     expect(writeResult.stdout).not.toContain('\n  Hosted Music\n')
-    expect(getFlagGroupSection(configResult.stdout, 'Transcription / STT')).toContain('--stt')
-    expect(getFlagGroupSection(configResult.stdout, 'OCR / Document Extraction')).toContain('--ocr')
-    expect(getFlagGroupSection(configResult.stdout, 'Writing')).toContain('--llm')
-    expect(getFlagGroupSection(configResult.stdout, 'Text to Speech')).toContain('--tts')
-    expect(getFlagGroupSection(configResult.stdout, 'Image Options')).toContain('--image')
-    expect(getFlagGroupSection(configResult.stdout, 'Video Options')).toContain('--video')
-    expect(getFlagGroupSection(configResult.stdout, 'Hosted Music')).toContain('--music')
+    expect(getFlagGroupSection(setupResult.stdout, 'Transcription / STT')).toContain('--stt')
+    expect(getFlagGroupSection(setupResult.stdout, 'OCR / Document Extraction')).toContain('--ocr')
+    expect(getFlagGroupSection(setupResult.stdout, 'Writing')).toContain('--llm')
+    expect(getFlagGroupSection(setupResult.stdout, 'Text to Speech')).toContain('--tts')
+    expect(getFlagGroupSection(setupResult.stdout, 'Image Options')).toContain('--image')
+    expect(getFlagGroupSection(setupResult.stdout, 'Video Options')).toContain('--video')
+    expect(getFlagGroupSection(setupResult.stdout, 'Hosted Music')).toContain('--music')
 
     const writingStart = writeResult.stdout.indexOf('\n  Writing\n')
     expect(writingStart).toBeGreaterThanOrEqual(0)
@@ -168,27 +168,27 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(writeResult.stdout).not.toContain('--all-local')
     expect(writeResult.stdout).not.toContain('--llm-provider-concurrency')
     expect(writeResult.stdout).not.toContain('--mistral-stt')
-    expect(configResult.stdout).toContain('--provider-concurrency')
-    expect(configResult.stdout).toContain('--local-concurrency')
-    expect(configResult.stdout).toContain('--stt')
-    expect(configResult.stdout).toContain('--ocr')
-    expect(configResult.stdout).toContain('--llm')
-    expect(configResult.stdout).toContain('--tts')
-    expect(helpText(configResult.stdout)).toContain('gemini|openai|grok|bfl|replicate')
-    expect(configResult.stdout).toContain('--tts-chunk-concurrency')
+    expect(setupResult.stdout).toContain('--provider-concurrency')
+    expect(setupResult.stdout).toContain('--local-concurrency')
+    expect(setupResult.stdout).toContain('--stt')
+    expect(setupResult.stdout).toContain('--ocr')
+    expect(setupResult.stdout).toContain('--llm')
+    expect(setupResult.stdout).toContain('--tts')
+    expect(helpText(setupResult.stdout)).toContain('gemini|openai|grok|bfl|replicate')
+    expect(setupResult.stdout).toContain('--tts-chunk-concurrency')
     expect(writeResult.stdout).not.toContain('Grok-only uses 50')
-    expect(configResult.stdout).toContain('Grok-only uses 50')
-    expect(configResult.stdout).toContain('--ocr-concurrency')
-    expect(configResult.stdout).toContain('--ocr-provider-mode')
-    expect(configResult.stdout).not.toContain('--music-instrumental')
-    expect(configResult.stdout).not.toContain('--instrumental')
-    expect(configResult.stdout).not.toContain('--music-lyrics-file')
-    expect(configResult.stdout).not.toContain('--prompt-md')
-    expect(configResult.stdout).not.toContain('--allow-ambiguous-redispatch')
-    expect(configResult.stdout).not.toContain('--tts-allow-ambiguous-redispatch')
-    expect(configResult.stdout).not.toContain('--llm-provider-concurrency')
-    expect(configResult.stdout).not.toContain('--mistral-stt')
-    expect(configResult.stdout).not.toContain('openai=gpt-5.4 --stt')
+    expect(setupResult.stdout).toContain('Grok-only uses 50')
+    expect(setupResult.stdout).toContain('--ocr-concurrency')
+    expect(setupResult.stdout).toContain('--ocr-provider-mode')
+    expect(setupResult.stdout).not.toContain('--music-instrumental')
+    expect(setupResult.stdout).not.toContain('--instrumental')
+    expect(setupResult.stdout).not.toContain('--music-lyrics-file')
+    expect(setupResult.stdout).not.toContain('--prompt-md')
+    expect(setupResult.stdout).not.toContain('--allow-ambiguous-redispatch')
+    expect(setupResult.stdout).not.toContain('--tts-allow-ambiguous-redispatch')
+    expect(setupResult.stdout).not.toContain('--llm-provider-concurrency')
+    expect(setupResult.stdout).not.toContain('--mistral-stt')
+    expect(setupResult.stdout).not.toContain('openai=gpt-5.4 --stt')
   })
 
 
@@ -229,8 +229,8 @@ export const registerPipelineCommandHelpCases = (): void => {
   })
 
 
-  test.concurrent('config help shows --max-cents and omits runtime-only --price', async () => {
-    const result = await loadHelp(['config', '--help'])
+  test.concurrent('setup help shows --max-cents and omits runtime-only --price', async () => {
+    const result = await loadHelp(['setup', '--help'])
 
     expect(result.exitCode).toBe(0)
     const pricing = getFlagGroupSection(result.stdout, 'Pricing')
@@ -241,8 +241,8 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(getCommandFlagsSection(result.stdout)).not.toContain('--max-model-cents')
   })
 
-  test.concurrent('config, resume, and write help omit the empty prompt parser default', async () => {
-    for (const command of ['config', 'resume', 'write'] as const) {
+  test.concurrent('setup, resume, and write help omit the empty prompt parser default', async () => {
+    for (const command of ['setup', 'resume', 'write'] as const) {
       const result = await loadHelp([command, '--help'])
       expect(result.exitCode).toBe(0)
       expect(result.stdout).toContain('(default: "default")')
@@ -251,19 +251,19 @@ export const registerPipelineCommandHelpCases = (): void => {
   })
 
 
-  test.concurrent('config examples use the canonical bun autoshow prefix', async () => {
-    const result = await loadHelp(['config', '--help'])
+  test.concurrent('setup examples use the canonical bun autoshow prefix', async () => {
+    const result = await loadHelp(['setup', '--help'])
 
     expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('bun autoshow config --show')
-    expect(result.stdout).toContain('bun autoshow config --llm openai=gpt-5.4-mini --stt whisperfile=small')
-    expect(result.stdout).toContain('bun autoshow config --reset')
-    expect(result.stdout).not.toContain('bun as config')
+    expect(result.stdout).toContain('bun autoshow setup --show')
+    expect(result.stdout).toContain('bun autoshow setup --llm openai=gpt-5.4-mini --stt whisperfile=small')
+    expect(result.stdout).toContain('bun autoshow setup --reset')
+    expect(result.stdout).not.toContain('bun as setup')
   })
 
 
-  test.concurrent('config help omits command-scoped video input flags while JSON mappings stay namespaced', async () => {
-    const result = await loadHelp(['config', '--help'])
+  test.concurrent('setup help omits command-scoped video input flags while JSON mappings stay namespaced', async () => {
+    const result = await loadHelp(['setup', '--help'])
 
     expect(result.exitCode).toBe(0)
     for (const flag of persistedVideoInputFlags) {

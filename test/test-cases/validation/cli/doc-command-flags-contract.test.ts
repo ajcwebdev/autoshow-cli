@@ -17,7 +17,6 @@ import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import type { CliCommandDefinition, CliFlagDefinition, DocumentedFlag, FlagTableRows, ScannerState } from '~/types'
 
 const docsRoot = resolve(import.meta.dir, '../../../../docs/commands')
-const configDoc = '00-setup-and-utilities/config.md'
 const modelReportDocs = [
   '../reports/model-refresh-stt.md',
   '../reports/model-refresh-ocr.md',
@@ -310,7 +309,7 @@ test('command doc flag tables name only flags registered by that command', async
   const docs = (await Array.fromAsync(new Bun.Glob('**/*.md').scan({ cwd: docsRoot }))).sort()
   // Preserve the report inventory without treating historical flags as current CLI usage.
   for (const doc of modelReportDocs) expect(await Bun.file(resolve(docsRoot, doc)).exists()).toBe(true)
-  const commandDocs = docs.filter((doc) => doc !== configDoc && !isTestDoc(doc))
+  const commandDocs = docs.filter((doc) => !isTestDoc(doc))
   expect(commandDocs).toEqual(Object.keys(commandByDoc).sort())
 
   for (const parent of [comicCommand, voiceCommand]) {

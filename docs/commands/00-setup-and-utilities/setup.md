@@ -13,6 +13,9 @@ Install local runtimes and prerequisite tools. Use `--models` to pre-download lo
 - [Doctor](#doctor)
 - [Targeted Setup Steps](#targeted-setup-steps)
 - [Model Downloads](#model-downloads)
+- [Setting Defaults and Configuration](#setting-defaults-and-configuration)
+- [Config Schema](#config-schema)
+- [Persisted Defaults and Precedence](#persisted-defaults-and-precedence)
 - [Testing](#testing)
 
 ## Usage
@@ -90,6 +93,141 @@ bun autoshow setup --models whisperfile:large-v2 --models whisperfile:large-v3
 ```
 
 Bare names and `whisperfile:<model>` are equivalent. `--models` downloads without inference; all selectors are validated before downloading. The removed `whisper:` prefix and `whisper-binary`/`whisper-model` setup steps are rejected.
+
+## Setting Defaults and Configuration
+
+View or set persistent CLI defaults saved to `config/autoshow.json`:
+
+```bash
+bun autoshow setup --show
+bun autoshow setup --reset
+bun autoshow setup --llm openai=gpt-5.4-mini
+bun autoshow setup --stt whisperfile=small.en
+bun autoshow setup --stt happyscribe=auto --stt-happyscribe-organization-id org_123
+bun autoshow setup --ocr tesseract
+bun autoshow setup --ocr mistral=mistral-ocr-2512 --ocr-language eng --ocr-dpi 300
+bun autoshow setup --tts elevenlabs=eleven_v3 --tts-voice voice_123
+bun autoshow setup --tts hume=octave-2 --tts-speaker Host=voice_host --tts-speaker Guest=voice_guest --tts-chunk-concurrency 3
+bun autoshow setup --image openai=gpt-image-2
+bun autoshow setup --video ltx=ltx-2-3-fast
+bun autoshow setup --batch-limit 20 --batch-order oldest --batch-concurrency 2
+bun autoshow setup --concurrency-mode immediate
+bun autoshow setup --prompt shortSummary --prompt longChapters
+bun autoshow setup --chapters --length 50 --pdf-chapter-mode auto
+bun autoshow setup --max-cents 100
+bun autoshow setup --cookies-from-browser chrome
+bun autoshow setup --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
+```
+
+Default path: `config/autoshow.json` in the project root. Override with `--config-path <path>`.
+
+Passing `--show` prints the effective config. Passing `--reset` clears the config file. Passing configuration flags updates and saves `config/autoshow.json` without running full runtime installation or doctor checks.
+
+`--concurrency-mode ramp` (the native default) starts hosted provider traffic gradually up to the configured cap. `immediate` starts at that cap.
+
+Model selector flags are repeatable. Repeating a provider selector saves all selected models in first-seen order:
+
+```bash
+bun autoshow setup --stt deepinfra=openai/whisper-large-v3 --stt deepinfra=openai/whisper-large-v3-turbo
+bun autoshow setup --llm openai=gpt-5.5 --llm openai=gpt-5.4-mini
+```
+
+## Config Schema
+
+Representative JSON shape:
+
+```json
+{
+  "defaults": {
+    "concurrency": {
+      "mode": "ramp"
+    },
+    "extract": {
+      "stt": {
+        "whisperfile": ["small.en"],
+        "speakerCount": 2
+      },
+      "ocr": {
+        "tesseract": true,
+        "ocrLanguage": "eng",
+        "dpi": 300,
+        "chapters": true,
+        "length": 50,
+        "pdfChapterMode": "auto"
+      }
+    },
+    "llm": {
+      "openai": ["gpt-5.4-mini"]
+    },
+    "tts": {
+      "elevenlabsTts": ["eleven_v3"],
+      "voice": "voice_123",
+      "ttsSpeakers": ["Host=Kore", "Guest=Puck"]
+    },
+    "image": {
+      "openaiImage": ["gpt-image-2"],
+      "size": "1024x1024",
+      "count": 2
+    },
+    "video": {
+      "ltxVideo": ["ltx-2-3-fast"],
+      "duration": 8,
+      "resolution": "1080p"
+    },
+    "music": {
+      "minimaxMusic": ["music-3.0"],
+      "instrumental": true
+    },
+    "batch": {
+      "limit": 5,
+      "order": "newest",
+      "concurrency": 1
+    },
+    "prompts": ["shortSummary", "longChapters"]
+  },
+  "pricing": {
+    "maxCents": 100
+  },
+  "auth": {
+    "cookies": "/absolute/path/to/runtime/auth/youtube.cookies.txt",
+    "cookiesFromBrowser": "chrome"
+  }
+}
+```
+
+Model-selecting fields are arrays of models, not single strings. Use `bun autoshow setup --show` to inspect the file `setup` actually writes.
+
+Image, video, and music tuning keys use the same short vocabulary as their standalone commands inside their namespaced JSON sections. Because names such as `duration` and `format` are ambiguous outside a section, `setup` persists provider/model selectors from CLI flags while these tuning defaults are edited directly in `config/autoshow.json`.
+
+## Persisted Defaults and Precedence
+
+`setup` has no `--url-provider` flag, so set the URL article backend in `config/autoshow.json` as `defaults.extract.url.provider` (`defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`). Once saved, `extract` inherits it like any other default. `metadata` and `download` still take public `--url-provider`.
+
+Generic `--tts-*` options resolve to the selected provider, so they take a bare value when one provider is selected and `provider=value` when several are. Custom-voice provisioning and clone-creation audio files are runtime-only and managed via `voice`; synthesis defaults require an existing provider voice ID.
+
+`--tts-speaker` selects multi-speaker TTS. A saved `--tts-dialogue-format` with no saved `--tts-speaker` is inert: runs that inherit it log a warning and continue as single-speaker.
+
+Cookie auth persists the cookies file path or browser name only. Do not copy cookie-file contents into `config/autoshow.json`.
+
+`default` prompt expansion is `shortSummary + longSummary + longChapters`.
+
+### Precedence
+
+```text
+Explicit CLI flags > config file defaults > native CLI defaults
+```
+
+Only flags explicitly typed on the command line override config values. Native CLI defaults do not overwrite saved config defaults.
+
+If you type any provider/model selector for a step family at runtime, configured provider selections for that family are replaced instead of merged. For example, passing `--llm openai=...` on `write` suppresses configured Gemini and Anthropic LLM defaults for that run.
+
+### Pricing and Budgets
+
+Set a hard budget with `--max-cents`. Hosted and mixed-provider commands fail before execution when the estimate exceeds that limit. `--allow-over-budget` is a one-off runtime override and is never persisted.
+
+```bash
+bun autoshow setup --max-cents 50
+```
 
 ## Testing
 

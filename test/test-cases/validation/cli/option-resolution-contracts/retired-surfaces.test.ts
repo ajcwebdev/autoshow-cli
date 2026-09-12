@@ -146,13 +146,13 @@ describe('retired surfaces', () => {
     )).toThrow('Unexpected flag: --panel')
   })
 
-  test('write and config help omit retired MiniMax LLM names', () => {
+  test('write and setup help omit retired MiniMax LLM names', () => {
     const root = createNativeRootDefinition()
     const write = COMMAND_DEFINITIONS.find((command) => command.name === 'write')
-    const config = COMMAND_DEFINITIONS.find((command) => command.name === 'config')
-    if (!write || !config) throw new Error('missing write or config command')
+    const setup = COMMAND_DEFINITIONS.find((command) => command.name === 'setup')
+    if (!write || !setup) throw new Error('missing write or setup command')
     expect(renderCommandHelp(root, write)).not.toContain(retiredMinimaxLlm)
-    expect(renderCommandHelp(root, config)).not.toContain(retiredMinimaxLlm)
+    expect(renderCommandHelp(root, setup)).not.toContain(retiredMinimaxLlm)
   })
 
   test('unsigned prebuilt metadata keys stay out of production setup sources', async () => {

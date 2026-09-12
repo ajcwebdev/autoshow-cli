@@ -29,6 +29,7 @@ export const registerRootRenderingCases = (): void => {
     expect(setupSection).toContain('    links')
     expect(setupSection).toContain('    setup')
     expect(setupSection).toContain('    resume')
+    expect(setupSection).not.toContain('    config')
     expect(setupSection).not.toContain(`    ${removedSetupCommand}`)
     expect(setupSection).not.toContain('    cache')
     expect(processingSection).toContain('    write')

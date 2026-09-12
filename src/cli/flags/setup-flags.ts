@@ -1,6 +1,7 @@
 import { SETUP_STEP_IDS } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
 import { boolFlag, formatValueList, strFlag, strListFlag, withHelpGroup } from './flag-utils'
+import { configCommandFlags } from './config-flags'
 
 const setupOptionFlags = {
   'network-check': strFlag('Local-only network diagnostic: serve|probe (no installation or providers)'),
@@ -19,4 +20,5 @@ export const setupFlags = {
   ...withHelpGroup(Object.fromEntries(['models', 'step', 'force-redownload'].map(name => [name, setupOptionFlags[name as keyof typeof setupOptionFlags]])), 'setup-installation'),
   ...withHelpGroup(Object.fromEntries(['doctor', 'strict'].map(name => [name, setupOptionFlags[name as keyof typeof setupOptionFlags]])), 'setup-diagnostics'),
   ...withHelpGroup(Object.fromEntries(['network-check', 'delay-seconds', 'port', 'probe-url', 'probe-client'].map(name => [name, setupOptionFlags[name as keyof typeof setupOptionFlags]])), 'setup-network'),
+  ...configCommandFlags
 } satisfies CliFlagsDefinition

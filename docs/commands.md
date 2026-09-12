@@ -78,9 +78,9 @@ bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 
 bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear
 
 # inspect or set persistent defaults
-bun autoshow config --show
-bun autoshow config --llm openai=gpt-5.5 --batch-limit 20 --max-cents 50
-bun autoshow config --reset
+bun autoshow setup --show
+bun autoshow setup --llm openai=gpt-5.5 --batch-limit 20 --max-cents 50
+bun autoshow setup --reset
 
 # fetch curated provider documentation
 bun autoshow links --openai
@@ -108,7 +108,7 @@ bun as <command>
 
 STT workflows have separate guides for [captions](./commands/02-stt/workflows/captions/overview.md), [timing and speakers](./commands/02-stt/workflows/timing/overview.md), [transcript review](./commands/02-stt/workflows/transcript-review/overview.md), and [transcript videos](./commands/02-stt/workflows/transcript-video/overview.md).
 
-Setup and utilities: [`setup`](./commands/00-setup-and-utilities/setup.md) installs prerequisites, [`config`](./commands/00-setup-and-utilities/config.md) manages defaults, [`resume`](./commands/00-setup-and-utilities/resume.md) backfills missing provider outputs, and [`links`](./commands/00-setup-and-utilities/links.md) fetches provider documentation.
+Setup and utilities: [`setup`](./commands/00-setup-and-utilities/setup.md) installs prerequisites and manages defaults, [`resume`](./commands/00-setup-and-utilities/resume.md) backfills missing provider outputs, and [`links`](./commands/00-setup-and-utilities/links.md) fetches provider documentation.
 
 ## Model Refresh Reports
 

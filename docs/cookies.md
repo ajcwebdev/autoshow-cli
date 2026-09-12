@@ -7,20 +7,20 @@ Use this when `yt-dlp` hits a YouTube sign-in prompt or `Sign in to confirm you'
 Preferred:
 
 ```bash
-bun autoshow config --cookies-from-browser chrome
+bun autoshow setup --cookies-from-browser chrome
 bun autoshow extract "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
 ```
 
 Fallback:
 
 ```bash
-bun autoshow config --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
+bun autoshow setup --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
 bun autoshow extract "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
 ```
 
 Key rules:
 
-- Configure cookies only with `bun autoshow config`. The saved cookies file path or browser name applies to every command.
+- Configure cookies only with `bun autoshow setup`. The saved cookies file path or browser name applies to every command.
 - Persist the cookies file path or browser name only. Do not copy cookie-file contents into `config/autoshow.json`.
 - A configured cookies file takes precedence over browser import. If that file is unreadable, AutoShow warns and does not fall back to browser import.
 - `bun autoshow setup --doctor` reports the configured cookie source and whether a cookies file is readable.
@@ -38,22 +38,22 @@ https://www.youtube.com/robots.txt
 2. Persist the browser import, then retry the command that failed:
 
 ```bash
-bun autoshow config --cookies-from-browser chrome
+bun autoshow setup --cookies-from-browser chrome
 bun autoshow extract "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
 ```
 
 Other common browser values:
 
 ```bash
-bun autoshow config --cookies-from-browser firefox
-bun autoshow config --cookies-from-browser brave
-bun autoshow config --cookies-from-browser edge
+bun autoshow setup --cookies-from-browser firefox
+bun autoshow setup --cookies-from-browser brave
+bun autoshow setup --cookies-from-browser edge
 ```
 
 Specify a profile when needed:
 
 ```bash
-bun autoshow config --cookies-from-browser chrome:Default
+bun autoshow setup --cookies-from-browser chrome:Default
 ```
 
 ## Fallback: Export `cookies.txt`
@@ -80,10 +80,10 @@ cp ~/Downloads/cookies.txt runtime/auth/youtube.cookies.txt
 chmod 600 runtime/auth/youtube.cookies.txt
 ```
 
-6. Persist the file path with `config --cookies`:
+6. Persist the file path with `setup --cookies`:
 
 ```bash
-bun autoshow config --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
+bun autoshow setup --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
 bun autoshow extract "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
 ```
 
@@ -103,10 +103,10 @@ Expected:
 
 ## If It Still Fails
 
-- Doctor reports a missing cookies file: fix the path or run `bun autoshow config --cookies <file>`. AutoShow will not fall back while a cookies file is configured.
+- Doctor reports a missing cookies file: fix the path or run `bun autoshow setup --cookies <file>`. AutoShow will not fall back while a cookies file is configured.
 - Browser import still fails: try a more specific profile such as `chrome:Default`, or export a dedicated `cookies.txt` file.
 - A fresh exported file still fails: confirm it starts with a Netscape cookie header, includes YouTube auth cookies, and was not committed or moved to a path with unreadable permissions.
-- Cookies still are not enough: forward extra `yt-dlp` options with `download` after a bare `--`, for example `bun autoshow download <url> -- --user-agent "…"` or `-- --extractor-args "youtube:player_client=web"`. Passthrough is accepted only by `download`, and only for media URL inputs. Configure cookies with `bun autoshow config` first; do not pass `--cookies` through the `--` boundary. See [yt-dlp Passthrough](commands/01-sources/download/overview.md#yt-dlp-passthrough).
+- Cookies still are not enough: forward extra `yt-dlp` options with `download` after a bare `--`, for example `bun autoshow download <url> -- --user-agent "…"` or `-- --extractor-args "youtube:player_client=web"`. Passthrough is accepted only by `download`, and only for media URL inputs. Configure cookies with `bun autoshow setup` first; do not pass `--cookies` through the `--` boundary. See [yt-dlp Passthrough](commands/01-sources/download/overview.md#yt-dlp-passthrough).
 
 ## References
 

@@ -126,6 +126,6 @@ bun autoshow metadata input/examples/batch/2-urls.md --batch-limit all --save
 
 Setup details are in [`setup.md`](../../00-setup-and-utilities/setup.md).
 
-For YouTube inputs, anonymous `yt-dlp` requests may be rate-limited or challenged. Persist cookies once with `bun autoshow config --cookies <file>` or `bun autoshow config --cookies-from-browser <browser>`, then rerun `metadata`.
+For YouTube inputs, anonymous `yt-dlp` requests may be rate-limited or challenged. Persist cookies once with `bun autoshow setup --cookies <file>` or `bun autoshow setup --cookies-from-browser <browser>`, then rerun `metadata`.
 
 For X Space URLs, raw Space IDs, and X post URLs, set `X_BEARER_TOKEN`.
