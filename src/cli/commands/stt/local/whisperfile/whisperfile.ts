@@ -5,9 +5,12 @@ import * as l from '~/utils/app-logger/app-logger'
 import { downloadFile } from '~/cli/commands/setup-and-utilities/setup/setup-download/download'
 import { withRetry } from '~/utils/retries'
 import { makeExecutable } from '~/utils/filesystem'
-import { InternalError } from '~/utils/error-handler'
+import { InternalError, InfraError } from '~/utils/error-handler'
 
-const WHISPERFILE_BASE_URL = 'https://huggingface.co/Mozilla/whisperfile/resolve/main'
+import { WHISPERFILE_ARTIFACTS, WHISPERFILE_REVISION } from './whisperfile-artifacts'
+import { verifyWhisperfileArtifact } from './whisperfile-integrity'
+
+const WHISPERFILE_BASE_URL = `https://huggingface.co/Mozilla/whisperfile/resolve/${WHISPERFILE_REVISION}`
 
 const artifactFileName = (modelName: string): string => `whisper-${modelName}.llamafile`
 
@@ -17,11 +20,14 @@ const verifyWhisperfileBinary = async (binaryPath: string): Promise<boolean> => 
 }
 
 export const downloadWhisperfileBinary = async (modelName: string): Promise<void> => {
+  const artifact = Object.hasOwn(WHISPERFILE_ARTIFACTS, modelName) ? WHISPERFILE_ARTIFACTS[modelName] : undefined
+  if (!artifact) throw InfraError(`No pinned whisperfile artifact for model: ${modelName}`, { stage: 'setup:whisperfile' })
   await mkdir(whisperfileDir, { recursive: true })
 
   const destination = whisperfileBinaryPath(modelName)
 
   if (await pathExists(destination)) {
+    await verifyWhisperfileArtifact(destination, artifact)
     await makeExecutable(destination)
     return
   }
@@ -36,12 +42,14 @@ export const downloadWhisperfileBinary = async (modelName: string): Promise<void
       await downloadFile({
         url,
         destination,
-        expectedMinBytes: 1000,
+        expectedMinBytes: artifact.size,
+        sha256: artifact.sha256,
         flowId: 'whisperfile-binary'
       })
     }
   )
 
+  await verifyWhisperfileArtifact(destination, artifact)
   await makeExecutable(destination)
 
   l.write('info', `Whisperfile model ${modelName} downloaded`, { category: 'command', metadata: { engine: 'whisperfile', model: modelName } })
@@ -51,23 +59,13 @@ export const setupWhisperfile = async (modelName: string): Promise<void> => {
   await downloadWhisperfileBinary(modelName)
 
   if (!await verifyWhisperfileBinary(whisperfileBinaryPath(modelName))) {
-    l.warn('Whisperfile installation may have issues, but continuing', { category: 'command' })
+    throw InfraError('Verified Whisperfile failed its executable health check', { stage: 'setup:whisperfile' })
   }
 }
 
 export const ensureWhisperfileReady = async (modelName: string): Promise<void> => {
   if (!modelName) {
     throw InternalError('Model name required', { stage: 'setup:whisperfile' })
-  }
-
-  const binaryPath = whisperfileBinaryPath(modelName)
-
-  if (await pathExists(binaryPath)) {
-    await makeExecutable(binaryPath)
-    if (await verifyWhisperfileBinary(binaryPath)) {
-      return
-    }
-    l.write('info', 'Whisperfile binary found but not working, re-downloading', { category: 'command' })
   }
 
   await setupWhisperfile(modelName)

@@ -68,10 +68,25 @@ test('every managed credential supports the same observe and require contract', 
     const available = resolveCredential(check.providerId, 'observe', {
       env: { [check.envVar]: '  configured-secret  ' }
     })
-    expect(available).toMatchObject({ available: true, value: 'configured-secret' })
+    expect(available).toMatchObject({ available: true })
+    expect(JSON.stringify(available)).not.toContain('configured-secret')
+    expect(available).not.toHaveProperty('value')
     expect(resolveCredential(check.providerId, 'require', {
       stage: 'contract',
       env: { [check.envVar]: '  configured-secret  ' }
     })).toBe('configured-secret')
+  }
+})
+
+
+test('empty examples and historical placeholders never establish readiness', async () => {
+  const content = await Bun.file(join(PROJECT_ROOT, '.env.example')).text()
+  expect(content.split('\n').filter(line => line.includes('=')).every(line => line.endsWith('='))).toBe(true)
+  for (const spec of HOSTED_PROVIDER_ENV_CHECKS) {
+    for (const value of [undefined, '', '  ', `your_${spec.envVar.toLowerCase()}_here`]) {
+      const env = { [spec.envVar]: value }
+      expect(resolveCredential(spec.providerId, 'observe', { env }).available).toBe(false)
+      expect(() => resolveCredential(spec.providerId, 'require', { stage: 'test', env })).toThrow(spec.envVar)
+    }
   }
 })

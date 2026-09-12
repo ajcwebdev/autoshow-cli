@@ -73,7 +73,7 @@ describe('test-runner process and price orchestration', () => {
     }
   })
 
-  test('test worker environments allow runner and provider inputs without leaking unrelated secrets', () => {
+  test('test worker environments allow runner inputs without ambient provider credentials', () => {
     const priorProvider = process.env['OPENAI_API_KEY']
     const priorSecret = process.env['AUTOSHOW_UNRELATED_SECRET']
     try {
@@ -86,7 +86,7 @@ describe('test-runner process and price orchestration', () => {
         { AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY: '0' }
       )
 
-      expect(env['OPENAI_API_KEY']).toBe('provider-fixture')
+      expect(env['OPENAI_API_KEY']).toBeUndefined()
       expect(env['AUTOSHOW_UNRELATED_SECRET']).toBeUndefined()
       expect(env['AUTOSHOW_TEST_ARTIFACTS_DIR']).toBe(artifacts.runDir)
       expect(env['AUTOSHOW_TEST_PRESERVE_ARTIFACTS']).toBe('1')

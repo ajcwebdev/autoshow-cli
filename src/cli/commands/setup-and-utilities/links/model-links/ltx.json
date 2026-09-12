@@ -1,5 +1,8 @@
 {
   "LTX": {
+    "LLMSTXT": [
+      "https://docs.ltx.io/llms.txt"
+    ],
     "Models": [
       "https://docs.ltx.video/models.md",
       "https://docs.ltx.io/models/ltx-2-5.md"

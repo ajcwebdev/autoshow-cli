@@ -5,6 +5,7 @@ import {
   NativeNoSuchCommandError
 } from './native-errors'
 import { buildInitialFlags, buildShortFlagMap, findNativeFlagValueEnd } from './native-flag-parser'
+import { takeHelpTopic } from './help-topic-request'
 
 const createCommandMap = (
   commands: readonly CliCommandDefinition[]
@@ -70,18 +71,23 @@ const findSubcommandIndex = (
   return undefined
 }
 
+const COMMAND_ALIASES: Readonly<Record<string, string>> = {
+  config: 'setup'
+}
+
 const parseCommandTreeArgv = (
   argv: string[],
   command: CliCommandDefinition,
-  globalFlags: CliFlagsDefinition
+  globalFlags: CliFlagsDefinition,
+  calledAs?: string
 ): CliParseResult => {
   if (!command.subcommands?.length) {
-    return parseCommandArgv(argv, command, globalFlags)
+    return parseCommandArgv(argv, command, globalFlags, calledAs)
   }
 
   const subcommandIndex = findSubcommandIndex(argv, command, globalFlags)
   if (subcommandIndex === undefined) {
-    const parsed = parseCommandArgv(argv, command, globalFlags)
+    const parsed = parseCommandArgv(argv, command, globalFlags, calledAs)
     if (parsed.mode === 'help' || parsed.mode === 'version') {
       return parsed
     }
@@ -131,7 +137,7 @@ const parseCommandTreeArgv = (
   ], subcommand, globalFlags)
 }
 
-export const parseNativeCli = (
+const parseNativeArgv = (
   argv: string[],
   commands: readonly CliCommandDefinition[],
   globalFlags: CliFlagsDefinition
@@ -202,7 +208,8 @@ export const parseNativeCli = (
       }
     }
     const helpCommandName = isHelpFlag(commandName) ? 'help' : commandName
-    const command = typeof helpCommandName === 'string' ? findCommand(commandMap, helpCommandName) : undefined
+    const resolvedHelpName = typeof helpCommandName === 'string' ? (COMMAND_ALIASES[helpCommandName] ?? helpCommandName) : undefined
+    const command = typeof resolvedHelpName === 'string' ? findCommand(commandMap, resolvedHelpName) : undefined
     if (typeof helpCommandName === 'string' && command === undefined) {
       throw new NativeNoSuchCommandError(helpCommandName)
     }
@@ -231,12 +238,20 @@ export const parseNativeCli = (
     }
   }
 
-  const command = commandMap.get(first)
+  const resolvedFirst = COMMAND_ALIASES[first] ?? first
+  const command = commandMap.get(resolvedFirst)
   if (command === undefined) {
     throw new NativeNoSuchCommandError(first)
   }
 
-  return parseCommandTreeArgv(argv, command, globalFlags)
+  return parseCommandTreeArgv([resolvedFirst, ...argv.slice(1)], command, globalFlags, first)
 }
 
 export { parseCommandArgv, parseCommandInvocation } from './native-command-arguments'
+
+export const parseNativeCli = (argv: string[], commands: readonly CliCommandDefinition[], globalFlags: CliFlagsDefinition): CliParseResult => {
+  const request = takeHelpTopic(argv)
+  const parsed = parseNativeArgv(request.argv, commands, globalFlags)
+  if (request.topic !== undefined) parsed.flags['help-topic'] = request.topic
+  return parsed
+}

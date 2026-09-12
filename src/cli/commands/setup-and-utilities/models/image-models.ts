@@ -51,6 +51,8 @@ export const SUPPORTED_REPLICATE_IMAGE_MODELS = [
   'bytedance/seedream-4.5',
   'bytedance/seedream-5-lite',
   'bytedance/seedream-5-pro',
+  'alibaba/qwen-image-3',
+  'alibaba/qwen-image-3-pro',
   'qwen/qwen-image-2-pro',
   'qwen/qwen-image-2',
   'wan-video/wan-2.7-image-pro',

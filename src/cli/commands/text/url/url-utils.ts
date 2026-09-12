@@ -162,14 +162,13 @@ export const withUrlProviderTimeout = async <T>(
 export const requireHostedUrlProviderApiKey = (
   providerId: string,
   stage: string,
-  usingHostedApi: boolean
+  usingHostedApi: boolean,
+  providedValue?: string
 ): string | undefined => {
-  const observation = resolveCredential(providerId, 'observe', {
-    description: `--url-provider ${providerId}`
-  })
+  if (providedValue !== undefined) return resolveCredential(providerId, 'require', { stage, providedValue, useProvidedValue: true })
   return usingHostedApi
     ? resolveCredential(providerId, 'require', { stage, description: `--url-provider ${providerId}` })
-    : observation.value
+    : undefined
 }
 
 export const fetchUrlProviderJson = async (
@@ -182,7 +181,7 @@ export const fetchUrlProviderJson = async (
   isTerminalFailure?: (payload: unknown, message: string | undefined) => boolean
 ): Promise<unknown> => {
   const response = await withUrlProviderTimeout(providerLabel, options, async (signal) =>
-    await fetch(endpoint, { ...init, signal })
+    await fetch(endpoint, { ...init, signal, redirect: 'error' })
   )
 
   let payload: unknown

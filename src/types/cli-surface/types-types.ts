@@ -80,9 +80,12 @@ export type CliCommandDefinition = {
     hidden?: boolean
     examples?: ReadonlyArray<readonly [command: string, description: string]>
     notes?: readonly string[]
+    topics?: Record<string, { description: string, groups?: readonly string[], flags?: readonly string[], notes?: readonly string[] }>
+    beforeFlags?: readonly string[]
   }
   allowUnknownFlags?: boolean
   allowExcessParameters?: boolean
+  parametersAfterDoubleDash?: boolean
   passThroughHelpAfterFirstPositional?: boolean
   handler: CliCommandHandler
 }

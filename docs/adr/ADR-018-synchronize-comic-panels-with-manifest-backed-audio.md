@@ -21,7 +21,7 @@ The [recorded comic recovery amendment in ADR-002](ADR-002-pipeline-state-resume
 
 Presentation intent is recorded before rendering. The `generate-audio --slideshow` shortcut saves its pending presentation request and exact audio-plan dependency atomically with audio intent before synthesis, so a checkpoint does not lose the final local step. Resume reuses retained audio, then validates the final timeline and renders locally. Missing upstream media or changed dependency identities block recovery. Completed presentations are compared against a newly derived plan using their retained options and selected audio target, including older presentations without recovery intent, before being treated as no-ops.
 
-This does not automate selecting image variants, promoting generated panels, preparing scenes, or generating missing dialogue or sound effects. The existing canonical panel and complete audio requirements remain in force. Usage is maintained in [generate-slideshow](../commands/visuals/comic/05-generate-slideshow.md) and [resume](../commands/setup-and-utilities/resume.md#comic-recovery).
+This does not automate selecting image variants, promoting generated panels, preparing scenes, or generating missing dialogue or sound effects. The existing canonical panel and complete audio requirements remain in force. Usage is maintained in [generate-slideshow](../commands/05-visuals/comic/05-generate-slideshow.md) and [resume](../commands/00-setup-and-utilities/resume.md#comic-recovery).
 
 ## Options Considered
 
@@ -165,4 +165,4 @@ The implementation review recorded 23 passing presentation regression tests acro
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md)
 - `src/cli/commands/visuals/comic/comic-commands/generate-slideshow/generate-slideshow-command.ts`
 - `src/cli/flags/comic-flags.ts`
-- [comic generate-slideshow](../commands/visuals/comic/05-generate-slideshow.md)
+- [comic generate-slideshow](../commands/05-visuals/comic/05-generate-slideshow.md)

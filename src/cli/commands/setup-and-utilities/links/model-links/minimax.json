@@ -1,5 +1,8 @@
 {
   "MiniMax": {
+    "LLMSTXT": [
+      "https://platform.minimax.io/docs/llms.txt"
+    ],
     "General": [
       "https://platform.minimax.io/docs/guides/pricing-paygo.md",
       "https://platform.minimax.io/docs/faq/about-apis.md",
@@ -15,16 +18,6 @@
       "https://platform.minimax.io/docs/guides/music-generation.md",
       "https://platform.minimax.io/docs/api-reference/music-generation.md",
       "https://platform.minimax.io/docs/api-reference/lyrics-generation.md"
-    ],
-    "Video": [
-      "https://platform.minimax.io/docs/guides/video-generation.md",
-      "https://platform.minimax.io/docs/guides/video-agent.md",
-      "https://platform.minimax.io/docs/api-reference/video-generation-t2v.md",
-      "https://platform.minimax.io/docs/api-reference/video-generation-i2v.md",
-      "https://platform.minimax.io/docs/api-reference/video-generation-fl2v.md",
-      "https://platform.minimax.io/docs/api-reference/video-generation-s2v.md",
-      "https://platform.minimax.io/docs/api-reference/video-generation-query.md",
-      "https://platform.minimax.io/docs/api-reference/video-generation-download.md"
     ]
   }
 }

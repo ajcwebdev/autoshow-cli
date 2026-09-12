@@ -1,5 +1,8 @@
 {
   "Hume": {
+    "LLMSTXT": [
+      "https://dev.hume.ai/llms.txt"
+    ],
     "General": [
       "https://dev.hume.ai/intro.md",
       "https://dev.hume.ai/docs/introduction/api-key.md",

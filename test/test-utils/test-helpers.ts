@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { configureOutputRoot } from '~/cli/commands/command-shared/output-root'
 import type {
@@ -7,7 +6,7 @@ import type {
 } from '~/types'
 import { pathExists } from '~/utils/filesystem'
 import { isRecord } from '~/utils/value-helpers'
-import { parseConfiguredEnvValueFromDotEnv } from './env-file'
+import { normalizeCredentialValue } from '~/utils/validate/credential-value'
 import { parseCallerLocation } from './test-caller-location'
 import { executeTestCommand, prepareTestCommand } from './test-command-execution'
 import { OUTPUT_DIR } from './test-output-directories'
@@ -44,35 +43,10 @@ export const ensurePageImageFixture = async (path = 'input/examples/document/1-d
   await Bun.write(path, Buffer.from(PAGE_IMAGE_PNG_BASE64, 'base64'))
 }
 
-export const readConfiguredEnvVar = async (key: string): Promise<string | undefined> => {
-  const direct = process.env[key]?.trim()
-  if (direct) {
-    return direct
-  }
+// Test credentials are exports only; fixture and live callers share this source.
+export const readConfiguredEnvVar = async (key: string): Promise<string | undefined> => readConfiguredEnvVarSync(key)
 
-  try {
-    const text = await Bun.file('.env').text()
-    return parseConfiguredEnvValueFromDotEnv(text, key)
-  } catch {
-  }
-
-  return undefined
-}
-
-export const readConfiguredEnvVarSync = (key: string): string | undefined => {
-  const direct = process.env[key]?.trim()
-  if (direct) {
-    return direct
-  }
-
-  try {
-    const text = readFileSync('.env', 'utf8')
-    return parseConfiguredEnvValueFromDotEnv(text, key)
-  } catch {
-  }
-
-  return undefined
-}
+export const readConfiguredEnvVarSync = (key: string): string | undefined => normalizeCredentialValue(process.env[key])
 
 export { isRecord }
 

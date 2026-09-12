@@ -19,7 +19,7 @@ bun autoshow setup
 - `setup --doctor` verifies prerequisites, API keys, and config without installing anything.
 - Local workflows can run without service API keys; service-backed commands require the relevant provider credentials.
 - Docker users can build the image with `docker build -t autoshow-cli:local .`; see [docs/docker.md](./docs/docker.md).
-- If YouTube starts blocking `yt-dlp`, persist cookies with `bun autoshow config` as described in [docs/cookies.md](./docs/cookies.md).
+- If YouTube starts blocking `yt-dlp`, persist cookies with `bun autoshow setup` as described in [docs/cookies.md](./docs/cookies.md).
 
 ## Common Workflows
 
@@ -27,7 +27,7 @@ These examples cover the primary workflows. Where both local and hosted executio
 
 ### Sources
 
-Inspect [metadata](./docs/commands/sources/metadata/overview.md) and [download](./docs/commands/sources/download/overview.md) source files.
+Inspect [metadata](./docs/commands/01-sources/metadata/overview.md) and [download](./docs/commands/01-sources/download/overview.md) source files.
 
 ```bash
 # Inspect metadata without downloading
@@ -39,7 +39,7 @@ bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU"
 
 ### STT
 
-[Transcribe media](./docs/commands/stt/overview.md) with local engines, hosted diarization, providers with diarization off by default, or direct URL services. The [extract overview](./docs/commands/extract.md) explains routing.
+[Transcribe media](./docs/commands/02-stt/overview.md) with local engines, hosted diarization, providers with diarization off by default, or direct URL services. The [extract overview](./docs/commands/extract.md) explains routing.
 
 ```bash
 # Transcribe locally without diarization using Whisperfile
@@ -54,7 +54,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider d
 
 ### Text
 
-Extract [OCR](./docs/commands/text/ocr/overview.md) and [URL text](./docs/commands/text/url/overview.md), then [write](./docs/commands/text/write/overview.md) from saved text.
+Extract [OCR](./docs/commands/03-text/ocr/overview.md) and [URL text](./docs/commands/03-text/url/overview.md), then [write](./docs/commands/03-text/write/overview.md) from saved text.
 
 ```bash
 # Extract an article URL locally with Defuddle
@@ -91,7 +91,7 @@ bun autoshow write notes.md --llm openai=gpt-5.5 --prompt shortSummary
 
 ### Audio
 
-Generate [speech](./docs/commands/audio/tts/overview.md) and [music](./docs/commands/audio/music/overview.md), and manage [voices](./docs/commands/audio/voice/00-voice-overview.md).
+Generate [speech](./docs/commands/04-audio/tts/overview.md) and [music](./docs/commands/04-audio/music/overview.md), and manage [voices](./docs/commands/04-audio/voice/00-voice-overview.md).
 
 ```bash
 # Generate speech with hosted OpenAI
@@ -114,7 +114,7 @@ bun autoshow voice list --provider elevenlabs --source account
 
 ### Visuals
 
-Generate [images](./docs/commands/visuals/image/overview.md), [comics](./docs/commands/visuals/comic/00-comic-overview.md), and [video](./docs/commands/visuals/video/overview.md).
+Generate [images](./docs/commands/05-visuals/image/overview.md), [comics](./docs/commands/05-visuals/comic/00-comic-overview.md), and [video](./docs/commands/05-visuals/video/overview.md).
 
 ```bash
 # Generate an image with hosted OpenAI
@@ -159,7 +159,7 @@ bun autoshow comic generate-slideshow 01-01
 | ------------------- | -------------------------------------------------- |
 | Inspect and process | `metadata`, `download`, `extract`, `write`         |
 | Generate            | `tts`, `voice`, `image`, `video`, `music`, `comic` |
-| Setup & Utilities   | `setup`, `config`, `links`, `resume`               |
+| Setup & Utilities   | `setup`, `links`, `resume`                         |
 
 - `write` generates structured LLM text from local `.md` or `.txt` files, writes JSON and rendered markdown, and can fan out across multiple LLM providers. Transcribe URLs or media with `extract` first.
 - `setup --models` pre-downloads local STT runtimes without running inference, for example `bun autoshow setup --models tiny` or `bun autoshow setup --models whisperfile:small`.
@@ -172,8 +172,11 @@ Use command-first order for all examples and scripts:
 bun autoshow <command> [input] [flags]
 bun autoshow help <command>       # preferred targeted help
 bun autoshow <command> --help
+bun autoshow <command> --help-topic <topic>
 bun autoshow --version
 ```
+
+Full help lists available topics. Focused help works without an input or command execution: try `extract --help-topic documents`, `video --help-topic provider:grok`, or `resume --help-topic concurrency`. It keeps complete flag values while wrapping descriptions for the terminal; redirected output uses 120 columns. `--help` remains the complete reference.
 
 - Use `bun autoshow extract <input> --provider whisperfile=tiny`, not `bun autoshow --provider whisperfile=tiny extract <input>`.
 - Inputs can be URLs, local files, directories, `.md`/`.txt` URL lists, or prompt strings for `image`, `video`, and `music`.
@@ -207,10 +210,10 @@ Common batch controls:
 Persistent defaults live in `config/autoshow.json`. You can save provider choices, model defaults, prompts, extract options, voices, batch settings, and pricing thresholds.
 
 ```bash
-bun autoshow config --show
-bun autoshow config --llm openai=gpt-5.5 --batch-limit 20 --max-cents 50
-bun autoshow config --tts elevenlabs=eleven_v3 --tts-voice hpp4J3VqNfWAUOO0d1Us
-bun autoshow config --reset
+bun autoshow setup --show
+bun autoshow setup --llm openai=gpt-5.5 --batch-limit 20 --max-cents 50
+bun autoshow setup --tts elevenlabs=eleven_v3 --tts-voice hpp4J3VqNfWAUOO0d1Us
+bun autoshow setup --reset
 ```
 
 Pricing and budget behavior:
@@ -263,7 +266,7 @@ Mixed `extract` batches write a parent directory with nested `media/`, `document
 Notable exceptions:
 
 - `metadata --save` reports `manifest.json`, and `metadata --markdown --save` also reports `metadata.md`
-- utility commands such as `config` and `setup` do not use the `output/` run-directory pattern
+- utility commands such as `setup` do not use the `output/` run-directory pattern
 
 ## Development
 

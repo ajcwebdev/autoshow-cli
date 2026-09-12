@@ -17,7 +17,7 @@ The sheet and optional export refresh `metadata/review/review-sheet.html` and `m
 
 `comic review-sheet` and `comic review-notes` remain deprecated aliases for the same compatibility release, preserving their original flags, validation, and result identifiers. Their direct help documents the replacements, and execution emits deprecation notices through the normal logger. Warning visibility follows the normal quiet and log-level controls for all three deprecated entries. Alias removal requires a later announced breaking CLI release.
 
-This amendment supersedes the command-surface recommendations below that present `comic reference-voice` as a normal entry point. The original decision remains as historical context. Current usage and migration details live in the [comic overview](../commands/visuals/comic/00-comic-overview.md), [review guide](../commands/visuals/comic/06-review.md), and [voice overview](../commands/audio/voice/00-voice-overview.md). Shared provider infrastructure and domain responsibilities are unchanged.
+This amendment supersedes the command-surface recommendations below that present `comic reference-voice` as a normal entry point. The original decision remains as historical context. Current usage and migration details live in the [comic overview](../commands/05-visuals/comic/00-comic-overview.md), [review guide](../commands/05-visuals/comic/06-review.md), and [voice overview](../commands/04-audio/voice/00-voice-overview.md). Shared provider infrastructure and domain responsibilities are unchanged.
 
 ### Consolidation selection and rejected alternatives
 
@@ -222,8 +222,8 @@ The implementation review recorded 299 passing tests across 47 files for the ini
 - Related ADR: [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — links selection modes and refresh artifacts
 - Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md) — canonical voice management and distinct lifecycle actions
 - Related ADR: [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md) — independent local slideshow rendering and recovery
-- [comic](../commands/visuals/comic/00-comic-overview.md)
-- `docs/commands/setup-and-utilities/links.md`
+- [comic](../commands/05-visuals/comic/00-comic-overview.md)
+- `docs/commands/00-setup-and-utilities/links.md`
 - `src/cli/native/native-parser.ts`
 - `src/cli/native/dispatcher.ts`
 - `src/cli/native/help-renderer.ts`

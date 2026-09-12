@@ -1,5 +1,8 @@
 {
   "DeepInfra": {
+    "LLMSTXT": [
+      "https://docs.deepinfra.com/llms.txt"
+    ],
     "General": [
       "https://docs.deepinfra.com/.md"
     ],

@@ -121,13 +121,13 @@ describe('getMissingConfiguredEnvVarKeysSync', () => {
     }
   })
 
-  test('uses .env for synchronous service-test availability checks', async () => {
+  test('does not load .env for synchronous service-test availability checks', async () => {
     const previousCwd = process.cwd()
     const tempDir = await makeTempDir('autoshow-service-env-')
     try {
       process.chdir(tempDir)
       await writeFile('.env', 'SERVICE_KIT_TEST_DOTENV_KEY=dotenv-value\n', 'utf8')
-      expect(getMissingConfiguredEnvVarKeysSync(['SERVICE_KIT_TEST_DOTENV_KEY'])).toEqual([])
+      expect(getMissingConfiguredEnvVarKeysSync(['SERVICE_KIT_TEST_DOTENV_KEY'])).toEqual(['SERVICE_KIT_TEST_DOTENV_KEY'])
       expect(getMissingConfiguredEnvVarKeysSync(['SERVICE_KIT_TEST_MISSING_KEY'])).toEqual(['SERVICE_KIT_TEST_MISSING_KEY'])
     } finally {
       process.chdir(previousCwd)

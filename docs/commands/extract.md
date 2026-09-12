@@ -21,22 +21,22 @@ bun autoshow extract [input] [flags]
 
 The default batch limit is `5`; use `--batch-limit all` to process every discovered item.
 
-For backfilling missing provider outputs from an existing run or batch, see [`resume`](setup-and-utilities/resume.md).
+For backfilling missing provider outputs from an existing run or batch, see [`resume`](00-setup-and-utilities/resume.md).
 
 ## Input Routing
 
 | Input                                                                                                     | Route                                                |
 | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| YouTube, Twitch, or TikTok URLs                                                                           | [STT](./stt/overview.md)                           |
-| Direct media URLs (`.mp3`, `.mp4`, `.wav`, `.webm`, and other audio/video extensions)                     | [STT](./stt/overview.md)                           |
-| Local media files                                                                                         | [STT](./stt/overview.md)                           |
-| RSS or podcast feed batches                                                                               | [STT](./stt/overview.md)                           |
-| YouTube channel or playlist batches                                                                       | [STT](./stt/overview.md)                           |
-| PDF, EPUB, convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT), DOCX, PPTX, XLSX, ODF, RTF, CSV, CBZ       | [OCR](./text/ocr/overview.md)                           |
-| PNG, JPG, JPEG, TIF, TIFF, WebP, BMP, GIF                                                                 | [OCR](./text/ocr/overview.md)                           |
-| Remote article URLs                                                                                       | [URL / HTML extraction](./text/url/overview.md)         |
-| Local `.html` / `.htm` files                                                                              | [URL / HTML extraction](./text/url/overview.md)         |
-| X/Twitter Space URLs, post URLs, and raw Space IDs                                                        | [X Space metadata](./text/url/overview.md#x-space-path) |
+| YouTube, Twitch, or TikTok URLs                                                                           | [STT](./02-stt/overview.md)                           |
+| Direct media URLs (`.mp3`, `.mp4`, `.wav`, `.webm`, and other audio/video extensions)                     | [STT](./02-stt/overview.md)                           |
+| Local media files                                                                                         | [STT](./02-stt/overview.md)                           |
+| RSS or podcast feed batches                                                                               | [STT](./02-stt/overview.md)                           |
+| YouTube channel or playlist batches                                                                       | [STT](./02-stt/overview.md)                           |
+| PDF, EPUB, convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT), DOCX, PPTX, XLSX, ODF, RTF, CSV, CBZ       | [OCR](./03-text/ocr/overview.md)                           |
+| PNG, JPG, JPEG, TIF, TIFF, WebP, BMP, GIF                                                                 | [OCR](./03-text/ocr/overview.md)                           |
+| Remote article URLs                                                                                       | [URL / HTML extraction](./03-text/url/overview.md)         |
+| Local `.html` / `.htm` files                                                                              | [URL / HTML extraction](./03-text/url/overview.md)         |
+| X/Twitter Space URLs, post URLs, and raw Space IDs                                                        | [X Space metadata](./03-text/url/overview.md#x-space-path) |
 | Directory batches                                                                                         | Mixed routing per discovered item                    |
 | URL-list batches (`.md` / `.txt`)                                                                         | Mixed routing per listed URL                         |
 
@@ -59,7 +59,7 @@ Do not combine explicit `--provider` selections with `--all-providers` or `--all
 
 ## Local Engines
 
-Local STT, OCR, and URL engines are free. Install them with [`bun autoshow setup`](setup-and-utilities/setup.md).
+Local STT, OCR, and URL engines are free. Install them with [`bun autoshow setup`](00-setup-and-utilities/setup.md).
 
 | Flag                      | Description                                                     |
 | ------------------------- | --------------------------------------------------------------- |
@@ -68,9 +68,9 @@ Local STT, OCR, and URL engines are free. Install them with [`bun autoshow setup
 
 | Capability | Local engines |
 | --- | --- |
-| [STT](stt/local/overview.md) | Whisperfile, with word timestamps and no diarization |
-| [OCR](text/ocr/overview.md#local-ocr) | Tesseract, native document extraction, and ebook conversion |
-| [URL](text/url/overview.md#local-url) | Defuddle for article HTML |
+| [STT](02-stt/local/overview.md) | Whisperfile, with word timestamps and no diarization |
+| [OCR](03-text/ocr/overview.md#local-ocr) | Tesseract, native document extraction, and ebook conversion |
+| [URL](03-text/url/overview.md#local-url) | Defuddle for article HTML |
 
 ## Batch Inputs
 
@@ -83,6 +83,6 @@ bun autoshow extract https://www.youtube.com/@channelname --batch-limit all
 
 ## Detailed Extract Docs
 
-- [STT extraction](./stt/overview.md): hosted engines, provider flags, captions, local timing/alignment/channel workflows, examples, pricing, and STT output notes.
-- [OCR extraction](./text/ocr/overview.md): document/image routing, hosted OCR engines, EPUB/PDF behavior, pricing, and OCR output notes.
-- [URL and X extraction](./text/url/overview.md): remote article URLs, hosted article backends, X/Twitter Space inputs, and X output notes.
+- [STT extraction](./02-stt/overview.md): hosted engines, provider flags, captions, local timing/alignment/channel workflows, examples, pricing, and STT output notes.
+- [OCR extraction](./03-text/ocr/overview.md): document/image routing, hosted OCR engines, EPUB/PDF behavior, pricing, and OCR output notes.
+- [URL and X extraction](./03-text/url/overview.md): remote article URLs, hosted article backends, X/Twitter Space inputs, and X output notes.

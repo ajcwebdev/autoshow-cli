@@ -1,5 +1,8 @@
 {
   "Inworld": {
+    "LLMSTXT": [
+      "https://docs.inworld.ai/llms.txt"
+    ],
     "General": [
       "https://docs.inworld.ai/api-reference/introduction.md",
       "https://docs.inworld.ai/resources/rate-limits.md",

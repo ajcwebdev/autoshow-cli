@@ -1,5 +1,8 @@
 {
   "Kimi": {
+    "LLMSTXT": [
+      "https://platform.kimi.ai/docs/llms.txt"
+    ],
     "General": [
       "https://platform.kimi.ai/docs/overview.md",
       "https://platform.kimi.ai/docs/api/overview.md",

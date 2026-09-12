@@ -1,3 +1,5 @@
+import { verifyWhisperfileArtifact } from './whisperfile-integrity'
+import { WHISPERFILE_ARTIFACTS } from './whisperfile-artifacts'
 import { whisperfileBinaryPath } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { toTimestamp } from '../../stt-utils/stt-utils'
 import { mkdir, rm, rename } from 'node:fs/promises'
@@ -45,7 +47,12 @@ export const transcribeWhisperfile = async (
   const name = 'whisperfile'
   const label = 'Whisperfile'
   const tempPrefix = 'autoshow-whisperfile-'
-  const resolveInvocation = async (model: string, args: string[]) => ({ command: 'sh', args: [whisperfileBinaryPath(model), ...args], modelDescriptor: whisperfileBinaryPath(model) })
+  const resolveInvocation = async (model: string, args: string[]) => {
+    const artifact = Object.hasOwn(WHISPERFILE_ARTIFACTS, model) ? WHISPERFILE_ARTIFACTS[model] : undefined
+    if (!artifact) throw ValidationError(`No pinned Whisperfile artifact for ${model}`)
+    await verifyWhisperfileArtifact(whisperfileBinaryPath(model), artifact)
+    return { command: 'sh', args: [whisperfileBinaryPath(model), ...args], modelDescriptor: whisperfileBinaryPath(model) }
+  }
   const {
     model: modelName,
     segmentOffsetMinutes = 0,

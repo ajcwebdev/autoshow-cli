@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises'
+import { readFileBytes, readUtf8FileExact } from '~/utils/bun-file-io'
+
 import type {
   ParsedCommandMetric,
   ParsedJunitCase,
@@ -16,7 +17,7 @@ const readNonEmptyString = (record: Record<string, unknown>, key: string): strin
 
 export const readMetrics = async (path: string): Promise<ParsedCommandMetric[]> => {
   try {
-    const bytes = await readFile(path)
+    const bytes = await readFileBytes(path)
     const records = parseJsonlBytes(bytes, { allowTornFinalRecord: true, label: 'Test metrics log' })
     const out: ParsedCommandMetric[] = []
 
@@ -131,7 +132,7 @@ export const parseTestcase = (attrsRaw: string, body: string, suiteFile: string)
 export const parseJunit = async (junitPath: string): Promise<ParsedJunitCase[]> => {
   let xml = ''
   try {
-    xml = await readFile(junitPath, 'utf8')
+    xml = await readUtf8FileExact(junitPath)
   } catch {
     return []
   }

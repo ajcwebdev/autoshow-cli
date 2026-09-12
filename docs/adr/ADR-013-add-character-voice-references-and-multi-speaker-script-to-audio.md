@@ -17,7 +17,7 @@ Flags, provider capabilities, character-root resolution, and bare-invocation lis
 
 The same review rejected proposal 2B, a single voice creation command. Import, design, and clone had a 23-key union with six shared command-local flag keys, excluding globals and positional operands, on 2026-09-10. Local registration, paid design preview/save, and authorized sample cloning remain different operations; a mode selector would not remove their steps, consent, or lifecycle rules. Consent, audition, approval, retirement, and deletion also stay distinct: approval can promote existing evidence locally, audition can synthesize paid audio, retirement changes local lifecycle state, and deletion can remove a remote resource.
 
-This replaces the normal alias usage described below without changing voice provisioning, consent, audition, approval, retirement, deletion, storage, or result behavior. The original command examples remain historical evidence. Current instructions are in the [voice overview](../commands/audio/voice/00-voice-overview.md), with the CLI consolidation recorded in [ADR-007](./ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md#amendment-canonical-voice-and-review-commands-2026-09-10).
+This replaces the normal alias usage described below without changing voice provisioning, consent, audition, approval, retirement, deletion, storage, or result behavior. The original command examples remain historical evidence. Current instructions are in the [voice overview](../commands/04-audio/voice/00-voice-overview.md), with the CLI consolidation recorded in [ADR-007](./ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md#amendment-canonical-voice-and-review-commands-2026-09-10).
 
 ## Context
 
@@ -320,7 +320,7 @@ Do not run hosted TTS commands, live voice creation, provider smoke tests, or e2
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — TTS model contracts and voice capability boundaries
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — soundscape pipeline downstream of this dialogue contract
 - Related ADR: [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md) — downstream panel synchronization and still-image presentation
-- Related report: [2026 Hosted-Model Refresh Report: TTS](../commands/audio/tts/model-report.md) — TTS catalog refresh history
+- Related report: [2026 Hosted-Model Refresh Report: TTS](../reports/model-refresh-tts.md) — TTS catalog refresh history
 - `src/cli/commands/audio/tts/define-tts-command.ts`
 - `src/cli/commands/audio/voice/define-voice-command.ts`
 - `src/cli/commands/visuals/comic/comic-commands/generate-audio/generate-audio-command.ts`

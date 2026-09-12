@@ -1,5 +1,4 @@
-import { createServer, type Server } from 'node:http'
-import { readFile } from 'node:fs/promises'
+import { readFileBytes } from '~/utils/bun-file-io'
 import { afterAll, beforeAll } from 'bun:test'
 import { LOCAL_EXAMPLE_AUDIO_PATH } from '../../../../../test-utils/test-helpers'
 import {
@@ -7,7 +6,7 @@ import {
   setupDownloadInputTypeLifecycle,
 } from './download-input-types.shared'
 
-let feedServer: Server | null = null
+let feedServer: Bun.Server<undefined> | null = null
 let feedBaseUrl = ''
 let audioFixture: Buffer = Buffer.alloc(0)
 
@@ -29,46 +28,31 @@ const buildFeedXml = (): string => `<?xml version="1.0" encoding="UTF-8"?>
 `
 
 beforeAll(async () => {
-  audioFixture = await readFile(LOCAL_EXAMPLE_AUDIO_PATH)
+  audioFixture = await readFileBytes(LOCAL_EXAMPLE_AUDIO_PATH)
 
-  feedServer = createServer((req, res) => {
-    const url = new URL(req.url ?? '/', 'http://127.0.0.1')
-
-    if (req.method === 'GET' && url.pathname === '/feed') {
-      res.writeHead(200, { 'content-type': 'application/rss+xml; charset=utf-8' })
-      res.end(buildFeedXml())
-      return
+  feedServer = Bun.serve({
+    hostname: '127.0.0.1',
+    port: 0,
+    fetch(req) {
+      const url = new URL(req.url)
+      if (req.method === 'GET' && url.pathname === '/feed') {
+        return new Response(buildFeedXml(), { headers: { 'content-type': 'application/rss+xml; charset=utf-8' } })
+      }
+      if (req.method === 'GET' && url.pathname === '/audio.mp3') {
+        return new Response(audioFixture, { headers: {
+          'content-type': 'audio/mpeg',
+          'content-length': String(audioFixture.length)
+        } })
+      }
+      return new Response('not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } })
     }
-
-    if (req.method === 'GET' && url.pathname === '/audio.mp3') {
-      res.writeHead(200, {
-        'content-type': 'audio/mpeg',
-        'content-length': String(audioFixture.length)
-      })
-      res.end(audioFixture)
-      return
-    }
-
-    res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' })
-    res.end('not found')
   })
-
-  await new Promise<void>((resolve) => {
-    feedServer?.listen(0, '127.0.0.1', resolve)
-  })
-
-  const address = feedServer.address()
-  if (!address || typeof address === 'string') {
-    throw new Error('Failed to start RSS fixture server')
-  }
-  feedBaseUrl = `http://127.0.0.1:${address.port}`
+  feedBaseUrl = `http://127.0.0.1:${feedServer.port}`
 })
 
 afterAll(async () => {
   if (!feedServer) return
-  await new Promise<void>((resolve, reject) => {
-    feedServer?.close(error => error ? reject(error) : resolve())
-  })
+  await feedServer.stop(true)
   feedServer = null
 })
 

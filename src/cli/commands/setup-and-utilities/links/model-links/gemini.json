@@ -1,5 +1,8 @@
 {
   "Gemini": {
+    "LLMSTXT": [
+      "https://ai.google.dev/gemini-api/docs/llms.txt"
+    ],
     "General": [
       "https://ai.google.dev/gemini-api/docs.md.txt",
       "https://ai.google.dev/gemini-api/docs/quickstart.md.txt",

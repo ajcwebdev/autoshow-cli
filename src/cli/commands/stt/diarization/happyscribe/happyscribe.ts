@@ -160,7 +160,7 @@ export const buildHappyScribeOrganizationResolutionError = (
       baseMessage,
       `Organizations: ${formatHappyScribeOrganizationChoices(selection.organizations)}.`
     ].join(' '),
-    { hints: ['Pass --stt-happyscribe-organization-id <id> or save defaults.extract.stt.happyscribeOrganizationId with bun autoshow config.'] }
+    { hints: ['Pass --stt-happyscribe-organization-id <id> or save defaults.extract.stt.happyscribeOrganizationId with bun autoshow setup.'] }
   )
 }
 

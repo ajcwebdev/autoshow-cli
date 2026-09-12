@@ -1,3 +1,5 @@
+import { verifyWhisperfileArtifact } from '~/cli/commands/stt/local/whisperfile/whisperfile-integrity'
+import { WHISPERFILE_ARTIFACTS } from '~/cli/commands/stt/local/whisperfile/whisperfile-artifacts'
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { resolveYtDlpBinaryInfo } from '~/cli/commands/command-shared/shared-yt-dlp-binary'
@@ -58,7 +60,13 @@ const createDoctorProbes = (overrides: Partial<DoctorProbes> = {}): DoctorProbes
   pathExists: pathExists,
   listDirectory: listNames,
   directoryHasFiles: directoryHasAnyFiles,
-  run: async (command, args) => await runCapture(command, args, { allowFailure: true }),
+  run: async (command, args) => {
+    if (command === 'sh' && args[0] === whisperfileBinaryPath(DEFAULT_WHISPERFILE_MODEL)) {
+      try { await verifyWhisperfileArtifact(args[0], WHISPERFILE_ARTIFACTS[DEFAULT_WHISPERFILE_MODEL]!) }
+      catch (error) { return { stdout: '', stderr: String(error), exitCode: 1 } }
+    }
+    return await runCapture(command, args, { allowFailure: true })
+  },
   resolveYtDlpBinaryInfo,
   readDefuddleCliReadiness,
   resolveConfigPath,
@@ -222,7 +230,7 @@ const checkMusicRenderer = async (probes: DoctorProbes): Promise<DoctorCheck> =>
   }
 
   const pango = probes.which('pango-view')
-  const convert = probes.which('convert')
+  const convert = probes.which('magick') ?? probes.which('convert')
   if (pango && convert) {
     return check('OK', 'music lyric-video renderer', `fallback renderer available: ${pango}, ${convert}`)
   }
@@ -251,7 +259,10 @@ const collectSystemBuildToolChecks = async (probes: DoctorProbes): Promise<Docto
   title: 'System/build tools',
   checks: [
     checkBunRuntime(probes.bunVersion),
-    await checkMusicRenderer(probes)
+    await checkMusicRenderer(probes),
+    probes.which('magick') || probes.which('convert')
+      ? check('OK', 'ImageMagick sheets and TIFF', 'ImageMagick available')
+      : check('MISSING', 'ImageMagick sheets and TIFF', 'ImageMagick is required for character sheets and TIFF conversion', { severity: 'warn', nextStep: 'install ImageMagick, Pango and DejaVu Sans; see docs/reports/high-priority-metareport-2026-09-11.md#dependency-installation' })
   ]
 })
 
@@ -431,9 +442,9 @@ const collectYoutubeCookieChecks = async (probes: DoctorProbes): Promise<DoctorC
         nextStep: 'docs/cookies.md'
       }))
   } else if (youtubeStatus.configuredMode === 'cookies-from-browser') {
-    checks.push(check('OK', 'YouTube cookies source', 'browser import via bun autoshow config --cookies-from-browser'))
+    checks.push(check('OK', 'YouTube cookies source', 'browser import via bun autoshow setup --cookies-from-browser'))
   } else {
-    checks.push(check('INFO', 'YouTube cookies source', 'not configured — bun autoshow config --cookies-from-browser chrome'))
+    checks.push(check('INFO', 'YouTube cookies source', 'not configured — bun autoshow setup --cookies-from-browser chrome'))
   }
 
   if (youtubeStatus.warning) {
@@ -537,10 +548,10 @@ export const runDoctor = async (
     })
   }
 
-  if (options.strict && report.missingConfiguredCredentialEnvVars.length > 0) {
+  if (options.strict && report.hasWarnings) {
     const missing = report.missingConfiguredCredentialEnvVars
-    throw new AppUsageError(`Credential check failed: configured defaults require ${missing.join(', ')}.`, {
-      hints: missing.flatMap(hintsForMissingEnv),
+    throw new AppUsageError(missing.length > 0 ? `Credential check failed: configured defaults require ${missing.join(', ')}.` : 'Strict doctor failed: resolve the reported configuration, cookie, runtime or model readiness warnings.', {
+      hints: [...missing.flatMap(hintsForMissingEnv), ...report.nextSteps],
         stage: 'setup:doctor',
         retryable: false,
         metadata: { missingCredentialEnvVars: missing }

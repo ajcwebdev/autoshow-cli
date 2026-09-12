@@ -51,7 +51,7 @@ export const inspectYtDlpAuthState = async (
       cookieArgs: cookiesReadable ? ['--cookies', cookiesPath] : [],
       ...(cookiesReadable
         ? {}
-        : { warning: `--cookies path is unreadable: ${resolvedCookiesPath}. Fix the path or run bun autoshow config --cookies <file>.` })
+        : { warning: `--cookies path is unreadable: ${resolvedCookiesPath}. Fix the path or run bun autoshow setup --cookies <file>.` })
     }
   }
 
@@ -183,6 +183,6 @@ export const buildYtDlpFailureMessage = (
 
   return [
     `yt-dlp ${operation} failed. ${cleanDetails}`,
-    'Hint: YouTube blocked the anonymous request. See docs/cookies.md, or run bun autoshow config --cookies-from-browser chrome or bun autoshow config --cookies /absolute/path/to/cookies.txt.'
+    'Hint: YouTube blocked the anonymous request. See docs/cookies.md, or run bun autoshow setup --cookies-from-browser chrome or bun autoshow setup --cookies /absolute/path/to/cookies.txt.'
   ].join('\n')
 }

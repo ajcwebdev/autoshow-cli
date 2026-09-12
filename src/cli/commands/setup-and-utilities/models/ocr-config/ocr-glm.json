@@ -27,6 +27,35 @@
         "reasoning": {
           "support": "unsupported"
         }
+      },
+      "glm-5.3-flash": {
+        "description": "GLM 5.3 Flash vision chat OCR; 1M context, 128K host output; AutoShow requests at most 32,768 output tokens per page",
+        "pricingSourceUrl": "https://docs.z.ai/guides/overview/pricing",
+        "pricingCheckedAt": "2026-09-11",
+        "pricingCurrency": "USD",
+        "pricingTier": "Z.AI standard API, uncached",
+        "pricingNotes": "$0.15/M input and $0.50/M completion tokens, including reasoning once. Cached input $0.03/M; estimates conservatively ignore discounts. Page-token and latency heuristics are uncalibrated; not a spending bound.",
+        "costPerMInputTokensCents": 15,
+        "costPerMOutputTokensCents": 50,
+        "limits": {
+          "imageBytes": 10485760,
+          "notes": "https://docs.z.ai/guides/vlm/glm-5.3-flash documents vision chat and mandatory thinking. AutoShow restricts input to one PNG/JPEG page <=10 MiB per request; PDFs are rasterized locally."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 20000,
+          "promptTokensPerPage": 4096,
+          "completionTokensPerPage": 4096
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": [
+            "low",
+            "high",
+            "max"
+          ]
+        }
       }
     }
   }

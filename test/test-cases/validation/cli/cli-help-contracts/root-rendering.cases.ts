@@ -29,6 +29,7 @@ export const registerRootRenderingCases = (): void => {
     expect(setupSection).toContain('    links')
     expect(setupSection).toContain('    setup')
     expect(setupSection).toContain('    resume')
+    expect(setupSection).not.toContain('    config')
     expect(setupSection).not.toContain(`    ${removedSetupCommand}`)
     expect(setupSection).not.toContain('    cache')
     expect(processingSection).toContain('    write')
@@ -121,7 +122,7 @@ export const registerRootRenderingCases = (): void => {
       expect(result.stdout.split('\n').filter((line) => line.length > 0 && line.trim() === '')).toEqual([])
     }
 
-    const voice = await loadHelp(['voice', '--help'])
+    const voice = await loadHelp(['voice', 'import', '--help'])
     const description = 'Register an existing ElevenLabs voice'
     const descriptionLine = voice.stdout.split('\n').find((line) => line.includes(description))
     expect(descriptionLine).toBeDefined()

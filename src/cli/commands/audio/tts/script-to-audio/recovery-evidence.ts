@@ -13,22 +13,23 @@ import type {
 } from '~/types'
 import { UsageError, hasErrorCode } from '~/utils/error-handler'
 import { parseJsonlBytes } from '~/utils/jsonl-reader'
-import {
-  hardlinkContainedArtifact,
-  readContainedArtifactFile,
-  releasePreparedInvocationAttemptClaim,
-} from './safe-artifact-store'
-import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
-import {
-  validateProviderRenderResult,
-  validateRenderAdmissionJournalSnapshot,
-} from './contract-validation'
 import { contained, publishReportedOutput, readObservedAudio, readVerifiedJson } from './attempt-io'
 import {
   buildPureCurrentTtsRenderPlan,
   readAudioMetadataProjection,
   readAudioProjection,
 } from './attempt-planning'
+import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
+import {
+  validateProviderRenderResult,
+  validateRenderAdmissionJournalSnapshot,
+} from './contract-validation'
+import { reconcileJournalChain } from './recovery-journal-chain'
+import {
+  hardlinkContainedArtifact,
+  readContainedArtifactFile,
+  releasePreparedInvocationAttemptClaim,
+} from './safe-artifact-store'
 export const resolveRetainedPath = (baseDir: string, artifactRef: string, label: string): string => {
   const base = resolve(baseDir)
   const path = resolve(base, artifactRef)
@@ -394,32 +395,9 @@ export const collectRetainedJournalEvidence = async (
       ) throw UsageError('Stored TTS attempt contains a cross-attempt orphan journal; reconciliation is required.')
       orphanJournalCandidates.push({ value, path, sha256: retained.sha256, attemptRoot })
     }
-    const attemptJournalBySnapshot = new Map<string, RetainedJournalEvidence>(
-      directAttemptEvidence.map((entry) => [entry.value.snapshotId, entry])
-    )
-    for (const candidate of orphanJournalCandidates) attemptJournalBySnapshot.set(candidate.value.snapshotId, candidate)
-    let ancestor = attemptFrontier
-    while (ancestor.value.previousSnapshotId) {
-      const candidate = attemptJournalBySnapshot.get(ancestor.value.previousSnapshotId)
-      if (!candidate) break
-      validateRenderAdmissionJournalSnapshot(ancestor.value, candidate.value)
-      const orphanIndex = orphanJournalCandidates.indexOf(candidate)
-      if (orphanIndex >= 0) orphanJournalCandidates.splice(orphanIndex, 1)
-      ancestor = candidate
-    }
-    while (true) {
-      const children = orphanJournalCandidates.filter((candidate) => candidate.value.previousSnapshotId === attemptFrontier.value.snapshotId)
-      if (children.length === 0) break
-      if (children.length !== 1) throw UsageError('Stored TTS attempt contains a forked orphan journal chain; reconciliation is required.')
-      const child = children[0] as RetainedJournalEvidence
-      validateRenderAdmissionJournalSnapshot(child.value, attemptFrontier.value)
-      attemptFrontier = child
-      knownJournalSnapshots.add(child.value.snapshotId)
-      orphanJournalCandidates.splice(orphanJournalCandidates.indexOf(child), 1)
-    }
-    if (orphanJournalCandidates.length > 0) {
-      throw UsageError('Stored TTS attempt contains an unchained orphan journal; reconciliation is required.')
-    }
+    const reconciled = reconcileJournalChain(attemptFrontier, directAttemptEvidence, orphanJournalCandidates)
+    attemptFrontier = reconciled.frontier
+    for (const snapshotId of reconciled.descendantSnapshotIds) knownJournalSnapshots.add(snapshotId)
     journalEvidenceById.set(attemptFrontier.value.journalId, attemptFrontier)
     if (attemptRoot === terminalDirectJournal.attemptRoot) terminalJournalEvidence = attemptFrontier
   }

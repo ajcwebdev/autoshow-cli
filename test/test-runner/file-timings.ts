@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { readUtf8FileExact, writeFileExact } from '~/utils/bun-file-io'
+import { mkdir } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import type { FileTimingsCacheFile, FileTimingsLookup, ParsedJunitCase } from '~/types'
 import { TEST_OUTPUT_ROOT } from './artifacts'
@@ -64,7 +65,7 @@ const parseCache = (raw: unknown): FileTimingsCacheFile => {
 
 const readCacheFile = async (cachePath: string): Promise<FileTimingsCacheFile> => {
   try {
-    return parseCache(JSON.parse(await readFile(cachePath, 'utf8')) as unknown)
+    return parseCache(JSON.parse(await readUtf8FileExact(cachePath)) as unknown)
   } catch {
     return { version: CACHE_VERSION, files: {}, tests: {} }
   }
@@ -101,7 +102,7 @@ export const readBunFileTimings = async (
   cachePath = BUN_FILE_TIMINGS_CACHE_PATH
 ): Promise<BunFileTimingsCacheFile | null> => {
   try {
-    return parseBunFileTimings(JSON.parse(await readFile(cachePath, 'utf8')) as unknown)
+    return parseBunFileTimings(JSON.parse(await readUtf8FileExact(cachePath)) as unknown)
   } catch {
     return null
   }
@@ -118,7 +119,7 @@ export const prepareBunFileTimings = async (
     files: Object.fromEntries(custom.fileP50)
   }
   await mkdir(resolve(nativeCachePath, '..'), { recursive: true })
-  await writeFile(nativeCachePath, `${JSON.stringify(native, null, 2)}\n`)
+  await writeFileExact(nativeCachePath, `${JSON.stringify(native, null, 2)}\n`)
 }
 
 export const recordFileTimings = async (
@@ -143,5 +144,5 @@ export const recordFileTimings = async (
   }
 
   await mkdir(resolve(cachePath, '..'), { recursive: true })
-  await writeFile(cachePath, `${JSON.stringify(cache, null, 2)}\n`)
+  await writeFileExact(cachePath, `${JSON.stringify(cache, null, 2)}\n`)
 }

@@ -111,7 +111,7 @@ describe('OpenAI REST OCR contracts', () => {
       const webpBytes = new Uint8Array([4, 5, 6])
       const webpPath = join(dir, 'page.webp')
       await writeFile(webpPath, webpBytes)
-      await runDeepinfraOcr(webpPath, { ...metadata, format: 'webp' }, 'Qwen/Qwen3-VL-8B-Instruct', {
+      await runDeepinfraOcr(webpPath, { ...metadata, format: 'webp' }, 'Qwen/Qwen3-VL-30B-A3B-Instruct', {
         ...CHAT_OCR_OPTIONS,
         outputDir: dir
       })

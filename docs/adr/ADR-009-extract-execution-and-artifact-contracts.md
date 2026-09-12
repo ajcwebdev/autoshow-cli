@@ -184,7 +184,7 @@ Diarization capability resolution includes the concrete model and distinguishes 
 
 Local forced alignment requires supplied text with complete, positive, non-overlapping segment coverage and explicit installed model/runtime paths. Preserve original evidence and hashes; mark new timing as aligned and `manuallyVerified: false`. Reject low-confidence publication at the configured threshold while retaining diagnostics. Compare ordered lexical matches, coverage, boundary errors, tolerance bands, speaker-label agreement, and signed drift; reject invalid intervals for scoring. Probe installed whisperfile capabilities, mark DTW midpoint-derived ranges as repaired, retain rejected variants, and leave transcription defaults unchanged after calibration.
 
-Channel extraction preserves every stream/channel at its original sample rate and verifies decoded sample hashes. Merge validates full text coverage, applies offsets once, preserves overlaps, and rejects already merged results. Speaker reconciliation requires an explicit map tied to the source SHA-256 and a review reason; it does not infer identity acoustically. Operational flags, setup, schemas, and examples live in the [STT command guide](../commands/stt/overview.md) and its [local timing and speaker workflows section](../commands/stt/workflows/timing/overview.md#local-timing-and-speaker-workflows).
+Channel extraction preserves every stream/channel at its original sample rate and verifies decoded sample hashes. Merge validates full text coverage, applies offsets once, preserves overlaps, and rejects already merged results. Speaker reconciliation requires an explicit map tied to the source SHA-256 and a review reason; it does not infer identity acoustically. Operational flags, setup, schemas, and examples live in the [STT command guide](../commands/02-stt/overview.md) and its [local timing and speaker workflows section](../commands/02-stt/workflows/timing/overview.md#local-timing-and-speaker-workflows).
 
 ## Rationale
 
@@ -288,9 +288,9 @@ Word/token capture paths increased from 9 of 15 integrations and 20 of 28 entrie
 
 The Happy Scribe reproduction lost all but the largest paragraph's word array and omitted inherited speakers; flattening now retains every structured paragraph. Local whisperfile reconstruction preserves fragments, contractions, confidence, and fractional later-chunk offsets. Soniox reconstruction respects native token, language, and speaker boundaries, including contractions and non-space-delimited text, without inventing intra-token boundaries. Evidence merging reports mixed quality and scopes speaker IDs. YouTube roll-up deduplication is limited to overlapping, matching-speaker spans, preserving later repeated speech. Shared video cues use `transcript-words` / `transcript-segments` labels and expose invalid/inferred counts.
 
-The implementation added local CTC alignment, reference comparison, whisperfile DTW calibration, verified channel extraction/merge, reviewed speaker maps, and ASS/TTML/LRC alongside SRT/VTT. Provider controls and native exports persist through configuration and requested-target state. Happy Scribe has no implemented/documented diarization off switch; export can hide labels. Mistral's incompatible simultaneous diarization/native-word recommendation was corrected. The dated AssemblyAI and Deepgram rate corrections remain in the [STT pricing record](../commands/stt/overview.md#stt-pricing); ongoing model/pricing governance stays in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md).
+The implementation added local CTC alignment, reference comparison, whisperfile DTW calibration, verified channel extraction/merge, reviewed speaker maps, and ASS/TTML/LRC alongside SRT/VTT. Provider controls and native exports persist through configuration and requested-target state. Happy Scribe has no implemented/documented diarization off switch; export can hide labels. Mistral's incompatible simultaneous diarization/native-word recommendation was corrected. The dated AssemblyAI and Deepgram rate corrections remain in the [STT pricing record](../commands/02-stt/overview.md#stt-pricing); ongoing model/pricing governance stays in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md).
 
-The implementation lives in `src/cli/commands/command-shared/step-2-extract/`: `run-caption-export.ts`, `caption-editor-formats.ts`, `run-stt-timing-workflow.ts`, `run-local-forced-alignment.ts`, `calibrate-whisper-timing.ts`, and `stt-channel-workflows.ts`, with provider adapters and evidence/coverage/alignment helpers under `step-2-stt/`. The local emission backend is `scripts/stt-ctc-emissions.py`.
+The implementation lives in `src/cli/commands/command-shared/step-2-extract/`: `run-caption-export.ts`, `caption-editor-formats.ts`, `run-stt-timing-workflow.ts`, `run-local-forced-alignment.ts`, `calibrate-whisper-timing.ts`, and `stt-channel-workflows.ts`, with provider adapters and evidence/coverage/alignment helpers under `step-2-stt/`. The current local emission backend is `src/cli/commands/stt/workflows/timing/stt-onnx-emissions.ts`.
 
 #### Automatic Reference Construction
 
@@ -299,7 +299,7 @@ The user requested the best automatic references available from existing local f
 **Alignment backend**
 
 - **Model:** `facebook/wav2vec2-base-960h`, revision `22aad52d435eb6dbaf354bdad9b0da84ce7d6156`; model-weight SHA-256 `8aa76ab2243c81747a1f832954586bc566090c83a0ac167df6f31f0fa917d74a`
-- **Runtime:** Python 3.12, Torch 2.14.0, Transformers 4.57.6; installed dependencies frozen in [scripts/stt-alignment-requirements.txt](../../scripts/stt-alignment-requirements.txt)
+- **Runtime:** Python 3.12, Torch 2.14.0, Transformers 4.57.6 at the time of this historical measurement. The current [TypeScript/ONNX workflow](../commands/02-stt/workflows/timing/overview.md#force-align-supplied-text-locally) replaces that retired runtime; these measurements have not been re-established with ONNX.
 - **Method:** Local CTC alignment with 16 kHz mono PCM16 and a 20 ms output frame grid; source/model fingerprints and preprocessing retained; remote model code disabled
 - **Limits:** Alignment cannot recover omitted speech, adjudicate wording, separate overlapping mono voices, or infer speakers. Confidence summarizes emission scores, not a calibrated probability. Other languages, number handling, and broader acoustic claims need their own validated references.
 
@@ -445,10 +445,10 @@ Run price preflight and contract tests sequentially: an initial concurrent run l
 - Related ADR: [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md)
 - Related ADR: [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
 - Extract command documentation: [`docs/commands/extract.md`](../commands/extract.md)
-- OCR command documentation: [`docs/commands/text/ocr/overview.md`](../commands/text/ocr/overview.md)
-- STT command documentation: [`docs/commands/stt/overview.md`](../commands/stt/overview.md)
-- Local STT timing, alignment, and channels: [STT command guide — Local Timing and Speaker Workflows](../commands/stt/workflows/timing/overview.md#local-timing-and-speaker-workflows)
-- Resume command documentation: [`docs/commands/setup-and-utilities/resume.md`](../commands/setup-and-utilities/resume.md)
+- OCR command documentation: [`docs/commands/03-text/ocr/overview.md`](../commands/03-text/ocr/overview.md)
+- STT command documentation: [`docs/commands/02-stt/overview.md`](../commands/02-stt/overview.md)
+- Local STT timing, alignment, and channels: [STT command guide — Local Timing and Speaker Workflows](../commands/02-stt/workflows/timing/overview.md#local-timing-and-speaker-workflows)
+- Resume command documentation: [`docs/commands/00-setup-and-utilities/resume.md`](../commands/00-setup-and-utilities/resume.md)
 - `src/cli/commands/text/url/`
 - `src/cli/commands/text/ocr/`
 - `src/cli/commands/stt/`

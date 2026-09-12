@@ -1,4 +1,5 @@
-import { readdir, readFile } from 'node:fs/promises'
+import { readUtf8FileExact } from '~/utils/bun-file-io'
+import { readdir } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { resolve } from 'node:path'
 import { MODEL_CONFIG_FRAGMENT_PREFIXES, MODEL_CONFIG_PATHS } from '~/cli/commands/setup-and-utilities/models/model-loader'
@@ -386,7 +387,7 @@ const collectCalibrationObservations = async (rootDir: string): Promise<Calibrat
   ).flat()
   const parsedManifests = await Promise.all(manifestPaths.map(async (metadataPath) => {
     try {
-      const parsed = JSON.parse(await readFile(metadataPath, 'utf8')) as unknown
+      const parsed = JSON.parse(await readUtf8FileExact(metadataPath)) as unknown
       return isRecord(parsed) ? parsed : null
     } catch {
       return null
@@ -435,7 +436,7 @@ const loadCalibrationModelEntry = async (
   let parsedConfig = parsedConfigCache.get(configFilePath)
   if (!parsedConfig) {
     try {
-      const raw = JSON.parse(await readFile(configFilePath, 'utf8')) as unknown
+      const raw = JSON.parse(await readUtf8FileExact(configFilePath)) as unknown
       if (!isRecord(raw)) return null
       parsedConfig = raw
       parsedConfigCache.set(configFilePath, parsedConfig)

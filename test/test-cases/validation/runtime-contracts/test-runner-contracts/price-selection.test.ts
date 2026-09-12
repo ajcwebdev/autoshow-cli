@@ -175,7 +175,7 @@ describe('test-runner contracts', () => {
 
       expect(musicKeys).toContain('music-elevenlabs-music_v2')
       expect(musicKeys).not.toContain('transcribe-whisper-large-v3-turbo')
-      expect(lyricsVideoKeys).toContain('transcribe-whisper-large-v3-turbo')
+      expect(lyricsVideoKeys).toEqual(['transcribe-whisperfile-tiny', 'transcribe-whisperfile-small.en'])
       expect(lyricsVideoKeys).not.toContain('music-elevenlabs-music_v2')
     })
 

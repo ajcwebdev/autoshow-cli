@@ -1,4 +1,5 @@
-import { copyFile, mkdir, mkdtemp, readdir, rm } from 'node:fs/promises'
+import { copyFileExact } from '~/utils/bun-file-io'
+import { mkdir, mkdtemp, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import * as l from '~/utils/app-logger/app-logger'
@@ -419,7 +420,7 @@ const syncRootArtifact = async (
 ): Promise<void> => {
   const fromPath = join(providerDir, fileName)
   const toPath = join(outputDir, fileName)
-  await copyFile(fromPath, toPath).catch((error: unknown) => {
+  await copyFileExact(fromPath, toPath).catch((error: unknown) => {
     l.write('debug', `Failed to mirror ${fileName} into the run output directory`, {
       category: 'artifact',
       metadata: { fromPath, toPath }, error: error
@@ -535,7 +536,7 @@ export const tryResolveYoutubeCaptionTranscription = async (
     const providerVttPath = join(providerDir, 'youtube-captions.vtt')
     const providerMetadataPath = join(providerDir, 'youtube-captions.json')
     await Bun.write(providerTranscriptPath, formatTranscriptText(transcription.segments))
-    await copyFile(downloadedVttPath, providerVttPath)
+    await copyFileExact(downloadedVttPath, providerVttPath)
     await Bun.write(providerMetadataPath, `${JSON.stringify(metadataFile, null, 2)}\n`)
 
     await writeSttResultArtifact(providerDir, transcription)

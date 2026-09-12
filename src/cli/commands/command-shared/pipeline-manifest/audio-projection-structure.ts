@@ -155,43 +155,13 @@ const validateReadinessAuthorization = (
   return true
 }
 
+const MISSING_FORBIDDEN_FIELDS = ['readinessAuthorization', 'admissionJournalSnapshotId', 'admissionJournalRef', 'providerRenderResultIdentity', 'providerRenderResultRef', 'batchProgress', 'outputRefs', 'reportedOutputRefs', 'takeSelections', 'continuationCheckpoints', 'cacheEvidenceRefs', 'consumedSelectionRebuild', 'audioRunId', 'audioRunRef', 'error']
+const FAILED_ATTEMPT_ZERO_FORBIDDEN_FIELDS = ['readinessAuthorization', 'admissionJournalSnapshotId', 'admissionJournalRef', 'admissionJournalSha256', 'providerRenderResultIdentity', 'providerRenderResultRef', 'providerRenderResultSha256', 'batchProgress', 'outputRefs', 'reportedOutputRefs', 'takeSelections', 'continuationCheckpoints', 'cacheEvidenceRefs', 'consumedSelectionRebuild', 'audioRunId', 'audioRunRef', 'audioRunSha256']
+const hasNoneOf = (value: Record<string, unknown>, keys: readonly string[]): boolean => keys.every(key => value[key] === undefined)
+
 const validateRenderEventStatusRules = (event: Record<string, unknown>): boolean => {
-  if (event['status'] === 'missing' && (
-    event['readinessAuthorization'] !== undefined
-    || event['admissionJournalSnapshotId'] !== undefined
-    || event['admissionJournalRef'] !== undefined
-    || event['providerRenderResultIdentity'] !== undefined
-    || event['providerRenderResultRef'] !== undefined
-    || event['batchProgress'] !== undefined
-    || event['outputRefs'] !== undefined
-    || event['reportedOutputRefs'] !== undefined
-    || event['takeSelections'] !== undefined
-    || event['continuationCheckpoints'] !== undefined
-    || event['cacheEvidenceRefs'] !== undefined
-    || event['consumedSelectionRebuild'] !== undefined
-    || event['audioRunId'] !== undefined
-    || event['audioRunRef'] !== undefined
-    || event['error'] !== undefined
-  )) return false
-  if (event['status'] === 'failed' && event['attempt'] === 0 && (
-    event['readinessAuthorization'] !== undefined
-    || event['admissionJournalSnapshotId'] !== undefined
-    || event['admissionJournalRef'] !== undefined
-    || event['admissionJournalSha256'] !== undefined
-    || event['providerRenderResultIdentity'] !== undefined
-    || event['providerRenderResultRef'] !== undefined
-    || event['providerRenderResultSha256'] !== undefined
-    || event['batchProgress'] !== undefined
-    || event['outputRefs'] !== undefined
-    || event['reportedOutputRefs'] !== undefined
-    || event['takeSelections'] !== undefined
-    || event['continuationCheckpoints'] !== undefined
-    || event['cacheEvidenceRefs'] !== undefined
-    || event['consumedSelectionRebuild'] !== undefined
-    || event['audioRunId'] !== undefined
-    || event['audioRunRef'] !== undefined
-    || event['audioRunSha256'] !== undefined
-  )) return false
+  if (event['status'] === 'missing' && !hasNoneOf(event, MISSING_FORBIDDEN_FIELDS)) return false
+  if (event['status'] === 'failed' && event['attempt'] === 0 && !hasNoneOf(event, FAILED_ATTEMPT_ZERO_FORBIDDEN_FIELDS)) return false
   for (const listKey of ['outputRefs', 'takeSelections', 'continuationCheckpoints', 'cacheEvidenceRefs'] as const) {
     const list = event[listKey]
     if (list !== undefined && (!Array.isArray(list) || list.some((entry) => !isRecord(entry) || !hasArtifactRef(entry, 'path', 'sha256')))) {
@@ -344,11 +314,9 @@ const validateSelectedSuccess = (ctx: AudioProjectionValidationContext): boolean
   return true
 }
 
-const validateActiveWork = (ctx: AudioProjectionValidationContext): boolean => {
-  const active = ctx.projection['activeWork']
-  if (!isRecord(active)) return false
-  const latestPointer = ctx.pointerEvents.at(-1)
-  if (active['kind'] === 'branch') {
+const ACTIVE_WORK_VALIDATORS: Record<string, (ctx: AudioProjectionValidationContext, active: Record<string, unknown>, latestPointer: unknown) => boolean> = {
+  'branch': (ctx, active, latestPointer) => {
+
     if (
       !hasOnlyKeys(active, ['kind', 'branchPlanId', 'readinessAttemptSequence'])
       || typeof active['branchPlanId'] !== 'string'
@@ -365,7 +333,11 @@ const validateActiveWork = (ctx: AudioProjectionValidationContext): boolean => {
       )
       || latestPointer['branchPlanId'] !== active['branchPlanId']
     ) return false
-  } else if (active['kind'] === 'render') {
+
+    return true
+  },
+  'render': (ctx, active, latestPointer) => {
+
     if (
       !hasOnlyKeys(active, ['kind', 'renderIdentity', 'eventSequence', 'journalPath', 'completedSlotHashes'])
       || !resolveRenderEvent(ctx.projection, active['renderIdentity'], active['eventSequence'])
@@ -374,7 +346,11 @@ const validateActiveWork = (ctx: AudioProjectionValidationContext): boolean => {
       || latestPointer['renderIdentity'] !== active['renderIdentity']
       || latestPointer['eventSequence'] !== active['eventSequence']
     ) return false
-  } else if (active['kind'] === 'policy-skip') {
+
+    return true
+  },
+  'policy-skip': (ctx, active, latestPointer) => {
+
     const evidence = active['evidence']
     if (
       !hasOnlyKeys(active, ['kind', 'evidence'])
@@ -395,10 +371,16 @@ const validateActiveWork = (ctx: AudioProjectionValidationContext): boolean => {
       || latestPointer['action'] !== 'activate-policy-skip'
       || latestPointer['skipId'] !== evidence['skipId']
     ) return false
-  } else {
-    return false
-  }
-  return true
+
+    return true
+  },
+}
+
+const validateActiveWork = (ctx: AudioProjectionValidationContext): boolean => {
+  const active = ctx.projection['activeWork']
+  if (!isRecord(active) || typeof active['kind'] !== 'string') return false
+  const validate = Object.hasOwn(ACTIVE_WORK_VALIDATORS, active['kind']) ? ACTIVE_WORK_VALIDATORS[active['kind']] : undefined
+  return validate?.(ctx, active, ctx.pointerEvents.at(-1)) ?? false
 }
 
 const PROJECTION_VALIDATION_STEPS: readonly ((ctx: AudioProjectionValidationContext) => boolean)[] = [

@@ -1,4 +1,5 @@
-import { copyFile, mkdtemp, rm } from 'node:fs/promises'
+import { copyFileExact } from '~/utils/bun-file-io'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { renderPageToImage } from '~/cli/commands/sources/download/document/mutool-utils'
@@ -84,7 +85,7 @@ export const createRenderedPngPageChunk = (
     },
     render
   )
-  await copyFile(rendered.imagePath, outputPath)
+  await copyFileExact(rendered.imagePath, outputPath)
   if (!await hasNonEmptyFile(outputPath)) {
     throw createOcrPdfChunkRenderError(range, {
       exitCode: 1,

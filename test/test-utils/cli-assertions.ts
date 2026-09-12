@@ -11,7 +11,8 @@ export const parseRootCli = (argv: string[]) =>
   parseNativeCli(argv, COMMAND_DEFINITIONS, GLOBAL_FLAG_DEFINITIONS)
 
 export const commandNamed = (name: string): CliCommandDefinition => {
-  const command = COMMAND_DEFINITIONS.find((entry) => entry.name === name)
+  const target = name === 'config' ? 'setup' : name
+  const command = COMMAND_DEFINITIONS.find((entry) => entry.name === target)
   if (!command) throw new Error(`missing command ${name}`)
   return command
 }

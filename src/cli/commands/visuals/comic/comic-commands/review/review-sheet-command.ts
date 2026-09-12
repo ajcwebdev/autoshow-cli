@@ -69,11 +69,15 @@ const summarizeQa = (entries: PageQaEntry[] | null, panelNumber: number, attempt
   }
 }
 
-const countAttempts = async (sceneSlug: string, panelNumber: number): Promise<number> => {
+export const countReviewAttempts = async (sceneSlug: string, panelNumber: number): Promise<number> => {
   const attemptsDirectory = join(getPanelsDirectory(sceneSlug), 'attempts', `panel-${String(panelNumber).padStart(2, '0')}`)
   if (!existsSync(attemptsDirectory)) return 0
-  const { readdir } = await import('node:fs/promises')
-  const entries = await readdir(attemptsDirectory)
+  const entries = await Array.fromAsync(new Bun.Glob('attempt-*.png').scan({
+    cwd: attemptsDirectory,
+    onlyFiles: false,
+    followSymlinks: false,
+    dot: true
+  }))
   return entries.filter(name => /^attempt-\d+\.png$/u.test(name)).length
 }
 
@@ -193,7 +197,7 @@ export const reviewSheetCommand = async (
     for (const panel of scene.panels) {
       const svgPath = getBlockingPanelSvgPath(options.sceneSlug, panel.number)
       const imagePath = getPanelComicImagePath(options.sceneSlug, panel.number)
-      const attempts = await countAttempts(options.sceneSlug, panel.number)
+      const attempts = await countReviewAttempts(options.sceneSlug, panel.number)
       panels.push({
         panelNumber: panel.number,
         description: panel.description,

@@ -117,6 +117,64 @@
         "reasoning": {
           "support": "unsupported"
         }
+      },
+      "google/gemma-4-31B-it": {
+        "description": "google/gemma-4-31B-it via DeepInfra; 262,144 context; text/image input; AutoShow limits output to 8,192 tokens per page",
+        "pricingSourceUrl": "https://deepinfra.com/google/gemma-4-31B-it",
+        "pricingCheckedAt": "2026-09-11",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra standard public token pricing",
+        "pricingNotes": "USD/M tokens: input $0.13, completion $0.38. Completion includes reasoning once. Standard tier only; excludes priority/flex discounts, tax and credits. Page-token and latency heuristics are uncalibrated; not a spending bound.",
+        "costPerMInputTokensCents": 13,
+        "costPerMOutputTokensCents": 38,
+        "limits": {
+          "imageBytes": 20971520,
+          "notes": "https://docs.deepinfra.com/chat/vision: JPEG/PNG/WebP, <=20 MB, no detail field. One locally rendered page per request. JSON supported by host; AutoShow OCR returns plain text."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 20000,
+          "promptTokensPerPage": 4096,
+          "completionTokensPerPage": 1024
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      },
+      "google/gemma-4-26B-A4B-it": {
+        "description": "google/gemma-4-26B-A4B-it via DeepInfra; 262,144 context; text/image input; AutoShow limits output to 8,192 tokens per page",
+        "pricingSourceUrl": "https://deepinfra.com/google/gemma-4-26B-A4B-it",
+        "pricingCheckedAt": "2026-09-11",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra standard public token pricing",
+        "pricingNotes": "USD/M tokens: input $0.07, completion $0.34. Completion includes reasoning once. Standard tier only; excludes priority/flex discounts, tax and credits. Page-token and latency heuristics are uncalibrated; not a spending bound.",
+        "costPerMInputTokensCents": 7,
+        "costPerMOutputTokensCents": 34,
+        "limits": {
+          "imageBytes": 20971520,
+          "notes": "https://docs.deepinfra.com/chat/vision: JPEG/PNG/WebP, <=20 MB, no detail field. One locally rendered page per request. JSON supported by host; AutoShow OCR returns plain text."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 20000,
+          "promptTokensPerPage": 4096,
+          "completionTokensPerPage": 1024
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
       }
     }
   }

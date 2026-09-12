@@ -1,4 +1,5 @@
-import assert from 'node:assert/strict'
+import { expect } from 'bun:test'
+import { requireCondition } from '../test-utils/require-condition'
 import { access, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -23,21 +24,21 @@ export async function artifactExists(path: string): Promise<boolean> {
 }
 
 export async function assertArtifact(path: string): Promise<void> {
-  assert((await stat(path)).size > 0, `Empty artifact: ${path}`)
+  requireCondition((await stat(path)).size > 0, `Empty artifact: ${path}`)
 }
 
 export function assertContains(actual: unknown, expected: unknown, path = 'value'): void {
   if (expected !== null && typeof expected === 'object') {
-    assert(actual !== null && typeof actual === 'object', `Missing ${path}`)
+    requireCondition(actual !== null && typeof actual === 'object', `Missing ${path}`)
     if (Array.isArray(expected)) {
-      assert(Array.isArray(actual), `Expected array at ${path}`)
-      assert.equal(actual.length, expected.length, `Array length at ${path}`)
+      requireCondition(Array.isArray(actual), `Expected array at ${path}`)
+      expect(actual.length, `Array length at ${path}`).toBe(expected.length)
     }
     for (const [key, value] of Object.entries(expected)) {
       assertContains((actual as Record<string, unknown>)[key], value, `${path}.${key}`)
     }
   } else {
-    assert.deepEqual(actual, expected, path)
+    expect(actual, path).toStrictEqual(expected)
   }
 }
 
@@ -75,27 +76,27 @@ export function downloadScenarios(fixture: FixturePath, urls: Record<keyof typeo
 
 export async function assertDownloadRecord(kind: DownloadScenario['kind'], metadata: { step1?: { audioFileName?: string; audioFileSize?: number; format?: string; pageCount?: number; fileSize?: number; title?: string; channel?: string } }, dir: string): Promise<void> {
   const step = metadata.step1
-  assert(step, 'Missing download metadata')
+  requireCondition(step, 'Missing download metadata')
   if (kind === 'pdf') {
-    assert.equal(step.format, 'pdf')
-    assert((step.pageCount ?? 0) > 0)
-    assert((step.fileSize ?? 0) > 0)
+    expect(step.format).toBe('pdf')
+    requireCondition((step.pageCount ?? 0) > 0)
+    requireCondition((step.fileSize ?? 0) > 0)
   } else {
-    assert(step.audioFileName)
-    assert((step.audioFileSize ?? 0) > 0)
-    if (kind === 'audio') assert(step.audioFileName.endsWith('.mp3'))
-    if (kind === 'video') assert(!step.audioFileName.endsWith('.wav'))
-    if (kind === 'youtube') { assert(step.title); assert(step.channel) }
+    requireCondition(step.audioFileName)
+    requireCondition((step.audioFileSize ?? 0) > 0)
+    if (kind === 'audio') requireCondition(step.audioFileName.endsWith('.mp3'))
+    if (kind === 'video') requireCondition(!step.audioFileName.endsWith('.wav'))
+    if (kind === 'youtube') { requireCondition(step.title); requireCondition(step.channel) }
     await assertArtifact(join(dir, step.audioFileName))
   }
 }
 
 export async function assertDownloadOnly(dir: string, metadata: Record<string, unknown>): Promise<void> {
   for (const name of ['transcription.txt', 'extraction.txt', 'text.json', 'prompt.md']) {
-    assert.equal(await artifactExists(join(dir, name)), false, `Unexpected ${name}`)
+    expect(await artifactExists(join(dir, name)), `Unexpected ${name}`).toBe(false)
   }
-  assert.equal(metadata['step2'], undefined)
-  assert.equal(metadata['step3'], undefined)
+  expect(metadata['step2']).toBe(undefined)
+  expect(metadata['step3']).toBe(undefined)
 }
 
 export interface RejectionScenario {
@@ -128,9 +129,9 @@ export function rejectionScenarios(fixture: FixturePath): RejectionScenario[] {
 }
 
 export function assertRejection(result: CliOutcome, scenario: RejectionScenario): void {
-  assert.equal(result.exitCode, scenario.exitCode, result.stderr)
-  assert.equal(result.outputDir, null, 'Rejection must not create a run')
+  expect(result.exitCode, result.stderr).toBe(scenario.exitCode)
+  expect(result.outputDir, 'Rejection must not create a run').toBe(null)
   const output = `${result.stdout}\n${result.stderr}`
-  assert(output.includes(scenario.diagnostic), `Missing diagnostic: ${scenario.diagnostic}\n${output}`)
-  for (const absent of scenario.absent ?? []) assert(!output.includes(absent), `Unexpected diagnostic disclosure: ${absent}`)
+  requireCondition(output.includes(scenario.diagnostic), `Missing diagnostic: ${scenario.diagnostic}\n${output}`)
+  for (const absent of scenario.absent ?? []) requireCondition(!output.includes(absent), `Unexpected diagnostic disclosure: ${absent}`)
 }

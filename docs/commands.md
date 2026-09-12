@@ -78,9 +78,9 @@ bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 
 bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear
 
 # inspect or set persistent defaults
-bun autoshow config --show
-bun autoshow config --llm openai=gpt-5.5 --batch-limit 20 --max-cents 50
-bun autoshow config --reset
+bun autoshow setup --show
+bun autoshow setup --llm openai=gpt-5.5 --batch-limit 20 --max-cents 50
+bun autoshow setup --reset
 
 # fetch curated provider documentation
 bun autoshow links --openai
@@ -100,24 +100,24 @@ bun as <command>
 
 | Capability | Commands and guides |
 | --- | --- |
-| Sources | [`metadata`](./commands/sources/metadata/overview.md), [`download`](./commands/sources/download/overview.md) |
-| STT | [`extract` media](./commands/stt/overview.md): [local](./commands/stt/local/overview.md), [diarization](./commands/stt/diarization/overview.md), [diarization off by default](./commands/stt/diarization-off-by-default/overview.md), [direct URL](./commands/stt/direct-url/overview.md) |
-| Text | [`write`](./commands/text/write/overview.md), [`extract` OCR](./commands/text/ocr/overview.md), [`extract` URL](./commands/text/url/overview.md) |
-| Audio | [`tts`](./commands/audio/tts/overview.md), [`voice`](./commands/audio/voice/00-voice-overview.md), [`music`](./commands/audio/music/overview.md) |
-| Visuals | [`image`](./commands/visuals/image/overview.md), [`comic`](./commands/visuals/comic/00-comic-overview.md), [`video`](./commands/visuals/video/overview.md) |
+| Sources | [`metadata`](./commands/01-sources/metadata/overview.md), [`download`](./commands/01-sources/download/overview.md) |
+| STT | [`extract` media](./commands/02-stt/overview.md): [local](./commands/02-stt/local/overview.md), [diarization](./commands/02-stt/diarization/overview.md), [diarization off by default](./commands/02-stt/diarization-off-by-default/overview.md), [direct URL](./commands/02-stt/direct-url/overview.md) |
+| Text | [`write`](./commands/03-text/write/overview.md), [`extract` OCR](./commands/03-text/ocr/overview.md), [`extract` URL](./commands/03-text/url/overview.md) |
+| Audio | [`tts`](./commands/04-audio/tts/overview.md), [`voice`](./commands/04-audio/voice/00-voice-overview.md), [`music`](./commands/04-audio/music/overview.md) |
+| Visuals | [`image`](./commands/05-visuals/image/overview.md), [`comic`](./commands/05-visuals/comic/00-comic-overview.md), [`video`](./commands/05-visuals/video/overview.md) |
 
-STT workflows have separate guides for [captions](./commands/stt/workflows/captions/overview.md), [timing and speakers](./commands/stt/workflows/timing/overview.md), [transcript review](./commands/stt/workflows/transcript-review/overview.md), and [transcript videos](./commands/stt/workflows/transcript-video/overview.md).
+STT workflows have separate guides for [captions](./commands/02-stt/workflows/captions/overview.md), [timing and speakers](./commands/02-stt/workflows/timing/overview.md), [transcript review](./commands/02-stt/workflows/transcript-review/overview.md), and [transcript videos](./commands/02-stt/workflows/transcript-video/overview.md).
 
-Setup and utilities: [`setup`](./commands/setup-and-utilities/setup.md) installs prerequisites, [`config`](./commands/setup-and-utilities/config.md) manages defaults, [`resume`](./commands/setup-and-utilities/resume.md) backfills missing provider outputs, and [`links`](./commands/setup-and-utilities/links.md) fetches provider documentation.
+Setup and utilities: [`setup`](./commands/00-setup-and-utilities/setup.md) installs prerequisites and manages defaults, [`resume`](./commands/00-setup-and-utilities/resume.md) backfills missing provider outputs, and [`links`](./commands/00-setup-and-utilities/links.md) fetches provider documentation.
 
 ## Model Refresh Reports
 
-Dated model changes, pricing decisions, and validation evidence live beside the relevant command guides:
+Dated model changes, pricing decisions, and validation evidence live under `docs/reports/`:
 
-- STT: [Speech recognition models](./commands/stt/model-report.md).
-- Text: [Writing models](./commands/text/write/model-report.md), [OCR models](./commands/text/ocr/model-report.md), and [URL backends](./commands/text/url/model-report.md).
-- Audio: [TTS models](./commands/audio/tts/model-report.md) and [music models](./commands/audio/music/model-report.md).
-- Visuals: [Image models](./commands/visuals/image/model-report.md) and [video models](./commands/visuals/video/model-report.md).
+- STT: [Speech recognition models](reports/model-refresh-stt.md).
+- Text: [Writing models](reports/model-refresh-write.md), [OCR models](reports/model-refresh-ocr.md), and [URL backends](reports/model-refresh-url.md).
+- Audio: [TTS models](reports/model-refresh-tts.md) and [music models](reports/model-refresh-music.md).
+- Visuals: [Image models](reports/model-refresh-image.md) and [video models](reports/model-refresh-video.md).
 
 ## Selection Guide
 

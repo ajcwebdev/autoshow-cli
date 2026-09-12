@@ -1,8 +1,8 @@
 import * as v from 'valibot'
 import type { UrlArticleProviderAdapter, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { validateData } from '~/utils/validate/validation'
-import { ensureGlmApiKey, resolveGlmBaseUrl } from '~/cli/commands/text/ocr/ocr-services/glm-ocr/glm'
-import { cleanString, countWords, createUrlArticleRun, createUrlProviderHttpError, getUrlRequestTimeoutMs, isRecord, withUrlProviderTimeout } from '../../url-utils'
+import { resolveGlmBaseUrl } from '~/cli/commands/text/ocr/ocr-services/glm-ocr/glm'
+import { requireHostedUrlProviderApiKey, cleanString, countWords, createUrlArticleRun, createUrlProviderHttpError, getUrlRequestTimeoutMs, isRecord, withUrlProviderTimeout } from '../../url-utils'
 
 const GlmReaderResponseSchema = v.looseObject({
   reader_result: v.looseObject({
@@ -18,15 +18,16 @@ const runGlmReader = async (
   options?: UrlRequestOptions,
   baseUrl?: string
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  const apiKey = ensureGlmApiKey('GLM Reader', 'url:glm-reader')
+  const apiKey = requireHostedUrlProviderApiKey('glm', 'url:glm-reader', resolveGlmBaseUrl(baseUrl) === resolveGlmBaseUrl(), options?.apiKey)
   const timeoutMs = getUrlRequestTimeoutMs(options)
   const requestOptions = { ...options, timeoutMs }
   const response = await withUrlProviderTimeout('GLM Reader', requestOptions, async (signal) =>
     await fetch(`${resolveGlmBaseUrl(baseUrl)}/reader`, {
       method: 'POST',
+      redirect: 'error',
       signal,
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({

@@ -79,8 +79,10 @@ export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
     directImageSupportError: 'The GLM OCR provider sends PNG/JPG images to GLM directly; PDF pages are rendered to PNG. AutoShow normalizes WEBP/GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.',
     selectModel: (opts) => hasGlmOcr(opts) ? opts.glmOcrModel as string : undefined,
     ensureSetup: ensureGlmOcrSetup,
+    fallbackOptions: (opts, model) => model === 'glm-5.3-flash' ? renderedPngPages(opts) : {},
     request: async ({ inputPath, inputMetadata, ocrModel, opts, onRetryable }) => {
       const run = await runGlmOcr(inputPath, inputMetadata, ocrModel, {
+        ...opts,
         onRetryable,
         reasoningEffort: opts.reasoningEffort
       })

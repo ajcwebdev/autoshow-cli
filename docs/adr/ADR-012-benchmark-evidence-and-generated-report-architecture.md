@@ -247,7 +247,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The CLI `benchmark` command is gone. Combined-report generation remains in the consensus skill: run discovery in `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`, and the self-contained dashboard renderer in `.codex/skills/consensus/scripts/shared/combined_report_html.ts`. Combined reports now rank price, speed, and quality per provider group and no longer emit weighted composites or quality-cost terciles. Committed run data and generated reports live under `docs/benchmarks/`. STT combined reports are split by diarization: `docs/benchmarks/stt-without-speakers/` and `docs/benchmarks/stt-with-speakers/`. The speaker-aware cohort is the committed evidence for the 2026-08-22 STT catalog cut recorded in [the STT refresh report](../commands/stt/model-report.md).
+The CLI `benchmark` command is gone. Combined-report generation remains in the consensus skill: run discovery in `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`, and the self-contained dashboard renderer in `.codex/skills/consensus/scripts/shared/combined_report_html.ts`. Combined reports now rank price, speed, and quality per provider group and no longer emit weighted composites or quality-cost terciles. Committed run data and generated reports live under `docs/benchmarks/`. STT combined reports are split by diarization: `docs/benchmarks/stt-without-speakers/` and `docs/benchmarks/stt-with-speakers/`. The speaker-aware cohort is the committed evidence for the 2026-08-22 STT catalog cut recorded in [the STT refresh report](../reports/model-refresh-stt.md).
 
 ## Test Plan
 

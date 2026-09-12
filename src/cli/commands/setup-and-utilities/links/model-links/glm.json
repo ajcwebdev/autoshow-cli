@@ -1,5 +1,8 @@
 {
   "GLM": {
+    "LLMSTXT": [
+      "https://docs.z.ai/llms.txt"
+    ],
     "General": [
       "https://docs.z.ai/guides/overview/overview.md",
       "https://docs.z.ai/guides/overview/pricing.md",

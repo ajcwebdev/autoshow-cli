@@ -133,3 +133,17 @@ describe('comic audio phase 2 contracts', () => {
     expect(comic.audio.dialoguePlanId).toHaveLength(64)
   })
 })
+
+test('voice readiness distinguishes authentication, permission and missing-resource failures', async () => {
+  process.env['ELEVENLABS_API_KEY'] = 'synthetic'
+  const target: TtsTarget = {
+    run: async () => { throw new Error('provider must not run during readiness') },
+    service: 'elevenlabs', model: 'eleven_v3', operation: 'comic-audio', transport: 'hosted-api',
+    targetKey: canonicalTargetKey('comic-audio', 'elevenlabs', 'eleven_v3', 'hosted-api'), readinessVoiceIds: ['synthetic-voice']
+  }
+  for (const [status, code] of [[401, 'provider-authentication-rejected'], [403, 'provider-permission-denied'], [404, 'elevenlabs-voice-not-ready']] as const) {
+    installMockFetch(() => Response.json({}, { status }))
+    const observations = await validateTtsTargetsForExecution([target])
+    expect(observations[0]?.error?.code).toBe(code)
+  }
+})
