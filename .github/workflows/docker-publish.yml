@@ -185,6 +185,7 @@ jobs:
           fi
           HELPER
           chmod 700 "$credential_helper"
+          umask 022
           GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c "credential.helper=$credential_helper" fetch --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "${GITHUB_SHA}"
           git checkout --detach FETCH_HEAD
 
@@ -384,6 +385,7 @@ jobs:
           fi
           HELPER
           chmod 700 "$credential_helper"
+          umask 022
           GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c "credential.helper=$credential_helper" fetch --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "${GITHUB_SHA}"
           git checkout --detach FETCH_HEAD
 
