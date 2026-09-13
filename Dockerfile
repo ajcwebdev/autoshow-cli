@@ -67,7 +67,7 @@ RUN set -eux; \
 FROM ${BUN_BASE_IMAGE} AS runtime-base
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG DEBIAN_SNAPSHOT=20260910T000000Z
+ARG DEBIAN_SNAPSHOT=20260913T180000Z
 ARG AUTOSHOW_VERSION=0.1.0
 ARG BUILD_DATE=unknown
 ARG VCS_REF=unknown
@@ -88,6 +88,7 @@ RUN set -eux; \
     sed -i "s|http://deb.debian.org/debian-security|https://snapshot.debian.org/archive/debian-security/${DEBIAN_SNAPSHOT}|g; s|http://deb.debian.org/debian|https://snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}|g" /etc/apt/sources.list.d/debian.sources; \
     printf 'Acquire::Check-Valid-Until "false";\n' > /etc/apt/apt.conf.d/99snapshot; \
     apt-get update; \
+    apt-get upgrade -y --no-install-recommends; \
     apt-get install -y --no-install-recommends \
       ca-certificates \
       calibre \
