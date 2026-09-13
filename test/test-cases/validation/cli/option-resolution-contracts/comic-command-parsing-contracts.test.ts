@@ -89,11 +89,11 @@ describe('option resolution contracts', () => {
     const qa = parseGenerateImagesArgs(['script.md', '--qa'])
     expect(qa.qa).toBe(true)
     expect(qa.qaModel).toBe('gpt-5.6-sol')
-    expect(parseGenerateImagesArgs(['script.md', '--qa-model', 'gpt-5.5']).qaModel).toBe('gpt-5.5')
-    expect(parseGenerateImagesArgs(['script.md', '--qa-model', 'gemini-3.1-pro-preview']).qaModel).toBe('gemini-3.1-pro-preview')
+    expect(parseGenerateImagesArgs(['script.md', '--qa-model', 'gpt-5.6-sol']).qaModel).toBe('gpt-5.6-sol')
+    expect(parseGenerateImagesArgs(['script.md', '--qa-model', 'gemini-3.8-flash']).qaModel).toBe('gemini-3.8-flash')
   })
   test('comic generate-images QA-only mode cannot enter image generation or repair combinations', () => {
-    const opts = parseGenerateImagesArgs(['script.md', '--qa-only', '--panels', '1-5', '--qa-model', 'gemini-3.1-pro-preview'])
+    const opts = parseGenerateImagesArgs(['script.md', '--qa-only', '--panels', '1-5', '--qa-model', 'gemini-3.8-flash'])
     expect(opts.qaOnly).toBe(true)
     expect(opts.qa).toBe(true)
     expect(opts.maxRepairs).toBe(0)
@@ -130,7 +130,7 @@ describe('option resolution contracts', () => {
     const opts = parseGenerateImagesArgs(['script.md', '--revision-plan', 'output/plan.json', '--comparison-passes', '2', '--promote', 'clear-winners', '--max-repairs', '0'])
     expect(opts.revisionPlan).toBe('output/plan.json')
     expect(opts.imageModels).toEqual(['gpt-image-2'])
-    expect(opts.qaModel).toBe('gemini-3.1-pro-preview')
+    expect(opts.qaModel).toBe('gpt-5.6-sol')
     expect(opts.comparisonPasses).toBe(2)
     expect(opts.promote).toBe('clear-winners')
     expect(opts.maxRepairs).toBe(0)
@@ -186,7 +186,7 @@ describe('option resolution contracts', () => {
     })
 
   test('comic generate-images rejects removed option spellings as unknown arguments', () => {
-      expect(() => parseGenerateImagesArgs(['script.md', '--llm-model', 'gpt-5.5'])).toThrow('Unexpected flag: --llm-model')
+      expect(() => parseGenerateImagesArgs(['script.md', '--llm-model', 'gpt-5.6-sol'])).toThrow('Unexpected flag: --llm-model')
       expect(() => parseGenerateImagesArgs(['script.md', '--panel-limit', '3'])).toThrow('Unexpected flag: --panel-limit')
       expect(() => parseGenerateImagesArgs(['script.md', '--chunk', '2'])).toThrow('Unexpected flag: --chunk')
       expect(() => parseGenerateImagesArgs(['script.md', '--sketch-group-size', '8'])).toThrow('Unexpected flag: --sketch-group-size')
@@ -201,7 +201,7 @@ describe('option resolution contracts', () => {
   test('comic draft-scenes args parse llm model and panel prompt stage', () => {
       const opts = parseDraftScenesArgs([
         'input/scripts/05-script/01-mechanic-goes-on-vacation.md',
-        '--llm-model', 'gpt-5.5',
+        '--llm-model', 'gpt-5.6-sol',
         '--only', 'panel-prompts',
       ])
       const grokOpts = parseDraftScenesArgs([
@@ -209,10 +209,10 @@ describe('option resolution contracts', () => {
         '--llm-model', 'grok-4.5'
       ])
 
-      expect(findRegistryServiceForModel('llm', 'gpt-5.5')).toBe('openai')
+      expect(findRegistryServiceForModel('llm', 'gpt-5.6-sol')).toBe('openai')
       expect(findRegistryServiceForModel('llm', 'grok-4.5')).toBe('grok')
       expect(opts.scriptPath).toBe('input/scripts/05-script/01-mechanic-goes-on-vacation.md')
-      expect(opts.llmModel).toBe('gpt-5.5')
+      expect(opts.llmModel).toBe('gpt-5.6-sol')
       expect(opts.only).toBe('panel-prompts')
       expect(grokOpts.llmModel).toBe('grok-4.5')
     })

@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { configureOutputRoot } from '~/cli/commands/command-shared/output-root'
-import { reviewSheetCommand } from '~/cli/commands/visuals/comic/comic-commands/review/review-sheet-command'
+import { countReviewAttempts, reviewSheetCommand } from '~/cli/commands/visuals/comic/comic-commands/review/review-sheet-command'
 import { reconcileFromDirectives } from '~/cli/commands/visuals/comic/comic-commands/review/review-reconcile'
 import { getReviewExportDocPath, getReviewSheetPath } from '~/cli/commands/visuals/comic/comic-commands/review/review-paths'
 import { captureBloopers, categorizeBlooper } from '~/cli/commands/visuals/comic/comic-utils/blooper-ledger'
 import { getBlockingPanelSvgPath, getBlockingPlanPath } from '~/cli/commands/visuals/comic/comic-utils/blocking-plan-paths'
 import { getPanelComicImagePath } from '~/cli/commands/visuals/comic/comic-utils/scene-utils'
-import { getSceneJsonPath, getStructuredScriptPath } from '~/cli/commands/visuals/comic/comic-utils/project-paths'
+import { getPanelsDirectory, getSceneJsonPath, getStructuredScriptPath } from '~/cli/commands/visuals/comic/comic-utils/project-paths'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
 import { coerceAndValidateDraftScenes, coerceAndValidateReviewSheet } from '~/cli/commands/visuals/comic/comic-utils/cli-args'
 import { draftScenesCommandDefinition, reviewSheetCommandDefinition } from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
@@ -73,10 +73,26 @@ describe('comic review-sheet', () => {
     expect(html).not.toContain('cdn')
   })
 
+  test('attempt discovery counts matching names including directories and broken symlinks', async () => {
+    const { slug } = await prepare()
+    const directory = join(getPanelsDirectory(slug), 'attempts', 'panel-01')
+    await mkdir(directory, { recursive: true })
+    await writeFile(join(directory, 'attempt-0.png'), tinyPng)
+    await mkdir(join(directory, 'attempt-2.png'))
+    await symlink(join(directory, 'missing'), join(directory, 'attempt-3.png'))
+    await writeFile(join(directory, '.attempt-4.png'), tinyPng)
+    await writeFile(join(directory, 'attempt-text.png'), tinyPng)
+    await writeFile(join(directory, 'attempt-4-qa.json'), '{}')
+    expect(await countReviewAttempts(slug, 1)).toBe(3)
+    expect(await countReviewAttempts(slug, 2)).toBe(0)
+    await writeFile(join(getPanelsDirectory(slug), 'attempts', 'panel-02'), 'not a directory')
+    await expect(countReviewAttempts(slug, 2)).rejects.toMatchObject({ code: 'ENOTDIR' })
+  })
+
   test('reports retained QA evidence including the blocking-class restart route', async () => {
     const { slug } = await prepare()
     const entry: PageQaEntry = {
-      pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-5.5', hardFailure: true,
+      pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-5.6-sol', hardFailure: true,
       repairPolicy: { action: 'restart', reason: 'blocking-class', repeatedHardFailures: ['panel-1:blockingAudit'] },
       result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, blockingMatch: false, axisSideMatch: false, blockingAudit: [{ subject: 'gulp', status: 'side-swapped', note: 'Gulp is screen-right.' }], dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: [], editInstructions: '' }], summary: 'Blocking failure.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
@@ -185,7 +201,7 @@ describe('blooper ledger', () => {
     await writeFile(join(attemptsDirectory, 'attempt-1.png'), Buffer.from('promoted-bytes'))
     await writeFile(promotedPath, Buffer.from('promoted-bytes'))
     await writeFile(join(attemptsDirectory, 'attempt-0-qa.json'), JSON.stringify({
-      pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-5.5', hardFailure: true,
+      pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-5.6-sol', hardFailure: true,
       repairPolicy: { action: 'restart', reason: 'blocking-class', repeatedHardFailures: ['panel-1:blockingAudit'] },
       result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, blockingMatch: false, axisSideMatch: true, blockingAudit: [{ subject: 'gulp', status: 'side-swapped', note: 'Gulp is screen-right.' }], dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: [], editInstructions: '' }], summary: 'Blocking failure.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
@@ -219,7 +235,7 @@ describe('blooper ledger', () => {
 
   test('derives the category from the blocking audit and falls back to other', () => {
     const entryWith = (overrides: Record<string, unknown>): PageQaEntry => ({
-      pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-5.5', hardFailure: true,
+      pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-5.6-sol', hardFailure: true,
       result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, blockingMatch: true, axisSideMatch: true, blockingAudit: [], dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: [], editInstructions: '', ...overrides }], summary: 'Fixture.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })

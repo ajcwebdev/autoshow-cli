@@ -7,7 +7,7 @@ import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const buildStep3CostMetadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata => ({
   llmService: 'openai',
-  llmModel: 'gpt-5.5',
+  llmModel: 'gpt-5.6-sol',
   processingTime: 1234,
   inputTokenCount: 300_000,
   outputTokenCount: 10_000,
@@ -45,20 +45,20 @@ describe('price mode contracts', () => {
     })
 
   test('Together LLM pricing uses serverless rates in estimates', () => {
-      expect(getLlmCost('together', 'kimi-k2.6')).toMatchObject({
-        inputCostPer1MCents: 120,
-        outputCostPer1MCents: 450
+      expect(getLlmCost('together', 'kimi-k3')).toMatchObject({
+        inputCostPer1MCents: 300,
+        outputCostPer1MCents: 1500
       })
-      expect(getLlmCost('together', 'glm-5.1')).toMatchObject({
-        inputCostPer1MCents: 140,
-        outputCostPer1MCents: 440
+      expect(getLlmCost('together', 'glm-5.3-flash')).toMatchObject({
+        inputCostPer1MCents: 15,
+        outputCostPer1MCents: 50
       })
 
       const estimated = computeEstimatedCosts({
         applyCostMultipliers: false,
         llmTargets: [{
           service: 'together',
-          model: 'glm-5.1',
+          model: 'glm-5.3-flash',
           inputTokens: 1_000_000,
           outputTokens: 1_000_000
         }]
@@ -67,24 +67,24 @@ describe('price mode contracts', () => {
       expect(estimated.steps[0]).toMatchObject({
         step: 'llm',
         provider: 'together',
-        model: 'glm-5.1',
-        cost: 580,
-        inputCostPer1MCents: 140,
-        outputCostPer1MCents: 440
+        model: 'glm-5.3-flash',
+        cost: 65,
+        inputCostPer1MCents: 15,
+        outputCostPer1MCents: 50
       })
 
-      const kimiEntry = getModelRegistry().llm['together']?.models['kimi-k2.6']
-      const glmEntry = getModelRegistry().llm['together']?.models['glm-5.1']
+      const kimiEntry = getModelRegistry().llm['together']?.models['kimi-k3']
+      const glmEntry = getModelRegistry().llm['together']?.models['glm-5.3-flash']
       if (!kimiEntry || !glmEntry) {
         throw new Error('Missing Together registry entries')
       }
       expect(kimiEntry).toMatchObject({
         pricingTier: 'Together AI serverless token pricing',
-        cachedInputCostPer1MCents: 20
+        cachedInputCostPer1MCents: 30
       })
       expect(glmEntry).toMatchObject({
-        pricingSourceUrl: 'https://docs.together.ai/docs/inference/pricing',
-        cachedInputCostPer1MCents: 26
+        pricingSourceUrl: 'https://docs.together.ai/docs/serverless/models',
+        cachedInputCostPer1MCents: 3
       })
     })
 
@@ -92,9 +92,9 @@ describe('price mode contracts', () => {
     {
       name: 'token-priced OCR estimates and actuals use the shared context-tier helper',
       provider: 'gemini' as const,
-      model: 'gemini-3.1-pro-preview',
+      model: 'gemini-3.8-flash',
       extractionMethod: 'pdf+gemini-ocr' as const,
-      expectedCost: 81.8004
+      expectedCost: 30.75015
     },
     {
       name: 'Grok 4.5 OCR estimates and actuals propagate the long-context band',
@@ -140,7 +140,7 @@ describe('price mode contracts', () => {
         step: 'extract',
         provider: testCase.provider,
         model: testCase.model,
-        pricingBand: 'standard-over-200k'
+        ...(testCase.provider === 'grok' ? { pricingBand: 'standard-over-200k' } : {})
       }
       expect(estimated.steps[0]).toMatchObject(expected)
       expect(actual.steps[0]).toMatchObject(expected)
@@ -221,9 +221,9 @@ describe('price mode contracts', () => {
         inputCostPer1MCents: 30,
         outputCostPer1MCents: 250
       })
-      expect(getExtractPricing('anthropic', 'claude-sonnet-4-6')).toMatchObject({
-        inputCostPer1MCents: 300,
-        outputCostPer1MCents: 1500
+      expect(getExtractPricing('anthropic', 'claude-sonnet-5')).toMatchObject({
+        inputCostPer1MCents: 200,
+        outputCostPer1MCents: 1000
       })
       expect(getExtractPricing('anthropic', 'claude-opus-5')).toMatchObject({
         inputCostPer1MCents: 500,

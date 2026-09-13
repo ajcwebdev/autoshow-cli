@@ -13,9 +13,9 @@ Exercises `--llm-model` resolution and pricing against the central LLM registry
 (`src/cli/commands/setup-and-utilities/models/llm-config.json`):
 
 ```bash
-bun as comic draft-scenes input/examples/comic/01-registry-check.md --only structure --llm-model gpt-5.5 --price
-bun as comic draft-scenes input/examples/comic/01-registry-check.md --only structure --llm-model grok-4.3 --price
-bun as comic draft-scenes input/examples/comic/01-registry-check.md --only structure --llm-model claude-opus-4-8 --price
+bun as comic draft-scenes input/examples/comic/01-registry-check.md --only structure --llm-model gpt-5.6-sol --price
+bun as comic draft-scenes input/examples/comic/01-registry-check.md --only structure --llm-model grok-4.5 --price
+bun as comic draft-scenes input/examples/comic/01-registry-check.md --only structure --llm-model claude-opus-5 --price
 ```
 
 Any model id in `llm-config.json` works; an unknown id is rejected against the registry.
@@ -25,5 +25,5 @@ Any model id in `llm-config.json` works; an unknown id is rejected against the r
 Drop `--price` to run the structured-script review through the shared LLM dispatch:
 
 ```bash
-OPENAI_API_KEY=... bun as comic draft-scenes input/examples/comic/01-registry-check.md --only structure --llm-model gpt-5.5
+OPENAI_API_KEY=... bun as comic draft-scenes input/examples/comic/01-registry-check.md --only structure --llm-model gpt-5.6-sol
 ```

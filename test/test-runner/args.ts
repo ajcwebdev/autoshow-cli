@@ -1,8 +1,8 @@
-import { availableParallelism } from 'node:os'
+import { logicalCpuCount } from '~/utils/logical-cpu-count'
 import type { RunnerArgDestination, RunnerArgs, RunnerControlResult, RunnerParseState } from '~/types'
 import { VALIDATION_TEST_TIMEOUT_MS } from '../test-utils/timeouts'
 
-export const DEFAULT_TEST_RUNNER_CONCURRENCY = Math.max(1, availableParallelism())
+export const DEFAULT_TEST_RUNNER_CONCURRENCY = logicalCpuCount()
 export const E2E_TEST_RUNNER_PARALLEL = 32
 const E2E_TEST_CASE_PREFIX = 'test/test-cases/e2e/'
 

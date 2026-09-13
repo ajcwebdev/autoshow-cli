@@ -131,7 +131,7 @@ describe('TTS provider service contracts', () => {
 
       const result = await runCartesiaTts(`${'a'.repeat(2000)} ${'b'.repeat(100)}`, dir, {
         chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 1 }),
-        model: 'sonic-3.5-2026-05-04',
+        model: 'sonic-3.6-2026-08-27',
         voiceId: 'voice-id-123',
         language: 'en'
       })
@@ -139,7 +139,7 @@ describe('TTS provider service contracts', () => {
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
       expect(result.metadata).toMatchObject({
         ttsService: 'cartesia',
-        ttsModel: 'sonic-3.5-2026-05-04',
+        ttsModel: 'sonic-3.6-2026-08-27',
         speaker: 'voice-id-123',
         chunkCount: 2
       })
@@ -147,16 +147,13 @@ describe('TTS provider service contracts', () => {
       expect(calls.every((call) => call.url === 'https://api.cartesia.ai/tts/bytes')).toBe(true)
       expect(calls.every((call) => call.method === 'POST')).toBe(true)
       expect(calls.every((call) => call.headers.get('authorization') === 'Bearer cartesia-key')).toBe(true)
-      expect(calls.every((call) => call.headers.get('cartesia-version') === '2026-03-01')).toBe(true)
+      expect(calls.every((call) => call.headers.get('cartesia-version') === '2026-08-14')).toBe(true)
       expect(calls.every((call) => call.headers.get('accept') === 'application/octet-stream')).toBe(true)
       expect(calls.map((call) => String(call.bodyJson?.['transcript']).length)).toEqual([2000, 100])
       expect(calls[0]?.bodyJson).toMatchObject({
-        model_id: 'sonic-3.5-2026-05-04',
+        model_id: 'sonic-3.6-2026-08-27',
         transcript: 'a'.repeat(2000),
-        voice: {
-          mode: 'id',
-          id: 'voice-id-123'
-        },
+        voice: 'voice-id-123',
         language: 'en',
         output_format: {
           container: 'wav',
@@ -176,7 +173,7 @@ describe('TTS provider service contracts', () => {
 
       await expect(runCartesiaTts('Cartesia error synthesis.', dir, {
         chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 1 }),
-        model: 'sonic-3.5-2026-05-04'
+        model: 'sonic-3.6-2026-08-27'
       })).rejects.toThrow('Cartesia TTS failed (400): bad cartesia')
     })
 })

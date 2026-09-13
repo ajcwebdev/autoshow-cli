@@ -33,6 +33,7 @@ const CONTROL_SPECS = {
     pronunciationDictionaryLocators: { kind: 'string-array' },
   },
   grok: {
+    speed: { kind: 'number', min: 0.7, max: 1.5 },
     language: { kind: 'string', normalize: validateGrokTtsLanguage },
     textNormalization: { kind: 'boolean' },
   },
@@ -43,15 +44,17 @@ const CONTROL_SPECS = {
     language: { kind: 'string', normalize: trim },
   },
   hume: {
-    speed: { kind: 'number', min: 0, max: 4, exclusiveMin: true },
+    speed: { kind: 'number', min: 0.5, max: 2 },
     trailingSilence: { kind: 'number', min: 0, max: 60 },
     description: { kind: 'string', normalize: trim },
   },
   cartesia: {
+    speed: { kind: 'number', min: 0.6, max: 1.5 },
     language: { kind: 'string', normalize: trim },
   },
   inworld: {
     steeringPrompt: { kind: 'string', normalize: trim },
+    speed: { kind: 'number', min: 0.5, max: 1.5 },
   },
 } as const satisfies Record<TtsProvider, ProviderControlSpecs>
 

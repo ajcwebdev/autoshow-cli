@@ -1,5 +1,8 @@
 {
   "Firecrawl": {
+    "LLMSTXT": [
+      "https://docs.firecrawl.dev/llms.txt"
+    ],
     "General": [
       "https://docs.firecrawl.dev/api-reference/introduction.md",
       "https://docs.firecrawl.dev/introduction.md",

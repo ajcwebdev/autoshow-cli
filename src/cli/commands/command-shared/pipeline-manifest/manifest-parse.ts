@@ -42,7 +42,7 @@ const parseChildLink = (
   }
 }
 
- export const parseManifestItem = (
+export const parseManifestItem = (
   rootDir: string,
   value: unknown
 ): PipelineManifestItem | undefined => {
@@ -108,7 +108,65 @@ export const expectedTtsItemStatus = (providers: readonly PipelineProviderState[
   return 'incomplete'
 }
 
- export const parseManifest = (
+const validateTtsManifest = (value: PipelineManifest): boolean => {
+  const items = value.items
+    for (const item of items) {
+      if (!item) return false
+      if (item.providers.some((provider) => provider.operation === undefined)) {
+        return false
+      }
+      if (item.providers.some((provider) => provider.operation !== undefined && provider.operation !== 'tts-synthesis')) {
+        return false
+      }
+      const expectedStatus = expectedTtsItemStatus(item.providers)
+      if (expectedStatus === undefined || item.status !== expectedStatus) return false
+    }
+  return true
+}
+
+const validateComicManifest = (manifest: PipelineManifest): boolean => {
+  const value = manifest as unknown as Record<string, unknown>
+  const items = manifest.items
+    if (value['scope'] !== 'single' || items.length !== 1 || !isRecord(value['source'])) return false
+    try {
+      validateComicSourceIdentity(value['source'] as unknown as ComicSourceIdentity)
+    } catch {
+      return false
+    }
+    const item = items[0]
+    if (!item || item.input !== value['source']['canonicalPath'] || item.outputDir !== '.') return false
+    const expectedStatus = expectedComicItemStatus(item)
+    if (!expectedStatus || item.status !== expectedStatus) return false
+    const targetOwners = new Map<string, number>()
+    const comic = item.metadata['comic'] as unknown as CanonicalComicItemMetadata
+    for (const stage of Object.values(comic.stages)) for (const targetKey of stage.targetKeys) targetOwners.set(targetKey, (targetOwners.get(targetKey) ?? 0) + 1)
+    if ([...targetOwners.values()].some(count => count !== 1)) return false
+    if (item.providers.some(provider => provider.operation?.startsWith('comic-') && !targetOwners.has(provider.targetKey ?? ''))) return false
+  return true
+}
+
+const MANIFEST_COMMAND_VALIDATORS: Partial<Record<PipelineManifest['command'], (manifest: PipelineManifest) => boolean>> = {
+  tts: validateTtsManifest,
+  comic: validateComicManifest,
+}
+
+// Hydrate at the I/O boundary; parsing must never modify caller-owned metadata.
+export const hydrateComicManifestDefaults = (manifest: PipelineManifest): PipelineManifest => {
+  if (manifest.command !== 'comic') return manifest
+  return {
+    ...manifest,
+    items: manifest.items.map(item => {
+      const comic = item.metadata['comic'] as CanonicalComicItemMetadata
+      return { ...item, metadata: { ...item.metadata, comic: {
+        ...comic,
+        stages: { ...comic.stages, presentation: comic.stages.presentation ?? { requirement: 'not-requested', status: 'skipped', execution: { kind: 'none', reason: 'not-requested' }, targetKeys: [], artifactRefs: [] } },
+        presentation: comic.presentation ?? {},
+      } } }
+    }),
+  }
+}
+
+export const parseManifest = (
   rootDir: string,
   value: unknown
 ): PipelineManifest | undefined => {
@@ -150,41 +208,8 @@ export const expectedTtsItemStatus = (providers: readonly PipelineProviderState[
     if (new Set(audioArtifactDirs).size !== audioArtifactDirs.length) return undefined
   }
 
-  if (value['command'] === 'tts') {
-    for (const item of items) {
-      if (!item) return undefined
-      if (item.providers.some((provider) => provider.operation === undefined)) {
-        return undefined
-      }
-      if (item.providers.some((provider) => provider.operation !== undefined && provider.operation !== 'tts-synthesis')) {
-        return undefined
-      }
-      const expectedStatus = expectedTtsItemStatus(item.providers)
-      if (expectedStatus === undefined || item.status !== expectedStatus) return undefined
-    }
-  }
 
-  if (value['command'] === 'comic') {
-    if (value['scope'] !== 'single' || items.length !== 1 || !isRecord(value['source'])) return undefined
-    try {
-      validateComicSourceIdentity(value['source'] as unknown as ComicSourceIdentity)
-    } catch {
-      return undefined
-    }
-    const item = items[0]
-    if (!item || item.input !== value['source']['canonicalPath'] || item.outputDir !== '.') return undefined
-    const expectedStatus = expectedComicItemStatus(item)
-    if (!expectedStatus || item.status !== expectedStatus) return undefined
-    const targetOwners = new Map<string, number>()
-    const comic = item.metadata['comic'] as unknown as CanonicalComicItemMetadata
-    comic.stages.presentation ??= { requirement: 'not-requested', status: 'skipped', execution: { kind: 'none', reason: 'not-requested' }, targetKeys: [], artifactRefs: [] }
-    comic.presentation ??= {}
-    for (const stage of Object.values(comic.stages)) for (const targetKey of stage.targetKeys) targetOwners.set(targetKey, (targetOwners.get(targetKey) ?? 0) + 1)
-    if ([...targetOwners.values()].some(count => count !== 1)) return undefined
-    if (item.providers.some(provider => provider.operation?.startsWith('comic-') && !targetOwners.has(provider.targetKey ?? ''))) return undefined
-  }
-
-  return {
+  const manifest: PipelineManifest = {
     command: value['command'],
     scope: value['scope'],
     createdAt: value['createdAt'],
@@ -192,4 +217,6 @@ export const expectedTtsItemStatus = (providers: readonly PipelineProviderState[
     ...(isRecord(value['source']) ? { source: value['source'] } : {}),
     items: items as PipelineManifestItem[]
   }
+  const validate = MANIFEST_COMMAND_VALIDATORS[manifest.command]
+  return !validate || validate(manifest) ? manifest : undefined
 }

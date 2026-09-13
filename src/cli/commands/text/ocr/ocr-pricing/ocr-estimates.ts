@@ -1,4 +1,5 @@
-import { writeFile } from 'node:fs/promises'
+import { writeFileExact } from '~/utils/bun-file-io'
+
 import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { tmpdir } from 'node:os'
 import { extname, join } from 'node:path'
@@ -17,9 +18,9 @@ const OCR_OUTPUT_TOKENS_PER_PAGE = 1000
 const OPENAI_OCR_PRICE_NOTE = 'Model-specific heuristic token estimate based on observed OpenAI OCR benchmark usage. Actual OpenAI OCR cost is computed from response usage after execution.'
 export const ANTHROPIC_OCR_PRICE_NOTE = 'Model-specific heuristic token estimate based on observed Anthropic OCR benchmark usage. Actual Anthropic OCR cost is computed from response usage after execution, and PDF cost varies with extracted text plus page-image tokens.'
 export const GEMINI_OCR_PRICE_NOTE = 'Model-specific heuristic token estimate based on observed Gemini OCR benchmark usage. Actual Gemini OCR cost is computed from response usage after execution.'
-export const GLM_OCR_PRICE_NOTE = 'Model-specific heuristic token estimate based on observed GLM OCR benchmark usage. Actual GLM OCR cost is computed from response usage after execution.'
+export const GLM_OCR_PRICE_NOTE = 'Model-specific token estimate from the registry or an observed usage profile; new GLM vision targets use uncalibrated page heuristics. Actual GLM OCR cost is computed from response usage after execution.'
 export const GROK_OCR_PRICE_NOTE = 'Provisional heuristic token estimate of 4000 input tokens and 1000 output tokens per page until Grok OCR calibration data is available. Actual Grok OCR cost is computed from response usage after execution.'
-export const DEEPINFRA_OCR_PRICE_NOTE = 'Model-specific heuristic token estimate based on observed DeepInfra OCR benchmark usage. Actual DeepInfra OCR cost is computed from response usage after execution.'
+export const DEEPINFRA_OCR_PRICE_NOTE = 'Model-specific token estimate from the registry or an observed usage profile; new Gemma 4 targets use uncalibrated page heuristics. Actual DeepInfra OCR cost is computed from response usage after execution.'
 export const KIMI_OCR_PRICE_NOTE = 'Model-specific heuristic token estimate based on observed Kimi OCR benchmark usage. Actual Kimi OCR cost is computed from response usage after execution. AutoShow uses Kimi cache-miss input pricing for conservative estimates.'
 
 export const estimateOcrTokenUsage = (
@@ -87,7 +88,7 @@ const downloadToTemp = async (url: string): Promise<string> => {
   const response = await fetch(url)
   if (!response.ok) throw InfraError(`Failed to fetch ${url}: ${response.status}`, { stage: 'ocr:extract-pricing', status: response.status })
   const buffer = Buffer.from(await response.arrayBuffer())
-  await writeFile(tempPath, buffer)
+  await writeFileExact(tempPath, buffer)
   return tempPath
 }
 

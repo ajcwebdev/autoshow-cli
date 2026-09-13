@@ -1,5 +1,8 @@
 {
   "X": {
+    "LLMSTXT": [
+      "https://docs.x.com/llms.txt"
+    ],
     "General": [
       "https://docs.x.com/x-api/introduction.md",
       "https://docs.x.com/make-your-first-request.md",

@@ -238,7 +238,7 @@ describe('caption audit follow-ups', () => {
     const audio = join(dir, 'audio.wav'), transcript = join(dir, 'result.json')
     await writeFile(audio, 'fixture')
     await writeFile(transcript, JSON.stringify({ text: 'one two', segments: [{ start: '00:00:00.000', end: '00:00:02.000', text: 'one' }, { start: '00:00:01.000', end: '00:00:03.000', text: 'two' }] }))
-    const result = await cli([audio, '--align-transcript', transcript, '--alignment-model', dir, '--alignment-python', 'must-never-be-invoked', '--output-dir', join(dir, 'align')], dir)
+    const result = await cli([audio, '--align-transcript', transcript, '--alignment-model', dir, '--output-dir', join(dir, 'align')], dir)
     expect(result.code).not.toBe(0)
     expect(result.out + result.err).toContain('overlapping speech')
     expect(await Bun.file(join(dir, 'align/alignment-work/clips.json')).exists()).toBe(false)

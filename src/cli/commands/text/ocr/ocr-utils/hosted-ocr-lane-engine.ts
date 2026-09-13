@@ -1,3 +1,4 @@
+import { drainProviderLane, LaneWakeTimer } from '~/cli/commands/command-shared/provider-lane-drain'
 import type {
   HostedOcrLaneEngineOptions,
   HostedOcrSchedulerAdmission,
@@ -51,7 +52,10 @@ const getDocumentTarget = (
     : undefined
 
 export class HostedOcrLaneEngine {
-  constructor(private readonly options: HostedOcrLaneEngineOptions) {}
+  private readonly wake: LaneWakeTimer<HostedOcrSchedulerLaneState, ReturnType<HostedOcrLaneEngineOptions['setTimer']>>
+  constructor(private readonly options: HostedOcrLaneEngineOptions) {
+    this.wake = new LaneWakeTimer({ now: options.now, setTimer: options.setTimer, clearTimer: timer => clearTimeout(timer) })
+  }
 
   submit(lane: HostedOcrSchedulerLaneState, queueKey: string, job: QueuedHostedOcrJob): void {
     const target = getOrCreateTarget(
@@ -60,9 +64,7 @@ export class HostedOcrLaneEngine {
       job.targetKey
     )
     const documentTarget = this.getOrCreateDocumentTarget(lane, job)
-    target.submittedPages += job.pageCount
-    if (documentTarget) documentTarget.submittedPages += job.pageCount
-    lane.submittedPages += job.pageCount
+    recordPages(lane, target, documentTarget, job.pageCount, 'submittedPages')
 
     const queue = lane.queues.get(queueKey) ?? []
     queue.push(job)
@@ -81,11 +83,11 @@ export class HostedOcrLaneEngine {
       return
     }
 
-    while (lane.active < lane.currentCap) {
-      const job = this.pickNextJob(lane)
-      if (!job) return
-      this.start(lane, job)
-    }
+    drainProviderLane({
+      canAdmit: () => lane.active < lane.currentCap,
+      pick: () => this.pickNextJob(lane),
+      start: job => this.start(lane, job),
+    })
   }
 
   finishSuccess(
@@ -95,13 +97,11 @@ export class HostedOcrLaneEngine {
     const target = this.requireTarget(lane, job.targetKey)
     const documentTarget = getDocumentTarget(lane, job)
     const now = this.options.now()
-    target.completedPages += job.pageCount
+    recordPages(lane, target, documentTarget, job.pageCount, 'completedPages')
     target.finishedAtMs = now
     if (documentTarget) {
-      documentTarget.completedPages += job.pageCount
       documentTarget.finishedAtMs = now
     }
-    lane.completedPages += job.pageCount
     lane.finishedAtMs = now
     if (!this.options.sharedHostedPolicy) {
       Object.assign(
@@ -119,13 +119,11 @@ export class HostedOcrLaneEngine {
     const target = this.requireTarget(lane, job.targetKey)
     const documentTarget = getDocumentTarget(lane, job)
     const now = this.options.now()
-    target.failedPages += job.pageCount
+    recordPages(lane, target, documentTarget, job.pageCount, 'failedPages')
     target.finishedAtMs = now
     if (documentTarget) {
-      documentTarget.failedPages += job.pageCount
       documentTarget.finishedAtMs = now
     }
-    lane.failedPages += job.pageCount
     lane.finishedAtMs = now
     this.finish(lane)
   }
@@ -226,12 +224,7 @@ export class HostedOcrLaneEngine {
   }
 
   private schedulePausedPump(lane: HostedOcrSchedulerLaneState): void {
-    if (lane.pumpTimer !== undefined) return
-    const delayMs = Math.max(1, lane.pauseUntilMs - this.options.now())
-    lane.pumpTimer = this.options.setTimer(() => {
-      lane.pumpTimer = undefined
-      this.pump(lane)
-    }, delayMs)
+    this.wake.schedule(lane, lane.pauseUntilMs, () => this.pump(lane))
   }
 
   private start(
@@ -255,4 +248,10 @@ export class HostedOcrLaneEngine {
     this.assertInvariants(lane)
     this.pump(lane)
   }
+}
+
+const recordPages = (lane: HostedOcrSchedulerLaneState, target: HostedOcrSchedulerTargetStats, documentTarget: HostedOcrSchedulerTargetStats | undefined, count: number, field: 'submittedPages' | 'completedPages' | 'failedPages'): void => {
+  lane[field] += count
+  target[field] += count
+  if (documentTarget) documentTarget[field] += count
 }

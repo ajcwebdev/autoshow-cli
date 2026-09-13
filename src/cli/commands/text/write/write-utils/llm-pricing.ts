@@ -5,7 +5,6 @@ const SERVICE_ORDER: Array<{ service: string, modelKey: keyof ResolvedLLMConfig 
   { service: 'openai', modelKey: 'openaiModels' },
   { service: 'gemini', modelKey: 'geminiModels' },
   { service: 'anthropic', modelKey: 'anthropicModels' },
-  { service: 'minimax', modelKey: 'minimaxModels' },
   { service: 'grok', modelKey: 'grokModels' },
   { service: 'glm', modelKey: 'glmModels' },
   { service: 'kimi', modelKey: 'kimiModels' },

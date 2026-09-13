@@ -1,5 +1,6 @@
+import { readUtf8FileExact } from '~/utils/bun-file-io'
 import type { DirectoryEntry } from '~/types'
-import { readdir, readFile } from 'node:fs/promises'
+import { readdir } from 'node:fs/promises'
 import { basename, resolve } from 'node:path'
 import * as v from 'valibot'
 import type { LeafPrompt, PromptEntry, PromptExampleFormat, PromptExamples, PromptsRegistry, PromptTokenEstimate, ResolvedLeafPrompt } from '~/types'
@@ -244,7 +245,7 @@ const loadPrompts = async (): Promise<PromptsRegistry> => {
   const rawEntries = await Promise.all(promptFiles.map(async (filePath) => {
     let fileContents: string
     try {
-      fileContents = await readFile(filePath, 'utf8')
+      fileContents = await readUtf8FileExact(filePath)
     } catch (error) {
       throw new AppError(`Failed to read prompt entry at ${filePath}`, {
         kind: 'infrastructure',

@@ -1,5 +1,8 @@
 {
   "Deepgram": {
+    "LLMSTXT": [
+      "https://developers.deepgram.com/llms.txt"
+    ],
     "STT": [
       "https://deepgram.com/pricing",
       "https://developers.deepgram.com/reference/speech-to-text/listen-pre-recorded.md",

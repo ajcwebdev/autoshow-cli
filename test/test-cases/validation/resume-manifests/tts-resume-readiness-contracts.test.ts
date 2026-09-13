@@ -43,6 +43,8 @@ describe('canonical TTS resume', () => {
         run: async (...args) => {
           const preparedProvider = (await readManifest(dir))?.items[0]?.providers[0]
           const preparedProjection = preparedProvider?.result?.['ttsAudio'] as CanonicalAudioProviderProjection
+          const branchDir = join(dir, blocked.artifactDir, 'branches', preparedProjection.branchHistory[0]!.branchPlanId)
+          expect((await readdir(branchDir)).filter(name => name.startsWith('readiness-result-attempt-'))).toHaveLength(2)
           barrierObserved = preparedProjection.activeWork?.kind === 'render'
             && preparedProjection.readinessAttempts.length === 2
             && preparedProjection.renderHistory.length === 1
@@ -82,8 +84,8 @@ describe('canonical TTS resume', () => {
       expect(projection.archive).toBeDefined()
       expect(projection.pointerEvents).toHaveLength(1)
       expect(projection.pointerEvents[0]?.action).toBe('select-success')
-      const branchDir = join(dir, provider?.artifactDir as string, 'branches', blockedProjection.branchHistory[0]?.branchPlanId as string)
-      expect((await readdir(branchDir)).filter((name) => name.startsWith('readiness-result-attempt-'))).toHaveLength(2)
+      const branchDir = join(dir, blocked.artifactDir, 'branches', blockedProjection.branchHistory[0]?.branchPlanId as string)
+      await expect(readdir(branchDir)).rejects.toThrow('ENOENT')
     })
   })
 
@@ -179,7 +181,7 @@ describe('canonical TTS resume', () => {
         operation: 'tts-synthesis',
         targetKey: target.targetKey,
         transport: target.transport,
-        artifactDir: `providers/${target.targetKey}`,
+        artifactDir: target.targetKey,
         status: 'succeeded'
       })
       expect(projection.renderHistory).toEqual([])

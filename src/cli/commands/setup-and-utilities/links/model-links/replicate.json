@@ -1,5 +1,8 @@
 {
   "Replicate": {
+    "LLMSTXT": [
+      "https://replicate.com/docs/llms.txt"
+    ],
     "General": [
       "https://replicate.com/docs/topics/predictions.md",
       "https://replicate.com/docs/topics/predictions/lifecycle.md",
@@ -9,8 +12,7 @@
       "https://replicate.com/docs/topics/predictions/output-files.md",
       "https://replicate.com/docs/topics/security/api-tokens.md",
       "https://replicate.com/docs/reference/how-does-replicate-work.md",
-      "https://replicate.com/docs/reference/http.md",
-      "https://replicate.com/docs/llms.txt"
+      "https://replicate.com/docs/reference/http.md"
     ],
     "Models": [
       "https://replicate.com/docs/topics/models.md",

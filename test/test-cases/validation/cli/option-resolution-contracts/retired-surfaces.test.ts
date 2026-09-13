@@ -8,7 +8,6 @@ import { parseCommandInvocation, parseNativeCli } from '~/cli/native/native-pars
 import { generateImagesCommandDefinition } from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { formatModelSelector } from '~/cli/commands/setup-and-utilities/models/model-validation'
-import { validateMinimaxModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { renderCommandHelp } from '~/cli/native/help-renderer'
 import { createNativeRootDefinition } from '~/cli/native/root-definition'
 
@@ -80,7 +79,7 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
   {
     flag: 'deepinfra-ocr',
     model: 'PaddlePaddle/PaddleOCR-VL-0.9B',
-    message: 'Invalid model "PaddlePaddle/PaddleOCR-VL-0.9B" for --provider/--ocr deepinfra[=model]. Allowed values: google/gemma-3-27b-it, meta-llama/Llama-4-Scout-17B-16E-Instruct, mistralai/Mistral-Small-3.2-24B-Instruct-2506, Qwen/Qwen3-VL-235B-A22B-Instruct, Qwen/Qwen3-VL-30B-A3B-Instruct'
+    message: 'Invalid model "PaddlePaddle/PaddleOCR-VL-0.9B" for --provider/--ocr deepinfra[=model]. Allowed values: google/gemma-4-31B-it'
   },
   {
     flag: 'assemblyai-stt',
@@ -121,7 +120,7 @@ describe('retired surfaces', () => {
   test('removed command trees stay off disk', () => {
     expect(existsSync(resolve('src/cli/commands/setup-and-utilities/benchmark'))).toBe(false)
     expect(existsSync(resolve('src/types/benchmarks'))).toBe(false)
-    expect(existsSync(resolve('docs/commands/setup-and-utilities/benchmark/benchmark.md'))).toBe(false)
+    expect(existsSync(resolve('docs/commands/00-setup-and-utilities/benchmark/benchmark.md'))).toBe(false)
     expect(existsSync(resolve('src/cli/commands/text/ocr/ocr-services/replicate-ocr'))).toBe(false)
     expect(existsSync(resolve('src/cli/commands/text/ocr/ocr-services/fal-ocr'))).toBe(false)
     expect(existsSync(resolve('src/cli/commands/setup-and-utilities/models/ocr-config/ocr-replicate.json'))).toBe(false)
@@ -132,10 +131,6 @@ describe('retired surfaces', () => {
     for (const { flag, model, message } of RETIRED_FLAG_MODELS) {
       expect(() => buildOptsFromFlags({ [flag]: model })).toThrow(message)
     }
-    expect(() => validateMinimaxModel(retiredMinimaxLlm))
-      .toThrow(`Invalid model "${retiredMinimaxLlm}" for --llm minimax[=model]. Allowed values: MiniMax-M3`)
-    expect(() => validateMinimaxModel(`${retiredMinimaxLlm}-highspeed`))
-      .toThrow(`Invalid model "${retiredMinimaxLlm}-highspeed" for --llm minimax[=model]. Allowed values: MiniMax-M3`)
   })
 
   test('comic generate-images rejects the removed --panel spelling', () => {
@@ -146,13 +141,13 @@ describe('retired surfaces', () => {
     )).toThrow('Unexpected flag: --panel')
   })
 
-  test('write and config help omit retired MiniMax LLM names', () => {
+  test('write and setup help omit retired MiniMax LLM names', () => {
     const root = createNativeRootDefinition()
     const write = COMMAND_DEFINITIONS.find((command) => command.name === 'write')
-    const config = COMMAND_DEFINITIONS.find((command) => command.name === 'config')
-    if (!write || !config) throw new Error('missing write or config command')
+    const setup = COMMAND_DEFINITIONS.find((command) => command.name === 'setup')
+    if (!write || !setup) throw new Error('missing write or setup command')
     expect(renderCommandHelp(root, write)).not.toContain(retiredMinimaxLlm)
-    expect(renderCommandHelp(root, config)).not.toContain(retiredMinimaxLlm)
+    expect(renderCommandHelp(root, setup)).not.toContain(retiredMinimaxLlm)
   })
 
   test('unsigned prebuilt metadata keys stay out of production setup sources', async () => {

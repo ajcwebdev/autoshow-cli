@@ -1,4 +1,5 @@
-import { copyFile, rename, rm } from 'node:fs/promises'
+import { copyFileExact } from '~/utils/bun-file-io'
+import { rename, rm } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import type { DownloadAudioOptions, Step1Metadata, VideoMetadata } from '~/types'
 import { downloadVideo } from './yt-utils'
@@ -93,7 +94,7 @@ const finalizeDownloadedMedia = async (
   }
 
   if (options.copy) {
-    await copyFile(sourcePath, finalPath)
+    await copyFileExact(sourcePath, finalPath)
   } else {
     await rename(sourcePath, finalPath)
   }

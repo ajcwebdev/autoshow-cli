@@ -1,4 +1,5 @@
-import { mkdir, readFile } from 'node:fs/promises'
+import { readUtf8FileExact } from '~/utils/bun-file-io'
+import { mkdir } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import type {
   CharacterVoiceBrief,
@@ -50,7 +51,7 @@ export const writeVoiceCandidate = async (charactersRoot: string, candidate: Voi
 
 export const loadVoiceCandidate = async (charactersRoot: string, candidateId: string): Promise<VoiceCandidate> => {
   let value: unknown
-  try { value = JSON.parse(await readFile(candidatePath(charactersRoot, candidateId), 'utf8')) }
+  try { value = JSON.parse(await readUtf8FileExact(candidatePath(charactersRoot, candidateId))) }
   catch { throw UsageError(`Voice candidate ${candidateId} was not found or is corrupt.`) }
   return validateVoiceCandidate(value as VoiceCandidate)
 }

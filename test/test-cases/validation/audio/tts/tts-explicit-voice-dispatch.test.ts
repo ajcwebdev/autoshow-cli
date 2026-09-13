@@ -58,11 +58,11 @@ const cases: readonly VoiceMatrixCase[] = [
     flags: {
       'elevenlabs-tts': 'eleven_v3',
       'tts-voice': 'voice-captured',
-      'tts-speed': '0.8'
+      'elevenlabs-tts-stability': '0.5'
     },
     capturedVoice: 'voice-captured',
     invocationVoices: ['voice-alice', 'voice-bob', 'voice-alice'],
-    invocationControls: [{ speed: 0.8 }, { speed: 1.1 }, { speed: 0.8 }],
+    invocationControls: [{ stability: 0.5 }, { stability: 0 }, { stability: 0.5 }],
     respond: byteResponse,
     readSerializedVoice: call => {
       const match = /\/text-to-speech\/([^/?]+)/.exec(call.url)
@@ -70,7 +70,7 @@ const cases: readonly VoiceMatrixCase[] = [
     },
     readSerializedControl: call => {
       const settings = call.bodyJson?.['voice_settings'] as Record<string, unknown> | undefined
-      return settings?.['speed']
+      return settings?.['stability']
     }
   },
   {
@@ -145,7 +145,7 @@ const cases: readonly VoiceMatrixCase[] = [
     provider: 'cartesia',
     envKey: 'CARTESIA_API_KEY',
     flags: {
-      'cartesia-tts': 'sonic-3.5-2026-05-04',
+      'cartesia-tts': 'sonic-3.6-2026-08-27',
       'tts-voice': 'voice-captured'
     },
     capturedVoice: 'voice-captured',
@@ -153,8 +153,7 @@ const cases: readonly VoiceMatrixCase[] = [
     invocationControls: [{ language: 'en' }, { language: 'fr' }, { language: 'en' }],
     respond: byteResponse,
     readSerializedVoice: call => {
-      const voice = call.bodyJson?.['voice'] as Record<string, unknown> | undefined
-      return String(voice?.['id'] ?? '')
+      return String(call.bodyJson?.['voice'] ?? '')
     },
     readSerializedControl: call => call.bodyJson?.['language']
   }

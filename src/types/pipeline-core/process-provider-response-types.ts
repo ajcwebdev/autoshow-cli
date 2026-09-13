@@ -106,35 +106,6 @@ export const MistralOcrResponseSchema = v.object({
   }), undefined)
 })
 
-const GlmOcrLayoutDetailSchema = v.looseObject({
-  index: v.number(),
-  label: v.string(),
-  bbox_2d: v.optional(v.array(v.number()), undefined),
-  content: v.optional(v.string(), undefined),
-  height: v.optional(v.number(), undefined),
-  width: v.optional(v.number(), undefined)
-})
-
-export const GlmOcrResponseSchema = v.looseObject({
-  id: v.optional(v.string(), undefined),
-  created: v.optional(v.number(), undefined),
-  model: v.optional(v.string(), undefined),
-  md_results: v.string(),
-  layout_details: v.optional(v.array(v.array(GlmOcrLayoutDetailSchema)), undefined),
-  data_info: v.optional(v.looseObject({
-    num_pages: v.optional(v.number(), undefined),
-    pages: v.optional(v.array(v.looseObject({
-      width: v.optional(v.number(), undefined),
-      height: v.optional(v.number(), undefined)
-    })), undefined)
-  }), undefined),
-  usage: v.optional(v.looseObject({
-    prompt_tokens: v.optional(v.number(), undefined),
-    completion_tokens: v.optional(v.number(), undefined),
-    total_tokens: v.optional(v.number(), undefined)
-  }), undefined),
-  request_id: v.optional(v.string(), undefined)
-})
 
 const WhisperfileJsonSegmentSchema = v.looseObject({
   tokens: v.optional(v.array(v.looseObject({ p: v.optional(v.number(), undefined) })), undefined),

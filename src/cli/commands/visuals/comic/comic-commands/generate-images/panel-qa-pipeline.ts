@@ -1,4 +1,5 @@
-import { copyFile, mkdir, rm } from 'node:fs/promises'
+import { copyFileExact } from '~/utils/bun-file-io'
+import { mkdir, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type {
   GenerateWithQaRepairInput,
@@ -37,13 +38,13 @@ export const generateWithQaRepair = async (
   const attemptsDirectory = join(dirname(input.outputPath), 'attempts', `${input.kind}-${String(input.itemNumber).padStart(2, '0')}`)
   await mkdir(attemptsDirectory, { recursive: true })
   if (input.force && input.canonicalExists) {
-    await copyFile(input.outputPath, join(attemptsDirectory, 'prior-canonical.png'))
+    await copyFileExact(input.outputPath, join(attemptsDirectory, 'prior-canonical.png'))
     await rm(input.outputPath)
   }
   let currentPath: string | undefined = input.outputExists ? input.outputPath : undefined
   if (input.outputExists && qaEntry?.hardFailure) {
     currentPath = join(attemptsDirectory, 'attempt-0.png')
-    await copyFile(input.outputPath, currentPath)
+    await copyFileExact(input.outputPath, currentPath)
   }
   let stagnationState = createPageQaRepairStagnationState()
   let action: QaAttemptAction = 'edit'
@@ -73,7 +74,7 @@ export const generateWithQaRepair = async (
     const attemptPath = await runGenerationAttempt({ request: input, attempt, attemptsDirectory, currentPath, action, qaEntry, totals })
     currentPath = attemptPath
     if (!input.qaEnabled) {
-      await copyFile(attemptPath, input.outputPath)
+      await copyFileExact(attemptPath, input.outputPath)
       break
     }
     const skipComparison = attempt > 0 && action === 'restart' && restartReason === 'blocking-class'
@@ -97,7 +98,7 @@ export const generateWithQaRepair = async (
       break
     }
     if (!qaEntry.hardFailure) {
-      await copyFile(attemptPath, input.outputPath)
+      await copyFileExact(attemptPath, input.outputPath)
       break
     }
     if (!evaluated.blockingClassRestart && evaluated.decision.action === 'stop') {

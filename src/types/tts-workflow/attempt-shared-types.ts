@@ -121,6 +121,7 @@ export type CurrentTtsRenderAttempt = {
 export type CreateCurrentTtsRenderAttemptOptions = {
   outputDir: string
   artifactRoot?: string | undefined
+  compactArchive?: boolean | undefined
   target: TtsTarget
   sourceText: string
   ttsOptions: TtsOptions

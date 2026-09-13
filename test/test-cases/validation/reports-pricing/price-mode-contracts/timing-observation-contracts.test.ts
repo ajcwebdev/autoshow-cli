@@ -9,7 +9,7 @@ describe('price mode contracts', () => {
         sttTargets: [{ service: 'deepgram', model: 'nova-3' }],
         audioDurationSeconds: 10,
         extractTargets: [{ provider: 'kimi', model: 'kimi-k2.6', pageCount: 2 }],
-        llmTargets: [{ service: 'openai', model: 'gpt-5.4-nano', inputTokens: 600, outputTokens: 400 }],
+        llmTargets: [{ service: 'openai', model: 'gpt-5.6-luna', inputTokens: 600, outputTokens: 400 }],
         ttsTargets: [{ service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' }],
         ttsCharacterCount: 1000,
         imageTargets: [{ service: 'openai', model: 'gpt-image-2', count: 2 }],
@@ -126,7 +126,7 @@ describe('price mode contracts', () => {
           languages: 'eng',
           tokenEstimate: 10_000,
           ocrService: 'deepinfra',
-          ocrModel: 'Qwen/Qwen3-VL-235B-A22B-Instruct'
+          ocrModel: 'google/gemma-4-31B-it'
         }, {
           extractionMethod: 'pdf+grok-ocr',
           totalPages: 228,
@@ -137,7 +137,7 @@ describe('price mode contracts', () => {
           languages: 'eng',
           tokenEstimate: 10_000,
           ocrService: 'grok',
-          ocrModel: 'grok-4.20-0309-non-reasoning'
+          ocrModel: 'grok-4.5'
         }, {
           extractionMethod: 'pdf+gemini-ocr',
           totalPages: 228,
@@ -159,7 +159,7 @@ describe('price mode contracts', () => {
           languages: 'eng',
           tokenEstimate: 10_000,
           ocrService: 'gemini',
-          ocrModel: 'gemini-3.1-pro-preview'
+          ocrModel: 'gemini-3.8-flash'
         }],
         hostedOcrScheduler: {
           version: 1,

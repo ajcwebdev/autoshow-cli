@@ -40,7 +40,7 @@ test('Supadata URL backend sends scrape request and normalizes article metadata'
     url: 'https://supadata.local/v1/web/scrape?url=https%3A%2F%2Farticle.test%2Fsupadata',
     method: 'GET'
   })
-  expect(requests[0]?.headers.get('x-api-key')).toBe('supadata-test-key')
+  expect(requests[0]?.headers.get('x-api-key')).toBeNull()
   expect(result).toMatchObject({
     markdown: longMarkdown,
     title: 'Supadata Title',

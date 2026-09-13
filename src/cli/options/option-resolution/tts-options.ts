@@ -113,6 +113,10 @@ const TTS_MODEL_KEYS = [
 
 const TTS_SPEED_RANGES = {
   openai: { min: 0.25, max: 4 },
+  grok: { min: 0.7, max: 1.5 },
+  cartesia: { min: 0.6, max: 1.5 },
+  hume: { min: 0.5, max: 2 },
+  inworld: { min: 0.5, max: 1.5 },
   elevenlabs: { min: 0.7, max: 1.2 }
 } as const
 
@@ -168,6 +172,10 @@ const applyGenericTtsRuntimeOptions = (
     }
     const parsed = parseOptionalNumberFlag(speed, 'tts-speed', range)
     switch (provider) {
+      case 'grok': options.grokTtsSpeed = parsed; break
+      case 'cartesia': options.cartesiaTtsSpeed = parsed; break
+      case 'hume': options.humeTtsSpeed = parsed; break
+      case 'inworld': options.inworldTtsSpeed = parsed; break
       case 'openai':
         options.openaiTtsSpeed = parsed
         break
@@ -262,6 +270,7 @@ export const buildTtsOptions = (
     cartesiaTtsLanguage: undefined,
     inworldTtsVoice: undefined,
     inworldTtsInstructions: undefined,
+    inworldTtsSpeed: undefined,
     openaiVoiceId: undefined,
     openaiTtsInstructions: undefined,
     openaiTtsSpeed: undefined,

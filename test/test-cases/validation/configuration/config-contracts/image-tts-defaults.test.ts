@@ -42,13 +42,13 @@ describe('config image and TTS default contracts', () => {
     expectConfigPatchRoundTrip({
       'speechify-tts': ['simba-3.2'],
       'hume-tts': ['octave-2'],
-      'cartesia-tts': ['sonic-3.5-2026-05-04'],
+      'cartesia-tts': ['sonic-3.6-2026-08-27'],
       'tts-voice': ['speechify=narrator_voice', 'hume=Studio Voice', 'cartesia=cartesia-voice-id'],
       'tts-language': ['speechify=en-US', 'cartesia=en']
     }, 'tts', {
       speechifyTts: ['simba-3.2'],
       humeTts: ['octave-2'],
-      cartesiaTts: ['sonic-3.5-2026-05-04'],
+      cartesiaTts: ['sonic-3.6-2026-08-27'],
       voice: ['speechify=narrator_voice', 'hume=Studio Voice', 'cartesia=cartesia-voice-id'],
       language: ['speechify=en-US', 'cartesia=en']
     })

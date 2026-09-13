@@ -1,5 +1,8 @@
 {
   "Claude": {
+    "LLMSTXT": [
+      "https://platform.claude.com/llms.txt"
+    ],
     "General": [
       "https://platform.claude.com/docs/en/about-claude/pricing.md",
       "https://platform.claude.com/docs/en/build-with-claude/overview.md",

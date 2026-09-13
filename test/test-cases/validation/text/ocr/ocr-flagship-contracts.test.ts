@@ -13,13 +13,13 @@ const pages = [{ pageNumber: 1, text: 'Synthetic document' }] as const
 
 describe('Flagship OCR additions', () => {
   test('new and existing OCR selectors resolve without changing bare defaults', () => {
-    for (const model of ['gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.5']) {
+    for (const model of ['gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-sol']) {
       expect(buildOptsFromFlags({ 'openai-ocr': model }).openaiOcrModels).toEqual([model])
     }
-    for (const model of ['claude-fable-5-1', 'claude-fable-5', 'claude-haiku-4-5']) {
+    for (const model of ['claude-fable-5-1', 'claude-fable-5', 'claude-sonnet-5']) {
       expect(buildOptsFromFlags({ 'anthropic-ocr': model }).anthropicOcrModels).toEqual([model])
     }
-    expect(buildOptsFromFlags({ 'anthropic-ocr': true }).anthropicOcrModels).toEqual(['claude-haiku-4-5'])
+    expect(buildOptsFromFlags({ 'anthropic-ocr': true }).anthropicOcrModels).toEqual(['claude-sonnet-5'])
   })
 
   for (const format of ['png', 'pdf'] as const) {

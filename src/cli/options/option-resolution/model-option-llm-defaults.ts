@@ -5,7 +5,6 @@ export const buildLLMModelOptions = (config: ResolvedLLMConfig): ResolvedLLMMode
   openaiModels: config.openaiModels,
   geminiModels: config.geminiModels,
   anthropicModels: config.anthropicModels,
-  minimaxModels: config.minimaxModels,
   grokModels: config.grokModels,
   glmModels: config.glmModels,
   kimiModels: config.kimiModels,
@@ -18,7 +17,6 @@ export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): Reso
   const openaiModels = opts.openaiModels
   const geminiModels = opts.geminiModels
   const anthropicModels = opts.anthropicModels
-  const minimaxModels = opts.minimaxModels
   const grokModels = opts.grokModels
   const glmModels = opts.glmModels
   const kimiModels = opts.kimiModels
@@ -27,7 +25,6 @@ export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): Reso
     openaiModels?.length,
     geminiModels?.length,
     anthropicModels?.length,
-    minimaxModels?.length,
     grokModels?.length,
     glmModels?.length,
     kimiModels?.length,
@@ -45,7 +42,6 @@ export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): Reso
   const resolvedOpenai = withDefault(openaiModels, 'openai')
   const resolvedGemini = withDefault(geminiModels, 'gemini')
   const resolvedAnthropic = withDefault(anthropicModels, 'anthropic')
-  const resolvedMinimax = withDefault(minimaxModels, 'minimax')
   const resolvedGrok = withDefault(grokModels, 'grok')
   const resolvedGlm = withDefault(glmModels, 'glm')
   const resolvedKimi = withDefault(kimiModels, 'kimi')
@@ -55,7 +51,6 @@ export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): Reso
     openaiModels: resolvedOpenai,
     geminiModels: resolvedGemini,
     anthropicModels: resolvedAnthropic,
-    minimaxModels: resolvedMinimax,
     grokModels: resolvedGrok,
     glmModels: resolvedGlm,
     kimiModels: resolvedKimi,
@@ -63,16 +58,14 @@ export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): Reso
     llmService: resolvedOpenai?.length ? 'openai'
       : resolvedGemini?.length ? 'gemini'
         : resolvedAnthropic?.length ? 'anthropic'
-          : resolvedMinimax?.length ? 'minimax'
-            : resolvedGrok?.length ? 'grok'
-              : resolvedGlm?.length ? 'glm'
-                : resolvedKimi?.length ? 'kimi'
-                  : resolvedTogether?.length ? 'together'
-                    : cheapest?.provider,
+          : resolvedGrok?.length ? 'grok'
+            : resolvedGlm?.length ? 'glm'
+              : resolvedKimi?.length ? 'kimi'
+                : resolvedTogether?.length ? 'together'
+                  : cheapest?.provider,
     llmModel: first(resolvedOpenai)
       ?? first(resolvedGemini)
       ?? first(resolvedAnthropic)
-      ?? first(resolvedMinimax)
       ?? first(resolvedGrok)
       ?? first(resolvedGlm)
       ?? first(resolvedKimi)

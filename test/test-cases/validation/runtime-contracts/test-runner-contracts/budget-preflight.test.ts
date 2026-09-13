@@ -117,10 +117,10 @@ describe('test-runner contracts', () => {
   })
 
   test('budget-skip entries are emitted from skipped entry keys', () => {
-      const evaluation = evaluatePriceObservations('Selected paths: text/write/openai-gpt-5.5.test.ts', [
+      const evaluation = evaluatePriceObservations('Selected paths: text/write/openai-gpt-5.6-sol.test.ts', [
         {
-          name: 'write-openai-gpt-5.5',
-          key: 'write-openai-gpt-5.5',
+          name: 'write-openai-gpt-5.6-sol',
+          key: 'write-openai-gpt-5.6-sol',
           args: ['cmd-a'],
           exitCode: 0,
           durationMs: 10,
@@ -129,8 +129,8 @@ describe('test-runner contracts', () => {
           budgetSkippable: true
         },
         {
-          name: 'write-openai-gpt-5.4-mini',
-          key: 'write-openai-gpt-5.4-mini',
+          name: 'write-openai-gpt-5.6-terra',
+          key: 'write-openai-gpt-5.6-terra',
           args: ['cmd-b'],
           exitCode: 0,
           durationMs: 10,
@@ -140,10 +140,10 @@ describe('test-runner contracts', () => {
         }
       ], 200)
 
-      expect(evaluation.budgetSummary?.skipKeys).toEqual(['write-openai-gpt-5.5'])
+      expect(evaluation.budgetSummary?.skipKeys).toEqual(['write-openai-gpt-5.6-sol'])
       expect(evaluation.budgetSummary?.budgetHundredthCents).toBe(200)
       expect(evaluation.budgetSummary?.skippedEntries).toEqual([
-        { key: 'write-openai-gpt-5.5', selectedCostCents: 3 }
+        { key: 'write-openai-gpt-5.6-sol', selectedCostCents: 3 }
       ])
       expect(evaluation.commandResults.map((result) => result.status)).toEqual(['skipped', 'passed'])
     })
@@ -303,7 +303,7 @@ describe('test-runner contracts', () => {
   test('TTS service budget preflight includes active service entries', () => {
       const allFiles = [
         'test/test-cases/e2e/service/audio/tts/grok-tts.test.ts',
-        'test/test-cases/e2e/service/audio/tts/cartesia-sonic-3.5-2026-05-04.test.ts',
+        'test/test-cases/e2e/service/audio/tts/cartesia-sonic-3.6-2026-08-27.test.ts',
         'test/test-cases/e2e/service/audio/tts/openai-gpt-4o-mini-tts-2025-12-15.test.ts',
       ]
 
@@ -312,7 +312,7 @@ describe('test-runner contracts', () => {
       ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
 
       expect(keys).toContain('tts-grok-grok-tts')
-      expect(keys).toContain('tts-cartesia-sonic-3.5-2026-05-04')
+      expect(keys).toContain('tts-cartesia-sonic-3.6-2026-08-27')
       expect(keys).toContain('tts-openai-gpt-4o-mini-tts-2025-12-15')
     })
 

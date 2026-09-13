@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises'
+import { readFileBytes } from '~/utils/bun-file-io'
+
 import { join } from 'node:path'
 import { readDependencyUrlAndSha256, readDependencyVersion } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
 import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
@@ -34,7 +35,7 @@ export const MANAGED_TOOL_DIRS: Record<ManagedArtifactToolId, string> = {
 }
 
 export const sha256File = async (path: string): Promise<string> =>
-  sha256Bytes(await readFile(path))
+  sha256Bytes(await readFileBytes(path))
 
 const normalizeMacosVersion = (value: string): string | undefined => {
   const match = value.trim().match(/^(\d+)\.(\d+)(?:\.\d+)?$/)

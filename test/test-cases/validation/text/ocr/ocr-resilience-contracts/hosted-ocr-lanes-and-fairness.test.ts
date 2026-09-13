@@ -147,7 +147,7 @@ describe('hosted OCR lane identity and cross-document contracts', () => {
         })
       ),
       ...Array.from({ length: 3 }, (_, index) =>
-        scheduler.run(admission('openai', 'gpt-5.4-nano', 'openai'), async () => {
+        scheduler.run(admission('openai', 'gpt-5.6-luna', 'openai'), async () => {
           starts.push(`openai-${index}`)
           await gate.promise
           return index
@@ -233,7 +233,7 @@ describe('hosted OCR fairness and partial gating contracts', () => {
       starts.push('gemini')
       return 'gemini'
     })
-    const openaiRun = scheduler.run(admission('openai', 'gpt-5.4-nano'), async () => {
+    const openaiRun = scheduler.run(admission('openai', 'gpt-5.6-luna'), async () => {
       starts.push('openai')
       return 'openai'
     })

@@ -1,5 +1,8 @@
 {
   "Together": {
+    "LLMSTXT": [
+      "https://docs.together.ai/llms.txt"
+    ],
     "General": [
       "https://docs.together.ai/docs/introduction",
       "https://docs.together.ai/intro.md",

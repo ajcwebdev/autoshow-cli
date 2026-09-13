@@ -1,12 +1,9 @@
 import assemblyLinks from './model-links/assembly.json'
-import betterAuthLinks from './model-links/better-auth.json'
 import bflLinks from './model-links/bfl.json'
 import cartesiaLinks from './model-links/cartesia.json'
 import claudeLinks from './model-links/claude.json'
-import deapiLinks from './model-links/deapi.json'
 import deepgramLinks from './model-links/deepgram.json'
 import deepinfraLinks from './model-links/deepinfra.json'
-import driveLinks from './model-links/drive.json'
 import elevenlabsLinks from './model-links/elevenlabs.json'
 import firecrawlLinks from './model-links/firecrawl.json'
 import falLinks from './model-links/fal.json'
@@ -25,12 +22,8 @@ import minimaxLinks from './model-links/minimax.json'
 import mistralLinks from './model-links/mistral.json'
 import openaiLinks from './model-links/openai.json'
 import replicateLinks from './model-links/replicate.json'
-import resendLinks from './model-links/resend.json'
-import revLinks from './model-links/rev.json'
-import runwayLinks from './model-links/runway.json'
 import scrapecreatorsLinks from './model-links/scrapecreators.json'
 import sonioxLinks from './model-links/soniox.json'
-import solidbaseLinks from './model-links/solidbase.json'
 import spiderLinks from './model-links/spider.json'
 import speechifyLinks from './model-links/speechify.json'
 import speechmaticsLinks from './model-links/speechmatics.json'
@@ -43,7 +36,6 @@ import type { ModelLinksData } from '~/types'
 const providerLinks = [
   elevenlabsLinks,
   togetherLinks,
-  driveLinks,
   openaiLinks,
   geminiLinks,
   gladiaLinks,
@@ -58,20 +50,14 @@ const providerLinks = [
   minimaxLinks,
   claudeLinks,
   assemblyLinks,
-  betterAuthLinks,
   bflLinks,
   cartesiaLinks,
-  deapiLinks,
   deepgramLinks,
   deepinfraLinks,
   sonioxLinks,
-  solidbaseLinks,
   speechmaticsLinks,
   speechifyLinks,
-  revLinks,
   replicateLinks,
-  runwayLinks,
-  resendLinks,
   happyscribeLinks,
   humeLinks,
   inworldLinks,

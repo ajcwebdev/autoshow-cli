@@ -63,6 +63,8 @@ describe('provider selection contracts', () => {
       'bytedance/seedream-4.5',
       'bytedance/seedream-5-lite',
       'bytedance/seedream-5-pro',
+      'alibaba/qwen-image-3',
+      'alibaba/qwen-image-3-pro',
       'qwen/qwen-image-2-pro',
       'qwen/qwen-image-2',
       'wan-video/wan-2.7-image-pro',
@@ -81,20 +83,21 @@ describe('provider selection contracts', () => {
     ])
     expect(allOpts.replicateVideoModels).toEqual([
       'alibaba/happyhorse-1.1',
+      'bytedance/seedance-2.5',
       'bytedance/seedance-2.0',
       'bytedance/seedance-2.0-fast',
       'kwaivgi/kling-v3-video',
       'kwaivgi/kling-v3-omni-video',
       'pixverse/pixverse-v6'
     ])
-    expect(allOpts.falVideoModels).toEqual(['minimax/h3', 'fal-ai/pixverse/c1'])
+    expect(allOpts.falVideoModels).toEqual(['bytedance/seedance-2.5/text-to-video', 'bytedance/seedance-2.5/image-to-video', 'bytedance/seedance-2.5/reference-to-video', 'minimax/h3-max/text-to-video', 'minimax/h3-max/image-to-video', 'minimax/h3-max-turbo/text-to-video', 'minimax/h3-max-turbo/image-to-video', 'minimax/h3', 'fal-ai/pixverse/c1'])
 
     const cheapestReplicateOpts = buildOptsFromFlags({
       'replicate-image': true
     })
-    expect(cheapestReplicateOpts.replicateImageModels).toEqual(['wan-video/wan-2.7-image'])
+    expect(cheapestReplicateOpts.replicateImageModels).toEqual(['alibaba/qwen-image-3'])
     expect(collectImageTargets(cheapestReplicateOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
-      'replicate:wan-video/wan-2.7-image'
+      'replicate:alibaba/qwen-image-3'
     ])
 
     const cheapestReplicateVideoOpts = buildOptsFromFlags({

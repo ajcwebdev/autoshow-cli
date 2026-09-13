@@ -1,4 +1,5 @@
-import { copyFile, readdir, rename } from 'node:fs/promises'
+import { copyFileExact } from '~/utils/bun-file-io'
+import { readdir, rename } from 'node:fs/promises'
 import { basename, join, relative } from 'node:path'
 import type { GenerateImagesCommandOptions, ImageRunStats } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
@@ -6,13 +7,13 @@ import { atomicWriteJson } from '~/utils/filesystem'
 import { toPosixPath } from '~/utils/runtime-paths'
 import { recordComicImageRevision } from '../../comic-utils/comic-manifest'
 import { getSceneOutputDirectory } from '../../comic-utils/project-paths'
-import { REVISION_COMPARISON_MODEL, REVISION_IMAGE_MODEL } from './revision-evaluation-config'
+import { REVISION_COMPARISON_PROVIDER, REVISION_COMPARISON_MODEL, REVISION_IMAGE_MODEL } from './revision-evaluation-config'
 import type { LoadedRevisionPlan, PanelLedger, RevisionEvaluationDependencies } from './revision-evaluation-types'
 import { ledgerPathFor, panelDirectoryName, sha256File } from './revision-evidence-files'
 
 const atomicPromote = async (candidatePath: string, canonicalPath: string, expectedCandidateSha256: string): Promise<string> => {
   const temporary = `${canonicalPath}.revision-${crypto.randomUUID()}.tmp`
-  await copyFile(candidatePath, temporary)
+  await copyFileExact(candidatePath, temporary)
   if (await sha256File(temporary) !== expectedCandidateSha256) throw ValidationError(`Staged revision bytes do not match candidate ${basename(candidatePath)}.`, { stage: 'comic:revision-promotion' })
   await rename(temporary, canonicalPath)
   const actual = await sha256File(canonicalPath)
@@ -73,7 +74,7 @@ export const publishRevisionResults = async (options: GenerateImagesCommandOptio
       planFingerprint: loaded.plan.planFingerprint,
       evidenceDirectory: toPosixPath(relative(sceneDirectory, loaded.evidenceDirectory)),
       imageProvider: { service: 'openai', model: REVISION_IMAGE_MODEL, attempts: results.filter(item => item.imageSlot).length, completed: stats.imagesGenerated, ambiguous: results.filter(item => item.imageSlot?.status === 'ambiguous').length },
-      comparisonProvider: { service: 'gemini', model: REVISION_COMPARISON_MODEL, attempts: comparisonAttempts, completed: completedComparisons, invalid: comparisonAttempts - completedComparisons },
+      comparisonProvider: { service: REVISION_COMPARISON_PROVIDER, model: REVISION_COMPARISON_MODEL, attempts: comparisonAttempts, completed: completedComparisons, invalid: comparisonAttempts - completedComparisons },
       promotedPanels,
       retainedOriginalPanels,
       actualCostUsd: stats.totalCost,

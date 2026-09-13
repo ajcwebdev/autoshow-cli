@@ -25,7 +25,7 @@ export const collectHumeTtsTargets = (
       ...(voice ? { voice } : {}),
       run: async (text, outputDir, opts, invocation, requestEvidence) => {
         const invocationVoice = resolveTtsTargetInvocationVoiceId('hume', invocation)
-        const controls = resolveTtsTargetInvocationControls('hume', invocation, {})
+        const controls = resolveTtsTargetInvocationControls('hume', invocation, { speed: selection.humeSpeed })
         await ensureHumeTtsSetup()
         if (!invocation && model === 'octave-2' && opts.ttsSpeakers?.length) {
           const registry = parseSpeakerVoiceMappings(opts.ttsSpeakers)
@@ -35,13 +35,14 @@ export const collectHumeTtsTargets = (
           const turnControls = normalizeTtsTurnControls(opts.ttsTurnControls, dialogue.map(turn => turn.turnId))
           return await runHumeNativeUtterances(dialogue.map(turn => {
             const overrides = resolveTtsTurnControlOverrides('hume', turn.turnId, turnControls)
+            const speed = overrides['speed'] === null ? undefined : overrides['speed'] ?? selection.humeSpeed
             return {
               turnId: turn.turnId,
               subjectKey: turn.speaker,
               speaker: turn.speaker,
               canonicalText: turn.text,
               voiceId: getSpeakerVoice(registry, turn.speaker).voice,
-              ...(typeof overrides['speed'] === 'number' ? { speed: overrides['speed'] } : {}),
+              ...(typeof speed === 'number' ? { speed } : {}),
               ...(typeof overrides['trailingSilence'] === 'number' ? { trailingSilence: overrides['trailingSilence'] } : {})
             }
           }), outputDir, {

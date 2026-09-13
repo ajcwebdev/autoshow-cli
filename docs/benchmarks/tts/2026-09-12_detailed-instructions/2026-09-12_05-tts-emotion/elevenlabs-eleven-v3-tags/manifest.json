@@ -1,0 +1,237 @@
+{
+  "command": "tts",
+  "scope": "single",
+  "createdAt": "2026-09-12T08:47:17.247Z",
+  "updatedAt": "2026-09-12T08:47:33.019Z",
+  "items": [
+    {
+      "input": "input/examples/tts/controls/emotion/elevenlabs-eleven-v3-tags.txt",
+      "outputDir": ".",
+      "status": "full",
+      "metadata": {
+        "url": "file://input/examples/tts/controls/emotion/elevenlabs-eleven-v3-tags.txt",
+        "title": "elevenlabs-eleven-v3-tags",
+        "channel": "Local",
+        "duration": "Unknown",
+        "inputKind": "text",
+        "characterCount": 750,
+        "tts": [
+          {
+            "ttsService": "elevenlabs",
+            "ttsModel": "eleven_v3",
+            "speaker": "hpp4J3VqNfWAUOO0d1Us",
+            "processingTime": 15713,
+            "audioFileName": "speech.wav",
+            "audioFileSize": 1070158,
+            "chunkCount": 1,
+            "operation": "tts-synthesis",
+            "targetKey": "tts-synthesis--elevenlabs--f114aa2afb73bc31c949293129da5476a177cb9d9a6f0644fe14ccf999238a6a",
+            "transport": "hosted-api",
+            "artifactDir": "providers/tts-synthesis--elevenlabs--f114aa2afb73bc31c949293129da5476a177cb9d9a6f0644fe14ccf999238a6a",
+            "renderIdentity": "b0c7b9c8616851d8ff5a7ec85de66875b42a70f2f6cf7123407f7c7d87fc57ad",
+            "resultIdentity": "86f8797e348d79d0d2e5659c579db9f83a79518dea7f44bc2cf8f39a10a34461",
+            "audioRunId": "685e4c6586972275a5f13a0a31ea4958cf0c512216271279333170c4563743d4",
+            "renderStrategy": "segmented"
+          }
+        ],
+        "cost": {
+          "estimated": {
+            "totalCost": 7.5,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "elevenlabs",
+                "model": "eleven_v3",
+                "cost": 7.5,
+                "costMultiplier": 1,
+                "costPer1kCharactersCents": 10
+              }
+            ]
+          },
+          "observedEstimate": {
+            "totalCost": 7.5,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "elevenlabs",
+                "model": "eleven_v3",
+                "cost": 7.5,
+                "costMultiplier": 1,
+                "costPer1kCharactersCents": 10
+              }
+            ]
+          },
+          "actual": {
+            "totalCost": 7.5,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "elevenlabs",
+                "model": "eleven_v3",
+                "cost": 7.5,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 750
+              }
+            ]
+          }
+        },
+        "timing": {
+          "estimated": {
+            "totalProcessingTimeMs": 26878,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "elevenlabs",
+                "model": "eleven_v3",
+                "processingTimeMs": 26878,
+                "inputMetric": "characters",
+                "inputValue": 750,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 35837.333,
+                "throughputValue": 27.904,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "estimated"
+              }
+            ],
+            "estimateConfidence": "registry",
+            "likelyGatingTargets": [
+              {
+                "step": "tts",
+                "provider": "elevenlabs",
+                "model": "eleven_v3",
+                "processingTimeMs": 26878
+              }
+            ]
+          },
+          "actual": {
+            "totalProcessingTimeMs": 15713,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "elevenlabs",
+                "model": "eleven_v3",
+                "processingTimeMs": 15713,
+                "inputMetric": "characters",
+                "inputValue": 750,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 20950.667,
+                "throughputValue": 47.731,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              }
+            ]
+          }
+        }
+      },
+      "providers": [
+        {
+          "service": "elevenlabs",
+          "model": "eleven_v3",
+          "local": false,
+          "operation": "tts-synthesis",
+          "targetKey": "tts-synthesis--elevenlabs--f114aa2afb73bc31c949293129da5476a177cb9d9a6f0644fe14ccf999238a6a",
+          "transport": "hosted-api",
+          "artifactDir": "providers/tts-synthesis--elevenlabs--f114aa2afb73bc31c949293129da5476a177cb9d9a6f0644fe14ccf999238a6a",
+          "status": "succeeded",
+          "attempts": 0,
+          "options": {
+            "dialoguePlan": {
+              "dialoguePlanId": "47a07fdd597ad9b8d7f91e4e00092c37826d472d3b2b193b144af074ca7aab8c",
+              "path": "metadata/tts-dialogue-plans/47a07fdd597ad9b8d7f91e4e00092c37826d472d3b2b193b144af074ca7aab8c.json",
+              "sha256": "92c570e67962fecfde68a2fd0f34e8b99973ef27f5e8792a6b6421ea54d34b21"
+            }
+          },
+          "metadata": {
+            "ttsAudio": {
+              "selectedSuccess": {
+                "renderIdentity": "b0c7b9c8616851d8ff5a7ec85de66875b42a70f2f6cf7123407f7c7d87fc57ad",
+                "eventSequence": 1,
+                "resultIdentity": "86f8797e348d79d0d2e5659c579db9f83a79518dea7f44bc2cf8f39a10a34461",
+                "audioRunId": "685e4c6586972275a5f13a0a31ea4958cf0c512216271279333170c4563743d4"
+              },
+              "archive": {
+                "schemaVersion": 1,
+                "renderRef": {
+                  "path": "tts-synthesis--elevenlabs--f114aa2afb73bc31c949293129da5476a177cb9d9a6f0644fe14ccf999238a6a/render.json",
+                  "sha256": "e8d2d76b2b4d07d7227b24abf733aaf6731bda6ceb84d71e974da7a65a541c4e"
+                },
+                "timelineRef": {
+                  "path": "tts-synthesis--elevenlabs--f114aa2afb73bc31c949293129da5476a177cb9d9a6f0644fe14ccf999238a6a/timeline.json",
+                  "sha256": "fa3723ac75936ce62b1ce0acd865590c580670d2f024b233a82fd448e35581fd"
+                },
+                "finalRef": {
+                  "path": "speech.wav",
+                  "sha256": "c217db4e71b4462558b63dd5cb1d12ecb7c53352e2ef5468b788db36937db4f4"
+                },
+                "slotCount": 1
+              },
+              "branchHistory": [],
+              "readinessAttempts": [],
+              "renderHistory": [],
+              "pointerEvents": [
+                {
+                  "sequence": 1,
+                  "action": "select-success",
+                  "renderIdentity": "b0c7b9c8616851d8ff5a7ec85de66875b42a70f2f6cf7123407f7c7d87fc57ad",
+                  "eventSequence": 1,
+                  "resultIdentity": "86f8797e348d79d0d2e5659c579db9f83a79518dea7f44bc2cf8f39a10a34461",
+                  "audioRunId": "685e4c6586972275a5f13a0a31ea4958cf0c512216271279333170c4563743d4",
+                  "actor": {
+                    "namespace": "local-user",
+                    "actorId": "current-cli-user"
+                  },
+                  "at": "2026-09-12T08:47:33.016Z"
+                }
+              ]
+            }
+          },
+          "result": {
+            "ttsAudio": {
+              "selectedSuccess": {
+                "renderIdentity": "b0c7b9c8616851d8ff5a7ec85de66875b42a70f2f6cf7123407f7c7d87fc57ad",
+                "eventSequence": 1,
+                "resultIdentity": "86f8797e348d79d0d2e5659c579db9f83a79518dea7f44bc2cf8f39a10a34461",
+                "audioRunId": "685e4c6586972275a5f13a0a31ea4958cf0c512216271279333170c4563743d4"
+              },
+              "archive": {
+                "schemaVersion": 1,
+                "renderRef": {
+                  "path": "tts-synthesis--elevenlabs--f114aa2afb73bc31c949293129da5476a177cb9d9a6f0644fe14ccf999238a6a/render.json",
+                  "sha256": "e8d2d76b2b4d07d7227b24abf733aaf6731bda6ceb84d71e974da7a65a541c4e"
+                },
+                "timelineRef": {
+                  "path": "tts-synthesis--elevenlabs--f114aa2afb73bc31c949293129da5476a177cb9d9a6f0644fe14ccf999238a6a/timeline.json",
+                  "sha256": "fa3723ac75936ce62b1ce0acd865590c580670d2f024b233a82fd448e35581fd"
+                },
+                "finalRef": {
+                  "path": "speech.wav",
+                  "sha256": "c217db4e71b4462558b63dd5cb1d12ecb7c53352e2ef5468b788db36937db4f4"
+                },
+                "slotCount": 1
+              },
+              "branchHistory": [],
+              "readinessAttempts": [],
+              "renderHistory": [],
+              "pointerEvents": [
+                {
+                  "sequence": 1,
+                  "action": "select-success",
+                  "renderIdentity": "b0c7b9c8616851d8ff5a7ec85de66875b42a70f2f6cf7123407f7c7d87fc57ad",
+                  "eventSequence": 1,
+                  "resultIdentity": "86f8797e348d79d0d2e5659c579db9f83a79518dea7f44bc2cf8f39a10a34461",
+                  "audioRunId": "685e4c6586972275a5f13a0a31ea4958cf0c512216271279333170c4563743d4",
+                  "actor": {
+                    "namespace": "local-user",
+                    "actorId": "current-cli-user"
+                  },
+                  "at": "2026-09-12T08:47:33.016Z"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

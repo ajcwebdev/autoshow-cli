@@ -148,7 +148,7 @@ export const appendCurrentTtsProviderState = (
   const namespace = current.operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
   return compactSucceededTtsProviderState({
     ...current,
-    artifactDir: current.artifactDir,
+    artifactDir: incoming.artifactDir,
     status: projected.status,
     attempts: projected.attempts,
     metadata: { ...current.metadata, ...incoming.metadata, [namespace]: projection },

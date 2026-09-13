@@ -182,7 +182,7 @@ describe('adaptive provider group parser', () => {
       'src/cli/create-cli.ts',
       'extract',
       'input/examples/document/1-document.pdf',
-      '--provider=mistral=mistral-ocr-2512',
+      '--provider=mistral=mistral-ocr-4-0',
       '--provider',
       'tesseract'
     ])).toEqual(['extract/mistral'])
@@ -198,9 +198,9 @@ describe('adaptive provider group parser', () => {
     expect(extractAdaptiveProviderGroups([
       'src/cli/create-cli.ts',
       'write',
-      'input/examples/tts/1-tts.md',
+      'input/examples/tts/01-tts-short.md',
       '--llm',
-      'openai=gpt-5.5'
+      'openai=gpt-5.6-sol'
     ])).toEqual([
       'write/openai',
     ])
@@ -208,7 +208,7 @@ describe('adaptive provider group parser', () => {
     expect(extractAdaptiveProviderGroups([
       'src/cli/create-cli.ts',
       'tts',
-      'input/examples/tts/1-tts.md',
+      'input/examples/tts/01-tts-short.md',
       '--provider',
       'openai=gpt-4o-mini-tts-2025-12-15'
     ])).toEqual(['tts/openai'])
@@ -460,7 +460,7 @@ describe('runCommand adaptive pressure contracts', () => {
     const result = await runCommand([
       'src/cli/create-cli.ts',
       'tts',
-      'input/examples/tts/1-tts.md',
+      'input/examples/tts/01-tts-short.md',
       '--provider',
       'speechify=simba-3.2'
     ], {
@@ -487,7 +487,7 @@ describe('runCommand adaptive pressure contracts', () => {
     const result = await runCommand([
       'src/cli/create-cli.ts',
       'tts',
-      'input/examples/tts/1-tts.md',
+      'input/examples/tts/01-tts-short.md',
       '--provider',
       'speechify=simba-3.2'
     ], {
@@ -560,7 +560,7 @@ describe('runCommand adaptive pressure contracts', () => {
     const result = await runCommand([
       'src/cli/create-cli.ts',
       'tts',
-      'input/examples/tts/1-tts.md',
+      'input/examples/tts/01-tts-short.md',
       '--provider',
       'speechify=simba-3.2'
     ], {

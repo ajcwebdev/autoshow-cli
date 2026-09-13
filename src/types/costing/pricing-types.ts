@@ -200,6 +200,8 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   videoMode?: string | undefined
   grokInputImageCount?: number | undefined
   grokInputVideoDurationSeconds?: number | undefined
+  falVideoReferenceVideoCount?: number | undefined
+  falInputVideoDurationSeconds?: number | undefined
   replicateVideoReferenceVideoCount?: number | undefined
   elevenlabsMusicModels?: string[] | undefined
   minimaxMusicModels?: string[] | undefined

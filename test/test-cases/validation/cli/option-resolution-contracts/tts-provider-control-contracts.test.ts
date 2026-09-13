@@ -9,10 +9,10 @@ describe('option resolution contracts', () => {
       'speechify-tts': 'simba-3.2',
       'tts-language': 'es-ES'
     }))).toThrow('supports only en or en-*')
-    expect(() => collectTtsTargets(buildOptsFromFlags({
+    expect(collectTtsTargets(buildOptsFromFlags({
       'speechify-tts': 'simba-3.2',
       'tts-voice': 'george'
-    }))).toThrow('not compatible with simba-3.2')
+    }))[0]?.voice).toBe('george')
     expect(collectTtsTargets(buildOptsFromFlags({
       'speechify-tts': 'simba-3.2',
       'tts-voice': 'approved_clone_123'
@@ -26,7 +26,7 @@ describe('option resolution contracts', () => {
   test('Hume and Cartesia TTS target collection preserves model and voice controls', () => {
       const targets = collectTtsTargets(buildOptsFromFlags({
         'hume-tts': 'octave-2',
-        'cartesia-tts': 'sonic-3.5-2026-05-04',
+        'cartesia-tts': 'sonic-3.6-2026-08-27',
         'tts-voice': ['hume=Studio Voice', 'cartesia=cartesia-voice-id'],
         'tts-language': 'cartesia=en'
       }))
@@ -43,7 +43,7 @@ describe('option resolution contracts', () => {
         },
         {
           service: 'cartesia',
-          model: 'sonic-3.5-2026-05-04',
+          model: 'sonic-3.6-2026-08-27',
           voice: 'cartesia-voice-id'
         }
       ])

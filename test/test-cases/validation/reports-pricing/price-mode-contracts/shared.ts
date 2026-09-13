@@ -76,14 +76,14 @@ export const missingHostedOcrProfilePath = (): string =>
   join(tmpdir(), `autoshow-missing-ocr-profile-${process.pid}-${Date.now()}-${Math.random()}.json`)
 
 export const HOSTED_OCR_PROVIDER_CASES = [
-  { provider: 'mistral', flagName: 'mistral-ocr', modelsKey: 'mistralOcrModels', model: 'mistral-ocr-2512' },
-  { provider: 'glm', flagName: 'glm-ocr', modelsKey: 'glmOcrModels', model: 'glm-ocr' },
+  { provider: 'mistral', flagName: 'mistral-ocr', modelsKey: 'mistralOcrModels', model: 'mistral-ocr-4-0' },
+  { provider: 'glm', flagName: 'glm-ocr', modelsKey: 'glmOcrModels', model: 'glm-5.3-flash' },
   { provider: 'kimi', flagName: 'kimi-ocr', modelsKey: 'kimiOcrModels', model: 'kimi-k2.6' },
-  { provider: 'openai', flagName: 'openai-ocr', modelsKey: 'openaiOcrModels', model: 'gpt-5.4-nano' },
-  { provider: 'grok', flagName: 'grok-ocr', modelsKey: 'grokOcrModels', model: 'grok-4.3' },
-  { provider: 'anthropic', flagName: 'anthropic-ocr', modelsKey: 'anthropicOcrModels', model: 'claude-haiku-4-5' },
+  { provider: 'openai', flagName: 'openai-ocr', modelsKey: 'openaiOcrModels', model: 'gpt-5.6-luna' },
+  { provider: 'grok', flagName: 'grok-ocr', modelsKey: 'grokOcrModels', model: 'grok-4.5' },
+  { provider: 'anthropic', flagName: 'anthropic-ocr', modelsKey: 'anthropicOcrModels', model: 'claude-sonnet-5' },
   { provider: 'gemini', flagName: 'gemini-ocr', modelsKey: 'geminiOcrModels', model: 'gemini-3.5-flash-lite' },
-  { provider: 'deepinfra', flagName: 'deepinfra-ocr', modelsKey: 'deepinfraOcrModels', model: 'Qwen/Qwen3-VL-30B-A3B-Instruct' }
+  { provider: 'deepinfra', flagName: 'deepinfra-ocr', modelsKey: 'deepinfraOcrModels', model: 'google/gemma-4-31B-it' }
 ] as const
 
 export const KIMI_OCR_PROVIDER_CASE = HOSTED_OCR_PROVIDER_CASES[2]

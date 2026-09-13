@@ -143,7 +143,7 @@ describe('price mode contracts', () => {
   test('OCR timing estimates use hosted provider-pool concurrency for total time', () => {
       const extractTargets = [
         { provider: 'kimi' as const, model: 'kimi-k2.6', pageCount: 4 },
-        { provider: 'openai' as const, model: 'gpt-5.4-nano', pageCount: 4 }
+        { provider: 'openai' as const, model: 'gpt-5.6-luna', pageCount: 4 }
       ]
       const serialPool = computeEstimatedProcessingTimes({
         extractTargets,

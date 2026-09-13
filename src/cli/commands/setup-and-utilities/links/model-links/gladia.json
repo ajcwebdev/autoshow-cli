@@ -1,5 +1,8 @@
 {
   "Gladia": {
+    "LLMSTXT": [
+      "https://docs.gladia.io/llms.txt"
+    ],
     "General": [
       "https://docs.gladia.io/api-reference.md",
       "https://docs.gladia.io/api-reference/authentication.md",

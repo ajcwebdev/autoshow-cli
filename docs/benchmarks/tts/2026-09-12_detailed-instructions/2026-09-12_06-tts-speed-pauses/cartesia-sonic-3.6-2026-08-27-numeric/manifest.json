@@ -1,0 +1,237 @@
+{
+  "command": "tts",
+  "scope": "single",
+  "createdAt": "2026-09-12T08:48:36.008Z",
+  "updatedAt": "2026-09-12T08:48:39.808Z",
+  "items": [
+    {
+      "input": "input/examples/tts/controls/speed-pauses/cartesia-sonic-3.6-2026-08-27-numeric.txt",
+      "outputDir": ".",
+      "status": "full",
+      "metadata": {
+        "url": "file://input/examples/tts/controls/speed-pauses/cartesia-sonic-3.6-2026-08-27-numeric.txt",
+        "title": "cartesia-sonic-3.6-2026-08-27-numeric",
+        "channel": "Local",
+        "duration": "Unknown",
+        "inputKind": "text",
+        "characterCount": 247,
+        "tts": [
+          {
+            "ttsService": "cartesia",
+            "ttsModel": "sonic-3.6-2026-08-27",
+            "speaker": "Narrator=0834f3df-e650-4766-a20c-5a93a43aa6e3",
+            "processingTime": 3736,
+            "audioFileName": "speech.wav",
+            "audioFileSize": 840398,
+            "chunkCount": 5,
+            "operation": "tts-synthesis",
+            "targetKey": "tts-synthesis--cartesia--1545ecfd0be40077616c4e6e9b3bc7c57b9e0b48acb0a0978f03efc3e6ae693d",
+            "transport": "hosted-api",
+            "artifactDir": "providers/tts-synthesis--cartesia--1545ecfd0be40077616c4e6e9b3bc7c57b9e0b48acb0a0978f03efc3e6ae693d",
+            "renderIdentity": "65828f054f11188e337b4f2ff2f992421845117c3912363069cf082985f77ccc",
+            "resultIdentity": "00e11fd041dc5110250de37ee75f1cfe274b2eb827a56fe8496ee955f442cd85",
+            "audioRunId": "6dde177393aeb0832a178f0c67d4d3b1206a44071528c3d5361a1abaaf4acc33",
+            "renderStrategy": "segmented"
+          }
+        ],
+        "cost": {
+          "estimated": {
+            "totalCost": 0.9231625,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "cartesia",
+                "model": "sonic-3.6-2026-08-27",
+                "cost": 0.9231625,
+                "costMultiplier": 1,
+                "costPer1kCharactersCents": 3.7375
+              }
+            ]
+          },
+          "observedEstimate": {
+            "totalCost": 0.9231625,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "cartesia",
+                "model": "sonic-3.6-2026-08-27",
+                "cost": 0.9231625,
+                "costMultiplier": 1,
+                "costPer1kCharactersCents": 3.7375
+              }
+            ]
+          },
+          "actual": {
+            "totalCost": 0.9231625,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "cartesia",
+                "model": "sonic-3.6-2026-08-27",
+                "cost": 0.9231625,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 247
+              }
+            ]
+          }
+        },
+        "timing": {
+          "estimated": {
+            "totalProcessingTimeMs": 753,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "cartesia",
+                "model": "sonic-3.6-2026-08-27",
+                "processingTimeMs": 753,
+                "inputMetric": "characters",
+                "inputValue": 247,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 3048.583,
+                "throughputValue": 328.021,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "estimated"
+              }
+            ],
+            "estimateConfidence": "registry",
+            "likelyGatingTargets": [
+              {
+                "step": "tts",
+                "provider": "cartesia",
+                "model": "sonic-3.6-2026-08-27",
+                "processingTimeMs": 753
+              }
+            ]
+          },
+          "actual": {
+            "totalProcessingTimeMs": 3736,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "cartesia",
+                "model": "sonic-3.6-2026-08-27",
+                "processingTimeMs": 3736,
+                "inputMetric": "characters",
+                "inputValue": 247,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 15125.506,
+                "throughputValue": 66.113,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              }
+            ]
+          }
+        }
+      },
+      "providers": [
+        {
+          "service": "cartesia",
+          "model": "sonic-3.6-2026-08-27",
+          "local": false,
+          "operation": "tts-synthesis",
+          "targetKey": "tts-synthesis--cartesia--1545ecfd0be40077616c4e6e9b3bc7c57b9e0b48acb0a0978f03efc3e6ae693d",
+          "transport": "hosted-api",
+          "artifactDir": "providers/tts-synthesis--cartesia--1545ecfd0be40077616c4e6e9b3bc7c57b9e0b48acb0a0978f03efc3e6ae693d",
+          "status": "succeeded",
+          "attempts": 0,
+          "options": {
+            "dialoguePlan": {
+              "dialoguePlanId": "7cb774c89e73ad53096bb1e7c1910ef4271b1707af6809358a31261a2a61bcf5",
+              "path": "metadata/tts-dialogue-plans/7cb774c89e73ad53096bb1e7c1910ef4271b1707af6809358a31261a2a61bcf5.json",
+              "sha256": "a17b5ba887732d6da1c20a6345a2aff1a7a9404e9dc40de21dad42d49160cbf3"
+            }
+          },
+          "metadata": {
+            "ttsAudio": {
+              "selectedSuccess": {
+                "renderIdentity": "65828f054f11188e337b4f2ff2f992421845117c3912363069cf082985f77ccc",
+                "eventSequence": 1,
+                "resultIdentity": "00e11fd041dc5110250de37ee75f1cfe274b2eb827a56fe8496ee955f442cd85",
+                "audioRunId": "6dde177393aeb0832a178f0c67d4d3b1206a44071528c3d5361a1abaaf4acc33"
+              },
+              "archive": {
+                "schemaVersion": 1,
+                "renderRef": {
+                  "path": "tts-synthesis--cartesia--1545ecfd0be40077616c4e6e9b3bc7c57b9e0b48acb0a0978f03efc3e6ae693d/render.json",
+                  "sha256": "9909e86fb674e30755fc6c2aafa61f82441cf5b37b0375dc2eedeb97c90a137e"
+                },
+                "timelineRef": {
+                  "path": "tts-synthesis--cartesia--1545ecfd0be40077616c4e6e9b3bc7c57b9e0b48acb0a0978f03efc3e6ae693d/timeline.json",
+                  "sha256": "10c3e835bc7edac3eae21790d7a50a192cadc35c0bbe096129e558b27a1cfacb"
+                },
+                "finalRef": {
+                  "path": "speech.wav",
+                  "sha256": "06c4e9205156200a056f9b62a11446af383bfca31d389d6eba38eba069d82436"
+                },
+                "slotCount": 5
+              },
+              "branchHistory": [],
+              "readinessAttempts": [],
+              "renderHistory": [],
+              "pointerEvents": [
+                {
+                  "sequence": 1,
+                  "action": "select-success",
+                  "renderIdentity": "65828f054f11188e337b4f2ff2f992421845117c3912363069cf082985f77ccc",
+                  "eventSequence": 1,
+                  "resultIdentity": "00e11fd041dc5110250de37ee75f1cfe274b2eb827a56fe8496ee955f442cd85",
+                  "audioRunId": "6dde177393aeb0832a178f0c67d4d3b1206a44071528c3d5361a1abaaf4acc33",
+                  "actor": {
+                    "namespace": "local-user",
+                    "actorId": "current-cli-user"
+                  },
+                  "at": "2026-09-12T08:48:39.804Z"
+                }
+              ]
+            }
+          },
+          "result": {
+            "ttsAudio": {
+              "selectedSuccess": {
+                "renderIdentity": "65828f054f11188e337b4f2ff2f992421845117c3912363069cf082985f77ccc",
+                "eventSequence": 1,
+                "resultIdentity": "00e11fd041dc5110250de37ee75f1cfe274b2eb827a56fe8496ee955f442cd85",
+                "audioRunId": "6dde177393aeb0832a178f0c67d4d3b1206a44071528c3d5361a1abaaf4acc33"
+              },
+              "archive": {
+                "schemaVersion": 1,
+                "renderRef": {
+                  "path": "tts-synthesis--cartesia--1545ecfd0be40077616c4e6e9b3bc7c57b9e0b48acb0a0978f03efc3e6ae693d/render.json",
+                  "sha256": "9909e86fb674e30755fc6c2aafa61f82441cf5b37b0375dc2eedeb97c90a137e"
+                },
+                "timelineRef": {
+                  "path": "tts-synthesis--cartesia--1545ecfd0be40077616c4e6e9b3bc7c57b9e0b48acb0a0978f03efc3e6ae693d/timeline.json",
+                  "sha256": "10c3e835bc7edac3eae21790d7a50a192cadc35c0bbe096129e558b27a1cfacb"
+                },
+                "finalRef": {
+                  "path": "speech.wav",
+                  "sha256": "06c4e9205156200a056f9b62a11446af383bfca31d389d6eba38eba069d82436"
+                },
+                "slotCount": 5
+              },
+              "branchHistory": [],
+              "readinessAttempts": [],
+              "renderHistory": [],
+              "pointerEvents": [
+                {
+                  "sequence": 1,
+                  "action": "select-success",
+                  "renderIdentity": "65828f054f11188e337b4f2ff2f992421845117c3912363069cf082985f77ccc",
+                  "eventSequence": 1,
+                  "resultIdentity": "00e11fd041dc5110250de37ee75f1cfe274b2eb827a56fe8496ee955f442cd85",
+                  "audioRunId": "6dde177393aeb0832a178f0c67d4d3b1206a44071528c3d5361a1abaaf4acc33",
+                  "actor": {
+                    "namespace": "local-user",
+                    "actorId": "current-cli-user"
+                  },
+                  "at": "2026-09-12T08:48:39.804Z"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

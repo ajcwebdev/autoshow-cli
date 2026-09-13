@@ -1,0 +1,21 @@
+{
+  "id": "grok-grok-tts-delivery",
+  "provider": "grok",
+  "model": "grok-tts",
+  "input": "input/examples/tts/controls/emotion/grok-grok-tts-delivery.txt",
+  "flags": {
+    "grok-tts": "grok-tts",
+    "tts-voice": "eve"
+  },
+  "turnControls": {},
+  "mechanism": "delivery",
+  "source": "https://docs.x.ai/developers/model-capabilities/audio/text-to-speech",
+  "lines": [
+    "<whisper>I am whispering. This is just for you.</whisper>",
+    "<loud>I speak loudly. Please hear me.</loud>",
+    "<higher-pitch>My voice has a high pitch.</higher-pitch>",
+    "<lower-pitch>My voice has a low pitch.</lower-pitch>",
+    "<emphasis>I stress this word: NOW.</emphasis>"
+  ],
+  "category": "emotion"
+}

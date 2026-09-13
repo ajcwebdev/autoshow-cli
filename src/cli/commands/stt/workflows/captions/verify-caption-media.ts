@@ -1,8 +1,9 @@
+import { childEnv } from '~/utils/child-env'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
 import { ValidationError } from '~/utils/error-handler'
 
 const capture = async (args: string[]): Promise<string> => {
-  const child = Bun.spawn(args, { stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' })
+  const child = Bun.spawn(args, { env: childEnv(), stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' })
   const [out, err, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited])
   if (code !== 0) throw ValidationError(`Media verification failed (${code}): ${err.trim()}`)
   return out.trim()

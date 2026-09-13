@@ -60,7 +60,7 @@ afterEach(async () => {
 describe('canonical location reference registration', () => {
   test('routes supported location QA models to their registered vision providers', () => {
     expect(resolveLocationQaProvider('gpt-5.6-sol')).toBe('openai')
-    expect(resolveLocationQaProvider('gemini-3.1-pro-preview')).toBe('gemini')
+    expect(resolveLocationQaProvider('gemini-3.8-flash')).toBe('gemini')
     expect(() => resolveLocationQaProvider('claude-opus-4-6')).toThrow('supports OpenAI and Gemini')
   })
 

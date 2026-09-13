@@ -1,5 +1,3 @@
-docs/links
-!docs/links/.gitkeep
 docs/todo
 docs/reports/*
 
@@ -60,6 +58,6 @@ input/examples/tts/*
 !input/examples/lyrics/01-cover.jpeg
 !input/examples/lyrics/01-example-song.mp3
 !input/examples/lyrics/01-example-song.txt
-!input/examples/tts/0-tts-short.txt
-!input/examples/tts/1-tts.md
-!input/examples/tts/tts-dialogue.txt
+!input/examples/tts/00-tts-shortest.txt
+!input/examples/tts/01-tts-short.md
+!input/examples/tts/04-tts-dialogue.txt

@@ -83,7 +83,7 @@ describe('pooled OCR page scheduler contracts', () => {
 
   test('lane retirement and selective re-enablement do not revive sibling targets', () => {
     const selected: OcrTarget = { service: 'openai', model: 'gpt-5.6-sol' }
-    const sibling: OcrTarget = { service: 'openai', model: 'gpt-5.4-mini' }
+    const sibling: OcrTarget = { service: 'openai', model: 'gpt-5.6-terra' }
     const state = transitionState([selected, sibling])
     const admitted = new Set(state.targetStates.keys())
     const selectedClaim = claimOcrPoolPage(state, selected, admitted)
@@ -103,7 +103,7 @@ describe('pooled OCR page scheduler contracts', () => {
 
     expect(state.laneStates.get('openai:env-api-key')?.status).toBe('eligible')
     expect(state.targetStates.get('openai:gpt-5.6-sol')?.status).toBe('eligible')
-    expect(state.targetStates.get('openai:gpt-5.4-mini')?.status).toBe('retired')
+    expect(state.targetStates.get('openai:gpt-5.6-terra')?.status).toBe('retired')
     expect(claimOcrPoolPage(state, selected, admitted)).toBeDefined()
     expect(claimOcrPoolPage(state, sibling, admitted)).toBeUndefined()
   })

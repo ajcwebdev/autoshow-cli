@@ -6,13 +6,9 @@ export const SUPPORTED_OPENAI_MODELS = [
   'gpt-5.6-sol',
   'gpt-5.6-terra',
   'gpt-5.6-luna',
-  'gpt-5.5',
-  'gpt-5.4-mini',
-  'gpt-5.4-nano'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_GEMINI_MODELS = [
-  'gemini-3.1-pro-preview',
   'gemini-3.8-flash',
   'gemini-3.7-flash',
   'gemini-3.6-flash',
@@ -23,25 +19,16 @@ export const SUPPORTED_GEMINI_MODELS = [
 export const SUPPORTED_ANTHROPIC_MODELS = [
   'claude-fable-5-1',
   'claude-fable-5',
-  'claude-opus-4-8',
   'claude-sonnet-5',
-  'claude-sonnet-4-6',
-  'claude-haiku-4-5',
   'claude-opus-5',
 ] as const satisfies readonly string[]
 
-export const SUPPORTED_MINIMAX_MODELS = [
-  'MiniMax-M3'
-] as const satisfies readonly string[]
-
 export const SUPPORTED_GROK_MODELS = [
-  'grok-4.3',
   'grok-4.5',
   'grok-4.6'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_GLM_MODELS = [
-  'glm-5.1',
   'glm-5.3',
   'glm-5.3-flash'
 ] as const satisfies readonly string[]
@@ -52,8 +39,6 @@ export const SUPPORTED_KIMI_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_TOGETHER_MODELS = [
-  'kimi-k2.6',
-  'glm-5.1',
   'kimi-k3',
   'glm-5.3',
   'glm-5.3-flash'
@@ -64,7 +49,6 @@ export const validateOpenAIModel = (model: string): string => _validateOpenAI(mo
 
 export const validateGeminiModel = createRetiringModelValidator('llm', 'gemini', SUPPORTED_GEMINI_MODELS, 'gemini')
 export const validateAnthropicModel = createModelValidator(SUPPORTED_ANTHROPIC_MODELS, 'anthropic')
-export const validateMinimaxModel = createModelValidator(SUPPORTED_MINIMAX_MODELS, 'minimax')
 export const validateGrokModel = createModelValidator(SUPPORTED_GROK_MODELS, 'grok')
 export const validateGlmModel = createModelValidator(SUPPORTED_GLM_MODELS, 'glm')
 export const validateKimiModel = createModelValidator(SUPPORTED_KIMI_MODELS, 'kimi')

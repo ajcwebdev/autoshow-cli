@@ -63,7 +63,7 @@ describe('hosted OCR timing estimate contracts', () => {
       const differentProviderTiming = computeEstimatedProcessingTimes({
         extractTargets: [
           { provider: 'gemini', model: 'gemini-3.5-flash', pageCount: 20 },
-          { provider: 'openai', model: 'gpt-5.4-nano', pageCount: 20 }
+          { provider: 'openai', model: 'gpt-5.6-luna', pageCount: 20 }
         ],
         ocrConcurrency: 1,
         ocrConcurrencyMode: 'fixed',
@@ -115,7 +115,7 @@ describe('hosted OCR timing estimate contracts', () => {
             },
             {
               provider: 'gemini',
-              model: 'gemini-3.1-pro-preview',
+              model: 'gemini-3.8-flash',
               scopeClass: 'env-api-key',
               pageCountBand: '201-1000',
               ocrConcurrencyMode: 'auto',
@@ -138,12 +138,12 @@ describe('hosted OCR timing estimate contracts', () => {
         const timing = computeEstimatedProcessingTimes({
           extractTargets: [
             { provider: 'gemini', model: 'gemini-3.5-flash', pageCount },
-            { provider: 'gemini', model: 'gemini-3.1-pro-preview', pageCount }
+            { provider: 'gemini', model: 'gemini-3.8-flash', pageCount }
           ],
           hostedOcrProfilePath: profilePath
         })
         const flash = timing.steps.find((step) => step.model === 'gemini-3.5-flash')
-        const pro = timing.steps.find((step) => step.model === 'gemini-3.1-pro-preview')
+        const pro = timing.steps.find((step) => step.model === 'gemini-3.8-flash')
 
         expect(flash).toMatchObject({
           processingTimeMs: 312_000,

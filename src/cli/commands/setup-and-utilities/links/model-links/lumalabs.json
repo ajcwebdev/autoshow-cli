@@ -1,5 +1,8 @@
 {
   "Lumalabs": {
+    "LLMSTXT": [
+      "https://lumalabs.ai/llms.txt"
+    ],
     "General": [
       "https://docs.agents.lumalabs.ai/index.md",
       "https://docs.agents.lumalabs.ai/api/resources/generations/methods/create/index.md",

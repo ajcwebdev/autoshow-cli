@@ -1,4 +1,5 @@
-import { copyFile } from 'node:fs/promises'
+import { copyFileExact } from '~/utils/bun-file-io'
+
 import { join } from 'node:path'
 import type { MusicGenOptions, MusicTarget, Step7MusicMetadata } from '~/types'
 import { runMediaFileTargets } from '~/cli/commands/command-shared/media-file-target-runner'
@@ -35,13 +36,13 @@ export const runMusicTargets = async (
         const promoted = { ...metadata }
         if (metadata.generatedTextFileName) {
           promoted.generatedTextFileName = `${stem}.txt`
-          await copyFile(join(workspaceDir, metadata.generatedTextFileName), join(outputDir, promoted.generatedTextFileName))
+          await copyFileExact(join(workspaceDir, metadata.generatedTextFileName), join(outputDir, promoted.generatedTextFileName))
         }
         if (metadata.additionalAudioFileNames) {
           promoted.additionalAudioFileNames = []
           for (const [index, name] of metadata.additionalAudioFileNames.entries()) {
             const finalName = `${stem}-part-${index + 2}.mp3`
-            await copyFile(join(workspaceDir, name), join(outputDir, finalName))
+            await copyFileExact(join(workspaceDir, name), join(outputDir, finalName))
             promoted.additionalAudioFileNames.push(finalName)
           }
         }

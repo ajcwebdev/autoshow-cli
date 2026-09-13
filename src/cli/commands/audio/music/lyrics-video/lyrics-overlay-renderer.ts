@@ -1,4 +1,5 @@
-import { writeFile } from 'node:fs/promises'
+import { writeFileExact } from '~/utils/bun-file-io'
+
 import { join } from 'node:path'
 import type { CaptionCue, OverlaySegment, OverlayTextLayout } from '~/types'
 import { commandExists, exec } from '~/utils/cli-utils'
@@ -86,6 +87,7 @@ export const buildOverlaySegments = (cues: CaptionCue[], options?: { includeCont
 }
 
 export const resolveConvertCommand = (): string | undefined => {
+  if (commandExists('magick')) return 'magick'
   if (commandExists('convert')) {
     return 'convert'
   }
@@ -295,6 +297,6 @@ export const buildOverlaySequence = async (options: {
   }
 
   const concatPath = join(options.overlayDir, 'frames.txt')
-  await writeFile(concatPath, `${listLines.join('\n')}\n`)
+  await writeFileExact(concatPath, `${listLines.join('\n')}\n`)
   return concatPath
 }

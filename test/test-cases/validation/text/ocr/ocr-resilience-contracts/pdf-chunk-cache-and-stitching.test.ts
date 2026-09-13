@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { ProviderError } from '~/utils/error-handler'
+import { OcrOutputLimitError } from '~/cli/commands/text/ocr/ocr-structured-response-error'
 import type { HostedOcrRun, RunHostedOcrPdfChunkFallbackOptions } from '~/types'
 import {
   basePdfMetadata,
@@ -46,6 +47,27 @@ const malformedPageRun: NonNullable<RunHostedOcrPdfChunkFallbackOptions['buildMa
 }], { totalPages: 1 })
 
 describe('PDF chunk cache and stitching contracts', () => {
+  for (const provider of ['DeepInfra', 'GLM Flash']) {
+    test(`${provider} token-truncated artifacts remain failures and never become cached page text`, async () => {
+      await withLocalTestDir('ocr-page-token-limit', async (dir) => {
+        const attemptedPages: number[] = []
+        await expect(runTwoPageFallback(dir, {
+          runChunk: async (_chunkPath, _chunkMetadata, range) => {
+            attemptedPages.push(range.startPage)
+            throw new OcrOutputLimitError(`${provider} OCR input image reached its output token limit.`, 'incomplete text')
+          },
+          buildMalformedPageRun: malformedPageRun
+        })).rejects.toThrow('output token limit')
+        expect(attemptedPages).toEqual([1])
+        expect(await Bun.file(invalidPageResponsePath(dir, 1)).text()).toBe('incomplete text')
+        expect(await Bun.file(pageCachePath(dir, 1)).exists()).toBe(false)
+        expect(await Bun.file(pageTextPath(dir, 1)).exists()).toBe(false)
+        const audit = await Bun.file(join(dir, 'fallback-state.json')).json()
+        expect(audit.pages[0]).toMatchObject({ status: 'failed', failure: { category: 'provider_limit' } })
+      })
+    })
+  }
+
   test('successful fallback pages are cached before the next page runs', async () => {
     await withLocalTestDir('ocr-page-cache-order', async (dir) => {
       await runTwoPageFallback(dir, {

@@ -13,7 +13,7 @@ import { buildStructuredValidationFailureEnvelope } from '~/cli/commands/text/wr
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 import { buildStep3Metadata as buildSharedStep3Metadata } from '../../content-output/shared'
 
-const LLM_FIXTURE = { llmService: 'openai' as const, llmModel: 'gpt-5.5', structuredPresetNames: ['shortSummary'] }
+const LLM_FIXTURE = { llmService: 'openai' as const, llmModel: 'gpt-5.6-sol', structuredPresetNames: ['shortSummary'] }
 
 const buildStep3Metadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata =>
   buildSharedStep3Metadata(LLM_FIXTURE, overrides)
@@ -196,15 +196,15 @@ test('show notes mirror single and multi-output JSON naming', async () => {
 
     const partialMulti = await writeShowNoteArtifacts({
       outputDir,
-      results: [buildResult({ outputFileName: 'text-gpt-5.5.json' })],
+      results: [buildResult({ outputFileName: 'text-gpt-5.6-sol.json' })],
       sourceText: 'source'
     })
-    expect(partialMulti.internalArtifacts).toEqual({ 'showNote-gpt-5.5': 'show-note-gpt-5.5.md' })
+    expect(partialMulti.internalArtifacts).toEqual({ 'showNote-gpt-5.6-sol': 'show-note-gpt-5.6-sol.md' })
 
     const multi = await writeShowNoteArtifacts({
       outputDir,
       results: [
-        buildResult({ llmModel: 'gpt-5.5', outputFileName: 'text-gpt-5.5.json' }, 'first'),
+        buildResult({ llmModel: 'gpt-5.6-sol', outputFileName: 'text-gpt-5.6-sol.json' }, 'first'),
         buildResult({ llmService: 'gemini', llmModel: 'gemini-3.5-flash', outputFileName: 'text-gemini-3.5-flash.json' }, 'second')
       ],
       sourceText: 'source'
@@ -212,9 +212,9 @@ test('show notes mirror single and multi-output JSON naming', async () => {
 
     expect(Object.values(multi.internalArtifacts).sort()).toEqual([
       'show-note-gemini-3.5-flash.md',
-      'show-note-gpt-5.5.md'
+      'show-note-gpt-5.6-sol.md'
     ])
-    expect(await Bun.file(join(outputDir, 'show-note-gpt-5.5.md')).text()).toContain('first')
+    expect(await Bun.file(join(outputDir, 'show-note-gpt-5.6-sol.md')).text()).toContain('first')
     expect(await Bun.file(join(outputDir, 'show-note-gemini-3.5-flash.md')).text()).toContain('second')
   } finally {
     await rm(tempDir, { recursive: true, force: true })
@@ -224,7 +224,7 @@ test('show notes mirror single and multi-output JSON naming', async () => {
 test('expected output planning reports show-note artifacts for write LLM output', async () => {
   const singleTextInput = await buildExpectedFilesList(
     'write',
-    buildOptsFromFlags({ openai: 'gpt-5.4-mini' })
+    buildOptsFromFlags({ openai: 'gpt-5.6-terra' })
   )
   expect(singleTextInput).toContain('text.json')
   expect(singleTextInput).toContain('show-note.md')

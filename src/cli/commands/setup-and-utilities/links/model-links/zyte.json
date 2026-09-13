@@ -1,5 +1,8 @@
 {
   "Zyte": {
+    "LLMSTXT": [
+      "https://docs.zyte.com/llms.txt"
+    ],
     "General": [
       "https://docs.zyte.com/zyte-api/get-started.md",
       "https://docs.zyte.com/zyte-api/usage/http.md",

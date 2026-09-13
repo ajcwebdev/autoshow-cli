@@ -33,7 +33,7 @@ export const createOcrCostDiagnosticsMetadata = (): WriteManifestMetadata => ({
     languages: 'eng',
     tokenEstimate: 5000,
     ocrService: 'openai',
-    ocrModel: 'gpt-5.4-nano',
+    ocrModel: 'gpt-5.6-luna',
     promptTokens: 6000,
     completionTokens: 1500
   } satisfies OcrStepFixture,
@@ -42,7 +42,7 @@ export const createOcrCostDiagnosticsMetadata = (): WriteManifestMetadata => ({
     [{
       step: 'extract',
       provider: 'openai',
-      model: 'gpt-5.4-nano',
+      model: 'gpt-5.6-luna',
       cost: 0.58044,
       pageCount: 2,
       promptTokens: 5972,
@@ -55,7 +55,7 @@ export const createOcrCostDiagnosticsMetadata = (): WriteManifestMetadata => ({
     [{
       step: 'extract',
       provider: 'openai',
-      model: 'gpt-5.4-nano',
+      model: 'gpt-5.6-luna',
       cost: 0.3075,
       inputMetric: 'tokens',
       inputValue: 7500,
@@ -65,7 +65,7 @@ export const createOcrCostDiagnosticsMetadata = (): WriteManifestMetadata => ({
     [
       createOcrDiagnostic({
         provider: 'openai',
-        model: 'gpt-5.4-nano',
+        model: 'gpt-5.6-luna',
         pages: 2,
         predictedCostInputs: {
           costCents: 0.58044,

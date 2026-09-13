@@ -1,4 +1,5 @@
-import { readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { readFileBytes, writeFileExact } from '~/utils/bun-file-io'
+import { rename, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import type { OcrBatchDiagnosticTarget, OcrBatchDiagnosticsReport, PipelineManifest, TargetAccumulator } from '~/types'
@@ -184,7 +185,7 @@ export const writeOcrBatchDiagnostics = async (
 ): Promise<OcrBatchDiagnosticsReport | undefined> => {
   const manifest = await readManifest(batchDir)
   if (!manifest || manifest.scope !== 'batch') return undefined
-  const manifestBytes = await readFile(join(batchDir, PIPELINE_MANIFEST_FILE))
+  const manifestBytes = await readFileBytes(join(batchDir, PIPELINE_MANIFEST_FILE))
   const sha256 = new Bun.CryptoHasher('sha256').update(manifestBytes).digest('hex')
   const report = deriveOcrBatchDiagnostics(manifest, sha256)
   const outputPath = join(batchDir, OCR_BATCH_DIAGNOSTICS_FILE)
@@ -194,7 +195,7 @@ export const writeOcrBatchDiagnostics = async (
   }
 
   const temporaryPath = `${outputPath}.${crypto.randomUUID()}.tmp`
-  await writeFile(temporaryPath, `${JSON.stringify(report, null, 2)}\n`)
+  await writeFileExact(temporaryPath, `${JSON.stringify(report, null, 2)}\n`)
   await rename(temporaryPath, outputPath)
   l.write('warn', `OCR batch diagnostics found ${report.targets.length} affected targets`, {
     category: 'artifact',

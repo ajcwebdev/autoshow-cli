@@ -19,6 +19,7 @@ type TtsInvocationControlsByProvider = {
     pronunciationDictionaryLocators?: OptionalControl<readonly string[]>
   }>
   grok: Readonly<{
+    speed?: OptionalControl<number>
     language?: OptionalControl<string>
     textNormalization?: OptionalControl<boolean>
   }>
@@ -31,8 +32,8 @@ type TtsInvocationControlsByProvider = {
     trailingSilence?: OptionalControl<number>
     description?: OptionalControl<string>
   }>
-  cartesia: Readonly<{ language?: OptionalControl<string> }>
-  inworld: Readonly<{ steeringPrompt?: OptionalControl<string> }>
+  cartesia: Readonly<{ language?: OptionalControl<string>, speed?: OptionalControl<number> }>
+  inworld: Readonly<{ steeringPrompt?: OptionalControl<string>, speed?: OptionalControl<number> }>
 }
 
 type TtsInvocationControlsFor<P extends TtsProvider> = TtsInvocationControlsByProvider[P]

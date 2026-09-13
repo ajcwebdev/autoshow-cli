@@ -6,6 +6,7 @@ export type HostedProviderEnvCheck = {
   label: string
   hintUrl: string
   stages: readonly string[]
+  /** Dotted paths; append =value for an exact enum selector rather than presence. */
   configPaths: readonly string[]
   ttsPreflight?: {
     provider: import('~/types').TtsProvider

@@ -1,3 +1,4 @@
+import { InternalError } from '~/utils/error-handler'
 import type { CliFlagDefinition, CliFlagsDefinition } from '~/types'
 
 export const strFlag = (description: string, defaultValue?: string): CliFlagDefinition =>
@@ -85,4 +86,17 @@ export const pickFlags = (
     }
   }
   return picked
+}
+
+export const composeFlags = (groups: readonly CliFlagsDefinition[], shared: CliFlagsDefinition = {}): CliFlagsDefinition => {
+  const result: CliFlagsDefinition = {}
+  for (const group of groups) {
+    for (const [name, definition] of Object.entries(group)) {
+      if (Object.hasOwn(result, name) && !Object.hasOwn(shared, name)) {
+        throw InternalError(`Duplicate CLI flag --${name}; define its shared contract explicitly.`)
+      }
+      result[name] = definition
+    }
+  }
+  return { ...result, ...shared }
 }

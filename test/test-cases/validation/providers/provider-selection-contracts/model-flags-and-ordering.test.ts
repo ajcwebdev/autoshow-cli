@@ -181,13 +181,13 @@ describe('provider selection contracts', () => {
     })
     const ocrSpecs = collectStep2ProviderSpecs('ocr', {
       useTesseract: true,
-      openaiOcrModels: ['gpt-5.4-nano', 'gpt-5.4-nano', 'gpt-5.5'],
-      grokOcrModels: ['grok-4.3']
+      openaiOcrModels: ['gpt-5.6-luna', 'gpt-5.6-luna', 'gpt-5.6-sol'],
+      grokOcrModels: ['grok-4.5']
     })
     const ocrOpts = buildOptsFromFlags({
       'tesseract-ocr': true,
-      'openai-ocr': ['gpt-5.4-nano', 'gpt-5.4-nano', 'gpt-5.5'],
-      'grok-ocr': ['grok-4.3']
+      'openai-ocr': ['gpt-5.6-luna', 'gpt-5.6-luna', 'gpt-5.6-sol'],
+      'grok-ocr': ['grok-4.5']
     })
 
     expect(collectSttTargets(sttOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
@@ -196,15 +196,15 @@ describe('provider selection contracts', () => {
     ])
     expect(ocrSpecs).toEqual([
       { provider: 'tesseract', model: 'tesseract' },
-      { provider: 'openai-ocr', model: 'gpt-5.4-nano' },
-      { provider: 'openai-ocr', model: 'gpt-5.5' },
-      { provider: 'grok-ocr', model: 'grok-4.3' }
+      { provider: 'openai-ocr', model: 'gpt-5.6-luna' },
+      { provider: 'openai-ocr', model: 'gpt-5.6-sol' },
+      { provider: 'grok-ocr', model: 'grok-4.5' }
     ])
     expect(collectExplicitOcrTargets(ocrOpts)).toEqual([
       { service: 'tesseract', model: 'tesseract' },
-      { service: 'openai', model: 'gpt-5.4-nano' },
-      { service: 'openai', model: 'gpt-5.5' },
-      { service: 'grok', model: 'grok-4.3' }
+      { service: 'openai', model: 'gpt-5.6-luna' },
+      { service: 'openai', model: 'gpt-5.6-sol' },
+      { service: 'grok', model: 'grok-4.5' }
     ])
   })
 

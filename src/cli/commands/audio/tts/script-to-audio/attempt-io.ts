@@ -216,3 +216,10 @@ export const materializeRecoveredBatch = async (
     throw UsageError(`Recovered TTS generation slot ${batch.value.generationSlotId} changed identity during durable result promotion.`)
   }
 }
+
+export const createAudioRunArtifactWriter = (rootDir: string, audioRunRoot: string) => ({
+  write: async <T>(name: string, value: T) => {
+    const file = await writeJsonCreateOnly(rootDir, `${audioRunRoot}/${name}`, value)
+    return { ...file, ref: { path: contained(audioRunRoot, file.path), sha256: file.sha256 } }
+  },
+})

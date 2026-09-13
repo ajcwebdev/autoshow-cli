@@ -11,17 +11,17 @@ describe('config provider and concurrency default contracts', () => {
 
   test('buildConfigPatchFromFlags maps explicit provider, OCR, batch, and pricing defaults', () => {
     expect(buildConfigPatchFromFlags({
-      openai: 'gpt-5.4-mini',
-      grok: 'grok-4.3',
-      glm: 'glm-5.1',
+      openai: 'gpt-5.6-terra',
+      grok: 'grok-4.5',
+      glm: 'glm-5.3-flash',
       kimi: 'kimi-k2.6',
-      together: ['kimi-k2.6', 'glm-5.1'],
+      together: ['kimi-k3', 'glm-5.3-flash'],
       'llm-provider-concurrency': '3',
       'llm-local-concurrency': '1',
       'tesseract-ocr': true,
-      'openai-ocr': ['gpt-5.5'],
-      'grok-ocr': ['grok-4.3'],
-      'deepinfra-ocr': ['Qwen/Qwen3-VL-30B-A3B-Instruct'],
+      'openai-ocr': ['gpt-5.6-sol'],
+      'grok-ocr': ['grok-4.5'],
+      'deepinfra-ocr': ['google/gemma-4-31B-it'],
       'kimi-ocr': ['kimi-k2.6'],
       'ocr-dpi': '450',
       'ocr-concurrency': '5',
@@ -32,20 +32,20 @@ describe('config provider and concurrency default contracts', () => {
     }, new Set(['openai', 'grok', 'glm', 'kimi', 'together', 'llm-provider-concurrency', 'llm-local-concurrency', 'tesseract-ocr', 'openai-ocr', 'grok-ocr', 'deepinfra-ocr', 'kimi-ocr', 'ocr-dpi', 'ocr-concurrency', 'ocr-provider-concurrency', 'ocr-local-concurrency', 'batch-limit', 'max-cents']))).toEqual({
       defaults: {
         llm: {
-          openai: ['gpt-5.4-mini'],
-          grok: ['grok-4.3'],
-          glm: ['glm-5.1'],
+          openai: ['gpt-5.6-terra'],
+          grok: ['grok-4.5'],
+          glm: ['glm-5.3-flash'],
           kimi: ['kimi-k2.6'],
-          together: ['kimi-k2.6', 'glm-5.1'],
+          together: ['kimi-k3', 'glm-5.3-flash'],
           providerConcurrency: 3,
           localConcurrency: 1
         },
         extract: {
           ocr: {
             tesseract: true,
-            openaiOcr: ['gpt-5.5'],
-            grokOcr: ['grok-4.3'],
-            deepinfraOcr: ['Qwen/Qwen3-VL-30B-A3B-Instruct'],
+            openaiOcr: ['gpt-5.6-sol'],
+            grokOcr: ['grok-4.5'],
+            deepinfraOcr: ['google/gemma-4-31B-it'],
             kimiOcr: ['kimi-k2.6'],
             dpi: 450,
             ocrConcurrency: 5,

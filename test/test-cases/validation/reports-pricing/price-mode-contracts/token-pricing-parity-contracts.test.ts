@@ -5,7 +5,7 @@ import type { Step3Metadata } from '~/types'
 
 const buildStep3CostMetadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata => ({
   llmService: 'openai',
-  llmModel: 'gpt-5.5',
+  llmModel: 'gpt-6-astra',
   processingTime: 1234,
   inputTokenCount: 300_000,
   outputTokenCount: 10_000,
@@ -24,7 +24,7 @@ describe('price mode contracts', () => {
         applyCostMultipliers: false,
         llmTargets: [{
           service: 'openai',
-          model: 'gpt-5.5',
+          model: 'gpt-6-astra',
           inputTokens: 300_000,
           outputTokens: 10_000
         }]
@@ -36,15 +36,15 @@ describe('price mode contracts', () => {
       expect(estimated.steps[0]).toMatchObject({
         step: 'llm',
         provider: 'openai',
-        model: 'gpt-5.5',
-        cost: 345,
+        model: 'gpt-6-astra',
+        cost: 675,
         pricingBand: 'standard-long-context'
       })
       expect(actual.steps[0]).toMatchObject({
         step: 'llm',
         provider: 'openai',
-        model: 'gpt-5.5',
-        cost: 345,
+        model: 'gpt-6-astra',
+        cost: 675,
         costSource: 'provider_usage',
         pricingBand: 'standard-long-context'
       })

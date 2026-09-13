@@ -10,11 +10,11 @@ describe('config load schema contracts', () => {
           mode: 'immediate'
         },
         llm: {
-          openai: ['gpt-5.4-mini'],
-          grok: ['grok-4.3'],
-          glm: ['glm-5.1'],
+          openai: ['gpt-5.6-terra'],
+          grok: ['grok-4.5'],
+          glm: ['glm-5.3-flash'],
           kimi: ['kimi-k2.6'],
-          together: ['kimi-k2.6', 'glm-5.1'],
+          together: ['kimi-k3', 'glm-5.3-flash'],
           providerConcurrency: 3,
           localConcurrency: 1
         },
@@ -29,9 +29,9 @@ describe('config load schema contracts', () => {
             providerConcurrency: 3,
             localConcurrency: 1,
             ocrConcurrency: 4,
-            openaiOcr: ['gpt-5.5'],
-            grokOcr: ['grok-4.3'],
-            deepinfraOcr: ['Qwen/Qwen3-VL-30B-A3B-Instruct'],
+            openaiOcr: ['gpt-5.6-sol'],
+            grokOcr: ['grok-4.5'],
+            deepinfraOcr: ['google/gemma-4-31B-it'],
             kimiOcr: ['kimi-k2.6']
           }
         },
@@ -96,7 +96,7 @@ describe('config load schema contracts', () => {
     const scalarConfig = await writeTempConfig({
       defaults: {
         llm: {
-          openai: 'gpt-5.4-mini'
+          openai: 'gpt-5.6-terra'
         }
       }
     })

@@ -1,5 +1,8 @@
 {
   "OpenAI": {
+    "LLMSTXT": [
+      "https://developers.openai.com/llms.txt"
+    ],
     "General": [
       "https://developers.openai.com/api/docs/pricing.md"
     ],

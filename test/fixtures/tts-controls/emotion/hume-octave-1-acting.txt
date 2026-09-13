@@ -1,0 +1,5 @@
+Narrator: I sound calm. All is well.
+Narrator: I sound excited! This is great news!
+Narrator: I sound sad. I miss my friend.
+Narrator: I sound angry. That is not fair!
+Narrator: I sound afraid. Please stay with me.

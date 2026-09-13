@@ -14,14 +14,15 @@ const parseBudgetKeySet = (environmentKey: string): Set<string> | null => {
   try {
     parsed = JSON.parse(raw)
   } catch {
-    return new Set()
+    return null
   }
 
   if (!Array.isArray(parsed)) {
-    return new Set()
+    return null
   }
 
-  const keys = parsed.filter((value): value is string => typeof value === 'string' && value.length > 0)
+  if (!parsed.every((value): value is string => typeof value === 'string' && value.trim().length > 0)) return null
+  const keys: string[] = parsed
   return new Set(keys)
 }
 
@@ -30,7 +31,8 @@ const normalizeBudgetKeys = (budgetKey: BudgetKeyInput): readonly string[] => {
 }
 
 export const shouldSkipBudgetKeys = (budgetKey: BudgetKeyInput): boolean => {
-  const skipKeys = parseBudgetKeySet('AUTOSHOW_TEST_BUDGET_SKIP_KEYS') ?? new Set()
+  const skipKeys = parseBudgetKeySet('AUTOSHOW_TEST_BUDGET_SKIP_KEYS')
+  if (skipKeys === null) return true
   return normalizeBudgetKeys(budgetKey).some((key) => skipKeys.has(key))
 }
 
@@ -40,7 +42,7 @@ export const isConcurrentBudgetedTestsEnabled = (): boolean =>
 export const findUnevaluatedBudgetKeys = (budgetKey: BudgetKeyInput): string[] => {
   const evaluatedKeys = parseBudgetKeySet('AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS')
   if (evaluatedKeys === null) {
-    return []
+    return [...normalizeBudgetKeys(budgetKey)]
   }
 
   return normalizeBudgetKeys(budgetKey).filter(key => !evaluatedKeys.has(key))
@@ -52,6 +54,12 @@ const registerBudgetedTest = (
   fn: () => void | Promise<void>,
   timeoutMs: number
 ): void => {
+  const skipKeys = parseBudgetKeySet('AUTOSHOW_TEST_BUDGET_SKIP_KEYS')
+  const evaluatedKeys = parseBudgetKeySet('AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS')
+  if (skipKeys === null || evaluatedKeys === null || [...skipKeys].some(key => !evaluatedKeys.has(key))) {
+    test(name, () => { throw new Error('Budget preflight evidence is missing or invalid; use the runner with --budget before live execution.') }, timeoutMs)
+    return
+  }
   const unevaluatedKeys = findUnevaluatedBudgetKeys(budgetKey)
   if (unevaluatedKeys.length > 0) {
     test(name, () => {

@@ -15,8 +15,7 @@ export const sttTimingFlags = {
   'whisper-engine': { description: 'Calibration engine: whisperfile (default whisperfile)', type: String },
   'whisper-calibration-model': { description: 'Installed model for local timing calibration (default tiny)', type: String },
   'align-transcript': { description: 'Force-align this saved transcript to local input audio using an installed CTC model', type: String },
-  'alignment-model': { description: 'Local Wav2Vec2 CTC model directory; never downloaded by alignment', type: String },
-  'alignment-python': { description: 'Python executable with the local CTC alignment dependencies (default python3)', type: String },
+  'alignment-model': { description: 'Local Wav2Vec2 CTC ONNX model directory; never downloaded by alignment', type: String },
   'alignment-min-confidence': { description: 'Reject aligned words below this confidence, from 0 to 1 (default 0.1)', type: String },
   'split-channels': { description: 'Save each local audio channel as verified float32 WAV with timeline offsets', type: Boolean },
   'merge-channel-results': { description: 'Merge per-channel results listed in the input channel-results.json, retaining channel labels', type: Boolean },
@@ -41,7 +40,7 @@ export const runSttTimingWorkflow = async (input: string | undefined, flags: Rec
   const operation = operations[0]!
   const allowed = new Set([operation, 'price', 'output-dir', 'output-root', 'json', 'quiet', 'verbose', 'log-level', 'color', 'config-path',
     ...(operation === 'calibrate-whisper' ? ['timing-reference', 'whisper-engine', 'whisper-calibration-model'] : []),
-    ...(operation === 'align-transcript' ? ['alignment-model', 'alignment-python', 'alignment-min-confidence'] : [])])
+    ...(operation === 'align-transcript' ? ['alignment-model', 'alignment-min-confidence'] : [])])
   for (const flag of explicitFlags) if (!allowed.has(flag)) throw UsageError(`--${flag} cannot be combined with the local --${operation} operation.`)
   const source = await requireLocalTimingFile(input)
   if (operation === 'calibrate-whisper' && typeof flags['timing-reference'] !== 'string') throw UsageError('--calibrate-whisper requires --timing-reference result.json.')

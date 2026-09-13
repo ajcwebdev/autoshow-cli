@@ -1,4 +1,3 @@
-import { configCommand } from './commands/setup-and-utilities/config-command/define-config-command'
 import { metadataCommand } from '~/cli/commands/sources/metadata/define-metadata-command'
 import { downloadCommand } from '~/cli/commands/sources/download/define-download-command'
 import { extractCommand } from '~/cli/commands/command-shared/extract-routing/define-extract-command'
@@ -17,7 +16,6 @@ import type { CliCommandDefinition, HelpCommandGroupKey } from '~/types'
 export const HELP_COMMAND_GROUP_BY_NAME: Readonly<Record<string, HelpCommandGroupKey>> = {
   version: 'core',
   help: 'core',
-  config: 'setup',
   setup: 'setup',
   links: 'setup',
   resume: 'setup',
@@ -34,7 +32,6 @@ export const HELP_COMMAND_GROUP_BY_NAME: Readonly<Record<string, HelpCommandGrou
 }
 
 export const COMMAND_DEFINITIONS = [
-  configCommand,
   setupCommand,
   linksCommand,
   metadataCommand,

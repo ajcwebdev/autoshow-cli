@@ -1,10 +1,11 @@
+import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { RunnerStreamLabel, TestRunArtifacts } from '~/types'
-import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import { l } from '~/utils/app-logger/app-logger'
 import { consumeBoundedTextStream } from '~/utils/bounded-text-stream'
 import { childEnv } from '~/utils/child-env'
+import { stripAnsi } from '~/utils/terminal-colors'
 import { buildBunTestFlags, isE2EOnlyTestSelection } from './args'
 import { appendRunnerLog, TEST_OUTPUT_ROOT } from './artifacts'
 import { BUN_FILE_TIMINGS_CACHE_PATH, prepareBunFileTimings } from './file-timings'
@@ -13,6 +14,21 @@ import { formatTimedOutputPrefix, lineHasTimedOutputPrefix, normalizeRepoPath } 
 const TEST_CLI_BUNDLE_PATH = join(TEST_OUTPUT_ROOT, '.test-cache', 'cli.js')
 const MAX_RUNNER_STREAM_BYTES = 64 * 1024 * 1024
 const MAX_RUNNER_LINE_CHARACTERS = 64 * 1024
+
+export const createBunCrashDetector = (onCrash: () => void): ((line: string) => void) => {
+  let sawRuntimeHeader = false
+  let sawPanic = false
+  let reported = false
+  return line => {
+    line = stripAnsi(line)
+    if (/^Bun v\d+\.\d+\.\d+/.test(line)) sawRuntimeHeader = true
+    if (sawRuntimeHeader && line.startsWith('panic: ')) sawPanic = true
+    if (!reported && sawPanic && line.startsWith('oh no: Bun has crashed.')) {
+      reported = true
+      onCrash()
+    }
+  }
+}
 
 export const prebuildTestCliBundle = async (artifacts: TestRunArtifacts): Promise<void> => {
   await mkdir(join(TEST_OUTPUT_ROOT, '.test-cache'), { recursive: true })
@@ -59,12 +75,14 @@ export const runWithConcurrency = async <T, R>(
 export const forwardSpawnOutput = async (
   stream: ReadableStream<Uint8Array>,
   label: RunnerStreamLabel,
-  artifacts: TestRunArtifacts
+  artifacts: TestRunArtifacts,
+  onLine?: (line: string) => void
 ): Promise<void> => {
   const writer = label === 'STDOUT' ? process.stdout : process.stderr
 
   const flushLine = (line: string): void => {
     if (line.length === 0) return
+    onLine?.(line)
     const prefix = formatTimedOutputPrefix(Date.now())
     const output = lineHasTimedOutputPrefix(line) ? line : `${prefix} ${line}`
     writer.write(output)
@@ -85,14 +103,24 @@ export const buildTestWorkerEnv = (
   preserveTestOutput: boolean,
   envOverrides: Record<string, string>
 ): Record<string, string> => {
-  const runnerControlKeys = Object.keys(process.env).filter(key => key.startsWith('AUTOSHOW_TEST_'))
+  const runnerControlKeys = ['AUTOSHOW_TEST_CLI_BUNDLE', 'AUTOSHOW_TEST_CONCURRENT', 'AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY', 'AUTOSHOW_TEST_OUTPUT_DIR']
+  const live = process.env['AUTOSHOW_TEST_CREDENTIAL_MODE'] === 'live'
+  let credentialKeys: unknown = []
+  try {
+    if (live) credentialKeys = JSON.parse(process.env['AUTOSHOW_TEST_CREDENTIAL_KEYS'] ?? '[]')
+  } catch {
+    throw new Error('AUTOSHOW_TEST_CREDENTIAL_KEYS must be a JSON array of registered credential names')
+  }
+  const knownKeys = new Set<string>(HOSTED_PROVIDER_ENV_CHECKS.map(provider => provider.envVar))
+  if (!Array.isArray(credentialKeys) || !credentialKeys.every(key => typeof key === 'string' && knownKeys.has(key))) throw new Error('AUTOSHOW_TEST_CREDENTIAL_KEYS must be a JSON array of registered credential names')
   const workerEnv = childEnv({
     allow: [
-      ...HOSTED_PROVIDER_ENV_CHECKS.map(provider => provider.envVar),
       ...runnerControlKeys,
+      ...credentialKeys,
       'AUTOSHOW_PROJECT_ROOT'
     ]
   })
+  workerEnv['AUTOSHOW_TEST_CREDENTIAL_MODE'] = live ? 'live' : 'fixture'
   workerEnv['FORCE_COLOR'] = '1'
   workerEnv['AUTOSHOW_TEST_ARTIFACTS_DIR'] = artifacts.runDir
   workerEnv['AUTOSHOW_TEST_COMMAND_LOG'] = artifacts.commandLogPath
@@ -142,11 +170,18 @@ export const runBunTest = async (
     stdout: 'pipe',
     stderr: 'pipe',
   })
+  let crashed = false
+  const detectCrash = createBunCrashDetector(() => {
+    crashed = true
+    // A crashed --parallel worker can leave the coordinator waiting indefinitely.
+    // Stop this run; never retry tests or provider commands automatically.
+    proc.kill('SIGTERM')
+  })
   const [exitCode] = await Promise.all([
     proc.exited,
-    forwardSpawnOutput(proc.stdout, 'STDOUT', artifacts),
-    forwardSpawnOutput(proc.stderr, 'STDERR', artifacts),
+    forwardSpawnOutput(proc.stdout, 'STDOUT', artifacts, detectCrash),
+    forwardSpawnOutput(proc.stderr, 'STDERR', artifacts, detectCrash),
   ])
   await appendRunnerLog(artifacts, `\n=== END bun ${args.join(' ')} (exit=${exitCode}) ===\n`)
-  return exitCode
+  return crashed ? 1 : exitCode
 }

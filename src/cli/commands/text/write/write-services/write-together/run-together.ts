@@ -7,8 +7,6 @@ import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
 import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
 
 const TOGETHER_MODEL_BY_SELECTOR = {
-  'kimi-k2.6': 'moonshotai/Kimi-K2.6',
-  'glm-5.1': 'zai-org/GLM-5.1',
   'kimi-k3': 'moonshotai/Kimi-K3',
   'glm-5.3': 'zai-org/GLM-5.3',
   'glm-5.3-flash': 'zai-org/GLM-5.3-Flash'

@@ -147,7 +147,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-`--refresh` and `--refresh-only` ship in `src/cli/commands/setup-and-utilities/links/define-links-command.ts`. Default output uses `createGenerationOutputDir` so `links` creates a timestamped run directory under `output/` and accepts `--output-root` and `--output-dir`. Curated `models` sections live in `src/cli/commands/setup-and-utilities/links/model-links/`. User-facing behavior is documented in `docs/commands/setup-and-utilities/links.md`.
+`--refresh` and `--refresh-only` ship in `src/cli/commands/setup-and-utilities/links/define-links-command.ts`. Default output uses `createGenerationOutputDir` so `links` creates a timestamped run directory under `output/` and accepts `--output-root` and `--output-dir`. Curated `models` sections live in `src/cli/commands/setup-and-utilities/links/model-links/`. User-facing behavior is documented in `docs/commands/00-setup-and-utilities/links.md`.
 
 ## API / Type Impact
 
@@ -182,6 +182,6 @@ Verification is local and no-cost.
 - Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
 - Related ADR: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)
-- `docs/commands/setup-and-utilities/links.md`
+- `docs/commands/00-setup-and-utilities/links.md`
 - `src/cli/commands/setup-and-utilities/links/define-links-command.ts`
 - `src/cli/commands/setup-and-utilities/links/model-links/`

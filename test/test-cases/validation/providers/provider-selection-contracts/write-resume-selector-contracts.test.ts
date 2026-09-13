@@ -50,61 +50,61 @@ describe('provider selection contracts', () => {
       dir: '/tmp/write-run',
       manifestPath: '/tmp/write-run/manifest.json'
     }, {
-      provider: ['together=kimi-k2.6', 'together=glm-5.1', 'anthropic=claude-haiku-4-5', 'anthropic=claude-sonnet-4-6']
+      provider: ['together=kimi-k3', 'together=glm-5.3-flash', 'anthropic=claude-sonnet-5', 'anthropic=claude-sonnet-5']
     }, new Set(['provider']), [
       'resume',
       '/tmp/write-run',
       '--provider',
-      'together=kimi-k2.6',
+      'together=kimi-k3',
       '--provider',
-      'together=glm-5.1',
+      'together=glm-5.3-flash',
       '--provider',
-      'anthropic=claude-haiku-4-5',
+      'anthropic=claude-sonnet-5',
       '--provider',
-      'anthropic=claude-sonnet-4-6'
+      'anthropic=claude-sonnet-5'
     ])
     const opts = buildOptsFromFlags(normalized.flags, {}, normalized.explicitFlags, { flagOccurrences: normalized.flagOccurrences })
 
     expect(normalized.flagOccurrences.map(({ name, value }) => ({ name, value }))).toEqual([
-      { name: 'together', value: 'kimi-k2.6' },
-      { name: 'together', value: 'glm-5.1' },
-      { name: 'anthropic', value: 'claude-haiku-4-5' },
-      { name: 'anthropic', value: 'claude-sonnet-4-6' }
+      { name: 'together', value: 'kimi-k3' },
+      { name: 'together', value: 'glm-5.3-flash' },
+      { name: 'anthropic', value: 'claude-sonnet-5' },
+      { name: 'anthropic', value: 'claude-sonnet-5' }
     ])
-    expect(opts.togetherModels).toEqual(['kimi-k2.6', 'glm-5.1'])
-    expect(opts.anthropicModels).toEqual(['claude-haiku-4-5', 'claude-sonnet-4-6'])
+    expect(opts.togetherModels).toEqual(['kimi-k3', 'glm-5.3-flash'])
+    expect(opts.anthropicModels).toEqual(['claude-sonnet-5'])
   })
 
   test('write resume filenames keep duplicate short model selectors service-qualified', () => {
     const existingEntries: Step3Metadata[] = [
       {
         llmService: 'glm',
-        llmModel: 'glm-5.1',
+        llmModel: 'glm-5.3-flash',
         processingTime: 1,
         inputTokenCount: 1,
         outputTokenCount: 1,
-        outputFileName: 'text-glm-5.1.json',
+        outputFileName: 'text-glm-5.3-flash.json',
         outputFormat: 'json',
         structuredMode: 'native',
         structuredPresetNames: ['shortSummary']
       },
       {
         llmService: 'kimi',
-        llmModel: 'kimi-k2.6',
+        llmModel: 'kimi-k3',
         processingTime: 1,
         inputTokenCount: 1,
         outputTokenCount: 1,
-        outputFileName: 'text-kimi-k2.6.json',
+        outputFileName: 'text-kimi-k3.json',
         outputFormat: 'json',
         structuredMode: 'native',
         structuredPresetNames: ['shortSummary']
       }
     ]
     const selectedTargets = [
-      { service: 'together' as const, model: 'kimi-k2.6' },
-      { service: 'together' as const, model: 'glm-5.1' },
-      { service: 'anthropic' as const, model: 'claude-haiku-4-5' },
-      { service: 'anthropic' as const, model: 'claude-sonnet-4-6' }
+      { service: 'together' as const, model: 'kimi-k3' },
+      { service: 'together' as const, model: 'glm-5.3-flash' },
+      { service: 'anthropic' as const, model: 'claude-sonnet-5' },
+      { service: 'anthropic' as const, model: 'claude-sonnet-5' }
     ]
     const reservedFileNames = new Set(existingEntries.map((entry) => entry.outputFileName))
 
@@ -113,24 +113,24 @@ describe('provider selection contracts', () => {
       selectedTargets,
       existingEntries,
       reservedFileNames
-    })).toBe('text-together-kimi-k2.6.json')
+    })).toBe('text-together-kimi-k3.json')
     expect(buildWriteResumeOutputFileName({
       target: selectedTargets[1]!,
       selectedTargets,
       existingEntries,
       reservedFileNames
-    })).toBe('text-together-glm-5.1.json')
+    })).toBe('text-together-glm-5.3-flash.json')
     expect(buildWriteResumeOutputFileName({
       target: selectedTargets[2]!,
       selectedTargets,
       existingEntries,
       reservedFileNames
-    })).toBe('text-claude-haiku-4-5.json')
+    })).toBe('text-anthropic-claude-sonnet-5.json')
     expect(buildWriteResumeOutputFileName({
       target: selectedTargets[3]!,
       selectedTargets,
       existingEntries,
       reservedFileNames
-    })).toBe('text-claude-sonnet-4-6.json')
+    })).toBe('text-anthropic-claude-sonnet-5-2.json')
   })
 })

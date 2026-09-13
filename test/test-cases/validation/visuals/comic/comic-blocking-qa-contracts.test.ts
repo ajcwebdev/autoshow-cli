@@ -113,7 +113,7 @@ const auditResult = (panel: PageQaResult['panels'][number], summary = 'Blocking 
 })
 
 const entryFor = (result: PageQaResult, policy: BlockingHardKeyPolicy = []): PageQaEntry => ({
-  pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-5.5',
+  pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-5.6-sol',
   hardFailure: hasHardPageQaFailure(result, { blockingHardKeys: policy }), result,
   usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
 })
@@ -414,10 +414,10 @@ describe('blocking-aware page QA and the blocking-class restart lane', () => {
     const entry = entryFor(auditResult(auditPanel()))
     await writePageQaReports(directory, [{ ...entry, outputFile: 'panel-01.png' }])
     expect(PAGE_QA_REPORT_SCHEMA_VERSION).toBe(6)
-    expect(await readReusablePageQaEntry(pagePath, 'gpt-5.5')).toBeDefined()
+    expect(await readReusablePageQaEntry(pagePath, 'gpt-5.6-sol')).toBeDefined()
     const report = JSON.parse(await Bun.file(join(directory, 'page-qa-report.json')).text()) as Record<string, unknown>
     await Bun.write(join(directory, 'page-qa-report.json'), JSON.stringify({ ...report, schemaVersion: 4 }, null, 2))
-    expect(await readReusablePageQaEntry(pagePath, 'gpt-5.5')).toBeUndefined()
+    expect(await readReusablePageQaEntry(pagePath, 'gpt-5.6-sol')).toBeUndefined()
   })
 
   test('validates --blocking-hard-keys against the hard-candidate vocabulary', () => {

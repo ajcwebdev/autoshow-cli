@@ -13,6 +13,9 @@ export const resumeCommand = defineCliCommand({
   parameters: outputDirParameter,
   flags: resumeFlags,
   help: {
+    beforeFlags: [
+      'The existing manifest determines each shared flag meaning. Comic runs restore recorded choices and reject provider, rendering, and configuration overrides.',
+    ],
     notes: [
       'Comic runs restore recorded image, audio, and presentation choices. Provider, rendering, and configuration overrides are rejected.',
       'For comic --price results, inspect stage blockers and comicPlans[].ready before execution; unrequested stages stay unrequested.',
@@ -25,7 +28,7 @@ export const resumeCommand = defineCliCommand({
       ['bun autoshow resume ./output/2026-04-22_12-00-00-000_batch', 'Resume a batch directory in place'],
       ['bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider deepinfra --price', 'Estimate missing or additive resume providers without running them'],
       ['bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider deepinfra', 'Retry or add DeepInfra STT outputs'],
-      ['bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider glm=glm-ocr', 'Retry or add GLM OCR outputs'],
+      ['bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider glm=glm-5.3-flash', 'Retry or add GLM OCR outputs'],
       ['bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider elevenlabs=eleven_v3', 'Retry or add ElevenLabs TTS outputs'],
       ['bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=gemini-3.1-flash-lite-image', 'Retry or add Gemini image outputs'],
       ['bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider ltx=ltx-2-3-fast', 'Retry or add LTX video outputs'],

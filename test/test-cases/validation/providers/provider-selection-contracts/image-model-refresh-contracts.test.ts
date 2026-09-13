@@ -21,11 +21,13 @@ describe('image model refresh contracts', () => {
     ])
   })
 
-  test('active image registries contain 25 selectors after retirement and Image 2.5 additions', () => {
+  test('active image registries contain 27 selectors after retirement and Image 2.5 additions', () => {
     expect(SUPPORTED_REPLICATE_IMAGE_MODELS).toEqual([
       'bytedance/seedream-4.5',
       'bytedance/seedream-5-lite',
       'bytedance/seedream-5-pro',
+      'alibaba/qwen-image-3',
+      'alibaba/qwen-image-3-pro',
       'qwen/qwen-image-2-pro',
       'qwen/qwen-image-2',
       'wan-video/wan-2.7-image-pro',
@@ -37,7 +39,7 @@ describe('image model refresh contracts', () => {
       'reve/2.1'
     ])
     const targets = collectImageTargets(buildOptsFromFlags({ 'all-image': true }))
-    expect(targets).toHaveLength(25)
+    expect(targets).toHaveLength(27)
     expect(targets.filter(target => target.service === 'grok').map(target => target.model)).toEqual(['grok-imagine-image-quality', 'grok-imagine-image-2.0'])
     expect(SUPPORTED_GROK_IMAGE_MODELS).toEqual(['grok-imagine-image-quality', 'grok-imagine-image-2.0'])
   })

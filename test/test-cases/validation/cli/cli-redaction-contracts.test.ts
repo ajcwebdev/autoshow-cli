@@ -23,7 +23,7 @@ test('usage-error output redacts Speechify custom voice consent email', async ()
   const result = await runCommand([
     'src/cli/create-cli.ts',
     'tts',
-    'input/examples/tts/1-tts.md',
+    'input/examples/tts/01-tts-short.md',
     '--speechify',
     'definitely-not-a-model',
     '--speechify-tts-consent-email',
@@ -39,7 +39,7 @@ test('usage-error output redacts sensitive URL query values', async () => {
   const result = await runCommand([
     'src/cli/create-cli.ts',
     '--openai',
-    'gpt-5.5',
+    'gpt-5.6-sol',
     'write',
     `https://example.com/audio.mp3?token=${token}`
   ])

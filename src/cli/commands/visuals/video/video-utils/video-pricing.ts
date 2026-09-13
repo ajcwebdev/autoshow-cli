@@ -1,3 +1,4 @@
+import { estimateFalPriorityCost, isFalPriorityVideo } from '../video-services/fal-video-service/fal-priority-video-contract'
 import type { EstimateVideoCostOptions, FalVideoModel, GeminiVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, ProviderModelSelectionSpec, ReplicateVideoModel, VideoCostEstimate, VideoProvider } from '~/types'
 import { validateFalVideoModel, validateGeminiVideoModel, validateGrokVideoModel, validateLtxVideoModel, validateLumalabsVideoModel, validateReplicateVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { getVideoModelMeta } from '~/cli/commands/setup-and-utilities/models/model-loader'
@@ -166,6 +167,7 @@ const estimateLumalabsCost = (model: LumalabsVideoModel, options: EstimateVideoC
 }
 
 const estimateFalCost = (model: FalVideoModel, options: EstimateVideoCostOptions): VideoCostEstimate => {
+  if (isFalPriorityVideo(model)) return estimateFalPriorityCost(model, options)
   const meta = getVideoModelMeta('fal', model)
   const durationSeconds = options.videoDuration ?? 5
   const costPerSecond = meta?.baseCostPerSecondCents ?? (model === 'minimax/h3' ? 26 : 0.5)
@@ -198,7 +200,7 @@ export const estimateReplicateCost = (model: ReplicateVideoModel, options: Estim
     costPerSecond,
     totalCost,
     note: options.videoDuration === -1
-      ? `Approximate estimate using ${resolution}${videoInputNote}${audioNote} per-second pricing; intelligent duration estimated as 5s`
+      ? `Approximate estimate using ${resolution}${videoInputNote}${audioNote} per-second pricing; intelligent duration budgeted at ${durationSeconds}s`
       : `Approximate estimate using ${resolution}${videoInputNote}${audioNote} per-second pricing`
   }
 }

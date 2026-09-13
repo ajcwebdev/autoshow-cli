@@ -1,4 +1,5 @@
-import { copyFile, mkdir } from 'node:fs/promises'
+import { copyFileExact } from '~/utils/bun-file-io'
+import { mkdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { basename, dirname } from 'node:path'
 import * as v from 'valibot'
@@ -70,7 +71,7 @@ export const generateStructuredScript = async (
     const structuredBytes = `${JSON.stringify(structuredScript, null, 2)}\n`
     // Keep the script this run is about to replace so "draft-scenes --only blocking --rebind" can
     // recognize a segment that was split or merged rather than only one that was renumbered.
-    if (existsSync(outputPath)) await copyFile(outputPath, getPreviousStructuredScriptPath(sceneSlug))
+    if (existsSync(outputPath)) await copyFileExact(outputPath, getPreviousStructuredScriptPath(sceneSlug))
     await Bun.write(outputPath, structuredBytes)
     await writeInitialComicStructureManifest({
       sceneRunDir: getSceneOutputDirectory(sceneSlug),

@@ -8,9 +8,9 @@ import { anthropicTarget, mistralTarget, providerState, requestedTargets, tesser
 
 describe('OCR resume contracts', () => {
   test('stored Grok OCR provider is parsed for resume manifests', () => {
-    expect(parseStoredRequestedTarget({ service: 'grok', model: 'grok-4.3' })).toEqual({
+    expect(parseStoredRequestedTarget({ service: 'grok', model: 'grok-4.5' })).toEqual({
       service: 'grok',
-      model: 'grok-4.3'
+      model: 'grok-4.5'
     })
   })
 

@@ -17,6 +17,7 @@ import { validateVideoMediaReferences } from '../../video-utils/video-media-inpu
 
 const getReplicateSupportedVideoModes = (model: ReplicateVideoModel): readonly VideoMode[] => {
   if (isReplicateHappyHorseVideoModel(model)) return ['text', 'image-to-video', 'reference-to-video']
+  if (model === 'bytedance/seedance-2.5') return ['text', 'image-to-video', 'interpolate', 'reference-to-video']
   if (isReplicateSeedanceVideoModel(model)) return ['text', 'image-to-video', 'interpolate', 'reference-to-video', 'edit', 'extend']
   if (isReplicateKlingOmniVideoModel(model)) return ['text', 'image-to-video', 'interpolate', 'reference-to-video', 'edit']
   if (isReplicateKlingVideoModel(model) || isReplicatePixVerseVideoModel(model)) return ['text', 'image-to-video', 'interpolate']
@@ -46,19 +47,21 @@ const validateReplicateSeedanceReferences = (
   const referenceImageCount = options.videoReferenceImages?.length ?? 0
   const referenceVideoCount = (options.videoInputVideo ? 1 : 0) + (options.videoReferenceVideos?.length ?? 0)
   const referenceAudioCount = options.videoReferenceAudios?.length ?? 0
-  if (referenceImageCount > 9) {
-    throw UsageError(`--reference-image supports at most 9 images for Replicate/${model}.`)
+  const imageLimit = model === 'bytedance/seedance-2.5' ? 30 : 9
+  const mediaLimit = model === 'bytedance/seedance-2.5' ? 10 : 3
+  if (referenceImageCount > imageLimit) {
+    throw UsageError(`--reference-image supports at most ${imageLimit} images for Replicate/${model}.`)
   }
-  if (referenceVideoCount > 3) {
-    throw UsageError(`Replicate/${model} supports at most 3 reference videos including --input-video.`)
+  if (referenceVideoCount > mediaLimit) {
+    throw UsageError(`Replicate/${model} supports at most ${mediaLimit} reference videos including --input-video.`)
   }
-  if (referenceAudioCount > 3) {
-    throw UsageError(`--reference-audio supports at most 3 audio references for Replicate/${model}.`)
+  if (referenceAudioCount > mediaLimit) {
+    throw UsageError(`--reference-audio supports at most ${mediaLimit} audio references for Replicate/${model}.`)
   }
   if (referenceAudioCount > 0 && referenceImageCount === 0 && referenceVideoCount === 0) {
     throw UsageError(`--reference-audio requires at least one --reference-image, --input-video, or --reference-video for Replicate/${model}.`)
   }
-  if ((options.videoInputImage || options.videoLastFrame) && referenceImageCount > 0) {
+  if ((options.videoInputImage || options.videoLastFrame) && (referenceImageCount > 0 || (model === 'bytedance/seedance-2.5' && referenceVideoCount + referenceAudioCount > 0))) {
     throw UsageError(`--reference-image cannot be combined with --input-image or --last-frame for Replicate/${model}.`)
   }
 }
@@ -129,7 +132,7 @@ export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: Vid
       validateVideoMediaReferences([options.videoLastFrame], { flagName: '--last-frame', provider: 'replicate', model, kind: 'image' })
     }
     if (options.videoReferenceImages) {
-      const maxInputs = isReplicateSeedanceVideoModel(model) || isReplicateHappyHorseVideoModel(model)
+      const maxInputs = model === 'bytedance/seedance-2.5' ? 30 : isReplicateSeedanceVideoModel(model) || isReplicateHappyHorseVideoModel(model)
         ? 9
         : isReplicateKlingOmniVideoModel(model) ? 7 : 3
       validateVideoMediaReferences(options.videoReferenceImages, { flagName: '--reference-image', provider: 'replicate', model, kind: 'image', maxInputs })
@@ -138,10 +141,10 @@ export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: Vid
       validateVideoMediaReferences([options.videoInputVideo], { flagName: '--input-video', provider: 'replicate', model, kind: 'video' })
     }
     if (options.videoReferenceVideos) {
-      validateVideoMediaReferences(options.videoReferenceVideos, { flagName: '--reference-video', provider: 'replicate', model, kind: 'video', maxInputs: 3 })
+      validateVideoMediaReferences(options.videoReferenceVideos, { flagName: '--reference-video', provider: 'replicate', model, kind: 'video', maxInputs: model === 'bytedance/seedance-2.5' ? 10 : 3 })
     }
     if (options.videoReferenceAudios) {
-      validateVideoMediaReferences(options.videoReferenceAudios, { flagName: '--reference-audio', provider: 'replicate', model, kind: 'audio', maxInputs: 3 })
+      validateVideoMediaReferences(options.videoReferenceAudios, { flagName: '--reference-audio', provider: 'replicate', model, kind: 'audio', maxInputs: model === 'bytedance/seedance-2.5' ? 10 : 3 })
     }
 
     return [{

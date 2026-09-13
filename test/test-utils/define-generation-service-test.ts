@@ -9,6 +9,7 @@ import {
   withOutputLifecycle
 } from './service-test-kit'
 import { fileExists } from './test-helpers'
+import { assertDecodableMedia } from './assert-generated-content'
 
 const readMetadataPath = (value: unknown, path: string): unknown => path.split('.').reduce<unknown>((current, part) =>
   typeof current === 'object' && current !== null ? (current as Record<string, unknown>)[part] : undefined,
@@ -41,6 +42,13 @@ const defineGenerationServiceTest = <
       expect(await fileExists(artifactPath)).toBe(true)
       const artifactFile = Bun.file(artifactPath)
       expect(artifactFile.size).toBeGreaterThan(0)
+      const ratioIndex = extraArgs?.indexOf('--aspect-ratio') ?? -1
+      const ratio = ratioIndex >= 0 ? extraArgs?.[ratioIndex + 1]?.split(':').map(Number) : undefined
+      const aspectRatio = ratio?.length === 2 && ratio.every(value => value > 0) ? ratio[0]! / ratio[1]! : undefined
+      await assertDecodableMedia(artifactPath, command === 'music' ? 'audio' : command, {
+        ...('expectedDuration' in modelCase && typeof modelCase.expectedDuration === 'number' ? { durationSeconds: modelCase.expectedDuration } : {}),
+        ...(aspectRatio !== undefined ? { aspectRatio } : {}),
+      })
 
       const metadata = await readCanonicalRecord(outputDir)
       const metadataEntry = (metadata[profile.metadataKey] as Array<Record<string, unknown>> | undefined)?.[0]

@@ -1,5 +1,6 @@
+import { copyFileExact, writeFileExact } from '~/utils/bun-file-io'
 import { constants as fsConstants } from 'node:fs'
-import { copyFile, link, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { copyFile, link, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import { hasYtDlpBinary } from '~/cli/commands/command-shared/shared-yt-dlp-binary'
@@ -116,7 +117,7 @@ const stageSourceMediaArtifact = async (
     if (profile === 'lossless') {
       const [sourceHash, preparedHash] = await Promise.all([decodedAudioHash(sourcePath), decodedAudioHash(stagedPath)])
       if (sourceHash !== preparedHash) throw InfraError('Lossless audio preparation changed decoded samples; no transcription was submitted.', { stage: 'stt:media-acquisition' })
-      await writeFile(join(workspaceDir, 'source-timeline.json'), JSON.stringify({
+      await writeFileExact(join(workspaceDir, 'source-timeline.json'), JSON.stringify({
         schemaVersion: 1, source: source.filePath ? resolve(source.filePath) : source.url,
         profile, sampleFormat: 'float32', channels: probe.audioStream.channels, sampleRate: probe.audioStream.sampleRate,
         audioToVideoOffsetSeconds: probe.audioStream.startTimeSeconds ?? 0,
@@ -294,7 +295,7 @@ export const prepareSttMedia = async (
     if (outputPaths.sourceMediaPath !== sourceMediaExecutionPath) {
       await materializeOutputArtifact(sourceMediaExecutionPath, outputPaths.sourceMediaPath)
     }
-    if (sourceMediaProfile === 'lossless' && outputDir) await copyFile(join(workspaceDir, 'source-timeline.json'), join(outputDir, 'source-timeline.json'))
+    if (sourceMediaProfile === 'lossless' && outputDir) await copyFileExact(join(workspaceDir, 'source-timeline.json'), join(outputDir, 'source-timeline.json'))
 
     const primaryStats = await stat(outputPaths.primaryFilePath)
     const durationSeconds = sourceMediaProfile === 'lossless' ? await getAudioDuration(sourceMediaExecutionPath) : await probeDurationSeconds(sourceMediaExecutionPath, resolvedSource.metadata)

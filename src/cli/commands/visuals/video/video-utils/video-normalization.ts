@@ -5,7 +5,7 @@ export const REPLICATE_COMMON_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '4:3', '3:
 export const REPLICATE_SEEDANCE_ASPECT_RATIOS = [...REPLICATE_COMMON_ASPECT_RATIOS, '21:9', '9:21', 'adaptive'] as const
 
 export const isReplicateSeedanceVideoModel = (model: ReplicateVideoModel): boolean =>
-  model === 'bytedance/seedance-2.0' || model === 'bytedance/seedance-2.0-fast'
+  model === 'bytedance/seedance-2.5' || model === 'bytedance/seedance-2.0' || model === 'bytedance/seedance-2.0-fast'
 
 const clampIntegerDuration = (
   duration: number | undefined,
@@ -53,6 +53,10 @@ export const normalizeReplicateVideoDuration = (
   model: ReplicateVideoModel,
   duration: number | undefined
 ): number => {
+  if (model === 'bytedance/seedance-2.5') {
+    if (duration === -1) return -1
+    return clampIntegerDuration(duration, 5, 4, 30, `Replicate/${model}`)
+  }
   if (isReplicateHappyHorseVideoModel(model)) {
     return clampIntegerDuration(duration, 5, ...REPLICATE_HAPPYHORSE_DURATION_RANGE, `Replicate/${model}`)
   }
@@ -75,7 +79,7 @@ export const resolveReplicateBilledDuration = (
   duration: number | undefined
 ): number => {
   const normalized = normalizeReplicateVideoDuration(model, duration)
-  return normalized === -1 ? 5 : normalized
+  return normalized === -1 ? (model === 'bytedance/seedance-2.5' ? 30 : 5) : normalized
 }
 
 export const REPLICATE_VIDEO_RESOLUTIONS = ['360p', '480p', '540p', '720p', '1080p', '4k'] as const
@@ -85,6 +89,10 @@ export const normalizeReplicateVideoResolution = (
   resolution: string | undefined
 ): ReplicateVideoResolution => {
   if (resolution === undefined || resolution === '') return '720p'
+  if (model === 'bytedance/seedance-2.5') {
+    if (resolution === '480p' || resolution === '720p') return resolution
+    throw UsageError(`Replicate/${model} supports 480p or 720p.`)
+  }
   if (isReplicateKlingVideoModel(model)) {
     if (resolution === '720p' || resolution === '1080p' || resolution === '4k') return resolution
     throw UsageError(`Invalid --resolution value "${resolution}" for Replicate/${model}. Expected 720p, 1080p, or 4k.`)
@@ -109,6 +117,7 @@ export const normalizeReplicateVideoAspectRatio = (
   model: ReplicateVideoModel,
   aspectRatio: string | undefined
 ): string => {
+  if (model === 'bytedance/seedance-2.5' && aspectRatio === '9:21') throw UsageError('Replicate Seedance 2.5 does not support 9:21.')
   if (isReplicateSeedanceVideoModel(model)) {
     return normalizeReplicateAspectRatioFrom(aspectRatio, REPLICATE_SEEDANCE_ASPECT_RATIOS, `Replicate/${model}`)
   }

@@ -12,11 +12,7 @@ import type {
   WrittenJson,
 } from '~/types'
 import { UsageError } from '~/utils/error-handler'
-import { hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
-import { classifyTtsProviderAdmissionError } from './tts-request-evidence'
-import {
-  withIdentity,
-} from './attempt-shared'
+import { promoteBatchResult } from './attempt-batches'
 import {
   contained,
   copyCreateOnly,
@@ -24,13 +20,18 @@ import {
   readObservedAudio,
   writeJson,
 } from './attempt-io'
-import { sanitizeError } from './attempt-planning'
 import {
   advanceJournal,
+  appendJournalTransition,
   ensureJournalStarted,
 } from './attempt-journal'
+import { sanitizeError } from './attempt-planning'
 import { locked } from './attempt-projection'
-import { promoteBatchResult } from './attempt-batches'
+import {
+  withIdentity,
+} from './attempt-shared'
+import { hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
+import { classifyTtsProviderAdmissionError } from './tts-request-evidence'
 
 const slotFor = (
   ctx: AttemptContext,
@@ -105,35 +106,9 @@ const validateObservationConstraints = (
   }
 }
 
-const dispatchAttemptRequest = async <T>(
-  ctx: AttemptContext,
-  invocation: TtsTargetInvocation | undefined,
-  observation: TtsSerializedRequestObservation,
-  attempt: Parameters<TtsRequestEvidenceScope['dispatch']>[1],
-  operationFn: (context: { accepted: (acceptance?: { providerRequestId?: string | undefined, fields?: Readonly<Record<string, string | number | boolean | null>> | undefined }) => Promise<void> }) => Promise<T>
-): Promise<T> => {
-  const slot = slotFor(ctx, invocation, observation)
-  validateObservationConstraints(ctx, slot, observation)
-
-  const requestBodyHash = hashCanonicalTtsValue(observation.serializedRequest)
-  const requestFingerprint = hashCanonicalTtsValue({
-    endpointKind: observation.endpointKind,
-    serializerVersion: observation.serializerVersion,
-    requestBodyHash,
-  })
-
-  const runtime = await locked(ctx, async () => {
-    const priorForSlot = ctx.runtimeRequests.filter((entry) => entry.slot.generationSlotId === slot.generationSlotId)
-    const retryOf = attempt.attempt > 1 ? priorForSlot.at(-1) : undefined
-    if (attempt.attempt > 1 && (!retryOf || retryOf.request.requestBodyHash !== requestBodyHash)) {
-      throw UsageError('TTS retry changed its generation slot or serialized request fingerprint; dispatch was blocked.')
-    }
-    if (attempt.attempt === 1 && priorForSlot.length > 0) {
-      throw UsageError('TTS serializer attempted a second deliberate request for one planned generation slot.')
-    }
-    let dispatchStarted = false
-    try {
-      await ensureJournalStarted(ctx)
+const ensureInvocationPlanFile = async (
+  ctx: AttemptContext, slot: AttemptSlot, requestFingerprint: string, retryOf: RuntimeRequest | undefined
+): Promise<WrittenJson<ProviderBatchInvocationPlan>> => {
       const invocationPlanPath = `${ctx.attemptRoot}/invocations/${slot.generationSlotId}.json`
       let invocationFile: WrittenJson<ProviderBatchInvocationPlan>
       if (retryOf) {
@@ -153,9 +128,15 @@ const dispatchAttemptRequest = async <T>(
         }, 'batchInvocationPlanId') as ProviderBatchInvocationPlan
         invocationFile = await writeJson(ctx.options.outputDir, invocationPlanPath, invocationPlan)
       }
-      const requestOrdinal = ctx.runtimeRequests.length + 1
+      return invocationFile
+}
+
+const buildObservedProviderRequest = (
+  ctx: AttemptContext, slot: AttemptSlot, observation: TtsSerializedRequestObservation,
+  requestOrdinal: number, requestBodyHash: string, invocationFile: WrittenJson<ProviderBatchInvocationPlan>
+): ObservedProviderRequest => {
       const turnIds = slot.turnIds
-      const observed: ObservedProviderRequest = {
+      return {
         requestOrdinal,
         invocationId: ctx.invocationId,
         batchId: slot.batchId,
@@ -188,6 +169,40 @@ const dispatchAttemptRequest = async <T>(
           }
         }),
       }
+}
+
+const dispatchAttemptRequest = async <T>(
+  ctx: AttemptContext,
+  invocation: TtsTargetInvocation | undefined,
+  observation: TtsSerializedRequestObservation,
+  attempt: Parameters<TtsRequestEvidenceScope['dispatch']>[1],
+  operationFn: (context: { accepted: (acceptance?: { providerRequestId?: string | undefined, fields?: Readonly<Record<string, string | number | boolean | null>> | undefined }) => Promise<void> }) => Promise<T>
+): Promise<T> => {
+  const slot = slotFor(ctx, invocation, observation)
+  validateObservationConstraints(ctx, slot, observation)
+
+  const requestBodyHash = hashCanonicalTtsValue(observation.serializedRequest)
+  const requestFingerprint = hashCanonicalTtsValue({
+    endpointKind: observation.endpointKind,
+    serializerVersion: observation.serializerVersion,
+    requestBodyHash,
+  })
+
+  const runtime = await locked(ctx, async () => {
+    const priorForSlot = ctx.runtimeRequests.filter((entry) => entry.slot.generationSlotId === slot.generationSlotId)
+    const retryOf = attempt.attempt > 1 ? priorForSlot.at(-1) : undefined
+    if (attempt.attempt > 1 && (!retryOf || retryOf.request.requestBodyHash !== requestBodyHash)) {
+      throw UsageError('TTS retry changed its generation slot or serialized request fingerprint; dispatch was blocked.')
+    }
+    if (attempt.attempt === 1 && priorForSlot.length > 0) {
+      throw UsageError('TTS serializer attempted a second deliberate request for one planned generation slot.')
+    }
+    let dispatchStarted = false
+    try {
+      await ensureJournalStarted(ctx)
+      const invocationFile = await ensureInvocationPlanFile(ctx, slot, requestFingerprint, retryOf)
+      const requestOrdinal = ctx.runtimeRequests.length + 1
+      const observed = buildObservedProviderRequest(ctx, slot, observation, requestOrdinal, requestBodyHash, invocationFile)
       const record = {
         requestOrdinal,
         batchId: slot.batchId,
@@ -262,33 +277,17 @@ const dispatchAttemptRequest = async <T>(
       `${ctx.attemptRoot}/evidence/request-${String(runtime.request.requestOrdinal).padStart(4, '0')}-acceptance.json`,
       evidence
     )
-    const requests = ctx.journal.requests.map((entry) =>
-      entry.requestOrdinal === runtime.request.requestOrdinal
-        ? {
-            ...entry,
-            transitions: [
-              ...entry.transitions,
-              {
-                sequence: entry.transitions.length + 1,
-                state: 'provider-accepted' as const,
-                at: runtime.request.acceptedAt as string,
-                ...(acceptance?.providerRequestId ? { providerRequestId: acceptance.providerRequestId } : {}),
-                evidence: {
-                  journalId: ctx.journalId,
-                  invocationId: ctx.invocationId,
-                  requestOrdinal: entry.requestOrdinal,
-                  requestFingerprint,
-                  proofKind: 'acceptance' as const,
-                  kind: 'sanitized-artifact' as const,
-                  path: contained(ctx.attemptRoot, file.path),
-                  sha256: file.sha256,
-                },
-              },
-            ],
-          }
-        : entry
-    )
-    await advanceJournal(ctx, requests)
+    await appendJournalTransition(ctx, runtime.request.requestOrdinal, {
+      state: 'provider-accepted',
+      at: runtime.request.acceptedAt as string,
+      ...(acceptance?.providerRequestId ? { providerRequestId: acceptance.providerRequestId } : {}),
+      evidence: {
+        journalId: ctx.journalId, invocationId: ctx.invocationId,
+        requestOrdinal: runtime.request.requestOrdinal, requestFingerprint,
+        proofKind: 'acceptance', kind: 'sanitized-artifact',
+        path: contained(ctx.attemptRoot, file.path), sha256: file.sha256,
+      },
+    })
   })
 
   try {
@@ -362,13 +361,8 @@ const dispatchAttemptRequest = async <T>(
               sha256: file.sha256,
             },
           }
-      const requests = ctx.journal.requests.map((entry) =>
-        entry.requestOrdinal === runtime.request.requestOrdinal
-          ? { ...entry, transitions: [...entry.transitions, { ...transition, sequence: entry.transitions.length + 1 }] }
-          : entry
-      )
       runtime.terminal = state
-      await advanceJournal(ctx, requests)
+      await appendJournalTransition(ctx, runtime.request.requestOrdinal, transition)
     })
     if (!rejected && error instanceof Error) {
       Object.defineProperty(error, 'ttsAdmissionAmbiguous', { value: true, configurable: true })

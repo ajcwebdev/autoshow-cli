@@ -1,5 +1,5 @@
 import { defineCliCommand } from '~/cli/native/native-types'
-import { COMIC_SUBCOMMAND_DEFINITIONS } from './comic-utils/subcommand-help'
+import { COMIC_SUBCOMMAND_DEFINITIONS, generateAudioCommandDefinition } from './comic-utils/subcommand-help'
 
 export const comicCommand = defineCliCommand({
   name: 'comic',
@@ -11,7 +11,7 @@ export const comicCommand = defineCliCommand({
       ['bun autoshow comic draft-scenes 05-01', 'Draft structured scene JSON'],
       ['bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only panel-prompts', 'Build panel prompt bundles'],
       ['bun autoshow comic generate-images 05-01 --panels-per-image 6', 'Generate page images'],
-      ['bun autoshow comic generate-audio 05-01 --provider gemini', 'Render approved character voices'],
+      generateAudioCommandDefinition.help!.examples![0]!,
       ['bun autoshow comic generate-slideshow 05-01', 'Render a synchronized still-panel MP4 locally'],
       ['bun autoshow comic reference-sketch --character hero', 'Generate a character reference sheet'],
       ['bun autoshow comic reference-sketch --location cargo-bay', 'Generate a canonical location reference'],

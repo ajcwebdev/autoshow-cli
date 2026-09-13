@@ -1,3 +1,4 @@
+import { childEnv } from '~/utils/child-env'
 import { existsSync } from 'node:fs'
 import { UsageError, InfraError } from '~/utils/error-handler'
 import { createOpenAIResponse } from '~/utils/openai/openai-client'
@@ -54,10 +55,14 @@ async function performNetworkProbe(url: URL, client: unknown, timeoutMs: number)
   }
 }
 
+export const buildNetworkProbeChildEnv = (timeoutMs: number): Record<string, string> => childEnv({
+  allow: ['AUTOSHOW_DISABLE_HTTP_KEEPALIVE'],
+  set: { AUTOSHOW_SETUP_NO_ORPHANS_CHILD: '1', AUTOSHOW_NETWORK_CHECK_CHILD_TIMEOUT_MS: String(timeoutMs) }
+})
+
 export async function probeNetworkFixture(url: URL, client: unknown, timeoutMs: number): Promise<Awaited<ReturnType<typeof performNetworkProbe>>> {
   // Bun's proxy cache is shared with workers. A fresh process is required to
   // keep this diagnostic direct without changing the caller's proxy behavior.
-  const env = Object.fromEntries(Object.entries(process.env).filter(([key, value]) => value !== undefined && !/^(https?|all)_proxy$/i.test(key)))
   const start = performance.now()
   const sourceEntrypoint = new URL('../../../create-cli.ts', import.meta.url).pathname
   const entrypoint = existsSync(sourceEntrypoint) ? sourceEntrypoint : Bun.main
@@ -68,7 +73,7 @@ export async function probeNetworkFixture(url: URL, client: unknown, timeoutMs: 
       ...(Bun.isStandaloneExecutable ? [] : ['--no-env-file', entrypoint]),
       'setup', '--network-check', 'probe', '--probe-url', url.href, '--probe-client', String(client)
     ], {
-      env: { ...env, AUTOSHOW_SETUP_NO_ORPHANS_CHILD: '1', AUTOSHOW_NETWORK_CHECK_CHILD_TIMEOUT_MS: String(timeoutMs) },
+      env: buildNetworkProbeChildEnv(timeoutMs),
       stdout: 'ignore', stderr: 'ignore',
       ipc(message) { result = message }
     })

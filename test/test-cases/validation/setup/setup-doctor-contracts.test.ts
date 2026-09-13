@@ -408,3 +408,18 @@ describe('setup doctor contracts', () => {
     ]))
   })
 })
+
+
+test('strict doctor rejects invalid configuration, unreadable cookies and missing tools; advisory remains usable', async () => {
+  const failures: Partial<DoctorProbes>[] = [
+    { loadConfig: async () => { throw new Error('invalid config fixture') } },
+    { inspectYtDlpAuthState: async () => ({ configuredMode: 'cookies-file', usableMode: 'none', cookiesReadable: false, cookiesPath: '/fixture/unreadable', cookieArgs: [] }) },
+    { pathExists: async () => false, which: () => undefined }
+  ]
+  for (const failure of failures) {
+    const probeOverrides = makeDoctorProbes(failure)
+    expect((await runDoctor({ probeOverrides })).hasWarnings).toBe(true)
+    await expect(runDoctor({ strict: true, probeOverrides })).rejects.toThrow(AppUsageError)
+  }
+  expect((await runDoctor({ strict: true, probeOverrides: makeDoctorProbes() })).hasWarnings).toBe(false)
+})

@@ -10,6 +10,7 @@ import {
   withOutputLifecycle
 } from './service-test-kit'
 import { assertSttExtractRun } from './assert-stt-extract-run'
+import { expect } from 'bun:test'
 
 export const defineSTTServiceTest = ({
   models,
@@ -73,6 +74,12 @@ export const defineSTTServiceTest = ({
           providerStates: true,
           splitSegmentsDir: false
         })
+        if (inputPath === STABLE_EXAMPLE_AUDIO_URL || inputPath === 'input/examples/audio/1-audio.mp3') {
+          // Opening words in the saved 1-audio reference transcript, independent of provider metadata.
+          const transcript = await Bun.file(`${outputDir}/transcription.txt`).text()
+          expect(transcript).toMatch(/James\s+Perkins/i)
+          expect(transcript).toMatch(/welcome\s+to\s+the\s+show/i)
+        }
       },
       timeoutMs
     )

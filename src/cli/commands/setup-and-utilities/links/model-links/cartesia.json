@@ -1,5 +1,8 @@
 {
   "Cartesia": {
+    "LLMSTXT": [
+      "https://docs.cartesia.ai/llms.txt"
+    ],
     "General": [
       "https://docs.cartesia.ai/get-started/overview.md",
       "https://docs.cartesia.ai/get-started/authenticate-your-client-applications.md",
@@ -14,7 +17,6 @@
     "Models": [
       "https://docs.cartesia.ai/build-with-cartesia/tts-models/latest.md",
       "https://docs.cartesia.ai/build-with-cartesia/tts-models/preview.md",
-      "https://docs.cartesia.ai/build-with-cartesia/tts-models/sonic-3-5.md",
       "https://docs.cartesia.ai/build-with-cartesia/tts-models/voice-ids.md",
       "https://docs.cartesia.ai/pricing.md"
     ],

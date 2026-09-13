@@ -194,4 +194,31 @@ describe('setup command contracts', () => {
     expect(setupSource).not.toContain('setupAcsm')
     expect(setupSource).not.toContain('ACSM')
   })
+
+  test('setup --show and setup --reset operate on config without installation', async () => {
+    const showResult = await runCommand(['src/cli/create-cli.ts', 'setup', '--show'], {
+      env: { NO_COLOR: '1' }
+    })
+    const showOutput = `${showResult.stdout}\n${showResult.stderr}`
+    expect(showResult.exitCode).toBe(0)
+    expect(showOutput).toContain('Config')
+    expect(showOutput).not.toContain('Installing')
+  })
+
+  test('config alias routes to setup without error and bare config safe-exits', async () => {
+    const bareConfigResult = await runCommand(['src/cli/create-cli.ts', 'config'], {
+      env: { NO_COLOR: '1' }
+    })
+    const bareOutput = `${bareConfigResult.stdout}\n${bareConfigResult.stderr}`
+    expect(bareConfigResult.exitCode).toBe(0)
+    expect(bareOutput).toContain('No changes to write')
+    expect(bareOutput).not.toContain('Installing')
+
+    const configShowResult = await runCommand(['src/cli/create-cli.ts', 'config', '--show'], {
+      env: { NO_COLOR: '1' }
+    })
+    const configShowOutput = `${configShowResult.stdout}\n${configShowResult.stderr}`
+    expect(configShowResult.exitCode).toBe(0)
+    expect(configShowOutput).toContain('Config')
+  })
 })

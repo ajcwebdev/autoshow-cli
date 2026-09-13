@@ -59,7 +59,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       const geminiOcrPolicy = resolveReasoningPolicy({
         step: 'extract',
         service: 'gemini',
-        model: 'gemini-3.1-pro-preview',
+        model: 'gemini-3.8-flash',
         requestedReasoningEffort: 'default'
       })
       expect(geminiOcrPolicy.requested).toBe('default')
@@ -94,7 +94,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       const openaiPolicy = resolveReasoningPolicy({
         step: 'llm',
         service: 'openai',
-        model: 'gpt-5.5',
+        model: 'gpt-5.6-sol',
         requestedReasoningEffort: 'medium'
       })
       expect(openaiPolicy.requested).toBe('medium')
@@ -103,7 +103,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       const geminiPolicy = resolveReasoningPolicy({
         step: 'llm',
         service: 'gemini',
-        model: 'gemini-3.1-pro-preview',
+        model: 'gemini-3.8-flash',
         requestedReasoningEffort: 'high'
       })
       expect(geminiPolicy.requested).toBe('high')
@@ -112,7 +112,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       expect(resolveReasoningPolicy({
         step: 'llm',
         service: 'openai',
-        model: 'gpt-5.4-nano',
+        model: 'gpt-5.6-luna',
         requestedReasoningEffort: 'disabled'
       }).effective).toBe('disabled')
 
@@ -129,8 +129,8 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
         resolveReasoningPolicy({
           step: 'llm',
           service: 'anthropic',
-          model: 'claude-haiku-4-5',
-          requestedReasoningEffort: 'medium'
+          model: 'claude-sonnet-5',
+          requestedReasoningEffort: 'minimal'
         })
       ).toThrow()
 
@@ -168,7 +168,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
         resolveReasoningPolicy({
           step: 'llm',
           service: 'gemini',
-          model: 'gemini-3.1-pro-preview',
+          model: 'gemini-3.8-flash',
           requestedReasoningEffort: 'disabled'
         })
       ).toThrow('does not support disabling reasoning')
@@ -234,7 +234,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       const target: LLMTarget = {
         service: 'openai',
         label: 'OpenAI stub',
-        model: 'gpt-5.5',
+        model: 'gpt-5.6-sol',
         run: async (_prompt, model, options) => {
           receivedOptions = options
           const metadata: Step3Metadata = {
@@ -283,19 +283,19 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
         prompt: 'Test prompt',
         outputDir: '/tmp/autoshow-reasoning-preflight-not-used',
         targets: [
-          target('openai', 'gpt-5.5'),
-          target('anthropic', 'claude-haiku-4-5')
+          target('openai', 'gpt-5.6-sol'),
+          target('anthropic', 'claude-sonnet-5')
         ],
         structuredSchema,
         structuredValidationContext: { leafPromptNames: ['content'], presetNames: [] },
-        reasoningEffort: 'high'
-      })).rejects.toThrow('does not support reasoning effort configuration')
+        reasoningEffort: 'minimal'
+      })).rejects.toThrow('reasoning')
       expect(attempts).toBe(0)
     })
 
     it('validates and reports requested and effective effort during price planning', async () => {
       const estimates = await buildLlmEstimates({
-        openaiModels: ['gpt-5.5'],
+        openaiModels: ['gpt-5.6-sol'],
         reasoningEffort: 'high'
       })
       expect(estimates).toHaveLength(1)
@@ -303,9 +303,9 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       expect(estimates[0]?.effectiveReasoningEffort).toBe('high')
 
       await expect(buildLlmEstimates({
-        anthropicModels: ['claude-haiku-4-5'],
-        reasoningEffort: 'high'
-      })).rejects.toThrow('does not support reasoning effort configuration')
+        anthropicModels: ['claude-sonnet-5'],
+        reasoningEffort: 'minimal'
+      })).rejects.toThrow('reasoning')
     })
 
     it('does not apply hosted reasoning overrides to local OCR price targets', async () => {
@@ -326,7 +326,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
     it('rejects an explicit write-resume policy that differs from stored effective effort', () => {
       const entry: Step3Metadata = {
         llmService: 'openai',
-        llmModel: 'gpt-5.5',
+        llmModel: 'gpt-5.6-sol',
         processingTime: 1,
         inputTokenCount: 1,
         outputTokenCount: 1,
@@ -342,12 +342,12 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
 
       expect(validateResume?.(item, [entry], {
         reasoningEffort: 'high',
-        openaiModels: ['gpt-5.5']
+        openaiModels: ['gpt-5.6-sol']
       } as WriteRuntimeOptions))
         .toContain('reasoning policy mismatch')
       expect(validateResume?.(item, [entry], {
         reasoningEffort: 'low',
-        openaiModels: ['gpt-5.5']
+        openaiModels: ['gpt-5.6-sol']
       } as WriteRuntimeOptions))
         .toBeUndefined()
     })

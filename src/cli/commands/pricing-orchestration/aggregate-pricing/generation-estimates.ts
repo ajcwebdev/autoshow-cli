@@ -54,14 +54,19 @@ export const buildVideoEstimates = async (opts: VideoEstimateOptions): Promise<V
     ? await tryResolveLocalVideoDurationSeconds(opts.videoInputVideo)
     : undefined
 
+  const falReferenceDurations = await Promise.all((opts.videoReferenceVideos ?? []).map(tryResolveLocalVideoDurationSeconds))
+  const falInputVideoDurationSeconds = falReferenceDurations.every(value => value !== undefined) ? falReferenceDurations.reduce<number>((sum, value) => sum + (value ?? 0), 0) : undefined
+
   return estimateVideoCosts({
     ...pick(opts, VIDEO_PRICING_MODEL_KEYS),
+    falInputVideoDurationSeconds,
     videoDuration: opts.videoDuration,
     videoAspectRatio: opts.videoAspectRatio,
     videoResolution: opts.videoResolution,
     videoMode: opts.videoMode,
     ...(hasGrokVideo ? { grokInputImageCount: countGrokInputImages(opts) } : {}),
     ...(grokInputVideoDurationSeconds !== undefined ? { grokInputVideoDurationSeconds } : {}),
+    falVideoReferenceVideoCount: opts.videoReferenceVideos?.length ?? 0,
     replicateVideoReferenceVideoCount: countReplicateInputVideos(opts),
     videoGenerateAudio: opts.videoGenerateAudio,
     ...(replicateInputVideoDurationSeconds !== undefined ? { replicateInputVideoDurationSeconds } : {})

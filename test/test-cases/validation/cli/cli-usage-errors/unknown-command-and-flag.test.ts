@@ -50,16 +50,16 @@ test('commands reject --characters-root outside voice and comic', () => {
   expectUsageThrow(() => { throw unsupportedGlobalFlagError('config', 'characters-root') }, '--characters-root is not supported by "config"')
 })
 
-test('commands reject cookie flags outside config', () => {
+test('commands reject cookie flags outside setup', () => {
   const extractParsed = parseRoot(['extract', '--cookies', './cookies.txt'])
   const extractCookie = getUnknownFlagSpellings(extractParsed.rawParsed)
     .map(cookieFlagNameFromSpelling)
     .find((flagName) => flagName !== undefined)
   expect(extractCookie).toBe('cookies')
   expectUsageThrow(() => { throw unsupportedCookieFlagError(extractParsed.command!.name, extractCookie!) }, '--cookies is not supported by "extract"')
-  expectUsageThrow(() => { throw unsupportedCookieFlagError('extract', 'cookies') }, 'Use bun autoshow config --cookies <file> or bun autoshow config --cookies-from-browser <browser>.')
+  expectUsageThrow(() => { throw unsupportedCookieFlagError('extract', 'cookies') }, 'Use bun autoshow setup --cookies <file> or bun autoshow setup --cookies-from-browser <browser>.')
   expectUsageThrow(() => { throw unsupportedCookieFlagError('download', 'cookies-from-browser') }, '--cookies-from-browser is not supported by "download"')
-  expectUsageThrow(() => { throw unsupportedCookieFlagError('download', 'cookies-from-browser') }, 'Use bun autoshow config --cookies <file> or bun autoshow config --cookies-from-browser <browser>.')
+  expectUsageThrow(() => { throw unsupportedCookieFlagError('download', 'cookies-from-browser') }, 'Use bun autoshow setup --cookies <file> or bun autoshow setup --cookies-from-browser <browser>.')
 })
 
 test('commands reject --allow-over-budget on unbudgeted commands', () => {

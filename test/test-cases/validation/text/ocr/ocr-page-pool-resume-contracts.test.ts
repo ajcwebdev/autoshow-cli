@@ -121,7 +121,7 @@ describe('pooled OCR page scheduler contracts', () => {
 
   test('re-enabling one target does not revive a separately retired sibling on the same lane', async () => {
     const selected: OcrTarget = { service: 'openai', model: 'gpt-5.6-sol' }
-    const sibling: OcrTarget = { service: 'openai', model: 'gpt-5.4-mini' }
+    const sibling: OcrTarget = { service: 'openai', model: 'gpt-5.6-terra' }
     const failed = await runPool({
       totalPages: 2,
       requestedTargets: [selected, sibling],

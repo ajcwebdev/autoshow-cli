@@ -15,7 +15,7 @@ describe('page repair restart and stagnation', () => {
 
   test('restarts once and then stops when the same hard check keeps stagnating', () => {
     const failedEntry: PageQaEntry = {
-      pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: true,
+      pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.6-sol', hardFailure: true,
       result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: false, dialogueIssueKind: 'content' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['typography'], editInstructions: 'Correct dialogue.' }], summary: 'Dialogue mismatch.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     }
@@ -37,7 +37,7 @@ describe('page repair restart and stagnation', () => {
 
   test('stops an alternating hard-failure cycle without spending the remaining repair budget', () => {
     const failedEntry = (failure: 'shot' | 'set'): PageQaEntry => ({
-      pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: true,
+      pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.6-sol', hardFailure: true,
       result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: failure !== 'set', setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: failure !== 'shot', dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: [`${failure} mismatch`], editInstructions: `Correct ${failure}.` }], summary: `Alternating ${failure} mismatch.` },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })
@@ -59,7 +59,7 @@ describe('page repair restart and stagnation', () => {
     const { runDirectory } = await createSceneFixture(sceneSlug)
     const calls: ComicImageRequestInput[] = []
     const failedEntry = (): PageQaEntry => ({
-      pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: true,
+      pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.6-sol', hardFailure: true,
       result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: false, dialogueIssueKind: 'content' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['wording'], editInstructions: 'Correct the wording.' }], summary: 'Persistent dialogue mismatch.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })
@@ -90,7 +90,7 @@ describe('page repair restart and stagnation', () => {
     const { runDirectory } = await createSceneFixture(sceneSlug)
     const calls: ComicImageRequestInput[] = []
     const failedEntry = (): PageQaEntry => ({
-      pageNumber: 1, panelNumbers: [1, 2], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: true,
+      pageNumber: 1, panelNumbers: [1, 2], outputFile: 'attempt.png', judgeModel: 'gpt-5.6-sol', hardFailure: true,
       result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: panelNumber !== 1, dialogueIssueKind: panelNumber === 1 ? ('content' as const) : ('none' as const), speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: panelNumber === 1 ? ['wording'] : [], editInstructions: panelNumber === 1 ? 'Correct the wording.' : '' })), summary: 'Persistent grouped dialogue mismatch.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })

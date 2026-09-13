@@ -232,7 +232,7 @@ describe('test-runner contracts', () => {
 
   test('bun test flags use a 10 minute default timeout without automatic retries', () => {
       const validation = 'test/test-cases/validation/cli/cli-help-contracts.test.ts'
-      const e2e = 'test/test-cases/e2e/service/text/ocr/glm-ocr.test.ts'
+      const e2e = 'test/test-cases/e2e/service/text/ocr/glm-5.3-flash.test.ts'
       expect(buildBunTestFlags([validation], ['--bail'])).toEqual([
         '--timeout',
         String(VALIDATION_TEST_TIMEOUT_MS),
@@ -251,7 +251,7 @@ describe('test-runner contracts', () => {
   test('path selection preserves discovery order for Bun native timing scheduling', () => {
     const validation = 'test/test-cases/validation/cli/cli-help-contracts.test.ts'
     const streaming = 'test/test-cases/e2e/service/sources/download/download-input-types-streaming.test.ts'
-    const other = 'test/test-cases/e2e/service/text/ocr/glm-ocr.test.ts'
+    const other = 'test/test-cases/e2e/service/text/ocr/glm-5.3-flash.test.ts'
     expect(resolveSelectedFiles([validation, streaming, other], [])).toEqual([validation, streaming, other])
     expect(resolveSelectedFiles([validation, streaming, other], ['test/test-cases/e2e/'])).toEqual([streaming, other])
   })

@@ -23,6 +23,7 @@ import { withHostedTtsRetry } from '../../tts-utils/hosted-tts-retry'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { providerSecondsToMilliseconds } from '../../script-to-audio/advanced-provider-contracts'
 import { ELEVENLABS_TTS_OUTPUT_FORMAT, readElevenLabsError } from './elevenlabs-utils'
+import { parseElevenLabsDictionaryLocator, validateElevenLabsVoiceSettings } from './elevenlabs-utils'
 import { canonicalOffsetForProviderOffset } from '~/cli/commands/audio/tts/tts-utils/tts-timing-mapping'
 
 const ELEVENLABS_NATIVE_DIALOGUE_MAX_CHARACTERS = 2000
@@ -178,6 +179,9 @@ export const runElevenLabsNativeDialogue = async (
   const apiKey = resolveCredential('elevenlabs', 'require', { stage: 'tts:elevenlabs', description: 'ElevenLabs Text-to-Dialogue' })
   const batches = planElevenLabsNativeDialogueBatches(turns)
   const outputFormat = ELEVENLABS_TTS_OUTPUT_FORMAT
+  validateElevenLabsVoiceSettings(options.model, options.controls?.voiceSettings)
+  const stability = options.controls?.voiceSettings?.stability
+  const dictionaries = options.controls?.pronunciationDictionaryLocators?.map(parseElevenLabsDictionaryLocator)
   const paths: string[] = []
   let completed = false
   const startedAt = Date.now()
@@ -188,6 +192,8 @@ export const runElevenLabsNativeDialogue = async (
       const requestBody = {
         inputs: batch.turns.map(turn => ({ text: turn.preparedText.providerText, voice_id: turn.voiceId })),
         model_id: 'eleven_v3',
+        ...(stability !== undefined ? { settings: { stability } } : {}),
+        ...(dictionaries?.length ? { pronunciation_dictionary_locators: dictionaries } : {}),
         ...(options.controls?.languageCode ? { language_code: options.controls.languageCode } : {}),
         ...(typeof options.controls?.seed === 'number' ? { seed: options.controls.seed } : {}),
         ...(options.controls?.textNormalization ? { apply_text_normalization: options.controls.textNormalization } : {})
@@ -195,6 +201,8 @@ export const runElevenLabsNativeDialogue = async (
       const requestControls = {
         outputFormat,
         modelId: 'eleven_v3',
+        ...(stability !== undefined ? { settings: { stability } } : {}),
+        ...(dictionaries?.length ? { pronunciationDictionaryLocators: dictionaries } : {}),
         ...(options.controls?.languageCode ? { languageCode: options.controls.languageCode } : {}),
         ...(typeof options.controls?.seed === 'number' ? { seed: options.controls.seed } : {}),
         ...(options.controls?.textNormalization ? { textNormalization: options.controls.textNormalization } : {})

@@ -4,7 +4,7 @@ import { AutoshowConfigSchema, SETUP_STEP_IDS } from '~/types'
 import { resolveSetupModel, runModelDownloads } from '~/cli/commands/setup-and-utilities/models/run-model-downloads'
 import { SUPPORTED_WHISPERFILE_MODELS } from '~/cli/commands/setup-and-utilities/models/stt-models'
 import { resolveWhisperfileCalibration } from '~/cli/commands/stt/workflows/timing/calibrate-whisper-timing'
-import { MODEL_SELECTORS, selectDockerScenarios } from '../../../../scripts/docker-acceptance/docker-scenarios'
+import { MODEL_SELECTORS, selectDockerScenarios } from '../../../docker-acceptance/docker-scenarios'
 import { runCommand } from '../../../test-utils/test-helpers'
 
 test('bare and prefixed downloads keep the full whisperfile catalog', () => {

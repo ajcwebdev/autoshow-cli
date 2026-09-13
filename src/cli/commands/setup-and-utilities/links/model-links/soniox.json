@@ -1,5 +1,8 @@
 {
   "Soniox": {
+    "LLMSTXT": [
+      "https://soniox.com/docs/llms.txt"
+    ],
     "STT": [
       "https://soniox.com/docs/stt/api-reference/transcriptions/create_transcription.mdx",
       "https://soniox.com/docs/stt/api-reference/transcriptions/get_transcription.mdx",

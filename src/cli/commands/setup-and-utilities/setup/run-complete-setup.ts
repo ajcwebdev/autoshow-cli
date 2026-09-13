@@ -1,3 +1,4 @@
+import { requireRenderingPrerequisites } from './rendering-readiness'
 import { mkdir, readdir, rm } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
 import type { DirectoryEntry } from '~/types'
@@ -389,6 +390,7 @@ const runFullSetup = async (): Promise<boolean> => {
       ])
     })
 
+    await requireRenderingPrerequisites()
     await pruneBuildTrees()
     logSetupStepTimings()
     healthy = await logSetupSummary(startedAtMs, providerSummary)
@@ -436,7 +438,7 @@ const runSetupMusic = async (): Promise<void> => {
   const ffmpegFilters = await runCapture(getFfmpegBinary(), ['-hide_banner', '-filters'], { allowFailure: true })
   const hasAssFilter = ffmpegFilters.exitCode === 0
     && ffmpegFilters.stdout.split('\n').some((line) => line.trim().split(/\s+/).includes('ass'))
-  const hasFallbackRenderer = commandExists('pango-view') && commandExists('convert')
+  const hasFallbackRenderer = commandExists('pango-view') && (commandExists('magick') || commandExists('convert'))
   if (!hasAssFilter && !hasFallbackRenderer) {
     throw InfraError(
       'Music lyric-video setup: ffmpeg does not expose the ass filter, and the fallback renderer is unavailable. Install pango-view plus ImageMagick, or use an ffmpeg build with ass support.',

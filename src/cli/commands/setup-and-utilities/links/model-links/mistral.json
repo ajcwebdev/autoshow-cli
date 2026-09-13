@@ -1,5 +1,8 @@
 {
   "Mistral": {
+    "LLMSTXT": [
+      "https://docs.mistral.ai/llms.txt"
+    ],
     "General": [
       "https://docs.mistral.ai/resources/sdks",
       "https://raw.githubusercontent.com/mistralai/client-ts/refs/heads/main/README.md",

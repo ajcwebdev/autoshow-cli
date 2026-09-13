@@ -85,7 +85,6 @@ test('stubbed LLM targets use capability retry budgets and persist one failure e
       targets: [
         target('openai', 'openai-zero', 'not json'),
         target('anthropic', 'anthropic-one', 'not json'),
-        target('minimax', 'minimax-two', 'not json'),
         target('grok', 'grok-success', '{"content":"valid output"}')
       ],
       structuredSchema,
@@ -95,14 +94,12 @@ test('stubbed LLM targets use capability retry budgets and persist one failure e
     expect(Object.fromEntries(attempts)).toEqual({
       openai: 1,
       anthropic: 2,
-      minimax: 3,
       grok: 1
     })
     expect(requestOptions.get('openai')?.every((options) => options.strategy === 'native')).toBe(true)
     expect(requestOptions.get('anthropic')?.every((options) => options.strategy === 'native')).toBe(true)
-    expect(requestOptions.get('minimax')?.every((options) => options.strategy === 'schema-guided')).toBe(true)
 
-    for (const result of results.slice(0, 3)) {
+    for (const result of results.slice(0, 2)) {
       expect(result.parsedJson).toEqual({
         _raw: 'not json',
         _validationError: 'Response was not valid JSON'
@@ -114,9 +111,9 @@ test('stubbed LLM targets use capability retry budgets and persist one failure e
       expect(persisted).not.toContain('validationFailed')
     }
 
-    expect(results[3]?.parsedJson).toEqual({ content: 'valid output' })
-    expect(results[3]?.metadata.validationFailed).toBe(false)
-    expect(results[3]?.renderedText).toBe('valid output')
+    expect(results[2]?.parsedJson).toEqual({ content: 'valid output' })
+    expect(results[2]?.metadata.validationFailed).toBe(false)
+    expect(results[2]?.renderedText).toBe('valid output')
   } finally {
     await rm(tempDir, { recursive: true, force: true })
   }

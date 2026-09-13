@@ -1,3 +1,4 @@
+import type { LaneRecoveryState } from '~/cli/commands/command-shared/lane-recovery-state'
 import type {
   HostedConcurrencyAdmission,
   HostedConcurrencyAdmissionToken,
@@ -54,9 +55,7 @@ export type LaneState = {
   classes: Map<HostedConcurrencyWorkClass, ClassState>
   rampTransitions: HostedConcurrencyRampTransition[]
   pressureEvents: HostedConcurrencyPressureEvent[]
-  recovering: boolean
-  recoveryProbeActive: boolean
-  rampingAfterRecovery: boolean
+  recovery: LaneRecoveryState
   pauseUntilMs: number
   pauseStartedAtMs?: number | undefined
   pauseDurationMs: number

@@ -1,0 +1,21 @@
+{
+  "id": "inworld-realtime-tts-2-steering-tags",
+  "provider": "inworld",
+  "model": "realtime-tts-2",
+  "input": "input/examples/tts/controls/speed-pauses/inworld-realtime-tts-2-steering-tags.txt",
+  "flags": {
+    "inworld-tts": "realtime-tts-2",
+    "tts-voice": "Dennis"
+  },
+  "turnControls": {},
+  "mechanism": "steering-tags",
+  "source": "https://docs.inworld.ai/tts/capabilities/steering.md",
+  "lines": [
+    "[Speak at an ordinary, comfortable conversational pace. Give each number in the counting phrase clear articulation and even spacing. Keep the pitch, emotion, and volume neutral and steady throughout the line.] I speak at a normal pace. One, two, three, four, five.",
+    "[Speak at a clearly slow, deliberate pace, noticeably slower than an ordinary conversation. Lengthen the spoken words and give each number room to be heard without inserting a long silence between numbers. Keep the pitch, emotion, and volume neutral and steady.] I speak slowly. One, two, three, four, five.",
+    "[Speak at a clearly fast, brisk pace, noticeably faster than an ordinary conversation. Move promptly from one number to the next while keeping every number distinct and understandable. Keep the pitch, emotion, and volume neutral and steady.] I speak fast. One, two, three, four, five.",
+    "[Return to an ordinary, comfortable conversational pace for the words on both sides of the break. Keep the pitch, emotion, and volume neutral and steady. Let the explicit break tag set the silence, then resume the same normal delivery without an extra dramatic pause.] I pause here. <break time=\"500ms\"/> Then I speak.",
+    "[Return to an ordinary, comfortable conversational pace for the words on both sides of the break. Keep the pitch, emotion, and volume neutral and steady. Let the explicit break tag set the silence, then resume the same normal delivery without an extra dramatic pause.] I take a long pause here. <break time=\"2s\"/> Then I speak."
+  ],
+  "category": "speed-pauses"
+}

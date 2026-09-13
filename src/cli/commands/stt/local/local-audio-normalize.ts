@@ -16,11 +16,12 @@ const wavEncodeArgs = (inputPath: string, outputPath: string): string[] => [
   outputPath
 ]
 
-const mp3EncodeArgs = (inputPath: string, outputPath: string): string[] => [
+const mp3EncodeArgs = (inputPath: string, outputPath: string, minimumDurationSeconds?: number): string[] => [
   '-i', inputPath,
   '-vn',
   '-ar', '16000',
   '-ac', '1',
+  ...(minimumDurationSeconds ? ['-af', `apad=whole_dur=${minimumDurationSeconds}`] : []),
   '-c:a', 'libmp3lame',
   '-q:a', '4',
   '-y',
@@ -33,6 +34,7 @@ export const prepareLocalSttInput = async (
   options?: {
     passthroughExtensions?: readonly string[] | undefined
     convertFormat?: 'wav' | 'mp3' | undefined
+    minimumDurationSeconds?: number | undefined
   }
 ): Promise<PreparedLocalSttInput> => {
   const extension = extname(audioPath).toLowerCase()
@@ -50,7 +52,7 @@ export const prepareLocalSttInput = async (
   try {
     const result = await exec(
       getFfmpegBinary(),
-      convertFormat === 'mp3' ? mp3EncodeArgs(audioPath, outputPath) : wavEncodeArgs(audioPath, outputPath)
+      convertFormat === 'mp3' ? mp3EncodeArgs(audioPath, outputPath, options?.minimumDurationSeconds) : wavEncodeArgs(audioPath, outputPath)
     )
 
     if (result.exitCode !== 0) {

@@ -1,3 +1,4 @@
+import { extendProviderLanePause, reduceProviderLaneLimit, trimProviderLaneHistory } from '~/cli/commands/command-shared/provider-lane-drain'
 import type {
   HostedOcrLaneCapResolution,
   HostedOcrProfileEstimate,
@@ -339,7 +340,7 @@ export const resolveHostedOcrBackoff = (
   HostedOcrSchedulerLaneState,
   'currentCap' | 'cleanSuccessPages' | 'cleanFastRampEnabled'
 > => ({
-  currentCap: Math.max(1, Math.floor(lane.currentCap / 2)),
+  currentCap: reduceProviderLaneLimit(lane.currentCap),
   cleanSuccessPages: 0,
   cleanFastRampEnabled: false
 })
@@ -357,12 +358,8 @@ export const resolveHostedOcrRetryPause = (
   ) {
     return { pauseUntilMs, addedPauseTimeMs: 0 }
   }
-  const nextPauseUntilMs = now + Math.ceil(delayMs)
-  const overlapStart = Math.max(now, pauseUntilMs)
-  return {
-    pauseUntilMs: Math.max(pauseUntilMs, nextPauseUntilMs),
-    addedPauseTimeMs: Math.max(0, nextPauseUntilMs - overlapStart)
-  }
+  const pause = extendProviderLanePause(pauseUntilMs, now, Math.ceil(delayMs))
+  return { pauseUntilMs: pause.untilMs, addedPauseTimeMs: pause.addedMs }
 }
 
 export const isHostedOcrRateLimitPressure = (
@@ -401,7 +398,11 @@ export const resolveHostedOcrRetryEvents = (
   retryEvents: readonly HostedOcrSchedulerRetryEvent[],
   event: HostedOcrSchedulerRetryEvent
 ): HostedOcrSchedulerRetryEvent[] =>
-  [...retryEvents, event].slice(-HOSTED_OCR_RETRY_EVENT_LIMIT)
+  (() => {
+    const events = [...retryEvents, event]
+    trimProviderLaneHistory(events, HOSTED_OCR_RETRY_EVENT_LIMIT)
+    return events
+  })()
 
 const errorChain = function * (error: unknown): Generator<object> {
   let current: unknown = error

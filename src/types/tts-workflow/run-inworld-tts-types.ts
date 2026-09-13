@@ -5,6 +5,7 @@ export type RunInworldTtsOptions = Readonly<{
   apiKey: string
   voiceId?: string | undefined
   steeringPrompt?: string | undefined
+  speed?: number | undefined
   abortSignal?: AbortSignal | undefined
   chunkConcurrency?: number | undefined
   chunkScheduler?: HostedTtsChunkScheduler | undefined

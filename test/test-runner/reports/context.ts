@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises'
+import { readUtf8FileExact } from '~/utils/bun-file-io'
+
 import { basename, isAbsolute, resolve } from 'node:path'
 import type { MetricContext, ParsedCommandMetric, ParsedJunitCase, ReportTestContext, ServiceModelPair, TestRunArtifacts } from '~/types'
 import { readString } from '../utils'
@@ -402,7 +403,7 @@ const getMetricMetadata = async (
 
   for (const metadataPath of buildMetricMetadataPaths(metric, artifacts)) {
     try {
-      const parsed = JSON.parse(await readFile(metadataPath, 'utf8')) as unknown
+      const parsed = JSON.parse(await readUtf8FileExact(metadataPath)) as unknown
       if (isObjectLike(parsed)) {
         const record = unwrapManifestMetadata(parsed)
         cache.set(key, record)

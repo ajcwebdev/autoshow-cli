@@ -1,4 +1,4 @@
-import { isAbsolute, normalize, relative, resolve } from 'node:path'
+import { isAbsolute, relative, resolve } from 'node:path'
 import type {
   CallerLocation
 } from '~/types'
@@ -33,7 +33,7 @@ const parseTestCallerFrame = (line: string): { file: string; line: number; colum
     return undefined
   }
   const absolutePath = isAbsolute(normalizedPath) ? normalizedPath : resolve(process.cwd(), normalizedPath)
-  const relativePath = normalize(relative(process.cwd(), absolutePath)).replace(/\\/g, '/')
+  const relativePath = (relative(process.cwd(), absolutePath) || '.').replace(/\\/g, '/')
   return { file: relativePath, line: lineNo, column: colNo }
 }
 

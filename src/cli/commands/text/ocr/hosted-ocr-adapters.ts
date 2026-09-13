@@ -74,13 +74,15 @@ export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
     service: 'glm',
     engine: 'glm-ocr',
     label: 'GLM OCR',
-    limitSource: 'https://docs.z.ai/api-reference/tools/layout-parsing.md',
+    limitSource: 'https://docs.z.ai/guides/vlm/glm-5.3-flash',
     directImageFormats: ['png', 'jpg'],
     directImageSupportError: 'The GLM OCR provider sends PNG/JPG images to GLM directly; PDF pages are rendered to PNG. AutoShow normalizes WEBP/GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.',
     selectModel: (opts) => hasGlmOcr(opts) ? opts.glmOcrModel as string : undefined,
     ensureSetup: ensureGlmOcrSetup,
+    fallbackOptions: renderedPngPages,
     request: async ({ inputPath, inputMetadata, ocrModel, opts, onRetryable }) => {
       const run = await runGlmOcr(inputPath, inputMetadata, ocrModel, {
+        ...opts,
         onRetryable,
         reasoningEffort: opts.reasoningEffort
       })

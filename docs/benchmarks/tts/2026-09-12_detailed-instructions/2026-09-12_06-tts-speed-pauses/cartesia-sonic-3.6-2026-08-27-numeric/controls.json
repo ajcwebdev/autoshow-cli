@@ -1,0 +1,50 @@
+{
+  "id": "cartesia-sonic-3.6-2026-08-27-numeric",
+  "provider": "cartesia",
+  "model": "sonic-3.6-2026-08-27",
+  "input": "input/examples/tts/controls/speed-pauses/cartesia-sonic-3.6-2026-08-27-numeric.txt",
+  "flags": {
+    "cartesia-tts": "sonic-3.6-2026-08-27",
+    "tts-dialogue-format": "labeled",
+    "tts-speaker": [
+      "Narrator=0834f3df-e650-4766-a20c-5a93a43aa6e3"
+    ]
+  },
+  "turnControls": {
+    "dialogue-turn-001": {
+      "cartesia": {
+        "speed": 1
+      }
+    },
+    "dialogue-turn-002": {
+      "cartesia": {
+        "speed": 0.75
+      }
+    },
+    "dialogue-turn-003": {
+      "cartesia": {
+        "speed": 1.25
+      }
+    },
+    "dialogue-turn-004": {
+      "cartesia": {
+        "speed": 1
+      }
+    },
+    "dialogue-turn-005": {
+      "cartesia": {
+        "speed": 1
+      }
+    }
+  },
+  "mechanism": "numeric",
+  "source": "https://docs.cartesia.ai/build-with-cartesia/capability-guides/volume-speed-emotion.md",
+  "lines": [
+    "I speak at a normal pace. One, two, three, four, five.",
+    "I speak slowly. One, two, three, four, five.",
+    "I speak fast. One, two, three, four, five.",
+    "I pause here. <break time=\"500ms\"/> Then I speak.",
+    "I take a long pause here. <break time=\"2s\"/> Then I speak."
+  ],
+  "category": "speed-pauses"
+}

@@ -148,6 +148,7 @@ export const synthesizePreparedTtsInputForTargets = async (
 ): Promise<PreparedTtsRun> => {
   const { metadata } = await runWithLogContext({ step: 'step-4-tts' }, async () =>
     await runTtsForTargets(prepared.text, outputDir, ttsOptions, targets, {
+      compactArchive: true,
       sourceIdentity: prepared.sourceIdentity,
       dialoguePlan: prepared.dialoguePlan,
       ...lifecycle

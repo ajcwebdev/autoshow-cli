@@ -11,7 +11,6 @@ const SERVICE_TO_LLM_OPTION_FIELD: Record<string, keyof LLMOptions> = {
   openai: 'openaiModels',
   gemini: 'geminiModels',
   anthropic: 'anthropicModels',
-  minimax: 'minimaxModels',
   grok: 'grokModels',
   glm: 'glmModels',
   kimi: 'kimiModels',

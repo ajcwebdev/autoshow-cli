@@ -1,3 +1,4 @@
+import { assertTextContent } from '../../../../../test-utils/assert-generated-content'
 import { expect } from 'bun:test'
 
 import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
@@ -23,6 +24,7 @@ defineBudgetedLiveServiceTest('extract-glm-reader-url', 'bun autoshow extract ht
     )
 
     await expectArtifact(`${outputDir}/extraction.txt`)
+    assertTextContent(await Bun.file(`${outputDir}/extraction.txt`).text(), 'URL extraction')
 
     const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
     expect(metadata.step1?.format).toBe('html')

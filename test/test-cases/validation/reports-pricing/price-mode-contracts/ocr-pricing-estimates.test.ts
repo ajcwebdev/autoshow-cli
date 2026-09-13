@@ -110,7 +110,7 @@ describe('price mode contracts', () => {
   test('pooled OCR pricing allocates the document once across shared provider lanes', async () => {
     const targets = [
       { service: 'openai' as const, model: 'gpt-5.6-sol' },
-      { service: 'openai' as const, model: 'gpt-5.4-mini' },
+      { service: 'openai' as const, model: 'gpt-5.6-terra' },
       { service: 'gemini' as const, model: 'gemini-3.6-flash' }
     ]
 
@@ -186,7 +186,7 @@ describe('price mode contracts', () => {
     })
 
   test('DeepInfra OCR estimates include token cost and page timing', () => {
-      expectTokenPricedOcrEstimate({ provider: 'deepinfra', model: 'Qwen/Qwen3-VL-30B-A3B-Instruct' })
+      expectTokenPricedOcrEstimate({ provider: 'deepinfra', model: 'google/gemma-4-31B-it' })
 
       const actualMetadata: ExtractionMetadata = {
         extractionMethod: 'pdf+deepinfra-ocr',
@@ -198,7 +198,7 @@ describe('price mode contracts', () => {
         languages: 'eng',
         tokenEstimate: 10_000,
         ocrService: 'deepinfra',
-        ocrModel: 'Qwen/Qwen3-VL-30B-A3B-Instruct',
+        ocrModel: 'google/gemma-4-31B-it',
         promptTokens: 8000,
         completionTokens: 2000
       }
@@ -208,14 +208,14 @@ describe('price mode contracts', () => {
       expect(actual.steps[0]).toMatchObject({
         step: 'extract',
         provider: 'deepinfra',
-        model: 'Qwen/Qwen3-VL-30B-A3B-Instruct',
+        model: 'google/gemma-4-31B-it',
         promptTokens: 8000,
         completionTokens: 2000
       })
       expect(actual.totalCost).toBeGreaterThan(0)
       expect(actualTiming.steps[0]).toMatchObject({
         provider: 'deepinfra',
-        model: 'Qwen/Qwen3-VL-30B-A3B-Instruct',
+        model: 'google/gemma-4-31B-it',
         processingTimeMs: 1234
       })
     })
@@ -224,10 +224,10 @@ describe('price mode contracts', () => {
       expectTokenPricedOcrEstimate({ provider: 'kimi', model: 'kimi-k2.6' })
     })
 
-  test('Grok OCR estimates and actuals use provisional token pricing', () => {
+  test('Grok OCR estimates and actuals use registered token pricing', () => {
       const extractTargets = [{
         provider: 'grok' as const,
-        model: 'grok-4.3',
+        model: 'grok-4.5',
         pageCount: 2,
         estimateType: 'heuristic' as const
       }]
@@ -245,19 +245,19 @@ describe('price mode contracts', () => {
       expect(cost.steps[0]).toMatchObject({
         step: 'extract',
         provider: 'grok',
-        model: 'grok-4.3',
+        model: 'grok-4.5',
         pageCount: 2,
         promptTokens: 8000,
         completionTokens: 2000,
-        inputCostPer1MCents: 125,
-        outputCostPer1MCents: 250,
+        inputCostPer1MCents: 200,
+        outputCostPer1MCents: 600,
         estimateType: 'heuristic'
       })
-      expect(cost.totalCost).toBe(1.5)
+      expect(cost.totalCost).toBe(2.8)
       expect(timing.steps[0]).toMatchObject({
         provider: 'grok',
-        model: 'grok-4.3',
-        processingTimeMs: expectedOcrProcessingMs('grok', 'grok-4.3', 2)
+        model: 'grok-4.5',
+        processingTimeMs: expectedOcrProcessingMs('grok', 'grok-4.5', 2)
       })
 
       const actualMetadata: ExtractionMetadata = {
@@ -270,7 +270,7 @@ describe('price mode contracts', () => {
         languages: 'eng',
         tokenEstimate: 5000,
         ocrService: 'grok',
-        ocrModel: 'grok-4.3',
+        ocrModel: 'grok-4.5',
         promptTokens: 4000,
         completionTokens: 1000
       }
@@ -279,13 +279,13 @@ describe('price mode contracts', () => {
       expect(actual.steps[0]).toMatchObject({
         step: 'extract',
         provider: 'grok',
-        model: 'grok-4.3',
-        cost: 0.75,
+        model: 'grok-4.5',
+        cost: 1.4,
         promptTokens: 4000,
         completionTokens: 1000,
         costSource: 'provider_usage'
       })
-      expect(actual.totalCost).toBe(0.75)
+      expect(actual.totalCost).toBe(1.4)
 
       const grok45Targets = [{
         provider: 'grok' as const,
@@ -344,7 +344,7 @@ describe('price mode contracts', () => {
         hostedOcrTokenProfilePath: missingHostedOcrProfilePath(),
         extractTargets: [{
           provider: 'openai',
-          model: 'gpt-5.4-nano',
+          model: 'gpt-5.6-luna',
           pageCount: 2,
           estimateType: 'heuristic'
         }]
@@ -354,10 +354,10 @@ describe('price mode contracts', () => {
       expect(step).toMatchObject({
         step: 'extract',
         provider: 'openai',
-        model: 'gpt-5.4-nano',
+        model: 'gpt-5.6-luna',
         pageCount: 2,
-        promptTokens: 5972,
-        completionTokens: 3688,
+        promptTokens: 3250,
+        completionTokens: 1716,
         estimateType: 'heuristic'
       })
       expect(cost.totalCost).toBe(

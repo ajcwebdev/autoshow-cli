@@ -51,7 +51,7 @@ const runSupadataScrape = async (
   options?: UrlRequestOptions,
   baseUrl: string = SUPADATA_DEFAULT_BASE_URL
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  const apiKey = requireHostedUrlProviderApiKey('supadata', 'url:supadata', baseUrl === SUPADATA_DEFAULT_BASE_URL)
+  const apiKey = requireHostedUrlProviderApiKey('supadata', 'url:supadata', baseUrl === SUPADATA_DEFAULT_BASE_URL, options?.apiKey)
 
   const scrapeUrl = `${baseUrl.replace(/\/$/, '')}/web/scrape?url=${encodeURIComponent(source)}`
 

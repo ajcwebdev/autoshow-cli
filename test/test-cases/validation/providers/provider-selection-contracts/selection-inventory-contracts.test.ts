@@ -39,7 +39,6 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'openai',
   'gemini',
   'anthropic',
-  'minimax',
   'grok',
   'glm',
   'kimi',

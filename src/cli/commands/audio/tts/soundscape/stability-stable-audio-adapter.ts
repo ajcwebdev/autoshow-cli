@@ -7,19 +7,21 @@ import type {
   StabilitySoundEffectHttpRequest,
   StabilitySoundEffectSerializedRequest,
 } from '~/types'
-import { UsageError } from '~/utils/error-handler'
+import { sleepWithAbortSignal } from '~/utils/retry-abortable-delay'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import { canonicalTargetKey, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { SoundEffectProviderError } from './sound-effect-errors'
 import { resolveCredential } from '~/utils/validate/env-utils'
 
 const DOCS = [
   'https://platform.stability.ai/docs/api-reference',
-  'https://platform.stability.ai/docs/getting-started/authentication',
+  'https://platform.stability.ai/pricing',
 ]
 
 export const STABILITY_STABLE_AUDIO_MODEL_ID = 'stable-audio-3'
-const STABILITY_STABLE_AUDIO_SERIALIZER_VERSION = 'stability.stable-audio-3.v1'
-export const STABILITY_STABLE_AUDIO_ENDPOINT = '/v2beta/audio/stable-audio-3/text-to-audio'
+const STABILITY_STABLE_AUDIO_SERIALIZER_VERSION = 'stability.stable-audio-3.v2'
+export const STABILITY_STABLE_AUDIO_COST_USD = 0.26
+export const STABILITY_STABLE_AUDIO_ENDPOINT = '/v2beta/audio/stable-audio/text-to-audio'
 export const STABILITY_STABLE_AUDIO_SELECTOR = `stability=${STABILITY_STABLE_AUDIO_MODEL_ID}`
 const STABILITY_API_BASE_URL = 'https://api.stability.ai'
 
@@ -30,19 +32,18 @@ const fixtureBase = {
   transport: 'hosted-api' as const,
   endpoint: STABILITY_STABLE_AUDIO_ENDPOINT,
   serializerVersion: STABILITY_STABLE_AUDIO_SERIALIZER_VERSION,
-  checkedAt: '2026-08-14',
+  checkedAt: '2026-09-11',
   sourceRefs: DOCS,
   constraints: {
-    promptMaxScalars: 1000,
-    durationSeconds: { min: 1, max: 190, default: 8 },
+    promptMaxScalars: 10000,
+    durationSeconds: { min: 1, max: 380, default: 8 },
     outputFormats: ['wav', 'mp3'],
   },
   pricing: {
     currency: 'USD' as const,
-    specifiedDurationPerMinute: 0.4,
-    automaticDurationPerRequest: null,
-    typicalPerPrediction: 0.2,
-    inputDependent: true,
+    specifiedDurationPerMinute: 0,
+    automaticDurationPerRequest: STABILITY_STABLE_AUDIO_COST_USD,
+    perSuccessfulGeneration: STABILITY_STABLE_AUDIO_COST_USD,
   },
 }
 
@@ -78,6 +79,7 @@ export const validateStabilitySoundEffectTask = (task: SoundEffectRenderTask, ta
   if (task.kind === 'vocal-reaction') {
     throw UsageError('Stability Stable Audio 3 is a dedicated action-SFX and ambience target and cannot render vocal reactions, dialogue, or voice identity.')
   }
+  if (!target.capabilityFixture.constraints.outputFormats.includes(task.outputFormat)) throw UsageError(`Unsupported Stability sound-effect output format ${task.outputFormat}.`)
   const constraints = target.capabilityFixture.constraints
   const promptLength = [...task.prompt].length
   if (promptLength < 1 || promptLength > constraints.promptMaxScalars) {
@@ -85,7 +87,7 @@ export const validateStabilitySoundEffectTask = (task: SoundEffectRenderTask, ta
   }
   if (
     task.durationSeconds !== undefined &&
-    (task.durationSeconds < constraints.durationSeconds.min || task.durationSeconds > constraints.durationSeconds.max)
+    (!Number.isFinite(task.durationSeconds) || task.durationSeconds < constraints.durationSeconds.min || task.durationSeconds > constraints.durationSeconds.max)
   ) {
     throw UsageError(
       `Stability sound-effect duration must be ${constraints.durationSeconds.min}-${constraints.durationSeconds.max} seconds.`
@@ -99,10 +101,13 @@ export const serializeStabilitySoundEffectRequest = (
 ): StabilitySoundEffectSerializedRequest => {
   validateStabilitySoundEffectTask(task, target)
   return {
-    path: STABILITY_STABLE_AUDIO_ENDPOINT,
+    // Retained v1 plans must keep their exact serialized identity for cache validation.
+    path: target.capabilityFixture.endpoint,
     body: {
       prompt: task.prompt,
-      duration: Math.round(task.durationSeconds ?? target.capabilityFixture.constraints.durationSeconds.default ?? 8),
+      duration: target.capabilityFixture.serializerVersion.endsWith('.v1')
+        ? Math.round(task.durationSeconds ?? target.capabilityFixture.constraints.durationSeconds.default ?? 8)
+        : task.durationSeconds ?? target.capabilityFixture.constraints.durationSeconds.default ?? 8,
       output_format: task.outputFormat,
     },
   }
@@ -122,9 +127,14 @@ export const createStabilitySoundEffectAdapter = (options: {
   apiKey: string
   request?: StabilitySoundEffectHttpRequest | undefined
   now?: (() => string) | undefined
+  wait?: ((ms: number, signal: AbortSignal) => Promise<void>) | undefined
+  maxPolls?: number | undefined
 }) => {
-  resolveCredential('stability', 'require', { stage: 'tts:soundscape', providedValue: options.apiKey, useProvidedValue: true, description: 'Stability Stable Audio 3' })
-  const request = options.request ?? defaultRequest(options.apiKey)
+  const apiKey = resolveCredential('stability', 'require', { stage: 'tts:soundscape', providedValue: options.apiKey, useProvidedValue: true, description: 'Stability Stable Audio 3' })
+  const request = options.request ?? defaultRequest(apiKey)
+  const wait = options.wait ?? sleepWithAbortSignal
+  const maxPolls = options.maxPolls ?? 180
+  if (!Number.isInteger(maxPolls) || maxPolls < 1) throw UsageError('Stable Audio maxPolls must be a positive integer.')
   const now = options.now ?? (() => new Date().toISOString())
   return {
     generate: async (
@@ -135,31 +145,48 @@ export const createStabilitySoundEffectAdapter = (options: {
     ): Promise<SoundEffectGenerationResponse> => {
       cancellation.throwIfAborted()
       validateStabilitySoundEffectTask(task, target)
+      if (target.capabilityFixture.serializerVersion !== STABILITY_STABLE_AUDIO_SERIALIZER_VERSION) throw UsageError('Retained Stable Audio v1 requests can be reused but cannot be submitted with an obsolete contract; create a new sound-effect plan.')
       const serialized = serializeStabilitySoundEffectRequest(task, target)
       const form = new FormData()
       form.set('prompt', serialized.body.prompt)
       form.set('duration', String(serialized.body.duration))
       form.set('output_format', serialized.body.output_format)
-      const response = await request({
+      let response = await request({
         method: 'POST',
         path: serialized.path,
         headers: { Accept: 'audio/*' },
         body: form,
         cancellation,
       })
-      if (response.status < 200 || response.status >= 300) {
+      if (response.status !== 202) {
         const rejected = response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 409
         throw new SoundEffectProviderError(
-          `Stability Stable Audio 3 failed with HTTP ${response.status}.`,
+          `Stability Stable Audio 3 submission failed with HTTP ${response.status}.`,
           rejected && (response.status === 425 || response.status === 429),
-          rejected ? 'rejected' : 'ambiguous',
-          response.status,
-          response.headers
+          rejected ? 'rejected' : 'ambiguous', response.status, response.headers
         )
       }
-      if (response.body.byteLength === 0) throw UsageError('Stability Stable Audio 3 returned empty audio.')
+      let providerRequestId: string
+      try {
+        const payload = JSON.parse(new TextDecoder().decode(response.body)) as { id?: unknown }
+        if (typeof payload.id !== 'string' || !/^[a-zA-Z0-9_-]+$/u.test(payload.id)) throw ValidationError('Invalid generation ID')
+        providerRequestId = payload.id
+      } catch {
+        throw new SoundEffectProviderError('Stable Audio accepted a submission without a valid generation ID.', false, 'ambiguous')
+      }
+      for (let poll = 0; poll < maxPolls; poll++) {
+        await wait(10_000, cancellation)
+        cancellation.throwIfAborted()
+        response = await request({ method: 'GET', path: `/v2beta/audio/results/${providerRequestId}`, headers: { Accept: 'audio/*' }, cancellation })
+        if (response.status === 200) break
+        if (response.status === 202 || response.status === 429 || response.status >= 500) continue
+        // A result failure never authorizes another create request.
+        throw new SoundEffectProviderError(`Stable Audio result ${providerRequestId} failed with HTTP ${response.status}; automatic redispatch is blocked.`, false, 'ambiguous', response.status, response.headers)
+      }
       const contentType = header(response.headers, 'content-type')?.split(';')[0]?.trim() || 'application/octet-stream'
-      const providerRequestId = header(response.headers, 'x-request-id')
+      if (response.status !== 200 || !contentType.startsWith('audio/') || response.body.byteLength === 0) {
+        throw new SoundEffectProviderError(`Stable Audio result ${providerRequestId} is incomplete; automatic redispatch is blocked.`, false, 'ambiguous')
+      }
       const evidenceBase = {
         schemaVersion: 1 as const,
         requestIdentity: task.requestIdentity,
@@ -170,6 +197,7 @@ export const createStabilitySoundEffectAdapter = (options: {
         queryHash: hashCanonicalTtsValue({}),
         ...(providerRequestId ? { providerRequestId } : {}),
         observedContentType: contentType,
+        billedCostUsd: STABILITY_STABLE_AUDIO_COST_USD,
         capturedAt: now(),
       }
       const requestEvidence: SoundEffectRequestEvidence = { ...evidenceBase, requestEvidenceId: hashCanonicalTtsValue(evidenceBase) }

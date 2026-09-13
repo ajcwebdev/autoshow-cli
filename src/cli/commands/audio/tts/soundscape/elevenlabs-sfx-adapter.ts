@@ -115,8 +115,8 @@ export const createElevenLabsSoundEffectAdapter = (input: {
   request?: ElevenLabsSoundEffectHttpRequest | undefined
   now?: (() => string) | undefined
 }) => {
-  resolveCredential('elevenlabs', 'require', { stage: 'tts:soundscape', providedValue: input.apiKey, useProvidedValue: true, description: 'ElevenLabs sound-effect execution' })
-  const request = input.request ?? defaultRequest(input.apiKey)
+  const apiKey = resolveCredential('elevenlabs', 'require', { stage: 'tts:soundscape', providedValue: input.apiKey, useProvidedValue: true, description: 'ElevenLabs sound-effect execution' })
+  const request = input.request ?? defaultRequest(apiKey)
   const now = input.now ?? (() => new Date().toISOString())
   return {
     generate: async (task: SoundEffectRenderTask, target: SoundEffectTarget, requestOrdinal: number, cancellation: AbortSignal): Promise<SoundEffectGenerationResponse> => {

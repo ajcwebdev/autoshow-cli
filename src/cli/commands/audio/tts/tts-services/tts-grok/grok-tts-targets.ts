@@ -22,7 +22,7 @@ export const collectGrokTtsTargets = (
       run: async (text, outputDir, opts, invocation, requestEvidence) => {
         const invocationVoiceId = resolveTtsTargetInvocationVoiceId('grok', invocation)
         const controls = resolveTtsTargetInvocationControls('grok', invocation, {
-          language: selection.grokLanguage,
+          language: selection.grokLanguage, speed: selection.grokSpeed,
           ...(selection.grokTextNormalization ? { textNormalization: true } : {}),
         })
         await ensureGrokTtsSetup()
@@ -30,6 +30,7 @@ export const collectGrokTtsTargets = (
           model,
           voiceId: invocationVoiceId ?? voiceId,
           language: controls.language,
+          speed: controls.speed,
           textNormalization: controls.textNormalization,
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler,

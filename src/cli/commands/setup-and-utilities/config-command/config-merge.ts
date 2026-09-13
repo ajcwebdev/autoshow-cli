@@ -1,3 +1,6 @@
+import { UsageError } from '~/utils/error-handler'
+
+import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import type { AutoshowConfig, CliFlagOccurrence, RepeatableModelFlag } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
@@ -221,7 +224,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'openai':            ['defaults', 'llm', 'openai'],
   'gemini':            ['defaults', 'llm', 'gemini'],
   'anthropic':         ['defaults', 'llm', 'anthropic'],
-  'minimax':           ['defaults', 'llm', 'minimax'],
   'grok':              ['defaults', 'llm', 'grok'],
   'glm':               ['defaults', 'llm', 'glm'],
   'kimi':              ['defaults', 'llm', 'kimi'],
@@ -416,6 +418,13 @@ export const buildConfigPatchFromFlags = (
       value = resolveConfigFlagValue(flagName, rawValue)
     }
 
+    const category = configPath[1] === 'llm' ? 'llm' : configPath[1] === 'extract' && configPath[2] === 'ocr' ? 'extract' : undefined
+    if (category && Array.isArray(value)) {
+      const provider = flagName.replace(/-ocr$/, '')
+      for (const model of value) {
+        if (typeof model !== 'string' || !getModelRegistry()[category][provider]?.models[model]) throw UsageError(`Unsupported configured model ${provider}/${String(model)}. Select an active model explicitly.`)
+      }
+    }
     setNestedValue(patch, configPath, value)
   }
 

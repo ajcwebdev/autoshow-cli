@@ -1,5 +1,8 @@
 {
   "GLM": {
+    "LLMSTXT": [
+      "https://docs.z.ai/llms.txt"
+    ],
     "General": [
       "https://docs.z.ai/guides/overview/overview.md",
       "https://docs.z.ai/guides/overview/pricing.md",
@@ -8,8 +11,6 @@
       "https://docs.z.ai/api-reference/api-code.md"
     ],
     "Models": [
-      "https://docs.z.ai/guides/llm/glm-5.1.md",
-      "https://docs.z.ai/guides/vlm/glm-ocr.md",
       "https://docs.z.ai/guides/llm/glm-5.3",
       "https://docs.z.ai/guides/vlm/glm-5.3-flash"
     ],
@@ -19,7 +20,7 @@
       "https://docs.z.ai/api-reference/llm/chat-completion.md"
     ],
     "OCR": [
-      "https://docs.z.ai/api-reference/tools/layout-parsing.md"
+      "https://docs.z.ai/guides/vlm/glm-5.3-flash"
     ],
     "URL": [
       "https://docs.z.ai/api-reference/tools/web-reader.md"

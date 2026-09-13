@@ -24,11 +24,11 @@ import {
 describe('option resolution contracts', () => {
   test('buildOptsFromFlags maps representative CLI flags to runtime options', () => {
       const opts = buildOptsFromFlags({
-        openai: 'gpt-5.4-mini',
-        grok: 'grok-4.3',
-        glm: 'glm-5.1',
+        openai: 'gpt-5.6-terra',
+        grok: 'grok-4.5',
+        glm: 'glm-5.3-flash',
         kimi: 'kimi-k2.6',
-        together: 'glm-5.1',
+        together: 'glm-5.3-flash',
         'mistral-stt': 'voxtral-mini-2602',
         'grok-stt': 'speech-to-text',
         'together-stt': 'openai/whisper-large-v3',
@@ -39,7 +39,7 @@ describe('option resolution contracts', () => {
         'mistral-tts': 'voxtral-mini-tts-2603',
         'speechify-tts': 'simba-3.2',
         'hume-tts': 'octave-2',
-        'cartesia-tts': 'sonic-3.5-2026-05-04',
+        'cartesia-tts': 'sonic-3.6-2026-08-27',
         'elevenlabs-tts': 'eleven_v3',
         'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
         'tts-voice': [
@@ -59,9 +59,9 @@ describe('option resolution contracts', () => {
         'elevenlabs-tts-use-speaker-boost': true,
         'elevenlabs-tts-seed': '12345',
         'elevenlabs-tts-pronunciation-dictionary-locator': ['dict_1:version_2', 'dict_3'],
-        'openai-ocr': 'gpt-5.5',
-        'grok-ocr': 'grok-4.3',
-        'deepinfra-ocr': 'Qwen/Qwen3-VL-30B-A3B-Instruct',
+        'openai-ocr': 'gpt-5.6-sol',
+        'grok-ocr': 'grok-4.5',
+        'deepinfra-ocr': 'google/gemma-4-31B-it',
         'kimi-ocr': 'kimi-k2.6',
         'tesseract-ocr': true,
         'youtube-captions': true,
@@ -74,11 +74,11 @@ describe('option resolution contracts', () => {
         'llm-local-concurrency': '3'
       })
 
-      expect(opts.openaiModels?.[0]).toBe('gpt-5.4-mini')
-      expect(opts.grokModels?.[0]).toBe('grok-4.3')
-      expect(opts.glmModels?.[0]).toBe('glm-5.1')
+      expect(opts.openaiModels?.[0]).toBe('gpt-5.6-terra')
+      expect(opts.grokModels?.[0]).toBe('grok-4.5')
+      expect(opts.glmModels?.[0]).toBe('glm-5.3-flash')
       expect(opts.kimiModels?.[0]).toBe('kimi-k2.6')
-      expect(opts.togetherModels?.[0]).toBe('glm-5.1')
+      expect(opts.togetherModels?.[0]).toBe('glm-5.3-flash')
       expect(opts.mistralSttModels?.[0]).toBe('voxtral-mini-2602')
       expect(opts.grokSttModels?.[0]).toBe('speech-to-text')
       expect(opts.togetherSttModels?.[0]).toBe('openai/whisper-large-v3')
@@ -94,7 +94,7 @@ describe('option resolution contracts', () => {
       expect(opts.speechifyTtsLanguage).toBe('en-US')
       expect(opts.humeTtsModels?.[0]).toBe('octave-2')
       expect(opts.humeTtsVoice).toBe('Studio Voice')
-      expect(opts.cartesiaTtsModels?.[0]).toBe('sonic-3.5-2026-05-04')
+      expect(opts.cartesiaTtsModels?.[0]).toBe('sonic-3.6-2026-08-27')
       expect(opts.cartesiaTtsVoice).toBe('cartesia-voice-id')
       expect(opts.cartesiaTtsLanguage).toBe('en')
       expect(opts.elevenlabsTtsModels?.[0]).toBe('eleven_v3')
@@ -107,9 +107,9 @@ describe('option resolution contracts', () => {
       expect(opts.elevenlabsTtsSeed).toBe(12345)
       expect(opts.elevenlabsTtsTextNormalization).toBe('on')
       expect(opts.elevenlabsTtsPronunciationDictionaryLocators).toEqual(['dict_1:version_2', 'dict_3'])
-      expect(opts.openaiOcrModels?.[0]).toBe('gpt-5.5')
-      expect(opts.grokOcrModels?.[0]).toBe('grok-4.3')
-      expect(opts.deepinfraOcrModels?.[0]).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
+      expect(opts.openaiOcrModels?.[0]).toBe('gpt-5.6-sol')
+      expect(opts.grokOcrModels?.[0]).toBe('grok-4.5')
+      expect(opts.deepinfraOcrModels?.[0]).toBe('google/gemma-4-31B-it')
       expect(opts.kimiOcrModels?.[0]).toBe('kimi-k2.6')
       expect(opts.useTesseract).toBe(true)
       expect(opts.youtubeCaptions).toBe(true)
@@ -163,7 +163,7 @@ describe('option resolution contracts', () => {
   test('pooled OCR expected files describe isolated page attempts instead of fanout results', async () => {
       const opts = buildOptsFromFlags({
         'ocr-provider-mode': 'pool',
-        'openai-ocr': 'gpt-5.5',
+        'openai-ocr': 'gpt-5.6-sol',
         'mistral-ocr': 'mistral-ocr-4-0',
         format: 'text'
       })
@@ -183,17 +183,17 @@ describe('option resolution contracts', () => {
   test('buildOptsFromFlags only accepts canonical flag keys', () => {
       const camelCaseFlags = buildOptsFromFlags({
         mistralStt: 'voxtral-mini-2602',
-        deepinfraOcr: 'Qwen/Qwen3-VL-30B-A3B-Instruct'
+        deepinfraOcr: 'google/gemma-4-31B-it'
       })
       const canonicalFlags = buildOptsFromFlags({
         'mistral-stt': 'voxtral-mini-2602',
-        'deepinfra-ocr': 'Qwen/Qwen3-VL-30B-A3B-Instruct'
+        'deepinfra-ocr': 'google/gemma-4-31B-it'
       })
 
       expect(camelCaseFlags.mistralSttModels?.[0]).toBeUndefined()
       expect(camelCaseFlags.deepinfraOcrModels?.[0]).toBeUndefined()
       expect(canonicalFlags.mistralSttModels?.[0]).toBe('voxtral-mini-2602')
-      expect(canonicalFlags.deepinfraOcrModels?.[0]).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
+      expect(canonicalFlags.deepinfraOcrModels?.[0]).toBe('google/gemma-4-31B-it')
     })
 
   test('buildOptsFromFlags accepts URL article backend names', () => {

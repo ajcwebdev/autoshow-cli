@@ -1,5 +1,8 @@
 {
   "BFL": {
+    "LLMSTXT": [
+      "https://docs.bfl.ml/llms.txt"
+    ],
     "Models": [
       "https://docs.bfl.ml/flux_2/flux2_overview.md",
       "https://docs.bfl.ml/flux_2/flux2_image_editing.md",

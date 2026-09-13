@@ -6,12 +6,15 @@ export const HELP_COMMAND_GROUPS = [
 
 export const HELP_FLAG_GROUPS = [
   ['config', 'Config'],
+  ['setup-installation', 'Installation'],
+  ['setup-diagnostics', 'Diagnostics'],
+  ['setup-network', 'Network Fixture'],
+  ['run-specific', 'Run-specific Options'],
   ['document-options', 'Document Options'],
   ['metadata-output', 'Metadata Output'],
   ['media-download', 'Media Download Options'],
   ['concurrency', 'Concurrency'],
   ['provider-selection', 'Provider Selection'],
-  ['pipeline', 'Pipeline Selection'],
   ['batch-download', 'Batch / Download'],
   ['transcription', 'Transcription / STT'],
   ['timing', 'Transcript Timing'],

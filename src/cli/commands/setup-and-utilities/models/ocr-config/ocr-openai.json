@@ -26,7 +26,13 @@
         "reasoning": {
           "support": "required",
           "allowDisabled": false,
-          "supportedEfforts": ["low", "medium", "high", "xhigh", "max"]
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
         },
         "tokenPricingBands": [
           {
@@ -68,7 +74,12 @@
         "reasoning": {
           "support": "optional",
           "allowDisabled": true,
-          "supportedEfforts": ["low", "medium", "high", "max"]
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
         }
       },
       "gpt-5.6-terra": {
@@ -94,7 +105,12 @@
         "reasoning": {
           "support": "optional",
           "allowDisabled": true,
-          "supportedEfforts": ["low", "medium", "high", "max"]
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
         }
       },
       "gpt-5.6-luna": {
@@ -120,100 +136,12 @@
         "reasoning": {
           "support": "optional",
           "allowDisabled": true,
-          "supportedEfforts": ["low", "medium", "high", "max"]
-        }
-      },
-      "gpt-5.5": {
-        "description": "GPT-5.5 OCR",
-        "pricingSourceUrl": "https://developers.openai.com/api/docs/pricing",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "OpenAI API standard token pricing",
-        "pricingNotes": "OpenAI lists GPT-5.5 Standard pricing with short-context rates of $5/1M input tokens, $0.50/1M cached input tokens, and $30/1M output tokens. For prompts with >272K input tokens, OpenAI applies 2x input and 1.5x output pricing for the full session. OCR estimates switch bands from observed or heuristic input tokens; batch, flex, priority, regional uplifts, cached-input discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerMInputTokensCents": 500,
-        "costPerMCachedInputTokensCents": 50,
-        "costPerMOutputTokensCents": 3000,
-        "limits": {
-          "pdfBytes": 52428800,
-          "notes": "https://developers.openai.com/api/docs/guides/images-vision.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
-        },
-        "estimation": {
-          "promptTokensPerPage": 2986,
-          "completionTokensPerPage": 1903,
-          "costMultiplier": 1,
-          "msPerPage": 5887
-        },
-        "tokenPricingBands": [
-          {
-            "label": "standard-short-context",
-            "maxInputTokens": 272000,
-            "inputCostPer1MCents": 500,
-            "cachedInputCostPer1MCents": 50,
-            "outputCostPer1MCents": 3000
-          },
-          {
-            "label": "standard-long-context",
-            "minInputTokens": 272001,
-            "inputCostPer1MCents": 1000,
-            "cachedInputCostPer1MCents": 100,
-            "outputCostPer1MCents": 4500
-          }
-        ],
-        "reasoning": {
-          "support": "optional",
-          "allowDisabled": true,
-          "supportedEfforts": ["low", "medium", "high"]
-        }
-      },
-      "gpt-5.4-mini": {
-        "description": "GPT-5.4 mini OCR",
-        "pricingSourceUrl": "https://developers.openai.com/api/docs/pricing",
-        "pricingCheckedAt": "2026-06-30",
-        "pricingCurrency": "USD",
-        "pricingTier": "OpenAI API standard token pricing",
-        "pricingNotes": "OpenAI lists GPT-5.4 mini at $0.75/1M input tokens, $0.075/1M cached input tokens, and $4.50/1M output tokens. OCR estimates multiply observed token usage by published input/output rates; free credits, batch/flex discounts, cached-input discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerMInputTokensCents": 75,
-        "costPerMCachedInputTokensCents": 7.5,
-        "costPerMOutputTokensCents": 450,
-        "limits": {
-          "pdfBytes": 52428800,
-          "notes": "https://developers.openai.com/api/docs/guides/images-vision.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
-        },
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerPage": 7209,
-          "promptTokensPerPage": 2986,
-          "completionTokensPerPage": 1844
-        },
-        "reasoning": {
-          "support": "optional",
-          "allowDisabled": true,
-          "supportedEfforts": ["low", "medium", "high"]
-        }
-      },
-      "gpt-5.4-nano": {
-        "description": "GPT-5.4 nano OCR",
-        "pricingSourceUrl": "https://developers.openai.com/api/docs/pricing",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "OpenAI API standard token pricing",
-        "pricingNotes": "OpenAI lists GPT-5.4 nano at $0.20/1M input tokens and $1.25/1M output tokens. OCR estimates multiply observed token usage by these published rates; free credits, batch/flex discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerMInputTokensCents": 20,
-        "costPerMOutputTokensCents": 125,
-        "limits": {
-          "pdfBytes": 52428800,
-          "notes": "https://developers.openai.com/api/docs/guides/images-vision.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
-        },
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerPage": 7209,
-          "promptTokensPerPage": 2986,
-          "completionTokensPerPage": 1844
-        },
-        "reasoning": {
-          "support": "optional",
-          "allowDisabled": true,
-          "supportedEfforts": ["low", "medium", "high"]
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
         }
       }
     }

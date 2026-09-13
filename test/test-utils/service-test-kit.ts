@@ -1,3 +1,4 @@
+import { liveCredentialContext } from './live-credential-context'
 import { beforeAll, test } from 'bun:test'
 import { budgetedTest, E2E_TEST_TIMEOUT_MS } from './budget'
 import {
@@ -7,7 +8,6 @@ import {
   readConfiguredEnvVarSync
 } from './test-helpers'
 import type { RunAndExpectOutputDirOptions, RunCommandOptions } from '~/types'
-import { l } from '~/utils/app-logger/app-logger'
 import { stripAnsi } from '~/utils/terminal-colors'
 import {
   RUNWAY_INSUFFICIENT_CREDITS_MESSAGE,
@@ -95,11 +95,12 @@ export const defineBudgetedLiveServiceTest = (
   timeoutMs: number = E2E_TEST_TIMEOUT_MS
 ): void => {
   // CLI children disable implicit dotenv loading and receive exported credentials only.
-  if (envVarKeys.some(key => key && !process.env[key]?.trim())) {
+  if (process.env['AUTOSHOW_TEST_CREDENTIAL_MODE'] !== 'live' || getMissingConfiguredEnvVarKeysSync(envVarKeys).length > 0) {
     test.skip(name, fn)
     return
   }
-  budgetedTest(budgetKey, name, fn, timeoutMs)
+  const credentials = Object.fromEntries(envVarKeys.flatMap(key => key ? [[key, readConfiguredEnvVarSync(key)!]] : []))
+  budgetedTest(budgetKey, name, () => liveCredentialContext.run(credentials, fn), timeoutMs)
 }
 
 const requireConfiguredValue = <T>(
@@ -178,9 +179,7 @@ export const runCommandAndExpectOutputDir = async (
   opts?: RunCommandOptions,
   extra: RunAndExpectOutputDirOptions = {}
 ): Promise<string> => {
-  const result = extra.transient
-    ? await runCommandWithTransientRetry(args, extra.transient, opts)
-    : await runCommand(args, opts)
+  const result = await runCommand(args, opts)
 
   extra.onResult?.(result)
 
@@ -201,28 +200,4 @@ export const runCommandAndExpectOutputDir = async (
     throw new Error(`Expected output directory for ${title}`)
   }
   return outputDir
-}
-
-const runCommandWithTransientRetry = async (
-  commandArgs: string[],
-  opts: {
-    isTransient: (output: string) => boolean
-    providerLabel: string
-    persistedLabel: string
-    retryDelayMs?: number
-  },
-  runOptions?: RunCommandOptions
-): Promise<Awaited<ReturnType<typeof runCommand>>> => {
-  let result = await runCommand(commandArgs, runOptions)
-  if (result.exitCode === 0) return result
-  if (!opts.isTransient(`${result.stdout}\n${result.stderr}`)) return result
-
-  l.warn(`Retrying once after ${opts.providerLabel}`, { category: 'pipeline' })
-  await Bun.sleep(opts.retryDelayMs ?? 2_000)
-  result = await runCommand(commandArgs, runOptions)
-
-  if (result.exitCode !== 0 && opts.isTransient(`${result.stdout}\n${result.stderr}`)) {
-    throw new Error(`${opts.persistedLabel}\n${formatCommandFailureDiagnostics(commandArgs, result)}`)
-  }
-  return result
 }

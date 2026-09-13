@@ -225,8 +225,8 @@ const resolveTtsResumeArtifactRoot = (
   states: readonly PipelineProviderState[]
 ): string | undefined => {
   for (const state of states) {
-    const match = /^(items\/[^/]+\/providers)(?:\/|$)/.exec(state.artifactDir)
-    if (match?.[1]) return match[1]
+    const match = /^(items\/[^/]+)\/(?:providers\/)?[^/]+$/.exec(state.artifactDir)
+    if (match?.[1]) return `${match[1]}/providers`
   }
   return undefined
 }
@@ -445,6 +445,7 @@ export const ttsResumeConfig = {
       `.tts-resume-${String(itemIndex + 1).padStart(3, '0')}-`
     ))
     return await runTtsTargets(targets, input, workspaceDir, effectiveOpts, {
+      compactArchive: true,
       sourceIdentity: sourceContext.sourceIdentity,
       dialoguePlan: sourceContext.dialoguePlan,
       retainedProviderStates: context.currentProviderStates,

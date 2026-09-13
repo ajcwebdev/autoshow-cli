@@ -1,4 +1,26 @@
 import * as v from 'valibot'
+import { UsageError } from '~/utils/error-handler'
+import type { ElevenLabsTtsVoiceSettings } from '~/types'
+
+export const validateElevenLabsVoiceSettings = (model: string, settings?: ElevenLabsTtsVoiceSettings): void => {
+  validateElevenLabsTtsSpeed(model, settings?.speed)
+  if (model !== 'eleven_v3' || !settings) return
+  for (const key of ['similarity_boost', 'use_speaker_boost', 'style'] as const) {
+    if (settings[key] !== undefined) throw UsageError(`Eleven v3 does not expose a supported ${key} control; use stability or documented inline delivery tags.`)
+  }
+}
+
+export const parseElevenLabsDictionaryLocator = (value: string): { pronunciation_dictionary_id: string, version_id?: string } => {
+  const [rawId, rawVersion] = value.split(':', 2)
+  const id = rawId?.trim()
+  const version = rawVersion?.trim()
+  if (!id) throw UsageError('Invalid ElevenLabs pronunciation dictionary locator; expected dictionary_id or dictionary_id:version_id.')
+  return { pronunciation_dictionary_id: id, ...(version ? { version_id: version } : {}) }
+}
+
+export const validateElevenLabsTtsSpeed = (model: string, speed?: number): void => {
+  if (model === 'eleven_v3' && speed !== undefined) throw UsageError('Eleven v3 does not support numeric speed; use pacing audio tags in the input instead. Numeric speed is supported by other ElevenLabs models only.')
+}
 import { validateDataSafe } from '~/utils/validate/validation'
 
 export const ELEVENLABS_TTS_OUTPUT_FORMAT = 'mp3_44100_128'

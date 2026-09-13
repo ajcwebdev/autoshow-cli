@@ -14,12 +14,23 @@ const LOGGER_SINK_FILES = [
 ]
 
 const PAYLOAD_STDOUT_FILES = [
+  'src/tools/tts-controls-benchmark.ts',
   // The diagnostic owns fixture readiness JSON and the non-JSON-mode probe payload.
   'src/cli/commands/setup-and-utilities/setup/network-check.ts',
   'src/cli/native/dispatcher.ts',
   'src/cli/commands/sources/download/download-targets/single/metadata-output.ts',
   'src/tools/analyze-typescript-complexity.ts',
-  'src/tools/audit-ocr-token-shapes.ts'
+  'src/tools/audit-ocr-token-shapes.ts',
+  // Standalone maintenance entrypoints own their reports and diagnostic streams.
+  'src/tools/bun-env-compat.ts',
+  'src/tools/bun-profile.ts',
+  'src/tools/docker-bun-baseline.ts',
+  'src/tools/help-output-audit.ts',
+  'src/tools/install-alignment-model.ts',
+  'src/tools/repository-structure-check.ts',
+  'src/tools/triage-image-advisories.ts',
+  'src/tools/profile-workloads/local-parsing-normalization.ts',
+  'src/tools/profile-workloads/reference-tokenizer-memory.ts'
 ]
 
 const CONSOLE_ALLOWLIST = new Set([...LOGGER_SINK_FILES, ...PAYLOAD_STDOUT_FILES])
@@ -27,10 +38,14 @@ const CONSOLE_ALLOWLIST = new Set([...LOGGER_SINK_FILES, ...PAYLOAD_STDOUT_FILES
 const PLAIN_THROW_ALLOWLIST = new Set<string>([])
 
 const PROCESS_EXIT_ALLOWLIST = new Set([
+  'src/tools/tts-controls-benchmark.ts',
   'src/cli/create-cli.ts',
   'src/cli/failure-handlers.ts',
   'src/tools/repo-snapshot.ts',
-  'src/tools/unique-source-name-check.ts'
+  'src/tools/unique-source-name-check.ts',
+  'src/tools/bun-env-compat.ts',
+  'src/tools/bun-profile.ts',
+  'src/tools/docker-bun-baseline.ts'
 ])
 
 const ASSIGNED_ERROR_ALLOWLIST = new Set<string>([])

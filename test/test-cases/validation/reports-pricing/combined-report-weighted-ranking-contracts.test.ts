@@ -143,7 +143,7 @@ describe('combined dashboard metric table sorting', () => {
     const qualityBody = html.match(/<div class="tablewrap sort-quality">[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/)?.[1] ?? ''
     const speedBody = html.match(/<div class="tablewrap sort-speed">[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/)?.[1] ?? ''
     const costBody = html.match(/<div class="tablewrap sort-cost">[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/)?.[1] ?? ''
-    const titles = (body: string) => [...body.matchAll(/title="([^"]+)"/g)].map((match) => match[1])
+    const titles = (body: string) => [...body.matchAll(/<code title="([^"]+)"/g)].map((match) => match[1])
 
     expect(titles(qualityBody)).toEqual(['best-quality', 'best-cost', 'best-speed'])
     expect(titles(speedBody)).toEqual(['best-speed', 'best-cost', 'best-quality'])

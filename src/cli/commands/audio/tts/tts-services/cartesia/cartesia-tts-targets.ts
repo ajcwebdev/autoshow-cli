@@ -28,11 +28,12 @@ export const collectCartesiaTtsTargets: (selection: TtsTargetSelection) => TtsTa
   ensureSetup: ensureCartesiaTtsSetup,
   run: async (selection, model, fields, ...[text, outputDir, opts, invocation, requestEvidence]: Parameters<TtsTarget['run']>) => {
     const invocationVoiceId = resolveTtsTargetInvocationVoiceId('cartesia', invocation)
-    const controls = resolveTtsTargetInvocationControls('cartesia', invocation, { language: selection.cartesiaLanguage })
+    const controls = resolveTtsTargetInvocationControls('cartesia', invocation, { language: selection.cartesiaLanguage, speed: selection.cartesiaSpeed })
     return await runCartesiaTts(text, outputDir, {
       model,
       voiceId: invocationVoiceId ?? fields.voice,
       language: controls.language,
+          speed: controls.speed,
       chunkConcurrency: opts.ttsChunkConcurrency,
       chunkScheduler: opts.hostedTtsChunkScheduler,
       abortSignal: invocation?.signal,

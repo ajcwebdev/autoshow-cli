@@ -23,7 +23,7 @@ Why now: a configuration audit exposed dead knobs, misleading documentation, inc
 - **Option:** Shrink the environment-variable surface to credentials, standard system variables, and unavoidable child-process seams; replace everything else with CLI flags, typed parameters, OS APIs, or trusted defaults; keep one credential specification, one missing-key error, a `setup --doctor --strict` gate, and an allowlisted child environment
 - **Pros:** Honest `.env.example`; `--bin-dir` instead of per-tool overrides; trusted default endpoints; one missing-key contract; a usable CI readiness gate; spawned tools stop inheriting unrelated credentials
 - **Cons:** Removes ad-hoc environment escape hatches; missing-credential paths that used to exit 1 now exit 2
-- **Quantitative Notes:** 37 credentials remain as the inbound channel; six per-tool binary variables became `--bin-dir`; missing-key failures use exit code 2 per [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md)
+- **Quantitative Notes:** 33 credentials remain as the inbound channel; six per-tool binary variables became `--bin-dir`; missing-key failures use exit code 2 per [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md)
 
 **Option 2**
 
@@ -58,13 +58,13 @@ Why now: a configuration audit exposed dead knobs, misleading documentation, inc
 - **Option:** Replace inbound environment credentials with a credential-file or OS-keychain resolver
 - **Pros:** Removes credentials from the environment entirely, making subprocess inheritance moot
 - **Cons:** Rejected; environment variables are the standard credential channel, every deployment guide and the Docker credential boundary ([ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)) assume them, and an allowlist fixes the actual exposure (full-environment inheritance)
-- **Quantitative Notes:** Would require migrating all 37 operator secrets plus Docker and CI documentation
+- **Quantitative Notes:** Would require migrating all 33 operator secrets plus Docker and CI documentation
 
 ## Decision
 
 Keep only environment variables that carry credentials, pass state into spawned child processes, follow a standard system convention, or have no CLI equivalent. Everything else is a CLI flag, a typed parameter, an OS API, or a fixed constant.
 
-Provider credentials stay on the environment-variable channel and are documented in `.env.example`. One credential specification drives missing-key hints, `setup --doctor` rows, and TTS admission. Missing credentials fail with one error that names the variable, includes a hint URL, and exits 2. `setup --doctor` stays advisory; `setup --doctor --strict` exits non-zero when a credential required by configured defaults is missing. Spawned children receive `PATH`, `HOME`, terminal controls, and values they explicitly need — not the full credential set. Binary location overrides use `--bin-dir`. Provider clients use trusted default endpoints; runtime base-URL environment overrides are not supported.
+Provider credentials stay on the environment-variable channel and are documented in `.env.example`. One credential specification drives missing-key hints, `setup --doctor` rows, and TTS admission. Missing credentials fail with one error that names the variable, includes a hint URL, and exits 2. `setup --doctor` stays advisory; `setup --doctor --strict` exits non-zero for readiness warnings, including credentials required by configured defaults, invalid configuration, unreadable configured cookies, and unavailable runtimes or model assets. Spawned children receive `PATH`, `HOME`, terminal controls, and values they explicitly need — not the full credential set. Binary location overrides use `--bin-dir`. Provider clients use trusted default endpoints; runtime base-URL environment overrides are not supported.
 
 This applies to:
 
@@ -144,7 +144,7 @@ The [runtime validation instructions](../docker.md#runtime-validation) retain th
 
 **Keep 1**
 
-- **Var(s):** Provider API keys (~37)
+- **Var(s):** Provider API keys (~33)
 - **Reason kept:** Credentials must enter the process; environment variables are the standard channel. Child-process leakage is fixed by allowlisting what children inherit, not by changing the inbound channel.
 
 **Keep 2**
@@ -178,4 +178,6 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 - `src/utils/runtime-paths.ts`
 - `src/cli/commands/setup-and-utilities/setup/hosted-provider-config.ts`
 - `src/utils/validate/env-utils.ts`
-- `scripts/bun-env-compat.ts`
+- `src/tools/bun-env-compat.ts`
+
+The current credential count and capabilities are generated from `HOSTED_PROVIDER_ENV_CHECKS` in [the environment reference](../reports/high-priority-metareport-2026-09-11.md#environment-reference). Run `bun --no-env-file src/tools/environment-reference.ts` after registry changes.

@@ -149,7 +149,6 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
     'fal:fal-ai/maya': { costPer1kCharsCents: 0.5 },
     'fal:async/tts-pro/v1.0': { costPer1kCharsCents: 1 },
     'cartesia:sonic-3': { costPer1kCharsCents: 3.7375 },
-    'cartesia:sonic-3.5': { costPer1kCharsCents: 3.7375 },
     'elevenlabs:eleven_flash_v2_5': { costPer1kCharsCents: 5 },
     'elevenlabs:eleven_multilingual_v2': { costPer1kCharsCents: 10 },
     'openai:gpt-4o-mini-tts': { inputCostPer1MCharsCents: 60, outputCostPer1MCharsCents: 1200 },

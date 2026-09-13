@@ -28,10 +28,10 @@ export const ttsCommand = defineCliCommand({
   flags: ttsCommandFlags,
   help: {
     examples: [
-      ['bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3', 'Generate speech with ElevenLabs'],
-      ['bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-voice YOUR_EXISTING_VOICE_ID', 'Use an existing ElevenLabs voice'],
-      ['bun autoshow tts input/examples/tts/1-tts.md --provider mistral=voxtral-mini-tts-2603 --tts-ref-audio input/examples/audio/anthony-voice.mp3', 'Generate speech with Mistral Voxtral'],
-      ['bun autoshow tts input/examples/tts/1-tts.md --provider grok=grok-tts --tts-voice eve', 'Generate speech with a Grok voice']
+      ['bun autoshow tts input/examples/tts/01-tts-short.md --provider elevenlabs=eleven_v3', 'Generate speech with ElevenLabs'],
+      ['bun autoshow tts input/examples/tts/01-tts-short.md --provider elevenlabs=eleven_v3 --tts-voice YOUR_EXISTING_VOICE_ID', 'Use an existing ElevenLabs voice'],
+      ['bun autoshow tts input/examples/tts/01-tts-short.md --provider mistral=voxtral-mini-tts-2603 --tts-ref-audio input/examples/audio/anthony-voice.mp3', 'Generate speech with Mistral Voxtral'],
+      ['bun autoshow tts input/examples/tts/01-tts-short.md --provider grok=grok-tts --tts-voice eve', 'Generate speech with a Grok voice']
     ]
   }
 }, async (ctx) => {

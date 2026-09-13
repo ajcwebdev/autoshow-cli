@@ -1,3 +1,7 @@
+import { UsageError } from '~/utils/error-handler'
+import { resolveHelpWidth, wrapHelpDescription } from './help-line-wrap'
+import { getHelpTopics } from './help-topics'
+import type { CliHelpRenderOptions } from '~/types'
 import {
   colorText,
   HELP_DEFAULT_VALUE_COLOR_NAME,
@@ -72,7 +76,7 @@ const shouldRenderDefault = (definition: CliFlagDefinition): boolean => {
   return true
 }
 
-const renderFlagRows = (flags: CliFlagsDefinition, indent = '  '): string[] => {
+const renderFlagRows = (flags: CliFlagsDefinition, indent = '  ', width = 120): string[] => {
   const rows = Object.entries(flags).filter(([, definition]) => !isFlagHidden(definition)).map(([name, definition]) => {
     const defaultSuffix = shouldRenderDefault(definition) ? ` ${formatDefault(definition.default)}` : ''
     return [
@@ -85,15 +89,10 @@ const renderFlagRows = (flags: CliFlagsDefinition, indent = '  '): string[] => {
   const typeWidth = rows.reduce((width, [, type]) => Math.max(width, visibleLength(type)), 0)
   return rows.map(([name, type, description]) => {
     const prefix = `${indent}${padRight(name, nameWidth)}  ${padRight(type, typeWidth)}  `
-    if (!description.includes('\n')) {
-      return `${prefix}${description}`
+    if (visibleLength(prefix) > width * 0.6) {
+      return `${indent}${name}  ${type}\n${wrapHelpDescription(`${indent}  `, description, width)}`
     }
-    const continuationPadding = ' '.repeat(visibleLength(prefix))
-    const [firstLine, ...rest] = description.split('\n')
-    return [
-      `${prefix}${firstLine}`,
-      ...rest.map((line) => `${continuationPadding}${line}`)
-    ].join('\n')
+    return wrapHelpDescription(prefix, description, width)
   })
 }
 
@@ -112,7 +111,8 @@ const orderGlobalFlags = (flags: CliFlagsDefinition): CliFlagsDefinition => {
 
 const renderGroupedFlags = (
   flags: CliFlagsDefinition,
-  groups: CliRootDefinition['flagGroups']
+  groups: CliRootDefinition['flagGroups'],
+  width: number
 ): string[] => {
   const entries = Object.entries(flags)
   if (entries.length === 0) {
@@ -135,14 +135,14 @@ const renderGroupedFlags = (
     if (Object.keys(visibleGroupFlags).length === 0) {
       continue
     }
-    lines.push(`  ${label}`, ...renderFlagRows(visibleGroupFlags, '    '), '')
+    lines.push(`  ${label}`, ...renderFlagRows(visibleGroupFlags, '    ', width), '')
   }
 
   const ungrouped = Object.fromEntries(
     entries.filter(([name, definition]) => !groupedKeys.has(name) && !isFlagHidden(definition))
   ) as CliFlagsDefinition
   if (Object.keys(ungrouped).length > 0) {
-    lines.push(...renderFlagRows(ungrouped, '  '), '')
+    lines.push(...renderFlagRows(ungrouped, '  ', width), '')
   }
 
   return lines
@@ -217,16 +217,16 @@ const formatVersion = (version: string): string =>
 
 export const renderRootHelp = (
   root: CliRootDefinition,
-  commands: readonly CliCommandDefinition[]
+  commands: readonly CliCommandDefinition[],
+  options: CliHelpRenderOptions = {}
 ): string => {
+  const width = resolveHelpWidth(options.width)
+  if (options.topic && !['overview', 'globals'].includes(options.topic)) throw UsageError(`Unknown root help topic \"${options.topic}\". Available topics: overview, globals.`)
   const lines = [
     `${root.scriptName} ${formatVersion(root.version)} - ${root.description}`,
     '',
     'Usage',
     `  $ ${root.scriptName} <command> [flags]`,
-    '',
-    'Global Flags',
-    ...renderFlagRows(orderGlobalFlags(root.globalFlags), '  '),
     '',
     'Commands'
   ]
@@ -247,17 +247,22 @@ export const renderRootHelp = (
     lines.push('')
   }
 
-  while (lines.at(-1)?.trim() === '') {
-    lines.pop()
-  }
-
+  if (options.topic === 'globals') lines.splice(5)
+  if (options.topic !== 'overview') lines.push('Global Flags', ...renderFlagRows(orderGlobalFlags(root.globalFlags), '  ', width), '')
+  if (options.topic !== 'globals') lines.push('Examples', `  ${root.scriptName} extract document.pdf --price`, '    Preview local document extraction', `  ${root.scriptName} write notes.md --price`, '    Estimate a writing run', '')
+  lines.push('Help Topics', '  overview  Commands and common workflows', '  globals   Shared output and diagnostic controls', '', `Run ${root.scriptName} <command> --help for command flags, or add --help-topic <topic> for focused help.`)
   return `${lines.join('\n')}\n`
 }
 
 export const renderCommandHelp = (
   root: CliRootDefinition,
-  command: CliCommandHelpDefinition
+  command: CliCommandHelpDefinition,
+  options: CliHelpRenderOptions = {}
 ): string => {
+  const width = resolveHelpWidth(options.width)
+  const topics = getHelpTopics(root, command)
+  const topic = options.topic ? topics[options.topic] : undefined
+  if (options.topic && !topic) throw UsageError(`Unknown help topic \"${options.topic}\" for ${command.name}. Available topics: ${Object.keys(topics).join(', ')}.`)
   const parameters = command.parameters ?? []
   const parameterUsage = parameters.map((parameter) => parameter.key).join(' ')
   const subcommandUsage = (command.subcommands ?? []).length > 0 && parameters.length === 0
@@ -272,30 +277,36 @@ export const renderCommandHelp = (
     ''
   ]
 
+  if (command.help?.beforeFlags?.length) lines.push('Modes', ...command.help.beforeFlags.map(note => wrapHelpDescription('  ', note, width)), '')
   lines.push(...renderParameters(command))
   lines.push(...renderSubcommands(command))
 
-  const flags = command.flags ?? {}
+  const flags = Object.fromEntries(Object.entries(command.flags ?? {}).filter(([name, flag]) => !topic || topic.flags?.includes(name) || topic.groups?.includes(String(flag.help?.['group']))))
   if (Object.keys(flags).length > 0) {
     lines.push('Flags')
-    lines.push(...renderGroupedFlags(flags, root.flagGroups))
+    lines.push(...renderGroupedFlags(flags, root.flagGroups, width))
     while (lines.at(-1)?.trim() === '') {
       lines.pop()
     }
     lines.push('')
   }
 
-  lines.push('Global Flags', ...renderFlagRows(orderGlobalFlags(globalFlagsForCommand(root.globalFlags, command.name)), '  '), '')
+  const globals = globalFlagsForCommand(root.globalFlags, command.name)
+  if (topic && options.topic !== 'globals') {
+    for (const name of Object.keys(globals)) if (!['help', 'help-topic'].includes(name)) delete globals[name]
+  }
+  lines.push('Global Flags', ...renderFlagRows(orderGlobalFlags(globals), '  ', width), '')
 
-  const examples = renderExamples(command)
+  const examples = renderExamples(topic ? { ...command, help: { ...command.help, examples: options.topic === 'overview' ? command.help?.examples?.slice(0, 3) ?? [] : [] } } : command)
   if (examples.length > 0) {
     lines.push(...examples)
   }
-  const notes = renderNotes(command)
+  const notes = renderNotes({ ...command, help: { ...command.help, notes: [...(command.help?.notes ?? []), ...(topic?.notes ?? [])] } })
   if (notes.length > 0) {
-    lines.push(...notes)
+    lines.push(...notes.map(line => line.startsWith('  ') ? wrapHelpDescription('  ', line.trim(), width) : line))
   }
 
+  if (!topic) lines.push('Help Topics', ...Object.entries(topics).map(([name, item]) => `  ${name}  ${item.description}`), '', `Run ${root.scriptName} ${command.name} --help-topic <topic> for focused help.`, '')
   while (lines.at(-1)?.trim() === '') {
     lines.pop()
   }

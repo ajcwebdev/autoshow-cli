@@ -102,23 +102,23 @@ describe('price mode contracts', () => {
 
       for (const target of [
         { provider: 'kimi' as const, model: 'kimi-k2.6', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'grok' as const, model: 'grok-4.3', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'grok' as const, model: 'grok-4.20-0309-non-reasoning', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'grok' as const, model: 'grok-4.5', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'grok' as const, model: 'grok-4.5', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'grok' as const, model: 'grok-4.5', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'anthropic' as const, model: 'claude-fable-5', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'anthropic' as const, model: 'claude-opus-4-8', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'anthropic' as const, model: 'claude-opus-5', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'anthropic' as const, model: 'claude-sonnet-5', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'anthropic' as const, model: 'claude-haiku-4-5', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'anthropic' as const, model: 'claude-sonnet-5', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'openai' as const, model: 'gpt-5.6-sol', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'openai' as const, model: 'gpt-5.6-terra', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'openai' as const, model: 'gpt-5.6-luna', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'openai' as const, model: 'gpt-5.5', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'openai' as const, model: 'gpt-5.4-mini', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'openai' as const, model: 'gpt-5.4-nano', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'gemini' as const, model: 'gemini-3.1-pro-preview', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'openai' as const, model: 'gpt-5.6-sol', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'openai' as const, model: 'gpt-5.6-terra', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'openai' as const, model: 'gpt-5.6-luna', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'gemini' as const, model: 'gemini-3.8-flash', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'gemini' as const, model: 'gemini-3.5-flash', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'gemini' as const, model: 'gemini-3.5-flash-lite', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'deepinfra' as const, model: 'Qwen/Qwen3-VL-235B-A22B-Instruct', pageCount: 1, estimateType: 'heuristic' as const }
+        { provider: 'deepinfra' as const, model: 'google/gemma-4-31B-it', pageCount: 1, estimateType: 'heuristic' as const }
       ]) {
         const usage = estimateOcrTokenUsage(target.provider, target.model, target.pageCount)
         expect(usage.promptTokens).toBeGreaterThan(0)
@@ -240,10 +240,10 @@ describe('price mode contracts', () => {
       const pageCount = 312
       const metadata = [
         ['kimi', 'kimi-k2.6', 1_332_939, 114_292],
-        ['grok', 'grok-4.20-0309-non-reasoning', 828_252, 112_209],
+        ['grok', 'grok-4.5', 828_252, 112_209],
         ['gemini', 'gemini-3.5-flash', 359_877, 134_602],
-        ['gemini', 'gemini-3.1-pro-preview', 363_333, 163_959],
-        ['deepinfra', 'Qwen/Qwen3-VL-235B-A22B-Instruct', 3_184_289, 113_872]
+        ['gemini', 'gemini-3.8-flash', 363_333, 163_959],
+        ['deepinfra', 'google/gemma-4-31B-it', 3_184_289, 113_872]
       ].map(([provider, model, promptTokens, completionTokens]) => ({
         extractionMethod: `pdf+${provider}-ocr`,
         totalPages: pageCount,
@@ -270,7 +270,7 @@ describe('price mode contracts', () => {
           languages: 'eng',
           tokenEstimate: 10_000,
           ocrService: 'deepinfra',
-          ocrModel: 'Qwen/Qwen3-VL-235B-A22B-Instruct',
+          ocrModel: 'google/gemma-4-31B-it',
           promptTokens: 781_990,
           completionTokens: 95_155
         }, {
@@ -298,7 +298,7 @@ describe('price mode contracts', () => {
           completionTokensPerPage: 364.974
         })
 
-        const usage = estimateOcrTokenUsage('deepinfra', 'Qwen/Qwen3-VL-235B-A22B-Instruct', pageCount, {
+        const usage = estimateOcrTokenUsage('deepinfra', 'google/gemma-4-31B-it', pageCount, {
           ocrMode: 'pdf',
           profilePath
         })

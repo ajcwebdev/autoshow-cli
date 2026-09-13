@@ -260,10 +260,7 @@ export const createReplicateAudioGenAdapter = (input: {
   runPrediction?: ReplicateAudioGenPredictionRunner | undefined
   now?: (() => string) | undefined
 }) => {
-  const apiToken = input.apiToken.trim()
-  if (!apiToken) {
-    resolveCredential('replicate', 'require', { stage: 'tts:soundscape', providedValue: undefined, useProvidedValue: true, description: 'Replicate AudioGen sound-effect execution' })
-  }
+  const apiToken = resolveCredential('replicate', 'require', { stage: 'tts:soundscape', providedValue: input.apiToken, useProvidedValue: true, description: 'Replicate AudioGen sound-effect execution' })
   const baseUrl = input.baseUrl ?? REPLICATE_DEFAULT_BASE_URL
   const now = input.now ?? (() => new Date().toISOString())
   const runPrediction = input.runPrediction ?? (async (options) => await runReplicatePrediction(options))

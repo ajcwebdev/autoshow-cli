@@ -76,7 +76,8 @@ const statusTimingFromPrediction = (
 
 const validateSeedanceReferenceDurations = async (
   references: readonly string[],
-  kind: 'audio' | 'video'
+  kind: 'audio' | 'video',
+  maxDuration = MAX_SEEDANCE_REFERENCE_DURATION_SECONDS
 ): Promise<void> => {
   const durations = await Promise.all(references.map(async (reference) =>
     kind === 'video'
@@ -87,8 +88,8 @@ const validateSeedanceReferenceDurations = async (
   for (const duration of durations) {
     knownTotal += duration ?? 0
   }
-  if (knownTotal > MAX_SEEDANCE_REFERENCE_DURATION_SECONDS) {
-    throw UsageError(`Replicate Seedance reference ${kind}s must total 15 seconds or less.`)
+  if (knownTotal > maxDuration) {
+    throw UsageError(`Replicate Seedance reference ${kind}s must total ${maxDuration} seconds or less.`)
   }
 }
 
@@ -208,7 +209,15 @@ const buildSeedanceInput = async (
   const resolvedPrompt = requirePrompt(prompt, `Replicate/${options.model}`)
   const durationForApi = normalizeReplicateVideoDuration(options.model, options.durationSeconds)
   const resolution = normalizeReplicateVideoResolution(options.model, options.resolution)
-  const aspectRatio = normalizeReplicateVideoAspectRatio(options.model, options.aspectRatio)
+  const aspectRatio = normalizeReplicateVideoAspectRatio(options.model, options.aspectRatio ?? (options.model === 'bytedance/seedance-2.5' && options.inputImage ? 'adaptive' : undefined))
+  if (options.model === 'bytedance/seedance-2.5') {
+    if (options.mode === 'edit' || options.mode === 'extend') throw UsageError('Seedance 2.5 edit/extend task signaling is not exposed; use reference-to-video.')
+    if (options.inputImage && aspectRatio !== 'adaptive') throw UsageError('Seedance 2.5 first-frame input requires --aspect-ratio adaptive.')
+    if ((options.inputImage || options.lastFrameImage) && ((options.referenceImages?.length ?? 0) + (options.referenceVideos?.length ?? 0) + (options.referenceAudios?.length ?? 0) + (options.inputVideo ? 1 : 0) > 0)) throw UsageError('Seedance 2.5 frame inputs cannot be combined with reference media.')
+    if (options.lastFrameImage && !options.inputImage) throw UsageError('Seedance 2.5 last frame requires a first frame.')
+    if ((options.referenceImages?.length ?? 0) > 30 || (options.referenceVideos?.length ?? 0) + (options.inputVideo ? 1 : 0) > 10 || (options.referenceAudios?.length ?? 0) > 10) throw UsageError('Seedance 2.5 reference limits are 30 images, 10 videos, and 10 audios.')
+    if (options.referenceAudios?.length && !options.referenceImages?.length && !options.referenceVideos?.length && !options.inputVideo) throw UsageError('Seedance 2.5 audio requires a reference image or video.')
+  }
   const inputImage = options.inputImage
     ? await videoMediaReferenceToUrlOrDataUrl(options.inputImage, 'image')
     : undefined
@@ -232,8 +241,8 @@ const buildSeedanceInput = async (
     ? await tryResolveLocalVideoDurationSeconds(options.inputVideo)
     : undefined
 
-  await validateSeedanceReferenceDurations(videoReferencesRaw, 'video')
-  await validateSeedanceReferenceDurations(options.referenceAudios ?? [], 'audio')
+  await validateSeedanceReferenceDurations(videoReferencesRaw, 'video', options.model === 'bytedance/seedance-2.5' ? 30 : 15)
+  await validateSeedanceReferenceDurations(options.referenceAudios ?? [], 'audio', options.model === 'bytedance/seedance-2.5' ? 30 : 15)
 
   return {
     input: {
@@ -257,7 +266,7 @@ const buildSeedanceInput = async (
   }
 }
 
-const buildReplicateVideoInput = async (
+export const buildReplicateVideoInput = async (
   prompt: string | undefined,
   options: ReplicateVideoGenOptions
 ): Promise<ReplicateVideoBuildResult> => {

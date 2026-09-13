@@ -1,3 +1,6 @@
+import { getAudioDuration } from '../../stt-utils/audio-splitter'
+import { verifyWhisperfileArtifact } from './whisperfile-integrity'
+import { WHISPERFILE_ARTIFACTS } from './whisperfile-artifacts'
 import { whisperfileBinaryPath } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { toTimestamp } from '../../stt-utils/stt-utils'
 import { mkdir, rm, rename } from 'node:fs/promises'
@@ -37,6 +40,19 @@ const waitForWhisperfileJson = async (jsonFile: string, providerName: string): P
   }
 }
 
+// The pinned executable rejects otherwise valid PCM WAV files with an end-of-file error.
+// Its compressed-audio decoder accepts the equivalent audio; normalize WAV before invoking it.
+export const prepareWhisperfileInput = async (audioPath: string) => {
+  const source = resolve(audioPath)
+  const duration = await getAudioDuration(source)
+  return prepareLocalSttInput(source, 'autoshow-whisperfile-', {
+    // The decoder also rejects sub-second clips; pad only the temporary analysis copy.
+    passthroughExtensions: duration >= 2 ? ['.mp3', '.flac', '.ogg'] : [],
+    convertFormat: 'mp3',
+    minimumDurationSeconds: 2
+  })
+}
+
 export const transcribeWhisperfile = async (
   audioPath: string,
   outputDir: string,
@@ -44,8 +60,12 @@ export const transcribeWhisperfile = async (
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const name = 'whisperfile'
   const label = 'Whisperfile'
-  const tempPrefix = 'autoshow-whisperfile-'
-  const resolveInvocation = async (model: string, args: string[]) => ({ command: 'sh', args: [whisperfileBinaryPath(model), ...args], modelDescriptor: whisperfileBinaryPath(model) })
+  const resolveInvocation = async (model: string, args: string[]) => {
+    const artifact = Object.hasOwn(WHISPERFILE_ARTIFACTS, model) ? WHISPERFILE_ARTIFACTS[model] : undefined
+    if (!artifact) throw ValidationError(`No pinned Whisperfile artifact for ${model}`)
+    await verifyWhisperfileArtifact(whisperfileBinaryPath(model), artifact)
+    return { command: 'sh', args: [whisperfileBinaryPath(model), ...args], modelDescriptor: whisperfileBinaryPath(model) }
+  }
   const {
     model: modelName,
     segmentOffsetMinutes = 0,
@@ -74,10 +94,7 @@ export const transcribeWhisperfile = async (
       .catch(() => '')
     const captionArgs = selectWhisperfileCaptionArgs(helpOutput, options.nativeSubtitles)
     if (options.dtwPreset && !/(?:^|\s)(?:-dtw|--dtw)(?:\s|$)/m.test(helpOutput)) throw ValidationError(`${label} does not advertise DTW support in its installed help output.`)
-    preparedInput = await prepareLocalSttInput(audioPath, tempPrefix, {
-      passthroughExtensions: ['.wav', '.mp3', '.flac', '.ogg'],
-      convertFormat: 'mp3'
-    })
+    preparedInput = await prepareWhisperfileInput(audioPath)
     const baseArgs = [
       '-f', preparedInput.audioPath,
       '-ml', '1',

@@ -88,7 +88,8 @@ export const buildRawParsed = (
 export const parseCommandArgv = (
   argv: string[],
   command: CliCommandDefinition,
-  globalFlags: CliFlagsDefinition
+  globalFlags: CliFlagsDefinition,
+  calledAs?: string
 ): CliParseResult => {
   const definitions = {
     ...globalFlags,
@@ -105,7 +106,9 @@ export const parseCommandArgv = (
   for (let index = 1; index < argv.length; index++) {
     const arg = argv[index] as string
     if (arg === '--') {
-      doubleDash = argv.slice(index + 1)
+      if (command.parametersAfterDoubleDash) {
+        positional.push(...argv.slice(index + 1).map((value, offset) => ({ value, index: index + offset + 1 })))
+      } else doubleDash = argv.slice(index + 1)
       break
     }
     if (
@@ -118,7 +121,7 @@ export const parseCommandArgv = (
       return {
         mode: 'help',
         argv,
-        calledAs: command.name,
+        calledAs: calledAs ?? command.name,
         command,
         flags,
         parameters: {} as CliParameterValues,
@@ -132,7 +135,7 @@ export const parseCommandArgv = (
       return {
         mode: 'version',
         argv,
-        calledAs: command.name,
+        calledAs: calledAs ?? command.name,
         command,
         flags,
         parameters: {} as CliParameterValues,
@@ -154,7 +157,7 @@ export const parseCommandArgv = (
   return {
     mode: 'command',
     argv,
-    calledAs: command.name,
+    calledAs: calledAs ?? command.name,
     command,
     flags,
     parameters,
@@ -167,11 +170,11 @@ export const parseCommandInvocation = (
   command: CliCommandDefinition,
   globalFlags: CliFlagsDefinition
 ): CliParseResult => {
-  const commandIndex = argv.findIndex((argument) => argument === command.name)
+  const commandIndex = argv.findIndex((argument) => argument === command.name || (argument === 'config' && command.name === 'setup'))
   if (commandIndex < 0) {
     throw new NativeNoSuchCommandError(command.name)
   }
-  const parsed = parseCommandArgv(argv.slice(commandIndex), command, globalFlags)
+  const parsed = parseCommandArgv(argv.slice(commandIndex), command, globalFlags, argv[commandIndex])
   const unknownFlagSpellings = getUnknownFlagSpellings(parsed.rawParsed)
   if (!command.allowUnknownFlags && unknownFlagSpellings.length > 0) {
     throw new NativeUnknownFlagError(unknownFlagSpellings)

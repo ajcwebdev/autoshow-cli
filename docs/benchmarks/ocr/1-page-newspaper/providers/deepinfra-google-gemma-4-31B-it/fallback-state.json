@@ -1,0 +1,44 @@
+{
+  "version": 2,
+  "mode": "single-page",
+  "totalPages": 1,
+  "serviceLabel": "DeepInfra OCR",
+  "sourceFile": "document.pdf",
+  "extractionMethod": "deepinfra-ocr",
+  "ocrService": "deepinfra",
+  "ocrModel": "google/gemma-4-31B-it",
+  "effectiveReasoningEffort": "disabled",
+  "ocrProviderMode": "fanout",
+  "inputSha256": "7ffc36e931634d8dc3acdbcb772d46fcb431193bf2eb99eeea3330651bc84f88",
+  "inputFormat": "pdf",
+  "dpi": 200,
+  "initialFallbackReason": "forced-page-mode",
+  "pageRange": {
+    "startPage": 1,
+    "endPage": 1
+  },
+  "pageStatusCounts": {
+    "cached": 0,
+    "resumed": 0,
+    "succeeded": 0,
+    "failed": 1,
+    "canceled": 0
+  },
+  "terminalReason": "timeout",
+  "pages": [
+    {
+      "pageNumber": 1,
+      "range": {
+        "startPage": 1,
+        "endPage": 1
+      },
+      "status": "failed",
+      "failure": {
+        "message": "The operation timed out.: The operation timed out.",
+        "category": "timeout",
+        "failureKind": "timeout",
+        "retryable": true
+      }
+    }
+  ]
+}

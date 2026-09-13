@@ -1,3 +1,4 @@
+import { drainProviderLane, extendProviderLanePause, LaneDrainLoop, LaneWakeTimer, reduceProviderLaneLimit, trimProviderLaneHistory } from '~/cli/commands/command-shared/provider-lane-drain'
 import type {
   HostedConcurrencyAdmissionToken,
   HostedConcurrencyCoordinator,
@@ -47,9 +48,8 @@ class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
   readonly #registrationWaiters: Array<() => void> = []
   readonly #hostedConcurrencyCoordinator: HostedConcurrencyCoordinator
   readonly #coreAdmissions = new WeakMap<HostedTtsChunkAdmissionToken, HostedConcurrencyAdmissionToken>()
-  readonly #drainTasks = new WeakMap<HostedTtsProviderChunkState, Promise<void>>()
-  readonly #drainQueued = new WeakSet<HostedTtsProviderChunkState>()
-  readonly #sharedHostedPolicy: boolean
+  readonly #drainLoopOwner = new LaneDrainLoop<HostedTtsProviderChunkState>()
+  readonly #wake = new LaneWakeTimer<HostedTtsProviderChunkState>({ now: Date.now, setTimer: setTimeout, clearTimer: clearTimeout })
   #autoStart: boolean
   #started: boolean
   #nextJobId = 1
@@ -63,7 +63,6 @@ class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
     this.#defaultRateLimitPauseMs = Math.max(0, Math.trunc(options.defaultRateLimitPauseMs ?? DEFAULT_RATE_LIMIT_PAUSE_MS))
     this.#autoStart = options.autoStart !== false
     this.#started = this.#autoStart
-    this.#sharedHostedPolicy = true
     this.#hostedConcurrencyCoordinator = options.hostedConcurrencyCoordinator
       ?? createHostedConcurrencyCoordinator({ mode: options.concurrencyMode ?? 'immediate' })
   }
@@ -110,19 +109,12 @@ class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
   }
 
   #scheduleWake(state: HostedTtsProviderChunkState, waitMs: number): void {
-    if (waitMs <= 0 || state.wakeTimer !== undefined) return
-    state.wakeTimer = setTimeout(() => {
-      state.wakeTimer = undefined
-      this.#drain(state)
-    }, waitMs)
+    if (waitMs > 0) this.#wake.schedule(state, Date.now() + waitMs, () => this.#drain(state))
   }
 
   #removeSettledJobs(state: HostedTtsProviderChunkState): void {
     state.jobs = state.jobs.filter((job) => !job.settled || job.active > 0)
-    if (!state.jobs.some(hasRemainingHostedTtsChunks) && state.wakeTimer !== undefined) {
-      clearTimeout(state.wakeTimer)
-      state.wakeTimer = undefined
-    }
+    if (!state.jobs.some(hasRemainingHostedTtsChunks)) this.#wake.clear(state)
   }
 
   #cancelJob(state: HostedTtsProviderChunkState, job: HostedTtsChunkJob, reason: unknown): void {
@@ -176,6 +168,7 @@ class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
       nextLimit: state.currentLimit,
       reason
     })
+    trimProviderLaneHistory(state.stats.limitChanges)
   }
 
   #recordSuccess(state: HostedTtsProviderChunkState): void {
@@ -227,7 +220,7 @@ class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
   ): Promise<void> {
     let succeeded = false
     try {
-      if (this.#sharedHostedPolicy) {
+      {
         const coreAdmission = await this.#hostedConcurrencyCoordinator.acquire(buildHostedTtsCoreAdmission(state, job, admission))
         this.#coreAdmissions.set(admission, coreAdmission)
       }
@@ -268,19 +261,7 @@ class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
   }
 
   #drain(state: HostedTtsProviderChunkState): void {
-    const inFlight = this.#drainTasks.get(state)
-    if (inFlight) {
-      this.#drainQueued.add(state)
-      return
-    }
-
-    const task = this.#drainLoop(state).finally(() => {
-      this.#drainTasks.delete(state)
-      if (this.#drainQueued.delete(state)) {
-        this.#drain(state)
-      }
-    })
-    this.#drainTasks.set(state, task)
+    this.#drainLoopOwner.run(state, () => this.#drainLoop(state))
   }
 
   async #drainLoop(state: HostedTtsProviderChunkState): Promise<void> {
@@ -298,13 +279,11 @@ class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
       return
     }
 
-    while (state.active < state.currentLimit) {
-      const job = this.#selectJob(state)
-      if (!job) {
-        return
-      }
-      await this.#startChunk(state, job)
-    }
+    await drainProviderLane({
+      canAdmit: () => state.active < state.currentLimit,
+      pick: () => this.#selectJob(state),
+      start: job => this.#startChunk(state, job),
+    })
   }
 
   async runChunks<T>(
@@ -361,7 +340,7 @@ class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
   }
 
   usesSharedHostedRateLimitRecovery(): boolean {
-    return this.#sharedHostedPolicy
+    return true
   }
 
   notifyRateLimit(
@@ -375,7 +354,7 @@ class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
     if (!state) return Promise.resolve(false)
     const coreAdmission = this.#coreAdmissions.get(admission)
     const previousLimit = state.currentLimit
-    state.currentLimit = Math.max(1, Math.floor(state.currentLimit / 2))
+    state.currentLimit = reduceProviderLaneLimit(state.currentLimit)
     state.successStreak = 0
     state.stats.rateLimitCount += 1
     job.rateLimitCount += 1
@@ -387,12 +366,11 @@ class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
         ? feedback.delayMs
         : this.#defaultRateLimitPauseMs
     const now = Date.now()
-    const nextPauseUntilMs = now + Math.max(0, pauseMs)
-    const previousPauseUntilMs = state.pauseUntilMs
-    state.pauseUntilMs = Math.max(state.pauseUntilMs, nextPauseUntilMs)
-    state.stats.pauseTimeMs += Math.max(0, state.pauseUntilMs - Math.max(now, previousPauseUntilMs))
+    const pause = extendProviderLanePause(state.pauseUntilMs, now, pauseMs)
+    state.pauseUntilMs = pause.untilMs
+    state.stats.pauseTimeMs += pause.addedMs
     this.#drain(state)
-    if (this.#sharedHostedPolicy && coreAdmission && error !== undefined) {
+    if (coreAdmission && error !== undefined) {
       return recoverHostedConcurrencyRequest({
         coordinator: this.#hostedConcurrencyCoordinator,
         admission: buildHostedTtsCoreAdmission(state, job, admission),
@@ -415,11 +393,11 @@ class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
   }
 
   getProviderSnapshot(provider: TtsProvider, scopeLabel?: string | undefined): HostedTtsChunkSchedulerSnapshot {
-    return projectHostedTtsProviderSnapshot(this.#getState(provider, scopeLabel), this.#hostedConcurrencyCoordinator, this.#sharedHostedPolicy)
+    return projectHostedTtsProviderSnapshot(this.#getState(provider, scopeLabel), this.#hostedConcurrencyCoordinator, true)
   }
 
   getTelemetry(): HostedTtsSchedulerTelemetry {
-    return projectHostedTtsSchedulerTelemetry(this.#states.values(), this.#hostedConcurrencyCoordinator, this.#sharedHostedPolicy)
+    return projectHostedTtsSchedulerTelemetry(this.#states.values(), this.#hostedConcurrencyCoordinator, true)
   }
 
   start(): void {

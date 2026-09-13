@@ -26,12 +26,16 @@ export type TtsTargetSelection = {
   elevenLabsPronunciationDictionaryLocators: string[] | undefined
   speechifyVoiceId: string | undefined
   speechifyLanguage: string | undefined
+  humeSpeed?: number | undefined
   humeVoice: string | undefined
   cartesiaVoiceId: string | undefined
+  cartesiaSpeed?: number | undefined
   cartesiaLanguage: string | undefined
   inworldVoiceId: string | undefined
   inworldInstructions: string | undefined
+  inworldSpeed: number | undefined
   grokVoiceId: string | undefined
+  grokSpeed?: number | undefined
   grokLanguage: string | undefined
   grokTextNormalization: boolean
   mistralVoiceId: string | undefined

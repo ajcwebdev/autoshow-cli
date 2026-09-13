@@ -17,6 +17,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { runTextWrite } from './run-text-write'
 import { collectTextInputFiles, isTextInputPath, readPromptFileText, resolveWriteTextProjectDefaults } from './text-input-utils'
 import { configureModelCostFilter } from '~/cli/commands/pricing-orchestration/model-cost-filter'
+import { normalizeWriteProviderAlias } from '~/cli/flags/write-provider-alias'
 
 export const WRITE_NON_TEXT_INPUT_MESSAGE =
   'write only accepts local .md or .txt files or directories of those files. Run bun autoshow extract <input> first, then bun autoshow write on the extracted text.'
@@ -75,6 +76,11 @@ export const runWriteCommand = async (
   if (target === undefined || target.trim().length === 0) {
     throw UsageError(`Missing write input. ${WRITE_NON_TEXT_INPUT_MESSAGE}`)
   }
+
+  const alias = normalizeWriteProviderAlias(flags, explicitFlags, flagOccurrences)
+  flags = alias.flags
+  explicitFlags = alias.explicitFlags
+  flagOccurrences = alias.flagOccurrences
 
   const configPathOverride = typeof flags['config-path'] === 'string' ? flags['config-path'] : undefined
   const resolvedConfigPath = await resolveConfigPath(configPathOverride)

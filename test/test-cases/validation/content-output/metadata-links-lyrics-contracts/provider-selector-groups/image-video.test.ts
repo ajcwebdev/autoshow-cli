@@ -48,7 +48,7 @@ registerProviderSelectorCases([
     provider: 'replicate',
     all: { expected: REPLICATE_ALL_LINKS, outputFileName: 'replicate-all-links.md' },
     selections: [
-      { sections: ['general', 'models'], expected: REPLICATE_ALL_LINKS, outputFileName: 'replicate-general-models-links.md' },
+      { sections: ['general', 'models'], expected: [...REPLICATE_GENERAL_LINKS, ...REPLICATE_MODELS_LINKS], outputFileName: 'replicate-general-models-links.md' },
       { sections: ['models'], expected: REPLICATE_MODELS_LINKS },
       { sections: ['general'], expected: REPLICATE_GENERAL_LINKS }
     ],

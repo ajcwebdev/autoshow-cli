@@ -17,6 +17,7 @@ export const runGrokTts = async (
     model: GrokTtsModel
     voiceId?: string | undefined
     language?: string | undefined
+    speed?: number | undefined
     textNormalization?: boolean | undefined
     abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
@@ -63,6 +64,7 @@ export const runGrokTts = async (
         voice_id: voice,
         language,
         text_normalization: options.textNormalization === true,
+        ...(options.speed !== undefined ? { speed: options.speed } : {}),
         output_format: {
           codec: 'wav',
           sample_rate: 24000
@@ -76,7 +78,7 @@ export const runGrokTts = async (
         providerText: chunk,
         voiceField: 'voice_id',
         voices: [{ kind: 'provider-id', value: voice }],
-        requestControls: { language, textNormalization: options.textNormalization === true, outputFormat: body.output_format },
+        requestControls: { language, ...(options.speed !== undefined ? { speed: options.speed } : {}), textNormalization: options.textNormalization === true, outputFormat: body.output_format },
         continuation: { kind: 'none' }
       }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async () => await fetchTtsAudioBytes({
         url: `${baseURL}/tts`, apiKey, providerLabel: 'Grok', signal, body

@@ -52,7 +52,6 @@ const LlmDefaultsSchema = v.strictObject({
   openai: ModelArraySchema,
   gemini: ModelArraySchema,
   anthropic: ModelArraySchema,
-  minimax: ModelArraySchema,
   grok: ModelArraySchema,
   glm: ModelArraySchema,
   kimi: ModelArraySchema,

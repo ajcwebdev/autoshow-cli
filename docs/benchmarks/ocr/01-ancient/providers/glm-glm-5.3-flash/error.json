@@ -1,0 +1,15 @@
+{
+  "message": "The operation timed out.: The operation timed out.",
+  "category": "timeout",
+  "failureKind": "timeout",
+  "retryable": true,
+  "error": {
+    "name": "AbortError",
+    "message": "The operation timed out.",
+    "stack": "AbortError: The operation timed out.\n    at normalizeFetchAbortError (/Users/ajc/c/auto/autoshow-cli/src/utils/rest-client.ts:87:28)\n    at <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/utils/rest-client.ts:140:13)\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown",
+    "cause": {
+      "name": "TimeoutError",
+      "message": "The operation timed out."
+    }
+  }
+}

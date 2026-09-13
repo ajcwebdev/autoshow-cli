@@ -1,3 +1,4 @@
+import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { AutoshowConfigSchema } from '~/types'
 import { validateData } from '~/utils/validate/validation'
 import { InfraError, ValidationError } from '~/utils/error-handler'
@@ -73,6 +74,17 @@ export const loadConfig = async (configPath: string): Promise<AutoshowConfig> =>
     throw ValidationError(`Invalid JSON in autoshow config at ${configPath}`, { stage: 'config:load' })
   }
 
+  const defaults = asRecord(asRecord(parsed)?.['defaults'])
+  const registry = getModelRegistry()
+  for (const [section, category] of [['llm', 'llm'], ['ocr', 'extract']] as const) {
+    for (const [key, models] of Object.entries(asRecord(section === 'ocr' ? asRecord(defaults?.['extract'])?.['ocr'] : defaults?.[section]) ?? {})) {
+      if (!Array.isArray(models)) continue
+      const provider = section === 'ocr' ? key.replace(/Ocr$/, '') : key
+      for (const model of models) {
+        if (typeof model !== 'string' || !registry[category][provider]?.models[model]) throw ValidationError(`Unsupported configured ${section} model ${provider}/${String(model)}. Select an active model explicitly.`, { stage: 'config:load' })
+      }
+    }
+  }
   validateTtsConfigAuthority(parsed)
   return validateData(AutoshowConfigSchema, parsed, 'autoshow config')
 }

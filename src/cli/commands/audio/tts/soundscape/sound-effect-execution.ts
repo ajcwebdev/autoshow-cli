@@ -1,4 +1,5 @@
-import { mkdir, readFile, readdir, rm } from 'node:fs/promises'
+import { readUtf8FileExact } from '~/utils/bun-file-io'
+import { mkdir, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CacheEntry, CompactSfx, CompactSfxEntry, HostedConcurrencyCoordinator, PersistedSoundEffectResponse, SoundEffectAdapter, SoundEffectAdmissionStarted, SoundEffectAdmissionTerminal, SoundEffectGenerationResponse, SoundEffectLicenseUse, SoundEffectRenderPlan, SoundEffectRenderResult, SoundEffectRenderResultEntry, SoundEffectRenderTask, SoundEffectTarget, SoundscapePlan } from '~/types'
 import { UsageError, hasErrorCode } from '~/utils/error-handler'
@@ -88,6 +89,7 @@ const readAdmission = async (rootDir: string, plan: SoundEffectRenderPlan, task:
     }
     const { eventId: _terminalId, ...terminalBase } = terminal
     if (terminal.renderPlanId !== plan.renderPlanId || terminal.requestIdentity !== task.requestIdentity || terminal.requestOrdinal !== ordinal || terminal.targetKey !== plan.target.targetKey || terminal.eventId !== hashCanonicalTtsValue(terminalBase)) throw UsageError('Retained sound-effect terminal admission identity is invalid.')
+    if (recovered && (terminal.state === 'ambiguous' || terminal.state === 'provider-succeeded')) return { nextOrdinal: Math.max(0, ...ordinals) + 1, recovered }
     if (terminal.state === 'ambiguous') return { nextOrdinal: Math.max(0, ...ordinals) + 1, blocker: `Sound-effect request ${task.requestIdentity} has an ambiguous provider admission and cannot be repurchased automatically${terminal.sanitizedReason ? `: ${terminal.sanitizedReason}` : '.'}` }
     if (terminal.state === 'provider-succeeded') {
       if (!recovered) return { nextOrdinal: Math.max(0, ...ordinals) + 1, blocker: `Sound-effect request ${task.requestIdentity} succeeded remotely but its response is incomplete; automatic redispatch is blocked.` }
@@ -150,6 +152,7 @@ const requestIdentityFor = (task: SoundEffectRenderTask, target: SoundEffectTarg
   })
 
 const planSoundEffectCost = (tasks: readonly SoundEffectRenderTask[], pricing: SoundEffectRenderPlan['target']['capabilityFixture']['pricing']): { amount: number | null, basis: string } => {
+  if (pricing.perSuccessfulGeneration !== undefined) return { amount: tasks.length * pricing.perSuccessfulGeneration, basis: 'published flat rate per successful generation; failed generations are not billed' }
   if (pricing.typicalPerPrediction !== undefined && pricing.inputDependent) {
     return {
       amount: tasks.length * pricing.typicalPerPrediction,
@@ -277,7 +280,7 @@ const compactSfxEntry = (entry: SoundEffectRenderResultEntry): CompactSfxEntry =
   requestIdentity: entry.requestIdentity,
   status: entry.status,
   ...(entry.audio ? { audio: entry.audio } : {}),
-  ...(entry.requestEvidence?.observedCharacterCost !== undefined ? { cost: { amount: entry.requestEvidence.observedCharacterCost, currency: 'USD' as const } } : {}),
+  ...(entry.requestEvidence?.billedCostUsd !== undefined ? { cost: { amount: entry.requestEvidence.billedCostUsd, currency: 'USD' as const } } : {}),
   ...(entry.omissionReason ? { omissionReason: entry.omissionReason } : {}),
 })
 
@@ -290,7 +293,9 @@ const compactSoundEffectResult = (plan: SoundEffectRenderPlan, result: SoundEffe
     target: plan.target,
     ...(plan.licenseUse ? { licenseUse: plan.licenseUse } : {}),
     status: 'succeeded' as const,
-    cost: plan.plannedCost,
+    cost: plan.target.capabilityFixture.pricing.perSuccessfulGeneration !== undefined
+      ? { amount: result.entries.some(entry => entry.status === 'omitted') ? null : result.entries.reduce((sum, entry) => sum + (entry.requestEvidence?.billedCostUsd ?? plan.target.capabilityFixture.pricing.perSuccessfulGeneration ?? 0), 0), currency: 'USD' as const, basis: result.entries.some(entry => entry.status === 'omitted') ? 'Unknown: omitted work may include an accepted generation without a recovered response' : 'Successful generations only' }
+      : plan.plannedCost,
     entries: result.entries.map(compactSfxEntry),
     createdAt: result.createdAt,
   }
@@ -482,7 +487,7 @@ export const loadSoundEffectRenderResult = async (rootDir: string, plan: SoundEf
   }
   const path = `audio/sound-effects/${plan.renderPlanId}/sound-effect-render-result.json`
   try {
-    const bytes = await readFile(join(rootDir, path), 'utf8')
+    const bytes = await readUtf8FileExact(join(rootDir, path))
     const result = JSON.parse(bytes) as SoundEffectRenderResult
     const { resultId: _id, ...base } = result
     if (result.renderPlanId !== plan.renderPlanId || result.soundscapePlanId !== plan.soundscapePlanId || result.resultId !== hashCanonicalTtsValue(base)) throw UsageError('Retained sound-effect result identity is invalid.')

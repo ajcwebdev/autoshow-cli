@@ -1,3 +1,4 @@
+import { helpText } from './shared'
 import { expect, test } from 'bun:test'
 import { LUMALABS_MAX_IMAGE_INPUTS } from '~/cli/commands/visuals/image/image-generation-services/lumalabs/lumalabs-image-targets'
 import { ELEVENLABS_MAX_DURATION_SECONDS, ELEVENLABS_MIN_DURATION_SECONDS } from '~/cli/commands/audio/music/music-services/music-elevenlabs/run-elevenlabs-music-gen'
@@ -223,22 +224,22 @@ export const registerMediaCommandHelpCases = (): void => {
     const image = await loadHelp(['image', '--help'])
     const music = await loadHelp(['music', '--help'])
 
-    expect(image.stdout).toContain('Replicate Seedream also supports match_input_image')
-    expect(image.stdout).not.toContain('Replicate Seedream also supports adaptive')
-    expect(image.stdout).toContain(`Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS}`)
-    expect(music.stdout).toContain(`ElevenLabs configurable from ${ELEVENLABS_MIN_DURATION_SECONDS}-${ELEVENLABS_MAX_DURATION_SECONDS}`)
-    expect(music.stdout).not.toContain('MiniMax currently ignores this flag')
-    expect(music.stdout).not.toContain('Gemini Lyria Clip is fixed')
-    expect(music.stdout).toContain('Gemini Lyria Pro uses the requested duration')
-    expect(image.stdout).toContain('(default: 1)')
+    expect(helpText(image.stdout)).toContain('Replicate Seedream also supports match_input_image')
+    expect(helpText(image.stdout)).not.toContain('Replicate Seedream also supports adaptive')
+    expect(helpText(image.stdout)).toContain(`Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS}`)
+    expect(helpText(music.stdout)).toContain(`ElevenLabs configurable from ${ELEVENLABS_MIN_DURATION_SECONDS}-${ELEVENLABS_MAX_DURATION_SECONDS}`)
+    expect(helpText(music.stdout)).not.toContain('MiniMax currently ignores this flag')
+    expect(helpText(music.stdout)).not.toContain('Gemini Lyria Clip is fixed')
+    expect(helpText(music.stdout)).toContain('Gemini Lyria Pro uses the requested duration')
+    expect(helpText(image.stdout)).toContain('(default: 1)')
   })
 
   test.concurrent('--replicate-video-multi-prompt description dynamically adapts to video command surface', async () => {
     const video = await loadHelp(['video', '--help'])
     const write = await loadHelp(['write', '--help'])
 
-    expect(video.stdout).toContain('durations sum to --duration)')
-    expect(video.stdout).not.toContain('durations sum to --video-duration)')
+    expect(helpText(video.stdout)).toContain('durations sum to --duration)')
+    expect(helpText(video.stdout)).not.toContain('durations sum to --video-duration)')
 
     expect(write.stdout).not.toContain('--replicate-video-multi-prompt')
   })

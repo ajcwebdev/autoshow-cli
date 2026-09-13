@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Compact index for ADR-001 through ADR-023. Nineteen records are Accepted · Passed, ADR-014 is Accepted · Pending while native Bun migration evidence awaits review, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 and ADR-023 are Proposed · Pending. Dated hosted-model catalogs live in [model refresh reports](../commands.md#model-refresh-reports). ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 024. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
+Compact index for ADR-001 through ADR-023. Nineteen records are Accepted · Passed, ADR-014 is Accepted · Pending while native Bun migration evidence awaits review, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 and ADR-023 are Proposed · Pending. Dated hosted-model catalogs live in [model refresh reports](../reports/). ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 024. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
 
 ## Authoring and Maintenance
 
@@ -74,7 +74,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 10: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Owns durable cross-modality hosted-model policy: fixed selector identity, lifecycle/default/all eligibility, typed provider/model descriptors shared with resume, complete capability validation and routing, normalized reasoning, pricing provenance, calibration promotion, historical readability, and no silent substitution or coercion. Dated refresh chronology lives in [2026 hosted-model refresh reports](../commands.md#model-refresh-reports), stored beside their process-step command guides.
+- **Decision:** Owns durable cross-modality hosted-model policy: fixed selector identity, lifecycle/default/all eligibility, typed provider/model descriptors shared with resume, complete capability validation and routing, normalized reasoning, pricing provenance, calibration promotion, historical readability, and no silent substitution or coercion. Dated refresh chronology lives in [2026 hosted-model refresh reports](../reports/), stored under `docs/reports/`.
 - **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-011](ADR-011-add-refresh-metadata-to-links.md), [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md), [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md)
 
 **ADR 11: [ADR-011](ADR-011-add-refresh-metadata-to-links.md)**
@@ -239,12 +239,12 @@ Open follow-up work from ADRs and refresh reports, excluding never-ending refres
 - **Priority:** High
 - **Next step:** Review native AMD64 and ARM64 production validation and compiled-entrypoint experiment artifacts left open by the 2026-08-31 evaluation. Local ARM64 success does not close native AMD64 verification; retain the source production entrypoint unless the documented acceptance gates pass.
 
-**Item 4: [2026 Hosted-Model Refresh Report: LLMs](../commands/text/write/model-report.md)**
+**Item 4: [2026 Hosted-Model Refresh Report: LLMs](../reports/model-refresh-write.md)**
 
 - **Priority:** Medium
 - **Next step:** Implement the remaining 2026-08-16 recommended selectors after confirming adapter fit and published pricing.
 
-**Item 5: [2026 Hosted-Model Refresh Report: OCR](../commands/text/ocr/model-report.md)**
+**Item 5: [2026 Hosted-Model Refresh Report: OCR](../reports/model-refresh-ocr.md)**
 
 - **Priority:** Medium
 - **Next step:** Promote provisional token-billed page heuristics and the benchmark-calibrated Florence compute-second estimate through approved ADR-012 calibration; blocked on immediate approval for each exact paid calibration run.
@@ -259,7 +259,7 @@ Open follow-up work from ADRs and refresh reports, excluding never-ending refres
 - **Priority:** Medium
 - **Next step:** Calibrate materially different reasoning levels and provisional model heuristics; deferred pending immediate approval for each exact paid run.
 
-**Item 8: [2026 Hosted-Model Refresh Report: TTS](../commands/audio/tts/model-report.md)**
+**Item 8: [2026 Hosted-Model Refresh Report: TTS](../reports/model-refresh-tts.md)**
 
 - **Priority:** Low
 - **Next step:** Watch Cartesia for a dated Sonic 3.6 snapshot; do not register `sonic-preview`.

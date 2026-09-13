@@ -1,5 +1,8 @@
 {
   "Grok": {
+    "LLMSTXT": [
+      "https://docs.x.ai/llms.txt"
+    ],
     "General": [
       "https://docs.x.ai/overview.md",
       "https://docs.x.ai/developers/quickstart.md",
@@ -16,7 +19,6 @@
     "Models": [
       "https://docs.x.ai/developers/migration/may-15-retirement.md",
       "https://docs.x.ai/developers/models.md",
-      "https://docs.x.ai/developers/models/grok-4.3.md",
       "https://docs.x.ai/developers/models/grok-4.5.md",
       "https://docs.x.ai/developers/grok-4-6.md"
     ],

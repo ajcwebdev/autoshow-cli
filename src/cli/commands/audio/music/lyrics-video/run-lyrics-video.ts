@@ -1,5 +1,6 @@
+import { copyFileExact } from '~/utils/bun-file-io'
 import { basename, dirname, extname, join, resolve } from 'node:path'
-import { copyFile, mkdir, readdir, rm } from 'node:fs/promises'
+import { mkdir, readdir, rm } from 'node:fs/promises'
 import { validateWhisperfileModel } from '~/cli/commands/setup-and-utilities/models/stt-models'
 import { ensureProviderReady } from '~/utils/bootstrap-broker'
 import { reserveBatchChildOutputDir } from '~/cli/commands/command-shared/batch-child-output'
@@ -11,7 +12,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { LYRICS_CUE_LIMITS, buildTranscriptionCues } from './cue-builder'
 import { formatSrt, formatVtt, loadCaptionFile } from './captions'
 import { getOutputRoot, getOutputRootAbsolute } from '~/cli/commands/command-shared/output-root'
-import { resolveRunDirectory } from '~/cli/commands/command-shared/run-dir'
+import { getPinnedRunDir, resolveRunDirectory } from '~/cli/commands/command-shared/run-dir'
 import {
   FIXED_RENDER_FPS,
   FIXED_RENDER_HEIGHT,
@@ -154,7 +155,7 @@ const processLyricsRun = async (options: {
     let backgroundRelativePath: string | undefined
     if (imagePath) {
       backgroundRelativePath = `background${extname(imagePath).toLowerCase()}`
-      await copyFile(imagePath, join(tempDir, backgroundRelativePath))
+      await copyFileExact(imagePath, join(tempDir, backgroundRelativePath))
     }
 
     const renderStartedAt = Date.now()
@@ -173,7 +174,7 @@ const processLyricsRun = async (options: {
     })
     const renderMs = Date.now() - renderStartedAt
 
-    await copyFile(renderedVideoPath, videoPath)
+    await copyFileExact(renderedVideoPath, videoPath)
 
     const totalMs = Date.now() - startedAt
     const manifestMetadata = {
@@ -298,7 +299,7 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
         totalEstimatedCost: 0,
         notes: [`Local lyric-video batch rendering for ${files.length} audio file(s) has no provider cost.`]
       })
-      l.report.expectedOutput('./output/<timestamp>_music-lyrics-batch/', [PIPELINE_MANIFEST_FILE, `<item>/${PIPELINE_MANIFEST_FILE}`, '<item>/<name>.mp4', '<item>/<name>.vtt', '<item>/<name>.srt'])
+      l.report.expectedOutput(getPinnedRunDir() ?? './output/<timestamp>_music-lyrics-batch/', [PIPELINE_MANIFEST_FILE, `<item>/${PIPELINE_MANIFEST_FILE}`, '<item>/<name>.mp4', '<item>/<name>.vtt', '<item>/<name>.srt'])
       return
     }
 
@@ -398,7 +399,7 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
       totalEstimatedCost: 0,
       notes: ['Local lyric-video transcription and rendering have no provider cost.']
     })
-    l.report.expectedOutput('./output/<timestamp>_music-lyrics-<label>/', [PIPELINE_MANIFEST_FILE, `${outputLabel}.mp4`, `${outputLabel}.vtt`, `${outputLabel}.srt`])
+    l.report.expectedOutput(getPinnedRunDir() ?? './output/<timestamp>_music-lyrics-<label>/', [PIPELINE_MANIFEST_FILE, `${outputLabel}.mp4`, `${outputLabel}.vtt`, `${outputLabel}.srt`])
     return
   }
 

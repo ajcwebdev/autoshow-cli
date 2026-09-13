@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Root directory: `/Users/ajc/c/autoshow-cli/docs/benchmarks/stt-with-speakers`
+- Root directory: `/Users/ajc/c/auto/autoshow-cli/docs/benchmarks/stt-with-speakers`
 - Runs aggregated: 4
   - `1-audio` (8 providers)
   - `2022-09-30-widgets-fsjam-40-minutes` (8 providers)

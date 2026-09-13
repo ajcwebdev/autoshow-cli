@@ -25,6 +25,7 @@ export type TtsRunSourceContext = {
   comicContext?: ComicTtsRenderContext | undefined
   artifactOutputDir?: string | undefined
   artifactRoot?: string | undefined
+  compactArchive?: boolean | undefined
   retainedProviderStates?: PipelineProviderState[] | undefined
   recoveryRootDir?: string | undefined
   executionReadiness?: readonly TtsExecutionReadinessObservation[] | undefined

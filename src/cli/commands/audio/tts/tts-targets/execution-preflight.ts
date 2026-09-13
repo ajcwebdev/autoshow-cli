@@ -1,3 +1,4 @@
+import { boundedReadinessFetch, READINESS_MAX_PAGES } from '~/utils/readiness-request'
 import type { SanitizedProviderError, TtsExecutionReadinessObservation, TtsTarget } from '~/types'
 import { UsageError, extractErrorMetadata, ProviderError, ValidationError } from '~/utils/error-handler'
 import { resolveCredential } from '~/utils/validate/env-utils'
@@ -41,7 +42,7 @@ const missingCredentialObservation = (
 
 const probeRuntimeTool = async (binary: string): Promise<boolean> => {
   try {
-    const process = Bun.spawn([binary, '-version'], { env: childEnv(), stdout: 'ignore', stderr: 'ignore' })
+    const process = Bun.spawn([binary, '-version'], { timeout: 10_000, env: childEnv(), stdout: 'ignore', stderr: 'ignore' })
     return await process.exited === 0
   } catch {
     return false
@@ -81,12 +82,13 @@ export const listHumeVoiceIdsForReadiness = async (
   apiKey: string,
   fetchImpl: typeof fetch = fetch
 ): Promise<Set<string>> => {
+  const request = boundedReadinessFetch(fetchImpl)
   const availableIds = new Set<string>()
   for (const provider of ['HUME_AI', 'CUSTOM_VOICE'] as const) {
     let pageNumber = 0
     let totalPages = 1
     do {
-      const response = await fetchImpl(`https://api.hume.ai/v0/tts/voices?${new URLSearchParams({ provider, page_number: String(pageNumber), page_size: '100' })}`, { headers: { 'X-Hume-Api-Key': apiKey } })
+      const response = await request(`https://api.hume.ai/v0/tts/voices?${new URLSearchParams({ provider, page_number: String(pageNumber), page_size: '100' })}`, { headers: { 'X-Hume-Api-Key': apiKey } })
       if (!response.ok) {
         throw ProviderError(`Hume voice catalog request failed (HTTP ${response.status}).`, {
           stage: 'tts:readiness',
@@ -102,6 +104,7 @@ export const listHumeVoiceIdsForReadiness = async (
         if (value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { id?: unknown }).id === 'string') availableIds.add((value as { id: string }).id)
       }
       totalPages = page.totalPages
+      if (totalPages > READINESS_MAX_PAGES) throw ValidationError(`Hume voice catalog exceeds ${READINESS_MAX_PAGES} pages.`, { stage: 'tts:readiness', retryable: false })
       pageNumber++
     } while (pageNumber < totalPages)
   }
@@ -112,8 +115,9 @@ export const listInworldVoiceIdsForReadiness = async (
   apiKey: string,
   fetchImpl: typeof fetch = fetch
 ): Promise<Set<string>> => {
+  const request = boundedReadinessFetch(fetchImpl)
   const authorization = apiKey.startsWith('Basic ') ? apiKey : `Basic ${apiKey}`
-  const response = await fetchImpl('https://api.inworld.ai/voices/v1/voices?languages=EN_US', {
+  const response = await request('https://api.inworld.ai/voices/v1/voices?languages=EN_US', {
     headers: { Authorization: authorization }
   })
   if (!response.ok) {
@@ -140,13 +144,15 @@ const checkAdvancedVoiceReadiness = async (
 ): Promise<TtsExecutionReadinessObservation> => {
   const targetKey = target.targetKey as string
   const voiceIds = [...new Set(target.readinessVoiceIds ?? [])]
-  if (voiceIds.length === 0 || !['elevenlabs', 'hume', 'cartesia', 'speechify', 'inworld'].includes(target.service)) {
+  if (voiceIds.length === 0 || findHostedTtsCredential(target.service)?.liveProbe !== 'voice-catalog') {
     return { targetKey, accountState: 'available', status: 'ready' }
   }
+  if (voiceIds.length > 100) return advancedVoiceBlockedObservation(targetKey, 'readiness-resource-limit', 'Readiness supports at most 100 distinct voices per target.', false)
+  const request = boundedReadinessFetch()
   try {
     if (target.service === 'elevenlabs') {
       const results = await Promise.all(voiceIds.map(async voiceId => {
-        const response = await fetch(`https://api.elevenlabs.io/v1/voices/${encodeURIComponent(voiceId)}`, { headers: { 'xi-api-key': apiKey } })
+        const response = await request(`https://api.elevenlabs.io/v1/voices/${encodeURIComponent(voiceId)}`, { headers: { 'xi-api-key': apiKey } })
         if (!response.ok) return false
         const payload = await response.json() as { voice_id?: unknown, sharing?: { disable_at_unix?: unknown } | null, fine_tuning?: { state?: Record<string, unknown> } | null }
         if (payload.voice_id !== voiceId) return false
@@ -159,19 +165,19 @@ const checkAdvancedVoiceReadiness = async (
       return { targetKey, accountState: 'available', status: 'ready' }
     }
     if (target.service === 'hume') {
-      const availableIds = await listHumeVoiceIdsForReadiness(apiKey)
+      const availableIds = await listHumeVoiceIdsForReadiness(apiKey, request)
       if (voiceIds.some(voiceId => !availableIds.has(voiceId))) return advancedVoiceBlockedObservation(targetKey, 'hume-voice-not-ready', 'One or more approved Hume voices are missing or inaccessible for the configured account.', false)
       return { targetKey, accountState: 'available', status: 'ready' }
     }
     if (target.service === 'inworld') {
-      const availableIds = await listInworldVoiceIdsForReadiness(apiKey)
+      const availableIds = await listInworldVoiceIdsForReadiness(apiKey, request)
       const missingVoiceIds = voiceIds.filter(voiceId => !availableIds.has(voiceId))
       if (missingVoiceIds.length > 0) return advancedVoiceBlockedObservation(targetKey, 'inworld-voice-not-ready', `Approved Inworld voice ${missingVoiceIds.join(', ')} is missing or inaccessible for the configured account. Run \`bun autoshow voice list --provider inworld --source provider-library\` and update the casting profile before synthesis.`, false)
       return { targetKey, accountState: 'available', status: 'ready' }
     }
     if (target.service === 'cartesia') {
       const results = await Promise.all(voiceIds.map(async voiceId => {
-        const response = await fetch(`https://api.cartesia.ai/voices/${encodeURIComponent(voiceId)}`, { headers: { Authorization: `Bearer ${apiKey}`, 'Cartesia-Version': '2026-03-01' } })
+        const response = await request(`https://api.cartesia.ai/voices/${encodeURIComponent(voiceId)}`, { headers: { Authorization: `Bearer ${apiKey}`, 'Cartesia-Version': '2026-03-01' } })
         if (!response.ok) return false
         const payload = await response.json() as { id?: unknown }
         return payload.id === voiceId
@@ -179,8 +185,9 @@ const checkAdvancedVoiceReadiness = async (
       if (results.some(ready => !ready)) return advancedVoiceBlockedObservation(targetKey, 'cartesia-voice-not-ready', 'One or more approved Cartesia voices are missing or inaccessible for the configured account.', false)
       return { targetKey, accountState: 'available', status: 'ready' }
     }
+    if (target.service !== 'speechify') throw ValidationError(`No voice-catalog readiness adapter for ${target.service}.`, { stage: 'tts:readiness', retryable: false })
     const results = await Promise.all(voiceIds.map(async voiceId => {
-      const response = await fetch(`https://api.speechify.ai/v1/voices/${encodeURIComponent(voiceId)}`, { headers: { Authorization: `Bearer ${apiKey}` } })
+      const response = await request(`https://api.speechify.ai/v1/voices/${encodeURIComponent(voiceId)}`, { headers: { Authorization: `Bearer ${apiKey}` } })
       if (!response.ok) return false
       const payload = await response.json() as { id?: unknown, models?: unknown }
       if (payload.id !== voiceId) return false
@@ -196,7 +203,7 @@ const checkAdvancedVoiceReadiness = async (
     const retryable = metadata['retryable'] === false ? false : true
     return advancedVoiceBlockedObservation(
       targetKey,
-      `${target.service}-readiness-inspection-failed`,
+      status === 401 ? 'provider-authentication-rejected' : status === 403 ? 'provider-permission-denied' : status === 404 ? `${target.service}-voice-not-ready` : status === 402 ? 'provider-operation-not-admitted' : metadata['readinessFailure'] === 'timeout' ? 'provider-readiness-timeout' : `${target.service}-readiness-inspection-failed`,
       `${label} read-only voice readiness inspection failed before synthesis.`,
       retryable,
       {
@@ -256,7 +263,7 @@ export const validateTtsTargetsForExecution = (
       const observation = resolveCredential(credential.providerId, 'observe', {
         description: credential.ttsPreflight.label
       })
-      const apiKey = observation.value
+      const apiKey = observation.available ? resolveCredential(credential.providerId, 'require', { stage: 'tts:readiness' }) : undefined
       if (apiKey && target.service === 'hume' && (target.readinessVoiceIds?.length ?? 0) > 0) {
         const voiceSetKey = [...new Set(target.readinessVoiceIds)].sort().join('\0')
         let probe = humeReadinessByVoiceSet.get(voiceSetKey)

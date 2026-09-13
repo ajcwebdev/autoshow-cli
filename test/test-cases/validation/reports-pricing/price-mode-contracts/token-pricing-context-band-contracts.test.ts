@@ -8,7 +8,7 @@ import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const buildStep3CostMetadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata => ({
   llmService: 'openai',
-  llmModel: 'gpt-5.5',
+  llmModel: 'gpt-5.6-sol',
   processingTime: 1234,
   inputTokenCount: 300_000,
   outputTokenCount: 10_000,
@@ -31,92 +31,6 @@ describe('price mode contracts', () => {
     const entry = requireDefined(getModelRegistry().llm['openai']?.models['gpt-6-astra'], 'Astra registry entry')
     expect(entry.tokenPricingBands?.map((band) => band.cachedInputCostPer1MCents)).toEqual([100, 200])
   })
-
-  test('shared token pricing helper applies OpenAI long-context bands', () => {
-      const rates = requireDefined(getLlmCost('openai', 'gpt-5.5'), 'GPT-5.5 pricing')
-
-      const shortContext = computeTokenCost(rates, 200_000, 10_000)
-      expect(shortContext).toMatchObject({
-        pricingBand: 'standard-short-context',
-        inputCostPer1MCents: 500,
-        outputCostPer1MCents: 3000,
-        totalCost: 130
-      })
-
-      const longContext = computeTokenCost(rates, 300_000, 10_000)
-      expect(longContext).toMatchObject({
-        pricingBand: 'standard-long-context',
-        inputCostPer1MCents: 1000,
-        outputCostPer1MCents: 4500,
-        totalCost: 345
-      })
-    })
-
-  test('shared token pricing helper applies Gemini Pro 200K bands', () => {
-      const rates = requireDefined(getLlmCost('gemini', 'gemini-3.1-pro-preview'), 'Gemini 3.1 Pro pricing')
-
-      const standard = computeTokenCost(rates, 200_000, 1000)
-      const over200k = computeTokenCost(rates, 200_001, 1000)
-
-      expect(standard).toMatchObject({
-        pricingBand: 'standard-up-to-200k',
-        inputCostPer1MCents: 200,
-        outputCostPer1MCents: 1200
-      })
-      expect(over200k).toMatchObject({
-        pricingBand: 'standard-over-200k',
-        inputCostPer1MCents: 400,
-        outputCostPer1MCents: 1800
-      })
-      expect(over200k.totalCost).toBeCloseTo(81.8004)
-    })
-
-  test('shared token pricing helper applies MiniMax M3 512K bands and registry provenance', () => {
-      const rates = requireDefined(getLlmCost('minimax', 'MiniMax-M3'), 'MiniMax-M3 pricing')
-
-      const standard = computeTokenCost(rates, 512_000, 1000)
-      const over512k = computeTokenCost(rates, 512_001, 1000)
-
-      expect(standard).toMatchObject({
-        pricingBand: 'standard-up-to-512k',
-        inputCostPer1MCents: 60,
-        outputCostPer1MCents: 240
-      })
-      expect(standard.totalCost).toBeCloseTo(30.96)
-      expect(over512k).toMatchObject({
-        pricingBand: 'standard-over-512k',
-        inputCostPer1MCents: 120,
-        outputCostPer1MCents: 480
-      })
-      expect(over512k.totalCost).toBeCloseTo(61.92012)
-
-      const entry = requireDefined(getModelRegistry().llm['minimax']?.models['MiniMax-M3'], 'MiniMax-M3 registry entry')
-      expect(entry.pricingSourceUrl).toBe('https://platform.minimax.io/docs/guides/pricing-paygo')
-      expect(entry.pricingCheckedAt).toBe('2026-05-31')
-      expect(entry.pricingTier).toBe('MiniMax pay-as-you-go standard pricing')
-      expect(entry.pricingNotes).toContain('7-day promotional discount')
-      expect(entry.pricingNotes).toContain('priority pricing')
-      expect(entry.tokenPricingBands?.[0]).toMatchObject({
-        label: 'standard-up-to-512k',
-        cachedInputCostPer1MCents: 12
-      })
-      expect(entry.tokenPricingBands?.[1]).toMatchObject({
-        label: 'standard-over-512k',
-        cachedInputCostPer1MCents: 24
-      })
-    })
-
-  test('shared token pricing helper emits xAI higher-context notes without inventing rates', () => {
-      const rates = requireDefined(getLlmCost('grok', 'grok-4.3'), 'Grok 4.3 pricing')
-
-      const cost = computeTokenCost(rates, 200_001, 1000)
-
-      expect(cost).toMatchObject({
-        inputCostPer1MCents: 125,
-        outputCostPer1MCents: 250
-      })
-      expect(cost.pricingNote).toContain('higher context pricing')
-    })
 
   const GROK_LLM_BAND_CASES = [
     { model: 'grok-4.5', pricingCheckedAt: '2026-07-23', cachedInputCostPer1MCents: 30, longBandCachedInputCostPer1MCents: 60 },

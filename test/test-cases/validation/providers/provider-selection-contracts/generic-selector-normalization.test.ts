@@ -60,15 +60,15 @@ describe('provider selection contracts', () => {
     ])
 
     const writeNormalized = normalizeWriteStepSelectorFlags({
-      llm: ['grok=grok-4.5', 'together=kimi-k2.6', 'together=glm-5.1', 'anthropic=claude-haiku-4-5', 'anthropic=claude-sonnet-4-6']
+      llm: ['grok=grok-4.5', 'together=kimi-k3', 'together=glm-5.3-flash', 'anthropic=claude-sonnet-5', 'anthropic=claude-sonnet-5']
     }, new Set(['llm']))
     const writeOpts = buildOptsFromFlags(writeNormalized.flags, {}, writeNormalized.explicitFlags)
     expect(writeOpts.grokModels).toEqual(['grok-4.5'])
     expect(writeOpts.grokModels?.[0]).toBe('grok-4.5')
-    expect(writeOpts.togetherModels).toEqual(['kimi-k2.6', 'glm-5.1'])
-    expect(writeOpts.togetherModels?.[0]).toBe('kimi-k2.6')
-    expect(writeOpts.anthropicModels).toEqual(['claude-haiku-4-5', 'claude-sonnet-4-6'])
-    expect(writeOpts.anthropicModels?.[0]).toBe('claude-haiku-4-5')
+    expect(writeOpts.togetherModels).toEqual(['kimi-k3', 'glm-5.3-flash'])
+    expect(writeOpts.togetherModels?.[0]).toBe('kimi-k3')
+    expect(writeOpts.anthropicModels).toEqual(['claude-sonnet-5'])
+    expect(writeOpts.anthropicModels?.[0]).toBe('claude-sonnet-5')
 
     const imageArgNormalized = normalizeGenericProviderSelectorFlags(
       {

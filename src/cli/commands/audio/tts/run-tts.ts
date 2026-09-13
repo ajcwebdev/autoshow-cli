@@ -313,6 +313,7 @@ const prepareTargetForExecution = async (input: {
   }
   const priorAttemptCount = retainedState ? await resolveCurrentTtsPriorAdmittedAttemptCount({ rootDir: recoveryRoot(outputDir, sourceContext), state: retainedState }) : undefined
   const attempt = await createCurrentTtsRenderAttempt({
+    compactArchive: sourceContext?.compactArchive,
     outputDir: sourceContext?.artifactOutputDir ?? outputDir,
     artifactRoot: sourceContext?.artifactRoot,
     target,

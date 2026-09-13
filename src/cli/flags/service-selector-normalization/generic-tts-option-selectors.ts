@@ -13,7 +13,7 @@ export const GENERIC_TTS_OPTION_PROVIDERS = {
   },
   'tts-speed': {
     voiceIdentity: false,
-    providers: ['openai', 'elevenlabs']
+    providers: ['openai', 'elevenlabs', 'grok', 'cartesia', 'hume', 'inworld']
   },
   'tts-language': {
     voiceIdentity: false,

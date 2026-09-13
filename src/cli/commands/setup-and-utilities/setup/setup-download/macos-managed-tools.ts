@@ -49,7 +49,6 @@ import {
   qpdfInstalledBinaryPath,
   qpdfManagedBinaryPath,
   qpdfToolDir,
-  resolveTessdataPrefix,
   calibreAppPath,
   tessdataDir,
   tesseractBuildDir,
@@ -99,6 +98,13 @@ const writeExecutableScript = async (path: string, content: string): Promise<voi
     await rm(tempPath, { force: true })
   }
 }
+
+export const buildManagedTesseractWrapperScript = (): string => `#!/bin/sh
+tesseract_runtime_dir=$(CDPATH= cd "$(dirname "$0")/.." && pwd) || exit 1
+export TESSDATA_PREFIX="$tesseract_runtime_dir/tools/tessdata"
+export DYLD_LIBRARY_PATH="$tesseract_runtime_dir/tools/leptonica/lib:$tesseract_runtime_dir/tools/tesseract/lib:\${DYLD_LIBRARY_PATH:-}"
+exec "$tesseract_runtime_dir/tools/tesseract/bin/tesseract" "$@"
+`
 
 export const buildManagedQpdfWrapperScript = (
   installedBinaryPath = qpdfInstalledBinaryPath
@@ -457,11 +463,7 @@ export const installManagedTesseractMacos = async (): Promise<void> => {
   }
 
   await installManagedTessdataEng()
-  await writeExecutableScript(tesseractManagedBinaryPath, `#!/bin/sh
-export TESSDATA_PREFIX="${resolveTessdataPrefix()}"
-export DYLD_LIBRARY_PATH="${join(leptonicaToolDir, 'lib')}:${join(tesseractToolDir, 'lib')}:\${DYLD_LIBRARY_PATH:-}"
-exec "${tesseractInstalledBinaryPath}" "$@"
-`)
+  await writeExecutableScript(tesseractManagedBinaryPath, buildManagedTesseractWrapperScript())
 }
 
 export const installManagedQpdfMacos = async (): Promise<void> => {

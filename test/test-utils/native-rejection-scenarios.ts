@@ -5,7 +5,7 @@ import { createNativeScenarioAdapter } from './native-scenario-adapter'
 
 export function defineNativeRejections(source: string): void {
   const fixtures: Record<string, string> = {
-    text: STABLE_TTS_MD_PATH, dialogue: 'input/examples/tts/tts-dialogue.txt', audio: 'input/examples/audio/anthony-voice.mp3'
+    text: STABLE_TTS_MD_PATH, dialogue: 'input/examples/tts/04-tts-dialogue.txt', audio: 'input/examples/audio/anthony-voice.mp3'
   }
   const adapter = createNativeScenarioAdapter(fixtures, { env: { MISTRAL_API_KEY: '' } })
   const scenarios = rejectionScenarios(adapter.fixture).filter(scenario => scenario.source === source)

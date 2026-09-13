@@ -175,6 +175,7 @@ export type SoundEffectCapabilityFixture = {
   }
   pricing: {
     currency: 'USD'
+    perSuccessfulGeneration?: number | undefined
     specifiedDurationPerMinute: number
     automaticDurationPerRequest: number | null
     typicalPerPrediction?: number | undefined
@@ -222,6 +223,7 @@ export type SoundEffectRequestEvidence = {
   queryHash: string
   providerRequestId?: string | undefined
   observedContentType?: string | undefined
+  billedCostUsd?: number | undefined
   observedCharacterCost?: number | undefined
   capturedAt: string
 }

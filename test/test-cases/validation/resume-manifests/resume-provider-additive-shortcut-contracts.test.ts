@@ -61,11 +61,11 @@ describe('resume all-shortcut additive selection', () => {
       await writeSingleManifestFixture(dir, 'write', {
         step3: {
           llmService: 'openai',
-          llmModel: 'gpt-5.5',
+          llmModel: 'gpt-5.6-sol',
           processingTime: 1,
           inputTokenCount: 1,
           outputTokenCount: 1,
-          outputFileName: 'text-gpt-5.5.json',
+          outputFileName: 'text-gpt-5.6-sol.json',
           outputFormat: 'json',
           structuredMode: 'native',
           structuredPresetNames: ['shortSummary']
@@ -88,11 +88,11 @@ describe('resume all-shortcut additive selection', () => {
       await writeSingleManifestFixture(dir, 'write', {
         step3: {
           llmService: 'openai',
-          llmModel: 'gpt-5.5',
+          llmModel: 'gpt-5.6-sol',
           processingTime: 1,
           inputTokenCount: 1,
           outputTokenCount: 1,
-          outputFileName: 'text-gpt-5.5.json',
+          outputFileName: 'text-gpt-5.6-sol.json',
           outputFormat: 'json',
           structuredMode: 'native',
           structuredPresetNames: ['shortSummary']
@@ -101,9 +101,9 @@ describe('resume all-shortcut additive selection', () => {
 
       const normalized = normalizeResumeSelectorFlagsForTarget(
         target('write', dir),
-        { provider: ['openai=gpt-5.5'] },
+        { provider: ['openai=gpt-5.6-sol'] },
         new Set(['provider']),
-        ['resume', dir, '--provider', 'openai=gpt-5.5']
+        ['resume', dir, '--provider', 'openai=gpt-5.6-sol']
       )
       const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.flagOccurrences)
 
@@ -168,11 +168,11 @@ describe('resume all-shortcut additive selection', () => {
         await writeSingleManifestFixture(dir, 'write', {
           step3: {
             llmService: 'openai',
-            llmModel: 'gpt-5.5',
+            llmModel: 'gpt-5.6-sol',
             processingTime: 1,
             inputTokenCount: 1,
             outputTokenCount: 1,
-            outputFileName: 'text-gpt-5.5.json',
+            outputFileName: 'text-gpt-5.6-sol.json',
             outputFormat: 'json',
             structuredMode: 'native',
             structuredPresetNames: ['shortSummary']
@@ -184,7 +184,7 @@ describe('resume all-shortcut additive selection', () => {
           if (call.headers.get('authorization') === 'Bearer glm-key') {
             return jsonResponse({
               error: {
-                message: 'Model glm-5.1 does not exist or you do not have access to it.'
+                message: 'Model glm-5.3-flash does not exist or you do not have access to it.'
               }
             }, { status: 404 })
           }
@@ -198,9 +198,9 @@ describe('resume all-shortcut additive selection', () => {
 
         const normalized = normalizeResumeSelectorFlagsForTarget(
           target('write', dir),
-          { provider: ['together=kimi-k2.6', 'glm=glm-5.1'] },
+          { provider: ['together=kimi-k3', 'glm=glm-5.3-flash'] },
           new Set(['provider']),
-          ['resume', dir, '--provider', 'together=kimi-k2.6', '--provider', 'glm=glm-5.1']
+          ['resume', dir, '--provider', 'together=kimi-k3', '--provider', 'glm=glm-5.3-flash']
         )
         const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.flagOccurrences)
 
@@ -212,7 +212,7 @@ describe('resume all-shortcut additive selection', () => {
             kind: 'infrastructure',
             stage: 'resume:generation',
             exitCode: 2,
-            message: 'Write resume still has 1 incomplete provider(s): glm/glm-5.1'
+            message: 'Write resume still has 1 incomplete provider(s): glm/glm-5.3-flash'
           })
         }
 
@@ -221,14 +221,14 @@ describe('resume all-shortcut additive selection', () => {
         const step3 = Array.isArray(item?.metadata['step3'])
           ? item.metadata['step3'] as Step3Metadata[]
           : [item?.metadata['step3'] as Step3Metadata]
-        const togetherEntry = step3.find((entry) => `${entry.llmService}/${entry.llmModel}` === 'together/kimi-k2.6')
-        expect(step3.map((entry) => `${entry.llmService}/${entry.llmModel}`)).toContain('together/kimi-k2.6')
-        expect(step3.map((entry) => `${entry.llmService}/${entry.llmModel}`)).not.toContain('glm/glm-5.1')
+        const togetherEntry = step3.find((entry) => `${entry.llmService}/${entry.llmModel}` === 'together/kimi-k3')
+        expect(step3.map((entry) => `${entry.llmService}/${entry.llmModel}`)).toContain('together/kimi-k3')
+        expect(step3.map((entry) => `${entry.llmService}/${entry.llmModel}`)).not.toContain('glm/glm-5.3-flash')
         expect(togetherEntry).toBeDefined()
         expect(await Bun.file(join(dir, togetherEntry!.outputFileName)).exists()).toBe(true)
         expect(item?.providers).toEqual(expect.arrayContaining([
-          expect.objectContaining({ service: 'together', model: 'kimi-k2.6', status: 'succeeded' }),
-          expect.objectContaining({ service: 'glm', model: 'glm-5.1', status: 'missing' })
+          expect.objectContaining({ service: 'together', model: 'kimi-k3', status: 'succeeded' }),
+          expect.objectContaining({ service: 'glm', model: 'glm-5.3-flash', status: 'missing' })
         ]))
       })
     } finally {

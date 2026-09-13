@@ -13,7 +13,6 @@ import {
   KIMI_MODELS_LINKS,
   KIMI_OCR_LINKS,
   KIMI_TEXT_LINKS,
-  SCRAPECREATORS_URL_LINKS,
   SPIDER_URL_LINKS,
   SUPADATA_URL_LINKS,
   X_URL_LINKS,
@@ -74,7 +73,6 @@ test('links selector accepts glm provider with separate ocr and url sections', (
     ...GLM_URL_LINKS,
     ...X_URL_LINKS,
     ...SUPADATA_URL_LINKS,
-    ...SCRAPECREATORS_URL_LINKS,
     ...ZYTE_URL_LINKS,
     ...FIRECRAWL_URL_LINKS,
     ...SPIDER_URL_LINKS

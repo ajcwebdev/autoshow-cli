@@ -1,3 +1,4 @@
+import { UsageError } from '~/utils/error-handler'
 import { splitTextIntoChunks } from '~/cli/commands/audio/tts/tts-utils/audio-utils'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-pipeline'
 import { logTtsConfig } from '~/cli/commands/audio/tts/tts-utils/log-tts-config'
@@ -45,6 +46,7 @@ export const runHumeTts = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
+  if (options.model === 'octave-2' && options.description) throw UsageError('Hume Octave 2 does not support acting descriptions; use Octave 1 for description controls.')
   const apiKey = resolveCredential('hume', 'require', { stage: 'tts:hume', description: 'Hume TTS' })
 
   const baseURL = trimTrailingSlash(HUME_DEFAULT_BASE_URL)

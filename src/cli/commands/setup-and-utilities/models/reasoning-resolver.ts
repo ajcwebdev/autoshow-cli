@@ -62,6 +62,7 @@ const getAdapterDefaultReasoningEffort = (
   }
 
   if (step === 'extract') {
+    if (service === 'deepinfra' && model.startsWith('google/gemma-4-')) return 'disabled'
     if (service === 'gemini' && /^gemini-3(?:[.-]|$)/i.test(model)) {
       return 'low'
     }

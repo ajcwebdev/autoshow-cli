@@ -4,7 +4,7 @@ import { command, exact } from '../helpers'
 const minimaxGeminiProMusicCommand = command(
   'music-multi-minimax-music-3.0-gemini-lyria-3-pro-preview',
   'music-multi-minimax-music-3.0-gemini-lyria-3-pro-preview',
-  ['src/cli/create-cli.ts', 'music', 'bright acoustic pop with handclaps and a catchy chorus', '--provider', 'minimax=music-3.0', '--provider', 'gemini=lyria-3-pro-preview', '--lyrics-file', 'input/examples/tts/1-tts.md', '--price']
+  ['src/cli/create-cli.ts', 'music', 'bright acoustic pop with handclaps and a catchy chorus', '--provider', 'minimax=music-3.0', '--provider', 'gemini=lyria-3-pro-preview', '--lyrics-file', 'input/examples/tts/01-tts-short.md', '--price']
 )
 
 export const musicRegistry: PriceSelectionEntry[] = [

@@ -1,5 +1,8 @@
 {
   "Supadata": {
+    "LLMSTXT": [
+      "https://docs.supadata.ai/llms.txt"
+    ],
     "General": [
       "https://docs.supadata.ai/.md",
       "https://docs.supadata.ai/api-reference/endpoint/account/me.md",

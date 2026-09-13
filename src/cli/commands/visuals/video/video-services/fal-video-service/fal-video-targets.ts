@@ -1,3 +1,4 @@
+import { falPriorityModes, isFalPriorityVideo, isFalSeedance25, validateFalPriorityInputs } from './fal-priority-video-contract'
 import type { FalVideoModel, VideoGenOptions, VideoMode, VideoTarget } from '~/types'
 import { validateFalVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { UsageError } from '~/utils/error-handler'
@@ -9,15 +10,16 @@ export const collectFalVideoTargets = (options: VideoGenOptions, mode: VideoMode
   const models = options.falVideoModels ?? []
   return models.flatMap((rawModel) => {
     const model: FalVideoModel = validateFalVideoModel(rawModel)
-    if (!isSupportedOrSkippedForAllVideo(options, 'fal', model, mode, ['text', 'image-to-video', 'reference-to-video', 'interpolate'])) return []
+    if (!isSupportedOrSkippedForAllVideo(options, 'fal', model, mode, isFalPriorityVideo(model) ? falPriorityModes(model) : ['text', 'image-to-video', 'reference-to-video', 'interpolate'])) return []
+    if (isFalPriorityVideo(model)) validateFalPriorityInputs({ model, mode, inputImage: options.videoInputImage, lastFrame: options.videoLastFrame, referenceImages: options.videoReferenceImages, referenceVideos: options.videoReferenceVideos, referenceAudios: options.videoReferenceAudios, generateAudio: options.videoGenerateAudio })
     normalizeFalVideoDuration(model, options.videoDuration)
     normalizeFalVideoResolution(model, options.videoResolution)
     normalizeFalVideoAspectRatio(model, options.videoAspectRatio, mode)
     if (options.videoInputImage) validateVideoMediaReferences([options.videoInputImage], { flagName: '--input-image', provider: 'fal', model, kind: 'image' })
     if (options.videoLastFrame) validateVideoMediaReferences([options.videoLastFrame], { flagName: '--last-frame', provider: 'fal', model, kind: 'image' })
-    validateVideoMediaReferences(options.videoReferenceImages, { flagName: '--reference-image', provider: 'fal', model, kind: 'image', maxInputs: model === 'minimax/h3' ? 9 : 7 })
-    validateVideoMediaReferences(options.videoReferenceVideos, { flagName: '--reference-video', provider: 'fal', model, kind: 'video', maxInputs: 3 })
-    validateVideoMediaReferences(options.videoReferenceAudios, { flagName: '--reference-audio', provider: 'fal', model, kind: 'audio', maxInputs: 3 })
+    validateVideoMediaReferences(options.videoReferenceImages, { flagName: '--reference-image', provider: 'fal', model, kind: 'image', maxInputs: isFalSeedance25(model) ? 30 : model === 'minimax/h3' ? 9 : 7 })
+    validateVideoMediaReferences(options.videoReferenceVideos, { flagName: '--reference-video', provider: 'fal', model, kind: 'video', maxInputs: isFalSeedance25(model) ? 10 : 3 })
+    validateVideoMediaReferences(options.videoReferenceAudios, { flagName: '--reference-audio', provider: 'fal', model, kind: 'audio', maxInputs: isFalSeedance25(model) ? 10 : 3 })
     if (model === 'fal-ai/pixverse/c1' && ((options.videoReferenceVideos?.length ?? 0) || (options.videoReferenceAudios?.length ?? 0))) throw UsageError(`fal.ai/${model} reference-to-video accepts image references only.`)
     const totalReferences = (options.videoReferenceImages?.length ?? 0) + (options.videoReferenceVideos?.length ?? 0) + (options.videoReferenceAudios?.length ?? 0)
     if (model === 'minimax/h3' && totalReferences > 12) throw UsageError(`fal.ai/${model} supports at most 12 combined image, video, and audio references.`)

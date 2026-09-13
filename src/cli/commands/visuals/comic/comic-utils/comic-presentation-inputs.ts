@@ -1,4 +1,5 @@
-import { readdir, readFile } from 'node:fs/promises'
+import { readFileBytes } from '~/utils/bun-file-io'
+import { readdir } from 'node:fs/promises'
 import { basename, dirname, join, posix, resolve } from 'node:path'
 import * as v from 'valibot'
 import { sanitizeTitleSlug } from '~/cli/commands/sources/download/download-audio/metadata-utils'
@@ -229,7 +230,7 @@ export const loadPresentationAudio = async (compatible: CompatibleComicSceneRun,
 const readReviewedPresentationScene = async (sceneRunDir: string): Promise<{ scene: ScenePromptData, ref: ArtifactRef }> => {
   const path = 'metadata/scene.json'
   let bytes: Uint8Array
-  try { bytes = new Uint8Array(await readFile(join(sceneRunDir, path))) }
+  try { bytes = new Uint8Array(await readFileBytes(join(sceneRunDir, path))) }
   catch (error) {
     if (hasErrorCode(error, 'ENOENT')) {
       throw UsageError(
@@ -330,11 +331,11 @@ export const preparePresentationVisualInputs = async (
     sourceDir: loaded.sourceDir,
     imported: true,
   }
-  const sceneBytes = new Uint8Array(await readFile(join(loaded.sourceDir, loaded.sceneRef.path)))
+  const sceneBytes = new Uint8Array(await readFileBytes(join(loaded.sourceDir, loaded.sceneRef.path)))
   const writtenScene = await writeImmutableArtifactFile(compatible.sceneRunDir, `${bundleRoot}/reviewed-scene.json`, sceneBytes)
   if (writtenScene.sha256 !== loaded.sceneRef.sha256) throw UsageError('Reviewed comic scene changed while its immutable presentation input bundle was being imported.')
   const panels = await Promise.all(loaded.panels.map(async panel => {
-    const bytes = new Uint8Array(await readFile(join(loaded.sourceDir, panel.path)))
+    const bytes = new Uint8Array(await readFileBytes(join(loaded.sourceDir, panel.path)))
     const written = await writeImmutableArtifactFile(
       compatible.sceneRunDir,
       `${bundleRoot}/panels/panel-${String(panel.panelNumber).padStart(2, '0')}.png`,

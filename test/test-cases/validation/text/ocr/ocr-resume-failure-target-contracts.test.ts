@@ -52,17 +52,17 @@ describe('OCR resume contracts', () => {
 
   test('primary OCR service/model exact match succeeds', () => {
     const targets: OcrTarget[] = [
-      { service: 'openai', model: 'gpt-5.4-nano' },
-      { service: 'openai', model: 'gpt-5.5' }
+      { service: 'openai', model: 'gpt-5.6-luna' },
+      { service: 'openai', model: 'gpt-5.6-sol' }
     ]
 
-    expect(resolvePrimaryOcrTarget(targets, 'openai/gpt-5.5')).toEqual(targets[1])
+    expect(resolvePrimaryOcrTarget(targets, 'openai/gpt-5.6-sol')).toEqual(targets[1])
   })
 
   test('primary OCR unknown or ambiguous values fail', () => {
     const targets: OcrTarget[] = [
-      { service: 'openai', model: 'gpt-5.4-nano' },
-      { service: 'openai', model: 'gpt-5.5' }
+      { service: 'openai', model: 'gpt-5.6-luna' },
+      { service: 'openai', model: 'gpt-5.6-sol' }
     ]
 
     expect(() => resolvePrimaryOcrTarget(targets, 'gemini')).toThrow('--primary-ocr gemini does not match')
@@ -70,9 +70,9 @@ describe('OCR resume contracts', () => {
   })
 
   test('stored OCR targets include current hosted provider set', () => {
-    expect(parseStoredRequestedTarget({ service: 'deepinfra', model: 'Qwen/Qwen3-VL-30B-A3B-Instruct' })).toEqual({
+    expect(parseStoredRequestedTarget({ service: 'deepinfra', model: 'google/gemma-4-31B-it' })).toEqual({
       service: 'deepinfra',
-      model: 'Qwen/Qwen3-VL-30B-A3B-Instruct'
+      model: 'google/gemma-4-31B-it'
     })
   })
 })

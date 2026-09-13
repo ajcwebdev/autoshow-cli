@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { chmod, lstat, mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, normalize, parse, relative, win32 } from 'node:path'
+import { normalizeRepoPath } from '../../../test-runner/utils'
 import {
   copyFileExact,
   readFileBytes,
   readTextFile,
+  readUtf8FileExact,
   statPath,
   unlinkPath,
   writeFileExact
@@ -212,4 +214,34 @@ describe('Bun-native migration contracts', () => {
     expect(Number.isInteger(logicalCpuCount())).toBe(true)
     expect(logicalCpuCount()).toBeGreaterThanOrEqual(1)
   })
+})
+
+test('exact UTF-8 reads preserve BOMs, invalid-byte decoding, and JSON parser failures', async () => {
+  const root = await makeTemporaryRoot()
+  const path = join(root, 'bom.json')
+  await writeFile(path, Buffer.from([0xef, 0xbb, 0xbf, 0x7b, 0x7d]))
+  expect(await readUtf8FileExact(path)).toBe(await readFile(path, 'utf8'))
+  expect(await readTextFile(path)).toBe('{}')
+  expect(() => JSON.parse('\ufeff{}')).toThrow(SyntaxError)
+  expect(() => JSON.parse(Buffer.from([0xef, 0xbb, 0xbf, 0x7b, 0x7d]).toString('utf8'))).toThrow(SyntaxError)
+  await writeFile(path, Buffer.from([0xff, 0x00, 0x61]))
+  expect(await readUtf8FileExact(path)).toBe(await readFile(path, 'utf8'))
+  await expect(readUtf8FileExact(join(root, 'missing'))).rejects.toMatchObject({ code: 'ENOENT' })
+  await expect(readFileBytes(root)).rejects.toMatchObject({ code: 'EISDIR' })
+})
+
+test('relative runner paths preserve empty, root, and Windows lexical cases', () => {
+  for (const value of [null, undefined, '', '   ']) expect(normalizeRepoPath(value)).toBeNull()
+  expect(normalizeRepoPath(process.cwd())).toBe('.')
+  expect(normalizeRepoPath('.')).toBe('.')
+  expect(normalizeRepoPath(' ./test/../test/example.ts ')).toBe('test/example.ts')
+  const root = parse(process.cwd()).root
+  expect(normalizeRepoPath(root)).toBe(normalize(relative(process.cwd(), root)).replaceAll('\\', '/'))
+  for (const [from, to] of [
+    ['C:\\repo', 'C:\\repo'], ['C:\\repo', 'C:\\repo\\test\\..\\file.ts'],
+    ['C:\\repo', 'C:\\'], ['C:\\repo', 'D:\\other']
+  ] as const) {
+    const path = win32.relative(from, to)
+    expect((path || '.').replaceAll('\\', '/')).toBe(win32.normalize(path).replaceAll('\\', '/'))
+  }
 })

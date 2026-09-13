@@ -17,7 +17,7 @@ Flags, provider capabilities, character-root resolution, and bare-invocation lis
 
 The same review rejected proposal 2B, a single voice creation command. Import, design, and clone had a 23-key union with six shared command-local flag keys, excluding globals and positional operands, on 2026-09-10. Local registration, paid design preview/save, and authorized sample cloning remain different operations; a mode selector would not remove their steps, consent, or lifecycle rules. Consent, audition, approval, retirement, and deletion also stay distinct: approval can promote existing evidence locally, audition can synthesize paid audio, retirement changes local lifecycle state, and deletion can remove a remote resource.
 
-This replaces the normal alias usage described below without changing voice provisioning, consent, audition, approval, retirement, deletion, storage, or result behavior. The original command examples remain historical evidence. Current instructions are in the [voice overview](../commands/audio/voice/00-voice-overview.md), with the CLI consolidation recorded in [ADR-007](./ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md#amendment-canonical-voice-and-review-commands-2026-09-10).
+This replaces the normal alias usage described below without changing voice provisioning, consent, audition, approval, retirement, deletion, storage, or result behavior. The original command examples remain historical evidence. Current instructions are in the [voice overview](../commands/04-audio/voice/00-voice-overview.md), with the CLI consolidation recorded in [ADR-007](./ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md#amendment-canonical-voice-and-review-commands-2026-09-10).
 
 ## Context
 
@@ -42,7 +42,7 @@ Why now: multi-character script-to-audio is the next workflow requirement, with 
 **Option 1 (selected)**
 
 - **Option:** Build shared voice-identity, provisioning, capability, dialogue-rendering, timing, and artifact primitives; make comic consume them; implement five voice-managed model adapters with a truthful segmented baseline across all 16 providers
-- **Pros:** Repairs the current contract once; gives every provider a truthful segmented baseline; preserves provider-native strengths; supports immutable character references, local repair, comparison, and resume across five dedicated voice-managed models (ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`)
+- **Pros:** Repairs the current contract once; gives every provider a truthful segmented baseline; preserves provider-native strengths; supports immutable character references, local repair, comparison, and resume across five dedicated voice-managed models (ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.6-2026-08-27`, and Speechify `simba-3.2`)
 - **Cons:** Largest initial change; requires versioned artifacts, provider conformance tests, lifecycle state, and two render strategies
 - **Quantitative Notes:** 16 providers; 5 voice-managed models with distinct expressiveness paths; 11 synthesis-only providers; 2 new comic commands
 
@@ -85,7 +85,7 @@ Why now: multi-character script-to-audio is the next workflow requirement, with 
 
 Create one shared, provider-neutral script-to-audio subsystem beneath both the generic Step 4 `tts` command and comic. Comic owns authored character voice briefs, role resolution, approvals, immutable scene snapshots, and source-linked dialogue plans. Shared TTS owns provider capabilities, voice provisioning and lifecycle, explicit per-invocation voice dispatch, native and segmented rendering, timing, scheduling, and synthesis metadata. Comic must not create provider clients or a second TTS target registry.
 
-Voice reference management is supported across five models: ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`. These models implement discovery, candidate creation, audition, registration, lifecycle, preflight, expressiveness, timing, and manifest contracts according to their documented capabilities. Every existing TTS provider must implement the explicit-voice segmented baseline or fail locally with a truthful model-specific capability error; no adapter may silently reuse a captured default voice.
+Voice reference management is supported across five models: ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.6-2026-08-27`, and Speechify `simba-3.2`. These models implement discovery, candidate creation, audition, registration, lifecycle, preflight, expressiveness, timing, and manifest contracts according to their documented capabilities. Every existing TTS provider must implement the explicit-voice segmented baseline or fail locally with a truthful model-specific capability error; no adapter may silently reuse a captured default voice.
 
 This applies to:
 
@@ -320,7 +320,7 @@ Do not run hosted TTS commands, live voice creation, provider smoke tests, or e2
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — TTS model contracts and voice capability boundaries
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — soundscape pipeline downstream of this dialogue contract
 - Related ADR: [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md) — downstream panel synchronization and still-image presentation
-- Related report: [2026 Hosted-Model Refresh Report: TTS](../commands/audio/tts/model-report.md) — TTS catalog refresh history
+- Related report: [2026 Hosted-Model Refresh Report: TTS](../reports/model-refresh-tts.md) — TTS catalog refresh history
 - `src/cli/commands/audio/tts/define-tts-command.ts`
 - `src/cli/commands/audio/voice/define-voice-command.ts`
 - `src/cli/commands/visuals/comic/comic-commands/generate-audio/generate-audio-command.ts`

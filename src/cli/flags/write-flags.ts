@@ -12,7 +12,8 @@ import { WRITE_LLM_PROVIDER_TARGETS } from './service-selector-normalization/pro
 import type { CliFlagsDefinition } from '~/types'
 
 const writeProviderSelectionFlags = {
-  llm: strListFlag(`LLM provider[=model]: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`),
+  provider: strListFlag(`LLM provider[=model]: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted); repeatable; cannot combine with --llm`),
+  llm: strListFlag('Compatibility alias for --provider; accepts the same repeatable provider[=model] values; cannot combine with --provider'),
   ...booleanAllProvidersFlag,
   ...pickFlags(sharedConcurrencyFlags, ['concurrency-mode', 'provider-concurrency'])
 } as const satisfies CliFlagsDefinition
@@ -31,8 +32,8 @@ const writeTextInputFlags = {
 
 export const writeFlags = {
   ...withHelpGroup({ ...priceFlag, ...modelCostFilterFlag }, 'pricing'),
-  ...withHelpGroup(writeProviderSelectionFlags, 'pipeline'),
-  ...withHelpGroup(reasoningEffortFlag, 'pipeline'),
+  ...withHelpGroup(writeProviderSelectionFlags, 'provider-selection'),
+  ...withHelpGroup(reasoningEffortFlag, 'provider-selection'),
   ...withHelpGroup(pickFlags(batchFlags, ['batch-limit', 'batch-order', 'batch-concurrency']), 'batch-processing'),
   ...withHelpGroup(promptFlag, 'writing'),
   ...withHelpGroup(writeTextInputFlags, 'writing')

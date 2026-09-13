@@ -1,5 +1,8 @@
 {
   "ScrapeCreators": {
+    "LLMSTXT": [
+      "https://docs.scrapecreators.com/llms.txt"
+    ],
     "General": [
       "https://docs.scrapecreators.com/introduction",
       "https://docs.scrapecreators.com/integrations/overview",
@@ -8,19 +11,7 @@
     ],
     "STT": [
       "https://docs.scrapecreators.com/v1/youtube/video/transcript",
-      "https://docs.scrapecreators.com/v1/youtube/video",
-      "https://docs.scrapecreators.com/v1/tiktok/video/transcript",
-      "https://docs.scrapecreators.com/v2/instagram/media/transcript",
-      "https://docs.scrapecreators.com/v1/twitter/tweet/transcript",
-      "https://docs.scrapecreators.com/v1/facebook/post/transcript"
-    ],
-    "URL": [
-      "https://docs.scrapecreators.com/v1/youtube/channel",
-      "https://docs.scrapecreators.com/v1/youtube/channel-videos",
-      "https://docs.scrapecreators.com/v1/youtube/playlist",
-      "https://docs.scrapecreators.com/v1/youtube/search",
-      "https://docs.scrapecreators.com/v1/google/search",
-      "https://docs.scrapecreators.com/v1/linktree"
+      "https://docs.scrapecreators.com/v1/youtube/video"
     ]
   }
 }
