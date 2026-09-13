@@ -20,8 +20,6 @@ On `extract` and `resume`, pass `--provider provider[=model]`. On `config`, pass
 
 ## Provider Capabilities
 
-Groups describe current defaults, including the optional speaker capabilities of Gemini and Together. Provider selectors and configuration remain the same across groups.
-
 | Group | Providers |
 | --- | --- |
 | [Local](local/overview.md) | Whisperfile |
@@ -29,7 +27,7 @@ Groups describe current defaults, including the optional speaker capabilities of
 | [Diarization off by default](diarization-off-by-default/overview.md) | DeepInfra, Gemini, Together |
 | [Direct URL](direct-url/overview.md) | Supadata, ScrapeCreators; also documents YouTube caption fallback |
 
-Each subgroup guide includes its provider selectors, examples, and capability details. YouTube caption fallback is a flag, not an additional provider.
+See each subgroup for selectors, examples, and per-model capabilities. YouTube caption fallback is a flag, not an additional provider.
 
 ## STT Environment
 
@@ -51,7 +49,7 @@ Each subgroup guide includes its provider selectors, examples, and capability de
 
 ## Shared STT Options
 
-Fresh asynchronous transcription jobs and subtitle exports using the shared STT polling loop wait up to 30 minutes for completion. A polling timeout retains the existing remote job identity for recovery.
+Asynchronous transcription jobs and native subtitle exports wait up to 30 minutes. A timeout keeps the remote job so `resume` can recover it.
 
 | Flag                                  | Description                                                                                                                                                                       |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -63,13 +61,13 @@ Fresh asynchronous transcription jobs and subtitle exports using the shared STT 
 | `--batch-order <newest|oldest>`       | Choose batch ordering                                                                                                                                                             |
 | `--batch-concurrency <n>`             | Process batch items concurrently; default `7`                                                                                                                                     |
 | `--provider-concurrency <n>`          | Max hosted provider/model targets running in parallel for one item; default `7`                                                                                                   |
-| `--stt-segment-concurrency <n>`       | Max split segments in flight per provider; default `7`                                                                                                                            |
+| `--stt-segment-concurrency <n>`       | Max split segments in flight per provider; default `7`; local providers clamp to `1`                                                                                              |
 | `--stt-preflight-concurrency <n>`     | Max media-duration probes running in parallel during preflight; default `7`                                                                                                      |
 | `--concurrency-mode <ramp|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--price`                             | Show the aggregated estimate and exit                                                                                                                                             |
 | `--max-model-cents <n>`               | Exclude each provider/model whose estimated total across the invocation exceeds the per-model ceiling in cents; works with or without `--price`                                  |
 
-See [Provider Capabilities](#provider-capabilities) for the per-model release date, diarization, speaker-count, word-timestamp, cleanup, duration, and file-size matrix.
+See the subgroup guides in [Provider Capabilities](#provider-capabilities) for per-model capabilities.
 
 ```bash
 # Prefer YouTube captions, then fall back to STT
@@ -84,15 +82,15 @@ bun autoshow extract https://www.youtube.com/@channelname --youtube-captions --b
 
 ## Provider controls
 
-`--diarization` and `--no-diarization` control AssemblyAI, Deepgram, Gladia, Grok, Mistral, Soniox, Speechmatics, and Together. Defaults remain provider-specific; Together is off unless enabled or given a speaker count. `--speaker-count` is supported by AssemblyAI, Gladia, and Together and is ignored when diarization is explicitly disabled. Together sends matching minimum/maximum speaker bounds. Capability resolution is model-aware: Together Whisper has documented diarization, and Parakeet's diarization was live-tested on a two-speaker sample on 2026-09-10. That Parakeet response contained 24 speaker-labeled word entries, including 12 zero-length intervals; caption export preserved all text and reported 12 inferred timings. This confirms endpoint compatibility, not acoustic accuracy or uniformly usable native boundaries. Mistral warns that diarization uses segment timing; disable diarization for native words. Gemini supports optional generated speaker hypotheses; these are not acoustically aligned speaker measurements. Unsupported providers, including Happy Scribe's undocumented off switch, report the ignored toggle. Hide their labels at export with `--no-caption-speakers`.
+`--diarization` and `--no-diarization` apply to AssemblyAI, Deepgram, Gladia, Grok, Mistral, Soniox, Speechmatics, Together, and Gemini. Defaults stay provider-specific: Together is off unless enabled or given a speaker count, and Gemini is off unless enabled. `--speaker-count` is supported by AssemblyAI, Gladia, and Together, and is ignored when diarization is explicitly disabled. Together Whisper has documented diarization; Together Parakeet accepts diarization, but speaker labels and word timings can be incomplete. Mistral diarization uses segment timing; disable diarization for native word timestamps. Gemini speaker labels are generated hypotheses, not acoustic measurements. Providers that do not support the toggle, including Happy Scribe, report that it was ignored. Hide speaker labels at export with `--no-caption-speakers`.
 
-Chunked diarized results scope speaker labels as `chunk-N/speaker-ID`. The same numeric speaker in two independently transcribed chunks is not assumed to be the same person. Raw chunk evidence and source offsets survive save/load. Resume rejects changes to transcription-affecting settings instead of silently reusing incompatible results.
+Chunked diarized results scope speaker labels as `chunk-N/speaker-ID`. The same numeric speaker in two independently transcribed chunks is not assumed to be the same person. Resume rejects changes to transcription-affecting settings instead of silently reusing incompatible results.
 
-`--native-subtitles` opts into native artifacts from the same inference or completed job: AssemblyAI SRT/VTT; Gladia SRT/VTT; Happy Scribe SRT/VTT; Speechmatics SRT; whisperfile SRT/VTT/LRC. Local engines probe their installed help before enabling optional flags and save invocation/model/help provenance in `transcription.engine.json`. Native artifacts are named `transcription.native.srt/vtt` (with segment suffixes for split jobs) and retain provider-relative timestamps within split chunks. Use local export of the combined `result.json` for a full-recording timeline. Hosted exports may consume requests, quota, or provider credits. Export failures create separate error artifacts and retain structured transcription evidence. Adding this option when resuming an already successful target does not trigger another transcription or retroactively fetch exports; use local re-export for those results.
+`--native-subtitles` requests provider subtitle files from the same job: AssemblyAI SRT/VTT; Gladia SRT/VTT; Happy Scribe SRT/VTT; Speechmatics SRT; whisperfile SRT/VTT/LRC. Files are named `transcription.native.srt/vtt` (with segment suffixes for split jobs). Split-chunk files keep provider-relative timestamps; export the combined `result.json` for a full-recording timeline. Hosted exports may consume requests, quota, or provider credits. A failed export leaves the transcript in place. Adding this option when resuming an already successful target does not transcribe again or fetch missed exports; re-export locally from the saved result.
 
-DeepInfra defaults to verbose JSON with words and segments. `--deepinfra-stt-response-format srt|vtt` explicitly selects a native text response in one inference request, preserving subtitle cue timing instead of word evidence. It never retranscribes simply to fetch a second format. Prefer verbose JSON plus local export when precise word evidence matters.
+DeepInfra defaults to verbose JSON with words and segments. `--deepinfra-stt-response-format srt|vtt` selects a native subtitle response instead of word evidence. It never retranscribes only to fetch a second format. Prefer verbose JSON plus local export when precise word evidence matters.
 
-Grok's `--stt-grok-verbatim` disables display formatting and requests filler words. Supadata's `--stt-supadata-chunk-size <characters>` controls chunk readability; it does not add word alignment. These options, diarization, native subtitles, and DeepInfra response format are supported in persistent STT configuration and resume.
+Grok's `--stt-grok-verbatim` disables display formatting and requests filler words. Supadata's `--stt-supadata-chunk-size <characters>` controls chunk readability; it does not add word alignment. These options, diarization, native subtitles, and DeepInfra response format persist in STT configuration and resume.
 
 ## Workflows
 
@@ -103,7 +101,7 @@ Grok's `--stt-grok-verbatim` disables display formatting and requests filler wor
 
 ## STT Pricing
 
-The 2026-09-07 pricing check lists AssemblyAI Universal-3.5 Pro at $0.21/hour plus $0.02/hour for diarization ($0.23/hour by default); disabling diarization removes the add-on. Deepgram Nova-3 monolingual prerecorded audio is $0.0043/minute ($0.258/hour), with diarization included. Estimates use these prerecorded rates, not streaming promotions. [AssemblyAI pricing](https://www.assemblyai.com/pricing), [Deepgram pricing](https://deepgram.com/pricing).
+AssemblyAI Universal-3.5 Pro is $0.21/hour plus $0.02/hour for diarization ($0.23/hour by default); disabling diarization removes the add-on. Deepgram Nova-3 prerecorded audio is $0.0043/minute ($0.258/hour), with diarization included. Estimates use these prerecorded rates, not streaming promotions. [AssemblyAI pricing](https://www.assemblyai.com/pricing), [Deepgram pricing](https://deepgram.com/pricing).
 
 - **Happy Scribe**: Estimated at `$0.01/min` from audio duration.
 - **Supadata**: Reference rate of `$10 / 1,000 credits` (`1.00 cent/credit`). Native transcripts estimate 1 credit per request; generated transcripts estimate ~2 credits/min. `auto` mode estimates the higher rate.
@@ -118,5 +116,3 @@ The 2026-09-07 pricing check lists AssemblyAI Universal-3.5 Pro at $0.21/hour pl
 - `--youtube-captions` is English-only and applies to YouTube inputs. When captions are found, hosted STT providers are skipped.
 - STT batch roots include `manifest.json` with item status.
 - Backfill existing STT outputs with top-level [`resume`](../../00-setup-and-utilities/resume.md).
-
-See the [model report](../../../reports/model-refresh-stt.md) for historical model changes and the [testing guide](tests.md) for verification coverage.

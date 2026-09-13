@@ -21,8 +21,8 @@ Fetch curated or ad hoc documentation pages and write one combined markdown file
 ```bash
 bun autoshow links
 bun autoshow links <global-section>...
-bun autoshow links --<provider> [section...]
-bun autoshow links <global-section>... --<provider> [section...] [--<provider> [section...]]
+bun autoshow links --provider <name> [section...]
+bun autoshow links <global-section>... --provider <name> [section...] [--provider <name> [section...]]
 bun autoshow links https://example.com/docs
 bun autoshow links urls.md
 ```
@@ -35,25 +35,25 @@ Add `--refresh` or `--refresh-only` to any of these invocations.
 
 Each run creates a timestamped directory under `output/` (or `--output-root`) and writes the combined markdown inside it. Pass `--output-dir <dir>` to pin that run directory instead of a timestamped path.
 
-- Curated selections write `<run-dir>/<normalized-selection>-links.md`, for example `output/<timestamp>_all-all-links/all-all-links.md` or `output/<timestamp>_grok-general-tts-links/grok-general-tts-links.md`
-- Direct URL mode writes `<run-dir>/<normalized-host-and-path>-links.md`, for example `blog-railway-com-p-railway-for-agents-links.md` from `https://blog.railway.com/p/railway-for-agents`
+- Curated selections write `<run-dir>/<selection>-links.md`, for example `output/<timestamp>_all-all-links/all-all-links.md` or `output/<timestamp>_grok-general-tts-links/grok-general-tts-links.md`
+- Direct URL mode writes `<run-dir>/<host-and-path>-links.md`, for example `blog-railway-com-p-railway-for-agents-links.md` from `https://blog.railway.com/p/railway-for-agents`
 - Input file mode writes `<run-dir>/<input-basename>-links.md`, for example `urls-links.md` from `urls.md`
 - Duplicate URLs are fetched once
-- Raw markdown and text docs are appended as-is; HTML pages are converted to markdown before they are appended
+- HTML pages are converted to markdown; markdown and text pages are appended as-is
 
 ## Selection syntax
 
-`bun autoshow links --help-topic providers` lists the current local registry without fetching any pages. The generic selector accepts a provider name, with section names following it; generation-style `provider=model` values do not apply to documentation links. Registry keys such as `claude` and `assembly` are retained.
+`bun autoshow links --help-topic providers` lists the current local registry without fetching any pages.
 
 ```bash
 bun autoshow links --provider openai models --provider gemini text
 ```
 
-Legacy selectors such as `--openai` remain accepted and may be mixed with `--provider`. Each selector scopes subsequent sections until the next selector, preserving existing ordering.
+`--provider openai` and `--openai` are equivalent. Mix `--provider` and `--<provider>` selectors freely. Each selector scopes following sections until the next selector. `--provider` takes a provider name only; `provider=model` values are not valid here.
 
 - With no sections or provider selectors, `links` fetches every curated URL in the registry.
 - Bare section names before the first provider selector are global selections. They fetch that section across every provider that has it.
-- A provider selector such as `--provider openai` or `--openai` starts a provider-scoped selection. Bare tokens after it are treated as section names for that provider until the next provider selector.
+- Bare tokens after a provider selector are section names for that provider until the next provider selector.
 - A provider selector with no sections fetches every curated section for that provider.
 - Provider selectors and section names are case-insensitive.
 - Unknown providers or unknown sections exit with a usage error.
@@ -85,7 +85,7 @@ Input file mode is standalone. Do not combine it with provider selectors, sectio
 
 ## Supported providers
 
-The curated registry covers services currently implemented in AutoShow. Accepted provider selectors are the lowercase names below. Fetch other documentation through direct URL or input file mode.
+Accepted provider selectors are the lowercase names below. Fetch other documentation through direct URL or input file mode.
 
 | Provider selector | Sections | Root index |
 | --- | --- | --- |
@@ -139,11 +139,9 @@ Accepted section tokens outside provider selectors:
 - `url`
 - `video`
 
-Section availability depends on the provider.
+Not every provider has every section.
 
-The `llmstxt` section contains exactly one root `llms.txt` URL per provider. `bun autoshow links llmstxt` fetches all root indexes; `bun autoshow links --openai llmstxt` fetches only OpenAI's index. Root indexes are listed in the provider table above and were checked on 2026-09-11.
-
-Indexes use the documentation root where available, which may live under a path such as `/docs/`. HappyScribe and Luma use their main website roots because their current API documentation hosts did not expose a root index. Whisperfile uses the shared Mozilla.ai documentation root, which includes Whisperfile. Replicate's model-specific `llms.txt` files remain in `models`; only its documentation root index belongs to `llmstxt`.
+The `llmstxt` section is the provider's root `llms.txt` index. `bun autoshow links llmstxt` fetches all root indexes; `bun autoshow links --openai llmstxt` fetches only OpenAI's. Root indexes are listed in the provider table above. Model-specific `llms.txt` files, such as Replicate's, are under `models`.
 
 ## Examples
 
@@ -216,7 +214,7 @@ Pass `--refresh` to write a JSON sidecar next to the generated markdown:
 bun autoshow links --refresh --openai models
 ```
 
-The sidecar path replaces `.md` with `.refresh.json` next to the markdown in the same run directory; for example, `openai-models-links.md` gets `openai-models-links.refresh.json`. Direct URL and input file modes use the same rule after their normal markdown filenames.
+The sidecar path replaces `.md` with `.refresh.json` next to the markdown in the same run directory; for example, `openai-models-links.md` gets `openai-models-links.refresh.json`. Direct URL and input file modes use the same naming.
 
 `--refresh-only` updates that sidecar without overwriting an existing markdown bundle. A default timestamped run is a new directory, so `--refresh` and `--refresh-only` only compare against a previous bundle when `--output-dir` pins that earlier run.
 
@@ -231,7 +229,8 @@ Token counts are local estimates for comparison and rough context sizing, not ex
 
 ## Flags
 
-| Flag             | Type    | Description                                                                               |
-| ---------------- | ------- | ----------------------------------------------------------------------------------------- |
-| `--refresh`      | Boolean | Write a refresh metadata sidecar with per-link hashes, token counts, and change status.   |
-| `--refresh-only` | Boolean | Update the refresh metadata sidecar without overwriting an existing markdown bundle file. |
+| Flag | Description |
+| --- | --- |
+| `--provider` | Scope following sections to one provider; repeatable. |
+| `--refresh` | Write a refresh metadata sidecar with per-link hashes, token counts, and change status. |
+| `--refresh-only` | Update the refresh metadata sidecar without overwriting an existing markdown bundle file. |

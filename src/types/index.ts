@@ -81,7 +81,6 @@ export type * from './write-workflow/openai-compatible-chat-types'
 export type * from './write-workflow/llm-reasoning-options-types'
 export type * from './write-workflow/prompt-utils-types'
 
-export type * from './write-workflow/run-minimax-types'
 export type * from './write-workflow/llm-instrumentation-types'
 export type * from './write-workflow/llm-request-scaffold-types'
 export type * from './write-workflow/validation-failure-types'

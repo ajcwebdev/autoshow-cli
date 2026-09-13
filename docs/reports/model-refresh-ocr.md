@@ -168,9 +168,7 @@ Implemented 2026-08-22 from the then-current combined report under [docs/benchma
 - **Remove:** `fal-ai/got-ocr/v2`
 - **Successor:** none; the fal OCR service is retired
 
-## 2026-08-22 Gemini 3.7 Flash, Grok 4.6, and Claude Sonnet 4.6 OCR additions
 
-Implements the 2026-08-16 P1 extract registrations for `gemini-3.7-flash` and `grok-4.6`, plus write-only sibling `claude-sonnet-4-6`. Bare defaults are unchanged: `--provider gemini` stays `gemini-3.5-flash-lite`, `--provider grok` stays `grok-4.3`, and `--provider anthropic` stays `claude-haiku-4-5`. Active hosted count: 28 + 3 = 31.
 
 **Add 1: Gemini `gemini-3.7-flash`**
 
@@ -178,7 +176,6 @@ Implements the 2026-08-16 P1 extract registrations for `gemini-3.7-flash` and `g
 - **Provider:** Gemini
 - **Pricing basis:** Conservative Standard `$1.50/$7.50` per 1M input/output tokens effective 2027-01-01; introductory `$0.75/$3.75` through 2026-12-31 is ignored so estimates overstate cost during that window
 - **Est. cost per 1k pages:** ≈$13.93 using Gemini 3.6 Flash page heuristics
-- **Rationale:** Google lists text, image, video, audio, and PDF inputs. Expansion places it after `gemini-3.1-pro-preview`. Reasoning is optional with low/medium/high only; `minimal` is not supported.
 
 **Add 2: Grok `grok-4.6`**
 
@@ -188,9 +185,7 @@ Implements the 2026-08-16 P1 extract registrations for `gemini-3.7-flash` and `g
 - **Est. cost per 1k pages:** ≈$14.00 using Grok 4.5 page heuristics
 - **Rationale:** xAI image-understanding docs use `grok-4.6` as the example. Expansion places it after `grok-4.5`. Reasoning is required with low/medium/high.
 
-**Add 3: Anthropic `claude-sonnet-4-6`**
 
-- **Selector:** `claude-sonnet-4-6`
 - **Provider:** Anthropic
 - **Pricing basis:** `$3.00/$15.00` per 1M input/output tokens
 - **Est. cost per 1k pages:** ≈$12.09 using Claude Sonnet 5 page heuristics
@@ -206,7 +201,6 @@ Page heuristics stay provisional until an approved ADR-012 calibration promotes 
 
 ## Follow-up Actions
 
-- [x] Implement the 2026-08-16 P1 extract (OCR) registrations for `gemini-3.7-flash` and `grok-4.6`, plus write-only sibling `claude-sonnet-4-6`
 - [x] Florence compute-second estimates — Historical only after the 2026-08-22 fal OCR retirement; no further calibration
 
 ## Test Plan

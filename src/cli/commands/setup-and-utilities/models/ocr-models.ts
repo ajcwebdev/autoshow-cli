@@ -2,7 +2,6 @@ import { createModelValidator } from '~/cli/commands/setup-and-utilities/models/
 import { createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 export const SUPPORTED_MISTRAL_OCR_MODELS = [
-  'mistral-ocr-2512',
   'mistral-ocr-4-0',
   'mistral-ocr-4-1'
 ] as const satisfies readonly string[]
@@ -10,7 +9,6 @@ export const SUPPORTED_MISTRAL_OCR_MODELS = [
 export const validateMistralOcrModel = createModelValidator(SUPPORTED_MISTRAL_OCR_MODELS, 'mistral-ocr')
 
 export const SUPPORTED_GLM_OCR_MODELS = [
-  'glm-ocr',
   'glm-5.3-flash'
 ] as const satisfies readonly string[]
 
@@ -28,16 +26,11 @@ export const SUPPORTED_OPENAI_OCR_MODELS = [
   'gpt-5.6-sol',
   'gpt-5.6-terra',
   'gpt-5.6-luna',
-  'gpt-5.5',
-  'gpt-5.4-mini',
-  'gpt-5.4-nano'
 ] as const satisfies readonly string[]
 
 export const validateOpenAIOcrModel = createModelValidator(SUPPORTED_OPENAI_OCR_MODELS, 'openai-ocr')
 
 export const SUPPORTED_GROK_OCR_MODELS = [
-  'grok-4.3',
-  'grok-4.20-0309-non-reasoning',
   'grok-4.5',
   'grok-4.6'
 ] as const satisfies readonly string[]
@@ -47,17 +40,13 @@ export const validateGrokOcrModel = createModelValidator(SUPPORTED_GROK_OCR_MODE
 export const SUPPORTED_ANTHROPIC_OCR_MODELS = [
   'claude-fable-5-1',
   'claude-fable-5',
-  'claude-opus-4-8',
   'claude-sonnet-5',
-  'claude-sonnet-4-6',
-  'claude-haiku-4-5',
   'claude-opus-5'
 ] as const satisfies readonly string[]
 
 export const validateAnthropicOcrModel = createModelValidator(SUPPORTED_ANTHROPIC_OCR_MODELS, 'anthropic-ocr')
 
 export const SUPPORTED_GEMINI_OCR_MODELS = [
-  'gemini-3.1-pro-preview',
   'gemini-3.8-flash',
   'gemini-3.7-flash',
   'gemini-3.5-flash',
@@ -67,15 +56,9 @@ export const SUPPORTED_GEMINI_OCR_MODELS = [
 
 export const validateGeminiOcrModel = createRetiringModelValidator('extract', 'gemini', SUPPORTED_GEMINI_OCR_MODELS, 'gemini-ocr')
 
-export const DEFAULT_DEEPINFRA_OCR_MODEL = 'Qwen/Qwen3-VL-30B-A3B-Instruct'
+export const DEFAULT_DEEPINFRA_OCR_MODEL = 'google/gemma-4-31B-it'
 
 export const SUPPORTED_DEEPINFRA_OCR_MODELS = [
-  'google/gemma-3-27b-it',
-  'google/gemma-4-31B-it',
-  'google/gemma-4-26B-A4B-it',
-  'meta-llama/Llama-4-Scout-17B-16E-Instruct',
-  'mistralai/Mistral-Small-3.2-24B-Instruct-2506',
-  'Qwen/Qwen3-VL-235B-A22B-Instruct',
   DEFAULT_DEEPINFRA_OCR_MODEL
 ] as const satisfies readonly string[]
 

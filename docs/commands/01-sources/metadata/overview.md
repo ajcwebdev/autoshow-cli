@@ -1,8 +1,6 @@
 # metadata
 
-Collect and display metadata for media, documents, articles, or X Spaces without downloading files, running transcription, extraction, or LLM steps.
-
-An input is required: `bun autoshow metadata <input> [flags]`. Use `--` before a literal input that could otherwise be parsed as a flag.
+Collect and display metadata for media, documents, articles, or X Spaces without downloading files.
 
 ## Outline
 
@@ -18,24 +16,26 @@ bun autoshow metadata <input>
 
 ## Supported Inputs
 
-| Input                                                         | Behavior                                                                              |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| YouTube / Twitch / TikTok URL                                 | Collect video metadata without downloading the media                                  |
-| Direct media URL (`.mp3`, `.mp4`, etc.)                       | Collect media metadata without downloading the file                                   |
-| Direct document URL (`.pdf`, `.epub`, `.docx`, etc.)          | Collect document metadata without saving the file                                     |
-| Remote article / HTML URL                                     | Collect article metadata; choose a backend with `--url-provider`                      |
-| X/Twitter Space URL, raw Space ID, or X/Twitter post URL      | Collect Space metadata, including linked posts and users                              |
-| Local `.html` / `.htm` file                                   | Collect article metadata with local `defuddle`                                        |
-| Local media file                                              | Collect duration, title, and related media fields                                     |
-| Local document file                                           | Collect title, author, page count, format, and file size                              |
-| YouTube channel or playlist URL                               | Batch metadata for latest videos                                                      |
-| RSS / podcast feed URL                                        | Batch metadata for latest episodes                                                    |
-| URL list file (`.md` / `.txt`)                                | Batch metadata for each listed input                                                  |
-| Directory                                                     | Batch metadata for each supported local input                                         |
+| Input | Behavior |
+| --- | --- |
+| YouTube / Twitch / TikTok URL | Collect video metadata without downloading the media |
+| Direct media URL (`.mp3`, `.mp4`, etc.) | Collect media metadata without downloading the file |
+| Direct document URL (`.pdf`, `.epub`, `.docx`, etc.) | Collect document metadata without saving the file |
+| Remote article / HTML URL | Collect article metadata; choose a backend with `--url-provider` |
+| X/Twitter Space URL, raw Space ID, or X/Twitter post URL | Collect Space metadata, including linked posts and users |
+| Local `.html` / `.htm` file | Collect article metadata with local `defuddle` |
+| Local media file | Collect duration, title, and related media fields |
+| Local document file | Collect title, author, page count, format, and file size |
+| YouTube channel or playlist URL | Batch metadata for latest videos |
+| RSS / podcast feed URL | Batch metadata for latest episodes |
+| URL list file (`.md` / `.txt`) | Batch metadata for each listed input |
+| Directory | Batch metadata for each supported local input |
 
 **Supported document formats:** PDF, EPUB, MOBI, AZW3, AZW, PRC, FB2, LIT, DOCX, PPTX, XLSX, ODT, ODS, ODP, RTF, CSV, CBZ
 
 **Supported image formats:** PNG, JPG, JPEG, TIF, TIFF, WebP, BMP, GIF
+
+Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, and LIT) require Calibre.
 
 ## Flags
 
@@ -52,7 +52,7 @@ bun autoshow metadata <input>
 
 ## Output
 
-By default, metadata prints one compact terminal summary. Use the global `--json` flag for the complete object under the terminal result's `data` field, or `--markdown` for Markdown frontmatter YAML. `--json` and `--markdown` cannot be combined because both own stdout. JSON and Markdown use camelCase field names such as `publishDate` and `channelURL`.
+By default, metadata prints one compact terminal summary. Use `--json` for the complete metadata object, or `--markdown` for Markdown frontmatter YAML. Do not combine `--json` with `--markdown`.
 
 The `slug` comes from the original filename when one exists. Otherwise it is derived from the title, and media slugs include the publish date.
 
@@ -126,6 +126,6 @@ bun autoshow metadata input/examples/batch/2-urls.md --batch-limit all --save
 
 Setup details are in [`setup.md`](../../00-setup-and-utilities/setup.md).
 
-For YouTube inputs, anonymous `yt-dlp` requests may be rate-limited or challenged. Persist cookies once with `bun autoshow setup --cookies <file>` or `bun autoshow setup --cookies-from-browser <browser>`, then rerun `metadata`.
+YouTube inputs may be rate-limited or challenged. Follow the [YouTube cookies guide](../../00-setup-and-utilities/cookies.md), then rerun `metadata`.
 
-For X Space URLs, raw Space IDs, and X post URLs, set `X_BEARER_TOKEN`.
+X Space URLs, raw Space IDs, and X post URLs require `X_BEARER_TOKEN`.

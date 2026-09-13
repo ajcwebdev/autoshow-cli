@@ -19,11 +19,9 @@ bun autoshow voice <subcommand> [flags]
 
 Available actions are `list`, `consent`, `import`, `design`, `clone`, `audition`, `approve`, `retire`, and `delete`. Bare `voice` runs `list`. Run `bun autoshow voice <action> --help` for the exact action flags.
 
-`comic reference-voice <action>` remains a deprecated compatibility alias for one release, with the same flags and behavior and a deprecation notice. Its bare form also runs `list`. See the [comic migration table](../../05-visuals/comic/00-comic-overview.md#deprecated-aliases) for replacements and the removal policy.
+Import, local listing, approval, retirement, and audition support all eight active TTS providers: ElevenLabs, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, and Inworld. Remote catalog listing and delete support all except OpenAI. Design supports ElevenLabs, Hume, and Inworld. Clone supports ElevenLabs, Grok, Mistral, Cartesia, and Inworld.
 
-`voice import`, local listing, approval, retirement, and audition support all eight active TTS providers: ElevenLabs, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, and Inworld. Remote catalog and lifecycle operations support all except OpenAI. Design supports ElevenLabs, Hume, and Inworld. API clone supports ElevenLabs, Grok, Mistral, Cartesia, and Inworld.
-
-Voice management reads authored profiles from `input/characters/character-voices.json`. Profiles are independent of the visual character catalog. A minimal catalog is:
+Author profiles in `input/characters/character-voices.json`. Profiles are independent of the visual character catalog. A minimal catalog is:
 
 ```json
 {
@@ -46,7 +44,7 @@ Voice management reads authored profiles from `input/characters/character-voices
 
 ## Setup
 
-Hosted voice-management providers need the same API keys as TTS:
+Hosted voice providers need the same API keys as TTS:
 
 ```bash
 ELEVENLABS_API_KEY=...
@@ -59,8 +57,6 @@ INWORLD_API_KEY=...
 CARTESIA_API_KEY=...
 ```
 
-`--price` estimates cost without provider calls or writes.
-
 ## Typical Flow
 
 1. Store [consent](./02-consent.md) before clone or other consent-gated work.
@@ -71,9 +67,9 @@ CARTESIA_API_KEY=...
 
 ## Artifacts
 
-Sample audio, previews, auditions, and consent records stay in a separate owner-only store, not under ordinary project output.
+Sample audio, previews, auditions, and consent records are stored separately from ordinary project output.
 
-You author profiles in `input/characters/character-voices.json`. The CLI writes registration metadata beside it:
+The CLI writes registration metadata beside the authored profiles:
 
 - `input/characters/character-voice-registrations.json`
 - `input/characters/character-voice-current.json`
@@ -84,7 +80,7 @@ The catalog keeps history. Only approved, ready voices are current.
 
 ## Pricing
 
-Every voice operation accepts `--price`. Price mode performs no provider calls and writes no registry or protected-store artifacts. Treat estimates as a preflight; use the provider console for account-specific terms.
+Every voice operation accepts `--price`. Price mode performs no provider calls and writes no files. Treat estimates as a preflight; use the provider console for account-specific terms.
 
 ## Command Docs
 

@@ -6,7 +6,6 @@ validateGeminiOcrModel,
 validateGrokModel,
 validateGrokOcrModel,
 validateKimiOcrModel,
-validateMinimaxModel,
 validateMistralOcrModel,
 validateOpenAIOcrModel,
 validateTogetherModel
@@ -15,23 +14,19 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 
 describe('option resolution contracts', () => {
 
-  test('MiniMax write model validator accepts M3', () => {
-      expect(validateMinimaxModel('MiniMax-M3')).toBe('MiniMax-M3')
-    })
-
   test('Together write model validator accepts public selectors and rejects raw provider IDs', () => {
-      const expectedAllowed = 'Allowed values: kimi-k2.6, glm-5.1, kimi-k3, glm-5.3, glm-5.3-flash'
+      const expectedAllowed = 'Allowed values: kimi-k3, glm-5.3, glm-5.3-flash'
 
-      expect(validateTogetherModel('kimi-k2.6')).toBe('kimi-k2.6')
-      expect(validateTogetherModel('glm-5.1')).toBe('glm-5.1')
+      expect(validateTogetherModel('kimi-k3')).toBe('kimi-k3')
+      expect(validateTogetherModel('glm-5.3-flash')).toBe('glm-5.3-flash')
       expect(() => validateTogetherModel('moonshotai/Kimi-K2.6')).toThrow(`Invalid model "moonshotai/Kimi-K2.6" for --llm together[=model]. ${expectedAllowed}`)
-      expect(() => validateTogetherModel('zai-org/GLM-5.1')).toThrow(`Invalid model "zai-org/GLM-5.1" for --llm together[=model]. ${expectedAllowed}`)
+      expect(() => validateTogetherModel('zai-org/GLM-5.3-FLASH')).toThrow(`Invalid model "zai-org/GLM-5.3-FLASH" for --llm together[=model]. ${expectedAllowed}`)
     })
 
   test('Grok write model validator accepts Grok 4.5 and 4.6 and rejects aliases', () => {
-      const expectedAllowed = 'Allowed values: grok-4.3, grok-4.5, grok-4.6'
+      const expectedAllowed = 'Allowed values: grok-4.5, grok-4.6'
 
-      expect(validateGrokModel('grok-4.3')).toBe('grok-4.3')
+      expect(validateGrokModel('grok-4.5')).toBe('grok-4.5')
       expect(validateGrokModel('grok-4.5')).toBe('grok-4.5')
       expect(validateGrokModel('grok-4.6')).toBe('grok-4.6')
       expect(() => validateGrokModel('grok-4.5-latest')).toThrow(`Invalid model "grok-4.5-latest" for --llm grok[=model]. ${expectedAllowed}`)
@@ -42,23 +37,22 @@ describe('option resolution contracts', () => {
       expect(validateMistralOcrModel('mistral-ocr-4-0')).toBe('mistral-ocr-4-0')
       expect(validateAnthropicOcrModel('claude-fable-5')).toBe('claude-fable-5')
       expect(validateAnthropicOcrModel('claude-sonnet-5')).toBe('claude-sonnet-5')
-      expect(validateAnthropicOcrModel('claude-sonnet-4-6')).toBe('claude-sonnet-4-6')
-      expect(validateAnthropicOcrModel('claude-haiku-4-5')).toBe('claude-haiku-4-5')
+      expect(validateAnthropicOcrModel('claude-sonnet-5')).toBe('claude-sonnet-5')
+      expect(validateAnthropicOcrModel('claude-sonnet-5')).toBe('claude-sonnet-5')
       expect(validateAnthropicOcrModel('claude-opus-5')).toBe('claude-opus-5')
       expect(validateGeminiOcrModel('gemini-3.7-flash')).toBe('gemini-3.7-flash')
       expect(validateGeminiOcrModel('gemini-3.5-flash')).toBe('gemini-3.5-flash')
       expect(validateGeminiOcrModel('gemini-3.6-flash')).toBe('gemini-3.6-flash')
       expect(validateGeminiOcrModel('gemini-3.5-flash-lite')).toBe('gemini-3.5-flash-lite')
-      expect(validateGrokOcrModel('grok-4.20-0309-non-reasoning')).toBe('grok-4.20-0309-non-reasoning')
       expect(validateGrokOcrModel('grok-4.5')).toBe('grok-4.5')
       expect(validateGrokOcrModel('grok-4.6')).toBe('grok-4.6')
       expect(validateOpenAIOcrModel('gpt-5.6-sol')).toBe('gpt-5.6-sol')
-      expect(validateOpenAIOcrModel('gpt-5.4-mini')).toBe('gpt-5.4-mini')
+      expect(validateOpenAIOcrModel('gpt-5.6-terra')).toBe('gpt-5.6-terra')
       expect(validateKimiOcrModel('kimi-k2.6')).toBe('kimi-k2.6')
       expect(validateKimiOcrModel('kimi-k3')).toBe('kimi-k3')
 
       expect(() => validateMistralOcrModel('mistral-ocr-2405')).toThrow('Invalid model "mistral-ocr-2405" for --provider/--ocr mistral[=model]')
-      expect(() => validateMistralOcrModel('mistral-ocr-latest')).toThrow('Invalid model "mistral-ocr-latest" for --provider/--ocr mistral[=model]. Allowed values: mistral-ocr-2512, mistral-ocr-4-0, mistral-ocr-4-1')
+      expect(() => validateMistralOcrModel('mistral-ocr-latest')).toThrow('Invalid model "mistral-ocr-latest" for --provider/--ocr mistral[=model]. Allowed values: mistral-ocr-4-0, mistral-ocr-4-1')
       expect(() => validateAnthropicOcrModel('claude-mythos-5')).toThrow('Invalid model "claude-mythos-5" for --provider/--ocr anthropic[=model]')
       expect(() => validateOpenAIOcrModel('gpt-5.6')).toThrow('Invalid model "gpt-5.6" for --provider/--ocr openai[=model]')
       expect(() => validateGrokOcrModel('grok-4.20-0309-reasoning')).toThrow('Invalid model "grok-4.20-0309-reasoning" for --provider/--ocr grok[=model]')
@@ -117,10 +111,10 @@ describe('option resolution contracts', () => {
 
       expect(openaiDefault).toBeDefined()
       expect(geminiDefault).toBe('gemini-3.5-flash-lite')
-      expect(grokDefault).toBe('grok-4.3')
+      expect(grokDefault).toBe('grok-4.5')
       expect(glmDefault).toBeDefined()
       expect(kimiDefault).toBe('kimi-k2.6')
-      expect(togetherDefault).toBe('glm-5.1')
+      expect(togetherDefault).toBe('glm-5.3-flash')
       expect(deepgramDefault).toBeDefined()
       expect(assemblyaiDefault).toBe('universal-3-5-pro')
       expect(gladiaDefault).toBe('solaria-3')
@@ -131,14 +125,14 @@ describe('option resolution contracts', () => {
       expect(scrapeCreatorsDefault).toBe('youtube-transcript')
       expect(openaiOcrDefault).toBe('gpt-5.6-luna')
       expect(geminiOcrDefault).toBe('gemini-3.5-flash-lite')
-      expect(grokOcrDefault).toBe('grok-4.3')
-      expect(deepinfraOcrDefault).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
+      expect(grokOcrDefault).toBe('grok-4.5')
+      expect(deepinfraOcrDefault).toBe('google/gemma-4-31B-it')
       expect(kimiOcrDefault).toBe('kimi-k2.6')
       expect(speechifyTtsDefault).toBe('simba-3.2')
       expect(elevenlabsTtsDefault).toBe('eleven_v3')
       expect(openaiTtsDefault).toBe('gpt-4o-mini-tts-2025-12-15')
       expect(humeTtsDefault).toBe('octave-1')
-      expect(cartesiaTtsDefault).toBe('sonic-3.5-2026-05-04')
+      expect(cartesiaTtsDefault).toBe('sonic-3.6-2026-08-27')
       expect(opts.openaiModels?.[0]).toBe(openaiDefault)
       expect(geminiDefault).toBe(opts.geminiModels?.[0])
       expect(grokDefault).toBe(opts.grokModels?.[0])

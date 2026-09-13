@@ -120,11 +120,11 @@ const writeWriteRun = async (dir: string): Promise<void> => {
   await writeSingleManifestFixture(dir, 'write', {
     step3: {
       llmService: 'openai',
-      llmModel: 'gpt-5.5',
+      llmModel: 'gpt-5.6-sol',
       processingTime: 1,
       inputTokenCount: 1200,
       outputTokenCount: 240,
-      outputFileName: 'text-gpt-5.5.json',
+      outputFileName: 'text-gpt-5.6-sol.json',
       outputFormat: 'json',
       structuredMode: 'native',
       structuredPresetNames: ['shortSummary']
@@ -461,7 +461,7 @@ test('write resume --price estimates selected missing LLM providers without prov
     'resume', '--json',
     runDir,
     '--provider',
-    'grok=grok-4.3',
+    'grok=grok-4.5',
     '--price'
   ], {
     env: { NO_COLOR: '1', XAI_API_KEY: '' }
@@ -470,7 +470,7 @@ test('write resume --price estimates selected missing LLM providers without prov
   const output = `${result.stdout}\n${result.stderr}`
   expect(result.exitCode).toBe(0)
   expect(output).toContain('Estimate:')
-  expect(output).toContain('grok-4.3')
+  expect(output).toContain('grok-4.5')
   expect(await Bun.file(manifestPath).text()).toBe(before)
 })
 

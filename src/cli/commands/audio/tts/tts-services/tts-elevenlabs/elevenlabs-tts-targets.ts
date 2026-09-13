@@ -6,6 +6,7 @@ import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speak
 import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
 import { getSpeakerVoice, normalizeDialogueText, parseSpeakerVoiceMappings, resolveDialogueFormat } from '../../dialogue-normalizer'
 import { runElevenLabsNativeDialogue } from './elevenlabs-native-dialogue'
+import { validateElevenLabsVoiceSettings } from './elevenlabs-utils'
 export const collectElevenLabsTtsTargets = (
   selection: TtsTargetSelection
 ): TtsTarget[] => {
@@ -33,6 +34,7 @@ export const collectElevenLabsTtsTargets = (
           textNormalization: selection.elevenLabsTextNormalization,
           pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators,
         })
+        validateElevenLabsVoiceSettings(model, { speed: controls.speed, similarity_boost: controls.similarityBoost, style: controls.style, use_speaker_boost: controls.useSpeakerBoost })
         await ensureElevenLabsTtsSetup()
         invocation?.signal?.throwIfAborted()
         if (!invocation && model === 'eleven_v3' && opts.ttsSpeakers?.length) {
@@ -50,6 +52,8 @@ export const collectElevenLabsTtsTargets = (
             model,
             controls: {
               languageCode: controls.languageCode,
+              voiceSettings: { ...(typeof controls.stability === 'number' ? { stability: controls.stability } : {}) },
+              pronunciationDictionaryLocators: controls.pronunciationDictionaryLocators ? [...controls.pronunciationDictionaryLocators] : undefined,
               seed: controls.seed,
               textNormalization: controls.textNormalization
             },

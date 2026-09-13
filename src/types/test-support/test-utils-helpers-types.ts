@@ -68,11 +68,6 @@ export type RunCommandArtifacts = {
 }
 
 export type RunAndExpectOutputDirOptions = {
-  transient?: {
-    isTransient: (output: string) => boolean
-    providerLabel: string
-    persistedLabel: string
-  }
   onResult?: (result: RunCommandResult) => void
   classifyAvailability?: boolean
 }

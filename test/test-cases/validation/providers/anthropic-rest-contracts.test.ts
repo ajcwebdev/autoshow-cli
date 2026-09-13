@@ -94,7 +94,7 @@ describe('Anthropic REST contracts', () => {
         usage: { input_tokens: 11, output_tokens: 3 }
     }))
 
-    const result = await runAnthropicModel('Summarize this.', 'claude-haiku-4-5', structuredOpts)
+    const result = await runAnthropicModel('Summarize this.', 'claude-sonnet-5', structuredOpts)
 
     expect(result.result).toBe('Hello from Claude.')
     expect(calls).toHaveLength(1)
@@ -102,7 +102,7 @@ describe('Anthropic REST contracts', () => {
       url: 'https://api.anthropic.com/v1/messages',
       method: 'POST',
       bodyJson: {
-        model: 'claude-haiku-4-5',
+        model: 'claude-sonnet-5',
         max_tokens: 16000,
         messages: [{ role: 'user', content: 'Summarize this.' }],
         output_config: {
@@ -126,7 +126,7 @@ describe('Anthropic REST contracts', () => {
       usage: { input_tokens: 11, output_tokens: 3 }
     }))
 
-    const result = await runAnthropicModel('Summarize this.', 'claude-sonnet-4-6', {
+    const result = await runAnthropicModel('Summarize this.', 'claude-sonnet-5', {
       ...structuredOpts,
       requestedReasoningEffort: 'medium'
     })
@@ -154,7 +154,7 @@ describe('Anthropic REST contracts', () => {
     const message = await createAnthropicMessage(
       { apiKey: 'anthropic-key', baseURL: 'https://mock.anthropic.local/v1' },
       {
-        model: 'claude-haiku-4-5',
+        model: 'claude-sonnet-5',
         max_tokens: 16,
         messages: [{ role: 'user', content: 'Hello' }]
       }
@@ -204,7 +204,7 @@ describe('Anthropic REST contracts', () => {
     await createAnthropicMessage(
       { apiKey: 'anthropic-key', baseURL: 'https://mock.anthropic.local' },
       {
-        model: 'claude-haiku-4-5',
+        model: 'claude-sonnet-5',
         max_tokens: 1024,
         messages: [{
           role: 'user',
@@ -269,7 +269,7 @@ describe('Anthropic REST contracts', () => {
     const error = await expectProviderHttpError(async () => await createAnthropicMessage(
       { apiKey: 'anthropic-key', baseURL: 'https://mock.anthropic.local' },
       {
-        model: 'claude-haiku-4-5',
+        model: 'claude-sonnet-5',
         max_tokens: 16,
         messages: [{ role: 'user', content: 'Hello' }]
       }

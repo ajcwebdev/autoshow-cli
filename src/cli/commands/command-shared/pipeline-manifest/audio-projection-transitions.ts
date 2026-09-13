@@ -3,6 +3,17 @@ import { UsageError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 import { canonicalManifestJson, isAppendOnlyArray } from './guards'
 
+const isTerminalArchiveDirectoryTransition = (before: PipelineProviderState, after: PipelineProviderState): boolean => {
+  const namespace = after.operation === 'tts-synthesis' ? 'ttsAudio' : 'comicAudio'
+  const projection = after.result?.[namespace]
+  if (!isRecord(projection) || !isRecord(projection['archive']) || !isRecord(projection['selectedSuccess']) || projection['activeWork'] !== undefined || after.status !== 'succeeded') return false
+  const suffix = 'providers/' + before.targetKey
+  if (before.artifactDir !== suffix && !before.artifactDir.endsWith('/' + suffix)) return false
+  const expected = before.artifactDir.slice(0, -suffix.length) + before.targetKey
+  const renderRef = projection['archive']['renderRef']
+  return after.artifactDir === expected && isRecord(renderRef) && renderRef['path'] === expected + '/render.json'
+}
+
 const assertAudioProviderIdentity = (before: PipelineProviderState, after: PipelineProviderState): void => {
   if (
     before.operation !== after.operation
@@ -10,7 +21,7 @@ const assertAudioProviderIdentity = (before: PipelineProviderState, after: Pipel
     || before.transport !== after.transport
     || before.service !== after.service
     || before.model !== after.model
-    || before.artifactDir !== after.artifactDir
+    || (before.artifactDir !== after.artifactDir && !isTerminalArchiveDirectoryTransition(before, after))
     || canonicalManifestJson(before.options) !== canonicalManifestJson(after.options)
   ) {
     throw UsageError('An audio provider-state update cannot change operation-scoped identity, its artifact directory, or immutable provider options.')

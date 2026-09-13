@@ -21,7 +21,7 @@ describe('price mode contracts', () => {
         hostedOcrTokenProfilePath: missingHostedOcrProfilePath(),
         extractTargets: [{
           provider: 'openai',
-          model: 'gpt-5.4-nano',
+          model: 'gpt-5.6-luna',
           pageCount: 2,
           estimateType: 'heuristic'
         }]
@@ -36,7 +36,7 @@ describe('price mode contracts', () => {
         languages: 'eng',
         tokenEstimate: 10_000,
         ocrService: 'openai',
-        ocrModel: 'gpt-5.4-nano',
+        ocrModel: 'gpt-5.6-luna',
         promptTokens: 6000,
         completionTokens: 1500,
         ocrProviderUsage: [{
@@ -56,13 +56,13 @@ describe('price mode contracts', () => {
       expect(diagnostics).toHaveLength(1)
       expect(diagnostic).toMatchObject({
         provider: 'openai',
-        model: 'gpt-5.4-nano',
+        model: 'gpt-5.6-luna',
         pages: 2
       })
       expect(predicted).toMatchObject({
         pageCount: 2,
-        promptTokens: 5972,
-        completionTokens: 3688,
+        promptTokens: 3250,
+        completionTokens: 1716,
         costMultiplier: 1,
         estimateType: 'heuristic'
       })
@@ -158,7 +158,7 @@ describe('price mode contracts', () => {
         languages: 'eng',
         tokenEstimate: 10_000,
         ocrService: 'openai',
-        ocrModel: 'gpt-5.4-nano',
+        ocrModel: 'gpt-5.6-luna',
         promptTokens: 6000,
         completionTokens: 1500,
         providerCostCents: 0.42,
@@ -170,7 +170,7 @@ describe('price mode contracts', () => {
       expect(actual.steps[0]).toMatchObject({
         step: 'extract',
         provider: 'openai',
-        model: 'gpt-5.4-nano',
+        model: 'gpt-5.6-luna',
         cost: 0.42,
         costSource: 'provider_usage',
         inputMetric: 'tokens',
@@ -195,7 +195,7 @@ describe('price mode contracts', () => {
             ...base,
             extractionMethod: 'pdf+openai-ocr',
             ocrService: 'openai',
-            ocrModel: 'gpt-5.4-nano',
+            ocrModel: 'gpt-5.6-luna',
             promptTokens: 6000,
             completionTokens: 1500,
             providerCostCents: 0.42,
@@ -225,7 +225,7 @@ describe('price mode contracts', () => {
         languages: 'eng',
         tokenEstimate: 10_000,
         ocrService: 'openai',
-        ocrModel: 'gpt-5.4-nano',
+        ocrModel: 'gpt-5.6-luna',
         promptTokens: 1,
         completionTokens: 1
       }
@@ -234,7 +234,7 @@ describe('price mode contracts', () => {
         steps: [{
           step: 'extract',
           provider: 'openai',
-          model: 'gpt-5.4-nano',
+          model: 'gpt-5.6-luna',
           pageCount: 2,
           promptTokens: 8000,
           completionTokens: 2000,
@@ -254,7 +254,7 @@ describe('price mode contracts', () => {
       expect(preflightEstimated.totalCost).toBe(9)
       expect(preflightEstimated.steps[0]).toMatchObject({
         provider: 'openai',
-        model: 'gpt-5.4-nano',
+        model: 'gpt-5.6-luna',
         promptTokens: 8000,
         completionTokens: 2000,
         cost: 9
@@ -262,13 +262,13 @@ describe('price mode contracts', () => {
       expect(findPricingNoteKeys(preflightEstimated)).toEqual([])
       expect(fallbackEstimated.steps[0]).toMatchObject({
         provider: 'openai',
-        model: 'gpt-5.4-nano',
-        promptTokens: 5972,
-        completionTokens: 3688
+        model: 'gpt-5.6-luna',
+        promptTokens: 3250,
+        completionTokens: 1716
       })
       expect(observedEstimate.steps[0]).toMatchObject({
         provider: 'openai',
-        model: 'gpt-5.4-nano',
+        model: 'gpt-5.6-luna',
         promptTokens: 1,
         completionTokens: 1,
         estimateType: 'exact'

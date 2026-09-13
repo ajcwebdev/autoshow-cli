@@ -28,6 +28,9 @@ const modelReportDocs = [
   '../reports/model-refresh-music.md'
 ] as const
 const commandByDoc = {
+  '00-setup-and-utilities/cookies.md': setupCommand,
+  // Usage documents shared flags; setup is a representative root command.
+  '00-setup-and-utilities/usage.md': setupCommand,
   '01-sources/metadata/overview.md': metadataCommand,
   '01-sources/download/overview.md': downloadCommand,
   '02-extract/overview.md': extractCommand,

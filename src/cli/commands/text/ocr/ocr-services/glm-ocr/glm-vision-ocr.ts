@@ -1,6 +1,6 @@
 import type { ChatImageOcrBodyInput } from '~/types'
 import { createChatImageOcrRunner } from '../../ocr-utils/chat-image-ocr'
-import { OcrStructuredResponseError } from '../../ocr-structured-response-error'
+import { OcrOutputLimitError } from '../../ocr-structured-response-error'
 import { ensureGlmApiKey, resolveGlmBaseUrl } from './glm'
 
 export const buildGlmVisionOcrBody = ({ model, messages, reasoningPolicy }: ChatImageOcrBodyInput): Record<string, unknown> => ({
@@ -25,6 +25,6 @@ export const runGlmVisionOcr = createChatImageOcrRunner({
   getConfig: () => ({ apiKey: ensureGlmApiKey('GLM Flash vision OCR', 'ocr:glm'), baseURL: resolveGlmBaseUrl() }),
   buildBody: buildGlmVisionOcrBody,
   checkResponse: (response, text, page) => {
-    if (response.choices?.[0]?.finish_reason === 'length') throw new OcrStructuredResponseError(`GLM Flash OCR ${page} reached its output token limit.`, text)
+    if (response.choices?.[0]?.finish_reason === 'length') throw new OcrOutputLimitError(`GLM Flash OCR ${page} reached its output token limit.`, text)
   },
 })

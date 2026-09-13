@@ -18,13 +18,13 @@ const response = (usage?: unknown) => Response.json({
 
 describe('Direct GLM 5.3 writing contracts', () => {
   test('selectors preserve the bare default and expand both new siblings', () => {
-    for (const model of ['glm-5.1', 'glm-5.3', 'glm-5.3-flash'] as const) {
+    for (const model of ['glm-5.3-flash', 'glm-5.3', 'glm-5.3-flash'] as const) {
       expect(validateGlmModel(model)).toBe(model)
       expect(buildOptsFromFlags({ glm: model }).glmModels).toEqual([model])
     }
-    expect(resolveCheapestModelForFlag('glm')).toBe('glm-5.1')
-    expect(buildOptsFromFlags({ glm: true }).glmModels).toEqual(['glm-5.1'])
-    expect(buildOptsFromFlags({ 'all-llm': true }).glmModels).toEqual(['glm-5.1', 'glm-5.3', 'glm-5.3-flash'])
+    expect(resolveCheapestModelForFlag('glm')).toBe('glm-5.3-flash')
+    expect(buildOptsFromFlags({ glm: true }).glmModels).toEqual(['glm-5.3-flash'])
+    expect(buildOptsFromFlags({ 'all-llm': true }).glmModels).toEqual(['glm-5.3', 'glm-5.3-flash'])
     expect(() => validateGlmModel('glm-5.2')).toThrow()
   })
 
@@ -68,10 +68,10 @@ describe('Direct GLM 5.3 writing contracts', () => {
     })
   }
 
-  test('GLM 5.1 retains disabled reasoning by default', async () => {
+  test('GLM Flash enables required reasoning by default', async () => {
     const calls = installMockFetch(() => response())
-    await runGlmModel('Synthetic prompt', 'glm-5.1')
-    expect(calls[0]?.bodyJson?.['thinking']).toEqual({ type: 'disabled' })
+    await runGlmModel('Synthetic prompt', 'glm-5.3-flash')
+    expect(calls[0]?.bodyJson?.['thinking']).toEqual({ type: 'enabled' })
     expect(calls[0]?.bodyJson).not.toHaveProperty('reasoning_effort')
   })
 
@@ -87,6 +87,6 @@ describe('Direct GLM 5.3 writing contracts', () => {
     expect(flash?.pricingNotes).toContain('$0.075 input, $0.015 cached input and $0.25 output')
     expect(flash?.pricingNotes).toContain('2026-09-09T16:00:00Z')
     expect(flash?.pricingNotes).toContain('Conservative standard rates apply before and after expiry')
-    expect(getLlmCost('glm', 'glm-5.1')).toMatchObject({ inputCostPer1MCents: 140, outputCostPer1MCents: 440 })
+    expect(getLlmCost('glm', 'glm-5.3')).toMatchObject({ inputCostPer1MCents: 140, outputCostPer1MCents: 440 })
   })
 })

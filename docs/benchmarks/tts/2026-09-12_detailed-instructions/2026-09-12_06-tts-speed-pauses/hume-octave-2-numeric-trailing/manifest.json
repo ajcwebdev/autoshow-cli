@@ -1,0 +1,237 @@
+{
+  "command": "tts",
+  "scope": "single",
+  "createdAt": "2026-09-12T08:48:10.158Z",
+  "updatedAt": "2026-09-12T08:48:14.614Z",
+  "items": [
+    {
+      "input": "input/examples/tts/controls/speed-pauses/hume-octave-2-numeric-trailing.txt",
+      "outputDir": ".",
+      "status": "full",
+      "metadata": {
+        "url": "file://input/examples/tts/controls/speed-pauses/hume-octave-2-numeric-trailing.txt",
+        "title": "hume-octave-2-numeric-trailing",
+        "channel": "Local",
+        "duration": "Unknown",
+        "inputKind": "text",
+        "characterCount": 189,
+        "tts": [
+          {
+            "ttsService": "hume",
+            "ttsModel": "octave-2",
+            "speaker": "9e068547-5ba4-4c8e-8e03-69282a008f04",
+            "processingTime": 4395,
+            "audioFileName": "speech.wav",
+            "audioFileSize": 648270,
+            "chunkCount": 1,
+            "operation": "tts-synthesis",
+            "targetKey": "tts-synthesis--hume--0e244f2a940721ece3512b1fe0f95d1fce7a3dde16ba9cc816e0310f3ecaa8f1",
+            "transport": "hosted-api",
+            "artifactDir": "providers/tts-synthesis--hume--0e244f2a940721ece3512b1fe0f95d1fce7a3dde16ba9cc816e0310f3ecaa8f1",
+            "renderIdentity": "cdaef27c640070bda8c2a823048b598490b98175a4b0005911e5dff05fba89fc",
+            "resultIdentity": "be5dbe9e68414cadc68ceb2a47f8a4a25d29cb351e93b26c71ed73daa5b5e6d3",
+            "audioRunId": "af2e1b9a9f79e1db91e35dbd28d64166d8728a098d02f3a4ef2bbd81e14a4490",
+            "renderStrategy": "native-utterances"
+          }
+        ],
+        "cost": {
+          "estimated": {
+            "totalCost": 2.835,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "hume",
+                "model": "octave-2",
+                "cost": 2.835,
+                "costMultiplier": 1,
+                "costPer1kCharactersCents": 15
+              }
+            ]
+          },
+          "observedEstimate": {
+            "totalCost": 2.835,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "hume",
+                "model": "octave-2",
+                "cost": 2.835,
+                "costMultiplier": 1,
+                "costPer1kCharactersCents": 15
+              }
+            ]
+          },
+          "actual": {
+            "totalCost": 2.835,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "hume",
+                "model": "octave-2",
+                "cost": 2.835,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 189
+              }
+            ]
+          }
+        },
+        "timing": {
+          "estimated": {
+            "totalProcessingTimeMs": 579,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "hume",
+                "model": "octave-2",
+                "processingTimeMs": 579,
+                "inputMetric": "characters",
+                "inputValue": 189,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 3063.492,
+                "throughputValue": 326.425,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "estimated"
+              }
+            ],
+            "estimateConfidence": "registry",
+            "likelyGatingTargets": [
+              {
+                "step": "tts",
+                "provider": "hume",
+                "model": "octave-2",
+                "processingTimeMs": 579
+              }
+            ]
+          },
+          "actual": {
+            "totalProcessingTimeMs": 4395,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "hume",
+                "model": "octave-2",
+                "processingTimeMs": 4395,
+                "inputMetric": "characters",
+                "inputValue": 189,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 23253.968,
+                "throughputValue": 43.003,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              }
+            ]
+          }
+        }
+      },
+      "providers": [
+        {
+          "service": "hume",
+          "model": "octave-2",
+          "local": false,
+          "operation": "tts-synthesis",
+          "targetKey": "tts-synthesis--hume--0e244f2a940721ece3512b1fe0f95d1fce7a3dde16ba9cc816e0310f3ecaa8f1",
+          "transport": "hosted-api",
+          "artifactDir": "providers/tts-synthesis--hume--0e244f2a940721ece3512b1fe0f95d1fce7a3dde16ba9cc816e0310f3ecaa8f1",
+          "status": "succeeded",
+          "attempts": 0,
+          "options": {
+            "dialoguePlan": {
+              "dialoguePlanId": "d2ebcc0ba8a8b26215a3c72cc8724e65a82cd909883740ed0b48f99263250085",
+              "path": "metadata/tts-dialogue-plans/d2ebcc0ba8a8b26215a3c72cc8724e65a82cd909883740ed0b48f99263250085.json",
+              "sha256": "259e03300b278e8b6886a831fb3d82bed48c61ad49aec50e4b0163f413f47a54"
+            }
+          },
+          "metadata": {
+            "ttsAudio": {
+              "selectedSuccess": {
+                "renderIdentity": "cdaef27c640070bda8c2a823048b598490b98175a4b0005911e5dff05fba89fc",
+                "eventSequence": 1,
+                "resultIdentity": "be5dbe9e68414cadc68ceb2a47f8a4a25d29cb351e93b26c71ed73daa5b5e6d3",
+                "audioRunId": "af2e1b9a9f79e1db91e35dbd28d64166d8728a098d02f3a4ef2bbd81e14a4490"
+              },
+              "archive": {
+                "schemaVersion": 1,
+                "renderRef": {
+                  "path": "tts-synthesis--hume--0e244f2a940721ece3512b1fe0f95d1fce7a3dde16ba9cc816e0310f3ecaa8f1/render.json",
+                  "sha256": "0940027d5b5200851ab0f4e5def9455462bca28b0e4a05ce54815ed88abc1581"
+                },
+                "timelineRef": {
+                  "path": "tts-synthesis--hume--0e244f2a940721ece3512b1fe0f95d1fce7a3dde16ba9cc816e0310f3ecaa8f1/timeline.json",
+                  "sha256": "2ebc7cf47871c7dffe5a40da24bb817a3e93c7b027447e41502112eac4663e96"
+                },
+                "finalRef": {
+                  "path": "speech.wav",
+                  "sha256": "76cbd7bfcf219139d68abf815e1999755acefd2d9c54d458cea502b2947e2f86"
+                },
+                "slotCount": 1
+              },
+              "branchHistory": [],
+              "readinessAttempts": [],
+              "renderHistory": [],
+              "pointerEvents": [
+                {
+                  "sequence": 1,
+                  "action": "select-success",
+                  "renderIdentity": "cdaef27c640070bda8c2a823048b598490b98175a4b0005911e5dff05fba89fc",
+                  "eventSequence": 1,
+                  "resultIdentity": "be5dbe9e68414cadc68ceb2a47f8a4a25d29cb351e93b26c71ed73daa5b5e6d3",
+                  "audioRunId": "af2e1b9a9f79e1db91e35dbd28d64166d8728a098d02f3a4ef2bbd81e14a4490",
+                  "actor": {
+                    "namespace": "local-user",
+                    "actorId": "current-cli-user"
+                  },
+                  "at": "2026-09-12T08:48:14.610Z"
+                }
+              ]
+            }
+          },
+          "result": {
+            "ttsAudio": {
+              "selectedSuccess": {
+                "renderIdentity": "cdaef27c640070bda8c2a823048b598490b98175a4b0005911e5dff05fba89fc",
+                "eventSequence": 1,
+                "resultIdentity": "be5dbe9e68414cadc68ceb2a47f8a4a25d29cb351e93b26c71ed73daa5b5e6d3",
+                "audioRunId": "af2e1b9a9f79e1db91e35dbd28d64166d8728a098d02f3a4ef2bbd81e14a4490"
+              },
+              "archive": {
+                "schemaVersion": 1,
+                "renderRef": {
+                  "path": "tts-synthesis--hume--0e244f2a940721ece3512b1fe0f95d1fce7a3dde16ba9cc816e0310f3ecaa8f1/render.json",
+                  "sha256": "0940027d5b5200851ab0f4e5def9455462bca28b0e4a05ce54815ed88abc1581"
+                },
+                "timelineRef": {
+                  "path": "tts-synthesis--hume--0e244f2a940721ece3512b1fe0f95d1fce7a3dde16ba9cc816e0310f3ecaa8f1/timeline.json",
+                  "sha256": "2ebc7cf47871c7dffe5a40da24bb817a3e93c7b027447e41502112eac4663e96"
+                },
+                "finalRef": {
+                  "path": "speech.wav",
+                  "sha256": "76cbd7bfcf219139d68abf815e1999755acefd2d9c54d458cea502b2947e2f86"
+                },
+                "slotCount": 1
+              },
+              "branchHistory": [],
+              "readinessAttempts": [],
+              "renderHistory": [],
+              "pointerEvents": [
+                {
+                  "sequence": 1,
+                  "action": "select-success",
+                  "renderIdentity": "cdaef27c640070bda8c2a823048b598490b98175a4b0005911e5dff05fba89fc",
+                  "eventSequence": 1,
+                  "resultIdentity": "be5dbe9e68414cadc68ceb2a47f8a4a25d29cb351e93b26c71ed73daa5b5e6d3",
+                  "audioRunId": "af2e1b9a9f79e1db91e35dbd28d64166d8728a098d02f3a4ef2bbd81e14a4490",
+                  "actor": {
+                    "namespace": "local-user",
+                    "actorId": "current-cli-user"
+                  },
+                  "at": "2026-09-12T08:48:14.610Z"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

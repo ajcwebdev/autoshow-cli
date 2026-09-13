@@ -8,12 +8,6 @@
       "https://platform.minimax.io/docs/faq/about-apis.md",
       "https://platform.minimax.io/docs/api-reference/errorcode.md"
     ],
-    "Text": [
-      "https://platform.minimax.io/docs/guides/text-generation.md",
-      "https://platform.minimax.io/docs/api-reference/text-openai-api.md",
-      "https://platform.minimax.io/docs/api-reference/text-chat-openai.md",
-      "https://platform.minimax.io/docs/api-reference/text-chat.md"
-    ],
     "Music": [
       "https://platform.minimax.io/docs/guides/music-generation.md",
       "https://platform.minimax.io/docs/api-reference/music-generation.md",

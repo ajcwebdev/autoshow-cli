@@ -10,13 +10,11 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice list [registration-id] [flags]
 ```
 
-`list` has three read modes. With no arguments it prints the local registration catalog and the current index for each subject, provider, model, and profile. That listing never calls a provider.
+With no arguments, `list` prints the local registration catalog and current index. That listing never calls a provider.
 
-With a registration id it inspects that registration. `--live` checks whether the provider still has the voice. `--price` keeps the read local even when `--live` is set.
+With a registration id, `list` inspects that registration. `--live` checks whether the provider still has the voice. `--price` keeps the read local even when `--live` is set.
 
-If a supported provisioning journal is unambiguous, `list <id>` completes it without recreating the voice. Ambiguous Grok journals refuse until you pass `--reconcile`. `--price` and bare `voice list` never complete a journal.
-
-With `--provider` it lists a provider or account catalog. `--provider` cannot be combined with a registration id. `--price` validates the catalog request without reading the provider.
+With `--provider`, `list` prints a provider or account catalog. `--provider` cannot be combined with a registration id. `--price` validates the catalog request without reading the provider.
 
 ### Options
 
@@ -24,7 +22,7 @@ With `--provider` it lists a provider or account catalog. `--provider` cannot be
 | --- | --- |
 | `--generation-id <sha256>` | Optional unless more than one generation could match |
 | `--live` | Opt-in provider readiness check for one registration |
-| `--provider <name>` | Remote catalog provider: every active provider except `openai` |
+| `--provider <name>` | Remote catalog provider: `elevenlabs`, `grok`, `mistral`, `speechify`, `hume`, `cartesia`, or `inworld` |
 | `--source <source>` | Catalog source: `account`, `provider-library`, or `shared-library`; default `account` |
 | `--cursor <cursor>` | Opaque provider pagination cursor |
 | `--reconcile` | Complete an ambiguous provider provisioning journal without recreating the voice |

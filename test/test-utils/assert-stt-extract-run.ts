@@ -3,6 +3,7 @@ import { requireCondition } from './require-condition'
 import { artifactExists as fileExists, assertContains } from '../scenarios/local-cli-contracts'
 import { readCanonicalRecord } from './manifest-helpers'
 import type { SttExtractRunExpectation } from '~/types'
+import { assertTextContent } from './assert-generated-content'
 
 export const assertSttExtractRun = async (
   outputDir: string,
@@ -13,6 +14,7 @@ export const assertSttExtractRun = async (
 
   const transcriptContent = await Bun.file(`${outputDir}/transcription.txt`).text()
   requireCondition(transcriptContent.length > 0)
+  assertTextContent(transcriptContent, 'transcription')
   if (typeof expectation.transcriptMatch === 'string') {
     requireCondition(transcriptContent.includes(expectation.transcriptMatch))
   } else {

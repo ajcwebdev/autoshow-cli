@@ -3,7 +3,7 @@ import type { ExecutedBudgetPreflightVariant, PriceCommandSpec, TestRunArtifacts
 import { argvKeyFor } from '../../../../test-runner/budget-preflight-cache'
 import { collectOrderedVariantObservations, partitionBudgetCacheHits } from '../../../../test-runner/budget-preflight-orchestration'
 import { buildPriceSpawnArgs } from '../../../../test-runner/price-execution'
-import { buildBunTestArgs, buildTestWorkerEnv } from '../../../../test-runner/process-execution'
+import { buildBunTestArgs, buildTestWorkerEnv, createBunCrashDetector } from '../../../../test-runner/process-execution'
 import { BUN_FILE_TIMINGS_CACHE_PATH } from '../../../../test-runner/file-timings'
 import { toObservation } from '../../../../test-runner/price-evaluation'
 
@@ -32,6 +32,20 @@ const command = (name: string, args: string[]): PriceCommandSpec => ({
 })
 
 describe('test-runner process and price orchestration', () => {
+  test('detects a fatal worker crash once, including colored diagnostics, without treating ordinary error text as a crash', () => {
+    let crashes = 0
+    const observe = createBunCrashDetector(() => { crashes++ })
+    observe('oh no: Bun has crashed. quoted diagnostic without a runtime header')
+    observe('panic: an application error')
+    expect(crashes).toBe(0)
+    observe('Bun v1.4.2 (744846f84) macOS Silicon')
+    observe('oh no: Bun has crashed. no runtime panic yet')
+    expect(crashes).toBe(0)
+    observe('panic: A C++ exception occurred')
+    observe('oh no\u001b[0m\u001b[2m:\u001b[0m Bun has crashed. This indicates a bug in Bun, not your code.')
+    observe('oh no: Bun has crashed. duplicate output')
+    expect(crashes).toBe(1)
+  })
   test('test commands enable descendant cleanup and native timing updates without dropping JUnit reporting', () => {
     const file = 'test/test-cases/validation/runtime-contracts/example.test.ts'
     expect(buildBunTestArgs([file], artifacts, ['--only-failures'])).toEqual([

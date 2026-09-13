@@ -165,8 +165,8 @@ describe('price mode contracts', () => {
 
   test('cheapest-model helpers return stable model selections', () => {
       expect(resolveCheapestModelForFlag('openai')).toBe('gpt-5.6-luna')
-      expect(resolveCheapestModelForFlag('grok')).toBe('grok-4.3')
-      expect(resolveCheapestModelForFlag('glm')).toBe('glm-5.1')
+      expect(resolveCheapestModelForFlag('grok')).toBe('grok-4.5')
+      expect(resolveCheapestModelForFlag('glm')).toBe('glm-5.3-flash')
       expect(resolveCheapestModelForFlag('kimi')).toBe('kimi-k2.6')
       expect(resolveCheapestModelForFlag('openai-image')).toBe('gpt-image-2.5-flare')
       expect(resolveCheapestModelForFlag('gemini-image')).toBe('gemini-3.1-flash-lite-image')
@@ -188,9 +188,9 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('supadata-stt')).toBe('auto')
       expect(resolveCheapestModelForFlag('scrapecreators-stt')).toBe('youtube-transcript')
       expect(resolveCheapestModelForFlag('openai-ocr')).toBe('gpt-5.6-luna')
-      expect(resolveCheapestModelForFlag('grok-ocr')).toBe('grok-4.3')
-      expect(resolveCheapestModelForFlag('anthropic-ocr')).toBe('claude-haiku-4-5')
-      expect(resolveCheapestModelForFlag('deepinfra-ocr')).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
+      expect(resolveCheapestModelForFlag('grok-ocr')).toBe('grok-4.5')
+      expect(resolveCheapestModelForFlag('anthropic-ocr')).toBe('claude-sonnet-5')
+      expect(resolveCheapestModelForFlag('deepinfra-ocr')).toBe('google/gemma-4-31B-it')
       expect(resolveCheapestModelForFlag('kimi-ocr')).toBe('kimi-k2.6')
       expect(resolveCheapestModelForFlag('gemini-video')).toBe('veo-3.1-lite-generate-preview')
       expect(resolveCheapestModelForFlag('glm-video')).toBeUndefined()

@@ -61,7 +61,7 @@ bun autoshow tts <input> [flags]
 | Flag                                               | Description                                                                                          |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `--provider provider[=model]`                      | TTS provider/model selector; repeat to run multiple targets                                          |
-| `--all-providers`                                  | Select the default all-provider TTS target set                                                       |
+| `--all-providers`                                  | Select every supported hosted TTS provider/model                                                     |
 | `--provider-concurrency <n>`                       | Hosted TTS provider/model targets to run concurrently per item; this does not limit requests inside one target; default `7` |
 | `--batch-concurrency <n>`                          | Batch text files to process concurrently; default `7`                                                |
 | `--concurrency-mode <ramp\|immediate>`             | Ramp from one request (`ramp`, default) or start at the configured cap (`immediate`)                 |
@@ -71,8 +71,8 @@ bun autoshow tts <input> [flags]
 | `--tts-ref-audio <provider=path\|path>`            | Explicit one-off Mistral reference input                                                             |
 | `--tts-text-normalization <provider=value\|value>` | Generic text normalization                                                                           |
 | `--tts-instructions <provider=value\|value>`       | Generic voice/style instructions                                                                     |
-| `--tts-chunk-concurrency <n>`                      | Parallel requests allowed inside one hosted target; default `30`, `2` for all providers, or `50` for Grok-only             |
-| `--allow-ambiguous-redispatch`                     | Resume a stored generation that has no recoverable audio; may repurchase it                          |
+| `--tts-chunk-concurrency <n>`                      | Hosted TTS chunk starts allowed in parallel per provider across the current run; default `30`, `2` for all providers, or `50` for Grok-only |
+| `--allow-ambiguous-redispatch`                     | Explicitly authorize repurchasing a provider-admitted TTS slot that has no recoverable audio         |
 | `--tts-dialogue-format <screenplay\|labeled>`      | Dialogue input format for multi-speaker TTS; requires `--tts-speaker`                                |
 | `--tts-speaker SPEAKER=VOICE\|path`                | Multi-speaker voice mapping; repeatable. Selects multi-speaker TTS                                   |
 | `--price`                                          | Show the aggregated estimate and exit                                                                |
@@ -81,13 +81,13 @@ bun autoshow tts <input> [flags]
 
 You can combine multiple TTS targets in one run. `--provider` is repeatable. Shared voice flags apply to every selected model for that provider.
 
-See [Provider Capabilities](#provider-capabilities) for catalog, design, clone, multi-speaker, prompt, selector, and SSML or emotion-control support. Catalog, design, and clone are not available on `tts` or `comic generate-audio`. Use [`voice`](../voice/00-voice-overview.md) to create or change remote voices.
+Catalog, design, and clone are not available on `tts` or `comic generate-audio`. Use [`voice`](../voice/00-voice-overview.md) to create or change remote voices.
 
 Multi-speaker mode requires `--tts-speaker` (repeatable) and `--tts-dialogue-format`, and exactly one active TTS provider. Reference-audio speaker paths work only with Mistral. ElevenLabs `eleven_v3` and Hume `octave-2` can use native grouped synthesis when the dialogue is eligible; other targets synthesize each turn and concatenate into `speech.wav`.
 
-If a hosted target fails after producing some audio, keep the run's `.tts-tmp-*` directory so completed files can be reused. Successful finalization removes those files. If the run stops with a recovery checkpoint, pass `--allow-ambiguous-redispatch` on the next run to resume. That may purchase the interrupted request a second time.
+If a hosted target fails after producing some audio, keep the run's `.tts-tmp-*` directory so completed files can be reused. If the run stops with a recovery checkpoint, pass `--allow-ambiguous-redispatch` on the next run to resume. That may purchase the interrupted request a second time.
 
-`--provider-concurrency` limits how many provider/model targets run at once. `--tts-chunk-concurrency` limits parallel requests within one provider lane. The all-provider shortcut defaults this to `2` to bound aggregate memory use; a single hosted target defaults to `30`, while Grok-only defaults to `50`. To cap a single Inworld target at five simultaneous requests, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` does not.
+`--provider-concurrency` limits how many provider/model targets run at once. `--tts-chunk-concurrency` limits parallel chunk starts within one provider across the run, including multiple items. Defaults are `30` for a single hosted target, `50` for Grok-only, and `2` for `--all-providers`. To cap a single Inworld target at five simultaneous requests, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` does not.
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md \
@@ -152,7 +152,7 @@ bun autoshow tts input/examples/tts/tts-dialogue.txt \
   --tts-speaker Guest=input/examples/audio/1-audio.mp3
 ```
 
-Mistral synthesis requires an existing voice ID or an authorized one-off local reference file. In `--price` mode, AutoShow uses an internal non-executable planning placeholder when no Mistral voice source is supplied so `--all-providers --price` can include Mistral in the estimate. A non-price `--all-providers` run without a Mistral voice source warns, skips Mistral, and continues with the other targets; an explicit Mistral selection without a voice source remains a usage error. Use `voice clone --provider mistral` to create and register a crash-safe saved reference.
+Mistral synthesis requires an existing voice ID or an authorized one-off local reference file. `--all-providers --price` includes Mistral in the estimate even without a voice source. A non-price `--all-providers` run without a Mistral voice source warns, skips Mistral, and continues with the other targets; an explicit Mistral selection without a voice source remains a usage error. Use `voice clone --provider mistral` to create and register a saved reference.
 
 ### OpenAI
 
@@ -197,43 +197,41 @@ bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2
 bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --tts-voice "Male English Actor"
 ```
 
-Hume is synthesis-only: pass an existing stock or custom voice ID with `--tts-voice`. A UUID is treated as a voice ID; any other value is looked up by name in the Hume voice library. Address a custom voice by its ID.
+Pass an existing stock or custom voice with `--tts-voice`. A UUID is treated as a voice ID; any other value is looked up by name in the Hume voice library. Address a custom voice by its ID.
 
 ### Cartesia
 
 | Option   | Value                                                                    |
 | -------- | ------------------------------------------------------------------------ |
 | Selector | `--provider cartesia[=<model>]`                                          |
-| Models   | `sonic-3.5-2026-05-04`, `sonic-3.6-2026-08-27`                                                   |
+| Models   | `sonic-3.6-2026-08-27` (default)                  |
 | Voice    | `--tts-voice <voice-id>`, default `f786b574-daa5-4673-aa0c-cbe3e8534c02` |
 | Language | `--tts-language <code>`                                                  |
 
 ```bash
-bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
-bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-05-04 --tts-language en
+bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.6-2026-08-27 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
+bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.6-2026-08-27 --tts-language en
 ```
 
-Transcripts may include SSML-like `<speed>`, `<volume>`, `<emotion>`, `<break>`, and `<spell>` tags plus `[laughter]`.
+`--tts-language` accepts Cartesia language codes and regional locales such as `en-GB`. Transcripts may include SSML-like `<speed>`, `<volume>`, `<emotion>`, `<break>`, and `<spell>` tags plus `[laughter]`.
 
 ### Inworld
 
 | Option   | Value                                                   |
 | -------- | ------------------------------------------------------- |
 | Selector | `--provider inworld[=<model>]`                          |
-| Models   | `realtime-tts-2`, `realtime-tts-2-flash`                                        |
-| Voice    | `--tts-voice <id>`, default `voice_inworld_standard_en` |
-| Controls | `--tts-instructions <text>`                             |
+| Models   | `realtime-tts-2` (default)      |
+| Voice    | `--tts-voice <id>`, default Dennis (`voice_inworld_standard_en`) |
+| Controls | `--tts-instructions <text>` on `realtime-tts-2` |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider inworld=realtime-tts-2
 bun autoshow tts input/examples/tts/1-tts.md --provider inworld=realtime-tts-2 --tts-voice Dennis --tts-instructions "Sound reassuring"
 ```
 
-`--tts-instructions` is accepted. Inline emotion and vocalization tags such as `[happy]`, `[laugh]`, and `[breathe]` are preserved.
+Inline emotion and vocalization tags such as `[happy]`, `[laugh]`, and `[breathe]` are preserved.
 
 ## Pricing Notes
-
-The active registry ranks only the eight supported TTS providers. Historical rates for removed providers remain available to manifest and report readers but are excluded from selection, defaults, and `--all-providers` expansion.
 
 | Nominal price | Active selectors |
 | ---: | --- |
@@ -241,12 +239,12 @@ The active registry ranks only the eight supported TTS providers. Historical rat
 | About `$0.0126` / 1K chars | `openai/gpt-4o-mini-tts-2025-12-15` |
 | `$0.015` / 1K chars | `grok/grok-tts` |
 | `$0.016` / 1K output chars | `mistral/voxtral-mini-tts-2603` |
-| `$0.015` / 1K chars | `inworld/realtime-tts-2-flash` |
-| `$0.037375` / 1K chars (Scale allocation estimate) | `cartesia/sonic-3.6-2026-08-27` |
 | `$0.025` / 1K chars | `inworld/realtime-tts-2` |
-| `$0.037375` / 1K chars | `cartesia/sonic-3.5-2026-05-04` |
+| `$0.037375` / 1K chars (Scale allocation estimate) | `cartesia/sonic-3.6-2026-08-27` |
 | `$0.10` / 1K chars | `elevenlabs/eleven_v3` |
 | `$0.15` / 1K chars | `hume/octave-1`, `hume/octave-2` |
+
+Cartesia estimates use a Scale-plan credit allocation, not a universal per-character tariff.
 
 ## Output
 
@@ -257,31 +255,18 @@ The active registry ranks only the eight supported TTS providers. Historical rat
 - `manifest.json` records `tts` targets, `cost`, and `timing`.
 - `--output-dir` sets the output directory; output filenames remain provider-deterministic.
 
+Successful standalone and directory-batch runs automatically compact each provider's working metadata into `render.json` and `timeline.json`, alongside the shared manifest, input plan and cached audio slots. The controls benchmark uses this same path. Resume also compacts completed synthesis. Working journals remain available during synthesis and after failure or interruption; cleanup runs only after the successful archive is published. Completing one provider never prunes another provider's paid audio slots.
+
 ## Provider Capabilities
 
-Every active provider supports local import, registration listing, approval, retirement, and canonical audition. Remote commands are restricted by the capability registry.
+`tts` synthesizes with an existing voice or a request-scoped Mistral reference and does not create remote voices. Catalog, design, clone, inspection, and deletion live on [`voice`](../voice/00-voice-overview.md).
 
-| Provider | Active synthesis models | Remote catalog and lifecycle | Design | Clone |
-| --- | --- | ---: | ---: | ---: |
-| ElevenLabs | `eleven_v3` | Yes | Yes | Yes |
-| Grok | `grok-tts` | Yes | No | Yes |
-| Mistral | `voxtral-mini-tts-2603` | Yes | No | Yes |
-| OpenAI | `gpt-4o-mini-tts-2025-12-15` | No | No | Deferred |
-| Speechify | `simba-3.2` | Yes | No | Deferred |
-| Hume | `octave-1`, `octave-2` | Yes | Yes | External UI |
-| Cartesia | `sonic-3.5-2026-05-04`, `sonic-3.6-2026-08-27` | Yes | No | Yes |
-| Inworld | `realtime-tts-2`, `realtime-tts-2-flash` | Yes | Yes | Yes |
+## Speed and pause controls
 
-Use `voice` for durable catalog, design, clone, inspection, and deletion operations. `tts` consumes an existing voice or request-scoped reference and never creates a remote voice.
+`--tts-speed` sends a provider request field for OpenAI (0.25–4), Grok (0.7–1.5), Cartesia (0.6–1.5), Hume (0.5–2), and Inworld (0.5–1.5). Hume uses a nonlinear relative scale; 2 does not promise twice the speaking rate. Cartesia treats its value as guidance. Values do not alter the output audio sample rate. Explicit per-turn speed controls override the CLI default; `null` clears that default for a turn.
 
-## P1 TTS additions — 2026-09-08
+Eleven v3 does not support numeric speed, so selecting it with `--tts-speed` fails before synthesis. Use its pacing audio tags and punctuation. The generic ElevenLabs speed range applies only to compatible models, not v3. Speechify uses SSML rate keywords or signed percentage adjustments instead of a numeric request field. Inworld TTS-2 also accepts inline steering and the instruction field; numeric `--tts-speed` is sent as REST `audioConfig.speakingRate`.
 
-Select `--provider cartesia=sonic-3.6-2026-08-27` or `--provider inworld=realtime-tts-2-flash`. Existing bare-provider defaults remain Sonic 3.5 and Realtime TTS 2; all-model expansion includes both additions. Flash maps to API ID `inworld-tts-2-flash`. Inworld's public Flash addition supersedes the previous local retirement decision; it rejects `--tts-instructions` and per-turn steering because the API documents instructions only for TTS 2. Voice design still requires the existing creation model.
+Pause syntax is provider-specific: Speechify, Cartesia and Inworld accept timed SSML breaks; Hume accepts utterance trailing silence in seconds and inline pause tags; Grok accepts `[pause]` and `[long-pause]`; Eleven v3 accepts pause audio tags but not SSML breaks. OpenAI pause instructions are qualitative. Do not multiply pacing controls from different methods in one speed test, and reset speed or steering before testing pauses.
 
-Sonic 3.6 uses `/tts/bytes` with API version `2026-08-14`, a voice ID string and WAV PCM s16le at 24 kHz. Its 44 base language codes include Odia (`or`) and Urdu (`ur`); `--tts-language` accepts these base codes, while locale/accent controls remain unexposed. Existing professional clones are compatible; voice access remains account-dependent. The older snapshot retains its original version and voice object. AutoShow keeps its conservative 2,000-character Cartesia chunk budget; the checked Bytes contract does not specify a numeric input ceiling. [Model and voice compatibility](https://docs.cartesia.ai/build-with-cartesia/tts-models/latest), [Bytes contract](https://docs.cartesia.ai/api-reference/tts/bytes).
-
-Cartesia's estimate is an explicit Scale subscription allocation: $299 / 8,000,000 credits × approximately one credit per character = $37.375/M characters (3.7375 cents/1K). This assumes full credit utilization; it is not a universal marginal or overage tariff. Preprocessing, unused credits, other plans, cloning and enterprise terms can change the invoice. [Credit metering](https://docs.cartesia.ai/pricing), [Subscription plans](https://www.cartesia.ai/pricing).
-
-Flash uses the existing REST endpoint, single stock/custom voice ID, WAV at 48 kHz, word timestamp request and 2,000-character input limit. Language is detected automatically; both Inworld models advertise 200+ languages/locales. The default voice alias still resolves to Dennis. Other host audio encodings are not exposed by this synthesis adapter. Missing alignment remains explicitly unavailable. Flash estimates use the $15/M-character on-demand rate, excluding subscription discounts. [Models](https://docs.inworld.ai/tts/tts-models), [REST parameters](https://docs.inworld.ai/api-reference/ttsAPI/texttospeech/synthesize-speech), [Pricing](https://inworld.ai/pricing).
-
-New-model request controls include model identity in paid segment hashes; the request body and canonical render target also identify the model. Legacy request controls and serializer versions remain stable for retained work. Completed audio and ambiguous-slot reconciliation continue through the existing resume pipeline. Verification uses synthetic audio and mocked transport; account access, latency and speech quality have not been tested through paid inference.
+The [speed/pause benchmark audit](../../../benchmarks/tts/2026-09-12_detailed-instructions/2026-09-12_06-tts-speed-pauses/benchmark-report.md) documents exact native fields, syntax, sources and exclusions. The [emotion benchmark](../../../benchmarks/tts/2026-09-12_detailed-instructions/2026-09-12_05-tts-emotion/benchmark-report.md) is separate. Both exclude nonverbal vocalizations and sound effects.

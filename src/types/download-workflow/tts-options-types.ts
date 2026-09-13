@@ -2,6 +2,7 @@ export type TtsRuntimeOptions = {
   ttsAllProvidersSelected: boolean
   ttsAllowAmbiguousRedispatch: boolean
   grokTtsModels: string[] | undefined
+  grokTtsSpeed?: number | undefined
   grokTtsVoice: string | undefined
   grokTtsLanguage: string | undefined
   grokTtsTextNormalization: boolean
@@ -28,13 +29,16 @@ export type TtsRuntimeOptions = {
   speechifyVoice: string | undefined
   speechifyTtsLanguage: string | undefined
   humeTtsModels: string[] | undefined
+  humeTtsSpeed?: number | undefined
   humeTtsVoice: string | undefined
   cartesiaTtsModels: string[] | undefined
+  cartesiaTtsSpeed?: number | undefined
   cartesiaTtsVoice: string | undefined
   cartesiaTtsLanguage: string | undefined
   inworldTtsModels: string[] | undefined
   inworldTtsVoice: string | undefined
   inworldTtsInstructions: string | undefined
+  inworldTtsSpeed: number | undefined
 }
 
 export type TtsRuntimeOptionKey = keyof TtsRuntimeOptions

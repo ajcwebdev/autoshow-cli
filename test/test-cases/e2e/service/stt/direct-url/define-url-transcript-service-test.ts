@@ -1,3 +1,4 @@
+import { assertTextContent } from '../../../../../test-utils/assert-generated-content'
 import { join } from 'node:path'
 import { expect } from 'bun:test'
 import { E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
@@ -88,7 +89,7 @@ export const defineUrlTranscriptServiceTest = ({
     const artifactDir = await resolveTranscriptArtifactDir(outputDir, metadata, service, model)
     const transcriptPath = join(artifactDir, 'transcription.txt')
     await expectArtifact(transcriptPath)
-    expect((await Bun.file(transcriptPath).text()).length).toBeGreaterThan(0)
+    assertTextContent(await Bun.file(transcriptPath).text(), 'URL transcript')
     await expectArtifact(join(artifactDir, 'result.json'))
   }, E2E_TEST_TIMEOUT_MS)
 }

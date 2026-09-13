@@ -28,7 +28,6 @@ const LLM_SERVICES = new Set<Step3Metadata['llmService']>([
   'openai',
   'gemini',
   'anthropic',
-  'minimax',
   'grok',
   'glm',
   'kimi',

@@ -3,48 +3,6 @@
     "description": "Google Gemini OCR via GenerateContent",
     "type": "api",
     "models": {
-      "gemini-3.1-pro-preview": {
-        "description": "Gemini 3.1 Pro OCR",
-        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Gemini API paid Standard",
-        "pricingNotes": "Gemini 3.1 Pro Preview Standard pricing is $2/1M input tokens and $12/1M output tokens for prompts up to 200K tokens, and $4/1M input tokens and $18/1M output tokens for prompts over 200K tokens. OCR estimates switch bands from observed or heuristic input tokens; free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.",
-        "costPerMInputTokensCents": 200,
-        "costPerMOutputTokensCents": 1200,
-        "limits": {
-          "pdfBytes": 2147483648,
-          "imageBytes": 2147483648,
-          "pageCount": 1000,
-          "notes": "https://ai.google.dev/gemini-api/docs/document-processing.md.txt documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
-        },
-        "estimation": {
-          "promptTokensPerPage": 1172,
-          "completionTokensPerPage": 598,
-          "costMultiplier": 1,
-          "msPerPage": 5089
-        },
-        "tokenPricingBands": [
-          {
-            "label": "standard-up-to-200k",
-            "maxInputTokens": 200000,
-            "inputCostPer1MCents": 200,
-            "cachedInputCostPer1MCents": 20,
-            "outputCostPer1MCents": 1200
-          },
-          {
-            "label": "standard-over-200k",
-            "minInputTokens": 200001,
-            "inputCostPer1MCents": 400,
-            "cachedInputCostPer1MCents": 40,
-            "outputCostPer1MCents": 1800
-          }
-        ],
-        "reasoning": {
-          "support": "optional",
-          "supportedEfforts": ["low", "medium", "high"]
-        }
-      },
       "gemini-3.8-flash": {
         "description": "Gemini 3.8 Flash OCR",
         "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -98,7 +56,11 @@
         },
         "reasoning": {
           "support": "optional",
-          "supportedEfforts": ["low", "medium", "high"]
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high"
+          ]
         }
       },
       "gemini-3.5-flash": {
@@ -124,7 +86,12 @@
         },
         "reasoning": {
           "support": "optional",
-          "supportedEfforts": ["minimal", "low", "medium", "high"]
+          "supportedEfforts": [
+            "minimal",
+            "low",
+            "medium",
+            "high"
+          ]
         }
       },
       "gemini-3.6-flash": {
@@ -150,7 +117,12 @@
         },
         "reasoning": {
           "support": "optional",
-          "supportedEfforts": ["minimal", "low", "medium", "high"]
+          "supportedEfforts": [
+            "minimal",
+            "low",
+            "medium",
+            "high"
+          ]
         }
       },
       "gemini-3.5-flash-lite": {
@@ -176,7 +148,12 @@
         },
         "reasoning": {
           "support": "optional",
-          "supportedEfforts": ["minimal", "low", "medium", "high"]
+          "supportedEfforts": [
+            "minimal",
+            "low",
+            "medium",
+            "high"
+          ]
         }
       }
     }

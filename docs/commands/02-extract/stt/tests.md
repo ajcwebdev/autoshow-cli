@@ -1,16 +1,8 @@
 # STT Tests
 
-Local whisperfile coverage plus hosted speech-to-text and URL transcript coverage for the extract STT route.
+Local whisperfile coverage plus hosted speech-to-text and URL transcript coverage for `extract`.
 
 Safety: these `bun t` commands document human service/e2e coverage and may call paid or quota-limited providers. Do not run them for agent verification without explicit approval for that exact run.
-
-## Outline
-
-- [Quick Start](#quick-start)
-- [Local Coverage](#local-coverage)
-- [Service Coverage](#service-coverage)
-- [Price Preflight](#price-preflight)
-- [Related Docs](#related-docs)
 
 ## Quick Start
 
@@ -24,14 +16,12 @@ bun t test/test-cases/e2e/service/stt/
 
 ## Local Coverage
 
-- `test/test-cases/e2e/local/stt/whisperfile/` covers tiny, tiny.en, small, small.en, omitted provider/model defaults, and `--split`.
+- `test/test-cases/e2e/local/stt/whisperfile/` covers local whisperfile transcription for tiny, tiny.en, small, and small.en, including `--split`.
+- Zero-cost validation lives in `test/test-cases/validation/stt/`.
 
 ## Service Coverage
 
-Hosted tests use `diarization/`, `diarization-off-by-default/`, and `direct-url/` subgroups beneath `test/test-cases/e2e/service/stt/`. Select any subgroup independently; local provider tests live directly under `test/test-cases/e2e/local/stt/`.
-
-- Files under `test/test-cases/e2e/service/stt/` cover live transcription for AssemblyAI, Deepgram, DeepInfra, Gemini, Gladia, Grok, Mistral, ScrapeCreators, Soniox, Speechmatics, Supadata, and Together, including ScrapeCreators and Supadata URL-to-transcript scenarios.
-- Zero-cost validation lives in `test/test-cases/validation/stt/`.
+Hosted STT tests under `test/test-cases/e2e/service/stt/` cover live transcription for AssemblyAI, Deepgram, DeepInfra, Gemini, Gladia, Grok, Mistral, ScrapeCreators, Soniox, Speechmatics, Supadata, and Together, including ScrapeCreators and Supadata URL-to-transcript scenarios.
 
 ## Price Preflight
 

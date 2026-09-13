@@ -52,7 +52,12 @@
         "reasoning": {
           "support": "required",
           "allowDisabled": false,
-          "supportedEfforts": ["low", "medium", "high", "max"]
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
         }
       }
     }

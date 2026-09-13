@@ -42,7 +42,7 @@ Why now: multi-character script-to-audio is the next workflow requirement, with 
 **Option 1 (selected)**
 
 - **Option:** Build shared voice-identity, provisioning, capability, dialogue-rendering, timing, and artifact primitives; make comic consume them; implement five voice-managed model adapters with a truthful segmented baseline across all 16 providers
-- **Pros:** Repairs the current contract once; gives every provider a truthful segmented baseline; preserves provider-native strengths; supports immutable character references, local repair, comparison, and resume across five dedicated voice-managed models (ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`)
+- **Pros:** Repairs the current contract once; gives every provider a truthful segmented baseline; preserves provider-native strengths; supports immutable character references, local repair, comparison, and resume across five dedicated voice-managed models (ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.6-2026-08-27`, and Speechify `simba-3.2`)
 - **Cons:** Largest initial change; requires versioned artifacts, provider conformance tests, lifecycle state, and two render strategies
 - **Quantitative Notes:** 16 providers; 5 voice-managed models with distinct expressiveness paths; 11 synthesis-only providers; 2 new comic commands
 
@@ -85,7 +85,7 @@ Why now: multi-character script-to-audio is the next workflow requirement, with 
 
 Create one shared, provider-neutral script-to-audio subsystem beneath both the generic Step 4 `tts` command and comic. Comic owns authored character voice briefs, role resolution, approvals, immutable scene snapshots, and source-linked dialogue plans. Shared TTS owns provider capabilities, voice provisioning and lifecycle, explicit per-invocation voice dispatch, native and segmented rendering, timing, scheduling, and synthesis metadata. Comic must not create provider clients or a second TTS target registry.
 
-Voice reference management is supported across five models: ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`. These models implement discovery, candidate creation, audition, registration, lifecycle, preflight, expressiveness, timing, and manifest contracts according to their documented capabilities. Every existing TTS provider must implement the explicit-voice segmented baseline or fail locally with a truthful model-specific capability error; no adapter may silently reuse a captured default voice.
+Voice reference management is supported across five models: ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.6-2026-08-27`, and Speechify `simba-3.2`. These models implement discovery, candidate creation, audition, registration, lifecycle, preflight, expressiveness, timing, and manifest contracts according to their documented capabilities. Every existing TTS provider must implement the explicit-voice segmented baseline or fail locally with a truthful model-specific capability error; no adapter may silently reuse a captured default voice.
 
 This applies to:
 

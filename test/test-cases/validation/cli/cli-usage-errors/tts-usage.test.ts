@@ -34,7 +34,7 @@ test('tts rejects non-text single files', async () => {
 
 test('tts rejects ambiguous generic TTS options with multiple providers', () => {
   const parsed = parseCommandInvocation(
-    ['tts', 'input/examples/tts/1-tts.md', '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--provider', 'elevenlabs=eleven_v3', '--tts-voice', 'alloy'],
+    ['tts', 'input/examples/tts/01-tts-short.md', '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--provider', 'elevenlabs=eleven_v3', '--tts-voice', 'alloy'],
     commandNamed('tts'),
     GLOBAL_FLAG_DEFINITIONS
   )
@@ -53,7 +53,7 @@ test('tts rejects ambiguous generic TTS options with multiple providers', () => 
 test('tts rejects retired generic selectors with actionable guidance and exposes no compatibility flags', () => {
   for (const provider of ['minimax', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra']) {
     const parsed = parseCommandInvocation(
-      ['tts', 'input/examples/tts/1-tts.md', '--provider', `${provider}=historical-model`],
+      ['tts', 'input/examples/tts/01-tts-short.md', '--provider', `${provider}=historical-model`],
       commandNamed('tts'),
       GLOBAL_FLAG_DEFINITIONS
     )
@@ -62,7 +62,7 @@ test('tts rejects retired generic selectors with actionable guidance and exposes
       'provider', STANDALONE_TTS_PROVIDER_TARGETS, { allProvidersTarget: 'all-tts' }
     )).toThrow(`${provider} is no longer supported for TTS.`)
     expect(() => parseCommandInvocation(
-      ['tts', 'input/examples/tts/1-tts.md', `--${provider}-tts`, 'historical-model'],
+      ['tts', 'input/examples/tts/01-tts-short.md', `--${provider}-tts`, 'historical-model'],
       commandNamed('tts'),
       GLOBAL_FLAG_DEFINITIONS
     )).toThrow(`Unexpected flag: --${provider}-tts`)

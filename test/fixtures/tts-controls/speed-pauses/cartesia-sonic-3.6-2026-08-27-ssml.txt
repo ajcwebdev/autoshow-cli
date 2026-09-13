@@ -1,0 +1,5 @@
+Narrator: <speed ratio="1"/> I speak at a normal pace. One, two, three, four, five.
+Narrator: <speed ratio="0.75"/> I speak slowly. One, two, three, four, five.
+Narrator: <speed ratio="1.25"/> I speak fast. One, two, three, four, five.
+Narrator: <speed ratio="1"/> I pause here. <break time="500ms"/> Then I speak.
+Narrator: <speed ratio="1"/> I take a long pause here. <break time="2s"/> Then I speak.

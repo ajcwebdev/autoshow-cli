@@ -2,6 +2,8 @@
 
 Download media, documents, articles, or X Space audio and collect metadata only.
 
+Media and X Space inputs write a compressed audio file, or original/best-quality media when requested. Document and article inputs write metadata only. This command does not transcribe, extract text, or run LLM steps.
+
 ## Outline
 
 - [Supported Inputs](#supported-inputs)
@@ -12,26 +14,26 @@ Download media, documents, articles, or X Space audio and collect metadata only.
 - [Setup and Environment](#setup-and-environment)
 
 ```bash
-bun autoshow download <input>
+bun autoshow download [input]
 ```
 
 ## Supported Inputs
 
-| Input                                                         | Behavior                                                                              |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| YouTube / Twitch / TikTok URL                                 | Download and normalize to compressed audio, collect media metadata                    |
-| Direct media URL (`.mp3`, `.mp4`, etc.)                       | Download and normalize to compressed audio, collect media metadata                    |
-| Direct document URL (`.pdf`, `.epub`, `.docx`, etc.)          | Download and collect document metadata                                                |
-| Remote article / HTML URL                                     | Collect article metadata; choose a backend with `--url-provider`                      |
-| X/Twitter Space URL or raw Space ID                           | Download Space audio, normalize to compressed audio, collect media metadata           |
-| X/Twitter post URL                                            | Resolve the linked Space, then download Space audio                                   |
-| Local `.html` / `.htm` file                                   | Collect article metadata with local `defuddle`                                        |
-| Local media file                                              | Normalize to compressed audio, collect media metadata                                 |
-| Local document file                                           | Collect document metadata                                                             |
-| YouTube channel or playlist URL                               | Batch the latest videos                                                               |
-| RSS / podcast feed URL                                        | Batch the latest episodes                                                             |
-| URL list file (`.md` / `.txt`)                                | Batch each listed input                                                               |
-| Directory                                                     | Batch each supported local input                                                      |
+| Input | Behavior |
+| --- | --- |
+| YouTube / Twitch / TikTok URL | Download as compressed audio |
+| Direct media URL (`.mp3`, `.mp4`, etc.) | Download as compressed audio |
+| Direct document or image URL (`.pdf`, `.epub`, `.docx`, `.png`, etc.) | Collect document metadata |
+| Remote article / HTML URL | Collect article metadata; choose a backend with `--url-provider` |
+| X/Twitter Space URL or raw Space ID | Download Space audio as compressed audio |
+| X/Twitter post URL | Download the linked Space audio |
+| Local `.html` / `.htm` file | Collect article metadata (`defuddle`) |
+| Local media file | Convert to compressed audio |
+| Local document or image file | Collect document metadata |
+| YouTube channel or playlist URL | Batch the latest videos |
+| RSS / podcast feed URL | Batch the latest episodes |
+| URL list file (`.md` / `.txt`) | Batch each listed input |
+| Directory | Batch each supported local input |
 
 **Supported document formats:** PDF, EPUB, MOBI, AZW3, AZW, PRC, FB2, LIT, DOCX, PPTX, XLSX, ODT, ODS, ODP, RTF, CSV, CBZ
 
@@ -58,16 +60,16 @@ Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, and LIT) require Calibre.
 Use `--` after the AutoShow input and flags to pass extra arguments to yt-dlp:
 
 ```bash
-bun autoshow download https://youtube.com/watch?v=abc -- --format bestvideo+bestaudio
+bun autoshow download "https://youtube.com/watch?v=abc" -- --write-thumbnail
 bun autoshow download input/examples/batch/2-urls.md --batch-limit 3 -- --format bestaudio
 ```
 
 Passthrough works for media URL downloads, including direct media URLs, podcast feed items, and X Space downloads. Local files, documents, and articles reject it.
 
-Without an AutoShow input, `download --` runs yt-dlp directly:
+Without an input, `download --` runs yt-dlp directly:
 
 ```bash
-bun autoshow download -- --format bestaudio -o "%(title)s.%(ext)s" https://youtube.com/watch?v=abc
+bun autoshow download -- --format bestaudio -o "%(title)s.%(ext)s" "https://youtube.com/watch?v=abc"
 ```
 
 ## Output
@@ -80,22 +82,24 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   manifest.json
 ```
 
-With `--best-quality`, streaming sources keep the best available video+audio instead of the default compressed audio-only file. Those outputs may be `.mkv`, `.mp4`, or `.webm`. Direct media URLs and local media files keep the source file as-is.
+With `--best-quality`, YouTube, Twitch, TikTok, and similar URLs keep video+audio instead of compressed audio. Those files may be `.mkv`, `.mp4`, or `.webm`. Direct media URLs and local media files keep the source file as-is.
 
-**Document inputs**
+**Document and article inputs**
 
 ```text
 output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   manifest.json
 ```
 
+The source file is not copied into the run directory.
+
 **Batch inputs**
 
 ```text
 output/YYYY-MM-DD_HH-MM-SS-mmm_batch-label/
   manifest.json
-  YYYY-MM-DD-item/   # when the item has a content date
-  item-slug/         # otherwise
+  YYYY-MM-DD-slug/   # when the item has a content date
+  slug/              # otherwise
     <artifacts for that item>
 ```
 
@@ -108,21 +112,21 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_batch-label/
   <episode-2>.mp3|.m4a|.ogg|.flac
 ```
 
-With `--keep-original-media --flat-batch`, downloaded media files keep their original extensions instead of normalizing to compressed audio.
+With `--keep-original-media --flat-batch`, downloaded media files keep their original extensions.
 
 ## Examples
 
 ```bash
 # Download a YouTube video
-bun autoshow download https://www.youtube.com/watch?v=u1-WHqATSQU
+bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU"
 
 # Download the best available video+audio from a YouTube video
-bun autoshow download https://www.youtube.com/watch?v=u1-WHqATSQU --best-quality
+bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU" --best-quality
 
 # Download a direct media URL
 bun autoshow download https://ajc.pics/autoshow/examples/1-audio.mp3
 
-# Download document metadata from a local PDF
+# Collect document metadata from a local PDF
 bun autoshow download input/examples/document/1-document.pdf
 
 # Download X Space audio
@@ -147,4 +151,4 @@ Setup details are in [`setup.md`](../../00-setup-and-utilities/setup.md).
 
 For YouTube inputs, anonymous `yt-dlp` requests may be rate-limited or challenged. Follow the [YouTube cookies guide](../../00-setup-and-utilities/cookies.md) to save authentication with `setup`, then rerun `download`.
 
-For X post URL inputs, set `X_BEARER_TOKEN` so AutoShow can resolve the linked Space before downloading. X Space downloads may need the same cookie setup as other authenticated media sources.
+X post URLs require `X_BEARER_TOKEN`. X Space downloads may need the same cookie setup as other authenticated media sources.

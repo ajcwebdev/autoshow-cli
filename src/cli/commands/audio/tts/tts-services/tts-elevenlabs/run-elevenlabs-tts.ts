@@ -4,6 +4,7 @@ import { runHostedTtsChunkPipeline } from '~/cli/commands/audio/tts/tts-utils/ho
 import { logTtsConfig } from '~/cli/commands/audio/tts/tts-utils/log-tts-config'
 import { resolveTtsChunkCharacterLimit } from '~/cli/commands/audio/tts/tts-utils/tts-chunking'
 import { ELEVENLABS_DEFAULT_VOICE_ID } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateElevenLabsVoiceSettings } from './elevenlabs-utils'
 import type { ElevenlabsTtsModel, ElevenLabsTtsRequestControls, ElevenLabsTtsVoiceSettings, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { resolveCredential } from '~/utils/validate/env-utils'
@@ -50,6 +51,7 @@ export const runElevenLabsTts = async (
     throw ValidationError('ElevenLabs TTS input text is empty', { stage: 'tts:elevenlabs' })
   }
 
+  validateElevenLabsVoiceSettings(options.model, options.controls?.voiceSettings)
   const startTime = Date.now()
   const voiceId = options.voiceId?.trim() ?? ELEVENLABS_DEFAULT_VOICE_ID
   const outputFormat = ELEVENLABS_TTS_OUTPUT_FORMAT

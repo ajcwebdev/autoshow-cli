@@ -4,7 +4,7 @@ import { computeTokenCost } from '~/utils/pricing/token-pricing'
 
 describe('price mode contracts', () => {
   test('comic LLM estimates convert canonical cents rates to dollars', () => {
-      expect(estimateLlmCostFromRegistry('gpt-5.5', 1_000_000, 1_000_000)).toBe(35)
+      expect(estimateLlmCostFromRegistry('gpt-5.6-sol', 1_000_000, 1_000_000)).toBe(35)
     })
 
   test('shared token pricing helper computes flat cents-per-million rates', () => {

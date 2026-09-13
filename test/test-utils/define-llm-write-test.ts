@@ -4,30 +4,21 @@ import {
 } from "./test-helpers"
 import { E2E_TEST_TIMEOUT_MS } from './budget'
 import { readCanonicalRecord } from './manifest-helpers'
+import { assertSummaryFields, assertTextContent, containedArtifactPath } from './assert-generated-content'
 import {
   defineBudgetedLiveServiceTest,
   requireConfiguredEnvVar,
   runCommandAndExpectOutputDir,
   withOutputLifecycle
 } from './service-test-kit'
-import {
-  isGeminiLlmTransientUnavailable,
-  isMinimaxTransientUnavailable
-} from './provider-failure-classifiers'
-
-const TRANSIENT_RETRY_PREDICATES: Record<string, (output: string) => boolean> = {
-  gemini: isGeminiLlmTransientUnavailable,
-  minimax: isMinimaxTransientUnavailable,
-}
-
 export const defineLLMWriteTest = ({
   models,
   provider,
   llmService,
   requiresEnvVar,
   promptProfiles,
-  inputPath = 'input/examples/tts/0-tts-short.txt',
-  inputTitle = '0-tts-short',
+  inputPath = 'input/examples/tts/00-tts-shortest.txt',
+  inputTitle = '00-tts-shortest',
 }: {
   models: readonly string[]
   provider: string
@@ -52,18 +43,7 @@ export const defineLLMWriteTest = ({
         commandArgs.push('--prompt', promptProfile)
       }
 
-      const transientPredicate = TRANSIENT_RETRY_PREDICATES[llmService]
-      const outputDir = await runCommandAndExpectOutputDir(inputTitle, commandArgs, undefined, {
-        ...(transientPredicate
-          ? {
-              transient: {
-                isTransient: transientPredicate,
-                providerLabel: `transient ${llmService} availability error for ${model}`,
-                persistedLabel: `${llmService} transient availability error persisted for ${model}`,
-              }
-            }
-          : {})
-      })
+      const outputDir = await runCommandAndExpectOutputDir(inputTitle, commandArgs)
 
       const metadataExists = await fileExists(`${outputDir}/manifest.json`)
       expect(metadataExists).toBe(true)
@@ -72,14 +52,15 @@ export const defineLLMWriteTest = ({
         step3?: { llmModel?: string; llmService?: string; outputFileName?: string }
       }
       const outputFileName = metadata.step3?.outputFileName ?? 'text.json'
-      expect(await fileExists(`${outputDir}/${outputFileName}`)).toBe(true)
+      const outputPath = containedArtifactPath(outputDir, outputFileName)
+      expect(await fileExists(outputPath)).toBe(true)
 
       if (outputFileName.endsWith('.json')) {
-        const summaryJson = await Bun.file(`${outputDir}/${outputFileName}`).json() as unknown
-        expect(summaryJson).toBeDefined()
+        const summaryJson = await Bun.file(outputPath).json() as unknown
+        assertSummaryFields(summaryJson, promptProfile ?? 'default')
       } else {
-        const summaryContent = await Bun.file(`${outputDir}/${outputFileName}`).text()
-        expect(summaryContent.length).toBeGreaterThan(0)
+        const summaryContent = await Bun.file(outputPath).text()
+        assertTextContent(summaryContent)
       }
 
       expect(metadata.step3?.llmModel).toBe(model)

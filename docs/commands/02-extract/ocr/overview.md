@@ -31,16 +31,9 @@ Standalone `extract` and `resume` use `--provider provider[=model]` for document
 
 ## Local OCR
 
-| Input family                                       | Default path                                               |
-| -------------------------------------------------- | ---------------------------------------------------------- |
-| PDF                                                | Tesseract                                                  |
-| EPUB                                               | native text; `--provider tesseract` also available         |
-| Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT) | convert to EPUB, then follow the EPUB path                 |
-| CBZ                                                | per-image OCR, Tesseract by default                        |
-| PNG / JPG / JPEG / TIF / TIFF / GIF                | Tesseract                                                  |
-| WebP / BMP                                         | Tesseract                                                  |
+PDF, image, and CBZ inputs default to Tesseract. EPUB uses native text; `--provider tesseract` is also available. Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT) convert to EPUB first. `--ocr-concurrency` defaults to `10` for local OCR.
 
-`--ocr-concurrency` defaults to `10` for local OCR.
+See [OCR Routing](#ocr-routing) for the full input-family matrix.
 
 ### Tesseract
 
@@ -55,7 +48,6 @@ bun autoshow extract input/examples/document/1-document.pdf --provider tesseract
 ```
 
 Tesseract is the only engine that consumes `--ocr-language`. It decrypts password PDFs locally and has no upload or page cap.
-
 
 ## OCR Setup
 
@@ -187,29 +179,28 @@ Detection is local-first: PDF bookmarks, TOC pages, and heading heuristics. `--p
 | Option   | Value                                 |
 | -------- | ------------------------------------- |
 | Selector | `--provider mistral[=<model>]`        |
-| Models   | `mistral-ocr-2512`, `mistral-ocr-4-0`, `mistral-ocr-4-1` |
+| Models   | `mistral-ocr-4-0`, `mistral-ocr-4-1` |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider mistral=mistral-ocr-2512
 bun autoshow extract input/examples/document/1-document.pdf --provider mistral=mistral-ocr-4-0
 ```
 
-Bare `--provider mistral` defaults to `mistral-ocr-2512`.
+Bare `--provider mistral` defaults to `mistral-ocr-4-0`.
 
 ### GLM OCR
 
 | Option   | Value                      |
 | -------- | -------------------------- |
 | Selector | `--provider glm[=<model>]` |
-| Models   | `glm-ocr`, `glm-5.3-flash`                  |
+| Models   | `glm-5.3-flash`                  |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider glm=glm-ocr
+bun autoshow extract input/examples/document/1-document.pdf --provider glm=glm-5.3-flash
 ```
 
-Caps: images up to 10 MB, PDFs up to 50 MB and 100 pages.
+Images are limited to 10 MB each; PDF pages are rendered locally.
 
-GLM Flash uses vision chat with one rendered PNG/JPEG page per request and a 10 MiB application limit. Its reasoning is mandatory; `--reasoning-effort low|high|max` is supported and `disabled` fails locally. The adapter extracts only final content and rejects token-limit truncation. Estimates use $0.15/M input and $0.50/M output tokens; observed completion usage includes any billable reasoning. Dedicated `glm-ocr` keeps its layout endpoint and native PDF support. [GLM Flash](https://docs.z.ai/guides/vlm/glm-5.3-flash), [pricing](https://docs.z.ai/guides/overview/pricing)
+`glm-5.3-flash` renders each page as PNG/JPEG and requires reasoning (`--reasoning-effort low|high|max`; `disabled` is rejected). [GLM Flash](https://docs.z.ai/guides/vlm/glm-5.3-flash), [pricing](https://docs.z.ai/guides/overview/pricing)
 
 ### Kimi OCR
 
@@ -230,84 +221,72 @@ Bare `--provider kimi` defaults to `kimi-k2.6`. Direct or rendered image uploads
 | Option   | Value                                                                                     |
 | -------- | ----------------------------------------------------------------------------------------- |
 | Selector | `--provider openai[=<model>]`                                                             |
-| Models   | `gpt-6-astra`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano` |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider openai=gpt-5.6-sol
-bun autoshow extract input/examples/document/1-document.pdf --provider openai=gpt-5.5
-bun autoshow extract input/examples/document/1-document.pdf --provider openai=gpt-5.4-nano
+bun autoshow extract input/examples/document/1-document.pdf --provider openai=gpt-5.6-luna
 ```
 
-Bare `--provider openai` defaults to the cheapest OpenAI OCR model. Maximum PDF size is 50 MB.
+Bare `--provider openai` defaults to the cheapest OpenAI OCR model. Maximum PDF size is 50 MB. `gpt-6-astra` requires reasoning (`low`, `medium`, `high`, `xhigh`, `max`; disabled and minimal are rejected). Estimates use $10/$50 per 1M tokens, then $20/$75 for the entire request above 272K input tokens.
 
 ### Grok OCR
 
 | Option   | Value                                                  |
 | -------- | ------------------------------------------------------ |
 | Selector | `--provider grok[=<model>]`                            |
-| Models   | `grok-4.3`, `grok-4.20-0309-non-reasoning`, `grok-4.5`, `grok-4.6` |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider grok=grok-4.3
 bun autoshow extract input/examples/document/1-document.pdf --provider grok=grok-4.5
 ```
 
-Bare `--provider grok` defaults to `grok-4.3`. Direct images and rendered pages are capped at 20 MiB each.
+Bare `--provider grok` defaults to `grok-4.5`. Direct images and rendered pages are capped at 20 MiB each.
 
 ### Anthropic OCR
 
 | Option   | Value                                                                                       |
 | -------- | ------------------------------------------------------------------------------------------- |
 | Selector | `--provider anthropic[=<model>]`                                                            |
-| Models   | `claude-fable-5-1`, `claude-fable-5`, `claude-opus-4-8`, `claude-sonnet-5`, `claude-sonnet-4-6`, `claude-haiku-4-5`, `claude-opus-5` |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider anthropic=claude-haiku-4-5
 bun autoshow extract input/examples/document/1-document.pdf --provider anthropic=claude-sonnet-5
 ```
 
-Bare `--provider anthropic` defaults to `claude-haiku-4-5`. Direct images are capped at 5 MB each. Encrypted PDFs are rejected. `claude-fable-5` requires 30-day data retention and is unavailable under ZDR.
+Bare `--provider anthropic` defaults to `claude-sonnet-5`. Direct images are capped at 5 MB each. Encrypted PDFs are rejected. `claude-fable-5` requires 30-day data retention and is unavailable under ZDR. `claude-fable-5-1` requires reasoning (`low`, `medium`, `high`, `max`; disabled and minimal are rejected) and uses always-on adaptive thinking.
 
 ### Gemini OCR
-
-Gemini 3.8 Flash is available as `gemini-3.8-flash` for writing/OCR (`gemini`) and prompted audio extraction (`gemini-stt`), with existing selectors and defaults preserved. Writing and OCR support low/medium/high reasoning; minimal and disabled are rejected. STT uses the provider default thinking level (medium), without a reasoning override. Requests omit legacy sampling controls; the transport rejects incompatible 3.8 settings before dispatch. Audio timestamps remain generated, with no native word alignment claim.
-
-Pricing checked 2026-09-08: introductory $0.75/$3.75 per million input/output tokens through 2026-12-31, then $1.50/$7.50 starting 2027-01-01. AutoShow follows its existing conservative policy and uses the standard rates for estimates and usage-based cost calculations even during the introductory window. Automatic date transitions are unsupported; recheck the tariff and refresh all three price paths by 2027-01-01. STT uses a $0.1728/hour audio-input baseline (32 tokens/second), then accounts for prompt, candidate and thinking tokens from returned usage. OCR page and writing/STT latency heuristics are reused and provisional; caching and discounted service tiers are excluded.
-
-Sources: [model specification](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash), [migration guide](https://ai.google.dev/gemini-api/docs/latest-model?hl=en), [pricing](https://ai.google.dev/gemini-api/docs/pricing).
 
 | Option   | Value                                                                                     |
 | -------- | ----------------------------------------------------------------------------------------- |
 | Selector | `--provider gemini[=<model>]`                                                             |
-| Models   | `gemini-3.1-pro-preview`, `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.5-flash`, `gemini-3.6-flash`, `gemini-3.5-flash-lite` |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.5-flash-lite
 bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.6-flash
 ```
 
-Bare `--provider gemini` defaults to `gemini-3.5-flash-lite`. Caps include inline PDFs up to 50 MB, uploads up to 2 GB, and PDFs up to 1,000 pages.
+Bare `--provider gemini` defaults to `gemini-3.5-flash-lite`. Caps include inline PDFs up to 50 MB, uploads up to 2 GB, and PDFs up to 1,000 pages. `gemini-3.8-flash` accepts `--reasoning-effort low|medium|high`; `minimal` and `disabled` are rejected. `--price` uses the standard `$1.50 / $7.50` per 1M token rates, including during the introductory `$0.75 / $3.75` window through 2026-12-31. [model specification](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash), [pricing](https://ai.google.dev/gemini-api/docs/pricing)
 
 ### DeepInfra OCR
 
 | Option   | Value                                                                                                                                                                                       |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Selector | `--provider deepinfra[=<model>]`                                                                                                                                                            |
-| Models   | `google/gemma-4-31B-it`, `google/gemma-4-26B-A4B-it`, `google/gemma-3-27b-it`, `meta-llama/Llama-4-Scout-17B-16E-Instruct`, `mistralai/Mistral-Small-3.2-24B-Instruct-2506`, `Qwen/Qwen3-VL-235B-A22B-Instruct`, `Qwen/Qwen3-VL-30B-A3B-Instruct` |
+| Models   | `google/gemma-4-31B-it` |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct
-bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=Qwen/Qwen3-VL-235B-A22B-Instruct
+bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=google/gemma-4-31B-it
 ```
 
-Gemma 4 31B and 26B A4B use one image per chat request, at most 20 MiB and 8,192 requested output tokens. Reasoning defaults to disabled; optional `low|medium|high` effort is supported. Only final content is extracted. Input/output rates per million tokens are $0.13/$0.38 for [31B](https://deepinfra.com/google/gemma-4-31B-it) and $0.07/$0.34 for [26B A4B](https://deepinfra.com/google/gemma-4-26B-A4B-it). Page-token preflight estimates are uncalibrated heuristics; completed requests use reported token counts.
+Gemma 4 31B accepts one image per request, at most 20 MiB. Reasoning defaults to disabled; optional `low|medium|high` effort is supported. [31B](https://deepinfra.com/google/gemma-4-31B-it)
 
-Bare `--provider deepinfra` defaults to `Qwen/Qwen3-VL-30B-A3B-Instruct`. Uploads are capped at 20 MB per image.
+Bare `--provider deepinfra` defaults to `google/gemma-4-31B-it`. Uploads are capped at 20 MB per image.
 
 ## OCR Notes
 
 - Standalone `extract` document runs write `extraction.txt` or `result.json` plus `manifest.json`.
 - Backfill existing OCR outputs with [`resume`](../../00-setup-and-utilities/resume.md).
+
+See the [model report](../../../reports/model-refresh-ocr.md) for historical model changes and the [testing guide](tests.md) for verification coverage.
 
 ## Incomplete Runs and Blocked Providers
 
@@ -327,37 +306,31 @@ Password PDFs are decrypted before upload or render except Anthropic, which reje
 
 | Provider                             | Released      | Kind           | Native PDF            | Images                      | Image cap      | PDF cap        | Pages          | Markdown                         | Tables / formulas / layout                | Pool   | Pricing                                              | Cost rank |
 | ------------------------------------ | ------------- | -------------- | --------------------- | --------------------------- | -------------- | -------------- | -------------- | -------------------------------- | ----------------------------------------- | ------ | ---------------------------------------------------- | --------- |
-| Mistral `mistral-ocr-4-0`            | ✅ 2026-06-23 | Dedicated OCR  | ✅ Native PDF upload  | ✅ PNG JPG TIF              | ⚠️ Unpublished | ⚠️ Unpublished | ⚠️ Unpublished | ✅ Per-page markdown             | ⚠️ Layout in markdown                     | ✅ Yes | $4.00/1k pages                                       | 3/3       |
-| GLM `glm-ocr`                        | ✅ 2026-02    | Layout OCR     | ✅ Native PDF upload  | ✅ PNG JPG                  | ❌ 10 MB       | ⚠️ 50 MB       | ❌ 100 pages   | ✅ Markdown                      | ✅ Tables, formulas, seals, handwriting   | ✅ Yes | $0.03 in / $0.03 out per 1M tokens (≈$0.09/1k pages) | 1/3       |
-| Mistral `mistral-ocr-2512`           | ⚠️ 2025-12    | Dedicated OCR  | ✅ Native PDF upload  | ✅ PNG JPG TIF              | ⚠️ Unpublished | ⚠️ Unpublished | ⚠️ Unpublished | ✅ Per-page markdown             | ⚠️ Layout in markdown                     | ✅ Yes | $2.00/1k pages                                       | 2/3       |
+| Mistral `mistral-ocr-4-1`            | ✅ 2026-09    | Dedicated OCR  | ✅ Native PDF upload  | ✅ PNG JPG TIF              | ⚠️ Unpublished | ⚠️ Unpublished | ⚠️ Unpublished | ✅ Per-page markdown             | ⚠️ Layout in markdown                     | ✅ Yes | $4.00/1k pages                                       | 1/2 |
+| Mistral `mistral-ocr-4-0`            | ✅ 2026-06-23 | Dedicated OCR  | ✅ Native PDF upload  | ✅ PNG JPG TIF              | ⚠️ Unpublished | ⚠️ Unpublished | ⚠️ Unpublished | ✅ Per-page markdown             | ⚠️ Layout in markdown                     | ✅ Yes | $4.00/1k pages                                       | 1/2 |
 
 ### Frontier VLMs
 
 | Provider                            | Released      | Native PDF                    | Images              | Image cap       | PDF cap          | Pages          | Structured pages | Reasoning                  | Pool   | Pricing                                          | Cost rank |
 | ----------------------------------- | ------------- | ----------------------------- | ------------------- | --------------- | ---------------- | -------------- | ---------------- | -------------------------- | ------ | ------------------------------------------------ | --------- |
-| OpenAI `gpt-5.6-terra`              | ✅ 2026-08    | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $2.00 / $12.00 per 1M tokens (≈$12.17/1k pages)  | 13/23     |
-| OpenAI `gpt-5.6-luna`               | ✅ 2026-08    | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $0.20 / $1.20 per 1M tokens (≈$1.35/1k pages)    | 1/23      |
-| Gemini `gemini-3.7-flash`           | ✅ 2026-08    | ✅ 50 MB inline / 2 GB upload | ✅ PNG JPG WEBP BMP | ✅ 2 GB         | ✅ 2 GB          | ✅ 1000 pages  | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $1.50 / $7.50 per 1M tokens (≈$13.93/1k pages)   | 14/23     |
-| Gemini `gemini-3.5-flash-lite`      | ✅ 2026-08    | ✅ 50 MB inline / 2 GB upload | ✅ PNG JPG WEBP BMP | ✅ 2 GB         | ✅ 2 GB          | ✅ 1000 pages  | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $0.30 / $2.50 per 1M tokens (≈$4.41/1k pages)    | 5/23      |
-| Grok `grok-4.6`                     | ✅ 2026-08    | ⚠️ Rendered PNG pages         | ✅ PNG JPG          | ❌ 20 MiB       | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text    | ✅ Required                | ✅ Yes | $2.00 / $6.00 per 1M tokens (≈$14.00/1k pages)   | 16/23     |
-| OpenAI `gpt-5.6-sol`                | ✅ 2026-07    | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $5.00 / $30.00 per 1M tokens (≈$36.33/1k pages)  | 21/23     |
-| Anthropic `claude-sonnet-5`         | ✅ 2026-07    | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MB         | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $2.00 / $10.00 per 1M tokens (≈$8.06/1k pages)   | 9/23      |
-| Anthropic `claude-opus-5`           | ✅ 2026-07    | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MB         | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages    | ✅ Optional, on by default | ✅ Yes | $5.00 / $25.00 per 1M tokens (≈$20.15/1k pages)  | 18/23     |
-| Gemini `gemini-3.6-flash`           | ✅ 2026-07    | ✅ 50 MB inline / 2 GB upload | ✅ PNG JPG WEBP BMP | ✅ 2 GB         | ✅ 2 GB          | ✅ 1000 pages  | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $1.50 / $7.50 per 1M tokens (≈$13.93/1k pages)   | 14/23     |
-| Grok `grok-4.5`                     | ✅ 2026-07    | ⚠️ Rendered PNG pages         | ✅ PNG JPG          | ❌ 20 MiB       | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text    | ✅ Required                | ✅ Yes | $2.00 / $6.00 per 1M tokens (≈$14.00/1k pages)   | 16/23     |
-| Kimi `kimi-k3`                      | ✅ 2026-07    | ⚠️ Rendered PNG pages         | ✅ PNG JPG WEBP GIF | ⚠️ 100 MB       | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text    | ✅ Required                | ✅ Yes | $3.00 / $15.00 per 1M tokens (≈$20.54/1k pages)  | 20/23     |
-| Anthropic `claude-fable-5`          | ✅ 2026-06-09 | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MB         | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages    | ✅ Required                | ✅ Yes | $10.00 / $50.00 per 1M tokens (≈$63.69/1k pages) | 22/23     |
-| Gemini `gemini-3.5-flash`           | ✅ 2026-06    | ✅ 50 MB inline / 2 GB upload | ✅ PNG JPG WEBP BMP | ✅ 2 GB         | ✅ 2 GB          | ✅ 1000 pages  | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $1.50 / $9.00 per 1M tokens (≈$7.31/1k pages)    | 7/23      |
-| Anthropic `claude-opus-4-8`         | ✅ 2026-05    | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MB         | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $5.00 / $25.00 per 1M tokens (≈$20.15/1k pages)  | 18/23     |
-| Grok `grok-4.3`                     | ✅ 2026-05    | ⚠️ Rendered PNG pages         | ✅ PNG JPG          | ❌ 20 MiB       | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text    | ❌ Unsupported             | ✅ Yes | $1.25 / $2.50 per 1M tokens (≈$7.50/1k pages)    | 8/23      |
-| OpenAI `gpt-5.5`                    | ✅ 2026-04-23 | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $5.00 / $30.00 per 1M tokens (≈$72.02/1k pages)  | 23/23     |
-| OpenAI `gpt-5.4-mini`               | ✅ 2026-03-17 | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $0.75 / $4.50 per 1M tokens (≈$10.54/1k pages)   | 11/23     |
-| OpenAI `gpt-5.4-nano`               | ✅ 2026-03-17 | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $0.20 / $1.25 per 1M tokens (≈$2.90/1k pages)    | 2/23      |
-| Grok `grok-4.20-0309-non-reasoning` | ✅ 2026-03-09 | ⚠️ Rendered PNG pages         | ✅ PNG JPG          | ❌ 20 MiB       | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text    | ❌ Unsupported             | ✅ Yes | $1.25 / $2.50 per 1M tokens (≈$4.16/1k pages)    | 4/23      |
-| Anthropic `claude-sonnet-4-6`       | ✅ 2026-02    | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MB         | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $3.00 / $15.00 per 1M tokens (≈$12.09/1k pages)  | 12/23     |
-| Kimi `kimi-k2.6`                    | ⚠️ 2026-01    | ⚠️ Rendered PNG pages         | ✅ PNG JPG WEBP GIF | ⚠️ 100 MB       | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text    | ⚠️ Optional                | ✅ Yes | $0.95 / $4.00 per 1M tokens (≈$6.12/1k pages)    | 6/23      |
-| Gemini `gemini-3.1-pro-preview`     | ⚠️ 2025-12    | ✅ 50 MB inline / 2 GB upload | ✅ PNG JPG WEBP BMP | ✅ 2 GB         | ✅ 2 GB          | ✅ 1000 pages  | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $2.00 / $12.00 per 1M tokens (≈$9.52/1k pages)   | 10/23     |
-| Anthropic `claude-haiku-4-5`        | ⚠️ 2025-10-01 | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MB         | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages    | ❌ Unsupported             | ✅ Yes | $1.00 / $5.00 per 1M tokens (≈$4.03/1k pages)    | 3/23      |
+| GLM `glm-5.3-flash`                 | ✅ 2026-09    | ⚠️ Rendered PNG pages         | ✅ PNG JPG          | ❌ 10 MB        | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text    | ✅ Required                | ✅ Yes | $0.15 / $0.50 per 1M tokens (≈$2.66/1k pages)    | 2/18 |
+| Gemini `gemini-3.8-flash`           | ✅ 2026-09    | ✅ 50 MB inline / 2 GB upload | ✅ PNG JPG WEBP BMP | ✅ 2 GB         | ✅ 2 GB          | ✅ 1000 pages  | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $1.50 / $7.50 per 1M tokens (≈$13.93/1k pages)   | 8/18 |
+| OpenAI `gpt-6-astra`                | ✅ 2026-09    | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages    | ✅ Required                | ✅ Yes | $10.00 / $50.00 per 1M tokens (≈$63.25/1k pages) | 16/18 |
+| Anthropic `claude-fable-5-1`        | ✅ 2026-09    | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MB         | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages    | ✅ Required                | ✅ Yes | $10.00 / $50.00 per 1M tokens (≈$63.69/1k pages) | 17/18 |
+| OpenAI `gpt-5.6-terra`              | ✅ 2026-08    | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $2.00 / $12.00 per 1M tokens (≈$12.17/1k pages)  | 7/18 |
+| OpenAI `gpt-5.6-luna`               | ✅ 2026-08    | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $0.20 / $1.20 per 1M tokens (≈$1.35/1k pages)    | 1/18 |
+| Gemini `gemini-3.7-flash`           | ✅ 2026-08    | ✅ 50 MB inline / 2 GB upload | ✅ PNG JPG WEBP BMP | ✅ 2 GB         | ✅ 2 GB          | ✅ 1000 pages  | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $1.50 / $7.50 per 1M tokens (≈$13.93/1k pages)   | 8/18 |
+| Gemini `gemini-3.5-flash-lite`      | ✅ 2026-08    | ✅ 50 MB inline / 2 GB upload | ✅ PNG JPG WEBP BMP | ✅ 2 GB         | ✅ 2 GB          | ✅ 1000 pages  | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $0.30 / $2.50 per 1M tokens (≈$4.41/1k pages)    | 3/18 |
+| Grok `grok-4.6`                     | ✅ 2026-08    | ⚠️ Rendered PNG pages         | ✅ PNG JPG          | ❌ 20 MiB       | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text    | ✅ Required                | ✅ Yes | $2.00 / $6.00 per 1M tokens (≈$14.00/1k pages)   | 11/18 |
+| OpenAI `gpt-5.6-sol`                | ✅ 2026-07    | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $5.00 / $30.00 per 1M tokens (≈$36.33/1k pages)  | 15/18 |
+| Anthropic `claude-sonnet-5`         | ✅ 2026-07    | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MB         | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $2.00 / $10.00 per 1M tokens (≈$8.06/1k pages)   | 6/18 |
+| Anthropic `claude-opus-5`           | ✅ 2026-07    | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MB         | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages    | ✅ Optional, on by default | ✅ Yes | $5.00 / $25.00 per 1M tokens (≈$20.15/1k pages)  | 13/18 |
+| Gemini `gemini-3.6-flash`           | ✅ 2026-07    | ✅ 50 MB inline / 2 GB upload | ✅ PNG JPG WEBP BMP | ✅ 2 GB         | ✅ 2 GB          | ✅ 1000 pages  | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $1.50 / $7.50 per 1M tokens (≈$13.93/1k pages)   | 8/18 |
+| Grok `grok-4.5`                     | ✅ 2026-07    | ⚠️ Rendered PNG pages         | ✅ PNG JPG          | ❌ 20 MiB       | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text    | ✅ Required                | ✅ Yes | $2.00 / $6.00 per 1M tokens (≈$14.00/1k pages)   | 11/18 |
+| Kimi `kimi-k3`                      | ✅ 2026-07    | ⚠️ Rendered PNG pages         | ✅ PNG JPG WEBP GIF | ⚠️ 100 MB       | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text    | ✅ Required                | ✅ Yes | $3.00 / $15.00 per 1M tokens (≈$20.54/1k pages)  | 14/18 |
+| Anthropic `claude-fable-5`          | ✅ 2026-06-09 | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MB         | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages    | ✅ Required                | ✅ Yes | $10.00 / $50.00 per 1M tokens (≈$63.69/1k pages) | 17/18 |
+| Gemini `gemini-3.5-flash`           | ✅ 2026-06    | ✅ 50 MB inline / 2 GB upload | ✅ PNG JPG WEBP BMP | ✅ 2 GB         | ✅ 2 GB          | ✅ 1000 pages  | ✅ JSON pages    | ✅ Optional                | ✅ Yes | $1.50 / $9.00 per 1M tokens (≈$7.31/1k pages)    | 5/18 |
+| Kimi `kimi-k2.6`                    | ⚠️ 2026-01    | ⚠️ Rendered PNG pages         | ✅ PNG JPG WEBP GIF | ⚠️ 100 MB       | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text    | ⚠️ Optional                | ✅ Yes | $0.95 / $4.00 per 1M tokens (≈$6.12/1k pages)    | 4/18 |
 
 ### Hosted open VLMs
 
@@ -365,22 +338,4 @@ DeepInfra VLMs render PDF and EPUB pages as PNG, accept PNG/JPG/WEBP up to 20 MB
 
 | Provider                                                  | Released      | Pricing                                        | Cost rank |
 | --------------------------------------------------------- | ------------- | ---------------------------------------------- | --------- |
-| DeepInfra `Qwen/Qwen3-VL-235B-A22B-Instruct`              | ⚠️ 2025-09-23 | $0.20 / $0.88 per 1M tokens (≈$1.28/1k pages)  | 4/5       |
-| DeepInfra `Qwen/Qwen3-VL-30B-A3B-Instruct`                | ⚠️ 2025-09-23 | $0.15 / $0.60 per 1M tokens (≈$1.48/1k pages)  | 5/5       |
-| DeepInfra `mistralai/Mistral-Small-3.2-24B-Instruct-2506` | ⚠️ 2025-06-20 | $0.075 / $0.20 per 1M tokens (≈$0.69/1k pages) | 1/5       |
-| DeepInfra `meta-llama/Llama-4-Scout-17B-16E-Instruct`     | ❌ 2025-04-05 | $0.10 / $0.30 per 1M tokens (≈$0.94/1k pages)  | 3/5       |
-| DeepInfra `google/gemma-3-27b-it`                         | ❌ 2025-03-12 | $0.08 / $0.16 per 1M tokens (≈$0.71/1k pages)  | 2/5       |
-
-## OCR additions — 2026-09-08
-
-`--provider openai=gpt-6-astra` and `--provider anthropic=claude-fable-5-1` are now accepted OCR targets. Existing selectors and bare provider defaults are preserved. Both accept images and documents through the existing OCR pipeline. Astra uses Responses native JSON pages for multi-page input and plain text for single pages. Fable uses Messages with the existing schema-guided JSON prompt, Files API PDF upload and page normalization; it does not force tool use.
-
-Astra accepts `low`, `medium`, `high`, `xhigh` and `max` reasoning; Fable accepts `low`, `medium`, `high` and `max`. Both reject disabled/minimal reasoning. Omitted effort delegates to the provider, including Fable's always-on adaptive thinking at default high effort. [Astra specification](https://developers.openai.com/api/docs/models/gpt-6-astra), [Fable specification](https://platform.claude.com/docs/en/models/fable-5-1/overview).
-
-Both use $10/$50 per million uncached input/output tokens. Above 272,000 input tokens, Astra charges the entire request at $20/$75; its separate cache-read rates are $1/M and $2/M respectively. Fable cache reads cost $0.25/M. AutoShow records cache rates as metadata but retains uncached estimates and observed-token cost calculations, so displayed costs do not apply cache savings. The Anthropic adapter does not request prompt caching. Cache-write charges, special service tiers and discounts are excluded. Inherited page/token/latency heuristics remain provisional without paid calibration. [Astra pricing](https://developers.openai.com/api/docs/models/gpt-6-astra), [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing).
-
-## Mistral OCR 4.1 addition — 2026-09-08
-
-`mistral-ocr-4-1` is available alongside `mistral-ocr-2512` and `mistral-ocr-4-0`; the bare Mistral default remains `mistral-ocr-2512`. It uses the existing OCR PDF/image endpoint and requests `include_blocks: true` with `confidence_scores_granularity: "block"`. Structured page artifacts retain `pages[].mistralOcr.blocks` (labels, bounding boxes, content, image/table references and optional block confidence scores) and `pages[].mistralOcr.confidence_scores` (page aggregates). Provider field names and score values are preserved, including null scores for non-text blocks. Missing metadata is accepted. Extracted prose still comes exclusively from page markdown; scores do not replace the separate Tesseract confidence field or alter page ordering. Word confidence and other provider metadata, including image/table payloads, are not retained by this integration. See the [OCR processor contract](https://docs.mistral.ai/studio/document-processing/basic_ocr).
-
-The [OCR 4.1 tariff](https://docs.mistral.ai/models/ocr-4-1), checked 2026-09-08, is $4 per 1,000 ordinary pages and $5 per 1,000 annotated pages. CLI estimates use the ordinary rate, including block/confidence extraction. The estimator exposes the annotated rate separately for pricing only; it rejects annotated estimates when no verified tariff is configured for the model. AutoShow does not expose or send `bbox_annotation_format`, `document_annotation_format` or `document_annotation_prompt`. Mistral supports those schema-based [annotation options](https://docs.mistral.ai/studio/document-processing/annotations), but annotation generation and annotation response artifacts remain unsupported. Batch discounts, taxes and credits are excluded; the inherited latency heuristic has not been calibrated with paid inference.
+| DeepInfra `google/gemma-4-31B-it`                         | ✅ 2026-09    | $0.13 / $0.38 per 1M tokens (≈$0.92/1k pages)  | 1/1 |

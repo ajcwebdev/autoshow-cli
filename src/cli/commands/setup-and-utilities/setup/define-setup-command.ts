@@ -38,7 +38,7 @@ export const setupCommand = defineCliCommand({
     examples: [
       ['bun autoshow setup', 'Install all dependencies'],
       ['bun autoshow setup --show', 'Print current config'],
-      ['bun autoshow setup --llm openai=gpt-5.4-mini --stt whisperfile=small', 'Set default LLM and STT model'],
+      ['bun autoshow setup --llm openai=gpt-5.6-luna --stt whisperfile=small', 'Set default LLM and STT model'],
       ['bun autoshow setup --models tiny.en --models whisperfile:small', 'Download whisperfile models without running inference'],
       ['bun autoshow setup --step whisperfile', 'Download the default whisperfile model (tiny)'],
       ['bun autoshow setup --network-check serve --port 8787', 'Serve a local diagnostic fixture'],

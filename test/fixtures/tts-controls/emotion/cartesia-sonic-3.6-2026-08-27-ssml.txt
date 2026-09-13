@@ -1,0 +1,5 @@
+Narrator: <emotion value="calm"/> I sound calm. All is well.
+Narrator: <emotion value="excited"/> I sound excited! This is great news!
+Narrator: <emotion value="sad"/> I sound sad. I miss my friend.
+Narrator: <emotion value="angry"/> I sound angry. That is not fair!
+Narrator: <emotion value="scared"/> I sound afraid. Please stay with me.

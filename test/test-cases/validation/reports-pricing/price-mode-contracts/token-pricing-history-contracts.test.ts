@@ -6,7 +6,7 @@ import type { Step3Metadata } from '~/types'
 
 const buildStep3CostMetadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata => ({
   llmService: 'openai',
-  llmModel: 'gpt-5.5',
+  llmModel: 'gpt-5.6-sol',
   processingTime: 1234,
   inputTokenCount: 300_000,
   outputTokenCount: 10_000,
@@ -55,10 +55,10 @@ describe('price mode contracts', () => {
       expect(getRetiredModelReplacement('llm', 'gemini', 'gemini-3.1-flash-lite')).toBe('gemini-3.5-flash-lite')
       expect(getRetiredModelReplacement('extract', 'gemini', 'gemini-3.1-flash-lite')).toBe('gemini-3.5-flash-lite')
       expect(resolveCheapestModelForFlag('gemini')).toBe('gemini-3.5-flash-lite')
-      expect(resolveCheapestModelForFlag('anthropic')).toBe('claude-haiku-4-5')
+      expect(resolveCheapestModelForFlag('anthropic')).toBe('claude-sonnet-5')
       expect(resolveCheapestModelForFlag('kimi')).toBe('kimi-k2.6')
       expect(resolveCheapestModelForFlag('gemini-ocr')).toBe('gemini-3.5-flash-lite')
-      expect(resolveCheapestModelForFlag('anthropic-ocr')).toBe('claude-haiku-4-5')
+      expect(resolveCheapestModelForFlag('anthropic-ocr')).toBe('claude-sonnet-5')
       expect(resolveCheapestModelForFlag('kimi-ocr')).toBe('kimi-k2.6')
     })
 })

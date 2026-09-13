@@ -52,8 +52,8 @@ const runPool = async (overrides: Partial<Parameters<typeof runOcrPagePool>[0]> 
 describe('pooled OCR page scheduler contracts', () => {
 
   test('attempt artifact paths are isolated and path-contained', () => {
-    const path = getOcrPoolAttemptRelativeDir(7, { service: 'deepinfra', model: 'Qwen/Qwen3-VL-30B-A3B-Instruct' }, 3)
-    expect(path).toBe('providers/deepinfra-Qwen-Qwen3-VL-30B-A3B-Instruct/attempts/page-000007/attempt-003')
+    const path = getOcrPoolAttemptRelativeDir(7, { service: 'deepinfra', model: 'google/gemma-4-31B-it' }, 3)
+    expect(path).toBe('providers/deepinfra-google-gemma-4-31B-it/attempts/page-000007/attempt-003')
     expect(path.startsWith('/')).toBe(false)
     expect(path.split('/')).not.toContain('..')
   })

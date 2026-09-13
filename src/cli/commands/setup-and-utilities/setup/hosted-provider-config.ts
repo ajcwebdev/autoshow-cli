@@ -158,11 +158,10 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'minimax',
     envVar: 'MINIMAX_API_KEY',
-    label: 'MiniMax write/music',
+    label: 'MiniMax music',
     hintUrl: 'https://platform.minimax.io/',
     stages: ['write', 'music'],
     configPaths: [
-      'defaults.llm.minimax',
       'defaults.music.minimaxMusic'
     ]
   },

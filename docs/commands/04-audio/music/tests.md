@@ -1,16 +1,16 @@
 # Music Tests
 
-Local lyric-video rendering coverage plus provider-backed music-generation coverage for the `music` command.
+Local lyric-video rendering plus hosted music generation for the `music` command.
 
 Safety: these `bun t` commands document human service/e2e coverage and may call paid or quota-limited providers. Do not run them for agent verification without explicit approval for that exact run.
 
 ## Quick Start
 
 ```bash
-# local lyric-video coverage
+# local lyric-video rendering
 bun t test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts
 
-# hosted music service coverage
+# hosted music generation
 bun t test/test-cases/e2e/service/audio/music/
 ```
 
@@ -20,7 +20,6 @@ Live music generation tests run only when their provider key is configured: `ELE
 
 ## Current Coverage
 
-- `test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts` covers local lyric-video rendering.
 - `test/test-cases/e2e/service/audio/music/` covers live generation for ElevenLabs, Gemini, and MiniMax.
 - `test/test-cases/price-flag/audio/music/music-price.test.ts` covers `--price` validation.
 
@@ -36,4 +35,4 @@ Local lyric-video rendering has no provider cost.
 ## Related Docs
 
 - [Testing Overview](../../testing.md)
-- [Music Services](overview.md)
+- [Music Command](overview.md)

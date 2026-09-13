@@ -21,6 +21,7 @@ export const collectInworldTtsTargets = (
         const invocationVoiceId = resolveTtsTargetInvocationVoiceId('inworld', invocation)
         const controls = resolveTtsTargetInvocationControls('inworld', invocation, {
           steeringPrompt: selection.inworldInstructions,
+          speed: selection.inworldSpeed,
         })
         const apiKey = resolveCredential('inworld', 'require', { stage: 'tts:inworld', description: 'Inworld AI TTS' })
         return await runInworldTts(text, outputDir, {
@@ -31,6 +32,7 @@ export const collectInworldTtsTargets = (
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler,
           requestEvidence,
+          speed: controls.speed,
           steeringPrompt: typeof (controls as { steeringPrompt?: unknown }).steeringPrompt === 'string' ? (controls as { steeringPrompt?: string }).steeringPrompt : undefined,
         })
       }

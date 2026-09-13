@@ -25,8 +25,8 @@ describe('Together P1 hosted writing contracts', () => {
       expect(buildOptsFromFlags({ together: model }).togetherModels).toEqual([model])
       expect(() => validateTogetherModel(host)).toThrow('Invalid model')
     }
-    expect(buildOptsFromFlags({ together: true }).togetherModels).toEqual(['glm-5.1'])
-    expect(buildOptsFromFlags({ 'all-llm': true }).togetherModels).toEqual(['kimi-k2.6', 'glm-5.1', 'kimi-k3', 'glm-5.3', 'glm-5.3-flash'])
+    expect(buildOptsFromFlags({ together: true }).togetherModels).toEqual(['glm-5.3-flash'])
+    expect(buildOptsFromFlags({ 'all-llm': true }).togetherModels).toEqual(['kimi-k3', 'glm-5.3', 'glm-5.3-flash'])
     expect(() => validateTogetherModel('glm-5.2')).toThrow()
   })
 
@@ -95,15 +95,5 @@ describe('Together P1 hosted writing contracts', () => {
     expect(calls[0]?.bodyJson?.['reasoning']).toEqual({ enabled: false })
     expect(calls[0]?.bodyJson).not.toHaveProperty('reasoning_effort')
     expect(() => resolveReasoningPolicy({ step: 'llm', service: 'kimi', model: 'kimi-k3', requestedReasoningEffort: 'disabled' })).toThrow()
-  })
-
-  test('existing host mappings, cap and disabled toggle remain intact', async () => {
-    for (const [model, host] of [['kimi-k2.6', 'moonshotai/Kimi-K2.6'], ['glm-5.1', 'zai-org/GLM-5.1']] as const) {
-      const calls = installMockFetch(() => response())
-      await runTogetherModel('Synthetic prompt', model)
-      expect(calls[0]?.bodyJson).toEqual({ model: host, messages: [{ role: 'user', content: 'Synthetic prompt' }], stream: false, max_tokens: 32768 })
-      await runTogetherModel('Synthetic prompt', model, { ...structuredOpts, requestedReasoningEffort: 'disabled' })
-      expect(calls[1]?.bodyJson?.['reasoning']).toEqual({ enabled: false })
-    }
   })
 })

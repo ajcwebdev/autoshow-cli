@@ -1,3 +1,5 @@
+import { runTtsForTargets } from '~/cli/commands/audio/tts/run-tts'
+import { assertAppendOnlyAudioProjection } from '~/cli/commands/command-shared/pipeline-manifest/audio-projection-transitions'
 import { setupTtsFixtureCredentials } from '../../../../test-utils/tts-fixture-credentials'
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdir, readdir } from 'node:fs/promises'
@@ -91,6 +93,38 @@ const expectCompletePreparedCardinality = async (
 afterEach(() => resetPinnedRunDir())
 
 describe('canonical standalone TTS lifecycle persistence', () => {
+  test('successful standalone runs retain bounded metadata and every paid slot', async () => {
+    await withTempDir('autoshow-tts-compact-single-', async dir => {
+      const inputPath = join(dir, 'source.txt')
+      const outputDir = join(dir, 'run')
+      await Bun.write(inputPath, 'A simple benchmark line.')
+      configurePinnedRunDir(outputDir)
+      const targets = [openaiTarget('gpt-4o-mini-tts-2025-12-15', 'success', async () => {}), openaiTarget('gpt-4o-mini-tts', 'success', async () => {})]
+      await runSingleTtsInput(inputPath, options(), targets, undefined)
+      const manifest = await readManifest(outputDir)
+      expect(manifest?.items[0]?.providers.map(provider => provider.status)).toEqual(['succeeded', 'succeeded'])
+      const files = (await readdir(outputDir, { recursive: true, withFileTypes: true })).filter(entry => entry.isFile())
+      expect(files.filter(entry => /\.(json|jsonl|lock)$/.test(entry.name)).length).toBeLessThanOrEqual(12)
+      expect(files.some(entry => entry.parentPath.includes('/providers/') || entry.name === 'journal.jsonl')).toBe(false)
+      for (const provider of manifest!.items[0]!.providers) {
+        const archive = (provider.metadata?.['ttsAudio'] as CanonicalAudioProviderProjection).archive!
+        const render = await Bun.file(join(outputDir, archive.renderRef.path)).json()
+        expect(render.slots.length).toBeGreaterThan(0)
+        for (const slot of render.slots) expect(await Bun.file(join(outputDir, 'slots', slot.slotHash + '.wav')).exists()).toBe(true)
+        expect(await Bun.file(join(outputDir, archive.finalRef.path)).exists()).toBe(true)
+        expect(() => assertAppendOnlyAudioProjection({ ...provider, artifactDir: 'providers/' + provider.targetKey }, { ...provider, artifactDir: 'unrelated/' + provider.targetKey })).toThrow('artifact directory')
+      }
+      const planRef = manifest!.items[0]!.providers[0]!.options['dialoguePlan'] as { path: string }
+      const plan = await Bun.file(join(outputDir, planRef.path)).json()
+      let resumeDispatches = 0
+      const resumed = await runTtsForTargets('A simple benchmark line.', outputDir, {}, targets.map(target => ({ ...target, run: async () => { resumeDispatches++; throw new Error('Completed audio must be reused') } })), {
+        sourceIdentity: plan.sourceIdentity, dialoguePlan: plan, retainedProviderStates: manifest!.items[0]!.providers, recoveryRootDir: outputDir
+      })
+      expect(resumed.metadata).toHaveLength(2)
+      expect(resumeDispatches).toBe(0)
+    })
+  })
+
   test('single partial failure is canonical before dispatch and retains real terminal states', async () => {
     await withTempDir('autoshow-tts-canonical-single-', async (dir) => {
       const inputPath = join(dir, 'source.txt')
@@ -108,7 +142,11 @@ describe('canonical standalone TTS lifecycle persistence', () => {
       const manifest = await readManifest(outputDir) as PipelineManifest
       expect(manifest.items[0]?.status).toBe('incomplete')
       expect(manifest.items[0]?.providers.map((provider) => provider.status)).toEqual(['succeeded', 'failed'])
-      expect(manifest.items[0]?.providers.every((provider) => provider.artifactDir === `providers/${provider.targetKey}`)).toBe(true)
+      expect(manifest.items[0]?.providers.map(provider => provider.artifactDir)).toEqual([targets[0]!.targetKey!, `providers/${targets[1]!.targetKey}`])
+      const files = await readdir(outputDir, { recursive: true, withFileTypes: true })
+      const succeededFiles = files.filter(entry => entry.isFile() && entry.parentPath.includes(targets[0]!.targetKey!))
+      expect(succeededFiles.map(entry => entry.name).sort()).toEqual(['render.json', 'timeline.json'])
+      expect(files.some(entry => entry.isFile() && entry.parentPath.includes(targets[1]!.targetKey!) && entry.name.endsWith('.json'))).toBe(true)
       const succeeded = manifest.items[0]?.providers[0]
       const projection = succeeded?.result?.['ttsAudio'] as CanonicalAudioProviderProjection
       const itemPlanRef = succeeded?.options['dialoguePlan'] as { dialoguePlanId: string, path: string, sha256: string }

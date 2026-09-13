@@ -14,6 +14,7 @@ const LOGGER_SINK_FILES = [
 ]
 
 const PAYLOAD_STDOUT_FILES = [
+  'src/tools/tts-controls-benchmark.ts',
   // The diagnostic owns fixture readiness JSON and the non-JSON-mode probe payload.
   'src/cli/commands/setup-and-utilities/setup/network-check.ts',
   'src/cli/native/dispatcher.ts',
@@ -37,6 +38,7 @@ const CONSOLE_ALLOWLIST = new Set([...LOGGER_SINK_FILES, ...PAYLOAD_STDOUT_FILES
 const PLAIN_THROW_ALLOWLIST = new Set<string>([])
 
 const PROCESS_EXIT_ALLOWLIST = new Set([
+  'src/tools/tts-controls-benchmark.ts',
   'src/cli/create-cli.ts',
   'src/cli/failure-handlers.ts',
   'src/tools/repo-snapshot.ts',

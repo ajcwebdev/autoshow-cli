@@ -1,0 +1,24 @@
+{
+  "id": "cartesia-sonic-3.6-2026-08-27-ssml",
+  "provider": "cartesia",
+  "model": "sonic-3.6-2026-08-27",
+  "input": "input/examples/tts/controls/speed-pauses/cartesia-sonic-3.6-2026-08-27-ssml.txt",
+  "flags": {
+    "cartesia-tts": "sonic-3.6-2026-08-27",
+    "tts-dialogue-format": "labeled",
+    "tts-speaker": [
+      "Narrator=0834f3df-e650-4766-a20c-5a93a43aa6e3"
+    ]
+  },
+  "turnControls": {},
+  "mechanism": "ssml",
+  "source": "https://docs.cartesia.ai/build-with-cartesia/capability-guides/volume-speed-emotion.md",
+  "lines": [
+    "<speed ratio=\"1\"/> I speak at a normal pace. One, two, three, four, five.",
+    "<speed ratio=\"0.75\"/> I speak slowly. One, two, three, four, five.",
+    "<speed ratio=\"1.25\"/> I speak fast. One, two, three, four, five.",
+    "<speed ratio=\"1\"/> I pause here. <break time=\"500ms\"/> Then I speak.",
+    "<speed ratio=\"1\"/> I take a long pause here. <break time=\"2s\"/> Then I speak."
+  ],
+  "category": "speed-pauses"
+}

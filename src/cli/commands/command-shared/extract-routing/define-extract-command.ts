@@ -102,7 +102,7 @@ export const extractCommand = defineCliCommand({
       ['bun autoshow extract audio.wav --align-transcript output/reviewed/result.json --alignment-model runtime/models/alignment/wav2vec2-base-960h-onnx', 'Align transcript text with an installed local CTC model'],
       ['bun autoshow extract audio.wav --calibrate-whisper --timing-reference output/aligned/result.json', 'Compare installed Whisperfile standard and DTW word timing locally'],
       ['bun autoshow extract stereo.wav --split-channels', 'Separate audio channels and verify decoded sample hashes'],
-      ['bun autoshow extract document.pdf --provider mistral=mistral-ocr-2512', 'Extract text from a document with Mistral OCR'],
+      ['bun autoshow extract document.pdf --provider mistral=mistral-ocr-4-0', 'Extract text from a document with Mistral OCR'],
       ['bun autoshow extract https://example.com/article --provider spider', 'Extract a remote article with a URL backend'],
       ['bun autoshow extract output/<extract-run-dir> --transcript-video', 'Render a synced speaker transcript video from a media extract run'],
       ['bun autoshow extract --transcript-video --audio input/audio.mp3 --transcript-result output/<extract-run-dir>/result.json', 'Render a transcript video from explicit files'],

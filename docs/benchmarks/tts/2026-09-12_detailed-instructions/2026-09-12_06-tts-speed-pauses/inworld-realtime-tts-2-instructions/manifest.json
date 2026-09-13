@@ -1,0 +1,237 @@
+{
+  "command": "tts",
+  "scope": "single",
+  "createdAt": "2026-09-12T08:48:49.340Z",
+  "updatedAt": "2026-09-12T08:48:56.067Z",
+  "items": [
+    {
+      "input": "input/examples/tts/controls/speed-pauses/inworld-realtime-tts-2-instructions.txt",
+      "outputDir": ".",
+      "status": "full",
+      "metadata": {
+        "url": "file://input/examples/tts/controls/speed-pauses/inworld-realtime-tts-2-instructions.txt",
+        "title": "inworld-realtime-tts-2-instructions",
+        "channel": "Local",
+        "duration": "Unknown",
+        "inputKind": "text",
+        "characterCount": 247,
+        "tts": [
+          {
+            "ttsService": "inworld",
+            "ttsModel": "realtime-tts-2",
+            "speaker": "Narrator=Dennis",
+            "processingTime": 6662,
+            "audioFileName": "speech.wav",
+            "audioFileSize": 836558,
+            "chunkCount": 5,
+            "operation": "tts-synthesis",
+            "targetKey": "tts-synthesis--inworld--67c3029b8ee35d4619f92450170b257eabaf8c369b53c8b8d5266dea1bd34925",
+            "transport": "hosted-api",
+            "artifactDir": "providers/tts-synthesis--inworld--67c3029b8ee35d4619f92450170b257eabaf8c369b53c8b8d5266dea1bd34925",
+            "renderIdentity": "17e4a0d635246230e1b6a6f2edc60344caa1db7d92195011505eb9a2808a184c",
+            "resultIdentity": "8bd0a96bad9e7808ccf55bbb5cf02f0b675cc3075e4a5fe65f93a10ccca8478a",
+            "audioRunId": "8dfe9e5852e4d9efad3f8376c6c6ec636a1054f69ad89cf4432675c0a74e3a3c",
+            "renderStrategy": "segmented"
+          }
+        ],
+        "cost": {
+          "estimated": {
+            "totalCost": 0.6174999999999999,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "inworld",
+                "model": "realtime-tts-2",
+                "cost": 0.6174999999999999,
+                "costMultiplier": 1,
+                "costPer1kCharactersCents": 2.5
+              }
+            ]
+          },
+          "observedEstimate": {
+            "totalCost": 0.6174999999999999,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "inworld",
+                "model": "realtime-tts-2",
+                "cost": 0.6174999999999999,
+                "costMultiplier": 1,
+                "costPer1kCharactersCents": 2.5
+              }
+            ]
+          },
+          "actual": {
+            "totalCost": 0.6174999999999999,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "inworld",
+                "model": "realtime-tts-2",
+                "cost": 0.6174999999999999,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 247
+              }
+            ]
+          }
+        },
+        "timing": {
+          "estimated": {
+            "totalProcessingTimeMs": 628,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "inworld",
+                "model": "realtime-tts-2",
+                "processingTimeMs": 628,
+                "inputMetric": "characters",
+                "inputValue": 247,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 2542.51,
+                "throughputValue": 393.312,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "estimated"
+              }
+            ],
+            "estimateConfidence": "registry",
+            "likelyGatingTargets": [
+              {
+                "step": "tts",
+                "provider": "inworld",
+                "model": "realtime-tts-2",
+                "processingTimeMs": 628
+              }
+            ]
+          },
+          "actual": {
+            "totalProcessingTimeMs": 6662,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "inworld",
+                "model": "realtime-tts-2",
+                "processingTimeMs": 6662,
+                "inputMetric": "characters",
+                "inputValue": 247,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 26971.66,
+                "throughputValue": 37.076,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              }
+            ]
+          }
+        }
+      },
+      "providers": [
+        {
+          "service": "inworld",
+          "model": "realtime-tts-2",
+          "local": false,
+          "operation": "tts-synthesis",
+          "targetKey": "tts-synthesis--inworld--67c3029b8ee35d4619f92450170b257eabaf8c369b53c8b8d5266dea1bd34925",
+          "transport": "hosted-api",
+          "artifactDir": "providers/tts-synthesis--inworld--67c3029b8ee35d4619f92450170b257eabaf8c369b53c8b8d5266dea1bd34925",
+          "status": "succeeded",
+          "attempts": 0,
+          "options": {
+            "dialoguePlan": {
+              "dialoguePlanId": "eed983c55837acd40e53dfdd90fb7bf5806bac1b268075754086c95759247371",
+              "path": "metadata/tts-dialogue-plans/eed983c55837acd40e53dfdd90fb7bf5806bac1b268075754086c95759247371.json",
+              "sha256": "c5cf4fa7180ed3445ec23bc832af25d1ea172a2d9f5bd0d25c24db464f2f27b6"
+            }
+          },
+          "metadata": {
+            "ttsAudio": {
+              "selectedSuccess": {
+                "renderIdentity": "17e4a0d635246230e1b6a6f2edc60344caa1db7d92195011505eb9a2808a184c",
+                "eventSequence": 1,
+                "resultIdentity": "8bd0a96bad9e7808ccf55bbb5cf02f0b675cc3075e4a5fe65f93a10ccca8478a",
+                "audioRunId": "8dfe9e5852e4d9efad3f8376c6c6ec636a1054f69ad89cf4432675c0a74e3a3c"
+              },
+              "archive": {
+                "schemaVersion": 1,
+                "renderRef": {
+                  "path": "tts-synthesis--inworld--67c3029b8ee35d4619f92450170b257eabaf8c369b53c8b8d5266dea1bd34925/render.json",
+                  "sha256": "04210082879777b5bf888f635b2929ad2580c7f0d22412f9b5acf06d0f70a23e"
+                },
+                "timelineRef": {
+                  "path": "tts-synthesis--inworld--67c3029b8ee35d4619f92450170b257eabaf8c369b53c8b8d5266dea1bd34925/timeline.json",
+                  "sha256": "61b5ae169d8ca8f88890cf4efa189623dc6d5f2cb8a382ea52edad057fbba720"
+                },
+                "finalRef": {
+                  "path": "speech.wav",
+                  "sha256": "efcfe89296f33685a10342c5b86f8723f2ddefabc538ca5940127d8d7aa5fd97"
+                },
+                "slotCount": 5
+              },
+              "branchHistory": [],
+              "readinessAttempts": [],
+              "renderHistory": [],
+              "pointerEvents": [
+                {
+                  "sequence": 1,
+                  "action": "select-success",
+                  "renderIdentity": "17e4a0d635246230e1b6a6f2edc60344caa1db7d92195011505eb9a2808a184c",
+                  "eventSequence": 1,
+                  "resultIdentity": "8bd0a96bad9e7808ccf55bbb5cf02f0b675cc3075e4a5fe65f93a10ccca8478a",
+                  "audioRunId": "8dfe9e5852e4d9efad3f8376c6c6ec636a1054f69ad89cf4432675c0a74e3a3c",
+                  "actor": {
+                    "namespace": "local-user",
+                    "actorId": "current-cli-user"
+                  },
+                  "at": "2026-09-12T08:48:56.061Z"
+                }
+              ]
+            }
+          },
+          "result": {
+            "ttsAudio": {
+              "selectedSuccess": {
+                "renderIdentity": "17e4a0d635246230e1b6a6f2edc60344caa1db7d92195011505eb9a2808a184c",
+                "eventSequence": 1,
+                "resultIdentity": "8bd0a96bad9e7808ccf55bbb5cf02f0b675cc3075e4a5fe65f93a10ccca8478a",
+                "audioRunId": "8dfe9e5852e4d9efad3f8376c6c6ec636a1054f69ad89cf4432675c0a74e3a3c"
+              },
+              "archive": {
+                "schemaVersion": 1,
+                "renderRef": {
+                  "path": "tts-synthesis--inworld--67c3029b8ee35d4619f92450170b257eabaf8c369b53c8b8d5266dea1bd34925/render.json",
+                  "sha256": "04210082879777b5bf888f635b2929ad2580c7f0d22412f9b5acf06d0f70a23e"
+                },
+                "timelineRef": {
+                  "path": "tts-synthesis--inworld--67c3029b8ee35d4619f92450170b257eabaf8c369b53c8b8d5266dea1bd34925/timeline.json",
+                  "sha256": "61b5ae169d8ca8f88890cf4efa189623dc6d5f2cb8a382ea52edad057fbba720"
+                },
+                "finalRef": {
+                  "path": "speech.wav",
+                  "sha256": "efcfe89296f33685a10342c5b86f8723f2ddefabc538ca5940127d8d7aa5fd97"
+                },
+                "slotCount": 5
+              },
+              "branchHistory": [],
+              "readinessAttempts": [],
+              "renderHistory": [],
+              "pointerEvents": [
+                {
+                  "sequence": 1,
+                  "action": "select-success",
+                  "renderIdentity": "17e4a0d635246230e1b6a6f2edc60344caa1db7d92195011505eb9a2808a184c",
+                  "eventSequence": 1,
+                  "resultIdentity": "8bd0a96bad9e7808ccf55bbb5cf02f0b675cc3075e4a5fe65f93a10ccca8478a",
+                  "audioRunId": "8dfe9e5852e4d9efad3f8376c6c6ec636a1054f69ad89cf4432675c0a74e3a3c",
+                  "actor": {
+                    "namespace": "local-user",
+                    "actorId": "current-cli-user"
+                  },
+                  "at": "2026-09-12T08:48:56.061Z"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

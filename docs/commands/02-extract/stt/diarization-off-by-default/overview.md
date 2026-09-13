@@ -35,6 +35,8 @@ Sources: [model specification](https://ai.google.dev/gemini-api/docs/models/gemi
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider gemini
 ```
 
+Bare `--provider gemini` defaults to `gemini-3.6-flash`.
+
 ### Together
 
 | Option   | Value                                                    |
@@ -59,8 +61,9 @@ Pricing is the AutoShow estimate rate. Cost rank orders models cheapest-first wi
 
 | Provider                                  | Released      | Word timestamps            | Duration             | File size                 | Pricing   | Cost rank |
 | ----------------------------------------- | ------------- | -------------------------- | -------------------- | ------------------------- | --------- | --------- |
-| Gemini `gemini-3.6-flash`                 | ✅ 2026-07    | ❌ Segment timestamps only | ✅ No documented cap | ❌ 20 MiB / 2 GiB         | $0.173/hr | 5/5       |
-| Together `nvidia/parakeet-tdt-0.6b-v3`    | ⚠️ 2025-08-14 | ✅ Native words | ⚠️ 4 hours           | ⚠️ 500 MiB                | $0.09/hr  | 3/5       |
-| DeepInfra `openai/whisper-large-v3-turbo` | ❌ 2024-09    | ✅ Native words | ✅ No documented cap | ✅ No documented cap      | $0.012/hr | 1/5       |
-| DeepInfra `openai/whisper-large-v3`       | ❌ 2023-11    | ✅ Native words | ✅ No documented cap | ✅ No documented cap      | $0.027/hr | 2/5       |
-| Together `openai/whisper-large-v3`        | ❌ 2023-11    | ✅ Native words | ⚠️ 4 hours           | ❌ 20 MiB                 | $0.09/hr  | 3/5       |
+| Gemini `gemini-3.8-flash`                 | ✅ 2026-09    | ❌ Segment timestamps only | ✅ No documented cap | ❌ 20 MiB / 2 GiB         | $0.173/hr | 5/6       |
+| Gemini `gemini-3.6-flash`                 | ✅ 2026-07    | ❌ Segment timestamps only | ✅ No documented cap | ❌ 20 MiB / 2 GiB         | $0.173/hr | 5/6       |
+| Together `nvidia/parakeet-tdt-0.6b-v3`    | ⚠️ 2025-08-14 | ✅ Native words | ⚠️ 4 hours           | ⚠️ 500 MiB                | $0.09/hr  | 3/6       |
+| DeepInfra `openai/whisper-large-v3-turbo` | ❌ 2024-09    | ✅ Native words | ✅ No documented cap | ✅ No documented cap      | $0.012/hr | 1/6       |
+| DeepInfra `openai/whisper-large-v3`       | ❌ 2023-11    | ✅ Native words | ✅ No documented cap | ✅ No documented cap      | $0.027/hr | 2/6       |
+| Together `openai/whisper-large-v3`        | ❌ 2023-11    | ✅ Native words | ⚠️ 4 hours           | ❌ 20 MiB                 | $0.09/hr  | 3/6       |

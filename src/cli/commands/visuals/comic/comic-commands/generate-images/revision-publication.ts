@@ -7,7 +7,7 @@ import { atomicWriteJson } from '~/utils/filesystem'
 import { toPosixPath } from '~/utils/runtime-paths'
 import { recordComicImageRevision } from '../../comic-utils/comic-manifest'
 import { getSceneOutputDirectory } from '../../comic-utils/project-paths'
-import { REVISION_COMPARISON_MODEL, REVISION_IMAGE_MODEL } from './revision-evaluation-config'
+import { REVISION_COMPARISON_PROVIDER, REVISION_COMPARISON_MODEL, REVISION_IMAGE_MODEL } from './revision-evaluation-config'
 import type { LoadedRevisionPlan, PanelLedger, RevisionEvaluationDependencies } from './revision-evaluation-types'
 import { ledgerPathFor, panelDirectoryName, sha256File } from './revision-evidence-files'
 
@@ -74,7 +74,7 @@ export const publishRevisionResults = async (options: GenerateImagesCommandOptio
       planFingerprint: loaded.plan.planFingerprint,
       evidenceDirectory: toPosixPath(relative(sceneDirectory, loaded.evidenceDirectory)),
       imageProvider: { service: 'openai', model: REVISION_IMAGE_MODEL, attempts: results.filter(item => item.imageSlot).length, completed: stats.imagesGenerated, ambiguous: results.filter(item => item.imageSlot?.status === 'ambiguous').length },
-      comparisonProvider: { service: 'gemini', model: REVISION_COMPARISON_MODEL, attempts: comparisonAttempts, completed: completedComparisons, invalid: comparisonAttempts - completedComparisons },
+      comparisonProvider: { service: REVISION_COMPARISON_PROVIDER, model: REVISION_COMPARISON_MODEL, attempts: comparisonAttempts, completed: completedComparisons, invalid: comparisonAttempts - completedComparisons },
       promotedPanels,
       retainedOriginalPanels,
       actualCostUsd: stats.totalCost,

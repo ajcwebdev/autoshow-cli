@@ -6,4 +6,5 @@ export type InworldTtsRequestInput = Readonly<{
   markups?: readonly string[] | undefined
   model: InworldTtsModel
   steeringPrompt?: string | undefined
+  speed?: number | undefined
 }>

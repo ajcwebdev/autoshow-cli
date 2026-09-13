@@ -14,11 +14,6 @@ bun t test/test-cases/e2e/service/visuals/video/
 
 Live video generation tests need a configured provider key: `FAL_API_KEY`, `GEMINI_API_KEY`, `LTXV_API_KEY`, `REPLICATE_API_TOKEN`, or `XAI_API_KEY`.
 
-## Current Coverage
-
-- `test/test-cases/e2e/service/visuals/video/` covers live generation for fal.ai, Gemini, Grok, LTX, and Replicate.
-- `test/test-cases/price-flag/visuals/video/video-price.test.ts` covers `--price` validation.
-
 ## Price Preflight
 
 ```bash
@@ -26,7 +21,9 @@ bun t test/test-cases/e2e/service/visuals/video/ --price
 bun t test/test-cases/e2e/service/visuals/video/ --budget 2500
 ```
 
+`test/test-cases/price-flag/visuals/video/video-price.test.ts` covers `--price` validation without calling providers.
+
 ## Related Docs
 
 - [Testing Overview](../../testing.md)
-- [Video](overview.md)
+- [Video Command](overview.md)

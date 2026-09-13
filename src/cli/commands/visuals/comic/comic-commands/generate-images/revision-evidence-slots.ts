@@ -4,16 +4,16 @@ import type { GenerateImagesCommandOptions } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { AppValidationError, InfraError, ValidationError } from '~/utils/error-handler'
 import { atomicWriteJson } from '~/utils/filesystem'
-import { geminiGenerateContent, geminiUserContent } from '~/utils/gemini/gemini-rest'
+import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
+import { getOpenAIClientConfig } from '~/cli/commands/text/write/write-services/write-openai/openai-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
-import { resolveCredential } from '~/utils/validate/env-utils'
 import { createImage } from '../../comic-image-services/comic-image-targets'
 import { estimateImageOutputCost } from '../../comic-image-services/image-costs'
 import { writeGeneratedImage } from '../../comic-image-services/image-writer'
 import { runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 import { estimateLlmCostFromRegistry } from '../../comic-utils/structured-script-utils/llm-cost'
 import { REVISION_COMPARISON_SCHEMA, buildRevisionComparisonPrompt, normalizeRevisionComparison, parseRevisionComparison } from './revision-comparison-policy'
-import { REVISION_COMPARISON_MODEL, REVISION_IMAGE_MODEL } from './revision-evaluation-config'
+import { REVISION_COMPARISON_MODEL, REVISION_COMPARISON_PROVIDER, REVISION_IMAGE_MODEL } from './revision-evaluation-config'
 import type { ComparisonResponse, LoadedRevisionEntry, LoadedRevisionPlan, PanelLedger, RevisionEvaluationDependencies, SimilarityMeasurements } from './revision-evaluation-types'
 import { sha256File } from './revision-evidence-files'
 
@@ -22,13 +22,17 @@ const imageMimeType = (path: string): string => path.toLowerCase().endsWith('.pn
 export const imageBase64 = async (path: string): Promise<string> => Buffer.from(await Bun.file(path).arrayBuffer()).toString('base64')
 
 const defaultRequestComparison = async (input: { prompt: string; imagePaths: string[]; model: string }): Promise<ComparisonResponse> => {
-  const response = await geminiGenerateContent(resolveCredential('gemini', 'require', { stage: 'comic:revision-comparison', description: 'Comic revision comparison' }), {
+  const response = await createOpenAIResponse(getOpenAIClientConfig(), {
     model: input.model,
-    contents: geminiUserContent([{ text: input.prompt }, ...(await Promise.all(input.imagePaths.map(async path => ({ inlineData: { mimeType: imageMimeType(path), data: await imageBase64(path) } }))))]),
-    generationConfig: { responseMimeType: 'application/json', responseJsonSchema: REVISION_COMPARISON_SCHEMA },
+    input: [{ role: 'user', content: [
+      { type: 'input_text', text: input.prompt },
+      ...(await Promise.all(input.imagePaths.map(async path => ({ type: 'input_image', image_url: `data:${imageMimeType(path)};base64,${await imageBase64(path)}`, detail: 'high' })))),
+    ] }],
+    text: { verbosity: 'low', format: { type: 'json_schema', name: 'comic_revision_comparison_v4', schema: REVISION_COMPARISON_SCHEMA, strict: true } },
   })
-  if (!response.text) throw InfraError('Revision comparison returned no structured text.', { stage: 'comic:revision-comparison' })
-  return { text: response.text, inputTokens: response.usageMetadata?.promptTokenCount ?? 0, outputTokens: (response.usageMetadata?.candidatesTokenCount ?? 0) + (response.usageMetadata?.thoughtsTokenCount ?? 0) }
+  const text = extractOpenAIResponseText(response)
+  const usage = response.usage && typeof response.usage === 'object' ? response.usage as Record<string, unknown> : {}
+  return { text: response.status && response.status !== 'completed' ? '' : text ?? '', inputTokens: typeof usage['input_tokens'] === 'number' ? usage['input_tokens'] : 0, outputTokens: typeof usage['output_tokens'] === 'number' ? usage['output_tokens'] : 0 }
 }
 
 const buildRevisionPrompt = (entry: LoadedRevisionEntry): string => [
@@ -121,7 +125,7 @@ export const completeComparisonSlot = async (input: { entry: LoadedRevisionEntry
     return
   }
   if (existing) return
-  const slot: PanelLedger['comparisonSlots'][number] = { pass, status: 'in-flight', attempts: 1, startedAt: now() }
+  const slot: PanelLedger['comparisonSlots'][number] = { provider: REVISION_COMPARISON_PROVIDER, model: REVISION_COMPARISON_MODEL, pass, status: 'in-flight', attempts: 1, startedAt: now() }
   ledger.comparisonSlots.push(slot)
   ledger.comparisonSlots.sort((left, right) => left.pass - right.pass)
   await atomicWriteJson(ledgerPath, ledger)
@@ -130,17 +134,19 @@ export const completeComparisonSlot = async (input: { entry: LoadedRevisionEntry
   const imagePaths = pass === 1 ? [originalEvidencePath, candidatePath, ...entry.referencesResolved.all] : [candidatePath, originalEvidencePath, ...entry.referencesResolved.all]
   let rawText: string | undefined
   try {
-    const response = await runComicHostedRequest({ concurrency: options.concurrency ?? DEFAULT_CLI_CONCURRENCY, hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator }, 'gemini', 'comic-qa', `${options.sceneSlug}:revision-compare:panel-${entry.panelNumber}:pass-${pass}`, input.hostedIndex, async () => await (dependencies.requestComparison ?? defaultRequestComparison)({ prompt: buildRevisionComparisonPrompt(entry, pass), imagePaths, model: REVISION_COMPARISON_MODEL }))
+    const response = await runComicHostedRequest({ concurrency: options.concurrency ?? DEFAULT_CLI_CONCURRENCY, hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator }, REVISION_COMPARISON_PROVIDER, 'comic-qa', `${options.sceneSlug}:revision-compare:panel-${entry.panelNumber}:pass-${pass}`, input.hostedIndex, async () => await (dependencies.requestComparison ?? defaultRequestComparison)({ prompt: buildRevisionComparisonPrompt(entry, pass), imagePaths, model: REVISION_COMPARISON_MODEL }))
     rawText = response.text
+    const costUsd = estimateLlmCostFromRegistry(REVISION_COMPARISON_MODEL, response.inputTokens, response.outputTokens)
+    slot.usage = { inputTokens: response.inputTokens, outputTokens: response.outputTokens, costUsd }
+    if (!response.text) throw InfraError('Revision comparison returned no completed structured text.', { stage: 'comic:revision-comparison' })
     const raw = parseRevisionComparison(response.text)
     const normalized = normalizeRevisionComparison(raw, pass)
-    const costUsd = estimateLlmCostFromRegistry(REVISION_COMPARISON_MODEL, response.inputTokens, response.outputTokens)
     Object.assign(slot, { status: 'completed' as const, completedAt: now(), usage: { inputTokens: response.inputTokens, outputTokens: response.outputTokens, costUsd }, normalized })
-    await atomicWriteJson(join(panelDirectory, `comparison-pass-${pass}.json`), { schemaVersion: 1, planFingerprint: ledger.planFingerprint, panelNumber: entry.panelNumber, pass, raw, normalized, usage: slot.usage })
+    await atomicWriteJson(join(panelDirectory, `comparison-pass-${pass}.json`), { schemaVersion: 1, provider: REVISION_COMPARISON_PROVIDER, model: REVISION_COMPARISON_MODEL, planFingerprint: ledger.planFingerprint, panelNumber: entry.panelNumber, pass, raw, normalized, usage: slot.usage })
   } catch (error) {
     slot.status = error instanceof AppValidationError ? 'malformed' : 'failed'
     slot.completedAt = now(); slot.error = error instanceof Error ? error.message : String(error)
-    await atomicWriteJson(join(panelDirectory, `comparison-pass-${pass}-error.json`), { schemaVersion: 1, planFingerprint: ledger.planFingerprint, panelNumber: entry.panelNumber, pass, error: slot.error, ...(rawText !== undefined ? { rawText } : {}) })
+    await atomicWriteJson(join(panelDirectory, `comparison-pass-${pass}-error.json`), { schemaVersion: 1, provider: REVISION_COMPARISON_PROVIDER, model: REVISION_COMPARISON_MODEL, planFingerprint: ledger.planFingerprint, panelNumber: entry.panelNumber, pass, error: slot.error, ...(slot.usage ? { usage: slot.usage } : {}), ...(rawText !== undefined ? { rawText } : {}) })
   }
   await atomicWriteJson(ledgerPath, ledger)
 }

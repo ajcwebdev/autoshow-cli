@@ -1,0 +1,237 @@
+{
+  "command": "tts",
+  "scope": "single",
+  "createdAt": "2026-09-12T08:48:32.877Z",
+  "updatedAt": "2026-09-12T08:48:36.007Z",
+  "items": [
+    {
+      "input": "input/examples/tts/controls/speed-pauses/grok-grok-tts-tags.txt",
+      "outputDir": ".",
+      "status": "full",
+      "metadata": {
+        "url": "file://input/examples/tts/controls/speed-pauses/grok-grok-tts-tags.txt",
+        "title": "grok-grok-tts-tags",
+        "channel": "Local",
+        "duration": "Unknown",
+        "inputKind": "text",
+        "characterCount": 258,
+        "tts": [
+          {
+            "ttsService": "grok",
+            "ttsModel": "grok-tts",
+            "speaker": "eve",
+            "processingTime": 3073,
+            "audioFileName": "speech.wav",
+            "audioFileSize": 696266,
+            "chunkCount": 1,
+            "operation": "tts-synthesis",
+            "targetKey": "tts-synthesis--grok--f0c87606bafa1ba8d53d5e2d170ab434dcf468bad2ec3937ee31b38215e84461",
+            "transport": "hosted-api",
+            "artifactDir": "providers/tts-synthesis--grok--f0c87606bafa1ba8d53d5e2d170ab434dcf468bad2ec3937ee31b38215e84461",
+            "renderIdentity": "b97522e683843ba56d5d8f04b29a0ceebcd8e156114445414ee44c989a653de0",
+            "resultIdentity": "93b4c000c770d64d2ac4f173aa14a6006774f38b4792047b1be0545dabe63f64",
+            "audioRunId": "18746eb2ef0bbd08712e0bee892df09a2821064724d589aebb3abd95822fada3",
+            "renderStrategy": "segmented"
+          }
+        ],
+        "cost": {
+          "estimated": {
+            "totalCost": 0.387,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "grok",
+                "model": "grok-tts",
+                "cost": 0.387,
+                "costMultiplier": 1,
+                "costPer1kCharactersCents": 1.5
+              }
+            ]
+          },
+          "observedEstimate": {
+            "totalCost": 0.387,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "grok",
+                "model": "grok-tts",
+                "cost": 0.387,
+                "costMultiplier": 1,
+                "costPer1kCharactersCents": 1.5
+              }
+            ]
+          },
+          "actual": {
+            "totalCost": 0.387,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "grok",
+                "model": "grok-tts",
+                "cost": 0.387,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 258
+              }
+            ]
+          }
+        },
+        "timing": {
+          "estimated": {
+            "totalProcessingTimeMs": 5701,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "grok",
+                "model": "grok-tts",
+                "processingTimeMs": 5701,
+                "inputMetric": "characters",
+                "inputValue": 258,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 22096.899,
+                "throughputValue": 45.255,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "estimated"
+              }
+            ],
+            "estimateConfidence": "registry",
+            "likelyGatingTargets": [
+              {
+                "step": "tts",
+                "provider": "grok",
+                "model": "grok-tts",
+                "processingTimeMs": 5701
+              }
+            ]
+          },
+          "actual": {
+            "totalProcessingTimeMs": 3073,
+            "steps": [
+              {
+                "step": "tts",
+                "provider": "grok",
+                "model": "grok-tts",
+                "processingTimeMs": 3073,
+                "inputMetric": "characters",
+                "inputValue": 258,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 11910.853,
+                "throughputValue": 83.957,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              }
+            ]
+          }
+        }
+      },
+      "providers": [
+        {
+          "service": "grok",
+          "model": "grok-tts",
+          "local": false,
+          "operation": "tts-synthesis",
+          "targetKey": "tts-synthesis--grok--f0c87606bafa1ba8d53d5e2d170ab434dcf468bad2ec3937ee31b38215e84461",
+          "transport": "hosted-api",
+          "artifactDir": "providers/tts-synthesis--grok--f0c87606bafa1ba8d53d5e2d170ab434dcf468bad2ec3937ee31b38215e84461",
+          "status": "succeeded",
+          "attempts": 0,
+          "options": {
+            "dialoguePlan": {
+              "dialoguePlanId": "ac08d399dbde8b0984960d43c5dfcc274d5c698a6fc0d10c1c398cc7c335c2f1",
+              "path": "metadata/tts-dialogue-plans/ac08d399dbde8b0984960d43c5dfcc274d5c698a6fc0d10c1c398cc7c335c2f1.json",
+              "sha256": "a742c03bad4f7370dfeb7e6b1b8079ce2e983c54f317d2ba991600cb7d908312"
+            }
+          },
+          "metadata": {
+            "ttsAudio": {
+              "selectedSuccess": {
+                "renderIdentity": "b97522e683843ba56d5d8f04b29a0ceebcd8e156114445414ee44c989a653de0",
+                "eventSequence": 1,
+                "resultIdentity": "93b4c000c770d64d2ac4f173aa14a6006774f38b4792047b1be0545dabe63f64",
+                "audioRunId": "18746eb2ef0bbd08712e0bee892df09a2821064724d589aebb3abd95822fada3"
+              },
+              "archive": {
+                "schemaVersion": 1,
+                "renderRef": {
+                  "path": "tts-synthesis--grok--f0c87606bafa1ba8d53d5e2d170ab434dcf468bad2ec3937ee31b38215e84461/render.json",
+                  "sha256": "41d6ee631a5efe20144f3d1797a56ca9abdc4ca05f86a7895539e86fcd8095f5"
+                },
+                "timelineRef": {
+                  "path": "tts-synthesis--grok--f0c87606bafa1ba8d53d5e2d170ab434dcf468bad2ec3937ee31b38215e84461/timeline.json",
+                  "sha256": "55d0ddd56c41a3d80969944a476941630c84316b29aabd7644c2e0d927c9c7af"
+                },
+                "finalRef": {
+                  "path": "speech.wav",
+                  "sha256": "683ea863dbe13e90ae18f1c0c1ce36aa68b207ec5d10fa32e7d38a76de81af91"
+                },
+                "slotCount": 1
+              },
+              "branchHistory": [],
+              "readinessAttempts": [],
+              "renderHistory": [],
+              "pointerEvents": [
+                {
+                  "sequence": 1,
+                  "action": "select-success",
+                  "renderIdentity": "b97522e683843ba56d5d8f04b29a0ceebcd8e156114445414ee44c989a653de0",
+                  "eventSequence": 1,
+                  "resultIdentity": "93b4c000c770d64d2ac4f173aa14a6006774f38b4792047b1be0545dabe63f64",
+                  "audioRunId": "18746eb2ef0bbd08712e0bee892df09a2821064724d589aebb3abd95822fada3",
+                  "actor": {
+                    "namespace": "local-user",
+                    "actorId": "current-cli-user"
+                  },
+                  "at": "2026-09-12T08:48:36.004Z"
+                }
+              ]
+            }
+          },
+          "result": {
+            "ttsAudio": {
+              "selectedSuccess": {
+                "renderIdentity": "b97522e683843ba56d5d8f04b29a0ceebcd8e156114445414ee44c989a653de0",
+                "eventSequence": 1,
+                "resultIdentity": "93b4c000c770d64d2ac4f173aa14a6006774f38b4792047b1be0545dabe63f64",
+                "audioRunId": "18746eb2ef0bbd08712e0bee892df09a2821064724d589aebb3abd95822fada3"
+              },
+              "archive": {
+                "schemaVersion": 1,
+                "renderRef": {
+                  "path": "tts-synthesis--grok--f0c87606bafa1ba8d53d5e2d170ab434dcf468bad2ec3937ee31b38215e84461/render.json",
+                  "sha256": "41d6ee631a5efe20144f3d1797a56ca9abdc4ca05f86a7895539e86fcd8095f5"
+                },
+                "timelineRef": {
+                  "path": "tts-synthesis--grok--f0c87606bafa1ba8d53d5e2d170ab434dcf468bad2ec3937ee31b38215e84461/timeline.json",
+                  "sha256": "55d0ddd56c41a3d80969944a476941630c84316b29aabd7644c2e0d927c9c7af"
+                },
+                "finalRef": {
+                  "path": "speech.wav",
+                  "sha256": "683ea863dbe13e90ae18f1c0c1ce36aa68b207ec5d10fa32e7d38a76de81af91"
+                },
+                "slotCount": 1
+              },
+              "branchHistory": [],
+              "readinessAttempts": [],
+              "renderHistory": [],
+              "pointerEvents": [
+                {
+                  "sequence": 1,
+                  "action": "select-success",
+                  "renderIdentity": "b97522e683843ba56d5d8f04b29a0ceebcd8e156114445414ee44c989a653de0",
+                  "eventSequence": 1,
+                  "resultIdentity": "93b4c000c770d64d2ac4f173aa14a6006774f38b4792047b1be0545dabe63f64",
+                  "audioRunId": "18746eb2ef0bbd08712e0bee892df09a2821064724d589aebb3abd95822fada3",
+                  "actor": {
+                    "namespace": "local-user",
+                    "actorId": "current-cli-user"
+                  },
+                  "at": "2026-09-12T08:48:36.004Z"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

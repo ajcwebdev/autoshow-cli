@@ -3,29 +3,30 @@ import { UsageError } from '~/utils/error-handler'
 
 const SONIC_36_LANGUAGES = new Set('en fr de es pt zh ja hi it ko nl pl ru sv tr tl bg ro ar cs el fi hr ms sk da ta uk hu no vi bn th he ka id te gu kn ml mr pa or ur'.split(' '))
 
-export const cartesiaTtsApiVersion = (model: string): string => model === 'sonic-3.6-2026-08-27' ? '2026-08-14' : '2026-03-01'
-export const cartesiaTtsVoiceField = (model: string): string => model === 'sonic-3.6-2026-08-27' ? 'voice' : 'voice.id'
+export const cartesiaTtsApiVersion = (_model: string): string => '2026-08-14'
+export const cartesiaTtsVoiceField = (_model: string): string => 'voice'
 
 export const validateCartesiaTtsLanguage = (model: string, language?: string): string | undefined => {
   const value = language?.trim() || undefined
-  if (model === 'sonic-3.6-2026-08-27' && value && !SONIC_36_LANGUAGES.has(value)) {
-    throw UsageError(`Cartesia ${model} language must be a supported base language code; received "${value}". Locale controls are not exposed by this adapter.`)
+  if (value && (!/^[a-z]{2}(?:-[A-Z][a-z]{3})?(?:-[A-Z]{2}|-\d{3})?$/.test(value) || !SONIC_36_LANGUAGES.has(value.split('-')[0]!))) {
+    throw UsageError(`Cartesia ${model} language must be a supported language code or locale; received "${value}".`)
   }
   return value
 }
 
-export const cartesiaTtsRequestControls = (model: string, language?: string) => ({
-  // Keep legacy controls byte-for-byte compatible with retained paid slots.
-  ...(model === 'sonic-3.6-2026-08-27' ? { modelId: model } : {}),
+export const cartesiaTtsRequestControls = (model: string, language?: string, speed?: number) => ({
+  modelId: model,
   ...(validateCartesiaTtsLanguage(model, language) ? { language: language?.trim() } : {}),
+  ...(speed !== undefined ? { generationConfig: { speed } } : {}),
   outputFormat: { container: 'wav', encoding: 'pcm_s16le', sample_rate: 24000 },
   version: cartesiaTtsApiVersion(model)
 })
 
-export const buildCartesiaTtsRequestBody = (model: CartesiaTtsModel, text: string, voice: string, language?: string) => ({
+export const buildCartesiaTtsRequestBody = (model: CartesiaTtsModel, text: string, voice: string, language?: string, speed?: number) => ({
   model_id: model,
   transcript: text,
-  voice: model === 'sonic-3.6-2026-08-27' ? voice : { mode: 'id', id: voice },
+  voice,
   ...(validateCartesiaTtsLanguage(model, language) ? { language: language?.trim() } : {}),
+  ...(speed !== undefined ? { generation_config: { speed } } : {}),
   output_format: cartesiaTtsRequestControls(model, language).outputFormat
 })

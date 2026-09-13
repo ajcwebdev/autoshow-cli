@@ -1,37 +1,29 @@
 # extract URL and X
 
-Remote article URLs default to local `defuddle` extraction and can run hosted article backends instead, while X/Twitter Space inputs use the X API for metadata extraction.
+Remote article URLs default to local `defuddle` extraction and can run hosted article backends instead. X/Twitter Space inputs use the X API for metadata extraction.
 
 ## Outline
 
 - [Local URL](#local-url)
 - [URL and X Environment](#url-and-x-environment)
 - [Shared URL Options](#shared-url-options)
-- [All URL Backends](#all-url-backends)
 - [URL Output](#url-output)
 - [Provider Capabilities](#provider-capabilities)
 - [X Space Path](#x-space-path)
-- [Supported URL Patterns](#supported-url-patterns)
 - [X Space Output](#x-space-output)
-- [X Space Notes](#x-space-notes)
 
 See the [`extract` overview](../overview.md) for input routing and default article extraction.
 
 ## Local URL
 
-Do not combine `--provider` with `--all-providers` or `--all-local`.
-
-When `defuddle` is the only URL backend, it falls back to `firecrawl` if extraction fails. Combining `--all-local` with `--all-providers` runs `defuddle` first, and either group run disables that automatic fallback.
-
-### Defuddle
-
-Default for remote articles and local HTML, or select with `--provider defuddle`.
+Default for remote articles and local HTML, or select with `--provider defuddle`. Local HTML always uses `defuddle`.
 
 ```bash
 bun autoshow extract https://ajcwebdev.com
 bun autoshow extract input/article.html
 ```
 
+When `defuddle` is the selected single backend for a remote article, it falls back to `firecrawl` if extraction fails. `--all-providers` and `--all-local` disable that fallback.
 
 ## URL and X Environment
 
@@ -46,38 +38,24 @@ bun autoshow extract input/article.html
 
 ## Shared URL Options
 
-| Flag                                   | Description                                                                                                                                                                       |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--provider <backend>`                 | Article extraction backend for remote article URLs: `defuddle` (default), `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`                                              |
-| `--all-providers`                      | For `extract`, run all hosted URL article backends: `firecrawl`, `glm-reader`, `spider`, `supadata`, and `zyte`                                                                   |
-| `--provider-concurrency <n>`           | Hosted URL backends to run concurrently per item; default `7`                                                                                                                     |
-| `--url-provider-concurrency <n>`       | URL-specific hosted backend concurrency cap; default `7`                                                                                                                         |
-| `--url-request-timeout-ms <n>`         | Per-provider article request timeout in milliseconds; default `60000`                                                                                                             |
-| `--url-request-attempts <n>`           | Total article request attempts including retries; default `3`                                                                                                                     |
-| `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
-| `--format <format>`                    | Output format: `text` or `json`                                                                                                                                                   |
-| `--price`                              | Show the aggregated URL extraction estimate and exit                                                                                                                              |
-| `--max-model-cents <n>`                | Exclude each backend/model whose estimated total across the invocation exceeds the per-model ceiling in cents; works with or without `--price`                                   |
-| `--batch-limit <n\|all>`               | Limit batch size or process all items (`all`)                                                                                                                                     |
-| `--batch-order <newest\|oldest>`       | Choose batch ordering                                                                                                                                                             |
-| `--batch-concurrency <n>`              | Process batch items concurrently                                                                                                                                                  |
+Do not combine `--provider` with `--all-providers` or `--all-local`.
+
+| Flag                             | Description                                                                                                                          |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `--provider <backend>`           | Article extraction backend for remote article URLs: `defuddle` (default), `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte` |
+| `--all-providers`                | Run all hosted URL article backends: `firecrawl`, `glm-reader`, `spider`, `supadata`, and `zyte`. Each backend runs independently.   |
+| `--provider-concurrency <n>`     | Hosted URL backends to run concurrently per item; default `7`                                                                        |
+| `--url-request-timeout-ms <n>`   | Per-provider article request timeout in milliseconds; default `60000`                                                                |
+| `--url-request-attempts <n>`     | Total article request attempts including retries; default `3`                                                                        |
+| `--format <format>`              | Output format for single-backend runs: `text` or `json`                                                                              |
+| `--price`                        | Show the aggregated URL extraction estimate and exit                                                                                 |
+| `--max-model-cents <n>`          | Exclude each backend whose estimated total across the invocation exceeds the per-model ceiling in cents                              |
 
 ```bash
-bun autoshow extract input/examples/batch/2-urls.md --batch-limit all
 bun autoshow extract https://example.com/article --provider firecrawl
 bun autoshow extract https://example.com/article --all-providers --price
 bun autoshow extract https://example.com/article --all-providers --provider-concurrency 2
 ```
-
-## All URL Backends
-
-`--all-providers` runs remote article URLs through hosted backends in this order:
-
-```text
-firecrawl, glm-reader, spider, supadata, zyte
-```
-
-Do not combine `--provider` with `--all-providers` or `--all-local`. Each hosted backend runs independently, with no automatic fallback.
 
 ## URL Output
 
@@ -90,7 +68,7 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   manifest.json
 ```
 
-`--all-providers` writes the same extraction files per backend under `providers/`:
+`--all-providers` writes `extraction.txt` and `result.json` per backend under `providers/`:
 
 ```text
 output/YYYY-MM-DD_HH-MM-SS-mmm_title/
@@ -102,8 +80,6 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_title/
     zyte/
   manifest.json
 ```
-
-The root `manifest.json` records item status, cost, and errors.
 
 ## Provider Capabilities
 
@@ -127,8 +103,6 @@ bun autoshow extract "https://x.com/user/status/1234567890"
 bun autoshow extract 1DXxyRYNejbKM
 ```
 
-## Supported URL Patterns
-
 | Pattern           | Example                              |
 | ----------------- | ------------------------------------ |
 | Space URL         | `https://x.com/i/spaces/<id>`        |
@@ -139,6 +113,8 @@ bun autoshow extract 1DXxyRYNejbKM
 
 Mobile (`mobile.x.com`, `mobile.twitter.com`) and www variants are also supported.
 
+`metadata` looks up X sources, `download` fetches Space audio, and `extract` writes the Space report. Pass that report to `write` for LLM generation. `tts`, `image`, `video`, and `music` do not take X links as source inputs. A post URL that does not link to a Space still extracts; the Space section of the report is empty.
+
 ## X Space Output
 
 X Space extraction writes:
@@ -146,9 +122,3 @@ X Space extraction writes:
 - `result.json` - Space metadata, user profiles, post references, sources, and errors
 - `extraction.md` - Markdown report with summary and post tables
 - `manifest.json` - run status
-
-## X Space Notes
-
-- X inputs work in batch lists (`.md` / `.txt`) with `--batch-limit all`.
-- `metadata` looks up X sources, `download` fetches Space audio, and `extract` writes the Space report. Pass that report to `write` for LLM generation. `tts`, `image`, `video`, and `music` reject X links.
-- Posts without Spaces produce metadata reports with empty Spaces sections.

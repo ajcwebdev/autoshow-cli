@@ -1,9 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { runOpenAICompatibleChatModel } from '~/cli/commands/text/write/write-services/openai-compatible-chat'
 import { runTogetherModel } from '~/cli/commands/text/write/write-services/write-together/run-together'
-import { runMinimaxModel } from '~/cli/commands/text/write/write-services/write-minimax/run-minimax'
 import { runOpenAIModel } from '~/cli/commands/text/write/write-services/write-openai/run-openai'
-import { MINIMAX_DEFAULT_BASE_URL, TOGETHER_DEFAULT_BASE_URL } from '~/utils/base-urls'
+import { TOGETHER_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { OpenAIRestError, createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { installFetch, installOpenAIRestContractHooks, jsonResponse, structuredOpts } from './shared'
 import { expectProviderHttpError } from '../../../../test-utils/rest-contract-helpers'
@@ -73,7 +72,7 @@ describe('OpenAI REST response and chat contracts', () => {
 
     const response = await createOpenAIResponse(
       { apiKey: 'openai-key', baseURL: 'https://mock.openai.local/v1/' },
-      { model: 'gpt-5.5', input: 'Hello', stream: false }
+      { model: 'gpt-5.6-sol', input: 'Hello', stream: false }
     )
 
     expect(extractOpenAIResponseText(response)).toBe('Hello from REST.')
@@ -81,7 +80,7 @@ describe('OpenAI REST response and chat contracts', () => {
     expect(calls[0]).toMatchObject({
       url: 'https://mock.openai.local/v1/responses',
       method: 'POST',
-      bodyJson: { model: 'gpt-5.5', input: 'Hello', stream: false }
+      bodyJson: { model: 'gpt-5.6-sol', input: 'Hello', stream: false }
     })
     expect(calls[0]?.headers.get('authorization')).toBe('Bearer openai-key')
     expect(calls[0]?.headers.get('content-type')).toBe('application/json')
@@ -102,13 +101,13 @@ describe('OpenAI REST response and chat contracts', () => {
 
     await expect(createOpenAIResponse(
       { apiKey: 'openai-key', baseURL: 'https://mock.openai.local' },
-      { model: 'gpt-5.5', input: 'retry?' }
+      { model: 'gpt-5.6-sol', input: 'retry?' }
     )).rejects.toThrow('OpenAI Responses request failed (429): try later')
 
     const error = await expectProviderHttpError(
       () => createOpenAIResponse(
         { apiKey: 'openai-key', baseURL: 'https://mock.openai.local' },
-        { model: 'gpt-5.5', input: 'retry?' }
+        { model: 'gpt-5.6-sol', input: 'retry?' }
       ),
       { instanceOf: OpenAIRestError, status: 429, headers: { 'retry-after': '2' } }
     ) as OpenAIRestError
@@ -121,17 +120,17 @@ describe('OpenAI REST response and chat contracts', () => {
   test('OpenAI write routes Responses output and metadata through the shared request scaffold', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-key'
     const calls = installFetch(() => jsonResponse({
-      model: 'gpt-5.5',
+      model: 'gpt-5.6-sol',
       output: [{ type: 'message', content: [{ type: 'output_text', text: '{"summary":"done"}' }] }],
       usage: { input_tokens: 7, output_tokens: 3, total_tokens: 10 }
     }))
 
-    const result = await runOpenAIModel('Summarize this.', 'gpt-5.5', structuredOpts)
+    const result = await runOpenAIModel('Summarize this.', 'gpt-5.6-sol', structuredOpts)
 
     expect(result.result).toBe('{"summary":"done"}')
     expect(calls).toHaveLength(1)
     expect(calls[0]?.bodyJson).toEqual({
-      model: 'gpt-5.5',
+      model: 'gpt-5.6-sol',
       input: 'Summarize this.',
       stream: false,
       text: {
@@ -145,8 +144,8 @@ describe('OpenAI REST response and chat contracts', () => {
     })
     expect(result.metadata).toMatchObject({
       llmService: 'openai',
-      llmModel: 'gpt-5.5',
-      providerReturnedModel: 'gpt-5.5',
+      llmModel: 'gpt-5.6-sol',
+      providerReturnedModel: 'gpt-5.6-sol',
       tokenCountSource: 'provider_usage'
     })
   })
@@ -154,12 +153,12 @@ describe('OpenAI REST response and chat contracts', () => {
   test('OpenAI write maps normalized effort to the nested Responses reasoning object', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-key'
     const calls = installFetch(() => jsonResponse({
-      model: 'gpt-5.5',
+      model: 'gpt-5.6-sol',
       output_text: '{"summary":"done"}',
       usage: { input_tokens: 7, output_tokens: 3, total_tokens: 10 }
     }))
 
-    const result = await runOpenAIModel('Summarize this.', 'gpt-5.5', {
+    const result = await runOpenAIModel('Summarize this.', 'gpt-5.6-sol', {
       ...structuredOpts,
       requestedReasoningEffort: 'high'
     })
@@ -171,7 +170,7 @@ describe('OpenAI REST response and chat contracts', () => {
       effectiveReasoningEffort: 'high'
     })
 
-    const disabled = await runOpenAIModel('Summarize this.', 'gpt-5.5', {
+    const disabled = await runOpenAIModel('Summarize this.', 'gpt-5.6-sol', {
       ...structuredOpts,
       requestedReasoningEffort: 'disabled'
     })
@@ -229,65 +228,6 @@ describe('OpenAI REST response and chat contracts', () => {
     expect(requestSignals[0]).not.toBe(requestSignals[1])
   })
 
-  test('MiniMax write uses native chat completions with bearer auth and OpenAI-style usage', async () => {
-    process.env['MINIMAX_API_KEY'] = 'minimax-key'
-
-    const calls = installFetch(() => jsonResponse({
-      model: 'MiniMax-M3',
-      choices: [{ message: { content: 'MiniMax response.' } }],
-      usage: { prompt_tokens: 4, completion_tokens: 2, total_tokens: 6 },
-      base_resp: { status_code: 0, status_msg: 'success' }
-    }))
-
-    const result = await runMinimaxModel('Draft this.', 'MiniMax-M3', structuredOpts)
-
-    expect(result.result).toBe('MiniMax response.')
-    expect(calls).toHaveLength(1)
-    expect(calls[0]).toMatchObject({
-      url: `${MINIMAX_DEFAULT_BASE_URL}/v1/chat/completions`,
-      method: 'POST',
-      bodyJson: {
-        model: 'MiniMax-M3',
-        messages: [{ role: 'user', content: 'Draft this.' }],
-        max_completion_tokens: 16000,
-        stream: false
-      }
-    })
-    expect(calls[0]?.headers.get('authorization')).toBe('Bearer minimax-key')
-    expect(calls[0]?.headers.get('content-type')).toBe('application/json')
-    expect(calls[0]?.bodyJson?.['max_tokens']).toBeUndefined()
-    expect(calls[0]?.bodyJson?.['output_config']).toBeUndefined()
-    expect(result.metadata).toMatchObject({
-      llmService: 'minimax',
-      llmModel: 'MiniMax-M3',
-      providerReturnedModel: 'MiniMax-M3',
-      tokenCountSource: 'provider_usage',
-      providerUsage: {
-        inputTokenCount: 4,
-        outputTokenCount: 2,
-        totalTokenCount: 6
-      },
-      rawProviderUsage: {
-        prompt_tokens: 4,
-        completion_tokens: 2,
-        total_tokens: 6
-      }
-    })
-  })
-
-  test('MiniMax write rejects non-success base_resp payloads', async () => {
-    process.env['MINIMAX_API_KEY'] = 'minimax-key'
-    const calls = installFetch(() => jsonResponse({
-      choices: [{ message: { content: 'ignored' } }],
-      base_resp: { status_code: 1008, status_msg: 'invalid request' }
-    }))
-
-    await expect(runMinimaxModel('Draft this.', 'MiniMax-M3')).rejects.toThrow(
-      'MiniMax chat completion failed (1008): invalid request'
-    )
-    expect(calls).toHaveLength(1)
-  })
-
   test('Together write maps selectors to provider model IDs with bearer auth', async () => {
     process.env['TOGETHER_API_KEY'] = 'together-key'
 
@@ -297,8 +237,8 @@ describe('OpenAI REST response and chat contracts', () => {
       usage: { prompt_tokens: 6, completion_tokens: 2, total_tokens: 8 }
     }))
 
-    const kimiResult = await runTogetherModel('Draft Kimi.', 'kimi-k2.6', structuredOpts)
-    const glmResult = await runTogetherModel('Draft GLM.', 'glm-5.1')
+    const kimiResult = await runTogetherModel('Draft Kimi.', 'kimi-k3', structuredOpts)
+    const glmResult = await runTogetherModel('Draft GLM.', 'glm-5.3-flash')
 
     expect(kimiResult.result).toBe('{"summary":"kimi"}')
     expect(glmResult.result).toBe('{"summary":"glm"}')
@@ -310,9 +250,9 @@ describe('OpenAI REST response and chat contracts', () => {
     expect(calls[0]).toMatchObject({
       method: 'POST',
       bodyJson: {
-        model: 'moonshotai/Kimi-K2.6',
+        model: 'moonshotai/Kimi-K3',
         messages: [{ role: 'user', content: 'Draft Kimi.' }],
-        max_tokens: 32768,
+        max_tokens: 131072,
         stream: false,
         response_format: {
           type: 'json_schema',
@@ -326,7 +266,7 @@ describe('OpenAI REST response and chat contracts', () => {
     expect(calls[1]).toMatchObject({
       method: 'POST',
       bodyJson: {
-        model: 'zai-org/GLM-5.1',
+        model: 'zai-org/GLM-5.3-Flash',
         messages: [{ role: 'user', content: 'Draft GLM.' }],
         max_tokens: 32768,
         stream: false
@@ -336,13 +276,13 @@ describe('OpenAI REST response and chat contracts', () => {
     expect(calls[1]?.headers.get('authorization')).toBe('Bearer together-key')
     expect(kimiResult.metadata).toMatchObject({
       llmService: 'together',
-      llmModel: 'kimi-k2.6',
-      providerReturnedModel: 'moonshotai/Kimi-K2.6'
+      llmModel: 'kimi-k3',
+      providerReturnedModel: 'moonshotai/Kimi-K3'
     })
     expect(glmResult.metadata).toMatchObject({
       llmService: 'together',
-      llmModel: 'glm-5.1',
-      providerReturnedModel: 'zai-org/GLM-5.1'
+      llmModel: 'glm-5.3-flash',
+      providerReturnedModel: 'zai-org/GLM-5.3-Flash'
     })
   })
 })

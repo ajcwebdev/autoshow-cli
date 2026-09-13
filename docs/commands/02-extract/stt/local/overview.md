@@ -14,4 +14,4 @@ The full supported catalog is `tiny`, `tiny.en`, `small`, `small.en`, `medium`, 
 
 Whisperfile emits word timestamps and supports optional native SRT/VTT/LRC artifacts when advertised by the installed bundle. It does not support diarization or `--speaker-count`. See [local timing and speaker workflows](../workflows/timing/overview.md#local-timing-and-speaker-workflows) for reference comparison, forced alignment, whisperfile calibration, channel extraction/merge, and reviewed speaker-label mapping.
 
-Historical local engine quality and speed evidence remains unchanged in [`docs/benchmarks/stt-local`](../../../../benchmarks/stt-local/). Those artifacts include the removed whisper.cpp integration; they are not the current provider or automated model catalog.
+Local engine quality and speed evidence is in [`docs/benchmarks/stt-local`](../../../../benchmarks/stt-local/). Those artifacts include current whisperfile results and the removed whisper.cpp integration; they are not the automated native and Docker model catalog.

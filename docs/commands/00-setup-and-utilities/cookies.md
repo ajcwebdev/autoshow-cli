@@ -27,34 +27,13 @@ Key rules:
 
 ## Fastest Fix: Browser Import
 
-Use this if `yt-dlp` can read a browser profile on the current machine.
-
-1. In the browser profile already logged into YouTube, open:
-
-```text
-https://www.youtube.com/robots.txt
-```
-
-2. Persist the browser import, then retry the command that failed:
+Use this if `yt-dlp` can read a logged-in YouTube browser profile on this machine.
 
 ```bash
 bun autoshow setup --cookies-from-browser chrome
-bun autoshow extract "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
 ```
 
-Other common browser values:
-
-```bash
-bun autoshow setup --cookies-from-browser firefox
-bun autoshow setup --cookies-from-browser brave
-bun autoshow setup --cookies-from-browser edge
-```
-
-Specify a profile when needed:
-
-```bash
-bun autoshow setup --cookies-from-browser chrome:Default
-```
+Replace `chrome` with `firefox`, `brave`, `edge`, or another browser `yt-dlp` can read. Add a profile when needed: `chrome:Default`. Then retry the command that failed.
 
 ## Fallback: Export `cookies.txt`
 
@@ -68,11 +47,8 @@ Use this if browser import does not work or you want a dedicated cookie jar for 
 https://www.youtube.com/robots.txt
 ```
 
-4. Export only `youtube.com` cookies to a Netscape/Mozilla `cookies.txt` file.
-
-Do not use a DevTools snippet like `document.cookie`. It cannot read `HttpOnly` auth cookies. For a fresh private/incognito export, use a conforming browser exporter such as `Get cookies.txt LOCALLY` for Chrome or `cookies.txt` for Firefox. Do not commit the exported file.
-
-5. Put the file somewhere stable, for example:
+4. Export only `youtube.com` cookies to a Netscape/Mozilla `cookies.txt` file. Do not use a DevTools snippet like `document.cookie`; it cannot read `HttpOnly` auth cookies. Use a conforming exporter such as `Get cookies.txt LOCALLY` for Chrome or `cookies.txt` for Firefox. Do not commit the exported file.
+5. Put the file somewhere stable:
 
 ```bash
 mkdir -p runtime/auth
@@ -80,36 +56,22 @@ cp ~/Downloads/cookies.txt runtime/auth/youtube.cookies.txt
 chmod 600 runtime/auth/youtube.cookies.txt
 ```
 
-6. Persist the file path with `setup --cookies`:
+6. Persist the absolute file path. AutoShow does not expand `~`.
 
 ```bash
 bun autoshow setup --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
-bun autoshow extract "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
 ```
 
-Use a real absolute path. Do not use `~`; AutoShow does not expand it.
-
-7. Confirm the file starts with a Netscape cookie header:
-
-```bash
-head -n 1 /absolute/path/to/runtime/auth/youtube.cookies.txt
-```
-
-Expected:
-
-```text
-# Netscape HTTP Cookie File
-```
+The file should start with `# Netscape HTTP Cookie File`.
 
 ## If It Still Fails
 
 - Doctor reports a missing cookies file: fix the path or run `bun autoshow setup --cookies <file>`. AutoShow will not fall back while a cookies file is configured.
 - Browser import still fails: try a more specific profile such as `chrome:Default`, or export a dedicated `cookies.txt` file.
-- A fresh exported file still fails: confirm it starts with a Netscape cookie header, includes YouTube auth cookies, and was not committed or moved to a path with unreadable permissions.
-- Cookies still are not enough: forward extra `yt-dlp` options with `download` after a bare `--`, for example `bun autoshow download <url> -- --user-agent "…"` or `-- --extractor-args "youtube:player_client=web"`. Passthrough is accepted only by `download`, and only for media URL inputs. Configure cookies with `bun autoshow setup` first; do not pass `--cookies` through the `--` boundary. See [yt-dlp Passthrough](../01-sources/download/overview.md#yt-dlp-passthrough).
+- A fresh exported file still fails: confirm the Netscape header, YouTube auth cookies, and that the path is readable.
+- Cookies still are not enough: on `download` with a media URL, pass extra `yt-dlp` options after `--`. Do not pass `--cookies` that way; configure cookies with `setup` first. See [yt-dlp Passthrough](../01-sources/download/overview.md#yt-dlp-passthrough).
 
 ## References
 
 - yt-dlp FAQ: https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp
 - yt-dlp Extractors: https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies
-- yt-dlp PO Token Guide: https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide

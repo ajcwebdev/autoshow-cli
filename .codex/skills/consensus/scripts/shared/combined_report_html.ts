@@ -74,6 +74,7 @@ body {
   --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
   --muted: #898781; --grid: #e1e0d9; --border: rgba(11, 11, 11, 0.10);
   --accent: #2a78d6;
+  --rank-green: #18743b; --rank-yellow: #876300; --rank-red: #b52c35;
   margin: 0; background: var(--page); color: var(--ink);
   font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
@@ -82,6 +83,7 @@ body {
     --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
     --muted: #898781; --grid: #2c2c2a; --border: rgba(255, 255, 255, 0.10);
     --accent: #3987e5;
+    --rank-green: #72d995; --rank-yellow: #f0cd62; --rank-red: #ff929a;
   }
 }
 main { max-width: 1100px; margin: 0 auto; padding: 24px 20px 48px; }
@@ -105,8 +107,10 @@ thead th { position: sticky; top: 0; background: var(--surface); color: var(--in
 tbody td { border-bottom: 1px solid var(--grid); }
 tbody tr:last-child td { border-bottom: none; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-.rk { display: inline-block; min-width: 1.7em; text-align: center; border-radius: 6px; font-size: 11px; color: var(--ink-2); background: color-mix(in srgb, var(--ink) 6%, transparent); margin-left: 6px; }
-.rk.top { border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); color: var(--ink); }
+.rk { display: inline-block; min-width: 1.7em; text-align: center; border-radius: 6px; font-size: 11px; color: var(--rank-color); border: 1px solid var(--rank-color); background: color-mix(in srgb, var(--rank-color) 12%, transparent); margin-left: 6px; }
+.rk.top { --rank-color: var(--rank-green); }
+.rk.middle { --rank-color: var(--rank-yellow); }
+.rk.bottom { --rank-color: var(--rank-red); }
 .heat { text-align: right; font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--accent) calc(var(--h, 0) * 0.5%), transparent); }
 .empty { color: var(--muted); font-style: italic; }
 .notes { color: var(--ink-2); font-size: 12px; }
@@ -142,15 +146,16 @@ caption { caption-side: bottom; text-align: left; color: var(--muted); font-size
 .provider-sort > input[value="cost"]:checked ~ .sort-cost th[data-metric="cost"] { color: var(--ink); }
 `;
 
-function rankChip(rank: number | null): string {
+function rankChip(rank: number | null, rankedCount: number): string {
   if (rank === null) {
     return "";
   }
-  return `<span class="rk${rank <= 3 ? " top" : ""}">${rank}</span>`;
+  const tier = rank <= Math.ceil(rankedCount / 3) ? "top" : rank <= Math.ceil(2 * rankedCount / 3) ? "middle" : "bottom";
+  return `<span class="rk ${tier}" title="${tier === "top" ? "Top" : tier === "middle" ? "Middle" : "Bottom"} third">${rank}</span>`;
 }
 
-function metricCell(cell: DashboardMetricCell): string {
-  return `<td class="num">${esc(cell.display)}${rankChip(cell.rank)}</td>`;
+function metricCell(cell: DashboardMetricCell, rankedCount: number): string {
+  return `<td class="num">${esc(cell.display)}${rankChip(cell.rank, rankedCount)}</td>`;
 }
 
 function rankOrLast(rank: number | null): number {
@@ -183,6 +188,7 @@ function sortControlId(groupKey: string, metric: SortMetric): string {
 }
 
 function providerRows(group: DashboardGroup, metric: SortMetric): string {
+  const rankedCount = (key: SortMetric) => group.providers.filter((row) => row[key].rank !== null).length;
   return [...group.providers]
     .sort((left, right) => compareByMetric(left, right, metric))
     .map((row) => {
@@ -191,9 +197,9 @@ function providerRows(group: DashboardGroup, metric: SortMetric): string {
         `<tr>` +
         `<td><code title="${esc(row.providerKey)}">${esc(row.display)}</code></td>` +
         `<td class="num">${esc(row.coverage)}</td>` +
-        metricCell(row.quality) +
-        metricCell(row.speed) +
-        metricCell(row.cost) +
+        metricCell(row.quality, rankedCount("quality")) +
+        metricCell(row.speed, rankedCount("speed")) +
+        metricCell(row.cost, rankedCount("cost")) +
         evidenceCells +
         `</tr>`
       );
@@ -223,7 +229,7 @@ function providerTable(group: DashboardGroup): string {
       `<table class="providers">` +
       `<thead>${header}</thead>` +
       `<tbody>${providerRows(group, metric)}</tbody>` +
-      `<caption>Sorted by ${SORT_LABELS[metric].toLowerCase()}. Click Quality, Speed, or Cost to reorder. Rank chips stay each metric's own rank.</caption>` +
+      `<caption>Sorted by ${SORT_LABELS[metric].toLowerCase()}. Click Quality, Speed, or Cost to reorder. Rank boxes show each metric's own rank: green = top third, yellow = middle third, red = bottom third. Groups are as equal as possible, with extra places in earlier thirds.</caption>` +
       `</table></div>`
     );
   }).join("");

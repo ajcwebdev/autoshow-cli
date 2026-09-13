@@ -1,10 +1,8 @@
 # setup
 
-`setup --network-check serve|probe` runs a local delayed-response fixture or a bounded probe, separately from installation and doctor. It needs no provider credentials. Use `--probe-url http://host.docker.internal:8787 --probe-client rest --delay-seconds 150` to exercise the shared REST transport from Docker; `fetch` and `fetch-no-keepalive` are diagnostic controls. See [Docker-only network diagnostics](../../docker.md#docker-only-network-diagnostic) for readiness, loopback publishing, deadlines, and fixture cleanup.
+Install local runtimes and prerequisite tools. Use `--models` to pre-download local STT models without running inference. Use `--doctor` to check readiness without installing. Configuration flags write persistent defaults without running installation.
 
-Install local runtimes and prerequisite tools. Use `--models` to pre-download local STT models without running inference.
-
-`--network-check` cannot be combined with `--models`, `--doctor`, `--strict`, `--step`, or `--force-redownload`. Its `--probe-url`, `--probe-client`, `--delay-seconds`, and `--port` controls require network-check mode. `--strict` requires `--doctor`. `--models` selects model download mode, `--doctor` selects diagnostics, and other invocations use installation mode; help groups these controls separately.
+For Docker-only network diagnostics (`setup --network-check serve|probe`), see [Docker-only network diagnostics](../../docker.md#docker-only-network-diagnostic).
 
 ## Outline
 
@@ -41,7 +39,7 @@ bun autoshow setup --doctor
 bun autoshow setup --doctor --strict
 ```
 
-API-key checks are presence-only: doctor reports whether each managed variable is set, not whether the key is valid. Warnings do not change the default exit code. `--strict` exits 2 when a configured default needs a missing provider credential. Doctor does not make live provider calls. It reads `.env` from the working directory; exported environment variables win over file values.
+API-key checks are presence-only: doctor reports whether each provider API key is set, not whether the key is valid. Warnings do not change the default exit code. `--strict` exits 2 for readiness warnings, including missing credentials required by configured defaults, invalid configuration, unreadable configured cookies, and unavailable runtimes or model assets. Optional unselected credentials do not fail strict mode. Doctor does not make live provider calls. It reads `.env` from the working directory; exported environment variables win over file values.
 
 Doctor also reports YouTube cookie configuration and whether a configured cookies file is readable. If YouTube starts challenging anonymous `yt-dlp` requests, follow the [YouTube cookies guide](cookies.md).
 
@@ -53,7 +51,7 @@ Valid `--step` values:
 yt-dlp | defuddle | whisperfile | calibre | all | transcription | music
 ```
 
-Isolated steps assume their prerequisites are already present. On a clean machine, prefer `bun autoshow setup`.
+Isolated steps assume their prerequisites are already present. On a clean machine, prefer `bun autoshow setup`. Pass `--force-redownload` with `--step` to replace existing downloads.
 
 ```bash
 # yt-dlp, ffmpeg, and ffprobe
@@ -77,7 +75,7 @@ bun autoshow setup --step music
 
 ## Model Downloads
 
-Ordinary setup (`setup`, `setup --step whisperfile`, or `setup --step transcription`) installs only whisperfile `tiny` for local STT. `setup --step music` installs `small.en` after checking the music prerequisites. Missing explicitly selected models can also download on demand during transcription.
+Ordinary setup (`setup`, `setup --step whisperfile`, or `setup --step transcription`) installs only whisperfile `tiny` for local STT. `setup --step music` installs `small.en`. Missing explicitly selected models can also download on demand during transcription.
 
 Install the four recommended models explicitly with repeatable `--models` flags:
 
@@ -85,14 +83,14 @@ Install the four recommended models explicitly with repeatable `--models` flags:
 bun autoshow setup --models tiny --models tiny.en --models small --models whisperfile:small.en
 ```
 
-Optional larger models remain supported and require explicit selection:
+Larger models require explicit selection:
 
 ```bash
 bun autoshow setup --models whisperfile:medium --models whisperfile:medium.en
 bun autoshow setup --models whisperfile:large-v2 --models whisperfile:large-v3
 ```
 
-Bare names and `whisperfile:<model>` are equivalent. `--models` downloads without inference; all selectors are validated before downloading. The removed `whisper:` prefix and `whisper-binary`/`whisper-model` setup steps are rejected.
+Bare names and `whisperfile:<model>` are equivalent. `--models` downloads without running inference.
 
 ## Setting Defaults and Configuration
 
@@ -101,11 +99,11 @@ View or set persistent CLI defaults saved to `config/autoshow.json`:
 ```bash
 bun autoshow setup --show
 bun autoshow setup --reset
-bun autoshow setup --llm openai=gpt-5.4-mini
+bun autoshow setup --llm openai=gpt-5.6-terra
 bun autoshow setup --stt whisperfile=small.en
 bun autoshow setup --stt happyscribe=auto --stt-happyscribe-organization-id org_123
 bun autoshow setup --ocr tesseract
-bun autoshow setup --ocr mistral=mistral-ocr-2512 --ocr-language eng --ocr-dpi 300
+bun autoshow setup --ocr mistral=mistral-ocr-4-0 --ocr-language eng --ocr-dpi 300
 bun autoshow setup --tts elevenlabs=eleven_v3 --tts-voice voice_123
 bun autoshow setup --tts hume=octave-2 --tts-speaker Host=voice_host --tts-speaker Guest=voice_guest --tts-chunk-concurrency 3
 bun autoshow setup --image openai=gpt-image-2
@@ -129,7 +127,7 @@ Model selector flags are repeatable. Repeating a provider selector saves all sel
 
 ```bash
 bun autoshow setup --stt deepinfra=openai/whisper-large-v3 --stt deepinfra=openai/whisper-large-v3-turbo
-bun autoshow setup --llm openai=gpt-5.5 --llm openai=gpt-5.4-mini
+bun autoshow setup --llm openai=gpt-5.6-sol --llm openai=gpt-5.6-terra
 ```
 
 ## Config Schema
@@ -157,7 +155,7 @@ Representative JSON shape:
       }
     },
     "llm": {
-      "openai": ["gpt-5.4-mini"]
+      "openai": ["gpt-5.6-terra"]
     },
     "tts": {
       "elevenlabsTts": ["eleven_v3"],
@@ -195,9 +193,9 @@ Representative JSON shape:
 }
 ```
 
-Model-selecting fields are arrays of models, not single strings. Use `bun autoshow setup --show` to inspect the file `setup` actually writes.
+Model-selecting fields are arrays of models, not single strings. Use `bun autoshow setup --show` to inspect the saved file.
 
-Image, video, and music tuning keys use the same short vocabulary as their standalone commands inside their namespaced JSON sections. Because names such as `duration` and `format` are ambiguous outside a section, `setup` persists provider/model selectors from CLI flags while these tuning defaults are edited directly in `config/autoshow.json`.
+Image, video, and music tuning defaults such as `duration` and `format` are edited in `config/autoshow.json`. `setup` CLI flags persist provider and model selectors only.
 
 ## Persisted Defaults and Precedence
 
@@ -231,11 +229,7 @@ bun autoshow setup --max-cents 50
 
 ## Testing
 
-The no-cost `test/test-cases/validation/cli/network-check-contracts.test.ts` covers option validation, readiness, all three clients, bounded failure, and fixture cleanup; `docker-workspace-invocation.test.ts` executes the documented shell function with fake Docker to verify literal arguments, mounts, Linux ownership, environment enforcement, image override, and failure propagation. A real 150-second Docker host-gateway fixture probe is separate container acceptance.
-
-Coverage for the `setup` command, `--doctor`, progress output, and managed downloads.
-
-Safety: this suite is local and no-cost. Downloads are mocked, so nothing here calls a paid or quota-limited provider.
+Local no-cost coverage for `setup` and `--doctor`. Downloads are mocked, so nothing here calls a paid or quota-limited provider.
 
 ### Quick Start
 

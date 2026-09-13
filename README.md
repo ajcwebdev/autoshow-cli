@@ -51,7 +51,7 @@ Transcribe locally, then send the saved transcript to a hosted writer:
 
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider whisperfile=tiny --output-dir output/transcript
-bun autoshow write output/transcript/transcription.txt --provider openai=gpt-5.5 --prompt shortSummary takeaways
+bun autoshow write output/transcript/transcription.txt --provider openai=gpt-5.6-sol --prompt shortSummary takeaways
 ```
 
 `write` accepts local `.md` and `.txt` files or directories of those files. Use `extract` first for URLs, media, and documents. Hosted transcription and speaker diarization options are in the [STT guide](./docs/commands/02-extract/stt/overview.md).
@@ -87,7 +87,7 @@ Save defaults in `config/autoshow.json` through `setup`. Explicit runtime flags 
 
 ```bash
 bun autoshow setup --show
-bun autoshow setup --llm openai=gpt-5.5 --batch-limit 20 --max-cents 50
+bun autoshow setup --llm openai=gpt-5.6-sol --batch-limit 20 --max-cents 50
 ```
 
 Hosted and mixed-provider runs estimate cost before execution. Append `--price` to preview the estimate without running the job or making paid provider calls:

@@ -69,7 +69,7 @@ const resolveAttemptLayout = (
   for (const slot of planned.slots) slot.slotHash = paidSpeechSlotHash(slot)
   return {
     artifactRoot,
-    compactArchive: Boolean(options.comicContext) || artifactRoot.replace(/\/+$/, '') === 'audio/providers',
+    compactArchive: options.compactArchive ?? (Boolean(options.comicContext) || artifactRoot.replace(/\/+$/, '') === 'audio/providers'),
     layout,
     targetRelativeDir,
     archiveRelativeDir: layout.artifactDir,

@@ -11,8 +11,8 @@ const { tinyPng, repairAssessment, createSceneFixture } = setupPageContractFixtu
 
 describe('page QA parsing and audit routing', () => {
   test('routes panel QA through supported vision providers', () => {
-    expect(resolveComicQaProvider('gpt-5.5')).toBe('openai')
-    expect(resolveComicQaProvider('gemini-3.1-pro-preview')).toBe('gemini')
+    expect(resolveComicQaProvider('gpt-5.6-sol')).toBe('openai')
+    expect(resolveComicQaProvider('gemini-3.8-flash')).toBe('gemini')
     expect(() => resolveComicQaProvider('grok-4.5')).toThrow('supports OpenAI and Gemini')
   })
 
@@ -30,7 +30,7 @@ describe('page QA parsing and audit routing', () => {
     await mkdir(dirname(panelPath), { recursive: true })
     await Bun.write(panelPath, tinyPng)
     const before = await Bun.file(panelPath).arrayBuffer()
-    const result = await runQaOnlyPanelAudit({ sceneSlug, scriptPath: 'script.md', qaOnly: true, qa: true, qaModel: 'gemini-3.1-pro-preview', maxRepairs: 0, panels: [1], concurrency: 1 }, {
+    const result = await runQaOnlyPanelAudit({ sceneSlug, scriptPath: 'script.md', qaOnly: true, qa: true, qaModel: 'gemini-3.8-flash', maxRepairs: 0, panels: [1], concurrency: 1 }, {
       runId: 'test-audit',
       judgePage: async request => ({ pageNumber: request.pageNumber, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: request.model, hardFailure: true, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 7, issues: ['framing'], editInstructions: 'Use the authored framing.' }], summary: 'Framing mismatch.' }, usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15, costUsd: 0.01 } }),
     })

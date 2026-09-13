@@ -108,11 +108,7 @@ describe('TTS provider service contracts', () => {
         controls: {
           languageCode: 'en',
           voiceSettings: {
-            stability: 0.4,
-            similarity_boost: 0.8,
-            style: 0.2,
-            use_speaker_boost: true,
-            speed: 1.1
+            stability: 0.4
           },
           seed: 12345,
           textNormalization: 'on',
@@ -130,11 +126,7 @@ describe('TTS provider service contracts', () => {
         model_id: 'eleven_v3',
         language_code: 'en',
         voice_settings: {
-          stability: 0.4,
-          similarity_boost: 0.8,
-          style: 0.2,
-          use_speaker_boost: true,
-          speed: 1.1
+          stability: 0.4
         },
         seed: 12345,
         apply_text_normalization: 'on',

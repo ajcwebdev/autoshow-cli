@@ -8,7 +8,7 @@ import { atomicWriteJson } from '~/utils/filesystem'
 import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import { createImageRunStats } from '../../comic-image-services/image-costs'
 import { decideRevisionPromotion } from './revision-comparison-policy'
-import { REVISION_COMPARISON_MODEL, REVISION_COMPARISON_PASSES, REVISION_IMAGE_MODEL } from './revision-evaluation-config'
+import { REVISION_COMPARISON_PROVIDER, REVISION_COMPARISON_MODEL, REVISION_COMPARISON_PASSES, REVISION_IMAGE_MODEL } from './revision-evaluation-config'
 import type { RevisionEvaluationDependencies, RevisionEvaluationResult } from './revision-evaluation-types'
 import { loadOrCreateLedger, sha256File } from './revision-evidence-files'
 import { completeComparisonSlot, completeImageSlot, measureRevisionSimilarity, reconcileCompletedComparisonNormalization } from './revision-evidence-slots'
@@ -64,12 +64,12 @@ export const runRevisionEvaluation = async (options: GenerateImagesCommandOption
   stats.totalInputTextTokens = results.reduce((sum, ledger) => sum + (ledger.imageSlot?.usage?.textInputUnits ?? 0), 0)
   stats.totalOutputImageTokens = results.reduce((sum, ledger) => sum + (ledger.imageSlot?.usage?.outputUnits ?? 0), 0)
   const { promotedPanels, retainedOriginalPanels, completedComparisons } = await publishRevisionResults(options, dependencies, loaded, results, stats)
-  const runLedger = { schemaVersion: 1, mode: 'revision-evaluation', experimentId: loaded.plan.experimentId, sceneSlug: loaded.plan.sceneSlug, planFingerprint: loaded.plan.planFingerprint, imageModel: REVISION_IMAGE_MODEL, comparisonModel: REVISION_COMPARISON_MODEL, comparisonPasses: REVISION_COMPARISON_PASSES, promotionPolicy: 'clear-winners', imageSlots: { total: results.length, completed: stats.imagesGenerated, ambiguous: results.filter(item => item.imageSlot?.status === 'ambiguous').length }, comparisonSlots: { totalPossible: stats.imagesGenerated * 2, completed: completedComparisons, failedOrMalformedOrAmbiguous: results.reduce((sum, item) => sum + item.comparisonSlots.filter(slot => slot.status !== 'completed').length, 0) }, promotedPanels, retainedOriginalPanels, usage: { inputTokens: stats.totalInputTokens, outputTokens: stats.totalOutputTokens, imageInputUnits: stats.totalInputImageTokens, estimatedAndRecordedCostUsd: stats.totalCost }, panels: results }
+  const runLedger = { schemaVersion: 1, mode: 'revision-evaluation', experimentId: loaded.plan.experimentId, sceneSlug: loaded.plan.sceneSlug, planFingerprint: loaded.plan.planFingerprint, imageModel: REVISION_IMAGE_MODEL, comparisonProvider: REVISION_COMPARISON_PROVIDER, comparisonModel: REVISION_COMPARISON_MODEL, comparisonPasses: REVISION_COMPARISON_PASSES, promotionPolicy: 'clear-winners', imageSlots: { total: results.length, completed: stats.imagesGenerated, ambiguous: results.filter(item => item.imageSlot?.status === 'ambiguous').length }, comparisonSlots: { totalPossible: stats.imagesGenerated * 2, completed: completedComparisons, failedOrMalformedOrAmbiguous: results.reduce((sum, item) => sum + item.comparisonSlots.filter(slot => slot.status !== 'completed').length, 0) }, promotedPanels, retainedOriginalPanels, usage: { inputTokens: stats.totalInputTokens, outputTokens: stats.totalOutputTokens, imageInputUnits: stats.totalInputImageTokens, estimatedAndRecordedCostUsd: stats.totalCost }, panels: results }
   await atomicWriteJson(join(loaded.evidenceDirectory, 'revision-evaluation.json'), runLedger)
   return { evidenceDirectory: loaded.evidenceDirectory, planFingerprint: loaded.plan.planFingerprint, ledgers: results, stats, promotedPanels }
 }
 
-export { REVISION_COMPARISON_MODEL, REVISION_COMPARISON_PASSES, REVISION_ESTIMATED_INPUT_TOKENS_PER_COMPARISON, REVISION_ESTIMATED_OUTPUT_TOKENS_PER_COMPARISON, REVISION_IMAGE_MODEL } from './revision-evaluation-config'
+export { REVISION_COMPARISON_PROVIDER, REVISION_COMPARISON_MODEL, REVISION_COMPARISON_PASSES, REVISION_ESTIMATED_INPUT_TOKENS_PER_COMPARISON, REVISION_ESTIMATED_OUTPUT_TOKENS_PER_COMPARISON, REVISION_IMAGE_MODEL } from './revision-evaluation-config'
 
 export type { LoadedRevisionPlan, RevisionBoundFile, RevisionComparisonNormalized, RevisionComparisonRaw, RevisionDefectCategory, RevisionEvaluationDependencies, RevisionEvaluationResult, RevisionImportance, RevisionPlan, RevisionPlanEntry, RevisionPriceInventory } from './revision-evaluation-types'
 

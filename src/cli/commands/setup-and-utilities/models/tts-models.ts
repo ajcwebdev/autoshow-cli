@@ -127,23 +127,6 @@ export const SUPPORTED_SPEECHIFY_TTS_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SPEECHIFY_DEFAULT_TTS_VOICE = 'geffen_32'
-const SPEECHIFY_SIMBA_3_2_BUILT_IN_VOICES = [
-  'beatrice_32',
-  'dominic_32',
-  'edmund_32',
-  'geffen_32',
-  'harper_32',
-  'hugh_32',
-  'imogen_32',
-  'wyatt_32'
-] as const satisfies readonly string[]
-const SPEECHIFY_KNOWN_INCOMPATIBLE_BUILT_IN_VOICES = [
-  'george',
-  'henry',
-  'carly',
-  'sophia'
-] as const satisfies readonly string[]
-
 export const validateSpeechifyTtsModel = createRetiringModelValidator<SpeechifyTtsModel>('tts', 'speechify', SUPPORTED_SPEECHIFY_TTS_MODELS, 'speechify-tts')
 
 export const validateSpeechifyTtsVoice = (voice: string): string => {
@@ -171,19 +154,9 @@ export const validateSpeechifyTtsLanguageForModel = (
 }
 
 export const validateSpeechifyTtsVoiceForModel = (
-  model: SpeechifyTtsModel,
+  _model: SpeechifyTtsModel,
   voice: string
-): string => {
-  const normalized = validateSpeechifyTtsVoice(voice)
-  if (model !== 'simba-3.2') return normalized
-  if (SPEECHIFY_SIMBA_3_2_BUILT_IN_VOICES.includes(normalized as typeof SPEECHIFY_SIMBA_3_2_BUILT_IN_VOICES[number])) {
-    return normalized
-  }
-  if (SPEECHIFY_KNOWN_INCOMPATIBLE_BUILT_IN_VOICES.includes(normalized as typeof SPEECHIFY_KNOWN_INCOMPATIBLE_BUILT_IN_VOICES[number])) {
-    throw UsageError(`Speechify built-in voice "${voice}" is not compatible with simba-3.2.`)
-  }
-  return normalized
-}
+): string => validateSpeechifyTtsVoice(voice)
 
 export const SUPPORTED_HUME_TTS_MODELS = [
   'octave-1',
@@ -204,7 +177,6 @@ export const validateHumeTtsVoice = (voice: string): string => {
 }
 
 export const SUPPORTED_CARTESIA_TTS_MODELS = [
-  'sonic-3.5-2026-05-04',
   'sonic-3.6-2026-08-27'
 ] as const satisfies readonly string[]
 
@@ -221,8 +193,7 @@ export const validateCartesiaTtsVoice = (voice: string): string => {
 }
 
 export const SUPPORTED_INWORLD_TTS_MODELS = [
-  'realtime-tts-2',
-  'realtime-tts-2-flash'
+  'realtime-tts-2'
 ] as const satisfies readonly string[]
 
 export const INWORLD_DEFAULT_TTS_VOICE = 'voice_inworld_standard_en'

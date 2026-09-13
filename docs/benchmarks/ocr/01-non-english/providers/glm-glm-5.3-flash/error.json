@@ -1,0 +1,15 @@
+{
+  "message": "The operation timed out.: The operation timed out.",
+  "category": "timeout",
+  "failureKind": "timeout",
+  "retryable": true,
+  "error": {
+    "name": "AbortError",
+    "message": "The operation timed out.",
+    "stack": "AbortError: The operation timed out.\n    at normalizeFetchAbortError (/Users/ajc/c/auto/autoshow-cli/src/utils/rest-client.ts:87:28)\n    at <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/utils/rest-client.ts:140:13)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/utils/openai/openai-client.ts:109:26)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/utils/openai/openai-client.ts:171:9)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/cli/commands/text/ocr/ocr-utils/chat-image-ocr.ts:54:32)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/utils/retries.ts:33:20)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/cli/commands/text/ocr/ocr-utils/ocr-retry.ts:134:24)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/cli/commands/text/ocr/ocr-utils/chat-image-ocr.ts:44:18)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/cli/commands/text/ocr/ocr-utils/chat-image-ocr.ts:83:26)\n    at unknown\n    at unknown\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/cli/commands/text/ocr/hosted-ocr.ts:426:28)",
+    "cause": {
+      "name": "TimeoutError",
+      "message": "The operation timed out."
+    }
+  }
+}

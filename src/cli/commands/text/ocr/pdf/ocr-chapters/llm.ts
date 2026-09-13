@@ -60,7 +60,6 @@ const buildLlmOptions = (
   ...(service === 'openai' ? { openaiModels: [model] } : {}),
   ...(service === 'gemini' ? { geminiModels: [model] } : {}),
   ...(service === 'anthropic' ? { anthropicModels: [model] } : {}),
-  ...(service === 'minimax' ? { minimaxModels: [model] } : {}),
   ...(service === 'grok' ? { grokModels: [model] } : {}),
   ...(service === 'glm' ? { glmModels: [model] } : {}),
   ...(service === 'together' ? { togetherModels: [model] } : {}),

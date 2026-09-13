@@ -1,7 +1,7 @@
 import type { NormalizedReasoningEffort } from '~/types'
 
 export type Step3Metadata = {
-  llmService: 'openai' | 'gemini' | 'anthropic' | 'minimax' | 'grok' | 'glm' | 'kimi' | 'together'
+  llmService: 'openai' | 'gemini' | 'anthropic' | 'grok' | 'glm' | 'kimi' | 'together'
   llmModel: string
   providerReturnedModel?: string | undefined
   processingTime: number

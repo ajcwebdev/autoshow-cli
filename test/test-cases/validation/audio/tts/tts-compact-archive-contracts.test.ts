@@ -166,6 +166,9 @@ describe('ADR-013 compact archive contracts', () => {
       const peerFile = join(dir, 'audio', 'providers', 'peer-target', 'retained.json')
       await mkdir(join(dir, 'audio', 'providers', 'peer-target'), { recursive: true })
       await Bun.write(peerFile, '{"retained":true}\n')
+      const peerSlot = join(dir, 'audio', 'slots', 'peer-paid-slot.wav')
+      await mkdir(join(dir, 'audio', 'slots'), { recursive: true })
+      await Bun.write(peerSlot, 'previously paid audio')
 
       await runTtsForTargets(sourceText, dir, {}, [createFixtureTarget([])], {
         sourceIdentity,
@@ -178,6 +181,7 @@ describe('ADR-013 compact archive contracts', () => {
       })
 
       expect(await Bun.file(peerFile).text()).toBe('{"retained":true}\n')
+      expect(await Bun.file(peerSlot).text()).toBe('previously paid audio')
     })
   })
 

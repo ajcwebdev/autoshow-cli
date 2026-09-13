@@ -1,3 +1,4 @@
+import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import { getResumeProviderKey, resolveAdditiveResumeProviderSelection, uniqueResumeProviders } from './resume-provider-selection'
 import { UsageError } from '~/utils/error-handler'
@@ -133,6 +134,11 @@ export async function prepareGenerationResume<TTarget extends ProviderIdentity, 
       throw UsageError(`Invalid ${config.stepLabel} manifest at ${target.dir}/manifest.json`)
     }
     return undefined
+  }
+  if (config.kind === 'write') {
+    for (const provider of item.providers) {
+      if (typeof provider.model === 'string' && !getModelRegistry().llm[provider.service]?.models[provider.model]) throw UsageError(`Unsupported saved write model ${provider.service}/${provider.model}. Existing artifacts are preserved.`)
+    }
   }
   const existingEntries = config.parseManifestEntries
     ? config.parseManifestEntries(item.metadata)

@@ -6,27 +6,22 @@ export const INWORLD_TTS_SERIALIZER_VERSION = 'inworld.tts.phase-3-v3'
 export const resolveInworldTtsApiModelId = (model: InworldTtsModel): string => {
   switch (model) {
     case 'realtime-tts-2': return 'inworld-tts-2'
-    case 'realtime-tts-2-flash': return 'inworld-tts-2-flash'
   }
 }
 
-export const validateInworldTtsSteering = (model: string, steeringPrompt?: string): void => {
-  if (model === 'realtime-tts-2-flash' && steeringPrompt?.trim()) {
-    throw UsageError('Inworld realtime-tts-2-flash does not support steering instructions; select realtime-tts-2 or remove the instructions.')
-  }
+const audioConfig = (speed?: number) => {
+  if (speed !== undefined && (!Number.isFinite(speed) || speed < 0.5 || speed > 1.5)) throw UsageError('Inworld speaking rate must be between 0.5 and 1.5.')
+  return { audioEncoding: 'WAV', sampleRateHertz: 48000, ...(speed !== undefined ? { speakingRate: speed } : {}) }
 }
 
-export const inworldTtsRequestControls = (model: string, steeringPrompt?: string) => {
-  validateInworldTtsSteering(model, steeringPrompt)
+export const inworldTtsRequestControls = (_model: string, steeringPrompt?: string, speed?: number) => {
   return {
-    ...(model === 'realtime-tts-2-flash' ? { modelId: 'inworld-tts-2-flash' } : {}),
-    format: 'wav', timestampType: 'WORD', audioConfig: { audioEncoding: 'WAV', sampleRateHertz: 48000 },
+    format: 'wav', timestampType: 'WORD', audioConfig: audioConfig(speed),
     ...(steeringPrompt ? { steeringPrompt } : {})
   }
 }
 
 export const buildInworldTtsRequestBody = (input: InworldTtsRequestInput): Readonly<Record<string, unknown>> => {
-  validateInworldTtsSteering(input.model, input.steeringPrompt)
   if (!input.text.trim() || input.text.length > 2000) throw UsageError('Inworld REST TTS text must contain 1–2000 characters.')
   if (!input.voiceId.trim()) throw UsageError('Inworld voice ID cannot be blank.')
   return {
@@ -34,7 +29,7 @@ export const buildInworldTtsRequestBody = (input: InworldTtsRequestInput): Reado
     voiceId: input.voiceId,
     modelId: resolveInworldTtsApiModelId(input.model),
     timestampType: 'WORD',
-    audioConfig: { audioEncoding: 'WAV', sampleRateHertz: 48000 },
+    audioConfig: audioConfig(input.speed),
     ...(input.steeringPrompt?.trim() ? { instruction: input.steeringPrompt.trim() } : {})
   }
 }

@@ -1,12 +1,10 @@
-import { readdir } from 'node:fs/promises'
-import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import type {
   AudioRun,
   CurrentTtsRenderArtifacts,
   SuccessPublicationInput,
 } from '~/types'
 import { removeContainedDirectory, removeContainedDirectoryIfEmpty } from './safe-artifact-store'
-import { contained, hasErrorCode, writeJson, writeJsonReplace, writeJsonReuseCompatibleIdentity } from './attempt-io'
+import { contained, writeJson, writeJsonReplace, writeJsonReuseCompatibleIdentity } from './attempt-io'
 import { stateForProjection } from './attempt-planning'
 import { appendTerminalProjection, publish } from './attempt-projection'
 import {
@@ -29,23 +27,6 @@ const currentArtifacts = (
   strategy: input.ctx.purePlan.planned.strategy,
   projection: input.ctx.currentProjection,
 })
-
-const readDirectoryIfPresent = async (path: string): Promise<string[]> => {
-  try {
-    return await readdir(path)
-  } catch (error) {
-    if (hasErrorCode(error, 'ENOENT')) return []
-    throw error
-  }
-}
-
-const unlinkIfPresent = async (path: string): Promise<void> => {
-  try {
-    await unlink(path)
-  } catch (error) {
-    if (!hasErrorCode(error, 'ENOENT')) throw error
-  }
-}
 
 export const publishExpandedCompletion = async (
   input: SuccessPublicationInput
@@ -240,13 +221,6 @@ export const publishCompactCompletion = async (
   await removeContainedDirectory(options.outputDir, layout.workDir)
   await removeContainedDirectory(options.outputDir, targetRelativeDir)
   await removeContainedDirectoryIfEmpty(options.outputDir, ctx.artifactRoot)
-  const referencedSlotHashes = new Set(input.compactSlots.map((slot) => slot.slotHash))
-  const slotEntries = await readDirectoryIfPresent(`${options.outputDir}/${layout.slotsDir}`)
-  await Promise.all(slotEntries.map(async (name) => {
-    const slotHash = name.replace(/\.wav$/, '')
-    if (name.endsWith('.wav') && !referencedSlotHashes.has(slotHash)) {
-      await unlinkIfPresent(`${options.outputDir}/${layout.slotsDir}/${name}`)
-    }
-  }))
+  // Slots are shared across targets and may back prior paid renders. Completion is not a global cache GC.
   return currentArtifacts(input, audioRun, archiveRelativeDir)
 }

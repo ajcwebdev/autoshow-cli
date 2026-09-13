@@ -14,7 +14,7 @@ const CHAT_OCR_OPTIONS = { dpi: 300, password: undefined, outputDir: '', ocrPrep
 const dataUrl = (mime: string, bytes: Uint8Array): string =>
   `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`
 
-const STRUCTURED_OUTPUT_MODELS = ['gpt-6-astra', 'gpt-5.5', 'gpt-5.4-mini'] as const
+const STRUCTURED_OUTPUT_MODELS = ['gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-terra'] as const
 
 describe('OpenAI REST OCR contracts', () => {
   test('OpenAI OCR sends data URLs and returns response usage token metadata', async () => {
@@ -25,7 +25,7 @@ describe('OpenAI REST OCR contracts', () => {
     }))
 
     await withOcrDocumentFixture({ slug: 'page', format: 'png' }, async ({ path, bytes, metadata }) => {
-      const result = await runOpenAIOcr(path, metadata, 'gpt-5.5', OPENAI_BASE)
+      const result = await runOpenAIOcr(path, metadata, 'gpt-5.6-sol', OPENAI_BASE)
 
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'OCR text' }])
       expect(result.promptTokens).toBe(123)
@@ -84,7 +84,7 @@ describe('OpenAI REST OCR contracts', () => {
     }))
 
     await withOcrDocumentFixture({ slug: 'page', format: 'png' }, async ({ dir, path, bytes, metadata }) => {
-      const result = await runGrokOcr(path, metadata, 'grok-4.20-0309-non-reasoning', {
+      const result = await runGrokOcr(path, metadata, 'grok-4.5', {
         ...CHAT_OCR_OPTIONS,
         outputDir: dir
       }, 'https://mock.x.ai/v1/chat/completions')
@@ -99,7 +99,7 @@ describe('OpenAI REST OCR contracts', () => {
       })
       expect(calls[0]?.headers.get('authorization')).toBe('Bearer xai-key')
       const body = calls[0]?.bodyJson
-      expect(body?.['model']).toBe('grok-4.20-0309-non-reasoning')
+      expect(body?.['model']).toBe('grok-4.5')
       const messages = body?.['messages'] as Array<Record<string, unknown>>
       const content = messages[0]?.['content'] as Array<Record<string, unknown>>
       expect(content[0]?.['type']).toBe('text')
@@ -111,11 +111,11 @@ describe('OpenAI REST OCR contracts', () => {
       const webpBytes = new Uint8Array([4, 5, 6])
       const webpPath = join(dir, 'page.webp')
       await writeFile(webpPath, webpBytes)
-      await runDeepinfraOcr(webpPath, { ...metadata, format: 'webp' }, 'Qwen/Qwen3-VL-30B-A3B-Instruct', {
+      await runDeepinfraOcr(webpPath, { ...metadata, format: 'webp' }, 'google/gemma-4-31B-it', {
         ...CHAT_OCR_OPTIONS,
         outputDir: dir
       })
-      expect(calls[1]?.bodyJson?.['max_tokens']).toBe(4092)
+      expect(calls[1]?.bodyJson?.['max_tokens']).toBe(8192)
       expect(calls[1]?.bodyJson).not.toHaveProperty('max_completion_tokens')
       const deepinfraMessages = calls[1]?.bodyJson?.['messages'] as Array<Record<string, unknown>>
       const deepinfraContent = deepinfraMessages[0]?.['content'] as Array<Record<string, unknown>>
@@ -190,7 +190,7 @@ describe('OpenAI REST OCR contracts', () => {
     }))
 
     await withOcrDocumentFixture({ slug: 'page', format: 'pdf' }, async ({ path, metadata }) => {
-      const result = await runOpenAIOcr(path, metadata, 'gpt-5.5', OPENAI_BASE)
+      const result = await runOpenAIOcr(path, metadata, 'gpt-5.6-sol', OPENAI_BASE)
 
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'Plain OCR text' }])
       const body = calls[0]?.bodyJson
@@ -214,7 +214,7 @@ describe('OpenAI REST OCR contracts', () => {
     }))
 
     await withOcrDocumentFixture({ slug: 'blank', format: 'pdf' }, async ({ path, metadata }) => {
-      const result = await runOpenAIOcr(path, metadata, 'gpt-5.5', OPENAI_BASE)
+      const result = await runOpenAIOcr(path, metadata, 'gpt-5.6-sol', OPENAI_BASE)
 
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: '' }])
       expect(result.promptTokens).toBe(9)

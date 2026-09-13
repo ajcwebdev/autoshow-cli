@@ -13,7 +13,6 @@ describe('structured output provider capability contracts', () => {
       openai: 0,
       anthropic: 1,
       gemini: 1,
-      minimax: 2,
       grok: 0,
       glm: 1,
       kimi: 1,

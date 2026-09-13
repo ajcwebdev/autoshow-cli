@@ -12,7 +12,7 @@ import { buildStructuredValidationFailureEnvelope } from '~/cli/commands/text/wr
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 import { buildStep3Metadata as buildSharedStep3Metadata } from '../../content-output/shared'
 
-const LLM_FIXTURE = { llmService: 'gemini' as const, llmModel: 'gemini-3.1-pro-preview', structuredPresetNames: ['standardSongLyrics'] }
+const LLM_FIXTURE = { llmService: 'gemini' as const, llmModel: 'gemini-3.8-flash', structuredPresetNames: ['standardSongLyrics'] }
 
 const buildStep3Metadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata =>
   buildSharedStep3Metadata(LLM_FIXTURE, overrides)
@@ -20,13 +20,13 @@ const buildStep3Metadata = (overrides: Partial<Step3Metadata> = {}): Step3Metada
 test('rendered text track headers use model display names', () => {
   expect(formatRenderedLlmLabel({
     llmService: 'gemini',
-    llmModel: 'gemini-3.1-pro-preview'
-  })).toBe('Gemini 3.1 Pro')
+    llmModel: 'gemini-3.8-flash'
+  })).toBe('Gemini 3.8 Flash writing')
 
   expect(formatRenderedLlmLabel({
     llmService: 'grok',
-    llmModel: 'grok-4.3'
-  })).toBe('Grok 4.3')
+    llmModel: 'grok-4.5'
+  })).toBe('Grok 4.5')
 })
 
 test('text input song titles use tracks.md before falling back to the filename stem', async () => {
@@ -151,7 +151,7 @@ test('rendered text track headers replace duplicate song title headings', async 
     expect(renderedFileName).toBe('text.md')
     if (renderedFileName) {
       const rendered = await Bun.file(join(outputDir, renderedFileName)).text()
-      expect(rendered).toContain('01. Track One (Gemini 3.1 Pro)')
+      expect(rendered).toContain('01. Track One (Gemini 3.8 Flash writing)')
       expect(rendered).toContain('Verse 1\n\nLine one')
       expect(rendered).toContain('Chorus\n\nHook line')
       expect(rendered).not.toContain('# Track One')
@@ -198,7 +198,7 @@ test('rendered text track headers use sorted sibling order for unnumbered inputs
     expect(renderedFileName).toBe('text.md')
     if (renderedFileName) {
       const rendered = await Bun.file(join(outputDir, renderedFileName)).text()
-      expect(rendered).toContain('02. Track Two (Gemini 3.1 Pro)')
+      expect(rendered).toContain('02. Track Two (Gemini 3.8 Flash writing)')
       expect(rendered).toContain('Verse 1\n\nLine one')
       expect(rendered).not.toContain('# Track Two')
     }
@@ -216,7 +216,7 @@ test('external rendered text filenames use provider aliases only for single-targ
 
     const openaiMetadata = buildStep3Metadata({
       llmService: 'openai',
-      llmModel: 'gpt-5.5'
+      llmModel: 'gpt-5.6-sol'
     })
     const qwenMetadata = buildStep3Metadata({
       llmService: 'gemini',
@@ -260,7 +260,7 @@ test('external rendered text filenames use provider aliases only for single-targ
 
     expect(multiArtifacts.externalFiles.map((file) => file.split('/').pop()).sort()).toEqual([
       '01-track-one-gemini-3.5-flash.md',
-      '01-track-one-gpt-5.5.md'
+      '01-track-one-gpt-5.6-sol.md'
     ])
   } finally {
     await rm(tempDir, { recursive: true, force: true })

@@ -83,7 +83,7 @@ export type PanelLedger = {
   originalSha256: string
   imageSlot?: { status: SlotStatus; attempts: number; startedAt: string; completedAt?: string; error?: string; estimatedCostUsd?: number; usage?: { imageInputUnits: number; textInputUnits: number; outputUnits: number } }
   candidateSha256?: string
-  comparisonSlots: Array<{ pass: 1 | 2; status: SlotStatus; attempts: number; startedAt: string; completedAt?: string; error?: string; usage?: { inputTokens: number; outputTokens: number; costUsd: number }; normalized?: RevisionComparisonNormalized }>
+  comparisonSlots: Array<{ provider: string; model: string; pass: 1 | 2; status: SlotStatus; attempts: number; startedAt: string; completedAt?: string; error?: string; usage?: { inputTokens: number; outputTokens: number; costUsd: number }; normalized?: RevisionComparisonNormalized }>
   similarity?: SimilarityMeasurements
   decision?: 'clear-winner' | 'retain-original' | 'incomplete'
   decisionReason?: string

@@ -152,18 +152,18 @@ describe('audited help behavior', () => {
   test('reference sketch rejects unsupported controls before any execution and preserves location options', () => {
     const reference = (args: string[]) => coerceAndValidateReferenceSketch(parseCommandInvocation([referenceSketchCommandDefinition.name, ...args], referenceSketchCommandDefinition, GLOBAL_FLAG_DEFINITIONS))
     for (const kind of ['character', 'location']) expect(() => reference([`--${kind}`, 'sample', '--qa-only'])).toThrow('Unexpected flag: --qa-only')
-    for (const args of [['--qa'], ['--no-qa'], ['--qa-model', 'gpt-5.5'], ['--max-repairs', '0'], ['--llm-model', 'gpt-5.5'], ['--view', 'side']]) expect(() => reference(['--character', 'sample', ...args])).toThrow('only valid with --location')
-    const location = reference(['--location', 'sample', '--qa-model', 'gpt-5.5', '--max-repairs', '2', '--llm-model', 'gpt-5.5', '--view', 'side'])
-    expect(location.qaModel).toBe('gpt-5.5')
+    for (const args of [['--qa'], ['--no-qa'], ['--qa-model', 'gpt-5.6-sol'], ['--max-repairs', '0'], ['--llm-model', 'gpt-5.6-sol'], ['--view', 'side']]) expect(() => reference(['--character', 'sample', ...args])).toThrow('only valid with --location')
+    const location = reference(['--location', 'sample', '--qa-model', 'gpt-5.6-sol', '--max-repairs', '2', '--llm-model', 'gpt-5.6-sol', '--view', 'side'])
+    expect(location.qaModel).toBe('gpt-5.6-sol')
     expect(location.maxRepairs).toBe(2)
-    expect(location.llmModel).toBe('gpt-5.5')
+    expect(location.llmModel).toBe('gpt-5.6-sol')
     expect(location.view).toBe('side')
     expect(() => reference(['--character', 'sample'])).not.toThrow()
   })
 
   test('write alias preserves repetitions and existing additive config behavior', () => {
     const normalize = (selector: string) => {
-      const parsed = parse(['write', 'sample.txt', selector, 'openai=gpt-5.5', selector, 'gemini=gemini-3.1-pro-preview'])
+      const parsed = parse(['write', 'sample.txt', selector, 'openai=gpt-5.6-sol', selector, 'gemini=gemini-3.8-flash'])
       const alias = normalizeWriteProviderAlias(parsed.flags, parsed.rawParsed.explicitFlags, parsed.rawParsed.flagOccurrences)
       const merged = mergeConfigIntoRawFlags(alias.flags, { defaults: { llm: { grok: ['grok-4.5'], openai: ['gpt-5.6-sol'] } } }, alias.explicitFlags, 'write')
       return normalizeGenericProviderSelectorFlags(merged, alias.explicitFlags, alias.flagOccurrences, 'llm', WRITE_LLM_PROVIDER_TARGETS)
@@ -173,7 +173,7 @@ describe('audited help behavior', () => {
     expect(current.flags).toEqual(legacy.flags)
     expect(current.explicitFlags).toEqual(legacy.explicitFlags)
     expect(current.flags['grok']).toEqual(['grok-4.5'])
-    expect(current.flags['openai']).toEqual(['gpt-5.6-sol', 'gpt-5.5'])
+    expect(current.flags['openai']).toEqual(['gpt-5.6-sol', 'gpt-5.6-sol'])
     const mixed = parse(['write', 'sample.txt', '--provider', 'openai', '--llm', 'gemini'])
     expect(() => normalizeWriteProviderAlias(mixed.flags, mixed.rawParsed.explicitFlags, mixed.rawParsed.flagOccurrences)).toThrow('Do not combine')
   })

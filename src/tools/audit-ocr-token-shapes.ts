@@ -34,9 +34,9 @@ if (showPlan) {
       'bun autoshow extract input/examples/document/1-document.pdf --provider kimi=kimi-k2.6 --reasoning-effort disabled',
       'bun autoshow extract input/examples/document/3-document.pdf --provider kimi=kimi-k2.6 --reasoning-effort disabled',
       'bun autoshow extract input/examples/document/4-document.pdf --provider kimi=kimi-k2.6 --reasoning-effort disabled',
-      'bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.1-pro-preview --reasoning-effort low',
-      'bun autoshow extract input/examples/document/3-document.pdf --provider gemini=gemini-3.1-pro-preview --reasoning-effort low',
-      'bun autoshow extract input/examples/document/4-document.pdf --provider gemini=gemini-3.1-pro-preview --reasoning-effort low'
+      'bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.8-flash --reasoning-effort low',
+      'bun autoshow extract input/examples/document/3-document.pdf --provider gemini=gemini-3.8-flash --reasoning-effort low',
+      'bun autoshow extract input/examples/document/4-document.pdf --provider gemini=gemini-3.8-flash --reasoning-effort low'
     ]
   }
   process.stdout.write(`${JSON.stringify(planOutput, null, 2)}\n`)

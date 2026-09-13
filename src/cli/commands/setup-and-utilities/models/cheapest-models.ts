@@ -23,7 +23,7 @@ const DEFAULT_HOSTED_TTS_MODEL_BY_FLAG = {
   'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
   'speechify-tts': 'simba-3.2',
   'hume-tts': 'octave-1',
-  'cartesia-tts': 'sonic-3.5-2026-05-04',
+  'cartesia-tts': 'sonic-3.6-2026-08-27',
   'inworld-tts': 'realtime-tts-2',
 } as const satisfies Record<string, string>
 
@@ -102,7 +102,7 @@ const selectCheapestSttModel = (service: string): string => {
   return selectCheapestRegistryModel(serviceConfig.models, sttHourlyCost)
 }
 
-const selectCheapestExtractModel = (service: 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra'): string => {
+export const selectCheapestExtractModel = (service: 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra'): string => {
   const serviceConfig = getModelRegistry().extract[service]
   if (!serviceConfig) {
     throw InternalError(`Missing extract service config: ${service}`, { stage: 'models:cheapest' })
@@ -319,18 +319,17 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   'glm-ocr': () => selectCheapestExtractModel('glm'),
   'kimi-ocr': () => selectCheapestExtractModel('kimi'),
   'openai-ocr': () => selectCheapestExtractModel('openai'),
-  'grok-ocr': () => 'grok-4.3',
+  'grok-ocr': () => selectCheapestExtractModel('grok'),
   'anthropic-ocr': () => selectCheapestExtractModel('anthropic'),
   'gemini-ocr': () => selectCheapestExtractModel('gemini'),
   'deepinfra-ocr': () => DEFAULT_DEEPINFRA_OCR_MODEL,
   openai: () => selectCheapestLlmModel('openai'),
   gemini: () => selectCheapestLlmModel('gemini'),
   anthropic: () => selectCheapestLlmModel('anthropic'),
-  minimax: () => selectCheapestLlmModel('minimax'),
-  grok: () => 'grok-4.3',
-  glm: () => 'glm-5.1',
+  grok: () => selectCheapestLlmModel('grok'),
+  glm: () => selectCheapestLlmModel('glm'),
   kimi: () => selectCheapestLlmModel('kimi'),
-  together: () => 'glm-5.1',
+  together: () => selectCheapestLlmModel('together'),
   'grok-tts': () => selectCheapestTtsModel('grok'),
   'mistral-tts': () => selectCheapestTtsModel('mistral'),
   'hume-tts': () => selectCheapestTtsModel('hume'),

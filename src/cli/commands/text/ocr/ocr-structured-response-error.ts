@@ -14,6 +14,10 @@ export class OcrStructuredResponseError extends AppValidationError {
   }
 }
 
+export class OcrOutputLimitError extends OcrStructuredResponseError {
+  readonly category = 'provider_limit'
+}
+
 export const findOcrStructuredResponseError = (
   error: unknown
 ): OcrStructuredResponseError | undefined =>

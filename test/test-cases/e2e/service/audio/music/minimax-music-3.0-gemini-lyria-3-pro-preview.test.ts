@@ -14,7 +14,7 @@ defineBudgetedLiveServiceTest('music-multi-minimax-music-3.0-gemini-lyria-3-pro-
       'bright acoustic pop with handclaps and a catchy chorus',
       '--provider', 'minimax=music-3.0',
       '--provider', 'gemini=lyria-3-pro-preview',
-      '--lyrics-file', 'input/examples/tts/1-tts.md',
+      '--lyrics-file', 'input/examples/tts/01-tts-short.md',
     ],
   )
 

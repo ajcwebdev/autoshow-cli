@@ -16,11 +16,6 @@ const CAPABILITIES: Record<LLMService, ProviderStructuredCapability> = {
     strictMode: false,
     validationRetryBudget: 1
   },
-  'minimax': {
-    nativeStructuredOutput: false,
-    strictMode: false,
-    validationRetryBudget: 2
-  },
   'grok': {
     nativeStructuredOutput: true,
     strictMode: true,

@@ -8,6 +8,7 @@ import {
 import { AutoshowConfigSchema } from '~/types'
 import type { Step2Command } from '~/types'
 import { writeTempConfig } from './shared'
+import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
 
 const unwrap = (schema: unknown): { entries: Record<string, unknown> } => {
   const candidate = schema as { wrapped?: unknown, entries?: Record<string, unknown> }
@@ -65,11 +66,19 @@ describe('registry-derived config key contracts', () => {
       const key = entry.configPath[entry.configPath.length - 1] as string
       const schemaKeys = new Set(schemaKeysAtPath(entry.configPath.slice(0, -1)))
       if (!schemaKeys.has(key)) continue
-      const probe = key === 'provider' ? 'defuddle' : key === 'tesseract' ? true : ['probe-model']
+      const ocrProvider = entry.configPath.includes('ocr') ? key.replace(/Ocr$/, '') : undefined
+      const validOcrModel = ocrProvider ? Object.keys(getModelRegistry().extract[ocrProvider]?.models ?? {})[0] : undefined
+      if (ocrProvider && key !== 'tesseract') expect(validOcrModel, `active model for ${ocrProvider}`).toBeDefined()
+      const probe = key === 'provider' ? 'defuddle' : key === 'tesseract' ? true : [validOcrModel ?? 'probe-model']
       setNested(value, entry.configPath, probe)
     }
 
     const configPath = await writeTempConfig(value)
-    await expect(loadConfig(configPath)).resolves.toMatchObject(value)
+    expect(await loadConfig(configPath)).toMatchObject(value)
+  })
+
+  test('unknown OCR models remain rejected rather than bypassing config validation', async () => {
+    const configPath = await writeTempConfig({ defaults: { extract: { ocr: { mistral: ['probe-model'] } } } })
+    await expect(loadConfig(configPath)).rejects.toThrow('Unsupported configured ocr model mistral/probe-model')
   })
 })

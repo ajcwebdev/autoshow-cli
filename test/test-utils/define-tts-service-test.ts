@@ -13,6 +13,8 @@ import {
 } from './service-test-kit'
 import { readCanonicalRecord } from './manifest-helpers'
 import type { TtsExtraArgs } from '~/types'
+import { assertDecodableMedia } from './assert-generated-content'
+import { assertTtsSpokenText, requireTtsTranscriptOracle } from './tts-transcript-oracle'
 
 const resolveTtsExtraArgs = async (
   extraArgs: TtsExtraArgs | undefined,
@@ -35,6 +37,7 @@ const assertTtsArtifacts = async (
 
   const audioFile = Bun.file(`${outputDir}/speech.wav`)
   expect(audioFile.size).toBeGreaterThan(0)
+  await assertDecodableMedia(`${outputDir}/speech.wav`, 'audio')
 
   const metadata = await readCanonicalRecord(outputDir) as {
     tts?: Array<{ ttsService?: string, ttsModel?: string, speaker?: string, audioFileName?: string }>
@@ -81,6 +84,7 @@ export const defineTTSServiceTest = ({
 
     defineBudgetedLiveServiceTest(budgetKey, `${model} generates speech.wav`, [envVarKey], async () => {
       await requireConfiguredEnvVar(envVarKey, `${envVarKey} is required for ${envVarDescription}`)
+      await requireTtsTranscriptOracle()
 
       const resolvedExtraArgs = await resolveTtsExtraArgs(extraArgs, model)
 
@@ -98,6 +102,7 @@ export const defineTTSServiceTest = ({
       })
 
       await assertTtsArtifacts(outputDir, { ttsService, model, resolveExpectedSpeaker })
+      await assertTtsSpokenText(`${outputDir}/speech.wav`, await Bun.file(inputPath).text())
     }, timeoutMs)
   }
 }

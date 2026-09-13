@@ -56,7 +56,7 @@ The `image` and `resume` commands use the same short option names, including `--
 | `--concurrency-mode <ramp\|immediate>` | Ramp from one request (`ramp`, default) or start at the configured cap (`immediate`)                    |
 | `--aspect-ratio <ratio>`               | Provider-dependent aspect ratio control                                                                 |
 | `--size <size>`                        | Provider-dependent size or resolution control                                                           |
-| `--quality <q>` | OpenAI quality: `low`, `medium`, `high`, or `auto`; GPT Image 2.5 also accepts `xhigh` and `max` |
+| `--quality <q>`                       | OpenAI quality: `low`, `medium`, `high`, or `auto`; GPT Image 2.5 also accepts `xhigh` and `max`. Grok Image 2.0: `low`, `medium`, or `auto` |
 | `--format <fmt>`                       | Output format: `png`, `jpeg`, or `webp` depending on provider                                           |
 | `--background <bg>`                    | OpenAI background mode: `transparent`, `opaque`, or `auto`                                              |
 | `--count <n>`                          | Number of images per request (OpenAI/Grok: `1-10`, Replicate Wan/fal.ai: `1-4`)                         |
@@ -117,11 +117,11 @@ bun autoshow image "Change only the mug color to blue. Preserve the logo, lighti
 bun autoshow image "A clean cutout of a red camping mug with no background" --provider openai=gpt-image-2.5-flare --background transparent --format png --size 1024x1024 --quality medium --price
 ```
 
-Flare suits rapid drafts and everyday generation; Sunburst suits precise edits and polished assets. For successive edits, pass the previous output back through `--input`, describe the change, and state what should stay consistent. A saved sketch can also serve as a reference image. [Flare](https://developers.openai.com/api/docs/models/gpt-image-2.5-flare), [Sunburst](https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst).
+Flare suits rapid drafts and everyday generation; Sunburst suits precise edits and polished assets. For successive edits, pass the previous output back through `--input`, describe the change, and state what should stay consistent. [Flare](https://developers.openai.com/api/docs/models/gpt-image-2.5-flare), [Sunburst](https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst).
 
-OpenAI is the only provider that accepts `--mask`. Image 2.5 supports transparency with PNG or WebP; JPEG with transparency fails locally. `gpt-image-2` rejects transparency and the two new quality levels. Custom dimensions must be multiples of 16, within a 3:1 aspect ratio, at most 3840 pixels per edge, and between 655,360 and 8,294,400 total pixels. OpenAI labels sizes above 2560×1440 experimental. [Output controls](https://developers.openai.com/api/docs/guides/image-generation#customize-image-output).
+OpenAI is the only provider that accepts `--mask`. Image 2.5 supports transparency with PNG or WebP; JPEG with transparency is rejected. `gpt-image-2` rejects transparency and the `xhigh` and `max` quality levels. Custom dimensions must be multiples of 16, within a 3:1 aspect ratio, at most 3840 pixels per edge, and between 655,360 and 8,294,400 total pixels. OpenAI labels sizes above 2560×1440 experimental. [Output controls](https://developers.openai.com/api/docs/guides/image-generation#customize-image-output).
 
-Image 2.5 pricing uses its own output-token calculator for each size and quality. At 1024×1024, estimated output costs are $0.00588 (low), $0.01317 (medium), $0.05268 (high), $0.09366 (xhigh), and $0.21072 (max). Omitted/`auto` dimensions assume 1024×1024 for planning, and omitted/`auto` quality assumes medium; requests still send `auto`. The estimate adds 1,000 modeled image-input tokens per reference per output at $8/M tokens and excludes prompt tokens and caching discounts. These estimates are not spending limits. Recorded costs use complete returned token usage at uncached rates, with option-aware output estimates as fallback. [Calculator and token rates](https://developers.openai.com/api/docs/guides/image-generation#cost-and-latency).
+At 1024×1024, Image 2.5 output estimates are $0.00588 (low), $0.01317 (medium), $0.05268 (high), $0.09366 (xhigh), and $0.21072 (max). Omitted or `auto` size is estimated as 1024×1024; omitted or `auto` quality is estimated as medium. Estimates include a per-reference input charge and exclude prompt tokens and caching discounts; they are not spending limits. [Calculator and token rates](https://developers.openai.com/api/docs/guides/image-generation#cost-and-latency).
 
 ### Grok
 
@@ -134,11 +134,11 @@ Image 2.5 pricing uses its own output-token calculator for each size and quality
 | Count          | `--count 1-10`                                                                                              |
 | Edit/reference | PNG/JPEG files, data URLs or public URLs: up to 3 for Quality, 5 for Image 2.0                                                                                    |
 
-Image 2.0 also accepts `21:9` and `5:2`. Its `--quality low|medium|auto` resolves locally: omitted or `auto` means `low` for generation and `medium` for editing. Omitted size resolves to `1K`. Both values are sent explicitly; `high` and sizes outside `1K|2K` are rejected. The existing Quality selector continues to reject `--quality`.
+Image 2.0 also accepts `21:9` and `5:2`. Its `--quality` values are `low`, `medium`, and `auto`; omitted or `auto` means `low` for generation and `medium` for editing. Omitted size is `1K`. `high` and sizes outside `1K|2K` are rejected. `grok-imagine-image-quality` rejects `--quality`.
 
-Image 2.0 output prices are $0.04/$0.06 at low 1K/2K and $0.06/$0.08 at medium 1K/2K, plus $0.01 per input image per request. Estimates include requested output count and reference charges; returned provider cost takes precedence when available. [xAI model pricing](https://docs.x.ai/developers/models/grok-imagine-image-2.0).
+Image 2.0 output prices are $0.04/$0.06 at low 1K/2K and $0.06/$0.08 at medium 1K/2K, plus $0.01 per input image. Estimates include `--count` and reference charges. [xAI model pricing](https://docs.x.ai/developers/models/grok-imagine-image-2.0).
 
-xAI schedules `grok-imagine-image-quality` to redirect to Image 2.0 at low quality on November 2, 2026. The CLI keeps the selector and bare default, and records the serving model from responses. Select Image 2.0 explicitly for its pricing and controls; the older selector retains its existing local estimate. [Alias transition](https://docs.x.ai/developers/migration/imagine-image-quality-nov-2).
+xAI redirects `grok-imagine-image-quality` to Image 2.0 at low quality on November 2, 2026. The CLI keeps that selector as the bare default. Select Image 2.0 explicitly for its pricing and controls. [Alias transition](https://docs.x.ai/developers/migration/imagine-image-quality-nov-2).
 
 ```bash
 bun autoshow image "a futuristic observatory at sunset" --provider grok=grok-imagine-image-quality --aspect-ratio 16:9 --size 1K --count 4
@@ -178,7 +178,7 @@ bun autoshow image "a polished launch poster for a sci-fi audio drama" --provide
 bun autoshow image "place the subject on a rustic breakfast table" --provider replicate=bytedance/seedream-4.5 --input input/subject.jpg --aspect-ratio 1:1
 ```
 
-Bare `--provider replicate` now selects Qwen Image 3 through the existing cheapest-model tie-break. Replicate Qwen Image 3 and 3 Pro support generation and single-image editing with `--input`; editing retains the reference aspect ratio. Use `--aspect-ratio` for generation. Explicit size, count, and output-format controls are unsupported. They cost $0.03 and $0.04 per output image respectively. The identically named fal Qwen 3 keeps its separate pricing and reference limits. [Qwen 3](https://replicate.com/alibaba/qwen-image-3), [Qwen 3 Pro](https://replicate.com/alibaba/qwen-image-3-pro)
+Bare `--provider replicate` selects Qwen Image 3. Replicate Qwen Image 3 and 3 Pro support generation and single-image editing with `--input`; editing retains the reference aspect ratio. Use `--aspect-ratio` for generation. Explicit size, count, and output-format controls are unsupported. The identically named fal Qwen 3 has separate pricing and reference limits. [Qwen 3](https://replicate.com/alibaba/qwen-image-3), [Qwen 3 Pro](https://replicate.com/alibaba/qwen-image-3-pro).
 
 ### Luma Labs
 
@@ -227,6 +227,7 @@ Rows are newest first. Pricing is the per-image estimate.
 | OpenAI `gpt-image-2.5-flare` / `gpt-image-2.5-sunburst` | 2026-09-08 | Up to 16 | Custom ≤3840 | Use `--size` | 1–10 | png/jpeg/webp | $0.01317/output at 1024-square medium; inputs extra |
 | Grok `grok-imagine-image-2.0` | 2026-08 | Up to 5 | 2K | 16 ratios | 1–10 | JPEG | $0.04–$0.08/output + $0.01/input |
 | fal.ai `alibaba/qwen-image-3`                      | 2026-07-21 | Up to 3    | 2048 text / 1440 edit    | Use `--size`    | 1–4   | png/jpeg/webp  | $0.0051/image                   |
+| Replicate `alibaba/qwen-image-3` / `qwen-image-3-pro` | 2026-07-21 | 1          | Unpublished              | 9 ratios        | 1     | PNG            | $0.03 / $0.04 per image         |
 | fal.ai `reve/2.1`                                  | 2026-07-09 | 1          | Unpublished              | 18 ratios       | 1–4   | png/jpeg/webp  | $0.25/image                     |
 | Replicate `bytedance/seedream-5-pro`               | 2026-07-08 | Up to 10   | 2K                       | 9 ratios        | 1     | png/jpeg       | $0.045/image                    |
 | Gemini `gemini-3.1-flash-lite-image`               | 2026-06-30 | Up to 14   | 1K                       | 10 ratios       | 1     | PNG            | $0.0336/image                   |
@@ -243,4 +244,3 @@ Rows are newest first. Pricing is the per-image estimate.
 | BFL `flux-2-klein-4b` / `flux-2-klein-9b`          | 2026-01-15 | Up to 4    | Custom WxH, min 64       | Use `--size`    | 1     | jpeg/png/webp  | $0.014 / $0.015 per image       |
 | Replicate `bytedance/seedream-4.5`                 | 2025-12-03 | Up to 14   | 4K                       | 9 ratios        | 1     | JPEG           | $0.04/image                     |
 | BFL `flux-2-pro` / `flux-2-max` / `flux-2-flex`    | 2025-11-25 | Up to 8    | Custom WxH, min 64       | Use `--size`    | 1     | jpeg/png/webp  | $0.03 / $0.07 / $0.06 per image |
-|

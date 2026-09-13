@@ -72,7 +72,7 @@ describe('OCR batch diagnostics', () => {
     const manifest = createManifest('extract', 'batch', [
       item(blocker(2), costMetadata('kimi', 'kimi-k2.6', 1, undefined), 'incomplete'),
       item(blocker(1), costMetadata('kimi', 'kimi-k2.6', 1, undefined), 'incomplete'),
-      item(providerState('gemini', 'gemini-3.1-pro-preview'), costMetadata('gemini', 'gemini-3.1-pro-preview', 1, 2, 'partial_provider_usage'), 'incomplete')
+      item(providerState('gemini', 'gemini-3.8-flash'), costMetadata('gemini', 'gemini-3.8-flash', 1, 2, 'partial_provider_usage'), 'incomplete')
     ])
 
     const report = deriveOcrBatchDiagnostics(manifest, 'a'.repeat(64))
@@ -85,7 +85,7 @@ describe('OCR batch diagnostics', () => {
     expect(report?.targets).toEqual([
       expect.objectContaining({
         provider: 'gemini',
-        model: 'gemini-3.1-pro-preview',
+        model: 'gemini-3.8-flash',
         affectedItems: 1,
         cost: expect.objectContaining({
           estimatedCostCents: 1,

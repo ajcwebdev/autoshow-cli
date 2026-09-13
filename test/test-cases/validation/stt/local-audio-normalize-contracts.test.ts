@@ -1,28 +1,30 @@
-import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
-import { prepareLocalSttInput } from '~/cli/commands/stt/local/local-audio-normalize'
+import { prepareWhisperfileInput } from '~/cli/commands/stt/local/whisperfile/transcribe'
+import { withTempDir } from '../../../test-utils/temp-dirs'
+import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
+import { assertDecodableMedia } from '../../../test-utils/assert-generated-content'
 
-const tempDirs: string[] = []
-
-afterEach(async () => {
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})
-
-describe('local STT input preparation', () => {
-  test('whisperfile passthrough keeps supported source audio instead of converting to wav', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-local-stt-passthrough-'))
-    tempDirs.push(dir)
-    const source = join(dir, 'episode.mp3')
-    await writeFile(source, 'not-real-mp3')
-
-    const prepared = await prepareLocalSttInput(source, 'autoshow-whisperfile-', {
-      passthroughExtensions: ['.wav', '.mp3', '.flac', '.ogg'],
-      convertFormat: 'mp3'
+describe('Whisperfile input preparation', () => {
+  test('converts PCM WAV through the supported decoder and preserves source audio', async () => {
+    await withTempDir('whisper-input-', async dir => {
+      const source = join(dir, 'voice.wav')
+      const bytes = createSyntheticWavBytes({ durationSeconds: 0.3, frequencyHz: 440, amplitude: 0.3 })
+      await Bun.write(source, bytes)
+      const prepared = await prepareWhisperfileInput(source)
+      try {
+        expect(prepared.audioPath).not.toBe(source)
+        expect(prepared.audioPath.endsWith('.mp3')).toBe(true)
+        await assertDecodableMedia(prepared.audioPath, 'audio', { durationSeconds: 2 })
+        const passthrough = await prepareWhisperfileInput(prepared.audioPath)
+        expect(passthrough.audioPath).toBe(prepared.audioPath)
+        await passthrough.cleanup()
+        expect(await Bun.file(prepared.audioPath).exists()).toBe(true)
+      } finally {
+        await prepared.cleanup()
+      }
+      expect(await Bun.file(prepared.audioPath).exists()).toBe(false)
+      expect(new Uint8Array(await Bun.file(source).arrayBuffer())).toEqual(new Uint8Array(bytes))
     })
-
-    expect(prepared.audioPath).toBe(source)
-    await prepared.cleanup()
   })
 })

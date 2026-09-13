@@ -1,6 +1,6 @@
 # voice audition
 
-Synthesize the pre-approval audition set.
+Synthesize and protect the canonical pre-approval audition set.
 
 See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
 
@@ -10,7 +10,7 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice audition <registration-id> [flags]
 ```
 
-The set includes a neutral sample, the required representative line, emotional-contrast lines, a pronunciation sample, and a comparison passage. Remove `--price` only when you intend to purchase the synthesis.
+Remove `--price` only when you intend to purchase the synthesis. `--approve` with `--actor-id` approves in the same paid run; `--price` still only estimates.
 
 ### Options
 
@@ -21,7 +21,7 @@ The set includes a neutral sample, the required representative line, emotional-c
 | `--takes <n>` | Takes per audition passage, 1-5; default `1` |
 | `--max-cents <n>` | Maximum authorized provider spend in cents |
 | `--approve` | Approve the auditioned generation in the same run |
-| `--actor-id <id>` | Required when `--approve` is set |
+| `--actor-id <id>` | Opaque approving actor ID; required when `--approve` is set |
 | `--price` | Validate and estimate without provider calls or artifact writes |
 
 ### Examples

@@ -1,3 +1,4 @@
+import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import { FIRECRAWL_PRICE_NOTE } from '~/cli/commands/text/url/url-pricing/url-estimates'
 import { isRecord } from '~/utils/rest-client'
 import { getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
@@ -125,10 +126,10 @@ type TokenOcrEstimateDescriptor = Readonly<{
 }>
 
 const TOKEN_OCR_ESTIMATE_DESCRIPTORS = {
-  glm: { fallbackModel: opts => opts.glmOcrModels?.[0] || 'glm-ocr', note: GLM_OCR_PRICE_NOTE },
+  glm: { fallbackModel: opts => opts.glmOcrModels?.[0] || 'glm-5.3-flash', note: GLM_OCR_PRICE_NOTE },
   kimi: { fallbackModel: opts => opts.kimiOcrModels?.[0] || 'kimi-ocr', note: KIMI_OCR_PRICE_NOTE },
   openai: { fallbackModel: opts => opts.openaiOcrModels?.[0] || 'openai-ocr', note: OPENAI_OCR_PRICE_NOTE },
-  grok: { fallbackModel: opts => opts.grokOcrModels?.[0] || 'grok-4.3', note: GROK_OCR_PRICE_NOTE },
+  grok: { fallbackModel: opts => opts.grokOcrModels?.[0] || resolveCheapestModelForFlag('grok-ocr')!, note: GROK_OCR_PRICE_NOTE },
   anthropic: { fallbackModel: opts => opts.anthropicOcrModels?.[0] || 'anthropic-ocr', note: ANTHROPIC_OCR_PRICE_NOTE },
   gemini: { fallbackModel: opts => opts.geminiOcrModels?.[0] || 'gemini-ocr', note: GEMINI_OCR_PRICE_NOTE },
   deepinfra: { fallbackModel: opts => opts.deepinfraOcrModels?.[0] || 'deepinfra-ocr', note: DEEPINFRA_OCR_PRICE_NOTE },

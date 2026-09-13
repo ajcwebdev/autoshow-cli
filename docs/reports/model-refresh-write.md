@@ -27,7 +27,6 @@ This report records the hosted text-model changes, including selector additions 
 
 ### xAI Grok
 
-- Added `grok-4.5` to write while retaining its OCR selector. `grok-4.3` remains the cheaper bare write target; write expansion orders 4.3 before 4.5.
 - Excluded moving aliases (`grok-4.5-latest`, `grok-build-latest`).
 - Set Grok 4.5 price bands to `$2/$0.30/$6` per 1M input/cached-input/output tokens (<=200K input) and `$4/$0.60/$12` (>200K input). Estimates use uncached rates.
 
@@ -47,14 +46,12 @@ This report records the hosted text-model changes, including selector additions 
 
 ### Additional LLM audits
 
-- MiniMax structured-output gate remains negative: `MiniMax-M3` lacks `response_format`/`json_schema` support, retaining the compatibility fallback and schema-guided strategy.
 - The companion Mistral OCR catalog dedup is recorded in the [OCR report](model-refresh-ocr.md).
 
 ## 2026-08-16 Claude/Gemini/Grok/OpenAI text-catalog gap audit
 
 Compared the active AutoShow write/OCR/STT/TTS/image/music/video registries against the 2026-08-16 primary-source dump from `bun autoshow links --claude models --gemini models --grok models --openai models`. This section records recommended additions and explicit exclusions; it is not an implemented refresh.
 
-Current write coverage already includes Anthropic `claude-fable-5`, `claude-opus-5`, `claude-opus-4-8`, `claude-sonnet-5`, `claude-sonnet-4-6`, and `claude-haiku-4-5`; Gemini `gemini-3.1-pro-preview`, `gemini-3.6-flash`, `gemini-3.5-flash`, and `gemini-3.5-flash-lite`; Grok `grok-4.3` and `grok-4.5`; and OpenAI `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, and `gpt-5.4-nano`. The `gpt-5.6` alias remains unregistered. Invitation-only `claude-mythos-5` remains excluded.
 
 **Priority 1: P1**
 
@@ -108,7 +105,6 @@ Current write coverage already includes Anthropic `claude-fable-5`, `claude-opus
 **Priority 8: P3**
 
 - **Priority:** P3
-- **Selector:** `gpt-5.5-pro`
 - **Category:** llm + extract
 - **Rationale:** Still-documented separate Pro slug; GPT-5.6 Pro is a `reasoning.mode` on the existing Sol/Terra/Luna selectors, not a new ID.
 
@@ -198,20 +194,16 @@ Implements the two P1 write recommendations from the 2026-08-16 text-catalog gap
 
 ### xAI Grok
 
-- Added `grok-4.6` to write alongside retained `grok-4.3` and `grok-4.5`; write expansion orders 4.3, 4.5, 4.6 and the bare `--llm grok` default stays `grok-4.3`.
 - Set Grok 4.6 price bands to `$2/$0.50/$6` per 1M input/cached-input/output tokens (<=200K input) and `$4/$1.00/$12` (>200K input), checked 2026-08-18 against the xAI model page. Estimates use uncached rates.
 - Reasoning mirrors Grok 4.5: required with low/medium/high efforts. Latency and token heuristics reuse the Grok 4.5 baseline and stay provisional until an approved ADR-012 calibration promotes them.
 - xAI removed the `.md` mirrors under `docs.x.ai/developers/models/`; the model-links dump keeps the working `https://docs.x.ai/developers/grok-4-6.md` reference.
 
 ### Google Gemini
 
-- Added `gemini-3.7-flash` to write alongside the retained Gemini selectors; expansion orders it after `gemini-3.1-pro-preview` and before `gemini-3.6-flash`, and the bare `--llm gemini` default stays `gemini-3.5-flash-lite`.
 - Recorded conservative Standard rates of `$1.50/$7.50` per 1M input/output tokens effective 2027-01-01 rather than the introductory `$0.75/$3.75` window through 2026-12-31, so estimates overstate cost until year-end.
 - Reasoning is optional with low/medium/high efforts only: the model page documents that `minimal` returns an error, unlike Gemini 3.6/3.5 Flash. Latency and token heuristics reuse the Gemini 3.6 Flash baseline and stay provisional until an approved ADR-012 calibration promotes them.
 
-## 2026-08-22 Gemini 3.7 Flash, Grok 4.6, and Claude Sonnet 4.6 OCR additions
 
-Closes the extract (OCR) side of the 2026-08-16 P1 write+extract recommendations for `gemini-3.7-flash` and `grok-4.6`, and adds write-only sibling `claude-sonnet-4-6` to OCR. Write selectors, expansion order, and bare `--llm` defaults are unchanged. OCR expansion inserts `gemini-3.7-flash` after `gemini-3.1-pro-preview`, `grok-4.6` after `grok-4.5`, and `claude-sonnet-4-6` after `claude-sonnet-5`. Pricing, reasoning, and page heuristics match the write registries plus the closest prior OCR sibling; see the [OCR report](model-refresh-ocr.md).
 
 ## API / Type Impact
 
@@ -220,7 +212,6 @@ Closes the extract (OCR) side of the 2026-08-16 P1 write+extract recommendations
 
 ## Follow-up Actions
 
-- [x] Implement the 2026-08-16 P1 extract (OCR) registrations for `gemini-3.7-flash` and `grok-4.6`, plus write-only sibling `claude-sonnet-4-6`
 - [ ] Implement the remaining 2026-08-16 recommended selectors after confirming adapter fit and published pricing — Pending
 - [ ] Record future large hosted-model refreshes in dated report sections while preserving ADR-010 policy — Ongoing guardrail
 
@@ -269,7 +260,6 @@ Sources: [model specification](https://ai.google.dev/gemini-api/docs/models/gemi
 
 ## Direct GLM 5.3 additions — 2026-09-08
 
-Writing accepts `--llm glm=glm-5.3` and `--llm glm=glm-5.3-flash`, alongside `glm-5.1`. Bare `--llm glm` still selects 5.1; both additions participate in `--all-llm`. Both models require reasoning and accept `--reasoning-effort low`, `high` or `max`. Omitted/default effort leaves the provider default (max); disabled, minimal, medium and xhigh are rejected before HTTP. The existing 5.1 default still disables thinking. See the [flagship contract](https://docs.z.ai/guides/llm/glm-5.3) and [Flash contract](https://docs.z.ai/guides/vlm/glm-5.3-flash).
 
 Both use direct Z.ai Chat Completions with text messages, enabled thinking and the existing 16,000-token request cap (below their published 128K output maximum and 1M context). Structured writing requests JSON-object output through the existing fallback path. Responses preserve returned model identity, provider input/output/total usage and raw usage; valid cached input counts appear in `providerUsage.cachedInputTokenCount` as a subset of prompt tokens. Reasoning content is not inserted into prose or counted again on top of completion usage. Missing usage retains local token-count fallback. Flash vision input, GLM 5.2 and Together additions are outside this integration. See the [API contract](https://docs.z.ai/api-reference/llm/chat-completion).
 
@@ -278,7 +268,6 @@ Standard direct prices per million input/cached-input/output tokens are $1.40/$0
 
 ## Together hosted writing additions — 2026-09-08
 
-Together accepts these additional short selectors. `--llm together` still selects `glm-5.1`; `kimi-k2.6` and `glm-5.1` keep their original host mappings. `--all-llm` includes all five Together choices. These selectors are scoped to Together and do not change direct Kimi or GLM behavior.
 
 | Selector | Exact Together API ID | Input / cached input / output USD per million tokens |
 | --- | --- | --- |

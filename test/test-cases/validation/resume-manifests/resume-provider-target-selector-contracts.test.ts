@@ -56,14 +56,14 @@ describe('resume target-aware provider selectors', () => {
   test('normalizes --provider for generation resume targets', () => {
     const write = normalizeResumeSelectorFlagsForTarget(
       target('write'),
-      { provider: ['together=kimi-k2.6', 'glm=glm-5.1'] },
+      { provider: ['together=kimi-k3', 'glm=glm-5.3-flash'] },
       new Set(['provider']),
-      ['resume', 'out', '--provider', 'together=kimi-k2.6', '--provider', 'glm=glm-5.1']
+      ['resume', 'out', '--provider', 'together=kimi-k3', '--provider', 'glm=glm-5.3-flash']
     )
-    expect(write.flags['together']).toBe('kimi-k2.6')
-    expect(write.flags['glm']).toBe('glm-5.1')
-    expect(buildOpts(write.flags, write.explicitFlags, write.flagOccurrences).togetherModels).toEqual(['kimi-k2.6'])
-    expect(buildOpts(write.flags, write.explicitFlags, write.flagOccurrences).glmModels).toEqual(['glm-5.1'])
+    expect(write.flags['together']).toBe('kimi-k3')
+    expect(write.flags['glm']).toBe('glm-5.3-flash')
+    expect(buildOpts(write.flags, write.explicitFlags, write.flagOccurrences).togetherModels).toEqual(['kimi-k3'])
+    expect(buildOpts(write.flags, write.explicitFlags, write.flagOccurrences).glmModels).toEqual(['glm-5.3-flash'])
 
     const image = normalizeResumeSelectorFlagsForTarget(
       target('image'),
@@ -118,13 +118,13 @@ describe('resume target-aware provider selectors', () => {
 
     const ocr = normalizeResumeSelectorFlagsForTarget(
       target('extract', '/tmp/autoshow-resume-document', 'document'),
-      { provider: ['deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct'] },
+      { provider: ['deepinfra=google/gemma-4-31B-it'] },
       new Set(['provider']),
-      ['resume', 'out', '--provider', 'deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct']
+      ['resume', 'out', '--provider', 'deepinfra=google/gemma-4-31B-it']
     )
-    expect(ocr.flags['deepinfra-ocr']).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
+    expect(ocr.flags['deepinfra-ocr']).toBe('google/gemma-4-31B-it')
     expect(ocr.flags['deepgram-stt']).toBeUndefined()
-    expect(buildOpts(ocr.flags, ocr.explicitFlags, ocr.flagOccurrences).deepinfraOcrModels).toEqual(['Qwen/Qwen3-VL-30B-A3B-Instruct'])
+    expect(buildOpts(ocr.flags, ocr.explicitFlags, ocr.flagOccurrences).deepinfraOcrModels).toEqual(['google/gemma-4-31B-it'])
 
     const article = normalizeResumeSelectorFlagsForTarget(
       target('extract', '/tmp/autoshow-resume-article', 'article'),

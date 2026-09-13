@@ -5,6 +5,7 @@ import {
 } from './test-helpers'
 import { E2E_TEST_TIMEOUT_MS } from './budget'
 import { readProviderResultArtifact, readCanonicalRecord } from './manifest-helpers'
+import { assertTextContent } from './assert-generated-content'
 import {
   defineBudgetedLiveServiceTest,
   requireConfiguredEnvVar,
@@ -52,6 +53,7 @@ const assertOcrArtifacts = async ({
   assertProviderMetadata,
   assertProviderResult,
   assertUsageMetadata,
+  expectedText,
 }: {
   outputDir: string
   expectedExtractionMethod: string
@@ -61,8 +63,12 @@ const assertOcrArtifacts = async ({
   assertProviderMetadata: boolean
   assertProviderResult: boolean
   assertUsageMetadata: boolean
+  expectedText?: readonly RegExp[]
 }): Promise<void> => {
   expect(await fileExists(`${outputDir}/manifest.json`)).toBe(true)
+  const extraction = await Bun.file(`${outputDir}/extraction.txt`).text()
+  assertTextContent(extraction, 'OCR extraction')
+  for (const pattern of expectedText ?? []) expect(extraction).toMatch(pattern)
 
   if (assertProviderResult) {
     expect(await fileExists(`${outputDir}/result.json`)).toBe(true)
@@ -144,6 +150,7 @@ export const defineOCRServiceTest = ({
         await assertOcrArtifacts({
           outputDir,
           expectedExtractionMethod: extractionMethod,
+          expectedText: [/Amazon\s+Textract/i, /Processing\s+Documents\s+Synchronously/i],
           service,
           model,
           assertProviderMetadata,
@@ -164,6 +171,7 @@ export const defineOCRServiceTest = ({
       await assertOcrArtifacts({
         outputDir,
         expectedExtractionMethod: imageExtractionMethod ?? extractionMethod,
+        ...(usesGeneratedPngFixture ? { expectedText: [/Amazon\s+Textract/i, /Processing\s+Documents\s+Synchronously/i] } : {}),
         expectedTotalPages: 1,
         service,
         model,

@@ -8,7 +8,6 @@ const isHostedLlmTarget = (
   target.service === 'openai'
   || target.service === 'gemini'
   || target.service === 'anthropic'
-  || target.service === 'minimax'
   || target.service === 'grok'
   || target.service === 'glm'
   || target.service === 'kimi'

@@ -1,140 +1,19 @@
-import { dirname, extname } from 'node:path'
+import { dirname } from 'node:path'
 import { validateGlmOcrModel } from '~/cli/commands/setup-and-utilities/models/ocr-models'
-import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
-import { withOcrCreateRetry } from '~/cli/commands/text/ocr/ocr-utils/ocr-retry'
-import type { ChatImageOcrOptions, DocumentMetadata, NormalizedReasoningEffort, PageResult } from '~/types'
-import { GlmOcrResponseSchema } from '~/types'
-import { httpResponseError, httpResponseOptions, isRecord } from '~/utils/rest-client'
-import { validateData } from '~/utils/validate/validation'
-import { ensureGlmApiKey, resolveGlmBaseUrl } from './glm'
+import type { ChatImageOcrOptions, DocumentMetadata } from '~/types'
 import { runGlmVisionOcr } from './glm-vision-ocr'
-
-
-const cleanString = (value: unknown): string | undefined => {
-  if (typeof value !== 'string') {
-    return undefined
-  }
-  const normalized = value.trim()
-  return normalized.length > 0 ? normalized : undefined
-}
-
-const getMimeType = (filePath: string, format: DocumentMetadata['format']): string => {
-  if (format === 'pdf') return 'application/pdf'
-  if (format === 'png') return 'image/png'
-  if (format === 'jpg') return 'image/jpeg'
-
-  const ext = extname(filePath).toLowerCase()
-  if (ext === '.pdf') return 'application/pdf'
-  if (ext === '.png') return 'image/png'
-  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg'
-  return 'application/octet-stream'
-}
-
-const buildPagesFromLayoutDetails = (layoutDetails: Array<Array<Record<string, unknown>>>): PageResult[] => {
-  return layoutDetails.map((pageItems, index) => ({
-    pageNumber: index + 1,
-    method: 'ocr',
-    text: pageItems
-      .map((item) => cleanString(item['content']))
-      .filter((value): value is string => typeof value === 'string')
-      .join('\n\n')
-      .trim()
-  }))
-}
 
 export const runGlmOcr = async (
   filePath: string,
   step1Metadata: DocumentMetadata,
   model: string,
   options: Partial<ChatImageOcrOptions> = {}
-): Promise<{
-  pages: PageResult[]
-  extractionMethod: 'glm-ocr'
-  markdown: string
-  totalPages?: number
-  promptTokens?: number
-  completionTokens?: number
-  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
-  effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
-}> => {
+) => {
   validateGlmOcrModel(model)
-  if (model === 'glm-5.3-flash') {
-    const run = await runGlmVisionOcr(filePath, step1Metadata, model, { ...options, dpi: options.dpi ?? 144, outputDir: options.outputDir ?? dirname(filePath) })
-    return { ...run, markdown: run.pages.map(page => page.text).join('\n\n') }
-  }
-  const policy = resolveReasoningPolicy({
-    step: 'extract',
-    service: 'glm',
-    model,
-    requestedReasoningEffort: options.reasoningEffort
+  const run = await runGlmVisionOcr(filePath, step1Metadata, model, {
+    ...options,
+    dpi: options.dpi ?? 144,
+    outputDir: options.outputDir ?? dirname(filePath)
   })
-  const apiKey = ensureGlmApiKey('GLM OCR', 'ocr:glm')
-  const bytes = await Bun.file(filePath).arrayBuffer()
-  const base64 = Buffer.from(bytes).toString('base64')
-  const mimeType = getMimeType(filePath, step1Metadata.format)
-
-  const payload = await withOcrCreateRetry('glm-ocr', async (signal) => {
-    const bodyObj: Record<string, unknown> = {
-      model,
-      file: `data:${mimeType};base64,${base64}`
-    }
-    const response = await fetch(`${resolveGlmBaseUrl()}/layout_parsing`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(bodyObj),
-      signal: signal ?? null
-    })
-
-    const rawText = await response.text()
-    let parsedPayload: unknown = null
-    try {
-      parsedPayload = JSON.parse(rawText) as unknown
-    } catch {
-      parsedPayload = rawText
-    }
-
-    if (!response.ok) {
-      const message = isRecord(parsedPayload)
-        ? cleanString(parsedPayload['message']) ?? cleanString(parsedPayload['error'])
-        : undefined
-      throw httpResponseError(
-        `GLM OCR request failed (${response.status} ${response.statusText})${message ? `: ${message}` : ''}`,
-        httpResponseOptions(response, {
-          stage: 'ocr:glm',
-          retryClass: 'runtime_http_create_conservative',
-          retryable: response.status === 425 || response.status === 429,
-          metadata: { provider: 'glm' }
-        })
-      )
-    }
-
-    return parsedPayload
-  }, { onRetryable: options.onRetryable })
-
-  const validated = validateData(GlmOcrResponseSchema, payload, 'GLM OCR response')
-  const markdown = validated.md_results.trim()
-  const pagesFromLayout = Array.isArray(validated.layout_details)
-    ? buildPagesFromLayoutDetails(validated.layout_details as Array<Array<Record<string, unknown>>>)
-    : []
-  const pages = pagesFromLayout.length > 0
-    ? pagesFromLayout
-    : [{
-        pageNumber: 1,
-        method: 'ocr' as const,
-        text: markdown
-      }]
-
-  return {
-    pages,
-    extractionMethod: 'glm-ocr',
-    markdown,
-    ...(typeof validated.data_info?.num_pages === 'number' ? { totalPages: validated.data_info.num_pages } : {}),
-    ...(typeof validated.usage?.prompt_tokens === 'number' ? { promptTokens: validated.usage.prompt_tokens } : {}),
-    ...(typeof validated.usage?.completion_tokens === 'number' ? { completionTokens: validated.usage.completion_tokens } : {}),
-    ...(policy.requested !== undefined ? { requestedReasoningEffort: policy.requested } : {}),
-    effectiveReasoningEffort: policy.effective
-  }
+  return { ...run, markdown: run.pages.map(page => page.text).join('\n\n') }
 }

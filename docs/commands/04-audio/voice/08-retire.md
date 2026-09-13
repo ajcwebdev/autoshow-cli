@@ -10,7 +10,7 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice retire <registration-id> [flags]
 ```
 
-Without `--reason`, `retire` removes the generation from the current index. With `--reason`, it revokes the generation instead and records the reason. Both actions are local: they do not call a provider and do not delete remote resources. Use [delete](./09-delete.md) to delete a remote provider resource.
+With `--reason`, the generation is revoked instead of retired. Neither action calls a provider or deletes a remote resource. Use [delete](./09-delete.md) to delete a remote provider resource.
 
 ### Options
 
@@ -18,7 +18,7 @@ Without `--reason`, `retire` removes the generation from the current index. With
 | --- | --- |
 | `--generation-id <sha256>` | Optional unless more than one generation could match |
 | `--reason <text>` | Revoke instead of retire and record a non-sensitive reason |
-| `--price` | Validate the local transition without provider calls or artifact writes |
+| `--price` | Validate and estimate without provider calls or artifact writes |
 
 ### Examples
 
@@ -26,7 +26,6 @@ Without `--reason`, `retire` removes the generation from the current index. With
 bun autoshow voice retire vr_ID
 bun autoshow voice retire vr_ID --generation-id GENERATION_SHA256
 bun autoshow voice retire vr_ID --reason "Casting changed"
-bun autoshow voice retire vr_ID --reason "Casting changed" --price
 ```
 
 Next: [delete](./09-delete.md).

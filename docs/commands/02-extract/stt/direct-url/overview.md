@@ -51,8 +51,6 @@ Supadata and ScrapeCreators transcribe from the original public source URL.
 | Supadata `auto`                     | ❌ 2024-08 | ✅ Yes  | ✅ TikTok, Instagram, X/Twitter, Facebook, media URL | ❌ Chunk offsets only | ⚠️ Native transcript or generated | ✅ No documented cap | ✅ 1 GiB remote URL | $0.01/request native; $0.02/min generated | 2/2       |
 | ScrapeCreators `youtube-transcript` | ❌ 2024-06 | ✅ Yes  | ❌ YouTube only                                      | ❌ Cue times only     | ⚠️ Retrieves existing captions    | ✅ No documented cap | ✅ No upload        | $0.00188/request                          | 1/2       |
 
-Use `--split` for long files. AutoShow also splits automatically when a provider duration or size cap would be exceeded.
-
 ## YouTube Caption Fallback
 
 `--youtube-captions` first looks for English captions on YouTube inputs. Available captions skip the selected STT providers; otherwise extraction falls back to those providers. This flag does not add a provider selector.

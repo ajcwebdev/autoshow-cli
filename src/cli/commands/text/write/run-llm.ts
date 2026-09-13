@@ -1,3 +1,5 @@
+import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
+import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError, InternalError } from '~/utils/error-handler'
 import type { LLMOptions, LLMTarget, PendingStructuredRunResult, RunLlmTargetsForStructuredPromptOptions, StructuredRequestOptions, StructuredRunResult, StructuredValidationContext, TranscriptionResult, VideoMetadata } from '~/types'
@@ -6,7 +8,6 @@ import { resolvePromptNames } from '~/prompts/prompt-loader'
 import { runOpenAIModel } from './write-services/write-openai/run-openai'
 import { runGeminiModel } from './write-services/write-gemini/run-gemini'
 import { runAnthropicModel } from './write-services/write-anthropic/run-anthropic'
-import { runMinimaxModel } from './write-services/write-minimax/run-minimax'
 import { runGrokModel } from './write-services/write-grok/run-grok'
 import { runGlmModel } from './write-services/write-glm/run-glm'
 import { runKimiModel } from './write-services/kimi/run-kimi'
@@ -48,6 +49,7 @@ export const collectLlmTargets = (options: LLMOptions): LLMTarget[] => {
     run: LLMTarget['run']
   ): void => {
     for (const model of models ?? []) {
+      if (!getModelRegistry().llm[service]?.models[model]) throw UsageError(`Unsupported write model ${service}/${model}. Select an active model explicitly.`)
       targets.push({ service, label, model, run })
     }
   }
@@ -55,7 +57,6 @@ export const collectLlmTargets = (options: LLMOptions): LLMTarget[] => {
   appendTargets('gemini', 'Gemini', options.geminiModels, runGeminiModel)
   appendTargets('anthropic', 'Anthropic', options.anthropicModels, runAnthropicModel)
   appendTargets('openai', 'OpenAI', options.openaiModels, runOpenAIModel)
-  appendTargets('minimax', 'MiniMax', options.minimaxModels, runMinimaxModel)
   appendTargets('grok', 'Grok', options.grokModels, runGrokModel)
   appendTargets('glm', 'GLM', options.glmModels, runGlmModel)
   appendTargets('kimi', 'Kimi', options.kimiModels, runKimiModel)

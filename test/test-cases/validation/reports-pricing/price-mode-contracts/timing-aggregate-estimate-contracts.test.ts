@@ -11,7 +11,7 @@ describe('price mode contracts', () => {
         {
           step: 'llm',
           provider: 'openai',
-          model: 'gpt-5.4-nano',
+          model: 'gpt-5.6-luna',
           inputCostPer1MCents: 5,
           outputCostPer1MCents: 40,
           estimatedInputTokens: 600,

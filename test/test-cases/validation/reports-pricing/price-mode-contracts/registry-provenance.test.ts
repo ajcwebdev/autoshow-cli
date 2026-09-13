@@ -162,7 +162,7 @@ describe('price mode contracts', () => {
 
       const acceptedTokenBandFields = RETIRED_USD_TOKEN_BAND_FIELDS.flatMap((field) => {
         const registry = structuredClone(getModelRegistry())
-        const band = requireDefined(registry.llm['minimax']?.models['MiniMax-M3']?.tokenPricingBands?.[0], 'MiniMax-M3 token pricing band fixture')
+        const band = requireDefined(registry.llm['openai']?.models['gpt-6-astra']?.tokenPricingBands?.[0], 'Astra token pricing band fixture')
         ;(band as unknown as JsonObject)[field] = 1
         return safeParse(ModelRegistrySchema, registry).success
           ? [`llm.tokenPricingBands.${field}`]

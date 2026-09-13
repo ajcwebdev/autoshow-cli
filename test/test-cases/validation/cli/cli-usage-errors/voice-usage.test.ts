@@ -142,7 +142,7 @@ test('voice import and zero-call catalog validation accept their exact capabilit
     ['openai', 'gpt-4o-mini-tts-2025-12-15', 'alloy'],
     ['speechify', 'simba-3.2', 'geffen_32'],
     ['hume', 'octave-2', 'Male English Actor'],
-    ['cartesia', 'sonic-3.5-2026-05-04', 'f786b574-daa5-4673-aa0c-cbe3e8534c02'],
+    ['cartesia', 'sonic-3.6-2026-08-27', 'f786b574-daa5-4673-aa0c-cbe3e8534c02'],
     ['inworld', 'realtime-tts-2', 'voice_inworld_standard_en'],
   ] as const
   for (const [provider, model, voiceId] of imports) {
@@ -194,7 +194,7 @@ test('canonical audition planning resolves every active TTS provider', () => {
     ['openai', 'gpt-4o-mini-tts-2025-12-15', 'alloy'],
     ['speechify', 'simba-3.2', 'geffen_32'],
     ['hume', 'octave-2', 'Male English Actor'],
-    ['cartesia', 'sonic-3.5-2026-05-04', 'f786b574-daa5-4673-aa0c-cbe3e8534c02'],
+    ['cartesia', 'sonic-3.6-2026-08-27', 'f786b574-daa5-4673-aa0c-cbe3e8534c02'],
     ['inworld', 'realtime-tts-2', 'voice_inworld_standard_en'],
   ] as const satisfies ReadonlyArray<readonly [TtsProvider, string, string]>
 
@@ -239,7 +239,7 @@ test('voice clone explains each intentionally deferred workflow', async () => {
 
 test('voice design rejects catalog-only providers and unknown synthesis models', async () => {
   await rejectVoice(
-    ['voice', 'design', 'hero', '--provider', 'cartesia', '--model', 'sonic-3.5-2026-05-04', '--creation-model', 'voice-design', '--description', 'Warm, weathered guide', '--preview-text', 'A short representative passage.', '--price'],
+    ['voice', 'design', 'hero', '--provider', 'cartesia', '--model', 'sonic-3.6-2026-08-27', '--creation-model', 'voice-design', '--description', 'Warm, weathered guide', '--preview-text', 'A short representative passage.', '--price'],
     'Voice Design currently supports elevenlabs, hume, inworld; the selected provider has no implemented text-prompt design adapter.'
   )
   await rejectVoice(

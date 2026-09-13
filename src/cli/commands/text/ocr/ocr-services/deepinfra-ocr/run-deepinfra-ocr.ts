@@ -1,5 +1,5 @@
 import { validateDeepinfraOcrModel } from '~/cli/commands/setup-and-utilities/models/ocr-models'
-import { OcrStructuredResponseError } from '../../ocr-structured-response-error'
+import { OcrOutputLimitError } from '../../ocr-structured-response-error'
 import type { DocumentMetadata } from '~/types'
 import { createChatImageOcrRunner } from '~/cli/commands/text/ocr/ocr-utils/chat-image-ocr'
 import {
@@ -7,7 +7,6 @@ import {
   getDeepinfraOcrClientConfig
 } from './deepinfra-ocr'
 
-const DEEPINFRA_OCR_MAX_TOKENS = 4092
 const DEEPINFRA_OCR_IMAGE_MIME_TYPES: Partial<Record<DocumentMetadata['format'], string>> = {
   png: 'image/png',
   jpg: 'image/jpeg',
@@ -35,12 +34,12 @@ const runDeepinfraChatOcr = createChatImageOcrRunner({
   getConfig: getDeepinfraOcrClientConfig,
   buildBody: ({ model, messages, reasoningPolicy }) => ({
     model,
-    max_tokens: model.startsWith('google/gemma-4-') ? 8192 : DEEPINFRA_OCR_MAX_TOKENS,
-    ...(model.startsWith('google/gemma-4-') ? { reasoning_effort: reasoningPolicy.effective === 'disabled' ? 'none' : reasoningPolicy.effective === 'default' ? 'none' : reasoningPolicy.effective } : {}),
+    max_tokens: 8192,
+    reasoning_effort: reasoningPolicy.effective === 'disabled' || reasoningPolicy.effective === 'default' ? 'none' : reasoningPolicy.effective,
     messages
   }),
   checkResponse: (response, text, page) => {
-    if (response.choices?.[0]?.finish_reason === 'length') throw new OcrStructuredResponseError(`DeepInfra OCR ${page} reached its output token limit.`, text)
+    if (response.choices?.[0]?.finish_reason === 'length') throw new OcrOutputLimitError(`DeepInfra OCR ${page} reached its output token limit.`, text)
   },
 })
 

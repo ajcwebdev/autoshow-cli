@@ -16,7 +16,7 @@ export const CAPABILITY_SOURCE_REFS: Record<TtsTarget['service'], string[]> = {
   elevenlabs: ['https://elevenlabs.io/docs/overview/capabilities/text-to-speech'],
   speechify: ['https://docs.sws.speechify.com/tts/text-to-speech/get-started/models'],
   hume: ['https://dev.hume.ai/reference/text-to-speech-tts/synthesize-json'],
-  cartesia: ['https://docs.cartesia.ai/build-with-cartesia/tts-models/sonic-3-5'],
+  cartesia: ['https://docs.cartesia.ai/build-with-cartesia/tts-models/latest'],
   inworld: ['https://docs.inworld.ai/'],
 }
 

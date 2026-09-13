@@ -17,17 +17,17 @@ describe('OCR manifest logging contracts', () => {
 
     expect(summary.runSummary?.entries[0]).toMatchObject({
       step: 'Extract',
-      providerModel: 'openai/gpt-5.4-nano',
+      providerModel: 'openai/gpt-5.6-luna',
       predictedCostCents: 0.58044,
       actualCostCents: 0.3075
     })
     expect(summary.promptUsage?.entries[0]).toMatchObject({
       step: 'Extract',
-      providerModel: 'openai/gpt-5.4-nano',
+      providerModel: 'openai/gpt-5.6-luna',
       usage: '6000/1500 tok'
     })
     expect(summary.ocrCostCalculation?.entries[0]).toMatchObject({
-      providerModel: 'openai/gpt-5.4-nano',
+      providerModel: 'openai/gpt-5.6-luna',
       pages: 2,
       predictedInputs: '5972/3688 tok',
       actualInputs: '6000/1500 tok',

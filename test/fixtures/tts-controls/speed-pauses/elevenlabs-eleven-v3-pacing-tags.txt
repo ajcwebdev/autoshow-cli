@@ -1,0 +1,5 @@
+[normal pace] I speak at a normal pace. One, two, three, four, five.
+[slow] I speak slowly. One, two, three, four, five.
+[fast] I speak fast. One, two, three, four, five.
+[normal pace] I pause here. [short pause] Then I speak.
+[normal pace] I take a long pause here. [long pause] Then I speak.

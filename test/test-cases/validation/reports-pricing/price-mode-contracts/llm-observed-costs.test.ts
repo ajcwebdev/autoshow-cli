@@ -11,7 +11,7 @@ describe('price mode contracts', () => {
   test('text write estimated costs stay price-aligned while observed LLM counts stay uncalibrated', async () => {
       const opts = {
         prompts: ['shortSummary'],
-        openaiModels: ['gpt-5.5'],
+        openaiModels: ['gpt-5.6-sol'],
         useTesseract: false,
         urlBackend: 'defuddle',
         urlBackendExplicit: false
@@ -22,24 +22,24 @@ describe('price mode contracts', () => {
         applyCostMultipliers: false,
         llmTargets: [{
           service: 'openai',
-          model: 'gpt-5.5',
+          model: 'gpt-5.6-sol',
           inputTokens: 100_000,
           outputTokens: 100_000
         }]
       })
-      const multiplier = getLlmEstimation('openai', 'gpt-5.5').costMultiplier
+      const multiplier = getLlmEstimation('openai', 'gpt-5.6-sol').costMultiplier
 
       expect(multiplier).not.toBe(1)
       expect(estimated.steps[0]).toMatchObject({
         step: 'llm',
         provider: 'openai',
-        model: 'gpt-5.5',
+        model: 'gpt-5.6-sol',
         costMultiplier: multiplier
       })
       expect(observedEstimate.steps[0]).toMatchObject({
         step: 'llm',
         provider: 'openai',
-        model: 'gpt-5.5',
+        model: 'gpt-5.6-sol',
         estimatedInputTokens: 100_000,
         estimatedOutputTokens: 100_000,
         costMultiplier: 1
@@ -52,7 +52,7 @@ describe('price mode contracts', () => {
         applyCostMultipliers: false,
         llmTargets: [{
           service: 'openai',
-          model: 'gpt-5.5',
+          model: 'gpt-5.6-sol',
           inputTokens: 100_000,
           outputTokens: 100_000
         }]
@@ -61,10 +61,9 @@ describe('price mode contracts', () => {
       expect(cost.steps[0]).toMatchObject({
         step: 'llm',
         provider: 'openai',
-        model: 'gpt-5.5',
+        model: 'gpt-5.6-sol',
         costMultiplier: 1,
         cost: 350,
-        pricingBand: 'standard-short-context'
       })
       expect(cost.totalCost).toBe(350)
     })
@@ -82,7 +81,7 @@ describe('price mode contracts', () => {
           returnedModel: 'gpt-returned'
         })
       )
-      const metadata = buildStep3Metadata('openai', 'gpt-5.4-nano', instrumentation)
+      const metadata = buildStep3Metadata('openai', 'gpt-5.6-luna', instrumentation)
       const actual = computeActualCosts({ step3: metadata })
 
       expect(metadata).toMatchObject({
@@ -99,7 +98,7 @@ describe('price mode contracts', () => {
       expect(actual.steps[0]).toMatchObject({
         step: 'llm',
         provider: 'openai',
-        model: 'gpt-5.4-nano',
+        model: 'gpt-5.6-luna',
         inputValue: 168,
         promptTokens: 123,
         completionTokens: 45,
@@ -112,7 +111,7 @@ describe('price mode contracts', () => {
         'short prompt',
         async () => 'short response'
       )
-      const metadata = buildStep3Metadata('openai', 'gpt-5.4-nano', instrumentation)
+      const metadata = buildStep3Metadata('openai', 'gpt-5.6-luna', instrumentation)
       const actual = computeActualCosts({ step3: metadata })
 
       expect(metadata.tokenCountSource).toBe('local_count')

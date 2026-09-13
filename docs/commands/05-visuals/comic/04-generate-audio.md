@@ -44,7 +44,7 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 bun autoshow comic generate-audio 01-01 --provider hume=octave-2
 bun autoshow comic generate-audio 01-01 --provider mistral=voxtral-mini-tts-2603 --mode segmented
 bun autoshow comic generate-audio 01-01 --provider elevenlabs=eleven_v3 --sfx-provider elevenlabs=eleven_text_to_sound_v2
-bun autoshow comic generate-audio 01-01 --sfx-provider replicate=sepal/audiogen@<pinned-version> --sfx-license-use noncommercial
+bun autoshow comic generate-audio 01-01 --sfx-provider replicate=sepal/audiogen@154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8 --sfx-license-use noncommercial
 bun autoshow comic generate-audio 01-01 --provider hume --role "SHIP COMPUTER=role:computer"
 bun autoshow comic generate-audio 01-01 --provider hume --slideshow
 bun autoshow comic generate-audio 01-01 --all-providers --price
@@ -52,17 +52,15 @@ bun autoshow comic generate-audio 01-01 --all-providers --price
 
 ### Behavior
 
-- With `--output-dir`, execution uses that exact directory: a populated directory must already be a compatible scene run, and a missing or empty directory is initialized as a fresh scene workspace. Price planning requires an existing compatible run and never initializes an output directory. Without a pinned directory, the command scans matching timestamped scene directories newest-first and uses a compatible match.
+- With `--output-dir`, the command uses that exact directory: a populated directory must already be a compatible scene run, and a missing or empty directory is initialized as a fresh scene workspace. `--price` requires an existing compatible run and never creates an output directory. Without a pinned directory, the command scans matching timestamped scene directories newest-first and uses a compatible match.
 - Every spoken line is synthesized. `--pacing-profile loose-comedy` maps `beat`, `pause`/`moment`, and `long`/`heavy` cues to fixed silences and adds a short gap between turns. Compound speech overlaps unless `--role` casts the label to one subject.
 - Every speaking subject needs one approved registration for each selected provider/model/profile. After those registrations exist, a later run may use any subset of those targets.
-- `--mode auto` uses native multi-speaker synthesis when the provider and scene allow it, otherwise segmented per-turn synthesis. `native` fails when native synthesis is not possible. `segmented` always synthesizes each turn independently. ElevenLabs `eleven_v3` and Hume `octave-2` can use native grouped synthesis when the dialogue is eligible. Overlaps and local voice effects (radio, intercom, telephone, computer) force segmented rendering.
-- `--price` reports remaining cost only and zero spend when completed audio can be assembled locally. A request sent to a provider with no recoverable audio is never purchased again in the same command; rerun with `--allow-ambiguous-redispatch` to resume, which may repurchase that work. Failed runs can be rerun; completed audio is reused.
+- `--mode auto` uses native multi-speaker synthesis when the provider and scene allow it, otherwise segmented per-turn synthesis. `native` fails when native synthesis is not possible. `segmented` always synthesizes each turn independently. ElevenLabs `eleven_v3` and Hume `octave-2` can use native synthesis. Overlaps and local voice effects (radio, intercom, telephone, computer) force segmented rendering.
+- `--price` reports remaining cost only and zero spend when completed audio can be assembled locally. A request sent to a provider with no recoverable audio is never purchased again in the same command; rerun with `--allow-ambiguous-redispatch` to resume, which may repurchase that work.
 - Authored `**SFX:**`, `**VOCAL SFX:**`, `**AMBIENCE:**`, `[[SFX: ...]]`, and `[[VOCAL SFX: ...]]` directives require `--sfx-provider` unless a previous run already recorded that target. Directives are required unless prefixed with `OPTIONAL`. Optional `{duration: 2.5s, gain: -3dB, pan: -0.4}` envelopes set duration and mix.
 - Scenes with no spoken lines complete locally with no dialogue audio.
-- Final audio is 48 kHz stereo 24-bit PCM WAV at `audio/final/<target-key>.wav`, with `audio/<target-key>/render.json` and `audio/<target-key>/timeline.json`.
+- Final audio is 48 kHz stereo 24-bit PCM WAV at `audio/final/<target-key>.wav`, with `audio/<target-key>/render.json` and `audio/<target-key>/timeline.json`. A soundscape mix writes `audio/final/<target-key>.soundscape.wav`.
 - `--slideshow` checks reviewed panels and local video encoding before any provider dispatch, then runs [generate-slideshow](./05-generate-slideshow.md) once audio completes. `--price` and `--max-generation-slots` skip that render.
-- Audio and pending `--slideshow` intent are saved together before synthesis. Use [`resume <run-directory> --price` and `resume <run-directory>`](../../00-setup-and-utilities/resume.md#comic-recovery) to restore the original targets and settings, reuse completed audio slots, and finish requested local presentation work. The one-run generation-slot limit and ambiguous-redispatch authorization are not carried into recovery.
+- [`resume <run-directory> --price` and `resume <run-directory>`](../../00-setup-and-utilities/resume.md#comic-recovery) restore the original targets and settings, reuse completed audio, and finish a requested slideshow. Pass `--max-generation-slots` and `--allow-ambiguous-redispatch` again if the recovered run still needs them.
 
 Next: [generate-slideshow](./05-generate-slideshow.md).
-
-Stability `stable-audio-3` sound effects use asynchronous creation and result polling. Prompts allow 10,000 Unicode scalars and requested duration is 1–380 seconds; AutoShow defaults to 8 seconds. Each successful generation costs $0.26 regardless of duration. Poll failures after acceptance block automatic redispatch; completed audio and retained request identities remain reusable. Older serializer plans can reuse completed assets but cannot submit through the obsolete route. [Stability API](https://platform.stability.ai/docs/api-reference), [credit pricing](https://platform.stability.ai/pricing)

@@ -25,9 +25,9 @@ export const STABLE_EXAMPLE_AUDIO_URL = EXAMPLE_AUDIO_URL
 
 export const STABLE_EXAMPLE_AUDIO_TITLE = STABLE_EXAMPLE_AUDIO_URL.split('/').pop()?.replace(/\.[^/.]+$/, '') ?? ''
 
-export const STABLE_TTS_MD_PATH = 'input/examples/tts/1-tts.md'
+export const STABLE_TTS_MD_PATH = 'input/examples/tts/01-tts-short.md'
 
-export const STABLE_TTS_MD_TITLE = '1-tts'
+export const STABLE_TTS_MD_TITLE = '01-tts-short'
 
 const PAGE_IMAGE_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAN0lEQVR4nO3RwQ0AMAjDwJT9d05HMB9+vgGCZF7bXJrT9XhgwR8gEyETIRMhEyETIRMhEyEThXzH8QM9OMM6fAAAAABJRU5ErkJggg=='
 

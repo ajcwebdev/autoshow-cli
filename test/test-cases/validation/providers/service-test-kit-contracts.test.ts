@@ -23,7 +23,7 @@ describe('classifyLiveProviderAvailabilityFailure', () => {
         expected: 'GLM Reader is rate limited'
       },
       {
-        output: 'glm/glm-ocr: certificate has expired',
+        output: 'glm/glm-5.3-flash: certificate has expired',
         expected: 'GLM provider TLS certificate has expired'
       },
       {

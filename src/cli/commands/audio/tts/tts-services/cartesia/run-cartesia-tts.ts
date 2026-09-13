@@ -24,6 +24,7 @@ export const runCartesiaTts = async (
     model: CartesiaTtsModel
     voiceId?: string | undefined
     language?: string | undefined
+    speed?: number | undefined
     abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
@@ -64,7 +65,7 @@ export const runCartesiaTts = async (
     chunkScheduler: options.chunkScheduler,
     requestEvidence: options.requestEvidence,
     fetchChunkAudio: async ({ chunk, chunkIndex, signal, requestAttempt, retryReasonCode }) => {
-      const requestBody = buildCartesiaTtsRequestBody(options.model, chunk, voice, language)
+      const requestBody = buildCartesiaTtsRequestBody(options.model, chunk, voice, language, options.speed)
       return await dispatchTtsProviderRequest(options.requestEvidence, {
         chunkIndex,
         endpointKind: 'speech-synthesis',
@@ -73,7 +74,7 @@ export const runCartesiaTts = async (
         providerText: chunk,
         voiceField: cartesiaTtsVoiceField(options.model),
         voices: [{ kind: 'provider-id', value: voice }],
-        requestControls: cartesiaTtsRequestControls(options.model, language),
+        requestControls: cartesiaTtsRequestControls(options.model, language, options.speed),
         continuation: { kind: 'none' }
       }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
         const response = await fetch(`${baseURL}/tts/bytes`, {

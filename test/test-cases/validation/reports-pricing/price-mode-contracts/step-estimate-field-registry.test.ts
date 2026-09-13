@@ -16,7 +16,7 @@ const recordedEstimate = {
   }, {
     step: 'extract',
     provider: 'openai',
-    model: 'gpt-5.4-nano',
+    model: 'gpt-5.6-luna',
     totalCost: 2,
     costMultiplier: 1.2,
     costPer1kPagesCents: 3,
@@ -41,7 +41,7 @@ const recordedEstimate = {
   }, {
     step: 'llm',
     provider: 'anthropic',
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-5',
     totalCost: 3,
     costMultiplier: 1.3,
     inputCostPer1MCents: 15,
@@ -106,7 +106,7 @@ describe('step estimate field registry contracts', () => {
       }, {
         step: 'extract',
         provider: 'openai',
-        model: 'gpt-5.4-nano',
+        model: 'gpt-5.6-luna',
         cost: 2,
         costMultiplier: 1.2,
         costPer1kPagesCents: 3,
@@ -130,7 +130,7 @@ describe('step estimate field registry contracts', () => {
       }, {
         step: 'llm',
         provider: 'anthropic',
-        model: 'claude-sonnet-4-6',
+        model: 'claude-sonnet-5',
         cost: 3,
         costMultiplier: 1.3,
         inputCostPer1MCents: 15,
@@ -184,7 +184,7 @@ describe('step estimate field registry contracts', () => {
     }, {
       step: 'extract',
       provider: 'openai',
-      model: 'gpt-5.4-nano',
+      model: 'gpt-5.6-luna',
       costPer1kPagesCents: 3,
       inputCostPer1MCents: 8,
       outputCostPer1MCents: 9,
@@ -201,7 +201,7 @@ describe('step estimate field registry contracts', () => {
     }, {
       step: 'llm',
       provider: 'anthropic',
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-5',
       inputCostPer1MCents: 15,
       outputCostPer1MCents: 16,
       estInputTokens: 17,

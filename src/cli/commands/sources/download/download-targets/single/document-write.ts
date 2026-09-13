@@ -8,7 +8,6 @@ const hasConfiguredLlmProvider = (opts: ResolvedLLMModelOptions): boolean =>
     ...(opts.openaiModels ?? []),
     ...(opts.geminiModels ?? []),
     ...(opts.anthropicModels ?? []),
-    ...(opts.minimaxModels ?? []),
     ...(opts.grokModels ?? []),
     ...(opts.glmModels ?? []),
     ...(opts.kimiModels ?? []),

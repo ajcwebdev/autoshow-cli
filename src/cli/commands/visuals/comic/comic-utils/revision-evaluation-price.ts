@@ -1,6 +1,6 @@
 import type { GenerateImagesCommandOptions } from '~/types'
 import { estimateImageOutputCost, formatCost } from '../comic-image-services/image-costs'
-import { loadRevisionPriceInventory, REVISION_COMPARISON_MODEL, REVISION_ESTIMATED_INPUT_TOKENS_PER_COMPARISON, REVISION_ESTIMATED_OUTPUT_TOKENS_PER_COMPARISON, REVISION_IMAGE_MODEL } from '../comic-commands/generate-images/revision-evaluation'
+import { loadRevisionPriceInventory, REVISION_COMPARISON_PROVIDER, REVISION_COMPARISON_MODEL, REVISION_ESTIMATED_INPUT_TOKENS_PER_COMPARISON, REVISION_ESTIMATED_OUTPUT_TOKENS_PER_COMPARISON, REVISION_IMAGE_MODEL } from '../comic-commands/generate-images/revision-evaluation'
 import { estimateLlmCostFromRegistry } from './structured-script-utils/llm-cost'
 import { priceDetails, priceLine } from './price-estimate-logging'
 import { InternalError } from '~/utils/error-handler'
@@ -28,7 +28,7 @@ export const estimateRevisionEvaluationPrice = async (options: GenerateImagesCom
     ['Heuristic comparison tokens', `${comparisonInputTokens.toLocaleString()} input + ${comparisonOutputTokens.toLocaleString()} output`],
     ['Comparison subtotal', formatCost(comparisonCost)],
     ['Estimated total', formatCost(total)],
-  ], { command: 'generate-images', mode: 'revision-evaluation', scene: options.sceneSlug, planFingerprint: inventory.loaded.plan.planFingerprint, panels: inventory.loaded.entries.length, imageModel: REVISION_IMAGE_MODEL, imageCalls: inventory.imageCalls, imageCost, comparisonModel: REVISION_COMPARISON_MODEL, comparisonCalls: inventory.comparisonCalls, comparisonInputTokens, comparisonOutputTokens, comparisonCost, estimatedTotal: total, priceModeWrites: 0 })
+  ], { command: 'generate-images', mode: 'revision-evaluation', scene: options.sceneSlug, planFingerprint: inventory.loaded.plan.planFingerprint, panels: inventory.loaded.entries.length, imageModel: REVISION_IMAGE_MODEL, imageCalls: inventory.imageCalls, imageCost, comparisonProvider: REVISION_COMPARISON_PROVIDER, comparisonModel: REVISION_COMPARISON_MODEL, comparisonCalls: inventory.comparisonCalls, comparisonInputTokens, comparisonOutputTokens, comparisonCost, estimatedTotal: total, priceModeWrites: 0 })
   priceLine(`Total: ~${formatCost(total)}`, { knownTotal: total, hasUnknownPricing: false })
   priceLine('Revision price mode validates the frozen plan, hashes, contracts, canonical references, and resumable slot state without provider calls or writes.', { providerCalls: 0, writes: 0 })
 }

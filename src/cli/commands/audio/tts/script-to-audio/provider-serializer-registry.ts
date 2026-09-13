@@ -16,7 +16,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { UsageError } from '~/utils/error-handler'
 import { resolveTtsTargetInvocationControls } from '../tts-targets/tts-invocation-controls'
-import { ELEVENLABS_TTS_OUTPUT_FORMAT } from '../tts-services/tts-elevenlabs/elevenlabs-utils'
+import { ELEVENLABS_TTS_OUTPUT_FORMAT, validateElevenLabsVoiceSettings, parseElevenLabsDictionaryLocator } from '../tts-services/tts-elevenlabs/elevenlabs-utils'
 import { INWORLD_TTS_SERIALIZER_VERSION, inworldTtsRequestControls } from '../tts-services/inworld/inworld-tts-request'
 import { SCHEMA_VERSION } from './attempt-shared'
 
@@ -53,23 +53,32 @@ const controlReader = (effectiveControls: Readonly<Record<string, unknown>>): Co
 })
 
 const buildOpenAiSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'openai.tts.phase-0-v1', controls: { responseFormat: 'wav', ...(controls.string('instructions') ? { instructions: controls.string('instructions') } : {}), ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}) } })
-const buildGrokSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'grok.tts.phase-0-v1', controls: { language: controls.string('language') ?? 'auto', textNormalization: controls.boolean('textNormalization') === true, outputFormat: { codec: 'wav', sample_rate: 24000 } } })
-const buildCartesiaSerializer: SerializerBuilder = ({ target, controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'cartesia.tts.phase-0-v1', controls: cartesiaTtsRequestControls(target.model, controls.string('language')) })
+const buildGrokSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'grok.tts.phase-0-v1', controls: { ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}), language: controls.string('language') ?? 'auto', textNormalization: controls.boolean('textNormalization') === true, outputFormat: { codec: 'wav', sample_rate: 24000 } } })
+const buildCartesiaSerializer: SerializerBuilder = ({ target, controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'cartesia.tts.phase-0-v1', controls: cartesiaTtsRequestControls(target.model, controls.string('language'), controls.number('speed')) })
 const buildSpeechifySerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'speechify.tts.phase-0-v1', controls: { audioFormat: 'wav', ...(controls.string('language') ? { language: controls.string('language') } : {}) } })
 const buildMistralSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'mistral.tts.phase-0-v1', controls: { stream: false, responseFormat: controls.string('responseFormat') ?? 'wav' } })
-const buildHumeSerializer: SerializerBuilder = ({ target, strategy, controls }) => strategy === 'native-utterances'
+const buildHumeSerializer: SerializerBuilder = ({ target, strategy, controls }) => {
+  if (target.model === 'octave-2' && controls.string('description')) throw UsageError('Hume Octave 2 does not support acting descriptions; use Octave 1 for description controls.')
+  return strategy === 'native-utterances'
   ? { endpointKind: 'native-utterance-synthesis', serializerVersion: 'hume.native-utterances.phase-3-v1', controls: { version: '2', format: { type: 'mp3' }, numGenerations: 1, includeTimestampTypes: ['word', 'phoneme'] } }
   : { endpointKind: 'speech-synthesis', serializerVersion: 'hume.tts.phase-0-v1', controls: { version: target.model === 'octave-1' ? '1' : '2', format: { type: 'mp3' }, numGenerations: 1, ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}), ...(controls.number('trailingSilence') !== undefined ? { trailingSilence: controls.number('trailingSilence') } : {}), ...(controls.string('description') ? { description: controls.string('description') } : {}) } }
+}
 
-const buildInworldSerializer: SerializerBuilder = ({ target, controls }) => ({ endpointKind: 'realtime-tts', serializerVersion: INWORLD_TTS_SERIALIZER_VERSION, controls: inworldTtsRequestControls(target.model, controls.string('steeringPrompt')) })
+const buildInworldSerializer: SerializerBuilder = ({ target, controls }) => ({ endpointKind: 'realtime-tts', serializerVersion: INWORLD_TTS_SERIALIZER_VERSION, controls: inworldTtsRequestControls(target.model, controls.string('steeringPrompt'), controls.number('speed')) })
 
-const buildElevenLabsSerializer: SerializerBuilder = ({ strategy, controls }) => {
+const buildElevenLabsSerializer: SerializerBuilder = ({ target, strategy, controls }) => {
+  validateElevenLabsVoiceSettings(target.model, {
+    speed: controls.number('speed'), similarity_boost: controls.number('similarityBoost'),
+    style: controls.number('style'), use_speaker_boost: controls.boolean('useSpeakerBoost'),
+  })
   if (strategy === 'native-dialogue') return {
     endpointKind: 'text-to-dialogue-with-timestamps',
     serializerVersion: 'elevenlabs.dialogue.phase-3-v1',
     controls: {
       outputFormat: ELEVENLABS_TTS_OUTPUT_FORMAT,
       modelId: 'eleven_v3',
+      ...(controls.number('stability') !== undefined ? { settings: { stability: controls.number('stability') } } : {}),
+      ...(controls.stringArray('pronunciationDictionaryLocators')?.length ? { pronunciationDictionaryLocators: controls.stringArray('pronunciationDictionaryLocators')!.map(parseElevenLabsDictionaryLocator) } : {}),
       ...(controls.string('languageCode') ? { languageCode: controls.string('languageCode') } : {}),
       ...(controls.number('seed') !== undefined ? { seed: controls.number('seed') } : {}),
       ...(controls.string('textNormalization') ? { textNormalization: controls.string('textNormalization') } : {}),
@@ -154,16 +163,16 @@ export const resolveEffectiveProviderControls = (
       return controls
     }
     case 'elevenlabs': return resolveTtsTargetInvocationControls('elevenlabs', invocation, { languageCode: selection.elevenLabsLanguageCode, stability: selection.elevenLabsStability, similarityBoost: selection.elevenLabsSimilarityBoost, style: selection.elevenLabsStyle, ...(selection.elevenLabsUseSpeakerBoost ? { useSpeakerBoost: true } : {}), speed: selection.elevenLabsSpeed, seed: selection.elevenLabsSeed, textNormalization: selection.elevenLabsTextNormalization, pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators })
-    case 'grok': return resolveTtsTargetInvocationControls('grok', invocation, { language: selection.grokLanguage, ...(selection.grokTextNormalization ? { textNormalization: true } : {}) })
+    case 'grok': return resolveTtsTargetInvocationControls('grok', invocation, { speed: selection.grokSpeed, language: selection.grokLanguage, ...(selection.grokTextNormalization ? { textNormalization: true } : {}) })
     case 'mistral': return resolveTtsTargetInvocationControls('mistral', invocation, { responseFormat: 'wav' })
     case 'speechify': {
       const controls = resolveTtsTargetInvocationControls('speechify', invocation, { language: selection.speechifyLanguage })
       const language = validateSpeechifyTtsLanguageForModel(validateSpeechifyTtsModel(target.model), controls.language)
       return Object.freeze({ ...controls, ...(language ? { language } : {}) })
     }
-    case 'hume': return resolveTtsTargetInvocationControls('hume', invocation, {})
-    case 'cartesia': return resolveTtsTargetInvocationControls('cartesia', invocation, { language: selection.cartesiaLanguage })
-    case 'inworld': return resolveTtsTargetInvocationControls('inworld', invocation, { steeringPrompt: selection.inworldInstructions })
+    case 'hume': return resolveTtsTargetInvocationControls('hume', invocation, { speed: selection.humeSpeed })
+    case 'cartesia': return resolveTtsTargetInvocationControls('cartesia', invocation, { language: selection.cartesiaLanguage, speed: selection.cartesiaSpeed })
+    case 'inworld': return resolveTtsTargetInvocationControls('inworld', invocation, { steeringPrompt: selection.inworldInstructions, speed: selection.inworldSpeed })
   }
 }
 

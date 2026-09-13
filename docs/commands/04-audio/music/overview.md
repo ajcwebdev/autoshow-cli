@@ -56,7 +56,7 @@ bun autoshow music --batch input/<dir>
 | Hosted generation     | `<prompt-or-text-file>` with `--provider` | Generates music with hosted ElevenLabs, MiniMax, or Gemini APIs and writes MP3 outputs |
 | Lyric-video rendering | `--audio <file>` or `--batch <dir>`       | Uses local whisperfile captions and ffmpeg rendering to write MP4/VTT/SRT outputs          |
 
-Do not mix a hosted prompt or `--provider`, `--all-providers`, `--duration`, `--lyrics-file`, or `--instrumental` with local `--audio`, `--captions`, `--batch`, `--model`, or `--font`. `--audio` and `--captions` cannot be combined with `--batch`. `--output-dir` pins the hosted run, single lyric-video run, or lyric-video batch parent directory. `--price` reports the pinned path without rendering or creating the run directory. Use `bun autoshow music --help-topic overview` for the mode contract.
+Do not mix a hosted prompt or `--provider`, `--all-providers`, `--duration`, `--lyrics-file`, or `--instrumental` with local `--audio`, `--captions`, `--batch`, `--model`, or `--font`. `--audio` and `--captions` cannot be combined with `--batch`. `--output-dir` pins the hosted run, single lyric-video run, or lyric-video batch parent directory. `--price` reports the pinned path without rendering or creating the run directory.
 
 ## Shared Music Options
 
@@ -150,11 +150,7 @@ bun autoshow music input/examples/tts/1-tts.md --provider gemini=lyria-3-pro-pre
 
 `--instrumental` takes precedence over `--lyrics-file` and logs a warning.
 
-`--provider gemini=lyria-3.5` selects the public preview through Gemini Interactions. Bare `--provider gemini` stays on `lyria-3-pro-preview` and its existing GenerateContent route. Both cost $0.08 per song request; lyrics and requested duration do not add a per-minute charge. Lyria 3.5 latency estimates inherit the provisional Pro baseline.
-
-Lyria 3.5 accepts a nonempty text prompt, optional lyrics and instrumental instructions. Duration must be positive and finite; it is included only as a prompt hint, not an exact-length API control. The 120-second fallback is an estimate, not a measured output duration or provider maximum. The API supports text and up to ten images, but this CLI exposes text only; image, audio-reference, video and multi-turn editing inputs are unavailable. Default MP3 output is retained; the API's optional WAV output is unexposed. See the [model specification](https://ai.google.dev/gemini-api/docs/models/lyria-3.5), [music contract](https://ai.google.dev/gemini-api/docs/music-generation) and [pricing](https://ai.google.dev/gemini-api/docs/pricing).
-
-All Interactions model-output blocks are read in order. The first MP3 uses the normal music filename; further audio blocks remain separate `generated-music-gemini-lyria-3.5-part-<n>.mp3` files. Lyrics and JSON song-structure descriptions are preserved verbatim as combined text in `generated-music-gemini-lyria-3.5.txt` and `generatedText` metadata. They are not converted into verified word timings. Sidecar names are model-specific even for single-target runs, are recorded in the artifact map and stay stable during additive resume. Provider errors, incomplete interactions, missing audio and invalid audio payloads fail without automatic redispatch.
+Both models cost $0.08 per song request; lyrics and requested duration do not add a per-minute charge.
 
 ### Lyric-Video Rendering
 
@@ -171,8 +167,9 @@ With `--captions`, output names come from the caption file, not the audio file. 
 
 - **Single-target hosted runs**: write `output/<timestamp>_music-gen/generated-music.mp3` and `manifest.json`.
 - **Multi-target hosted runs**: write `generated-music-<provider>-<sanitized-model>.mp3` per target and `manifest.json`.
+- **Gemini `lyria-3.5` extras**: additional audio as `generated-music-gemini-lyria-3.5-part-<n>.mp3` and lyrics or song-structure text as `generated-music-gemini-lyria-3.5.txt`. These sidecar names stay model-specific even on single-target runs.
 - **Lyric-video single runs**: write `<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`.
-- **Lyric-video batch runs**: write `<slug>/<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`.
+- **Lyric-video batch runs**: write `<slug>/<stem>.mp4`, `<slug>/<stem>.vtt`, `<slug>/<stem>.srt`, and `manifest.json`.
 - **`--output-dir`**: pins an exact hosted or local output directory, including the parent directory for a lyric-video batch; individual batch items keep their child directories.
 - **`manifest.json`**: records single-run metadata including `music` array, `cost`, and `timing`.
 
@@ -189,4 +186,4 @@ With `--captions`, output names come from the caption file, not the audio file. 
 | Gemini `lyria-3.5` | ⚠️ Public preview, September 2026 | ⚠️ Full song; 120s estimate | ⚠️ Prompt only | ✅ `--instrumental` | ✅ File or generated text/structure | ✅ 44.1 kHz stereo MP3 | $0.08/song request | 1/4 (tie) |
 | MiniMax `music-3.0`           | ✅ 2026-08-13 | ✅ Up to 5 minutes billed         | ❌ Ignored       | ✅ `--instrumental` | ✅ `--lyrics-file` or generated | ✅ 44.1 kHz / 256 kbps MP3 | $0.15/track (+$0.01 generated lyrics)          | 3/4       |
 | ElevenLabs `music_v2`         | ✅ 2026-05-26 | ✅ 3–600s                         | ✅ `--duration`  | ✅ `--instrumental` | ✅ `--lyrics-file` with sections | ✅ 48 kHz / 192 kbps MP3   | $0.15/min ($0.45 at the 180s default estimate) | 4/4       |
-| Gemini `lyria-3-pro-preview`  | ✅ 2026-03-25 | ⚠️ Default 120s, no published max | ⚠️ Prompt only   | ✅ `--instrumental` | ⚠️ File appended to prompt      | ❌ MP3, rate unpublished   | $0.08/track                                    | 1/4 (tie) |
+| Gemini `lyria-3-pro-preview`  | ✅ 2026-03-25 | ⚠️ Default 120s, no published max | ⚠️ Prompt only   | ✅ `--instrumental` | ⚠️ File appended to prompt      | ✅ 48 kHz stereo MP3       | $0.08/track                                    | 1/4 (tie) |

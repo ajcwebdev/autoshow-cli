@@ -10,17 +10,15 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice delete <registration-id> [flags]
 ```
 
-`delete` removes the remote provider voice. It only works for a ready voice this project owns. `--confirm-voice-id` is required and must match that exact provider voice ID. If another current registration still uses the same provider voice, [retire](./08-retire.md) or revoke that registration first.
-
-If a previous supported create is still in progress, `delete` finishes it first when the outcome is unambiguous. If a Grok completion is ambiguous, pass `--reconcile`. Hume deletion additionally requires the exact current remote name as `--expected-name` so the CLI can prove the mutable-name target before deletion.
+`delete` only works for a ready voice this project owns. `--confirm-voice-id` is required and must match that exact provider resource ID. If another current registration still uses the same provider voice, [retire](./08-retire.md) or revoke that registration first. Hume deletion also requires `--expected-name` with the exact current Hume voice name.
 
 ### Options
 
 | Flag | Description |
 | --- | --- |
 | `--generation-id <sha256>` | Optional unless more than one generation could match |
-| `--confirm-voice-id <id>` | Required exact provider voice ID confirmation |
-| `--expected-name <name>` | Required exact current remote name for Hume deletion |
+| `--confirm-voice-id <id>` | Required exact provider resource ID confirmation |
+| `--expected-name <name>` | Exact current Hume voice name required for Hume deletion |
 | `--reconcile` | Complete an ambiguous provider provisioning journal without recreating the voice |
 | `--price` | Validate and estimate without provider calls or artifact writes |
 
