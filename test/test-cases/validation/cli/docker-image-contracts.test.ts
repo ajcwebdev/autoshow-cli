@@ -158,6 +158,21 @@ test('Docker publication is blocked by exact-version no-cost verification and pa
     expect(buildRuns).toContain('--arg decision reject')
     expect(buildRuns).toContain('managed-toolchain-smoke.pdf')
     expect(jobs[jobName]?.steps?.some(step => step.name?.startsWith('Upload ') && step.name.endsWith(' verification evidence'))).toBe(true)
+
+    const fetchRun = jobs[jobName]?.steps?.find(step => step.name === 'Fetch repository at the pushed commit')?.run ?? ''
+    const privateHelper = fetchRun.indexOf('umask 077')
+    const helperMode = fetchRun.indexOf('chmod 700 "$credential_helper"')
+    const restoredUmask = fetchRun.indexOf('umask 022')
+    const checkout = fetchRun.indexOf('git checkout --detach FETCH_HEAD')
+    expect(privateHelper).toBeGreaterThan(-1)
+    expect(helperMode).toBeGreaterThan(privateHelper)
+    expect(restoredUmask).toBeGreaterThan(helperMode)
+    expect(checkout).toBeGreaterThan(restoredUmask)
+
+    const smokeRun = jobs[jobName]?.steps?.find(step => step.name?.startsWith('Smoke and measure'))?.run ?? ''
+    expect(smokeRun).toContain('dst=/app/test/docker-acceptance/native-image-acceptance.ts,readonly')
+    expect(smokeRun).toContain('--entrypoint bun')
+    expect(smokeRun).not.toContain('--user')
   }
 })
 
