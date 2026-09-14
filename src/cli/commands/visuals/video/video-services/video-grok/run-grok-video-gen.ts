@@ -6,7 +6,6 @@ import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/visuals/vide
 import {
   normalizeGrokVideoAspectRatio,
   normalizeGrokVideoDuration,
-  normalizeGrokVideoExtensionDuration,
   normalizeGrokVideoResolution
 } from '~/cli/commands/visuals/video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/visuals/video/video-utils/video-output-download'
@@ -15,7 +14,6 @@ import { resolveCredential } from '~/utils/validate/env-utils'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import {
-  tryResolveLocalVideoDurationSeconds,
   videoMediaReferenceToGrokUrlObject
 } from '../../video-utils/video-media-inputs'
 const POLL_INTERVAL_MS = 10_000
@@ -51,37 +49,25 @@ export const runGrokVideoGen = async (
     resolution?: string | undefined
     inputImage?: string | undefined
     referenceImages?: string[] | undefined
-    inputVideo?: string | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
   const apiKey = resolveCredential('grok', 'require', { stage: 'video:grok', description: 'Grok video generation' })
 
   const baseURL = XAI_DEFAULT_BASE_URL
   const mode = options.mode ?? 'text'
-  const duration = mode === 'extend'
-    ? normalizeGrokVideoExtensionDuration(options.durationSeconds)
-    : normalizeGrokVideoDuration(options.durationSeconds)
-  const aspectRatio = mode === 'edit' || mode === 'extend' ? undefined : normalizeGrokVideoAspectRatio(options.aspectRatio)
-  const resolution = mode === 'edit' || mode === 'extend' ? undefined : normalizeGrokVideoResolution(options.resolution, options.model)
-  const endpoint = mode === 'edit'
-    ? '/videos/edits'
-    : mode === 'extend'
-      ? '/videos/extensions'
-      : '/videos/generations'
+  const duration = normalizeGrokVideoDuration(options.durationSeconds)
+  const aspectRatio = normalizeGrokVideoAspectRatio(options.aspectRatio)
+  const resolution = normalizeGrokVideoResolution(options.resolution, options.model)
 
   logGenStatus('video', 'grok', options.model, 'started')
 
-  const inputVideoDurationSeconds = options.inputVideo
-    ? await tryResolveLocalVideoDurationSeconds(options.inputVideo)
-    : undefined
   const inputImageCount = (options.inputImage ? 1 : 0) + (options.referenceImages?.length ?? 0)
   const estimate = estimateVideoCost({
     grokVideoModels: [options.model],
     videoDuration: options.durationSeconds,
     videoResolution: options.resolution,
     videoMode: options.mode,
-    grokInputImageCount: inputImageCount,
-    ...(inputVideoDurationSeconds !== undefined ? { grokInputVideoDurationSeconds: inputVideoDurationSeconds } : {})
+    grokInputImageCount: inputImageCount
   })
   logVideoEstimate(estimate)
 
@@ -92,26 +78,16 @@ export const runGrokVideoGen = async (
   const referenceImages = options.referenceImages && options.referenceImages.length > 0
     ? await Promise.all(options.referenceImages.map(async (input) => await videoMediaReferenceToGrokUrlObject(input, 'image')))
     : undefined
-  const inputVideo = options.inputVideo
-    ? await videoMediaReferenceToGrokUrlObject(options.inputVideo, 'video')
-    : undefined
 
   const requestBody: Record<string, unknown> = {
     model: options.model,
-    ...(prompt !== undefined ? { prompt } : {})
+    ...(prompt !== undefined ? { prompt } : {}),
+    duration,
+    aspect_ratio: aspectRatio,
+    resolution
   }
-  if (mode === 'edit') {
-    requestBody['video'] = inputVideo
-  } else if (mode === 'extend') {
-    requestBody['video'] = inputVideo
-    requestBody['duration'] = duration
-  } else {
-    requestBody['duration'] = duration
-    requestBody['aspect_ratio'] = aspectRatio
-    requestBody['resolution'] = resolution
-    if (image) requestBody['image'] = image
-    if (referenceImages && referenceImages.length > 0) requestBody['reference_images'] = referenceImages
-  }
+  if (image) requestBody['image'] = image
+  if (referenceImages && referenceImages.length > 0) requestBody['reference_images'] = referenceImages
 
   const headers = {
     Authorization: `Bearer ${apiKey}`,
@@ -122,7 +98,7 @@ export const runGrokVideoGen = async (
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
     create: {
-      url: `${baseURL}${endpoint}`,
+      url: `${baseURL}/videos/generations`,
       init: { method: 'POST', headers, body: JSON.stringify(requestBody) },
       schema: GrokCreateVideoResponseSchema,
       context: 'Grok video generation create response',
@@ -175,8 +151,6 @@ export const runGrokVideoGen = async (
       ...(aspectRatio ? { videoAspectRatio: aspectRatio } : {}),
       ...(options.inputImage ? { inputImage: options.inputImage } : {}),
       ...(options.referenceImages && options.referenceImages.length > 0 ? { referenceImages: options.referenceImages } : {}),
-      ...(options.inputVideo ? { inputVideo: options.inputVideo } : {}),
-      ...(inputVideoDurationSeconds !== undefined ? { inputVideoDurationSeconds } : {}),
       providerRequestId: createData.request_id,
       ...(taskData.model ? { providerReturnedModel: taskData.model } : {}),
       providerVideoUrl: videoUrl,

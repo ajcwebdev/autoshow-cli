@@ -40,8 +40,7 @@ export const collectOpenAIImageTargets = (options: ImageGenOptions): ImageTarget
       throw unsupportedFlagError('OpenAI', model, ['--aspect-ratio'], 'Use --size for OpenAI dimensions.')
     }
     assertNoUnsupportedFlags(options, [
-      'imageResponseMode',
-      { key: 'geminiSearchGrounding', when: value => value === true }
+      'imageResponseMode'
     ], { provider: 'OpenAI', model, hint: 'These flags are Gemini-only.' })
     validateImageInputReferences(options.imageInputs, {
       provider: 'OpenAI',

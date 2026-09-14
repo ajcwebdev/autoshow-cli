@@ -5,8 +5,6 @@ import { logGenCompleted, logGenStatus } from '~/cli/commands/command-shared/gen
 import { estimateReplicateCost, logVideoEstimate } from '~/cli/commands/visuals/video/video-utils/video-pricing'
 import {
   isReplicateHappyHorseVideoModel,
-  isReplicateKlingOmniVideoModel,
-  isReplicateKlingVideoModel,
   isReplicatePixVerseVideoModel,
   isReplicateSeedanceVideoModel,
   normalizeReplicateVideoAspectRatio,
@@ -22,7 +20,7 @@ import { downloadVideoOutputBytes } from '../../video-utils/video-output-downloa
 import { ensureReplicateSetup, getReplicateBaseUrl } from '~/cli/commands/visuals/image/image-generation-services/replicate/replicate-image-gen'
 import { normalizeReplicateOutputUris, runReplicatePrediction } from '~/utils/replicate-client/replicate-prediction'
 
-const MAX_SEEDANCE_REFERENCE_DURATION_SECONDS = 15
+const MAX_SEEDANCE_REFERENCE_DURATION_SECONDS = 30
 
 const hasText = (value: string | undefined): value is string =>
   typeof value === 'string' && value.trim().length > 0
@@ -32,34 +30,6 @@ const requirePrompt = (prompt: string | undefined, label: string): string => {
     throw UsageError(`${label} video prompt cannot be empty.`)
   }
   return prompt
-}
-
-const normalizeKlingMultiPrompt = (value: string | undefined, duration: number): string | undefined => {
-  if (!hasText(value)) return undefined
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(value)
-  } catch {
-    throw UsageError('--replicate-video-multi-prompt must be a valid JSON array.')
-  }
-  if (!Array.isArray(parsed) || parsed.length < 1 || parsed.length > 6) {
-    throw UsageError('--replicate-video-multi-prompt must contain 1 through 6 shots.')
-  }
-  let totalDuration = 0
-  for (const shot of parsed) {
-    if (typeof shot !== 'object' || shot === null || typeof (shot as { prompt?: unknown }).prompt !== 'string') {
-      throw UsageError('Each --replicate-video-multi-prompt shot must contain a string prompt and integer duration.')
-    }
-    const shotDuration = (shot as { duration?: unknown }).duration
-    if (typeof shotDuration !== 'number' || !Number.isInteger(shotDuration) || shotDuration < 1) {
-      throw UsageError('Each --replicate-video-multi-prompt shot duration must be an integer of at least 1 second.')
-    }
-    totalDuration += shotDuration
-  }
-  if (totalDuration !== duration) {
-    throw UsageError(`--replicate-video-multi-prompt shot durations must total --duration (${duration}).`)
-  }
-  return JSON.stringify(parsed)
 }
 
 const statusTimingFromPrediction = (
@@ -126,52 +96,6 @@ const buildHappyHorseInput = async (
   }
 }
 
-const buildKlingInput = async (
-  prompt: string | undefined,
-  options: ReplicateVideoGenOptions & { mode: VideoMode }
-): Promise<ReplicateVideoBuildResult> => {
-  const resolvedPrompt = requirePrompt(prompt, `Replicate/${options.model}`)
-  const durationForApi = normalizeReplicateVideoDuration(options.model, options.durationSeconds)
-  const resolution = normalizeReplicateVideoResolution(options.model, options.resolution)
-  const aspectRatio = normalizeReplicateVideoAspectRatio(options.model, options.aspectRatio)
-  const providerMode = resolution === '4k' ? '4k' : resolution === '1080p' ? 'pro' : 'standard'
-  const startImage = options.inputImage ? await videoMediaReferenceToUrlOrDataUrl(options.inputImage, 'image') : undefined
-  const endImage = options.lastFrameImage ? await videoMediaReferenceToUrlOrDataUrl(options.lastFrameImage, 'image') : undefined
-  const referenceImages = options.referenceImages?.length
-    ? await Promise.all(options.referenceImages.map(async image => await videoMediaReferenceToUrlOrDataUrl(image, 'image')))
-    : undefined
-  const videoInput = options.mode === 'edit'
-    ? options.inputVideo
-    : options.referenceVideos?.[0]
-  const referenceVideo = videoInput ? await videoMediaReferenceToUrlOrDataUrl(videoInput, 'video') : undefined
-  const inputVideoDurationSeconds = videoInput ? await tryResolveLocalVideoDurationSeconds(videoInput) : undefined
-  const multiPrompt = normalizeKlingMultiPrompt(options.multiPrompt, durationForApi)
-
-  return {
-    input: {
-      prompt: resolvedPrompt,
-      mode: providerMode,
-      duration: durationForApi,
-      ...(!startImage && options.mode !== 'edit' ? { aspect_ratio: aspectRatio } : {}),
-      ...(startImage ? { start_image: startImage } : {}),
-      ...(endImage ? { end_image: endImage } : {}),
-      ...(isReplicateKlingOmniVideoModel(options.model) && referenceImages ? { reference_images: referenceImages } : {}),
-      ...(isReplicateKlingOmniVideoModel(options.model) && referenceVideo ? {
-        reference_video: referenceVideo,
-        video_reference_type: options.mode === 'edit' ? 'base' : 'feature'
-      } : {}),
-      ...(!referenceVideo && options.generateAudio !== undefined ? { generate_audio: options.generateAudio } : {}),
-      ...(multiPrompt ? { multi_prompt: multiPrompt } : {}),
-      ...(!isReplicateKlingOmniVideoModel(options.model) && hasText(options.negativePrompt) ? { negative_prompt: options.negativePrompt } : {})
-    },
-    requestMode: options.mode,
-    durationForApi,
-    resolution,
-    ...(!startImage && options.mode !== 'edit' ? { aspectRatio } : {}),
-    ...(inputVideoDurationSeconds !== undefined ? { inputVideoDurationSeconds } : {})
-  }
-}
-
 const buildPixVerseInput = async (
   prompt: string | undefined,
   options: ReplicateVideoGenOptions & { mode: VideoMode }
@@ -209,15 +133,12 @@ const buildSeedanceInput = async (
   const resolvedPrompt = requirePrompt(prompt, `Replicate/${options.model}`)
   const durationForApi = normalizeReplicateVideoDuration(options.model, options.durationSeconds)
   const resolution = normalizeReplicateVideoResolution(options.model, options.resolution)
-  const aspectRatio = normalizeReplicateVideoAspectRatio(options.model, options.aspectRatio ?? (options.model === 'bytedance/seedance-2.5' && options.inputImage ? 'adaptive' : undefined))
-  if (options.model === 'bytedance/seedance-2.5') {
-    if (options.mode === 'edit' || options.mode === 'extend') throw UsageError('Seedance 2.5 edit/extend task signaling is not exposed; use reference-to-video.')
-    if (options.inputImage && aspectRatio !== 'adaptive') throw UsageError('Seedance 2.5 first-frame input requires --aspect-ratio adaptive.')
-    if ((options.inputImage || options.lastFrameImage) && ((options.referenceImages?.length ?? 0) + (options.referenceVideos?.length ?? 0) + (options.referenceAudios?.length ?? 0) + (options.inputVideo ? 1 : 0) > 0)) throw UsageError('Seedance 2.5 frame inputs cannot be combined with reference media.')
-    if (options.lastFrameImage && !options.inputImage) throw UsageError('Seedance 2.5 last frame requires a first frame.')
-    if ((options.referenceImages?.length ?? 0) > 30 || (options.referenceVideos?.length ?? 0) + (options.inputVideo ? 1 : 0) > 10 || (options.referenceAudios?.length ?? 0) > 10) throw UsageError('Seedance 2.5 reference limits are 30 images, 10 videos, and 10 audios.')
-    if (options.referenceAudios?.length && !options.referenceImages?.length && !options.referenceVideos?.length && !options.inputVideo) throw UsageError('Seedance 2.5 audio requires a reference image or video.')
-  }
+  const aspectRatio = normalizeReplicateVideoAspectRatio(options.model, options.aspectRatio ?? (options.inputImage ? 'adaptive' : undefined))
+  if (options.inputImage && aspectRatio !== 'adaptive') throw UsageError('Seedance 2.5 first-frame input requires --aspect-ratio adaptive.')
+  if ((options.inputImage || options.lastFrameImage) && ((options.referenceImages?.length ?? 0) + (options.referenceVideos?.length ?? 0) + (options.referenceAudios?.length ?? 0) + (options.inputVideo ? 1 : 0) > 0)) throw UsageError('Seedance 2.5 frame inputs cannot be combined with reference media.')
+  if (options.lastFrameImage && !options.inputImage) throw UsageError('Seedance 2.5 last frame requires a first frame.')
+  if ((options.referenceImages?.length ?? 0) > 30 || (options.referenceVideos?.length ?? 0) + (options.inputVideo ? 1 : 0) > 10 || (options.referenceAudios?.length ?? 0) > 10) throw UsageError('Seedance 2.5 reference limits are 30 images, 10 videos, and 10 audios.')
+  if (options.referenceAudios?.length && !options.referenceImages?.length && !options.referenceVideos?.length && !options.inputVideo) throw UsageError('Seedance 2.5 audio requires a reference image or video.')
   const inputImage = options.inputImage
     ? await videoMediaReferenceToUrlOrDataUrl(options.inputImage, 'image')
     : undefined
@@ -241,8 +162,8 @@ const buildSeedanceInput = async (
     ? await tryResolveLocalVideoDurationSeconds(options.inputVideo)
     : undefined
 
-  await validateSeedanceReferenceDurations(videoReferencesRaw, 'video', options.model === 'bytedance/seedance-2.5' ? 30 : 15)
-  await validateSeedanceReferenceDurations(options.referenceAudios ?? [], 'audio', options.model === 'bytedance/seedance-2.5' ? 30 : 15)
+  await validateSeedanceReferenceDurations(videoReferencesRaw, 'video')
+  await validateSeedanceReferenceDurations(options.referenceAudios ?? [], 'audio')
 
   return {
     input: {
@@ -276,9 +197,6 @@ export const buildReplicateVideoInput = async (
   }
   if (isReplicateSeedanceVideoModel(options.model)) {
     return await buildSeedanceInput(prompt, { ...options, mode })
-  }
-  if (isReplicateKlingVideoModel(options.model)) {
-    return await buildKlingInput(prompt, { ...options, mode })
   }
   if (isReplicatePixVerseVideoModel(options.model)) {
     return await buildPixVerseInput(prompt, { ...options, mode })

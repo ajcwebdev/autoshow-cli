@@ -1,4 +1,4 @@
-import { YOUTUBE_CAPTIONS_SERVICE } from '~/cli/commands/stt/direct-url/youtube-captions'
+import { YOUTUBE_CAPTIONS_SERVICE } from '~/cli/commands/text/url/url-services/youtube-captions/youtube-captions'
 import type { BuildWriteArtifactFilesContext } from '~/types'
 
 export const buildWriteArtifactFiles = (ctx: BuildWriteArtifactFilesContext): Record<string, string> => {

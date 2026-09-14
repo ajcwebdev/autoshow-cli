@@ -7,7 +7,7 @@ import { prioritizeCloudSttTargetIndices } from '~/cli/commands/stt/stt-provider
 import { getSttTargetDirectoryName } from '~/cli/commands/stt/stt-targets'
 import { writeSttResultArtifact } from '~/cli/commands/stt/stt-utils/stt-result-artifacts'
 import { formatTranscriptText } from '~/cli/commands/stt/stt-utils/stt-utils'
-import { tryResolveYoutubeCaptionTranscription } from '~/cli/commands/stt/direct-url/youtube-captions'
+import { tryResolveYoutubeCaptionTranscription } from '~/cli/commands/text/url/url-services/youtube-captions/youtube-captions'
 import type { ResolveWriteTranscriptionContext, ResolveWriteTranscriptionResult, SttProviderSuccess, SttTarget, WriteSttFailure, WriteTranscriptionBundle } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import * as l from '~/utils/app-logger/app-logger'

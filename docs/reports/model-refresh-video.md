@@ -4,7 +4,7 @@
 
 - **Report Status:** Current
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-09-08
+- **Date Updated:** 2026-09-14
 
 This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](model-refresh-stt.md), [OCR](model-refresh-ocr.md), [URL scraping](model-refresh-url.md), [LLMs](model-refresh-write.md), [TTS](model-refresh-tts.md), [Music](model-refresh-music.md), [Image](model-refresh-image.md).
 
@@ -241,7 +241,7 @@ Compared the active video catalog plus the xAI Imagine snapshot from `bun autosh
 **Remove 2: `cogvideox-3`, `viduq1-text`, `vidu2-image`, `vidu2-start-end`, `vidu2-reference`**
 
 - **Remove:** `cogvideox-3`, `viduq1-text`, `vidu2-image`, `vidu2-start-end`, `vidu2-reference`
-- **Successor:** `ltx-2-3-fast`
+- **Successor:** `ltx-2-5-fast`
 
 **Remove 3: `gen4.5`**
 
@@ -251,12 +251,12 @@ Compared the active video catalog plus the xAI Imagine snapshot from `bun autosh
 **Remove 4: `runwayml/aleph-2`**
 
 - **Remove:** `runwayml/aleph-2`
-- **Successor:** `grok-imagine-video` edit
+- **Successor:** `grok-imagine-video-1.5`
 
 **Remove 5: `wan-video/wan-2.7-t2v`**
 
 - **Remove:** `wan-video/wan-2.7-t2v`
-- **Successor:** `bytedance/seedance-2.0-fast`
+- **Successor:** `bytedance/seedance-2.5`
 
 `MiniMax-H3` is a new V2 adapter, not a rename of `/v1/video_generation`. Create on `POST /v2/video_generation` with required `model`, `content[]`, `resolution` (`768P`/`2K`), and `duration` (4–15). Poll `GET /v2/query/video_generation/{task_id}` for `task.content.url`; do not use the V1 file_id retrieve path. Mode mapping: text uses a single `text` item and requires a concrete `ratio` (not `adaptive`); image-to-video uses `role=first_frame` and ignores `ratio`; interpolate uses first plus last frame; reference-to-video accepts up to 9 images, 3 videos, and 3 audios with a mixed cap of 12. Defer H3-Context-IR and 768P→2K regeneration.
 
@@ -292,7 +292,7 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](model-refres
 
 ## 2026-09-08 P1 LTX additions
 
-Added `ltx-2-5-fast` and `ltx-2-5-pro` alongside both 2.3 selectors. The bare LTX default remains `ltx-2-3-fast`. The active catalog now has 18 selectors across 6 providers. Model discovery and all-video expansion include both additions.
+Added `ltx-2-5-fast` and `ltx-2-5-pro` alongside both 2.3 selectors. The bare LTX default is `ltx-2-5-fast`. The active catalog now has 18 selectors across 6 providers. Model discovery and all-video expansion include both additions.
 
 Both additions support text, image and first/last-frame interpolation at 720p, 1080p, 1440p and 4K in landscape or portrait. Requests explicitly use 24 fps, default 8 seconds and 1080p/16:9. Fast accepts even durations 6–20 seconds at 720p/1080p and 6/8/10 seconds at higher resolutions; Pro accepts 6/8/10 seconds throughout. Unsupported duration combinations fail before dispatch. Legacy 2.3 rounding and limits are preserved. The current [LTX 2.5 matrix](https://docs.ltx.io/models/ltx-2-5) supersedes the launch notice's narrower Pro resolution support. The provider's other frame rates, automatic duration, camera motion and audio-to-video are not exposed by this CLI. Extend, retake and reframe are not supported on 2.5.
 
@@ -301,3 +301,65 @@ The new models use `https://api.ltx.io/v2/text-to-video` or `/v2/image-to-video`
 Published resolution-specific rates in cents per output second are Fast 9/13/19/30 and Pro 12/17/25/39 for 720p/1080p/1440p/4K. Text/image/interpolation use the same tariff, without the old generation's multiplier. Pricing was checked on 2026-09-08; taxes, discounts, credits and enterprise rates are excluded. Latency inherits the 2.3 12,000 ms per output second heuristic and remains provisional. [Pricing](https://docs.ltx.io/pricing)
 
 Local mocked contracts cover the full exposed capability and pricing matrix, 48 successful serialized requests, polling, MP4 normalization, error paths, no-resubmission behavior and preservation of existing 2.3 behavior. No paid inference or account-access validation was performed.
+
+## 2026-09-14 video catalog cut
+
+Removed 10 selectors and deleted `edit` and `extend` modes. The active catalog is 16 selectors across 6 providers. Removed selectors stay parseable in historical manifests and pricing readers and fail direct selection with replacement guidance.
+
+**Remove 1: Replicate `kwaivgi/kling-v3-video`**
+
+- **Remove:** `kwaivgi/kling-v3-video`
+- **Successor:** `pixverse/pixverse-v6`
+
+**Remove 2: Replicate `kwaivgi/kling-v3-omni-video`**
+
+- **Remove:** `kwaivgi/kling-v3-omni-video`
+- **Successor:** `bytedance/seedance-2.5`
+
+**Remove 3: Replicate `bytedance/seedance-2.0`**
+
+- **Remove:** `bytedance/seedance-2.0`
+- **Successor:** `bytedance/seedance-2.5`
+
+**Remove 4: Replicate `bytedance/seedance-2.0-fast`**
+
+- **Remove:** `bytedance/seedance-2.0-fast`
+- **Successor:** `bytedance/seedance-2.5`
+
+**Remove 5: Grok `grok-imagine-video`**
+
+- **Remove:** `grok-imagine-video`
+- **Successor:** `grok-imagine-video-1.5`
+
+**Remove 6: LTX `ltx-2-3-fast`**
+
+- **Remove:** `ltx-2-3-fast`
+- **Successor:** `ltx-2-5-fast`
+
+**Remove 7: LTX `ltx-2-3-pro`**
+
+- **Remove:** `ltx-2-3-pro`
+- **Successor:** `ltx-2-5-pro`
+
+**Remove 8: fal.ai `fal-ai/pixverse/c1`**
+
+- **Remove:** `fal-ai/pixverse/c1`
+- **Successor:** `minimax/h3`
+
+**Remove 9: Gemini `veo-3.1-generate-preview`**
+
+- **Remove:** `veo-3.1-generate-preview`
+- **Successor:** `veo-3.1-lite-generate-preview`
+
+**Remove 10: Gemini `veo-3.1-fast-generate-preview`**
+
+- **Remove:** `veo-3.1-fast-generate-preview`
+- **Successor:** `veo-3.1-lite-generate-preview`
+
+Remaining 16 selectors: Gemini `veo-3.1-lite-generate-preview`; Grok `grok-imagine-video-1.5`; LTX `ltx-2-5-fast`, `ltx-2-5-pro`; Replicate `alibaba/happyhorse-1.1`, `bytedance/seedance-2.5`, `pixverse/pixverse-v6`; Luma `ray-3.2`; fal Seedance 2.5 routes (`bytedance/seedance-2.5/text-to-video`, `bytedance/seedance-2.5/image-to-video`, `bytedance/seedance-2.5/reference-to-video`), H3 Max / H3 Max Turbo routes (`minimax/h3-max/text-to-video`, `minimax/h3-max/image-to-video`, `minimax/h3-max-turbo/text-to-video`, `minimax/h3-max-turbo/image-to-video`), and `minimax/h3`.
+
+Modes remaining: `text`, `image-to-video`, `reference-to-video`, `interpolate`. `edit` and `extend` are deleted. `--input-video` remains for `reference-to-video`. Kling `--replicate-video-multi-prompt` is gone. PixVerse V6 `--replicate-video-negative-prompt` and `--replicate-video-multi-clip` remain.
+
+Also gone with this cut: Gemini 4K, Gemini reference-to-video, and Gemini extend; Grok edit/extend; LTX extend and the `api.ltx.video` host; fal PixVerse C1 endpoints.
+
+Bare defaults after the cut: LTX `ltx-2-5-fast`; Gemini `veo-3.1-lite-generate-preview`; Grok `grok-imagine-video-1.5`; Replicate examples that hardcoded `bytedance/seedance-2.0-fast` now use `bytedance/seedance-2.5`. Earlier GLM successors now resolve to `ltx-2-5-fast`. `runwayml/aleph-2` now succeeds to `grok-imagine-video-1.5`. `wan-video/wan-2.7-t2v` now succeeds to `bytedance/seedance-2.5`.

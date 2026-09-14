@@ -41,19 +41,19 @@ No local providers were found.
 
 ### Price
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>gemini/gemini-3.1-flash-lite</code> | $0.0002 |
-| 2 | <code>gemini/gemini-3.1-flash-lite-preview</code> | $0.0002 |
-| 3 | <code>kimi/kimi-k2.6</code> | $0.0005 |
+| Rank | Provider                                          | Evidence |
+| ---: | ------------------------------------------------- | -------- |
+|    1 | <code>gemini/gemini-3.1-flash-lite</code>         | $0.0002  |
+|    2 | <code>gemini/gemini-3.1-flash-lite-preview</code> | $0.0002  |
+|    3 | <code>kimi/kimi-k2.6</code>                       | $0.0005  |
 
 ### Speed
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>gemini/gemini-3.1-flash-lite</code> | 1616.896 ms/1K tokens |
-| 2 | <code>gemini/gemini-3.1-flash-lite-preview</code> | 1635.659 ms/1K tokens |
-| 3 | <code>kimi/kimi-k2.6</code> | 4509.677 ms/1K tokens |
+| Rank | Provider                                          | Evidence              |
+| ---: | ------------------------------------------------- | --------------------- |
+|    1 | <code>gemini/gemini-3.1-flash-lite</code>         | 1616.896 ms/1K tokens |
+|    2 | <code>gemini/gemini-3.1-flash-lite-preview</code> | 1635.659 ms/1K tokens |
+|    3 | <code>kimi/kimi-k2.6</code>                       | 4509.677 ms/1K tokens |
 
 ### Automated Quality
 
@@ -65,11 +65,11 @@ Unavailable: No explicit humanQualityScore was available for service providers. 
 
 ### Provider Detail
 
-| Provider | Tokens | Speed | Monetary Cost | Output | Quality Evidence |
-| --- | ---: | ---: | ---: | --- | --- |
-| <code>gemini/gemini-3.1-flash-lite</code> | 475 in / 34 out | 1616.896 ms/1K tokens | $0.0002 | text-gemini-3.1-flash-lite.json | n/a |
-| <code>gemini/gemini-3.1-flash-lite-preview</code> | 475 in / 41 out | 1635.659 ms/1K tokens | $0.0002 | text-gemini-3.1-flash-lite-preview.json | n/a |
-| <code>kimi/kimi-k2.6</code> | 431 in / 34 out | 4509.677 ms/1K tokens | $0.0005 | text-kimi-k2.6.json | n/a |
+| Provider                                          |          Tokens |                 Speed | Monetary Cost | Output                                  | Quality Evidence |
+| ------------------------------------------------- | --------------: | --------------------: | ------------: | --------------------------------------- | ---------------- |
+| <code>gemini/gemini-3.1-flash-lite</code>         | 475 in / 34 out | 1616.896 ms/1K tokens |       $0.0002 | text-gemini-3.1-flash-lite.json         | n/a              |
+| <code>gemini/gemini-3.1-flash-lite-preview</code> | 475 in / 41 out | 1635.659 ms/1K tokens |       $0.0002 | text-gemini-3.1-flash-lite-preview.json | n/a              |
+| <code>kimi/kimi-k2.6</code>                       | 431 in / 34 out | 4509.677 ms/1K tokens |       $0.0005 | text-kimi-k2.6.json                     | n/a              |
 
 ## Notes
 

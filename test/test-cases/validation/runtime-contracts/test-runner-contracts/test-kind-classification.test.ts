@@ -15,7 +15,6 @@ describe('test-runner test-kind classification', () => {
       ['/e2e/local/stt/whisperfile/example.test.ts', 'extract a page', 'transcribe'],
       ['/e2e/service/stt/diarization/example.test.ts', 'extract a page', 'transcribe'],
       ['/e2e/service/stt/diarization-off-by-default/example.test.ts', 'extract a page', 'transcribe'],
-      ['/e2e/service/stt/direct-url/example.test.ts', 'extract a page', 'transcribe'],
     ] as const
 
     for (const [file, name, expected] of collisions) {

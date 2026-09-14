@@ -52,7 +52,8 @@
 
 # Markdown
 
-Do not hard-wrap Markdown prose.
+- Do not hard-wrap Markdown prose.
+- Align Markdown tables so pipes line up: pad each cell and the delimiter row to the longest current value in that column (header or body). After adding, splitting, shortening, or removing cells, re-fit the whole table to those current widths. Do not keep leftover padding from a previous longer value.
 
 # Report Files
 

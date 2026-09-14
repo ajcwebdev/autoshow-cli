@@ -92,7 +92,6 @@ const ImageDefaultsSchema = v.strictObject({
   geminiImage: ModelArraySchema,
   openaiImage: ModelArraySchema,
   grokImage: ModelArraySchema,
-  bflImage: ModelArraySchema,
   replicateImage: ModelArraySchema,
   lumalabsImage: ModelArraySchema,
   falImage: ModelArraySchema,

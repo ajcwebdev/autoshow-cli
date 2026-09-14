@@ -5,13 +5,11 @@ import { ensureReplicateImageGenSetup } from './replicate-image-gen'
 import {
   isReplicateQwenModel,
   isReplicateSeedreamModel,
-  isReplicateWanModel,
   normalizeReplicateImageCount,
   normalizeReplicateImageOutputFormat,
   normalizeReplicateQwenAspectRatio,
   normalizeReplicateSeedreamAspectRatio,
   normalizeReplicateSeedreamSize,
-  normalizeReplicateWanSize,
   runReplicateImageGen
 } from './run-replicate-image-gen'
 import {
@@ -21,7 +19,6 @@ import {
 import {
   REPLICATE_QWEN_IMAGE_INPUT_MIME_TYPES,
   REPLICATE_SEEDREAM_IMAGE_INPUT_MIME_TYPES,
-  REPLICATE_WAN_IMAGE_INPUT_MIME_TYPES,
   validateImageInputReferences
 } from '../../image-utils/image-inputs'
 
@@ -34,12 +31,11 @@ export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTar
       'imageBackground',
       'imageResponseMode',
       'imageCompression',
-      'imageMask',
-      { key: 'geminiSearchGrounding', when: value => value === true }
+      'imageMask'
     ], {
       provider: 'Replicate',
       model,
-      hint: 'Supported Replicate image options vary by model family: Seedream uses --size, --aspect-ratio, optional --format on Seedream 5, and --input; Qwen uses --aspect-ratio and one --input; Wan uses --size, --count 1-4, and --input references.'
+      hint: 'Supported Replicate image options vary by model family: Seedream uses --size, --aspect-ratio, optional --format, and --input; Qwen uses --aspect-ratio and one --input.'
     })
 
     if (isReplicateSeedreamModel(model)) {
@@ -65,19 +61,6 @@ export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTar
         model,
         allowedMimeTypes: REPLICATE_QWEN_IMAGE_INPUT_MIME_TYPES,
         maxInputs: 1
-      })
-    } else if (isReplicateWanModel(model)) {
-      if (options.imageAspectRatio !== undefined) {
-        throw unsupportedFlagError('Replicate', model, ['--aspect-ratio'], 'Use --size 1K|2K|4K or WIDTHxHEIGHT for Replicate Wan dimensions.')
-      }
-      normalizeReplicateWanSize(model, options.imageSize, (options.imageInputs?.length ?? 0) > 0)
-      normalizeReplicateImageOutputFormat(model, options.imageFormat)
-      normalizeReplicateImageCount(model, options.imageCount)
-      validateImageInputReferences(options.imageInputs, {
-        provider: 'Replicate',
-        model,
-        allowedMimeTypes: REPLICATE_WAN_IMAGE_INPUT_MIME_TYPES,
-        maxInputs: 9
       })
     } else {
       throw UsageError(`Unsupported Replicate image model "${model}".`)

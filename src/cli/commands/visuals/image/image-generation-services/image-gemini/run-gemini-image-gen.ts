@@ -32,7 +32,6 @@ export const runGeminiImageGen = async (
     aspectRatio?: string | undefined
     imageSize?: string | undefined
     responseMode?: 'image' | 'text-image' | undefined
-    searchGrounding?: boolean | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
   const apiKey = resolveCredential('gemini', 'require', { stage: 'image:gemini' })
@@ -41,7 +40,6 @@ export const runGeminiImageGen = async (
   const imagePaths: string[] = []
   const mode = options.mode ?? 'generation'
   let providerReturnedModel: string | undefined
-  let groundingMetadata: unknown
 
   await mkdir(outputDir, { recursive: true })
 
@@ -66,13 +64,11 @@ export const runGeminiImageGen = async (
           }
         } : {})
       },
-      ...(options.searchGrounding ? { tools: [{ googleSearch: {} }] } : {}),
       ...(signal ? { abortSignal: signal } : {})
     }),
     classifyGeminiRetry
   )
   providerReturnedModel = getProviderReturnedModel(options.model, response)
-  groundingMetadata = response.candidates?.find((candidate) => candidate.groundingMetadata !== undefined)?.groundingMetadata
 
   const candidates = response.candidates ?? []
   if (candidates.length === 0 || !candidates[0]?.content?.parts) {
@@ -117,8 +113,7 @@ export const runGeminiImageGen = async (
     imageWidth: undefined,
     imageHeight: undefined,
     requestMode: mode,
-    ...(providerReturnedModel ? { providerReturnedModel } : {}),
-    ...(groundingMetadata !== undefined ? { groundingMetadata } : {})
+    ...(providerReturnedModel ? { providerReturnedModel } : {})
   }
 
   return { imagePaths, metadata }

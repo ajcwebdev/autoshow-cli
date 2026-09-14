@@ -586,6 +586,24 @@ describe('managed macOS qpdf setup', () => {
   })
 })
 
+describe('managed macOS toolchain process locks', () => {
+  test('every macOS managed install serializes concurrent CLI starts', async () => {
+    const source = await Bun.file('src/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools.ts').text()
+    const locks: Array<[name: string, lockPrefix: string]> = [
+      ['installManagedYtDlpMacos', 'setup-yt-dlp-'],
+      ['installManagedFfmpegMacos', 'setup-ffmpeg-'],
+      ['installManagedMupdfMacos', 'setup-mupdf-'],
+      ['installManagedCalibreMacos', 'setup-calibre-'],
+      ['installManagedTesseractMacos', 'setup-tesseract-'],
+      ['installManagedQpdfMacos', 'setup-qpdf-']
+    ]
+    for (const [name, lockPrefix] of locks) {
+      expect(source).toContain(`export const ${name} = async (): Promise<void> =>`)
+      expect(source).toContain(`withProcessLock(\`${lockPrefix}`)
+    }
+  })
+})
+
 describe('GitHub archive URLs', () => {
   test('builds tag and commit archive URLs', () => {
     expect(buildGithubArchiveUrl({ owner: 'ggerganov', repo: 'whisperfile', ref: 'v1.7.4' })).toBe(

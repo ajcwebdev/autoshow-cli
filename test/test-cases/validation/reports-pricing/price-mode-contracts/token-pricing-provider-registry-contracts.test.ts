@@ -154,18 +154,6 @@ describe('price mode contracts', () => {
         inputCostPer1MCents: 150,
         outputCostPer1MCents: 750
       })
-      expect(getLlmCost('gemini', 'gemini-3.6-flash')).toMatchObject({
-        inputCostPer1MCents: 150,
-        outputCostPer1MCents: 750
-      })
-      expect(getLlmCost('gemini', 'gemini-3.5-flash')).toMatchObject({
-        inputCostPer1MCents: 150,
-        outputCostPer1MCents: 900
-      })
-      expect(getLlmCost('gemini', 'gemini-3.5-flash-lite')).toMatchObject({
-        inputCostPer1MCents: 30,
-        outputCostPer1MCents: 250
-      })
       expect(getLlmCost('anthropic', 'claude-opus-5')).toMatchObject({
         inputCostPer1MCents: 500,
         outputCostPer1MCents: 2500
@@ -174,27 +162,58 @@ describe('price mode contracts', () => {
         inputCostPer1MCents: 300,
         outputCostPer1MCents: 1500
       })
+      expect(getExtractPricing('gemini', 'gemini-3.6-flash')).toMatchObject({
+        inputCostPer1MCents: 150,
+        outputCostPer1MCents: 750
+      })
+      expect(getExtractPricing('gemini', 'gemini-3.5-flash')).toMatchObject({
+        inputCostPer1MCents: 150,
+        outputCostPer1MCents: 900
+      })
+      expect(getExtractPricing('gemini', 'gemini-3.5-flash-lite')).toMatchObject({
+        inputCostPer1MCents: 30,
+        outputCostPer1MCents: 250
+      })
+      expect(getExtractPricing('grok', 'grok-4.5')).toMatchObject({
+        inputCostPer1MCents: 200,
+        outputCostPer1MCents: 600
+      })
+      expect(getExtractPricing('anthropic', 'claude-fable-5')).toMatchObject({
+        inputCostPer1MCents: 1000,
+        outputCostPer1MCents: 5000
+      })
+      expect(getExtractPricing('kimi', 'kimi-k2.6')).toMatchObject({
+        inputCostPer1MCents: 95,
+        outputCostPer1MCents: 400
+      })
+      for (const [service, model] of [
+        ['gemini', 'gemini-3.6-flash'],
+        ['gemini', 'gemini-3.5-flash'],
+        ['gemini', 'gemini-3.5-flash-lite'],
+        ['grok', 'grok-4.5'],
+        ['anthropic', 'claude-fable-5'],
+        ['kimi', 'kimi-k2.6']
+      ] as const) {
+        expect(getModelRegistry().llm[service]?.models[model]).toBeUndefined()
+      }
 
       const geminiActual = computeActualCosts({
         step3: buildStep3CostMetadata({
           llmService: 'gemini',
-          llmModel: 'gemini-3.5-flash-lite',
+          llmModel: 'gemini-3.7-flash',
           inputTokenCount: 1_000_000,
           outputTokenCount: 1_000_000
         })
       })
       expect(geminiActual.steps[0]).toMatchObject({
         provider: 'gemini',
-        model: 'gemini-3.5-flash-lite',
-        cost: 280,
+        model: 'gemini-3.7-flash',
+        cost: 900,
         costSource: 'provider_usage'
       })
 
       for (const [service, model] of [
         ['gemini', 'gemini-3.7-flash'],
-        ['gemini', 'gemini-3.6-flash'],
-        ['gemini', 'gemini-3.5-flash'],
-        ['gemini', 'gemini-3.5-flash-lite'],
         ['anthropic', 'claude-opus-5'],
         ['kimi', 'kimi-k3']
       ] as const) {

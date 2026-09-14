@@ -76,12 +76,12 @@ describe('resume target-aware provider selectors', () => {
 
     const ltxVideo = normalizeResumeSelectorFlagsForTarget(
       target('video'),
-      { provider: ['ltx=ltx-2-3-pro'] },
+      { provider: ['ltx=ltx-2-5-pro'] },
       new Set(['provider']),
-      ['resume', 'out', '--provider', 'ltx=ltx-2-3-pro']
+      ['resume', 'out', '--provider', 'ltx=ltx-2-5-pro']
     )
-    expect(ltxVideo.flags['ltx-video']).toBe('ltx-2-3-pro')
-    expect(buildOpts(ltxVideo.flags, ltxVideo.explicitFlags, ltxVideo.flagOccurrences).ltxVideoModels).toEqual(['ltx-2-3-pro'])
+    expect(ltxVideo.flags['ltx-video']).toBe('ltx-2-5-pro')
+    expect(buildOpts(ltxVideo.flags, ltxVideo.explicitFlags, ltxVideo.flagOccurrences).ltxVideoModels).toEqual(['ltx-2-5-pro'])
 
     const music = normalizeResumeSelectorFlagsForTarget(
       target('music'),

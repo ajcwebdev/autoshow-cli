@@ -320,7 +320,7 @@ Do not run hosted TTS commands, live voice creation, provider smoke tests, or e2
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — TTS model contracts and voice capability boundaries
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — soundscape pipeline downstream of this dialogue contract
 - Related ADR: [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md) — downstream panel synchronization and still-image presentation
-- Related report: [2026 Hosted-Model Refresh Report: TTS](../reports/model-refresh-tts.md) — TTS catalog refresh history
+- Related report: [2026-09-14 TTS model refresh and capability record](../reports/model-refresh-tts-2026-09-14.md) — current TTS catalog and capability record; living pointer: [TTS refresh](../reports/model-refresh-tts.md)
 - `src/cli/commands/audio/tts/define-tts-command.ts`
 - `src/cli/commands/audio/voice/define-voice-command.ts`
 - `src/cli/commands/visuals/comic/comic-commands/generate-audio/generate-audio-command.ts`

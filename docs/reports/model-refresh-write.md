@@ -4,7 +4,7 @@
 
 - **Report Status:** Current
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-08-22
+- **Date Updated:** 2026-09-14
 
 This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](model-refresh-stt.md), [OCR](model-refresh-ocr.md), [URL scraping](model-refresh-url.md), [TTS](model-refresh-tts.md), [Music](model-refresh-music.md), [Image](model-refresh-image.md), [Video](model-refresh-video.md).
 
@@ -282,3 +282,38 @@ All three accept `--reasoning-effort low`, `high` or `max`; omitted/default effo
 The [GLM 5.3 host page](https://www.together.ai/models/glm-5-3) documents always-enabled thinking and max default. The [Flash host page](https://www.together.ai/models/glm-5-3-flash) documents low/high/max but no disable contract, so AutoShow rejects disabled for both GLM additions. Named efforts use Together's top-level `reasoning_effort`; no direct Z.ai `thinking` field is sent. Both retain AutoShow's 32,768-token request cap. This is a local budget, not a claimed host output maximum: Together's checked pages publish context limits but no separate GLM output ceiling. Host context-limit validation remains authoritative. Large reasoning traces can exhaust the local cap before completing the answer.
 
 The existing Chat Completions transport sends text messages and native JSON Schema for structured writing, with the established fallback without `response_format` on compatible schema errors. Final prose reads only message content. Metadata retains returned model identity, raw usage and normalized prompt/completion/total tokens, including valid cached-input counts as a subset of prompt usage, with fallback to Together's top-level `cached_tokens` when the nested counter is unavailable. Reasoning tokens included in completion usage are counted once. Missing usage retains local token-count fallback. Vision/OCR, tools and multi-turn thinking replay are outside this writing addition; no paid access check was performed.
+
+## 2026-09-14 Write-only catalog cut
+
+Removed six write-registry IDs. They remain valid OCR/STT selectors. This cut does not change the [OCR](model-refresh-ocr.md) or [STT](model-refresh-stt.md) catalogs.
+
+### Removed from write
+
+| ID                      | Still used outside write |
+| ----------------------- | ------------------------ |
+| `gemini-3.5-flash-lite` | OCR default              |
+| `gemini-3.6-flash`      | Gemini STT default       |
+| `gemini-3.5-flash`      | OCR                      |
+| `grok-4.5`              | OCR default              |
+| `claude-fable-5`        | OCR                      |
+| `kimi-k2.6`             | OCR default              |
+
+### Remaining write catalog
+
+| Provider  | Write selectors                                               | Bare `--provider` default                                           |
+| --------- | ------------------------------------------------------------- | ------------------------------------------------------------------- |
+| OpenAI    | `gpt-6-astra`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna` | `gpt-5.6-luna`                                                      |
+| Gemini    | `gemini-3.8-flash`, `gemini-3.7-flash`                        | `gemini-3.7-flash`                                                  |
+| Anthropic | `claude-fable-5-1`, `claude-sonnet-5`, `claude-opus-5`        | `claude-sonnet-5`                                                   |
+| Grok      | `grok-4.6`                                                    | `grok-4.6`                                                          |
+| GLM       | `glm-5.3`, `glm-5.3-flash`                                    | unchanged (`glm-5.3-flash`)                                         |
+| Kimi      | `kimi-k3`                                                     | `kimi-k3` (only remaining; more expensive than retired `kimi-k2.6`) |
+| Together  | `kimi-k3`, `glm-5.3`, `glm-5.3-flash`                         | unchanged                                                           |
+
+OpenAI, GLM, and Together write selectors are unchanged. Anthropic still defaults to `claude-sonnet-5` after dropping `claude-fable-5`. Grok write is only `grok-4.6`. Kimi write is only `kimi-k3`.
+
+Write help, `docs/commands/03-write/overview.md`, and comic `--llm-model grok-4.5` examples now use `grok-4.6`. The write Provider Capabilities table drops the six removed rows; remaining pricing-third marks follow input $/1M ranking on the 16-model set (cheapest 5, middle 5, expensive 6), so remaining rows keep their prior marks.
+
+### OCR/STT unchanged
+
+OCR/STT defaults stay `gemini-3.5-flash-lite`, `kimi-k2.6`, `grok-4.5`, and Gemini STT `gemini-3.6-flash`. Do not treat this write cut as an extract-model refresh.

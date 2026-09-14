@@ -1,6 +1,5 @@
 import type { InferOutput } from 'valibot'
 import {
-SUPPORTED_BFL_IMAGE_MODELS,
 SUPPORTED_FAL_IMAGE_MODELS,
 SUPPORTED_GEMINI_IMAGE_MODELS,
 SUPPORTED_GROK_IMAGE_MODELS,
@@ -64,7 +63,6 @@ export type GeminiMusicModel = typeof SUPPORTED_GEMINI_MUSIC_MODELS[number]
 export type GeminiImageModel = typeof SUPPORTED_GEMINI_IMAGE_MODELS[number]
 export type OpenAIImageModel = typeof SUPPORTED_OPENAI_IMAGE_MODELS[number]
 export type GrokImageModel = typeof SUPPORTED_GROK_IMAGE_MODELS[number]
-export type BflImageModel = typeof SUPPORTED_BFL_IMAGE_MODELS[number]
 export type ReplicateImageModel = typeof SUPPORTED_REPLICATE_IMAGE_MODELS[number]
 export type LumalabsImageModel = typeof SUPPORTED_LUMALABS_IMAGE_MODELS[number]
 export type FalImageModel = typeof SUPPORTED_FAL_IMAGE_MODELS[number]

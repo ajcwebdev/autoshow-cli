@@ -11,21 +11,13 @@ import { downloadImageUrl, getImageFileNames } from '../../image-utils/image-out
 import { ensureReplicateImageGenSetup, getReplicateBaseUrl } from './replicate-image-gen'
 
 const REPLICATE_SEEDREAM_MODELS = new Set<ReplicateImageModel>([
-  'bytedance/seedream-4.5',
   'bytedance/seedream-5-lite',
   'bytedance/seedream-5-pro'
 ])
 
 const REPLICATE_QWEN_MODELS = new Set<ReplicateImageModel>([
   'alibaba/qwen-image-3',
-  'alibaba/qwen-image-3-pro',
-  'qwen/qwen-image-2-pro',
-  'qwen/qwen-image-2'
-])
-
-const REPLICATE_WAN_MODELS = new Set<ReplicateImageModel>([
-  'wan-video/wan-2.7-image-pro',
-  'wan-video/wan-2.7-image'
+  'alibaba/qwen-image-3-pro'
 ])
 
 export const REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES = [
@@ -52,48 +44,15 @@ export const REPLICATE_QWEN_ASPECT_RATIO_VALUES = [
   '1:2'
 ] as const
 
-export const REPLICATE_WAN_IMAGE_COUNT_RANGE = [1, 4] as const
-
 const REPLICATE_SEEDREAM_ASPECT_RATIOS = new Set<string>(REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES)
 
 const REPLICATE_QWEN_ASPECT_RATIOS = new Set<string>(REPLICATE_QWEN_ASPECT_RATIO_VALUES)
-
-const normalizeImageDimensions = (
-  size: string,
-  providerLabel: string,
-  options: { min: number, max: number }
-): { width: number, height: number } => {
-  const match = /^(\d{1,5})x(\d{1,5})$/i.exec(size.trim())
-  if (!match) {
-    throw UsageError(`Invalid --size value "${size}" for ${providerLabel}. Expected WIDTHxHEIGHT, e.g. 1024x1024.`)
-  }
-
-  const width = Number.parseInt(match[1]!, 10)
-  const height = Number.parseInt(match[2]!, 10)
-  if (
-    !Number.isSafeInteger(width)
-    || !Number.isSafeInteger(height)
-    || width < options.min
-    || height < options.min
-    || width > options.max
-    || height > options.max
-  ) {
-    throw UsageError(
-      `Invalid --size value "${size}" for ${providerLabel}. Width and height must each be between ${options.min} and ${options.max} pixels.`
-    )
-  }
-
-  return { width, height }
-}
 
 export const isReplicateSeedreamModel = (model: ReplicateImageModel): boolean =>
   REPLICATE_SEEDREAM_MODELS.has(model)
 
 export const isReplicateQwenModel = (model: ReplicateImageModel): boolean =>
   REPLICATE_QWEN_MODELS.has(model)
-
-export const isReplicateWanModel = (model: ReplicateImageModel): boolean =>
-  REPLICATE_WAN_MODELS.has(model)
 
 export const normalizeReplicateSeedreamAspectRatio = (
   model: ReplicateImageModel,
@@ -140,20 +99,6 @@ export const normalizeReplicateSeedreamSize = (
   const normalized = imageSize.trim()
   const upper = normalized.toUpperCase()
 
-  if (model === 'bytedance/seedream-4.5') {
-    if (upper === '2K' || upper === '4K') {
-      return { requestValue: upper, metadataValue: upper }
-    }
-
-    const dimensions = normalizeImageDimensions(normalized, `Replicate/${model}`, { min: 1024, max: 4096 })
-    return {
-      requestValue: 'custom',
-      width: dimensions.width,
-      height: dimensions.height,
-      metadataValue: `${dimensions.width}x${dimensions.height}`
-    }
-  }
-
   if (model === 'bytedance/seedream-5-lite' && (upper === '2K' || upper === '3K')) {
     return { requestValue: upper, metadataValue: upper }
   }
@@ -169,38 +114,6 @@ export const normalizeReplicateSeedreamSize = (
 
   const supported = model === 'bytedance/seedream-5-pro' ? '1K or 2K' : '2K or 3K'
   throw UsageError(`Invalid --size value "${imageSize}" for Replicate/${model}. Supported values: ${supported}.`)
-}
-
-export const normalizeReplicateWanSize = (
-  model: ReplicateImageModel,
-  imageSize: string | undefined,
-  hasInputs: boolean
-): ReplicateImageSize | undefined => {
-  if (imageSize === undefined || imageSize.length === 0) {
-    return undefined
-  }
-
-  const normalized = imageSize.trim()
-  const upper = normalized.toUpperCase()
-
-  if (upper === '1K' || upper === '2K') {
-    return { requestValue: upper, metadataValue: upper }
-  }
-
-  if (upper === '4K') {
-    if (model === 'wan-video/wan-2.7-image-pro' && !hasInputs) {
-      return { requestValue: '4K', metadataValue: '4K' }
-    }
-    throw UsageError(`--size 4K is only supported by Replicate/${model} for Wan text-to-image Pro requests without --input.`)
-  }
-
-  const dimensions = normalizeImageDimensions(normalized, `Replicate/${model}`, { min: 256, max: 4096 })
-  return {
-    requestValue: `${dimensions.width}*${dimensions.height}`,
-    width: dimensions.width,
-    height: dimensions.height,
-    metadataValue: `${dimensions.width}x${dimensions.height}`
-  }
 }
 
 export const normalizeReplicateImageOutputFormat = (
@@ -232,23 +145,13 @@ export const normalizeReplicateImageCount = (
     return 1
   }
 
-  if (!isReplicateWanModel(model)) {
-    throw UsageError(`--count is supported only by Replicate Wan image models. Omit --count for Replicate/${model}.`)
-  }
-
-  const [minCount, maxCount] = REPLICATE_WAN_IMAGE_COUNT_RANGE
-  if (!Number.isInteger(count) || count < minCount || count > maxCount) {
-    throw UsageError(`Invalid --count value "${String(count)}" for Replicate/${model}. Supported range: ${minCount}-${maxCount}.`)
-  }
-
-  return count
+  throw UsageError(`--count is not supported by Replicate/${model}. Omit --count.`)
 }
 
 export const getReplicateImageExtension = (
   model: ReplicateImageModel | string,
   outputFormat: string | undefined
 ): string => {
-  if (model === 'bytedance/seedream-4.5') return 'jpg'
   if (model === 'bytedance/seedream-5-lite') {
     const format = normalizeReplicateImageOutputFormat(model, outputFormat) ?? 'png'
     return format === 'jpeg' ? 'jpg' : format
@@ -317,23 +220,7 @@ export const buildReplicateImageInput = async (
     }
   }
 
-  if (options.aspectRatio !== undefined) {
-    throw UsageError(`--aspect-ratio is not supported by Replicate/${options.model}. Use --size 1K|2K|4K or WIDTHxHEIGHT for Wan dimensions.`)
-  }
-  normalizeReplicateImageOutputFormat(options.model, options.outputFormat)
-  const imageSize = normalizeReplicateWanSize(options.model, options.imageSize, references.length > 0)
-  const count = normalizeReplicateImageCount(options.model, options.count)
-  return {
-    input: {
-      prompt,
-      ...(references.length > 0 ? { images: references } : {}),
-      ...(imageSize?.requestValue ? { size: imageSize.requestValue } : {}),
-      ...(count !== 1 ? { num_outputs: count } : {})
-    },
-    imageSize,
-    count,
-    mode
-  }
+  throw UsageError(`Unsupported Replicate image model "${options.model}".`)
 }
 
 const providerReturnedModel = (requestedModel: string, actual: string | undefined): string | undefined =>

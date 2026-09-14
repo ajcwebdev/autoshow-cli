@@ -46,18 +46,18 @@ describe('provider selection contracts', () => {
   test('image-count maps only to providers with native multi-image request support', () => {
     const multiOpts = buildOptsFromFlags({
       'openai-image': ['gpt-image-2'],
-      'grok-image': ['grok-imagine-image-quality'],
+      'grok-image': ['grok-imagine-image-2.0'],
       'count': '3'
     })
     const targets = collectImageTargets(multiOpts)
     expect(targets.map((target) => `${target.service}:${target.model}`)).toEqual([
       'openai:gpt-image-2',
-      'grok:grok-imagine-image-quality'
+      'grok:grok-imagine-image-2.0'
     ])
 
     for (const [flag, model, providerName] of [
       ['gemini-image', 'gemini-3.1-flash-lite-image', 'Gemini'],
-      ['bfl-image', 'flux-2-pro', 'BFL']
+      ['lumalabs-image', 'uni-1', 'Luma Labs']
     ] as const) {
       const opts = buildOptsFromFlags({
         [flag]: [model],
@@ -77,12 +77,12 @@ describe('provider selection contracts', () => {
         'openai:gpt-image-2'
       ])
 
-      const bflEditOpts = buildOptsFromFlags({
-        'bfl-image': ['flux-2-pro'],
+      const grokEditOpts = buildOptsFromFlags({
+        'grok-image': ['grok-imagine-image-2.0'],
         'input': [imagePath]
       })
-      expect(collectImageTargets(bflEditOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
-        'bfl:flux-2-pro'
+      expect(collectImageTargets(grokEditOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
+        'grok:grok-imagine-image-2.0'
       ])
 
       const missingPath = join(tempDir, 'missing.png')

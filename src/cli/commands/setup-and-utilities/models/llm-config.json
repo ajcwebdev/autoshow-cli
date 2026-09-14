@@ -169,75 +169,6 @@
             "high"
           ]
         }
-      },
-      "gemini-3.6-flash": {
-        "description": "Gemini 3.6 Flash — current balanced Gemini model",
-        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
-        "pricingCheckedAt": "2026-07-24",
-        "pricingCurrency": "USD",
-        "pricingTier": "Gemini API paid Standard",
-        "pricingNotes": "Google lists Gemini 3.6 Flash Standard pricing at $1.50/1M input tokens and $7.50/1M output tokens with no published context tiers. AutoShow uses uncached paid Standard pricing. Free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.",
-        "inputCostPer1MCents": 150,
-        "outputCostPer1MCents": 750,
-        "estimation": {
-          "costMultiplier": 0.8395,
-          "msPer1KTokens": 2537
-        },
-        "reasoning": {
-          "support": "optional",
-          "supportedEfforts": [
-            "minimal",
-            "low",
-            "medium",
-            "high"
-          ]
-        }
-      },
-      "gemini-3.5-flash": {
-        "description": "Gemini 3.5 Flash — sustained frontier Flash tier",
-        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
-        "pricingCheckedAt": "2026-07-24",
-        "pricingCurrency": "USD",
-        "pricingTier": "Gemini API paid Standard",
-        "pricingNotes": "Google lists Gemini 3.5 Flash Standard pricing at $1.50/1M input tokens and $9.00/1M output tokens with no published context tiers. AutoShow uses uncached paid Standard pricing. Free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.",
-        "inputCostPer1MCents": 150,
-        "outputCostPer1MCents": 900,
-        "estimation": {
-          "costMultiplier": 0.8395,
-          "msPer1KTokens": 2537
-        },
-        "reasoning": {
-          "support": "optional",
-          "supportedEfforts": [
-            "minimal",
-            "low",
-            "medium",
-            "high"
-          ]
-        }
-      },
-      "gemini-3.5-flash-lite": {
-        "description": "Gemini 3.5 Flash-Lite — high-throughput low-cost tier",
-        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
-        "pricingCheckedAt": "2026-08-13",
-        "pricingCurrency": "USD",
-        "pricingTier": "Gemini API paid Standard",
-        "pricingNotes": "Google lists Gemini 3.5 Flash-Lite Standard pricing at $0.30/1M input tokens and $2.50/1M output tokens with no published context tiers. On AutoShow's 2026-08-13 project-side retirement check, Google still listed this model as the recommended replacement for gemini-3.1-flash-lite and 2027-05-07 as the old model's earliest shutdown date. AutoShow uses uncached paid Standard pricing. Free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.",
-        "inputCostPer1MCents": 30,
-        "outputCostPer1MCents": 250,
-        "estimation": {
-          "costMultiplier": 0.8395,
-          "msPer1KTokens": 2537
-        },
-        "reasoning": {
-          "support": "optional",
-          "supportedEfforts": [
-            "minimal",
-            "low",
-            "medium",
-            "high"
-          ]
-        }
       }
     }
   },
@@ -252,30 +183,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Claude API standard token pricing",
         "pricingNotes": "Anthropic lists Claude Fable 5.1 standard pricing at $10/1M input tokens and $50/1M output tokens. Adaptive thinking is always on with default high effort; disabled thinking and forced tool choice are unsupported. Native JSON outputs use output_config.format. Prompt caching, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MCents": 1000,
-        "outputCostPer1MCents": 5000,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPer1KTokens": 4524
-        },
-        "reasoning": {
-          "support": "required",
-          "allowDisabled": false,
-          "supportedEfforts": [
-            "low",
-            "medium",
-            "high",
-            "max"
-          ]
-        }
-      },
-      "claude-fable-5": {
-        "description": "Claude Fable 5 — highest-capability widely released Claude model",
-        "pricingSourceUrl": "https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en",
-        "pricingCheckedAt": "2026-07-13",
-        "pricingCurrency": "USD",
-        "pricingTier": "Claude API standard token pricing",
-        "pricingNotes": "Anthropic lists Claude Fable 5 standard token pricing at $10/1M input tokens and $50/1M output tokens. Claude Fable 5 requires 30-day data retention and is not available under zero data retention arrangements. Prompt caching, batch discounts, fast mode, enterprise pricing, taxes, and provider credits are ignored.",
         "inputCostPer1MCents": 1000,
         "outputCostPer1MCents": 5000,
         "estimation": {
@@ -347,45 +254,6 @@
     "description": "xAI Grok language models",
     "type": "api",
     "models": {
-      "grok-4.5": {
-        "description": "Grok 4.5 — flagship model with a 500K context window",
-        "pricingSourceUrl": "https://docs.x.ai/developers/pricing",
-        "pricingCheckedAt": "2026-07-23",
-        "pricingCurrency": "USD",
-        "pricingTier": "xAI public Chat API token pricing",
-        "pricingNotes": "xAI lists Grok 4.5 standard pricing at $2.00/1M input tokens, $0.30/1M cached input tokens, and $6.00/1M output tokens for requests with up to 200K input tokens. Requests above 200K input tokens cost $4.00/1M input tokens, $0.60/1M cached input tokens, and $12.00/1M output tokens. AutoShow uses uncached standard rates for estimates and switches bands from estimated or observed input tokens. Batch discounts, cached-input discounts, regional differences, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MCents": 200,
-        "cachedInputCostPer1MCents": 30,
-        "outputCostPer1MCents": 600,
-        "tokenPricingBands": [
-          {
-            "label": "standard-up-to-200k",
-            "maxInputTokens": 200000,
-            "inputCostPer1MCents": 200,
-            "cachedInputCostPer1MCents": 30,
-            "outputCostPer1MCents": 600
-          },
-          {
-            "label": "standard-over-200k",
-            "minInputTokens": 200001,
-            "inputCostPer1MCents": 400,
-            "cachedInputCostPer1MCents": 60,
-            "outputCostPer1MCents": 1200
-          }
-        ],
-        "estimation": {
-          "msPer1KTokens": 11318,
-          "costMultiplier": 1
-        },
-        "reasoning": {
-          "support": "required",
-          "supportedEfforts": [
-            "low",
-            "medium",
-            "high"
-          ]
-        }
-      },
       "grok-4.6": {
         "description": "Grok 4.6 — flagship model with a 500K context window",
         "pricingSourceUrl": "https://docs.x.ai/developers/pricing",
@@ -485,25 +353,6 @@
     "description": "Moonshot AI Kimi language models",
     "type": "api",
     "models": {
-      "kimi-k2.6": {
-        "description": "Kimi K2.6 - multimodal, 256K context",
-        "pricingSourceUrl": "https://platform.moonshot.ai/",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Moonshot AI public API token pricing",
-        "pricingNotes": "Moonshot AI public pricing lists Kimi K2.6 at $0.95/1M input tokens and $4/1M output tokens. Cache discounts, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MCents": 95,
-        "outputCostPer1MCents": 400,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPer1KTokens": 11215
-        },
-        "reasoning": {
-          "support": "optional",
-          "allowDisabled": true,
-          "supportedEfforts": []
-        }
-      },
       "kimi-k3": {
         "description": "Kimi K3 - flagship multimodal, 1M context",
         "pricingSourceUrl": "https://platform.kimi.ai/docs/pricing/chat-k3",

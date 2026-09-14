@@ -11,7 +11,7 @@ import {
   readPersistedAsyncSttProgressMetadata,
   runAsyncSttJobLifecycle
 } from '~/cli/commands/stt/async-lifecycle'
-import { lifecycleMetricsToCallbacks } from '../../stt-shared/stt-stage-request'
+import { lifecycleMetricsToCallbacks } from '~/cli/commands/stt/stt-shared/stt-stage-request'
 import { getSupadataBaseUrl, isSupadataSupportedSourceUrl } from './supadata'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { InfraError, ProviderError } from '~/utils/error-handler'

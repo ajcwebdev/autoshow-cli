@@ -16,7 +16,6 @@ import {
   MUSIC_PRICING_PROVIDERS
 } from '~/cli/commands/audio/music/music-utils/music-pricing'
 import {
-  SUPPORTED_BFL_IMAGE_MODELS,
   SUPPORTED_FAL_IMAGE_MODELS,
   SUPPORTED_GEMINI_IMAGE_MODELS,
   SUPPORTED_GROK_IMAGE_MODELS,
@@ -37,19 +36,18 @@ import {
   SUPPORTED_LUMALABS_VIDEO_MODELS,
   SUPPORTED_REPLICATE_VIDEO_MODELS
 } from '~/cli/commands/setup-and-utilities/models/video-models'
-import type { ImageProvider, MusicProvider, VideoProvider } from '~/types'
+import type { MusicProvider, VideoProvider } from '~/types'
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
 import { optionsForService } from '~/utils/pricing/model-selection'
 
-const IMAGE_MODELS = {
+const IMAGE_MODELS: Record<string, readonly string[]> = {
   gemini: SUPPORTED_GEMINI_IMAGE_MODELS,
   openai: SUPPORTED_OPENAI_IMAGE_MODELS,
   grok: SUPPORTED_GROK_IMAGE_MODELS,
-  bfl: SUPPORTED_BFL_IMAGE_MODELS,
   replicate: SUPPORTED_REPLICATE_IMAGE_MODELS,
   lumalabs: SUPPORTED_LUMALABS_IMAGE_MODELS,
   fal: SUPPORTED_FAL_IMAGE_MODELS
-} as const satisfies Record<ImageProvider, readonly string[]>
+}
 
 const VIDEO_MODELS = {
   gemini: SUPPORTED_GEMINI_VIDEO_MODELS,
@@ -69,7 +67,7 @@ const MUSIC_MODELS = {
 describe('generation pricing model-selection tables', () => {
   test('tables preserve provider priority and expose both pass-through keys', () => {
     expect(IMAGE_PRICING_PROVIDERS.map(({ service }) => service)).toEqual([
-      'gemini', 'openai', 'grok', 'bfl', 'replicate', 'lumalabs', 'fal'
+      'gemini', 'openai', 'grok', 'replicate', 'lumalabs', 'fal'
     ])
     expect(VIDEO_PRICING_PROVIDERS.map(({ service }) => service)).toEqual([
       'gemini', 'grok', 'ltx', 'replicate', 'lumalabs', 'fal'
@@ -84,7 +82,7 @@ describe('generation pricing model-selection tables', () => {
 
   test('string and array selectors produce identical estimates for every registered model', () => {
     for (const provider of IMAGE_PRICING_PROVIDERS) {
-      for (const model of IMAGE_MODELS[provider.service]) {
+      for (const model of IMAGE_MODELS[provider.service] ?? []) {
         const singular = estimateImageCosts(optionsForService(IMAGE_PRICING_PROVIDERS, provider.service, model))
         const plural = estimateImageCosts(optionsForService(IMAGE_PRICING_PROVIDERS, provider.service, [model]))
         expect(plural).toEqual(singular)

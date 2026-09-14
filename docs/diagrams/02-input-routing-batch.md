@@ -89,12 +89,12 @@ Local `.html`/`.htm` files classify as `html_article`. `.acsm` is unsupported. S
 
 ## Command Matrix
 
-| Family         | `metadata`            | `download`                     | `extract`                 | `write`                                   |
-| -------------- | --------------------- | ------------------------------ | ------------------------- | ----------------------------------------- |
-| Media          | metadata only         | download/stage media           | STT route                 | unsupported; extract first                |
-| Document/image | metadata only         | download/copy document         | OCR/native document route | unsupported; extract first                |
-| HTML/article   | metadata only         | article prep/download metadata | URL/article route         | unsupported; extract first                |
-| X Space        | X API metadata lookup | Space audio download           | X Space route             | unsupported; extract first                |
+| Family         | `metadata`            | `download`                     | `extract`                 | `write`                                                                  |
+| -------------- | --------------------- | ------------------------------ | ------------------------- | ------------------------------------------------------------------------ |
+| Media          | metadata only         | download/stage media           | STT route                 | unsupported; extract first                                               |
+| Document/image | metadata only         | download/copy document         | OCR/native document route | unsupported; extract first                                               |
+| HTML/article   | metadata only         | article prep/download metadata | URL/article route         | unsupported; extract first                                               |
+| X Space        | X API metadata lookup | Space audio download           | X Space route             | unsupported; extract first                                               |
 | Text input     | unsupported           | unsupported                    | unsupported               | local `.md`/`.txt`, including extract artifacts and project lyric drafts |
 
 Unsupported batch items stay in the parent manifest with item `status: "skipped"` and a `metadata.skipReason`.

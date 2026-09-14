@@ -20,11 +20,9 @@ export const collectFalVideoTargets = (options: VideoGenOptions, mode: VideoMode
     validateVideoMediaReferences(options.videoReferenceImages, { flagName: '--reference-image', provider: 'fal', model, kind: 'image', maxInputs: isFalSeedance25(model) ? 30 : model === 'minimax/h3' ? 9 : 7 })
     validateVideoMediaReferences(options.videoReferenceVideos, { flagName: '--reference-video', provider: 'fal', model, kind: 'video', maxInputs: isFalSeedance25(model) ? 10 : 3 })
     validateVideoMediaReferences(options.videoReferenceAudios, { flagName: '--reference-audio', provider: 'fal', model, kind: 'audio', maxInputs: isFalSeedance25(model) ? 10 : 3 })
-    if (model === 'fal-ai/pixverse/c1' && ((options.videoReferenceVideos?.length ?? 0) || (options.videoReferenceAudios?.length ?? 0))) throw UsageError(`fal.ai/${model} reference-to-video accepts image references only.`)
     const totalReferences = (options.videoReferenceImages?.length ?? 0) + (options.videoReferenceVideos?.length ?? 0) + (options.videoReferenceAudios?.length ?? 0)
     if (model === 'minimax/h3' && totalReferences > 12) throw UsageError(`fal.ai/${model} supports at most 12 combined image, video, and audio references.`)
     if (model === 'minimax/h3' && (options.videoReferenceAudios?.length ?? 0) > 0 && (options.videoReferenceImages?.length ?? 0) + (options.videoReferenceVideos?.length ?? 0) === 0) throw UsageError(`--reference-audio requires at least one image or video reference for fal.ai/${model}.`)
-    if (mode === 'reference-to-video' && model === 'fal-ai/pixverse/c1' && (options.videoReferenceImages?.length ?? 0) === 0) throw UsageError(`--mode reference-to-video requires --reference-image for fal.ai/${model}.`)
     if (mode === 'reference-to-video' && model === 'minimax/h3' && totalReferences === 0) throw UsageError(`--mode reference-to-video requires at least one image, video, or audio reference for fal.ai/${model}.`)
     return [{
       service: 'fal',

@@ -40,7 +40,7 @@ const runImageCommand = async (
   const excludedTargets = configureModelCostFilter(imageOpts, [unfilteredEstimate])
   const imageTargets = collectImageTargets(imageOpts)
   if (imageTargets.length === 0) {
-    throw UsageError('No image provider specified. Use --provider gemini|openai|grok|bfl|replicate|lumalabs|fal[=model].')
+    throw UsageError('No image provider specified. Use --provider gemini|openai|grok|replicate|lumalabs|fal[=model].')
   }
 
   const { estimate: preflightEstimate, shouldExit: imageShouldExit } = evaluatePreflightEstimate(
@@ -129,10 +129,8 @@ export const imageCommand = defineCliCommand({
       ['bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2.5-flare --size 1024x1024 --quality medium --format png --output-dir output/mug-base', 'Generate a base product image with Flare'],
       ['bun autoshow image "make only the mug matte black; preserve the logo, camera angle, lighting, and background" --provider openai=gpt-image-2.5-sunburst --input output/mug-base/generated-image.png --quality xhigh --format webp --compression 80 --output-dir output/mug-edit', 'Make a focused edit with Sunburst'],
       ['bun autoshow image "restyle this product image as a 1960s travel poster" --provider gemini=gemini-3.1-flash-lite-image --input output/mug-base/generated-image.png --output-dir output/mug-gemini', 'Use the generated image as a Gemini reference'],
-      ['bun autoshow image "a futuristic observatory at sunset" --provider grok=grok-imagine-image-quality --size 1K --count 4', 'Generate multiple Grok outputs'],
-      ['bun autoshow image "place the same mug on a rustic breakfast table" --provider bfl=flux-2-pro --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl', 'Generate with BFL reference input'],
-      ['bun autoshow image "a handmade ceramic espresso cup on a marble counter" --provider bfl=flux-2-klein-4b --size 1024x1024 --format webp', 'Generate with FLUX.2 Klein'],
-      ['bun autoshow image "a polished launch poster for a sci-fi audio drama" --provider replicate=wan-video/wan-2.7-image --size 2K --count 2', 'Generate with Replicate Wan'],
+      ['bun autoshow image "a futuristic observatory at sunset" --provider grok=grok-imagine-image-2.0 --size 1K --count 4', 'Generate multiple Grok outputs'],
+      ['bun autoshow image "a polished launch poster for a sci-fi audio drama" --provider replicate=bytedance/seedream-5-lite --size 2K', 'Generate with Replicate Seedream 5 Lite'],
       ['bun autoshow image "a glass of iced coffee on a marble countertop in morning light" --provider lumalabs=uni-1 --aspect-ratio 16:9 --format png', 'Generate with Luma Labs'],
       ['bun autoshow image "a launch poster with crisp typography" --provider fal=alibaba/qwen-image-3 --count 2', 'Generate with fal.ai']
     ]

@@ -5,7 +5,6 @@ export const SERVICE_TO_IMAGE_MODELS_FIELD: Record<string, string> = {
   gemini: 'geminiImageModels',
   openai: 'openaiImageModels',
   grok: 'grokImageModels',
-  bfl: 'bflImageModels',
   replicate: 'replicateImageModels',
   lumalabs: 'lumalabsImageModels',
 }

@@ -27,12 +27,15 @@ const estimate = (quality?: string, size?: string, inputs?: string[], count = 1)
 })[0]!
 
 describe('Grok Imagine Image 2.0 contracts', () => {
-  test('selectors expose both models and preserve the bare provider default', () => {
-    expect(buildOptsFromFlags({ 'grok-image': true }).grokImageModels).toEqual(['grok-imagine-image-quality'])
+  test('selectors expose Image 2.0', () => {
     const options = buildOptsFromFlags({ 'grok-image': [model] })
     expect(collectImageTargets(options).map(target => target.model)).toEqual([model])
+  })
+
+  test('bare grok and all-image select only Image 2.0', () => {
+    expect(buildOptsFromFlags({ 'grok-image': true }).grokImageModels).toEqual([model])
     expect(collectImageTargets(buildOptsFromFlags({ 'all-image': true })).filter(target => target.service === 'grok').map(target => target.model))
-      .toEqual(['grok-imagine-image-quality', model])
+      .toEqual([model])
   })
 
   test('all quality/resolution prices include input charges once per batched request', () => {
@@ -149,9 +152,6 @@ describe('Grok Imagine Image 2.0 contracts', () => {
     }
     expect(() => collectImageTargets({ grokImageModels: [model], imageAspectRatio: '99:1' })).toThrow('--aspect-ratio')
     expect(() => collectImageTargets({ grokImageModels: [model], imageMask: 'mask.png' })).toThrow('--mask')
-    expect(() => collectImageTargets({ grokImageModels: ['grok-imagine-image-quality'], imageQuality: 'low' })).toThrow('--quality')
-    expect(() => collectImageTargets({ grokImageModels: ['grok-imagine-image-quality'], imageAspectRatio: '21:9' })).toThrow('--aspect-ratio')
-    expect(() => collectImageTargets({ grokImageModels: ['grok-imagine-image-quality'], imageInputs: Array(4).fill(reference) })).toThrow()
     await tempDirs.withDir(async dir => {
       await expect(runGrokImageGen('Synthetic scene', dir, { model, mode: 'edit' })).rejects.toThrow('requires --input')
       await expect(runGrokImageGen('Synthetic scene', dir, { model, mode: 'generation', inputs: [reference] })).rejects.toThrow('cannot include')
@@ -159,19 +159,6 @@ describe('Grok Imagine Image 2.0 contracts', () => {
       await expect(runGrokImageGen('Synthetic scene', dir, { model, inputs: Array(6).fill(reference) })).rejects.toThrow()
     })
     expect(calls).toHaveLength(0)
-  })
-
-  test('legacy requests retain their model and omitted controls, including alias response identity', async () => {
-    const calls = installMockFetch(response)
-    await tempDirs.withDir(async dir => {
-      const result = await runGrokImageGen('Synthetic scene', dir, { model: 'grok-imagine-image-quality' })
-      expect(result.metadata.imageModel).toBe('grok-imagine-image-quality')
-      expect(result.metadata.providerReturnedModel).toBe(model)
-      await runGrokImageGen('Synthetic edit', dir, { model: 'grok-imagine-image-quality', inputs: [reference] })
-    })
-    expect(calls[0]?.bodyJson).toEqual({ model: 'grok-imagine-image-quality', prompt: 'Synthetic scene', response_format: 'b64_json', n: 1 })
-    expect(calls[1]?.url).toBe('https://api.x.ai/v1/images/edits')
-    expect(calls[1]?.bodyJson?.['quality']).toBeUndefined()
   })
 
   test('missing image data and provider failures propagate without repeat submission', async () => {

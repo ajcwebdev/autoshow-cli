@@ -461,7 +461,7 @@ test('write resume --price estimates selected missing LLM providers without prov
     'resume', '--json',
     runDir,
     '--provider',
-    'grok=grok-4.5',
+    'grok=grok-4.6',
     '--price'
   ], {
     env: { NO_COLOR: '1', XAI_API_KEY: '' }
@@ -470,7 +470,7 @@ test('write resume --price estimates selected missing LLM providers without prov
   const output = `${result.stdout}\n${result.stderr}`
   expect(result.exitCode).toBe(0)
   expect(output).toContain('Estimate:')
-  expect(output).toContain('grok-4.5')
+  expect(output).toContain('grok-4.6')
   expect(await Bun.file(manifestPath).text()).toBe(before)
 })
 

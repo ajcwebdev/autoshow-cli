@@ -8,10 +8,10 @@ import { exec } from '~/utils/cli-utils'
 import { getVideoInfo } from '~/cli/commands/sources/download/download-audio/metadata-utils'
 import { buildYtDlpFailureMessage, buildYtDlpSubtitleDownloadArgs } from '~/cli/commands/command-shared/shared-yt-dlp-options'
 import { getYtDlpBinary } from '~/cli/commands/command-shared/shared-yt-dlp-binary'
-import { readExistingSttRun } from '../stt-batch/stt-run-state'
-import { countTokens, formatTranscriptText, toTimestamp } from '../stt-utils/stt-utils'
-import { writeSttResultArtifact } from '../stt-utils/stt-result-artifacts'
-import { getSttTargetDirectoryName } from '../stt-targets'
+import { readExistingSttRun } from '~/cli/commands/stt/stt-batch/stt-run-state'
+import { countTokens, formatTranscriptText, toTimestamp } from '~/cli/commands/stt/stt-utils/stt-utils'
+import { writeSttResultArtifact } from '~/cli/commands/stt/stt-utils/stt-result-artifacts'
+import { getSttTargetDirectoryName } from '~/cli/commands/stt/stt-targets'
 export const YOUTUBE_CAPTIONS_SERVICE = 'youtube-captions' as const
 const YOUTUBE_CAPTIONS_MODEL = 'subtitle-track' as const
 

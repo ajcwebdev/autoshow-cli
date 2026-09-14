@@ -45,7 +45,7 @@ describe('video provider REST contracts', () => {
       if (call.url === `${XAI_DEFAULT_BASE_URL}/videos/grok-123`) {
         return jsonResponse({
           status: 'done',
-          model: 'grok-imagine-video',
+          model: 'grok-imagine-video-1.5',
           progress: 100,
           usage: { cost_in_usd_ticks: 250_000_000 },
           video: {
@@ -62,7 +62,7 @@ describe('video provider REST contracts', () => {
     await withTempDir(async (dir) => {
       const { imagePath } = await writeMediaFixtures(dir)
       const result = await runGrokVideoGen('animate subject', dir, {
-        model: 'grok-imagine-video',
+        model: 'grok-imagine-video-1.5',
         mode: 'image-to-video',
         inputImage: imagePath,
         durationSeconds: 6,
@@ -73,7 +73,7 @@ describe('video provider REST contracts', () => {
       expect(result.metadata).toMatchObject({
         requestMode: 'image-to-video',
         providerRequestId: 'grok-123',
-        providerReturnedModel: 'grok-imagine-video',
+        providerReturnedModel: 'grok-imagine-video-1.5',
         providerVideoUrl: 'https://cdn.example.com/grok.mp4',
         providerProgress: 100,
         providerModeration: true,
@@ -89,7 +89,7 @@ describe('video provider REST contracts', () => {
       method: 'POST'
     })
     expect(calls[0]?.bodyJson).toEqual({
-      model: 'grok-imagine-video',
+      model: 'grok-imagine-video-1.5',
       prompt: 'animate subject',
       duration: 6,
       aspect_ratio: '9:16',
@@ -100,14 +100,10 @@ describe('video provider REST contracts', () => {
     })
   })
 
-  test('Grok sends reference, edit, and extension endpoint shapes', async () => {
+  test('Grok Imagine Video 1.5 sends reference-to-video generation requests', async () => {
     process.env['XAI_API_KEY'] = 'xai-key'
-    let requestIndex = 0
     const calls = installMockFetch((call) => {
-      if (call.method === 'POST') {
-        requestIndex += 1
-        return jsonResponse({ request_id: `grok-${requestIndex}` })
-      }
+      if (call.method === 'POST') return jsonResponse({ request_id: 'grok-1' })
       if (call.url.startsWith(`${XAI_DEFAULT_BASE_URL}/videos/grok-`)) {
         return jsonResponse({
           status: 'done',
@@ -123,47 +119,24 @@ describe('video provider REST contracts', () => {
     })
 
     await withTempDir(async (dir) => {
-      const { imagePath, lastFramePath, videoPath } = await writeMediaFixtures(dir)
+      const { imagePath, lastFramePath } = await writeMediaFixtures(dir)
       await runGrokVideoGen('reference scene', dir, {
-        model: 'grok-imagine-video',
+        model: 'grok-imagine-video-1.5',
         mode: 'reference-to-video',
         referenceImages: [imagePath, lastFramePath]
-      })
-      await runGrokVideoGen('make it dusk', dir, {
-        model: 'grok-imagine-video',
-        mode: 'edit',
-        inputVideo: videoPath
-      })
-      await runGrokVideoGen('continue forward', dir, {
-        model: 'grok-imagine-video',
-        mode: 'extend',
-        inputVideo: videoPath,
-        durationSeconds: 12
       })
     })
 
     const postCalls = calls.filter((call) => call.method === 'POST')
     expect(postCalls.map((call) => call.url)).toEqual([
-      `${XAI_DEFAULT_BASE_URL}/videos/generations`,
-      `${XAI_DEFAULT_BASE_URL}/videos/edits`,
-      `${XAI_DEFAULT_BASE_URL}/videos/extensions`
+      `${XAI_DEFAULT_BASE_URL}/videos/generations`
     ])
     expect(postCalls[0]?.bodyJson).toMatchObject({
+      model: 'grok-imagine-video-1.5',
       reference_images: [
         { url: `data:image/png;base64,${Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')}` },
         { url: `data:image/webp;base64,${Buffer.from(new Uint8Array([4, 5, 6])).toString('base64')}` }
       ]
-    })
-    expect(postCalls[1]?.bodyJson).toEqual({
-      model: 'grok-imagine-video',
-      prompt: 'make it dusk',
-      video: { url: `data:video/mp4;base64,${Buffer.from(new Uint8Array([7, 8, 9])).toString('base64')}` }
-    })
-    expect(postCalls[2]?.bodyJson).toEqual({
-      model: 'grok-imagine-video',
-      prompt: 'continue forward',
-      duration: 10,
-      video: { url: `data:video/mp4;base64,${Buffer.from(new Uint8Array([7, 8, 9])).toString('base64')}` }
     })
   })
 
@@ -185,7 +158,7 @@ describe('video provider REST contracts', () => {
 
     await withTempDir(async (dir) => {
       await expect(runGrokVideoGen('blocked prompt', dir, {
-        model: 'grok-imagine-video'
+        model: 'grok-imagine-video-1.5'
       })).rejects.toThrow('blocked by moderation')
     })
   })

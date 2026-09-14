@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 import { readSingleManifestProviderState } from '~/cli/commands/command-shared/pipeline-manifest'
-import { runSupadataStt } from '~/cli/commands/stt/direct-url/stt-supadata/run-supadata-stt'
+import { runSupadataStt } from '~/cli/commands/text/url/url-services/supadata-transcript/run-supadata-stt'
 import { ASYNC_STT_PROGRESS_METADATA_KEY, createSttProviderProgressLifecycle } from '~/cli/commands/stt/stt-provider-progress'
 import type { AsyncSttLifecycleHooks, SttTarget } from '~/types'
 import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'

@@ -91,14 +91,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     ]
   },
   {
-    providerId: 'bfl',
-    envVar: 'BFL_API_KEY',
-    label: 'BFL image',
-    hintUrl: 'https://dashboard.bfl.ai/',
-    stages: ['image'],
-    configPaths: ['defaults.image.bflImage']
-  },
-  {
     providerId: 'lumalabs',
     envVar: 'LUMA_AGENTS_API_KEY',
     label: 'Luma Labs image/video',

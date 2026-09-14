@@ -2,7 +2,7 @@ import type { ComputeEstimatedProcessingTimesInput, TimingStepEntry, TimingSteps
 import { getMusicEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { roundMs, withNormalizedTiming } from './timing-shared'
 
-const GEMINI_PRO_DEFAULT_MUSIC_DURATION_SECONDS = 120
+const GEMINI_DEFAULT_MUSIC_DURATION_SECONDS = 120
 const ELEVENLABS_DEFAULT_MUSIC_DURATION_SECONDS = 180
 const MINIMAX_DEFAULT_MUSIC_DURATION_SECONDS = 120
 
@@ -18,7 +18,7 @@ const resolveMusicTimingDurationSeconds = (
   }
 
   if (target.service === 'gemini') {
-    return target.durationSeconds ?? GEMINI_PRO_DEFAULT_MUSIC_DURATION_SECONDS
+    return target.durationSeconds ?? GEMINI_DEFAULT_MUSIC_DURATION_SECONDS
   }
 
   return target.durationSeconds

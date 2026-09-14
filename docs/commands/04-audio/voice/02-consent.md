@@ -1,6 +1,6 @@
 # voice consent
 
-Create a protected consent policy record with explicit per-action grants, or revoke an existing locator.
+Create a protected consent record with explicit per-action grants, or revoke an existing locator.
 
 See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
 
@@ -12,20 +12,20 @@ bun autoshow voice consent [subject-key] [flags]
 
 Grant requires `<subject-key>` plus `--allow` with at least one explicit action. Omitted actions stay denied. `--revoke` cannot be combined with `--allow` or a subject key.
 
-Consent records cannot be edited. After revoke, the original locator fails every consent-gated action. Do not put contact PII in `--actor-id` or `--provenance-ref`. A grant prints a `protected-consent:v1:...` locator for [clone](./05-clone.md) and other consent-gated actions.
+Consent records cannot be edited. A grant prints a `protected-consent:v1:...` locator for [clone](./05-clone.md) and other `--consent-ref` commands; after revoke, that locator is rejected. Do not put contact PII in `--actor-id` or `--provenance-ref`.
 
 ### Options
 
-| Flag | Description |
-| --- | --- |
-| `--provenance-ref <ref>` | Opaque non-secret provenance record reference |
-| `--allow <grants>` | Comma-separated grants: `upload`, `new-synthesis`, `cache-reuse`, `resume`, `export`, `retention`, `deletion` |
-| `--evidence <file>` | Optional consent evidence file kept only in the protected store |
-| `--revoke <consent-ref>` | Protected consent-record locator to revoke |
-| `--reason <text>` | Required non-sensitive revocation reason when `--revoke` is set |
-| `--actor-namespace <ns>` | Audit actor namespace: `local-user`, `project-role`, or `automation`; default `local-user` |
-| `--actor-id <id>` | Opaque audit actor ID |
-| `--price` | Validate and estimate without provider calls or artifact writes |
+| Flag                     | Description                                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `--provenance-ref <ref>` | Opaque non-secret provenance record reference                                                                 |
+| `--allow <grants>`       | Comma-separated grants: `upload`, `new-synthesis`, `cache-reuse`, `resume`, `export`, `retention`, `deletion` |
+| `--evidence <file>`      | Optional consent evidence file                                                                                |
+| `--revoke <consent-ref>` | Protected consent-record locator to revoke                                                                    |
+| `--reason <text>`        | Required non-sensitive revocation reason when `--revoke` is set                                               |
+| `--actor-namespace <ns>` | Actor namespace: `local-user`, `project-role`, or `automation`; default `local-user`                          |
+| `--actor-id <id>`        | Opaque actor ID                                                                                               |
+| `--price`                | Validate and estimate without provider calls or artifact writes                                               |
 
 ### Examples
 

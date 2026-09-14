@@ -164,7 +164,7 @@ describe('test-runner contracts', () => {
       const allFiles = [
         'test/test-cases/e2e/service/audio/music/elevenlabs-music.test.ts',
         'test/test-cases/e2e/service/audio/music/minimax-music-3.0.test.ts',
-        'test/test-cases/e2e/service/audio/music/gemini-lyria-3-pro-preview.test.ts',
+        'test/test-cases/e2e/service/audio/music/gemini-lyria-3.5.test.ts',
         'test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts'
       ]
 

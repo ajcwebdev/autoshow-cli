@@ -1,6 +1,6 @@
 # CLI Usage
 
-Shared command syntax, help, and output controls. See the [command guide](../../../README.md#command-guide) to choose a command.
+Shared command syntax, help, logging, and JSON output. See the [command guide](../../../README.md#command-guide) to choose a command.
 
 ## Command Syntax and Help
 
@@ -23,23 +23,23 @@ bun autoshow resume --help-topic concurrency
 
 ## Logging
 
-Text is the default. Each diagnostic is one line with a local timestamp.
+Text is the default. Each diagnostic is one line.
 
-| Flag | Effect |
-| --- | --- |
-| `--quiet` | Suppress non-error diagnostics. |
-| `--verbose` | Include debug diagnostics. |
-| `--log-level <level>` | Set the minimum level: `debug`, `info`, `success`, `warn`, or `error`. |
-| `--color` / `--no-color` | Enable or disable terminal color. |
+| Flag                     | Effect                                                                 |
+| ------------------------ | ---------------------------------------------------------------------- |
+| `--quiet`                | Suppress non-error diagnostics.                                        |
+| `--verbose`              | Include debug diagnostics.                                             |
+| `--log-level <level>`    | Set the minimum level: `debug`, `info`, `success`, `warn`, or `error`. |
+| `--color` / `--no-color` | Enable or disable terminal color.                                      |
 
 Color is enabled on a TTY. `NO_COLOR` disables it; `FORCE_COLOR` can enable it in redirected output. `--color` and `--no-color` override both.
 
 ## JSON Output
 
-`--json` writes diagnostic records to stderr and exactly one result record to stdout. `--quiet` and `--log-level` do not suppress that result. Secrets are redacted. JSON output is uncolored.
+`--json` writes diagnostic records to stderr and exactly one result record to stdout. `--quiet` and `--log-level` do not suppress that result. Secrets are redacted.
 
 ```bash
 bun autoshow setup --show --json 2>diagnostics.jsonl | jq '.data'
 ```
 
-Keep stdout and stderr separate when consuming the result in a script. Output artifacts remain in the command's run directory; the terminal result describes the completed or failed invocation.
+Output artifacts remain in the command's run directory. The terminal result describes the completed or failed invocation.

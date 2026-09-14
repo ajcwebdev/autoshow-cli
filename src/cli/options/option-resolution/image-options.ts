@@ -3,7 +3,6 @@ import { IMAGE_PRICING_MODEL_KEYS } from '~/cli/commands/visuals/image/image-uti
 import {
   parseOptionalNumberFlag,
   parseOptionalPositiveIntFlag,
-  readBooleanFlag,
   readOptionalStringFlag,
   readOptionalStringListFlag
 } from './flag-readers'
@@ -25,7 +24,6 @@ export const buildImageOptions = (ctx: ResolvedFlagContext): ImageRuntimeOptions
     imageInputs: readOptionalStringListFlag(mergedFlags, 'input'),
     imageMask: readOptionalStringFlag(mergedFlags, 'mask'),
     imageResponseMode: readOptionalStringFlag(mergedFlags, 'response-mode'),
-    geminiSearchGrounding: readBooleanFlag(mergedFlags, 'search-grounding') ? true : undefined,
     imageCompression: parseOptionalNumberFlag(readOptionalStringFlag(mergedFlags, 'compression'), 'compression', {
       min: 0,
       max: 100,

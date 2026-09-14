@@ -4,7 +4,7 @@ export const imageResponse = (bytes: Uint8Array, contentType: string, headers?: 
   bytesResponse(bytes, { headers: { 'content-type': contentType, ...headers } })
 
 export const setupImageRestContractLifecycle = () => setupContractSuiteLifecycle({
-  envKeys: ['BFL_API_KEY', 'LUMA_AGENTS_API_KEY', 'REPLICATE_API_TOKEN'],
+  envKeys: ['LUMA_AGENTS_API_KEY', 'REPLICATE_API_TOKEN'],
   tempPrefix: 'autoshow-image-provider-rest-',
   restoreBunSleep: true,
   beforeEachExtra: () => {

@@ -140,12 +140,23 @@ describe('historical model rate contracts', () => {
       inputCostPer1MCharsCents: 60,
       outputCostPer1MCharsCents: 1200
     })
+    expect(getTtsPricing('cartesia', 'sonic-3.5-2026-05-04')).toMatchObject({
+      costPer1kCharsCents: 3.7375
+    })
+    expect(getTtsPricing('inworld', 'realtime-tts-2-flash')).toMatchObject({
+      costPer1kCharsCents: 1.5
+    })
+    expect(getRetiredModelReplacement('tts', 'cartesia', 'sonic-3.5-2026-05-04')).toBe('sonic-3.6-2026-08-27')
+    expect(getRetiredModelReplacement('tts', 'inworld', 'realtime-tts-2-flash')).toBe('realtime-tts-2')
     expect(getImageCost('gemini', 'gemini-3.1-flash-image-preview')).toBe(6.7)
     expect(getMusicModelMeta('elevenlabs', 'music_v1')).toMatchObject({
       costPerMinuteCents: 15
     })
     expect(getMusicModelMeta('gemini', 'lyria-3-clip-preview')).toMatchObject({
       costPerTrackCents: 4
+    })
+    expect(getMusicModelMeta('gemini', 'lyria-3-pro-preview')).toMatchObject({
+      costPerTrackCents: 8
     })
     expect(getMusicModelMeta('minimax', 'music-2.6')).toMatchObject({
       costPerTrackCents: 15,
@@ -192,7 +203,13 @@ describe('historical model rate contracts', () => {
     expect(getImageCost('recraft', 'recraftv4_1_utility_pro')).toBe(25)
     expect(getImageCost('grok', 'grok-imagine-image')).toBe(2)
     expect(getRetiredModelReplacement('image', 'grok', 'grok-imagine-image')).toBe('grok-imagine-image-2.0')
-    expect(getRetiredModelReplacement('image', 'recraft', 'recraftv4_1')).toBe('flux-2-klein-4b')
+    expect(getRetiredModelReplacement('image', 'grok', 'grok-imagine-image-quality')).toBe('grok-imagine-image-2.0')
+    expect(getRetiredModelReplacement('image', 'recraft', 'recraftv4_1')).toBe('gpt-image-2.5-flare')
+    expect(getRetiredModelReplacement('image', 'recraft', 'recraftv4_1_pro')).toBe('gpt-image-2.5-flare')
+    expect(getRetiredModelReplacement('image', 'replicate', 'prunaai/ernie-image')).toBe('alibaba/qwen-image-3')
+    expect(getRetiredModelReplacement('image', 'replicate', 'prunaai/ernie-image-turbo')).toBe('alibaba/qwen-image-3')
+    expect(getRetiredModelReplacement('image', 'gemini', 'gemini-3.1-flash-image')).toBe('gemini-3.1-flash-lite-image')
+    expect(getRetiredModelReplacement('image', 'gemini', 'gemini-3-pro-image')).toBe('gemini-3.1-flash-lite-image')
   })
 
   test('retired STT selectors retain exact rates and same-service replacements', () => {

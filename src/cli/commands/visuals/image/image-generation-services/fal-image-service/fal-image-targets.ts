@@ -14,7 +14,6 @@ export const collectFalImageTargets = (options: ImageGenOptions): ImageTarget[] 
       'imageBackground',
       { key: 'imageMask', when: Boolean },
       { key: 'imageResponseMode', when: Boolean },
-      { key: 'geminiSearchGrounding', when: Boolean },
       'imageCompression'
     ], {
       provider: 'fal.ai',

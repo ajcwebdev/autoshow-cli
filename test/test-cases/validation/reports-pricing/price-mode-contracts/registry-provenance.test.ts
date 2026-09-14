@@ -174,7 +174,7 @@ describe('price mode contracts', () => {
 
   test('hosted LLM and OCR lifecycle schemas enforce static retirement evidence and concrete replacements', () => {
       const invalidReplacement = structuredClone(getModelRegistry())
-      const invalidReplacementModel = requireDefined(invalidReplacement.llm['gemini']?.models['gemini-3.6-flash'], 'Gemini LLM lifecycle fixture')
+      const invalidReplacementModel = requireDefined(invalidReplacement.llm['gemini']?.models['gemini-3.7-flash'], 'Gemini LLM lifecycle fixture')
       invalidReplacementModel.lifecycle = {
         status: 'deprecated',
         shutdownDate: '2027-05-07',
@@ -198,7 +198,7 @@ describe('price mode contracts', () => {
       }
 
       const invalidDate = structuredClone(getModelRegistry())
-      const invalidDateModel = requireDefined(invalidDate.llm['gemini']?.models['gemini-3.6-flash'], 'Gemini LLM lifecycle date fixture')
+      const invalidDateModel = requireDefined(invalidDate.llm['gemini']?.models['gemini-3.7-flash'], 'Gemini LLM lifecycle date fixture')
       invalidDateModel.lifecycle = {
         status: 'deprecated',
         shutdownDate: '2027-02-31',

@@ -14,19 +14,19 @@ With no arguments, `list` prints the local registration catalog and current inde
 
 With a registration id, `list` inspects that registration. `--live` checks whether the provider still has the voice. `--price` keeps the read local even when `--live` is set.
 
-With `--provider`, `list` prints a provider or account catalog. `--provider` cannot be combined with a registration id. `--price` validates the catalog request without reading the provider.
+With `--provider`, `list` prints a provider or account catalog. `--provider` cannot be combined with a registration id.
 
 ### Options
 
-| Flag | Description |
-| --- | --- |
-| `--generation-id <sha256>` | Optional unless more than one generation could match |
-| `--live` | Opt-in provider readiness check for one registration |
-| `--provider <name>` | Remote catalog provider: `elevenlabs`, `grok`, `mistral`, `speechify`, `hume`, `cartesia`, or `inworld` |
-| `--source <source>` | Catalog source: `account`, `provider-library`, or `shared-library`; default `account` |
-| `--cursor <cursor>` | Opaque provider pagination cursor |
-| `--reconcile` | Complete an ambiguous provider provisioning journal without recreating the voice |
-| `--price` | Validate and estimate without provider calls or artifact writes |
+| Flag                       | Description                                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `--generation-id <sha256>` | Optional unless more than one generation could match                                                    |
+| `--live`                   | Opt-in provider readiness check for one registration                                                    |
+| `--provider <name>`        | Remote catalog provider: `elevenlabs`, `grok`, `mistral`, `speechify`, `hume`, `cartesia`, or `inworld` |
+| `--source <source>`        | Catalog source: `account`, `provider-library`, or `shared-library`; default `account`                   |
+| `--cursor <cursor>`        | Pagination cursor from a previous catalog page                                                          |
+| `--reconcile`              | Finish an interrupted voice create without creating a new voice                                         |
+| `--price`                  | Validate and estimate without provider calls or artifact writes                                         |
 
 ### Examples
 
@@ -34,10 +34,10 @@ With `--provider`, `list` prints a provider or account catalog. `--provider` can
 bun autoshow voice list
 bun autoshow voice list vr_ID
 bun autoshow voice list vr_ID --live
-bun autoshow voice list vr_ID --generation-id GENERATION_SHA256 --price
-bun autoshow voice list --provider elevenlabs --source account
+bun autoshow voice list vr_ID --generation-id GENERATION_SHA256
+bun autoshow voice list --provider elevenlabs
 bun autoshow voice list --provider elevenlabs --source shared-library --cursor OPAQUE_CURSOR
-bun autoshow voice list --provider cartesia --source provider-library --cursor OPAQUE_CURSOR
+bun autoshow voice list --provider cartesia --source provider-library --price
 ```
 
 Next: [consent](./02-consent.md).

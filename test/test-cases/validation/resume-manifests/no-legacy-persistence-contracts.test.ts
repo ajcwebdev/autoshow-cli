@@ -97,6 +97,7 @@ const auditProviderResultArtifact = async (path: string): Promise<string[]> => {
   if (invalidProviderResultShape(parsed)) return [displayPath]
 
   const isProviderArtifact = path.split('/').includes('providers')
+  if (isProviderArtifact && basename(dirname(dirname(path))) !== 'providers') return []
   const runDir = isProviderArtifact ? dirname(dirname(dirname(path))) : dirname(path)
   const manifestPath = join(runDir, ['manifest', 'json'].join('.'))
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as unknown

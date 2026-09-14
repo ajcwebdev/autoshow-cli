@@ -407,8 +407,8 @@ describe('revision evaluation contracts', () => {
     await Bun.write(join(sceneRunDir, 'panels/panel-01.png'), tinyPng)
     const panelSha256 = sha256Bytes(tinyPng)
     await writeInitialComicStructureManifest({ sceneRunDir, createdAt: '2026-08-30T00:00:00.000Z', sourceIdentity, structuredScript: structuredRef })
-    const targetKey = canonicalTargetKey('comic-image', 'gemini', 'gemini-3.1-flash-image', 'hosted-api')
-    const imageProvider: PipelineProviderState = { service: 'gemini', model: 'gemini-3.1-flash-image', local: false, operation: 'comic-image', targetKey, transport: 'hosted-api', artifactDir: '.', status: 'succeeded', attempts: 1, options: {}, metadata: {}, result: {} }
+    const targetKey = canonicalTargetKey('comic-image', 'gemini', 'gemini-3.1-flash-lite-image', 'hosted-api')
+    const imageProvider: PipelineProviderState = { service: 'gemini', model: 'gemini-3.1-flash-lite-image', local: false, operation: 'comic-image', targetKey, transport: 'hosted-api', artifactDir: '.', status: 'succeeded', attempts: 1, options: {}, metadata: {}, result: {} }
     await updateComicImageManifest({ sceneRunDir, sourceIdentity, providers: [imageProvider], artifactRefs: [{ path: 'panels/panel-01.png', sha256: panelSha256 }] })
     const evaluation = { schemaVersion: 1 as const, experimentId: 'revision-contract-test', planFingerprint: 'b'.repeat(64), evidenceDirectory: 'revision-evaluations/revision-contract-test-bbbbbbbbbbbbbbbb', imageProvider: { service: 'openai', model: 'gpt-image-2', attempts: 1, completed: 0, ambiguous: 1 }, comparisonProvider: { service: 'openai', model: 'gpt-5.6-sol', attempts: 0, completed: 0, invalid: 0 }, promotedPanels: [], retainedOriginalPanels: [1], actualCostUsd: 0 }
     await recordComicImageRevision({ sceneRunDir, evaluation, artifactRefs: [{ path: 'panels/panel-01.png', sha256: panelSha256 }] })

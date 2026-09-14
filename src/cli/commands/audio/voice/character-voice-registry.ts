@@ -39,6 +39,7 @@ const VOICE_ORIGINS = new Set([
   'imported-custom', 'saved-reference', 'request-reference-audio', 'local-model-voice'
 ])
 const TTS_PROVIDERS = new Set(['elevenlabs', 'grok', 'mistral', 'openai', 'speechify', 'hume', 'cartesia', 'inworld'])
+const RETIRED_TTS_PROVIDERS = new Set(['minimax', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra'])
 
 const assertSafeKey = (value: string, label: string): void => {
   if (!SAFE_KEY.test(value)) throw UsageError(`${label} must be a safe lowercase key.`)
@@ -123,7 +124,7 @@ const validateCharacterVoiceBrief = (brief: CharacterVoiceBrief): CharacterVoice
   if (brief.apparentAgeRange) assertAllowedKeys(brief.apparentAgeRange, ['minimum', 'maximum'], 'Voice brief apparent age range')
   if (!Array.isArray(brief.mannerisms) || !Array.isArray(brief.prohibitedCaricatures) || !Array.isArray(brief.pronunciations) || !Array.isArray(brief.allowedOrigins)) throw UsageError('Voice brief list fields must be arrays.')
   if (brief.allowedOrigins.length === 0 || brief.allowedOrigins.some(origin => !VOICE_ORIGINS.has(origin))) throw UsageError('Voice brief requires at least one supported allowed origin.')
-  if (brief.preferredProviders && (!Array.isArray(brief.preferredProviders) || brief.preferredProviders.some(provider => !TTS_PROVIDERS.has(provider)))) throw UsageError('Voice brief preferred providers contain an unsupported TTS provider.')
+  if (brief.preferredProviders && (!Array.isArray(brief.preferredProviders) || brief.preferredProviders.some(provider => !TTS_PROVIDERS.has(provider) && !RETIRED_TTS_PROVIDERS.has(provider)))) throw UsageError('Voice brief preferred providers contain an unsupported TTS provider.')
   for (const pronunciation of brief.pronunciations) assertAllowedKeys(pronunciation, ['term', 'pronunciation'], 'Voice brief pronunciation')
   if (brief.pronunciations.some(entry => !entry.term.trim() || !entry.pronunciation.trim())) throw UsageError('Voice brief pronunciations require a term and pronunciation.')
   const pronunciationTerms = brief.pronunciations.map(entry => entry.term.normalize('NFKC').toLocaleLowerCase('en-US'))
