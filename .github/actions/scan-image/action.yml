@@ -1,0 +1,115 @@
+name: Scan image
+description: Inventory an image once with Syft, audit it once with a date-cached Grype database, and gate on fixable findings derived from that single scan.
+inputs:
+  image:
+    description: Image reference to inventory (mutually exclusive with sbom)
+    default: ''
+  sbom:
+    description: Existing SPDX JSON to scan instead of an image
+    default: ''
+  evidence-dir:
+    description: Directory receiving image.spdx.json, image-advisories.json, image-advisories-fixable.json, and grype-db.json
+    required: true
+  cache-key-salt:
+    description: Extra Grype database cache key discriminator
+    default: ''
+  syft-version:
+    description: Syft release used for the inventory
+    default: v1.51.1
+  grype-version:
+    description: Grype release used for the audit
+    default: v0.118.0
+  severity-cutoff:
+    description: Lowest severity that gates
+    default: high
+  fail-on-fixable:
+    description: Fail when fixable findings at or above severity-cutoff exist
+    default: 'true'
+outputs:
+  fixable-count:
+    description: Number of fixable findings at or above the cutoff
+    value: ${{ steps.gate.outputs.fixable-count }}
+  db-built:
+    description: Build timestamp of the vulnerability database used
+    value: ${{ steps.gate.outputs.db-built }}
+runs:
+  using: composite
+  steps:
+    - id: paths
+      shell: bash
+      env:
+        EVIDENCE_DIR: ${{ inputs.evidence-dir }}
+        IMAGE: ${{ inputs.image }}
+        SBOM: ${{ inputs.sbom }}
+      run: |
+        set -euo pipefail
+        test -n "${IMAGE}${SBOM}" || { echo 'scan-image: provide image or sbom' >&2; exit 1; }
+        { test -z "${IMAGE}" || test -z "${SBOM}"; } || { echo 'scan-image: image and sbom are mutually exclusive' >&2; exit 1; }
+        mkdir -p "${EVIDENCE_DIR}"
+        printf 'sbom=%s\n' "${SBOM:-${EVIDENCE_DIR}/image.spdx.json}" >> "${GITHUB_OUTPUT}"
+        printf 'today=%s\n' "$(date -u +%Y-%m-%d)" >> "${GITHUB_OUTPUT}"
+        printf 'db-dir=%s\n' "${RUNNER_TEMP}/grype-db" >> "${GITHUB_OUTPUT}"
+    - name: Inventory the image
+      if: inputs.image != ''
+      uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
+      with:
+        image: ${{ inputs.image }}
+        syft-version: ${{ inputs.syft-version }}
+        format: spdx-json
+        output-file: ${{ steps.paths.outputs.sbom }}
+        upload-artifact: false
+    - name: Restore the Grype vulnerability database
+      id: grype-db
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+      with:
+        path: ${{ steps.paths.outputs.db-dir }}
+        key: grype-db-v6-${{ inputs.grype-version }}-${{ steps.paths.outputs.today }}${{ inputs.cache-key-salt }}
+        restore-keys: |
+          grype-db-v6-${{ inputs.grype-version }}-
+    - name: Audit the image
+      uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e
+      env:
+        GRYPE_DB_CACHE_DIR: ${{ steps.paths.outputs.db-dir }}
+        GRYPE_DB_AUTO_UPDATE: ${{ steps.grype-db.outputs.cache-hit == 'true' && 'false' || 'true' }}
+      with:
+        sbom: ${{ steps.paths.outputs.sbom }}
+        grype-version: ${{ inputs.grype-version }}
+        output-format: json
+        output-file: ${{ inputs.evidence-dir }}/image-advisories.json
+        fail-build: false
+        severity-cutoff: ${{ inputs.severity-cutoff }}
+    - name: Require a hydrated database before caching it
+      shell: bash
+      env:
+        DB_DIR: ${{ steps.paths.outputs.db-dir }}
+      run: |
+        set -euo pipefail
+        # Grype v0.118 stores schema v6 at <cache-dir>/6/vulnerability.db; the layout-agnostic search also rejects an empty or partial file.
+        find "${DB_DIR}" -name 'vulnerability.db' -size +1M | grep -q . || { echo "scan-image: no hydrated Grype database under ${DB_DIR}" >&2; exit 1; }
+    - name: Retain today's Grype database
+      if: steps.grype-db.outputs.cache-hit != 'true'
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+      with:
+        path: ${{ steps.paths.outputs.db-dir }}
+        key: ${{ steps.grype-db.outputs.cache-primary-key }}
+    - name: Gate actionable high severity image findings
+      id: gate
+      shell: bash
+      env:
+        EVIDENCE_DIR: ${{ inputs.evidence-dir }}
+        SEVERITY_CUTOFF: ${{ inputs.severity-cutoff }}
+        FAIL_ON_FIXABLE: ${{ inputs.fail-on-fixable }}
+      run: |
+        set -euo pipefail
+        scan="${EVIDENCE_DIR}/image-advisories.json"
+        fixable="${EVIDENCE_DIR}/image-advisories-fixable.json"
+        jq -e '.matches | type == "array"' "${scan}" >/dev/null
+        jq -f "${GITHUB_ACTION_PATH}/fixable.jq" "${scan}" > "${fixable}"
+        jq -c '.descriptor.db // {}' "${scan}" > "${EVIDENCE_DIR}/grype-db.json"
+        count="$(jq --arg cutoff "${SEVERITY_CUTOFF}" -f "${GITHUB_ACTION_PATH}/gate-count.jq" "${fixable}")"
+        printf 'fixable-count=%s\n' "${count}" >> "${GITHUB_OUTPUT}"
+        printf 'db-built=%s\n' "$(jq -r '.descriptor.db.built // .descriptor.db.status.built // "unknown"' "${scan}")" >> "${GITHUB_OUTPUT}"
+        if [ "${count}" -gt 0 ]; then
+          jq -r --arg cutoff "${SEVERITY_CUTOFF}" 'def rank: {"negligible":1,"low":2,"medium":3,"high":4,"critical":5}[ascii_downcase] // 0; .matches[] | select((.vulnerability.severity // "unknown" | rank) >= ($cutoff | rank)) | "\(.vulnerability.severity)\t\(.vulnerability.id)\t\(.artifact.name)@\(.artifact.version)\tfixed in \(.vulnerability.fix.versions | join(", "))"' "${fixable}" | sort -u
+          if [ "${FAIL_ON_FIXABLE}" = true ]; then printf '%s fixable finding(s) at or above %s\n' "${count}" "${SEVERITY_CUTOFF}" >&2; exit 1; fi
+        fi

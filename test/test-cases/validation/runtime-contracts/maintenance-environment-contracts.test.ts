@@ -50,7 +50,7 @@ describe('maintenance environment contracts', () => {
     expect(await runProbe(root, true)).toEqual({ fromFile: null, exported: 'preserved' })
   })
 
-  test('maintenance scripts use isolated environments, parallel checks, and the installed compiler', async () => {
+  test('maintenance scripts use isolated environments, parallel checks, and the installed compilers', async () => {
     const packageJson = JSON.parse(await readFile(join(repositoryRoot, 'package.json'), 'utf8')) as {
       scripts?: Record<string, string>
     }
@@ -59,8 +59,10 @@ describe('maintenance environment contracts', () => {
     expect(scripts['check']).toBe('bun run --parallel check:structure check:names check:types')
     expect(scripts['check:structure']).toContain('env -i PATH="$PATH" HOME="$HOME" bun --no-env-file')
     expect(scripts['check:names']).toContain('env -i PATH="$PATH" HOME="$HOME" bun --no-env-file')
-    expect(scripts['check:types']).toContain('bun --no-env-file node_modules/typescript/bin/tsc --noEmit')
+    expect(scripts['check:types']).toContain('bun --no-env-file node_modules/@typescript/native-preview/bin/tsgo --noEmit')
+    expect(scripts['check:types:tsc']).toContain('bun --no-env-file node_modules/typescript/bin/tsc --noEmit')
     expect(scripts['check:types']).not.toContain('bunx')
+    expect(scripts['check:types:tsc']).not.toContain('bunx')
     for (const name of ['repo', 'audit:ocr-tokens', 'analyze:complexity', 't']) {
       expect(scripts[name]).toStartWith('env -i PATH="$PATH" HOME="$HOME" bun --no-env-file')
     }
