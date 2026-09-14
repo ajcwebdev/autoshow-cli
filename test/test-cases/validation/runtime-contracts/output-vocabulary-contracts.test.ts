@@ -24,6 +24,7 @@ const PAYLOAD_STDOUT_FILES = [
   // Standalone maintenance entrypoints own their reports and diagnostic streams.
   'src/tools/bun-env-compat.ts',
   'src/tools/bun-profile.ts',
+  'src/tools/ci-run-timings.ts',
   'src/tools/docker-bun-baseline.ts',
   'src/tools/help-output-audit.ts',
   'src/tools/install-alignment-model.ts',

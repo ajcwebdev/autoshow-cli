@@ -1,0 +1,29 @@
+name: Detect changed areas
+description: Classifies the pushed or proposed diff into the CI areas it can affect. Falls back to running everything when the diff base is unknown.
+outputs:
+  all:
+    description: "true when detection was impossible and every job must run"
+    value: ${{ steps.classify.outputs.all }}
+  image:
+    description: "Docker image inputs changed"
+    value: ${{ steps.classify.outputs.image }}
+  alignment:
+    description: "ONNX alignment graph inputs changed"
+    value: ${{ steps.classify.outputs.alignment }}
+  javascript_graph:
+    description: "Root or Defuddle dependency graph inputs changed"
+    value: ${{ steps.classify.outputs.javascript_graph }}
+  code:
+    description: "Anything a verify-listed contract test can observe changed"
+    value: ${{ steps.classify.outputs.code }}
+runs:
+  using: composite
+  steps:
+    - id: classify
+      shell: bash
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        BEFORE_SHA: ${{ github.event.before }}
+        FORCED: ${{ github.event.forced }}
+      run: '"${{ github.action_path }}/detect-changes.sh" | tee -a "${GITHUB_OUTPUT}"'

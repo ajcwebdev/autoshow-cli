@@ -22,6 +22,7 @@ describe('Bun version alignment contracts', () => {
     expect(manifest.packageManager).toBe(`bun@${SUPPORTED_BUN_VERSION}`)
     expect(manifest.devDependencies?.['@types/bun']).toBe(SUPPORTED_BUN_VERSION)
     expect(manifest.devDependencies?.['typescript']).toBe('6.0.3')
+    expect(manifest.devDependencies?.['@typescript/native-preview']).toBe('7.0.0-dev.20260707.2')
     expect(lockfile.lockfileVersion).toBe(2)
     expect(lockfile.workspaces?.['']?.devDependencies?.['@types/bun']).toBe(SUPPORTED_BUN_VERSION)
     expect(Object.keys(lockfile.packages ?? {})).toContain('@types/bun')
