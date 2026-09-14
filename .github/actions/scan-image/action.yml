@@ -49,15 +49,21 @@ runs:
         printf 'sbom=%s\n' "${SBOM:-${EVIDENCE_DIR}/image.spdx.json}" >> "${GITHUB_OUTPUT}"
         printf 'today=%s\n' "$(date -u +%Y-%m-%d)" >> "${GITHUB_OUTPUT}"
         printf 'db-dir=%s\n' "${RUNNER_TEMP}/grype-db" >> "${GITHUB_OUTPUT}"
+    - name: Install Syft and Grype
+      shell: bash
+      env:
+        SYFT_VERSION: ${{ inputs.syft-version }}
+        GRYPE_VERSION: ${{ inputs.grype-version }}
+      run: bash "${GITHUB_ACTION_PATH}/install-scan-tools.sh"
     - name: Inventory the image
       if: inputs.image != ''
-      uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
-      with:
-        image: ${{ inputs.image }}
-        syft-version: ${{ inputs.syft-version }}
-        format: spdx-json
-        output-file: ${{ steps.paths.outputs.sbom }}
-        upload-artifact: false
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+        SBOM: ${{ steps.paths.outputs.sbom }}
+      run: |
+        set -euo pipefail
+        syft "${IMAGE}" -o "spdx-json=${SBOM}"
     - name: Restore the Grype vulnerability database
       id: grype-db
       uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
@@ -67,17 +73,15 @@ runs:
         restore-keys: |
           grype-db-v6-${{ inputs.grype-version }}-
     - name: Audit the image
-      uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e
+      shell: bash
       env:
         GRYPE_DB_CACHE_DIR: ${{ steps.paths.outputs.db-dir }}
         GRYPE_DB_AUTO_UPDATE: ${{ steps.grype-db.outputs.cache-hit == 'true' && 'false' || 'true' }}
-      with:
-        sbom: ${{ steps.paths.outputs.sbom }}
-        grype-version: ${{ inputs.grype-version }}
-        output-format: json
-        output-file: ${{ inputs.evidence-dir }}/image-advisories.json
-        fail-build: false
-        severity-cutoff: ${{ inputs.severity-cutoff }}
+        SBOM: ${{ steps.paths.outputs.sbom }}
+        OUTPUT: ${{ inputs.evidence-dir }}/image-advisories.json
+      run: |
+        set -euo pipefail
+        grype "sbom:${SBOM}" -o json --file "${OUTPUT}"
     - name: Require a hydrated database before caching it
       shell: bash
       env:
