@@ -14,7 +14,7 @@ const STT_ENGINE_CAPABILITIES = {
   happyscribe: { diarizationByDefault: true, supportsSpeakerCountHint: false },
   supadata: { diarizationByDefault: false, supportsSpeakerCountHint: false },
   scrapecreators: { diarizationByDefault: false, supportsSpeakerCountHint: false },
-  'gemini-stt': { diarizationByDefault: false, supportsSpeakerCountHint: false },
+  'gemini-stt': { diarizationByDefault: true, supportsSpeakerCountHint: false },
   together: { diarizationByDefault: false, supportsSpeakerCountHint: true },
   whisperfile: { diarizationByDefault: false, supportsSpeakerCountHint: false },
   'youtube-captions': { diarizationByDefault: false, supportsSpeakerCountHint: false }
@@ -40,13 +40,13 @@ export const getSttEngineCapabilities = (
   model?: string
 ): TranscribeEngineCapabilities => {
   const defaults = STT_ENGINE_CAPABILITIES[engine]
-  const hasDiarization = defaults.diarizationByDefault || engine === 'together' || engine === 'gemini-stt'
+  const hasDiarization = defaults.diarizationByDefault || engine === 'together'
   return {
     ...defaults,
     supportsDiarizationToggle: hasDiarization && engine !== 'happyscribe',
-    diarizationKind: engine === 'gemini-stt' ? 'generated' : hasDiarization ? 'native' : 'unavailable',
+    diarizationKind: hasDiarization ? 'native' : 'unavailable',
     diarizationValidation: hasDiarization ? 'documented' : 'unsupported',
-    nativeWordTiming: ['supadata', 'scrapecreators', 'gemini-stt', 'youtube-captions', 'rev'].includes(engine) ? 'unavailable' : engine === 'mistral' ? 'without-diarization' : 'available',
+    nativeWordTiming: ['supadata', 'scrapecreators', 'youtube-captions', 'rev'].includes(engine) ? 'unavailable' : engine === 'mistral' ? 'without-diarization' : 'available',
     ...(model ? STT_MODEL_CAPABILITIES[engine]?.[model] : {})
   }
 }

@@ -13,7 +13,7 @@ describe('price mode contracts', () => {
         ttsTargets: [{ service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' }],
         ttsCharacterCount: 1000,
         imageTargets: [{ service: 'openai', model: 'gpt-image-2', count: 2 }],
-        videoTargets: [{ service: 'gemini', model: 'veo-3.1-lite-generate-preview', durationSeconds: 4 }],
+        videoTargets: [{ service: 'gemini', model: 'gemini-omni-1.1-flash', durationSeconds: 4 }],
         musicTargets: [{ service: 'gemini', model: 'lyria-3.5' }]
       })
 
@@ -26,7 +26,7 @@ describe('price mode contracts', () => {
       expect(rows.get('video')).toMatchObject({
         rateBasis: 'durationSecond',
         throughputUnit: 'x',
-        msPerUnit: getVideoEstimation('gemini', 'veo-3.1-lite-generate-preview').msPerSecond
+        msPerUnit: getVideoEstimation('gemini', 'gemini-omni-1.1-flash').msPerSecond
       })
       expect(rows.get('music')).toMatchObject({
         rateBasis: 'durationSecond',

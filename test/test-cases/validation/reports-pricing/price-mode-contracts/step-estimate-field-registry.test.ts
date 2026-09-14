@@ -75,7 +75,7 @@ const recordedEstimate = {
   }, {
     step: 'video',
     provider: 'gemini',
-    model: 'veo-3.1-lite-generate-preview',
+    model: 'gemini-omni-1.1-flash',
     totalCost: 6,
     costMultiplier: 1.6,
     durationSeconds: 25
@@ -160,7 +160,7 @@ describe('step estimate field registry contracts', () => {
       }, {
         step: 'video',
         provider: 'gemini',
-        model: 'veo-3.1-lite-generate-preview',
+        model: 'gemini-omni-1.1-flash',
         cost: 6,
         costMultiplier: 1.6,
         durationSeconds: 25
@@ -224,7 +224,7 @@ describe('step estimate field registry contracts', () => {
     }, {
       step: 'video',
       provider: 'gemini',
-      model: 'veo-3.1-lite-generate-preview',
+      model: 'gemini-omni-1.1-flash',
       totalCostCents: 6
     }, {
       step: 'music',

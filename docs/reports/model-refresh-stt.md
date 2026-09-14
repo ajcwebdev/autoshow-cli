@@ -4,7 +4,7 @@
 
 - **Report Status:** Current
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-08-22
+- **Date Updated:** 2026-09-14
 
 This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [OCR](model-refresh-ocr.md), [URL scraping](model-refresh-url.md), [LLMs](model-refresh-write.md), [TTS](model-refresh-tts.md), [Music](model-refresh-music.md), [Image](model-refresh-image.md), [Video](model-refresh-video.md).
 
@@ -144,3 +144,17 @@ Gemini 3.8 Flash is available as `gemini-3.8-flash` for writing/OCR (`gemini`) a
 Pricing checked 2026-09-08: introductory $0.75/$3.75 per million input/output tokens through 2026-12-31, then $1.50/$7.50 starting 2027-01-01. AutoShow follows its existing conservative policy and uses the standard rates for estimates and usage-based cost calculations even during the introductory window. Automatic date transitions are unsupported; recheck the tariff and refresh all three price paths by 2027-01-01. STT uses a $0.1728/hour audio-input baseline (32 tokens/second), then accounts for prompt, candidate and thinking tokens from returned usage. OCR page and writing/STT latency heuristics are reused and provisional; caching and discounted service tiers are excluded.
 
 Sources: [model specification](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash), [migration guide](https://ai.google.dev/gemini-api/docs/latest-model?hl=en), [pricing](https://ai.google.dev/gemini-api/docs/pricing).
+
+## 2026-09-14 Gemini 3.5 Transcribe replacement
+
+Gemini STT no longer uses prompted Flash audio extraction. `gemini-3.6-flash` and `gemini-3.8-flash` are retired for `--provider/--stt gemini`; selecting them fails with replacement guidance to `gemini-3.5-transcribe` (no silent substitution). Write and OCR Flash catalogs are unchanged.
+
+The adapter uploads audio through the Files API and calls `POST /v1beta/interactions` with `gemini-3.5-transcribe`. Default transcription config is verbatim mode with `diarization_mode: "speaker"` and `timestamp_granularities: ["word"]`. `--no-diarization` omits speaker diarization and still requests word timestamps. Custom vocabulary and smart transcription are incompatible with those features and are not sent. Speaker labels `spk_N` are normalized to `speaker-N`. Native word evidence replaces generated JSON timestamps. Diarization is on by default (`diarizationKind: native`). `--speaker-count` remains unsupported. Live streaming (`gemini-3.5-transcribe-live`) is out of scope.
+
+Unary audio is 1 hour; diarization or word timestamps cap processing at 30 minutes, so the catalog duration limit is 1800 seconds and longer files split. Uploads remain 2 GiB. Speaker diarization supports up to 8 speakers; attribution for 3 or more is experimental. Word timestamps may degrade accuracy.
+
+Pricing checked 2026-09-14 from [Gemini 3.5 Transcribe pricing](https://ai.google.dev/gemini-api/docs/pricing#gemini-3.5-transcribe): $2.00/1M input (audio, advertised $0.003/min) and $12.00/1M output (advertised $0.002/min), combined ~$0.005/min or $0.30/hour (`costPerHourCents: 30`). The hourly baseline uses 25 audio tokens/second plus the advertised output component. Completed runs record usage-based billing when the interaction returns usage. Historical manifests still price `gemini-3.6-flash` and `gemini-3.8-flash` at the retired $0.1728/hour Flash baseline. Latency `msPerSecond` 892 remains provisional until an approved ADR-012 calibration. Thinking, caching, batch/flex/priority, free tier, taxes, and credits are excluded.
+
+The active hosted STT selector count is 16 (removed two Flash STT IDs, added one transcribe ID). OCR and write still use Flash models independently of this cut.
+
+Sources: [transcription guide](https://ai.google.dev/gemini-api/docs/transcribe), [model specification](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-transcribe), [pricing](https://ai.google.dev/gemini-api/docs/pricing#gemini-3.5-transcribe).

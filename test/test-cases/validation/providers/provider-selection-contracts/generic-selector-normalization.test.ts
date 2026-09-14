@@ -21,7 +21,7 @@ describe('provider selection contracts', () => {
       provider: ['openai=gpt-image-2', 'grok=grok-imagine-image-2.0', 'replicate=alibaba/qwen-image-3']
     }, new Set(['provider']), 'provider', STANDALONE_IMAGE_PROVIDER_TARGETS, { allProvidersTarget: 'all-image' })
     const videoNormalized = normalizeGenericProviderSelectorFlags({
-      provider: ['gemini=veo-3.1-lite-generate-preview', 'ltx=ltx-2-5-fast', 'replicate=bytedance/seedance-2.5']
+      provider: ['gemini=gemini-omni-1.1-flash', 'ltx=ltx-2-5-fast', 'replicate=bytedance/seedance-2.5']
     }, new Set(['provider']), 'provider', STANDALONE_VIDEO_PROVIDER_TARGETS, { allProvidersTarget: 'all-video' })
     const musicNormalized = normalizeGenericProviderSelectorFlags({
       provider: ['minimax=music-3.0', 'gemini=lyria-3.5']
@@ -50,7 +50,7 @@ describe('provider selection contracts', () => {
       'replicate:alibaba/qwen-image-3'
     ])
     expect(collectVideoTargets(videoOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
-      'gemini:veo-3.1-lite-generate-preview',
+      'gemini:gemini-omni-1.1-flash',
       'ltx:ltx-2-5-fast',
       'replicate:bytedance/seedance-2.5'
     ])

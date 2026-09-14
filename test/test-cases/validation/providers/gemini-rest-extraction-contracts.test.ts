@@ -3,62 +3,208 @@ import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { DocumentMetadata } from '~/types'
 import { runGeminiOcr } from '~/cli/commands/text/ocr/ocr-services/gemini-ocr/run-gemini-ocr'
-import { runGeminiStt } from '~/cli/commands/stt/diarization-off-by-default/gemini-stt/run-gemini-stt'
+import { runGeminiStt } from '~/cli/commands/stt/diarization/gemini-stt/run-gemini-stt'
 import { requireDefined } from '../../../test-utils/value-assertions'
 import { installMockFetch as installFetch, jsonResponse } from '../../../test-utils/rest-contract-helpers'
 import { captureLogEvents } from '../../../test-utils/console-capture'
 import { setupGeminiRestContractFixture } from './gemini-rest-contract-fixture'
+import type { MockFetchCall } from '~/types'
 
 const { withTempDir } = setupGeminiRestContractFixture()
+const GEMINI_TRANSCRIBE_MODEL = 'gemini-3.5-transcribe'
+const FILE_URI = 'https://generativelanguage.googleapis.com/v1beta/files/gemini-upload'
+
+const completedTranscribeInteraction = (overrides: Record<string, unknown> = {}) => ({
+  id: 'interactions/abc123xyz',
+  status: 'completed',
+  output_text: 'Hello world',
+  usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 6 },
+  steps: [{
+    id: 'step_001',
+    type: 'model_output',
+    content: [{
+      type: 'text',
+      text: 'Hello world',
+      annotations: [
+        { type: 'word_info', text: 'Hello', speaker: 'spk_1', start_offset: '0.100s', end_offset: '0.450s' },
+        { type: 'word_info', text: 'world', speaker: 'spk_1', start_offset: '0.500s', end_offset: '0.850s' }
+      ]
+    }]
+  }],
+  ...overrides
+})
+
+const installGeminiTranscribeMocks = (options: {
+  interaction?: unknown | ((call: MockFetchCall) => unknown)
+  fileMimeType?: string
+} = {}) => {
+  const fileMimeType = options.fileMimeType ?? 'audio/mp3'
+  return installFetch((call) => {
+    if (call.url === 'https://generativelanguage.googleapis.com/upload/v1beta/files') {
+      return new Response('{}', { status: 200, headers: { 'x-goog-upload-url': 'https://upload.gemini.test/session' } })
+    }
+    if (call.url === 'https://upload.gemini.test/session') {
+      const command = call.headers.get('x-goog-upload-command')
+      return new Response(command === 'upload' ? '{}' : JSON.stringify({
+        file: {
+          name: 'files/gemini-upload',
+          uri: FILE_URI,
+          mimeType: fileMimeType
+        }
+      }), {
+        status: 200,
+        headers: { 'x-goog-upload-status': command === 'upload' ? 'active' : 'final' }
+      })
+    }
+    if (call.url === 'https://generativelanguage.googleapis.com/v1beta/files/gemini-upload' && call.method === 'GET') {
+      return jsonResponse({ name: 'files/gemini-upload', state: 'ACTIVE' })
+    }
+    if (call.url === 'https://generativelanguage.googleapis.com/v1beta/interactions' && call.method === 'POST') {
+      const interaction = typeof options.interaction === 'function'
+        ? options.interaction(call)
+        : (options.interaction ?? completedTranscribeInteraction())
+      return jsonResponse(interaction)
+    }
+    if (call.url === 'https://generativelanguage.googleapis.com/v1beta/interactions/abc123xyz' && call.method === 'GET') {
+      return jsonResponse(completedTranscribeInteraction())
+    }
+    if (call.url === 'https://generativelanguage.googleapis.com/v1beta/files/gemini-upload' && call.method === 'DELETE') {
+      return jsonResponse({})
+    }
+    throw new Error(`Unexpected Gemini STT fetch: ${call.method} ${call.url}`)
+  })
+}
+
+const transcriptionConfigFromCall = (call: MockFetchCall | undefined): Record<string, unknown> => {
+  const generationConfig = call?.bodyJson?.['generation_config'] as Record<string, unknown> | undefined
+  return (generationConfig?.['transcription_config'] as Record<string, unknown> | undefined) ?? {}
+}
 
 describe('Gemini REST contracts', () => {
-  for (const model of ['gemini-3.6-flash', 'gemini-3.8-flash']) {
-    test(`Gemini STT sends inline audio content parts and structured schema (${model})`, async () => {
-      process.env['GEMINI_API_KEY'] = 'gemini-key'
-      await withTempDir(async (dir) => {
-        const audioPath = join(dir, 'clip.mp3')
-        await writeFile(audioPath, new Uint8Array([1, 2, 3]))
-        const calls = installFetch(() => jsonResponse({
-          candidates: [{
-            content: {
-              parts: [{
-                text: JSON.stringify({
-                  text: 'hello world',
-                  segments: [{ start: 0, end: 1, text: 'hello world' }]
-                })
-              }]
-            }
-          }],
-          usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 6 }
-        }))
+  test('Gemini STT uploads audio and transcribes through the Interactions API with speaker diarization', async () => {
+    process.env['GEMINI_API_KEY'] = 'gemini-key'
+    await withTempDir(async (dir) => {
+      const audioPath = join(dir, 'clip.mp3')
+      await writeFile(audioPath, new Uint8Array([1, 2, 3]))
+      const calls = installGeminiTranscribeMocks()
 
-        const result = await runGeminiStt(audioPath, dir, {
-          model,
-          segmentOffsetMinutes: 0,
-          audioDurationSeconds: 1
-        })
+      const result = await runGeminiStt(audioPath, dir, {
+        model: GEMINI_TRANSCRIBE_MODEL,
+        segmentOffsetMinutes: 0,
+        audioDurationSeconds: 1
+      })
 
-        expect(result.result.text).toBe('hello world')
-        expect(result.result.evidence).toMatchObject({ source: 'gemini:prompted-audio-timing', timingQuality: 'generated', capabilities: { hasNativeWordTiming: false } })
-        expect(calls[0]?.url).toContain(`/models/${model}:generateContent`)
-        for (const key of ['temperature', 'topP', 'topK', 'candidateCount']) {
-          expect(calls[0]?.bodyJson?.['generationConfig']).not.toHaveProperty(key)
+      expect(result.result.text).toBe('Hello world')
+      expect(result.result.segments.map((segment) => segment.speaker)).toEqual(['speaker-1'])
+      expect(result.result.evidence).toMatchObject({
+        source: 'gemini:native-transcribe',
+        timingQuality: 'native_word',
+        capabilities: { hasNativeWordTiming: true, hasSpeakerLabels: true }
+      })
+      const start = calls.find((call) => call.url.endsWith('/upload/v1beta/files'))
+      expect(start?.bodyJson).toMatchObject({
+        file: { mimeType: 'audio/mp3', displayName: 'clip.mp3' }
+      })
+      const interactionCall = calls.find((call) => call.url.endsWith('/v1beta/interactions') && call.method === 'POST')
+      expect(interactionCall?.bodyJson).toMatchObject({
+        model: GEMINI_TRANSCRIBE_MODEL,
+        input: [{ type: 'audio', uri: FILE_URI, mime_type: 'audio/mp3' }]
+      })
+      expect(transcriptionConfigFromCall(interactionCall)).toEqual({
+        mode: {
+          type: 'verbatim',
+          timestamp_granularities: ['word'],
+          diarization_mode: 'speaker'
         }
-        expect(calls).toHaveLength(1)
-        const parts = (((calls[0]?.bodyJson?.['contents'] as unknown[])[0] as Record<string, unknown>)['parts'] as Array<Record<string, unknown>>)
-        expect(parts[0]).toMatchObject({ text: expect.stringContaining('Transcribe the provided audio exactly') })
-        expect(parts[1]).toMatchObject({
-          inlineData: {
-            mimeType: 'audio/mpeg',
-            data: Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')
-          }
-        })
-        expect(calls[0]?.bodyJson?.['generationConfig']).toMatchObject({
-          responseMimeType: 'application/json'
+      })
+      expect(transcriptionConfigFromCall(interactionCall)).not.toHaveProperty('custom_vocabulary')
+      expect(calls.some((call) => call.method === 'DELETE' && call.url.endsWith('/files/gemini-upload'))).toBe(true)
+      expect(calls.some((call) => call.url.includes(':generateContent'))).toBe(false)
+    })
+  })
+
+  test('Gemini STT omits diarization_mode when diarization is disabled and still requests word timestamps', async () => {
+    process.env['GEMINI_API_KEY'] = 'gemini-key'
+    await withTempDir(async (dir) => {
+      const audioPath = join(dir, 'clip.mp3')
+      await writeFile(audioPath, new Uint8Array([1, 2, 3]))
+      const calls = installGeminiTranscribeMocks({
+        interaction: completedTranscribeInteraction({
+          steps: [{
+            id: 'step_001',
+            type: 'model_output',
+            content: [{
+              type: 'text',
+              text: 'Hello world',
+              annotations: [
+                { type: 'word_info', text: 'Hello', start_offset: '0.100s', end_offset: '0.450s' },
+                { type: 'word_info', text: 'world', start_offset: '0.500s', end_offset: '0.850s' }
+              ]
+            }]
+          }]
         })
       })
+
+      const result = await runGeminiStt(audioPath, dir, {
+        model: GEMINI_TRANSCRIBE_MODEL,
+        segmentOffsetMinutes: 0,
+        diarizationOptions: { enabled: false }
+      })
+
+      expect(result.result.segments.every((segment) => segment.speaker === undefined)).toBe(true)
+      const interactionCall = calls.find((call) => call.url.endsWith('/v1beta/interactions') && call.method === 'POST')
+      expect(transcriptionConfigFromCall(interactionCall)).toEqual({
+        mode: {
+          type: 'verbatim',
+          timestamp_granularities: ['word']
+        }
+      })
+      expect(transcriptionConfigFromCall(interactionCall)['mode']).not.toHaveProperty('diarization_mode')
     })
-  }
+  })
+
+  test('Gemini STT rejects Flash models, failed interactions, and incompatible transcription modes before a usable transcript', async () => {
+    process.env['GEMINI_API_KEY'] = 'gemini-key'
+    await withTempDir(async (dir) => {
+      const audioPath = join(dir, 'clip.mp3')
+      await writeFile(audioPath, new Uint8Array([1, 2, 3]))
+      await expect(runGeminiStt(audioPath, dir, {
+        model: 'gemini-3.8-flash',
+        segmentOffsetMinutes: 0
+      })).rejects.toThrow('gemini-3.5-transcribe')
+
+      const calls = installGeminiTranscribeMocks({
+        interaction: { id: 'interactions/abc123xyz', status: 'failed' }
+      })
+      await expect(runGeminiStt(audioPath, dir, {
+        model: GEMINI_TRANSCRIBE_MODEL,
+        segmentOffsetMinutes: 0
+      })).rejects.toThrow('failed')
+      expect(calls.some((call) => call.method === 'DELETE' && call.url.endsWith('/files/gemini-upload'))).toBe(true)
+      const interactionCall = calls.find((call) => call.url.endsWith('/v1beta/interactions') && call.method === 'POST')
+      expect(transcriptionConfigFromCall(interactionCall)).not.toHaveProperty('custom_vocabulary')
+      expect(transcriptionConfigFromCall(interactionCall)['mode']).not.toBe('smart')
+    })
+  })
+
+  test('Gemini STT polls in-progress interactions before parsing word annotations', async () => {
+    process.env['GEMINI_API_KEY'] = 'gemini-key'
+    await withTempDir(async (dir) => {
+      const audioPath = join(dir, 'clip.mp3')
+      await writeFile(audioPath, new Uint8Array([1, 2, 3]))
+      const calls = installGeminiTranscribeMocks({
+        interaction: { id: 'interactions/abc123xyz', status: 'in_progress' }
+      })
+
+      const result = await runGeminiStt(audioPath, dir, {
+        model: GEMINI_TRANSCRIBE_MODEL,
+        segmentOffsetMinutes: 0
+      })
+
+      expect(result.result.text).toBe('Hello world')
+      expect(calls.some((call) => call.method === 'GET' && call.url.endsWith('/interactions/abc123xyz'))).toBe(true)
+    })
+  })
 
   for (const model of ['gemini-3.5-flash-lite', 'gemini-3.8-flash']) {
     test(`Gemini OCR sends inline document content parts and structured schema (${model})`, async () => {
@@ -238,7 +384,7 @@ describe('Gemini REST contracts', () => {
           expect(call.headers.get('x-goog-upload-header-content-length')).toBe(String(largeAudio.byteLength))
           expect(call.bodyJson).toMatchObject({
             file: {
-              mimeType: 'audio/mpeg',
+              mimeType: 'audio/mp3',
               displayName: 'long.mp3',
               sizeBytes: String(largeAudio.byteLength)
             }
@@ -251,7 +397,7 @@ describe('Gemini REST contracts', () => {
             file: {
               name: 'files/gemini-upload',
               uri: 'https://generativelanguage.googleapis.com/v1beta/files/gemini-upload',
-              mimeType: 'audio/mpeg'
+              mimeType: 'audio/mp3'
             }
           }), {
             status: 200,
@@ -261,27 +407,16 @@ describe('Gemini REST contracts', () => {
         if (call.url === 'https://generativelanguage.googleapis.com/v1beta/files/gemini-upload' && call.method === 'GET') {
           return jsonResponse({ name: 'files/gemini-upload', state: 'ACTIVE' })
         }
-        if (call.url.endsWith(':generateContent')) {
-          const parts = (((call.bodyJson?.['contents'] as unknown[])[0] as Record<string, unknown>)['parts'] as Array<Record<string, unknown>>)
-          expect(parts[1]).toEqual({
-            fileData: {
-              fileUri: 'https://generativelanguage.googleapis.com/v1beta/files/gemini-upload',
-              mimeType: 'audio/mpeg'
-            }
+        if (call.url === 'https://generativelanguage.googleapis.com/v1beta/interactions' && call.method === 'POST') {
+          expect(call.bodyJson).toMatchObject({
+            model: GEMINI_TRANSCRIBE_MODEL,
+            input: [{
+              type: 'audio',
+              uri: 'https://generativelanguage.googleapis.com/v1beta/files/gemini-upload',
+              mime_type: 'audio/mp3'
+            }]
           })
-          return jsonResponse({
-            candidates: [{
-              content: {
-                parts: [{
-                  text: JSON.stringify({
-                    text: 'uploaded audio',
-                    segments: [{ start: 0, end: 1, text: 'uploaded audio' }]
-                  })
-                }]
-              }
-            }],
-            usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 5 }
-          })
+          return jsonResponse(completedTranscribeInteraction({ output_text: 'uploaded audio' }))
         }
         if (call.url === 'https://generativelanguage.googleapis.com/v1beta/files/gemini-upload' && call.method === 'DELETE') {
           return jsonResponse({})
@@ -290,7 +425,7 @@ describe('Gemini REST contracts', () => {
       })
 
       const result = await runGeminiStt(audioPath, dir, {
-        model: 'gemini-3.6-flash',
+        model: GEMINI_TRANSCRIBE_MODEL,
         segmentOffsetMinutes: 0,
         audioDurationSeconds: 1
       })

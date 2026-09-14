@@ -264,6 +264,17 @@ Also add Grok `grok-imagine-video-1.5` `reference_audios` (up to 3 TTS `voice_id
 
 The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](model-refresh-write.md)) also recorded the P3 video recommendation `gemini-omni-flash`, pending confirmation that the existing Veo adapter can host it.
 
+## 2026-09-14 Gemini Omni replacement
+
+Replaced Gemini Veo with Gemini Omni Flash. The Veo `predictLongRunning` adapter cannot host Omni.
+
+- **Added:** `gemini-omni-1.1-flash` on the Gemini Interactions API (`POST /v1beta/interactions`). Modes: text, image-to-video, interpolate, reference-to-video, edit, extend. Duration 3–10s; resolution 360p/720p/1080p/4k; aspect 16:9 or 9:16. Native audio. URI delivery. Conversational edit/extend via `--previous-interaction-id`.
+- **Removed from active selection:** `veo-3.1-lite-generate-preview`
+- **Replacement:** `gemini-omni-1.1-flash` for `veo-3.1-lite-generate-preview`, `veo-3.1-generate-preview`, and `veo-3.1-fast-generate-preview`
+- **Not registered:** `gemini-omni-flash-preview` (preview alias while a stable ID exists)
+- **Pricing:** published 720p effective rate ≈ $0.10/s; same rate used for 360p/1080p/4K until Google publishes resolution-specific token rates. Unspecified duration is budgeted at 10 seconds.
+- Active Gemini video count stays 1. Hosted video selector count stays 16.
+
 ## API / Type Impact
 
 - The active hosted video surface is 16 selectors.

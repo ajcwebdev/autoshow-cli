@@ -260,10 +260,10 @@ describe('resume all-shortcut additive selection', () => {
         {
           kind: 'video' as const,
           metadataKey: 'video',
-          requestedProvider: { service: 'gemini', model: 'veo-3.1-lite-generate-preview' },
+          requestedProvider: { service: 'gemini', model: 'gemini-omni-1.1-flash' },
           metadata: {
             videoGenService: 'gemini',
-            videoGenModel: 'veo-3.1-lite-generate-preview',
+            videoGenModel: 'gemini-omni-1.1-flash',
             processingTime: 1,
             videoFileName: 'generated-video.mp4',
             videoFileSize: 1,

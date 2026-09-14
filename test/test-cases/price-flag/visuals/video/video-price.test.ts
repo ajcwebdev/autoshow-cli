@@ -17,7 +17,7 @@ const withTempImage = async <T,>(fn: (path: string) => Promise<T>): Promise<T> =
 
 test('allows multiple providers with --price', async () => {
   const result = await runCommand(
-    ['src/cli/create-cli.ts', 'video', 'a cinematic mountain sunrise', '--provider', 'gemini=veo-3.1-lite-generate-preview', '--provider', 'grok=grok-imagine-video-1.5', '--provider', 'ltx=ltx-2-5-fast', '--provider', 'replicate=bytedance/seedance-2.5', '--provider', 'lumalabs=ray-3.2', '--price', '--json'],
+    ['src/cli/create-cli.ts', 'video', 'a cinematic mountain sunrise', '--provider', 'gemini=gemini-omni-1.1-flash', '--provider', 'grok=grok-imagine-video-1.5', '--provider', 'ltx=ltx-2-5-fast', '--provider', 'replicate=bytedance/seedance-2.5', '--provider', 'lumalabs=ray-3.2', '--price', '--json'],
   )
   const output = `${result.stdout}\n${result.stderr}`
   expect(result.exitCode).toBe(0)
@@ -26,7 +26,7 @@ test('allows multiple providers with --price', async () => {
   expect(output).toContain('ltx')
   expect(output).toContain('replicate')
   expect(output).toContain('lumalabs')
-  expect(output).toContain('generated-video-gemini-veo-3.1-lite-generate-preview.mp4')
+  expect(output).toContain('generated-video-gemini-gemini-omni-1.1-flash.mp4')
   expect(output).toContain('generated-video-replicate-bytedance-seedance-2.5.mp4')
 })
 
@@ -37,7 +37,7 @@ test('positional image input defaults to compatible image-to-video targets with 
     )
     const output = `${result.stdout}\n${result.stderr}`
     expect(result.exitCode).toBe(0)
-    expect(output).toContain('generated-video-gemini-veo-3.1-lite-generate-preview.mp4')
+    expect(output).toContain('generated-video-gemini-gemini-omni-1.1-flash.mp4')
     expect(output).toContain('generated-video-ltx-ltx-2-5-fast.mp4')
     expect(output).not.toContain('generated-video-replicate-wan-video-wan-2.7-t2v.mp4')
   })
