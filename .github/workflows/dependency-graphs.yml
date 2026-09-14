@@ -3,7 +3,14 @@ on:
   pull_request:
   push:
     branches: [main]
+  schedule:
+    - cron: '17 6 * * 1'
   workflow_dispatch:
+    inputs:
+      fresh_build:
+        description: Rebuild the audit images without any layer cache
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -92,10 +99,28 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - name: Build this commit without reusing apt layers
+      - name: Create Buildx builder
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+        with:
+          name: autoshow-audit-builder
+          version: v0.37.0
+          driver-opts: image=moby/buildkit:v0.33.0@sha256:6c2fa84a6b61ccd72899dde4239f8d5717f05f9a8ca6f3cad185fb1a95a94de3
+      - name: Build this commit from the published layer cache or from scratch
+        env:
+          FRESH_BUILD: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.fresh_build == true) }}
+          TARGET: ${{ matrix.target }}
+          ARCH: ${{ matrix.platform.arch }}
         run: |
+          set -euo pipefail
           mkdir -p runtime/dependency-evidence
-          docker build --pull --no-cache --target ${{ matrix.target }} --build-arg VCS_REF=${{ github.sha }} --tag autoshow-audit:${{ github.sha }} .
+          image="ghcr.io/$(printf '%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          if [ "${FRESH_BUILD}" = true ]; then
+            set -- --pull --no-cache
+          else
+            set -- --cache-from "type=registry,ref=${image}:buildcache-${ARCH}"
+          fi
+          docker buildx build --platform "linux/${ARCH}" --target "${TARGET}" --build-arg VCS_REF=${{ github.sha }} --load --tag autoshow-audit:${{ github.sha }} "$@" .
+          printf '{"freshBuild":%s,"cacheSource":"%s"}\n' "${FRESH_BUILD}" "$([ "${FRESH_BUILD}" = true ] && printf none || printf '%s:buildcache-%s' "${image}" "${ARCH}")" > runtime/dependency-evidence/build-mode.json
           docker image inspect autoshow-audit:${{ github.sha }} > runtime/dependency-evidence/image-identity.json
           docker run --rm --network none --entrypoint sh autoshow-audit:${{ github.sha }} -c 'dpkg-query -W -f="\${Package}\t\${Version}\t\${Architecture}\n"' > runtime/dependency-evidence/debian-packages.tsv
           docker run --rm --network none --entrypoint tar autoshow-audit:${{ github.sha }} -czf - /usr/share/doc > runtime/dependency-evidence/native-notices.tar.gz

@@ -203,7 +203,7 @@ test('every recommended selector executes inference and CI contains every native
   expect(() => selectDockerScenarios({ suite: 'all' }, all.filter(item => item.model !== 'whisperfile:small'))).toThrow('Missing inference')
   const workflow = Bun.YAML.parse(await Bun.file('.github/workflows/docker-publish.yml').text()) as {
     concurrency: { 'cancel-in-progress': boolean | string; group: string }
-    jobs: Record<string, { needs?: string | string[]; if?: string; 'runs-on'?: string; strategy?: { 'fail-fast': boolean; matrix: { arch: string[]; shard: string[] } }; steps?: Array<{ if?: string; uses?: string }> }>
+    jobs: Record<string, { needs?: string | string[]; if?: string; 'runs-on'?: string; strategy?: { 'fail-fast': boolean; matrix: { arch: string[]; shard: string[] } }; steps?: Array<{ if?: string; uses?: string; with?: Record<string, string> }> }>
   }
   // Pushes share one serialized lock and are never cancelled so a publication cannot be interrupted mid-run;
   // only superseded pull-request runs are cancelled. Bun.YAML keeps the unquoted expression as a string.
@@ -216,6 +216,13 @@ test('every recommended selector executes inference and CI contains every native
   expect(job.strategy?.['fail-fast']).toBe(false)
   expect(job['runs-on']).toContain('ubuntu-24.04-arm')
   expect(job.steps?.find(step => step.uses?.startsWith('actions/upload-artifact'))?.if).toBe('always()')
+  const restore = job.steps?.find(step => step.uses?.startsWith('actions/cache/restore@'))
+  expect(restore?.with?.['key']).toMatch(/^docker-local-v1-\$\{\{ matrix\.arch \}\}-\$\{\{ matrix\.shard \}\}-\$\{\{ hashFiles\('Dockerfile', /)
+  expect(restore?.with?.['key']).not.toMatch(/run_id|run_attempt|run_number/)
+  expect(restore?.with?.['restore-keys']).toBe('docker-local-v1-${{ matrix.arch }}-${{ matrix.shard }}-')
+  const save = job.steps?.find(step => step.uses?.startsWith('actions/cache/save@'))
+  expect(save?.if).toBe("always() && steps.assets.outputs.cache-hit != 'true'")
+  expect(save?.with?.['key']).toBe('${{ steps.assets.outputs.cache-primary-key }}')
   expect(workflow.jobs['acceptance-required']?.needs).toEqual(['changes', 'publish-manifest', 'acceptance'])
 })
 
