@@ -14,7 +14,7 @@ describe('price mode contracts', () => {
         ttsCharacterCount: 1000,
         imageTargets: [{ service: 'openai', model: 'gpt-image-2', count: 2 }],
         videoTargets: [{ service: 'gemini', model: 'veo-3.1-lite-generate-preview', durationSeconds: 4 }],
-        musicTargets: [{ service: 'gemini', model: 'lyria-3-pro-preview' }]
+        musicTargets: [{ service: 'gemini', model: 'lyria-3.5' }]
       })
 
       const rows = new Map(timing.steps.map((step) => [step.step, step]))

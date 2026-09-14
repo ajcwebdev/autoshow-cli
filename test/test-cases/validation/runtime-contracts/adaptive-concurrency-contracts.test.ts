@@ -226,7 +226,7 @@ describe('adaptive provider group parser', () => {
       'video',
       'a prompt',
       '--provider',
-      'grok=grok-imagine-video'
+      'grok=grok-imagine-video-1.5'
     ])).toEqual(['video/grok'])
 
     expect(extractAdaptiveProviderGroups([

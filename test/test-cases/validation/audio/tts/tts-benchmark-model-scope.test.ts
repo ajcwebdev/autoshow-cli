@@ -9,9 +9,9 @@ test('benchmark exclusions do not remove the retained OpenAI and Speechify CLI t
     ['openai', 'gpt-4o-mini-tts-2025-12-15'], ['speechify', 'simba-3.2'], ['cartesia', 'sonic-3.6-2026-08-27'],
   ]))
   expect(SUPPORTED_CARTESIA_TTS_MODELS).toEqual(['sonic-3.6-2026-08-27'])
-  expect(() => validateCartesiaTtsModel('sonic-3.5-2026-05-04')).toThrow()
+  expect(() => validateCartesiaTtsModel('sonic-3.5-2026-05-04')).toThrow('Model "sonic-3.5-2026-05-04" is retired for --provider/--tts cartesia[=model]. Use "sonic-3.6-2026-08-27" instead.')
   expect(SUPPORTED_INWORLD_TTS_MODELS).toEqual(['realtime-tts-2'])
-  expect(() => validateInworldTtsModel('realtime-tts-2-flash')).toThrow()
+  expect(() => validateInworldTtsModel('realtime-tts-2-flash')).toThrow('Model "realtime-tts-2-flash" is retired for --provider/--tts inworld[=model]. Use "realtime-tts-2" instead.')
   const ledger = await Bun.file('test/fixtures/tts-controls/benchmark-plan.json').json()
   for (const [suite, count] of [['emotion', 5], ['speed-pauses', 11]] as const) {
     const source = await Bun.file(`test/fixtures/tts-controls/${suite}/benchmark-plan.json`).json()

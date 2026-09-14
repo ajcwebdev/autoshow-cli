@@ -15,7 +15,6 @@ export const STANDALONE_IMAGE_PROVIDER_TARGETS = {
   gemini: 'gemini-image',
   openai: 'openai-image',
   grok: 'grok-image',
-  bfl: 'bfl-image',
   replicate: 'replicate-image',
   lumalabs: 'lumalabs-image',
   fal: 'fal-image'
@@ -85,7 +84,6 @@ export const IMAGE_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
     gemini: { modelsKey: 'geminiImageModels' },
     openai: { modelsKey: 'openaiImageModels' },
     grok: { modelsKey: 'grokImageModels' },
-    bfl: { modelsKey: 'bflImageModels' },
     replicate: { modelsKey: 'replicateImageModels' },
     lumalabs: { modelsKey: 'lumalabsImageModels' },
     fal: { modelsKey: 'falImageModels' }

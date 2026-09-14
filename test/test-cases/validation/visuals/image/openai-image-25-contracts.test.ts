@@ -107,7 +107,7 @@ describe('GPT Image 2.5 contracts', () => {
       expect(() => validateImageSizeForModels('2048x1152', [model])).not.toThrow()
       expect(estimateImageOutputCost(model, 'max', '1024x1024')).toBeCloseTo(0.21072, 9)
     }
-    expect(() => validateImageSizeForModels('2048x1152', [...models, 'gemini-3-pro-image'])).toThrow('requires every selected image model')
+    expect(() => validateImageSizeForModels('2048x1152', [...models, 'gemini-3.1-flash-lite-image'])).toThrow('requires every selected image model')
   })
 
   test('generation preserves extended controls, snapshot identity, multiple outputs, and usage billing', async () => {

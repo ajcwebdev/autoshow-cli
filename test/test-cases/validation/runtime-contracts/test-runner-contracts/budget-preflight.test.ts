@@ -253,22 +253,19 @@ describe('test-runner contracts', () => {
       })
     })
 
-  test('Replicate image live tests resolve all seven exact budget keys', () => {
+  test('Replicate image live tests resolve all four exact budget keys', () => {
       const file = 'test/test-cases/e2e/service/visuals/image/replicate-image.test.ts'
       const keys = resolvePriceSelection([file], [file], { budgetSkippableOnly: true }).commands.map(command => command.key)
 
       expect(keys).toEqual([
-        'image-replicate-bytedance/seedream-4.5',
         'image-replicate-bytedance/seedream-5-lite',
         'image-replicate-bytedance/seedream-5-pro',
-        'image-replicate-qwen/qwen-image-2-pro',
-        'image-replicate-qwen/qwen-image-2',
-        'image-replicate-wan-video/wan-2.7-image-pro',
-        'image-replicate-wan-video/wan-2.7-image',
+        'image-replicate-alibaba/qwen-image-3',
+        'image-replicate-alibaba/qwen-image-3-pro',
       ])
     })
 
-  test('a 0.10 cent threshold marks all seven Replicate image keys over budget', () => {
+  test('a 0.10 cent threshold marks all four Replicate image keys over budget', () => {
       const file = 'test/test-cases/e2e/service/visuals/image/replicate-image.test.ts'
       const commands = resolvePriceSelection([file], [file], { budgetSkippableOnly: true }).commands
       const observations = commands.map((command) =>
@@ -277,7 +274,7 @@ describe('test-runner contracts', () => {
 
       const evaluation = evaluatePriceObservations('Replicate images', observations, 10)
       expect([...(evaluation.budgetSummary?.skipKeys ?? [])].sort()).toEqual(commands.map(command => command.key).sort())
-      expect(evaluation.budgetSummary?.commandsSkipped).toBe(7)
+      expect(evaluation.budgetSummary?.commandsSkipped).toBe(4)
     })
 
   test('unevaluated and malformed budget handshakes never execute test callbacks', () => {
@@ -319,9 +316,9 @@ describe('test-runner contracts', () => {
   test('music selected-file budget preflight includes keys for live ElevenLabs music skips', () => {
       const allFiles = [
         'test/test-cases/e2e/service/audio/music/elevenlabs-music.test.ts',
-        'test/test-cases/e2e/service/audio/music/gemini-lyria-3-pro-preview.test.ts',
+        'test/test-cases/e2e/service/audio/music/gemini-lyria-3.5.test.ts',
         'test/test-cases/e2e/service/audio/music/minimax-music-3.0.test.ts',
-        'test/test-cases/e2e/service/audio/music/minimax-music-3.0-gemini-lyria-3-pro-preview.test.ts'
+        'test/test-cases/e2e/service/audio/music/minimax-music-3.0-gemini-lyria-3.5.test.ts'
       ]
 
       const elevenlabsKeys = resolvePriceSelection(allFiles, [
@@ -332,16 +329,16 @@ describe('test-runner contracts', () => {
       const minimaxKeys = resolvePriceSelection(allFiles, [
         'test/test-cases/e2e/service/audio/music/'
       ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
-      expect(minimaxKeys).toContain('music-multi-minimax-music-3.0-gemini-lyria-3-pro-preview')
+      expect(minimaxKeys).toContain('music-multi-minimax-music-3.0-gemini-lyria-3.5')
       for (const model of MINIMAX_INSTRUMENTAL_MUSIC_MODELS) {
         expect(minimaxKeys).toContain(`music-minimax-${model}`)
       }
       expect(minimaxKeys).not.toContain('music-minimax-' + 'music-2' + '.5')
 
       const geminiKeys = resolvePriceSelection(allFiles, [
-        'test/test-cases/e2e/service/audio/music/gemini-lyria-3-pro-preview.test.ts'
+        'test/test-cases/e2e/service/audio/music/gemini-lyria-3.5.test.ts'
       ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
-      expect(geminiKeys).toContain('music-gemini-lyria-3-pro-preview')
+      expect(geminiKeys).toContain('music-gemini-lyria-3.5')
       expect(geminiKeys).not.toContain('music-gemini-lyria-3-clip-preview')
     })
 })

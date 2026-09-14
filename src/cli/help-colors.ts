@@ -58,7 +58,7 @@ export const HELP_TYPE_COLOR = 'lightsalmon'
 const HELP_MODEL_VALUE_COLOR = 'deepskyblue'
 const HELP_MODEL_DELIMITER_COLOR = 'steelblue'
 const HELP_MODEL_SEGMENT_PATTERN = /(\bmodel(?:s)?(?:\s+ID)?(?:\s*\([^)]*\))?\s*:\s*)([^\n]+)/gi
-const HELP_DEFAULT_SEGMENT_PATTERN = /(\b(?:final\s+|sketch\s+|OpenAI\/fal\.ai\s+|BFL\s+|OpenAI,\s+)?defaults?\s*:\s*)([^;,)\n]+)/gi
+const HELP_DEFAULT_SEGMENT_PATTERN = /(\b(?:final\s+|sketch\s+|OpenAI\/fal\.ai\s+|OpenAI,\s+)?defaults?\s*:\s*)([^;,)\n]+)/gi
 const ANSI_ESCAPE_PATTERN = /\x1b\[[0-9;]*m/
 
 const hasAnsiEscapes = (text: string): boolean => ANSI_ESCAPE_PATTERN.test(text)

@@ -3,10 +3,10 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import {
   isScrapeCreatorsSupportedSourceUrl
-} from '~/cli/commands/stt/direct-url/scrapecreators/scrapecreators'
+} from '~/cli/commands/text/url/url-services/scrapecreators/scrapecreators'
 import {
   runScrapeCreatorsStt
-} from '~/cli/commands/stt/direct-url/scrapecreators/run-scrapecreators-stt'
+} from '~/cli/commands/text/url/url-services/scrapecreators/run-scrapecreators-stt'
 import { expectProviderHttpError, installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 import { extractErrorMetadata } from '~/utils/error-handler'
 

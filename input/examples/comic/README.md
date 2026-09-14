@@ -14,7 +14,7 @@ Exercises `--llm-model` resolution and pricing against the central LLM registry
 
 ```bash
 bun as comic draft-scenes input/examples/comic/01-registry-check.md --only structure --llm-model gpt-5.6-sol --price
-bun as comic draft-scenes input/examples/comic/01-registry-check.md --only structure --llm-model grok-4.5 --price
+bun as comic draft-scenes input/examples/comic/01-registry-check.md --only structure --llm-model grok-4.6 --price
 bun as comic draft-scenes input/examples/comic/01-registry-check.md --only structure --llm-model claude-opus-5 --price
 ```
 

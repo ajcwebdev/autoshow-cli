@@ -4,9 +4,9 @@ export type VideoGenOptions = Partial<VideoRuntimeOptions> & HostedConcurrencyRu
   generationResourceGate?: ResourceGate | undefined
 }
 
-export const VIDEO_MODES = ['text', 'image-to-video', 'reference-to-video', 'interpolate', 'extend', 'edit'] as const
+export const VIDEO_MODES = ['text', 'image-to-video', 'reference-to-video', 'interpolate'] as const
 export type VideoMode = typeof VIDEO_MODES[number]
-export type GeminiResolution = '720p' | '1080p' | '4k'
+export type GeminiResolution = '720p' | '1080p'
 export type GrokVideoDurationSeconds = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15
 export type LtxVideoDurationSeconds = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20
 

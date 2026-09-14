@@ -5,7 +5,7 @@ import {
   buildHappyScribeRegistryEstimate,
   resolveHappyScribePriceNotes
 } from '~/cli/commands/stt/diarization/happyscribe/happyscribe-pricing'
-import { resolveYoutubeCaptionEstimateTargets } from '~/cli/commands/stt/direct-url/youtube-captions'
+import { resolveYoutubeCaptionEstimateTargets } from '~/cli/commands/text/url/url-services/youtube-captions/youtube-captions'
 import { getSttCost } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { computeBilledSttCost } from '~/cli/commands/pricing-orchestration/stt-billing'
 import { estimateSupadataCost } from '~/cli/commands/pricing-orchestration/supadata-pricing'

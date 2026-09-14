@@ -41,19 +41,15 @@
     ],
     "Image": [
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-image.md.txt",
-      "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image.md.txt",
-      "https://ai.google.dev/gemini-api/docs/models/gemini-3-pro-image.md.txt",
       "https://ai.google.dev/gemini-api/docs/image-generation.md.txt"
     ],
     "Video": [
       "https://ai.google.dev/gemini-api/docs/video.md.txt",
       "https://ai.google.dev/gemini-api/docs/video-understanding.md.txt",
-      "https://ai.google.dev/gemini-api/docs/models/veo-3.1-generate-preview.md.txt",
       "https://ai.google.dev/gemini-api/docs/models/veo-3.1-lite-generate-preview.md.txt"
     ],
     "Music": [
       "https://ai.google.dev/gemini-api/docs/music-generation.md.txt",
-      "https://ai.google.dev/gemini-api/docs/models/lyria-3-pro-preview.md.txt",
       "https://ai.google.dev/gemini-api/docs/models/lyria-3.5.md.txt",
       "https://ai.google.dev/api/interactions-api"
     ]

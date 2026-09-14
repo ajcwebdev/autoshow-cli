@@ -2,13 +2,17 @@ import { describe, expect, test } from 'bun:test'
 import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import {
   resolveOpenAITtsVoiceForModel,
+  SUPPORTED_CARTESIA_TTS_MODELS,
   SUPPORTED_GROK_TTS_VOICES,
+  SUPPORTED_INWORLD_TTS_MODELS,
   SUPPORTED_OPENAI_TTS_MODELS,
   SUPPORTED_OPENAI_TTS_VOICES,
+  validateCartesiaTtsModel,
   validateGrokTtsVoice,
+  validateInworldTtsModel,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 
-const CHECKED_AT = '2026-08-11'
+const CHECKED_AT = '2026-09-14'
 
 describe('official TTS provider catalog refresh', () => {
   test('xAI registry exposes all 26 current built-ins and preserves custom-ID validation', () => {
@@ -45,5 +49,19 @@ describe('official TTS provider catalog refresh', () => {
       requestVoice: { id: 'voice_123abc' }
     })
     expect(() => resolveOpenAITtsVoiceForModel('gpt-4o-mini-tts-2025-12-15', 'made-up')).toThrow('eligible custom voice ID')
+  })
+
+  test('Cartesia and Inworld catalogs stay on the 2026-09-14 one-model-per-provider pins', () => {
+    const cartesia = getModelRegistry().tts['cartesia']
+    const inworld = getModelRegistry().tts['inworld']
+
+    expect(cartesia?.catalogCheckedAt).toBe(CHECKED_AT)
+    expect(inworld?.catalogCheckedAt).toBe(CHECKED_AT)
+    expect(SUPPORTED_CARTESIA_TTS_MODELS).toEqual(['sonic-3.6-2026-08-27'])
+    expect(SUPPORTED_INWORLD_TTS_MODELS).toEqual(['realtime-tts-2'])
+    expect(validateCartesiaTtsModel('sonic-3.6-2026-08-27')).toBe('sonic-3.6-2026-08-27')
+    expect(validateInworldTtsModel('realtime-tts-2')).toBe('realtime-tts-2')
+    expect(() => validateCartesiaTtsModel('sonic-3.6')).toThrow('Invalid model "sonic-3.6"')
+    expect(() => validateCartesiaTtsModel('sonic-preview')).toThrow('Invalid model "sonic-preview"')
   })
 })

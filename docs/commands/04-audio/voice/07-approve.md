@@ -10,15 +10,15 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice approve <registration-id> [flags]
 ```
 
-Approval makes that registration current for the subject, provider, model, and profile. One subject can hold independent current approvals per model, even when those approvals use the same provider voice.
+The registration must already be auditioned. Approval is local and does not call a provider. One subject can keep a separate current approval for each model.
 
 ### Options
 
-| Flag | Description |
-| --- | --- |
-| `--generation-id <sha256>` | Optional unless more than one generation could match |
-| `--actor-id <id>` | Required opaque approving actor ID |
-| `--price` | Validate and estimate without provider calls or artifact writes |
+| Flag                       | Description                                                     |
+| -------------------------- | --------------------------------------------------------------- |
+| `--generation-id <sha256>` | Optional unless more than one generation could match            |
+| `--actor-id <id>`          | Required opaque approving actor ID                              |
+| `--price`                  | Validate and estimate without provider calls or artifact writes |
 
 ### Examples
 

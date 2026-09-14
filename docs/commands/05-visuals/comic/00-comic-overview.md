@@ -12,7 +12,6 @@ Draft comic scenes from episode scripts, generate panel and page images, publish
 - [Output](#output)
 - [Supported Models](#supported-models)
 - [Command Docs](#command-docs)
-- [Deprecated Aliases](#deprecated-aliases)
 
 ## Overview
 
@@ -32,21 +31,19 @@ Set API keys for the text, image, and speech providers you select. The defaults 
 
 ```bash
 OPENAI_API_KEY=...
-GEMINI_API_KEY=...
-XAI_API_KEY=...
 ```
 
-Other image providers (BFL, Replicate, Luma Labs) and TTS or sound-effect providers need their own keys. See [Supported Models](#supported-models), [TTS](../../04-audio/tts/overview.md), and [voice](../../04-audio/voice/00-voice-overview.md).
+Other image providers (Google Gemini, xAI Grok, Replicate, Luma Labs) and TTS or sound-effect providers need their own keys. See [Supported Models](#supported-models), [TTS](../../04-audio/tts/overview.md), and [voice](../../04-audio/voice/00-voice-overview.md).
 
-Where supported, `--price` estimates cost without provider calls or writes. Prompt writing, panel-prompt assembly, blocking import and rebind, directive reconcile, and both `review` modes are local. `review` has no `--price` option.
+Where supported, `--price` estimates cost without provider calls or writes. `draft-scenes --only prompt`, `--only panel-prompts`, `--rebind`, `--blocking-plan`, `--reconcile-from-directives`, and `review` make no provider calls. `review` has no `--price` option.
 
 ### Character and Location Catalogs
 
 `draft-scenes` and `reference-sketch` require `input/characters/characters-reference.json`, or the same file under `--characters-root`. The catalog names each character and points to its reference images. Run `reference-sketch` before panel-prompt creation and after revising a character.
 
-Location configuration lives in `input/locations/locations-reference.json`. Set `styleImage` to a project image whose visual language should guide new location views. If the location catalog does not exist, comic creates it using the first character catalog image as the style reference.
+Location configuration lives in `input/locations/locations-reference.json`. Set `styleImage` to a project image whose visual language should guide new location views. If the location catalog does not exist, `reference-sketch` creates it using the first character catalog image as the style reference.
 
-Stages that load the character catalog fail when a character has neither its source image nor its `generationReference` image on disk. Keep every style seed named by a `generationReference` under `input/characters/` before running those stages, including `draft-scenes --only structure`.
+Every catalog character needs its source image or `generationReference` image on disk before stages that load the catalog, including `draft-scenes --only structure`.
 
 ## Runtime Paths
 
@@ -129,7 +126,7 @@ bun autoshow comic review 01-01 --notes notes/01-sentient-agenda-review.md
 bun autoshow comic draft-scenes 01-01 --reconcile-from-directives
 ```
 
-`review` writes `metadata/review/review-sheet.html`. `review --notes` turns the reviewer's Markdown into a change plan, and `--reconcile-from-directives` applies the script's own `**CAMERA:**`, `**BREAK-180:**`, `**COSTUME:**`, and `**EXTRAS:**` directives without an LLM call. None of the three calls a provider.
+`review` writes `metadata/review/review-sheet.html`. `review --notes` turns the reviewer's Markdown into a change plan, and `--reconcile-from-directives` applies the script's `**CAMERA:**`, `**BREAK-180:**`, `**COSTUME:**`, and `**EXTRAS:**` directives. None of the three calls a provider.
 
 ### 6. Register voices, render audio, and build the slideshow
 
@@ -142,52 +139,21 @@ bun autoshow comic generate-slideshow 01-01
 
 ## Output
 
-Each invocation resolves a timestamped run directory under `output/` following the `YYYY-MM-DD_HH-MM-SS-mmm_<slug>` convention:
+Each invocation resolves a timestamped run directory under `output/` following the `YYYY-MM-DD_HH-MM-SS-mmm_<slug>` convention. A scene run holds the structured script, blocking plan, scene JSON, panel prompts, and review sheet in `metadata/`, plus generated images, audio, and the slideshow:
 
 ```text
 output/<YYYY-MM-DD_HH-MM-SS-mmm>_01-sentient-agenda/
   metadata/
-    structured-script.json
-    structured-script.previous.json
-    draft-prompt.md
-    blocking-prompt.md
-    blocking-plan.json
-    blocking-bindings.json
-    blocking/
-    scene.json
-    review/
-    panel-prompts/
-  qa/
-  assets/
-    character-references.json
-    location-references.json
-    voice-references/
-  audio/
-    <target-key>/render.json
-    final/<target-key>.wav
-  presentation/
-    presentation.json
-    final/slideshow.mp4
   panels/
   pages/
   sketches/
-input/scripts/
-  <episode>-script/<scene>-<slug>.md
-input/characters/
-  characters-reference.json
-  character-sketches.json
-  <source-stem>--outline-sheet.png
-input/locations/
-  locations-reference.json
-  location-sketches.json
-  location-plans.json
-  plans/
-  <key>--reference.png
-  <key>--reference-reverse.png
-  <key>--reference-side.png
+  audio/final/
+  presentation/final/slideshow.mp4
 ```
 
 Treatment runs write under `output/<timestamp>_<slug>-treatment/`; see [draft-treatment](./07-draft-treatment.md#artifacts). `generate-images --bloopers` copies non-promoted attempts to `<output-root>/bloopers/<episode>/<scene-slug>/`. Nothing under that blooper root is canonical.
+
+The full workspace tree is in [types and output](../../../diagrams/05-types-and-output.md#comic-character-and-run-layout).
 
 Later stages resume the latest existing run directory for the scene. A full `draft-scenes` run or `--only structure` starts a fresh run directory. `generate-images` resumes only a run that already contains `metadata/scene.json`. Pass global `--output-dir <path>` to pin an explicit run directory.
 
@@ -197,7 +163,7 @@ For an interrupted recorded request, use [`resume <run-directory> --price` follo
 
 ### Image Models
 
-`--image-model` accepts OpenAI, Google Gemini, xAI Grok, BFL, Replicate, and Luma Labs model IDs. fal.ai image models are not available on comic. The default is `gpt-image-2`. See [`image`](../image/overview.md) for the full catalog.
+`--image-model` accepts OpenAI, Google Gemini, xAI Grok, Replicate, and Luma Labs model IDs. fal.ai image models are not available on comic. The default is `gpt-image-2`. See [`image`](../image/overview.md) for the full catalog.
 
 Pass multiple models with `--image-model` to generate each panel with every model for comparison:
 
@@ -207,7 +173,7 @@ Pass multiple models with `--image-model` to generate each panel with every mode
 
 ### Text Models (LLM)
 
-`--llm-model` accepts the same hosted text model IDs as [`write`](../../03-write/overview.md). The default is `gpt-5.6-sol` for scene drafting.
+`--llm-model` accepts the same hosted text model IDs as [`write`](../../03-write/overview.md). The default is `gpt-5.6-sol`.
 
 ## Command Docs
 
@@ -219,13 +185,4 @@ Pass multiple models with `--image-model` to generate each panel with every mode
 - [generate-slideshow](./05-generate-slideshow.md)
 - [review](./06-review.md)
 
-## Deprecated Aliases
-
-These spellings remain callable for one compatibility release and emit deprecation notices. Use the canonical invocations in new scripts.
-
-| Deprecated invocation | Canonical invocation |
-| --- | --- |
-| `comic reference-voice` | `voice list` |
-| `comic reference-voice <action> ...` | `voice <action> ...` |
-| `comic review-sheet <script> [--export-doc]` | `comic review <script> [--export-doc]` |
-| `comic review-notes <script> --notes <path>` | `comic review <script> --notes <path>` |
+Deprecated `comic reference-voice`, `comic review-sheet`, and `comic review-notes` remain callable for one compatibility release; use `voice` and `comic review` instead.

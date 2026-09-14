@@ -12,7 +12,7 @@ import { logSttProviderFailures, logSttProviderSkips, logSttRunStatus } from '..
 import { buildProviderModelLabel, buildTimingProviderModelLabel } from '../stt-prompt'
 import { formatProviderFailure } from '../stt-provider-failures'
 import { formatSttTargetLabel } from '../stt-targets'
-import { YOUTUBE_CAPTIONS_SERVICE } from '../direct-url/youtube-captions'
+import { YOUTUBE_CAPTIONS_SERVICE } from '~/cli/commands/text/url/url-services/youtube-captions/youtube-captions'
 import { formatProviderStateIssue, resolveRecordedSttStep2 } from './recorded-step2'
 
 export const computeSttBatchDerivedState = ({

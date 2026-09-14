@@ -17,12 +17,14 @@ const model = 'gemini-3.8-flash'
 
 describe('Gemini 3.8 Flash contracts', () => {
   test('all workflow validators accept the addition and preserve defaults', () => {
-    for (const validate of [validateGeminiModel, validateGeminiOcrModel, validateGeminiSttModel]) {
-      expect(() => validate(model)).not.toThrow()
-      expect(() => validate('gemini-3.6-flash')).not.toThrow()
-    }
+    expect(() => validateGeminiModel(model)).not.toThrow()
+    expect(() => validateGeminiOcrModel(model)).not.toThrow()
+    expect(() => validateGeminiSttModel(model)).not.toThrow()
+    expect(() => validateGeminiOcrModel('gemini-3.6-flash')).not.toThrow()
+    expect(() => validateGeminiSttModel('gemini-3.6-flash')).not.toThrow()
+    expect(() => validateGeminiModel('gemini-3.6-flash')).toThrow('Invalid model "gemini-3.6-flash" for --llm gemini[=model]. Allowed values: gemini-3.8-flash, gemini-3.7-flash')
     expect(resolveCheapestModelForFlag('gemini-stt')).toBe('gemini-3.6-flash')
-    expect(resolveCheapestModelForFlag('gemini')).toBe('gemini-3.5-flash-lite')
+    expect(resolveCheapestModelForFlag('gemini')).toBe('gemini-3.7-flash')
   })
 
   for (const step of ['llm', 'extract'] as const) {

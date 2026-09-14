@@ -15,7 +15,6 @@ export type ReplicateVideoGenOptions = {
   negativePrompt?: string | undefined
   generateAudio?: boolean | undefined
   seed?: number | undefined
-  multiPrompt?: string | undefined
   multiClip?: boolean | undefined
 }
 

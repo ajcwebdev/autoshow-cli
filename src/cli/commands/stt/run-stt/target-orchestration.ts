@@ -1,8 +1,8 @@
 import type { SplitPolicyTarget, Step2Metadata, SttTarget, SttTargetOptions, TranscriptionResult } from '~/types'
 import { dispatchStt } from './dispatch'
 import { ensureSttTargetSetup } from '../bootstrap'
-import { isSupadataSupportedSourceUrl } from '../direct-url/stt-supadata/supadata'
-import { isScrapeCreatorsSupportedSourceUrl } from '../direct-url/scrapecreators/scrapecreators'
+import { isSupadataSupportedSourceUrl } from '~/cli/commands/text/url/url-services/supadata-transcript/supadata'
+import { isScrapeCreatorsSupportedSourceUrl } from '~/cli/commands/text/url/url-services/scrapecreators/scrapecreators'
 import { writeSttResultArtifact } from '../stt-utils/stt-result-artifacts'
 import {
   DEFAULT_SPLIT_SEGMENT_DURATION_MINUTES,

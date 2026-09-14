@@ -14,14 +14,11 @@ bun t test/test-cases/e2e/local/text/url/
 bun t test/test-cases/e2e/service/text/url/
 ```
 
-## Local Coverage
+## Coverage
 
-- `test/test-cases/e2e/local/text/url/` covers Defuddle extraction of a public article.
-- Zero-cost validation lives in `test/test-cases/validation/text/url/`.
-
-## Service Coverage
-
-Hosted URL tests under `test/test-cases/e2e/service/text/url/` cover Firecrawl, GLM Reader, and Supadata.
+- Local e2e covers Defuddle article extraction.
+- Hosted e2e covers Firecrawl, GLM Reader, and Supadata article extraction, plus public-URL transcript retrieval for Supadata and ScrapeCreators.
+- Zero-cost validation is in `test/test-cases/validation/text/url/`.
 
 ## Price Preflight
 

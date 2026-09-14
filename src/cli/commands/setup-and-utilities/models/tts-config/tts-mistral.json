@@ -2,6 +2,9 @@
   "mistral": {
     "description": "Mistral Voxtral cloud text-to-speech",
     "type": "api",
+    "catalogSourceUrl": "https://docs.mistral.ai/studio-api/audio/text_to_speech",
+    "catalogCheckedAt": "2026-09-14",
+    "catalogNotes": "The 2026-09-14 catalog check still finds canonical API ID voxtral-mini-tts-2603 as the hosted Voxtral Mini TTS selector.",
     "models": {
       "voxtral-mini-tts-2603": {
         "description": "Voxtral Mini TTS 2603 — low-latency speech synthesis with saved voices or reference audio",

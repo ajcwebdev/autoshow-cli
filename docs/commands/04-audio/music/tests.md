@@ -16,12 +16,7 @@ bun t test/test-cases/e2e/service/audio/music/
 
 ## Provider Env Vars
 
-Live music generation tests run only when their provider key is configured: `ELEVENLABS_API_KEY`, `GEMINI_API_KEY`, or `MINIMAX_API_KEY`.
-
-## Current Coverage
-
-- `test/test-cases/e2e/service/audio/music/` covers live generation for ElevenLabs, Gemini, and MiniMax.
-- `test/test-cases/price-flag/audio/music/music-price.test.ts` covers `--price` validation.
+Live music generation tests need the matching provider key: `ELEVENLABS_API_KEY`, `GEMINI_API_KEY`, or `MINIMAX_API_KEY`.
 
 ## Price Preflight
 
@@ -29,6 +24,8 @@ Live music generation tests run only when their provider key is configured: `ELE
 bun t test/test-cases/e2e/service/audio/music/ --price
 bun t test/test-cases/e2e/service/audio/music/ --budget 2500
 ```
+
+`test/test-cases/price-flag/audio/music/music-price.test.ts` covers `--price` validation without calling providers.
 
 Local lyric-video rendering has no provider cost.
 

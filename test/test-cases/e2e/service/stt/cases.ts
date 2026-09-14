@@ -69,19 +69,3 @@ export const geminiTranscription = {
   inputPath: 'input/examples/audio/0-audio-short.mp3',
   inputTitle: '0-audio-short',
 } as const
-
-export const supadataUrlTranscript = {
-  service: 'supadata',
-  model: 'auto',
-  provider: 'supadata',
-  envVarKey: 'SUPADATA_API_KEY',
-  envVarDescription: 'Supadata YouTube transcript retrieval',
-} as const
-
-export const scrapecreatorsUrlTranscript = {
-  service: 'scrapecreators',
-  model: 'youtube-transcript',
-  provider: 'scrapecreators',
-  envVarKey: 'SCRAPECREATORS_API_KEY',
-  envVarDescription: 'ScrapeCreators YouTube transcript retrieval',
-} as const

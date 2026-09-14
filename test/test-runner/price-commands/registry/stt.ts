@@ -44,13 +44,6 @@ export const sttRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/gemini-3-6-flash.test.ts', [
     command('transcribe-gemini-stt-gemini-3.6-flash', 'transcribe-gemini-stt-gemini-3.6-flash', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'gemini=gemini-3.6-flash', '--price']),
   ]),
-  // Local input uses auto's conservative native/generation floor, rather than the direct-URL generation discount.
-  ...exact('test/test-cases/e2e/service/stt/direct-url/supadata-auto-url-transcript.test.ts', [
-    command('transcribe-supadata-auto', 'transcribe-supadata-auto', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'supadata=auto', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/service/stt/direct-url/scrapecreators-youtube-transcript.test.ts', [
-    command('transcribe-scrapecreators-youtube-transcript', 'transcribe-scrapecreators-youtube-transcript', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'scrapecreators=youtube-transcript', '--price']),
-  ]),
   ...exact('test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts', [
     command('transcribe-whisperfile-tiny', 'transcribe-whisperfile-tiny', ['src/cli/create-cli.ts', 'music', '--audio', 'input/examples/audio/0-audio-short.mp3', '--model', 'tiny', '--price']),
     command('transcribe-whisperfile-small.en', 'transcribe-whisperfile-small.en', ['src/cli/create-cli.ts', 'music', '--audio', 'input/examples/lyrics/01-example-song.mp3', '--price']),

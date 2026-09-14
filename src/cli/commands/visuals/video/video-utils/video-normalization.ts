@@ -5,7 +5,7 @@ export const REPLICATE_COMMON_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '4:3', '3:
 export const REPLICATE_SEEDANCE_ASPECT_RATIOS = [...REPLICATE_COMMON_ASPECT_RATIOS, '21:9', '9:21', 'adaptive'] as const
 
 export const isReplicateSeedanceVideoModel = (model: ReplicateVideoModel): boolean =>
-  model === 'bytedance/seedance-2.5' || model === 'bytedance/seedance-2.0' || model === 'bytedance/seedance-2.0-fast'
+  model === 'bytedance/seedance-2.5'
 
 const clampIntegerDuration = (
   duration: number | undefined,
@@ -34,44 +34,29 @@ const normalizeReplicateAspectRatioFrom = (
 export const isReplicateHappyHorseVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'alibaba/happyhorse-1.1'
 
-export const isReplicateKlingVideoModel = (model: ReplicateVideoModel): boolean =>
-  model === 'kwaivgi/kling-v3-video' || model === 'kwaivgi/kling-v3-omni-video'
-
-export const isReplicateKlingOmniVideoModel = (model: ReplicateVideoModel): boolean =>
-  model === 'kwaivgi/kling-v3-omni-video'
-
 export const isReplicatePixVerseVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'pixverse/pixverse-v6'
 
-const isReplicateSeedanceFastVideoModel = (model: ReplicateVideoModel): boolean =>
-  model === 'bytedance/seedance-2.0-fast'
-
 export const REPLICATE_HAPPYHORSE_DURATION_RANGE = [3, 15] as const
-export const REPLICATE_SEEDANCE_DURATION_RANGE = [-1, 15] as const
+export const REPLICATE_SEEDANCE_DURATION_RANGE = [4, 30] as const
 
 export const normalizeReplicateVideoDuration = (
   model: ReplicateVideoModel,
   duration: number | undefined
 ): number => {
-  if (model === 'bytedance/seedance-2.5') {
+  if (isReplicateSeedanceVideoModel(model)) {
     if (duration === -1) return -1
-    return clampIntegerDuration(duration, 5, 4, 30, `Replicate/${model}`)
+    return clampIntegerDuration(duration, 5, ...REPLICATE_SEEDANCE_DURATION_RANGE, `Replicate/${model}`)
   }
   if (isReplicateHappyHorseVideoModel(model)) {
     return clampIntegerDuration(duration, 5, ...REPLICATE_HAPPYHORSE_DURATION_RANGE, `Replicate/${model}`)
-  }
-  if (isReplicateSeedanceVideoModel(model)) {
-    return clampIntegerDuration(duration, 5, ...REPLICATE_SEEDANCE_DURATION_RANGE, `Replicate/${model}`)
-  }
-  if (isReplicateKlingVideoModel(model)) {
-    return clampIntegerDuration(duration, 5, 3, 15, `Replicate/${model}`)
   }
   if (isReplicatePixVerseVideoModel(model)) {
     const value = duration ?? 5
     if (value === 5 || value === 8 || value === 10 || value === 15) return value
     throw UsageError(`Invalid --duration value "${String(duration)}" for Replicate/${model}. Expected 5, 8, 10, or 15.`)
   }
-  return clampIntegerDuration(duration, 5, 3, 15, `Replicate/${model}`)
+  throw UsageError(`Unsupported Replicate video model: ${model}`)
 }
 
 export const resolveReplicateBilledDuration = (
@@ -79,23 +64,19 @@ export const resolveReplicateBilledDuration = (
   duration: number | undefined
 ): number => {
   const normalized = normalizeReplicateVideoDuration(model, duration)
-  return normalized === -1 ? (model === 'bytedance/seedance-2.5' ? 30 : 5) : normalized
+  return normalized === -1 ? 30 : normalized
 }
 
-export const REPLICATE_VIDEO_RESOLUTIONS = ['360p', '480p', '540p', '720p', '1080p', '4k'] as const
+export const REPLICATE_VIDEO_RESOLUTIONS = ['360p', '480p', '540p', '720p', '1080p'] as const
 
 export const normalizeReplicateVideoResolution = (
   model: ReplicateVideoModel,
   resolution: string | undefined
 ): ReplicateVideoResolution => {
   if (resolution === undefined || resolution === '') return '720p'
-  if (model === 'bytedance/seedance-2.5') {
+  if (isReplicateSeedanceVideoModel(model)) {
     if (resolution === '480p' || resolution === '720p') return resolution
     throw UsageError(`Replicate/${model} supports 480p or 720p.`)
-  }
-  if (isReplicateKlingVideoModel(model)) {
-    if (resolution === '720p' || resolution === '1080p' || resolution === '4k') return resolution
-    throw UsageError(`Invalid --resolution value "${resolution}" for Replicate/${model}. Expected 720p, 1080p, or 4k.`)
   }
   if (isReplicatePixVerseVideoModel(model)) {
     if (resolution === '360p' || resolution === '540p' || resolution === '720p' || resolution === '1080p') return resolution
@@ -105,11 +86,6 @@ export const normalizeReplicateVideoResolution = (
     if (resolution === '720p' || resolution === '1080p') return resolution
     throw UsageError(`Invalid --resolution value "${resolution}" for Replicate/${model}. Expected 720p or 1080p.`)
   }
-  if (isReplicateSeedanceFastVideoModel(model)) {
-    if (resolution === '480p' || resolution === '720p') return resolution
-    throw UsageError(`Invalid --resolution value "${resolution}" for Replicate/${model}. Expected 480p or 720p.`)
-  }
-  if (resolution === '480p' || resolution === '720p' || resolution === '1080p') return resolution
   throw UsageError(`Invalid --resolution value "${resolution}" for Replicate/${model}. Expected ${REPLICATE_VIDEO_RESOLUTIONS.join(', ')}.`)
 }
 
@@ -117,11 +93,11 @@ export const normalizeReplicateVideoAspectRatio = (
   model: ReplicateVideoModel,
   aspectRatio: string | undefined
 ): string => {
-  if (model === 'bytedance/seedance-2.5' && aspectRatio === '9:21') throw UsageError('Replicate Seedance 2.5 does not support 9:21.')
+  if (isReplicateSeedanceVideoModel(model) && aspectRatio === '9:21') throw UsageError('Replicate Seedance 2.5 does not support 9:21.')
   if (isReplicateSeedanceVideoModel(model)) {
     return normalizeReplicateAspectRatioFrom(aspectRatio, REPLICATE_SEEDANCE_ASPECT_RATIOS, `Replicate/${model}`)
   }
-  if (isReplicateKlingVideoModel(model) || isReplicatePixVerseVideoModel(model)) {
+  if (isReplicatePixVerseVideoModel(model)) {
     return normalizeReplicateAspectRatioFrom(aspectRatio, ['16:9', '9:16', '1:1'], `Replicate/${model}`)
   }
   return normalizeReplicateAspectRatioFrom(aspectRatio, REPLICATE_COMMON_ASPECT_RATIOS, `Replicate/${model}`)
@@ -132,10 +108,10 @@ export const GEMINI_DURATION_SECONDS = [4, 6, 8] as const
 export const normalizeGeminiDuration = (
   duration: number | undefined,
   resolution?: GeminiResolution | string | undefined,
-  mode?: VideoMode | undefined
+  _mode?: VideoMode | undefined
 ): GeminiDurationSeconds => {
   const [shortest, middle, longest] = GEMINI_DURATION_SECONDS
-  if (resolution === '1080p' || resolution === '4k' || mode === 'reference-to-video' || mode === 'extend') return longest
+  if (resolution === '1080p') return longest
   if (typeof duration !== 'number' || !Number.isFinite(duration)) return shortest
   const n = Math.floor(duration)
   if (n <= shortest) return shortest
@@ -143,22 +119,17 @@ export const normalizeGeminiDuration = (
   return longest
 }
 
-export const GEMINI_VIDEO_RESOLUTIONS = ['720p', '1080p', '4k'] as const
+export const GEMINI_VIDEO_RESOLUTIONS = ['720p', '1080p'] as const
 
 export const normalizeGeminiResolution = (
   resolution: string | undefined,
-  model?: string | undefined
+  _model?: string | undefined
 ): GeminiResolution => {
   if (resolution === undefined || resolution === '') return '720p'
-  if (resolution !== '720p' && resolution !== '1080p' && resolution !== '4k') {
+  if (resolution !== '720p' && resolution !== '1080p') {
     throw UsageError(`Invalid --resolution value "${resolution}" for Gemini. Expected ${GEMINI_VIDEO_RESOLUTIONS.join(', ')}.`)
   }
-  if (resolution === '4k' && model === 'veo-3.1-lite-generate-preview') {
-    throw UsageError('Gemini Veo 3.1 Lite does not support --resolution 4k. Use veo-3.1-generate-preview or veo-3.1-fast-generate-preview for 4k.')
-  }
-  if (resolution === '4k') return '4k'
-  if (resolution === '1080p') return '1080p'
-  return '720p'
+  return resolution
 }
 
 export const GROK_VIDEO_DURATION_RANGE = [1, 15] as const
@@ -169,18 +140,12 @@ export const normalizeGrokVideoDuration = (duration: number | undefined): GrokVi
   return Math.min(max, Math.max(min, Math.floor(duration))) as GrokVideoDurationSeconds
 }
 
-export const normalizeGrokVideoExtensionDuration = (duration: number | undefined): number => {
-  if (typeof duration !== 'number' || !Number.isFinite(duration)) return 6
-  return Math.min(10, Math.max(1, Math.floor(duration)))
-}
-
 export const GROK_VIDEO_RESOLUTIONS = ['480p', '720p', '1080p'] as const
 
 export const normalizeGrokVideoResolution = (resolution: string | undefined, model?: string | undefined): GrokVideoResolution => {
   if (resolution === undefined || resolution === '') return '480p'
-  if (resolution === '480p' || resolution === '720p') return resolution
-  if (resolution === '1080p' && model === 'grok-imagine-video-1.5') return resolution
-  throw UsageError(`Invalid --resolution value "${resolution}" for Grok/${model ?? 'video'}. Expected ${model === 'grok-imagine-video-1.5' ? GROK_VIDEO_RESOLUTIONS.join(', ') : '480p or 720p'}.`)
+  if (resolution === '480p' || resolution === '720p' || resolution === '1080p') return resolution
+  throw UsageError(`Invalid --resolution value "${resolution}" for Grok/${model ?? 'video'}. Expected ${GROK_VIDEO_RESOLUTIONS.join(', ')}.`)
 }
 
 export const GROK_VIDEO_ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'] as const
@@ -190,16 +155,10 @@ export const normalizeGrokVideoAspectRatio = (aspectRatio: string | undefined): 
   return aspectRatio && allowed.has(aspectRatio) ? aspectRatio : '16:9'
 }
 
-export const isLtx25Model = (model: LtxVideoModel): boolean => model === 'ltx-2-5-fast' || model === 'ltx-2-5-pro'
-
-const isLtxFastModel = (model: LtxVideoModel): boolean => model.endsWith('-fast')
-
-export const normalizeLtxVideoResolution = (resolution: string | undefined, model?: LtxVideoModel): '720p' | '1080p' | '1440p' | '4k' => {
+export const normalizeLtxVideoResolution = (resolution: string | undefined, _model?: LtxVideoModel): '720p' | '1080p' | '1440p' | '4k' => {
   if (resolution === undefined || resolution === '') return '1080p'
-  if (resolution === '1080p' || resolution === '4k') return resolution
-  if (model && isLtx25Model(model) && (resolution === '720p' || resolution === '1440p')) return resolution
-  const allowed = model && isLtx25Model(model) ? LTX_25_RESOLUTIONS : LTX_RESOLUTIONS
-  throw UsageError(`Invalid --resolution value "${resolution}" for LTX. Expected ${allowed.join(' or ')}.`)
+  if ((LTX_RESOLUTIONS as readonly string[]).includes(resolution)) return resolution as '720p' | '1080p' | '1440p' | '4k'
+  throw UsageError(`Invalid --resolution value "${resolution}" for LTX. Expected ${LTX_RESOLUTIONS.join(' or ')}.`)
 }
 
 export const normalizeLtxVideoAspectRatio = (model: LtxVideoModel, aspectRatio: string | undefined): '16:9' | '9:16' => {
@@ -246,9 +205,7 @@ export const normalizeLumaVideoAspectRatio = (aspectRatio: string | undefined): 
 
 export const LTX_DURATION_SECONDS = [6, 8, 10] as const
 export const LTX_FAST_1080P_DURATION_SECONDS = [6, 8, 10, 12, 14, 16, 18, 20] as const
-const LTX_EXTEND_DURATION_RANGE = [2, 20] as const
-export const LTX_25_RESOLUTIONS = ['720p', '1080p', '1440p', '4k'] as const
-export const LTX_RESOLUTIONS = ['1080p', '4k'] as const
+export const LTX_RESOLUTIONS = ['720p', '1080p', '1440p', '4k'] as const
 export const LTX_ASPECT_RATIOS = ['16:9', '9:16'] as const
 
 export const normalizeLtxVideoDuration = (
@@ -257,35 +214,15 @@ export const normalizeLtxVideoDuration = (
   duration: number | undefined,
   mode?: string | undefined
 ): LtxVideoDurationSeconds => {
-  if (isLtx25Model(model)) {
-    if (mode !== undefined && !['text', 'image-to-video', 'interpolate'].includes(mode)) {
-      throw UsageError(`--mode ${mode} is not supported by ltx/${model}.`)
-    }
-    // All CLI LTX requests explicitly use 24 fps. Higher frame rates and automatic duration are not exposed.
-    const longClip = model === 'ltx-2-5-fast' && ['1280x720', '720x1280', '1920x1080', '1080x1920'].includes(size)
-    const allowed: readonly number[] = longClip ? LTX_FAST_1080P_DURATION_SECONDS : LTX_DURATION_SECONDS
-    const requested = duration === undefined ? 8 : duration
-    if (!allowed.includes(requested)) {
-      throw UsageError(`Invalid --duration value "${duration}" for LTX ${model} at ${size}/24 fps. Expected ${allowed.join(', ')}.`)
-    }
-    return requested as LtxVideoDurationSeconds
+  if (mode !== undefined && !['text', 'image-to-video', 'interpolate'].includes(mode)) {
+    throw UsageError(`--mode ${mode} is not supported by ltx/${model}.`)
   }
-  if (mode === 'extend') {
-    const [min, max] = LTX_EXTEND_DURATION_RANGE
-    if (typeof duration !== 'number' || !Number.isFinite(duration)) return 8
-    return Math.min(max, Math.max(min, Math.floor(duration))) as LtxVideoDurationSeconds
+  // All CLI LTX requests explicitly use 24 fps. Higher frame rates and automatic duration are not exposed.
+  const longClip = model === 'ltx-2-5-fast' && ['1280x720', '720x1280', '1920x1080', '1080x1920'].includes(size)
+  const allowed: readonly number[] = longClip ? LTX_FAST_1080P_DURATION_SECONDS : LTX_DURATION_SECONDS
+  const requested = duration === undefined ? 8 : duration
+  if (!allowed.includes(requested)) {
+    throw UsageError(`Invalid --duration value "${duration}" for LTX ${model} at ${size}/24 fps. Expected ${allowed.join(', ')}.`)
   }
-
-  const requested = typeof duration === 'number' && Number.isFinite(duration) ? Math.floor(duration) : 8
-  const allowed = isLtxFastModel(model) && size === '1920x1080'
-    ? LTX_FAST_1080P_DURATION_SECONDS
-    : LTX_DURATION_SECONDS
-
-  let best = allowed[0] as number
-  for (const candidate of allowed) {
-    if (Math.abs(candidate - requested) < Math.abs(best - requested)) {
-      best = candidate
-    }
-  }
-  return best as LtxVideoDurationSeconds
+  return requested as LtxVideoDurationSeconds
 }

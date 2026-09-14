@@ -1,11 +1,10 @@
-import { createModelValidator, formatAllowedValues } from '~/cli/commands/setup-and-utilities/models/model-validation'
+import { createModelValidator, createRetiringModelValidator, formatAllowedValues } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import { UsageError } from '~/utils/error-handler'
 import {
   getGrokTtsVoices,
   getOpenAITtsVoices
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { CartesiaTtsModel, ElevenlabsTtsModel, GrokTtsModel, HumeTtsModel, InworldTtsModel, MistralTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection, SpeechifyTtsModel } from '~/types'
-import { createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 export const SUPPORTED_ELEVENLABS_TTS_MODELS = [
   'eleven_v3'
@@ -182,7 +181,7 @@ export const SUPPORTED_CARTESIA_TTS_MODELS = [
 
 export const CARTESIA_DEFAULT_TTS_VOICE = 'f786b574-daa5-4673-aa0c-cbe3e8534c02'
 
-export const validateCartesiaTtsModel = createModelValidator<CartesiaTtsModel>(SUPPORTED_CARTESIA_TTS_MODELS, 'cartesia-tts')
+export const validateCartesiaTtsModel = createRetiringModelValidator<CartesiaTtsModel>('tts', 'cartesia', SUPPORTED_CARTESIA_TTS_MODELS, 'cartesia-tts')
 
 export const validateCartesiaTtsVoice = (voice: string): string => {
   const normalized = voice.trim()

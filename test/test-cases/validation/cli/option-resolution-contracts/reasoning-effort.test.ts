@@ -66,7 +66,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       expect(geminiOcrPolicy.effective).toBe('default')
 
       const kimiK26Policy = resolveReasoningPolicy({
-        step: 'llm',
+        step: 'extract',
         service: 'kimi',
         model: 'kimi-k2.6',
         requestedReasoningEffort: undefined
@@ -150,7 +150,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
         resolveReasoningPolicy({
           step: 'llm',
           service: 'anthropic',
-          model: 'claude-fable-5',
+          model: 'claude-fable-5-1',
           requestedReasoningEffort: 'disabled'
         })
       ).toThrow()
@@ -177,7 +177,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
     it('rejects named effort levels for binary reasoning controls', () => {
       expect(() =>
         resolveReasoningPolicy({
-          step: 'llm',
+          step: 'extract',
           service: 'kimi',
           model: 'kimi-k2.6',
           requestedReasoningEffort: 'medium'
@@ -185,7 +185,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       ).toThrow('exposes no named effort levels')
 
       expect(resolveReasoningPolicy({
-        step: 'llm',
+        step: 'extract',
         service: 'kimi',
         model: 'kimi-k2.6',
         requestedReasoningEffort: 'disabled'

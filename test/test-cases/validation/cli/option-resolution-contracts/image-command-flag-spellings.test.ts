@@ -26,10 +26,10 @@ describe('image command flag spellings', () => {
 
   test('option resolution reads public image command spellings', () => {
     const grokMessage = thrownMessage(() => collectImageTargets(buildOptsFromFlags({
-      'grok-image': 'grok-imagine-image-quality',
-      'search-grounding': true
+      'grok-image': 'grok-imagine-image-2.0',
+      'background': 'transparent'
     })))
-    expect(grokMessage).toContain('--search-grounding is not supported by Grok/grok-imagine-image-quality')
+    expect(grokMessage).toContain('--background is not supported by Grok/grok-imagine-image-2.0')
     expect(grokMessage).not.toContain('--image-')
   })
 })

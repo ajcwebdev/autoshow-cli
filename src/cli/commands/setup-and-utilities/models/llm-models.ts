@@ -11,20 +11,15 @@ export const SUPPORTED_OPENAI_MODELS = [
 export const SUPPORTED_GEMINI_MODELS = [
   'gemini-3.8-flash',
   'gemini-3.7-flash',
-  'gemini-3.6-flash',
-  'gemini-3.5-flash',
-  'gemini-3.5-flash-lite',
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_ANTHROPIC_MODELS = [
   'claude-fable-5-1',
-  'claude-fable-5',
   'claude-sonnet-5',
   'claude-opus-5',
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_GROK_MODELS = [
-  'grok-4.5',
   'grok-4.6'
 ] as const satisfies readonly string[]
 
@@ -34,7 +29,6 @@ export const SUPPORTED_GLM_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_KIMI_MODELS = [
-  'kimi-k2.6',
   'kimi-k3'
 ] as const satisfies readonly string[]
 

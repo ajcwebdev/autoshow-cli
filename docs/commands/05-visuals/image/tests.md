@@ -1,6 +1,6 @@
 # Image Service Tests
 
-Provider-backed image-generation coverage for the `image` command: BFL, fal.ai, Gemini, Grok, Luma Labs, OpenAI, and Replicate.
+Provider-backed image-generation coverage for the `image` command: fal.ai, Gemini, Grok, Luma Labs, OpenAI, and Replicate.
 
 Safety: these commands may call paid or quota-limited providers. Do not run them without explicit approval for that exact run.
 
@@ -12,7 +12,7 @@ bun t test/test-cases/e2e/service/visuals/image/
 
 ## Provider Env Vars
 
-Live image generation tests need a configured provider key: `BFL_API_KEY`, `FAL_API_KEY`, `GEMINI_API_KEY`, `LUMA_AGENTS_API_KEY`, `OPENAI_API_KEY`, `REPLICATE_API_TOKEN`, or `XAI_API_KEY`.
+Live image generation tests need a configured provider key: `FAL_API_KEY`, `GEMINI_API_KEY`, `LUMA_AGENTS_API_KEY`, `OPENAI_API_KEY`, `REPLICATE_API_TOKEN`, or `XAI_API_KEY`.
 
 ## Price Preflight
 

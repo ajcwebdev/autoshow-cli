@@ -18,13 +18,13 @@ describe('provider selection contracts', () => {
       provider: ['openai=gpt-4o-mini-tts-2025-12-15', 'elevenlabs=eleven_v3']
     }, new Set(['provider']), 'provider', STANDALONE_TTS_PROVIDER_TARGETS, { allProvidersTarget: 'all-tts' })
     const imageNormalized = normalizeGenericProviderSelectorFlags({
-      provider: ['openai=gpt-image-2', 'grok=grok-imagine-image-quality', 'replicate=wan-video/wan-2.7-image']
+      provider: ['openai=gpt-image-2', 'grok=grok-imagine-image-2.0', 'replicate=alibaba/qwen-image-3']
     }, new Set(['provider']), 'provider', STANDALONE_IMAGE_PROVIDER_TARGETS, { allProvidersTarget: 'all-image' })
     const videoNormalized = normalizeGenericProviderSelectorFlags({
-      provider: ['gemini=veo-3.1-lite-generate-preview', 'ltx=ltx-2-3-fast', 'replicate=bytedance/seedance-2.0-fast']
+      provider: ['gemini=veo-3.1-lite-generate-preview', 'ltx=ltx-2-5-fast', 'replicate=bytedance/seedance-2.5']
     }, new Set(['provider']), 'provider', STANDALONE_VIDEO_PROVIDER_TARGETS, { allProvidersTarget: 'all-video' })
     const musicNormalized = normalizeGenericProviderSelectorFlags({
-      provider: ['minimax=music-3.0', 'gemini=lyria-3-pro-preview']
+      provider: ['minimax=music-3.0', 'gemini=lyria-3.5']
     }, new Set(['provider']), 'provider', STANDALONE_MUSIC_PROVIDER_TARGETS, { allProvidersTarget: 'all-music' })
     expect(() => normalizeGenericProviderSelectorFlags({
       'all-local': true
@@ -46,25 +46,25 @@ describe('provider selection contracts', () => {
     expect(ttsOpts.elevenlabsTtsModels).toEqual(['eleven_v3'])
     expect(collectImageTargets(imageOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'openai:gpt-image-2',
-      'grok:grok-imagine-image-quality',
-      'replicate:wan-video/wan-2.7-image'
+      'grok:grok-imagine-image-2.0',
+      'replicate:alibaba/qwen-image-3'
     ])
     expect(collectVideoTargets(videoOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'gemini:veo-3.1-lite-generate-preview',
-      'ltx:ltx-2-3-fast',
-      'replicate:bytedance/seedance-2.0-fast'
+      'ltx:ltx-2-5-fast',
+      'replicate:bytedance/seedance-2.5'
     ])
     expect(collectMusicTargets(musicOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'minimax:music-3.0',
-      'gemini:lyria-3-pro-preview'
+      'gemini:lyria-3.5'
     ])
 
     const writeNormalized = normalizeWriteStepSelectorFlags({
-      llm: ['grok=grok-4.5', 'together=kimi-k3', 'together=glm-5.3-flash', 'anthropic=claude-sonnet-5', 'anthropic=claude-sonnet-5']
+      llm: ['grok=grok-4.6', 'together=kimi-k3', 'together=glm-5.3-flash', 'anthropic=claude-sonnet-5', 'anthropic=claude-sonnet-5']
     }, new Set(['llm']))
     const writeOpts = buildOptsFromFlags(writeNormalized.flags, {}, writeNormalized.explicitFlags)
-    expect(writeOpts.grokModels).toEqual(['grok-4.5'])
-    expect(writeOpts.grokModels?.[0]).toBe('grok-4.5')
+    expect(writeOpts.grokModels).toEqual(['grok-4.6'])
+    expect(writeOpts.grokModels?.[0]).toBe('grok-4.6')
     expect(writeOpts.togetherModels).toEqual(['kimi-k3', 'glm-5.3-flash'])
     expect(writeOpts.togetherModels?.[0]).toBe('kimi-k3')
     expect(writeOpts.anthropicModels).toEqual(['claude-sonnet-5'])
@@ -72,7 +72,7 @@ describe('provider selection contracts', () => {
 
     const imageArgNormalized = normalizeGenericProviderSelectorFlags(
       {
-        provider: ['openai=gpt-image-2', 'gemini=gemini-3.1-flash-lite-image', 'replicate=wan-video/wan-2.7-image']
+        provider: ['openai=gpt-image-2', 'gemini=gemini-3.1-flash-lite-image', 'replicate=alibaba/qwen-image-3']
       },
       new Set(['provider']),
       'provider',
@@ -82,18 +82,18 @@ describe('provider selection contracts', () => {
     expect(imageArgNormalized.flagOccurrences.map(({ name, value }) => ({ name, value }))).toEqual([
       { name: 'openai-image', value: 'gpt-image-2' },
       { name: 'gemini-image', value: 'gemini-3.1-flash-lite-image' },
-      { name: 'replicate-image', value: 'wan-video/wan-2.7-image' }
+      { name: 'replicate-image', value: 'alibaba/qwen-image-3' }
     ])
 
     const videoArgNormalized = normalizeGenericProviderSelectorFlags(
-      { provider: ['replicate=bytedance/seedance-2.0-fast'] },
+      { provider: ['replicate=bytedance/seedance-2.5'] },
       new Set(['provider']),
       'provider',
       STANDALONE_VIDEO_PROVIDER_TARGETS,
       { allProvidersTarget: 'all-video' }
     )
     expect(videoArgNormalized.flagOccurrences.map(({ name, value }) => ({ name, value }))).toEqual([
-      { name: 'replicate-video', value: 'bytedance/seedance-2.0-fast' }
+      { name: 'replicate-video', value: 'bytedance/seedance-2.5' }
     ])
   })
 

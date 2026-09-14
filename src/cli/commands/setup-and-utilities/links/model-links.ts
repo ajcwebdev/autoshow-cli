@@ -1,5 +1,4 @@
 import assemblyLinks from './model-links/assembly.json'
-import bflLinks from './model-links/bfl.json'
 import cartesiaLinks from './model-links/cartesia.json'
 import claudeLinks from './model-links/claude.json'
 import deepgramLinks from './model-links/deepgram.json'
@@ -50,7 +49,6 @@ const providerLinks = [
   minimaxLinks,
   claudeLinks,
   assemblyLinks,
-  bflLinks,
   cartesiaLinks,
   deepgramLinks,
   deepinfraLinks,

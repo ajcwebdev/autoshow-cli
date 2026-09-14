@@ -106,7 +106,7 @@ const imageInputs = async (f: Awaited<ReturnType<typeof fixture>>) => {
   }
 }
 
-for (const models of [['gemini-3.1-flash-lite-image'], ['gemini-3.1-flash-lite-image', 'gemini-3.1-flash-image']] as const) {
+for (const models of [['gemini-3.1-flash-lite-image']] as const) {
   test(`image recovery binds the original output directory and reuses completed panels with ${models.length} models`, async () => {
     const f = await fixture()
     await imageInputs(f)

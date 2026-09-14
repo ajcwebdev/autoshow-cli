@@ -14,14 +14,11 @@ bun t test/test-cases/e2e/local/text/ocr/
 bun t test/test-cases/e2e/service/text/ocr/
 ```
 
-## Local Coverage
+## Coverage
 
-- `test/test-cases/e2e/local/text/ocr/` covers local Tesseract OCR for PDF and image input, EPUB text extraction, `--chapters` / `--no-chapters` / `--length`, and `--format json`.
-- Zero-cost validation lives in `test/test-cases/validation/text/ocr/`.
-
-## Service Coverage
-
-Hosted OCR tests under `test/test-cases/e2e/service/text/ocr/` cover PDF and image extraction for Anthropic, DeepInfra, Gemini, GLM, Grok, Kimi, Mistral, and OpenAI.
+- Local e2e covers Tesseract PDF and image OCR, EPUB extraction, `--chapters` / `--no-chapters` / `--length`, and `--format json`.
+- Hosted e2e covers PDF and image extraction for Anthropic, DeepInfra, Gemini, GLM, Kimi, Mistral, and OpenAI, plus image extraction for Grok.
+- Zero-cost validation is in `test/test-cases/validation/text/ocr/`.
 
 ## Price Preflight
 

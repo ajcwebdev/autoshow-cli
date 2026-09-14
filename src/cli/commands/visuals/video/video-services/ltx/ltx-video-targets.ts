@@ -5,17 +5,11 @@ import { isSupportedOrSkippedForAllVideo } from '../../video-utils/video-mode-va
 import { normalizeLtxVideoSize, normalizeLtxVideoDuration } from '../../video-utils/video-normalization'
 import { validateVideoMediaReferences } from '../../video-utils/video-media-inputs'
 
-const getLtxSupportedVideoModes = (model: LtxVideoModel): readonly VideoMode[] => {
-  const modes: VideoMode[] = ['text', 'image-to-video', 'interpolate']
-  if (model === 'ltx-2-3-pro') modes.push('extend')
-  return modes
-}
-
 export const collectLtxVideoTargets = (options: VideoGenOptions, mode: VideoMode): VideoTarget[] => {
   const models = options.ltxVideoModels ?? []
   return models.flatMap((rawModel) => {
     const model: LtxVideoModel = validateLtxVideoModel(rawModel)
-    if (!isSupportedOrSkippedForAllVideo(options, 'ltx', model, mode, getLtxSupportedVideoModes(model))) {
+    if (!isSupportedOrSkippedForAllVideo(options, 'ltx', model, mode, ['text', 'image-to-video', 'interpolate'])) {
       return []
     }
     const size = normalizeLtxVideoSize(model, options.videoResolution, options.videoAspectRatio)
@@ -25,9 +19,6 @@ export const collectLtxVideoTargets = (options: VideoGenOptions, mode: VideoMode
     }
     if (options.videoLastFrame) {
       validateVideoMediaReferences([options.videoLastFrame], { flagName: '--last-frame', provider: 'ltx', model, kind: 'image' })
-    }
-    if (options.videoInputVideo) {
-      validateVideoMediaReferences([options.videoInputVideo], { flagName: '--input-video', provider: 'ltx', model, kind: 'video' })
     }
 
     return [{
@@ -41,8 +32,7 @@ export const collectLtxVideoTargets = (options: VideoGenOptions, mode: VideoMode
           aspectRatio: options.videoAspectRatio,
           resolution: options.videoResolution,
           inputImage: options.videoInputImage,
-          lastFrameImage: options.videoLastFrame,
-          inputVideo: options.videoInputVideo
+          lastFrameImage: options.videoLastFrame
         })
       }
     }]

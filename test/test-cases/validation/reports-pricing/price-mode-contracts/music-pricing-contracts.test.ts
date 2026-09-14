@@ -5,7 +5,7 @@ describe('price mode contracts', () => {
 
   test('Gemini music estimates use per-song Lyria 3 pricing', () => {
       const estimates = estimateMusicCosts({
-        geminiMusicModels: ['lyria-3-pro-preview'],
+        geminiMusicModels: ['lyria-3.5'],
         musicDuration: 90
       })
 
@@ -14,7 +14,7 @@ describe('price mode contracts', () => {
         model: estimate.model,
         totalCost: estimate.totalCost
       }))).toEqual([
-        { provider: 'gemini', model: 'lyria-3-pro-preview', totalCost: 8 }
+        { provider: 'gemini', model: 'lyria-3.5', totalCost: 8 }
       ])
     })
 })

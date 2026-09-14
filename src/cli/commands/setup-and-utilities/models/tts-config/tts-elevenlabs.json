@@ -2,6 +2,9 @@
   "elevenlabs": {
     "description": "ElevenLabs cloud text-to-speech",
     "type": "api",
+    "catalogSourceUrl": "https://elevenlabs.io/docs/overview/models",
+    "catalogCheckedAt": "2026-09-14",
+    "catalogNotes": "The 2026-09-14 catalog check still finds eleven_v3 as the flagship HTTP TTS and native-dialogue model. eleven_v3_conversational is a realtime WebSocket sibling and is excluded from this hosted TTS surface.",
     "models": {
       "eleven_v3": {
         "description": "ElevenLabs v3 — latest generation",
