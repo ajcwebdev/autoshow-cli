@@ -202,10 +202,13 @@ test('every recommended selector executes inference and CI contains every native
   expect(() => selectDockerScenarios({ suite: 'models', model: 'whisperfile:unknown' })).toThrow('No scenarios')
   expect(() => selectDockerScenarios({ suite: 'all' }, all.filter(item => item.model !== 'whisperfile:small'))).toThrow('Missing inference')
   const workflow = Bun.YAML.parse(await Bun.file('.github/workflows/docker-publish.yml').text()) as {
-    concurrency: { 'cancel-in-progress': boolean; group: string }
+    concurrency: { 'cancel-in-progress': boolean | string; group: string }
     jobs: Record<string, { needs?: string | string[]; if?: string; 'runs-on'?: string; strategy?: { 'fail-fast': boolean; matrix: { arch: string[]; shard: string[] } }; steps?: Array<{ if?: string; uses?: string }> }>
   }
-  expect(workflow.concurrency['cancel-in-progress']).toBe(false)
+  // Pushes share one serialized lock and are never cancelled so a publication cannot be interrupted mid-run;
+  // only superseded pull-request runs are cancelled. Bun.YAML keeps the unquoted expression as a string.
+  expect(workflow.concurrency.group).toBe("autoshow-ghcr-${{ github.event_name == 'push' && 'latest' || github.ref }}")
+  expect(workflow.concurrency['cancel-in-progress']).toBe("${{ github.event_name == 'pull_request' }}")
   const job = workflow.jobs['acceptance']!
   expect(job.needs).toBe('publish-manifest')
   expect(job.strategy?.matrix.arch).toEqual(['amd64', 'arm64'])
@@ -213,7 +216,7 @@ test('every recommended selector executes inference and CI contains every native
   expect(job.strategy?.['fail-fast']).toBe(false)
   expect(job['runs-on']).toContain('ubuntu-24.04-arm')
   expect(job.steps?.find(step => step.uses?.startsWith('actions/upload-artifact'))?.if).toBe('always()')
-  expect(workflow.jobs['acceptance-required']?.needs).toEqual(['publish-manifest', 'acceptance'])
+  expect(workflow.jobs['acceptance-required']?.needs).toEqual(['changes', 'publish-manifest', 'acceptance'])
 })
 
 test('zero selected/executed cases and incomplete runs cannot pass', async () => {

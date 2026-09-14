@@ -4,7 +4,7 @@ Shared `bun t` runner behavior plus the local and service test coverage map for 
 
 Default local verification is `bun run check` followed by `bun t --price`. Price mode estimates mapped commands without executing provider tests. The default runner uses fixture mode and does not forward provider credentials. Hosted execution requires explicit live mode, a credential allowlist, and valid budget evidence; apply the repository spending policy before running it.
 
-`bun run check` runs structure, name, and type checks without loading `.env`. Normal `bun autoshow` commands still load `.env` because provider commands need credentials.
+`bun run check` runs structure, name, and type checks without loading `.env`. `check:types` runs the pinned native TypeScript preview compiler (`@typescript/native-preview`, `tsgo`) against the same `tsconfig.json`; `bun run check:types:tsc` runs the reference `typescript` compiler, which reports identical diagnostics with a slower wall time, and CI cross-checks it in the package-hygiene job. Normal `bun autoshow` commands still load `.env` because provider commands need credentials.
 
 ## Outline
 
@@ -127,7 +127,7 @@ bun t test/test-cases/e2e/service/text/write/ --budget 2500
 
 ## No-Cost CI Gate
 
-Pull requests and pushes to `main` run the verification job in `.github/workflows/docker-publish.yml`. It runs the same work as `bun run check` and `bun t --price`, plus the approved CLI smoke selections and the local-only contract files listed in that job. The workflow supplies no provider credentials and does not run the full suite, unclassified shards, smoke/e2e selections, or provider-backed commands.
+Pull requests and pushes to `main` run the verification job in `.github/workflows/docker-publish.yml`. It runs the same work as `bun run check` and `bun t --price`, plus the approved CLI smoke selections and the local-only contract files listed in that job. The workflow supplies no provider credentials and does not run the full suite, unclassified shards, smoke/e2e selections, or provider-backed commands. The verify job installs ImageMagick, FFmpeg, MuPDF tools, and qpdf through apt in the background while `bun run check` runs, waits for that install so price-mode commands resolve the tools from `PATH` instead of starting their own installs, runs `bun t --price --no-cleanup`, prints per-command timings from the retained `metrics.ndjson` with `bun src/tools/ci-run-timings.ts price <metrics.ndjson>`, and then runs the CLI smoke, Docker and DOCX, and Bun migration contract groups concurrently in one step. `bun src/tools/ci-run-timings.ts run <run-id>` summarizes a finished run through `gh run view` (or `--json-file`) with per-job and per-step tables and the critical path.
 
 ## Package Review
 
