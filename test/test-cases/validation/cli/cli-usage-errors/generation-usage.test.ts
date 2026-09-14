@@ -83,6 +83,7 @@ test('video command rejections name the spellings the video command registers', 
   expect(() => collectVideoTargets(buildOptsFromFlags({
     'grok-video': 'grok-imagine-video-1.5',
     mode: 'edit',
-    duration: '5'
-  }))).toThrow('Invalid --mode value "edit"')
+    duration: '5',
+    'input-video': 'input/examples/video/2-video.mp4'
+  }))).toThrow('--mode edit is not supported by grok/grok-imagine-video-1.5')
 })
