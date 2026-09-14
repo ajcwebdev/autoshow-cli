@@ -82,7 +82,7 @@ describe('--max-model-cents', () => {
     const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
 
     expect(result.exitCode).toBe(0)
-    expect(output).toContain('generated-video-gemini-veo-3.1-lite-generate-preview.mp4')
+    expect(output).toContain('generated-video-gemini-gemini-omni-1.1-flash.mp4')
     expect(output).not.toContain('generated-video-gemini-veo-3.1-generate-preview.mp4')
     expect(output).not.toContain('generated-video-fal-minimax-h3.mp4')
   })

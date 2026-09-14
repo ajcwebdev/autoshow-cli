@@ -23,8 +23,8 @@ On `extract` and `resume`, pass `--provider provider[=model]`. On `config`, pass
 | Group                                                                | Providers                                                                       |
 | -------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | [Local](local/overview.md)                                           | Whisperfile                                                                     |
-| [Diarization](diarization/overview.md)                               | AssemblyAI, Deepgram, Gladia, Grok, Happy Scribe, Mistral, Soniox, Speechmatics |
-| [Diarization off by default](diarization-off-by-default/overview.md) | DeepInfra, Gemini, Together                                                     |
+| [Diarization](diarization/overview.md)                               | AssemblyAI, Deepgram, Gemini, Gladia, Grok, Happy Scribe, Mistral, Soniox, Speechmatics |
+| [Diarization off by default](diarization-off-by-default/overview.md) | DeepInfra, Together                                                             |
 
 See each subgroup for selectors, examples, and per-model capabilities. Public media URL transcripts (Supadata, ScrapeCreators) and YouTube caption fallback live under [URL extraction](../url/overview.md#public-media-url-transcripts).
 
@@ -71,7 +71,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/2-video.mp4 --provider d
 
 ## Provider Controls
 
-`--diarization` and `--no-diarization` apply to AssemblyAI, Deepgram, Gladia, Grok, Mistral, Soniox, Speechmatics, Together, and Gemini. Together and Gemini stay off unless enabled; Together also turns on with `--speaker-count`. `--speaker-count` is supported by AssemblyAI, Gladia, and Together, and is ignored when diarization is disabled. Mistral diarization uses segment timing; disable it for native word timestamps. Together Parakeet word timings can be incomplete. Gemini speaker labels are generated, not acoustic measurements. Providers that do not support the toggle, including Happy Scribe, report that it was ignored. Hide speaker labels at export with `--no-caption-speakers`.
+`--diarization` and `--no-diarization` apply to AssemblyAI, Deepgram, Gemini, Gladia, Grok, Mistral, Soniox, Speechmatics, and Together. Together stays off unless enabled; Together also turns on with `--speaker-count`. `--speaker-count` is supported by AssemblyAI, Gladia, and Together, and is ignored when diarization is disabled. Mistral diarization uses segment timing; disable it for native word timestamps. Together Parakeet word timings can be incomplete. Gemini uses native speaker diarization and word timestamps through `gemini-3.5-transcribe` (verbatim mode); `--speaker-count` is ignored, custom vocabulary and smart transcription are not exposed, and word timestamps may reduce accuracy. Providers that do not support the toggle, including Happy Scribe, report that it was ignored. Hide speaker labels at export with `--no-caption-speakers`.
 
 Chunked results label speakers as `chunk-N/speaker-ID`. The same number in two chunks is not assumed to be the same person. `resume` rejects transcription-setting changes that would reuse incompatible results.
 
@@ -94,7 +94,7 @@ AssemblyAI Universal-3.5 Pro is $0.21/hour plus $0.02/hour for diarization ($0.2
 
 - **Happy Scribe**: Estimated at `$0.01/min` from audio duration.
 - **Duration-priced hosted providers** (AssemblyAI, Deepgram, DeepInfra, Gladia, Grok STT, Mistral, Soniox, Speechmatics, Together): Estimated from media duration and published per-hour rates.
-- **Token-priced providers** (Gemini STT): Estimated from media duration at 32 audio tokens per second.
+- **Token-priced providers** (Gemini STT): Estimated from media duration at 25 audio tokens per second plus the advertised output component (~$0.30/hour).
 
 ## STT Notes
 

@@ -1,36 +1,20 @@
 {
   "gemini-stt": {
-    "description": "Gemini multimodal transcription via generateContent",
+    "description": "Gemini 3.5 Transcribe via the Interactions API",
     "type": "api",
     "models": {
-      "gemini-3.8-flash": {
-        "description": "Gemini 3.8 Flash prompted audio transcription",
-        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
-        "pricingCheckedAt": "2026-09-08",
+      "gemini-3.5-transcribe": {
+        "description": "Gemini 3.5 Transcribe with native speaker diarization and word timestamps",
+        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing#gemini-3.5-transcribe",
+        "pricingCheckedAt": "2026-09-14",
         "pricingCurrency": "USD",
         "pricingTier": "Gemini API paid Standard",
-        "pricingNotes": "Gemini 3.8 Flash introductory pricing is $0.75/1M input and $3.75/1M output tokens through 2026-12-31; standard $1.50/$7.50 rates begin 2027-01-01. AutoShow conservatively uses standard rates for both estimates and usage-based cost calculations, overstating introductory cost. The hourly baseline uses 32 audio tokens/sec; final cost includes prompt, candidate and thinking tokens. Timing is generated, not native word alignment. Reused latency heuristics are provisional. Free tier, caching, batch/flex/priority, taxes and credits are excluded. Automatic date transitions are unsupported; recheck the tariff and refresh all three workflow price paths by 2027-01-01.",
-        "costPerHourCents": 17.28,
+        "pricingNotes": "Gemini 3.5 Transcribe Standard paid pricing is $2.00/1M input tokens (audio, advertised $0.003/min) and $12.00/1M output tokens (advertised $0.002/min), for a combined ~$0.005/min or $0.30/hour. The hourly estimate uses 25 audio tokens/sec plus the advertised output component. AutoShow requests verbatim mode with speaker diarization and word timestamps; custom vocabulary and smart transcription are incompatible with those features and are not sent. Word timestamps may degrade transcription accuracy. Completed runs record usage-based input and output billing when returned. The reused timing estimate is provisional until an approved ADR-012 calibration. Thinking, caching, batch/flex/priority, free tier, taxes, and provider credits are excluded.",
+        "costPerHourCents": 30,
         "limits": {
-          "directUploadBytes": 20971520,
-          "notes": "Gemini inline audio requests are kept safely under the 20 MB inline request limit; larger inputs use the Files API. Audio input is tokenized at 32 tokens/second, and final billed cost also includes prompt and output tokens."
-        },
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerSecond": 892
-        }
-      },
-      "gemini-3.6-flash": {
-        "description": "Gemini 3.6 Flash prompted audio transcription",
-        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
-        "pricingCheckedAt": "2026-08-03",
-        "pricingCurrency": "USD",
-        "pricingTier": "Gemini API paid Standard",
-        "pricingNotes": "Gemini 3.6 Flash Standard paid pricing is $1.50/1M input tokens and $7.50/1M output tokens, including thinking tokens. The hourly estimate is the audio-input baseline using 32 audio tokens/sec from the Gemini token docs; completed runs record usageMetadata-based input and output billing when returned. The reused timing estimate is provisional until Phase 3 benchmarking completes. Free tier, batch/flex/priority prices, taxes, and provider credits are ignored.",
-        "costPerHourCents": 17.28,
-        "limits": {
-          "directUploadBytes": 20971520,
-          "notes": "Gemini inline audio requests are kept safely under the 20 MB inline request limit; larger inputs use the Files API. Audio input is tokenized at 32 tokens/second, and final billed cost also includes prompt and output tokens."
+          "directUploadBytes": 2147483648,
+          "durationSeconds": 1800,
+          "notes": "Unary audio is 1 hour; speaker diarization or word-level timestamps cap processing at 30 minutes, so AutoShow splits longer files. Uploads use the Files API up to 2 GiB. Audio input is tokenized at 25 tokens/second. Speaker diarization supports up to 8 speakers; attribution for 3 or more is experimental."
         },
         "estimation": {
           "costMultiplier": 1,

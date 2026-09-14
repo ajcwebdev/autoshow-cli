@@ -14,7 +14,7 @@ const expectedCoverage = [
   ['test/test-cases/e2e/service/text/ocr/anthropic-claude-fable-5-1.test.ts', 'extract-anthropic-claude-fable-5-1'],
   ['test/test-cases/e2e/service/text/ocr/openai-gpt-6-astra.test.ts', 'extract-openai-gpt-6-astra'],
   ['test/test-cases/e2e/service/text/ocr/mistral-ocr-4-1.test.ts', 'extract-mistral-mistral-ocr-4-1'],
-  ['test/test-cases/e2e/service/stt/diarization-off-by-default/gemini-3.8-flash.test.ts', 'transcribe-gemini-stt-gemini-3.8-flash'],
+  ['test/test-cases/e2e/service/stt/diarization/gemini-3.5-transcribe.test.ts', 'transcribe-gemini-stt-gemini-3.5-transcribe'],
   ['test/test-cases/e2e/service/audio/tts/cartesia-sonic-3.6-2026-08-27.test.ts', 'tts-cartesia-sonic-3.6-2026-08-27'],
   ['test/test-cases/e2e/service/visuals/image/grok-imagine-image-2.0.test.ts', 'image-grok-grok-imagine-image-2.0'],
   ['test/test-cases/e2e/service/visuals/video/ltx-2-5-fast.test.ts', 'video-ltx-ltx-2-5-fast'],

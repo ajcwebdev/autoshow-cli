@@ -117,7 +117,7 @@ describe('option resolution contracts', () => {
       expect(deepgramDefault).toBeDefined()
       expect(assemblyaiDefault).toBe('universal-3-5-pro')
       expect(gladiaDefault).toBe('solaria-3')
-      expect(geminiSttDefault).toBe('gemini-3.6-flash')
+      expect(geminiSttDefault).toBe('gemini-3.5-transcribe')
       expect(sonioxDefault).toBe('stt-async-v5')
       expect(speechmaticsDefault).toBe('melia-1')
       expect(togetherSttDefault).toBe('nvidia/parakeet-tdt-0.6b-v3')

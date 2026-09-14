@@ -64,7 +64,7 @@ describe('LTX 2.5 contracts', () => {
       expect(() => estimateVideoCost({ ltxVideoModels: [model], videoMode: 'reference-to-video' })).toThrow('is not supported')
       await expect(runLtxVideoGen('Synthetic prompt', '/unused', { model, mode: 'reference-to-video' })).rejects.toThrow('is not supported')
       for (const mode of ['extend', 'edit']) {
-        expect(() => collectVideoTargets({ ltxVideoModels: [model], videoMode: mode as never, videoInputVideo: 'https://fixtures.example/input.mp4' })).toThrow(`Invalid --mode value "${mode}"`)
+        expect(() => collectVideoTargets({ ltxVideoModels: [model], videoMode: mode as never, videoInputVideo: 'https://fixtures.example/input.mp4' })).toThrow(`--mode ${mode} is not supported by ltx/${model}`)
         expect(() => estimateVideoCost({ ltxVideoModels: [model], videoMode: mode as never })).toThrow()
         await expect(runLtxVideoGen('Synthetic prompt', '/unused', { model, mode: mode as never })).rejects.toThrow()
       }

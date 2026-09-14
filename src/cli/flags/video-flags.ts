@@ -5,6 +5,7 @@ import type { CliFlagsDefinition } from '~/types'
 import { STANDALONE_VIDEO_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 import {
   GEMINI_DURATION_SECONDS,
+  GEMINI_VIDEO_ASPECT_RATIOS,
   GEMINI_VIDEO_RESOLUTIONS,
   GROK_VIDEO_ASPECT_RATIOS,
   GROK_VIDEO_DURATION_RANGE,
@@ -34,19 +35,20 @@ const ltxFastOnlyDurations = LTX_FAST_1080P_DURATION_SECONDS.filter(
 export const videoGenFlags = {
   mode: strFlag(`Video generation mode: ${formatValueList(VIDEO_MODES)} (default: text)`),
   duration: strFlag(`Video duration in seconds: ${formatValuesByProvider([
-    { provider: 'Gemini Veo Lite', values: GEMINI_DURATION_SECONDS },
+    { provider: 'Gemini Omni', values: GEMINI_DURATION_SECONDS },
     { provider: 'Luma Labs', values: LUMA_DURATION_SECONDS, note: 'rounds to the nearer value' },
     { provider: 'LTX 2.5', values: LTX_DURATION_SECONDS, note: `2.5 Fast at 720p/1080p in either orientation also accept ${formatValueList(ltxFastOnlyDurations)}` }
   ])}, ${formatRange(GROK_VIDEO_DURATION_RANGE)} (Grok), ${formatRange(REPLICATE_HAPPYHORSE_DURATION_RANGE)} (Replicate HappyHorse), ${formatRange(REPLICATE_SEEDANCE_DURATION_RANGE)} (Replicate Seedance 2.5, where -1 means automatic duration), 5-15 (fal.ai H3/H3 Max), 4-30 (fal.ai Seedance 2.5, where -1 means automatic duration)`),
   'aspect-ratio': strFlag(`Video aspect ratio: ${formatValuesByProvider([
+    { provider: 'Gemini Omni', values: GEMINI_VIDEO_ASPECT_RATIOS },
     { provider: 'Replicate', values: REPLICATE_COMMON_ASPECT_RATIOS },
     { provider: 'Luma Labs', values: LUMA_ASPECT_RATIOS },
     { provider: 'Grok', values: GROK_VIDEO_ASPECT_RATIOS },
     { provider: 'LTX 2.5', values: LTX_ASPECT_RATIOS },
     { provider: 'fal.ai H3', values: FAL_H3_ASPECT_RATIOS }
-  ])}; Replicate Seedance 2.5 also supports ${formatValueList(seedanceExtraAspectRatios)}; Gemini Lite forwards any ratio to the Veo API unvalidated`),
+  ])}; Replicate Seedance 2.5 also supports ${formatValueList(seedanceExtraAspectRatios)}`),
   resolution: strFlag(`Video resolution: ${formatValuesByProvider([
-    { provider: 'Gemini Lite', values: GEMINI_VIDEO_RESOLUTIONS },
+    { provider: 'Gemini Omni', values: GEMINI_VIDEO_RESOLUTIONS },
     { provider: 'Grok', values: GROK_VIDEO_RESOLUTIONS },
     { provider: 'LTX 2.5', values: LTX_RESOLUTIONS },
     { provider: 'Replicate', values: REPLICATE_VIDEO_RESOLUTIONS, note: 'narrower on some models' },
@@ -58,7 +60,8 @@ export const videoGenFlags = {
   'input-image': strFlag('Video input image path, URL, or data URL for image-to-video and interpolation first frame (including Luma Labs start-frame generation)'),
   'last-frame': strFlag('Video last-frame image path, URL, or data URL for interpolation'),
   'reference-image': strListFlag('Reference image path, URL, or data URL for reference-to-video; repeat up to 3 times'),
-  'input-video': strFlag('Input MP4 path, URL, or data URL for reference-to-video'),
+  'input-video': strFlag('Input MP4 path, URL, or data URL for reference-to-video, or the source clip for Gemini Omni edit/extend (uploaded sources must be 10 seconds or less)'),
+  'previous-interaction-id': strFlag('Gemini Omni previous interaction id from a prior run manifest providerRequestId; used with --mode edit or --mode extend instead of re-uploading the video'),
   'generate-audio': {
     description: 'Video synchronized/native audio toggle where supported (Replicate Seedance 2.5/PixVerse V6, fal.ai Seedance 2.5)',
     type: Boolean
@@ -92,6 +95,7 @@ export const videoInputOptionNames = [
   'last-frame',
   'reference-image',
   'input-video',
+  'previous-interaction-id',
   'reference-video',
   'reference-audio'
 ] as const

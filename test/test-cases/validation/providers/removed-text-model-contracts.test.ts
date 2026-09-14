@@ -114,11 +114,13 @@ describe('write-only catalog removals stay valid for OCR and Gemini 3.6 Flash ST
     }))
   }
 
-  test('Gemini 3.6 Flash remains selectable for STT while write rejects it', () => {
+  test('Gemini 3.6 Flash is rejected for write and STT while OCR keeps it', () => {
     expect(() => parseWrite('gemini', 'gemini-3.6-flash')).toThrow(
       'Invalid model "gemini-3.6-flash" for --llm gemini[=model]. Allowed values: gemini-3.8-flash, gemini-3.7-flash'
     )
-    expect(buildOptsFromFlags({ 'gemini-stt': 'gemini-3.6-flash' }).geminiSttModels).toEqual(['gemini-3.6-flash'])
+    expect(() => buildOptsFromFlags({ 'gemini-stt': 'gemini-3.6-flash' })).toThrow(
+      'Model "gemini-3.6-flash" is retired for --provider/--stt gemini[=model]. Use "gemini-3.5-transcribe" instead.'
+    )
   })
 
   test('--all-ocr still expands write-removed IDs while --all-llm does not', () => {

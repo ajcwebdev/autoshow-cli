@@ -34,7 +34,7 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
   },
   {
     label: 'video',
-    args: ['video', 'a sunset over a lake', '--provider', 'gemini=veo-3.1-lite-generate-preview', '--price', '--json'],
+    args: ['video', 'a sunset over a lake', '--provider', 'gemini=gemini-omni-1.1-flash', '--price', '--json'],
     expected: 'video'
   },
   {

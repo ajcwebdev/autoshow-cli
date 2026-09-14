@@ -1,29 +1,41 @@
 {
   "gemini": {
-    "description": "Google Veo video generation",
+    "description": "Google Gemini Omni video generation",
     "type": "api",
     "resolutions": [
+      "360p",
       "720p",
-      "1080p"
+      "1080p",
+      "4k"
     ],
     "billedDurations": [
+      3,
       4,
+      5,
       6,
-      8
+      7,
+      8,
+      9,
+      10
     ],
     "models": {
-      "veo-3.1-lite-generate-preview": {
-        "description": "Veo 3.1 Lite \u2014 lower-cost video generation",
+      "gemini-omni-1.1-flash": {
+        "description": "Gemini Omni 1.1 Flash conversational video generation, editing, and extension",
         "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
-        "pricingCheckedAt": "2026-05-31",
+        "pricingCheckedAt": "2026-09-14",
         "pricingCurrency": "USD",
         "pricingTier": "Paid tier standard pay-as-you-go",
-        "pricingNotes": "Gemini pricing lists Veo 3.1 Lite at $0.05/s for 720p and $0.08/s for 1080p. 4k output is not supported.",
-        "baseCostPerSecondCents": 5,
-        "resolutionMultiplier1080p": 1.6,
+        "pricingNotes": "Gemini pricing bills Omni video output at $17.50 per 1M tokens, counted at 5,792 tokens per second of 720p video, about $0.10/s. 360p, 1080p, and 4K use the same published 720p effective rate until Google publishes resolution-specific token rates. 1080p and 4K are documented as upscaled. Input tokens ($1.50 per 1M) and thinking/text output ($9 per 1M) are extra and not modeled. Unspecified duration is budgeted at 10 seconds. Discounts, regional differences, taxes, and provider credits are ignored unless provider usage is returned.",
+        "baseCostPerSecondCents": 10,
+        "costPerSecondByResolutionCents": {
+          "360p": 10,
+          "720p": 10,
+          "1080p": 10,
+          "4k": 10
+        },
         "estimation": {
           "costMultiplier": 1,
-          "msPerSecond": 8000
+          "msPerSecond": 10000
         }
       }
     }

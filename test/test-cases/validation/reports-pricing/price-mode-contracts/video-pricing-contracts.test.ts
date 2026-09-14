@@ -130,14 +130,15 @@ describe('price mode contracts', () => {
       expect(cost({ grokVideoModels: ['grok-imagine-video-1.5'], videoDuration: 5, videoResolution: '480p', grokInputImageCount: 1 })).toBe('41.00¢')
       expect(cost({ grokVideoModels: ['grok-imagine-video-1.5'], videoDuration: 5, videoResolution: '1080p', grokInputImageCount: 1 })).toBe('$1.26')
 
-      expect(cost({ geminiVideoModels: ['veo-3.1-lite-generate-preview'], videoDuration: 4, videoResolution: '720p' })).toBe('20.00¢')
-      expect(cost({ geminiVideoModels: ['veo-3.1-lite-generate-preview'], videoDuration: 4, videoResolution: '1080p' })).toBe('64.00¢')
+      expect(cost({ geminiVideoModels: ['gemini-omni-1.1-flash'], videoDuration: 4, videoResolution: '720p' })).toBe('40.00¢')
+      expect(cost({ geminiVideoModels: ['gemini-omni-1.1-flash'], videoDuration: 4, videoResolution: '1080p' })).toBe('40.00¢')
+      expect(cost({ geminiVideoModels: ['gemini-omni-1.1-flash'], videoResolution: '720p' })).toBe('$1.00')
     })
 
-  test('cheapest default text-to-video selection is Gemini Veo Lite', () => {
+  test('cheapest default text-to-video selection is fal.ai H3 Max Turbo text-to-video', () => {
       expect(selectCheapestDefaultTextVideoSelection()).toMatchObject({
-        provider: 'gemini',
-        model: 'veo-3.1-lite-generate-preview'
+        provider: 'fal',
+        model: 'minimax/h3-max-turbo/text-to-video'
       })
     })
 
@@ -161,7 +162,7 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('grok-tts')).toBe('grok-tts')
       expect(resolveCheapestModelForFlag('mistral-tts')).toBe('voxtral-mini-tts-2603')
       expect(resolveCheapestModelForFlag('speechify-tts')).toBe('simba-3.2')
-      expect(resolveCheapestModelForFlag('gemini-stt')).toBe('gemini-3.6-flash')
+      expect(resolveCheapestModelForFlag('gemini-stt')).toBe('gemini-3.5-transcribe')
       expect(resolveCheapestModelForFlag('gladia-stt')).toBe('solaria-3')
       expect(resolveCheapestModelForFlag('supadata-stt')).toBe('auto')
       expect(resolveCheapestModelForFlag('scrapecreators-stt')).toBe('youtube-transcript')
@@ -170,13 +171,13 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('anthropic-ocr')).toBe('claude-sonnet-5')
       expect(resolveCheapestModelForFlag('deepinfra-ocr')).toBe('google/gemma-4-31B-it')
       expect(resolveCheapestModelForFlag('kimi-ocr')).toBe('kimi-k2.6')
-      expect(resolveCheapestModelForFlag('gemini-video')).toBe('veo-3.1-lite-generate-preview')
+      expect(resolveCheapestModelForFlag('gemini-video')).toBe('gemini-omni-1.1-flash')
       expect(resolveCheapestModelForFlag('glm-video')).toBeUndefined()
       expect(resolveCheapestModelForFlag('ltx-video')).toBe('ltx-2-5-fast')
       expect(resolveCheapestModelForFlag('replicate-video')).toBe('pixverse/pixverse-v6')
       expect(selectCheapestVideoSelection('gemini')).toMatchObject({
         provider: 'gemini',
-        model: 'veo-3.1-lite-generate-preview'
+        model: 'gemini-omni-1.1-flash'
       })
       expect(selectCheapestVideoSelection('ltx')).toMatchObject({
         provider: 'ltx',

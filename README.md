@@ -75,7 +75,7 @@ These examples use hosted providers:
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15
 bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2 --size 1024x1024
-bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=veo-3.1-lite-generate-preview
+bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=gemini-omni-1.1-flash
 bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental
 ```
 
