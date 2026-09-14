@@ -72,16 +72,57 @@ test('Docker documentation supports direct image invocation without a root scrip
 test('Docker images carry immutable build identity and publish provenance plus SBOM attestations', async () => {
   const dockerfile = await readFile(dockerfilePath, 'utf8')
   const workflow = await readFile(resolve(repositoryRoot, '.github/workflows/docker-publish.yml'), 'utf8')
+  const stages = dockerfile.split(/^(?=FROM )/m)
+  const stageName = (stage: string) => stage.match(/^FROM .+ AS (\S+)/)?.[1]
+  const identityStages = stages.filter(stage => /^ARG VCS_REF=/m.test(stage))
 
-  expect(dockerfile).toContain('ARG AUTOSHOW_VERSION=')
-  expect(dockerfile).toContain('ARG BUILD_DATE=')
-  expect(dockerfile).toContain('ARG VCS_REF=')
-  expect(dockerfile).toContain('org.opencontainers.image.revision="${VCS_REF}"')
+  expect(identityStages.map(stageName)).toEqual(['runtime', 'compiled-experiment'])
+  for (const stage of identityStages) {
+    const lastRun = stage.lastIndexOf('RUN ')
+    expect(lastRun).toBeGreaterThan(-1)
+    for (const declaration of ['ARG AUTOSHOW_VERSION=', 'ARG BUILD_DATE=', 'ARG VCS_REF=']) {
+      expect(stage.indexOf(declaration)).toBeGreaterThan(lastRun)
+    }
+    expect(stage).toContain('LABEL org.opencontainers.image.version="${AUTOSHOW_VERSION}"')
+    expect(stage).toContain('LABEL org.opencontainers.image.created="${BUILD_DATE}"')
+    expect(stage).toContain('LABEL org.opencontainers.image.revision="${VCS_REF}"')
+  }
+  const runtimeBase = stages.find(stage => stageName(stage) === 'runtime-base') ?? ''
+  expect(runtimeBase).toContain('ARG DEBIAN_SNAPSHOT=')
+  expect(runtimeBase).not.toMatch(/ARG (AUTOSHOW_VERSION|BUILD_DATE|VCS_REF)/)
+  expect(runtimeBase).not.toMatch(/\$\{(AUTOSHOW_VERSION|BUILD_DATE|VCS_REF)\}/)
   expect(dockerfile).toContain('org.opencontainers.image.source="https://github.com/ajcwebdev/autoshow-cli"')
   expect(workflow.match(/--provenance=mode=max/g)).toHaveLength(2)
   expect(workflow.match(/--sbom=true/g)).toHaveLength(2)
   // The two publishing builds and the two compiled-experiment builds share the identity args so the compiled build reuses the per-arch registry cache.
   expect(workflow.match(/--build-arg "VCS_REF=\$\{GITHUB_SHA\}"/g)).toHaveLength(4)
+  // Two publishing builds and two compiled-experiment builds import the per-architecture registry cache.
+  expect(workflow.match(/--cache-from "type=registry,ref=\$\{image\}:buildcache-(amd64|arm64)"/g)).toHaveLength(4)
+  expect(workflow).not.toContain(':buildcache" ')
+})
+
+test('dependency-graph image audits reuse the published per-architecture layer cache and rebuild weekly from scratch', async () => {
+  const workflowSource = await readFile(resolve(repositoryRoot, '.github/workflows/dependency-graphs.yml'), 'utf8')
+  const workflow = Bun.YAML.parse(workflowSource) as {
+    on?: { schedule?: Array<{ cron: string }>, workflow_dispatch?: { inputs?: Record<string, { type?: string, default?: unknown }> } }
+    jobs?: Record<string, { steps?: Array<{ name?: string, uses?: string, with?: Record<string, unknown>, env?: Record<string, string>, run?: string }> }>
+  }
+  const steps = workflow.jobs?.['images']?.steps ?? []
+  const builder = steps.find(step => step.uses === 'docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f')
+  const build = steps.find(step => step.name === 'Build this commit from the published layer cache or from scratch')
+
+  expect(workflow.on?.schedule).toHaveLength(1)
+  expect(workflow.on?.workflow_dispatch?.inputs?.['fresh_build']).toMatchObject({ type: 'boolean', default: false })
+  expect(builder?.with).toMatchObject({
+    version: 'v0.37.0',
+    'driver-opts': 'image=moby/buildkit:v0.33.0@sha256:6c2fa84a6b61ccd72899dde4239f8d5717f05f9a8ca6f3cad185fb1a95a94de3'
+  })
+  expect(build?.env?.['FRESH_BUILD']).toBe("${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.fresh_build == true) }}")
+  expect(build?.run).toContain('--cache-from "type=registry,ref=${image}:buildcache-${ARCH}"')
+  expect(build?.run).toContain('set -- --pull --no-cache')
+  expect(build?.run).toContain('--load')
+  expect(build?.run).not.toContain('type=gha')
+  expect(workflowSource).not.toContain('docker build --pull --no-cache')
 })
 
 test('Docker publication is blocked by exact-version no-cost verification and package hygiene', async () => {

@@ -68,15 +68,9 @@ FROM ${BUN_BASE_IMAGE} AS runtime-base
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DEBIAN_SNAPSHOT=20260913T180000Z
-ARG AUTOSHOW_VERSION=0.1.0
-ARG BUILD_DATE=unknown
-ARG VCS_REF=unknown
 
 LABEL org.opencontainers.image.title="autoshow-cli"
 LABEL org.opencontainers.image.description="Bun-native AutoShow CLI with Debian slim local-lite tools"
-LABEL org.opencontainers.image.version="${AUTOSHOW_VERSION}"
-LABEL org.opencontainers.image.created="${BUILD_DATE}"
-LABEL org.opencontainers.image.revision="${VCS_REF}"
 LABEL org.opencontainers.image.source="https://github.com/ajcwebdev/autoshow-cli"
 LABEL org.opencontainers.image.url="https://github.com/ajcwebdev/autoshow-cli/pkgs/container/autoshow-cli"
 
@@ -138,6 +132,13 @@ USER bun
 
 ENTRYPOINT ["bun", "--no-env-file", "/app/src/cli/create-cli.ts"]
 CMD ["help"]
+# Build identity is declared after the last RUN so per-commit values never invalidate cached layers.
+ARG AUTOSHOW_VERSION=0.1.0
+ARG BUILD_DATE=unknown
+ARG VCS_REF=unknown
+LABEL org.opencontainers.image.version="${AUTOSHOW_VERSION}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.revision="${VCS_REF}"
 
 FROM runtime-base AS compiled-experiment
 
@@ -155,6 +156,13 @@ USER bun
 
 ENTRYPOINT ["/app/autoshow"]
 CMD ["help"]
+# Build identity is declared after the last RUN so per-commit values never invalidate cached layers.
+ARG AUTOSHOW_VERSION=0.1.0
+ARG BUILD_DATE=unknown
+ARG VCS_REF=unknown
+LABEL org.opencontainers.image.version="${AUTOSHOW_VERSION}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.revision="${VCS_REF}"
 
 FROM runtime AS alignment
 COPY --chown=bun:bun config/stt-alignment ./config/stt-alignment
