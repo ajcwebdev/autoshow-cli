@@ -18,21 +18,19 @@ const expectConfigPatchRoundTrip = (
 describe('config image and TTS default contracts', () => {
   test('buildConfigPatchFromFlags saves hosted image defaults', () => {
     expectConfigPatchRoundTrip({
-      'bfl-image': ['flux-2-pro'],
-      'replicate-image': ['wan-video/wan-2.7-image'],
+      'replicate-image': ['alibaba/qwen-image-3'],
     }, 'image', {
-      bflImage: ['flux-2-pro'],
-      replicateImage: ['wan-video/wan-2.7-image'],
+      replicateImage: ['alibaba/qwen-image-3'],
     }, { merge: false })
   })
 
   test('buildConfigPatchFromFlags saves and merges Replicate video defaults', () => {
     expectConfigPatchRoundTrip({
-      'replicate-video': ['bytedance/seedance-2.0-fast'],
+      'replicate-video': ['bytedance/seedance-2.5'],
       'replicate-video-seed': '123',
       'replicate-video-negative-prompt': 'blur',
     }, 'video', {
-      replicateVideo: ['bytedance/seedance-2.0-fast'],
+      replicateVideo: ['bytedance/seedance-2.5'],
       replicateVideoSeed: 123,
       replicateVideoNegativePrompt: 'blur',
     })

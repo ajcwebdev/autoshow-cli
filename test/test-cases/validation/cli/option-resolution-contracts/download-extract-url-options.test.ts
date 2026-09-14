@@ -25,9 +25,9 @@ describe('option resolution contracts', () => {
   test('buildOptsFromFlags maps representative CLI flags to runtime options', () => {
       const opts = buildOptsFromFlags({
         openai: 'gpt-5.6-terra',
-        grok: 'grok-4.5',
+        grok: 'grok-4.6',
         glm: 'glm-5.3-flash',
-        kimi: 'kimi-k2.6',
+        kimi: 'kimi-k3',
         together: 'glm-5.3-flash',
         'mistral-stt': 'voxtral-mini-2602',
         'grok-stt': 'speech-to-text',
@@ -75,9 +75,9 @@ describe('option resolution contracts', () => {
       })
 
       expect(opts.openaiModels?.[0]).toBe('gpt-5.6-terra')
-      expect(opts.grokModels?.[0]).toBe('grok-4.5')
+      expect(opts.grokModels?.[0]).toBe('grok-4.6')
       expect(opts.glmModels?.[0]).toBe('glm-5.3-flash')
-      expect(opts.kimiModels?.[0]).toBe('kimi-k2.6')
+      expect(opts.kimiModels?.[0]).toBe('kimi-k3')
       expect(opts.togetherModels?.[0]).toBe('glm-5.3-flash')
       expect(opts.mistralSttModels?.[0]).toBe('voxtral-mini-2602')
       expect(opts.grokSttModels?.[0]).toBe('speech-to-text')

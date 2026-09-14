@@ -22,7 +22,7 @@ export const assertNoUnsupportedFlags = (
     const key = typeof entry === 'string' ? entry : entry.key
     const value = options[key]
     const unsupported = typeof entry === 'string'
-      ? value !== undefined && value !== false
+      ? value !== undefined
       : entry.when(value)
     return unsupported ? [IMAGE_OPTION_LABELS[key]] : []
   })
@@ -64,7 +64,6 @@ const IMAGE_OPTION_LABELS = {
   geminiImageModels: '--gemini-image',
   openaiImageModels: '--openai-image',
   grokImageModels: '--grok-image',
-  bflImageModels: '--bfl-image',
   replicateImageModels: '--replicate-image',
   lumalabsImageModels: '--lumalabs-image',
   falImageModels: '--fal-image',
@@ -77,7 +76,6 @@ const IMAGE_OPTION_LABELS = {
   imageInputs: '--input',
   imageMask: '--mask',
   imageResponseMode: '--response-mode',
-  geminiSearchGrounding: '--search-grounding',
   imageCompression: '--compression',
   imageProviderConcurrency: '--image-provider-concurrency',
   concurrencyMode: '--concurrency-mode',

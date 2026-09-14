@@ -41,7 +41,6 @@
       "https://docs.x.ai/developers/rest-api-reference/inference/images.md",
       "https://docs.x.ai/developers/model-capabilities/imagine.md",
       "https://docs.x.ai/developers/model-capabilities/images/generation.md",
-      "https://docs.x.ai/developers/models/grok-imagine-image-quality.md",
       "https://docs.x.ai/developers/models/grok-imagine-image-2.0.md",
       "https://docs.x.ai/developers/migration/imagine-image-quality-nov-2.md",
       "https://docs.x.ai/developers/model-capabilities/images/editing.md",
@@ -55,9 +54,6 @@
       "https://docs.x.ai/developers/model-capabilities/video/generation.md",
       "https://docs.x.ai/developers/model-capabilities/video/image-to-video.md",
       "https://docs.x.ai/developers/model-capabilities/video/reference-to-video.md",
-      "https://docs.x.ai/developers/model-capabilities/video/editing.md",
-      "https://docs.x.ai/developers/model-capabilities/video/extension.md",
-      "https://docs.x.ai/developers/models/grok-imagine-video.md",
       "https://docs.x.ai/developers/models/grok-imagine-video-1.5.md"
     ],
     "TTS": [

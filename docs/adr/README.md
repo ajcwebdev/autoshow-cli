@@ -262,7 +262,7 @@ Open follow-up work from ADRs and refresh reports, excluding never-ending refres
 **Item 8: [2026 Hosted-Model Refresh Report: TTS](../reports/model-refresh-tts.md)**
 
 - **Priority:** Low
-- **Next step:** Watch Cartesia for a dated Sonic 3.6 snapshot; do not register `sonic-preview`.
+- **Next step:** Watch Cartesia for a newer dated Sonic 3.6 snapshot; do not register `sonic-3.6` or `sonic-preview`. Canonical record: [model-refresh-tts-2026-09-14.md](../reports/model-refresh-tts-2026-09-14.md).
 
 **Item 9: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
 

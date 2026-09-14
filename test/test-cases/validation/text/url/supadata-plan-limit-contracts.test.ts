@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { classifyFetchRetry } from '~/utils/retries'
 import { isSupadataPlanLimitExhausted } from '~/utils/supadata-plan-limit'
-import { toSupadataHttpError } from '~/cli/commands/stt/direct-url/stt-supadata/supadata-utils'
+import { toSupadataHttpError } from '~/cli/commands/text/url/url-services/supadata-transcript/supadata-utils'
 import { extractErrorMetadata } from '~/utils/error-handler'
 
 const response = (status: number): Response => new Response(null, { status })

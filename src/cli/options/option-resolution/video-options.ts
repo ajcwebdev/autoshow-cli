@@ -34,7 +34,6 @@ export const buildVideoOptions = (ctx: ResolvedFlagContext): VideoRuntimeOptions
       integer: true
     }),
     replicateVideoNegativePrompt: readOptionalStringFlag(mergedFlags, 'replicate-video-negative-prompt'),
-    replicateVideoMultiPrompt: readOptionalStringFlag(mergedFlags, 'replicate-video-multi-prompt'),
     replicateVideoMultiClip: readOptionalBooleanFlag(mergedFlags, 'replicate-video-multi-clip')
   }
 }

@@ -1,9 +1,12 @@
 import { defineUrlTranscriptServiceTest } from './define-url-transcript-service-test'
-import { supadataUrlTranscript } from '../cases'
 
 const budgetKey = 'transcribe-supadata-auto'
 void budgetKey
 
 defineUrlTranscriptServiceTest({
-  ...supadataUrlTranscript,
+  service: 'supadata',
+  model: 'auto',
+  provider: 'supadata',
+  envVarKey: 'SUPADATA_API_KEY',
+  envVarDescription: 'Supadata YouTube transcript retrieval',
 })

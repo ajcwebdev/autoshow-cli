@@ -34,7 +34,7 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
   },
   {
     label: 'video',
-    args: ['video', 'a sunset over a lake', '--provider', 'gemini=veo-3.1-fast-generate-preview', '--price', '--json'],
+    args: ['video', 'a sunset over a lake', '--provider', 'gemini=veo-3.1-lite-generate-preview', '--price', '--json'],
     expected: 'video'
   },
   {
@@ -103,7 +103,7 @@ describe('price mode contracts', () => {
         '--llm',
         'openai=gpt-5.6-sol',
         '--llm',
-        'grok=grok-4.5',
+        'grok=grok-4.6',
         '--price', '--json'
       ])
 

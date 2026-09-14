@@ -258,13 +258,13 @@ describe('OpenAI REST image contracts', () => {
         revised_prompt: 'A sharper prompt',
         respect_moderation: true
       }],
-      model: 'grok-imagine-image-quality-actual',
+      model: 'grok-imagine-image-2.0-actual',
       usage: { cost_in_usd_ticks: 200_000_000 }
     }))
 
     await withTempDir(async (dir) => {
       const result = await runGrokImageGen('A test image', dir, {
-        model: 'grok-imagine-image-quality',
+        model: 'grok-imagine-image-2.0',
         count: 2,
         aspectRatio: '16:9',
         imageSize: '2K'
@@ -272,11 +272,11 @@ describe('OpenAI REST image contracts', () => {
 
       expect(result.metadata).toMatchObject({
         imageService: 'grok',
-        imageModel: 'grok-imagine-image-quality',
+        imageModel: 'grok-imagine-image-2.0',
         imageCount: 1,
         imageFileNames: ['generated-image.jpg'],
         revisedPrompt: 'A sharper prompt',
-        providerReturnedModel: 'grok-imagine-image-quality-actual',
+        providerReturnedModel: 'grok-imagine-image-2.0-actual',
         usageCostRaw: 200_000_000,
         providerCostCents: 2,
         providerCostSource: 'provider_usage',
@@ -287,10 +287,11 @@ describe('OpenAI REST image contracts', () => {
 
     expect(calls[0]?.url).toBe('https://api.x.ai/v1/images/generations')
     expect(calls[0]?.bodyJson).toMatchObject({
-      model: 'grok-imagine-image-quality',
+      model: 'grok-imagine-image-2.0',
       n: 2,
       aspect_ratio: '16:9',
-      resolution: '2k'
+      resolution: '2k',
+      quality: 'low'
     })
   })
 })

@@ -1,7 +1,7 @@
 export const TTS_PROVIDERS = ['elevenlabs', 'grok', 'mistral', 'openai', 'speechify', 'hume', 'cartesia', 'inworld'] as const
 export type TtsProvider = typeof TTS_PROVIDERS[number]
 
-const IMAGE_PROVIDERS = ['gemini', 'openai', 'grok', 'bfl', 'replicate', 'lumalabs', 'fal'] as const
+const IMAGE_PROVIDERS = ['gemini', 'openai', 'grok', 'replicate', 'lumalabs', 'fal'] as const
 export type ImageProvider = typeof IMAGE_PROVIDERS[number]
 
 const VIDEO_PROVIDERS = ['gemini', 'grok', 'ltx', 'replicate', 'lumalabs', 'fal'] as const

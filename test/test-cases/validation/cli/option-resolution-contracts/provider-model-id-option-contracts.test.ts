@@ -23,12 +23,11 @@ describe('option resolution contracts', () => {
       expect(() => validateTogetherModel('zai-org/GLM-5.3-FLASH')).toThrow(`Invalid model "zai-org/GLM-5.3-FLASH" for --llm together[=model]. ${expectedAllowed}`)
     })
 
-  test('Grok write model validator accepts Grok 4.5 and 4.6 and rejects aliases', () => {
-      const expectedAllowed = 'Allowed values: grok-4.5, grok-4.6'
+  test('Grok write model validator accepts Grok 4.6 and rejects Grok 4.5 plus aliases', () => {
+      const expectedAllowed = 'Allowed values: grok-4.6'
 
-      expect(validateGrokModel('grok-4.5')).toBe('grok-4.5')
-      expect(validateGrokModel('grok-4.5')).toBe('grok-4.5')
       expect(validateGrokModel('grok-4.6')).toBe('grok-4.6')
+      expect(() => validateGrokModel('grok-4.5')).toThrow(`Invalid model "grok-4.5" for --llm grok[=model]. ${expectedAllowed}`)
       expect(() => validateGrokModel('grok-4.5-latest')).toThrow(`Invalid model "grok-4.5-latest" for --llm grok[=model]. ${expectedAllowed}`)
       expect(() => validateGrokModel('grok-build-latest')).toThrow(`Invalid model "grok-build-latest" for --llm grok[=model]. ${expectedAllowed}`)
     })
@@ -110,10 +109,10 @@ describe('option resolution contracts', () => {
       })
 
       expect(openaiDefault).toBeDefined()
-      expect(geminiDefault).toBe('gemini-3.5-flash-lite')
-      expect(grokDefault).toBe('grok-4.5')
+      expect(geminiDefault).toBe('gemini-3.7-flash')
+      expect(grokDefault).toBe('grok-4.6')
       expect(glmDefault).toBeDefined()
-      expect(kimiDefault).toBe('kimi-k2.6')
+      expect(kimiDefault).toBe('kimi-k3')
       expect(togetherDefault).toBe('glm-5.3-flash')
       expect(deepgramDefault).toBeDefined()
       expect(assemblyaiDefault).toBe('universal-3-5-pro')

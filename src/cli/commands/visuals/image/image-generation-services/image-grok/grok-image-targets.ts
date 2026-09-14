@@ -16,12 +16,11 @@ export const collectGrokImageTargets = (options: ImageGenOptions): ImageTarget[]
       'imageBackground',
       'imageResponseMode',
       'imageCompression',
-      'imageMask',
-      { key: 'geminiSearchGrounding', when: value => value === true }
+      'imageMask'
     ], {
       provider: 'Grok',
       model,
-      hint: 'Supported Grok image options: --count, --aspect-ratio, --size 1K|2K, --input; Image 2.0 also supports --quality low|medium|auto and five references.'
+      hint: 'Supported Grok image options: --count, --aspect-ratio, --size 1K|2K, --quality low|medium|auto, and up to five --input references.'
     })
 
     return [{

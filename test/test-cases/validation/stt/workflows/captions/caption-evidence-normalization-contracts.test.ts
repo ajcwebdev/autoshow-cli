@@ -14,7 +14,7 @@ import { mergeTranscriptionEvidence } from '~/cli/commands/stt/stt-utils/stt-evi
 import { parseStoredTranscriptionResult } from '~/cli/commands/stt/stt-utils/stt-result-artifacts'
 import { buildTranscriptionCues, TRANSCRIPT_CUE_LIMITS } from '~/cli/commands/audio/music/lyrics-video/cue-builder'
 import { saveNativeSubtitle } from '~/cli/commands/stt/workflows/captions/native-subtitles'
-import { buildYoutubeCaptionTranscription } from '~/cli/commands/stt/direct-url/youtube-captions'
+import { buildYoutubeCaptionTranscription } from '~/cli/commands/text/url/url-services/youtube-captions/youtube-captions'
 import { buildAssemblyAiTranscriptRequest } from '~/cli/commands/stt/diarization/assemblyai/run-assemblyai-stt'
 import { buildSpeechmaticsTranscriptionConfig } from '~/cli/commands/stt/diarization/speechmatics/run-speechmatics-stt'
 import { computeBilledSttCost } from '~/cli/commands/pricing-orchestration/stt-billing'

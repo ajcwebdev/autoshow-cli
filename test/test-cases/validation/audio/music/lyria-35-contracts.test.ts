@@ -39,9 +39,9 @@ const withMock = async (body: unknown, fn: (calls: Array<{ url: string, init?: R
 }
 
 describe('Lyria 3.5 Interactions contracts', () => {
-  test('selectors, all expansion and defaults preserve Pro; pricing is per request', () => {
-    expect(buildOptsFromFlags({ 'gemini-music': true }).geminiMusicModels).toEqual(['lyria-3-pro-preview'])
-    expect(buildOptsFromFlags({ 'all-music': true }).geminiMusicModels).toEqual(['lyria-3-pro-preview', 'lyria-3.5'])
+  test('selectors, all expansion and defaults use Lyria 3.5; pricing is per request', () => {
+    expect(buildOptsFromFlags({ 'gemini-music': true }).geminiMusicModels).toEqual(['lyria-3.5'])
+    expect(buildOptsFromFlags({ 'all-music': true }).geminiMusicModels).toEqual(['lyria-3.5'])
     expect(collectMusicTargets(buildOptsFromFlags({ 'gemini-music': 'lyria-3.5' }))[0]?.model).toBe('lyria-3.5')
     for (const duration of [30, 120, 180]) {
       expect(estimateMusicCosts({ geminiMusicModels: ['lyria-3.5'], musicDuration: duration })[0]).toMatchObject({ totalCost: 8, durationSeconds: duration })
@@ -71,19 +71,6 @@ describe('Lyria 3.5 Interactions contracts', () => {
     }))
   })
 
-  test('two models retain independent primary files and new-model sidecars', async () => {
-    const mixed = { ...response, candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/mpeg', data: audio.data } }] } }] }
-    await withTempDir('autoshow-lyria-', async (dir) => withMock(mixed, async (calls) => {
-      const result = await runMusicTargets(collectMusicTargets({ geminiMusicModels: ['lyria-3-pro-preview', 'lyria-3.5'] }), 'Synthetic prompt', dir)
-      expect(calls).toHaveLength(2)
-      expect(calls.map(call => call.url).some(url => url.endsWith('/interactions'))).toBe(true)
-      expect(calls.map(call => call.url).some(url => url.endsWith(':generateContent'))).toBe(true)
-      const artifacts = Object.values(buildMusicArtifactMap(result.metadata))
-      expect(new Set(artifacts).size).toBe(4)
-      for (const name of artifacts) expect(await Bun.file(join(dir, name)).exists()).toBe(true)
-    }))
-  })
-
   test('provided lyrics and instrumental instructions use text input without exact-duration fields', async () => {
     await withTempDir('autoshow-lyria-', async (dir) => withMock(response, async (calls) => {
       const lyricsFile = join(dir, 'lyrics.txt')
@@ -94,15 +81,6 @@ describe('Lyria 3.5 Interactions contracts', () => {
       const instrumental = await runGeminiMusicGen('A synthetic song', dir, { model: 'lyria-3.5', forceInstrumental: true })
       expect(instrumental.metadata.lyricsSource).toBe('none')
       expect(JSON.parse(String(calls[1]?.init?.body)).input).toContain('Instrumental only, no vocals.')
-    }))
-  })
-
-  test('legacy Pro keeps GenerateContent payload and inline audio decoding', async () => {
-    await withTempDir('autoshow-lyria-', async (dir) => withMock({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/mpeg', data: audio.data } }] } }] }, async (calls) => {
-      const result = await runGeminiMusicGen('Synthetic prompt', dir, { model: 'lyria-3-pro-preview' })
-      expect(calls[0]?.url).toEndWith('/models/lyria-3-pro-preview:generateContent')
-      expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({ contents: [{ role: 'user', parts: [{ text: 'Synthetic prompt' }] }] })
-      expect(Buffer.from(await Bun.file(result.musicPath).arrayBuffer())).toEqual(bytes)
     }))
   })
 

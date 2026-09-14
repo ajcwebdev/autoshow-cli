@@ -139,12 +139,12 @@ export const videoCommand = defineCliCommand({
       'A positional image infers --mode image-to-video and cannot be combined with other input-image, last-frame, reference-image, or input-video flags. Use --provider to limit targets and --price to preview cost.',
     ],
     examples: [
-      ['bun autoshow video input/ajc.png --provider grok=grok-imagine-video --price', 'Estimate image-to-video for one explicit target'],
+      ['bun autoshow video input/ajc.png --provider grok=grok-imagine-video-1.5 --price', 'Estimate image-to-video for one explicit target'],
       ['bun autoshow video "a cinematic mountain sunrise"', 'Generate text-to-video with the cheapest default target'],
       ['bun autoshow video "a cinematic mountain sunrise" --provider gemini=veo-3.1-lite-generate-preview', 'Generate video with Gemini Veo'],
-      ['bun autoshow video "a cat playing piano" --provider grok=grok-imagine-video', 'Generate video with Grok'],
-      ['bun autoshow video "a product reveal shot" --provider ltx=ltx-2-3-fast', 'Generate video with LTX'],
-      ['bun autoshow video "a cinematic mountain sunrise" --provider replicate=bytedance/seedance-2.0-fast', 'Generate video with Replicate Seedance'],
+      ['bun autoshow video "a cat playing piano" --provider grok=grok-imagine-video-1.5', 'Generate video with Grok'],
+      ['bun autoshow video "a product reveal shot" --provider ltx=ltx-2-5-fast', 'Generate video with LTX'],
+      ['bun autoshow video "a cinematic mountain sunrise" --provider replicate=bytedance/seedance-2.5', 'Generate video with Replicate Seedance'],
       ['bun autoshow video "a slow dolly through a misty greenhouse" --provider lumalabs=ray-3.2', 'Generate video with Luma Labs Ray 3.2'],
       ['bun autoshow video "a cinematic mountain sunrise with synchronized ambience" --provider fal=minimax/h3 --duration 5 --resolution 2k', 'Generate video with fal.ai MiniMax H3']
     ]

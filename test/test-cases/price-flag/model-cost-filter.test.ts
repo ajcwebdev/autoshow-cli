@@ -82,7 +82,7 @@ describe('--max-model-cents', () => {
     const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
 
     expect(result.exitCode).toBe(0)
-    expect(output).toContain('generated-video-gemini-veo-3.1-fast-generate-preview.mp4')
+    expect(output).toContain('generated-video-gemini-veo-3.1-lite-generate-preview.mp4')
     expect(output).not.toContain('generated-video-gemini-veo-3.1-generate-preview.mp4')
     expect(output).not.toContain('generated-video-fal-minimax-h3.mp4')
   })
@@ -101,7 +101,7 @@ describe('--max-model-cents', () => {
 
     expect(result.exitCode).toBe(0)
     expect(output).toContain('gemini')
-    expect(output).toContain('generated-music-gemini-lyria-3-pro-preview.mp3')
+    expect(output).toContain('generated-music.mp3')
     expect(output).not.toContain('generated-music-elevenlabs-music_v2.mp3')
     expect(output).not.toContain('generated-music-minimax-music-3.0.mp3')
   })

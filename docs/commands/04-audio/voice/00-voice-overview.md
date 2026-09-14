@@ -17,9 +17,9 @@ Manage durable provider voice registrations separately from speech synthesis. Us
 bun autoshow voice <subcommand> [flags]
 ```
 
-Available actions are `list`, `consent`, `import`, `design`, `clone`, `audition`, `approve`, `retire`, and `delete`. Bare `voice` runs `list`. Run `bun autoshow voice <action> --help` for the exact action flags.
+Available actions are `list`, `consent`, `import`, `design`, `clone`, `audition`, `approve`, `retire`, and `delete`. Bare `voice` runs `list`.
 
-Import, local listing, approval, retirement, and audition support all eight active TTS providers: ElevenLabs, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, and Inworld. Remote catalog listing and delete support all except OpenAI. Design supports ElevenLabs, Hume, and Inworld. Clone supports ElevenLabs, Grok, Mistral, Cartesia, and Inworld.
+Import, local listing, approval, retirement, and audition support ElevenLabs, Grok, Mistral, OpenAI, Speechify, Hume, Cartesia, and Inworld. Remote catalog listing and delete support all except OpenAI. Design supports ElevenLabs, Hume, and Inworld. Clone supports ElevenLabs, Grok, Mistral, Cartesia, and Inworld.
 
 Author profiles in `input/characters/character-voices.json`. Profiles are independent of the visual character catalog. A minimal catalog is:
 
@@ -63,24 +63,24 @@ CARTESIA_API_KEY=...
 2. [List](./01-list.md) provider or account catalogs, or [import](./03-import.md) an existing voice ID.
 3. Optionally [design](./04-design.md) candidates and save one with `--save`, or [clone](./05-clone.md) from local samples.
 4. [Audition](./06-audition.md) the draft registration, then [approve](./07-approve.md) it.
-5. [Retire](./08-retire.md) or [delete](./09-delete.md) when the registration should no longer be current. Use `voice consent --revoke` to revoke a consent locator.
+5. [Retire](./08-retire.md) or [delete](./09-delete.md) when the registration should no longer be current.
 
 ## Artifacts
 
 Sample audio, previews, auditions, and consent records are stored separately from ordinary project output.
 
-The CLI writes registration metadata beside the authored profiles:
+Registration files live beside the authored profiles:
 
 - `input/characters/character-voice-registrations.json`
 - `input/characters/character-voice-current.json`
 - `input/characters/voice-candidates/`
 - `input/characters/voice-references/`
 
-The catalog keeps history. Only approved, ready voices are current.
+Retired registrations remain in the catalog. Only approved voices are current.
 
 ## Pricing
 
-Every voice operation accepts `--price`. Price mode performs no provider calls and writes no files. Treat estimates as a preflight; use the provider console for account-specific terms.
+Every voice operation accepts `--price`. Price mode performs no provider calls and writes no files.
 
 ## Command Docs
 

@@ -54,7 +54,6 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'gemini-image',
   'openai-image',
   'grok-image',
-  'bfl-image',
   'replicate-image',
   'lumalabs-image',
   'fal-image',

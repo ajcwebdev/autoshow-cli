@@ -26,32 +26,32 @@ The price-only preflight passes all 137 commands after updating renamed fixture 
 
 11 successful cases. Render-plan synthesis estimate for this suite: $0.29097. Conservative cumulative spending ledger for the related controls work: $1.00302. These are estimates, not confirmed provider charges.
 
-| Case | Audio seconds | Requests | Estimated USD | Audio |
-| --- | ---: | ---: | ---: | --- |
-| hume-octave-1-numeric-trailing | 21.17 | 5 | $0.02835 | [WAV](./hume-octave-1-numeric-trailing/speech.wav) · [Manifest](./hume-octave-1-numeric-trailing/manifest.json) |
-| hume-octave-1-inline-pauses | 27.48 | 5 | $0.03795 | [WAV](./hume-octave-1-inline-pauses/speech.wav) · [Manifest](./hume-octave-1-inline-pauses/manifest.json) |
-| hume-octave-2-numeric-trailing | 20.26 | 1 | $0.03645 | [WAV](./hume-octave-2-numeric-trailing/speech.wav) · [Manifest](./hume-octave-2-numeric-trailing/manifest.json) |
-| hume-octave-2-inline-pauses | 22.87 | 1 | $0.04605 | [WAV](./hume-octave-2-inline-pauses/speech.wav) · [Manifest](./hume-octave-2-inline-pauses/manifest.json) |
-| elevenlabs-eleven-v3-pacing-tags | 14.48 | 1 | $0.06890 | [WAV](./elevenlabs-eleven-v3-pacing-tags/speech.wav) · [Manifest](./elevenlabs-eleven-v3-pacing-tags/manifest.json) |
-| grok-grok-tts-numeric | 22.81 | 5 | $0.00340 | [WAV](./grok-grok-tts-numeric/speech.wav) · [Manifest](./grok-grok-tts-numeric/manifest.json) |
-| grok-grok-tts-tags | 21.76 | 1 | $0.00385 | [WAV](./grok-grok-tts-tags/speech.wav) · [Manifest](./grok-grok-tts-tags/manifest.json) |
-| cartesia-sonic-3.6-2026-08-27-numeric | 26.26 | 5 | $0.00923 | [WAV](./cartesia-sonic-3.6-2026-08-27-numeric/speech.wav) · [Manifest](./cartesia-sonic-3.6-2026-08-27-numeric/manifest.json) |
-| cartesia-sonic-3.6-2026-08-27-ssml | 26.18 | 5 | $0.01301 | [WAV](./cartesia-sonic-3.6-2026-08-27-ssml/speech.wav) · [Manifest](./cartesia-sonic-3.6-2026-08-27-ssml/manifest.json) |
-| inworld-realtime-tts-2-steering-tags | 24.58 | 1 | $0.03760 | [WAV](./inworld-realtime-tts-2-steering-tags/speech.wav) · [Manifest](./inworld-realtime-tts-2-steering-tags/manifest.json) |
-| inworld-realtime-tts-2-instructions | 26.14 | 5 | $0.00617 | [WAV](./inworld-realtime-tts-2-instructions/speech.wav) · [Manifest](./inworld-realtime-tts-2-instructions/manifest.json) |
+| Case                                  | Audio seconds | Requests | Estimated USD | Audio                                                                                                                         |
+| ------------------------------------- | ------------: | -------: | ------------: | ----------------------------------------------------------------------------------------------------------------------------- |
+| hume-octave-1-numeric-trailing        |         21.17 |        5 |      $0.02835 | [WAV](./hume-octave-1-numeric-trailing/speech.wav) · [Manifest](./hume-octave-1-numeric-trailing/manifest.json)               |
+| hume-octave-1-inline-pauses           |         27.48 |        5 |      $0.03795 | [WAV](./hume-octave-1-inline-pauses/speech.wav) · [Manifest](./hume-octave-1-inline-pauses/manifest.json)                     |
+| hume-octave-2-numeric-trailing        |         20.26 |        1 |      $0.03645 | [WAV](./hume-octave-2-numeric-trailing/speech.wav) · [Manifest](./hume-octave-2-numeric-trailing/manifest.json)               |
+| hume-octave-2-inline-pauses           |         22.87 |        1 |      $0.04605 | [WAV](./hume-octave-2-inline-pauses/speech.wav) · [Manifest](./hume-octave-2-inline-pauses/manifest.json)                     |
+| elevenlabs-eleven-v3-pacing-tags      |         14.48 |        1 |      $0.06890 | [WAV](./elevenlabs-eleven-v3-pacing-tags/speech.wav) · [Manifest](./elevenlabs-eleven-v3-pacing-tags/manifest.json)           |
+| grok-grok-tts-numeric                 |         22.81 |        5 |      $0.00340 | [WAV](./grok-grok-tts-numeric/speech.wav) · [Manifest](./grok-grok-tts-numeric/manifest.json)                                 |
+| grok-grok-tts-tags                    |         21.76 |        1 |      $0.00385 | [WAV](./grok-grok-tts-tags/speech.wav) · [Manifest](./grok-grok-tts-tags/manifest.json)                                       |
+| cartesia-sonic-3.6-2026-08-27-numeric |         26.26 |        5 |      $0.00923 | [WAV](./cartesia-sonic-3.6-2026-08-27-numeric/speech.wav) · [Manifest](./cartesia-sonic-3.6-2026-08-27-numeric/manifest.json) |
+| cartesia-sonic-3.6-2026-08-27-ssml    |         26.18 |        5 |      $0.01301 | [WAV](./cartesia-sonic-3.6-2026-08-27-ssml/speech.wav) · [Manifest](./cartesia-sonic-3.6-2026-08-27-ssml/manifest.json)       |
+| inworld-realtime-tts-2-steering-tags  |         24.58 |        1 |      $0.03760 | [WAV](./inworld-realtime-tts-2-steering-tags/speech.wav) · [Manifest](./inworld-realtime-tts-2-steering-tags/manifest.json)   |
+| inworld-realtime-tts-2-instructions   |         26.14 |        5 |      $0.00617 | [WAV](./inworld-realtime-tts-2-instructions/speech.wav) · [Manifest](./inworld-realtime-tts-2-instructions/manifest.json)     |
 
 ## Timing diagnostics
 
 Whole-turn words/minute includes natural silence and different self-describing labels. It is a screening proxy, not a measurement of the identical counting phrase or a strict speed-multiplier test. Only cases with five timed turn boundaries are shown. No audio has been stretched or trimmed to improve these results.
 
-| Case | Normal WPM | Slow WPM | Fast WPM | Screening result |
-| --- | ---: | ---: | ---: | --- |
-| hume-octave-1-numeric-trailing | 102.2 | 99.5 | 392.2 | Slow < normal < fast |
-| hume-octave-2-numeric-trailing | 91.9 | 133.3 | 192.0 | Review: ordering differs |
-| grok-grok-tts-numeric | 131.4 | 68.1 | 164.8 | Slow < normal < fast |
-| cartesia-sonic-3.6-2026-08-27-numeric | 114.6 | 72.3 | 96.8 | Review: ordering differs |
-| cartesia-sonic-3.6-2026-08-27-ssml | 116.2 | 68.2 | 100.0 | Review: ordering differs |
-| inworld-realtime-tts-2-instructions | 105.8 | 63.0 | 143.7 | Slow < normal < fast |
+| Case                                  | Normal WPM | Slow WPM | Fast WPM | Screening result         |
+| ------------------------------------- | ---------: | -------: | -------: | ------------------------ |
+| hume-octave-1-numeric-trailing        |      102.2 |     99.5 |    392.2 | Slow < normal < fast     |
+| hume-octave-2-numeric-trailing        |       91.9 |    133.3 |    192.0 | Review: ordering differs |
+| grok-grok-tts-numeric                 |      131.4 |     68.1 |    164.8 | Slow < normal < fast     |
+| cartesia-sonic-3.6-2026-08-27-numeric |      114.6 |     72.3 |     96.8 | Review: ordering differs |
+| cartesia-sonic-3.6-2026-08-27-ssml    |      116.2 |     68.2 |    100.0 | Review: ordering differs |
+| inworld-realtime-tts-2-instructions   |      105.8 |     63.0 |    143.7 | Slow < normal < fast     |
 
 ## Cases
 

@@ -6,14 +6,14 @@ import { expectArtifact, requireDefined } from '../../../../../test-utils/value-
 
 const MUSIC_GEN_TITLE = 'music-gen'
 
-defineBudgetedLiveServiceTest('music-multi-minimax-music-3.0-gemini-lyria-3-pro-preview', 'multi-provider run produces per-provider filenames and array metadata', ['MINIMAX_API_KEY', 'GEMINI_API_KEY'], async () => {
+defineBudgetedLiveServiceTest('music-multi-minimax-music-3.0-gemini-lyria-3.5', 'multi-provider run produces per-provider filenames and array metadata', ['MINIMAX_API_KEY', 'GEMINI_API_KEY'], async () => {
   const result = await runCommand(
     [
       'src/cli/create-cli.ts',
       'music',
       'bright acoustic pop with handclaps and a catchy chorus',
       '--provider', 'minimax=music-3.0',
-      '--provider', 'gemini=lyria-3-pro-preview',
+      '--provider', 'gemini=lyria-3.5',
       '--lyrics-file', 'input/examples/tts/01-tts-short.md',
     ],
   )
@@ -23,7 +23,7 @@ defineBudgetedLiveServiceTest('music-multi-minimax-music-3.0-gemini-lyria-3-pro-
   const outputDir = requireDefined(await findLatestDirectory(MUSIC_GEN_TITLE, result.outputRoot), `output directory for ${MUSIC_GEN_TITLE}`)
 
   await expectArtifact(`${outputDir}/generated-music-minimax-music-3.0.mp3`)
-  await expectArtifact(`${outputDir}/generated-music-gemini-lyria-3-pro-preview.mp3`)
+  await expectArtifact(`${outputDir}/generated-music-gemini-lyria-3.5.mp3`)
 
   const metadata = await readCanonicalRecord(outputDir) as {
     music?: Array<{ musicService?: string; musicModel?: string; lyricsSource?: string }>
@@ -36,7 +36,7 @@ defineBudgetedLiveServiceTest('music-multi-minimax-music-3.0-gemini-lyria-3-pro-
   )).toBe(true)
   expect(musicArr.some(m =>
     m.musicService === 'gemini'
-    && m.musicModel === 'lyria-3-pro-preview'
+    && m.musicModel === 'lyria-3.5'
     && m.lyricsSource === 'provided'
   )).toBe(true)
 })

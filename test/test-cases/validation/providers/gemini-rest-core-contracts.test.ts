@@ -110,14 +110,14 @@ describe('Gemini REST contracts', () => {
     })
 
     await withTempDir(async (dir) => {
-      await expect(runGeminiImageGen('a lighthouse', dir, { model: 'gemini-3-pro-image' }))
+      await expect(runGeminiImageGen('a lighthouse', dir, { model: 'gemini-3.1-flash-lite-image' }))
         .rejects.toThrow()
     })
 
     expect(calls).toHaveLength(1)
   })
 
-  for (const model of ['gemini-3.5-flash-lite', 'gemini-3.8-flash']) {
+  for (const model of ['gemini-3.7-flash', 'gemini-3.8-flash']) {
     test(`Gemini LLM structured output sends response JSON schema (${model})`, async () => {
       process.env['GEMINI_API_KEY'] = 'gemini-key'
       let requestSignal: AbortSignal | null | undefined
@@ -132,7 +132,7 @@ describe('Gemini REST contracts', () => {
         strategy: 'schema-guided',
         schemaName: 'Title',
         strict: true,
-        requestedReasoningEffort: model === 'gemini-3.8-flash' ? 'medium' : 'minimal',
+        requestedReasoningEffort: model === 'gemini-3.8-flash' ? 'medium' : 'low',
         schema: {
           type: 'object',
           additionalProperties: false,
@@ -151,7 +151,7 @@ describe('Gemini REST contracts', () => {
           required: ['title'],
           properties: { title: { type: 'string' } }
         },
-        thinkingConfig: { thinkingLevel: model === 'gemini-3.8-flash' ? 'MEDIUM' : 'MINIMAL' }
+        thinkingConfig: { thinkingLevel: model === 'gemini-3.8-flash' ? 'MEDIUM' : 'LOW' }
       })
       expect(requestSignal).toBeInstanceOf(AbortSignal)
     })

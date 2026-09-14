@@ -9,13 +9,13 @@ import { imageResponse, setupImageRestContractLifecycle } from './image-rest-con
 const { withDir: withTempDir } = setupImageRestContractLifecycle()
 
 describe('replicate image rest contracts', () => {
-  test('Replicate Seedream creates a synchronous prediction and downloads the returned image', async () => {
+  test('Replicate Seedream 5 Lite creates a synchronous prediction and downloads the returned image', async () => {
     process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
     const calls = installMockFetch((call) => {
       if (call.method === 'POST') {
         return jsonResponse({
           id: 'pred-sync',
-          model: 'bytedance/seedream-4.5',
+          model: 'bytedance/seedream-5-lite',
           status: 'succeeded',
           output: ['https://mock.replicate.local/out/result.jpg'],
           urls: { get: 'https://mock.replicate.local/v1/predictions/pred-sync' }
@@ -30,29 +30,30 @@ describe('replicate image rest contracts', () => {
       await writeFile(refPath, refBytes)
 
       const result = await runReplicateImageGen('A cinematic still life', dir, {
-        model: 'bytedance/seedream-4.5',
+        model: 'bytedance/seedream-5-lite',
         inputs: [refPath],
-        imageSize: '1536x1024',
-        aspectRatio: '16:9'
+        imageSize: '2K',
+        aspectRatio: '16:9',
+        outputFormat: 'jpeg'
       })
 
       expect(result.imagePaths[0]?.endsWith('generated-image.jpg')).toBe(true)
       expect(result.metadata).toMatchObject({
         imageService: 'replicate',
-        imageModel: 'bytedance/seedream-4.5',
+        imageModel: 'bytedance/seedream-5-lite',
         imageCount: 1,
         imageFileNames: ['generated-image.jpg'],
-        imageSize: '1536x1024',
+        imageSize: '2K',
         imageFormat: 'jpg',
         requestMode: 'edit',
-        providerCostCents: 4,
+        providerCostCents: 3.5,
         providerCostSource: 'registry_fallback'
       })
       expect(await Bun.file(result.imagePaths[0] as string).exists()).toBe(true)
     })
 
     expect(calls[0]).toMatchObject({
-      url: 'https://api.replicate.com/v1/models/bytedance/seedream-4.5/predictions',
+      url: 'https://api.replicate.com/v1/models/bytedance/seedream-5-lite/predictions',
       method: 'POST'
     })
     expect(calls[0]?.headers.get('authorization')).toBe('Bearer replicate-token')
@@ -64,10 +65,9 @@ describe('replicate image rest contracts', () => {
         sequential_image_generation: 'disabled',
         max_images: 1,
         image_input: [`data:image/png;base64,${Buffer.from(new Uint8Array([7, 8, 9])).toString('base64')}`],
-        size: 'custom',
-        width: 1536,
-        height: 1024,
-        aspect_ratio: '16:9'
+        size: '2K',
+        aspect_ratio: '16:9',
+        output_format: 'jpeg'
       }
     })
     expect(calls[1]?.url).toBe('https://mock.replicate.local/out/result.jpg')
@@ -87,7 +87,7 @@ describe('replicate image rest contracts', () => {
       if (call.url === 'https://mock.replicate.local/v1/predictions/pred-async') {
         return jsonResponse({
           id: 'pred-async',
-          model: 'qwen/qwen-image-2-pro',
+          model: 'alibaba/qwen-image-3-pro',
           status: 'succeeded',
           output: 'https://mock.replicate.local/out/qwen.png'
         })
@@ -101,7 +101,7 @@ describe('replicate image rest contracts', () => {
       await writeFile(refPath, refBytes)
 
       const result = await runReplicateImageGen('Restyle this product image', dir, {
-        model: 'qwen/qwen-image-2-pro',
+        model: 'alibaba/qwen-image-3-pro',
         inputs: [refPath],
         aspectRatio: '1:1'
       })
@@ -109,18 +109,18 @@ describe('replicate image rest contracts', () => {
       expect(result.imagePaths[0]?.endsWith('generated-image.png')).toBe(true)
       expect(result.metadata).toMatchObject({
         imageService: 'replicate',
-        imageModel: 'qwen/qwen-image-2-pro',
+        imageModel: 'alibaba/qwen-image-3-pro',
         imageCount: 1,
         imageFileNames: ['generated-image.png'],
         imageFormat: 'png',
         requestMode: 'edit',
-        providerCostCents: 7.5,
+        providerCostCents: 4,
         providerCostSource: 'registry_fallback'
       })
     })
 
     expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual([
-      'POST https://api.replicate.com/v1/models/qwen/qwen-image-2-pro/predictions',
+      'POST https://api.replicate.com/v1/models/alibaba/qwen-image-3-pro/predictions',
       'GET https://mock.replicate.local/v1/predictions/pred-async',
       'GET https://mock.replicate.local/out/qwen.png'
     ])
@@ -134,19 +134,15 @@ describe('replicate image rest contracts', () => {
     })
   })
 
-  test('Replicate Wan maps custom size, input images, and multiple outputs', async () => {
+  test('Replicate Qwen Image 3 maps a single reference without size', async () => {
     process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
     const calls = installMockFetch((call) => {
       if (call.method === 'POST') {
         return jsonResponse({
-          id: 'pred-wan',
+          id: 'pred-qwen',
           status: 'succeeded',
-          output: [
-            'https://mock.replicate.local/out/one.png',
-            'https://mock.replicate.local/out/two.png',
-            'https://mock.replicate.local/out/three.png'
-          ],
-          urls: { get: 'https://mock.replicate.local/v1/predictions/pred-wan' }
+          output: ['https://mock.replicate.local/out/one.png'],
+          urls: { get: 'https://mock.replicate.local/v1/predictions/pred-qwen' }
         })
       }
       return imageResponse(new Uint8Array([8, 8, 8]), 'image/png')
@@ -157,42 +153,35 @@ describe('replicate image rest contracts', () => {
       const refBytes = new Uint8Array([5, 5, 5])
       await writeFile(refPath, refBytes)
 
-      const result = await runReplicateImageGen('Create a campaign image set', dir, {
-        model: 'wan-video/wan-2.7-image',
-        inputs: [refPath, 'https://cdn.example.com/reference.png'],
-        imageSize: '1920x1080',
-        count: 3
+      const result = await runReplicateImageGen('Create a campaign image', dir, {
+        model: 'alibaba/qwen-image-3',
+        inputs: [refPath],
+        aspectRatio: '16:9'
       })
 
-      expect(result.imagePaths.map((path) => path.endsWith('.png'))).toEqual([true, true, true])
+      expect(result.imagePaths[0]?.endsWith('.png')).toBe(true)
       expect(result.metadata).toMatchObject({
         imageService: 'replicate',
-        imageModel: 'wan-video/wan-2.7-image',
-        imageCount: 3,
-        imageFileNames: ['generated-image.png', 'generated-image-2.png', 'generated-image-3.png'],
-        imageSize: '1920x1080',
+        imageModel: 'alibaba/qwen-image-3',
+        imageCount: 1,
+        imageFileNames: ['generated-image.png'],
         imageFormat: 'png',
         requestMode: 'edit',
-        providerCostCents: 9,
+        providerCostCents: 3,
         providerCostSource: 'registry_fallback'
       })
     })
 
     expect(calls[0]?.bodyJson).toEqual({
       input: {
-        prompt: 'Create a campaign image set',
-        images: [
-          `data:image/bmp;base64,${Buffer.from(new Uint8Array([5, 5, 5])).toString('base64')}`,
-          'https://cdn.example.com/reference.png'
-        ],
-        size: '1920*1080',
-        num_outputs: 3
+        prompt: 'Create a campaign image',
+        match_input_image: true,
+        image: `data:image/bmp;base64,${Buffer.from(new Uint8Array([5, 5, 5])).toString('base64')}`,
+        aspect_ratio: '16:9'
       }
     })
     expect(calls.slice(1).map((call) => call.url)).toEqual([
-      'https://mock.replicate.local/out/one.png',
-      'https://mock.replicate.local/out/two.png',
-      'https://mock.replicate.local/out/three.png'
+      'https://mock.replicate.local/out/one.png'
     ])
   })
 
@@ -252,7 +241,7 @@ describe('replicate image rest contracts', () => {
 
     await withTempDir(async (dir) => {
       await expect(runReplicateImageGen('Blocked prompt', dir, {
-        model: 'wan-video/wan-2.7-image'
+        model: 'alibaba/qwen-image-3'
       })).rejects.toThrow('terminal failure - prompt rejected')
     })
 
@@ -273,7 +262,7 @@ describe('replicate image rest contracts', () => {
     await withTempDir(async (dir) => {
       const error = await expectProviderHttpError(
         () => runReplicateImageGen('Rejected prompt', dir, {
-          model: 'wan-video/wan-2.7-image'
+          model: 'alibaba/qwen-image-3'
         }),
         { status: 400 }
       )

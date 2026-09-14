@@ -1,7 +1,6 @@
 import { extname } from 'node:path'
 import type { ImageGenOptions, ImageTarget, Step5Metadata } from '~/types'
 import { sanitizeModelName } from '~/cli/commands/command-shared/target-runner'
-import { getBflImageExtension } from '../image-generation-services/bfl/run-bfl-image-gen'
 import { getReplicateImageExtension } from '../image-generation-services/replicate/run-replicate-image-gen'
 import { getLumalabsImageExtension } from '../image-generation-services/lumalabs/run-lumalabs-image-gen'
 import { getFalImageExtension } from '../image-generation-services/fal-image-service/run-fal-image-gen'
@@ -14,10 +13,6 @@ export const getExpectedImageCount = (
   options: ImageGenOptions
 ): number => {
   if (target.service === 'openai' || target.service === 'grok' || target.service === 'fal') {
-    return Math.max(1, options.imageCount ?? 1)
-  }
-
-  if (target.service === 'replicate' && target.model.startsWith('wan-video/')) {
     return Math.max(1, options.imageCount ?? 1)
   }
 
@@ -34,10 +29,6 @@ const getExpectedImageExtension = (
 
   if (target.service === 'grok') {
     return 'jpg'
-  }
-
-  if (target.service === 'bfl') {
-    return getBflImageExtension(options.imageFormat)
   }
 
   if (target.service === 'replicate') {

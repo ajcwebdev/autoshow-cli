@@ -20,13 +20,13 @@ const image = 'https://fixtures.example/first.png'
 const last = 'https://fixtures.example/last.png'
 
 describe('LTX 2.5 contracts', () => {
-  test('selectors add both models and preserve the bare provider default and old targets', () => {
-    expect(buildOptsFromFlags({ 'ltx-video': true }).ltxVideoModels).toEqual(['ltx-2-3-fast'])
+  test('selectors add both 2.5 models and use 2.5 Fast as the bare provider default', () => {
+    expect(buildOptsFromFlags({ 'ltx-video': true }).ltxVideoModels).toEqual(['ltx-2-5-fast'])
     for (const model of models) {
       expect(collectVideoTargets(buildOptsFromFlags({ 'ltx-video': model })).map(target => target.model)).toEqual([model])
     }
     expect(collectVideoTargets(buildOptsFromFlags({ 'all-video': true })).filter(target => target.service === 'ltx').map(target => target.model))
-      .toEqual(['ltx-2-3-fast', 'ltx-2-3-pro', ...models])
+      .toEqual([...models])
   })
 
   test('24 fps capability matrix and exact prices agree for all resolutions, orientations and input modes', () => {
@@ -54,20 +54,20 @@ describe('LTX 2.5 contracts', () => {
       }
     }
     expect(normalizeLtxVideoSize('ltx-2-5-fast', undefined, undefined)).toBe('1920x1080')
-    // Legacy normalization and the narrower CLI resolution surface stay unchanged.
-    expect(normalizeLtxVideoDuration('ltx-2-3-fast', '1080x1920', 20)).toBe(10)
-    expect(() => normalizeLtxVideoSize('ltx-2-3-fast', '720p', undefined)).toThrow('Expected 1080p or 4k')
+    expect(normalizeLtxVideoSize('ltx-2-5-fast', '720p', undefined)).toBe('1280x720')
   })
 
   test('unsupported modes and malformed inputs fail before HTTP, including direct runner calls', async () => {
     const calls = installMockFetch(() => { throw new Error('Unexpected HTTP') })
     for (const model of models) {
-      for (const mode of ['extend', 'edit', 'reference-to-video'] as const) {
-        expect(() => collectVideoTargets({ ltxVideoModels: [model], videoMode: mode, ...(mode === 'reference-to-video' ? { videoReferenceImages: [image] } : { videoInputVideo: 'https://fixtures.example/input.mp4' }) })).toThrow('is not supported')
-        expect(() => estimateVideoCost({ ltxVideoModels: [model], videoMode: mode })).toThrow('is not supported')
-        await expect(runLtxVideoGen('Synthetic prompt', '/unused', { model, mode })).rejects.toThrow('is not supported')
+      expect(() => collectVideoTargets({ ltxVideoModels: [model], videoMode: 'reference-to-video', videoReferenceImages: [image] })).toThrow('is not supported')
+      expect(() => estimateVideoCost({ ltxVideoModels: [model], videoMode: 'reference-to-video' })).toThrow('is not supported')
+      await expect(runLtxVideoGen('Synthetic prompt', '/unused', { model, mode: 'reference-to-video' })).rejects.toThrow('is not supported')
+      for (const mode of ['extend', 'edit']) {
+        expect(() => collectVideoTargets({ ltxVideoModels: [model], videoMode: mode as never, videoInputVideo: 'https://fixtures.example/input.mp4' })).toThrow(`Invalid --mode value "${mode}"`)
+        expect(() => estimateVideoCost({ ltxVideoModels: [model], videoMode: mode as never })).toThrow()
+        await expect(runLtxVideoGen('Synthetic prompt', '/unused', { model, mode: mode as never })).rejects.toThrow()
       }
-      expect(collectVideoTargets({ ltxVideoModels: [model], allVideo: true, videoMode: 'extend', videoInputVideo: 'https://fixtures.example/input.mp4' })).toEqual([])
       for (const options of [{ resolution: '480p' }, { aspectRatio: '1:1' }, { durationSeconds: 7 }, { mode: 'image-to-video' as const }, { mode: 'interpolate' as const, inputImage: image }, { inputImage: image }]) {
         await expect(runLtxVideoGen('Synthetic prompt', '/unused', { model, ...options })).rejects.toThrow()
       }

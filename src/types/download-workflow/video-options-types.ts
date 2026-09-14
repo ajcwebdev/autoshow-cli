@@ -20,6 +20,5 @@ export type VideoRuntimeOptions = {
   videoReferenceVideos: string[] | undefined
   videoReferenceAudios: string[] | undefined
   replicateVideoNegativePrompt: string | undefined
-  replicateVideoMultiPrompt: string | undefined
   replicateVideoMultiClip: boolean | undefined
 }

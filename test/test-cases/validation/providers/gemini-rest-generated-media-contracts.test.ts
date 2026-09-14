@@ -101,24 +101,23 @@ describe('Gemini REST contracts', () => {
     expect(unwrapped.response).toBeUndefined()
   })
 
-  test('Gemini Lyria writes inline audio and preserves generated text metadata', async () => {
+  test('Gemini Lyria writes interaction audio and preserves generated text metadata', async () => {
     process.env['GEMINI_API_KEY'] = 'gemini-key'
     const calls = installFetch(() => jsonResponse({
-      candidates: [{
-        content: {
-          parts: [
-            { text: '[Verse]\nSilver static in the sky' },
-            { inlineData: { mimeType: 'audio/mpeg', data: audioBase64 } }
-          ]
-        }
-      }]
+      status: 'completed',
+      steps: [
+        { type: 'model_output', content: [
+          { type: 'text', text: '[Verse]\nSilver static in the sky' },
+          { type: 'audio', mime_type: 'audio/mpeg', data: audioBase64 }
+        ] }
+      ]
     }))
 
     await withTempDir(async (dir) => {
       const lyricsPath = join(dir, 'lyrics.txt')
       await writeFile(lyricsPath, 'Bright lights tonight')
       const result = await runGeminiMusicGen('90s pop rock', dir, {
-        model: 'lyria-3-pro-preview',
+        model: 'lyria-3.5',
         durationSeconds: 120,
         lyricsFile: lyricsPath
       })
@@ -133,7 +132,8 @@ describe('Gemini REST contracts', () => {
       })
     })
 
-    const prompt = ((((calls[0]?.bodyJson?.['contents'] as unknown[])[0] as Record<string, unknown>)['parts'] as Array<Record<string, unknown>>)[0]?.['text'])
+    expect(calls[0]?.url).toEndWith('/interactions')
+    const prompt = (calls[0]?.bodyJson as { input?: string } | undefined)?.input
     expect(prompt).toContain('90s pop rock')
     expect(prompt).toContain('Create a song that is about 120 seconds long.')
     expect(prompt).toContain('Lyrics:\nBright lights tonight')

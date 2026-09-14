@@ -4,14 +4,12 @@ import { join } from 'node:path'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectMusicTargets } from '~/cli/commands/audio/music/music-targets'
 import { runElevenLabsMusicGen } from '~/cli/commands/audio/music/music-services/music-elevenlabs/run-elevenlabs-music-gen'
-import { writeGeminiMusicInlineAudio } from '~/cli/commands/audio/music/music-services/music-gemini/run-gemini-music-gen'
 import { runMinimaxMusicGen } from '~/cli/commands/audio/music/music-services/music-minimax/run-minimax-music-gen'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
 import { expectProviderHttpError, restoreEnv, snapshotEnv } from '../../../../test-utils/rest-contract-helpers'
 
 const audioBytes = new Uint8Array([1, 2, 3, 4])
 const audioHex = Buffer.from(audioBytes).toString('hex')
-const audioBase64 = Buffer.from(audioBytes).toString('base64')
 
 const withEnvAndFetch = async <T,>(
   env: Record<string, string | undefined>,
@@ -222,25 +220,6 @@ describe('music provider contracts', () => {
         })).rejects.toThrow('must be 3500 characters or fewer')
 
         expect(calls).toHaveLength(callCountBeforeLyricsValidation)
-      })
-    })
-  })
-
-  test('Gemini text parts are preserved while audio inline data is written', async () => {
-    await withTempDir('autoshow-music-provider-', async (dir) => {
-      const musicPath = join(dir, 'generated-music.mp3')
-      const result = await writeGeminiMusicInlineAudio([
-        { thought: true, text: 'hidden scratchpad' },
-        { text: '[Verse]\nSilver static in the sky' },
-        { inlineData: { data: Buffer.alloc(0).toString('base64'), mimeType: 'audio/mpeg' } },
-        { inlineData: { data: audioBase64, mimeType: 'audio/mpeg' } }
-      ], musicPath)
-
-      expect(new Uint8Array(await Bun.file(musicPath).arrayBuffer())).toEqual(audioBytes)
-      expect(result).toEqual({
-        audioMimeType: 'audio/mpeg',
-        outputFormat: 'mp3',
-        generatedText: '[Verse]\nSilver static in the sky'
       })
     })
   })

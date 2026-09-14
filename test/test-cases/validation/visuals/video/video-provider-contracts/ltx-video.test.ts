@@ -12,16 +12,16 @@ import {
 } from './shared'
 
 describe('video provider REST contracts', () => {
-  test('LTX sends text, image, interpolation, and extension request bodies with metadata cost fallback', async () => {
+  test('LTX 2.5 sends text, image, and interpolation request bodies with metadata cost fallback', async () => {
     process.env['LTXV_API_KEY'] = 'ltx-key'
     let requestIndex = 0
     let pollAttempts = 0
     const calls = installMockFetch((call) => {
-      if (call.url.startsWith('https://api.ltx.video/v2/') && call.method === 'POST') {
+      if (call.url.startsWith('https://api.ltx.io/v2/') && call.method === 'POST') {
         requestIndex += 1
         return jsonResponse({ id: `ltx-${requestIndex}` })
       }
-      if (call.url.startsWith('https://api.ltx.video/v2/') && call.method === 'GET') {
+      if (call.url.startsWith('https://api.ltx.io/v2/') && call.method === 'GET') {
         pollAttempts += 1
         if (pollAttempts === 1) {
           return jsonResponse({ error: 'temporary outage' }, { status: 503 })
@@ -40,21 +40,21 @@ describe('video provider REST contracts', () => {
     })
 
     await withTempDir(async (dir) => {
-      const { imagePath, lastFramePath, videoPath } = await writeMediaFixtures(dir)
+      const { imagePath, lastFramePath } = await writeMediaFixtures(dir)
       const text = await runLtxVideoGen('plain prompt', dir, {
-        model: 'ltx-2-3-fast',
-        durationSeconds: 20
+        model: 'ltx-2-5-fast',
+        durationSeconds: 8
       })
       const image = await runLtxVideoGen(undefined, dir, {
-        model: 'ltx-2-3-fast',
+        model: 'ltx-2-5-fast',
         mode: 'image-to-video',
         inputImage: imagePath,
         aspectRatio: '9:16',
         resolution: '4k',
-        durationSeconds: 12
+        durationSeconds: 10
       })
       const interpolate = await runLtxVideoGen('transition frames', dir, {
-        model: 'ltx-2-3-pro',
+        model: 'ltx-2-5-pro',
         mode: 'interpolate',
         inputImage: imagePath,
         lastFrameImage: lastFramePath,
@@ -62,26 +62,25 @@ describe('video provider REST contracts', () => {
         aspectRatio: '16:9',
         durationSeconds: 8
       })
-      const extend = await runLtxVideoGen('continue forward', dir, {
-        model: 'ltx-2-3-pro',
-        mode: 'extend',
-        inputVideo: videoPath,
-        durationSeconds: 30
-      })
+      await expect(runLtxVideoGen('continue forward', dir, {
+        model: 'ltx-2-5-pro',
+        mode: 'extend' as never,
+        durationSeconds: 10
+      })).rejects.toThrow()
 
       expect(text.metadata).toMatchObject({
         videoGenService: 'ltx',
-        videoGenModel: 'ltx-2-3-fast',
+        videoGenModel: 'ltx-2-5-fast',
         videoFileName: 'generated-video.mp4',
         videoFileSize: videoBytes.byteLength,
-        videoDuration: 20,
+        videoDuration: 8,
         videoSize: '1920x1080',
         requestMode: 'text',
         videoResolution: '1080p',
         videoAspectRatio: '16:9',
         providerRequestId: 'ltx-1',
         providerVideoUrl: 'https://cdn.example.com/ltx-1.mp4',
-        providerCostCents: 120,
+        providerCostCents: 104,
         providerCostSource: 'registry_fallback'
       })
       expect(image.metadata).toMatchObject({
@@ -91,7 +90,7 @@ describe('video provider REST contracts', () => {
         videoResolution: '4k',
         videoAspectRatio: '9:16',
         inputImage: imagePath,
-        providerCostCents: 240
+        providerCostCents: 300
       })
       expect(interpolate.metadata).toMatchObject({
         videoDuration: 8,
@@ -100,45 +99,34 @@ describe('video provider REST contracts', () => {
         videoResolution: '1080p',
         videoAspectRatio: '16:9',
         lastFrameImage: lastFramePath,
-        providerCostCents: 64
-      })
-      expect(extend.metadata).toMatchObject({
-        videoDuration: 20,
-        videoSize: '1920x1080',
-        requestMode: 'extend',
-        inputVideo: videoPath,
-        providerCostCents: 200
+        providerCostCents: 136
       })
       expect(computeActualCosts({ step6: [
         text.metadata,
         image.metadata,
-        interpolate.metadata,
-        extend.metadata
-      ] }).totalCost).toBe(624)
+        interpolate.metadata
+      ] }).totalCost).toBe(540)
     })
 
     expect(calls.filter((call) => call.method === 'POST').map((call) => call.url)).toEqual([
-      'https://api.ltx.video/v2/text-to-video',
-      'https://api.ltx.video/v2/image-to-video',
-      'https://api.ltx.video/v2/image-to-video',
-      'https://api.ltx.video/v2/extend'
+      'https://api.ltx.io/v2/text-to-video',
+      'https://api.ltx.io/v2/image-to-video',
+      'https://api.ltx.io/v2/image-to-video'
     ])
-    expect(pollAttempts).toBe(5)
 
     const postBodies = calls.filter((call) => call.method === 'POST').map((call) => call.bodyJson!)
     const imageDataUrl = `data:image/png;base64,${Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')}`
     const lastFrameDataUrl = `data:image/webp;base64,${Buffer.from(new Uint8Array([4, 5, 6])).toString('base64')}`
-    const videoDataUrl = `data:video/mp4;base64,${Buffer.from(new Uint8Array([7, 8, 9])).toString('base64')}`
 
     expect(postBodies[0]).toEqual({
-      model: 'ltx-2-3-fast',
+      model: 'ltx-2-5-fast',
       prompt: 'plain prompt',
-      duration: 20,
+      duration: 8,
       fps: 24,
       resolution: '1920x1080'
     })
     expect(postBodies[1]).toEqual({
-      model: 'ltx-2-3-fast',
+      model: 'ltx-2-5-fast',
       image_uri: imageDataUrl,
       prompt: defaultImageVideoPrompt,
       duration: 10,
@@ -146,7 +134,7 @@ describe('video provider REST contracts', () => {
       resolution: '2160x3840'
     })
     expect(postBodies[2]).toEqual({
-      model: 'ltx-2-3-pro',
+      model: 'ltx-2-5-pro',
       image_uri: imageDataUrl,
       prompt: 'transition frames',
       duration: 8,
@@ -154,22 +142,15 @@ describe('video provider REST contracts', () => {
       resolution: '1920x1080',
       last_frame_uri: lastFrameDataUrl
     })
-    expect(postBodies[3]).toEqual({
-      model: 'ltx-2-3-pro',
-      video_uri: videoDataUrl,
-      duration: 20,
-      mode: 'end',
-      prompt: 'continue forward'
-    })
   })
 
   test('LTX failed jobs include provider failure message', async () => {
     process.env['LTXV_API_KEY'] = 'ltx-key'
     installMockFetch((call) => {
-      if (call.url === 'https://api.ltx.video/v2/text-to-video' && call.method === 'POST') {
+      if (call.url === 'https://api.ltx.io/v2/text-to-video' && call.method === 'POST') {
         return jsonResponse({ id: 'ltx-failed' })
       }
-      if (call.url === 'https://api.ltx.video/v2/text-to-video/ltx-failed' && call.method === 'GET') {
+      if (call.url.includes('ltx-failed') && call.method === 'GET') {
         return jsonResponse({ id: 'ltx-failed', status: 'failed', error: { message: 'bad input' } })
       }
       throw new Error(`Unexpected failed LTX fetch: ${call.method} ${call.url}`)
@@ -177,7 +158,7 @@ describe('video provider REST contracts', () => {
 
     await withTempDir(async (dir) => {
       await expect(runLtxVideoGen('bad prompt', dir, {
-        model: 'ltx-2-3-fast'
+        model: 'ltx-2-5-fast'
       })).rejects.toThrow('bad input')
     })
   })

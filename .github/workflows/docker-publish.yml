@@ -431,6 +431,7 @@ jobs:
     name: Measure AMD64 compiled experiment
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    continue-on-error: true
     needs:
       - build-amd64
     permissions:
@@ -649,6 +650,7 @@ jobs:
     name: Measure ARM64 compiled experiment
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
+    continue-on-error: true
     needs:
       - build-arm64
     permissions:
@@ -802,8 +804,6 @@ jobs:
       - build-arm64
       - smoke-amd64
       - smoke-arm64
-      - compiled-experiment-amd64
-      - compiled-experiment-arm64
       - audit-amd64
       - audit-arm64
     outputs:

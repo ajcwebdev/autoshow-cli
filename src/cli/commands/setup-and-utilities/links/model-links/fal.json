@@ -18,11 +18,7 @@
     "Video": [
       "https://fal.ai/models/minimax/h3/text-to-video/api",
       "https://fal.ai/models/minimax/h3/image-to-video/api",
-      "https://fal.ai/models/minimax/h3/reference-to-video/api",
-      "https://fal.ai/models/fal-ai/pixverse/c1/text-to-video/api",
-      "https://fal.ai/models/fal-ai/pixverse/c1/image-to-video/api",
-      "https://fal.ai/models/fal-ai/pixverse/c1/reference-to-video/api",
-      "https://fal.ai/models/fal-ai/pixverse/c1/transition/api"
+      "https://fal.ai/models/minimax/h3/reference-to-video/api"
     ]
   }
 }

@@ -32,7 +32,7 @@ describe('grouped report contracts', () => {
             },
             {
               llmService: 'grok',
-              llmModel: 'grok-4.5',
+              llmModel: 'grok-4.6',
               processingTime: 6000,
               inputTokenCount: 10000,
               outputTokenCount: 2000,
@@ -56,7 +56,7 @@ describe('grouped report contracts', () => {
             actual: {
               steps: [
                 { step: 'llm', provider: 'openai', model: 'gpt-5.6-luna', cost: 0.4 },
-                { step: 'llm', provider: 'grok', model: 'grok-4.5', cost: 1.2 },
+                { step: 'llm', provider: 'grok', model: 'grok-4.6', cost: 1.2 },
                 { step: 'llm', provider: 'glm', model: 'glm-5.3', cost: 3.6 }
               ]
             }
@@ -65,7 +65,7 @@ describe('grouped report contracts', () => {
             actual: {
               steps: [
                 { step: 'llm', provider: 'openai', model: 'gpt-5.6-luna', processingTimeMs: 2400, msPerUnit: 800 },
-                { step: 'llm', provider: 'grok', model: 'grok-4.5', processingTimeMs: 6000, msPerUnit: 300 },
+                { step: 'llm', provider: 'grok', model: 'grok-4.6', processingTimeMs: 6000, msPerUnit: 300 },
                 { step: 'llm', provider: 'glm', model: 'glm-5.3', processingTimeMs: 2500, msPerUnit: 700 }
               ]
             }
@@ -97,7 +97,7 @@ describe('grouped report contracts', () => {
         outputTokenCount: 1000,
         outputExists: true
       })
-      expect(report.providerGroups.service.providers.find((provider) => provider.providerKey === 'grok/grok-4.5')).toMatchObject({
+      expect(report.providerGroups.service.providers.find((provider) => provider.providerKey === 'grok/grok-4.6')).toMatchObject({
         inputTokenCount: 10000,
         outputTokenCount: 2000,
         providerUsage: { total_tokens: 12000 },
@@ -106,11 +106,11 @@ describe('grouped report contracts', () => {
       expect(report.rankingSurfaces.local.price).toHaveLength(0)
       expect(report.rankingSurfaces.service.price.map((entry) => entry.providerKey)).toEqual([
         'openai/gpt-5.6-luna',
-        'grok/grok-4.5',
+        'grok/grok-4.6',
         'glm/glm-5.3'
       ])
       expect(report.rankingSurfaces.service.speed.map((entry) => [entry.providerKey, entry.metric, entry.value])).toEqual([
-        ['grok/grok-4.5', 'msPerUnit', 300],
+        ['grok/grok-4.6', 'msPerUnit', 300],
         ['glm/glm-5.3', 'msPerUnit', 700],
         ['openai/gpt-5.6-luna', 'msPerUnit', 800]
       ])

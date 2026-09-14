@@ -2,11 +2,14 @@
   "inworld": {
     "description": "Inworld AI first-party steerable text-to-speech and voice design",
     "type": "api",
+    "catalogSourceUrl": "https://docs.inworld.ai/tts/tts-models",
+    "catalogCheckedAt": "2026-09-14",
+    "catalogNotes": "The 2026-09-14 catalog check still documents inworld-tts-2 and cheaper sibling inworld-tts-2-flash. AutoShow keeps only realtime-tts-2 active; Flash remains retired with historical $15/1M rates and replacement guidance.",
     "models": {
       "realtime-tts-2": {
         "description": "Inworld Realtime TTS 2.0 steerable expressive speech model",
         "pricingSourceUrl": "https://inworld.ai/pricing",
-        "pricingCheckedAt": "2026-08-14",
+        "pricingCheckedAt": "2026-09-14",
         "pricingCurrency": "USD",
         "pricingTier": "Inworld AI On-Demand TTS pricing",
         "pricingNotes": "Inworld Realtime TTS 2.0 uses $25.00 / 1M characters on-demand rate.",

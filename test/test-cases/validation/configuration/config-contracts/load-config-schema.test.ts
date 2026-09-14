@@ -11,9 +11,9 @@ describe('config load schema contracts', () => {
         },
         llm: {
           openai: ['gpt-5.6-terra'],
-          grok: ['grok-4.5'],
+          grok: ['grok-4.6'],
           glm: ['glm-5.3-flash'],
-          kimi: ['kimi-k2.6'],
+          kimi: ['kimi-k3'],
           together: ['kimi-k3', 'glm-5.3-flash'],
           providerConcurrency: 3,
           localConcurrency: 1
@@ -53,12 +53,11 @@ describe('config load schema contracts', () => {
           chunkConcurrency: 3
         },
         image: {
-          bflImage: ['flux-2-pro'],
-          replicateImage: ['wan-video/wan-2.7-image'],
+          replicateImage: ['alibaba/qwen-image-3'],
           format: 'jpeg'
         },
         video: {
-          replicateVideo: ['bytedance/seedance-2.0-fast'],
+          replicateVideo: ['bytedance/seedance-2.5'],
           replicateVideoSeed: 123,
           generateAudio: false,
           referenceVideos: ['input/examples/video/reference.mp4'],

@@ -38,44 +38,44 @@ The approved fresh run completed all 16 cases in 52 requests. Its preflight esti
 
 Sorted by total render-record estimate across the same five inputs. Processing times include any scheduler waiting inside each target and are not isolated provider latency measurements. Summed target times can exceed batch wall time because work overlaps.
 
-| Provider/model | Success | Estimated USD | Summed processing s | Generated audio s |
-| --- | ---: | ---: | ---: | ---: |
-| speechify/simba-3.2 | 5/5 | $0.02616 | 66.72 | 175.47 |
-| openai/gpt-4o-mini-tts-2025-12-15 | 5/5 | $0.03296 | 59.28 | 189.55 |
-| grok/grok-tts | 5/5 | $0.03924 | 47.78 | 204.92 |
-| mistral/voxtral-mini-tts-2603 | 5/5 | $0.04186 | 53.17 | 195.89 |
-| inworld/realtime-tts-2 | 5/5 | $0.06540 | 73.25 | 182.28 |
-| cartesia/sonic-3.6-2026-08-27 | 5/5 | $0.09777 | 75.98 | 182.08 |
-| elevenlabs/eleven_v3 | 5/5 | $0.26160 | 108.81 | 207.28 |
-| hume/octave-1 | 5/5 | $0.39240 | 163.60 | 243.98 |
-| hume/octave-2 | 5/5 | $0.39240 | 131.30 | 210.22 |
+| Provider/model                    | Success | Estimated USD | Summed processing s | Generated audio s |
+| --------------------------------- | ------: | ------------: | ------------------: | ----------------: |
+| speechify/simba-3.2               |     5/5 |      $0.02616 |               66.72 |            175.47 |
+| openai/gpt-4o-mini-tts-2025-12-15 |     5/5 |      $0.03296 |               59.28 |            189.55 |
+| grok/grok-tts                     |     5/5 |      $0.03924 |               47.78 |            204.92 |
+| mistral/voxtral-mini-tts-2603     |     5/5 |      $0.04186 |               53.17 |            195.89 |
+| inworld/realtime-tts-2            |     5/5 |      $0.06540 |               73.25 |            182.28 |
+| cartesia/sonic-3.6-2026-08-27     |     5/5 |      $0.09777 |               75.98 |            182.08 |
+| elevenlabs/eleven_v3              |     5/5 |      $0.26160 |              108.81 |            207.28 |
+| hume/octave-1                     |     5/5 |      $0.39240 |              163.60 |            243.98 |
+| hume/octave-2                     |     5/5 |      $0.39240 |              131.30 |            210.22 |
 
 ### Text-example processing-time ranking
 
-| Rank | Provider/model | Summed processing s |
-| ---: | --- | ---: |
-| 1 | grok/grok-tts | 47.78 |
-| 2 | mistral/voxtral-mini-tts-2603 | 53.17 |
-| 3 | openai/gpt-4o-mini-tts-2025-12-15 | 59.28 |
-| 4 | speechify/simba-3.2 | 66.72 |
-| 5 | inworld/realtime-tts-2 | 73.25 |
-| 6 | cartesia/sonic-3.6-2026-08-27 | 75.98 |
-| 7 | elevenlabs/eleven_v3 | 108.81 |
-| 8 | hume/octave-2 | 131.30 |
-| 9 | hume/octave-1 | 163.60 |
+| Rank | Provider/model                    | Summed processing s |
+| ---: | --------------------------------- | ------------------: |
+|    1 | grok/grok-tts                     |               47.78 |
+|    2 | mistral/voxtral-mini-tts-2603     |               53.17 |
+|    3 | openai/gpt-4o-mini-tts-2025-12-15 |               59.28 |
+|    4 | speechify/simba-3.2               |               66.72 |
+|    5 | inworld/realtime-tts-2            |               73.25 |
+|    6 | cartesia/sonic-3.6-2026-08-27     |               75.98 |
+|    7 | elevenlabs/eleven_v3              |              108.81 |
+|    8 | hume/octave-2                     |              131.30 |
+|    9 | hume/octave-1                     |              163.60 |
 
 ### Detailed-controls coverage
 
 Counts and estimates are grouped by model. Each model uses its supported mechanisms, so these unequal case sets are not a cross-model price or speed ranking. Exact instructions, per-case measurements and recordings are linked above.
 
-| Provider/model | Emotion cases | Speed/pause cases | Estimated USD | Generated audio s |
-| --- | ---: | ---: | ---: | ---: |
-| cartesia/sonic-3.6-2026-08-27 | 1 | 2 | $0.03289 | 66.20 |
-| elevenlabs/eleven_v3 | 1 | 1 | $0.14380 | 47.92 |
-| grok/grok-tts | 1 | 2 | $0.01111 | 56.95 |
-| hume/octave-1 | 1 | 2 | $0.09030 | 66.22 |
-| hume/octave-2 | 0 | 2 | $0.08250 | 43.13 |
-| inworld/realtime-tts-2 | 1 | 2 | $0.04777 | 67.60 |
+| Provider/model                | Emotion cases | Speed/pause cases | Estimated USD | Generated audio s |
+| ----------------------------- | ------------: | ----------------: | ------------: | ----------------: |
+| cartesia/sonic-3.6-2026-08-27 |             1 |                 2 |      $0.03289 |             66.20 |
+| elevenlabs/eleven_v3          |             1 |                 1 |      $0.14380 |             47.92 |
+| grok/grok-tts                 |             1 |                 2 |      $0.01111 |             56.95 |
+| hume/octave-1                 |             1 |                 2 |      $0.09030 |             66.22 |
+| hume/octave-2                 |             0 |                 2 |      $0.08250 |             43.13 |
+| inworld/realtime-tts-2        |             1 |                 2 |      $0.04777 |             67.60 |
 
 ### Automated and human quality
 

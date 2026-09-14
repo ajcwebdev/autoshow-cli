@@ -206,15 +206,15 @@ describe('option resolution contracts', () => {
       ])
       const grokOpts = parseDraftScenesArgs([
         'input/scripts/05-script/01-mechanic-goes-on-vacation.md',
-        '--llm-model', 'grok-4.5'
+        '--llm-model', 'grok-4.6'
       ])
 
       expect(findRegistryServiceForModel('llm', 'gpt-5.6-sol')).toBe('openai')
-      expect(findRegistryServiceForModel('llm', 'grok-4.5')).toBe('grok')
+      expect(findRegistryServiceForModel('llm', 'grok-4.6')).toBe('grok')
       expect(opts.scriptPath).toBe('input/scripts/05-script/01-mechanic-goes-on-vacation.md')
       expect(opts.llmModel).toBe('gpt-5.6-sol')
       expect(opts.only).toBe('panel-prompts')
-      expect(grokOpts.llmModel).toBe('grok-4.5')
+      expect(grokOpts.llmModel).toBe('grok-4.6')
     })
 
   test('comic generate-images args parse target', () => {

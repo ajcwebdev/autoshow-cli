@@ -1,75 +1,11 @@
 import { writeGeminiMusicInteraction } from './gemini-music-interactions'
-import type { GeminiMusicModel, GeminiMusicResponsePart, Step7MusicMetadata } from '~/types'
+import type { GeminiMusicModel, Step7MusicMetadata } from '~/types'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/command-shared/generation-command-utils'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import * as l from '~/utils/app-logger/app-logger'
-import { geminiCreateMusicInteraction, geminiGenerateContent } from '~/utils/gemini/gemini-rest'
+import { geminiCreateMusicInteraction } from '~/utils/gemini/gemini-rest'
 import { InfraError, ValidationError } from '~/utils/error-handler'
-export const GEMINI_PRO_DEFAULT_DURATION_SECONDS = 120
-
-const collectGeminiMusicTextParts = (
-  parts: GeminiMusicResponsePart[]
-): string | undefined => {
-  const text = parts
-    .filter((part) => part.thought !== true)
-    .map((part) => part.text?.trim())
-    .filter((part): part is string => part !== undefined && part.length > 0)
-
-  return text.length > 0 ? text.join('\n\n') : undefined
-}
-
-const outputFormatFromAudioMimeType = (mimeType: string | undefined): string | undefined => {
-  if (!mimeType) {
-    return undefined
-  }
-  const normalized = mimeType.toLowerCase().split(';')[0]?.trim()
-  switch (normalized) {
-    case 'audio/mpeg':
-    case 'audio/mp3':
-      return 'mp3'
-    case 'audio/wav':
-    case 'audio/wave':
-    case 'audio/x-wav':
-      return 'wav'
-    default:
-      return normalized?.startsWith('audio/') ? normalized.slice('audio/'.length) : undefined
-  }
-}
-
-export const writeGeminiMusicInlineAudio = async (
-  parts: GeminiMusicResponsePart[],
-  musicPath: string
-): Promise<{
-  audioMimeType?: string | undefined
-  outputFormat?: string | undefined
-  generatedText?: string | undefined
-}> => {
-  const generatedText = collectGeminiMusicTextParts(parts)
-  for (const part of parts) {
-    const audioData = part.inlineData?.data
-    const mimeType = part.inlineData?.mimeType
-    if (!audioData || part.thought === true) {
-      continue
-    }
-    if (mimeType && !mimeType.startsWith('audio/')) {
-      continue
-    }
-
-    const audioBytes = Buffer.from(audioData, 'base64')
-    if (audioBytes.byteLength === 0) {
-      continue
-    }
-
-    await Bun.write(musicPath, audioBytes)
-    return {
-      audioMimeType: mimeType,
-      outputFormat: outputFormatFromAudioMimeType(mimeType),
-      ...(generatedText ? { generatedText } : {})
-    }
-  }
-
-  throw InfraError('Gemini music generation completed without audio inline data', { stage: 'music:gemini' })
-}
+export const GEMINI_DEFAULT_DURATION_SECONDS = 120
 
 const readProvidedLyrics = async (lyricsFile: string): Promise<string> => {
   const file = Bun.file(lyricsFile)
@@ -90,7 +26,7 @@ const resolveIntendedDurationSeconds = (durationSeconds: number | undefined): nu
     throw ValidationError(`Invalid music duration: ${durationSeconds}`, { stage: 'music:gemini' })
   }
 
-  return durationSeconds ?? GEMINI_PRO_DEFAULT_DURATION_SECONDS
+  return durationSeconds ?? GEMINI_DEFAULT_DURATION_SECONDS
 }
 
 const buildGeminiMusicPrompt = async (
@@ -158,13 +94,7 @@ export const runGeminiMusicGen = async (
   logGenStatus('music', 'gemini', options.model, 'started')
 
   const startTime = Date.now()
-  const audioResult = options.model === 'lyria-3.5'
-    ? await writeGeminiMusicInteraction(await geminiCreateMusicInteraction(apiKey, geminiPrompt), outputDir)
-    : await (async () => {
-      const response = await geminiGenerateContent(apiKey, { model: options.model, contents: geminiPrompt })
-      const parts = response.candidates?.flatMap((candidate) => candidate.content?.parts ?? []) ?? []
-      return await writeGeminiMusicInlineAudio(parts, musicPath)
-    })()
+  const audioResult = await writeGeminiMusicInteraction(await geminiCreateMusicInteraction(apiKey, geminiPrompt), outputDir)
   const processingTime = Date.now() - startTime
   const musicFile = Bun.file(musicPath)
 

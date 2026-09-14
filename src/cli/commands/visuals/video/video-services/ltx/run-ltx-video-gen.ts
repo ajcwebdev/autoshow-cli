@@ -4,7 +4,6 @@ import { UsageError, InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/command-shared/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/visuals/video/video-utils/video-pricing'
 import {
-  isLtx25Model,
   normalizeLtxVideoAspectRatio,
   normalizeLtxVideoDuration,
   normalizeLtxVideoResolution,
@@ -16,7 +15,7 @@ import { resolveCredential } from '~/utils/validate/env-utils'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { validateModeInputs } from '../../video-utils/video-mode-validation'
 import { videoMediaReferenceToUrlOrDataUrl } from '../../video-utils/video-media-inputs'
-const LTX_BASE_URL = 'https://api.ltx.video'
+const LTX_BASE_URL = 'https://api.ltx.io'
 const POLL_INTERVAL_MS = 5_000
 const POLL_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
 const DEFAULT_IMAGE_VIDEO_PROMPT = 'Animate the provided image with natural, subtle motion while preserving its subject and composition.'
@@ -36,10 +35,9 @@ const LtxPollVideoResponseSchema = v.object({
   error: v.optional(v.unknown(), undefined)
 })
 
-const resolveLtxEndpoint = (mode: VideoMode): 'text-to-video' | 'image-to-video' | 'extend' => {
+const resolveLtxEndpoint = (mode: VideoMode): 'text-to-video' | 'image-to-video' => {
   if (mode === 'text') return 'text-to-video'
   if (mode === 'image-to-video' || mode === 'interpolate') return 'image-to-video'
-  if (mode === 'extend') return 'extend'
   throw UsageError(`--mode ${mode} is not supported by LTX.`)
 }
 
@@ -61,7 +59,6 @@ export const runLtxVideoGen = async (
     resolution?: string | undefined
     inputImage?: string | undefined
     lastFrameImage?: string | undefined
-    inputVideo?: string | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
   const mode = options.mode ?? 'text'
@@ -70,17 +67,15 @@ export const runLtxVideoGen = async (
   const resolution = normalizeLtxVideoResolution(options.resolution, options.model)
   const aspectRatio = normalizeLtxVideoAspectRatio(options.model, options.aspectRatio)
   const duration = normalizeLtxVideoDuration(options.model, size, options.durationSeconds, mode)
-  const fps = mode === 'extend' ? undefined : 24
+  const fps = 24
   const resolvedPrompt = prompt ?? (mode === 'image-to-video' || mode === 'interpolate' ? DEFAULT_IMAGE_VIDEO_PROMPT : undefined)
   if (mode === 'text') {
     requireLtxPrompt(resolvedPrompt)
   }
 
-  if (isLtx25Model(options.model)) {
-    validateModeInputs({ videoInputImage: options.inputImage, videoLastFrame: options.lastFrameImage, videoInputVideo: options.inputVideo }, mode)
-  }
+  validateModeInputs({ videoInputImage: options.inputImage, videoLastFrame: options.lastFrameImage }, mode)
   const apiKey = resolveCredential('ltx', 'require', { stage: 'video:ltx', description: 'LTX video generation' })
-  const baseUrl = isLtx25Model(options.model) ? 'https://api.ltx.io' : LTX_BASE_URL
+  const baseUrl = LTX_BASE_URL
 
   logGenStatus('video', 'ltx', options.model, 'started')
 
@@ -99,9 +94,6 @@ export const runLtxVideoGen = async (
   const lastFrame = options.lastFrameImage
     ? await videoMediaReferenceToUrlOrDataUrl(options.lastFrameImage, 'image')
     : undefined
-  const inputVideo = options.inputVideo
-    ? await videoMediaReferenceToUrlOrDataUrl(options.inputVideo, 'video')
-    : undefined
 
   const requestBody: Record<string, unknown> = {
     model: options.model
@@ -111,20 +103,13 @@ export const runLtxVideoGen = async (
     requestBody['duration'] = duration
     requestBody['fps'] = fps
     requestBody['resolution'] = size
-  } else if (mode === 'image-to-video' || mode === 'interpolate') {
+  } else {
     requestBody['image_uri'] = inputImage
     requestBody['prompt'] = resolvedPrompt
     requestBody['duration'] = duration
     requestBody['fps'] = fps
     requestBody['resolution'] = size
     if (lastFrame) requestBody['last_frame_uri'] = lastFrame
-  } else {
-    requestBody['video_uri'] = inputVideo
-    requestBody['duration'] = duration
-    requestBody['mode'] = 'end'
-    if (resolvedPrompt !== undefined && resolvedPrompt.trim().length > 0) {
-      requestBody['prompt'] = resolvedPrompt
-    }
   }
 
   const startTime = Date.now()
@@ -184,10 +169,10 @@ export const runLtxVideoGen = async (
       videoDuration: duration,
       videoSize: size,
       requestMode: mode,
-      ...(mode !== 'extend' ? { videoResolution: resolution, videoAspectRatio: aspectRatio } : {}),
+      videoResolution: resolution,
+      videoAspectRatio: aspectRatio,
       ...(options.inputImage ? { inputImage: options.inputImage } : {}),
       ...(options.lastFrameImage ? { lastFrameImage: options.lastFrameImage } : {}),
-      ...(options.inputVideo ? { inputVideo: options.inputVideo } : {}),
       providerRequestId: createData.id,
       providerVideoUrl: videoUrl,
       ...(taskData.created_at || taskData.completed_at

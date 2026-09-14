@@ -1,8 +1,8 @@
 # Transcript Videos
 
-See the [STT overview](../../overview.md) for provider selection and shared options.
+See the [STT overview](../../overview.md) for shared options.
 
-`extract --transcript-video` renders a 1920x1080 MP4 from existing STT artifacts without calling an STT provider. Pass a completed media extract directory, or explicit `--audio` with `--transcript-result` or `--transcript-text`. Cues use per-word timings when available, otherwise segment timestamps or speaker lines.
+`extract --transcript-video` renders a 1920x1080 MP4 from saved transcripts and audio without calling an STT provider. Pass a completed media extract directory, or `--audio` with `--transcript-result` or `--transcript-text`. Timestamped text files use `[HH:MM:SS]` lines, with an optional `[speaker]` label.
 
 ```bash
 # Render from a completed media extract directory
@@ -18,4 +18,4 @@ bun autoshow extract --transcript-video --audio input/examples/audio/1-audio.mp3
 bun autoshow extract output/transcript-multi --transcript-video --transcript-result output/transcript-multi/providers/soniox-stt-async-v5/result.json
 ```
 
-The output contains `<label>.mp4`, `<label>.vtt`, `<label>.srt`, and `manifest.json`. Optional rendering controls include `--font <family>` (default `DejaVu Sans`) and `--keep-tmp`.
+The output contains `<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`. Use `--font <family>` to change the overlay font (default `DejaVu Sans`).

@@ -92,7 +92,7 @@ test('H3 Max/Turbo estimates retain regular tariffs across the promotional cutof
 test('invalid video modes, duration gaps, extra references, and unsupported resolutions fail before submission', async () => {
   const calls = installMockFetch(() => { throw new Error('Unexpected network') })
   for (const model of routes) {
-    await expect(buildFalVideoRequest('Synthetic', { model, mode: 'edit' })).rejects.toThrow()
+    await expect(buildFalVideoRequest('Synthetic', { model, mode: 'edit' as never })).rejects.toThrow()
     await expect(buildFalVideoRequest('Synthetic', { model, mode: 'text', duration: 3 })).rejects.toThrow()
   }
   await expect(buildFalVideoRequest('Synthetic', { model: 'bytedance/seedance-2.5/reference-to-video', mode: 'reference-to-video', referenceImages: Array(31).fill(ref) })).rejects.toThrow()

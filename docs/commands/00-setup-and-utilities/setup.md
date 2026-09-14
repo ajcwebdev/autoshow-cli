@@ -22,13 +22,13 @@ For Docker-only network diagnostics (`setup --network-check serve|probe`), see [
 bun autoshow setup
 ```
 
-Use full setup on a clean machine so local download, OCR, STT, and write workflows have their prerequisites installed.
+Use full setup on a clean machine so local download, OCR, STT, and article-extraction workflows have their prerequisites installed.
 
 ## Disk and Network Requirements
 
-A full `bun autoshow setup` downloads several gigabytes and builds some tools from source. Budget roughly **10 GB free** and expect 5-10 minutes on a fast connection. A re-run with everything already installed takes a few seconds.
+A full `bun autoshow setup` downloads local tools and the default whisperfile `tiny` model. Budget roughly **10 GB free** and expect 5-10 minutes on a fast connection. A re-run with everything already installed takes a few seconds.
 
-Installs live under `runtime/` in the project checkout (~3 GiB of binaries and local STT models). Interrupted downloads resume instead of restarting from zero.
+Installs live under `runtime/` in the project checkout. Interrupted downloads resume instead of restarting from zero.
 
 ## Doctor
 
@@ -41,7 +41,7 @@ bun autoshow setup --doctor --strict
 
 API-key checks are presence-only: doctor reports whether each provider API key is set, not whether the key is valid. Warnings do not change the default exit code. `--strict` exits 2 for readiness warnings, including missing credentials required by configured defaults, invalid configuration, unreadable configured cookies, and unavailable runtimes or model assets. Optional unselected credentials do not fail strict mode. Doctor does not make live provider calls. It reads `.env` from the working directory; exported environment variables win over file values.
 
-Doctor also reports YouTube cookie configuration and whether a configured cookies file is readable. If YouTube starts challenging anonymous `yt-dlp` requests, follow the [YouTube cookies guide](cookies.md).
+Doctor also reports whether configured YouTube cookies are readable. If anonymous `yt-dlp` requests start failing, follow the [YouTube cookies guide](cookies.md).
 
 ## Targeted Setup Steps
 
@@ -51,7 +51,7 @@ Valid `--step` values:
 yt-dlp | defuddle | whisperfile | calibre | all | transcription | music
 ```
 
-Isolated steps assume their prerequisites are already present. On a clean machine, prefer `bun autoshow setup`. Pass `--force-redownload` with `--step` to replace existing downloads.
+Isolated steps assume their prerequisites are already present. Pass `--force-redownload` with `--step` to replace existing downloads.
 
 ```bash
 # yt-dlp, ffmpeg, and ffprobe
@@ -65,11 +65,9 @@ bun autoshow setup --step defuddle
 
 # default whisperfile model (tiny)
 bun autoshow setup --step whisperfile
-
-# whisperfile tiny and transcription provider configuration
 bun autoshow setup --step transcription
 
-# lyric-video tools and whisperfile small.en
+# whisperfile small.en for lyric videos
 bun autoshow setup --step music
 ```
 
@@ -77,7 +75,7 @@ bun autoshow setup --step music
 
 Ordinary setup (`setup`, `setup --step whisperfile`, or `setup --step transcription`) installs only whisperfile `tiny` for local STT. `setup --step music` installs `small.en`. Missing explicitly selected models can also download on demand during transcription.
 
-Install the four recommended models explicitly with repeatable `--models` flags:
+Install additional models with repeatable `--models` flags:
 
 ```bash
 bun autoshow setup --models tiny --models tiny.en --models small --models whisperfile:small.en
@@ -90,7 +88,7 @@ bun autoshow setup --models whisperfile:medium --models whisperfile:medium.en
 bun autoshow setup --models whisperfile:large-v2 --models whisperfile:large-v3
 ```
 
-Bare names and `whisperfile:<model>` are equivalent. `--models` downloads without running inference.
+Bare names and `whisperfile:<model>` are equivalent.
 
 ## Setting Defaults and Configuration
 
@@ -107,7 +105,7 @@ bun autoshow setup --ocr mistral=mistral-ocr-4-0 --ocr-language eng --ocr-dpi 30
 bun autoshow setup --tts elevenlabs=eleven_v3 --tts-voice voice_123
 bun autoshow setup --tts hume=octave-2 --tts-speaker Host=voice_host --tts-speaker Guest=voice_guest --tts-chunk-concurrency 3
 bun autoshow setup --image openai=gpt-image-2
-bun autoshow setup --video ltx=ltx-2-3-fast
+bun autoshow setup --video ltx=ltx-2-5-fast
 bun autoshow setup --batch-limit 20 --batch-order oldest --batch-concurrency 2
 bun autoshow setup --concurrency-mode immediate
 bun autoshow setup --prompt shortSummary --prompt longChapters
@@ -119,7 +117,7 @@ bun autoshow setup --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
 
 Default path: `config/autoshow.json` in the project root. Override with `--config-path <path>`.
 
-Passing `--show` prints the effective config. Passing `--reset` clears the config file. Passing configuration flags updates and saves `config/autoshow.json` without running full runtime installation or doctor checks.
+Passing configuration flags updates and saves `config/autoshow.json` without running full runtime installation or doctor checks.
 
 `--concurrency-mode ramp` (the native default) starts hosted provider traffic gradually up to the configured cap. `immediate` starts at that cap.
 
@@ -160,7 +158,7 @@ Representative JSON shape:
     "tts": {
       "elevenlabsTts": ["eleven_v3"],
       "voice": "voice_123",
-      "ttsSpeakers": ["Host=Kore", "Guest=Puck"]
+      "ttsSpeakers": ["Host=voice_host", "Guest=voice_guest"]
     },
     "image": {
       "openaiImage": ["gpt-image-2"],
@@ -168,7 +166,7 @@ Representative JSON shape:
       "count": 2
     },
     "video": {
-      "ltxVideo": ["ltx-2-3-fast"],
+      "ltxVideo": ["ltx-2-5-fast"],
       "duration": 8,
       "resolution": "1080p"
     },
@@ -199,9 +197,9 @@ Image, video, and music tuning defaults such as `duration` and `format` are edit
 
 ## Persisted Defaults and Precedence
 
-`setup` has no `--url-provider` flag, so set the URL article backend in `config/autoshow.json` as `defaults.extract.url.provider` (`defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`). Once saved, `extract` inherits it like any other default. `metadata` and `download` still take public `--url-provider`.
+Set the URL article backend in `config/autoshow.json` as `defaults.extract.url.provider` (`defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`). `setup` has no `--url-provider` flag. Once saved, `extract` inherits it like any other default. `metadata` and `download` still take `--url-provider` at runtime.
 
-Generic `--tts-*` options resolve to the selected provider, so they take a bare value when one provider is selected and `provider=value` when several are. Custom-voice provisioning and clone-creation audio files are runtime-only and managed via `voice`; synthesis defaults require an existing provider voice ID.
+Generic `--tts-*` options resolve to the selected provider, so they take a bare value when one provider is selected and `provider=value` when several are. Persist a provider voice ID with `--tts-voice`. Create or clone voices with [`voice`](../04-audio/voice/00-voice-overview.md).
 
 `--tts-speaker` selects multi-speaker TTS. A saved `--tts-dialogue-format` with no saved `--tts-speaker` is inert: runs that inherit it log a warning and continue as single-speaker.
 
@@ -223,13 +221,9 @@ If you type any provider/model selector for a step family at runtime, configured
 
 Set a hard budget with `--max-cents`. Hosted and mixed-provider commands fail before execution when the estimate exceeds that limit. `--allow-over-budget` is a one-off runtime override and is never persisted.
 
-```bash
-bun autoshow setup --max-cents 50
-```
-
 ## Testing
 
-Local no-cost coverage for `setup` and `--doctor`. Downloads are mocked, so nothing here calls a paid or quota-limited provider.
+Local no-cost coverage for `setup` and `--doctor`.
 
 ### Quick Start
 

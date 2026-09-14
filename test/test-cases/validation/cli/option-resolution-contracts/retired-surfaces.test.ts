@@ -24,7 +24,7 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
   {
     flag: 'gemini',
     model: 'gemini-3.1-flash-lite',
-    message: 'Model "gemini-3.1-flash-lite" is retired for --llm gemini[=model]. Use "gemini-3.5-flash-lite" instead. AutoShow will not silently substitute a different model identity.'
+    message: 'Model "gemini-3.1-flash-lite" is retired for --llm gemini[=model]. Use "gemini-3.7-flash" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
     flag: 'gemini-ocr',
@@ -52,6 +52,16 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
     message: 'Model "tts-1-hd" is retired for --provider/--tts openai[=model]. Use "gpt-4o-mini-tts-2025-12-15" instead.'
   },
   {
+    flag: 'cartesia-tts',
+    model: 'sonic-3.5-2026-05-04',
+    message: 'Model "sonic-3.5-2026-05-04" is retired for --provider/--tts cartesia[=model]. Use "sonic-3.6-2026-08-27" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'inworld-tts',
+    model: 'realtime-tts-2-flash',
+    message: 'Model "realtime-tts-2-flash" is retired for --provider/--tts inworld[=model]. Use "realtime-tts-2" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
     flag: 'elevenlabs-music',
     model: 'music_v1',
     message: 'Model "music_v1" is retired for --provider/--music elevenlabs[=model]. Use "music_v2" instead. AutoShow will not silently substitute a different model identity.'
@@ -59,17 +69,72 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
   {
     flag: 'gemini-music',
     model: 'lyria-3-clip-preview',
-    message: 'Model "lyria-3-clip-preview" is retired for --provider/--music gemini[=model]. Use "lyria-3-pro-preview" instead. AutoShow will not silently substitute a different model identity.'
+    message: 'Model "lyria-3-clip-preview" is retired for --provider/--music gemini[=model]. Use "lyria-3.5" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'gemini-music',
+    model: 'lyria-3-pro-preview',
+    message: 'Model "lyria-3-pro-preview" is retired for --provider/--music gemini[=model]. Use "lyria-3.5" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
     flag: 'replicate-video',
     model: 'runwayml/aleph-2',
-    message: 'Model "runwayml/aleph-2" is retired for --provider/--video replicate[=model]. Use "grok-imagine-video" instead. AutoShow will not silently substitute a different model identity.'
+    message: 'Model "runwayml/aleph-2" is retired for --provider/--video replicate[=model]. Use "grok-imagine-video-1.5" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
     flag: 'replicate-video',
     model: 'wan-video/wan-2.7-t2v',
-    message: 'Model "wan-video/wan-2.7-t2v" is retired for --provider/--video replicate[=model]. Use "bytedance/seedance-2.0-fast" instead. AutoShow will not silently substitute a different model identity.'
+    message: 'Model "wan-video/wan-2.7-t2v" is retired for --provider/--video replicate[=model]. Use "bytedance/seedance-2.5" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'replicate-video',
+    model: 'kwaivgi/kling-v3-video',
+    message: 'Model "kwaivgi/kling-v3-video" is retired for --provider/--video replicate[=model]. Use "pixverse/pixverse-v6" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'replicate-video',
+    model: 'kwaivgi/kling-v3-omni-video',
+    message: 'Model "kwaivgi/kling-v3-omni-video" is retired for --provider/--video replicate[=model]. Use "bytedance/seedance-2.5" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'replicate-video',
+    model: 'bytedance/seedance-2.0',
+    message: 'Model "bytedance/seedance-2.0" is retired for --provider/--video replicate[=model]. Use "bytedance/seedance-2.5" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'replicate-video',
+    model: 'bytedance/seedance-2.0-fast',
+    message: 'Model "bytedance/seedance-2.0-fast" is retired for --provider/--video replicate[=model]. Use "bytedance/seedance-2.5" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'grok-video',
+    model: 'grok-imagine-video',
+    message: 'Model "grok-imagine-video" is retired for --provider/--video grok[=model]. Use "grok-imagine-video-1.5" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'ltx-video',
+    model: 'ltx-2-3-fast',
+    message: 'Model "ltx-2-3-fast" is retired for --provider/--video ltx[=model]. Use "ltx-2-5-fast" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'ltx-video',
+    model: 'ltx-2-3-pro',
+    message: 'Model "ltx-2-3-pro" is retired for --provider/--video ltx[=model]. Use "ltx-2-5-pro" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'fal-video',
+    model: 'fal-ai/pixverse/c1',
+    message: 'Model "fal-ai/pixverse/c1" is retired for --provider/--video fal[=model]. Use "minimax/h3" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'gemini-video',
+    model: 'veo-3.1-generate-preview',
+    message: 'Model "veo-3.1-generate-preview" is retired for --provider/--video gemini[=model]. Use "veo-3.1-lite-generate-preview" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'gemini-video',
+    model: 'veo-3.1-fast-generate-preview',
+    message: 'Model "veo-3.1-fast-generate-preview" is retired for --provider/--video gemini[=model]. Use "veo-3.1-lite-generate-preview" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
     flag: 'minimax-music',

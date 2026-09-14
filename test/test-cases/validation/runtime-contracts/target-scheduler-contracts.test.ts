@@ -158,7 +158,6 @@ describe('target scheduler contracts', () => {
           openaiImageModels: ['model-a', 'model-b'],
           geminiImageModels: undefined,
           grokImageModels: undefined,
-          bflImageModels: undefined,
           imageAspectRatio: undefined,
           imageSize: undefined,
           imageQuality: undefined,
@@ -168,7 +167,6 @@ describe('target scheduler contracts', () => {
           imageInputs: undefined,
           imageMask: undefined,
           imageResponseMode: undefined,
-          geminiSearchGrounding: undefined,
           imageCompression: undefined,
           imageProviderConcurrency: 2
         }

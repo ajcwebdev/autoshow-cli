@@ -57,12 +57,12 @@ describe('video provider REST contracts', () => {
     await withTempDir(async (dir) => {
       const { imagePath } = await writeMediaFixtures(dir)
       await runGeminiVideoGen(undefined, dir, {
-        model: 'veo-3.1-fast-generate-preview',
+        model: 'veo-3.1-lite-generate-preview',
         mode: 'image-to-video',
         inputImage: imagePath
       })
       await runGrokVideoGen(undefined, dir, {
-        model: 'grok-imagine-video',
+        model: 'grok-imagine-video-1.5',
         mode: 'image-to-video',
         inputImage: imagePath
       })
@@ -82,6 +82,6 @@ describe('video provider REST contracts', () => {
       }
     })
     expect(grokBody).not.toHaveProperty('prompt')
-    expect(grokBody).toMatchObject({ model: 'grok-imagine-video', image: { url: expectedImage } })
+    expect(grokBody).toMatchObject({ model: 'grok-imagine-video-1.5', image: { url: expectedImage } })
   })
 })

@@ -39,7 +39,12 @@ describe('price mode contracts', () => {
 
   test('retired Gemini selector stays outside active registries while historical pricing and replacement guidance remain available', () => {
       const registry = getModelRegistry()
-      expect(resolveModelLifecycle(registry.llm['gemini']?.models['gemini-3.5-flash-lite'])).toMatchObject({
+      expect(resolveModelLifecycle(registry.llm['gemini']?.models['gemini-3.7-flash'])).toMatchObject({
+        status: 'active',
+        defaultEligible: true,
+        allExpansionEligible: true
+      })
+      expect(resolveModelLifecycle(registry.extract['gemini']?.models['gemini-3.5-flash-lite'])).toMatchObject({
         status: 'active',
         defaultEligible: true,
         allExpansionEligible: true
@@ -52,11 +57,11 @@ describe('price mode contracts', () => {
         inputCostPer1MCents: 25,
         outputCostPer1MCents: 150
       })
-      expect(getRetiredModelReplacement('llm', 'gemini', 'gemini-3.1-flash-lite')).toBe('gemini-3.5-flash-lite')
+      expect(getRetiredModelReplacement('llm', 'gemini', 'gemini-3.1-flash-lite')).toBe('gemini-3.7-flash')
       expect(getRetiredModelReplacement('extract', 'gemini', 'gemini-3.1-flash-lite')).toBe('gemini-3.5-flash-lite')
-      expect(resolveCheapestModelForFlag('gemini')).toBe('gemini-3.5-flash-lite')
+      expect(resolveCheapestModelForFlag('gemini')).toBe('gemini-3.7-flash')
       expect(resolveCheapestModelForFlag('anthropic')).toBe('claude-sonnet-5')
-      expect(resolveCheapestModelForFlag('kimi')).toBe('kimi-k2.6')
+      expect(resolveCheapestModelForFlag('kimi')).toBe('kimi-k3')
       expect(resolveCheapestModelForFlag('gemini-ocr')).toBe('gemini-3.5-flash-lite')
       expect(resolveCheapestModelForFlag('anthropic-ocr')).toBe('claude-sonnet-5')
       expect(resolveCheapestModelForFlag('kimi-ocr')).toBe('kimi-k2.6')

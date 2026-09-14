@@ -57,11 +57,10 @@ describe('fal.ai provider REST contracts', () => {
     expect(calls.filter(call => call.method === 'POST').every(call => call.headers.get('authorization') === 'Key fal-test-key')).toBe(true)
   })
 
-  test('both fal.ai video models submit through their text-to-video queue endpoints', async () => {
+  test('fal.ai MiniMax H3 submits through its text-to-video queue endpoint', async () => {
     const calls = installFalQueueMock()
     const cases: Array<{ model: FalVideoModel, endpoint: string }> = [
-      { model: 'minimax/h3', endpoint: 'minimax/h3/text-to-video' },
-      { model: 'fal-ai/pixverse/c1', endpoint: 'fal-ai/pixverse/c1/text-to-video' }
+      { model: 'minimax/h3', endpoint: 'minimax/h3/text-to-video' }
     ]
 
     await tempDirs.withDir(async (dir) => {
@@ -99,11 +98,10 @@ describe('fal.ai provider REST contracts', () => {
         pollIntervalMs: 1
       })
       await runFalVideoGen('Transition between frames', dir, {
-        model: 'fal-ai/pixverse/c1',
+        model: 'minimax/h3',
         mode: 'interpolate',
         inputImage: image,
         lastFrame: image,
-        generateAudio: true,
         pollIntervalMs: 1
       })
     })
@@ -112,10 +110,10 @@ describe('fal.ai provider REST contracts', () => {
     expect(posts.map(call => call.url)).toEqual([
       'https://queue.fal.run/alibaba/qwen-image-3/edit',
       'https://queue.fal.run/minimax/h3/reference-to-video',
-      'https://queue.fal.run/fal-ai/pixverse/c1/transition'
+      'https://queue.fal.run/minimax/h3/image-to-video'
     ])
     expect(posts[0]?.bodyJson).toMatchObject({ image_urls: [image] })
     expect(posts[1]?.bodyJson).toMatchObject({ reference_image_urls: [image], reference_video_urls: [video], reference_audio_urls: [audio] })
-    expect(posts[2]?.bodyJson).toMatchObject({ first_image_url: image, end_image_url: image, generate_audio_switch: true })
+    expect(posts[2]?.bodyJson).toMatchObject({ image_url: image, end_image_url: image })
   })
 })
