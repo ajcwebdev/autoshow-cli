@@ -74,15 +74,15 @@ test('music rejects mixed hosted generation and lyric-video modes', async () => 
 
 test('image command rejections name the spellings the image command registers', () => {
   expect(() => collectImageTargets(buildOptsFromFlags({
-    'grok-image': 'grok-imagine-image-quality',
-    'search-grounding': true
-  }))).toThrow('--search-grounding is not supported by Grok/grok-imagine-image-quality')
+    'grok-image': 'grok-imagine-image-2.0',
+    'background': 'transparent'
+  }))).toThrow('--background is not supported by Grok/grok-imagine-image-2.0')
 })
 
 test('video command rejections name the spellings the video command registers', () => {
   expect(() => collectVideoTargets(buildOptsFromFlags({
-    'grok-video': 'grok-imagine-video',
+    'grok-video': 'grok-imagine-video-1.5',
     mode: 'edit',
     duration: '5'
-  }))).toThrow('--mode edit requires --input-video.')
+  }))).toThrow('Invalid --mode value "edit"')
 })

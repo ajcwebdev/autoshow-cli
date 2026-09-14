@@ -34,7 +34,7 @@ const structuredOpts: StructuredRequestOptions = {
 describe('Anthropic REST contracts', () => {
   test('Fable 5.1 resolves alongside Fable 5 with documented pricing', () => {
     expect(buildOptsFromFlags({ anthropic: 'claude-fable-5-1' }).anthropicModels).toEqual(['claude-fable-5-1'])
-    expect(buildOptsFromFlags({ anthropic: 'claude-fable-5' }).anthropicModels).toEqual(['claude-fable-5'])
+    expect(() => buildOptsFromFlags({ anthropic: 'claude-fable-5' })).toThrow('Invalid model "claude-fable-5" for --llm anthropic[=model]. Allowed values: claude-fable-5-1, claude-sonnet-5, claude-opus-5')
     expect(getModelRegistry().llm['anthropic']?.models['claude-fable-5-1']).toMatchObject({
       inputCostPer1MCents: 1000,
       outputCostPer1MCents: 5000,

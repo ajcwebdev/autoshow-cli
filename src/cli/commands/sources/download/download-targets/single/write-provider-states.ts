@@ -1,5 +1,5 @@
 import { getSttTargetDirectoryName, getSttTargetKey } from '~/cli/commands/stt/stt-targets'
-import { YOUTUBE_CAPTIONS_SERVICE } from '~/cli/commands/stt/direct-url/youtube-captions'
+import { YOUTUBE_CAPTIONS_SERVICE } from '~/cli/commands/text/url/url-services/youtube-captions/youtube-captions'
 import type { BuildWriteSttProviderStatesContext, ProviderCompletionStatus, SttProviderSuccess, SttTarget, WriteSttFailure } from '~/types'
 
 const toRequestedProvider = (

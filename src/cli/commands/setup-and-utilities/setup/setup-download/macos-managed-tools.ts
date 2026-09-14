@@ -219,7 +219,10 @@ const discardBuildTree = async (buildDir: string): Promise<void> => {
   await rm(buildDir, { recursive: true, force: true })
 }
 
-export const installManagedYtDlpMacos = async (): Promise<void> => {
+export const installManagedYtDlpMacos = async (): Promise<void> =>
+  withProcessLock(`setup-yt-dlp-${ytDlpManagedBinaryPath}`, installManagedYtDlpMacosUnlocked)
+
+const installManagedYtDlpMacosUnlocked = async (): Promise<void> => {
   if (await pathExists(ytDlpManagedBinaryPath)) return
   const { url, sha256 } = await readDependencyUrlAndSha256('yt-dlp')
   await ensureParentDir(ytDlpManagedBinaryPath)
@@ -269,7 +272,10 @@ export const hasManagedFfmpegBuild = async (): Promise<boolean> => {
   return (await Bun.file(ffmpegManagedBuildStampPath).text()) === ffmpegManagedBuildStamp
 }
 
-export const installManagedFfmpegMacos = async (): Promise<void> => {
+export const installManagedFfmpegMacos = async (): Promise<void> =>
+  withProcessLock(`setup-ffmpeg-${ffmpegBuildDir}`, installManagedFfmpegMacosUnlocked)
+
+const installManagedFfmpegMacosUnlocked = async (): Promise<void> => {
   if (await hasManagedFfmpegBuild()) return
   await installManagedLameMacos()
   await downloadSource('ffmpeg', ffmpegBuildDir, 'ffmpeg-source')
@@ -349,7 +355,10 @@ const installManagedMupdfMacosUnlocked = async (): Promise<void> => {
   })
 }
 
-export const installManagedCalibreMacos = async (): Promise<void> => {
+export const installManagedCalibreMacos = async (): Promise<void> =>
+  withProcessLock(`setup-calibre-${calibreAppPath}`, installManagedCalibreMacosUnlocked)
+
+const installManagedCalibreMacosUnlocked = async (): Promise<void> => {
   if (await pathExists(ebookConvertManagedBinaryPath)) return
   const { url, sha256 } = await readDependencyUrlAndSha256('calibre')
   await installDmgApp({
@@ -401,7 +410,10 @@ export const ensureManagedTessdataSupportFiles = async (): Promise<void> => {
   }
 }
 
-export const installManagedTesseractMacos = async (): Promise<void> => {
+export const installManagedTesseractMacos = async (): Promise<void> =>
+  withProcessLock(`setup-tesseract-${tesseractBuildDir}`, installManagedTesseractMacosUnlocked)
+
+const installManagedTesseractMacosUnlocked = async (): Promise<void> => {
   if (!await hasManagedLeptonicaBuild()) {
     await downloadSource('leptonica', leptonicaBuildDir, 'leptonica-source')
     await recreateDir(leptonicaToolDir)
@@ -466,7 +478,10 @@ export const installManagedTesseractMacos = async (): Promise<void> => {
   await writeExecutableScript(tesseractManagedBinaryPath, buildManagedTesseractWrapperScript())
 }
 
-export const installManagedQpdfMacos = async (): Promise<void> => {
+export const installManagedQpdfMacos = async (): Promise<void> =>
+  withProcessLock(`setup-qpdf-${qpdfBuildDir}`, installManagedQpdfMacosUnlocked)
+
+const installManagedQpdfMacosUnlocked = async (): Promise<void> => {
   const existingSourceInstallHealthy = await hasValidManagedSourcePayload('qpdf')
   if (!existingSourceInstallHealthy) {
     const layout = resolveQpdfSourceBuildLayout(qpdfBuildDir)

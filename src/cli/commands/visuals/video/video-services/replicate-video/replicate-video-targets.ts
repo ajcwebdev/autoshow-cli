@@ -5,8 +5,6 @@ import { runReplicateVideoGen } from './run-replicate-video-gen'
 import { hasValue, isSupportedOrSkippedForAllVideo } from '../../video-utils/video-mode-validation'
 import {
   isReplicateHappyHorseVideoModel,
-  isReplicateKlingOmniVideoModel,
-  isReplicateKlingVideoModel,
   isReplicatePixVerseVideoModel,
   isReplicateSeedanceVideoModel,
   normalizeReplicateVideoAspectRatio,
@@ -17,17 +15,14 @@ import { validateVideoMediaReferences } from '../../video-utils/video-media-inpu
 
 const getReplicateSupportedVideoModes = (model: ReplicateVideoModel): readonly VideoMode[] => {
   if (isReplicateHappyHorseVideoModel(model)) return ['text', 'image-to-video', 'reference-to-video']
-  if (model === 'bytedance/seedance-2.5') return ['text', 'image-to-video', 'interpolate', 'reference-to-video']
-  if (isReplicateSeedanceVideoModel(model)) return ['text', 'image-to-video', 'interpolate', 'reference-to-video', 'edit', 'extend']
-  if (isReplicateKlingOmniVideoModel(model)) return ['text', 'image-to-video', 'interpolate', 'reference-to-video', 'edit']
-  if (isReplicateKlingVideoModel(model) || isReplicatePixVerseVideoModel(model)) return ['text', 'image-to-video', 'interpolate']
+  if (isReplicateSeedanceVideoModel(model)) return ['text', 'image-to-video', 'interpolate', 'reference-to-video']
+  if (isReplicatePixVerseVideoModel(model)) return ['text', 'image-to-video', 'interpolate']
   return ['text']
 }
 
 const hasReplicateSpecificOptions = (options: VideoGenOptions): boolean =>
   options.replicateVideoSeed !== undefined
   || hasValue(options.replicateVideoNegativePrompt)
-  || hasValue(options.replicateVideoMultiPrompt)
   || options.replicateVideoMultiClip !== undefined
 
 const rejectReplicateFlags = (
@@ -47,8 +42,8 @@ const validateReplicateSeedanceReferences = (
   const referenceImageCount = options.videoReferenceImages?.length ?? 0
   const referenceVideoCount = (options.videoInputVideo ? 1 : 0) + (options.videoReferenceVideos?.length ?? 0)
   const referenceAudioCount = options.videoReferenceAudios?.length ?? 0
-  const imageLimit = model === 'bytedance/seedance-2.5' ? 30 : 9
-  const mediaLimit = model === 'bytedance/seedance-2.5' ? 10 : 3
+  const imageLimit = 30
+  const mediaLimit = 10
   if (referenceImageCount > imageLimit) {
     throw UsageError(`--reference-image supports at most ${imageLimit} images for Replicate/${model}.`)
   }
@@ -61,7 +56,7 @@ const validateReplicateSeedanceReferences = (
   if (referenceAudioCount > 0 && referenceImageCount === 0 && referenceVideoCount === 0) {
     throw UsageError(`--reference-audio requires at least one --reference-image, --input-video, or --reference-video for Replicate/${model}.`)
   }
-  if ((options.videoInputImage || options.videoLastFrame) && (referenceImageCount > 0 || (model === 'bytedance/seedance-2.5' && referenceVideoCount + referenceAudioCount > 0))) {
+  if ((options.videoInputImage || options.videoLastFrame) && (referenceImageCount > 0 || referenceVideoCount + referenceAudioCount > 0)) {
     throw UsageError(`--reference-image cannot be combined with --input-image or --last-frame for Replicate/${model}.`)
   }
 }
@@ -87,7 +82,6 @@ export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: Vid
         [(options.videoReferenceVideos?.length ?? 0) > 0, '--reference-video'],
         [(options.videoReferenceAudios?.length ?? 0) > 0, '--reference-audio'],
         [hasValue(options.replicateVideoNegativePrompt), '--replicate-video-negative-prompt'],
-        [hasValue(options.replicateVideoMultiPrompt), '--replicate-video-multi-prompt'],
         [options.replicateVideoMultiClip !== undefined, '--replicate-video-multi-clip']
       ])
       if ((options.videoReferenceImages?.length ?? 0) > 9) {
@@ -96,32 +90,13 @@ export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: Vid
     } else if (isReplicateSeedanceVideoModel(model)) {
       rejectReplicateFlags(model, [
         [hasValue(options.replicateVideoNegativePrompt), '--replicate-video-negative-prompt'],
-        [hasValue(options.replicateVideoMultiPrompt), '--replicate-video-multi-prompt'],
         [options.replicateVideoMultiClip !== undefined, '--replicate-video-multi-clip']
       ])
       validateReplicateSeedanceReferences(model, options)
-    } else if (isReplicateKlingVideoModel(model)) {
-      rejectReplicateFlags(model, [
-        [(options.videoReferenceAudios?.length ?? 0) > 0, '--reference-audio'],
-        [!isReplicateKlingOmniVideoModel(model) && (options.videoReferenceVideos?.length ?? 0) > 0, '--reference-video'],
-        [isReplicateKlingOmniVideoModel(model) && hasValue(options.replicateVideoNegativePrompt), '--replicate-video-negative-prompt'],
-        [options.replicateVideoMultiClip !== undefined, '--replicate-video-multi-clip']
-      ])
-      if (isReplicateKlingOmniVideoModel(model) && (options.videoReferenceVideos?.length ?? 0) > 1) {
-        throw UsageError(`--reference-video supports at most 1 video for Replicate/${model}.`)
-      }
-      const hasOmniVideoReference = !!options.videoInputVideo || (options.videoReferenceVideos?.length ?? 0) > 0
-      if (isReplicateKlingOmniVideoModel(model) && hasOmniVideoReference && options.videoGenerateAudio === true) {
-        throw UsageError(`--generate-audio cannot be combined with a video input or reference for Replicate/${model}.`)
-      }
-      if (isReplicateKlingOmniVideoModel(model) && hasOmniVideoReference && options.videoResolution === '4k') {
-        throw UsageError(`--resolution 4k cannot be combined with a video input or reference for Replicate/${model}.`)
-      }
     } else if (isReplicatePixVerseVideoModel(model)) {
       rejectReplicateFlags(model, [
         [(options.videoReferenceVideos?.length ?? 0) > 0, '--reference-video'],
-        [(options.videoReferenceAudios?.length ?? 0) > 0, '--reference-audio'],
-        [hasValue(options.replicateVideoMultiPrompt), '--replicate-video-multi-prompt']
+        [(options.videoReferenceAudios?.length ?? 0) > 0, '--reference-audio']
       ])
     }
 
@@ -132,19 +107,17 @@ export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: Vid
       validateVideoMediaReferences([options.videoLastFrame], { flagName: '--last-frame', provider: 'replicate', model, kind: 'image' })
     }
     if (options.videoReferenceImages) {
-      const maxInputs = model === 'bytedance/seedance-2.5' ? 30 : isReplicateSeedanceVideoModel(model) || isReplicateHappyHorseVideoModel(model)
-        ? 9
-        : isReplicateKlingOmniVideoModel(model) ? 7 : 3
+      const maxInputs = isReplicateSeedanceVideoModel(model) ? 30 : isReplicateHappyHorseVideoModel(model) ? 9 : 3
       validateVideoMediaReferences(options.videoReferenceImages, { flagName: '--reference-image', provider: 'replicate', model, kind: 'image', maxInputs })
     }
     if (options.videoInputVideo) {
       validateVideoMediaReferences([options.videoInputVideo], { flagName: '--input-video', provider: 'replicate', model, kind: 'video' })
     }
     if (options.videoReferenceVideos) {
-      validateVideoMediaReferences(options.videoReferenceVideos, { flagName: '--reference-video', provider: 'replicate', model, kind: 'video', maxInputs: model === 'bytedance/seedance-2.5' ? 10 : 3 })
+      validateVideoMediaReferences(options.videoReferenceVideos, { flagName: '--reference-video', provider: 'replicate', model, kind: 'video', maxInputs: 10 })
     }
     if (options.videoReferenceAudios) {
-      validateVideoMediaReferences(options.videoReferenceAudios, { flagName: '--reference-audio', provider: 'replicate', model, kind: 'audio', maxInputs: model === 'bytedance/seedance-2.5' ? 10 : 3 })
+      validateVideoMediaReferences(options.videoReferenceAudios, { flagName: '--reference-audio', provider: 'replicate', model, kind: 'audio', maxInputs: 10 })
     }
 
     return [{
@@ -166,7 +139,6 @@ export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: Vid
           negativePrompt: options.replicateVideoNegativePrompt,
           generateAudio: options.videoGenerateAudio,
           seed: options.replicateVideoSeed,
-          multiPrompt: options.replicateVideoMultiPrompt,
           multiClip: options.replicateVideoMultiClip
         })
       }

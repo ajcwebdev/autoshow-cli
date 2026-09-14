@@ -132,6 +132,7 @@ test('Docker publication is blocked by exact-version no-cost verification and pa
     jobs?: Record<string, {
       if?: string
       needs?: string[]
+      'continue-on-error'?: boolean
       permissions?: Record<string, string>
       outputs?: Record<string, string>
       steps?: Array<{ name?: string, run?: string, uses?: string, if?: string, env?: Record<string, string>, with?: Record<string, unknown> }>
@@ -189,8 +190,8 @@ test('Docker publication is blocked by exact-version no-cost verification and pa
   expect(hygiene?.steps?.some(step => step.name === 'Upload production license report')).toBe(true)
   expect(hygiene?.steps?.some(step => step.name === 'Upload dependency cleanup review')).toBe(true)
 
-  // Verification and hygiene gate publication rather than the native builds, so the builds start alongside them and
-  // the per-arch evidence jobs fan out from each pushed digest; latest and :sha exist only when all of them succeed.
+  // Verification, hygiene, builds, smoke, and audit gate publication. The compiled-entrypoint experiment still
+  // runs for evidence but is advisory and does not block tagging.
   expect(jobs['publish-manifest']?.needs).toEqual([
     'verify',
     'package-hygiene',
@@ -198,11 +199,11 @@ test('Docker publication is blocked by exact-version no-cost verification and pa
     'build-arm64',
     'smoke-amd64',
     'smoke-arm64',
-    'compiled-experiment-amd64',
-    'compiled-experiment-arm64',
     'audit-amd64',
     'audit-arm64'
   ])
+  expect(jobs['publish-manifest']?.needs).not.toContain('compiled-experiment-amd64')
+  expect(jobs['publish-manifest']?.needs).not.toContain('compiled-experiment-arm64')
 
   for (const arch of ['amd64', 'arm64'] as const) {
     const upperArch = arch.toUpperCase()
@@ -263,6 +264,7 @@ test('Docker publication is blocked by exact-version no-cost verification and pa
     expect(smokeRun).not.toContain('--user')
     expect(smokeRun).not.toContain('--target compiled-experiment')
 
+    expect(jobs[`compiled-experiment-${arch}`]?.['continue-on-error']).toBe(true)
     const compiledRun = jobs[`compiled-experiment-${arch}`]?.steps?.find(step => step.name === `Build and measure ${upperArch} compiled experiment`)?.run ?? ''
     expect(compiledRun).toContain('--target compiled-experiment')
     expect(compiledRun).toContain(`--cache-from "type=registry,ref=\${image}:buildcache-${arch}"`)
@@ -378,7 +380,8 @@ test('image legs scan once through the shared scan-image composite and derive th
 
   const expectedEvidenceDirs = {
     'docker-publish.yml': ['runtime/ci/docker-amd64', 'runtime/ci/docker-arm64'],
-    'dependency-graphs.yml': ['runtime/dependency-evidence']
+    'dependency-graphs.yml': ['runtime/dependency-evidence'],
+    'warm-grype-db.yml': ['runtime/ci/grype-db-warmup']
   }
   for (const [workflowName, evidenceDirs] of Object.entries(expectedEvidenceDirs)) {
     const source = await readFile(resolve(repositoryRoot, '.github/workflows', workflowName), 'utf8')
@@ -393,6 +396,22 @@ test('image legs scan once through the shared scan-image composite and derive th
       const triage = allSteps.filter(step => step.name === 'Record dispositions for every high and critical advisory')
       expect(triage).toHaveLength(2)
       for (const step of triage) expect(step.if?.startsWith('always()')).toBe(true)
+    }
+    if (workflowName === 'warm-grype-db.yml') {
+      const warmup = Bun.YAML.parse(source) as {
+        on?: { schedule?: Array<{ cron: string }>, workflow_dispatch?: unknown }
+        jobs?: Record<string, { steps?: Step[] }>
+      }
+      expect(warmup.on?.schedule).toEqual([{ cron: '20 0 * * *' }])
+      expect(warmup.on).toHaveProperty('workflow_dispatch')
+      expect(scanImageSteps).toHaveLength(1)
+      expect(scanImageSteps[0]?.with).toEqual({
+        sbom: '.github/actions/scan-image/warmup.spdx.json',
+        'evidence-dir': 'runtime/ci/grype-db-warmup',
+        'fail-on-fixable': 'false'
+      })
+      expect(scanImageSteps[0]?.with).not.toHaveProperty('cache-key-salt')
+      expect(existsSync(resolve(actionDir, 'warmup.spdx.json'))).toBe(true)
     }
   }
 })

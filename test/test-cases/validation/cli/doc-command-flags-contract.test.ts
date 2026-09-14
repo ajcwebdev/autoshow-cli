@@ -38,7 +38,6 @@ const commandByDoc = {
   '02-extract/stt/local/overview.md': extractCommand,
   '02-extract/stt/diarization/overview.md': extractCommand,
   '02-extract/stt/diarization-off-by-default/overview.md': extractCommand,
-  '02-extract/stt/direct-url/overview.md': extractCommand,
   '02-extract/stt/workflows/captions/overview.md': extractCommand,
   '02-extract/stt/workflows/timing/overview.md': extractCommand,
   '02-extract/stt/workflows/transcript-review/overview.md': extractCommand,

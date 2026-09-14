@@ -25,4 +25,4 @@ This report exists so the per-modality refresh report set covers every hosted ex
 
 - Related ADR: [ADR-009](../adr/ADR-009-extract-execution-and-artifact-contracts.md) — URL execution and artifact contracts
 - Related ADR: [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Durable registry/lifecycle/capability policy
-- URL service adapters: `src/cli/commands/text/url/url-services/`
+- URL service adapters: `src/cli/commands/text/url/url-services/` (article backends plus public-media transcript adapters for Supadata and ScrapeCreators, and YouTube caption retrieval)

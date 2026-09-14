@@ -4,7 +4,7 @@
 
 - **Report Status:** Current
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-09-10
+- **Date Updated:** 2026-09-14
 
 This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](model-refresh-stt.md), [OCR](model-refresh-ocr.md), [URL scraping](model-refresh-url.md), [LLMs](model-refresh-write.md), [TTS](model-refresh-tts.md), [Music](model-refresh-music.md), [Video](model-refresh-video.md).
 
@@ -179,3 +179,49 @@ Added `grok-imagine-image-2.0` alongside `grok-imagine-image-quality`, bringing 
 The CLI pins omitted/auto quality to low for generation and medium for editing, and resolution to 1K. Explicit low/medium at 1K/2K is supported; high quality and other sizes fail locally. Output costs are 4/6 cents for low 1K/2K and 6/8 cents for medium 1K/2K, plus one cent per input image per request. The estimate includes input charges and output count. Returned model, revised prompt, moderation and usage cost are retained with generated artifacts. The 6,080 ms/image latency baseline is inherited provisionally; no paid calibration ran. [Model pricing](https://docs.x.ai/developers/models/grok-imagine-image-2.0).
 
 On November 2, 2026, xAI plans to serve the Quality slug through Image 2.0 at low quality. Local code preserves the older selector, controls and estimate; callers wanting the new model's exact pricing matrix should select Image 2.0 explicitly. Returned model identity records provider redirects without rewriting the requested selector. [Migration notice](https://docs.x.ai/developers/migration/imagine-image-quality-nov-2).
+
+## 2026-09-14 image removal: 13 selectors and BFL provider retirement
+
+Removed 13 active image selectors and retired the BFL provider. Remaining catalog: 14 selectors across 6 providers (`gemini`, `openai`, `grok`, `replicate`, `lumalabs`, `fal`). `--provider bfl` is unknown, matching Recraft. Removed selectors stay parseable in historical manifests and pricing readers and fail direct selection with replacement guidance where the provider surface remains. Earlier-retired identities that are not on this list (Recraft, Ideogram, ERNIE, MAI, Reve, `grok-imagine-image`, `gemini-3.1-flash-image-preview`) stay historical only.
+
+**Remaining selectors**
+
+- Gemini: `gemini-3.1-flash-lite-image`
+- OpenAI: `gpt-image-2`, `gpt-image-2.5-flare`, `gpt-image-2.5-sunburst`
+- Grok: `grok-imagine-image-2.0` (bare Grok default)
+- Replicate: `bytedance/seedream-5-lite`, `bytedance/seedream-5-pro`, `alibaba/qwen-image-3`, `alibaba/qwen-image-3-pro`
+- Luma Labs: `uni-1`, `uni-1-max`
+- fal.ai: `fal-ai/hidream-o1-image`, `alibaba/qwen-image-3`, `reve/2.1`
+
+**Remove 1: Replicate `qwen/qwen-image-2`, `qwen/qwen-image-2-pro`**
+
+- **Remove:** `qwen/qwen-image-2`, `qwen/qwen-image-2-pro`
+- **Successor:** `alibaba/qwen-image-3`, `alibaba/qwen-image-3-pro`
+
+**Remove 2: Replicate `wan-video/wan-2.7-image`, `wan-video/wan-2.7-image-pro`, `bytedance/seedream-4.5`**
+
+- **Remove:** `wan-video/wan-2.7-image`, `wan-video/wan-2.7-image-pro`, `bytedance/seedream-4.5`
+- **Successor:** `bytedance/seedream-5-lite`
+
+**Remove 3: Gemini `gemini-3.1-flash-image`, `gemini-3-pro-image`**
+
+- **Remove:** `gemini-3.1-flash-image`, `gemini-3-pro-image`
+- **Successor:** `gemini-3.1-flash-lite-image`
+
+**Remove 4: Grok `grok-imagine-image-quality`**
+
+- **Remove:** `grok-imagine-image-quality`
+- **Successor:** `grok-imagine-image-2.0`
+
+**Remove 5: BFL `flux-2-klein-4b`, `flux-2-klein-9b`, `flux-2-pro`, `flux-2-max`, `flux-2-flex`**
+
+- **Remove:** `flux-2-klein-4b`, `flux-2-klein-9b`, `flux-2-pro`, `flux-2-max`, `flux-2-flex`
+- **Successor:** `gpt-image-2.5-flare`
+- **Provider:** BFL retired (`BFL_API_KEY`, `--provider bfl`, custom `WIDTHxHEIGHT`, `jpeg|png|webp`, and reference edits)
+
+**Capability fallout**
+
+- BFL: no provider, key, custom size, jpeg/png/webp format control, or reference edits.
+- Gemini: no `--search-grounding`; lite is 1K-only; no Gemini 2K/4K; no extra ratios `1:4`, `4:1`, `1:8`, `8:1`.
+- Grok: Quality-only `--quality` rejection is gone; Image 2.0 `--quality`, `--size`, and `--count` remain; bare `--provider grok` selects Image 2.0.
+- Replicate: no Wan `--count`, no Wan 4K, no Seedream 4.5 custom size or JPEG.

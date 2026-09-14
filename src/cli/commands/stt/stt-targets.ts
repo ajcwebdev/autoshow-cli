@@ -3,8 +3,8 @@ import type { Step2ProviderSelectionFilter, SttSource, SttSourceEligibility, Stt
 import { SUPPORTED_SCRAPECREATORS_STT_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { collectStep2ProviderSelections } from '../command-shared/extract-routing/provider-registry'
 import { collectSttProviderSpecs, resolveDiarizationOptions } from './stt-cli'
-import { isScrapeCreatorsSupportedSourceUrl } from './direct-url/scrapecreators/scrapecreators'
-import { isSupadataSupportedSourceUrl } from './direct-url/stt-supadata/supadata'
+import { isScrapeCreatorsSupportedSourceUrl } from '~/cli/commands/text/url/url-services/scrapecreators/scrapecreators'
+import { isSupadataSupportedSourceUrl } from '~/cli/commands/text/url/url-services/supadata-transcript/supadata'
 
 
 const LOCAL_STT_SERVICES = new Set<SttTarget['service']>([

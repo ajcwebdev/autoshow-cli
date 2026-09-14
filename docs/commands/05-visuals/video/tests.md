@@ -1,8 +1,8 @@
 # Video Service Tests
 
-Provider-backed video-generation coverage for the `video` command.
+Provider-backed video-generation coverage for the `video` command: fal.ai, Gemini, Grok, LTX, and Replicate.
 
-Safety: these `bun t` commands document human service/e2e coverage and may call paid or quota-limited providers. Do not run them for agent verification without explicit approval for that exact run.
+Safety: these commands may call paid or quota-limited providers. Do not run them without explicit approval for that exact run.
 
 ## Quick Start
 
@@ -20,8 +20,6 @@ Live video generation tests need a configured provider key: `FAL_API_KEY`, `GEMI
 bun t test/test-cases/e2e/service/visuals/video/ --price
 bun t test/test-cases/e2e/service/visuals/video/ --budget 2500
 ```
-
-`test/test-cases/price-flag/visuals/video/video-price.test.ts` covers `--price` validation without calling providers.
 
 ## Related Docs
 

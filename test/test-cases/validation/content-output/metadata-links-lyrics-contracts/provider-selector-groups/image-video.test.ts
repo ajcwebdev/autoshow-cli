@@ -1,9 +1,6 @@
 import { expect, test } from 'bun:test'
 import { collectLinks, parseLinksArgv } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import {
-  BFL_ALL_LINKS,
-  BFL_IMAGE_LINKS,
-  BFL_MODELS_LINKS,
   FAL_IMAGE_LINKS,
   FAL_VIDEO_LINKS,
   LTX_ALL_LINKS,
@@ -23,16 +20,6 @@ test('links selector accepts separate fal image and video sections', () => {
 })
 
 registerProviderSelectorCases([
-  {
-    name: 'links selector accepts bfl provider with models and image sections',
-    provider: 'bfl',
-    all: { expected: BFL_ALL_LINKS },
-    selections: [
-      { sections: ['models'], expected: BFL_MODELS_LINKS },
-      { sections: ['image'], expected: BFL_IMAGE_LINKS }
-    ],
-    invalid: { sections: ['general'], message: 'Unknown links section(s) for --bfl: general' }
-  },
   {
     name: 'links selector accepts ltx provider with models and video sections',
     provider: 'ltx',

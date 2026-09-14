@@ -1,38 +1,28 @@
-import { createModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
+import { createModelValidator, createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import type { FalVideoModel, GeminiVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, ReplicateVideoModel } from '~/types'
-import { createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 export const SUPPORTED_GEMINI_VIDEO_MODELS = [
-  'veo-3.1-fast-generate-preview',
-  'veo-3.1-generate-preview',
   'veo-3.1-lite-generate-preview'
 ] as const satisfies readonly string[]
 
-export const validateGeminiVideoModel = createModelValidator<GeminiVideoModel>(SUPPORTED_GEMINI_VIDEO_MODELS, 'gemini-video')
+export const validateGeminiVideoModel = createRetiringModelValidator<GeminiVideoModel>('video', 'gemini', SUPPORTED_GEMINI_VIDEO_MODELS, 'gemini-video')
 
 export const SUPPORTED_GROK_VIDEO_MODELS = [
-  'grok-imagine-video',
   'grok-imagine-video-1.5'
 ] as const satisfies readonly string[]
 
-export const validateGrokVideoModel = createModelValidator<GrokVideoModel>(SUPPORTED_GROK_VIDEO_MODELS, 'grok-video')
+export const validateGrokVideoModel = createRetiringModelValidator<GrokVideoModel>('video', 'grok', SUPPORTED_GROK_VIDEO_MODELS, 'grok-video')
 
 export const SUPPORTED_LTX_VIDEO_MODELS = [
-  'ltx-2-3-fast',
-  'ltx-2-3-pro',
   'ltx-2-5-fast',
   'ltx-2-5-pro'
 ] as const satisfies readonly string[]
 
-export const validateLtxVideoModel = createModelValidator<LtxVideoModel>(SUPPORTED_LTX_VIDEO_MODELS, 'ltx-video')
+export const validateLtxVideoModel = createRetiringModelValidator<LtxVideoModel>('video', 'ltx', SUPPORTED_LTX_VIDEO_MODELS, 'ltx-video')
 
 export const SUPPORTED_REPLICATE_VIDEO_MODELS = [
   'alibaba/happyhorse-1.1',
   'bytedance/seedance-2.5',
-  'bytedance/seedance-2.0',
-  'bytedance/seedance-2.0-fast',
-  'kwaivgi/kling-v3-video',
-  'kwaivgi/kling-v3-omni-video',
   'pixverse/pixverse-v6'
 ] as const satisfies readonly string[]
 
@@ -52,8 +42,7 @@ export const SUPPORTED_FAL_VIDEO_MODELS = [
   'minimax/h3-max/image-to-video',
   'minimax/h3-max-turbo/text-to-video',
   'minimax/h3-max-turbo/image-to-video',
-  'minimax/h3',
-  'fal-ai/pixverse/c1'
+  'minimax/h3'
 ] as const satisfies readonly string[]
 
-export const validateFalVideoModel = createModelValidator<FalVideoModel>(SUPPORTED_FAL_VIDEO_MODELS, 'fal-video')
+export const validateFalVideoModel = createRetiringModelValidator<FalVideoModel>('video', 'fal', SUPPORTED_FAL_VIDEO_MODELS, 'fal-video')

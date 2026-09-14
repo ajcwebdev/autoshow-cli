@@ -19,20 +19,20 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 
 ### Options
 
-| Flag | Description | Default |
-| --- | --- | --- |
-| `--panel-count <n\|min-max>` | Number of panels to fit the treatment into, from 1 through 60: an exact count such as `10` or a range such as `20-25` that lets the model choose the natural beat count | `10` |
-| `--voice-pacing <pacing>` | `exclusive` gives every panel one voice and groups consecutive panels into narration and speech runs; `mixed` lets a panel carry narration and dialogue together | `exclusive` |
-| `--episode <NN>` | Two-digit episode number that selects `input/scripts/<NN>-script/` | next unused number |
-| `--scene <SC>` | Two-digit scene prefix for the generated script filename | `01` |
-| `--slug <text>` | Kebab-case script slug | treatment title without the word "treatment" |
-| `--speaker <key>` | Character key whose quoted lines become dialogue instead of narration; repeatable | none, so every panel is narration only |
-| `--style-seed <filename>` | PNG filename under `input/characters/` written as every new character's `generationReference` | `<slug>--style-seed.png` |
-| `--catalog-policy <policy>` | `skip-existing` keeps an existing catalog key as authored and reports it; `fail` aborts before writing catalogs or the script | `skip-existing` |
-| `--force` | Overwrite an existing script at the target path | `false` |
-| `--llm-model <model>` | Text model for the drafting call | `gpt-5.6-sol` |
-| `--concurrency-mode <ramp\|immediate>` | Approach the hosted LLM lane from one request (`ramp`) or start at the configured cap (`immediate`) | `ramp` |
-| `--price` | Estimate the drafting call without provider calls or writes | `false` |
+| Flag                                   | Description                                                                                                                                                      | Default                                      |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `--panel-count <n\|min-max>`           | Number of panels to fit the treatment into, from 1 through 60: an exact count such as `10` or a range such as `20-25`                                            | `10`                                         |
+| `--voice-pacing <pacing>`              | `exclusive` gives every panel one voice and groups consecutive panels into narration and speech runs; `mixed` lets a panel carry narration and dialogue together | `exclusive`                                  |
+| `--episode <NN>`                       | Two-digit episode number that selects `input/scripts/<NN>-script/`                                                                                               | next unused number                           |
+| `--scene <SC>`                         | Two-digit scene prefix for the generated script filename                                                                                                         | `01`                                         |
+| `--slug <text>`                        | Kebab-case script slug                                                                                                                                           | treatment title without the word "treatment" |
+| `--speaker <key>`                      | Character key whose quoted lines become dialogue instead of narration; repeatable                                                                                | none, so every panel is narration only       |
+| `--style-seed <filename>`              | PNG filename under the characters root used as the style reference for every new character                                                                       | `<slug>--style-seed.png`                     |
+| `--catalog-policy <policy>`            | `skip-existing` keeps an existing catalog key as authored and reports it; `fail` aborts before writing catalogs or the script                                    | `skip-existing`                              |
+| `--force`                              | Overwrite an existing script at the target path                                                                                                                  | `false`                                      |
+| `--llm-model <model>`                  | Text model for the drafting call                                                                                                                                 | `gpt-5.6-sol`                                |
+| `--concurrency-mode <ramp\|immediate>` | Approach the hosted LLM lane from one request (`ramp`) or start at the configured cap (`immediate`)                                                              | `ramp`                                       |
+| `--price`                              | Estimate the drafting call without provider calls or writes                                                                                                      | `false`                                      |
 
 Global `--output-dir <path>` pins the treatment run directory. Global `--characters-root <path>` selects the character catalog root; the location catalog is its sibling `locations` directory.
 
@@ -48,17 +48,16 @@ bun autoshow comic draft-treatment input/camp-manzanita-treatment.pdf --episode 
 
 ### Behavior
 
-- `<treatment-path>` is a `.md`, `.txt`, or `.pdf` file. Markdown and text are read as-is and `--- Page N ---` markers count as pages. A PDF is extracted locally with `mutool`, so PDF input costs nothing extra and never calls an OCR provider.
+- `<treatment-path>` is a `.md`, `.txt`, or `.pdf` file. PDF text is extracted locally, so it costs nothing extra and never calls an OCR provider.
 - The style seed PNG named by `--style-seed` must already exist under the characters root. Generate the seed with [`image`](../image/overview.md) and copy it into `input/characters/` first.
-- The draft includes story and scene titles, a shared style paragraph, the characters and locations the panels need, and a panel list whose length satisfies `--panel-count`. Each panel has a visual note, narration, any dialogue for `--speaker` characters, and the treatment excerpt it adapts. Validation checks the count and numbering, that every panel has narration or dialogue, that every dialogue speaker is an allowed `--speaker` key, that every location slugline reads like `EXT. PLACE - NIGHT` and resolves to its own key, and that names and aliases identify exactly one character. One failed check retries once; a second failure is saved as `treatment.invalid.json` and the command exits non-zero without touching `input/`.
-- With `--voice-pacing exclusive`, each panel has one voice and consecutive panels form runs: a speaker's long passage is split across several dialogue panels with fresh visuals and no narration between them, and narration hands off into a speech run and picks up the frame story afterwards without restating the speech. Validation rejects a panel that carries both voices, a panel that mixes speakers, and a script whose voice changes more than one third of the panel count. `--voice-pacing mixed` lets a panel carry narration and dialogue together. The run summary reports the drafted panel count and the number of voice changes.
+- The draft includes story and scene titles, the characters and locations the panels need, and a panel list whose length satisfies `--panel-count`. Each panel has a visual note, narration, and any dialogue for `--speaker` characters. A failed draft retries once; a second failure is saved as `treatment.invalid.json` and the command exits non-zero without touching `input/`.
+- With `--voice-pacing exclusive`, each panel has one voice and consecutive panels form runs: a long spoken passage is split across dialogue panels with no narration between them, and narration resumes after the speech without restating it. `--voice-pacing mixed` lets a panel carry narration and dialogue together. The run summary reports the drafted panel count and the number of voice changes.
 - The script is written to `input/scripts/<episode>-script/<scene>-<slug>.md`. The command refuses to overwrite an existing file without `--force` and refuses a target whose `<episode>-<scene>` shorthand would match more than one file. With no `--episode`, the next unused two-digit episode number is chosen.
-- The command checks that the rendered script parses against the merged catalogs before writing catalogs or the script.
-- `--price` reports up to two calls with 1,200 fixed output units plus 260 units per panel at the range maximum; it performs no provider call and writes nothing.
+- `--price` estimates the drafting call, including one retry, without a provider call or writes.
 
 ### Emitted script shape
 
-Narration is written under a `**NARRATION**` label, which [`generate-audio`](./04-generate-audio.md) casts to the `role:narrator` voice. Quoted lines from `--speaker` characters become dialogue under the character's uppercase catalog name. A bold slugline opens the scene and is repeated whenever the location changes. With the default exclusive pacing each panel carries one voice, so a narration panel leads into a run of speech panels:
+Narration is written under a `**NARRATION**` label. Quoted lines from `--speaker` characters become dialogue under the character's uppercase catalog name. A bold slugline opens the scene and is repeated whenever the location changes. With the default exclusive pacing each panel carries one voice, so a narration panel leads into a run of speech panels:
 
 ```markdown
 # Episode 02: Camp Manzanita
@@ -91,8 +90,8 @@ But in the 1850s this forest was the heart of the gold rush.
 
 ### Catalog merge
 
-- New characters are appended to `input/characters/characters-reference.json` with the style seed as `generationReference` and the drafted description, aliases, and wardrobe. Existing entries are never modified. An alias that already belongs to another character, or that two new characters both claim, is dropped and listed in the merge report.
-- New locations are appended to `input/locations/locations-reference.json` with the canonical slugline as their first alias and the shared style paragraph in the specification. The catalog's `styleImage` is set to the style seed when the catalog is created or when its current style image is missing on disk; otherwise it is kept and reported.
+- New characters are appended to `input/characters/characters-reference.json` with the style seed as their image reference plus the drafted description, aliases, and wardrobe. Existing entries are never modified. An alias that already belongs to another character, or that two new characters both claim, is dropped and listed in the merge report.
+- New locations are appended to `input/locations/locations-reference.json`. The catalog's style image is set to the style seed when the catalog is created or when its current style image is missing; otherwise it is kept and reported.
 - With `--catalog-policy skip-existing`, a drafted key that already exists is skipped and reported. With `--catalog-policy fail`, an existing key or a colliding alias aborts the command before writing catalogs or the script.
 - Run [`reference-sketch`](./02-reference-sketch.md) for every added character and location before building panel prompts; the merge report lists the exact commands.
 
@@ -101,15 +100,9 @@ But in the 1850s this forest was the heart of the gold rush.
 ```text
 output/<YYYY-MM-DD_HH-MM-SS-mmm>_<slug>-treatment/
   metadata/treatment/
-    source.<ext>
-    source.txt
-    prompt.md
-    response-attempt-N.json
     treatment.json
     treatment.invalid.json            # only when both attempts fail
-    structured-script.preview.json
     script.md
-    merge-report.json
     merge-report.md
 input/scripts/<episode>-script/<scene>-<slug>.md
 input/characters/characters-reference.json
@@ -118,7 +111,7 @@ input/locations/locations-reference.json
 
 ### Walkthrough: camp-manzanita
 
-This walkthrough drafts `input/camp.md` into episode 02 with a narrator plus Papa Bear's spoken legend, fitting the treatment into 20-25 panels. Generate the style seed first. Every paid step accepts `--price` first.
+This walkthrough drafts `input/camp.md` into episode 02 with a narrator plus Papa Bear's spoken legend, fitting the treatment into 20-25 panels. Generate the style seed first.
 
 ```bash
 # 1. Style seed for every camp character and location (paid image call)

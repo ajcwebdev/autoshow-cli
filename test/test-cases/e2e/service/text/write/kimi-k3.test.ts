@@ -3,7 +3,7 @@ import { kimiWrite } from './cases'
 
 defineLLMWriteTest({
   ...kimiWrite,
-  models: ['kimi-k2.6'],
+  models: ['kimi-k3'],
   llmService: 'kimi',
-  promptProfiles: { 'kimi-k2.6': 'shortSummary' },
+  promptProfiles: { 'kimi-k3': 'shortSummary' },
 })

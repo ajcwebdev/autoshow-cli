@@ -165,14 +165,14 @@ describe('audited help behavior', () => {
     const normalize = (selector: string) => {
       const parsed = parse(['write', 'sample.txt', selector, 'openai=gpt-5.6-sol', selector, 'gemini=gemini-3.8-flash'])
       const alias = normalizeWriteProviderAlias(parsed.flags, parsed.rawParsed.explicitFlags, parsed.rawParsed.flagOccurrences)
-      const merged = mergeConfigIntoRawFlags(alias.flags, { defaults: { llm: { grok: ['grok-4.5'], openai: ['gpt-5.6-sol'] } } }, alias.explicitFlags, 'write')
+      const merged = mergeConfigIntoRawFlags(alias.flags, { defaults: { llm: { grok: ['grok-4.6'], openai: ['gpt-5.6-sol'] } } }, alias.explicitFlags, 'write')
       return normalizeGenericProviderSelectorFlags(merged, alias.explicitFlags, alias.flagOccurrences, 'llm', WRITE_LLM_PROVIDER_TARGETS)
     }
     const current = normalize('--provider')
     const legacy = normalize('--llm')
     expect(current.flags).toEqual(legacy.flags)
     expect(current.explicitFlags).toEqual(legacy.explicitFlags)
-    expect(current.flags['grok']).toEqual(['grok-4.5'])
+    expect(current.flags['grok']).toEqual(['grok-4.6'])
     expect(current.flags['openai']).toEqual(['gpt-5.6-sol', 'gpt-5.6-sol'])
     const mixed = parse(['write', 'sample.txt', '--provider', 'openai', '--llm', 'gemini'])
     expect(() => normalizeWriteProviderAlias(mixed.flags, mixed.rawParsed.explicitFlags, mixed.rawParsed.flagOccurrences)).toThrow('Do not combine')
@@ -216,10 +216,10 @@ describe('audited help behavior', () => {
     applyDefaultVideoSelection(image, resolveVideoInput('sample.png', image).kind)
     expect(image['mode']).toBe('image-to-video')
     expect(image['all-video']).toBe(true)
-    const explicit: Record<string, unknown> = { 'grok-video': 'grok-imagine-video' }
+    const explicit: Record<string, unknown> = { 'grok-video': 'grok-imagine-video-1.5' }
     applyDefaultVideoSelection(explicit, resolveVideoInput('sample.png', explicit).kind)
     expect(explicit['all-video']).toBeUndefined()
-    expect(explicit['grok-video']).toBe('grok-imagine-video')
+    expect(explicit['grok-video']).toBe('grok-imagine-video-1.5')
     expect(() => resolveVideoInput('sample.png', { mode: 'text' })).toThrow('infers --mode image-to-video')
   })
 

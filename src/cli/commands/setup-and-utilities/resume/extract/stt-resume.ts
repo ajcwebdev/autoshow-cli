@@ -17,7 +17,7 @@ import {
 import { collectSttTargets, formatSttTargetLabel } from '~/cli/commands/stt/stt-targets'
 import { getStep2ActiveModelsForService } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord } from '~/cli/commands/command-shared/pipeline-manifest'
-import { YOUTUBE_CAPTIONS_SERVICE } from '~/cli/commands/stt/direct-url/youtube-captions'
+import { YOUTUBE_CAPTIONS_SERVICE } from '~/cli/commands/text/url/url-services/youtube-captions/youtube-captions'
 import { resolveAdditiveResumeProviderSelection } from '../resume-provider-selection'
 import { hasResumableProviderTargetWork, priceProviderResumeTarget, providerResumeSourceInput, resolveProviderResumeOutputDir, runProviderResumePass, selectedProviderTargetsComplete, selectedProvidersCompleteResult, toProviderResumeResult, toProviderResumeSource } from '../provider-batch-resume'
 import { buildSttEstimatesForTargets } from '~/cli/commands/pricing-orchestration/aggregate-pricing/stt-estimates'

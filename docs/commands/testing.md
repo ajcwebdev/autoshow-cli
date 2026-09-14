@@ -1,22 +1,10 @@
 # Testing
 
-Shared `bun t` runner behavior plus the local and service test coverage map for the AutoShow CLI. Capability test pages live beside their command docs and are indexed in [Command Test Pages](#command-test-pages).
+Shared `bun t` runner behavior and the local and service test coverage map for the AutoShow CLI. Per-command coverage, price examples, and live selections live on the [command test pages](#command-test-pages).
 
 Default local verification is `bun run check` followed by `bun t --price`. Price mode estimates mapped commands without executing provider tests. The default runner uses fixture mode and does not forward provider credentials. Hosted execution requires explicit live mode, a credential allowlist, and valid budget evidence; apply the repository spending policy before running it.
 
 `bun run check` runs structure, name, and type checks without loading `.env`. `check:types` runs the pinned native TypeScript preview compiler (`@typescript/native-preview`, `tsgo`) against the same `tsconfig.json`; `bun run check:types:tsc` runs the reference `typescript` compiler, which reports identical diagnostics with a slower wall time, and CI cross-checks it in the package-hygiene job. Normal `bun autoshow` commands still load `.env` because provider commands need credentials.
-
-## Outline
-
-- [Local Quick Start](#local-quick-start)
-- [Service Quick Start](#service-quick-start)
-- [Command Test Pages](#command-test-pages)
-- [Shared Runner Behavior](#shared-runner-behavior)
-- [Price Preflight](#price-preflight)
-- [No-Cost CI Gate](#no-cost-ci-gate)
-- [Package Review](#package-review)
-- [Profiling](#profiling)
-- [Cross-Cutting Coverage](#cross-cutting-coverage)
 
 ## Local Quick Start
 
@@ -31,12 +19,10 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 For local extraction and rendering coverage:
 
 ```bash
-# local e2e coverage
 bun t \
   test/test-cases/e2e/local/sources/download/download-input-types-local-file.test.ts \
   test/test-cases/e2e/local/text/ocr/ \
   test/test-cases/e2e/local/stt/ \
-  test/test-cases/e2e/local/text/write/ \
   test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts
 ```
 
@@ -54,9 +40,7 @@ AUTOSHOW_TEST_CREDENTIAL_KEYS='["OPENAI_API_KEY"]' \
   bun --no-env-file run t:provider --budget 50 test/test-cases/e2e/service/audio/tts/
 ```
 
-`t:provider` selects live mode and disables automatic `.env` loading. Set `AUTOSHOW_TEST_CREDENTIAL_KEYS` to a JSON array of the registered credential names required by the selected files, and export those values. Tests needing unlisted or missing credentials are skipped. `--budget` produces the evaluated and skip evidence live tests require; missing or corrupt evidence blocks hosted runs. A budget may skip every selected test when no estimate fits. Choose the selection and budget according to the repository spending policy.
-
-Direct live `bun --no-env-file test` execution requires `AUTOSHOW_TEST_CREDENTIAL_MODE=live` plus valid `AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS` and `AUTOSHOW_TEST_BUDGET_SKIP_KEYS` JSON arrays from an evaluated plan. Helpers never fall back to `.env`.
+`t:provider` selects live mode and disables automatic `.env` loading. Set `AUTOSHOW_TEST_CREDENTIAL_KEYS` to a JSON array of the registered credential names required by the selected files, and export those values. Tests needing unlisted or missing credentials are skipped. `--budget` produces the evaluated and skip evidence live tests require; missing or corrupt evidence blocks hosted runs. A budget may skip every selected test when no estimate fits. Choose the selection and budget according to the repository spending policy. Helpers never fall back to `.env`.
 
 ## Command Test Pages
 
@@ -78,8 +62,7 @@ Per-command coverage, price examples, and live selections live on these pages:
 - Pass file or directory paths under `test/test-cases/` to select tests.
 - Passing tests print only the result line (`✓`, name, duration). Failing tests keep that `✗` line and the captured console output from that test.
 - `--max-concurrency` and `--parallel` default to the machine's available parallelism. E2E-only selections default `--parallel` to 32; automatic test retries are disabled. Pass `--max-concurrency=<n>` or `--parallel=<n>` to override; `--concurrency` is not a Bun test flag and is rejected.
-- On Bun 1.4, `--parallel` implies isolated test files. Use `--no-isolate` only as a temporary diagnostic escape hatch for a confirmed isolation or preload regression; it is not a supported default because it weakens file-level state separation.
-- The runner updates file timings so Bun schedules slow files first and balances shards. Per-test estimates in `report.json` come from the runner cache.
+- `--parallel` isolates test files. Use `--no-isolate` only as a temporary diagnostic escape hatch for a confirmed isolation or preload regression; it is not a supported default because it weakens file-level state separation.
 - Interrupting a run terminates local test descendants.
 - Each run writes artifacts under `./output/test-output/YYYY-MM-DD_HH-MM-SS_test-run/`. By default, `bun t` cleans that directory after every run and leaves `./output/test-output/latest.log` with the run summary, failures, runner log, and command log. Use `--no-cleanup` to keep the full run directory, per-test CLI outputs, and test cache.
 - Use `--no-adaptive-concurrency` to disable adaptive per-provider lane limits.
@@ -92,7 +75,7 @@ bun t --no-cleanup
 cat output/test-output/latest.log
 ```
 
-Common Bun 1.4 selection and diagnostic flags are forwarded unchanged after AutoShow resolves path filters:
+Common selection and diagnostic flags are forwarded unchanged after AutoShow resolves path filters:
 
 ```bash
 # Test files affected since a commit or branch
@@ -110,7 +93,7 @@ bun t test/test-cases/validation/ '--path-ignore-patterns=*provider*'
 
 Use `--shard=<index>/<count>` only with a curated set already proven local and no-cost. Timing balance does not classify provider cost or make an unreviewed selection safe.
 
-Process termination never authorizes deletion of completed TTS segment audio. Resume ambiguous real TTS work with `--allow-ambiguous-redispatch` so completed slots can be reused.
+Interrupted TTS tests must not delete completed segment audio. Resume ambiguous real TTS work with `--allow-ambiguous-redispatch` so completed slots can be reused.
 
 ## Price Preflight
 
@@ -127,7 +110,7 @@ bun t test/test-cases/e2e/service/text/write/ --budget 2500
 
 ## No-Cost CI Gate
 
-Pull requests and pushes to `main` run the verification job in `.github/workflows/docker-publish.yml`. It runs the same work as `bun run check` and `bun t --price`, plus the approved CLI smoke selections and the local-only contract files listed in that job. The workflow supplies no provider credentials and does not run the full suite, unclassified shards, smoke/e2e selections, or provider-backed commands. The verify job installs ImageMagick, FFmpeg, MuPDF tools, and qpdf through apt in the background while `bun run check` runs, waits for that install so price-mode commands resolve the tools from `PATH` instead of starting their own installs, runs `bun t --price --no-cleanup`, prints per-command timings from the retained `metrics.ndjson` with `bun src/tools/ci-run-timings.ts price <metrics.ndjson>`, and then runs the CLI smoke, Docker and DOCX, and Bun migration contract groups concurrently in one step. `bun src/tools/ci-run-timings.ts run <run-id>` summarizes a finished run through `gh run view` (or `--json-file`) with per-job and per-step tables and the critical path.
+Pull requests and pushes to `main` run the same work as `bun run check` and `bun t --price`, plus approved local CLI smoke and contract tests. CI supplies no provider credentials and does not run the full suite or provider-backed commands. The verify job installs ImageMagick, FFmpeg, MuPDF tools, and qpdf through apt in the background while `bun run check` runs, waits for that install so price-mode commands resolve the tools from `PATH` instead of starting their own installs, runs `bun t --price --no-cleanup`, prints per-command timings from the retained `metrics.ndjson` with `bun src/tools/ci-run-timings.ts price <metrics.ndjson>`, and then runs the CLI smoke, Docker and DOCX, and Bun migration contract groups concurrently in one step. `bun src/tools/ci-run-timings.ts run <run-id>` summarizes a finished run through `gh run view` (or `--json-file`) with per-job and per-step tables and the critical path.
 
 ## Package Review
 
@@ -148,7 +131,7 @@ Docker therefore keeps the frozen production install without an additional prune
 
 ## Profiling
 
-AutoShow keeps generated CPU profiles, heap profiles, bundle metafiles, compiled probe bundles, logs, and metadata under the ignored `runtime/profiling/bun-runtime/` directory. Every run records the child commands, Bun version, package-manager pin, platform, architecture, duration, exit status, and that dotenv loading was disabled. The recipes inherit only `HOME` and `PATH`; they do not receive provider credentials and do not execute provider calls.
+No-cost profiling recipes write CPU profiles, heap profiles, bundle metafiles, logs, and metadata under the ignored `runtime/profiling/bun-runtime/` directory. They inherit only `HOME` and `PATH`, do not receive provider credentials, and do not execute provider calls.
 
 ### CPU profiles
 
@@ -172,9 +155,7 @@ Run `bun profile:bundle` to build the same `src/cli/create-cli.ts` entrypoint us
 
 Run `bun profile:all` to execute all four no-cost recipes into one timestamped directory. Any recipe accepts `--output-dir <path>` after the script selector when invoked directly, for example `env -i PATH="$PATH" HOME="$HOME" bun --no-env-file src/tools/bun-profile.ts bundle --output-dir runtime/profiling/bun-runtime/before-bundle-change`.
 
-Generated artifacts are diagnostic evidence and are not committed. Checked benchmark summaries should contain only aggregate measurements, fixture identities, commands, and conclusions.
-
-Historical Bun 1.4 measurements are archived with the decisions they support: [XML and normalization in ADR-001](../adr/ADR-001-source-ingestion-and-normalization.md#bun-14-xml-evaluation), [CPU and tokenizer evidence in ADR-002](../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md#bun-14-journal-and-tokenizer-evidence), and [bundle packaging in ADR-014](../adr/ADR-014-distribute-the-cli-as-a-docker-image.md#bundle-inventory-supporting-the-packaging-decision).
+Generated artifacts are diagnostic evidence and are not committed.
 
 ## Cross-Cutting Coverage
 

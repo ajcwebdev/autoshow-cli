@@ -3,7 +3,6 @@ export type ImageRuntimeOptions = {
   geminiImageModels: string[] | undefined
   openaiImageModels: string[] | undefined
   grokImageModels: string[] | undefined
-  bflImageModels: string[] | undefined
   replicateImageModels: string[] | undefined
   lumalabsImageModels: string[] | undefined
   falImageModels: string[] | undefined
@@ -16,6 +15,5 @@ export type ImageRuntimeOptions = {
   imageInputs: string[] | undefined
   imageMask: string | undefined
   imageResponseMode: string | undefined
-  geminiSearchGrounding: boolean | undefined
   imageCompression: number | undefined
 }

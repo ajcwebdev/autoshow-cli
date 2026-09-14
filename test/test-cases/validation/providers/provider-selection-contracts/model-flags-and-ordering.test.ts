@@ -29,7 +29,6 @@ describe('provider selection contracts', () => {
       ['minimax-music', 'music-2' + '.5'],
       ['gemini-image', 'imagen-4.0-generate-001'],
       ['gemini-image', 'gemini-3.1-flash-image-preview'],
-      ['bfl-image', 'flux-2-pro-preview'],
       ['assemblyai-stt', 'universal-3-pro'],
       ['gemini-stt', 'gemini-3-flash-preview'],
       ['gladia-stt', 'default'],

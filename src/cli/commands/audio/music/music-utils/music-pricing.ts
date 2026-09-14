@@ -17,7 +17,7 @@ export const MUSIC_PRICING_MODEL_KEYS = passThroughKeys(MUSIC_PRICING_PROVIDERS)
 const formatRate = (amount: number): string => `${amount.toFixed(2)}¢`
 export const DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS = 180
 const DEFAULT_MINIMAX_MUSIC_DURATION_SECONDS = 120
-const DEFAULT_GEMINI_PRO_MUSIC_DURATION_SECONDS = 120
+const DEFAULT_GEMINI_MUSIC_DURATION_SECONDS = 120
 
 const assertValidMusicDuration = (durationSeconds: number | undefined): void => {
   if (durationSeconds !== undefined && (!Number.isFinite(durationSeconds) || durationSeconds <= 0)) {
@@ -104,10 +104,10 @@ export const estimateMusicCosts = (options: EstimateMusicCostOptions): MusicCost
         results.push({
           provider: 'gemini',
           model,
-          durationSeconds: options.musicDuration ?? DEFAULT_GEMINI_PRO_MUSIC_DURATION_SECONDS,
+          durationSeconds: options.musicDuration ?? DEFAULT_GEMINI_MUSIC_DURATION_SECONDS,
           totalCost: baseCost,
           lyricsSource,
-          note: `Gemini ${model} is billed per song request; timing estimate uses ${options.musicDuration ?? DEFAULT_GEMINI_PRO_MUSIC_DURATION_SECONDS}s.`
+          note: `Gemini ${model} is billed per song request; timing estimate uses ${options.musicDuration ?? DEFAULT_GEMINI_MUSIC_DURATION_SECONDS}s.`
         })
         break
       }

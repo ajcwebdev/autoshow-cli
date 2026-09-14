@@ -35,13 +35,13 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 
 ### Advanced Options
 
-| Flag                    | Description                                                                                                  | Default                                                     |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
-| `--image-model <model>` | Use exactly one supported image model (see [Supported Models](./00-comic-overview.md#supported-models))      | `gpt-image-2`                                               |
-| `--size <size>`         | Image size: `1536x1024`, `1024x1024`, `1024x1536`, `auto`, or a custom `WIDTHxHEIGHT` size for OpenAI GPT Image 2/2.5 | `1024x1536` for `--character`; `1536x1024` for `--location` |
-| `--quality <quality>`   | `low`, `medium`, `high`, or `auto`; Image 2.5 also supports `xhigh` and `max`. Only OpenAI applies it, and other providers use their own defaults | `medium` for `--character`; `high` for `--location` |
-| `--llm-model <model>`   | Text model for the first establishing location specification                                                 | `gpt-5.6-sol`                                               |
-| `--qa-model <model>`    | QA model for location views; QA requires an OpenAI or Gemini vision-capable LLM                              | `gpt-5.6-sol`                                               |
+| Flag                    | Description                                                                                                                                       | Default                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `--image-model <model>` | Use exactly one supported image model (see [Supported Models](./00-comic-overview.md#supported-models))                                           | `gpt-image-2`                                               |
+| `--size <size>`         | Image size: `1536x1024`, `1024x1024`, `1024x1536`, `auto`, or a custom `WIDTHxHEIGHT` size for `gpt-image-2` or GPT Image 2.5 (Flare/Sunburst)    | `1024x1536` for `--character`; `1536x1024` for `--location` |
+| `--quality <quality>`   | `low`, `medium`, `high`, or `auto`; Image 2.5 also supports `xhigh` and `max`. Only OpenAI applies it, and other providers use their own defaults | `medium` for `--character`; `high` for `--location`         |
+| `--llm-model <model>`   | Text model for the first establishing location specification                                                                                      | `gpt-5.6-sol`                                               |
+| `--qa-model <model>`    | QA model for location views; QA requires an OpenAI or Gemini vision-capable LLM                                                                   | `gpt-5.6-sol`                                               |
 
 ### Examples
 
@@ -55,49 +55,18 @@ bun autoshow comic reference-sketch --location cargo-bay --view reverse
 
 ### Behavior
 
-- The first establishing location run uses `--llm-model` to write a location specification from matching scripts. Reverse and side views require that establishing view.
+- The first establishing location run uses `--llm-model` to write a location specification from episode scripts whose slugline matches the location key. Reverse and side views require that establishing view.
 - A registered location view is left unchanged unless `--revise --notes` is supplied, and `--price` reports zero provider calls for that case. Fresh `--character` generation replaces the registered sheet. `--revise` never falls back to fresh generation.
 - `--character` writes the three-view sheet only after every view succeeds. Location QA, enabled by default, repairs a view up to `--max-repairs` times and registers only a passing view.
-- A reverse or side view generated from an `existing-canonical-art` establishing view is mixed lineage; `--price` and the paid run warn about that.
 - After updating character or location sketches, rerun `draft-scenes --only panel-prompts` for affected scenes.
 
 ### Location plans
 
-`input/locations/location-plans.json` is an optional hand-reviewed floor plan per location. `reference-sketch --location` and the `draft-scenes` blocking stage read it.
+`input/locations/location-plans.json` is an optional floor plan per location. `reference-sketch --location` and the `draft-scenes` blocking stage read it.
 
-```json
-{
-  "schemaVersion": 1,
-  "plans": [
-    {
-      "locationKey": "cargo-bay",
-      "reviewStatus": "reviewed",
-      "reviewedBy": "reviewer",
-      "reviewedAt": "2026-09-02T00:00:00.000Z",
-      "drawing": { "path": "plans/cargo-bay--floor-plan.png", "sha256": "..." },
-      "roomExtent": { "width": 10, "depth": 14 },
-      "anchors": [
-        {
-          "key": "loading door",
-          "position": { "x": 0, "y": 12 },
-          "footprint": { "width": 4, "depth": 0.3 },
-          "wall": "rear",
-          "facingDeg": null,
-          "longAxis": null
-        }
-      ],
-      "cameraCells": [{ "id": "door", "position": { "x": 0, "y": 13 }, "heightM": 1.6 }],
-      "geometrySha256": "..."
-    }
-  ]
-}
-```
+Coordinates are meters. The origin is the establishing camera's ground point, `+x` is screen-right in the establishing image, and `+y` is depth into the room. Each plan names a catalog location, the room size, fixed anchors from that location's specification, and optional camera cells. An optional drawing lives under `input/locations/plans/`.
 
-- Coordinates are meters in the location frame: the origin is the establishing camera's ground point, `+x` is screen-right in the canonical establishing image, `+y` is depth away from that camera, and `facingDeg` is 0 facing `+y`, 90 facing `+x`, 180 facing `−y`, 270 facing `−x`.
-- Every `locationKey` must exist in `locations-reference.json`. Every anchor key must appear in that location's specification as a case-insensitive substring after collapsing whitespace. A camera cell may not sit inside an anchor footprint.
-- `reviewStatus` is `provisional` or `reviewed`. Anchor `wall` is `left`, `right`, `rear`, `front`, `floor`, `ceiling`, or `null`. Anchor `longAxis` is `x`, `y`, or `null`. `drawing` may be `null`; when present, `drawing.path` is relative to `input/locations/` and must match its recorded `sha256`.
-- `geometrySha256` is the SHA-256 of that entry's canonical JSON without the field itself. Editing geometry does not stale a registered view.
-- When a plan exists, `--view reverse|side` uses a reviewed camera cell that faces that way, or synthesizes one from `roomExtent` if none does.
+When a plan exists, `--view reverse` or `--view side` uses a camera cell that faces that way, or infers one from the room size if none does. Editing a plan does not require regenerating registered views.
 
 ### Price
 

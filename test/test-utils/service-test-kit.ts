@@ -19,7 +19,6 @@ import {
   isGeminiImageAvailabilityFailure,
   isGeminiImageEmptyResponse,
   isSupadataPlanLimitFailure,
-  isBflResultDownloadAvailabilityFailure,
   isTogetherSttAvailabilityFailure
 } from './provider-failure-classifiers'
 
@@ -51,9 +50,6 @@ export const classifyLiveProviderAvailabilityFailure = (output: string): string 
   }
   if (isSupadataPlanLimitFailure(cleanOutput)) {
     return 'Supadata account plan limit is exhausted'
-  }
-  if (isBflResultDownloadAvailabilityFailure(cleanOutput)) {
-    return 'BFL image result download hit a transient provider availability failure'
   }
   if (isTogetherSttAvailabilityFailure(cleanOutput)) {
     return 'Together STT provider remained unavailable after retries'

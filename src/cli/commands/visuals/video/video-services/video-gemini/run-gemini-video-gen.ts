@@ -28,8 +28,6 @@ export const runGeminiVideoGen = async (
     durationSeconds?: number | undefined
     inputImage?: string | undefined
     lastFrameImage?: string | undefined
-    referenceImages?: string[] | undefined
-    inputVideo?: string | undefined
     abortSignal?: AbortSignal | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
@@ -47,7 +45,7 @@ export const runGeminiVideoGen = async (
 
   await mkdir(outputDir, { recursive: true })
   const mode = options.mode ?? 'text'
-  const normalizedResolution = mode === 'extend' ? '720p' : normalizeGeminiResolution(options.resolution, options.model)
+  const normalizedResolution = normalizeGeminiResolution(options.resolution, options.model)
   const normalizedDuration = normalizeGeminiDuration(options.durationSeconds, normalizedResolution, mode)
   const resolvedPrompt = prompt ?? (mode === 'image-to-video' || mode === 'interpolate' ? DEFAULT_IMAGE_VIDEO_PROMPT : undefined)
   const image = options.inputImage
@@ -55,15 +53,6 @@ export const runGeminiVideoGen = async (
     : undefined
   const lastFrame = options.lastFrameImage
     ? await videoMediaReferenceToGeminiInlineData(options.lastFrameImage, 'image')
-    : undefined
-  const referenceImages = options.referenceImages && options.referenceImages.length > 0
-    ? await Promise.all(options.referenceImages.map(async (input) => ({
-        image: await videoMediaReferenceToGeminiInlineData(input, 'image'),
-        referenceType: 'asset' as const
-      })))
-    : undefined
-  const inputVideo = options.inputVideo
-    ? await videoMediaReferenceToGeminiInlineData(options.inputVideo, 'video')
     : undefined
 
   const startTime = Date.now()
@@ -80,8 +69,6 @@ export const runGeminiVideoGen = async (
     numberOfVideos: 1,
     ...(image ? { image } : {}),
     ...(lastFrame ? { lastFrame } : {}),
-    ...(referenceImages ? { referenceImages } : {}),
-    ...(inputVideo ? { video: inputVideo } : {}),
     ...(signal ? { abortSignal: signal } : {})
   }), (error) => classifyFetchRetry(error, 'runtime_http_create_conservative'))
 
@@ -138,8 +125,6 @@ export const runGeminiVideoGen = async (
     ...(options.aspectRatio ? { videoAspectRatio: options.aspectRatio } : {}),
     ...(options.inputImage ? { inputImage: options.inputImage } : {}),
     ...(options.lastFrameImage ? { lastFrameImage: options.lastFrameImage } : {}),
-    ...(options.referenceImages && options.referenceImages.length > 0 ? { referenceImages: options.referenceImages } : {}),
-    ...(options.inputVideo ? { inputVideo: options.inputVideo } : {}),
     ...(video.uri ? { providerVideoUri: video.uri } : {}),
     ...(video.mimeType ? { providerFileOutput: { mimeType: video.mimeType } } : {})
   }

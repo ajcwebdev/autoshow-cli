@@ -10,7 +10,7 @@ import {
   draftScenesCommandDefinition
 } from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
-import { STANDALONE_VIDEO_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
+import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { VOICE_PUBLIC_ACTIONS } from '~/cli/commands/audio/voice/define-voice-command'
 import { SETUP_STEP_IDS } from '~/types'
 
@@ -35,7 +35,7 @@ const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['extract', 'https://example.com/article', '--url-provider', 'spider'], flag: '--url-provider' },
   { argv: ['resume', 'output/x', '--url-provider', 'supadata'], flag: '--url-provider' },
   { argv: ['image', 'a sunset', '--openai', 'gpt-image-2'], flag: '--openai' },
-  { argv: ['video', 'a sunset', '--gemini-video', 'veo-3.1-fast-generate-preview'], flag: '--gemini-video' },
+  { argv: ['video', 'a sunset', '--gemini-video', 'veo-3.1-lite-generate-preview'], flag: '--gemini-video' },
   { argv: ['music', 'ambient', '--elevenlabs', 'music_v2'], flag: '--elevenlabs' },
   { argv: ['extract', 'input.pdf', '--glm-ocr', 'glm-5.3-flash'], flag: '--glm-ocr' },
   { argv: ['extract', 'https://example.com/a.mp3', '--glm-stt', 'x'], flag: '--glm-stt' },
@@ -162,6 +162,16 @@ describe('removed CLI spellings', () => {
       'provider',
       STANDALONE_VIDEO_PROVIDER_TARGETS
     )).toThrow('Unknown provider "minimax" for --provider. Expected gemini|grok|ltx|replicate|lumalabs|fal.')
+  })
+
+  test('bfl is not an image provider selector', () => {
+    expect(() => normalizeGenericProviderSelectorFlags(
+      { provider: ['bfl'] },
+      new Set(['provider']),
+      [{ name: 'provider', value: 'bfl', raw: '--provider bfl', known: true }],
+      'provider',
+      STANDALONE_IMAGE_PROVIDER_TARGETS
+    )).toThrow('Unknown provider "bfl" for --provider. Expected gemini|openai|grok|replicate|lumalabs|fal.')
   })
 
   test('retired voice subcommand aliases are not registered', () => {

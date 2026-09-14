@@ -23,7 +23,6 @@ export const collectLumalabsImageTargets = (options: ImageGenOptions): ImageTarg
       'imageCount',
       'imageMask',
       'imageResponseMode',
-      { key: 'geminiSearchGrounding', when: value => value === true },
       'imageCompression'
     ], {
       provider: 'Luma Labs',

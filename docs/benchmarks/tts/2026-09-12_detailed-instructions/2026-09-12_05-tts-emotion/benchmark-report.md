@@ -26,13 +26,13 @@ The price-only preflight passes all 137 commands after updating renamed fixture 
 
 5 successful cases. Render-plan synthesis estimate for this suite: $0.11741. Conservative cumulative spending ledger for the related controls work: $1.00302. These are estimates, not confirmed provider charges.
 
-| Case | Audio seconds | Requests | Estimated USD | Audio |
-| --- | ---: | ---: | ---: | --- |
-| hume-octave-1-acting | 17.57 | 5 | $0.02400 | [WAV](./hume-octave-1-acting/speech.wav) · [Manifest](./hume-octave-1-acting/manifest.json) |
-| elevenlabs-eleven-v3-tags | 33.44 | 1 | $0.07490 | [WAV](./elevenlabs-eleven-v3-tags/speech.wav) · [Manifest](./elevenlabs-eleven-v3-tags/manifest.json) |
-| grok-grok-tts-delivery | 12.39 | 1 | $0.00385 | [WAV](./grok-grok-tts-delivery/speech.wav) · [Manifest](./grok-grok-tts-delivery/manifest.json) |
-| cartesia-sonic-3.6-2026-08-27-ssml | 13.76 | 5 | $0.01065 | [WAV](./cartesia-sonic-3.6-2026-08-27-ssml/speech.wav) · [Manifest](./cartesia-sonic-3.6-2026-08-27-ssml/manifest.json) |
-| inworld-realtime-tts-2-instructions | 16.88 | 5 | $0.00400 | [WAV](./inworld-realtime-tts-2-instructions/speech.wav) · [Manifest](./inworld-realtime-tts-2-instructions/manifest.json) |
+| Case                                | Audio seconds | Requests | Estimated USD | Audio                                                                                                                     |
+| ----------------------------------- | ------------: | -------: | ------------: | ------------------------------------------------------------------------------------------------------------------------- |
+| hume-octave-1-acting                |         17.57 |        5 |      $0.02400 | [WAV](./hume-octave-1-acting/speech.wav) · [Manifest](./hume-octave-1-acting/manifest.json)                               |
+| elevenlabs-eleven-v3-tags           |         33.44 |        1 |      $0.07490 | [WAV](./elevenlabs-eleven-v3-tags/speech.wav) · [Manifest](./elevenlabs-eleven-v3-tags/manifest.json)                     |
+| grok-grok-tts-delivery              |         12.39 |        1 |      $0.00385 | [WAV](./grok-grok-tts-delivery/speech.wav) · [Manifest](./grok-grok-tts-delivery/manifest.json)                           |
+| cartesia-sonic-3.6-2026-08-27-ssml  |         13.76 |        5 |      $0.01065 | [WAV](./cartesia-sonic-3.6-2026-08-27-ssml/speech.wav) · [Manifest](./cartesia-sonic-3.6-2026-08-27-ssml/manifest.json)   |
+| inworld-realtime-tts-2-instructions |         16.88 |        5 |      $0.00400 | [WAV](./inworld-realtime-tts-2-instructions/speech.wav) · [Manifest](./inworld-realtime-tts-2-instructions/manifest.json) |
 
 ## Cases
 

@@ -36,7 +36,33 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
   },
   llm: {
     'gemini:gemini-3.1-flash-lite': { inputCostPer1MCents: 25, outputCostPer1MCents: 150 },
-    'gemini:gemini-3.1-flash-lite-preview': { inputCostPer1MCents: 25, outputCostPer1MCents: 150 }
+    'gemini:gemini-3.1-flash-lite-preview': { inputCostPer1MCents: 25, outputCostPer1MCents: 150 },
+    'gemini:gemini-3.5-flash-lite': { inputCostPer1MCents: 30, outputCostPer1MCents: 250 },
+    'gemini:gemini-3.6-flash': { inputCostPer1MCents: 150, outputCostPer1MCents: 750 },
+    'gemini:gemini-3.5-flash': { inputCostPer1MCents: 150, outputCostPer1MCents: 900 },
+    'grok:grok-4.5': {
+      inputCostPer1MCents: 200,
+      cachedInputCostPer1MCents: 30,
+      outputCostPer1MCents: 600,
+      tokenPricingBands: [
+        {
+          label: 'standard-up-to-200k',
+          maxInputTokens: 200000,
+          inputCostPer1MCents: 200,
+          cachedInputCostPer1MCents: 30,
+          outputCostPer1MCents: 600
+        },
+        {
+          label: 'standard-over-200k',
+          minInputTokens: 200001,
+          inputCostPer1MCents: 400,
+          cachedInputCostPer1MCents: 60,
+          outputCostPer1MCents: 1200
+        }
+      ]
+    },
+    'anthropic:claude-fable-5': { inputCostPer1MCents: 1000, outputCostPer1MCents: 5000 },
+    'kimi:kimi-k2.6': { inputCostPer1MCents: 95, outputCostPer1MCents: 400 }
   },
   tts: {
     'deepinfra:ResembleAI/chatterbox-turbo': { costPer1kCharsCents: 0.1 },
@@ -149,17 +175,32 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
     'fal:fal-ai/maya': { costPer1kCharsCents: 0.5 },
     'fal:async/tts-pro/v1.0': { costPer1kCharsCents: 1 },
     'cartesia:sonic-3': { costPer1kCharsCents: 3.7375 },
+    'cartesia:sonic-3.5-2026-05-04': { costPer1kCharsCents: 3.7375 },
     'elevenlabs:eleven_flash_v2_5': { costPer1kCharsCents: 5 },
     'elevenlabs:eleven_multilingual_v2': { costPer1kCharsCents: 10 },
     'openai:gpt-4o-mini-tts': { inputCostPer1MCharsCents: 60, outputCostPer1MCharsCents: 1200 },
     'openai:tts-1': { inputCostPer1MCharsCents: 0, outputCostPer1MCharsCents: 1500 },
     'openai:tts-1-hd': { inputCostPer1MCharsCents: 0, outputCostPer1MCharsCents: 3000 },
     'speechify:simba-3.0': { costPer1kCharsCents: 1 },
-    'speechify:simba-english': { costPer1kCharsCents: 1 }
+    'speechify:simba-english': { costPer1kCharsCents: 1 },
+    'inworld:realtime-tts-2-flash': { costPer1kCharsCents: 1.5 }
   },
   image: {
     'gemini:gemini-3.1-flash-image-preview': { costPerImageCents: 6.7 },
+    'gemini:gemini-3.1-flash-image': { costPerImageCents: 6.7 },
+    'gemini:gemini-3-pro-image': { costPerImageCents: 13.4 },
     'grok:grok-imagine-image': { costPerImageCents: 2 },
+    'grok:grok-imagine-image-quality': { costPerImageCents: 5 },
+    'bfl:flux-2-klein-4b': { costPerImageCents: 1.4 },
+    'bfl:flux-2-klein-9b': { costPerImageCents: 1.5 },
+    'bfl:flux-2-pro': { costPerImageCents: 3 },
+    'bfl:flux-2-max': { costPerImageCents: 7 },
+    'bfl:flux-2-flex': { costPerImageCents: 6 },
+    'replicate:bytedance/seedream-4.5': { costPerImageCents: 4 },
+    'replicate:qwen/qwen-image-2-pro': { costPerImageCents: 7.5 },
+    'replicate:qwen/qwen-image-2': { costPerImageCents: 3.5 },
+    'replicate:wan-video/wan-2.7-image-pro': { costPerImageCents: 3 },
+    'replicate:wan-video/wan-2.7-image': { costPerImageCents: 3 },
     'fal:microsoft/mai-image-2.5': { costPerImageCents: 0.21 },
     'fal:microsoft/mai-image-2.5-pro': { costPerImageCents: 150 },
     'replicate:ideogram-ai/ideogram-v4-turbo': { costPerImageCents: 3 },
@@ -177,6 +218,7 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
   music: {
     'elevenlabs:music_v1': { costPerMinuteCents: 15 },
     'gemini:lyria-3-clip-preview': { costPerTrackCents: 4 },
+    'gemini:lyria-3-pro-preview': { costPerTrackCents: 8 },
     'minimax:music-2.6': { costPerTrackCents: 15, lyricsCostPerTrackCents: 1 }
   },
   video: {
@@ -198,7 +240,42 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
     'glm:vidu2-reference': { baseJobFeeCents: 40 },
     'runway:gen4.5': { baseCostPerSecondCents: 12 },
     'replicate:runwayml/aleph-2': { baseCostPerSecondCents: 33.6 },
-    'replicate:wan-video/wan-2.7-t2v': { baseCostPerSecondCents: 10, costPerSecondByResolutionCents: { '720p': 10, '1080p': 10 } }
+    'replicate:wan-video/wan-2.7-t2v': { baseCostPerSecondCents: 10, costPerSecondByResolutionCents: { '720p': 10, '1080p': 10 } },
+    'gemini:veo-3.1-generate-preview': {
+      baseCostPerSecondCents: 40,
+      resolutionMultiplier1080p: 1,
+      costPerSecondByResolutionCents: { '720p': 40, '1080p': 40, '4k': 60 }
+    },
+    'gemini:veo-3.1-fast-generate-preview': {
+      baseCostPerSecondCents: 10,
+      resolutionMultiplier1080p: 1.2,
+      costPerSecondByResolutionCents: { '720p': 10, '1080p': 12, '4k': 30 }
+    },
+    'grok:grok-imagine-video': {
+      baseCostPerSecondCents: 5,
+      resolutionMultiplier720p: 1.4,
+      inputImageCostCents: 0.2,
+      inputVideoCostPerSecondCents: 1
+    },
+    'ltx:ltx-2-3-fast': { baseCostPerSecondCents: 6 },
+    'ltx:ltx-2-3-pro': { baseCostPerSecondCents: 8 },
+    'replicate:kwaivgi/kling-v3-video': {
+      costPerSecondByResolutionCents: { '720p': 16.8, '1080p': 22.4, '4k': 42 },
+      audioCostPerSecondByResolutionCents: { '720p': 25.2, '1080p': 33.6, '4k': 42 }
+    },
+    'replicate:kwaivgi/kling-v3-omni-video': {
+      costPerSecondByResolutionCents: { '720p': 16.8, '1080p': 22.4, '4k': 42 },
+      audioCostPerSecondByResolutionCents: { '720p': 22.4, '1080p': 28, '4k': 42 }
+    },
+    'replicate:bytedance/seedance-2.0': {
+      costPerSecondByResolutionCents: { '480p': 8, '720p': 18, '1080p': 45 },
+      videoInputCostPerSecondByResolutionCents: { '480p': 10, '720p': 22, '1080p': 55 }
+    },
+    'replicate:bytedance/seedance-2.0-fast': {
+      costPerSecondByResolutionCents: { '480p': 7, '720p': 15 },
+      videoInputCostPerSecondByResolutionCents: { '480p': 8, '720p': 17 }
+    },
+    'fal:fal-ai/pixverse/c1': { baseCostPerSecondCents: 0.5 }
   }
 }
 
@@ -212,32 +289,48 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
     'gemini:gemini-3.1-flash-lite': 'gemini-3.5-flash-lite'
   },
   llm: {
-    'gemini:gemini-3.1-flash-lite': 'gemini-3.5-flash-lite'
+    'gemini:gemini-3.1-flash-lite': 'gemini-3.7-flash'
   },
   tts: {
     'elevenlabs:eleven_flash_v2_5': 'eleven_v3',
     'elevenlabs:eleven_multilingual_v2': 'eleven_v3',
     'openai:tts-1': 'gpt-4o-mini-tts-2025-12-15',
     'openai:tts-1-hd': 'gpt-4o-mini-tts-2025-12-15',
-    'speechify:simba-3.0': 'simba-3.2'
+    'speechify:simba-3.0': 'simba-3.2',
+    'cartesia:sonic-3.5-2026-05-04': 'sonic-3.6-2026-08-27',
+    'inworld:realtime-tts-2-flash': 'realtime-tts-2'
   },
   image: {
     'grok:grok-imagine-image': 'grok-imagine-image-2.0',
+    'grok:grok-imagine-image-quality': 'grok-imagine-image-2.0',
+    'gemini:gemini-3.1-flash-image': 'gemini-3.1-flash-lite-image',
+    'gemini:gemini-3-pro-image': 'gemini-3.1-flash-lite-image',
+    'bfl:flux-2-klein-4b': 'gpt-image-2.5-flare',
+    'bfl:flux-2-klein-9b': 'gpt-image-2.5-flare',
+    'bfl:flux-2-pro': 'gpt-image-2.5-flare',
+    'bfl:flux-2-max': 'gpt-image-2.5-flare',
+    'bfl:flux-2-flex': 'gpt-image-2.5-flare',
+    'replicate:qwen/qwen-image-2': 'alibaba/qwen-image-3',
+    'replicate:qwen/qwen-image-2-pro': 'alibaba/qwen-image-3-pro',
+    'replicate:wan-video/wan-2.7-image': 'bytedance/seedream-5-lite',
+    'replicate:wan-video/wan-2.7-image-pro': 'bytedance/seedream-5-lite',
+    'replicate:bytedance/seedream-4.5': 'bytedance/seedream-5-lite',
     'fal:microsoft/mai-image-2.5': 'alibaba/qwen-image-3',
     'fal:microsoft/mai-image-2.5-pro': 'alibaba/qwen-image-3',
     'replicate:ideogram-ai/ideogram-v4-turbo': 'bytedance/seedream-5-lite',
     'replicate:ideogram-ai/ideogram-v4-balanced': 'bytedance/seedream-5-lite',
     'replicate:ideogram-ai/ideogram-v4-quality': 'bytedance/seedream-5-lite',
-    'replicate:prunaai/ernie-image': 'qwen/qwen-image-2',
-    'replicate:prunaai/ernie-image-turbo': 'qwen/qwen-image-2',
-    'recraft:recraftv4_1': 'flux-2-klein-4b',
-    'recraft:recraftv4_1_pro': 'flux-2-klein-4b',
-    'recraft:recraftv4_1_utility': 'flux-2-klein-4b',
-    'recraft:recraftv4_1_utility_pro': 'flux-2-klein-4b'
+    'replicate:prunaai/ernie-image': 'alibaba/qwen-image-3',
+    'replicate:prunaai/ernie-image-turbo': 'alibaba/qwen-image-3',
+    'recraft:recraftv4_1': 'gpt-image-2.5-flare',
+    'recraft:recraftv4_1_pro': 'gpt-image-2.5-flare',
+    'recraft:recraftv4_1_utility': 'gpt-image-2.5-flare',
+    'recraft:recraftv4_1_utility_pro': 'gpt-image-2.5-flare'
   },
   music: {
     'elevenlabs:music_v1': 'music_v2',
-    'gemini:lyria-3-clip-preview': 'lyria-3-pro-preview'
+    'gemini:lyria-3-clip-preview': 'lyria-3.5',
+    'gemini:lyria-3-pro-preview': 'lyria-3.5'
   },
   video: {
     'minimax:MiniMax-Hailuo-2.3': 'MiniMax-H3',
@@ -248,14 +341,24 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
     'minimax:I2V-01-Director': 'MiniMax-H3',
     'minimax:I2V-01-live': 'MiniMax-H3',
     'minimax:S2V-01': 'MiniMax-H3',
-    'glm:cogvideox-3': 'ltx-2-3-fast',
-    'glm:viduq1-text': 'ltx-2-3-fast',
-    'glm:vidu2-image': 'ltx-2-3-fast',
-    'glm:vidu2-start-end': 'ltx-2-3-fast',
-    'glm:vidu2-reference': 'ltx-2-3-fast',
+    'glm:cogvideox-3': 'ltx-2-5-fast',
+    'glm:viduq1-text': 'ltx-2-5-fast',
+    'glm:vidu2-image': 'ltx-2-5-fast',
+    'glm:vidu2-start-end': 'ltx-2-5-fast',
+    'glm:vidu2-reference': 'ltx-2-5-fast',
     'runway:gen4.5': 'ray-3.2',
-    'replicate:runwayml/aleph-2': 'grok-imagine-video',
-    'replicate:wan-video/wan-2.7-t2v': 'bytedance/seedance-2.0-fast'
+    'replicate:runwayml/aleph-2': 'grok-imagine-video-1.5',
+    'replicate:wan-video/wan-2.7-t2v': 'bytedance/seedance-2.5',
+    'replicate:kwaivgi/kling-v3-video': 'pixverse/pixverse-v6',
+    'replicate:kwaivgi/kling-v3-omni-video': 'bytedance/seedance-2.5',
+    'replicate:bytedance/seedance-2.0': 'bytedance/seedance-2.5',
+    'replicate:bytedance/seedance-2.0-fast': 'bytedance/seedance-2.5',
+    'grok:grok-imagine-video': 'grok-imagine-video-1.5',
+    'ltx:ltx-2-3-fast': 'ltx-2-5-fast',
+    'ltx:ltx-2-3-pro': 'ltx-2-5-pro',
+    'fal:fal-ai/pixverse/c1': 'minimax/h3',
+    'gemini:veo-3.1-generate-preview': 'veo-3.1-lite-generate-preview',
+    'gemini:veo-3.1-fast-generate-preview': 'veo-3.1-lite-generate-preview'
   }
 }
 

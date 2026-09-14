@@ -109,23 +109,6 @@ export const isSupadataPlanLimitFailure = (output: string): boolean =>
   /\bsupadata\b/i.test(output)
   && SUPADATA_PLAN_LIMIT_PATTERN.test(output)
 
-const hasBflImageSignal = (output: string): boolean =>
-  /\bBFL\b/i.test(output)
-  || /\bbfl-image\b/i.test(output)
-  || /\bflux-2-/i.test(output)
-
-export const isBflResultDownloadAvailabilityFailure = (output: string): boolean => {
-  if (!hasBflImageSignal(output)) return false
-  if (/BFL image result download failed \(504\)/i.test(output)) return true
-  if (
-    /\bbfl-image-result-download\b[\s\S]{0,240}\bfailed after \d+\/\d+ attempts\b/i.test(output)
-    && /(?:max attempts reached|retryable status 504|gateway timeout|network error|abort\/timeout)/i.test(output)
-  ) {
-    return true
-  }
-  return /\bbfl-image-result-download\b[\s\S]{0,240}(?:retryable status 504|status 504|gateway timeout|network error|abort\/timeout)/i.test(output)
-}
-
 const hasTogetherSttSignal = (output: string): boolean =>
   /\btogether\b/i.test(output)
   && (

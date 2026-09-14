@@ -12,9 +12,9 @@ describe('config provider and concurrency default contracts', () => {
   test('buildConfigPatchFromFlags maps explicit provider, OCR, batch, and pricing defaults', () => {
     expect(buildConfigPatchFromFlags({
       openai: 'gpt-5.6-terra',
-      grok: 'grok-4.5',
+      grok: 'grok-4.6',
       glm: 'glm-5.3-flash',
-      kimi: 'kimi-k2.6',
+      kimi: 'kimi-k3',
       together: ['kimi-k3', 'glm-5.3-flash'],
       'llm-provider-concurrency': '3',
       'llm-local-concurrency': '1',
@@ -33,9 +33,9 @@ describe('config provider and concurrency default contracts', () => {
       defaults: {
         llm: {
           openai: ['gpt-5.6-terra'],
-          grok: ['grok-4.5'],
+          grok: ['grok-4.6'],
           glm: ['glm-5.3-flash'],
-          kimi: ['kimi-k2.6'],
+          kimi: ['kimi-k3'],
           together: ['kimi-k3', 'glm-5.3-flash'],
           providerConcurrency: 3,
           localConcurrency: 1

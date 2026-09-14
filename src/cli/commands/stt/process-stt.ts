@@ -9,7 +9,7 @@ import { prepareSttMedia, resolveSttSourceMetadata } from './media'
 import { createMistralSttPassController } from './diarization/stt-mistral/mistral-stt-pass-controller'
 import { logSttAcquireSummary } from './stt-logging'
 import { logSpeakerCountHintSummary } from './stt-provider-pool'
-import { completeYoutubeCaptionStt } from './direct-url/youtube-caption-completion'
+import { completeYoutubeCaptionStt } from '~/cli/commands/text/url/url-services/youtube-captions/youtube-caption-completion'
 import { completeSingleProviderStt } from './process-stt/single-provider-completion'
 import { runMultiProviderSttBatch } from './process-stt/multi-provider-batch'
 

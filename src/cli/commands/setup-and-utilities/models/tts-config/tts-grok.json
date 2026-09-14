@@ -3,8 +3,8 @@
     "description": "xAI Grok cloud text-to-speech",
     "type": "api",
     "catalogSourceUrl": "https://docs.x.ai/developers/model-capabilities/audio/text-to-speech",
-    "catalogCheckedAt": "2026-08-11",
-    "catalogNotes": "The xAI TTS endpoint exposes 26 case-insensitive stock voice IDs and also accepts account-scoped custom voice IDs matching eight lowercase alphanumeric characters.",
+    "catalogCheckedAt": "2026-09-14",
+    "catalogNotes": "The 2026-09-14 catalog check still finds product selector grok-tts, 26 case-insensitive stock voice IDs, and account-scoped custom IDs matching eight lowercase alphanumeric characters. Official request fields include numeric speed 0.7-1.5, text_normalization, with_timestamps, and replace; AutoShow currently serializes speed, language, and text normalization only.",
     "voices": [
       "carina",
       "zagan",

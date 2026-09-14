@@ -15,10 +15,10 @@ describe('video provider REST contracts', () => {
   test('Replicate Seedance creates predictions, polls, downloads output, and records metadata', async () => {
     process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
     const calls = installMockFetch((call) => {
-      if (call.url === 'https://api.replicate.com/v1/models/bytedance/seedance-2.0-fast/predictions' && call.method === 'POST') {
+      if (call.url === 'https://api.replicate.com/v1/models/bytedance/seedance-2.5/predictions' && call.method === 'POST') {
         return jsonResponse({
           id: 'pred-start',
-          model: 'bytedance/seedance-2.0-fast',
+          model: 'bytedance/seedance-2.5',
           version: 'replicate-version-1',
           status: 'starting',
           urls: { get: 'https://api.replicate.com/v1/predictions/pred-start' },
@@ -28,7 +28,7 @@ describe('video provider REST contracts', () => {
       if (call.url === 'https://api.replicate.com/v1/predictions/pred-start' && call.method === 'GET') {
         return jsonResponse({
           id: 'pred-start',
-          model: 'bytedance/seedance-2.0-fast',
+          model: 'bytedance/seedance-2.5',
           version: 'replicate-version-1',
           status: 'succeeded',
           output: 'https://replicate.delivery/example/seedance.mp4',
@@ -46,7 +46,7 @@ describe('video provider REST contracts', () => {
       await writeFile(audioPath, new Uint8Array([10, 11, 12]))
 
       const result = await runReplicateVideoGen('Use [Image1], [Video1], and [Audio1] for a stylized product reveal', dir, {
-        model: 'bytedance/seedance-2.0-fast',
+        model: 'bytedance/seedance-2.5',
         mode: 'reference-to-video',
         durationSeconds: -1,
         resolution: '720p',
@@ -62,10 +62,10 @@ describe('video provider REST contracts', () => {
       expect(Array.from(new Uint8Array(await Bun.file(result.videoPath).arrayBuffer()))).toEqual(Array.from(videoBytes))
       expect(result.metadata).toMatchObject({
         videoGenService: 'replicate',
-        videoGenModel: 'bytedance/seedance-2.0-fast',
+        videoGenModel: 'bytedance/seedance-2.5',
         videoFileName: 'generated-video.mp4',
         videoFileSize: videoBytes.byteLength,
-        videoDuration: 5,
+        videoDuration: 30,
         requestMode: 'reference-to-video',
         videoResolution: '720p',
         videoAspectRatio: 'adaptive',
@@ -76,7 +76,7 @@ describe('video provider REST contracts', () => {
         providerModelVersion: 'replicate-version-1',
         providerOutputUrl: 'https://replicate.delivery/example/seedance.mp4',
         providerVideoUrl: 'https://replicate.delivery/example/seedance.mp4',
-        providerCostCents: 85,
+        providerCostCents: 2902.8,
         providerCostSource: 'registry_fallback'
       })
       expect(result.metadata.providerStatusTimings?.map((entry) => entry.status)).toEqual(['starting', 'succeeded'])
@@ -88,7 +88,7 @@ describe('video provider REST contracts', () => {
     })
 
     expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual([
-      'POST https://api.replicate.com/v1/models/bytedance/seedance-2.0-fast/predictions',
+      'POST https://api.replicate.com/v1/models/bytedance/seedance-2.5/predictions',
       'GET https://api.replicate.com/v1/predictions/pred-start',
       'GET https://replicate.delivery/example/seedance.mp4'
     ])
@@ -135,7 +135,7 @@ describe('video provider REST contracts', () => {
   test('Replicate current video families send their model-specific request shapes', async () => {
     process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
     await withTempDir(async (dir) => {
-      const { imagePath, lastFramePath, videoPath } = await writeMediaFixtures(dir)
+      const { imagePath, lastFramePath } = await writeMediaFixtures(dir)
       const cases = [
         {
           model: 'alibaba/happyhorse-1.1' as const,
@@ -143,14 +143,9 @@ describe('video provider REST contracts', () => {
           expected: { images: [expect.stringContaining('data:image/png'), expect.stringContaining('data:image/webp')], duration: 6, resolution: '1080p', aspect_ratio: '16:9' }
         },
         {
-          model: 'kwaivgi/kling-v3-video' as const,
-          options: { mode: 'interpolate' as const, inputImage: imagePath, lastFrameImage: lastFramePath, durationSeconds: 8, resolution: '4k', generateAudio: true, negativePrompt: 'blur', multiPrompt: '[{"prompt":"first","duration":3},{"prompt":"second","duration":5}]' },
-          expected: { mode: '4k', start_image: expect.stringContaining('data:image/png'), end_image: expect.stringContaining('data:image/webp'), duration: 8, generate_audio: true, negative_prompt: 'blur', multi_prompt: '[{"prompt":"first","duration":3},{"prompt":"second","duration":5}]' }
-        },
-        {
-          model: 'kwaivgi/kling-v3-omni-video' as const,
-          options: { mode: 'edit' as const, inputVideo: videoPath, resolution: '1080p' },
-          expected: { mode: 'pro', reference_video: expect.stringContaining('data:video/mp4'), video_reference_type: 'base' }
+          model: 'bytedance/seedance-2.5' as const,
+          options: { mode: 'interpolate' as const, inputImage: imagePath, lastFrameImage: lastFramePath, durationSeconds: 30, resolution: '720p' },
+          expected: { image: expect.stringContaining('data:image/png'), last_frame_image: expect.stringContaining('data:image/webp'), duration: 30, resolution: '720p', aspect_ratio: 'adaptive' }
         },
         {
           model: 'pixverse/pixverse-v6' as const,

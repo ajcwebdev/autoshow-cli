@@ -179,7 +179,6 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   geminiImageModels?: string[] | undefined
   openaiImageModels?: string[] | undefined
   grokImageModels?: string[] | undefined
-  bflImageModels?: string[] | undefined
   replicateImageModels?: string[] | undefined
   lumalabsImageModels?: string[] | undefined
   falImageModels?: string[] | undefined

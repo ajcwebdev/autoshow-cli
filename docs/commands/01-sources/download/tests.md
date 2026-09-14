@@ -17,21 +17,16 @@ bun t \
   test/test-cases/e2e/local/sources/download/download-input-types-streaming.test.ts
 ```
 
-## Current Coverage
-
-- Local documents and audio
-- Hosted audio and video URLs, plus URL-list batching
-- RSS feed batching
-- YouTube and Twitch URLs
-
 ## Price Preflight
 
 `download` has no provider cost; `--price` on these paths is report-only.
 
 ```bash
-bun t test/test-cases/e2e/local/sources/download/download-input-types-direct-url.test.ts --price
-bun t test/test-cases/e2e/local/sources/download/download-input-types-streaming.test.ts --price
-bun t test/test-cases/e2e/local/sources/download/download-input-types-feed-or-channel.test.ts --price
+bun t \
+  test/test-cases/e2e/local/sources/download/download-input-types-direct-url.test.ts \
+  test/test-cases/e2e/local/sources/download/download-input-types-feed-or-channel.test.ts \
+  test/test-cases/e2e/local/sources/download/download-input-types-streaming.test.ts \
+  --price
 ```
 
 ## Related Docs

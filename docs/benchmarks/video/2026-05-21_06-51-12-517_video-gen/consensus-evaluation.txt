@@ -2,41 +2,57 @@ Consensus evaluation for video generation run 2026-05-21_06-51-12-517_video-gen.
 
 This evaluation is based only on packet metadata. It does not include visual or audio quality assessment.
 
-All 8 provider outputs have an existing MP4 artifact recorded in the packet.
+All 13 retained provider outputs have recorded MP4 artifact metadata. The MP4 files themselves are not present in the committed run directory.
 
 Recorded durations:
-- 4 seconds: gemini/veo-3.1-fast-generate-preview, gemini/veo-3.1-lite-generate-preview, grok/grok-imagine-video
-- 5 seconds: glm/cogvideox-3, glm/viduq1-text
+- 4 seconds: gemini/veo-3.1-lite-generate-preview
+- 5 seconds: glm/cogvideox-3, glm/viduq1-text, runway/gen4.5, replicate/alibaba/happyhorse-1.1, replicate/pixverse/pixverse-v6, replicate/wan-video/wan-2.7-t2v, lumalabs/ray-3.2, fal/minimax/h3
 - 6 seconds: minimax/T2V-01, minimax/T2V-01-Director, minimax/MiniMax-Hailuo-2.3
+- 8 seconds: grok/grok-imagine-video-1.5
 
 Recorded processing time, fastest to slowest:
-1. grok/grok-imagine-video: 21,024 ms
-2. gemini/veo-3.1-fast-generate-preview: 41,379 ms
+1. grok/grok-imagine-video-1.5: 32,747 ms
+2. replicate/pixverse/pixverse-v6: 37,896 ms
 3. gemini/veo-3.1-lite-generate-preview: 41,408 ms
-4. minimax/MiniMax-Hailuo-2.3: 72,335 ms
-5. glm/cogvideox-3: 149,944 ms
-6. minimax/T2V-01-Director: 154,630 ms
-7. glm/viduq1-text: 190,835 ms
-8. minimax/T2V-01: 401,029 ms
+4. lumalabs/ray-3.2: 44,378 ms
+5. minimax/MiniMax-Hailuo-2.3: 72,335 ms
+6. replicate/alibaba/happyhorse-1.1: 91,277 ms
+7. runway/gen4.5: 101,564 ms
+8. replicate/wan-video/wan-2.7-t2v: 121,589 ms
+9. glm/cogvideox-3: 149,944 ms
+10. minimax/T2V-01-Director: 154,630 ms
+11. glm/viduq1-text: 190,835 ms
+12. fal/minimax/h3: 370,169 ms
+13. minimax/T2V-01: 401,029 ms
 
 Recorded cost, lowest to highest:
 1. minimax/T2V-01: 19 cents
 2. minimax/T2V-01-Director: 19 cents
 3. gemini/veo-3.1-lite-generate-preview: 20 cents
 4. glm/cogvideox-3: 20 cents
-5. grok/grok-imagine-video: 20 cents
-6. minimax/MiniMax-Hailuo-2.3: 28 cents
-7. gemini/veo-3.1-fast-generate-preview: 40 cents
-8. glm/viduq1-text: 40 cents
+5. minimax/MiniMax-Hailuo-2.3: 28 cents
+6. lumalabs/ray-3.2: 30 cents
+7. glm/viduq1-text: 40 cents
+8. replicate/pixverse/pixverse-v6: 45.375 cents
+9. replicate/wan-video/wan-2.7-t2v: 50.380 cents
+10. runway/gen4.5: 60 cents
+11. grok/grok-imagine-video-1.5: 64 cents
+12. replicate/alibaba/happyhorse-1.1: 72.277 cents
+13. fal/minimax/h3: 130 cents
 
 Recorded artifact file sizes, smallest to largest:
 1. minimax/MiniMax-Hailuo-2.3: 656,822 bytes
 2. minimax/T2V-01: 939,971 bytes
-3. grok/grok-imagine-video: 1,087,633 bytes
-4. gemini/veo-3.1-fast-generate-preview: 1,321,294 bytes
+3. runway/gen4.5: 1,415,618 bytes
+4. replicate/pixverse/pixverse-v6: 1,449,291 bytes
 5. gemini/veo-3.1-lite-generate-preview: 1,453,888 bytes
 6. minimax/T2V-01-Director: 1,459,596 bytes
-7. glm/cogvideox-3: 3,551,253 bytes
-8. glm/viduq1-text: 4,069,481 bytes
+7. grok/grok-imagine-video-1.5: 1,565,638 bytes
+8. lumalabs/ray-3.2: 2,180,326 bytes
+9. replicate/wan-video/wan-2.7-t2v: 2,446,882 bytes
+10. replicate/alibaba/happyhorse-1.1: 3,117,314 bytes
+11. glm/cogvideox-3: 3,551,253 bytes
+12. glm/viduq1-text: 4,069,481 bytes
+13. fal/minimax/h3: 8,634,227 bytes
 
-No packet warnings were reported.
+No packet warnings were reported beyond missing committed MP4 files.

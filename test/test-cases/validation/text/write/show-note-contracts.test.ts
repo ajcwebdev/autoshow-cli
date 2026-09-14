@@ -205,17 +205,17 @@ test('show notes mirror single and multi-output JSON naming', async () => {
       outputDir,
       results: [
         buildResult({ llmModel: 'gpt-5.6-sol', outputFileName: 'text-gpt-5.6-sol.json' }, 'first'),
-        buildResult({ llmService: 'gemini', llmModel: 'gemini-3.5-flash', outputFileName: 'text-gemini-3.5-flash.json' }, 'second')
+        buildResult({ llmService: 'gemini', llmModel: 'gemini-3.8-flash', outputFileName: 'text-gemini-3.8-flash.json' }, 'second')
       ],
       sourceText: 'source'
     })
 
     expect(Object.values(multi.internalArtifacts).sort()).toEqual([
-      'show-note-gemini-3.5-flash.md',
+      'show-note-gemini-3.8-flash.md',
       'show-note-gpt-5.6-sol.md'
     ])
     expect(await Bun.file(join(outputDir, 'show-note-gpt-5.6-sol.md')).text()).toContain('first')
-    expect(await Bun.file(join(outputDir, 'show-note-gemini-3.5-flash.md')).text()).toContain('second')
+    expect(await Bun.file(join(outputDir, 'show-note-gemini-3.8-flash.md')).text()).toContain('second')
   } finally {
     await rm(tempDir, { recursive: true, force: true })
   }

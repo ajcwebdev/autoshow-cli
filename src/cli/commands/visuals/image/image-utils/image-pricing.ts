@@ -1,6 +1,6 @@
 import { GROK_IMAGE_2_INPUT_PRICE_CENTS, GROK_IMAGE_2_OUTPUT_PRICE_CENTS, resolveGrokImageOptions } from '../image-generation-services/image-grok/grok-image-options'
 import { getImageCost, getImageInputCostPer1M } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { validateBflImageModel, validateFalImageModel, validateGeminiImageModel, validateGrokImageModel, validateLumalabsImageModel, validateOpenAIImageModel, validateReplicateImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateFalImageModel, validateGeminiImageModel, validateGrokImageModel, validateLumalabsImageModel, validateOpenAIImageModel, validateReplicateImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { deriveGenerationPricingProviders, IMAGE_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import type { EstimateImageCostOptions, ImageCostEstimate, ImageProvider, OpenAIImageInputEstimate, OpenAIImageOutputPricing, OpenAIImageQuality, ProviderModelSelectionSpec } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
@@ -58,9 +58,7 @@ export const estimateOpenAIImageInputUnits = (model: string, referenceInputs: nu
 }
 
 const GEMINI_IMAGE_OUTPUT_PRICE_CENTS: Readonly<Record<string, Readonly<Record<string, number>>>> = {
-  'gemini-3.1-flash-lite-image': { '1K': 3.36 },
-  'gemini-3.1-flash-image': { '1K': 6.7, '2K': 10.1, '4K': 15.1 },
-  'gemini-3-pro-image': { '1K': 13.4, '2K': 13.4, '4K': 24 }
+  'gemini-3.1-flash-lite-image': { '1K': 3.36 }
 }
 
 const REPLICATE_SEEDREAM_5_PRO_PRICE_CENTS: Readonly<Record<string, number>> = {
@@ -131,7 +129,7 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
           imageCount: 1,
           costPerImageCents,
           totalCost: costPerImageCents,
-          note: `Published Gemini standard-tier ${imageSize} output-image estimate; text/image input tokens and optional Search grounding are not included`
+          note: `Published Gemini standard-tier ${imageSize} output-image estimate; text/image input tokens are not included`
         })
         break
       }
@@ -155,41 +153,15 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
       }
       case 'grok': {
         const model = validateGrokImageModel(selection.model)
-        if (model === 'grok-imagine-image-2.0') {
-          const { quality, resolution, imageCount } = resolveGrokImageOptions(model, options)
-          const costPerImageCents = GROK_IMAGE_2_OUTPUT_PRICE_CENTS[quality!][resolution!]
-          const inputImageCount = options.imageInputs?.length ?? 0
-          const inputImageCostCents = inputImageCount * GROK_IMAGE_2_INPUT_PRICE_CENTS
-          estimates.push({
-            provider: 'grok', model, imageCount, costPerImageCents,
-            totalCost: costPerImageCents * imageCount + inputImageCostCents,
-            inputImageCount, inputImageCostCents,
-            note: `Published xAI ${resolution} ${quality} output price plus ${inputImageCount} input images at 1 cent each per request. Account discounts and taxes excluded.`
-          })
-          break
-        }
-        const costPerImageCents = getImageCost('grok', model)
-        const imageCount = Math.max(1, options.imageCount ?? 1)
+        const { quality, resolution, imageCount } = resolveGrokImageOptions(model, options)
+        const costPerImageCents = GROK_IMAGE_2_OUTPUT_PRICE_CENTS[quality][resolution]
+        const inputImageCount = options.imageInputs?.length ?? 0
+        const inputImageCostCents = inputImageCount * GROK_IMAGE_2_INPUT_PRICE_CENTS
         estimates.push({
-          provider: 'grok',
-          model,
-          imageCount,
-          costPerImageCents,
-          totalCost: costPerImageCents * imageCount,
-          note: 'Approximate cost; xAI publishes flat per-image billing and exact account pricing may vary'
-        })
-        break
-      }
-      case 'bfl': {
-        const model = validateBflImageModel(selection.model)
-        const costPerImageCents = getImageCost('bfl', model)
-        estimates.push({
-          provider: 'bfl',
-          model,
-          imageCount: 1,
-          costPerImageCents,
-          totalCost: costPerImageCents,
-          note: 'Approximate from BFL published FLUX.2 starting prices; exact cost varies by output resolution and provider quote is used when returned'
+          provider: 'grok', model, imageCount, costPerImageCents,
+          totalCost: costPerImageCents * imageCount + inputImageCostCents,
+          inputImageCount, inputImageCostCents,
+          note: `Published xAI ${resolution} ${quality} output price plus ${inputImageCount} input images at 1 cent each per request. Account discounts and taxes excluded.`
         })
         break
       }
@@ -199,8 +171,7 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
         const costPerImageCents = model === 'bytedance/seedream-5-pro'
           ? (REPLICATE_SEEDREAM_5_PRO_PRICE_CENTS[normalizedSize] ?? REPLICATE_SEEDREAM_5_PRO_PRICE_CENTS['1K']!)
           : getImageCost('replicate', model)
-        const supportsCount = model.startsWith('wan-video/')
-        const imageCount = supportsCount ? Math.max(1, options.imageCount ?? 1) : 1
+        const imageCount = 1
         const note = model === 'bytedance/seedream-5-pro'
           ? `Published Replicate Seedream 5 Pro ${normalizedSize} per-output-image price; provider-reported billing is used when returned`
           : 'Approximate Replicate published per-output-image price; provider-reported billing is used when returned'

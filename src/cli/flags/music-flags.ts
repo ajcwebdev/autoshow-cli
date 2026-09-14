@@ -4,11 +4,11 @@ import { boolFlag, formatProviderList, formatRange, formatValueList, pickFlags, 
 import type { CliFlagsDefinition } from '~/types'
 import { STANDALONE_MUSIC_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 import { ELEVENLABS_MAX_DURATION_SECONDS, ELEVENLABS_MIN_DURATION_SECONDS } from '~/cli/commands/audio/music/music-services/music-elevenlabs/run-elevenlabs-music-gen'
-import { GEMINI_PRO_DEFAULT_DURATION_SECONDS } from '~/cli/commands/audio/music/music-services/music-gemini/run-gemini-music-gen'
+import { GEMINI_DEFAULT_DURATION_SECONDS } from '~/cli/commands/audio/music/music-services/music-gemini/run-gemini-music-gen'
 import { DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS } from '~/cli/commands/audio/music/music-utils/music-pricing'
 
 export const musicGenFlags = {
-  duration: strFlag(`Music duration in seconds: ElevenLabs configurable from ${formatRange([ELEVENLABS_MIN_DURATION_SECONDS, ELEVENLABS_MAX_DURATION_SECONDS])} (default: ${DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS}); Gemini Lyria Pro uses the requested duration (default: ${GEMINI_PRO_DEFAULT_DURATION_SECONDS})`),
+  duration: strFlag(`Music duration in seconds: ElevenLabs configurable from ${formatRange([ELEVENLABS_MIN_DURATION_SECONDS, ELEVENLABS_MAX_DURATION_SECONDS])} (default: ${DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS}); Gemini Lyria uses the requested duration as a prompt hint (default: ${GEMINI_DEFAULT_DURATION_SECONDS})`),
   'lyrics-file': strFlag('Lyrics file path (.md or .txt) with section headers like Verse 1 or Chorus; MiniMax and Gemini receive the lyrics directly, ElevenLabs music_v2 converts them into a composition plan and uses the prompt as style descriptors'),
   instrumental: boolFlag('Force instrumental generation for providers that support prompt/instrumental mode'),
 } as const satisfies CliFlagsDefinition

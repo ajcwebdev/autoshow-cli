@@ -33,7 +33,6 @@ describe('price mode contracts', () => {
   })
 
   const GROK_LLM_BAND_CASES = [
-    { model: 'grok-4.5', pricingCheckedAt: '2026-07-23', cachedInputCostPer1MCents: 30, longBandCachedInputCostPer1MCents: 60 },
     { model: 'grok-4.6', pricingCheckedAt: '2026-08-18', cachedInputCostPer1MCents: 50, longBandCachedInputCostPer1MCents: 100 }
   ]
 
@@ -117,12 +116,12 @@ describe('price mode contracts', () => {
     })
   }
 
-  test('Grok 4.5 LLM preflight and actual costs propagate the long-context band', () => {
+  test('Grok 4.6 LLM preflight and actual costs propagate the long-context band', () => {
       const estimated = computeEstimatedCosts({
         applyCostMultipliers: false,
         llmTargets: [{
           service: 'grok',
-          model: 'grok-4.5',
+          model: 'grok-4.6',
           inputTokens: 200_001,
           outputTokens: 1000
         }]
@@ -130,7 +129,7 @@ describe('price mode contracts', () => {
       const actual = computeActualCosts({
         step3: buildStep3CostMetadata({
           llmService: 'grok',
-          llmModel: 'grok-4.5',
+          llmModel: 'grok-4.6',
           inputTokenCount: 200_001,
           outputTokenCount: 1000
         })
@@ -138,13 +137,13 @@ describe('price mode contracts', () => {
 
       expect(estimated.steps[0]).toMatchObject({
         provider: 'grok',
-        model: 'grok-4.5',
+        model: 'grok-4.6',
         cost: 81.2004,
         pricingBand: 'standard-over-200k'
       })
       expect(actual.steps[0]).toMatchObject({
         provider: 'grok',
-        model: 'grok-4.5',
+        model: 'grok-4.6',
         cost: 81.2004,
         pricingBand: 'standard-over-200k'
       })

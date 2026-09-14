@@ -4,7 +4,7 @@
 
 - **Report Status:** Current
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-09-08
+- **Date Updated:** 2026-09-14
 
 This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](model-refresh-stt.md), [OCR](model-refresh-ocr.md), [URL scraping](model-refresh-url.md), [LLMs](model-refresh-write.md), [TTS](model-refresh-tts.md), [Image](model-refresh-image.md), [Video](model-refresh-video.md).
 
@@ -12,11 +12,11 @@ Durable registry, lifecycle, and capability policy belongs to [ADR-010](../adr/A
 
 ## Music refresh
 
-Active music generation now has 4 selectors across 3 hosted providers; the September addition is recorded below.
+Active music generation now has 3 selectors across 3 hosted providers; the September Lyria 3.5 addition and Lyria 3 Pro retirement are recorded below.
 
 - Added ElevenLabs `music_v2` and later retired transitional `music_v1`. Active output format is `mp3_48000_192`. Historical readers preserve the v1 per-minute rate and `mp3_44100_128` identity.
 - Replaced MiniMax `music-2.6` with `music-3.0` on prompt/lyrics/instrumental lifecycle. Historical readers preserve 2.6 rate ($0.15/track + $0.01 for lyrics).
-- Retained Gemini `lyria-3-pro-preview` and retired `lyria-3-clip-preview`. Historical readers preserve the clip per-track rate.
+- Retired Gemini `lyria-3-clip-preview` and later `lyria-3-pro-preview`. Historical readers preserve the clip and Pro per-track rates. Active Gemini music is `lyria-3.5`.
 - Excluded streaming Lyria RealTime, cover generation, and reference-audio products.
 - Music resume promotes outputs to provider/model filenames before merging metadata to avoid artifact collisions.
 
@@ -56,7 +56,7 @@ Implemented 2026-08-16 as part of the combined image, video, and music catalog c
 
 ## API / Type Impact
 
-- The active music surface is 4 selectors.
+- The active music surface is 3 selectors.
 - Removed selectors are excluded from active CLI help, configuration defaults, and expansion lists, while remaining parseable in historical manifests and pricing readers.
 
 ## Follow-up Actions
@@ -88,3 +88,12 @@ The adapter reads all `model_output` steps and their content blocks, saves each 
 The host supports text and up to ten images. AutoShow currently exposes only text prompts, supplied lyrics and instrumental instructions; it rejects non-text adapter inputs. Duration is a positive finite prompt hint, with a provisional 120-second default estimate, not a guaranteed or measured duration. Image input, reference audio, multi-turn editing, structured song editing and verified lyric timestamps remain outside the exposed CLI. No paid generation or calibration was performed; account access and real output quality remain unverified.
 
 Sources: [model specification](https://ai.google.dev/gemini-api/docs/models/lyria-3.5), [music guide](https://ai.google.dev/gemini-api/docs/music-generation), [Interactions reference](https://ai.google.dev/api/interactions-api), [per-song pricing](https://ai.google.dev/gemini-api/docs/pricing).
+
+## 2026-09-14 P1 retirement: Lyria 3 Pro Preview
+
+Removed active `lyria-3-pro-preview`. Direct selection fails with replacement guidance to `lyria-3.5`. Historical manifests and pricing readers retain the 8-cent per-track Pro rate. Clip retirement now also points at `lyria-3.5`. Bare Gemini music defaults to `lyria-3.5`. Active count: 3 (`music_v2`, `music-3.0`, `lyria-3.5`).
+
+**Remove: `lyria-3-pro-preview`**
+
+- **Remove:** `lyria-3-pro-preview`
+- **Successor:** `lyria-3.5`

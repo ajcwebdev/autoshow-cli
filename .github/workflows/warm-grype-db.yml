@@ -1,0 +1,33 @@
+name: Warm Grype vulnerability database
+
+on:
+  schedule:
+    # Shortly after UTC midnight so the first main push and PR of the day restore today's database.
+    - cron: '20 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: warm-grype-db
+  cancel-in-progress: true
+
+jobs:
+  warm:
+    name: Hydrate today's Grype database
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository actions
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          sparse-checkout: .github
+
+      - name: Scan a tiny SPDX document to download and cache today's Grype database
+        uses: ./.github/actions/scan-image
+        with:
+          sbom: .github/actions/scan-image/warmup.spdx.json
+          evidence-dir: runtime/ci/grype-db-warmup
+          fail-on-fixable: 'false'
