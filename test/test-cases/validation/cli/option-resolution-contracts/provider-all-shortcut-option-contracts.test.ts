@@ -45,7 +45,7 @@ describe('option resolution contracts', () => {
       expect(expansions['mistral-stt']?.shortcut).toBe('all-stt')
       expect(expansions['assemblyai-stt']?.supported).toEqual(['universal-3-5-pro'])
       expect(expansions['gladia-stt']?.supported).toEqual(['solaria-3'])
-      expect(expansions['gemini-stt']?.supported).toEqual(['gemini-3.8-flash', 'gemini-3.6-flash'])
+      expect(expansions['gemini-stt']?.supported).toEqual(['gemini-3.5-transcribe'])
       expect(expansions['soniox-stt']?.supported).toEqual(['stt-async-v5'])
       expect(expansions['speechmatics-stt']?.supported).toEqual(['melia-1'])
       expect(expansions['together-stt']?.supported).toEqual(['openai/whisper-large-v3', 'nvidia/parakeet-tdt-0.6b-v3'])

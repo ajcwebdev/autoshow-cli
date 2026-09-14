@@ -15,6 +15,7 @@ export type VideoRuntimeOptions = {
   videoLastFrame: string | undefined
   videoReferenceImages: string[] | undefined
   videoInputVideo: string | undefined
+  videoPreviousInteractionId: string | undefined
   replicateVideoSeed: number | undefined
   videoGenerateAudio: boolean | undefined
   videoReferenceVideos: string[] | undefined

@@ -9,7 +9,8 @@ const SPLIT_RETRY_ON_TOO_LARGE_ENGINES = new Set<string>([
   'assemblyai',
   'gladia',
   'happyscribe',
-  'together'
+  'together',
+  'gemini-stt'
 ])
 
 const MIN_ADAPTIVE_SPLIT_SEGMENT_SECONDS = 60

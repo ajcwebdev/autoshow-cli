@@ -25,6 +25,7 @@ export const buildVideoOptions = (ctx: ResolvedFlagContext): VideoRuntimeOptions
     videoLastFrame: readOptionalStringFlag(mergedFlags, 'last-frame'),
     videoReferenceImages: readOptionalStringListFlag(mergedFlags, 'reference-image'),
     videoInputVideo: readOptionalStringFlag(mergedFlags, 'input-video'),
+    videoPreviousInteractionId: readOptionalStringFlag(mergedFlags, 'previous-interaction-id'),
     videoGenerateAudio: readOptionalBooleanFlag(mergedFlags, 'generate-audio'),
     videoReferenceVideos: readOptionalStringListFlag(mergedFlags, 'reference-video'),
     videoReferenceAudios: readOptionalStringListFlag(mergedFlags, 'reference-audio'),

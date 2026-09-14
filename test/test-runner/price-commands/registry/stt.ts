@@ -41,14 +41,12 @@ export const sttRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/stt/diarization/mistral-voxtral-mini-2602.test.ts', [
     command('transcribe-mistral-voxtral-mini-2602', 'transcribe-mistral-voxtral-mini-2602', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'mistral=voxtral-mini-2602', '--price']),
   ]),
-  ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/gemini-3-6-flash.test.ts', [
-    command('transcribe-gemini-stt-gemini-3.6-flash', 'transcribe-gemini-stt-gemini-3.6-flash', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'gemini=gemini-3.6-flash', '--price']),
+  ...exact('test/test-cases/e2e/service/stt/diarization/gemini-3.5-transcribe.test.ts', [
+    command('transcribe-gemini-stt-gemini-3.5-transcribe', 'transcribe-gemini-stt-gemini-3.5-transcribe', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'gemini=gemini-3.5-transcribe', '--price']),
   ]),
   ...exact('test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts', [
     command('transcribe-whisperfile-tiny', 'transcribe-whisperfile-tiny', ['src/cli/create-cli.ts', 'music', '--audio', 'input/examples/audio/0-audio-short.mp3', '--model', 'tiny', '--price']),
     command('transcribe-whisperfile-small.en', 'transcribe-whisperfile-small.en', ['src/cli/create-cli.ts', 'music', '--audio', 'input/examples/lyrics/01-example-song.mp3', '--price']),
   ]),
-  ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/gemini-3.8-flash.test.ts', [
-    command('transcribe-gemini-stt-gemini-3.8-flash', 'transcribe-gemini-stt-gemini-3.8-flash', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'gemini=gemini-3.8-flash', '--price']),
-  ]),
+
 ]

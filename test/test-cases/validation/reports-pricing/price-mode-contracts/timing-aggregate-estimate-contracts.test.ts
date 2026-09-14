@@ -19,7 +19,7 @@ describe('price mode contracts', () => {
           totalCost: 1
         },
         { step: 'image', provider: 'openai', model: 'gpt-image-2', imageCount: 2, totalCost: 1 },
-        { step: 'video', provider: 'gemini', model: 'veo-3.1-lite-generate-preview', durationSeconds: 4, totalCost: 1 },
+        { step: 'video', provider: 'gemini', model: 'gemini-omni-1.1-flash', durationSeconds: 4, totalCost: 1 },
         { step: 'music', provider: 'gemini', model: 'lyria-3.5', durationSeconds: 120, lyricsSource: 'generated', totalCost: 1 }
       ]
 
@@ -31,7 +31,7 @@ describe('price mode contracts', () => {
   test('video timing estimates use normalized provider defaults when duration is omitted', () => {
       const timing = computeEstimatedProcessingTimes({
         videoTargets: [
-          { service: 'gemini', model: 'veo-3.1-lite-generate-preview' },
+          { service: 'gemini', model: 'gemini-omni-1.1-flash' },
           { service: 'ltx', model: 'ltx-2-5-fast' }
         ]
       })
@@ -44,9 +44,9 @@ describe('price mode contracts', () => {
       }))).toEqual([
         {
           provider: 'gemini',
-          model: 'veo-3.1-lite-generate-preview',
-          inputValue: 4,
-          msPerUnit: getVideoEstimation('gemini', 'veo-3.1-lite-generate-preview').msPerSecond
+          model: 'gemini-omni-1.1-flash',
+          inputValue: 10,
+          msPerUnit: getVideoEstimation('gemini', 'gemini-omni-1.1-flash').msPerSecond
         },
         {
           provider: 'ltx',

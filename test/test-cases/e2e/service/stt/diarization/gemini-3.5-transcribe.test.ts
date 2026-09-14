@@ -3,6 +3,6 @@ import { geminiTranscription } from '../cases'
 
 defineSTTServiceTest({
   ...geminiTranscription,
-  models: ['gemini-3.8-flash'],
+  models: ['gemini-3.5-transcribe'],
   sttService: 'gemini-stt',
 })

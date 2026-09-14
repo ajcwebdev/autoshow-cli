@@ -169,16 +169,40 @@ const extractGeminiResponseText = (response: GeminiGenerateContentResponse): str
   return found ? text : undefined
 }
 
+export const geminiCreateInteraction = async (
+  apiKey: string,
+  body: Record<string, unknown>,
+  abortSignal?: AbortSignal
+): Promise<unknown> => {
+  const { json } = await geminiJsonRequest(apiKey, 'interactions', {
+    method: 'POST',
+    body,
+    ...(abortSignal ? { abortSignal } : {})
+  })
+  return json
+}
+
+export const geminiGetInteraction = async (
+  apiKey: string,
+  interactionId: string,
+  abortSignal?: AbortSignal
+): Promise<unknown> => {
+  if (!interactionId || interactionId.includes('..') || interactionId.includes('/') || interactionId.includes('?')) {
+    throw ValidationError('invalid Gemini interaction id', { stage: 'gemini:rest' })
+  }
+  const { json } = await geminiJsonRequest(apiKey, `interactions/${encodeURIComponent(interactionId)}`, {
+    method: 'GET',
+    ...(abortSignal ? { abortSignal } : {})
+  })
+  return json
+}
+
 // Music uses a single synchronous request; do not automatically redispatch song generation.
 export const geminiCreateMusicInteraction = async (apiKey: string, input: string): Promise<unknown> => {
   if (typeof input !== 'string' || input.trim().length === 0) {
     throw ValidationError('Lyria 3.5 requires a nonempty text prompt; image/audio inputs are not exposed by this music adapter.', { stage: 'music:gemini' })
   }
-  const { json } = await geminiJsonRequest(apiKey, 'interactions', {
-    method: 'POST',
-    body: { model: 'lyria-3.5', input }
-  })
-  return json
+  return await geminiCreateInteraction(apiKey, { model: 'lyria-3.5', input })
 }
 
 export const geminiGenerateContent = async (

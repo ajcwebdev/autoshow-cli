@@ -124,8 +124,8 @@ describe('generation pricing model-selection tables', () => {
     const estimated = computeEstimatedCosts({
       applyCostMultipliers: false,
       videoTargets: [
-        { service: 'gemini', model: 'veo-3.1-lite-generate-preview', durationSeconds: 4 },
-        { service: 'gemini', model: 'veo-3.1-lite-generate-preview', durationSeconds: 8 }
+        { service: 'gemini', model: 'gemini-omni-1.1-flash', durationSeconds: 4 },
+        { service: 'gemini', model: 'gemini-omni-1.1-flash', durationSeconds: 8 }
       ],
       musicTargets: [
         { service: 'elevenlabs', model: 'music_v2', durationSeconds: 60 },
@@ -134,8 +134,8 @@ describe('generation pricing model-selection tables', () => {
     })
 
     expect(estimated.steps.filter(({ step }) => step === 'video')).toMatchObject([
-      { provider: 'gemini', durationSeconds: 4, cost: 20 },
-      { provider: 'gemini', durationSeconds: 8, cost: 40 }
+      { provider: 'gemini', durationSeconds: 4, cost: 40 },
+      { provider: 'gemini', durationSeconds: 8, cost: 80 }
     ])
     expect(estimated.steps.filter(({ step }) => step === 'music')).toMatchObject([
       { provider: 'elevenlabs', durationSeconds: 60, cost: 15 },

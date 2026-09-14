@@ -24,8 +24,8 @@ export const VIDEO_PRICING_PROVIDERS = deriveGenerationPricingProviders(VIDEO_GE
 
 export const VIDEO_PRICING_MODEL_KEYS = passThroughKeys(VIDEO_PRICING_PROVIDERS)
 
-const GEMINI_MODEL_COST_FALLBACKS: Record<GeminiVideoModel, { cents720p: number, cents1080p: number }> = {
-  'veo-3.1-lite-generate-preview': { cents720p: 5, cents1080p: 8 }
+const GEMINI_MODEL_COST_FALLBACKS: Record<GeminiVideoModel, number> = {
+  'gemini-omni-1.1-flash': 10
 }
 
 const estimateGeminiModelCost = (
@@ -38,12 +38,9 @@ const estimateGeminiModelCost = (
   const normalizedResolution = normalizeGeminiResolution(resolution, model)
   const durationSeconds = normalizeGeminiDuration(duration, normalizedResolution, mode as VideoMode | undefined)
   const billedDurationSeconds = durationSeconds
-  const fallback = GEMINI_MODEL_COST_FALLBACKS[model]
-  const costPerSecond = normalizedResolution === '1080p'
-    ? (meta?.baseCostPerSecondCents !== undefined
-      ? meta.baseCostPerSecondCents * (meta.resolutionMultiplier1080p ?? 1)
-      : fallback.cents1080p)
-    : (meta?.baseCostPerSecondCents ?? fallback.cents720p)
+  const costPerSecond = meta?.costPerSecondByResolutionCents?.[normalizedResolution]
+    ?? meta?.baseCostPerSecondCents
+    ?? GEMINI_MODEL_COST_FALLBACKS[model]
 
   return {
     provider: 'gemini',
@@ -52,7 +49,9 @@ const estimateGeminiModelCost = (
     billedDurationSeconds,
     costPerSecond,
     totalCost: billedDurationSeconds * costPerSecond,
-    note: `Approximate estimate using ${normalizedResolution} per-second pricing${normalizedResolution === '1080p' ? '; 1080p is normalized to 8s' : ''}`
+    note: duration === undefined
+      ? `Approximate estimate using ${normalizedResolution} per-second pricing; unspecified duration budgeted at ${billedDurationSeconds}s`
+      : `Approximate estimate using ${normalizedResolution} per-second pricing`
   }
 }
 
@@ -212,7 +211,7 @@ export const estimateVideoCosts = (options: EstimateVideoCostOptions): VideoCost
   }
 
   if (estimates.length === 0) {
-    estimates.push(estimateGeminiModelCost('veo-3.1-lite-generate-preview', options.videoDuration, options.videoResolution, options.videoMode))
+    estimates.push(estimateGeminiModelCost('gemini-omni-1.1-flash', options.videoDuration, options.videoResolution, options.videoMode))
   }
 
   return estimates

@@ -59,8 +59,7 @@ export const SUPPORTED_SCRAPECREATORS_STT_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_GEMINI_STT_MODELS = [
-  'gemini-3.8-flash',
-  'gemini-3.6-flash'
+  'gemini-3.5-transcribe'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_TOGETHER_STT_MODELS = [
@@ -80,5 +79,5 @@ export const validateGladiaSttModel = createRetiringModelValidator('stt', 'gladi
 export const validateHappyscribeSttModel = createModelValidator(SUPPORTED_HAPPYSCRIBE_STT_MODELS, 'happyscribe-stt')
 export const validateSupadataSttModel = createModelValidator(SUPPORTED_SUPADATA_STT_MODELS, 'supadata-stt')
 export const validateScrapeCreatorsSttModel = createModelValidator(SUPPORTED_SCRAPECREATORS_STT_MODELS, 'scrapecreators-stt')
-export const validateGeminiSttModel = createModelValidator(SUPPORTED_GEMINI_STT_MODELS, 'gemini-stt')
+export const validateGeminiSttModel = createRetiringModelValidator('stt', 'gemini-stt', SUPPORTED_GEMINI_STT_MODELS, 'gemini-stt')
 export const validateTogetherSttModel = createModelValidator(SUPPORTED_TOGETHER_STT_MODELS, 'together-stt', 'This selector accepts concrete Together serverless batch transcription models.')

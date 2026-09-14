@@ -5,7 +5,7 @@ import { UsageError } from '~/utils/error-handler'
 export const resolveVideoMode = (value: string | undefined): VideoMode => {
   if (value === undefined || value.length === 0) return 'text'
   if ((VIDEO_MODES as readonly string[]).includes(value)) return value as VideoMode
-  throw UsageError(`Invalid --mode value "${value}". Expected text, image-to-video, reference-to-video, or interpolate.`)
+  throw UsageError(`Invalid --mode value "${value}". Expected ${VIDEO_MODES.join(', ')}.`)
 }
 
 export const hasValue = (value: unknown): boolean =>
@@ -26,6 +26,7 @@ export const validateModeInputs = (options: VideoGenOptions, mode: VideoMode): v
     addUnexpected(hasValue(options.videoLastFrame), '--last-frame')
     addUnexpected(referenceImages.length > 0, '--reference-image')
     addUnexpected(hasValue(options.videoInputVideo), '--input-video')
+    addUnexpected(hasValue(options.videoPreviousInteractionId), '--previous-interaction-id')
     addUnexpected(referenceVideos.length > 0, '--reference-video')
     addUnexpected(referenceAudios.length > 0, '--reference-audio')
   } else if (mode === 'image-to-video') {
@@ -33,6 +34,7 @@ export const validateModeInputs = (options: VideoGenOptions, mode: VideoMode): v
     addUnexpected(hasValue(options.videoLastFrame), '--last-frame')
     addUnexpected(referenceImages.length > 0, '--reference-image')
     addUnexpected(hasValue(options.videoInputVideo), '--input-video')
+    addUnexpected(hasValue(options.videoPreviousInteractionId), '--previous-interaction-id')
     addUnexpected(referenceVideos.length > 0, '--reference-video')
     addUnexpected(referenceAudios.length > 0, '--reference-audio')
   } else if (mode === 'reference-to-video') {
@@ -42,13 +44,28 @@ export const validateModeInputs = (options: VideoGenOptions, mode: VideoMode): v
     addUnexpected(hasValue(options.videoInputImage), '--input-image')
     addUnexpected(hasValue(options.videoLastFrame), '--last-frame')
     addUnexpected(hasValue(options.videoInputVideo), '--input-video')
+    addUnexpected(hasValue(options.videoPreviousInteractionId), '--previous-interaction-id')
   } else if (mode === 'interpolate') {
     if (!options.videoInputImage) throw UsageError('--mode interpolate requires --input-image.')
     if (!options.videoLastFrame) throw UsageError('--mode interpolate requires --last-frame.')
     addUnexpected(referenceImages.length > 0, '--reference-image')
     addUnexpected(hasValue(options.videoInputVideo), '--input-video')
+    addUnexpected(hasValue(options.videoPreviousInteractionId), '--previous-interaction-id')
     addUnexpected(referenceVideos.length > 0, '--reference-video')
     addUnexpected(referenceAudios.length > 0, '--reference-audio')
+  } else if (mode === 'edit' || mode === 'extend') {
+    const hasPrevious = hasValue(options.videoPreviousInteractionId)
+    const hasInputVideo = hasValue(options.videoInputVideo)
+    if (hasPrevious === hasInputVideo) {
+      throw UsageError(`--mode ${mode} requires exactly one of --previous-interaction-id or --input-video.`)
+    }
+    addUnexpected(hasValue(options.videoInputImage), '--input-image')
+    addUnexpected(hasValue(options.videoLastFrame), '--last-frame')
+    addUnexpected(referenceVideos.length > 0, '--reference-video')
+    addUnexpected(referenceAudios.length > 0, '--reference-audio')
+    if (mode === 'edit') {
+      addUnexpected(referenceImages.length > 0, '--reference-image')
+    }
   }
 
   if (unexpected.length > 0) {

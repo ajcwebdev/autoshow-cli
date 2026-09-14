@@ -18,23 +18,14 @@ describe('video provider REST contracts', () => {
     process.env['XAI_API_KEY'] = 'xai-key'
 
     const calls = installMockFetch((call) => {
-      if (call.url.includes(':predictLongRunning') && call.method === 'POST') {
-        return jsonResponse({ name: 'operations/veo-promptless', done: false })
-      }
-      if (call.url === 'https://generativelanguage.googleapis.com/v1beta/operations/veo-promptless') {
+      if (call.url.endsWith('/interactions') && call.method === 'POST') {
         return jsonResponse({
-          name: 'operations/veo-promptless',
-          done: true,
-          response: {
-            generateVideoResponse: {
-              generatedSamples: [{
-                video: {
-                  encodedVideo: inlineVideo,
-                  encoding: 'video/mp4'
-                }
-              }]
-            }
-          }
+          id: 'v1_omni-promptless',
+          status: 'completed',
+          steps: [{
+            type: 'model_output',
+            content: [{ type: 'video', mime_type: 'video/mp4', data: inlineVideo }]
+          }]
         })
       }
       if (call.url === `${XAI_DEFAULT_BASE_URL}/videos/generations` && call.method === 'POST') {
@@ -57,7 +48,7 @@ describe('video provider REST contracts', () => {
     await withTempDir(async (dir) => {
       const { imagePath } = await writeMediaFixtures(dir)
       await runGeminiVideoGen(undefined, dir, {
-        model: 'veo-3.1-lite-generate-preview',
+        model: 'gemini-omni-1.1-flash',
         mode: 'image-to-video',
         inputImage: imagePath
       })
@@ -70,16 +61,15 @@ describe('video provider REST contracts', () => {
 
     const expectedImage = `data:image/png;base64,${Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')}`
     const expectedImageBase64 = Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')
-    const geminiBody = calls.find((call) => call.url.includes(':predictLongRunning'))?.bodyJson
+    const geminiBody = calls.find((call) => call.url.endsWith('/interactions'))?.bodyJson
     const grokBody = calls.find((call) => call.url === `${XAI_DEFAULT_BASE_URL}/videos/generations`)?.bodyJson
-    const geminiInstance = (geminiBody as { instances?: Array<Record<string, unknown>> } | undefined)?.instances?.[0]
+    const geminiInput = geminiBody?.['input'] as Array<Record<string, unknown>> | undefined
 
-    expect(geminiInstance).toHaveProperty('prompt', defaultImageVideoPrompt)
-    expect(geminiInstance).toMatchObject({
-      image: {
-        mimeType: 'image/png',
-        bytesBase64Encoded: expectedImageBase64
-      }
+    expect(geminiInput?.[1]).toMatchObject({ type: 'text', text: defaultImageVideoPrompt })
+    expect(geminiInput?.[0]).toMatchObject({
+      type: 'image',
+      mime_type: 'image/png',
+      data: expectedImageBase64
     })
     expect(grokBody).not.toHaveProperty('prompt')
     expect(grokBody).toMatchObject({ model: 'grok-imagine-video-1.5', image: { url: expectedImage } })

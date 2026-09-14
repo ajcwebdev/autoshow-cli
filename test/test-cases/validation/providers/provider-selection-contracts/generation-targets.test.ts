@@ -35,7 +35,7 @@ describe('provider selection contracts', () => {
     })
 
     expect(allOpts.geminiVideoModels).toEqual([
-      'veo-3.1-lite-generate-preview'
+      'gemini-omni-1.1-flash'
     ])
     expect(allOpts.geminiImageModels).toEqual([
       'gemini-3.1-flash-lite-image'
