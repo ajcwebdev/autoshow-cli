@@ -1,14 +1,12 @@
 import { validateImageReferenceCapabilities } from '~/cli/commands/setup-and-utilities/models/image-reference-capabilities'
-import { mkdir } from 'node:fs/promises'
 import type { JsonObject, ReplicateImageModel, ReplicateImageRequestMode, ReplicateImageSize, Step5Metadata } from '~/types'
 import { UsageError, InfraError } from '~/utils/error-handler'
-import { logGenCompleted, logGenStatus } from '~/cli/commands/command-shared/generation-command-utils'
+import { runImageGeneration } from '~/cli/commands/command-shared/media-generation/image-generation-scaffold'
 import { estimateImageCosts, logImageEstimate } from '~/cli/commands/visuals/image/image-utils/image-pricing'
-import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { normalizeReplicateOutputUris, runReplicatePrediction } from '~/utils/replicate-client/replicate-prediction'
 import { imageReferenceToUrlOrDataUrl } from '../../image-utils/image-inputs'
-import { downloadImageUrl, getImageFileNames } from '../../image-utils/image-output'
-import { ensureReplicateImageGenSetup, getReplicateBaseUrl } from './replicate-image-gen'
+import { downloadImageUrl } from '../../image-utils/image-output'
+import { getReplicateBaseUrl } from './replicate-image-gen'
 
 const REPLICATE_SEEDREAM_MODELS = new Set<ReplicateImageModel>([
   'bytedance/seedream-5-lite',
@@ -238,78 +236,74 @@ export const runReplicateImageGen = async (
     outputFormat?: string | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
-  const apiToken = await ensureReplicateImageGenSetup()
-  const inputs = options.inputs ?? []
-  const { input, imageSize, count, mode } = await buildReplicateImageInput(prompt, {
-    model: options.model,
-    inputs,
-    imageSize: options.imageSize,
-    aspectRatio: options.aspectRatio,
-    count: options.count,
-    outputFormat: options.outputFormat
-  })
   const fallbackExt = getReplicateImageExtension(options.model, options.outputFormat)
 
-  const estimate = estimateImageCosts({ replicateImageModels: [options.model], imageCount: count, imageSize: imageSize?.metadataValue ?? options.imageSize })[0]
-  if (estimate) {
-    logImageEstimate(estimate)
-  }
-
-  logGenStatus('image', 'replicate', options.model, 'started', mode)
-
-  const startTime = Date.now()
-  await mkdir(outputDir, { recursive: true })
-
-  const prediction = await runReplicatePrediction({
-    apiToken,
-    baseUrl: getReplicateBaseUrl(),
+  return await runImageGeneration({
+    service: 'replicate',
     model: options.model,
-    input,
-    operationName: 'replicate-image-gen',
-    onStatus: (status) => {
-      logGenStatus('image', 'replicate', options.model, status.status)
+    outputDir,
+    prepare: async () => {
+      const request = await buildReplicateImageInput(prompt, {
+        model: options.model,
+        inputs: options.inputs ?? [],
+        imageSize: options.imageSize,
+        aspectRatio: options.aspectRatio,
+        count: options.count,
+        outputFormat: options.outputFormat
+      })
+      return {
+        request,
+        estimate: estimateImageCosts({
+          replicateImageModels: [options.model],
+          imageCount: request.count,
+          imageSize: request.imageSize?.metadataValue ?? options.imageSize
+        })[0]
+      }
+    },
+    startDetail: (prepared) => prepared.request.mode,
+    estimate: (prepared) => {
+      if (prepared.estimate) {
+        logImageEstimate(prepared.estimate)
+      }
+    },
+    execute: async (context, { request, estimate }) => {
+      const prediction = await runReplicatePrediction({
+        apiToken: context.apiKey,
+        baseUrl: getReplicateBaseUrl(),
+        model: options.model,
+        input: request.input,
+        operationName: 'replicate-image-gen',
+        onStatus: (status) => {
+          context.logStatus(status.status)
+        }
+      })
+
+      const outputUris = normalizeReplicateOutputUris(prediction.output)
+      if (outputUris.length === 0) {
+        throw InfraError('Replicate image generation completed without output image URLs', { stage: 'image:replicate' })
+      }
+
+      const imagePaths = await Promise.all(outputUris.map(async (url, index) =>
+        await downloadImageUrl(url, context.outputDir, index, fallbackExt)
+      ))
+
+      const returnedModel = providerReturnedModel(options.model, prediction.model ?? prediction.version)
+
+      return {
+        artifactPaths: imagePaths,
+        metadata: {
+          imageWidth: request.imageSize?.width,
+          imageHeight: request.imageSize?.height,
+          ...(request.imageSize?.metadataValue ? { imageSize: request.imageSize.metadataValue } : {}),
+          imageFormat: fallbackExt,
+          requestMode: request.mode,
+          ...(returnedModel ? { providerReturnedModel: returnedModel } : {}),
+          ...(estimate ? {
+            providerCostCents: estimate.totalCost,
+            providerCostSource: 'registry_fallback' as const
+          } : {})
+        }
+      }
     }
   })
-
-  const outputUris = normalizeReplicateOutputUris(prediction.output)
-  if (outputUris.length === 0) {
-    throw InfraError('Replicate image generation completed without output image URLs', { stage: 'image:replicate' })
-  }
-
-  const imagePaths = await Promise.all(outputUris.map(async (url, index) =>
-    await withRetry(
-      { retryClass: 'runtime_http_read', operationName: 'replicate-image-result-download' },
-      async (signal) => await downloadImageUrl(url, outputDir, index, fallbackExt, signal),
-      (error) => classifyFetchRetry(error, 'runtime_http_read')
-    )
-  ))
-
-  const processingTime = Date.now() - startTime
-  const primaryImagePath = imagePaths[0] as string
-  const imageFile = Bun.file(primaryImagePath)
-  const returnedModel = providerReturnedModel(options.model, prediction.model ?? prediction.version)
-
-  logGenCompleted('image', 'replicate', options.model, processingTime, imagePaths)
-
-  return {
-    imagePaths,
-    metadata: {
-      imageService: 'replicate',
-      imageModel: options.model,
-      processingTime,
-      imageCount: imagePaths.length,
-      imageFileNames: getImageFileNames(imagePaths),
-      imageFileSize: imageFile.size,
-      imageWidth: imageSize?.width,
-      imageHeight: imageSize?.height,
-      ...(imageSize?.metadataValue ? { imageSize: imageSize.metadataValue } : {}),
-      imageFormat: fallbackExt,
-      requestMode: mode,
-      ...(returnedModel ? { providerReturnedModel: returnedModel } : {}),
-      ...(estimate ? {
-        providerCostCents: estimate.totalCost,
-        providerCostSource: 'registry_fallback' as const
-      } : {})
-    }
-  }
 }

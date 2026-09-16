@@ -5,6 +5,7 @@ import type { DocumentMetadata, ExtractionOptions, HostedDirectImageFormatSet, H
 import { commandExists, exec } from '~/utils/cli-utils'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { UsageError, InfraError } from '~/utils/error-handler'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { HOSTED_OCR_ADAPTERS, hostedOcrAdapterForEngine, hostedOcrAdapterForService } from './hosted-ocr-adapters'
 import { GEMINI_FILE_UPLOAD_BYTES, GEMINI_PDF_PAGE_COUNT_LIMIT } from './ocr-services/gemini-ocr/gemini-ocr'
 import { isBunImagePngNormalizableFormat, normalizeImageToPngWithBun } from './ocr-utils/bun-image-utils'
@@ -416,7 +417,7 @@ export const runHostedOcr = async (
     const ocrModel = adapter.selectModel(opts)
     if (ocrModel === undefined) continue
 
-    await adapter.ensureSetup()
+    resolveCredential(adapter.service, 'require', { stage: `ocr:${adapter.service}`, description: adapter.label })
     return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, adapter.label, {
       extractionMethod: adapter.engine,
       ocrService: adapter.service,

@@ -18,7 +18,7 @@ describe('option resolution contracts', () => {
   test('retired video selectors fail with replacement guidance', () => {
     for (const [provider, model, replacement] of [
       ['replicate', 'runwayml/aleph-2', 'grok-imagine-video-1.5'],
-      ['replicate', 'wan-video/wan-2.7-t2v', 'bytedance/seedance-2.5'],
+      ['replicate', 'wan-video/wan-2.7-t2v', 'alibaba/wan-3'],
       ['replicate', 'kwaivgi/kling-v3-video', 'pixverse/pixverse-v6'],
       ['replicate', 'kwaivgi/kling-v3-omni-video', 'bytedance/seedance-2.5'],
       ['replicate', 'bytedance/seedance-2.0', 'bytedance/seedance-2.5'],
@@ -136,7 +136,7 @@ describe('option resolution contracts', () => {
 
       expect(() => buildOptsFromFlags({
         'replicate-video': 'wan-video/wan-2.7-t2v'
-      })).toThrow('Use "bytedance/seedance-2.5" instead')
+      })).toThrow('Use "alibaba/wan-3" instead')
 
       expect(() => collectVideoTargets(buildOptsFromFlags({
         'replicate-video-seed': '123'
@@ -247,6 +247,7 @@ describe('option resolution contracts', () => {
       expect(targets).toContain('gemini/gemini-omni-1.1-flash')
       expect(targets).toContain('ltx/ltx-2-5-fast')
       expect(targets).toContain('replicate/alibaba/happyhorse-1.1')
+      expect(targets).toContain('replicate/alibaba/wan-3')
       expect(targets).not.toContain('replicate/wan-video/wan-2.7-t2v')
       expect(targets).not.toContain('gemini/veo-3.1-fast-generate-preview')
       expect(targets).not.toContain('ltx/ltx-2-3-fast')

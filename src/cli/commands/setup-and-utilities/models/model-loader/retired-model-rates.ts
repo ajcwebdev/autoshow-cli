@@ -1,3 +1,5 @@
+import { validateData } from '~/utils/validate/validation'
+import { RetiredModelRatesSchema } from './model-loader-schemas'
 import type { ModelCategory, RetiredModelRate, RetiredModelRates, RetiredModelReplacements } from '~/types'
 
 export const modelRateKey = (service: string, model: string): string => `${service}:${model}`
@@ -357,7 +359,7 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
     'glm:vidu2-reference': 'ltx-2-5-fast',
     'runway:gen4.5': 'ray-3.2',
     'replicate:runwayml/aleph-2': 'grok-imagine-video-1.5',
-    'replicate:wan-video/wan-2.7-t2v': 'bytedance/seedance-2.5',
+    'replicate:wan-video/wan-2.7-t2v': 'alibaba/wan-3',
     'replicate:kwaivgi/kling-v3-video': 'pixverse/pixverse-v6',
     'replicate:kwaivgi/kling-v3-omni-video': 'bytedance/seedance-2.5',
     'replicate:bytedance/seedance-2.0': 'bytedance/seedance-2.5',
@@ -372,12 +374,23 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
   }
 }
 
+let retiredRatesValidated = false
+
+// Validated against the live registry schemas so a retired row cannot drift into a shape the estimators cannot read.
+const assertValidatedRetiredRates = (): void => {
+  if (retiredRatesValidated) return
+  validateData(RetiredModelRatesSchema, RETIRED_MODEL_RATES, 'retired model rates')
+  retiredRatesValidated = true
+}
+
 export const getRetiredModelRate = <Category extends ModelCategory>(
   category: Category,
   service: string,
   model: string
-): RetiredModelRate<Category> | undefined =>
-  RETIRED_MODEL_RATES[category][modelRateKey(service, model)] as RetiredModelRate<Category> | undefined
+): RetiredModelRate<Category> | undefined => {
+  assertValidatedRetiredRates()
+  return RETIRED_MODEL_RATES[category][modelRateKey(service, model)] as RetiredModelRate<Category> | undefined
+}
 
 export const hasRetiredModelRate = (
   category: ModelCategory,

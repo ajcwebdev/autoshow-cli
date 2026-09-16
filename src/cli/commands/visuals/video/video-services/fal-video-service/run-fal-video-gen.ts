@@ -1,13 +1,11 @@
 import { isFalPriorityVideo, isFalSeedance25, normalizeFalPriorityDuration, normalizeFalPriorityResolution, normalizeFalPriorityAspectRatio, validateFalPriorityInputs } from './fal-priority-video-contract'
-import { mkdir } from 'node:fs/promises'
 import type { FalVideoModel, FalVideoOutput, Step6VideoMetadata, VideoMode } from '~/types'
 import { UsageError, InfraError } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/command-shared/generation-command-utils'
+import { runVideoGeneration } from '~/cli/commands/command-shared/media-generation/video-generation-scaffold'
 import { estimateVideoCost, logVideoEstimate } from '../../video-utils/video-pricing'
 import { tryResolveLocalVideoDurationSeconds, tryResolveLocalAudioProbe, videoMediaReferenceToUrlOrDataUrl } from '../../video-utils/video-media-inputs'
 import { downloadVideoOutputBytes } from '../../video-utils/video-output-download'
 import { runFalQueue } from '~/utils/fal-client/fal-queue'
-import { ensureFalVideoGenSetup } from './fal-video-gen'
 
 export const FAL_H3_RESOLUTIONS = ['768p', '2k'] as const
 export const FAL_H3_ASPECT_RATIOS = ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'] as const
@@ -132,43 +130,61 @@ export const runFalVideoGen = async (prompt: string, outputDir: string, options:
   pollIntervalMs?: number | undefined
 }): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
   if (!prompt.trim()) throw UsageError('fal.ai video prompt cannot be empty.')
-  const apiKey = await ensureFalVideoGenSetup()
-  const request = await buildFalVideoRequest(prompt, options)
-  const estimate = estimateVideoCost({ falVideoModels: [options.model], videoDuration: request.duration, videoResolution: request.resolution, videoMode: options.mode, falVideoReferenceVideoCount: options.referenceVideos?.length ?? 0, falInputVideoDurationSeconds: request.inputVideoDurationSeconds })
-  logVideoEstimate(estimate)
-  logMediaGenerationStatus( { mediaType: 'video', provider: 'fal', model: options.model, status: 'started', detail: options.mode })
-  const startTime = Date.now()
-  await mkdir(outputDir, { recursive: true })
-  const result = await runFalQueue<FalVideoOutput>({ apiKey, endpointId: request.endpointId, input: request.input, pollIntervalMs: options.pollIntervalMs, operationName: 'fal-video-gen', onStatus: status => logMediaGenerationStatus( { mediaType: 'video', provider: 'fal', model: options.model, status: status.status }) })
-  const videoUrl = result.output.video?.url
-  if (typeof videoUrl !== 'string') throw InfraError('fal.ai video generation completed without a video URL', { stage: 'video:fal' })
-  const videoPath = `${outputDir}/generated-video.mp4`
-  await Bun.write(videoPath, await downloadVideoOutputBytes(videoUrl, 'fal.ai'))
-  const processingTime = Date.now() - startTime
-  logMediaGenerationStatus( { mediaType: 'video', provider: 'fal', model: options.model, status: 'completed', processingTimeMs: processingTime, outputCount: 1, artifacts: [{ artifact: 'video', path: videoPath }] })
-  return {
-    videoPath,
-    metadata: {
-      videoGenService: 'fal',
-      videoGenModel: options.model,
-      processingTime,
-      videoFileName: 'generated-video.mp4',
-      videoFileSize: Bun.file(videoPath).size,
-      videoDuration: request.duration === -1 ? (await tryResolveLocalVideoDurationSeconds(videoPath)) ?? 30 : request.duration,
-      ...(isFalPriorityVideo(options.model) ? { providerFileOutput: { requestedDuration: request.duration, nativeAudio: isFalSeedance25(options.model) ? options.generateAudio ?? true : true } } : {}),
-      ...(request.inputVideoDurationSeconds !== undefined && options.referenceVideos?.length ? { inputVideoDurationSeconds: request.inputVideoDurationSeconds } : {}),
-      videoResolution: request.resolution,
-      ...(request.aspectRatio ? { videoAspectRatio: request.aspectRatio } : {}),
-      requestMode: options.mode,
-      ...(options.inputImage ? { inputImage: options.inputImage } : {}),
-      ...(options.lastFrame ? { lastFrameImage: options.lastFrame } : {}),
-      ...(options.referenceImages?.length ? { referenceImages: options.referenceImages } : {}),
-      ...(options.referenceVideos?.length ? { referenceVideos: options.referenceVideos } : {}),
-      ...(options.referenceAudios?.length ? { referenceAudios: options.referenceAudios } : {}),
-      providerRequestId: result.requestId,
-      providerOutputUrl: videoUrl,
-      providerVideoUrl: videoUrl,
-      ...(estimate ? { providerCostCents: estimate.totalCost, providerCostSource: 'registry_fallback' as const } : {})
+
+  return await runVideoGeneration({
+    service: 'fal',
+    model: options.model,
+    outputDir,
+    startDetail: options.mode,
+    prepare: async () => {
+      const request = await buildFalVideoRequest(prompt, options)
+      return {
+        request,
+        estimate: estimateVideoCost({
+          falVideoModels: [options.model],
+          videoDuration: request.duration,
+          videoResolution: request.resolution,
+          videoMode: options.mode,
+          falVideoReferenceVideoCount: options.referenceVideos?.length ?? 0,
+          falInputVideoDurationSeconds: request.inputVideoDurationSeconds
+        })
+      }
+    },
+    estimate: (prepared) => logVideoEstimate(prepared.estimate),
+    execute: async (context, { request, estimate }) => {
+      const result = await runFalQueue<FalVideoOutput>({
+        apiKey: context.apiKey,
+        endpointId: request.endpointId,
+        input: request.input,
+        pollIntervalMs: options.pollIntervalMs,
+        operationName: 'fal-video-gen',
+        onStatus: status => context.logStatus(status.status)
+      })
+      const videoUrl = result.output.video?.url
+      if (typeof videoUrl !== 'string') throw InfraError('fal.ai video generation completed without a video URL', { stage: 'video:fal' })
+      const videoPath = context.artifactPath()
+      await Bun.write(videoPath, await downloadVideoOutputBytes(videoUrl, 'fal.ai'))
+
+      return {
+        artifactPaths: [videoPath],
+        metadata: {
+          videoDuration: request.duration === -1 ? (await tryResolveLocalVideoDurationSeconds(videoPath)) ?? 30 : request.duration,
+          ...(isFalPriorityVideo(options.model) ? { providerFileOutput: { requestedDuration: request.duration, nativeAudio: isFalSeedance25(options.model) ? options.generateAudio ?? true : true } } : {}),
+          ...(request.inputVideoDurationSeconds !== undefined && options.referenceVideos?.length ? { inputVideoDurationSeconds: request.inputVideoDurationSeconds } : {}),
+          videoResolution: request.resolution,
+          ...(request.aspectRatio ? { videoAspectRatio: request.aspectRatio } : {}),
+          requestMode: options.mode,
+          ...(options.inputImage ? { inputImage: options.inputImage } : {}),
+          ...(options.lastFrame ? { lastFrameImage: options.lastFrame } : {}),
+          ...(options.referenceImages?.length ? { referenceImages: options.referenceImages } : {}),
+          ...(options.referenceVideos?.length ? { referenceVideos: options.referenceVideos } : {}),
+          ...(options.referenceAudios?.length ? { referenceAudios: options.referenceAudios } : {}),
+          providerRequestId: result.requestId,
+          providerOutputUrl: videoUrl,
+          providerVideoUrl: videoUrl,
+          ...(estimate ? { providerCostCents: estimate.totalCost, providerCostSource: 'registry_fallback' as const } : {})
+        }
+      }
     }
-  }
+  })
 }

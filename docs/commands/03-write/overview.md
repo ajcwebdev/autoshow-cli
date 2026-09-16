@@ -89,7 +89,7 @@ Project lyric draft mode is enabled when the input is `./output/<name>/text` or 
 | `--price`                              | Show the aggregated estimate and exit                                                                                                           |
 | `--max-model-cents <n>`                | Exclude each provider/model whose estimated total across the invocation exceeds the per-model ceiling in cents; works with or without `--price` |
 
-See [Provider Capabilities](#provider-capabilities) for the per-model reasoning, context, structured-output, web-search, and pricing matrix.
+See [Provider Capabilities](#provider-capabilities) for the per-model reasoning, context, structured-output, web-search, and input/output price matrix.
 
 ```bash
 bun autoshow write output/<extract-run>/transcription.txt --provider openai=gpt-5.6-sol --prompt shortSummary longSummary
@@ -284,23 +284,23 @@ Lyric drafts pair with `music --lyrics-file`.
 
 Marks: ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Released dates are provider announcement or model-origin dates. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01. Rows are newest first.
 
-Reasoning: ✅ required or optional effort control, ⚠️ optional thinking without a full effort ladder. Context: ✅ 1M+, ⚠️ 500K, ❌ under 500K. Structured: ✅ native JSON schema, ⚠️ JSON object without schema constraint, ❌ not exposed. Web search: ✅ native hosted search tool, ⚠️ qualified or updating, ❌ not exposed. `write` already uses structured outputs and does not currently send web-search tools. Pricing is per 1M tokens (input / output). Pricing: ✅ cheapest third, ⚠️ middle third, ❌ most expensive third.
+Reasoning: ✅ required or optional effort control, ⚠️ optional thinking without a full effort ladder. Context: ✅ 1M+, ⚠️ 500K, ❌ under 500K. Structured: ✅ native JSON schema, ⚠️ JSON object without schema constraint, ❌ not exposed. Web search: ✅ native hosted search tool, ⚠️ qualified or updating, ❌ not exposed. `write` already uses structured outputs and does not currently send web-search tools. Pricing is per 1M tokens. Input pricing: ✅ cheapest third, ⚠️ middle third, ❌ most expensive third. Cost rank is cheapest first on input $/1M (1 = cheapest); ties share a rank.
 
-| Provider                     | Released   | Reasoning                     | Context  | Structured     | Web search       | Pricing                          |
-| ---------------------------- | ---------- | ----------------------------- | -------- | -------------- | ---------------- | -------------------------------- |
-| GLM `glm-5.3-flash`          | ✅ 2026-09 | ✅ Required                   | ✅ 1M    | ⚠️ JSON object | ✅ web_search    | ✅ $0.15 / $0.50 per 1M tokens   |
-| Together `glm-5.3-flash`     | ✅ 2026-09 | ✅ Optional through max       | ✅ 1M    | ✅ JSON schema | ❌ Not exposed   | ✅ $0.15 / $0.50 per 1M tokens   |
-| Gemini `gemini-3.8-flash`    | ✅ 2026-09 | ✅ Optional through high      | ✅ 1M    | ✅ JSON schema | ✅ Google Search | ⚠️ $1.50 / $7.50 per 1M tokens   |
-| OpenAI `gpt-6-astra`         | ✅ 2026-09 | ✅ Required                   | ✅ 1.05M | ✅ JSON schema | ✅ web_search    | ❌ $10.00 / $50.00 per 1M tokens |
-| Anthropic `claude-fable-5-1` | ✅ 2026-09 | ✅ Required adaptive thinking | ✅ 1M    | ✅ JSON schema | ✅ web_search    | ❌ $10.00 / $50.00 per 1M tokens |
-| GLM `glm-5.3`                | ✅ 2026-09 | ✅ Required                   | ✅ 1M    | ⚠️ JSON object | ✅ web_search    | ✅ $1.40 / $4.40 per 1M tokens   |
-| Together `glm-5.3`           | ✅ 2026-09 | ✅ Required                   | ✅ 1M    | ✅ JSON schema | ❌ Not exposed   | ✅ $1.40 / $4.40 per 1M tokens   |
-| Together `kimi-k3`           | ✅ 2026-09 | ⚠️ Optional thinking          | ✅ 1M    | ✅ JSON schema | ❌ Not exposed   | ❌ $3.00 / $15.00 per 1M tokens  |
-| Grok `grok-4.6`              | ✅ 2026-08 | ✅ Required                   | ⚠️ 500K  | ✅ JSON schema | ✅ web_search    | ⚠️ $2.00 / $6.00 per 1M tokens   |
-| Gemini `gemini-3.7-flash`    | ✅ 2026-08 | ✅ Optional through high      | ✅ 1M    | ✅ JSON schema | ✅ Google Search | ⚠️ $1.50 / $7.50 per 1M tokens   |
-| OpenAI `gpt-5.6-terra`       | ✅ 2026-08 | ✅ Optional through max       | ✅ 1.05M | ✅ JSON schema | ✅ web_search    | ⚠️ $2.00 / $12.00 per 1M tokens  |
-| OpenAI `gpt-5.6-luna`        | ✅ 2026-08 | ✅ Optional through max       | ✅ 1.05M | ✅ JSON schema | ✅ web_search    | ✅ $0.20 / $1.20 per 1M tokens   |
-| OpenAI `gpt-5.6-sol`         | ✅ 2026-07 | ✅ Optional through max       | ✅ 1.05M | ✅ JSON schema | ✅ web_search    | ❌ $5.00 / $30.00 per 1M tokens  |
-| Anthropic `claude-sonnet-5`  | ✅ 2026-07 | ✅ Optional through max       | ✅ 1M    | ✅ JSON schema | ✅ web_search    | ⚠️ $2.00 / $10.00 per 1M tokens  |
-| Anthropic `claude-opus-5`    | ✅ 2026-07 | ✅ Optional through max       | ✅ 1M    | ✅ JSON schema | ✅ web_search    | ❌ $5.00 / $25.00 per 1M tokens  |
-| Kimi `kimi-k3`               | ✅ 2026-07 | ✅ Required effort            | ✅ 1M    | ✅ JSON schema | ⚠️ Updating      | ❌ $3.00 / $15.00 per 1M tokens  |
+| Provider                     | Released   | Reasoning                     | Context  | Structured     | Web search       | Inputs           | Outputs       | Cost rank |
+| ---------------------------- | ---------- | ----------------------------- | -------- | -------------- | ---------------- | ---------------- | ------------- | --------- |
+| GLM `glm-5.3-flash`          | ✅ 2026-09 | ✅ Required                   | ✅ 1M    | ⚠️ JSON object | ✅ web_search    | ✅ $0.15 per 1M  | $0.50 per 1M  | 1/16      |
+| Together `glm-5.3-flash`     | ✅ 2026-09 | ✅ Optional through max       | ✅ 1M    | ✅ JSON schema | ❌ Not exposed   | ✅ $0.15 per 1M  | $0.50 per 1M  | 1/16      |
+| Gemini `gemini-3.8-flash`    | ✅ 2026-09 | ✅ Optional through high      | ✅ 1M    | ✅ JSON schema | ✅ Google Search | ⚠️ $1.50 per 1M  | $7.50 per 1M  | 6/16      |
+| OpenAI `gpt-6-astra`         | ✅ 2026-09 | ✅ Required                   | ✅ 1.05M | ✅ JSON schema | ✅ web_search    | ❌ $10.00 per 1M | $50.00 per 1M | 15/16     |
+| Anthropic `claude-fable-5-1` | ✅ 2026-09 | ✅ Required adaptive thinking | ✅ 1M    | ✅ JSON schema | ✅ web_search    | ❌ $10.00 per 1M | $50.00 per 1M | 15/16     |
+| GLM `glm-5.3`                | ✅ 2026-09 | ✅ Required                   | ✅ 1M    | ⚠️ JSON object | ✅ web_search    | ✅ $1.40 per 1M  | $4.40 per 1M  | 4/16      |
+| Together `glm-5.3`           | ✅ 2026-09 | ✅ Required                   | ✅ 1M    | ✅ JSON schema | ❌ Not exposed   | ✅ $1.40 per 1M  | $4.40 per 1M  | 4/16      |
+| Together `kimi-k3`           | ✅ 2026-09 | ⚠️ Optional thinking          | ✅ 1M    | ✅ JSON schema | ❌ Not exposed   | ❌ $3.00 per 1M  | $15.00 per 1M | 11/16     |
+| Grok `grok-4.6`              | ✅ 2026-08 | ✅ Required                   | ⚠️ 500K  | ✅ JSON schema | ✅ web_search    | ⚠️ $2.00 per 1M  | $6.00 per 1M  | 8/16      |
+| Gemini `gemini-3.7-flash`    | ✅ 2026-08 | ✅ Optional through high      | ✅ 1M    | ✅ JSON schema | ✅ Google Search | ⚠️ $1.50 per 1M  | $7.50 per 1M  | 6/16      |
+| OpenAI `gpt-5.6-terra`       | ✅ 2026-08 | ✅ Optional through max       | ✅ 1.05M | ✅ JSON schema | ✅ web_search    | ⚠️ $2.00 per 1M  | $12.00 per 1M | 8/16      |
+| OpenAI `gpt-5.6-luna`        | ✅ 2026-08 | ✅ Optional through max       | ✅ 1.05M | ✅ JSON schema | ✅ web_search    | ✅ $0.20 per 1M  | $1.20 per 1M  | 3/16      |
+| OpenAI `gpt-5.6-sol`         | ✅ 2026-07 | ✅ Optional through max       | ✅ 1.05M | ✅ JSON schema | ✅ web_search    | ❌ $5.00 per 1M  | $30.00 per 1M | 13/16     |
+| Anthropic `claude-sonnet-5`  | ✅ 2026-07 | ✅ Optional through max       | ✅ 1M    | ✅ JSON schema | ✅ web_search    | ⚠️ $2.00 per 1M  | $10.00 per 1M | 8/16      |
+| Anthropic `claude-opus-5`    | ✅ 2026-07 | ✅ Optional through max       | ✅ 1M    | ✅ JSON schema | ✅ web_search    | ❌ $5.00 per 1M  | $25.00 per 1M | 13/16     |
+| Kimi `kimi-k3`               | ✅ 2026-07 | ✅ Required effort            | ✅ 1M    | ✅ JSON schema | ⚠️ Updating      | ❌ $3.00 per 1M  | $15.00 per 1M | 11/16     |

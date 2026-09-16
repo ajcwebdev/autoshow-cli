@@ -1,8 +1,7 @@
-import { mkdir } from 'node:fs/promises'
 import type { OpenAIImageModel, Step5Metadata } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
-import { logGenCompleted, logGenStatus } from '~/cli/commands/command-shared/generation-command-utils'
-import { getOpenAIClientConfig } from '~/cli/commands/text/write/write-services/write-openai/openai-utils'
+import { runImageGeneration } from '~/cli/commands/command-shared/media-generation/image-generation-scaffold'
+import { OPENAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { createOpenAIImage, createOpenAIImageEdit } from '~/utils/openai/openai-client'
 import { appendImageReferenceToForm } from '../../image-utils/image-inputs'
 import { computeOpenAIImageUsageCostCents } from '../../image-utils/openai-image-pricing'
@@ -10,7 +9,6 @@ import { OPENAI_IMAGE_COUNT_RANGE, validateOpenAIImageOptions } from './openai-i
 import { validateImageCount } from '../../image-utils/image-target-validation'
 import {
   getFirstRevisedPrompt,
-  getImageFileNames,
   getProviderReturnedModel,
   writeOpenAIImageResponseData
 } from '../../image-utils/image-output'
@@ -65,83 +63,75 @@ export const runOpenAIImageGen = async (
   validateOpenAIImageOptions(options.model, { imageSize: options.size, imageQuality: options.quality, imageFormat: options.outputFormat, imageBackground: options.background, imageCompression: options.compression })
   const count = validateImageCount('OpenAI', options.model, options.count, ...OPENAI_IMAGE_COUNT_RANGE)
   const mode = options.mode ?? 'generation'
-  logGenStatus('image', 'openai', options.model, 'started', mode)
-
-  const config = getOpenAIClientConfig()
-
-  const startTime = Date.now()
-
-  await mkdir(outputDir, { recursive: true })
-
   const ext = options.outputFormat === 'jpeg' ? 'jpg' : (options.outputFormat ?? 'png')
 
-  const result = mode === 'edit'
-    ? await (async () => {
-        const form = new FormData()
-        form.append('model', options.model)
-        form.append('prompt', prompt)
-        form.append('n', String(count))
-        form.append('size', options.size ?? 'auto')
-        form.append('quality', options.quality ?? 'auto')
-        form.append('output_format', options.outputFormat ?? 'png')
-        form.append('background', options.background ?? 'auto')
-        form.append('moderation', 'low')
-        if (typeof options.compression === 'number') {
-          form.append('output_compression', String(options.compression))
+  return await runImageGeneration({
+    service: 'openai',
+    model: options.model,
+    outputDir,
+    startDetail: mode,
+    prepare: () => ({}),
+    execute: async (context) => {
+      const config = { apiKey: context.apiKey, baseURL: OPENAI_DEFAULT_BASE_URL }
+      const result = mode === 'edit'
+        ? await (async () => {
+            const form = new FormData()
+            form.append('model', options.model)
+            form.append('prompt', prompt)
+            form.append('n', String(count))
+            form.append('size', options.size ?? 'auto')
+            form.append('quality', options.quality ?? 'auto')
+            form.append('output_format', options.outputFormat ?? 'png')
+            form.append('background', options.background ?? 'auto')
+            form.append('moderation', 'low')
+            if (typeof options.compression === 'number') {
+              form.append('output_compression', String(options.compression))
+            }
+            const inputs = options.inputs ?? []
+            const imageFieldName = inputs.length > 1 ? 'image[]' : 'image'
+            for (const input of inputs) {
+              await appendImageReferenceToForm(form, imageFieldName, input)
+            }
+            if (options.mask) {
+              await appendImageReferenceToForm(form, 'mask', options.mask)
+            }
+            return await createOpenAIImageEdit(config, form)
+          })()
+        : await createOpenAIImage(config, {
+            model: options.model,
+            prompt,
+            n: count,
+            size: options.size ?? 'auto',
+            quality: options.quality ?? 'auto',
+            output_format: options.outputFormat ?? 'png',
+            background: options.background ?? 'auto',
+            moderation: 'low',
+            ...(typeof options.compression === 'number' ? { output_compression: options.compression } : {})
+          })
+
+      const imagePaths = await writeOpenAIImageResponseData(result, context.outputDir, ext)
+      if (imagePaths.length === 0) {
+        throw ValidationError('No image data in OpenAI response', { stage: 'image:openai' })
+      }
+
+      const usage = parseOpenAIImageUsage(result.usage)
+      const providerCostCents = computeOpenAIImageUsageCostCents(options.model, usage)
+
+      return {
+        artifactPaths: imagePaths,
+        metadata: {
+          imageWidth: undefined,
+          imageHeight: undefined,
+          imageSize: options.size ?? 'auto',
+          imageQuality: options.quality ?? 'auto',
+          imageFormat: options.outputFormat ?? 'png',
+          requestMode: mode,
+          ...(getFirstRevisedPrompt(result) ? { revisedPrompt: getFirstRevisedPrompt(result) } : {}),
+          ...(getProviderReturnedModel(options.model, result) ? { providerReturnedModel: getProviderReturnedModel(options.model, result) } : {}),
+          ...usage,
+          ...(providerCostCents !== undefined ? { providerCostCents, providerCostSource: 'provider_usage' as const } : {})
         }
-        const inputs = options.inputs ?? []
-        const imageFieldName = inputs.length > 1 ? 'image[]' : 'image'
-        for (const input of inputs) {
-          await appendImageReferenceToForm(form, imageFieldName, input)
-        }
-        if (options.mask) {
-          await appendImageReferenceToForm(form, 'mask', options.mask)
-        }
-        return await createOpenAIImageEdit(config, form)
-      })()
-    : await createOpenAIImage(config, {
-        model: options.model,
-        prompt,
-        n: count,
-        size: options.size ?? 'auto',
-        quality: options.quality ?? 'auto',
-        output_format: options.outputFormat ?? 'png',
-        background: options.background ?? 'auto',
-        moderation: 'low',
-        ...(typeof options.compression === 'number' ? { output_compression: options.compression } : {})
-      })
-
-  const imagePaths = await writeOpenAIImageResponseData(result, outputDir, ext)
-  if (imagePaths.length === 0) {
-    throw ValidationError('No image data in OpenAI response', { stage: 'image:openai' })
-  }
-
-  const processingTime = Date.now() - startTime
-  const imageFile = Bun.file(imagePaths[0] as string)
-  const imageFileSize = imageFile.size
-
-  logGenCompleted('image', 'openai', options.model, processingTime, imagePaths)
-
-  const usage = parseOpenAIImageUsage(result.usage)
-  const providerCostCents = computeOpenAIImageUsageCostCents(options.model, usage)
-  const metadata: Step5Metadata = {
-    imageService: 'openai',
-    imageModel: options.model,
-    processingTime,
-    imageCount: imagePaths.length,
-    imageFileNames: getImageFileNames(imagePaths),
-    imageFileSize,
-    imageWidth: undefined,
-    imageHeight: undefined,
-    imageSize: options.size ?? 'auto',
-    imageQuality: options.quality ?? 'auto',
-    imageFormat: options.outputFormat ?? 'png',
-    requestMode: mode,
-    ...(getFirstRevisedPrompt(result) ? { revisedPrompt: getFirstRevisedPrompt(result) } : {}),
-    ...(getProviderReturnedModel(options.model, result) ? { providerReturnedModel: getProviderReturnedModel(options.model, result) } : {}),
-    ...usage,
-    ...(providerCostCents !== undefined ? { providerCostCents, providerCostSource: 'provider_usage' } : {})
-  }
-
-  return { imagePaths, metadata }
+      }
+    }
+  })
 }

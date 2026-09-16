@@ -11,7 +11,6 @@ export const createMediaTargetCollector = <
   readModels: (options: TOptions) => readonly TRawModel[]
   validateModel: (rawModel: TRawModel) => TModel
   targetFields?: ((options: TOptions, model: TModel) => TTargetFields) | undefined
-  ensureSetup?: (() => Promise<void> | void) | undefined
   run: (options: TOptions, model: TModel, fields: TTargetFields, ...args: TRunArgs) => Promise<TResult>
 }): ((options: TOptions) => Array<TTargetFields & {
   service: TService
@@ -24,9 +23,6 @@ export const createMediaTargetCollector = <
     ...fields,
     service: descriptor.service,
     model,
-    run: async (...args: TRunArgs): Promise<TResult> => {
-      await descriptor.ensureSetup?.()
-      return await descriptor.run(options, model, fields, ...args)
-    }
+    run: async (...args: TRunArgs): Promise<TResult> => await descriptor.run(options, model, fields, ...args)
   }
 })

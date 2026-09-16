@@ -1,6 +1,5 @@
 import type { GrokImageModel, ImageGenOptions, ImageTarget } from '~/types'
 import { validateGrokImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { ensureGrokImageGenSetup } from './grok-image-gen'
 import { runGrokImageGen } from './run-grok-image-gen'
 import { assertNoUnsupportedFlags, hasEditInputs } from '../../image-utils/image-target-validation'
 import { resolveGrokImageOptions } from './grok-image-options'
@@ -27,7 +26,6 @@ export const collectGrokImageTargets = (options: ImageGenOptions): ImageTarget[]
       service: 'grok',
       model,
       run: async (prompt, outputDir) => {
-        await ensureGrokImageGenSetup()
         return await runGrokImageGen(prompt, outputDir, {
           model,
           mode: hasEditInputs(options) ? 'edit' : 'generation',

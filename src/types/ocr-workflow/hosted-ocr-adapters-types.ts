@@ -30,7 +30,6 @@ export type HostedOcrAdapterDescriptor = {
   directImageFormats: readonly string[]
   directImageSupportError: string
   selectModel: (opts: ExtractionOptions) => string | undefined
-  ensureSetup: () => Promise<void>
   request: (request: HostedOcrAdapterRequest) => Promise<HostedOcrRun>
   fallbackOptions?: ((opts: ExtractionOptions, ocrModel: string) => HostedOcrFallbackOptions) | undefined
 }

@@ -80,7 +80,23 @@
             "high",
             "max"
           ]
-        }
+        },
+        "tokenPricingBands": [
+          {
+            "label": "standard-short-context",
+            "maxInputTokens": 272000,
+            "inputCostPer1MCents": 500,
+            "cachedInputCostPer1MCents": 50,
+            "outputCostPer1MCents": 3000
+          },
+          {
+            "label": "standard-long-context",
+            "minInputTokens": 272001,
+            "inputCostPer1MCents": 1000,
+            "cachedInputCostPer1MCents": 100,
+            "outputCostPer1MCents": 4500
+          }
+        ]
       },
       "gpt-5.6-terra": {
         "description": "GPT-5.6 Terra OCR",
@@ -111,7 +127,23 @@
             "high",
             "max"
           ]
-        }
+        },
+        "tokenPricingBands": [
+          {
+            "label": "standard-short-context",
+            "maxInputTokens": 272000,
+            "inputCostPer1MCents": 200,
+            "cachedInputCostPer1MCents": 20,
+            "outputCostPer1MCents": 1200
+          },
+          {
+            "label": "standard-long-context",
+            "minInputTokens": 272001,
+            "inputCostPer1MCents": 400,
+            "cachedInputCostPer1MCents": 40,
+            "outputCostPer1MCents": 1800
+          }
+        ]
       },
       "gpt-5.6-luna": {
         "description": "GPT-5.6 Luna OCR",
@@ -142,7 +174,23 @@
             "high",
             "max"
           ]
-        }
+        },
+        "tokenPricingBands": [
+          {
+            "label": "standard-short-context",
+            "maxInputTokens": 272000,
+            "inputCostPer1MCents": 20,
+            "cachedInputCostPer1MCents": 2,
+            "outputCostPer1MCents": 120
+          },
+          {
+            "label": "standard-long-context",
+            "minInputTokens": 272001,
+            "inputCostPer1MCents": 40,
+            "cachedInputCostPer1MCents": 4,
+            "outputCostPer1MCents": 180
+          }
+        ]
       }
     }
   }

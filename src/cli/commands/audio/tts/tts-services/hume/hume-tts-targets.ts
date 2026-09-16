@@ -3,7 +3,6 @@ import {
   validateHumeTtsModel,
   validateHumeTtsVoice
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { ensureHumeTtsSetup } from './hume-tts'
 import { runHumeTts } from './run-hume-tts'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
 import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
@@ -26,7 +25,6 @@ export const collectHumeTtsTargets = (
       run: async (text, outputDir, opts, invocation, requestEvidence) => {
         const invocationVoice = resolveTtsTargetInvocationVoiceId('hume', invocation)
         const controls = resolveTtsTargetInvocationControls('hume', invocation, { speed: selection.humeSpeed })
-        await ensureHumeTtsSetup()
         if (!invocation && model === 'octave-2' && opts.ttsSpeakers?.length) {
           const registry = parseSpeakerVoiceMappings(opts.ttsSpeakers)
           const dialogue = opts.ttsCanonicalTurns

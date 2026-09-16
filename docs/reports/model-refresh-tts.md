@@ -6,7 +6,7 @@
 - **Date Created:** 2026-08-03
 - **Date Updated:** 2026-09-14
 
-The canonical 14 September 2026 catalog refresh and capability record is [model-refresh-tts-2026-09-14.md](model-refresh-tts-2026-09-14.md). This file remains the living sibling pointer used by ADR indexes and other modality reports.
+The canonical 14 September 2026 catalog refresh and capability record is [model-refresh-tts-2026-09-14.md](model-refresh/model-refresh-tts-2026-09-14.md). This file remains the living sibling pointer used by ADR indexes and other modality reports.
 
 This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](model-refresh-stt.md), [OCR](model-refresh-ocr.md), [URL scraping](model-refresh-url.md), [LLMs](model-refresh-write.md), [Music](model-refresh-music.md), [Image](model-refresh-image.md), [Video](model-refresh-video.md).
 
@@ -31,7 +31,7 @@ The 14 September refresh added no new active selector. It preserved historical r
 
 ## References
 
-- Canonical combined record: [2026-09-14 TTS model refresh and capability record](model-refresh-tts-2026-09-14.md)
+- Canonical combined record: [2026-09-14 TTS model refresh and capability record](model-refresh/model-refresh-tts-2026-09-14.md)
 - Related ADR: [ADR-010](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
 - Related ADR: [ADR-012](../adr/ADR-012-benchmark-evidence-and-generated-report-architecture.md)
 - Related ADR: [ADR-013](../adr/ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md)

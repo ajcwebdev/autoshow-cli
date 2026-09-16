@@ -7,7 +7,7 @@ import {
   CARTESIA_DEFAULT_TTS_VOICE,
   validateCartesiaTtsVoice
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { resolveCredential } from '~/utils/validate/env-utils'
+import { requireTtsCredential } from '~/cli/commands/audio/tts/tts-utils/tts-credentials'
 import { CARTESIA_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
@@ -31,7 +31,7 @@ export const runCartesiaTts = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = resolveCredential('cartesia', 'require', { stage: 'tts:cartesia', description: 'Cartesia TTS' })
+  const apiKey = requireTtsCredential('cartesia')
 
   const baseURL = trimTrailingSlash(CARTESIA_DEFAULT_BASE_URL)
   const version = cartesiaTtsApiVersion(options.model)

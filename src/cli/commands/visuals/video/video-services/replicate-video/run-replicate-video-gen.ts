@@ -1,12 +1,12 @@
-import { mkdir } from 'node:fs/promises'
 import type { ReplicatePrediction, ReplicateVideoBuildResult, ReplicateVideoGenOptions, Step6VideoMetadata, VideoMode } from '~/types'
 import { UsageError, InfraError } from '~/utils/error-handler'
-import { logGenCompleted, logGenStatus } from '~/cli/commands/command-shared/generation-command-utils'
+import { runVideoGeneration } from '~/cli/commands/command-shared/media-generation/video-generation-scaffold'
 import { estimateReplicateCost, logVideoEstimate } from '~/cli/commands/visuals/video/video-utils/video-pricing'
 import {
   isReplicateHappyHorseVideoModel,
   isReplicatePixVerseVideoModel,
   isReplicateSeedanceVideoModel,
+  isReplicateWanVideoModel,
   normalizeReplicateVideoAspectRatio,
   normalizeReplicateVideoDuration,
   normalizeReplicateVideoResolution
@@ -17,7 +17,7 @@ import {
   videoMediaReferenceToUrlOrDataUrl
 } from '../../video-utils/video-media-inputs'
 import { downloadVideoOutputBytes } from '../../video-utils/video-output-download'
-import { ensureReplicateSetup, getReplicateBaseUrl } from '~/cli/commands/visuals/image/image-generation-services/replicate/replicate-image-gen'
+import { getReplicateBaseUrl } from '~/cli/commands/visuals/image/image-generation-services/replicate/replicate-image-gen'
 import { normalizeReplicateOutputUris, runReplicatePrediction } from '~/utils/replicate-client/replicate-prediction'
 
 const MAX_SEEDANCE_REFERENCE_DURATION_SECONDS = 30
@@ -187,6 +187,51 @@ const buildSeedanceInput = async (
   }
 }
 
+const buildWanInput = async (
+  prompt: string | undefined,
+  options: ReplicateVideoGenOptions & { mode: VideoMode }
+): Promise<ReplicateVideoBuildResult> => {
+  if (options.mode !== 'text' && options.mode !== 'image-to-video') {
+    throw UsageError(`Wan 3.0 supports text-to-video and image-to-video only; "${options.mode}" is not supported.`)
+  }
+  if (options.generateAudio !== undefined) {
+    throw UsageError('Wan 3.0 does not support audio generation.')
+  }
+  if (options.lastFrameImage) {
+    throw UsageError('Wan 3.0 does not support last-frame image conditioning.')
+  }
+  if ((options.referenceImages?.length ?? 0) > 0 || (options.referenceVideos?.length ?? 0) > 0 || (options.referenceAudios?.length ?? 0) > 0 || options.inputVideo) {
+    throw UsageError('Wan 3.0 does not support reference media inputs.')
+  }
+  if (options.multiClip !== undefined) {
+    throw UsageError('Wan 3.0 does not support multi-clip generation.')
+  }
+  const resolvedPrompt = requirePrompt(prompt, `Replicate/${options.model}`)
+  const durationForApi = normalizeReplicateVideoDuration(options.model, options.durationSeconds)
+  const resolution = normalizeReplicateVideoResolution(options.model, options.resolution)
+  const aspectRatio = normalizeReplicateVideoAspectRatio(options.model, options.aspectRatio)
+  const image = options.inputImage
+    ? await videoMediaReferenceToUrlOrDataUrl(options.inputImage, 'image')
+    : undefined
+
+  return {
+    input: {
+      prompt: resolvedPrompt,
+      duration: durationForApi,
+      resolution,
+      ...(!image ? { aspect_ratio: aspectRatio } : {}),
+      ...(image ? { image } : {}),
+      ...(hasText(options.negativePrompt) ? { negative_prompt: options.negativePrompt } : {}),
+      enable_prompt_expansion: true,
+      ...(options.seed !== undefined ? { seed: options.seed } : {})
+    },
+    requestMode: options.mode,
+    durationForApi,
+    resolution,
+    ...(!image ? { aspectRatio } : {})
+  }
+}
+
 export const buildReplicateVideoInput = async (
   prompt: string | undefined,
   options: ReplicateVideoGenOptions
@@ -194,6 +239,9 @@ export const buildReplicateVideoInput = async (
   const mode = options.mode ?? 'text'
   if (isReplicateHappyHorseVideoModel(options.model)) {
     return await buildHappyHorseInput(prompt, { ...options, mode })
+  }
+  if (isReplicateWanVideoModel(options.model)) {
+    return await buildWanInput(prompt, { ...options, mode })
   }
   if (isReplicateSeedanceVideoModel(options.model)) {
     return await buildSeedanceInput(prompt, { ...options, mode })
@@ -208,88 +256,87 @@ export const runReplicateVideoGen = async (
   prompt: string | undefined,
   outputDir: string,
   options: ReplicateVideoGenOptions
-): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
-  const apiToken = await ensureReplicateSetup('Replicate video generation')
-  const referenceVideoCount = (options.inputVideo ? 1 : 0) + (options.referenceVideos?.length ?? 0)
-  const request = await buildReplicateVideoInput(prompt, options)
-  const estimate = estimateReplicateCost(options.model, {
-    replicateVideoModels: [options.model],
-    videoDuration: options.durationSeconds,
-    videoResolution: options.resolution,
-    videoMode: request.requestMode,
-    replicateVideoReferenceVideoCount: referenceVideoCount,
-    videoGenerateAudio: options.generateAudio,
-    ...(request.inputVideoDurationSeconds !== undefined ? { replicateInputVideoDurationSeconds: request.inputVideoDurationSeconds } : {})
-  })
-  logVideoEstimate(estimate)
-
-  logGenStatus('video', 'replicate', options.model, 'started', request.requestMode)
-
-  await mkdir(outputDir, { recursive: true })
-  const startTime = Date.now()
-  const statusTimings: NonNullable<Step6VideoMetadata['providerStatusTimings']> = []
-
-  const prediction = await runReplicatePrediction({
-    apiToken,
-    baseUrl: getReplicateBaseUrl(),
+): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> =>
+  await runVideoGeneration({
+    service: 'replicate',
     model: options.model,
-    input: request.input,
-    operationName: 'replicate-video-gen',
-    onStatus: (status) => {
-      statusTimings.push(statusTimingFromPrediction(status, startTime))
-      logGenStatus('video', 'replicate', options.model, status.status)
+    outputDir,
+    prepare: async () => {
+      const request = await buildReplicateVideoInput(prompt, options)
+      const referenceVideoCount = (options.inputVideo ? 1 : 0) + (options.referenceVideos?.length ?? 0)
+      return {
+        request,
+        estimate: estimateReplicateCost(options.model, {
+          replicateVideoModels: [options.model],
+          videoDuration: options.durationSeconds,
+          videoResolution: options.resolution,
+          videoMode: request.requestMode,
+          replicateVideoReferenceVideoCount: referenceVideoCount,
+          videoGenerateAudio: options.generateAudio,
+          ...(request.inputVideoDurationSeconds !== undefined ? { replicateInputVideoDurationSeconds: request.inputVideoDurationSeconds } : {})
+        })
+      }
+    },
+    startDetail: (prepared) => prepared.request.requestMode,
+    estimate: (prepared) => logVideoEstimate(prepared.estimate),
+    execute: async (context, { request, estimate }) => {
+      const startTime = Date.now()
+      const statusTimings: NonNullable<Step6VideoMetadata['providerStatusTimings']> = []
+
+      const prediction = await runReplicatePrediction({
+        apiToken: context.apiKey,
+        baseUrl: getReplicateBaseUrl(),
+        model: options.model,
+        input: request.input,
+        operationName: 'replicate-video-gen',
+        onStatus: (status) => {
+          statusTimings.push(statusTimingFromPrediction(status, startTime))
+          context.logStatus(status.status)
+        }
+      })
+
+      const outputUris = normalizeReplicateOutputUris(prediction.output)
+      const videoUrl = outputUris[0]
+      if (!videoUrl) {
+        throw InfraError('Replicate video generation completed without an output video URL', { stage: 'video:replicate' })
+      }
+
+      const outputPath = context.artifactPath()
+      await Bun.write(outputPath, await downloadVideoOutputBytes(videoUrl, 'Replicate'))
+
+      const observedDuration = await tryResolveLocalVideoDurationSeconds(outputPath)
+      const videoDuration = observedDuration ?? estimate.durationSeconds
+      const providerCostCents = videoDuration * estimate.costPerSecond
+
+      return {
+        artifactPaths: [outputPath],
+        completionDetail: `Actual billed cost was not returned by the API; estimate ${providerCostCents.toFixed(3)}\u00a2`,
+        metadata: {
+          videoDuration,
+          requestMode: request.requestMode,
+          videoResolution: request.resolution,
+          ...(request.aspectRatio ? { videoAspectRatio: request.aspectRatio } : {}),
+          ...(options.inputImage ? { inputImage: options.inputImage } : {}),
+          ...(options.lastFrameImage ? { lastFrameImage: options.lastFrameImage } : {}),
+          ...(options.referenceImages && options.referenceImages.length > 0 ? { referenceImages: options.referenceImages } : {}),
+          ...(options.referenceVideos && options.referenceVideos.length > 0 ? { referenceVideos: options.referenceVideos } : {}),
+          ...(options.referenceAudios && options.referenceAudios.length > 0 ? { referenceAudios: options.referenceAudios } : {}),
+          ...(options.inputVideo ? { inputVideo: options.inputVideo } : {}),
+          ...(request.inputVideoDurationSeconds !== undefined ? { inputVideoDurationSeconds: request.inputVideoDurationSeconds } : {}),
+          ...(prediction.id ? { providerRequestId: prediction.id } : {}),
+          ...(prediction.version ? { providerModelVersion: prediction.version } : {}),
+          ...(prediction.model && prediction.model !== options.model ? { providerReturnedModel: prediction.model } : {}),
+          providerOutputUrl: videoUrl,
+          providerVideoUrl: videoUrl,
+          ...(statusTimings.length > 0 ? { providerStatusTimings: statusTimings } : {}),
+          providerFileOutput: {
+            outputCount: outputUris.length,
+            requestedDuration: request.durationForApi,
+            ...(prediction.metrics ? { metrics: prediction.metrics } : {})
+          },
+          providerCostCents,
+          providerCostSource: 'registry_fallback'
+        }
+      }
     }
   })
-
-  const outputUris = normalizeReplicateOutputUris(prediction.output)
-  const videoUrl = outputUris[0]
-  if (!videoUrl) {
-    throw InfraError('Replicate video generation completed without an output video URL', { stage: 'video:replicate' })
-  }
-
-  const outputPath = `${outputDir}/generated-video.mp4`
-  await Bun.write(outputPath, await downloadVideoOutputBytes(videoUrl, 'Replicate'))
-
-  const processingTime = Date.now() - startTime
-  const videoFile = Bun.file(outputPath)
-  const observedDuration = await tryResolveLocalVideoDurationSeconds(outputPath)
-  const videoDuration = observedDuration ?? estimate.durationSeconds
-  const providerCostCents = videoDuration * estimate.costPerSecond
-
-  logGenCompleted('video', 'replicate', options.model, processingTime, [outputPath], `Actual billed cost was not returned by the API; estimate ${providerCostCents.toFixed(3)}¢`)
-
-  return {
-    videoPath: outputPath,
-    metadata: {
-      videoGenService: 'replicate',
-      videoGenModel: options.model,
-      processingTime,
-      videoFileName: 'generated-video.mp4',
-      videoFileSize: videoFile.size,
-      videoDuration,
-      requestMode: request.requestMode,
-      videoResolution: request.resolution,
-      ...(request.aspectRatio ? { videoAspectRatio: request.aspectRatio } : {}),
-      ...(options.inputImage ? { inputImage: options.inputImage } : {}),
-      ...(options.lastFrameImage ? { lastFrameImage: options.lastFrameImage } : {}),
-      ...(options.referenceImages && options.referenceImages.length > 0 ? { referenceImages: options.referenceImages } : {}),
-      ...(options.referenceVideos && options.referenceVideos.length > 0 ? { referenceVideos: options.referenceVideos } : {}),
-      ...(options.referenceAudios && options.referenceAudios.length > 0 ? { referenceAudios: options.referenceAudios } : {}),
-      ...(options.inputVideo ? { inputVideo: options.inputVideo } : {}),
-      ...(request.inputVideoDurationSeconds !== undefined ? { inputVideoDurationSeconds: request.inputVideoDurationSeconds } : {}),
-      ...(prediction.id ? { providerRequestId: prediction.id } : {}),
-      ...(prediction.version ? { providerModelVersion: prediction.version } : {}),
-      ...(prediction.model && prediction.model !== options.model ? { providerReturnedModel: prediction.model } : {}),
-      providerOutputUrl: videoUrl,
-      providerVideoUrl: videoUrl,
-      ...(statusTimings.length > 0 ? { providerStatusTimings: statusTimings } : {}),
-      providerFileOutput: {
-        outputCount: outputUris.length,
-        requestedDuration: request.durationForApi,
-        ...(prediction.metrics ? { metrics: prediction.metrics } : {})
-      },
-      providerCostCents,
-      providerCostSource: 'registry_fallback'
-    }
-  }
-}

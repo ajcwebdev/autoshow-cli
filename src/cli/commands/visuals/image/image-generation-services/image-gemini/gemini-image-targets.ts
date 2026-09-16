@@ -1,6 +1,5 @@
 import type { GeminiImageModel, ImageGenOptions, ImageTarget } from '~/types'
 import { validateGeminiImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { ensureGeminiImageGenSetup } from './gemini-image-gen'
 import { runGeminiImageGen } from './run-gemini-image-gen'
 import {
   assertNoUnsupportedFlags,
@@ -49,7 +48,6 @@ export const collectGeminiImageTargets = (options: ImageGenOptions): ImageTarget
       service: 'gemini',
       model,
       run: async (prompt, outputDir) => {
-        await ensureGeminiImageGenSetup()
         return await runGeminiImageGen(prompt, outputDir, {
           model,
           mode: hasEditInputs(options) ? 'edit' : 'generation',

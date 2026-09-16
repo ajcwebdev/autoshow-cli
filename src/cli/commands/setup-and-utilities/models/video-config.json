@@ -202,6 +202,23 @@
           "msPerSecond": 12000
         }
       },
+      "alibaba/wan-3": {
+        "description": "Alibaba Wan 3.0 text-to-video and image-to-video model; 2–30s, 480p/720p/1080p",
+        "pricingSourceUrl": "https://replicate.com/alibaba/wan-3",
+        "pricingCheckedAt": "2026-09-15",
+        "pricingCurrency": "USD",
+        "pricingTier": "Replicate public model pricing",
+        "pricingNotes": "Replicate Wan 3.0 estimates use published per-second output pricing ($0.05 at 480p, $0.10 at 720p, $0.20 at 1080p). The introductory discount is excluded under ADR-010.",
+        "costPerSecondByResolutionCents": {
+          "480p": 5,
+          "720p": 10,
+          "1080p": 20
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 12000
+        }
+      },
       "pixverse/pixverse-v6": {
         "description": "PixVerse V6 text, image, transition, multi-shot, and native-audio model",
         "pricingSourceUrl": "https://replicate.com/pixverse/pixverse-v6",

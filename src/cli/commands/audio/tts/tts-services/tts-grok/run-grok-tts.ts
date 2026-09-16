@@ -5,7 +5,7 @@ import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/audio/tts/tts-utils/t
 import { runHostedTtsChunkPipeline } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-pipeline'
 import { fetchTtsAudioBytes, trimTrailingSlash } from '~/cli/commands/audio/tts/tts-utils/tts-http-utils'
 import { GROK_DEFAULT_TTS_VOICE, validateGrokTtsLanguage, validateGrokTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { resolveCredential } from '~/utils/validate/env-utils'
+import { requireTtsCredential } from '~/cli/commands/audio/tts/tts-utils/tts-credentials'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { ValidationError } from '~/utils/error-handler'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
@@ -25,7 +25,7 @@ export const runGrokTts = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = resolveCredential('grok', 'require', { stage: 'tts:grok', description: 'Grok TTS' })
+  const apiKey = requireTtsCredential('grok')
 
   const baseURL = trimTrailingSlash(XAI_DEFAULT_BASE_URL)
   const rawVoice = options.voiceId?.trim() || GROK_DEFAULT_TTS_VOICE

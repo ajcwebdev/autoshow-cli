@@ -1,6 +1,5 @@
 import type { ElevenlabsTtsModel, TtsTarget, TtsTargetSelection } from '~/types'
 import { validateElevenlabsTtsModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { ensureElevenLabsTtsSetup } from './elevenlabs-tts'
 import { runElevenLabsTts } from './run-elevenlabs-tts'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
 import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
@@ -35,7 +34,6 @@ export const collectElevenLabsTtsTargets = (
           pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators,
         })
         validateElevenLabsVoiceSettings(model, { speed: controls.speed, similarity_boost: controls.similarityBoost, style: controls.style, use_speaker_boost: controls.useSpeakerBoost })
-        await ensureElevenLabsTtsSetup()
         invocation?.signal?.throwIfAborted()
         if (!invocation && model === 'eleven_v3' && opts.ttsSpeakers?.length) {
           const registry = parseSpeakerVoiceMappings(opts.ttsSpeakers)

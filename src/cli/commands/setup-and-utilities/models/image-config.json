@@ -15,6 +15,9 @@
         "pricingTier": "Paid tier standard pay-as-you-go",
         "pricingNotes": "Default registry rate is the published 1K output-image estimate. Text/image input tokens are not estimated locally.",
         "costPerImageCents": 3.36,
+        "costPerImageBySizeCents": {
+          "1K": 3.36
+        },
         "estimation": {
           "costMultiplier": 1,
           "msPerImage": 19416
@@ -32,12 +35,31 @@
     "models": {
       "gpt-image-2": {
         "description": "GPT Image 2 \u2014 state-of-the-art image generation",
+        "displayName": "GPT Image 2",
         "pricingSourceUrl": "https://developers.openai.com/api/docs/guides/image-generation#calculating-costs",
         "pricingCheckedAt": "2026-05-31",
         "pricingCurrency": "USD",
         "pricingTier": "Standard pay-as-you-go",
         "pricingNotes": "Default registry rate is the published GPT Image 2 1024x1024 medium output-image estimate. Flexible size/quality estimates are handled in the OpenAI image pricing helper; image input units are modeled locally at 1,000 per reference image and priced only when imageInputCostPer1MCents is set; text input tokens are not estimated locally.",
         "costPerImageCents": 5.3,
+        "supportsFlexibleSizes": true,
+        "costPerImageBySizeQualityCents": {
+          "1024x1024": {
+            "low": 0.6,
+            "medium": 5.3,
+            "high": 21.1
+          },
+          "1024x1536": {
+            "low": 0.5,
+            "medium": 4.1,
+            "high": 16.5
+          },
+          "1536x1024": {
+            "low": 0.5,
+            "medium": 4.1,
+            "high": 16.5
+          }
+        },
         "estimation": {
           "costMultiplier": 1,
           "msPerImage": 21594
@@ -101,6 +123,17 @@
         "pricingTier": "Standard pay-as-you-go",
         "pricingNotes": "Output prices: low 1K/2K = 4/6 cents; medium 1K/2K = 6/8 cents. Input images add 1 cent each per request. Local defaults pin low for generation, medium for editing, and 1K resolution. Latency inherits the older model provisionally; no paid calibration.",
         "costPerImageCents": 4,
+        "costPerImageBySizeQualityCents": {
+          "1k": {
+            "low": 4,
+            "medium": 6
+          },
+          "2k": {
+            "low": 6,
+            "medium": 8
+          }
+        },
+        "inputImageCostCents": 1,
         "estimation": {
           "costMultiplier": 1,
           "msPerImage": 6080
@@ -139,12 +172,17 @@
           "maxInputs": 10
         },
         "description": "Seedream 5 Pro flagship image generation and editing via Replicate",
+        "displayName": "Seedream 5 Pro",
         "pricingSourceUrl": "https://replicate.com/bytedance/seedream-5-pro",
         "pricingCheckedAt": "2026-08-06",
         "pricingCurrency": "USD",
         "pricingTier": "Replicate official model resolution-aware per-output-image pricing",
         "pricingNotes": "Replicate lists 1K output at $0.045 and 2K output at $0.09 per image. The registry base rate is the 1K default; resolution-aware preflight selects the 2K rate when requested.",
         "costPerImageCents": 4.5,
+        "costPerImageBySizeCents": {
+          "1K": 4.5,
+          "2K": 9
+        },
         "estimation": {
           "costMultiplier": 1,
           "msPerImage": 30000

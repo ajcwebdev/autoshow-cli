@@ -151,6 +151,16 @@ describe('video provider REST contracts', () => {
           model: 'pixverse/pixverse-v6' as const,
           options: { mode: 'interpolate' as const, inputImage: imagePath, lastFrameImage: lastFramePath, durationSeconds: 10, resolution: '540p', generateAudio: true, multiClip: false, seed: 7 },
           expected: { quality: '540p', image: expect.stringContaining('data:image/png'), last_frame_image: expect.stringContaining('data:image/webp'), duration: 10, generate_audio_switch: true, generate_multi_clip_switch: false, seed: 7 }
+        },
+        {
+          model: 'alibaba/wan-3' as const,
+          options: { mode: 'text' as const, durationSeconds: 5, resolution: '1080p', aspectRatio: 'adaptive' as const, negativePrompt: 'blurry', seed: 42 },
+          expected: { duration: 5, resolution: '1080p', aspect_ratio: 'adaptive', enable_prompt_expansion: true, negative_prompt: 'blurry', seed: 42 }
+        },
+        {
+          model: 'alibaba/wan-3' as const,
+          options: { mode: 'image-to-video' as const, inputImage: imagePath, durationSeconds: 10, resolution: '720p' },
+          expected: { image: expect.stringContaining('data:image/png'), duration: 10, resolution: '720p', enable_prompt_expansion: true }
         }
       ]
 
@@ -164,6 +174,30 @@ describe('video provider REST contracts', () => {
         expect(calls[0]?.url).toBe(`https://api.replicate.com/v1/models/${testCase.model}/predictions`)
         expect(calls[0]?.bodyJson).toEqual({ input: expect.objectContaining({ prompt: 'Make a cinematic change', ...testCase.expected }) })
       }
+    })
+  })
+
+  test('Replicate Wan 3 rejects unsupported controls and modes', async () => {
+    process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
+    await withTempDir(async (dir) => {
+      const { imagePath, lastFramePath } = await writeMediaFixtures(dir)
+
+      await expect(runReplicateVideoGen('Test audio', dir, {
+        model: 'alibaba/wan-3',
+        generateAudio: true
+      })).rejects.toThrow('Wan 3.0 does not support audio generation.')
+
+      await expect(runReplicateVideoGen('Test last frame', dir, {
+        model: 'alibaba/wan-3',
+        inputImage: imagePath,
+        lastFrameImage: lastFramePath
+      })).rejects.toThrow('Wan 3.0 does not support last-frame image conditioning.')
+
+      await expect(runReplicateVideoGen('Test reference', dir, {
+        model: 'alibaba/wan-3',
+        mode: 'reference-to-video',
+        referenceImages: [imagePath]
+      })).rejects.toThrow('Wan 3.0 supports text-to-video and image-to-video only; "reference-to-video" is not supported.')
     })
   })
 })

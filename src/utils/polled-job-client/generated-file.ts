@@ -9,6 +9,8 @@ export const downloadGeneratedFile = async (options: {
   init?: RequestInit | undefined
   outputPath?: string | undefined
   errorFactory: (response: Response) => Error
+  /** Reads response headers before the body is consumed, e.g. to pick a file extension from `content-type`. */
+  inspectResponse?: ((response: Response) => void) | undefined
   validateBytes?: ((bytes: Uint8Array) => void) | undefined
   timeoutMs?: number | undefined
 }): Promise<Uint8Array> =>
@@ -26,6 +28,7 @@ export const downloadGeneratedFile = async (options: {
       if (!response.ok) {
         throw options.errorFactory(response)
       }
+      options.inspectResponse?.(response)
       const bytes = new Uint8Array(await response.arrayBuffer())
       options.validateBytes?.(bytes)
       if (options.outputPath) {

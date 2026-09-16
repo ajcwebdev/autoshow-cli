@@ -1,8 +1,5 @@
-import { mkdir } from 'node:fs/promises'
-import { basename } from 'node:path'
 import type { GeminiImageModel, Step5Metadata } from '~/types'
-import { logGenCompleted, logGenStatus } from '~/cli/commands/command-shared/generation-command-utils'
-import { resolveCredential } from '~/utils/validate/env-utils'
+import { runImageGeneration } from '~/cli/commands/command-shared/media-generation/image-generation-scaffold'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { withRetry } from '~/utils/retries'
 import { classifyGeminiRetry } from '~/cli/commands/text/write/write-services/write-gemini/gemini-utils'
@@ -34,87 +31,73 @@ export const runGeminiImageGen = async (
     responseMode?: 'image' | 'text-image' | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
-  const apiKey = resolveCredential('gemini', 'require', { stage: 'image:gemini' })
-
-  const startTime = Date.now()
-  const imagePaths: string[] = []
   const mode = options.mode ?? 'generation'
-  let providerReturnedModel: string | undefined
 
-  await mkdir(outputDir, { recursive: true })
-
-  logGenStatus('image', 'gemini', options.model, 'started', mode === 'edit' ? 'native image edit' : 'native image')
-  const inputParts = await Promise.all((options.inputs ?? []).map(imageReferenceToInlineDataPart))
-  const responseModalities = options.responseMode === 'text-image' ? ['TEXT', 'IMAGE'] : ['IMAGE']
-
-  const response = await withRetry(
-    {
-      retryClass: 'runtime_http_create_conservative',
-      operationName: 'gemini-image-generate'
-    },
-    async (signal) => await geminiGenerateContent(apiKey, {
-      model: options.model,
-      contents: [{ text: prompt }, ...inputParts],
-      generationConfig: {
-        responseModalities,
-        ...(options.aspectRatio || options.imageSize ? {
-          imageConfig: {
-            ...(options.aspectRatio ? { aspectRatio: options.aspectRatio } : {}),
-            ...(options.imageSize ? { imageSize: options.imageSize } : {})
-          }
-        } : {})
-      },
-      ...(signal ? { abortSignal: signal } : {})
+  return await runImageGeneration({
+    service: 'gemini',
+    model: options.model,
+    outputDir,
+    startDetail: mode === 'edit' ? 'native image edit' : 'native image',
+    prepare: async () => ({
+      inputParts: await Promise.all((options.inputs ?? []).map(imageReferenceToInlineDataPart)),
+      responseModalities: options.responseMode === 'text-image' ? ['TEXT', 'IMAGE'] : ['IMAGE']
     }),
-    classifyGeminiRetry
-  )
-  providerReturnedModel = getProviderReturnedModel(options.model, response)
+    execute: async (context, prepared) => {
+      const response = await withRetry(
+        {
+          retryClass: 'runtime_http_create_conservative',
+          operationName: 'gemini-image-generate'
+        },
+        async (signal) => await geminiGenerateContent(context.apiKey, {
+          model: options.model,
+          contents: [{ text: prompt }, ...prepared.inputParts],
+          generationConfig: {
+            responseModalities: prepared.responseModalities,
+            ...(options.aspectRatio || options.imageSize ? {
+              imageConfig: {
+                ...(options.aspectRatio ? { aspectRatio: options.aspectRatio } : {}),
+                ...(options.imageSize ? { imageSize: options.imageSize } : {})
+              }
+            } : {})
+          },
+          ...(signal ? { abortSignal: signal } : {})
+        }),
+        classifyGeminiRetry
+      )
+      const providerReturnedModel = getProviderReturnedModel(options.model, response)
 
-  const candidates = response.candidates ?? []
-  if (candidates.length === 0 || !candidates[0]?.content?.parts) {
-    throw InfraError(
-      `No image content in Gemini response${describeGeminiEmptyImageReason(response)}`,
-      { stage: 'image:gemini' }
-    )
-  }
+      const candidates = response.candidates ?? []
+      if (candidates.length === 0 || !candidates[0]?.content?.parts) {
+        throw InfraError(
+          `No image content in Gemini response${describeGeminiEmptyImageReason(response)}`,
+          { stage: 'image:gemini' }
+        )
+      }
 
-  let imageIndex = 0
-  for (const part of candidates[0].content.parts) {
-    if (part.inlineData && part.thought !== true) {
-      const imageData = part.inlineData.data
-      if (!imageData) continue
-      const outputPath = imageIndex === 0
-        ? `${outputDir}/generated-image.png`
-        : `${outputDir}/generated-image-${imageIndex + 1}.png`
-      await Bun.write(outputPath, Buffer.from(imageData, 'base64'))
-      imagePaths.push(outputPath)
-      imageIndex++
+      const imagePaths: string[] = []
+      for (const part of candidates[0].content.parts) {
+        if (part.inlineData && part.thought !== true) {
+          const imageData = part.inlineData.data
+          if (!imageData) continue
+          const outputPath = context.artifactPath('png', imagePaths.length)
+          await Bun.write(outputPath, Buffer.from(imageData, 'base64'))
+          imagePaths.push(outputPath)
+        }
+      }
+
+      if (imagePaths.length === 0) {
+        throw InfraError('No images were generated by Gemini', { stage: 'image:gemini' })
+      }
+
+      return {
+        artifactPaths: imagePaths,
+        metadata: {
+          imageWidth: undefined,
+          imageHeight: undefined,
+          requestMode: mode,
+          ...(providerReturnedModel ? { providerReturnedModel } : {})
+        }
+      }
     }
-  }
-
-  if (imagePaths.length === 0) {
-    throw InfraError('No images were generated by Gemini', { stage: 'image:gemini' })
-  }
-
-  const processingTime = Date.now() - startTime
-  const primaryPath = imagePaths[0] as string
-  const primaryFile = Bun.file(primaryPath)
-  const imageFileSize = primaryFile.size
-
-  logGenCompleted('image', 'gemini', options.model, processingTime, imagePaths)
-
-  const metadata: Step5Metadata = {
-    imageService: 'gemini',
-    imageModel: options.model,
-    processingTime,
-    imageCount: imagePaths.length,
-    imageFileNames: imagePaths.map((imagePath) => basename(imagePath)),
-    imageFileSize,
-    imageWidth: undefined,
-    imageHeight: undefined,
-    requestMode: mode,
-    ...(providerReturnedModel ? { providerReturnedModel } : {})
-  }
-
-  return { imagePaths, metadata }
+  })
 }

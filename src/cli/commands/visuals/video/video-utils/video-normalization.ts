@@ -34,11 +34,16 @@ const normalizeReplicateAspectRatioFrom = (
 export const isReplicateHappyHorseVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'alibaba/happyhorse-1.1'
 
+export const isReplicateWanVideoModel = (model: ReplicateVideoModel): boolean =>
+  model === 'alibaba/wan-3'
+
 export const isReplicatePixVerseVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'pixverse/pixverse-v6'
 
 export const REPLICATE_HAPPYHORSE_DURATION_RANGE = [3, 15] as const
 export const REPLICATE_SEEDANCE_DURATION_RANGE = [4, 30] as const
+export const REPLICATE_WAN_DURATION_RANGE = [2, 30] as const
+export const REPLICATE_WAN_ASPECT_RATIOS = ['adaptive', ...REPLICATE_COMMON_ASPECT_RATIOS] as const
 
 export const normalizeReplicateVideoDuration = (
   model: ReplicateVideoModel,
@@ -50,6 +55,9 @@ export const normalizeReplicateVideoDuration = (
   }
   if (isReplicateHappyHorseVideoModel(model)) {
     return clampIntegerDuration(duration, 5, ...REPLICATE_HAPPYHORSE_DURATION_RANGE, `Replicate/${model}`)
+  }
+  if (isReplicateWanVideoModel(model)) {
+    return clampIntegerDuration(duration, 5, ...REPLICATE_WAN_DURATION_RANGE, `Replicate/${model}`)
   }
   if (isReplicatePixVerseVideoModel(model)) {
     const value = duration ?? 5
@@ -78,6 +86,10 @@ export const normalizeReplicateVideoResolution = (
     if (resolution === '480p' || resolution === '720p') return resolution
     throw UsageError(`Replicate/${model} supports 480p or 720p.`)
   }
+  if (isReplicateWanVideoModel(model)) {
+    if (resolution === '480p' || resolution === '720p' || resolution === '1080p') return resolution
+    throw UsageError(`Invalid --resolution value "${resolution}" for Replicate/${model}. Expected 480p, 720p, or 1080p.`)
+  }
   if (isReplicatePixVerseVideoModel(model)) {
     if (resolution === '360p' || resolution === '540p' || resolution === '720p' || resolution === '1080p') return resolution
     throw UsageError(`Invalid --resolution value "${resolution}" for Replicate/${model}. Expected 360p, 540p, 720p, or 1080p.`)
@@ -96,6 +108,9 @@ export const normalizeReplicateVideoAspectRatio = (
   if (isReplicateSeedanceVideoModel(model) && aspectRatio === '9:21') throw UsageError('Replicate Seedance 2.5 does not support 9:21.')
   if (isReplicateSeedanceVideoModel(model)) {
     return normalizeReplicateAspectRatioFrom(aspectRatio, REPLICATE_SEEDANCE_ASPECT_RATIOS, `Replicate/${model}`)
+  }
+  if (isReplicateWanVideoModel(model)) {
+    return normalizeReplicateAspectRatioFrom(aspectRatio, REPLICATE_WAN_ASPECT_RATIOS, `Replicate/${model}`)
   }
   if (isReplicatePixVerseVideoModel(model)) {
     return normalizeReplicateAspectRatioFrom(aspectRatio, ['16:9', '9:16', '1:1'], `Replicate/${model}`)

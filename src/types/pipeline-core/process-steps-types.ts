@@ -101,6 +101,11 @@ export type SingleFileRunResult<TMetadata> = {
   metadata: TMetadata
 }
 
+export type MultiFileRunResult<TMetadata> = {
+  filePaths: string[]
+  metadata: TMetadata
+}
+
 export type SuitePriceSummary = {
   checkedLabel: string
   checkedCount: number

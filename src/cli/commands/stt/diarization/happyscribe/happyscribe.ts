@@ -164,4 +164,3 @@ export const buildHappyScribeOrganizationResolutionError = (
   )
 }
 
-export const ensureHappyScribeSttSetup = async (): Promise<void> => { resolveCredential('happyscribe', 'require', { stage: 'stt:happyscribe', description: 'Happy Scribe transcription' }) }

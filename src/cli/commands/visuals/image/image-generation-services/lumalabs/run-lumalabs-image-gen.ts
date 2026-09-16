@@ -1,11 +1,11 @@
 import type { LumalabsImageModel, LumalabsImageRef, LumalabsOutputFormat, Step5Metadata } from '~/types'
 import { UsageError, ValidationError } from '~/utils/error-handler'
-import { logGenCompleted, logGenStatus } from '~/cli/commands/command-shared/generation-command-utils'
+import { runImageGeneration } from '~/cli/commands/command-shared/media-generation/image-generation-scaffold'
 import { estimateImageCosts, logImageEstimate } from '~/cli/commands/visuals/image/image-utils/image-pricing'
 import { downloadGeneratedImage, extractImageErrorMessage, LumalabsGenerationSchema, readJsonOrText, runPolledJob, withImageProviderHeaders } from '~/utils/polled-job-client/polled-job'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { imageReferenceToInlineDataPart, isHttpUrl } from '../../image-utils/image-inputs'
-import { ensureLumalabsImageGenSetup, getLumalabsBaseUrl } from './lumalabs-image-gen'
+import { getLumalabsBaseUrl } from './lumalabs-image-gen'
 import { normalizeImageOutputFormat } from '../../image-utils/image-target-validation'
 const POLL_INTERVAL_MS = 5_000
 const POLL_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
@@ -57,117 +57,111 @@ export const runLumalabsImageGen = async (
   outputDir: string,
   options: { model: LumalabsImageModel, aspectRatio?: string | undefined, outputFormat?: string | undefined, inputs?: string[] | undefined }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
-  const apiKey = await ensureLumalabsImageGenSetup()
   const aspectRatio = normalizeLumalabsAspectRatio(options.aspectRatio)
   const outputFormat = normalizeLumalabsImageOutputFormat(options.outputFormat)
   const inputs = options.inputs ?? []
   const mode = inputs.length > 0 ? 'edit' : 'generation'
-  const ext = outputFormat === 'jpeg' ? 'jpg' : outputFormat
-  const fileName = `generated-image.${ext}`
-  const outputPath = `${outputDir}/${fileName}`
 
-  const estimate = estimateImageCosts({ lumalabsImageModels: [options.model] })[0]
-  if (estimate) {
-    logImageEstimate(estimate)
-  }
-
-  logGenStatus('image', 'lumalabs', options.model, 'started', mode)
-
-  const startTime = Date.now()
-  const imageRefs = await Promise.all(inputs.map(toImageRef))
-  const body: Record<string, unknown> = {
-    prompt,
+  return await runImageGeneration({
+    service: 'lumalabs',
     model: options.model,
-    output_format: outputFormat,
-    ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}),
-    ...(mode === 'edit'
-      ? {
-        type: 'image_edit',
-        source: imageRefs[0],
-        ...(imageRefs.length > 1 ? { image_ref: imageRefs.slice(1) } : {})
+    outputDir,
+    startDetail: mode,
+    prepare: async () => {
+      const imageRefs = await Promise.all(inputs.map(toImageRef))
+      return {
+        estimate: estimateImageCosts({ lumalabsImageModels: [options.model] })[0],
+        body: {
+          prompt,
+          model: options.model,
+          output_format: outputFormat,
+          ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}),
+          ...(mode === 'edit'
+            ? {
+              type: 'image_edit',
+              source: imageRefs[0],
+              ...(imageRefs.length > 1 ? { image_ref: imageRefs.slice(1) } : {})
+            }
+            : {
+              type: 'image',
+              ...(imageRefs.length > 0 ? { image_ref: imageRefs } : {})
+            })
+        } satisfies Record<string, unknown>
       }
-      : {
-        type: 'image',
-        ...(imageRefs.length > 0 ? { image_ref: imageRefs } : {})
-      })
-  }
-
-  const { result: pollData } = await runPolledJob({
-    operationName: 'lumalabs-image-gen',
-    intervalMs: POLL_INTERVAL_MS,
-    deadlineMs: POLL_TIMEOUT_MS,
-    create: {
-      url: `${getLumalabsBaseUrl()}/generations`,
-      init: withImageProviderHeaders({
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body)
-      }, { authorization: `Bearer ${apiKey}` }),
-      schema: LumalabsGenerationSchema,
-      context: 'Luma Labs image generation create response',
-      stage: 'image:lumalabs',
-      errorMessage: 'Luma Labs image request failed',
-      readResponse: readJsonOrText,
-      formatErrorBody: (payload) => extractErrorMessage(payload) ?? 'Unknown error'
     },
-    poll: (created) => ({
-      url: `${getLumalabsBaseUrl()}/generations/${encodeURIComponent(created.id)}`,
-      init: withImageProviderHeaders({ method: 'GET' }, { authorization: `Bearer ${apiKey}` }),
-      schema: LumalabsGenerationSchema,
-      context: 'Luma Labs image generation poll response',
-      stage: 'image:lumalabs',
-      errorMessage: 'Luma Labs image status query failed',
-      readResponse: readJsonOrText,
-      formatErrorBody: (payload) => extractErrorMessage(payload) ?? 'Unknown error'
-    }),
-    onPoll: (data) => logGenStatus('image', 'lumalabs', options.model, data.state),
-    isDone: (data) => data.state.toLowerCase() === 'completed',
-    isFailed: (data) => {
-      if (data.state.toLowerCase() === 'failed') {
-        const reason = data.failure_reason ?? data.failure_code ?? 'Unknown error'
-        return { failed: true, reason }
+    estimate: (prepared) => {
+      if (prepared.estimate) {
+        logImageEstimate(prepared.estimate)
       }
-      return { failed: false }
+    },
+    execute: async (context, prepared) => {
+      const authorization = `Bearer ${context.apiKey}`
+      const { result: pollData } = await runPolledJob({
+        operationName: 'lumalabs-image-gen',
+        intervalMs: POLL_INTERVAL_MS,
+        deadlineMs: POLL_TIMEOUT_MS,
+        create: {
+          url: `${getLumalabsBaseUrl()}/generations`,
+          init: withImageProviderHeaders({
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(prepared.body)
+          }, { authorization }),
+          schema: LumalabsGenerationSchema,
+          context: 'Luma Labs image generation create response',
+          stage: 'image:lumalabs',
+          errorMessage: 'Luma Labs image request failed',
+          readResponse: readJsonOrText,
+          formatErrorBody: (payload) => extractErrorMessage(payload) ?? 'Unknown error'
+        },
+        poll: (created) => ({
+          url: `${getLumalabsBaseUrl()}/generations/${encodeURIComponent(created.id)}`,
+          init: withImageProviderHeaders({ method: 'GET' }, { authorization }),
+          schema: LumalabsGenerationSchema,
+          context: 'Luma Labs image generation poll response',
+          stage: 'image:lumalabs',
+          errorMessage: 'Luma Labs image status query failed',
+          readResponse: readJsonOrText,
+          formatErrorBody: (payload) => extractErrorMessage(payload) ?? 'Unknown error'
+        }),
+        onPoll: (data) => context.logStatus(data.state),
+        isDone: (data) => data.state.toLowerCase() === 'completed',
+        isFailed: (data) => {
+          if (data.state.toLowerCase() === 'failed') {
+            return { failed: true, reason: data.failure_reason ?? data.failure_code ?? 'Unknown error' }
+          }
+          return { failed: false }
+        }
+      })
+
+      const resultUrl = pollData.output?.[0]?.url
+      if (!resultUrl) {
+        throw ValidationError('Luma Labs image generation completed without an output URL', { stage: 'image:lumalabs' })
+      }
+
+      const outputPath = context.artifactPath(outputFormat)
+      await downloadGeneratedImage({
+        url: resultUrl,
+        outputPath,
+        outputFormat,
+        providerLabel: 'Luma Labs',
+        stage: 'image:lumalabs',
+        operationName: 'lumalabs-image-result-download'
+      })
+
+      return {
+        artifactPaths: [outputPath],
+        metadata: {
+          imageWidth: undefined,
+          imageHeight: undefined,
+          imageFormat: outputFormat,
+          requestMode: mode,
+          ...(prepared.estimate !== undefined ? {
+            providerCostCents: prepared.estimate.totalCost,
+            providerCostSource: 'registry_fallback' as const
+          } : {})
+        }
+      }
     }
   })
-
-  const resultUrl = pollData.output?.[0]?.url
-  if (!resultUrl) {
-    throw ValidationError('Luma Labs image generation completed without an output URL', { stage: 'image:lumalabs' })
-  }
-
-  await downloadGeneratedImage({
-    url: resultUrl,
-    outputPath,
-    outputFormat,
-    providerLabel: 'Luma Labs',
-    stage: 'image:lumalabs',
-    operationName: 'lumalabs-image-result-download'
-  })
-
-  const processingTime = Date.now() - startTime
-  const imageFile = Bun.file(outputPath)
-  const providerCostCents = estimate?.totalCost
-
-  logGenCompleted('image', 'lumalabs', options.model, processingTime, [outputPath])
-
-  return {
-    imagePaths: [outputPath],
-    metadata: {
-      imageService: 'lumalabs',
-      imageModel: options.model,
-      processingTime,
-      imageCount: 1,
-      imageFileNames: [fileName],
-      imageFileSize: imageFile.size,
-      imageWidth: undefined,
-      imageHeight: undefined,
-      imageFormat: outputFormat,
-      requestMode: mode,
-      ...(providerCostCents !== undefined ? {
-        providerCostCents,
-        providerCostSource: 'registry_fallback'
-      } : {})
-    }
-  }
 }

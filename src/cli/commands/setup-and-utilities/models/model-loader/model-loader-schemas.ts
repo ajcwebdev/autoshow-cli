@@ -134,8 +134,7 @@ const ReasoningCapabilitiesSchema = v.pipe(
   )
 )
 
-const ExtractModelSchema = v.pipe(
-  v.strictObject({
+const ExtractModelObjectSchema = v.strictObject({
     description: v.string(),
     ...PricingProvenanceFields,
     costPer1kPagesCents: v.optional(v.number(), undefined),
@@ -155,7 +154,10 @@ const ExtractModelSchema = v.pipe(
     }), undefined),
     reasoning: v.optional(ReasoningCapabilitiesSchema, undefined),
     lifecycle: v.optional(ModelLifecycleSchema, undefined)
-  }),
+})
+
+const ExtractModelSchema = v.pipe(
+  ExtractModelObjectSchema,
   v.check(
     (model) => model.costPerMInputTokensCents === undefined
       || model.costPerMOutputTokensCents === undefined
@@ -244,10 +246,17 @@ const ImageReferenceCapabilitiesSchema = v.strictObject({
   maxInputs: v.pipe(v.number(), v.integer(), v.minValue(0))
 })
 
+const ImageCostBySizeQualitySchema = v.record(v.string(), v.record(v.string(), v.number()))
+
 const ImageModelSchema = v.strictObject({
   description: v.string(),
+  displayName: v.optional(v.string(), undefined),
   ...PricingProvenanceFields,
   costPerImageCents: v.number(),
+  costPerImageBySizeCents: v.optional(v.record(v.string(), v.number()), undefined),
+  costPerImageBySizeQualityCents: v.optional(ImageCostBySizeQualitySchema, undefined),
+  supportsFlexibleSizes: v.optional(v.boolean(), undefined),
+  inputImageCostCents: v.optional(v.number(), undefined),
   imageInputCostPer1MCents: v.optional(v.number(), undefined),
   textInputCostPer1MCents: v.optional(v.number(), undefined),
   cachedTextInputCostPer1MCents: v.optional(v.number(), undefined),
@@ -341,4 +350,19 @@ export const ModelRegistrySchema = v.object({
   image: ImageRegistrySchema,
   music: MusicRegistrySchema,
   video: VideoRegistrySchema
+})
+
+// Retired rates are historical copies of registry model rows, so they are validated against the same
+// per-category shapes rather than trusted as hand-written TypeScript.
+const retiredRowSchema = <TSchema extends Parameters<typeof v.partial>[0]>(schema: TSchema) =>
+  v.record(v.string(), v.partial(schema))
+
+export const RetiredModelRatesSchema = v.strictObject({
+  stt: retiredRowSchema(SttModelSchema),
+  extract: retiredRowSchema(ExtractModelObjectSchema),
+  llm: retiredRowSchema(LlmModelSchema),
+  tts: retiredRowSchema(TtsModelSchema),
+  image: retiredRowSchema(ImageModelSchema),
+  music: retiredRowSchema(MusicModelSchema),
+  video: retiredRowSchema(VideoModelSchema)
 })

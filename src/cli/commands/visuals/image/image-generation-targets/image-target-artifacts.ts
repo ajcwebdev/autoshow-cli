@@ -1,6 +1,7 @@
 import { extname } from 'node:path'
 import type { ImageGenOptions, ImageTarget, Step5Metadata } from '~/types'
 import { sanitizeModelName } from '~/cli/commands/command-shared/target-runner'
+import { GENERATION_ARTIFACT_BASENAMES, generationArtifactFileName } from '~/cli/commands/command-shared/media-generation/media-generation-scaffold'
 import { getReplicateImageExtension } from '../image-generation-services/replicate/run-replicate-image-gen'
 import { getLumalabsImageExtension } from '../image-generation-services/lumalabs/run-lumalabs-image-gen'
 import { getFalImageExtension } from '../image-generation-services/fal-image-service/run-fal-image-gen'
@@ -52,12 +53,12 @@ const getImageArtifactFileName = (
 ): string => {
   const ext = extname(sourceFileName).replace(/^\./, '') || 'png'
   if (singleTarget) {
-    return index === 0 ? `generated-image.${ext}` : `generated-image-${index + 1}.${ext}`
+    return generationArtifactFileName('image', ext, index)
   }
 
   const service = 'service' in target ? target.service : target.imageService
   const model = 'model' in target ? target.model : target.imageModel
-  const baseName = `generated-image-${service}-${sanitizeImageModelName(model)}`
+  const baseName = `${GENERATION_ARTIFACT_BASENAMES.image}-${service}-${sanitizeImageModelName(model)}`
   return index === 0 ? `${baseName}.${ext}` : `${baseName}-${index + 1}.${ext}`
 }
 

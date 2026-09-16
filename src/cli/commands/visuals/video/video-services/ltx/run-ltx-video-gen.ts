@@ -1,7 +1,7 @@
 import * as v from 'valibot'
 import type { LtxVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
 import { UsageError, InfraError } from '~/utils/error-handler'
-import { logGenCompleted, logGenStatus } from '~/cli/commands/command-shared/generation-command-utils'
+import { runVideoGeneration } from '~/cli/commands/command-shared/media-generation/video-generation-scaffold'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/visuals/video/video-utils/video-pricing'
 import {
   normalizeLtxVideoAspectRatio,
@@ -11,7 +11,6 @@ import {
 } from '~/cli/commands/visuals/video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/visuals/video/video-utils/video-output-download'
 import { formatPolledJobError, runPolledJob } from '~/utils/polled-job-client/polled-job'
-import { resolveCredential } from '~/utils/validate/env-utils'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { validateModeInputs } from '../../video-utils/video-mode-validation'
 import { videoMediaReferenceToUrlOrDataUrl } from '../../video-utils/video-media-inputs'
@@ -62,124 +61,126 @@ export const runLtxVideoGen = async (
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
   const mode = options.mode ?? 'text'
-  const endpoint = resolveLtxEndpoint(mode)
-  const size = normalizeLtxVideoSize(options.model, options.resolution, options.aspectRatio)
-  const resolution = normalizeLtxVideoResolution(options.resolution, options.model)
-  const aspectRatio = normalizeLtxVideoAspectRatio(options.model, options.aspectRatio)
-  const duration = normalizeLtxVideoDuration(options.model, size, options.durationSeconds, mode)
-  const fps = 24
-  const resolvedPrompt = prompt ?? (mode === 'image-to-video' || mode === 'interpolate' ? DEFAULT_IMAGE_VIDEO_PROMPT : undefined)
-  if (mode === 'text') {
-    requireLtxPrompt(resolvedPrompt)
-  }
 
-  validateModeInputs({ videoInputImage: options.inputImage, videoLastFrame: options.lastFrameImage }, mode)
-  const apiKey = resolveCredential('ltx', 'require', { stage: 'video:ltx', description: 'LTX video generation' })
-  const baseUrl = LTX_BASE_URL
+  return await runVideoGeneration({
+    service: 'ltx',
+    model: options.model,
+    outputDir,
+    prepare: async () => {
+      const endpoint = resolveLtxEndpoint(mode)
+      const size = normalizeLtxVideoSize(options.model, options.resolution, options.aspectRatio)
+      const resolution = normalizeLtxVideoResolution(options.resolution, options.model)
+      const aspectRatio = normalizeLtxVideoAspectRatio(options.model, options.aspectRatio)
+      const duration = normalizeLtxVideoDuration(options.model, size, options.durationSeconds, mode)
+      const fps = 24
+      const resolvedPrompt = prompt ?? (mode === 'image-to-video' || mode === 'interpolate' ? DEFAULT_IMAGE_VIDEO_PROMPT : undefined)
+      if (mode === 'text') {
+        requireLtxPrompt(resolvedPrompt)
+      }
+      validateModeInputs({ videoInputImage: options.inputImage, videoLastFrame: options.lastFrameImage }, mode)
 
-  logGenStatus('video', 'ltx', options.model, 'started')
+      const inputImage = options.inputImage
+        ? await videoMediaReferenceToUrlOrDataUrl(options.inputImage, 'image')
+        : undefined
+      const lastFrame = options.lastFrameImage
+        ? await videoMediaReferenceToUrlOrDataUrl(options.lastFrameImage, 'image')
+        : undefined
 
-  const estimate = estimateVideoCost({
-    ltxVideoModels: [options.model],
-    videoDuration: options.durationSeconds,
-    videoAspectRatio: options.aspectRatio,
-    videoResolution: options.resolution,
-    videoMode: mode
-  })
-  logVideoEstimate(estimate)
+      const requestBody: Record<string, unknown> = mode === 'text'
+        ? {
+          model: options.model,
+          prompt: requireLtxPrompt(resolvedPrompt),
+          duration,
+          fps,
+          resolution: size
+        }
+        : {
+          model: options.model,
+          image_uri: inputImage,
+          prompt: resolvedPrompt,
+          duration,
+          fps,
+          resolution: size,
+          ...(lastFrame ? { last_frame_uri: lastFrame } : {})
+        }
 
-  const inputImage = options.inputImage
-    ? await videoMediaReferenceToUrlOrDataUrl(options.inputImage, 'image')
-    : undefined
-  const lastFrame = options.lastFrameImage
-    ? await videoMediaReferenceToUrlOrDataUrl(options.lastFrameImage, 'image')
-    : undefined
-
-  const requestBody: Record<string, unknown> = {
-    model: options.model
-  }
-  if (mode === 'text') {
-    requestBody['prompt'] = requireLtxPrompt(resolvedPrompt)
-    requestBody['duration'] = duration
-    requestBody['fps'] = fps
-    requestBody['resolution'] = size
-  } else {
-    requestBody['image_uri'] = inputImage
-    requestBody['prompt'] = resolvedPrompt
-    requestBody['duration'] = duration
-    requestBody['fps'] = fps
-    requestBody['resolution'] = size
-    if (lastFrame) requestBody['last_frame_uri'] = lastFrame
-  }
-
-  const startTime = Date.now()
-  const headers = {
-    Authorization: `Bearer ${apiKey}`,
-    'Content-Type': 'application/json'
-  }
-  const { created: createData, result: taskData } = await runPolledJob({
-    operationName: 'ltx-video-gen',
-    intervalMs: POLL_INTERVAL_MS,
-    deadlineMs: POLL_TIMEOUT_MS,
-    create: {
-      url: `${baseUrl}/v2/${endpoint}`,
-      init: { method: 'POST', headers, body: JSON.stringify(requestBody) },
-      schema: LtxCreateVideoResponseSchema,
-      context: 'LTX video generation create response',
-      stage: 'video:ltx',
-      errorMessage: `LTX video ${mode} request failed`
+      return {
+        endpoint,
+        size,
+        resolution,
+        aspectRatio,
+        duration,
+        requestBody,
+        estimate: estimateVideoCost({
+          ltxVideoModels: [options.model],
+          videoDuration: options.durationSeconds,
+          videoAspectRatio: options.aspectRatio,
+          videoResolution: options.resolution,
+          videoMode: mode
+        })
+      }
     },
-    poll: (created) => ({
-      url: `${baseUrl}/v2/${endpoint}/${encodeURIComponent(created.id)}`,
-      init: { method: 'GET', headers },
-      schema: LtxPollVideoResponseSchema,
-      context: 'LTX video generation query response',
-      stage: 'video:ltx',
-      errorMessage: 'LTX video generation query failed'
-    }),
-    onPoll: (data) => logGenStatus('video', 'ltx', options.model, data.status),
-    isDone: (data) => data.status === 'completed',
-    isFailed: (data) => data.status === 'failed'
-      ? { failed: true, reason: formatPolledJobError(data.error) }
-      : { failed: false }
-  })
+    estimate: (prepared) => logVideoEstimate(prepared.estimate),
+    execute: async (context, prepared) => {
+      const headers = {
+        Authorization: `Bearer ${context.apiKey}`,
+        'Content-Type': 'application/json'
+      }
+      const { created: createData, result: taskData } = await runPolledJob({
+        operationName: 'ltx-video-gen',
+        intervalMs: POLL_INTERVAL_MS,
+        deadlineMs: POLL_TIMEOUT_MS,
+        create: {
+          url: `${LTX_BASE_URL}/v2/${prepared.endpoint}`,
+          init: { method: 'POST', headers, body: JSON.stringify(prepared.requestBody) },
+          schema: LtxCreateVideoResponseSchema,
+          context: 'LTX video generation create response',
+          stage: 'video:ltx',
+          errorMessage: `LTX video ${mode} request failed`
+        },
+        poll: (created) => ({
+          url: `${LTX_BASE_URL}/v2/${prepared.endpoint}/${encodeURIComponent(created.id)}`,
+          init: { method: 'GET', headers },
+          schema: LtxPollVideoResponseSchema,
+          context: 'LTX video generation query response',
+          stage: 'video:ltx',
+          errorMessage: 'LTX video generation query failed'
+        }),
+        onPoll: (data) => context.logStatus(data.status),
+        isDone: (data) => data.status === 'completed',
+        isFailed: (data) => data.status === 'failed'
+          ? { failed: true, reason: formatPolledJobError(data.error) }
+          : { failed: false }
+      })
 
-  const videoUrl = taskData.result?.video_url
-  if (!videoUrl) {
-    throw InfraError('LTX video generation succeeded but no result.video_url was returned', { stage: 'video:ltx' })
-  }
+      const videoUrl = taskData.result?.video_url
+      if (!videoUrl) {
+        throw InfraError('LTX video generation succeeded but no result.video_url was returned', { stage: 'video:ltx' })
+      }
 
-  const outputPath = `${outputDir}/generated-video.mp4`
-  await Bun.write(outputPath, await downloadVideoOutputBytes(videoUrl, 'LTX'))
+      const outputPath = context.artifactPath()
+      await Bun.write(outputPath, await downloadVideoOutputBytes(videoUrl, 'LTX'))
 
-  const processingTime = Date.now() - startTime
-  const videoFile = Bun.file(outputPath)
-  const estimateDetail = `Actual billed cost was not returned by the API; estimated ${estimate.totalCost.toFixed(2)}¢.`
-
-  logGenCompleted('video', 'ltx', options.model, processingTime, [outputPath], estimateDetail)
-
-  return {
-    videoPath: outputPath,
-    metadata: {
-      videoGenService: 'ltx',
-      videoGenModel: options.model,
-      processingTime,
-      videoFileName: 'generated-video.mp4',
-      videoFileSize: videoFile.size,
-      videoDuration: duration,
-      videoSize: size,
-      requestMode: mode,
-      videoResolution: resolution,
-      videoAspectRatio: aspectRatio,
-      ...(options.inputImage ? { inputImage: options.inputImage } : {}),
-      ...(options.lastFrameImage ? { lastFrameImage: options.lastFrameImage } : {}),
-      providerRequestId: createData.id,
-      providerVideoUrl: videoUrl,
-      ...(taskData.created_at || taskData.completed_at
-        ? { providerFileOutput: { created_at: taskData.created_at, completed_at: taskData.completed_at } }
-        : {}),
-      providerCostCents: estimate.totalCost,
-      providerCostSource: 'registry_fallback'
+      return {
+        artifactPaths: [outputPath],
+        completionDetail: `Actual billed cost was not returned by the API; estimated ${prepared.estimate.totalCost.toFixed(2)}¢.`,
+        metadata: {
+          videoDuration: prepared.duration,
+          videoSize: prepared.size,
+          requestMode: mode,
+          videoResolution: prepared.resolution,
+          videoAspectRatio: prepared.aspectRatio,
+          ...(options.inputImage ? { inputImage: options.inputImage } : {}),
+          ...(options.lastFrameImage ? { lastFrameImage: options.lastFrameImage } : {}),
+          providerRequestId: createData.id,
+          providerVideoUrl: videoUrl,
+          ...(taskData.created_at || taskData.completed_at
+            ? { providerFileOutput: { created_at: taskData.created_at, completed_at: taskData.completed_at } }
+            : {}),
+          providerCostCents: prepared.estimate.totalCost,
+          providerCostSource: 'registry_fallback'
+        }
+      }
     }
-  }
+  })
 }

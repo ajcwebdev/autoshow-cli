@@ -1,10 +1,11 @@
-import { GROK_IMAGE_2_INPUT_PRICE_CENTS, GROK_IMAGE_2_OUTPUT_PRICE_CENTS, resolveGrokImageOptions } from '../image-generation-services/image-grok/grok-image-options'
-import { getImageCost, getImageInputCostPer1M } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { resolveGrokImageOptions } from '../image-generation-services/image-grok/grok-image-options'
+import { getImageInputCostPer1M, getImageModelMeta } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { validateFalImageModel, validateGeminiImageModel, validateGrokImageModel, validateLumalabsImageModel, validateOpenAIImageModel, validateReplicateImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { deriveGenerationPricingProviders, IMAGE_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
-import type { EstimateImageCostOptions, ImageCostEstimate, ImageProvider, OpenAIImageInputEstimate, OpenAIImageOutputPricing, OpenAIImageQuality, ProviderModelSelectionSpec } from '~/types'
+import type { EstimateImageCostOptions, ImageCostEstimate, ImageProvider, OpenAIImageInputEstimate, OpenAIImageQuality, ProviderModelSelectionSpec } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { collectSelections, passThroughKeys } from '~/utils/pricing/model-selection'
+import { requireRegistryRate } from '~/utils/pricing/registry-rate'
 import { isOpenAIImage25Model } from '~/cli/commands/setup-and-utilities/models/image-models'
 import { estimateOpenAIImage25Output } from './openai-image-pricing'
 import { OPENAI_IMAGE_COUNT_RANGE, validateOpenAIImageOptions } from '../image-generation-services/image-openai/openai-image-options'
@@ -13,31 +14,6 @@ import { validateImageCount } from './image-target-validation'
 export const IMAGE_PRICING_PROVIDERS = deriveGenerationPricingProviders(IMAGE_GENERATION_SELECTION) satisfies readonly ProviderModelSelectionSpec<EstimateImageCostOptions, ImageProvider>[]
 
 export const IMAGE_PRICING_MODEL_KEYS = passThroughKeys(IMAGE_PRICING_PROVIDERS)
-
-const OPENAI_IMAGE_OUTPUT_PRICE_CENTS: Partial<Record<string, OpenAIImageOutputPricing>> = {
-  'gpt-image-2': {
-    label: 'GPT Image 2',
-    defaultCostCents: 5.3,
-    supportsFlexibleSizes: true,
-    commonSizeCosts: {
-      '1024x1024': {
-        low: 0.6,
-        medium: 5.3,
-        high: 21.1
-      },
-      '1024x1536': {
-        low: 0.5,
-        medium: 4.1,
-        high: 16.5
-      },
-      '1536x1024': {
-        low: 0.5,
-        medium: 4.1,
-        high: 16.5
-      }
-    }
-  }
-}
 
 const OPENAI_IMAGE_LATENCY_NOTE = 'Low quality is fastest; square images are typically fastest; JPEG is faster than PNG; complex prompts can take up to about 2 minutes.'
 export const OPENAI_IMAGE_INPUT_UNITS_PER_REFERENCE = 1000
@@ -57,14 +33,8 @@ export const estimateOpenAIImageInputUnits = (model: string, referenceInputs: nu
   }
 }
 
-const GEMINI_IMAGE_OUTPUT_PRICE_CENTS: Readonly<Record<string, Readonly<Record<string, number>>>> = {
-  'gemini-3.1-flash-lite-image': { '1K': 3.36 }
-}
-
-const REPLICATE_SEEDREAM_5_PRO_PRICE_CENTS: Readonly<Record<string, number>> = {
-  '1K': 4.5,
-  '2K': 9
-}
+const requireImageCost = (service: ImageProvider, model: string, value: number | undefined, field: string): number =>
+  requireRegistryRate(value, { category: 'image', service, model, field })
 
 const normalizeOpenAIQualityForEstimate = (quality: string | undefined): OpenAIImageQuality => {
   const normalized = quality?.toLowerCase()
@@ -87,31 +57,34 @@ const estimateOpenAIImageCost = (
   options: Pick<EstimateImageCostOptions, 'imageSize' | 'imageQuality'>
 ): { costPerImageCents: number, note: string } => {
   if (isOpenAIImage25Model(model)) return estimateOpenAIImage25Output(model, options)
-  const pricing = OPENAI_IMAGE_OUTPUT_PRICE_CENTS[model]
-  if (!pricing) {
+  const meta = getImageModelMeta('openai', model)
+  const sizeQualityCosts = meta?.costPerImageBySizeQualityCents
+  const defaultCostCents = requireImageCost('openai', model, meta?.costPerImageCents, 'costPerImageCents')
+  if (!sizeQualityCosts) {
     return {
-      costPerImageCents: getImageCost('openai', model) || 4,
+      costPerImageCents: defaultCostCents,
       note: `Approximate cost; see OpenAI pricing for exact rates. ${OPENAI_IMAGE_INPUT_COST_NOTE}`
     }
   }
 
+  const label = meta?.displayName ?? model
   const quality = normalizeOpenAIQualityForEstimate(options.imageQuality)
   const size = normalizeOpenAIImageSizeForEstimate(options.imageSize)
-  const documentedCost = pricing.commonSizeCosts[size]?.[quality]
+  const documentedCost = sizeQualityCosts[size]?.[quality]
 
   if (typeof documentedCost === 'number') {
     return {
       costPerImageCents: documentedCost,
-      note: `Approximate ${pricing.label} output estimate for ${size} ${quality} quality. ${OPENAI_IMAGE_INPUT_COST_NOTE} ${OPENAI_IMAGE_LATENCY_NOTE}`
+      note: `Approximate ${label} output estimate for ${size} ${quality} quality. ${OPENAI_IMAGE_INPUT_COST_NOTE} ${OPENAI_IMAGE_LATENCY_NOTE}`
     }
   }
 
-  const sizeDescription = pricing.supportsFlexibleSizes
+  const sizeDescription = meta?.supportsFlexibleSizes === true
     ? 'a flexible size'
     : 'an unsupported size'
   return {
-    costPerImageCents: pricing.defaultCostCents,
-    note: `Approximate ${pricing.label} output estimate for ${sizeDescription}; using the 1024x1024 medium default. ${OPENAI_IMAGE_INPUT_COST_NOTE} Check OpenAI's calculator for this exact resolution. ${OPENAI_IMAGE_LATENCY_NOTE}`
+    costPerImageCents: defaultCostCents,
+    note: `Approximate ${label} output estimate for ${sizeDescription}; using the 1024x1024 medium default. ${OPENAI_IMAGE_INPUT_COST_NOTE} Check OpenAI's calculator for this exact resolution. ${OPENAI_IMAGE_LATENCY_NOTE}`
   }
 }
 
@@ -122,7 +95,9 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
       case 'gemini': {
         const model = validateGeminiImageModel(selection.model)
         const imageSize = options.imageSize ?? '1K'
-        const costPerImageCents = GEMINI_IMAGE_OUTPUT_PRICE_CENTS[model]?.[imageSize] ?? (getImageCost('gemini', model) || 4)
+        const meta = getImageModelMeta('gemini', model)
+        const costPerImageCents = meta?.costPerImageBySizeCents?.[imageSize]
+          ?? requireImageCost('gemini', model, meta?.costPerImageCents, 'costPerImageCents')
         estimates.push({
           provider: 'gemini',
           model,
@@ -154,26 +129,33 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
       case 'grok': {
         const model = validateGrokImageModel(selection.model)
         const { quality, resolution, imageCount } = resolveGrokImageOptions(model, options)
-        const costPerImageCents = GROK_IMAGE_2_OUTPUT_PRICE_CENTS[quality][resolution]
+        const meta = getImageModelMeta('grok', model)
+        const costPerImageCents = requireImageCost(
+          'grok', model, meta?.costPerImageBySizeQualityCents?.[resolution]?.[quality],
+          `costPerImageBySizeQualityCents.${resolution}.${quality}`
+        )
         const inputImageCount = options.imageInputs?.length ?? 0
-        const inputImageCostCents = inputImageCount * GROK_IMAGE_2_INPUT_PRICE_CENTS
+        const inputImageRateCents = requireImageCost('grok', model, meta?.inputImageCostCents, 'inputImageCostCents')
+        const inputImageCostCents = inputImageCount * inputImageRateCents
         estimates.push({
           provider: 'grok', model, imageCount, costPerImageCents,
           totalCost: costPerImageCents * imageCount + inputImageCostCents,
           inputImageCount, inputImageCostCents,
-          note: `Published xAI ${resolution} ${quality} output price plus ${inputImageCount} input images at 1 cent each per request. Account discounts and taxes excluded.`
+          note: `Published xAI ${resolution} ${quality} output price plus ${inputImageCount} input images at ${inputImageRateCents} cent${inputImageRateCents === 1 ? '' : 's'} each per request. Account discounts and taxes excluded.`
         })
         break
       }
       case 'replicate': {
         const model = validateReplicateImageModel(selection.model)
         const normalizedSize = options.imageSize?.toUpperCase() ?? '1K'
-        const costPerImageCents = model === 'bytedance/seedream-5-pro'
-          ? (REPLICATE_SEEDREAM_5_PRO_PRICE_CENTS[normalizedSize] ?? REPLICATE_SEEDREAM_5_PRO_PRICE_CENTS['1K']!)
-          : getImageCost('replicate', model)
+        const meta = getImageModelMeta('replicate', model)
+        const sizeCosts = meta?.costPerImageBySizeCents
+        const costPerImageCents = sizeCosts
+          ? requireImageCost('replicate', model, sizeCosts[normalizedSize] ?? sizeCosts['1K'], `costPerImageBySizeCents.${normalizedSize}`)
+          : requireImageCost('replicate', model, meta?.costPerImageCents, 'costPerImageCents')
         const imageCount = 1
-        const note = model === 'bytedance/seedream-5-pro'
-          ? `Published Replicate Seedream 5 Pro ${normalizedSize} per-output-image price; provider-reported billing is used when returned`
+        const note = sizeCosts
+          ? `Published Replicate ${meta?.displayName ?? model} ${normalizedSize} per-output-image price; provider-reported billing is used when returned`
           : 'Approximate Replicate published per-output-image price; provider-reported billing is used when returned'
         estimates.push({
           provider: 'replicate',
@@ -187,7 +169,7 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
       }
       case 'lumalabs': {
         const model = validateLumalabsImageModel(selection.model)
-        const costPerImageCents = getImageCost('lumalabs', model)
+        const costPerImageCents = requireImageCost('lumalabs', model, getImageModelMeta('lumalabs', model)?.costPerImageCents, 'costPerImageCents')
         estimates.push({
           provider: 'lumalabs',
           model,
@@ -200,7 +182,7 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
       }
       case 'fal': {
         const model = validateFalImageModel(selection.model)
-        const costPerImageCents = getImageCost('fal', model)
+        const costPerImageCents = requireImageCost('fal', model, getImageModelMeta('fal', model)?.costPerImageCents, 'costPerImageCents')
         const imageCount = Math.max(1, options.imageCount ?? 1)
         estimates.push({
           provider: 'fal',

@@ -1,6 +1,5 @@
 import type { OpenAITtsModel, TtsTarget, TtsTargetSelection } from '~/types'
 import { resolveOpenAITtsVoiceForModel, validateOpenAITtsModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { ensureOpenAITtsSetup } from './openai-tts'
 import { runOpenAITts } from './run-openai-tts'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
 import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
@@ -26,7 +25,6 @@ export const collectOpenAITtsTargets = (
           instructions: selection.openaiInstructions,
           speed: selection.openaiSpeed,
         })
-        await ensureOpenAITtsSetup()
         return await runOpenAITts(text, outputDir, {
           model,
           voiceId: invocationVoiceId ?? voiceId,

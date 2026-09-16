@@ -1,13 +1,18 @@
 import { DEFAULT_COST_MULTIPLIER, DEFAULT_IMAGE_MS_PER_IMAGE } from './defaults'
 import { getModelRegistry } from './registry'
 import { getRetiredModelRate } from './retired-model-rates'
-import type { ImageEstimation } from '~/types'
+import type { ImageEstimation, ImageModelMeta, RetiredModelRate } from '~/types'
 
-export const getImageCost = (service: string, model: string): number => {
-  const imageModel = getModelRegistry().image[service]?.models[model]
+export const getImageModelMeta = (
+  service: string,
+  model: string
+): ImageModelMeta | RetiredModelRate<'image'> | undefined => {
+  return getModelRegistry().image[service]?.models[model]
     ?? getRetiredModelRate('image', service, model)
-  return imageModel?.costPerImageCents ?? 0
 }
+
+export const getImageCost = (service: string, model: string): number =>
+  getImageModelMeta(service, model)?.costPerImageCents ?? 0
 
 export const getImageInputCostPer1M = (service: string, model: string): number | null => {
   const imageModel = getModelRegistry().image[service]?.models[model]

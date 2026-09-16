@@ -1,11 +1,10 @@
 import type { MusicGenOptions, MusicTarget } from '~/types'
-import { collectElevenlabsMusicTargets } from '../music-services/music-elevenlabs/elevenlabs-music-targets'
-import { collectMinimaxMusicTargets } from '../music-services/music-minimax/minimax-music-targets'
-import { collectGeminiMusicTargets } from '../music-services/music-gemini/gemini-music-targets'
+import { collectGenerationTargets } from '~/cli/commands/command-shared/generation-routing/collect-generation-targets'
+import { MUSIC_PROVIDER_REGISTRY } from './music-provider-registry'
 import { filterModelCostTargets } from '~/cli/commands/pricing-orchestration/model-cost-filter'
 
-export const collectMusicTargets = (options: MusicGenOptions): MusicTarget[] => filterModelCostTargets([
-  ...collectElevenlabsMusicTargets(options),
-  ...collectMinimaxMusicTargets(options),
-  ...collectGeminiMusicTargets(options)
-], options, 'music')
+export const collectMusicTargets = (options: MusicGenOptions): MusicTarget[] => filterModelCostTargets(
+  collectGenerationTargets(MUSIC_PROVIDER_REGISTRY, options, undefined),
+  options,
+  'music'
+)

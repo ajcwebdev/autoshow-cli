@@ -22,6 +22,7 @@ export const validateLtxVideoModel = createRetiringModelValidator<LtxVideoModel>
 
 export const SUPPORTED_REPLICATE_VIDEO_MODELS = [
   'alibaba/happyhorse-1.1',
+  'alibaba/wan-3',
   'bytedance/seedance-2.5',
   'pixverse/pixverse-v6'
 ] as const satisfies readonly string[]

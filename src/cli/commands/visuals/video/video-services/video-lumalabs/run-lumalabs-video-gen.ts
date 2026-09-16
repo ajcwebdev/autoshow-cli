@@ -1,13 +1,12 @@
 import type { LumalabsImageRef, LumalabsVideoModel, Step6VideoMetadata } from '~/types'
 import { UsageError, InfraError } from '~/utils/error-handler'
-import { logGenCompleted, logGenStatus } from '~/cli/commands/command-shared/generation-command-utils'
+import { runVideoGeneration } from '~/cli/commands/command-shared/media-generation/video-generation-scaffold'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/visuals/video/video-utils/video-pricing'
 import { normalizeLumaVideoAspectRatio, normalizeLumaVideoDuration, normalizeLumaVideoResolution } from '~/cli/commands/visuals/video/video-utils/video-normalization'
 import { videoMediaReferenceToUrlOrDataUrl } from '~/cli/commands/visuals/video/video-utils/video-media-inputs'
 import { downloadVideoOutputBytes } from '~/cli/commands/visuals/video/video-utils/video-output-download'
 import { LUMALABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { LumalabsGenerationSchema, runPolledJob } from '~/utils/polled-job-client/polled-job'
-import { resolveCredential } from '~/utils/validate/env-utils'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 
 const POLL_INTERVAL_MS = 10_000
@@ -37,95 +36,92 @@ export const runLumalabsVideoGen = async (
     throw UsageError('Luma Labs video prompt cannot be empty.')
   }
 
-  const apiKey = resolveCredential('lumalabs', 'require', { stage: 'video:lumalabs', description: 'Luma Labs video generation' })
-
   const baseUrl = LUMALABS_DEFAULT_BASE_URL.replace(/\/+$/, '')
-  const aspectRatio = normalizeLumaVideoAspectRatio(options.aspectRatio)
-  const resolution = normalizeLumaVideoResolution(options.resolution)
-  const duration = normalizeLumaVideoDuration(options.durationSeconds)
-  const durationSeconds = duration === '10s' ? 10 : 5
-  const startFrame = options.inputImage ? await toLumalabsImageRef(options.inputImage) : undefined
 
-  logGenStatus('video', 'lumalabs', options.model, 'started', startFrame ? 'image-to-video' : 'text')
-
-  const estimate = estimateVideoCost({
-    lumalabsVideoModels: [options.model],
-    videoDuration: options.durationSeconds,
-    videoResolution: options.resolution
-  })
-  logVideoEstimate(estimate)
-
-  const headers = {
-    Authorization: `Bearer ${apiKey}`,
-    'Content-Type': 'application/json',
-    accept: 'application/json'
-  }
-
-  const body = {
+  return await runVideoGeneration({
+    service: 'lumalabs',
     model: options.model,
-    type: 'video',
-    prompt,
-    aspect_ratio: aspectRatio,
-    video: {
-      resolution,
-      duration,
-      ...(startFrame ? { start_frame: startFrame } : {})
-    }
-  }
+    outputDir,
+    startDetail: options.inputImage ? 'image-to-video' : 'text',
+    prepare: async () => {
+      const aspectRatio = normalizeLumaVideoAspectRatio(options.aspectRatio)
+      const resolution = normalizeLumaVideoResolution(options.resolution)
+      const duration = normalizeLumaVideoDuration(options.durationSeconds)
+      const startFrame = options.inputImage ? await toLumalabsImageRef(options.inputImage) : undefined
 
-  const startTime = Date.now()
-  const { result: pollData } = await runPolledJob({
-    operationName: 'lumalabs-video-gen',
-    intervalMs: POLL_INTERVAL_MS,
-    deadlineMs: POLL_TIMEOUT_MS,
-    create: {
-      url: `${baseUrl}/generations`,
-      init: { method: 'POST', headers, body: JSON.stringify(body) },
-      schema: LumalabsGenerationSchema,
-      context: 'Luma Labs video generation create response',
-      stage: 'video:lumalabs',
-      errorMessage: 'Luma Labs video generation request failed'
+      return {
+        aspectRatio,
+        resolution,
+        durationSeconds: duration === '10s' ? 10 : 5,
+        body: {
+          model: options.model,
+          type: 'video',
+          prompt,
+          aspect_ratio: aspectRatio,
+          video: {
+            resolution,
+            duration,
+            ...(startFrame ? { start_frame: startFrame } : {})
+          }
+        },
+        estimate: estimateVideoCost({
+          lumalabsVideoModels: [options.model],
+          videoDuration: options.durationSeconds,
+          videoResolution: options.resolution
+        })
+      }
     },
-    poll: (created) => ({
-      url: `${baseUrl}/generations/${encodeURIComponent(created.id)}`,
-      init: { method: 'GET', headers },
-      schema: LumalabsGenerationSchema,
-      context: 'Luma Labs video generation poll response',
-      stage: 'video:lumalabs',
-      errorMessage: 'Luma Labs video generation query failed'
-    }),
-    onPoll: (data) => logGenStatus('video', 'lumalabs', options.model, data.state),
-    isDone: (data) => data.state.toLowerCase() === 'completed',
-    isFailed: (data) => data.state.toLowerCase() === 'failed'
-      ? { failed: true, reason: data.failure_reason ?? data.failure_code ?? `Luma Labs generation state ${data.state}` }
-      : { failed: false }
-  })
+    estimate: (prepared) => logVideoEstimate(prepared.estimate),
+    execute: async (context, prepared) => {
+      const headers = {
+        Authorization: `Bearer ${context.apiKey}`,
+        'Content-Type': 'application/json',
+        accept: 'application/json'
+      }
+      const { result: pollData } = await runPolledJob({
+        operationName: 'lumalabs-video-gen',
+        intervalMs: POLL_INTERVAL_MS,
+        deadlineMs: POLL_TIMEOUT_MS,
+        create: {
+          url: `${baseUrl}/generations`,
+          init: { method: 'POST', headers, body: JSON.stringify(prepared.body) },
+          schema: LumalabsGenerationSchema,
+          context: 'Luma Labs video generation create response',
+          stage: 'video:lumalabs',
+          errorMessage: 'Luma Labs video generation request failed'
+        },
+        poll: (created) => ({
+          url: `${baseUrl}/generations/${encodeURIComponent(created.id)}`,
+          init: { method: 'GET', headers },
+          schema: LumalabsGenerationSchema,
+          context: 'Luma Labs video generation poll response',
+          stage: 'video:lumalabs',
+          errorMessage: 'Luma Labs video generation query failed'
+        }),
+        onPoll: (data) => context.logStatus(data.state),
+        isDone: (data) => data.state.toLowerCase() === 'completed',
+        isFailed: (data) => data.state.toLowerCase() === 'failed'
+          ? { failed: true, reason: data.failure_reason ?? data.failure_code ?? `Luma Labs generation state ${data.state}` }
+          : { failed: false }
+      })
 
-  const videoUrl = pollData.output?.[0]?.url
-  if (!videoUrl) {
-    throw InfraError('Luma Labs video generation completed without an output URL', { stage: 'video:lumalabs' })
-  }
+      const videoUrl = pollData.output?.[0]?.url
+      if (!videoUrl) {
+        throw InfraError('Luma Labs video generation completed without an output URL', { stage: 'video:lumalabs' })
+      }
 
-  const outputPath = `${outputDir}/generated-video.mp4`
-  await Bun.write(outputPath, await downloadVideoOutputBytes(videoUrl, 'Luma Labs'))
+      const outputPath = context.artifactPath()
+      await Bun.write(outputPath, await downloadVideoOutputBytes(videoUrl, 'Luma Labs'))
 
-  const processingTime = Date.now() - startTime
-  const videoFile = Bun.file(outputPath)
-
-  logGenCompleted('video', 'lumalabs', options.model, processingTime, [outputPath])
-
-  return {
-    videoPath: outputPath,
-    metadata: {
-      videoGenService: 'lumalabs',
-      videoGenModel: options.model,
-      processingTime,
-      videoFileName: 'generated-video.mp4',
-      videoFileSize: videoFile.size,
-      videoDuration: durationSeconds,
-      videoResolution: resolution,
-      videoAspectRatio: aspectRatio,
-      ...(options.inputImage ? { inputImage: options.inputImage } : {})
+      return {
+        artifactPaths: [outputPath],
+        metadata: {
+          videoDuration: prepared.durationSeconds,
+          videoResolution: prepared.resolution,
+          videoAspectRatio: prepared.aspectRatio,
+          ...(options.inputImage ? { inputImage: options.inputImage } : {})
+        }
+      }
     }
-  }
+  })
 }

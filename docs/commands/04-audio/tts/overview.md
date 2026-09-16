@@ -19,7 +19,6 @@ Generate speech audio from a local `.md` or `.txt` file, or from a directory of 
   - [Hume](#hume)
   - [Cartesia](#cartesia)
   - [Inworld](#inworld)
-- [Pricing Notes](#pricing-notes)
 - [Output](#output)
 - [Speed and pause controls](#speed-and-pause-controls)
 - [Provider Capabilities](#provider-capabilities)
@@ -231,23 +230,6 @@ bun autoshow tts input/examples/tts/01-tts-short.md --provider inworld=realtime-
 ```
 
 Inline emotion and vocalization tags such as `[happy]`, `[laugh]`, and `[breathe]` are preserved.
-
-## Pricing Notes
-
-Pricing: ✅ cheapest third, ⚠️ middle third, ❌ most expensive third.
-
-| Nominal price                                         | Active selectors                    |
-| ----------------------------------------------------: | ----------------------------------- |
-| ✅ `$0.01` / 1K chars                                 | `speechify/simba-3.2`               |
-| ✅ About `$0.0126` / 1K chars                         | `openai/gpt-4o-mini-tts-2025-12-15` |
-| ✅ `$0.015` / 1K chars                                | `grok/grok-tts`                     |
-| ⚠️ `$0.016` / 1K output chars                         | `mistral/voxtral-mini-tts-2603`     |
-| ⚠️ `$0.025` / 1K chars                                | `inworld/realtime-tts-2`            |
-| ❌ `$0.037375` / 1K chars (Scale allocation estimate) | `cartesia/sonic-3.6-2026-08-27`     |
-| ❌ `$0.10` / 1K chars                                 | `elevenlabs/eleven_v3`              |
-| ❌ `$0.15` / 1K chars                                 | `hume/octave-1`, `hume/octave-2`    |
-
-Cartesia estimates use a Scale-plan credit allocation, not a universal per-character tariff.
 
 ## Output
 

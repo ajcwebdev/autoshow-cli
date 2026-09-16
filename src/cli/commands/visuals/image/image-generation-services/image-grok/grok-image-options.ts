@@ -41,9 +41,3 @@ export const resolveGrokImageOptions = (
     quality
   } as const
 }
-
-export const GROK_IMAGE_2_OUTPUT_PRICE_CENTS = {
-  low: { '1k': 4, '2k': 6 },
-  medium: { '1k': 6, '2k': 8 }
-} as const
-export const GROK_IMAGE_2_INPUT_PRICE_CENTS = 1

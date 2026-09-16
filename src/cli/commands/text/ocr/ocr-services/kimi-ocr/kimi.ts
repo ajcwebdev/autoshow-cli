@@ -10,6 +10,3 @@ export const resolveKimiBaseUrl = (): string =>
 export const ensureKimiApiKey = (serviceName: string, stage: string): string =>
   resolveCredential('kimi', 'require', { stage: stage, description: serviceName })
 
-export const ensureKimiOcrSetup = async (): Promise<void> => {
-  ensureKimiApiKey('Kimi OCR', 'ocr:kimi')
-}

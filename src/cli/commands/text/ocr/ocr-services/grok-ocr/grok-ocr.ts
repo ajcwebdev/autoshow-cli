@@ -20,6 +20,3 @@ export const getGrokOcrClientConfig = (baseUrl?: string): { apiKey: string, base
   }
 }
 
-export const ensureGrokOcrSetup = async (): Promise<void> => {
-  getGrokOcrClientConfig()
-}

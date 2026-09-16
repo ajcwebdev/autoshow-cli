@@ -3,7 +3,6 @@ import {
   validateGrokTtsModel,
   validateGrokTtsVoice
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { ensureGrokTtsSetup } from './grok-tts'
 import { runGrokTts } from './run-grok-tts'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
 import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
@@ -25,7 +24,6 @@ export const collectGrokTtsTargets = (
           language: selection.grokLanguage, speed: selection.grokSpeed,
           ...(selection.grokTextNormalization ? { textNormalization: true } : {}),
         })
-        await ensureGrokTtsSetup()
         return await runGrokTts(text, outputDir, {
           model,
           voiceId: invocationVoiceId ?? voiceId,

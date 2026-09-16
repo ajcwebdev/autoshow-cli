@@ -1,3 +1,4 @@
+import { GENERATION_ARTIFACT_BASENAMES, generationArtifactFileName } from '~/cli/commands/command-shared/media-generation/media-generation-scaffold'
 import { join } from 'node:path'
 import { InfraError } from '~/utils/error-handler'
 import { isObjectLike } from '~/utils/value-helpers'
@@ -35,7 +36,9 @@ export const writeGeminiMusicInteraction = async (response: unknown, outputDir: 
   }
   if (audio.length === 0) return fail('completed without audio')
   // Each block is a complete artifact, not an assumed fragment of one container.
-  const fileNames = audio.map((_, index) => index === 0 ? 'generated-music.mp3' : `generated-music-part-${index + 1}.mp3`)
+  const fileNames = audio.map((_, index) => index === 0
+    ? generationArtifactFileName('music')
+    : `${GENERATION_ARTIFACT_BASENAMES.music}-part-${index + 1}.mp3`)
   for (const [index, bytes] of audio.entries()) await Bun.write(join(outputDir, fileNames[index]!), bytes)
   const generatedText = text.length ? text.join('\n\n') : undefined
   const generatedTextFileName = generatedText !== undefined ? 'generated-music.txt' : undefined
