@@ -9,6 +9,25 @@ const repositoryRoot = resolve(import.meta.dir, '../../../..')
 const dockerfilePath = resolve(repositoryRoot, 'Dockerfile')
 const dockerDocsPath = resolve(repositoryRoot, 'docs/docker.md')
 
+test('published image OCR smoke commands pass real CLI option validation', async () => {
+  const workflow = await readFile(resolve(repositoryRoot, '.github/workflows/docker-publish.yml'), 'utf8')
+  const commands = [...workflow.matchAll(/bun --no-env-file \/app\/src\/cli\/create-cli\.ts (extract \/benchmark\/fixture\.pdf [^;]+?) >\/dev\/null 2>&1/g)]
+  expect(commands).toHaveLength(2)
+  for (const [, command] of commands) {
+    const args = command!.replace('/benchmark/fixture.pdf', 'test/fixtures/setup/managed-toolchain-smoke.pdf')
+      .replace('/benchmark/output', '/tmp/autoshow-docker-smoke-price').split(' ')
+    const result = Bun.spawnSync(['bun', '--no-env-file', 'src/cli/create-cli.ts', ...args, '--price'], {
+      cwd: repositoryRoot,
+      env: { PATH: process.env['PATH'], HOME: process.env['HOME'], NO_COLOR: '1' },
+      stdout: 'pipe',
+      stderr: 'pipe'
+    })
+    const output = result.stdout.toString() + result.stderr.toString()
+    expect(result.exitCode, output).toBe(0)
+    expect(output).toContain('Estimate:')
+  }
+})
+
 test('all Docker runtime targets opt out of Bun TCP keepalive for silent provider requests', async () => {
   const dockerfile = await readFile(dockerfilePath, 'utf8')
   const runtimeBase = dockerfile.slice(dockerfile.indexOf('AS runtime-base'), dockerfile.indexOf('FROM runtime-base AS runtime'))
