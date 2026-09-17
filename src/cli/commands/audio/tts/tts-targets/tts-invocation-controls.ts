@@ -16,7 +16,7 @@ import { UsageError } from '~/utils/error-handler'
 
 const trim = (value: string): string => value.trim()
 
-const CONTROL_SPECS = {
+export const CONTROL_SPECS = {
   openai: {
     instructions: { kind: 'string', preserveWhitespace: true },
     speed: { kind: 'number', min: 0.25, max: 4 },
@@ -64,12 +64,18 @@ const CANONICAL_TURN_ID_RE = /^dialogue-turn-\d{3,}(?:-\d{2,})?$/
 const invalidControl = (provider: TtsProvider, key: string, detail: string): Error =>
   UsageError(`Invalid per-turn ${provider} TTS control ${key}: ${detail}.`)
 
-const normalizeControlValue = (
+// `invalidControl` wording is per-turn dialogue specific; the CLI passes its own factory so a flag
+// error reads as a flag error.
+export type ControlErrorFactory = (provider: TtsProvider, key: string, detail: string) => Error
+
+export const normalizeControlValue = (
   provider: TtsProvider,
   key: string,
   value: TtsTargetInvocationControlValue,
-  spec: ControlSpec
+  spec: ControlSpec,
+  makeError: ControlErrorFactory = invalidControl
 ): Exclude<TtsTargetInvocationControlValue, null> => {
+  const invalidControl = makeError
   if (spec.kind === 'string') {
     if (typeof value !== 'string') throw invalidControl(provider, key, 'expected a string or null')
     const normalized = spec.normalize?.(value) ?? value

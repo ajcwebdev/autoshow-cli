@@ -66,7 +66,7 @@ export const collectMistralTtsTargets = (
         }
         const invocationVoice = resolveTtsTargetInvocationVoice('mistral', invocation)
         const controls = resolveTtsTargetInvocationControls('mistral', invocation, {
-          responseFormat: 'wav',
+          responseFormat: (selection.mistralResponseFormat ?? 'wav') as 'wav' | 'mp3' | 'flac' | 'opus',
         })
         const speakerReference = invocationVoice?.kind === 'ref-audio'
           ? speakerReferenceByKey.get(normalizeDialogueSpeakerKey(invocation?.speaker ?? ''))

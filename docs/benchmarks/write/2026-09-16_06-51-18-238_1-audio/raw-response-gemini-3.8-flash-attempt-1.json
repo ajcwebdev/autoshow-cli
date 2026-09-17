@@ -1,0 +1,35 @@
+{
+  "result": "{\"episodeDescription\":\"James Perkins shares how he landed a new DevRel job within 12 hours of being laid off, highlighting the value of professional connections.\"}",
+  "metadata": {
+    "llmService": "gemini",
+    "llmModel": "gemini-3.8-flash",
+    "providerReturnedModel": "gemini-3.8-flash",
+    "processingTime": 3508,
+    "inputTokenCount": 482,
+    "outputTokenCount": 33,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 482,
+      "outputTokenCount": 33,
+      "totalTokenCount": 880
+    },
+    "rawProviderUsage": {
+      "promptTokenCount": 482,
+      "candidatesTokenCount": 33,
+      "totalTokenCount": 880,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 482
+        }
+      ],
+      "thoughtsTokenCount": 365,
+      "serviceTier": "standard"
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default"
+  }
+}

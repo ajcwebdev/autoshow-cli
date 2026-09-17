@@ -64,6 +64,22 @@ export const formatValuesByProvider = (
     .join(', ')
 }
 
+// Prefixing descriptions used to mutate a `satisfies`-typed const in place, which only worked
+// because withHelpGroup happens to clone. This returns a new definition instead.
+export const prefixFlagDescriptions = (
+  flags: CliFlagsDefinition,
+  names: readonly string[],
+  prefix: string
+): CliFlagsDefinition => {
+  const prefixed: CliFlagsDefinition = { ...flags }
+  for (const name of names) {
+    const definition = flags[name]
+    if (definition === undefined) continue
+    prefixed[name] = { ...definition, description: `${prefix}${definition.description}` }
+  }
+  return prefixed
+}
+
 export const omitFlags = (
   flags: CliFlagsDefinition,
   names: readonly string[]

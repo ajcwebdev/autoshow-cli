@@ -8,14 +8,14 @@ import { runDoctor } from './run-doctor'
 import { runModelDownloads } from '~/cli/commands/setup-and-utilities/models/run-model-downloads'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
-import type { SetupStepId } from '~/types'
+import { SETUP_STEP_IDS, type SetupStepId } from '~/types'
 import { resolveConfigPath, loadConfig } from '../config-command/config-loader'
 import { buildConfigPatchFromFlags, deepMergeConfig } from '../config-command/config-merge'
 import { writeConfig } from '../config-command/config-writer'
 import { normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 import { normalizeConfigStepSelectorFlags } from '~/cli/flags/service-selector-normalization/step-selectors'
 
-const VALID_SETUP_STEPS: SetupStepId[] = ['yt-dlp', 'defuddle', 'whisperfile', 'calibre', 'all', 'transcription', 'music']
+
 const FOCUSED_SETUP_CONFLICT_FLAGS = SETUP_FOCUSED_MODE_FLAGS
 
 const normalizeStringArrayFlag = (value: unknown): string[] => {
@@ -51,8 +51,8 @@ export const setupCommand = defineCliCommand({
   }
 }, async (ctx) => {
   if (ctx.flags['network-check'] !== undefined) {
-    for (const flag of [...FOCUSED_SETUP_CONFLICT_FLAGS, 'price']) if (ctx.rawParsed.explicitFlags.has(flag)) throw UsageError(`--network-check cannot be combined with --${flag}`)
-    await runNetworkCheck(ctx.flags)
+    for (const flag of FOCUSED_SETUP_CONFLICT_FLAGS) if (ctx.rawParsed.explicitFlags.has(flag)) throw UsageError(`--network-check cannot be combined with --${flag}`)
+    await runNetworkCheck(ctx.flags, ctx.rawParsed.explicitFlags)
     return
   }
   for (const flag of SETUP_NETWORK_DEPENDENT_FLAGS) if (ctx.rawParsed.explicitFlags.has(flag)) throw UsageError(`--${flag} requires --network-check`)
@@ -155,8 +155,8 @@ export const setupCommand = defineCliCommand({
   }
 
   const step = ctx.flags.step as string
-  if (!VALID_SETUP_STEPS.includes(step as SetupStepId)) {
-    throw UsageError(`Invalid --step value: ${step}. Valid values: ${VALID_SETUP_STEPS.join(', ')}`)
+  if (!SETUP_STEP_IDS.includes(step as SetupStepId)) {
+    throw UsageError(`Invalid --step value: ${step}. Valid values: ${SETUP_STEP_IDS.join(', ')}`)
   }
 
   const healthy = await runWithLogContext({ step: 'setup' }, async () => {

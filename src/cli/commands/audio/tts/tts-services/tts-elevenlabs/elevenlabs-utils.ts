@@ -36,10 +36,10 @@ const ElevenLabsErrorSchema = v.object({
   error: v.optional(v.string(), undefined)
 })
 
-export const readElevenLabsError = async (response: Response): Promise<string> => {
-  const raw = await response.text()
+/** Extracts the human-readable message from an ElevenLabs error body that has already been read. */
+export const formatElevenLabsErrorText = (raw: string, status: number): string => {
   if (!raw.trim()) {
-    return `HTTP ${response.status}`
+    return `HTTP ${status}`
   }
 
   try {
@@ -67,3 +67,6 @@ export const readElevenLabsError = async (response: Response): Promise<string> =
     return raw
   }
 }
+
+export const readElevenLabsError = async (response: Response): Promise<string> =>
+  formatElevenLabsErrorText(await response.text(), response.status)

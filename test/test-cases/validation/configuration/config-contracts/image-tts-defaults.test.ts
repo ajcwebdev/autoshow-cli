@@ -69,24 +69,24 @@ describe('config image and TTS default contracts', () => {
       'tts-text-normalization': 'on',
       'tts-instructions': 'Speak with calm narration.',
       'tts-speed': '1.25',
-      'elevenlabs-tts-stability': '0.4',
-      'elevenlabs-tts-similarity-boost': '0.8',
-      'elevenlabs-tts-style': '0.2',
-      'elevenlabs-tts-use-speaker-boost': true,
-      'elevenlabs-tts-seed': '12345',
-      'elevenlabs-tts-pronunciation-dictionary-locator': ['dict_1:version_2', 'dict_3']
+      'tts-stability': 'elevenlabs=0.4',
+      'tts-similarity': 'elevenlabs=0.8',
+      'tts-style': 'elevenlabs=0.2',
+      'tts-speaker-boost': 'elevenlabs=true',
+      'tts-seed': 'elevenlabs=12345',
+      'tts-pronunciation-dictionary': ['elevenlabs=dict_1:version_2', 'elevenlabs=dict_3']
     }
     expectConfigPatchRoundTrip(requestControlFlags, 'tts', {
       language: 'en',
       textNormalization: 'on',
       instructions: 'Speak with calm narration.',
-      speed: 1.25,
-      elevenlabsTtsStability: 0.4,
-      elevenlabsTtsSimilarityBoost: 0.8,
-      elevenlabsTtsStyle: 0.2,
-      elevenlabsTtsUseSpeakerBoost: true,
-      elevenlabsTtsSeed: 12345,
-      elevenlabsTtsPronunciationDictionaryLocators: ['dict_1:version_2', 'dict_3']
+      speed: '1.25',
+      stability: 'elevenlabs=0.4',
+      similarity: 'elevenlabs=0.8',
+      style: 'elevenlabs=0.2',
+      speakerBoost: 'elevenlabs=true',
+      seed: 'elevenlabs=12345',
+      pronunciationDictionary: ['elevenlabs=dict_1:version_2', 'elevenlabs=dict_3']
     })
   })
 

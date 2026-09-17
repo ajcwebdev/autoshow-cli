@@ -61,7 +61,7 @@ const runCharacterSketchCommand = async (
   dependencies: CharacterSketchCommandDependencies = {},
 ): Promise<void> => {
   if (!options.character) throw UsageError('--character is required')
-  if ((options.imageModels?.length ?? 1) !== 1) throw UsageError('comic reference-sketch accepts exactly one --image-model')
+  if ((options.imageModels?.length ?? 1) !== 1) throw UsageError('comic reference-sketch accepts exactly one --provider')
 
   const catalog = loadCharacterCatalog()
   const key = catalog.requireKey(options.character)

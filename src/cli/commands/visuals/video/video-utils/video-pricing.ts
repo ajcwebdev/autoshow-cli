@@ -19,14 +19,11 @@ import {
 } from './video-normalization'
 import * as l from '~/utils/app-logger/app-logger'
 import { collectSelections, passThroughKeys } from '~/utils/pricing/model-selection'
+import { requireRegistryRate } from '~/utils/pricing/registry-rate'
 
 export const VIDEO_PRICING_PROVIDERS = deriveGenerationPricingProviders(VIDEO_GENERATION_SELECTION) satisfies readonly ProviderModelSelectionSpec<EstimateVideoCostOptions, VideoProvider>[]
 
 export const VIDEO_PRICING_MODEL_KEYS = passThroughKeys(VIDEO_PRICING_PROVIDERS)
-
-const GEMINI_MODEL_COST_FALLBACKS: Record<GeminiVideoModel, { cents720p: number, cents1080p: number }> = {
-  'veo-3.1-lite-generate-preview': { cents720p: 5, cents1080p: 8 }
-}
 
 const estimateGeminiModelCost = (
   model: GeminiVideoModel,
@@ -38,12 +35,10 @@ const estimateGeminiModelCost = (
   const normalizedResolution = normalizeGeminiResolution(resolution, model)
   const durationSeconds = normalizeGeminiDuration(duration, normalizedResolution, mode as VideoMode | undefined)
   const billedDurationSeconds = durationSeconds
-  const fallback = GEMINI_MODEL_COST_FALLBACKS[model]
-  const costPerSecond = normalizedResolution === '1080p'
-    ? (meta?.baseCostPerSecondCents !== undefined
-      ? meta.baseCostPerSecondCents * (meta.resolutionMultiplier1080p ?? 1)
-      : fallback.cents1080p)
-    : (meta?.baseCostPerSecondCents ?? fallback.cents720p)
+  const costPerSecond = requireRegistryRate(
+    meta?.costPerSecondByResolutionCents?.[normalizedResolution] ?? meta?.baseCostPerSecondCents,
+    { category: 'video', service: 'gemini', model, field: `costPerSecondByResolutionCents.${normalizedResolution}` }
+  )
 
   return {
     provider: 'gemini',
@@ -52,7 +47,9 @@ const estimateGeminiModelCost = (
     billedDurationSeconds,
     costPerSecond,
     totalCost: billedDurationSeconds * costPerSecond,
-    note: `Approximate estimate using ${normalizedResolution} per-second pricing${normalizedResolution === '1080p' ? '; 1080p is normalized to 8s' : ''}`
+    note: duration === undefined
+      ? `Approximate estimate using ${normalizedResolution} per-second pricing; unspecified duration budgeted at ${billedDurationSeconds}s`
+      : `Approximate estimate using ${normalizedResolution} per-second pricing`
   }
 }
 
@@ -64,14 +61,17 @@ const estimateGrokCost = (model: GrokVideoModel, options: EstimateVideoCostOptio
   const meta = getVideoModelMeta('grok', model)
   const durationSeconds = normalizeGrokVideoDuration(options.videoDuration)
   const normalizedResolution = normalizeGrokVideoResolution(options.videoResolution, model)
+  // 480p is the base rate, so only the upscaled resolutions carry a registry multiplier.
   const resolutionMultiplier = normalizedResolution === '1080p'
-    ? (meta?.resolutionMultiplier1080p ?? 3.125)
+    ? requireRegistryRate(meta?.resolutionMultiplier1080p, { category: 'video', service: 'grok', model, field: 'resolutionMultiplier1080p' })
     : normalizedResolution === '720p'
-      ? (meta?.resolutionMultiplier720p ?? 1.75)
+      ? requireRegistryRate(meta?.resolutionMultiplier720p, { category: 'video', service: 'grok', model, field: 'resolutionMultiplier720p' })
       : 1
-  const costPerSecond = (meta?.baseCostPerSecondCents ?? 8) * resolutionMultiplier
+  const costPerSecond = requireRegistryRate(meta?.baseCostPerSecondCents, { category: 'video', service: 'grok', model, field: 'baseCostPerSecondCents' }) * resolutionMultiplier
   const inputImageCount = Math.max(0, Math.floor(options.grokInputImageCount ?? 0))
-  const inputImageCost = inputImageCount * (meta?.inputImageCostCents ?? 1)
+  const inputImageCost = inputImageCount * (inputImageCount > 0
+    ? requireRegistryRate(meta?.inputImageCostCents, { category: 'video', service: 'grok', model, field: 'inputImageCostCents' })
+    : 0)
   const mediaInputCost = inputImageCost
   const totalCost = (durationSeconds * costPerSecond) + mediaInputCost
   const mediaNote = mediaInputCost > 0
@@ -100,7 +100,7 @@ const estimateLtxCost = (model: LtxVideoModel, options: EstimateVideoCostOptions
   const size = normalizeLtxVideoSize(model, options.videoResolution, options.videoAspectRatio)
   const durationSeconds = normalizeLtxVideoDuration(model, size, options.videoDuration, mode)
   const costPerSecond = meta?.costPerSecondByResolutionCents?.[normalizeLtxVideoResolution(options.videoResolution, model)]
-    ?? (meta?.baseCostPerSecondCents ?? 0) * getLtxSizeResolutionMultiplier(size)
+    ?? requireRegistryRate(meta?.baseCostPerSecondCents, { category: 'video', service: 'ltx', model, field: 'baseCostPerSecondCents' }) * getLtxSizeResolutionMultiplier(size)
 
   return {
     provider: 'ltx',
@@ -127,15 +127,18 @@ const getReplicateCostPerSecond = (
     ? meta?.videoInputCostPerSecondByResolutionCents?.[resolution]
     : undefined
   const nonVideoRate = meta?.costPerSecondByResolutionCents?.[resolution] ?? meta?.baseCostPerSecondCents
-  return audioRate ?? videoInputRate ?? nonVideoRate ?? 0
+  return requireRegistryRate(audioRate ?? videoInputRate ?? nonVideoRate, {
+    category: 'video', service: 'replicate', model, field: `costPerSecondByResolutionCents.${resolution}`
+  })
 }
 
 const estimateLumalabsCost = (model: LumalabsVideoModel, options: EstimateVideoCostOptions): VideoCostEstimate => {
   const meta = getVideoModelMeta('lumalabs', model)
   const resolution = normalizeLumaVideoResolution(options.videoResolution)
   const durationSeconds = normalizeLumaVideoDuration(options.videoDuration) === '10s' ? 10 : 5
-  const fixedCost = meta?.fixedCostByResolutionDurationCents?.[resolution]?.[String(durationSeconds)]
-  const totalCost = typeof fixedCost === 'number' ? fixedCost : 0
+  const totalCost = requireRegistryRate(meta?.fixedCostByResolutionDurationCents?.[resolution]?.[String(durationSeconds)], {
+    category: 'video', service: 'lumalabs', model, field: `fixedCostByResolutionDurationCents.${resolution}.${durationSeconds}`
+  })
   return {
     provider: 'lumalabs',
     model,
@@ -151,7 +154,7 @@ const estimateFalCost = (model: FalVideoModel, options: EstimateVideoCostOptions
   if (isFalPriorityVideo(model)) return estimateFalPriorityCost(model, options)
   const meta = getVideoModelMeta('fal', model)
   const durationSeconds = options.videoDuration ?? 5
-  const costPerSecond = meta?.baseCostPerSecondCents ?? 26
+  const costPerSecond = requireRegistryRate(meta?.baseCostPerSecondCents, { category: 'video', service: 'fal', model, field: 'baseCostPerSecondCents' })
   return {
     provider: 'fal',
     model,
@@ -212,7 +215,7 @@ export const estimateVideoCosts = (options: EstimateVideoCostOptions): VideoCost
   }
 
   if (estimates.length === 0) {
-    estimates.push(estimateGeminiModelCost('veo-3.1-lite-generate-preview', options.videoDuration, options.videoResolution, options.videoMode))
+    estimates.push(estimateGeminiModelCost('gemini-omni-1.1-flash', options.videoDuration, options.videoResolution, options.videoMode))
   }
 
   return estimates

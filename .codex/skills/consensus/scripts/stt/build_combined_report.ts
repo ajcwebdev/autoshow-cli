@@ -4,7 +4,6 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { discoverCombinedRuns } from "../shared/combined_report_lib";
 import {
-  renderCombinedDashboard,
   type CombinedDashboardModel,
   type DashboardGroup,
   type DashboardProviderRow,
@@ -549,14 +548,16 @@ function buildDashboardGroup(
     quality: {
       display: provider.meanQualityScore === null ? "n/a" : provider.meanQualityScore.toFixed(2),
       rank: qualityRank.get(provider.providerKey) ?? null,
+      value: provider.meanQualityScore,
     },
     speed: {
       display: provider.aggregateRealtimeFactor === null
         ? formatSpeed(provider.meanProcessingTimeMs)
         : `${formatSpeed(provider.meanProcessingTimeMs)} · ${provider.aggregateRealtimeFactor.toFixed(2)}×`,
       rank: speedRank.get(provider.providerKey) ?? null,
+      value: provider.meanProcessingTimeMs,
     },
-    cost: { display: formatPrice(priceValue(provider)), rank: priceRank.get(provider.providerKey) ?? null },
+    cost: { display: formatPrice(priceValue(provider)), rank: priceRank.get(provider.providerKey) ?? null, value: priceValue(provider) },
     evidence: [
       formatPercent(provider.meanSpeakerAwareWER),
       formatPercent(provider.meanTextOnlyWER),
@@ -576,18 +577,25 @@ function buildDashboardGroup(
     key: group,
     label: GROUP_LABELS[group],
     metricColumns: { quality: "Quality /100", speed: "Mean time · throughput", cost: "Mean cost" },
+    metricDirections: { quality: "higher", speed: "lower", cost: "lower" },
     evidenceColumns: ["Mean SA-WER", "Mean text WER", "Diarization"],
     providers: rows,
   };
 }
 
-function main(): number {
-  const rootRaw = process.argv[2];
-  if (!rootRaw || rootRaw === "--help" || rootRaw === "-h") {
-    console.log("Usage: bun scripts/stt/build_combined_report.ts <root_dir>");
-    return rootRaw ? 0 : 1;
-  }
-  const rootDir = resolve(rootRaw);
+export interface SttCombinedBuildResult {
+  report: unknown;
+  markdown: string;
+  dashboardModel: CombinedDashboardModel;
+  runCount: number;
+  providerCount: number;
+  metricRankings: Record<GroupKey, Record<MetricName, RankingEntry[]>>;
+  groupedProviders: Record<GroupKey, AggregatedProvider[]>;
+  runs: RunRef[];
+}
+
+export function buildSttCombinedReport(rootDirRaw: string, generatedAt = new Date().toISOString()): SttCombinedBuildResult {
+  const rootDir = resolve(rootDirRaw);
   const runs = discoverRuns(rootDir);
   if (runs.length === 0) {
     throw new Error(`No run subdirectories with reference-comparison-report.json found under ${rootDir}`);
@@ -608,7 +616,6 @@ function main(): number {
     thirdPartyServiceDiarization: rankGroup(groupedProviders.thirdPartyServiceDiarization),
   };
 
-  const generatedAt = new Date().toISOString();
   const jsonReport = {
     schemaVersion: 4,
     kind: "stt-combined-comparison-report",
@@ -631,9 +638,6 @@ function main(): number {
       "Each group ranks price, speed, and quality score independently. No weighted composite or model-tier ranking is emitted.",
     ],
   };
-
-  const jsonPath = join(rootDir, "combined-comparison-report.json");
-  writeFileSync(jsonPath, JSON.stringify(jsonReport));
 
   const md: string[] = [];
   md.push("# Combined STT Provider Comparison Report");
@@ -695,9 +699,6 @@ function main(): number {
   }
   md.push("");
 
-  const markdownPath = join(rootDir, "combined-comparison-report.md");
-  writeFileSync(markdownPath, md.join("\n"));
-
   const dashboardModel: CombinedDashboardModel = {
     title: "Combined STT Provider Comparison",
     category: "stt",
@@ -720,14 +721,40 @@ function main(): number {
     ],
     notes: jsonReport.notes,
   };
-  const htmlPath = join(rootDir, "combined-comparison-report.html");
-  writeFileSync(htmlPath, renderCombinedDashboard(dashboardModel));
-  updateBenchmarkSummary(rootDir, metricRankings, groupedProviders, runs);
 
+  return {
+    report: jsonReport,
+    markdown: md.join("\n"),
+    dashboardModel,
+    runCount: runs.length,
+    providerCount: aggregated.length,
+    metricRankings,
+    groupedProviders,
+    runs,
+  };
+}
+
+export function writeSttCombinedReport(rootDirRaw: string): SttCombinedBuildResult {
+  const rootDir = resolve(rootDirRaw);
+  const result = buildSttCombinedReport(rootDir);
+  const jsonPath = join(rootDir, "combined-comparison-report.json");
+  const markdownPath = join(rootDir, "combined-comparison-report.md");
+  writeFileSync(jsonPath, JSON.stringify(result.report));
+  writeFileSync(markdownPath, result.markdown);
+  updateBenchmarkSummary(rootDir, result.metricRankings, result.groupedProviders, result.runs);
   console.log(`Wrote ${jsonPath}`);
   console.log(`Wrote ${markdownPath}`);
-  console.log(`Wrote ${htmlPath}`);
-  console.log(`Aggregated ${aggregated.length} providers across ${runs.length} runs.`);
+  console.log(`Aggregated ${result.providerCount} providers across ${result.runCount} runs.`);
+  return result;
+}
+
+function main(): number {
+  const rootRaw = process.argv[2];
+  if (!rootRaw || rootRaw === "--help" || rootRaw === "-h") {
+    console.log("Usage: bun scripts/stt/build_combined_report.ts <root_dir>");
+    return rootRaw ? 0 : 1;
+  }
+  writeSttCombinedReport(rootRaw);
   return 0;
 }
 

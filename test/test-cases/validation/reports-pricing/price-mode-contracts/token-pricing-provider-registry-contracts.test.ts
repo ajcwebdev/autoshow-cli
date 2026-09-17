@@ -225,6 +225,12 @@ describe('price mode contracts', () => {
         pricingSourceUrl: 'https://platform.kimi.ai/docs/pricing/chat-k3',
         cachedInputCostPer1MCents: 30
       })
+
+      const voxtralMini = requireDefined(getModelRegistry().stt['mistral']?.models['voxtral-mini-2602'], 'Voxtral Mini registry entry')
+      expect(voxtralMini).toMatchObject({
+        costPerHourCents: 18,
+        pricingCheckedAt: '2026-09-15'
+      })
     })
 
   test('current OCR additions register published rates for document extraction', () => {

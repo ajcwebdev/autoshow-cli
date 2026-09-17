@@ -1,0 +1,35 @@
+{
+  "result": "{\"episodeDescription\":\"James Perkins shares how he landed a new DevRel role just twelve hours after being laid off due to company downsizing.\"}",
+  "metadata": {
+    "llmService": "gemini",
+    "llmModel": "gemini-3.7-flash",
+    "providerReturnedModel": "gemini-3.7-flash",
+    "processingTime": 2149,
+    "inputTokenCount": 482,
+    "outputTokenCount": 28,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 482,
+      "outputTokenCount": 28,
+      "totalTokenCount": 790
+    },
+    "rawProviderUsage": {
+      "promptTokenCount": 482,
+      "candidatesTokenCount": 28,
+      "totalTokenCount": 790,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 482
+        }
+      ],
+      "thoughtsTokenCount": 280,
+      "serviceTier": "standard"
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default"
+  }
+}

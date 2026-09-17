@@ -7,6 +7,7 @@ import {
   batchFlags,
   promptFlag,
   sharedConcurrencyFlags,
+  stepConcurrencyFlag,
   configPipelineSelectorFlags,
   configGenerationSelectorFlags
 } from './shared-flags'
@@ -30,11 +31,10 @@ const authFlags = {
 const configTtsFlags = omitFlags(ttsCommandFlags, [
   'provider',
   'all-providers',
-  'all-local',
   'concurrency-mode',
   'provider-concurrency',
-  'local-concurrency',
   'batch-concurrency',
+  'step-concurrency',
   'price',
   'max-model-cents',
   'tts-ref-audio',
@@ -49,6 +49,7 @@ export const configCommandFlags = {
   ...withHelpGroup(authFlags, 'auth'),
   ...withHelpGroup(batchFlags, 'batch-download'),
   ...withHelpGroup(sharedConcurrencyFlags, 'concurrency'),
+  ...withHelpGroup(stepConcurrencyFlag(['stt-segment', 'stt-preflight', 'ocr-page', 'tts-chunk']), 'concurrency'),
   ...withHelpGroup({ stt: configPipelineSelectorFlags.stt }, 'transcription'),
   ...withHelpGroup(transcriptionFlags, 'transcription'),
   ...withHelpGroup({ ocr: configPipelineSelectorFlags.ocr }, 'ocr-document'),

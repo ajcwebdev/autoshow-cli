@@ -20,9 +20,10 @@ import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retrie
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { SoundEffectProviderError } from './sound-effect-errors'
 import { resolveCredential } from '~/utils/validate/env-utils'
+import { REPLICATE_AUDIOGEN_MODEL_ID, REPLICATE_AUDIOGEN_PINNED_VERSION, REPLICATE_AUDIOGEN_SELECTOR } from './sfx-provider-targets'
 
 const DOCS = [
-  'https://replicate.com/sepal/audiogen/versions/154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8/api',
+  `https://replicate.com/${REPLICATE_AUDIOGEN_MODEL_ID}/versions/${REPLICATE_AUDIOGEN_PINNED_VERSION}/api`,
   'https://replicate.com/docs/topics/models/community-models',
   'https://replicate.com/docs/topics/models/versions',
   'https://github.com/facebookresearch/audiocraft/blob/main/docs/AUDIOGEN.md',
@@ -31,11 +32,9 @@ const DOCS = [
   'https://replicate.com/pricing',
 ]
 
-export const REPLICATE_AUDIOGEN_PINNED_VERSION = '154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8'
-export const REPLICATE_AUDIOGEN_MODEL_ID = 'sepal/audiogen'
 const REPLICATE_AUDIOGEN_OWNER = 'sepal'
 export const REPLICATE_AUDIOGEN_SERIALIZER_VERSION = 'replicate.audiogen.v1'
-export const REPLICATE_AUDIOGEN_SELECTOR = `replicate=${REPLICATE_AUDIOGEN_MODEL_ID}@${REPLICATE_AUDIOGEN_PINNED_VERSION}`
+export { REPLICATE_AUDIOGEN_MODEL_ID, REPLICATE_AUDIOGEN_PINNED_VERSION, REPLICATE_AUDIOGEN_SELECTOR } from './sfx-provider-targets'
 
 const SAMPLING_DEFAULTS = {
   topK: 250,

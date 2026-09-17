@@ -1,6 +1,5 @@
 import type { ImageGenOptions, ImageTarget, OpenAIImageModel } from '~/types'
 import { validateOpenAIImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { ensureOpenAIImageGenSetup } from './openai-image-gen'
 import { runOpenAIImageGen } from './run-openai-image-gen'
 import { OPENAI_IMAGE_COUNT_RANGE, validateOpenAIImageOptions } from './openai-image-options'
 export { OPENAI_FIXED_IMAGE_SIZE_VALUES, OPENAI_IMAGE_FORMAT_VALUES, OPENAI_IMAGE_BACKGROUND_VALUES, OPENAI_IMAGE_COUNT_RANGE, OPENAI_IMAGE_COMPRESSION_RANGE } from './openai-image-options'
@@ -57,7 +56,6 @@ export const collectOpenAIImageTargets = (options: ImageGenOptions): ImageTarget
       service: 'openai',
       model,
       run: async (prompt, outputDir) => {
-        await ensureOpenAIImageGenSetup()
         return await runOpenAIImageGen(prompt, outputDir, {
           model,
           mode: hasEditInputs(options) ? 'edit' : 'generation',

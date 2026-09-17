@@ -330,11 +330,15 @@ test('image legs scan once through the shared scan-image composite and derive th
     expect(action.inputs).toHaveProperty(input)
   }
   const steps = action.runs?.steps ?? []
-  expect(steps.filter(step => step.uses === 'anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610')).toHaveLength(1)
-  const scanSteps = steps.filter(step => step.uses === 'anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e')
+  expect(steps.some(step => step.uses?.startsWith('anchore/sbom-action@'))).toBe(false)
+  expect(steps.some(step => step.uses?.startsWith('anchore/scan-action@'))).toBe(false)
+  const installer = steps.find(step => step.name === 'Install Syft and Grype')?.run ?? ''
+  expect(installer).toContain('install-scan-tools.sh')
+  expect(await readFile(resolve(actionDir, 'install-scan-tools.sh'), 'utf8')).toContain('--retry-all-errors')
+  expect(steps.find(step => step.name === 'Inventory the image')?.run).toContain('syft "${IMAGE}" -o "spdx-json=${SBOM}"')
+  const scanSteps = steps.filter(step => step.name === 'Audit the image')
   expect(scanSteps).toHaveLength(1)
-  expect(scanSteps[0]?.with).toMatchObject({ 'fail-build': false, 'output-format': 'json' })
-  expect(scanSteps[0]?.with).not.toHaveProperty('only-fixed')
+  expect(scanSteps[0]?.run).toContain('grype "sbom:${SBOM}" -o json --file "${OUTPUT}"')
   expect(scanSteps[0]?.env?.['GRYPE_DB_CACHE_DIR']).toBeDefined()
   expect(scanSteps[0]?.env?.['GRYPE_DB_AUTO_UPDATE']).toContain("steps.grype-db.outputs.cache-hit == 'true'")
   const restore = steps.find(step => step.uses === 'actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830')

@@ -21,7 +21,7 @@ test('native dialogue preserves stability, dictionaries and exact spoken words',
     audio_base64: audio.toString('base64'),
     voice_segments: [{ voice_id: 'voice-a', dialogue_input_index: 0, start_time_seconds: 0, end_time_seconds: 0.1 }],
   }))
-  const opts = buildOptsFromFlags({ 'elevenlabs-tts': 'eleven_v3', 'tts-dialogue-format': 'labeled', 'tts-speaker': ['Narrator=voice-a'], 'elevenlabs-tts-stability': '0.5', 'elevenlabs-tts-pronunciation-dictionary-locator': ['dictionary-a:version-a'] })
+  const opts = buildOptsFromFlags({ 'elevenlabs-tts': 'eleven_v3', 'tts-dialogue-format': 'labeled', 'tts-speaker': ['Narrator=voice-a'], 'tts-stability': 'elevenlabs=0.5', 'tts-pronunciation-dictionary': ['elevenlabs=dictionary-a:version-a'] })
   await runTtsForTargets('Narrator: Hello there.', await dirs.make(), opts, collectTtsTargets(opts))
   expect(calls).toHaveLength(1)
   expect(calls[0]?.url).toBe('https://api.elevenlabs.io/v1/text-to-dialogue/with-timestamps?output_format=mp3_44100_128')

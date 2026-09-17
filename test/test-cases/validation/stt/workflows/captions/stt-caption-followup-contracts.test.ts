@@ -35,7 +35,9 @@ describe('caption audit follow-ups', () => {
     expect(getSttEngineCapabilities('mistral', 'voxtral-mini-2602').nativeWordTiming).toBe('without-diarization')
     expect(getSttEngineCapabilities('happyscribe', 'auto').supportsDiarizationToggle).toBe(false)
     expect(resolveDiarizationOptions({ diarization: false, diarizationSpeakerCount: 2 }, 'together', 'nvidia/parakeet-tdt-0.6b-v3')).toEqual({ enabled: false })
-    expect(getSttEngineCapabilities('gemini-stt').diarizationKind).toBe('generated')
+    expect(getSttEngineCapabilities('gemini-stt').diarizationKind).toBe('native')
+    expect(getSttEngineCapabilities('gemini-stt').nativeWordTiming).toBe('available')
+    expect(getSttEngineCapabilities('gemini-stt').diarizationByDefault).toBe(true)
   })
 
   test('Parakeet response shape retains speaker words and exposes zero-length native intervals for caption fallback', () => {

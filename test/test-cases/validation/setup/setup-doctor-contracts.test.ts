@@ -365,7 +365,7 @@ describe('setup doctor contracts', () => {
 
     expect(unmapped).toEqual([])
     expect([...getHostedProviderEnvKeysForConfigPrefix(prefix)].sort()).toEqual([...expected].sort())
-    expect(expected).not.toContain('OPENAI_API_KEY')
+    expect(expected).toContain('OPENAI_API_KEY')
     expect(expected).not.toContain('GLM_API_KEY')
     expect(expected).not.toContain('ELEVENLABS_API_KEY')
   })

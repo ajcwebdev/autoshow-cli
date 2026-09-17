@@ -5,6 +5,7 @@ import { collectStep2ProviderSelections } from '../command-shared/extract-routin
 import { collectSttProviderSpecs, resolveDiarizationOptions } from './stt-cli'
 import { isScrapeCreatorsSupportedSourceUrl } from '~/cli/commands/text/url/url-services/scrapecreators/scrapecreators'
 import { isSupadataSupportedSourceUrl } from '~/cli/commands/text/url/url-services/supadata-transcript/supadata'
+import { DEEPINFRA_STT_RESPONSE_FORMATS, type DeepinfraSttResponseFormat } from './stt-response-format-contract'
 
 
 const LOCAL_STT_SERVICES = new Set<SttTarget['service']>([
@@ -41,7 +42,7 @@ const buildSttTarget = (
   const service = provider as SttTarget['service']
   const model = selectedModel ?? service
   const responseFormat = options.deepinfraSttResponseFormat
-  if (responseFormat !== undefined && !['verbose_json', 'srt', 'vtt'].includes(responseFormat)) throw UsageError('--deepinfra-stt-response-format must be verbose_json, srt, or vtt.')
+  if (responseFormat !== undefined && !DEEPINFRA_STT_RESPONSE_FORMATS.includes(responseFormat as DeepinfraSttResponseFormat)) throw UsageError('--stt-response-format for deepinfra must be verbose_json, srt, or vtt.')
 
   return {
     service,

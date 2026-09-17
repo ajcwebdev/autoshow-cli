@@ -13,7 +13,14 @@
       "https://deepinfra.com/openai/whisper-large-v3-turbo/api",
       "https://deepinfra.com/openai/whisper-large-v3-turbo/api?example=openai-speech-http",
       "https://deepinfra.com/openai/whisper-large-v3-turbo/api?example=openai-speech-js",
-      "https://deepinfra.com/google/gemma-4-31B-it/api"
+      "https://deepinfra.com/Qwen/Qwen3-ASR-0.6B/api",
+      "https://deepinfra.com/Qwen/Qwen3-ASR-1.7B/api",
+      "https://deepinfra.com/mistralai/Voxtral-Mini-3B-2507/api",
+      "https://deepinfra.com/mistralai/Voxtral-Small-24B-2507/api",
+      "https://deepinfra.com/nvidia/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b/api",
+      "https://deepinfra.com/google/gemma-4-31B-it/api",
+      "https://deepinfra.com/Qwen/Qwen3.8-27B/api",
+      "https://deepinfra.com/deepseek-ai/DeepSeek-V4.1-Flash/api"
     ],
     "STT": [
       "https://docs.deepinfra.com/api-reference/audio/openai-audio-transcriptions.md"

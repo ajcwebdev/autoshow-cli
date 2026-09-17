@@ -39,7 +39,7 @@ See [`extract`](../02-extract/overview.md), [`write`](../03-write/overview.md), 
 
 Automatic OCR resume skips providers that failed with a non-retryable error such as quota, billing, account suspension, content policy, or auth. If only those providers remain, it reports `only blocked OCR providers remain` instead of rerunning them. Pass `--provider provider=model` to retry a blocked provider after the cause is fixed.
 
-Resume rejects provider-named option flags such as `--elevenlabs-tts-stability` or `--replicate-video-seed`. Set those under `defaults` in `config/autoshow.json`, or rerun the original command.
+Resume rejects retired provider-named option flags such as `--elevenlabs-tts-stability` or `--replicate-video-seed`. Use the provider-general spellings (`--tts-stability elevenlabs=0.4`), set the value under `defaults` in `config/autoshow.json`, or rerun the original command.
 
 ## Examples
 

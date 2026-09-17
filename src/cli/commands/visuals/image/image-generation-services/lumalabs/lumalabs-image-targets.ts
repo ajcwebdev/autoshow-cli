@@ -1,6 +1,5 @@
 import type { ImageGenOptions, ImageTarget, LumalabsImageModel } from '~/types'
 import { validateLumalabsImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { ensureLumalabsImageGenSetup } from './lumalabs-image-gen'
 import { normalizeLumalabsAspectRatio, normalizeLumalabsImageOutputFormat, runLumalabsImageGen } from './run-lumalabs-image-gen'
 import { assertNoUnsupportedFlags } from '../../image-utils/image-target-validation'
 import {
@@ -40,7 +39,6 @@ export const collectLumalabsImageTargets = (options: ImageGenOptions): ImageTarg
       service: 'lumalabs',
       model,
       run: async (prompt, outputDir) => {
-        await ensureLumalabsImageGenSetup()
         return await runLumalabsImageGen(prompt, outputDir, {
           model,
           aspectRatio: options.imageAspectRatio,

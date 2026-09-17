@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeSttCost } from '~/cli/commands/pricing-orchestration/cost-helpers'
 import { computeBilledSttCost } from '~/cli/commands/pricing-orchestration/stt-billing'
-import { computeGeminiSttBillingFromUsage } from '~/cli/commands/stt/diarization-off-by-default/gemini-stt/run-gemini-stt'
+import { computeGeminiSttBillingFromUsage } from '~/cli/commands/stt/diarization/gemini-stt/run-gemini-stt'
 import { buildSttMetadata } from './shared'
 import { buildHostedStep1 } from './stt-pricing-fixtures'
 
@@ -102,7 +102,7 @@ describe('price mode contracts', () => {
     })
 
   test('Gemini STT actual costs use usage metadata token billing', () => {
-      const billing = computeGeminiSttBillingFromUsage('gemini-3.6-flash', {
+      const billing = computeGeminiSttBillingFromUsage('gemini-3.5-transcribe', {
         promptTokenCount: 1200,
         promptTokensDetails: [
           { modality: 'AUDIO', tokenCount: 1000 },
@@ -122,13 +122,13 @@ describe('price mode contracts', () => {
         source: 'provider_usage',
         mode: 'token'
       })
-      expect(billing?.totalCost).toBeCloseTo(0.255)
+      expect(billing?.totalCost).toBeCloseTo(0.36)
 
       const actual = computeActualCosts({
         step1: buildHostedStep1(),
         step2: buildSttMetadata({
           transcriptionService: 'gemini-stt',
-          transcriptionModel: 'gemini-3.6-flash',
+          transcriptionModel: 'gemini-3.5-transcribe',
           ...(billing ? { billing } : {})
         }),
         audioDurationSeconds: 3600
@@ -137,14 +137,14 @@ describe('price mode contracts', () => {
       expect(actual.steps[0]).toMatchObject({
         step: 'stt',
         provider: 'gemini-stt',
-        model: 'gemini-3.6-flash',
+        model: 'gemini-3.5-transcribe',
         costSource: 'provider_usage',
         inputMetric: 'tokens',
         inputValue: 1300,
         promptTokens: 1200,
         completionTokens: 100
       })
-      expect(actual.steps[0]?.cost).toBeCloseTo(0.255)
-      expect(actual.totalCost).toBeCloseTo(0.255)
+      expect(actual.steps[0]?.cost).toBeCloseTo(0.36)
+      expect(actual.totalCost).toBeCloseTo(0.36)
     })
 })

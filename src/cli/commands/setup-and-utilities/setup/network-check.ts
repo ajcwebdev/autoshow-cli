@@ -1,23 +1,25 @@
 import { childEnv } from '~/utils/child-env'
+import { DEFAULT_NETWORK_FIXTURE_DELAY_SECONDS, DEFAULT_NETWORK_FIXTURE_PORT, DEFAULT_NETWORK_PROBE_CLIENT, NETWORK_PROBE_CLIENTS, type NetworkProbeClient } from '~/cli/flags/setup-network-contract'
 import { existsSync } from 'node:fs'
 import { UsageError, InfraError } from '~/utils/error-handler'
 import { createOpenAIResponse } from '~/utils/openai/openai-client'
 import * as l from '~/utils/app-logger/app-logger'
 
-export function networkCheckOptions(flags: Record<string, unknown>) {
+export function networkCheckOptions(flags: Record<string, unknown>, explicitFlags: ReadonlySet<string> = new Set()) {
   const mode = flags['network-check']
   if (mode !== 'serve' && mode !== 'probe') throw UsageError('--network-check must be serve or probe')
-  const delaySeconds = Number(flags['delay-seconds'] ?? 150)
-  const port = Number(flags['port'] ?? 8787)
-  const client = flags['probe-client'] ?? 'rest'
+  const delaySeconds = Number(flags['delay-seconds'] ?? DEFAULT_NETWORK_FIXTURE_DELAY_SECONDS)
+  const port = Number(flags['port'] ?? DEFAULT_NETWORK_FIXTURE_PORT)
+  const client = flags['probe-client'] ?? DEFAULT_NETWORK_PROBE_CLIENT
   if (!Number.isInteger(delaySeconds) || delaySeconds < 1 || delaySeconds > 600) throw UsageError('--delay-seconds must be an integer between 1 and 600')
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw UsageError('--port must be an integer between 1 and 65535')
-  if (!['rest', 'fetch', 'fetch-no-keepalive'].includes(String(client))) throw UsageError('--probe-client must be rest, fetch, or fetch-no-keepalive')
+  if (!NETWORK_PROBE_CLIENTS.includes(String(client) as NetworkProbeClient)) throw UsageError('--probe-client must be rest, fetch, or fetch-no-keepalive')
   let url: URL | undefined
   if (mode === 'probe') {
     try { url = new URL(String(flags['probe-url'])) } catch { throw UsageError('--probe-url requires a local fixture URL') }
     if (url.protocol !== 'http:' || !['localhost', '127.0.0.1', '[::1]', 'host.docker.internal'].includes(url.hostname) || url.username || url.password || url.pathname !== '/' || url.search || url.hash) throw UsageError('--probe-url must be an HTTP origin on localhost or host.docker.internal')
-  } else if (flags['probe-url'] !== undefined || flags['probe-client'] !== undefined) throw UsageError('Probe options require --network-check probe')
+  // --probe-client carries a declared default, so only an explicit occurrence is a serve-mode conflict.
+  } else if (flags['probe-url'] !== undefined || explicitFlags.has('probe-client')) throw UsageError('Probe options require --network-check probe')
   return { mode, delaySeconds, port, client, url }
 }
 
@@ -85,8 +87,8 @@ export async function probeNetworkFixture(url: URL, client: unknown, timeoutMs: 
   })
 }
 
-export async function runNetworkCheck(flags: Record<string, unknown>): Promise<void> {
-  const options = networkCheckOptions(flags)
+export async function runNetworkCheck(flags: Record<string, unknown>, explicitFlags?: ReadonlySet<string>): Promise<void> {
+  const options = networkCheckOptions(flags, explicitFlags)
   if (options.mode === 'serve') {
     const server = serveNetworkFixture(options.port, options.delaySeconds)
     console.log(JSON.stringify({ ready: true, port: server.port, delaySeconds: options.delaySeconds }))

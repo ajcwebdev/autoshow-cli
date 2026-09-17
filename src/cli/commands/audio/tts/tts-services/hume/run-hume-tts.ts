@@ -6,7 +6,7 @@ import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/audio/tts/tts-utils/t
 import { HUME_DEFAULT_TTS_VOICE, HUME_LIBRARY_VOICE_PROVIDER, validateHumeTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { HostedTtsChunkScheduler, HumeTtsModel, HumeVoicePayload, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { HUME_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { resolveCredential } from '~/utils/validate/env-utils'
+import { requireTtsCredential } from '~/cli/commands/audio/tts/tts-utils/tts-credentials'
 import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
@@ -47,7 +47,7 @@ export const runHumeTts = async (
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   if (options.model === 'octave-2' && options.description) throw UsageError('Hume Octave 2 does not support acting descriptions; use Octave 1 for description controls.')
-  const apiKey = resolveCredential('hume', 'require', { stage: 'tts:hume', description: 'Hume TTS' })
+  const apiKey = requireTtsCredential('hume')
 
   const baseURL = trimTrailingSlash(HUME_DEFAULT_BASE_URL)
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.hume)

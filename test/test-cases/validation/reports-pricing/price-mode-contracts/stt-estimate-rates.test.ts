@@ -54,6 +54,7 @@ describe('price mode contracts', () => {
     const estimated = computeEstimatedCosts({
       audioDurationSeconds,
       sttTargets: [
+        { service: 'gemini-stt', model: 'gemini-3.5-transcribe' },
         { service: 'gemini-stt', model: 'gemini-3.6-flash' },
         { service: 'gladia', model: 'solaria-1' },
         { service: 'gladia', model: 'solaria-3' }
@@ -66,11 +67,12 @@ describe('price mode contracts', () => {
       cost: step.cost,
       costMultiplier: step.costMultiplier
     }))).toEqual([
+      { provider: 'gemini-stt', model: 'gemini-3.5-transcribe', cost: 30, costMultiplier: 1 },
       { provider: 'gemini-stt', model: 'gemini-3.6-flash', cost: 17.28, costMultiplier: 1 },
       { provider: 'gladia', model: 'solaria-1', cost: 61, costMultiplier: 1 },
       { provider: 'gladia', model: 'solaria-3', cost: 61, costMultiplier: 1 }
     ])
-    expect(estimated.totalCost).toBe(139.28)
+    expect(estimated.totalCost).toBe(169.28)
   })
 
   test('Soniox v5 estimates use the public async rate without a multiplier', () => {

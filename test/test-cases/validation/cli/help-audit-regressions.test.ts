@@ -9,7 +9,7 @@ import { getHelpTopics } from '~/cli/native/help-topics'
 import { wrapHelpDescription, helpVisibleLength } from '~/cli/native/help-line-wrap'
 import { dispatchNativeCli } from '~/cli/native/dispatcher'
 import { stripAnsi } from '~/utils/terminal-colors'
-import { getModelRegistry, findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
+import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { knownProviders, parseLinksSelection, assertKnownSections } from '~/cli/commands/setup-and-utilities/links/links-selection'
 import { normalizeWriteProviderAlias } from '~/cli/flags/write-provider-alias'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
@@ -64,10 +64,11 @@ describe('audited help behavior', () => {
   test('focused pages select the requested domain and advertise every links provider', () => {
     const documents = renderCommandHelp(root, command('extract'), { topic: 'documents' })
     expect(documents).toContain('--docx-markdown')
-    expect(documents).not.toContain('--stt-segment-concurrency')
+    expect(documents).not.toContain('--step-concurrency')
     const concurrent = renderCommandHelp(root, command('tts'), { topic: 'concurrency' })
-    expect(concurrent).toContain('--tts-chunk-concurrency')
-    expect(concurrent).not.toContain('--ocr-concurrency')
+    expect(concurrent).toContain('--step-concurrency')
+    expect(concurrent).toContain('tts-chunk=N')
+    expect(concurrent).not.toContain('ocr-page=N')
     expect(plain(concurrent)).toContain('not a parallelism limit')
     const provider = plain(renderCommandHelp(root, command('video'), { topic: 'provider:grok' }))
     for (const model of Object.keys(getModelRegistry().video['grok']!.models)) expect(provider).toContain(model)
@@ -104,7 +105,13 @@ describe('audited help behavior', () => {
   })
 
   test('all stored help recipes parse and reference registered provider/model identities', () => {
-    const domains: Record<string, keyof ModelRegistry> = { write: 'llm', tts: 'tts', image: 'image', video: 'video', music: 'music', 'comic generate-audio': 'tts' }
+    const domains: Record<string, keyof ModelRegistry> = {
+      write: 'llm', tts: 'tts', image: 'image', video: 'video', music: 'music',
+      'comic generate-audio': 'tts',
+      // Comic now selects its primary output domain with --provider like every other command.
+      'comic draft-scenes': 'llm', 'comic draft-treatment': 'llm',
+      'comic generate-images': 'image', 'comic reference-sketch': 'image'
+    }
     for (const { command: definition } of inventory) {
       for (const [example] of definition.help?.examples ?? []) {
         // Tokenize quoted literal recipes without executing a shell or any handler.
@@ -131,8 +138,15 @@ describe('audited help behavior', () => {
             const model = parts.join('=')
             if (model && model !== 'all') expect(entry!.models[model], example).toBeDefined()
           }
-          const modelDomain = ({ 'image-model': 'image', 'llm-model': 'llm', 'qa-model': 'llm' } as const)[occurrence.name as 'image-model' | 'llm-model' | 'qa-model']
-          if (modelDomain) for (const model of value.split(',')) expect(findRegistryServiceForModel(modelDomain, model), example).toBeDefined()
+          // Auxiliary roles carry the same provider[=model] grammar as the primary selector.
+          const roleDomain = ({ 'llm-provider': 'llm', 'qa-provider': 'llm' } as const)[occurrence.name as 'llm-provider' | 'qa-provider']
+          if (roleDomain) {
+            const [provider, ...parts] = value.split('=')
+            const entry = getModelRegistry()[roleDomain][provider!]
+            expect(entry, example).toBeDefined()
+            const model = parts.join('=')
+            if (model) expect(entry!.models[model], example).toBeDefined()
+          }
         }
       }
     }
@@ -152,8 +166,8 @@ describe('audited help behavior', () => {
   test('reference sketch rejects unsupported controls before any execution and preserves location options', () => {
     const reference = (args: string[]) => coerceAndValidateReferenceSketch(parseCommandInvocation([referenceSketchCommandDefinition.name, ...args], referenceSketchCommandDefinition, GLOBAL_FLAG_DEFINITIONS))
     for (const kind of ['character', 'location']) expect(() => reference([`--${kind}`, 'sample', '--qa-only'])).toThrow('Unexpected flag: --qa-only')
-    for (const args of [['--qa'], ['--no-qa'], ['--qa-model', 'gpt-5.6-sol'], ['--max-repairs', '0'], ['--llm-model', 'gpt-5.6-sol'], ['--view', 'side']]) expect(() => reference(['--character', 'sample', ...args])).toThrow('only valid with --location')
-    const location = reference(['--location', 'sample', '--qa-model', 'gpt-5.6-sol', '--max-repairs', '2', '--llm-model', 'gpt-5.6-sol', '--view', 'side'])
+    for (const args of [['--qa'], ['--no-qa'], ['--qa-provider', 'openai=gpt-5.6-sol'], ['--max-repairs', '0'], ['--llm-provider', 'openai=gpt-5.6-sol'], ['--view', 'side']]) expect(() => reference(['--character', 'sample', ...args])).toThrow('only valid with --location')
+    const location = reference(['--location', 'sample', '--qa-provider', 'openai=gpt-5.6-sol', '--max-repairs', '2', '--llm-provider', 'openai=gpt-5.6-sol', '--view', 'side'])
     expect(location.qaModel).toBe('gpt-5.6-sol')
     expect(location.maxRepairs).toBe(2)
     expect(location.llmModel).toBe('gpt-5.6-sol')
@@ -220,7 +234,7 @@ describe('audited help behavior', () => {
     applyDefaultVideoSelection(explicit, resolveVideoInput('sample.png', explicit).kind)
     expect(explicit['all-video']).toBeUndefined()
     expect(explicit['grok-video']).toBe('grok-imagine-video-1.5')
-    expect(() => resolveVideoInput('sample.png', { mode: 'text' })).toThrow('infers --mode image-to-video')
+    expect(() => resolveVideoInput('sample.png', { mode: 'text' }, new Set(['mode']))).toThrow('infers --mode image-to-video')
   })
 
   test('shared resume spellings resolve into the workflow-specific runtime options', () => {

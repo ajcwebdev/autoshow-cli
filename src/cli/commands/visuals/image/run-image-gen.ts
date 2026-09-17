@@ -1,49 +1,11 @@
 import { assertRequiredImageModel } from '~/utils/required-image-model'
-import { rename } from 'node:fs/promises'
-import { basename } from 'node:path'
-import type { ImageGenOptions, ImageResult, ImageTarget, Step5Metadata } from '~/types'
-import { sanitizeModelName, runTargets } from '~/cli/commands/command-shared/target-runner'
-import { InfraError, InternalError } from '~/utils/error-handler'
-import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
+import type { ImageGenOptions, ImageTarget, Step5Metadata } from '~/types'
+import { runMediaArtifactFileTargets } from '~/cli/commands/command-shared/media-file-target-runner'
+import { UsageError } from '~/utils/error-handler'
 import {
   collectImageTargets,
   getImageArtifactFileNames,
 } from './image-generation-targets'
-
-const finalizeTargetArtifacts = async (
-  outputDir: string,
-  target: ImageTarget,
-  result: ImageResult,
-  singleTarget: boolean
-): Promise<ImageResult> => {
-  const sourceFileNames = result.imagePaths.map((imagePath) => basename(imagePath))
-  const finalFileNames = getImageArtifactFileNames(target, sourceFileNames, singleTarget)
-  const finalImagePaths: string[] = []
-
-  for (const [index, imagePath] of result.imagePaths.entries()) {
-    const finalFileName = finalFileNames[index]
-    if (!finalFileName) continue
-
-    const finalPath = singleTarget ? imagePath : `${outputDir}/${finalFileName}`
-    if (!singleTarget) await rename(imagePath, finalPath)
-    finalImagePaths.push(finalPath)
-  }
-
-  const primaryPath = finalImagePaths[0]
-  if (!primaryPath) {
-    throw InfraError(`No finalized image artifacts were produced for ${target.service}/${target.model}`, { stage: 'image:run' })
-  }
-
-  return {
-    imagePaths: finalImagePaths,
-    metadata: {
-      ...result.metadata,
-      imageCount: finalImagePaths.length,
-      imageFileNames: finalFileNames,
-      imageFileSize: Bun.file(primaryPath).size,
-    }
-  }
-}
 
 export const runImageTargets = async (
   targets: ImageTarget[],
@@ -52,32 +14,38 @@ export const runImageTargets = async (
   options: ImageGenOptions
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata[] }> => {
   for (const target of targets) assertRequiredImageModel(target.model, target.service)
-  const successes = await runTargets<ImageTarget, ImageResult>({
+  const result = await runMediaArtifactFileTargets<ImageTarget, Step5Metadata, string>({
     targets,
+    prompt,
     outputDir,
-    stepLabel: 'image',
-    noProviderMessage: 'No provider produced images',
-    concurrency: {
-      provider: options.imageProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY,
-      local: DEFAULT_CLI_CONCURRENCY
+    options: {
+      providerConcurrency: options.imageProviderConcurrency,
+      resourceGate: options.generationResourceGate,
+      hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator
     },
-    getWorkspaceDir: (dir, target) =>
-      `${dir}/.image-tmp-${target.service}-${sanitizeModelName(target.model)}`,
-    resourceGate: options.generationResourceGate,
-    hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
-    hostedWorkClass: 'image',
-    runTarget: async (target, workspaceDir) =>
-      target.run(prompt, workspaceDir, options),
-    finalizeTarget: async (target, result, singleTarget) =>
-      finalizeTargetArtifacts(outputDir, target, result, singleTarget),
+    descriptor: {
+      stepLabel: 'image',
+      noProviderMessage: 'No provider produced images',
+      hostedWorkClass: 'image',
+      workspacePrefix: '.image-tmp',
+      // Image targets emit one or more files and name them from the source extension, so finalize even for a lone target.
+      finalizeSingleTarget: true,
+      artifactFailureStage: 'image:run',
+      runTarget: async (target, targetPrompt, workspaceDir) =>
+        await target.run(targetPrompt, workspaceDir, options).then(({ imagePaths, metadata }) => ({ filePaths: imagePaths, metadata })),
+      getArtifactFileNames: getImageArtifactFileNames,
+      finalizeMetadata: (metadata, finalFileNames, finalPaths) => ({
+        ...metadata,
+        imageCount: finalPaths.length,
+        imageFileNames: finalFileNames,
+        imageFileSize: Bun.file(finalPaths[0] as string).size
+      })
+    }
   })
 
   return {
-    imagePaths: successes.flatMap((entry) => entry.imagePaths),
-    metadata: successes.map((entry) => ({
-      ...entry.metadata,
-      ...(options.hostedConcurrencyCoordinator ? { hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot() } : {})
-    }))
+    imagePaths: result.paths,
+    metadata: result.metadata
   }
 }
 
@@ -88,7 +56,7 @@ export const runImageGen = async (
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata[] }> => {
   const targets = collectImageTargets(options)
   if (targets.length === 0) {
-    throw InternalError('No image provider configured', { stage: 'image:run' })
+    throw UsageError('Specify an image generation provider with --provider gemini|openai|grok|replicate|lumalabs|fal[=model]')
   }
 
   return await runImageTargets(targets, prompt, outputDir, options)

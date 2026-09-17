@@ -105,7 +105,7 @@ export const buildOptsFromFlags = (
     llmProviderConcurrency: resolveProviderConcurrency(mergedFlags, 'llm-provider-concurrency', allShortcutFlags['all-llm'], explicitFlags, configuredFlags),
     llmLocalConcurrency: resolveLocalConcurrency(mergedFlags, 'llm-local-concurrency', explicitFlags, configuredFlags),
     ttsProviderConcurrency: resolveProviderConcurrency(scopeIncludes('tts') ? mergedFlags : {}, 'tts-provider-concurrency', scopeIncludes('tts') && allShortcutFlags['all-tts'], explicitFlags, configuredFlags),
-    ttsChunkConcurrency: resolveTtsChunkConcurrency(scopeIncludes('tts') ? mergedFlags : {}, scopeIncludes('tts') ? modelOptions : inactiveModelOptions, explicitFlags, configuredFlags, scopeIncludes('tts') && allShortcutFlags['all-tts']),
+    ttsChunkConcurrency: resolveTtsChunkConcurrency(scopeIncludes('tts') ? mergedFlags : {}, scopeIncludes('tts') ? modelOptions : inactiveModelOptions, configuredFlags, scopeIncludes('tts') && allShortcutFlags['all-tts'], scopeIncludes('tts') ? flagOccurrences : []),
     ...buildImageOptions(scopeIncludes('image') ? ctx : inactiveCtx),
     ...buildVideoOptions(scopeIncludes('video') ? ctx : inactiveCtx),
     ...buildMusicOptions(scopeIncludes('music') ? ctx : inactiveCtx),

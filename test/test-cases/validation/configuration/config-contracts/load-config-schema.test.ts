@@ -44,12 +44,12 @@ describe('config load schema contracts', () => {
           speed: 1.1,
           language: 'en',
           textNormalization: 'on',
-          elevenlabsTtsStability: 0.4,
-          elevenlabsTtsSimilarityBoost: 0.8,
-          elevenlabsTtsStyle: 0.2,
-          elevenlabsTtsUseSpeakerBoost: true,
-          elevenlabsTtsSeed: 12345,
-          elevenlabsTtsPronunciationDictionaryLocators: ['dict_1:version_2'],
+          stability: 'elevenlabs=0.4',
+          similarity: 'elevenlabs=0.8',
+          style: 'elevenlabs=0.2',
+          speakerBoost: 'elevenlabs=true',
+          seed: 'elevenlabs=12345',
+          pronunciationDictionary: ['elevenlabs=dict_1:version_2'],
           chunkConcurrency: 3
         },
         image: {
@@ -86,6 +86,20 @@ describe('config load schema contracts', () => {
     await expect(loadConfig(mistralReference)).rejects.toThrow('Configured --tts-ref-audio paths cannot be used as synthesis defaults')
     await expect(loadConfig(elevenLabsClone)).rejects.toThrow('autoshow config')
     await expect(loadConfig(speechifyConsent)).rejects.toThrow('autoshow config')
+  })
+
+  // v.strictObject would already reject these, but with a message that does not say where the value
+  // went. Renamed keys get a named, actionable error like the retired-provider keys do.
+  test('loadConfig names the provider-general replacement for each renamed option key', async () => {
+    const ttsStability = await writeTempConfig({ defaults: { tts: { elevenlabsTtsStability: 0.4 } } })
+    const ttsDictionary = await writeTempConfig({ defaults: { tts: { elevenlabsTtsPronunciationDictionaryLocators: ['dict_1'] } } })
+    const sttLanguage = await writeTempConfig({ defaults: { extract: { stt: { supadataLang: 'es' } } } })
+    const sttResponseFormat = await writeTempConfig({ defaults: { extract: { stt: { deepinfraResponseFormat: 'srt' } } } })
+
+    await expect(loadConfig(ttsStability)).rejects.toThrow('elevenlabsTtsStability (use stability)')
+    await expect(loadConfig(ttsDictionary)).rejects.toThrow('elevenlabsTtsPronunciationDictionaryLocators (use pronunciationDictionary)')
+    await expect(loadConfig(sttLanguage)).rejects.toThrow('supadataLang (use language)')
+    await expect(loadConfig(sttResponseFormat)).rejects.toThrow('deepinfraResponseFormat (use responseFormat)')
   })
 
   test('removed schema shapes are rejected', async () => {

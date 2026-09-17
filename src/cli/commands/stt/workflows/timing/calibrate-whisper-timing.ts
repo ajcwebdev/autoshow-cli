@@ -25,10 +25,13 @@ export const dtwWordEvidence = (raw: unknown): TranscriptionEvidenceWord[] => {
   return extractWhisperfileWords(JSON.stringify({ transcription })).map(word => ({ text: word.word, normalized: word.word.toLowerCase(), startSeconds: word.start, endSeconds: word.end, ...(word.confidence !== undefined ? { confidence: word.confidence } : {}), timingSource: 'repaired' }))
 }
 
+// Whisperfile is the only calibration engine, so it is a constant rather than a no-op CLI flag.
+export const WHISPER_CALIBRATION_ENGINE = 'whisperfile'
+export const DEFAULT_WHISPER_CALIBRATION_MODEL = 'tiny'
+
 export const resolveWhisperfileCalibration = (flags: Record<string, unknown>) => {
-  const engine = flags['whisper-engine'] ?? 'whisperfile'
-  if (engine !== 'whisperfile') throw UsageError('--whisper-engine must be whisperfile.')
-  const model = flags['whisper-calibration-model'] ?? 'tiny'
+  const engine = WHISPER_CALIBRATION_ENGINE
+  const model = flags['whisper-calibration-model'] ?? DEFAULT_WHISPER_CALIBRATION_MODEL
   if (typeof model !== 'string') throw UsageError('--whisper-calibration-model must name a supported installed whisperfile model.')
   return { engine, model: validateWhisperfileModel(model) }
 }

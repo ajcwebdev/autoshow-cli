@@ -18,7 +18,8 @@ const DOCS = [
   'https://platform.stability.ai/pricing',
 ]
 
-export const STABILITY_STABLE_AUDIO_MODEL_ID = 'stable-audio-3'
+import { STABILITY_STABLE_AUDIO_MODEL_ID } from './sfx-provider-targets'
+export { STABILITY_STABLE_AUDIO_MODEL_ID }
 const STABILITY_STABLE_AUDIO_SERIALIZER_VERSION = 'stability.stable-audio-3.v2'
 export const STABILITY_STABLE_AUDIO_COST_USD = 0.26
 export const STABILITY_STABLE_AUDIO_ENDPOINT = '/v2beta/audio/stable-audio/text-to-audio'

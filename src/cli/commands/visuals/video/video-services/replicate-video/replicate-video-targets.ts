@@ -7,6 +7,7 @@ import {
   isReplicateHappyHorseVideoModel,
   isReplicatePixVerseVideoModel,
   isReplicateSeedanceVideoModel,
+  isReplicateWanVideoModel,
   normalizeReplicateVideoAspectRatio,
   normalizeReplicateVideoDuration,
   normalizeReplicateVideoResolution
@@ -15,6 +16,7 @@ import { validateVideoMediaReferences } from '../../video-utils/video-media-inpu
 
 const getReplicateSupportedVideoModes = (model: ReplicateVideoModel): readonly VideoMode[] => {
   if (isReplicateHappyHorseVideoModel(model)) return ['text', 'image-to-video', 'reference-to-video']
+  if (isReplicateWanVideoModel(model)) return ['text', 'image-to-video']
   if (isReplicateSeedanceVideoModel(model)) return ['text', 'image-to-video', 'interpolate', 'reference-to-video']
   if (isReplicatePixVerseVideoModel(model)) return ['text', 'image-to-video', 'interpolate']
   return ['text']
@@ -93,6 +95,16 @@ export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: Vid
         [options.replicateVideoMultiClip !== undefined, '--replicate-video-multi-clip']
       ])
       validateReplicateSeedanceReferences(model, options)
+    } else if (isReplicateWanVideoModel(model)) {
+      rejectReplicateFlags(model, [
+        [options.videoGenerateAudio !== undefined, '--generate-audio'],
+        [(options.videoReferenceVideos?.length ?? 0) > 0, '--reference-video'],
+        [(options.videoReferenceAudios?.length ?? 0) > 0, '--reference-audio'],
+        [(options.videoReferenceImages?.length ?? 0) > 0, '--reference-image'],
+        [Boolean(options.videoLastFrame), '--last-frame'],
+        [Boolean(options.videoInputVideo), '--input-video'],
+        [options.replicateVideoMultiClip !== undefined, '--replicate-video-multi-clip']
+      ])
     } else if (isReplicatePixVerseVideoModel(model)) {
       rejectReplicateFlags(model, [
         [(options.videoReferenceVideos?.length ?? 0) > 0, '--reference-video'],

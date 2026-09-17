@@ -16,27 +16,13 @@ import {
   SUPPORTED_HUME_TTS_MODELS,
   SUPPORTED_CARTESIA_TTS_MODELS,
   SUPPORTED_INWORLD_TTS_MODELS,
-  SUPPORTED_GEMINI_IMAGE_MODELS,
-  SUPPORTED_GROK_IMAGE_MODELS,
-  SUPPORTED_OPENAI_IMAGE_MODELS,
-  SUPPORTED_REPLICATE_IMAGE_MODELS,
-  SUPPORTED_LUMALABS_IMAGE_MODELS,
-  SUPPORTED_FAL_IMAGE_MODELS,
-  SUPPORTED_ELEVENLABS_MUSIC_MODELS,
-  SUPPORTED_MINIMAX_MUSIC_MODELS,
-  SUPPORTED_GEMINI_MUSIC_MODELS,
-  SUPPORTED_GEMINI_VIDEO_MODELS,
-  SUPPORTED_GROK_VIDEO_MODELS,
-  SUPPORTED_LTX_VIDEO_MODELS,
-  SUPPORTED_REPLICATE_VIDEO_MODELS,
-  SUPPORTED_LUMALABS_VIDEO_MODELS,
-  SUPPORTED_FAL_VIDEO_MODELS
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import {
   getStep2ProviderEntries,
   getStep2AllShortcutModelExpansions,
   isStep2BooleanProviderSelected
 } from '~/cli/commands/command-shared/extract-routing/provider-registry'
+import { getGenerationAllShortcutModelExpansions } from '~/cli/commands/command-shared/generation-routing/generation-model-registry'
 import { REPEATABLE_MODEL_FLAGS } from '~/cli/flags/service-selector-normalization/repeatable-model-flags'
 import type { AllShortcutFlag, CliFlagOccurrence, FlagOccurrenceValue, RepeatableModelFlag, Step2ProviderSelectionOrigin } from '~/types'
 import { readBooleanFlag } from './flag-readers'
@@ -45,6 +31,7 @@ export { REPEATABLE_MODEL_FLAGS }
 
 const REPEATABLE_MODEL_FLAG_SET = new Set<string>(REPEATABLE_MODEL_FLAGS)
 const STEP2_ALL_SHORTCUT_MODEL_EXPANSIONS = getStep2AllShortcutModelExpansions()
+const GENERATION_ALL_SHORTCUT_MODEL_EXPANSIONS = getGenerationAllShortcutModelExpansions()
 const STEP2_PROVIDER_ENTRIES = [
   ...getStep2ProviderEntries('stt'),
   ...getStep2ProviderEntries('ocr'),
@@ -67,21 +54,7 @@ const ALL_SHORTCUT_MODEL_EXPANSIONS: Partial<Record<RepeatableModelFlag, { short
   'hume-tts': { shortcut: 'all-tts', supported: SUPPORTED_HUME_TTS_MODELS },
   'cartesia-tts': { shortcut: 'all-tts', supported: SUPPORTED_CARTESIA_TTS_MODELS },
   'inworld-tts': { shortcut: 'all-tts', supported: SUPPORTED_INWORLD_TTS_MODELS },
-  'gemini-image': { shortcut: 'all-image', supported: SUPPORTED_GEMINI_IMAGE_MODELS },
-  'openai-image': { shortcut: 'all-image', supported: SUPPORTED_OPENAI_IMAGE_MODELS },
-  'grok-image': { shortcut: 'all-image', supported: SUPPORTED_GROK_IMAGE_MODELS },
-  'replicate-image': { shortcut: 'all-image', supported: SUPPORTED_REPLICATE_IMAGE_MODELS },
-  'lumalabs-image': { shortcut: 'all-image', supported: SUPPORTED_LUMALABS_IMAGE_MODELS },
-  'fal-image': { shortcut: 'all-image', supported: SUPPORTED_FAL_IMAGE_MODELS },
-  'elevenlabs-music': { shortcut: 'all-music', supported: SUPPORTED_ELEVENLABS_MUSIC_MODELS },
-  'minimax-music': { shortcut: 'all-music', supported: SUPPORTED_MINIMAX_MUSIC_MODELS },
-  'gemini-music': { shortcut: 'all-music', supported: SUPPORTED_GEMINI_MUSIC_MODELS },
-  'gemini-video': { shortcut: 'all-video', supported: SUPPORTED_GEMINI_VIDEO_MODELS },
-  'grok-video': { shortcut: 'all-video', supported: SUPPORTED_GROK_VIDEO_MODELS },
-  'ltx-video': { shortcut: 'all-video', supported: SUPPORTED_LTX_VIDEO_MODELS },
-  'replicate-video': { shortcut: 'all-video', supported: SUPPORTED_REPLICATE_VIDEO_MODELS },
-  'lumalabs-video': { shortcut: 'all-video', supported: SUPPORTED_LUMALABS_VIDEO_MODELS },
-  'fal-video': { shortcut: 'all-video', supported: SUPPORTED_FAL_VIDEO_MODELS },
+  ...GENERATION_ALL_SHORTCUT_MODEL_EXPANSIONS
 }
 
 const filterAllExpansionModels = (

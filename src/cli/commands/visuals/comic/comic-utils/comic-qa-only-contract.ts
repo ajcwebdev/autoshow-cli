@@ -8,7 +8,7 @@ const QA_ONLY_RULES = {
   grid: '--qa-only cannot be combined with --grid',
   variation: '--qa-only cannot be combined with --variation',
   force: '--qa-only cannot be combined with --force',
-  image: '--qa-only does not accept image-generation options (--image-model, --size, --quality)',
+  image: '--qa-only does not accept image-generation options (--provider, --size, --quality)',
   guide: '--qa-only cannot be combined with --blocking-layout-guide',
 } as const
 

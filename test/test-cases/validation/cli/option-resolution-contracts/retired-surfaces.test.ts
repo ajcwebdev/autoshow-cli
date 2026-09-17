@@ -84,7 +84,7 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
   {
     flag: 'replicate-video',
     model: 'wan-video/wan-2.7-t2v',
-    message: 'Model "wan-video/wan-2.7-t2v" is retired for --provider/--video replicate[=model]. Use "bytedance/seedance-2.5" instead. AutoShow will not silently substitute a different model identity.'
+    message: 'Model "wan-video/wan-2.7-t2v" is retired for --provider/--video replicate[=model]. Use "alibaba/wan-3" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
     flag: 'replicate-video',
@@ -129,12 +129,17 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
   {
     flag: 'gemini-video',
     model: 'veo-3.1-generate-preview',
-    message: 'Model "veo-3.1-generate-preview" is retired for --provider/--video gemini[=model]. Use "veo-3.1-lite-generate-preview" instead. AutoShow will not silently substitute a different model identity.'
+    message: 'Model "veo-3.1-generate-preview" is retired for --provider/--video gemini[=model]. Use "gemini-omni-1.1-flash" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
     flag: 'gemini-video',
     model: 'veo-3.1-fast-generate-preview',
-    message: 'Model "veo-3.1-fast-generate-preview" is retired for --provider/--video gemini[=model]. Use "veo-3.1-lite-generate-preview" instead. AutoShow will not silently substitute a different model identity.'
+    message: 'Model "veo-3.1-fast-generate-preview" is retired for --provider/--video gemini[=model]. Use "gemini-omni-1.1-flash" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'gemini-video',
+    model: 'veo-3.1-lite-generate-preview',
+    message: 'Model "veo-3.1-lite-generate-preview" is retired for --provider/--video gemini[=model]. Use "gemini-omni-1.1-flash" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
     flag: 'minimax-music',

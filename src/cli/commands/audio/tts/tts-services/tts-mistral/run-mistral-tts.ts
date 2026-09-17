@@ -10,7 +10,7 @@ import type { HostedTtsChunkScheduler, MistralReferenceAudio, MistralTtsModel, M
 import { MISTRAL_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { mistralJsonRequest } from '~/utils/mistral/mistral-client'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import { resolveCredential } from '~/utils/validate/env-utils'
+import { requireTtsCredential } from '~/cli/commands/audio/tts/tts-utils/tts-credentials'
 import { UsageError, InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { sha256Bytes } from '../../script-to-audio/contract-identity'
@@ -136,7 +136,7 @@ export const runMistralTts = async (
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const voiceSource = resolveVoiceSource(options)
-  const apiKey = resolveCredential('mistral', 'require', { stage: 'tts:mistral', description: 'Mistral TTS' })
+  const apiKey = requireTtsCredential('mistral')
 
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.mistral)
   if (chunks.length === 0) {

@@ -1,0 +1,31 @@
+{
+  "result": "{\n  \"episodeDescription\": \"James Berkins shares his story of being laid off from Tina CMS during recession-era downsizing and landing a new developer job within 12 hours thanks to his professional network.\"\n}",
+  "metadata": {
+    "llmService": "together",
+    "llmModel": "glm-5.3",
+    "providerReturnedModel": "zai-org/GLM-5.3",
+    "processingTime": 1107,
+    "inputTokenCount": 439,
+    "outputTokenCount": 43,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 439,
+      "outputTokenCount": 43,
+      "totalTokenCount": 482
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 439,
+      "completion_tokens": 43,
+      "total_tokens": 482,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default"
+  }
+}

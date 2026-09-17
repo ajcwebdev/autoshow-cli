@@ -3,14 +3,14 @@ import {
   readOptionalStringFlag
 } from './flag-readers'
 import { hasExplicitOrConfiguredFlag } from './build-options-config-flags'
-import type { ResolveConcurrencyOptions, ResolvedModelOptions } from '~/types'
+import type { CliFlagOccurrence, ResolveConcurrencyOptions, ResolvedModelOptions } from '~/types'
+import { ALL_STEP_CONCURRENCY_SCOPES, resolveStepConcurrency } from '~/cli/flags/service-selector-normalization/step-concurrency-scopes'
 import {
   DEFAULT_ALL_PROVIDER_TTS_CHUNK_CONCURRENCY,
   DEFAULT_ALL_PROVIDER_CONCURRENCY,
   DEFAULT_CLI_CONCURRENCY,
   DEFAULT_GROK_TTS_CHUNK_CONCURRENCY,
-  DEFAULT_TTS_CHUNK_CONCURRENCY,
-  DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE
+  DEFAULT_TTS_CHUNK_CONCURRENCY
 } from '~/utils/concurrency-defaults'
 
 const readExplicitOrConfiguredStringFlag = (
@@ -77,22 +77,30 @@ export const resolveLocalConcurrency = (
   options.defaultValue ?? DEFAULT_CLI_CONCURRENCY
 ))
 
+// `--step-concurrency tts-chunk=N` replaces the old "value differs from the default string"
+// heuristic with a real "was this scope explicitly assigned" check, so an explicit 30 now means 30
+// even under --all-providers.
 export const resolveTtsChunkConcurrency = (
   flags: Record<string, unknown>,
   modelOptions: ResolvedModelOptions,
-  explicitFlags: Set<string>,
   configuredFlags: Set<string>,
-  allShortcutSelected = false
+  allShortcutSelected = false,
+  flagOccurrences: readonly CliFlagOccurrence[] = []
 ): number => {
-  const flagName = 'tts-chunk-concurrency'
-  const rawValue = readOptionalStringFlag(flags, flagName)
-  const hasUserValue = hasExplicitOrConfiguredFlag(flagName, explicitFlags, configuredFlags)
-    || (rawValue !== undefined && rawValue !== DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE)
-  const defaultValue = !hasUserValue && allShortcutSelected
+  const assignment = resolveStepConcurrency(
+    'tts-chunk',
+    ALL_STEP_CONCURRENCY_SCOPES,
+    flagOccurrences,
+    flags,
+    configuredFlags
+  )
+  if (assignment.assigned && assignment.value !== undefined) return Math.max(1, assignment.value)
+
+  const defaultValue = allShortcutSelected
     ? DEFAULT_ALL_PROVIDER_TTS_CHUNK_CONCURRENCY
-    : !hasUserValue && isGrokOnlyHostedTtsSelection(modelOptions)
+    : isGrokOnlyHostedTtsSelection(modelOptions)
       ? DEFAULT_GROK_TTS_CHUNK_CONCURRENCY
       : DEFAULT_TTS_CHUNK_CONCURRENCY
 
-  return Math.max(1, parseIntWithDefault(hasUserValue ? rawValue : undefined, defaultValue))
+  return Math.max(1, defaultValue)
 }

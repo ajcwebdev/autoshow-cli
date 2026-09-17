@@ -25,6 +25,20 @@ export const sttRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/deepinfra-openai-whisper-large-v3-turbo.test.ts', [
     command('transcribe-deepinfra-openai/whisper-large-v3-turbo', 'transcribe-deepinfra-openai/whisper-large-v3-turbo', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'deepinfra=openai/whisper-large-v3-turbo', '--price']),
   ]),
+  ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/deepinfra-qwen3-asr.test.ts', [
+    command('transcribe-deepinfra-Qwen/Qwen3-ASR-0.6B', 'transcribe-deepinfra-Qwen/Qwen3-ASR-0.6B', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'deepinfra=Qwen/Qwen3-ASR-0.6B', '--price']),
+    command('transcribe-deepinfra-Qwen/Qwen3-ASR-1.7B', 'transcribe-deepinfra-Qwen/Qwen3-ASR-1.7B', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'deepinfra=Qwen/Qwen3-ASR-1.7B', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/deepinfra-voxtral.test.ts', [
+    command('transcribe-deepinfra-mistralai/Voxtral-Mini-3B-2507', 'transcribe-deepinfra-mistralai/Voxtral-Mini-3B-2507', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'deepinfra=mistralai/Voxtral-Mini-3B-2507', '--price']),
+    command('transcribe-deepinfra-mistralai/Voxtral-Small-24B-2507', 'transcribe-deepinfra-mistralai/Voxtral-Small-24B-2507', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'deepinfra=mistralai/Voxtral-Small-24B-2507', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/deepinfra-nemotron-3.5-asr-streaming-multilingual.test.ts', [
+    command('transcribe-deepinfra-nvidia/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b', 'transcribe-deepinfra-nvidia/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'deepinfra=nvidia/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/openai-gpt-transcribe.test.ts', [
+    command('transcribe-openai-stt-gpt-transcribe', 'transcribe-openai-stt-gpt-transcribe', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'openai=gpt-transcribe', '--price']),
+  ]),
   ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/together-current-models.test.ts', [
     command('transcribe-together-openai/whisper-large-v3', 'transcribe-together-openai/whisper-large-v3', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'together=openai/whisper-large-v3', '--price']),
     command('transcribe-together-nvidia/parakeet-tdt-0.6b-v3', 'transcribe-together-nvidia/parakeet-tdt-0.6b-v3', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'together=nvidia/parakeet-tdt-0.6b-v3', '--price']),
@@ -41,14 +55,12 @@ export const sttRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/stt/diarization/mistral-voxtral-mini-2602.test.ts', [
     command('transcribe-mistral-voxtral-mini-2602', 'transcribe-mistral-voxtral-mini-2602', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'mistral=voxtral-mini-2602', '--price']),
   ]),
-  ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/gemini-3-6-flash.test.ts', [
-    command('transcribe-gemini-stt-gemini-3.6-flash', 'transcribe-gemini-stt-gemini-3.6-flash', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'gemini=gemini-3.6-flash', '--price']),
+  ...exact('test/test-cases/e2e/service/stt/diarization/gemini-3.5-transcribe.test.ts', [
+    command('transcribe-gemini-stt-gemini-3.5-transcribe', 'transcribe-gemini-stt-gemini-3.5-transcribe', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'gemini=gemini-3.5-transcribe', '--price']),
   ]),
   ...exact('test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts', [
     command('transcribe-whisperfile-tiny', 'transcribe-whisperfile-tiny', ['src/cli/create-cli.ts', 'music', '--audio', 'input/examples/audio/0-audio-short.mp3', '--model', 'tiny', '--price']),
     command('transcribe-whisperfile-small.en', 'transcribe-whisperfile-small.en', ['src/cli/create-cli.ts', 'music', '--audio', 'input/examples/lyrics/01-example-song.mp3', '--price']),
   ]),
-  ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/gemini-3.8-flash.test.ts', [
-    command('transcribe-gemini-stt-gemini-3.8-flash', 'transcribe-gemini-stt-gemini-3.8-flash', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'gemini=gemini-3.8-flash', '--price']),
-  ]),
+
 ]

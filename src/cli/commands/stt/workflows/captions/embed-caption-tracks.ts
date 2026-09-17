@@ -20,6 +20,9 @@ const capture = async (args: string[]): Promise<string> => {
 
 export const probeCaptionMedia = async (source: string): Promise<CaptionProbe> => JSON.parse(await capture([getFfprobeBinary(), '-v', 'error', '-show_streams', '-show_chapters', '-of', 'json', resolve(source)])) as CaptionProbe
 
+// Single source of truth for the accepted --caption-container selections; help derives from it.
+export const CAPTION_CONTAINER_SELECTIONS = ['mp4', 'mkv', 'both'] as const
+
 export const captionContainers = (source: string, requested: unknown): CaptionContainer[] => {
   if (requested === 'both') return ['mp4', 'mkv']
   if (requested !== undefined && requested !== 'mp4' && requested !== 'mkv') throw UsageError('--caption-container must be mp4, mkv, or both.')

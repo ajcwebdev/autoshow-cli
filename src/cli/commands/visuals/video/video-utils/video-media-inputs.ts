@@ -124,6 +124,32 @@ export const videoMediaReferenceToGeminiVideoImage = async (
   }
 }
 
+export const videoMediaReferenceToGeminiInteractionPart = async (
+  value: string,
+  kind: Exclude<VideoMediaKind, 'audio'>
+): Promise<{ type: 'image' | 'video', data: string, mime_type: string }> => {
+  const { bytes, mimeType } = await mediaEngine(kind).resolveBytes(value)
+  return {
+    type: kind,
+    data: Buffer.from(bytes).toString('base64'),
+    mime_type: mimeType
+  }
+}
+
+export const resolveVideoMediaFileForUpload = async (
+  value: string,
+  outputDir: string
+): Promise<{ path: string, mimeType: string }> => {
+  const engine = mediaEngine('video')
+  if (!engine.isHttpUrl(value) && !engine.isDataUrl(value) && existsSync(value)) {
+    return { path: value, mimeType: engine.getLocalMimeType(value) ?? 'video/mp4' }
+  }
+  const { bytes, mimeType } = await engine.resolveBytes(value)
+  const path = `${outputDir}/omni-upload-source.mp4`
+  await Bun.write(path, bytes)
+  return { path, mimeType }
+}
+
 export const videoMediaReferenceToGrokUrlObject = async (
   value: string,
   kind: VideoMediaKind

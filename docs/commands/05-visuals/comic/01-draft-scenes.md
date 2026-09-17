@@ -26,15 +26,15 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 | `--rebind`                             | Remap the existing plan's citations to the current structured script and report unresolved ones; requires `--only blocking` and makes no provider call                                                                                                                                        | `false`                |
 | `--reconcile-from-directives`          | Apply the script's `**CAMERA:**`, `**BREAK-180:**`, `**COSTUME:**`, and `**EXTRAS:**` staging directives to the reviewed scene and blocking plan without an LLM call; rejects panel splits and merges and cannot be combined with `--only`, `--rebind`, `--blocking-plan`, or `--panel-count` | `false`                |
 | `--panel-count <n>`                    | Require exactly this many panels from the `scene` stage, one per authored `[Panel N]` note in order; only valid with `--only scene` or a full run                                                                                                                                             | none                   |
-| `--concurrency <n>`                    | Number of panels to build prompt bundles for in parallel during `panel-prompts`, and the hosted request cap for the `blocking` and `scene` stages                                                                                                                                             | `7`                    |
+| `--provider-concurrency <n>`           | Number of panels to build prompt bundles for in parallel during `panel-prompts`, and the hosted request cap for the `blocking` and `scene` stages                                                                                                                                             | `7`                    |
 | `--concurrency-mode <ramp\|immediate>` | Approach hosted LLM work from one request per provider/account lane (`ramp`) or start at the configured cap (`immediate`)                                                                                                                                                                     | `ramp`                 |
 | `--price`                              | Estimate API-backed stages without making API calls                                                                                                                                                                                                                                           | `false`                |
 
 ### Advanced Options
 
-| Flag                  | Description                                                                                                                                                                                | Default                                             |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
-| `--llm-model <model>` | Text model for the `blocking` and `scene` stages (see [Supported Models](./00-comic-overview.md#supported-models)); the `blocking` stage requires an OpenAI or Gemini vision-capable model | `gpt-5.6-sol` for the `blocking` and `scene` stages |
+| Flag                            | Description                                                                                                                                                                                | Default                                             |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
+| `--provider <provider[=model]>` | Text model for the `blocking` and `scene` stages (see [Supported Models](./00-comic-overview.md#supported-models)); the `blocking` stage requires an OpenAI or Gemini vision-capable model | `gpt-5.6-sol` for the `blocking` and `scene` stages |
 
 ### Examples
 
@@ -55,13 +55,13 @@ bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --no-block
 ### Behavior
 
 - The full run executes `structure`, `prompt`, `blocking`, `scene`, and `panel-prompts` in order. `--no-blocking` skips `blocking` and makes later stages ignore any existing `metadata/blocking-plan.json`.
-- `--only structure` parses episode Markdown into structured script JSON locally, and adds an LLM review pass only when `--llm-model` is passed explicitly.
+- `--only structure` parses episode Markdown into structured script JSON locally, and adds an LLM review pass only when `--provider` is passed explicitly.
 - `--only prompt` writes `metadata/draft-prompt.md` and `metadata/blocking-prompt.md` without calling an API. When a blocking plan already exists, the scene-drafting prompt includes it.
 - `--only blocking` drafts `metadata/blocking-plan.json` from the structured script, the character catalog, location specifications, and each location's establishing view. A plan that fails validation is saved as `metadata/blocking-plan.invalid.json`.
 - `--only scene` drafts scene JSON from an existing prompt bundle. When a plan exists, every panel must cite it. Invalid output is saved as `scene.invalid.json`.
 - `--panel-count <n>` requires exactly `n` panels, matching authored `[Panel N]` notes in order when those notes exist. The stage fails before any call when the authored note count differs from `n`. Treatments from [`draft-treatment`](./07-draft-treatment.md) always author one note per panel, so pass the same count here.
 - `--only panel-prompts` builds panel prompt bundles from existing scene JSON without calling an API. Register [character and location references](./02-reference-sketch.md) first. When a plan exists, `metadata/blocking/` receives `plan-overview.svg`, one `panel-NN.svg` per panel, `blocking-ledger.md`, and a `panel-NN-layout.png` for dense panels.
-- `--price` estimates the `blocking` and `scene` stages without calling a provider, and the `structure` stage when `--llm-model` is passed. Import, rebind, prompt, and panel-prompts report zero calls. `--panel-count` sets the panel count used in the scene estimate.
+- `--price` estimates the `blocking` and `scene` stages without calling a provider, and the `structure` stage when `--provider` is passed. Import, rebind, prompt, and panel-prompts report zero calls. `--panel-count` sets the panel count used in the scene estimate.
 
 ### Blocking plan
 

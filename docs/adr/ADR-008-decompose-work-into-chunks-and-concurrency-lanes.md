@@ -4,8 +4,9 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-10
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-16
 - **Verification Status:** Passed
+- **Supersession:** The intra-step concurrency flag spellings `--ocr-concurrency`, `--stt-segment-concurrency`, `--stt-preflight-concurrency`, `--tts-chunk-concurrency`, and `--sfx-concurrency`, plus `--url-provider-concurrency`, are superseded by [ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md), which replaces them with `--step-concurrency <scope>=N` and the shared `--provider-concurrency` lane. The lane architecture, hosted admission coordinator, and fair-queue behavior recorded here remain accepted and unchanged.
 
 ## Context
 

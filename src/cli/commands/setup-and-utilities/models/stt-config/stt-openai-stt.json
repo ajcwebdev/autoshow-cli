@@ -1,0 +1,28 @@
+{
+  "openai-stt": {
+    "description": "OpenAI batch speech-to-text",
+    "type": "api",
+    "models": {
+      "gpt-transcribe": {
+        "description": "OpenAI gpt-transcribe via the /v1/audio/transcriptions file endpoint",
+        "pricingSourceUrl": "https://developers.openai.com/api/docs/pricing",
+        "pricingCheckedAt": "2026-09-16",
+        "pricingCurrency": "USD",
+        "pricingTier": "OpenAI public per-minute transcription pricing",
+        "pricingNotes": "OpenAI lists gpt-transcribe at $0.0045/min, stored as $0.27/hr. The endpoint reports billed audio in whole seconds through usage.seconds. Batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerHourCents": 27,
+        "billing": {
+          "roundingIncrementSeconds": 1
+        },
+        "limits": {
+          "directUploadBytes": 26214400,
+          "notes": "https://developers.openai.com/api/docs/guides/speech-to-text documents a 25 MB upload limit for /v1/audio/transcriptions and accepts mp3, mp4, mpeg, mpga, m4a, wav, and webm. No batch duration cap is published. Verified 2026-09-16: gpt-transcribe rejects response_format verbose_json and srt/vtt, so AutoShow requests response_format json and records a single whole-request segment with no native word timing."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 55
+        }
+      }
+    }
+  }
+}

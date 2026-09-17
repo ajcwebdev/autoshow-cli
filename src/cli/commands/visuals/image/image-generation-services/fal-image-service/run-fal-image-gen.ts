@@ -1,12 +1,10 @@
-import { mkdir } from 'node:fs/promises'
 import type { FalImageFile, FalImageModel, FalImageOutput, Step5Metadata } from '~/types'
 import { UsageError, InfraError } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/command-shared/generation-command-utils'
+import { runImageGeneration } from '~/cli/commands/command-shared/media-generation/image-generation-scaffold'
 import { estimateImageCosts, logImageEstimate } from '../../image-utils/image-pricing'
 import { imageReferenceToUrlOrDataUrl } from '../../image-utils/image-inputs'
 import { downloadImageUrl } from '../../image-utils/image-output'
 import { runFalQueue } from '~/utils/fal-client/fal-queue'
-import { ensureFalImageGenSetup } from './fal-image-gen'
 
 const FAL_IMAGE_FORMATS = ['png', 'jpeg', 'webp'] as const
 export const FAL_IMAGE_COUNT_RANGE = [1, 4] as const
@@ -114,45 +112,50 @@ export const runFalImageGen = async (prompt: string, outputDir: string, options:
   pollIntervalMs?: number | undefined
 }): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
   if (!prompt.trim()) throw UsageError('fal.ai image prompt cannot be empty.')
-  const apiKey = await ensureFalImageGenSetup()
-  const request = await buildRequest(prompt, { ...options, inputs: options.inputs ?? [] })
-  const estimate = estimateImageCosts({ falImageModels: [options.model], imageCount: request.count, imageSize: request.metadataSize ?? options.imageSize })[0]
-  if (estimate) logImageEstimate(estimate)
-  logMediaGenerationStatus( { mediaType: 'image', provider: 'fal', model: options.model, status: 'started', detail: request.mode })
-  const startTime = Date.now()
-  await mkdir(outputDir, { recursive: true })
-  const result = await runFalQueue<FalImageOutput>({
-    apiKey,
-    endpointId: request.endpointId,
-    input: request.input,
-    pollIntervalMs: options.pollIntervalMs,
-    operationName: 'fal-image-gen',
-    onStatus: status => logMediaGenerationStatus( { mediaType: 'image', provider: 'fal', model: options.model, status: status.status })
-  })
-  if (!Array.isArray(result.output.images)) throw InfraError('fal.ai image generation completed without images', { stage: 'image:fal' })
-  const files = result.output.images.filter((value): value is FalImageFile => Boolean(value) && typeof value === 'object' && typeof (value as FalImageFile).url === 'string')
-  if (files.length === 0) throw InfraError('fal.ai image generation completed without image URLs', { stage: 'image:fal' })
   const extension = getFalImageExtension(options.outputFormat)
-  const imagePaths = await Promise.all(files.map(async (file, index) => await downloadImageUrl(file.url as string, outputDir, index, extension)))
-  const processingTime = Date.now() - startTime
-  const outputDimensions = request.metadataSize?.split('x').map(Number)
-  logMediaGenerationStatus( { mediaType: 'image', provider: 'fal', model: options.model, status: 'completed', processingTimeMs: processingTime, outputCount: imagePaths.length, artifacts: imagePaths.map((path, index) => ({ artifact: index ? `image ${index + 1}` : 'image', path })) })
-  return {
-    imagePaths,
-    metadata: {
-      imageService: 'fal',
-      imageModel: options.model,
-      imageFileNames: imagePaths.map(path => path.split('/').pop()!),
-      imageFileSize: Bun.file(imagePaths[0]!).size,
-      imageWidth: outputDimensions?.[0],
-      imageHeight: outputDimensions?.[1],
-      imageCount: imagePaths.length,
-      processingTime,
-      requestMode: request.mode,
-      ...(request.metadataSize ? { imageSize: request.metadataSize } : {}),
-      ...(options.aspectRatio ? { imageAspectRatio: options.aspectRatio } : {}),
-      imageFormat: extension,
-      ...(estimate ? { providerCostCents: estimate.totalCost, providerCostSource: 'registry_fallback' as const } : {})
+
+  return await runImageGeneration({
+    service: 'fal',
+    model: options.model,
+    outputDir,
+    prepare: async () => {
+      const request = await buildRequest(prompt, { ...options, inputs: options.inputs ?? [] })
+      return {
+        request,
+        estimate: estimateImageCosts({ falImageModels: [options.model], imageCount: request.count, imageSize: request.metadataSize ?? options.imageSize })[0]
+      }
+    },
+    startDetail: (prepared) => prepared.request.mode,
+    estimate: (prepared) => {
+      if (prepared.estimate) logImageEstimate(prepared.estimate)
+    },
+    execute: async (context, { request, estimate }) => {
+      const result = await runFalQueue<FalImageOutput>({
+        apiKey: context.apiKey,
+        endpointId: request.endpointId,
+        input: request.input,
+        pollIntervalMs: options.pollIntervalMs,
+        operationName: 'fal-image-gen',
+        onStatus: status => context.logStatus(status.status)
+      })
+      if (!Array.isArray(result.output.images)) throw InfraError('fal.ai image generation completed without images', { stage: 'image:fal' })
+      const files = result.output.images.filter((value): value is FalImageFile => Boolean(value) && typeof value === 'object' && typeof (value as FalImageFile).url === 'string')
+      if (files.length === 0) throw InfraError('fal.ai image generation completed without image URLs', { stage: 'image:fal' })
+      const imagePaths = await Promise.all(files.map(async (file, index) => await downloadImageUrl(file.url as string, context.outputDir, index, extension)))
+      const outputDimensions = request.metadataSize?.split('x').map(Number)
+
+      return {
+        artifactPaths: imagePaths,
+        metadata: {
+          imageWidth: outputDimensions?.[0],
+          imageHeight: outputDimensions?.[1],
+          requestMode: request.mode,
+          ...(request.metadataSize ? { imageSize: request.metadataSize } : {}),
+          ...(options.aspectRatio ? { imageAspectRatio: options.aspectRatio } : {}),
+          imageFormat: extension,
+          ...(estimate ? { providerCostCents: estimate.totalCost, providerCostSource: 'registry_fallback' as const } : {})
+        }
+      }
     }
-  }
+  })
 }

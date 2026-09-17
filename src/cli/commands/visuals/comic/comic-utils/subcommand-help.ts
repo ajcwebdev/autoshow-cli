@@ -120,7 +120,7 @@ export const generateImagesCommandDefinition = defineCliCommand({
       'Reviewed scene and panel prompt bundles are required; --force only regenerates image outputs.',
       `To rebuild panel prompts explicitly, run: bun autoshow comic ${DRAFT_SCENES_COMMAND} <script-path> --only panel-prompts`,
       'QA-only mode reads canonical individual panels and writes a separate audit report without generation, repairs, promotion, or image-manifest changes.',
-      'QA options (--qa, --qa-model, --max-repairs) only apply when --target is images or both.',
+      'QA options (--qa, --qa-provider, --max-repairs) only apply when --target is images or both.',
       ARTIFACT_NOTE
     ]
   }

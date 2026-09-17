@@ -1,9 +1,30 @@
 import { DEFAULT_CONCURRENCY_FLAG_VALUE } from '~/utils/concurrency-defaults'
+import {
+  STEP_CONCURRENCY_FLAG,
+  stepConcurrencyDefaults,
+  stepConcurrencyDescription,
+  STEP_CONCURRENCY_SCOPES_HELP_KEY,
+  type StepConcurrencyScope
+} from './service-selector-normalization/step-concurrency-scopes'
 import { OUTPUT_FORMATS } from '~/types'
-import type { CliFlagsDefinition } from '~/types'
+import type { CliFlagDefinition, CliFlagsDefinition } from '~/types'
 import { boolFlag, formatProviderList, formatValueList, strFlag, strListFlag } from './flag-utils'
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/command-shared/extract-routing/provider-registry'
-import { PDF_CHAPTER_MODES } from '~/cli/options/option-resolution/flag-readers'
+import { HOSTED_CONCURRENCY_MODES, DEFAULT_HOSTED_CONCURRENCY_MODE, PDF_CHAPTER_MODES } from '~/cli/options/option-resolution/flag-readers'
+import { DEFAULT_OCR_PROVIDER_MODE, OCR_PROVIDER_MODES } from './ocr-provider-mode-contract'
+import { genericSttOptionDefault, genericSttOptionDescription, type GenericSttOptionFlag } from './service-selector-normalization/generic-stt-controls'
+
+// Provider-general STT option flags follow the scoped-repeatable convention: the rendered default is
+// an array of `provider=value` strings derived from the capability table, and resolution reads that
+// same table rather than the seeded value.
+const genericSttOptionFlag = (name: GenericSttOptionFlag, summary: string): CliFlagDefinition => {
+  const seeded = genericSttOptionDefault(name)
+  return {
+    description: genericSttOptionDescription(name, summary),
+    type: [String] as [StringConstructor],
+    ...(seeded ? { default: seeded } : {})
+  }
+}
 import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS, WRITE_OCR_PROVIDER_TARGETS, WRITE_STT_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 
 import { NORMALIZED_REASONING_EFFORTS } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
@@ -21,7 +42,7 @@ export const reasoningEffortFlag = {
 } as const satisfies CliFlagsDefinition
 
 export const ocrProviderModeFlag = {
-  'ocr-provider-mode': strFlag('Multi-provider OCR execution mode: fanout|pool', 'fanout')
+  'ocr-provider-mode': strFlag(`Multi-provider OCR execution mode: ${formatValueList(OCR_PROVIDER_MODES)}`, DEFAULT_OCR_PROVIDER_MODE)
 } as const satisfies CliFlagsDefinition
 
 export const primaryOcrFlag = {
@@ -34,12 +55,6 @@ export const booleanAllProvidersFlag = {
 
 export const booleanAllLocalFlag = {
   'all-local': boolFlag('Run every local engine/backend supported by this command and input route')
-} as const satisfies CliFlagsDefinition
-
-export const stepProviderSelectorFlags = {
-  stt: strListFlag(`Write pipeline STT provider[=model]: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisperfile=tiny)`),
-  ocr: strListFlag(`Write pipeline OCR provider[=model]: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (default: tesseract)`),
-  llm: strListFlag(`LLM provider[=model]: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`)
 } as const satisfies CliFlagsDefinition
 
 export const configPipelineSelectorFlags = {
@@ -55,16 +70,8 @@ export const configGenerationSelectorFlags = {
   music: strListFlag(`Default music provider[=model] persisted for the music command: ${formatProviderList(STANDALONE_MUSIC_PROVIDER_TARGETS)}`)
 } as const satisfies CliFlagsDefinition
 
-export const writeAllProvidersFlag = {
-  'all-providers': strListFlag('Write pipeline hosted/API-backed all-provider selector, repeatable for stt|ocr|url|llm')
-} as const satisfies CliFlagsDefinition
-
-export const writeAllLocalFlag = {
-  'all-local': strListFlag('Write pipeline local engine/backend selector, repeatable for stt|ocr|url')
-} as const satisfies CliFlagsDefinition
-
 export const sharedConcurrencyFlags = {
-  'concurrency-mode': strFlag('Hosted concurrency startup policy: ramp|immediate', 'ramp'),
+  'concurrency-mode': strFlag(`Hosted concurrency startup policy: ${formatValueList(HOSTED_CONCURRENCY_MODES)}`, DEFAULT_HOSTED_CONCURRENCY_MODE),
   'provider-concurrency': strFlag('Max hosted provider/model targets running in parallel for one item; internal request or chunk fan-out uses its own limit', DEFAULT_CONCURRENCY_FLAG_VALUE),
   'local-concurrency': strFlag('Max local providers/models running in parallel for one item', DEFAULT_CONCURRENCY_FLAG_VALUE)
 } as const satisfies CliFlagsDefinition
@@ -77,20 +84,28 @@ export const batchFlags = {
 
 export const transcriptionFlags = {
   'youtube-captions': boolFlag('Prefer English YouTube captions before STT when available; falls back to the normal STT provider path'),
-  'stt-happyscribe-organization-id': strFlag('Happy Scribe organization/workspace ID; required when the API key can access multiple organizations'),
-  'stt-supadata-lang': strFlag('Supadata preferred transcript language (ISO 639-1); used with auto mode when a native transcript is available'),
-  'stt-scrapecreators-lang': strFlag('ScrapeCreators YouTube transcript language code', 'en'),
-  'stt-grok-verbatim': boolFlag('Grok: retain filler words and disable numeric/currency formatting for verbatim captions'),
-  'stt-supadata-chunk-size': strFlag('Supadata: desired transcript chunk size in characters; does not add word alignment'),
-  'deepinfra-stt-response-format': strFlag('DeepInfra response: verbose_json (default, retains words)|srt|vtt; text formats use one inference and retain cue timing only'),
+  'stt-organization-id': genericSttOptionFlag('stt-organization-id', 'Provider organization/workspace ID; required when the API key can access multiple organizations'),
+  'stt-language': genericSttOptionFlag('stt-language', 'Preferred transcript language (ISO 639-1); used when a native transcript is available'),
+  'stt-verbatim': genericSttOptionFlag('stt-verbatim', 'Retain filler words and disable numeric/currency formatting for verbatim captions'),
+  'stt-chunk-size': genericSttOptionFlag('stt-chunk-size', 'Desired transcript chunk size in characters; does not add word alignment'),
+  'stt-response-format': genericSttOptionFlag('stt-response-format', 'Transcription response format; verbose_json retains words, and the text formats use one inference and retain cue timing only'),
   'stt-audio-profile': strFlag('Audio preparation: default (provider compression) or lossless (verified float32 WAV, original channels/rate)'),
   'native-subtitles': boolFlag('Also save native subtitles where available, reusing the current inference/job; exports may consume provider quota'),
   diarization: { description: 'Enable or disable diarization on supported STT providers; default uses each provider’s normal mode', type: Boolean, negatable: true },
   'speaker-count': strFlag('Optional diarization speaker-count hint (positive integer); unsupported providers report one aggregated warning at runtime'),
-  split: boolFlag('Split audio into 30-minute segments for transcription'),
-  'stt-segment-concurrency': strFlag('STT: max split segments in flight per provider (local clamps to 1)', DEFAULT_CONCURRENCY_FLAG_VALUE),
-  'stt-preflight-concurrency': strFlag('STT: max duration probes running in parallel during preflight', DEFAULT_CONCURRENCY_FLAG_VALUE)
+  split: boolFlag('Split audio into 30-minute segments for transcription')
 } as const satisfies CliFlagsDefinition
+
+// One repeatable flag replaces the five intra-step concurrency knobs. Each command registers only
+// the scopes it runs, and both the description and the rendered default come from the registry.
+export const stepConcurrencyFlag = (scopes: readonly StepConcurrencyScope[]): CliFlagsDefinition => ({
+  [STEP_CONCURRENCY_FLAG]: {
+    description: stepConcurrencyDescription(scopes),
+    type: [String] as [StringConstructor],
+    default: stepConcurrencyDefaults(scopes),
+    help: { [STEP_CONCURRENCY_SCOPES_HELP_KEY]: [...scopes] }
+  }
+})
 
 export const promptFlag = {
   prompt: {
@@ -119,12 +134,10 @@ export const articleFlags = {
 } as const satisfies CliFlagsDefinition
 
 export const articleTuningFlags = {
-  'url-provider-concurrency': strFlag('URL article extraction: max hosted URL providers running in parallel for one item', DEFAULT_CONCURRENCY_FLAG_VALUE),
   'url-request-timeout-ms': strFlag('URL article extraction: per-provider request timeout in milliseconds', '60000'),
   'url-request-attempts': strFlag('URL article extraction: total provider request attempts including retries', '3')
 } as const satisfies CliFlagsDefinition
 
 export const ocrTuningFlags = {
-  'ocr-dpi': strFlag('Render DPI for OCR pages', '300'),
-  'ocr-concurrency': strFlag('Page-level OCR concurrency cap. Local OCR defaults to 10; hosted OCR defaults to auto. Explicit values are hosted hard caps.')
+  'ocr-dpi': strFlag('Render DPI for OCR pages', '300')
 } as const satisfies CliFlagsDefinition

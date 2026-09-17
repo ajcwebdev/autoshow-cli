@@ -4,7 +4,6 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { discoverCombinedRuns, type CombinedRunRef } from "../shared/combined_report_lib";
 import {
-  renderCombinedDashboard,
   type CombinedDashboardModel,
   type DashboardGroup,
   type DashboardProviderRow,
@@ -415,9 +414,9 @@ function buildDashboardGroup(
     display: provider.providerKey,
     model: provider.model,
     coverage: `${provider.runsCovered}/${runs.length}`,
-    quality: { display: formatQuality(provider.avgQualityScore), rank: qualityRank.get(provider.providerKey) ?? null },
-    speed: { display: formatPagesPerMinute(provider.pagesPerMinute), rank: speedRank.get(provider.providerKey) ?? null },
-    cost: { display: formatCostPer100Pages(priceValue(provider)), rank: priceRank.get(provider.providerKey) ?? null },
+    quality: { display: formatQuality(provider.avgQualityScore), rank: qualityRank.get(provider.providerKey) ?? null, value: provider.avgQualityScore },
+    speed: { display: formatPagesPerMinute(provider.pagesPerMinute), rank: speedRank.get(provider.providerKey) ?? null, value: provider.pagesPerMinute },
+    cost: { display: formatCostPer100Pages(priceValue(provider)), rank: priceRank.get(provider.providerKey) ?? null, value: priceValue(provider) },
     evidence: [formatPercent(provider.weightedWER), formatPercent(provider.weightedCER), formatTime(provider.avgProcessingTimeMs)],
     perRun: runs.map((run) => {
       const value = provider.perRun[run.runName];
@@ -433,18 +432,23 @@ function buildDashboardGroup(
     key: group,
     label: GROUP_LABELS[group],
     metricColumns: { quality: "Avg quality /100", speed: "Pages/min", cost: "$/100 pages" },
+    metricDirections: { quality: "higher", speed: "higher", cost: "lower" },
     evidenceColumns: ["Weighted WER", "Weighted CER", "Avg time/run"],
     providers: rows,
   };
 }
 
-function main(): number {
-  const rootRaw = process.argv[2];
-  if (!rootRaw || rootRaw === "--help" || rootRaw === "-h") {
-    console.log("Usage: bun scripts/ocr/build_combined_report.ts <root_dir>");
-    return rootRaw ? 0 : 1;
-  }
-  const rootDir = resolve(rootRaw);
+export interface OcrCombinedBuildResult {
+  report: unknown;
+  markdown: string;
+  dashboardModel: CombinedDashboardModel;
+  runCount: number;
+  providerCount: number;
+  totalPages: number;
+}
+
+export function buildOcrCombinedReport(rootDirRaw: string, generatedAt = new Date().toISOString()): OcrCombinedBuildResult {
+  const rootDir = resolve(rootDirRaw);
   const runs = discoverRuns(rootDir);
   if (runs.length === 0) {
     throw new Error(`No run subdirectories with provider-comparison-report.json found under ${rootDir}`);
@@ -464,7 +468,6 @@ function main(): number {
     thirdPartyService: rankGroup(groupedProviders.thirdPartyService),
   };
 
-  const generatedAt = new Date().toISOString();
   const jsonReport = {
     schemaVersion: 3,
     kind: "ocr-combined-comparison-report",
@@ -491,9 +494,6 @@ function main(): number {
       "Supersedes the hand-authored 2026-06-14 combined report, which is preserved as a historical record.",
     ],
   };
-
-  const jsonPath = join(rootDir, "combined-comparison-report.json");
-  writeFileSync(jsonPath, JSON.stringify(jsonReport));
 
   const md: string[] = [];
   md.push("# Combined OCR Provider Comparison Report");
@@ -563,9 +563,6 @@ function main(): number {
   }
   md.push("");
 
-  const markdownPath = join(rootDir, "combined-comparison-report.md");
-  writeFileSync(markdownPath, md.join("\n"));
-
   const dashboardModel: CombinedDashboardModel = {
     title: "Combined OCR Provider Comparison",
     category: "ocr",
@@ -592,13 +589,37 @@ function main(): number {
     ],
     notes: jsonReport.notes,
   };
-  const htmlPath = join(rootDir, "combined-comparison-report.html");
-  writeFileSync(htmlPath, renderCombinedDashboard(dashboardModel));
 
+  return {
+    report: jsonReport,
+    markdown: md.join("\n"),
+    dashboardModel,
+    runCount: runs.length,
+    providerCount: aggregated.length,
+    totalPages,
+  };
+}
+
+export function writeOcrCombinedReport(rootDirRaw: string): OcrCombinedBuildResult {
+  const rootDir = resolve(rootDirRaw);
+  const result = buildOcrCombinedReport(rootDir);
+  const jsonPath = join(rootDir, "combined-comparison-report.json");
+  const markdownPath = join(rootDir, "combined-comparison-report.md");
+  writeFileSync(jsonPath, JSON.stringify(result.report));
+  writeFileSync(markdownPath, result.markdown);
   console.log(`Wrote ${jsonPath}`);
   console.log(`Wrote ${markdownPath}`);
-  console.log(`Wrote ${htmlPath}`);
-  console.log(`Aggregated ${aggregated.length} providers across ${runs.length} runs (${totalPages} pages).`);
+  console.log(`Aggregated ${result.providerCount} providers across ${result.runCount} runs (${result.totalPages} pages).`);
+  return result;
+}
+
+function main(): number {
+  const rootRaw = process.argv[2];
+  if (!rootRaw || rootRaw === "--help" || rootRaw === "-h") {
+    console.log("Usage: bun scripts/ocr/build_combined_report.ts <root_dir>");
+    return rootRaw ? 0 : 1;
+  }
+  writeOcrCombinedReport(rootRaw);
   return 0;
 }
 

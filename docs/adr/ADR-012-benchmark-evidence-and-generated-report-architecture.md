@@ -137,7 +137,7 @@ Every provider/model refresh follows this order:
 3. Run the exact no-cost `--price` or `resume --price` command for the intended targets. Price mode must invoke no provider and mutate no manifest or raw artifact under [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md).
 4. If live evidence is materially necessary, obtain immediate explicit approval naming the exact provider command and the reported cost or quota risk. Approval for implementation, another provider, an earlier phase, a failed attempt, or a preflight never authorizes the paid command. A correction or rerun requires fresh approval.
 5. Validate returned identity, provider/model state, source coverage, page/duration counts, attempt/retry data, usage and actual cost, output integrity, and artifact uniqueness. A provider-reported success is not trustworthy when checkpoints, paths, checksums, or normalized outputs prove collision or reuse.
-6. Compact only after trustworthy provider results exist. Preserve canonical result envelopes and historical identity, remove regenerable checkpoints, splits, and derived files only after validation, then regenerate combined JSON, Markdown, and HTML from those compacted artifacts.
+6. Compact only after trustworthy provider results exist. Preserve canonical result envelopes and historical identity, remove regenerable checkpoints, splits, and derived files only after validation, then regenerate combined JSON and Markdown, then the dashboard, from those compacted artifacts.
 
 Published provider billing remains authoritative over an estimate. Recorded provider cost takes precedence over reconstructed historical rates. Estimates and actuals must name retries, reruns, billing variance, quota effects, and any excluded or invalid outputs.
 
@@ -145,7 +145,7 @@ Paid calibration is not a prerequisite for a compatibility or lifecycle transiti
 
 ### Combined-report artifacts and ranking contract
 
-Each combined report is three sibling artifacts: `combined-comparison-report.json` (data contract), `combined-comparison-report.md` (diffable text), and `combined-comparison-report.html` (primary visual dashboard). The HTML is generated from the same data as JSON and Markdown, embeds its data and assets at generation time, remains readable with JavaScript disabled, and opens directly from `file://`.
+Each combined-report root holds two sibling artifacts: `combined-comparison-report.json` (data contract) and `combined-comparison-report.md` (diffable text). The repository has one shared visual dashboard, `docs/benchmarks/combined-comparison-dashboard.html`, with one tab per combined-report root. It is generated from the same data as the per-root JSON and Markdown, embeds its data and assets at generation time, and opens directly from `file://` with no network or third-party dependency. Its full content — every group, every metric table, and the precomputed quality, speed, and cost orders — renders and sorts with JavaScript disabled. One inline script adds a single progressive enhancement on top: each group's sort control gains a `Custom` option whose three sliders share one 100% budget, rescoring that group against the reader's own quality/speed/cost trade-off. Moving one slider redistributes the remainder across the other two in proportion, so every thumb always matches the percentage beside it. Both the `Custom` option and its sliders are hidden unless that script runs, so a JavaScript-off reader never meets a dead input. It is a viewing aid only: weights are never persisted and the emitted `combined-comparison-report.{json,md}` artifacts remain free of composites, overall scores, and model tiers.
 
 Weighted composites use per-run, per-group min-max quality, speed, and cost subscores on a 0-100 scale. Quality is higher-is-better; speed and cost are lower-is-better. Provider subscores are averaged across the runs for which a value is present.
 
@@ -247,7 +247,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The CLI `benchmark` command is gone. Combined-report generation remains in the consensus skill: run discovery in `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`, and the self-contained dashboard renderer in `.codex/skills/consensus/scripts/shared/combined_report_html.ts`. Combined reports now rank price, speed, and quality per provider group and no longer emit weighted composites or quality-cost terciles. Committed run data and generated reports live under `docs/benchmarks/`. STT combined reports are split by diarization: `docs/benchmarks/stt-without-speakers/` and `docs/benchmarks/stt-with-speakers/`. The speaker-aware cohort is the committed evidence for the 2026-08-22 STT catalog cut recorded in [the STT refresh report](../reports/model-refresh-stt.md).
+The CLI `benchmark` command is gone. Combined-report generation remains in the consensus skill: run discovery in `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`, and the self-contained dashboard renderer in `.codex/skills/consensus/scripts/shared/combined_report_html.ts`. Combined reports now rank price, speed, and quality per provider group and no longer emit weighted composites or quality-cost terciles. The dashboard's custom-weighting sliders compute a composite in the reader's browser only; no composite is written to any artifact. Committed run data and generated reports live under `docs/benchmarks/`. STT combined reports are split by diarization: `docs/benchmarks/stt-without-speakers/` and `docs/benchmarks/stt-with-speakers/`. The speaker-aware cohort is the committed evidence for the 2026-08-22 STT catalog cut recorded in [the STT refresh report](../reports/model-refresh-stt.md).
 
 ## Test Plan
 
@@ -259,7 +259,7 @@ bun test test/test-cases/validation/reports-pricing/url-combined-report-contract
 ```
 
 1. `bun run check` and `git diff --check` prove the ADR remains well-formed.
-2. The combined-report contract tests prove committed OCR, STT, and URL artifacts rank price, speed, and quality per group and omit weighted composites and model tiers.
+2. The combined-report contract tests prove committed OCR, STT, and URL artifacts rank price, speed, and quality per group and omit weighted composites and model tiers, and that the dashboard ships exactly one inline, dependency-free script whose scoring function is the one covered by unit tests.
 
 Do not regenerate reports from live provider calls, run the full test suite, or invoke paid APIs as part of this verification.
 

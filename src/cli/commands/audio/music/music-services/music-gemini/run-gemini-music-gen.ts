@@ -1,7 +1,6 @@
 import { writeGeminiMusicInteraction } from './gemini-music-interactions'
 import type { GeminiMusicModel, Step7MusicMetadata } from '~/types'
-import { logGenCompleted, logGenStatus } from '~/cli/commands/command-shared/generation-command-utils'
-import { resolveCredential } from '~/utils/validate/env-utils'
+import { runMusicGeneration } from '~/cli/commands/command-shared/media-generation/music-generation-scaffold'
 import * as l from '~/utils/app-logger/app-logger'
 import { geminiCreateMusicInteraction } from '~/utils/gemini/gemini-rest'
 import { InfraError, ValidationError } from '~/utils/error-handler'
@@ -85,31 +84,25 @@ export const runGeminiMusicGen = async (
     lyricsFile?: string | undefined
     forceInstrumental?: boolean | undefined
   }
-): Promise<{ musicPath: string, metadata: Step7MusicMetadata }> => {
-  const apiKey = resolveCredential('gemini', 'require', { stage: 'music:gemini', description: 'Gemini music generation' })
+): Promise<{ musicPath: string, metadata: Step7MusicMetadata }> =>
+  await runMusicGeneration({
+    service: 'gemini',
+    model: options.model,
+    outputDir,
+    prepare: async () => await buildGeminiMusicPrompt(prompt, options),
+    execute: async (context, prepared) => {
+      const audioResult = await writeGeminiMusicInteraction(
+        await geminiCreateMusicInteraction(context.apiKey, prepared.prompt),
+        context.outputDir
+      )
 
-  const { prompt: geminiPrompt, lyricsSource, intendedDurationSeconds } = await buildGeminiMusicPrompt(prompt, options)
-  const musicPath = `${outputDir}/generated-music.mp3`
-
-  logGenStatus('music', 'gemini', options.model, 'started')
-
-  const startTime = Date.now()
-  const audioResult = await writeGeminiMusicInteraction(await geminiCreateMusicInteraction(apiKey, geminiPrompt), outputDir)
-  const processingTime = Date.now() - startTime
-  const musicFile = Bun.file(musicPath)
-
-  logGenCompleted('music', 'gemini', options.model, processingTime, [musicPath])
-
-  const metadata: Step7MusicMetadata = {
-    musicService: 'gemini',
-    musicModel: options.model,
-    processingTime,
-    musicFileName: 'generated-music.mp3',
-    musicFileSize: musicFile.size,
-    musicDurationMs: intendedDurationSeconds * 1000,
-    lyricsSource,
-    ...audioResult
-  }
-
-  return { musicPath, metadata }
-}
+      return {
+        artifactPaths: [context.artifactPath()],
+        metadata: {
+          musicDurationMs: prepared.intendedDurationSeconds * 1000,
+          lyricsSource: prepared.lyricsSource,
+          ...audioResult
+        }
+      }
+    }
+  })

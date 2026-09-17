@@ -224,7 +224,7 @@ describe('music provider contracts', () => {
     })
   })
 
-  test('ElevenLabs music uses the v2 output format and records response headers', async () => {
+  test('ElevenLabs music uses the v2/v2.5 output format and records response headers', async () => {
     const requests: Array<{ url: string, body: Record<string, unknown> }> = []
 
     await withTempDir('autoshow-music-provider-', async (dir) => {
@@ -238,7 +238,7 @@ describe('music provider contracts', () => {
             status: 200,
             headers: {
               'content-type': 'audio/mpeg',
-              'request-id': 'eleven-request-123'
+              'request-id': `eleven-request-${requests.length}`
             }
           })
         }
@@ -250,6 +250,12 @@ describe('music provider contracts', () => {
           forceInstrumental: true
         })
 
+        const v25Result = await runElevenLabsMusicGen('acoustic folk with gentle fingerpicking', dir, {
+          model: 'music_v2_5',
+          durationSeconds: 30,
+          forceInstrumental: false
+        })
+
         expect(requests).toEqual([
           {
             url: 'https://api.elevenlabs.io/v1/music?output_format=mp3_48000_192',
@@ -259,10 +265,26 @@ describe('music provider contracts', () => {
               music_length_ms: 15000,
               force_instrumental: true
             }
+          },
+          {
+            url: 'https://api.elevenlabs.io/v1/music?output_format=mp3_48000_192',
+            body: {
+              model_id: 'music_v2_5',
+              prompt: 'acoustic folk with gentle fingerpicking',
+              music_length_ms: 30000
+            }
           }
         ])
         expect(v2Result.metadata).toMatchObject({
-          providerRequestId: 'eleven-request-123',
+          providerRequestId: 'eleven-request-1',
+          audioMimeType: 'audio/mpeg',
+          audioSampleRate: 48000,
+          audioBitrate: 192000,
+          providerAudioByteSize: audioBytes.byteLength,
+          outputFormat: 'mp3_48000_192'
+        })
+        expect(v25Result.metadata).toMatchObject({
+          providerRequestId: 'eleven-request-2',
           audioMimeType: 'audio/mpeg',
           audioSampleRate: 48000,
           audioBitrate: 192000,

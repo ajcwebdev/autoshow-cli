@@ -18,6 +18,12 @@ export const ocrRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/text/ocr/deepinfra-gemma-4-31b-it.test.ts', [
     command('extract-deepinfra-google-gemma-4-31b-it', 'extract-deepinfra-google/gemma-4-31B-it', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=google/gemma-4-31B-it', '--price']),
   ]),
+  ...exact('test/test-cases/e2e/service/text/ocr/deepinfra-qwen3.8-27b.test.ts', [
+    command('extract-deepinfra-qwen-qwen3.8-27b', 'extract-deepinfra-Qwen/Qwen3.8-27B', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=Qwen/Qwen3.8-27B', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/text/ocr/deepinfra-deepseek-v4.1-flash.test.ts', [
+    command('extract-deepinfra-deepseek-ai-deepseek-v4.1-flash', 'extract-deepinfra-deepseek-ai/DeepSeek-V4.1-Flash', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=deepseek-ai/DeepSeek-V4.1-Flash', '--price']),
+  ]),
   ...exact('test/test-cases/e2e/service/text/ocr/grok-4.6.test.ts', [
     command('extract-grok-grok-4.6', 'extract-grok-grok-4.6', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/benchmarks/ocr/1-document.png', '--provider', 'grok=grok-4.6', '--price']),
   ]),

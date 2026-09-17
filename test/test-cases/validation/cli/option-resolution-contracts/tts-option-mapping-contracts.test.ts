@@ -33,12 +33,12 @@ describe('option resolution contracts', () => {
         'tts-speed': ['openai=1.25', 'elevenlabs=1.1'],
         'speechify-tts': 'simba-3.2',
         'elevenlabs-tts': 'eleven_v3',
-        'elevenlabs-tts-stability': '0.4',
-        'elevenlabs-tts-similarity-boost': '0.8',
-        'elevenlabs-tts-style': '0.2',
-        'elevenlabs-tts-use-speaker-boost': true,
-        'elevenlabs-tts-seed': '12345',
-        'elevenlabs-tts-pronunciation-dictionary-locator': ['dict_1:version_2']
+        'tts-stability': 'elevenlabs=0.4',
+        'tts-similarity': 'elevenlabs=0.8',
+        'tts-style': 'elevenlabs=0.2',
+        'tts-speaker-boost': 'elevenlabs=true',
+        'tts-seed': 'elevenlabs=12345',
+        'tts-pronunciation-dictionary': ['elevenlabs=dict_1:version_2']
       })
 
       expect(opts.grokTtsVoice).toBe('ab12cd34')
@@ -58,7 +58,7 @@ describe('option resolution contracts', () => {
       expect(opts.elevenlabsTtsPronunciationDictionaryLocators).toEqual(['dict_1:version_2'])
 
       expect(() => buildOptsFromFlags({ 'grok-tts': 'grok-tts', 'tts-language': 'xx' })).toThrow('Invalid --grok-tts-language "xx"')
-      expect(() => buildOptsFromFlags({ 'openai-tts': 'gpt-4o-mini-tts-2025-12-15', 'tts-speed': '0.1' })).toThrow('Invalid --tts-speed value "0.1"')
+      expect(() => buildOptsFromFlags({ 'openai-tts': 'gpt-4o-mini-tts-2025-12-15', 'tts-speed': '0.1' })).toThrow('--tts-speed for openai: must be at least 0.25.')
       expect(() => buildOptsFromFlags({ 'hume-tts': 'octave-legacy' })).toThrow('Invalid model "octave-legacy" for --provider/--tts hume[=model]')
       expect(() => buildOptsFromFlags({ 'cartesia-tts': 'sonic-2' })).toThrow('Invalid model "sonic-2" for --provider/--tts cartesia[=model]')
       expect(() => buildOptsFromFlags({ 'elevenlabs-tts': 'eleven_v3', 'tts-text-normalization': 'always' })).toThrow('Invalid --elevenlabs-tts-text-normalization "always"')

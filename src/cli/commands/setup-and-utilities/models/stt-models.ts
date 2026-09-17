@@ -19,7 +19,12 @@ export const SUPPORTED_DEEPGRAM_STT_MODELS = [
 
 export const SUPPORTED_DEEPINFRA_STT_MODELS = [
   'openai/whisper-large-v3-turbo',
-  'openai/whisper-large-v3'
+  'openai/whisper-large-v3',
+  'Qwen/Qwen3-ASR-0.6B',
+  'Qwen/Qwen3-ASR-1.7B',
+  'mistralai/Voxtral-Mini-3B-2507',
+  'mistralai/Voxtral-Small-24B-2507',
+  'nvidia/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_SONIOX_STT_MODELS = [
@@ -59,8 +64,11 @@ export const SUPPORTED_SCRAPECREATORS_STT_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_GEMINI_STT_MODELS = [
-  'gemini-3.8-flash',
-  'gemini-3.6-flash'
+  'gemini-3.5-transcribe'
+] as const satisfies readonly string[]
+
+export const SUPPORTED_OPENAI_STT_MODELS = [
+  'gpt-transcribe'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_TOGETHER_STT_MODELS = [
@@ -70,7 +78,7 @@ export const SUPPORTED_TOGETHER_STT_MODELS = [
 
 export const validateWhisperfileModel = createModelValidator(SUPPORTED_WHISPERFILE_MODELS, 'whisperfile', 'This selector uses local whisperfile models.')
 export const validateDeepgramSttModel = createModelValidator(SUPPORTED_DEEPGRAM_STT_MODELS, 'deepgram-stt')
-export const validateDeepinfraSttModel = createModelValidator(SUPPORTED_DEEPINFRA_STT_MODELS, 'deepinfra-stt', 'This selector only accepts DeepInfra OpenAI-compatible Whisper models.')
+export const validateDeepinfraSttModel = createModelValidator(SUPPORTED_DEEPINFRA_STT_MODELS, 'deepinfra-stt', 'This selector accepts DeepInfra batch speech-to-text deployments served on the OpenAI-compatible transcription route.')
 export const validateSonioxSttModel = createModelValidator(SUPPORTED_SONIOX_STT_MODELS, 'soniox-stt')
 export const validateSpeechmaticsSttModel = createRetiringModelValidator('stt', 'speechmatics', SUPPORTED_SPEECHMATICS_STT_MODELS, 'speechmatics-stt')
 export const validateGrokSttModel = createModelValidator(SUPPORTED_GROK_STT_MODELS, 'grok-stt')
@@ -80,5 +88,6 @@ export const validateGladiaSttModel = createRetiringModelValidator('stt', 'gladi
 export const validateHappyscribeSttModel = createModelValidator(SUPPORTED_HAPPYSCRIBE_STT_MODELS, 'happyscribe-stt')
 export const validateSupadataSttModel = createModelValidator(SUPPORTED_SUPADATA_STT_MODELS, 'supadata-stt')
 export const validateScrapeCreatorsSttModel = createModelValidator(SUPPORTED_SCRAPECREATORS_STT_MODELS, 'scrapecreators-stt')
-export const validateGeminiSttModel = createModelValidator(SUPPORTED_GEMINI_STT_MODELS, 'gemini-stt')
+export const validateGeminiSttModel = createRetiringModelValidator('stt', 'gemini-stt', SUPPORTED_GEMINI_STT_MODELS, 'gemini-stt')
 export const validateTogetherSttModel = createModelValidator(SUPPORTED_TOGETHER_STT_MODELS, 'together-stt', 'This selector accepts concrete Together serverless batch transcription models.')
+export const validateOpenAISttModel = createModelValidator(SUPPORTED_OPENAI_STT_MODELS, 'openai-stt', 'This selector accepts OpenAI batch transcription models on /v1/audio/transcriptions; streaming-only and deprecated transcription identities are excluded.')

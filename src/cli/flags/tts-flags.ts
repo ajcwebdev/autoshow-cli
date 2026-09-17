@@ -1,28 +1,30 @@
-import { batchFlags, booleanAllProvidersFlag, modelCostFilterFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
-import { boolFlag, formatProviderList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
+import { batchFlags, booleanAllProvidersFlag, modelCostFilterFlag, priceFlag, sharedConcurrencyFlags, stepConcurrencyFlag } from './shared-flags'
+import { boolFlag, formatProviderList, formatValueList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
+import { genericTtsOptionDescription } from './service-selector-normalization/generic-tts-controls'
+import { TTS_DIALOGUE_FORMATS } from '~/cli/options/option-resolution/flag-readers'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
-import { DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE } from '~/utils/concurrency-defaults'
 import type { CliFlagsDefinition } from '~/types'
 
 export const ttsFlags = {
-  'tts-dialogue-format': strFlag('Dialogue input format for multi-speaker TTS: screenplay|labeled (requires --tts-speaker)'),
-  'tts-speaker': strListFlag('Multi-speaker TTS voice mapping, SPEAKER=VOICE or SPEAKER=path; repeatable'),
-  'elevenlabs-tts-stability': strFlag('ElevenLabs voice_settings stability from 0 to 1'),
-  'elevenlabs-tts-similarity-boost': strFlag('ElevenLabs voice_settings similarity_boost from 0 to 1'),
-  'elevenlabs-tts-style': strFlag('ElevenLabs voice_settings style from 0 to 1'),
-  'elevenlabs-tts-use-speaker-boost': boolFlag('Enable ElevenLabs voice_settings use_speaker_boost'),
-  'elevenlabs-tts-seed': strFlag('ElevenLabs deterministic generation seed'),
-  'elevenlabs-tts-pronunciation-dictionary-locator': strListFlag('ElevenLabs pronunciation dictionary locator; repeatable as dictionary_id or dictionary_id:version_id')
+  'tts-dialogue-format': strFlag(`Dialogue input format for multi-speaker TTS: ${formatValueList(TTS_DIALOGUE_FORMATS)} (requires --tts-speaker)`),
+  'tts-speaker': strListFlag('Multi-speaker TTS voice mapping, SPEAKER=VOICE or SPEAKER=path; repeatable')
 } as const satisfies CliFlagsDefinition
 
 export const genericTtsOptionFlags = {
   'allow-ambiguous-redispatch': boolFlag('Explicitly authorize repurchasing a provider-admitted TTS slot that has no recoverable audio'),
   'tts-voice': strListFlag('Generic TTS voice selector. Use value with one selected provider, or provider=value with multiple providers.'),
-  'tts-speed': strListFlag('Generic TTS speed. Use value with one selected provider, or provider=value with multiple providers.'),
-  'tts-language': strListFlag('Generic TTS language. Use value with one selected provider, or provider=value with multiple providers.'),
-  'tts-text-normalization': strListFlag('Generic TTS text normalization. Use value with one selected provider, or provider=value with multiple providers.'),
-  'tts-instructions': strListFlag('Generic TTS voice/style instructions. Use value with one selected provider, or provider=value with multiple providers.'),
-  'tts-chunk-concurrency': strFlag('Hosted TTS chunk starts allowed in parallel per provider across the current run (all-provider uses 2; Grok-only uses 50)', DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE),
+  'tts-speed': strListFlag(genericTtsOptionDescription('tts-speed', 'Generic TTS speed')),
+  'tts-language': strListFlag(genericTtsOptionDescription('tts-language', 'Generic TTS language')),
+  'tts-text-normalization': strListFlag(genericTtsOptionDescription('tts-text-normalization', 'Generic TTS text normalization')),
+  'tts-instructions': strListFlag(genericTtsOptionDescription('tts-instructions', 'Generic TTS voice/style instructions or free-form delivery description')),
+  'tts-stability': strListFlag(genericTtsOptionDescription('tts-stability', 'Generic TTS voice stability')),
+  'tts-similarity': strListFlag(genericTtsOptionDescription('tts-similarity', 'Generic TTS voice similarity boost')),
+  'tts-style': strListFlag(genericTtsOptionDescription('tts-style', 'Generic TTS voice style exaggeration')),
+  'tts-speaker-boost': strListFlag(genericTtsOptionDescription('tts-speaker-boost', 'Generic TTS speaker boost')),
+  'tts-seed': strListFlag(genericTtsOptionDescription('tts-seed', 'Generic TTS deterministic generation seed')),
+  'tts-pronunciation-dictionary': strListFlag(genericTtsOptionDescription('tts-pronunciation-dictionary', 'Generic TTS pronunciation dictionary locator as dictionary_id or dictionary_id:version_id')),
+  'tts-trailing-silence': strListFlag(genericTtsOptionDescription('tts-trailing-silence', 'Generic TTS trailing silence in seconds')),
+  'tts-response-format': strListFlag(genericTtsOptionDescription('tts-response-format', 'Generic TTS audio response format')),
 } as const satisfies CliFlagsDefinition
 
 const standaloneTtsOnlyFlags = {
@@ -40,23 +42,14 @@ export const dialogueTtsCommandOptionNames = [
   'tts-speaker'
 ] as const
 
-const elevenlabsTtsCommandOptionNames = [
-  'elevenlabs-tts-stability',
-  'elevenlabs-tts-similarity-boost',
-  'elevenlabs-tts-style',
-  'elevenlabs-tts-use-speaker-boost',
-  'elevenlabs-tts-seed',
-  'elevenlabs-tts-pronunciation-dictionary-locator'
-] as const
-
 export const ttsCommandFlags = {
   ...withHelpGroup(ttsProviderSelectionFlags, 'provider-selection'),
   ...withHelpGroup({
     ...genericTtsOptionFlags,
     ...standaloneTtsOnlyFlags
   }, 'tts-options'),
+  ...withHelpGroup(stepConcurrencyFlag(['tts-chunk']), 'concurrency'),
   ...withHelpGroup(pickFlags(batchFlags, ['batch-concurrency']), 'batch-processing'),
   ...withHelpGroup(pickFlags(ttsFlags, dialogueTtsCommandOptionNames), 'tts-dialogue'),
-  ...withHelpGroup(pickFlags(ttsFlags, elevenlabsTtsCommandOptionNames), 'tts-elevenlabs'),
   ...withHelpGroup({ ...priceFlag, ...modelCostFilterFlag }, 'pricing')
 } as const satisfies CliFlagsDefinition

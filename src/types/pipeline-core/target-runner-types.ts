@@ -1,4 +1,4 @@
-import type { HostedConcurrencyRuntimeOptions, HostedConcurrencyWorkClass, ProviderIdentity, ResourceGate, SingleFileRunResult, TargetPoolKind, TargetSchedulerConcurrency } from '~/types'
+import type { HostedConcurrencyRuntimeOptions, HostedConcurrencyWorkClass, MultiFileRunResult, ProviderIdentity, ResourceGate, SingleFileRunResult, TargetPoolKind, TargetSchedulerConcurrency } from '~/types'
 
 export type BuildSingleArtifactMapOptions<T> = {
   singleKey: string
@@ -30,11 +30,28 @@ export type RunSingleFileTargetsOptions<TTarget extends ProviderIdentity, TMetad
   finalizeMetadata: (metadata: TMetadata, finalFileName: string, finalPath: string) => TMetadata
 }
 
+export type RunMediaArtifactTargetsOptions<TTarget extends ProviderIdentity, TMetadata> = RunTargetsOptionsBase<TTarget> & {
+  workspacePrefix: string
+  runTarget: (target: TTarget, workspaceDir: string) => Promise<MultiFileRunResult<TMetadata>>
+  getArtifactFileNames: (target: TTarget, sourceFileNames: string[], singleTarget: boolean) => string[]
+  finalizeMetadata: (metadata: TMetadata, finalFileNames: string[], finalPaths: string[]) => TMetadata
+  /** Single-target runs write straight into the output directory; set this when names and sizes must still be stamped onto the metadata. */
+  finalizeSingleTarget?: boolean | undefined
+  artifactFailureStage?: string | undefined
+}
+
 export type MediaFileTargetDescriptor<TTarget extends ProviderIdentity, TMetadata, TPrompt> = Pick<
   RunSingleFileTargetsOptions<TTarget, TMetadata>,
   'stepLabel' | 'noProviderMessage' | 'workspacePrefix' | 'hostedWorkClass' | 'getArtifactFileName' | 'finalizeMetadata'
 > & {
   runTarget: (target: TTarget, prompt: TPrompt, workspaceDir: string) => Promise<SingleFileRunResult<TMetadata>>
+}
+
+export type MediaArtifactTargetDescriptor<TTarget extends ProviderIdentity, TMetadata, TPrompt> = Pick<
+  RunMediaArtifactTargetsOptions<TTarget, TMetadata>,
+  'stepLabel' | 'noProviderMessage' | 'workspacePrefix' | 'hostedWorkClass' | 'getArtifactFileNames' | 'finalizeMetadata' | 'finalizeSingleTarget' | 'artifactFailureStage'
+> & {
+  runTarget: (target: TTarget, prompt: TPrompt, workspaceDir: string) => Promise<MultiFileRunResult<TMetadata>>
 }
 
 export type RunTargetsOptions<TTarget extends ProviderIdentity, TResult> = RunTargetsOptionsBase<TTarget> & {

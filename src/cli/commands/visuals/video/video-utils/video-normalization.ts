@@ -34,11 +34,16 @@ const normalizeReplicateAspectRatioFrom = (
 export const isReplicateHappyHorseVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'alibaba/happyhorse-1.1'
 
+export const isReplicateWanVideoModel = (model: ReplicateVideoModel): boolean =>
+  model === 'alibaba/wan-3'
+
 export const isReplicatePixVerseVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'pixverse/pixverse-v6'
 
 export const REPLICATE_HAPPYHORSE_DURATION_RANGE = [3, 15] as const
 export const REPLICATE_SEEDANCE_DURATION_RANGE = [4, 30] as const
+export const REPLICATE_WAN_DURATION_RANGE = [2, 30] as const
+export const REPLICATE_WAN_ASPECT_RATIOS = ['adaptive', ...REPLICATE_COMMON_ASPECT_RATIOS] as const
 
 export const normalizeReplicateVideoDuration = (
   model: ReplicateVideoModel,
@@ -50,6 +55,9 @@ export const normalizeReplicateVideoDuration = (
   }
   if (isReplicateHappyHorseVideoModel(model)) {
     return clampIntegerDuration(duration, 5, ...REPLICATE_HAPPYHORSE_DURATION_RANGE, `Replicate/${model}`)
+  }
+  if (isReplicateWanVideoModel(model)) {
+    return clampIntegerDuration(duration, 5, ...REPLICATE_WAN_DURATION_RANGE, `Replicate/${model}`)
   }
   if (isReplicatePixVerseVideoModel(model)) {
     const value = duration ?? 5
@@ -78,6 +86,10 @@ export const normalizeReplicateVideoResolution = (
     if (resolution === '480p' || resolution === '720p') return resolution
     throw UsageError(`Replicate/${model} supports 480p or 720p.`)
   }
+  if (isReplicateWanVideoModel(model)) {
+    if (resolution === '480p' || resolution === '720p' || resolution === '1080p') return resolution
+    throw UsageError(`Invalid --resolution value "${resolution}" for Replicate/${model}. Expected 480p, 720p, or 1080p.`)
+  }
   if (isReplicatePixVerseVideoModel(model)) {
     if (resolution === '360p' || resolution === '540p' || resolution === '720p' || resolution === '1080p') return resolution
     throw UsageError(`Invalid --resolution value "${resolution}" for Replicate/${model}. Expected 360p, 540p, 720p, or 1080p.`)
@@ -97,39 +109,45 @@ export const normalizeReplicateVideoAspectRatio = (
   if (isReplicateSeedanceVideoModel(model)) {
     return normalizeReplicateAspectRatioFrom(aspectRatio, REPLICATE_SEEDANCE_ASPECT_RATIOS, `Replicate/${model}`)
   }
+  if (isReplicateWanVideoModel(model)) {
+    return normalizeReplicateAspectRatioFrom(aspectRatio, REPLICATE_WAN_ASPECT_RATIOS, `Replicate/${model}`)
+  }
   if (isReplicatePixVerseVideoModel(model)) {
     return normalizeReplicateAspectRatioFrom(aspectRatio, ['16:9', '9:16', '1:1'], `Replicate/${model}`)
   }
   return normalizeReplicateAspectRatioFrom(aspectRatio, REPLICATE_COMMON_ASPECT_RATIOS, `Replicate/${model}`)
 }
 
-export const GEMINI_DURATION_SECONDS = [4, 6, 8] as const
+export const GEMINI_DURATION_SECONDS = [3, 4, 5, 6, 7, 8, 9, 10] as const
+export const GEMINI_DEFAULT_BILLED_DURATION_SECONDS = 10 as const satisfies GeminiDurationSeconds
+export const GEMINI_VIDEO_ASPECT_RATIOS = ['16:9', '9:16'] as const
+export const GEMINI_VIDEO_RESOLUTIONS = ['360p', '720p', '1080p', '4k'] as const
 
 export const normalizeGeminiDuration = (
   duration: number | undefined,
-  resolution?: GeminiResolution | string | undefined,
+  _resolution?: GeminiResolution | string | undefined,
   _mode?: VideoMode | undefined
 ): GeminiDurationSeconds => {
-  const [shortest, middle, longest] = GEMINI_DURATION_SECONDS
-  if (resolution === '1080p') return longest
-  if (typeof duration !== 'number' || !Number.isFinite(duration)) return shortest
-  const n = Math.floor(duration)
-  if (n <= shortest) return shortest
-  if (n <= middle) return middle
-  return longest
+  if (duration === undefined) return GEMINI_DEFAULT_BILLED_DURATION_SECONDS
+  if (!Number.isInteger(duration) || !(GEMINI_DURATION_SECONDS as readonly number[]).includes(duration)) {
+    throw UsageError(`Invalid --duration value "${String(duration)}" for Gemini Omni. Expected an integer from 3 to 10.`)
+  }
+  return duration as GeminiDurationSeconds
 }
-
-export const GEMINI_VIDEO_RESOLUTIONS = ['720p', '1080p'] as const
 
 export const normalizeGeminiResolution = (
   resolution: string | undefined,
   _model?: string | undefined
 ): GeminiResolution => {
   if (resolution === undefined || resolution === '') return '720p'
-  if (resolution !== '720p' && resolution !== '1080p') {
-    throw UsageError(`Invalid --resolution value "${resolution}" for Gemini. Expected ${GEMINI_VIDEO_RESOLUTIONS.join(', ')}.`)
-  }
-  return resolution
+  if ((GEMINI_VIDEO_RESOLUTIONS as readonly string[]).includes(resolution)) return resolution as GeminiResolution
+  throw UsageError(`Invalid --resolution value "${resolution}" for Gemini Omni. Expected ${GEMINI_VIDEO_RESOLUTIONS.join(', ')}.`)
+}
+
+export const normalizeGeminiAspectRatio = (aspectRatio: string | undefined): '16:9' | '9:16' => {
+  if (aspectRatio === undefined || aspectRatio === '') return '16:9'
+  if (aspectRatio === '16:9' || aspectRatio === '9:16') return aspectRatio
+  throw UsageError(`Invalid --aspect-ratio value "${aspectRatio}" for Gemini Omni. Expected ${GEMINI_VIDEO_ASPECT_RATIOS.join(' or ')}.`)
 }
 
 export const GROK_VIDEO_DURATION_RANGE = [1, 15] as const

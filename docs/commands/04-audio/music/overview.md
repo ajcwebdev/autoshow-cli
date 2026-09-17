@@ -100,7 +100,7 @@ bun autoshow music "chill lo-fi beat" --all-providers --max-model-cents 10 --pri
 | Option       | Value                                                                                                      |
 | ------------ | ---------------------------------------------------------------------------------------------------------- |
 | Selector     | `--provider elevenlabs[=<model>]`                                                                          |
-| Models       | `music_v2`                                                                                                 |
+| Models       | `music_v2`, `music_v2_5`                                                                                   |
 | Duration     | `--duration <seconds>` from `3` to `600`; omit to let the provider choose; `--price` estimates 180 seconds |
 | Lyrics       | `--lyrics-file <path>`; generated from prompt when omitted                                                 |
 | Instrumental | `--instrumental`                                                                                           |
@@ -172,8 +172,9 @@ With `--captions`, output names come from the caption file, not the audio file. 
 
 ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Rows are newest first. Released dates are provider announcement or model-origin dates. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01. Pricing is the per-run estimate. Pricing: ✅ cheapest third, ⚠️ middle third, ❌ most expensive third. Cost rank is cheapest first. All providers support `--instrumental`.
 
-| Provider              | Released      | Duration                    | Duration control | Lyrics                              | Output                     | Pricing                                           | Cost rank |
-| --------------------- | ------------- | --------------------------- | ---------------- | ----------------------------------- | -------------------------- | ------------------------------------------------- | --------- |
-| Gemini `lyria-3.5`    | ✅ 2026-09-04 | ⚠️ Full song; 120s estimate | ⚠️ Prompt only   | ✅ File or generated text/structure | ✅ 44.1 kHz stereo MP3     | ✅ $0.08/song request                             | 1/3       |
-| MiniMax `music-3.0`   | ✅ 2026-08-13 | ✅ Up to 5 minutes          | ❌ Ignored       | ✅ `--lyrics-file` or generated     | ✅ 44.1 kHz / 256 kbps MP3 | ⚠️ $0.15/track (+$0.01 generated lyrics)          | 2/3       |
-| ElevenLabs `music_v2` | ✅ 2026-05-26 | ✅ 3–600s                   | ✅ `--duration`  | ✅ `--lyrics-file` with sections    | ✅ 48 kHz / 192 kbps MP3   | ❌ $0.15/min ($0.45 at the 180s default estimate) | 3/3       |
+| Provider                | Released      | Duration                    | Duration control | Lyrics                              | Output                     | Pricing                                           | Cost rank |
+| ----------------------- | ------------- | --------------------------- | ---------------- | ----------------------------------- | -------------------------- | ------------------------------------------------- | --------- |
+| ElevenLabs `music_v2_5` | ✅ 2026-09-11 | ✅ 3–600s                   | ✅ `--duration`  | ✅ `--lyrics-file` with sections    | ✅ 48 kHz / 192 kbps MP3   | ❌ $0.15/min ($0.45 at the 180s default estimate) | 3/3       |
+| Gemini `lyria-3.5`      | ✅ 2026-09-04 | ⚠️ Full song; 120s estimate | ⚠️ Prompt only   | ✅ File or generated text/structure | ✅ 44.1 kHz stereo MP3     | ✅ $0.08/song request                             | 1/3       |
+| MiniMax `music-3.0`     | ✅ 2026-08-13 | ✅ Up to 5 minutes          | ❌ Ignored       | ✅ `--lyrics-file` or generated     | ✅ 44.1 kHz / 256 kbps MP3 | ⚠️ $0.15/track (+$0.01 generated lyrics)          | 2/3       |
+| ElevenLabs `music_v2`   | ✅ 2026-05-26 | ✅ 3–600s                   | ✅ `--duration`  | ✅ `--lyrics-file` with sections    | ✅ 48 kHz / 192 kbps MP3   | ❌ $0.15/min ($0.45 at the 180s default estimate) | 3/3       |

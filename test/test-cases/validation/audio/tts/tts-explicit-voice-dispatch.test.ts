@@ -58,7 +58,7 @@ const cases: readonly VoiceMatrixCase[] = [
     flags: {
       'elevenlabs-tts': 'eleven_v3',
       'tts-voice': 'voice-captured',
-      'elevenlabs-tts-stability': '0.5'
+      'tts-stability': 'elevenlabs=0.5'
     },
     capturedVoice: 'voice-captured',
     invocationVoices: ['voice-alice', 'voice-bob', 'voice-alice'],

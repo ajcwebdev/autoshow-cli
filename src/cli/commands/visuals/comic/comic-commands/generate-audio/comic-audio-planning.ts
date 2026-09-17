@@ -38,9 +38,11 @@ export const planComicAudio = async (ctx: CliCommandContext, scriptPath: string)
     ...(targets.length ? { provider: targets.map(target => `${target.service}=${target.model}`) } : {}),
     profile: profileKey, mode, 'delivery-policy': deliveryPolicy, 'pacing-profile': invocation.pacingProfile,
     'soundscape-timing-policy': invocation.soundscapeTimingPolicy,
-    'sfx-concurrency': String(invocation.sfxConcurrency),
     'provider-concurrency': String(baseOptions.ttsProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY),
-    'tts-chunk-concurrency': String(baseOptions.ttsChunkConcurrency ?? DEFAULT_CLI_CONCURRENCY),
+    'step-concurrency': [
+      `tts-chunk=${String(baseOptions.ttsChunkConcurrency ?? DEFAULT_CLI_CONCURRENCY)}`,
+      `sfx=${String(invocation.sfxConcurrency)}`
+    ],
     'concurrency-mode': baseOptions.concurrencyMode ?? 'ramp',
     ...(invocation.rolePolicies.length ? { role: invocation.rolePolicies.map(role => `${role.speakerLabel}=${role.subjectKey}`) } : {}),
     ...(invocation.sfxSelector ? { 'sfx-provider': invocation.sfxSelector } : {}),

@@ -1,3 +1,5 @@
+import { validateData } from '~/utils/validate/validation'
+import { RetiredModelRatesSchema } from './model-loader-schemas'
 import type { ModelCategory, RetiredModelRate, RetiredModelRates, RetiredModelReplacements } from '~/types'
 
 export const modelRateKey = (service: string, model: string): string => `${service}:${model}`
@@ -22,7 +24,9 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
     'rev:low_cost': {
       costPerHourCents: 10,
       billing: { roundingIncrementSeconds: 1, minimumSeconds: 15 }
-    }
+    },
+    'gemini-stt:gemini-3.6-flash': { costPerHourCents: 17.28 },
+    'gemini-stt:gemini-3.8-flash': { costPerHourCents: 17.28 }
   },
   extract: {
     'anthropic:claude-opus-4-7': { costPerMInputTokensCents: 0, costPerMOutputTokensCents: 0 },
@@ -251,6 +255,11 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
       resolutionMultiplier1080p: 1.2,
       costPerSecondByResolutionCents: { '720p': 10, '1080p': 12, '4k': 30 }
     },
+    'gemini:veo-3.1-lite-generate-preview': {
+      baseCostPerSecondCents: 5,
+      resolutionMultiplier1080p: 1.6,
+      costPerSecondByResolutionCents: { '720p': 5, '1080p': 8 }
+    },
     'grok:grok-imagine-video': {
       baseCostPerSecondCents: 5,
       resolutionMultiplier720p: 1.4,
@@ -283,7 +292,9 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
   stt: {
     'assemblyai:universal-2': 'universal-3-5-pro',
     'gladia:solaria-1': 'solaria-3',
-    'speechmatics:enhanced': 'melia-1'
+    'speechmatics:enhanced': 'melia-1',
+    'gemini-stt:gemini-3.6-flash': 'gemini-3.5-transcribe',
+    'gemini-stt:gemini-3.8-flash': 'gemini-3.5-transcribe'
   },
   extract: {
     'gemini:gemini-3.1-flash-lite': 'gemini-3.5-flash-lite'
@@ -348,7 +359,7 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
     'glm:vidu2-reference': 'ltx-2-5-fast',
     'runway:gen4.5': 'ray-3.2',
     'replicate:runwayml/aleph-2': 'grok-imagine-video-1.5',
-    'replicate:wan-video/wan-2.7-t2v': 'bytedance/seedance-2.5',
+    'replicate:wan-video/wan-2.7-t2v': 'alibaba/wan-3',
     'replicate:kwaivgi/kling-v3-video': 'pixverse/pixverse-v6',
     'replicate:kwaivgi/kling-v3-omni-video': 'bytedance/seedance-2.5',
     'replicate:bytedance/seedance-2.0': 'bytedance/seedance-2.5',
@@ -357,17 +368,29 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
     'ltx:ltx-2-3-fast': 'ltx-2-5-fast',
     'ltx:ltx-2-3-pro': 'ltx-2-5-pro',
     'fal:fal-ai/pixverse/c1': 'minimax/h3',
-    'gemini:veo-3.1-generate-preview': 'veo-3.1-lite-generate-preview',
-    'gemini:veo-3.1-fast-generate-preview': 'veo-3.1-lite-generate-preview'
+    'gemini:veo-3.1-generate-preview': 'gemini-omni-1.1-flash',
+    'gemini:veo-3.1-fast-generate-preview': 'gemini-omni-1.1-flash',
+    'gemini:veo-3.1-lite-generate-preview': 'gemini-omni-1.1-flash'
   }
+}
+
+let retiredRatesValidated = false
+
+// Validated against the live registry schemas so a retired row cannot drift into a shape the estimators cannot read.
+const assertValidatedRetiredRates = (): void => {
+  if (retiredRatesValidated) return
+  validateData(RetiredModelRatesSchema, RETIRED_MODEL_RATES, 'retired model rates')
+  retiredRatesValidated = true
 }
 
 export const getRetiredModelRate = <Category extends ModelCategory>(
   category: Category,
   service: string,
   model: string
-): RetiredModelRate<Category> | undefined =>
-  RETIRED_MODEL_RATES[category][modelRateKey(service, model)] as RetiredModelRate<Category> | undefined
+): RetiredModelRate<Category> | undefined => {
+  assertValidatedRetiredRates()
+  return RETIRED_MODEL_RATES[category][modelRateKey(service, model)] as RetiredModelRate<Category> | undefined
+}
 
 export const hasRetiredModelRate = (
   category: ModelCategory,

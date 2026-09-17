@@ -18,6 +18,7 @@ const STT_FIELD_MAP = [
   { field: 'scrapecreatorsSttModels' as const, provider: 'scrapecreators' },
   { field: 'geminiSttModels' as const, provider: 'gemini-stt' },
   { field: 'togetherSttModels' as const, provider: 'together' },
+  { field: 'openaiSttModels' as const, provider: 'openai-stt' },
   { field: 'whisperfileModels' as const, provider: 'whisperfile' },
 ]
 

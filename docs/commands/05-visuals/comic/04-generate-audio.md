@@ -20,9 +20,9 @@ Provider models, voices, and delivery markup are in [TTS](../../04-audio/tts/ove
 | `--provider <provider[=model]>`        | Select a TTS provider/model; repeatable                                                                                                          | cheapest hosted |
 | `--sfx-provider <provider=model>`      | Dedicated sound-effect target: `elevenlabs=eleven_text_to_sound_v2`, `replicate=sepal/audiogen@<pinned-version>`, or `stability=stable-audio-3`  | none            |
 | `--sfx-license-use <classification>`   | Intended use for license-restricted SFX: `noncommercial`, `commercial`, or `unknown`. AudioGen requires `noncommercial`                          | none            |
-| `--sfx-concurrency <count>`            | Max parallel sound-effect requests                                                                                                               | `2`             |
+| `--step-concurrency sfx=<count>`       | Max parallel sound-effect requests                                                                                                               | `2`             |
 | `--provider-concurrency <count>`       | Max hosted provider/model targets rendering in parallel                                                                                          | `7`             |
-| `--tts-chunk-concurrency <count>`      | Max parallel hosted TTS requests per provider                                                                                                    | `30`            |
+| `--step-concurrency tts-chunk=<count>` | Max parallel hosted TTS requests per provider                                                                                                    | `30`            |
 | `--concurrency-mode <ramp\|immediate>` | Approach hosted dialogue and sound-effect caps from one request per provider/account lane (`ramp`) or start at the configured caps (`immediate`) | `ramp`          |
 | `--soundscape-timing-policy <policy>`  | Time inline sound-effect cues with exact turn timing (`strict`) or spread them across the turn range (`proportional`)                            | `strict`        |
 | `--all-providers`                      | Select every hosted TTS target                                                                                                                   | `false`         |

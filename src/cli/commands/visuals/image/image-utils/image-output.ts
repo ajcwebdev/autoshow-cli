@@ -1,6 +1,7 @@
 import { basename, extname } from 'node:path'
 import type { OpenAIImageResponse } from '~/types'
-import { imageDownloadHttpError } from '~/utils/polled-job-client/polled-job'
+import { downloadGeneratedFile, imageDownloadHttpError } from '~/utils/polled-job-client/polled-job'
+import { buildGenerationArtifactPath } from '~/cli/commands/command-shared/media-generation/media-generation-scaffold'
 
 const mimeToExtension = (mimeType: string | null | undefined, fallback = 'png'): string => {
   const normalized = mimeType?.split(';')[0]?.trim().toLowerCase()
@@ -20,11 +21,8 @@ const urlToExtension = (url: string, fallback = 'png'): string => {
 }
 
 const outputPathForIndex = (outputDir: string, ext: string, index: number): { fileName: string, outputPath: string } => {
-  const normalizedExt = ext === 'jpeg' ? 'jpg' : ext
-  const fileName = index === 0
-    ? `generated-image.${normalizedExt}`
-    : `generated-image-${index + 1}.${normalizedExt}`
-  return { fileName, outputPath: `${outputDir}/${fileName}` }
+  const outputPath = buildGenerationArtifactPath('image', outputDir, ext, index)
+  return { fileName: basename(outputPath), outputPath }
 }
 
 export const downloadImageUrl = async (
@@ -34,17 +32,21 @@ export const downloadImageUrl = async (
   fallbackExt: string,
   signal?: AbortSignal | undefined
 ): Promise<string> => {
-  const response = await fetch(url, {
-    headers: { accept: 'image/*,*/*;q=0.8' },
-    ...(signal ? { signal } : {})
+  let contentType: string | null = null
+  const bytes = await downloadGeneratedFile({
+    url,
+    operationName: 'generated-image-download',
+    init: {
+      headers: { accept: 'image/*,*/*;q=0.8' },
+      ...(signal ? { signal } : {})
+    },
+    inspectResponse: (response) => { contentType = response.headers.get('content-type') },
+    errorFactory: (response) => imageDownloadHttpError(`Generated image download failed (${response.status}): ${url}`, response)
   })
-  if (!response.ok) {
-    throw imageDownloadHttpError(`Generated image download failed (${response.status}): ${url}`, response)
-  }
 
-  const ext = mimeToExtension(response.headers.get('content-type'), urlToExtension(url, fallbackExt))
+  const ext = mimeToExtension(contentType, urlToExtension(url, fallbackExt))
   const { outputPath } = outputPathForIndex(outputDir, ext, index)
-  await Bun.write(outputPath, new Uint8Array(await response.arrayBuffer()))
+  await Bun.write(outputPath, bytes)
   return outputPath
 }
 

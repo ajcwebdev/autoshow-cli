@@ -1,13 +1,14 @@
 import type { MusicTarget, Step7MusicMetadata } from '~/types'
 import { buildSingleArtifactMap, getSingleFileArtifactName } from '~/cli/commands/command-shared/target-runner'
+import { GENERATION_ARTIFACT_BASENAMES, generationArtifactFileName } from '~/cli/commands/command-shared/media-generation/media-generation-scaffold'
 
 export const getMusicArtifactFileName = (
   target: Pick<MusicTarget, 'service' | 'model'>,
   singleTarget: boolean
 ): string =>
   getSingleFileArtifactName(target, singleTarget, {
-    singleFileName: 'generated-music.mp3',
-    multiFilePrefix: 'generated-music',
+    singleFileName: generationArtifactFileName('music'),
+    multiFilePrefix: GENERATION_ARTIFACT_BASENAMES.music,
     extension: 'mp3'
   })
 

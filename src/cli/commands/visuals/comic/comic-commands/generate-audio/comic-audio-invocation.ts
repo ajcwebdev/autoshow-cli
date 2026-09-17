@@ -23,18 +23,16 @@ import { assertProtectedStoreOutputDisjoint } from '../../../../audio/voice/voic
 import { MANAGED_VOICE_STORE_ROOT } from '../../../../audio/voice/managed-voice-store'
 import { DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE } from '../../../../audio/tts/soundscape/soundscape-planner'
 import { parseSoundEffectLicenseUseClassification } from '../../comic-utils/comic-soundscape-workflow'
+import { COMIC_AUDIO_DELIVERY_POLICIES, COMIC_AUDIO_MODES, COMIC_AUDIO_PACING_PROFILES, COMIC_SOUNDSCAPE_TIMING_POLICIES, DEFAULT_COMIC_AUDIO_DELIVERY_POLICY, DEFAULT_COMIC_AUDIO_MODE, DEFAULT_COMIC_AUDIO_PACING_PROFILE, DEFAULT_COMIC_SOUNDSCAPE_TIMING_POLICY } from '~/cli/flags/comic-audio-contract'
+import { resolveStepConcurrency, stepConcurrencyDefaultFor, type StepConcurrencyScope } from '~/cli/flags/service-selector-normalization/step-concurrency-scopes'
+
+const COMIC_AUDIO_STEP_CONCURRENCY_SCOPES = ['tts-chunk', 'sfx'] as const satisfies readonly StepConcurrencyScope[]
 
 const DEFAULT_PROFILE = 'default'
 
 const repeatableStrings = (value: unknown): string[] => Array.isArray(value)
   ? value.filter((entry): entry is string => typeof entry === 'string')
   : typeof value === 'string' ? [value] : []
-
-const parseInteger = (value: unknown, fallback: number, label: string): number => {
-  if (value === undefined) return fallback
-  if (typeof value !== 'string' || !/^\d+$/.test(value) || Number(value) <= 0) throw UsageError(`${label} must be a positive integer.`)
-  return Number(value)
-}
 
 const parseOptionalPositiveInteger = (value: unknown, label: string): number | undefined => {
   if (value === undefined) return undefined
@@ -51,27 +49,27 @@ const parseRolePolicies = (values: readonly string[]): ComicAudioRolePolicy[] =>
 })
 
 const parseMode = (value: unknown): ComicAudioMode => {
-  const mode = value ?? 'auto'
-  if (mode !== 'auto' && mode !== 'native' && mode !== 'segmented') throw UsageError('--mode must be auto, native, or segmented.')
-  return mode
+  const mode = value ?? DEFAULT_COMIC_AUDIO_MODE
+  if (!COMIC_AUDIO_MODES.includes(mode as ComicAudioMode)) throw UsageError('--mode must be auto, native, or segmented.')
+  return mode as ComicAudioMode
 }
 
 const parseDeliveryPolicy = (value: unknown): ComicAudioDeliveryPolicy => {
-  const policy = value ?? 'strict'
-  if (policy !== 'strict' && policy !== 'best-effort') throw UsageError('--delivery-policy must be strict or best-effort.')
-  return policy
+  const policy = value ?? DEFAULT_COMIC_AUDIO_DELIVERY_POLICY
+  if (!COMIC_AUDIO_DELIVERY_POLICIES.includes(policy as ComicAudioDeliveryPolicy)) throw UsageError('--delivery-policy must be strict or best-effort.')
+  return policy as ComicAudioDeliveryPolicy
 }
 
 const parsePacingProfile = (value: unknown): ComicAudioPacingProfile => {
-  const profile = value ?? 'none'
-  if (profile !== 'none' && profile !== 'loose-comedy') throw UsageError('--pacing-profile must be none or loose-comedy.')
-  return profile
+  const profile = value ?? DEFAULT_COMIC_AUDIO_PACING_PROFILE
+  if (!COMIC_AUDIO_PACING_PROFILES.includes(profile as ComicAudioPacingProfile)) throw UsageError('--pacing-profile must be none or loose-comedy.')
+  return profile as ComicAudioPacingProfile
 }
 
 const parseSoundscapeTimingPolicy = (value: unknown): ComicAudioSoundscapeTimingPolicy => {
-  const policy = value ?? 'strict'
-  if (policy !== 'strict' && policy !== 'proportional') throw UsageError('--soundscape-timing-policy must be strict or proportional.')
-  return policy
+  const policy = value ?? DEFAULT_COMIC_SOUNDSCAPE_TIMING_POLICY
+  if (!COMIC_SOUNDSCAPE_TIMING_POLICIES.includes(policy as ComicAudioSoundscapeTimingPolicy)) throw UsageError('--soundscape-timing-policy must be strict or proportional.')
+  return policy as ComicAudioSoundscapeTimingPolicy
 }
 
 export const flattenTurns = (plan: Awaited<ReturnType<typeof createComicDialoguePlan>>) =>
@@ -105,7 +103,8 @@ export const resolveComicAudioInvocation = async (ctx: CliCommandContext, script
   const maxGenerationSlots = parseOptionalPositiveInteger(flags['max-generation-slots'], '--max-generation-slots')
   const sfxSelector = typeof flags['sfx-provider'] === 'string' && flags['sfx-provider'].trim() ? flags['sfx-provider'].trim() : undefined
   const sfxLicenseUseClassification = parseSoundEffectLicenseUseClassification(flags['sfx-license-use'])
-  const sfxConcurrency = parseInteger(flags['sfx-concurrency'], 2, '--sfx-concurrency')
+  const sfxConcurrency = resolveStepConcurrency('sfx', COMIC_AUDIO_STEP_CONCURRENCY_SCOPES, ctx.rawParsed.flagOccurrences).value
+    ?? Number(stepConcurrencyDefaultFor('sfx'))
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     flags,
     ctx.rawParsed.explicitFlags,

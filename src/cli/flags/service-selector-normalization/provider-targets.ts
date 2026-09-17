@@ -1,4 +1,23 @@
-import type { GenerationPricingProviders, GenerationSelectionDescriptor, GenerationSelectionFields } from '~/types'
+import type { GenerationPricingProviders, GenerationProviderTargetsOf, GenerationSelectionDescriptor, GenerationSelectionDescriptorOf, GenerationSelectionEntry, GenerationSelectionFields } from '~/types'
+import {
+  IMAGE_SELECTION_ENTRIES,
+  MUSIC_SELECTION_ENTRIES,
+  VIDEO_SELECTION_ENTRIES
+} from '~/cli/commands/command-shared/generation-routing/generation-selection-entries'
+
+const deriveProviderTargets = <const TEntries extends readonly GenerationSelectionEntry[]>(
+  entries: TEntries
+): GenerationProviderTargetsOf<TEntries> =>
+  Object.fromEntries(entries.map(entry => [entry.service, entry.flagName])) as GenerationProviderTargetsOf<TEntries>
+
+// The descriptor reuses the exported provider-target object so selection and flag surfaces stay one value.
+const deriveSelectionDescriptor = <const TEntries extends readonly GenerationSelectionEntry[]>(
+  entries: TEntries,
+  providerTargets: GenerationProviderTargetsOf<TEntries>
+): GenerationSelectionDescriptorOf<TEntries> => ({
+  providerTargets,
+  selections: Object.fromEntries(entries.map(entry => [entry.service, { modelsKey: entry.runtimeModelsKey }]))
+} as GenerationSelectionDescriptorOf<TEntries>)
 
 export const STANDALONE_TTS_PROVIDER_TARGETS = {
   elevenlabs: 'elevenlabs-tts',
@@ -11,29 +30,11 @@ export const STANDALONE_TTS_PROVIDER_TARGETS = {
   inworld: 'inworld-tts'
 } as const satisfies Record<string, string>
 
-export const STANDALONE_IMAGE_PROVIDER_TARGETS = {
-  gemini: 'gemini-image',
-  openai: 'openai-image',
-  grok: 'grok-image',
-  replicate: 'replicate-image',
-  lumalabs: 'lumalabs-image',
-  fal: 'fal-image'
-} as const satisfies Record<string, string>
+export const STANDALONE_IMAGE_PROVIDER_TARGETS = deriveProviderTargets(IMAGE_SELECTION_ENTRIES)
 
-export const STANDALONE_VIDEO_PROVIDER_TARGETS = {
-  gemini: 'gemini-video',
-  grok: 'grok-video',
-  ltx: 'ltx-video',
-  replicate: 'replicate-video',
-  lumalabs: 'lumalabs-video',
-  fal: 'fal-video'
-} as const satisfies Record<string, string>
+export const STANDALONE_VIDEO_PROVIDER_TARGETS = deriveProviderTargets(VIDEO_SELECTION_ENTRIES)
 
-export const STANDALONE_MUSIC_PROVIDER_TARGETS = {
-  elevenlabs: 'elevenlabs-music',
-  minimax: 'minimax-music',
-  gemini: 'gemini-music'
-} as const satisfies Record<string, string>
+export const STANDALONE_MUSIC_PROVIDER_TARGETS = deriveProviderTargets(MUSIC_SELECTION_ENTRIES)
 
 const defineGenerationSelectionDescriptor = <
   const TProviderTargets extends Readonly<Record<string, string>>,
@@ -78,38 +79,27 @@ export const TTS_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   }
 )
 
-export const IMAGE_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
-  STANDALONE_IMAGE_PROVIDER_TARGETS,
-  {
-    gemini: { modelsKey: 'geminiImageModels' },
-    openai: { modelsKey: 'openaiImageModels' },
-    grok: { modelsKey: 'grokImageModels' },
-    replicate: { modelsKey: 'replicateImageModels' },
-    lumalabs: { modelsKey: 'lumalabsImageModels' },
-    fal: { modelsKey: 'falImageModels' }
-  }
-)
+export const IMAGE_GENERATION_SELECTION = deriveSelectionDescriptor(IMAGE_SELECTION_ENTRIES, STANDALONE_IMAGE_PROVIDER_TARGETS)
 
-export const VIDEO_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
-  STANDALONE_VIDEO_PROVIDER_TARGETS,
-  {
-    gemini: { modelsKey: 'geminiVideoModels' },
-    grok: { modelsKey: 'grokVideoModels' },
-    ltx: { modelsKey: 'ltxVideoModels' },
-    replicate: { modelsKey: 'replicateVideoModels' },
-    lumalabs: { modelsKey: 'lumalabsVideoModels' },
-    fal: { modelsKey: 'falVideoModels' }
-  }
-)
+export const VIDEO_GENERATION_SELECTION = deriveSelectionDescriptor(VIDEO_SELECTION_ENTRIES, STANDALONE_VIDEO_PROVIDER_TARGETS)
 
-export const MUSIC_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
-  STANDALONE_MUSIC_PROVIDER_TARGETS,
-  {
-    elevenlabs: { modelsKey: 'elevenlabsMusicModels' },
-    minimax: { modelsKey: 'minimaxMusicModels' },
-    gemini: { modelsKey: 'geminiMusicModels' }
-  }
-)
+export const MUSIC_GENERATION_SELECTION = deriveSelectionDescriptor(MUSIC_SELECTION_ENTRIES, STANDALONE_MUSIC_PROVIDER_TARGETS)
+
+export const pickProviderTargets = <T extends Readonly<Record<string, string>>, K extends keyof T & string>(
+  targets: T,
+  keys: readonly K[]
+): Pick<T, K> => Object.fromEntries(keys.map((key) => [key, targets[key]])) as Pick<T, K>
+
+export const omitProviderTargets = <T extends Readonly<Record<string, string>>, K extends keyof T & string>(
+  targets: T,
+  keys: readonly K[]
+): Omit<T, K> => Object.fromEntries(
+  Object.entries(targets).filter(([key]) => !(keys as readonly string[]).includes(key))
+) as Omit<T, K>
+
+// Comic selects one image target per run and has no fal.ai path, so its image provider list is the
+// standalone list minus fal rather than a hand-written copy.
+export const COMIC_IMAGE_PROVIDER_TARGETS = omitProviderTargets(STANDALONE_IMAGE_PROVIDER_TARGETS, ['fal'])
 
 export const WRITE_STT_PROVIDER_TARGETS = {
   deepinfra: 'deepinfra-stt',
@@ -125,6 +115,7 @@ export const WRITE_STT_PROVIDER_TARGETS = {
   scrapecreators: 'scrapecreators-stt',
   gemini: 'gemini-stt',
   together: 'together-stt',
+  openai: 'openai-stt',
   whisperfile: 'whisperfile-stt'
 } as const satisfies Record<string, string>
 
@@ -149,6 +140,12 @@ export const WRITE_LLM_PROVIDER_TARGETS = {
   kimi: 'kimi',
   together: 'together',
 } as const satisfies Record<string, string>
+
+// Comic's text roles use the shared LLM registry. The QA vision judge is restricted structurally:
+// openai and gemini are the only keys, so an unsupported provider is rejected by the shared selector
+// with a derived message instead of a hand-written capability check.
+export const COMIC_LLM_PROVIDER_TARGETS = WRITE_LLM_PROVIDER_TARGETS
+export const COMIC_QA_PROVIDER_TARGETS = pickProviderTargets(WRITE_LLM_PROVIDER_TARGETS, ['openai', 'gemini'])
 
 export const WRITE_LLM_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   WRITE_LLM_PROVIDER_TARGETS,

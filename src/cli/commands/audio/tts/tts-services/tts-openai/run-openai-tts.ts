@@ -4,7 +4,8 @@ import { splitTextIntoChunks } from '~/cli/commands/audio/tts/tts-utils/audio-ut
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/audio/tts/tts-utils/tts-chunking'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-pipeline'
 import { OPENAI_DEFAULT_TTS_VOICE, resolveOpenAITtsVoiceForModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { getOpenAIClientConfig } from '~/cli/commands/text/write/write-services/write-openai/openai-utils'
+import { requireTtsCredential } from '~/cli/commands/audio/tts/tts-utils/tts-credentials'
+import { OPENAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { createOpenAISpeech } from '~/utils/openai/openai-client'
 import { ValidationError } from '~/utils/error-handler'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
@@ -34,7 +35,7 @@ export const runOpenAITts = async (
   }
 
   const startTime = Date.now()
-  const config = getOpenAIClientConfig()
+  const config = { apiKey: requireTtsCredential('openai'), baseURL: OPENAI_DEFAULT_BASE_URL }
   const voiceId = voiceSelection.voiceId
   const speaker = voiceId
   const speechVoice = voiceSelection.requestVoice

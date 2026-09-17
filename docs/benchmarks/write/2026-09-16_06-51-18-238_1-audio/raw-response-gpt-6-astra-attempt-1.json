@@ -1,0 +1,34 @@
+{
+  "result": "{\"episodeDescription\":\"James Berkins shares how his professional connections helped him land a new developer relations job within 12 hours of being laid off from TinaCMS.\"}",
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-6-astra",
+    "providerReturnedModel": "gpt-6-astra",
+    "processingTime": 3858,
+    "inputTokenCount": 449,
+    "outputTokenCount": 42,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 449,
+      "outputTokenCount": 42,
+      "totalTokenCount": 491
+    },
+    "rawProviderUsage": {
+      "input_tokens": 449,
+      "input_tokens_details": {
+        "cache_write_tokens": 0,
+        "cached_tokens": 0
+      },
+      "output_tokens": 42,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 491
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default"
+  }
+}

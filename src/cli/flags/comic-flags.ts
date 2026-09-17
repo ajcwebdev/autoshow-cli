@@ -1,4 +1,5 @@
-import { boolFlag, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
+import { boolFlag, formatProviderList, formatValueList, pickFlags, prefixFlagDescriptions, strFlag, strListFlag, withHelpGroup } from './flag-utils'
+import { COMIC_IMAGE_PROVIDER_TARGETS, COMIC_LLM_PROVIDER_TARGETS, COMIC_QA_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 import { ttsCommandFlags } from './tts-flags'
 import { colorizeHelpDescription } from '~/cli/help-colors'
 import {
@@ -24,35 +25,43 @@ import {
   DEFAULT_FINAL_PANELS_PER_IMAGE,
   DEFAULT_SKETCH_PANELS_PER_IMAGE
 } from '~/cli/commands/visuals/comic/comic-commands/generate-images/comic-page-utils'
-import { DEFAULT_CONCURRENCY_FLAG_VALUE } from '~/utils/concurrency-defaults'
 import { IMAGE_GENERATION_QUALITIES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
-import { sharedConcurrencyFlags } from './shared-flags'
+import { sharedConcurrencyFlags, stepConcurrencyFlag } from './shared-flags'
 import { REFERENCE_LOCATION_ONLY_FLAGS } from './reference-option-contract'
+import { COMIC_AUDIO_DELIVERY_POLICIES, COMIC_AUDIO_MODES, COMIC_AUDIO_PACING_PROFILES, COMIC_SOUNDSCAPE_TIMING_POLICIES, DEFAULT_COMIC_AUDIO_DELIVERY_POLICY, DEFAULT_COMIC_AUDIO_MODE, DEFAULT_COMIC_AUDIO_PACING_PROFILE, DEFAULT_COMIC_SOUNDSCAPE_TIMING_POLICY, SOUND_EFFECT_LICENSE_USE_CLASSIFICATIONS } from './comic-audio-contract'
+import { SFX_PROVIDER_FLAG_CHOICES } from '~/cli/commands/audio/tts/soundscape/sfx-provider-targets'
+import { COMIC_REVISION_PROMOTION_POLICIES, DRAFT_SCENES_ONLY_VALUES } from './comic-stage-contract'
 
 const comicPriceFlag = {
   price: boolFlag(colorizeHelpDescription('Dry run: estimate API cost without making any calls'))
 } as const satisfies CliFlagsDefinition
 
-const comicConcurrencyFlag = {
-  concurrency: strFlag(colorizeHelpDescription('Number of image/prompt tasks to run in parallel'), DEFAULT_CONCURRENCY_FLAG_VALUE),
-  'concurrency-mode': sharedConcurrencyFlags['concurrency-mode']
-} as const satisfies CliFlagsDefinition
+// Comic's task lane is the shared provider lane wearing a generic name; it now uses the shared
+// spelling so `--step-concurrency <scope>=N` cannot silently change meaning for comic invocations.
+const comicConcurrencyFlag = pickFlags(sharedConcurrencyFlags, ['provider-concurrency', 'concurrency-mode'])
 
+// Comic selects its primary output domain with --provider, exactly like every other command; each
+// auxiliary role gets its own --<role>-provider, following the existing --sfx-provider precedent.
 const comicImageFlags = {
-  'image-model': strFlag(colorizeHelpDescription('Image model ID from the central image registry'), DEFAULT_IMAGE_MODEL),
+  provider: {
+    description: colorizeHelpDescription(`Image provider[=model]: ${formatProviderList(COMIC_IMAGE_PROVIDER_TARGETS)}; repeatable, and an omitted model selects that provider's cheapest registered model`),
+    type: [String] as [StringConstructor],
+    default: [`openai=${DEFAULT_IMAGE_MODEL}`]
+  },
   size: strFlag(colorizeHelpDescription(`Image size: ${IMAGE_SIZE_HELP}`)),
   quality: strFlag(colorizeHelpDescription(`Image quality: ${IMAGE_GENERATION_QUALITIES.join('|')}`))
 } as const satisfies CliFlagsDefinition
 
 const comicQaFlags = {
   qa: {
-    description: colorizeHelpDescription('Enable or disable final-image QA (default: enabled)'),
+    description: colorizeHelpDescription('Enable or disable final-image QA'),
     type: Boolean,
-    negatable: true
+    negatable: true,
+    default: true
   },
   'qa-only': boolFlag(colorizeHelpDescription('Judge existing canonical individual panels without generating, repairing, or promoting images')),
-  'qa-model': strFlag(colorizeHelpDescription('Vision judge model: an OpenAI or Gemini vision-capable LLM'), DEFAULT_QA_MODEL),
+  'qa-provider': strFlag(colorizeHelpDescription(`Vision judge provider[=model]: ${formatProviderList(COMIC_QA_PROVIDER_TARGETS)} (vision-capable LLMs only)`), `openai=${DEFAULT_QA_MODEL}`),
   'max-repairs': strFlag(colorizeHelpDescription('Maximum repair attempts after the initial image; stagnation may restart once or stop early'), '2')
 } as const satisfies CliFlagsDefinition
 
@@ -71,17 +80,18 @@ const generateImagesBlockingFlags = {
 } as const satisfies CliFlagsDefinition
 
 const draftScenesStageFlags = {
-  only: strFlag(colorizeHelpDescription('Run one stage: structure|prompt|blocking|scene|panel-prompts')),
+  only: strFlag(colorizeHelpDescription(`Run one stage: ${formatValueList(DRAFT_SCENES_ONLY_VALUES)}`)),
   blocking: {
-    description: colorizeHelpDescription('Enable or disable the blocking-plan stage in a full run (default: enabled); --no-blocking drafts the scene plan-free'),
+    description: colorizeHelpDescription('Enable or disable the blocking-plan stage in a full run; --no-blocking drafts the scene plan-free'),
     type: Boolean,
-    negatable: true
+    negatable: true,
+    default: true
   },
   'blocking-plan': strFlag(colorizeHelpDescription('Import a hand-authored blocking plan JSON for the blocking stage instead of drafting one; makes no provider call')),
   rebind: boolFlag(colorizeHelpDescription('Remap the existing blocking plan citations to the current structured script by segment content hash and report unresolved ones; requires --only blocking and makes no provider call')),
   'reconcile-from-directives': boolFlag(colorizeHelpDescription('Apply the script\'s CAMERA, BREAK-180, COSTUME, and EXTRAS staging directives to the reviewed scene and blocking plan without an LLM call; panel splits and merges are rejected')),
   'panel-count': strFlag(colorizeHelpDescription('Require exactly this many panels from the scene stage, one per authored [Panel N] note in order, with one validator retry; only applies to the scene stage')),
-  'llm-model': strFlag(colorizeHelpDescription('Text model for blocking-plan and scene drafting'), DEFAULT_LLM_MODEL)
+  provider: strFlag(colorizeHelpDescription(`LLM provider[=model] for blocking-plan and scene drafting: ${formatProviderList(COMIC_LLM_PROVIDER_TARGETS)}`), `openai=${DEFAULT_LLM_MODEL}`)
 } as const satisfies CliFlagsDefinition
 
 export const draftScenesFlags = {
@@ -105,7 +115,7 @@ const draftTreatmentStageFlags = {
     default: false,
     negatable: false
   },
-  'llm-model': strFlag(colorizeHelpDescription('Text model for the treatment drafting call'), DEFAULT_LLM_MODEL)
+  provider: strFlag(colorizeHelpDescription(`LLM provider[=model] for the treatment drafting call: ${formatProviderList(COMIC_LLM_PROVIDER_TARGETS)}`), `openai=${DEFAULT_LLM_MODEL}`)
 } as const satisfies CliFlagsDefinition
 
 export const draftTreatmentFlags = {
@@ -128,7 +138,7 @@ const generateImagesVariationFlag = {
 const generateImagesRevisionFlags = {
   'revision-plan': strFlag(colorizeHelpDescription('Schema-validated, hash-bound targeted panel revision plan')),
   'comparison-passes': strFlag(colorizeHelpDescription('Order-swapped comparison judgments per completed original/candidate pair; revision mode requires 2'), '2'),
-  promote: strFlag(colorizeHelpDescription('Revision promotion policy; revision mode requires clear-winners')),
+  promote: strFlag(colorizeHelpDescription(`Revision promotion policy: ${formatValueList(COMIC_REVISION_PROMOTION_POLICIES)}; revision mode requires clear-winners`)),
 } as const satisfies CliFlagsDefinition
 
 const generateImagesForceFlag = {
@@ -150,7 +160,7 @@ const generateImagesContinuityFlags = {
 
 export const generateImagesFlags = {
   ...withHelpGroup(generateImagesPanelFlags, 'comic-panels'),
-  ...withHelpGroup({ 'image-model': comicImageFlags['image-model'] }, 'comic-image'),
+  ...withHelpGroup({ provider: comicImageFlags.provider }, 'comic-image'),
   ...withHelpGroup(generateImagesVariationFlag, 'comic-image'),
   ...withHelpGroup(generateImagesRevisionFlags, 'comic-image'),
   ...withHelpGroup({ size: comicImageFlags.size, quality: comicImageFlags.quality }, 'comic-image'),
@@ -168,22 +178,20 @@ const comicAudioSelectionFlags = pickFlags(ttsCommandFlags, [
   'provider',
   'all-providers',
   'provider-concurrency',
-  'tts-chunk-concurrency',
   'concurrency-mode',
 ])
 
 const comicSoundscapeSelectionFlags = {
-  'sfx-provider': strFlag(colorizeHelpDescription('Dedicated sound-effect target as provider=model; accepts elevenlabs=eleven_text_to_sound_v2, replicate=sepal/audiogen@<pinned-version>, or stability=stable-audio-3 and has no hosted default')),
-  'sfx-license-use': strFlag(colorizeHelpDescription('Required intended-use declaration for license-restricted SFX targets: noncommercial|commercial|unknown; never inferred from model selection')),
-  'sfx-concurrency': strFlag(colorizeHelpDescription('Bounded parallel sound-effect requests'), '2'),
-  'soundscape-timing-policy': strFlag(colorizeHelpDescription('Inline cue timing: strict|proportional; proportional records its estimate and error bound'), 'strict'),
+  'sfx-provider': strFlag(colorizeHelpDescription(`Dedicated sound-effect target as provider=model; accepts ${SFX_PROVIDER_FLAG_CHOICES.join(', ')} and has no hosted default`)),
+  'sfx-license-use': strFlag(colorizeHelpDescription(`Required intended-use declaration for license-restricted SFX targets: ${formatValueList(SOUND_EFFECT_LICENSE_USE_CLASSIFICATIONS)}; never inferred from model selection`)),
+  'soundscape-timing-policy': strFlag(colorizeHelpDescription(`Inline cue timing: ${formatValueList(COMIC_SOUNDSCAPE_TIMING_POLICIES)}; proportional records its estimate and error bound`), DEFAULT_COMIC_SOUNDSCAPE_TIMING_POLICY),
 } as const satisfies CliFlagsDefinition
 
 const comicAudioContractFlags = {
   profile: strFlag(colorizeHelpDescription('Approved casting profile key'), 'default'),
-  mode: strFlag(colorizeHelpDescription('Render strategy: auto|native|segmented'), 'auto'),
-  'delivery-policy': strFlag(colorizeHelpDescription('Authored delivery handling: strict|best-effort'), 'strict'),
-  'pacing-profile': strFlag(colorizeHelpDescription('Deterministic local dialogue pacing: none|loose-comedy'), 'none'),
+  mode: strFlag(colorizeHelpDescription(`Render strategy: ${formatValueList(COMIC_AUDIO_MODES)}`), DEFAULT_COMIC_AUDIO_MODE),
+  'delivery-policy': strFlag(colorizeHelpDescription(`Authored delivery handling: ${formatValueList(COMIC_AUDIO_DELIVERY_POLICIES)}`), DEFAULT_COMIC_AUDIO_DELIVERY_POLICY),
+  'pacing-profile': strFlag(colorizeHelpDescription(`Deterministic local dialogue pacing: ${formatValueList(COMIC_AUDIO_PACING_PROFILES)}`), DEFAULT_COMIC_AUDIO_PACING_PROFILE),
   'allow-ambiguous-redispatch': boolFlag(colorizeHelpDescription('Explicitly authorize repurchasing a provider-admitted slot that has no recoverable audio')),
   'max-generation-slots': strFlag(colorizeHelpDescription('Generate at most this many unresolved immutable slots, checkpoint, and exit without a final WAV')),
   role: strListFlag(colorizeHelpDescription('Map an uncatalogued or compound speaker label to a logical voice subject, LABEL=role:key or LABEL=voice:key; repeatable')),
@@ -191,6 +199,7 @@ const comicAudioContractFlags = {
 } as const satisfies CliFlagsDefinition
 
 export const comicGenerateAudioFlags = {
+  ...withHelpGroup(stepConcurrencyFlag(['tts-chunk', 'sfx']), 'comic-run'),
   ...withHelpGroup(comicAudioSelectionFlags, 'provider-selection'),
   ...withHelpGroup(comicSoundscapeSelectionFlags, 'provider-selection'),
   ...withHelpGroup(comicAudioContractFlags, 'comic-audio'),
@@ -245,18 +254,13 @@ const referenceSketchSheetFlags = {
     negatable: false
   },
   notes: strFlag(colorizeHelpDescription('Revision instructions (requires --revise)')),
-  'llm-model': strFlag(colorizeHelpDescription('Text model used to draft the sheet prompt'), DEFAULT_LLM_MODEL)
+  'llm-provider': strFlag(colorizeHelpDescription(`LLM provider[=model] used to draft the sheet prompt: ${formatProviderList(COMIC_LLM_PROVIDER_TARGETS)}`), `openai=${DEFAULT_LLM_MODEL}`)
 } as const satisfies CliFlagsDefinition
 
-export const referenceSketchFlags = {
+export const referenceSketchFlags = prefixFlagDescriptions({
   ...withHelpGroup(referenceSketchSheetFlags, 'comic-reference'),
   ...withHelpGroup(comicImageFlags, 'comic-image'),
-  ...withHelpGroup(pickFlags(comicQaFlags, ['qa', 'qa-model', 'max-repairs']), 'comic-qa'),
+  ...withHelpGroup(pickFlags(comicQaFlags, ['qa', 'qa-provider', 'max-repairs']), 'comic-qa'),
   ...withHelpGroup(comicConcurrencyFlag, 'comic-run'),
   ...withHelpGroup(comicPriceFlag, 'pricing')
-} as const satisfies CliFlagsDefinition
-
-for (const name of REFERENCE_LOCATION_ONLY_FLAGS) {
-  const flag = referenceSketchFlags[name]
-  if (flag) flag.description = `Location only: ${flag.description}`
-}
+} as const satisfies CliFlagsDefinition, REFERENCE_LOCATION_ONLY_FLAGS, 'Location only: ')

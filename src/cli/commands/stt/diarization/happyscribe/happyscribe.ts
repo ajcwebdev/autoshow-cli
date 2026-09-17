@@ -160,8 +160,7 @@ export const buildHappyScribeOrganizationResolutionError = (
       baseMessage,
       `Organizations: ${formatHappyScribeOrganizationChoices(selection.organizations)}.`
     ].join(' '),
-    { hints: ['Pass --stt-happyscribe-organization-id <id> or save defaults.extract.stt.happyscribeOrganizationId with bun autoshow setup.'] }
+    { hints: ['Pass --stt-organization-id happyscribe=<id> or save defaults.extract.stt.happyscribeOrganizationId with bun autoshow setup.'] }
   )
 }
 
-export const ensureHappyScribeSttSetup = async (): Promise<void> => { resolveCredential('happyscribe', 'require', { stage: 'stt:happyscribe', description: 'Happy Scribe transcription' }) }

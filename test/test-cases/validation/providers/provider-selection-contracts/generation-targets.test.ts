@@ -35,7 +35,7 @@ describe('provider selection contracts', () => {
     })
 
     expect(allOpts.geminiVideoModels).toEqual([
-      'veo-3.1-lite-generate-preview'
+      'gemini-omni-1.1-flash'
     ])
     expect(allOpts.geminiImageModels).toEqual([
       'gemini-3.1-flash-lite-image'
@@ -65,6 +65,7 @@ describe('provider selection contracts', () => {
     ])
     expect(allOpts.replicateVideoModels).toEqual([
       'alibaba/happyhorse-1.1',
+      'alibaba/wan-3',
       'bytedance/seedance-2.5',
       'pixverse/pixverse-v6'
     ])
@@ -79,7 +80,7 @@ describe('provider selection contracts', () => {
       + (allOpts.replicateVideoModels?.length ?? 0)
       + (allOpts.lumalabsVideoModels?.length ?? 0)
       + (allOpts.falVideoModels?.length ?? 0)
-    ).toBe(16)
+    ).toBe(17)
 
     const cheapestReplicateOpts = buildOptsFromFlags({
       'replicate-image': true
@@ -119,6 +120,7 @@ describe('provider selection contracts', () => {
     ])
     expect(collectMusicTargets(allOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'elevenlabs:music_v2',
+      'elevenlabs:music_v2_5',
       'minimax:music-3.0',
       'gemini:lyria-3.5'
     ])

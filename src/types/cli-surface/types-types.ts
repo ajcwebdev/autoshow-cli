@@ -137,4 +137,6 @@ export type TtsEstimation = CostEstimation & {
   msPer1KChars: number
 }
 
+export type ImageModelMeta = ModelRegistry['image'][string]['models'][string]
+
 export type VideoModelMeta = ModelRegistry['video'][string]['models'][string]

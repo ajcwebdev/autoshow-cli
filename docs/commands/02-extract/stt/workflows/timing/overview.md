@@ -57,10 +57,10 @@ Successful output contains `result.json`, `alignment.json`, and retained working
 ### Calibrate installed whisperfile timing
 
 ```bash
-bun autoshow extract audio.wav --calibrate-whisper --timing-reference output/aligned/result.json --whisper-engine whisperfile --whisper-calibration-model tiny --output-dir output/whisperfile-calibration --json
+bun autoshow extract audio.wav --calibrate-whisper --timing-reference output/aligned/result.json --whisper-calibration-model tiny --output-dir output/whisperfile-calibration --json
 ```
 
-`--whisper-engine` accepts only `whisperfile` (the default) and `--whisper-calibration-model` defaults to `tiny`. The selected bundle must already be installed. Calibration runs standard timing and, when the executable supports it, the model's DTW preset. The reference audio fingerprint must match the input. Each variant keeps its raw JSON, normalized results, native subtitles the executable supports, and command/model provenance. Unsupported DTW is recorded without failing a successful standard run. Invalid word boundaries exclude that variant from ranking (`rejectedVariants`); remaining variants can still be measured. If none can be measured, diagnostics are saved and the command fails. Invalid standard intervals are not repaired to produce a score.
+Whisperfile is the only calibration engine, and `--whisper-calibration-model` defaults to `tiny`. The selected bundle must already be installed. Calibration runs standard timing and, when the executable supports it, the model's DTW preset. The reference audio fingerprint must match the input. Each variant keeps its raw JSON, normalized results, native subtitles the executable supports, and command/model provenance. Unsupported DTW is recorded without failing a successful standard run. Invalid word boundaries exclude that variant from ranking (`rejectedVariants`); remaining variants can still be measured. If none can be measured, diagnostics are saved and the command fails. Invalid standard intervals are not repaired to produce a score.
 
 DTW word boundaries are derived, not native measured start/end pairs, and are marked `repaired`. `calibration.json` ranks variants by lexical coverage, then combined median start/end difference, and records elapsed local runtime. Calibration never changes transcription defaults and makes no recommendation when no words match. A result applies only to the selected reference, engine, model, and executable version.
 

@@ -12,6 +12,3 @@ export const resolveGlmBaseUrl = (baseUrl?: string): string => {
 export const ensureGlmApiKey = (serviceName: string, stage: string): string =>
   resolveCredential('glm', 'require', { stage: stage, description: serviceName })
 
-export const ensureGlmOcrSetup = async (): Promise<void> => {
-  ensureGlmApiKey('GLM OCR', 'ocr:glm')
-}

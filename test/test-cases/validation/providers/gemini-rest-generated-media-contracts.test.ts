@@ -10,35 +10,36 @@ import { setupGeminiRestContractFixture } from './gemini-rest-contract-fixture'
 const { audioBase64, audioBytes, videoBytes, withTempDir } = setupGeminiRestContractFixture()
 
 describe('Gemini REST contracts', () => {
-  test('Gemini Veo polls long-running operations and downloads generated video files', async () => {
+  test('Gemini Omni creates an interaction and downloads URI-delivered video files', async () => {
     process.env['GEMINI_API_KEY'] = 'gemini-key'
     const calls = installFetch((call) => {
-      if (call.url.endsWith('/models/veo-3.1-lite-generate-preview:predictLongRunning')) {
-        expect(call.bodyJson).toEqual({
-          instances: [{ prompt: 'rain over city' }],
-          parameters: {
-            sampleCount: 1,
-            durationSeconds: 4,
+      if (call.url.endsWith('/interactions') && call.method === 'POST') {
+        expect(call.bodyJson).toMatchObject({
+          model: 'gemini-omni-1.1-flash',
+          input: 'rain over city',
+          response_format: {
+            type: 'video',
+            duration: '4s',
             resolution: '720p',
-            aspectRatio: '16:9'
+            aspect_ratio: '16:9',
+            delivery: 'uri'
           }
         })
-        return jsonResponse({ name: 'operations/veo-123', done: false })
-      }
-      if (call.url === 'https://generativelanguage.googleapis.com/v1beta/operations/veo-123') {
         return jsonResponse({
-          name: 'operations/veo-123',
-          done: true,
-          response: {
-            generateVideoResponse: {
-              generatedSamples: [{
-                video: {
-                  uri: 'https://generativelanguage.googleapis.com/v1beta/files/video-file'
-                }
-              }]
-            }
-          }
+          id: 'v1_omni-123',
+          status: 'completed',
+          steps: [{
+            type: 'model_output',
+            content: [{
+              type: 'video',
+              mime_type: 'video/mp4',
+              uri: 'https://generativelanguage.googleapis.com/v1beta/files/video-file:download?alt=media'
+            }]
+          }]
         })
+      }
+      if (call.url === 'https://generativelanguage.googleapis.com/v1beta/files/video-file' && call.method === 'GET') {
+        return jsonResponse({ name: 'files/video-file', state: 'ACTIVE' })
       }
       if (call.url === 'https://generativelanguage.googleapis.com/v1beta/files/video-file:download?alt=media') {
         return new Response(videoBytes, { status: 200, headers: { 'content-type': 'video/mp4' } })
@@ -48,12 +49,13 @@ describe('Gemini REST contracts', () => {
 
     await withTempDir(async (dir) => {
       const result = await runGeminiVideoGen('rain over city', dir, {
-        model: 'veo-3.1-lite-generate-preview',
+        model: 'gemini-omni-1.1-flash',
         durationSeconds: 4,
         resolution: '720p',
         aspectRatio: '16:9'
       })
       expect(new Uint8Array(await Bun.file(result.videoPath).arrayBuffer())).toEqual(videoBytes)
+      expect(result.metadata.providerRequestId).toBe('v1_omni-123')
     })
 
     expect(calls.map((call) => call.method)).toEqual(['POST', 'GET', 'GET'])

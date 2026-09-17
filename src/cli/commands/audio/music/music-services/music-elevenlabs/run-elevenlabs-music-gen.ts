@@ -1,5 +1,5 @@
-import { logGenCompleted, logGenStatus } from '~/cli/commands/command-shared/generation-command-utils'
-import { readElevenLabsError } from '~/cli/commands/audio/tts/tts-services/tts-elevenlabs/elevenlabs-utils'
+import { runMusicGeneration } from '~/cli/commands/command-shared/media-generation/music-generation-scaffold'
+import { formatElevenLabsErrorText } from '~/cli/commands/audio/tts/tts-services/tts-elevenlabs/elevenlabs-utils'
 import type {
   ElevenLabsCompositionPlan,
   ElevenLabsMusicResponseAudio,
@@ -10,8 +10,8 @@ import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import * as l from '~/utils/app-logger/app-logger'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import { resolveCredential } from '~/utils/validate/env-utils'
-import { InfraError, ValidationError } from '~/utils/error-handler'
+import { createProviderRestClient } from '~/utils/rest-client'
+import { InfraError, ProviderError, ValidationError } from '~/utils/error-handler'
 import { DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS } from '~/cli/commands/audio/music/music-utils/music-pricing'
 import { buildElevenLabsCompositionPlan } from './elevenlabs-composition-plan'
 
@@ -22,6 +22,11 @@ const ELEVENLABS_MAX_DURATION_MS = ELEVENLABS_MAX_DURATION_SECONDS * 1000
 const REQUEST_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
 const ELEVENLABS_MUSIC_OUTPUTS = {
   music_v2: {
+    format: 'mp3_48000_192',
+    sampleRate: 48000,
+    bitrate: 192000
+  },
+  music_v2_5: {
     format: 'mp3_48000_192',
     sampleRate: 48000,
     bitrate: 192000
@@ -135,6 +140,38 @@ const buildElevenLabsMusicRequest = async (
   }
 }
 
+
+/** ElevenLabs returns the track as raw audio, so the shared REST client owns the error capture and this reads the bytes. */
+const elevenLabsMusicRequest = createProviderRestClient<{
+  apiKey: string
+  outputFormat: string
+  body: Record<string, unknown>
+  signal: AbortSignal
+}, Error>({
+  buildRequest: (options) => ({
+    url: `${ELEVENLABS_DEFAULT_BASE_URL}/music?output_format=${options.outputFormat}`,
+    init: {
+      method: 'POST',
+      headers: {
+        'xi-api-key': options.apiKey,
+        'Content-Type': 'application/json',
+        Accept: 'audio/mpeg'
+      },
+      body: JSON.stringify(options.body),
+      signal: options.signal
+    }
+  }),
+  errorMessagePrefix: () => 'ElevenLabs music generation failed',
+  formatErrorMessage: ({ response, rawText, errorMessagePrefix }) =>
+    `${errorMessagePrefix} (${response.status}): ${formatElevenLabsErrorText(rawText, response.status)}`,
+  createError: ({ message, response }) => ProviderError(message, {
+    stage: 'music:elevenlabs',
+    status: response.status,
+    headers: response.headers
+  }),
+  diagnostics: 'factory'
+})
+
 export const runElevenLabsMusicGen = async (
   prompt: string,
   outputDir: string,
@@ -145,76 +182,55 @@ export const runElevenLabsMusicGen = async (
     forceInstrumental?: boolean | undefined
   }
 ): Promise<{ musicPath: string, metadata: Step7MusicMetadata }> => {
-  const apiKey = resolveCredential('elevenlabs', 'require', { stage: 'music:elevenlabs', description: 'ElevenLabs music generation' })
-
-  const baseURL = ELEVENLABS_DEFAULT_BASE_URL
-  const musicPath = `${outputDir}/generated-music.mp3`
   const output = ELEVENLABS_MUSIC_OUTPUTS[options.model]
-  const request = await buildElevenLabsMusicRequest(prompt, options)
-  const musicDurationMs = request.musicDurationMs
 
-  logGenStatus('music', 'elevenlabs', options.model, 'started')
+  return await runMusicGeneration({
+    service: 'elevenlabs',
+    model: options.model,
+    outputDir,
+    prepare: async () => await buildElevenLabsMusicRequest(prompt, options),
+    execute: async (context, request) => {
+      const audioResponse = await withRetry(
+        { retryClass: 'runtime_http_create_conservative', operationName: 'elevenlabs-music' },
+        async (signal) => {
+          const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+          const response = await elevenLabsMusicRequest({
+            apiKey: context.apiKey,
+            outputFormat: output.format,
+            body: request.body,
+            signal: AbortSignal.any([...(signal ? [signal] : []), timeoutSignal])
+          })
 
-  const startTime = Date.now()
-
-  const audioResponse = await withRetry(
-    { retryClass: 'runtime_http_create_conservative', operationName: 'elevenlabs-music' },
-    async (signal) => {
-      const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
-      const combined = AbortSignal.any([...(signal ? [signal] : []), timeoutSignal])
-
-      const response = await fetch(`${baseURL}/music?output_format=${output.format}`, {
-        method: 'POST',
-        headers: {
-          'xi-api-key': apiKey,
-          'Content-Type': 'application/json',
-          Accept: 'audio/mpeg'
+          return {
+            bytes: new Uint8Array(await response.arrayBuffer()),
+            mimeType: response.headers.get('content-type')?.split(';')[0]?.trim() || undefined,
+            requestId: readElevenLabsRequestId(response.headers)
+          } satisfies ElevenLabsMusicResponseAudio
         },
-        body: JSON.stringify(request.body),
-        signal: combined
-      })
-
-      if (!response.ok) {
-        const errText = await readElevenLabsError(response)
-        throw InfraError(`ElevenLabs music generation failed (${response.status}): ${errText}`, { stage: 'music:elevenlabs', status: response.status })
+        (error) => classifyFetchRetry(error, 'runtime_http_create_conservative')
+      )
+      const audioBytes = audioResponse.bytes
+      if (audioBytes.byteLength === 0) {
+        throw InfraError('ElevenLabs music generation returned empty audio', { stage: 'music:elevenlabs' })
       }
 
+      const musicPath = context.artifactPath()
+      await Bun.write(musicPath, audioBytes)
+
       return {
-        bytes: new Uint8Array(await response.arrayBuffer()),
-        mimeType: response.headers.get('content-type')?.split(';')[0]?.trim() || undefined,
-        requestId: readElevenLabsRequestId(response.headers)
-      } satisfies ElevenLabsMusicResponseAudio
-    },
-    (error) => classifyFetchRetry(error, 'runtime_http_create_conservative')
-  )
-  const audioBytes = audioResponse.bytes
-  if (audioBytes.byteLength === 0) {
-    throw InfraError('ElevenLabs music generation returned empty audio', { stage: 'music:elevenlabs' })
-  }
-
-  await Bun.write(musicPath, audioBytes)
-
-  const processingTime = Date.now() - startTime
-  const musicFile = Bun.file(musicPath)
-
-  logGenCompleted('music', 'elevenlabs', options.model, processingTime, [musicPath])
-
-  const metadata: Step7MusicMetadata = {
-    musicService: 'elevenlabs',
-    musicModel: options.model,
-    processingTime,
-    musicFileName: 'generated-music.mp3',
-    musicFileSize: musicFile.size,
-    musicDurationMs,
-    lyricsSource: request.lyricsSource,
-    providerRequestId: audioResponse.requestId,
-    audioMimeType: audioResponse.mimeType ?? 'audio/mpeg',
-    audioSampleRate: output.sampleRate,
-    audioBitrate: output.bitrate,
-    providerAudioByteSize: audioBytes.byteLength,
-    outputFormat: output.format,
-    ...(request.compositionPlan ? { compositionPlanChunkCount: request.compositionPlan.chunks.length } : {})
-  }
-
-  return { musicPath, metadata }
+        artifactPaths: [musicPath],
+        metadata: {
+          musicDurationMs: request.musicDurationMs,
+          lyricsSource: request.lyricsSource,
+          providerRequestId: audioResponse.requestId,
+          audioMimeType: audioResponse.mimeType ?? 'audio/mpeg',
+          audioSampleRate: output.sampleRate,
+          audioBitrate: output.bitrate,
+          providerAudioByteSize: audioBytes.byteLength,
+          outputFormat: output.format,
+          ...(request.compositionPlan ? { compositionPlanChunkCount: request.compositionPlan.chunks.length } : {})
+        }
+      }
+    }
+  })
 }

@@ -36,7 +36,7 @@ export const GLOBAL_FLAG_DEFINITIONS = {
     negatable: false
   },
   json: boolFlag(colorizeHelpDescription('Emit versioned diagnostic records on stderr and one terminal result on stdout')),
-  'log-level': strFlag(colorizeHelpDescription(`Minimum log level: ${formatValueList(LOG_LEVELS)} (default: info)`)),
+  'log-level': strFlag(colorizeHelpDescription(`Minimum log level: ${formatValueList(LOG_LEVELS)}`), 'info'),
   color: {
     description: colorizeHelpDescription('Force ANSI colors on, or use --no-color to disable (overrides FORCE_COLOR/NO_COLOR; default: auto-detect TTY)'),
     type: Boolean,

@@ -1,0 +1,89 @@
+[00:00:01.360] All right, sorry about the Twitter space curve fuffle.
+[00:00:05.680] Got got the thing working though.
+[00:00:08.160] Well done, Scott.
+[00:00:10.080] I know exactly what was happening has happened to me before.
+[00:00:13.520] Sometimes when you start a space, it will show us starting on your phone while having not actually being started where other people can see it and join it, but if you wait like one to two minutes somehow it just works it out, and then all of a sudden goes live.
+[00:00:31.360] So patience was a virtue in that in that respect.
+[00:00:33.920] So for any other Twitter space hosts out there, these are the fun things we get to learn as we do this process.
+[00:00:42.640] Yeah, thank you to the audience for rejoining back and for Scott for soldering on and Anthony for the lesson.
+[00:00:52.960] I'm reminded of that like old demotivators poster, which was like the Titanic and it was like, maybe your your role is to be a lesson for others but welcome back everyone.
+[00:01:05.120] Do you know if Scott's going to join in separately, Anthony?
+[00:01:09.760] Let's go ahead and just start announcing things introducing ourselves.
+[00:01:13.600] We'll let him work what he's going to do great.
+[00:01:16.400] So hi everyone, welcome again to JavaScript Jam Live, JavaScript Jam Live is an open mic.
+[00:01:25.120] We like to say for anything JavaScript and web development related is on topic.
+[00:01:30.800] We love audience participation.
+[00:01:32.400] We've got something very special for you this week and in the upcoming weeks in collaboration with React Miami.
+[00:01:39.840] I am Ishanand.
+[00:01:41.360] I'm VP of Product at Egio Egy deployment platform, and I'm joined by Anthony and Scott.
+[00:01:48.800] I'll let them introduce themselves and talk about what we're doing with React Miami.
+[00:01:54.320] Hello, my name is Anthony Camppolo.
+[00:01:56.640] I am a developer advocate at Egio and we're going to be joined today by Dev Agar, who was also partnering with React Miami to help put together some sweet events and activities and content for you, and we are bringing him up right now.
+[00:02:14.800] And Scott, if you are able to speak, go ahead and reduce yourself, what up everybody?
+[00:02:24.640] So hopefully you can hear me.
+[00:02:27.200] Yes, all right, great.
+[00:02:30.160] Wow, boy, that was fun earlier.
+[00:02:32.400] I tell you what, you know, it doesn't matter if you know quite a bit about Tech or Dont is there's always something to make you look like a fool.
+[00:02:38.880] So here we are.
+[00:02:40.160] Everything's good.
+[00:02:40.800] Everything's working now.
+[00:02:42.880] So anyway, so great.
+[00:02:44.960] So glad to be here.
+[00:02:46.560] React Miami.
+[00:02:48.400] I don't know why I said weak there, but you know, in a hustle to get this up, that's what I put.
+[00:02:52.560] But really it's reactive to Miami months, which I'm renaming right now, and I'm super excited because you know as Anthony was sensing out there, we're going to talk about dev today and about React Miami and many other things and also we're doing our little collab with React Miami as well and we're just so excited for that moving forward.
+[00:03:16.960] We're going to be having more speakers from Reaction Miami speaking here about just topics that make sense with them, and you know we're keeping this traditional like JavaScript jam vibe that we have rolling through all that process.
+[00:03:29.600] So nothing's going to change as far as like what you guys typically are used to hearing, and you know as far as like having speakers here and all that, it's going to be a great time.
+[00:03:38.400] So really there's just more value actually from us being involved with React Miami more value for you guys and some extra goodies that we're going to talk about here a little bit later.
+[00:03:49.600] We're really excited for.
+[00:03:50.800] So thank you so much.
+[00:03:53.040] So glad to be here.
+[00:03:54.400] Just remember if you're a beginner or an advanced user with you in doing this a little bit or doing this for a very long time as far as a web developer goes.
+[00:04:02.400] We want to hear from everybody.
+[00:04:03.600] It doesn't matter whether you're a beginner or advanced, like I said, and so don't be afraid to request to come up and ask questions or comments or facts, opinions, whatever it is we want to hear from y'all.
+[00:04:17.040] In fact, actually that also helps to increase the value here for everybody listening in because when you guys get involved, typically there's some really great conversations that happen, so would love to hear from as many people is possibly want to come up.
+[00:04:31.040] So all right, with that being said, I am Scott Style and I am a technical community manager at Egio and I'm ready to rock this today.
+[00:04:40.400] Let's get this rolling.
+[00:04:41.840] Thank you so much.
+[00:04:42.960] Appreciate y'all awesome.
+[00:04:47.040] We should have Dev introduce himself and then after that Michelle, you can introduce yourself and you are one of the organizers of React Miami.
+[00:04:56.240] So thank you for joining us.
+[00:04:59.840] How's it going, everybody?
+[00:05:01.360] Thank you very much for having me up here.
+[00:05:03.200] Thank everyone for showing up and showing interest.
+[00:05:06.960] My name is Dev or you can call me Dave.
+[00:05:09.680] Both work fine and yeah, it's great to be here this year I am also media partner for React Miami along with these two great individuals, Anthony and Scott.
+[00:05:22.560] And yeah, I'm very excited to show you guys what we have in store for next week or talk about it a little today, Michelle.
+[00:05:34.960] You want to go if you're not currently hiding your mic or something, Dan, you look like you hopped up as well.
+[00:05:46.720] I don't think Dan's going to be a react Miami.
+[00:05:49.040] I wish I'm having a there's a company offsite for that week otherwise it would have gone, but yeah, I don't think I deserved to introduce myself because I'm not a media partner at React Miami.
+[00:06:02.160] Okay, well, cool.
+[00:06:03.360] It looks like Will showed up anyway.
+[00:06:04.800] That's so funny.
+[00:06:11.280] Cool.
+[00:06:11.840] So I guess we can let Dev, do you want to kind of talk about your game show idea?
+[00:06:17.760] I thought it was pretty interesting.
+[00:06:22.000] Sure.
+[00:06:22.240] Yeah.
+[00:06:22.480] So I have mandates to robe these two people into hosting a game show with me.
+[00:06:27.680] This is happening next week.
+[00:06:29.600] We are calling it Miami Jam and I'm very excited for this, but looks like Michelle is back up here as a speaker.
+[00:06:37.600] So think we would like to hear from her first.
+[00:06:43.200] Hi, sorry guys, like the connection was like on the fritz and then the microphone button wasn't working in the Twitter space so seems like everything's working.
+[00:06:52.960] We understand.
+[00:06:54.400] But yeah, so that's the normal using Twitter spaces every day Miami, and I'm just kind of crashing the party today, but I'm super excited to have Dav and Anthony and Scott, all as media partners for Rick Miami this year, and I'm also listening in just interested to see what we're going to do because we kind of like just them the green light to do whatever they like.
+[00:07:24.800] So yes, we'll see whether you end up regretting it or not, but I think that will have some cool stuff in store, so we'll probably get back to your description dep.
+[00:07:41.600] Sure.
+[00:07:42.160] Yeah.
+[00:07:42.720] So the idea of Miami Gem is to kind of stray away from like a typical interview or panel style show where we just bring on a few speakers and ask them questions instead this show Miami Jam which we are hosting is going to be a little more like a game show where instead of just straight up asking questions about their topics or their motivations we are going to ask trivia style questions.
+[00:08:12.880] These can be react related questions or anything about weird quirks in JavaScript or TypeScript or anything adjacent to React.
+[00:08:20.800] These could be guessing what libraries being used, or this could be a question about some other speaker's topic which the person that the question is directed to has to answer, and then we will use these opportunities to kind of segue into more detailed, more in depth discussions on what their topics are.
+[00:08:43.120] So we still get to, or we still get to get a lot of insight from these speakers about what their topic is, what their motivation is behind giving the certain talk, or what their experience has been like in this industry, and what kind of things that they have worked on that's bringing them to react Miami to give this talk it's just structured in a style that's more like a game show so that it's more fun and it's more interactive it's more collaborative.
+[00:09:16.000] We are trying to get the speakers to share experiences with each other as well, and we are trying to get the audience involved.
+[00:09:24.640] By the way, I'm sorry if my phone notification is interrupting me.
+[00:09:30.480] Put that on silent.
+[00:09:32.000] Yes, so yeah, that's the point trying to make it collaborative, trying to make it engaging.
+[00:09:37.120] We're also going to have some stuff for the audience.
+[00:09:39.360] So if you are in the audience there in the show, you will also get to engage with the speakers, obviously you'll get to ask your questions, but you might also get to engage in other ways.
+[00:09:50.720] For example, if we ask a question or if you ask them a question, you can decide how many points they get for answering that question.
+[00:09:58.400] And if the question is about

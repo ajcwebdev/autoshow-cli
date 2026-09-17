@@ -1,7 +1,6 @@
 import type { ImageGenOptions, ImageTarget, ReplicateImageModel } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { validateReplicateImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { ensureReplicateImageGenSetup } from './replicate-image-gen'
 import {
   isReplicateQwenModel,
   isReplicateSeedreamModel,
@@ -70,7 +69,6 @@ export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTar
       service: 'replicate',
       model,
       run: async (prompt, outputDir) => {
-        await ensureReplicateImageGenSetup()
         return await runReplicateImageGen(prompt, outputDir, {
           model,
           inputs: options.imageInputs,

@@ -15,6 +15,19 @@
           "costMultiplier": 1,
           "msPerSecond": 1820
         }
+      },
+      "music_v2_5": {
+        "description": "music_v2_5 — default text prompt to complete song generation with improved acoustic and vocal realism",
+        "pricingSourceUrl": "https://elevenlabs.io/pricing/api",
+        "pricingCheckedAt": "2026-09-15",
+        "pricingCurrency": "USD",
+        "pricingTier": "ElevenLabs API music generation pricing",
+        "pricingNotes": "ElevenLabs publishes one API music-generation rate for Music v2 and v2.5. Subscription inclusions, discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMinuteCents": 15,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 1820
+        }
       }
     }
   },

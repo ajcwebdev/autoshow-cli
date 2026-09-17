@@ -283,7 +283,7 @@ export const estimateDraftScenesPrice = async (options: DraftScenesCommandOption
 
 export const estimateStructureScriptsPrice = async (options: StructureScriptsCommandOptions): Promise<void> => {
   if (!options.llmModel) {
-    priceNotice('Comic - Price Estimate: draft-scenes --only structure: no --llm-model specified, so the structure stage makes no API calls.', {
+    priceNotice('Comic - Price Estimate: draft-scenes --only structure: no --provider specified, so the structure stage makes no API calls.', {
       stage: 'draft-scenes:structure',
       llmCalls: 0,
       totalCost: 0

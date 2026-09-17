@@ -149,4 +149,129 @@ describe('price mode contracts', () => {
       })
       expect(actual.totalCost).toBeCloseTo(estimated.totalCost)
     })
+
+  const OPENAI_GPT56_BAND_CASES = [
+    {
+      model: 'gpt-5.6-sol',
+      shortInput: 500,
+      shortCached: 50,
+      shortOutput: 3000,
+      longInput: 1000,
+      longCached: 100,
+      longOutput: 4500
+    },
+    {
+      model: 'gpt-5.6-terra',
+      shortInput: 200,
+      shortCached: 20,
+      shortOutput: 1200,
+      longInput: 400,
+      longCached: 40,
+      longOutput: 1800
+    },
+    {
+      model: 'gpt-5.6-luna',
+      shortInput: 20,
+      shortCached: 2,
+      shortOutput: 120,
+      longInput: 40,
+      longCached: 4,
+      longOutput: 180
+    }
+  ] as const
+
+  for (const testCase of OPENAI_GPT56_BAND_CASES) {
+    test(`OpenAI ${testCase.model} LLM pricing uses published short and long context bands`, () => {
+      const rates = requireDefined(getLlmCost('openai', testCase.model), `${testCase.model} LLM pricing`)
+      const standard = computeTokenCost(rates, 272_000, 1000)
+      const long = computeTokenCost(rates, 272_001, 1000)
+
+      expect(standard).toMatchObject({
+        pricingBand: 'standard-short-context',
+        inputCostPer1MCents: testCase.shortInput,
+        outputCostPer1MCents: testCase.shortOutput
+      })
+      expect(long).toMatchObject({
+        pricingBand: 'standard-long-context',
+        inputCostPer1MCents: testCase.longInput,
+        outputCostPer1MCents: testCase.longOutput
+      })
+
+      const entry = requireDefined(getModelRegistry().llm['openai']?.models[testCase.model], `${testCase.model} LLM registry entry`)
+      expect(entry.tokenPricingBands?.map((band) => band.cachedInputCostPer1MCents)).toEqual([
+        testCase.shortCached,
+        testCase.longCached
+      ])
+    })
+
+    test(`OpenAI ${testCase.model} OCR pricing uses published short and long context bands`, () => {
+      const rates = getExtractPricing('openai', testCase.model)
+      const entry = requireDefined(getModelRegistry().extract['openai']?.models[testCase.model], `${testCase.model} OCR registry entry`)
+
+      if (rates.inputCostPer1MCents === undefined || rates.outputCostPer1MCents === undefined) {
+        throw new Error(`Missing ${testCase.model} OCR rates`)
+      }
+
+      const standard = computeTokenCost({
+        ...rates,
+        inputCostPer1MCents: rates.inputCostPer1MCents,
+        outputCostPer1MCents: rates.outputCostPer1MCents
+      }, 272_000, 1000)
+      const long = computeTokenCost({
+        ...rates,
+        inputCostPer1MCents: rates.inputCostPer1MCents,
+        outputCostPer1MCents: rates.outputCostPer1MCents
+      }, 272_001, 1000)
+
+      expect(standard).toMatchObject({
+        pricingBand: 'standard-short-context',
+        inputCostPer1MCents: testCase.shortInput,
+        outputCostPer1MCents: testCase.shortOutput
+      })
+      expect(long).toMatchObject({
+        pricingBand: 'standard-long-context',
+        inputCostPer1MCents: testCase.longInput,
+        outputCostPer1MCents: testCase.longOutput
+      })
+      expect(entry.tokenPricingBands?.map((band) => band.cachedInputCostPer1MCents)).toEqual([
+        testCase.shortCached,
+        testCase.longCached
+      ])
+    })
+  }
+
+  test('GPT-5.6 Terra LLM preflight and actual costs propagate the long-context band', () => {
+    const estimated = computeEstimatedCosts({
+      applyCostMultipliers: false,
+      llmTargets: [{
+        service: 'openai',
+        model: 'gpt-5.6-terra',
+        inputTokens: 272_001,
+        outputTokens: 1000
+      }]
+    })
+    const actual = computeActualCosts({
+      step3: buildStep3CostMetadata({
+        llmService: 'openai',
+        llmModel: 'gpt-5.6-terra',
+        inputTokenCount: 272_001,
+        outputTokenCount: 1000
+      })
+    })
+
+    const expectedCost = (272_001 / 1_000_000) * 400 + (1000 / 1_000_000) * 1800
+    expect(estimated.steps[0]).toMatchObject({
+      provider: 'openai',
+      model: 'gpt-5.6-terra',
+      pricingBand: 'standard-long-context'
+    })
+    expect(estimated.steps[0]?.cost).toBeCloseTo(expectedCost)
+    expect(actual.steps[0]).toMatchObject({
+      provider: 'openai',
+      model: 'gpt-5.6-terra',
+      pricingBand: 'standard-long-context'
+    })
+    expect(actual.steps[0]?.cost).toBeCloseTo(expectedCost)
+    expect(actual.totalCost).toBeCloseTo(estimated.totalCost)
+  })
 })

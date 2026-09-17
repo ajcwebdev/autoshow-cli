@@ -24,6 +24,10 @@
     "OCR": [
       "https://developers.openai.com/api/docs/guides/images-vision.md"
     ],
+    "STT": [
+      "https://developers.openai.com/api/docs/guides/speech-to-text.md",
+      "https://developers.openai.com/api/reference/resources/audio/subresources/transcriptions/methods/create/index.md"
+    ],
     "TTS": [
       "https://developers.openai.com/api/docs/guides/audio.md",
       "https://developers.openai.com/api/docs/guides/text-to-speech.md",

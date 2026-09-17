@@ -5,7 +5,6 @@ import { basename, dirname, join, resolve } from "node:path";
 import { loadCanonicalRunRecord, PIPELINE_MANIFEST_FILE } from "../shared/pipeline_manifest";
 import { discoverCombinedRuns, type CombinedRunRef } from "../shared/combined_report_lib";
 import {
-  renderCombinedDashboard,
   type CombinedDashboardModel,
   type DashboardGroup,
   type DashboardProviderRow,
@@ -150,10 +149,10 @@ export interface UrlMetricRankingEntry {
   meanCostUSD: number | null;
 }
 
-interface UrlCombinedBuildResult {
+export interface UrlCombinedBuildResult {
   report: Record<string, unknown>;
   markdown: string;
-  html: string;
+  dashboardModel: CombinedDashboardModel;
   runCount: number;
   providerCount: number;
 }
@@ -559,9 +558,9 @@ function buildDashboardGroup(
     display: provider.providerKey,
     model: provider.model,
     coverage: `${provider.runsCovered}/${runs.length}`,
-    quality: { display: formatQuality(provider.meanAutomatedQuality), rank: qualityRank.get(provider.providerKey) ?? null },
-    speed: { display: formatTime(provider.meanProcessingTimeMs), rank: speedRank.get(provider.providerKey) ?? null },
-    cost: { display: formatCostUsd(provider.meanCostUSD), rank: priceRank.get(provider.providerKey) ?? null },
+    quality: { display: formatQuality(provider.meanAutomatedQuality), rank: qualityRank.get(provider.providerKey) ?? null, value: provider.meanAutomatedQuality },
+    speed: { display: formatTime(provider.meanProcessingTimeMs), rank: speedRank.get(provider.providerKey) ?? null, value: provider.meanProcessingTimeMs },
+    cost: { display: formatCostUsd(provider.meanCostUSD), rank: priceRank.get(provider.providerKey) ?? null, value: provider.meanCostUSD },
     evidence: [formatPercent(provider.meanWER), formatPercent(provider.meanCER), formatPercent(provider.meanContentCoverage)],
     perRun: runs.map((run) => {
       const value = provider.perRun[run.runName];
@@ -579,6 +578,7 @@ function buildDashboardGroup(
     key: group,
     label: GROUP_LABELS[group],
     metricColumns: { quality: "Auto quality /100", speed: "Mean time", cost: "Mean cost" },
+    metricDirections: { quality: "higher", speed: "lower", cost: "lower" },
     evidenceColumns: ["Avg WER", "Avg CER", "Avg coverage"],
     perRunMetricLabel: "Per-run automated quality",
     providers: rows,
@@ -810,7 +810,7 @@ export function buildUrlCombinedReport(rootDirRaw: string, generatedAt = new Dat
   return {
     report,
     markdown,
-    html: renderCombinedDashboard(dashboardModel),
+    dashboardModel,
     runCount: runs.length,
     providerCount: aggregated.length,
   };
@@ -821,13 +821,10 @@ export function writeUrlCombinedReport(rootDirRaw: string): UrlCombinedBuildResu
   const result = buildUrlCombinedReport(rootDir);
   const jsonPath = join(rootDir, "combined-comparison-report.json");
   const markdownPath = join(rootDir, "combined-comparison-report.md");
-  const htmlPath = join(rootDir, "combined-comparison-report.html");
   writeFileSync(jsonPath, JSON.stringify(result.report));
   writeFileSync(markdownPath, result.markdown);
-  writeFileSync(htmlPath, result.html);
   console.log(`Wrote ${jsonPath}`);
   console.log(`Wrote ${markdownPath}`);
-  console.log(`Wrote ${htmlPath}`);
   console.log(`Aggregated ${result.providerCount} providers across ${result.runCount} URL runs.`);
   return result;
 }

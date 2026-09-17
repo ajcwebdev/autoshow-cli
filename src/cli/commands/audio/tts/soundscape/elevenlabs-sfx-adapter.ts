@@ -5,6 +5,7 @@ import { resolveReplicateAudioGenTarget } from './replicate-audiogen-adapter'
 import { resolveStabilitySoundEffectTarget } from './stability-stable-audio-adapter'
 import { SoundEffectProviderError } from './sound-effect-errors'
 import { resolveCredential } from '~/utils/validate/env-utils'
+import { ELEVENLABS_SFX_SELECTOR, REPLICATE_AUDIOGEN_SELECTOR } from './sfx-provider-targets'
 
 export { SoundEffectProviderError } from './sound-effect-errors'
 
@@ -63,7 +64,7 @@ const defaultRequest = (apiKey: string): ElevenLabsSoundEffectHttpRequest => asy
 
 export const resolveSoundEffectTarget = (selector: string, options: { outputFormat?: string | undefined, promptInfluence?: number | undefined } = {}): SoundEffectTarget => {
   const match = /^([^=]+)=([^=]+)$/u.exec(selector.trim())
-  if (!match?.[1] || !match[2]) throw UsageError('--sfx-provider must use provider=model syntax, for example elevenlabs=eleven_text_to_sound_v2 or replicate=sepal/audiogen@154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8.')
+  if (!match?.[1] || !match[2]) throw UsageError(`--sfx-provider must use provider=model syntax, for example ${ELEVENLABS_SFX_SELECTOR} or ${REPLICATE_AUDIOGEN_SELECTOR}.`)
   const provider = match[1].toLowerCase()
   const model = match[2]
   if (provider === 'replicate') return resolveReplicateAudioGenTarget(model, options)

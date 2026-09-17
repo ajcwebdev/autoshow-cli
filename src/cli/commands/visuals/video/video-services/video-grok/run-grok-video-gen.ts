@@ -1,7 +1,7 @@
 import * as v from 'valibot'
 import type { GrokVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
 import { InfraError } from '~/utils/error-handler'
-import { logGenCompleted, logGenStatus } from '~/cli/commands/command-shared/generation-command-utils'
+import { runVideoGeneration } from '~/cli/commands/command-shared/media-generation/video-generation-scaffold'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/visuals/video/video-utils/video-pricing'
 import {
   normalizeGrokVideoAspectRatio,
@@ -10,7 +10,6 @@ import {
 } from '~/cli/commands/visuals/video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/visuals/video/video-utils/video-output-download'
 import { formatPolledJobError, runPolledJob } from '~/utils/polled-job-client/polled-job'
-import { resolveCredential } from '~/utils/validate/env-utils'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import {
@@ -51,117 +50,113 @@ export const runGrokVideoGen = async (
     referenceImages?: string[] | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
-  const apiKey = resolveCredential('grok', 'require', { stage: 'video:grok', description: 'Grok video generation' })
-
-  const baseURL = XAI_DEFAULT_BASE_URL
   const mode = options.mode ?? 'text'
-  const duration = normalizeGrokVideoDuration(options.durationSeconds)
-  const aspectRatio = normalizeGrokVideoAspectRatio(options.aspectRatio)
-  const resolution = normalizeGrokVideoResolution(options.resolution, options.model)
 
-  logGenStatus('video', 'grok', options.model, 'started')
-
-  const inputImageCount = (options.inputImage ? 1 : 0) + (options.referenceImages?.length ?? 0)
-  const estimate = estimateVideoCost({
-    grokVideoModels: [options.model],
-    videoDuration: options.durationSeconds,
-    videoResolution: options.resolution,
-    videoMode: options.mode,
-    grokInputImageCount: inputImageCount
-  })
-  logVideoEstimate(estimate)
-
-  const startTime = Date.now()
-  const image = options.inputImage
-    ? await videoMediaReferenceToGrokUrlObject(options.inputImage, 'image')
-    : undefined
-  const referenceImages = options.referenceImages && options.referenceImages.length > 0
-    ? await Promise.all(options.referenceImages.map(async (input) => await videoMediaReferenceToGrokUrlObject(input, 'image')))
-    : undefined
-
-  const requestBody: Record<string, unknown> = {
+  return await runVideoGeneration({
+    service: 'grok',
     model: options.model,
-    ...(prompt !== undefined ? { prompt } : {}),
-    duration,
-    aspect_ratio: aspectRatio,
-    resolution
-  }
-  if (image) requestBody['image'] = image
-  if (referenceImages && referenceImages.length > 0) requestBody['reference_images'] = referenceImages
+    outputDir,
+    prepare: async () => {
+      const duration = normalizeGrokVideoDuration(options.durationSeconds)
+      const aspectRatio = normalizeGrokVideoAspectRatio(options.aspectRatio)
+      const resolution = normalizeGrokVideoResolution(options.resolution, options.model)
 
-  const headers = {
-    Authorization: `Bearer ${apiKey}`,
-    'Content-Type': 'application/json'
-  }
-  const { created: createData, result: taskData } = await runPolledJob({
-    operationName: 'grok-video-gen',
-    intervalMs: POLL_INTERVAL_MS,
-    deadlineMs: POLL_TIMEOUT_MS,
-    create: {
-      url: `${baseURL}/videos/generations`,
-      init: { method: 'POST', headers, body: JSON.stringify(requestBody) },
-      schema: GrokCreateVideoResponseSchema,
-      context: 'Grok video generation create response',
-      stage: 'video:grok',
-      errorMessage: `Grok video ${mode} request failed`,
-      errorFactory: (response, payload) => InfraError(`Grok video ${mode} request failed (${response.status}): ${typeof payload === 'string' && payload.length > 0 ? payload : 'No response body'}`, { stage: 'video:grok' })
+      const image = options.inputImage
+        ? await videoMediaReferenceToGrokUrlObject(options.inputImage, 'image')
+        : undefined
+      const referenceImages = options.referenceImages && options.referenceImages.length > 0
+        ? await Promise.all(options.referenceImages.map(async (input) => await videoMediaReferenceToGrokUrlObject(input, 'image')))
+        : undefined
+
+      return {
+        duration,
+        aspectRatio,
+        resolution,
+        requestBody: {
+          model: options.model,
+          ...(prompt !== undefined ? { prompt } : {}),
+          duration,
+          aspect_ratio: aspectRatio,
+          resolution,
+          ...(image ? { image } : {}),
+          ...(referenceImages && referenceImages.length > 0 ? { reference_images: referenceImages } : {})
+        } satisfies Record<string, unknown>,
+        estimate: estimateVideoCost({
+          grokVideoModels: [options.model],
+          videoDuration: options.durationSeconds,
+          videoResolution: options.resolution,
+          videoMode: options.mode,
+          grokInputImageCount: (options.inputImage ? 1 : 0) + (options.referenceImages?.length ?? 0)
+        })
+      }
     },
-    poll: (created) => ({
-      url: `${baseURL}/videos/${encodeURIComponent(created.request_id)}`,
-      init: { method: 'GET', headers },
-      schema: GrokPollVideoResponseSchema,
-      context: 'Grok video generation query response',
-      stage: 'video:grok',
-      errorMessage: 'Grok video generation query failed'
-    }),
-    onPoll: (data) => logGenStatus('video', 'grok', options.model, data.status),
-    isDone: (data) => data.status === 'done',
-    isFailed: (data) => data.status === 'failed' || data.status === 'expired'
-      ? { failed: true, reason: formatPolledJobError(data.error) }
-      : { failed: false }
-  })
+    estimate: (prepared) => logVideoEstimate(prepared.estimate),
+    execute: async (context, prepared) => {
+      const headers = {
+        Authorization: `Bearer ${context.apiKey}`,
+        'Content-Type': 'application/json'
+      }
+      const { created: createData, result: taskData } = await runPolledJob({
+        operationName: 'grok-video-gen',
+        intervalMs: POLL_INTERVAL_MS,
+        deadlineMs: POLL_TIMEOUT_MS,
+        create: {
+          url: `${XAI_DEFAULT_BASE_URL}/videos/generations`,
+          init: { method: 'POST', headers, body: JSON.stringify(prepared.requestBody) },
+          schema: GrokCreateVideoResponseSchema,
+          context: 'Grok video generation create response',
+          stage: 'video:grok',
+          errorMessage: `Grok video ${mode} request failed`,
+          errorFactory: (response, payload) => InfraError(`Grok video ${mode} request failed (${response.status}): ${typeof payload === 'string' && payload.length > 0 ? payload : 'No response body'}`, { stage: 'video:grok' })
+        },
+        poll: (created) => ({
+          url: `${XAI_DEFAULT_BASE_URL}/videos/${encodeURIComponent(created.request_id)}`,
+          init: { method: 'GET', headers },
+          schema: GrokPollVideoResponseSchema,
+          context: 'Grok video generation query response',
+          stage: 'video:grok',
+          errorMessage: 'Grok video generation query failed'
+        }),
+        onPoll: (data) => context.logStatus(data.status),
+        isDone: (data) => data.status === 'done',
+        isFailed: (data) => data.status === 'failed' || data.status === 'expired'
+          ? { failed: true, reason: formatPolledJobError(data.error) }
+          : { failed: false }
+      })
 
-  const videoUrl = taskData.video?.url
-  if (!videoUrl && taskData.video?.respect_moderation === false) {
-    throw InfraError('Grok video generation was blocked by moderation and no video URL was returned', { stage: 'video:grok' })
-  }
-  if (!videoUrl) {
-    throw InfraError('Grok video generation succeeded but no video.url was returned', { stage: 'video:grok' })
-  }
+      const videoUrl = taskData.video?.url
+      if (!videoUrl && taskData.video?.respect_moderation === false) {
+        throw InfraError('Grok video generation was blocked by moderation and no video URL was returned', { stage: 'video:grok' })
+      }
+      if (!videoUrl) {
+        throw InfraError('Grok video generation succeeded but no video.url was returned', { stage: 'video:grok' })
+      }
 
-  const outputPath = `${outputDir}/generated-video.mp4`
-  await Bun.write(outputPath, await downloadVideoOutputBytes(videoUrl, 'Grok'))
+      const outputPath = context.artifactPath()
+      await Bun.write(outputPath, await downloadVideoOutputBytes(videoUrl, 'Grok'))
 
-  const processingTime = Date.now() - startTime
-  const videoFile = Bun.file(outputPath)
-
-  logGenCompleted('video', 'grok', options.model, processingTime, [outputPath])
-
-  return {
-    videoPath: outputPath,
-    metadata: {
-      videoGenService: 'grok',
-      videoGenModel: options.model,
-      processingTime,
-      videoFileName: 'generated-video.mp4',
-      videoFileSize: videoFile.size,
-      videoDuration: taskData.video?.duration ?? duration,
-      requestMode: mode,
-      ...(resolution ? { videoResolution: resolution } : {}),
-      ...(aspectRatio ? { videoAspectRatio: aspectRatio } : {}),
-      ...(options.inputImage ? { inputImage: options.inputImage } : {}),
-      ...(options.referenceImages && options.referenceImages.length > 0 ? { referenceImages: options.referenceImages } : {}),
-      providerRequestId: createData.request_id,
-      ...(taskData.model ? { providerReturnedModel: taskData.model } : {}),
-      providerVideoUrl: videoUrl,
-      ...(typeof taskData.progress === 'number' ? { providerProgress: taskData.progress } : {}),
-      ...(taskData.video?.respect_moderation !== undefined ? { providerModeration: taskData.video.respect_moderation } : {}),
-      ...(typeof taskData.usage?.cost_in_usd_ticks === 'number'
-        ? {
-            providerCostCents: taskData.usage.cost_in_usd_ticks / 100_000_000,
-            providerCostSource: 'provider_usage' as const
-          }
-        : {})
+      return {
+        artifactPaths: [outputPath],
+        metadata: {
+          videoDuration: taskData.video?.duration ?? prepared.duration,
+          requestMode: mode,
+          ...(prepared.resolution ? { videoResolution: prepared.resolution } : {}),
+          ...(prepared.aspectRatio ? { videoAspectRatio: prepared.aspectRatio } : {}),
+          ...(options.inputImage ? { inputImage: options.inputImage } : {}),
+          ...(options.referenceImages && options.referenceImages.length > 0 ? { referenceImages: options.referenceImages } : {}),
+          providerRequestId: createData.request_id,
+          ...(taskData.model ? { providerReturnedModel: taskData.model } : {}),
+          providerVideoUrl: videoUrl,
+          ...(typeof taskData.progress === 'number' ? { providerProgress: taskData.progress } : {}),
+          ...(taskData.video?.respect_moderation !== undefined ? { providerModeration: taskData.video.respect_moderation } : {}),
+          ...(typeof taskData.usage?.cost_in_usd_ticks === 'number'
+            ? {
+                providerCostCents: taskData.usage.cost_in_usd_ticks / 100_000_000,
+                providerCostSource: 'provider_usage' as const
+              }
+            : {})
+        }
+      }
     }
-  }
+  })
 }

@@ -16,6 +16,3 @@ export const getDeepinfraOcrClientConfig = (): { apiKey: string, baseURL: string
   }
 }
 
-export const ensureDeepinfraOcrSetup = async (): Promise<void> => {
-  getDeepinfraOcrClientConfig()
-}

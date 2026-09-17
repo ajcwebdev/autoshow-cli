@@ -5,7 +5,6 @@ import {
   validateSpeechifyTtsLanguageForModel,
   validateSpeechifyTtsVoiceForModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { ensureSpeechifyTtsSetup } from './speechify-tts'
 import { runSpeechifyTts } from './run-speechify-tts'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
 import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
@@ -29,7 +28,6 @@ export const collectSpeechifyTtsTargets = (
           language,
         })
         const invocationLanguage = validateSpeechifyTtsLanguageForModel(model, controls.language)
-        await ensureSpeechifyTtsSetup()
         invocation?.signal?.throwIfAborted()
         return await runSpeechifyTts(text, outputDir, {
           model,

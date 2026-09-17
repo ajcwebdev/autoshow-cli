@@ -3,7 +3,8 @@ import type { ElevenlabsMusicModel, GeminiMusicModel, MinimaxMusicModel } from '
 import { createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 export const SUPPORTED_ELEVENLABS_MUSIC_MODELS = [
-  'music_v2'
+  'music_v2',
+  'music_v2_5'
 ] as const satisfies readonly string[]
 
 export const validateElevenlabsMusicModel = createRetiringModelValidator<ElevenlabsMusicModel>('music', 'elevenlabs', SUPPORTED_ELEVENLABS_MUSIC_MODELS, 'elevenlabs-music')

@@ -10,6 +10,7 @@ import {
   promptFlag,
   reasoningEffortFlag,
   sharedConcurrencyFlags,
+  stepConcurrencyFlag,
   transcriptionFlags
 } from './shared-flags'
 import { composeFlags, formatProviderList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
@@ -48,9 +49,11 @@ const resumeTranscriptionOptionNames = [
   'speaker-count',
   'diarization',
   'native-subtitles',
-  'deepinfra-stt-response-format',
-  'stt-grok-verbatim',
-  'stt-supadata-chunk-size',
+  'stt-response-format',
+  'stt-verbatim',
+  'stt-chunk-size',
+  'stt-language',
+  'stt-organization-id',
   'split',
   'stt-segment-concurrency',
   'stt-preflight-concurrency'
@@ -79,6 +82,7 @@ export const resumeFlags = composeFlags([
   ]), 'video-options'),
   withHelpGroup(musicGenFlags, 'hosted-music')
 ], withHelpGroup({
+  ...stepConcurrencyFlag(['stt-segment', 'stt-preflight', 'ocr-page', 'tts-chunk']),
   format: strFlag(`OCR run: ${ocrInputFlags.format.description}. Image run: ${imageGenFlags.format.description}`),
   'aspect-ratio': strFlag(`Image run: ${imageGenFlags['aspect-ratio'].description}. Video run: ${videoGenFlags['aspect-ratio'].description}`),
   duration: strFlag(`Video run: ${videoGenFlags.duration.description}. Music run: ${musicGenFlags.duration.description}`),

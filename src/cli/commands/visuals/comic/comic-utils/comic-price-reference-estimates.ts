@@ -22,7 +22,7 @@ export const estimateCharacterSketchPrice = async (
 ): Promise<void> => {
   if (!options.character) throw UsageError('--character is required')
   const models = options.imageModels ?? [DEFAULT_IMAGE_MODEL]
-  if (models.length !== 1) throw UsageError('comic reference-sketch accepts exactly one --image-model')
+  if (models.length !== 1) throw UsageError('comic reference-sketch accepts exactly one --provider')
   const size: ImageGenerationSize = options.size ?? '1024x1536'
   const quality: ImageGenerationQuality = options.quality ?? 'medium'
   const catalog = loadCharacterCatalog()

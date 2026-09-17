@@ -2,8 +2,8 @@
 
 ## Summary
 
-- Run directory: `/Users/ajc/c/as/autoshow-cli/docs/benchmarks/music/2026-05-21_09-58-34-695_music-gen`
-- Total providers: 4 (0 local, 4 service)
+- Run directory: `/Users/ajc/c/auto/autoshow-cli/docs/benchmarks/music/2026-05-21_09-58-34-695_music-gen`
+- Total providers: 2 (0 local, 2 service)
 - Local and service providers are intentionally not ranked against each other.
 - Reports expose complete price, speed, automated-quality, and human-quality rankings for each group.
 
@@ -41,21 +41,17 @@ No local providers were found.
 
 ### Price
 
-| Rank | Provider                                 | Evidence |
-| ---: | ---------------------------------------- | -------- |
-|    1 | <code>gemini/lyria-3-clip-preview</code> | $0.0400  |
-|    2 | <code>gemini/lyria-3-pro-preview</code>  | $0.0800  |
-|    3 | <code>minimax/music-2.6</code>           | $0.1600  |
-|    4 | <code>elevenlabs/music_v1</code>         | $0.5600  |
+| Rank | Provider | Evidence |
+| ---: | --- | --- |
+| 1 | <code>minimax/music-3.0</code> | $0.1600 |
+| 2 | <code>elevenlabs/music_v2</code> | $0.3000 |
 
 ### Speed
 
-| Rank | Provider                                 | Evidence |
-| ---: | ---------------------------------------- | -------- |
-|    1 | <code>gemini/lyria-3-clip-preview</code> | 20.46s   |
-|    2 | <code>elevenlabs/music_v1</code>         | 23.02s   |
-|    3 | <code>gemini/lyria-3-pro-preview</code>  | 46.40s   |
-|    4 | <code>minimax/music-2.6</code>           | 105.29s  |
+| Rank | Provider | Evidence |
+| ---: | --- | --- |
+| 1 | <code>elevenlabs/music_v2</code> | 19.98s |
+| 2 | <code>minimax/music-3.0</code> | 183.09s |
 
 ### Automated Quality
 
@@ -67,12 +63,10 @@ Unavailable: No explicit humanQualityScore was available for service providers. 
 
 ### Provider Detail
 
-| Provider                                 | Quality Evidence | Processing Time | Monetary Cost |
-| ---------------------------------------- | ---------------- | --------------: | ------------: |
-| <code>elevenlabs/music_v1</code>         | n/a              |          23.02s |       $0.5600 |
-| <code>gemini/lyria-3-clip-preview</code> | n/a              |          20.46s |       $0.0400 |
-| <code>gemini/lyria-3-pro-preview</code>  | n/a              |          46.40s |       $0.0800 |
-| <code>minimax/music-2.6</code>           | n/a              |         105.29s |       $0.1600 |
+| Provider | Quality Evidence | Processing Time | Monetary Cost |
+| --- | --- | ---: | ---: |
+| <code>elevenlabs/music_v2</code> | n/a | 19.98s | $0.3000 |
+| <code>minimax/music-3.0</code> | n/a | 183.09s | $0.1600 |
 
 ## Notes
 

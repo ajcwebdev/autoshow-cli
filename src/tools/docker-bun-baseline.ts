@@ -71,7 +71,7 @@ process.stdout.write(JSON.stringify({ durationMs: performance.now() - started })
 `
 const MEMORY_PROBE = `
 set -eu
-bun --no-env-file /app/src/cli/create-cli.ts extract /benchmark/fixture.pdf --provider tesseract --ocr-concurrency 1 --output-root /benchmark/output
+bun --no-env-file /app/src/cli/create-cli.ts extract /benchmark/fixture.pdf --provider tesseract --step-concurrency ocr-page=1 --output-root /benchmark/output
 peak_file=/sys/fs/cgroup/memory.peak
 if [ ! -r "$peak_file" ]; then
   printf '%s\n' 'AUTOSHOW_PEAK_RSS_UNAVAILABLE' >&2
@@ -466,7 +466,7 @@ const main = async (): Promise<void> => {
         : basename(options.fixturePath),
       bytes: fixtureStats.size,
       sha256: fixtureSha256,
-      workload: 'Local Tesseract OCR with --ocr-concurrency 1; no hosted provider credentials or calls',
+      workload: 'Local Tesseract OCR with --step-concurrency ocr-page=1; no hosted provider credentials or calls',
     },
     method: {
       help: `${options.repeats} fresh docker run processes; host wall time; median reported`,

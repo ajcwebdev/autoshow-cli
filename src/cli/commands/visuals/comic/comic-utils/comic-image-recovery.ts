@@ -1,5 +1,6 @@
 import type { ComicRecoveryFlags, GenerateImagesCommandOptions } from '~/types'
 import { existsSync } from 'node:fs'
+import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { join } from 'node:path'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { hashCanonicalTtsValue } from '../../../audio/tts/script-to-audio/contract-identity'
@@ -24,16 +25,23 @@ export const captureComicImageRecoveryInputs = async (rootDir: string, materiali
   return await captureComicRecoveryInputs(rootDir, paths)
 }
 
+// Recorded flags are replayed through the CLI parser, so each model is recorded in the same
+// `provider[=model]` spelling the command accepts.
+const providerSelector = (domain: 'image' | 'llm', model: string): string => {
+  const service = findRegistryServiceForModel(domain, model)
+  return service ? `${service}=${model}` : model
+}
+
 export const comicImageRecoveryFlags = (options: GenerateImagesCommandOptions): ComicRecoveryFlags => ({
   target: options.target ?? 'images',
-  'image-model': (options.imageModels ?? [DEFAULT_IMAGE_MODEL]).join(','),
+  provider: (options.imageModels ?? [DEFAULT_IMAGE_MODEL]).map((model) => providerSelector('image', model)),
   size: options.size ?? COMIC_GRID_PANEL_SIZE,
   quality: options.quality ?? 'high',
   panels: Array.isArray(options.panels) ? options.panels.join(',') : options.panels ?? 'all',
   qa: options.qa !== false,
-  'qa-model': options.qaModel ?? DEFAULT_QA_MODEL,
+  'qa-provider': providerSelector('llm', options.qaModel ?? DEFAULT_QA_MODEL),
   'max-repairs': String(options.maxRepairs ?? 2),
-  concurrency: String(options.concurrency ?? DEFAULT_CLI_CONCURRENCY),
+  'provider-concurrency': String(options.concurrency ?? DEFAULT_CLI_CONCURRENCY),
   'concurrency-mode': options.concurrencyMode ?? 'ramp',
   force: options.force === true,
   bloopers: options.bloopers === true,

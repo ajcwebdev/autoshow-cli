@@ -42,9 +42,9 @@ const parseReferenceSketchArgs = (args: string[]) =>
 describe('option resolution contracts', () => {
   test('comic accepts Image 2.5 models, custom sizes, and extended quality', () => {
     for (const model of ['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst']) {
-      const opts = parseGenerateImagesArgs(['script.md', '--image-model', model, '--size', '2048x1152', '--quality', 'xhigh'])
+      const opts = parseGenerateImagesArgs(['script.md', '--provider', `openai=${model}`, '--size', '2048x1152', '--quality', 'xhigh'])
       expect(opts).toMatchObject({ imageModels: [model], size: '2048x1152', quality: 'xhigh' })
-      expect(parseReferenceSketchArgs(['--character', 'engineer', '--image-model', model, '--quality', 'max']).quality).toBe('max')
+      expect(parseReferenceSketchArgs(['--character', 'engineer', '--provider', `openai=${model}`, '--quality', 'max']).quality).toBe('max')
     }
   })
   test('comic scene drafting defaults to gpt-5.6-sol', () => {
@@ -59,7 +59,7 @@ describe('option resolution contracts', () => {
     expect(defaults.styleSeed).toBeUndefined()
     expect(defaults.force).toBeUndefined()
     expect(defaults.price).toBeUndefined()
-    const explicit = parseDraftTreatmentArgs(['input/camp.md', '--panel-count', '8', '--episode', '02', '--scene', '03', '--slug', 'camp-manzanita', '--speaker', 'papa-bear', '--speaker', 'nick,papa-bear', '--style-seed', 'camp-manzanita--style-seed.png', '--catalog-policy', 'fail', '--force', '--llm-model', 'gpt-5.6-sol', '--price'])
+    const explicit = parseDraftTreatmentArgs(['input/camp.md', '--panel-count', '8', '--episode', '02', '--scene', '03', '--slug', 'camp-manzanita', '--speaker', 'papa-bear', '--speaker', 'nick,papa-bear', '--style-seed', 'camp-manzanita--style-seed.png', '--catalog-policy', 'fail', '--force', '--provider', 'openai=gpt-5.6-sol', '--price'])
     expect(parseDraftTreatmentArgs(['input/camp.md', '--panel-count', '20-25', '--voice-pacing', 'mixed'])).toMatchObject({ panelRange: { minimum: 20, maximum: 25 }, voicePacing: 'mixed' })
     expect(explicit).toMatchObject({ panelRange: { minimum: 8, maximum: 8 }, episode: '02', scene: '03', slug: 'camp-manzanita', speakers: ['papa-bear', 'nick'], styleSeed: 'camp-manzanita--style-seed.png', catalogPolicy: 'fail', force: true, llmModel: 'gpt-5.6-sol', price: true })
   })
@@ -89,11 +89,11 @@ describe('option resolution contracts', () => {
     const qa = parseGenerateImagesArgs(['script.md', '--qa'])
     expect(qa.qa).toBe(true)
     expect(qa.qaModel).toBe('gpt-5.6-sol')
-    expect(parseGenerateImagesArgs(['script.md', '--qa-model', 'gpt-5.6-sol']).qaModel).toBe('gpt-5.6-sol')
-    expect(parseGenerateImagesArgs(['script.md', '--qa-model', 'gemini-3.8-flash']).qaModel).toBe('gemini-3.8-flash')
+    expect(parseGenerateImagesArgs(['script.md', '--qa-provider', 'openai=gpt-5.6-sol']).qaModel).toBe('gpt-5.6-sol')
+    expect(parseGenerateImagesArgs(['script.md', '--qa-provider', 'gemini=gemini-3.8-flash']).qaModel).toBe('gemini-3.8-flash')
   })
   test('comic generate-images QA-only mode cannot enter image generation or repair combinations', () => {
-    const opts = parseGenerateImagesArgs(['script.md', '--qa-only', '--panels', '1-5', '--qa-model', 'gemini-3.8-flash'])
+    const opts = parseGenerateImagesArgs(['script.md', '--qa-only', '--panels', '1-5', '--qa-provider', 'gemini=gemini-3.8-flash'])
     expect(opts.qaOnly).toBe(true)
     expect(opts.qa).toBe(true)
     expect(opts.maxRepairs).toBe(0)
@@ -101,7 +101,7 @@ describe('option resolution contracts', () => {
     expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--no-qa'])).toThrow('--qa-only cannot be combined with --no-qa')
     expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--max-repairs', '1'])).toThrow('--qa-only requires --max-repairs 0')
     expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--force'])).toThrow('--qa-only cannot be combined with --force')
-    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--image-model', 'gpt-image-2'])).toThrow('--qa-only does not accept image-generation options')
+    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--provider', 'openai=gpt-image-2'])).toThrow('--qa-only does not accept image-generation options')
     expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--target', 'both'])).toThrow('--qa-only requires --target images')
   })
   test('comic generate-images continuity audit flags layer inside QA-only mode', () => {
@@ -124,7 +124,7 @@ describe('option resolution contracts', () => {
     expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--labels', 'qa/continuity-labels.json'])).toThrow('--labels requires --continuity-qa')
     expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--trusted-anchor-panel', '2'])).toThrow('--trusted-anchor-panel requires --continuity-qa')
     expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--continuity-qa', '--trusted-anchor-panel', '0'])).toThrow('Invalid trusted anchor panel "0"')
-    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--continuity-qa', '--image-model', 'gpt-image-2'])).toThrow('--qa-only does not accept image-generation options')
+    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--continuity-qa', '--provider', 'openai=gpt-image-2'])).toThrow('--qa-only does not accept image-generation options')
   })
   test('comic generate-images revision evaluation requires the exact bounded mode contract', () => {
     const opts = parseGenerateImagesArgs(['script.md', '--revision-plan', 'output/plan.json', '--comparison-passes', '2', '--promote', 'clear-winners', '--max-repairs', '0'])
@@ -143,7 +143,7 @@ describe('option resolution contracts', () => {
   test('comic generate-images args parse page image options', () => {
       const opts = parseGenerateImagesArgs([
         'input/scripts/02-script/01-co-work-smarter.md',
-        '--image-model', 'gpt-image-2,gemini-3.1-flash-lite-image',
+        '--provider', 'openai=gpt-image-2', '--provider', 'gemini=gemini-3.1-flash-lite-image',
         '--panels', '1-4,9',
         '--panels-per-image', String(DEFAULT_SKETCH_PANELS_PER_IMAGE),
         '--variation', 'animation-polish,cinematic-depth',
@@ -186,7 +186,7 @@ describe('option resolution contracts', () => {
     })
 
   test('comic generate-images rejects removed option spellings as unknown arguments', () => {
-      expect(() => parseGenerateImagesArgs(['script.md', '--llm-model', 'gpt-5.6-sol'])).toThrow('Unexpected flag: --llm-model')
+      expect(() => parseGenerateImagesArgs(['script.md', '--llm-provider', 'openai=gpt-5.6-sol'])).toThrow('Unexpected flag: --llm-provider')
       expect(() => parseGenerateImagesArgs(['script.md', '--panel-limit', '3'])).toThrow('Unexpected flag: --panel-limit')
       expect(() => parseGenerateImagesArgs(['script.md', '--chunk', '2'])).toThrow('Unexpected flag: --chunk')
       expect(() => parseGenerateImagesArgs(['script.md', '--sketch-group-size', '8'])).toThrow('Unexpected flag: --sketch-group-size')
@@ -201,12 +201,12 @@ describe('option resolution contracts', () => {
   test('comic draft-scenes args parse llm model and panel prompt stage', () => {
       const opts = parseDraftScenesArgs([
         'input/scripts/05-script/01-mechanic-goes-on-vacation.md',
-        '--llm-model', 'gpt-5.6-sol',
+        '--provider', 'openai=gpt-5.6-sol',
         '--only', 'panel-prompts',
       ])
       const grokOpts = parseDraftScenesArgs([
         'input/scripts/05-script/01-mechanic-goes-on-vacation.md',
-        '--llm-model', 'grok-4.6'
+        '--provider', 'grok=grok-4.6'
       ])
 
       expect(findRegistryServiceForModel('llm', 'gpt-5.6-sol')).toBe('openai')
@@ -238,7 +238,7 @@ describe('option resolution contracts', () => {
         '--target', 'images',
         '--panels', '1-6',
         '--panels-per-image', String(DEFAULT_SKETCH_PANELS_PER_IMAGE),
-        '--image-model', 'gpt-image-2',
+        '--provider', 'openai=gpt-image-2',
         '--size', '1536x1024',
         '--quality', 'high',
         '--force'

@@ -1,11 +1,10 @@
 import * as v from 'valibot'
-import { logGenCompleted, logGenStatus } from '~/cli/commands/command-shared/generation-command-utils'
+import { runMusicGeneration } from '~/cli/commands/command-shared/media-generation/music-generation-scaffold'
 import { isMinimaxInstrumentalMusicModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { MinimaxLyricsGenerationResult, MinimaxMusicGenerationPayload, MinimaxMusicModel, MinimaxMusicResponse, Step7MusicMetadata } from '~/types'
 import { MINIMAX_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import * as l from '~/utils/app-logger/app-logger'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import { resolveCredential } from '~/utils/validate/env-utils'
 import { InfraError, InternalError, ProviderError, ValidationError } from '~/utils/error-handler'
 import { MinimaxBaseRespSchema, minimaxFetchJson, minimaxJsonRequestInit } from '~/utils/minimax-client/minimax-client'
 import { classifyPaidCreateRetry, withRetry } from '~/utils/retries'
@@ -210,98 +209,84 @@ export const runMinimaxMusicGen = async (
     forceInstrumental?: boolean | undefined
   }
 ): Promise<{ musicPath: string, metadata: Step7MusicMetadata }> => {
-  const apiKey = resolveCredential('minimax', 'require', { stage: 'music:minimax', description: 'MiniMax music generation' })
-
   const baseURL = MINIMAX_DEFAULT_BASE_URL
-  const musicPath = `${outputDir}/generated-music.mp3`
 
-  if (options.durationSeconds !== undefined) {
-    l.warn('MiniMax music generation currently ignores --duration', { category: 'pipeline' })
-  }
-  const supportsInstrumental = isMinimaxInstrumentalMusicModel(options.model)
-  const useInstrumental = options.forceInstrumental === true && supportsInstrumental
-  if (options.forceInstrumental && !supportsInstrumental) {
-    l.warn(`MiniMax music model ${options.model} does not support --instrumental; generating with lyrics`, {
-      category: 'pipeline',
-      metadata: { provider: 'minimax', model: options.model, ignoredFlag: '--instrumental' }
-    })
-  }
-  if (useInstrumental && options.lyricsFile) {
-    l.warn('Ignoring --lyrics-file because --instrumental was provided for MiniMax music generation', { category: 'pipeline' })
-  }
+  return await runMusicGeneration({
+    service: 'minimax',
+    model: options.model,
+    outputDir,
+    prepare: () => {
+      if (options.durationSeconds !== undefined) {
+        l.warn('MiniMax music generation currently ignores --duration', { category: 'pipeline' })
+      }
+      const supportsInstrumental = isMinimaxInstrumentalMusicModel(options.model)
+      const useInstrumental = options.forceInstrumental === true && supportsInstrumental
+      if (options.forceInstrumental && !supportsInstrumental) {
+        l.warn(`MiniMax music model ${options.model} does not support --instrumental; generating with lyrics`, {
+          category: 'pipeline',
+          metadata: { provider: 'minimax', model: options.model, ignoredFlag: '--instrumental' }
+        })
+      }
+      if (useInstrumental && options.lyricsFile) {
+        l.warn('Ignoring --lyrics-file because --instrumental was provided for MiniMax music generation', { category: 'pipeline' })
+      }
 
-  const startTime = Date.now()
-  const promptForMusic = normalizeMinimaxMusicPrompt(prompt)
-  const generatedLyrics = useInstrumental || options.lyricsFile
-    ? undefined
-    : await generateLyrics(baseURL, apiKey, promptForMusic)
-  const lyrics = useInstrumental
-    ? undefined
-    : options.lyricsFile
-      ? await readProvidedLyrics(options.lyricsFile)
-      : generatedLyrics?.lyrics
-  const lyricsSource: Step7MusicMetadata['lyricsSource'] = useInstrumental
-    ? 'none'
-    : options.lyricsFile ? 'provided' : 'generated'
+      return { useInstrumental, promptForMusic: normalizeMinimaxMusicPrompt(prompt) }
+    },
+    execute: async (context, { useInstrumental, promptForMusic }) => {
+      // Lyrics are a billed MiniMax call, so they stay inside the timed window.
+      const generatedLyrics = useInstrumental || options.lyricsFile
+        ? undefined
+        : await generateLyrics(baseURL, context.apiKey, promptForMusic)
+      const lyrics = useInstrumental
+        ? undefined
+        : options.lyricsFile
+          ? await readProvidedLyrics(options.lyricsFile)
+          : generatedLyrics?.lyrics
+      const lyricsSource: Step7MusicMetadata['lyricsSource'] = useInstrumental
+        ? 'none'
+        : options.lyricsFile ? 'provided' : 'generated'
 
-  logGenStatus('music', 'minimax', options.model, 'started')
+      if (!useInstrumental && lyrics === undefined) {
+        throw InternalError('MiniMax music lyrics were not resolved', { stage: 'music:minimax' })
+      }
 
-  let payload: MinimaxMusicGenerationPayload
-  if (useInstrumental) {
-    payload = {
-      model: options.model,
-      prompt: promptForMusic,
-      isInstrumental: true
+      const payload: MinimaxMusicGenerationPayload = useInstrumental
+        ? { model: options.model, prompt: promptForMusic, isInstrumental: true }
+        : { model: options.model, prompt: promptForMusic, lyrics: lyrics as string }
+
+      const generated = await requestMusicGenerationWithIncompleteRetry(baseURL, context.apiKey, payload)
+      const hexAudio = generated.data?.audio
+
+      if (!hexAudio || hexAudio.trim().length === 0) {
+        throw InfraError(`MiniMax music generation completed without audio payload (${formatMusicResponseDetails(generated)})`, { stage: 'music:minimax' })
+      }
+
+      const audioBytes = new Uint8Array(Buffer.from(hexAudio, 'hex'))
+      if (audioBytes.byteLength === 0) {
+        throw InfraError('MiniMax music generation returned empty audio', { stage: 'music:minimax' })
+      }
+
+      const musicPath = context.artifactPath()
+      await Bun.write(musicPath, audioBytes)
+
+      return {
+        artifactPaths: [musicPath],
+        metadata: {
+          musicDurationMs: generated.extra_info?.music_duration,
+          lyricsSource,
+          audioMimeType: MINIMAX_MUSIC_AUDIO_MIME_TYPE,
+          audioSampleRate: generated.extra_info?.music_sample_rate ?? MINIMAX_MUSIC_AUDIO_SETTING.sample_rate,
+          audioChannelCount: generated.extra_info?.music_channel,
+          audioBitrate: generated.extra_info?.bitrate ?? MINIMAX_MUSIC_AUDIO_SETTING.bitrate,
+          providerAudioByteSize: generated.extra_info?.music_size,
+          outputFormat: MINIMAX_MUSIC_AUDIO_SETTING.format,
+          providerTraceId: generated.trace_id,
+          ...(generatedLyrics?.lyrics ? { generatedLyrics: generatedLyrics.lyrics } : {}),
+          ...(generatedLyrics?.songTitle ? { generatedSongTitle: generatedLyrics.songTitle } : {}),
+          ...(generatedLyrics?.styleTags ? { generatedStyleTags: generatedLyrics.styleTags } : {})
+        }
+      }
     }
-  } else {
-    if (lyrics === undefined) {
-      throw InternalError('MiniMax music lyrics were not resolved', { stage: 'music:minimax' })
-    }
-    payload = {
-      model: options.model,
-      prompt: promptForMusic,
-      lyrics
-    }
-  }
-  const generated = await requestMusicGenerationWithIncompleteRetry(baseURL, apiKey, payload)
-  const hexAudio = generated.data?.audio
-
-  if (!hexAudio || hexAudio.trim().length === 0) {
-    throw InfraError(`MiniMax music generation completed without audio payload (${formatMusicResponseDetails(generated)})`, { stage: 'music:minimax' })
-  }
-
-  const audioBytes = new Uint8Array(Buffer.from(hexAudio, 'hex'))
-  if (audioBytes.byteLength === 0) {
-    throw InfraError('MiniMax music generation returned empty audio', { stage: 'music:minimax' })
-  }
-
-  await Bun.write(musicPath, audioBytes)
-
-  const processingTime = Date.now() - startTime
-  const musicFile = Bun.file(musicPath)
-  const musicDurationMs = generated.extra_info?.music_duration
-
-  logGenCompleted('music', 'minimax', options.model, processingTime, [musicPath])
-
-  const metadata: Step7MusicMetadata = {
-    musicService: 'minimax',
-    musicModel: options.model,
-    processingTime,
-    musicFileName: 'generated-music.mp3',
-    musicFileSize: musicFile.size,
-    musicDurationMs,
-    lyricsSource,
-    audioMimeType: MINIMAX_MUSIC_AUDIO_MIME_TYPE,
-    audioSampleRate: generated.extra_info?.music_sample_rate ?? MINIMAX_MUSIC_AUDIO_SETTING.sample_rate,
-    audioChannelCount: generated.extra_info?.music_channel,
-    audioBitrate: generated.extra_info?.bitrate ?? MINIMAX_MUSIC_AUDIO_SETTING.bitrate,
-    providerAudioByteSize: generated.extra_info?.music_size,
-    outputFormat: MINIMAX_MUSIC_AUDIO_SETTING.format,
-    providerTraceId: generated.trace_id,
-    ...(generatedLyrics?.lyrics ? { generatedLyrics: generatedLyrics.lyrics } : {}),
-    ...(generatedLyrics?.songTitle ? { generatedSongTitle: generatedLyrics.songTitle } : {}),
-    ...(generatedLyrics?.styleTags ? { generatedStyleTags: generatedLyrics.styleTags } : {})
-  }
-
-  return { musicPath, metadata }
+  })
 }

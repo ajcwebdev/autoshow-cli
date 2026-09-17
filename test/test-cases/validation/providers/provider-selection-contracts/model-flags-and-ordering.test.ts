@@ -45,6 +45,14 @@ describe('provider selection contracts', () => {
     }
   })
 
+  test('retired Gemini Flash STT selectors point at gemini-3.5-transcribe', () => {
+    for (const model of ['gemini-3.6-flash', 'gemini-3.8-flash']) {
+      expect(() => buildOptsFromFlags({ 'gemini-stt': model })).toThrow(
+        `Model "${model}" is retired for ${formatModelSelector('gemini-stt')}. Use "gemini-3.5-transcribe" instead.`
+      )
+    }
+  })
+
   test('STT provider canonical ordering is stable', () => {
     expect(getStep2ProviderSelectionFlagNames('stt')).toEqual([
       'deepinfra-stt',
@@ -60,6 +68,7 @@ describe('provider selection contracts', () => {
       'scrapecreators-stt',
       'gemini-stt',
       'together-stt',
+      'openai-stt',
       'whisperfile-stt'
     ])
   })

@@ -7,6 +7,7 @@ import {
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { runSyncCommand } from '~/utils/sync-subprocess'
+import { renderCombinedDashboard } from '../../../../.codex/skills/consensus/scripts/shared/combined_report_html'
 import {
   buildUrlCombinedReport,
   rankUrlProviderGroup,
@@ -194,6 +195,10 @@ describe('URL combined-report aggregation', () => {
 
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('bun scripts/run.ts url build-combined-report <root_dir>')
+
+    const rootUsage = runSyncCommand('bun', [runner, '--help'])
+    expect(rootUsage.exitCode).toBe(0)
+    expect(rootUsage.stdout).toContain('bun scripts/run.ts build-combined-dashboard [benchmarks_root] [--out <path>]')
   })
 
   test('uses source automated quality, present-value means, USD conversion, metadata, and isolated groups', () => {
@@ -234,7 +239,7 @@ describe('URL combined-report aggregation', () => {
     expect(report.humanQualityRowCount).toBe(0)
     expect(report.notes).toContain('No human-quality ranking is emitted because explicit human-quality rows are absent from the current source reports.')
     expect(result.markdown).toContain('explicit human-quality rows are absent')
-    expect(result.html).toContain('explicit human-quality rows are absent')
+    expect(renderCombinedDashboard(result.dashboardModel)).toContain('explicit human-quality rows are absent')
     expect(local?.meanCostUSD).toBe(0)
     expect(local?.meanAutomatedQuality).toBe(40)
     expect(service?.meanAutomatedQuality).toBe(80)
@@ -249,7 +254,7 @@ describe('URL combined-report aggregation', () => {
     expect(report.runs[1]?.sourceUrl).toBeNull()
     expect(result.markdown).toContain('source `rankingSurfaces.*.automatedQuality.value` values')
     expect(result.markdown).toContain('[Article &lt;A&gt;](<https://example.com/article?x=1&y=2>)')
-    expect(result.html).toContain('href="https://example.com/article?x=1&amp;y=2"')
+    expect(renderCombinedDashboard(result.dashboardModel)).toContain('href="https://example.com/article?x=1&amp;y=2"')
   })
 
   test('applies all pure-ranking tie-breaks and sorts missing values last', () => {
@@ -423,9 +428,10 @@ describe('URL combined-report aggregation', () => {
     })
 
     const result = buildUrlCombinedReport(root, '2026-07-18T00:00:00.000Z')
-    expect(result.html).not.toContain('href="javascript:')
-    expect(result.html).toContain('&lt;Unsafe &amp; Article&gt;')
-    expect(result.html).toContain('javascript:alert(1)')
+    const html = renderCombinedDashboard(result.dashboardModel)
+    expect(html).not.toContain('href="javascript:')
+    expect(html).toContain('&lt;Unsafe &amp; Article&gt;')
+    expect(html).toContain('javascript:alert(1)')
   })
 
   test('escapes remote HTML and Markdown syntax in inventory link labels', () => {
@@ -488,8 +494,9 @@ describe('URL combined-report aggregation', () => {
     expect(report.notes.some((note) => note.includes('rows are absent'))).toBe(false)
     expect(result.markdown).toContain(presenceNote)
     expect(result.markdown).not.toContain('rows are absent')
-    expect(result.html).toContain(presenceNote)
-    expect(result.html).not.toContain('rows are absent')
+    const html = renderCombinedDashboard(result.dashboardModel)
+    expect(html).toContain(presenceNote)
+    expect(html).not.toContain('rows are absent')
   })
 })
 
@@ -537,17 +544,19 @@ describe('committed URL combined dashboard', () => {
   })
 
   test('is self-contained, precomputed, and readable without JavaScript', () => {
-    const artifactRoot = resolve(import.meta.dir, '../../../../docs/benchmarks/url')
-    const html = readFileSync(join(artifactRoot, 'combined-comparison-report.html'), 'utf8')
+    const benchmarkRoot = resolve(import.meta.dir, '../../../../docs/benchmarks')
+    const html = readFileSync(join(benchmarkRoot, 'combined-comparison-dashboard.html'), 'utf8')
+    const panel = (html.split('<section class="panel" id="panel-url">')[1] ?? '').split('</main>')[0] ?? ''
+
     expect(html).toContain('<style>')
     expect(html).not.toMatch(/<link\b/i)
-    expect(html).not.toMatch(/<script[\s>]/i)
     expect(html).not.toContain('fetch(')
     expect(html).not.toContain('XMLHttpRequest')
-    expect(html).toContain('<table class="providers">')
+    expect(html).not.toMatch(/<script[^>]+src=/i)
     expect(html).not.toContain('All weighted rankings')
-    expect(html).toContain('<h3>Metric rankings</h3>')
-    expect(html).toContain('<h3>Per-run automated quality</h3>')
-    expect(html).toContain('rel="noreferrer"')
+    expect(panel).toContain('<table class="providers">')
+    expect(panel).toContain('<h3>Metric rankings</h3>')
+    expect(panel).toContain('<h3>Per-run automated quality</h3>')
+    expect(panel).toContain('rel="noreferrer"')
   })
 })

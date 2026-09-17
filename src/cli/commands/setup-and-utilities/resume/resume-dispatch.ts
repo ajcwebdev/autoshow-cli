@@ -11,6 +11,7 @@ import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, S
 import { logSuitePriceSummary } from '~/cli/commands/sources/download/download-targets/suite-price-logging'
 import { logResumeSuiteSummary } from './resume-logging'
 import * as l from '~/utils/app-logger/app-logger'
+import { discardStagedResult } from '~/utils/app-logger/result-emitter'
 import type { AggregatedPriceEstimate, CliFlagOccurrence, ExtractRoute, ExtractSelectorInputRoutes, HostedConcurrencyCoordinator, PipelineManifest, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { assertComicResumeFlags, planComicResume } from './resume-comic/comic-resume'
@@ -267,6 +268,8 @@ export const dispatchResume = async (
       }
     } catch (error) {
       failures.push({ outputDir, message: formatErrorMessage(error) })
+    } finally {
+      discardStagedResult()
     }
   }
 
@@ -290,6 +293,8 @@ export const dispatchResume = async (
   if (failures.length > 0) {
     throw buildResumeFailureError(failures)
   }
+
+  discardStagedResult()
 
   if (estimates.length > 0 && comicPlans.length > 0) {
     l.report.result({ steps: estimates.flatMap(estimate => estimate.steps), totalEstimatedCost: estimates.reduce((sum, estimate) => sum + estimate.totalEstimatedCost, 0), comicPlans }, 'Resume price complete')

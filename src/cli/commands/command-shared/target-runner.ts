@@ -1,5 +1,6 @@
 import { mkdir, rename, rm } from 'node:fs/promises'
-import type { BuildSingleArtifactMapOptions, ProviderIdentity, RunSingleFileTargetsOptions, RunTargetsOptions, SingleFileArtifactNameOptions, SingleFileRunResult } from '~/types'
+import { basename } from 'node:path'
+import type { BuildSingleArtifactMapOptions, MultiFileRunResult, ProviderIdentity, RunMediaArtifactTargetsOptions, RunSingleFileTargetsOptions, RunTargetsOptions, SingleFileArtifactNameOptions, SingleFileRunResult } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
@@ -111,10 +112,10 @@ export const runTargets = async <TTarget extends ProviderIdentity, TResult>(
   return successes
 }
 
-export const runSingleFileTargets = async <TTarget extends ProviderIdentity, TMetadata>(
-  opts: RunSingleFileTargetsOptions<TTarget, TMetadata>
-): Promise<Array<SingleFileRunResult<TMetadata>>> =>
-  runTargets<TTarget, SingleFileRunResult<TMetadata>>({
+export const runMediaArtifactTargets = async <TTarget extends ProviderIdentity, TMetadata>(
+  opts: RunMediaArtifactTargetsOptions<TTarget, TMetadata>
+): Promise<Array<MultiFileRunResult<TMetadata>>> =>
+  runTargets<TTarget, MultiFileRunResult<TMetadata>>({
     targets: opts.targets,
     outputDir: opts.outputDir,
     stepLabel: opts.stepLabel,
@@ -126,21 +127,65 @@ export const runSingleFileTargets = async <TTarget extends ProviderIdentity, TMe
     getResourceGate: opts.getResourceGate,
     getTargetPool: opts.getTargetPool,
     getTargetPriority: opts.getTargetPriority,
+    hostedConcurrencyCoordinator: opts.hostedConcurrencyCoordinator,
+    hostedWorkClass: opts.hostedWorkClass,
     runTarget: opts.runTarget,
     finalizeTarget: async (target, result, singleTarget) => {
-      if (singleTarget) {
+      if (singleTarget && opts.finalizeSingleTarget !== true) {
         return result
       }
 
-      const finalFileName = opts.getArtifactFileName(target, singleTarget)
-      const finalPath = `${opts.outputDir}/${finalFileName}`
-      await rename(result.filePath, finalPath)
+      const finalFileNames = opts.getArtifactFileNames(target, result.filePaths.map(filePath => basename(filePath)), singleTarget)
+      const finalPaths: string[] = []
+
+      for (const [index, filePath] of result.filePaths.entries()) {
+        const finalFileName = finalFileNames[index]
+        if (!finalFileName) continue
+
+        // A single target already writes into the output directory, so only fan-out runs need renaming.
+        const finalPath = singleTarget ? filePath : `${opts.outputDir}/${finalFileName}`
+        if (!singleTarget) await rename(filePath, finalPath)
+        finalPaths.push(finalPath)
+      }
+
+      if (finalPaths.length === 0) {
+        throw InfraError(`No finalized ${opts.stepLabel} artifacts were produced for ${target.service}/${target.model}`, {
+          stage: opts.artifactFailureStage ?? `${opts.stepLabel}:run`
+        })
+      }
 
       return {
-        filePath: finalPath,
-        metadata: opts.finalizeMetadata(result.metadata, finalFileName, finalPath)
+        filePaths: finalPaths,
+        metadata: opts.finalizeMetadata(result.metadata, finalFileNames, finalPaths)
       }
     }
   })
+
+export const runSingleFileTargets = async <TTarget extends ProviderIdentity, TMetadata>(
+  opts: RunSingleFileTargetsOptions<TTarget, TMetadata>
+): Promise<Array<SingleFileRunResult<TMetadata>>> => {
+  const results = await runMediaArtifactTargets<TTarget, TMetadata>({
+    targets: opts.targets,
+    outputDir: opts.outputDir,
+    stepLabel: opts.stepLabel,
+    noProviderMessage: opts.noProviderMessage,
+    workspacePrefix: opts.workspacePrefix,
+    concurrency: opts.concurrency,
+    resourceGate: opts.resourceGate,
+    getResourceGate: opts.getResourceGate,
+    getTargetPool: opts.getTargetPool,
+    getTargetPriority: opts.getTargetPriority,
+    hostedConcurrencyCoordinator: opts.hostedConcurrencyCoordinator,
+    hostedWorkClass: opts.hostedWorkClass,
+    runTarget: async (target, workspaceDir) => {
+      const result = await opts.runTarget(target, workspaceDir)
+      return { filePaths: [result.filePath], metadata: result.metadata }
+    },
+    getArtifactFileNames: (target, _sourceFileNames, singleTarget) => [opts.getArtifactFileName(target, singleTarget)],
+    finalizeMetadata: (metadata, finalFileNames, finalPaths) => opts.finalizeMetadata(metadata, finalFileNames[0] as string, finalPaths[0] as string)
+  })
+
+  return results.map(result => ({ filePath: result.filePaths[0] as string, metadata: result.metadata }))
+}
 
 export const serializeOneOrMany = <T,>(items: T[]): T | T[] => items.length === 1 ? items[0] as T : items

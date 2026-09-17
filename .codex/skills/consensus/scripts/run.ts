@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
-import { resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 
 import { type ConsensusCategory, rewriteComparisonReports } from "./shared/report_surfaces.ts";
 import { runSyncCommand } from "../../../../src/utils/sync-subprocess.ts";
@@ -92,9 +93,10 @@ function rootHelp(): string {
     "  bun scripts/run.ts stt build-combined-report <root_dir>",
     "  bun scripts/run.ts ocr build-combined-report <root_dir>",
     "  bun scripts/run.ts url build-combined-report <root_dir>",
+    "  bun scripts/run.ts build-combined-dashboard [benchmarks_root] [--out <path>]",
     "",
     `Categories: ${CATEGORIES.join(", ")}`,
-    "Commands: build-packet, build-report, compact-archive, compact-results (stt only), build-combined-report (stt, ocr, url)",
+    "Commands: build-packet, build-report, compact-archive, compact-results (stt only), build-combined-report (stt, ocr, url), build-combined-dashboard",
     "",
     "Examples:",
     "  bun scripts/run.ts ocr build-packet ./runs/document --out /tmp/ocr-packet.json",
@@ -102,6 +104,7 @@ function rootHelp(): string {
     "  bun scripts/run.ts tts build-report ./runs/tts --input-text ./input.txt --roundtrip-dir ./roundtrip",
     "  bun scripts/run.ts stt compact-results ./runs/audio",
     "  bun scripts/run.ts image compact-archive ./docs/benchmarks/image",
+    "  bun scripts/run.ts build-combined-dashboard ./docs/benchmarks",
   ].join("\n");
 }
 
@@ -123,6 +126,13 @@ function categoryHelp(category: ConsensusCategory): string {
     inputTextNote,
     "Generated single-run reports are normalized with local and service ranking surfaces; OCR and STT use grouped full metricRankings. OCR, STT, and URL combined cross-run reports rank price, speed, and quality per group.",
   ].join("\n");
+}
+
+const DASHBOARD_SCRIPT = "shared/build_combined_dashboard.ts";
+const DASHBOARD_TAB_DIRS = ["ocr", "stt-local", "stt-with-speakers", "stt-without-speakers", "url"];
+
+function hasAllDashboardTabs(benchmarksRoot: string): boolean {
+  return DASHBOARD_TAB_DIRS.every((tab) => existsSync(join(benchmarksRoot, tab, "combined-comparison-report.json")));
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
@@ -279,7 +289,13 @@ function outputPaths(category: ConsensusCategory, runDir: string, flags: Map<str
 }
 
 function main(): number {
-  const parsed = parseArgs(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  if (argv[0] === "build-combined-dashboard") {
+    runScript(DASHBOARD_SCRIPT, argv.slice(1));
+    return 0;
+  }
+
+  const parsed = parseArgs(argv);
   if (!parsed.category || !parsed.command || !parsed.runDir) {
     throw new Error(rootHelp());
   }
@@ -303,6 +319,12 @@ function main(): number {
       throw new Error(`build-combined-report is not supported for ${parsed.category}`);
     }
     runScript(config.combinedReportScript, [parsed.runDir]);
+    const benchmarksRoot = dirname(parsed.runDir);
+    if (hasAllDashboardTabs(benchmarksRoot)) {
+      runScript(DASHBOARD_SCRIPT, [benchmarksRoot]);
+    } else {
+      console.log(`Skipped the combined dashboard: ${benchmarksRoot} does not hold all of ${DASHBOARD_TAB_DIRS.join(", ")}.`);
+    }
     return 0;
   }
 

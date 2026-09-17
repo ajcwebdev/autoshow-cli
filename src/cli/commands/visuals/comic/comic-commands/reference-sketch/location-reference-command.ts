@@ -183,7 +183,7 @@ const resolveLocationReferenceRequest = (options: ReferenceSketchCommandOptions)
   const view = options.view ?? 'establishing'
   if (!LOCATION_VIEWS.includes(view)) throw UsageError(`--view must be one of: ${LOCATION_VIEWS.join(', ')}`)
   const model = options.imageModels?.[0] ?? DEFAULT_IMAGE_MODEL
-  if ((options.imageModels?.length ?? 1) !== 1 || !model) throw UsageError('reference-sketch accepts exactly one --image-model')
+  if ((options.imageModels?.length ?? 1) !== 1 || !model) throw UsageError('reference-sketch accepts exactly one --provider')
   const size: ImageGenerationSize = options.size ?? '1536x1024'
   const quality: ImageGenerationQuality = options.quality ?? 'high'
   validateImageSizeForModels(size, [model])

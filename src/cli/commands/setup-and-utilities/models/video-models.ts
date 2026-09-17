@@ -2,7 +2,7 @@ import { createModelValidator, createRetiringModelValidator } from '~/cli/comman
 import type { FalVideoModel, GeminiVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, ReplicateVideoModel } from '~/types'
 
 export const SUPPORTED_GEMINI_VIDEO_MODELS = [
-  'veo-3.1-lite-generate-preview'
+  'gemini-omni-1.1-flash'
 ] as const satisfies readonly string[]
 
 export const validateGeminiVideoModel = createRetiringModelValidator<GeminiVideoModel>('video', 'gemini', SUPPORTED_GEMINI_VIDEO_MODELS, 'gemini-video')
@@ -22,6 +22,7 @@ export const validateLtxVideoModel = createRetiringModelValidator<LtxVideoModel>
 
 export const SUPPORTED_REPLICATE_VIDEO_MODELS = [
   'alibaba/happyhorse-1.1',
+  'alibaba/wan-3',
   'bytedance/seedance-2.5',
   'pixverse/pixverse-v6'
 ] as const satisfies readonly string[]

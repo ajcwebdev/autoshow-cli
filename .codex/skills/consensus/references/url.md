@@ -39,6 +39,6 @@ reads optional sibling `manifest.json` metadata for article titles and source UR
 uses only committed local artifacts and never reruns providers or regenerates a
 consensus extraction.
 
-Output is written to `$ROOT_DIR/combined-comparison-report.json` (URL schema v2), `combined-comparison-report.md`, and `combined-comparison-report.html`. The HTML is a self-contained offline dashboard with embedded data and inline CSS.
+Output is written to `$ROOT_DIR/combined-comparison-report.json` (URL schema v2) and `combined-comparison-report.md`. The visual surface is the repository-level `docs/benchmarks/combined-comparison-dashboard.html`, written by `build-combined-dashboard` and rebuilt automatically after a `build-combined-report` under `docs/benchmarks`: a self-contained offline page with embedded data and inline CSS whose `URL` tab holds these aggregates. Each group's sort control also offers `Custom`, three sliders sharing one 100% budget that rescore that group in the browser; it is hidden without JavaScript and changes no emitted artifact.
 
 Providers remain split into `local` and `service`. Rankings aggregate present values for price, speed, and source `rankingSurfaces.*.automatedQuality`; combined quality is not recomputed from WER/CER/coverage. WER, CER, content coverage, processing time, and cost remain supporting means. Combined reports do not emit weighted composites or model tiers. No human-quality ranking is emitted when the source human-quality arrays are empty, and local and service providers are never compared against each other.
