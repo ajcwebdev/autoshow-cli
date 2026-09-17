@@ -51,7 +51,7 @@ test('comic draft-treatment rejects malformed drafting flags', () => {
   expect(() => parseDraftTreatmentArgs(['input/camp.md', '--style-seed', '../seed.png'])).toThrow('Invalid style seed "../seed.png"')
   expect(() => parseDraftTreatmentArgs(['input/camp.md', '--style-seed', 'seed.jpg'])).toThrow('Invalid style seed "seed.jpg"')
   expect(() => parseDraftTreatmentArgs(['input/camp.md', '--catalog-policy', 'nope'])).toThrow('Invalid catalog policy "nope"')
-  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--llm-model', 'not-a-model'])).toThrow('Invalid llm model "not-a-model"')
+  expect(() => parseDraftTreatmentArgs(['input/camp.md', '--provider', 'openai=not-a-model'])).toThrow('Invalid llm model "not-a-model"')
   expect(() => parseDraftTreatmentArgs(['input/camp.md', '--panels', '1-4'])).toThrow('Unexpected flag: --panels')
 })
 
@@ -89,8 +89,8 @@ test('comic generate-slideshow validates local timing and audio-selection flags 
 })
 
 test('comic generate-images rejects invalid and duplicate image models', () => {
-  expect(() => parseGenerateImagesArgs(['script.md', '--image-model', 'not-a-model'])).toThrow('Invalid image model "not-a-model"')
-  expect(() => parseGenerateImagesArgs(['script.md', '--image-model', 'gpt-image-2,gpt-image-2'])).toThrow('Duplicate image model "gpt-image-2" is not allowed')
+  expect(() => parseGenerateImagesArgs(['script.md', '--provider', 'openai=not-a-model'])).toThrow('Invalid image model "not-a-model"')
+  expect(() => parseGenerateImagesArgs(['script.md', '--provider', 'openai=gpt-image-2', '--provider', 'openai=gpt-image-2'])).toThrow('Duplicate image model "gpt-image-2" is not allowed')
 })
 
 test('comic shorthand resolution errors name the expected directory and prefix', async () => {
@@ -115,7 +115,7 @@ test('comic generate-images rejects variations with non-final targets', () => {
 })
 
 test('comic draft-scenes rejects invalid concurrency values', () => {
-  expect(() => parseDraftScenesArgs(['script.md', '--concurrency', '0'])).toThrow('Invalid concurrency')
+  expect(() => parseDraftScenesArgs(['script.md', '--provider-concurrency', '0'])).toThrow('Invalid concurrency')
 })
 
 test('comic reference-voice is a nested alias of the public voice verbs', async () => {

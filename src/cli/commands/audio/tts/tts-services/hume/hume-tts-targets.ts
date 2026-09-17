@@ -24,7 +24,11 @@ export const collectHumeTtsTargets = (
       ...(voice ? { voice } : {}),
       run: async (text, outputDir, opts, invocation, requestEvidence) => {
         const invocationVoice = resolveTtsTargetInvocationVoiceId('hume', invocation)
-        const controls = resolveTtsTargetInvocationControls('hume', invocation, { speed: selection.humeSpeed })
+        const controls = resolveTtsTargetInvocationControls('hume', invocation, {
+          speed: selection.humeSpeed,
+          trailingSilence: selection.humeTrailingSilence,
+          description: selection.humeDescription
+        })
         if (!invocation && model === 'octave-2' && opts.ttsSpeakers?.length) {
           const registry = parseSpeakerVoiceMappings(opts.ttsSpeakers)
           const dialogue = opts.ttsCanonicalTurns

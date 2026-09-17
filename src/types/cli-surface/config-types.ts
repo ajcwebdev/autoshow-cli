@@ -25,21 +25,23 @@ const ExtractSttDefaultsSchema = v.strictObject({
   assemblyaiStt: ModelArraySchema,
   gladiaStt: ModelArraySchema,
   happyscribeStt: ModelArraySchema,
-  happyscribeOrganizationId: v.optional(v.string(), undefined),
+  organizationId: v.optional(v.union([v.string(), v.array(v.string())]), undefined),
   supadataStt: ModelArraySchema,
   scrapecreatorsStt: ModelArraySchema,
   geminiStt: ModelArraySchema,
   togetherStt: ModelArraySchema,
+  openaiStt: ModelArraySchema,
   whisperfile: ModelArraySchema,
-  supadataLang: v.optional(v.string(), undefined),
-  scrapecreatorsLang: v.optional(v.string(), undefined),
+  language: v.optional(v.union([v.string(), v.array(v.string())]), undefined),
   speechmaticsStt: ModelArraySchema,
   diarization: v.optional(v.boolean(), undefined),
   nativeSubtitles: v.optional(v.boolean(), undefined),
   audioProfile: v.optional(v.picklist(['default', 'lossless']), undefined),
-  deepinfraResponseFormat: v.optional(v.picklist(['verbose_json', 'srt', 'vtt']), undefined),
-  grokVerbatim: v.optional(v.boolean(), undefined),
-  supadataChunkSize: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
+  // Generic `provider=value` option defaults; allowed values and bounds are enforced at resolution
+  // time from the STT engine capability table rather than restated here.
+  responseFormat: v.optional(v.union([v.string(), v.array(v.string())]), undefined),
+  verbatim: v.optional(v.union([v.boolean(), v.string(), v.array(v.string())]), undefined),
+  chunkSize: v.optional(v.union([v.number(), v.string(), v.array(v.string())]), undefined),
   speakerCount: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   split: v.optional(v.boolean(), undefined),
   providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
@@ -78,12 +80,16 @@ const TtsDefaultsSchema = v.strictObject({
   instructions: StringOrStringListSchema,
   ttsDialogueFormat: v.optional(v.picklist(['screenplay', 'labeled']), undefined),
   ttsSpeakers: v.optional(v.array(v.string()), undefined),
-  elevenlabsTtsStability: v.optional(v.pipe(v.number(), v.minValue(0), v.maxValue(1)), undefined),
-  elevenlabsTtsSimilarityBoost: v.optional(v.pipe(v.number(), v.minValue(0), v.maxValue(1)), undefined),
-  elevenlabsTtsStyle: v.optional(v.pipe(v.number(), v.minValue(0), v.maxValue(1)), undefined),
-  elevenlabsTtsUseSpeakerBoost: v.optional(v.boolean(), undefined),
-  elevenlabsTtsSeed: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0)), undefined),
-  elevenlabsTtsPronunciationDictionaryLocators: v.optional(v.array(v.string()), undefined),
+  // Generic `provider=value` option defaults; ranges are enforced at resolution time from
+  // CONTROL_SPECS rather than restated here.
+  stability: v.optional(v.union([v.number(), v.string(), v.array(v.string())]), undefined),
+  similarity: v.optional(v.union([v.number(), v.string(), v.array(v.string())]), undefined),
+  style: v.optional(v.union([v.number(), v.string(), v.array(v.string())]), undefined),
+  speakerBoost: v.optional(v.union([v.boolean(), v.string(), v.array(v.string())]), undefined),
+  seed: v.optional(v.union([v.number(), v.string(), v.array(v.string())]), undefined),
+  pronunciationDictionary: v.optional(v.union([v.string(), v.array(v.string())]), undefined),
+  trailingSilence: v.optional(v.union([v.number(), v.string(), v.array(v.string())]), undefined),
+  responseFormat: StringOrStringListSchema,
   providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   chunkConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
 })
@@ -174,6 +180,11 @@ const BatchDefaultsSchema = v.strictObject({
   concurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
 })
 
+// Comic's sound-effect step scope; the other step scopes persist in their existing domain sections.
+const ComicDefaultsSchema = v.strictObject({
+  sfxConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
+})
+
 const ConfigDefaultsSchema = v.strictObject({
   concurrency: v.optional(ConcurrencyDefaultsSchema, undefined),
   llm: v.optional(LlmDefaultsSchema, undefined),
@@ -183,6 +194,7 @@ const ConfigDefaultsSchema = v.strictObject({
   music: v.optional(MusicDefaultsSchema, undefined),
   extract: v.optional(ExtractDefaultsSchema, undefined),
   batch: v.optional(BatchDefaultsSchema, undefined),
+  comic: v.optional(ComicDefaultsSchema, undefined),
   prompts: v.optional(v.array(v.string()), undefined)
 })
 

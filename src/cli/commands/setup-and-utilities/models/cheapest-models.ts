@@ -315,6 +315,7 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   'scrapecreators-stt': () => 'youtube-transcript',
   'gemini-stt': () => selectCheapestSttModel('gemini-stt'),
   'together-stt': () => selectCheapestSttModel('together'),
+  'openai-stt': () => selectCheapestSttModel('openai-stt'),
   'mistral-ocr': () => selectCheapestExtractModel('mistral'),
   'glm-ocr': () => selectCheapestExtractModel('glm'),
   'kimi-ocr': () => selectCheapestExtractModel('kimi'),

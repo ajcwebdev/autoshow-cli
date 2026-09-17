@@ -73,6 +73,9 @@ const REMOVED_PROVIDER_NAMED_FLAGS = [
   'stt-happyscribe-organization-id',
   'stt-supadata-lang',
   'stt-scrapecreators-lang',
+  'stt-grok-verbatim',
+  'stt-supadata-chunk-size',
+  'deepinfra-stt-response-format',
 ] as const
 
 describe('resume provider flag surface', () => {
@@ -192,8 +195,7 @@ describe('resume provider flag surface', () => {
       'youtube-captions',
       'speaker-count',
       'split',
-      'stt-segment-concurrency',
-      'stt-preflight-concurrency'
+      'step-concurrency'
     ])
     expectResumeHasFlags(Object.keys(ocrInputFlags))
     expectResumeHasFlags(Object.keys(ocrTuningFlags))
@@ -224,17 +226,21 @@ describe('resume provider flag surface', () => {
     expectResumeLacksFlags(REMOVED_PROVIDER_NAMED_FLAGS)
   })
 
-  test('resume has only the explicit DeepInfra response-format provider control', () => {
+  // Renaming --deepinfra-stt-response-format to --stt-response-format emptied this allowlist by
+  // construction: resume now carries no provider-prefixed option flag at all.
+  test('resume carries no provider-named option flags', () => {
     const offenders = Object.keys(resumeFlags).filter((flag) =>
       RESUME_PROVIDER_NAMES.some((provider) => flag.startsWith(`${provider}-`))
     )
-    expect(offenders).toEqual(['deepinfra-stt-response-format'])
+    expect(offenders).toEqual([])
   })
 
   test('resume keeps generic TTS options in place of provider-specific tuning', () => {
     expectResumeHasFlags([
       'tts-voice', 'tts-speed', 'tts-language', 'tts-text-normalization',
-      'tts-instructions', 'tts-chunk-concurrency'
+      'tts-instructions', 'step-concurrency',
+      'tts-stability', 'tts-similarity', 'tts-style', 'tts-speaker-boost',
+      'tts-seed', 'tts-pronunciation-dictionary', 'tts-trailing-silence', 'tts-response-format'
     ])
     expectResumeLacksFlags([
       'tts-ref-audio',

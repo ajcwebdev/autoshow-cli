@@ -99,11 +99,11 @@ bun autoshow setup --show
 bun autoshow setup --reset
 bun autoshow setup --llm openai=gpt-5.6-terra
 bun autoshow setup --stt whisperfile=small.en
-bun autoshow setup --stt happyscribe=auto --stt-happyscribe-organization-id org_123
+bun autoshow setup --stt happyscribe=auto --stt-organization-id happyscribe=org_123
 bun autoshow setup --ocr tesseract
 bun autoshow setup --ocr mistral=mistral-ocr-4-0 --ocr-language eng --ocr-dpi 300
 bun autoshow setup --tts elevenlabs=eleven_v3 --tts-voice voice_123
-bun autoshow setup --tts hume=octave-2 --tts-speaker Host=voice_host --tts-speaker Guest=voice_guest --tts-chunk-concurrency 3
+bun autoshow setup --tts hume=octave-2 --tts-speaker Host=voice_host --tts-speaker Guest=voice_guest --step-concurrency tts-chunk=3
 bun autoshow setup --image openai=gpt-image-2
 bun autoshow setup --video ltx=ltx-2-5-fast
 bun autoshow setup --batch-limit 20 --batch-order oldest --batch-concurrency 2

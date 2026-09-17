@@ -1,6 +1,7 @@
 import type { CliCommandDefinition } from '~/types'
+import { DEFAULT_PROVIDER_VOICE_CATALOG_SOURCE, PROVIDER_VOICE_CATALOG_SOURCES } from '~/types/tts-workflow/provider-port-types'
 import { defineCliCommand } from '~/cli/native/native-types'
-import { boolFlag, strFlag, strListFlag } from '~/cli/flags/flag-utils'
+import { boolFlag, formatValueList, strFlag, strListFlag } from '~/cli/flags/flag-utils'
 import { handleClone } from './voice-command-clone-handlers'
 import { handleConsent, handleImport } from './voice-command-consent-import-handlers'
 import { handleDesign } from './voice-command-design-handlers'
@@ -110,7 +111,7 @@ const listCommand = defineCliCommand({
     'generation-id': strFlag('Registration generation SHA-256'),
     live: boolFlag('Opt-in provider readiness check for one registration'),
     provider: commonRegistrationFlags.provider,
-    source: strFlag('Catalog source: account|provider-library|shared-library', 'account'),
+    source: strFlag(`Catalog source: ${formatValueList(PROVIDER_VOICE_CATALOG_SOURCES)}`, DEFAULT_PROVIDER_VOICE_CATALOG_SOURCE),
     cursor: strFlag('Opaque provider pagination cursor'),
     reconcile: boolFlag('Complete an ambiguous provider provisioning journal without recreating the voice'),
     price: commonRegistrationFlags.price

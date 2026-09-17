@@ -1,24 +1,70 @@
 import type { DiarizationOptions, ProviderSpec, Step2ProviderSelectionFilter, SttDiarizationFlagOptions, SttSelectionOptions, TranscribeEngine, TranscribeEngineCapabilities } from '~/types'
 import { collectStep2ProviderSpecs } from '../command-shared/extract-routing/provider-registry'
+import { DEEPINFRA_STT_RESPONSE_FORMATS, DEFAULT_DEEPINFRA_STT_RESPONSE_FORMAT } from './stt-response-format-contract'
+
+// Engine capabilities, including which provider-general CLI options each engine accepts. The
+// `satisfies Record<TranscribeEngine, ...>` means adding an engine without declaring its
+// capabilities is a compile error, which is what keeps the generic --stt-* flags honest.
+//
+// These are ENGINE-level facts on purpose. The flag layer runs before model selection is final
+// (--all-stt expands to many models), so a flag whose validity depended on the winning model would
+// produce non-deterministic usage errors. STT_MODEL_CAPABILITIES below stays a runtime/diarization
+// concern and is never consulted for flag validation.
+const NO_OPTIONS = {} as const
 
 const STT_ENGINE_CAPABILITIES = {
-  deepinfra: { diarizationByDefault: false, supportsSpeakerCountHint: false },
-  deepgram: { diarizationByDefault: true, supportsSpeakerCountHint: false },
-  soniox: { diarizationByDefault: true, supportsSpeakerCountHint: false },
-  speechmatics: { diarizationByDefault: true, supportsSpeakerCountHint: false },
-  rev: { diarizationByDefault: true, supportsSpeakerCountHint: false },
-  grok: { diarizationByDefault: true, supportsSpeakerCountHint: false },
-  mistral: { diarizationByDefault: true, supportsSpeakerCountHint: false },
-  assemblyai: { diarizationByDefault: true, supportsSpeakerCountHint: true },
-  gladia: { diarizationByDefault: true, supportsSpeakerCountHint: true },
-  happyscribe: { diarizationByDefault: true, supportsSpeakerCountHint: false },
-  supadata: { diarizationByDefault: false, supportsSpeakerCountHint: false },
-  scrapecreators: { diarizationByDefault: false, supportsSpeakerCountHint: false },
-  'gemini-stt': { diarizationByDefault: true, supportsSpeakerCountHint: false },
-  together: { diarizationByDefault: false, supportsSpeakerCountHint: true },
-  whisperfile: { diarizationByDefault: false, supportsSpeakerCountHint: false },
-  'youtube-captions': { diarizationByDefault: false, supportsSpeakerCountHint: false }
-} as const satisfies Record<TranscribeEngine, Pick<TranscribeEngineCapabilities, 'diarizationByDefault' | 'supportsSpeakerCountHint'>>
+  deepinfra: { diarizationByDefault: false, supportsSpeakerCountHint: false, options: { responseFormat: { allowedValues: DEEPINFRA_STT_RESPONSE_FORMATS, defaultValue: DEFAULT_DEEPINFRA_STT_RESPONSE_FORMAT } } },
+  deepgram: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: NO_OPTIONS },
+  soniox: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: NO_OPTIONS },
+  speechmatics: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: NO_OPTIONS },
+  rev: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: NO_OPTIONS },
+  grok: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: { verbatim: true } },
+  mistral: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: NO_OPTIONS },
+  assemblyai: { diarizationByDefault: true, supportsSpeakerCountHint: true, options: NO_OPTIONS },
+  gladia: { diarizationByDefault: true, supportsSpeakerCountHint: true, options: NO_OPTIONS },
+  happyscribe: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: { organizationId: true } },
+  supadata: { diarizationByDefault: false, supportsSpeakerCountHint: false, options: { languageHint: {}, chunkSize: true } },
+  scrapecreators: { diarizationByDefault: false, supportsSpeakerCountHint: false, options: { languageHint: { defaultValue: 'en' } } },
+  'gemini-stt': { diarizationByDefault: true, supportsSpeakerCountHint: false, options: NO_OPTIONS },
+  together: { diarizationByDefault: false, supportsSpeakerCountHint: true, options: NO_OPTIONS },
+  'openai-stt': { diarizationByDefault: false, supportsSpeakerCountHint: false, options: NO_OPTIONS },
+  whisperfile: { diarizationByDefault: false, supportsSpeakerCountHint: false, options: NO_OPTIONS },
+  'youtube-captions': { diarizationByDefault: false, supportsSpeakerCountHint: false, options: NO_OPTIONS }
+} as const satisfies Record<TranscribeEngine, Pick<TranscribeEngineCapabilities, 'diarizationByDefault' | 'supportsSpeakerCountHint'> & { options: SttEngineOptionCapabilities }>
+
+export type SttEngineOptionCapabilities = Readonly<{
+  languageHint?: Readonly<{ defaultValue?: string }>
+  verbatim?: boolean
+  chunkSize?: boolean
+  responseFormat?: Readonly<{ allowedValues: readonly string[], defaultValue?: string }>
+  organizationId?: boolean
+}>
+
+export const STT_ENGINE_OPTION_CAPABILITIES: Record<TranscribeEngine, SttEngineOptionCapabilities> =
+  Object.fromEntries(Object.entries(STT_ENGINE_CAPABILITIES).map(([engine, capabilities]) =>
+    [engine, capabilities.options])) as Record<TranscribeEngine, SttEngineOptionCapabilities>
+
+// Engine ids are internal; `gemini-stt` is spelled `gemini` on the CLI, and two engines have no
+// public --provider spelling at all. Help text and usage errors both go through this map.
+export const STT_ENGINE_PROVIDER_NAME: Record<TranscribeEngine, string | undefined> = {
+  deepinfra: 'deepinfra',
+  deepgram: 'deepgram',
+  soniox: 'soniox',
+  speechmatics: 'speechmatics',
+  rev: undefined,
+  grok: 'grok',
+  mistral: 'mistral',
+  assemblyai: 'assemblyai',
+  gladia: 'gladia',
+  happyscribe: 'happyscribe',
+  supadata: 'supadata',
+  scrapecreators: 'scrapecreators',
+  'gemini-stt': 'gemini',
+  together: 'together',
+  'openai-stt': 'openai',
+  whisperfile: 'whisperfile',
+  'youtube-captions': undefined
+}
 
 // Model overrides describe the implemented request contract, separately from live
 // validation. A shared endpoint does not prove feature parity between its models.
@@ -32,6 +78,13 @@ const STT_MODEL_CAPABILITIES: Partial<Record<TranscribeEngine, Record<string, Pa
   },
   mistral: {
     'voxtral-mini-2602': { nativeWordTiming: 'without-diarization' }
+  },
+  deepinfra: {
+    // 2026-09-16: live batch samples returned words and segments for the Whisper,
+    // Qwen3-ASR, and Nemotron deployments, but both Voxtral deployments return
+    // transcript text with null words and null segments.
+    'mistralai/Voxtral-Mini-3B-2507': { nativeWordTiming: 'unavailable' },
+    'mistralai/Voxtral-Small-24B-2507': { nativeWordTiming: 'unavailable' }
   }
 }
 
@@ -46,7 +99,7 @@ export const getSttEngineCapabilities = (
     supportsDiarizationToggle: hasDiarization && engine !== 'happyscribe',
     diarizationKind: hasDiarization ? 'native' : 'unavailable',
     diarizationValidation: hasDiarization ? 'documented' : 'unsupported',
-    nativeWordTiming: ['supadata', 'scrapecreators', 'youtube-captions', 'rev'].includes(engine) ? 'unavailable' : engine === 'mistral' ? 'without-diarization' : 'available',
+    nativeWordTiming: ['supadata', 'scrapecreators', 'youtube-captions', 'openai-stt', 'rev'].includes(engine) ? 'unavailable' : engine === 'mistral' ? 'without-diarization' : 'available',
     ...(model ? STT_MODEL_CAPABILITIES[engine]?.[model] : {})
   }
 }

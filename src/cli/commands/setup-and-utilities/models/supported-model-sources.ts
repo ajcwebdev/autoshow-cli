@@ -51,6 +51,7 @@ import {
   SUPPORTED_SUPADATA_STT_MODELS,
   SUPPORTED_TOGETHER_MODELS,
   SUPPORTED_TOGETHER_STT_MODELS,
+  SUPPORTED_OPENAI_STT_MODELS,
   SUPPORTED_WHISPERFILE_MODELS
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 
@@ -74,6 +75,7 @@ export const SUPPORTED_MODEL_SOURCES = [
   { step: 'stt', service: 'scrapecreators', arrayName: 'SUPPORTED_SCRAPECREATORS_STT_MODELS', models: SUPPORTED_SCRAPECREATORS_STT_MODELS },
   { step: 'stt', service: 'gemini-stt', arrayName: 'SUPPORTED_GEMINI_STT_MODELS', models: SUPPORTED_GEMINI_STT_MODELS },
   { step: 'stt', service: 'together', arrayName: 'SUPPORTED_TOGETHER_STT_MODELS', models: SUPPORTED_TOGETHER_STT_MODELS },
+  { step: 'stt', service: 'openai-stt', arrayName: 'SUPPORTED_OPENAI_STT_MODELS', models: SUPPORTED_OPENAI_STT_MODELS },
 
   { step: 'extract', service: 'mistral', arrayName: 'SUPPORTED_MISTRAL_OCR_MODELS', models: SUPPORTED_MISTRAL_OCR_MODELS },
   { step: 'extract', service: 'glm', arrayName: 'SUPPORTED_GLM_OCR_MODELS', models: SUPPORTED_GLM_OCR_MODELS },

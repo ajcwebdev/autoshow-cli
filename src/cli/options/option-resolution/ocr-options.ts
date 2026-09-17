@@ -1,3 +1,4 @@
+import { DEFAULT_OCR_PROVIDER_MODE, OCR_PROVIDER_MODES, type OcrProviderMode } from '~/cli/flags/ocr-provider-mode-contract'
 import { isStep2BooleanProviderSelected } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import type { OcrRuntimeOptions, OcrRuntimeOptionKey, OutputFormat, ResolvedFlagContext } from '~/types'
 import {
@@ -14,6 +15,7 @@ import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { pick } from '~/utils/cli-utils'
 import { parseReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { UsageError } from '~/utils/error-handler'
+import { ALL_STEP_CONCURRENCY_SCOPES, resolveStepConcurrency } from '~/cli/flags/service-selector-normalization/step-concurrency-scopes'
 
 const OCR_MODEL_KEYS = [
   'mistralOcrModels', 'glmOcrModels',
@@ -35,8 +37,10 @@ export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => 
   const epubLengthThousands = parseOptionalPositiveIntFlag(readOptionalStringFlag(mergedFlags, 'length'), 'length')
   const pdfChapterMode = parsePdfChapterMode(readOptionalStringFlag(mergedFlags, 'pdf-chapter-mode'))
   const useTesseract = isStep2BooleanProviderSelected('tesseract-ocr', mergedFlags, allShortcutFlags)
-  const rawOcrConcurrency = readOptionalStringFlag(mergedFlags, 'ocr-concurrency')
-  const hasUserOcrConcurrency = hasExplicitOrConfiguredFlag('ocr-concurrency', explicitFlags, configuredFlags)
+  const pageConcurrency = resolveStepConcurrency('ocr-page', ALL_STEP_CONCURRENCY_SCOPES, ctx.flagOccurrences ?? [], mergedFlags, configuredFlags)
+  const rawOcrConcurrency = pageConcurrency.assigned ? String(pageConcurrency.value) : readOptionalStringFlag(mergedFlags, 'ocr-concurrency')
+  const hasUserOcrConcurrency = pageConcurrency.assigned
+    || hasExplicitOrConfiguredFlag('ocr-concurrency', explicitFlags, configuredFlags)
     || rawOcrConcurrency !== undefined
   const parsedOcrConcurrency = rawOcrConcurrency === undefined
     ? undefined
@@ -46,9 +50,9 @@ export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => 
       ? Math.max(1, parsedOcrConcurrency as number)
       : DEFAULT_OCR_CONCURRENCY
     : undefined
-  const rawOcrProviderMode = readStringFlag(mergedFlags, 'ocr-provider-mode', 'fanout')
-  if (rawOcrProviderMode !== 'fanout' && rawOcrProviderMode !== 'pool') {
-    throw UsageError(`Invalid --ocr-provider-mode "${rawOcrProviderMode}". Expected fanout or pool.`)
+  const rawOcrProviderMode = readStringFlag(mergedFlags, 'ocr-provider-mode', DEFAULT_OCR_PROVIDER_MODE)
+  if (!OCR_PROVIDER_MODES.includes(rawOcrProviderMode as OcrProviderMode)) {
+    throw UsageError(`Invalid --ocr-provider-mode "${rawOcrProviderMode}". Expected ${OCR_PROVIDER_MODES.join(' or ')}.`)
   }
   const ocrProviderModeExplicit = hasExplicitOrConfiguredFlag(
     'ocr-provider-mode',
@@ -61,7 +65,7 @@ export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => 
     ...pick(modelOptions, OCR_MODEL_KEYS),
     ocrConcurrency: resolvedOcrConcurrency,
     ocrConcurrencyMode: hasUserOcrConcurrency ? 'fixed' : 'auto',
-    ocrProviderMode: rawOcrProviderMode,
+    ocrProviderMode: rawOcrProviderMode as OcrProviderMode,
     ocrProviderModeExplicit,
     ocrProviderConcurrency: resolveProviderConcurrency(
       mergedFlags,

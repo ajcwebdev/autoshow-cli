@@ -8,6 +8,7 @@ export type TtsRuntimeOptions = {
   grokTtsTextNormalization: boolean
   mistralTtsModels: string[] | undefined
   mistralTtsVoice: string | undefined
+  mistralTtsResponseFormat?: string | undefined
   ttsDialogueFormat: 'screenplay' | 'labeled' | undefined
   ttsSpeakers: string[] | undefined
   openaiTtsModels: string[] | undefined
@@ -30,6 +31,8 @@ export type TtsRuntimeOptions = {
   speechifyTtsLanguage: string | undefined
   humeTtsModels: string[] | undefined
   humeTtsSpeed?: number | undefined
+  humeTtsTrailingSilence?: number | undefined
+  humeTtsDescription?: string | undefined
   humeTtsVoice: string | undefined
   cartesiaTtsModels: string[] | undefined
   cartesiaTtsSpeed?: number | undefined

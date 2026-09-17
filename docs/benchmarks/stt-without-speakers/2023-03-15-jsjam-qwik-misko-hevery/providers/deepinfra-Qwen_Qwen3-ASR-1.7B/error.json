@@ -1,0 +1,37 @@
+{
+  "service": "deepinfra",
+  "model": "Qwen/Qwen3-ASR-1.7B",
+  "message": "DeepInfra transcription failed (500): inference error",
+  "stage": "openai",
+  "status": 500,
+  "rawResponseFile": "raw-response.json",
+  "error": {
+    "name": "OpenAIRestError",
+    "message": "DeepInfra transcription failed (500): inference error",
+    "stack": "OpenAIRestError: DeepInfra transcription failed (500): inference error\n    at createError (/Users/ajc/c/auto/autoshow-cli/src/utils/openai/openai-client.ts:78:9)\n    at <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/utils/rest-client.ts:124:29)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/utils/openai/openai-client.ts:145:26)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/utils/openai/openai-client.ts:191:9)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/cli/commands/stt/stt-shared/openai-compatible-single-speaker.ts:98:9)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/cli/commands/stt/stt-shared/openai-compatible-single-speaker.ts:183:20)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/utils/retries.ts:33:20)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/cli/commands/stt/stt-shared/openai-compatible-single-speaker.ts:116:9)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/cli/commands/stt/stt-shared/openai-compatible-single-speaker.ts:178:25)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/cli/commands/stt/diarization-off-by-default/deepinfra/run-deepinfra-stt.ts:53:16)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/cli/commands/stt/run-stt/dispatch.ts:53:37)\n    at async <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/cli/commands/stt/run-stt/dispatch.ts:104:50)",
+    "kind": "provider_http",
+    "hints": [],
+    "exitCode": 1,
+    "status": 500,
+    "headers": {
+      "connection": "keep-alive",
+      "content-length": "28",
+      "content-type": "application/json",
+      "date": "Wed, 16 Sep 2026 10:08:55 GMT",
+      "server": "uvicorn",
+      "x-request-id": "REDACTED",
+      "x-robots-tag": "noindex"
+    },
+    "stage": "openai",
+    "metadata": {},
+    "body": "{\"detail\":\"inference error\"}",
+    "rawResponse": {
+      "detail": "inference error"
+    },
+    "bodyBytes": 28,
+    "bodyTruncated": false,
+    "bodyPreview": "{\"detail\":\"inference error\"}",
+    "bodyRetainedBytes": 28,
+    "bodyOmittedBytes": 0
+  }
+}

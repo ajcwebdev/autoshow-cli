@@ -27,7 +27,6 @@ export const HELP_FLAG_GROUPS = [
   ['writing', 'Writing'],
   ['tts-options', 'Text to Speech'],
   ['tts-dialogue', 'Multi-Speaker / Dialogue'],
-  ['tts-elevenlabs', 'ElevenLabs TTS'],
   ['image-options', 'Image Options'],
   ['image-inputs', 'Image Inputs'],
   ['image-provider-options', 'Provider-Specific Image Options'],

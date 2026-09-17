@@ -17,16 +17,12 @@ import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import type { CliCommandDefinition, CliFlagDefinition, DocumentedFlag, FlagTableRows, ScannerState } from '~/types'
 
 const docsRoot = resolve(import.meta.dir, '../../../../docs/commands')
-const modelReportDocs = [
-  '../reports/model-refresh-stt.md',
-  '../reports/model-refresh-ocr.md',
-  '../reports/model-refresh-url.md',
-  '../reports/model-refresh-write.md',
-  '../reports/model-refresh-tts.md',
-  '../reports/model-refresh-image.md',
-  '../reports/model-refresh-video.md',
-  '../reports/model-refresh-music.md'
-] as const
+// Model-refresh reports are dated snapshots under docs/reports/model-refresh/; discover them by
+// domain so a refresh that renames the date suffix does not break this contract.
+const MODEL_REPORT_DOMAINS = ["stt", "ocr", "url", "write", "tts", "image", "video", "music"] as const
+const modelReportDocs = (await Array.fromAsync(
+  new Bun.Glob("model-refresh-*.md").scan({ cwd: resolve(docsRoot, "../reports/model-refresh") })
+)).map((name) => `../reports/model-refresh/${name}`).sort()
 const commandByDoc = {
   '00-setup-and-utilities/cookies.md': setupCommand,
   // Usage documents shared flags; setup is a representative root command.
@@ -310,7 +306,9 @@ test('command documentation links and section anchors resolve after relocation',
 test('command doc flag tables name only flags registered by that command', async () => {
   const docs = (await Array.fromAsync(new Bun.Glob('**/*.md').scan({ cwd: docsRoot }))).sort()
   // Preserve the report inventory without treating historical flags as current CLI usage.
-  for (const doc of modelReportDocs) expect(await Bun.file(resolve(docsRoot, doc)).exists()).toBe(true)
+  for (const domain of MODEL_REPORT_DOMAINS) {
+    expect(modelReportDocs.some((doc) => doc.includes(`model-refresh-${domain}-`))).toBe(true)
+  }
   const commandDocs = docs.filter((doc) => !isTestDoc(doc))
   expect(commandDocs).toEqual(Object.keys(commandByDoc).sort())
 

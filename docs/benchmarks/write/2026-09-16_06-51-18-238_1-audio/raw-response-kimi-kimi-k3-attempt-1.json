@@ -1,0 +1,30 @@
+{
+  "result": "{\"episodeDescription\":\"James Berkins shares how he got laid off from Tina CMS during downsizing but, thanks to his DevRel connections, landed a new job within 12 hours.\"}",
+  "metadata": {
+    "llmService": "kimi",
+    "llmModel": "kimi-k3",
+    "providerReturnedModel": "kimi-k3",
+    "processingTime": 5371,
+    "inputTokenCount": 552,
+    "outputTokenCount": 58,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 552,
+      "outputTokenCount": 58,
+      "totalTokenCount": 610
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 552,
+      "completion_tokens": 58,
+      "total_tokens": 610,
+      "completion_tokens_details": {
+        "reasoning_tokens": 5
+      }
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "low"
+  }
+}

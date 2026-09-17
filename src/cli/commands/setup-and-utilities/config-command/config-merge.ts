@@ -1,4 +1,10 @@
 import { UsageError } from '~/utils/error-handler'
+import {
+  ALL_STEP_CONCURRENCY_SCOPES,
+  readStepConcurrencyAssignments,
+  STEP_CONCURRENCY_FLAG,
+  type StepConcurrencyScope
+} from '~/cli/flags/service-selector-normalization/step-concurrency-scopes'
 
 import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import type { AutoshowConfig, CliFlagOccurrence, RepeatableModelFlag } from '~/types'
@@ -32,7 +38,17 @@ const VIDEO_PROVIDER_FLAGS = Object.values(STANDALONE_VIDEO_PROVIDER_TARGETS)
 const MUSIC_PROVIDER_FLAGS = Object.values(STANDALONE_MUSIC_PROVIDER_TARGETS)
 const REPEATABLE_CONFIG_MODEL_FLAG_SET = new Set<string>(REPEATABLE_MODEL_FLAGS)
 const CONFIG_INJECTED_FLAGS_KEY = '__autoshowConfigInjectedFlags'
-const MULTI_DESTINATION_FLAGS = new Set(['provider-concurrency', 'local-concurrency', 'prompt'])
+const MULTI_DESTINATION_FLAGS = new Set(['provider-concurrency', 'local-concurrency', 'prompt', STEP_CONCURRENCY_FLAG])
+
+// Step scopes persist under their owning domain section rather than a flat map, so the saved shape
+// stays domain-organized and existing concurrency JSON paths keep working.
+const STEP_CONCURRENCY_CONFIG_PATHS: Record<StepConcurrencyScope, string[]> = {
+  'stt-segment': ['defaults', 'extract', 'stt', 'segmentConcurrency'],
+  'stt-preflight': ['defaults', 'extract', 'stt', 'preflightConcurrency'],
+  'ocr-page': ['defaults', 'extract', 'ocr', 'ocrConcurrency'],
+  'tts-chunk': ['defaults', 'tts', 'chunkConcurrency'],
+  sfx: ['defaults', 'comic', 'sfxConcurrency']
+}
 const STEP2_PROVIDER_CONFIG_PATHS = Object.fromEntries(
   getStep2ProviderConfigPathEntries().map(({ flagName, configPath }) => [flagName, [...configPath]])
 ) as Record<string, string[]>
@@ -185,6 +201,21 @@ export const mergeConfigIntoRawFlags = (
     inject(flagName, path)
   }
 
+  // Assembled from every domain section rather than replaced wholesale, so configuring one scope
+  // cannot erase the others.
+  if (!explicitFlags.has(STEP_CONCURRENCY_FLAG)) {
+    const configuredScopes = ALL_STEP_CONCURRENCY_SCOPES.flatMap((stepScope) => {
+      const path = STEP_CONCURRENCY_CONFIG_PATHS[stepScope]
+      if (!pathMatchesScope(path, scope)) return []
+      const value = readNestedValue(configRecord, path)
+      return value === undefined ? [] : [`${stepScope}=${String(value)}`]
+    })
+    if (configuredScopes.length > 0) {
+      merged[STEP_CONCURRENCY_FLAG] = configuredScopes
+      injectedFlags.add(STEP_CONCURRENCY_FLAG)
+    }
+  }
+
   if (
     pathMatchesScope(['defaults', 'prompts'], scope)
     && d.prompts
@@ -206,21 +237,18 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'concurrency-mode': ['defaults', 'concurrency', 'mode'],
   ...STEP2_PROVIDER_CONFIG_PATHS,
   'youtube-captions':  ['defaults', 'extract', 'stt', 'youtubeCaptions'],
-  'stt-happyscribe-organization-id': ['defaults', 'extract', 'stt', 'happyscribeOrganizationId'],
-  'stt-supadata-lang':     ['defaults', 'extract', 'stt', 'supadataLang'],
-  'stt-scrapecreators-lang': ['defaults', 'extract', 'stt', 'scrapecreatorsLang'],
+  'stt-organization-id':   ['defaults', 'extract', 'stt', 'organizationId'],
+  'stt-language':          ['defaults', 'extract', 'stt', 'language'],
   'diarization': ['defaults', 'extract', 'stt', 'diarization'],
   'native-subtitles': ['defaults', 'extract', 'stt', 'nativeSubtitles'],
   'stt-audio-profile': ['defaults', 'extract', 'stt', 'audioProfile'],
-  'deepinfra-stt-response-format': ['defaults', 'extract', 'stt', 'deepinfraResponseFormat'],
-  'stt-grok-verbatim': ['defaults', 'extract', 'stt', 'grokVerbatim'],
-  'stt-supadata-chunk-size': ['defaults', 'extract', 'stt', 'supadataChunkSize'],
+  'stt-response-format':   ['defaults', 'extract', 'stt', 'responseFormat'],
+  'stt-verbatim':          ['defaults', 'extract', 'stt', 'verbatim'],
+  'stt-chunk-size':        ['defaults', 'extract', 'stt', 'chunkSize'],
   'speaker-count':     ['defaults', 'extract', 'stt', 'speakerCount'],
   'split':             ['defaults', 'extract', 'stt', 'split'],
   'stt-provider-concurrency': ['defaults', 'extract', 'stt', 'providerConcurrency'],
   'stt-local-concurrency': ['defaults', 'extract', 'stt', 'localConcurrency'],
-  'stt-segment-concurrency': ['defaults', 'extract', 'stt', 'segmentConcurrency'],
-  'stt-preflight-concurrency': ['defaults', 'extract', 'stt', 'preflightConcurrency'],
   'openai':            ['defaults', 'llm', 'openai'],
   'gemini':            ['defaults', 'llm', 'gemini'],
   'anthropic':         ['defaults', 'llm', 'anthropic'],
@@ -245,14 +273,15 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'tts-instructions':  ['defaults', 'tts', 'instructions'],
   'tts-dialogue-format': ['defaults', 'tts', 'ttsDialogueFormat'],
   'tts-speaker': ['defaults', 'tts', 'ttsSpeakers'],
-  'elevenlabs-tts-stability': ['defaults', 'tts', 'elevenlabsTtsStability'],
-  'elevenlabs-tts-similarity-boost': ['defaults', 'tts', 'elevenlabsTtsSimilarityBoost'],
-  'elevenlabs-tts-style': ['defaults', 'tts', 'elevenlabsTtsStyle'],
-  'elevenlabs-tts-use-speaker-boost': ['defaults', 'tts', 'elevenlabsTtsUseSpeakerBoost'],
-  'elevenlabs-tts-seed': ['defaults', 'tts', 'elevenlabsTtsSeed'],
-  'elevenlabs-tts-pronunciation-dictionary-locator': ['defaults', 'tts', 'elevenlabsTtsPronunciationDictionaryLocators'],
+  'tts-stability':     ['defaults', 'tts', 'stability'],
+  'tts-similarity':    ['defaults', 'tts', 'similarity'],
+  'tts-style':         ['defaults', 'tts', 'style'],
+  'tts-speaker-boost': ['defaults', 'tts', 'speakerBoost'],
+  'tts-seed':          ['defaults', 'tts', 'seed'],
+  'tts-pronunciation-dictionary': ['defaults', 'tts', 'pronunciationDictionary'],
+  'tts-trailing-silence': ['defaults', 'tts', 'trailingSilence'],
+  'tts-response-format': ['defaults', 'tts', 'responseFormat'],
   'tts-provider-concurrency': ['defaults', 'tts', 'providerConcurrency'],
-  'tts-chunk-concurrency': ['defaults', 'tts', 'chunkConcurrency'],
   'gemini-image':      ['defaults', 'image', 'geminiImage'],
   'openai-image':      ['defaults', 'image', 'openaiImage'],
   'grok-image':        ['defaults', 'image', 'grokImage'],
@@ -276,7 +305,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'ocr-language':       ['defaults', 'extract', 'ocr', 'ocrLanguage'],
   'format':             ['defaults', 'extract', 'ocr', 'format'],
   'ocr-dpi':            ['defaults', 'extract', 'ocr', 'dpi'],
-  'ocr-concurrency':   ['defaults', 'extract', 'ocr', 'ocrConcurrency'],
   'ocr-provider-concurrency': ['defaults', 'extract', 'ocr', 'providerConcurrency'],
   'ocr-local-concurrency': ['defaults', 'extract', 'ocr', 'localConcurrency'],
   'ocr-provider-mode':  ['defaults', 'extract', 'ocr', 'providerMode'],
@@ -350,12 +378,12 @@ const readConfigFlagValue = (
 }
 
 const parseConfigValue = (flagName: string, rawValue: unknown): unknown => {
-  if (flagName === 'elevenlabs-tts-pronunciation-dictionary-locator' && typeof rawValue === 'string') {
+  if (flagName === 'tts-pronunciation-dictionary' && typeof rawValue === 'string') {
     return [rawValue]
   }
   if (typeof rawValue !== 'string') return rawValue
   const numericFlags = new Set([
-    'speaker-count', 'stt-supadata-chunk-size', 'ocr-dpi', 'length', 'batch-limit', 'batch-concurrency',
+    'speaker-count', 'ocr-dpi', 'length', 'batch-limit', 'batch-concurrency',
     'max-cents',
     'provider-concurrency', 'local-concurrency',
     'llm-provider-concurrency', 'llm-local-concurrency',
@@ -365,9 +393,6 @@ const parseConfigValue = (flagName: string, rawValue: unknown): unknown => {
     'image-provider-concurrency',
     'video-provider-concurrency',
     'music-provider-concurrency',
-    'tts-speed',
-    'elevenlabs-tts-stability', 'elevenlabs-tts-similarity-boost', 'elevenlabs-tts-style',
-    'elevenlabs-tts-seed',
     'replicate-video-seed'
   ])
   if (numericFlags.has(flagName)) {
@@ -457,6 +482,12 @@ export const buildConfigPatchFromFlags = (
       ['defaults', 'extract', 'ocr', 'localConcurrency']
     ]) {
       setNestedValue(patch, path, value)
+    }
+  }
+
+  if (explicitFlags.has(STEP_CONCURRENCY_FLAG)) {
+    for (const [scope, value] of readStepConcurrencyAssignments(flagOccurrences, ALL_STEP_CONCURRENCY_SCOPES)) {
+      setNestedValue(patch, STEP_CONCURRENCY_CONFIG_PATHS[scope], value)
     }
   }
 

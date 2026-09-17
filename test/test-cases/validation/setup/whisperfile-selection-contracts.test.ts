@@ -37,10 +37,11 @@ test('removed local selectors, setup steps and configuration fail without redire
   expect(v.safeParse(AutoshowConfigSchema, { defaults: { extract: { stt: { whisper: ['tiny'] } } } }).success).toBe(false)
 })
 
-test('timing calibration defaults to whisperfile tiny and rejects the removed engine', () => {
+test('timing calibration defaults to whisperfile tiny and no longer exposes an engine flag', () => {
   expect(resolveWhisperfileCalibration({})).toEqual({ engine: 'whisperfile', model: 'tiny' })
   expect(resolveWhisperfileCalibration({ 'whisper-calibration-model': 'small.en' }).model).toBe('small.en')
-  expect(() => resolveWhisperfileCalibration({ 'whisper-engine': 'whisper' })).toThrow('must be whisperfile')
+  // Whisperfile is the only calibration engine, so --whisper-engine was removed rather than documented.
+  expect(resolveWhisperfileCalibration({ 'whisper-engine': 'whisper' }).engine).toBe('whisperfile')
 })
 
 test('native, Docker, and comparison coverage is limited to the four recommended models', async () => {

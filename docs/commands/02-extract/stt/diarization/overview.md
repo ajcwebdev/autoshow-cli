@@ -78,15 +78,15 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider g
 | ------------ | ---------------------------------------- |
 | Selector     | `--provider happyscribe[=<model>]`       |
 | Models       | `auto`                                   |
-| Organization | `--stt-happyscribe-organization-id <id>` |
+| Organization | `--stt-organization-id happyscribe=<id>` |
 | Language     | Fixed to `en-US`                         |
 
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider happyscribe=auto
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider happyscribe --stt-happyscribe-organization-id org_123
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider happyscribe --stt-organization-id happyscribe=org_123
 ```
 
-Organization resolution order: CLI `--stt-happyscribe-organization-id`, config default, then auto-select if the API key accesses exactly one organization.
+Organization resolution order: CLI `--stt-organization-id`, config default, then auto-select if the API key accesses exactly one organization.
 
 ### Mistral
 

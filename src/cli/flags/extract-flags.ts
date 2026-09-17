@@ -11,6 +11,7 @@ import {
   modelCostFilterFlag,
   reasoningEffortFlag,
   sharedConcurrencyFlags,
+  stepConcurrencyFlag,
   transcriptionFlags
 } from './shared-flags'
 import { formatProviderList, strListFlag, withHelpGroup } from './flag-utils'
@@ -35,6 +36,7 @@ const extractDocumentFlags = {
 export const extractStep2CommandFlags = {
   ...withHelpGroup(extractProviderSelectionFlags, 'provider-selection'),
   ...withHelpGroup(transcriptionFlags, 'transcription'),
+  ...withHelpGroup(stepConcurrencyFlag(['stt-segment', 'stt-preflight', 'ocr-page']), 'concurrency'),
   ...withHelpGroup(extractDocumentFlags, 'ocr-document'),
   ...withHelpGroup(reasoningEffortFlag, 'ocr-document'),
   ...withHelpGroup(articleTuningFlags, 'article-extraction'),

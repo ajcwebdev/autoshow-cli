@@ -59,7 +59,9 @@ export const validateGeminiOcrModel = createRetiringModelValidator('extract', 'g
 export const DEFAULT_DEEPINFRA_OCR_MODEL = 'google/gemma-4-31B-it'
 
 export const SUPPORTED_DEEPINFRA_OCR_MODELS = [
-  DEFAULT_DEEPINFRA_OCR_MODEL
+  DEFAULT_DEEPINFRA_OCR_MODEL,
+  'Qwen/Qwen3.8-27B',
+  'deepseek-ai/DeepSeek-V4.1-Flash'
 ] as const satisfies readonly string[]
 
 export const validateDeepinfraOcrModel = createModelValidator(SUPPORTED_DEEPINFRA_OCR_MODELS, 'deepinfra-ocr')

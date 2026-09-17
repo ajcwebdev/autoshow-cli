@@ -15,8 +15,8 @@ function check(args: string[]) {
   enforceImageCommandPolicy(p.calledAs ?? p.command!.name, p.flags, p.rawParsed.flagOccurrences)
 }
 for (const sub of ['generate-images', 'reference-sketch']) test(`${sub} explicit policy and parsed exemptions`, () => {
-  for (const flags of [[], ['--price'], ['--image-model', 'other'], ['--image-model', 'gpt-image-2,other'], ['--image-model', 'gpt-image-2', '--image-model=gpt-image-2']]) expect(() => check(['comic', sub, ...(sub === 'generate-images' ? ['fixture'] : []), ...flags])).toThrow()
-  for (const flags of [['--image-model', 'gpt-image-2'], ['--image-model=gpt-image-2', '--price'], ['--help'], ['-h']]) expect(() => check(['comic', sub, ...(sub === 'generate-images' ? ['fixture'] : []), ...flags])).not.toThrow()
+  for (const flags of [[], ['--price'], ['--provider', 'openai=other'], ['--provider', 'other'], ['--provider', 'openai=gpt-image-2', '--provider=openai=gpt-image-2']]) expect(() => check(['comic', sub, ...(sub === 'generate-images' ? ['fixture'] : []), ...flags])).toThrow()
+  for (const flags of [['--provider', 'openai=gpt-image-2'], ['--provider=openai=gpt-image-2', '--price'], ['--help'], ['-h']]) expect(() => check(['comic', sub, ...(sub === 'generate-images' ? ['fixture'] : []), ...flags])).not.toThrow()
 })
 test('standalone provider comparisons and prompt-text exemptions', () => {
   for (const flags of [[], ['--price'], ['--provider', 'openai=other'], ['--provider', 'openai=gpt-image-2,other'], ['--provider', 'openai=gpt-image-2', '--provider', 'gemini=other'], ['--provider', 'openai=gpt-image-2', '--all-providers']]) expect(() => check(['image', 'prompt', ...flags])).toThrow()

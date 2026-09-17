@@ -27,6 +27,8 @@ export type TtsTargetSelection = {
   speechifyVoiceId: string | undefined
   speechifyLanguage: string | undefined
   humeSpeed?: number | undefined
+  humeTrailingSilence?: number | undefined
+  humeDescription?: string | undefined
   humeVoice: string | undefined
   cartesiaVoiceId: string | undefined
   cartesiaSpeed?: number | undefined
@@ -39,5 +41,6 @@ export type TtsTargetSelection = {
   grokLanguage: string | undefined
   grokTextNormalization: boolean
   mistralVoiceId: string | undefined
+  mistralResponseFormat?: string | undefined
   dialogueRequested: boolean
 }

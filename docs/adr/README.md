@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Compact index for ADR-001 through ADR-023. Nineteen records are Accepted · Passed, ADR-014 is Accepted · Pending while native Bun migration evidence awaits review, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 and ADR-023 are Proposed · Pending. Dated hosted-model catalogs live in [model refresh reports](../reports/). ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 024. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
+Compact index for ADR-001 through ADR-024. Twenty records are Accepted · Passed, ADR-014 is Accepted · Pending while native Bun migration evidence awaits review, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 and ADR-023 are Proposed · Pending. Dated hosted-model catalogs live in [model refresh reports](../reports/). ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 025. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
 
 ## Authoring and Maintenance
 
@@ -153,6 +153,11 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 - **Status:** Proposed · Pending
 - **Decision:** Adds `comic draft-treatment`, which adapts a prose treatment into a fixed-count episode script in the exact parser shape, bootstraps character and location catalog entries without touching existing keys, and records its artifacts in a treatment run; adds the `draft-scenes --panel-count` contract so the scene stage keeps the authored panel count.
 - **Related ADRs:** [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md), [ADR-022](ADR-022-compile-a-text-first-blocking-plan-into-a-panel-ledger.md)
+**ADR 24: [ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md)**
+
+- **Status:** Accepted · Passed
+- **Decision:** Derives every advertised default, enumeration, and per-provider range from one capability registry per domain, collapses the triplicated TTS control tables and the provider-prefixed TTS/STT option flags onto a shared `provider=value` selector, replaces the five intra-step concurrency knobs with `--step-concurrency <scope>=N`, and moves comic model selection onto `--provider` plus per-role `--<role>-provider`; supersedes the flag surfaces of ADR-007 and ADR-008 while leaving their architectures accepted.
+- **Related ADRs:** [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
 
 
 ## Bun 1.4 Migration Archive

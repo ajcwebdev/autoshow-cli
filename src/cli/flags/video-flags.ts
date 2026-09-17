@@ -1,6 +1,6 @@
 import { booleanAllProvidersFlag, modelCostFilterFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
 import { formatProviderList, formatRange, formatValueList, formatValuesByProvider, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
-import { VIDEO_MODES } from '~/types'
+import { DEFAULT_VIDEO_MODE, VIDEO_MODES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
 import { STANDALONE_VIDEO_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 import {
@@ -33,7 +33,7 @@ const ltxFastOnlyDurations = LTX_FAST_1080P_DURATION_SECONDS.filter(
 )
 
 export const videoGenFlags = {
-  mode: strFlag(`Video generation mode: ${formatValueList(VIDEO_MODES)} (default: text)`),
+  mode: strFlag(`Video generation mode: ${formatValueList(VIDEO_MODES)}`, DEFAULT_VIDEO_MODE),
   duration: strFlag(`Video duration in seconds: ${formatValuesByProvider([
     { provider: 'Gemini Omni', values: GEMINI_DURATION_SECONDS },
     { provider: 'Luma Labs', values: LUMA_DURATION_SECONDS, note: 'rounds to the nearer value' },

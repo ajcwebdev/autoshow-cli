@@ -37,6 +37,8 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     speechifyVoiceId: trimmed(options.speechifyVoice),
     speechifyLanguage: trimmed(options.speechifyTtsLanguage),
     humeSpeed: options.humeTtsSpeed,
+    humeTrailingSilence: options.humeTtsTrailingSilence,
+    humeDescription: trimmed(options.humeTtsDescription),
     humeVoice: trimmed(options.humeTtsVoice),
     cartesiaVoiceId: trimmed(options.cartesiaTtsVoice),
     cartesiaSpeed: options.cartesiaTtsSpeed,
@@ -49,6 +51,7 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     grokLanguage: trimmed(options.grokTtsLanguage),
     grokTextNormalization: options.grokTtsTextNormalization === true,
     mistralVoiceId: trimmed(options.mistralTtsVoice),
+    mistralResponseFormat: trimmed(options.mistralTtsResponseFormat),
     dialogueRequested: multiSpeaker
   }
 }

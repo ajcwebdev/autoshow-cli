@@ -1,17 +1,18 @@
 import { statPath } from '~/utils/bun-file-io'
-import { preflightCaptionEmbedding } from '../../stt/workflows/captions/embed-caption-tracks'
+import { CAPTION_CONTAINER_SELECTIONS, preflightCaptionEmbedding } from '../../stt/workflows/captions/embed-caption-tracks'
 import { runSttTimingWorkflow, sttTimingFlags } from '../../stt/workflows/timing/run-stt-timing-workflow'
 import { runTranscriptReview } from '../../stt/workflows/transcript-review/run-transcript-review'
 
 import { join } from 'node:path'
-import { runCaptionExport, validateCaptionOptions } from '../../stt/workflows/captions/run-caption-export'
+import { CAPTION_MODES, DEFAULT_CAPTION_LINE_WIDTH, DEFAULT_CAPTION_MAX_CPS, DEFAULT_CAPTION_MAX_LINES, DEFAULT_CAPTION_MODE, runCaptionExport, validateCaptionOptions } from '../../stt/workflows/captions/run-caption-export'
 import { defineCliCommand } from '~/cli/native/native-types'
 import { extractStep2CommandFlags } from '~/cli/flags/extract-flags'
 import { handleProcessTarget } from '~/cli/commands/sources/download/download-targets/handle-process-target'
 import { validateOcrProviderModeCommandFlags } from '../../text/ocr/command-validation'
 import { runExtractTranscriptVideo } from '../../stt/workflows/transcript-video/run-transcript-video'
 import { UsageError } from '~/utils/error-handler'
-import { withHelpGroup } from '~/cli/flags/flag-utils'
+import { formatValueList, withHelpGroup } from '~/cli/flags/flag-utils'
+import { CAPTION_FORMAT_SELECTIONS, DEFAULT_CAPTION_FORMAT } from '../../stt/workflows/captions/caption-editor-formats'
 import type { CliFlagsDefinition } from '~/types'
 
 const inputParameter = [{ key: '[input]', description: 'URL, local file, directory, URL list (.md/.txt), or X Space link' }] as const
@@ -50,15 +51,15 @@ const transcriptVideoFlags = {
 
 const captionFlags = {
   'embed-captions': { description: 'Embed selectable English subtitles into a copy of a local video (requires --captions)', type: Boolean, default: false, negatable: false },
-  'caption-container': { description: 'Embedded video container: mp4|mkv|both (default source MP4/MKV, otherwise MKV)', type: String },
+  'caption-container': { description: `Embedded video container: ${formatValueList(CAPTION_CONTAINER_SELECTIONS)} (default source MP4/MKV, otherwise MKV)`, type: String },
   captions: { description: 'Generate captions from audio/video, or export SRT/VTT/ASS/TTML/LRC offline from a saved result.json', type: Boolean, default: false, negatable: false },
-  'caption-format': { description: 'Caption output: srt|vtt|both|ass|ttml|lrc|all (default both)', type: String },
+  'caption-format': { description: `Caption output: ${formatValueList(CAPTION_FORMAT_SELECTIONS)}`, type: String, default: DEFAULT_CAPTION_FORMAT },
   'caption-offset': { description: 'Caption time offset in seconds (saved results default 0; fresh embedding uses source audio start)', type: String },
-  'caption-mode': { description: 'Caption grouping: word|phrase', type: String },
-  'caption-speakers': { description: 'Include speaker labels in exported captions (default on)', type: Boolean, negatable: true },
-  'caption-line-width': { description: 'Maximum characters per subtitle line, except indivisible words', type: String },
-  'caption-max-lines': { description: 'Maximum subtitle lines per cue (default 2)', type: String },
-  'caption-max-cps': { description: 'Reading-speed threshold in characters/second; violations are recorded in captions.json', type: String },
+  'caption-mode': { description: `Caption grouping: ${formatValueList(CAPTION_MODES)}`, type: String, default: DEFAULT_CAPTION_MODE },
+  'caption-speakers': { description: 'Include speaker labels in exported captions', type: Boolean, negatable: true, default: true },
+  'caption-line-width': { description: 'Maximum characters per subtitle line, except indivisible words', type: String, default: String(DEFAULT_CAPTION_LINE_WIDTH) },
+  'caption-max-lines': { description: 'Maximum subtitle lines per cue', type: String, default: String(DEFAULT_CAPTION_MAX_LINES) },
+  'caption-max-cps': { description: 'Reading-speed threshold in characters/second; violations are recorded in captions.json', type: String, default: String(DEFAULT_CAPTION_MAX_CPS) },
   'caption-max-words': { description: 'Maximum words per phrase cue', type: String },
   'caption-max-characters': { description: 'Maximum characters per cue, except indivisible words', type: String },
   'caption-max-duration': { description: 'Maximum cue duration in seconds, except indivisible words', type: String },
@@ -135,7 +136,7 @@ export const extractCommand = defineCliCommand({
     const source = ctx.parameters.input
     const savedResult = typeof ctx.flags['transcript-result'] === 'string' || (typeof source === 'string' && (source.toLowerCase().endsWith('.json') || ((await statPath(source).catch(() => undefined))?.isDirectory() && await Bun.file(join(source, 'result.json')).exists())))
     if (savedResult) {
-      const incompatible = ['audio', 'transcript-text', 'font', 'keep-tmp', 'native-subtitles', 'diarization', 'stt-audio-profile', 'deepinfra-stt-response-format', 'stt-grok-verbatim', 'stt-supadata-chunk-size'].filter(flag => ctx.rawParsed.explicitFlags.has(flag))
+      const incompatible = ['audio', 'transcript-text', 'font', 'keep-tmp', 'native-subtitles', 'diarization', 'stt-audio-profile', 'stt-response-format', 'stt-verbatim', 'stt-chunk-size', 'stt-language', 'stt-organization-id'].filter(flag => ctx.rawParsed.explicitFlags.has(flag))
       if (incompatible.length) throw UsageError('These options do not apply to saved-result caption export: ' + incompatible.map(flag => '--' + flag).join(', '))
       await runCaptionExport(ctx.parameters.input, ctx.flags)
       return

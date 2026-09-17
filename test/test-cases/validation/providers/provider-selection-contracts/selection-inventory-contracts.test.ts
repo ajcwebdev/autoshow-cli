@@ -28,6 +28,7 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'scrapecreators-stt',
   'gemini-stt',
   'together-stt',
+  'openai-stt',
   'mistral-ocr',
   'glm-ocr',
   'kimi-ocr',
@@ -82,10 +83,12 @@ const STT_SELECTION_PROBE = {
   scrapecreatorsSttModels: undefined,
   geminiSttModels: ['gemini-3-flash-preview'],
   togetherSttModels: ['openai/whisper-large-v3'],
+  openaiSttModels: ['gpt-transcribe'],
   whisperfileModels: ['tiny'],
   step2SelectionOrigins: {
     'gemini-stt': 'explicit',
-    'together-stt': 'explicit'
+    'together-stt': 'explicit',
+    'openai-stt': 'explicit'
   }
 } satisfies SttSelectionOptions
 
@@ -146,7 +149,8 @@ describe('selection inventory contracts', () => {
     expect(ROUTING_SELECTION_PROBE.geminiSttModels).toEqual(STT_SELECTION_PROBE.geminiSttModels)
     expect(collectSttProviderSpecs(STT_SELECTION_PROBE)).toEqual([
       { provider: 'gemini-stt', model: 'gemini-3-flash-preview' },
-      { provider: 'together', model: 'openai/whisper-large-v3' }
+      { provider: 'together', model: 'openai/whisper-large-v3' },
+      { provider: 'openai-stt', model: 'gpt-transcribe' }
     ])
     expect(collectOcrProviderSpecs(OCR_SELECTION_PROBE)).toEqual([])
   })

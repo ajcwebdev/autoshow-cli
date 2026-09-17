@@ -48,11 +48,16 @@ export type ProviderReadinessResult = {
   errors: SanitizedProviderError[]
 }
 
+// Voice catalog sources; the CLI --source flag renders its choices from this list.
+export const PROVIDER_VOICE_CATALOG_SOURCES = ['account', 'provider-library', 'shared-library'] as const
+export type ProviderVoiceCatalogSource = typeof PROVIDER_VOICE_CATALOG_SOURCES[number]
+export const DEFAULT_PROVIDER_VOICE_CATALOG_SOURCE: ProviderVoiceCatalogSource = 'account'
+
 export type ProviderVoiceCatalogEntry = {
   provider: TtsProvider
   resourceId: string
   name: string
-  source: 'provider-library' | 'shared-library' | 'account'
+  source: ProviderVoiceCatalogSource
   origin: VoiceOrigin
   providerRevision?: string | undefined
   previewUrl?: string | undefined

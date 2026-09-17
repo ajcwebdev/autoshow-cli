@@ -17,6 +17,7 @@ export type SttRuntimeOptions = {
   scrapecreatorsSttModels: string[] | undefined
   geminiSttModels: string[] | undefined
   togetherSttModels: string[] | undefined
+  openaiSttModels: string[] | undefined
   supadataLang: string | undefined
   scrapecreatorsLang: string | undefined
   grokSttVerbatim?: boolean | undefined

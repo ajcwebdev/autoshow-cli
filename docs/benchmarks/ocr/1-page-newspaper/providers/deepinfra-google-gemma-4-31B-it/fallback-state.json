@@ -11,7 +11,7 @@
   "ocrProviderMode": "fanout",
   "inputSha256": "7ffc36e931634d8dc3acdbcb772d46fcb431193bf2eb99eeea3330651bc84f88",
   "inputFormat": "pdf",
-  "dpi": 200,
+  "dpi": 300,
   "initialFallbackReason": "forced-page-mode",
   "pageRange": {
     "startPage": 1,

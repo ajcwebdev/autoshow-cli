@@ -90,7 +90,8 @@ const buildPricingOptionsForTargets = <T extends VideoRuntimeOptions>(
 
 export const resolveVideoInput = (
   input: string,
-  flags: Record<string, unknown>
+  flags: Record<string, unknown>,
+  explicitFlags: ReadonlySet<string> = new Set()
 ): { prompt: string | undefined, kind: 'image' | 'text' } => {
   if (!isFirstClassVideoImageInput(input)) {
     if (!hasValue(flags['mode'])) {
@@ -104,7 +105,8 @@ export const resolveVideoInput = (
     throw UsageError(`Positional image input cannot be combined with ${mediaConflict[1]}.`)
   }
 
-  const explicitMode = typeof flags['mode'] === 'string' ? flags['mode'] : undefined
+  // --mode carries a declared default, so only an explicit occurrence conflicts with a positional image.
+  const explicitMode = explicitFlags.has('mode') && typeof flags['mode'] === 'string' ? flags['mode'] : undefined
   if (explicitMode !== undefined && explicitMode !== 'image-to-video') {
     throw UsageError(`Positional image input infers --mode image-to-video; do not combine it with --mode ${explicitMode}.`)
   }
@@ -157,7 +159,7 @@ export const videoCommand = defineCliCommand({
   const flags = ctx.flags as Record<string, unknown>
 
   const videoMaxCents = await resolveMaxCentsFromFlags(flags)
-  const resolvedInput = resolveVideoInput(input, flags)
+  const resolvedInput = resolveVideoInput(input, flags, ctx.rawParsed.explicitFlags)
   rejectRetiredVideoProviderSelectors(ctx.rawParsed.flagOccurrences)
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     flags,

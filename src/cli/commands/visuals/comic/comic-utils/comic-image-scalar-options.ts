@@ -1,9 +1,7 @@
-import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { parseHostedConcurrencyMode } from '~/cli/options/option-resolution/flag-readers'
 import type {
   ComicParsedArgs,
-  ParsedGenerateBaseArgs,
-  ParsedLlmModel
+  ParsedGenerateBaseArgs
 } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import {
@@ -15,7 +13,8 @@ import {
   parseImagePromptVariations,
 } from '../comic-commands/generate-images/prompt-variations'
 
-import { assignSharedImageOptions, enabledFlag, isPositiveInteger, parseConcurrencyValue, parseMaxRepairs, readScriptPath, stringFlag } from './comic-argument-readers'
+import { assignSharedImageOptions, enabledFlag, isPositiveInteger, parseComicQaSelector, parseConcurrencyValue, parseMaxRepairs, readScriptPath, stringFlag } from './comic-argument-readers'
+import { COMIC_REVISION_PROMOTION_POLICIES, type ComicRevisionPromotionPolicy } from '~/cli/flags/comic-stage-contract'
 
 const GENERATE_IMAGES_TARGET_VALUES = ['images', 'sketches', 'both'] as const
 const GENERATE_IMAGES_TARGET_OPTIONS = new Set<string>(GENERATE_IMAGES_TARGET_VALUES)
@@ -23,10 +22,10 @@ const GENERATE_IMAGES_TARGET_OPTIONS = new Set<string>(GENERATE_IMAGES_TARGET_VA
 export const coerceComicImageScalars = (parsed: ComicParsedArgs) => {
   const scriptPath = readScriptPath(parsed)
   const output: ParsedGenerateBaseArgs = { showHelp: false, scriptPath: scriptPath as string }
-  const qaModel = stringFlag(parsed, 'qa-model')
+  const qaModel = stringFlag(parsed, 'qa-provider')
   const maxRepairs = stringFlag(parsed, 'max-repairs')
   const targetValue = stringFlag(parsed, 'target')
-  const concurrency = stringFlag(parsed, 'concurrency')
+  const concurrency = stringFlag(parsed, 'provider-concurrency')
   const concurrencyMode = stringFlag(parsed, 'concurrency-mode')
   const panels = stringFlag(parsed, 'panels')
   const panelsPerImage = stringFlag(parsed, 'panels-per-image')
@@ -53,16 +52,12 @@ export const coerceComicImageScalars = (parsed: ComicParsedArgs) => {
   if (revisionPlan !== undefined) output.revisionPlan = revisionPlan
   if (comparisonPasses !== undefined) output.comparisonPasses = parseMaxRepairs(comparisonPasses)
   if (promote !== undefined) {
-    if (promote !== 'clear-winners') throw UsageError(`Invalid revision promotion policy "${promote}". Expected clear-winners`)
-    output.promote = promote
+    if (!COMIC_REVISION_PROMOTION_POLICIES.includes(promote as ComicRevisionPromotionPolicy)) throw UsageError(`Invalid revision promotion policy "${promote}". Expected ${COMIC_REVISION_PROMOTION_POLICIES.join(', ')}`)
+    output.promote = promote as ComicRevisionPromotionPolicy
   }
-  if (qaModel !== undefined) {
-    const qaService = findRegistryServiceForModel('llm', qaModel)
-    if (qaService !== 'openai' && qaService !== 'gemini') {
-      throw UsageError(`Invalid QA model "${qaModel}". QA currently supports OpenAI and Gemini vision-capable LLMs.`)
-    }
-    output.qaModel = qaModel as ParsedLlmModel
-  }
+  // The vision-capability restriction is now structural: COMIC_QA_PROVIDER_TARGETS has only the two
+  // vision-capable providers, so the shared selector rejects anything else with a derived message.
+  if (qaModel !== undefined) output.qaModel = parseComicQaSelector(qaModel, 'qa-provider')
   if (maxRepairs !== undefined) output.maxRepairs = parseMaxRepairs(maxRepairs)
   if (targetValue !== undefined) {
     if (!GENERATE_IMAGES_TARGET_OPTIONS.has(targetValue)) {

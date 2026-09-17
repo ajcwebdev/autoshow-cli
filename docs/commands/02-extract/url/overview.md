@@ -71,11 +71,11 @@ Supadata and ScrapeCreators retrieve a transcript from the original public sourc
 | Option        | Value                                                                        |
 | ------------- | ---------------------------------------------------------------------------- |
 | Selector      | `--provider supadata=auto`                                                   |
-| Language      | `--stt-supadata-lang <code>` when a native transcript is available           |
+| Language      | `--stt-language supadata=<code>` when a native transcript is available       |
 | Input support | Public YouTube, TikTok, Instagram, X/Twitter, Facebook, or direct media URLs |
 
 ```bash
-bun autoshow extract https://www.youtube.com/watch?v=MORMZXEaONk --provider supadata=auto --stt-supadata-lang en
+bun autoshow extract https://www.youtube.com/watch?v=MORMZXEaONk --provider supadata=auto --stt-language supadata=en
 bun autoshow extract https://www.tiktok.com/@example/video/1234567890 --provider supadata=auto
 ```
 
@@ -83,15 +83,15 @@ bun autoshow extract https://www.tiktok.com/@example/video/1234567890 --provider
 
 ### ScrapeCreators
 
-| Option        | Value                                            |
-| ------------- | ------------------------------------------------ |
-| Selector      | `--provider scrapecreators=youtube-transcript`   |
-| Language      | `--stt-scrapecreators-lang <code>`, default `en` |
-| Input support | Public `youtube.com` and `youtu.be` URLs only    |
+| Option        | Value                                                |
+| ------------- | ---------------------------------------------------- |
+| Selector      | `--provider scrapecreators=youtube-transcript`       |
+| Language      | `--stt-language scrapecreators=<code>`, default `en` |
+| Input support | Public `youtube.com` and `youtu.be` URLs only        |
 
 ```bash
 bun autoshow extract "https://www.youtube.com/watch?v=MORMZXEaONk" --provider scrapecreators=youtube-transcript
-bun autoshow extract https://youtu.be/dQw4w9WgXcQ --provider scrapecreators=youtube-transcript --stt-scrapecreators-lang es
+bun autoshow extract https://youtu.be/dQw4w9WgXcQ --provider scrapecreators=youtube-transcript --stt-language scrapecreators=es
 ```
 
 Retrieves existing YouTube transcripts; it does not generate new ones.

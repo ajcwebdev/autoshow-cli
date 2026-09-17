@@ -2,8 +2,8 @@
 
 ## Summary
 
-- Run directory: `/Users/ajc/c/autoshow-cli/docs/benchmarks/stt-with-speakers/2023-03-15-jsjam-qwik-misko-hevery`
-- Total providers: 8 (0 local, 8 third-party service)
+- Run directory: `/Users/ajc/c/auto/autoshow-cli/docs/benchmarks/stt-with-speakers/2023-03-15-jsjam-qwik-misko-hevery`
+- Total providers: 9 (0 local, 9 third-party service)
 - Local, third-party non-diarization, and third-party diarization providers are ranked separately for price, speed, and quality score.
 - Quality score uses speaker-aware WER-derived transcript accuracy, with text-only WER retained as supporting evidence.
 
@@ -20,122 +20,128 @@
 
 #### Price
 
-| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput |                 Actual Cost |
-| ---: | -------- | ----: | ----------: | ----------------: | ------------: | ----------- | --------------: | ---------: | --------------------------: |
-|  n/a | n/a      |   n/a |         n/a |               n/a |           n/a | n/a         |             n/a |        n/a | No providers in this group. |
+| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput | Actual Cost |
+| ---: | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
+| n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | No providers in this group. |
 
 #### Speed
 
-| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput |                 Actual Cost |
-| ---: | -------- | ----: | ----------: | ----------------: | ------------: | ----------- | --------------: | ---------: | --------------------------: |
-|  n/a | n/a      |   n/a |         n/a |               n/a |           n/a | n/a         |             n/a |        n/a | No providers in this group. |
+| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput | Actual Cost |
+| ---: | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
+| n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | No providers in this group. |
 
 #### Quality Score
 
-| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput |                 Actual Cost |
-| ---: | -------- | ----: | ----------: | ----------------: | ------------: | ----------- | --------------: | ---------: | --------------------------: |
-|  n/a | n/a      |   n/a |         n/a |               n/a |           n/a | n/a         |             n/a |        n/a | No providers in this group. |
+| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput | Actual Cost |
+| ---: | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
+| n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | No providers in this group. |
 
 ### Third-Party Service Non-Diarization
 
 #### Price
 
-| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput |                 Actual Cost |
-| ---: | -------- | ----: | ----------: | ----------------: | ------------: | ----------- | --------------: | ---------: | --------------------------: |
-|  n/a | n/a      |   n/a |         n/a |               n/a |           n/a | n/a         |             n/a |        n/a | No providers in this group. |
+| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput | Actual Cost |
+| ---: | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
+| n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | No providers in this group. |
 
 #### Speed
 
-| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput |                 Actual Cost |
-| ---: | -------- | ----: | ----------: | ----------------: | ------------: | ----------- | --------------: | ---------: | --------------------------: |
-|  n/a | n/a      |   n/a |         n/a |               n/a |           n/a | n/a         |             n/a |        n/a | No providers in this group. |
+| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput | Actual Cost |
+| ---: | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
+| n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | No providers in this group. |
 
 #### Quality Score
 
-| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput |                 Actual Cost |
-| ---: | -------- | ----: | ----------: | ----------------: | ------------: | ----------- | --------------: | ---------: | --------------------------: |
-|  n/a | n/a      |   n/a |         n/a |               n/a |           n/a | n/a         |             n/a |        n/a | No providers in this group. |
+| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput | Actual Cost |
+| ---: | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
+| n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | No providers in this group. |
 
 ### Third-Party Service Diarization
 
 #### Price
 
-| Rank | Provider                                  |   Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time |       Throughput | Actual Cost |
-| ---: | ----------------------------------------- | ------: | ----------: | ----------------: | ------------: | ----------- | --------------: | ---------------: | ----------: |
-|    1 | <code>grok-speech-to-text</code>          | $0.1881 |       89.60 |            10.40% |        10.08% | supported   |          71.45s |  94.78× realtime |     $0.1881 |
-|    2 | <code>soniox-stt-async-v5</code>          | $0.1881 |       93.38 |             6.62% |         6.14% | supported   |         155.42s |  43.57× realtime |     $0.1881 |
-|    3 | <code>mistral-voxtral-mini-2602</code>    | $0.2257 |       94.63 |             5.37% |         5.22% | supported   |          73.00s |  92.76× realtime |     $0.2257 |
-|    4 | <code>speechmatics-melia-1</code>         | $0.2427 |       92.56 |             7.44% |         7.27% | supported   |          48.30s | 140.20× realtime |     $0.2427 |
-|    5 | <code>assemblyai-universal-3-5-pro</code> | $0.4327 |       97.94 |             2.06% |         1.72% | supported   |          75.36s |  89.87× realtime |     $0.4327 |
-|    6 | <code>deepgram-nova-3</code>              | $1.0948 |       90.94 |             9.06% |         8.70% | supported   |          16.42s | 412.52× realtime |     $1.0948 |
-|    7 | <code>happyscribe-auto</code>             | $1.1287 |       96.94 |             3.06% |         2.56% | supported   |         128.38s |  52.75× realtime |     $1.1287 |
-|    8 | <code>gladia-solaria-3</code>             | $1.1475 |       93.44 |             6.56% |         6.32% | supported   |          76.34s |  88.70× realtime |     $1.1475 |
+| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput | Actual Cost |
+| ---: | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
+| 1 | <code>grok-speech-to-text</code> | $0.1881 | 89.60 | 10.40% | 10.08% | supported | 71.45s | 94.78× realtime | $0.1881 |
+| 2 | <code>soniox-stt-async-v5</code> | $0.1881 | 93.38 | 6.62% | 6.14% | supported | 155.42s | 43.57× realtime | $0.1881 |
+| 3 | <code>speechmatics-melia-1</code> | $0.2427 | 92.56 | 7.44% | 7.27% | supported | 48.30s | 140.20× realtime | $0.2427 |
+| 4 | <code>mistral-voxtral-mini-2602</code> | $0.3386 | 94.63 | 5.37% | 5.22% | supported | 73.00s | 92.76× realtime | $0.3386 |
+| 5 | <code>assemblyai-universal-3-5-pro</code> | $0.4327 | 97.94 | 2.06% | 1.72% | supported | 75.36s | 89.87× realtime | $0.4327 |
+| 6 | <code>deepgram-nova-3</code> | $0.4853 | 90.94 | 9.06% | 8.70% | supported | 16.42s | 412.52× realtime | $0.4853 |
+| 7 | <code>gemini-stt-gemini-3.5-transcribe</code> | $0.5643 | 87.45 | 12.55% | 12.32% | supported | 263.82s | 25.67× realtime | $0.5643 |
+| 8 | <code>happyscribe-auto</code> | $1.1287 | 96.94 | 3.06% | 2.56% | supported | 128.38s | 52.75× realtime | $1.1287 |
+| 9 | <code>gladia-solaria-3</code> | $1.1475 | 93.44 | 6.56% | 6.32% | supported | 76.34s | 88.70× realtime | $1.1475 |
 
 #### Speed
 
-| Rank | Provider                                  |   Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time |       Throughput | Actual Cost |
-| ---: | ----------------------------------------- | ------: | ----------: | ----------------: | ------------: | ----------- | --------------: | ---------------: | ----------: |
-|    1 | <code>deepgram-nova-3</code>              |  16.42s |       90.94 |             9.06% |         8.70% | supported   |          16.42s | 412.52× realtime |     $1.0948 |
-|    2 | <code>speechmatics-melia-1</code>         |  48.30s |       92.56 |             7.44% |         7.27% | supported   |          48.30s | 140.20× realtime |     $0.2427 |
-|    3 | <code>grok-speech-to-text</code>          |  71.45s |       89.60 |            10.40% |        10.08% | supported   |          71.45s |  94.78× realtime |     $0.1881 |
-|    4 | <code>mistral-voxtral-mini-2602</code>    |  73.00s |       94.63 |             5.37% |         5.22% | supported   |          73.00s |  92.76× realtime |     $0.2257 |
-|    5 | <code>assemblyai-universal-3-5-pro</code> |  75.36s |       97.94 |             2.06% |         1.72% | supported   |          75.36s |  89.87× realtime |     $0.4327 |
-|    6 | <code>gladia-solaria-3</code>             |  76.34s |       93.44 |             6.56% |         6.32% | supported   |          76.34s |  88.70× realtime |     $1.1475 |
-|    7 | <code>happyscribe-auto</code>             | 128.38s |       96.94 |             3.06% |         2.56% | supported   |         128.38s |  52.75× realtime |     $1.1287 |
-|    8 | <code>soniox-stt-async-v5</code>          | 155.42s |       93.38 |             6.62% |         6.14% | supported   |         155.42s |  43.57× realtime |     $0.1881 |
+| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput | Actual Cost |
+| ---: | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
+| 1 | <code>deepgram-nova-3</code> | 16.42s | 90.94 | 9.06% | 8.70% | supported | 16.42s | 412.52× realtime | $0.4853 |
+| 2 | <code>speechmatics-melia-1</code> | 48.30s | 92.56 | 7.44% | 7.27% | supported | 48.30s | 140.20× realtime | $0.2427 |
+| 3 | <code>grok-speech-to-text</code> | 71.45s | 89.60 | 10.40% | 10.08% | supported | 71.45s | 94.78× realtime | $0.1881 |
+| 4 | <code>mistral-voxtral-mini-2602</code> | 73.00s | 94.63 | 5.37% | 5.22% | supported | 73.00s | 92.76× realtime | $0.3386 |
+| 5 | <code>assemblyai-universal-3-5-pro</code> | 75.36s | 97.94 | 2.06% | 1.72% | supported | 75.36s | 89.87× realtime | $0.4327 |
+| 6 | <code>gladia-solaria-3</code> | 76.34s | 93.44 | 6.56% | 6.32% | supported | 76.34s | 88.70× realtime | $1.1475 |
+| 7 | <code>happyscribe-auto</code> | 128.38s | 96.94 | 3.06% | 2.56% | supported | 128.38s | 52.75× realtime | $1.1287 |
+| 8 | <code>soniox-stt-async-v5</code> | 155.42s | 93.38 | 6.62% | 6.14% | supported | 155.42s | 43.57× realtime | $0.1881 |
+| 9 | <code>gemini-stt-gemini-3.5-transcribe</code> | 263.82s | 87.45 | 12.55% | 12.32% | supported | 263.82s | 25.67× realtime | $0.5643 |
 
 #### Quality Score
 
-| Rank | Provider                                  |                   Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time |       Throughput | Actual Cost |
-| ---: | ----------------------------------------- | ----------------------: | ----------: | ----------------: | ------------: | ----------- | --------------: | ---------------: | ----------: |
-|    1 | <code>assemblyai-universal-3-5-pro</code> | 97.94/100 quality score |       97.94 |             2.06% |         1.72% | supported   |          75.36s |  89.87× realtime |     $0.4327 |
-|    2 | <code>happyscribe-auto</code>             | 96.94/100 quality score |       96.94 |             3.06% |         2.56% | supported   |         128.38s |  52.75× realtime |     $1.1287 |
-|    3 | <code>mistral-voxtral-mini-2602</code>    | 94.63/100 quality score |       94.63 |             5.37% |         5.22% | supported   |          73.00s |  92.76× realtime |     $0.2257 |
-|    4 | <code>gladia-solaria-3</code>             | 93.44/100 quality score |       93.44 |             6.56% |         6.32% | supported   |          76.34s |  88.70× realtime |     $1.1475 |
-|    5 | <code>soniox-stt-async-v5</code>          | 93.38/100 quality score |       93.38 |             6.62% |         6.14% | supported   |         155.42s |  43.57× realtime |     $0.1881 |
-|    6 | <code>speechmatics-melia-1</code>         | 92.56/100 quality score |       92.56 |             7.44% |         7.27% | supported   |          48.30s | 140.20× realtime |     $0.2427 |
-|    7 | <code>deepgram-nova-3</code>              | 90.94/100 quality score |       90.94 |             9.06% |         8.70% | supported   |          16.42s | 412.52× realtime |     $1.0948 |
-|    8 | <code>grok-speech-to-text</code>          | 89.60/100 quality score |       89.60 |            10.40% |        10.08% | supported   |          71.45s |  94.78× realtime |     $0.1881 |
+| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput | Actual Cost |
+| ---: | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
+| 1 | <code>assemblyai-universal-3-5-pro</code> | 97.94/100 quality score | 97.94 | 2.06% | 1.72% | supported | 75.36s | 89.87× realtime | $0.4327 |
+| 2 | <code>happyscribe-auto</code> | 96.94/100 quality score | 96.94 | 3.06% | 2.56% | supported | 128.38s | 52.75× realtime | $1.1287 |
+| 3 | <code>mistral-voxtral-mini-2602</code> | 94.63/100 quality score | 94.63 | 5.37% | 5.22% | supported | 73.00s | 92.76× realtime | $0.3386 |
+| 4 | <code>gladia-solaria-3</code> | 93.44/100 quality score | 93.44 | 6.56% | 6.32% | supported | 76.34s | 88.70× realtime | $1.1475 |
+| 5 | <code>soniox-stt-async-v5</code> | 93.38/100 quality score | 93.38 | 6.62% | 6.14% | supported | 155.42s | 43.57× realtime | $0.1881 |
+| 6 | <code>speechmatics-melia-1</code> | 92.56/100 quality score | 92.56 | 7.44% | 7.27% | supported | 48.30s | 140.20× realtime | $0.2427 |
+| 7 | <code>deepgram-nova-3</code> | 90.94/100 quality score | 90.94 | 9.06% | 8.70% | supported | 16.42s | 412.52× realtime | $0.4853 |
+| 8 | <code>grok-speech-to-text</code> | 89.60/100 quality score | 89.60 | 10.40% | 10.08% | supported | 71.45s | 94.78× realtime | $0.1881 |
+| 9 | <code>gemini-stt-gemini-3.5-transcribe</code> | 87.45/100 quality score | 87.45 | 12.55% | 12.32% | supported | 263.82s | 25.67× realtime | $0.5643 |
 
 
 ## Provider Detail
 
-| Provider                                  | Group                           | Diarization | Score / 100 | Speaker-aware WER | Text-only WER | Processing Time |       Throughput | Actual Cost |
-| ----------------------------------------- | ------------------------------- | ----------- | ----------: | ----------------: | ------------: | --------------: | ---------------: | ----------: |
-| <code>assemblyai-universal-3-5-pro</code> | Third-Party Service Diarization | supported   |       97.94 |             2.06% |         1.72% |          75.36s |  89.87× realtime |     $0.4327 |
-| <code>deepgram-nova-3</code>              | Third-Party Service Diarization | supported   |       90.94 |             9.06% |         8.70% |          16.42s | 412.52× realtime |     $1.0948 |
-| <code>gladia-solaria-3</code>             | Third-Party Service Diarization | supported   |       93.44 |             6.56% |         6.32% |          76.34s |  88.70× realtime |     $1.1475 |
-| <code>grok-speech-to-text</code>          | Third-Party Service Diarization | supported   |       89.60 |            10.40% |        10.08% |          71.45s |  94.78× realtime |     $0.1881 |
-| <code>happyscribe-auto</code>             | Third-Party Service Diarization | supported   |       96.94 |             3.06% |         2.56% |         128.38s |  52.75× realtime |     $1.1287 |
-| <code>mistral-voxtral-mini-2602</code>    | Third-Party Service Diarization | supported   |       94.63 |             5.37% |         5.22% |          73.00s |  92.76× realtime |     $0.2257 |
-| <code>soniox-stt-async-v5</code>          | Third-Party Service Diarization | supported   |       93.38 |             6.62% |         6.14% |         155.42s |  43.57× realtime |     $0.1881 |
-| <code>speechmatics-melia-1</code>         | Third-Party Service Diarization | supported   |       92.56 |             7.44% |         7.27% |          48.30s | 140.20× realtime |     $0.2427 |
+| Provider | Group | Diarization | Score / 100 | Speaker-aware WER | Text-only WER | Processing Time | Throughput | Actual Cost |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| <code>assemblyai-universal-3-5-pro</code> | Third-Party Service Diarization | supported | 97.94 | 2.06% | 1.72% | 75.36s | 89.87× realtime | $0.4327 |
+| <code>deepgram-nova-3</code> | Third-Party Service Diarization | supported | 90.94 | 9.06% | 8.70% | 16.42s | 412.52× realtime | $0.4853 |
+| <code>gemini-stt-gemini-3.5-transcribe</code> | Third-Party Service Diarization | supported | 87.45 | 12.55% | 12.32% | 263.82s | 25.67× realtime | $0.5643 |
+| <code>gladia-solaria-3</code> | Third-Party Service Diarization | supported | 93.44 | 6.56% | 6.32% | 76.34s | 88.70× realtime | $1.1475 |
+| <code>grok-speech-to-text</code> | Third-Party Service Diarization | supported | 89.60 | 10.40% | 10.08% | 71.45s | 94.78× realtime | $0.1881 |
+| <code>happyscribe-auto</code> | Third-Party Service Diarization | supported | 96.94 | 3.06% | 2.56% | 128.38s | 52.75× realtime | $1.1287 |
+| <code>mistral-voxtral-mini-2602</code> | Third-Party Service Diarization | supported | 94.63 | 5.37% | 5.22% | 73.00s | 92.76× realtime | $0.3386 |
+| <code>soniox-stt-async-v5</code> | Third-Party Service Diarization | supported | 93.38 | 6.62% | 6.14% | 155.42s | 43.57× realtime | $0.1881 |
+| <code>speechmatics-melia-1</code> | Third-Party Service Diarization | supported | 92.56 | 7.44% | 7.27% | 48.30s | 140.20× realtime | $0.2427 |
 
 ## Error Breakdown (Speaker-aware)
 
-| Provider                                  | Substitutions | Deletions | Insertions | Ref. Words |
-| ----------------------------------------- | ------------: | --------: | ---------: | ---------: |
-| <code>assemblyai-universal-3-5-pro</code> |            -1 |        -1 |         -1 |      20215 |
-| <code>deepgram-nova-3</code>              |            -1 |        -1 |         -1 |      20215 |
-| <code>gladia-solaria-3</code>             |            -1 |        -1 |         -1 |      20215 |
-| <code>grok-speech-to-text</code>          |            -1 |        -1 |         -1 |      20215 |
-| <code>happyscribe-auto</code>             |            -1 |        -1 |         -1 |      20215 |
-| <code>mistral-voxtral-mini-2602</code>    |            -1 |        -1 |         -1 |      20215 |
-| <code>soniox-stt-async-v5</code>          |            -1 |        -1 |         -1 |      20215 |
-| <code>speechmatics-melia-1</code>         |            -1 |        -1 |         -1 |      20215 |
+| Provider | Substitutions | Deletions | Insertions | Ref. Words |
+| --- | ---: | ---: | ---: | ---: |
+| <code>assemblyai-universal-3-5-pro</code> | -1 | -1 | -1 | 20215 |
+| <code>deepgram-nova-3</code> | -1 | -1 | -1 | 20215 |
+| <code>gemini-stt-gemini-3.5-transcribe</code> | -1 | -1 | -1 | 20215 |
+| <code>gladia-solaria-3</code> | -1 | -1 | -1 | 20215 |
+| <code>grok-speech-to-text</code> | -1 | -1 | -1 | 20215 |
+| <code>happyscribe-auto</code> | -1 | -1 | -1 | 20215 |
+| <code>mistral-voxtral-mini-2602</code> | -1 | -1 | -1 | 20215 |
+| <code>soniox-stt-async-v5</code> | -1 | -1 | -1 | 20215 |
+| <code>speechmatics-melia-1</code> | -1 | -1 | -1 | 20215 |
 
 ## Error Breakdown (Text-only)
 
-| Provider                                  | Substitutions | Deletions | Insertions | Ref. Words |
-| ----------------------------------------- | ------------: | --------: | ---------: | ---------: |
-| <code>assemblyai-universal-3-5-pro</code> |            -1 |        -1 |         -1 |      20045 |
-| <code>deepgram-nova-3</code>              |            -1 |        -1 |         -1 |      20045 |
-| <code>gladia-solaria-3</code>             |            -1 |        -1 |         -1 |      20045 |
-| <code>grok-speech-to-text</code>          |            -1 |        -1 |         -1 |      20045 |
-| <code>happyscribe-auto</code>             |            -1 |        -1 |         -1 |      20045 |
-| <code>mistral-voxtral-mini-2602</code>    |            -1 |        -1 |         -1 |      20045 |
-| <code>soniox-stt-async-v5</code>          |            -1 |        -1 |         -1 |      20045 |
-| <code>speechmatics-melia-1</code>         |            -1 |        -1 |         -1 |      20045 |
+| Provider | Substitutions | Deletions | Insertions | Ref. Words |
+| --- | ---: | ---: | ---: | ---: |
+| <code>assemblyai-universal-3-5-pro</code> | -1 | -1 | -1 | 20045 |
+| <code>deepgram-nova-3</code> | -1 | -1 | -1 | 20045 |
+| <code>gemini-stt-gemini-3.5-transcribe</code> | -1 | -1 | -1 | 20045 |
+| <code>gladia-solaria-3</code> | -1 | -1 | -1 | 20045 |
+| <code>grok-speech-to-text</code> | -1 | -1 | -1 | 20045 |
+| <code>happyscribe-auto</code> | -1 | -1 | -1 | 20045 |
+| <code>mistral-voxtral-mini-2602</code> | -1 | -1 | -1 | 20045 |
+| <code>soniox-stt-async-v5</code> | -1 | -1 | -1 | 20045 |
+| <code>speechmatics-melia-1</code> | -1 | -1 | -1 | 20045 |
 
 ## Quality Flags
 

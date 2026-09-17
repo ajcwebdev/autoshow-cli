@@ -12,6 +12,8 @@ DEFAULT_TTS_CHUNK_CONCURRENCY
 } from '~/utils/concurrency-defaults'
 import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrences'
 
+const stepConcurrency = (values: readonly string[]) => flagOccurrencesFromValues({ 'step-concurrency': [...values] })
+
 describe('option resolution contracts', () => {
   test('hosted concurrency mode defaults to ramp and validates explicit values', () => {
     const defaults = buildOptsFromFlags({})
@@ -145,14 +147,12 @@ describe('option resolution contracts', () => {
       const defaults = buildOptsFromFlags({})
       const fallback = buildOptsFromFlags({
         'tts-provider-concurrency': 'not-a-number',
-        'tts-chunk-concurrency': 'bad',
         'image-provider-concurrency': 'bad',
         'video-provider-concurrency': 'bad',
         'music-provider-concurrency': 'bad'
       })
       const clamped = buildOptsFromFlags({
         'tts-provider-concurrency': '0',
-        'tts-chunk-concurrency': '0',
         'image-provider-concurrency': '0',
         'video-provider-concurrency': '0',
         'music-provider-concurrency': '0'
@@ -169,45 +169,46 @@ describe('option resolution contracts', () => {
       expect(fallback.videoProviderConcurrency).toBe(DEFAULT_CLI_CONCURRENCY)
       expect(fallback.musicProviderConcurrency).toBe(DEFAULT_CLI_CONCURRENCY)
       expect(clamped.ttsProviderConcurrency).toBe(1)
-      expect(clamped.ttsChunkConcurrency).toBe(1)
       expect(clamped.imageProviderConcurrency).toBe(1)
       expect(clamped.videoProviderConcurrency).toBe(1)
       expect(clamped.musicProviderConcurrency).toBe(1)
 
-      const explicit = buildOptsFromFlags({
-        'tts-chunk-concurrency': '3'
-      })
+      const explicit = buildOptsFromFlags({}, {}, new Set(['step-concurrency']), { flagOccurrences: stepConcurrency(['tts-chunk=3']) })
       expect(explicit.ttsChunkConcurrency).toBe(3)
+      // Non-positive and non-numeric scope values are usage errors rather than silent fallbacks.
+      expect(() => buildOptsFromFlags({}, {}, new Set(['step-concurrency']), { flagOccurrences: stepConcurrency(['tts-chunk=0']) }))
+        .toThrow('--step-concurrency tts-chunk must be a positive integer')
+      expect(() => buildOptsFromFlags({}, {}, new Set(['step-concurrency']), { flagOccurrences: stepConcurrency(['tts-chunk=bad']) }))
+        .toThrow('--step-concurrency tts-chunk must be a positive integer')
     })
 
   test('Grok-only hosted TTS gets a higher implicit chunk concurrency default', () => {
       const grokOnly = buildOptsFromFlags({
         'grok-tts': 'grok-tts'
       })
+      // The seeded help default never counts as an assignment.
       const parserDefaultInjected = buildOptsFromFlags({
         'grok-tts': 'grok-tts',
-        'tts-chunk-concurrency': String(DEFAULT_TTS_CHUNK_CONCURRENCY)
+        'step-concurrency': [`tts-chunk=${DEFAULT_TTS_CHUNK_CONCURRENCY}`]
       })
       const normalizedGrokProvider = normalizeGenericProviderSelectorFlags({
-        provider: 'grok',
-        'tts-chunk-concurrency': String(DEFAULT_TTS_CHUNK_CONCURRENCY)
+        provider: 'grok'
       }, new Set(['provider']), flagOccurrencesFromValues({ provider: 'grok' }), 'provider', STANDALONE_TTS_PROVIDER_TARGETS, {
         allProvidersTarget: 'all-tts'
       })
       const genericProviderGrok = buildOptsFromFlags(normalizedGrokProvider.flags, {}, normalizedGrokProvider.explicitFlags)
       const explicitThirty = buildOptsFromFlags({
-        'grok-tts': 'grok-tts',
-        'tts-chunk-concurrency': String(DEFAULT_TTS_CHUNK_CONCURRENCY)
-      }, {}, new Set(['tts-chunk-concurrency']))
+        'grok-tts': 'grok-tts'
+      }, {}, new Set(['step-concurrency']), { flagOccurrences: stepConcurrency([`tts-chunk=${DEFAULT_TTS_CHUNK_CONCURRENCY}`]) })
       const configuredThirty = buildOptsFromFlags({
         'grok-tts': 'grok-tts',
-        'tts-chunk-concurrency': String(DEFAULT_TTS_CHUNK_CONCURRENCY),
-        __autoshowConfigInjectedFlags: ['tts-chunk-concurrency']
+        'step-concurrency': [`tts-chunk=${DEFAULT_TTS_CHUNK_CONCURRENCY}`],
+        __autoshowConfigInjectedFlags: ['step-concurrency']
       })
       const configuredCustom = buildOptsFromFlags({
         'grok-tts': 'grok-tts',
-        'tts-chunk-concurrency': '44',
-        __autoshowConfigInjectedFlags: ['tts-chunk-concurrency']
+        'step-concurrency': ['tts-chunk=44'],
+        __autoshowConfigInjectedFlags: ['step-concurrency']
       })
       const openaiOnly = buildOptsFromFlags({
         'openai-tts': 'gpt-4o-mini-tts-2025-12-15'
@@ -218,9 +219,8 @@ describe('option resolution contracts', () => {
       })
       const allTts = buildOptsFromFlags({ 'all-tts': true })
       const explicitAllTts = buildOptsFromFlags({
-        'all-tts': true,
-        'tts-chunk-concurrency': String(DEFAULT_TTS_CHUNK_CONCURRENCY)
-      }, {}, new Set(['tts-chunk-concurrency']))
+        'all-tts': true
+      }, {}, new Set(['step-concurrency']), { flagOccurrences: stepConcurrency([`tts-chunk=${DEFAULT_TTS_CHUNK_CONCURRENCY}`]) })
 
       expect(grokOnly.ttsChunkConcurrency).toBe(DEFAULT_GROK_TTS_CHUNK_CONCURRENCY)
       expect(parserDefaultInjected.ttsChunkConcurrency).toBe(DEFAULT_GROK_TTS_CHUNK_CONCURRENCY)

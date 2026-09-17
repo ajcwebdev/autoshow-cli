@@ -1,11 +1,13 @@
 import { validateCartesiaTtsVoice, validateElevenLabsTtsTextNormalization, validateGrokTtsLanguage, validateGrokTtsVoice, validateHumeTtsVoice, validateInworldTtsVoice, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import type { CliFlagOccurrence, ResolvedModelOptions, TtsCliReferenceInput, TtsOptionResolutionAuthority, TtsOptionResolutionContext, TtsRuntimeOptionKey, TtsRuntimeOptions } from '~/types'
-import { parseOptionalNumberFlag, parseTtsDialogueFormat, readBooleanFlag, readOptionalStringFlag, readOptionalStringListFlag } from './flag-readers'
+import type { CliFlagOccurrence, ResolvedModelOptions, TtsCliReferenceInput, TtsOptionResolutionAuthority, TtsOptionResolutionContext, TtsProvider, TtsRuntimeOptionKey, TtsRuntimeOptions } from '~/types'
+import { parseTtsDialogueFormat, readBooleanFlag, readOptionalStringFlag, readOptionalStringListFlag } from './flag-readers'
 import { validateCliValue } from './download-model-options'
 import { pick } from '~/utils/cli-utils'
 import { UsageError } from '~/utils/error-handler'
 import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/audio/voice/voice-assets/mistral-request-reference-policy'
 import { parseSpeakerVoiceMappings } from '~/cli/commands/audio/tts/dialogue-normalizer'
+import { normalizeControlValue } from '~/cli/commands/audio/tts/tts-targets/tts-invocation-controls'
+import { ttsControlsForFlag } from '~/cli/flags/service-selector-normalization/generic-tts-controls'
 import {
   parseGenericTtsBooleanOption,
   parseGenericTtsOptionValue,
@@ -111,14 +113,37 @@ const TTS_MODEL_KEYS = [
   'cartesiaTtsModels', 'inworldTtsModels'
 ] as const satisfies readonly TtsRuntimeOptionKey[]
 
-const TTS_SPEED_RANGES = {
-  openai: { min: 0.25, max: 4 },
-  grok: { min: 0.7, max: 1.5 },
-  cartesia: { min: 0.6, max: 1.5 },
-  hume: { min: 0.5, max: 2 },
-  inworld: { min: 0.5, max: 1.5 },
-  elevenlabs: { min: 0.7, max: 1.2 }
-} as const
+// Bounds and allowed values come from CONTROL_SPECS via normalizeControlValue; the flag layer only
+// supplies CLI wording for the failure.
+const controlUsageError = (provider: string, key: string, detail: string): Error =>
+  UsageError(`--${key} for ${provider}: ${detail}.`)
+
+const coerceControlValue = (
+  flagName: string,
+  provider: string,
+  value: string | boolean
+): string | number | boolean | readonly string[] => {
+  const control = ttsControlsForFlag(flagName)[provider]
+  if (!control) throw UsageError(`--${flagName} does not apply to ${provider} TTS.`)
+  const spec = control.spec
+  const raw = spec.kind === 'number'
+    ? Number(requireGenericTtsOptionString(flagName, value))
+    : spec.kind === 'boolean'
+      ? parseGenericTtsBooleanOption(value)
+      : spec.kind === 'string-array'
+        ? [requireGenericTtsOptionString(flagName, value)]
+        : requireGenericTtsOptionString(flagName, value)
+  return normalizeControlValue(
+    provider as TtsProvider,
+    flagName,
+    raw as never,
+    spec,
+    controlUsageError as never
+  ) as string | number | boolean | readonly string[]
+}
+
+const coerceNumberControl = (flagName: string, provider: string, value: string | boolean): number =>
+  coerceControlValue(flagName, provider, value) as number
 
 const readValidatedWhenSelected = (
   value: string,
@@ -165,12 +190,7 @@ const applyGenericTtsRuntimeOptions = (
   }
 
   for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-speed', selectedProviders)) {
-    const speed = requireGenericTtsOptionString('tts-speed', value)
-    const range = TTS_SPEED_RANGES[provider as keyof typeof TTS_SPEED_RANGES]
-    if (range === undefined) {
-      throw UsageError(`--tts-speed does not apply to ${provider} TTS.`)
-    }
-    const parsed = parseOptionalNumberFlag(speed, 'tts-speed', range)
+    const parsed = coerceNumberControl('tts-speed', provider, value)
     switch (provider) {
       case 'grok': options.grokTtsSpeed = parsed; break
       case 'cartesia': options.cartesiaTtsSpeed = parsed; break
@@ -218,7 +238,7 @@ const applyGenericTtsRuntimeOptions = (
   }
 
   for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-instructions', selectedProviders)) {
-    const instructions = requireGenericTtsOptionString('tts-instructions', value)
+    const instructions = coerceControlValue('tts-instructions', provider, value) as string
     switch (provider) {
       case 'openai':
         options.openaiTtsInstructions = instructions
@@ -226,7 +246,46 @@ const applyGenericTtsRuntimeOptions = (
       case 'inworld':
         options.inworldTtsInstructions = instructions
         break
+      case 'hume':
+        options.humeTtsDescription = instructions
+        break
     }
+  }
+
+  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-stability', selectedProviders)) {
+    if (provider === 'elevenlabs') options.elevenlabsTtsStability = coerceNumberControl('tts-stability', provider, value)
+  }
+
+  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-similarity', selectedProviders)) {
+    if (provider === 'elevenlabs') options.elevenlabsTtsSimilarityBoost = coerceNumberControl('tts-similarity', provider, value)
+  }
+
+  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-style', selectedProviders)) {
+    if (provider === 'elevenlabs') options.elevenlabsTtsStyle = coerceNumberControl('tts-style', provider, value)
+  }
+
+  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-speaker-boost', selectedProviders)) {
+    if (provider === 'elevenlabs') options.elevenlabsTtsUseSpeakerBoost = coerceControlValue('tts-speaker-boost', provider, value) as boolean
+  }
+
+  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-seed', selectedProviders)) {
+    if (provider === 'elevenlabs') options.elevenlabsTtsSeed = coerceNumberControl('tts-seed', provider, value)
+  }
+
+  const pronunciationLocators: string[] = []
+  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-pronunciation-dictionary', selectedProviders)) {
+    if (provider === 'elevenlabs') {
+      pronunciationLocators.push(...coerceControlValue('tts-pronunciation-dictionary', provider, value) as readonly string[])
+    }
+  }
+  if (pronunciationLocators.length > 0) options.elevenlabsTtsPronunciationDictionaryLocators = pronunciationLocators
+
+  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-trailing-silence', selectedProviders)) {
+    if (provider === 'hume') options.humeTtsTrailingSilence = coerceNumberControl('tts-trailing-silence', provider, value)
+  }
+
+  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-response-format', selectedProviders)) {
+    if (provider === 'mistral') options.mistralTtsResponseFormat = coerceControlValue('tts-response-format', provider, value) as string
   }
 }
 
@@ -275,15 +334,18 @@ export const buildTtsOptions = (
     openaiTtsInstructions: undefined,
     openaiTtsSpeed: undefined,
     elevenlabsTtsLanguageCode: undefined,
-    elevenlabsTtsStability: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'elevenlabs-tts-stability'), 'elevenlabs-tts-stability', { min: 0, max: 1 }),
-    elevenlabsTtsSimilarityBoost: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'elevenlabs-tts-similarity-boost'), 'elevenlabs-tts-similarity-boost', { min: 0, max: 1 }),
-    elevenlabsTtsStyle: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'elevenlabs-tts-style'), 'elevenlabs-tts-style', { min: 0, max: 1 }),
-    elevenlabsTtsUseSpeakerBoost: readBooleanFlag(flags, 'elevenlabs-tts-use-speaker-boost'),
+    elevenlabsTtsStability: undefined,
+    elevenlabsTtsSimilarityBoost: undefined,
+    elevenlabsTtsStyle: undefined,
+    elevenlabsTtsUseSpeakerBoost: false,
     elevenlabsTtsSpeed: undefined,
-    elevenlabsTtsSeed: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'elevenlabs-tts-seed'), 'elevenlabs-tts-seed', { min: 0, max: 4294967295, integer: true }),
+    elevenlabsTtsSeed: undefined,
     elevenlabsTtsTextNormalization: undefined,
-    elevenlabsTtsPronunciationDictionaryLocators: readOptionalStringListFlag(flags, 'elevenlabs-tts-pronunciation-dictionary-locator'),
+    elevenlabsTtsPronunciationDictionaryLocators: undefined,
     elevenlabsVoiceId: undefined,
+    humeTtsTrailingSilence: undefined,
+    humeTtsDescription: undefined,
+    mistralTtsResponseFormat: undefined,
   }
 
   applyGenericTtsRuntimeOptions(options, flags, flagOccurrences, modelOptions)

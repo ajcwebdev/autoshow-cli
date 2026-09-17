@@ -6,17 +6,16 @@ import { evaluateWordTiming } from './stt-word-metrics'
 import { reconcileSttSpeakers } from './reconcile-stt-speakers'
 import { localTimingOutput, readLocalTimingResult, requireLocalTimingFile, writeLocalTimingFiles } from './stt-local-workspace'
 import { splitSttChannels, mergeSttChannelResults } from './stt-channel-workflows'
-import { calibrateWhisperTiming } from './calibrate-whisper-timing'
-import { runLocalForcedAlignment } from './run-local-forced-alignment'
+import { calibrateWhisperTiming, DEFAULT_WHISPER_CALIBRATION_MODEL } from './calibrate-whisper-timing'
+import { DEFAULT_ALIGNMENT_MIN_CONFIDENCE, runLocalForcedAlignment } from './run-local-forced-alignment'
 
 export const sttTimingFlags = {
   'timing-reference': { description: 'Compare saved word timing with this reference result.json (also used by --calibrate-whisper)', type: String },
   'calibrate-whisper': { description: 'Compare installed Whisperfile standard/DTW timing against --timing-reference using local audio', type: Boolean },
-  'whisper-engine': { description: 'Calibration engine: whisperfile (default whisperfile)', type: String },
-  'whisper-calibration-model': { description: 'Installed model for local timing calibration (default tiny)', type: String },
+  'whisper-calibration-model': { description: 'Installed model for local timing calibration', type: String, default: DEFAULT_WHISPER_CALIBRATION_MODEL },
   'align-transcript': { description: 'Force-align this saved transcript to local input audio using an installed CTC model', type: String },
   'alignment-model': { description: 'Local Wav2Vec2 CTC ONNX model directory; never downloaded by alignment', type: String },
-  'alignment-min-confidence': { description: 'Reject aligned words below this confidence, from 0 to 1 (default 0.1)', type: String },
+  'alignment-min-confidence': { description: 'Reject aligned words below this confidence, from 0 to 1', type: String, default: String(DEFAULT_ALIGNMENT_MIN_CONFIDENCE) },
   'split-channels': { description: 'Save each local audio channel as verified float32 WAV with timeline offsets', type: Boolean },
   'merge-channel-results': { description: 'Merge per-channel results listed in the input channel-results.json, retaining channel labels', type: Boolean },
   'speaker-map-template': { description: 'Create a fingerprinted speaker-map.json from the saved result for review', type: Boolean },
@@ -39,7 +38,7 @@ export const runSttTimingWorkflow = async (input: string | undefined, flags: Rec
   if (operations.length !== 1) throw UsageError('Run timing comparison, alignment, calibration, channel handling, and speaker reconciliation as separate operations.')
   const operation = operations[0]!
   const allowed = new Set([operation, 'price', 'output-dir', 'output-root', 'json', 'quiet', 'verbose', 'log-level', 'color', 'config-path',
-    ...(operation === 'calibrate-whisper' ? ['timing-reference', 'whisper-engine', 'whisper-calibration-model'] : []),
+    ...(operation === 'calibrate-whisper' ? ['timing-reference', 'whisper-calibration-model'] : []),
     ...(operation === 'align-transcript' ? ['alignment-model', 'alignment-min-confidence'] : [])])
   for (const flag of explicitFlags) if (!allowed.has(flag)) throw UsageError(`--${flag} cannot be combined with the local --${operation} operation.`)
   const source = await requireLocalTimingFile(input)

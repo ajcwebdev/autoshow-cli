@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "mode": "single-page",
+  "totalPages": 1,
+  "serviceLabel": "DeepInfra OCR",
+  "sourceFile": "document.pdf",
+  "extractionMethod": "deepinfra-ocr",
+  "ocrService": "deepinfra",
+  "ocrModel": "deepseek-ai/DeepSeek-V4.1-Flash",
+  "effectiveReasoningEffort": "default",
+  "ocrProviderMode": "fanout",
+  "inputSha256": "7ffc36e931634d8dc3acdbcb772d46fcb431193bf2eb99eeea3330651bc84f88",
+  "inputFormat": "pdf",
+  "dpi": 300,
+  "initialFallbackReason": "forced-page-mode",
+  "pageRange": {
+    "startPage": 1,
+    "endPage": 1
+  },
+  "pageStatusCounts": {
+    "cached": 0,
+    "resumed": 0,
+    "succeeded": 0,
+    "failed": 1,
+    "canceled": 0
+  },
+  "terminalReason": "provider_limit",
+  "pages": [
+    {
+      "pageNumber": 1,
+      "range": {
+        "startPage": 1,
+        "endPage": 1
+      },
+      "status": "failed",
+      "failure": {
+        "message": "DeepInfra OCR page 1 reached its output token limit.",
+        "category": "provider_limit",
+        "failureKind": "provider_limit",
+        "retryable": false,
+        "blockedReason": "provider_limit"
+      }
+    }
+  ]
+}

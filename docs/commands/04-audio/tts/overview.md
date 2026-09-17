@@ -71,7 +71,7 @@ bun autoshow tts <input> [flags]
 | `--tts-ref-audio <provider=path\|path>`            | Explicit one-off Mistral reference input                                                                                                        |
 | `--tts-text-normalization <provider=value\|value>` | Generic text normalization                                                                                                                      |
 | `--tts-instructions <provider=value\|value>`       | Generic voice/style instructions                                                                                                                |
-| `--tts-chunk-concurrency <n>`                      | Hosted TTS requests allowed in parallel per provider; default `30`, `2` for all providers, or `50` for Grok-only                                |
+| `--step-concurrency tts-chunk=<n>`                 | Hosted TTS requests allowed in parallel per provider; default `30`, `2` for all providers, or `50` for Grok-only                                |
 | `--allow-ambiguous-redispatch`                     | Explicitly authorize repurchasing a provider-admitted TTS slot that has no recoverable audio                                                    |
 | `--tts-dialogue-format <screenplay\|labeled>`      | Dialogue input format for multi-speaker TTS; requires `--tts-speaker`                                                                           |
 | `--tts-speaker SPEAKER=VOICE\|path`                | Multi-speaker voice mapping; repeatable. Selects multi-speaker TTS                                                                              |
@@ -87,7 +87,7 @@ Multi-speaker mode requires `--tts-speaker` (repeatable) and `--tts-dialogue-for
 
 If a hosted target fails after producing some audio, keep the output directory. If the run stops with a recovery checkpoint, pass `--allow-ambiguous-redispatch` on the next run to resume. That may purchase the interrupted request a second time.
 
-`--provider-concurrency` limits how many provider/model targets run at once. `--tts-chunk-concurrency` limits parallel requests within one provider. To cap a single Inworld target at five simultaneous requests, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` does not.
+`--provider-concurrency` limits how many provider/model targets run at once. `--step-concurrency tts-chunk=<n>` limits parallel requests within one provider. To cap a single Inworld target at five simultaneous requests, pass `--step-concurrency tts-chunk=5`; `--provider-concurrency 5` does not.
 
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md \
@@ -106,12 +106,12 @@ bun autoshow tts input/examples/tts/01-tts-short.md --all-providers --max-model-
 
 ### ElevenLabs
 
-| Option         | Value                                                                                                                                                    |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Selector       | `--provider elevenlabs[=<model>]`                                                                                                                        |
-| Models         | `eleven_v3`                                                                                                                                              |
-| Existing voice | `--tts-voice <id>`, default `hpp4J3VqNfWAUOO0d1Us`                                                                                                       |
-| Controls       | `--tts-language`, `--elevenlabs-tts-stability`, `--elevenlabs-tts-seed`, `--tts-text-normalization`, `--elevenlabs-tts-pronunciation-dictionary-locator` |
+| Option         | Value                                                                                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Selector       | `--provider elevenlabs[=<model>]`                                                                                                                                         |
+| Models         | `eleven_v3`                                                                                                                                                               |
+| Existing voice | `--tts-voice <id>`, default `hpp4J3VqNfWAUOO0d1Us`                                                                                                                        |
+| Controls       | `--tts-language`, `--tts-stability`, `--tts-similarity`, `--tts-style`, `--tts-speaker-boost`, `--tts-seed`, `--tts-text-normalization`, `--tts-pronunciation-dictionary` |
 
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md --provider elevenlabs=eleven_v3 --tts-voice hpp4J3VqNfWAUOO0d1Us

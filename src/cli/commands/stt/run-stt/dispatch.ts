@@ -13,6 +13,7 @@ import { runScrapeCreatorsStt } from '~/cli/commands/text/url/url-services/scrap
 import { runSonioxStt } from '../diarization/soniox/run-soniox-stt'
 import { runSpeechmaticsStt } from '../diarization/speechmatics/run-speechmatics-stt'
 import { runSupadataStt } from '~/cli/commands/text/url/url-services/supadata-transcript/run-supadata-stt'
+import { runOpenAIStt } from '../diarization-off-by-default/openai-stt/run-openai-stt'
 import { runTogetherStt } from '../diarization-off-by-default/together/run-together-stt'
 
 const minimalOptions = (context: SttDispatchContext) => ({
@@ -84,6 +85,7 @@ const sttDispatchers = {
   }),
   'gemini-stt': async context => await runGeminiStt(context.audioPath, context.outputDir, basicOptions(context)),
   together: async context => await runTogetherStt(context.audioPath, context.outputDir, basicOptions(context)),
+  'openai-stt': async context => await runOpenAIStt(context.audioPath, context.outputDir, basicOptions(context)),
   'youtube-captions': async () => {
     throw InternalError('youtube-captions is resolved before STT provider dispatch', { stage: 'stt:dispatch' })
   }

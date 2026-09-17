@@ -27,6 +27,8 @@ import { resolveSoundscapeTimeline } from '../../../audio/tts/soundscape/soundsc
 import { writeSoundscapePlan } from '../../../audio/tts/soundscape/soundscape-planner'
 import { canonicalTargetKey, canonicalTtsJson, hashCanonicalTtsValue } from '../../../audio/tts/script-to-audio/contract-identity'
 import { createSilenceWav } from '../../../audio/tts/tts-utils/audio-utils'
+import { SOUND_EFFECT_LICENSE_USE_CLASSIFICATIONS } from '~/cli/commands/audio/tts/soundscape/sfx-license-use'
+import { ELEVENLABS_SFX_SELECTOR, REPLICATE_AUDIOGEN_SELECTOR } from '~/cli/commands/audio/tts/soundscape/sfx-provider-targets'
 
 export const soundscapeReportedOutputPath = (targetKey: string): string => `audio/final/${targetKey}.soundscape.wav`
 
@@ -115,10 +117,10 @@ const loadDialogueMixSource = async (rootDir: string, binding: DialogueAudioRunB
 
 export const parseSoundEffectLicenseUseClassification = (value: unknown): SoundEffectLicenseUseClassification | undefined => {
   if (value === undefined || value === null || value === '') return undefined
-  if (value !== 'noncommercial' && value !== 'commercial' && value !== 'unknown') {
+  if (!SOUND_EFFECT_LICENSE_USE_CLASSIFICATIONS.includes(value as SoundEffectLicenseUseClassification)) {
     throw UsageError('--sfx-license-use must be noncommercial, commercial, or unknown.')
   }
-  return value
+  return value as SoundEffectLicenseUseClassification
 }
 
 export const resolveSoundEffectPlan = async (input: {
@@ -148,7 +150,7 @@ export const resolveSoundEffectPlan = async (input: {
     if (retained.soundscapePlanId !== input.soundscapePlan.soundscapePlanId) throw UsageError('Retained sound-effect target belongs to a different soundscape plan; provide an explicit --sfx-provider for the new plan.')
     return retained
   }
-  throw UsageError('Authored SFX, VOCAL SFX, or AMBIENCE requires --sfx-provider (e.g. elevenlabs=eleven_text_to_sound_v2 or replicate=sepal/audiogen@154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8); no paid hosted default is selected.')
+  throw UsageError(`Authored SFX, VOCAL SFX, or AMBIENCE requires --sfx-provider (e.g. ${ELEVENLABS_SFX_SELECTOR} or ${REPLICATE_AUDIOGEN_SELECTOR}); no paid hosted default is selected.`)
 }
 
 export const planComicSoundscapePrice = async (input: {

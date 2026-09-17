@@ -131,8 +131,8 @@ describe('price mode contracts', () => {
           inputPath,
           '--provider',
           `grok=${model}`,
-          '--tts-chunk-concurrency',
-          '2',
+          '--step-concurrency',
+          'tts-chunk=2',
           '--price',
           '--json'
         ], {

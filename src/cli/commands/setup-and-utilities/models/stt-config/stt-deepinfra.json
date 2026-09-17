@@ -1,6 +1,6 @@
 {
   "deepinfra": {
-    "description": "DeepInfra OpenAI-compatible Whisper speech-to-text",
+    "description": "DeepInfra OpenAI-compatible batch speech-to-text",
     "type": "api",
     "models": {
       "openai/whisper-large-v3-turbo": {
@@ -12,7 +12,7 @@
         "pricingNotes": "DeepInfra lists openai/whisper-large-v3-turbo at $0.00020/min, stored as $0.012/hr. Free credits, discounts, enterprise pricing, taxes, and provider credits are ignored.",
         "costPerHourCents": 1.2,
         "limits": {
-          "notes": "DeepInfra publishes OpenAI-compatible speech-to-text routes and model pages for whisper-large-v3 and whisper-large-v3-turbo, but current public docs do not publish fixed multipart upload or duration caps for the OpenAI-compatible transcription endpoint. AutoShow therefore keeps v1 split policy metadata notes-only and relies on retry-with-split when the provider rejects an oversized payload."
+          "notes": "DeepInfra publishes OpenAI-compatible speech-to-text routes and model pages for its batch ASR deployments, but current public docs do not publish fixed multipart upload or duration caps for the OpenAI-compatible transcription endpoint. AutoShow therefore keeps v1 split policy metadata notes-only and relies on retry-with-split when the provider rejects an oversized payload."
         },
         "estimation": {
           "costMultiplier": 0.9951,
@@ -28,11 +28,96 @@
         "pricingNotes": "DeepInfra lists openai/whisper-large-v3 at $0.00045/min, stored as $0.027/hr. Free credits, discounts, enterprise pricing, taxes, and provider credits are ignored.",
         "costPerHourCents": 2.7,
         "limits": {
-          "notes": "DeepInfra publishes OpenAI-compatible speech-to-text routes and model pages for whisper-large-v3 and whisper-large-v3-turbo, but current public docs do not publish fixed multipart upload or duration caps for the OpenAI-compatible transcription endpoint. AutoShow therefore keeps v1 split policy metadata notes-only and relies on retry-with-split when the provider rejects an oversized payload."
+          "notes": "DeepInfra publishes OpenAI-compatible speech-to-text routes and model pages for its batch ASR deployments, but current public docs do not publish fixed multipart upload or duration caps for the OpenAI-compatible transcription endpoint. AutoShow therefore keeps v1 split policy metadata notes-only and relies on retry-with-split when the provider rejects an oversized payload."
         },
         "estimation": {
           "costMultiplier": 0.9902,
           "msPerSecond": 63
+        }
+      },
+      "Qwen/Qwen3-ASR-0.6B": {
+        "description": "Qwen3-ASR 0.6B via DeepInfra's OpenAI-compatible transcription API",
+        "pricingSourceUrl": "https://deepinfra.com/Qwen/Qwen3-ASR-0.6B",
+        "pricingCheckedAt": "2026-09-16",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra public per-minute model pricing",
+        "pricingNotes": "DeepInfra lists Qwen/Qwen3-ASR-0.6B at $0.00020/min, stored as $0.012/hr. Free credits, discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerHourCents": 1.2,
+        "limits": {
+          "durationSeconds": 1800,
+          "notes": "DeepInfra batch transcription for this deployment errors on whole audio exceeding 30 minutes; AutoShow enforces an 1800-second duration limit and splits into 30m segments. Verified 2026-09-16: verbose_json returns text, word timestamps, and coarse segments."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 28
+        }
+      },
+      "Qwen/Qwen3-ASR-1.7B": {
+        "description": "Qwen3-ASR 1.7B via DeepInfra's OpenAI-compatible transcription API",
+        "pricingSourceUrl": "https://deepinfra.com/Qwen/Qwen3-ASR-1.7B",
+        "pricingCheckedAt": "2026-09-16",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra public per-minute model pricing",
+        "pricingNotes": "DeepInfra lists Qwen/Qwen3-ASR-1.7B at $0.00045/min, stored as $0.027/hr. Free credits, discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerHourCents": 2.7,
+        "limits": {
+          "durationSeconds": 1800,
+          "notes": "DeepInfra batch transcription for this deployment errors on whole audio exceeding 30 minutes; AutoShow enforces an 1800-second duration limit and splits into 30m segments. Verified 2026-09-16: verbose_json returns text, word timestamps, and coarse segments."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 24
+        }
+      },
+      "mistralai/Voxtral-Mini-3B-2507": {
+        "description": "Voxtral Mini 3B via DeepInfra's OpenAI-compatible transcription API",
+        "pricingSourceUrl": "https://deepinfra.com/mistralai/Voxtral-Mini-3B-2507",
+        "pricingCheckedAt": "2026-09-16",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra public per-minute model pricing",
+        "pricingNotes": "DeepInfra lists mistralai/Voxtral-Mini-3B-2507 at $0.00100/min, stored as $0.060/hr. Free credits, discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerHourCents": 6,
+        "limits": {
+          "durationSeconds": 1800,
+          "notes": "DeepInfra batch transcription for this deployment errors on whole audio exceeding 30 minutes; AutoShow enforces an 1800-second duration limit and splits into 30m segments. Verified 2026-09-16: verbose_json returns transcript text only; words and segments are null, so AutoShow records a single whole-request segment and no native word timing."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 25
+        }
+      },
+      "mistralai/Voxtral-Small-24B-2507": {
+        "description": "Voxtral Small 24B via DeepInfra's OpenAI-compatible transcription API",
+        "pricingSourceUrl": "https://deepinfra.com/mistralai/Voxtral-Small-24B-2507",
+        "pricingCheckedAt": "2026-09-16",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra public per-minute model pricing",
+        "pricingNotes": "DeepInfra lists mistralai/Voxtral-Small-24B-2507 at $0.00300/min, stored as $0.180/hr. Free credits, discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerHourCents": 18,
+        "limits": {
+          "durationSeconds": 1800,
+          "notes": "DeepInfra batch transcription for this deployment errors on whole audio exceeding 30 minutes; AutoShow enforces an 1800-second duration limit and splits into 30m segments. Verified 2026-09-16: verbose_json returns transcript text only; words and segments are null, so AutoShow records a single whole-request segment and no native word timing."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 87
+        }
+      },
+      "nvidia/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b": {
+        "description": "NVIDIA Nemotron 3.5 ASR Streaming Multilingual 0.6B via DeepInfra's OpenAI-compatible transcription API",
+        "pricingSourceUrl": "https://deepinfra.com/nvidia/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b",
+        "pricingCheckedAt": "2026-09-16",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra public per-minute model pricing",
+        "pricingNotes": "DeepInfra lists nvidia/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b at $0.00020/min, stored as $0.012/hr. Free credits, discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerHourCents": 1.2,
+        "limits": {
+          "durationSeconds": 900,
+          "notes": "DeepInfra batch transcription for this deployment errors on audio segments exceeding 15 minutes; AutoShow enforces a 900-second duration limit and splits into 15m segments. The upstream architecture is streaming, but DeepInfra exposes it on the batch OpenAI-compatible transcription route. Verified 2026-09-16: a multipart file upload returned text, word timestamps, and segments."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 35
         }
       }
     }

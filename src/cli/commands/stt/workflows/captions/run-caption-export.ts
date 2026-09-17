@@ -8,7 +8,7 @@ import { resolveRunDirectory } from '../../../command-shared/run-dir'
 import { parseStoredTranscriptionResult } from '../../stt-utils/stt-result-artifacts'
 import { resolveCaptionWordCoverage } from './caption-word-coverage'
 import { buildTranscriptionCues, TRANSCRIPT_CUE_LIMITS } from '../../../audio/music/lyrics-video/cue-builder'
-import { formatEditorCaptions, resolveCaptionFormats } from './caption-editor-formats'
+import { DEFAULT_CAPTION_FORMAT, formatEditorCaptions, resolveCaptionFormats } from './caption-editor-formats'
 import { UsageError, ValidationError } from '~/utils/error-handler'
 
 export const runCaptionExport = async (input: string | undefined, flags: Record<string, unknown>, destination?: string, videoSource?: string): Promise<string> => {
@@ -84,21 +84,28 @@ export const runCaptionExport = async (input: string | undefined, flags: Record<
   return output
 }
 
+// Caption grouping selections and the numeric layout defaults advertised by the extract flags.
+export const CAPTION_MODES = ['word', 'phrase'] as const
+export const DEFAULT_CAPTION_MODE = 'phrase'
+export const DEFAULT_CAPTION_LINE_WIDTH = 42
+export const DEFAULT_CAPTION_MAX_LINES = 2
+export const DEFAULT_CAPTION_MAX_CPS = 20
+
 export const validateCaptionOptions = (flags: Record<string, unknown>) => {
-  const format = flags['caption-format'] ?? 'both'
+  const format = flags['caption-format'] ?? DEFAULT_CAPTION_FORMAT
   const formats = resolveCaptionFormats(format)
   if (flags['embed-captions'] === true && (!formats.includes('srt') || !formats.includes('vtt'))) throw UsageError('--embed-captions retains SRT and VTT; use --caption-format both or all.')
-  const mode = flags['caption-mode'] ?? 'phrase'
+  const mode = flags['caption-mode'] ?? DEFAULT_CAPTION_MODE
   if (flags['caption-offset'] !== undefined && !Number.isFinite(Number(flags['caption-offset']))) throw UsageError('--caption-offset must be a finite number of seconds.')
-  if (!['word', 'phrase'].includes(String(mode))) throw UsageError('--caption-mode must be word or phrase.')
+  if (!CAPTION_MODES.includes(String(mode) as typeof CAPTION_MODES[number])) throw UsageError('--caption-mode must be word or phrase.')
   const positive = (key: string, fallback: number): number => {
     const value = flags[key] === undefined ? fallback : Number(flags[key])
     if (!Number.isFinite(value) || value <= 0) throw UsageError(`--${key} must be a positive number.`)
     return value
   }
-  const lineWidth = positive('caption-line-width', 42)
-  const maxLines = positive('caption-max-lines', 2)
-  const maxCps = positive('caption-max-cps', 20)
+  const lineWidth = positive('caption-line-width', DEFAULT_CAPTION_LINE_WIDTH)
+  const maxLines = positive('caption-max-lines', DEFAULT_CAPTION_MAX_LINES)
+  const maxCps = positive('caption-max-cps', DEFAULT_CAPTION_MAX_CPS)
   if (![lineWidth, maxLines].every(Number.isInteger)) throw UsageError('Caption line width and line count must be integers.')
   const limits = {
     ...TRANSCRIPT_CUE_LIMITS,

@@ -4,8 +4,9 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-17
-- **Date Updated:** 2026-09-10
+- **Date Updated:** 2026-09-16
 - **Verification Status:** Passed
+- **Supersession:** The comic model-selection flag spellings `--image-model`, `--llm-model`, and `--qa-model` are superseded by [ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md), which moves comic onto `--provider provider[=model]` plus per-role `--<role>-provider`. Resolving every comic model through the central LLM and image registries, which is this record's decision, remains accepted and unchanged.
 
 ## Amendment: Canonical Voice and Review Commands (2026-09-10)
 

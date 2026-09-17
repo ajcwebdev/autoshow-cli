@@ -1,4 +1,6 @@
+import { join } from 'node:path'
 import { isRecord } from '~/utils/rest-client'
+import { pathExists } from '~/utils/filesystem'
 import type { ExistingSttRun, Step2Metadata, ProviderCompletionStatus, SttProviderFailureSummary, SttProviderState, SttProviderSuccess, SttRecordedProviderError, SttRequestedProvider, SttTarget } from '~/types'
 import { parseStep2RuntimeMetadata } from '../async-lifecycle'
 import { parseStoredStep2TimingMetadata } from '../workflows/timing/stt-timing-metadata'
@@ -17,7 +19,7 @@ import {
   resolveProviderCompletionStatus
 } from '../../command-shared/provider-batch-state'
 
-const STT_SERVICES = new Set<SttTarget['service']>([
+const STT_SERVICES = new Set<string>([
   'whisperfile',
   'deepgram',
   'deepinfra',
@@ -32,11 +34,14 @@ const STT_SERVICES = new Set<SttTarget['service']>([
   'scrapecreators',
   'gemini-stt',
   'together',
-  'youtube-captions'
+  'openai-stt',
+  'youtube-captions',
+  'groq',
+  'grok'
 ])
 
-const isSttService = (value: unknown): value is SttTarget['service'] =>
-  typeof value === 'string' && STT_SERVICES.has(value as SttTarget['service'])
+const isSttService = (value: unknown): value is string =>
+  typeof value === 'string' && STT_SERVICES.has(value)
 
 const parseStoredStep2Metadata = (value: unknown): Step2Metadata | undefined => {
   if (!isRecord(value) || !isSttService(value['transcriptionService']) || typeof value['transcriptionModel'] !== 'string') {
@@ -97,7 +102,7 @@ const parseStoredStep2Metadata = (value: unknown): Step2Metadata | undefined => 
   }
 
   return {
-    transcriptionService: value['transcriptionService'],
+    transcriptionService: value['transcriptionService'] as Step2Metadata['transcriptionService'],
     ...(isRecord(value['diarizationOptions']) ? { diarizationOptions: value['diarizationOptions'] as Step2Metadata['diarizationOptions'] } : {}),
     transcriptionModel: value['transcriptionModel'],
     processingTime: value['processingTime'],
@@ -146,7 +151,7 @@ const parseStoredRequestedTarget = (value: unknown): SttTarget | undefined => {
   }
 
   return {
-    service: value['service'],
+    service: value['service'] as SttTarget['service'],
     model: value['model'],
     local: value['local'] === true,
     ...(value['grokSttVerbatim'] === true ? { grokSttVerbatim: true } : {}),
@@ -160,7 +165,7 @@ const parseStoredRequestedTarget = (value: unknown): SttTarget | undefined => {
 export const parseStoredRequestedTargets = (
   entry: Record<string, unknown>
 ): SttTarget[] =>
-  parseStoredProviderArray(entry['requestedProviders'], parseStoredRequestedTarget)
+  parseStoredProviderArray(entry['requestedProviders'] ?? entry['providers'], parseStoredRequestedTarget)
 
 const parseStoredProviderState = (value: unknown): SttProviderState | undefined => {
   const core = parseStoredProviderStateCore(value)
@@ -181,7 +186,7 @@ const parseStoredProviderState = (value: unknown): SttProviderState | undefined 
     : undefined
 
   return {
-    service: value['service'],
+    service: value['service'] as SttTarget['service'],
     model: value['model'],
     local: value['local'] === true,
     ...core,
@@ -298,7 +303,11 @@ export const readExistingSttRun = async (
     if (!metadata) {
       throw UsageError(`Canonical STT provider state ${target.service}/${target.model} is missing valid provider metadata.`)
     }
-    const result = parseStoredTranscriptionResult(storedState.result)
+    const storedResult = storedState.result ?? (storedState.artifactDir ? await (async () => {
+      const resultPath = join(outputDir, storedState.artifactDir, 'result.json')
+      return (await pathExists(resultPath)) ? await Bun.file(resultPath).json().catch(() => undefined) : undefined
+    })() : undefined)
+    const result = parseStoredTranscriptionResult(storedResult)
     if (!result) {
       throw UsageError(`Canonical STT provider state ${target.service}/${target.model} is missing a valid result.`)
     }

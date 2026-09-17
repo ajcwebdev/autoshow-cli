@@ -23,6 +23,7 @@ const toBootstrapProviderId = (
     case 'scrapecreators':
     case 'gemini-stt':
     case 'together':
+    case 'openai-stt':
       return getStep2BootstrapProviderId('stt', target.service) ?? ''
     case 'youtube-captions':
       return ''

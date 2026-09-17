@@ -69,3 +69,12 @@ export const geminiTranscription = {
   inputPath: 'input/examples/audio/0-audio-short.mp3',
   inputTitle: '0-audio-short',
 } as const
+
+export const openaiTranscription = {
+  provider: 'openai',
+  sttService: 'openai-stt',
+  envVarKey: 'OPENAI_API_KEY',
+  envVarDescription: 'OpenAI transcription',
+  inputPath: 'input/examples/audio/0-audio-short.mp3',
+  inputTitle: '0-audio-short',
+} as const

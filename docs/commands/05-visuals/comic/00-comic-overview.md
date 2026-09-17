@@ -163,17 +163,17 @@ For an interrupted recorded request, use [`resume <run-directory> --price` follo
 
 ### Image Models
 
-`--image-model` accepts OpenAI, Google Gemini, xAI Grok, Replicate, and Luma Labs model IDs. fal.ai image models are not available on comic. The default is `gpt-image-2`. See [`image`](../image/overview.md) for the full catalog.
+`--provider` accepts OpenAI, Google Gemini, xAI Grok, Replicate, and Luma Labs model IDs. fal.ai image models are not available on comic. The default is `gpt-image-2`. See [`image`](../image/overview.md) for the full catalog.
 
-Pass multiple models with `--image-model` to generate each panel with every model for comparison:
+Pass multiple models with `--provider` to generate each panel with every model for comparison:
 
 ```bash
---image-model gpt-image-2,gemini-3.1-flash-lite-image
+--provider openai=gpt-image-2 --provider gemini=gemini-3.1-flash-lite-image
 ```
 
 ### Text Models (LLM)
 
-`--llm-model` accepts the same hosted text model IDs as [`write`](../../03-write/overview.md). The default is `gpt-5.6-sol`.
+`--provider` (and `--llm-provider` on `reference-sketch`) accepts the same hosted text providers and model IDs as [`write`](../../03-write/overview.md). The default is `gpt-5.6-sol`.
 
 ## Command Docs
 

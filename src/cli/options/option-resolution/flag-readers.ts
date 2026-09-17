@@ -154,6 +154,8 @@ export const parsePdfChapterMode = (value: string | undefined): 'local' | 'auto'
   throw UsageError(`Invalid --pdf-chapter-mode value "${value}". Expected ${formatQuotedChoiceList(PDF_CHAPTER_MODES)}.`)
 }
 
+export const TTS_DIALOGUE_FORMATS = ['screenplay', 'labeled'] as const
+
 export const parseTtsDialogueFormat = (value: string | undefined): 'screenplay' | 'labeled' | undefined => {
   const normalized = value?.trim().toLowerCase()
   if (!normalized) {
@@ -164,6 +166,9 @@ export const parseTtsDialogueFormat = (value: string | undefined): 'screenplay' 
   }
   throw UsageError(`Invalid --tts-dialogue-format value "${value}". Expected "screenplay" or "labeled".`)
 }
+
+export const HOSTED_CONCURRENCY_MODES = ['ramp', 'immediate'] as const
+export const DEFAULT_HOSTED_CONCURRENCY_MODE: HostedConcurrencyMode = 'ramp'
 
 export const parseHostedConcurrencyMode = (value: string | undefined): HostedConcurrencyMode => {
   const normalized = value?.trim().toLowerCase()

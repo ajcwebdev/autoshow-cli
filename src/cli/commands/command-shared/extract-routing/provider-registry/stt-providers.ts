@@ -13,6 +13,7 @@ import {
   SUPPORTED_SCRAPECREATORS_STT_MODELS,
   SUPPORTED_GEMINI_STT_MODELS,
   SUPPORTED_TOGETHER_STT_MODELS,
+  SUPPORTED_OPENAI_STT_MODELS,
   validateWhisperfileModel,
   validateDeepinfraSttModel,
   validateDeepgramSttModel,
@@ -26,7 +27,8 @@ import {
   validateSupadataSttModel,
   validateScrapeCreatorsSttModel,
   validateGeminiSttModel,
-  validateTogetherSttModel
+  validateTogetherSttModel,
+  validateOpenAISttModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { buildModelDescription } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import type { Step2ProviderRegistryEntry } from '~/types'
@@ -36,7 +38,7 @@ export const STEP2_STT_PROVIDER_REGISTRY = [
   sttModelProvider('deepinfra', 'deepinfraStt', {
     supportedModels: SUPPORTED_DEEPINFRA_STT_MODELS,
     validateModel: validateDeepinfraSttModel,
-    description: buildModelDescription('DeepInfra Whisper STT model (API, billed)', SUPPORTED_DEEPINFRA_STT_MODELS)
+    description: buildModelDescription('DeepInfra batch STT model (API, billed)', SUPPORTED_DEEPINFRA_STT_MODELS)
   }),
   sttModelProvider('deepgram', 'deepgramStt', {
     supportedModels: SUPPORTED_DEEPGRAM_STT_MODELS,
@@ -100,6 +102,13 @@ export const STEP2_STT_PROVIDER_REGISTRY = [
     supportedModels: SUPPORTED_TOGETHER_STT_MODELS,
     validateModel: validateTogetherSttModel,
     description: buildModelDescription('Together batch STT model (API, billed)', SUPPORTED_TOGETHER_STT_MODELS)
+  }),
+  sttModelProvider('openai', 'openaiStt', {
+    targetService: 'openai-stt',
+    providerSpecProvider: 'openai-stt',
+    supportedModels: SUPPORTED_OPENAI_STT_MODELS,
+    validateModel: validateOpenAISttModel,
+    description: buildModelDescription('OpenAI batch STT model (API, billed)', SUPPORTED_OPENAI_STT_MODELS)
   }),
   sttModelProvider('whisperfile', 'whisperfile', {
     bootstrapProviderId: 'whisperfile',

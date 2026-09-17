@@ -24,12 +24,11 @@ describe('config provider and concurrency default contracts', () => {
       'deepinfra-ocr': ['google/gemma-4-31B-it'],
       'kimi-ocr': ['kimi-k2.6'],
       'ocr-dpi': '450',
-      'ocr-concurrency': '5',
       'ocr-provider-concurrency': '4',
       'ocr-local-concurrency': '2',
       'batch-limit': '7',
       'max-cents': '25'
-    }, new Set(['openai', 'grok', 'glm', 'kimi', 'together', 'llm-provider-concurrency', 'llm-local-concurrency', 'tesseract-ocr', 'openai-ocr', 'grok-ocr', 'deepinfra-ocr', 'kimi-ocr', 'ocr-dpi', 'ocr-concurrency', 'ocr-provider-concurrency', 'ocr-local-concurrency', 'batch-limit', 'max-cents']))).toEqual({
+    }, new Set(['openai', 'grok', 'glm', 'kimi', 'together', 'llm-provider-concurrency', 'llm-local-concurrency', 'tesseract-ocr', 'openai-ocr', 'grok-ocr', 'deepinfra-ocr', 'kimi-ocr', 'ocr-dpi', 'ocr-provider-concurrency', 'ocr-local-concurrency', 'batch-limit', 'max-cents']))).toEqual({
       defaults: {
         llm: {
           openai: ['gpt-5.6-terra'],
@@ -48,7 +47,6 @@ describe('config provider and concurrency default contracts', () => {
             deepinfraOcr: ['google/gemma-4-31B-it'],
             kimiOcr: ['kimi-k2.6'],
             dpi: 450,
-            ocrConcurrency: 5,
             providerConcurrency: 4,
             localConcurrency: 2
           }
@@ -67,7 +65,6 @@ describe('config provider and concurrency default contracts', () => {
     expect(buildConfigPatchFromFlags({
       'tts-provider-concurrency': '4',
       'tts-local-concurrency': '1',
-      'tts-chunk-concurrency': '3',
       'image-provider-concurrency': '5',
       'image-local-concurrency': '1',
       'video-provider-concurrency': '6',
@@ -77,7 +74,6 @@ describe('config provider and concurrency default contracts', () => {
     }, new Set([
       'tts-provider-concurrency',
       'tts-local-concurrency',
-      'tts-chunk-concurrency',
       'image-provider-concurrency',
       'image-local-concurrency',
       'video-provider-concurrency',
@@ -87,8 +83,7 @@ describe('config provider and concurrency default contracts', () => {
     ]))).toEqual({
       defaults: {
         tts: {
-          providerConcurrency: 4,
-          chunkConcurrency: 3
+          providerConcurrency: 4
         },
         image: {
           providerConcurrency: 5
@@ -103,39 +98,27 @@ describe('config provider and concurrency default contracts', () => {
     })
   })
 
-  test('TTS chunk concurrency round-trips through saved config flags', () => {
-    const patch = buildConfigPatchFromFlags({
-      'tts-chunk-concurrency': '4'
-    }, new Set(['tts-chunk-concurrency']))
+  // Step scopes persist under their owning domain section, so existing concurrency JSON paths keep
+  // working while the CLI spelling is one scoped flag.
+  test('step concurrency scopes round-trip through their domain config sections', () => {
+    const occurrences = (values: readonly string[]) =>
+      values.map((value) => ({ name: 'step-concurrency', raw: `--step-concurrency`, value, known: true }))
+
+    const patch = buildConfigPatchFromFlags(
+      {},
+      new Set(['step-concurrency']),
+      occurrences(['tts-chunk=4', 'ocr-page=6', 'stt-segment=2', 'sfx=3'])
+    )
 
     expect(patch).toEqual({
       defaults: {
-        tts: {
-          chunkConcurrency: 4
-        }
+        tts: { chunkConcurrency: 4 },
+        extract: { ocr: { ocrConcurrency: 6 }, stt: { segmentConcurrency: 2 } },
+        comic: { sfxConcurrency: 3 }
       }
     })
     expect(mergeConfigIntoRawFlags({}, patch as Parameters<typeof mergeConfigIntoRawFlags>[1], new Set())).toMatchObject({
-      'tts-chunk-concurrency': '4'
-    })
-  })
-
-  test('OCR page concurrency round-trips through saved config flags', () => {
-    const patch = buildConfigPatchFromFlags({
-      'ocr-concurrency': '4'
-    }, new Set(['ocr-concurrency']))
-
-    expect(patch).toEqual({
-      defaults: {
-        extract: {
-          ocr: {
-            ocrConcurrency: 4
-          }
-        }
-      }
-    })
-    expect(mergeConfigIntoRawFlags({}, patch as Parameters<typeof mergeConfigIntoRawFlags>[1], new Set())).toMatchObject({
-      'ocr-concurrency': '4'
+      'step-concurrency': ['stt-segment=2', 'ocr-page=6', 'tts-chunk=4', 'sfx=3']
     })
   })
 

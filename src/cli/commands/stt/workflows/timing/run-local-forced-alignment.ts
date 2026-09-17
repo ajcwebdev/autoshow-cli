@@ -23,6 +23,9 @@ export const tokenizeAlignmentWords = (text: string): string[] => {
   if (!words.length) throw ValidationError('Forced alignment needs spoken words in every transcript segment; punctuation alone cannot be aligned.')
   return words
 }
+// Advertised as the --alignment-min-confidence default; help renders it from this constant.
+export const DEFAULT_ALIGNMENT_MIN_CONFIDENCE = 0.1
+
 
 export const runLocalForcedAlignment = async (audioInput: string, transcriptInput: string, flags: Record<string, unknown>, output: string) => {
   const audio = await requireLocalTimingFile(audioInput)
@@ -30,7 +33,7 @@ export const runLocalForcedAlignment = async (audioInput: string, transcriptInpu
   const saved = await readLocalTimingResult(transcriptInput)
   const model = flags['alignment-model']
   if (typeof model !== 'string' || !(await statPath(model).catch(() => undefined))?.isDirectory()) throw UsageError('--align-transcript requires --alignment-model pointing to a local Wav2Vec2 CTC ONNX model directory. See the STT guide for offline setup.')
-  const minimumConfidence = Number(flags['alignment-min-confidence'] ?? .1)
+  const minimumConfidence = Number(flags['alignment-min-confidence'] ?? DEFAULT_ALIGNMENT_MIN_CONFIDENCE)
   if (!Number.isFinite(minimumConfidence) || minimumConfidence < 0 || minimumConfidence > 1) throw UsageError('--alignment-min-confidence must be between 0 and 1.')
   const segments = saved.result.segments.map(segment => ({ ...segment, begin: captionTimestampSeconds(segment.start), finish: captionTimestampSeconds(segment.end) }))
   if (!segments.length || segments.some(segment => !Number.isFinite(segment.begin) || !Number.isFinite(segment.finish) || segment.begin < 0 || segment.finish <= segment.begin || segment.finish - segment.begin > 30)) throw ValidationError('Forced alignment requires nonempty transcript segments with valid audio-relative ranges of at most 30 seconds.')

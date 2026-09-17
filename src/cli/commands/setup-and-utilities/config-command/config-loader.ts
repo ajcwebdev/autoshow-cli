@@ -10,6 +10,36 @@ const asRecord = (value: unknown): Record<string, unknown> | undefined =>
     ? value as Record<string, unknown>
     : undefined
 
+const RENAMED_TTS_CONFIG_KEYS: readonly (readonly [string, string])[] = [
+  ['elevenlabsTtsStability', 'stability'],
+  ['elevenlabsTtsSimilarityBoost', 'similarity'],
+  ['elevenlabsTtsStyle', 'style'],
+  ['elevenlabsTtsUseSpeakerBoost', 'speakerBoost'],
+  ['elevenlabsTtsSeed', 'seed'],
+  ['elevenlabsTtsPronunciationDictionaryLocators', 'pronunciationDictionary']
+]
+
+const RENAMED_STT_CONFIG_KEYS: readonly (readonly [string, string])[] = [
+  ['happyscribeOrganizationId', 'organizationId'],
+  ['supadataLang', 'language'],
+  ['scrapecreatorsLang', 'language'],
+  ['deepinfraResponseFormat', 'responseFormat'],
+  ['grokVerbatim', 'verbatim'],
+  ['supadataChunkSize', 'chunkSize']
+]
+
+const validateSttConfigAuthority = (parsed: unknown): void => {
+  const stt = asRecord(asRecord(asRecord(asRecord(parsed)?.['defaults'])?.['extract'])?.['stt'])
+  if (!stt) return
+  const renamed = RENAMED_STT_CONFIG_KEYS.filter(([key]) => key in stt)
+  if (renamed.length > 0) {
+    throw ValidationError(
+      `STT configuration ${renamed.map(([key, replacement]) => `${key} (use ${replacement})`).join(', ')} moved to the provider-general option keys. Update config/autoshow.json, giving each value as "<provider>=<value>" when more than one provider is selected.`,
+      { stage: 'config:load' }
+    )
+  }
+}
+
 const validateTtsConfigAuthority = (parsed: unknown): void => {
   const root = asRecord(parsed)
   const defaults = asRecord(root?.['defaults'])
@@ -19,6 +49,16 @@ const validateTtsConfigAuthority = (parsed: unknown): void => {
   const retiredKeys = ['geminiTts', 'deepgramTts', 'replicateTts', 'falTts'].filter(key => key in tts)
   if (retiredKeys.length > 0) {
     throw ValidationError(`TTS provider configuration ${retiredKeys.join(', ')} is no longer supported. Remove the obsolete key and select an active TTS provider.`, { stage: 'config:load' })
+  }
+
+  // Provider-prefixed option keys moved to the generic `provider=value` spellings. v.strictObject
+  // would already reject them, but with a message that does not say where the value went.
+  const renamed = RENAMED_TTS_CONFIG_KEYS.filter(([key]) => key in tts)
+  if (renamed.length > 0) {
+    throw ValidationError(
+      `TTS configuration ${renamed.map(([key, replacement]) => `${key} (use ${replacement})`).join(', ')} moved to the provider-general option keys. Update config/autoshow.json, giving each value as "elevenlabs=<value>" when more than one provider is selected.`,
+      { stage: 'config:load' }
+    )
   }
 
   resolveStandaloneMistralTtsCliReferenceInput({
@@ -86,6 +126,7 @@ export const loadConfig = async (configPath: string): Promise<AutoshowConfig> =>
     }
   }
   validateTtsConfigAuthority(parsed)
+  validateSttConfigAuthority(parsed)
   return validateData(AutoshowConfigSchema, parsed, 'autoshow config')
 }
 

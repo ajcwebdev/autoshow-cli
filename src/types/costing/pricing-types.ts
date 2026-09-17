@@ -18,7 +18,7 @@ type SttModelOverrides = Partial<Pick<SttRuntimeOptions,
   | 'whisperfileModels' | 'deepinfraSttModels' | 'grokSttModels' | 'deepgramSttModels'
   | 'sonioxSttModels' | 'speechmaticsSttModels' | 'mistralSttModels' | 'assemblyaiSttModels'
   | 'gladiaSttModels' | 'happyscribeSttModels' | 'supadataSttModels' | 'scrapecreatorsSttModels'
-  | 'geminiSttModels' | 'togetherSttModels'
+  | 'geminiSttModels' | 'togetherSttModels' | 'openaiSttModels'
 >>
 
 export type SttStepEstimate = CostEstimateBase & {

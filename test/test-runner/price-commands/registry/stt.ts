@@ -25,6 +25,20 @@ export const sttRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/deepinfra-openai-whisper-large-v3-turbo.test.ts', [
     command('transcribe-deepinfra-openai/whisper-large-v3-turbo', 'transcribe-deepinfra-openai/whisper-large-v3-turbo', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'deepinfra=openai/whisper-large-v3-turbo', '--price']),
   ]),
+  ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/deepinfra-qwen3-asr.test.ts', [
+    command('transcribe-deepinfra-Qwen/Qwen3-ASR-0.6B', 'transcribe-deepinfra-Qwen/Qwen3-ASR-0.6B', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'deepinfra=Qwen/Qwen3-ASR-0.6B', '--price']),
+    command('transcribe-deepinfra-Qwen/Qwen3-ASR-1.7B', 'transcribe-deepinfra-Qwen/Qwen3-ASR-1.7B', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'deepinfra=Qwen/Qwen3-ASR-1.7B', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/deepinfra-voxtral.test.ts', [
+    command('transcribe-deepinfra-mistralai/Voxtral-Mini-3B-2507', 'transcribe-deepinfra-mistralai/Voxtral-Mini-3B-2507', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'deepinfra=mistralai/Voxtral-Mini-3B-2507', '--price']),
+    command('transcribe-deepinfra-mistralai/Voxtral-Small-24B-2507', 'transcribe-deepinfra-mistralai/Voxtral-Small-24B-2507', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'deepinfra=mistralai/Voxtral-Small-24B-2507', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/deepinfra-nemotron-3.5-asr-streaming-multilingual.test.ts', [
+    command('transcribe-deepinfra-nvidia/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b', 'transcribe-deepinfra-nvidia/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'deepinfra=nvidia/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/openai-gpt-transcribe.test.ts', [
+    command('transcribe-openai-stt-gpt-transcribe', 'transcribe-openai-stt-gpt-transcribe', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'openai=gpt-transcribe', '--price']),
+  ]),
   ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/together-current-models.test.ts', [
     command('transcribe-together-openai/whisper-large-v3', 'transcribe-together-openai/whisper-large-v3', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'together=openai/whisper-large-v3', '--price']),
     command('transcribe-together-nvidia/parakeet-tdt-0.6b-v3', 'transcribe-together-nvidia/parakeet-tdt-0.6b-v3', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'together=nvidia/parakeet-tdt-0.6b-v3', '--price']),

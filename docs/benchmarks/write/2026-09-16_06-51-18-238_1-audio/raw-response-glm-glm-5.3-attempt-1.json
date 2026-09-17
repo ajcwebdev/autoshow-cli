@@ -1,0 +1,34 @@
+{
+  "result": "{\"episodeDescription\":\"James Berkins recounts being laid off from a DevRel role during recession downsizing and landing a new job within 12 hours through his professional connections.\"}",
+  "metadata": {
+    "llmService": "glm",
+    "llmModel": "glm-5.3",
+    "providerReturnedModel": "glm-5.3",
+    "processingTime": 7243,
+    "inputTokenCount": 500,
+    "outputTokenCount": 450,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 500,
+      "outputTokenCount": 450,
+      "totalTokenCount": 950
+    },
+    "rawProviderUsage": {
+      "completion_tokens": 450,
+      "completion_tokens_details": {
+        "reasoning_tokens": 412
+      },
+      "prompt_tokens": 500,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 950
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default"
+  }
+}

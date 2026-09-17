@@ -31,6 +31,64 @@
             "high"
           ]
         }
+      },
+      "Qwen/Qwen3.8-27B": {
+        "description": "Qwen/Qwen3.8-27B via DeepInfra; 262,144 context; text/image/video input; AutoShow limits output to 8,192 tokens per page",
+        "pricingSourceUrl": "https://deepinfra.com/Qwen/Qwen3.8-27B",
+        "pricingCheckedAt": "2026-09-16",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra standard public token pricing",
+        "pricingNotes": "USD/M tokens: input $0.20, completion $2.50. DeepInfra also advertises a 25% promotional discount ($0.15/$1.875); the promotion is not a durable basis, so AutoShow prices the standard tier. Completion includes reasoning once. Excludes priority/flex discounts, tax and credits.",
+        "costPerMInputTokensCents": 20,
+        "costPerMOutputTokensCents": 250,
+        "limits": {
+          "imageBytes": 20971520,
+          "notes": "https://docs.deepinfra.com/chat/vision: JPEG/PNG/WebP, <=20 MB, no detail field. One locally rendered page per request. JSON supported by host; AutoShow OCR returns plain text."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 10000,
+          "promptTokensPerPage": 8320,
+          "completionTokensPerPage": 512
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      },
+      "deepseek-ai/DeepSeek-V4.1-Flash": {
+        "description": "deepseek-ai/DeepSeek-V4.1-Flash via DeepInfra; 1,048,576 context; text/image input; AutoShow limits output to 8,192 tokens per page",
+        "pricingSourceUrl": "https://deepinfra.com/deepseek-ai/DeepSeek-V4.1-Flash",
+        "pricingCheckedAt": "2026-09-16",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra standard public token pricing",
+        "pricingNotes": "USD/M tokens: input $0.20, completion $0.60. Completion includes reasoning once. Standard tier only; excludes priority/flex discounts, tax and credits.",
+        "costPerMInputTokensCents": 20,
+        "costPerMOutputTokensCents": 60,
+        "limits": {
+          "imageBytes": 20971520,
+          "notes": "https://docs.deepinfra.com/chat/vision: JPEG/PNG/WebP, <=20 MB, no detail field. One locally rendered page per request. JSON supported by host; AutoShow OCR returns plain text."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 20000,
+          "promptTokensPerPage": 1088,
+          "completionTokensPerPage": 544
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
       }
     }
   }

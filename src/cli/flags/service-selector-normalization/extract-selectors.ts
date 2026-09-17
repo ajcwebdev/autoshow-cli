@@ -4,6 +4,7 @@ import { WRITE_OCR_PROVIDER_TARGETS, WRITE_STT_PROVIDER_TARGETS } from './provid
 import type { CliFlagOccurrence, ExtractPublicSelectorTarget, ExtractSelectorInputRoutes, SelectorNormalizationResult } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { parseProviderSelectorValue } from './flag-helpers'
+import { GENERIC_STT_OPTION_FLAGS } from './generic-stt-controls'
 import { applyFlagOccurrenceNormalization, replaceFlagOccurrence } from './occurrence-normalization'
 
 const buildExtractPublicSelectorFlags = (): Record<string, ExtractPublicSelectorTarget> => {
@@ -95,17 +96,17 @@ export const hasExtractGenericSelectorOccurrences = (
 ): boolean =>
   flagOccurrences.some((occurrence) => extractGenericSelectorNames.has(occurrence.name))
 
+// The preliminary routing pass runs before --provider is normalized into per-provider targets, so
+// the generic provider=value option flags have no selected provider yet and are stripped with it.
+const extractGenericSelectorNames = new Set<string>(['provider', 'all-providers', 'all-local', ...GENERIC_STT_OPTION_FLAGS])
+
 export const stripExtractGenericSelectorFlags = (
   flags: Record<string, unknown>
 ): Record<string, unknown> => {
   const stripped = { ...flags }
-  delete stripped['provider']
-  delete stripped['all-providers']
-  delete stripped['all-local']
+  for (const name of extractGenericSelectorNames) delete stripped[name]
   return stripped
 }
-
-const extractGenericSelectorNames = new Set(['provider', 'all-providers', 'all-local'])
 
 export const stripExtractGenericSelectorOccurrences = (
   flagOccurrences: readonly CliFlagOccurrence[]

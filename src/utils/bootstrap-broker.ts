@@ -71,6 +71,9 @@ const handlers: Record<string, BootstrapHandler> = {
   'together-stt': {
     ensure: async (): Promise<void> => { resolveCredential('together', 'require', { stage: 'stt:together', description: 'Together transcription' }) }
   },
+  'openai-stt': {
+    ensure: async (): Promise<void> => { resolveCredential('openai', 'require', { stage: 'stt:openai', description: 'OpenAI transcription' }) }
+  },
 }
 
 const resolveHandler = (provider: string): { cacheKey: string, handler: BootstrapHandler, model?: string } => {

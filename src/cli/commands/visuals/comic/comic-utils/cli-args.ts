@@ -11,7 +11,7 @@ import type {
   ParsedReviewSheetArgs
 } from '~/types'
 import { UsageError } from '~/utils/error-handler'
-import { assignSharedImageOptions, enabledFlag, parseConcurrencyValue, parseLlmModel, parseMaxRepairs, readScriptPath, stringFlag } from './comic-argument-readers'
+import { assignSharedImageOptions, enabledFlag, parseComicLlmSelector, parseComicQaSelector, parseConcurrencyValue, parseMaxRepairs, readScriptPath, stringFlag } from './comic-argument-readers'
 import { applyComicBlockingHardKeys, applyComicContinuityPolicy, applyComicQaOnlyPolicy, applyComicRevisionPolicy, finalizeComicImageOptions, validateComicImageTarget } from './comic-image-option-policies'
 import { coerceComicImageScalars } from './comic-image-scalar-options'
 import {
@@ -38,7 +38,7 @@ export const REVIEW_COMMAND = 'review'
 export const REVIEW_NOTES_COMMAND = 'review-notes'
 export const REVIEW_SHEET_COMMAND = 'review-sheet'
 
-const DRAFT_SCENES_ONLY_VALUES = ['structure', 'prompt', 'blocking', 'scene', 'panel-prompts'] as const
+import { DRAFT_SCENES_ONLY_VALUES } from '~/cli/flags/comic-stage-contract'
 
 const DRAFT_SCENES_ONLY_OPTIONS = new Set<string>(DRAFT_SCENES_ONLY_VALUES)
 
@@ -74,12 +74,12 @@ const listFlag = (parsed: ComicParsedArgs, name: string): string[] => {
 export const coerceAndValidateDraftScenes = (parsed: ComicParsedArgs): ParsedDraftCommandArgs => {
   const scriptPath = readScriptPath(parsed)
   const output: ParsedDraftCommandArgs = { showHelp: false, scriptPath: scriptPath as string }
-  const llmModel = stringFlag(parsed, 'llm-model')
+  const llmModel = stringFlag(parsed, 'provider')
   const only = stringFlag(parsed, 'only')
-  const concurrency = stringFlag(parsed, 'concurrency')
+  const concurrency = stringFlag(parsed, 'provider-concurrency')
   const concurrencyMode = stringFlag(parsed, 'concurrency-mode')
   if (enabledFlag(parsed, 'price') === true) output.price = true
-  if (llmModel !== undefined) output.llmModel = parseLlmModel(llmModel)
+  if (llmModel !== undefined) output.llmModel = parseComicLlmSelector(llmModel, 'provider')
   if (only !== undefined) {
     if (!DRAFT_SCENES_ONLY_OPTIONS.has(only)) {
       throw UsageError(`Invalid only "${only}". Expected one of: ${DRAFT_SCENES_ONLY_VALUES.join(', ')}`)
@@ -167,8 +167,8 @@ export const coerceAndValidateDraftTreatment = (parsed: ComicParsedArgs): Parsed
     output.catalogPolicy = catalogPolicy as ParsedDraftTreatmentArgs['catalogPolicy']
   }
   if (enabledFlag(parsed, 'force') === true) output.force = true
-  const llmModel = stringFlag(parsed, 'llm-model')
-  if (llmModel !== undefined) output.llmModel = parseLlmModel(llmModel)
+  const llmModel = stringFlag(parsed, 'provider')
+  if (llmModel !== undefined) output.llmModel = parseComicLlmSelector(llmModel, 'provider')
   output.concurrencyMode = parseHostedConcurrencyMode(stringFlag(parsed, 'concurrency-mode'))
   return output
 }
@@ -209,11 +209,11 @@ export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): Parse
   const character = stringFlag(parsed, 'character')
   const location = stringFlag(parsed, 'location')
   const view = stringFlag(parsed, 'view')
-  const llmModel = stringFlag(parsed, 'llm-model')
-  const qaModel = stringFlag(parsed, 'qa-model')
+  const llmModel = stringFlag(parsed, 'llm-provider')
+  const qaModel = stringFlag(parsed, 'qa-provider')
   const maxRepairs = stringFlag(parsed, 'max-repairs')
   const notes = stringFlag(parsed, 'notes')
-  const concurrency = stringFlag(parsed, 'concurrency')
+  const concurrency = stringFlag(parsed, 'provider-concurrency')
   const concurrencyMode = stringFlag(parsed, 'concurrency-mode')
   if (character !== undefined) output.character = character
   if (location !== undefined) output.location = location
@@ -223,8 +223,8 @@ export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): Parse
     }
     output.view = view
   }
-  if (llmModel !== undefined) output.llmModel = parseLlmModel(llmModel)
-  if (qaModel !== undefined) output.qaModel = parseLlmModel(qaModel)
+  if (llmModel !== undefined) output.llmModel = parseComicLlmSelector(llmModel, 'llm-provider')
+  if (qaModel !== undefined) output.qaModel = parseComicQaSelector(qaModel, 'qa-provider')
   const qa = enabledFlag(parsed, 'qa')
   if (qa !== undefined) output.qa = qa
   if (maxRepairs !== undefined) output.maxRepairs = parseMaxRepairs(maxRepairs)
@@ -236,7 +236,7 @@ export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): Parse
   assignSharedImageOptions(parsed, output)
 
   if (output.imageModels && output.imageModels.length !== 1) {
-    throw UsageError('comic reference-sketch accepts exactly one --image-model')
+    throw UsageError('comic reference-sketch accepts exactly one --provider')
   }
   if (Number(Boolean(output.character)) + Number(Boolean(output.location)) !== 1) {
     throw UsageError('Exactly one of --character or --location is required')

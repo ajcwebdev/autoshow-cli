@@ -85,6 +85,22 @@ export const VIDEO_GENERATION_SELECTION = deriveSelectionDescriptor(VIDEO_SELECT
 
 export const MUSIC_GENERATION_SELECTION = deriveSelectionDescriptor(MUSIC_SELECTION_ENTRIES, STANDALONE_MUSIC_PROVIDER_TARGETS)
 
+export const pickProviderTargets = <T extends Readonly<Record<string, string>>, K extends keyof T & string>(
+  targets: T,
+  keys: readonly K[]
+): Pick<T, K> => Object.fromEntries(keys.map((key) => [key, targets[key]])) as Pick<T, K>
+
+export const omitProviderTargets = <T extends Readonly<Record<string, string>>, K extends keyof T & string>(
+  targets: T,
+  keys: readonly K[]
+): Omit<T, K> => Object.fromEntries(
+  Object.entries(targets).filter(([key]) => !(keys as readonly string[]).includes(key))
+) as Omit<T, K>
+
+// Comic selects one image target per run and has no fal.ai path, so its image provider list is the
+// standalone list minus fal rather than a hand-written copy.
+export const COMIC_IMAGE_PROVIDER_TARGETS = omitProviderTargets(STANDALONE_IMAGE_PROVIDER_TARGETS, ['fal'])
+
 export const WRITE_STT_PROVIDER_TARGETS = {
   deepinfra: 'deepinfra-stt',
   deepgram: 'deepgram-stt',
@@ -99,6 +115,7 @@ export const WRITE_STT_PROVIDER_TARGETS = {
   scrapecreators: 'scrapecreators-stt',
   gemini: 'gemini-stt',
   together: 'together-stt',
+  openai: 'openai-stt',
   whisperfile: 'whisperfile-stt'
 } as const satisfies Record<string, string>
 
@@ -123,6 +140,12 @@ export const WRITE_LLM_PROVIDER_TARGETS = {
   kimi: 'kimi',
   together: 'together',
 } as const satisfies Record<string, string>
+
+// Comic's text roles use the shared LLM registry. The QA vision judge is restricted structurally:
+// openai and gemini are the only keys, so an unsupported provider is rejected by the shared selector
+// with a derived message instead of a hand-written capability check.
+export const COMIC_LLM_PROVIDER_TARGETS = WRITE_LLM_PROVIDER_TARGETS
+export const COMIC_QA_PROVIDER_TARGETS = pickProviderTargets(WRITE_LLM_PROVIDER_TARGETS, ['openai', 'gemini'])
 
 export const WRITE_LLM_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   WRITE_LLM_PROVIDER_TARGETS,

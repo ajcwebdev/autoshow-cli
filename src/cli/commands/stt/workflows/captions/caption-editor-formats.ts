@@ -5,11 +5,15 @@ import { formatCaptionTimestamp, formatSrt, formatVtt } from '../../../audio/mus
 export const CAPTION_FORMATS = ['srt', 'vtt', 'ass', 'ttml', 'lrc'] as const
 export type CaptionOutputFormat = typeof CAPTION_FORMATS[number]
 
+// The CLI also accepts the two aggregate selections; help and validation derive from this list.
+export const CAPTION_FORMAT_SELECTIONS = [...CAPTION_FORMATS, 'both', 'all'] as const
+export const DEFAULT_CAPTION_FORMAT = 'both'
+
 export const resolveCaptionFormats = (value: unknown): CaptionOutputFormat[] => {
   if (value === undefined || value === 'both') return ['srt', 'vtt']
   if (value === 'all') return [...CAPTION_FORMATS]
   if (CAPTION_FORMATS.includes(value as CaptionOutputFormat)) return [value as CaptionOutputFormat]
-  throw UsageError('--caption-format must be srt, vtt, both, ass, ttml, lrc, or all.')
+  throw UsageError(`--caption-format must be one of: ${CAPTION_FORMAT_SELECTIONS.join(', ')}.`)
 }
 
 const xml = (text: string): string => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')

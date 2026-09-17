@@ -2,7 +2,7 @@ import type { TtsProvider } from '~/types'
 
 type OptionalControl<T> = T | null | undefined
 
-type TtsInvocationControlsByProvider = {
+export type TtsInvocationControlsByProvider = {
   openai: Readonly<{
     instructions?: OptionalControl<string>
     speed?: OptionalControl<number>

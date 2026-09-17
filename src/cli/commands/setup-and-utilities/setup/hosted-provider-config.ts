@@ -7,12 +7,13 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'openai',
     envVar: 'OPENAI_API_KEY',
-    label: 'OpenAI write/OCR/TTS/image',
+    label: 'OpenAI write/STT/OCR/TTS/image',
     hintUrl: 'https://platform.openai.com/api-keys',
-    stages: ['write', 'ocr', 'tts', 'image'],
+    stages: ['write', 'stt', 'ocr', 'tts', 'image'],
     ttsPreflight: { provider: 'openai', label: 'OpenAI TTS' },
     configPaths: [
       'defaults.llm.openai',
+      'defaults.extract.stt.openaiStt',
       'defaults.extract.ocr.openaiOcr',
       'defaults.tts.openaiTts',
       'defaults.image.openaiImage'

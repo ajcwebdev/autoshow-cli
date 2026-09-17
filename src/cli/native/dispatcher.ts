@@ -15,6 +15,7 @@ import { NativeUnknownFlagError } from './native-errors'
 import { cookieFlagNameFromSpelling, commandAcceptsGlobalFlag, unsupportedCookieFlagError, unsupportedGlobalFlagError } from './global-flag-support'
 import { getUnknownFlagSpellings } from './unknown-flag-spellings'
 import { UsageError } from '~/utils/error-handler'
+import { readRegisteredStepConcurrencyScopes, readStepConcurrencyAssignments } from '~/cli/flags/service-selector-normalization/step-concurrency-scopes'
 
 const formatVersion = (version: string): string =>
   version.startsWith('v') ? version : `v${version}`
@@ -93,10 +94,18 @@ export const dispatchNativeCli = async (
     }
   }
 
-  const logLevelFlag = typeof parsed.flags['log-level'] === 'string'
+  // --log-level declares its default for help; only an explicit occurrence overrides --quiet/--verbose.
+  const logLevelFlag = parsed.rawParsed.explicitFlags.has('log-level') && typeof parsed.flags['log-level'] === 'string'
     ? parsed.flags['log-level'].trim().toLowerCase()
     : undefined
   const logLevel = LOG_LEVEL_CHOICES.includes(logLevelFlag as LogLevel) ? logLevelFlag as LogLevel : undefined
+
+  // Validate --step-concurrency once against the scopes this command registers, before any resolver
+  // reads a scope, so an inapplicable scope is a usage error rather than a silent no-op.
+  const registeredScopes = readRegisteredStepConcurrencyScopes(command.flags as never)
+  if (registeredScopes) {
+    readStepConcurrencyAssignments(parsed.rawParsed.flagOccurrences, registeredScopes)
+  }
 
   reconfigureLogger({
     verbose: parsed.flags['verbose'] === true,

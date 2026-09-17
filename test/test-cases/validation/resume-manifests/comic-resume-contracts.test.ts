@@ -310,7 +310,7 @@ test('ambiguous audio admission requires the existing explicit redispatch contro
     const bytes = attempted === 1 || repaired ? createSyntheticWavBytes({ durationSeconds: 0.25, amplitude: 0.2, frequencyHz: 440 }) : new Uint8Array([0, 1, 2])
     return new Response(bytes, { status: 200, headers: { 'content-type': 'audio/wav' } })
   })
-  await expect(generateComicAudio(context(f.scriptPath, [...audioArgs, '--tts-chunk-concurrency', '1']), f.scriptPath)).rejects.toThrow()
+  await expect(generateComicAudio(context(f.scriptPath, [...audioArgs, '--step-concurrency', 'tts-chunk=1']), f.scriptPath)).rejects.toThrow()
   const before = await hashes(f.run)
   const count = calls.length
   expect((await planComicResume(f.target)).stages[1]).toMatchObject({ action: 'blocked', detail: expect.stringContaining('ambiguous') })

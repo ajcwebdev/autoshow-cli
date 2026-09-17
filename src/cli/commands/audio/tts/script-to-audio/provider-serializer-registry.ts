@@ -170,7 +170,11 @@ export const resolveEffectiveProviderControls = (
       const language = validateSpeechifyTtsLanguageForModel(validateSpeechifyTtsModel(target.model), controls.language)
       return Object.freeze({ ...controls, ...(language ? { language } : {}) })
     }
-    case 'hume': return resolveTtsTargetInvocationControls('hume', invocation, { speed: selection.humeSpeed })
+    case 'hume': return resolveTtsTargetInvocationControls('hume', invocation, {
+      speed: selection.humeSpeed,
+      trailingSilence: selection.humeTrailingSilence,
+      description: selection.humeDescription
+    })
     case 'cartesia': return resolveTtsTargetInvocationControls('cartesia', invocation, { language: selection.cartesiaLanguage, speed: selection.cartesiaSpeed })
     case 'inworld': return resolveTtsTargetInvocationControls('inworld', invocation, { steeringPrompt: selection.inworldInstructions, speed: selection.inworldSpeed })
   }

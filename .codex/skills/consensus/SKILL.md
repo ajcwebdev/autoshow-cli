@@ -34,7 +34,7 @@ Progress:
 
 - [ ] Identify whether the path is a single run (`manifest.json`) or an archive root (a directory of those runs).
 - [ ] Read `references/shared-conventions.md` and `references/<category>.md`.
-- [ ] For an archive root, run `scripts/run.ts <category> compact-archive`, then `build-combined-report` when the category supports it.
+- [ ] For an archive root, run `scripts/run.ts <category> compact-archive`, then `build-combined-report` when the category supports it; that rebuilds `docs/benchmarks/combined-comparison-dashboard.html` automatically when every dashboard tab root is present.
 - [ ] For a single run, build the packet with `scripts/run.ts <category> build-packet`.
 - [ ] Write the category consensus artifact when the workflow requires agent reconciliation.
 - [ ] Generate reports with `scripts/run.ts <category> build-report`.
@@ -73,6 +73,7 @@ bun scripts/run.ts stt compact-results <run_dir>
 bun scripts/run.ts stt build-combined-report <root_dir>
 bun scripts/run.ts ocr build-combined-report <root_dir>
 bun scripts/run.ts url build-combined-report <root_dir>
+bun scripts/run.ts build-combined-dashboard [benchmarks_root] [--out <path>]
 ```
 
 TTS packet and report generation require `--input-text <path>`.
@@ -83,7 +84,7 @@ STT `compact-results` shrinks `providers/*/result.json` files in place (drops un
 
 STT `build-report --preserve-existing` retains already-scored historical report rows when their original `result.json` artifacts are no longer present, while newly discovered result rows replace matching provider identities. Use it only for benchmark archives that intentionally preserve historical report comparisons after source-result cleanup. Current `result.json` files remain authoritative for matching provider keys.
 
-`build-combined-report` (STT, OCR, and URL) aggregates every per-run report JSON under a root directory into generated `combined-comparison-report.{json,md,html}` artifacts, matching providers by `providerKey` and ranking price, speed, and quality within the same category groups. STT also promotes observed realtime throughput, computed as total covered audio duration divided by total covered processing time, into its JSON, Markdown, HTML dashboard, and repository benchmark summary. URL reads committed `provider-comparison-report.json` files and optional sibling `manifest.json` metadata; it uses source `rankingSurfaces.*.automatedQuality` values instead of recomputing quality. The `.html` is a self-contained zero-dependency dashboard consolidating the same per-group data; each group's metric table can be sorted by quality, cost, or speed. Combined reports do not emit weighted composites, overall scores, or model tiers. Groups are never ranked against each other. See `references/stt.md`, `references/ocr.md`, and `references/url.md` for details.
+`build-combined-report` (STT, OCR, and URL) aggregates every per-run report JSON under a root directory into generated `combined-comparison-report.{json,md}` artifacts, matching providers by `providerKey` and ranking price, speed, and quality within the same category groups. STT also promotes observed realtime throughput, computed as total covered audio duration divided by total covered processing time, into its JSON, Markdown, the dashboard, and the repository benchmark summary. URL reads committed `provider-comparison-report.json` files and optional sibling `manifest.json` metadata; it uses source `rankingSurfaces.*.automatedQuality` values instead of recomputing quality. `build-combined-dashboard` writes the single repository-level `docs/benchmarks/combined-comparison-dashboard.html`: a self-contained zero-dependency page with one tab per combined-report root (`ocr`, `stt-local`, `stt-with-speakers`, `stt-without-speakers`, `url`), consolidating the same per-group data; each group's metric table can be sorted by quality, cost, or speed. Each group's sort control also offers `Custom`, three sliders sharing one 100% budget that rescore that group against the reader's own quality/speed/cost trade-off; it is a browser-side viewing aid, is hidden when JavaScript is off, and writes nothing to any artifact. `build-combined-report` re-runs it automatically when its parent directory holds every tab root; `benchmarks_root` defaults to `docs/benchmarks`. Combined reports do not emit weighted composites, overall scores, or model tiers; the dashboard's reader-chosen weighting is computed in the browser and never written to the JSON or Markdown. Groups are never ranked against each other. See `references/stt.md`, `references/ocr.md`, and `references/url.md` for details.
 
 Text/write packet and report generation read existing canonical `command: "write"` manifest metadata only:
 

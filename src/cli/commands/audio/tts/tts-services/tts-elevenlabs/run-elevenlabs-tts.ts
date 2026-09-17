@@ -19,7 +19,7 @@ const parsePronunciationDictionaryLocator = (
   const id = rawId?.trim()
   const version = rawVersion?.trim()
   if (!id) {
-    throw ValidationError('Invalid --elevenlabs-tts-pronunciation-dictionary-locator value. Expected dictionary_id or dictionary_id:version_id.', { stage: 'tts:elevenlabs' })
+    throw ValidationError('Invalid --tts-pronunciation-dictionary value. Expected dictionary_id or dictionary_id:version_id.', { stage: 'tts:elevenlabs' })
   }
   return {
     pronunciation_dictionary_id: id,

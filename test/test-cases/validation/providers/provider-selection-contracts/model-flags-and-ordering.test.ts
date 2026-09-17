@@ -68,6 +68,7 @@ describe('provider selection contracts', () => {
       'scrapecreators-stt',
       'gemini-stt',
       'together-stt',
+      'openai-stt',
       'whisperfile-stt'
     ])
   })
