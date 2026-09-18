@@ -56,7 +56,6 @@ cd "$SKILL_DIR"
 bun scripts/run.ts <category> build-packet "$RUN_DIR" --out "$TMP_PACKET"
 bun scripts/run.ts <category> build-report "$RUN_DIR"
 ```
-
 Valid categories are:
 
 ```text
@@ -75,7 +74,6 @@ bun scripts/run.ts ocr build-combined-report <root_dir>
 bun scripts/run.ts url build-combined-report <root_dir>
 bun scripts/run.ts build-combined-dashboard [benchmarks_root] [--out <path>]
 ```
-
 TTS packet and report generation require `--input-text <path>`.
 
 `compact-archive` runs only on an archive root. See `references/shared-conventions.md`.
@@ -92,7 +90,6 @@ Text/write packet and report generation read existing canonical `command: "write
 bun scripts/run.ts text build-packet <run_dir> --out <path>
 bun scripts/run.ts text build-report <run_dir>
 ```
-
 For OCR, STT, and URL report generation, `--input-text <path>` can point to the already-authored consensus artifact:
 
 1. OCR: `consensus-extraction.txt`
@@ -128,14 +125,16 @@ Each full-ranking array has a matching `*UnavailableReason` field. Price and spe
 
 Compatibility aliases are retained and full-length:
 
-1. `rankingSurfaces.local.fastest`
-2. `rankingSurfaces.local.cheapest`
-3. `rankingSurfaces.local.highestQuality`
-4. `rankingSurfaces.service.fastest`
-5. `rankingSurfaces.service.cheapest`
-6. `rankingSurfaces.service.highestQuality`
+1. `rankingSurfaces.local.speed`
+2. `rankingSurfaces.local.price`
+3. `rankingSurfaces.local.automatedQuality`
+4. `rankingSurfaces.local.humanQuality`
+5. `rankingSurfaces.service.speed`
+6. `rankingSurfaces.service.price`
+7. `rankingSurfaces.service.automatedQuality`
+8. `rankingSurfaces.service.humanQuality`
 
-`fastest` aliases `speed`, `cheapest` aliases `price`, and `highestQuality` aliases `humanQuality` when present, otherwise `automatedQuality`.
+Consumers must select an explicit quality surface (`humanQuality` or `automatedQuality`) rather than an ambiguous alias.
 
 OCR reports use grouped full metric rankings instead of top-three ranking surfaces:
 

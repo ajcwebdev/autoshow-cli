@@ -6,33 +6,17 @@ import { configureOutputRoot } from '~/cli/commands/command-shared/output-root'
 import { characterSketchCommand } from '~/cli/commands/visuals/comic/comic-commands/character-sketch/character-sketch-command'
 import { checksumFile,getCharacterSketchManifestPath,requireCurrentCharacterSketch } from '~/cli/commands/visuals/comic/comic-commands/process-scenes/character-utils'
 import { loadCharacterCatalog } from '~/cli/commands/visuals/comic/comic-utils/character-reference-config'
-import { makeTempDir } from '../../../../test-utils/temp-dirs'
+import { makeCatalog as makeCatalogFixture } from '../../../../test-utils/character-catalog-fixture'
 
 const temporaryRoots: string[] = []
-const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
+const makeCatalog = (overrides: Record<string, unknown> = {}) =>
+  makeCatalogFixture(overrides, { registerRoot: (root) => { temporaryRoots.push(root) } })
 afterEach(async () => {
   configureOutputRoot('./output')
   configureCharactersRoot('input/characters')
   await Promise.all(temporaryRoots.splice(0).map(path => rm(path, { recursive: true, force: true })))
 })
 
-const makeCatalog = async (overrides: Record<string, unknown> = {}) => {
-  const root = await makeTempDir('autoshow-character-catalog-')
-  temporaryRoots.push(root)
-  await writeFile(join(root, 'hero.webp'), tinyPng)
-  await writeFile(join(root, 'sidekick.png'), tinyPng)
-  const catalog = {
-    schemaVersion: 3,
-    characters: [
-      { key: 'hero', name: 'Captain Hero', aliases: ['HERO', 'CAPT. HERO'], image: 'hero.webp', outlineSheet: 'hero--outline-sheet.png', description: 'Hero reference.' },
-      { key: 'sidekick', name: 'Side Kick', aliases: ['SIDEKICK'], image: 'sidekick.png', outlineSheet: 'sidekick--outline-sheet.png', description: 'Sidekick reference.' },
-    ],
-    groupAliases: [{ alias: 'TEAM', characterKeys: ['hero', 'sidekick'] }],
-    ...overrides,
-  }
-  await writeFile(join(root, 'characters-reference.json'), JSON.stringify(catalog))
-  return root
-}
 
 describe('comic character handling flat-reference contracts', () => {
 

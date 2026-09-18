@@ -16,7 +16,6 @@ Media and X Space inputs write compressed audio, or original/best-quality media 
 ```bash
 bun autoshow download [input] [flags]
 ```
-
 ## Supported Inputs
 
 | Input                                                                 | Behavior                                                         |
@@ -45,15 +44,17 @@ Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, and LIT) require Calibre.
 
 ```text
 --password             Password for encrypted PDFs
---keep-original-media  Keep downloaded media in its original format instead of converting to compressed audio
---best-quality         Download the best available video+audio instead of compressed audio
---flat-batch           Place primary media files directly in the batch output directory
---url-provider         Article/HTML backend: defuddle|firecrawl|glm-reader|spider|supadata|zyte (default defuddle; local .html/.htm always use defuddle)
---batch-limit          Number of batch items to process, or "all" (default 5)
---batch-order          Batch item order: newest|oldest (default newest)
---batch-concurrency    Number of batch items to process concurrently (default 7)
---price                Show the cost estimate and exit
+--keep-original-media  Keep downloaded media in its original/downloaded format instead of creating the normalized compressed audio artifact
+--best-quality         Download the best available video+audio media and skip audio-only normalization
+--flat-batch           Batch download: place primary media files directly in the batch output directory
+--url-provider         Article/HTML extraction backend: defuddle|firecrawl|glm-reader|spider|supadata|zyte (default defuddle; local .html/.htm always use defuddle)
+--batch-limit          Batch: number of items to process or "all" (default 5)
+--batch-order          Batch: item order newest|oldest (default newest)
+--batch-concurrency    Batch: number of items to process concurrently (default 7)
+--price                Show aggregated cost estimate for all active pipeline steps and exit
 ```
+
+Shared globals such as `--output-root`, `--output-dir`, `--json`, and logging flags are documented in [`usage.md`](../../00-setup-and-utilities/usage.md).
 
 ## yt-dlp Passthrough
 
@@ -63,15 +64,13 @@ Use `--` after the input and flags to pass extra arguments to yt-dlp:
 bun autoshow download "https://youtube.com/watch?v=abc" -- --write-thumbnail
 bun autoshow download input/examples/batch/2-urls.md --batch-limit 3 -- --format bestaudio
 ```
-
-Passthrough works for media URL downloads, including direct media URLs, podcast feed items, and X Space downloads. Local files, documents, and articles reject it.
+Passthrough works for media URL downloads, including direct media URLs, podcast feed items, and X Space downloads (Space URL, raw Space ID, or post URL). Local files, documents, and articles reject it.
 
 Without an input, `download --` runs yt-dlp directly:
 
 ```bash
 bun autoshow download -- --format bestaudio -o "%(title)s.%(ext)s" "https://youtube.com/watch?v=abc"
 ```
-
 ## Output
 
 **Media inputs**
@@ -117,32 +116,26 @@ With `--keep-original-media --flat-batch`, downloaded media files keep their ori
 ## Examples
 
 ```bash
-# Download a YouTube video
 bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU"
 
-# Download the best available video+audio from a YouTube video
 bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU" --best-quality
 
-# Collect document metadata from a local PDF
 bun autoshow download input/examples/document/1-document.pdf
 
-# Download X Space audio
 bun autoshow download https://x.com/i/spaces/1DXxyRYNejbKM
 
-# Download 3 latest episodes from an RSS feed
 bun autoshow download https://example.com/feed --batch-limit 3
 
-# Download every podcast episode into one batch directory
 bun autoshow download https://example.com/feed --batch-limit all --keep-original-media --flat-batch
 
-# Download all items from a URL list
 bun autoshow download input/examples/batch/2-urls.md --batch-limit all
 ```
-
 ## Setup and Environment
 
 Setup details are in [`setup.md`](../../00-setup-and-utilities/setup.md).
 
 YouTube inputs may be rate-limited or challenged. Follow the [YouTube cookies guide](../../00-setup-and-utilities/cookies.md), then rerun `download`.
 
-X post URLs require `X_BEARER_TOKEN`. X Space downloads may need the same cookie setup as other authenticated media sources.
+X post URLs require `X_BEARER_TOKEN` so the linked Space can be resolved. Direct Space URLs and raw Space IDs download through yt-dlp and may need the same cookie setup as other authenticated media sources.
+
+Hosted article backends selected with `--url-provider` need the matching API key (`FIRECRAWL_API_KEY`, `GLM_API_KEY`, `SPIDER_API_KEY`, `SUPADATA_API_KEY`, or `ZYTE_API_KEY`). Local `defuddle` does not.

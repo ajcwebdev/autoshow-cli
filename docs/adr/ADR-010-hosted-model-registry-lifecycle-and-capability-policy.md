@@ -4,9 +4,9 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-13
-- **Date Updated:** 2026-08-22
+- **Date Updated:** 2026-09-17
 - **Verification Status:** Passed
-- **Supersession:** Replaces per-modality registry and reasoning configurations. Owns the durable registry, lifecycle, capability, and reasoning policy shared by the write, OCR, STT, TTS, music, image, and video registries. Dated provider/model refresh history belongs to the 2026 hosted-model refresh reports under `docs/reports/`; paid-approval gates, calibration evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
+- **Supersession:** Replaces per-modality registry and reasoning configurations. Owns the durable registry, lifecycle, capability, and reasoning policy shared by the write, OCR, STT, TTS, music, image, and video registries. Catalog history and user-facing model docs live in the hosted registries under `src/cli/commands/setup-and-utilities/models/` and the command overviews under `docs/commands/` (especially `docs/commands/03-write/overview.md`); paid-approval gates, calibration evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
 
 ## Context
 
@@ -68,7 +68,7 @@ This applies to:
 It does not apply to:
 
 - Local inference template controls.
-- Dated refresh chronology (recorded in the 2026 hosted-model refresh reports under `docs/commands/`).
+- Dated refresh chronology (live catalogs and command docs under `src/cli/commands/setup-and-utilities/models/` and `docs/commands/`).
 - Benchmark evidence and calibration records (governed by [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)).
 
 ### Concrete selector identity and eligibility
@@ -179,7 +179,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The policy ships in the hosted registries under `src/cli/commands/setup-and-utilities/models/` and the shared selector inventories under `src/cli/flags/service-selector-normalization/`. User-facing reasoning behavior is documented in `docs/commands/03-write/overview.md`. Dated catalogs live in the 2026 hosted-model refresh reports under `docs/commands/`. The 2026-08-22 speaker-aware STT catalog cut — removing Rev and retiring `universal-2`, `solaria-1`, and `enhanced` while keeping `universal-3-5-pro`, `melia-1`, and `solaria-3` — applies this retirement contract and is recorded in [the STT refresh report](../reports/model-refresh-stt.md) from [docs/benchmarks/stt-with-speakers](../benchmarks/stt-with-speakers/combined-comparison-report.md).
+The policy ships in the hosted registries under `src/cli/commands/setup-and-utilities/models/` and the shared selector inventories under `src/cli/flags/service-selector-normalization/`. User-facing reasoning behavior is documented in `docs/commands/03-write/overview.md`. Live catalogs and command overviews under those paths are the durable record; there is no separate dated refresh-report tree. The 2026-08-22 speaker-aware STT catalog cut — removing Rev and retiring `universal-2`, `solaria-1`, and `enhanced` while keeping `universal-3-5-pro`, `melia-1`, and `solaria-3` — applies this retirement contract and is evidenced by the [speaker-aware STT combined report](../benchmarks/stt-with-speakers/combined-comparison-report.md).
 
 ## API / Type Impact
 
@@ -201,7 +201,6 @@ bun test test/test-cases/validation/reports-pricing/historical-model-rate-contra
 bun test test/test-cases/validation/providers/provider-selection-contracts/
 bun test test/test-cases/validation/resume-manifests/resume-provider-*-contracts.test.ts
 ```
-
 1. Types, formatting, and price-mode contracts after registry or capability changes.
 2. Accepted selectors, `--reasoning-effort` parsing, omitted versus explicit-default behavior, retired-selector rejection, and local failure of unsupported model/control combinations.
 3. Dated evidence, same-service replacements, no moving aliases, and repricing of committed artifacts after retirement.
@@ -224,7 +223,7 @@ Verification is local and no-cost.
 - Related ADR: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md) — benchmark evidence and generated reports
 - Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md) — character voice and multi-speaker architecture
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — soundscape and multi-track pipeline
-- Related reports: [2026 hosted-model refresh reports](../reports/), stored under `docs/reports/`
-- `docs/commands/03-write/overview.md`
-- `src/cli/commands/setup-and-utilities/models/`
-- `src/cli/flags/service-selector-normalization/`
+- Live model catalogs: `src/cli/commands/setup-and-utilities/models/`
+- Shared selector inventories: `src/cli/flags/service-selector-normalization/`
+- User-facing write/reasoning docs: `docs/commands/03-write/overview.md`
+- STT catalog-cut evidence: [docs/benchmarks/stt-with-speakers/combined-comparison-report.md](../benchmarks/stt-with-speakers/combined-comparison-report.md)

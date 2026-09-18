@@ -31,6 +31,11 @@ const command = (name: string, args: string[]): PriceCommandSpec => ({
   budgetSkippable: true
 })
 
+const restoreEnv = (key: string, value: string | undefined): void => {
+  if (value === undefined) delete process.env[key]
+  else process.env[key] = value
+}
+
 describe('test-runner process and price orchestration', () => {
   test('detects a fatal worker crash once, including colored diagnostics, without treating ordinary error text as a crash', () => {
     let crashes = 0
@@ -88,9 +93,15 @@ describe('test-runner process and price orchestration', () => {
   })
 
   test('test worker environments allow runner inputs without ambient provider credentials', () => {
+    const priorMode = process.env['AUTOSHOW_TEST_CREDENTIAL_MODE']
+    const priorKeys = process.env['AUTOSHOW_TEST_CREDENTIAL_KEYS']
     const priorProvider = process.env['OPENAI_API_KEY']
     const priorSecret = process.env['AUTOSHOW_UNRELATED_SECRET']
     try {
+      // The runner itself runs in live mode, so the credential mode is pinned here
+      // instead of inherited: fixture mode must never forward a provider key.
+      process.env['AUTOSHOW_TEST_CREDENTIAL_MODE'] = 'fixture'
+      delete process.env['AUTOSHOW_TEST_CREDENTIAL_KEYS']
       process.env['OPENAI_API_KEY'] = 'provider-fixture'
       process.env['AUTOSHOW_UNRELATED_SECRET'] = 'must-not-leak'
       const env = buildTestWorkerEnv(
@@ -100,6 +111,7 @@ describe('test-runner process and price orchestration', () => {
         { AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY: '0' }
       )
 
+      expect(env['AUTOSHOW_TEST_CREDENTIAL_MODE']).toBe('fixture')
       expect(env['OPENAI_API_KEY']).toBeUndefined()
       expect(env['AUTOSHOW_UNRELATED_SECRET']).toBeUndefined()
       expect(env['AUTOSHOW_TEST_ARTIFACTS_DIR']).toBe(artifacts.runDir)
@@ -107,10 +119,42 @@ describe('test-runner process and price orchestration', () => {
       expect(env['AUTOSHOW_TEST_CONCURRENT']).toBe('1')
       expect(env['AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY']).toBe('0')
     } finally {
-      if (priorProvider === undefined) delete process.env['OPENAI_API_KEY']
-      else process.env['OPENAI_API_KEY'] = priorProvider
-      if (priorSecret === undefined) delete process.env['AUTOSHOW_UNRELATED_SECRET']
-      else process.env['AUTOSHOW_UNRELATED_SECRET'] = priorSecret
+      restoreEnv('AUTOSHOW_TEST_CREDENTIAL_MODE', priorMode)
+      restoreEnv('AUTOSHOW_TEST_CREDENTIAL_KEYS', priorKeys)
+      restoreEnv('OPENAI_API_KEY', priorProvider)
+      restoreEnv('AUTOSHOW_UNRELATED_SECRET', priorSecret)
+    }
+  })
+
+  test('live test worker environments forward only the declared provider credentials', () => {
+    const priorMode = process.env['AUTOSHOW_TEST_CREDENTIAL_MODE']
+    const priorKeys = process.env['AUTOSHOW_TEST_CREDENTIAL_KEYS']
+    const priorProvider = process.env['OPENAI_API_KEY']
+    const priorOtherProvider = process.env['MISTRAL_API_KEY']
+    const priorSecret = process.env['AUTOSHOW_UNRELATED_SECRET']
+    try {
+      process.env['AUTOSHOW_TEST_CREDENTIAL_MODE'] = 'live'
+      process.env['AUTOSHOW_TEST_CREDENTIAL_KEYS'] = JSON.stringify(['OPENAI_API_KEY'])
+      process.env['OPENAI_API_KEY'] = 'provider-fixture'
+      process.env['MISTRAL_API_KEY'] = 'undeclared-provider-fixture'
+      process.env['AUTOSHOW_UNRELATED_SECRET'] = 'must-not-leak'
+      const env = buildTestWorkerEnv(
+        ['test/test-cases/e2e/service/audio/tts/example.test.ts'],
+        artifacts,
+        true,
+        {}
+      )
+
+      expect(env['AUTOSHOW_TEST_CREDENTIAL_MODE']).toBe('live')
+      expect(env['OPENAI_API_KEY']).toBe('provider-fixture')
+      expect(env['MISTRAL_API_KEY']).toBeUndefined()
+      expect(env['AUTOSHOW_UNRELATED_SECRET']).toBeUndefined()
+    } finally {
+      restoreEnv('AUTOSHOW_TEST_CREDENTIAL_MODE', priorMode)
+      restoreEnv('AUTOSHOW_TEST_CREDENTIAL_KEYS', priorKeys)
+      restoreEnv('OPENAI_API_KEY', priorProvider)
+      restoreEnv('MISTRAL_API_KEY', priorOtherProvider)
+      restoreEnv('AUTOSHOW_UNRELATED_SECRET', priorSecret)
     }
   })
 

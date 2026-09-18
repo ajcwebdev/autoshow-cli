@@ -84,7 +84,7 @@ test('Docker documentation supports direct image invocation without a root scrip
   const dockerDocs = await readFile(dockerDocsPath, 'utf8')
 
   expect(existsSync(resolve(repositoryRoot, 'scripts'))).toBe(false)
-  expect(dockerDocs).toContain('bun autoshow extract content/book/book.epub')
+  expect(dockerDocs).toContain('bun autoshow extract input/examples/document/1-epub.epub')
   expect(dockerDocs).toContain('docker run --rm -i')
 })
 

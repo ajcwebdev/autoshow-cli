@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-13
-- **Date Updated:** 2026-09-01
+- **Date Updated:** 2026-09-17
 - **Verification Status:** Passed
 - **Supersession:** Absorbs the timestamp and concise diagnostic-rendering decisions from the retired record "Optimize Price Preflight Performance, Test Concurrency, and Token-Efficient Logging". [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md) supersedes this record's logging/output contract and TTS-only ambiguous-redispatch scope. This record remains authoritative for the `AppError` vocabulary, single CLI error funnel, and standing source enforcement.
 
@@ -105,7 +105,7 @@ It does not apply to:
 
 Usage failures — bad command input and missing credentials — exit 2. Every other `AppError` kind exits 1; `infrastructure` versus `internal` changes the diagnostic label, not the process exit. The kinds are `usage`, `provider_http`, `retry_exhausted`, `validation`, `infrastructure`, and `internal`. Each throw carries a `stage` and, where remediation exists, structured `hints`. Deterministic failures are not retried. Control flow reads structured fields, not message text.
 
-Logs use `[HH:MM:SS.MMM]`. Lines that already carry that prefix are not wrapped again. Closely related labels and values (price estimates, single-variant budget decisions) emit on one line. `--json`, `--log-format`, `--quiet`, and the configured log level apply to every command. The only bytes written directly to stdout are documents the user asked for.
+Logs use `[HH:MM:SS.MMM]`. Lines that already carry that prefix are not wrapped again. Closely related labels and values (price estimates, single-variant budget decisions) emit on one line. `--json`, `--quiet`, `--log-level`, and `--color` / `--no-color` apply to every command. `--log-format` is removed ([ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md)). The only bytes written directly to stdout are documents the user asked for.
 
 HTTP 429 and provider rate or concurrency rejections retry against the same admission for that request. Hosted recovery honors `Retry-After` or applies bounded jittered exponential backoff, capped at five minutes; exhausted attempts throw `retry_exhausted`. `--allow-ambiguous-redispatch` authorizes reconciliation of a stored TTS slot at resume and nothing else. An ambiguous admission is never redispatched in flight. When the flag is omitted, ambiguity halts to prevent duplicate billing.
 
@@ -123,7 +123,7 @@ HTTP 429 and provider rate or concurrency rejections retry against the same admi
 Positive outcomes:
 
 - Every failure carries `kind`, `stage`, `hints`, and `metadata`.
-- `--json`, `--log-format`, `--quiet`, and the configured log level are honored by every command, including voice management and `config --show`.
+- `--json`, `--quiet`, `--log-level`, and `--color` / `--no-color` are honored by every command, including voice management and `setup --show` (`config` remains a forwarding alias for `setup`).
 - Deterministic security and validation failures are not retried.
 - Missing-credential failures exit 2 (usage), not 1.
 - Unified `[HH:MM:SS.MMM]` timestamps with no duplicate runner prefix.
@@ -133,7 +133,7 @@ Negative outcomes:
 
 - Call sites needing elapsed duration must log it explicitly; there is no per-line stopwatch prefix.
 - Replaying ambiguous paid operations requires `--allow-ambiguous-redispatch` and cannot be resolved automatically.
-- Voice-management and `config --show` human output is a rendered detail table rather than pretty-printed JSON; machine consumers must pass `--json`. `--json` emits both the NDJSON log event and the raw result line.
+- Voice-management and `setup --show` human output is rendered detail text rather than pretty-printed JSON; machine consumers must pass `--json`. `--json` emits both the NDJSON log event and the raw result line.
 - The allowlists are a maintenance surface: an exemption added without justification would weaken the contract.
 
 ## Trade-offs
@@ -155,7 +155,7 @@ Negative outcomes:
 
 **Trade-off 4**
 
-- **Gain:** One sanctioned structured-result channel, so result payloads honor `--json` / `--quiet` / `--log-format`
+- **Gain:** One sanctioned structured-result channel, so result payloads honor `--json` / `--quiet` / `--log-level`
 - **Sacrifice:** Commands whose entire output was raw JSON change their human-mode rendering
 
 ## Implementation Note
@@ -193,7 +193,6 @@ bun test test/test-cases/validation/cli/cli-help-contracts.test.ts
 bun test test/test-cases/validation/cli/cli-usage-errors/
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 ```
-
 1. `bun run check` proves the repository type-checks after the class hierarchy and type-surface changes.
 2. `runtime-contracts/` proves the enforcement greps, the `AppError` contracts (usage errors exiting 2, operational errors exiting 1 with structured hints), the retry contracts including `retry_exhausted` metadata, and the logger escape hatches.
 3. The three CLI suites prove help output, usage-error exit codes and messages, and option resolution across native parser errors extending `AppUsageError`.

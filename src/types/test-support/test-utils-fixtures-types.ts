@@ -76,6 +76,8 @@ export type ImageServiceModelCase = {
   prompt: string
   extraArgs?: string[]
   expectedExtension?: string
+  /** Relative tolerance for the decoded aspect ratio when a provider quantizes it to its own pixel grid. */
+  aspectRatioTolerance?: number
 }
 
 export type ImageServiceTestOptions = {

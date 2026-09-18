@@ -61,8 +61,7 @@ test('readiness bounds ignored abort signals and distinguishes rejected credenti
 })
 
 test('generated capabilities stay synchronized and Docker shares its connection contract', async () => {
-  const report = Bun.file('docs/reports/high-priority-metareport-2026-09-11.md')
-  // Reports are ignored and may be absent in a fresh checkout.
+  const report = Bun.file('docs/reports/environment-reference.md')
   if (await report.exists()) expect(await report.text()).toContain(renderEnvironmentReference())
   const source = { PATH: '/bin', HOME: '/home/test', DOCKER_HOST: 'tcp://fixture:2376', DOCKER_CONTEXT: 'fixture', DOCKER_TLS_VERIFY: '1', DOCKER_CERT_PATH: '/certs', DOCKER_CONFIG: '/config', XDG_RUNTIME_DIR: '/run/test', OPENAI_API_KEY: 'secret' }
   const { OPENAI_API_KEY: _secret, ...expected } = source

@@ -69,8 +69,6 @@ export const generateStructuredScript = async (
     const outputPath = getStructuredScriptPath(sceneSlug)
     await mkdir(dirname(outputPath), { recursive: true })
     const structuredBytes = `${JSON.stringify(structuredScript, null, 2)}\n`
-    // Keep the script this run is about to replace so "draft-scenes --only blocking --rebind" can
-    // recognize a segment that was split or merged rather than only one that was renumbered.
     if (existsSync(outputPath)) await copyFileExact(outputPath, getPreviousStructuredScriptPath(sceneSlug))
     await Bun.write(outputPath, structuredBytes)
     await writeInitialComicStructureManifest({

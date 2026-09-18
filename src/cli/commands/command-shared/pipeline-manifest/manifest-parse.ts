@@ -150,7 +150,6 @@ const MANIFEST_COMMAND_VALIDATORS: Partial<Record<PipelineManifest['command'], (
   comic: validateComicManifest,
 }
 
-// Hydrate at the I/O boundary; parsing must never modify caller-owned metadata.
 export const hydrateComicManifestDefaults = (manifest: PipelineManifest): PipelineManifest => {
   if (manifest.command !== 'comic') return manifest
   return {
@@ -207,7 +206,6 @@ export const parseManifest = (
     ) ?? [])
     if (new Set(audioArtifactDirs).size !== audioArtifactDirs.length) return undefined
   }
-
 
   const manifest: PipelineManifest = {
     command: value['command'],

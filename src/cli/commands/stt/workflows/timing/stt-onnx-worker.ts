@@ -3,8 +3,6 @@ import { writeFile } from 'node:fs/promises'
 import { readAlignmentModel } from './stt-onnx-model'
 import { computeOnnxEmissions } from './stt-onnx-emissions'
 
-// The compiled distribution runs this bundled worker with Bun because standalone
-// executables cannot resolve the optional native package and its dependencies.
 if (import.meta.main) {
   const [modelPath, manifestPath, outputPath, projectRoot] = Bun.argv.slice(2)
   if (!modelPath || !manifestPath || !outputPath || !projectRoot || Bun.argv.length !== 6) throw UsageError('Expected model directory, clip manifest, new emissions output path, and project root.')

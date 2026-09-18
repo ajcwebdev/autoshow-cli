@@ -5,9 +5,7 @@ import { optionsForService } from '~/utils/pricing/model-selection'
 import { pushGenerationEstimates } from './cost-steps-shared'
 
 export const buildVideoCostSteps = (input: ComputeEstimatedCostsInput): CostStepsResult => {
-  const hasVideo = input.videoTargets?.length
-    || VIDEO_PRICING_PROVIDERS.some((provider) => (input[provider.modelsKey]?.length ?? 0) > 0)
-  if (!hasVideo) {
+  if (!input.videoTargets?.length) {
     return { steps: [], cost: 0 }
   }
 
@@ -21,23 +19,15 @@ export const buildVideoCostSteps = (input: ComputeEstimatedCostsInput): CostStep
     falInputVideoDurationSeconds: input.falInputVideoDurationSeconds,
     ...(input.replicateVideoReferenceVideoCount !== undefined ? { replicateVideoReferenceVideoCount: input.replicateVideoReferenceVideoCount } : {})
   }
-  const selectionOptions = Object.assign({}, ...VIDEO_PRICING_PROVIDERS.map((provider) => {
-    const models = input[provider.modelsKey]
-    return models?.length ? optionsForService(VIDEO_PRICING_PROVIDERS, provider.service, models) : {}
-  }))
-  const videoEstimates = input.videoTargets === undefined
-    ? estimateVideoCosts({ ...selectionOptions, ...sharedOptions, videoDuration: input.videoDuration })
-    : input.videoTargets.length === 0
-      ? estimateVideoCosts({ ...sharedOptions, videoDuration: input.videoDuration })
-      : VIDEO_PRICING_PROVIDERS.flatMap((provider) =>
-          input.videoTargets!
-            .filter((target) => target.service === provider.service)
-            .flatMap((target) => estimateVideoCosts({
-              ...optionsForService(VIDEO_PRICING_PROVIDERS, provider.service, target.model),
-              ...sharedOptions,
-              videoDuration: target.durationSeconds ?? input.videoDuration
-            }))
-        )
+  const videoEstimates = VIDEO_PRICING_PROVIDERS.flatMap((provider) =>
+    input.videoTargets!
+      .filter((target) => target.service === provider.service)
+      .flatMap((target) => estimateVideoCosts({
+        ...optionsForService(VIDEO_PRICING_PROVIDERS, provider.service, target.model),
+        ...sharedOptions,
+        videoDuration: target.durationSeconds ?? input.videoDuration
+      }))
+  )
 
   return pushGenerationEstimates(
     videoEstimates,

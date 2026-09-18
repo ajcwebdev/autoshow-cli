@@ -43,7 +43,6 @@ export const ensurePageImageFixture = async (path = 'input/examples/document/1-d
   await Bun.write(path, Buffer.from(PAGE_IMAGE_PNG_BASE64, 'base64'))
 }
 
-// Test credentials are exports only; fixture and live callers share this source.
 export const readConfiguredEnvVar = async (key: string): Promise<string | undefined> => readConfiguredEnvVarSync(key)
 
 export const readConfiguredEnvVarSync = (key: string): string | undefined => normalizeCredentialValue(process.env[key])

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-17
-- **Date Updated:** 2026-09-16
+- **Date Updated:** 2026-09-17
 - **Verification Status:** Passed
 - **Supersession:** The comic model-selection flag spellings `--image-model`, `--llm-model`, and `--qa-model` are superseded by [ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md), which moves comic onto `--provider provider[=model]` plus per-role `--<role>-provider`. Resolving every comic model through the central LLM and image registries, which is this record's decision, remains accepted and unchanged.
 
@@ -119,7 +119,7 @@ Integrate comic with the central model registry, shared hosted admission, and na
 This applies to:
 
 - Comic model resolution, pricing, and hosted LLM/image generation through the central model registry.
-- Native nested `comic` subcommands: `draft-scenes`, `reference-sketch`, `generate-images`, `reference-voice`, `generate-audio`, and `generate-slideshow`.
+- Native nested `comic` subcommands: `draft-treatment`, `draft-scenes`, `generate-images`, `generate-audio`, `generate-slideshow`, `reference-sketch`, and `review`. `reference-voice`, `review-sheet`, and `review-notes` remain deprecated forwarding aliases for one compatibility release (see amendment above).
 - Native grammar for comic commands: inline assignments such as `--target=sketches`, the `--` separator, last-occurrence scalar flags, unknown-flag diagnostics that show the spelling the user typed, and required script paths checked during parse.
 - `links` provider selection through the native parser, without changing its provider-scoped grammar.
 - Comic hosted LLM, image, QA, dialogue, and sound-effect work through shared hosted admission.
@@ -132,7 +132,7 @@ It does not apply to:
 - `links` provider-scoped grammar semantics, selection modes, or refresh artifacts, owned by [ADR-011](ADR-011-add-refresh-metadata-to-links.md).
 - Voice management verb semantics, which `comic reference-voice` re-exposes through the shared `voice` commands without changing them.
 
-`--llm-model` and `--image-model` validate central registry IDs. `help comic <subcommand>` and `comic <subcommand> --help` resolve the same command. `comic reference-voice` nests one level deeper by re-exposing the shared voice verbs under fully qualified names such as `comic reference-voice import`.
+`--provider` and role-scoped `--<role>-provider` validate central registry IDs ([ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md) retired `--llm-model` / `--image-model` / `--qa-model`). `help comic <subcommand>` and `comic <subcommand> --help` resolve the same command. Deprecated `comic reference-voice` still nests one level deeper by re-exposing the shared voice verbs under fully qualified names such as `comic reference-voice import`.
 
 This is a deliberate public-surface change, not a behavior-preserving refactor. Domain validation stays in comic: model IDs, target values, grid combinations, concurrency bounds, reference-sheet modes, and other domain rules are unchanged.
 
@@ -195,7 +195,6 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 bun test test/test-cases/validation/content-output/metadata-links-lyrics-contracts/selector-validation.test.ts
 bun test test/test-cases/validation/visuals/comic/comic-character-*-contracts.test.ts
 ```
-
 1. Typecheck and unique-source check pass against the native comic and `links` command definitions.
 2. Native parser contracts cover nested `comic` subcommands, inline assignments, `--`, last-wins scalar flags, and unknown-flag spelling.
 3. CLI usage-error and option-resolution contracts cover required script paths, domain option validation, and global flags on comic.

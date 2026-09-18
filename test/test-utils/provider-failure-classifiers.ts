@@ -10,13 +10,15 @@ const SERVER_ERROR_STATUS_GROUP = RETRYABLE_STATUS_CODES.filter((status) => stat
 export const RATE_LIMIT_PATTERN = /\b(?:429|too many requests|rate[-\s]?limit(?:ed|ing)?|(?<!non-)retryable status 429)\b/i
 export const TIMEOUT_PATTERN = /\b(?:timed?\s*out|timeout|abort\/timeout|timeouterror|etimedout|deadline exceeded|sigterm)\b/i
 
+// Production treats 501/505 as terminal; do not match them via a broad (5xx) group.
+// Bare `retry_exhausted` is evaluated via hasTransientRetryExhaustion (stop-reason aware), not here.
 const TRANSIENT_SIGNAL_PATTERN = new RegExp(
-  `\\(5\\d\\d\\)|\\b(?:(?<!non-)retryable status (?:${SERVER_ERROR_STATUS_GROUP})|service unavailable|bad gateway|gateway timeout|internal server error|backend error|econnaborted|connection reset|max attempts reached|retry_exhausted|retry attempts? (?:were )?exhausted|${NETWORK_FAILURE_SPELLINGS.map(escapeForRegex).join('|')})\\b`,
+  `\\((?:500|502|503|504|529)\\)|\\b(?:(?<!non-)retryable status (?:${SERVER_ERROR_STATUS_GROUP}|529)|service unavailable|bad gateway|gateway timeout|internal server error|backend error|econnaborted|connection reset|max attempts reached|retry attempts? (?:were )?exhausted|${NETWORK_FAILURE_SPELLINGS.map(escapeForRegex).join('|')})\\b`,
   'i'
 )
 
 const TERMINAL_STOP_REASON_PATTERN =
-  /^(?:non-retryable status \d{3}|unexpected status \d{3}|error marked non-retryable|paid create outcome is ambiguous|paid create status \d{3} is not safe to redispatch|deterministic \w+ error|provider admission outcome is ambiguous|operation cancelled|non-schema failure)/i
+  /^(?:non-retryable status \d{3}|unexpected status \d{3}|error marked non-retryable|error is explicitly non-retryable|quota or billing failure is terminal|paid create outcome is ambiguous|paid create status \d{3} is not safe to redispatch|deterministic \w+ error|provider admission outcome is ambiguous|operation cancelled|non-schema failure|nested retry)/i
 
 const RETRY_EXHAUSTION_PATTERN = /failed after \d+\/\d+ attempts \(([^),]+)/gi
 
@@ -30,8 +32,17 @@ export const hasTransientRetryExhaustion = (output: string): boolean => {
   return false
 }
 
-export const isTransientPressureOutput = (output: string): boolean =>
-  TRANSIENT_SIGNAL_PATTERN.test(output) || hasTransientRetryExhaustion(output)
+const hasTerminalNonRetryableBanner = (output: string): boolean =>
+  /error (?:marked|is explicitly) non-retryable/i.test(output)
+  || /\((?:501|505)\)/.test(output)
+  || /non-retryable status (?:501|505)/i.test(output)
+  || /quota or billing failure is terminal/i.test(output)
+
+export const isTransientPressureOutput = (output: string): boolean => {
+  if (hasTerminalNonRetryableBanner(output)) return false
+  return TRANSIENT_SIGNAL_PATTERN.test(output) || hasTransientRetryExhaustion(output)
+}
+
 
 export const RUNWAY_INSUFFICIENT_CREDITS_MESSAGE = 'You do not have enough credits to run this task.'
 

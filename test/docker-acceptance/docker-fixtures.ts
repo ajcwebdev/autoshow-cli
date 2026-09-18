@@ -12,7 +12,6 @@ export function containerFixture(name: string): string {
 }
 export const FIXTURE_ORIGIN = 'http://fixture:8787'
 
-// Authored synthetic documents. No source books or user workspace content are copied.
 const DOCUMENT_SCRIPT = String.raw`
 from pathlib import Path
 from zipfile import ZipFile, ZIP_STORED, ZIP_DEFLATED

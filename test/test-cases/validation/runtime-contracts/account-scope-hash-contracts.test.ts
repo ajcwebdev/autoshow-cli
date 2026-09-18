@@ -33,7 +33,6 @@ describe('provider account-scope hash derivation', () => {
   })
 })
 
-// Isolated processes ensure the default key path never touches the real installation.
 const deriveInTemporaryProject = async (root: string): Promise<string> => {
   const modulePath = resolve('src/utils/account-scope-hash.ts')
   const child = Bun.spawn([process.execPath, '--no-env-file', '-e', `import { deriveProviderAccountScopeHash } from ${JSON.stringify(modulePath)}; console.log(deriveProviderAccountScopeHash('grok', 'credential-value'))`], {

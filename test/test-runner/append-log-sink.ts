@@ -1,7 +1,5 @@
 import { closeSync, openSync } from 'node:fs'
 
-// The descriptor owns O_APPEND; opening a writer by pathname would truncate it.
-// Each owner writes complete records and flushes before exposing them to readers.
 export class AppendLogSink {
   readonly writer: Bun.FileSink
   private readonly fd: number
@@ -29,7 +27,6 @@ export class AppendLogSink {
     try {
       await this.writer.end()
     } finally {
-      // FileSink does not close descriptors supplied by its caller.
       closeSync(this.fd)
     }
   }

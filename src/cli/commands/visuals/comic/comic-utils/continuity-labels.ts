@@ -11,9 +11,7 @@ export const ContinuityLabelsSchema = v.strictObject({
   schemaVersion: v.literal(CONTINUITY_LABELS_SCHEMA_VERSION),
   sceneSlug: v.string(),
   trustedAnchorPanel: v.nullable(panelNumber()),
-  // Absent means labeled, so every file written before this field existed stays valid. An explicit
-  // false marks a generated template whose verdicts are schema placeholders rather than human truth.
-  labeled: v.optional(v.boolean()),
+  labeled: v.boolean(),
   labeler: v.string(),
   date: v.string(),
   pairs: v.array(v.strictObject({
@@ -63,10 +61,8 @@ export const readContinuityLabels = async (path: string, options: { sceneSlug?: 
     throw ValidationError(`Continuity labels file is not valid JSON: ${path}`, { stage: 'comic:continuity-labels', ...(error instanceof Error ? { cause: error } : {}) })
   }
   const labels = parseContinuityLabels(value, { sceneSlug: options.sceneSlug, source: path })
-  // A template's verdicts are all false because the schema has no null verdict. Scoring against one
-  // would read as a human asserting that the scene contains no blooper of any kind.
-  if (labels.labeled === false) {
-    throw ValidationError(`Continuity labels at ${path} are marked "labeled": false, so they are an unlabeled template rather than human ground truth; fill in every verdict and set "labeled": true before passing --labels.`, { stage: 'comic:continuity-labels' })
+  if (labels.labeled !== true) {
+    throw ValidationError(`Continuity labels at ${path} must set "labeled": true to count as human ground truth; generated templates keep "labeled": false until a human reviews them.`, { stage: 'comic:continuity-labels' })
   }
   return labels
 }

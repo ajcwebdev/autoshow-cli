@@ -11,7 +11,8 @@ const parseProviderSelection = (provider: string, sections: readonly string[]) =
   'bun',
   'src/cli/create-cli.ts',
   'links',
-  `--${provider}`,
+  '--provider',
+  provider,
   ...sections
 ])
 
@@ -40,7 +41,8 @@ export const registerProviderSelectorCases = (cases: readonly ProviderSelectorCa
           'bun',
           'src/cli/create-cli.ts',
           'links',
-          `--${providerCase.provider}`,
+          '--provider',
+          providerCase.provider,
           ...providerCase.invalid.sections
         ], providerCase.invalid.message)
       }

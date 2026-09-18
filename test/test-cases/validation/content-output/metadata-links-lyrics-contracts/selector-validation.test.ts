@@ -13,11 +13,22 @@ test('links selector errors distinguish dashed global sections from valid provid
   ])).toThrow('Unexpected flag: --stt')
 })
 
-test('links selector rejects inline provider values', () => {
+test('links selector rejects retired per-provider selector flags', () => {
   expect(() => parseLinksArgv([
     'bun',
     'src/cli/create-cli.ts',
     'links',
-    '--openai=models'
-  ])).toThrow('links provider selector "--openai" does not accept inline values')
+    '--openai',
+    'models'
+  ])).toThrow('Unexpected flag: --openai')
+})
+
+test('links selector rejects a section folded into the provider value', () => {
+  expect(() => parseLinksArgv([
+    'bun',
+    'src/cli/create-cli.ts',
+    'links',
+    '--provider',
+    'openai=models'
+  ])).toThrow('Unknown links provider "openai=models"')
 })

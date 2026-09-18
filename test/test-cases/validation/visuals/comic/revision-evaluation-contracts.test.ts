@@ -67,7 +67,7 @@ const createFixture = async (root: string, importance: RevisionPlan['entries'][n
   const locationPath = join(runDirectory, 'assets', 'location-references', 'location-snapshot', 'room.png')
   await mkdir(dirname(locationPath), { recursive: true })
   await Bun.write(locationPath, tinyPng)
-  await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 2, snapshots: [{ schemaVersion: 2, snapshotId: 'location-snapshot', locationKey: 'room', specification: 'A fixed display sits above a long cabinet.', sourceScripts: [projectPath(scriptPath)], sourceViews: [{ view: 'establishing', generationId: 'v1', imageSha256: referenceSha }], sheet: { path: 'assets/location-references/location-snapshot/room.png', sha256: referenceSha } }] }))
+  await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 3, snapshots: [{ schemaVersion: 3, snapshotId: 'location-snapshot', locationKey: 'room', specification: 'A fixed display sits above a long cabinet.', sourceScripts: [projectPath(scriptPath)], views: [{ view: 'establishing', generationId: 'v1', imageSha256: referenceSha, path: 'assets/location-references/location-snapshot/room.png', label: 'establishing view of room' }] }] }))
   const location = { key: 'room', raw: 'room' }
   const bundle: PanelBundleData = { schemaVersion: 4, snapshotId: 'character-snapshot', title: 'Revision fixture', location: 'Room', panels: [{ number: 1, description: 'Hero checks the display.', shotPlan: 'Medium shot; preserve the existing composition.', characterKeys: ['hero'], speech: [], sourceSegmentIds: ['beat-1'], sourceSegments: [{ id: 'beat-1', type: 'direction', text: 'Hero checks the display.', sourceSpans: [], beatIndex: 1, location }], locationKey: 'room', locationSnapshotId: 'location-snapshot' }] }
   const contractPath = join(runDirectory, 'metadata', 'panel-prompts', 'panel-01', 'prompt.md')
@@ -265,8 +265,18 @@ describe('revision evaluation contracts', () => {
     expect(first.stats.totalInputTextTokens).toBe(35)
     expect(first.stats.totalOutputImageTokens).toBe(6240)
     expect(Buffer.from(await Bun.file(fixture.canonicalPath).arrayBuffer()).toString('hex')).toBe(candidateBytes.toString('hex'))
+    const ledgerPath = join(first.evidenceDirectory, 'panel-01', 'panel-ledger.json')
+    const legacyLedger = JSON.parse(await Bun.file(ledgerPath).text()) as Record<string, any>
+    for (const slot of legacyLedger['comparisonSlots']) {
+      slot.normalized.comparisonContractVersion = 3
+      delete slot.normalized.candidateIntroducesPreservationRegression
+    }
+    await Bun.write(ledgerPath, JSON.stringify(legacyLedger))
     const resumed = await runRevisionEvaluation(fixture.options, { requestImage: async () => { throw new Error('must not redispatch image') }, requestComparison: async () => { throw new Error('must not redispatch comparison') }, measureSimilarity: async () => { throw new Error('must not recalculate completed metric') }, recordManifest: recordPublishedManifest })
     expect(resumed.promotedPanels).toEqual([1])
+    expect(resumed.ledgers[0]!.comparisonSlots.every(slot => slot.normalized?.comparisonContractVersion === 4)).toBe(true)
+    const reconciledEvidence = JSON.parse(await Bun.file(join(first.evidenceDirectory, 'panel-01', 'comparison-pass-1.json')).text())
+    expect(reconciledEvidence.normalizationReconciliation).toMatchObject({ comparisonContractVersion: 4 })
     expect(resumed.stats.totalInputImageTokens).toBe(1290)
     expect(imageCalls).toBe(1)
     expect(comparisonCalls).toBe(2)

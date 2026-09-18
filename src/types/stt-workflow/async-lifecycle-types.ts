@@ -52,6 +52,7 @@ export type AsyncSttLifecycleOptions<TStatus, TTranscript, TUpload = unknown> = 
   runMode?: 'initial' | 'backfill' | undefined
   lifecycle?: AsyncSttLifecycleHooks | undefined
   audioDurationSeconds?: number | undefined
+  abortSignal?: AbortSignal | undefined
   initialPollIntervalMs: number
   maxPollIntervalMs: number
   segment?: {
@@ -143,6 +144,7 @@ export type AsyncSttPollLoopOptions<TStatus> = {
   maxPollIntervalMs: number
   audioDurationSeconds?: number | undefined
   pollMode?: AsyncSttPollMode | undefined
+  abortSignal?: AbortSignal | undefined
   poll: () => Promise<AsyncSttPoll<TStatus>>
   isComplete: (status: TStatus) => boolean
   isFailed: (status: TStatus) => string | undefined

@@ -3,26 +3,10 @@ import { isHostedOcrTimingProvider } from './timing-shared'
 
 type ExtractTarget = NonNullable<ComputeEstimatedProcessingTimesInput['extractTargets']>[number]
 
-const LEGACY_OCR_TARGET_FIELDS = [
-  { provider: 'mistral', field: 'mistralOcrModels' },
-  { provider: 'glm', field: 'glmOcrModels' },
-  { provider: 'kimi', field: 'kimiOcrModels' },
-  { provider: 'openai', field: 'openaiOcrModels' },
-  { provider: 'grok', field: 'grokOcrModels' },
-  { provider: 'anthropic', field: 'anthropicOcrModels' },
-  { provider: 'gemini', field: 'geminiOcrModels' },
-  { provider: 'deepinfra', field: 'deepinfraOcrModels' }
-] as const
-
 export const resolveExtractTimingTargets = (
   input: ComputeEstimatedProcessingTimesInput
 ): ExtractTarget[] => {
-  if (input.extractTargets && input.extractTargets.length > 0) return input.extractTargets
-  if (typeof input.extractPageCount !== 'number') return []
-  return LEGACY_OCR_TARGET_FIELDS.flatMap(({ provider, field }) => {
-    const model = input[field]?.[0]
-    return model ? [{ provider, model, pageCount: input.extractPageCount as number }] : []
-  })
+  return input.extractTargets && input.extractTargets.length > 0 ? [...input.extractTargets] : []
 }
 
 export const countHostedExtractTargetsByProvider = (

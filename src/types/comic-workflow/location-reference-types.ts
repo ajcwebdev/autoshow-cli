@@ -44,16 +44,6 @@ export type CurrentLocationReference = {
   sheetPath: string
 }
 
-export type LocationReferenceSnapshotV2 = {
-  schemaVersion: 2
-  snapshotId: string
-  locationKey: string
-  specification: string
-  sourceScripts: string[]
-  sourceViews: Array<{ view: LocationView; generationId: string; imageSha256: string }>
-  sheet: { path: string; sha256: string }
-}
-
 export type LocationReferenceSnapshotView = {
   view: LocationView
   generationId: string
@@ -71,8 +61,8 @@ export type LocationReferenceSnapshotV3 = {
   views: LocationReferenceSnapshotView[]
 }
 
-export type LocationReferenceSnapshot = LocationReferenceSnapshotV2 | LocationReferenceSnapshotV3
+export type LocationReferenceSnapshot = LocationReferenceSnapshotV3
 
-export type LocationReferenceSnapshotManifest = { schemaVersion: 2 | 3; snapshots: LocationReferenceSnapshot[] }
+export type LocationReferenceSnapshotManifest = { schemaVersion: 3; snapshots: LocationReferenceSnapshot[] }
 
 export type LocationReferenceSnapshotManifestV3 = { schemaVersion: 3; snapshots: LocationReferenceSnapshotV3[] }

@@ -2,7 +2,7 @@
 
 Shared `bun t` runner behavior and the local and service test coverage map for the AutoShow CLI. Per-command coverage, price examples, and live selections live on the [command test pages](#command-test-pages).
 
-Default local verification is `bun run check` followed by `bun t --price`. Price mode estimates mapped commands without executing provider tests. The default runner uses fixture mode and does not forward provider credentials. Hosted execution requires explicit live mode, a credential allowlist, and valid budget evidence; apply the repository spending policy before running it.
+`bun t` runs in live credential mode. It loads `.env`, forwards every configured hosted credential to the workers, and executes the service tests, so a full default run bills real providers. Use `bun t --price` for a no-cost estimate of the same selection, or `bun t:local` for the fixture-mode run that forwards no credentials and skips every live test. A default run has no budget ceiling: every selected test runs and no price preflight filters it. Pass `--budget` to set a per-command ceiling in hundredths of a cent; any command whose estimate exceeds it is skipped. Apply the repository spending policy when choosing a selection.
 
 `bun run check` runs structure, name, and type checks without loading `.env`. `check:types` runs the pinned native TypeScript preview compiler (`@typescript/native-preview`, `tsgo`) against the same `tsconfig.json`; `bun run check:types:tsc` runs the reference `typescript` compiler, which reports identical diagnostics with a slower wall time, and CI cross-checks it in the package-hygiene job. Normal `bun autoshow` commands still load `.env` because provider commands need credentials.
 
@@ -15,7 +15,6 @@ bun test test/test-cases/validation/cli/cli-help-contracts.test.ts
 bun test test/test-cases/validation/cli/cli-usage-errors/
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 ```
-
 For local extraction and rendering coverage:
 
 ```bash
@@ -25,22 +24,17 @@ bun t \
   test/test-cases/e2e/local/stt/ \
   test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts
 ```
-
 ## Service Quick Start
 
 ```bash
-# network-backed download coverage
 bun t test/test-cases/e2e/local/sources/download/download-input-types-direct-url.test.ts
 bun t test/test-cases/e2e/local/sources/download/download-input-types-streaming.test.ts
 bun t test/test-cases/e2e/local/sources/download/download-input-types-feed-or-channel.test.ts
 
-# Example live selection: export OPENAI_API_KEY through your normal secret channel first.
-# Only the listed credential reaches workers; this example uses a 0.5-cent budget.
 AUTOSHOW_TEST_CREDENTIAL_KEYS='["OPENAI_API_KEY"]' \
   bun --no-env-file run t:provider --budget 50 test/test-cases/e2e/service/audio/tts/
 ```
-
-`t:provider` selects live mode and disables automatic `.env` loading. Set `AUTOSHOW_TEST_CREDENTIAL_KEYS` to a JSON array of the registered credential names required by the selected files, and export those values. Tests needing unlisted or missing credentials are skipped. `--budget` produces the evaluated and skip evidence live tests require; missing or corrupt evidence blocks hosted runs. A budget may skip every selected test when no estimate fits. Choose the selection and budget according to the repository spending policy. Helpers never fall back to `.env`.
+`bun t` already selects live mode and derives the credential list from every registered hosted credential that is actually configured, so a normal run needs no credential allowlist. `t:provider` is the stricter entry point: it selects live mode, disables automatic `.env` loading, and requires `AUTOSHOW_TEST_CREDENTIAL_KEYS` as a JSON array of the registered credential names required by the selected files, with those values exported. Tests needing unlisted or missing credentials are skipped. Without `--budget` the runner admits every selected live test. With `--budget` it produces evaluated and skip evidence, and missing or corrupt evidence blocks hosted runs. A direct `bun test` outside the runner still fails closed. A budget may skip every selected test when no estimate fits. Choose the selection and budget according to the repository spending policy. Helpers never fall back to `.env`.
 
 ## Command Test Pages
 
@@ -68,34 +62,25 @@ Per-command coverage, price examples, and live selections live on these pages:
 - Use `--no-adaptive-concurrency` to disable adaptive per-provider lane limits.
 
 ```bash
-# keep the full run directory after completion
 bun t --no-cleanup
 
-# default cleanup still leaves a failure/debug summary
 cat output/test-output/latest.log
 ```
-
 Common selection and diagnostic flags are forwarded unchanged after AutoShow resolves path filters:
 
 ```bash
-# Test files affected since a commit or branch
 bun t --changed=main
 
-# Keep only failure output while preserving JUnit and report.json
 bun t test/test-cases/validation/ --only-failures
 
-# Filter test names; --grep is Bun's accepted alias for --test-name-pattern
 bun t test/test-cases/validation/runtime-contracts/ --grep='tokenizer'
 
-# Exclude matching test file paths
 bun t test/test-cases/validation/ '--path-ignore-patterns=*provider*'
 ```
-
 Use `--shard=<index>/<count>` only with a curated set already proven local and no-cost. Timing balance does not classify provider cost or make an unreviewed selection safe.
 
 Interrupted TTS tests must not delete completed segment audio. Resume ambiguous real TTS work with `--allow-ambiguous-redispatch` so completed slots can be reused.
 
-## Price Preflight
 
 `--price` uses the same path filters as a normal `bun t` run: append it to price-check mapped commands without running the live tests. `--budget <whole-number-hundredths-of-a-cent>` skips live tests whose estimates exceed that threshold; for example, `--budget 100` allows tests estimated at up to 1 cent. Command-specific examples live on the command test pages.
 
@@ -103,7 +88,6 @@ Interrupted TTS tests must not delete completed segment audio. Resume ambiguous 
 bun t --price
 bun t test/test-cases/e2e/service/text/write/ --budget 2500
 ```
-
 - `--price` with no path filters resolves all mapped test price commands.
 - `--budget` applies independently to each matching test; estimates are not combined into an aggregate cap. An unmapped or unevaluated test fails locally instead of calling a provider.
 - Most validation paths have no mapped price commands, so `--price` on them reports a zero-cost pass.

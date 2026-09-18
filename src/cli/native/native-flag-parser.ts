@@ -233,12 +233,10 @@ export const buildInitialFlags = (definitions: CliFlagsDefinition): CliFlagValue
   return flags
 }
 
-// Discovery defers missing-value errors to command parsing so routing retains its error precedence.
 export const findNativeFlagValueEnd = (
   argv: string[], index: number, definition: CliFlagDefinition | undefined
 ): number => {
   if (!definition || isBooleanFlag(definition)) return index
-  // Value-taking flags occupy one discovery position even if that value is malformed.
   const firstValueIndex = index + 1
   return definition.consumeAdjacentValues === true
     ? firstValueIndex + collectAdjacentFlagValues(argv, firstValueIndex + 1).length

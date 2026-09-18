@@ -56,12 +56,12 @@ describe('Grok Imagine Image 2.0 contracts', () => {
   test('preflight and observed manifest estimates retain editing quality and input charges', () => {
     const imageInputs = [reference, reference]
     expect(buildImageEstimates({ grokImageModels: [model], imageSize: '2K', imageCount: 3, imageInputs })[0]?.totalCost).toBe(26)
-    for (const selection of [
-      { grokImageModels: [model], imageCount: 3 },
-      { imageTargets: [{ service: 'grok' as const, model, count: 3 }] }
-    ]) {
-      expect(computeEstimatedCosts({ ...selection, imageSize: '2K', imageInputs, applyCostMultipliers: false }).steps[0]?.cost).toBe(26)
-    }
+    expect(computeEstimatedCosts({
+      imageTargets: [{ service: 'grok' as const, model, count: 3 }],
+      imageSize: '2K',
+      imageInputs,
+      applyCostMultipliers: false
+    }).steps[0]?.cost).toBe(26)
   })
 
   test('missing provider usage falls back to actual output count, resolved options and reference charges', async () => {

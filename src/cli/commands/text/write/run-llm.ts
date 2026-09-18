@@ -121,7 +121,6 @@ export const runLlmTargetsForStructuredPrompt = async (
           const stem = buildTargetFileStem(target, modelCounts)
           await Bun.write(`${options.outputDir}/raw-response-${stem}-attempt-${attempt}.json`, JSON.stringify(response, null, 2))
         }
-        // Preserve paid response text and usage before validation or another request can fail.
         await persistResponse(1)
         let validation = parseAndValidateStructured(options.structuredSchema.schema, response.result, options.structuredValidationContext)
 

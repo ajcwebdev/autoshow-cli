@@ -106,6 +106,7 @@ test('rejected creates, invalid durations, and retained serializer identity stay
   const task = { ...plan.tasks[0]!, durationSeconds: 380 }
   expect(serializeStabilitySoundEffectRequest(task, target).body.duration).toBe(380)
   expect(() => serializeStabilitySoundEffectRequest({ ...task, durationSeconds: NaN }, target)).toThrow()
+  expect(serializeStabilitySoundEffectRequest({ ...task, durationSeconds: 4.4 }, target)).toMatchObject({ path: target.capabilityFixture.endpoint, body: { duration: 4.4 } })
   const oldTarget = { ...target, capabilityFixture: { ...target.capabilityFixture, endpoint: '/v2beta/audio/stable-audio-3/text-to-audio', serializerVersion: 'stability.stable-audio-3.v1' } }
   expect(serializeStabilitySoundEffectRequest({ ...task, durationSeconds: 4.4 }, oldTarget)).toMatchObject({ path: oldTarget.capabilityFixture.endpoint, body: { duration: 4 } })
   const adapter = createStabilitySoundEffectAdapter({ apiKey: 'synthetic', request: async () => ({ status: 400, body: new Uint8Array() }) })

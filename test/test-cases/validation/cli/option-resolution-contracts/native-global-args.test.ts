@@ -4,7 +4,6 @@ import { getSceneOutputDirectory } from '~/cli/commands/visuals/comic/comic-util
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-normalization/step-selectors'
 import { normalizeResumeSelectorFlagsForTarget } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
 import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrences'
 
@@ -26,10 +25,6 @@ describe('native global argument contracts', () => {
   })
 
   test('unsupported local provider groups are rejected instead of silently dropped', () => {
-    expect(() => normalizeWriteStepSelectorFlags({
-      'all-local': ['image']
-    }, new Set(['all-local']), flagOccurrencesFromValues({ 'all-local': ['image'] }))).toThrow('Invalid --all-local step "image"')
-
     expect(() => normalizeGenericProviderSelectorFlags({
       'all-local': true
     }, new Set(['all-local']), flagOccurrencesFromValues({ 'all-local': true }), 'provider', STANDALONE_IMAGE_PROVIDER_TARGETS, {

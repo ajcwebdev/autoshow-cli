@@ -138,7 +138,6 @@ export const assertAppendOnlyAudioProjection = (
   if (!isRecord(beforeProjection) || !isRecord(afterProjection)) {
     throw UsageError('An audio provider-state update requires its canonical projection.')
   }
-  // Terminal archival intentionally bypasses append-only live-history checks.
   if (permitsTerminalAudioArchive(beforeProjection, afterProjection, after)) return
   assertAudioHistoryAppendOnly(beforeProjection, afterProjection)
   assertAudioPointerTransition(beforeProjection, afterProjection)

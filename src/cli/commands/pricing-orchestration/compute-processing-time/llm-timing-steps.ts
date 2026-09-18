@@ -5,18 +5,7 @@ import { roundMs, withNormalizedTiming } from './timing-shared'
 export const buildLlmTimingSteps = (input: ComputeEstimatedProcessingTimesInput): TimingStepsResult => {
   const steps: TimingStepEntry[] = []
 
-  const llmTargets = input.llmTargets && input.llmTargets.length > 0
-    ? input.llmTargets
-    : input.llmService && input.llmModel
-      ? [{
-          service: input.llmService,
-          model: input.llmModel,
-          ...(typeof input.llmInputTokenCount === 'number' ? { inputTokens: input.llmInputTokenCount } : {}),
-          ...(typeof input.llmOutputTokenCount === 'number' ? { outputTokens: input.llmOutputTokenCount } : {})
-        }]
-      : []
-
-  for (const llmTarget of llmTargets) {
+  for (const llmTarget of input.llmTargets ?? []) {
     const registryService = llmTarget.service
     const estimation = getLlmEstimation(registryService, llmTarget.model)
     const tokenCount = Math.max(0, (llmTarget.inputTokens ?? 0) + (llmTarget.outputTokens ?? 0))

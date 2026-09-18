@@ -77,7 +77,6 @@ describe('GPT Image 2.5 contracts', () => {
   })
 
   test('calculator fixtures distinguish all five qualities, custom dimensions, and ties-to-even rounding', () => {
-    // Expected output tokens from the official GPT Image 2.5 calculator (2026-09-10).
     for (const model of models) {
       for (const [quality, tokens] of [['low', 196], ['medium', 439], ['high', 1756], ['xhigh', 3122], ['max', 7024]] as const) {
         const result = estimateOpenAIImage25Output(model, { imageSize: '1024x1024', imageQuality: quality })
@@ -101,9 +100,7 @@ describe('GPT Image 2.5 contracts', () => {
       expect(estimate.imageInputEstimate).toMatchObject({ totalUnits: 2000, ratePer1MCents: 800, costCents: 1.6, priced: true })
       expect(estimate.totalCost).toBeCloseTo(4.234, 9)
       expect(imageResumeConfig.buildEstimates(options)[0]?.totalCost).toBeCloseTo(4.234, 9)
-      for (const selection of [options, { ...options, imageTargets: [{ service: 'openai' as const, model, count: 2 }] }]) {
-        expect(computeEstimatedCosts({ ...selection, applyCostMultipliers: false }).steps[0]?.cost).toBeCloseTo(4.234, 9)
-      }
+      expect(computeEstimatedCosts({ ...options, imageTargets: [{ service: 'openai' as const, model, count: 2 }], applyCostMultipliers: false }).steps[0]?.cost).toBeCloseTo(4.234, 9)
       expect(() => validateImageSizeForModels('2048x1152', [model])).not.toThrow()
       expect(estimateImageOutputCost(model, 'max', '1024x1024')).toBeCloseTo(0.21072, 9)
     }

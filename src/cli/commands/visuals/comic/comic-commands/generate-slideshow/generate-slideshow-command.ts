@@ -132,7 +132,6 @@ export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath:
   }
   const { compatible, presentationPlan, timeline, recordedFlags, visualSource } = planned
   const inputs = await captureComicRecoveryInputs(compatible.sceneRunDir, [join(visualSource.sourceDir, visualSource.sceneRef.path), ...visualSource.panels.map(panel => join(visualSource.sourceDir, panel.path)), ...compatible.comicMetadata.stages.audio.artifactRefs.map(ref => ref.path)])
-  // Preserve the original pending audio dependency during recovery.
   const priorIntent = ctx.store['comicResume'] === true ? compatible.comicMetadata.recovery?.presentation : undefined
   const retainedSelection = compatible.comicMetadata.stages.presentation.status === 'full' && compatible.comicMetadata.presentation.selectedPresentationId === presentationPlan.presentationId
   const planHash = priorIntent?.planHash ?? (retainedSelection ? compatible.comicMetadata.recovery?.presentation?.planHash : undefined) ?? hashCanonicalTtsValue({ flags: recordedFlags, inputs })

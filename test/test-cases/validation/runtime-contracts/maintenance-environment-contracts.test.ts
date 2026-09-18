@@ -63,10 +63,15 @@ describe('maintenance environment contracts', () => {
     expect(scripts['check:types:tsc']).toContain('bun --no-env-file node_modules/typescript/bin/tsc --noEmit')
     expect(scripts['check:types']).not.toContain('bunx')
     expect(scripts['check:types:tsc']).not.toContain('bunx')
-    for (const name of ['repo', 'audit:ocr-tokens', 'analyze:complexity', 't']) {
+    for (const name of ['repo', 'audit:ocr-tokens', 'analyze:complexity', 't:local']) {
       expect(scripts[name]).toStartWith('env -i PATH="$PATH" HOME="$HOME" bun --no-env-file')
     }
     expect(scripts['t:provider']).toBe('AUTOSHOW_TEST_CREDENTIAL_MODE=live bun --no-env-file test/test-runner.ts')
+    // `t` runs live by default, so it must see configured credentials: it neither
+    // clears the environment nor suppresses .env. Worker and CLI-child isolation is
+    // unchanged and still enforced by childEnv's allowlist.
+    expect(scripts['t']).toBe('AUTOSHOW_TEST_CREDENTIAL_MODE=live bun --no-orphans test/test-runner.ts')
+    expect(scripts['t:local']).toContain('--no-orphans')
   })
 
   test('the container disables implicit env files and documents explicit credential injection', async () => {

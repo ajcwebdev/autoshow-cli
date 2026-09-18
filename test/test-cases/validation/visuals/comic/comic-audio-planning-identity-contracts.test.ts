@@ -71,8 +71,6 @@ describe('comic audio phase 2 contracts', () => {
     }
 
     const first = await stamp(buildStructured(identity, sourceBytes))
-    // An LLM re-review of the same canonical script segments it differently, so the structured artifact
-    // the manifest still references is replaced before the manifest is re-stamped.
     const rereviewed = { ...buildStructured(identity, sourceBytes), reviewNote: 'resegmented' } as ReturnType<typeof buildStructured>
     const second = await stamp(rereviewed)
     expect(second.ref.sha256).not.toBe(first.ref.sha256)

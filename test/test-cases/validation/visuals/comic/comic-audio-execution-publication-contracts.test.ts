@@ -20,7 +20,6 @@ import { COMIC_AUDIO_PHASE_2_CREATED_AT as CREATED_AT, COMIC_AUDIO_PHASE_2_HASH_
 setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'HUME_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
 
 beforeEach(async () => {
-  // These tests retain scene snapshots and must not consult a workspace voice catalog.
   configureCharactersRoot(join(await makeTempDir('autoshow-comic-audio-characters-'), 'characters'))
 })
 

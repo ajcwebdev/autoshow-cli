@@ -20,7 +20,6 @@ bun autoshow <command> [<subcommand>] <target> [flags]
 | parse + dispatch |     | plan + routing   |     | steps 0-8        |     | manifest + files |
 +------------------+     +------------------+     +------------------+     +------------------+
 ```
-
 1. CLI layer: parse arguments, render help and version, reject unknown flags, and apply global runtime settings.
 2. Target layer: resolve the target, merge config defaults, and plan a single run or batch.
 3. Processing layer: Step 0 metadata, Step 1 download/detect, Step 2 STT/OCR/article/X extraction, Step 3 LLM writing, Steps 4-7 standalone TTS/image/video/music generation, and Step 8 comic utilities.
@@ -45,7 +44,6 @@ apply global flags and config
         v
 run the selected command
 ```
-
 Global flags:
 
 | Flag                    | Effect                                                                                                                                                                                                                                                                                                                           |
@@ -53,11 +51,12 @@ Global flags:
 | `--help`, `-h`          | Show root or command help.                                                                                                                                                                                                                                                                                                       |
 | `--version`, `-v`       | Print CLI version.                                                                                                                                                                                                                                                                                                               |
 | `--config-path`         | Use a config file other than `config/autoshow.json`.                                                                                                                                                                                                                                                                             |
+| `--help-topic`          | Show focused help for a named topic and exit; use `--help` to list available topics.                                                                                                                                                                                                                                             |
 | `--output-root`         | Base output directory under which per-step subdirectories are created.                                                                                                                                                                                                                                                           |
-| `--output-dir`          | Pin the run directory for this invocation instead of a timestamped `output/<timestamp>_<slug>` directory. On a batch run it becomes the batch root and per-item directories keep their slug names inside it. Rejected by `config`, `setup`, `resume`, `voice`, and `comic reference-voice`, which do not create run directories. |
+| `--output-dir`          | Pin the run directory for this invocation instead of a timestamped `output/<timestamp>_<slug>` directory. On a batch run it becomes the batch root and per-item directories keep their slug names inside it. Rejected by `setup`, `resume`, `voice`, and deprecated `comic reference-voice`, which do not create run directories. |
 | `--characters-root`     | Directory of comic character reference images and `characters-reference.json`. Accepted on `voice` and `comic` only.                                                                                                                                                                                                             |
 | `--bin-dir`             | Directory of external tool binaries checked before the managed install and PATH.                                                                                                                                                                                                                                                 |
-| `--allow-over-budget`   | Continue after cost preflight exceeds the configured budget. Accepted on priced pipeline and generation commands only; rejected on unbudgeted commands (`config`, `setup`, `links`, `voice`, `comic reference-voice`).                                                                                                           |
+| `--allow-over-budget`   | Continue after cost preflight exceeds the configured budget. Accepted on priced pipeline and generation commands (including most `comic` stages and `resume`); rejected on unbudgeted commands (`setup`, `links`, `voice`, deprecated `comic reference-voice`).                                                                  |
 | `--verbose`             | Enable debug logging.                                                                                                                                                                                                                                                                                                            |
 | `--quiet`, `-q`         | Suppress non-error diagnostics; JSON terminal results are always emitted.                                                                                                                                                                                                                                                        |
 | `--json`                | Emit versioned diagnostic log records on stderr and exactly one terminal result record on stdout.                                                                                                                                                                                                                                |
@@ -70,10 +69,9 @@ Comic subcommands (`draft-treatment`, `draft-scenes`, `generate-images`, `genera
 
 ```
 Setup and utilities:
-  config    read/write persisted defaults
-  setup     install local tools and report provider env readiness
-  links     provider documentation/reference link lookup
-  resume    rerun missing or failed providers from existing output
+  setup     install local tools, report provider env readiness, and read/write persisted defaults (`config` is a setup alias)
+  links     fetch provider documentation markdown and write a combined file
+  resume    resume missing outputs or recorded comic stages in an existing run directory
 
 Processing and generation:
   metadata  Step 0/1 metadata only
@@ -87,7 +85,6 @@ Processing and generation:
   music     standalone music generation or local lyric-video rendering
   comic     nested draft-treatment, draft-scenes, generate-images, generate-audio, generate-slideshow, reference-sketch, and review workflows
 ```
-
 Help and version are built into the root command. Process commands share the same target planning except for standalone generation modes. `extract --transcript-video` renders a captioned video from an existing extract run or from explicit `--audio` plus `--transcript-result`/`--transcript-text`.
 
 ## Flag System
@@ -108,11 +105,12 @@ standalone generation
   --provider-concurrency N
 
 write
-  --llm provider[=model]
+  --provider provider[=model]
+  --llm provider[=model]          # compatibility alias for --provider; do not combine spellings
   --all-providers
   --provider-concurrency N
 
-config pipeline defaults
+setup persisted defaults
   --stt provider[=model]
   --ocr provider[=model]
   --llm provider[=model]
@@ -121,7 +119,6 @@ config pipeline defaults
   --video provider[=model]
   --music provider[=model]
 ```
-
 `extract --provider` is route-aware. A media item maps it to STT providers, a document/image item maps it to OCR providers, and an article route uses URL backend selection. Mixed extract batches are partitioned by route so generic selections apply to the matching route.
 
 The provider catalog is in [Providers, Models & Setup](04-providers-and-setup.md).

@@ -245,11 +245,11 @@ describe('multi-location comic contracts', () => {
     expect(resolveLocationReferencesAcrossPanels([reversePanel, reversePanel], { cameraMatched: true }).map(reference => reference.view)).toEqual(['establishing'])
   })
 
-  test('reads a hand-built schema-version-2 snapshot manifest for backward compatibility', async () => {
-    const root = await makeTempDir('autoshow-v2-snapshot-compat-')
+  test('rejects schema-version-2 location snapshot manifests', async () => {
+    const root = await makeTempDir('autoshow-v2-snapshot-rejected-')
     roots.push(root)
     const run = join(root, 'run')
-    const snapshotId = '1767225600000-v2compatible'
+    const snapshotId = '1767225600000-v2rejected'
     const sheetRelativePath = `assets/location-references/${snapshotId}/quarters--reference-sheet.png`
     const sheetBytes = Buffer.from('legacy-composed-sheet')
     await Bun.write(join(run, sheetRelativePath), sheetBytes)
@@ -268,16 +268,7 @@ describe('multi-location comic contracts', () => {
         sheet: { path: sheetRelativePath, sha256: sha256(sheetBytes) },
       }],
     }))
-    const resolved = resolveLocationReferencesAcrossPanels([viewPanelInput(run, snapshotId, 'quarters')])[0]!
-    expect(resolved.view).toBe('establishing')
-    expect(resolved.path).toBe(resolve(run, sheetRelativePath))
-    expect(resolved.views).toHaveLength(1)
-    expect(resolved.views[0]!.label).toBe('composed reference sheet of quarters (establishing, reverse views left to right)')
-    const cameraMatched = resolveLocationReferencesAcrossPanels([viewPanelInput(run, snapshotId, 'quarters', 'reverse')], { cameraMatched: true })[0]!
-    expect(cameraMatched.view).toBe('establishing')
-    expect(cameraMatched.path).toBe(resolve(run, sheetRelativePath))
-    await Bun.write(join(run, sheetRelativePath), 'tampered')
-    expect(() => resolveLocationReferencesAcrossPanels([viewPanelInput(run, snapshotId, 'quarters')])).toThrow(/Location snapshot asset was modified/)
+    expect(() => resolveLocationReferencesAcrossPanels([viewPanelInput(run, snapshotId, 'quarters')])).toThrow(/Invalid location snapshot manifest/)
   })
 
   test('parses a complete script into ordered location segments without an external project fixture', () => {

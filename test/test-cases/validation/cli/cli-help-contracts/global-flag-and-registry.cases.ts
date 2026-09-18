@@ -198,7 +198,6 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
     expect(commandAcceptsGlobalFlag('links', 'allow-over-budget')).toBe(false)
     expect(commandAcceptsGlobalFlag('voice', 'allow-over-budget')).toBe(false)
     expect(commandAcceptsGlobalFlag('voice clone', 'allow-over-budget')).toBe(false)
-    expect(commandAcceptsGlobalFlag('comic reference-voice', 'allow-over-budget')).toBe(false)
   })
 
   test.concurrent('command help hides --allow-over-budget on unbudgeted commands', async () => {
@@ -209,7 +208,7 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
       expect(globalFlagsSection).toContain('--allow-over-budget')
     }
 
-    for (const command of ['setup', 'links', 'voice', 'comic reference-voice']) {
+    for (const command of ['setup', 'links', 'voice']) {
       const result = await loadHelp(helpArgv(command))
       expect(result.exitCode).toBe(0)
       const globalFlagsSection = result.stdout.slice(result.stdout.indexOf('\nGlobal Flags\n'))

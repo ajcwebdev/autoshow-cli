@@ -16,7 +16,7 @@ See the [`extract` overview](../overview.md) for input routing and default media
 
 `--provider` selectors accept an omitted model value and then resolve to the cheapest or default supported model. Model-selecting selectors are repeatable, including repeated selectors from the same provider.
 
-On `extract` and `resume`, pass `--provider provider[=model]`. On `config`, pass `--stt provider[=model]`.
+On `extract` and `resume`, pass `--provider provider[=model]`. On `setup`, persist defaults with `--stt provider[=model]`.
 
 ## Provider Capabilities
 
@@ -53,6 +53,7 @@ Asynchronous transcription jobs and native subtitle exports wait up to 30 minute
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--all-providers`                      | Enable every broadly applicable hosted STT provider/model for the input source; public-URL transcript backends are documented under [URL extraction](../url/overview.md#public-media-url-transcripts) |
 | `--youtube-captions`                   | Prefer English YouTube captions before STT when available; see [YouTube Caption Fallback](../url/overview.md#youtube-caption-fallback)                                                                |
+| `--stt-audio-profile <profile>`        | Audio preparation: `default` (provider compression) or `lossless` (verified float32 WAV, original channels/rate)                                                                                      |
 | `--speaker-count <n>`                  | Diarization speaker-count hint for supported services                                                                                                                                                 |
 | `--split`                              | Split audio into 30-minute segments before transcription                                                                                                                                              |
 | `--batch-limit <n\|all>`               | Limit batch size or process all items (`all`)                                                                                                                                                         |
@@ -66,10 +67,8 @@ Asynchronous transcription jobs and native subtitle exports wait up to 30 minute
 | `--max-model-cents <n>`                | Exclude each provider/model whose estimated total across the invocation exceeds the per-model ceiling in cents; works with or without `--price`                                                       |
 
 ```bash
-# Split a long file before transcription
 bun autoshow extract https://ajc.pics/autoshow/examples/2-video.mp4 --provider deepgram=nova-3 --split
 ```
-
 ## Provider Controls
 
 `--diarization` and `--no-diarization` apply to AssemblyAI, Deepgram, Gemini, Gladia, Grok, Mistral, Soniox, Speechmatics, and Together. Together stays off unless enabled; Together also turns on with `--speaker-count`. `--speaker-count` is supported by AssemblyAI, Gladia, and Together, and is ignored when diarization is disabled. Mistral diarization uses segment timing; disable it for native word timestamps. Together Parakeet word timings can be incomplete. Gemini uses native speaker diarization and word timestamps through `gemini-3.5-transcribe` (verbatim mode); `--speaker-count` is ignored, custom vocabulary and smart transcription are not exposed, and word timestamps may reduce accuracy. Providers that do not support the toggle, including Happy Scribe, report that it was ignored. Hide speaker labels at export with `--no-caption-speakers`.

@@ -63,7 +63,6 @@ describe('Anthropic REST contracts', () => {
       })
       expect(calls[0]?.bodyJson).not.toHaveProperty('tools')
       expect(calls[0]?.bodyJson).not.toHaveProperty('tool_choice')
-      // Omission preserves Fable 5.1's always-on adaptive thinking.
       expect(calls[0]?.bodyJson).not.toHaveProperty('thinking')
       expect(result.result).toBe('{"title":"A file"}')
       expect(result.metadata.effectiveReasoningEffort).toBe(effort)

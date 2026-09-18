@@ -2,8 +2,6 @@ import type { TranscriptionEvidenceWord } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
 import { captionTextKey } from '../captions/caption-word-coverage'
 
-// Ordered lexical matching keeps repeated words distinct. The identical-text fast
-// path is linear; divergent long transcripts must be evaluated in bounded spans.
 export const matchTimedWords = (reference: TranscriptionEvidenceWord[], candidate: TranscriptionEvidenceWord[]): Array<[number, number]> => {
   const left = reference.map(word => captionTextKey(word.text)), right = candidate.map(word => captionTextKey(word.text))
   if (left.length === right.length && left.every((word, index) => word === right[index])) return left.map((_, index) => [index, index])

@@ -4,17 +4,7 @@ export type StagingDirectiveKind = 'blocking' | 'camera' | 'axis-break' | 'costu
 
 export type StructuredStaging = NonNullable<StructuredScriptData['staging']>
 
-export type StagingBlockingDirective = StructuredStaging['blocking'][number]
-
-export type StagingCameraDirective = StructuredStaging['camera'][number]
-
-export type StagingCostumeDirective = StructuredStaging['costume'][number]
-
-export type StagingExtrasDirective = StructuredStaging['extras'][number]
-
-export type StagingSkipPanelsDirective = NonNullable<StructuredStaging['skipPanels']>
-
-export type StagingPanelTarget = StagingCameraDirective['panel']
+export type StagingPanelTarget = StructuredStaging['camera'][number]['panel']
 
 export type LocatedStagingDirective = {
   kind: StagingDirectiveKind

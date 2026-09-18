@@ -14,7 +14,7 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
   },
   {
     label: 'write',
-    args: ['write', STABLE_TTS_MD_PATH, '--llm', 'openai=gpt-5.6-luna', '--price', '--json'],
+    args: ['write', STABLE_TTS_MD_PATH, '--provider', 'openai=gpt-5.6-luna', '--price', '--json'],
     expected: '"files"'
   },
   {
@@ -100,9 +100,9 @@ describe('price mode contracts', () => {
         'src/cli/create-cli.ts',
         'write',
         STABLE_TTS_MD_PATH,
-        '--llm',
+        '--provider',
         'openai=gpt-5.6-sol',
-        '--llm',
+        '--provider',
         'grok=grok-4.6',
         '--price', '--json'
       ])

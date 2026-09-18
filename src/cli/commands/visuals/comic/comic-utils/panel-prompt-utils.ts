@@ -6,7 +6,7 @@ import type { ComicPanelSource, ImageGenerationModel, LocationReferenceSnapshot,
 import { PanelBundleDataSchema } from '../schemas/schemas'
 import { loadAndVerifyCharacterReferenceSnapshot } from './character-reference-snapshot'
 import { resolveCharacterIdentityReferences, resolveRosterCharacterReferences } from './character-identity-card'
-import { describeLocationSnapshotView, getLocationReferenceSnapshotsPath, LOCATION_SNAPSHOT_READABLE_VERSIONS, LOCATION_SNAPSHOTS_FILENAME, LOCATION_VIEWS } from './location-reference'
+import { getLocationReferenceSnapshotsPath, LOCATION_SNAPSHOT_READABLE_VERSIONS, LOCATION_SNAPSHOTS_FILENAME, LOCATION_VIEWS } from './location-reference'
 import { resolveDesignReferencesAcrossPanels } from './design-reference'
 export { resolveDesignReferencesAcrossPanels } from './design-reference'
 import { trimOptionalContinuityReferences } from './reference-capabilities'
@@ -92,19 +92,11 @@ const verifySnapshotAsset = (runDirectory: string, relativePath: string, expecte
 
 const snapshotMatchesPanel = (snapshot: LocationReferenceSnapshot | undefined, expectedKey: string | undefined): snapshot is LocationReferenceSnapshot => {
   if (!snapshot || (expectedKey && snapshot.locationKey !== expectedKey)) return false
-  if (snapshot.schemaVersion === 2) return !!snapshot.sheet?.path && hasOrderedViewProvenance(snapshot.sourceViews)
   if (snapshot.schemaVersion === 3) return hasOrderedViewProvenance(snapshot.views) && snapshot.views.every(view => !!view.path && typeof view.label === 'string')
   return false
 }
 
 const resolveSnapshotViews = (runDirectory: string, snapshot: LocationReferenceSnapshot): ResolvedLocationReferenceView[] => {
-  if (snapshot.schemaVersion === 2) {
-    const path = verifySnapshotAsset(runDirectory, snapshot.sheet.path, snapshot.sheet.sha256)
-    const label = snapshot.sourceViews.length === 1
-      ? describeLocationSnapshotView(snapshot.locationKey, 'establishing')
-      : `composed reference sheet of ${snapshot.locationKey} (${snapshot.sourceViews.map(view => view.view).join(', ')} views left to right)`
-    return [{ view: 'establishing', path, label }]
-  }
   return snapshot.views.map(view => ({ view: view.view, path: verifySnapshotAsset(runDirectory, view.path, view.imageSha256), label: view.label }))
 }
 

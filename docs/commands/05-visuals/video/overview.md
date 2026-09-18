@@ -25,7 +25,6 @@ Generate a video from a text prompt or input image with one or more hosted video
 ```bash
 bun autoshow setup --doctor
 ```
-
 ### Environment
 
 ```bash
@@ -36,13 +35,11 @@ REPLICATE_API_TOKEN=...
 LUMA_AGENTS_API_KEY=...
 FAL_API_KEY=...
 ```
-
 ## Usage
 
 ```bash
 bun autoshow video <input> [flags]
 ```
-
 The positional input is a text prompt or an image path, URL, or data URL. A positional image input infers `--mode image-to-video` and cannot be combined with media-input flags. When no provider is specified, a text prompt runs the cheapest default text-to-video target and a positional image input runs every supported provider.
 
 ## Modes
@@ -61,14 +58,11 @@ Passing media flags without `--mode` is rejected because the default mode is tex
 `--input-video` is a video reference for `reference-to-video` on other providers. For Gemini Omni it is the source clip for `edit` and `extend`.
 
 ```bash
-# Image animation
 bun autoshow video "animate product on a slow turntable" --provider gemini=gemini-omni-1.1-flash --mode image-to-video --input-image input/product.png --output-dir output/v-base
 
-# Interpolation and multi-reference examples
 bun autoshow video "transition between frames" --provider gemini=gemini-omni-1.1-flash --mode interpolate --input-image input/start.png --last-frame input/end.png
 bun autoshow video "character walking through lagoon" --provider grok=grok-imagine-video-1.5 --mode reference-to-video --reference-image input/jacket.png --reference-image input/glasses.png
 ```
-
 ## Shared Video Options
 
 The `video` and `resume` commands use the same short option names, including `--duration`. Saved configuration uses the matching namespaced key, such as `defaults.video.duration`.
@@ -91,6 +85,9 @@ The `video` and `resume` commands use the same short option names, including `--
 | `--input-video <path-or-url>`          | Input MP4 video reference for `reference-to-video`, or Gemini Omni `edit`/`extend` source (uploaded sources ≤10s)         |
 | `--previous-interaction-id <id>`       | Gemini Omni prior interaction id from `providerRequestId`; use with `edit` or `extend` instead of re-uploading            |
 | `--generate-audio`                     | Native audio where supported (Replicate Seedance/PixVerse, fal.ai Seedance 2.5)                                           |
+| `--replicate-video-seed <n>`           | Replicate video seed (`0`–`2147483647`)                                                                                   |
+| `--replicate-video-negative-prompt <text>` | Replicate PixVerse V6 negative prompt                                                                                 |
+| `--replicate-video-multi-clip`         | Replicate PixVerse V6 multi-shot generation toggle                                                                        |
 | `--price`                              | Show the estimate and exit                                                                                                |
 | `--max-model-cents <n>`                | Exclude each provider/model whose estimated total exceeds the per-model ceiling in cents; works with or without `--price` |
 | `--output-dir <dir>`                   | Global flag: pin an exact run directory instead of `output/<timestamp>_video-gen/`                                        |
@@ -102,7 +99,6 @@ bun autoshow video "a rainy neon city street, slow camera pan" --provider gemini
 bun autoshow video "a rainy neon city street, slow camera pan" --all-providers --price
 bun autoshow video "a rainy neon city street, slow camera pan" --all-providers --max-model-cents 100 --price
 ```
-
 ## Video Services
 
 ### Gemini Omni
@@ -121,7 +117,6 @@ bun autoshow video "a sweeping Grand Canyon drone shot" --provider gemini=gemini
 bun autoshow video "make the violin invisible" --provider gemini=gemini-omni-1.1-flash --mode edit --previous-interaction-id v1_abc
 bun autoshow video "continue the scene" --provider gemini=gemini-omni-1.1-flash --mode extend --input-video input/examples/video/2-video.mp4
 ```
-
 - Native audio is always on. 1080p and 4K are upscaled. Unspecified duration is estimated at 10 seconds.
 - `edit` and `extend` take either `--previous-interaction-id` (from a prior manifest `providerRequestId`) or an uploaded `--input-video` of 10 seconds or less. Extension is append-only.
 - Uploaded edit/extend is not available in the EEA, Switzerland, or the United Kingdom. Audio references and voice editing are not supported.
@@ -139,7 +134,6 @@ bun autoshow video "continue the scene" --provider gemini=gemini-omni-1.1-flash 
 bun autoshow video "cinematic moonlit coastline" --provider grok=grok-imagine-video-1.5 --duration 8 --resolution 1080p
 bun autoshow video "character walking through lagoon" --provider grok=grok-imagine-video-1.5 --mode reference-to-video --reference-image input/jacket.png --reference-image input/glasses.png
 ```
-
 - Text, image, and reference durations are 1–15 seconds (default 8). Reference generation is capped at 720p.
 
 ### LTX
@@ -158,13 +152,12 @@ bun autoshow video "a lighthouse beam sweeps across calm water" --provider ltx=l
 bun autoshow video "clean product reveal shot" --provider ltx=ltx-2-5-fast --duration 8 --resolution 1080p
 bun autoshow video "transition between studio frames" --provider ltx=ltx-2-5-pro --mode interpolate --input-image input/start.png --last-frame input/end.png --resolution 1080p --aspect-ratio 9:16
 ```
-
 ### Replicate
 
 | Option       | Value                                                                                                                                                                            |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Selector     | `--provider replicate[=<model>]`                                                                                                                                                 |
-| Models       | `alibaba/happyhorse-1.1`, `alibaba/wan-3`, `bytedance/seedance-2.5`, `pixverse/pixverse-v6`                                                                                      |
+| Models       | `alibaba/happyhorse-1.1`, `alibaba/wan-3`, `bytedance/seedance-2.5`, `pixverse/pixverse-v6` (bare default)                                                                         |
 | Duration     | Happy Horse `3`–`15`s, PixVerse `5\|8\|10\|15`s, Seedance 2.5 `4`–`30`s or `-1` (default `5`s), Wan 3.0 `2`–`30`s                                                                |
 | Aspect ratio | Happy Horse `16:9`, `9:16`, `1:1`, `4:3`, `3:4`; PixVerse `16:9`, `9:16`, `1:1`; Seedance 2.5 adds `21:9`, `adaptive` and omits `9:21` (default `16:9`); Wan 3.0 adds `adaptive` |
 
@@ -173,7 +166,6 @@ bun autoshow video "cinematic mountain sunrise" --provider replicate=bytedance/s
 bun autoshow video "multi-shot launch" --provider replicate=pixverse/pixverse-v6 --duration 8 --resolution 1080p --generate-audio --replicate-video-multi-clip
 bun autoshow video "a lighthouse at dusk" --provider replicate=bytedance/seedance-2.5 --duration 10 --resolution 720p --price
 ```
-
 - Wan 3.0 (`alibaba/wan-3`) supports text-to-video and image-to-video at 480p ($0.05/s), 720p ($0.10/s), and 1080p ($0.20/s) across 2–30 seconds. Audio generation, interpolate, reference media, and multi-clip are not supported. [Wan 3.0](https://replicate.com/alibaba/wan-3)
 - PixVerse V6 supports `--generate-audio`, `--replicate-video-multi-clip`, and `--replicate-video-negative-prompt`.
 - `--duration -1` lets Seedance choose duration. `--price` estimates 30 seconds for Seedance 2.5.
@@ -193,7 +185,6 @@ bun autoshow video "a lighthouse at dusk" --provider replicate=bytedance/seedanc
 ```bash
 bun autoshow video "slow dolly through misty greenhouse" --provider lumalabs=ray-3.2 --duration 5 --resolution 720p
 ```
-
 ### fal.ai
 
 | Option     | Value                                                                         |
@@ -218,7 +209,6 @@ Seedance 2.5 and H3 Max require the exact route that matches `--mode`:
 bun autoshow video "rain-soaked detective enters diner" --provider fal=minimax/h3 --duration 5 --resolution 2k
 bun autoshow video "a lighthouse at dusk" --provider fal=minimax/h3-max-turbo/text-to-video --duration 5 --resolution 768p --price
 ```
-
 - MiniMax H3 accepts up to 9 `--reference-image`, 3 `--reference-video`, and 3 `--reference-audio` inputs (12 combined). Native audio is always on.
 - fal Seedance accepts 30 images, 10 videos, and 10 audios. Timed references must be 1.8–30.2 seconds each and total at most 30.2 seconds per modality. Image routes keep the input frame's aspect ratio. [fal Seedance](https://fal.ai/models/bytedance/seedance-2.5/reference-to-video)
 - H3 Max has native audio and no audio toggle. Rates are $0.05/$0.08/$0.16 per output second at 480p/768p/1080p; Turbo is half. [fal H3 Max](https://fal.ai/minimax-h3-max)

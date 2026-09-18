@@ -11,6 +11,7 @@ import { InfraError, ValidationError } from '~/utils/error-handler'
 import type { ElevenLabsTtsIvcContext, ElevenLabsTtsIvcOptions, ElevenLabsTtsIvcResult, TtsCustomVoiceSampleAudio } from '~/types'
 import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
+import { ensureVoicePromise } from '../voice-promise-cache'
 
 const ELEVENLABS_IVC_BEST_PRACTICE_MIN_SECONDS = 10
 const ELEVENLABS_IVC_BEST_PRACTICE_MAX_SECONDS = 2 * 60
@@ -183,23 +184,5 @@ export const ensureElevenLabsTtsIvcVoice = async (
   baseURL: string,
   apiKey: string,
   options: ElevenLabsTtsIvcOptions
-): Promise<ElevenLabsTtsIvcResult> => {
-  const context = options.context
-  if (context?.voicePromise) {
-    return await context.voicePromise
-  }
-
-  let voicePromise: Promise<ElevenLabsTtsIvcResult>
-  voicePromise = createElevenLabsTtsIvcVoice(baseURL, apiKey, options).catch((error) => {
-    if (context?.voicePromise === voicePromise) {
-      context.voicePromise = undefined
-    }
-    throw error
-  })
-
-  if (context) {
-    context.voicePromise = voicePromise
-  }
-
-  return await voicePromise
-}
+): Promise<ElevenLabsTtsIvcResult> =>
+  await ensureVoicePromise(options.context, () => createElevenLabsTtsIvcVoice(baseURL, apiKey, options))

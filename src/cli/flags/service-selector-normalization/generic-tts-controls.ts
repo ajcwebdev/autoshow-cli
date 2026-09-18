@@ -54,30 +54,45 @@ export const ttsIdentityProvidersForFlag = (flagName: string): readonly string[]
   (GENERIC_TTS_IDENTITY_MAP as Record<string, readonly string[]>)[flagName] ?? []
 
 const describeSpec = (spec: ControlSpec): string | undefined => {
+  let values: string | undefined
   if (spec.kind === 'number') {
-    if (spec.min === undefined || spec.max === undefined) return spec.integer ? 'integer' : undefined
-    return `${spec.min}-${spec.max}${spec.integer ? ' (integer)' : ''}`
+    if (spec.min === undefined || spec.max === undefined) values = spec.integer ? 'integer' : undefined
+    else values = `${spec.min}-${spec.max}${spec.integer ? ' (integer)' : ''}`
+  } else if (spec.kind === 'boolean') {
+    values = 'true|false'
+  } else if (spec.kind === 'string-array') {
+    values = 'repeatable list entry'
+  } else {
+    values = spec.allowedValues ? spec.allowedValues.join('|') : undefined
   }
-  if (spec.kind === 'boolean') return 'true|false'
-  if (spec.kind === 'string-array') return 'repeatable list entry'
-  return spec.allowedValues ? spec.allowedValues.join('|') : undefined
+  if (!values) return spec.helpNote
+  return spec.helpNote ? `${values}; ${spec.helpNote}` : values
 }
 
 // Renders "<values> (<providers>)" clauses straight from CONTROL_SPECS so a range change in the
 // capability table changes the help row with it.
 export const describeGenericTtsControlValues = (flagName: string): string => {
   const clauses: { values: string, providers: string[] }[] = []
+  const omittedNotes: string[] = []
   for (const control of Object.values(ttsControlsForFlag(flagName))) {
+    if (control.spec.helpOmit) {
+      if (control.spec.helpNote) omittedNotes.push(`${control.provider}: ${control.spec.helpNote}`)
+      continue
+    }
     const values = describeSpec(control.spec) ?? 'provider-defined'
     const existing = clauses.find((clause) => clause.values === values)
     if (existing) existing.providers.push(control.provider)
     else clauses.push({ values, providers: [control.provider] })
   }
-  return clauses.map((clause) => `${clause.values} (${clause.providers.join('/')})`).join(', ')
+  const accepted = clauses.map((clause) => `${clause.values} (${clause.providers.join('/')})`).join(', ')
+  if (omittedNotes.length === 0) return accepted
+  return [accepted, ...omittedNotes].filter(Boolean).join('; ')
 }
 
 export const genericTtsOptionDescription = (flagName: string, summary: string): string => {
   const values = describeGenericTtsControlValues(flagName)
-  const providers = Object.keys(ttsControlsForFlag(flagName))
+  const providers = Object.values(ttsControlsForFlag(flagName))
+    .filter((control) => !control.spec.helpOmit)
+    .map((control) => control.provider)
   return `${summary}: ${providers.join('/')}. Use value with one selected provider, or provider=value with multiple providers.${values ? ` Accepted values: ${values}.` : ''}`
 }

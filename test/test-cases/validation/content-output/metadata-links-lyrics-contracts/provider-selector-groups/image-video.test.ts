@@ -13,9 +13,9 @@ import {
 import { registerProviderSelectorCases } from './provider-selector-cases'
 
 test('links selector accepts separate fal image and video sections', () => {
-  const imageSelection = parseLinksArgv(['bun', 'src/cli/create-cli.ts', 'links', '--fal', 'image'])
+  const imageSelection = parseLinksArgv(['bun', 'src/cli/create-cli.ts', 'links', '--provider', 'fal', 'image'])
   expect(collectLinks(imageSelection.serviceSelections, imageSelection.globalSections)).toEqual(FAL_IMAGE_LINKS)
-  const videoSelection = parseLinksArgv(['bun', 'src/cli/create-cli.ts', 'links', '--fal', 'video'])
+  const videoSelection = parseLinksArgv(['bun', 'src/cli/create-cli.ts', 'links', '--provider', 'fal', 'video'])
   expect(collectLinks(videoSelection.serviceSelections, videoSelection.globalSections)).toEqual(FAL_VIDEO_LINKS)
 })
 
@@ -28,7 +28,7 @@ registerProviderSelectorCases([
       { sections: ['video'], expected: LTX_VIDEO_LINKS },
       { sections: ['models'], expected: LTX_MODELS_LINKS }
     ],
-    invalid: { sections: ['image'], message: 'Unknown links section(s) for --ltx: image' }
+    invalid: { sections: ['image'], message: 'Unknown links section(s) for --provider ltx: image' }
   },
   {
     name: 'links selector accepts replicate provider with general and models sections',
@@ -39,6 +39,6 @@ registerProviderSelectorCases([
       { sections: ['models'], expected: REPLICATE_MODELS_LINKS },
       { sections: ['general'], expected: REPLICATE_GENERAL_LINKS }
     ],
-    invalid: { sections: ['image'], message: 'Unknown links section(s) for --replicate: image' }
+    invalid: { sections: ['image'], message: 'Unknown links section(s) for --provider replicate: image' }
   }
 ])

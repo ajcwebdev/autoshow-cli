@@ -1,7 +1,6 @@
 import { InfraError } from '~/utils/error-handler'
 import { readdirSync, statSync } from 'node:fs'
 
-// Existing root directories are the fixed baseline. New directories belong below them.
 const ROOT_DIRECTORIES = new Set(['.claude', '.codex', '.git', '.github', '.test-work', 'config', 'docs', 'input', 'node_modules', 'output', 'runtime', 'src', 'test'])
 
 export const findRepositoryStructureViolations = (rootDirectories: string[], projectFiles: string[]): string[] => [

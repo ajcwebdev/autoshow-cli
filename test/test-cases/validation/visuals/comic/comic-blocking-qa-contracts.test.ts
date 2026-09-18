@@ -89,7 +89,7 @@ const createSceneFixture = async (sceneSlug: string, options: { blocking?: boole
   const locationSheet = join(runDirectory, 'assets', 'location-references', 'location-snapshot', 'cargo-bay.png')
   await mkdir(dirname(locationSheet), { recursive: true })
   await Bun.write(locationSheet, tinyPng)
-  await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 2, snapshots: [{ schemaVersion: 2, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth.', sourceScripts: ['scripts/02-script/01.md'], sourceViews: [{ view: 'establishing', generationId: 'v1', imageSha256: sha }], sheet: { path: 'assets/location-references/location-snapshot/cargo-bay.png', sha256: sha } }] }))
+  await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 3, snapshots: [{ schemaVersion: 3, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth.', sourceScripts: ['scripts/02-script/01.md'], views: [{ view: 'establishing', generationId: 'v1', imageSha256: sha, path: 'assets/location-references/location-snapshot/cargo-bay.png', label: 'establishing view of cargo-bay' }] }] }))
   const directory = join(runDirectory, 'metadata', 'panel-prompts', 'panel-01')
   await mkdir(directory, { recursive: true })
   await Bun.write(join(directory, 'prompt.md'), `Generate panel independently.\n\n\`\`\`json\n${JSON.stringify(panelBundle(1, options), null, 2)}\n\`\`\`\n`)

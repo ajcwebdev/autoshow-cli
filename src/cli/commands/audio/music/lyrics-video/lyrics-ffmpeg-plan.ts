@@ -6,8 +6,6 @@ let encoderPromise: Promise<string> | undefined
 let ffmpegFiltersPromise: Promise<string> | undefined
 
 export const checkFfmpegEncoder = async (encoder: string, execute = exec): Promise<boolean> => {
-  // FFmpeg can list hardware encoders whose device or driver is unavailable in a container.
-  // Encode one synthetic frame before choosing hardware for the full render.
   try {
     const result = await execute(getFfmpegBinary(), [
       '-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'color=c=black:s=320x240:r=1',

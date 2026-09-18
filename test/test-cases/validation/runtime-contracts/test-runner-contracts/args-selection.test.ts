@@ -13,6 +13,8 @@ import {
   parseRunnerArgs,
   withDefaultTestConcurrency
 } from '../../../../test-runner/args'
+import { resolveConfiguredCredentialKeys } from '../../../../test-runner/process-execution'
+import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import { formatSelectedPathsLabel, resolveSelectedFiles } from '../../../../test-runner/path-selection'
 import { VALIDATION_TEST_TIMEOUT_MS } from '../../../../test-utils/timeouts'
 
@@ -261,4 +263,52 @@ describe('test-runner contracts', () => {
       expect(formatSelectedPathsLabel(['test/test-cases/validation/'])).toBe('Selected paths: validation')
       expect(formatSelectedPathsLabel(['test/test-cases/e2e/service/audio/tts/'])).toBe('Selected paths: service/audio/tts')
     })
+
+  describe('live-mode defaults', () => {
+    const withCredentialMode = <T>(mode: string | undefined, run: () => T): T => {
+      const previous = process.env['AUTOSHOW_TEST_CREDENTIAL_MODE']
+      try {
+        if (mode === undefined) delete process.env['AUTOSHOW_TEST_CREDENTIAL_MODE']
+        else process.env['AUTOSHOW_TEST_CREDENTIAL_MODE'] = mode
+        return run()
+      } finally {
+        if (previous === undefined) delete process.env['AUTOSHOW_TEST_CREDENTIAL_MODE']
+        else process.env['AUTOSHOW_TEST_CREDENTIAL_MODE'] = previous
+      }
+    }
+
+    test('live mode supplies no default budget, so a default run is unfiltered', () => {
+      const parsed = withCredentialMode('live', () => parseRunnerArgs(['bun', 'runner']))
+      expect(parsed.budgetHundredthCents).toBeUndefined()
+    })
+
+    test('an explicit budget is kept in live mode', () => {
+      const parsed = withCredentialMode('live', () => parseRunnerArgs(['bun', 'runner', '--budget', '50']))
+      expect(parsed.budgetHundredthCents).toBe(50)
+    })
+
+    test('fixture mode supplies no budget', () => {
+      expect(withCredentialMode('fixture', () => parseRunnerArgs(['bun', 'runner'])).budgetHundredthCents).toBeUndefined()
+      expect(withCredentialMode(undefined, () => parseRunnerArgs(['bun', 'runner'])).budgetHundredthCents).toBeUndefined()
+    })
+
+    test('configured credential keys are derived from the registry and exclude unset and placeholder values', () => {
+      const [first, second, third] = HOSTED_PROVIDER_ENV_CHECKS.map(provider => provider.envVar)
+      if (!first || !second || !third) throw new Error('Expected at least three registered hosted credentials')
+
+      expect(resolveConfiguredCredentialKeys({
+        [first]: 'real-value',
+        [second]: '   ',
+        [third]: 'your_third_api_key_here',
+        NOT_A_REGISTERED_CREDENTIAL: 'real-value'
+      })).toEqual([first])
+    })
+
+    test('credential derivation names only registered credentials', () => {
+      const registered = new Set<string>(HOSTED_PROVIDER_ENV_CHECKS.map(provider => provider.envVar))
+      for (const key of resolveConfiguredCredentialKeys(process.env)) {
+        expect(registered.has(key)).toBe(true)
+      }
+    })
+  })
 })

@@ -14,9 +14,8 @@ Example commands:
 
 ```bash
 bun autoshow extract "https://youtube.com/watch?v=abc123" --provider whisperfile=small
-bun autoshow write output/<extract-run>/transcription.txt --llm openai --rendered-text --prompt-md
+bun autoshow write output/<extract-run>/transcription.txt --provider openai --rendered-text --prompt-md
 ```
-
 ```
 extract command
   |
@@ -46,11 +45,11 @@ write command
   +--> parse flags and merge config defaults
   +--> reject URLs, media, documents, HTML, and X Spaces
   +--> treat the .txt file as source text
-  +--> validate LLM selection from --llm
+  +--> validate LLM selection from --provider (or --llm alias)
   |
   v
 Step 3: LLM writing
-  +--> use the configured `--llm` default unless `--llm` is passed
+  +--> use the configured LLM default unless `--provider` / `--llm` is passed
   +--> write prompt.md
   +--> write prompt-md.md because --prompt-md is set
   +--> write text.json
@@ -61,7 +60,6 @@ rendered artifacts
   +--> show-note.md
   +--> write manifest.json
 ```
-
 This example is a single media extract followed by a text write. Directory, input-list, and source-backed batches follow the same extract steps per item; see [Input Routing & Batch Orchestration](02-input-routing-batch.md). Document and article routes replace Steps 1-2 on `extract`; `write` always starts at Step 3; see [Processing Pipelines](03-processing-pipelines.md).
 
 ## Expected Artifacts
@@ -81,11 +79,10 @@ output/<write-run>/
   show-note.md
   manifest.json
 ```
-
 With more than one STT selection, extract provider-specific files move under `providers/<provider-model>/`. With more than one LLM selection, write uses `text-<model>.json` / `text-<model>.md` names. The full layout and `manifest.json` shape are in [Types, Metadata & Output Layout](05-types-and-output.md).
 
 ## Credentials and Runtime
 
 Hosted provider API keys are listed in [Providers, Models & Setup](04-providers-and-setup.md#hosted-provider-env-checks). This extract example uses local whisperfile, so it needs no STT key; `write` still requires a configured LLM key.
 
-Runtime settings come from flags and `config/autoshow.json`. The CLI reads provider credentials, terminal controls, and scoped runtime controls documented in the [environment reference](../reports/high-priority-metareport-2026-09-11.md#environment-reference). `NO_COLOR` disables color whenever the variable is present, including when its value is an empty string; a non-empty, non-zero `FORCE_COLOR` takes precedence. `--color` / `--no-color` override both color variables.
+Runtime settings come from flags and `config/autoshow.json`. Provider credentials are listed in [Providers, Models & Setup](04-providers-and-setup.md#hosted-provider-env-checks). Terminal and logging controls are in the [usage guide](../commands/00-setup-and-utilities/usage.md). `NO_COLOR` disables color whenever the variable is present, including when its value is an empty string; a non-empty, non-zero `FORCE_COLOR` takes precedence. `--color` / `--no-color` override both color variables.

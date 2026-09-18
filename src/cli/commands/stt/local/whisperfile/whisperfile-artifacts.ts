@@ -1,4 +1,3 @@
-// Hugging Face Git LFS SHA-256 identities, reviewed 2026-09-11.
 export const WHISPERFILE_REVISION = '710ddd7a9bfc8ceafc66f77c400a4cb5c95c13a2'
 
 export const WHISPERFILE_ARTIFACTS: Readonly<Record<string, { sha256: string; size: number }>> = {

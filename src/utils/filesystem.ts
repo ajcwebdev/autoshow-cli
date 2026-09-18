@@ -1,3 +1,4 @@
+import { hasErrorCode } from '~/utils/error-handler'
 import { chmod, readdir, rename, mkdir } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, sep } from 'node:path'
 import type { WalkPathKind, WalkPathsOptions } from '~/types'
@@ -16,12 +17,24 @@ export const makeExecutable = async (path: string, mode = 0o755): Promise<void> 
   await chmod(path, mode)
 }
 
+/** Filesystem codes treated as "path does not exist" for existence probes. */
+export const PATH_ABSENCE_ERROR_CODES = ['ENOENT', 'ENOTDIR', 'ENAMETOOLONG'] as const
+
+export const isPathAbsenceError = (error: unknown): boolean =>
+  PATH_ABSENCE_ERROR_CODES.some((code) => hasErrorCode(error, code))
+
+/**
+ * True when the path exists. Permission/I/O failures (e.g. EACCES) propagate —
+ * only known absence codes are treated as missing. For intentionally silent
+ * best-effort probes, catch at the call site or use a named probe helper.
+ */
 export const pathExists = async (path: string): Promise<boolean> => {
   try {
     await stat(path)
     return true
-  } catch {
-    return false
+  } catch (error) {
+    if (isPathAbsenceError(error)) return false
+    throw error
   }
 }
 

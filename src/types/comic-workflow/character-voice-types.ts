@@ -1,16 +1,5 @@
-import type { TtsProvider } from '~/types'
+import type { TtsProvider, VoiceOrigin } from '~/types'
 
-type CharacterVoiceOrigin =
-  | 'provider-stock'
-  | 'community-library'
-  | 'designed'
-  | 'remixed'
-  | 'instant-clone'
-  | 'professional-clone'
-  | 'imported-custom'
-  | 'saved-reference'
-  | 'request-reference-audio'
-  | 'local-model-voice'
 
 export type CharacterVoiceBrief = {
   subjectKey: string
@@ -30,7 +19,7 @@ export type CharacterVoiceBrief = {
   defaultDelivery?: string | undefined
   prohibitedCaricatures: string[]
   pronunciations: Array<{ term: string, pronunciation: string }>
-  allowedOrigins: CharacterVoiceOrigin[]
+  allowedOrigins: VoiceOrigin[]
   preferredProviders?: TtsProvider[] | undefined
 }
 

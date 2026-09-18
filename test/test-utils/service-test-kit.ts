@@ -90,7 +90,6 @@ export const defineBudgetedLiveServiceTest = (
   fn: () => void | Promise<void>,
   timeoutMs: number = E2E_TEST_TIMEOUT_MS
 ): void => {
-  // CLI children disable implicit dotenv loading and receive exported credentials only.
   if (process.env['AUTOSHOW_TEST_CREDENTIAL_MODE'] !== 'live' || getMissingConfiguredEnvVarKeysSync(envVarKeys).length > 0) {
     test.skip(name, fn)
     return

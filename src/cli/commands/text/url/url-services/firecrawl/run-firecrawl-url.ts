@@ -1,6 +1,6 @@
 import type { UrlArticleProviderAdapter, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { cleanString, countWords, createUrlArticleRun, fetchUrlProviderJson, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, pickCleanString, requireHostedUrlProviderApiKey } from '../../url-utils'
-import { InfraError, ValidationError } from '~/utils/error-handler'
+import { ValidationError } from '~/utils/error-handler'
 
 const FIRECRAWL_DEFAULT_API_URL = 'https://api.firecrawl.dev'
 
@@ -12,7 +12,8 @@ const parseFirecrawlResponse = (payload: unknown): { markdown: string, web: WebA
   const data = isRecord(payload['data']) ? payload['data'] : null
   if (!data) {
     const fallbackMessage = cleanString(payload['error']) ?? cleanString(payload['message'])
-    throw InfraError(fallbackMessage ?? 'Firecrawl did not return scrape data.', { stage: 'extract:firecrawl' })
+    // Malformed success body (HTTP 200 without data) is deterministic — do not retry as infrastructure.
+    throw ValidationError(fallbackMessage ?? 'Firecrawl did not return scrape data.', { stage: 'extract:firecrawl', retryable: false })
   }
 
   const markdown = normalizeMarkdown(data['markdown'])

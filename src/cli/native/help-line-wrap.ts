@@ -6,8 +6,6 @@ export const resolveHelpWidth = (requested?: number): number => {
   return Number.isFinite(width) ? Math.max(40, Math.floor(width!)) : 120
 }
 
-// Keep ANSI sequences and indivisible flag/model names intact. Pipe-delimited lists
-// may wrap after a separator, so every accepted value remains copyable.
 export const wrapHelpDescription = (prefix: string, description: string, width: number, continuation = ' '.repeat(helpVisibleLength(prefix))): string => {
   const output: string[] = []
   for (const [index, paragraph] of description.split('\n').entries()) {

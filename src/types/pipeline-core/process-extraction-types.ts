@@ -93,7 +93,7 @@ export const ExtractionResultSchema = v.object({
   textPages: v.number()
 })
 
-const ChapterExportSummarySchema = v.object({
+export const ChapterExportSummarySchema = v.object({
   sourceFormat: v.picklist(['epub', 'pdf']),
   normalizedFrom: v.optional(v.string(), undefined),
   mode: v.picklist(['chapters', 'chunks']),
@@ -113,6 +113,8 @@ const ChapterExportSummarySchema = v.object({
   chunkFilesWritten: v.optional(v.number(), undefined),
   directories: v.array(v.string())
 })
+
+export type ChapterExportSummaryEvidence = v.InferOutput<typeof ChapterExportSummarySchema>
 
 export const ExtractionMetadataSchema = v.object({
   extractionMethod: v.picklist([

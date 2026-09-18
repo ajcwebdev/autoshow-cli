@@ -5,8 +5,6 @@ import { renderPangoLayer } from '../../src/cli/commands/audio/music/lyrics-vide
 import { combineCharacterSketchSheet } from '../../src/cli/commands/visuals/comic/comic-commands/character-sketch/character-sketch-sheet'
 import { exec } from '../../src/utils/cli-utils'
 
-// Run in the exact candidate container with --network none. The launcher must also
-// verify the Docker daemon architecture; process.arch alone cannot detect QEMU.
 const expected = process.argv[2]
 if (!['arm64', 'x64'].includes(expected ?? '') || process.arch !== expected) throw new Error(`Expected native ${expected}, found ${process.arch}`)
 await requireRenderingPrerequisites()

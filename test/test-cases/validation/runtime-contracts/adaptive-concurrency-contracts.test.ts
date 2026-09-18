@@ -199,7 +199,7 @@ describe('adaptive provider group parser', () => {
       'src/cli/create-cli.ts',
       'write',
       'input/examples/tts/01-tts-short.md',
-      '--llm',
+      '--provider',
       'openai=gpt-5.6-sol'
     ])).toEqual([
       'write/openai',

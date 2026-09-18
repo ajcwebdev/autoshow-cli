@@ -33,7 +33,6 @@ function outputDirectory(result: CliOutcome): string {
   return result.outputDir
 }
 
-// Keep persisted evidence unchanged. Map paths only in the in-memory inspection view.
 export async function mappedManifest(adapter: LocalExecutionAdapter, dir: string): Promise<PipelineManifest> {
   const raw: unknown = await Bun.file(join(dir, 'manifest.json')).json()
   function map(value: unknown): unknown {
@@ -76,7 +75,7 @@ function downloadCases(): DockerScenario[] {
         const child = manifest.items[0]!
         expect(child.status).toBe('full')
         requireCondition(child.outputDir)
-        const childDir = join(dir, child.outputDir) // relative manifests are canonical; absolute paths handled below
+        const childDir = join(dir, child.outputDir)
         const resolved = child.outputDir.startsWith('/') ? child.outputDir : childDir
         requireCondition(!DOWNLOAD_TIMESTAMPED_CHILD_DIR_PATTERN.test(basename(resolved)), 'Batch child must not have a run timestamp')
         await assertArtifact(join(resolved, 'manifest.json'))

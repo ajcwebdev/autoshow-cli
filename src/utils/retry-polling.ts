@@ -57,6 +57,7 @@ const throwPollTerminalFailure = (
   throw new AppError(`${operationName}: terminal failure — ${failure.reason}`, {
     kind: 'infrastructure',
     stage: operationName,
+    retryable: false,
     ...(typeof failure.status === 'number' ? { status: failure.status } : {}),
     ...(failure.headers instanceof Headers ? { headers: failure.headers } : {}),
     metadata: {
@@ -99,6 +100,10 @@ export const pollUntil = async <T>(opts: PollOptions<T>): Promise<T> => {
     sleepBeforePoll = true
 
     abortSignal?.throwIfAborted()
+    // Strict bound: do not dispatch another poll after the deadline elapsed during sleep.
+    if (Date.now() >= deadline) {
+      break
+    }
     const result = await pollFn()
     abortSignal?.throwIfAborted()
     pollCount += 1

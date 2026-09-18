@@ -1,6 +1,6 @@
 # write
 
-Generate structured LLM output from local markdown or plaintext. The default model is the cheapest hosted LLM. Transcribe URLs, media, documents, or X Spaces with `extract` first, then pass the extracted `.txt` / `.md` to `write`.
+Generate structured LLM output from local markdown or plaintext. With no `--provider`, AutoShow selects the cheapest hosted LLM (currently `glm` / `glm-5.3-flash`). Transcribe URLs, media, documents, or X Spaces with `extract` first, then pass the extracted `.txt` / `.md` to `write`.
 
 ## Outline
 
@@ -31,13 +31,10 @@ Generate structured LLM output from local markdown or plaintext. The default mod
 ## Setup
 
 ```bash
-# full setup
 bun autoshow setup
 
-# check hosted LLM API-key readiness
 bun autoshow setup --doctor
 ```
-
 Write has no local LLM; it always uses a hosted provider.
 
 ### Environment
@@ -51,21 +48,18 @@ GLM_API_KEY=...
 KIMI_API_KEY=...
 TOGETHER_API_KEY=...
 ```
-
 ## Usage
 
 ```bash
 bun autoshow write <input> [flags]
 ```
-
 `write` accepts only local `.md` / `.txt` files or directories of those files. A `.md` or `.txt` file is always treated as source text, not as a URL or file-path list. Use `bun autoshow write --help-topic providers` for selector details.
 
 ```bash
 bun autoshow extract video.mp4 --provider deepgram
 bun autoshow write output/<extract-run>/transcription.txt --provider openai --prompt shortSummary --rendered-text
 ```
-
-Project lyric draft mode is enabled when the input is `./output/<name>/text` or a `.md` / `.txt` file under that directory. In that mode, `write` reads `./output/<name>/prompt.md` by default, uses `./output/<name>/tracks.md` when present, and writes rendered markdown drafts to `./output/<name>/lyrics`.
+Project lyric draft mode engages when the input is `./output/<name>/text` or a `.md` / `.txt` file under that directory and `./output/<name>/prompt.md` exists (or `--prompt-file` is supplied). In that mode, `write` reads `./output/<name>/prompt.md` by default, uses `./output/<name>/tracks.md` when present, and writes rendered markdown drafts to `./output/<name>/lyrics`.
 
 ## Shared Write Options
 
@@ -98,10 +92,9 @@ bun autoshow write ./output/demo/text --prompt rockSong
 bun autoshow write ./output/demo/text --price
 bun autoshow write ./output/demo/text --all-providers --max-model-cents 50 --price
 ```
-
 Write `--price` estimates use the selected prompt and source text. Use `--json` for structured token estimates and rates.
 
-`--max-model-cents` is a selection filter, not a total command budget. For directory and batch inputs, AutoShow sums each provider/model's estimates across the selected inputs before applying the ceiling. Without `--price`, only retained targets execute. Use the existing configured `--max-cents` budget when the combined cost of all retained targets must stay below a command-wide limit.
+`--max-model-cents` is a selection filter, not a total command budget. For directory and batch inputs, AutoShow sums each provider/model's estimates across the selected inputs before applying the ceiling. Without `--price`, only retained targets execute. Use the configured `maxCents` budget from `setup --max-cents` when the combined cost of all retained targets must stay below a command-wide limit.
 
 ## Write Services
 
@@ -117,7 +110,6 @@ Write `--price` estimates use the selected prompt and source text. Use `--json` 
 ```bash
 bun autoshow write output/<extract-run>/transcription.txt --provider openai=gpt-5.6-sol
 ```
-
 GPT-6 Astra uses `$10.00 / $50.00` per 1M tokens, then `$20.00 / $75.00` for the entire request above 272K input tokens. Reasoning is required; `low`, `medium`, `high`, `xhigh`, and `max` are accepted, while disabled and minimal are rejected.
 
 ### Anthropic
@@ -130,8 +122,9 @@ GPT-6 Astra uses `$10.00 / $50.00` per 1M tokens, then `$20.00 / $75.00` for the
 ```bash
 bun autoshow write output/<extract-run>/transcription.txt --provider anthropic=claude-fable-5-1
 ```
-
 Claude Fable 5.1 uses always-on adaptive thinking; disabled and minimal reasoning are rejected.
+
+Claude Sonnet 5 `--price` estimates still use the introductory `$2.00 / $10.00` rates, so they understate cost after the 2026-09-01 standard `$3.00 / $15.00` transition.
 
 ### Gemini
 
@@ -143,7 +136,6 @@ Claude Fable 5.1 uses always-on adaptive thinking; disabled and minimal reasonin
 ```bash
 bun autoshow write output/<extract-run>/transcription.txt --provider gemini=gemini-3.8-flash
 ```
-
 Gemini 3.7 Flash and Gemini 3.8 Flash accept `--reasoning-effort low`, `medium`, or `high`; `minimal` and `disabled` are rejected. `--price` estimates for those models use the standard `$1.50 / $7.50` rates that take effect 2027-01-01, so they overstate cost during the introductory `$0.75 / $3.75` window through 2026-12-31.
 
 ### Grok
@@ -156,20 +148,19 @@ Gemini 3.7 Flash and Gemini 3.8 Flash accept `--reasoning-effort low`, `medium`,
 ```bash
 bun autoshow write output/<extract-run>/transcription.txt --provider grok=grok-4.6
 ```
-
 Grok 4.6 price estimates use `$2 / 1M input` and `$6 / 1M output` through 200K input tokens, then `$4 / 1M input` and `$12 / 1M output` above 200K.
 
 ### Z.AI GLM
 
-| Option   | Value                      |
-| -------- | -------------------------- |
-| Selector | `--provider glm[=<model>]` |
+| Option   | Value                                             |
+| -------- | ------------------------------------------------- |
+| Selector | `--provider glm[=<model>]`                        |
+| Default  | Passing `--provider glm` uses `glm-5.3-flash`     |
 
 ```bash
 bun autoshow write output/<extract-run>/transcription.txt --provider glm=glm-5.3-flash
 ```
-
-GLM 5.3 and GLM 5.3 Flash require reasoning and accept `--reasoning-effort low`, `high`, or `max`; omitted effort uses the provider default (`max`). `disabled`, `minimal`, `medium`, and `xhigh` are rejected.
+GLM 5.3 and GLM 5.3 Flash require reasoning and accept `--reasoning-effort low`, `high`, or `max`; omitted effort uses `default` (delegates to the provider). `disabled`, `minimal`, `medium`, and `xhigh` are rejected.
 
 ### Kimi
 
@@ -181,19 +172,18 @@ GLM 5.3 and GLM 5.3 Flash require reasoning and accept `--reasoning-effort low`,
 ```bash
 bun autoshow write output/<extract-run>/transcription.txt --provider kimi=kimi-k3
 ```
-
-Kimi K3 thinking is on by default; `--reasoning-effort` can change it.
+Kimi K3 requires reasoning and accepts `--reasoning-effort low`, `medium`, `high`, or `max`; omitted effort defaults to `low`. `disabled`, `minimal`, and `xhigh` are rejected.
 
 ### Together
 
-| Option   | Value                           |
-| -------- | ------------------------------- |
-| Selector | `--provider together[=<model>]` |
+| Option   | Value                                                  |
+| -------- | ------------------------------------------------------ |
+| Selector | `--provider together[=<model>]`                        |
+| Default  | Passing `--provider together` uses `glm-5.3-flash`     |
 
 ```bash
 bun autoshow write output/<extract-run>/transcription.txt --provider together=kimi-k3
 ```
-
 Together K3, GLM 5.3, and GLM 5.3 Flash accept `--reasoning-effort low`, `high`, or `max`. Together K3 also accepts `disabled`. Together GLM 5.3 and Flash reject `disabled`.
 
 ## Prompts
@@ -257,9 +247,10 @@ Together K3, GLM 5.3, and GLM 5.3 Flash accept `--reasoning-effort low`, `high`,
 ## Output
 
 - `write` output is JSON by default.
-- Single-target runs write `text.json`.
-- Multi-target runs write `text-<model>.json` for each selected LLM target. When two providers share a model id, the filename includes the provider.
+- Single-target runs write `text.json` and `show-note.md`.
+- Multi-target runs write `text-<model>.json` and `show-note-<model>.md` for each selected LLM target. When two providers share a model id, the filename includes the provider.
 - `--rendered-text` writes rendered markdown inside the run directory: `text.md` for a single target, or `text-<model>.md` per model when multiple targets are selected.
+- Runs also write `prompt.md` and `manifest.json`. `--prompt-md` adds `prompt-md.md` with markdown examples alongside the JSON prompt.
 
 ## Notes
 
@@ -277,7 +268,6 @@ bun autoshow music output/<write-run>/text.md --provider elevenlabs
 bun autoshow image "$(cat output/<write-run>/text.md)" --provider openai
 bun autoshow video "$(cat output/<write-run>/text.md)" --provider grok
 ```
-
 Lyric drafts pair with `music --lyrics-file`.
 
 ## Provider Capabilities
@@ -303,4 +293,4 @@ Reasoning: ✅ required or optional effort control, ⚠️ optional thinking wit
 | OpenAI `gpt-5.6-sol`         | ✅ 2026-07 | ✅ Optional through max       | ✅ 1.05M | ✅ JSON schema | ✅ web_search    | ❌ $5.00 per 1M  | $30.00 per 1M | 13/16     |
 | Anthropic `claude-sonnet-5`  | ✅ 2026-07 | ✅ Optional through max       | ✅ 1M    | ✅ JSON schema | ✅ web_search    | ⚠️ $2.00 per 1M  | $10.00 per 1M | 8/16      |
 | Anthropic `claude-opus-5`    | ✅ 2026-07 | ✅ Optional through max       | ✅ 1M    | ✅ JSON schema | ✅ web_search    | ❌ $5.00 per 1M  | $25.00 per 1M | 13/16     |
-| Kimi `kimi-k3`               | ✅ 2026-07 | ✅ Required effort            | ✅ 1M    | ✅ JSON schema | ⚠️ Updating      | ❌ $3.00 per 1M  | $15.00 per 1M | 11/16     |
+| Kimi `kimi-k3`               | ✅ 2026-07 | ✅ Required effort            | ✅ 1M    | ⚠️ JSON object | ⚠️ Updating      | ❌ $3.00 per 1M  | $15.00 per 1M | 11/16     |

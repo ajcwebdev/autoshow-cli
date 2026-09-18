@@ -63,8 +63,6 @@ export const buildNetworkProbeChildEnv = (timeoutMs: number): Record<string, str
 })
 
 export async function probeNetworkFixture(url: URL, client: unknown, timeoutMs: number): Promise<Awaited<ReturnType<typeof performNetworkProbe>>> {
-  // Bun's proxy cache is shared with workers. A fresh process is required to
-  // keep this diagnostic direct without changing the caller's proxy behavior.
   const start = performance.now()
   const sourceEntrypoint = new URL('../../../create-cli.ts', import.meta.url).pathname
   const entrypoint = existsSync(sourceEntrypoint) ? sourceEntrypoint : Bun.main

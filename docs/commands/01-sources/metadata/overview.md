@@ -1,6 +1,6 @@
 # metadata
 
-Collect and display metadata for media, documents, articles, or X Spaces without downloading files.
+Collect and display metadata for media, documents, articles, or X Spaces without downloading.
 
 ## Outline
 
@@ -11,9 +11,8 @@ Collect and display metadata for media, documents, articles, or X Spaces without
 - [Setup and Environment](#setup-and-environment)
 
 ```bash
-bun autoshow metadata <input>
+bun autoshow metadata <input> [flags]
 ```
-
 ## Supported Inputs
 
 | Input                                                                 | Behavior                                                         |
@@ -40,9 +39,9 @@ Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, and LIT) require Calibre.
 ## Flags
 
 ```text
---markdown           Output metadata as Markdown frontmatter YAML
---save               Save manifest.json to disk (and metadata.md with --markdown)
 --password           Password for encrypted PDFs
+--markdown           Output metadata as Markdown frontmatter YAML
+--save               Write metadata.md with --markdown and emit saved-artifacts confirmation (manifest.json always written)
 --url-provider       Article/HTML extraction backend: defuddle|firecrawl|glm-reader|spider|supadata|zyte (default defuddle; local .html/.htm always use defuddle)
 --batch-limit        Batch: number of items to process or "all" (default 5)
 --batch-order        Batch: item order newest|oldest (default newest)
@@ -50,9 +49,13 @@ Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, and LIT) require Calibre.
 --price              Show aggregated cost estimate for all active pipeline steps and exit
 ```
 
+`--json` is a global flag (see [`usage.md`](../../00-setup-and-utilities/usage.md)), not a metadata-only option. Do not combine `--json` with `--markdown` (both own stdout).
+
+Shared globals such as `--output-root`, `--output-dir`, and logging flags are documented in [`usage.md`](../../00-setup-and-utilities/usage.md).
+
 ## Output
 
-By default, metadata prints one compact terminal summary. Use `--json` for the complete metadata object, or `--markdown` for Markdown frontmatter YAML. Do not combine `--json` with `--markdown`.
+By default, metadata prints one compact terminal summary and writes `manifest.json` under a timestamped run directory. Use `--markdown` to print Markdown frontmatter YAML on stdout. Use global `--json` for the versioned result protocol, which includes the complete metadata object in the terminal result on stdout.
 
 **Terminal output (default)**
 
@@ -62,7 +65,7 @@ By default, metadata prints one compact terminal summary. Use `--json` for the c
 
 Media metadata may also include chapters and description when the source provides them.
 
-**Document metadata example**
+**Document metadata fields (in the run `manifest.json` / JSON result)**
 
 ```json
 {
@@ -75,51 +78,42 @@ Media metadata may also include chapters and description when the source provide
 }
 ```
 
-**With `--save`**
+**Run directory**
 
-`--save` writes artifacts to a timestamped output directory:
+Every metadata run writes:
 
 ```text
 output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   manifest.json
 ```
 
-`--save --markdown` also writes `metadata.md` in that directory.
+`--save --markdown` also writes `metadata.md` in that directory. `--save` emits a saved-artifacts confirmation log. (`manifest.json` is written even without `--save`.)
 
 ## Examples
 
 ```bash
-# Display metadata for a YouTube video
 bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU"
 
-# Display and save metadata to disk
 bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU" --save
 
-# Display metadata as Markdown frontmatter YAML
 bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU" --markdown
 
-# Local media file metadata
+bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU" --save --markdown
+
 bun autoshow metadata input/examples/audio/1-audio.mp3
 
-# Document metadata from a local PDF
 bun autoshow metadata input/examples/document/1-document.pdf
 
-# X Space metadata
 bun autoshow metadata https://x.com/i/spaces/1DXxyRYNejbKM
 
-# Encrypted PDF metadata
 bun autoshow metadata input/examples/document/protected.pdf --password secret
 
-# Batch metadata for latest 3 episodes from an RSS feed
 bun autoshow metadata https://example.com/feed --batch-limit 3
 
-# Batch metadata for a YouTube channel
 bun autoshow metadata https://www.youtube.com/@channelname --batch-limit 5
 
-# Batch metadata from a URL list, save all to disk
 bun autoshow metadata input/examples/batch/2-urls.md --batch-limit all --save
 ```
-
 ## Setup and Environment
 
 Setup details are in [`setup.md`](../../00-setup-and-utilities/setup.md).
@@ -127,3 +121,5 @@ Setup details are in [`setup.md`](../../00-setup-and-utilities/setup.md).
 YouTube inputs may be rate-limited or challenged. Follow the [YouTube cookies guide](../../00-setup-and-utilities/cookies.md), then rerun `metadata`.
 
 X Space URLs, raw Space IDs, and X post URLs require `X_BEARER_TOKEN`.
+
+Hosted article backends selected with `--url-provider` need the matching API key (`FIRECRAWL_API_KEY`, `GLM_API_KEY`, `SPIDER_API_KEY`, `SUPADATA_API_KEY`, or `ZYTE_API_KEY`). Local `defuddle` does not.

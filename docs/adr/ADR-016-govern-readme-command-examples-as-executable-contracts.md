@@ -4,7 +4,7 @@
 
 - **Decision Status:** Proposed
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-17
 - **Verification Status:** Pending
 
 ## Context
@@ -56,7 +56,7 @@ Why now: A repository-wide documentation audit found 1,424 shell-like candidates
 
 Govern every shell-like command in the root `README.md` and every Markdown document under `docs/` as a documentation contract. Each example is classified and verified locally without mutating repository files or user configuration and without contacting paid services.
 
-Priceable workflows run with `--price`, make no provider or network calls, and report a numeric estimated cost, including explicit zero for free workflows. Commands that mutate configuration, install software, build or run Docker, perform Git mutations, or invoke paid services are parsed or rejected, never executed. Staged media, comic, voice, document, OCR, and batch examples use committed offline fixtures rather than live URLs or artifacts from prior paid runs. `config` does not accept `--price`; `autoshow config --price` is an unexpected-flag usage error.
+Priceable workflows run with `--price`, make no provider or network calls, and report a numeric estimated cost, including explicit zero for free workflows. Commands that mutate configuration, install software, build or run Docker, perform Git mutations, or invoke paid services are parsed or rejected, never executed. Staged media, comic, voice, document, OCR, and batch examples use committed offline fixtures rather than live URLs or artifacts from prior paid runs. `setup` (and its `config` alias) does not accept `--price`; `autoshow setup --price` / `autoshow config --price` are unexpected-flag usage errors.
 
 This applies to:
 
@@ -122,7 +122,8 @@ Negative outcomes:
 - [ ] Make `--price` results consistent across commands so priceable examples verify the same way — Pending
 - [ ] Commit offline fixtures for document, transcript, batch, image, video, comic, and voice examples — Pending
 - [ ] Classify utilities, Docker, Git, external tools, and credential commands as parse-only or never-execute — Pending
-- [ ] Cross-check documented flags and models against CLI parsers and the model catalog — Pending
+- [x] Cross-check documented flags and models against CLI parsers and the model catalog — Partial
+  `test/test-cases/validation/cli/doc-command-flags-contract.test.ts` now scans `docs/commands/**` for documented flags against live command definitions. Full inventory, offline `--price` execution, and cost reporting remain open.
 - [ ] Publish documentation cost reports that map each example to its estimated cost — Pending
 
 ## References

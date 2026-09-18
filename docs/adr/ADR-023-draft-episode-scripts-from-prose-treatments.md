@@ -2,10 +2,10 @@
 
 ## Status
 
-- **Decision Status:** Proposed
+- **Decision Status:** Accepted
 - **Date Created:** 2026-09-10
-- **Date Updated:** 2026-09-10
-- **Verification Status:** Pending
+- **Date Updated:** 2026-09-17
+- **Verification Status:** Passed. `comic draft-treatment` ships with help, usage, option-resolution, renderer, catalog-merge, and draft-validation contracts; remaining follow-ups are product decisions, not landing gates.
 
 ## Context
 
@@ -105,7 +105,6 @@ bun test test/test-cases/validation/visuals/comic/comic-treatment-draft-validati
 bun test test/test-cases/validation/visuals/comic/comic-scene-panel-count-contracts.test.ts
 bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear --price
 ```
-
 1. Names and types stay unique and sound.
 2. The help closed list, usage errors, and option defaults cover the new subcommand and `--panel-count`.
 3. The rendered script parses into the expected beats, sanitization holds, and the loader reads page-marked treatments.

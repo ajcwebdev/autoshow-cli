@@ -20,7 +20,6 @@ const escapeHtml = (value: string): string => value
   .replace(/>/gu, '&gt;')
   .replace(/"/gu, '&quot;')
 
-/** Strips the XML prolog so the SVG can be inlined into an HTML body verbatim. */
 const inlineSvg = (svg: string): string => svg.replace(/^﻿/u, '').replace(/<\?xml[^>]*\?>\s*/u, '').trim()
 
 const describeSpeaker = (speaker: ScenePromptData['panels'][number]['speech'][number]['speaker']): string =>

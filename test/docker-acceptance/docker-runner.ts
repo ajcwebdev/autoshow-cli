@@ -59,7 +59,6 @@ export function acceptancePassed(selectedCount: number, cases: CaseEvidence[], e
 
 export async function runDockerAcceptance(options: DockerOptions, engine = new DockerEngine(options)): Promise<number> {
   const selected = selectDockerScenarios(options)
-  // Refuse to mix old artifacts into a new run; no evidence directory is ever removed.
   await mkdir(options.output, { recursive: false })
   const cases: CaseEvidence[] = []
   const errors: string[] = []
@@ -89,7 +88,6 @@ export async function runDockerAcceptance(options: DockerOptions, engine = new D
   async function provisionModel(selector: ModelSelector): Promise<void> {
     await once(selector, async () => {
       await provision(['setup', '--models', selector])
-      // A second disposable container must find the model with downloads disabled.
       await provision(['setup', '--models', selector], 'none')
     })
   }

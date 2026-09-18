@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test'
 import { extractErrorMetadata, serializeDiagnosticError } from '~/utils/error-handler'
 import { classifyFetchRetry, classifyPaidCreateRetry } from '~/utils/retries'
 
-// Deliberately bypass HTTP normalization to exercise real malformed bodies.
 const malformedServer = (response: string, disconnect: boolean) => {
   const bytes = Buffer.from(response)
   const sockets = new Set<Bun.Socket<{ offset: number; started: boolean }>>()

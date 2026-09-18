@@ -5,7 +5,7 @@ import { configureCharactersRoot } from '~/cli/commands/command-shared/character
 import { configureOutputRoot } from '~/cli/commands/command-shared/output-root'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
 import { coerceAndValidateReview } from '~/cli/commands/visuals/comic/comic-utils/cli-args'
-import { reviewCommandDefinition, reviewNotesCommandDefinition, reviewSheetCommandDefinition } from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
+import { reviewCommandDefinition } from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { captureLogEvents } from '../../../../test-utils/console-capture'
@@ -51,8 +51,6 @@ test('review parses both modes and rejects blank notes, missing input, and incom
   expect(() => parse(['script.md', '--notes', ' '])).toThrow('comic review requires --notes <path>')
   expect(() => parse(['script.md', '--notes', 'notes.md', '--export-doc'])).toThrow('cannot be combined')
   expect(() => parse(['script.md', '--price'])).toThrow('Unexpected flag: --price')
-  expect(() => parseCommandInvocation(['comic review-sheet', 'script.md', '--notes', 'notes.md'], reviewSheetCommandDefinition, GLOBAL_FLAG_DEFINITIONS)).toThrow('Unexpected flag: --notes')
-  expect(() => parseCommandInvocation(['comic review-notes', 'script.md', '--export-doc'], reviewNotesCommandDefinition, GLOBAL_FLAG_DEFINITIONS)).toThrow('Unexpected flag: --export-doc')
 })
 
 test('review writes the sheet without a character catalog and preserves the deprecated sheet output', async () => {
@@ -64,11 +62,6 @@ test('review writes the sheet without a character catalog and preserves the depr
   expect(await readdir(reviewDir)).toEqual(['review-sheet.html'])
   expect(canonical.events.some(event => event.message.includes('deprecated'))).toBe(false)
   expect(canonical.events.find(event => event.message === 'Comic review sheet complete')?.metadata).toEqual({ command: 'comic review', price: false, sceneSlug: BLOCKING_FIXTURE_SCENE_SLUG })
-  const legacy = await invoke(['review-sheet', scriptPath, '--export-doc'])
-  expect(await Bun.file(join(reviewDir, 'review-sheet.html')).text()).toBe(sheet)
-  expect(await Bun.file(join(reviewDir, 'export-doc.md')).exists()).toBe(true)
-  expect(legacy.events.some(event => event.message.includes('review-sheet is deprecated'))).toBe(true)
-  expect(legacy.events.find(event => event.message === 'Comic review sheet complete')?.metadata).toEqual({ command: 'comic review-sheet', price: false, sceneSlug: BLOCKING_FIXTURE_SCENE_SLUG })
   await invoke(['review', scriptPath, '--export-doc'])
   expect(await Bun.file(join(reviewDir, 'review-sheet.html')).text()).toBe(sheet)
 })
@@ -91,9 +84,6 @@ test('notes mode requires its catalog, preserves source artifacts, and never reg
   expect(report).toContain('**CAMERA:**')
   expect(report).toContain('Unmatched notes')
   expect(await Promise.all(sourceFiles.map(path => Bun.file(path).text()))).toEqual(before)
-  const legacy = await invoke(['review-notes', scriptPath, '--notes', notesPath])
-  expect(legacy.events.some(event => event.message.includes('review-notes is deprecated'))).toBe(true)
-  expect(legacy.events.find(event => event.message === 'Comic review notes complete')?.metadata).toEqual({ command: 'comic review-notes', price: false, sceneSlug: BLOCKING_FIXTURE_SCENE_SLUG })
   expect(await Bun.file(join(reviewDir, 'review-sheet.html')).exists()).toBe(false)
 })
 

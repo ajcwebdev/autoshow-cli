@@ -14,8 +14,7 @@ import { generateComicSlideshow } from '~/cli/commands/visuals/comic/comic-comma
 import { resolveComicScriptReference } from '~/cli/commands/visuals/comic/comic-utils/project-paths'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
-import { asCtx, expectUnknownCommand, parseRoot } from './shared'
-import { captureLogEvents } from '../../../../test-utils/console-capture'
+import { asCtx, parseRoot } from './shared'
 
 const parseGenerateImagesArgs = (args: string[]) =>
   coerceAndValidateGenerateImages(parseCommandInvocation(
@@ -118,40 +117,9 @@ test('comic draft-scenes rejects invalid concurrency values', () => {
   expect(() => parseDraftScenesArgs(['script.md', '--provider-concurrency', '0'])).toThrow('Invalid concurrency')
 })
 
-test('comic reference-voice is a nested alias of the public voice verbs', async () => {
-  const reject = async (argv: string[], msg: string) => {
-    const parsed = parseRoot(argv)
-    await expect(parsed.command!.handler(asCtx(parsed))).rejects.toThrow(msg)
-  }
-  expectUnknownCommand(['comic', 'reference-voice', 'not-an-action'], 'comic reference-voice not-an-action')
-  expect(() => parseRoot(['comic', 'reference-voice', 'clone'])).toThrow('Missing required parameter: subject-key')
-  await reject(
-    ['comic', 'reference-voice', 'clone', 'hero', '--price'],
-    '--provider is required.'
-  )
-  await reject(
-    ['comic', 'reference-voice', 'audition', 'vr_123', '--price'],
-    'Voice registration generation was not found.'
-  )
-  await reject(
-    ['comic', 'reference-voice', 'audition', 'vr_123', '--approve', '--price'],
-    '--actor-id is required.'
-  )
-  const listed = parseRoot(['comic', 'reference-voice'])
-  expect(listed.mode).toBe('command')
-  expect(listed.command?.name).toBe('comic reference-voice list')
-  const alias = await captureLogEvents(async () => await listed.command!.handler(asCtx(listed)))
-  expect(alias.events.some(event => event.message.includes('comic reference-voice list is deprecated; use voice list'))).toBe(true)
-  const canonicalParsed = parseRoot(['voice'])
-  const canonical = await captureLogEvents(async () => await canonicalParsed.command!.handler(asCtx(canonicalParsed)))
-  expect(canonical.events.some(event => event.message.includes('deprecated'))).toBe(false)
-  expect(alias.events.filter(event => !event.message.includes('deprecated')).map(event => ({ message: event.message, metadata: event.metadata })))
-    .toEqual(canonical.events.map(event => ({ message: event.message, metadata: event.metadata })))
-  await reject(
-    ['comic', 'reference-voice', 'consent', '--revoke', 'protected-consent:v1:STORE:ASSET:SHA256', '--actor-id', 'casting_editor'],
-    '--reason is required.'
-  )
-  for (const action of ['discover', 'materialize', 'revoke-consent', 'reconcile', 'revoke', 'status', 'inspect']) {
-    expectUnknownCommand(['comic', 'reference-voice', action], `comic reference-voice ${action}`)
-  }
+test('deprecated comic aliases remain registered for the compatibility release', () => {
+  expect(parseRoot(['comic', 'reference-voice']).command?.name).toBe('comic reference-voice list')
+  expect(parseRoot(['comic', 'reference-voice', 'import', 'hero']).command?.name).toBe('comic reference-voice import')
+  expect(parseRoot(['comic', 'review-sheet', '02-01']).command?.name).toBe('comic review-sheet')
+  expect(parseRoot(['comic', 'review-notes', '02-01', '--notes', 'notes.md']).command?.name).toBe('comic review-notes')
 })

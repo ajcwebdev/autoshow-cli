@@ -1,6 +1,5 @@
 import type { RecoveryState } from '~/types'
 
-/** Recovery evidence belongs to one lane; unrelated accounts cannot affect it. */
 export class LaneRecoveryState {
   readonly byWork = new Map<string, RecoveryState>()
   recovering = false

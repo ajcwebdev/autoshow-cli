@@ -1,10 +1,12 @@
-import { join, resolve } from 'node:path'
+import { mkdir, copyFile } from 'node:fs/promises'
+import { basename, join, resolve } from 'node:path'
 import { createSyntheticWavBytes } from './media-fixtures'
+import { getFfprobeBinary } from '~/utils/runtime-paths'
 import { whisperfileBinaryPath } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { WHISPERFILE_ARTIFACTS } from '~/cli/commands/stt/local/whisperfile/whisperfile-artifacts'
 import { verifyWhisperfileArtifact } from '~/cli/commands/stt/local/whisperfile/whisperfile-integrity'
 import { transcribeWhisperfile } from '~/cli/commands/stt/local/whisperfile/transcribe'
-import { withTempDir } from './temp-dirs'
+import { makeTempDir, withTempDir } from './temp-dirs'
 
 const ORACLE_MODEL = 'small.en'
 
@@ -38,9 +40,42 @@ export const assertSpokenTextMatch = (expected: string, recognized: string, maxW
   if (rate > maxWordErrorRate) throw new Error(`Spoken text differs from its reference (word error rate ${rate.toFixed(3)}, maximum ${maxWordErrorRate}): ${recognized}`)
 }
 
+const probeAudio = async (path: string): Promise<string> => {
+  const child = Bun.spawn([getFfprobeBinary(), '-v', 'error', '-show_streams', '-show_format', '-of', 'json', path], { stdout: 'pipe', stderr: 'pipe' })
+  const [exitCode, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()])
+  if (exitCode !== 0) return `ffprobe failed (${exitCode}): ${stderr.trim().slice(-500)}`
+  const probe = JSON.parse(stdout) as { streams?: Array<Record<string, unknown>>, format?: Record<string, unknown> }
+  const stream = probe.streams?.find(entry => entry['codec_type'] === 'audio') ?? {}
+  return JSON.stringify({
+    container: probe.format?.['format_name'],
+    duration: probe.format?.['duration'],
+    codec: stream['codec_name'],
+    sampleRate: stream['sample_rate'],
+    channels: stream['channels']
+  })
+}
+
+// A transcription failure here has repeatedly been unreproducible afterwards because the run
+// directory is cleaned before anyone can look at the audio. Keep the exact bytes the oracle
+// choked on, next to the run's other retained artifacts, and describe them in the failure.
+const retainOracleFailureEvidence = async (audioPath: string, error: unknown): Promise<never> => {
+  const retainedRoot = join(process.env['AUTOSHOW_TEST_ARTIFACTS_DIR'] ?? (await makeTempDir('tts-oracle-failure-')), 'oracle-failures')
+  await mkdir(retainedRoot, { recursive: true })
+  const retained = join(retainedRoot, `${Date.now()}-${basename(audioPath)}`)
+  const copied = await copyFile(audioPath, retained).then(() => true).catch(() => false)
+  const size = await Bun.file(audioPath).stat().then(stat => `${stat.size} bytes`).catch(() => 'unreadable')
+  throw new Error([
+    `Whisperfile oracle could not transcribe ${audioPath} (${size}, ${await probeAudio(audioPath)})`,
+    copied ? `Audio retained at ${retained}` : `Audio could not be copied to ${retained}`,
+    String(error)
+  ].join('\n'))
+}
+
 export const assertTtsSpokenText = async (audioPath: string, expected: string): Promise<void> => {
+  const source = resolve(audioPath)
   await withTempDir('tts-transcript-oracle-', async dir => {
-    const { result } = await transcribeWhisperfile(resolve(audioPath), dir, { model: ORACLE_MODEL, segmentOffsetMinutes: 0 })
+    const { result } = await transcribeWhisperfile(source, dir, { model: ORACLE_MODEL, segmentOffsetMinutes: 0 })
+      .catch(async (error: unknown) => await retainOracleFailureEvidence(source, error))
     assertSpokenTextMatch(expected, result.text)
   })
 }

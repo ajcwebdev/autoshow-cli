@@ -18,7 +18,6 @@ export type EstimatedExtractTarget = {
 }
 
 export type ExtractCostEstimateInput = {
-  extractPageCount?: number | undefined
   applyCostMultipliers?: boolean | undefined
   hostedOcrTokenProfilePath?: string | undefined
 }

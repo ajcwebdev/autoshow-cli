@@ -54,8 +54,6 @@ test('music mode conflicts reject before any local or hosted work', async () => 
 
 test('reference handler rejects QA-only for either reference kind before catalog/provider access', async () => {
   for (const kind of ['character', 'location']) {
-    // parseNativeCli records unknown flags; dispatcher rejects them and the handler's
-    // explicit applicability guard also protects direct handler calls.
     const parsed = parseRoot(['comic', 'reference-sketch', `--${kind}`, 'nonexistent-reference', '--qa-only'])
     await expect(referenceSketchCommandDefinition.handler(asCtx(parsed))).rejects.toThrow('--qa-only')
   }

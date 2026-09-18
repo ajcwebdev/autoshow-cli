@@ -14,7 +14,6 @@ const describeStatus = (status: number): string =>
         : status === 429 ? 'the OpenAI account is rate limited or out of quota'
           : 'model-list access could not be established'
 
-/** Read-only model-list access check; does not establish credit or generation admission. */
 export const runComicCreditPreflight = async (
   options: { provider?: 'openai'; price?: boolean | undefined },
   dependencies: CreditPreflightDependencies = {},

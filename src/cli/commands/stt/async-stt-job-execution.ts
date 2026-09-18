@@ -132,6 +132,7 @@ export const pollAndPersistAsyncSttJob = async <TStatus, TTranscript, TUpload>(
     maxPollIntervalMs: options.maxPollIntervalMs,
     audioDurationSeconds: options.audioDurationSeconds,
     pollMode: activeJob.resumedExistingJob ? 'resume-probe' : 'fresh',
+    ...(options.abortSignal ? { abortSignal: options.abortSignal } : {}),
     buildDeadlineError: options.buildDeadlineError,
     buildResumeProbeError: options.buildResumeProbeError,
     poll: async () => {

@@ -47,8 +47,6 @@ export const runTogetherModel = async (
     customizeRequestBody: (requestBody, currentModel) => {
       requestBody['model'] = resolveTogetherApiModel(currentModel)
       requestBody['stream'] = false
-      // K3's hosted quickstart budgets 131072 tokens for reasoning plus content.
-      // Other models retain AutoShow's 32768-token cap, not a host maximum.
       requestBody['max_tokens'] = currentModel === 'kimi-k3' ? 131072 : 32768
       if (policy.effective === 'disabled') {
         requestBody['reasoning'] = { enabled: false }
@@ -58,7 +56,6 @@ export const runTogetherModel = async (
     }
   })
 
-  // Together can return cache hits at the top level instead of prompt_tokens_details.
   const usage = result.metadata.rawProviderUsage
   const normalized = result.metadata.providerUsage
   const cached = isRecord(usage) ? usage['cached_tokens'] : undefined

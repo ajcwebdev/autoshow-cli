@@ -18,7 +18,6 @@ See the [STT overview](../overview.md) for shared options, environment variables
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider assemblyai
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider assemblyai=universal-3-5-pro --speaker-count 2
 ```
-
 Bare `--provider assemblyai` defaults to `universal-3-5-pro`.
 
 ### Gemini STT
@@ -32,7 +31,6 @@ Bare `--provider assemblyai` defaults to `universal-3-5-pro`.
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider gemini
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider gemini=gemini-3.5-transcribe
 ```
-
 Bare `--provider gemini` defaults to `gemini-3.5-transcribe`. Native speaker diarization and word timestamps are on by default in verbatim mode (`--no-diarization` keeps word timestamps). Speaker count is not configurable. Custom vocabulary and smart transcription are incompatible with those features and are not exposed.
 
 ### Deepgram
@@ -45,7 +43,6 @@ Bare `--provider gemini` defaults to `gemini-3.5-transcribe`. Native speaker dia
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepgram=nova-3
 ```
-
 ### Gladia
 
 | Option        | Value                         |
@@ -58,7 +55,6 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider d
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider gladia=solaria-3
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider gladia --speaker-count 2
 ```
-
 Bare `--provider gladia` selects `solaria-3`. `solaria-3` is English, French, German, Spanish, and Italian only.
 
 ### Grok STT
@@ -71,7 +67,6 @@ Bare `--provider gladia` selects `solaria-3`. `solaria-3` is English, French, Ge
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider grok=speech-to-text
 ```
-
 ### Happy Scribe
 
 | Option       | Value                                    |
@@ -85,8 +80,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider g
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider happyscribe=auto
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider happyscribe --stt-organization-id happyscribe=org_123
 ```
-
-Organization resolution order: CLI `--stt-organization-id`, config default, then auto-select if the API key accesses exactly one organization.
+Organization resolution order: CLI `--stt-organization-id`, saved `setup` default, then auto-select if the API key accesses exactly one organization.
 
 ### Mistral
 
@@ -98,7 +92,6 @@ Organization resolution order: CLI `--stt-organization-id`, config default, then
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider mistral
 ```
-
 ### Soniox
 
 | Option   | Value                         |
@@ -109,7 +102,6 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider m
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider soniox
 ```
-
 ### Speechmatics
 
 | Option   | Value                               |
@@ -120,7 +112,6 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider s
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider speechmatics=melia-1
 ```
-
 Bare `--provider speechmatics` selects `melia-1` (multilingual).
 
 ## Provider Capabilities

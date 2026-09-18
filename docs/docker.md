@@ -14,6 +14,7 @@ The image includes:
 - MuPDF `mutool`
 - `qpdf`
 - Calibre `ebook-convert`
+- ImageMagick (TIFF conversion and lyric-video/comic compositing), with Pango/DejaVu fonts for caption rendering
 
 It does not include heavyweight local STT, LLM, or TTS engines, model weights, Defuddle, or provider credentials.
 
@@ -24,13 +25,11 @@ Deno is copied from its pinned official multi-architecture image and is detected
 ```bash
 docker pull ghcr.io/ajcwebdev/autoshow-cli:latest
 ```
-
 To build locally from source:
 
 ```bash
 docker build -t autoshow-cli:local .
 ```
-
 ### Runtime Validation
 
 The local, no-cost baseline command builds separate platform images, verifies their architecture and Bun version, runs all measurements, and writes exact command arrays plus raw samples under the ignored `runtime/profiling/bun-docker-baseline/` directory:
@@ -38,13 +37,11 @@ The local, no-cost baseline command builds separate platform images, verifies th
 ```sh
 bun baseline:docker --platform all --repeats 5 --fixture-repeats 3
 ```
-
 After building and verifying the intended platform images, reuse them to collect samples with `--skip-build`. The recorded Bun 1.3 baseline used this sequence:
 
 ```sh
 bun baseline:docker --platform all --repeats 5 --fixture-repeats 3 --skip-build
 ```
-
 For a before/after Bun pin comparison, use the first command with the same Docker host, fixture, sample counts, and execution modes. Compare medians and raw samples; do not compare a native row with an emulated row.
 
 The historical results, source identities, measurement definitions, and native CI gates are archived in [ADR-014](adr/ADR-014-distribute-the-cli-as-a-docker-image.md#bun-14-migration-evidence).
@@ -54,10 +51,9 @@ To compare dotenv parsing without printing credential values, run:
 ```sh
 bun compare:env
 ```
-
 Pass `--platform linux/amd64` or `--platform linux/arm64` to select a Docker architecture explicitly. A changed, missing, or added parsed result makes the command fail.
 
-The dotenv probe compares the local `.env` against the exact Bun 1.3.14 and Bun 1.4.0 base images and records only key names and one-run salted hashes under ignored `runtime/profiling/bun-env-compat/`. The salt and credential values are not retained. The historical compatibility result is archived in [ADR-005](adr/ADR-005-reduce-environment-variable-surface-area.md#bun-14-dotenv-compatibility).
+The dotenv probe compares the local `.env` against the exact Bun 1.3.14 image and the current `Dockerfile` `BUN_BASE_IMAGE` (presently Bun 1.4.2-slim) and records only key names and one-run salted hashes under ignored `runtime/profiling/bun-env-compat/`. The salt and credential values are not retained. The historical compatibility result is archived in [ADR-005](adr/ADR-005-reduce-environment-variable-surface-area.md#bun-14-dotenv-compatibility).
 
 The examples below use `autoshow-cli:local`. Substitute `ghcr.io/ajcwebdev/autoshow-cli:latest` if you pulled the published image.
 
@@ -66,15 +62,12 @@ The examples below use `autoshow-cli:local`. Substitute `ghcr.io/ajcwebdev/autos
 Arguments after the image name are AutoShow arguments:
 
 ```bash
-# Native checkout
 bun autoshow --version
-bun autoshow extract content/book/book.epub
+bun autoshow extract input/examples/document/1-epub.epub
 
-# Docker image
 docker run --rm autoshow-cli:local --version
 docker run --rm autoshow-cli:local help extract
 ```
-
 ### Mount the current working directory
 
 For file-based commands, mount the current directory at `/workspace` and make it the container working directory. Pass paths relative to that directory so the default `./output` directory is written back to the host:
@@ -83,9 +76,8 @@ For file-based commands, mount the current directory at `/workspace` and make it
 docker run --rm -i \
   --mount "type=bind,src=$(pwd),dst=/workspace" \
   --workdir /workspace \
-  autoshow-cli:local extract content/book/book.epub
+  autoshow-cli:local extract input/examples/document/1-epub.epub
 ```
-
 Only the mounted directory is visible. If a source is outside it, run from a common ancestor or add another mount. Paths are interpreted inside the container; do not pass an unmounted host-absolute path.
 
 On Linux, add `--user "$(id -u):$(id -g)"` so bind-mounted output is owned by your host user.
@@ -96,11 +88,10 @@ You can instead mount input and output paths explicitly. Relative paths resolve 
 
 ```bash
 docker run --rm \
-  -v "$(pwd)/content:/app/input:ro" \
+  -v "$(pwd)/input:/app/input:ro" \
   -v "$(pwd)/output:/app/output" \
-  autoshow-cli:local extract input/book/book.epub
+  autoshow-cli:local extract input/examples/document/1-epub.epub
 ```
-
 The default output root is `/app/output`. Pass `--output-root` when you need a different root.
 
 ## Provider Credentials
@@ -112,9 +103,8 @@ docker run --rm \
   --env-file .env \
   -v "$(pwd)/input:/app/input:ro" \
   -v "$(pwd)/output:/app/output" \
-  autoshow-cli:local write input/example.md --llm openai=gpt-5.6-sol
+  autoshow-cli:local write input/example.md --provider openai=gpt-5.6-sol
 ```
-
 Docker reads the file on the host and exports its entries into the container environment; the file is not mounted into the image. A variable supplied with `-e` overrides the same variable from Docker's `--env-file`. Already-exported container environment variables remain supported.
 
 ## Doctor
@@ -150,7 +140,6 @@ autoshow() (
   docker run "$@"
 )
 ```
-
 The model environment setting is optional for general AutoShow users; remove that line for unrestricted models. Projects that require a fixed image model should retain it. When set, it requires an explicit model for image-producing comic commands and explicit `openai=<required-model>` selectors for standalone images. Defaults, model lists, and alternate/comparison providers are rejected before pricing or output setup with exit code 64 in normal error output. Help/version and `comic generate-images --qa-only` remain exempt. The policy uses parsed flags and occurrences, guards resolved/resumed targets before pricing, and checks internal image dispatch and OpenAI image edits. It does not prove reference-image pixel lineage; project provenance audits remain responsible for that.
 
 Keep the separate `/app/runtime` mount intact: protected voice assets, provisioning journals, and account identity keys must survive disposable containers. Docker's explicit `--env` overrides the same key in `--env-file`. `AUTOSHOW_IMAGE` selects a rebuilt tag without a host launcher.
@@ -172,7 +161,6 @@ docker run --rm --add-host host.docker.internal:host-gateway autoshow-cli:local 
 
 docker stop autoshow-network-fixture
 ```
-
 Wait for readiness JSON in the fixture logs. Always stop the specifically named fixture on completion, failure, or interruption; `--rm` removes it on exit. Inspect an occupied name or port instead of deleting an unrelated container. This loopback-published fixture exercises Docker's host gateway without exposing a public listener; some Linux configurations cannot route the host gateway to loopback-published ports and will fail readiness. Diagnose that result without changing host networking automatically.
 
 The probe runs in a bounded child process with uppercase and lowercase HTTP, HTTPS, and ALL proxy environment variables removed, so cached Bun proxy settings cannot route fixture traffic through a proxy. The caller’s environment and ordinary provider proxy behavior remain intact. The default probe uses the actual shared OpenAI REST client with a dummy key against the fixture. `--probe-client fetch` uses raw Bun fetch and `fetch-no-keepalive` explicitly disables keepalive for comparison. The probe only accepts HTTP origins on localhost, loopback, or `host.docker.internal` and rejects redirects on both readiness and response requests, including the shared REST request; it never reads provider credentials. Readiness and response share a bounded deadline of `--delay-seconds` plus 30 seconds. The command emits machine-readable `passed` and `elapsedSeconds`, and returns nonzero on failure. Server mode handles SIGINT/SIGTERM by stopping the fixture. No price preflight exists because this diagnostic cannot call paid providers.
@@ -191,7 +179,6 @@ Run `bun run check`, then the explicit validation paths below. These suites exer
 bun test test/test-cases/validation/text/ocr/docx-markdown.test.ts test/test-cases/validation/text/ocr/docx-command-contracts.test.ts test/test-cases/validation/cli/required-image-model-contracts.test.ts test/test-cases/validation/cli/network-check-contracts.test.ts test/test-cases/validation/cli/docker-workspace-invocation.test.ts
 bun test test/test-cases/validation/cli/option-resolution-contracts/ test/test-cases/validation/cli/native-cli-parser-contracts.test.ts test/test-cases/validation/cli/docker-image-contracts.test.ts test/test-cases/validation/providers/provider-rest-client-contracts.test.ts test/test-cases/validation/providers/openai-rest-contracts/
 ```
-
 The focused DOCX and delayed-network diagnostics above are separate from published-image acceptance. Published-image acceptance uses `bun t:docker` below and always tests the pulled image.
 
 ## Published `latest` acceptance
@@ -207,7 +194,6 @@ bun t:docker --suite models --model whisperfile:small.en
 bun t:docker --suite models --model whisperfile:large-v3 --platform linux/amd64
 bun t:docker --help
 ```
-
 The default `all` selection contains 41 cases: 28 core, 11 model, and 2 public-network cases. Core includes Tesseract, native EPUB extraction, local HTTP/RSS downloads, Defuddle fixture extraction, caption rerendering, default-write price resolution, and CLI rejection contracts. Model cases execute the four recommended whisperfile selectors (`tiny`, `tiny.en`, `small`, `small.en`), plus default selection, splitting, lyric transcription, and batching. Network cases require successful Twitch and public Defuddle extraction. Public-site failures are classified separately and fail acceptance; there are no successful skips. Optional larger whisperfile bundles remain usable through explicit selection but are outside the acceptance matrix.
 
 Acceptance invokes the image's normal entrypoint and normal non-root user. It never rebuilds the image, mounts checkout source over `/app`, substitutes a host CLI, or passes hosted-provider credentials or host `.env` files. CLI execution is restricted to exact registered command arrays, with an empty explicit config. Hosted-provider rejection cases run with `--network none`; `write --price` resolves the hosted default without dispatching inference. Tests share download definitions, download/STT artifact assertions, and service rejection definitions with native tests through an explicit adapter. Manifests are inspected through a path-mapping view; the original artifacts remain unchanged.
@@ -247,6 +233,7 @@ Paths in this table are relative to `test/test-cases/e2e/`. Shared definitions a
 | `service/audio/tts/mistral-voxtral-mini-tts-2603-voice`: unknown voice-name flag                                                          | `reject-mistral-voice-name`                                                                                                                                                                                |
 | `service/audio/tts/mistral-dialogue-ref-audio`: remote reference rejection without disclosure                                             | `reject-mistral-remote-reference`                                                                                                                                                                          |
 | `service/visuals/image/lumalabs-validation`: unsupported size, invalid ratio, invalid format                                              | `reject-luma-size`, `reject-luma-aspect`, `reject-luma-format`                                                                                                                                             |
+| `service/visuals/image/image-usage-errors`: unknown BFL provider, Gemini lite size other than 1K                                          | `reject-unknown-bfl`, `reject-gemini-lite-size`                                                                                                                                                           |
 | `service/audio/music/provider-flag-validation`: missing provider                                                                          | `reject-music-provider`                                                                                                                                                                                    |
 | `service/audio/tts/inworld-realtime-tts-2`: collects Inworld target                                                                       | Remains a native internal-selector contract; it has no CLI rejection or artifact workflow to port                                                                                                          |
 | Other service e2e tests                                                                                                                   | Hosted generation/transcription/extraction requires provider credits or quota and is excluded; no live-provider suite is imported                                                                          |
@@ -265,7 +252,6 @@ bun t --price
 bun --no-env-file test test/test-cases/validation/docker-acceptance/ test/test-cases/validation/cli/docker-image-contracts.test.ts
 bun --no-env-file test test/test-cases/validation/cli/cli-help-contracts.test.ts test/test-cases/validation/cli/cli-usage-errors/ test/test-cases/validation/cli/option-resolution-contracts/
 ```
-
 Harness contracts exercise pull failure, immutable references, literal arguments, mount and batch-path mapping, credential isolation, command/network allowlisting, timeout cleanup, native architecture enforcement, exact model/CI coverage, and nonzero test counts without Docker or provider requests. A separate encoder regression contract covers FFmpeg builds that list NVIDIA/AMD encoders without usable hardware; lyric rendering now probes a synthetic frame before selecting hardware and otherwise uses libx264.
 
 The default provider and a bare `--provider whisperfile` both select `tiny`. Native contracts cover omitted provider/model selection and split audio; Docker also covers split video.

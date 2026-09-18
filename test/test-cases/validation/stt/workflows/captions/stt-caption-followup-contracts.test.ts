@@ -41,7 +41,6 @@ describe('caption audit follow-ups', () => {
   })
 
   test('Parakeet response shape retains speaker words and exposes zero-length native intervals for caption fallback', () => {
-    // Reduced anonymous fixture matching the observed 2026-09-10 live shape.
     const top = [
       { id: 0, word: 'Hello', start: .16, end: .32, speaker_id: 'SPEAKER_01' },
       { id: 1, word: 'to', start: 1.44, end: 1.44, speaker_id: 'SPEAKER_01' },

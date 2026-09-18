@@ -13,7 +13,8 @@ import { logResumeSuiteSummary } from './resume-logging'
 import * as l from '~/utils/app-logger/app-logger'
 import { discardStagedResult } from '~/utils/app-logger/result-emitter'
 import type { AggregatedPriceEstimate, CliFlagOccurrence, ExtractRoute, ExtractSelectorInputRoutes, HostedConcurrencyCoordinator, PipelineManifest, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind } from '~/types'
-import { UsageError } from '~/utils/error-handler'
+import { UsageError, serializeResultError } from '~/utils/error-handler'
+
 import { assertComicResumeFlags, planComicResume } from './resume-comic/comic-resume'
 import { getResumeHandler } from './resume-registry'
 import { formatErrorMessage } from '~/utils/value-helpers'
@@ -169,7 +170,7 @@ const normalizeOutputDirInputs = (
       : []
 
 const buildResumeFailureError = (
-  failures: Array<{ outputDir: string, message: string }>
+  failures: Array<{ outputDir: string, message: string, error?: Record<string, unknown> }>
 ): Error => {
   const noun = failures.length === 1 ? 'directory' : 'directories'
   const lines = [
@@ -243,7 +244,7 @@ export const dispatchResume = async (
     throw UsageError('Missing required output directory. Usage: bun autoshow resume <outputDirs...> [flags]')
   }
 
-  const failures: Array<{ outputDir: string, message: string }> = []
+  const failures: Array<{ outputDir: string, message: string, error?: Record<string, unknown> }> = []
   const estimates: AggregatedPriceEstimate[] = []
   const resumeResults: ResumeResult[] = []
   const comicPlans: NonNullable<ResumeDispatchOutcome['comicPlan']>[] = []
@@ -267,7 +268,7 @@ export const dispatchResume = async (
         resumeResults.push(outcome.result)
       }
     } catch (error) {
-      failures.push({ outputDir, message: formatErrorMessage(error) })
+      failures.push({ outputDir, message: formatErrorMessage(error), error: serializeResultError(error) })
     } finally {
       discardStagedResult()
     }

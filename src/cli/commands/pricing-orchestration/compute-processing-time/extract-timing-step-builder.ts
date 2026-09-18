@@ -124,11 +124,11 @@ export const buildExtractTimingStep = (
   const isLocalOcr = isLocalOcrTimingProvider(target.provider)
   const isPooledOcr = isHostedOcr || isLocalOcr
   const pageConcurrency = isHostedOcr
-    ? resolveHostedOcrEstimateCap(target.pageCount ?? input.extractPageCount ?? 1, ocrConcurrencyMode, input.ocrConcurrency)
+    ? resolveHostedOcrEstimateCap(target.pageCount ?? 1, ocrConcurrencyMode, input.ocrConcurrency)
     : isLocalOcr
       ? normalizeConcurrency(input.ocrConcurrency, DEFAULT_OCR_CONCURRENCY)
       : 1
-  const resolved = resolveEstimatedExtractProcessingMs(target, input.extractPageCount, { pageConcurrency })
+  const resolved = resolveEstimatedExtractProcessingMs(target, { pageConcurrency })
   const estimation = getExtractEstimation(target.provider, target.model)
   const params: ExtractStepBuildParams = {
     target,

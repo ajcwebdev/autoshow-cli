@@ -4,7 +4,7 @@ import { annotateAppError, AppError, extractErrorMetadata, InfraError, isRetryEx
 
 export const DEFAULT_POLL_DEADLINE_MS = 30 * 60 * 1000
 
-export const MAX_POLL_DEADLINE_MS = 30 * 60 * 1000
+export const MAX_POLL_DEADLINE_MS = 2 * 60 * 60 * 1000
 
 export const POLL_DEADLINE_AUDIO_MULTIPLIER_MS = 250
 
@@ -37,7 +37,7 @@ export const pollAsyncSttJobUntilComplete = async <TStatus>(
 
     const failureReason = options.isFailed(pollResult.status)
     if (failureReason) {
-      throw InfraError(failureReason, { stage: 'stt:async' })
+      throw InfraError(failureReason, { stage: 'stt:async', retryable: false })
     }
 
     return pollResult
@@ -65,6 +65,7 @@ export const pollAsyncSttJobUntilComplete = async <TStatus>(
       sleepBeforeFirstPoll: true,
       nextIntervalMs: (result) => result.retryAfterMs ?? undefined,
       ...(resumeProbe ? { intervalSchedule: ASYNC_STT_RESUME_PROBE_DELAYS_MS } : {}),
+      ...(options.abortSignal ? { abortSignal: options.abortSignal } : {}),
       stats
     })
 

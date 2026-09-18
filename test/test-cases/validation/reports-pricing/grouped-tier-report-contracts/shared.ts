@@ -43,10 +43,10 @@ export const runConsensusBuildReport = async (
 }
 
 export const expectRankingSurfaces = (report: {
-  rankingSurfaces: Record<'local' | 'service', Record<'fastest' | 'cheapest' | 'highestQuality', unknown[]>>
+  rankingSurfaces: Record<'local' | 'service', Record<'price' | 'speed' | 'automatedQuality' | 'humanQuality', unknown[]>>
 }): void => {
   for (const group of ['local', 'service'] as const) {
-    for (const surface of ['fastest', 'cheapest', 'highestQuality'] as const) {
+    for (const surface of ['price', 'speed', 'automatedQuality', 'humanQuality'] as const) {
       expect(Array.isArray(report.rankingSurfaces[group][surface])).toBe(true)
     }
   }

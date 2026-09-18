@@ -22,7 +22,7 @@ Provider models, voices, and delivery markup are in [TTS](../../04-audio/tts/ove
 | `--sfx-license-use <classification>`   | Intended use for license-restricted SFX: `noncommercial`, `commercial`, or `unknown`. AudioGen requires `noncommercial`                          | none            |
 | `--step-concurrency sfx=<count>`       | Max parallel sound-effect requests                                                                                                               | `2`             |
 | `--provider-concurrency <count>`       | Max hosted provider/model targets rendering in parallel                                                                                          | `7`             |
-| `--step-concurrency tts-chunk=<count>` | Max parallel hosted TTS requests per provider                                                                                                    | `30`            |
+| `--step-concurrency tts-chunk=<count>` | Max parallel hosted TTS requests per provider; `2` under `--all-providers`, `50` for a Grok-only selection                                       | `30`            |
 | `--concurrency-mode <ramp\|immediate>` | Approach hosted dialogue and sound-effect caps from one request per provider/account lane (`ramp`) or start at the configured caps (`immediate`) | `ramp`          |
 | `--soundscape-timing-policy <policy>`  | Time inline sound-effect cues with exact turn timing (`strict`) or spread them across the turn range (`proportional`)                            | `strict`        |
 | `--all-providers`                      | Select every hosted TTS target                                                                                                                   | `false`         |
@@ -47,7 +47,6 @@ bun autoshow comic generate-audio 01-01 --provider hume --role "SHIP COMPUTER=ro
 bun autoshow comic generate-audio 01-01 --provider hume --slideshow
 bun autoshow comic generate-audio 01-01 --all-providers --price
 ```
-
 ### Behavior
 
 - With `--output-dir`, the command uses that exact directory: a populated directory must already be a compatible scene run, and a missing or empty directory is initialized as a fresh scene workspace. `--price` requires an existing compatible run and never creates an output directory.

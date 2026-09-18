@@ -5,6 +5,7 @@ import type { RunnerStreamLabel, TestRunArtifacts } from '~/types'
 import { l } from '~/utils/app-logger/app-logger'
 import { consumeBoundedTextStream } from '~/utils/bounded-text-stream'
 import { childEnv } from '~/utils/child-env'
+import { normalizeCredentialValue } from '~/utils/validate/credential-value'
 import { stripAnsi } from '~/utils/terminal-colors'
 import { buildBunTestFlags, isE2EOnlyTestSelection } from './args'
 import { appendRunnerLog, TEST_OUTPUT_ROOT } from './artifacts'
@@ -97,6 +98,20 @@ export const forwardSpawnOutput = async (
   })
 }
 
+/**
+ * Live runs default to every registered hosted credential that is actually
+ * configured, so a default `bun t` does not silently skip a provider because
+ * its key was missing from a hand-maintained list. Placeholder values from
+ * .env.example are normalized away and stay unconfigured. Setting
+ * AUTOSHOW_TEST_CREDENTIAL_KEYS explicitly still pins the exact list.
+ */
+export const resolveConfiguredCredentialKeys = (
+  source: Record<string, string | undefined> = process.env
+): string[] =>
+  HOSTED_PROVIDER_ENV_CHECKS
+    .map(provider => provider.envVar)
+    .filter(envVar => normalizeCredentialValue(source[envVar]) !== undefined)
+
 export const buildTestWorkerEnv = (
   files: string[],
   artifacts: TestRunArtifacts,
@@ -107,7 +122,10 @@ export const buildTestWorkerEnv = (
   const live = process.env['AUTOSHOW_TEST_CREDENTIAL_MODE'] === 'live'
   let credentialKeys: unknown = []
   try {
-    if (live) credentialKeys = JSON.parse(process.env['AUTOSHOW_TEST_CREDENTIAL_KEYS'] ?? '[]')
+    if (live) {
+      const declared = process.env['AUTOSHOW_TEST_CREDENTIAL_KEYS']
+      credentialKeys = declared === undefined ? resolveConfiguredCredentialKeys() : JSON.parse(declared)
+    }
   } catch {
     throw new Error('AUTOSHOW_TEST_CREDENTIAL_KEYS must be a JSON array of registered credential names')
   }

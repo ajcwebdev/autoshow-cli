@@ -4,6 +4,10 @@ import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import type { BoundedCaptureResult, ProviderRestClientProfile, RetryClass } from '~/types'
 import { isRecord } from '~/utils/value-helpers'
 
+// Contract: native Error/DOMException abort and timeout causes may be constructed here
+// and wrapped into AppError at the HTTP boundary. Do not ban useful native causes;
+// enforce AppError at throw sites that leave this module.
+
 export { isRecord }
 
 export const trimTrailingSlashes = (value: string): string => value.replace(/\/+$/, '')
@@ -99,9 +103,6 @@ export const createProviderRestClient = <TOptions, TError extends Error>(
     const request = profile.buildRequest(options)
 
     try {
-      // Bun's TCP keepalive can reset silent requests through Docker Desktop
-      // after ~70s even with its HTTP idle timeout disabled. The image opts out;
-      // native callers retain connection pooling unless they request this mode.
       const init: RequestInit & { timeout: false } = {
         ...request.init,
         timeout: false,

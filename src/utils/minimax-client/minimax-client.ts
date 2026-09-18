@@ -2,32 +2,14 @@ import * as v from 'valibot'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { extractRestErrorMessage, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
 import { validateData } from '~/utils/validate/validation'
-import type { MinimaxBaseResponse, MinimaxCreateResponse, MinimaxFetchJsonOptions, MinimaxQueryResponse } from '~/types'
+import type { MinimaxBaseResponse, MinimaxFetchJsonOptions } from '~/types'
 
 export const MinimaxBaseRespSchema = v.object({
   status_code: v.optional(v.number(), undefined),
   status_msg: v.optional(v.string(), undefined)
 })
 
-export const MinimaxCreateResponseSchema = v.object({
-  task_id: v.union([v.string(), v.number()]),
-  file_id: v.optional(v.union([v.string(), v.number()]), undefined),
-  base_resp: v.optional(MinimaxBaseRespSchema, undefined)
-})
 
-const MinimaxQueryDataSchema = v.object({
-  status: v.optional(v.union([v.string(), v.number()]), undefined),
-  file_id: v.optional(v.union([v.string(), v.number()]), undefined),
-  error_message: v.optional(v.string(), undefined)
-})
-
-export const MinimaxQueryResponseSchema = v.object({
-  status: v.optional(v.union([v.string(), v.number()]), undefined),
-  file_id: v.optional(v.union([v.string(), v.number()]), undefined),
-  error_message: v.optional(v.string(), undefined),
-  data: v.optional(MinimaxQueryDataSchema, undefined),
-  base_resp: v.optional(MinimaxBaseRespSchema, undefined)
-})
 
 export const minimaxJsonRequestInit = (
   apiKey: string,
@@ -96,33 +78,4 @@ export const minimaxFetchJson = async <TSchema extends v.BaseSchema<unknown, unk
     options.stage
   )
   return parsed
-}
-
-export const readMinimaxTaskStatus = (query: MinimaxQueryResponse): string | number | undefined =>
-  query.data?.status ?? query.status
-
-export const resolveMinimaxFileId = (
-  query: MinimaxQueryResponse,
-  create?: MinimaxCreateResponse | undefined
-): string | undefined => {
-  const rawFileId = query.data?.file_id ?? query.file_id ?? create?.file_id
-  return rawFileId === undefined ? undefined : String(rawFileId)
-}
-
-export const isMinimaxTaskSuccess = (status: string | number | undefined): boolean => {
-  if (status === 2 || status === '2') return true
-  if (typeof status === 'string') {
-    const normalized = status.trim().toLowerCase()
-    return normalized === 'success' || normalized === 'succeeded' || normalized === 'completed'
-  }
-  return false
-}
-
-export const isMinimaxTaskFailure = (status: string | number | undefined): boolean => {
-  if (status === 3 || status === '3') return true
-  if (typeof status === 'string') {
-    const normalized = status.trim().toLowerCase()
-    return normalized === 'fail' || normalized === 'failed' || normalized === 'error'
-  }
-  return false
 }

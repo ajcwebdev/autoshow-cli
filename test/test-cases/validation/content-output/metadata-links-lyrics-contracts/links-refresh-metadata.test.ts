@@ -354,7 +354,8 @@ test('links refresh uses deduped curated links for overlapping selections', asyn
     'links',
     '--refresh',
     'models',
-    '--elevenlabs',
+    '--provider',
+    'elevenlabs',
     'models'
   ], {
     outputPath,

@@ -29,6 +29,15 @@ const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
     jitter: true,
     exponential: true
   },
+  // Retrieving the output of a job the provider already completed and billed, so this read is
+  // worth far more persistence than an ordinary one: giving up discards purchased work.
+  runtime_http_paid_result: {
+    maxAttempts: 8,
+    baseDelayMs: 1_000,
+    maxDelayMs: 15_000,
+    jitter: true,
+    exponential: true
+  },
   runtime_http_poll: {
     maxAttempts: 6,
     baseDelayMs: 1_000,

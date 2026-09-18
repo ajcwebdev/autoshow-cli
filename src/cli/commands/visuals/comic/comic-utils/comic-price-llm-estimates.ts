@@ -74,8 +74,6 @@ export const logLlmTokenEstimate = (
       totalCost
     }
   )
-  // The row table is not rendered to stdout, so restate the total on the basis line: the project
-  // approval threshold is checked against an exact estimated total a human can read off the preflight.
   priceLine(`${options.basisNote ?? LLM_ESTIMATE_BASIS_NOTE}; total ~${formatCost(totalCost)}`, {
     unitsPerChar: 0.25,
     cacheDiscount: false,

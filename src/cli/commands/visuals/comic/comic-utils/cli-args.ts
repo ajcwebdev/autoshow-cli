@@ -173,7 +173,7 @@ export const coerceAndValidateDraftTreatment = (parsed: ComicParsedArgs): Parsed
   return output
 }
 
-export const coerceAndValidateReviewNotes = (parsed: ComicParsedArgs, commandName = REVIEW_NOTES_COMMAND): ParsedReviewNotesArgs => {
+export const coerceAndValidateReviewNotes = (parsed: ComicParsedArgs, commandName = REVIEW_COMMAND): ParsedReviewNotesArgs => {
   const scriptPath = readScriptPath(parsed)
   if (!scriptPath?.trim()) throw UsageError(`comic ${commandName} requires <script-path>.`)
   const notes = stringFlag(parsed, 'notes')
@@ -181,7 +181,7 @@ export const coerceAndValidateReviewNotes = (parsed: ComicParsedArgs, commandNam
   return { showHelp: false, scriptPath, notes }
 }
 
-export const coerceAndValidateReviewSheet = (parsed: ComicParsedArgs, commandName = REVIEW_SHEET_COMMAND): ParsedReviewSheetArgs => {
+export const coerceAndValidateReviewSheet = (parsed: ComicParsedArgs, commandName = REVIEW_COMMAND): ParsedReviewSheetArgs => {
   const scriptPath = readScriptPath(parsed)
   if (!scriptPath?.trim()) throw UsageError(`comic ${commandName} requires <script-path>.`)
   const output: ParsedReviewSheetArgs = { showHelp: false, scriptPath }

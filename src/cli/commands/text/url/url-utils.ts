@@ -1,7 +1,7 @@
 import { basename, resolve as pathResolve } from 'node:path'
 import { statPath as stat } from '~/utils/bun-file-io'
 import * as l from '~/utils/app-logger/app-logger'
-import type { FetchRemoteHtmlOptions, HtmlArticleBackend, LocalHtmlReadResult, RemoteHtmlFetchResult, UrlArticleRunResult, UrlArticleScrapeRunner, UrlRequestOptions, WebArticleMetadata } from '~/types'
+import type { FetchRemoteHtmlOptions, HtmlArticleBackend, RemoteHtmlFetchResult, UrlArticleRunResult, UrlArticleScrapeRunner, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { isAbortError, isRetryableStatus } from '~/utils/retries'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { InfraError, ProviderError, ValidationError } from '~/utils/error-handler'
@@ -301,7 +301,7 @@ export const createUrlArticleRun = (
 
 export const readLocalHtml = async (
   source: string
-): Promise<LocalHtmlReadResult> => {
+) => {
   const file = Bun.file(source)
   if (!(await file.exists())) {
     throw InfraError(`File does not exist: ${source}`, { stage: 'url:fetch' })

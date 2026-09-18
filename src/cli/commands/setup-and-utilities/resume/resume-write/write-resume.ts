@@ -11,13 +11,13 @@ import { isSongLyricsPreset } from '~/cli/commands/text/write/structured-output/
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeObservedEstimateCosts, computePriceAlignedEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
-import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
 import { toArray } from '~/utils/text-utils'
-import { UsageError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import { getLlmCost, getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
 import { isNormalizedReasoningEffort, resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
-import type { ExtractEstimateTarget, ExtractionMetadata, GenerationResumeConfig, LLMOptions, LLMTarget, LlmStepEstimate, ResumeTarget, Step1Metadata, Step2Metadata, Step3Metadata, StructuredValidationContext, WriteRuntimeOptions } from '~/types'
+import { sha256Bytes } from '~/utils/value-helpers'
+import type { GenerationResumeConfig, LLMOptions, LLMTarget, LlmStepEstimate, ResumeTarget, Step3Metadata, StructuredValidationContext, WriteRuntimeOptions } from '~/types'
 
 const WRITE_LLM_PROVIDER_FLAGS = deriveGenerationResumeProviderFlags(
   WRITE_LLM_GENERATION_SELECTION,
@@ -34,22 +34,6 @@ const LLM_SERVICES = new Set<Step3Metadata['llmService']>([
   'together',
 ])
 
-const EXTRACT_ESTIMATE_PROVIDERS = new Set<ExtractEstimateTarget['provider']>([
-  'mistral',
-  'glm',
-  'kimi',
-  'openai',
-  'grok',
-  'anthropic',
-  'gemini',
-  'deepinfra',
-  'defuddle',
-  'firecrawl',
-  'glm-reader',
-  'spider',
-  'supadata',
-  'zyte'
-])
 
 const isStep3Metadata = (value: unknown): value is Step3Metadata =>
   isRecord(value)
@@ -203,12 +187,63 @@ const readTextFileIfPresent = async (
   return text.trim().length > 0 ? text : undefined
 }
 
+const WRITE_SOURCE_SNAPSHOT_FILENAME = 'source.txt'
+
+const assertNoExtractInWriteMetadata = (metadata: Record<string, unknown>): void => {
+  if (metadata['step1'] !== undefined || metadata['step2'] !== undefined) {
+    throw ValidationError(
+      'Write resume no longer accepts extract-in-write manifests with step1/step2 metadata. Re-run write against the current text-input contract.',
+      { stage: 'resume:write' }
+    )
+  }
+}
+
+const requireWriteSourceSnapshot = (metadata: Record<string, unknown>): { path: string, sha256: string } => {
+  assertNoExtractInWriteMetadata(metadata)
+  const source = isRecord(metadata['source']) ? metadata['source'] : undefined
+  if (!source || source['kind'] !== 'text-input') {
+    throw ValidationError(
+      'Write resume requires source.kind "text-input" with a hashed local source snapshot.',
+      { stage: 'resume:write' }
+    )
+  }
+  const snapshot = isRecord(source['snapshot']) ? source['snapshot'] : undefined
+  if (!snapshot || typeof snapshot['path'] !== 'string' || typeof snapshot['sha256'] !== 'string') {
+    throw ValidationError(
+      'Write resume requires source.snapshot.path and source.snapshot.sha256 from the original text-input write.',
+      { stage: 'resume:write' }
+    )
+  }
+  return { path: snapshot['path'], sha256: snapshot['sha256'] }
+}
+
 const readSourceText = async (
-  outputDir: string
-): Promise<string> =>
-  await readTextFileIfPresent(join(outputDir, 'transcription.txt'))
-  ?? await readTextFileIfPresent(join(outputDir, 'extraction.txt'))
-  ?? ''
+  outputDir: string,
+  metadata: Record<string, unknown>
+): Promise<string> => {
+  const snapshot = requireWriteSourceSnapshot(metadata)
+  const relativePath = snapshot.path.trim() || WRITE_SOURCE_SNAPSHOT_FILENAME
+  if (relativePath.includes('..') || relativePath.startsWith('/') || relativePath.includes('\\')) {
+    throw ValidationError(`Write resume source snapshot path is invalid: ${relativePath}`, { stage: 'resume:write' })
+  }
+  const absolutePath = join(outputDir, relativePath)
+  const file = Bun.file(absolutePath)
+  if (!(await file.exists())) {
+    throw ValidationError(
+      `Write resume requires the hashed source snapshot at ${relativePath}. Re-run write to create a current text-input run.`,
+      { stage: 'resume:write' }
+    )
+  }
+  const text = await file.text()
+  const actualHash = sha256Bytes(text)
+  if (actualHash !== snapshot.sha256) {
+    throw ValidationError(
+      `Write resume source snapshot hash mismatch for ${relativePath}: expected ${snapshot.sha256}, found ${actualHash}.`,
+      { stage: 'resume:write' }
+    )
+  }
+  return text
+}
 
 const resolvePromptNamesForResume = (
   opts: WriteRuntimeOptions,
@@ -232,9 +267,9 @@ const resolveStructuredValidationContext = async (
   structuredSchema: Awaited<ReturnType<typeof resolveStructuredSchema>>
   structuredValidationContext: StructuredValidationContext
 }> => {
+  assertNoExtractInWriteMetadata(metadata)
   const structuredSchema = await resolveStructuredSchema(promptNames)
-  const step1 = isRecord(metadata['step1']) ? metadata['step1'] : undefined
-  const title = typeof step1?.['title'] === 'string' ? step1['title'].trim() : ''
+  const title = typeof metadata['title'] === 'string' ? metadata['title'].trim() : ''
   const structuredValidationContext: StructuredValidationContext = {
     leafPromptNames: structuredSchema.leafPromptNames,
     presetNames: structuredSchema.presetNames,
@@ -246,131 +281,26 @@ const resolveStructuredValidationContext = async (
   return { structuredSchema, structuredValidationContext }
 }
 
-const isStep2Metadata = (
-  value: unknown
-): value is Step2Metadata =>
-  isRecord(value)
-  && typeof value['transcriptionService'] === 'string'
-  && typeof value['transcriptionModel'] === 'string'
-
-const isExtractionMetadata = (
-  value: unknown
-): value is ExtractionMetadata =>
-  isRecord(value)
-  && typeof value['extractionMethod'] === 'string'
-
-const isExtractEstimateProvider = (
-  value: string
-): value is ExtractEstimateTarget['provider'] =>
-  EXTRACT_ESTIMATE_PROVIDERS.has(value as ExtractEstimateTarget['provider'])
-
-const getStep2ForCosting = (
-  value: unknown
-): Step2Metadata | Step2Metadata[] | ExtractionMetadata | ExtractionMetadata[] | undefined => {
-  if (Array.isArray(value)) {
-    const step2Entries = value.filter(isStep2Metadata)
-    if (step2Entries.length === value.length && step2Entries.length > 0) {
-      return step2Entries
-    }
-
-    const extractionEntries = value.filter(isExtractionMetadata)
-    if (extractionEntries.length === value.length && extractionEntries.length > 0) {
-      return extractionEntries
-    }
-
-    return undefined
-  }
-
-  if (isStep2Metadata(value) || isExtractionMetadata(value)) {
-    return value
-  }
-
-  return undefined
-}
-
-const getStep2SttTargets = (
-  value: unknown
-): Array<{ service: Step2Metadata['transcriptionService'], model: string }> => {
-  const entries = Array.isArray(value) ? value : [value]
-  return entries
-    .filter(isStep2Metadata)
-    .map((entry) => ({
-      service: entry.transcriptionService,
-      model: entry.transcriptionModel
-    }))
-}
-
-const getStep2ExtractTargets = (
-  value: unknown
-): ExtractEstimateTarget[] => {
-  const entries = Array.isArray(value) ? value : [value]
-  return entries
-    .filter(isExtractionMetadata)
-    .flatMap((entry) => {
-      const { provider, model } = resolveExtractionProviderModel(entry)
-      if (!isExtractEstimateProvider(provider)) {
-        return []
-      }
-
-      return [{
-        provider,
-        model,
-        pageCount: entry.totalPages,
-        ...(typeof entry.promptTokens === 'number' ? { promptTokens: entry.promptTokens } : {}),
-        ...(typeof entry.completionTokens === 'number' ? { completionTokens: entry.completionTokens } : {}),
-        ...(typeof entry.providerCostCents === 'number' ? { quotedCostCents: entry.providerCostCents } : {}),
-        estimateType: typeof entry.providerCostCents === 'number' ? 'exact' as const : 'heuristic' as const
-      }]
-    })
-}
-
-const getAudioDurationSeconds = (
-  step1: Step1Metadata | undefined
-): number | undefined =>
-  typeof step1?.durationSeconds === 'number' ? step1.durationSeconds : undefined
-
 const rebuildWriteCostTiming = (
   currentMetadata: Record<string, unknown>,
   mergedStep3: Step3Metadata[]
 ): Pick<Record<string, unknown>, 'cost' | 'timing'> => {
-  const step1 = isRecord(currentMetadata['step1'])
-    ? currentMetadata['step1'] as Step1Metadata
-    : undefined
-  const step2 = getStep2ForCosting(currentMetadata['step2'])
-  const audioDurationSeconds = getAudioDurationSeconds(step1)
+  assertNoExtractInWriteMetadata(currentMetadata)
   const llmTargets = mergedStep3.map((entry) => ({
     service: entry.llmService,
     model: entry.llmModel,
     inputTokens: entry.inputTokenCount,
     outputTokens: entry.outputTokenCount
   }))
-  const extractTargets = getStep2ExtractTargets(currentMetadata['step2'])
-  const estimatedInput = {
-    ...(typeof step1?.url === 'string' ? { sourceUrl: step1.url } : {}),
-    ...(typeof audioDurationSeconds === 'number' ? { audioDurationSeconds } : {}),
-    sttTargets: getStep2SttTargets(currentMetadata['step2']),
-    ...(extractTargets.length > 0 ? { extractTargets } : {}),
-    llmTargets
-  }
+  const estimatedInput = { llmTargets }
   const estimated = computePriceAlignedEstimatedCosts(undefined, estimatedInput)
   const observedEstimate = computeObservedEstimateCosts(estimatedInput)
   const actual = computeActualCosts({
-    ...(step1 ? { step1 } : {}),
-    ...(step2 ? { step2 } : {}),
-    step3: serializeOneOrMany(mergedStep3),
-    ...(typeof audioDurationSeconds === 'number' ? { audioDurationSeconds } : {})
+    step3: serializeOneOrMany(mergedStep3)
   })
-  const estimatedTiming = computeEstimatedProcessingTimes({
-    ...(typeof audioDurationSeconds === 'number' ? { audioDurationSeconds } : {}),
-    sttTargets: getStep2SttTargets(currentMetadata['step2']),
-    ...(extractTargets.length > 0 ? { extractTargets } : {}),
-    llmTargets
-  })
+  const estimatedTiming = computeEstimatedProcessingTimes({ llmTargets })
   const actualTiming = computeActualProcessingTimes({
-    ...(step1 ? { step1 } : {}),
-    ...(step2 ? { step2 } : {}),
-    step3: serializeOneOrMany(mergedStep3),
-    ...(typeof audioDurationSeconds === 'number' ? { audioDurationSeconds } : {})
+    step3: serializeOneOrMany(mergedStep3)
   })
 
   return {
@@ -459,6 +389,12 @@ export const writeResumeConfig = {
     return entries.length > 0 ? entries : undefined
   },
   validateManifestForResume: (item, entries, opts) => {
+    try {
+      assertNoExtractInWriteMetadata((item.metadata ?? {}) as Record<string, unknown>)
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error)
+    }
+
     if (opts.reasoningEffort === undefined) {
       return undefined
     }
@@ -518,6 +454,7 @@ export const writeResumeConfig = {
       context.currentManifestMetadata
     )
     const reservedFileNames = await collectReservedTextJsonFileNames(outputDir, context.existingEntries)
+    const sourceText = await readSourceText(outputDir, context.currentManifestMetadata)
     const results = await runLlmTargetsForStructuredPrompt({
       prompt,
       outputDir,
@@ -535,7 +472,6 @@ export const writeResumeConfig = {
       })
     })
 
-    const sourceText = await readSourceText(outputDir)
     await writeShowNoteArtifacts({
       outputDir,
       results,

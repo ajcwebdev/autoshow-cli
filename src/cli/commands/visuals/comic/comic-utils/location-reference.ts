@@ -13,7 +13,7 @@ import { copyFileExact } from '~/utils/bun-file-io'
 export const LOCATION_VIEWS = ['establishing', 'reverse', 'side'] as const
 export const LOCATION_VIEW_LINEAGES = ['clean', 'mixed'] as const
 export const LOCATION_SNAPSHOT_SCHEMA_VERSION = 3
-export const LOCATION_SNAPSHOT_READABLE_VERSIONS = [2, 3] as const
+export const LOCATION_SNAPSHOT_READABLE_VERSIONS = [3] as const
 export const EXISTING_CANONICAL_ART_MODEL = 'existing-canonical-art'
 
 export const LOCATION_KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/

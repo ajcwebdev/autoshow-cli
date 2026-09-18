@@ -14,8 +14,7 @@ Use this if `yt-dlp` can read a logged-in YouTube browser profile on this machin
 ```bash
 bun autoshow setup --cookies-from-browser chrome
 ```
-
-Replace `chrome` with `firefox`, `brave`, `edge`, or another browser `yt-dlp` can read. Add a profile when needed: `chrome:Default`. Then retry the command that failed.
+Replace `chrome` with another browser `yt-dlp` can read: `firefox`, `opera`, `edge`, `chromium`, `brave`, `vivaldi`, or `safari`. Add a profile when needed: `chrome:Default`. Then retry the command that failed.
 
 ## Export `cookies.txt`
 
@@ -32,13 +31,11 @@ mkdir -p runtime/auth
 cp ~/Downloads/cookies.txt runtime/auth/youtube.cookies.txt
 chmod 600 runtime/auth/youtube.cookies.txt
 ```
-
 6. Persist the absolute file path. AutoShow does not expand `~`.
 
 ```bash
 bun autoshow setup --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
 ```
-
 The file should start with `# Netscape HTTP Cookie File`.
 
 ## If It Still Fails

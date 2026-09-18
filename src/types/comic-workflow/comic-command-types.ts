@@ -1,12 +1,8 @@
 import type { DirectoryEntry } from '../runtime-core/filesystem-types'
-import type { BlockingHardCandidateStatus, HostedConcurrencyCoordinator, HostedConcurrencyMode, PageQaEntry, PageQaRequest, PanelBundleData, GeneratedImageResponse, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, LlmModel, RepairCandidateComparisonRequest, RepairCandidateComparisonResponse, StructuredScriptData } from '~/types'
+import type { BlockingHardCandidateStatus, HostedConcurrencyRuntimeOptions, PageQaEntry, PageQaRequest, PanelBundleData, GeneratedImageResponse, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, LlmModel, RepairCandidateComparisonRequest, RepairCandidateComparisonResponse, StructuredScriptData } from '~/types'
 
-type ComicHostedConcurrencyOptions = {
-  concurrencyMode?: HostedConcurrencyMode | undefined
-  hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
-}
 
-export type ComicSceneCommandOptionsBase = ComicHostedConcurrencyOptions & {
+export type ComicSceneCommandOptionsBase = HostedConcurrencyRuntimeOptions & {
   sceneSlug: string
 }
 
@@ -14,18 +10,18 @@ type ComicScriptSceneCommandOptionsBase = ComicSceneCommandOptionsBase & {
   scriptPath: string
 }
 
-export type ComicLlmCommandOptionsBase = ComicHostedConcurrencyOptions & {
+export type ComicLlmCommandOptionsBase = HostedConcurrencyRuntimeOptions & {
   llmModel?: LlmModel
 }
 
-type ComicImageCommandOptionsBase = ComicHostedConcurrencyOptions & {
+type ComicImageCommandOptionsBase = HostedConcurrencyRuntimeOptions & {
   imageModels?: ImageGenerationModel[]
   size?: ImageGenerationSize
   quality?: ImageGenerationQuality
   force?: boolean
 }
 
-type ComicImageRunOptionsBase = ComicHostedConcurrencyOptions & {
+type ComicImageRunOptionsBase = HostedConcurrencyRuntimeOptions & {
   models: ImageGenerationModel[]
   size: ImageGenerationSize
   quality: ImageGenerationQuality
@@ -129,7 +125,6 @@ export type GenerateImagesCommandOptions = ComicScriptSceneCommandOptionsBase
   & ComicPanelGenerationOptionsBase
   & {
     target?: GenerateImagesTarget
-    /** Internal recovery binding; never exposed as a CLI override. */
     recoveryRunId?: string
     grid?: ComicGridSpec
     concurrency?: number

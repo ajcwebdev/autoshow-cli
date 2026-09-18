@@ -1,4 +1,4 @@
-import type { ComicImageGenerationDependencies, ComicPageChunk, ComicPanelSource, GenerateComicPagesOptions, ImageGenerationModel, ImagePromptVariation, ImageRunStats, PageQaEntry, PromptsConfig } from '~/types'
+import type { ComicImageGenerationDependencies, ComicPageChunk, ComicPanelSource, GenerateComicPagesOptions, ImageGenerationModel, ImagePromptVariation, PromptsConfig } from '~/types'
 
 export type ComicPagePanelSource = ComicPanelSource & { normalizedPrompt: string }
 
@@ -25,8 +25,5 @@ export type PageRenderContext = {
   nextHostedIndex: () => number
 }
 
-export type PageRenderResult = {
-  stats: ImageRunStats
-  qaEntries: Array<{ directory: string; entry: PageQaEntry }>
-  error?: unknown | undefined
-}
+export type { ComicImageRenderResult } from './generate-panel-images-types'
+export type PageRenderResult = import('./generate-panel-images-types').ComicImageRenderResult

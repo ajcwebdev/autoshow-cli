@@ -1,11 +1,6 @@
-import type { AggregatedPriceEstimate, StepEstimate } from '~/types'
+import type { AggregatedPriceEstimate, ModelCostFilterRuntimeOptions, StepEstimate } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { UsageError } from '~/utils/error-handler'
-
-export type ModelCostFilterOptions = {
-  maxModelCents?: number | undefined
-  modelCostFilterExcludedTargetKeys?: string[] | undefined
-}
 
 type ModelCostTarget = Pick<StepEstimate, 'step' | 'provider' | 'model'>
 
@@ -22,10 +17,10 @@ export const getModelCostTargetKey = (
 const getStepKey = (step: ModelCostTarget): string => step.step
 
 const getExcludedKeys = (options: object): ReadonlySet<string> =>
-  new Set((options as ModelCostFilterOptions).modelCostFilterExcludedTargetKeys ?? [])
+  new Set((options as ModelCostFilterRuntimeOptions).modelCostFilterExcludedTargetKeys ?? [])
 
 export const hasModelCostFilterPlan = (options: object): boolean =>
-  Array.isArray((options as ModelCostFilterOptions).modelCostFilterExcludedTargetKeys)
+  Array.isArray((options as ModelCostFilterRuntimeOptions).modelCostFilterExcludedTargetKeys)
 
 export const isModelCostTargetIncluded = (
   options: object,
@@ -75,7 +70,7 @@ const collectModelCostTotals = (
 const formatCents = (value: number): string => `${value.toFixed(3)}\u00a2`
 
 export const configureModelCostFilter = (
-  options: ModelCostFilterOptions,
+  options: ModelCostFilterRuntimeOptions,
   estimates: readonly AggregatedPriceEstimate[]
 ): ModelCostTotal[] => {
   const maxModelCents = options.maxModelCents

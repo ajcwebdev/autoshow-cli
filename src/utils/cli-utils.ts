@@ -2,7 +2,8 @@ import { constants } from 'node:fs'
 import { access, mkdir } from 'node:fs/promises'
 import type { ExecOptions, ExecResult } from '~/types'
 import { readBoundedTextStream } from '~/utils/bounded-capture'
-import { extractErrorMetadata, hasErrorCode, InfraError } from '~/utils/error-handler'
+import { extractErrorMetadata, InfraError } from '~/utils/error-handler'
+import { isPathAbsenceError } from '~/utils/filesystem'
 import { withRetry } from '~/utils/retries'
 import * as l from './app-logger/app-logger'
 import { childEnv } from './child-env'
@@ -193,14 +194,38 @@ export const writeFile = async (filePath: string, content: string): Promise<void
   await Bun.write(filePath, content)
 }
 
+
+/**
+ * Best-effort cleanup policy:
+ * - Keep the primary failure (caller rethrows/returns it).
+ * - Report a secondary cleanup failure once via warn when not an already-gone absence.
+ * - Suppress only known already-gone filesystem conditions.
+ */
+export const runBestEffortCleanup = async (
+  cleanup: () => Promise<void>,
+  options?: { label?: string, primaryError?: unknown }
+): Promise<void> => {
+  try {
+    await cleanup()
+  } catch (error) {
+    if (isPathAbsenceError(error)) return
+    const label = options?.label ?? 'cleanup'
+    l.warn(`${label} failed: ${error instanceof Error ? error.message : String(error)}`, {
+      category: 'artifact',
+      error,
+      ...(options?.primaryError !== undefined
+        ? { metadata: { primaryError: options.primaryError instanceof Error ? options.primaryError.message : String(options.primaryError) } }
+        : {})
+    })
+  }
+}
+
 export const fileExists = async (filePath: string): Promise<boolean> => {
   try {
     await access(filePath, constants.F_OK)
     return true
   } catch (error) {
-    if (['ENOENT', 'ENOTDIR', 'ENAMETOOLONG'].some((code) => hasErrorCode(error, code))) {
-      return false
-    }
+    if (isPathAbsenceError(error)) return false
     throw error
   }
 }

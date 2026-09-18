@@ -261,6 +261,5 @@ export const sanitizeLogMetadata = (metadata: LogMetadata): LogMetadata => {
   return {}
 }
 
-/** Redact saved diagnostics without discarding their line and paragraph boundaries. */
 export const sanitizeArtifactMetadata = (metadata: LogMetadata): LogMetadata =>
   sanitizeUnknown(metadata, 0, new WeakSet<object>(), sanitizeArtifactText) as LogMetadata

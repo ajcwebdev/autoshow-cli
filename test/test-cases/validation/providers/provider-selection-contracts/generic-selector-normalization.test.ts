@@ -7,7 +7,7 @@ import { normalizeExtractGenericSelectorFlags as normalizeExtractGenericSelector
 import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { parseFlagsAndOccurrences } from '../../../../test-utils/flag-occurrences'
-import { normalizeExtractGenericSelectorFlags, normalizeGenericProviderSelectorFlags, normalizeWriteStepSelectorFlags } from './generic-selector-test-adapters'
+import { normalizeExtractGenericSelectorFlags, normalizeGenericProviderSelectorFlags } from './generic-selector-test-adapters'
 
 
 
@@ -59,16 +59,6 @@ describe('provider selection contracts', () => {
       'gemini:lyria-3.5'
     ])
 
-    const writeNormalized = normalizeWriteStepSelectorFlags({
-      llm: ['grok=grok-4.6', 'together=kimi-k3', 'together=glm-5.3-flash', 'anthropic=claude-sonnet-5', 'anthropic=claude-sonnet-5']
-    }, new Set(['llm']))
-    const writeOpts = buildOptsFromFlags(writeNormalized.flags, {}, writeNormalized.explicitFlags)
-    expect(writeOpts.grokModels).toEqual(['grok-4.6'])
-    expect(writeOpts.grokModels?.[0]).toBe('grok-4.6')
-    expect(writeOpts.togetherModels).toEqual(['kimi-k3', 'glm-5.3-flash'])
-    expect(writeOpts.togetherModels?.[0]).toBe('kimi-k3')
-    expect(writeOpts.anthropicModels).toEqual(['claude-sonnet-5'])
-    expect(writeOpts.anthropicModels?.[0]).toBe('claude-sonnet-5')
 
     const imageArgNormalized = normalizeGenericProviderSelectorFlags(
       {
@@ -120,22 +110,5 @@ describe('provider selection contracts', () => {
       'Article extract supports one --provider URL backend at a time'
     )
 
-    expect(() => normalizeWriteStepSelectorFlags({
-      'all-providers': ['stt', 'llm'],
-      'all-local': ['tts']
-    }, new Set(['all-providers', 'all-local']))).toThrow('Invalid --all-local step "tts"')
-    expect(() => normalizeWriteStepSelectorFlags({
-      'all-providers': ['stt', 'llm'],
-      'all-local': ['llm']
-    }, new Set(['all-providers', 'all-local']))).toThrow('--all-local does not support step "llm"')
-    const writeAll = normalizeWriteStepSelectorFlags({
-      'all-providers': ['stt', 'llm'],
-      'all-local': ['stt']
-    }, new Set(['all-providers', 'all-local']))
-    expect(writeAll.flagOccurrences.map((occurrence) => occurrence.name)).toEqual([
-      'all-stt',
-      'all-llm',
-      'all-local-stt'
-    ])
   })
 })

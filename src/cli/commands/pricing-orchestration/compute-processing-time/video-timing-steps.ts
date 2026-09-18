@@ -21,17 +21,7 @@ const resolveVideoTimingDurationSeconds = (
 export const buildVideoTimingSteps = (input: ComputeEstimatedProcessingTimesInput): TimingStepsResult => {
   const steps: TimingStepEntry[] = []
 
-  const videoTargets = input.videoTargets && input.videoTargets.length > 0
-    ? input.videoTargets
-    : input.videoService && input.videoModel
-      ? [{
-          service: input.videoService,
-          model: input.videoModel,
-          ...(input.videoDurationSeconds !== undefined ? { durationSeconds: input.videoDurationSeconds } : {})
-        }]
-      : []
-
-  for (const videoTarget of videoTargets) {
+  for (const videoTarget of input.videoTargets ?? []) {
     const durationSeconds = resolveVideoTimingDurationSeconds(videoTarget, input)
     if (typeof durationSeconds === 'number') {
       const estimation = getVideoEstimation(videoTarget.service, videoTarget.model)

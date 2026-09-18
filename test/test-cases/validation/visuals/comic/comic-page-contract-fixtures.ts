@@ -63,7 +63,7 @@ export const setupPageContractFixtures = () => {
     const locationSheet = join(runDirectory, 'assets', 'location-references', 'location-snapshot', 'cargo-bay.png')
     await mkdir(dirname(locationSheet), { recursive: true })
     await Bun.write(locationSheet, tinyPng)
-    await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 2, snapshots: [{ schemaVersion: 2, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth; camera angles and crops may vary.', sourceScripts: ['scripts/02-script/01.md'], sourceViews: [{ view: 'establishing', generationId: 'v1', imageSha256: sha }], sheet: { path: 'assets/location-references/location-snapshot/cargo-bay.png', sha256: sha } }] }))
+    await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 3, snapshots: [{ schemaVersion: 3, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth; camera angles and crops may vary.', sourceScripts: ['scripts/02-script/01.md'], views: [{ view: 'establishing', generationId: 'v1', imageSha256: sha, path: 'assets/location-references/location-snapshot/cargo-bay.png', label: 'establishing view of cargo-bay' }] }] }))
     for (const panelNumber of [1, 2]) {
       const directory = join(runDirectory, 'metadata', 'panel-prompts', `panel-${String(panelNumber).padStart(2, '0')}`)
       await mkdir(directory, { recursive: true })
@@ -91,9 +91,9 @@ export const setupPageContractFixtures = () => {
       await mkdir(dirname(path), { recursive: true })
       await Bun.write(path, tinyPng)
       locationSheets.push(path)
-      snapshots.push({ schemaVersion: 2, snapshotId: location.snapshotId, locationKey: location.key, specification: location.key, sourceScripts: [], sourceViews: [{ view: 'establishing', generationId: 'v1', imageSha256: sha }], sheet: { path: `assets/location-references/${location.snapshotId}/${location.key}.png`, sha256: sha } })
+      snapshots.push({ schemaVersion: 3, snapshotId: location.snapshotId, locationKey: location.key, specification: location.key, sourceScripts: [], views: [{ view: 'establishing', generationId: 'v1', imageSha256: sha, path: `assets/location-references/${location.snapshotId}/${location.key}.png`, label: `establishing view of ${location.key}` }] })
     }
-    await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 2, snapshots }))
+    await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 3, snapshots }))
     for (const [index, location] of locations.entries()) {
       const panelNumber = index + 1
       const directory = join(runDirectory, 'metadata', 'panel-prompts', `panel-0${panelNumber}`)

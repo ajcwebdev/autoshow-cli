@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test'
 import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises'
 import { basename, resolve } from 'node:path'
-import { budgetedTest, LONG_E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
+import { localBudgetedTest, LONG_E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
 import {
   cleanupTestOutput,
   ensurePageImageFixture,
@@ -107,7 +107,7 @@ test('music lyric-video rerender uses edited captions, cleans tmp on success, an
   }
 }, LONG_E2E_TEST_TIMEOUT_MS)
 
-budgetedTest('transcribe-whisperfile-tiny', 'music lyric-video transcribes local audio with whisperfile and cleans tmp by default', async () => {
+localBudgetedTest('transcribe-whisperfile-tiny', 'music lyric-video transcribes local audio with whisperfile and cleans tmp by default', async () => {
   await cleanupTestOutput(SHORT_AUDIO_SUFFIX)
 
   const result = await runCommand([
@@ -147,7 +147,7 @@ budgetedTest('transcribe-whisperfile-tiny', 'music lyric-video transcribes local
   }
 }, LONG_E2E_TEST_TIMEOUT_MS)
 
-budgetedTest('transcribe-whisperfile-small.en', 'bun autoshow music --audio input/examples/lyrics/01-example-song.mp3 renders the bundled example with the default whisperfile model', async () => {
+localBudgetedTest('transcribe-whisperfile-small.en', 'bun autoshow music --audio input/examples/lyrics/01-example-song.mp3 renders the bundled example with the default whisperfile model', async () => {
   await cleanupTestOutput(EXAMPLE_SONG_SUFFIX)
 
   const result = await runCommand([
@@ -191,7 +191,7 @@ budgetedTest('transcribe-whisperfile-small.en', 'bun autoshow music --audio inpu
   }
 }, LONG_E2E_TEST_TIMEOUT_MS)
 
-budgetedTest('transcribe-whisperfile-tiny', 'music lyric-video batch writes one batch-scoped canonical manifest and child lyric items for the configured input tree', async () => {
+localBudgetedTest('transcribe-whisperfile-tiny', 'music lyric-video batch writes one batch-scoped canonical manifest and child lyric items for the configured input tree', async () => {
   await cleanupTestOutput(BATCH_SUFFIX)
 
   const result = await runCommand([

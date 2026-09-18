@@ -2,46 +2,12 @@ import { describe, expect, test } from 'bun:test'
 import { buildWriteResumeOutputFileName } from '~/cli/commands/setup-and-utilities/resume/resume-write/write-resume'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import type { Step3Metadata } from '~/types'
-import { normalizeResumeSelectorFlagsForTarget, normalizeWriteStepSelectorFlags } from './generic-selector-test-adapters'
+import { normalizeResumeSelectorFlagsForTarget } from './generic-selector-test-adapters'
 
 
 
 describe('provider selection contracts', () => {
 
-  test('write step-scoped --all-local normalizes local provider groups and rejects bare usage', () => {
-    const normalized = normalizeWriteStepSelectorFlags({
-      'all-local': ['stt', 'ocr', 'url']
-    }, new Set(['all-local']))
-
-    expect(normalized.flags).toMatchObject({
-      'all-local-stt': true,
-      'all-local-ocr': true,
-      'all-local-url': true
-    })
-    expect(normalized.flags['all-local-llm']).toBeUndefined()
-    expect(normalized.flags['all-local-tts']).toBeUndefined()
-    expect(normalized.flags['all-local-image']).toBeUndefined()
-    expect(normalized.flags['all-local-video']).toBeUndefined()
-    expect(normalized.flags['all-local-music']).toBeUndefined()
-    expect(normalized.explicitFlags.has('all-local-stt')).toBe(true)
-    expect(normalized.explicitFlags.has('all-local')).toBe(false)
-
-    expect(() => normalizeWriteStepSelectorFlags({
-      'all-local': ['llm']
-    }, new Set(['all-local']))).toThrow('--all-local does not support step "llm"')
-
-    expect(() => normalizeWriteStepSelectorFlags({
-      'all-local': ['image']
-    }, new Set(['all-local']))).toThrow('Invalid --all-local step "image"')
-
-    expect(() => normalizeWriteStepSelectorFlags({
-      'all-local': ['tts']
-    }, new Set(['all-local']))).toThrow('Invalid --all-local step "tts"')
-
-    expect(() => normalizeWriteStepSelectorFlags({
-      'all-local': true
-    }, new Set(['all-local']))).toThrow('--all-local requires a step')
-  })
 
   test('write resume generic providers normalize to LLM runtime option keys', () => {
     const normalized = normalizeResumeSelectorFlagsForTarget({
@@ -51,18 +17,7 @@ describe('provider selection contracts', () => {
       manifestPath: '/tmp/write-run/manifest.json'
     }, {
       provider: ['together=kimi-k3', 'together=glm-5.3-flash', 'anthropic=claude-sonnet-5', 'anthropic=claude-sonnet-5']
-    }, new Set(['provider']), [
-      'resume',
-      '/tmp/write-run',
-      '--provider',
-      'together=kimi-k3',
-      '--provider',
-      'together=glm-5.3-flash',
-      '--provider',
-      'anthropic=claude-sonnet-5',
-      '--provider',
-      'anthropic=claude-sonnet-5'
-    ])
+    }, new Set(['provider']))
     const opts = buildOptsFromFlags(normalized.flags, {}, normalized.explicitFlags, { flagOccurrences: normalized.flagOccurrences })
 
     expect(normalized.flagOccurrences.map(({ name, value }) => ({ name, value }))).toEqual([

@@ -9,11 +9,8 @@ on:
 permissions:
   contents: read
 
-# Hold this lock through post-publication acceptance, not only manifest creation.
 concurrency:
   group: autoshow-ghcr-${{ github.event_name == 'push' && 'latest' || github.ref }}
-  # Pushes stay serialized and are never cancelled so a release cannot be interrupted mid-publication;
-  # superseded pull-request runs are cancelled to free runners.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -386,7 +383,6 @@ jobs:
           report_dir="runtime/ci/docker-amd64"
           mkdir -p "${report_dir}" docs/reports/release-evidence/amd64
           docker pull --platform linux/amd64 "${image_ref}" >/dev/null
-          # Materialize lazy image layers before reading their sizes.
           test "$(docker run --rm --platform linux/amd64 --network none --entrypoint bun "${image_ref}" --version)" = "1.4.2"
           test "$(uname -m)" = "x86_64"
           test "$(docker info --format '{{.Architecture}}')" = "x86_64"
@@ -605,7 +601,6 @@ jobs:
           report_dir="runtime/ci/docker-arm64"
           mkdir -p "${report_dir}" docs/reports/release-evidence/arm64
           docker pull --platform linux/arm64 "${image_ref}" >/dev/null
-          # Materialize lazy image layers before reading their sizes.
           test "$(docker run --rm --platform linux/arm64 --network none --entrypoint bun "${image_ref}" --version)" = "1.4.2"
           test "$(uname -m)" = "aarch64"
           test "$(docker info --format '{{.Architecture}}')" = "aarch64"

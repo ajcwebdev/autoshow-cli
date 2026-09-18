@@ -46,6 +46,10 @@ type StringControlSpec = Readonly<{
   normalize?: ((value: string) => string) | undefined
   preserveWhitespace?: boolean | undefined
   allowedValues?: readonly string[] | undefined
+  /** Help-only override/qualification; does not change runtime validation. */
+  helpNote?: string | undefined
+  /** When true, omit this provider from --help accepted-value clauses (runtime unchanged). */
+  helpOmit?: boolean | undefined
 }>
 
 type NumberControlSpec = Readonly<{
@@ -54,11 +58,15 @@ type NumberControlSpec = Readonly<{
   max?: number | undefined
   exclusiveMin?: boolean | undefined
   integer?: boolean | undefined
+  /** Help-only override/qualification; does not change runtime validation. */
+  helpNote?: string | undefined
+  /** When true, omit this provider from --help accepted-value clauses (runtime unchanged). */
+  helpOmit?: boolean | undefined
 }>
 
 export type ControlSpec = StringControlSpec
   | NumberControlSpec
-  | Readonly<{ kind: 'boolean' }>
-  | Readonly<{ kind: 'string-array' }>
+  | Readonly<{ kind: 'boolean', helpNote?: string | undefined, helpOmit?: boolean | undefined }>
+  | Readonly<{ kind: 'string-array', helpNote?: string | undefined, helpOmit?: boolean | undefined }>
 
 export type ProviderControlSpecs = Readonly<Record<string, ControlSpec>>

@@ -87,6 +87,8 @@ export const runDialogueWorkSelector = async <TResult>(
       try {
         results[index] = await execute(entries[index] as DialogueWorkItem<TResult> & { workspaceDir: string })
       } catch {
+        // First-failure ownership lives with the outer `failed`/`firstFailure` latch.
+        // Workers exit quietly after another owner records the primary error; do not replace it.
         return
       }
     }

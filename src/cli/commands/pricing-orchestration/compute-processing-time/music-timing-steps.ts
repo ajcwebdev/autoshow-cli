@@ -27,17 +27,7 @@ const resolveMusicTimingDurationSeconds = (
 export const buildMusicTimingSteps = (input: ComputeEstimatedProcessingTimesInput): TimingStepsResult => {
   const steps: TimingStepEntry[] = []
 
-  const musicTargets = input.musicTargets && input.musicTargets.length > 0
-    ? input.musicTargets
-    : input.musicService && input.musicModel
-      ? [{
-          service: input.musicService,
-          model: input.musicModel,
-          ...(input.musicDurationSeconds !== undefined ? { durationSeconds: input.musicDurationSeconds } : {})
-        }]
-      : []
-
-  for (const musicTarget of musicTargets) {
+  for (const musicTarget of input.musicTargets ?? []) {
     const durationSeconds = resolveMusicTimingDurationSeconds(musicTarget)
     if (typeof durationSeconds === 'number') {
       const estimation = getMusicEstimation(musicTarget.service, musicTarget.model)

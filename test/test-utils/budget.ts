@@ -1,8 +1,12 @@
 import { test } from 'bun:test'
 import { E2E_TEST_TIMEOUT_MS } from './timeouts'
 import type { BudgetKeyInput } from '~/types'
+import { UNBUDGETED_LIVE_RUN_ENV } from './budget-env'
 
 export { E2E_TEST_TIMEOUT_MS, LONG_E2E_TEST_TIMEOUT_MS } from './timeouts'
+
+const isUnbudgetedLiveRun = (): boolean =>
+  process.env[UNBUDGETED_LIVE_RUN_ENV] === '1' && process.env['AUTOSHOW_TEST_CREDENTIAL_MODE'] === 'live'
 
 const parseBudgetKeySet = (environmentKey: string): Set<string> | null => {
   const raw = process.env[environmentKey]
@@ -54,6 +58,11 @@ const registerBudgetedTest = (
   fn: () => void | Promise<void>,
   timeoutMs: number
 ): void => {
+  if (isUnbudgetedLiveRun()) {
+    const register = isConcurrentBudgetedTestsEnabled() ? test.concurrent : test
+    register(name, fn, timeoutMs)
+    return
+  }
   const skipKeys = parseBudgetKeySet('AUTOSHOW_TEST_BUDGET_SKIP_KEYS')
   const evaluatedKeys = parseBudgetKeySet('AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS')
   if (skipKeys === null || evaluatedKeys === null || [...skipKeys].some(key => !evaluatedKeys.has(key))) {
@@ -83,4 +92,27 @@ export const budgetedTest = (
   timeoutMs: number = E2E_TEST_TIMEOUT_MS
 ): void => {
   registerBudgetedTest(budgetKey, name, fn, timeoutMs)
+}
+
+/**
+ * Registers a local, no-cost e2e test that still declares a budget key so its
+ * price command stays discoverable by the runner's preflight coverage audit.
+ * Unlike `budgetedTest`, it does not require budget evidence to execute: local
+ * engines cannot bill a provider, so gating them behind a paid-execution
+ * handshake would only make the default no-cost suite unrunnable. When budget
+ * evidence is present it still honors an explicit skip for its key.
+ */
+export const localBudgetedTest = (
+  budgetKey: BudgetKeyInput,
+  name: string,
+  fn: () => void | Promise<void>,
+  timeoutMs: number = E2E_TEST_TIMEOUT_MS
+): void => {
+  const skipKeys = parseBudgetKeySet('AUTOSHOW_TEST_BUDGET_SKIP_KEYS')
+  if (skipKeys !== null && normalizeBudgetKeys(budgetKey).some((key) => skipKeys.has(key))) {
+    test.skip(name, fn)
+    return
+  }
+  const register = isConcurrentBudgetedTestsEnabled() ? test.concurrent : test
+  register(name, fn, timeoutMs)
 }

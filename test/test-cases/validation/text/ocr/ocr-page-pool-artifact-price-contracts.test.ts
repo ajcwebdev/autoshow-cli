@@ -3,51 +3,15 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createPipelineItemFromRecord,derivePipelineItemRecord,PIPELINE_MANIFEST_FILE } from '~/cli/commands/command-shared/pipeline-manifest'
 import { getOcrPoolAttemptRelativeDir } from '~/cli/commands/text/ocr/ocr-pooled-batch'
-import { defaultOcrPoolLaneKey,runOcrPagePool } from '~/cli/commands/text/ocr/ocr-provider-pool'
 import { priceOcrTarget } from '~/cli/commands/setup-and-utilities/resume/extract/ocr-resume'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import type { OcrPoolLedger,OcrTarget,ResumeTarget } from '~/types'
 import { writeSingleManifestFixture } from '../../../../test-utils/manifest-helpers'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
+import { runPool } from '../../../../test-utils/ocr-page-pool-fixture'
 
-const pageResult = (pageNumber: number, target: OcrTarget) => ({
-  result: {
-    pageNumber,
-    method: 'ocr' as const,
-    text: `${target.service}/${target.model}: page ${pageNumber}`
-  },
-  effectiveReasoningEffort: 'default'
-})
 
-const runPool = async (overrides: Partial<Parameters<typeof runOcrPagePool>[0]> = {}) => {
-  const targets: OcrTarget[] = [
-    { service: 'openai', model: 'gpt-5.6-sol' },
-    { service: 'mistral', model: 'mistral-ocr-4-0' }
-  ]
-  let clock = 1_000
-  return await runOcrPagePool({
-    totalPages: 4,
-    requestedTargets: targets,
-    targetsToRun: targets,
-    providerConcurrency: 2,
-    localConcurrency: 1,
-    getLaneKey: defaultOcrPoolLaneKey,
-    getTargetConcurrency: () => 2,
-    getAttemptArtifactDir: getOcrPoolAttemptRelativeDir,
-    processPage: async ({ pageNumber, target }) => pageResult(pageNumber, target),
-    classifyFailure: (error) => ({
-      scope: 'page',
-      ambiguous: false,
-      failure: { message: error instanceof Error ? error.message : String(error) }
-    }),
-    now: () => clock++,
-    createClaimId: (() => {
-      let id = 0
-      return () => `claim-${++id}`
-    })(),
-    ...overrides
-  })
-}
+
 
 describe('pooled OCR page scheduler contracts', () => {
 

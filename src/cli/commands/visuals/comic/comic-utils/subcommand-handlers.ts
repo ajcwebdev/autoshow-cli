@@ -128,7 +128,7 @@ export const handleReviewNotes: CliCommandHandler = async (ctx) => {
   const scriptPath = await resolveComicScriptReferenceOrUsage(parsed.scriptPath)
   const sceneSlug = resolveSceneSlug(scriptPath)
   const result = await withCharacterCatalog(async () => await reviewNotesCommand({ scriptPath, sceneSlug, notesPath: parsed.notes }))
-  l.report.result({ command: ctx.command?.name ?? 'comic review-notes', price: false, sceneSlug }, 'Comic review notes complete')
+  l.report.result({ command: ctx.command?.name ?? 'comic review', price: false, sceneSlug }, 'Comic review notes complete')
   return void result
 }
 
@@ -137,7 +137,7 @@ export const handleReviewSheet: CliCommandHandler = async (ctx) => {
   const scriptPath = await resolveComicScriptReferenceOrUsage(parsed.scriptPath)
   const sceneSlug = resolveSceneSlug(scriptPath)
   const result = await reviewSheetCommand({ scriptPath, sceneSlug, ...(parsed.exportDoc ? { exportDoc: true } : {}) })
-  l.report.result({ command: ctx.command?.name ?? 'comic review-sheet', price: false, sceneSlug }, 'Comic review sheet complete')
+  l.report.result({ command: ctx.command?.name ?? 'comic review', price: false, sceneSlug }, 'Comic review sheet complete')
   return void result
 }
 

@@ -26,19 +26,7 @@ const estimateImageTargetCost = (
 }
 
 export const buildImageCostSteps = (input: ComputeEstimatedCostsInput): CostStepsResult => {
-  const selectionOptions = Object.assign({}, ...IMAGE_PRICING_PROVIDERS.map((provider) => {
-    const models = input[provider.modelsKey]
-    return models?.length ? optionsForService(IMAGE_PRICING_PROVIDERS, provider.service, models) : {}
-  }))
-  const imageEstimates = input.imageTargets && input.imageTargets.length > 0
-    ? input.imageTargets.map((target) => estimateImageTargetCost(target, input))
-    : estimateImageCosts({
-        ...selectionOptions,
-        imageSize: input.imageSize,
-        imageQuality: input.imageQuality,
-        imageCount: input.imageCount,
-        imageInputs: input.imageInputs
-      })
+  const imageEstimates = (input.imageTargets ?? []).map((target) => estimateImageTargetCost(target, input))
 
   return pushGenerationEstimates(
     imageEstimates,

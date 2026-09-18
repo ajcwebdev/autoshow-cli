@@ -17,15 +17,8 @@ import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import type { CliCommandDefinition, CliFlagDefinition, DocumentedFlag, FlagTableRows, ScannerState } from '~/types'
 
 const docsRoot = resolve(import.meta.dir, '../../../../docs/commands')
-// Model-refresh reports are dated snapshots under docs/reports/model-refresh/; discover them by
-// domain so a refresh that renames the date suffix does not break this contract.
-const MODEL_REPORT_DOMAINS = ["stt", "ocr", "url", "write", "tts", "image", "video", "music"] as const
-const modelReportDocs = (await Array.fromAsync(
-  new Bun.Glob("model-refresh-*.md").scan({ cwd: resolve(docsRoot, "../reports/model-refresh") })
-)).map((name) => `../reports/model-refresh/${name}`).sort()
 const commandByDoc = {
   '00-setup-and-utilities/cookies.md': setupCommand,
-  // Usage documents shared flags; setup is a representative root command.
   '00-setup-and-utilities/usage.md': setupCommand,
   '01-sources/metadata/overview.md': metadataCommand,
   '01-sources/download/overview.md': downloadCommand,
@@ -272,7 +265,7 @@ const registrationFor = (
 const isTestDoc = (doc: string): boolean => doc === 'testing.md' || doc.endsWith('/tests.md')
 
 test('command documentation links and section anchors resolve after relocation', async () => {
-  const docs = [...await Array.fromAsync(new Bun.Glob('**/*.md').scan({ cwd: docsRoot })), ...modelReportDocs]
+  const docs = [...await Array.fromAsync(new Bun.Glob('**/*.md').scan({ cwd: docsRoot }))]
   const problems: string[] = []
   for (const doc of docs) {
     const file = resolve(docsRoot, doc)
@@ -305,10 +298,6 @@ test('command documentation links and section anchors resolve after relocation',
 
 test('command doc flag tables name only flags registered by that command', async () => {
   const docs = (await Array.fromAsync(new Bun.Glob('**/*.md').scan({ cwd: docsRoot }))).sort()
-  // Preserve the report inventory without treating historical flags as current CLI usage.
-  for (const domain of MODEL_REPORT_DOMAINS) {
-    expect(modelReportDocs.some((doc) => doc.includes(`model-refresh-${domain}-`))).toBe(true)
-  }
   const commandDocs = docs.filter((doc) => !isTestDoc(doc))
   expect(commandDocs).toEqual(Object.keys(commandByDoc).sort())
 

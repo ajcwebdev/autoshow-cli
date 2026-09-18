@@ -45,7 +45,6 @@ bun autoshow comic draft-treatment input/camp.md --panel-count 20-25 --speaker p
 bun autoshow comic draft-treatment input/camp.md --panel-count 8 --slug camp-manzanita --style-seed camp-manzanita--style-seed.png --voice-pacing mixed
 bun autoshow comic draft-treatment input/camp-manzanita-treatment.pdf --episode 02 --speaker papa-bear --catalog-policy fail
 ```
-
 ### Behavior
 
 - `<treatment-path>` is a `.md`, `.txt`, or `.pdf` file. PDF text is extracted locally, so it costs nothing extra and never calls an OCR provider.
@@ -114,15 +113,12 @@ input/locations/locations-reference.json
 This walkthrough drafts `input/camp.md` into episode 02 with a narrator plus Papa Bear's spoken legend, fitting the treatment into 20-25 panels. Generate the style seed first.
 
 ```bash
-# 1. Style seed for every camp character and location (paid image call)
 bun autoshow image "<campfire comic style reference, no people>" --provider openai=gpt-image-2.5-sunburst --size 1536x1024 --quality high --format png --count 1 --output-dir output/camp-manzanita-style-seed
 cp output/camp-manzanita-style-seed/generated-image.png input/characters/camp-manzanita--style-seed.png
 
-# 2. Draft the script and catalog entries
 bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear --panel-count 20-25 --price
 bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear --panel-count 20-25
 ```
-
 Continue with [`draft-scenes`](./01-draft-scenes.md) as `02-01`, passing `--panel-count` matching the drafted count from the run summary. See the [`comic` overview](./00-comic-overview.md) for the rest of the pipeline.
 
 Next: [draft-scenes](./01-draft-scenes.md).

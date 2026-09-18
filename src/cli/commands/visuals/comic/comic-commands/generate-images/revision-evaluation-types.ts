@@ -50,7 +50,7 @@ export type RevisionComparisonRaw = {
 }
 
 export type RevisionComparisonNormalized = {
-  comparisonContractVersion?: 3 | 4
+  comparisonContractVersion: 4
   pass: 1 | 2
   order: { imageA: 'original' | 'candidate'; imageB: 'original' | 'candidate' }
   originalIssueVisible: boolean

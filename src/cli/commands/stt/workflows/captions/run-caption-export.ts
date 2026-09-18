@@ -59,7 +59,6 @@ export const runCaptionExport = async (input: string | undefined, flags: Record<
     if (await statPath(join(output, name)).catch(() => undefined)) throw ValidationError(`Caption export already exists at ${join(output, name)}; choose a new output directory.`)
   }
   await mkdir(output, { recursive: true })
-  // Exclusive creation protects existing exports and provider artifacts.
   for (const { format, content } of serialized) await writeFile(join(output, `captions.${format}`), content, { flag: 'wx' })
   await writeFile(join(output, 'captions.json'), JSON.stringify({
     source: path, sourceTimelineOffsetSeconds, formats, mode, limits, lineWidth, maxLines, maxCps, displayTimingAdjustments,
@@ -84,7 +83,6 @@ export const runCaptionExport = async (input: string | undefined, flags: Record<
   return output
 }
 
-// Caption grouping selections and the numeric layout defaults advertised by the extract flags.
 export const CAPTION_MODES = ['word', 'phrase'] as const
 export const DEFAULT_CAPTION_MODE = 'phrase'
 export const DEFAULT_CAPTION_LINE_WIDTH = 42
@@ -120,7 +118,6 @@ export const validateCaptionOptions = (flags: Record<string, unknown>) => {
   return { format, formats, mode, lineWidth, maxLines, maxCps, limits }
 }
 
-// Run after provider success has been persisted, outside provider retry loops.
 export const exportSttCaptions = async (outputDir: string, flags: Record<string, unknown> | undefined, directories: string[] = ['.'], videoSource?: string): Promise<Record<string, string>> => {
   if (!flags) return {}
   const files: Record<string, string> = {}

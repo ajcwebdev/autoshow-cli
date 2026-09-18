@@ -135,12 +135,6 @@ describe('grouped report contracts', () => {
         'elevenlabs/eleven_v3',
         'minimax/speech-02-hd'
       ])
-      expect(report.rankingSurfaces.service.highestQuality.map((entry) => entry.providerKey)).toEqual(
-        report.rankingSurfaces.service.humanQuality.map((entry) => entry.providerKey)
-      )
-      expect(report.rankingSurfaces.service.cheapest.map((entry) => entry.providerKey)).toEqual(
-        report.rankingSurfaces.service.price.map((entry) => entry.providerKey)
-      )
 
       const markdown = await Bun.file(join(runDir, 'provider-comparison-report.md')).text()
       expect(markdown).toContain('## Local Models')

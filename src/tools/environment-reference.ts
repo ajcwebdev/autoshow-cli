@@ -13,7 +13,7 @@ Runtime controls include \`AUTOSHOW_PROJECT_ROOT\`, \`AUTOSHOW_SOURCE_IDENTITY_R
 
 Doctor is offline and advisory by default. Strict doctor rejects every warning about configuration, configured cookies, runtimes, local model assets or selected hosted defaults. Optional unselected credentials do not fail strict mode. Operation execution resolves credentials for its final selected providers, including URL, voice, comic and soundscape helpers. Catalog access is not proof of credit or generation admission.
 
-Tests use exported values only, never a separate dotenv parser. Fixture mode is the default. Live registration requires \`AUTOSHOW_TEST_CREDENTIAL_MODE=live\` and valid JSON arrays in both \`AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS\` and \`AUTOSHOW_TEST_BUDGET_SKIP_KEYS\`; every test key must have been evaluated. Missing or corrupt evidence cannot execute paid callbacks. Direct live tests require this same explicit evidence. \`bun run t:provider --budget ...\` selects live mode and generates budget evidence; set \`AUTOSHOW_TEST_CREDENTIAL_KEYS\` to a JSON array of the registered credential names needed by that selection. Only those exports reach workers, and only a live test's declared credentials reach its CLI children. An absent budget leaves paid tests unadmitted.
+Tests use exported values only, never a separate dotenv parser. Fixture mode is the default. Live registration requires \`AUTOSHOW_TEST_CREDENTIAL_MODE=live\` and valid JSON arrays in both \`AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS\` and \`AUTOSHOW_TEST_BUDGET_SKIP_KEYS\`; every test key must have been evaluated. Missing or corrupt evidence cannot execute paid callbacks. Direct live tests require this same explicit evidence. \`bun run t:provider --budget ...\` selects live mode and generates budget evidence; set \`AUTOSHOW_TEST_CREDENTIAL_KEYS\` to a JSON array of the registered credential names needed by that selection. Only those exports reach workers, and only a live test's declared credentials reach its CLI children. A runner-launched live run without \`--budget\` sets \`AUTOSHOW_TEST_UNBUDGETED_LIVE_RUN=1\` and admits every selected live test with no ceiling; a direct \`bun test\` without evidence still fails closed.
 
 Docker launchers share one connection contract: \`PATH\`, \`HOME\`, \`DOCKER_HOST\`, \`DOCKER_CONTEXT\`, \`DOCKER_CONFIG\`, \`DOCKER_TLS_VERIFY\`, \`DOCKER_CERT_PATH\`, and \`XDG_RUNTIME_DIR\`. Provider credentials never reach the Docker client unless explicitly delivered to a container through Docker arguments or an env file.
 
@@ -33,7 +33,7 @@ export const updateEnvironmentReferenceSection = (document: string): string => {
 }
 
 if (import.meta.main) {
-  const report = Bun.file(new URL('../docs/reports/high-priority-metareport-2026-09-11.md', import.meta.url))
-  const document = await report.exists() ? await report.text() : '# High-priority implementation and consolidated report summary\n'
+  const report = Bun.file(new URL('../../docs/reports/environment-reference.md', import.meta.url))
+  const document = await report.exists() ? await report.text() : '# Environment reference\n'
   await Bun.write(report, updateEnvironmentReferenceSection(document))
 }

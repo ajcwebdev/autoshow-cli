@@ -155,4 +155,4 @@ bun as extract input/examples/audio/1-audio.mp3 --step-concurrency bogus=3
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
 - `src/cli/native/help-renderer.ts`
 - `src/cli/native/help-topics.ts`
-- [Help output audit report](../reports/02-help-output-audit/help-output-audit-report.md)
+- Regenerable inventory: [CLI help inventory](../reports/help-output-inventory.md) (`bun --no-env-file src/tools/help-output-audit.ts`)

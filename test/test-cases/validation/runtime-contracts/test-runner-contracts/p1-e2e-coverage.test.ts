@@ -2,7 +2,6 @@ import { expect, test } from 'bun:test'
 import { resolvePriceSelection } from '../../../../test-runner/price-commands/resolve'
 import { inspectBudgetSource } from './budget-source-inspection'
 
-// Inspect live test definitions without importing or executing provider calls.
 const expectedCoverage = [
   ['test/test-cases/e2e/service/text/write/gemini-3.8-flash.test.ts', 'write-gemini-gemini-3.8-flash'],
   ['test/test-cases/e2e/service/text/write/glm-5.3.test.ts', 'write-glm-glm-5.3'],

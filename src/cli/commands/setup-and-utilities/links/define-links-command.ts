@@ -147,15 +147,15 @@ export const linksCommand = defineCliCommand({
   parameters: [{ key: '[selection...]', description: `Documentation section(s) (${knownSections.join('|')}), one URL, or one .md/.txt URL list; sections after --provider <name> scope to that provider` }],
   flags: linksFlags,
   help: {
-    topics: { providers: { description: 'Provider keys and positional section scoping', flags: ['provider'], notes: [`Known providers: ${knownProviders.join(', ')}.`, 'Sections before any provider selector apply globally. Each selector scopes following sections until the next selector; legacy --<provider> switches remain supported.'] } },
+    topics: { providers: { description: 'Provider keys and positional section scoping', flags: ['provider'], notes: [`Known providers: ${knownProviders.join(', ')}.`, 'Sections before any provider selector apply globally. Each --provider selector scopes following sections until the next --provider.'] } },
     examples: [
       ['bun autoshow links', 'Fetch all provider documentation'],
       ['bun autoshow links stt', 'Fetch STT documentation across every provider'],
       ['bun autoshow links models', 'Fetch model documentation across every provider'],
       ['bun autoshow links llmstxt', 'Fetch root llms.txt indexes across every provider'],
       ['bun autoshow links --provider openai models --provider gemini text', 'Fetch distinct sections from two providers'],
-      ['bun autoshow links --openai llmstxt', 'Fetch one provider root llms.txt index'],
-      ['bun autoshow links --openai models', 'Fetch one provider section with a provider selector'],
+      ['bun autoshow links --provider openai llmstxt', 'Fetch one provider root llms.txt index'],
+      ['bun autoshow links --provider openai models', 'Fetch one provider section with a provider selector'],
       ['bun autoshow links https://example.com/docs', 'Fetch one documentation URL'],
       ['bun autoshow links urls.md', 'Fetch documentation URLs listed in a local file']
     ]

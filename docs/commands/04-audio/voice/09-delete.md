@@ -9,7 +9,6 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 ```bash
 bun autoshow voice delete <registration-id> [flags]
 ```
-
 `delete` only works for a ready voice this project owns. If another current registration still uses the same provider voice, [retire](./08-retire.md) that registration first. Hume deletion also requires `--expected-name` with the exact current Hume voice name.
 
 ### Options

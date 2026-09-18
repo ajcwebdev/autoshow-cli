@@ -10,7 +10,6 @@ bun scripts/run.ts <category> build-report <run_dir> [--input-text <path>] [--ro
 bun scripts/run.ts <category> compact-archive <root_dir>
 bun scripts/run.ts <stt|ocr|url> build-combined-report <root_dir>
 ```
-
 The dispatcher calls category-specific scripts and then normalizes reports into the consolidated ranking contract. OCR and STT use category-specific grouped full `metricRankings` instead of `rankingSurfaces`.
 
 A path is a single run when it contains `manifest.json`. A path is an archive root when it is not a run and it contains those run subdirectories, for example `docs/benchmarks/image`, `docs/benchmarks/ocr`, or `docs/benchmarks/stt-with-speakers`. `compact-archive` is required on archive roots for every category and is refused on a single run. For each discovered run it minifies `manifest.json`, strips duplicated `providers[].result` when a sidecar `result.json` exists, compacts STT-style `result.json` evidence blobs the same way as `compact-results`, minifies committed report JSON (`provider-comparison-report.json`, `reference-comparison-report.json`, OCR `page-metrics.json` / `outliers.json` / `selective-adjudication-pages.json` / `variant-comparison-summary.json`, and the archive-root `combined-comparison-report.json`), rewrites absolute run paths in those files to run-relative paths, and deletes regenerable `page-inputs/` trees. When a provider already has canonical `result.json`, it also deletes resume checkpoints that duplicate that result: OCR `page-results/`, `fallback-state.json`, and `partial-extraction.txt`; STT `split-attempts/`, `segment-runs/`, `transcription.words.json`, and `transcription.json`. It keeps those checkpoints for failed providers that have no `result.json`, and it keeps source and generated media, consensus artifacts, `result.json`, transcription/extraction files, and reports. Markdown reports stay pretty-printed.
@@ -46,9 +45,7 @@ Each surface has a matching `*UnavailableReason` field. Price and speed rankings
 Compatibility aliases are also required and must point at full-length arrays:
 
 ```text
-fastest = speed
-cheapest = price
-highestQuality = humanQuality when humanQuality is present, otherwise automatedQuality
+Canonical ranking surfaces are price, speed, automatedQuality, and humanQuality.
 ```
 
 OCR JSON reports must expose full metric rankings at:

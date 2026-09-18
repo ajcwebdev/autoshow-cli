@@ -1,5 +1,5 @@
 import { getLlmCost, getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { ComputeEstimatedCostsInput, CostStepsResult, EstimatedStepEntry, Step3Metadata } from '~/types'
+import type { ComputeEstimatedCostsInput, CostStepsResult, EstimatedStepEntry } from '~/types'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
 import { resolveCostMultiplier } from './cost-steps-shared'
 
@@ -7,18 +7,7 @@ export const buildLlmCostSteps = (input: ComputeEstimatedCostsInput): CostStepsR
   const steps: EstimatedStepEntry[] = []
   let cost = 0
 
-  const llmTargets = input.llmTargets && input.llmTargets.length > 0
-    ? input.llmTargets
-    : input.llmService && input.llmModel
-      ? [{
-          service: input.llmService as Step3Metadata['llmService'],
-          model: input.llmModel,
-          ...(typeof input.llmInputTokenCount === 'number' ? { inputTokens: input.llmInputTokenCount } : {}),
-          ...(typeof input.llmOutputTokenCount === 'number' ? { outputTokens: input.llmOutputTokenCount } : {})
-        }]
-      : []
-
-  for (const llmTarget of llmTargets) {
+  for (const llmTarget of input.llmTargets ?? []) {
     const registryService = llmTarget.service
     const rates = getLlmCost(registryService, llmTarget.model)
     if (!rates) {

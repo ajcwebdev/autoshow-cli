@@ -37,7 +37,6 @@ const parseJsonFromText = (raw: string): StructuredValidationResult => {
   }
 }
 
-
 const normalizeSongLyricsValue = (
   value: unknown,
   title: string
@@ -63,7 +62,6 @@ const normalizeStructuredValue = (
 
   if (context.leafPromptNames.length <= 1) {
     const preset = context.presetNames[0]
-    // Chapter adaptations explicitly ask the model to choose a source-derived song title.
     return preset && isSongLyricsPreset(preset) && preset !== 'rapSongChapterLyrics'
       ? normalizeSongLyricsValue(value, title)
       : value

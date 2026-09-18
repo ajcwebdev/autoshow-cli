@@ -2,7 +2,7 @@ import { withProcessLock } from '~/utils/process-lock'
 import { mkdir, open, rename, rm } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { dirname, resolve } from 'node:path'
-import type { DownloadFlowId, DownloadRequest, DownloadTimeouts, DownloadWatchdog, PartialDownloadMetadata } from '~/types'
+import type { DownloadFlowId, DownloadRequest, DownloadTimeouts, PartialDownloadMetadata } from '~/types'
 import { extractTarGzFile } from './tar-gz'
 import { withSetupDownloadSlot } from './download-admission'
 import { hasErrorCode, InfraError } from '~/utils/error-handler'
@@ -98,7 +98,7 @@ const resolveResumeOffset = async (req: DownloadRequest): Promise<number> => {
   return size
 }
 
-const createDownloadWatchdog = (timeouts: DownloadTimeouts): DownloadWatchdog => {
+const createDownloadWatchdog = (timeouts: DownloadTimeouts) => {
   const controller = new AbortController()
   let abortReason: 'stall' | 'deadline' | undefined
   let stallTimer: ReturnType<typeof setTimeout> | undefined

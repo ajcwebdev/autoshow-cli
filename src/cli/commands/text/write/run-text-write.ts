@@ -1,4 +1,4 @@
-import { resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import type { AggregatedPriceEstimate, BatchChildRunContext, Step3Metadata, StepTimingCost, TranscriptionResult, VideoMetadata, WriteRuntimeOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
@@ -25,6 +25,7 @@ import { serializeOneOrMany } from '~/cli/commands/command-shared/target-runner'
 import { createManifest, createPipelineItemFromRecord, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import { logWriteManifestSummary } from '~/cli/commands/command-shared/write-manifest-log/write-manifest-log'
 import { applySummaryArtifactNames, serializeStep3Results, writeWriteFlowArtifacts } from './write-artifact-finalization'
+import { sha256Bytes } from '~/utils/value-helpers'
 
 const buildTextInputMetadata = (inputPath: string): VideoMetadata => {
   const title = getTextInputTitle(inputPath)
@@ -169,12 +170,20 @@ export const runTextWrite = async (
     ? { estimated: estimatedTiming, actual: actualTiming }
     : undefined
 
+  const sourceSnapshotPath = 'source.txt'
+  await Bun.write(join(outputDir, sourceSnapshotPath), sourceText)
+  const sourceSha256 = sha256Bytes(sourceText)
+
   const manifestMetadata = {
     title,
     source: {
-      kind: 'text-input',
+      kind: 'text-input' as const,
       inputPath,
-      slug: sanitizeTitleSlug(title, 180)
+      slug: sanitizeTitleSlug(title, 180),
+      snapshot: {
+        path: sourceSnapshotPath,
+        sha256: sourceSha256,
+      },
     },
     step3: serializeOneOrMany(step3Results),
     cost,
@@ -194,6 +203,7 @@ export const runTextWrite = async (
   const totalTimeMs = actualTiming.totalProcessingTimeMs
   const artifactFiles: Record<string, string> = {
     prompt: 'prompt.md',
+    source: sourceSnapshotPath,
     manifest: PIPELINE_MANIFEST_FILE,
     ...renderedArtifacts.internalArtifacts,
     ...showNoteArtifacts.internalArtifacts

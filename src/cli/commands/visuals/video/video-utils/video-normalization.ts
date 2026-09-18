@@ -235,7 +235,6 @@ export const normalizeLtxVideoDuration = (
   if (mode !== undefined && !['text', 'image-to-video', 'interpolate'].includes(mode)) {
     throw UsageError(`--mode ${mode} is not supported by ltx/${model}.`)
   }
-  // All CLI LTX requests explicitly use 24 fps. Higher frame rates and automatic duration are not exposed.
   const longClip = model === 'ltx-2-5-fast' && ['1280x720', '720x1280', '1920x1080', '1080x1920'].includes(size)
   const allowed: readonly number[] = longClip ? LTX_FAST_1080P_DURATION_SECONDS : LTX_DURATION_SECONDS
   const requested = duration === undefined ? 8 : duration

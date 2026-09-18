@@ -10,7 +10,7 @@
         "price and speed surfaces include every provider in the group, with missing values last as n/a",
         "automatedQuality uses image judge qualityScore when present",
         "humanQuality is unavailable without explicit humanQualityScore",
-        "fastest, cheapest, and highestQuality compatibility aliases point at full arrays",
+        "canonical price, speed, automatedQuality, and humanQuality ranking surfaces are present",
         "markdown has separate local and service Price, Speed, Automated Quality, and Human Quality sections without Top 3 labels"
       ],
       "files": []
@@ -76,7 +76,7 @@
         "TTS JSON contains complete local and service price, speed, automatedQuality, and humanQuality arrays",
         "TTS automatedQuality rankings use roundtrip WER-derived accuracy, including voice-quality-report median WER when present",
         "TTS humanQuality rankings use humanSpeechScore from voice-quality-report.json",
-        "TTS fastest, cheapest, and highestQuality compatibility aliases are preserved",
+        "TTS canonical ranking surfaces are present without alias keys",
         "TTS markdown does not label ranking sections as Top 3",
         "duration and file size are not used as quality proxies"
       ],

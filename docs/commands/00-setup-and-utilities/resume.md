@@ -7,7 +7,6 @@ Backfill missing provider outputs or continue recorded comic stages in an existi
 ```bash
 bun autoshow resume <outputDirs...> [flags]
 ```
-
 `resume` does not accept a new source input. Point it at one or more existing output directories that contain `manifest.json`.
 
 ## Behavior
@@ -44,37 +43,26 @@ Resume rejects retired provider-named option flags such as `--elevenlabs-tts-sta
 ## Examples
 
 ```bash
-# Resume a single run directory in place
 bun autoshow resume ./output/2026-04-22_12-00-00-000_item
 
-# Resume a batch directory or extract parent batch in place
 bun autoshow resume ./output/2026-04-22_12-00-00-000_batch
 
-# Resume multiple output directories sequentially
 bun autoshow resume ./output/run-a ./output/run-b ./output/run-c --provider gemini=gemini-3.5-flash-lite
 
-# Estimate missing or additive providers without changing output directories
 bun autoshow resume ./output/run-a ./output/run-b --provider deepinfra --price
 
-# Resume shell-expanded output directory globs
 bun autoshow resume ./output/2026-04-22_*_run --all-providers
 
-# Add every local provider for an extract target
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --all-local
 
-# Append write LLM providers to an existing write run
 bun autoshow resume ./output/2026-06-10_16-33-20-777_write \
   --provider together=kimi-k3 \
   --provider glm=glm-5.3-flash
 
-# Retry or append extract, TTS, image, video, or music providers
 bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider glm=glm-5.3-flash
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider elevenlabs=eleven_v3
 ```
-
-## Shared Flags
-
-Comic directories accept `--price`, `--allow-ambiguous-redispatch`, and global logging flags. Their recorded concurrency settings are restored. The controls below apply to standalone and extract runs.
+Comic directories accept `--price`, `--allow-ambiguous-redispatch`, `--bin-dir`, and global logging/JSON flags (`--json`, `--quiet`, `--verbose`, `--color` / `--no-color`, `--log-level`). Their recorded concurrency settings are restored. The controls below apply to standalone and extract runs.
 
 | Flag                                   | Description                                                                                             |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -83,6 +71,7 @@ Comic directories accept `--price`, `--allow-ambiguous-redispatch`, and global l
 | `--provider-concurrency <n>`           | Max hosted providers/models running in parallel for one item                                            |
 | `--local-concurrency <n>`              | Max local providers/models running in parallel for one item                                             |
 | `--concurrency-mode <ramp\|immediate>` | Ramp hosted concurrency from one request (`ramp`, default) or start at the configured cap (`immediate`) |
+| `--step-concurrency <scope>=N`         | Intra-step parallelism (`stt-segment`, `stt-preflight`, `ocr-page`, `tts-chunk`); repeatable            |
 
 ## Comic Recovery
 
@@ -91,7 +80,6 @@ bun autoshow resume ./output/comic-run --price
 bun autoshow resume ./output/comic-run --price --json
 bun autoshow resume ./output/comic-run
 ```
-
 Recovery continues requested image, audio, and presentation work, in that order, using the choices recorded in the original run. Current configuration defaults never select replacement providers. Completed compatible runs are no-ops, and unrequested stages remain unrequested.
 
 `--price` inspects the run without provider calls or writes. Each stage is marked `reuse`, `resume`, `not-requested`, `blocked`, or `after-audio`. With `--json`, check `comicPlans` and `ready` before running the same directory. A blocked plan can be inspected (`ready: false`), but its total covers only work that could be priced. Execution refuses a blocked plan. Invalid manifests or missing source files fail inspection.

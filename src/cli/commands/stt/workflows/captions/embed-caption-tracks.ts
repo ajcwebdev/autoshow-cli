@@ -20,7 +20,6 @@ const capture = async (args: string[]): Promise<string> => {
 
 export const probeCaptionMedia = async (source: string): Promise<CaptionProbe> => JSON.parse(await capture([getFfprobeBinary(), '-v', 'error', '-show_streams', '-show_chapters', '-of', 'json', resolve(source)])) as CaptionProbe
 
-// Single source of truth for the accepted --caption-container selections; help derives from it.
 export const CAPTION_CONTAINER_SELECTIONS = ['mp4', 'mkv', 'both'] as const
 
 export const captionContainers = (source: string, requested: unknown): CaptionContainer[] => {
@@ -29,8 +28,6 @@ export const captionContainers = (source: string, requested: unknown): CaptionCo
   return [requested ?? (extname(source).toLowerCase() === '.mp4' ? 'mp4' : 'mkv')]
 }
 
-// Conservative stream-copy support. Reject unknown codecs explicitly instead of letting
-// FFmpeg's automatic mapping discard streams or implicitly transcode them.
 const chapterTrack = (stream: CaptionStream, probe: CaptionProbe): boolean => stream.codec_type === 'data' && stream.codec_name === 'bin_data' && stream.codec_tag_string === 'text' && Number(stream.nb_frames) === (probe.chapters?.length ?? 0) && (probe.chapters?.length ?? 0) > 0
 const copiedStreams = (probe: CaptionProbe): CaptionStream[] => probe.streams.filter(stream => !chapterTrack(stream, probe))
 
@@ -89,7 +86,6 @@ export const embedCaptionTracks = async (source: string, subtitle: string, outpu
         if (stream.codec_type === 'audio' || stream.codec_type === 'video') streamChecks.push(await verifyCopiedCaptionStream(resolve(source), temporary, stream.index, copiedStreams(result)[index]!.index))
       }
       verification[container] = { subtitleCuesMatch: true, cueCount: expectedCues.length, chaptersPreserved: original.chapters?.length ?? 0, streams: streamChecks, playbackChecked: false }
-      // Hard linking publishes atomically and refuses a destination created after preflight.
       await link(temporary, join(outputDir, name))
       files[container] = name
     } finally {

@@ -1,7 +1,6 @@
 import type { PriceSelectionEntry } from '~/types'
 import { command, exact } from '../helpers'
 
-// Probe local copies of the media fixtures so pricing does not depend on remote media latency.
 export const sttRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/local/stt/whisperfile/whisperfile-default.test.ts', [
     ...['tiny', 'tiny.en', 'small', 'small.en'].map(model => command(`transcribe-whisperfile-${model}`, `transcribe-whisperfile-${model}`, ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', `whisperfile=${model}`, '--price'])),

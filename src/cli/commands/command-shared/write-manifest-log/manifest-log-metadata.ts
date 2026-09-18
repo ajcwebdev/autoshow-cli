@@ -2,6 +2,7 @@ import type { CostSource, EstimatedCostBreakdown, ExtractionMetadata, ManifestLo
 import { isCostSource } from '~/types'
 import { isRecord } from '~/utils/rest-client'
 import { buildMatchKey } from './manifest-log-formatting'
+import { groupRowsByKey } from '~/utils/pricing/group-rows-by-key'
 
 export { isRecord }
 
@@ -113,15 +114,4 @@ export const getTimingEntries = (
 
 export const indexRows = <T extends { step: WriteStepKind, provider: string, model: string },>(
   rows: readonly T[]
-): Map<string, T[]> => {
-  const indexed = new Map<string, T[]>()
-
-  for (const row of rows) {
-    const key = buildMatchKey(row.step, row.provider, row.model)
-    const existing = indexed.get(key) ?? []
-    existing.push(row)
-    indexed.set(key, existing)
-  }
-
-  return indexed
-}
+): Map<string, T[]> => groupRowsByKey(rows, (row) => buildMatchKey(row.step, row.provider, row.model))

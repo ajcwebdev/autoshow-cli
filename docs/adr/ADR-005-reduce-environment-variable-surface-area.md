@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-13
-- **Date Updated:** 2026-09-10
+- **Date Updated:** 2026-09-17
 - **Verification Status:** Passed
 - **Supersession:** The removed container-detection interface and its runtime consequences moved to [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md). This record remains accepted authority for the environment-variable surface.
 
@@ -163,7 +163,6 @@ The [runtime validation instructions](../docker.md#runtime-validation) retain th
 bun run check
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 ```
-
 1. Type check and lint report no dangling references to removed variables.
 2. `--bin-dir` overrides tool resolution; `--json` controls JSON logs; providers target trusted default endpoints.
 3. Missing credentials fail with one error shape and exit code 2; `setup --doctor --strict` fails closed on configured defaults; spawned children do not inherit the full parent credential set.
@@ -180,4 +179,4 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 - `src/utils/validate/env-utils.ts`
 - `src/tools/bun-env-compat.ts`
 
-The current credential count and capabilities are generated from `HOSTED_PROVIDER_ENV_CHECKS` in [the environment reference](../reports/high-priority-metareport-2026-09-11.md#environment-reference). Run `bun --no-env-file src/tools/environment-reference.ts` after registry changes.
+The current credential count and capabilities are generated from `HOSTED_PROVIDER_ENV_CHECKS` into [the environment reference](../reports/environment-reference.md) (under the local `docs/reports/` workspace; that tree is gitignored except `.gitkeep`). Operator-facing credential presence checks live in [setup](../commands/00-setup-and-utilities/setup.md). Run `bun --no-env-file src/tools/environment-reference.ts` after registry changes; the generator writes `docs/reports/environment-reference.md` via `../../docs/reports/...` from `src/tools/`.

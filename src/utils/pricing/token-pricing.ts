@@ -1,4 +1,4 @@
-import type { TokenCostResult, TokenPricingBand, TokenPricingConfig } from '~/types'
+import type { TokenPricingBand, TokenPricingConfig } from '~/types'
 import { applyCostMultiplier } from './cost-multiplier'
 
 const normalizeTokens = (tokens: number): number =>
@@ -23,7 +23,7 @@ export const computeTokenCost = (
   inputTokens: number,
   outputTokens: number,
   costMultiplier = 1
-): TokenCostResult => {
+) => {
   const normalizedInputTokens = normalizeTokens(inputTokens)
   const normalizedOutputTokens = normalizeTokens(outputTokens)
   const selectedBand = selectTokenPricingBand(pricing, normalizedInputTokens)

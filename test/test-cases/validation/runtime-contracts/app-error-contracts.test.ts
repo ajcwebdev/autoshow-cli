@@ -5,12 +5,14 @@ import {
   InfraError,
   UsageError,
   annotateAppError,
+  reclassifyAppError,
   collectErrorChain,
   extractErrorHints,
   extractErrorMetadata,
   hasErrorCode,
   isAppError,
   isUsageError,
+  normalizeErrorHeaders,
   normalizeExitCode,
   serializeDiagnosticError,
   serializeResultError,
@@ -20,6 +22,17 @@ import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { attachAsyncSttErrorContext } from '~/cli/commands/stt/async-stt-polling'
 
 describe('app error contracts', () => {
+  test('normalizes stateful get-like header containers with their receiver intact', () => {
+    class StatefulHeaders {
+      private readonly values = new Map([['retry-after', '3'], ['x-request-id', 'request-1']])
+      get(name: string): string | undefined { return this.values.get(name.toLowerCase()) }
+    }
+
+    const normalized = normalizeErrorHeaders(new StatefulHeaders())
+    expect(normalized?.get('retry-after')).toBe('3')
+    expect(normalized?.get('x-request-id')).toBe('request-1')
+  })
+
   test('AppError stores classification, exit code, hints, metadata, and cause', () => {
     const cause = Object.assign(new Error('provider rejected request'), {
       status: 429,
@@ -139,13 +152,38 @@ describe('app error contracts', () => {
 
     const annotated = annotateAppError(error, {
       stage: 'test:annotation',
+      kind: 'validation',
+      retryable: false,
+      message: 'should not overwrite',
       metadata: { operation: 'fixture' }
     })
 
     expect(annotated).toBe(error)
     expect(annotated.cause).toBe(cause)
     expect(annotated.stage).toBe('test:original')
-    expect(annotated.metadata).toMatchObject({ operation: 'fixture' })
+    expect(annotated.kind).toBe('infrastructure')
+    expect(annotated.message).toBe('operation failed')
+    expect(annotated.retryable).toBeUndefined()
+    expect(annotated.metadata).toMatchObject({
+      operation: 'fixture',
+      stage: 'test:annotation',
+      annotatedRetryable: false
+    })
+  })
+
+  test('reclassifyAppError builds a new terminal error while preserving the prior as cause', () => {
+    const prior = InfraError('checksum mismatch', { stage: 'setup:download' })
+    const reclassified = reclassifyAppError(prior, {
+      kind: 'validation',
+      stage: 'setup:download',
+      retryable: false,
+      message: 'integrity failure'
+    })
+    expect(reclassified).not.toBe(prior)
+    expect(reclassified.kind).toBe('validation')
+    expect(reclassified.retryable).toBe(false)
+    expect(reclassified.message).toBe('integrity failure')
+    expect(reclassified.cause).toBe(prior)
   })
 
   test('STT context attachment preserves retry exhaustion and its cause', () => {
