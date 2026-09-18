@@ -24,7 +24,7 @@ test('links selector accepts glm provider with separate ocr and url sections', (
     'bun',
     'src/cli/create-cli.ts',
     'links',
-    '--glm',
+    '--provider', 'glm',
     'ocr'
   ])
 
@@ -37,7 +37,7 @@ test('links selector accepts glm provider with separate ocr and url sections', (
     'bun',
     'src/cli/create-cli.ts',
     'links',
-    '--glm',
+    '--provider', 'glm',
     'models'
   ])
 
@@ -50,7 +50,7 @@ test('links selector accepts glm provider with separate ocr and url sections', (
     'bun',
     'src/cli/create-cli.ts',
     'links',
-    '--glm',
+    '--provider', 'glm',
     'url'
   ])
 
@@ -85,7 +85,7 @@ test('links selector accepts kimi provider with general text and ocr sections', 
     'bun',
     'src/cli/create-cli.ts',
     'links',
-    '--kimi'
+    '--provider', 'kimi'
   ])
 
   expect(kimiSelection.serviceSelections.get('kimi')).toEqual([])
@@ -98,7 +98,7 @@ test('links selector accepts kimi provider with general text and ocr sections', 
     'bun',
     'src/cli/create-cli.ts',
     'links',
-    '--kimi',
+    '--provider', 'kimi',
     'models'
   ])
 
@@ -111,7 +111,7 @@ test('links selector accepts kimi provider with general text and ocr sections', 
     'bun',
     'src/cli/create-cli.ts',
     'links',
-    '--kimi',
+    '--provider', 'kimi',
     'text'
   ])
 
@@ -124,7 +124,7 @@ test('links selector accepts kimi provider with general text and ocr sections', 
     'bun',
     'src/cli/create-cli.ts',
     'links',
-    '--kimi',
+    '--provider', 'kimi',
     'ocr'
   ])
 
@@ -137,7 +137,7 @@ test('links selector accepts kimi provider with general text and ocr sections', 
     'bun',
     'src/cli/create-cli.ts',
     'links',
-    '--kimi',
+    '--provider', 'kimi',
     'tts'
-  ], 'Unknown links section(s) for --kimi: tts')
+  ], 'Unknown links section(s) for --provider kimi: tts')
 })

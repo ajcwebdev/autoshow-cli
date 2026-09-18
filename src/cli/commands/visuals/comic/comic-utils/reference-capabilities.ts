@@ -1,17 +1,14 @@
-import type { ImageGenerationModel, ReferenceImageCapabilities } from '~/types'
+import type { ImageGenerationModel } from '~/types'
 import { getImageReferenceCapabilities } from '~/cli/commands/setup-and-utilities/models/image-reference-capabilities'
 import { ValidationError } from '~/utils/error-handler'
 
-const getReferenceImageCapabilities = (model: ImageGenerationModel): ReferenceImageCapabilities => {
-  return getImageReferenceCapabilities(model)
-}
 
 export const validateReferenceImageCount = (
   model: ImageGenerationModel,
   requiredCount: number,
   context: string,
 ): void => {
-  const capability = getReferenceImageCapabilities(model)
+  const capability = getImageReferenceCapabilities(model)
   if (!capability.supported || requiredCount > capability.maxInputs) {
     throw ValidationError(
       `${context} requires ${requiredCount} reference image${requiredCount === 1 ? '' : 's'}, but ${model} supports ${capability.supported ? capability.maxInputs : 0}. ` +
@@ -28,7 +25,7 @@ export const trimOptionalContinuityReferences = (
   options: { reserveSlots?: number | undefined } = {},
 ): { references: string[]; trimmed: string[] } => {
   validateReferenceImageCount(model, required.length, 'Required character references')
-  const { maxInputs } = getReferenceImageCapabilities(model)
+  const { maxInputs } = getImageReferenceCapabilities(model)
   const reserveSlots = Math.max(0, Math.floor(options.reserveSlots ?? 0))
   const available = Math.max(0, maxInputs - required.length - reserveSlots)
   return {

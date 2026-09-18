@@ -3,7 +3,6 @@ import { requireCondition } from '../test-utils/require-condition'
 import { access, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 
-// Test-neutral contracts: importing these never registers or runs a provider suite.
 export interface CliOutcome {
   exitCode: number
   stdout: string

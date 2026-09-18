@@ -1,6 +1,5 @@
 import type { BlockingPlan, ReviewReconcileChange, ReviewReconcileSkip, ScenePromptData, StructuredScriptData } from '~/types'
 
-/** A directive targeting "next" cannot be reconciled without a redraft, because no panel is bound to it yet. */
 const resolvePanelNumber = (panel: number | 'next'): number | null => panel === 'next' ? null : panel
 
 const normalize = (value: string): string => value.replace(/\s+/gu, ' ').trim().toLowerCase()

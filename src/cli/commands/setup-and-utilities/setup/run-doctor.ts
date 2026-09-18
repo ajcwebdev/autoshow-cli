@@ -262,7 +262,7 @@ const collectSystemBuildToolChecks = async (probes: DoctorProbes): Promise<Docto
     await checkMusicRenderer(probes),
     probes.which('magick') || probes.which('convert')
       ? check('OK', 'ImageMagick sheets and TIFF', 'ImageMagick available')
-      : check('MISSING', 'ImageMagick sheets and TIFF', 'ImageMagick is required for character sheets and TIFF conversion', { severity: 'warn', nextStep: 'install ImageMagick, Pango and DejaVu Sans; see docs/reports/high-priority-metareport-2026-09-11.md#dependency-installation' })
+      : check('MISSING', 'ImageMagick sheets and TIFF', 'ImageMagick is required for character sheets and TIFF conversion', { severity: 'warn', nextStep: 'install ImageMagick, Pango and DejaVu Sans; see docs/docker.md for ImageMagick, Pango, and DejaVu font requirements' })
   ]
 })
 

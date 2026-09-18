@@ -19,6 +19,7 @@ const DOCS = [
 ]
 
 import { STABILITY_STABLE_AUDIO_MODEL_ID } from './sfx-provider-targets'
+import { readSoundscapeHeader } from './soundscape-http-headers'
 export { STABILITY_STABLE_AUDIO_MODEL_ID }
 const STABILITY_STABLE_AUDIO_SERIALIZER_VERSION = 'stability.stable-audio-3.v2'
 export const STABILITY_STABLE_AUDIO_COST_USD = 0.26
@@ -102,10 +103,10 @@ export const serializeStabilitySoundEffectRequest = (
 ): StabilitySoundEffectSerializedRequest => {
   validateStabilitySoundEffectTask(task, target)
   return {
-    // Retained v1 plans must keep their exact serialized identity for cache validation.
     path: target.capabilityFixture.endpoint,
     body: {
       prompt: task.prompt,
+      // Retained v1 plans must keep their exact serialized identity for cache validation.
       duration: target.capabilityFixture.serializerVersion.endsWith('.v1')
         ? Math.round(task.durationSeconds ?? target.capabilityFixture.constraints.durationSeconds.default ?? 8)
         : task.durationSeconds ?? target.capabilityFixture.constraints.durationSeconds.default ?? 8,
@@ -181,10 +182,9 @@ export const createStabilitySoundEffectAdapter = (options: {
         response = await request({ method: 'GET', path: `/v2beta/audio/results/${providerRequestId}`, headers: { Accept: 'audio/*' }, cancellation })
         if (response.status === 200) break
         if (response.status === 202 || response.status === 429 || response.status >= 500) continue
-        // A result failure never authorizes another create request.
         throw new SoundEffectProviderError(`Stable Audio result ${providerRequestId} failed with HTTP ${response.status}; automatic redispatch is blocked.`, false, 'ambiguous', response.status, response.headers)
       }
-      const contentType = header(response.headers, 'content-type')?.split(';')[0]?.trim() || 'application/octet-stream'
+      const contentType = readSoundscapeHeader(response.headers, 'content-type')?.split(';')[0]?.trim() || 'application/octet-stream'
       if (response.status !== 200 || !contentType.startsWith('audio/') || response.body.byteLength === 0) {
         throw new SoundEffectProviderError(`Stable Audio result ${providerRequestId} is incomplete; automatic redispatch is blocked.`, false, 'ambiguous')
       }
@@ -205,11 +205,4 @@ export const createStabilitySoundEffectAdapter = (options: {
       return { bytes: response.body, contentType, ...(providerRequestId ? { providerRequestId } : {}), requestEvidence }
     },
   }
-}
-
-const header = (headers: Headers | Record<string, string> | undefined, name: string): string | undefined => {
-  if (!headers) return undefined
-  if (headers instanceof Headers) return headers.get(name) ?? undefined
-  const entry = Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase())
-  return typeof entry?.[1] === 'string' ? entry[1] : undefined
 }

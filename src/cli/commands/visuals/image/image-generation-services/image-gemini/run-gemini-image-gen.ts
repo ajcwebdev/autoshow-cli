@@ -4,7 +4,7 @@ import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { withRetry } from '~/utils/retries'
 import { classifyGeminiRetry } from '~/cli/commands/text/write/write-services/write-gemini/gemini-utils'
 import { imageReferenceToInlineDataPart } from '../../image-utils/image-inputs'
-import { getProviderReturnedModel } from '../../image-utils/image-output'
+import { getProviderReturnedModel, mimeToExtension } from '../../image-utils/image-output'
 import { InfraError } from '~/utils/error-handler'
 
 const describeGeminiEmptyImageReason = (
@@ -75,13 +75,18 @@ export const runGeminiImageGen = async (
       }
 
       const imagePaths: string[] = []
+      // Gemini picks the encoding itself and reports it per part, so the artifact is named after the
+      // bytes it actually returned instead of an assumed PNG.
+      const imageFormats: string[] = []
       for (const part of candidates[0].content.parts) {
         if (part.inlineData && part.thought !== true) {
           const imageData = part.inlineData.data
           if (!imageData) continue
-          const outputPath = context.artifactPath('png', imagePaths.length)
+          const extension = mimeToExtension(part.inlineData.mimeType)
+          const outputPath = context.artifactPath(extension, imagePaths.length)
           await Bun.write(outputPath, Buffer.from(imageData, 'base64'))
           imagePaths.push(outputPath)
+          imageFormats.push(extension)
         }
       }
 
@@ -95,6 +100,7 @@ export const runGeminiImageGen = async (
           imageWidth: undefined,
           imageHeight: undefined,
           requestMode: mode,
+          ...(imageFormats[0] ? { imageFormat: imageFormats[0] } : {}),
           ...(providerReturnedModel ? { providerReturnedModel } : {})
         }
       }

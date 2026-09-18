@@ -7,15 +7,16 @@ import { validateData } from '~/utils/validate/validation'
 import { buildOcrOutput } from './ocr-result'
 import { toRequestedProvider } from './ocr-run-state'
 import { getOcrTargetDirectoryName } from './ocr-targets'
+import { projectOcrAttemptUsage } from './ocr-usage-projection'
 
-export const usageFromMetadata = (metadata: ExtractionMetadata): OcrPoolAttemptUsage => ({
-  ...(typeof metadata.requestedReasoningEffort === 'string' ? { requestedReasoningEffort: metadata.requestedReasoningEffort } : {}),
-  ...(typeof metadata.effectiveReasoningEffort === 'string' ? { effectiveReasoningEffort: metadata.effectiveReasoningEffort } : {}),
-  ...(typeof metadata.promptTokens === 'number' ? { promptTokens: metadata.promptTokens } : {}),
-  ...(typeof metadata.completionTokens === 'number' ? { completionTokens: metadata.completionTokens } : {}),
-  ...(typeof metadata.providerCostCents === 'number' ? { providerCostCents: metadata.providerCostCents } : {}),
-  ...(typeof metadata.providerCostSource === 'string' ? { providerCostSource: metadata.providerCostSource } : {}),
-  ...(metadata.ocrProviderUsage ? { providerUsage: metadata.ocrProviderUsage } : {})
+export const usageFromMetadata = (metadata: ExtractionMetadata): OcrPoolAttemptUsage => projectOcrAttemptUsage({
+  requestedReasoningEffort: metadata.requestedReasoningEffort,
+  effectiveReasoningEffort: metadata.effectiveReasoningEffort,
+  promptTokens: metadata.promptTokens,
+  completionTokens: metadata.completionTokens,
+  providerCostCents: metadata.providerCostCents,
+  providerCostSource: metadata.providerCostSource,
+  providerUsage: metadata.ocrProviderUsage
 })
 
 const numberFromRecord = (value: Record<string, unknown>, key: string): number | undefined =>

@@ -2,6 +2,7 @@ import type { OcrPoolAttemptUsage, OcrPoolClaim, OcrPoolClassifiedFailure, OcrPo
 import { InfraError } from '~/utils/error-handler'
 import { getOcrTargetKey } from './ocr-run-state'
 import { normalizePositiveInt } from '~/utils/value-helpers'
+import { projectOcrAttemptUsage } from './ocr-usage-projection'
 
 const invariantError = (message: string): Error =>
   InfraError(`OCR page-pool invariant failed: ${message}`, { stage: 'ocr:page-pool' })
@@ -9,15 +10,7 @@ const invariantError = (message: string): Error =>
 const targetKeyFromAttempt = (attempt: Pick<OcrPoolPageAttempt, 'provider' | 'model'>): string =>
   getOcrTargetKey({ service: attempt.provider, model: attempt.model })
 
-const copyUsage = (usage: OcrPoolAttemptUsage): OcrPoolAttemptUsage => ({
-  ...(typeof usage.requestedReasoningEffort === 'string' ? { requestedReasoningEffort: usage.requestedReasoningEffort } : {}),
-  ...(typeof usage.effectiveReasoningEffort === 'string' ? { effectiveReasoningEffort: usage.effectiveReasoningEffort } : {}),
-  ...(typeof usage.promptTokens === 'number' ? { promptTokens: usage.promptTokens } : {}),
-  ...(typeof usage.completionTokens === 'number' ? { completionTokens: usage.completionTokens } : {}),
-  ...(typeof usage.providerCostCents === 'number' ? { providerCostCents: usage.providerCostCents } : {}),
-  ...(typeof usage.providerCostSource === 'string' ? { providerCostSource: usage.providerCostSource } : {}),
-  ...(usage.providerUsage ? { providerUsage: usage.providerUsage } : {})
-})
+const copyUsage = (usage: OcrPoolAttemptUsage): OcrPoolAttemptUsage => projectOcrAttemptUsage(usage)
 
 const buildInitialTelemetry = (): OcrPoolLedger['telemetry'] => ({
   queueDepth: 0,

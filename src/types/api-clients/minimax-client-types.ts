@@ -1,11 +1,5 @@
 import type * as v from 'valibot'
 
-export type MinimaxCreateResponse =
-  v.InferOutput<typeof import('~/utils/minimax-client/minimax-client').MinimaxCreateResponseSchema>
-
-export type MinimaxQueryResponse =
-  v.InferOutput<typeof import('~/utils/minimax-client/minimax-client').MinimaxQueryResponseSchema>
-
 export type MinimaxBaseResponse = {
   base_resp?: v.InferOutput<typeof import('~/utils/minimax-client/minimax-client').MinimaxBaseRespSchema> | undefined
 }

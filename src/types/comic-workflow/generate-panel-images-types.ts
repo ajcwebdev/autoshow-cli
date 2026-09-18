@@ -18,8 +18,10 @@ export type PanelRenderContext = {
   nextHostedIndex: () => number
 }
 
-export type PanelRenderResult = {
+export type ComicImageRenderResult = {
   stats: ImageRunStats
   qaEntries: Array<{ directory: string; entry: PageQaEntry }>
   error?: unknown | undefined
 }
+
+export type PanelRenderResult = ComicImageRenderResult

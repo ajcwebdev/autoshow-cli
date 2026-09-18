@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-17
 - **Verification Status:** Passed
 
 ## Context
@@ -22,7 +22,7 @@ Why now: users need multiple independent OCR lanes to collaborate on one documen
 - **Option:** Add an explicit shared page pool while retaining full-document fan-out as the default
 - **Pros:** Backward compatible; faster targets process more work; single composite result; account lanes retain concurrency limits; page-level resume and usage attribution
 - **Cons:** Adds page-level run state, per-attempt artifacts, and extra resume bookkeeping
-- **Quantitative Notes:** With three independent hosted lanes and `--ocr-concurrency 10`, up to 30 remote page requests may run; same-account targets share one cap of 10
+- **Quantitative Notes:** With three independent hosted lanes and `--step-concurrency ocr-page=10`, up to 30 remote page requests may run; same-account targets share one cap of 10
 
 **Option 2**
 
@@ -59,7 +59,7 @@ Add `--ocr-provider-mode fanout|pool`, defaulting to `fanout`. In `pool` mode, e
 This applies to:
 
 - Supported PDF, CBZ, and image inputs that can be normalized locally into independent page work units.
-- Fresh `extract` and document `write` runs, configuration of those commands, resume, and side-effect-free `--price` planning.
+- Fresh `extract` runs, configuration of that command, resume, and side-effect-free `--price` planning. OCR no longer runs under `write` ([ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)).
 - Hosted and local OCR targets admitted by `--provider-concurrency` / `--local-concurrency` and provider/account lane identities.
 - Default fan-out: omitting the flag or passing `fanout` keeps existing full-document provider paths, pricing, resume, and optional `--primary-ocr` unchanged.
 
@@ -71,7 +71,7 @@ It does not apply to:
 
 ### Work assignment
 
-Pages are queued in source order. At most one target works on a pending page at a time, and faster targets process more pages. `--provider-concurrency` and `--local-concurrency` bound how many targets are admitted. Each admitted target requests page work up to its OCR cap. Independent provider/account lanes run concurrently; targets that share a lane share that lane's cap. Explicit `--ocr-concurrency <n>` sets a fixed ceiling; omitting it uses adaptive `auto` sizing.
+Pages are queued in source order. At most one target works on a pending page at a time, and faster targets process more pages. `--provider-concurrency` and `--local-concurrency` bound how many targets are admitted. Each admitted target requests page work up to its OCR cap. Independent provider/account lanes run concurrently; targets that share a lane share that lane's cap. Explicit `--step-concurrency ocr-page=<n>` sets a fixed ceiling; omitting it uses adaptive `auto` sizing ([ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md)).
 
 ### Failure, resume, and completion
 
@@ -159,7 +159,6 @@ bun run check
 bun test test/test-cases/validation/text/ocr/ocr-page-pool-*-contracts.test.ts
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 ```
-
 1. Typecheck and unique source check pass.
 2. One-active-page assignment, failure handoff, composite persistence, and unfinished-page `resume --price` hold, and fan-out estimates stay unchanged.
 3. Option defaults and `--primary-ocr` rejection are enforced before dispatch.

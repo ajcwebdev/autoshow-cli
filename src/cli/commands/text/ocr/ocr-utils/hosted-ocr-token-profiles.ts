@@ -59,7 +59,6 @@ const parseReasoningPolicy = (value: unknown): HostedOcrTokenReasoningPolicy | u
     ? value as HostedOcrTokenReasoningPolicy
     : undefined
 
-
 const parseProfile = (value: unknown): HostedOcrTokenUsageProfile | undefined => {
   if (!isRecord(value)) {
     return undefined
@@ -133,7 +132,6 @@ export const readHostedOcrTokenUsageProfiles: (
   profilePath?: string | undefined
 ) => Promise<HostedOcrTokenUsageProfileStore> = tokenUsageProfileStore.read
 
-/** Historical aggregates are audit evidence only, never runtime pricing profiles. */
 export const readHostedOcrTokenUsageProfilesForAudit = async (
   profilePath: string
 ): Promise<{ profiles: HostedOcrTokenUsageProfile[] }> => {

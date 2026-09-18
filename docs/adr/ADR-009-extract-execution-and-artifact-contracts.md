@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-11
-- **Date Updated:** 2026-09-10
+- **Date Updated:** 2026-09-17
 - **Verification Status:** Passed
 - **Supersession:** Absorbs OCR architecture, ordinal-first chapter filenames, URL extraction contracts, and the September 7–10, 2026 STT caption audit, implementation, and follow-up reports consolidated as “STT captions and word timing: consolidated report.” This record remains accepted authority for Step 2 URL, OCR, and STT execution plus public extract artifacts.
 
@@ -150,7 +150,7 @@ Use Tesseract as the sole local OCR engine. Source-specific OCR follows ebook, i
 
 Hosted failures carry retryability and redacted diagnostics. Automatic resume skips deterministic provider blockers such as quota, billing, account, and policy failures. Explicit provider resume re-includes a blocked target after repair or an explicit retry.
 
-Hosted page work uses the shared provider/account lanes in [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md). `--ocr-concurrency auto` sizes hosted limits from document size and qualified profiles, up to a ceiling of `48` or an explicit user cap. `--ocr-concurrency <n>` is a hard ceiling. `--concurrency-mode ramp|immediate` controls hosted startup. Local Tesseract, page rendering, and normalization start immediately.
+Hosted page work uses the shared provider/account lanes in [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md). Omitting `--step-concurrency ocr-page` selects adaptive `auto` sizing from document size and qualified profiles, up to a ceiling of `48` or an explicit user cap. `--step-concurrency ocr-page=<n>` is a hard ceiling ([ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md) replaced `--ocr-concurrency`). `--concurrency-mode ramp|immediate` controls hosted startup. Local Tesseract, page rendering, and normalization start immediately.
 
 Token-priced OCR keeps published rates and prompt/completion shapes explicit, with `costMultiplier: 1`. Canonical usage follows each provider's billed prompt and completion components, including thought tokens when the provider bills them. Calibrate components only from healthy samples qualified by provider, concrete model, OCR mode, page-count band, and effective reasoning policy. Promotion requires at least three matching samples, a consistent direction, and median absolute percentage error above 20%. Failed, partial, or incomplete work cannot become a trusted warm start. Pool and fan-out evidence are not interchangeable.
 
@@ -190,7 +190,7 @@ Channel extraction preserves every stream/channel at its original sample rate an
 
 - Tesseract provided the best performance-to-complexity ratio in local testing while avoiding multi-engine dependency and maintenance costs.
 - Retry-aware blockers prevent automatic resume from repeating quota, billing, account, policy, and other deterministic failures.
-- Adaptive OCR caps improve large-document throughput without weakening explicit `--ocr-concurrency` limits or [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) lanes.
+- Adaptive OCR caps improve large-document throughput without weakening explicit `--step-concurrency ocr-page=<n>` limits or [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) lanes.
 - Explicit token components preserve pricing-tier semantics and prevent profile-derived usage from being multiplied a second time.
 - A derived batch report exposes repeated blockers and cost gaps without duplicating mutable provider state.
 - Explicit URL routes and one extract/resume selector inventory keep domain behavior and newly added providers selectable without inferred routes or a second spelling list.
@@ -236,7 +236,7 @@ Negative outcomes:
 
 **Trade-off 3**
 
-- **Gain:** `--ocr-concurrency auto` can use available throughput
+- **Gain:** `--step-concurrency ocr-page=auto` (the omitted default) can use available throughput
 - **Sacrifice:** Adaptive caps depend on profile quality and can fall back conservatively
 
 **Trade-off 4**
@@ -294,7 +294,7 @@ The implementation lives in `src/cli/commands/command-shared/step-2-extract/`: `
 
 #### Automatic Reference Construction
 
-The user requested the best automatic references available from existing local files instead of manual annotation. Both references are English and explicitly carry `manuallyVerified: false`. The findings and quantitative results are retained in this ADR so the historical conclusion does not depend on ignored runtime files. Detailed evidence remains in the local [artifact index](../../output/stt-caption-followup.cNwSmx/followup-artifacts.json) under `output/stt-caption-followup.cNwSmx/`; raw outputs, failed attempts, working audio, and model/runtime files remain ignored and were preserved.
+The user requested the best automatic references available from existing local files instead of manual annotation. Both references are English and explicitly carry `manuallyVerified: false`. The findings and quantitative results are retained in this ADR so the historical conclusion does not depend on ignored runtime files. Detailed evidence remains in the local `followup-artifacts.json` from the local Parakeet live-validation run (artifact retained outside the repository) under `output/stt-caption-followup.cNwSmx/`; raw outputs, failed attempts, working audio, and model/runtime files remain ignored and were preserved.
 
 **Alignment backend**
 
@@ -368,7 +368,6 @@ The four existing local Parakeet benchmark results were non-diarized and lacked 
 ```bash
 bun autoshow extract input/examples/audio/0-audio-short.mp3 --provider together=nvidia/parakeet-tdt-0.6b-v3 --diarization --speaker-count 2 --captions --caption-mode word --output-dir output/stt-caption-followup.cNwSmx/parakeet-live --json
 ```
-
 It returned two speaker segments (`SPEAKER_01`, `SPEAKER_00`) and 24 word entries. Duplicate top-level/nested words were represented once. Twelve entries had positive duration and twelve had identical start/end values. Normalized evidence retained all provider text, speakers, and timestamps. SRT/VTT export preserved all 24 words, reported 12 invalid and 12 inferred timings, and retained `timingQuality: mixed`; canonical native intervals were not overwritten.
 
 The CLI computed 0.015 cents ($0.00015) from six seconds of usage at the catalog rate, with `costSource: computed_usage`; this was not an independently verified invoice. Exactly one paid run occurred, with no additional paid retry or native-export request. CLI duration was 986 ms, including 910 ms attributed to transcription. Local evidence includes `parakeet-live/result.json`, `parakeet-live/manifest.json`, `parakeet-live/captions.json`, and `parakeet-validation.json`; the artifact index fingerprints these results.
@@ -377,7 +376,7 @@ Capability metadata became `diarizationValidation: live-tested` and the provisio
 
 ## API / Type Impact
 
-- `--ocr-concurrency auto` selects adaptive hosted behavior; `--ocr-concurrency <n>` is a hard maximum for runtime scheduling and estimates.
+- Omitting `--step-concurrency ocr-page` selects adaptive hosted behavior; `--step-concurrency ocr-page=<n>` is a hard maximum for runtime scheduling and estimates.
 - `--ocr-provider-mode fanout|pool` defaults to `fanout`. Pool mode produces one composite top-level extraction and rejects `--primary-ocr`.
 - Composite metadata carries `extractionMethod: "ocr-pool"`. Provider attempt artifacts live below `providers/<target>/attempts/`.
 - Automatic resume skips deterministic provider blockers; explicit provider selection overrides that skip.
@@ -407,7 +406,6 @@ bun test test/test-cases/validation/cli/cli-help-contracts.test.ts
 bun test test/test-cases/validation/cli/cli-usage-errors/
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 ```
-
 1. Typecheck and unique-source check pass.
 2. Mapped price commands stay no-cost and do not dispatch providers.
 3. Chapter producers emit ordinal-first, source-locator paths with dynamic widths and split suffixes.

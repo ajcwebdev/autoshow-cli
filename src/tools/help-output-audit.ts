@@ -1,4 +1,3 @@
-import { ValidationError } from '~/utils/error-handler'
 import { join } from 'node:path'
 import { COMMAND_DEFINITIONS } from '~/cli/create-cli'
 import { getCommandHelpInventory, RETIRED_HELP_COMMANDS } from '~/cli/native/help-inventory'
@@ -9,8 +8,7 @@ import { stripAnsi } from '~/utils/terminal-colors'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
 
 export const generateHelpAuditInventory = async (): Promise<string> => {
-  const reportPath = join(PROJECT_ROOT, 'docs/reports/02-help-output-audit/help-output-audit-report.md')
-  const report = await Bun.file(reportPath).text()
+  const reportPath = join(PROJECT_ROOT, 'docs/reports/help-output-inventory.md')
   const root = createNativeRootDefinition()
   const entries = getCommandHelpInventory(COMMAND_DEFINITIONS)
   const documents = [
@@ -21,22 +19,24 @@ export const generateHelpAuditInventory = async (): Promise<string> => {
     const document = stripAnsi(entry.document)
     return { command: entry.name === 'root' ? 'bun as --help' : `bun as ${entry.name} --help`, visibility: entry.visibility, topics: entry.topics, lines: document.split('\n').length - 1 }
   })
-  const markdown = [
+  const inventory = [
     '## Current CLI help inventory', '',
-    'Generated from the command registry with `bun --no-env-file src/tools/help-output-audit.ts`. This command updates only this section; it does not save raw captures or run command handlers, providers, or installation. Rendering does not establish manual review; the separate audit records above document that work.', '',
+    'Generated from the command registry with `bun --no-env-file src/tools/help-output-audit.ts`. This command rewrites only this inventory file; it does not save raw captures or run command handlers, providers, or installation.', '',
     `Rendered ${records.length} help pages (${records.filter(row => row.visibility === 'public').length} public and ${records.filter(row => row.visibility === 'compatibility').length} compatibility). Retired commands: ${RETIRED_HELP_COMMANDS.join(', ')}.`, '',
     '| Command | Visibility | Render | Lines | Available topics |', '| --- | --- | --- | --- | --- |',
     ...records.map(row => `| \`${row.command}\` | ${row.visibility} | Passed | ${row.lines} | ${row.topics.map(topic => `\`${topic}\``).join(', ')} |`), ''
   ].join('\n')
-  const startMarker = '<!-- help-inventory:start -->'
-  const endMarker = '<!-- help-inventory:end -->'
-  const start = report.indexOf(startMarker)
-  const end = report.indexOf(endMarker)
-  if (start < 0 || end < start || report.indexOf(startMarker, start + startMarker.length) !== -1 || report.indexOf(endMarker, end + endMarker.length) !== -1) {
-    throw ValidationError('The help audit report must contain exactly one matching help-inventory marker pair.')
-  }
-  const updated = `${report.slice(0, start)}${startMarker}\n${markdown}${endMarker}${report.slice(end + endMarker.length)}`
-  await Bun.write(reportPath, updated)
+  const document = [
+    '# CLI help inventory',
+    '',
+    'Regenerable inventory of rendered help pages. Help-policy decisions live in [ADR-024](../adr/ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md).',
+    '',
+    '<!-- help-inventory:start -->',
+    inventory,
+    '<!-- help-inventory:end -->',
+    ''
+  ].join('\n')
+  await Bun.write(reportPath, document)
   return reportPath
 }
 

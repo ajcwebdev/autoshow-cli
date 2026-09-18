@@ -52,7 +52,6 @@ export const selectCaptionSegmentWords = (native: TranscriptionEvidenceWord[], s
 }
 
 export const hasUncoveredCaptionText = (result: TranscriptionResult, words: TranscriptionEvidenceWord[]): boolean => {
-  // Compare as a multiset so overlapping speakers don't fail due to ordering.
   const remaining = new Map<string, number>()
   for (const token of result.text.match(/\S+/gu) ?? []) {
     const key = captionTextKey(token)

@@ -6,7 +6,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-10
-- **Date Updated:** 2026-09-10
+- **Date Updated:** 2026-09-17
 - **Verification Status:** Passed
 
 ## Amendment: One Voice-Management Entry Point (2026-09-10)
@@ -85,15 +85,15 @@ Why now: multi-character script-to-audio is the next workflow requirement, with 
 
 Create one shared, provider-neutral script-to-audio subsystem beneath both the generic Step 4 `tts` command and comic. Comic owns authored character voice briefs, role resolution, approvals, immutable scene snapshots, and source-linked dialogue plans. Shared TTS owns provider capabilities, voice provisioning and lifecycle, explicit per-invocation voice dispatch, native and segmented rendering, timing, scheduling, and synthesis metadata. Comic must not create provider clients or a second TTS target registry.
 
-Voice reference management is supported across five models: ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.6-2026-08-27`, and Speechify `simba-3.2`. These models implement discovery, candidate creation, audition, registration, lifecycle, preflight, expressiveness, timing, and manifest contracts according to their documented capabilities. Every existing TTS provider must implement the explicit-voice segmented baseline or fail locally with a truthful model-specific capability error; no adapter may silently reuse a captured default voice.
+Voice reference management is governed by `VOICE_CAPABILITY_REGISTRY` for the active TTS providers. Current managed models include ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Cartesia `sonic-3.6-2026-08-27`, Speechify `simba-3.2`, plus import/catalog/design/clone ports where each provider declares them (Hume, Grok, and Mistral included). Fish `s2.1-pro` was removed on 2026-09-01 and remains historical in Options Considered only. Every existing TTS provider must implement the explicit-voice segmented baseline or fail locally with a truthful model-specific capability error; no adapter may silently reuse a captured default voice.
 
 This applies to:
 
 - All current generic multi-speaker TTS behavior, metadata, artifacts, validation, scheduling, and provider request contracts.
 - Comic character voice briefs, reference-voice creation, import, audition, approval, immutable voice snapshots, dialogue planning, audio generation, caching, assembly, effects, timing, resume, domain artifacts, and canonical scene-run state.
 - Existing providers' stock, saved, custom, designed, cloned, or request-time reference voice sources as their adapters truthfully support them.
-- Durable catalog, design, clone, inspect, and delete lifecycle contracts for the five voice-managed models.
-- Native multi-speaker dialogue or utterance rendering where supported (ElevenLabs `eleven_v3` Text-to-Dialogue, Fish `s2.1-pro` native multi-speaker streaming, Gemini two-speaker dialogue, and Hume `octave-2` native utterances) with segmented fallback when scene constraints or model limits require it.
+- Durable catalog, design, clone, inspect, and delete lifecycle contracts for providers that declare those ports in `VOICE_CAPABILITY_REGISTRY`.
+- Native multi-speaker dialogue or utterance rendering where supported (ElevenLabs `eleven_v3` Text-to-Dialogue and Hume `octave-2` native utterances; Fish multi-speaker streaming is historical) with segmented fallback when scene constraints or model limits require it.
 
 It does not apply to:
 
@@ -109,7 +109,7 @@ It does not apply to:
 
 ### Commands and ownership
 
-`tts` synthesizes with one existing stock, designed, or cloned voice ID and remains compatible with every implemented TTS model. `voice` and `comic reference-voice` manage durable catalog, design, clone, inspect, and delete resources only for the five voice-managed models. Every other implemented TTS model stays synthesis-only.
+`tts` synthesizes with one existing stock, designed, or cloned voice ID and remains compatible with every implemented TTS model. `voice` (canonical) and deprecated `comic reference-voice` manage durable catalog, design, clone, inspect, and delete resources according to `VOICE_CAPABILITY_REGISTRY`. Providers without a declared management port stay synthesis-only.
 
 ```text
 structured-script.json
@@ -145,7 +145,7 @@ structured-script.json
 
 ### Voice-managed expressiveness
 
-Each voice-managed model must expose a working expressiveness path. The methods are not unified: ElevenLabs uses v3 audio tags plus style, stability, and similarity; Inworld uses a request-level instruction plus inline vocal tags; Fish uses in-text emotion and delivery markup; Cartesia uses SSML-like performance tags plus `[laughter]`; Speechify uses SSML `<speak>` with prosody, break, emphasis, sub, and `speechify:style`. Exact tag allowlists and request-control flags live in the TTS command docs.
+Each voice-managed model must expose a working expressiveness path. The methods are not unified: ElevenLabs `eleven_v3` uses audio tags (numeric speed/similarity/style/speaker-boost rejected); Inworld uses a request-level instruction plus inline vocal tags; Cartesia uses SSML-like performance tags plus `[laughter]`; Speechify uses SSML `<speak>` with prosody, break, emphasis, sub, and `speechify:style`. Fish in-text emotion markup is historical. Exact tag allowlists and request-control flags live in the TTS command docs.
 
 ### Scene-run artifacts and protected voice store
 
@@ -165,7 +165,7 @@ Preflight has three named phases:
 2. Execution readiness: authorized read-only remote inspection after local checks pass.
 3. Provisioning and synthesis: explicitly selected provider-mutating phases.
 
-`tts` and `comic generate-audio` govern synthesis and dialogue controls only. They cannot create or delete remote voices. `voice` and `comic reference-voice` accept creation, clone, design, import, consent, and lifecycle inputs. Voice design is two-phase: materialize a candidate remotely, then approve the registration locally. Cloning requires recorded provenance and consent. Remote deletion requires an explicit management action.
+`tts` and `comic generate-audio` govern synthesis and dialogue controls only. They cannot create or delete remote voices. `voice` (and deprecated `comic reference-voice`) accept creation, clone, design, import, consent, and lifecycle inputs. Voice design is two-phase: materialize a candidate remotely, then approve the registration locally. Cloning requires recorded provenance and consent. Remote deletion requires an explicit management action.
 
 `comic generate-audio <script>` consumes a compatible existing scene run. A nonempty target that fails exact source, manifest, and structured-script compatibility is rejected without rewriting those files. The command maps every role against an approved registration snapshot, preserves every speakable segment, and never drops content or falls back silently. `--delivery-policy strict` rejects unsupported authored delivery; `best-effort` records it and continues.
 
@@ -212,7 +212,7 @@ A fully reused render closes as a local composition with no provider call and no
 - Voice identity is durable project state; separating briefs, registrations, auditions, and snapshots keeps character continuity across scenes and providers.
 - Explicit per-turn voice identity prevents the capture bug where collectors retain a default voice while metadata claims the requested mapping.
 - Capability facets let each provider use its documented strengths while every provider keeps a reliable segmented fallback.
-- Five voice-managed models cover discovery, design, instant cloning, expressiveness, native dialogue, and lifecycle management without pretending that every TTS model exposes those ports.
+- Capability-declared voice management covers discovery, design, instant cloning, expressiveness, native dialogue, and lifecycle without pretending that every TTS model exposes those ports.
 - Native and segmented paths are both required: native preserves conversational context where it exists, and segmented keeps portability, speaker-count fallback, and targeted line repair.
 - Recorded request and result evidence keeps cost accounting, resume identity, and compact archives truthful.
 
@@ -283,7 +283,7 @@ Negative outcomes:
 ## API / Type Impact
 
 - Before: a speaker map was a speaker string plus a provider-agnostic voice string or path, and synthesis options mixed voice selection with invocation.
-- After: speaker maps carry provider-qualified voice bindings. `tts` and `comic generate-audio` synthesize with an existing voice and never create or delete remote voices. `voice` and `comic reference-voice` own catalog, design, clone, inspect, and delete for the five voice-managed models. Public controls are `--mode auto|native|segmented`, `--delivery-policy strict|best-effort`, and `--allow-ambiguous-redispatch` for resuming an ambiguous paid slot. Each comic scene run keeps one unversioned `manifest.json`; audio artifacts live inside that run as `audio/slots/`, `audio/final/`, and compact `render.json` records.
+- After: speaker maps carry provider-qualified voice bindings. `tts` and `comic generate-audio` synthesize with an existing voice and never create or delete remote voices. `voice` owns catalog, design, clone, inspect, and delete for providers that declare those ports; deprecated `comic reference-voice` forwards to the same handlers. Public controls are `--mode auto|native|segmented`, `--delivery-policy strict|best-effort`, and `--allow-ambiguous-redispatch` for resuming an ambiguous paid slot. Each comic scene run keeps one unversioned `manifest.json`; audio artifacts live inside that run as `audio/slots/`, `audio/final/`, and compact `render.json` records.
 
 ## Test Plan
 
@@ -299,7 +299,6 @@ bun test test/test-cases/validation/visuals/comic/comic-voice-reference-artifact
 bun test test/test-cases/validation/audio/tts/tts-provider-contracts/
 bun test test/test-cases/validation/resume-manifests/tts-resume-*.test.ts
 ```
-
 1. Typecheck and unique-source check pass.
 2. Mapped price commands stay no-cost and do not dispatch providers.
 3. Help and usage contracts expose `tts`, `voice`, `comic reference-voice`, and `comic generate-audio` as separate surfaces and reject implicit voice creation on synthesis commands.
@@ -320,7 +319,7 @@ Do not run hosted TTS commands, live voice creation, provider smoke tests, or e2
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — TTS model contracts and voice capability boundaries
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — soundscape pipeline downstream of this dialogue contract
 - Related ADR: [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md) — downstream panel synchronization and still-image presentation
-- Related report: [2026-09-14 TTS model refresh and capability record](../reports/model-refresh-tts-2026-09-14.md) — current TTS catalog and capability record; living pointer: [TTS refresh](../reports/model-refresh-tts.md)
+- TTS catalog: [docs/commands/04-audio/tts/overview.md](../commands/04-audio/tts/overview.md) — current TTS catalog and capability record (live configs under `src/cli/commands/setup-and-utilities/models/tts-config/` / `tts-models.ts`)
 - `src/cli/commands/audio/tts/define-tts-command.ts`
 - `src/cli/commands/audio/voice/define-voice-command.ts`
 - `src/cli/commands/visuals/comic/comic-commands/generate-audio/generate-audio-command.ts`

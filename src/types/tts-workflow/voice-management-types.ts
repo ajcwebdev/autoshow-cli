@@ -253,3 +253,7 @@ export type CurrentVoiceRegistrationIndex = {
   revision: number
   selections: CurrentVoiceRegistrationSelection[]
 }
+
+export type VoicePromiseContext<T> = {
+  voicePromise?: Promise<T> | undefined
+}

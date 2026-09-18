@@ -14,9 +14,9 @@ Public output artifacts, the pipeline manifest, runtime directories, and metadat
 ```
 output/
   YYYY-MM-DD_HH-MM-SS-mmm_<title>/
-    manifest.json
+    manifest.json                  # every run root, including metadata
+    metadata.md                    # metadata --save --markdown only
 
-    # media extract/write
     <publish-date>-<title-slug>.(mp3|m4a|ogg|flac)   # normalized media artifact
     source_media.(mp3|m4a|ogg|flac)    # staged artifact when materialized in run dir
     transcription.txt                  # single-provider or primary text output
@@ -34,7 +34,6 @@ output/
       transcription.txt
       result.json
 
-    # document/article extract/write
     extraction.txt
     result.json
     providers/<service>-<model>/       # OCR targets
@@ -47,23 +46,19 @@ output/
     text.md | text-<model>.md
     show-note.md | show-note-<model>.md
 
-    # standalone generation; multi-target runs suffix the stem with -<provider>-<model>
     speech.wav
     generated-image.*                  # extra images append -<n>
     generated-video.mp4
     generated-music.mp3
 
-    # transcript video
     <label>.mp4
     <label>.vtt
     <label>.srt
 
-    # music lyric-video
     <stem>.mp4
     <stem>.vtt
     <stem>.srt
 ```
-
 Batch roots:
 
 ```
@@ -91,7 +86,6 @@ standalone tts directory batch:
   <item-stem>.<ext>                        # one target
   <item-stem>-<provider>-<model>.<ext>     # multi-target/provider output
 ```
-
 Every output root owns exactly one `manifest.json`. Extract parent items link to route child manifests by a relative directory. TTS directory batch items record the input, audio stem, status, providers, cost, timing, and errors. See [Input Routing & Batch Orchestration](02-input-routing-batch.md) for how extract batches are partitioned by route.
 
 ## Canonical Manifest
@@ -153,7 +147,6 @@ runtime/
   bin/                           # managed binaries, including whisperfile models
   tools/                         # installed tool prefixes
 ```
-
 ### Comic character and run layout
 
 ```text

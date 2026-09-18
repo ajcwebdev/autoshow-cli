@@ -4,9 +4,6 @@ import { captionTextKey } from '../captions/caption-word-coverage'
 type ConsensusTimingProvider = { provider: string; words: TranscriptionEvidenceWord[]; offsetSeconds: number }
 type ConsensusTimingDecision = { wordIndex: number; supporting: { provider: string; wordIndex: number; startSeconds: number; endSeconds: number }[]; method: 'median' | 'provider' | 'interpolated'; review: boolean }
 
-// Wording and canonical speakers must already be adjudicated. Anchor times and
-// provider words are on the audio timeline; offsets map them to the video timeline.
-// This aligns evidence only and never votes on, removes, or invents transcript text.
 export const alignConsensusWords = (anchors: TranscriptionEvidenceWord[], providers: ConsensusTimingProvider[], anchorOffsetSeconds = 0): { words: TranscriptionEvidenceWord[]; decisions: ConsensusTimingDecision[] } => {
   const support = anchors.map(() => [] as ConsensusTimingDecision['supporting'])
   for (const provider of providers) {

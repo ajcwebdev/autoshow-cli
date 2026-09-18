@@ -45,7 +45,8 @@ test('links selector accepts provider-scoped models sections', () => {
       'bun',
       'src/cli/create-cli.ts',
       'links',
-      `--${provider}`,
+      '--provider',
+      provider,
       'models'
     ])
 
@@ -65,7 +66,7 @@ test('links selector rejects provider-scoped models section when provider has no
     'bun',
     'src/cli/create-cli.ts',
     'links',
-    '--firecrawl',
+    '--provider', 'firecrawl',
     'models'
-  ], 'Unknown links section(s) for --firecrawl: models')
+  ], 'Unknown links section(s) for --provider firecrawl: models')
 })

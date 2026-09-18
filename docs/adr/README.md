@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Compact index for ADR-001 through ADR-024. Twenty records are Accepted · Passed, ADR-014 is Accepted · Pending while native Bun migration evidence awaits review, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 and ADR-023 are Proposed · Pending. Dated hosted-model catalogs live in [model refresh reports](../reports/). ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 025. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
+Compact index for ADR-001 through ADR-024. Twenty-one records are Accepted · Passed, ADR-014 is Accepted · Pending while native Bun migration evidence awaits review, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 is Proposed · Pending. Hosted-model policy lives in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) with live catalogs under `src/cli/commands/setup-and-utilities/models/` and command overviews under `docs/commands/`. ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 025. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
 
 ## Authoring and Maintenance
 
@@ -74,7 +74,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 10: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Owns durable cross-modality hosted-model policy: fixed selector identity, lifecycle/default/all eligibility, typed provider/model descriptors shared with resume, complete capability validation and routing, normalized reasoning, pricing provenance, calibration promotion, historical readability, and no silent substitution or coercion. Dated refresh chronology lives in [2026 hosted-model refresh reports](../reports/), stored under `docs/reports/`.
+- **Decision:** Owns durable cross-modality hosted-model policy: fixed selector identity, lifecycle/default/all eligibility, typed provider/model descriptors shared with resume, complete capability validation and routing, normalized reasoning, pricing provenance, calibration promotion, historical readability, and no silent substitution or coercion. Live catalogs and command docs: `src/cli/commands/setup-and-utilities/models/` and `docs/commands/`.
 - **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-011](ADR-011-add-refresh-metadata-to-links.md), [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md), [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md)
 
 **ADR 11: [ADR-011](ADR-011-add-refresh-metadata-to-links.md)**
@@ -150,7 +150,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 - **Related ADRs:** [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md), [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md)
 **ADR 23: [ADR-023](ADR-023-draft-episode-scripts-from-prose-treatments.md)**
 
-- **Status:** Proposed · Pending
+- **Status:** Accepted · Passed
 - **Decision:** Adds `comic draft-treatment`, which adapts a prose treatment into a fixed-count episode script in the exact parser shape, bootstraps character and location catalog entries without touching existing keys, and records its artifacts in a treatment run; adds the `draft-scenes --panel-count` contract so the scene stage keeps the authored panel count.
 - **Related ADRs:** [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md), [ADR-022](ADR-022-compile-a-text-first-blocking-plan-into-a-panel-ledger.md)
 **ADR 24: [ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md)**
@@ -176,14 +176,14 @@ Runnable reproduction instructions live in the [Docker runtime validation guide]
 
 ## Consolidation Analysis
 
-No further consolidation is currently recommended. The current 22 records stay separate because they own different authorities and maintenance lifecycles.
+No further consolidation is currently recommended. The current 24 records stay separate because they own different authorities and maintenance lifecycles.
 
 ### Remaining Boundaries
 
 **ADR set 1: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) + [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)**
 
 - **Recommendation:** Keep separate.
-- **Current rationale:** Durable hosted-model policy and benchmark proof have different maintenance lifecycles. Dated refresh history lives in the per-modality reports under `docs/commands/`.
+- **Current rationale:** Durable hosted-model policy and benchmark proof have different maintenance lifecycles. Live catalogs live under `src/cli/commands/setup-and-utilities/models/` and command overviews under `docs/commands/`; STT cut evidence lives under `docs/benchmarks/stt-with-speakers/`.
 
 **ADR set 2: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) + [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)**
 
@@ -227,12 +227,12 @@ No further consolidation is currently recommended. The current 22 records stay s
 
 ## Next Steps
 
-Open follow-up work from ADRs and refresh reports, excluding never-ending refresh-report maintenance. Each item summarizes the source record's Follow-up Actions; that record remains the authority for scope and evidence.
+Open follow-up work from ADRs, excluding never-ending catalog-maintenance chores. Each item summarizes the source record's Follow-up Actions; that record remains the authority for scope and evidence. Hosted-model catalog follow-ups belong to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) and the live registries under `src/cli/commands/setup-and-utilities/models/`.
 
 **Item 1: [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md)**
 
 - **Priority:** High
-- **Next step:** Isolate documentation verification from providers, network, and user configuration, then inventory every documented command, make `--price` results consistent, commit offline fixtures, classify unsafe commands as parse-only, cross-check flags and models, and publish documentation cost reports.
+- **Next step:** Finish isolating documentation verification from providers, network, and user configuration. Flag/model cross-check via `doc-command-flags-contract.test.ts` is partial; remaining work is full command inventory, consistent offline `--price` execution, committed fixtures, parse-only classification for unsafe examples, and documentation cost reports.
 
 **Item 2: [ADR-022](ADR-022-compile-a-text-first-blocking-plan-into-a-panel-ledger.md)**
 
@@ -244,42 +244,31 @@ Open follow-up work from ADRs and refresh reports, excluding never-ending refres
 - **Priority:** High
 - **Next step:** Review native AMD64 and ARM64 production validation and compiled-entrypoint experiment artifacts left open by the 2026-08-31 evaluation. Local ARM64 success does not close native AMD64 verification; retain the source production entrypoint unless the documented acceptance gates pass.
 
-**Item 4: [2026 Hosted-Model Refresh Report: LLMs](../reports/model-refresh-write.md)**
-
-- **Priority:** Medium
-- **Next step:** Implement the remaining 2026-08-16 recommended selectors after confirming adapter fit and published pricing.
-
-**Item 5: [2026 Hosted-Model Refresh Report: OCR](../reports/model-refresh-ocr.md)**
-
-- **Priority:** Medium
-- **Next step:** Promote provisional token-billed page heuristics and the benchmark-calibrated Florence compute-second estimate through approved ADR-012 calibration; blocked on immediate approval for each exact paid calibration run.
-
-**Item 6: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)**
+**Item 4: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)**
 
 - **Priority:** Medium
 - **Next step:** Collect reasoning-qualified token samples so OCR registry shapes can become promotion-eligible; blocked on explicit approval for paid provider runs.
 
-**Item 7: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
+**Item 5: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
 
 - **Priority:** Medium
-- **Next step:** Calibrate materially different reasoning levels and provisional model heuristics; deferred pending immediate approval for each exact paid run.
+- **Next step:** Calibrate materially different reasoning levels and provisional model heuristics; deferred pending immediate approval for each exact paid run. Promote provisional OCR heuristics through ADR-012 calibration when approval is available. Watch Cartesia for a newer dated Sonic 3.6 snapshot; do not register `sonic-3.6` or `sonic-preview` (TTS catalog: [docs/commands/04-audio/tts/overview.md](../commands/04-audio/tts/overview.md)).
 
-**Item 8: [2026 Hosted-Model Refresh Report: TTS](../reports/model-refresh-tts.md)**
-
-- **Priority:** Low
-- **Next step:** Watch Cartesia for a newer dated Sonic 3.6 snapshot; do not register `sonic-3.6` or `sonic-preview`. Canonical record: [model-refresh-tts-2026-09-14.md](../reports/model-refresh-tts-2026-09-14.md).
-
-**Item 9: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
+**Item 6: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
 
 - **Priority:** Low
 - **Next step:** Evaluate provider-specific reasoning levels outside the seven-value surface through explicit public-enum expansion.
 
-**Item 10: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)**
+**Item 7: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)**
 
 - **Priority:** Low
 - **Next step:** Run the two deferred cleanup reviews: remaining multi-use exported declarations, and remaining multi-reference non-exported declarations.
 
-**Item 11: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)**
+**Item 8: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)**
 
 - **Priority:** Low
 - **Next step:** After the compatibility release, remove deprecated `comic reference-voice`, `comic review-sheet`, and `comic review-notes` aliases in a later announced breaking CLI release.
+
+## Local reports workspace
+
+Agent task reports under `docs/reports/` are gitignored (except `.gitkeep`). Regenerable inventories (`environment-reference.md`, `help-output-inventory.md`) may appear locally. Cleanup audits **00–06** (and the high-priority metareport / architecture-consolidation write-ups) were completed on `staging` around 2026-09-17 and removed; see `docs/reports/README.md` locally. Ongoing truth is this ADR index, live model dirs under `src/cli/commands/setup-and-utilities/models/`, `docs/commands/`, `docs/diagrams.md`, and `docs/docker.md`.

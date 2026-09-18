@@ -17,7 +17,6 @@ export const normalizeGrokImageResolution = (size: string | undefined): '1k' | '
   throw UsageError(`Invalid --size value "${size}" for Grok. Expected 1K or 2K.`)
 }
 
-// Shared by preflight, pricing and transport so automatic provider defaults cannot change the quote.
 export const resolveGrokImageOptions = (
   model: GrokImageModel,
   options: Pick<ImageGenOptions, 'imageSize' | 'imageQuality' | 'imageInputs' | 'imageCount' | 'imageAspectRatio'>

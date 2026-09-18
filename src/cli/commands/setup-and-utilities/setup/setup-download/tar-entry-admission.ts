@@ -41,8 +41,6 @@ export const createTarEntryAdmission = (stagingRoot: string, options: TarGzExtra
     const relativePath = sanitizeArchivePath(rawPath, stripComponents)
     if (!relativePath) return { typeFlag, remaining: size, paddingRemaining: roundToBlock(size) - size }
     if (seenPaths.has(relativePath)) {
-      // Source archives can repeat directory headers when appending vendored trees.
-      // Permit only an existing explicit directory, never a file or symlink replacement.
       if (typeFlag === '5' && size === 0 && explicitDirectories.has(relativePath)) return { typeFlag, remaining: 0, paddingRemaining: 0 }
       throw archiveError(`Duplicate tar target rejected: ${relativePath}`)
     }

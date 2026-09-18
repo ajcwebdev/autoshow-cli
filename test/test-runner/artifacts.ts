@@ -245,7 +245,11 @@ export const createRunArtifacts = async (rootDir = TEST_OUTPUT_ROOT): Promise<Te
     try {
       await mkdir(runDir, { recursive: false })
       break
-    } catch {
+    } catch (error) {
+      const code = error && typeof error === 'object' && 'code' in error
+        ? (error as { code?: unknown }).code
+        : undefined
+      if (code !== 'EEXIST') throw error
       runId = `${base}_${i}`
       runDir = resolve(rootDir, runId)
     }
@@ -302,7 +306,6 @@ export const appendRunnerLog = (artifacts: TestRunArtifacts, text: string): void
     return
   }
 
-  // Calls outside the owned run lifecycle must finish before returning.
   appendFileSync(artifacts.runnerLogPath, text)
 }
 

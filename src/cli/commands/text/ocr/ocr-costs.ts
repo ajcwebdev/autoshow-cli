@@ -3,13 +3,14 @@ import { FIRECRAWL_PRICE_NOTE } from '~/cli/commands/text/url/url-pricing/url-es
 import { isRecord } from '~/utils/rest-client'
 import { getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { isTokenPricedOcrProvider } from '~/types'
-import type { ActualCostBreakdown, AggregatedPriceEstimate, CollectEstimatedExtractTargetsOptions, EstimatedCostBreakdown, EstimatedStepEntry, ExtractEstimateProvider, ExtractEstimateTarget, ExtractionMetadata, OcrModelFallbackOptions, PartialExtractionMetadata, Step3Metadata } from '~/types'
+import type { ActualCostBreakdown, AggregatedPriceEstimate, CollectEstimatedExtractTargetsOptions, EstimatedCostBreakdown, EstimatedStepEntry, ExtractEstimateProvider, ExtractEstimateTarget, ExtractionMetadata, OcrModelFallbackOptions, PartialExtractionMetadata } from '~/types'
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
 import { toArray } from '~/utils/text-utils'
 import { computeObservedEstimateCosts, computePriceAlignedEstimatedCosts, preflightToEstimated } from '~/cli/commands/pricing-orchestration/compute-costs'
 import { ANTHROPIC_OCR_PRICE_NOTE, DEEPINFRA_OCR_PRICE_NOTE, GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, GROK_OCR_PRICE_NOTE, KIMI_OCR_PRICE_NOTE, OPENAI_OCR_PRICE_NOTE } from './ocr-pricing/ocr-estimates'
 import { resolveHostedOcrModeFromExtractionMethod } from './ocr-utils/hosted-ocr-token-profiles'
 import { getUsageNumber } from './ocr-utils/hosted-ocr-utils'
+import { groupRowsByKey } from '~/utils/pricing/group-rows-by-key'
 
 const OCR_DIAGNOSTIC_PROVIDERS = new Set([
   'mistral',
@@ -266,70 +267,9 @@ export const resolveExtractObservedEstimateCosts = (
   ...tokenProfileCostInput(opts)
 })
 
-export const resolveDocumentWriteEstimatedCosts = (
-  preflightEstimate: AggregatedPriceEstimate | undefined,
-  step2: ExtractionMetadata | ExtractionMetadata[],
-  step3: Step3Metadata | Step3Metadata[],
-  opts: OcrModelFallbackOptions = {}
-): EstimatedCostBreakdown => {
-  const extractTargets = collectEstimatedExtractTargets(step2, opts)
-  const step3Entries = toArray(step3)
-
-  if (preflightEstimate) {
-    const allowedKeys = new Set([
-      ...extractTargets.map((target) => buildMatchKey('extract', target.provider, target.model)),
-      ...step3Entries.map((entry) => buildMatchKey('llm', entry.llmService, entry.llmModel))
-    ])
-    return preflightToEstimated(filterPreflightEstimate(preflightEstimate, allowedKeys))
-  }
-
-  return computePriceAlignedEstimatedCosts(undefined, {
-    extractTargets,
-    llmTargets: step3Entries.map((entry) => ({
-      service: entry.llmService,
-      model: entry.llmModel,
-      inputTokens: entry.inputTokenCount,
-      outputTokens: entry.outputTokenCount
-    })),
-    ...tokenProfileCostInput(opts)
-  })
-}
-
-export const resolveDocumentWriteObservedEstimateCosts = (
-  step2: ExtractionMetadata | ExtractionMetadata[],
-  step3: Step3Metadata | Step3Metadata[],
-  opts: OcrModelFallbackOptions = {}
-): EstimatedCostBreakdown => {
-  const extractTargets = collectEstimatedExtractTargets(step2, {
-    ...opts,
-    useObservedUsage: true
-  })
-  const step3Entries = toArray(step3)
-
-  return computeObservedEstimateCosts({
-    extractTargets,
-    llmTargets: step3Entries.map((entry) => ({
-      service: entry.llmService,
-      model: entry.llmModel,
-      inputTokens: entry.inputTokenCount,
-      outputTokens: entry.outputTokenCount
-    })),
-    ...tokenProfileCostInput(opts)
-  })
-}
-
 const rowsByKey = <T extends { step: string, provider: string, model: string }>(
   rows: T[]
-): Map<string, T[]> => {
-  const indexed = new Map<string, T[]>()
-  for (const row of rows) {
-    const key = buildMatchKey(row.step, row.provider, row.model)
-    const existing = indexed.get(key) ?? []
-    existing.push(row)
-    indexed.set(key, existing)
-  }
-  return indexed
-}
+): Map<string, T[]> => groupRowsByKey(rows, (row) => buildMatchKey(row.step, row.provider, row.model))
 
 const getEstimatedInputMetric = (row: EstimatedStepEntry | undefined): string | undefined => {
   if (!row) return undefined

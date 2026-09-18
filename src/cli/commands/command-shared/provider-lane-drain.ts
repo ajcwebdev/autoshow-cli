@@ -1,4 +1,3 @@
-/** Shared admission mechanics. Provider adapters retain queue selection and recovery policy. */
 export const reduceProviderLaneLimit = (limit: number): number => Math.max(1, Math.floor(limit / 2))
 
 export const trimProviderLaneHistory = <T>(items: T[], limit = 100): void => {
@@ -25,7 +24,6 @@ export const drainProviderLane = <T>(policy: {
   }
 }
 
-/** Serialize asynchronous drains without losing a notification during admission. */
 export class LaneDrainLoop<T extends object> {
   readonly #busy = new WeakSet<T>()
   readonly #queued = new WeakSet<T>()
@@ -40,7 +38,6 @@ export class LaneDrainLoop<T extends object> {
   }
 }
 
-/** One timer per lane. Later notifications cannot postpone an earlier wake. */
 export class LaneWakeTimer<T extends object, Handle = ReturnType<typeof setTimeout>> {
   readonly #wakes = new Map<T, { atMs: number, handle: Handle }>()
   constructor(private readonly clock: {

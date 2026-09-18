@@ -33,7 +33,7 @@ test('links parses refresh as a command flag', () => {
     'src/cli/create-cli.ts',
     'links',
     '--refresh',
-    '--openai',
+    '--provider', 'openai',
     'models'
   ])
 
@@ -113,8 +113,8 @@ test('links direct URL mode rejects selectors input files and multiple direct UR
   for (const args of [
     [directUrl, 'stt'],
     ['stt', directUrl],
-    ['--openai', directUrl],
-    [directUrl, '--openai'],
+    ['--provider', 'openai', directUrl],
+    [directUrl, '--provider', 'openai'],
     ['urls.md', directUrl],
     [directUrl, 'urls.md'],
     [directUrl, 'https://example.com/api']
@@ -230,14 +230,14 @@ test('links input file mode cannot be combined with provider or section selector
     'src/cli/create-cli.ts',
     'links',
     'urls.md',
-    '--openai'
+    '--provider', 'openai'
   ])).toThrow('links input file mode cannot be combined with provider or section selectors')
 
   expect(() => parseLinksArgv([
     'bun',
     'src/cli/create-cli.ts',
     'links',
-    '--openai',
+    '--provider', 'openai',
     'urls.md'
   ])).toThrow('links input file mode cannot be combined with provider or section selectors')
 })

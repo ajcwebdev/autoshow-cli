@@ -17,20 +17,6 @@ export const buildSttTimingSteps = (input: ComputeEstimatedProcessingTimesInput)
         inputValue: input.audioDurationSeconds,
       }, 'estimated'))
     }
-  } else if (
-    input.transcriptionService
-    && input.transcriptionModel
-    && typeof input.audioDurationSeconds === 'number'
-  ) {
-    const estimation = getSttEstimation(input.transcriptionService, input.transcriptionModel)
-    steps.push(withNormalizedTiming({
-      step: 'stt',
-      provider: input.transcriptionService,
-      model: input.transcriptionModel,
-      processingTimeMs: roundMs(input.audioDurationSeconds * estimation.msPerSecond),
-      inputMetric: 'durationSeconds',
-      inputValue: input.audioDurationSeconds,
-    }, 'estimated'))
   }
 
   return { steps }

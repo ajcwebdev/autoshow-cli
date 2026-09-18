@@ -155,10 +155,14 @@ describe('status vocabulary', () => {
     for (const status of NON_RETRYABLE_STATUS_CODES) {
       expect(isNonRetryableStatus(status)).toBe(true)
       expect(isRetryableStatus(status)).toBe(false)
-      expect(classifyFetchRetry(ProviderError('deterministic', { status }), 'runtime_http_read')).toMatchObject({
-        shouldRetry: false,
-        reason: `non-retryable status ${status}`
-      })
+      const decision = classifyFetchRetry(ProviderError('deterministic', { status }), 'runtime_http_read')
+      expect(decision.shouldRetry).toBe(false)
+      // 402 is also structured quota/billing and uses that terminal reason.
+      expect(decision.reason).toBe(
+        status === 402
+          ? 'quota or billing failure is terminal'
+          : `non-retryable status ${status}`
+      )
     }
   })
 

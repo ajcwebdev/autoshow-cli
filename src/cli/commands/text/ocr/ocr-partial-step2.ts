@@ -9,6 +9,7 @@ import { validateData } from '~/utils/validate/validation'
 import { getOcrTargetDirectoryName } from './ocr-targets'
 import { getUsageNumber } from './ocr-utils/hosted-ocr-utils'
 import { parseStoredHostedOcrPageCache } from './ocr-utils/pdf-chunk-fallback-state'
+import { isPathAbsenceError } from '~/utils/filesystem'
 
 const PAGE_RESULTS_DIR = 'page-results'
 
@@ -88,8 +89,9 @@ const readPartialPageCaches = async (
   let entries: string[]
   try {
     entries = await readdir(pageResultsDir)
-  } catch {
-    return []
+  } catch (error) {
+    if (isPathAbsenceError(error)) return []
+    throw error
   }
 
   const pages = new Map<number, PartialPageUsage>()

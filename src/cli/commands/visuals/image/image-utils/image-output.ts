@@ -3,7 +3,7 @@ import type { OpenAIImageResponse } from '~/types'
 import { downloadGeneratedFile, imageDownloadHttpError } from '~/utils/polled-job-client/polled-job'
 import { buildGenerationArtifactPath } from '~/cli/commands/command-shared/media-generation/media-generation-scaffold'
 
-const mimeToExtension = (mimeType: string | null | undefined, fallback = 'png'): string => {
+export const mimeToExtension = (mimeType: string | null | undefined, fallback = 'png'): string => {
   const normalized = mimeType?.split(';')[0]?.trim().toLowerCase()
   if (normalized === 'image/jpeg' || normalized === 'image/jpg') return 'jpg'
   if (normalized === 'image/webp') return 'webp'

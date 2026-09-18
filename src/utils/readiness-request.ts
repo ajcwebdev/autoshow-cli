@@ -4,7 +4,6 @@ export const READINESS_REQUEST_TIMEOUT_MS = 10_000
 export const READINESS_OPERATION_TIMEOUT_MS = 30_000
 export const READINESS_MAX_PAGES = 20
 
-/** Bound headers and body consumption, even when a mock ignores AbortSignal. */
 export const boundedReadinessFetch = (
   fetchImpl: typeof fetch = fetch,
   options: { timeoutMs?: number, deadline?: number } = {}

@@ -31,7 +31,6 @@ export const runMusicTargets = async (
       workspacePrefix: '.music-tmp',
       runTarget: async (target, targetPrompt, workspaceDir) => {
         const { musicPath, metadata } = await target.run(targetPrompt, workspaceDir)
-        // Scope sidecars by model even for a single target so additive resume keeps their names stable.
         const stem = getMusicArtifactFileName(target, false).replace(/\.mp3$/, '')
         const promoted = { ...metadata }
         if (metadata.generatedTextFileName) {

@@ -102,7 +102,6 @@ export const parseContinuityJudgeResult = (text: string, expected: ContinuityJud
   return { ...parsed, panelNumber: expected.panelNumber, anchorPanel: expected.anchorPanel, predecessorPanel: expected.predecessorPanel }
 }
 
-// Keys the labels join treats as judge positives: only the blooper category and the cast audit imply a key, matching the human verdict vocabulary.
 export const deriveContinuityLabelKeys = (result: ContinuityJudgeResult): ContinuityHardKey[] => {
   const keys = new Set<ContinuityHardKey>()
   if (result.blooperCategory !== 'none') keys.add(result.blooperCategory)
@@ -111,7 +110,6 @@ export const deriveContinuityLabelKeys = (result: ContinuityJudgeResult): Contin
   return CONTINUITY_HARD_KEYS.filter(key => keys.has(key))
 }
 
-// Keys the ledger counters and per-panel hardKeys carry: the labels-join keys widened by a crossed axis and a rotated, mirrored, or redesigned furniture orientation.
 export const deriveContinuityHardKeys = (result: ContinuityJudgeResult): ContinuityHardKey[] => {
   const keys = new Set<ContinuityHardKey>(deriveContinuityLabelKeys(result))
   if (result.axisStatus === 'crossed') keys.add('side-flip')

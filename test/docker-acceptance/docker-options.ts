@@ -63,7 +63,6 @@ export function parseDockerOptions(args: string[]): DockerOptions {
     }
   }
   requireCondition(!options.model || options.suite === 'models', '--model requires --suite models')
-  // Docker --mount uses CSV; spaces are safe, commas and newlines are not supported here.
   for (const path of [options.output, options.cache]) requireCondition(!/[,\r\n]/.test(path), 'Mount paths cannot contain commas or newlines')
   requireCondition(options.output !== options.cache && !options.output.startsWith(`${options.cache}/`) && !options.cache.startsWith(`${options.output}/`), 'Evidence and cache paths must be separate')
   return options

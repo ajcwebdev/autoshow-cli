@@ -4,9 +4,9 @@
 
 - **Decision Status:** Superseded
 - **Date Created:** 2026-07-16
-- **Date Updated:** 2026-08-22
+- **Date Updated:** 2026-09-17
 - **Verification Status:** Passed
-- **Supersession:** The CLI `benchmark` command was removed. This record remains historical for committed `docs/benchmarks/` run data, consensus-skill combined reports, the quality-cost tier contract, paid-approval gates, calibration evidence, and artifact repair/compaction rules. Durable registry, lifecycle, and capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md). Dated model changes belong to the 2026 hosted-model refresh reports under `docs/commands/`.
+- **Supersession:** The CLI `benchmark` command was removed. This record remains historical for committed `docs/benchmarks/` run data, consensus-skill combined reports, the quality-cost tier contract, paid-approval gates, calibration evidence, and artifact repair/compaction rules. Durable registry, lifecycle, and capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md). Dated model catalog changes belong to the live hosted registries under `src/cli/commands/setup-and-utilities/models/` and the command overviews under `docs/commands/`.
 
 ## Context
 
@@ -125,7 +125,7 @@ It does not apply to:
 
 - Production CLI flags, runtime commands, or public execution APIs (the CLI `benchmark` command was removed).
 - Durable hosted-model registry, lifecycle, and capability policy (governed by [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)).
-- Dated hosted-model refresh chronology and selector changes (recorded in the 2026 hosted-model refresh reports under `docs/commands/`).
+- Dated hosted-model refresh chronology and selector changes (live registries under `src/cli/commands/setup-and-utilities/models/` and command overviews under `docs/commands/`).
 - Single-run execution manifests, runtime data fetching, or cross-group overall leaderboards.
 
 ### Evidence lifecycle and paid approval
@@ -133,7 +133,7 @@ It does not apply to:
 Every provider/model refresh follows this order:
 
 1. Refresh dated primary-source documentation under [ADR-011](ADR-011-add-refresh-metadata-to-links.md). Do not infer a current model from a moving alias or secondary catalog when primary request, pricing, or capability documentation is available.
-2. Update the local contract under [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) and the 2026 hosted-model refresh reports under `docs/commands/`. Prove it with static checks and targeted no-network tests.
+2. Update the local contract under [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) and the live registries / command overviews under `src/cli/commands/setup-and-utilities/models/` and `docs/commands/`. Prove it with static checks and targeted no-network tests.
 3. Run the exact no-cost `--price` or `resume --price` command for the intended targets. Price mode must invoke no provider and mutate no manifest or raw artifact under [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md).
 4. If live evidence is materially necessary, obtain immediate explicit approval naming the exact provider command and the reported cost or quota risk. Approval for implementation, another provider, an earlier phase, a failed attempt, or a preflight never authorizes the paid command. A correction or rerun requires fresh approval.
 5. Validate returned identity, provider/model state, source coverage, page/duration counts, attempt/retry data, usage and actual cost, output integrity, and artifact uniqueness. A provider-reported success is not trustworthy when checkpoints, paths, checksums, or normalized outputs prove collision or reuse.
@@ -247,7 +247,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The CLI `benchmark` command is gone. Combined-report generation remains in the consensus skill: run discovery in `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`, and the self-contained dashboard renderer in `.codex/skills/consensus/scripts/shared/combined_report_html.ts`. Combined reports now rank price, speed, and quality per provider group and no longer emit weighted composites or quality-cost terciles. The dashboard's custom-weighting sliders compute a composite in the reader's browser only; no composite is written to any artifact. Committed run data and generated reports live under `docs/benchmarks/`. STT combined reports are split by diarization: `docs/benchmarks/stt-without-speakers/` and `docs/benchmarks/stt-with-speakers/`. The speaker-aware cohort is the committed evidence for the 2026-08-22 STT catalog cut recorded in [the STT refresh report](../reports/model-refresh-stt.md).
+The CLI `benchmark` command is gone. Combined-report generation remains in the consensus skill: run discovery in `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`, and the self-contained dashboard renderer in `.codex/skills/consensus/scripts/shared/combined_report_html.ts`. Combined reports now rank price, speed, and quality per provider group and no longer emit weighted composites or quality-cost terciles. The dashboard's custom-weighting sliders compute a composite in the reader's browser only; no composite is written to any artifact. Committed run data and generated reports live under `docs/benchmarks/`. STT combined reports are split by diarization: `docs/benchmarks/stt-without-speakers/` and `docs/benchmarks/stt-with-speakers/`. The speaker-aware cohort is the committed evidence for the 2026-08-22 STT catalog cut; see [docs/benchmarks/stt-with-speakers/combined-comparison-report.md](../benchmarks/stt-with-speakers/combined-comparison-report.md).
 
 ## Test Plan
 
@@ -257,7 +257,6 @@ git diff --check
 bun test test/test-cases/validation/reports-pricing/combined-report-weighted-ranking-contracts.test.ts
 bun test test/test-cases/validation/reports-pricing/url-combined-report-contracts.test.ts
 ```
-
 1. `bun run check` and `git diff --check` prove the ADR remains well-formed.
 2. The combined-report contract tests prove committed OCR, STT, and URL artifacts rank price, speed, and quality per group and omit weighted composites and model tiers, and that the dashboard ships exactly one inline, dependency-free script whose scoring function is the one covered by unit tests.
 
@@ -270,7 +269,8 @@ Do not regenerate reports from live provider calls, run the full test suite, or 
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — durable model and calibration policy
 - Related ADR: [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — primary-source refresh metadata
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — TTS preflight, paid-approval, and report evidence lifecycle
-- Related reports: the 2026 hosted-model refresh reports under `docs/commands/`
+- STT catalog-cut evidence: [docs/benchmarks/stt-with-speakers/combined-comparison-report.md](../benchmarks/stt-with-speakers/combined-comparison-report.md)
+- Live model catalogs / command docs: `src/cli/commands/setup-and-utilities/models/`, `docs/commands/`
 - `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`
 - `.codex/skills/consensus/scripts/shared/combined_report_html.ts`
 - `test/test-cases/validation/reports-pricing/combined-report-weighted-ranking-contracts.test.ts`

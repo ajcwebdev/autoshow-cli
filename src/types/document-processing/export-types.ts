@@ -1,4 +1,5 @@
 import type { PageResult, TextArtifactFile } from '~/types'
+import type { ChapterExportSummaryEvidence } from '../pipeline-core/process-extraction-types'
 
 export type LogicalChapterSource = 'toc' | 'spine' | 'heading'
 
@@ -17,27 +18,19 @@ export type HeadingCandidate = {
   kind?: string
 }
 
-type EpubExportPlan = {
+export type DocumentExportSummaryEvidence = ChapterExportSummaryEvidence
+
+export type EpubExportSummary = DocumentExportSummaryEvidence & {
+  sourceFormat: 'epub'
+}
+
+export type PdfExportSummary = DocumentExportSummaryEvidence & {
+  sourceFormat: 'pdf'
+}
+
+export type EpubExportPlan = {
   files: TextArtifactFile[]
-  summary: {
-    sourceFormat: 'epub'
-    mode: 'chapters' | 'chunks'
-    chunkLimitChars?: number
-    sectionsKept: number
-    sectionsDropped: number
-    dividerSectionsMerged: number
-    logicalChapterCount?: number
-    logicalChapterSource?: 'toc' | 'spine' | 'heading'
-    tocStartSections?: number
-    pageLikeTocStartsIgnored?: number
-    genericTocStartsIgnored?: number
-    bodyTextTocStartsIgnored?: number
-    prefaceSectionsDropped?: number
-    filesWritten: number
-    chapterFilesWritten?: number
-    chunkFilesWritten?: number
-    directories: string[]
-  }
+  summary: EpubExportSummary
 }
 
 export type EpubTextOutput = {

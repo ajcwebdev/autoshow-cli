@@ -4,10 +4,8 @@ import type { CharacterCatalogService, HostedConcurrencyRuntimeOptions, LlmModel
 type BlockingSchemas = typeof import('~/cli/commands/visuals/comic/schemas/blocking-plan-schemas')
 
 export type BlockingPlan = v.InferOutput<BlockingSchemas['BlockingPlanSchema']>
-export type BlockingPlanDraft = v.InferOutput<BlockingSchemas['BlockingPlanDraftSchema']>
 export type BlockingLocationMap = BlockingPlan['locations'][number]
 export type BlockingAnchor = v.InferOutput<BlockingSchemas['BlockingAnchorSchema']>
-export type BlockingSuppressedAnchor = v.InferOutput<BlockingSchemas['BlockingSuppressedAnchorSchema']>
 export type BlockingDressingItem = v.InferOutput<BlockingSchemas['BlockingDressingItemSchema']>
 export type BlockingCameraCell = v.InferOutput<BlockingSchemas['BlockingCameraCellSchema']>
 export type BlockingStageState = v.InferOutput<BlockingSchemas['BlockingStageStateSchema']>

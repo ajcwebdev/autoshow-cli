@@ -126,7 +126,7 @@ export const resolveEstimatedExtractCostEntry = (
 ): EstimatedStepEntry => {
   const estimation = getExtractEstimation(target.provider, target.model)
   const costMultiplier = input.applyCostMultipliers === false ? 1 : estimation.costMultiplier
-  const pageCount = target.pageCount ?? input.extractPageCount ?? 0
+  const pageCount = target.pageCount ?? 0
 
   if (isPagePricedExtractProvider(target.provider)) {
     return estimatePagePricedExtraction(target, pageCount, costMultiplier)
@@ -168,10 +168,9 @@ export const resolveEstimatedExtractProcessingMs = (
     model: string
     pageCount?: number | undefined
   },
-  extractPageCount?: number | undefined,
   options: { pageConcurrency?: number | undefined } = {}
 ): { pageCount: number, processingTimeMs: number } => {
-  const pageCount = Math.max(0, target.pageCount ?? extractPageCount ?? 0)
+  const pageCount = Math.max(0, target.pageCount ?? 0)
   const estimation = getExtractEstimation(target.provider, target.model)
   const pageConcurrency = typeof options.pageConcurrency === 'number' && Number.isFinite(options.pageConcurrency)
     ? Math.max(1, Math.floor(options.pageConcurrency))

@@ -27,7 +27,7 @@ Documents and images route through hosted OCR or native text extraction dependin
 
 See the [`extract` overview](../overview.md) for input routing and default document/image OCR. Remote article URLs are documented separately in [URL and X extraction](../url/overview.md).
 
-Standalone `extract` and `resume` use `--provider provider[=model]` for document/OCR inputs. `config` uses `--ocr provider[=model]`.
+Standalone `extract` and `resume` use `--provider provider[=model]` for document/OCR inputs. `setup` persists defaults with `--ocr provider[=model]`.
 
 ## Local OCR
 
@@ -46,16 +46,13 @@ See [OCR Routing](#ocr-routing) for the full input-family matrix.
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider tesseract --ocr-language eng+fra --ocr-dpi 300
 ```
-
 Tesseract is the only engine that consumes `--ocr-language`. It decrypts password PDFs locally and has no upload or page cap.
 
 ## OCR Setup
 
 ```bash
-# Convertible ebooks: MOBI, AZW/AZW3, PRC, FB2, LIT
 bun autoshow setup --step calibre
 ```
-
 Calibre `ebook-convert` converts those formats to EPUB before extraction.
 
 ## OCR Environment
@@ -93,10 +90,11 @@ WebP, GIF, and BMP convert to PNG when a provider does not accept them natively.
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `--format <format>`                    | Output format: `text` or `json`                                                                                                                                    |
 | `--password <value>`                   | Password for encrypted PDFs                                                                                                                                        |
+| `--docx-markdown`                      | Write `extraction.md` from a local DOCX while preserving formatting (no providers)                                                                                 |
 | `--all-providers`                      | Enable every supported hosted OCR provider/model for this route                                                                                                    |
 | `--ocr-provider-mode <mode>`           | Multi-provider execution: `fanout` or `pool`; default `fanout`                                                                                                     |
 | `--primary-ocr <service[/model]>`      | In fan-out multi-provider OCR, choose which requested complete provider result writes top-level extraction artifacts; invalid in pool mode                         |
-| `--provider-concurrency <n>`           | Hosted providers/models to run concurrently per item; default `10`                                                                                                 |
+| `--provider-concurrency <n>`           | Hosted providers/models to run concurrently per item; default `7`                                                                                                  |
 | `--step-concurrency ocr-page=<n>`      | Page-level OCR concurrency. Hosted OCR defaults to `auto`. Pass a number to set a fixed cap.                                                                       |
 | `--concurrency-mode <ramp\|immediate>` | Approach each hosted provider/account page cap from one request at one added slot every five seconds (`ramp`, default), or start at the resolved cap (`immediate`) |
 | `--ocr-dpi <n>`                        | Render DPI for OCR pages                                                                                                                                           |
@@ -107,19 +105,14 @@ WebP, GIF, and BMP convert to PNG when a provider does not accept them natively.
 | `--max-model-cents <n>`                | Exclude each provider/model whose estimated total across the invocation exceeds the per-model ceiling in cents; works with or without `--price`                    |
 
 ```bash
-# Default PDF extraction
 bun autoshow extract input/examples/document/1-document.pdf
 
-# JSON output
 bun autoshow extract input/examples/document/1-document.pdf --format json
 
-# Fan out across every OCR provider in price mode
 bun autoshow extract input/examples/document/1-document.pdf --all-providers --price
 
-# Keep only OCR provider/model targets estimated at 10 cents or less
 bun autoshow extract input/examples/document/1-document.pdf --all-providers --max-model-cents 10 --price
 ```
-
 See [Provider Capabilities](#provider-capabilities) for the per-model native PDF, image, limit, structured-output, and input/output price matrix.
 
 ## Multi-Provider Execution Modes
@@ -136,7 +129,6 @@ bun autoshow extract document.pdf \
   --ocr-provider-mode pool \
   --step-concurrency ocr-page=10
 ```
-
 Pool mode works for PDFs, CBZ archives, and supported images. `--price` estimates the full page set once rather than charging each provider for every page; `resume --price` estimates only unfinished pages.
 
 ## EPUB Options
@@ -149,7 +141,6 @@ bun autoshow extract input/examples/document/1-epub.epub --format json
 bun autoshow extract input/examples/document/1-epub.epub --length 50
 bun autoshow extract input/examples/document/1-epub.epub --no-chapters
 ```
-
 Native extraction writes one cleaned file per kept section under `chapters/` (`chapters/<ordinal>-<source-index>-<slug>.txt`). `--length <n>` splits oversized section files with `-part-NN` suffixes. `--no-chapters` writes a single extracted file.
 
 ## PDF Chapter Detection
@@ -160,7 +151,6 @@ bun autoshow extract input/examples/document/3-document.pdf --chapters
 bun autoshow extract input/examples/document/3-document.pdf --chapters --pdf-chapter-mode auto
 bun autoshow extract book.pdf --no-chapters
 ```
-
 PDFs with at least 40 extracted pages automatically attempt local chapter detection and write `chapters/<ordinal>-<pdf-start-page>-<slug>.txt`. `--chapters` forces autodetection at any page count; `--no-chapters` writes a single extracted file.
 
 Local detection uses PDF bookmarks, TOC pages, and headings. `--pdf-chapter-mode local` stays fully local. `auto` allows model-assisted resolution when local detection is weak and an LLM is configured. `llm` always attempts model-assisted resolution.
@@ -177,7 +167,6 @@ Local detection uses PDF bookmarks, TOC pages, and headings. `--pdf-chapter-mode
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider mistral=mistral-ocr-4-0
 ```
-
 Bare `--provider mistral` defaults to `mistral-ocr-4-0`.
 
 ### GLM OCR
@@ -190,7 +179,6 @@ Bare `--provider mistral` defaults to `mistral-ocr-4-0`.
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider glm=glm-5.3-flash
 ```
-
 Images are limited to 10 MB each. `glm-5.3-flash` requires reasoning (`--reasoning-effort low|high|max`; `disabled` is rejected). [pricing](https://docs.z.ai/guides/overview/pricing)
 
 ### Kimi OCR
@@ -204,7 +192,6 @@ Images are limited to 10 MB each. `glm-5.3-flash` requires reasoning (`--reasoni
 bun autoshow extract input/examples/document/1-document.pdf --provider kimi=kimi-k2.6
 bun autoshow extract input/examples/document/1-document.pdf --provider kimi=kimi-k3
 ```
-
 Bare `--provider kimi` defaults to `kimi-k2.6`. Image uploads are capped at 100 MB.
 
 ### OpenAI OCR
@@ -217,7 +204,6 @@ Bare `--provider kimi` defaults to `kimi-k2.6`. Image uploads are capped at 100 
 bun autoshow extract input/examples/document/1-document.pdf --provider openai=gpt-5.6-sol
 bun autoshow extract input/examples/document/1-document.pdf --provider openai=gpt-5.6-luna
 ```
-
 Bare `--provider openai` defaults to the cheapest OpenAI OCR model. Maximum PDF size is 50 MB. `gpt-6-astra` requires reasoning (`low`, `medium`, `high`, `xhigh`, `max`; disabled and minimal are rejected) and estimates use $10/$50 per 1M tokens, then $20/$75 for the entire request above 272K input tokens.
 
 ### Grok OCR
@@ -229,7 +215,6 @@ Bare `--provider openai` defaults to the cheapest OpenAI OCR model. Maximum PDF 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider grok=grok-4.5
 ```
-
 Bare `--provider grok` defaults to `grok-4.5`. Direct images and rendered pages are capped at 20 MiB each.
 
 ### Anthropic OCR
@@ -241,7 +226,6 @@ Bare `--provider grok` defaults to `grok-4.5`. Direct images and rendered pages 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider anthropic=claude-sonnet-5
 ```
-
 Bare `--provider anthropic` defaults to `claude-sonnet-5`. Direct images are capped at 5 MB each. Encrypted PDFs are rejected. `claude-fable-5` requires 30-day data retention and is unavailable under ZDR. `claude-fable-5-1` requires reasoning (`low`, `medium`, `high`, `max`; disabled and minimal are rejected).
 
 ### Gemini OCR
@@ -254,7 +238,6 @@ Bare `--provider anthropic` defaults to `claude-sonnet-5`. Direct images are cap
 bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.5-flash-lite
 bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.6-flash
 ```
-
 Bare `--provider gemini` defaults to `gemini-3.5-flash-lite`. Caps include inline PDFs up to 50 MB, uploads up to 2 GB, and PDFs up to 1,000 pages. `gemini-3.8-flash` accepts `--reasoning-effort low|medium|high`; `minimal` and `disabled` are rejected. `--price` for `gemini-3.8-flash` uses the standard `$1.50 / $7.50` per 1M token rates, including during the introductory `$0.75 / $3.75` window through 2026-12-31. [pricing](https://ai.google.dev/gemini-api/docs/pricing)
 
 ### DeepInfra OCR
@@ -269,7 +252,6 @@ bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra
 bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=Qwen/Qwen3.8-27B
 bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=deepseek-ai/DeepSeek-V4.1-Flash
 ```
-
 Bare `--provider deepinfra` stays pinned to `google/gemma-4-31B-it` rather than following the cheapest estimate, so the default page cost and calibration do not move when the catalog changes. All three models accept one image per request, at most 20 MB, and run on the same OpenAI-compatible chat route. Reasoning defaults to disabled; optional `low|medium|high` effort is supported on each.
 
 Per-page token shapes were calibrated on 2026-09-16 from a single 300 DPI page: Gemma 4 31B remains uncalibrated at 4,096/1,024, `Qwen/Qwen3.8-27B` uses 8,320/512, and `deepseek-ai/DeepSeek-V4.1-Flash` uses 1,088/544. `Qwen/Qwen3.8-27B` is priced at the standard `$0.20 / $2.50` tier; DeepInfra's 25% promotional `$0.15 / $1.875` rate is not a durable basis and is not used for estimates.

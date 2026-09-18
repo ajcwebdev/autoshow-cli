@@ -1,5 +1,6 @@
 import type { ProviderLanePressureFeedback } from '~/types'
-import { AppError } from '~/utils/error-handler'
+import { AppError, getErrorHeaders, isRetryExhaustedError, normalizeErrorHeaders } from '~/utils/error-handler'
+import { parseRetryAfterMs } from '~/utils/retries'
 
 const readNestedErrorValue = (error: unknown, key: string): unknown => {
   const seen = new Set<unknown>()
@@ -13,23 +14,31 @@ const readNestedErrorValue = (error: unknown, key: string): unknown => {
   return undefined
 }
 
-const readHeader = (headers: unknown, name: string): string | undefined => {
-  if (headers instanceof Headers) return headers.get(name) ?? undefined
-  if (headers && typeof headers === 'object' && 'get' in headers && typeof headers.get === 'function') {
-    const value = (headers.get as (key: string) => unknown)(name)
-    return typeof value === 'string' ? value : undefined
+/** Thin alias so hosted call sites can normalize maps/get-like headers the same way as error-handler. */
+export const normalizeRetryHeaders = (headers: unknown): Headers | undefined =>
+  normalizeErrorHeaders(headers)
+
+const isExplicitlyNonRetryable = (error: unknown): boolean => {
+  const seen = new Set<unknown>()
+  let current = error
+  while (current && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current)
+    if (current instanceof AppError && current.retryable === false) return true
+    if ('retryable' in current && (current as { retryable?: unknown }).retryable === false) return true
+    if (current instanceof AppError && current.metadata['retryable'] === false) return true
+    current = 'cause' in current ? (current as { cause?: unknown }).cause : undefined
   }
-  if (!headers || typeof headers !== 'object') return undefined
-  const entry = Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase())
-  const value = entry?.[1]
-  if (Array.isArray(value)) return value.find((item): item is string => typeof item === 'string')
-  if (typeof value === 'number') return String(value)
-  return typeof value === 'string' ? value : undefined
+  return false
 }
 
 export const classifyHostedRateLimitPressure = (
   error: unknown
 ): ProviderLanePressureFeedback | undefined => {
+  // Central terminal floor: explicit false and nested exhaustion must never redispatch paid work.
+  if (isExplicitlyNonRetryable(error) || isRetryExhaustedError(error)) {
+    return undefined
+  }
+
   const status = readNestedErrorValue(error, 'status')
   const category = readNestedErrorValue(error, 'category')
   const code = readNestedErrorValue(error, 'code')
@@ -47,21 +56,19 @@ export const classifyHostedRateLimitPressure = (
     return undefined
   }
   const explicitlyRateLimited = status === 429
+    || status === 425
     || (typeof category === 'string' && /rate.?limit|too.?many.?requests|concurrenc/i.test(category))
     || (typeof code === 'string' && /rate.?limit|too.?many.?requests|concurrenc/i.test(code))
     || /rate[-\s]?limit|too many requests|provider concurrency|concurrency limit/.test(message)
   if (!explicitlyRateLimited) return undefined
-  const headers = readNestedErrorValue(error, 'headers')
-  let retryAfterMs: number | undefined
-  const rawRetryAfter = readHeader(headers, 'retry-after')
-  if (rawRetryAfter !== undefined) {
-    const seconds = Number(rawRetryAfter)
-    if (Number.isFinite(seconds)) retryAfterMs = Math.max(0, seconds * 1_000)
-    else {
-      const atMs = Date.parse(rawRetryAfter)
-      if (Number.isFinite(atMs)) retryAfterMs = Math.max(0, atMs - Date.now())
-    }
+  // Ambiguous HTTP statuses (e.g. 503 with rate-limit prose) must not redispatch paid work.
+  // Only definite admission rejections (425/429) or status-less structured concurrency signals qualify.
+  if (typeof status === 'number' && status !== 425 && status !== 429) {
+    return undefined
   }
+
+  const headers = normalizeRetryHeaders(getErrorHeaders(error) ?? readNestedErrorValue(error, 'headers'))
+  const retryAfterMs = parseRetryAfterMs(headers)
   return {
     reason: typeof category === 'string' ? category : 'rate-limit',
     ...(typeof status === 'number' ? { status } : {}),

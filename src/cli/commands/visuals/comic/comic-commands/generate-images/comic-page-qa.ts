@@ -2,7 +2,7 @@ import { basename, dirname, join } from 'node:path'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { getOpenAIClientConfig } from '~/cli/commands/text/write/write-services/write-openai/openai-utils'
 import type { BlockingHardKeyPolicy, PageQaCharacterCue, PageQaEntry, PageQaRepairDecision, PageQaRepairStagnationState, PageQaRequest, PageQaResult, PanelBundleData } from '~/types'
-import { InfraError, UsageError } from '~/utils/error-handler'
+import { InfraError, UsageError, ValidationError } from '~/utils/error-handler'
 import { geminiGenerateContent, geminiUserContent } from '~/utils/gemini/gemini-rest'
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { resolveCredential } from '~/utils/validate/env-utils'
@@ -62,7 +62,7 @@ export const decidePageQaRepairDispatch = (entry: PageQaEntry): { action: 'edit'
   if (!entry.hardFailure) return { action: 'skip', reason: 'The current image has no hard QA failure.' }
   if (entry.result.panels.length !== 1) return { action: 'skip', reason: 'Conservative repair-worthiness dispatch is limited to individual-panel images.' }
   const assessment = entry.result.panels[0]?.repairAssessment
-  if (!assessment) return { action: 'edit', reason: 'The injected QA entry predates repair-worthiness assessment; preserve legacy dependency behavior.' }
+  if (!assessment) throw ValidationError('Page QA repair dispatch requires repairAssessment on every hard-failure panel entry.', { stage: 'comic:page-qa' })
   const objectiveStoryFailure = (
     entry.result.panels[0]?.requiredCastPresent === false
     || entry.result.panels[0]?.unexpectedCastAbsent === false

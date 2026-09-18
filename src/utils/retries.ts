@@ -1,5 +1,5 @@
 import type { RetryClassifier, RetryContext, RetryReasonCode } from '~/types'
-import { classifyRetryFloor, decideRetryAttempt } from './retry-classification'
+import { classifyPaidCreateRetry, classifyRetryFloor, decideRetryAttempt } from './retry-classification'
 import { computeRetryDelay, getRetryPolicy, resolveRetryAttemptLimit } from './retry-policy'
 import { resolveAttemptSignal, sleepWithAbortSignal } from './retry-abortable-delay'
 import { buildRetryAttemptMetadata, logRetryAttempt, throwRetryExhausted } from './retry-diagnostics'
@@ -17,7 +17,9 @@ export const withRetry = async <T>(
 ): Promise<T> => {
   ctx.abortSignal?.throwIfAborted()
   const policy = getRetryPolicy(ctx.retryClass, ctx.policy)
-  const decide: RetryClassifier = classifier ?? classifyRetryFloor
+  // Paid create class must never fall through to the generic floor when a caller omits the classifier.
+  const decide: RetryClassifier = classifier
+    ?? (ctx.retryClass === 'runtime_http_create_conservative' ? classifyPaidCreateRetry : classifyRetryFloor)
   let maxAttempts = policy.maxAttempts
   const startedAt = Date.now()
   let lastError: unknown

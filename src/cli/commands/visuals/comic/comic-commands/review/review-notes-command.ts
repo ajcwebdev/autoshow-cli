@@ -13,7 +13,6 @@ import { InfraError, ValidationError } from '~/utils/error-handler'
 
 const STAGE = 'comic:review-notes'
 
-// The catalog is optional here: mapping notes must still work when the command runs outside a loaded catalog scope.
 const loadCharacterCatalogSafely = (): Pick<CharacterCatalogService, 'detectMentions'> | undefined => {
   try {
     return loadCharacterCatalog()
@@ -32,8 +31,6 @@ export const REVIEW_NOTE_DIRECTIVE_LABELS: Readonly<Record<ReviewNoteKind, Revie
   extras: 'EXTRAS',
 }
 
-// Classification is deliberately a documented keyword table evaluated in this exact order, most specific first.
-// A note that matches nothing is a blocking note, because a blocking mark is what a reviewer describes by default.
 export const REVIEW_NOTE_CLASSIFIERS: ReadonlyArray<{ kind: ReviewNoteKind; pattern: RegExp }> = [
   { kind: 'axis-break', pattern: /\b(?:axis|180|line of action|crossed? the line|reverse angle|flipp?ed sides?|swapped sides?|side flip)\b/iu },
   { kind: 'costume', pattern: /\b(?:wardrobe|costume|outfit|uniform|jumpsuit|coverall|loincloth|hoodie|jacket|vest|hat|helmet|wearing|dressed|clothes)\b/iu },
@@ -117,8 +114,6 @@ const resolveTarget = (
 const formatHeader = (header: Record<string, string>): string =>
   `{${Object.entries(header).map(([key, value]) => `${key}: ${value}`).join(', ')}}`
 
-// The costume header names the character the note itself mentions when the catalog recognizes one, because a
-// costume note is about one character and the panel's first key is only a fallback.
 const costumeCharacter = (note: ReviewNote, target: ReviewNoteTarget, catalog: Pick<CharacterCatalogService, 'detectMentions'> | undefined): string | undefined => {
   const mentioned = catalog?.detectMentions(note.text).flatMap(mention => mention.characterKeys) ?? []
   return mentioned.find(key => target.characterKeys.includes(key)) ?? mentioned[0] ?? target.characterKeys[0]

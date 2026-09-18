@@ -12,10 +12,10 @@ Hosted and local provider families, LLM fan-out, setup flow, and API-key require
 
 ## LLM Provider Fan-Out
 
-`write` runs each `--llm` selection (plus config defaults) through the hosted LLM pool. `--provider-concurrency` caps how many models run at once (default `7`). One model writes `text.json`; more than one writes `text-<model>.json`.
+`write` runs each `--provider` / `--llm` selection (plus config defaults) through the hosted LLM pool. `--llm` is a compatibility alias for `--provider`; do not combine the two spellings. `--provider-concurrency` caps how many models run at once (default `7`). One model writes `text.json`; more than one writes `text-<model>.json`.
 
 ```
-write --llm
+write --provider / --llm
   |
   v
 hosted LLM pool
@@ -24,27 +24,26 @@ concurrency: --provider-concurrency
   v
 text.json or text-<model>.json
 ```
-
 Current model IDs are listed in command help.
 
 ## Provider Families
 
 Selectors use `provider[=model]`. Repeat a flag to run more than one provider. Flags by command are in [System Overview](01-system-overview-cli.md#flag-system).
 
-| Step  | Providers                                                                                                                                                                                             |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| STT   | Local: `whisperfile`. Hosted: `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`. |
-| OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `fal`, `replicate`.                                |
-| URL   | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`.                                                                                                                   |
-| LLM   | Hosted: `openai`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`. Write has no local LLM.                                                                                        |
-| TTS   | Hosted: `elevenlabs`, `grok`, `mistral`, `openai`, `speechify`, `hume`, `cartesia`, `inworld`.                                                                                                        |
-| Image | `gemini`, `openai`, `grok`, `replicate`, `lumalabs`, `fal`.                                                                                                                                           |
-| Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                              |
-| Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                    |
+| Step  | Providers                                                                                                                                                                                              |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| STT   | Local: `whisperfile`. Hosted: `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`, `openai`. |
+| OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`.                                                     |
+| URL   | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`.                                                                                                                    |
+| LLM   | Hosted: `openai`, `gemini`, `anthropic`, `grok`, `glm`, `kimi`, `together`. Write has no local LLM.                                                                                                     |
+| TTS   | Hosted: `elevenlabs`, `grok`, `mistral`, `openai`, `speechify`, `hume`, `cartesia`, `inworld`.                                                                                                         |
+| Image | `gemini`, `openai`, `grok`, `replicate`, `lumalabs`, `fal`.                                                                                                                                            |
+| Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                               |
+| Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                     |
 
 ## Setup Pipeline
 
-`bun autoshow setup` installs local tools and reports hosted provider API-key readiness:
+`bun autoshow setup` installs local tools and reports hosted provider API-key readiness. Configuration flags on `setup` (and the `config` alias) also read and write `config/autoshow.json` without running installation.
 
 ```
 report which hosted API keys are set
@@ -61,8 +60,7 @@ install local tools in parallel
   v
 print setup summary
 ```
-
-`--step` runs one of `yt-dlp`, `defuddle`, `whisperfile`, `calibre`, `transcription`, or `music` in isolation.
+`--step` runs one of `yt-dlp`, `defuddle`, `whisperfile`, `calibre`, `all`, `transcription`, or `music` in isolation.
 
 ## Hosted Provider Env Checks
 
@@ -70,10 +68,10 @@ Hosted commands require the matching environment variable:
 
 | Env var                  | Provider coverage                      |
 | ------------------------ | -------------------------------------- |
-| `OPENAI_API_KEY`         | OpenAI write/OCR/TTS/image             |
+| `OPENAI_API_KEY`         | OpenAI write/STT/OCR/TTS/image         |
 | `XAI_API_KEY`            | Grok write/STT/OCR/TTS/image/video     |
 | `GEMINI_API_KEY`         | Gemini write/STT/OCR/image/video/music |
-| `GLM_API_KEY`            | GLM write/OCR                          |
+| `GLM_API_KEY`            | GLM write/OCR/URL                      |
 | `KIMI_API_KEY`           | Kimi write/OCR                         |
 | `LTXV_API_KEY`           | LTX video                              |
 | `MISTRAL_API_KEY`        | Mistral STT/OCR/TTS                    |
@@ -83,7 +81,7 @@ Hosted commands require the matching environment variable:
 | `REPLICATE_API_TOKEN`    | Replicate image/video                  |
 | `ANTHROPIC_API_KEY`      | Anthropic write/OCR                    |
 | `DEEPINFRA_API_KEY`      | DeepInfra STT/OCR                      |
-| `MINIMAX_API_KEY`        | MiniMax write/video/music              |
+| `MINIMAX_API_KEY`        | MiniMax music                          |
 | `ELEVENLABS_API_KEY`     | ElevenLabs TTS/music                   |
 | `ASSEMBLYAI_API_KEY`     | AssemblyAI STT                         |
 | `GLADIA_API_KEY`         | Gladia STT                             |
@@ -96,8 +94,8 @@ Hosted commands require the matching environment variable:
 | `SPEECHMATICS_API_KEY`   | Speechmatics STT                       |
 | `TOGETHER_API_KEY`       | Together write/STT                     |
 | `HAPPYSCRIBE_API_KEY`    | Happy Scribe STT                       |
-| `SUPADATA_API_KEY`       | Supadata URL (article and transcript)  |
-| `SCRAPECREATORS_API_KEY` | ScrapeCreators URL transcripts         |
+| `SUPADATA_API_KEY`       | Supadata STT/URL                       |
+| `SCRAPECREATORS_API_KEY` | ScrapeCreators STT                     |
 | `FIRECRAWL_API_KEY`      | Firecrawl URL                          |
 | `SPIDER_API_KEY`         | Spider URL                             |
 | `ZYTE_API_KEY`           | Zyte URL                               |

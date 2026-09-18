@@ -107,8 +107,6 @@ const toEvidenceWords = (
     const groups: SonioxTranscriptResponse['tokens'][] = []
     let position = 0
     for (const token of chunk) {
-      // Only split at provider-token boundaries. A token spanning several
-      // linguistic words keeps its original interval; no intra-token times exist.
       const startsWord = Array.from({ length: token.text.length }, (_, i) => position + i).some(index => starts.has(index))
       if (groups.length === 0 || (startsWord && groups.at(-1)!.some(part => /[\p{L}\p{N}]/u.test(part.text)))) groups.push([token])
       else groups.at(-1)!.push(token)

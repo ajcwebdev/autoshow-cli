@@ -10,7 +10,7 @@ import {
 import { createHostedOcrScheduler } from '~/cli/commands/text/ocr/ocr-utils/hosted-ocr-scheduler'
 import { withOcrPageRequestRetry } from '~/cli/commands/text/ocr/ocr-utils/ocr-retry'
 import type { HostedConcurrencyAdmissionToken } from '~/types'
-import { ProviderError } from '~/utils/error-handler'
+import { AppError, ProviderError } from '~/utils/error-handler'
 import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { createManualTimerClock } from '../../../test-utils/manual-timer-clock'
@@ -242,13 +242,21 @@ describe('hosted concurrency coordinator', () => {
     await expect(runHostedConcurrencyRequest({ coordinator, admission: admission('gemini', 0, 4) }, async () => { throw validation })).rejects.toBe(validation)
   })
 
-  test('classifies explicit rate pressure but excludes billing, quota, auth, timeout, and server failures', () => {
+  test('classifies explicit rate pressure but excludes billing, quota, auth, timeout, server, terminal, and exhausted failures', () => {
     expect(classifyHostedRateLimitPressure(ProviderError('limited', { status: 429 }))).toMatchObject({ status: 429 })
     expect(classifyHostedRateLimitPressure(ProviderError('billing quota exhausted', { status: 429 }))).toBeUndefined()
     expect(classifyHostedRateLimitPressure(ProviderError('request rejected', { status: 429, metadata: { category: 'quota_exceeded' } }))).toBeUndefined()
     expect(classifyHostedRateLimitPressure(ProviderError('request rejected', { metadata: { category: 'concurrency_limit' } }))).toMatchObject({ reason: 'concurrency_limit' })
     expect(classifyHostedRateLimitPressure(ProviderError('timeout', { status: 408 }))).toBeUndefined()
     expect(classifyHostedRateLimitPressure(ProviderError('server error', { status: 503 }))).toBeUndefined()
+    expect(classifyHostedRateLimitPressure(ProviderError('upstream rate limit', { status: 503 }))).toBeUndefined()
+    expect(classifyHostedRateLimitPressure(ProviderError('rate limit', { status: 429, retryable: false }))).toBeUndefined()
+    expect(classifyHostedRateLimitPressure(new AppError('exhausted', {
+      kind: 'retry_exhausted',
+      stage: 'test',
+      retryable: false,
+      cause: ProviderError('rate limit', { status: 429 })
+    }))).toBeUndefined()
   })
 
   test('cleans up queued abort listeners and timers on cancellation and disposal', async () => {

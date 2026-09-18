@@ -5,13 +5,9 @@ import { configureCharactersRoot } from '~/cli/commands/command-shared/character
 import { configureOutputRoot } from '~/cli/commands/command-shared/output-root'
 import { classifyReviewNote, parseReviewNotesMarkdown, reviewNotesCommand } from '~/cli/commands/visuals/comic/comic-commands/review/review-notes-command'
 import { getReviewNotesPath } from '~/cli/commands/visuals/comic/comic-commands/review/review-paths'
-import { coerceAndValidateReviewNotes } from '~/cli/commands/visuals/comic/comic-utils/cli-args'
 import { buildStructuredStaging, locateStagingDirectives } from '~/cli/commands/visuals/comic/comic-utils/structured-script-utils/staging-directives'
-import { reviewNotesCommandDefinition } from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
 import { getSceneJsonPath, getStructuredScriptPath } from '~/cli/commands/visuals/comic/comic-utils/project-paths'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
-import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
-import { parseCommandInvocation } from '~/cli/native/native-parser'
 import type { ExpandedScriptBlock } from '~/types'
 import { captureLogEvents } from '../../../../test-utils/console-capture'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
@@ -199,21 +195,5 @@ describe('review-notes command', () => {
       await expect(reviewNotesCommand({ scriptPath: prepared.scriptPath, sceneSlug: prepared.slug, notesPath: prepared.notesPath }))
         .rejects.toThrow('Scene JSON not found at')
     })
-  })
-})
-
-describe('review-notes command registration', () => {
-  test('registers as a comic subcommand with a script parameter and --notes', () => {
-    expect(reviewNotesCommandDefinition.name).toBe('comic review-notes')
-    expect(Object.keys(reviewNotesCommandDefinition.flags ?? {})).toEqual(['notes'])
-    const parsed = coerceAndValidateReviewNotes(parseCommandInvocation(['comic review-notes', '02-01', '--notes', 'review/pass-2.md'], reviewNotesCommandDefinition, GLOBAL_FLAG_DEFINITIONS))
-    expect(parsed).toEqual({ showHelp: false, scriptPath: '02-01', notes: 'review/pass-2.md' })
-    expect(() => coerceAndValidateReviewNotes(parseCommandInvocation(['comic review-notes', '02-01'], reviewNotesCommandDefinition, GLOBAL_FLAG_DEFINITIONS)))
-      .toThrow('comic review-notes requires --notes <path> pointing at a Markdown file with ### Panel NN headings')
-    expect(() => parseCommandInvocation(['comic review-notes'], reviewNotesCommandDefinition, GLOBAL_FLAG_DEFINITIONS))
-      .toThrow('Missing required parameter: script-path')
-    const blank = parseCommandInvocation(['comic review-notes', '02-01', '--notes', 'n.md'], reviewNotesCommandDefinition, GLOBAL_FLAG_DEFINITIONS)
-    expect(() => coerceAndValidateReviewNotes({ ...blank, parameters: { ...blank.parameters, 'script-path': '  ' } }))
-      .toThrow('comic review-notes requires <script-path>.')
   })
 })

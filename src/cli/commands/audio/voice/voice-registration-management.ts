@@ -231,7 +231,6 @@ export const importExistingVoiceRegistration = async (input: {
     await appendVoiceRegistration(input.charactersRoot, registration)
 
     const paths = resolveCharacterVoiceRegistryPaths(input.charactersRoot)
-    // Resolve through the registry so encoded subject keys such as role:narrator land where every reader looks.
     const refDir = resolveVoiceReferenceGenerationRoot(input.charactersRoot, registration)
     await writeCreateOnlyJson(join(refDir, 'audition-manifest.json'), audition)
     await writeCreateOnlyJson(join(refDir, 'registration-snapshot.json'), registration)

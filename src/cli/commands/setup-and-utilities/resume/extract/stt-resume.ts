@@ -90,7 +90,11 @@ const parseResumeRecord = async (
     source = toSourceFromStep1(record)
   } catch (error) {
     if (options.ignoreUnresumableEntries) {
-      l.warn(error instanceof Error ? error.message : String(error), { category: 'pipeline' })
+      l.warn(error instanceof Error ? error.message : String(error), {
+        category: 'pipeline',
+        error,
+        metadata: { resumableWork: 'stt-source-from-step1' }
+      })
       return undefined
     }
     throw error

@@ -1,3 +1,4 @@
+import type { VoicePromiseContext } from './voice-management-types'
 import type { TtsCustomVoiceSampleAudio } from '~/types'
 
 export type ElevenLabsTtsIvcResult = {
@@ -7,9 +8,7 @@ export type ElevenLabsTtsIvcResult = {
   requiresVerification: boolean
 }
 
-export type ElevenLabsTtsIvcContext = {
-  voicePromise?: Promise<ElevenLabsTtsIvcResult> | undefined
-}
+export type ElevenLabsTtsIvcContext = VoicePromiseContext<ElevenLabsTtsIvcResult>
 
 export type ElevenLabsTtsIvcOptions = {
   refAudioPath: string

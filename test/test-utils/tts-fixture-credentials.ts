@@ -1,6 +1,5 @@
 import { beforeEach, afterEach } from 'bun:test'
 
-/** Supply local readiness credentials for suites whose synthesis targets are injected fixtures. */
 export const setupTtsFixtureCredentials = (): void => {
   let previous: string | undefined
   beforeEach(() => {

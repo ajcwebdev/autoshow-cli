@@ -289,13 +289,40 @@ export const getErrorStatus = (error: unknown): number | undefined => {
   return undefined
 }
 
+/** Coerce Headers | get-like | plain header map into a Headers instance. */
+export const normalizeErrorHeaders = (headers: unknown): Headers | undefined => {
+  if (headers instanceof Headers) return headers
+  if (headers && typeof headers === 'object' && 'get' in headers && typeof (headers as { get: unknown }).get === 'function') {
+    const getLike = headers as { get: (key: string) => unknown }
+    const normalized = new Headers()
+    for (const name of ['retry-after', 'Retry-After', 'x-ratelimit-reset', 'x-request-id']) {
+      const value = getLike.get(name)
+      if (typeof value === 'string' || typeof value === 'number') {
+        normalized.set(name.toLowerCase() === 'retry-after' ? 'retry-after' : name, String(value))
+      }
+    }
+    // Prefer enumerating known keys when get-like lacks iteration.
+    if ([...normalized.keys()].length > 0) return normalized
+  }
+  if (!headers || typeof headers !== 'object') return undefined
+  const normalized = new Headers()
+  for (const [key, value] of Object.entries(headers as Record<string, unknown>)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (typeof item === 'string' || typeof item === 'number') normalized.append(key, String(item))
+      }
+    } else if (typeof value === 'string' || typeof value === 'number') {
+      normalized.append(key, String(value))
+    }
+  }
+  return [...normalized.keys()].length > 0 ? normalized : undefined
+}
+
 export const getErrorHeaders = (error: unknown): Headers | undefined => {
   for (const entry of collectErrorMetadataChain(error)) {
     if (!('headers' in entry)) continue
-    const headers = (entry as { headers: unknown }).headers
-    if (headers instanceof Headers) {
-      return headers
-    }
+    const headers = normalizeErrorHeaders((entry as { headers: unknown }).headers)
+    if (headers) return headers
   }
   return undefined
 }
@@ -523,6 +550,12 @@ type AnnotateAppErrorOptions = {
   hints?: string[]
 }
 
+/**
+ * Annotation: attach stage/retryClass/metadata onto an existing AppError without
+ * overwriting its readonly kind/retryable/message/stage fields. Requested kind,
+ * retryable, and message are ignored when `error` is already an AppError — use
+ * `reclassifyAppError` when those identity fields must change.
+ */
 export const annotateAppError = (
   error: unknown,
   options: AnnotateAppErrorOptions
@@ -531,6 +564,7 @@ export const annotateAppError = (
     Object.assign(error.metadata, {
       stage: options.stage,
       ...(options.retryClass ? { retryClass: options.retryClass } : {}),
+      ...(typeof options.retryable === 'boolean' ? { annotatedRetryable: options.retryable } : {}),
       ...(options.metadata ?? {})
     })
     return error
@@ -544,6 +578,38 @@ export const annotateAppError = (
     retryable: options.retryable ?? false,
     ...(options.hints ? { hints: options.hints } : {}),
     ...(options.metadata ? { metadata: options.metadata } : {})
+  })
+}
+
+/**
+ * Reclassification: build a new AppError with updated kind/retryable/message while
+ * preserving the original as `cause`. Prefer this over annotate when terminal
+ * marking or kind changes are required.
+ */
+export const reclassifyAppError = (
+  error: unknown,
+  options: AnnotateAppErrorOptions & { kind: Exclude<AppErrorKind, 'retry_exhausted'> }
+): AppError => {
+  const prior = isAppError(error) ? error : undefined
+  return new AppError(options.message ?? formatErrorMessage(error), {
+    kind: options.kind,
+    stage: options.stage,
+    cause: error,
+    ...(options.retryClass !== undefined
+      ? { retryClass: options.retryClass }
+      : prior?.retryClass !== undefined
+        ? { retryClass: prior.retryClass }
+        : {}),
+    retryable: options.retryable ?? false,
+    ...(options.hints ? { hints: options.hints } : prior && prior.hints.length > 0 ? { hints: [...prior.hints] } : {}),
+    ...(prior?.status !== undefined ? { status: prior.status } : {}),
+    ...(prior?.headers ? { headers: prior.headers } : {}),
+    metadata: {
+      ...(prior?.metadata ?? {}),
+      ...(options.metadata ?? {}),
+      reclassifiedFromKind: prior?.kind,
+      reclassifiedFromStage: prior?.stage
+    }
   })
 }
 

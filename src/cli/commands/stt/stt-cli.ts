@@ -2,14 +2,6 @@ import type { DiarizationOptions, ProviderSpec, Step2ProviderSelectionFilter, St
 import { collectStep2ProviderSpecs } from '../command-shared/extract-routing/provider-registry'
 import { DEEPINFRA_STT_RESPONSE_FORMATS, DEFAULT_DEEPINFRA_STT_RESPONSE_FORMAT } from './stt-response-format-contract'
 
-// Engine capabilities, including which provider-general CLI options each engine accepts. The
-// `satisfies Record<TranscribeEngine, ...>` means adding an engine without declaring its
-// capabilities is a compile error, which is what keeps the generic --stt-* flags honest.
-//
-// These are ENGINE-level facts on purpose. The flag layer runs before model selection is final
-// (--all-stt expands to many models), so a flag whose validity depended on the winning model would
-// produce non-deterministic usage errors. STT_MODEL_CAPABILITIES below stays a runtime/diarization
-// concern and is never consulted for flag validation.
 const NO_OPTIONS = {} as const
 
 const STT_ENGINE_CAPABILITIES = {
@@ -44,8 +36,6 @@ export const STT_ENGINE_OPTION_CAPABILITIES: Record<TranscribeEngine, SttEngineO
   Object.fromEntries(Object.entries(STT_ENGINE_CAPABILITIES).map(([engine, capabilities]) =>
     [engine, capabilities.options])) as Record<TranscribeEngine, SttEngineOptionCapabilities>
 
-// Engine ids are internal; `gemini-stt` is spelled `gemini` on the CLI, and two engines have no
-// public --provider spelling at all. Help text and usage errors both go through this map.
 export const STT_ENGINE_PROVIDER_NAME: Record<TranscribeEngine, string | undefined> = {
   deepinfra: 'deepinfra',
   deepgram: 'deepgram',
@@ -66,23 +56,15 @@ export const STT_ENGINE_PROVIDER_NAME: Record<TranscribeEngine, string | undefin
   'youtube-captions': undefined
 }
 
-// Model overrides describe the implemented request contract, separately from live
-// validation. A shared endpoint does not prove feature parity between its models.
 const STT_MODEL_CAPABILITIES: Partial<Record<TranscribeEngine, Record<string, Partial<TranscribeEngineCapabilities>>>> = {
   together: {
     'openai/whisper-large-v3': { diarizationValidation: 'documented' },
-    // 2026-09-10: live two-speaker sample returned speaker segments and words.
-    // Some native words had zero duration; this verifies diarization support,
-    // not acoustic word-boundary accuracy. See docs/adr/ADR-009-extract-execution-and-artifact-contracts.md#together-parakeet-live-validation.
     'nvidia/parakeet-tdt-0.6b-v3': { diarizationValidation: 'live-tested' }
   },
   mistral: {
     'voxtral-mini-2602': { nativeWordTiming: 'without-diarization' }
   },
   deepinfra: {
-    // 2026-09-16: live batch samples returned words and segments for the Whisper,
-    // Qwen3-ASR, and Nemotron deployments, but both Voxtral deployments return
-    // transcript text with null words and null segments.
     'mistralai/Voxtral-Mini-3B-2507': { nativeWordTiming: 'unavailable' },
     'mistralai/Voxtral-Small-24B-2507': { nativeWordTiming: 'unavailable' }
   }

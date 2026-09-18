@@ -5,7 +5,6 @@ import { makeTempDir } from '../../../../test-utils/temp-dirs'
 import { setupContinuityContractFixtures } from './comic-continuity-contract-fixtures'
 const { temporaryDirectories, entryFor, labelsFile, verdicts } = setupContinuityContractFixtures()
 
-
 describe('continuity labels join and precision arithmetic', () => {
   test('validates the labels file shape and scene binding', () => {
     expect(parseContinuityLabels(labelsFile('scene', { trustedAnchorPanel: 2 }), { sceneSlug: 'scene' }).trustedAnchorPanel).toBe(2)
@@ -65,14 +64,13 @@ describe('continuity labels join and precision arithmetic', () => {
     temporaryDirectories.push(directory)
     const path = join(directory, 'continuity-labels.json')
     const template = { ...labelsFile('scene', { labeler: 'TEMPLATE - NOT LABELED', date: '' }), labeled: false, pairs: [{ panels: [1, 2] as [number, number], verdicts: verdicts() }] }
-    // The template still parses: only reading it as ground truth for precision and recall is refused.
     expect(parseContinuityLabels(template).labeled).toBe(false)
     await Bun.write(path, JSON.stringify(template))
-    await expect(readContinuityLabels(path)).rejects.toThrow('are an unlabeled template rather than human ground truth')
+    await expect(readContinuityLabels(path)).rejects.toThrow('must set "labeled": true to count as human ground truth')
     await Bun.write(path, JSON.stringify({ ...template, labeled: true, labeler: 'Anthony', date: '2026-09-02' }))
     expect((await readContinuityLabels(path)).labeled).toBe(true)
-    // A file written before the field existed is still ground truth.
-    await Bun.write(path, JSON.stringify(labelsFile('scene')))
-    expect((await readContinuityLabels(path)).labeled).toBeUndefined()
+    const { labeled: _ignored, ...withoutLabeled } = labelsFile('scene')
+    await Bun.write(path, JSON.stringify(withoutLabeled))
+    await expect(readContinuityLabels(path)).rejects.toThrow(/labeled/i)
   })
 })

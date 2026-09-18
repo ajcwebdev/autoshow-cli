@@ -1,6 +1,6 @@
 import { beforeAll, afterAll } from 'bun:test'
 import { cleanupTestOutput, STABLE_EXAMPLE_AUDIO_URL, STABLE_EXAMPLE_AUDIO_TITLE } from '../../../../../test-utils/test-helpers'
-import { budgetedTest, LONG_E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
+import { localBudgetedTest, LONG_E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
 import { runCommandAndExpectOutputDir } from '../../../../../test-utils/service-test-kit'
 import { assertSttExtractRun } from '../../../../../test-utils/assert-stt-extract-run'
 
@@ -22,7 +22,7 @@ export const WHISPERFILE_TEST_CASES = [
   { budgetKey: 'transcribe-whisperfile-split', id: 'split', model: 'tiny', args: ['--provider', 'whisperfile=tiny', '--split'], origin: 'explicit' },
 ] as const
 
-for (const { budgetKey, ...entry } of WHISPERFILE_TEST_CASES) budgetedTest(budgetKey, `whisperfile ${entry.id} transcribes local audio`, async () => {
+for (const { budgetKey, ...entry } of WHISPERFILE_TEST_CASES) localBudgetedTest(budgetKey, `whisperfile ${entry.id} transcribes local audio`, async () => {
   await cleanupTestOutput(STABLE_EXAMPLE_AUDIO_TITLE)
   const outputDir = await runCommandAndExpectOutputDir(
     STABLE_EXAMPLE_AUDIO_TITLE,

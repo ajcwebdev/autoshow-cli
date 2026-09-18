@@ -1,8 +1,5 @@
 import { expect } from 'bun:test'
-import {
-  ensurePageImageFixture,
-  fileExists,
-} from './test-helpers'
+import { fileExists } from './test-helpers'
 import { E2E_TEST_TIMEOUT_MS } from './budget'
 import { readProviderResultArtifact, readCanonicalRecord } from './manifest-helpers'
 import { assertTextContent } from './assert-generated-content'
@@ -107,7 +104,7 @@ export const defineOCRServiceTest = ({
   imageExtractionMethod,
   envVarKey,
   inputMode = 'pdf-and-image',
-  imageInput = 'input/examples/document/1-document.png',
+  imageInput = 'input/examples/document/1-document.jpg',
   shouldSkipReadiness,
   assertProviderMetadata = false,
   assertProviderResult = false,
@@ -129,13 +126,11 @@ export const defineOCRServiceTest = ({
   timeoutMs?: number
 }): void => {
   const pdfInput = 'input/examples/document/1-document.pdf'
-  const usesGeneratedPngFixture = imageInput === 'input/examples/document/1-document.png'
+  // Only the bundled document fixtures carry the source page text worth asserting;
+  // a hosted or provider-specific image input is checked for artifacts alone.
+  const usesDocumentPageFixture = imageInput.startsWith('input/examples/document/1-document.')
 
-  withOutputLifecycle('1-document', async () => {
-    if (usesGeneratedPngFixture) {
-      await ensurePageImageFixture(imageInput)
-    }
-  })
+  withOutputLifecycle('1-document')
 
   for (const model of models) {
     const service = expectedService ?? extractServiceFromProvider(provider)
@@ -163,15 +158,12 @@ export const defineOCRServiceTest = ({
     defineBudgetedLiveServiceTest(budgetKey, `extract image with --provider ${provider}=${model}`, [envVarKey], async () => {
       await requireServiceRunPrerequisites(envVarKey, shouldSkipReadiness)
 
-      if (usesGeneratedPngFixture) {
-        await ensurePageImageFixture(imageInput)
-      }
       const outputDir = await runCommandAndExpectOutputDir('1-document', ['src/cli/create-cli.ts', 'extract', imageInput, '--provider', `${provider}=${model}`])
 
       await assertOcrArtifacts({
         outputDir,
         expectedExtractionMethod: imageExtractionMethod ?? extractionMethod,
-        ...(usesGeneratedPngFixture ? { expectedText: [/Amazon\s+Textract/i, /Processing\s+Documents\s+Synchronously/i] } : {}),
+        ...(usesDocumentPageFixture ? { expectedText: [/Amazon\s+Textract/i, /Processing\s+Documents\s+Synchronously/i] } : {}),
         expectedTotalPages: 1,
         service,
         model,

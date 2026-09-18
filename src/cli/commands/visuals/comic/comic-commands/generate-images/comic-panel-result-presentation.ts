@@ -9,7 +9,7 @@ import type {
   PanelRenderResult
 } from '~/types'
 import {
-  updateImageRunStatsWithCostFallback
+  recordImageRepairAccounting
 } from '../../comic-image-services/image-costs'
 import { captureBloopers } from '../../comic-utils/blooper-ledger'
 import { comicLog } from '../../comic-utils/comic-logger'
@@ -17,7 +17,6 @@ import {
   getImagePromptVariationLabel
 } from './prompt-variations'
 
-/** Episode label for the blooper tree: the leading numeric group of the scene slug, else the slug itself. */
 export const resolveEpisodeLabel = (sceneSlug: string): string => /^(\d+)-/u.exec(sceneSlug)?.[1] ?? sceneSlug
 
 export const recordPanelRepairResult = (
@@ -27,17 +26,9 @@ export const recordPanelRepairResult = (
   repairResult: GenerateWithQaRepairResult,
   outputDirectory: string
 ): void => {
-  resultStats.imagesGenerated += repairResult.imagesGenerated
-  resultStats.totalDurationMs += repairResult.totalDurationMs
-  resultStats.totalInputTokens += repairResult.totalInputTokens
-  resultStats.totalOutputTokens += repairResult.totalOutputTokens
-  resultStats.totalInputImageTokens += repairResult.imageInputUnits
-  resultStats.totalInputTextTokens += repairResult.textInputUnits
-  resultStats.totalOutputImageTokens += repairResult.imageOutputUnits
-  resultStats.totalCost += repairResult.totalCostUsd
-  for (const costEntry of repairResult.costEntries) updateImageRunStatsWithCostFallback(costEntry.model, resultStats, options.quality, options.size)
-  if (repairResult.qaEntry) qaEntries.push({ directory: outputDirectory, entry: repairResult.qaEntry })
+  recordImageRepairAccounting(resultStats, qaEntries, options, repairResult, outputDirectory)
 }
+
 
 export const presentPanelRepairResult = async (repairResult: GenerateWithQaRepairResult, request: GenerateWithQaRepairInput, ctx: PanelRenderContext, variation: ImagePromptVariation, resultStats: ImageRunStats): Promise<void> => {
   const { sceneSlug, options, useVariationOutputPaths } = ctx

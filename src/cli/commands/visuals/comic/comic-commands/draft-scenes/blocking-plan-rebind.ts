@@ -19,9 +19,6 @@ export type RebindBlockingPlanResult = BlockingRebindResult & { planPath: string
 export const formatUnresolvedCitation = (item: BlockingRebindResult['unresolved'][number]): string =>
   `${item.path}: segment "${item.sourceSegmentId}" (${item.reason})`
 
-// The structure stage snapshots the script it replaces. Read it defensively: a snapshot written by an
-// older CLI, or hand-edited into an unreadable shape, must degrade to "no previous script" rather than
-// fail a rebind that can still resolve every citation by content hash.
 export const readPreviousStructuredScriptSegments = async (sceneSlug: string): Promise<Pick<StructuredScriptData, 'sourceSegments'> | undefined> => {
   const path = getPreviousStructuredScriptPath(sceneSlug)
   if (!existsSync(path)) return undefined

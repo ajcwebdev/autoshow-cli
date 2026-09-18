@@ -50,7 +50,7 @@ bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU"
 Transcribe locally, then send the saved transcript to a hosted writer:
 
 ```bash
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider whisperfile=tiny --output-dir output/transcript
+bun autoshow extract input/examples/audio/1-audio.mp3 --provider whisperfile=tiny --output-dir output/transcript
 bun autoshow write output/transcript/transcription.txt --provider openai=gpt-5.6-sol --prompt shortSummary takeaways
 ```
 
@@ -73,7 +73,7 @@ Pass a directory or a newline-delimited URL list for a batch. See [batch inputs]
 These examples use hosted providers:
 
 ```bash
-bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15
+bun autoshow tts input/examples/tts/01-tts-short.md --provider openai=gpt-4o-mini-tts-2025-12-15
 bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2 --size 1024x1024
 bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=gemini-omni-1.1-flash
 bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental
@@ -120,4 +120,6 @@ bun run check
 bun t --price
 ```
 
-The [testing guide](./docs/commands/testing.md) covers targeted smoke tests and provider verification. Full-suite execution requires explicit approval under [repository rules](./AGENTS.md). Architecture details live in [diagrams](./docs/diagrams.md) and [design decisions](./docs/adr/README.md); dated provider changes live in [model refresh reports](./docs/reports/).
+`bun t` itself now runs in live credential mode and executes the provider-backed suite, so it bills real providers; `bun t:local` is the no-cost fixture run.
+
+The [testing guide](./docs/commands/testing.md) covers targeted smoke tests and provider verification. Full-suite execution requires explicit approval under [repository rules](./AGENTS.md). Architecture details live in [diagrams](./docs/diagrams.md) and [design decisions](./docs/adr/README.md); hosted-model policy and live catalogs are covered by [ADR-010](./docs/adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) and `src/cli/commands/setup-and-utilities/models/`.

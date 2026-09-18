@@ -114,7 +114,7 @@ test('--all-providers plus --all-local URL orchestrator preserves the full backe
   }
 })
 
-test('--all-providers URL manifest records one exhausted failed URL provider without an actual-cost artifact', async () => {
+test('--all-providers URL manifest records one failed URL provider without an actual-cost artifact', async () => {
   const tempRoot = await makeTempDir('autoshow-all-url-failed-provider-')
   const originalSleep = Bun.sleep
 
@@ -144,12 +144,12 @@ test('--all-providers URL manifest records one exhausted failed URL provider wit
     expect(item?.metadata['errors']).toEqual([{
       service: 'zyte',
       model: 'zyte',
-      message: expect.stringContaining('Zyte request failed after 2/2 attempts with 25ms timeout')
+      message: expect.stringContaining('Zyte request timed out after 25ms')
     }])
     expect(item?.providers.find((state) => state.service === 'zyte')).toMatchObject({
       service: 'zyte',
       status: 'failed',
-      attempts: 2,
+      attempts: 1,
       error: {
         message: expect.stringContaining('Zyte request timed out after 25ms')
       }

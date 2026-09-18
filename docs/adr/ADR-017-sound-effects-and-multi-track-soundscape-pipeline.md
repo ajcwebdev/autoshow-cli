@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-17
 - **Verification Status:** Passed
 
 ## Context
@@ -87,7 +87,7 @@ The default `--soundscape-timing-policy strict` fails before mastering when exac
 
 AudioGen is a community deployment under CC BY-NC 4.0. `--sfx-license-use noncommercial|commercial|unknown` is required for that target and is never inferred from model selection; commercial use is ineligible. AudioGen and Stability render action SFX and ambience only. Vocal reactions stay on the ElevenLabs sound-effect target, or on a selected dialogue TTS adapter when it supports the requested delivery and preserves the selected character voice. Those voice-qualified results are not reused across incompatible dialogue targets. If neither target supports a required vocal reaction, static validation fails rather than converting it to dialogue text or generic foley.
 
-Generation cache keys exclude placement, bus gain, pan, ducking, and final master profile, so mix edits reuse paid clips. A provider-neutral action-SFX or ambience result may feed every selected dialogue target's mix. `--sfx-concurrency` is the work-class ceiling and `--concurrency-mode` chooses ramp or immediate admission. Ambiguous paid admission follows ADR-013's `--allow-ambiguous-redispatch` rule.
+Generation cache keys exclude placement, bus gain, pan, ducking, and final master profile, so mix edits reuse paid clips. A provider-neutral action-SFX or ambience result may feed every selected dialogue target's mix. `--step-concurrency sfx=<n>` is the work-class ceiling ([ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md) replaced `--sfx-concurrency`) and `--concurrency-mode` chooses ramp or immediate admission. Ambiguous paid admission follows ADR-013's `--allow-ambiguous-redispatch` rule.
 
 `--price` resolves the same plans, accounts for verified cache and resume hits, reports unknown prices as unknown rather than zero, and performs no credential check, network call, directory creation, cache write, or manifest update.
 
@@ -162,7 +162,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-`comic generate-audio` accepts `--sfx-provider`, `--sfx-license-use`, `--sfx-concurrency`, and `--soundscape-timing-policy` in `src/cli/flags/comic-flags.ts`. Directive parsing lives in `src/cli/commands/visuals/comic/comic-utils/structured-script-utils/soundscape-directives.ts`. Planning, routing, mixing, and the three dedicated adapters live under `src/cli/commands/audio/tts/soundscape/`. Public types live in `src/types/soundscape-workflow/`.
+`comic generate-audio` accepts `--sfx-provider`, `--sfx-license-use`, `--soundscape-timing-policy`, and `--step-concurrency sfx=<n>` in `src/cli/flags/comic-flags.ts`. Directive parsing lives in `src/cli/commands/visuals/comic/comic-utils/structured-script-utils/soundscape-directives.ts`. Planning, routing, mixing, and the three dedicated adapters live under `src/cli/commands/audio/tts/soundscape/`. Public types live in `src/types/soundscape-workflow/`.
 
 ## Test Plan
 
@@ -180,7 +180,6 @@ bun test test/test-cases/validation/audio/music/replicate-audiogen-adapter-contr
 bun test test/test-cases/validation/audio/music/stability-stable-audio-adapter-contracts.test.ts
 git diff --check
 ```
-
 1. `bun run check` and `git diff --check` confirm type, lint, and whitespace health after documentation edits.
 2. `bun t --price` confirms no-cost `--price` planning with zero network calls and zero file mutations.
 3. The soundscape schema, timeline, mixer, and artifact contracts verify v5 parsing, directive extraction, exact and proportional anchor resolution, four-bus mixing, cache reuse, and canonical publication.

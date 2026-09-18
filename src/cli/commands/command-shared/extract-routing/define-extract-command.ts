@@ -118,7 +118,6 @@ export const extractCommand = defineCliCommand({
     if (!input || !input.toLowerCase().endsWith('.docx') || !((await statPath(input).catch(() => undefined))?.isFile())) throw UsageError('--docx-markdown requires a local DOCX file.')
     const allowed = new Set(['docx-markdown', 'price', 'output-dir', 'output-root', 'json', 'quiet', 'verbose', 'log-level', 'color'])
     for (const flag of ctx.rawParsed.explicitFlags) if (!allowed.has(flag)) throw UsageError(`--${flag} cannot be combined with --docx-markdown.`)
-    // Validate ZIP/XML before pricing or creating a workspace.
     const { readDocxMarkdown } = await import('../../text/ocr/office/docx-markdown')
     await readDocxMarkdown(input)
   }

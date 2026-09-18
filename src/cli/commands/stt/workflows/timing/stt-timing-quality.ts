@@ -1,4 +1,4 @@
-import type { SttTimingCoverageAssessment, TranscriptionSegment } from '~/types'
+import type { TranscriptionSegment } from '~/types'
 import { toTimestamp } from '../../stt-utils/stt-utils'
 
 
@@ -145,7 +145,7 @@ export const detectCompressedTimingCoverage = (
     knownStartSeconds?: number | undefined
     knownEndSeconds?: number | undefined
   }
-): SttTimingCoverageAssessment | undefined => {
+) => {
   const knownStartSeconds = options.knownStartSeconds ?? 0
   const knownEndSeconds = options.knownEndSeconds
   if (!isFiniteNonNegativeNumber(knownEndSeconds) || knownEndSeconds <= knownStartSeconds) {

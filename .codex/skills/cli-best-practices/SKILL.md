@@ -41,7 +41,6 @@ Example pipeline:
 ```bash
 myapp list --plain --no-header | grep error | wc -l
 ```
-
 ## Command Shape
 
 - Prefer a single primary command with clear subcommands.
@@ -59,7 +58,6 @@ myapp init
 myapp status
 myapp deploy --env prod
 ```
-
 ## Naming
 
 - Pick one term for a concept and use it everywhere.
@@ -87,7 +85,6 @@ Common patterns:
 myapp fetch --limit 50 --format json
 myapp delete --force --id 123
 ```
-
 ## Flag Conventions
 
 - Use `--all` to operate on everything.
@@ -112,7 +109,6 @@ Example:
 myapp --config ./myapp.toml status
 myapp deploy --env prod
 ```
-
 ## Argument Parsing And Validation
 
 - Validate required args early.
@@ -192,9 +188,7 @@ Example split:
 
 ```bash
 $ myapp list --json > out.json
-# progress and warnings go to stderr
 ```
-
 ## Output Formats
 
 - Use line-oriented output for simple lists.
@@ -235,7 +229,6 @@ Example:
 ```bash
 myapp list --json --fields name,status
 ```
-
 ## Exit Codes
 
 - Exit `0` on success.
@@ -275,7 +268,6 @@ Examples:
 cat data.json | myapp import -
 myapp import ./data.json
 ```
-
 ## File Handling
 
 - Avoid overwriting files unless asked.
@@ -357,7 +349,6 @@ Example:
 ```bash
 MYAPP_FORMAT=json myapp list --format plain
 ```
-
 ## Configuration Locations
 
 - Follow platform conventions for config paths.

@@ -109,12 +109,11 @@ export const decideRevisionPromotion = (importance: RevisionImportance, comparis
   if (!comparisons.every(item => item.preference === 'candidate')) return { decision: 'retain-original', reason: 'The two comparison passes did not unanimously prefer the candidate.' }
   if (!comparisons.every(item => item.originalIssueVisible && item.targetedIssueMateriallyImproved && item.differenceMeaningful)) return { decision: 'retain-original', reason: 'The two comparison passes did not unanimously find a visible, meaningful targeted improvement.' }
   if (comparisons.some(item => item.candidateHasMajorRegression)) return { decision: 'retain-original', reason: 'At least one comparison found a major collateral regression.' }
-  const versionedComparisons = comparisons.filter(item => item.comparisonContractVersion === 3 || item.comparisonContractVersion === 4)
-  if (versionedComparisons.length > 0 && versionedComparisons.length !== comparisons.length) return { decision: 'retain-original', reason: 'Comparison evidence mixes incompatible contract versions.' }
-  if (new Set(versionedComparisons.map(item => item.comparisonContractVersion)).size > 1) return { decision: 'retain-original', reason: 'Comparison evidence mixes incompatible contract versions.' }
-  if (versionedComparisons.some(item => item.nonTargetDifferenceLevel === 'major')) return { decision: 'retain-original', reason: 'At least one comparison found major change outside the targeted correction.' }
-  if (versionedComparisons.some(item => item.comparisonContractVersion === 3 && item.candidatePreservationRequirementsSatisfied !== true)) return { decision: 'retain-original', reason: 'At least one legacy comparison found that the candidate did not satisfy the frozen preservation requirements.' }
-  if (versionedComparisons.some(item => item.comparisonContractVersion === 4 && item.candidateIntroducesPreservationRegression !== false)) return { decision: 'retain-original', reason: 'At least one comparison found that the candidate introduced a preservation regression.' }
+  if (!comparisons.every(item => item.comparisonContractVersion === 4)) {
+    return { decision: 'incomplete', reason: 'Comparison evidence requires comparisonContractVersion 4 on every pass.' }
+  }
+  if (comparisons.some(item => item.nonTargetDifferenceLevel === 'major')) return { decision: 'retain-original', reason: 'At least one comparison found major change outside the targeted correction.' }
+  if (comparisons.some(item => item.candidateIntroducesPreservationRegression !== false)) return { decision: 'retain-original', reason: 'At least one comparison found that the candidate introduced a preservation regression.' }
   return { decision: 'clear-winner', reason: 'Both order-swapped comparisons unanimously preferred a meaningful targeted improvement with no major regression.' }
 }
 

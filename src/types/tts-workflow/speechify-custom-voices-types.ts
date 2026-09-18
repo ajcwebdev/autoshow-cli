@@ -1,3 +1,4 @@
+import type { VoicePromiseContext } from './voice-management-types'
 import type { TtsCustomVoiceSampleAudio } from '~/types'
 
 export type SpeechifyTtsCustomVoiceGender =
@@ -11,9 +12,7 @@ export type SpeechifyTtsCustomVoiceResult = {
   sourceAudio: TtsCustomVoiceSampleAudio
 }
 
-type SpeechifyTtsCustomVoiceContext = {
-  voicePromise?: Promise<SpeechifyTtsCustomVoiceResult> | undefined
-}
+export type SpeechifyTtsCustomVoiceContext = VoicePromiseContext<SpeechifyTtsCustomVoiceResult>
 
 export type SpeechifyTtsCustomVoiceOptions = {
   refAudioPath: string

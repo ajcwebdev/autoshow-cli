@@ -7,7 +7,6 @@ import { computeActualCosts, installMockFetch, jsonResponse, runLtxVideoGen, vid
 
 import { setupContractSuiteLifecycle } from '../../../../../test-utils/rest-contract-helpers'
 
-// Register lifecycle in this file too: Bun caches shared.ts after the first importing test file.
 const tempDirs = setupContractSuiteLifecycle({ envKeys: ['LTXV_API_KEY'], tempPrefix: 'autoshow-ltx-25-', restoreBunSleep: true, beforeEachExtra: () => { Bun.sleep = (async () => {}) as typeof Bun.sleep } })
 const withTempDir = tempDirs.withDir
 

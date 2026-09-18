@@ -18,8 +18,6 @@ export function directChildren(node: XmlElement, name: string): XmlElement[] {
   return node.children.filter((child): child is XmlElement => isElement(child) && localName(child.name) === name);
 }
 
-// Content controls wrap blocks, rows, or cells without changing their order.
-// Only unwrap sdtContent; sdtPr contains control metadata, not document text.
 export function contentChildren(node: XmlElement): XmlElement[] {
   return node.children.flatMap((child): XmlElement[] => {
     if (!isElement(child)) return [];

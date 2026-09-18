@@ -1,5 +1,5 @@
 import type { RetryClass, RetryClassifier, RetryDecision, RetryReasonCode, RetrySignals } from '~/types'
-import { AppError, extractErrorMetadata, isAppError, isRetryExhaustedError } from '~/utils/error-handler'
+import { AppError, collectErrorMetadataChain, extractErrorMetadata, getErrorHeaders, isAppError, isRetryExhaustedError } from '~/utils/error-handler'
 
 export const NON_RETRYABLE_STATUS_CODES = [400, 401, 402, 403, 404, 422] as const
 export const RETRYABLE_STATUS_CODES = [408, 425, 429, 500, 502, 503, 504] as const
@@ -32,7 +32,24 @@ export const MAX_PROVIDER_RETRY_AFTER_MS = 300_000
 const NON_RETRYABLE_STATUSES: ReadonlySet<number> = new Set(NON_RETRYABLE_STATUS_CODES)
 const RETRYABLE_STATUSES: ReadonlySet<number> = new Set(RETRYABLE_STATUS_CODES)
 const NETWORK_FAILURE_CODE_SET: ReadonlySet<string> = new Set(NETWORK_FAILURE_CODES)
-const NETWORK_CAUSE_DEPTH_LIMIT = 6
+
+
+const isStructuredQuotaOrBilling = (error: unknown): boolean => {
+  const metadata = extractErrorMetadata(error)
+  const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
+  const category = typeof metadata['category'] === 'string' ? metadata['category'].toLowerCase() : ''
+  const blockedReason = typeof metadata['blockedReason'] === 'string' ? metadata['blockedReason'] : ''
+  if (status === 402) return true
+  if (metadata['quota'] === true) return true
+  if (category === 'billing' || category === 'quota' || category.includes('quota') || category.includes('billing')) return true
+  if (
+    blockedReason === 'billing_required'
+    || blockedReason === 'insufficient_balance'
+    || blockedReason === 'quota_or_billing'
+  ) return true
+  return false
+}
+
 
 export const isRetryableStatus = (status: number): boolean => {
   if (status === 501 || status === 505) return false
@@ -67,29 +84,9 @@ const matchesNetworkSpelling = (message: string): boolean => {
   return NETWORK_FAILURE_SPELLINGS.some((spelling) => msg.includes(spelling))
 }
 
-const boundedCauseChain = (error: unknown): object[] => {
-  const chain: object[] = []
-  const seen = new Set<unknown>()
-  let current = error
-
-  while (
-    current !== null
-    && typeof current === 'object'
-    && !seen.has(current)
-    && chain.length < NETWORK_CAUSE_DEPTH_LIMIT
-  ) {
-    chain.push(current)
-    seen.add(current)
-    current = 'cause' in current
-      ? (current as { cause?: unknown }).cause
-      : undefined
-  }
-
-  return chain
-}
 
 const isNetworkError = (error: unknown): boolean => {
-  for (const entry of boundedCauseChain(error)) {
+  for (const entry of collectErrorMetadataChain(error)) {
     const message = entry instanceof Error
       ? entry.message
       : 'message' in entry && typeof (entry as { message?: unknown }).message === 'string'
@@ -129,7 +126,7 @@ export const readRetrySignals = (error: unknown): RetrySignals => {
   return {
     status: typeof metadata['status'] === 'number' ? metadata['status'] : undefined,
     retryable: typeof metadata['retryable'] === 'boolean' ? metadata['retryable'] : undefined,
-    headers: metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
+    headers: getErrorHeaders(error)
   }
 }
 
@@ -169,6 +166,9 @@ export const classifyPaidCreateRetry = (error: unknown): RetryDecision => {
   }
   if (isRetryExhaustedError(error)) {
     return { shouldRetry: false, delayMs: 0, reasonCode: 'nested_exhaustion', reason: 'nested retry or polling exhaustion' }
+  }
+  if (isStructuredQuotaOrBilling(error)) {
+    return { shouldRetry: false, delayMs: 0, reasonCode: 'non_retryable_marked', reason: 'quota or billing failure is terminal' }
   }
   if (isAbortError(error) || isTimeoutError(error) || isNetworkError(error)) {
     return { shouldRetry: false, delayMs: 0, reasonCode: 'unsafe_paid_redispatch', reason: 'paid create outcome is ambiguous' }
@@ -212,6 +212,10 @@ export const classifyRetryFloor = (error: unknown): RetryDecision => {
     return { shouldRetry: false, delayMs: 0, reasonCode: 'nested_exhaustion', reason: 'nested retry or polling exhaustion' }
   }
 
+  if (isStructuredQuotaOrBilling(error)) {
+    return { shouldRetry: false, delayMs: 0, reasonCode: 'non_retryable_marked', reason: 'quota or billing failure is terminal' }
+  }
+
   if (status !== undefined && !isRetryableStatus(status)) {
     return { shouldRetry: false, delayMs: 0, reasonCode: 'non_retryable_status', reason: `non-retryable status ${status}` }
   }
@@ -246,6 +250,10 @@ export const classifyFetchRetry = (
 
   if (isRetryExhaustedError(error)) {
     return noRetry('nested retry or polling exhaustion', 'nested_exhaustion')
+  }
+
+  if (isStructuredQuotaOrBilling(error)) {
+    return noRetry('quota or billing failure is terminal', 'non_retryable_marked')
   }
 
   if (status !== undefined) {

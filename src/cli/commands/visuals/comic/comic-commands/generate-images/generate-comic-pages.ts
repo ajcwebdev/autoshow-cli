@@ -17,7 +17,7 @@ import type {
 } from '~/types'
 import {
   createImageRunStats,
-  updateImageRunStatsWithCostFallback,
+  recordImageRepairAccounting,
 } from '../../comic-image-services/image-costs'
 import { createImage } from '../../comic-image-services/comic-image-targets'
 import { writeGeneratedImage } from '../../comic-image-services/image-writer'
@@ -107,16 +107,7 @@ const renderSinglePage = async (
   const { variation, model, pageChunk } = item
   const { sceneSlug, options, useVariationOutputPaths, useModelSpecificFilenames, prompts, requestImage, writeImage, judgePage, qaEnabled, judgeModel, maxRepairs, nextHostedIndex } = ctx
   const recordRepairResult = (repairResult: GenerateWithQaRepairResult, outputDirectory: string): void => {
-    resultStats.imagesGenerated += repairResult.imagesGenerated
-    resultStats.totalDurationMs += repairResult.totalDurationMs
-    resultStats.totalInputTokens += repairResult.totalInputTokens
-    resultStats.totalOutputTokens += repairResult.totalOutputTokens
-    resultStats.totalInputImageTokens += repairResult.imageInputUnits
-    resultStats.totalInputTextTokens += repairResult.textInputUnits
-    resultStats.totalOutputImageTokens += repairResult.imageOutputUnits
-    resultStats.totalCost += repairResult.totalCostUsd
-    for (const costEntry of repairResult.costEntries) updateImageRunStatsWithCostFallback(costEntry.model, resultStats, options.quality, options.size)
-    if (repairResult.qaEntry) qaEntries.push({ directory: outputDirectory, entry: repairResult.qaEntry })
+    recordImageRepairAccounting(resultStats, qaEntries, options, repairResult, outputDirectory)
   }
 
   const outputPath = getPageComicImagePath(

@@ -1,7 +1,8 @@
 import type { BudgetPreflightSummary, HeadBudgetResult, PriceCommandResult, RunnerArgs, TestRunArtifacts } from '~/types'
 import { l } from '~/utils/app-logger/app-logger'
 import { serializeDiagnosticError } from '~/utils/error-handler'
-import { parseRunnerArgs } from './args'
+import { isLiveCredentialMode, parseRunnerArgs } from './args'
+import { UNBUDGETED_LIVE_RUN_ENV } from '../test-utils/budget-env'
 import {
   appendRunnerLog,
   cleanupRunArtifacts,
@@ -22,40 +23,15 @@ import { buildEmptyBudgetSummary, runPriceSuite } from './price-execution'
 import { prebuildTestCliBundle, runBunTest } from './process-execution'
 import { buildPriceReportData } from './reports/price-report'
 import { buildTestReportData } from './reports/test-report'
-import { formatTimedOutputPrefix, lineHasTimedOutputPrefix, normalizeRepoPath } from './utils'
+import { normalizeRepoPath } from './utils'
 
-const originalConsole = {
-  log: console.log.bind(console),
-  warn: console.warn.bind(console),
-  error: console.error.bind(console),
-}
-
-let timestampConsoleInstalled = false
-
-export const installTimestampedConsole = (): void => {
-  if (timestampConsoleInstalled) return
-  timestampConsoleInstalled = true
-
-  for (const method of ['log', 'warn', 'error'] as const) {
-    const original = originalConsole[method]
-    console[method] = ((...args: unknown[]) => {
-      const prefix = formatTimedOutputPrefix(Date.now())
-      if (args.length === 0) {
-        original(prefix)
-        return
-      }
-      if (typeof args[0] === 'string') {
-        if (lineHasTimedOutputPrefix(args[0])) {
-          original(...args)
-          return
-        }
-        original(`${prefix} ${args[0]}`, ...args.slice(1))
-        return
-      }
-      original(prefix, ...args)
-    }) as typeof console[typeof method]
-  }
-}
+/**
+ * Formerly patched console.log/warn/error with timestamps. That global interception
+ * is retired: child-process lines are timestamped in process-execution's explicit
+ * renderer, and shared logger sinks own application diagnostics. Kept as a no-op
+ * so existing runner entrypoints remain stable.
+ */
+export const installTimestampedConsole = (): void => {}
 
 const runStandardTestMode = async (
   args: RunnerArgs,
@@ -75,6 +51,8 @@ const runStandardTestMode = async (
   if (args.budgetHundredthCents !== undefined) {
     budgetEnvOverrides['AUTOSHOW_TEST_BUDGET_SKIP_KEYS'] = JSON.stringify(budgetHead.skipKeys)
     budgetEnvOverrides['AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS'] = JSON.stringify(budgetHead.evaluatedKeys)
+  } else if (isLiveCredentialMode()) {
+    budgetEnvOverrides[UNBUDGETED_LIVE_RUN_ENV] = '1'
   }
   if (!args.adaptiveConcurrency) budgetEnvOverrides['AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY'] = '0'
 
@@ -176,7 +154,6 @@ export const runTestRunner = async (argv: string[]): Promise<number> => {
   let exitCode = 0
   try {
     appendRunnerLog(artifacts, `Run ID: ${artifacts.runId}\nStarted: ${artifacts.startedAtIso}\nArgs: ${argv.slice(2).join(' ')}\n`)
-    // Settle concurrent producers before ending their log streams on failure.
     const preparation = await Promise.allSettled([
       args.preserveTestOutput
         ? Promise.resolve()

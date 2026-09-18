@@ -6,6 +6,7 @@ import { resolveStabilitySoundEffectTarget } from './stability-stable-audio-adap
 import { SoundEffectProviderError } from './sound-effect-errors'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { ELEVENLABS_SFX_SELECTOR, REPLICATE_AUDIOGEN_SELECTOR } from './sfx-provider-targets'
+import { readSoundscapeHeader } from './soundscape-http-headers'
 
 export { SoundEffectProviderError } from './sound-effect-errors'
 
@@ -44,12 +45,6 @@ const ELEVENLABS_SFX_CAPABILITY_FIXTURE: SoundEffectCapabilityFixture = {
   capabilityFixtureHash: hashCanonicalTtsValue(fixtureBase),
 }
 
-const header = (headers: Headers | Record<string, string> | undefined, name: string): string | undefined => {
-  if (!headers) return undefined
-  if (headers instanceof Headers) return headers.get(name) ?? undefined
-  const entry = Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase())
-  return typeof entry?.[1] === 'string' ? entry[1] : undefined
-}
 
 const defaultRequest = (apiKey: string): ElevenLabsSoundEffectHttpRequest => async (input) => {
   const response = await fetch(`https://api.elevenlabs.io${input.path}?output_format=${encodeURIComponent(input.query.output_format)}`, {
@@ -130,10 +125,10 @@ export const createElevenLabsSoundEffectAdapter = (input: {
         throw new SoundEffectProviderError(`ElevenLabs sound generation failed with HTTP ${response.status}.`, retryable, rejected ? 'rejected' : 'ambiguous', response.status, response.headers)
       }
       if (response.body.byteLength === 0) throw UsageError('ElevenLabs sound generation returned empty audio.')
-      const contentType = header(response.headers, 'content-type')?.split(';')[0]?.trim() || 'application/octet-stream'
+      const contentType = readSoundscapeHeader(response.headers, 'content-type')?.split(';')[0]?.trim() || 'application/octet-stream'
       if (!/^audio\/(?:mpeg|mp3|wav|wave|x-wav)$/iu.test(contentType)) throw UsageError(`ElevenLabs sound generation returned unsupported content type ${contentType}.`)
-      const providerRequestId = header(response.headers, 'request-id') ?? header(response.headers, 'x-request-id')
-      const rawCharacterCost = header(response.headers, 'character-cost')
+      const providerRequestId = readSoundscapeHeader(response.headers, 'request-id') ?? readSoundscapeHeader(response.headers, 'x-request-id')
+      const rawCharacterCost = readSoundscapeHeader(response.headers, 'character-cost')
       const observedCharacterCost = rawCharacterCost !== undefined && /^\d+$/u.test(rawCharacterCost) ? Number(rawCharacterCost) : undefined
       const evidenceBase = {
         schemaVersion: 1 as const,

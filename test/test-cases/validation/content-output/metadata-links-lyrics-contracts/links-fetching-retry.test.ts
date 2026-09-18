@@ -44,7 +44,7 @@ const expectLinksRetryScenario = async (options: {
   }
   await withZeroRetryBackoff(async () => {
     await runLinksWithArgv([
-      'bun', 'src/cli/create-cli.ts', 'links', '--elevenlabs', 'models'
+      'bun', 'src/cli/create-cli.ts', 'links', '--provider', 'elevenlabs', 'models'
     ], { outputPath, fetchImpl })
   })
   const output = await Bun.file(outputPath).text()

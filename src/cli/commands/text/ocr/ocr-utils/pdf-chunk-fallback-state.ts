@@ -23,6 +23,7 @@ import {
 } from './pdf-chunk-fallback-paths'
 import { summarizeFallbackAudit } from './pdf-chunk-fallback-audit'
 import { isHostedOcrRun } from './hosted-ocr-utils'
+import { isPathAbsenceError } from '~/utils/filesystem'
 
 const matchesCacheIdentity = (
   run: HostedOcrRun,
@@ -100,8 +101,11 @@ export const readCachedFallbackPage = async (
       pageNumber,
       totalPages
     })?.run
-  } catch {
-    return undefined
+  } catch (error) {
+    if (error instanceof SyntaxError || isPathAbsenceError(error)) {
+      return undefined
+    }
+    throw error
   }
 }
 
@@ -348,8 +352,11 @@ const hasMatchingFallbackState = async (
       && (value['ocrModel'] === undefined || value['ocrModel'] === identity.ocrModel)
       && value['requestedReasoningEffort'] === identity.requestedReasoningEffort
       && value['effectiveReasoningEffort'] === identity.effectiveReasoningEffort
-  } catch {
-    return false
+  } catch (error) {
+    if (error instanceof SyntaxError || isPathAbsenceError(error)) {
+      return false
+    }
+    throw error
   }
 }
 

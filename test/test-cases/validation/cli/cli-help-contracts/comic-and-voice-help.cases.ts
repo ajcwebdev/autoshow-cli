@@ -2,7 +2,6 @@ import { helpText } from './shared'
 import { expect, test } from 'bun:test'
 import { VOICE_PUBLIC_ACTIONS } from '~/cli/commands/audio/voice/define-voice-command'
 import {
-  advertisedFlagNames,
   comicSubcommands,
   getCommandFlagsSection,
   getFlagGroupSection,
@@ -20,9 +19,6 @@ export const registerComicAndVoiceHelpCases = (): void => {
       expect(subcommandSection).toContain(`  ${subcommand}`)
     }
     expect(comicSubcommands.sort()).toEqual(['draft-scenes', 'draft-treatment', 'generate-audio', 'generate-images', 'generate-slideshow', 'reference-sketch', 'review'])
-    for (const alias of ['reference-voice', 'review-notes', 'review-sheet']) {
-      expect(subcommandSection).not.toContain(`  ${alias}`)
-    }
     expect(subcommandSection).toContain('Run panel prompt bundles to review sketches and/or final panel images')
     expect(result.stdout).toContain('bun autoshow comic <subcommand> --help')
     expect(getCommandFlagsSection(result.stdout)).toBe('')
@@ -136,31 +132,6 @@ export const registerComicAndVoiceHelpCases = (): void => {
     expect(viaHelp.stdout).toBe(review.stdout)
   })
 
-  test.concurrent('deprecated review-notes help preserves its one local mapping flag', async () => {
-    const review = await loadHelp(['comic', 'review-notes', '--help'])
-
-    expect(review.exitCode).toBe(0)
-    expect(review.stdout).toContain('$ bun autoshow comic review-notes <script-path> [flags]')
-    expect(review.stdout).toContain('Deprecated: use comic review <script-path> --notes <path>')
-    expect(getFlagGroupSection(review.stdout, 'Comic Review')).toContain('--notes')
-    expect(review.stdout).toContain('makes no provider call')
-    expect(getCommandFlagsSection(review.stdout)).not.toContain('--price')
-    expect(getCommandFlagsSection(review.stdout)).not.toContain('--image-model')
-    expect(getCommandFlagsSection(review.stdout)).not.toContain('--provider')
-  })
-
-  test.concurrent('comic review-sheet help is scoped to its one local export flag', async () => {
-    const sheet = await loadHelp(['comic', 'review-sheet', '--help'])
-
-    expect(sheet.exitCode).toBe(0)
-    expect(sheet.stdout).toContain('$ bun autoshow comic review-sheet <script-path> [flags]')
-    expect(sheet.stdout).toContain('Deprecated: use comic review <script-path> [--export-doc]')
-    expect(getFlagGroupSection(sheet.stdout, 'Comic Review')).toContain('--export-doc')
-    expect(sheet.stdout).toContain('makes no provider call')
-    expect(getCommandFlagsSection(sheet.stdout)).not.toContain('--price')
-    expect(getCommandFlagsSection(sheet.stdout)).not.toContain('--image-model')
-    expect(getCommandFlagsSection(sheet.stdout)).not.toContain('--notes')
-  })
 
   test.concurrent('comic help subcommand routing matches the --help flag output', async () => {
     const viaFlag = await loadHelp(['comic', 'generate-images', '--help'])
@@ -180,39 +151,6 @@ export const registerComicAndVoiceHelpCases = (): void => {
     expect(flags).not.toContain('--local-concurrency')
   })
 
-  test.concurrent('comic reference-voice help lists public children without a flag wall', async () => {
-    const result = await loadHelp(['comic', 'reference-voice', '--help'])
-
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('Deprecated: use bun autoshow voice <action>')
-    expect(VOICE_PUBLIC_ACTIONS).toContain('clone')
-    expect(VOICE_PUBLIC_ACTIONS).toContain('list')
-    expect(VOICE_PUBLIC_ACTIONS).not.toContain('status')
-    expect(VOICE_PUBLIC_ACTIONS).not.toContain('inspect')
-    expect(VOICE_PUBLIC_ACTIONS).not.toContain('discover')
-    expect(VOICE_PUBLIC_ACTIONS).not.toContain('revoke-consent')
-    expect(VOICE_PUBLIC_ACTIONS).not.toContain('revoke')
-    expect(VOICE_PUBLIC_ACTIONS).not.toContain('materialize')
-    expect(VOICE_PUBLIC_ACTIONS).not.toContain('reconcile')
-    const children = getSection(result.stdout, '\nSubcommands\n', '\nGlobal Flags\n')
-    for (const action of VOICE_PUBLIC_ACTIONS) {
-      expect(children).toContain(`  ${action}`)
-    }
-    expect(children).not.toMatch(/(^|\n) {2}status {2}/)
-    expect(children).not.toMatch(/(^|\n) {2}materialize {2}/)
-    const flags = getCommandFlagsSection(result.stdout)
-    expect(flags).not.toContain('--sample')
-    expect(flags).not.toContain('--allow')
-
-    for (const action of VOICE_PUBLIC_ACTIONS) {
-      const voiceHelp = await loadHelp(['voice', action, '--help'])
-      const comicHelp = await loadHelp(['comic', 'reference-voice', action, '--help'])
-      expect(comicHelp.stdout).toContain(`Deprecated: use voice ${action}`)
-      expect(advertisedFlagNames(getCommandFlagsSection(comicHelp.stdout))).toEqual(
-        advertisedFlagNames(getCommandFlagsSection(voiceHelp.stdout))
-      )
-    }
-  })
 
   test.concurrent('voice clone help does not advertise --kind', async () => {
     const result = await loadHelp(['voice', 'clone', '--help'])

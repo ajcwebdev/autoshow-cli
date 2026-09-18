@@ -3,7 +3,6 @@ import { join } from 'node:path'
 import { InfraError } from '~/utils/error-handler'
 import { isObjectLike } from '~/utils/value-helpers'
 
-// Walk the raw timeline: accessors can discard all but one audio/text block.
 export const writeGeminiMusicInteraction = async (response: unknown, outputDir: string) => {
   const fail = (message: string): never => { throw InfraError(`Lyria 3.5 ${message}`, { stage: 'music:gemini' }) }
   if (!isObjectLike(response)) return fail('returned an invalid interaction')
@@ -20,7 +19,7 @@ export const writeGeminiMusicInteraction = async (response: unknown, outputDir: 
     for (const part of step['content']) {
       if (!isObjectLike(part)) return fail('returned an invalid content block')
       if (part['type'] === 'text' && typeof part['text'] === 'string') {
-        text.push(part['text']) // Preserve lyrics and JSON structure descriptions verbatim.
+        text.push(part['text'])
       } else if (part['type'] === 'audio') {
         const data = part['data']
         const mime = part['mime_type']
@@ -35,7 +34,6 @@ export const writeGeminiMusicInteraction = async (response: unknown, outputDir: 
     }
   }
   if (audio.length === 0) return fail('completed without audio')
-  // Each block is a complete artifact, not an assumed fragment of one container.
   const fileNames = audio.map((_, index) => index === 0
     ? generationArtifactFileName('music')
     : `${GENERATION_ARTIFACT_BASENAMES.music}-part-${index + 1}.mp3`)

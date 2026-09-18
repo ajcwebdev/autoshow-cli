@@ -64,7 +64,6 @@ export type ParsedDraftTreatmentArgs = {
 
 export type DraftTreatmentCommandOptions = Omit<ParsedDraftTreatmentArgs, 'showHelp' | 'price'> & {
   hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
-  /** Internal override for tests; the CLI always writes under input/scripts. */
   scriptsRoot?: string | undefined
   requestDraft?: ((request: TreatmentDraftRequest) => Promise<TreatmentDraftResponse>) | undefined
 }

@@ -6,13 +6,7 @@ import { roundMs, withNormalizedTiming } from './timing-shared'
 export const buildTtsTimingSteps = (input: ComputeEstimatedProcessingTimesInput): TimingStepsResult => {
   const steps: TimingStepEntry[] = []
 
-  const ttsTargets = input.ttsTargets && input.ttsTargets.length > 0
-    ? input.ttsTargets
-    : input.ttsService && input.ttsModel
-      ? [{ service: input.ttsService, model: input.ttsModel }]
-      : []
-
-  for (const ttsTarget of ttsTargets) {
+  for (const ttsTarget of input.ttsTargets ?? []) {
     const estimation = getTtsEstimation(ttsTarget.service, ttsTarget.model)
     const characterCount = Math.max(0, ttsTarget.characterCount ?? input.ttsCharacterCount ?? 0)
     steps.push(withNormalizedTiming({

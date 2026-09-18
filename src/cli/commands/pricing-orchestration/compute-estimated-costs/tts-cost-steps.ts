@@ -7,13 +7,7 @@ export const buildTtsCostSteps = (input: ComputeEstimatedCostsInput): CostStepsR
   const steps: EstimatedStepEntry[] = []
   let cost = 0
 
-  const ttsTargets = input.ttsTargets && input.ttsTargets.length > 0
-    ? input.ttsTargets
-    : input.ttsService && input.ttsModel
-      ? [{ service: input.ttsService, model: input.ttsModel }]
-      : []
-
-  for (const ttsTarget of ttsTargets) {
+  for (const ttsTarget of input.ttsTargets ?? []) {
     const resolvedTtsCharacterCount = typeof input.ttsCharacterCount === 'number' ? input.ttsCharacterCount : 0
     const ttsCost = computeTtsCost(ttsTarget.service, ttsTarget.model, resolvedTtsCharacterCount)
     const estimation = getTtsEstimation(ttsTarget.service, ttsTarget.model)

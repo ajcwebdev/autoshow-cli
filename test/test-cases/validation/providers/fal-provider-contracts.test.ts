@@ -116,4 +116,39 @@ describe('fal.ai provider REST contracts', () => {
     expect(posts[1]?.bodyJson).toMatchObject({ reference_image_urls: [image], reference_video_urls: [video], reference_audio_urls: [audio] })
     expect(posts[2]?.bodyJson).toMatchObject({ image_url: image, end_image_url: image })
   })
+
+  test('a completed fal.ai job survives a flapping result endpoint without resubmitting paid work', async () => {
+    // The generation is already billed once the queue reports COMPLETED, so a result endpoint that
+    // briefly 500s must not cost the run its output.
+    let resultAttempts = 0
+    const calls = installMockFetch((call) => {
+      if (call.method === 'POST') {
+        return jsonResponse({
+          status: 'COMPLETED',
+          request_id: 'fal-request',
+          status_url: 'https://mock.fal.local/status',
+          response_url: 'https://mock.fal.local/result',
+          cancel_url: 'https://mock.fal.local/cancel'
+        })
+      }
+      if (call.url === 'https://mock.fal.local/result') {
+        resultAttempts++
+        // One more failure than an ordinary read budget tolerates.
+        return resultAttempts <= 4
+          ? jsonResponse({ detail: 'internal server error' }, { status: 500 })
+          : jsonResponse({ images: [{ url: 'https://mock.fal.local/output.png' }] })
+      }
+      if (call.url === 'https://mock.fal.local/output.png') return bytesResponse(new Uint8Array([1, 2, 3]), { headers: { 'content-type': 'image/png' } })
+      throw new Error(`Unexpected fal.ai fetch: ${call.method} ${call.url}`)
+    })
+
+    await tempDirs.withDir(async (dir) => {
+      const result = await runFalImageGen('A clean product photograph', dir, { model: 'reve/2.1', pollIntervalMs: 1 })
+      expect(result.imagePaths).toHaveLength(1)
+    })
+
+    expect(resultAttempts).toBe(5)
+    expect(calls.filter(call => call.method === 'POST')).toHaveLength(1)
+    expect(calls.some(call => call.url === 'https://mock.fal.local/cancel')).toBe(false)
+  }, 120_000)
 })

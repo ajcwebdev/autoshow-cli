@@ -8,6 +8,7 @@ import { materializeMediaInput } from '~/utils/media-url'
 import { UsageError, ValidationError } from '~/utils/error-handler'
 import type { SpeechifyTtsCustomVoiceGender, SpeechifyTtsCustomVoiceOptions, SpeechifyTtsCustomVoiceResult, TtsCustomVoiceSampleAudio } from '~/types'
 import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
+import { ensureVoicePromise } from '../voice-promise-cache'
 
 const SPEECHIFY_TTS_DEFAULT_CUSTOM_VOICE_LOCALE = 'en-US'
 const SPEECHIFY_TTS_DEFAULT_CUSTOM_VOICE_GENDER = 'notSpecified'
@@ -231,23 +232,5 @@ export const ensureSpeechifyTtsCustomVoice = async (
   baseURL: string,
   apiKey: string,
   options: SpeechifyTtsCustomVoiceOptions
-): Promise<SpeechifyTtsCustomVoiceResult> => {
-  const context = options.context
-  if (context?.voicePromise) {
-    return await context.voicePromise
-  }
-
-  let voicePromise: Promise<SpeechifyTtsCustomVoiceResult>
-  voicePromise = createSpeechifyTtsCustomVoice(baseURL, apiKey, options).catch((error) => {
-    if (context?.voicePromise === voicePromise) {
-      context.voicePromise = undefined
-    }
-    throw error
-  })
-
-  if (context) {
-    context.voicePromise = voicePromise
-  }
-
-  return await voicePromise
-}
+): Promise<SpeechifyTtsCustomVoiceResult> =>
+  await ensureVoicePromise(options.context, () => createSpeechifyTtsCustomVoice(baseURL, apiKey, options))

@@ -32,7 +32,6 @@ const classifyStep2 = (value: unknown): ClassifiedStep2 | undefined => {
 }
 
 export const resolveTranscriptionModel = (metadata: Pick<Step2Metadata, 'transcriptionModel'> & { transcriptionService: string }): string => {
-  // Old benchmark manifests remain readable; this does not register a provider.
   if (metadata.transcriptionService === 'whisper') return metadata.transcriptionModel.match(/ggml-([a-z0-9.-]+)\.bin/i)?.[1] ?? metadata.transcriptionModel
   if (metadata.transcriptionService === 'whisperfile') {
     const match = metadata.transcriptionModel.match(WHISPERFILE_MODEL_PATH_PATTERN)

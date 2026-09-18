@@ -1,4 +1,4 @@
-import type { ActualPipelineInputsBase, CostEstimateBase, CostSource, HostedOcrTokenReasoningPolicy, HtmlArticleBackend, ImageProvider, MusicProvider, NormalizedReasoningEffort, OcrModelOverrideOptions, ProviderIdentityBase, ProviderModelBase, Step1Metadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, SttRuntimeOptions, TimingStepEntry, VideoProvider } from '~/types'
+import type { ActualPipelineInputsBase, CostEstimateBase, CostSource, HostedOcrTokenReasoningPolicy, HtmlArticleBackend, ImageProvider, MusicProvider, NormalizedReasoningEffort, ProviderIdentityBase, ProviderModelBase, Step1Metadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, TimingStepEntry, VideoProvider } from '~/types'
 
 type TokenProfileEstimateFields = {
   tokenEstimateSource?: 'exact' | 'profile' | 'blended-profile' | 'registry'
@@ -14,12 +14,6 @@ type ReasoningEstimateFields = {
   effectiveReasoningEffort?: NormalizedReasoningEffort
 }
 
-type SttModelOverrides = Partial<Pick<SttRuntimeOptions,
-  | 'whisperfileModels' | 'deepinfraSttModels' | 'grokSttModels' | 'deepgramSttModels'
-  | 'sonioxSttModels' | 'speechmaticsSttModels' | 'mistralSttModels' | 'assemblyaiSttModels'
-  | 'gladiaSttModels' | 'happyscribeSttModels' | 'supadataSttModels' | 'scrapecreatorsSttModels'
-  | 'geminiSttModels' | 'togetherSttModels' | 'openaiSttModels'
->>
 
 export type SttStepEstimate = CostEstimateBase & {
   step: 'stt'
@@ -140,7 +134,7 @@ export type ComputeActualCostsInput = ActualPipelineInputsBase<Step1Metadata> & 
   audioDurationSeconds?: number | undefined
 }
 
-export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOptions & {
+export type ComputeEstimatedCostsInput = {
   applyCostMultipliers?: boolean | undefined
   sourceUrl?: string | undefined
   sttTargets?: SttPricingTarget[] | undefined
@@ -160,38 +154,19 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
     note?: string
   }> | undefined
   hostedOcrTokenProfilePath?: string | undefined
-  extractPageCount?: number | undefined
   audioDurationSeconds?: number | undefined
   llmTargets?: LlmPricingTarget[] | undefined
-  llmService?: string | undefined
-  llmModel?: string | undefined
-  llmInputTokenCount?: number | undefined
-  llmOutputTokenCount?: number | undefined
   ttsTargets?: Array<ProviderIdentityBase & {
     setupCostCents?: number
     setupTimeMs?: number
     setupNote?: string
   }> | undefined
-  ttsService?: string | undefined
-  ttsModel?: string | undefined
   ttsCharacterCount?: number | undefined
   imageTargets?: ImagePricingTarget[] | undefined
-  geminiImageModels?: string[] | undefined
-  openaiImageModels?: string[] | undefined
-  grokImageModels?: string[] | undefined
-  replicateImageModels?: string[] | undefined
-  lumalabsImageModels?: string[] | undefined
-  falImageModels?: string[] | undefined
   imageSize?: string | undefined
   imageQuality?: string | undefined
   imageInputs?: string[] | undefined
   imageCount?: number | undefined
-  geminiVideoModels?: string[] | undefined
-  grokVideoModels?: string[] | undefined
-  ltxVideoModels?: string[] | undefined
-  replicateVideoModels?: string[] | undefined
-  lumalabsVideoModels?: string[] | undefined
-  falVideoModels?: string[] | undefined
   videoTargets?: VideoPricingTarget[] | undefined
   videoDuration?: number | undefined
   videoAspectRatio?: string | undefined
@@ -202,33 +177,23 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   falVideoReferenceVideoCount?: number | undefined
   falInputVideoDurationSeconds?: number | undefined
   replicateVideoReferenceVideoCount?: number | undefined
-  elevenlabsMusicModels?: string[] | undefined
-  minimaxMusicModels?: string[] | undefined
-  geminiMusicModels?: string[] | undefined
   musicTargets?: MusicPricingTarget[] | undefined
   musicDuration?: number | undefined
   musicLyricsFile?: string | undefined
   musicInstrumental?: boolean | undefined
 }
 
-export type ComputeEstimatedProcessingTimesInput = OcrModelOverrideOptions & {
+export type ComputeEstimatedProcessingTimesInput = {
   concurrencyMode?: import('~/types').HostedConcurrencyMode | undefined
   sttTargets?: SttPricingTarget[] | undefined
-  transcriptionService?: Step2Metadata['transcriptionService'] | undefined
-  transcriptionModel?: string | undefined
   audioDurationSeconds?: number | undefined
   extractTargets?: Array<{ provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal' | HtmlArticleBackend, model: string, pageCount?: number, rasterizedPages?: number, singlePagePdfFallbackPages?: number, ocrProviderMode?: 'fanout' | 'pool' }> | undefined
-  extractPageCount?: number | undefined
   ocrConcurrency?: number | undefined
   ocrConcurrencyMode?: 'auto' | 'fixed' | undefined
   hostedOcrProfilePath?: string | undefined
   ocrProviderConcurrency?: number | undefined
   ocrLocalConcurrency?: number | undefined
   llmTargets?: LlmPricingTarget[] | undefined
-  llmService?: Step3Metadata['llmService'] | undefined
-  llmModel?: string | undefined
-  llmInputTokenCount?: number | undefined
-  llmOutputTokenCount?: number | undefined
   ttsTargets?: Array<ProviderIdentityBase<Step4Metadata['ttsService']> & {
     setupTimeMs?: number
     setupCostCents?: number
@@ -237,26 +202,15 @@ export type ComputeEstimatedProcessingTimesInput = OcrModelOverrideOptions & {
     chunkConcurrency?: number
     characterCount?: number
   }> | undefined
-  ttsService?: Step4Metadata['ttsService'] | undefined
-  ttsModel?: string | undefined
   ttsCharacterCount?: number | undefined
   ttsInputText?: string | undefined
   ttsChunkConcurrency?: number | undefined
   imageTargets?: ImagePricingTarget[] | undefined
-  imageService?: Step5Metadata['imageService'] | undefined
-  imageModel?: string | undefined
-  imageCount?: number | undefined
-  videoService?: Step6VideoMetadata['videoGenService'] | undefined
-  videoModel?: string | undefined
-  videoDurationSeconds?: number | undefined
   videoTargets?: VideoPricingTarget[] | undefined
   videoAspectRatio?: string | undefined
   videoResolution?: string | undefined
   videoMode?: string | undefined
   musicTargets?: MusicPricingTarget[] | undefined
-  musicService?: Step7MusicMetadata['musicService'] | undefined
-  musicModel?: string | undefined
-  musicDurationSeconds?: number | undefined
 }
 
 export type StepCostEntry = TokenProfileEstimateFields & {

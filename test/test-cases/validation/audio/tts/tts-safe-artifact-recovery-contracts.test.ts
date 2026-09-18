@@ -4,12 +4,13 @@ import { dirname,join } from 'node:path'
 import { runTtsForTargets } from '~/cli/commands/audio/tts/run-tts'
 import { buildCurrentTtsProviderState } from '~/cli/commands/audio/tts/script-to-audio/current-render-artifacts'
 import { createInlineTtsSourceIdentity,createSingleTurnTtsDialoguePlan } from '~/cli/commands/audio/tts/script-to-audio/generic-dialogue-plan'
-import type { CanonicalAudioProviderProjection,PipelineProviderState,ProviderBatchResult,RenderAdmissionJournalSnapshot,TtsSerializedRequestObservation,TtsTarget } from '~/types'
+import type { CanonicalAudioProviderProjection,PipelineProviderState,ProviderBatchResult,RenderAdmissionJournalSnapshot,TtsTarget } from '~/types'
 import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
 import { requireDefined } from '../../../../test-utils/value-assertions'
+import { observationFor } from '../../../../test-utils/tts-safe-artifact-observation-fixture'
 
 const FIXED_TIME = new Date(0).toISOString()
 const MODEL = 'gpt-4o-mini-tts-2025-12-15'
@@ -22,23 +23,6 @@ const sourceContextFor = (text: string) => {
   }
 }
 
-const observationFor = (text: string): TtsSerializedRequestObservation => ({
-  chunkIndex: 1,
-  endpointKind: 'speech-synthesis',
-  serializerVersion: 'openai.tts.phase-0-v1',
-  serializedRequest: {
-    body: {
-      input: text,
-      voice: 'alloy',
-      response_format: 'wav'
-    }
-  },
-  providerText: text,
-  voiceField: 'voice',
-  voices: [{ kind: 'provider-id', value: 'alloy' }],
-  requestControls: { responseFormat: 'wav' },
-  continuation: { kind: 'none' }
-})
 
 const projectionFor = (state: PipelineProviderState): CanonicalAudioProviderProjection =>
   state.result?.['ttsAudio'] as CanonicalAudioProviderProjection

@@ -73,10 +73,21 @@ describe("documentXmlToMarkdown", () => {
     expect(documentXmlToMarkdown(xml)).toBe("| Name | Role \\| Note |\n| --- | --- |\n| A<br>_B_ |  |\n");
   });
 
-  test("preserves legacy normalization of numeric-looking text", () => {
-    const xml = wordDocument("<word:p><word:r><word:t>4600.</word:t></word:r></word:p>");
-
-    expect(documentXmlToMarkdown(xml)).toBe("4600\n");
+  test("preserves numeric-looking text exactly", () => {
+    const samples = [
+      ["4600.", "4600."],
+      ["00123", "00123"],
+      ["0x10", "0x10"],
+      ["1e3", "1e3"],
+      ["1.00", "1.00"],
+      ["-00123", "-00123"],
+      ["99999999999999999999", "99999999999999999999"],
+    ] as const;
+    for (const [input, expected] of samples) {
+      const xml = wordDocument(`<word:p><word:r><word:t>${input}</word:t></word:r></word:p>`);
+      expect(documentXmlToMarkdown(xml)).toBe(`${expected}
+`);
+    }
   });
 
   test("reports native parser details for malformed XML", () => {

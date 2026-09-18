@@ -7,6 +7,7 @@ import { glmReaderArticleAdapter } from './url-services/glm-reader/run-glm-reade
 import { spiderArticleAdapter } from './url-services/spider/run-spider-url'
 import { supadataArticleAdapter } from './url-services/url-supadata/run-supadata-url'
 import { zyteArticleAdapter } from './url-services/zyte/run-zyte-url'
+import { isLocalUrlBackend } from './url-targets'
 import { getUrlRequestAttempts, getUrlRequestTimeoutMs } from './url-utils'
 
 export const URL_ARTICLE_PROVIDER_ADAPTERS: Record<HtmlArticleBackend, UrlArticleProviderAdapter> = {
@@ -72,10 +73,13 @@ export const runUrlArticleProviderWithStats = async (
   const maxAttempts = getUrlRequestAttempts(options)
   let attemptsMade = 0
 
+  // Local backends (e.g. Defuddle) may safely use read retries. Hosted scrape/extract POSTs are billable —
+  // use conservative paid-create classification so ambiguous network/5xx outcomes do not redispatch.
+  const retryClass = isLocalUrlBackend(backend) ? 'runtime_http_read' : 'runtime_http_create_conservative'
   try {
     const article = await withRetry(
       {
-        retryClass: 'runtime_http_read',
+        retryClass,
         operationName: `url-article-${adapter.id}`,
         timeoutMs,
         policy: { maxAttempts }
@@ -89,7 +93,7 @@ export const runUrlArticleProviderWithStats = async (
           requestSignal: signal
         })
       },
-      (error) => classifyFetchRetry(error, 'runtime_http_read')
+      (error) => classifyFetchRetry(error, retryClass)
     )
     return { article, attempts: attemptsMade }
   } catch (error) {

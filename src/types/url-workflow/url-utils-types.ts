@@ -30,11 +30,6 @@ export type FetchRemoteHtmlOptions = {
   providerLabel?: string | undefined
 }
 
-export type LocalHtmlReadResult = {
-  html: string
-  fileSize: number
-  localFileUrl: string
-}
 
 export type UrlArticleScrapeRunner = (
   source: string,

@@ -122,6 +122,7 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(pipelineSection).toContain('--provider-concurrency')
     expect(pipelineSection).toContain('--concurrency-mode')
     expect(pipelineSection).toContain('--all-providers')
+    expect(pipelineSection).toContain('--provider')
     expect(pipelineSection).toContain('--llm')
     expect(pipelineSection).not.toContain('--local-concurrency')
     expect(pipelineSection).not.toContain('--all-local')

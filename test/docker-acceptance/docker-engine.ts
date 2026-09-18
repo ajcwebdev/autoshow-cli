@@ -81,15 +81,11 @@ export class DockerEngine {
     const info = this.requireSuccess(await this.command(['info', '--format', '{{json .Architecture}}']), 'Docker daemon')
     const platform = nativePlatform(JSON.parse(info.stdout) as string)
     requireCondition(!this.options.platform || this.options.platform === platform, `--platform ${this.options.platform} is not native to this ${platform} Docker daemon`)
-    // A pull failure is terminal, even if a stale local tag exists.
     const pull = this.requireSuccess(await this.command(['pull', '--platform', platform, REQUESTED_IMAGE], this.options.setupTimeoutMs), 'Pull latest')
     const digests = [...new Set([...`${pull.stdout}\n${pull.stderr}`.matchAll(/^Digest:\s+(sha256:[a-f0-9]{64})\s*$/gm)].map(match => match[1]!))]
     expect(digests.length, 'Pull did not report one immutable digest').toBe(1)
     const digest = digests[0]!
     const reference = `${IMAGE_REPOSITORY}@${digest}`
-    // Inspect by the pull's digest as well: another client could now replace the local tag.
-    // The pull and architecture check enforce native execution without requiring
-    // image inspect --platform, which older Docker clients do not support.
     const inspection = this.requireSuccess(await this.command(['image', 'inspect', reference]), 'Inspect pulled digest')
     const [image] = JSON.parse(inspection.stdout) as Array<{ Id: string; Os: string; Architecture: string; Size: number; RepoDigests: string[]; Config: { Labels?: Record<string, string>; User: string; Entrypoint: string[]; Env: string[] } }>
     requireCondition(image, 'Missing pulled image inspection')
@@ -118,7 +114,6 @@ export class DockerEngine {
       [join(cache, 'home'), '/home/bun', false]
     ] as const) {
       await mkdir(host, { recursive: true })
-      // These directories belong to this suite, never user input/output directories.
       await chmod(host, 0o777)
       this.mounts.push({ host, container, readonly })
     }
@@ -126,8 +121,6 @@ export class DockerEngine {
 
   async repairCacheOwnership(): Promise<void> {
     requireCondition(this.identity)
-    // CI cache extraction changes ownership to the host runner UID. whisperfile setup
-    // chmods existing bundles, so write permissions alone do not make a restored cache reusable.
     const mounts = this.mounts.filter(mount => ['/app/runtime', '/home/bun'].includes(mount.container))
     expect(mounts.length, 'Cache ownership repair requires only the two asset mounts').toBe(2)
     const name = `${this.runId}-${++this.sequence}`

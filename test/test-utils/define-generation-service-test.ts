@@ -48,6 +48,7 @@ const defineGenerationServiceTest = <
       await assertDecodableMedia(artifactPath, command === 'music' ? 'audio' : command, {
         ...('expectedDuration' in modelCase && typeof modelCase.expectedDuration === 'number' ? { durationSeconds: modelCase.expectedDuration } : {}),
         ...(aspectRatio !== undefined ? { aspectRatio } : {}),
+        ...('aspectRatioTolerance' in modelCase && typeof modelCase.aspectRatioTolerance === 'number' ? { aspectRatioTolerance: modelCase.aspectRatioTolerance } : {}),
       })
 
       const metadata = await readCanonicalRecord(outputDir)

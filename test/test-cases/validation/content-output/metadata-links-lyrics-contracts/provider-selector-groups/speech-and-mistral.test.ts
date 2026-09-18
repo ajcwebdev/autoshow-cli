@@ -39,7 +39,7 @@ registerProviderSelectorCases([
       { sections: ['models'], expected: CARTESIA_MODELS_LINKS },
       { sections: ['general', 'tts'], expected: [...CARTESIA_GENERAL_LINKS, ...CARTESIA_TTS_LINKS], outputFileName: 'cartesia-general-tts-links.md' }
     ],
-    invalid: { sections: ['stt'], message: 'Unknown links section(s) for --cartesia: stt' }
+    invalid: { sections: ['stt'], message: 'Unknown links section(s) for --provider cartesia: stt' }
   },
   {
     name: 'links selector accepts speechify provider with models and tts sections',
@@ -49,7 +49,7 @@ registerProviderSelectorCases([
       { sections: ['tts'], expected: SPEECHIFY_TTS_LINKS },
       { sections: ['models'], expected: SPEECHIFY_MODELS_LINKS }
     ],
-    invalid: { sections: ['general'], message: 'Unknown links section(s) for --speechify: general' }
+    invalid: { sections: ['general'], message: 'Unknown links section(s) for --provider speechify: general' }
   },
   {
     name: 'links selector accepts hume provider with general and tts sections',
@@ -59,7 +59,7 @@ registerProviderSelectorCases([
       { sections: ['tts'], expected: HUME_TTS_LINKS, outputFileName: 'hume-tts-links.md' },
       { sections: ['general', 'tts'], expected: [...HUME_GENERAL_LINKS, ...HUME_TTS_LINKS], outputFileName: 'hume-general-tts-links.md' }
     ],
-    invalid: { sections: ['stt'], message: 'Unknown links section(s) for --hume: stt' }
+    invalid: { sections: ['stt'], message: 'Unknown links section(s) for --provider hume: stt' }
   },
   {
     name: 'links selector accepts inworld provider with general models and tts sections',
@@ -70,7 +70,7 @@ registerProviderSelectorCases([
       { sections: ['models'], expected: INWORLD_MODELS_LINKS },
       { sections: ['general', 'tts'], expected: [...INWORLD_GENERAL_LINKS, ...INWORLD_TTS_LINKS], outputFileName: 'inworld-general-tts-links.md' }
     ],
-    invalid: { sections: ['stt'], message: 'Unknown links section(s) for --inworld: stt' }
+    invalid: { sections: ['stt'], message: 'Unknown links section(s) for --provider inworld: stt' }
   },
   {
     name: 'links selector accepts grok provider with models and tts sections',
@@ -81,7 +81,7 @@ registerProviderSelectorCases([
       { sections: ['tts'], expected: GROK_TTS_LINKS },
       { sections: ['stt'], expected: GROK_STT_LINKS }
     ],
-    invalid: { sections: ['ocr'], message: 'Unknown links section(s) for --grok: ocr' }
+    invalid: { sections: ['ocr'], message: 'Unknown links section(s) for --provider grok: ocr' }
   },
   {
     name: 'links selector accepts together provider with general models stt and text sections',
@@ -92,7 +92,7 @@ registerProviderSelectorCases([
       { sections: ['models'], expected: TOGETHER_MODELS_LINKS },
       { sections: ['general', 'text'], expected: [...TOGETHER_GENERAL_LINKS, ...TOGETHER_TEXT_LINKS], outputFileName: 'together-general-text-links.md' }
     ],
-    invalid: { sections: ['ocr'], message: 'Unknown links section(s) for --together: ocr' }
+    invalid: { sections: ['ocr'], message: 'Unknown links section(s) for --provider together: ocr' }
   },
   {
     name: 'links selector accepts mistral provider with general models stt ocr and tts sections',

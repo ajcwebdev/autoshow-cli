@@ -10,8 +10,8 @@ import { getBlockingPanelSvgPath, getBlockingPlanPath } from '~/cli/commands/vis
 import { getPanelComicImagePath } from '~/cli/commands/visuals/comic/comic-utils/scene-utils'
 import { getPanelsDirectory, getSceneJsonPath, getStructuredScriptPath } from '~/cli/commands/visuals/comic/comic-utils/project-paths'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
-import { coerceAndValidateDraftScenes, coerceAndValidateReviewSheet } from '~/cli/commands/visuals/comic/comic-utils/cli-args'
-import { draftScenesCommandDefinition, reviewSheetCommandDefinition } from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
+import { coerceAndValidateDraftScenes } from '~/cli/commands/visuals/comic/comic-utils/cli-args'
+import { draftScenesCommandDefinition } from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import type { BlooperRecord, PageQaEntry, StructuredScriptData } from '~/types'
@@ -115,13 +115,6 @@ describe('comic review-sheet', () => {
     expect(markdown).toContain('_No canonical panel image is promoted for panel 2._\n\n\n')
   })
 
-  test('registers review-sheet as a comic subcommand with its one export flag', () => {
-    expect(reviewSheetCommandDefinition.name).toBe('comic review-sheet')
-    const parse = (args: string[]) => coerceAndValidateReviewSheet(parseCommandInvocation(['comic review-sheet', ...args], reviewSheetCommandDefinition, GLOBAL_FLAG_DEFINITIONS))
-    expect(parse(['02-01']).exportDoc).toBeUndefined()
-    expect(parse(['02-01', '--export-doc']).exportDoc).toBe(true)
-    expect(() => parseCommandInvocation(['comic review-sheet'], reviewSheetCommandDefinition, GLOBAL_FLAG_DEFINITIONS)).toThrow()
-  })
 })
 
 describe('draft-scenes --reconcile-from-directives', () => {

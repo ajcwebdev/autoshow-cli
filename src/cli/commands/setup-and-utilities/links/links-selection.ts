@@ -24,12 +24,6 @@ export const knownProviders = [...serviceKeySet].sort()
 
 export const knownSections = [...globalSectionKeySet].sort()
 
-export const linksProviderFlags = Object.fromEntries(knownProviders.map((provider) => [provider, {
-  description: `Scope following section selectors to ${provider}`,
-  type: Boolean,
-  negatable: false,
-  help: { hidden: true }
-}])) as CliFlagsDefinition
 
 export const linksFlags = {
   provider: {
@@ -49,7 +43,6 @@ export const linksFlags = {
     default: false,
     negatable: false
   },
-  ...linksProviderFlags
 } as const satisfies CliFlagsDefinition
 
 export const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection => {
@@ -74,24 +67,13 @@ export const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection 
 
   for (const token of orderedTokens) {
     if (token.kind === 'flag') {
-      const { name, raw } = token.occurrence
+      const { name } = token.occurrence
       if (name === 'provider') {
         const provider = String(token.occurrence.value).trim().toLowerCase()
         if (!serviceKeySet.has(provider)) throw UsageError(`Unknown links provider "${provider}". Known providers: ${knownProviders.join(', ')}.`)
         currentService = provider
         if (!serviceSelections.has(provider)) serviceSelections.set(provider, [])
         continue
-      }
-      if (name === 'refresh' || name === 'refresh-only' || !serviceKeySet.has(name)) continue
-      const equalsIndex = raw.indexOf('=')
-      if (equalsIndex !== -1) {
-        const flagValue = raw.slice(equalsIndex + 1)
-        const sectionHint = flagValue.trim() ? `, e.g. "--${name} ${flagValue}"` : ''
-        throw UsageError(`links provider selector "--${name}" does not accept inline values; pass sections as separate arguments after the provider selector${sectionHint}.`)
-      }
-      currentService = name
-      if (!serviceSelections.has(currentService)) {
-        serviceSelections.set(currentService, [])
       }
       continue
     }
@@ -152,7 +134,7 @@ export const assertKnownSections = (
     const serviceSections = serviceSectionKeyMap.get(serviceName)
     const unknownSections = sections.filter(sectionName => !serviceSections?.has(sectionName))
     if (unknownSections.length > 0) {
-      throw UsageError(`Unknown links section(s) for --${serviceName}: ${unknownSections.join(', ')}`)
+      throw UsageError(`Unknown links section(s) for --provider ${serviceName}: ${unknownSections.join(', ')}`)
     }
   }
 }

@@ -4,14 +4,14 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-09-02
-- **Date Updated:** 2026-09-02
+- **Date Updated:** 2026-09-17
 - **Verification Status:** Passed
 
 ## Context
 
 Comic panels are generated one bundle at a time and no pixels cross between panels, so nothing in the pipeline knows where a character stood in the previous panel. Scene JSON records a prose `shotPlan` and a `characterKeys` array; it has no world-space field, no camera field, and no roster of who is on stage but out of frame. A character the script stops mentioning is silently dropped from `characterKeys`, so the drafter empties the room by omission, and the page judge is explicitly told to "judge world-space topology and relative relationships, not screen coordinates," receives no other panel of the scene, and receives identity cards only for the panel's own cast. It therefore cannot see a character standing in a panel that does not list them, cannot see a swapped screen side, and cannot see a crossed axis of action. The one repair lane is an image edit seeded with the failed image, which locks in a wrong pose instead of moving a person. The recurring artifacts are concrete: side flips, seat swaps, a desk that changes footprint, a character intruding into a panel they are not in, and a crowd that vanishes between panels.
 
-Why now: the review of Episode 2 produced a written list of continuity defects that prose prohibitions have failed to fix across three rounds of prompt tightening, and `docs/reports/character-blocking-continuity-plan.md` scored six candidate architectures against the real code before any of them was built.
+Why now: the review of Episode 2 produced a written list of continuity defects that prose prohibitions have failed to fix across three rounds of prompt tightening, and a prior continuity-architecture comparison scored six candidate designs against the real code before any of them was built.
 
 ## Options Considered
 
@@ -141,7 +141,6 @@ bun test test/test-cases/validation/cli/cli-usage-errors/
 bun test test/test-cases/validation/cli/native-cli-parser-contracts.test.ts
 bun test test/test-cases/validation/providers/openai-rest-contracts/image-comic-image-contracts.test.ts
 ```
-
 1. `bun run check` proves the plan, bundle, QA, and option types compose across the whole tree and that every new file basename is unique.
 2. The comic suite proves plan validation and its exact error prefixes, deterministic compilation, the pinned prompt sentences, the blocking audit parser and hard-key truth table, the blocking-class restart lane, the continuity audit and its precision-recall report, staging-directive parsing, and the geometry-record reader.
 3. The option-resolution, help, usage-error, and native-parser suites prove every new flag parses, groups, rejects invalid values, and appears in help exactly once.
@@ -151,7 +150,7 @@ bun test test/test-cases/validation/providers/openai-rest-contracts/image-comic-
 ## Follow-up Actions
 
 - [ ] Phase 0 baseline and prompt ablation — Blocked on owner-run paid commands
-  The baseline continuity audit, the ten-panel ablation, and Erik's blind verdicts are recorded in `docs/reports/blocking-plan-pilot-2026-09.md` in the project repository; every row is owner-run under that repository's price-preflight and approval rules.
+  The baseline continuity audit, the ten-panel ablation, and Erik's blind verdicts remain owner-run paid evidence under the repository's price-preflight and approval rules; commit the pilot write-up under `docs/reports/` when that measurement lands (the previously cited `blocking-plan-pilot-2026-09.md` path is not present in-tree).
 - [ ] Promote blocking statuses from advisory to hard — Blocked on the Phase 0 precision gate
   `--blocking-hard-keys` stays empty until the audit shows acceptable precision for a key.
 - [ ] Reviewed geometry records — Pending

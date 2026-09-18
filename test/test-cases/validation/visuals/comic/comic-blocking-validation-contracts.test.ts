@@ -8,7 +8,6 @@ import { setupBlockingContractFixtures } from './comic-blocking-contract-fixture
 import { BLOCKING_FIXTURE_ENSEMBLE_KEY, BLOCKING_FIXTURE_SEGMENTS, buildBlockingFixtureStructuredScript, buildBlockingFixtureValidationContext, citationFor } from './fixtures/blocking/blocking-plan-fixture'
 const { script, segmentOrder, fixturePlan, fixturePanels, context, messages } = setupBlockingContractFixtures()
 
-
 describe('blocking plan validators', () => {
   test('the fixture plan and panels validate cleanly', () => {
     expect(messages(validateBlockingPlan(fixturePlan(), context()))).toEqual([])
@@ -150,8 +149,6 @@ describe('blocking plan validators', () => {
 
   test('rebind refuses to guess when one content hash matches several current segments', () => {
     const plan = fixturePlan()
-    // Two segments now carry the cited text verbatim and neither keeps the cited id, so a content-hash
-    // match alone cannot say which one the stage state starts at.
     const duplicated = BLOCKING_FIXTURE_SEGMENTS.map((segment, index) => ({ ...segment, id: `beat-${String(index + 2).padStart(4, '0')}` }))
     const echo = { ...duplicated[1]!, id: 'beat-9001', text: BLOCKING_FIXTURE_SEGMENTS[0]!.text }
     const nextScript = buildBlockingFixtureStructuredScript({ segments: [...duplicated, echo] })
@@ -160,7 +157,6 @@ describe('blocking plan validators', () => {
     expect(startsAt?.reason).toBe('the cited content hash matches 2 current segments (beat-0002, beat-9001) and none of them keeps the cited id, so the rebind cannot choose between them')
     expect(result.remapped.map(item => item.path)).not.toContain('stageStates[0].startsAt')
     expect(result.plan.stageStates[0]!.startsAt.sourceSegmentId).toBe('beat-0001')
-    // One unambiguous candidate still rebinds, so the guard only fires on genuine ambiguity.
     const unique = buildBlockingFixtureStructuredScript({ segments: duplicated })
     expect(rebindPlanCitations(plan, unique).remapped).toContainEqual({ path: 'stageStates[0].startsAt', from: 'beat-0001', to: 'beat-0002' })
   })

@@ -15,13 +15,11 @@ const LOGGER_SINK_FILES = [
 
 const PAYLOAD_STDOUT_FILES = [
   'src/tools/tts-controls-benchmark.ts',
-  // The diagnostic owns fixture readiness JSON and the non-JSON-mode probe payload.
   'src/cli/commands/setup-and-utilities/setup/network-check.ts',
   'src/cli/native/dispatcher.ts',
   'src/cli/commands/sources/download/download-targets/single/metadata-output.ts',
   'src/tools/analyze-typescript-complexity.ts',
   'src/tools/audit-ocr-token-shapes.ts',
-  // Standalone maintenance entrypoints own their reports and diagnostic streams.
   'src/tools/bun-env-compat.ts',
   'src/tools/bun-profile.ts',
   'src/tools/ci-run-timings.ts',

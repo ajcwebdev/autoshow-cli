@@ -58,7 +58,7 @@ const runDecoder = async (args: string[]): Promise<string> => {
   }
 }
 
-export const assertDecodableMedia = async (path: string, kind: 'image' | 'video' | 'audio', expected: { durationSeconds?: number, aspectRatio?: number } = {}): Promise<void> => {
+export const assertDecodableMedia = async (path: string, kind: 'image' | 'video' | 'audio', expected: { durationSeconds?: number, aspectRatio?: number, aspectRatioTolerance?: number } = {}): Promise<void> => {
   const probe = JSON.parse(await runDecoder([
     getFfprobeBinary(), '-v', 'error', '-protocol_whitelist', 'file,pipe', '-show_streams', '-show_format', '-of', 'json', path,
   ])) as { streams?: Array<{ codec_type?: string, codec_name?: string, width?: number, height?: number }>, format?: { duration?: string, format_name?: string } }
@@ -73,7 +73,7 @@ export const assertDecodableMedia = async (path: string, kind: 'image' | 'video'
   if (kind !== 'audio' && (!(Number(stream.width) > 0) || !(Number(stream.height) > 0))) throw new Error('Generated visual has invalid dimensions')
   if (kind !== 'image' && !(Number(probe.format?.duration) > 0)) throw new Error('Generated media has no positive duration')
   if (expected.durationSeconds !== undefined && Math.abs(Number(probe.format?.duration) - expected.durationSeconds) > 0.5) throw new Error('Decoded duration differs from the requested duration')
-  if (expected.aspectRatio !== undefined && Math.abs(Number(stream.width) / Number(stream.height) / expected.aspectRatio - 1) > 0.03) throw new Error('Decoded aspect ratio differs from the requested aspect ratio')
+  if (expected.aspectRatio !== undefined && Math.abs(Number(stream.width) / Number(stream.height) / expected.aspectRatio - 1) > (expected.aspectRatioTolerance ?? 0.03)) throw new Error(`Decoded aspect ratio differs from the requested aspect ratio (${stream.width}x${stream.height})`)
   const decoded = await runDecoder([
     getFfmpegBinary(), '-nostdin', '-hide_banner', '-v', kind === 'audio' ? 'info' : 'error', '-xerror',
     '-err_detect', 'explode', '-protocol_whitelist', 'file,pipe', '-i', path,

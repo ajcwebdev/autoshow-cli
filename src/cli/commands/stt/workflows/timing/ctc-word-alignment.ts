@@ -2,8 +2,6 @@ import { ValidationError } from '~/utils/error-handler'
 
 export type CtcWordInput = { text: string; tokens: number[] }
 
-// CTC Viterbi: blank-separated target states, with a mandatory blank between
-// repeated labels. Word endpoints come from occupied acoustic frames.
 export const alignCtcWords = (frames: number[][], words: CtcWordInput[], blank: number, frameSeconds: number, separator?: number) => {
   if (!frames.length || !words.length || words.some(word => !word.tokens.length) || !Number.isFinite(frameSeconds) || frameSeconds <= 0) throw ValidationError('CTC alignment requires acoustic frames, nonempty tokenized words, and a positive frame duration.')
   const tokens: number[] = [], wordRanges: Array<[number, number]> = []

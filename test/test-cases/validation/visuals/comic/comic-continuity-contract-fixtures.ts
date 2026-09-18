@@ -47,9 +47,9 @@ export const setupContinuityContractFixtures = () => {
       const sheet = join(runDirectory, 'assets', 'location-references', `location-${key}`, `${key}.png`)
       await mkdir(dirname(sheet), { recursive: true })
       await Bun.write(sheet, tinyPng)
-      snapshots.push({ schemaVersion: 2, snapshotId: `location-${key}`, locationKey: key, specification: `${key}: a loading door stays left of a fixed control booth.`, sourceScripts: ['scripts/02-script/01.md'], sourceViews: [{ view: 'establishing', generationId: 'v1', imageSha256: sha }], sheet: { path: `assets/location-references/location-${key}/${key}.png`, sha256: sha } })
+      snapshots.push({ schemaVersion: 3, snapshotId: `location-${key}`, locationKey: key, specification: `${key}: a loading door stays left of a fixed control booth.`, sourceScripts: ['scripts/02-script/01.md'], views: [{ view: 'establishing', generationId: 'v1', imageSha256: sha, path: `assets/location-references/location-${key}/${key}.png`, label: `establishing view of ${key}` }] })
     }
-    await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 2, snapshots }))
+    await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 3, snapshots }))
     for (const panel of panels) {
       const directory = join(runDirectory, 'metadata', 'panel-prompts', `panel-${String(panel.number).padStart(2, '0')}`)
       await mkdir(directory, { recursive: true })
@@ -95,7 +95,7 @@ export const setupContinuityContractFixtures = () => {
   })
 
   const labelsFile = (sceneSlug: string, overrides: Partial<ContinuityLabelsFile> = {}): ContinuityLabelsFile => ({
-    schemaVersion: 1, sceneSlug, trustedAnchorPanel: null, labeler: 'Anthony', date: '2026-09-02',
+    schemaVersion: 1, sceneSlug, trustedAnchorPanel: null, labeled: true, labeler: 'Anthony', date: '2026-09-02',
     pairs: [],
     ...overrides,
   })

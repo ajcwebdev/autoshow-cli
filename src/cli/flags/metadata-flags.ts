@@ -8,7 +8,7 @@ const metadataDocumentFlags = {
 
 const metadataOutputFlags = {
   markdown: boolFlag('Output metadata as Markdown frontmatter YAML'),
-  save: boolFlag('Save manifest.json to disk (and metadata.md with --markdown)')
+  save: boolFlag('Write metadata.md with --markdown and emit saved-artifacts confirmation (manifest.json always written)')
 } as const satisfies CliFlagsDefinition
 
 export const metadataFlags = {

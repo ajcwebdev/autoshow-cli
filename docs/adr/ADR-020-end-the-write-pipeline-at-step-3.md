@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-17
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-17
 - **Verification Status:** Passed. `bun run check` and `bun t --price` succeeded after text-only write, command-scoped config merge, and leftover-surface cleanup.
 - **Supersession:** The previously shipped mechanism that `write` still ran steps 0–3 (metadata, download, STT/OCR/URL extraction, then LLM) is superseded in place by this record. The earlier decision that TTS, image, video, and music never run from `write` remains accepted. Extract execution stays owned by [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md). Pipeline resume stays owned by [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md).
 
@@ -26,7 +26,7 @@ The first implementation of this record removed generation from `write` and left
 3. **Dual provider grammar:** `extract` uses `--provider`; `write` uses `--stt` / `--ocr` / `--llm`. That split exists only because `write` still runs extract.
 4. **Chaining is already the product rule:** TTS, image, video, and music already consume write artifacts as a second command. Transcription of a URL or local file should follow the same convention: `extract`, then `write` on the extracted text.
 
-Why now: the leftover extract-in-write path is the largest remaining dual surface from the old mega-pipeline, and it blocks collapsing write-only `--stt` / `--ocr` flags, `skipLLM`, and `ProcessingOptions` write fields described in `docs/reports/04-legacy-report-2026-08-21.md`.
+Why now: the leftover extract-in-write path is the largest remaining dual surface from the old mega-pipeline, and it blocks collapsing write-only `--stt` / `--ocr` flags, `skipLLM`, and `ProcessingOptions` write fields that previously motivated the leftover-surface cleanup recorded in this ADR.
 
 ## Options Considered
 
@@ -59,16 +59,15 @@ Chain commands:
 
 ```bash
 bun autoshow extract video.mp4 --provider deepgram
-bun autoshow write output/<extract-run>/transcription.txt --llm openai --prompt shortSummary --rendered-text
+bun autoshow write output/<extract-run>/transcription.txt --provider openai --prompt shortSummary --rendered-text
 bun autoshow tts output/<write-run>/text.md --provider elevenlabs
 bun autoshow music output/<write-run>/text.md --provider elevenlabs
 bun autoshow image "$(cat output/<write-run>/text.md)" --provider openai
 bun autoshow video "$(cat output/<write-run>/text.md)" --provider grok
 ```
+A single `--provider` / `--llm` target writes `text.md`; multiple targets write one `text-<model>.md` per model.
 
-A single `--llm` target writes `text.md`; multiple targets write one `text-<model>.md` per model.
-
-`write` accepts local `.md` / `.txt` files, directories of those files, and stdin-equivalent text paths. It rejects URLs, media, documents, HTML, X Spaces, and URL-list files with a usage error that names `extract` as the prior command. `--text-input` is not a mode flag; text is the only write input. `--llm` is the write provider selector, matching extract/generation `--provider` on their commands.
+`write` accepts local `.md` / `.txt` files, directories of those files, and stdin-equivalent text paths. It rejects URLs, media, documents, HTML, X Spaces, and URL-list files with a usage error that names `extract` as the prior command. `--text-input` is not a mode flag; text is the only write input. `--provider` is the write provider selector; `--llm` remains a compatibility alias with the same repeatable `provider[=model]` grammar.
 
 This applies to:
 
@@ -81,7 +80,7 @@ It does not apply to:
 
 - The six resume domains (`extract`, `write`, `tts`, `image`, `video`, `music`), which remain independent ([ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)).
 - Extract execution, artifacts, and provider selection ([ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)).
-- `config` generation defaults and step selectors (`--tts`, `--image`, `--video`, `--music`), which still persist defaults for the standalone commands.
+- `setup` / config-file generation defaults and step selectors (`--tts`, `--image`, `--video`, `--music`), which still persist defaults for the standalone commands (`config` remains a forwarding alias for `setup`).
 - The standalone `tts`, `image`, `video`, and `music` commands' own flags, pricing, and resume.
 - Project lyric-draft conventions that already treat `./output/<name>/text` as raw text; those remain write inputs.
 
@@ -96,7 +95,7 @@ It does not apply to:
 
 Positive outcomes:
 
-- Saved `config` generation defaults cannot trigger paid generation during `write`.
+- Saved config-file generation defaults cannot trigger paid generation during `write`.
 - Saved extract defaults cannot attach STT/OCR/URL work to `write`.
 - `write` help shows writing, batch, and pricing flags only.
 - `write --price` estimates LLM tokens only.
@@ -129,7 +128,7 @@ Negative outcomes:
 - [x] Confine `write` to text input
   Reject URLs, media, documents, HTML, and X Spaces. Drop `--text-input` as a mode flag. Route `write` through `run-write-command.ts` / `runTextWrite` rather than `handleProcessTarget`. Usage errors name `extract` as the prior command.
 - [x] Strip extract flags from `write`
-  Remove `--stt`, `--ocr`, transcription, OCR document, article-extraction, and write-only `--all-providers` / `--all-local` step lists from `src/cli/flags/write-flags.ts`. Keep `--llm`, prompts, rendered-text, batch, reasoning, and pricing.
+  Remove `--stt`, `--ocr`, transcription, OCR document, article-extraction, and write-only `--all-providers` / `--all-local` step lists from `src/cli/flags/write-flags.ts`. Keep `--provider` (with `--llm` alias), prompts, rendered-text, batch, reasoning, and pricing.
 - [x] Stop projecting extract and generation options onto `write`
   Command-scoped option builders. `skipLLM` is gone. Write does not load extract or generation config defaults.
 - [x] Price and resume write as LLM-only
@@ -137,7 +136,7 @@ Negative outcomes:
 - [x] Update docs, help, and executable examples
   `docs/commands/03-write/overview.md`, README examples, diagrams, and ADR-016 fixtures chain `extract` then `write`. Help contracts reject extract flags on `write`.
 - [x] Fold this break into the leftover-surface cleanup
-  Implement with `docs/reports/04-legacy-report-2026-08-21.md` section 6. Dual `--stt` / `--ocr` write selectors, `ProcessingOptions` write fields on download/extract, and write-shaped `skipLLM` are gone because write no longer runs extract.
+  Dual `--stt` / `--ocr` write selectors, `ProcessingOptions` write fields on download/extract, and write-shaped `skipLLM` are gone because write no longer runs extract.
 
 ## Implementation Note
 
@@ -150,7 +149,7 @@ Text-only `write` now routes through `src/cli/commands/text/write/run-write-comm
 ## Keep (with rationale)
 
 - Standalone `extract`, `tts`, `image`, `video`, and `music` commands, including their `--provider` selectors.
-- `--llm` as the write provider selector, because write has one step.
+- `--provider` as the write provider selector (with `--llm` as a compatibility alias), because write has one step.
 - `--rendered-text`, `--prompt`, `--prompt-file`, `--track-list`, and lyric-draft directory conventions, which are write-native.
 - Historical model rates for retired selectors ([ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)).
 
@@ -164,7 +163,6 @@ bun test test/test-cases/validation/cli/help-flag-groups.test.ts
 bun test test/test-cases/validation/cli/cli-usage-errors/
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 ```
-
 1. Typecheck and unique source check pass.
 2. `write --price` cases estimate LLM tokens only and reject media, URL, and document inputs.
 3. Help and usage-error contracts show `write` advertising LLM, prompt, batch, and pricing flags and rejecting extract and generation flags.
@@ -182,4 +180,3 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 - `src/cli/commands/text/write/define-write-command.ts`
 - `src/cli/commands/sources/download/download-targets/handle-process-target.ts`
 - `docs/commands/03-write/overview.md`
-- `docs/reports/04-legacy-report-2026-08-21.md`

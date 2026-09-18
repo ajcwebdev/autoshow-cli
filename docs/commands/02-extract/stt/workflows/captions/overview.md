@@ -9,7 +9,6 @@ bun autoshow extract audio.mp3 --provider deepinfra --captions
 bun autoshow extract video.mp4 --provider deepinfra --captions --caption-mode word --output-dir output/video-captions
 bun autoshow extract interview.mp4 --provider deepgram=nova-3 --diarization --captions --caption-format vtt
 ```
-
 Caption flags are validated before transcription. If caption generation fails, the transcript remains available; retry from the saved result below to adjust captions without paying for transcription again.
 
 Export locally from a provider's saved `result.json`, or a directory containing that file. This path needs no audio, model, API credentials, or video rendering. Use a new `--output-dir` for each layout; existing caption files are not overwritten.
@@ -18,12 +17,11 @@ Export locally from a provider's saved `result.json`, or a directory containing 
 bun autoshow extract output/<run>/providers/<provider-model>/result.json --captions --output-dir output/captions-phrases
 bun autoshow extract --captions --transcript-result output/<run>/providers/<provider-model>/result.json --caption-mode word --caption-format vtt --no-caption-speakers --output-dir output/captions-words
 ```
-
 | Flag                                                   | Behavior                                                                                                                                             |
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--caption-format srt\|vtt\|both\|ass\|ttml\|lrc\|all` | Defaults to SRT and VTT (`both`). `all` writes all five formats.                                                                                     |
+| `--caption-format srt\|vtt\|ass\|ttml\|lrc\|both\|all` | Defaults to SRT and VTT (`both`). `all` writes all five formats.                                                                                     |
 | `--caption-mode phrase\|word`                          | Defaults to readable phrases. Word mode emits one evidence word/token span per cue. A provider-formatted multiword span retains its original bounds. |
-| `--no-caption-speakers`                                | Hides speaker prefixes in the exported files without changing provider evidence.                                                                     |
+| `--caption-speakers`, `--no-caption-speakers`          | Include or hide speaker prefixes in exported files without changing provider evidence; default includes speakers.                                    |
 | `--caption-max-words`, `--caption-max-characters`      | Phrase grouping budgets; defaults are 10 words and 58 characters. Indivisible words can exceed a character budget.                                   |
 | `--caption-max-duration`, `--caption-break-gap`        | Cue-duration and silence-gap budgets in seconds; defaults are 5 and 0.9. Native word boundaries are preserved.                                       |
 | `--caption-line-width`, `--caption-max-lines`          | Defaults are 42 characters and 2 lines. Long words and added speaker prefixes can exceed these layout budgets.                                       |
@@ -41,7 +39,6 @@ Use the saved `result.json` from [local alignment or speaker reconciliation](../
 ```bash
 bun autoshow extract output/aligned/result.json --captions --caption-mode word --caption-format all --output-dir output/aligned-captions --json
 ```
-
 ## Container options and compatibility
 
 Use `--captions --embed-captions` with a local video to transcribe once, retain standalone SRT/VTT, and embed an English subtitle track into a separate video. `--caption-container mp4|mkv|both` defaults to MP4 for an MP4 source and MKV otherwise. Video and audio streams are copied without re-encoding. The source remains untouched. Use a player that supports standard selectable MP4/MKV subtitle tracks; select English in its subtitle menu. Captions are not forced. Other output containers are not supported.
@@ -51,7 +48,6 @@ To embed an existing transcript with zero provider calls:
 ```bash
 bun autoshow extract video.mp4 --captions --transcript-result consensus/result.json --embed-captions --caption-container both --no-caption-speakers --output-dir output/captioned-episode
 ```
-
 This produces `captioned.mp4` (mov_text), `captioned.mkv` (SubRip), `captions.srt`, `captions.vtt`, `captions.json`, and `caption-embedding.json`. Embedding requires both standalone formats, so omit `--caption-format` or select `both` or `all`.
 
 Chapters, metadata, and compatible existing subtitle tracks are retained. Unsupported streams are reported before fresh transcription: for example, an existing MP4 mov_text track cannot be copied directly to MKV, and an MKV ASS track cannot be copied directly to MP4. Choose a compatible container or prepare a separate compatible source.

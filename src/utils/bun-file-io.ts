@@ -9,7 +9,6 @@ export type ExactFileWriteOptions = {
 export const readTextFile = async (path: string): Promise<string> =>
   await Bun.file(path).text()
 
-// Unlike Blob.text(), Node UTF-8 reads preserve an initial BOM.
 export const readUtf8FileExact = async (path: string): Promise<string> =>
   (await readFileBytes(path)).toString('utf8')
 

@@ -335,11 +335,6 @@ export const findHostedProviderCredential = (
 ): HostedProviderEnvCheck | undefined =>
   HOSTED_PROVIDER_ENV_CHECKS.find(check => check.providerId === providerId)
 
-export const findHostedProviderCredentialByEnvVar = (
-  envVar: string
-): HostedProviderEnvCheck | undefined =>
-  HOSTED_PROVIDER_ENV_CHECKS.find(check => check.envVar === envVar)
-
 export const findHostedTtsCredential = (
   provider: import('~/types').TtsProvider
 ): HostedProviderEnvCheck | undefined =>

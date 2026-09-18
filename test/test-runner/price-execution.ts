@@ -1,4 +1,3 @@
-// Metrics also have independent subprocess writers; retain atomic append ownership.
 import { appendFile } from 'node:fs/promises'
 import type { BudgetPreflightSummary, ExecutedPriceCommand, PriceCommandObservation, PriceCommandResult, PriceCommandSpec, TestRunArtifacts } from '~/types'
 import { l } from '~/utils/app-logger/app-logger'

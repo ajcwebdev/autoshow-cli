@@ -1,5 +1,5 @@
 import { UsageError } from '~/utils/error-handler'
-import type { Step2ProviderSelectionFilter, SttSource, SttSourceEligibility, SttTarget, SttTargetBuildOptions } from '~/types'
+import type { Step2ProviderSelectionFilter, SttSource, SttTarget, SttTargetBuildOptions } from '~/types'
 import { SUPPORTED_SCRAPECREATORS_STT_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { collectStep2ProviderSelections } from '../command-shared/extract-routing/provider-registry'
 import { collectSttProviderSpecs, resolveDiarizationOptions } from './stt-cli'
@@ -60,7 +60,7 @@ const buildSttTarget = (
 
 const resolveSttSourceEligibility = (
   source: SttSource
-): SttSourceEligibility => ({
+) => ({
   supadata: isSupadataSupportedSourceUrl(source.url),
   scrapecreators: isScrapeCreatorsSupportedSourceUrl(source.url)
 })

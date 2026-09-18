@@ -59,7 +59,6 @@ export const deriveContinuityAuditPlan = (bundles: ReadonlyArray<ContinuityAudit
     if (!panel) throw ValidationError(`Panel ${bundle.panelNumber} bundle is missing its panel payload.`, { stage: 'comic:continuity-qa' })
     return panel
   }
-  // Anchors are keyed by location, not by contiguous run: the human trusted panel anchors every panel of its location scene-wide, and a location without a trusted panel anchors on its first panel in scene order, so a scene that leaves a location and returns to it keeps the same anchor for the return segment.
   const anchorByLocation = new Map<string, number>()
   const trustedBundle = trustedAnchorPanel === null ? undefined : ordered.find(bundle => bundle.panelNumber === trustedAnchorPanel)
   if (trustedBundle) anchorByLocation.set(panelOf(trustedBundle).locationKey, trustedBundle.panelNumber)

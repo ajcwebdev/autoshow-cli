@@ -1,10 +1,10 @@
 import { describe,expect,test } from 'bun:test'
 import { readSingleManifestProviderState } from '~/cli/commands/command-shared/pipeline-manifest'
 import { createAsyncSttProgressMetadataPersister,readPersistedAsyncSttRuntime } from '~/cli/commands/stt/async-lifecycle'
-import { ASYNC_STT_PROGRESS_METADATA_KEY,createSttProviderProgressLifecycle } from '~/cli/commands/stt/stt-provider-progress'
-import type { PipelineProviderStatus,Step2Metadata,Step2RuntimeMetadata,SttTarget } from '~/types'
-import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
+import { ASYNC_STT_PROGRESS_METADATA_KEY } from '~/cli/commands/stt/stt-provider-progress'
+import type { Step2Metadata, Step2RuntimeMetadata, SttTarget } from '~/types'
 import { installMockFetch,setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { seedAsyncProviderManifest } from '../../../test-utils/async-stt-provider-manifest-fixture'
 
 const tempDirs = setupContractSuiteLifecycle({
   envKeys: ['HAPPYSCRIBE_API_KEY', 'SONIOX_API_KEY'],
@@ -20,44 +20,6 @@ const tempDirs = setupContractSuiteLifecycle({
 
 const makeTempDir = tempDirs.make
 
-const seedAsyncProviderManifest = async (
-  outputDir: string,
-  target: Pick<SttTarget, 'service' | 'model'>,
-  options: {
-    status?: PipelineProviderStatus | undefined
-    runtime?: Step2RuntimeMetadata | undefined
-    billing?: Step2Metadata['billing'] | undefined
-  } = {}
-) => {
-  const progressMetadata = options.runtime
-    ? {
-        transcriptionService: target.service,
-        transcriptionModel: target.model,
-        processingTime: 0,
-        tokenCount: 0,
-        timings: {},
-        runtime: options.runtime,
-        ...(options.billing ? { billing: options.billing } : {})
-      }
-    : undefined
-  await writeSingleManifestFixture(outputDir, 'extract', {
-    completionStatus: 'incomplete',
-    requestedProviders: [{ service: target.service, model: target.model, local: false }],
-    providerStates: [{
-      service: target.service,
-      model: target.model,
-      local: false,
-      artifactDir: '.',
-      status: options.status ?? 'running',
-      attempts: 1,
-      ...(progressMetadata
-        ? { metadata: { [ASYNC_STT_PROGRESS_METADATA_KEY]: { whole: progressMetadata } } }
-        : {})
-    }],
-    missingProviders: [{ service: target.service, model: target.model, local: false }]
-  }, { extractRoute: 'media' })
-  return createSttProviderProgressLifecycle({ rootDir: outputDir, artifactDir: outputDir, target })
-}
 
 const readProvider = async (
   outputDir: string,

@@ -2,7 +2,6 @@ import { writeFileExact } from '~/utils/bun-file-io'
 
 import { ProviderError } from '~/utils/error-handler'
 
-// Export failure must never turn completed, potentially paid ASR into a retry.
 export const saveNativeSubtitle = async (
   outputBase: string,
   format: 'srt' | 'vtt',

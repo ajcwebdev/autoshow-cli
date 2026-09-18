@@ -1,6 +1,6 @@
 import { estimateImageCosts } from '~/cli/commands/visuals/image/image-utils/image-pricing'
 import { resolveImageService, SERVICE_TO_IMAGE_MODELS_FIELD } from '../comic-utils/image-service'
-import type { EstimateImageCostOptions, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImageRunStats } from '~/types'
+import type { EstimateImageCostOptions, GenerateWithQaRepairResult, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImageRunStats, PageQaEntry } from '~/types'
 
 export const createImageRunStats = (): ImageRunStats => ({
   imagesGenerated: 0,
@@ -60,4 +60,25 @@ export const updateImageRunStatsWithCostFallback = (
   }
 
   return { costLabel: 'unavailable', estimated: false }
+}
+
+export const recordImageRepairAccounting = (
+  stats: ImageRunStats,
+  qaEntries: Array<{ directory: string; entry: PageQaEntry }>,
+  options: { quality: ImageGenerationQuality; size: ImageGenerationSize },
+  repairResult: GenerateWithQaRepairResult,
+  outputDirectory: string
+): void => {
+  stats.imagesGenerated += repairResult.imagesGenerated
+  stats.totalDurationMs += repairResult.totalDurationMs
+  stats.totalInputTokens += repairResult.totalInputTokens
+  stats.totalOutputTokens += repairResult.totalOutputTokens
+  stats.totalInputImageTokens += repairResult.imageInputUnits
+  stats.totalInputTextTokens += repairResult.textInputUnits
+  stats.totalOutputImageTokens += repairResult.imageOutputUnits
+  stats.totalCost += repairResult.totalCostUsd
+  for (const costEntry of repairResult.costEntries) {
+    updateImageRunStatsWithCostFallback(costEntry.model, stats, options.quality, options.size)
+  }
+  if (repairResult.qaEntry) qaEntries.push({ directory: outputDirectory, entry: repairResult.qaEntry })
 }

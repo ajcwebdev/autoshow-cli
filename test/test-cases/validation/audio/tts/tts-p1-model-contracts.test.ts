@@ -122,7 +122,6 @@ describe('P1 TTS models', () => {
       let attempt = 0
       const calls = installMockFetch(() => {
         attempt += 1
-        // A successful HTTP admission with missing audio is ambiguous and must be reconciled.
         if (attempt === 2) return service === 'cartesia' ? new Response(new Uint8Array()) : Response.json({})
         return service === 'cartesia' ? new Response(Buffer.from(createMockWavBase64(), 'base64')) : Response.json({ audioContent: createMockWavBase64() })
       })

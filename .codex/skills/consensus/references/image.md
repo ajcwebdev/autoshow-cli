@@ -7,7 +7,6 @@ Use this category for multi-provider AutoShow image runs with canonical `manifes
 ```bash
 bun scripts/run.ts image build-packet "$RUN_DIR" --out "$TMP_PACKET"
 ```
-
 The packet verifies image artifacts and records measurable metadata such as dimensions, file size, processing time, and cost.
 
 ## Evaluation
@@ -19,7 +18,6 @@ Write `consensus-evaluation.txt` as plain text. Do not claim to have viewed imag
 ```bash
 bun scripts/run.ts image build-report "$RUN_DIR"
 ```
-
-Reports expose full `price`, `speed`, `automatedQuality`, and `humanQuality` ranking surfaces for local and service groups. `fastest`, `cheapest`, and `highestQuality` remain compatibility aliases for the full `speed`, `price`, and quality arrays.
+Reports expose full `price`, `speed`, `automatedQuality`, and `humanQuality` ranking surfaces for local and service groups. Reports expose only the canonical `price`, `speed`, `automatedQuality`, and `humanQuality` ranking surfaces.
 
 Price and speed rankings include every provider in the group, with missing values sorted last as `n/a`. Automated quality uses only image judge `qualityScore` evidence when present. Human quality uses only explicit `humanQualityScore` evidence. Do not use dimensions, file size, cost, speed, or generic artifact metadata as quality proxies.

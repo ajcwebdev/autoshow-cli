@@ -267,8 +267,6 @@ const collectStructuredCandidates = (
   return buckets
 }
 
-// Word arrays are structural, not competing transcript candidates. Flatten every
-// paragraph and carry its speaker down to words that have no explicit attribution.
 const collectHappyScribeWords = (
   value: unknown,
   inheritedSpeaker?: string,
@@ -326,8 +324,6 @@ export const parseHappyScribeTranscriptPayload = (
   const offsetSeconds = options.offsetSeconds ?? 0
   const candidates = collectStructuredCandidates(payload)
   const structuredWords = collectHappyScribeWords(payload)
-  // Accept a root array explicitly containing words, but never promote arbitrary
-  // timed paragraph text to native word evidence.
   const bestWords = structuredWords.length > 0 ? structuredWords
     : Array.isArray(payload) && payload.every(entry => isRecord(entry) && (entry['type'] === 'word' || typeof entry['word'] === 'string'))
       ? payload.map(parseWord).filter((word): word is TranscriptionEvidenceWord => word !== undefined)

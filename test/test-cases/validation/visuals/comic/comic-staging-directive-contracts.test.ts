@@ -94,9 +94,6 @@ describe('staging directive parser contracts', () => {
       expect(stripped).toContain(block)
       stripped = stripped.replace(block, '')
     }
-    // The fixture places **COSTUME:** between the PILOT label and "Still ready." to exercise the
-    // speaker-turn rule pinned below; drop the label too so the stripped script reads "Still ready."
-    // as the same direction beat instead of a PILOT dialogue turn.
     expect(stripped).toContain('**PILOT**\n\n')
     stripped = stripped.replace('**PILOT**\n\n', '')
     const withDirectives = parse(source, 'staging-directives')
@@ -132,7 +129,6 @@ describe('staging directive parser contracts', () => {
       '**SKIP-PANELS:** {reason: recap} plus prose',
     ].join('\n\n')))
 
-    // The first directive spans two source lines (6 and 7), so every later directive sits one line further down.
     expect(structured.staging?.camera).toEqual([
       { lineIndex: 6, afterSegmentId: null, panel: 4, text: 'Low and wide final look' },
       { lineIndex: 9, afterSegmentId: null, panel: 'next', text: 'Tight on the door.' },

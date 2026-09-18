@@ -7,7 +7,6 @@ import { comicLog } from './comic-logger'
 
 export const BLOOPERS_DIRECTORY_NAME = 'bloopers'
 
-/** `output/bloopers/` by default, and the configured output root's `bloopers/` when `--output-dir` moves the run. */
 export const getBloopersDirectory = (): string => joinOutputRoot(BLOOPERS_DIRECTORY_NAME)
 export const BLOOPER_LEDGER_FILENAME = 'bloopers.json'
 export const BLOOPER_README_FILENAME = 'README.md'
@@ -15,7 +14,6 @@ export const BLOOPER_LEDGER_SCHEMA_VERSION = 1
 
 const ATTEMPT_IMAGE = /^attempt-(\d+)\.png$/u
 
-/** Blocking audit statuses map onto the shared blooper vocabulary; everything else is `other`. */
 const CATEGORY_BY_BLOCKING_STATUS: Readonly<Record<string, BlooperCategory>> = {
   'side-swapped': 'side-flip',
   'posture-wrong': 'seat-swap',
@@ -79,7 +77,6 @@ export const buildBlooperReadme = (records: readonly BlooperRecord[]): string =>
   ].join('\n')
 }
 
-/** Copies every non-promoted attempt image for one panel into the blooper tree and appends to the shared ledger. */
 export const captureBloopers = async (input: BlooperCaptureInput): Promise<BlooperCaptureResult> => {
   const bloopersRoot = input.bloopersRoot ?? getBloopersDirectory()
   const ledgerPath = join(bloopersRoot, BLOOPER_LEDGER_FILENAME)

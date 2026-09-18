@@ -55,7 +55,19 @@ const errBase = (...messages: unknown[]): void => {
     return
   }
 
-  appLog.error(messages.map(String).join(' '), { category: 'command' })
+  const errorArg = messages.find((item): item is Error => item instanceof Error)
+  const prose = messages
+    .filter((item) => item !== errorArg)
+    .map((item) => (item instanceof Error ? item.message : String(item)))
+    .filter((part) => part.length > 0)
+    .join(' ')
+  const message = prose.length > 0
+    ? prose
+    : errorArg?.message ?? messages.map(String).join(' ')
+  appLog.error(message, {
+    category: 'command',
+    ...(errorArg ? { error: errorArg } : {})
+  })
 }
 
 const flattenValidationIssues = (

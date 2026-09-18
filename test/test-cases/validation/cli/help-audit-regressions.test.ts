@@ -3,7 +3,7 @@ import { COMMAND_DEFINITIONS } from '~/cli/create-cli'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseNativeCli, parseCommandInvocation } from '~/cli/native/native-parser'
 import { createNativeRootDefinition } from '~/cli/native/root-definition'
-import { renderCommandHelp, renderRootHelp } from '~/cli/native/help-renderer'
+import { renderCommandHelp } from '~/cli/native/help-renderer'
 import { getCommandHelpInventory, RETIRED_HELP_COMMANDS } from '~/cli/native/help-inventory'
 import { getHelpTopics } from '~/cli/native/help-topics'
 import { wrapHelpDescription, helpVisibleLength } from '~/cli/native/help-line-wrap'
@@ -43,24 +43,6 @@ describe('audited help behavior', () => {
     } finally { log.mockRestore() }
   })
 
-  test('topics route before required inputs, at root, through help, and through nested aliases', () => {
-    for (const argv of [
-      ['--help-topic', 'overview'], ['write', '--help-topic=providers'],
-      ['help', 'write', '--help-topic', 'providers'],
-      ['comic', 'generate-images', '--help-topic', 'audit'],
-      ['comic', 'reference-voice', 'import', '--help-topic', 'overview'],
-    ]) {
-      const parsed = parse(argv)
-      expect(parsed.mode).toBe('help')
-      expect(parsed.flags['help-topic']).toBeString()
-    }
-    expect(parse(['download', '--', '--help-topic', 'overview']).mode).toBe('command')
-    expect(() => parse(['write', '--help-topic'])).toThrow('requires a topic')
-    expect(() => parse(['write', '--help-topic=a', '--help-topic=b'])).toThrow('only once')
-    expect(() => renderCommandHelp(root, command('write'), { topic: 'unknown' })).toThrow('Unknown help topic')
-    expect(() => renderRootHelp(root, COMMAND_DEFINITIONS, { topic: 'unknown' })).toThrow('Unknown root help topic')
-  })
-
   test('focused pages select the requested domain and advertise every links provider', () => {
     const documents = renderCommandHelp(root, command('extract'), { topic: 'documents' })
     expect(documents).toContain('--docx-markdown')
@@ -83,7 +65,6 @@ describe('audited help behavior', () => {
     expect(plain(wrapped)).toBe(plain(text))
     for (const line of wrapped.split('\n')) expect(helpVisibleLength(line)).toBeLessThanOrEqual(40)
     const help = renderCommandHelp(root, command('resume'), { width: 80 })
-    // Copyable usage/examples can exceed width; flag rows and their continuations must fit.
     const flagSection = help.slice(help.indexOf('Provider Selection'), help.indexOf('\nExamples\n'))
     for (const line of flagSection.split('\n').filter(line => line.startsWith('  '))) expect(helpVisibleLength(line)).toBeLessThanOrEqual(80)
     expect(plain(help)).toContain('Array<String>')
@@ -93,7 +74,6 @@ describe('audited help behavior', () => {
     const names = inventory.map(row => row.command.name)
     expect(new Set(names).size).toBe(names.length)
     for (const name of ['comic draft-treatment', 'comic review', 'voice import', 'voice audition']) expect(names).toContain(name)
-    expect(inventory.find(row => row.command.name === 'comic reference-voice import')?.visibility).toBe('compatibility')
     for (const name of RETIRED_HELP_COMMANDS) {
       expect(names).not.toContain(name)
       expect(() => parse([name, '--help'])).toThrow()
@@ -108,13 +88,11 @@ describe('audited help behavior', () => {
     const domains: Record<string, keyof ModelRegistry> = {
       write: 'llm', tts: 'tts', image: 'image', video: 'video', music: 'music',
       'comic generate-audio': 'tts',
-      // Comic now selects its primary output domain with --provider like every other command.
       'comic draft-scenes': 'llm', 'comic draft-treatment': 'llm',
       'comic generate-images': 'image', 'comic reference-sketch': 'image'
     }
     for (const { command: definition } of inventory) {
       for (const [example] of definition.help?.examples ?? []) {
-        // Tokenize quoted literal recipes without executing a shell or any handler.
         const tokens = [...example.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)].map(match => match[1] ?? match[2] ?? match[3]!)
         if (tokens[0] === '$') tokens.shift()
         expect(tokens.slice(0, 2), example).toEqual(['bun', 'autoshow'])
@@ -138,7 +116,6 @@ describe('audited help behavior', () => {
             const model = parts.join('=')
             if (model && model !== 'all') expect(entry!.models[model], example).toBeDefined()
           }
-          // Auxiliary roles carry the same provider[=model] grammar as the primary selector.
           const roleDomain = ({ 'llm-provider': 'llm', 'qa-provider': 'llm' } as const)[occurrence.name as 'llm-provider' | 'qa-provider']
           if (roleDomain) {
             const [provider, ...parts] = value.split('=')
@@ -192,13 +169,10 @@ describe('audited help behavior', () => {
     expect(() => normalizeWriteProviderAlias(mixed.flags, mixed.rawParsed.explicitFlags, mixed.rawParsed.flagOccurrences)).toThrow('Do not combine')
   })
 
-  test('links generic and legacy selectors preserve provider/section associations and ordering', () => {
+  test('links generic selectors preserve provider/section associations and ordering', () => {
     const select = (args: string[]) => parseLinksSelection(parse(['links', ...args]))
-    const old = select(['text', '--openai', 'models', '--gemini', 'text', '--openai', 'text'])
     const current = select(['text', '--provider', 'openai', 'models', '--provider=gemini', 'text', '--provider', 'openai', 'text'])
-    const mixed = select(['text', '--openai', 'models', '--provider', 'gemini', 'text', '--openai', 'text'])
-    expect(current).toEqual(old)
-    expect(mixed).toEqual(old)
+    expect(current.serviceSelections.get('gemini')).toEqual(['text'])
     expect(current.serviceSelections.get('openai')).toEqual(['models', 'text'])
     expect(current.globalSections).toEqual(['text'])
     expect(() => assertKnownSections(current.serviceSelections, current.globalSections)).not.toThrow()

@@ -1,3 +1,4 @@
+import { hasErrorCode } from '~/utils/error-handler'
 import { rename, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -15,8 +16,12 @@ export const getFileFingerprint = async (filePath: string): Promise<FileFingerpr
       ctimeMs: stats.ctimeMs,
       size: stats.size
     }
-  } catch {
-    return undefined
+  } catch (error) {
+    // Expected miss: path absent. Propagate permission/I/O so callers can diagnose.
+    if (hasErrorCode(error, 'ENOENT') || hasErrorCode(error, 'ENOTDIR') || hasErrorCode(error, 'ENAMETOOLONG')) {
+      return undefined
+    }
+    throw error
   }
 }
 
@@ -38,8 +43,16 @@ export const readJsonCacheMap = async <T>(cachePath: string): Promise<Record<str
     return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
       ? parsed as Record<string, T>
       : {}
-  } catch {
-    return {}
+  } catch (error) {
+    // Absent cache file → empty map (expected miss). Corrupt JSON / I/O → empty map but only for
+    // parse errors and absence; permission failures propagate.
+    if (hasErrorCode(error, 'ENOENT') || hasErrorCode(error, 'ENOTDIR') || hasErrorCode(error, 'ENAMETOOLONG')) {
+      return {}
+    }
+    if (error instanceof SyntaxError) {
+      return {}
+    }
+    throw error
   }
 }
 

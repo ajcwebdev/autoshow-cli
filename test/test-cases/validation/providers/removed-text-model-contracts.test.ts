@@ -8,7 +8,8 @@ import { prepareGenerationResume } from '~/cli/commands/setup-and-utilities/resu
 import { writeResumeConfig } from '~/cli/commands/setup-and-utilities/resume/resume-write/write-resume'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { resolveLlmReasoningOptions } from '~/cli/commands/text/write/write-services/llm-reasoning-options'
-import { normalizeWriteStepSelectorFlags } from './provider-selection-contracts/generic-selector-test-adapters'
+import { normalizeGenericProviderSelectorFlags } from './provider-selection-contracts/generic-selector-test-adapters'
+import { WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { withLocalTestDir } from '../../../test-utils/temp-dirs'
 import type { PipelineManifest, ResumeTarget } from '~/types'
 
@@ -21,7 +22,13 @@ const removed = [
 ] as const
 
 const parseWrite = (provider: string, model: string) => {
-  const normalized = normalizeWriteStepSelectorFlags({ llm: [`${provider}=${model}`] }, new Set(['llm']))
+  const normalized = normalizeGenericProviderSelectorFlags(
+    { provider: [`${provider}=${model}`] },
+    new Set(['provider']),
+    'provider',
+    WRITE_LLM_PROVIDER_TARGETS,
+    { allProvidersTarget: 'all-llm' }
+  )
   return buildOptsFromFlags(normalized.flags, {}, normalized.explicitFlags)
 }
 

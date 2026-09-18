@@ -44,7 +44,6 @@ export const comicResumeHandler: ResumeHandler<{ allowAmbiguousRedispatch?: bool
     let plan = await planComicResume(target, opts.allowAmbiguousRedispatch)
     if (!plan.ready) throw UsageError(plan.stages.filter(stage => stage.action === 'blocked').map(stage => `${stage.stage}: ${stage.detail}`).join('\n'))
     for (const stage of stageOrder) {
-      // Re-read canonical state and revalidate all dependencies before each stage.
       plan = await planComicResume(target, opts.allowAmbiguousRedispatch)
       if (!plan.ready) throw UsageError(plan.stages.filter(stage => stage.action === 'blocked').map(stage => stage.detail).join('\n'))
       if (plan.stages.find(entry => entry.stage === stage)?.action !== 'resume') continue

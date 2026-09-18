@@ -30,7 +30,6 @@ export const loadAlignmentRuntime = (projectRoot = PROJECT_ROOT): OnnxRuntime =>
 export const computeOnnxEmissions = async (model: Awaited<ReturnType<typeof readAlignmentModel>>, clips: Array<{ audio: string; words: string[] }>, projectRoot = PROJECT_ROOT) => {
   const wordInputs = clips.map(clip => tokenizeCtcWords(clip.words, model.vocabulary))
   const runtime = loadAlignmentRuntime(projectRoot)
-  // Loading bytes requires a self-contained graph; no model repository or loader code is invoked.
   const session = await runtime.InferenceSession.create(await Bun.file(join(model.root, 'model.onnx')).bytes(), { executionProviders: ['cpu'], intraOpNumThreads: 1, interOpNumThreads: 1 })
   try {
     if (!session.inputNames.includes('input_values') || session.inputNames.some(name => !['input_values', 'attention_mask'].includes(name)) || !session.outputNames.includes('logits')) throw ValidationError('Expected ONNX input_values, optional int64 attention_mask, and logits output.')

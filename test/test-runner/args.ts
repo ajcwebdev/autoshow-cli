@@ -6,6 +6,9 @@ export const DEFAULT_TEST_RUNNER_CONCURRENCY = logicalCpuCount()
 export const E2E_TEST_RUNNER_PARALLEL = 32
 const E2E_TEST_CASE_PREFIX = 'test/test-cases/e2e/'
 
+export const isLiveCredentialMode = (): boolean =>
+  process.env['AUTOSHOW_TEST_CREDENTIAL_MODE'] === 'live'
+
 const BUN_TEST_MAX_CONCURRENCY_FLAG = '--max-concurrency'
 const BUN_TEST_PARALLEL_FLAG = '--parallel'
 const UNSUPPORTED_CONCURRENCY_FLAG = '--concurrency'

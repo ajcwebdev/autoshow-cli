@@ -30,7 +30,6 @@ stage one shared audio artifact for transcription
   v
 Step 2: STT or YouTube captions
 ```
-
 When `--youtube-captions` is set, YouTube inputs first try caption extraction:
 
 ```
@@ -49,7 +48,6 @@ caption extraction
   +--> unavailable:
          fall back to selected STT providers
 ```
-
 The local STT provider is `whisperfile`. All others are hosted.
 
 Output layout:
@@ -66,7 +64,6 @@ multi-provider:
     result.json
   manifest.json
 ```
-
 Provider failures do not discard the whole output directory. A run can finish as:
 
 | Status       | Meaning                                                                                                  |
@@ -97,7 +94,6 @@ detect format
   +--> PDF, images, CBZ
          OCR
 ```
-
 OCR path:
 
 ```
@@ -107,7 +103,6 @@ OCR
   |
   +--> hosted OCR providers
 ```
-
 Document extract output:
 
 ```
@@ -122,7 +117,6 @@ multi-provider OCR:
   extraction.txt | result.json  # primary provider output when --primary-ocr is set
   manifest.json
 ```
-
 Article output:
 
 ```
@@ -136,7 +130,6 @@ all URL backends:
     result.json
   manifest.json
 ```
-
 Local HTML uses Defuddle. Remote single-backend Defuddle automatically retries with Firecrawl when the Defuddle attempt fails.
 
 ## Write Outputs
@@ -169,10 +162,9 @@ write show notes
   |
   +--> show-note.md or show-note-<model>.md
 ```
-
 `write` always starts at Step 3. It treats `.md`/`.txt` files as the source corpus. URLs, media, documents, HTML, and X Spaces go through `extract` first.
 
-`output/<project>/text` can be used as a project directory. The CLI infers `prompt.md`, optional `tracks.md`, and rendered lyric output defaults from the project structure.
+Project lyric draft mode engages when the input is `./output/<name>/text` (or a `.md`/`.txt` under it) and `./output/<name>/prompt.md` exists (or `--prompt-file` is supplied). Defaults then use that `prompt.md`, optional `tracks.md`, and rendered drafts under `./output/<name>/lyrics`.
 
 ## Transcript Video Pipeline
 
@@ -197,7 +189,6 @@ render transcript video
 <label>.srt
 manifest.json
 ```
-
 Manual mode requires `--audio` plus exactly one of `--transcript-result` or `--transcript-text`.
 
 ## Music Lyric-Video Pipeline

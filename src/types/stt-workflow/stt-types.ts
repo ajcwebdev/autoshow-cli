@@ -1,8 +1,6 @@
 import type * as v from 'valibot'
 import type { AggregatedPriceEstimate, BatchChildRunContext, DeepgramResponse, DiarizationOptions, GladiaStatusResponse, ProviderCompletionStatus, ProviderErrorSummaryFields, ProviderIdentityBase, ProviderRunStateBase, ProviderSuccess, RetryClass, SecondsTimedTextRangeBase, Step1Metadata, Step2Metadata, Step2RuntimeMetadata, SttExtractionOptions, TranscribeEngine, TranscriptionResult, VideoMetadata, YtDlpVideoInfo } from '~/types'
 import {
-RevJobSchema,
-RevTranscriptResponseSchema,
 SonioxTranscriptionStatusSchema,
 SonioxTranscriptResponseSchema,
 SpeechmaticsJobSchema,
@@ -33,8 +31,6 @@ export type RawTranscriptionPayload = {
 
 export type SonioxTranscriptionStatus = v.InferOutput<typeof SonioxTranscriptionStatusSchema>
 export type SonioxTranscriptResponse = v.InferOutput<typeof SonioxTranscriptResponseSchema>
-export type RevJob = v.InferOutput<typeof RevJobSchema>
-export type RevTranscriptResponse = v.InferOutput<typeof RevTranscriptResponseSchema>
 export type SpeechmaticsJob = v.InferOutput<typeof SpeechmaticsJobSchema>
 export type SpeechmaticsTranscriptResponse = v.InferOutput<typeof SpeechmaticsTranscriptResponseSchema>
 

@@ -5,9 +5,6 @@ import type { EstimateImageCostOptions, Step5Metadata } from '~/types'
 
 const IMAGE_25_QUALITY_GRID = { low: 16, medium: 24, high: 48, xhigh: 64, max: 96 } as const
 
-// OpenAI's GPT Image 2.5 calculator, checked 2026-09-10:
-// https://developers.openai.com/api/docs/guides/image-generation#cost-and-latency
-// Short-axis grid rounding uses ties-to-even, not JavaScript's Math.round.
 export const estimateOpenAIImage25Output = (
   model: string,
   options: Pick<EstimateImageCostOptions, 'imageSize' | 'imageQuality'>

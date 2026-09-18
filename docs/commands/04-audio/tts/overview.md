@@ -26,13 +26,10 @@ Generate speech audio from a local `.md` or `.txt` file, or from a directory of 
 ## Setup
 
 ```bash
-# full setup
 bun autoshow setup
 
-# check hosted TTS API-key readiness
 bun autoshow setup --doctor
 ```
-
 ### Environment
 
 Hosted providers require API keys set in environment variables:
@@ -47,13 +44,11 @@ HUME_API_KEY=...
 CARTESIA_API_KEY=...
 INWORLD_API_KEY=...
 ```
-
 ## Usage
 
 ```bash
 bun autoshow tts <input> [flags]
 ```
-
 `<input>` must be a local `.md` or `.txt` file, or a directory containing text files that are batched through `--batch-concurrency`. If no `--provider` is given, `tts` defaults to the cheapest hosted TTS provider.
 
 ## Shared TTS Options
@@ -71,6 +66,14 @@ bun autoshow tts <input> [flags]
 | `--tts-ref-audio <provider=path\|path>`            | Explicit one-off Mistral reference input                                                                                                        |
 | `--tts-text-normalization <provider=value\|value>` | Generic text normalization                                                                                                                      |
 | `--tts-instructions <provider=value\|value>`       | Generic voice/style instructions                                                                                                                |
+| `--tts-stability <provider=value\|value>`          | Generic TTS voice stability (ElevenLabs `0-1`)                                                                                                  |
+| `--tts-similarity <provider=value\|value>`         | Generic TTS voice similarity boost (ElevenLabs `0-1`; not `eleven_v3`)                                                                          |
+| `--tts-style <provider=value\|value>`              | Generic TTS voice style exaggeration (ElevenLabs `0-1`; not `eleven_v3`)                                                                        |
+| `--tts-speaker-boost <provider=value\|value>`      | Generic TTS speaker boost (ElevenLabs `true\|false`; not `eleven_v3`)                                                                           |
+| `--tts-seed <provider=value\|value>`               | Generic TTS deterministic generation seed (ElevenLabs `0-4294967295`)                                                                           |
+| `--tts-pronunciation-dictionary <provider=value\|value>` | Generic TTS pronunciation dictionary locator as `dictionary_id` or `dictionary_id:version_id` (ElevenLabs; repeatable)                    |
+| `--tts-trailing-silence <provider=value\|value>`   | Generic TTS trailing silence in seconds (Hume `0-60`)                                                                                           |
+| `--tts-response-format <provider=value\|value>`    | Generic TTS audio response format (Mistral `wav\|mp3\|flac\|opus`)                                                                              |
 | `--step-concurrency tts-chunk=<n>`                 | Hosted TTS requests allowed in parallel per provider; default `30`, `2` for all providers, or `50` for Grok-only                                |
 | `--allow-ambiguous-redispatch`                     | Explicitly authorize repurchasing a provider-admitted TTS slot that has no recoverable audio                                                    |
 | `--tts-dialogue-format <screenplay\|labeled>`      | Dialogue input format for multi-speaker TTS; requires `--tts-speaker`                                                                           |
@@ -96,11 +99,9 @@ bun autoshow tts input/examples/tts/01-tts-short.md \
 
 bun autoshow tts input/examples/tts/01-tts-short.md --provider elevenlabs=eleven_v3
 
-# Keep only TTS provider/model runs estimated at $4 or less
 bun autoshow tts input/examples/tts/01-tts-short.md --all-providers --max-model-cents 400
 ```
-
-`--max-model-cents` estimates every selected target, then removes targets above the ceiling. For a directory, the comparison uses each provider/model's summed estimate across all selected files. Add `--price` to inspect the filtered plan without making provider calls. This differs from `--max-cents`, which checks the combined retained cost instead of filtering individual models.
+`--max-model-cents` estimates every selected target, then removes targets above the ceiling. For a directory, the comparison uses each provider/model's summed estimate across all selected files. Add `--price` to inspect the filtered plan without making provider calls. This differs from the configured `maxCents` budget from `setup --max-cents`, which checks the combined retained cost instead of filtering individual models.
 
 ## TTS Services
 
@@ -111,12 +112,11 @@ bun autoshow tts input/examples/tts/01-tts-short.md --all-providers --max-model-
 | Selector       | `--provider elevenlabs[=<model>]`                                                                                                                                         |
 | Models         | `eleven_v3`                                                                                                                                                               |
 | Existing voice | `--tts-voice <id>`, default `hpp4J3VqNfWAUOO0d1Us`                                                                                                                        |
-| Controls       | `--tts-language`, `--tts-stability`, `--tts-similarity`, `--tts-style`, `--tts-speaker-boost`, `--tts-seed`, `--tts-text-normalization`, `--tts-pronunciation-dictionary` |
+| Controls       | `--tts-language`, `--tts-stability`, `--tts-seed`, `--tts-text-normalization`, `--tts-pronunciation-dictionary`. Numeric `--tts-speed`, `--tts-similarity`, `--tts-style`, and `--tts-speaker-boost` are rejected on `eleven_v3` |
 
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md --provider elevenlabs=eleven_v3 --tts-voice hpp4J3VqNfWAUOO0d1Us
 ```
-
 ElevenLabs synthesis uses existing voices only. Single-voice text is limited to 5,000 characters. Multi-speaker `eleven_v3` supports up to 10 voices and documented v3 audio tags such as `[whispers]` and `[laughs]`.
 
 ### Grok
@@ -133,7 +133,6 @@ ElevenLabs synthesis uses existing voices only. Single-voice text is limited to 
 bun autoshow tts input/examples/tts/01-tts-short.md --provider grok=grok-tts --tts-voice eve
 bun autoshow tts input/examples/tts/01-tts-short.md --provider grok=grok-tts --tts-voice ab12cd34 --tts-language ar-SA --tts-text-normalization true
 ```
-
 ### Mistral
 
 | Option        | Value                                                                                    |
@@ -141,6 +140,7 @@ bun autoshow tts input/examples/tts/01-tts-short.md --provider grok=grok-tts --t
 | Selector      | `--provider mistral[=<model>]`                                                           |
 | Models        | `voxtral-mini-tts-2603`                                                                  |
 | Voice source  | Existing `--tts-voice <id>` or authorized one-off `--tts-ref-audio <path>`               |
+| Controls      | `--tts-response-format <wav\|mp3\|flac\|opus>`                                            |
 | Dialogue mode | `--tts-dialogue-format screenplay\|labeled` plus repeatable `--tts-speaker SPEAKER=path` |
 
 ```bash
@@ -151,7 +151,6 @@ bun autoshow tts input/examples/tts/04-tts-dialogue.txt \
   --tts-speaker Host=input/examples/audio/anthony-voice.mp3 \
   --tts-speaker Guest=input/examples/audio/1-audio.mp3
 ```
-
 Mistral synthesis requires an existing voice ID or an authorized one-off local reference file. `--all-providers --price` includes Mistral in the estimate even without a voice source. A non-price `--all-providers` run without a Mistral voice source warns, skips Mistral, and continues with the other targets; an explicit Mistral selection without a voice source remains a usage error. Use `voice clone --provider mistral` to create and register a saved reference.
 
 ### OpenAI
@@ -167,7 +166,6 @@ Mistral synthesis requires an existing voice ID or an authorized one-off local r
 bun autoshow tts input/examples/tts/01-tts-short.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-voice alloy
 bun autoshow tts input/examples/tts/01-tts-short.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm documentary narration" --tts-speed 1.1
 ```
-
 ### Speechify
 
 | Option   | Value                                   |
@@ -181,7 +179,6 @@ bun autoshow tts input/examples/tts/01-tts-short.md --provider openai=gpt-4o-min
 bun autoshow tts input/examples/tts/01-tts-short.md --provider speechify=simba-3.2 --tts-voice geffen_32 --tts-language en-US
 bun autoshow tts input/examples/tts/01-tts-short.md --provider speechify=simba-3.2 --tts-voice speechify_custom_voice_123
 ```
-
 Input may be plain text or SSML. Wrap SSML in `<speak>` to control pitch, rate, volume, pauses, emphasis, substitutions, and emotion via `<speechify:style emotion="...">`. Simba 3.2 is English-only.
 
 ### Hume
@@ -191,13 +188,14 @@ Input may be plain text or SSML. Wrap SSML in `<speak>` to control pitch, rate, 
 | Selector | `--provider hume[=<model>]`                              |
 | Models   | `octave-1`, `octave-2`                                   |
 | Voice    | `--tts-voice <name-or-id>`, default `Male English Actor` |
+| Controls | `--tts-speed <0.5..2>`, `--tts-trailing-silence <0..60>`, Octave 1 utterance `description` via `--tts-instructions` |
 
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md --provider hume=octave-2
 bun autoshow tts input/examples/tts/01-tts-short.md --provider hume=octave-2 --tts-voice "Male English Actor"
+bun autoshow tts input/examples/tts/01-tts-short.md --provider hume=octave-2 --tts-trailing-silence 0.5
 ```
-
-Pass an existing stock or custom voice with `--tts-voice`. A UUID is treated as a voice ID; any other value is looked up by name in the Hume voice library. Address a custom voice by its ID.
+Pass an existing stock or custom voice with `--tts-voice`. A UUID is treated as a voice ID; any other value is looked up by name in the Hume voice library. Address a custom voice by its ID. On Octave 1, `--tts-instructions` maps to the utterance `description` acting-instruction field.
 
 ### Cartesia
 
@@ -212,7 +210,6 @@ Pass an existing stock or custom voice with `--tts-voice`. A UUID is treated as 
 bun autoshow tts input/examples/tts/01-tts-short.md --provider cartesia=sonic-3.6-2026-08-27 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
 bun autoshow tts input/examples/tts/01-tts-short.md --provider cartesia=sonic-3.6-2026-08-27 --tts-language en
 ```
-
 `--tts-language` accepts Cartesia language codes and regional locales such as `en-GB`. Transcripts may include SSML-like `<speed>`, `<volume>`, `<emotion>`, `<break>`, and `<spell>` tags plus `[laughter]`.
 
 ### Inworld
@@ -228,7 +225,6 @@ bun autoshow tts input/examples/tts/01-tts-short.md --provider cartesia=sonic-3.
 bun autoshow tts input/examples/tts/01-tts-short.md --provider inworld=realtime-tts-2
 bun autoshow tts input/examples/tts/01-tts-short.md --provider inworld=realtime-tts-2 --tts-voice Dennis --tts-instructions "Sound reassuring"
 ```
-
 Inline emotion and vocalization tags such as `[happy]`, `[laugh]`, and `[breathe]` are preserved.
 
 ## Output

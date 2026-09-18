@@ -197,7 +197,6 @@ export const geminiGetInteraction = async (
   return json
 }
 
-// Music uses a single synchronous request; do not automatically redispatch song generation.
 export const geminiCreateMusicInteraction = async (apiKey: string, input: string): Promise<unknown> => {
   if (typeof input !== 'string' || input.trim().length === 0) {
     throw ValidationError('Lyria 3.5 requires a nonempty text prompt; image/audio inputs are not exposed by this music adapter.', { stage: 'music:gemini' })

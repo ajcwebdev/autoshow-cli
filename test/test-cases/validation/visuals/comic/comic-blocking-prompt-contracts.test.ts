@@ -436,7 +436,6 @@ describe('rebind against the structure stage snapshot', () => {
   const prepareSplitWorkspace = async (options: { withSnapshot: boolean }) => {
     const prepared = await prepareWorkspace()
     await importFixturePlan(prepared.slug, prepared.workspace)
-    // Stand in for a structure re-run that split one direction beat in two.
     if (options.withSnapshot) await writeFile(getPreviousStructuredScriptPath(prepared.slug), `${JSON.stringify(script, null, 2)}\n`)
     await writeFile(getStructuredScriptPath(prepared.slug), `${JSON.stringify(buildBlockingFixtureStructuredScript({ segments: splitSegments }), null, 2)}\n`)
     return prepared
@@ -457,8 +456,6 @@ describe('rebind against the structure stage snapshot', () => {
   })
 
   test('the structure stage snapshots the script it replaces and leaves none on a first run', async () => {
-    // prepareWorkspace only configures the character and location catalogs the parser needs; the
-    // structure stage under test runs in its own untouched workspace.
     await prepareWorkspace()
     const workspace = await makeTempDir('autoshow-structure-snapshot-')
     temporaryDirectories.push(workspace)
@@ -469,8 +466,6 @@ describe('rebind against the structure stage snapshot', () => {
     await captureLogEvents(async () => { await generateStructuredScript(scriptPath, slug) })
     expect(existsSync(getPreviousStructuredScriptPath(slug))).toBe(false)
     const firstBytes = await Bun.file(getStructuredScriptPath(slug)).text()
-    // A re-run of the same canonical source: the workspace stays bound to it, and the script the run
-    // replaces is preserved for --rebind.
     await captureLogEvents(async () => { await generateStructuredScript(scriptPath, slug) })
     expect(await Bun.file(getPreviousStructuredScriptPath(slug)).text()).toBe(firstBytes)
     expect(await Bun.file(getStructuredScriptPath(slug)).text()).toBe(firstBytes)
@@ -513,8 +508,6 @@ describe('blocking price estimates', () => {
       outputUnitsPerPanel: SCENE_DRAFT_OUTPUT_UNITS_PER_PANEL,
       outputUnitsPerCall: SCENE_DRAFT_OUTPUT_UNITS_FIXED + SCENE_DRAFT_OUTPUT_UNITS_PER_PANEL * 6,
     })
-    // The row table never reaches stdout, so the readable basis line has to carry the exact total the
-    // project approval threshold is checked against.
     const sceneBasis = sceneEvents.find(event => typeof event.message === 'string' && event.message.startsWith('Scene estimate: input units'))
     expect(sceneBasis?.message).toMatch(/; total ~\$\d+\.\d{2}$/)
     expect(typeof (sceneBasis?.metadata as { totalCost?: unknown } | undefined)?.totalCost).toBe('number')

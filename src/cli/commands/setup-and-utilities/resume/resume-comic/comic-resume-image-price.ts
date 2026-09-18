@@ -34,7 +34,6 @@ const remainingModelEstimates = async (estimate: Extract<FinalImageEstimateResul
       return { pricing: estimateFinalImagePricing(request, modeEstimate, qaWork, inventory), qaWork }
     }
     if (original.mode === 'page' || originalInventory.mode === 'page') throw UsageError('Comic image price inventory does not match its recorded layout.')
-    // Preserve original model/variation paths while counting each model's unfinished panels and QA.
     const request = { ...original, models: [model] }
     let pendingQa = 0
     const panels = await Promise.all(originalInventory.panels.map(async panel => ({ ...panel, variations: await Promise.all(panel.variations.map(async variation => {
@@ -47,7 +46,6 @@ const remainingModelEstimates = async (estimate: Extract<FinalImageEstimateResul
     const inventory = { ...originalInventory, panels, gridPages: originalInventory.gridPages.map(page => ({ ...page, outputs: page.outputs.filter(output => output.model === model) })) }
     const modeEstimate = estimatePanelMode(request, inventory)
     const qaWork = estimateQaWork(request, { ...modeEstimate, totalOutputs: pendingQa }, inventory)
-    // Missing QA may require repairs even when initial images exist. Model those input costs conservatively.
     const pricingInventory = { ...inventory, panels: panels.map(panel => ({ ...panel, variations: panel.variations.map(variation => ({ ...variation, allModelsExist: variation.allModelsExist && variation.qaReusable })) })) }
     return { pricing: estimateFinalImagePricing(request, modeEstimate, qaWork, pricingInventory), qaWork }
   }))

@@ -1,4 +1,3 @@
-// A tiny acoustic Conv graph encoded directly as ONNX protobuf, with no model download.
 const integer = (value: number): Buffer => {
   const bytes = []
   do { bytes.push((value % 128) | (value >= 128 ? 128 : 0)); value = Math.floor(value / 128) } while (value)

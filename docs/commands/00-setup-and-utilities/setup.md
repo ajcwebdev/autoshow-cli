@@ -21,7 +21,6 @@ For Docker-only network diagnostics (`setup --network-check serve|probe`), see [
 ```bash
 bun autoshow setup
 ```
-
 Use full setup on a clean machine so local download, OCR, STT, and article-extraction workflows have their prerequisites installed.
 
 ## Disk and Network Requirements
@@ -38,7 +37,6 @@ Check prerequisites, configuration, and which provider API keys are set without 
 bun autoshow setup --doctor
 bun autoshow setup --doctor --strict
 ```
-
 API-key checks are presence-only: doctor reports whether each provider API key is set, not whether the key is valid. Warnings do not change the default exit code. `--strict` exits 2 for readiness warnings, including missing credentials required by configured defaults, invalid configuration, unreadable configured cookies, and unavailable runtimes or model assets. Optional unselected credentials do not fail strict mode. Doctor does not make live provider calls. It reads `.env` from the working directory; exported environment variables win over file values.
 
 Doctor also reports whether configured YouTube cookies are readable. If anonymous `yt-dlp` requests start failing, follow the [YouTube cookies guide](cookies.md).
@@ -54,23 +52,17 @@ yt-dlp | defuddle | whisperfile | calibre | all | transcription | music
 Isolated steps assume their prerequisites are already present. Pass `--force-redownload` with `--step` to replace existing downloads.
 
 ```bash
-# yt-dlp, ffmpeg, and ffprobe
 bun autoshow setup --step yt-dlp
 
-# mutool, qpdf, and Calibre ebook-convert
 bun autoshow setup --step calibre
 
-# local URL article extraction
 bun autoshow setup --step defuddle
 
-# default whisperfile model (tiny)
 bun autoshow setup --step whisperfile
 bun autoshow setup --step transcription
 
-# whisperfile small.en for lyric videos
 bun autoshow setup --step music
 ```
-
 ## Model Downloads
 
 Ordinary setup (`setup`, `setup --step whisperfile`, or `setup --step transcription`) installs only whisperfile `tiny` for local STT. `setup --step music` installs `small.en`. Missing explicitly selected models can also download on demand during transcription.
@@ -80,14 +72,12 @@ Install additional models with repeatable `--models` flags:
 ```bash
 bun autoshow setup --models tiny --models tiny.en --models small --models whisperfile:small.en
 ```
-
 Larger models require explicit selection:
 
 ```bash
 bun autoshow setup --models whisperfile:medium --models whisperfile:medium.en
 bun autoshow setup --models whisperfile:large-v2 --models whisperfile:large-v3
 ```
-
 Bare names and `whisperfile:<model>` are equivalent.
 
 ## Setting Defaults and Configuration
@@ -114,7 +104,6 @@ bun autoshow setup --max-cents 100
 bun autoshow setup --cookies-from-browser chrome
 bun autoshow setup --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
 ```
-
 Default path: `config/autoshow.json` in the project root. Override with `--config-path <path>`.
 
 Passing configuration flags updates and saves `config/autoshow.json` without running full runtime installation or doctor checks.
@@ -127,7 +116,6 @@ Model selector flags are repeatable. Repeating a provider selector saves all sel
 bun autoshow setup --stt deepinfra=openai/whisper-large-v3 --stt deepinfra=openai/whisper-large-v3-turbo
 bun autoshow setup --llm openai=gpt-5.6-sol --llm openai=gpt-5.6-terra
 ```
-
 ## Config Schema
 
 Representative JSON shape:
@@ -230,7 +218,6 @@ Local no-cost coverage for `setup` and `--doctor`.
 ```bash
 bun test test/test-cases/validation/setup/
 ```
-
 ### Price Preflight
 
 Setup has no provider-priced commands, so `--price` and `--budget` do not estimate anything for this suite.

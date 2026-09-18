@@ -4,7 +4,6 @@ import { dirname } from 'node:path'
 export interface ProcessOutcome { exitCode: number; stdout: string; stderr: string; durationMs: number; timedOut: boolean }
 export type ProcessRunner = (argv: string[], timeoutMs: number, logPrefix: string, onTimeout?: () => Promise<void>) => Promise<ProcessOutcome>
 
-// Only Docker client connection settings reach the host child, never provider settings.
 export function dockerClientEnvironment(source: NodeJS.ProcessEnv): Record<string, string> {
   const env: Record<string, string> = {}
   for (const key of ['PATH', 'HOME', 'DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_CONFIG', 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH', 'XDG_RUNTIME_DIR']) {

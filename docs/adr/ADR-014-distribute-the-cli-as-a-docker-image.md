@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-24
-- **Date Updated:** 2026-09-10
+- **Date Updated:** 2026-09-17
 - **Verification Status:** Pending
 
 The original image contract passed. Verification remains pending for the native production and compiled-experiment CI artifacts left open by the 2026-08-31 migration evaluation; archiving the local results does not close those reviews.
@@ -159,6 +159,8 @@ Negative outcomes:
 
 ## Implementation Note
 
+Historical Bun 1.4 smoke evidence below still quotes `config --show`; the canonical spelling is now `setup --show` (`config` remains a forwarding alias).
+
 The image recipe, build exclusions, user documentation, and entrypoint live in `Dockerfile`, `.dockerignore`, `docs/docker.md`, and `README.md`. Publishing lives in `.github/workflows/docker-publish.yml`.
 
 ## Bun 1.4 Migration Evidence
@@ -281,7 +283,6 @@ The [profiling guide](../commands/testing.md#profiling) maintains bundle capture
 bun run check
 bun test test/test-cases/validation/cli/docker-image-contracts.test.ts
 ```
-
 1. Typecheck and unique source check pass.
 2. Image `yt-dlp` URL and SHA-256 match native Linux metadata, and documentation shows direct `docker run`.
 

@@ -9,7 +9,7 @@ import { generateComicPages } from '~/cli/commands/visuals/comic/comic-commands/
 import { generatePanelImages } from '~/cli/commands/visuals/comic/comic-commands/generate-images/generate-panel-images'
 import type { ComicImageRequestInput, PageQaEntry } from '~/types'
 import { setupPageContractFixtures } from './comic-page-contract-fixtures'
-const { tinyPng, createSceneFixture } = setupPageContractFixtures()
+const { tinyPng, repairAssessment, repairComparisonResponse, createSceneFixture } = setupPageContractFixtures()
 
 describe('page repair restart and stagnation', () => {
 
@@ -60,13 +60,14 @@ describe('page repair restart and stagnation', () => {
     const calls: ComicImageRequestInput[] = []
     const failedEntry = (): PageQaEntry => ({
       pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.6-sol', hardFailure: true,
-      result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: false, dialogueIssueKind: 'content' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['wording'], editInstructions: 'Correct the wording.' }], summary: 'Persistent dialogue mismatch.' },
+      result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: false, dialogueIssueKind: 'content' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['wording'], editInstructions: 'Correct the wording.', repairAssessment: repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', recommendation: 'targeted-edit', rationale: 'The lettering contradicts the script.' }) }], summary: 'Persistent dialogue mismatch.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })
     await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 7 }, {
       requestImage: async input => { calls.push(input); return { mode: calls.length === 1 || calls.length === 3 ? 'generate' : 'edit', result: { imageBase64: tinyPng.toString('base64') } } },
       writeImage: async outputPath => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, tinyPng) },
       judgePage: async () => failedEntry(),
+      requestRepairComparison: async request => ({ text: repairComparisonResponse(request.pass, 'winner'), inputTokens: 2, outputTokens: 1 }),
     })).rejects.toThrow('1 panel QA hard failure(s)')
     expect(calls).toHaveLength(4)
     expect(calls[1]?.referenceImages[0]).toContain('attempt-0.png')

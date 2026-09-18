@@ -40,7 +40,7 @@ registerProviderSelectorCases([
       { sections: ['stt'], expected: SUPADATA_STT_LINKS },
       { sections: ['url'], expected: SUPADATA_URL_LINKS }
     ],
-    invalid: { sections: ['tts'], message: 'Unknown links section(s) for --supadata: tts' }
+    invalid: { sections: ['tts'], message: 'Unknown links section(s) for --provider supadata: tts' }
   },
   {
     name: 'links selector accepts scrapecreators provider with general and stt sections',
@@ -50,7 +50,7 @@ registerProviderSelectorCases([
       { sections: ['general'], expected: SCRAPECREATORS_GENERAL_LINKS },
       { sections: ['stt'], expected: SCRAPECREATORS_STT_LINKS }
     ],
-    invalid: { sections: ['url'], message: 'Unknown links section(s) for --scrapecreators: url' }
+    invalid: { sections: ['url'], message: 'Unknown links section(s) for --provider scrapecreators: url' }
   },
   {
     name: 'links selector accepts zyte provider with general and url sections',
@@ -60,7 +60,7 @@ registerProviderSelectorCases([
       { sections: ['general'], expected: ZYTE_GENERAL_LINKS },
       { sections: ['url'], expected: ZYTE_URL_LINKS }
     ],
-    invalid: { sections: ['tts'], message: 'Unknown links section(s) for --zyte: tts' }
+    invalid: { sections: ['tts'], message: 'Unknown links section(s) for --provider zyte: tts' }
   },
   {
     name: 'links selector accepts firecrawl provider with general and url sections',
@@ -70,7 +70,7 @@ registerProviderSelectorCases([
       { sections: ['general'], expected: FIRECRAWL_GENERAL_LINKS },
       { sections: ['url'], expected: FIRECRAWL_URL_LINKS }
     ],
-    invalid: { sections: ['tts'], message: 'Unknown links section(s) for --firecrawl: tts' }
+    invalid: { sections: ['tts'], message: 'Unknown links section(s) for --provider firecrawl: tts' }
   },
   {
     name: 'links selector accepts spider provider with general and url sections',
@@ -80,6 +80,6 @@ registerProviderSelectorCases([
       { sections: ['general'], expected: SPIDER_GENERAL_LINKS },
       { sections: ['url'], expected: SPIDER_URL_LINKS }
     ],
-    invalid: { sections: ['tts'], message: 'Unknown links section(s) for --spider: tts' }
+    invalid: { sections: ['tts'], message: 'Unknown links section(s) for --provider spider: tts' }
   }
 ])

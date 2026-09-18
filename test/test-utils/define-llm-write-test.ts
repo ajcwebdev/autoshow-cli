@@ -37,7 +37,7 @@ export const defineLLMWriteTest = ({
         await requireConfiguredEnvVar(requiresEnvVar.key, `${requiresEnvVar.key} is required for ${requiresEnvVar.description}`)
       }
 
-      const commandArgs = ["src/cli/create-cli.ts", "write", inputPath, '--llm', `${provider}=${model}`]
+      const commandArgs = ["src/cli/create-cli.ts", "write", inputPath, '--provider', `${provider}=${model}`]
       const promptProfile = promptProfiles?.[model]
       if (promptProfile) {
         commandArgs.push('--prompt', promptProfile)

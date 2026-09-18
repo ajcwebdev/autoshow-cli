@@ -31,10 +31,3 @@ export type DownloadTimeouts = {
   stallTimeoutMs: number
   totalTimeoutMs: number
 }
-
-export type DownloadWatchdog = {
-  signal: AbortSignal
-  progress: () => void
-  stop: () => void
-  timeoutMessage: () => string | undefined
-}

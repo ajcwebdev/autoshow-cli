@@ -17,7 +17,6 @@ export const captureComicImageRecoveryInputs = async (rootDir: string, materiali
     'assets/character-references.json', 'assets/location-references.json', 'assets/location-references', 'assets/design-references.json', 'assets/design-references',
   ].filter(path => existsSync(join(rootDir, path)))
   if (paths.includes('assets/character-references.json')) {
-    // Prepare local identity cards before recording the request, then verify them read-only on resume.
     const references = loadAndVerifyCharacterReferenceSnapshot(rootDir)
     paths.push(...references.characters.flatMap(character => character.assets.map(asset => asset.path)))
     paths.push(...resolveCharacterIdentityReferences(rootDir, references, references.characters.map(character => character.key), { compose: materializeDerived }).map(reference => reference.path))
@@ -25,8 +24,6 @@ export const captureComicImageRecoveryInputs = async (rootDir: string, materiali
   return await captureComicRecoveryInputs(rootDir, paths)
 }
 
-// Recorded flags are replayed through the CLI parser, so each model is recorded in the same
-// `provider[=model]` spelling the command accepts.
 const providerSelector = (domain: 'image' | 'llm', model: string): string => {
   const service = findRegistryServiceForModel(domain, model)
   return service ? `${service}=${model}` : model

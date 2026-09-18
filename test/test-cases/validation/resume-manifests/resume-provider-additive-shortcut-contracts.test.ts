@@ -165,7 +165,16 @@ describe('resume all-shortcut additive selection', () => {
       process.env['GLM_API_KEY'] = 'glm-key'
 
       await withTempDir('autoshow-write-resume-partial-', async (dir) => {
+        const sourceText = 'Source body for write resume.'
+        const sourceSha256 = new Bun.CryptoHasher('sha256').update(sourceText).digest('hex')
         await writeSingleManifestFixture(dir, 'write', {
+          title: 'Write Resume Fixture',
+          source: {
+            kind: 'text-input',
+            inputPath: '/tmp/write-resume-source.txt',
+            slug: 'write-resume-fixture',
+            snapshot: { path: 'source.txt', sha256: sourceSha256 },
+          },
           step3: {
             llmService: 'openai',
             llmModel: 'gpt-5.6-sol',
@@ -179,6 +188,7 @@ describe('resume all-shortcut additive selection', () => {
           } satisfies Step3Metadata
         })
         await Bun.write(join(dir, 'prompt.md'), 'Prompt')
+        await Bun.write(join(dir, 'source.txt'), sourceText)
 
         installMockFetch((call) => {
           if (call.headers.get('authorization') === 'Bearer glm-key') {

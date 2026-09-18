@@ -6,7 +6,6 @@ export const modelRateKey = (service: string, model: string): string => `${servi
 
 export const RETIRED_MODEL_RATES: RetiredModelRates = {
   stt: {
-    // Retained exclusively for immutable historical benchmark reports.
     'whisper:tiny': { costPerHourCents: 0 },
     'whisper:base': { costPerHourCents: 0 },
     'whisper:small': { costPerHourCents: 0 },
@@ -376,7 +375,6 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
 
 let retiredRatesValidated = false
 
-// Validated against the live registry schemas so a retired row cannot drift into a shape the estimators cannot read.
 const assertValidatedRetiredRates = (): void => {
   if (retiredRatesValidated) return
   validateData(RetiredModelRatesSchema, RETIRED_MODEL_RATES, 'retired model rates')

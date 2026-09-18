@@ -73,15 +73,6 @@ describe('grouped report contracts', () => {
       expect(report.rankingSurfaces.service.automatedQuality[0]?.label).toContain('WER')
       expect(report.rankingSurfaces.service.automatedQuality[0]?.label).toContain('CER')
       expect(report.rankingSurfaces.service.automatedQuality[0]?.label).toContain('coverage')
-      expect(report.rankingSurfaces.service.fastest.map((entry) => entry.providerKey)).toEqual(
-        report.rankingSurfaces.service.speed.map((entry) => entry.providerKey)
-      )
-      expect(report.rankingSurfaces.service.cheapest.map((entry) => entry.providerKey)).toEqual(
-        report.rankingSurfaces.service.price.map((entry) => entry.providerKey)
-      )
-      expect(report.rankingSurfaces.service.highestQuality.map((entry) => entry.providerKey)).toEqual(
-        report.rankingSurfaces.service.automatedQuality.map((entry) => entry.providerKey)
-      )
 
       const markdown = await Bun.file(join(runDir, 'provider-comparison-report.md')).text()
       expect(markdown).toContain('## Local Providers')

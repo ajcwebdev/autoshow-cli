@@ -16,7 +16,6 @@ export const runGlmVisionOcr = createChatImageOcrRunner({
   service: 'glm',
   extractionMethod: 'glm-ocr',
   providerLabel: 'GLM Flash vision OCR',
-  // Deliberately bounded by AutoShow below the host's image limit, one rendered page per request.
   maxImageBytes: 10 * 1024 * 1024,
   imageLimitLabel: '10 MB AutoShow limit',
   supportedMimeTypes: { png: 'image/png', jpg: 'image/jpeg' },

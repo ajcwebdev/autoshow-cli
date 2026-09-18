@@ -16,14 +16,3 @@ export type TokenPricingConfig = {
     note: string
   } | undefined
 }
-
-export type TokenCostResult = {
-  inputCostPer1MCents: number
-  outputCostPer1MCents: number
-  inputCost: number
-  outputCost: number
-  totalCost: number
-  costMultiplier: number
-  pricingBand?: string | undefined
-  pricingNote?: string | undefined
-}

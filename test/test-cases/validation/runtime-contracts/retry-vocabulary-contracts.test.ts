@@ -9,7 +9,6 @@ const RETRY_DELAY = 'src/utils/retry-abortable-delay.ts'
 const RETRY_POLICY = 'src/utils/retry-policy.ts'
 
 const PACING_SLEEP_ALLOWLIST = new Set([
-  // Local fixture response latency exercises silent sockets; this is not retry backoff.
   'src/cli/commands/setup-and-utilities/setup/network-check.ts',
   RETRY_DELAY,
   'src/cli/commands/stt/diarization/stt-mistral/mistral-stt-pass-controller.ts',

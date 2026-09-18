@@ -2,7 +2,6 @@ import { normalizeResumeSelectorFlagsForTarget as normalizeResumeSelectorOccurre
 import { extractStep2CommandFlags } from '~/cli/flags/extract-flags'
 import { normalizeExtractGenericSelectorFlags as normalizeExtractGenericSelectorOccurrences } from '~/cli/flags/service-selector-normalization/extract-selectors'
 import { normalizeGenericProviderSelectorFlags as normalizeGenericProviderSelectorOccurrences } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
-import { normalizeWriteStepSelectorFlags as normalizeWriteStepSelectorOccurrences } from '~/cli/flags/service-selector-normalization/step-selectors'
 import type { ExtractSelectorInputRoutes, ResumeTarget } from '~/types'
 import { flagOccurrencesFromValues, parseFlagsAndOccurrences } from '../../../../test-utils/flag-occurrences'
 
@@ -21,10 +20,6 @@ export const normalizeGenericProviderSelectorFlags = (
   options
 )
 
-export const normalizeWriteStepSelectorFlags = (
-  flags: Record<string, unknown>,
-  explicitFlags: Set<string>
-) => normalizeWriteStepSelectorOccurrences(flags, explicitFlags, flagOccurrencesFromValues(flags, explicitFlags))
 
 export const normalizeExtractGenericSelectorFlags = (
   flags: Record<string, unknown>,
@@ -35,8 +30,7 @@ export const normalizeExtractGenericSelectorFlags = (
 export const normalizeResumeSelectorFlagsForTarget = (
   target: ResumeTarget,
   flags: Record<string, unknown>,
-  explicitFlags: Set<string>,
-  _rawArgs: string[]
+  explicitFlags: Set<string>
 ) => normalizeResumeSelectorOccurrencesForTarget(target, flags, explicitFlags, flagOccurrencesFromValues(flags, explicitFlags))
 
 export const normalizeExtractGenericSelectorArgs = (

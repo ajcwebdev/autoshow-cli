@@ -109,7 +109,7 @@ export const runFalQueue = async <T>(options: {
 
     const responseUrl = completed.response_url ?? submission.response_url ?? `${baseUrl}/${options.endpointId}/requests/${encodeURIComponent(submission.request_id)}`
     const resultResponse = await withRetry(
-      { operationName: `${options.operationName}-result`, retryClass: 'runtime_http_read' },
+      { operationName: `${options.operationName}-result`, retryClass: 'runtime_http_paid_result' },
       async (signal) => {
         const response = await fetch(responseUrl, { headers, ...(signal ? { signal } : {}) })
         if (!response.ok) {
@@ -117,7 +117,7 @@ export const runFalQueue = async <T>(options: {
         }
         return response
       },
-      (error) => classifyFetchRetry(error, 'runtime_http_read')
+      (error) => classifyFetchRetry(error, 'runtime_http_paid_result')
     )
 
     return { requestId: submission.request_id, output: await resultResponse.json() as T }

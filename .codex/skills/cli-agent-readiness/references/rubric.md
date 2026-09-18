@@ -57,17 +57,14 @@ Why it matters:
 Good contract:
 
 ```bash
-# Human at a TTY
 $ blog-cli publish
 ? Status? published
 ? Path to content: my-post.md
 Published "My Post" to personal
 
-# Agent or script
 $ blog-cli publish --content my-post.md --yes
 Published "My Post" to personal (post_id: post_8k3m)
 ```
-
 Look for:
 
 - TTY detection before prompting
@@ -98,7 +95,6 @@ Good contract:
 $ blog-cli publish --content my-post.md --json
 {"title":"My Post","url":"https://personal.blog.dev/my-post","post_id":"post_8k3m","status":"published"}
 ```
-
 Look for:
 
 - `--json` or another explicit machine mode on data-bearing commands
@@ -133,7 +129,6 @@ Usage: blog-cli publish --content <file> [--status <status>]
 Available statuses: draft, published, scheduled
 Example: blog-cli publish --content my-post.md
 ```
-
 Look for:
 
 - Early validation before side effects
@@ -170,7 +165,6 @@ Already published "My Post" to personal, no changes (post_id: post_8k3m)
 
 $ blog-cli posts delete --slug my-post --confirm
 ```
-
 Look for:
 
 - Idempotent or duplicate-detecting behavior on create/update/deploy flows
@@ -218,7 +212,6 @@ Examples:
   blog-cli publish --content my-post.md
   blog-cli publish --content my-post.md --status draft
 ```
-
 Look for:
 
 - `--help` and `-h` at the top level and subcommand level
@@ -250,7 +243,6 @@ cat posts.json | blog-cli posts import --stdin
 blog-cli posts list --json | blog-cli posts validate --stdin
 blog-cli posts list --status draft --limit 5 --json | jq -r '.[].title'
 ```
-
 Look for:
 
 - Flags, files, or stdin as interchangeable input sources where useful
@@ -284,7 +276,6 @@ To narrow results: blog-cli posts list --status published --since 7d --limit 10
 
 $ blog-cli posts list --tag javascript --status published --since 30d --limit 10 --json
 ```
-
 Look for:
 
 - Defaults with limits, pagination, or filtering
@@ -346,7 +337,6 @@ Use this to verify JSON mode and stdout cleanliness.
 blog-cli posts list --json > out.json
 jq empty out.json
 ```
-
 ### stdout/stderr separation
 
 Use this to confirm data stays parseable.
@@ -355,7 +345,6 @@ Use this to confirm data stays parseable.
 blog-cli posts list --json > out.json 2> err.log
 test -s out.json
 ```
-
 ### Retry safety
 
 Use this to detect duplicate mutation behavior.
@@ -364,7 +353,6 @@ Use this to detect duplicate mutation behavior.
 blog-cli publish --content my-post.md --json
 blog-cli publish --content my-post.md --json
 ```
-
 Expect the second call to be a no-op or clearly marked duplicate with the same identifier.
 
 ### Help discovery
@@ -375,7 +363,6 @@ Use this to inspect incremental discoverability.
 blog-cli --help
 blog-cli publish --help
 ```
-
 Expect purpose, invocation shape, required inputs, safety flags, and examples.
 
 ### Bounded output defaults
@@ -385,5 +372,4 @@ Use this to check whether broad queries are expensive by default.
 ```bash
 blog-cli posts list
 ```
-
 Expect limits, truncation guidance, or narrowing hints instead of unbounded dumps.

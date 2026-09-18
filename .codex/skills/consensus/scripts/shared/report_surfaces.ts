@@ -4,7 +4,6 @@ import { basename } from "node:path";
 export type ConsensusCategory = "image" | "music" | "ocr" | "stt" | "text" | "tts" | "url" | "video";
 
 type ProviderGroup = "local" | "service";
-type RankingSurfaceName = "fastest" | "cheapest" | "highestQuality";
 type FullRankingSurfaceName = "price" | "speed" | "automatedQuality" | "humanQuality";
 type MetricRankingName = "price" | "speed" | "qualityScore";
 type OcrMetricRankingGroupName = "local" | "thirdPartyService";
@@ -78,11 +77,7 @@ type OcrMetricRankings = Record<OcrMetricRankingGroupName, MetricRankingGroup>;
 type SttMetricRankings = Record<SttMetricRankingGroupName, MetricRankingGroup>;
 type MetricRankings = OcrMetricRankings | SttMetricRankings;
 
-type SurfaceGroup = Record<RankingSurfaceName, RankingEntry[]> & {
-  fastestUnavailableReason: string | null;
-  cheapestUnavailableReason: string | null;
-  highestQualityUnavailableReason: string | null;
-} & Record<FullRankingSurfaceName, RankingEntry[]> & {
+type SurfaceGroup = Record<FullRankingSurfaceName, RankingEntry[]> & {
   priceUnavailableReason: string | null;
   speedUnavailableReason: string | null;
   automatedQualityUnavailableReason: string | null;
@@ -893,14 +888,7 @@ function buildRankingSurfaces(category: ConsensusCategory, providers: ProviderSu
     const speed = fullSpeedRanking(groupProviders, group);
     const automatedQuality = fullAutomatedQualityRanking(category, groupProviders, group);
     const humanQuality = fullHumanQualityRanking(category, groupProviders, group);
-    const qualityAlias = humanQuality.entries.length > 0 ? humanQuality : automatedQuality;
     return {
-      fastest: speed.entries,
-      cheapest: price.entries,
-      highestQuality: qualityAlias.entries,
-      fastestUnavailableReason: speed.reason,
-      cheapestUnavailableReason: price.reason,
-      highestQualityUnavailableReason: qualityAlias.reason,
       price: price.entries,
       speed: speed.entries,
       automatedQuality: automatedQuality.entries,

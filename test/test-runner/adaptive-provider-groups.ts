@@ -309,12 +309,8 @@ const addAllExtractGroups = (groups: Set<AdaptiveProviderGroup>, input: string |
   addAllGroups(groups, 'extract', OCR_REMOTE_PROVIDERS)
 }
 
-const WRITE_ALL_PROVIDER_STEPS: Record<string, { kind: AdaptiveProviderGroupKind, providers: readonly string[] }> = {
-  llm: { kind: 'write', providers: LLM_REMOTE_PROVIDERS },
-}
-
 const WRITE_FLAG_GROUPS: Record<string, { kind: AdaptiveProviderGroupKind, remoteSet: Set<string> }> = {
-  'llm': { kind: 'write', remoteSet: LLM_REMOTE_SET },
+  'provider': { kind: 'write', remoteSet: LLM_REMOTE_SET },
 }
 
 const SIMPLE_MEDIA_COMMANDS = {
@@ -326,18 +322,6 @@ const SIMPLE_MEDIA_COMMANDS = {
 
 const isSimpleMediaCommand = (command: string): command is SimpleMediaCommand =>
   Object.hasOwn(SIMPLE_MEDIA_COMMANDS, command)
-
-const addWriteAllProviderGroups = (
-  groups: Set<AdaptiveProviderGroup>,
-  value: string | null
-): void => {
-  const target = value === null ? undefined : WRITE_ALL_PROVIDER_STEPS[value]
-  if (!target) {
-    return
-  }
-
-  addAllGroups(groups, target.kind, target.providers)
-}
 
 const normalizedStepValue = (value: string | null): string | null => {
   const provider = parseProviderName(value)
@@ -370,7 +354,7 @@ const applyWriteFlag = (
   { flag, value }: AdaptiveProviderFlagValue
 ): void => {
   if (flag === 'all-providers') {
-    addWriteAllProviderGroups(groups, value?.trim().toLowerCase() ?? null)
+    addAllGroups(groups, 'write', LLM_REMOTE_PROVIDERS)
     return
   }
 

@@ -47,8 +47,6 @@ export type ComicTtsRenderContext = {
 }
 
 export type MultiSpeakerStrategy = 'native' | 'segment-and-concat'
-export type GeminiDialogueMode = 'auto' | 'native' | 'segmented'
-
 export type SpeakerVoiceMapping = {
   speaker: string
   normalizedSpeaker: string

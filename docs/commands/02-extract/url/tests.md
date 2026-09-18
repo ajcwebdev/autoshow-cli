@@ -7,13 +7,10 @@ Safety: these `bun t` commands document human service/e2e coverage and may call 
 ## Quick Start
 
 ```bash
-# local URL coverage
 bun t test/test-cases/e2e/local/text/url/
 
-# hosted URL service coverage
 bun t test/test-cases/e2e/service/text/url/
 ```
-
 ## Coverage
 
 - Local e2e covers Defuddle article extraction.
@@ -25,7 +22,6 @@ bun t test/test-cases/e2e/service/text/url/
 ```bash
 bun t test/test-cases/e2e/service/text/url/ --price
 ```
-
 ## Related Docs
 
 - [Testing Overview](../../testing.md)

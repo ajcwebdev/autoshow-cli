@@ -119,5 +119,4 @@ export const getCommandFlagsSection = (output: string): string => {
   return output.slice(start, end === -1 ? output.length : end)
 }
 
-// Prose assertions ignore terminal wrapping; structural/width tests use raw output.
 export const helpText = (value: string): string => value.replace(/\|\n +/g, '|').replace(/\s+/g, ' ')

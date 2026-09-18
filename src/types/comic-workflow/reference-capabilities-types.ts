@@ -1,1 +1,1 @@
-export type ReferenceImageCapabilities = Readonly<{ supported: boolean; maxInputs: number }>
+export type ReferenceImageCapabilities = import('../setup-support/image-reference-capabilities-types').ImageReferenceCapabilities
