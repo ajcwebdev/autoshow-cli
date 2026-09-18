@@ -145,6 +145,7 @@ const statesProseDefault = (description: string): boolean =>
 // Flags whose default is genuinely not one static value, with the reason each one cannot move into
 // the `default` field. Keep this list short; anything else belongs in metadata.
 const PROVIDER_DEPENDENT_DEFAULT_ALLOWLIST: Record<string, string> = {
+  'tts-bitrate': 'Format-dependent: mp3, m4a, and m4b each have their own default bitrate, derived from DEFAULT_TTS_EXPORT_BITRATE_KBPS.',
   provider: 'Route- and domain-dependent: STT, OCR, URL, LLM, TTS and media routes each pick a different default target.',
   llm: 'Resolved as the cheapest registered hosted model at run time.',
   stt: 'Route-dependent local/hosted selection.',

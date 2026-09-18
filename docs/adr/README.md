@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Compact index for ADR-001 through ADR-024. Twenty-one records are Accepted · Passed, ADR-014 is Accepted · Pending while native Bun migration evidence awaits review, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 is Proposed · Pending. Hosted-model policy lives in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) with live catalogs under `src/cli/commands/setup-and-utilities/models/` and command overviews under `docs/commands/`. ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 025. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
+Compact index for ADR-001 through ADR-025. Twenty-two records are Accepted · Passed, ADR-014 is Accepted · Pending while native Bun migration evidence awaits review, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 is Proposed · Pending. Hosted-model policy lives in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) with live catalogs under `src/cli/commands/setup-and-utilities/models/` and command overviews under `docs/commands/`. ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 026. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
 
 ## Authoring and Maintenance
 
@@ -158,6 +158,11 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 - **Status:** Accepted · Passed
 - **Decision:** Derives every advertised default, enumeration, and per-provider range from one capability registry per domain, collapses the triplicated TTS control tables and the provider-prefixed TTS/STT option flags onto a shared `provider=value` selector, replaces the five intra-step concurrency knobs with `--step-concurrency <scope>=N`, and moves comic model selection onto `--provider` plus per-role `--<role>-provider`; supersedes the flag surfaces of ADR-007 and ADR-008 while leaving their architectures accepted.
 - **Related ADRs:** [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
+**ADR 25: [ADR-025](ADR-025-master-tts-delivery-audio-outside-paid-slot-identity.md)**
+
+- **Status:** Accepted · Passed
+- **Decision:** Freezes the paid speech slot hash's output-format input so purchased audio is never orphaned, describes final audio with a separate TTS delivery profile that enters render identity only, masters once from retained native slot audio with boundary-aware chunking, seam trimming, fixed pauses, and optional loudness normalization for every hosted provider, and keeps encoding, tags, cover art, and book assembly as a derived export layer outside render identity.
+- **Related ADRs:** [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md), [ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md)
 
 
 ## Bun 1.4 Migration Archive

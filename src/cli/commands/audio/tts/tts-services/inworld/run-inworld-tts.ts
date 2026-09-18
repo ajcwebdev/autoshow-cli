@@ -1,6 +1,6 @@
 import type { RunInworldTtsOptions, Step4Metadata } from '~/types'
 import { logTtsConfig } from '~/cli/commands/audio/tts/tts-utils/log-tts-config'
-import { splitTextIntoChunks } from '~/cli/commands/audio/tts/tts-utils/audio-utils'
+import { splitTtsText } from '~/cli/commands/audio/tts/tts-utils/tts-chunk-planner'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/audio/tts/tts-utils/tts-chunking'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-pipeline'
 import { INWORLD_DEFAULT_TTS_VOICE, validateInworldTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
@@ -24,7 +24,7 @@ export const runInworldTts = async (
   const apiKey = resolveCredential('inworld', 'require', { stage: 'tts:inworld', providedValue: options.apiKey, useProvidedValue: true, description: 'Inworld AI TTS' })
   const voice = validateInworldTtsVoice(options.voiceId?.trim() || INWORLD_DEFAULT_TTS_VOICE)
   const { sanitizedText, markups } = parseInworldMarkups(text)
-  const chunks = splitTextIntoChunks(sanitizedText, TTS_CHUNK_CHARACTER_LIMITS.inworld ?? 2000)
+  const chunks = splitTtsText(sanitizedText, TTS_CHUNK_CHARACTER_LIMITS.inworld ?? 2000, options.chunking)
 
   if (chunks.length === 0) {
     throw ValidationError('Inworld AI TTS input text is empty', { stage: 'tts:inworld' })

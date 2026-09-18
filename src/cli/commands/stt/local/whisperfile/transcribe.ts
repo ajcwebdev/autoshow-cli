@@ -12,6 +12,7 @@ import { parseWhisperfileJson, extractWhisperfileWords } from './parse-whisperfi
 import { formatWhisperfileProgressMessage, parseWhisperfileProgressPercent } from './whisperfile-progress'
 import { exec, fileExists } from '~/utils/cli-utils'
 import { resolve } from 'node:path'
+import { toProjectRelativeArg, toProjectRelativePath } from '~/utils/project-root'
 import { pollUntil } from '~/utils/retries'
 import { prepareLocalSttInput } from '../local-audio-normalize'
 import { InfraError, ValidationError, isRetryExhaustedError } from '~/utils/error-handler'
@@ -64,7 +65,7 @@ export const transcribeWhisperfile = async (
     const artifact = Object.hasOwn(WHISPERFILE_ARTIFACTS, model) ? WHISPERFILE_ARTIFACTS[model] : undefined
     if (!artifact) throw ValidationError(`No pinned Whisperfile artifact for ${model}`)
     await verifyWhisperfileArtifact(whisperfileBinaryPath(model), artifact)
-    return { command: 'sh', args: [whisperfileBinaryPath(model), ...args], modelDescriptor: whisperfileBinaryPath(model) }
+    return { command: 'sh', args: [whisperfileBinaryPath(model), ...args], modelDescriptor: toProjectRelativePath(whisperfileBinaryPath(model)) }
   }
   const {
     model: modelName,
@@ -106,7 +107,7 @@ export const transcribeWhisperfile = async (
       ...captionArgs
     ]
     const { command, args, modelDescriptor } = await resolveInvocation(modelName, baseArgs)
-    await Bun.write(outputBase + '.engine.json', JSON.stringify({ provider: name, model: modelName, modelDescriptor, command, args, captionArgs, help: helpOutput }, null, 2) + '\n')
+    await Bun.write(outputBase + '.engine.json', JSON.stringify({ provider: name, model: modelName, modelDescriptor, command, args: args.map(toProjectRelativeArg), captionArgs, help: helpOutput }, null, 2) + '\n')
     let lastLoggedProgress: number | null = null
     l.debug(formatWhisperfileProgressMessage(0, {
       segmentNumber,
@@ -142,8 +143,8 @@ export const transcribeWhisperfile = async (
       const outputDirExists = await fileExists(outputDirAbs)
       throw InfraError(
         commandOutput.length > 0
-          ? `${label} transcription completed but no JSON output was produced at ${jsonFile} (output dir exists: ${outputDirExists}). Command output:\n${commandOutput}`
-          : `${label} transcription completed but no JSON output was produced at ${jsonFile} (output dir exists: ${outputDirExists})`,
+          ? `${label} transcription completed but no JSON output was produced at ${toProjectRelativePath(jsonFile)} (output dir exists: ${outputDirExists}). Command output:\n${commandOutput}`
+          : `${label} transcription completed but no JSON output was produced at ${toProjectRelativePath(jsonFile)} (output dir exists: ${outputDirExists})`,
         { stage: `stt:${name}` }
       )
     }

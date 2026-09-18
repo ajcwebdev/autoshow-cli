@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Run directory: `/Users/ajc/c/auto/autoshow-cli/docs/benchmarks/ocr/10-document`
+- Run directory: `docs/benchmarks/ocr/10-document`
 - Providers with page result files: 23
 - Pages: 10
 - Paid provider reruns: not run by this skill artifact; existing provider outputs only.

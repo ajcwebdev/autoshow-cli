@@ -63,6 +63,7 @@ const LlmDefaultsSchema = v.strictObject({
 })
 
 const StringOrStringListSchema = v.optional(v.union([v.string(), v.array(v.string())]), undefined)
+const OptionalStringOrNumberSchema = v.optional(v.union([v.string(), v.number()]), undefined)
 
 const TtsDefaultsSchema = v.strictObject({
   elevenlabsTts: ModelArraySchema,
@@ -90,6 +91,22 @@ const TtsDefaultsSchema = v.strictObject({
   pronunciationDictionary: v.optional(v.union([v.string(), v.array(v.string())]), undefined),
   trailingSilence: v.optional(v.union([v.number(), v.string(), v.array(v.string())]), undefined),
   responseFormat: StringOrStringListSchema,
+  // Run-scoped mastering, chunking, and export defaults; values are validated at resolution time.
+  audioProfile: OptionalStringOrNumberSchema,
+  sampleRate: OptionalStringOrNumberSchema,
+  channels: OptionalStringOrNumberSchema,
+  loudness: OptionalStringOrNumberSchema,
+  truePeak: OptionalStringOrNumberSchema,
+  trimSilence: OptionalStringOrNumberSchema,
+  paragraphPause: OptionalStringOrNumberSchema,
+  sentencePause: OptionalStringOrNumberSchema,
+  leadIn: OptionalStringOrNumberSchema,
+  leadOut: OptionalStringOrNumberSchema,
+  chunkBoundary: OptionalStringOrNumberSchema,
+  chunkSize: OptionalStringOrNumberSchema,
+  textPreflight: OptionalStringOrNumberSchema,
+  exportFormat: OptionalStringOrNumberSchema,
+  bitrate: OptionalStringOrNumberSchema,
   providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   chunkConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
 })

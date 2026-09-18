@@ -24,6 +24,9 @@ export const validateElevenLabsTtsSpeed = (model: string, speed?: number): void 
 import { validateDataSafe } from '~/utils/validate/validation'
 
 export const ELEVENLABS_TTS_OUTPUT_FORMAT = 'mp3_44100_128'
+// Higher bitrates and WAV are plan-tier gated by ElevenLabs; a rejected format is surfaced, never retried in another.
+export const ELEVENLABS_TTS_RESPONSE_FORMATS = ['mp3_44100_128', 'mp3_44100_192', 'wav_44100', 'wav_48000'] as const
+export const elevenLabsChunkExtension = (outputFormat: string): string => outputFormat.startsWith('wav_') ? 'wav' : 'mp3'
 
 const ElevenLabsErrorSchema = v.object({
   detail: v.optional(v.union([

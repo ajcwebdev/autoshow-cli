@@ -3,6 +3,7 @@
 - Python source files (`.py`) are prohibited in this repository. Never create, add, or generate them.
 - A root-level `scripts/` directory is prohibited. Place application code and runtime helpers under `src/`, maintenance utilities under `src/tools/`, and tests and test harnesses under `test/`.
 - Never create a new root-level directory for any reason. Use the existing repository structure and place new subdirectories beneath appropriate existing directories.
+- Never write absolute paths to a checkout of this repository (for example, a path under your home directory that ends in the repository directory name) into tracked files, including generated manifests, reports, front matter, and error artifacts. Store project paths relative to the repository root with the helpers in `src/utils/project-root.ts`, and write consensus reports through `.codex/skills/consensus/scripts/shared/portable_paths.ts`. `bun run check:structure` rejects violations.
 
 # Agent Verification Rules
 

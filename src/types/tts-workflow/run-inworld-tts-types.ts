@@ -9,5 +9,6 @@ export type RunInworldTtsOptions = Readonly<{
   abortSignal?: AbortSignal | undefined
   chunkConcurrency?: number | undefined
   chunkScheduler?: HostedTtsChunkScheduler | undefined
+  chunking?: import('./tts-types').TtsChunkingOptions | undefined
   requestEvidence?: TtsRequestEvidenceScope | undefined
 }>

@@ -1,6 +1,6 @@
 import type { AttemptSlot, AttemptTurn, CreateCurrentTtsRenderAttemptOptions, PlannedInputs, ProviderRenderStrategy, TtsTargetInvocation, TtsTargetSelection } from '~/types'
 import { UsageError } from '~/utils/error-handler'
-import { splitTextIntoChunks } from '../tts-utils/audio-utils'
+import { splitTtsText } from '../tts-utils/tts-chunk-planner'
 import { getSpeakerVoice, isMultiSpeakerRequested, normalizeDialogueFromOptions, parseSpeakerVoiceMappings } from '../dialogue-normalizer'
 import { planElevenLabsNativeDialogueBatches } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
 import { planHumeNativeUtteranceBatches } from '../tts-services/hume/hume-native-utterances'
@@ -116,7 +116,7 @@ export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions,
     : []
   const slotGroups: Array<{ turnIds: string[], providerTexts: string[] }> = native
     ? nativeGroups
-    : turns.map((turn) => ({ turnIds: [turn.canonical.turnId], providerTexts: splitTextIntoChunks(prepareSegmentedTurnText(turn.canonical.canonicalText, options.target, turn.canonical.delivery?.description).providerText, limit) }))
+    : turns.map((turn) => ({ turnIds: [turn.canonical.turnId], providerTexts: splitTtsText(prepareSegmentedTurnText(turn.canonical.canonicalText, options.target, turn.canonical.delivery?.description).providerText, limit, options.ttsOptions.ttsChunking) }))
 
   let includesSetup = true
   const slots: AttemptSlot[] = []

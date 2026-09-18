@@ -3,6 +3,7 @@ import { createPipelineItemFromRecord, derivePipelineItemRecord, PIPELINE_MANIFE
 import type { AggregatedPriceEstimate, PipelineItemRecord, ProviderBatchResumeConfig, ProviderCompletionStatus, ProviderIdentity, ProviderResumeEntry, ProviderResumePassResult, ProviderResumePriceConfig, ProviderResumeProcessResult, ProviderResumeSnapshot, ResumeDisplayOptions, ResumeResult, ResumeTarget, Step1SourceRef, StepEstimate } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { fileUrlToPath } from '~/utils/file-url-path'
+import { isProjectRelativeSourceRef, PROJECT_ROOT } from '~/utils/project-root'
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import * as l from '~/utils/app-logger/app-logger'
 import { logResumeItem, logResumeSummary } from './resume-logging'
@@ -20,6 +21,9 @@ export const toProviderResumeSource = (url: string): Step1SourceRef => {
     } catch {
       return { filePath: decodeURIComponent(url.replace(/^file:\/\/+/, '/')) }
     }
+  }
+  if (isProjectRelativeSourceRef(url)) {
+    return { filePath: resolvePath(PROJECT_ROOT, url) }
   }
 
   return { url }

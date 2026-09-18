@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { writePortableFileSync } from "../shared/portable_paths";
+import { existsSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { discoverCombinedRuns } from "../shared/combined_report_lib";
 import {
@@ -498,7 +499,7 @@ function updateBenchmarkSummary(
   });
   const section = benchmarkSttSection(heading, slug, metricRankings, groupedProviders, runs.length);
   summary = replaceOrInsertHeadingSection(summary, heading, section);
-  writeFileSync(summaryPath, summary);
+  writePortableFileSync(summaryPath, summary);
   console.log(`Wrote ${summaryPath}`);
 }
 
@@ -739,8 +740,8 @@ export function writeSttCombinedReport(rootDirRaw: string): SttCombinedBuildResu
   const result = buildSttCombinedReport(rootDir);
   const jsonPath = join(rootDir, "combined-comparison-report.json");
   const markdownPath = join(rootDir, "combined-comparison-report.md");
-  writeFileSync(jsonPath, JSON.stringify(result.report));
-  writeFileSync(markdownPath, result.markdown);
+  writePortableFileSync(jsonPath, JSON.stringify(result.report));
+  writePortableFileSync(markdownPath, result.markdown);
   updateBenchmarkSummary(rootDir, result.metricRankings, result.groupedProviders, result.runs);
   console.log(`Wrote ${jsonPath}`);
   console.log(`Wrote ${markdownPath}`);

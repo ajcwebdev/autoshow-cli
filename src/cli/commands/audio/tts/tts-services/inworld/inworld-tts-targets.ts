@@ -31,6 +31,7 @@ export const collectInworldTtsTargets = (
           abortSignal: invocation?.signal,
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler,
+          chunking: opts.ttsChunking,
           requestEvidence,
           speed: controls.speed,
           steeringPrompt: typeof (controls as { steeringPrompt?: unknown }).steeringPrompt === 'string' ? (controls as { steeringPrompt?: string }).steeringPrompt : undefined,

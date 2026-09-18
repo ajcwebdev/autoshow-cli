@@ -52,6 +52,8 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     grokTextNormalization: options.grokTtsTextNormalization === true,
     mistralVoiceId: trimmed(options.mistralTtsVoice),
     mistralResponseFormat: trimmed(options.mistralTtsResponseFormat),
+    elevenLabsResponseFormat: trimmed(options.elevenlabsTtsResponseFormat),
+    humeResponseFormat: trimmed(options.humeTtsResponseFormat),
     dialogueRequested: multiSpeaker
   }
 }

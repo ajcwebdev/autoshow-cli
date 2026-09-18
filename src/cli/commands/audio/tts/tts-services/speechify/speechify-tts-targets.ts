@@ -35,6 +35,7 @@ export const collectSpeechifyTtsTargets = (
           language: invocationLanguage,
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler,
+          chunking: opts.ttsChunking,
           abortSignal: invocation?.signal,
           requestEvidence
         })

@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { writePortableFileSync } from "../shared/portable_paths";
+import { existsSync, readFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import {
   characterErrorRateDetailed,
@@ -594,8 +595,8 @@ const jsonReport = {
   },
 };
 
-writeFileSync(markdownOut, markdownReport);
-writeFileSync(jsonOut, JSON.stringify(jsonReport));
+writePortableFileSync(markdownOut, markdownReport);
+writePortableFileSync(jsonOut, JSON.stringify(jsonReport));
 
 console.log(`Wrote ${markdownOut}`);
 console.log(`Wrote ${jsonOut}`);

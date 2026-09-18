@@ -12,6 +12,8 @@ import { createTtsBatchLifecycleCoordinator } from './tts-batch-lifecycle'
 import { prepareTtsBatchExecution, prepareTtsDirectoryBatch } from './tts-batch-preparation'
 import { dispatchTtsDirectoryBatch } from './tts-batch-dispatch'
 import { projectTtsBatchCompletion, publishTtsBatchCompletion, reportTtsBatchCompletionItems } from './tts-batch-completion'
+import { assembleTtsBooks } from './tts-book-assembly'
+import { updateManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 
 export const runTtsDirectoryBatch = async (
   inputPath: string,
@@ -90,6 +92,10 @@ export const runTtsDirectoryBatch = async (
   reportTtsBatchCompletionItems(completion)
   const actualBatchWallTimeMs = Date.now() - batchStartedAt
   await publishTtsBatchCompletion(batchDir, batchSource, targets, completion, actualBatchWallTimeMs, schedulerTelemetry)
+  if (ttsOptions.ttsExport?.book) {
+    const books = await assembleTtsBooks({ batchDir, items: completion.completedItems, targets, expectedItemCount: preparedInputs.length, options: ttsOptions.ttsExport })
+    if (books.length > 0) await updateManifest(batchDir, (manifest) => ({ ...manifest, source: { ...manifest.source, books } }))
+  }
 
   await Promise.all(plans.map(async (plan, index) => {
     const accumulator = accumulators[index]

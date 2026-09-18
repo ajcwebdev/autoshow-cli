@@ -13,6 +13,9 @@ import {
   validateGrokTtsLanguage,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { UsageError } from '~/utils/error-handler'
+import { ELEVENLABS_TTS_RESPONSE_FORMATS } from '../tts-services/tts-elevenlabs/elevenlabs-utils'
+
+export const HUME_TTS_RESPONSE_FORMATS = ['mp3', 'wav'] as const
 
 const trim = (value: string): string => value.trim()
 
@@ -31,6 +34,7 @@ export const CONTROL_SPECS = {
     seed: { kind: 'number', min: 0, max: 4_294_967_295, integer: true },
     textNormalization: { kind: 'string', normalize: validateElevenLabsTtsTextNormalization },
     pronunciationDictionaryLocators: { kind: 'string-array' },
+    responseFormat: { kind: 'string', allowedValues: ELEVENLABS_TTS_RESPONSE_FORMATS },
   },
   grok: {
     speed: { kind: 'number', min: 0.7, max: 1.5 },
@@ -47,6 +51,7 @@ export const CONTROL_SPECS = {
     speed: { kind: 'number', min: 0.5, max: 2 },
     trailingSilence: { kind: 'number', min: 0, max: 60 },
     description: { kind: 'string', normalize: trim },
+    responseFormat: { kind: 'string', allowedValues: HUME_TTS_RESPONSE_FORMATS },
   },
   cartesia: {
     speed: { kind: 'number', min: 0.6, max: 1.5 },

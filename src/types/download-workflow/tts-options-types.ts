@@ -9,6 +9,8 @@ export type TtsRuntimeOptions = {
   mistralTtsModels: string[] | undefined
   mistralTtsVoice: string | undefined
   mistralTtsResponseFormat?: string | undefined
+  elevenlabsTtsResponseFormat?: string | undefined
+  humeTtsResponseFormat?: string | undefined
   ttsDialogueFormat: 'screenplay' | 'labeled' | undefined
   ttsSpeakers: string[] | undefined
   openaiTtsModels: string[] | undefined

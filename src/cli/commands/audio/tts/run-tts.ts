@@ -18,6 +18,7 @@ import { createCurrentTtsBlockedReadinessState } from './script-to-audio/current
 import { buildWorkingTtsResult } from './working-tts-result'
 import { sanitizeError } from './script-to-audio/attempt-planning-shared'
 import { runWithTtsConfigLogScope } from './tts-utils/log-tts-config'
+import { preflightTtsText } from './tts-targets/tts-text-preflight'
 
 const getMetadataAudioPath = (outputDir: string, metadata: Step4Metadata): string =>
   `${outputDir}/${metadata.audioFileName}`
@@ -180,6 +181,7 @@ export const validateTtsRenderInputsForTargets = (
   options: TtsOptions,
   sourceContext?: Pick<TtsRunSourceContext, 'sourceIdentity' | 'dialoguePlan' | 'comicContext'> | undefined
 ): void => {
+  if (!sourceContext?.comicContext) preflightTtsText(text, targets, options.ttsTextPreflight)
   for (const target of targets) validateCurrentTtsRenderAttemptInputs({
     target,
     sourceText: text,

@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Run directory: `/Users/ajc/c/as/autoshow-cli/docs/benchmarks/url/2026-05-21_09-38-58-898_autogenerate-show-notes-with-whisper-cpp-llama-cpp-and-node-js`
+- Run directory: `docs/benchmarks/url/2026-05-21_09-38-58-898_autogenerate-show-notes-with-whisper-cpp-llama-cpp-and-node-js`
 - Total providers: 6 (1 local, 5 service)
 - Local and service providers are intentionally not ranked against each other.
 - Reports expose complete price, speed, automated-quality, and human-quality rankings for each group.

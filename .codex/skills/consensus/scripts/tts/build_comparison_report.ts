@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { writePortableFileSync } from "../shared/portable_paths";
+import { existsSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 
 import {
@@ -930,8 +931,8 @@ async function main(): Promise<number> {
     console.error(`[warn] ${warning}`);
   }
 
-  writeFileSync(jsonOut, JSON.stringify(reportJson));
-  writeFileSync(markdownOut, markdown);
+  writePortableFileSync(jsonOut, JSON.stringify(reportJson));
+  writePortableFileSync(markdownOut, markdown);
   return 0;
 }
 

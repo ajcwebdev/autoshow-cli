@@ -3,7 +3,7 @@ title: "2023-03-15-jsjam-qwik-misko-hevery"
 slug: "2023-03-15-jsjam-qwik-misko-hevery"
 duration: "1:52:52"
 channel: "Local"
-url: "file:///Users/ajc/c/auto/autoshow-cli/docs/benchmarks/stt-without-speakers/2023-03-15-jsjam-qwik-misko-hevery/2023-03-15-jsjam-qwik-misko-hevery.mp3"
+url: "docs/benchmarks/stt-without-speakers/2023-03-15-jsjam-qwik-misko-hevery/2023-03-15-jsjam-qwik-misko-hevery.mp3"
 ---
 
 This is a transcript with timestamps. Do not include advertisements in the summaries or descriptions. Do not actually write the transcript.

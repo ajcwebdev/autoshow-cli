@@ -9,7 +9,7 @@
   "error": {
     "name": "OcrStructuredResponseError",
     "message": "DeepInfra OCR page 1 reached its output token limit.",
-    "stack": "OcrStructuredResponseError: DeepInfra OCR page 1 reached its output token limit.\n    at checkResponse (/Users/ajc/c/auto/autoshow-cli/src/cli/commands/text/ocr/ocr-services/deepinfra-ocr/run-deepinfra-ocr.ts:42:70)\n    at <anonymous> (/Users/ajc/c/auto/autoshow-cli/src/cli/commands/text/ocr/ocr-utils/chat-image-ocr.ts:64:17)\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown",
+    "stack": "OcrStructuredResponseError: DeepInfra OCR page 1 reached its output token limit.\n    at checkResponse (src/cli/commands/text/ocr/ocr-services/deepinfra-ocr/run-deepinfra-ocr.ts:42:70)\n    at <anonymous> (src/cli/commands/text/ocr/ocr-utils/chat-image-ocr.ts:64:17)\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown",
     "kind": "validation",
     "hints": [],
     "exitCode": 1,

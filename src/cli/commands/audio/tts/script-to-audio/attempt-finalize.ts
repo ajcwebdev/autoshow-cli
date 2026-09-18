@@ -10,6 +10,7 @@ import type {
   ProviderBatchResultRef,
   ProviderRenderResult,
   ProviderRenderStrategy,
+  TtsDeliveryMasteringResult,
   SanitizedProviderError,
   SuccessPublicationInput,
   WrittenJson,
@@ -43,6 +44,7 @@ import {
   assembleComicSegmentedAudio,
 } from './comic-segmented-audio'
 import { resolveRetainedPath } from './recovery-evidence'
+import { assembleTtsDeliveryAudio } from './tts-delivery-assembly'
 import {
   journalEventFields,
   requireJournalFile,
@@ -307,20 +309,24 @@ const assembleMasteredAudio = async (
   path: string
   turnDurationMs?: ReadonlyMap<string, number> | undefined
   timingSegmentDurationMs?: ReadonlyMap<string, number> | undefined
+  delivery?: TtsDeliveryMasteringResult | undefined
 }> => {
   const { options, purePlan } = ctx
   const masteringProfile = options.ttsOptions.ttsMasteringProfile
-  if (options.comicContext && purePlan.planned.strategy === 'segmented') {
-    if (!masteringProfile) throw UsageError('Comic segmented assembly requires an explicit mastering profile.')
+  const retainedOutputPathsBySlot = (label: string): Map<string, readonly string[]> => {
     const resultBySlot = new Map(batchResultFiles.map((file) => [file.value.generationSlotId, file] as const))
-    const outputPathsBySlot = new Map<string, readonly string[]>(purePlan.planned.slots.map((slot) => {
+    return new Map<string, readonly string[]>(purePlan.planned.slots.map((slot) => {
       const file = resultBySlot.get(slot.generationSlotId)
-      if (!file) throw UsageError(`Comic assembly is missing generation slot ${slot.generationSlotId}.`)
+      if (!file) throw UsageError(`${label} assembly is missing generation slot ${slot.generationSlotId}.`)
       return [
         slot.generationSlotId,
-        file.value.outputs.map((output) => resolveRetainedPath(output.artifactRef.includes('/') ? options.outputDir : dirname(file.path), output.artifactRef, `Comic generation slot ${slot.generationSlotId} provider output`)),
+        file.value.outputs.map((output) => resolveRetainedPath(output.artifactRef.includes('/') ? options.outputDir : dirname(file.path), output.artifactRef, `${label} generation slot ${slot.generationSlotId} provider output`)),
       ] as const
     }))
+  }
+  if (options.comicContext && purePlan.planned.strategy === 'segmented') {
+    if (!masteringProfile) throw UsageError('Comic segmented assembly requires an explicit mastering profile.')
+    const outputPathsBySlot = retainedOutputPathsBySlot('Comic')
     return await assembleComicSegmentedAudio({
       dialoguePlan: options.comicContext.dialoguePlan,
       turns: purePlan.planned.turns.map((turn) => turn.canonical),
@@ -330,6 +336,19 @@ const assembleMasteredAudio = async (
       providerLabel: options.target.service,
       profile: masteringProfile,
     })
+  }
+  const deliveryProfile = options.ttsOptions.ttsDelivery
+  if (deliveryProfile && !options.comicContext) {
+    const delivery = await assembleTtsDeliveryAudio({
+      plan: purePlan.planned,
+      target: options.target,
+      profile: deliveryProfile,
+      chunking: options.ttsOptions.ttsChunking,
+      outputPathsBySlot: retainedOutputPathsBySlot('Delivery'),
+      masteringDir,
+      providerLabel: options.target.service,
+    })
+    return { path: delivery.path, delivery }
   }
   if (ctx.localCompositionOnly && purePlan.planned.strategy === 'segmented') {
     const recoveredOutputPaths = batchResultFiles.flatMap((file) =>
@@ -431,6 +450,7 @@ export const finalizeSuccess = async (
     comicDialoguePlan: options.comicContext?.dialoguePlan,
     masteredTurnDurationMs: mastered.turnDurationMs,
     masteredTimingSegmentDurationMs: mastered.timingSegmentDurationMs,
+    delivery: mastered.delivery,
   })
   const ledger = buildTransformLedger({
     renderIdentity: purePlan.renderIdentity,
@@ -446,6 +466,7 @@ export const finalizeSuccess = async (
     turns: purePlan.planned.turns,
     batchResultFiles,
     assembledTurns: timelineLayout.turns,
+    delivery: mastered.delivery,
   })
   const timeline = buildFinalTimeline({
     renderIdentity: purePlan.renderIdentity,

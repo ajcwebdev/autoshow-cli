@@ -1,10 +1,10 @@
 import { UsageError } from '~/utils/error-handler'
-import { splitTextIntoChunks } from '~/cli/commands/audio/tts/tts-utils/audio-utils'
+import { splitTtsText } from '~/cli/commands/audio/tts/tts-utils/tts-chunk-planner'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-pipeline'
 import { logTtsConfig } from '~/cli/commands/audio/tts/tts-utils/log-tts-config'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/audio/tts/tts-utils/tts-chunking'
 import { HUME_DEFAULT_TTS_VOICE, HUME_LIBRARY_VOICE_PROVIDER, validateHumeTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import type { HostedTtsChunkScheduler, HumeTtsModel, HumeVoicePayload, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { HostedTtsChunkScheduler, HumeTtsModel, HumeVoicePayload, Step4Metadata, TtsChunkingOptions, TtsRequestEvidenceScope } from '~/types'
 import { HUME_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { requireTtsCredential } from '~/cli/commands/audio/tts/tts-utils/tts-credentials'
 import { ValidationError } from '~/utils/error-handler'
@@ -40,9 +40,11 @@ export const runHumeTts = async (
     speed?: number | undefined
     trailingSilence?: number | undefined
     description?: string | undefined
+    responseFormat?: 'mp3' | 'wav' | undefined
     abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
+    chunking?: TtsChunkingOptions | undefined
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
@@ -50,7 +52,7 @@ export const runHumeTts = async (
   const apiKey = requireTtsCredential('hume')
 
   const baseURL = trimTrailingSlash(HUME_DEFAULT_BASE_URL)
-  const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.hume)
+  const chunks = splitTtsText(text, TTS_CHUNK_CHARACTER_LIMITS.hume, options.chunking)
 
   if (chunks.length === 0) {
     throw ValidationError('Hume TTS input text is empty', { stage: 'tts:hume' })
@@ -75,7 +77,7 @@ export const runHumeTts = async (
     speaker: voice.label,
     chunks,
     outputDir,
-    chunkExtension: 'mp3',
+    chunkExtension: options.responseFormat ?? 'mp3',
     startTime: Date.now(),
     abortSignal: options.abortSignal,
     chunkConcurrency: options.chunkConcurrency,
@@ -84,7 +86,7 @@ export const runHumeTts = async (
     fetchChunkAudio: async ({ chunk, chunkIndex, signal, requestAttempt, retryReasonCode }) => {
       const requestBody = {
         version: options.model === 'octave-1' ? '1' : '2',
-        format: { type: 'mp3' },
+        format: { type: options.responseFormat ?? 'mp3' },
         num_generations: 1,
         utterances: [{
           text: chunk,

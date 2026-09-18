@@ -18,21 +18,21 @@ See [setup](./docs/commands/00-setup-and-utilities/setup.md) for targeted instal
 
 ## Command Guide
 
-| Command | Use it to |
-| --- | --- |
-| [`metadata`](./docs/commands/01-sources/metadata/overview.md) | Inspect a source without downloading it. |
-| [`download`](./docs/commands/01-sources/download/overview.md) | Download or stage a source before extraction. |
-| [`extract`](./docs/commands/02-extract/overview.md) | Transcribe media, extract document text, or read articles. |
-| [`write`](./docs/commands/03-write/overview.md) | Generate summaries, show notes, or other writing from local Markdown or text. |
-| [`tts`](./docs/commands/04-audio/tts/overview.md) | Generate speech from local text. |
-| [`voice`](./docs/commands/04-audio/voice/00-voice-overview.md) | Discover and manage reusable provider voices. |
-| [`image`](./docs/commands/05-visuals/image/overview.md) | Generate or edit images. |
-| [`video`](./docs/commands/05-visuals/video/overview.md) | Generate video from prompts, images, or supported video inputs. |
-| [`music`](./docs/commands/04-audio/music/overview.md) | Generate music or render local lyric videos. |
-| [`comic`](./docs/commands/05-visuals/comic/00-comic-overview.md) | Turn treatments and scripts into comic artwork, audio, and slideshows. |
-| [`setup`](./docs/commands/00-setup-and-utilities/setup.md) | Install tools, check prerequisites, and save defaults. |
-| [`resume`](./docs/commands/00-setup-and-utilities/resume.md) | Recover incomplete runs or fill missing provider outputs. |
-| [`links`](./docs/commands/00-setup-and-utilities/links.md) | Fetch curated provider documentation. |
+| Command                                                          | Use it to                                                                        |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| [`metadata`](./docs/commands/01-sources/metadata/overview.md)    | Inspect a source without downloading it.                                         |
+| [`download`](./docs/commands/01-sources/download/overview.md)    | Download or stage a source before extraction.                                    |
+| [`extract`](./docs/commands/02-extract/overview.md)              | Transcribe media, extract document text, or read articles.                       |
+| [`write`](./docs/commands/03-write/overview.md)                  | Generate summaries, show notes, or other writing from local Markdown or text.    |
+| [`tts`](./docs/commands/04-audio/tts/overview.md)                | Generate speech from local text, with audiobook mastering, chapters, and export. |
+| [`voice`](./docs/commands/04-audio/voice/00-voice-overview.md)   | Discover and manage reusable provider voices.                                    |
+| [`image`](./docs/commands/05-visuals/image/overview.md)          | Generate or edit images.                                                         |
+| [`video`](./docs/commands/05-visuals/video/overview.md)          | Generate video from prompts, images, or supported video inputs.                  |
+| [`music`](./docs/commands/04-audio/music/overview.md)            | Generate music or render local lyric videos.                                     |
+| [`comic`](./docs/commands/05-visuals/comic/00-comic-overview.md) | Turn treatments and scripts into comic artwork, audio, and slideshows.           |
+| [`setup`](./docs/commands/00-setup-and-utilities/setup.md)       | Install tools, check prerequisites, and save defaults.                           |
+| [`resume`](./docs/commands/00-setup-and-utilities/resume.md)     | Recover incomplete runs or fill missing provider outputs.                        |
+| [`links`](./docs/commands/00-setup-and-utilities/links.md)       | Fetch curated provider documentation.                                            |
 
 `extract` chooses its route from the input. Its detailed guides cover [speech-to-text](./docs/commands/02-extract/stt/overview.md), [documents and OCR](./docs/commands/02-extract/ocr/overview.md), and [web pages](./docs/commands/02-extract/url/overview.md).
 

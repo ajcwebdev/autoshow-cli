@@ -2,6 +2,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { validateData, validateDataSafe } from '~/utils/validate/validation'
 import { exec } from '~/utils/cli-utils'
 import { getFfprobeBinary } from '~/utils/runtime-paths'
+import { toLocalSourceRef } from '~/utils/project-root'
 import { InfraError } from '~/utils/error-handler'
 import { YtDlpVideoInfoSchema, VideoMetadataSchema } from '~/types'
 import { MEDIA_EXTENSIONS } from '~/cli/commands/sources/metadata/formats/metadata-media-extensions'
@@ -259,7 +260,7 @@ const writeLocalFileMetadataCache = async (
 export const extractLocalFileMetadata = async (filePath: string): Promise<VideoMetadata> => {
   const cached = await getCachedLocalFileMetadata(filePath)
   if (cached) {
-    return cached
+    return { ...cached, url: toLocalSourceRef(filePath) }
   }
 
   try {
@@ -282,7 +283,7 @@ export const extractLocalFileMetadata = async (filePath: string): Promise<VideoM
       duration,
       channel: 'Local',
       description: '',
-      url: `file://${filePath}`,
+      url: toLocalSourceRef(filePath),
       publishDate: undefined,
       thumbnail: undefined,
       channelURL: undefined
@@ -300,7 +301,7 @@ export const extractLocalFileMetadata = async (filePath: string): Promise<VideoM
       duration: 'Unknown',
       channel: 'Local',
       description: '',
-      url: `file://${filePath}`,
+      url: toLocalSourceRef(filePath),
       publishDate: undefined,
       thumbnail: undefined,
       channelURL: undefined

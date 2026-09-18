@@ -24,8 +24,7 @@ const getPipelineItemTitle = (
   const url = typeof step1?.['url'] === 'string' ? step1['url'] : undefined
   if (typeof url === 'string' && url.length > 0) {
     try {
-      const parsed = new URL(url)
-      const leaf = basename(parsed.pathname).replace(/\.[^.]+$/, '')
+      const leaf = basename(URL.canParse(url) ? new URL(url).pathname : url).replace(/\.[^.]+$/, '')
       if (leaf.length > 0) {
         return leaf
       }

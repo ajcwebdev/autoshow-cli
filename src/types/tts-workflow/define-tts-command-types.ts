@@ -11,6 +11,7 @@ export type PreparedTtsInput = {
   ttsTimingInputText: string
   dialogueRequested: boolean
   dialogueTurnCount?: number | undefined
+  pronunciationReplacements?: number | undefined
 }
 
 

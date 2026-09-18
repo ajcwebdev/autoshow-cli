@@ -13,8 +13,9 @@ import {
   stepConcurrencyFlag,
   transcriptionFlags
 } from './shared-flags'
-import { composeFlags, formatProviderList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
+import { composeFlags, formatProviderList, omitFlags, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import { dialogueTtsCommandOptionNames, genericTtsOptionFlags, ttsFlags } from './tts-flags'
+import { ttsChunkingFlags, ttsExportFlags, ttsMasteringFlags } from './tts-delivery-flags'
 import { imageGenFlags, imageGenerationOptionNames, imageInputOptionNames, imageProviderSpecificOptionNames } from './image-flags'
 import { videoGenFlags, videoGenerationOptionNames, videoInputOptionNames } from './video-flags'
 import { musicGenFlags } from './music-flags'
@@ -71,6 +72,7 @@ export const resumeFlags = composeFlags([
     ...genericTtsOptionFlags,
     ...pickFlags(ttsFlags, dialogueTtsCommandOptionNames)
   }, 'tts-options'),
+  withHelpGroup({ ...ttsChunkingFlags, ...ttsMasteringFlags, ...omitFlags(ttsExportFlags, ['tts-book']) }, 'tts-mastering'),
   withHelpGroup(pickFlags(imageGenFlags, [
     ...imageGenerationOptionNames,
     ...imageInputOptionNames,

@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { writePortableFileSync } from "../shared/portable_paths";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import {
@@ -172,7 +173,7 @@ async function main(): Promise<number> {
 
   const serialized = `${JSON.stringify(packet, null, 2)}\n`;
   if (outPath) {
-    writeFileSync(outPath, serialized);
+    writePortableFileSync(outPath, serialized);
   } else {
     process.stdout.write(serialized);
   }

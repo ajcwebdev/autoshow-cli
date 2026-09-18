@@ -1,19 +1,24 @@
 import { existsSync } from 'node:fs'
-import { basename, dirname, extname, isAbsolute, join, posix, relative, resolve } from 'node:path'
+import { basename, extname, isAbsolute, join, posix, relative, resolve } from 'node:path'
 import type { ResolvedRuntimeTool, ResolveRuntimeToolOptions, RuntimeToolId } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
+import { PROJECT_ROOT } from '~/utils/project-root'
 
-const projectRootOverride = process.env['AUTOSHOW_PROJECT_ROOT']?.trim()
-export const PROJECT_ROOT = projectRootOverride
-  ? resolve(projectRootOverride)
-  : Bun.isStandaloneExecutable
-    ? dirname(process.execPath)
-    : resolve(import.meta.dir, '../..')
+export { PROJECT_ROOT, toProjectRelativePath } from '~/utils/project-root'
 export const IMMUTABLE_ASSET_ROOT = Bun.isStandaloneExecutable ? import.meta.dir : PROJECT_ROOT
 export const toPosixPath = (value: string): string => value.replace(/\\/g, '/')
+const displayRelativeTo = (root: string, absolutePath: string): string | undefined => {
+  const rel = relative(root, absolutePath)
+  if (rel.length === 0) return '.'
+  if (rel.startsWith('..') || isAbsolute(rel)) return undefined
+  return toPosixPath(rel)
+}
+
 export const toProjectDisplayPath = (absolutePath: string): string => {
-  const rel = relative(PROJECT_ROOT, absolutePath)
-  return rel.length === 0 || rel.startsWith('..') || isAbsolute(rel) ? absolutePath : toPosixPath(rel)
+  const resolved = resolve(absolutePath)
+  return displayRelativeTo(PROJECT_ROOT, resolved)
+    ?? displayRelativeTo(process.cwd(), resolved)
+    ?? toPosixPath(resolved)
 }
 
 export interface SourceIdentityPathMapping {

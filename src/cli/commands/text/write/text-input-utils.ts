@@ -9,6 +9,7 @@ import { statPath as stat } from '~/utils/bun-file-io'
 import { validateData } from '~/utils/validate/validation'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
+import { toProjectRelativePath } from '~/utils/project-root'
 
 const TEXT_INPUT_EXTENSIONS = new Set(['.md', '.txt'])
 const TRACK_LINE_PATTERN = /^\s*(\d+)\.\s+(.+?)\s*$/
@@ -466,7 +467,7 @@ export const buildTextInputPrompt = (
 ): string => {
   const frontmatter = [
     `title: "${options.title.replace(/"/g, '\\"')}"`,
-    `sourcePath: "${options.sourcePath.replace(/"/g, '\\"')}"`
+    `sourcePath: "${toProjectRelativePath(options.sourcePath).replace(/"/g, '\\"')}"`
   ].join('\n')
 
   return `---\n${frontmatter}\n---\n\nThis is user-provided source text. Do not use the word delve.\n\n${options.instruction}\n\nSource Text:\n${text}`

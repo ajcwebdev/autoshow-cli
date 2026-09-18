@@ -5,7 +5,7 @@ import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speak
 import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
 import { getSpeakerVoice, normalizeDialogueText, parseSpeakerVoiceMappings, resolveDialogueFormat } from '../../dialogue-normalizer'
 import { runElevenLabsNativeDialogue } from './elevenlabs-native-dialogue'
-import { validateElevenLabsVoiceSettings } from './elevenlabs-utils'
+import { validateElevenLabsVoiceSettings, type ELEVENLABS_TTS_RESPONSE_FORMATS } from './elevenlabs-utils'
 export const collectElevenLabsTtsTargets = (
   selection: TtsTargetSelection
 ): TtsTarget[] => {
@@ -32,6 +32,7 @@ export const collectElevenLabsTtsTargets = (
           seed: selection.elevenLabsSeed,
           textNormalization: selection.elevenLabsTextNormalization,
           pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators,
+          responseFormat: selection.elevenLabsResponseFormat as (typeof ELEVENLABS_TTS_RESPONSE_FORMATS)[number] | undefined,
         })
         validateElevenLabsVoiceSettings(model, { speed: controls.speed, similarity_boost: controls.similarityBoost, style: controls.style, use_speaker_boost: controls.useSpeakerBoost })
         invocation?.signal?.throwIfAborted()
@@ -53,7 +54,8 @@ export const collectElevenLabsTtsTargets = (
               voiceSettings: { ...(typeof controls.stability === 'number' ? { stability: controls.stability } : {}) },
               pronunciationDictionaryLocators: controls.pronunciationDictionaryLocators ? [...controls.pronunciationDictionaryLocators] : undefined,
               seed: controls.seed,
-              textNormalization: controls.textNormalization
+              textNormalization: controls.textNormalization,
+              responseFormat: controls.responseFormat
             },
             chunkScheduler: opts.hostedTtsChunkScheduler,
             requestEvidence
@@ -75,10 +77,12 @@ export const collectElevenLabsTtsTargets = (
             textNormalization: controls.textNormalization,
             pronunciationDictionaryLocators: controls.pronunciationDictionaryLocators
               ? [...controls.pronunciationDictionaryLocators]
-              : undefined
+              : undefined,
+            responseFormat: controls.responseFormat
           },
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler,
+          chunking: opts.ttsChunking,
           abortSignal: invocation?.signal,
           requestEvidence
         })

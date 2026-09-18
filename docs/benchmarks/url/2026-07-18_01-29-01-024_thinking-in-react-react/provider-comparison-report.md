@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Run directory: `/Users/ajc/c/autoshow-cli/docs/benchmarks/url/2026-07-18_01-29-01-024_thinking-in-react-react`
+- Run directory: `docs/benchmarks/url/2026-07-18_01-29-01-024_thinking-in-react-react`
 - Total providers: 5 (0 local, 5 service)
 - Local and service providers are intentionally not ranked against each other.
 - Reports expose complete price, speed, automated-quality, and human-quality rankings for each group.

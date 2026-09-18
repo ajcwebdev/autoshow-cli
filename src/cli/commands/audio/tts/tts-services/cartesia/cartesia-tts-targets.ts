@@ -34,6 +34,7 @@ export const collectCartesiaTtsTargets: (selection: TtsTargetSelection) => TtsTa
           speed: controls.speed,
       chunkConcurrency: opts.ttsChunkConcurrency,
       chunkScheduler: opts.hostedTtsChunkScheduler,
+      chunking: opts.ttsChunking,
       abortSignal: invocation?.signal,
       requestEvidence
     })

@@ -1,5 +1,6 @@
 import { resolveMaxCentsFromFlags } from '~/cli/commands/command-shared/generation-command-utils'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
+import { resolveTtsDeliveryOptionsWithLexicon } from '~/cli/options/option-resolution/tts-delivery-options'
 import { resolveStandaloneMistralTtsCliReferenceInput, resolveStandaloneMistralTtsSpeakerReferenceInputs } from '~/cli/options/option-resolution/tts-options'
 import { ttsCommandFlags } from '~/cli/flags/tts-flags'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
@@ -16,6 +17,7 @@ import { getTtsInputKind, runSingleTtsInput } from './tts-single-run'
 import type { StandaloneTtsCommandOptions } from '~/types'
 import { runTtsDirectoryBatch } from './tts-batch-run'
 import * as l from '~/utils/app-logger/app-logger'
+import { UsageError } from '~/utils/error-handler'
 
 export { getTtsBatchAudioFileName, moveTtsBatchAudioFiles, buildTtsBatchSource } from './tts-batch-plan'
 export { runSingleTtsInput } from './tts-single-run'
@@ -108,9 +110,13 @@ export const ttsCommand = defineCliCommand({
   assertNoVoiceIdentityWithDialogue(unresolvedTtsOptions, ttsNormalized.explicitFlags)
 
   const protectedSpeakerOptions = speakerReferencePlan?.attach(unresolvedTtsOptions) ?? unresolvedTtsOptions
-  const ttsOptions = await planStandaloneMistralReference(
-    protectedSpeakerOptions,
-    referenceInput
+  // Assigned in place: protected Mistral reference authority is keyed on this exact options object.
+  const ttsOptions = Object.assign(
+    await planStandaloneMistralReference(
+      protectedSpeakerOptions,
+      referenceInput
+    ),
+    await resolveTtsDeliveryOptionsWithLexicon(sanitizedFlags)
   )
 
   const targets = collectTtsTargets(ttsOptions)
@@ -124,6 +130,10 @@ export const ttsCommand = defineCliCommand({
       'Skipping Mistral TTS in the all-provider run because no Mistral voice source was supplied. Pass --tts-voice mistral=VOICE_ID or --tts-ref-audio mistral=PATH to include it.',
       { category: 'pipeline' }
     )
+  }
+
+  if (ttsOptions.ttsExport?.book && inputKind !== 'directory') {
+    throw UsageError('--tts-book requires a directory input; each input file becomes one chapter.')
   }
 
   if (inputKind === 'directory') {

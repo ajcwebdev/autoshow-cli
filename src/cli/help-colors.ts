@@ -31,6 +31,7 @@ const HELP_GROUP_COLOR_BY_KEY: Readonly<Record<string, string>> = {
   writing: 'cornflowerblue',
   'step-4-tts': 'darkorange',
   'tts-options': 'darkorange',
+  'tts-mastering': 'darkorange',
   'tts-dialogue': 'darkorange',
   'step-5-image': 'hotpink',
   'image-options': 'hotpink',

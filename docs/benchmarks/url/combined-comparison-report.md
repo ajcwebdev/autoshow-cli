@@ -4,7 +4,7 @@ This report is generated exclusively from the committed `manifest.json` and `pro
 
 ## Source Inventory
 
-- Root directory: `/Users/ajc/c/auto/autoshow-cli/docs/benchmarks/url`
+- Root directory: `docs/benchmarks/url`
 - Runs: 7
 - Distinct providers: 6 (1 local, 5 service)
 - Provider result rows: 37

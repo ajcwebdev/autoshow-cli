@@ -209,9 +209,10 @@ export type RequestedAudioFormat = {
   sampleRate?: number | undefined
   channels?: number | undefined
   bitRate?: number | undefined
+  delivery?: import('./tts-types').TtsDeliveryProfile | undefined
 }
 
-export type ObservedAudioFormat = RequestedAudioFormat & {
+export type ObservedAudioFormat = Omit<RequestedAudioFormat, 'delivery'> & {
   sampleRate: number
   channels: number
 }

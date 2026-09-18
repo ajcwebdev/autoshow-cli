@@ -32,6 +32,7 @@ export const collectOpenAITtsTargets = (
           speed: controls.speed,
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler,
+          chunking: opts.ttsChunking,
           abortSignal: invocation?.signal,
           requestEvidence
         })

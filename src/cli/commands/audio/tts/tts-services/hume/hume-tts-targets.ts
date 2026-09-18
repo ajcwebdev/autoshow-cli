@@ -27,7 +27,8 @@ export const collectHumeTtsTargets = (
         const controls = resolveTtsTargetInvocationControls('hume', invocation, {
           speed: selection.humeSpeed,
           trailingSilence: selection.humeTrailingSilence,
-          description: selection.humeDescription
+          description: selection.humeDescription,
+          responseFormat: selection.humeResponseFormat as 'mp3' | 'wav' | undefined
         })
         if (!invocation && model === 'octave-2' && opts.ttsSpeakers?.length) {
           const registry = parseSpeakerVoiceMappings(opts.ttsSpeakers)
@@ -59,8 +60,10 @@ export const collectHumeTtsTargets = (
           speed: controls.speed,
           trailingSilence: controls.trailingSilence,
           description: controls.description,
+          responseFormat: controls.responseFormat,
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler,
+          chunking: opts.ttsChunking,
           abortSignal: invocation?.signal,
           requestEvidence
         })

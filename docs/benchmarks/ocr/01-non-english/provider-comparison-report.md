@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Run directory: `/Users/ajc/c/auto/autoshow-cli/docs/benchmarks/ocr/01-non-english`
+- Run directory: `docs/benchmarks/ocr/01-non-english`
 - Total providers: 22 (0 local, 22 third-party service)
 - Local and third-party service providers are ranked separately for price, speed, and quality score.
 - Quality score uses WER-derived extraction accuracy, with CER retained as supporting evidence and tie-breaker context.

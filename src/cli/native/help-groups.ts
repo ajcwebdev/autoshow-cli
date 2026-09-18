@@ -26,6 +26,7 @@ export const HELP_FLAG_GROUPS = [
   ['transcript-review', 'Transcript Review'],
   ['writing', 'Writing'],
   ['tts-options', 'Text to Speech'],
+  ['tts-mastering', 'Audio Mastering / Export'],
   ['tts-dialogue', 'Multi-Speaker / Dialogue'],
   ['image-options', 'Image Options'],
   ['image-inputs', 'Image Inputs'],

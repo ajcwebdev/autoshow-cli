@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Root directory: `/Users/ajc/c/auto/autoshow-cli/docs/benchmarks/stt-local`
+- Root directory: `docs/benchmarks/stt-local`
 - Runs aggregated: 3
   - `1-audio` (8 providers)
   - `2022-09-30-widgets-fsjam-40-minutes` (8 providers)

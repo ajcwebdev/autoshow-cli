@@ -3,6 +3,7 @@ import { boolFlag, formatProviderList, formatValueList, pickFlags, strFlag, strL
 import { genericTtsOptionDescription } from './service-selector-normalization/generic-tts-controls'
 import { TTS_DIALOGUE_FORMATS } from '~/cli/options/option-resolution/flag-readers'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
+import { ttsChunkingFlags, ttsExportFlags, ttsMasteringFlags } from './tts-delivery-flags'
 import type { CliFlagsDefinition } from '~/types'
 
 export const ttsFlags = {
@@ -48,6 +49,7 @@ export const ttsCommandFlags = {
     ...genericTtsOptionFlags,
     ...standaloneTtsOnlyFlags
   }, 'tts-options'),
+  ...withHelpGroup({ ...ttsChunkingFlags, ...ttsMasteringFlags, ...ttsExportFlags }, 'tts-mastering'),
   ...withHelpGroup(stepConcurrencyFlag(['tts-chunk']), 'concurrency'),
   ...withHelpGroup(pickFlags(batchFlags, ['batch-concurrency']), 'batch-processing'),
   ...withHelpGroup(pickFlags(ttsFlags, dialogueTtsCommandOptionNames), 'tts-dialogue'),

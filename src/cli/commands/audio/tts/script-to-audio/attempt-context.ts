@@ -39,10 +39,11 @@ import {
 import {
   bindingIdentityHash,
   buildPureCurrentTtsRenderPlan,
-  requestedOutput,
   stateForProjection,
   sumCosts,
 } from './attempt-planning'
+
+import { paidSlotOutputFormat } from './tts-slot-output-format'
 
 type PureAttemptPlan = ReturnType<typeof buildPureCurrentTtsRenderPlan>
 
@@ -62,7 +63,7 @@ const resolveAttemptLayout = (
     providerText: slot.providerText,
     serializedVoiceHash: hashCanonicalTtsValue(slot.turnIds.map(turnId => planned.turns.find(turn => turn.canonical.turnId === turnId)?.voice.valueHash ?? '')),
     requestControlsHash: slot.expectedRequestControlsHash,
-    outputFormat: requestedOutput(options),
+    outputFormat: paidSlotOutputFormat(options),
     endpointKind: slot.expectedEndpointKind,
     serializerVersion: slot.expectedSerializerVersion,
   })

@@ -9,7 +9,7 @@ import { createComicDialoguePlan } from '~/cli/commands/visuals/comic/comic-util
 import { writeInitialComicStructureManifest } from '~/cli/commands/visuals/comic/comic-utils/comic-manifest'
 import { resolveCompatibleComicSceneRun } from '~/cli/commands/visuals/comic/comic-utils/compatible-scene-run'
 import { readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
-import { toSourceIdentityDisplayPath } from '~/utils/runtime-paths'
+import { toProjectDisplayPath, toSourceIdentityDisplayPath } from '~/utils/runtime-paths'
 import { setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 import { COMIC_AUDIO_PHASE_2_CREATED_AT as CREATED_AT, COMIC_AUDIO_PHASE_2_HASH_A as HASH_A, COMIC_AUDIO_PHASE_2_HASH_B as HASH_B, buildComicAudioPhase2SnapshotEntry as snapshotEntry, buildComicAudioPhase2Structured as buildStructured } from './comic-audio-phase-fixture'
@@ -25,6 +25,12 @@ describe('comic audio phase 2 contracts', () => {
     expect(() => toSourceIdentityDisplayPath('/Users/editor/show/input/scripts/scene.md', { sourceRoot: 'relative/show', aliasRoot: '/workspace' })).toThrow(/ROOT must be an absolute/)
     expect(() => toSourceIdentityDisplayPath('/Users/editor/show/input/scripts/scene.md', { sourceRoot: '/Users/editor/show', aliasRoot: '/workspace/../other' })).toThrow(/normalized absolute POSIX/)
     expect(() => toSourceIdentityDisplayPath('/Users/editor/show/input/scripts/scene.md', { sourceRoot: '/Users/editor/show' })).toThrow(/must be set together/)
+  })
+
+  test('records workspace files relative to the process working directory', () => {
+    const workspace = process.cwd()
+    expect(toProjectDisplayPath(join(workspace, 'input/scripts/scene.md'))).toBe('input/scripts/scene.md')
+    expect(toProjectDisplayPath(join(workspace, 'media/pdfs/paper.pdf'))).toBe('media/pdfs/paper.pdf')
   })
 
   test('source identity converges through symlinks and rejects exact-byte drift in a pinned scene run', async () => {

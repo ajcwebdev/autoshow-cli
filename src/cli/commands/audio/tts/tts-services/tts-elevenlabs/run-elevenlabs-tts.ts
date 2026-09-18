@@ -1,11 +1,11 @@
-import { ELEVENLABS_TTS_OUTPUT_FORMAT, readElevenLabsError } from '~/cli/commands/audio/tts/tts-services/tts-elevenlabs/elevenlabs-utils'
-import { splitTextIntoChunks } from '~/cli/commands/audio/tts/tts-utils/audio-utils'
+import { ELEVENLABS_TTS_OUTPUT_FORMAT, elevenLabsChunkExtension, readElevenLabsError } from '~/cli/commands/audio/tts/tts-services/tts-elevenlabs/elevenlabs-utils'
+import { splitTtsText } from '~/cli/commands/audio/tts/tts-utils/tts-chunk-planner'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-pipeline'
 import { logTtsConfig } from '~/cli/commands/audio/tts/tts-utils/log-tts-config'
 import { resolveTtsChunkCharacterLimit } from '~/cli/commands/audio/tts/tts-utils/tts-chunking'
 import { ELEVENLABS_DEFAULT_VOICE_ID } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { validateElevenLabsVoiceSettings } from './elevenlabs-utils'
-import type { ElevenlabsTtsModel, ElevenLabsTtsRequestControls, ElevenLabsTtsVoiceSettings, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { ElevenlabsTtsModel, ElevenLabsTtsRequestControls, ElevenLabsTtsVoiceSettings, HostedTtsChunkScheduler, Step4Metadata, TtsChunkingOptions, TtsRequestEvidenceScope } from '~/types'
 import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { requireTtsCredential } from '~/cli/commands/audio/tts/tts-utils/tts-credentials'
 import { ValidationError } from '~/utils/error-handler'
@@ -40,13 +40,14 @@ export const runElevenLabsTts = async (
     abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
+    chunking?: TtsChunkingOptions | undefined
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const apiKey = requireTtsCredential('elevenlabs')
 
   const baseURL = ELEVENLABS_DEFAULT_BASE_URL
-  const chunks = splitTextIntoChunks(text, resolveTtsChunkCharacterLimit('elevenlabs', options.model) ?? 2000)
+  const chunks = splitTtsText(text, resolveTtsChunkCharacterLimit('elevenlabs', options.model) ?? 2000, options.chunking)
   if (chunks.length === 0) {
     throw ValidationError('ElevenLabs TTS input text is empty', { stage: 'tts:elevenlabs' })
   }
@@ -54,7 +55,7 @@ export const runElevenLabsTts = async (
   validateElevenLabsVoiceSettings(options.model, options.controls?.voiceSettings)
   const startTime = Date.now()
   const voiceId = options.voiceId?.trim() ?? ELEVENLABS_DEFAULT_VOICE_ID
-  const outputFormat = ELEVENLABS_TTS_OUTPUT_FORMAT
+  const outputFormat = options.controls?.responseFormat ?? ELEVENLABS_TTS_OUTPUT_FORMAT
   const languageCode = options.controls?.languageCode?.trim() || undefined
   const pronunciationDictionaryLocators = options.controls?.pronunciationDictionaryLocators
     ?.map((item) => item.trim())
@@ -77,7 +78,7 @@ export const runElevenLabsTts = async (
     speaker,
     chunks,
     outputDir,
-    chunkExtension: 'mp3',
+    chunkExtension: elevenLabsChunkExtension(outputFormat),
     startTime,
     abortSignal: options.abortSignal,
     chunkConcurrency: options.chunkConcurrency,
@@ -126,7 +127,7 @@ export const runElevenLabsTts = async (
         headers: {
           'xi-api-key': apiKey,
           'Content-Type': 'application/json',
-          Accept: 'audio/mpeg'
+          Accept: outputFormat.startsWith('wav_') ? 'audio/wav' : 'audio/mpeg'
         },
         body: JSON.stringify(requestBody),
         ...(signal ? { signal } : {})

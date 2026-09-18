@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Run directory: `/Users/ajc/c/auto/autoshow-cli/docs/benchmarks/write/2026-09-16_06-51-18-238_1-audio`
+- Run directory: `docs/benchmarks/write/2026-09-16_06-51-18-238_1-audio`
 - Total providers: 16 (0 local, 16 service)
 - Local and service providers are intentionally not ranked against each other.
 - Reports expose complete price, speed, automated-quality, and human-quality rankings for each group.

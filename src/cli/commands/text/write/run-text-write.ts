@@ -1,4 +1,4 @@
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import type { AggregatedPriceEstimate, BatchChildRunContext, Step3Metadata, StepTimingCost, TranscriptionResult, VideoMetadata, WriteRuntimeOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
@@ -26,6 +26,7 @@ import { createManifest, createPipelineItemFromRecord, PIPELINE_MANIFEST_FILE, w
 import { logWriteManifestSummary } from '~/cli/commands/command-shared/write-manifest-log/write-manifest-log'
 import { applySummaryArtifactNames, serializeStep3Results, writeWriteFlowArtifacts } from './write-artifact-finalization'
 import { sha256Bytes } from '~/utils/value-helpers'
+import { toLocalSourceRef, toProjectRelativePath } from '~/utils/project-root'
 
 const buildTextInputMetadata = (inputPath: string): VideoMetadata => {
   const title = getTextInputTitle(inputPath)
@@ -35,7 +36,7 @@ const buildTextInputMetadata = (inputPath: string): VideoMetadata => {
     duration: 'Unknown',
     channel: 'Local',
     description: '',
-    url: Bun.pathToFileURL(resolve(inputPath)).toString(),
+    url: toLocalSourceRef(inputPath),
   }
 }
 
@@ -178,7 +179,7 @@ export const runTextWrite = async (
     title,
     source: {
       kind: 'text-input' as const,
-      inputPath,
+      inputPath: toProjectRelativePath(inputPath),
       slug: sanitizeTitleSlug(title, 180),
       snapshot: {
         path: sourceSnapshotPath,

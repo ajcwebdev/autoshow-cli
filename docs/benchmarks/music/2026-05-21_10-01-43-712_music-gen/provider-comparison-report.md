@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Run directory: `/Users/ajc/c/auto/autoshow-cli/docs/benchmarks/music/2026-05-21_10-01-43-712_music-gen`
+- Run directory: `docs/benchmarks/music/2026-05-21_10-01-43-712_music-gen`
 - Total providers: 2 (0 local, 2 service)
 - Local and service providers are intentionally not ranked against each other.
 - Reports expose complete price, speed, automated-quality, and human-quality rankings for each group.

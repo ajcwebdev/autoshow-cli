@@ -31,6 +31,8 @@ export type Step4Metadata = TtsMetadataBase<TtsProvider> & {
   } | undefined
   ttsAudio?: CanonicalAudioProviderProjection | undefined
   comicAudio?: CanonicalAudioProviderProjection | undefined
+  deliveryExport?: import('~/types').TtsDeliveryExportRecord | undefined
+  pronunciationLexicon?: { lexiconSha256: string, ruleCount: number, replacements: number } | undefined
 }
 
 export type Step5Metadata = {

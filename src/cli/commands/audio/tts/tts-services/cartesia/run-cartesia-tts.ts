@@ -1,6 +1,6 @@
-import type { CartesiaTtsModel, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { CartesiaTtsModel, HostedTtsChunkScheduler, Step4Metadata, TtsChunkingOptions, TtsRequestEvidenceScope } from '~/types'
 import { logTtsConfig } from '~/cli/commands/audio/tts/tts-utils/log-tts-config'
-import { splitTextIntoChunks } from '~/cli/commands/audio/tts/tts-utils/audio-utils'
+import { splitTtsText } from '~/cli/commands/audio/tts/tts-utils/tts-chunk-planner'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/audio/tts/tts-utils/tts-chunking'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-pipeline'
 import {
@@ -28,6 +28,7 @@ export const runCartesiaTts = async (
     abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
+    chunking?: TtsChunkingOptions | undefined
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
@@ -37,7 +38,7 @@ export const runCartesiaTts = async (
   const version = cartesiaTtsApiVersion(options.model)
   const voice = validateCartesiaTtsVoice(options.voiceId?.trim() || CARTESIA_DEFAULT_TTS_VOICE)
   const language = validateCartesiaTtsLanguage(options.model, options.language)
-  const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.cartesia)
+  const chunks = splitTtsText(text, TTS_CHUNK_CHARACTER_LIMITS.cartesia, options.chunking)
 
   if (chunks.length === 0) {
     throw ValidationError('Cartesia TTS input text is empty', { stage: 'tts:cartesia' })
