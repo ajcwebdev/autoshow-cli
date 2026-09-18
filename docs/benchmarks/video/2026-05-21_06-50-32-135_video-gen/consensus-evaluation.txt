@@ -1,6 +1,6 @@
 Video consensus evaluation
 
-Run directory: /Users/ajc/c/as/autoshow-cli/docs/benchmarks/video/2026-05-21_06-50-32-135_video-gen
+Run directory: docs/benchmarks/video/2026-05-21_06-50-32-135_video-gen
 Category: video
 Evidence source: consensus packet built from manifest.json and generated video artifact metadata.
 

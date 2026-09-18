@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Run directory: `/Users/ajc/c/auto/autoshow-cli/docs/benchmarks/stt-without-speakers/2023-03-15-jsjam-qwik-misko-hevery`
+- Run directory: `docs/benchmarks/stt-without-speakers/2023-03-15-jsjam-qwik-misko-hevery`
 - Total providers: 10 (0 local, 10 third-party service)
 - Local, third-party non-diarization, and third-party diarization providers are ranked separately for price, speed, and quality score.
 - Quality score uses speaker-aware WER-derived transcript accuracy, with text-only WER retained as supporting evidence.

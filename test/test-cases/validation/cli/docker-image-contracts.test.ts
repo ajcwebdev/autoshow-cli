@@ -332,8 +332,10 @@ test('compiled Docker entrypoint remains an isolated measured experiment', async
   expect(dockerfile.trimEnd()).toEndWith('FROM runtime AS production')
 
   const runtimePaths = await readFile(resolve(repositoryRoot, 'src/utils/runtime-paths.ts'), 'utf8')
+  const projectRoot = await readFile(resolve(repositoryRoot, 'src/utils/project-root.ts'), 'utf8')
   expect(runtimePaths).toContain('Bun.isStandaloneExecutable')
-  expect(runtimePaths).toContain('dirname(process.execPath)')
+  expect(projectRoot).toContain('Bun.isStandaloneExecutable')
+  expect(projectRoot).toContain('dirname(process.execPath)')
   expect(runtimePaths).toContain('IMMUTABLE_ASSET_ROOT')
 })
 

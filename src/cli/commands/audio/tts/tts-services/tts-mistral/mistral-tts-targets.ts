@@ -117,6 +117,7 @@ export const collectMistralTtsTargets = (
           } : {}),
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler,
+          chunking: opts.ttsChunking,
           abortSignal: invocation?.signal,
           requestEvidence
         })

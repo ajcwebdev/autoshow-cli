@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Run directory: `/Users/ajc/c/autoshow-cli/docs/benchmarks/url/2026-07-18_01-28-50-262_rfc-9110-http-semantics`
+- Run directory: `docs/benchmarks/url/2026-07-18_01-28-50-262_rfc-9110-http-semantics`
 - Total providers: 5 (0 local, 5 service)
 - Local and service providers are intentionally not ranked against each other.
 - Reports expose complete price, speed, automated-quality, and human-quality rankings for each group.

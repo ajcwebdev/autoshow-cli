@@ -3,7 +3,7 @@ title: "2023-04-05-jsjam-react-miami-2023-10-minutes"
 slug: "2023-04-05-jsjam-react-miami-2023-10-minutes"
 duration: "10:00"
 channel: "Local"
-url: "file:///Users/ajc/c/autoshow-cli/docs/benchmarks/stt-without-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/2023-04-05-jsjam-react-miami-2023-10-minutes.mp3"
+url: "docs/benchmarks/stt-without-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/2023-04-05-jsjam-react-miami-2023-10-minutes.mp3"
 ---
 
 This is a transcript with timestamps. Do not include advertisements in the summaries or descriptions. Do not actually write the transcript.

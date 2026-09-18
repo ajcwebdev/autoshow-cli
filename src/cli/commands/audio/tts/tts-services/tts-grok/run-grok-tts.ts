@@ -1,6 +1,6 @@
-import type { GrokTtsModel, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { GrokTtsModel, HostedTtsChunkScheduler, Step4Metadata, TtsChunkingOptions, TtsRequestEvidenceScope } from '~/types'
 import { logTtsConfig } from '~/cli/commands/audio/tts/tts-utils/log-tts-config'
-import { splitTextIntoChunks } from '~/cli/commands/audio/tts/tts-utils/audio-utils'
+import { splitTtsText } from '~/cli/commands/audio/tts/tts-utils/tts-chunk-planner'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/audio/tts/tts-utils/tts-chunking'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-pipeline'
 import { fetchTtsAudioBytes, trimTrailingSlash } from '~/cli/commands/audio/tts/tts-utils/tts-http-utils'
@@ -22,6 +22,7 @@ export const runGrokTts = async (
     abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
+    chunking?: TtsChunkingOptions | undefined
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
@@ -31,7 +32,7 @@ export const runGrokTts = async (
   const rawVoice = options.voiceId?.trim() || GROK_DEFAULT_TTS_VOICE
   const voice = validateGrokTtsVoice(rawVoice)
   const language = validateGrokTtsLanguage(options.language?.trim() || 'auto')
-  const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.grok)
+  const chunks = splitTtsText(text, TTS_CHUNK_CHARACTER_LIMITS.grok, options.chunking)
 
   if (chunks.length === 0) {
     throw ValidationError('Grok TTS input text is empty', { stage: 'tts:grok' })

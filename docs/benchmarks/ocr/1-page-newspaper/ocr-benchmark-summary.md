@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Run directory: `/Users/ajc/c/auto/autoshow-cli/docs/benchmarks/ocr/1-page-newspaper`
+- Run directory: `docs/benchmarks/ocr/1-page-newspaper`
 - Providers with page result files: 21
 - Pages: 1
 - Paid provider reruns: not run by this skill artifact; existing provider outputs only.

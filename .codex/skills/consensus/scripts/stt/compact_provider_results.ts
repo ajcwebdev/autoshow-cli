@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { writePortableFileSync } from "../shared/portable_paths";
 import { basename, dirname, join, resolve } from "node:path";
 
 const RAW_RESPONSE_CONSUMERS = new Set(["whisper", "gemini-stt"]);
@@ -82,7 +83,7 @@ export function compactResult(resultPath: string): CompactionStat {
     }
   }
 
-  writeFileSync(resultPath, JSON.stringify(payload));
+  writePortableFileSync(resultPath, JSON.stringify(payload));
   const afterBytes = statSync(resultPath).size;
 
   return {

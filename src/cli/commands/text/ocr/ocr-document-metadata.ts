@@ -1,4 +1,6 @@
+import { resolve } from 'node:path'
 import type { AggregatedPriceEstimate, ExtractionMetadata, ExtractionOptions, OcrMetadataOptions, ProcessDocumentOutput, ResolvedStep2Execution, Step1SourceRef } from '~/types'
+import { toProjectDisplayPath } from '~/utils/runtime-paths'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { serializeOneOrMany } from '../../command-shared/target-runner'
@@ -13,9 +15,9 @@ export const buildDocumentSource = (
     return { url: sourceRef.url }
   }
   if (typeof sourceRef?.filePath === 'string' && sourceRef.filePath.length > 0) {
-    return { filePath: sourceRef.filePath }
+    return { filePath: toProjectDisplayPath(resolve(sourceRef.filePath)) }
   }
-  return { filePath }
+  return { filePath: toProjectDisplayPath(resolve(filePath)) }
 }
 
 const isRemoteDocumentSource = (

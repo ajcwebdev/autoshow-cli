@@ -1,6 +1,6 @@
 ---
 title: "transcription"
-sourcePath: "/Users/ajc/c/auto/autoshow-cli/docs/benchmarks/write/2026-09-16_06-51-18-238_1-audio/transcription.txt"
+sourcePath: "docs/benchmarks/write/2026-09-16_06-51-18-238_1-audio/transcription.txt"
 ---
 
 This is user-provided source text. Do not use the word delve.

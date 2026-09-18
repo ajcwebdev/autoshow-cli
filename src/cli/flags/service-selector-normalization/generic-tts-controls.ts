@@ -22,7 +22,7 @@ export const GENERIC_TTS_CONTROL_MAP = {
   'tts-seed': { elevenlabs: 'seed' },
   'tts-pronunciation-dictionary': { elevenlabs: 'pronunciationDictionaryLocators' },
   'tts-trailing-silence': { hume: 'trailingSilence' },
-  'tts-response-format': { mistral: 'responseFormat' }
+  'tts-response-format': { mistral: 'responseFormat', elevenlabs: 'responseFormat', hume: 'responseFormat' }
 } as const satisfies GenericTtsControlMap
 
 // Flags that select a voice identity in the target layer rather than a control in the control layer.

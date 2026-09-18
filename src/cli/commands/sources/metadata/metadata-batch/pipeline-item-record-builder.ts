@@ -1,6 +1,7 @@
 import { basename } from 'node:path'
 import type { BatchItem, PipelineItemRecord } from '~/types'
 import { isLikelyUrl } from '../metadata-targets/metadata-input-classifier'
+import { toLocalSourceRef } from '~/utils/project-root'
 
 export const buildPipelineItemRecord = (
   item: string,
@@ -23,5 +24,5 @@ export const buildPipelineItemRecord = (
     return { url: item, title, channel: 'URL', duration: 'Unknown' }
   }
 
-  return { url: 'file://' + item, title, channel: 'Local', duration: 'Unknown' }
+  return { url: toLocalSourceRef(item), title, channel: 'Local', duration: 'Unknown' }
 }

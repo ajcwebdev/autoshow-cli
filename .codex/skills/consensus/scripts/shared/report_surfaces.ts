@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { writePortableFileSync } from "./portable_paths";
+import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 
 export type ConsensusCategory = "image" | "music" | "ocr" | "stt" | "text" | "tts" | "url" | "video";
@@ -1521,6 +1522,6 @@ export function rewriteComparisonReports(options: RewriteOptions): void {
   const jsonReport = buildJsonReport(options.category, sourceReport, providers, rankingSurfaces);
   const markdownReport = buildMarkdownReport(options.category, sourceReport, providers, rankingSurfaces);
 
-  writeFileSync(options.jsonPath, JSON.stringify(jsonReport));
-  writeFileSync(options.markdownPath, markdownReport);
+  writePortableFileSync(options.jsonPath, JSON.stringify(jsonReport));
+  writePortableFileSync(options.markdownPath, markdownReport);
 }

@@ -22,6 +22,67 @@ export type TtsOptions = HostedConcurrencyRuntimeOptions & Partial<TtsRuntimeOpt
     providerSegmentIndexes?: readonly number[] | undefined
   }[] | undefined
   ttsMasteringProfile?: TtsMasteringProfile | undefined
+  ttsChunking?: TtsChunkingOptions | undefined
+  ttsDelivery?: TtsDeliveryProfile | undefined
+  ttsExport?: TtsExportOptions | undefined
+  ttsPronunciationsPath?: string | undefined
+  ttsPronunciationLexicon?: TtsPronunciationLexicon | undefined
+  ttsTextPreflight?: boolean | undefined
+  ttsDeliveryFallbackAllowed?: boolean | undefined
+}
+
+export type TtsPronunciationRule = {
+  match: string
+  alias: string
+  caseSensitive: boolean
+  wordBoundary: boolean
+}
+
+export type TtsPronunciationLexicon = {
+  schemaVersion: 1
+  rules: readonly TtsPronunciationRule[]
+  lexiconSha256: string
+}
+
+export type TtsChunkBoundary = 'paragraph' | 'sentence' | 'clause' | 'word' | 'hard' | 'end'
+
+export type TtsChunkingOptions = {
+  boundary: 'smart' | 'legacy'
+  maxChars?: number | undefined
+}
+
+export type PlannedTtsChunk = {
+  text: string
+  boundaryAfter: TtsChunkBoundary
+}
+
+export type TtsDeliveryLoudness =
+  | { mode: 'none' }
+  | { mode: 'ebu-r128', integratedLufs: number, truePeakDb: number }
+
+// Absent on TtsOptions means the legacy 16 kHz mono output path.
+export type TtsDeliveryProfile = {
+  schemaVersion: 1
+  preset: 'native' | 'audiobook'
+  sampleRate?: number | undefined
+  channels?: 1 | 2 | undefined
+  codec: 'pcm_s16le'
+  container: 'wav'
+  trimSilence: boolean
+  gapsMs: { paragraph: number, sentence: number, clause: number, turn: number }
+  leadInMs: number
+  leadOutMs: number
+  loudness: TtsDeliveryLoudness
+}
+
+export type TtsExportFormat = 'wav' | 'flac' | 'mp3' | 'm4a' | 'm4b'
+
+export type TtsExportOptions = {
+  format: TtsExportFormat
+  bitrateKbps?: number | undefined
+  metadata?: Readonly<Record<string, string>> | undefined
+  coverPath?: string | undefined
+  book?: boolean | undefined
 }
 
 export type TtsMasteringProfile = {
@@ -291,4 +352,67 @@ export type TtsCustomVoiceSampleAudio = {
   mimeType: string
   sizeBytes: number
   durationSeconds?: number | undefined
+}
+
+export type TtsDeliverySeamBoundary = TtsChunkBoundary | 'turn'
+
+export type TtsDeliverySegmentInput = {
+  id: string
+  path: string
+  boundaryAfter: TtsDeliverySeamBoundary
+}
+
+export type TtsDeliveryPlacement = {
+  id: string
+  startMs: number
+  endMs: number
+  trimLeadMs: number
+  trimTailMs: number
+  sourceDurationMs: number
+}
+
+export type TtsDeliveryPause = {
+  kind: 'lead-in' | 'lead-out' | 'seam-gap'
+  afterId?: string | undefined
+  boundary?: TtsDeliverySeamBoundary | undefined
+  startMs: number
+  endMs: number
+}
+
+export type TtsDeliveryMasteringInput = {
+  segments: readonly TtsDeliverySegmentInput[]
+  profile: TtsDeliveryProfile
+  workDir: string
+  providerLabel: string
+  abortSignal?: AbortSignal | undefined
+}
+
+export type TtsDeliveryMasteringResult = {
+  path: string
+  sampleRate: number
+  channels: 1 | 2
+  placements: TtsDeliveryPlacement[]
+  pauses: TtsDeliveryPause[]
+  loudness?: {
+    targetIntegratedLufs: number
+    targetTruePeakDb: number
+    measuredIntegratedLufs: number
+    measuredTruePeakDb: number
+    normalizationType: 'linear' | 'dynamic'
+  } | undefined
+}
+
+export type TtsDeliveryChapter = {
+  title: string
+  startMs: number
+  endMs: number
+}
+
+export type TtsDeliveryExportRecord = {
+  fileName: string
+  format: TtsExportFormat
+  sizeBytes: number
+  bitrateKbps?: number | undefined
+  metadata?: Readonly<Record<string, string>> | undefined
+  chapters?: readonly TtsDeliveryChapter[] | undefined
 }

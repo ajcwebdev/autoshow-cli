@@ -19,6 +19,7 @@ import type {
   FinalAudioObservation,
   FinalTimelineLayout,
   TimedToken,
+  TtsDeliveryMasteringResult,
 } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from './contract-identity'
@@ -27,6 +28,7 @@ import {
   comicTimelineLayout,
   localVoiceEffectFilter,
 } from './comic-segmented-audio'
+import { ttsDeliverySlotOffsets, ttsDeliveryTimelineLayout } from './tts-delivery-assembly'
 export const buildSpeechSources = (
   result: ProviderRenderResult
 ): RenderAudioSourceBinding[] => result.outputs.map((output) => ({
@@ -104,7 +106,9 @@ export const buildFinalTimelineLayout = (input: {
   comicDialoguePlan?: Parameters<typeof comicTimelineLayout>[0] | undefined
   masteredTurnDurationMs?: ReadonlyMap<string, number> | undefined
   masteredTimingSegmentDurationMs?: ReadonlyMap<string, number> | undefined
+  delivery?: TtsDeliveryMasteringResult | undefined
 }): FinalTimelineLayout => {
+  if (input.delivery && !input.comicDialoguePlan) return ttsDeliveryTimelineLayout({ strategy: 'segmented', turns: input.turns, slots: input.slots }, input.delivery)
   if (input.comicDialoguePlan) {
     return comicTimelineLayout(
       input.comicDialoguePlan,
@@ -202,12 +206,14 @@ export const buildNormalizedTiming = (input: {
   turns: readonly AttemptTurn[]
   batchResultFiles: BatchResultFile[]
   assembledTurns: FinalTimelineLayout['turns']
+  delivery?: TtsDeliveryMasteringResult | undefined
 }): NormalizedTiming<'final-audio-ms'> => {
   let cursorMs = 0
+  const deliveryOffsets = input.delivery ? ttsDeliverySlotOffsets(input.delivery) : undefined
   const nativeParts = input.batchResultFiles.map((file) => {
     const take = file.value.generatedBatch?.takes[0]
     const timing = take?.timing
-    const offsetMs = cursorMs
+    const offsetMs = deliveryOffsets?.get(file.value.generationSlotId) ?? cursorMs
     cursorMs += take?.durationMs ?? file.value.outputs[0]?.durationMs ?? 0
     if (!timing || timing.availability !== 'timed') return undefined
     return {
@@ -247,6 +253,7 @@ export const buildNormalizedTiming = (input: {
   }
   if (
     input.strategy === 'segmented'
+    && input.assembledTurns.length > 0
     && input.assembledTurns.every((turn) => turn.endMs > turn.startMs)
   ) {
     return {

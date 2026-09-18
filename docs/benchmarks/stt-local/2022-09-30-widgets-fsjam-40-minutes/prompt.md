@@ -3,7 +3,7 @@ title: "2022-09-30-widgets-fsjam-40-minutes"
 slug: "2022-09-30-widgets-fsjam-40-minutes"
 duration: "40:23"
 channel: "Local"
-url: "file:///Users/ajc/c/autoshow-cli/docs/benchmarks/stt-without-speakers/2022-09-30-widgets-fsjam-40-minutes/2022-09-30-widgets-fsjam-40-minutes.mp3"
+url: "docs/benchmarks/stt-without-speakers/2022-09-30-widgets-fsjam-40-minutes/2022-09-30-widgets-fsjam-40-minutes.mp3"
 ---
 
 This is a transcript with timestamps. Do not include advertisements in the summaries or descriptions. Do not actually write the transcript.

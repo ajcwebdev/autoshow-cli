@@ -1,12 +1,13 @@
 import { isRecord } from '~/utils/rest-client'
 import { extname } from 'node:path'
 import { rm } from 'node:fs/promises'
-import { concatAndConvertToWav, convertAudioToWav, requireHostedTtsChunkScheduler, runTtsChunks, splitTextIntoChunks } from '~/cli/commands/audio/tts/tts-utils/audio-utils'
+import { concatAndConvertToWav, convertAudioToWav, requireHostedTtsChunkScheduler, runTtsChunks } from '~/cli/commands/audio/tts/tts-utils/audio-utils'
+import { splitTtsText } from '~/cli/commands/audio/tts/tts-utils/tts-chunk-planner'
 import { finalizeTtsRun } from '~/cli/commands/audio/tts/tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-retry'
 import { logTtsConfig } from '~/cli/commands/audio/tts/tts-utils/log-tts-config'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/audio/tts/tts-utils/tts-chunking'
-import type { HostedTtsChunkScheduler, MistralReferenceAudio, MistralTtsModel, MistralVoiceSource, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { HostedTtsChunkScheduler, MistralReferenceAudio, MistralTtsModel, MistralVoiceSource, Step4Metadata, TtsChunkingOptions, TtsRequestEvidenceScope } from '~/types'
 import { MISTRAL_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { mistralJsonRequest } from '~/utils/mistral/mistral-client'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
@@ -131,6 +132,7 @@ export const runMistralTts = async (
     abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
+    chunking?: TtsChunkingOptions | undefined
     baseUrl?: string | undefined
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
@@ -138,7 +140,7 @@ export const runMistralTts = async (
   const voiceSource = resolveVoiceSource(options)
   const apiKey = requireTtsCredential('mistral')
 
-  const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.mistral)
+  const chunks = splitTtsText(text, TTS_CHUNK_CHARACTER_LIMITS.mistral, options.chunking)
   if (chunks.length === 0) {
     throw ValidationError('Mistral TTS input text is empty', { stage: 'tts:mistral' })
   }

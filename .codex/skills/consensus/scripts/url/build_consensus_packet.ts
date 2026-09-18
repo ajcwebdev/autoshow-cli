@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { writeFileSync } from "node:fs";
+import { writePortableFileSync } from "../shared/portable_paths";
 import { resolve } from "node:path";
 import {
   loadUrlProviderRuns,
@@ -82,7 +82,7 @@ const packet = {
 
 const json = `${JSON.stringify(packet, null, 2)}\n`;
 if (args.outPath) {
-  writeFileSync(args.outPath, json);
+  writePortableFileSync(args.outPath, json);
 } else {
   process.stdout.write(json);
 }

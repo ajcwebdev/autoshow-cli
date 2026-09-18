@@ -42,5 +42,7 @@ export type TtsTargetSelection = {
   grokTextNormalization: boolean
   mistralVoiceId: string | undefined
   mistralResponseFormat?: string | undefined
+  elevenLabsResponseFormat?: string | undefined
+  humeResponseFormat?: string | undefined
   dialogueRequested: boolean
 }

@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import { isProjectRelativeSourceRef } from '~/utils/project-root'
 
 const VideoChapterSchema = v.object({
   startTime: v.number(),
@@ -11,7 +12,7 @@ export const VideoMetadataSchema = v.object({
   duration: v.string(),
   channel: v.string(),
   description: v.string(),
-  url: v.pipe(v.string(), v.url()),
+  url: v.pipe(v.string(), v.check(value => URL.canParse(value) || isProjectRelativeSourceRef(value), 'Expected a URL or a project-relative source path')),
   publishDate: v.optional(v.string(), undefined),
   thumbnail: v.optional(v.string(), undefined),
   channelURL: v.optional(v.string(), undefined),

@@ -286,6 +286,8 @@ const applyGenericTtsRuntimeOptions = (
 
   for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-response-format', selectedProviders)) {
     if (provider === 'mistral') options.mistralTtsResponseFormat = coerceControlValue('tts-response-format', provider, value) as string
+    if (provider === 'elevenlabs') options.elevenlabsTtsResponseFormat = coerceControlValue('tts-response-format', provider, value) as string
+    if (provider === 'hume') options.humeTtsResponseFormat = coerceControlValue('tts-response-format', provider, value) as string
   }
 }
 
@@ -346,6 +348,8 @@ export const buildTtsOptions = (
     humeTtsTrailingSilence: undefined,
     humeTtsDescription: undefined,
     mistralTtsResponseFormat: undefined,
+    elevenlabsTtsResponseFormat: undefined,
+    humeTtsResponseFormat: undefined,
   }
 
   applyGenericTtsRuntimeOptions(options, flags, flagOccurrences, modelOptions)

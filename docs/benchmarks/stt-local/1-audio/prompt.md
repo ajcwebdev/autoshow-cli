@@ -3,7 +3,7 @@ title: "1-audio"
 slug: "1-audio"
 duration: "0:59"
 channel: "Local"
-url: "file:///Users/ajc/c/autoshow-cli/docs/benchmarks/stt-without-speakers/1-audio/1-audio.mp3"
+url: "docs/benchmarks/stt-without-speakers/1-audio/1-audio.mp3"
 ---
 
 This is a transcript with timestamps. Do not include advertisements in the summaries or descriptions. Do not actually write the transcript.

@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Run directory: `/Users/ajc/c/auto/autoshow-cli/docs/benchmarks/stt-with-speakers/2022-09-30-widgets-fsjam-40-minutes`
+- Run directory: `docs/benchmarks/stt-with-speakers/2022-09-30-widgets-fsjam-40-minutes`
 - Total providers: 9 (0 local, 9 third-party service)
 - Local, third-party non-diarization, and third-party diarization providers are ranked separately for price, speed, and quality score.
 - Quality score uses speaker-aware WER-derived transcript accuracy, with text-only WER retained as supporting evidence.

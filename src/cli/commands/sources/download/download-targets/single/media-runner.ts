@@ -1,4 +1,5 @@
 import { ensureDirectory, fileExists, pick } from '~/utils/cli-utils'
+import { toLocalSourceRef } from '~/utils/project-root'
 import * as l from '~/utils/app-logger/app-logger'
 import { processVideo } from './process-video'
 import { normalizeBatchChildPublishedAt, reserveBatchChildOutputDir } from '~/cli/commands/command-shared/batch-child-output'
@@ -54,7 +55,7 @@ export const processMediaSingle = async (
 
   const isUrl = isLikelyUrl(target)
   const exists = await fileExists(target)
-  const srcUrl = isUrl ? target : exists ? `file://${target}` : target
+  const srcUrl = isUrl ? target : exists ? toLocalSourceRef(target) : target
 
   const src: { url?: string, filePath?: string } = {}
   if (isUrl) {

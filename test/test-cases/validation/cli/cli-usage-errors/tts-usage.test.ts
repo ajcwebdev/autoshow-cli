@@ -92,3 +92,15 @@ test('tts rejects --tts-dialogue-format without speaker mappings', () => {
   expect(() => assertDialogueFormatIsUsable(opts, new Set(['tts-dialogue-format'])))
     .toThrow('--tts-dialogue-format requires at least one --tts-speaker SPEAKER=VOICE mapping. Speaker mappings select multi-speaker TTS; a dialogue format alone selects nothing.')
 })
+
+test('tts rejects delivery option misuse before any provider work', async () => {
+  const root = await makeTempRoot('autoshow-tts-delivery-usage-')
+  const inputPath = join(root, 'chapter.txt')
+  await writeFile(inputPath, 'A short chapter.\n')
+  const base = ['tts', inputPath, '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--price']
+
+  await expectUsageExit([...base, '--tts-book'], '--tts-book requires a directory input; each input file becomes one chapter.')
+  await expectUsageExit([...base, '--tts-audio-profile', 'studio'], 'Invalid --tts-audio-profile value "studio"')
+  await expectUsageExit([...base, '--tts-metadata', 'title=A'], '--tts-metadata requires --tts-export-format flac, mp3, m4a, or m4b.')
+  await expectUsageExit([...base, '--tts-pronunciations', join(root, 'missing.json')], `Pronunciation lexicon was not found: ${join(root, 'missing.json')}`)
+})

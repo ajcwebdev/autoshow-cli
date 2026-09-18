@@ -7,7 +7,8 @@ import { canonicalTtsJson, computePaidSpeechSlotHash, hashCanonicalTtsValue, sha
 import { validateProviderBatchResult, validateProviderRenderPlanIdentity, validateRenderAdmissionJournalSnapshot } from './contract-validation'
 import { contained, copyCreateOnly, hasErrorCode, readObservedAudio, readVerifiedJson } from './attempt-io'
 import { withIdentity } from './attempt-shared'
-import { buildPureCurrentTtsRenderPlan, readAudioProjection, requestedOutput } from './attempt-planning'
+import { buildPureCurrentTtsRenderPlan, readAudioProjection } from './attempt-planning'
+import { paidSlotOutputFormat, slotOutputFormatOfPlan } from './tts-slot-output-format'
 import { readContainedArtifactFile } from './safe-artifact-store'
 import { resolveStableTtsArtifactDir, resolveTtsOutputLayout } from './tts-output-layout'
 import { resolveRetainedPath } from './recovery-evidence'
@@ -54,7 +55,7 @@ const compatibleSegmentedSlotHash = (plan: ProviderRenderPlan, generationSlotId:
     provider: plan.provider,
     model: plan.model,
     transport: plan.transport,
-    requestedOutput: plan.requestedOutput,
+    requestedOutput: slotOutputFormatOfPlan(plan.requestedOutput),
     batchId: batch.batchId,
     generationSlotId,
     orderedTurnIds: batch.orderedTurnIds,
@@ -76,7 +77,7 @@ const paidSpeechSlotHashFor = (
   providerText: slot.providerText,
   serializedVoiceHash: hashCanonicalTtsValue(slot.turnIds.map((turnId) => planned.turns.find((turn) => turn.canonical.turnId === turnId)?.voice.valueHash ?? '')),
   requestControlsHash: slot.expectedRequestControlsHash,
-  outputFormat: requestedOutput(options),
+  outputFormat: paidSlotOutputFormat(options),
   endpointKind: slot.expectedEndpointKind,
   serializerVersion: slot.expectedSerializerVersion,
 })
@@ -279,7 +280,7 @@ const recoverArchivedSlots = async (
       || retainedPlan.provider !== currentPlan.provider
       || retainedPlan.model !== currentPlan.model
       || retainedPlan.transport !== currentPlan.transport
-      || canonicalTtsJson(retainedPlan.requestedOutput) !== canonicalTtsJson(currentPlan.requestedOutput)
+      || canonicalTtsJson(slotOutputFormatOfPlan(retainedPlan.requestedOutput)) !== canonicalTtsJson(slotOutputFormatOfPlan(currentPlan.requestedOutput))
     ) return new Set()
     const currentSlotIds = new Set(currentPlan.batches.flatMap((batch) =>
       batch.generationSlots.map((slot) => slot.generationSlotId)))

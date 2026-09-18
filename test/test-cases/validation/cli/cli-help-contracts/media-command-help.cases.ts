@@ -21,6 +21,13 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(result.stdout).not.toContain('Speechify TTS')
     expect(result.stdout).not.toContain('Hume TTS')
     expect(getFlagGroupSection(result.stdout, 'Multi-Speaker / Dialogue')).toContain('--tts-dialogue-format')
+    const mastering = getFlagGroupSection(result.stdout, 'Audio Mastering / Export')
+    for (const flag of ['--tts-audio-profile', '--tts-chunk-boundary', '--tts-chunk-size', '--tts-loudness', '--tts-paragraph-pause', '--tts-export-format', '--tts-metadata', '--tts-cover', '--tts-book', '--tts-pronunciations', '--tts-text-preflight']) {
+      expect(mastering).toContain(flag)
+    }
+    expect(helpText(mastering)).toContain('native|audiobook|legacy-16k')
+    expect(helpText(mastering)).toContain('wav|flac|mp3|m4a|m4b')
+    expect(helpText(getFlagGroupSection(result.stdout, 'Text to Speech'))).toContain('mp3_44100_128|mp3_44100_192|wav_44100|wav_48000 (elevenlabs)')
     expect(result.stdout).not.toContain('ElevenLabs TTS')
     expect(getFlagGroupSection(result.stdout, 'Text to Speech')).toContain('--tts-stability')
     expect(getFlagGroupSection(result.stdout, 'Pricing')).toContain('--price')

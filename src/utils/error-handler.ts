@@ -1,6 +1,7 @@
 import { sanitizeArtifactMetadata, sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
 import type { AppErrorKind, AppErrorOptions, ErrorChainEntry, NonUsageAppErrorOptions, RetryClass, UsageErrorOptions } from '~/types'
 import { isRecord } from '~/utils/value-helpers'
+import { stripProjectRoot } from '~/utils/project-root'
 
 const DEFAULT_EXIT_CODE_BY_KIND: Readonly<Record<AppErrorKind, number>> = {
   usage: 2,
@@ -502,7 +503,7 @@ const serializeError = (
   }
 
   if (error.stack) {
-    out['stack'] = error.stack
+    out['stack'] = stripProjectRoot(error.stack)
   }
 
   if (isRecord(error)) {

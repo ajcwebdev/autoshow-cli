@@ -1,9 +1,10 @@
 #!/usr/bin/env bun
 
-import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 
 import { compactRunResults, formatBytes, isRecord } from "../stt/compact_provider_results";
+import { writePortableFileSync } from "./portable_paths";
 
 const ALWAYS_PRUNE_DIRECTORY_NAMES = new Set(["page-inputs"]);
 const RESULT_GATED_PRUNE_DIRECTORY_NAMES = new Set(["page-results", "split-attempts", "segment-runs"]);
@@ -124,7 +125,7 @@ function compactJsonFile(path: string, baseDir: string): { beforeBytes: number; 
   }
   const beforeBytes = statSync(path).size;
   const payload = JSON.parse(readFileSync(path, "utf8")) as unknown;
-  writeFileSync(path, JSON.stringify(relativizePaths(payload, baseDir)));
+  writePortableFileSync(path, JSON.stringify(relativizePaths(payload, baseDir)));
   return { beforeBytes, afterBytes: statSync(path).size };
 }
 
@@ -169,7 +170,7 @@ function compactManifest(runDir: string): { stripped: number; beforeBytes: numbe
     }
   }
 
-  writeFileSync(manifestPath, JSON.stringify(payload));
+  writePortableFileSync(manifestPath, JSON.stringify(payload));
   return { stripped, beforeBytes, afterBytes: statSync(manifestPath).size };
 }
 

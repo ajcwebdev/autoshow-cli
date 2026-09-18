@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { writeFileSync } from "node:fs";
+import { writePortableFileSync } from "../shared/portable_paths";
 import { resolve } from "node:path";
 
 import {
@@ -134,8 +134,8 @@ async function main(): Promise<number> {
     ],
   };
 
-  writeFileSync(jsonOut, JSON.stringify(reportJson));
-  writeFileSync(markdownOut, markdownForRows(args.runDir, rows));
+  writePortableFileSync(jsonOut, JSON.stringify(reportJson));
+  writePortableFileSync(markdownOut, markdownForRows(args.runDir, rows));
   return 0;
 }
 

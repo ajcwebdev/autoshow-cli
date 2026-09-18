@@ -123,7 +123,7 @@ export const buildRecoveryMixPlan = (input: {
 export const buildRecoveryTiming = (
   pure: ReturnType<typeof buildPureCurrentTtsRenderPlan>,
   assembledTurns: ReturnType<typeof buildFinalTimelineLayout>['turns']
-) => pure.planned.strategy === 'segmented' && assembledTurns.every((turn) => turn.endMs > turn.startMs)
+) => pure.planned.strategy === 'segmented' && assembledTurns.length > 0 && assembledTurns.every((turn) => turn.endMs > turn.startMs)
   ? {
       availability: 'timed' as const,
       clock: 'final-audio-ms' as const,

@@ -2,6 +2,7 @@ import { partialCompletionError } from '~/cli/commands/command-shared/provider-b
 import { join, resolve as resolvePath } from 'node:path'
 import { PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
+import { resolveTtsResumeDeliveryOptions } from '~/cli/options/option-resolution/tts-delivery-options'
 import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
 import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 import { normalizeExtractGenericSelectorFlags } from '~/cli/flags/service-selector-normalization/extract-selectors'
@@ -205,6 +206,7 @@ const dispatchSingleResume = async (
   const mergedFlags = mergeConfigIntoRawFlags(normalized.flags, config, normalized.explicitFlags, target.kind)
   const opts = {
     ...buildOptsFromFlags(mergedFlags, {}, normalized.explicitFlags, { flagOccurrences: normalized.flagOccurrences }),
+    ...(target.kind === 'tts' ? await resolveTtsResumeDeliveryOptions(mergedFlags, normalized.explicitFlags) : {}),
     configPath: resolvedConfigPath
   }
   if (sharedHostedConcurrency) {

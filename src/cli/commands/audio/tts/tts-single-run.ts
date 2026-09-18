@@ -16,6 +16,8 @@ import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { isMultiSpeakerRequested, normalizeDialogueFromOptions } from './dialogue-normalizer'
 import { runTtsForTargets, validateTtsRenderInputsForTargets } from './run-tts'
+import { exportTtsDeliveryAudio } from './tts-delivery-export'
+import { applyTtsPronunciationLexicon } from './tts-utils/tts-pronunciation-lexicon'
 import { buildEstimatedTtsTargets, buildTtsArtifactMap, collectTtsTargets, getTtsArtifactFileName, mergeTtsExecutionReadinessObservations, validateTtsTargetsForExecution } from './tts-targets'
 import { materializeStandaloneMistralReference } from '../voice/voice-assets/standalone-mistral-reference'
 import { hasMistralProtectedReferences } from '../voice/voice-assets/mistral-protected-reference-binding'
@@ -50,10 +52,11 @@ export const prepareTtsInput = async (
   createdAt: string
 ): Promise<PreparedTtsInput> => {
   const sourceBytes = new Uint8Array(await Bun.file(inputPath).arrayBuffer())
-  const text = new TextDecoder().decode(sourceBytes)
-  if (!text.trim()) {
+  const sourceText = new TextDecoder().decode(sourceBytes)
+  if (!sourceText.trim()) {
     throw UsageError(`Input file is empty: ${inputPath}`)
   }
+  const { text, replacements: pronunciationReplacements } = applyTtsPronunciationLexicon(sourceText, ttsOptions.ttsPronunciationLexicon)
 
   const dialogueRequested = isMultiSpeakerRequested(ttsOptions)
   const dialoguePreview = dialogueRequested ? normalizeDialogueFromOptions(text, ttsOptions) : undefined
@@ -77,6 +80,7 @@ export const prepareTtsInput = async (
       ? dialoguePreview.turns.map((turn) => turn.text).join('\n')
       : text,
     dialogueRequested,
+    ...(ttsOptions.ttsPronunciationLexicon ? { pronunciationReplacements } : {}),
     ...(dialoguePreview ? { dialogueTurnCount: dialoguePreview.turns.length } : {})
   }
 }
@@ -146,14 +150,19 @@ export const synthesizePreparedTtsInputForTargets = async (
   preflightEstimate: AggregatedPriceEstimate,
   lifecycle?: Pick<TtsRunSourceContext, 'artifactOutputDir' | 'artifactRoot' | 'executionReadiness' | 'resolveReportedOutput' | 'beforeDispatch' | 'onProviderState'> | undefined
 ): Promise<PreparedTtsRun> => {
-  const { metadata } = await runWithLogContext({ step: 'step-4-tts' }, async () =>
-    await runTtsForTargets(prepared.text, outputDir, ttsOptions, targets, {
+  const metadata = await runWithLogContext({ step: 'step-4-tts' }, async () => {
+    const run = await runTtsForTargets(prepared.text, outputDir, ttsOptions, targets, {
       compactArchive: true,
       sourceIdentity: prepared.sourceIdentity,
       dialoguePlan: prepared.dialoguePlan,
       ...lifecycle
     })
-  )
+    const lexicon = ttsOptions.ttsPronunciationLexicon
+    const recorded = lexicon
+      ? run.metadata.map((entry) => ({ ...entry, pronunciationLexicon: { lexiconSha256: lexicon.lexiconSha256, ruleCount: lexicon.rules.length, replacements: prepared.pronunciationReplacements ?? 0 } }))
+      : run.metadata
+    return await exportTtsDeliveryAudio(lifecycle?.artifactOutputDir ?? outputDir, recorded, ttsOptions.ttsExport)
+  })
 
   const estimatedTtsTargets = buildEstimatedTtsTargets(targets)
   const observedEstimate = computeEstimatedCosts({

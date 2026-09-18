@@ -17,6 +17,7 @@ export type TtsInvocationControlsByProvider = {
     seed?: OptionalControl<number>
     textNormalization?: OptionalControl<string>
     pronunciationDictionaryLocators?: OptionalControl<readonly string[]>
+    responseFormat?: OptionalControl<'mp3_44100_128' | 'mp3_44100_192' | 'wav_44100' | 'wav_48000'>
   }>
   grok: Readonly<{
     speed?: OptionalControl<number>
@@ -31,6 +32,7 @@ export type TtsInvocationControlsByProvider = {
     speed?: OptionalControl<number>
     trailingSilence?: OptionalControl<number>
     description?: OptionalControl<string>
+    responseFormat?: OptionalControl<'mp3' | 'wav'>
   }>
   cartesia: Readonly<{ language?: OptionalControl<string>, speed?: OptionalControl<number> }>
   inworld: Readonly<{ steeringPrompt?: OptionalControl<string>, speed?: OptionalControl<number> }>

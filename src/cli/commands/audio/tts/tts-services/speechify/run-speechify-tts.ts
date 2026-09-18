@@ -1,7 +1,7 @@
 import * as v from 'valibot'
-import type { HostedTtsChunkScheduler, SpeechifyTtsModel, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { HostedTtsChunkScheduler, SpeechifyTtsModel, Step4Metadata, TtsChunkingOptions, TtsRequestEvidenceScope } from '~/types'
 import { logTtsConfig } from '~/cli/commands/audio/tts/tts-utils/log-tts-config'
-import { splitTextIntoChunks } from '~/cli/commands/audio/tts/tts-utils/audio-utils'
+import { splitTtsText } from '~/cli/commands/audio/tts/tts-utils/tts-chunk-planner'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/audio/tts/tts-utils/tts-chunking'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-pipeline'
 import { SPEECHIFY_DEFAULT_TTS_VOICE, validateSpeechifyTtsLanguageForModel, validateSpeechifyTtsVoiceForModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
@@ -38,13 +38,14 @@ export const runSpeechifyTts = async (
     abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
+    chunking?: TtsChunkingOptions | undefined
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const apiKey = requireTtsCredential('speechify')
 
   const baseURL = trimTrailingSlash(SPEECHIFY_DEFAULT_BASE_URL)
-  const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.speechify)
+  const chunks = splitTtsText(text, TTS_CHUNK_CHARACTER_LIMITS.speechify, options.chunking)
 
   if (chunks.length === 0) {
     throw ValidationError('Speechify TTS input text is empty', { stage: 'tts:speechify' })

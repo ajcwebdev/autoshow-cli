@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Root directory: `/Users/ajc/c/auto/autoshow-cli/docs/benchmarks/ocr`
+- Root directory: `docs/benchmarks/ocr`
 - Runs aggregated: 13 (29 pages)
   - `01-ad-copy` (23 providers, 1 page)
   - `01-ancient` (23 providers, 1 page)

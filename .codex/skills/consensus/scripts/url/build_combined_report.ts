@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { writePortableFileSync } from "../shared/portable_paths";
+import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { loadCanonicalRunRecord, PIPELINE_MANIFEST_FILE } from "../shared/pipeline_manifest";
 import { discoverCombinedRuns, type CombinedRunRef } from "../shared/combined_report_lib";
@@ -821,8 +822,8 @@ export function writeUrlCombinedReport(rootDirRaw: string): UrlCombinedBuildResu
   const result = buildUrlCombinedReport(rootDir);
   const jsonPath = join(rootDir, "combined-comparison-report.json");
   const markdownPath = join(rootDir, "combined-comparison-report.md");
-  writeFileSync(jsonPath, JSON.stringify(result.report));
-  writeFileSync(markdownPath, result.markdown);
+  writePortableFileSync(jsonPath, JSON.stringify(result.report));
+  writePortableFileSync(markdownPath, result.markdown);
   console.log(`Wrote ${jsonPath}`);
   console.log(`Wrote ${markdownPath}`);
   console.log(`Aggregated ${result.providerCount} providers across ${result.runCount} URL runs.`);

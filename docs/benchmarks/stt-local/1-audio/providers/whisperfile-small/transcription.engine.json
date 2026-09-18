@@ -1,10 +1,10 @@
 {
   "provider": "whisperfile",
   "model": "small",
-  "modelDescriptor": "/Users/ajc/c/autoshow-cli/runtime/bin/whisperfile/whisper-small.llamafile",
+  "modelDescriptor": "runtime/bin/whisperfile/whisper-small.llamafile",
   "command": "sh",
   "args": [
-    "/Users/ajc/c/autoshow-cli/runtime/bin/whisperfile/whisper-small.llamafile",
+    "runtime/bin/whisperfile/whisper-small.llamafile",
     "-f",
     "/var/folders/3j/rtjlfscn5kb5mjh2shh77h840000gn/T/autoshow-whisperfile-poct3i/input.wav",
     "-ml",
@@ -12,7 +12,7 @@
     "-np",
     "-pp",
     "-of",
-    "/Users/ajc/c/autoshow-cli/docs/benchmarks/stt-local/1-audio/providers/whisperfile-small/transcription",
+    "docs/benchmarks/stt-local/1-audio/providers/whisperfile-small/transcription",
     "-ojf"
   ],
   "captionArgs": [],

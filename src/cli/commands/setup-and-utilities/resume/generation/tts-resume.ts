@@ -10,6 +10,8 @@ import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute
 import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { buildTtsTargetEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/tts-estimates'
 import { UsageError } from '~/utils/error-handler'
+import * as l from '~/utils/app-logger/app-logger'
+import { applyTtsPronunciationLexicon } from '~/cli/commands/audio/tts/tts-utils/tts-pronunciation-lexicon'
 import { resolveTtsResumeSourceContext } from './tts-resume-source-context'
 import type { GenerationResumeConfig, GenerationResumeProviderIdentity, GenerationResumeRunContext, PipelineManifestItem, PipelineProviderState, ProtectedVoiceAssetStore, ResumeTarget, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
 import { existsSync } from 'node:fs'
@@ -278,6 +280,45 @@ const createTtsResumeReportedOutputResolver = (
   }
 }
 
+// Output directories created before delivery mastering were planned with the legacy splitter and
+// 16 kHz output. Adopting those settings keeps their purchased slots resumable without repurchase.
+const adoptRetainedTtsDeliveryOptions = (
+  targets: readonly TtsTarget[],
+  input: string,
+  opts: TtsOptions,
+  sourceContext: Awaited<ReturnType<typeof resolveTtsResumeSourceContext>>,
+  currentByTargetKey: ReadonlyMap<string, unknown>
+): void => {
+  if (opts.ttsDeliveryFallbackAllowed !== true) return
+  const legacyChunking = { boundary: 'legacy' as const }
+  const candidates: Array<Pick<TtsOptions, 'ttsChunking' | 'ttsDelivery'>> = [
+    { ttsChunking: opts.ttsChunking, ttsDelivery: opts.ttsDelivery },
+    { ttsChunking: opts.ttsChunking, ttsDelivery: undefined },
+    { ttsChunking: legacyChunking, ttsDelivery: opts.ttsDelivery },
+    { ttsChunking: legacyChunking, ttsDelivery: undefined },
+  ]
+  const retainedTargets = targets.filter((target) => target.targetKey && currentByTargetKey.has(target.targetKey) && sourceContext.retainedPlanIdentities.has(target.targetKey))
+  if (retainedTargets.length === 0) return
+  const matches = (candidate: typeof candidates[number]): boolean => retainedTargets.every((target) => {
+    const retained = sourceContext.retainedPlanIdentities.get(target.targetKey as string)
+    const planned = planCurrentTtsRenderIdentity({ target, sourceText: input, ttsOptions: { ...opts, ...candidate }, sourceIdentity: sourceContext.sourceIdentity, dialoguePlan: sourceContext.dialoguePlan })
+    return retained?.kind === 'branch'
+      ? planned.branchPlanId === retained.branchPlanId
+      : planned.renderPlanId === retained?.renderPlanId && planned.renderIdentity === retained?.renderIdentity
+  })
+  const adopted = candidates.find(matches)
+  if (!adopted || adopted === candidates[0]) return
+  opts.ttsChunking = adopted.ttsChunking
+  if (adopted.ttsDelivery === undefined) {
+    delete opts.ttsDelivery
+    if (opts.ttsExport) {
+      l.warn('TTS resume matched a retained 16 kHz render; delivery export options are ignored for it.', { category: 'pipeline' })
+      delete opts.ttsExport
+    }
+  }
+  l.write('info', `TTS resume adopted the retained render settings (chunk boundary: ${adopted.ttsChunking?.boundary ?? 'legacy'}, audio profile: ${adopted.ttsDelivery?.preset ?? 'legacy-16k'}).`, { category: 'pipeline' })
+}
+
 const resolveExactTtsResumeSourceContext = async (
   targets: readonly TtsTarget[],
   input: string,
@@ -300,6 +341,7 @@ const resolveExactTtsResumeSourceContext = async (
   const currentByTargetKey = new Map(context.currentProviderStates.flatMap((provider) =>
     provider.targetKey ? [[provider.targetKey, provider] as const] : []
   ))
+  adoptRetainedTtsDeliveryOptions(targets, input, opts, sourceContext, currentByTargetKey)
   for (const target of targets) {
     if (!target.targetKey) {
       throw UsageError(`TTS resume target ${target.service}/${target.model} is missing its operation-scoped targetKey.`)
@@ -408,11 +450,12 @@ export const ttsResumeConfig = {
     await resolveStoredTtsTargetsForResume(providers, opts, target, item),
   runMissingTargets: async (
     targets: TtsTarget[],
-    input: string,
+    storedInput: string,
     outputDir: string,
     opts: TtsOptions,
     context: GenerationResumeRunContext<TtsTarget, Step4Metadata, TtsOptions>
   ) => {
+    const input = applyTtsPronunciationLexicon(storedInput, opts.ttsPronunciationLexicon).text
     const effectiveOpts = withSafeMultiTargetChunkConcurrency(targets, opts, context.explicitFlags)
     const { sourceContext, currentByTargetKey } = await resolveExactTtsResumeSourceContext(targets, input, effectiveOpts, context)
     if (!sourceContext.dialoguePlan) {
@@ -489,9 +532,10 @@ export const ttsResumeConfig = {
   },
   buildEstimates: async (
     opts: TtsOptions,
-    input: string,
+    storedInput: string,
     context: GenerationResumeRunContext<TtsTarget, Step4Metadata, TtsOptions>
   ) => {
+    const input = applyTtsPronunciationLexicon(storedInput, opts.ttsPronunciationLexicon).text
     const runtimeOptions = withSafeMultiTargetChunkConcurrency(context.targets, context.runtimeOptions, context.explicitFlags)
     const estimateOptions = withSafeMultiTargetChunkConcurrency(context.targets, opts, context.explicitFlags)
     const { sourceContext, currentByTargetKey } = await resolveExactTtsResumeSourceContext(

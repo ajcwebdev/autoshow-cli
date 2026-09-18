@@ -4,6 +4,7 @@ import { configureModelCostFilter } from '~/cli/commands/pricing-orchestration/m
 import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
 import { enforceTtsBatchBudget } from '~/cli/commands/audio/tts/tts-batch-estimates'
 import { getInputStem } from '~/cli/commands/audio/tts/tts-batch-plan'
+import { assembleTtsBooksFromManifest, refreshTtsBatchExports } from '~/cli/commands/audio/tts/tts-book-assembly'
 import * as l from '~/utils/app-logger/app-logger'
 import { realpath } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -115,6 +116,8 @@ export const attachExistingTtsDirectoryBatch = async (
       enforceTtsBatchBudget(estimate.totalEstimatedCost, maxCents, ttsOptions.allowOverBudget)
       await createGenerationOutputDir(getInputStem(inputPath))
       await resumeExistingTtsDirectoryBatch(pinnedDir, ttsOptions)
+      if (ttsOptions.ttsExport) await refreshTtsBatchExports(pinnedDir, ttsOptions.ttsExport)
+      if (ttsOptions.ttsExport?.book) await assembleTtsBooksFromManifest({ batchDir: pinnedDir, targets, options: ttsOptions.ttsExport })
       return true
     }
   }

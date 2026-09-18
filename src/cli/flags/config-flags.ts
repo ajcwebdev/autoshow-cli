@@ -12,6 +12,7 @@ import {
   configGenerationSelectorFlags
 } from './shared-flags'
 import { ttsCommandFlags } from './tts-flags'
+import { ttsRunScopedDeliveryFlagNames } from './tts-delivery-flags'
 import type { CliFlagsDefinition } from '~/types'
 
 const configFlags = {
@@ -38,7 +39,8 @@ const configTtsFlags = omitFlags(ttsCommandFlags, [
   'price',
   'max-model-cents',
   'tts-ref-audio',
-  'allow-ambiguous-redispatch'
+  'allow-ambiguous-redispatch',
+  ...ttsRunScopedDeliveryFlagNames
 ])
 const configOcrInputFlags = omitFlags(ocrInputFlags, ['password'])
 const configPromptFlags = omitFlags(promptFlag, ['prompt-md'])

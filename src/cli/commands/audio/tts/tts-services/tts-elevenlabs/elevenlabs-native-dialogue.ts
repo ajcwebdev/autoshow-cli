@@ -22,7 +22,7 @@ import { finalizeTtsRun } from '../../tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '../../tts-utils/hosted-tts-retry'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { providerSecondsToMilliseconds } from '../../script-to-audio/advanced-provider-contracts'
-import { ELEVENLABS_TTS_OUTPUT_FORMAT, readElevenLabsError } from './elevenlabs-utils'
+import { ELEVENLABS_TTS_OUTPUT_FORMAT, elevenLabsChunkExtension, readElevenLabsError } from './elevenlabs-utils'
 import { parseElevenLabsDictionaryLocator, validateElevenLabsVoiceSettings } from './elevenlabs-utils'
 import { canonicalOffsetForProviderOffset } from '~/cli/commands/audio/tts/tts-utils/tts-timing-mapping'
 
@@ -178,7 +178,7 @@ export const runElevenLabsNativeDialogue = async (
   if (turns.length === 0) throw UsageError('ElevenLabs native Text-to-Dialogue requires at least one turn.')
   const apiKey = resolveCredential('elevenlabs', 'require', { stage: 'tts:elevenlabs', description: 'ElevenLabs Text-to-Dialogue' })
   const batches = planElevenLabsNativeDialogueBatches(turns)
-  const outputFormat = ELEVENLABS_TTS_OUTPUT_FORMAT
+  const outputFormat = options.controls?.responseFormat ?? ELEVENLABS_TTS_OUTPUT_FORMAT
   validateElevenLabsVoiceSettings(options.model, options.controls?.voiceSettings)
   const stability = options.controls?.voiceSettings?.stability
   const dictionaries = options.controls?.pronunciationDictionaryLocators?.map(parseElevenLabsDictionaryLocator)
@@ -230,7 +230,7 @@ export const runElevenLabsNativeDialogue = async (
       if (typeof payload.audio_base64 !== 'string' || !payload.audio_base64) throw InfraError('ElevenLabs Text-to-Dialogue returned no audio.', { stage: 'tts:elevenlabs' })
       const bytes = Uint8Array.from(Buffer.from(payload.audio_base64, 'base64'))
       if (bytes.byteLength === 0) throw InfraError('ElevenLabs Text-to-Dialogue returned empty audio.', { stage: 'tts:elevenlabs' })
-      const path = `${outputDir}/speech-elevenlabs-dialogue-${String(chunkIndex).padStart(3, '0')}.mp3`
+      const path = `${outputDir}/speech-elevenlabs-dialogue-${String(chunkIndex).padStart(3, '0')}.${elevenLabsChunkExtension(outputFormat)}`
       await Bun.write(path, bytes)
       const timing = normalizeElevenLabsDialogueTiming({ response: payload, turns: batch.turns })
       await options.requestEvidence?.recordOutput({ chunkIndex, path, timing })

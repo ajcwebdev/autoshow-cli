@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { writeFileSync } from "node:fs";
+import { writePortableFileSync } from "./portable_paths";
 import { join, resolve } from "node:path";
 import { buildOcrCombinedReport } from "../ocr/build_combined_report";
 import { buildSttCombinedReport } from "../stt/build_combined_report";
@@ -50,7 +50,7 @@ export function buildCombinedDashboard(benchmarksRootRaw: string, generatedAt = 
 export function writeCombinedDashboard(benchmarksRootRaw: string, outPathRaw?: string): string {
   const benchmarksRoot = resolve(benchmarksRootRaw);
   const outPath = resolve(outPathRaw ?? join(benchmarksRoot, DASHBOARD_FILE));
-  writeFileSync(outPath, buildCombinedDashboard(benchmarksRoot));
+  writePortableFileSync(outPath, buildCombinedDashboard(benchmarksRoot));
   console.log(`Wrote ${outPath}`);
   return outPath;
 }

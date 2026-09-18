@@ -1,4 +1,4 @@
-import type { AnyCapabilityRecord, AttemptTurn, CanonicalDialogueTurn, CapabilityFixture, ComicDialoguePlan, CreateCurrentTtsRenderAttemptOptions, GenericTtsDialoguePlan, PlannedCost, ProtectedAssetRef, ProviderRenderStrategy, ResolvedVoiceBinding, SanitizedProviderError, TtsTarget, TypedProviderSynthesisSettings } from '~/types'
+import type { AnyCapabilityRecord, AttemptTurn, CanonicalDialogueTurn, CapabilityFixture, ComicDialoguePlan, CreateCurrentTtsRenderAttemptOptions, GenericTtsDialoguePlan, PlannedCost, ProtectedAssetRef, ProviderRenderStrategy, RequestedAudioFormat, ResolvedVoiceBinding, SanitizedProviderError, TtsTarget, TypedProviderSynthesisSettings } from '~/types'
 import { getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { ELEVENLABS_DEFAULT_VOICE_ID, SPEECHIFY_DEFAULT_TTS_VOICE } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { UsageError, extractErrorMetadata } from '~/utils/error-handler'
@@ -6,7 +6,8 @@ import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { parseRetryAfterMs } from '~/utils/retries'
 import { hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { validateCapabilityFacetSet } from './contract-validation'
-import { CAPABILITY_CHECKED_AT, CAPABILITY_SOURCE_REFS, EPOCH, REQUESTED_OUTPUT, withIdentity } from './attempt-shared'
+import { CAPABILITY_CHECKED_AT, CAPABILITY_SOURCE_REFS, EPOCH, withIdentity } from './attempt-shared'
+import { paidSlotOutputFormat } from './tts-slot-output-format'
 import { chunkLimit } from './comic-segmented-audio'
 
 export const sanitizeError = (error: unknown, phase: SanitizedProviderError['phase']): SanitizedProviderError => {
@@ -138,14 +139,17 @@ export const sumCosts = (costs: readonly PlannedCost[]): PlannedCost => {
   return { amounts: [...amounts].sort(([left], [right]) => left.localeCompare(right)).map(([currency, amount]) => ({ currency, amount })) }
 }
 
-export const requestedOutput = (options: Pick<CreateCurrentTtsRenderAttemptOptions, 'ttsOptions'>) => options.ttsOptions.ttsMasteringProfile
-  ? {
-      codec: options.ttsOptions.ttsMasteringProfile.codec,
-      container: options.ttsOptions.ttsMasteringProfile.container,
-      sampleRate: options.ttsOptions.ttsMasteringProfile.sampleRate,
-      channels: options.ttsOptions.ttsMasteringProfile.channels,
-    }
-  : REQUESTED_OUTPUT
+export const requestedOutput = (options: Pick<CreateCurrentTtsRenderAttemptOptions, 'ttsOptions'>): RequestedAudioFormat => {
+  const delivery = options.ttsOptions.ttsDelivery
+  if (options.ttsOptions.ttsMasteringProfile || !delivery) return paidSlotOutputFormat(options)
+  return {
+    codec: delivery.codec,
+    container: delivery.container,
+    ...(delivery.sampleRate !== undefined ? { sampleRate: delivery.sampleRate } : {}),
+    ...(delivery.channels !== undefined ? { channels: delivery.channels } : {}),
+    delivery,
+  }
+}
 
 export const defaultVoiceValue = (target: TtsTarget): string => {
   switch (target.service) {

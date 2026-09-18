@@ -1,10 +1,10 @@
 {
   "provider": "whisperfile",
   "model": "large-v3",
-  "modelDescriptor": "/Users/ajc/c/autoshow-cli/runtime/bin/whisperfile/whisper-large-v3.llamafile",
+  "modelDescriptor": "runtime/bin/whisperfile/whisper-large-v3.llamafile",
   "command": "sh",
   "args": [
-    "/Users/ajc/c/autoshow-cli/runtime/bin/whisperfile/whisper-large-v3.llamafile",
+    "runtime/bin/whisperfile/whisper-large-v3.llamafile",
     "-f",
     "/var/folders/3j/rtjlfscn5kb5mjh2shh77h840000gn/T/autoshow-stt-acquire-r9gfhD/source_media.mp3",
     "-ml",
@@ -12,7 +12,7 @@
     "-np",
     "-pp",
     "-of",
-    "/Users/ajc/c/autoshow-cli/docs/benchmarks/stt-local/2022-09-30-widgets-fsjam-40-minutes/providers/whisperfile-large-v3/transcription",
+    "docs/benchmarks/stt-local/2022-09-30-widgets-fsjam-40-minutes/providers/whisperfile-large-v3/transcription",
     "-ojf"
   ],
   "captionArgs": [],

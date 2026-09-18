@@ -16,7 +16,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { UsageError } from '~/utils/error-handler'
 import { resolveTtsTargetInvocationControls } from '../tts-targets/tts-invocation-controls'
-import { ELEVENLABS_TTS_OUTPUT_FORMAT, validateElevenLabsVoiceSettings, parseElevenLabsDictionaryLocator } from '../tts-services/tts-elevenlabs/elevenlabs-utils'
+import { ELEVENLABS_TTS_OUTPUT_FORMAT, validateElevenLabsVoiceSettings, parseElevenLabsDictionaryLocator, type ELEVENLABS_TTS_RESPONSE_FORMATS } from '../tts-services/tts-elevenlabs/elevenlabs-utils'
 import { INWORLD_TTS_SERIALIZER_VERSION, inworldTtsRequestControls } from '../tts-services/inworld/inworld-tts-request'
 import { SCHEMA_VERSION } from './attempt-shared'
 
@@ -59,9 +59,10 @@ const buildSpeechifySerializer: SerializerBuilder = ({ controls }) => ({ endpoin
 const buildMistralSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'mistral.tts.phase-0-v1', controls: { stream: false, responseFormat: controls.string('responseFormat') ?? 'wav' } })
 const buildHumeSerializer: SerializerBuilder = ({ target, strategy, controls }) => {
   if (target.model === 'octave-2' && controls.string('description')) throw UsageError('Hume Octave 2 does not support acting descriptions; use Octave 1 for description controls.')
+  if (strategy === 'native-utterances' && controls.string('responseFormat')) throw UsageError('Hume native multi-speaker utterances do not support --tts-response-format; remove it or use segmented dialogue.')
   return strategy === 'native-utterances'
   ? { endpointKind: 'native-utterance-synthesis', serializerVersion: 'hume.native-utterances.phase-3-v1', controls: { version: '2', format: { type: 'mp3' }, numGenerations: 1, includeTimestampTypes: ['word', 'phoneme'] } }
-  : { endpointKind: 'speech-synthesis', serializerVersion: 'hume.tts.phase-0-v1', controls: { version: target.model === 'octave-1' ? '1' : '2', format: { type: 'mp3' }, numGenerations: 1, ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}), ...(controls.number('trailingSilence') !== undefined ? { trailingSilence: controls.number('trailingSilence') } : {}), ...(controls.string('description') ? { description: controls.string('description') } : {}) } }
+  : { endpointKind: 'speech-synthesis', serializerVersion: 'hume.tts.phase-0-v1', controls: { version: target.model === 'octave-1' ? '1' : '2', format: { type: controls.string('responseFormat') ?? 'mp3' }, numGenerations: 1, ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}), ...(controls.number('trailingSilence') !== undefined ? { trailingSilence: controls.number('trailingSilence') } : {}), ...(controls.string('description') ? { description: controls.string('description') } : {}) } }
 }
 
 const buildInworldSerializer: SerializerBuilder = ({ target, controls }) => ({ endpointKind: 'realtime-tts', serializerVersion: INWORLD_TTS_SERIALIZER_VERSION, controls: inworldTtsRequestControls(target.model, controls.string('steeringPrompt'), controls.number('speed')) })
@@ -75,7 +76,7 @@ const buildElevenLabsSerializer: SerializerBuilder = ({ target, strategy, contro
     endpointKind: 'text-to-dialogue-with-timestamps',
     serializerVersion: 'elevenlabs.dialogue.phase-3-v1',
     controls: {
-      outputFormat: ELEVENLABS_TTS_OUTPUT_FORMAT,
+      outputFormat: controls.string('responseFormat') ?? ELEVENLABS_TTS_OUTPUT_FORMAT,
       modelId: 'eleven_v3',
       ...(controls.number('stability') !== undefined ? { settings: { stability: controls.number('stability') } } : {}),
       ...(controls.stringArray('pronunciationDictionaryLocators')?.length ? { pronunciationDictionaryLocators: controls.stringArray('pronunciationDictionaryLocators')!.map(parseElevenLabsDictionaryLocator) } : {}),
@@ -102,7 +103,7 @@ const buildElevenLabsSerializer: SerializerBuilder = ({ target, strategy, contro
     endpointKind: 'speech-synthesis',
     serializerVersion: 'elevenlabs.tts.phase-0-v1',
     controls: {
-      outputFormat: ELEVENLABS_TTS_OUTPUT_FORMAT,
+      outputFormat: controls.string('responseFormat') ?? ELEVENLABS_TTS_OUTPUT_FORMAT,
       ...(controls.string('languageCode') ? { languageCode: controls.string('languageCode') } : {}),
       ...(Object.keys(voiceSettings).length > 0 ? { voiceSettings } : {}),
       ...(controls.number('seed') !== undefined ? { seed: controls.number('seed') } : {}),
@@ -162,7 +163,7 @@ export const resolveEffectiveProviderControls = (
       if (controls.instructions && target.model !== 'gpt-4o-mini-tts-2025-12-15') throw UsageError(`OpenAI per-turn TTS instructions are not supported by ${target.model}.`)
       return controls
     }
-    case 'elevenlabs': return resolveTtsTargetInvocationControls('elevenlabs', invocation, { languageCode: selection.elevenLabsLanguageCode, stability: selection.elevenLabsStability, similarityBoost: selection.elevenLabsSimilarityBoost, style: selection.elevenLabsStyle, ...(selection.elevenLabsUseSpeakerBoost ? { useSpeakerBoost: true } : {}), speed: selection.elevenLabsSpeed, seed: selection.elevenLabsSeed, textNormalization: selection.elevenLabsTextNormalization, pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators })
+    case 'elevenlabs': return resolveTtsTargetInvocationControls('elevenlabs', invocation, { languageCode: selection.elevenLabsLanguageCode, stability: selection.elevenLabsStability, similarityBoost: selection.elevenLabsSimilarityBoost, style: selection.elevenLabsStyle, ...(selection.elevenLabsUseSpeakerBoost ? { useSpeakerBoost: true } : {}), speed: selection.elevenLabsSpeed, seed: selection.elevenLabsSeed, textNormalization: selection.elevenLabsTextNormalization, pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators, responseFormat: selection.elevenLabsResponseFormat as (typeof ELEVENLABS_TTS_RESPONSE_FORMATS)[number] | undefined })
     case 'grok': return resolveTtsTargetInvocationControls('grok', invocation, { speed: selection.grokSpeed, language: selection.grokLanguage, ...(selection.grokTextNormalization ? { textNormalization: true } : {}) })
     case 'mistral': return resolveTtsTargetInvocationControls('mistral', invocation, { responseFormat: 'wav' })
     case 'speechify': {
@@ -173,7 +174,8 @@ export const resolveEffectiveProviderControls = (
     case 'hume': return resolveTtsTargetInvocationControls('hume', invocation, {
       speed: selection.humeSpeed,
       trailingSilence: selection.humeTrailingSilence,
-      description: selection.humeDescription
+      description: selection.humeDescription,
+      responseFormat: selection.humeResponseFormat as 'mp3' | 'wav' | undefined
     })
     case 'cartesia': return resolveTtsTargetInvocationControls('cartesia', invocation, { language: selection.cartesiaLanguage, speed: selection.cartesiaSpeed })
     case 'inworld': return resolveTtsTargetInvocationControls('inworld', invocation, { steeringPrompt: selection.inworldInstructions, speed: selection.inworldSpeed })

@@ -9,10 +9,12 @@ import type {
   ProviderRenderResult,
   PureCurrentTtsRenderPlanOptions,
   RecoveryFinalizationInput,
-  RetainedJournalEvidence
+  RetainedJournalEvidence,
+  TtsDeliveryMasteringResult
 } from '~/types'
 import { InternalError, UsageError } from '~/utils/error-handler'
 import { concatAndConvertToWav } from '../tts-utils/audio-utils'
+import { assembleTtsDeliveryAudio } from './tts-delivery-assembly'
 import {
   contained,
   copyCreateOnly,
@@ -97,6 +99,7 @@ const assembleRecoveryAudio = async (
   path: string
   turnDurationMs?: ReadonlyMap<string, number> | undefined
   timingSegmentDurationMs?: ReadonlyMap<string, number> | undefined
+  delivery?: TtsDeliveryMasteringResult | undefined
 }> => {
   const masteringProfile = input.options.ttsOptions.ttsMasteringProfile
   if (input.options.comicContext && input.pure.planned.strategy === 'segmented') {
@@ -113,6 +116,20 @@ const assembleRecoveryAudio = async (
       providerLabel: `${input.options.target.service}-recovery`,
       profile: masteringProfile,
     })
+  }
+  const deliveryProfile = input.options.ttsOptions.ttsDelivery
+  if (deliveryProfile && !input.options.comicContext) {
+    const delivery = await assembleTtsDeliveryAudio({
+      plan: input.pure.planned,
+      target: input.options.target,
+      profile: deliveryProfile,
+      chunking: input.options.ttsOptions.ttsChunking,
+      outputPathsBySlot: new Map(orderedBatches.map((batch) =>
+        [batch.value.generationSlotId, batch.outputPaths] as const)),
+      masteringDir: workspaceDir,
+      providerLabel: `${input.options.target.service}-recovery`,
+    })
+    return { path: delivery.path, delivery }
   }
   return {
     path: await concatAndConvertToWav(
@@ -184,6 +201,7 @@ const publishCompletedRenderRecovery = async (
     comicDialoguePlan: input.options.comicContext?.dialoguePlan,
     masteredTurnDurationMs: assembled.turnDurationMs,
     masteredTimingSegmentDurationMs: assembled.timingSegmentDurationMs,
+    delivery: assembled.delivery,
   })
   const ledger = buildTransformLedger({
     renderIdentity: input.pure.renderIdentity,
