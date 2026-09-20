@@ -1,5 +1,6 @@
-docs/todo
 docs/reports/*
+docs/links
+docs/todo
 
 .DS_Store
 node_modules/

@@ -80,7 +80,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 11: [ADR-011](ADR-011-add-refresh-metadata-to-links.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Adds direct URL and input-file `links` modes, model reference selections, optional `--refresh` metadata sidecars with token/hash change tracking, and standard `output/` run-directory writes via `--output-root` and `--output-dir`.
+- **Decision:** Adds direct URL and input-file `links` modes, model reference selections, optional `--refresh` metadata sidecars with token/hash change tracking and needs-attention findings (`--refresh-only` later removed), and standard `output/` run-directory writes via `--output-root` and `--output-dir`.
 - **Related ADRs:** [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)
 
 **ADR 12: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)**

@@ -222,7 +222,7 @@ describe('price mode contracts', () => {
 
       const kimiK3 = requireDefined(getModelRegistry().llm['kimi']?.models['kimi-k3'], 'Kimi K3 registry entry')
       expect(kimiK3).toMatchObject({
-        pricingSourceUrl: 'https://platform.kimi.ai/docs/pricing/chat-k3',
+        pricingSourceUrl: 'https://platform.kimi.ai/docs/pricing/chat',
         cachedInputCostPer1MCents: 30
       })
 

@@ -3,12 +3,25 @@
     "LLMSTXT": [
       "https://soniox.com/docs/llms.txt"
     ],
+    "General": [
+      "https://soniox.com/docs/api-reference.mdx",
+      "https://soniox.com/docs/api-reference/errors.mdx"
+    ],
     "STT": [
-      "https://soniox.com/docs/stt/api-reference/transcriptions/create_transcription.mdx",
-      "https://soniox.com/docs/stt/api-reference/transcriptions/get_transcription.mdx",
+      "https://soniox.com/docs/api-reference/stt/files/upload_file.mdx",
+      "https://soniox.com/docs/api-reference/stt/files/delete_file.mdx",
+      "https://soniox.com/docs/api-reference/stt/transcriptions/create_transcription.mdx",
+      "https://soniox.com/docs/api-reference/stt/transcriptions/get_transcription.mdx",
+      "https://soniox.com/docs/api-reference/stt/transcriptions/get_transcription_transcript.mdx",
+      "https://soniox.com/docs/api-reference/stt/transcriptions/delete_transcription.mdx",
+      "https://soniox.com/docs/api-reference/stt/get_models.mdx",
       "https://soniox.com/docs/stt/async/async-transcription.mdx",
       "https://soniox.com/docs/stt/models",
       "https://soniox.com/docs/stt/async/limits-and-quotas",
+      "https://soniox.com/docs/stt/async/error-handling.mdx",
+      "https://soniox.com/docs/stt/concepts/speaker-diarization.mdx",
+      "https://soniox.com/docs/stt/concepts/supported-languages.mdx",
+      "https://soniox.com/docs/stt/concepts/timestamps.mdx",
       "https://soniox.com/pricing"
     ]
   }

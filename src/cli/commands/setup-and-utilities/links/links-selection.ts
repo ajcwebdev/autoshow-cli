@@ -32,13 +32,7 @@ export const linksFlags = {
     consumeAdjacentValues: false,
   },
   refresh: {
-    description: 'Write refresh metadata sidecar with per-link hashes and token counts',
-    type: Boolean,
-    default: false,
-    negatable: false
-  },
-  'refresh-only': {
-    description: 'Write refresh metadata sidecar without overwriting existing Markdown bundle',
+    description: 'Compare with the previous refresh in docs/links/<selection>: write per-link hashes and token counts, a diff of each changed link, and links that need attention',
     type: Boolean,
     default: false,
     negatable: false
@@ -108,14 +102,12 @@ export const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection 
     throw UsageError('links input file mode cannot be combined with provider or section selectors')
   }
 
-  const refreshOnly = parsed.flags['refresh-only'] === true
-  const refresh = parsed.flags['refresh'] === true || refreshOnly
+  const refresh = parsed.flags['refresh'] === true
 
   return {
     serviceSelections,
     globalSections,
     refresh,
-    ...(refreshOnly ? { refreshOnly: true } : {}),
     ...(inputFilePath ? { inputFilePath } : {}),
     ...(directUrl ? { directUrl } : {})
   }

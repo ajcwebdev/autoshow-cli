@@ -5,7 +5,7 @@
     "models": {
       "mistral-ocr-4-0": {
         "description": "Mistral OCR 4.0",
-        "pricingSourceUrl": "https://docs.mistral.ai/models/model-cards/ocr-4-0",
+        "pricingSourceUrl": "https://docs.mistral.ai/models/ocr-4-0",
         "pricingCheckedAt": "2026-06-30",
         "pricingCurrency": "USD",
         "pricingTier": "Mistral La Plateforme public pricing",

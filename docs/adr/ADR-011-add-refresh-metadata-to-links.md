@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-14
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-09-20
 - **Verification Status:** Passed
 
 ## Context
@@ -90,6 +90,24 @@ It does not apply to:
 - How curated documentation URLs are chosen or kept current.
 - Changing the combined markdown format.
 - Pipeline `manifest.json` or `resume` for `links`.
+
+### Amendment (2026-09-20): one refresh command, with findings
+
+`--refresh-only` is removed and now fails as an unknown flag. It fetched and converted every page exactly as `--refresh` does, matched `--refresh` outright in a default timestamped run, and against a pinned `--output-dir` left the sidecar describing remote content that the bundle on disk did not hold. `--refresh` always rewrites the bundle; the sidecar no longer carries `markdownWritten`. References to `--refresh-only` elsewhere in this record describe the original decision.
+
+`--refresh` also reports links that need attention, which supersedes the statement above that keeping curated URLs current is out of scope. The sidecar gains a `findings` array and `totals.attentionCount`, derived from the pages the run already fetched: `http-error`, `fetch-failed`, `empty`, `login-redirect`, `duplicate-target`, `redirect`, `duplicate-content`, and `shrunk`. Findings are logged as warnings and do not change the exit code. A separate link-audit script was folded into this path so one command both refreshes the bundle and checks the configs.
+
+Change status compares a `changeHash` rather than `contentHash`. `changeHash` hashes the markdown with ISO 8601 timestamps masked and lines sorted, because `docs.x.ai` reorders table rows and Gladia's OpenAPI spec regenerates example timestamps on every request, which marked four links `changed` on every run. `contentHash` still records the exact bundle bytes and still drives `duplicate-content`. A reorder-only or timestamp-only edit now reads as `unchanged`; that was accepted because a `changed` status that always fires carries no signal. `shrunk` fires at 60% of the previous token count instead of 50%, after a page that lost its request parameters landed at 50.1% and went unreported.
+
+Five changes followed a review of what a refresh run could and could not tell its reader. The sidecar moved to `schemaVersion` 2.
+
+- **The comparison is the default.** A refresh was only useful against a previous refresh, yet a default run wrote a new timestamped directory and compared with nothing, so the useful mode needed a directory passed by hand. `--refresh` without `--output-dir` now reuses `docs/links/<selection>-links/`. `--output-dir` still overrides it, and runs without `--refresh` are unchanged.
+- **A changed link comes with its diff.** `changed` reported that a page moved and the run then overwrote the only copy of the previous body, so every change had to be re-derived by hand. The run now reads the bundle it is about to overwrite and writes `<selection>-links.changes.md`. Reusing the bundle as the previous state was chosen over a per-link content store because it needs no new storage and no migration.
+- **Conversion is checked.** Every earlier check described the fetch, while the only lossy step is HTML to markdown conversion, which a converter change had silently broken for Mistral's request parameters. Each HTML page now records the identifiers its text holds that the markdown lacks, and `conversion-loss` reports identifiers that the previous capture held, the page still has, and this run lost. An absolute recall threshold was rejected because a correct capture of a marketing page scores as low as 0.13, and a recall delta between runs was rejected after it misfired when the identifier pattern changed and when a related-models carousel gained items. Neither can affect a comparison against the previous capture's own identifiers.
+- **The pages the model registry cites are fetched.** `pricingSourceUrl` and `catalogSourceUrl` named 78 pages, 51 of them in no link config, so no refresh read the pages prices came from. Whole-provider refreshes now derive those pages from the registry. Deriving them was chosen over copying them into link configs because the copy is what had drifted. The first run found three dead pricing sources, five stale ones, and seven model IDs that no fetched page spells out: four are registry labels for endpoints that take no model parameter, and three are Mistral names that its model cards render in the browser. `pricingCheckedAt` and `catalogCheckedAt` stay hand-written, since fetching a page does not compare its numbers with the registry's.
+- **The sidecar is an index.** Each link records `startLine` and `lineCount`, so one page can be read out of a bundle of several hundred thousand lines. The per-link tokenizer block, 29% of the file, is recorded once.
+
+Speed was measured and left alone: a full run is about 25 seconds and is bound by seven workers, and only 48% of links send a cache validator.
 
 ## Rationale
 

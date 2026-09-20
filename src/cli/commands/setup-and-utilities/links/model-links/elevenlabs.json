@@ -1,7 +1,8 @@
 {
   "Elevenlabs": {
     "LLMSTXT": [
-      "https://elevenlabs.io/docs/llms.txt"
+      "https://elevenlabs.io/docs/llms.txt",
+      "https://elevenlabs.io/docs/changelog/llms.txt"
     ],
     "General": [
       "https://elevenlabs.io/docs/overview/intro.md",
@@ -9,11 +10,16 @@
       "https://elevenlabs.io/docs/api-reference/authentication.md",
       "https://elevenlabs.io/docs/eleven-api/quickstart.md",
       "https://elevenlabs.io/docs/eleven-api/resources/errors.md",
-      "https://elevenlabs.io/docs/overview/administration/workspaces/api-keys.md"
+      "https://elevenlabs.io/docs/overview/administration/workspaces/api-keys.md",
+      "https://elevenlabs.io/docs/eleven-api/resources/breaking-changes-policy.md"
     ],
     "Models": [
       "https://elevenlabs.io/docs/overview/models.md",
-      "https://elevenlabs.io/docs/eleven-api/choosing-the-right-model.md"
+      "https://elevenlabs.io/docs/eleven-api/choosing-the-right-model.md",
+      "https://elevenlabs.io/docs/api-reference/models/list.md",
+      "https://elevenlabs.io/docs/help-center/product/core-capabilities/text-to-speech/how-much-does-it-cost-to-generate-using-eleven-v3-alpha.md",
+      "https://elevenlabs.io/docs/help-center/product/core-capabilities/sound-effects/how-much-does-it-cost-to-generate-sound-effects.md",
+      "https://elevenlabs.io/docs/help-center/product/core-capabilities/music/how-much-does-eleven-music-cost.md"
     ],
     "TTS": [
       "https://elevenlabs.io/docs/overview/capabilities/text-to-speech.md",
@@ -45,7 +51,8 @@
       "https://elevenlabs.io/docs/overview/capabilities/music.md",
       "https://elevenlabs.io/docs/overview/capabilities/music/best-practices.md",
       "https://elevenlabs.io/docs/eleven-api/guides/cookbooks/music.md",
-      "https://elevenlabs.io/docs/api-reference/music/compose.md"
+      "https://elevenlabs.io/docs/api-reference/music/compose.md",
+      "https://elevenlabs.io/docs/eleven-api/guides/how-to/music/composition-plans.md"
     ]
   }
 }

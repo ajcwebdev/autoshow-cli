@@ -5,7 +5,7 @@
     "models": {
       "youtube-transcript": {
         "description": "YouTube transcript retrieval through ScrapeCreators; does not generate transcripts from audio",
-        "pricingSourceUrl": "https://scrapecreators.com/pricing",
+        "pricingSourceUrl": "https://scrapecreators.com/",
         "pricingCheckedAt": "2026-05-31",
         "pricingCurrency": "USD",
         "pricingTier": "ScrapeCreators Freelance credit reference rate",

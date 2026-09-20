@@ -7,6 +7,7 @@ import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
 import { findHostedTtsCredential } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import { childEnv } from '~/utils/child-env'
 import { parseHumeVoiceCatalogEnvelope } from '../tts-services/hume/hume-advanced-provider'
+import { CARTESIA_API_VERSION } from '../tts-services/cartesia/cartesia-tts-request'
 
 export const mergeTtsExecutionReadinessObservations = (
   preIngest: readonly TtsExecutionReadinessObservation[],
@@ -177,7 +178,7 @@ const checkAdvancedVoiceReadiness = async (
     }
     if (target.service === 'cartesia') {
       const results = await Promise.all(voiceIds.map(async voiceId => {
-        const response = await request(`https://api.cartesia.ai/voices/${encodeURIComponent(voiceId)}`, { headers: { Authorization: `Bearer ${apiKey}`, 'Cartesia-Version': '2026-03-01' } })
+        const response = await request(`https://api.cartesia.ai/voices/${encodeURIComponent(voiceId)}`, { headers: { Authorization: `Bearer ${apiKey}`, 'Cartesia-Version': CARTESIA_API_VERSION } })
         if (!response.ok) return false
         const payload = await response.json() as { id?: unknown }
         return payload.id === voiceId

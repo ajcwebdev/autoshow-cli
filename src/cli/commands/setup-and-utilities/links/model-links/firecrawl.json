@@ -1,14 +1,13 @@
 {
   "Firecrawl": {
     "LLMSTXT": [
-      "https://docs.firecrawl.dev/llms.txt"
+      "https://docs.firecrawl.dev/llms.txt",
+      "https://docs.firecrawl.dev/_llms/en/v2.md"
     ],
     "General": [
-      "https://docs.firecrawl.dev/api-reference/introduction.md",
+      "https://docs.firecrawl.dev/api-reference/v2-introduction.md",
+      "https://docs.firecrawl.dev/api-reference/errors.md",
       "https://docs.firecrawl.dev/introduction.md",
-      "https://docs.firecrawl.dev/sdks/cli.md",
-      "https://docs.firecrawl.dev/ai-onboarding.md",
-      "https://docs.firecrawl.dev/mcp-server.md",
       "https://docs.firecrawl.dev/advanced-scraping-guide.md",
       "https://docs.firecrawl.dev/billing.md",
       "https://docs.firecrawl.dev/rate-limits.md",
@@ -16,19 +15,8 @@
     ],
     "URL": [
       "https://docs.firecrawl.dev/features/scrape.md",
-      "https://docs.firecrawl.dev/features/fast-scraping.md",
-      "https://docs.firecrawl.dev/features/batch-scrape.md",
-      "https://docs.firecrawl.dev/features/llm-extract.md",
-      "https://docs.firecrawl.dev/features/change-tracking.md",
-      "https://docs.firecrawl.dev/features/enhanced-mode.md",
-      "https://docs.firecrawl.dev/features/lockdown.md",
-      "https://docs.firecrawl.dev/features/proxies.md",
       "https://docs.firecrawl.dev/features/document-parsing.md",
-      "https://docs.firecrawl.dev/api-reference/endpoint/scrape.md",
-      "https://docs.firecrawl.dev/api-reference/endpoint/batch-scrape.md",
-      "https://docs.firecrawl.dev/api-reference/endpoint/batch-scrape-get.md",
-      "https://docs.firecrawl.dev/api-reference/endpoint/batch-scrape-delete.md",
-      "https://docs.firecrawl.dev/api-reference/endpoint/batch-scrape-get-errors.md"
+      "https://docs.firecrawl.dev/api-reference/endpoint/scrape.md"
     ]
   }
 }

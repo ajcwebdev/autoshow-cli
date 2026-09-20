@@ -7,9 +7,16 @@
       "https://ai.google.dev/gemini-api/docs.md.txt",
       "https://ai.google.dev/gemini-api/docs/quickstart.md.txt",
       "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
-      "https://ai.google.dev/gemini-api/docs/media-resolution.md.txt",
       "https://ai.google.dev/api/generate-content.md.txt",
-      "https://ai.google.dev/static/api/interactions.md.txt"
+      "https://ai.google.dev/static/api/interactions.md.txt",
+      "https://ai.google.dev/gemini-api/docs/get-started.md.txt",
+      "https://ai.google.dev/gemini-api/docs/api-errors.md.txt",
+      "https://ai.google.dev/gemini-api/docs/rate-limits.md.txt",
+      "https://ai.google.dev/gemini-api/docs/troubleshooting.md.txt",
+      "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+      "https://ai.google.dev/gemini-api/docs/interactions-overview.md.txt",
+      "https://ai.google.dev/gemini-api/docs/migrate-to-interactions.md.txt",
+      "https://ai.google.dev/gemini-api/docs/interactions-breaking-changes-may-2026.md.txt"
     ],
     "Models": [
       "https://ai.google.dev/gemini-api/docs/models.md.txt",
@@ -19,15 +26,15 @@
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.6-flash.md.txt",
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash.md.txt",
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite.md.txt",
-      "https://ai.google.dev/gemini-api/docs/deprecations.md.txt"
+      "https://ai.google.dev/gemini-api/docs/deprecations.md.txt",
+      "https://ai.google.dev/gemini-api/docs/gemini-3.md.txt",
+      "https://ai.google.dev/gemini-api/docs/whats-new-gemini-3.5.md.txt"
     ],
     "Text": [
       "https://ai.google.dev/gemini-api/docs/text-generation.md.txt",
       "https://ai.google.dev/gemini-api/docs/structured-output.md.txt",
       "https://ai.google.dev/gemini-api/docs/thinking.md.txt",
-      "https://ai.google.dev/gemini-api/docs/caching.md.txt",
       "https://ai.google.dev/gemini-api/docs/long-context.md.txt",
-      "https://ai.google.dev/gemini-api/docs/tokens.md.txt",
       "https://ai.google.dev/gemini-api/docs/prompting-strategies.md.txt"
     ],
     "OCR": [
@@ -37,7 +44,9 @@
       "https://ai.google.dev/gemini-api/docs/files.md.txt"
     ],
     "STT": [
-      "https://ai.google.dev/gemini-api/docs/audio.md.txt"
+      "https://ai.google.dev/gemini-api/docs/audio.md.txt",
+      "https://ai.google.dev/gemini-api/docs/transcribe.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/gemini-3.5-transcribe.md.txt"
     ],
     "Image": [
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-image.md.txt",
@@ -47,12 +56,14 @@
       "https://ai.google.dev/gemini-api/docs/video.md.txt",
       "https://ai.google.dev/gemini-api/docs/video-understanding.md.txt",
       "https://ai.google.dev/gemini-api/docs/omni.md.txt",
-      "https://ai.google.dev/gemini-api/docs/models/gemini-omni-1.1-flash.md.txt"
+      "https://ai.google.dev/gemini-api/docs/models/gemini-omni-flash.md.txt"
     ],
     "Music": [
       "https://ai.google.dev/gemini-api/docs/music-generation.md.txt",
       "https://ai.google.dev/gemini-api/docs/models/lyria-3.5.md.txt",
-      "https://ai.google.dev/api/interactions-api"
+      "https://ai.google.dev/gemini-api/docs/lyria-prompt-guide.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/lyria-3.5-clip-preview.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/lyria-3.5-pro-preview.md.txt"
     ]
   }
 }

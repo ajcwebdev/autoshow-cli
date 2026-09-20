@@ -1,6 +1,9 @@
 import { basename, extname, join } from 'node:path'
 import type { LinksSelection } from '~/types'
 import { createGenerationOutputDir } from '~/cli/commands/command-shared/generation-command-utils'
+import { getPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
+import * as l from '~/utils/app-logger/app-logger'
+import { ensureDirectory } from '~/utils/cli-utils'
 import { getFetchableDocumentationUrl } from './links-fetcher'
 
 export const normalizeTokens = (tokens: string[]): string[] => [...new Set(tokens.map(token => token.toLowerCase()))].sort()
@@ -63,12 +66,32 @@ export const getDefaultLinksFileName = (selection: LinksSelection): string => {
   return getDefaultLinksOutputFileName(selection.serviceSelections, selection.globalSections)
 }
 
+const DEFAULT_LINKS_REFRESH_ROOT = './docs/links'
+
+let linksRefreshRoot = DEFAULT_LINKS_REFRESH_ROOT
+
+export const configureLinksRefreshRoot = (dir: string): void => {
+  linksRefreshRoot = dir.trim().length > 0 ? dir.trim() : DEFAULT_LINKS_REFRESH_ROOT
+}
+
+// A refresh is only worth running against the previous refresh of the same selection, and a timestamped directory
+// never holds one. Without --output-dir, a refresh therefore reuses one directory per selection, so the comparison
+// happens by default instead of depending on a path passed by hand.
 export const resolveDefaultLinksOutputPath = async (selection: LinksSelection): Promise<string> => {
   const fileName = getDefaultLinksFileName(selection)
   const stem = fileName.replace(/\.md$/i, '')
+  if (selection.refresh && getPinnedRunDir() === undefined) {
+    const refreshDir = join(linksRefreshRoot, stem)
+    await ensureDirectory(refreshDir)
+    l.write('info', `Using refresh directory ${refreshDir}`, { category: 'command', metadata: { outputDir: refreshDir } })
+    return join(refreshDir, fileName)
+  }
   const outputDir = await createGenerationOutputDir(stem)
   return join(outputDir, fileName)
 }
+
+export const getLinksRefreshChangesPath = (outputPath: string | URL): string =>
+  getLinksRefreshMetadataPath(outputPath).replace(/\.refresh\.json$/, '.changes.md')
 
 export const getLinksRefreshMetadataPath = (outputPath: string | URL): string => {
   const resolvedOutputPath = typeof outputPath === 'string'

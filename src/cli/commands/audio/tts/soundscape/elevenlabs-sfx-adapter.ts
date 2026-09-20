@@ -13,7 +13,7 @@ export { SoundEffectProviderError } from './sound-effect-errors'
 const DOCS = [
   'https://elevenlabs.io/docs/api-reference/text-to-sound-effects/convert',
   'https://elevenlabs.io/docs/overview/capabilities/sound-effects',
-  'https://elevenlabs.io/docs/help-center/product/content-production/sound-effects/how-much-does-it-cost-to-generate-sound-effects',
+  'https://elevenlabs.io/docs/help-center/product/core-capabilities/sound-effects/how-much-does-it-cost-to-generate-sound-effects',
   'https://elevenlabs.io/pricing/api?price.platform=api',
 ]
 

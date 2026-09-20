@@ -1,4 +1,4 @@
-import type { LinksRefreshMetadata, LinksSelection, RunLinksOptions } from '~/types'
+import type { LinksSelection, RunLinksOptions } from '~/types'
 import { defineCliCommand } from '~/cli/native/native-types'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
@@ -9,11 +9,14 @@ import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import { REFERENCE_TOKENIZER_METADATA } from '~/utils/reference-tokenizer'
 import { fetchUrl } from './links-fetcher'
 import { readLinksInputFile } from './links-input-parser'
-import { getLinksRefreshMetadataPath, resolveDefaultLinksOutputPath } from './links-output'
-import { buildLinksRefreshMetadata, hashRefreshContent, normalizeMarkdownForRefresh, readPreviousLinksRefreshMetadata } from './links-refresh-metadata'
+import { collectModelSources, selectModelSourceLinks } from './links-model-sources'
+import { getLinksRefreshChangesPath, getLinksRefreshMetadataPath, resolveDefaultLinksOutputPath } from './links-output'
+import { createLinkChangeDescriber, renderLinksChangesReport, splitLinksBundle } from './links-refresh-changes'
+import { renderLinksRefreshFindings } from './links-refresh-findings'
+import { buildLinksRefreshMetadata, normalizeMarkdownForRefresh, readPreviousLinksRefreshMetadata } from './links-refresh-metadata'
 import { assertKnownSections, collectLinks, knownProviders, knownSections, linksFlags, parseLinksSelection } from './links-selection'
 
-export { getDefaultLinksOutputFileName, getDefaultLinksInputOutputFileName, getDefaultLinksDirectUrlOutputFileName, getLinksRefreshMetadataPath } from './links-output'
+export { configureLinksRefreshRoot, getDefaultLinksOutputFileName, getDefaultLinksInputOutputFileName, getDefaultLinksDirectUrlOutputFileName, getLinksRefreshChangesPath, getLinksRefreshMetadataPath } from './links-output'
 export { collectLinks } from './links-selection'
 export { readLinksInputFile } from './links-input-parser'
 
@@ -23,15 +26,21 @@ const runLinks = async (
 ): Promise<{ outputPath: string, urlCount: number, lineCount: number, refreshMetadataPath?: string }> => {
   const { serviceSelections, globalSections, inputFilePath, directUrl, refresh } = selection
   assertKnownSections(serviceSelections, globalSections)
-  const links = directUrl
+  const selectedLinks = directUrl
     ? [directUrl]
     : inputFilePath
     ? await readLinksInputFile(inputFilePath)
     : collectLinks(serviceSelections, globalSections)
 
-  if (links.length === 0) {
+  if (selectedLinks.length === 0) {
     throw UsageError('No documentation links matched the provided selections')
   }
+
+  // A refresh of whole providers also re-reads the pages the model registry names as the source of its prices and
+  // catalogs.
+  const modelSources = refresh ? options.modelSources ?? collectModelSources() : []
+  const modelSourceUrls = refresh ? selectModelSourceLinks(selection, selectedLinks, modelSources) : []
+  const links = [...selectedLinks, ...modelSourceUrls]
 
   const outputPath = options.outputPath ?? await resolveDefaultLinksOutputPath(selection)
   const fetchImpl = options.fetchImpl ?? fetch
@@ -65,48 +74,54 @@ const runLinks = async (
     : decodeURIComponent(outputPath.pathname)
   const lineCount = combinedContent.split('\n').length
   const refreshMetadataPath = getLinksRefreshMetadataPath(outputPath)
+  // The bundle about to be overwritten is the only copy of the previous run's page bodies.
+  const previousBundleFile = Bun.file(outputPath)
+  const previousBodies = refresh && await previousBundleFile.exists()
+    ? new Map([...splitLinksBundle(await previousBundleFile.text())].map(([url, body]) => [url, normalizeMarkdownForRefresh(body)]))
+    : undefined
 
-  const isRefreshOnly = selection.refreshOnly === true
-  const outputFileExists = await Bun.file(outputPath).exists()
-  let markdownWritten = true
-
-  if (isRefreshOnly && outputFileExists) {
-    markdownWritten = false
-    const existingContent = await Bun.file(outputPath).text()
-    const existingHash = hashRefreshContent(normalizeMarkdownForRefresh(existingContent))
-    const freshHash = hashRefreshContent(normalizeMarkdownForRefresh(combinedContent))
-
-    if (existingHash !== freshHash) {
-      l.warn(
-        `Documentation content updated on remote server; run without --refresh-only to update Markdown bundle at ${resolvedOutputPath}.`,
-        { category: 'artifact', metadata: { outputPath: resolvedOutputPath, refreshOnly: true } }
-      )
-    }
-  } else {
-    await Bun.write(outputPath, combinedContent)
-    l.write('info', `Wrote ${resolvedOutputPath} from ${links.length} URLs (${lineCount} lines)`, {
+  await Bun.write(outputPath, combinedContent)
+  l.write('info', `Wrote ${resolvedOutputPath} from ${links.length} URLs (${lineCount} lines)`, {
     category: 'artifact',
     metadata: { outputPath: resolvedOutputPath, urlCount: links.length, lineCount }
   })
-  }
 
   if (refresh) {
     const previousMetadata = await readPreviousLinksRefreshMetadata(refreshMetadataPath)
     const refreshedAt = new Date().toISOString()
-    const rawMetadata = buildLinksRefreshMetadata(
+    const changesPath = previousMetadata && previousBodies ? getLinksRefreshChangesPath(outputPath) : undefined
+    const describeChange = createLinkChangeDescriber(
+      previousBodies ?? new Map(),
+      new Map(fetchResults.map(result => [result.sourceUrl, normalizeMarkdownForRefresh(result.markdownContent)]))
+    )
+    const metadata = buildLinksRefreshMetadata({
       selection,
       links,
       fetchResults,
-      resolvedOutputPath,
-      refreshMetadataPath,
+      outputPath: resolvedOutputPath,
+      sidecarPath: refreshMetadataPath,
       previousMetadata,
-      refreshedAt
-    )
-    const metadata: LinksRefreshMetadata = {
-      ...rawMetadata,
-      markdownWritten
-    }
+      refreshedAt,
+      modelSources,
+      modelSourceUrls,
+      describeChange,
+      ...(previousBodies ? { previousBodies } : {}),
+      ...(changesPath ? { changesPath } : {})
+    })
     await Bun.write(refreshMetadataPath, `${JSON.stringify(metadata, null, 2)}\n`)
+    if (changesPath && previousMetadata) {
+      // Written on every comparison, including "0 changed", so the file never describes an older run.
+      await Bun.write(changesPath, renderLinksChangesReport(
+        metadata.links,
+        describeChange,
+        previousMetadata.links.map(link => link.sourceUrl),
+        refreshedAt
+      ))
+      l.write('info', `Wrote ${changesPath} (diffs for ${metadata.totals.changedCount} changed link(s))`, {
+        category: 'artifact',
+        metadata: { changesPath, changedCount: metadata.totals.changedCount }
+      })
+    }
     l.write(
       'info',
       `Wrote ${refreshMetadataPath} (` +
@@ -114,12 +129,19 @@ const runLinks = async (
       `${metadata.totals.changedCount} changed, ` +
       `${metadata.totals.unchangedCount} unchanged, ` +
       `${metadata.totals.failedChangeCount} failed, ` +
+      `${metadata.totals.attentionCount} need attention, ` +
       `${metadata.totals.tokenCount} ${REFERENCE_TOKENIZER_METADATA.name} tokens)`,
       {
         category: 'artifact',
         metadata: { refreshMetadataPath, tokenizer: REFERENCE_TOKENIZER_METADATA.name, ...metadata.totals }
       }
     )
+    if (metadata.findings.length > 0) {
+      // The logger writes one line per call, so each finding is its own warning.
+      for (const line of renderLinksRefreshFindings(metadata.findings).split('\n')) {
+        l.warn(line.trim(), { category: 'pipeline', metadata: { refreshMetadataPath, attentionCount: metadata.findings.length } })
+      }
+    }
   }
 
   return {

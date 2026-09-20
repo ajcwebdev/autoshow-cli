@@ -403,7 +403,7 @@
     "models": {
       "kimi-k3": {
         "description": "Kimi K3 - flagship multimodal, 1M context",
-        "pricingSourceUrl": "https://platform.kimi.ai/docs/pricing/chat-k3",
+        "pricingSourceUrl": "https://platform.kimi.ai/docs/pricing/chat",
         "pricingCheckedAt": "2026-07-24",
         "pricingCurrency": "USD",
         "pricingTier": "Moonshot AI public API token pricing",

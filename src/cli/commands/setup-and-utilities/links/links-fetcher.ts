@@ -1,4 +1,4 @@
-import type { FetchFn, FetchUrlResult } from '~/types'
+import type { FetchFn, FetchUrlResult, LinksConversionCheck } from '~/types'
 import { extractHtmlToMarkdown } from '~/cli/commands/text/url/url-local/defuddle/run-defuddle-url'
 import { runFirecrawlUrl } from '~/cli/commands/text/url/url-services/firecrawl/run-firecrawl-url'
 import * as l from '~/utils/app-logger/app-logger'
@@ -7,6 +7,7 @@ import { InfraError, serializeDiagnosticError } from '~/utils/error-handler'
 import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
 import { LINKS_FETCH_TIMEOUT_MS } from '~/utils/timeouts'
 import { formatErrorMessage } from '~/utils/value-helpers'
+import { checkHtmlConversion } from './links-conversion-check'
 
 export const HTML_MIME_HINTS = ['text/html', 'application/xhtml+xml'] as const
 
@@ -37,6 +38,8 @@ export const downloadUrl = async (
   },
   async (signal) => {
     const requestUrl = getFetchableDocumentationUrl(url)
+    // Default headers on purpose: a browser user agent gets a redirect loop from ai.google.dev, a 404 for every
+    // docs.x.ai markdown page, and a 403 from happyscribe.com.
     const response = await fetchImpl(requestUrl, signal ? { signal } : undefined)
     if (!response.ok) {
       throw createHttpFetchError(response)
@@ -72,6 +75,7 @@ export const fetchUrl = async (url: string, fetchImpl: FetchFn): Promise<FetchUr
     }
 
     let content: string
+    let conversion: LinksConversionCheck | undefined
     if (isHtmlContentType(contentType) || looksLikeHtmlDocument(fetchedText)) {
       try {
         content = (await extractHtmlToMarkdown({
@@ -80,6 +84,7 @@ export const fetchUrl = async (url: string, fetchImpl: FetchFn): Promise<FetchUr
           sourceUrl: url,
           finalUrl
         })).markdown
+        conversion = checkHtmlConversion(fetchedText, content, 'defuddle')
       } catch (defuddleError) {
         l.warn(`Defuddle failed for ${url}; falling back to Firecrawl: ${formatErrorMessage(defuddleError)}`, {
           category: 'pipeline',
@@ -87,6 +92,7 @@ export const fetchUrl = async (url: string, fetchImpl: FetchFn): Promise<FetchUr
         })
         try {
           content = (await runFirecrawlUrl(requestUrl, url)).markdown
+          conversion = checkHtmlConversion(fetchedText, content, 'firecrawl')
         } catch (firecrawlError) {
           throw InfraError(
             `Defuddle failed and Firecrawl fallback failed. ` +
@@ -109,7 +115,8 @@ export const fetchUrl = async (url: string, fetchImpl: FetchFn): Promise<FetchUr
       finalUrl,
       status: 'success',
       content: `<!-- Source: ${url} -->\n\n${content}`,
-      markdownContent: content
+      markdownContent: content,
+      ...(conversion ? { conversion } : {})
     }
   } catch (error) {
     l.warn(`Failed to fetch ${url}: ${formatErrorMessage(error)}`, {

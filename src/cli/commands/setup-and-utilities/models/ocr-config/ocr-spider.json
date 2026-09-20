@@ -5,11 +5,11 @@
     "models": {
       "spider": {
         "description": "Spider /scrape markdown extraction heuristic estimate",
-        "pricingSourceUrl": "https://spider.cloud/",
-        "pricingCheckedAt": "2026-05-31",
+        "pricingSourceUrl": "https://spider.cloud/pricing",
+        "pricingCheckedAt": "2026-09-19",
         "pricingCurrency": "USD",
-        "pricingTier": "Base/reference heuristic",
-        "pricingNotes": "Spider pricing can depend on scrape mode, compute, and bandwidth. AutoShow keeps a conservative base/reference per-page heuristic for dry-run totals; free credits, discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "pricingTier": "Pay-as-you-go bandwidth and compute; per-page heuristic",
+        "pricingNotes": "Spider pay-as-you-go lists $1 per GB of pre-transformation content plus $0.0001 per CPU minute, with $1 per 10,000 credits. The API reference example /scrape response reports total_cost 0.00011 USD for one page. AutoShow keeps a conservative per-page heuristic of $0.0012 (about a 1.2 MB page) for dry-run totals; unblocker and browser surcharges, free credits, discounts, Unlimited plans, enterprise pricing, taxes, and provider credits are ignored.",
         "costPer1kPagesCents": 120,
         "limits": {
           "notes": "Spider publishes usage billing based on bandwidth and compute rather than a fixed per-page scrape price. AutoShow uses a conservative heuristic per-page estimate for dry-run totals."

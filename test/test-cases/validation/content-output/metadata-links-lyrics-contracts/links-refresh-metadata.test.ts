@@ -64,10 +64,11 @@ test('links refresh writes first sidecar metadata while normal links runs omit i
   const metadata = await readRefreshMetadata(sidecarPath)
   const link = firstRefreshLink(metadata)
   expect(refreshResult.refreshMetadataPath).toBe(sidecarPath)
-  expect(metadata.schemaVersion).toBe(1)
+  expect(metadata.schemaVersion).toBe(2)
   expect(metadata.selectionMode).toBe('direct-url')
   expect(metadata.selection.directUrl).toBe(DIRECT_REFRESH_URL)
   expect(metadata.selection.urls).toEqual([DIRECT_REFRESH_URL])
+  expect(metadata.selection.modelSourceUrls).toEqual([])
   expect(metadata.outputPath).toBe(outputPath)
   expect(metadata.sidecarPath).toBe(sidecarPath)
   expect(metadata.tokenizer).toEqual({
@@ -75,6 +76,7 @@ test('links refresh writes first sidecar metadata while normal links runs omit i
     implementation: 'in-repository-bpe',
     rankDataSha256: '3a005bb166d080a740fda2b6764aa501ea0c016b6de2c39d789c684832b1943a'
   })
+  expect(Object.keys(firstRefreshLink(metadata))).not.toContain('tokenizer')
   expect(metadata.totals.linkCount).toBe(1)
   expect(metadata.totals.successfulCount).toBe(1)
   expect(metadata.totals.newCount).toBe(1)
@@ -183,6 +185,68 @@ test('links refresh marks token-count changes and same-token hash changes as cha
   expect(secondSameTokenLink.previousTokenCount).toBe(firstSameTokenLink.tokenCount)
   expect(secondSameTokenLink.tokenCount).toBe(firstSameTokenLink.tokenCount)
   expect(secondSameTokenLink.contentHash).not.toBe(firstSameTokenLink.contentHash)
+})
+
+test('links refresh treats shuffled rows and regenerated timestamps as unchanged but a real edit as changed', async () => {
+  const outputPath = linksTestOutputPath('refresh-volatile-content')
+  const sidecarPath = getLinksRefreshMetadataPath(outputPath)
+  const argv = ['bun', 'src/cli/create-cli.ts', 'links', '--refresh', DIRECT_REFRESH_URL]
+  let content = '| model-a | $1 |\n| model-b | $2 |\n"example":"2026-09-19T21:00:36.318Z"'
+  let fail = false
+  const fetchImpl: FetchFn = async () => fail ? new Response('missing', { status: 404, statusText: 'Not Found' }) : markdownResponse(content)
+  const refresh = async (): Promise<LinksRefreshLinkMetadata> => {
+    await runLinksWithArgv(argv, { outputPath, fetchImpl })
+    return firstRefreshLink(await readRefreshMetadata(sidecarPath))
+  }
+
+  const first = await refresh()
+  content = '| model-b | $2 |\n| model-a | $1 |\n"example":"2026-09-20T06:35:33+00:00"'
+  const shuffled = await refresh()
+
+  expect(shuffled.changeStatus).toBe('unchanged')
+  expect(shuffled.contentHash).not.toBe(first.contentHash)
+  expect(shuffled.changeHash).toBe(requireDefined(first.changeHash, 'first refresh to record a change hash'))
+  expect(shuffled.previousChangeHash).toBe(shuffled.changeHash ?? undefined)
+
+  fail = true
+  const failed = await refresh()
+  expect(failed.changeStatus).toBe('failed')
+  expect(failed.changeHash).toBeNull()
+  expect(failed.previousChangeHash).toBe(shuffled.changeHash ?? undefined)
+
+  fail = false
+  content = '"example":"2026-09-21T00:00:00Z"\n| model-a | $1 |\n| model-b | $2 |'
+  expect((await refresh()).changeStatus).toBe('unchanged')
+
+  content = '| model-a | $1 |\n| model-b | $3 |\n"example":"2026-09-21T00:00:00Z"'
+  const edited = await refresh()
+  expect(edited.changeStatus).toBe('changed')
+  expect(edited.changeHash).not.toBe(first.changeHash)
+})
+
+test('links refresh compares exact hashes against a sidecar written before change hashes existed', async () => {
+  const outputPath = linksTestOutputPath('refresh-legacy-sidecar')
+  const sidecarPath = getLinksRefreshMetadataPath(outputPath)
+  const argv = ['bun', 'src/cli/create-cli.ts', 'links', '--refresh', DIRECT_REFRESH_URL]
+  let content = 'alpha\nbeta'
+  const fetchImpl: FetchFn = async () => markdownResponse(content)
+
+  await runLinksWithArgv(argv, { outputPath, fetchImpl })
+  const legacy = await readRefreshMetadata(sidecarPath)
+  await Bun.write(sidecarPath, JSON.stringify({
+    ...legacy,
+    links: legacy.links.map(({ changeHash: _changeHash, previousChangeHash: _previousChangeHash, ...link }) => link)
+  }))
+
+  await runLinksWithArgv(argv, { outputPath, fetchImpl })
+  const sameBytes = firstRefreshLink(await readRefreshMetadata(sidecarPath))
+  expect(sameBytes.changeStatus).toBe('unchanged')
+  expect(sameBytes.previousChangeHash).toBeUndefined()
+  expect(typeof sameBytes.changeHash).toBe('string')
+
+  content = 'beta\nalpha'
+  await runLinksWithArgv(argv, { outputPath, fetchImpl })
+  expect(firstRefreshLink(await readRefreshMetadata(sidecarPath)).changeStatus).toBe('unchanged')
 })
 
 test('links refresh marks failed fetches and preserves previous successful metadata', async () => {
@@ -377,28 +441,28 @@ test('links refresh uses deduped curated links for overlapping selections', asyn
   expect(metadata.totals.linkCount).toBe(fetchedUrls.length)
 })
 
-test('links --refresh-only updates metadata sidecar without overwriting existing Markdown bundle', async () => {
-  const outputPath = linksTestOutputPath('refresh-only-test')
-  const sidecarPath = getLinksRefreshMetadataPath(outputPath)
-  const initialContent = 'custom initial content'
-  await Bun.write(outputPath, initialContent)
+test('links refresh records the line range of every link so one page can be read out of the bundle', async () => {
+  const outputPath = linksTestOutputPath('refresh-line-ranges')
+  const inputPath = linksTestOutputPath('refresh-line-ranges-input')
+  const pages: Record<string, string> = {
+    'https://docs.acme.test/one.md': '# One\n\nfirst body\nsecond line',
+    'https://docs.acme.test/gone.md': '',
+    'https://docs.acme.test/two.md': '# Two',
+    'https://docs.acme.test/three.md': '# Three\n\n```\ncode\n```'
+  }
+  await Bun.write(inputPath, Object.keys(pages).join('\n'))
+  const fetchImpl: FetchFn = async (input) => String(input).endsWith('/gone.md')
+    ? new Response('missing', { status: 404, statusText: 'Not Found' })
+    : markdownResponse(pages[String(input)] ?? '')
 
-  const fetchImpl: FetchFn = async () => markdownResponse('remote updated content')
+  await runLinksWithArgv(['bun', 'src/cli/create-cli.ts', 'links', '--refresh', inputPath], { outputPath, fetchImpl })
+  const metadata = await readRefreshMetadata(getLinksRefreshMetadataPath(outputPath))
+  const bundleLines = (await Bun.file(outputPath).text()).split('\n')
 
-  const result = await runLinksWithArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--refresh-only',
-    DIRECT_REFRESH_URL
-  ], { outputPath, fetchImpl })
-
-  expect(result.refreshMetadataPath).toBe(sidecarPath)
-  expect(await Bun.file(outputPath).text()).toBe(initialContent)
-  const metadata = await readRefreshMetadata(sidecarPath)
-  expect(metadata.markdownWritten).toBe(false)
-  expect(metadata.totals.linkCount).toBe(1)
-
-  await rm(outputPath, { force: true })
-  await rm(sidecarPath, { force: true })
+  expect(metadata.links.map(link => [link.startLine, link.lineCount])).toEqual([[1, 6], [8, 1], [10, 3], [14, 7]])
+  for (const link of metadata.links) {
+    const section = bundleLines.slice(requireDefined(link.startLine, 'start line') - 1, link.startLine! - 1 + link.lineCount!)
+    expect(section[0]).toBe(link.status === 'failed' ? `<!-- Failed to fetch ${link.sourceUrl} -->` : `<!-- Source: ${link.sourceUrl} -->`)
+    if (link.status !== 'failed') expect(section.slice(2).join('\n')).toBe(pages[link.sourceUrl]!)
+  }
 })

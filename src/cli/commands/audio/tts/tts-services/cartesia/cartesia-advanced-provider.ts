@@ -10,14 +10,13 @@ import {
 import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
 import type { AdvancedVoiceProviderIdentity } from '~/types'
 import { assertAdvancedVoiceCloneAuthorized, buildClonedProviderVoiceRef, createRemoteResourceVoiceLifecycle } from '../advanced-voice-provider-shell'
-
-const CARTESIA_API_VERSION = '2026-03-01'
+import { CARTESIA_API_VERSION } from './cartesia-tts-request'
 
 const DOCS = {
   catalog: 'https://docs.cartesia.ai/api-reference/voices/list',
   inspect: 'https://docs.cartesia.ai/api-reference/voices/get',
   clone: 'https://docs.cartesia.ai/api-reference/voices/clone',
-  proClone: 'https://docs.cartesia.ai/build-with-cartesia/capability-guides/voice-cloning',
+  proClone: 'https://docs.cartesia.ai/build-with-cartesia/capability-guides/clone-voices-pro',
   delete: 'https://docs.cartesia.ai/api-reference/voices/delete',
   synthesis: 'https://docs.cartesia.ai/api-reference/tts/bytes',
 } as const
@@ -58,7 +57,7 @@ const mapVoice = (value: unknown): ProviderVoiceCatalogEntry => {
     labels, modelIds: [], state: 'available',
     sanitizedMetadata: {
       isOwner,
-      ...(typeof voice['is_public'] === 'boolean' ? { isPublic: voice['is_public'] } : {}),
+      ...(typeof voice['is_public'] === 'boolean' ? { isPublic: voice['is_public'] } : trimmedString(voice['access']) ? { isPublic: voice['access'] === 'public' } : {}),
       ...(trimmedString(voice['created_at']) ? { createdAt: trimmedString(voice['created_at']) as string } : {})
     }
   }

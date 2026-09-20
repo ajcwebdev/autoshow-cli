@@ -10,16 +10,16 @@
       "https://docs.agents.lumalabs.ai/guides/pricing/index.md",
       "https://docs.agents.lumalabs.ai/guides/rate-limits/index.md",
       "https://docs.agents.lumalabs.ai/guides/error-handling/index.md",
-      "https://docs.agents.lumalabs.ai/guides/faq/index.md"
+      "https://docs.agents.lumalabs.ai/guides/faq/index.md",
+      "https://lumalabs.ai/changelog",
+      "https://lumalabs.ai/llm-info"
     ],
     "Models": [
       "https://docs.agents.lumalabs.ai/guides/model/index.md"
     ],
     "Video": [
       "https://docs.agents.lumalabs.ai/guides/videos/index.md",
-      "https://docs.agents.lumalabs.ai/guides/videos/generation/index.md",
-      "https://docs.agents.lumalabs.ai/guides/videos/editing/index.md",
-      "https://docs.agents.lumalabs.ai/guides/videos/reframing/index.md"
+      "https://docs.agents.lumalabs.ai/guides/videos/generation/index.md"
     ],
     "Image": [
       "https://docs.agents.lumalabs.ai/guides/images/index.md",

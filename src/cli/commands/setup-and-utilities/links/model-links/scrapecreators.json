@@ -4,14 +4,11 @@
       "https://docs.scrapecreators.com/llms.txt"
     ],
     "General": [
-      "https://docs.scrapecreators.com/introduction",
-      "https://docs.scrapecreators.com/integrations/overview",
-      "https://docs.scrapecreators.com/integrations/cli",
-      "https://docs.scrapecreators.com/v1/credit-balance"
+      "https://docs.scrapecreators.com/introduction/",
+      "https://docs.scrapecreators.com/v1/account/credit-balance.md"
     ],
     "STT": [
-      "https://docs.scrapecreators.com/v1/youtube/video/transcript",
-      "https://docs.scrapecreators.com/v1/youtube/video"
+      "https://docs.scrapecreators.com/v1/youtube/video/transcript.md"
     ]
   }
 }

@@ -4,14 +4,24 @@
       "https://platform.minimax.io/docs/llms.txt"
     ],
     "General": [
+      "https://platform.minimax.io/docs/api-reference/api-overview.md",
+      "https://platform.minimax.io/docs/pricing/overview.md",
       "https://platform.minimax.io/docs/guides/pricing-paygo.md",
+      "https://platform.minimax.io/docs/guides/rate-limits.md",
       "https://platform.minimax.io/docs/faq/about-apis.md",
-      "https://platform.minimax.io/docs/api-reference/errorcode.md"
+      "https://platform.minimax.io/docs/api-reference/errorcode.md",
+      "https://platform.minimax.io/docs/release-notes/apis.md"
+    ],
+    "Models": [
+      "https://platform.minimax.io/docs/guides/models-intro.md",
+      "https://platform.minimax.io/docs/release-notes/models.md"
     ],
     "Music": [
       "https://platform.minimax.io/docs/guides/music-generation.md",
       "https://platform.minimax.io/docs/api-reference/music-generation.md",
-      "https://platform.minimax.io/docs/api-reference/lyrics-generation.md"
+      "https://platform.minimax.io/docs/api-reference/lyrics-generation.md",
+      "https://platform.minimax.io/docs/api-reference/music/api/openapi.json",
+      "https://platform.minimax.io/docs/api-reference/music/lyrics/api/openapi.json"
     ]
   }
 }

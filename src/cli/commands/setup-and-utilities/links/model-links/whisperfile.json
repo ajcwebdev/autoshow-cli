@@ -6,9 +6,9 @@
     "STT": [
       "https://docs.mozilla.ai/llamafile/whisperfile/index.md",
       "https://docs.mozilla.ai/llamafile/whisperfile/getting-started.md",
-      "https://docs.mozilla.ai/llamafile/whisperfile/packaging.md",
-      "https://docs.mozilla.ai/llamafile/whisperfile/translate.md",
-      "https://docs.mozilla.ai/llamafile/whisperfile/server.md"
+      "https://docs.mozilla.ai/llamafile/whisperfile/gpu.md",
+      "https://docs.mozilla.ai/llamafile/reference/troubleshooting.md",
+      "https://docs.mozilla.ai/llamafile/reference/support.md"
     ]
   }
 }

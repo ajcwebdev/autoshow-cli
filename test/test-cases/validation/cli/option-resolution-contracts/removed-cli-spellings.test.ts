@@ -27,6 +27,7 @@ const UNKNOWN_COMMANDS = [
 const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['image', 'a sunset', '--imagen-count', '2'], flag: '--imagen-count' },
   { argv: ['extract', 'https://example.com/a.mp3', '--refresh-cache'], flag: '--refresh-cache' },
+  { argv: ['links', '--refresh-only', 'https://example.com/docs'], flag: '--refresh-only' },
   { argv: ['extract', 'https://example.com/a.mp3', '--no-cache'], flag: '--no-cache' },
   { argv: ['extract', 'https://example.com/a.mp3', '--cache-dir=/tmp/x'], flag: '--cache-dir' },
   { argv: ['write', 'https://example.com/a.mp3', '--all-url'], flag: '--all-url' },

@@ -4,9 +4,18 @@
       "https://fal.ai/docs/llms.txt"
     ],
     "General": [
-      "https://docs.fal.ai/model-apis/model-endpoints/queue",
-      "https://docs.fal.ai/model-apis/model-endpoints/webhooks",
-      "https://docs.fal.ai/model-apis/model-endpoints/files"
+      "https://fal.ai/docs/documentation/setting-up/authentication/index.md",
+      "https://fal.ai/docs/documentation/model-apis/inference/queue.md",
+      "https://fal.ai/docs/documentation/model-apis/fal-cdn.md",
+      "https://fal.ai/docs/documentation/model-apis/media-expiration.md",
+      "https://fal.ai/docs/documentation/model-apis/common-parameters.md",
+      "https://fal.ai/docs/documentation/model-apis/model-arguments.md",
+      "https://fal.ai/docs/documentation/model-apis/concurrency-limits.md",
+      "https://fal.ai/docs/documentation/model-apis/errors.md",
+      "https://fal.ai/docs/documentation/model-apis/request-errors.md",
+      "https://fal.ai/docs/documentation/model-apis/pricing.md",
+      "https://fal.ai/docs/platform-apis/v1/models/pricing.md",
+      "https://fal.ai/docs/changelog.md"
     ],
     "Image": [
       "https://fal.ai/models/fal-ai/hidream-o1-image/api",
@@ -16,7 +25,14 @@
     "Video": [
       "https://fal.ai/models/minimax/h3/text-to-video/api",
       "https://fal.ai/models/minimax/h3/image-to-video/api",
-      "https://fal.ai/models/minimax/h3/reference-to-video/api"
+      "https://fal.ai/models/minimax/h3/reference-to-video/api",
+      "https://fal.ai/models/minimax/h3-max/text-to-video/api",
+      "https://fal.ai/models/minimax/h3-max/image-to-video/api",
+      "https://fal.ai/models/minimax/h3-max-turbo/text-to-video/api",
+      "https://fal.ai/models/minimax/h3-max-turbo/image-to-video/api",
+      "https://fal.ai/models/bytedance/seedance-2.5/text-to-video/api",
+      "https://fal.ai/models/bytedance/seedance-2.5/image-to-video/api",
+      "https://fal.ai/models/bytedance/seedance-2.5/reference-to-video/api"
     ]
   }
 }
