@@ -2,6 +2,7 @@ export {
   getStep2ActiveModelsForService,
   getStep2AllShortcutModelExpansions,
   getStep2BootstrapProviderId,
+  getStep2LocalTargetServices,
   getStep2ProviderConfigPathEntries,
   getStep2ProviderEntries,
   getStep2ProviderSelectionFlagNames

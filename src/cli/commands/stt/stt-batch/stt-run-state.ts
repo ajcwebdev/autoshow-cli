@@ -1,13 +1,14 @@
 import { join } from 'node:path'
 import { isRecord } from '~/utils/rest-client'
 import { pathExists } from '~/utils/filesystem'
-import type { ExistingSttRun, Step2Metadata, ProviderCompletionStatus, SttProviderFailureSummary, SttProviderState, SttProviderSuccess, SttRecordedProviderError, SttRequestedProvider, SttTarget } from '~/types'
+import type { ExistingSttRun, ProviderSettingsRecord, Step2Metadata, ProviderCompletionStatus, SttProviderFailureSummary, SttProviderState, SttProviderSuccess, SttRecordedProviderError, SttRequestedProvider, SttTarget } from '~/types'
 import { parseStep2RuntimeMetadata } from '../async-lifecycle'
 import { parseStoredStep2TimingMetadata } from '../workflows/timing/stt-timing-metadata'
 import { getSttTargetDirectoryName, getSttTargetKey } from '../stt-targets'
 import { readSinglePipelineItemRecord } from '../../command-shared/pipeline-manifest'
 import { parseStoredTranscriptionResult } from '../stt-utils/stt-result-artifacts'
 import { UsageError } from '~/utils/error-handler'
+import { createProviderSettingsRecord } from '../../command-shared/pipeline-manifest/provider-settings-record'
 import {
   buildRequestedProviderList,
   collectMissingProviderTargets,
@@ -122,7 +123,40 @@ export const getSttProviderArtifactDir = (
   target: Pick<SttTarget, 'service' | 'model'>
 ): string => `providers/${getSttTargetDirectoryName(target)}`
 
-export const toRequestedProvider = (target: SttTarget): SttRequestedProvider => ({
+export type SttSettingsRuntime = {
+  sttAudioProfile?: 'default' | 'lossless' | undefined
+  split?: boolean | undefined
+  youtubeCaptions?: boolean | undefined
+  supadataLang?: string | undefined
+  scrapecreatorsLang?: string | undefined
+  happyscribeOrganizationId?: string | undefined
+}
+
+// Language and organization flags reach only the providers that consume them at call time; record them only for those providers.
+export const buildSttProviderSettings = (target: SttTarget, runtime: SttSettingsRuntime = {}): ProviderSettingsRecord =>
+  createProviderSettingsRecord({
+    service: target.service,
+    operation: 'stt',
+    request: {
+      model: target.model,
+      ...(target.service === 'supadata' ? { language: runtime.supadataLang } : {}),
+      ...(target.service === 'scrapecreators' ? { language: runtime.scrapecreatorsLang } : {}),
+      ...(target.service === 'happyscribe' ? { organizationId: runtime.happyscribeOrganizationId } : {}),
+      verbatim: target.grokSttVerbatim,
+      chunkSize: target.supadataChunkSize,
+      responseFormat: target.nativeResponseFormat,
+      nativeSubtitles: target.nativeSubtitles,
+      diarization: target.diarizationOptions,
+    },
+    local: {
+      local: target.local,
+      audioProfile: runtime.sttAudioProfile ?? 'default',
+      split: runtime.split,
+      youtubeCaptions: runtime.youtubeCaptions,
+    },
+  })
+
+export const toRequestedProvider = (target: SttTarget, runtime?: SttSettingsRuntime | undefined): SttRequestedProvider => ({
   service: target.service,
   model: target.model,
   local: target.local,
@@ -130,8 +164,11 @@ export const toRequestedProvider = (target: SttTarget): SttRequestedProvider => 
   ...(target.supadataChunkSize !== undefined ? { supadataChunkSize: target.supadataChunkSize } : {}),
   ...(target.nativeResponseFormat ? { nativeResponseFormat: target.nativeResponseFormat } : {}),
   ...(target.nativeSubtitles ? { nativeSubtitles: true } : {}),
-  ...(target.diarizationOptions ? { diarizationOptions: target.diarizationOptions } : {})
+  ...(target.diarizationOptions ? { diarizationOptions: target.diarizationOptions } : {}),
+  settings: buildSttProviderSettings(target, runtime)
 })
+
+const withoutSettings = ({ settings: _settings, ...provider }: SttRequestedProvider): SttRequestedProvider => provider
 
 export const toRecordedProviderError = (
   failure: Pick<SttProviderFailureSummary, 'message' | 'skipped' | 'stage' | 'status' | 'retryAfterMs' | 'errorFile' | 'rawResponseFile'>
@@ -399,7 +436,7 @@ export const buildMissingProviders = (
     providerStates,
     requestedTargets,
     (state) => state.status === 'failed' || state.status === 'missing',
-    toRequestedProvider
+    (target) => withoutSettings(toRequestedProvider(target))
   )
 }
 

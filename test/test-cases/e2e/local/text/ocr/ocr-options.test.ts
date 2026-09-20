@@ -52,7 +52,12 @@ test('extract PDF with default options', async () => {
     sourceKind: 'pdf',
     providers: [{ service: 'tesseract', model: 'tesseract', origin: 'default' }]
   })
-  expect(metadata.requestedProviders).toEqual([{ service: 'tesseract', model: 'tesseract' }])
+  expect(metadata.requestedProviders).toHaveLength(1)
+  expect(metadata.requestedProviders).toMatchObject([{
+    service: 'tesseract',
+    model: 'tesseract',
+    settings: { settingsSchema: 'tesseract.ocr.v1', request: { model: 'tesseract', dpi: 300 } }
+  }])
   expect(metadata.providerStates).toMatchObject([
     {
       service: 'tesseract',
@@ -142,7 +147,12 @@ test('extract image with explicit --tesseract matches the default local OCR path
     sourceKind: 'image',
     providers: [{ service: 'tesseract', model: 'tesseract', origin: 'explicit' }]
   })
-  expect(explicitMetadata.requestedProviders).toEqual([{ service: 'tesseract', model: 'tesseract' }])
+  expect(explicitMetadata.requestedProviders).toHaveLength(1)
+  expect(explicitMetadata.requestedProviders).toMatchObject([{
+    service: 'tesseract',
+    model: 'tesseract',
+    settings: { settingsSchema: 'tesseract.ocr.v1', request: { model: 'tesseract', dpi: 300 } }
+  }])
   expect(explicitMetadata.providerStates).toMatchObject([
     {
       service: 'tesseract',

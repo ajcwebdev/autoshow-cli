@@ -53,8 +53,7 @@ describe('provider selection contracts', () => {
     ])
     expect(allOpts.falImageModels).toEqual([
       'fal-ai/hidream-o1-image',
-      'alibaba/qwen-image-3',
-      'reve/2.1'
+      'alibaba/qwen-image-3'
     ])
     expect(allOpts.grokVideoModels).toEqual([
       'grok-imagine-video-1.5'

@@ -2,8 +2,10 @@ import { mkdir, readdir } from 'node:fs/promises'
 import { extname, join, relative } from 'node:path'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import type { ComicSourceIdentity, FinalPanelImageStageOptions, GenerateImagesCommandOptions, GenerateImagesWorkflowDependencies, ImageRunStats, PipelineProviderState } from '~/types'
+import { createProviderSettingsRecord } from '~/cli/commands/command-shared/pipeline-manifest/provider-settings-record'
 import { InfraError } from '~/utils/error-handler'
 import { canonicalTargetKey, sha256Bytes } from '../../../../audio/tts/script-to-audio/contract-identity'
+import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
 import { captureComicImageRecoveryInputs, comicImageRecoveryFlags, comicImageRecoveryHash } from '../../comic-utils/comic-image-recovery'
 import { comicLog, err, formatCompactCost, formatDuration, withSuppressedPipelineLogs } from '../../comic-utils/comic-logger'
 import { updateComicImageManifest } from '../../comic-utils/comic-manifest'
@@ -95,6 +97,25 @@ const runGenerateImagesCommand = async (
       status,
       attempts: status === 'running' || status === 'succeeded' || status === 'failed' ? 1 : 0,
       options: { target, size, quality, panelsPerImage: finalPanelsPerImage },
+      settings: createProviderSettingsRecord({
+        service,
+        operation: 'comic-image',
+        request: { model, size, quality },
+        local: {
+          target,
+          panelsPerImage: finalPanelsPerImage,
+          panels: Array.isArray(options.panels) ? options.panels.join(',') : options.panels ?? 'all',
+          variations: options.variations,
+          qa: options.qa !== false,
+          qaModel: options.qa !== false ? options.qaModel ?? DEFAULT_QA_MODEL : undefined,
+          maxRepairs: options.maxRepairs ?? 2,
+          grid: options.grid ? `${options.grid.columns}x${options.grid.rows}` : undefined,
+          blockingHardKeys: options.blockingHardKeys,
+          blockingLayoutGuide: options.blockingLayoutGuide === true,
+          bloopers: options.bloopers === true,
+          stopOnProviderError: options.stopOnProviderError === true,
+        },
+      }),
       metadata: {
         imagesGenerated: totals.imagesGenerated,
         imagesSkipped: totals.imagesSkipped,

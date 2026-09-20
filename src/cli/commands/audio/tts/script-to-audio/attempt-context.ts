@@ -42,6 +42,7 @@ import {
   stateForProjection,
   sumCosts,
 } from './attempt-planning'
+import { ttsProviderSettings } from './tts-provider-settings'
 
 import { paidSlotOutputFormat } from './tts-slot-output-format'
 
@@ -290,7 +291,7 @@ export const createAttemptContext = async (
   const artifacts = await materializeImmutableAttemptArtifacts(options, purePlan, layout)
   const readiness = await createReadinessAndJournal(options, purePlan, layout, execution, artifacts, now)
   const initial = createInitialProjection(purePlan, layout, execution, artifacts, readiness)
-  const preparedState = stateForProjection(options.target, purePlan.targetKey, purePlan.transport, layout.targetRelativeDir, initial.projection)
+  const preparedState = stateForProjection(options.target, purePlan.targetKey, purePlan.transport, layout.targetRelativeDir, initial.projection, ttsProviderSettings(options, purePlan))
   await options.onProviderState?.(preparedState)
   const recoveredBatchFiles: Array<WrittenJson<ProviderBatchResult>> = purePlan.planned.slots.flatMap(slot => {
     const recovered = execution.recoveredBySlot.get(slot.generationSlotId)

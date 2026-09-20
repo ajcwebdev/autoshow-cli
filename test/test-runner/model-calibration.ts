@@ -2,6 +2,7 @@ import { readUtf8FileExact } from '~/utils/bun-file-io'
 import { readdir } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { resolve } from 'node:path'
+import { getStep2LocalTargetServices } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import { MODEL_CONFIG_FRAGMENT_PREFIXES, MODEL_CONFIG_PATHS } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type {
   CalibrationConfigPaths,
@@ -448,13 +449,20 @@ const loadCalibrationModelEntry = async (
   return getModelEntry(parsedConfig, service, model)
 }
 
-const computeGroupRates = (group: CalibrationStepObservation[]): CalibrationGroupRates => {
+/**
+ * Local engines share the test machine's CPU with every concurrent test, so their
+ * wall-clock timing measures contention rather than the engine.
+ */
+export const isTimingCalibratedService = (service: string): boolean =>
+  !getStep2LocalTargetServices().has(service)
+
+const computeGroupRates = (group: CalibrationStepObservation[], includeTiming = true): CalibrationGroupRates => {
   const costRatios = group
     .filter(obs => (obs.rawEstimatedCostCents ?? 0) > 0 && (obs.actualCostCents ?? 0) >= 0)
     .map(obs => (obs.actualCostCents as number) / (obs.rawEstimatedCostCents as number))
     .filter(value => Number.isFinite(value) && value > 0)
 
-  const timeRates = group
+  const timeRates = !includeTiming ? [] : group
     .map(obs => {
       if (obs.actualMsPerUnit !== null) return obs.actualMsPerUnit
       if (obs.actualProcessingTimeMs === null || obs.unitValue === null) return null
@@ -548,7 +556,7 @@ export const buildModelCalibrationReport = async (
       calibrationKind,
       service,
       model,
-      computeGroupRates(group),
+      computeGroupRates(group, isTimingCalibratedService(service)),
       modelEntry
     )
     if (recommendation) {

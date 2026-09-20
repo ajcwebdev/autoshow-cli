@@ -21,7 +21,6 @@ export const imageRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/visuals/image/fal-image.test.ts', [
     command('image-fal-fal-ai/hidream-o1-image', 'image-fal-fal-ai/hidream-o1-image', ['src/cli/create-cli.ts', 'image', 'A tiny blue square icon centered on a white background', '--provider', 'fal=fal-ai/hidream-o1-image', '--size', '1024x1024', '--price']),
     command('image-fal-alibaba/qwen-image-3', 'image-fal-alibaba/qwen-image-3', ['src/cli/create-cli.ts', 'image', 'The word QWEN centered in a clean typographic poster', '--provider', 'fal=alibaba/qwen-image-3', '--size', '1024x1024', '--price']),
-    command('image-fal-reve/2.1', 'image-fal-reve/2.1', ['src/cli/create-cli.ts', 'image', 'A tiny yellow star icon centered on a white background', '--provider', 'fal=reve/2.1', '--aspect-ratio', '1:1', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/visuals/image/lumalabs-uni-1.test.ts', [
     command('image-lumalabs-uni-1', 'image-lumalabs-uni-1', ['src/cli/create-cli.ts', 'image', 'a sunset', '--provider', 'lumalabs=uni-1', '--aspect-ratio', '16:9', '--format', 'png', '--price']),

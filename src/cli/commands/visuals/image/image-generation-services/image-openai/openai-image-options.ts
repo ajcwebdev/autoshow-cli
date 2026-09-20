@@ -49,6 +49,7 @@ export const OPENAI_IMAGE_FORMAT_VALUES = ['png', 'jpeg', 'webp'] as const
 export const OPENAI_IMAGE_BACKGROUND_VALUES = ['auto', 'transparent', 'opaque'] as const
 export const OPENAI_IMAGE_COUNT_RANGE = [1, 10] as const
 export const OPENAI_IMAGE_COMPRESSION_RANGE = [0, 100] as const
+export const OPENAI_IMAGE_REQUEST_DEFAULTS = { size: 'auto', quality: 'auto', outputFormat: 'png', background: 'auto', moderation: 'low' } as const
 
 const OPENAI_FIXED_IMAGE_SIZES = new Set<string>(OPENAI_FIXED_IMAGE_SIZE_VALUES)
 const OPENAI_IMAGE_QUALITIES = new Set<string>(OPENAI_IMAGE_QUALITY_VALUES)

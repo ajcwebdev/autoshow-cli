@@ -8,6 +8,7 @@ import { buildExtractionOptionsForTarget } from './ocr-targets'
 import { persistHostedOcrTokenUsageProfiles } from './ocr-utils/hosted-ocr-token-profiles'
 import { persistHostedOcrThroughputProfiles } from './ocr-utils/hosted-ocr-throughput-profiles'
 import { runOcr } from './run-ocr'
+import { buildOcrProviderSettings } from './ocr-run-state'
 
 export const runOcrSingleTarget = async (ctx: OcrSingleRunContext): Promise<ProcessDocumentOutput> => {
   const { outputDir, explicitTargets, opts, effectiveOpts, hostedOcrScheduler, step1Metadata, web, documentSource, extractFilePath, preparedMarkdown, preflightEstimate } = ctx
@@ -26,6 +27,7 @@ export const runOcrSingleTarget = async (ctx: OcrSingleRunContext): Promise<Proc
     preparedMarkdown
   )
   const resolvedRequestedProviders = toResolvedRequestedProviders(resolvedStep2)
+    ?.map((provider) => ({ ...provider, settings: buildOcrProviderSettings(provider, effectiveOpts) }))
 
   const rootMetadata = buildDocumentMetadataPayload(step1Metadata, extracted.step2Metadata, {
     web,

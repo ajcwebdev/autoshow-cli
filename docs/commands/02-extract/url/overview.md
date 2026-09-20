@@ -128,6 +128,8 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   manifest.json
 ```
 
+Each provider entry in `manifest.json` carries `settings.request` with the backend's request timeout and attempt limit.
+
 ## Provider Capabilities
 
 Marks: ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Released dates are provider announcement or model-origin dates. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01. Rows are newest first.

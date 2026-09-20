@@ -219,6 +219,7 @@ bun autoshow video "a lighthouse at dusk" --provider fal=minimax/h3-max-turbo/te
 - Multi-provider runs write `generated-video-<provider>-<model>.mp4` per target and `manifest.json`.
 - `--output-dir` pins the destination directory.
 - `manifest.json` records `video`, `cost`, and `timing`; `video` is an array.
+- Each provider entry in `manifest.json` carries `settings.request`: the full request, including seed, negative prompt, generate-audio, and input or reference media, plus the normalized duration, resolution, and aspect ratio.
 
 ## Notes
 

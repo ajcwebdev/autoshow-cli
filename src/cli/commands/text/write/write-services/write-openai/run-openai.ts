@@ -5,6 +5,7 @@ import { getOpenAIClientConfig } from '~/cli/commands/text/write/write-services/
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { applyOpenAIResponsesReasoning } from '~/cli/commands/setup-and-utilities/models/reasoning-request-mappers'
 import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
+import { llmRequestSettings } from '~/cli/commands/text/write/write-utils/llm-request-settings'
 
 export const runOpenAIModel = async (
   prompt: string,
@@ -49,7 +50,8 @@ export const runOpenAIModel = async (
         text,
         usage: response.usage,
         rawProviderUsage: response.usage,
-        returnedModel: response.model
+        returnedModel: response.model,
+        requestSettings: llmRequestSettings(requestBody)
       }
     }
   })

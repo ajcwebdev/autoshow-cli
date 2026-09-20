@@ -114,6 +114,10 @@ export const decodeXml = (text: string): string => {
     .replace(/&apos;/g, "'")
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
+    .replace(/&#(?:x([0-9a-f]+)|(\d+));/gi, (entity: string, hex: string | undefined, decimal: string | undefined) => {
+      const codePoint = hex !== undefined ? Number.parseInt(hex, 16) : Number.parseInt(decimal ?? '', 10)
+      return Number.isInteger(codePoint) && codePoint >= 0 && codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : entity
+    })
     .replace(/&amp;/g, '&')
 }
 

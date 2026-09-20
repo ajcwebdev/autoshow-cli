@@ -93,12 +93,14 @@ describe('test-runner contracts', () => {
       '--price',
       'plain',
       '--no-adaptive-concurrency',
+      '--verbose',
     ])
 
     expect(parsed).toEqual({
       priceMode: true,
       budgetHundredthCents: 250,
       preserveTestOutput: true,
+      verbose: true,
       adaptiveConcurrency: false,
       passthroughArgs: ['--bail', 'plain'],
       pathFilters: ['first.ts', 'nested/second'],

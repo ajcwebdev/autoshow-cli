@@ -124,7 +124,7 @@ export type SttCompletionContextBase = {
   processStart: number
 }
 
-export type SttRequestedProvider = Pick<SttTarget, 'service' | 'model' | 'local' | 'diarizationOptions' | 'nativeSubtitles' | 'nativeResponseFormat' | 'grokSttVerbatim' | 'supadataChunkSize'>
+export type SttRequestedProvider = Pick<SttTarget, 'service' | 'model' | 'local' | 'diarizationOptions' | 'nativeSubtitles' | 'nativeResponseFormat' | 'grokSttVerbatim' | 'supadataChunkSize'> & { settings?: import('~/types').ProviderSettingsRecord | undefined }
 
 export type SttRecordedProviderError = ProviderErrorSummaryFields & {
   skipped?: boolean | undefined

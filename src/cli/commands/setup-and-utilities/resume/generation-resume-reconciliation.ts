@@ -2,6 +2,17 @@ import { isRecord } from '~/utils/rest-client'
 import { UsageError } from '~/utils/error-handler'
 import type { GenerationResumeConfig, GenerationResumePreparation, PipelineManifest, ProviderIdentity, ResumeTarget } from '~/types'
 import { getConfiguredProviderKey } from './generation-resume-preparation'
+import { createProviderSettingsRecord } from '~/cli/commands/command-shared/pipeline-manifest/provider-settings-record'
+
+const SETTINGS_OPERATIONS = new Set(['image', 'video', 'music'])
+
+// Re-run generation targets carry their resolved request settings; keep the stored record for targets that were not re-run.
+const rerunSettings = (kind: string, target: ProviderIdentity | undefined): ReturnType<typeof createProviderSettingsRecord> | undefined => {
+  const requestSettings = (target as { requestSettings?: unknown } | undefined)?.requestSettings
+  if (!target || !SETTINGS_OPERATIONS.has(kind) || !isRecord(requestSettings)) return undefined
+  const ignored = (target as { ignoredSettings?: readonly string[] }).ignoredSettings
+  return createProviderSettingsRecord({ service: target.service, operation: kind, request: requestSettings, ignored })
+}
 
 export const buildUpdatedGenerationCostTiming = (
   currentMetadata: Record<string, unknown>,
@@ -113,6 +124,7 @@ export const reconcileGenerationManifest = async <TTarget extends ProviderIdenti
             const key = getProviderKey(provider)
             const current = nextProviderByKey.get(key)
             const succeeded = mergedSuccessKeys.has(key)
+            const settings = rerunSettings(config.kind, targetsToRun.find((candidate) => getProviderKey(candidate) === key)) ?? current?.settings
             nextProviderByKey.set(key, {
               service: provider.service,
               model: provider.model,
@@ -121,7 +133,8 @@ export const reconcileGenerationManifest = async <TTarget extends ProviderIdenti
               attempts: Math.max(current?.attempts ?? 0, succeeded ? 1 : 0),
               options: current?.options ?? {},
               metadata: current?.metadata ?? {},
-              ...(succeeded ? {} : current?.error ? { error: current.error } : {})
+              ...(succeeded ? {} : current?.error ? { error: current.error } : {}),
+              ...(settings ? { settings } : {})
             })
           }
           return [...nextProviderByKey.values()]

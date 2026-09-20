@@ -159,6 +159,7 @@ With `--captions`, output names come from the caption file, not the audio file. 
 
 - **Single-target hosted runs**: write `output/<timestamp>_music-gen/generated-music.mp3` and `manifest.json`.
 - **Multi-target hosted runs**: write `generated-music-<provider>-<model>.mp3` per target and `manifest.json`.
+- **Provider settings**: each provider entry in `manifest.json` carries `settings.request` (model, duration, lyrics file, instrumental) and `settings.ignored`, which lists flags the selected model accepts but does not apply.
 - **Gemini `lyria-3.5` extras**: additional audio as `generated-music-gemini-lyria-3.5-part-<n>.mp3` and lyrics or song-structure text as `generated-music-gemini-lyria-3.5.txt`.
 - **Lyric-video single runs**: write `<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`.
 - **Lyric-video batch runs**: write `<slug>/<stem>.mp4`, `<slug>/<stem>.vtt`, `<slug>/<stem>.srt`, and `manifest.json`.

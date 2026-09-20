@@ -51,11 +51,12 @@ describe('test-runner contracts', () => {
       expect(parseCommandEstimatedTotal(`outputDir: /tmp/autoshow/stale-run\n${padding}`)).toBeNull()
     })
 
-  test('test-output cleanup preserves latest.log only', async () => {
+  test('test-output cleanup preserves only the latest log and calibration report', async () => {
       const dir = await makeTempDir('autoshow-test-output-cleanup-')
       tempDirs.push(dir)
 
       await writeFile(join(dir, 'latest.log'), 'previous run\n')
+      await writeFile(join(dir, 'latest-model-calibration.json'), '{}\n')
       await mkdir(join(dir, 'stale-run'), { recursive: true })
       await writeFile(join(dir, 'stale-run', 'report.json'), '{}\n')
       await mkdir(join(dir, '.test-cache'), { recursive: true })
@@ -63,7 +64,7 @@ describe('test-runner contracts', () => {
 
       await cleanupTestOutputRoot(dir)
 
-      expect((await readdir(dir)).sort()).toEqual(['latest.log'])
+      expect((await readdir(dir)).sort()).toEqual(['latest-model-calibration.json', 'latest.log'])
       expect(await readFile(join(dir, 'latest.log'), 'utf8')).toBe('previous run\n')
     })
 
@@ -138,6 +139,31 @@ describe('test-runner contracts', () => {
       expect(latestLog).toContain('test/test-cases/example.test.ts :: fails usefully: expected true')
       expect(latestLog).toContain('runner transcript')
       expect(latestLog).toContain('command transcript')
+    })
+
+  test('latest log leads with the run digest and omits passing report entries', async () => {
+      const dir = await makeTempDir('autoshow-test-output-latest-digest-')
+      tempDirs.push(dir)
+
+      const artifacts = await createRunArtifacts(dir)
+      const failedId = 'test/test-cases/example.test.ts::fails usefully'
+      await writeFile(artifacts.reportJsonPath, `${JSON.stringify({
+        run: { id: artifacts.runId, mode: 'test' },
+        summary: { total: 2, passed: 1, failed: 1, skipped: 0 },
+        tests: [
+          { id: 'test/test-cases/example.test.ts::PASSING-ENTRY', file: 'test/test-cases/example.test.ts', name: 'PASSING-ENTRY', status: 'passed' },
+          { id: failedId, file: 'test/test-cases/example.test.ts', name: 'fails usefully', status: 'failed' },
+        ],
+        failures: [{ id: failedId, file: 'test/test-cases/example.test.ts', name: 'fails usefully', message: 'expected true\nstack line' }],
+      }, null, 2)}\n`)
+
+      const withDigest = await readFile(await writeLatestRunLog(artifacts, 1, ['Failures (1)', '✗ digest failure line']), 'utf8')
+      expect(withDigest.indexOf('✗ digest failure line')).toBeLessThan(withDigest.indexOf('=== report.json'))
+      expect(withDigest).toContain('fails usefully')
+      expect(withDigest).not.toContain('PASSING-ENTRY')
+
+      const withoutDigest = await readFile(await writeLatestRunLog(artifacts, 1), 'utf8')
+      expect(withoutDigest).toContain('- test/test-cases/example.test.ts :: fails usefully: expected true\n    stack line')
     })
 
   test('runner log sink flushes appended lines into latest.log', async () => {
@@ -282,6 +308,8 @@ describe('test-runner contracts', () => {
         .toEqual({ status: 'failed', failureMessage: 'Test failed' })
       expect(resolveTestcaseStatus('<error message="boom" />'))
         .toEqual({ status: 'failed', failureMessage: 'boom' })
+      expect(resolveTestcaseStatus('<failure message="expected&#10;&#x9;got &amp;#10; &lt;x&gt;" />'))
+        .toEqual({ status: 'failed', failureMessage: 'expected\n\tgot &#10; <x>' })
       expect(resolveTestcaseStatus('<failure>&lt;decoded&gt;</failure>'))
         .toEqual({ status: 'failed', failureMessage: '<decoded>' })
     })

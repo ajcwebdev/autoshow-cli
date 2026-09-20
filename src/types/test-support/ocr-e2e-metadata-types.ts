@@ -27,7 +27,7 @@ export type OcrE2eExtractMetadata = {
     sourceKind?: string
     providers?: Array<{ service?: string; model?: string; origin?: string }>
   }
-  requestedProviders?: Array<{ service?: string; model?: string }>
+  requestedProviders?: Array<{ service?: string; model?: string; settings?: unknown }>
   providerStates?: Array<{ service?: string; model?: string; status?: string; artifactDir?: string; attempts?: number }>
   missingProviders?: Array<unknown>
   step2?: {

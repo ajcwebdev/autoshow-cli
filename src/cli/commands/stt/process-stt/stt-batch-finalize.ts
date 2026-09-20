@@ -132,7 +132,7 @@ export const finalizeSttBatchCostTiming = async ({
     step2: successfulProviders.map((entry) => entry.metadata),
     resolvedStep2: resolveRecordedSttStep2(requestedTargets, options),
     completionStatus,
-    requestedProviders: requestedTargets.map(toRequestedProvider),
+    requestedProviders: requestedTargets.map((target) => toRequestedProvider(target, options)),
     providerStates,
     missingProviders,
     cost,

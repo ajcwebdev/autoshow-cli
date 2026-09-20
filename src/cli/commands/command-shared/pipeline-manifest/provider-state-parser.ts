@@ -1,8 +1,9 @@
-import type { PipelineProviderState } from '~/types'
+import type { PipelineProviderState, ProviderSettingsRecord } from '~/types'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { isRecord } from '~/utils/rest-client'
 import { parseAudioProjectionStatus } from './audio-projection-structure'
 import { canonicalManifestJson, hasOnlyKeys, hasPersistedKey, isSafeRelativePath, PROVIDER_STATUS_SET } from './guards'
+import { parseProviderSettingsRecord } from './provider-settings-record'
 
 type ProviderStateBase = {
   raw: Record<string, unknown>
@@ -16,6 +17,7 @@ type ProviderStateBase = {
   metadata: Record<string, unknown>
   result?: Record<string, unknown> | undefined
   error?: Record<string, unknown> | undefined
+  settings?: ProviderSettingsRecord | undefined
 }
 
 type PersistedAudioIdentity =
@@ -25,7 +27,7 @@ type PersistedAudioIdentity =
 const parseProviderStateBase = (rootDir: string, value: unknown): ProviderStateBase | undefined => {
   if (
     !isRecord(value)
-    || !hasOnlyKeys(value, ['service', 'model', 'local', 'operation', 'targetKey', 'transport', 'artifactDir', 'status', 'attempts', 'options', 'metadata', 'result', 'error'])
+    || !hasOnlyKeys(value, ['service', 'model', 'local', 'operation', 'targetKey', 'transport', 'artifactDir', 'status', 'attempts', 'options', 'metadata', 'result', 'error', 'settings'])
     || typeof value['service'] !== 'string'
     || (value['model'] !== undefined && value['model'] !== null && typeof value['model'] !== 'string')
     || typeof value['artifactDir'] !== 'string'
@@ -40,6 +42,7 @@ const parseProviderStateBase = (rootDir: string, value: unknown): ProviderStateB
     || (value['result'] !== undefined && !isRecord(value['result']))
     || (value['error'] !== undefined && !isRecord(value['error']))
     || (value['local'] !== undefined && typeof value['local'] !== 'boolean')
+    || (value['settings'] !== undefined && !parseProviderSettingsRecord(value['settings']))
   ) return undefined
   return {
     raw: value,
@@ -53,6 +56,7 @@ const parseProviderStateBase = (rootDir: string, value: unknown): ProviderStateB
     metadata: value['metadata'],
     ...(isRecord(value['result']) ? { result: value['result'] } : {}),
     ...(isRecord(value['error']) ? { error: value['error'] } : {}),
+    ...(value['settings'] !== undefined ? { settings: parseProviderSettingsRecord(value['settings']) } : {}),
   }
 }
 
@@ -120,5 +124,6 @@ export const parseProviderState = (
     metadata: base.metadata,
     ...(base.result ? { result: base.result } : {}),
     ...(base.error ? { error: base.error } : {}),
+    ...(base.settings ? { settings: base.settings } : {}),
   }
 }

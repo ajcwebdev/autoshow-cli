@@ -45,6 +45,7 @@ import {
 } from './recovery-evidence'
 import { buildRecoveredProviderResult, buildRecoveryMixPlan, buildRecoveryProjection, buildRecoveryTerminalEvent, buildRecoveryTiming } from './recovery-record-builders'
 import { readContainedArtifactFile } from './safe-artifact-store'
+import { ttsProviderSettings } from './tts-provider-settings'
 
 const findAggregateProviderResult = async (
   options: { rootDir: string },
@@ -298,7 +299,8 @@ const publishCompletedRenderRecovery = async (
     input.pure.targetKey,
     input.pure.transport,
     input.options.state.artifactDir,
-    projection
+    projection,
+    ttsProviderSettings(input.options, input.pure)
   )
   await input.options.onProviderState?.(state)
   return {

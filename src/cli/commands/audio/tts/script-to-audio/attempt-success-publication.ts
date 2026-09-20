@@ -12,6 +12,7 @@ import {
   buildCompactArchive,
   buildCompactTerminalProjection,
 } from './attempt-success-builders'
+import { ttsProviderSettings } from './tts-provider-settings'
 const currentArtifacts = (
   input: SuccessPublicationInput,
   audioRun: AudioRun,
@@ -136,7 +137,8 @@ export const publishExpandedCompletion = async (
     purePlan.targetKey,
     purePlan.transport,
     artifactDir,
-    ctx.currentProjection
+    ctx.currentProjection,
+    ttsProviderSettings(options, purePlan)
   )
   await publish(ctx, ctx.terminalState)
   return currentArtifacts(input, audioRun, targetRelativeDir)
@@ -214,7 +216,8 @@ export const publishCompactCompletion = async (
     purePlan.targetKey,
     purePlan.transport,
     archiveRelativeDir,
-    ctx.currentProjection
+    ctx.currentProjection,
+    ttsProviderSettings(options, purePlan)
   )
   await publish(ctx, ctx.terminalState)
 

@@ -14,7 +14,7 @@ import { preflightToEstimated } from '~/cli/commands/pricing-orchestration/compu
 import { evaluatePreflightEstimate } from '~/cli/commands/pricing-orchestration/preflight'
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { buildMusicEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/generation-estimates'
-import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExpectedOutputDir, resolveMaxCentsFromFlags, writeGenerationMetadata } from '~/cli/commands/command-shared/generation-command-utils'
+import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExpectedOutputDir, requestedGenerationProvider, resolveMaxCentsFromFlags, writeGenerationMetadata } from '~/cli/commands/command-shared/generation-command-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { fileExists } from '~/utils/cli-utils'
@@ -128,7 +128,7 @@ const runHostedMusicGeneration = async (
 
   await writeGenerationMetadata(outputDir, 'music', metadata, cost, timing, {
     input: prompt,
-    requestedProviders: musicTargets.map((t) => ({ service: t.service, model: t.model })),
+    requestedProviders: musicTargets.map((t) => requestedGenerationProvider('music', t)),
     completedProviders: metadata.map((entry) => ({ service: entry.musicService, model: entry.musicModel }))
   })
 

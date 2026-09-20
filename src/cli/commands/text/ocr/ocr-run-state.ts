@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 import { isRecord } from '~/utils/rest-client'
-import type { ExistingOcrRun, ExtractionMetadata, ExtractionResult, ProviderCompletionStatus, OcrMetadataOptions, OcrProviderErrorLike, OcrProviderFailureCategory, OcrProviderFailureKind, OcrProviderFailureSummary, OcrProviderState, OcrProviderSuccess, OcrRecordedProviderError, OcrRequestedProvider, OcrTarget } from '~/types'
+import type { ExistingOcrRun, ExtractionMetadata, ExtractionResult, ProviderCompletionStatus, OcrMetadataOptions, OcrProviderErrorLike, OcrProviderFailureCategory, OcrProviderFailureKind, OcrProviderFailureSummary, OcrProviderState, OcrProviderSuccess, OcrRecordedProviderError, OcrRequestedProvider, OcrRuntimeOptions, OcrTarget, ProviderSettingsRecord } from '~/types'
 import { ExtractionMetadataSchema, ExtractionResultSchema } from '~/types'
 import { UsageError, collectErrorChain, extractErrorMetadata } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
@@ -8,6 +8,8 @@ import { isContainedPath } from '~/utils/filesystem'
 import { parseRetryAfterMs } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
 import { readSinglePipelineItemRecord } from '../../command-shared/pipeline-manifest'
+import { createProviderSettingsRecord } from '../../command-shared/pipeline-manifest/provider-settings-record'
+import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { getOcrTargetDirectoryName } from './ocr-targets'
 import { classifyOcrFailureSummary } from './ocr-utils/ocr-failure-classifier'
 import {
@@ -165,9 +167,43 @@ const resolveStoredOcrProviderResult = async (
   )
 }
 
-export const toRequestedProvider = (target: OcrTarget): OcrRequestedProvider => ({
+type OcrSettingsRuntime = { [K in 'dpi' | 'lang' | 'out' | 'ocrProviderMode' | 'primaryOcr' | 'docxMarkdown' | 'chapterFiles' | 'chapterChunkLimitChars' | 'pdfChapterMode' | 'reasoningEffort']?: OcrRuntimeOptions[K] | undefined }
+
+const effectiveOcrReasoning = (target: { service: string, model: string }, requested: OcrSettingsRuntime['reasoningEffort']): string | undefined => {
+  try {
+    return resolveReasoningPolicy({ step: 'extract', service: target.service, model: target.model, requestedReasoningEffort: requested }).effective
+  } catch {
+    return undefined
+  }
+}
+
+// The PDF password is deliberately never part of the recorded settings.
+export const buildOcrProviderSettings = (target: { service: string, model: string }, runtime: OcrSettingsRuntime = {}): ProviderSettingsRecord =>
+  createProviderSettingsRecord({
+    service: target.service,
+    operation: 'ocr',
+    request: {
+      model: target.model,
+      dpi: runtime.dpi,
+      language: runtime.lang,
+      requestedReasoningEffort: runtime.reasoningEffort,
+      effectiveReasoningEffort: effectiveOcrReasoning(target, runtime.reasoningEffort),
+    },
+    local: {
+      outputFormat: runtime.out,
+      providerMode: runtime.ocrProviderMode,
+      primaryOcr: runtime.primaryOcr,
+      docxMarkdown: runtime.docxMarkdown,
+      chapterFiles: runtime.chapterFiles,
+      chapterChunkLimitChars: runtime.chapterChunkLimitChars,
+      pdfChapterMode: runtime.pdfChapterMode,
+    },
+  })
+
+export const toRequestedProvider = (target: OcrTarget, runtime?: OcrSettingsRuntime | undefined): OcrRequestedProvider => ({
   service: target.service,
-  model: target.model
+  model: target.model,
+  settings: buildOcrProviderSettings(target, runtime)
 })
 
 export const parseStoredRequestedTarget = (value: unknown): OcrTarget | undefined => {
@@ -476,7 +512,7 @@ export const buildMissingProviders = (
     providerStates,
     requestedTargets,
     isNonSuccessProviderState,
-    toRequestedProvider
+    (target) => ({ service: target.service, model: target.model })
   )
 
 export const buildBlockedProviders = (
@@ -487,7 +523,7 @@ export const buildBlockedProviders = (
     providerStates,
     requestedTargets,
     (state) => isNonSuccessProviderState(state) && isBlockedOcrProviderState(state),
-    toRequestedProvider
+    (target) => ({ service: target.service, model: target.model })
   )
 
 export const buildMetadataErrorEntries = (

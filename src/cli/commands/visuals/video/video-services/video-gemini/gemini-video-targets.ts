@@ -22,9 +22,11 @@ export const collectGeminiVideoTargets = (options: VideoGenOptions, mode: VideoM
     if (!isSupportedOrSkippedForAllVideo(options, 'gemini', model, mode, OMNI_MODES)) {
       return []
     }
-    normalizeGeminiResolution(options.videoResolution, model)
-    normalizeGeminiAspectRatio(options.videoAspectRatio)
-    normalizeGeminiDuration(options.videoDuration, options.videoResolution, mode)
+    const effective = {
+      resolution: normalizeGeminiResolution(options.videoResolution, model),
+      aspectRatio: normalizeGeminiAspectRatio(options.videoAspectRatio),
+      durationSeconds: normalizeGeminiDuration(options.videoDuration, options.videoResolution, mode)
+    }
     if (mode === 'reference-to-video' && (options.videoReferenceAudios?.length ?? 0) > 0) {
       throw UsageError(`--reference-audio is not supported by gemini/${model}.`)
     }
@@ -44,24 +46,24 @@ export const collectGeminiVideoTargets = (options: VideoGenOptions, mode: VideoM
       validateVideoMediaReferences([options.videoInputVideo], { flagName: '--input-video', provider: 'gemini', model, kind: 'video' })
     }
 
+    const request = {
+      model,
+      mode,
+      aspectRatio: options.videoAspectRatio,
+      resolution: options.videoResolution,
+      durationSeconds: options.videoDuration,
+      inputImage: options.videoInputImage,
+      lastFrameImage: options.videoLastFrame,
+      referenceImages: options.videoReferenceImages,
+      referenceVideos: options.videoReferenceVideos,
+      inputVideo: options.videoInputVideo,
+      previousInteractionId: options.videoPreviousInteractionId
+    }
     return [{
       service: 'gemini',
       model,
-      run: async (prompt, outputDir) => {
-        return await runGeminiVideoGen(prompt, outputDir, {
-          model,
-          mode,
-          aspectRatio: options.videoAspectRatio,
-          resolution: options.videoResolution,
-          durationSeconds: options.videoDuration,
-          inputImage: options.videoInputImage,
-          lastFrameImage: options.videoLastFrame,
-          referenceImages: options.videoReferenceImages,
-          referenceVideos: options.videoReferenceVideos,
-          inputVideo: options.videoInputVideo,
-          previousInteractionId: options.videoPreviousInteractionId
-        })
-      }
+      requestSettings: { ...request, effective },
+      run: async (prompt, outputDir) => await runGeminiVideoGen(prompt, outputDir, request)
     }]
   })
 }

@@ -51,7 +51,12 @@ test('pull failure never inspects a cached tag or runs a container', async () =>
 
 test('failed image resolution produces a failed report with zero executions', async () => {
   const { engine } = await harness({ pullFails: true })
-  expect(await runDockerAcceptance(engine.options, engine)).toBe(1)
+  const logged: string[] = []
+  const errored: string[] = []
+  expect(await runDockerAcceptance(engine.options, engine, { log: line => logged.push(line), error: line => errored.push(line) })).toBe(1)
+  expect(errored).toHaveLength(1)
+  expect(errored[0]).toStartWith('image-resolution: ')
+  expect(logged.at(-1)).toMatch(/^0\/\d+ passed\. Evidence: /)
   const report = await Bun.file(join(engine.options.output, 'results.json')).json()
   expect(report.passed).toBe(false)
   expect(report.selectedCount).toBeGreaterThan(0)

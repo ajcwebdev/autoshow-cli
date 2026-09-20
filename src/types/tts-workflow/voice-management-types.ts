@@ -131,6 +131,13 @@ export type VoiceProvisioningAttempt = {
   compareAndSwapVersion: number
 }
 
+// Request settings that produced a design candidate batch, kept for provenance next to the candidate.
+export type VoiceCandidateGeneration = {
+  previewText: string
+  candidateCount: number
+  seed?: number | undefined
+}
+
 export type VoiceCandidate = {
   schemaVersion: 1
   candidateId: string
@@ -144,6 +151,7 @@ export type VoiceCandidate = {
   sourceVoice?: ProviderVoiceRef | undefined
   eligibilitySnapshotHash?: string | undefined
   description?: string | undefined
+  generation?: VoiceCandidateGeneration | undefined
   previewAssets: ProtectedAssetRef[]
   plannedCost: PlannedCost
   expiresAt?: string | undefined

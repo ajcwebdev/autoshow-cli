@@ -87,7 +87,8 @@ export const processUrlArticle = async (
     completionStatus,
     requestedBackends: providerStates.map((state) => state.service),
     providerStates,
-    failures
+    failures,
+    requestOptions: opts
   })
 
   if (plan.allUrlMode) {

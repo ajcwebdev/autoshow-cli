@@ -7,6 +7,8 @@ export type MusicGenOptions = Partial<MusicRuntimeOptions> & HostedConcurrencyRu
 }
 
 export type MusicTarget = ProviderTargetBase<MusicProvider> & {
+  requestSettings: Record<string, unknown>
+  ignoredSettings?: readonly string[] | undefined
   run: (prompt: string, outputDir: string) => Promise<{ musicPath: string, metadata: Step7MusicMetadata }>
 }
 

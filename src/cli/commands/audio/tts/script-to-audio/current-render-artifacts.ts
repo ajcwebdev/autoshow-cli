@@ -153,6 +153,7 @@ export const appendCurrentTtsProviderState = (
     attempts: projected.attempts,
     metadata: { ...current.metadata, ...incoming.metadata, [namespace]: projection },
     result: { [namespace]: projection },
+    ...(incoming.settings ? { settings: incoming.settings } : {}),
     ...(projected.status === 'failed'
       ? { error: incoming.error ?? current.error ?? { message: 'TTS resume failed.', retryable: true } }
       : { error: undefined })

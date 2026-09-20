@@ -165,7 +165,7 @@ export const resolveEffectiveProviderControls = (
     }
     case 'elevenlabs': return resolveTtsTargetInvocationControls('elevenlabs', invocation, { languageCode: selection.elevenLabsLanguageCode, stability: selection.elevenLabsStability, similarityBoost: selection.elevenLabsSimilarityBoost, style: selection.elevenLabsStyle, ...(selection.elevenLabsUseSpeakerBoost ? { useSpeakerBoost: true } : {}), speed: selection.elevenLabsSpeed, seed: selection.elevenLabsSeed, textNormalization: selection.elevenLabsTextNormalization, pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators, responseFormat: selection.elevenLabsResponseFormat as (typeof ELEVENLABS_TTS_RESPONSE_FORMATS)[number] | undefined })
     case 'grok': return resolveTtsTargetInvocationControls('grok', invocation, { speed: selection.grokSpeed, language: selection.grokLanguage, ...(selection.grokTextNormalization ? { textNormalization: true } : {}) })
-    case 'mistral': return resolveTtsTargetInvocationControls('mistral', invocation, { responseFormat: 'wav' })
+    case 'mistral': return resolveTtsTargetInvocationControls('mistral', invocation, { responseFormat: (selection.mistralResponseFormat ?? 'wav') as 'wav' | 'mp3' | 'flac' | 'opus' })
     case 'speechify': {
       const controls = resolveTtsTargetInvocationControls('speechify', invocation, { language: selection.speechifyLanguage })
       const language = validateSpeechifyTtsLanguageForModel(validateSpeechifyTtsModel(target.model), controls.language)

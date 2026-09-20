@@ -1,4 +1,4 @@
-import type { CanonicalAudioProviderProjection, CreateCurrentTtsRenderAttemptOptions, PipelineProviderState, PlannedInputs, PureCurrentTtsReadinessPlan, PureCurrentTtsRenderPlan, PureCurrentTtsRenderPlanOptions, ProviderRenderBranchCandidate, ProviderRenderBranchPlan, ProviderRenderPlan, ProviderRenderStrategy, SanitizedProviderError, TtsTarget } from '~/types'
+import type { CanonicalAudioProviderProjection, CreateCurrentTtsRenderAttemptOptions, PipelineProviderState, PlannedInputs, ProviderSettingsRecord, PureCurrentTtsReadinessPlan, PureCurrentTtsRenderPlan, PureCurrentTtsRenderPlanOptions, ProviderRenderBranchCandidate, ProviderRenderBranchPlan, ProviderRenderPlan, ProviderRenderStrategy, SanitizedProviderError, TtsTarget } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { canonicalTargetKey, canonicalTtsJson, computeRenderIdentity, computeVoiceContextKey, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { projectCanonicalAudioProviderStatus, validateProviderRenderPlanIdentity } from './contract-validation'
@@ -177,6 +177,7 @@ export const stateForProjection = (
   transport: string,
   artifactDir: string,
   projection: CanonicalAudioProviderProjection,
+  settings: ProviderSettingsRecord,
   error?: SanitizedProviderError | undefined
 ): PipelineProviderState => {
   const projected = projectCanonicalAudioProviderStatus(projection)
@@ -195,7 +196,8 @@ export const stateForProjection = (
     options: {},
     metadata: { [namespace]: projection },
     result: { [namespace]: projection },
-    ...(error ? { error } : {})
+    ...(error ? { error } : {}),
+    settings,
   }
 }
 

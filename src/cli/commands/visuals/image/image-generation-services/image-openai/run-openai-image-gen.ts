@@ -5,7 +5,7 @@ import { OPENAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { createOpenAIImage, createOpenAIImageEdit } from '~/utils/openai/openai-client'
 import { appendImageReferenceToForm } from '../../image-utils/image-inputs'
 import { computeOpenAIImageUsageCostCents } from '../../image-utils/openai-image-pricing'
-import { OPENAI_IMAGE_COUNT_RANGE, validateOpenAIImageOptions } from './openai-image-options'
+import { OPENAI_IMAGE_COUNT_RANGE, OPENAI_IMAGE_REQUEST_DEFAULTS, validateOpenAIImageOptions } from './openai-image-options'
 import { validateImageCount } from '../../image-utils/image-target-validation'
 import {
   getFirstRevisedPrompt,
@@ -63,7 +63,7 @@ export const runOpenAIImageGen = async (
   validateOpenAIImageOptions(options.model, { imageSize: options.size, imageQuality: options.quality, imageFormat: options.outputFormat, imageBackground: options.background, imageCompression: options.compression })
   const count = validateImageCount('OpenAI', options.model, options.count, ...OPENAI_IMAGE_COUNT_RANGE)
   const mode = options.mode ?? 'generation'
-  const ext = options.outputFormat === 'jpeg' ? 'jpg' : (options.outputFormat ?? 'png')
+  const ext = options.outputFormat === 'jpeg' ? 'jpg' : (options.outputFormat ?? OPENAI_IMAGE_REQUEST_DEFAULTS.outputFormat)
 
   return await runImageGeneration({
     service: 'openai',
@@ -79,11 +79,11 @@ export const runOpenAIImageGen = async (
             form.append('model', options.model)
             form.append('prompt', prompt)
             form.append('n', String(count))
-            form.append('size', options.size ?? 'auto')
-            form.append('quality', options.quality ?? 'auto')
-            form.append('output_format', options.outputFormat ?? 'png')
-            form.append('background', options.background ?? 'auto')
-            form.append('moderation', 'low')
+            form.append('size', options.size ?? OPENAI_IMAGE_REQUEST_DEFAULTS.size)
+            form.append('quality', options.quality ?? OPENAI_IMAGE_REQUEST_DEFAULTS.quality)
+            form.append('output_format', options.outputFormat ?? OPENAI_IMAGE_REQUEST_DEFAULTS.outputFormat)
+            form.append('background', options.background ?? OPENAI_IMAGE_REQUEST_DEFAULTS.background)
+            form.append('moderation', OPENAI_IMAGE_REQUEST_DEFAULTS.moderation)
             if (typeof options.compression === 'number') {
               form.append('output_compression', String(options.compression))
             }
@@ -101,11 +101,11 @@ export const runOpenAIImageGen = async (
             model: options.model,
             prompt,
             n: count,
-            size: options.size ?? 'auto',
-            quality: options.quality ?? 'auto',
-            output_format: options.outputFormat ?? 'png',
-            background: options.background ?? 'auto',
-            moderation: 'low',
+            size: options.size ?? OPENAI_IMAGE_REQUEST_DEFAULTS.size,
+            quality: options.quality ?? OPENAI_IMAGE_REQUEST_DEFAULTS.quality,
+            output_format: options.outputFormat ?? OPENAI_IMAGE_REQUEST_DEFAULTS.outputFormat,
+            background: options.background ?? OPENAI_IMAGE_REQUEST_DEFAULTS.background,
+            moderation: OPENAI_IMAGE_REQUEST_DEFAULTS.moderation,
             ...(typeof options.compression === 'number' ? { output_compression: options.compression } : {})
           })
 
@@ -122,9 +122,9 @@ export const runOpenAIImageGen = async (
         metadata: {
           imageWidth: undefined,
           imageHeight: undefined,
-          imageSize: options.size ?? 'auto',
-          imageQuality: options.quality ?? 'auto',
-          imageFormat: options.outputFormat ?? 'png',
+          imageSize: options.size ?? OPENAI_IMAGE_REQUEST_DEFAULTS.size,
+          imageQuality: options.quality ?? OPENAI_IMAGE_REQUEST_DEFAULTS.quality,
+          imageFormat: options.outputFormat ?? OPENAI_IMAGE_REQUEST_DEFAULTS.outputFormat,
           requestMode: mode,
           ...(getFirstRevisedPrompt(result) ? { revisedPrompt: getFirstRevisedPrompt(result) } : {}),
           ...(getProviderReturnedModel(options.model, result) ? { providerReturnedModel: getProviderReturnedModel(options.model, result) } : {}),

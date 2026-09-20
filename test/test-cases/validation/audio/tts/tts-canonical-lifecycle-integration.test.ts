@@ -103,6 +103,14 @@ describe('canonical standalone TTS lifecycle persistence', () => {
       await runSingleTtsInput(inputPath, options(), targets, undefined)
       const manifest = await readManifest(outputDir)
       expect(manifest?.items[0]?.providers.map(provider => provider.status)).toEqual(['succeeded', 'succeeded'])
+      for (const provider of manifest!.items[0]!.providers) {
+        expect(provider.settings).toMatchObject({
+          schemaVersion: 1,
+          settingsSchema: 'openai.tts-synthesis.v1',
+          request: { model: provider.model, voice: 'alloy', endpointKind: 'speech-synthesis', controls: { responseFormat: 'wav' } },
+          local: { audioProfile: 'legacy-16k', textPreflight: true },
+        })
+      }
       const files = (await readdir(outputDir, { recursive: true, withFileTypes: true })).filter(entry => entry.isFile())
       expect(files.filter(entry => /\.(json|jsonl|lock)$/.test(entry.name)).length).toBeLessThanOrEqual(12)
       expect(files.some(entry => entry.parentPath.includes('/providers/') || entry.name === 'journal.jsonl')).toBe(false)

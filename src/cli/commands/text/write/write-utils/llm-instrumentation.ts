@@ -83,7 +83,8 @@ export const runWithLLMInstrumentation = async (
     tokenCountSource: hasCompleteProviderUsage ? 'provider_usage' : 'local_count',
     ...(providerUsage ? { providerUsage } : {}),
     ...(rawProviderUsage !== undefined ? { rawProviderUsage } : {}),
-    ...(typeof result !== 'string' && result.returnedModel ? { providerReturnedModel: result.returnedModel } : {})
+    ...(typeof result !== 'string' && result.returnedModel ? { providerReturnedModel: result.returnedModel } : {}),
+    ...(typeof result !== 'string' && result.requestSettings ? { requestSettings: result.requestSettings } : {})
   }
 }
 
@@ -107,5 +108,6 @@ export const buildStep3Metadata = (
   structuredMode: structuredOpts?.strategy ?? 'schema-guided',
   structuredPresetNames: [],
   ...(structuredOpts?.requestedReasoningEffort !== undefined ? { requestedReasoningEffort: structuredOpts.requestedReasoningEffort } : {}),
-  ...(structuredOpts?.effectiveReasoningEffort !== undefined ? { effectiveReasoningEffort: structuredOpts.effectiveReasoningEffort } : {})
+  ...(structuredOpts?.effectiveReasoningEffort !== undefined ? { effectiveReasoningEffort: structuredOpts.effectiveReasoningEffort } : {}),
+  ...(timing.requestSettings ? { requestSettings: timing.requestSettings } : {})
 })

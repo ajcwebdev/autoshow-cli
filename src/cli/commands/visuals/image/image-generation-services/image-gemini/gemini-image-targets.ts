@@ -44,19 +44,19 @@ export const collectGeminiImageTargets = (options: ImageGenOptions): ImageTarget
       hint: 'Supported Gemini image options are --aspect-ratio, --size 1K, --response-mode, and --input references.'
     })
 
+    const request = {
+      model,
+      mode: hasEditInputs(options) ? 'edit' as const : 'generation' as const,
+      inputs: options.imageInputs,
+      aspectRatio: options.imageAspectRatio,
+      imageSize: options.imageSize,
+      responseMode: options.imageResponseMode === 'text-image' ? 'text-image' as const : 'image' as const
+    }
     return [{
       service: 'gemini',
       model,
-      run: async (prompt, outputDir) => {
-        return await runGeminiImageGen(prompt, outputDir, {
-          model,
-          mode: hasEditInputs(options) ? 'edit' : 'generation',
-          inputs: options.imageInputs,
-          aspectRatio: options.imageAspectRatio,
-          imageSize: options.imageSize,
-          responseMode: options.imageResponseMode === 'text-image' ? 'text-image' : 'image'
-        })
-      }
+      requestSettings: request,
+      run: async (prompt, outputDir) => await runGeminiImageGen(prompt, outputDir, request)
     }]
   })
 }

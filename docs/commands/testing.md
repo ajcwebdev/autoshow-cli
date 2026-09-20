@@ -54,17 +54,21 @@ Per-command coverage, price examples, and live selections live on these pages:
 ## Shared Runner Behavior
 
 - Pass file or directory paths under `test/test-cases/` to select tests.
-- Passing tests print only the result line (`✓`, name, duration). Failing tests keep that `✗` line and the captured console output from that test.
+- Under `bun test`, passing tests print only the result line (`✓`, name, duration). Failing tests keep that `✗` line and the captured console output from that test.
+- `bun t` keeps the terminal failure-first. It hides `✓` and `»` result lines and Bun's end-of-run skipped list. A file header is printed only before a failure or other output from that file. When nothing has printed for 10 seconds, a `progress: N passed · N failed · N skipped` line shows the run is still going. After Bun exits, the runner prints a digest: each failed test with the first lines of its message, a one-line skip summary that separates live service tests from other skips, and model calibration recommendations. Timing recommendations leave out local engines (the `--all-local-*` providers: whisperfile, tesseract, defuddle), because their wall-clock time mostly reflects CPU contention with concurrent tests. Every result line is still written to `runner.log`. Use `--verbose` to stream Bun's full output to the terminal as well.
 - `--max-concurrency` and `--parallel` default to the machine's available parallelism. E2E-only selections default `--parallel` to 32; automatic test retries are disabled. Pass `--max-concurrency=<n>` or `--parallel=<n>` to override; `--concurrency` is not a Bun test flag and is rejected.
 - `--parallel` isolates test files. Use `--no-isolate` only as a temporary diagnostic escape hatch for a confirmed isolation or preload regression; it is not a supported default because it weakens file-level state separation.
 - Interrupting a run terminates local test descendants.
-- Each run writes artifacts under `./output/test-output/YYYY-MM-DD_HH-MM-SS_test-run/`. By default, `bun t` cleans that directory after every run and leaves `./output/test-output/latest.log` with the run summary, failures, runner log, and command log. Use `--no-cleanup` to keep the full run directory, per-test CLI outputs, and test cache.
+- Each run writes artifacts under `./output/test-output/YYYY-MM-DD_HH-MM-SS_test-run/`. By default, `bun t` removes that directory after a passing run. A failed run keeps its directory (`junit.xml`, `report.json`, `commands.log`, and per-test CLI outputs) until the next run's cleanup. Use `--no-cleanup` to keep every run directory.
+- Two files at `./output/test-output/` survive cleanup. `latest.log` starts with the run summary and the uncapped digest, followed by the failed and skipped `report.json` entries, the runner log, and the tail of the command log. `latest-model-calibration.json` holds the full model calibration report from the most recent test run.
 - Use `--no-adaptive-concurrency` to disable adaptive per-provider lane limits.
 
 ```bash
 bun t --no-cleanup
 
 cat output/test-output/latest.log
+
+cat output/test-output/latest-model-calibration.json
 ```
 Common selection and diagnostic flags are forwarded unchanged after AutoShow resolves path filters:
 

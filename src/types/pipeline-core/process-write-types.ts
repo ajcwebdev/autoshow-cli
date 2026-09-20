@@ -22,5 +22,6 @@ export type Step3Metadata = {
   validationFailed?: boolean | undefined
   requestedReasoningEffort?: NormalizedReasoningEffort | undefined
   effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
+  requestSettings?: Record<string, unknown> | undefined
   hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
 }

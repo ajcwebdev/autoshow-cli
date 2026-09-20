@@ -46,7 +46,7 @@ export const runMultiProviderSttBatch = async ({
     ...(existingItemRecord ?? {}),
     step1: prepared.step1Metadata,
     completionStatus: 'incomplete',
-    requestedProviders: requestedTargets.map(toRequestedProvider),
+    requestedProviders: requestedTargets.map((target) => toRequestedProvider(target, options)),
     providerStates: requestedTargets.map((target) => {
       const existing = providerStateMap.get(getSttTargetKey(target))
       return {
@@ -62,7 +62,7 @@ export const runMultiProviderSttBatch = async ({
     }),
     missingProviders: requestedTargets
       .filter((target) => targetsToRun.has(getSttTargetKey(target)))
-      .map(toRequestedProvider)
+      .map((target) => toRequestedProvider(target, options))
   }], { extractRoute: 'media' })
   const providerConcurrency = resolveEffectiveSttProviderConcurrency(options, requestedTargets)
   const batchCoordinator = runOptions.batchCoordinator

@@ -33,11 +33,10 @@ describe('image model refresh contracts', () => {
     ])
     expect(SUPPORTED_FAL_IMAGE_MODELS).toEqual([
       'fal-ai/hidream-o1-image',
-      'alibaba/qwen-image-3',
-      'reve/2.1'
+      'alibaba/qwen-image-3'
     ])
     const targets = collectImageTargets(buildOptsFromFlags({ 'all-image': true }))
-    expect(targets).toHaveLength(14)
+    expect(targets).toHaveLength(13)
     expect(targets.filter(target => target.service === 'grok').map(target => target.model)).toEqual(['grok-imagine-image-2.0'])
     expect(targets.filter(target => target.service === 'gemini').map(target => target.model)).toEqual(['gemini-3.1-flash-lite-image'])
   })
@@ -48,6 +47,7 @@ describe('image model refresh contracts', () => {
     expect(() => validateGeminiImageModel('gemini-3.1-flash-image')).toThrow('Use "gemini-3.1-flash-lite-image" instead')
     expect(() => validateGeminiImageModel('gemini-3-pro-image')).toThrow('Use "gemini-3.1-flash-lite-image" instead')
     expect(() => validateFalImageModel('microsoft/mai-image-2.5-pro')).toThrow('Use "alibaba/qwen-image-3" instead')
+    expect(() => validateFalImageModel('reve/2.1')).toThrow('Use "alibaba/qwen-image-3" instead')
     expect(() => validateReplicateImageModel('ideogram-ai/ideogram-v4-quality')).toThrow('Use "bytedance/seedream-5-lite" instead')
     expect(() => validateReplicateImageModel('prunaai/ernie-image')).toThrow('Use "alibaba/qwen-image-3" instead')
     expect(() => validateReplicateImageModel('qwen/qwen-image-2')).toThrow('Use "alibaba/qwen-image-3" instead')

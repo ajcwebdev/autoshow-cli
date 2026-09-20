@@ -94,7 +94,7 @@ const createPooledCheckpointWriter = (
     source: ctx.documentSource,
     completionStatus: ledger.status === 'full' ? 'full' : 'incomplete',
     resolvedStep2,
-    requestedProviders: ctx.requestedTargets.map(toRequestedProvider),
+    requestedProviders: ctx.requestedTargets.map((target) => toRequestedProvider(target, ctx.effectiveOpts)),
     providerStates: targetProviderStates(ledger),
     missingProviders: [],
     blockedProviders: retiredTargets.map(target => ({ service: target.service, model: target.model })),

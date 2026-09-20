@@ -218,7 +218,12 @@ export const computeVoiceCandidateId = (candidate: Omit<VoiceCandidate, 'candida
   hashCanonicalRecordWithout(candidate as unknown as Record<string, unknown>, [])
 
 export const validateVoiceCandidate = (candidate: VoiceCandidate): VoiceCandidate => {
-  assertAllowedKeys(candidate, ['schemaVersion', 'candidateId', 'registrationDraftId', 'provider', 'providerModel', 'providerCandidateId', 'creationModel', 'operation', 'sourceIdentityHash', 'sourceVoice', 'eligibilitySnapshotHash', 'description', 'previewAssets', 'plannedCost', 'expiresAt', 'expiryState', 'createdAt', 'materialization'], 'Voice candidate')
+  assertAllowedKeys(candidate, ['schemaVersion', 'candidateId', 'registrationDraftId', 'provider', 'providerModel', 'providerCandidateId', 'creationModel', 'operation', 'sourceIdentityHash', 'sourceVoice', 'eligibilitySnapshotHash', 'description', 'generation', 'previewAssets', 'plannedCost', 'expiresAt', 'expiryState', 'createdAt', 'materialization'], 'Voice candidate')
+  if (candidate.generation !== undefined) {
+    assertAllowedKeys(candidate.generation, ['previewText', 'candidateCount', 'seed'], 'Voice candidate generation')
+    if (typeof candidate.generation.previewText !== 'string' || !Number.isInteger(candidate.generation.candidateCount) || candidate.generation.candidateCount < 1) throw UsageError('Voice candidate generation requires preview text and a positive candidate count.')
+    if (candidate.generation.seed !== undefined && (!Number.isInteger(candidate.generation.seed) || candidate.generation.seed < 0)) throw UsageError('Voice candidate generation seed must be a non-negative integer.')
+  }
   if (candidate.schemaVersion !== 1) throw UsageError('Voice candidate requires schemaVersion 1.')
   assertContentIdentity(candidate as unknown as Record<string, unknown>, 'candidateId', 'Voice candidate')
   assertSafeKey(candidate.registrationDraftId, 'Candidate registration draft ID')

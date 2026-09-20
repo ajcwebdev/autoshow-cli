@@ -9,6 +9,7 @@ import {
   closeArtifactLogs,
   cleanupTestOutputRoot,
   createRunArtifacts,
+  latestCalibrationPath,
   writeJsonFile,
   writeLatestRunLog,
   writeReportJson
@@ -22,6 +23,7 @@ import { resolvePriceSelection } from './price-commands/resolve'
 import { buildEmptyBudgetSummary, runPriceSuite } from './price-execution'
 import { prebuildTestCliBundle, runBunTest } from './process-execution'
 import { buildPriceReportData } from './reports/price-report'
+import { buildRunDigest } from './reports/run-digest'
 import { buildTestReportData } from './reports/test-report'
 import { normalizeRepoPath } from './utils'
 
@@ -33,13 +35,30 @@ import { normalizeRepoPath } from './utils'
  */
 export const installTimestampedConsole = (): void => {}
 
+type ModeResult = {
+  exitCode: number
+  /** Uncapped failure, skip, and calibration digest for latest.log. */
+  latestLogDigest: string[]
+}
+
+const FAILURE_DIGEST_LINE = /^(?:Failures \(|✗ )/
+
+const printRunDigest = (lines: string[]): void => {
+  for (const line of lines) {
+    if (line.length === 0) continue
+    // The error level already carries a failure glyph, so drop the digest's own marker on the terminal.
+    if (FAILURE_DIGEST_LINE.test(line)) l.write('error', line.replace(/^✗ /, ''), { category: 'command' })
+    else l.write('info', line, { category: 'command' })
+  }
+}
+
 const runStandardTestMode = async (
   args: RunnerArgs,
   allFiles: string[],
   artifacts: TestRunArtifacts,
   argv: string[],
   budgetHead: HeadBudgetResult
-): Promise<number> => {
+): Promise<ModeResult> => {
   const filesToRun = resolveSelectedFiles(allFiles, args.pathFilters)
   if (args.pathFilters.length === 0) {
     l.write('info', `Running all discovered tests (${filesToRun.length} files)`, { category: 'command' })
@@ -56,7 +75,7 @@ const runStandardTestMode = async (
   }
   if (!args.adaptiveConcurrency) budgetEnvOverrides['AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY'] = '0'
 
-  const exitCode = await runBunTest(filesToRun, artifacts, args.passthroughArgs, args.preserveTestOutput, [], budgetEnvOverrides)
+  const exitCode = await runBunTest(filesToRun, artifacts, args.passthroughArgs, args.preserveTestOutput, [], budgetEnvOverrides, args.verbose)
   const junitCases = await parseJunit(artifacts.junitPath)
   const metrics = await readMetrics(artifacts.metricsLogPath)
   const endedAtIso = new Date().toISOString()
@@ -68,12 +87,30 @@ const runStandardTestMode = async (
     await writeJsonFile(artifacts.e2eReportJsonPath, reportData['e2e'] as Record<string, unknown>)
   }
   const calibrationReport = await buildModelCalibrationReport(artifacts.rootDir)
-  await writeJsonFile(artifacts.calibrationReportJsonPath, calibrationReport as unknown as Record<string, unknown>)
-  l.write('info', `Model calibration report: ${normalizeRepoPath(artifacts.calibrationReportJsonPath)}`, { category: 'artifact' })
-  if (calibrationReport.recommendedModels > 0) {
-    l.write('info', `Model calibration recommendations found for ${calibrationReport.recommendedModels} model entr${calibrationReport.recommendedModels === 1 ? 'y' : 'ies'}`, { category: 'command' })
+  const calibrationJson = calibrationReport as unknown as Record<string, unknown>
+  // The run directory is removed after a passing run, so the stable root copy is the one to point at.
+  const stableCalibrationPath = latestCalibrationPath(artifacts)
+  await Promise.all([
+    writeJsonFile(artifacts.calibrationReportJsonPath, calibrationJson),
+    writeJsonFile(stableCalibrationPath, calibrationJson),
+  ])
+  const digestInput = {
+    junitCases,
+    budgetSummary: budgetHead.summary,
+    calibration: calibrationReport,
+    calibrationPath: normalizeRepoPath(stableCalibrationPath) ?? stableCalibrationPath,
   }
-  return exitCode
+  printRunDigest(buildRunDigest(digestInput))
+  return {
+    exitCode,
+    latestLogDigest: buildRunDigest({
+      ...digestInput,
+      maxFailures: Number.POSITIVE_INFINITY,
+      maxMessageLines: Number.POSITIVE_INFINITY,
+      maxCalibrationRows: Number.POSITIVE_INFINITY,
+      maxSlowest: 20,
+    }),
+  }
 }
 
 const runPriceMode = async (
@@ -81,7 +118,7 @@ const runPriceMode = async (
   allFiles: string[],
   artifacts: TestRunArtifacts,
   argv: string[]
-): Promise<number> => {
+): Promise<ModeResult> => {
   const resolved = resolvePriceSelection(allFiles, args.pathFilters)
   let results: PriceCommandResult[] = []
   let budgetSummary: BudgetPreflightSummary | undefined
@@ -103,7 +140,7 @@ const runPriceMode = async (
   const endedAtMs = Date.now()
   const reportData = buildPriceReportData(results, resolved.suiteName, artifacts, endedAtIso, endedAtMs, argv.slice(2), budgetSummary)
   await writeReportJson(artifacts, reportData)
-  return exitCode
+  return { exitCode, latestLogDigest: [] }
 }
 
 const writeFallbackReport = async (
@@ -152,6 +189,7 @@ export const runTestRunner = async (argv: string[]): Promise<number> => {
   l.write('info', `Test run artifacts: ${normalizeRepoPath(artifacts.runDir)}`, { category: 'artifact' })
 
   let exitCode = 0
+  let latestLogDigest: string[] = []
   try {
     appendRunnerLog(artifacts, `Run ID: ${artifacts.runId}\nStarted: ${artifacts.startedAtIso}\nArgs: ${argv.slice(2).join(' ')}\n`)
     const preparation = await Promise.allSettled([
@@ -164,9 +202,11 @@ export const runTestRunner = async (argv: string[]): Promise<number> => {
     for (const result of preparation) if (result.status === 'rejected') throw result.reason
     const budgetResult = preparation[2]
     if (budgetResult.status !== 'fulfilled') throw budgetResult.reason
-    exitCode = args.priceMode
+    const result = args.priceMode
       ? await runPriceMode(args, allFiles, artifacts, argv)
       : await runStandardTestMode(args, allFiles, artifacts, argv, budgetResult.value)
+    exitCode = result.exitCode
+    latestLogDigest = result.latestLogDigest
   } catch (error) {
     exitCode = 1
     await writeFallbackReport(args, artifacts, argv, error)
@@ -175,12 +215,16 @@ export const runTestRunner = async (argv: string[]): Promise<number> => {
     await closeArtifactLogs(artifacts)
   }
 
-  const latestLogPath = await writeLatestRunLog(artifacts, exitCode)
-  if (args.preserveTestOutput) {
+  const latestLogPath = await writeLatestRunLog(artifacts, exitCode, latestLogDigest)
+  // A failed run keeps its junit, report, and per-test outputs; the next run's cleanup removes it.
+  const keepRunDir = args.preserveTestOutput || exitCode !== 0
+  if (keepRunDir) {
+    if (!args.preserveTestOutput) {
+      l.write('info', `Failed run kept: ${normalizeRepoPath(artifacts.runDir)}`, { category: 'artifact' })
+    }
     l.write('info', `Report JSON: ${normalizeRepoPath(artifacts.reportJsonPath)}`, { category: 'artifact' })
     if (!args.priceMode) {
       l.write('info', `E2E Report JSON: ${normalizeRepoPath(artifacts.e2eReportJsonPath)}`, { category: 'artifact' })
-      l.write('info', `Model Calibration JSON: ${normalizeRepoPath(artifacts.calibrationReportJsonPath)}`, { category: 'artifact' })
     }
     l.write('info', `Latest log: ${normalizeRepoPath(latestLogPath)}`, { category: 'artifact' })
   } else {

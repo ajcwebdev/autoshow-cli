@@ -142,6 +142,11 @@ for (const models of [['gemini-3.1-flash-lite-image']] as const) {
     expect((await comic(f.run)).recovery?.image?.imageRunId).toBe(intent.imageRunId)
     expect(sha256Bytes(new Uint8Array(await Bun.file(panelPath).arrayBuffer()))).toBe(retained)
     expect(await Bun.file(join(dirname(panelPath), 'panel-02.png')).exists()).toBe(true)
+    const imageProviders = (await readManifest(f.run))!.items[0]!.providers.filter(provider => provider.operation === 'comic-image')
+    expect(imageProviders).toHaveLength(models.length)
+    for (const provider of imageProviders) {
+      expect(provider.settings).toMatchObject({ schemaVersion: 1, settingsSchema: `${provider.service}.comic-image.v1`, request: { model: provider.model, size: expect.any(String), quality: 'high' }, local: { target: 'images', panelsPerImage: 1, qa: false, maxRepairs: 2, stopOnProviderError: true } })
+    }
     const completed = await hashes(f.run)
     await dispatchResume(f.run, {})
     expect(await hashes(f.run)).toEqual(completed)
@@ -205,6 +210,8 @@ test('recorded audio checkpoint resumes only the missing slot and completes its 
   await dispatchResume(f.run, {})
   expect(calls).toHaveLength(2)
   expect((await comic(f.run)).stages.presentation.status).toBe('full')
+  const audioProvider = (await readManifest(f.run))!.items[0]!.providers.find(provider => provider.operation === 'comic-audio')
+  expect(audioProvider?.settings).toMatchObject({ schemaVersion: 1, settingsSchema: 'openai.comic-audio.v1', request: { model: 'gpt-4o-mini-tts-2025-12-15', strategy: 'segmented' }, local: { audioProfile: expect.any(String), chunking: expect.objectContaining({ effectiveMaxChars: expect.any(Number) }) } })
   expect(await Bun.file(join(f.run, 'presentation/final/slideshow.mp4')).exists()).toBe(true)
   const completed = await hashes(f.run)
   await dispatchResume(f.run, { price: true })

@@ -3,7 +3,8 @@ import { joinOutputRoot } from '~/cli/commands/command-shared/output-root'
 import { claimPinnedRunDir, getPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
 import { createUniqueDirectoryName } from '~/cli/commands/sources/download/download-audio/metadata-utils'
 import { loadConfig, resolveConfigPath, resolveMaxCents } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
-import type { GenerationCostStep, LogLevel, MediaGenerationStatus, PipelineProviderState, StepTimingCost } from '~/types'
+import type { GenerationCostStep, LogLevel, MediaGenerationStatus, PipelineProviderState, ProviderSettingsRecord, StepTimingCost } from '~/types'
+import { createProviderSettingsRecord } from './pipeline-manifest/provider-settings-record'
 import { ensureDirectory } from '~/utils/cli-utils'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { UsageError, isUsageError } from '~/utils/error-handler'
@@ -130,6 +131,15 @@ export const createGenerationOutputDir = async (
 export const getGenerationTargetKey = (service: string, model: string): string =>
   `${service}:${model}`
 
+export const requestedGenerationProvider = (
+  operation: 'image' | 'video' | 'music',
+  target: { service: string, model: string, requestSettings: Record<string, unknown>, ignoredSettings?: readonly string[] | undefined }
+): { service: string, model: string, settings: ProviderSettingsRecord } => ({
+  service: target.service,
+  model: target.model,
+  settings: createProviderSettingsRecord({ service: target.service, operation, request: target.requestSettings, ignored: target.ignoredSettings })
+})
+
 export const writeGenerationMetadata = async <T,>(
   outputDir: string,
   metadataKey: string,
@@ -145,6 +155,7 @@ export const writeGenerationMetadata = async <T,>(
       operation?: string | undefined
       targetKey?: string | undefined
       transport?: string | undefined
+      settings?: ProviderSettingsRecord | undefined
     }>
     completedProviders: Array<{ service: string, model: string }>
     providerStates?: PipelineProviderState[] | undefined

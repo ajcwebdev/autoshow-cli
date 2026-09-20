@@ -74,6 +74,7 @@ import {
   publishCompactCompletion,
   publishExpandedCompletion,
 } from './attempt-success-publication'
+import { ttsProviderSettings } from './tts-provider-settings'
 const closeLocalComposition = async (
   ctx: AttemptContext
 ): Promise<ClosedProviderAttempt> => {
@@ -280,7 +281,7 @@ export const finalizeFailure = async (
     ctx.events.push({ sequence: ctx.events.length + 1, status: 'failed', at, attempt: ctx.priorAttemptCount, error: sanitized })
     ctx.pointerEvents.push({ sequence: ctx.pointerEvents.length + 1, action: 'activate-render', renderIdentity: ctx.purePlan.renderIdentity, eventSequence: ctx.events.length, actor: LOCAL_ACTOR, at })
     ctx.currentProjection = buildProjection(ctx)
-    ctx.terminalState = stateForProjection(ctx.options.target, ctx.purePlan.targetKey, ctx.purePlan.transport, ctx.targetRelativeDir, ctx.currentProjection, sanitized)
+    ctx.terminalState = stateForProjection(ctx.options.target, ctx.purePlan.targetKey, ctx.purePlan.transport, ctx.targetRelativeDir, ctx.currentProjection, ttsProviderSettings(ctx.options, ctx.purePlan), sanitized)
     await publish(ctx, ctx.terminalState)
     return ctx.terminalState
   }
@@ -295,7 +296,7 @@ export const finalizeFailure = async (
     sanitized.message = `${sanitized.message}; evidence finalization: ${evidenceFailure.message}`.slice(0, 600)
   }
   ctx.currentProjection = appendTerminalProjection(ctx, 'failed', { result: resultFile, batchResultFiles, error: sanitized })
-  ctx.terminalState = stateForProjection(ctx.options.target, ctx.purePlan.targetKey, ctx.purePlan.transport, ctx.targetRelativeDir, ctx.currentProjection, sanitized)
+  ctx.terminalState = stateForProjection(ctx.options.target, ctx.purePlan.targetKey, ctx.purePlan.transport, ctx.targetRelativeDir, ctx.currentProjection, ttsProviderSettings(ctx.options, ctx.purePlan), sanitized)
   await publish(ctx, ctx.terminalState)
   return ctx.terminalState
 }
@@ -566,7 +567,7 @@ export const finalizeCheckpoint = async (ctx: AttemptContext): Promise<{
     at,
   })
   ctx.currentProjection = buildProjection(ctx)
-  ctx.terminalState = stateForProjection(options.target, purePlan.targetKey, purePlan.transport, targetRelativeDir, ctx.currentProjection)
+  ctx.terminalState = stateForProjection(options.target, purePlan.targetKey, purePlan.transport, targetRelativeDir, ctx.currentProjection, ttsProviderSettings(options, purePlan))
   await publish(ctx, ctx.terminalState)
   const completedGenerationSlotIds = [...new Set([
     ...recoveredBySlot.keys(),
