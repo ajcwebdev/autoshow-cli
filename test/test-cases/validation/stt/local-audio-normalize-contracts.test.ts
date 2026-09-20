@@ -44,8 +44,9 @@ describe('Whisperfile input preparation', () => {
   })
 
   // The pinned whisperfile executable fails with "failed to read audio file" whenever the decoded
-  // length is an exact multiple of 0.16s, in every container tested, so preparation must move off it.
-  for (const durationSeconds of [2.56, 3.2, 4.0, 9.28]) test(`pads a ${durationSeconds}s input off the rejected sample-count boundary`, async () => {
+  // length is an exact multiple of 512 samples, including split-video lengths outside the original
+  // 2,560-sample sweep, so preparation must move off every such boundary.
+  for (const durationSeconds of [2.56, 3.2, 4.0, 9.28, 10.016, 11.008]) test(`pads a ${durationSeconds}s input off the rejected sample-count boundary`, async () => {
     await withTempDir('whisper-boundary-', async dir => {
       const source = join(dir, 'boundary.wav')
       await Bun.write(source, createSyntheticWavBytes({ durationSeconds, frequencyHz: 440, amplitude: 0.3 }))
@@ -63,10 +64,10 @@ describe('Whisperfile input preparation', () => {
     })
   })
 
-  test('transcribes a boundary-length clip instead of failing to read it', async () => {
+  for (const durationSeconds of [9.28, 11.008]) test(`transcribes a ${durationSeconds}s boundary-length clip instead of failing to read it`, async () => {
     await withTempDir('whisper-boundary-run-', async dir => {
       const source = join(dir, 'boundary.wav')
-      await Bun.write(source, createSyntheticWavBytes({ durationSeconds: 9.28, frequencyHz: 440, amplitude: 0.2 }))
+      await Bun.write(source, createSyntheticWavBytes({ durationSeconds, frequencyHz: 440, amplitude: 0.2 }))
       const { result } = await transcribeWhisperfile(source, join(dir, 'out'), { model: 'tiny', segmentOffsetMinutes: 0 })
       expect(typeof result.text).toBe('string')
     })

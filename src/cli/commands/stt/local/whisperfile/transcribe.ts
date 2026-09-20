@@ -42,14 +42,15 @@ const waitForWhisperfileJson = async (jsonFile: string, providerName: string): P
 
 /**
  * The pinned executable reports "failed to read audio file" for any input whose decoded length is an
- * exact multiple of 2,560 samples (0.16 s at 16 kHz), in every container tested: WAV, FLAC and MP3.
- * Measured by sweeping trimmed lengths: 2,560, 5,120, 51,200, 102,400 and 148,480 samples all fail,
- * while the same clip one sample longer succeeds. It also rejects sub-second clips. Every input is
+ * exact multiple of 512 samples (0.032 s at 16 kHz), in every container tested: WAV, FLAC and MP3.
+ * A split AAC video exposed the 176,128-sample boundary missed by the original 2,560-sample sweep.
+ * Lengths 160,256, 175,616 and 176,128 fail while one sample longer succeeds. It also rejects
+ * sub-second clips. Every input is
  * therefore converted to lossless 16 kHz mono FLAC, padded to at least two seconds, and padded again
  * when it lands on that boundary. Passthrough is not safe here because an untouched source can sit on
  * the boundary too.
  */
-export const WHISPERFILE_REJECTED_SAMPLE_COUNT_MULTIPLE = 2_560
+export const WHISPERFILE_REJECTED_SAMPLE_COUNT_MULTIPLE = 512
 
 export const prepareWhisperfileInput = async (audioPath: string) =>
   await prepareLocalSttInput(resolve(audioPath), 'autoshow-whisperfile-', {
