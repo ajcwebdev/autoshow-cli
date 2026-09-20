@@ -40,7 +40,6 @@ describe('fal.ai provider REST contracts', () => {
     const cases: Array<{ model: FalImageModel, endpoint: string }> = [
       { model: 'fal-ai/hidream-o1-image', endpoint: 'fal-ai/hidream-o1-image' },
       { model: 'alibaba/qwen-image-3', endpoint: 'alibaba/qwen-image-3/text-to-image' },
-      { model: 'reve/2.1', endpoint: 'reve/2.1/text-to-image' }
     ]
 
     await tempDirs.withDir(async (dir) => {
@@ -143,7 +142,7 @@ describe('fal.ai provider REST contracts', () => {
     })
 
     await tempDirs.withDir(async (dir) => {
-      const result = await runFalImageGen('A clean product photograph', dir, { model: 'reve/2.1', pollIntervalMs: 1 })
+      const result = await runFalImageGen('A clean product photograph', dir, { model: 'fal-ai/hidream-o1-image', pollIntervalMs: 1 })
       expect(result.imagePaths).toHaveLength(1)
     })
 

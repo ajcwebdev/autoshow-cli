@@ -136,6 +136,7 @@ describe('target scheduler contracts', () => {
       const makeTarget = (model: string): ImageTarget => ({
         service: 'openai',
         model,
+        requestSettings: {},
         run: async (_prompt, workspaceDir) => {
           active.hosted += 1
           maxHosted = Math.max(maxHosted, active.hosted)

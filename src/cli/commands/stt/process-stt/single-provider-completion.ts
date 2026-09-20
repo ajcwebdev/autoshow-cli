@@ -42,7 +42,7 @@ export const completeSingleProviderStt = async ({
   const target = requestedTargets[0] as SttTarget
   const audioPath = prepared.executionArtifacts.sourceMediaPath
   const audioDurationSeconds = prepared.durationSeconds
-  const requestedProvider = toRequestedProvider(target)
+  const requestedProvider = toRequestedProvider(target, options)
   const manifestSelector = { rootDir: outputDir, artifactDir: '.', target }
   await writePipelineItemRecords(outputDir, 'extract', 'single', [{
     step1: prepared.step1Metadata,
@@ -121,7 +121,7 @@ export const completeSingleProviderStt = async ({
     step2: transcription.metadata,
     resolvedStep2: resolveRecordedSttStep2(requestedTargets, options),
     completionStatus: 'full' as ProviderCompletionStatus,
-    requestedProviders: requestedTargets.map(toRequestedProvider),
+    requestedProviders: requestedTargets.map((target) => toRequestedProvider(target, options)),
     providerStates: [{
       service: target.service,
       model: target.model,

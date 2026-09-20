@@ -65,19 +65,19 @@ export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTar
       throw UsageError(`Unsupported Replicate image model "${model}".`)
     }
 
+    const request = {
+      model,
+      inputs: options.imageInputs,
+      imageSize: options.imageSize,
+      aspectRatio: options.imageAspectRatio,
+      count: options.imageCount,
+      outputFormat: options.imageFormat
+    }
     return [{
       service: 'replicate',
       model,
-      run: async (prompt, outputDir) => {
-        return await runReplicateImageGen(prompt, outputDir, {
-          model,
-          inputs: options.imageInputs,
-          imageSize: options.imageSize,
-          aspectRatio: options.imageAspectRatio,
-          count: options.imageCount,
-          outputFormat: options.imageFormat
-        })
-      }
+      requestSettings: request,
+      run: async (prompt, outputDir) => await runReplicateImageGen(prompt, outputDir, request)
     }]
   })
 }

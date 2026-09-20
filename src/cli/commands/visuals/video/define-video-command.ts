@@ -16,7 +16,7 @@ import { preflightToEstimated } from '~/cli/commands/pricing-orchestration/compu
 import { evaluatePreflightEstimate } from '~/cli/commands/pricing-orchestration/preflight'
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { buildVideoEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/generation-estimates'
-import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExpectedOutputDir, resolveMaxCentsFromFlags, writeGenerationMetadata } from '~/cli/commands/command-shared/generation-command-utils'
+import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExpectedOutputDir, requestedGenerationProvider, resolveMaxCentsFromFlags, writeGenerationMetadata } from '~/cli/commands/command-shared/generation-command-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import type { StandaloneVideoCommandOptions, VideoProvider, VideoRuntimeOptions, VideoTarget } from '~/types'
@@ -241,7 +241,7 @@ export const videoCommand = defineCliCommand({
 
   await writeGenerationMetadata(outputDir, 'video', metadata, cost, timing, {
     input,
-    requestedProviders: videoTargets.map((t) => ({ service: t.service, model: t.model })),
+    requestedProviders: videoTargets.map((t) => requestedGenerationProvider('video', t)),
     completedProviders: metadata.map((entry) => ({ service: entry.videoGenService, model: entry.videoGenModel }))
   })
 

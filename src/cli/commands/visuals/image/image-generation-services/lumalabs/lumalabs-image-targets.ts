@@ -35,17 +35,17 @@ export const collectLumalabsImageTargets = (options: ImageGenOptions): ImageTarg
       maxInputs: LUMALABS_MAX_IMAGE_INPUTS
     })
 
+    const request = {
+      model,
+      aspectRatio: options.imageAspectRatio,
+      outputFormat: options.imageFormat,
+      inputs: options.imageInputs
+    }
     return [{
       service: 'lumalabs',
       model,
-      run: async (prompt, outputDir) => {
-        return await runLumalabsImageGen(prompt, outputDir, {
-          model,
-          aspectRatio: options.imageAspectRatio,
-          outputFormat: options.imageFormat,
-          inputs: options.imageInputs
-        })
-      }
+      requestSettings: request,
+      run: async (prompt, outputDir) => await runLumalabsImageGen(prompt, outputDir, request)
     }]
   })
 }

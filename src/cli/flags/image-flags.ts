@@ -9,14 +9,13 @@ import { OPENAI_FIXED_IMAGE_SIZE_VALUES, OPENAI_IMAGE_BACKGROUND_VALUES, OPENAI_
 import { LUMALABS_ASPECT_RATIOS } from '~/cli/commands/visuals/image/image-generation-services/lumalabs/run-lumalabs-image-gen'
 import { LUMALABS_MAX_IMAGE_INPUTS } from '~/cli/commands/visuals/image/image-generation-services/lumalabs/lumalabs-image-targets'
 import { REPLICATE_QWEN_ASPECT_RATIO_VALUES, REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES } from '~/cli/commands/visuals/image/image-generation-services/replicate/run-replicate-image-gen'
-import { FAL_IMAGE_COUNT_RANGE, FAL_REVE_ASPECT_RATIOS } from '~/cli/commands/visuals/image/image-generation-services/fal-image-service/run-fal-image-gen'
+import { FAL_IMAGE_COUNT_RANGE } from '~/cli/commands/visuals/image/image-generation-services/fal-image-service/run-fal-image-gen'
 
 const imageAspectRatioLists = [
   GROK_IMAGE_ASPECT_RATIO_VALUES,
   GEMINI_NATIVE_ASPECT_RATIO_VALUES,
   LUMALABS_ASPECT_RATIOS,
-  REPLICATE_QWEN_ASPECT_RATIO_VALUES,
-  FAL_REVE_ASPECT_RATIOS
+  REPLICATE_QWEN_ASPECT_RATIO_VALUES
 ] as const
 const sharedImageAspectRatios = new Set<string>(imageAspectRatioLists.flat())
 const seedreamOnlyAspectRatios = REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES.filter(

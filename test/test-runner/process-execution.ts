@@ -10,11 +10,13 @@ import { stripAnsi } from '~/utils/terminal-colors'
 import { buildBunTestFlags, isE2EOnlyTestSelection } from './args'
 import { appendRunnerLog, TEST_OUTPUT_ROOT } from './artifacts'
 import { BUN_FILE_TIMINGS_CACHE_PATH, prepareBunFileTimings } from './file-timings'
+import { createTerminalFilter, formatProgressLine, type TerminalFilter } from './terminal-filter'
 import { formatTimedOutputPrefix, lineHasTimedOutputPrefix, normalizeRepoPath } from './utils'
 
 const TEST_CLI_BUNDLE_PATH = join(TEST_OUTPUT_ROOT, '.test-cache', 'cli.js')
 const MAX_RUNNER_STREAM_BYTES = 64 * 1024 * 1024
 const MAX_RUNNER_LINE_CHARACTERS = 64 * 1024
+const PROGRESS_HEARTBEAT_MS = 10_000
 
 export const createBunCrashDetector = (onCrash: () => void): ((line: string) => void) => {
   let sawRuntimeHeader = false
@@ -77,7 +79,8 @@ export const forwardSpawnOutput = async (
   stream: ReadableStream<Uint8Array>,
   label: RunnerStreamLabel,
   artifacts: TestRunArtifacts,
-  onLine?: (line: string) => void
+  onLine?: (line: string) => void,
+  terminalFilter?: TerminalFilter
 ): Promise<void> => {
   const writer = label === 'STDOUT' ? process.stdout : process.stderr
 
@@ -85,8 +88,8 @@ export const forwardSpawnOutput = async (
     if (line.length === 0) return
     onLine?.(line)
     const prefix = formatTimedOutputPrefix(Date.now())
-    const output = lineHasTimedOutputPrefix(line) ? line : `${prefix} ${line}`
-    writer.write(output)
+    const stamp = (text: string): string => lineHasTimedOutputPrefix(text) ? text : `${prefix} ${text}`
+    for (const visible of terminalFilter ? terminalFilter.push(line) : [line]) writer.write(stamp(visible))
     appendRunnerLog(artifacts, lineHasTimedOutputPrefix(line) ? `[${label}] ${line}` : `${prefix} [${label}] ${line}`)
   }
 
@@ -178,7 +181,8 @@ export const runBunTest = async (
   passthroughArgs: string[],
   preserveTestOutput: boolean,
   extraArgs: string[] = [],
-  envOverrides: Record<string, string> = {}
+  envOverrides: Record<string, string> = {},
+  verbose = false
 ): Promise<number> => {
   await prepareBunFileTimings()
   const args = buildBunTestArgs(files, artifacts, passthroughArgs, extraArgs)
@@ -195,11 +199,20 @@ export const runBunTest = async (
     // Stop this run; never retry tests or provider commands automatically.
     proc.kill('SIGTERM')
   })
+  const startedAt = Date.now()
+  const terminalFilter = createTerminalFilter({ verbose })
+  // Quiet mode hides passing result lines, so report progress when nothing else has printed for a while.
+  const heartbeat = verbose ? undefined : setInterval(() => {
+    const now = Date.now()
+    if (now - terminalFilter.lastOutputAtMs() < PROGRESS_HEARTBEAT_MS) return
+    l.write('info', formatProgressLine(terminalFilter.counts(), now - startedAt), { category: 'command' })
+  }, PROGRESS_HEARTBEAT_MS / 2)
+  heartbeat?.unref()
   const [exitCode] = await Promise.all([
     proc.exited,
-    forwardSpawnOutput(proc.stdout, 'STDOUT', artifacts, detectCrash),
-    forwardSpawnOutput(proc.stderr, 'STDERR', artifacts, detectCrash),
-  ])
+    forwardSpawnOutput(proc.stdout, 'STDOUT', artifacts, detectCrash, terminalFilter),
+    forwardSpawnOutput(proc.stderr, 'STDERR', artifacts, detectCrash, terminalFilter),
+  ]).finally(() => clearInterval(heartbeat))
   await appendRunnerLog(artifacts, `\n=== END bun ${args.join(' ')} (exit=${exitCode}) ===\n`)
   return crashed ? 1 : exitCode
 }

@@ -101,4 +101,5 @@ AssemblyAI Universal-3.5 Pro is $0.21/hour plus $0.02/hour for diarization ($0.2
 - Hosted STT engines transcribe from the input audio. Public-URL transcript backends are documented under [URL extraction](../url/overview.md#public-media-url-transcripts).
 - Single-provider runs write root `transcription.txt` and `result.json`. Multi-provider runs write outputs per provider under `providers/<service>-<model>/`.
 - STT batch roots include `manifest.json` with item status.
+- Each provider entry in `manifest.json` carries `settings`: request options such as verbatim, chunk size, response format, diarization, and language where the provider receives it, plus local options such as the audio profile and split. Organization IDs are redacted.
 - Backfill existing STT outputs with top-level [`resume`](../../00-setup-and-utilities/resume.md).

@@ -78,7 +78,7 @@ export const completeYoutubeCaptionStt = async ({
     step2: captionTranscription.metadata,
     resolvedStep2: resolveRecordedSttStep2([captionTranscription.target], options),
     completionStatus: 'full' as ProviderCompletionStatus,
-    requestedProviders: [toRequestedProvider(captionTranscription.target)],
+    requestedProviders: [toRequestedProvider(captionTranscription.target, options)],
     providerStates: [{
       service: captionTranscription.target.service,
       model: captionTranscription.target.model,

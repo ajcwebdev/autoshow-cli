@@ -215,6 +215,7 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
     'recraft:recraftv4_1_utility': { costPerImageCents: 4 },
     'recraft:recraftv4_1_pro': { costPerImageCents: 25 },
     'recraft:recraftv4_1_utility_pro': { costPerImageCents: 25 },
+    'fal:reve/2.1': { costPerImageCents: 25 },
     'reve:latest': { costPerImageCents: 0.13333333333333333 },
     'reve:reve-create@20250915': { costPerImageCents: 0.13333333333333333 }
   },
@@ -325,6 +326,7 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
     'replicate:wan-video/wan-2.7-image': 'bytedance/seedream-5-lite',
     'replicate:wan-video/wan-2.7-image-pro': 'bytedance/seedream-5-lite',
     'replicate:bytedance/seedream-4.5': 'bytedance/seedream-5-lite',
+    'fal:reve/2.1': 'alibaba/qwen-image-3',
     'fal:microsoft/mai-image-2.5': 'alibaba/qwen-image-3',
     'fal:microsoft/mai-image-2.5-pro': 'alibaba/qwen-image-3',
     'replicate:ideogram-ai/ideogram-v4-turbo': 'bytedance/seedream-5-lite',

@@ -13,7 +13,7 @@ export const collectLtxVideoTargets = (options: VideoGenOptions, mode: VideoMode
       return []
     }
     const size = normalizeLtxVideoSize(model, options.videoResolution, options.videoAspectRatio)
-    normalizeLtxVideoDuration(model, size, options.videoDuration, mode)
+    const durationSeconds = normalizeLtxVideoDuration(model, size, options.videoDuration, mode)
     if (options.videoInputImage) {
       validateVideoMediaReferences([options.videoInputImage], { flagName: '--input-image', provider: 'ltx', model, kind: 'image' })
     }
@@ -21,20 +21,20 @@ export const collectLtxVideoTargets = (options: VideoGenOptions, mode: VideoMode
       validateVideoMediaReferences([options.videoLastFrame], { flagName: '--last-frame', provider: 'ltx', model, kind: 'image' })
     }
 
+    const request = {
+      model,
+      mode,
+      durationSeconds: options.videoDuration,
+      aspectRatio: options.videoAspectRatio,
+      resolution: options.videoResolution,
+      inputImage: options.videoInputImage,
+      lastFrameImage: options.videoLastFrame
+    }
     return [{
       service: 'ltx',
       model,
-      run: async (prompt, outputDir) => {
-        return await runLtxVideoGen(prompt, outputDir, {
-          model,
-          mode,
-          durationSeconds: options.videoDuration,
-          aspectRatio: options.videoAspectRatio,
-          resolution: options.videoResolution,
-          inputImage: options.videoInputImage,
-          lastFrameImage: options.videoLastFrame
-        })
-      }
+      requestSettings: { ...request, effective: { durationSeconds, size } },
+      run: async (prompt, outputDir) => await runLtxVideoGen(prompt, outputDir, request)
     }]
   })
 }

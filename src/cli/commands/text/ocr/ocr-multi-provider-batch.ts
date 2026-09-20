@@ -47,7 +47,7 @@ const createOcrCheckpointWriter = (params: {
   collectSuccessMetadata: (currentSuccesses: Array<OcrProviderSuccess | undefined>) => Array<ExtractionMetadata | undefined>
 }): { queue: () => void, drain: () => Promise<void> } => {
   const { ctx, resolvedStep2, primaryTarget, existingRun, successes, failuresByIndex, collectSuccessMetadata } = params
-  const { outputDir, requestedTargets, opts, step1Metadata, web, documentSource, preflightEstimate, hostedOcrScheduler } = ctx
+  const { outputDir, requestedTargets, opts, effectiveOpts, step1Metadata, web, documentSource, preflightEstimate, hostedOcrScheduler } = ctx
   let checkpointWrite = Promise.resolve()
 
   const queue = (): void => {
@@ -81,12 +81,12 @@ const createOcrCheckpointWriter = (params: {
         source: documentSource,
         completionStatus,
         resolvedStep2,
-        requestedProviders: requestedTargets.map(toRequestedProvider),
+        requestedProviders: requestedTargets.map((target) => toRequestedProvider(target, effectiveOpts)),
         providerStates,
         missingProviders,
         blockedProviders,
         partialStep2,
-        ...(primaryTarget ? { primaryProvider: toRequestedProvider(primaryTarget) } : {}),
+        ...(primaryTarget ? { primaryProvider: { service: primaryTarget.service, model: primaryTarget.model } } : {}),
         preflightEstimate,
         ocrConcurrency: opts.ocrConcurrency,
         ocrConcurrencyMode: opts.ocrConcurrencyMode,
@@ -209,7 +209,7 @@ const finalizeOcrProviderBatch = async (params: {
   failuresByIndex: Map<number, OcrProviderFailureSummary>
 }): Promise<OcrBatchFinalization> => {
   const { ctx, resolvedStep2, primaryTarget, existingRun, successes, failuresByIndex } = params
-  const { outputDir, requestedTargets, opts, step1Metadata, web, documentSource, preflightEstimate, hostedOcrScheduler } = ctx
+  const { outputDir, requestedTargets, opts, effectiveOpts, step1Metadata, web, documentSource, preflightEstimate, hostedOcrScheduler } = ctx
 
   const providerStates = buildProviderStates(
     requestedTargets,
@@ -243,12 +243,12 @@ const finalizeOcrProviderBatch = async (params: {
     source: documentSource,
     completionStatus,
     resolvedStep2,
-    requestedProviders: requestedTargets.map(toRequestedProvider),
+    requestedProviders: requestedTargets.map((target) => toRequestedProvider(target, effectiveOpts)),
     providerStates,
     missingProviders,
     blockedProviders,
     partialStep2,
-    ...(primaryTarget ? { primaryProvider: toRequestedProvider(primaryTarget) } : {}),
+    ...(primaryTarget ? { primaryProvider: { service: primaryTarget.service, model: primaryTarget.model } } : {}),
     preflightEstimate,
     ocrConcurrency: opts.ocrConcurrency,
     ocrConcurrencyMode: opts.ocrConcurrencyMode,
@@ -392,7 +392,7 @@ export const runOcrMultiProviderBatch = async (ctx: OcrBatchRunContext): Promise
     step2Metadata,
     ...(partialStep2.length > 0 ? { partialStep2 } : {}),
     completionStatus,
-    requestedProviders: requestedTargets.map(toRequestedProvider),
+    requestedProviders: requestedTargets.map((target) => toRequestedProvider(target, effectiveOpts)),
     providerStates,
     missingProviders,
     blockedProviders,

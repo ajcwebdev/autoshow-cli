@@ -28,7 +28,7 @@ describe('OCR resilience contracts', () => {
     }
 
     expect(exhausted).toBeInstanceOf(AppError)
-    expect((exhausted as AppError).message).toMatch(/^kimi-ocr page 3 failed after 6\/6 attempts \(max attempts reached, \d+ms elapsed\)$/)
+    expect((exhausted as AppError).message).toMatch(/^kimi-ocr page 3 failed after 6\/6 attempts \(max attempts reached, \d+ms elapsed\): Kimi OCR request failed \(503\)/)
 
     const failure = classifyOcrProviderFailure(exhausted)
     expect(failure.attemptsMade).toBe(6)

@@ -45,8 +45,7 @@ export const validateReplicateImageModel = createRetiringModelValidator<Replicat
 
 export const SUPPORTED_FAL_IMAGE_MODELS = [
   'fal-ai/hidream-o1-image',
-  'alibaba/qwen-image-3',
-  'reve/2.1'
+  'alibaba/qwen-image-3'
 ] as const satisfies readonly string[]
 
 export const validateFalImageModel = createRetiringModelValidator<FalImageModel>('image', 'fal', SUPPORTED_FAL_IMAGE_MODELS, 'fal-image')

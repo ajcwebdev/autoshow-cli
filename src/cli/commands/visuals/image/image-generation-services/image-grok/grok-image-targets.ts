@@ -9,7 +9,7 @@ export const collectGrokImageTargets = (options: ImageGenOptions): ImageTarget[]
   const models = options.grokImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: GrokImageModel = validateGrokImageModel(rawModel)
-    resolveGrokImageOptions(model, options)
+    const resolved = resolveGrokImageOptions(model, options)
     assertNoUnsupportedFlags(options, [
       'imageFormat',
       'imageBackground',
@@ -22,20 +22,20 @@ export const collectGrokImageTargets = (options: ImageGenOptions): ImageTarget[]
       hint: 'Supported Grok image options: --count, --aspect-ratio, --size 1K|2K, --quality low|medium|auto, and up to five --input references.'
     })
 
+    const request = {
+      model,
+      mode: hasEditInputs(options) ? 'edit' as const : 'generation' as const,
+      inputs: options.imageInputs,
+      count: options.imageCount,
+      aspectRatio: options.imageAspectRatio,
+      imageSize: options.imageSize,
+      imageQuality: options.imageQuality
+    }
     return [{
       service: 'grok',
       model,
-      run: async (prompt, outputDir) => {
-        return await runGrokImageGen(prompt, outputDir, {
-          model,
-          mode: hasEditInputs(options) ? 'edit' : 'generation',
-          inputs: options.imageInputs,
-          count: options.imageCount,
-          aspectRatio: options.imageAspectRatio,
-          imageSize: options.imageSize,
-          imageQuality: options.imageQuality
-        })
-      }
+      requestSettings: { ...request, count: resolved.imageCount, resolution: resolved.resolution, quality: resolved.quality },
+      run: async (prompt, outputDir) => await runGrokImageGen(prompt, outputDir, request)
     }]
   })
 }

@@ -207,7 +207,7 @@ export type EpubTextSection = {
 }
 
 
-export type OcrRequestedProvider = OcrTarget
+export type OcrRequestedProvider = OcrTarget & { settings?: import('~/types').ProviderSettingsRecord | undefined }
 
 export type OcrRecordedProviderError = ProviderErrorSummaryFields & {
   category?: OcrProviderFailureCategory | undefined

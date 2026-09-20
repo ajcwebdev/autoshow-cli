@@ -3,7 +3,7 @@ import { validateGrokVideoModel } from '~/cli/commands/setup-and-utilities/model
 import { UsageError } from '~/utils/error-handler'
 import { runGrokVideoGen } from './run-grok-video-gen'
 import { isSupportedOrSkippedForAllVideo, requireReferenceImagesForProvider } from '../../video-utils/video-mode-validation'
-import { normalizeGrokVideoResolution } from '../../video-utils/video-normalization'
+import { normalizeGrokVideoAspectRatio, normalizeGrokVideoDuration, normalizeGrokVideoResolution } from '../../video-utils/video-normalization'
 import { validateVideoMediaReferences } from '../../video-utils/video-media-inputs'
 
 export const collectGrokVideoTargets = (options: VideoGenOptions, mode: VideoMode): VideoTarget[] => {
@@ -14,7 +14,11 @@ export const collectGrokVideoTargets = (options: VideoGenOptions, mode: VideoMod
     if (!isSupportedOrSkippedForAllVideo(options, 'grok', model, mode, ['text', 'image-to-video', 'reference-to-video'])) {
       return []
     }
-    normalizeGrokVideoResolution(options.videoResolution, model)
+    const effective = {
+      durationSeconds: normalizeGrokVideoDuration(options.videoDuration),
+      aspectRatio: normalizeGrokVideoAspectRatio(options.videoAspectRatio),
+      resolution: normalizeGrokVideoResolution(options.videoResolution, model)
+    }
     if (mode === 'reference-to-video' && options.videoResolution === '1080p') {
       throw UsageError('Grok grok-imagine-video-1.5 reference-to-video is limited to 720p; use --resolution 720p or 480p.')
     }
@@ -28,20 +32,20 @@ export const collectGrokVideoTargets = (options: VideoGenOptions, mode: VideoMod
       validateVideoMediaReferences(options.videoReferenceImages, { flagName: '--reference-image', provider: 'grok', model, kind: 'image', maxInputs: 5 })
     }
 
+    const request = {
+      model,
+      mode,
+      durationSeconds: options.videoDuration,
+      aspectRatio: options.videoAspectRatio,
+      resolution: options.videoResolution,
+      inputImage: options.videoInputImage,
+      referenceImages: options.videoReferenceImages
+    }
     return [{
       service: 'grok',
       model,
-      run: async (prompt, outputDir) => {
-        return await runGrokVideoGen(prompt, outputDir, {
-          model,
-          mode,
-          durationSeconds: options.videoDuration,
-          aspectRatio: options.videoAspectRatio,
-          resolution: options.videoResolution,
-          inputImage: options.videoInputImage,
-          referenceImages: options.videoReferenceImages
-        })
-      }
+      requestSettings: { ...request, effective },
+      run: async (prompt, outputDir) => await runGrokVideoGen(prompt, outputDir, request)
     }]
   })
 }

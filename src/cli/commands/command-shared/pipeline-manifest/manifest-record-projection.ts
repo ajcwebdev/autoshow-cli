@@ -8,7 +8,8 @@ import type {
   PipelineManifestChildLink,
   PipelineManifestItem,
   PipelineProviderState,
-  ProcessCommand
+  ProcessCommand,
+  ProviderSettingsRecord
 } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
@@ -22,6 +23,7 @@ import {
 import {
   parseManifestItem
 } from './manifest-parse'
+import { parseProviderSettingsRecord } from './provider-settings-record'
 
 export const createManifest = (
   command: ProcessCommand,
@@ -97,7 +99,17 @@ const providerOptions = (value: Record<string, unknown>): Record<string, unknown
   delete options['error']
   delete options['metadata']
   delete options['result']
+  delete options['settings']
   return options
+}
+
+const settingsFrom = (value: unknown): { settings?: ProviderSettingsRecord } => {
+  if (value === undefined) return {}
+  const settings = parseProviderSettingsRecord(value)
+  if (!settings) {
+    throw UsageError('Cannot persist a provider settings record with an invalid envelope.')
+  }
+  return { settings }
 }
 
 const findProviderMetadata = (
@@ -175,7 +187,8 @@ const createProviderStatesFromRecord = (
       ...(isRecord(state['result']) ? { result: state['result'] } : {}),
       ...(isRecord(state['error'])
         ? { error: state['error'] }
-        : {})
+        : {}),
+      ...settingsFrom(state['settings'] ?? request?.['settings'])
     }
   })
 
@@ -198,7 +211,8 @@ const createProviderStatesFromRecord = (
       status: 'missing',
       attempts: 0,
       options: providerOptions(request),
-      metadata: {}
+      metadata: {},
+      ...settingsFrom(request['settings'])
     })
   }
   return states
@@ -281,7 +295,8 @@ export const derivePipelineItemRecord = (
     ...(provider.operation !== undefined ? { operation: provider.operation } : {}),
     ...(provider.targetKey !== undefined ? { targetKey: provider.targetKey } : {}),
     ...(provider.transport !== undefined ? { transport: provider.transport } : {}),
-    ...provider.options
+    ...provider.options,
+    ...(provider.settings ? { settings: provider.settings } : {})
   }))
   const providerStates = item.providers.map((provider) => ({
     service: provider.service,
@@ -296,7 +311,8 @@ export const derivePipelineItemRecord = (
     options: provider.options,
     metadata: provider.metadata,
     ...(provider.result ? { result: provider.result } : {}),
-    ...(provider.error ? { error: provider.error } : {})
+    ...(provider.error ? { error: provider.error } : {}),
+    ...(provider.settings ? { settings: provider.settings } : {})
   }))
   const missingProviders = requestedProviders.filter((_, index) => {
     const status = item.providers[index]?.status

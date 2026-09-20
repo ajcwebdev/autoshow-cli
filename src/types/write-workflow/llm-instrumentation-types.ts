@@ -12,6 +12,7 @@ export type LlmApiCallResult = string | {
   usage?: unknown
   rawProviderUsage?: unknown
   returnedModel?: string | undefined
+  requestSettings?: Record<string, unknown> | undefined
 }
 
 export type LlmInstrumentationResult = {
@@ -23,4 +24,5 @@ export type LlmInstrumentationResult = {
   providerUsage?: NormalizedLlmUsage | undefined
   rawProviderUsage?: unknown
   providerReturnedModel?: string | undefined
+  requestSettings?: Record<string, unknown> | undefined
 }

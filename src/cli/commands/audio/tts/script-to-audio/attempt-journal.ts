@@ -11,6 +11,7 @@ import { stateForProjection } from './attempt-planning'
 import { buildProjection, publish } from './attempt-projection'
 import { buildBatchProgress } from './attempt-batches'
 import { isArtifactConflictError } from './safe-artifact-store'
+import { ttsProviderSettings } from './tts-provider-settings'
 
 export const requireJournalFile = (ctx: AttemptContext): WrittenJson<RenderAdmissionJournalSnapshot> => {
   if (!ctx.journalFile) {
@@ -111,7 +112,7 @@ const publishJournalState = async (ctx: AttemptContext): Promise<void> => {
     at,
   })
   ctx.currentProjection = buildProjection(ctx)
-  await publish(ctx, stateForProjection(ctx.options.target, ctx.purePlan.targetKey, ctx.purePlan.transport, ctx.targetRelativeDir, ctx.currentProjection))
+  await publish(ctx, stateForProjection(ctx.options.target, ctx.purePlan.targetKey, ctx.purePlan.transport, ctx.targetRelativeDir, ctx.currentProjection, ttsProviderSettings(ctx.options, ctx.purePlan)))
 }
 
 export const writeNextJournal = async (

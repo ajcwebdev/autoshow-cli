@@ -69,6 +69,12 @@ export const getStep2AllShortcutModelExpansions = (): Record<string, { shortcut:
       ] as const)
   )
 
+/** Target services that run on this machine, selected by the --all-local-* shortcuts. */
+export const getStep2LocalTargetServices = (): ReadonlySet<string> =>
+  new Set(STEP2_PROVIDER_REGISTRY
+    .filter((entry) => entry.allShortcut?.startsWith('all-local-') === true)
+    .map((entry) => entry.targetService))
+
 export const getStep2BootstrapProviderId = (
   step: Step2Command,
   targetService: string

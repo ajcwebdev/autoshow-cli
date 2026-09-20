@@ -259,6 +259,7 @@ Per-page token shapes were calibrated on 2026-09-16 from a single 300 DPI page: 
 ## OCR Notes
 
 - Standalone `extract` document runs write `extraction.txt` or `result.json` plus `manifest.json`.
+- Each provider entry in `manifest.json` carries `settings`: DPI, language, and requested and effective reasoning effort, plus output format, provider mode, and chapter options. PDF passwords are never recorded.
 - Backfill existing OCR outputs with [`resume`](../../00-setup-and-utilities/resume.md).
 
 See the [testing guide](tests.md) for verification coverage.

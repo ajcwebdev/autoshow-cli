@@ -1,4 +1,3 @@
-import { getAudioDuration } from '../../stt-utils/audio-splitter'
 import { verifyWhisperfileArtifact } from './whisperfile-integrity'
 import { WHISPERFILE_ARTIFACTS } from './whisperfile-artifacts'
 import { whisperfileBinaryPath } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
@@ -41,18 +40,23 @@ const waitForWhisperfileJson = async (jsonFile: string, providerName: string): P
   }
 }
 
-// The pinned executable rejects otherwise valid PCM WAV files with an end-of-file error.
-// Its compressed-audio decoder accepts the equivalent audio; normalize WAV before invoking it.
-export const prepareWhisperfileInput = async (audioPath: string) => {
-  const source = resolve(audioPath)
-  const duration = await getAudioDuration(source)
-  return prepareLocalSttInput(source, 'autoshow-whisperfile-', {
-    // The decoder also rejects sub-second clips; pad only the temporary analysis copy.
-    passthroughExtensions: duration >= 2 ? ['.mp3', '.flac', '.ogg'] : [],
-    convertFormat: 'mp3',
-    minimumDurationSeconds: 2
+/**
+ * The pinned executable reports "failed to read audio file" for any input whose decoded length is an
+ * exact multiple of 2,560 samples (0.16 s at 16 kHz), in every container tested: WAV, FLAC and MP3.
+ * Measured by sweeping trimmed lengths: 2,560, 5,120, 51,200, 102,400 and 148,480 samples all fail,
+ * while the same clip one sample longer succeeds. It also rejects sub-second clips. Every input is
+ * therefore converted to lossless 16 kHz mono FLAC, padded to at least two seconds, and padded again
+ * when it lands on that boundary. Passthrough is not safe here because an untouched source can sit on
+ * the boundary too.
+ */
+export const WHISPERFILE_REJECTED_SAMPLE_COUNT_MULTIPLE = 2_560
+
+export const prepareWhisperfileInput = async (audioPath: string) =>
+  await prepareLocalSttInput(resolve(audioPath), 'autoshow-whisperfile-', {
+    convertFormat: 'flac',
+    minimumDurationSeconds: 2,
+    rejectedSampleCountMultiple: WHISPERFILE_REJECTED_SAMPLE_COUNT_MULTIPLE
   })
-}
 
 export const transcribeWhisperfile = async (
   audioPath: string,

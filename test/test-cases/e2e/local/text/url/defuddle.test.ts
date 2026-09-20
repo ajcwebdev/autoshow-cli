@@ -33,7 +33,12 @@ test('bun autoshow extract https://ajcwebdev.com --provider defuddle', async () 
       sourceKind: 'article',
       providers: [{ service: 'defuddle', model: 'defuddle' }]
     })
-    expect(metadata.requestedProviders).toEqual([{ service: 'defuddle', model: 'defuddle' }])
+    expect(metadata.requestedProviders).toHaveLength(1)
+    expect(metadata.requestedProviders).toMatchObject([{
+      service: 'defuddle',
+      model: 'defuddle',
+      settings: { settingsSchema: 'defuddle.url.v1' }
+    }])
   } finally {
     await cleanupOutputDir(outputDir)
   }

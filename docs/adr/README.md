@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Compact index for ADR-001 through ADR-025. Twenty-two records are Accepted · Passed, ADR-014 is Accepted · Pending while native Bun migration evidence awaits review, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 is Proposed · Pending. Hosted-model policy lives in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) with live catalogs under `src/cli/commands/setup-and-utilities/models/` and command overviews under `docs/commands/`. ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 026. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
+Compact index for ADR-001 through ADR-026. Twenty-three records are Accepted · Passed, ADR-014 is Accepted · Pending while native Bun migration evidence awaits review, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 is Proposed · Pending. Hosted-model policy lives in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) with live catalogs under `src/cli/commands/setup-and-utilities/models/` and command overviews under `docs/commands/`. ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 027. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
 
 ## Authoring and Maintenance
 
@@ -128,7 +128,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 19: [ADR-019](ADR-019-quiet-passing-test-console-output.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Passing tests print only the result line; failing tests keep that line plus the captured console output from that test. JUnit remains a post-run sidecar.
+- **Decision:** Passing tests print only the result line; failing tests keep that line plus the captured console output from that test. JUnit remains a post-run sidecar. `bun t` hides pass and skip result lines on the terminal, prints a failure-first digest with calibration recommendations, and keeps `latest-model-calibration.json` beside `latest.log`.
 - **Related ADRs:** [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md)
 
 **ADR 20: [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)**
@@ -163,6 +163,11 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 - **Status:** Accepted · Passed
 - **Decision:** Freezes the paid speech slot hash's output-format input so purchased audio is never orphaned, describes final audio with a separate TTS delivery profile that enters render identity only, masters once from retained native slot audio with boundary-aware chunking, seam trimming, fixed pauses, and optional loudness normalization for every hosted provider, and keeps encoding, tags, cover art, and book assembly as a derived export layer outside render identity.
 - **Related ADRs:** [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md), [ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md)
+**ADR 26: [ADR-026](ADR-026-record-effective-provider-settings-in-run-records.md)**
+
+- **Status:** Accepted · Passed
+- **Decision:** Adds an optional versioned `settings` envelope to every manifest provider entry, built by one shared helper that sanitizes secrets and relativizes paths, recording the effective request values sent to each provider, local output-shaping settings, and ignored flags for TTS, comic, image, video, music, write, STT, OCR, and URL, while keeping it outside every identity hash and the immutable `options` field.
+- **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-025](ADR-025-master-tts-delivery-audio-outside-paid-slot-identity.md)
 
 
 ## Bun 1.4 Migration Archive

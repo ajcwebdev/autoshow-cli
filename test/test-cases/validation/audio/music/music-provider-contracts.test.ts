@@ -7,6 +7,7 @@ import { runElevenLabsMusicGen } from '~/cli/commands/audio/music/music-services
 import { runMinimaxMusicGen } from '~/cli/commands/audio/music/music-services/music-minimax/run-minimax-music-gen'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
 import { expectProviderHttpError, restoreEnv, snapshotEnv } from '../../../../test-utils/rest-contract-helpers'
+import { setHttpCaptureBytesForTests } from '~/utils/bounded-capture'
 
 const audioBytes = new Uint8Array([1, 2, 3, 4])
 const audioHex = Buffer.from(audioBytes).toString('hex')
@@ -116,6 +117,34 @@ describe('music provider contracts', () => {
         })
       })
     })
+  })
+
+  // The whole track arrives inline as hex, so this response must not be bound by the shared HTTP capture default.
+  test('MiniMax music generation reads a track larger than the shared capture default', async () => {
+    const longAudio = new Uint8Array(96 * 1024).fill(7)
+    const longAudioHex = Buffer.from(longAudio).toString('hex')
+    setHttpCaptureBytesForTests(16 * 1024)
+    try {
+      await withTempDir('minimax-music-capture-', async dir => {
+        await withEnvAndFetch({ MINIMAX_API_KEY: 'minimax-test-key' }, (async (input: Parameters<typeof fetch>[0]): Promise<Response> => {
+          const url = String(input)
+          if (!url.includes('/v1/music_generation')) throw new Error(`Unexpected MiniMax mock fetch: ${url}`)
+          return new Response(JSON.stringify({
+            data: { status: 2, audio: longAudioHex },
+            extra_info: { music_duration: 600_000, music_sample_rate: 44100, music_channel: 2, bitrate: 256000 },
+            trace_id: 'trace-long',
+            base_resp: { status_code: 0, status_msg: 'success' }
+          }), { status: 200, headers: { 'content-type': 'application/json' } })
+        }) as typeof fetch, async () => {
+          const opts = buildOptsFromFlags({ 'minimax-music': 'music-3.0', 'instrumental': true })
+          const [target] = collectMusicTargets(opts)
+          const result = await target!.run('long ambient piece', dir)
+          expect(new Uint8Array(await Bun.file(result.musicPath).arrayBuffer()).byteLength).toBe(longAudio.byteLength)
+        })
+      })
+    } finally {
+      setHttpCaptureBytesForTests(undefined)
+    }
   })
 
   test('MiniMax music protocol failures keep the music stage', async () => {

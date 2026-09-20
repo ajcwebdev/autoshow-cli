@@ -8,6 +8,9 @@ import { formatTimestampForDir } from './utils'
 import { isObjectLike } from '~/utils/value-helpers'
 
 const LATEST_LOG_FILE = 'latest.log'
+export const LATEST_CALIBRATION_FILE = 'latest-model-calibration.json'
+// Files at the output root that outlive every run's cleanup.
+const PRESERVED_ROOT_FILES = new Set([LATEST_LOG_FILE, LATEST_CALIBRATION_FILE])
 const ACTIVE_RUN_FILE = '.active-run.json'
 const RUNNER_LOG_FLUSH_INTERVAL_MS = 100
 const RUNNER_LOG_FLUSH_SIZE_BYTES = 64 * 1024
@@ -152,9 +155,19 @@ const appendRunSummary = (
   lines.push(`Skipped: ${formatUnknown(summary['skipped']) ?? 'unknown'}`)
 }
 
+const readRecords = (value: unknown): Record<string, unknown>[] =>
+  Array.isArray(value) ? value.filter((entry): entry is Record<string, unknown> => isObjectLike(entry)) : []
+
 const appendFailures = (lines: string[], report: Record<string, unknown> | null): void => {
   lines.push('')
   lines.push('Failures')
+
+  const failureMessages = new Map<string, string>()
+  for (const failure of readRecords(report?.['failures'])) {
+    const id = formatUnknown(failure['id'])
+    const message = formatUnknown(failure['message'])
+    if (id && message) failureMessages.set(id, message)
+  }
 
   const testsRaw = report?.['tests']
   const commandsRaw = report?.['commands']
@@ -175,8 +188,11 @@ const appendFailures = (lines: string[], report: Record<string, unknown> | null)
   for (const entry of failedTests) {
     const file = formatUnknown(entry['file']) ?? 'unknown file'
     const name = formatUnknown(entry['name']) ?? 'unknown test'
-    const message = formatUnknown(entry['failureMessage'])
-    lines.push(`- ${file} :: ${name}${message ? `: ${message}` : ''}`)
+    const id = formatUnknown(entry['id'])
+    const message = formatUnknown(entry['failureMessage']) ?? (id ? failureMessages.get(id) ?? null : null)
+    const [firstLine = '', ...rest] = (message ?? '').split(/\r?\n/)
+    lines.push(`- ${file} :: ${name}${firstLine ? `: ${firstLine}` : ''}`)
+    for (const line of rest) if (line.trim().length > 0) lines.push(`    ${line.trimEnd()}`)
   }
 
   for (const entry of failedCommands) {
@@ -202,7 +218,7 @@ export const cleanupTestOutputRoot = async (
   const pathsToRemove: string[] = []
 
   for (const entry of entries) {
-    if (entry.name === LATEST_LOG_FILE) {
+    if (PRESERVED_ROOT_FILES.has(entry.name)) {
       continue
     }
 
@@ -336,9 +352,30 @@ export const writeJsonFile = async (
   await Bun.write(path, JSON.stringify(json, null, 2))
 }
 
+/**
+ * report.json lists every passing test; latest.log keeps only the entries that
+ * need attention so the diagnosis stays near the top of a small file.
+ */
+const compactReportForLatestLog = (report: Record<string, unknown> | null, reportText: string): string => {
+  if (!report) return reportText.trim() || '<missing>'
+  const needsAttention = (entry: Record<string, unknown>): boolean => entry['status'] !== 'passed'
+  const compact: Record<string, unknown> = {}
+  for (const key of ['run', 'summary', 'error', 'errorDiagnostics', 'failures']) {
+    if (report[key] !== undefined) compact[key] = report[key]
+  }
+  for (const key of ['tests', 'commands']) {
+    if (Array.isArray(report[key])) compact[key] = readRecords(report[key]).filter(needsAttention)
+  }
+  return JSON.stringify(compact, null, 2)
+}
+
+export const latestCalibrationPath = (artifacts: TestRunArtifacts): string =>
+  resolve(artifacts.rootDir, LATEST_CALIBRATION_FILE)
+
 export const writeLatestRunLog = async (
   artifacts: TestRunArtifacts,
-  exitCode: number
+  exitCode: number,
+  digest: string[] = []
 ): Promise<string> => {
   await closeArtifactLogs(artifacts)
   const latestLogPath = resolve(artifacts.rootDir, LATEST_LOG_FILE)
@@ -351,11 +388,16 @@ export const writeLatestRunLog = async (
   const lines: string[] = []
 
   appendRunSummary(lines, report, artifacts, exitCode)
-  appendFailures(lines, report)
+  if (digest.length > 0) {
+    lines.push('')
+    lines.push(...digest)
+  } else {
+    appendFailures(lines, report)
+  }
 
   lines.push('')
-  lines.push('=== report.json ===')
-  lines.push(reportText.trim() || '<missing>')
+  lines.push('=== report.json (failed and skipped entries only) ===')
+  lines.push(compactReportForLatestLog(report, reportText))
   lines.push('')
   lines.push('=== runner.log ===')
   lines.push(runnerLog.trim() || '<missing>')

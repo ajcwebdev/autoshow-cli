@@ -175,18 +175,17 @@ bun autoshow image "make the subject matte black and keep the same camera angle"
 
 ### fal.ai
 
-| Option     | Value                                                         |
-| ---------- | ------------------------------------------------------------- |
-| Selector   | `--provider fal[=<model>]`                                    |
-| Models     | `fal-ai/hidream-o1-image`, `alibaba/qwen-image-3`, `reve/2.1` |
-| Count      | `--count 1-4`; default `1`                                    |
-| Format     | `--format png\|jpeg\|webp`; default `png`                     |
-| References | HiDream (up to 9), Qwen (up to 3), Reve (1)                   |
+| Option     | Value                                             |
+| ---------- | ------------------------------------------------- |
+| Selector   | `--provider fal[=<model>]`                        |
+| Models     | `fal-ai/hidream-o1-image`, `alibaba/qwen-image-3` |
+| Count      | `--count 1-4`; default `1`                        |
+| Format     | `--format png\|jpeg\|webp`; default `png`         |
+| References | HiDream (up to 9), Qwen (up to 3)                 |
 
 ```bash
 bun autoshow image "a technical cutaway illustration of a lunar greenhouse" --provider fal=fal-ai/hidream-o1-image --size 1024x1024
 bun autoshow image "a launch poster with crisp typography" --provider fal=alibaba/qwen-image-3 --count 2
-bun autoshow image "turn this into a dusk scene" --provider fal=reve/2.1 --input input/scene.png --aspect-ratio 16:9
 ```
 
 ## Output
@@ -202,17 +201,16 @@ Outputs are the per-image estimate. Inputs are extra billed reference or edit co
 
 | Provider                              | Released      | References  | Max resolution           | Aspect ratio    | Count   | Formats          | Inputs                    | Outputs                           | Cost rank |
 | ------------------------------------- | ------------- | ----------- | ------------------------ | --------------- | ------- | ---------------- | ------------------------- | --------------------------------- | --------- |
-| OpenAI `gpt-image-2.5-flare`          | ✅ 2026-09-08 | ✅ Up to 16 | ✅ Custom ≤3840          | ✅ Use `--size` | ✅ 1–10 | ✅ png/jpeg/webp | $5/M text; $8/M image     | ✅ $0.01317 at 1024-square medium | 3/14      |
-| OpenAI `gpt-image-2.5-sunburst`       | ✅ 2026-09-08 | ✅ Up to 16 | ✅ Custom ≤3840          | ✅ Use `--size` | ✅ 1–10 | ✅ png/jpeg/webp | $5/M text; $8/M image     | ✅ $0.01317 at 1024-square medium | 3/14      |
-| Grok `grok-imagine-image-2.0`         | ✅ 2026-08-07 | ✅ Up to 5  | ⚠️ 2K                    | ✅ 16 ratios    | ✅ 1–10 | ❌ JPEG          | $0.01/image               | ⚠️ $0.04–$0.08                    | 8/14      |
-| Replicate `alibaba/qwen-image-3`      | ✅ 2026-07-21 | ⚠️ 1        | ❌ Unpublished           | ❌ 9 ratios     | ❌ 1    | ❌ PNG           | Included                  | ✅ $0.03/image                    | 5/14      |
-| Replicate `alibaba/qwen-image-3-pro`  | ✅ 2026-07-21 | ⚠️ 1        | ❌ Unpublished           | ❌ 9 ratios     | ❌ 1    | ❌ PNG           | Included                  | ⚠️ $0.04/image                    | 8/14      |
-| fal.ai `alibaba/qwen-image-3`         | ✅ 2026-07-21 | ⚠️ Up to 3  | ⚠️ 2048 text / 1440 edit | ✅ Use `--size` | ⚠️ 1–4  | ✅ png/jpeg/webp | Included                  | ✅ $0.0051/image                  | 1/14      |
-| fal.ai `reve/2.1`                     | ✅ 2026-07-09 | ⚠️ 1        | ❌ Unpublished           | ✅ 18 ratios    | ⚠️ 1–4  | ✅ png/jpeg/webp | Included                  | ❌ $0.25/image                    | 14/14     |
-| Gemini `gemini-3.1-flash-lite-image`  | ✅ 2026-06-30 | ✅ Up to 14 | ❌ 1K                    | ⚠️ 10 ratios    | ❌ 1    | ❌ PNG           | Not estimated             | ⚠️ $0.0336/image                  | 6/14      |
-| Replicate `bytedance/seedream-5-pro`  | ✅ 2026-06-28 | ✅ Up to 10 | ⚠️ 2K                    | ❌ 9 ratios     | ❌ 1    | ⚠️ png/jpeg      | Included                  | ❌ $0.045/image                   | 11/14     |
-| fal.ai `fal-ai/hidream-o1-image`      | ✅ 2026-05-08 | ✅ Up to 9  | ⚠️ Custom 256–2048       | ✅ Use `--size` | ⚠️ 1–4  | ✅ png/jpeg/webp | Included                  | ✅ $0.01/image                    | 2/14      |
-| OpenAI `gpt-image-2`                  | ✅ 2026-04-21 | ✅ Up to 16 | ✅ Custom ≤3840          | ✅ Use `--size` | ✅ 1–10 | ✅ png/jpeg/webp | Not estimated             | ❌ $0.053/image                   | 12/14     |
-| Luma Labs `uni-1`                     | ⚠️ 2026-03-22 | ✅ Up to 9  | ❌ Unpublished           | ❌ 9 ratios     | ❌ 1    | ⚠️ png/jpeg      | ~$0.003/edit or reference | ❌ $0.0404/image                  | 10/14     |
-| Luma Labs `uni-1-max`                 | ⚠️ 2026-03-22 | ✅ Up to 9  | ❌ Unpublished           | ❌ 9 ratios     | ❌ 1    | ⚠️ png/jpeg      | ~$0.003/edit or reference | ❌ $0.10/image                    | 13/14     |
-| Replicate `bytedance/seedream-5-lite` | ⚠️ 2026-01-28 | ✅ Up to 14 | ✅ 3K                    | ❌ 9 ratios     | ❌ 1    | ⚠️ png/jpeg      | Included                  | ⚠️ $0.035/image                   | 7/14      |
+| OpenAI `gpt-image-2.5-flare`          | ✅ 2026-09-08 | ✅ Up to 16 | ✅ Custom ≤3840          | ✅ Use `--size` | ✅ 1–10 | ✅ png/jpeg/webp | $5/M text; $8/M image     | ✅ $0.01317 at 1024-square medium | 3/13      |
+| OpenAI `gpt-image-2.5-sunburst`       | ✅ 2026-09-08 | ✅ Up to 16 | ✅ Custom ≤3840          | ✅ Use `--size` | ✅ 1–10 | ✅ png/jpeg/webp | $5/M text; $8/M image     | ✅ $0.01317 at 1024-square medium | 3/13      |
+| Grok `grok-imagine-image-2.0`         | ✅ 2026-08-07 | ✅ Up to 5  | ⚠️ 2K                    | ✅ 16 ratios    | ✅ 1–10 | ❌ JPEG          | $0.01/image               | ⚠️ $0.04–$0.08                    | 8/13      |
+| Replicate `alibaba/qwen-image-3`      | ✅ 2026-07-21 | ⚠️ 1        | ❌ Unpublished           | ❌ 9 ratios     | ❌ 1    | ❌ PNG           | Included                  | ✅ $0.03/image                    | 5/13      |
+| Replicate `alibaba/qwen-image-3-pro`  | ✅ 2026-07-21 | ⚠️ 1        | ❌ Unpublished           | ❌ 9 ratios     | ❌ 1    | ❌ PNG           | Included                  | ⚠️ $0.04/image                    | 8/13      |
+| fal.ai `alibaba/qwen-image-3`         | ✅ 2026-07-21 | ⚠️ Up to 3  | ⚠️ 2048 text / 1440 edit | ✅ Use `--size` | ⚠️ 1–4  | ✅ png/jpeg/webp | Included                  | ✅ $0.0051/image                  | 1/13      |
+| Gemini `gemini-3.1-flash-lite-image`  | ✅ 2026-06-30 | ✅ Up to 14 | ❌ 1K                    | ⚠️ 10 ratios    | ❌ 1    | ❌ PNG           | Not estimated             | ⚠️ $0.0336/image                  | 6/13      |
+| Replicate `bytedance/seedream-5-pro`  | ✅ 2026-06-28 | ✅ Up to 10 | ⚠️ 2K                    | ❌ 9 ratios     | ❌ 1    | ⚠️ png/jpeg      | Included                  | ❌ $0.045/image                   | 11/13     |
+| fal.ai `fal-ai/hidream-o1-image`      | ✅ 2026-05-08 | ✅ Up to 9  | ⚠️ Custom 256–2048       | ✅ Use `--size` | ⚠️ 1–4  | ✅ png/jpeg/webp | Included                  | ✅ $0.01/image                    | 2/13      |
+| OpenAI `gpt-image-2`                  | ✅ 2026-04-21 | ✅ Up to 16 | ✅ Custom ≤3840          | ✅ Use `--size` | ✅ 1–10 | ✅ png/jpeg/webp | Not estimated             | ❌ $0.053/image                   | 12/13     |
+| Luma Labs `uni-1`                     | ⚠️ 2026-03-22 | ✅ Up to 9  | ❌ Unpublished           | ❌ 9 ratios     | ❌ 1    | ⚠️ png/jpeg      | ~$0.003/edit or reference | ❌ $0.0404/image                  | 10/13     |
+| Luma Labs `uni-1-max`                 | ⚠️ 2026-03-22 | ✅ Up to 9  | ❌ Unpublished           | ❌ 9 ratios     | ❌ 1    | ⚠️ png/jpeg      | ~$0.003/edit or reference | ❌ $0.10/image                    | 13/13     |
+| Replicate `bytedance/seedream-5-lite` | ⚠️ 2026-01-28 | ✅ Up to 14 | ✅ 3K                    | ❌ 9 ratios     | ❌ 1    | ⚠️ png/jpeg      | Included                  | ⚠️ $0.035/image                   | 7/13      |

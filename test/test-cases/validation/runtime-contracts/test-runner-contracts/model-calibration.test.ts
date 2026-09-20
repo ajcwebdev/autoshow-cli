@@ -6,7 +6,7 @@ import {
 } from 'bun:test'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { buildModelCalibrationReport, normalizeUnitValue } from '../../../../test-runner/model-calibration'
+import { buildModelCalibrationReport, isTimingCalibratedService, normalizeUnitValue } from '../../../../test-runner/model-calibration'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []
@@ -243,6 +243,48 @@ describe('test-runner contracts', () => {
       expect(report.recommendations[0]?.service).toBe('deepgram')
       expect(report.recommendations[0]?.model).toBe('nova-3')
       expect(report.recommendations[0]?.oldTimeValue).toBe(1000)
+      expect(report.recommendations[0]?.recommendedTimeValue).toBe(1500)
+    })
+
+  test('local engines are excluded from timing recommendations while hosted services keep them', async () => {
+      expect(['whisperfile', 'tesseract', 'defuddle'].map(isTimingCalibratedService)).toEqual([false, false, false])
+      expect(['deepgram', 'firecrawl', 'mistral'].map(isTimingCalibratedService)).toEqual([true, true, true])
+
+      const dir = await makeTempDir('autoshow-calibration-local-timing-')
+      tempDirs.push(dir)
+      const runsRoot = join(dir, 'runs')
+      const configDir = join(dir, 'config', 'stt-config')
+      await mkdir(configDir, { recursive: true })
+      const entry = (service: string, model: string) => ({
+        [service]: {
+          description: service,
+          type: service === 'whisperfile' ? 'local' : 'api',
+          models: { [model]: { description: model, costPerHourCents: 0, estimation: { costMultiplier: 1, msPerSecond: 1000 } } }
+        }
+      })
+      await writeFile(join(configDir, 'stt-deepgram.json'), `${JSON.stringify(entry('deepgram', 'nova-3'))}\n`)
+      await writeFile(join(configDir, 'stt-whisperfile.json'), `${JSON.stringify(entry('whisperfile', 'tiny'))}\n`)
+
+      const runDir = join(runsRoot, '2026-05-01_00-00-00_test-run', 'run')
+      await mkdir(runDir, { recursive: true })
+      const writeRun = async (name: string, provider: string, model: string): Promise<void> => {
+        await writeFile(join(runDir, name), `${JSON.stringify(canonicalManifest('extract', {
+          timing: { actual: { steps: [{ step: 'stt', provider, model, processingTimeMs: 3000, inputMetric: 'durationSeconds', inputValue: 1 }] } }
+        }, {
+          extractRoute: 'media',
+          providers: [{
+            service: provider, model, artifactDir: `providers/${provider}-${model}`, status: 'succeeded', attempts: 1, options: {},
+            metadata: { transcriptionService: provider, transcriptionModel: model, processingTime: 3000 }
+          }]
+        }), null, 2)}\n`)
+      }
+      await writeRun('2026-05-01_00-00-01_stt.json', 'deepgram', 'nova-3')
+      await writeRun('2026-05-01_00-00-02_stt.json', 'whisperfile', 'tiny')
+
+      const report = await buildModelCalibrationReport(runsRoot, { stt: configDir })
+
+      expect(report.metadataFilesScanned).toBe(2)
+      expect(report.recommendations.map(recommendation => recommendation.service)).toEqual(['deepgram'])
       expect(report.recommendations[0]?.recommendedTimeValue).toBe(1500)
     })
 

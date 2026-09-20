@@ -307,7 +307,8 @@ describe('exhaustion contract', () => {
       { kind: 'retry_exhausted' }
     )
 
-    expect(error.message).toMatch(/^wording-pin failed after 2\/2 attempts \(max attempts reached, \d+ms elapsed\)$/)
+    // The stable prefix the harness classifies on, followed by the last provider message.
+    expect(error.message).toMatch(/^wording-pin failed after 2\/2 attempts \(max attempts reached, \d+ms elapsed\): provider busy$/)
   })
 
   test('a deterministic refusal names its stop reason in the message', async () => {

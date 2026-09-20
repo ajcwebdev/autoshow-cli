@@ -27,6 +27,7 @@ import { logWriteManifestSummary } from '~/cli/commands/command-shared/write-man
 import { applySummaryArtifactNames, serializeStep3Results, writeWriteFlowArtifacts } from './write-artifact-finalization'
 import { sha256Bytes } from '~/utils/value-helpers'
 import { toLocalSourceRef, toProjectRelativePath } from '~/utils/project-root'
+import { createProviderSettingsRecord, describeSettingsFile } from '~/cli/commands/command-shared/pipeline-manifest/provider-settings-record'
 
 const buildTextInputMetadata = (inputPath: string): VideoMetadata => {
   const title = getTextInputTitle(inputPath)
@@ -65,6 +66,38 @@ const buildStepSummaries = (
   ))
 
   return summaries
+}
+
+const withoutRequestSettings = ({ requestSettings: _requestSettings, ...entry }: Step3Metadata): Step3Metadata => entry
+
+const buildWriteProviderRecords = async (
+  step3Results: readonly Step3Metadata[],
+  opts: WriteRuntimeOptions
+): Promise<{ requestedProviders: Array<Record<string, unknown>>, providerStates: Array<Record<string, unknown>> }> => {
+  const promptFile = await describeSettingsFile(opts.promptFile)
+  const entries = step3Results.map((entry) => {
+    const identity = { service: entry.llmService, model: entry.llmModel }
+    const settings = createProviderSettingsRecord({
+      service: entry.llmService,
+      operation: 'write',
+      request: {
+        ...(entry.requestSettings ?? { model: entry.llmModel }),
+        requestedReasoningEffort: entry.requestedReasoningEffort,
+        effectiveReasoningEffort: entry.effectiveReasoningEffort,
+      },
+      local: {
+        prompts: opts.prompts,
+        promptFile,
+        structuredMode: entry.structuredMode,
+        structuredPresetNames: entry.structuredPresetNames,
+      },
+    })
+    return {
+      requested: { ...identity, settings },
+      state: { ...identity, artifactDir: '.', status: 'succeeded', attempts: 1, options: {}, metadata: {}, settings },
+    }
+  })
+  return { requestedProviders: entries.map((entry) => entry.requested), providerStates: entries.map((entry) => entry.state) }
 }
 
 export const runTextWrite = async (
@@ -139,6 +172,7 @@ export const runTextWrite = async (
   })
 
   const step3Serialized = serializeStep3Results(step3Results)
+  const providerRecords = await buildWriteProviderRecords(step3Results, opts)
 
   const llmTargets = step3Results.map((item) => ({
     service: item.llmService,
@@ -186,7 +220,8 @@ export const runTextWrite = async (
         sha256: sourceSha256,
       },
     },
-    step3: serializeOneOrMany(step3Results),
+    step3: serializeOneOrMany(step3Results.map(withoutRequestSettings)),
+    ...providerRecords,
     cost,
     ...(timing ? { timing } : {}),
   }

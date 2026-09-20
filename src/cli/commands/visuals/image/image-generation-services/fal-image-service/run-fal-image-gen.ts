@@ -1,5 +1,5 @@
 import type { FalImageFile, FalImageModel, FalImageOutput, Step5Metadata } from '~/types'
-import { UsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError, InternalError } from '~/utils/error-handler'
 import { runImageGeneration } from '~/cli/commands/command-shared/media-generation/image-generation-scaffold'
 import { estimateImageCosts, logImageEstimate } from '../../image-utils/image-pricing'
 import { imageReferenceToUrlOrDataUrl } from '../../image-utils/image-inputs'
@@ -8,7 +8,6 @@ import { runFalQueue } from '~/utils/fal-client/fal-queue'
 
 const FAL_IMAGE_FORMATS = ['png', 'jpeg', 'webp'] as const
 export const FAL_IMAGE_COUNT_RANGE = [1, 4] as const
-export const FAL_REVE_ASPECT_RATIOS = ['4:1', '3:1', '21:9', '2:1', '17:9', '16:9', '3:2', '4:3', '5:4', '1:1', '4:5', '3:4', '2:3', '9:16', '1:2', '1:3', '1:4', 'auto'] as const
 
 const normalizeFormat = (format: string | undefined): typeof FAL_IMAGE_FORMATS[number] | undefined => {
   if (!format) return undefined
@@ -40,13 +39,6 @@ const normalizeDimensions = (size: string | undefined, model: FalImageModel, edi
     throw UsageError(`Invalid --size value "${size}" for fal.ai/${model}. Width and height must be multiples of 32.`)
   }
   return { width, height }
-}
-
-export const normalizeFalImageAspectRatio = (model: FalImageModel, ratio: string | undefined): string | undefined => {
-  if (!ratio) return undefined
-  const allowed = FAL_REVE_ASPECT_RATIOS
-  if ((allowed as readonly string[]).includes(ratio)) return ratio
-  throw UsageError(`Invalid --aspect-ratio value "${ratio}" for fal.ai/${model}. Supported values: ${allowed.join(', ')}.`)
 }
 
 export const getFalImageExtension = (format: string | undefined): string => {
@@ -91,15 +83,7 @@ const buildRequest = async (prompt: string, options: {
     }
   }
 
-  if (references.length > 1) throw UsageError(`--input supports at most 1 reference image for fal.ai/${options.model}.`)
-  if (options.imageSize) throw UsageError(`--size is not supported by fal.ai/${options.model}; use --aspect-ratio.`)
-  const aspectRatio = normalizeFalImageAspectRatio(options.model, options.aspectRatio)
-  return {
-    endpointId: `reve/2.1/${editing ? 'edit' : 'text-to-image'}`,
-    input: { prompt, ...(editing ? { image_url: references[0] } : {}), num_images: count, ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}), ...(format ? { output_format: format } : {}) },
-    count,
-    mode: editing ? 'edit' : 'generation'
-  }
+  throw InternalError(`Unsupported fal.ai image model ${options.model}`, { stage: 'image:fal' })
 }
 
 export const runFalImageGen = async (prompt: string, outputDir: string, options: {

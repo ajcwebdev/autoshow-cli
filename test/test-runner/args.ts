@@ -100,6 +100,9 @@ const consumeRunnerControlArg = (
     case '--no-cleanup':
       state.preserveTestOutput = true
       return { kind: 'consumed', nextIndex: index }
+    case '--verbose':
+      state.verbose = true
+      return { kind: 'consumed', nextIndex: index }
     case '--no-adaptive-concurrency':
       state.adaptiveConcurrency = false
       return { kind: 'consumed', nextIndex: index }
@@ -128,6 +131,7 @@ export const parseRunnerArgs = (argv: string[]): RunnerArgs => {
     priceMode: false,
     budgetHundredthCents: undefined,
     preserveTestOutput: false,
+    verbose: false,
     adaptiveConcurrency: true,
     passthroughArgs: [],
     pathFilters: [],

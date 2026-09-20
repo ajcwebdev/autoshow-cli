@@ -163,7 +163,8 @@ const resumeUrlArticleProviders = async (
     completionStatus,
     requestedBackends: plan.requestedBackends,
     providerStates,
-    failures
+    failures,
+    requestOptions: opts
   })
   await writePipelineItemRecords(outputDir, 'extract', 'single', [manifestMetadata], { extractRoute: 'article' })
   logExtractManifestSummary(outputDir, manifestMetadata)

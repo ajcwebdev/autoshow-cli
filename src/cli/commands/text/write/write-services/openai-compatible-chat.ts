@@ -6,6 +6,7 @@ import { createOpenAIChatCompletion, extractOpenAIChatCompletionText } from '~/u
 import { classifyFetchRetry } from '~/utils/retries'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { resolveLlmReasoningOptions } from './llm-reasoning-options'
+import { llmRequestSettings } from '~/cli/commands/text/write/write-utils/llm-request-settings'
 
 export const runOpenAICompatibleChatModel = async ({
   prompt,
@@ -42,7 +43,8 @@ export const runOpenAICompatibleChatModel = async ({
           text,
           usage: response.usage,
           rawProviderUsage: response.usage,
-          returnedModel: response.model
+          returnedModel: response.model,
+          requestSettings: llmRequestSettings(body)
         }
       }
 

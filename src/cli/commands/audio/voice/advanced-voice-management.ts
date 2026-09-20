@@ -124,6 +124,7 @@ export const createAdvancedVoiceCandidates = async (input: {
       ...(input.sourceVoice ? { sourceVoice: input.sourceVoice } : {}),
       ...(input.eligibilitySnapshotHash ? { eligibilitySnapshotHash: input.eligibilitySnapshotHash } : {}),
       description: input.description,
+      generation: { previewText: input.previewText, candidateCount: input.candidateCount, ...(typeof input.seed === 'number' ? { seed: input.seed } : {}) },
       previewAssets: [previewAsset],
       plannedCost: input.plannedCost ?? EMPTY_COST,
       ...(preview.expiresAt ? { expiresAt: preview.expiresAt } : {}),

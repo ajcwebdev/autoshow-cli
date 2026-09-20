@@ -24,6 +24,21 @@ export const formatRetryExhaustedMessage = (
   elapsedMs: number
 ): string => `${operationName} failed after ${attemptsMade}/${maxAttempts} attempts (${stopReason}, ${elapsedMs}ms elapsed)`
 
+const EXHAUSTED_CAUSE_MESSAGE_LIMIT = 300
+
+/**
+ * Without the last provider message, an exhausted retry says only that it ran out of attempts, so a
+ * provider outage cannot be told apart from a request the provider rejected.
+ */
+export const formatRetryExhaustedCause = (lastError: unknown): string => {
+  const message = lastError instanceof Error
+    ? lastError.message
+    : typeof lastError === 'string' ? lastError : ''
+  const normalized = message.replace(/\s+/g, ' ').trim()
+  if (normalized.length === 0) return ''
+  return `: ${normalized.length > EXHAUSTED_CAUSE_MESSAGE_LIMIT ? `${normalized.slice(0, EXHAUSTED_CAUSE_MESSAGE_LIMIT)}…` : normalized}`
+}
+
 export const buildRetryAttemptMetadata = (ctx: RetryContext, error: unknown): Record<string, unknown> => ({
   retryClass: ctx.retryClass,
   stage: typeof extractErrorMetadata(error)['stage'] === 'string' ? extractErrorMetadata(error)['stage'] : ctx.operationName,
@@ -58,7 +73,8 @@ export const throwRetryExhausted = (
     ...causeMetadata
   } = metadata
 
-  throw new AppError(formatRetryExhaustedMessage(ctx.operationName, attemptsMade, maxAttempts, stopReason, elapsed), {
+  const exhaustedMessage = `${formatRetryExhaustedMessage(ctx.operationName, attemptsMade, maxAttempts, stopReason, elapsed)}${formatRetryExhaustedCause(lastError)}`
+  throw new AppError(exhaustedMessage, {
     kind: 'retry_exhausted',
     cause: lastError,
     retryClass: ctx.retryClass,

@@ -23,6 +23,7 @@ const metadataFor = (target: ImageTarget, fileNames: string[]): Step5Metadata =>
 const makeTarget = (model: string, artifactNames: string[]): ImageTarget => ({
   service: 'openai',
   model,
+  requestSettings: {},
   run: async (_prompt, workspaceDir) => {
     const imagePaths: string[] = []
     for (const name of artifactNames) {

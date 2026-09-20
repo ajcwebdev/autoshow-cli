@@ -235,12 +235,12 @@ describe('canonical location reference registration', () => {
     await Bun.write(getLocationReferencePath(), JSON.stringify({ schemaVersion: 1, styleImage: 'input/characters/style-guide.webp', locations: [{ key: 'cargo-bay', name: 'Cargo Bay', specification, sourceScripts: [] }] }))
     await Bun.write(getLocationSketchManifestPath(), JSON.stringify({ schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: sha256Bytes(specification), views: [{ view: 'establishing', generationId: 'old', image: 'cargo-bay--reference.png', imageSha256: sha256Bytes(image), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }] }))
     let imageCalls = 0
-    await expect(locationReferenceSketchCommand({ location: 'cargo-bay', view: 'reverse', imageModels: ['reve/2.1'], qa: false }, {
+    await expect(locationReferenceSketchCommand({ location: 'cargo-bay', view: 'reverse', imageModels: ['alibaba/qwen-image-3'], qa: false }, {
       requestImage: async () => {
         imageCalls++
         return { mode: 'generate', result: { imageBase64: image.toString('base64') } }
       },
-    })).rejects.toThrow('requires 2 reference images, but reve/2.1 supports 1')
+    })).rejects.toThrow('requires 2 reference images, but alibaba/qwen-image-3 supports 1')
     expect(imageCalls).toBe(0)
   })
 

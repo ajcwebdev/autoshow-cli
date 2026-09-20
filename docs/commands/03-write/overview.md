@@ -251,6 +251,7 @@ Together K3, GLM 5.3, and GLM 5.3 Flash accept `--reasoning-effort low`, `high`,
 - Multi-target runs write `text-<model>.json` and `show-note-<model>.md` for each selected LLM target. When two providers share a model id, the filename includes the provider.
 - `--rendered-text` writes rendered markdown inside the run directory: `text.md` for a single target, or `text-<model>.md` per model when multiple targets are selected.
 - Runs also write `prompt.md` and `manifest.json`. `--prompt-md` adds `prompt-md.md` with markdown examples alongside the JSON prompt.
+- Each successful LLM target has a provider entry in `manifest.json` whose `settings.request` is the request body sent, without the prompt text and with any JSON schema stored as a hash, and whose `settings.local` records prompt names, the prompt file path and hash, and structured mode.
 
 ## Notes
 

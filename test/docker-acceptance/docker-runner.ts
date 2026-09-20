@@ -57,7 +57,18 @@ export function acceptancePassed(selectedCount: number, cases: CaseEvidence[], e
   return selectedCount > 0 && cases.length === selectedCount && cases.every(item => item.status === 'passed') && errors.length === 0
 }
 
-export async function runDockerAcceptance(options: DockerOptions, engine = new DockerEngine(options)): Promise<number> {
+export type AcceptanceProgress = { log: (line: string) => void; error: (line: string) => void }
+
+const consoleProgress: AcceptanceProgress = {
+  log: line => console.log(line),
+  error: line => console.error(line),
+}
+
+export async function runDockerAcceptance(
+  options: DockerOptions,
+  engine = new DockerEngine(options),
+  progress: AcceptanceProgress = consoleProgress
+): Promise<number> {
   const selected = selectDockerScenarios(options)
   await mkdir(options.output, { recursive: false })
   const cases: CaseEvidence[] = []
@@ -94,7 +105,7 @@ export async function runDockerAcceptance(options: DockerOptions, engine = new D
   await save()
   try {
     const identity = await engine.resolveImage()
-    console.log(`Image ${identity.reference} (${identity.platform}), revision ${identity.revision}`)
+    progress.log(`Image ${identity.reference} (${identity.platform}), revision ${identity.revision}`)
     const cacheDir = join(options.cache, identity.platform.replace('/', '-'))
     await mkdir(cacheDir, { recursive: true })
     const candidateLock = join(cacheDir, 'acceptance.lock')
@@ -119,7 +130,7 @@ export async function runDockerAcceptance(options: DockerOptions, engine = new D
       if (engine.interrupted) throw new Error('Acceptance interrupted')
       const started = performance.now()
       let category = 'provisioning'
-      console.log(`Running ${scenario.id}`)
+      progress.log(`Running ${scenario.id}`)
       try {
         if (scenario.provision) await once('defuddle', async () => {
           await provision(['setup', '--step', 'defuddle'])
@@ -130,16 +141,16 @@ export async function runDockerAcceptance(options: DockerOptions, engine = new D
         const adapter = new DockerScenarioAdapter(engine, scenario)
         await scenario.verify(adapter, await adapter.execute(scenario.args))
         cases.push({ id: scenario.id, category, status: 'passed', durationMs: Math.round(performance.now() - started) })
-        console.log(`PASS ${scenario.id}`)
+        progress.log(`PASS ${scenario.id}`)
       } catch (error) {
         cases.push({ id: scenario.id, category, status: 'failed', durationMs: Math.round(performance.now() - started), error: String(error) })
-        console.error(`FAIL ${scenario.id} (${category}): ${String(error).slice(-1500)}`)
+        progress.error(`FAIL ${scenario.id} (${category}): ${String(error).slice(-1500)}`)
       }
       await save()
     }
   } catch (error) {
     errors.push(`${stage}: ${String(error)}`)
-    console.error(errors.at(-1))
+    progress.error(errors.at(-1) ?? '')
   } finally {
     const fixture = `${engine.runId}-fixture`
     if (engine.owned.has(fixture)) await engine.command(['logs', fixture])
@@ -164,7 +175,7 @@ export async function runDockerAcceptance(options: DockerOptions, engine = new D
     await save()
   }
   const passed = acceptancePassed(selected.length, cases, errors)
-  console.log(`${cases.filter(item => item.status === 'passed').length}/${selected.length} passed. Evidence: ${options.output}`)
+  progress.log(`${cases.filter(item => item.status === 'passed').length}/${selected.length} passed. Evidence: ${options.output}`)
   return passed ? 0 : 1
 }
 

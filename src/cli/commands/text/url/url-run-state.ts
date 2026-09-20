@@ -33,6 +33,7 @@ import {
   resolveProviderCompletionStatus
 } from '../../command-shared/provider-batch-state'
 import { extractErrorMetadata } from '~/utils/error-handler'
+import { createProviderSettingsRecord } from '../../command-shared/pipeline-manifest/provider-settings-record'
 
 const readLocalHtmlFileSize = async (source: string): Promise<number | undefined> => {
   if (isRemoteSource(source)) {
@@ -325,6 +326,7 @@ export const buildManifestMetadata = (
     requestedBackends: HtmlArticleBackend[]
     providerStates: UrlProviderState[]
     failures: UrlProviderFailure[]
+    requestOptions?: Pick<UrlExtractionOptions, 'urlRequestTimeoutMs' | 'urlRequestAttempts'> | undefined
   }
 ): Record<string, unknown> => {
   const normalizedStep2 = step2Metadata === undefined
@@ -350,6 +352,17 @@ export const buildManifestMetadata = (
     ? { estimated: estimatedTiming, actual: actualTiming }
     : undefined
   const requestedProviders = options.requestedBackends.map(toRequestedUrlProvider)
+  const requestedProvidersWithSettings = requestedProviders.map((provider) => ({
+    ...provider,
+    settings: createProviderSettingsRecord({
+      service: provider.service,
+      operation: 'url',
+      request: {
+        timeoutMs: options.requestOptions?.urlRequestTimeoutMs,
+        requestAttempts: options.requestOptions?.urlRequestAttempts,
+      },
+    })
+  }))
 
   return {
     step1: step1Metadata,
@@ -360,7 +373,7 @@ export const buildManifestMetadata = (
       providers: requestedProviders
     },
     completionStatus: options.completionStatus,
-    requestedProviders,
+    requestedProviders: requestedProvidersWithSettings,
     providerStates: options.providerStates,
     missingProviders: options.providerStates
       .filter((state) => state.status === 'missing' || state.status === 'failed')

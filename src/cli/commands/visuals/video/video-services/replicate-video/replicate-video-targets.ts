@@ -74,9 +74,11 @@ export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: Vid
     if (!isSupportedOrSkippedForAllVideo(options, 'replicate', model, mode, getReplicateSupportedVideoModes(model))) {
       return []
     }
-    normalizeReplicateVideoDuration(model, options.videoDuration)
-    normalizeReplicateVideoResolution(model, options.videoResolution)
-    normalizeReplicateVideoAspectRatio(model, options.videoAspectRatio)
+    const effective = {
+      durationSeconds: normalizeReplicateVideoDuration(model, options.videoDuration),
+      resolution: normalizeReplicateVideoResolution(model, options.videoResolution),
+      aspectRatio: normalizeReplicateVideoAspectRatio(model, options.videoAspectRatio)
+    }
 
     if (isReplicateHappyHorseVideoModel(model)) {
       rejectReplicateFlags(model, [
@@ -132,28 +134,28 @@ export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: Vid
       validateVideoMediaReferences(options.videoReferenceAudios, { flagName: '--reference-audio', provider: 'replicate', model, kind: 'audio', maxInputs: 10 })
     }
 
+    const request = {
+      model,
+      mode,
+      durationSeconds: options.videoDuration,
+      aspectRatio: options.videoAspectRatio,
+      resolution: options.videoResolution,
+      inputImage: options.videoInputImage,
+      lastFrameImage: options.videoLastFrame,
+      referenceImages: options.videoReferenceImages,
+      inputVideo: options.videoInputVideo,
+      referenceVideos: options.videoReferenceVideos,
+      referenceAudios: options.videoReferenceAudios,
+      negativePrompt: options.replicateVideoNegativePrompt,
+      generateAudio: options.videoGenerateAudio,
+      seed: options.replicateVideoSeed,
+      multiClip: options.replicateVideoMultiClip
+    }
     return [{
       service: 'replicate',
       model,
-      run: async (prompt, outputDir) => {
-        return await runReplicateVideoGen(prompt, outputDir, {
-          model,
-          mode,
-          durationSeconds: options.videoDuration,
-          aspectRatio: options.videoAspectRatio,
-          resolution: options.videoResolution,
-          inputImage: options.videoInputImage,
-          lastFrameImage: options.videoLastFrame,
-          referenceImages: options.videoReferenceImages,
-          inputVideo: options.videoInputVideo,
-          referenceVideos: options.videoReferenceVideos,
-          referenceAudios: options.videoReferenceAudios,
-          negativePrompt: options.replicateVideoNegativePrompt,
-          generateAudio: options.videoGenerateAudio,
-          seed: options.replicateVideoSeed,
-          multiClip: options.replicateVideoMultiClip
-        })
-      }
+      requestSettings: { ...request, effective },
+      run: async (prompt, outputDir) => await runReplicateVideoGen(prompt, outputDir, request)
     }]
   })
 }

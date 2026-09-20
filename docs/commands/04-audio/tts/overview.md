@@ -323,6 +323,7 @@ Inline emotion and vocalization tags such as `[happy]`, `[laugh]`, and `[breathe
 - Successful runs also write `render.json` and `timeline.json`.
 - Managed or custom voice runs record the voice ID, name, or reference as `speaker` in metadata.
 - `manifest.json` records `tts` targets, `cost`, and `timing`.
+- Each provider entry in `manifest.json` carries `settings`: `settings.request` holds the model, voice, endpoint, serializer version, and the exact request controls sent (defaults included, such as the ElevenLabs output format), and `settings.local` holds the audio profile, resolved mastering values (sample rate, channels, loudness, pauses, lead-in/out), chunking, text preflight, export options, and the pronunciation lexicon hash. Multi-speaker runs list one entry per distinct voice under `settings.request.speakers`.
 - `--output-dir` sets the output directory; output filenames remain provider-deterministic.
 
 ## Speed and pause controls

@@ -118,6 +118,7 @@ describe('ADR-017 Phase 7E Replicate AudioGen soundscape acceptance', () => {
       hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: 'immediate' }),
     })
     const soundscapeRun = mixed.soundscapeRuns[0]
+    expect(mixed.providerState.settings).toMatchObject({ schemaVersion: 1, settingsSchema: 'replicate.sound-effect-generation.v1', request: { model: renderPlan.target.model, outputFormat: renderPlan.target.outputFormat }, local: { boundedConcurrency: 2, taskCount: renderPlan.tasks.length } })
     expect(calls.some(call => call.method === 'POST' && call.url.endsWith('/v1/predictions'))).toBe(true)
     expect(calls.some(call => call.url === OUTPUT_URL)).toBe(true)
     expect(soundscapeRun?.mix.stems.map(stem => stem.bus)).toEqual(['dialogue', 'action-sfx', 'ambience'])

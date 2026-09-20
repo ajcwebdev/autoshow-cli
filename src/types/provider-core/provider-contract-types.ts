@@ -11,6 +11,15 @@ export type PipelineItemStatus = typeof PIPELINE_ITEM_STATUSES[number]
 export const PIPELINE_PROVIDER_STATUSES = ['running', 'succeeded', 'missing', 'failed', 'skipped'] as const
 export type PipelineProviderStatus = typeof PIPELINE_PROVIDER_STATUSES[number]
 
+// Effective provider request settings and local output-shaping settings for one provider target. Recorded for provenance only; never part of an identity hash.
+export type ProviderSettingsRecord = {
+  schemaVersion: 1
+  settingsSchema: string
+  request: JsonObject
+  local?: JsonObject | undefined
+  ignored?: string[] | undefined
+}
+
 export type PipelineProviderState = {
   service: string
   model?: string | null | undefined
@@ -25,6 +34,7 @@ export type PipelineProviderState = {
   metadata: JsonObject
   result?: JsonObject | undefined
   error?: JsonObject | undefined
+  settings?: ProviderSettingsRecord | undefined
 }
 
 export type PipelineManifestChildLink = {

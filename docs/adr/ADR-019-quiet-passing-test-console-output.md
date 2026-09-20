@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-15
-- **Date Updated:** 2026-09-01
+- **Date Updated:** 2026-09-19
 - **Verification Status:** Passed
 
 ## Context
@@ -68,6 +68,18 @@ It does not apply to:
 - Replacing JUnit, `report.json`, `commands.log`, or `latest.log`.
 - Subprocess CLI capture already used by tests, which is already quiet on pass.
 - Product CLI logging outside the test process.
+
+### Amendment (2026-09-19): failure-first `bun t` terminal
+
+A full `bun t --budget` run still produced about 3,000 `✓` lines, headers repeated as parallel workers switched files, and a second list of every skip. Any failure was buried in that stream. The model calibration report was deleted along with the run directory right after its path was printed.
+
+Option 2 was rejected because it could not attribute *console writes* from parallel workers. The preload now handles those. Bun's own result lines identify their own test, so the runner can filter them safely. `bun t` now does the following:
+
+- Hides `✓` and `»` lines and Bun's skipped list on the terminal, printing file headers only before lines that are shown. `runner.log` keeps the full stream, and `--verbose` restores it on the terminal (`test/test-runner/terminal-filter.ts`).
+- Prints an end-of-run digest built from `junit.xml`, the budget summary, and the calibration report: failures with messages, a skip summary, and calibration recommendations (`test/test-runner/reports/run-digest.ts`).
+- Keeps `latest-model-calibration.json` beside `latest.log`. It keeps the run directory when the run fails. It writes only failed and skipped `report.json` entries into `latest.log`.
+
+Plain `bun test` is unchanged.
 
 ## Rationale
 

@@ -192,9 +192,7 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
           totalCost: costPerImageCents * imageCount,
           note: model === 'fal-ai/hidream-o1-image'
             ? 'fal.ai bills HiDream per output megapixel; the local estimate uses the default one-megapixel output'
-            : model === 'reve/2.1'
-              ? 'fal.ai published per-image price for Reve 2.1'
-              : 'Provisional fal.ai estimate derived from the endpoint billing unit and default runtime; actual compute-based billing may vary'
+            : 'Provisional fal.ai estimate derived from the endpoint billing unit and default runtime; actual compute-based billing may vary'
         })
         break
       }

@@ -4,6 +4,7 @@ import { executeLlmRequest } from '~/cli/commands/text/write/write-utils/llm-req
 import { classifyGeminiRetry } from '~/cli/commands/text/write/write-services/write-gemini/gemini-utils'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
+import { llmRequestSettings } from '~/cli/commands/text/write/write-utils/llm-request-settings'
 
 const buildGeminiThinkingLevel = (effective: string): string | undefined => {
   switch (effective) {
@@ -51,7 +52,8 @@ export const runGeminiModel = async (
         text,
         usage: response.usageMetadata,
         rawProviderUsage: response.usageMetadata,
-        returnedModel: response.modelVersion
+        returnedModel: response.modelVersion,
+        requestSettings: llmRequestSettings({ model, ...(Object.keys(generationConfig).length > 0 ? { generationConfig } : {}) })
       }
     }
   })

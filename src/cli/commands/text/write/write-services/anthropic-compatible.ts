@@ -3,6 +3,7 @@ import type { AnthropicRestConfig, RunAnthropicCompatibleModelOptions, Step3Meta
 import { createAnthropicMessage } from '~/utils/anthropic/anthropic-client'
 import { classifyFetchRetry } from '~/utils/retries'
 import { applyAnthropicReasoning } from '~/cli/commands/setup-and-utilities/models/reasoning-request-mappers'
+import { llmRequestSettings } from '~/cli/commands/text/write/write-utils/llm-request-settings'
 
 const extractAnthropicText = (content: Array<{ type: string, text?: string | undefined }>): string =>
   content
@@ -57,7 +58,8 @@ export const runAnthropicCompatibleModel = async ({
         text,
         usage: message.usage,
         rawProviderUsage: message.usage,
-        returnedModel: message.model
+        returnedModel: message.model,
+        requestSettings: llmRequestSettings(requestBody)
       }
     }
   })

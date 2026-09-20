@@ -1,5 +1,6 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { dirname, join, posix } from 'node:path'
+import { createProviderSettingsRecord } from '~/cli/commands/command-shared/pipeline-manifest/provider-settings-record'
 import type {
   AudioRun,
   CompactMix,
@@ -246,6 +247,17 @@ export const runComicSoundscape = async (input: {
     status: renderResult.status === 'succeeded' ? 'succeeded' : 'failed',
     attempts: 1,
     options: { outputFormat: input.renderPlan.target.outputFormat, promptInfluence: input.renderPlan.target.promptInfluence, boundedConcurrency: input.concurrency ?? 2 },
+    settings: createProviderSettingsRecord({
+      service: input.renderPlan.target.provider,
+      operation: 'sound-effect-generation',
+      request: {
+        model: input.renderPlan.target.model,
+        outputFormat: input.renderPlan.target.outputFormat,
+        promptInfluence: input.renderPlan.target.promptInfluence,
+        sampling: input.renderPlan.target.capabilityFixture.constraints.sampling,
+      },
+      local: { boundedConcurrency: input.concurrency ?? 2, taskCount: input.renderPlan.tasks.length },
+    }),
     metadata: {
       soundscapePlanId: input.plan.soundscapePlanId,
       renderPlanId: input.renderPlan.renderPlanId,

@@ -4,7 +4,7 @@ import { UsageError } from '~/utils/error-handler'
 import { runLumalabsVideoGen } from './run-lumalabs-video-gen'
 import { isSupportedOrSkippedForAllVideo } from '../../video-utils/video-mode-validation'
 import { validateVideoMediaReferences } from '../../video-utils/video-media-inputs'
-import { normalizeLumaVideoAspectRatio, normalizeLumaVideoResolution } from '../../video-utils/video-normalization'
+import { normalizeLumaVideoAspectRatio, normalizeLumaVideoDuration, normalizeLumaVideoResolution } from '../../video-utils/video-normalization'
 
 export const collectLumalabsVideoTargets = (options: VideoGenOptions, mode: VideoMode): VideoTarget[] => {
   const models = options.lumalabsVideoModels ?? []
@@ -13,26 +13,31 @@ export const collectLumalabsVideoTargets = (options: VideoGenOptions, mode: Vide
     if (!isSupportedOrSkippedForAllVideo(options, 'lumalabs', model, mode, ['text', 'image-to-video'])) {
       return []
     }
-    normalizeLumaVideoAspectRatio(options.videoAspectRatio)
-    normalizeLumaVideoResolution(options.videoResolution)
+    const effective = {
+      duration: normalizeLumaVideoDuration(options.videoDuration),
+      aspectRatio: normalizeLumaVideoAspectRatio(options.videoAspectRatio),
+      resolution: normalizeLumaVideoResolution(options.videoResolution)
+    }
     if (options.videoInputImage) {
       validateVideoMediaReferences([options.videoInputImage], { flagName: '--input-image', provider: 'lumalabs', model, kind: 'image' })
     }
 
+    const request = {
+      model,
+      durationSeconds: options.videoDuration,
+      aspectRatio: options.videoAspectRatio,
+      resolution: options.videoResolution,
+      inputImage: options.videoInputImage
+    }
     return [{
       service: 'lumalabs',
       model,
+      requestSettings: { ...request, effective },
       run: async (prompt, outputDir) => {
         if (prompt === undefined) {
           throw UsageError('Luma Labs video prompt cannot be empty.')
         }
-        return await runLumalabsVideoGen(prompt, outputDir, {
-          model,
-          durationSeconds: options.videoDuration,
-          aspectRatio: options.videoAspectRatio,
-          resolution: options.videoResolution,
-          inputImage: options.videoInputImage
-        })
+        return await runLumalabsVideoGen(prompt, outputDir, request)
       }
     }]
   })
