@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { statSync } from 'node:fs'
+import { mkdtemp, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import {
@@ -63,6 +64,33 @@ test('fresh concurrent processes converge on one private key and reuse it', asyn
     expect((await stat(keyPath)).mode & 0o777).toBe(0o600)
     expect(await deriveInTemporaryProject(root)).toBe(hashes[0]!)
     expect(await readFile(keyPath)).toEqual(key)
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+// Creating the key in place exposed it empty between create and write, and a concurrent first run
+// that read it then failed with "invalid length". The key must only ever be visible complete.
+test('the published key is never observable partially written and no staging file is left behind', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'autoshow-account-key-atomic-'))
+  try {
+    const keyPath = join(root, 'runtime', '.account-scope-derivation-key')
+    const observedSizes = new Set<number>()
+    let watching = true
+    const watcher = (async () => {
+      while (watching) {
+        try {
+          observedSizes.add(statSync(keyPath).size)
+        } catch {
+        }
+        await new Promise(resolve => setImmediate(resolve))
+      }
+    })()
+    const hashes = await Promise.all(Array.from({ length: 12 }, () => deriveInTemporaryProject(root)))
+    watching = false
+    await watcher
+
+    expect(new Set(hashes).size).toBe(1)
+    expect([...observedSizes]).toEqual([32])
+    expect((await readdir(join(root, 'runtime'))).sort()).toEqual(['.account-scope-derivation-key'])
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 

@@ -9,17 +9,14 @@
       "https://dev.hume.ai/docs/resources/use-case-guidelines.md",
       "https://dev.hume.ai/docs/resources/billing.md",
       "https://dev.hume.ai/docs/resources/errors.md",
-      "https://dev.hume.ai/docs/resources/privacy.md"
+      "https://dev.hume.ai/docs/resources/privacy.md",
+      "https://dev.hume.ai/changelog.md"
     ],
     "TTS": [
       "https://dev.hume.ai/docs/text-to-speech-tts/overview.md",
       "https://dev.hume.ai/docs/text-to-speech-tts/quickstart/typescript.md",
-      "https://dev.hume.ai/docs/text-to-speech-tts/quickstart/python.md",
-      "https://dev.hume.ai/docs/text-to-speech-tts/quickstart/dotnet.md",
-      "https://dev.hume.ai/docs/text-to-speech-tts/quickstart/cli.md",
       "https://dev.hume.ai/docs/text-to-speech-tts/voice.md",
       "https://dev.hume.ai/docs/text-to-speech-tts/acting-instructions.md",
-      "https://dev.hume.ai/docs/text-to-speech-tts/voice-conversion.md",
       "https://dev.hume.ai/docs/text-to-speech-tts/continuation.md",
       "https://dev.hume.ai/docs/text-to-speech-tts/timestamps.md",
       "https://dev.hume.ai/docs/text-to-speech-tts/faq.md",
@@ -30,13 +27,9 @@
       "https://dev.hume.ai/reference/voices/create.md",
       "https://dev.hume.ai/reference/voices/list.md",
       "https://dev.hume.ai/reference/voices/delete.md",
-      "https://dev.hume.ai/reference/text-to-speech-tts/stream-input.md",
-      "https://dev.hume.ai/reference/text-to-speech-tts/synthesize-json-streaming.md",
-      "https://dev.hume.ai/reference/text-to-speech-tts/synthesize-file-streaming.md",
       "https://dev.hume.ai/reference/text-to-speech-tts/synthesize-json.md",
       "https://dev.hume.ai/reference/text-to-speech-tts/synthesize-file.md",
-      "https://dev.hume.ai/reference/text-to-speech-tts/convert-voice-file.md",
-      "https://dev.hume.ai/reference/text-to-speech-tts/convert-voice-json.md"
+      "https://dev.hume.ai/openapi/text-to-speech-tts.json"
     ]
   }
 }

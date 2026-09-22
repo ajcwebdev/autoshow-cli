@@ -40,7 +40,7 @@ describe('P1 TTS models', () => {
     expect(() => validateCartesiaTtsModel('sonic-3.6')).toThrow()
     expect(() => validateInworldTtsModel('inworld-tts-2-flash')).toThrow()
     expect(resolveInworldTtsApiModelId('realtime-tts-2')).toBe('inworld-tts-2')
-    expect(getTtsCost('cartesia', cartesiaModels[0]) * 1000).toBeCloseTo(299 / 8 * 100)
+    expect(getTtsCost('cartesia', cartesiaModels[0])).toBe(6.5)
     expect(getTtsCost('inworld', inworldModels[0]) * 1000).toBe(2500)
   })
 

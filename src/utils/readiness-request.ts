@@ -1,4 +1,5 @@
 import { ProviderError } from './error-handler'
+import { readHttpPayloadBytes } from '~/utils/http-payload'
 
 export const READINESS_REQUEST_TIMEOUT_MS = 10_000
 export const READINESS_OPERATION_TIMEOUT_MS = 30_000
@@ -19,7 +20,7 @@ export const boundedReadinessFetch = (
         (async () => {
           const response = await fetchImpl(input, { ...init, signal: controller.signal, redirect: 'error' })
           if (!response.ok) throw ProviderError(`Readiness request failed (HTTP ${response.status}).`, { stage: 'readiness', status: response.status, retryable: response.status === 429 || response.status >= 500 })
-          const body = await response.arrayBuffer()
+          const body = await readHttpPayloadBytes(response, 'Readiness response', { payloadClass: 'control', stage: 'readiness' })
           return new Response(body, { status: response.status, headers: response.headers })
         })(),
         new Promise<never>((_resolve, reject) => {

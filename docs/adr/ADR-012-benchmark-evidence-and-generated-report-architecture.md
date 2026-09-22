@@ -4,17 +4,17 @@
 
 - **Decision Status:** Superseded
 - **Date Created:** 2026-07-16
-- **Date Updated:** 2026-09-17
+- **Date Updated:** 2026-09-22
 - **Verification Status:** Passed
-- **Supersession:** The CLI `benchmark` command was removed. This record remains historical for committed `docs/benchmarks/` run data, consensus-skill combined reports, the quality-cost tier contract, paid-approval gates, calibration evidence, and artifact repair/compaction rules. Durable registry, lifecycle, and capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md). Dated model catalog changes belong to the live hosted registries under `src/cli/commands/setup-and-utilities/models/` and the command overviews under `docs/commands/`.
+- **Supersession:** The CLI `benchmark` command was removed. This record remains historical for committed `docs/benchmarks/` run data, consensus-skill combined reports, paid-approval gates, calibration evidence, artifact repair and compaction rules, and the quality-cost tier contract those reports no longer emit. Live combined reports rank price, speed, and quality within each provider group. Durable registry, lifecycle, and capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md). Dated model catalog changes belong to the live hosted registries under `src/cli/commands/setup-and-utilities/models/` and the command overviews under `docs/commands/`.
 
 ## Context
 
 Hosted-model refreshes need an evidence lifecycle distinct from model policy and provider chronology. Primary documentation establishes identity, availability, capabilities, pricing, and limits. Local contracts establish selector, request, response, resume, pricing, and artifact behavior without credentials. `--price` establishes a no-provider execution plan and estimate. A live calibration then requires immediate command-specific approval, and its output is trustworthy only after identity, completeness, duration/page/source, usage, artifact, and report checks pass.
 
-Committed STT, OCR, and URL combined reports under `docs/benchmarks/` are the readable evidence of those runs. Each provider group carries eleven ranking surfaces — three pure and eight weighted — so a Markdown-only report repeats the same providers across eleven tables. Combined reports regenerate whenever a run is added, so a hand-authored dashboard goes stale. The artifacts are opened from a checkout, so the readable form must work offline from `file://` with no server, build step, network request, or third-party dependency.
+Committed STT, OCR, and URL combined reports under `docs/benchmarks/` are the readable evidence of those runs. Each provider group carried eleven ranking surfaces — three pure and eight weighted — so a Markdown-only report repeated the same providers across eleven tables. Combined reports regenerate whenever a run is added, so a hand-authored dashboard goes stale. The artifacts are opened from a checkout, so the readable form must work offline from `file://` with no server, build step, network request, or third-party dependency.
 
-Tier membership must be identical in the HTML, Markdown, and JSON forms from data the builders already compute, must give readers one stable ordering, and must not imply a cross-group leaderboard.
+Tier membership had to be identical in the HTML, Markdown, and JSON forms from data the builders already computed, had to give readers one stable ordering, and had to avoid implying a cross-group leaderboard. Live reports keep that group boundary and no longer emit tier membership.
 
 Why now: STT, OCR, and URL combined reports share an expanded ranking contract, so their generated JSON, Markdown, and offline HTML needed one deterministic presentation and tiering structure.
 
@@ -57,7 +57,7 @@ Why now: STT, OCR, and URL combined reports share an expanded ranking contract, 
 - **Option:** Generator-emitted, self-contained HTML beside JSON and Markdown
 - **Pros:** Regenerates with the source data; works offline; can consolidate ranks, values, and visual encodings; remains deterministic and versionable
 - **Cons:** Requires a custom HTML/CSS/JavaScript renderer and adds a committed artifact
-- **Quantitative Notes:** 3 sibling artifacts per combined report; 0 runtime dependencies
+- **Quantitative Notes:** 2 artifacts per combined-report root plus 1 shared dashboard; 0 runtime dependencies
 
 **Option 2**
 
@@ -112,13 +112,13 @@ Why now: STT, OCR, and URL combined reports share an expanded ranking contract, 
 
 ## Decision
 
-Govern benchmark evidence through a strict lifecycle requiring no-cost preflight, explicit command-specific paid approval, artifact validation, and post-validation compaction, while generating self-contained offline HTML dashboards beside JSON and Markdown reports with deterministic quality-cost tercile tiering.
+Govern benchmark evidence through a strict lifecycle requiring no-cost preflight, explicit command-specific paid approval, artifact validation, and post-validation compaction, while generating self-contained offline HTML dashboards beside JSON and Markdown reports. The quality-cost tercile tiering this decision originally required is retired: combined reports rank price, speed, and quality within each provider group and do not emit weighted composites or model tiers.
 
 This applies to:
 
 - Benchmark evidence lifecycle, paid-approval requirements, and artifact validation across all hosted modalities.
-- STT, OCR, and URL combined cross-run reports and their generated JSON, Markdown, and self-contained HTML artifacts under `docs/benchmarks/`.
-- The shared eight-set weighted ranking registry and deterministic quality-cost tercile tiering contract (`quality-cost-terciles-v1`).
+- STT, OCR, and URL combined cross-run reports, their generated JSON and Markdown artifacts under `docs/benchmarks/`, and the shared self-contained HTML dashboard.
+- The retired per-group quality-cost tercile contract (`quality-cost-terciles-v1`), which combined reports no longer emit.
 - Post-validation artifact compaction, historical result envelope preservation, and report regeneration rules.
 
 It does not apply to:
@@ -145,61 +145,9 @@ Paid calibration is not a prerequisite for a compatibility or lifecycle transiti
 
 ### Combined-report artifacts and ranking contract
 
-Each combined-report root holds two sibling artifacts: `combined-comparison-report.json` (data contract) and `combined-comparison-report.md` (diffable text). The repository has one shared visual dashboard, `docs/benchmarks/combined-comparison-dashboard.html`, with one tab per combined-report root. It is generated from the same data as the per-root JSON and Markdown, embeds its data and assets at generation time, and opens directly from `file://` with no network or third-party dependency. Its full content — every group, every metric table, and the precomputed quality, speed, and cost orders — renders and sorts with JavaScript disabled. One inline script adds a single progressive enhancement on top: each group's sort control gains a `Custom` option whose three sliders share one 100% budget, rescoring that group against the reader's own quality/speed/cost trade-off. Moving one slider redistributes the remainder across the other two in proportion, so every thumb always matches the percentage beside it. Both the `Custom` option and its sliders are hidden unless that script runs, so a JavaScript-off reader never meets a dead input. It is a viewing aid only: weights are never persisted and the emitted `combined-comparison-report.{json,md}` artifacts remain free of composites, overall scores, and model tiers.
+Each combined-report root holds two sibling artifacts: `combined-comparison-report.json` (data contract) and `combined-comparison-report.md` (diffable text). The repository has one shared visual dashboard, `docs/benchmarks/combined-comparison-dashboard.html`, with one tab per combined-report root. It is generated from the same data as the per-root JSON and Markdown, embeds its data and assets at generation time, and opens directly from `file://` with no network or third-party dependency. Its full content renders with JavaScript disabled. An optional on-page control can rescore one group for a reader's own quality, speed, and cost preference. That preference is a viewing aid only: it is not saved, and the emitted JSON and Markdown stay free of composites, overall scores, and model tiers.
 
-Weighted composites use per-run, per-group min-max quality, speed, and cost subscores on a 0-100 scale. Quality is higher-is-better; speed and cost are lower-is-better. Provider subscores are averaged across the runs for which a value is present.
-
-**Ranking 1: `strongQuality`**
-
-- **Quality:** 0.80
-- **Speed:** 0.10
-- **Cost:** 0.10
-
-**Ranking 2: `moderateQuality`**
-
-- **Quality:** 0.60
-- **Speed:** 0.20
-- **Cost:** 0.20
-
-**Ranking 3: `strongSpeed`**
-
-- **Quality:** 0.10
-- **Speed:** 0.80
-- **Cost:** 0.10
-
-**Ranking 4: `moderateSpeed`**
-
-- **Quality:** 0.20
-- **Speed:** 0.60
-- **Cost:** 0.20
-
-**Ranking 5: `strongCost`**
-
-- **Quality:** 0.10
-- **Speed:** 0.10
-- **Cost:** 0.80
-
-**Ranking 6: `moderateCost`**
-
-- **Quality:** 0.20
-- **Speed:** 0.20
-- **Cost:** 0.60
-
-**Ranking 7: `qualityCost`**
-
-- **Quality:** 0.45
-- **Speed:** 0.10
-- **Cost:** 0.45
-
-**Ranking 8: `costSpeed`**
-
-- **Quality:** 0.10
-- **Speed:** 0.45
-- **Cost:** 0.45
-
-All rankings and tiers are computed separately within each provider group. Local, non-diarization, diarization, and other category groups are never combined into a cross-group overall leaderboard.
-
-Method `quality-cost-terciles-v1` slices the `qualityCost` ranking (composite descending, then quality subscore descending, then provider key ascending). For `n` providers, each tier starts with `floor(n / 3)` providers; the first remainder provider goes to Tier 1 and the second to Tier 2, so sizes differ by at most one. Tiers are contiguous slices: every provider appears exactly once. JSON, Markdown, and HTML display matching quality-cost ranks and composites from that same data.
+The retired contract computed weighted composites inside each provider group and assigned three contiguous quality-cost terciles with method `quality-cost-terciles-v1`, so every provider appeared once and tier sizes differed by at most one. JSON, Markdown, and HTML showed the same quality-cost ranks. Local, non-diarization, diarization, and other category groups are never combined into a cross-group overall leaderboard.
 
 ## Rationale
 
@@ -207,7 +155,7 @@ Method `quality-cost-terciles-v1` slices the `qualityCost` ranking (composite de
 - A successful provider response is not sufficient evidence; the 2026 STT and music runs retained collisions and incomplete artifacts after reported success.
 - Mechanical generation is the only way to keep the visual report current with the JSON and Markdown artifacts after every benchmark update.
 - Embedded data, inline assets, and zero dependencies preserve deterministic, offline use from a repository checkout.
-- Quality-cost terciles give readers a direct ordering and near-equal bands while evaluating provider groups independently.
+- Quality-cost terciles gave readers a direct ordering and near-equal bands while evaluating provider groups independently. That ordering is retired; groups are still evaluated independently.
 
 ## Consequences
 
@@ -215,13 +163,13 @@ Positive outcomes:
 
 - Combined reports keep a compact offline dashboard without sacrificing a machine-readable JSON contract or diffable Markdown report.
 - Paid live runs stay gated by command-specific approval, and published billing stays authoritative over estimates.
-- Tier membership is deterministic, exhaustive, contiguous, and verifiable from the `qualityCost` ranking.
+- Under the retired tier contract, tier membership was deterministic, exhaustive, contiguous, and verifiable from the `qualityCost` ranking.
 
 Negative outcomes:
 
 - The project maintains a custom renderer and larger generated report artifacts.
-- Terciles are cohort-relative categories, not absolute quality labels; adding or removing a provider can move a tier boundary.
-- Choosing `qualityCost` makes the 45/10/45 policy explicit; another objective must use its own ranking rather than reinterpret the tiers.
+- Terciles were cohort-relative categories, not absolute quality labels; adding or removing a provider could move a tier boundary.
+- Choosing `qualityCost` fixed one composite as the tier order; another objective had to use its own ranking.
 
 ## Trade-offs
 
@@ -247,7 +195,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The CLI `benchmark` command is gone. Combined-report generation remains in the consensus skill: run discovery in `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`, and the self-contained dashboard renderer in `.codex/skills/consensus/scripts/shared/combined_report_html.ts`. Combined reports now rank price, speed, and quality per provider group and no longer emit weighted composites or quality-cost terciles. The dashboard's custom-weighting sliders compute a composite in the reader's browser only; no composite is written to any artifact. Committed run data and generated reports live under `docs/benchmarks/`. STT combined reports are split by diarization: `docs/benchmarks/stt-without-speakers/` and `docs/benchmarks/stt-with-speakers/`. The speaker-aware cohort is the committed evidence for the 2026-08-22 STT catalog cut; see [docs/benchmarks/stt-with-speakers/combined-comparison-report.md](../benchmarks/stt-with-speakers/combined-comparison-report.md).
+The CLI `benchmark` command is gone. Committed run data and generated reports remain under `docs/benchmarks/`. Combined-report roots are `ocr`, `stt-local`, `stt-with-speakers`, `stt-without-speakers`, and `url`. The shared dashboard is `docs/benchmarks/combined-comparison-dashboard.html`, with one tab per root. Reports rank price, speed, and quality per provider group and do not emit weighted composites or quality-cost terciles.
 
 ## Test Plan
 
@@ -257,8 +205,9 @@ git diff --check
 bun test test/test-cases/validation/reports-pricing/combined-report-weighted-ranking-contracts.test.ts
 bun test test/test-cases/validation/reports-pricing/url-combined-report-contracts.test.ts
 ```
+
 1. `bun run check` and `git diff --check` prove the ADR remains well-formed.
-2. The combined-report contract tests prove committed OCR, STT, and URL artifacts rank price, speed, and quality per group and omit weighted composites and model tiers, and that the dashboard ships exactly one inline, dependency-free script whose scoring function is the one covered by unit tests.
+2. The combined-report contract tests prove committed OCR, STT (`stt-local`, `stt-with-speakers`, and `stt-without-speakers`), and URL artifacts rank price, speed, and quality per group, omit weighted composites and model tiers, and ship one offline dashboard.
 
 Do not regenerate reports from live provider calls, run the full test suite, or invoke paid APIs as part of this verification.
 
@@ -269,9 +218,4 @@ Do not regenerate reports from live provider calls, run the full test suite, or 
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — durable model and calibration policy
 - Related ADR: [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — primary-source refresh metadata
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — TTS preflight, paid-approval, and report evidence lifecycle
-- STT catalog-cut evidence: [docs/benchmarks/stt-with-speakers/combined-comparison-report.md](../benchmarks/stt-with-speakers/combined-comparison-report.md)
-- Live model catalogs / command docs: `src/cli/commands/setup-and-utilities/models/`, `docs/commands/`
-- `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`
-- `.codex/skills/consensus/scripts/shared/combined_report_html.ts`
-- `test/test-cases/validation/reports-pricing/combined-report-weighted-ranking-contracts.test.ts`
 - `docs/benchmarks/`

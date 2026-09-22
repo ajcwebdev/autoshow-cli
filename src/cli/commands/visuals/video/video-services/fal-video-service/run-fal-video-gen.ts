@@ -4,7 +4,7 @@ import { UsageError, InfraError } from '~/utils/error-handler'
 import { runVideoGeneration } from '~/cli/commands/command-shared/media-generation/video-generation-scaffold'
 import { estimateVideoCost, logVideoEstimate } from '../../video-utils/video-pricing'
 import { tryResolveLocalVideoDurationSeconds, tryResolveLocalAudioProbe, videoMediaReferenceToUrlOrDataUrl } from '../../video-utils/video-media-inputs'
-import { downloadVideoOutputBytes } from '../../video-utils/video-output-download'
+import { downloadVideoOutput } from '../../video-utils/video-output-download'
 import { runFalQueue } from '~/utils/fal-client/fal-queue'
 
 export const FAL_H3_RESOLUTIONS = ['768p', '2k'] as const
@@ -163,7 +163,7 @@ export const runFalVideoGen = async (prompt: string, outputDir: string, options:
       const videoUrl = result.output.video?.url
       if (typeof videoUrl !== 'string') throw InfraError('fal.ai video generation completed without a video URL', { stage: 'video:fal' })
       const videoPath = context.artifactPath()
-      await Bun.write(videoPath, await downloadVideoOutputBytes(videoUrl, 'fal.ai'))
+      await downloadVideoOutput(videoUrl, 'fal.ai', videoPath)
 
       return {
         artifactPaths: [videoPath],

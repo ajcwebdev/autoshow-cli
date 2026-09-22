@@ -13,6 +13,17 @@ type HostedTtsChunkFetchResult = Uint8Array | Readonly<{
   timing?: TtsTimingFactory | undefined
 }>
 
+/**
+ * A provider that inlines chunk audio in JSON at a byte rate fixed by the request. Declare it only
+ * when that rate is known from the request fields, never from a guess about provider defaults.
+ */
+export type HostedTtsInlineAudioResponse = {
+  audioBytesPerSecond: number
+  encoding: 'base64' | 'hex'
+  /** Speed multiplier sent with the request. Slower speech yields longer audio. */
+  speed?: number | undefined
+}
+
 export type HostedTtsChunkPipelineOptions = {
   provider: TtsProvider
   providerLabel: string
@@ -31,5 +42,7 @@ export type HostedTtsChunkPipelineOptions = {
   laneScopeLabel?: string | undefined
   requestEvidence?: TtsRequestEvidenceScope | undefined
   extraMetadata?: Partial<Step4Metadata> | undefined
+  /** Rejects a chunk whose inlined response cannot fit the HTTP payload ceiling before any chunk is dispatched. */
+  inlineAudioResponse?: HostedTtsInlineAudioResponse | undefined
   fetchChunkAudio: (context: HostedTtsChunkFetchContext) => Promise<HostedTtsChunkFetchResult>
 }

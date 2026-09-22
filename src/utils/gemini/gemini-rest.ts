@@ -1,9 +1,10 @@
 import { basename } from 'node:path'
 import type { GeminiContent, GeminiFetchOptions, GeminiFile, GeminiGenerateContentResponse, GeminiGeneratedVideo, GeminiInlineMedia, GeminiPart, GeminiVideo, GeminiVideoImageMedia, GeminiVideoOperation, GeminiVideoReferenceImage } from '~/types'
-import { buildCaptureMetadata, redactPayloadPreview } from '~/utils/bounded-capture'
+import { buildCaptureMetadata, captureDiagnosticText, redactPayloadPreview } from '~/utils/bounded-capture'
 import { AppError, AppProviderError, InfraError, ValidationError } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
-import { createProviderRestClient, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
+import { writeHttpPayloadToFile, readHttpPayloadText } from '~/utils/http-payload'
+import { createProviderRestClient, parseJsonOrText, readJsonResponse } from '~/utils/rest-client'
 import { pollUntil } from '~/utils/retries'
 import { isObjectLike } from '~/utils/value-helpers'
 
@@ -97,8 +98,9 @@ const geminiJsonRequest = async (
 const geminiBinaryRequest = async (
   apiKey: string,
   path: string,
+  downloadPath: string,
   query?: Record<string, string>
-): Promise<{ bytes: Uint8Array, headers: Headers, status: number }> => {
+): Promise<void> => {
   const url = buildV1BetaUrl(path, query)
   const response = await geminiFetch(url, {
     method: 'GET',
@@ -106,11 +108,7 @@ const geminiBinaryRequest = async (
       'x-goog-api-key': apiKey
     }
   })
-  return {
-    bytes: new Uint8Array(await response.arrayBuffer()),
-    headers: response.headers,
-    status: response.status
-  }
+  await writeHttpPayloadToFile(response, downloadPath)
 }
 
 const normalizeGeminiModelPath = (model: string): string => {
@@ -420,25 +418,17 @@ export const geminiUploadFile = async (
     throw InfraError('Gemini Files API upload did not upload any content.', { stage: 'gemini:rest' })
   }
   const uploadStatus = finalResponse.headers.get('x-goog-upload-status')
-  const captured = await readRestResponseText(finalResponse)
-  const parsed = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
+  const rawText = await readHttpPayloadText(finalResponse, 'Gemini Files API upload response', { payloadClass: 'control', stage: 'gemini:upload-response' })
+  const parsed = parseJsonOrText(rawText)
   if (uploadStatus !== 'final') {
     throw InfraError('Failed to upload Gemini file: upload status is not finalized.', { stage: 'gemini:rest' })
-  }
-  if (captured.truncated) {
-    throw new AppError(`Gemini Files API upload response exceeded the ${captured.retainedBytes.toLocaleString()} byte response capture limit`, {
-      kind: 'validation',
-      stage: 'gemini:upload-response',
-      status: finalResponse.status,
-      metadata: buildCaptureMetadata(captured)
-    })
   }
   if (typeof parsed === 'string') {
     throw new AppError(`Gemini Files API upload returned invalid JSON: ${sanitizeLogText(parsed.slice(0, 500))}`, {
       kind: 'validation',
       stage: 'gemini:upload-response',
       status: finalResponse.status,
-      metadata: buildCaptureMetadata(captured)
+      metadata: buildCaptureMetadata(captureDiagnosticText(rawText))
     })
   }
   if (isObjectLike(parsed) && isObjectLike(parsed['file'])) {
@@ -516,8 +506,7 @@ export const geminiDownloadFile = async (
     return
   }
   const name = extractGeminiFileNameFromFile(file)
-  const response = await geminiBinaryRequest(apiKey, `files/${encodeURIComponent(name)}:download`, { alt: 'media' })
-  await Bun.write(downloadPath, response.bytes)
+  await geminiBinaryRequest(apiKey, `files/${encodeURIComponent(name)}:download`, downloadPath, { alt: 'media' })
 }
 
 const extractInlineVideoBytes = (file: string | GeminiVideo | GeminiGeneratedVideo): string | undefined => {

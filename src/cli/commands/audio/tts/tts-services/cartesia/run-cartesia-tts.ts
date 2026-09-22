@@ -14,6 +14,7 @@ import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { readRestErrorText } from '~/utils/rest-client'
 import { buildCartesiaTtsRequestBody, cartesiaTtsApiVersion, cartesiaTtsRequestControls, cartesiaTtsVoiceField, validateCartesiaTtsLanguage } from './cartesia-tts-request'
+import { readHttpPayloadBytes } from '~/utils/http-payload'
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
 
@@ -97,7 +98,7 @@ export const runCartesiaTts = async (
         }))
       }
       await accepted({ fields: { httpStatus: response.status } })
-      return new Uint8Array(await response.arrayBuffer())
+      return await readHttpPayloadBytes(response, 'Cartesia TTS audio', { stage: 'tts:cartesia' })
       })
     }
   })

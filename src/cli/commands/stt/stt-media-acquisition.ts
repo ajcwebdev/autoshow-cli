@@ -15,6 +15,7 @@ import { hasRuntimeTool } from '~/utils/runtime-paths'
 import { InfraError } from '~/utils/error-handler'
 import { getAudioDuration } from './stt-utils/audio-splitter'
 import { decodedAudioHash } from './workflows/captions/verify-caption-media'
+import { writeHttpPayloadToFile } from '~/utils/http-payload'
 
 const DEFAULT_STT_ACQUIRE_CONCURRENCY = 2
 
@@ -98,8 +99,7 @@ const fetchDirectMedia = async (url: string, outputPath: string): Promise<void> 
   if (!response.ok) {
     throw InfraError(`Failed to download ${url}: HTTP ${response.status}`, { stage: 'stt:media-acquisition', status: response.status })
   }
-  const bytes = await response.arrayBuffer()
-  await Bun.write(outputPath, bytes)
+  await writeHttpPayloadToFile(response, outputPath)
 }
 
 const stageSourceMediaArtifact = async (

@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs'
 import { UsageError, InfraError } from '~/utils/error-handler'
 import { createOpenAIResponse } from '~/utils/openai/openai-client'
 import * as l from '~/utils/app-logger/app-logger'
+import { HTTP_PAYLOAD_MAX_BYTES_ENV, readHttpPayloadJson } from '~/utils/http-payload'
 
 export function networkCheckOptions(flags: Record<string, unknown>, explicitFlags: ReadonlySet<string> = new Set()) {
   const mode = flags['network-check']
@@ -41,14 +42,14 @@ async function performNetworkProbe(url: URL, client: unknown, timeoutMs: number)
   try {
     const signal = AbortSignal.timeout(timeoutMs)
     const readiness = await fetch(new URL('/ready', url), { signal, timeout: false, keepalive: false, redirect: 'error' })
-    if (!readiness.ok || (await readiness.json() as { ready?: boolean }).ready !== true) throw InfraError('Fixture is not ready', { stage: 'setup:network-check' })
+    if (!readiness.ok || (await readHttpPayloadJson(readiness, 'Network check readiness response', { payloadClass: 'control', stage: 'setup:network-check' }) as { ready?: boolean }).ready !== true) throw InfraError('Fixture is not ready', { stage: 'setup:network-check' })
     let body: { output_text?: unknown }
     if (client === 'rest') {
       body = await createOpenAIResponse({ apiKey: 'local-test-only', baseURL: url.origin, redirect: 'error' }, { model: 'local-fixture', input: 'local-only probe' }, { signal })
     } else {
       const response = await fetch(new URL('/responses', url), { signal, timeout: false, redirect: 'error', ...(client === 'fetch-no-keepalive' ? { keepalive: false } : {}) })
       if (!response.ok) throw InfraError(`Fixture HTTP ${response.status}`, { stage: 'setup:network-check' })
-      body = await response.json() as { output_text?: unknown }
+      body = await readHttpPayloadJson(response, 'Network check fixture response', { payloadClass: 'control', stage: 'setup:network-check' }) as { output_text?: unknown }
     }
     if (body.output_text !== 'ok') throw InfraError('Unexpected fixture response', { stage: 'setup:network-check' })
     return { client, passed: true, elapsedSeconds: (performance.now() - start) / 1000 }
@@ -58,7 +59,7 @@ async function performNetworkProbe(url: URL, client: unknown, timeoutMs: number)
 }
 
 export const buildNetworkProbeChildEnv = (timeoutMs: number): Record<string, string> => childEnv({
-  allow: ['AUTOSHOW_DISABLE_HTTP_KEEPALIVE'],
+  allow: ['AUTOSHOW_DISABLE_HTTP_KEEPALIVE', HTTP_PAYLOAD_MAX_BYTES_ENV],
   set: { AUTOSHOW_SETUP_NO_ORPHANS_CHILD: '1', AUTOSHOW_NETWORK_CHECK_CHILD_TIMEOUT_MS: String(timeoutMs) }
 })
 

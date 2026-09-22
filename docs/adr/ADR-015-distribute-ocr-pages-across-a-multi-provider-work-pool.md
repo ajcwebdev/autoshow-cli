@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-09-17
+- **Date Updated:** 2026-09-22
 - **Verification Status:** Passed
 
 ## Context
@@ -75,7 +75,7 @@ Pages are queued in source order. At most one target works on a pending page at 
 
 ### Failure, resume, and completion
 
-A transient page failure returns the page so another eligible target can take it. A target-specific blocker retires only that target; a provider/account blocker retires the lane. Accepted pages stay accepted. Each target gets one attempt per page unless resume explicitly re-enables a failed target. Interrupted in-flight work returns as unfinished without counting as a spent attempt. A page is exhausted when every eligible target fails terminally. The composite completes when every required page is accepted, and is incomplete if any page is exhausted.
+A transient page failure returns the page so another eligible target can take it. A target-specific blocker retires only that target; a provider/account blocker retires the lane. Accepted pages stay accepted. Each target gets one attempt per page unless resume explicitly re-enables a failed target. Interrupted in-flight work returns as unfinished without counting as a spent attempt. A page is exhausted when no eligible target remains. The composite completes when every required page is accepted, and is incomplete if any page is exhausted.
 
 ### Artifacts and pricing
 
@@ -138,12 +138,6 @@ Negative outcomes:
 - **Gain:** Backward-compatible explicit mode
 - **Sacrifice:** Two public execution modes to document and support
 
-## Implementation Note
-
-Pool assignment, admission, retirement, and composite assembly live under `src/cli/commands/text/ocr/`. Canonical `ocrPool` persistence is `src/cli/commands/command-shared/pipeline-manifest.ts`. `--ocr-provider-mode` is resolved for `extract`, `write`, `resume`, and configuration files.
-
-Pooled price preflights are `src/cli/commands/text/ocr/ocr-pricing/build-extract-estimates.ts`. Actual cost rollups are `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`.
-
 ## API / Type Impact
 
 - `--ocr-provider-mode fanout|pool` defaults to `fanout`.
@@ -169,9 +163,5 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 - Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — shared queue, work selection, target admission, and lane policy
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — OCR execution, artifacts, failures, cache identity, and diagnostics
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — model identity, lifecycle, capabilities, reasoning, and pricing provenance
-- `src/cli/commands/text/ocr/`
-- `src/cli/commands/command-shared/pipeline-manifest.ts`
-- `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`
-- `src/cli/commands/text/ocr/ocr-pricing/build-extract-estimates.ts`
-- `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
-- `test/test-cases/validation/text/ocr/ocr-page-pool-*-contracts.test.ts`
+- [OCR command reference](../commands/02-extract/ocr/overview.md)
+- [Resume command reference](../commands/00-setup-and-utilities/resume.md)

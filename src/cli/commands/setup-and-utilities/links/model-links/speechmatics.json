@@ -4,7 +4,8 @@
       "https://docs.speechmatics.com/llms.txt"
     ],
     "General": [
-      "https://docs.speechmatics.com/get-started/authentication.md"
+      "https://docs.speechmatics.com/get-started/authentication.md",
+      "https://docs.speechmatics.com/administration/regions.md"
     ],
     "STT": [
       "https://docs.speechmatics.com/speech-to-text/batch/quickstart.md",
@@ -12,17 +13,13 @@
       "https://docs.speechmatics.com/speech-to-text/batch/output.md",
       "https://docs.speechmatics.com/speech-to-text/batch/limits.md",
       "https://docs.speechmatics.com/speech-to-text/batch/batch-diarization.md",
-      "https://docs.speechmatics.com/speech-to-text/batch/speaker-identification.md",
       "https://docs.speechmatics.com/speech-to-text/languages.md",
       "https://docs.speechmatics.com/speech-to-text/models.md",
       "https://docs.speechmatics.com/speech-to-text/features/diarization.md",
-      "https://docs.speechmatics.com/speech-to-text/features/speaker-identification.md",
-      "https://raw.githubusercontent.com/speechmatics/speechmatics-js-sdk/refs/heads/main/packages/batch-client/README.md",
-      "https://raw.githubusercontent.com/speechmatics/speechmatics-js-sdk/refs/heads/main/examples/nodejs/batch-example.ts",
-      "https://docs.speechmatics.com/api-ref/batch/create-a-new-job.md",
-      "https://docs.speechmatics.com/api-ref/batch/get-job-details.md",
-      "https://docs.speechmatics.com/api-ref/batch/get-the-transcript-for-a-transcription-job.md",
-      "https://docs.speechmatics.com/api-ref/batch/get-usage-statistics.md",
+      "https://raw.githubusercontent.com/speechmatics/docs/main/spec/batch.yaml",
+      "https://docs.speechmatics.com/speech-to-text/batch/srt-format.md",
+      "https://docs.speechmatics.com/speech-to-text/batch/troubleshooting.md",
+      "https://docs.speechmatics.com/speech-to-text/formatting.md",
       "https://www.speechmatics.com/pricing"
     ]
   }

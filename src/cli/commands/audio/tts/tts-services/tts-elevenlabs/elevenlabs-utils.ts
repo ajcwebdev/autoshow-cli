@@ -22,6 +22,7 @@ export const validateElevenLabsTtsSpeed = (model: string, speed?: number): void 
   if (model === 'eleven_v3' && speed !== undefined) throw UsageError('Eleven v3 does not support numeric speed; use pacing audio tags in the input instead. Numeric speed is supported by other ElevenLabs models only.')
 }
 import { validateDataSafe } from '~/utils/validate/validation'
+import { readRestDiagnosticText } from '~/utils/rest-client'
 
 export const ELEVENLABS_TTS_OUTPUT_FORMAT = 'mp3_44100_128'
 // Higher bitrates and WAV are plan-tier gated by ElevenLabs; a rejected format is surfaced, never retried in another.
@@ -72,4 +73,4 @@ export const formatElevenLabsErrorText = (raw: string, status: number): string =
 }
 
 export const readElevenLabsError = async (response: Response): Promise<string> =>
-  formatElevenLabsErrorText(await response.text(), response.status)
+  formatElevenLabsErrorText(await readRestDiagnosticText(response), response.status)

@@ -7,6 +7,7 @@ import { buildTranscriptionOutputBase, countTokens, formatTranscriptText, resolv
 import { logSttSegmentLifecycle, logSttTranscriptOutput } from '~/cli/commands/stt/stt-logging'
 import { convertScrapeCreatorsCreditsToCents, estimateScrapeCreatorsCredits, getScrapeCreatorsCreditRateCents } from '~/utils/pricing/scrapecreators-pricing'
 import { describeScrapeCreatorsUnsupportedSource, getScrapeCreatorsBaseUrl, isScrapeCreatorsSupportedSourceUrl } from './scrapecreators'
+import { readHttpPayloadText } from '~/utils/http-payload'
 const REQUEST_TIMEOUT_MS = 60_000
 const DEFAULT_LANGUAGE = 'en'
 
@@ -270,7 +271,7 @@ export const runScrapeCreatorsStt = async (
         },
         signal: signal ?? null
       })
-      const responsePayload = parseJsonOrText(await response.text())
+      const responsePayload = parseJsonOrText(await readHttpPayloadText(response, 'ScrapeCreators response'))
 
       if (!response.ok) {
         throw toScrapeCreatorsHttpError(response, responsePayload)

@@ -4,6 +4,7 @@ import { OPENAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { redactPayloadPreview } from '~/utils/bounded-capture'
 import { AppProviderError } from '~/utils/error-handler'
 import { createProviderRestClient, isRecord, joinRestUrl, readJsonResponse } from '~/utils/rest-client'
+import { readHttpPayloadBytes } from '~/utils/http-payload'
 
 export class OpenAIRestError extends AppProviderError {
   override readonly status: number
@@ -133,7 +134,7 @@ const openAIBinaryJsonRequest = async (
     signal: options.signal,
     errorMessagePrefix: options.errorMessagePrefix ?? 'OpenAI request failed'
   })
-  return new Uint8Array(await response.arrayBuffer())
+  return await readHttpPayloadBytes(response, 'OpenAI binary response')
 }
 
 const openAIMultipartRequest = async <T = Record<string, unknown>>(

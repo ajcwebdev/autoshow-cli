@@ -4,16 +4,16 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-15
-- **Date Updated:** 2026-09-19
+- **Date Updated:** 2026-09-22
 - **Verification Status:** Passed
 
 ## Context
 
-`bun t` and `bun test` run in-process production code. The production text logger writes diagnostics through `console`, so passing tests can dump that output into the suite. Bun then prints `✓` or `✗` plus duration. The signal is inverted: passing tests are noisy, and failing-test logs are interleaved with unrelated concurrent output.
+`bun t` and `bun test` run in-process production code. The production text logger writes diagnostics through `console`, so passing tests dump that output into the suite. Bun then prints `✓` or `✗` plus duration. Passing tests are noisy, and failing-test logs are interleaved with unrelated concurrent output.
 
-Built-in reporters cannot invert that. JUnit is a post-run sidecar without per-test captured output, `--only-failures` still prints passing-test console writes while hiding result lines, and parallel workers share one stdout/stderr pipe, so the runner cannot reconstruct per-test logs after the fact.
+Built-in reporters cannot separate those streams. JUnit is a post-run sidecar without per-test captured output, `--only-failures` still prints passing-test console writes while hiding result lines, and parallel workers share one stdout/stderr pipe, so the runner cannot reconstruct per-test logs after the fact.
 
-Why now: a full `bun t --budget` run made the inverted console policy the dominant diagnostic problem, independent of which live tests were failing.
+Why now: a full `bun t --budget` run made this console policy the dominant diagnostic problem, independent of which live tests were failing.
 
 ## Options Considered
 
@@ -35,26 +35,26 @@ Why now: a full `bun t --budget` run made the inverted console policy the domina
 
 - **Option:** `--only-failures` or the `dots` reporter
 - **Pros:** Zero new code
-- **Cons:** Still prints passing-test logs; hides the wanted `✓ name [time]` lines
-- **Quantitative Notes:** Rejected
+- **Cons:** Still prints passing-test logs; hides the `✓ name [time]` lines
+- **Quantitative Notes:** n/a
 
 **Option 4**
 
 - **Option:** Quiet the production logger for the whole suite
 - **Pros:** Smallest logger change
 - **Cons:** Failures lose the same logs
-- **Quantitative Notes:** Rejected
+- **Quantitative Notes:** n/a
 
 **Option 5**
 
 - **Option:** Replace JUnit with a custom reporter
-- **Pros:** Could theoretically own all result formatting
+- **Pros:** Could own all result formatting
 - **Cons:** Bun has no custom JS reporter
-- **Quantitative Notes:** Rejected; JUnit stays a post-run sidecar
+- **Quantitative Notes:** n/a
 
 ## Decision
 
-Passing tests emit only Bun's result line (`✓`, name, duration). Failing tests keep that `✗` line and also print every `console` write from that test. Both `bun test` and `bun t` follow this invert. JUnit remains the additive machine-readable summary for `report.json`. Budget preflight follows the same quiet-on-success rule. `bun t` artifacts default to `output/test-output/`.
+Passing tests emit only Bun's result line (`✓`, name, duration) under `bun test`. Failing tests keep that `✗` line and also print every `console` write from that test. Both `bun test` and `bun t` capture console that way. JUnit remains the post-run summary for `report.json`. Budget preflight is quiet on success. `bun t` artifacts default to `output/test-output/`.
 
 This applies to:
 
@@ -66,38 +66,35 @@ This applies to:
 It does not apply to:
 
 - Replacing JUnit, `report.json`, `commands.log`, or `latest.log`.
-- Subprocess CLI capture already used by tests, which is already quiet on pass.
+- Subprocess CLI capture already used by tests.
 - Product CLI logging outside the test process.
 
 ### Amendment (2026-09-19): failure-first `bun t` terminal
 
-A full `bun t --budget` run still produced about 3,000 `✓` lines, headers repeated as parallel workers switched files, and a second list of every skip. Any failure was buried in that stream. The model calibration report was deleted along with the run directory right after its path was printed.
+A full `bun t --budget` run buried failures under passing and skipped result lines, and run cleanup deleted the calibration report with the run directory. Bun's result lines name their test, so `bun t` filters those lines on the terminal. Plain `bun test` prints every result line.
 
-Option 2 was rejected because it could not attribute *console writes* from parallel workers. The preload now handles those. Bun's own result lines identify their own test, so the runner can filter them safely. `bun t` now does the following:
-
-- Hides `✓` and `»` lines and Bun's skipped list on the terminal, printing file headers only before lines that are shown. `runner.log` keeps the full stream, and `--verbose` restores it on the terminal (`test/test-runner/terminal-filter.ts`).
-- Prints an end-of-run digest built from `junit.xml`, the budget summary, and the calibration report: failures with messages, a skip summary, and calibration recommendations (`test/test-runner/reports/run-digest.ts`).
-- Keeps `latest-model-calibration.json` beside `latest.log`. It keeps the run directory when the run fails. It writes only failed and skipped `report.json` entries into `latest.log`.
-
-Plain `bun test` is unchanged.
+- Hides `✓` and `»` lines and Bun's skipped list. Prints a file header only before output that is shown. When the terminal has been idle for 10 seconds, prints `progress: N passed · N failed · N skipped`. `runner.log` keeps the full stream. `--verbose` prints that stream and skips the progress line.
+- After Bun exits, prints a digest: failures with messages, a skip summary, up to five tests that took at least one second, and calibration recommendations. Timing recommendations omit local engines (`whisperfile`, `tesseract`, and `defuddle`).
+- Keeps `latest-model-calibration.json` beside `latest.log`. A failed run keeps its directory until the next run's cleanup. A passing run removes it. `--no-cleanup` keeps every run directory.
 
 ## Rationale
 
 - Per-test capture is the only place that still knows pass versus fail under parallel Bun workers.
-- Buffering `console` captures the human logger without quieting failures.
+- Buffering `console` captures the human logger and still prints those logs on failure.
 - JUnit is useful after the run and cannot invert live logs, so it stays a sidecar.
+- Result lines already name their test, so `bun t` hides passes on the terminal while per-test capture owns console bytes.
 
 ## Consequences
 
 Positive outcomes:
 
-- Passing suites are a list of green result lines.
+- Passing `bun test` suites are a list of `✓` result lines. `bun t` keeps those lines in `runner.log` and shows the failure-first terminal from the amendment.
 - A failing test reprints its own logs next to Bun's `✗` line and assertion.
 
 Negative outcomes:
 
 - Failure stacks include a harness frame.
-- Writes outside a test callback — module top level, `beforeAll` / `beforeEach` and their `after` counterparts — have no buffer to land in and print unconditionally, including on pass.
+- Writes outside a test callback — module top level, `beforeAll` / `beforeEach` and their `after` counterparts — have no per-test buffer and print unconditionally, including on pass.
 
 ## Trade-offs
 
@@ -118,23 +115,26 @@ Negative outcomes:
 
 ## Implementation Note
 
-Implemented in `test/test-utils/test-console-harness.ts`, preloaded from `bunfig.toml`. Price preflight emits concise runner-owned progress through `test/test-runner/price-execution.ts`; there is no separate logger-quieting mechanism in `test/test-runner/runner.ts`. Runner artifacts, CLI bundles, file timings, and budget-preflight cache default to `output/test-output/` via `TEST_OUTPUT_ROOT` in `test/test-runner/artifacts.ts`.
+The preload is `test/test-utils/test-console-harness.ts`, loaded from `bunfig.toml`. `bun t` terminal filtering is `test/test-runner/terminal-filter.ts`, the end-of-run digest is `test/test-runner/reports/run-digest.ts`, and artifact paths and cleanup are `test/test-runner/artifacts.ts`.
 
 ## Test Plan
 
 ```bash
-bun run check
-bun test test/test-cases/validation/runtime-contracts/test-runner-contracts/
+bun test test/test-cases/validation/runtime-contracts/test-runner-contracts/console-harness.test.ts test/test-cases/validation/runtime-contracts/test-runner-contracts/terminal-filter.test.ts test/test-cases/validation/runtime-contracts/test-runner-contracts/run-digest.test.ts test/test-cases/validation/runtime-contracts/test-runner-contracts/artifacts-parsing.test.ts test/test-cases/validation/runtime-contracts/test-runner-contracts/model-calibration.test.ts
 ```
 
-1. Typecheck and unique source check pass.
-2. Passing tests emit no captured console output; failing tests reprint their logs next to the test name, including concurrent tests.
+1. Passing tests emit no captured console output. Failing tests reprint their own logs, including when tests run concurrently.
+2. `bun t` hides pass and skip result lines, prints headers only before visible output, keeps the full stream in `runner.log`, and `--verbose` restores that stream.
+3. The digest leads with failures, summarizes skips, lists up to five tests of at least one second, and omits local engines from timing recommendations.
+4. Cleanup keeps `latest.log` and `latest-model-calibration.json`, retains a failed run's directory until the next cleanup, and writes failed and skipped `report.json` entries into `latest.log`.
 
 ## References
 
 - Related ADR: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md)
 - Related ADR: [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md)
 - `test/test-utils/test-console-harness.ts`
-- `test/test-runner/runner.ts`
+- `test/test-runner/terminal-filter.ts`
+- `test/test-runner/reports/run-digest.ts`
+- `test/test-runner/artifacts.ts`
 - `bunfig.toml`
 - `docs/commands/testing.md`

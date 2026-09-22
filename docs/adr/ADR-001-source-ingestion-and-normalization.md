@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-09-10
+- **Date Updated:** 2026-09-22
 - **Verification Status:** Passed
 - **Supersession:** URL execution moved to ADR-009, and pipeline state, resume, and dry-run planning belong to ADR-002. This record remains accepted authority for source classification, supported ebook normalization, discovery caches, and the normalized handoff to execution.
 
@@ -14,7 +14,7 @@ Source ingestion must answer what the input is, which route it requires, and whi
 
 URL sources need a stable identity before extraction. `article` and `x-space` stay distinct explicit routes rather than being inferred from each other or from provider metadata.
 
-Discovery repeats expensive, non-authoritative work across independent CLI processes: video and collection lookups, local media probes, and batch-list parsing. Best-effort caches may reuse that work only when they cannot change classification, routing, or normalized output.
+Discovery repeats expensive, non-authoritative work across independent CLI processes: video and collection lookups, local media probes, and batch-list parsing. Best-effort caches may reuse that work. Local hits require an unchanged file and a valid payload. Remote video and collection hits can repeat an earlier lookup. None of them choose the normalized file handed to extraction.
 
 Only EPUB and PDF have chapter-aware extraction. Other documents and images produce flat text or per-image OCR. A book-like file in another container must become an EPUB or PDF before extraction. Several ebook formats are closer to EPUB than to PDF OCR, but treating each separately would duplicate chapter logic.
 
@@ -78,7 +78,7 @@ It does not apply to:
 
 ### Discovery caches
 
-Video lookups, YouTube collection expansion, local media probes, and batch-list parsing may reuse best-effort caches across CLI processes. Caches accelerate discovery; they are never source-of-truth state. A hit requires the source to be unchanged, cached payloads are validated before reuse, and any failure degrades to a miss. Caches cannot change classification, routing, or normalized output.
+Video lookups, YouTube collection expansion, local media probes, and batch-list parsing may reuse best-effort caches across CLI processes. Caches accelerate discovery; they are never source-of-truth state. Local media probes and batch lists hit only when the file fingerprint is unchanged and the cached payload validates. Video lookups validate the cached payload before reuse. YouTube collection hits are keyed by URL and are not checked against the live collection. A read or validation failure degrades to a miss. These caches do not change single-source classification or the normalized file handed to extraction.
 
 ### Convertible ebooks
 
@@ -90,7 +90,7 @@ Registered non-EPUB ebook inputs convert with Calibre `ebook-convert` to a tempo
 
 - Converting registered ebooks to EPUB reuses the existing chapter-aware extract path without parser dependencies or parallel extractors.
 - An explicit registry prevents unrelated files from being sent to Calibre, and conversion metadata keeps the original format visible in run output.
-- Discovery work is expensive and non-authoritative, so caches are allowed only when they cannot change the ingestion result.
+- Discovery work is expensive and non-authoritative. Local caches are reused only when the file is unchanged and the payload validates. Remote video and YouTube collection caches are temporary and can repeat an earlier lookup.
 - `.acsm` is a fulfillment document, not a readable book, and must not enter extraction.
 
 ## Consequences
@@ -99,7 +99,7 @@ Positive outcomes:
 
 - Every command uses one classification and expansion result before extraction.
 - Convertible ebooks get the same EPUB chapter path after a local, no-cost conversion.
-- Rerunning discovery, local probes, and batch-list parsing can reuse validated caches without changing results.
+- Rerunning local probes and batch-list parsing can reuse fingerprint-validated caches without changing results. Video lookups and YouTube collection expansion can reuse their temporary caches.
 - Future ebook formats can be added through the registry.
 
 Negative outcomes:
@@ -128,17 +128,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The convertible-ebook registry is `src/cli/commands/sources/metadata/formats/metadata-convertible-ebooks.ts`. Calibre conversion runs during document download in `src/cli/commands/sources/download/document/dl-document.ts`. Discovery caches use `src/utils/file-fingerprint-cache.ts`.
-
-### Bun 1.4 XML Evaluation
-
-The 2026-08-31 evaluation retained the existing XML scanner after completing the Bun.XML adapter comparison. This preserves tolerant feed parsing and the raw inner XML required by EPUB and Office consumers.
-
-`src/utils/bun-xml-adapter.ts` owns the Bun.XML call, always requests `compact: false`, validates the returned representation, preserves mixed child ordering, and bounds source bytes, element depth, and node count. The golden corpus covers RSS, Atom, namespaces, namespaced attributes, CDATA, comments, processing instructions, named and numeric entities, repeated and self-closing tags, mixed content, DOCX, PPTX, XLSX, ODF, EPUB, malformed input, truncation, size, node-count, and depth limits.
-
-The existing scanner remains the production implementation. Bun.XML is deliberately strict where current feed handling is tolerant, and it returns normalized mixed-content text instead of the raw inner XML slices required by current EPUB and Office consumers. The side-by-side contracts record both compatible stable fields and these parity failures, so no consumer is silently changed.
-
-The synthetic 12,000-item XML and 16,000-page normalization workload completed in 121.60 ms and retained a 3,951,966-byte profiled heap. This diagnostic baseline came from the same macOS ARM64 Bun 1.4.0 capture recorded under ignored `runtime/profiling/bun-runtime/2026-08-31T22-45-35-532Z-all/`; it does not establish a native-parser performance improvement. Reproduction is documented in the [profiling guide](../commands/testing.md#profiling).
+The convertible-ebook registry is `src/cli/commands/sources/metadata/formats/metadata-convertible-ebooks.ts`. Calibre conversion runs during document download in `src/cli/commands/sources/download/document/dl-document.ts`. Video lookups, local media probes, and batch-list parsing use `src/utils/file-fingerprint-cache.ts`. YouTube collection expansion keeps its URL cache in `src/cli/commands/sources/metadata/metadata-sources/metadata-youtube-collection-target.ts`.
 
 ## API / Type Impact
 
@@ -170,6 +160,5 @@ Do not run hosted OCR, paid-provider, smoke, e2e, or full-suite tests for this A
 - `src/cli/commands/sources/download/document/dl-document.ts`
 - `src/types/document-processing/convertible-ebooks-types.ts`
 - `src/utils/file-fingerprint-cache.ts`
+- `src/cli/commands/sources/metadata/metadata-sources/metadata-youtube-collection-target.ts`
 - `test/test-cases/validation/text/ocr/epub-contracts/normalizable-ebooks.test.ts`
-- `src/utils/bun-xml-adapter.ts`
-- `test/test-cases/validation/runtime-contracts/bun-xml-adapter-contracts.test.ts`

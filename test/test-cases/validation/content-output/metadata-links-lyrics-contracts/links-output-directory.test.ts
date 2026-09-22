@@ -1,8 +1,9 @@
 import { afterEach, expect, test } from 'bun:test'
 import { readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { FetchFn } from '~/types'
+import type { FetchFn, LinksRefreshMetadata } from '~/types'
 import {
+  configureLinksRefreshRoot,
   getDefaultLinksDirectUrlOutputFileName,
   getLinksRefreshMetadataPath,
   runLinksWithArgv
@@ -28,6 +29,7 @@ const tempDirs: string[] = []
 afterEach(async () => {
   resetPinnedRunDir()
   configureOutputRoot('./output')
+  configureLinksRefreshRoot('')
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 })
 
@@ -77,25 +79,59 @@ test('links writes into a pinned output directory', async () => {
   expect(await Bun.file(result.outputPath).text()).toContain('<!-- Source: blob:https://example.com/docs -->')
 })
 
-test('links --refresh-only against a pinned directory leaves existing markdown in place', async () => {
+test('links --refresh against a pinned directory rewrites the bundle and compares with the earlier sidecar', async () => {
   const root = await makeTempRoot()
   const pinnedDir = join(root, 'refresh-links')
   const outputPath = join(pinnedDir, DIRECT_FILE_NAME)
   const sidecarPath = getLinksRefreshMetadataPath(outputPath)
-  await Bun.write(outputPath, 'custom initial content\n')
+  await Bun.write(outputPath, 'stale bundle content\n')
   configurePinnedRunDir(pinnedDir)
+  const argv = ['bun', 'src/cli/create-cli.ts', 'links', '--refresh', DIRECT_URL]
 
-  const result = await runLinksWithArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--refresh-only',
-    DIRECT_URL
-  ], { fetchImpl })
+  const first = await runLinksWithArgv(argv, { fetchImpl })
+  const firstMetadata = JSON.parse(await Bun.file(sidecarPath).text()) as LinksRefreshMetadata
+  await runLinksWithArgv(argv, { fetchImpl })
+  const secondMetadata = JSON.parse(await Bun.file(sidecarPath).text()) as LinksRefreshMetadata
 
-  expect(result.outputPath).toBe(outputPath)
-  expect(result.refreshMetadataPath).toBe(sidecarPath)
-  expect(await Bun.file(outputPath).text()).toBe('custom initial content\n')
-  const metadata = JSON.parse(await Bun.file(sidecarPath).text()) as { markdownWritten?: boolean }
-  expect(metadata.markdownWritten).toBe(false)
+  expect(first.outputPath).toBe(outputPath)
+  expect(first.refreshMetadataPath).toBe(sidecarPath)
+  expect(await Bun.file(outputPath).text()).toContain('<!-- Source: blob:https://example.com/docs -->')
+  expect(firstMetadata.links[0]?.changeStatus).toBe('new')
+  expect(secondMetadata.links[0]?.changeStatus).toBe('unchanged')
+})
+
+test('links --refresh without --output-dir reuses one directory per selection, so the second run compares with the first', async () => {
+  const outputRoot = await makeTempRoot()
+  const refreshRoot = await makeTempRoot()
+  configureOutputRoot(outputRoot)
+  configureLinksRefreshRoot(refreshRoot)
+  const argv = ['bun', 'src/cli/create-cli.ts', 'links', '--refresh', DIRECT_URL]
+  const stem = DIRECT_FILE_NAME.replace(/\.md$/, '')
+
+  const first = await runLinksWithArgv(argv, { fetchImpl })
+  const second = await runLinksWithArgv(argv, { fetchImpl })
+  const metadata = JSON.parse(await Bun.file(getLinksRefreshMetadataPath(second.outputPath)).text()) as LinksRefreshMetadata
+
+  expect(first.outputPath).toBe(join(refreshRoot, stem, DIRECT_FILE_NAME))
+  expect(second.outputPath).toBe(first.outputPath)
+  expect(await readdir(refreshRoot)).toEqual([stem])
+  expect(await readdir(outputRoot)).toEqual([])
+  expect(metadata.links[0]?.changeStatus).toBe('unchanged')
+})
+
+test('a pinned --output-dir still wins over the refresh directory, and a plain run stays timestamped', async () => {
+  const outputRoot = await makeTempRoot()
+  const refreshRoot = await makeTempRoot()
+  configureOutputRoot(outputRoot)
+  configureLinksRefreshRoot(refreshRoot)
+
+  await runLinksWithArgv(['bun', 'src/cli/create-cli.ts', 'links', DIRECT_URL], { fetchImpl })
+  expect(await readdir(refreshRoot)).toEqual([])
+  expect(await readdir(outputRoot)).toHaveLength(1)
+
+  const pinnedDir = join(outputRoot, 'pinned-refresh')
+  configurePinnedRunDir(pinnedDir)
+  const pinned = await runLinksWithArgv(['bun', 'src/cli/create-cli.ts', 'links', '--refresh', DIRECT_URL], { fetchImpl })
+  expect(pinned.outputPath).toBe(join(pinnedDir, DIRECT_FILE_NAME))
+  expect(await readdir(refreshRoot)).toEqual([])
 })

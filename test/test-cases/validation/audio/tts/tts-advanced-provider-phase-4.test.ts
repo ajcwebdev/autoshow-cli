@@ -4,6 +4,7 @@ import {
   CARTESIA_ADVANCED_CAPABILITY_FIXTURE,
   createCartesiaAdvancedProvider,
 } from '~/cli/commands/audio/tts/tts-services/cartesia/cartesia-advanced-provider'
+import { CARTESIA_API_VERSION, cartesiaTtsApiVersion } from '~/cli/commands/audio/tts/tts-services/cartesia/cartesia-tts-request'
 import {
   createSpeechifyAdvancedProvider,
   SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE,
@@ -71,6 +72,30 @@ describe('Cartesia and Speechify advanced voice adapters', () => {
     const professional = await adapter.clone!.clone({ cloneKind: 'professional', desiredName: 'Pro Clone', localAttemptId: 'attempt-pro', protectedSamples: [], consentRecordRef: 'protected-consent:v1:test', provenanceRef: 'project:casting' })
     expect(professional).toEqual(expect.objectContaining({ state: 'external-action-required', action: expect.stringContaining('dashboard') }))
     expect(calls).toHaveLength(callsBeforeProfessional)
+  })
+
+  test('Cartesia voice management dispatches the synthesis API version and reads both visibility shapes', async () => {
+    const dispatched: { url: string, version: string | null }[] = []
+    const priorFetch = globalThis.fetch
+    globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+      dispatched.push({ url: String(input), version: new Headers(init?.headers).get('cartesia-version') })
+      return Response.json({ data: [
+        { id: 'legacy', name: 'Legacy', is_owner: false, is_public: false, access: 'public' },
+        { id: 'current-public', name: 'Current Public', is_owner: false, access: 'public', visibility: 'all' },
+        { id: 'current-private', name: 'Current Private', is_owner: true, access: 'private' },
+        { id: 'unstated', name: 'Unstated', is_owner: true },
+      ], has_more: false })
+    }) as typeof fetch
+    try {
+      const page = await createCartesiaAdvancedProvider({ apiKey: 'cartesia-key', now: () => CHECKED_AT }).catalog!.list({ source: 'provider-library' })
+      expect(dispatched).toHaveLength(1)
+      expect(dispatched[0]?.url).toStartWith('https://api.cartesia.ai/voices?')
+      expect(dispatched[0]?.version).toBe(CARTESIA_API_VERSION)
+      expect(cartesiaTtsApiVersion('sonic-3.6-2026-08-27')).toBe(CARTESIA_API_VERSION)
+      expect(page.entries.map(entry => entry.sanitizedMetadata?.['isPublic'])).toEqual([false, true, false, undefined])
+    } finally {
+      globalThis.fetch = priorFetch
+    }
   })
 
   test('Speechify exposes catalog and lifecycle without the obsolete clone contract', async () => {

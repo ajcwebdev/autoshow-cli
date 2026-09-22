@@ -320,7 +320,7 @@
     "models": {
       "minimax/h3": {
         "description": "MiniMax H3 multimodal video generation with native audio",
-        "pricingSourceUrl": "https://fal.ai/models/minimax/h3/api",
+        "pricingSourceUrl": "https://fal.ai/models/minimax/h3/text-to-video",
         "pricingCheckedAt": "2026-08-06",
         "pricingCurrency": "USD",
         "pricingTier": "fal.ai public model pricing",

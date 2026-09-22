@@ -3,13 +3,24 @@
     "LLMSTXT": [
       "https://www.assemblyai.com/docs/llms.txt"
     ],
+    "General": [
+      "https://www.assemblyai.com/docs/pre-recorded-audio/rate-limits.md",
+      "https://www.assemblyai.com/docs/billing-and-pricing.md"
+    ],
     "Models": [
-      "https://www.assemblyai.com/docs/pre-recorded-audio/universal-3-5-pro.md",
-      "https://www.assemblyai.com/docs/pre-recorded-audio/universal-2.md"
+      "https://www.assemblyai.com/docs/getting-started/models.md",
+      "https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model.md",
+      "https://www.assemblyai.com/docs/pre-recorded-audio/universal-3-5-pro.md"
     ],
     "STT": [
-      "https://www.assemblyai.com/docs/api-reference/transcripts/submit.md",
-      "https://www.assemblyai.com/docs/api-reference/transcripts/get.md"
+      "https://www.assemblyai.com/docs/pre-recorded-audio/api-reference/files/upload.md",
+      "https://www.assemblyai.com/docs/pre-recorded-audio/api-reference/transcripts/submit.md",
+      "https://www.assemblyai.com/docs/pre-recorded-audio/api-reference/transcripts/get.md",
+      "https://www.assemblyai.com/docs/pre-recorded-audio/api-reference/transcripts/get-subtitles.md",
+      "https://www.assemblyai.com/docs/pre-recorded-audio/check-transcript-status.md",
+      "https://www.assemblyai.com/docs/pre-recorded-audio/label-speakers.md",
+      "https://www.assemblyai.com/docs/pre-recorded-audio/supported-languages.md",
+      "https://www.assemblyai.com/docs/pre-recorded-audio/export-transcripts-as-srt-vtt-or-text.md"
     ]
   }
 }

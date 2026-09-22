@@ -20,6 +20,7 @@ import { finalizeTtsRun } from '../../tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '../../tts-utils/hosted-tts-retry'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { providerMilliseconds } from '../../script-to-audio/advanced-provider-contracts'
+import { readHttpPayloadJson } from '~/utils/http-payload'
 
 const HUME_NATIVE_UTTERANCE_MAX_CHARACTERS = 5000
 const HUME_NATIVE_MAX_TAKES = 5
@@ -166,7 +167,7 @@ export const runHumeNativeUtterances = async (
           stage: 'tts:hume-native', retryClass: 'runtime_http_create_conservative', retryable: response.status === 425 || response.status === 429, metadata: { provider: 'hume' }
         }))
         await accepted({ fields: { httpStatus: response.status } })
-        return await response.json() as { generations?: unknown, request_id?: unknown }
+        return await readHttpPayloadJson(response, 'Hume native utterance response', { stage: 'tts:hume-native' }) as { generations?: unknown, request_id?: unknown }
       }))
       const generations = Array.isArray(payload.generations) ? payload.generations.map(value => record(value) as HumeGenerationResponse).filter(Boolean) : []
       if (generations.length !== takeCount) throw InfraError(`Hume returned ${generations.length} generations for requested count ${takeCount}.`, { stage: 'tts:hume' })

@@ -3,6 +3,8 @@ import { InfraError } from '~/utils/error-handler'
 import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import type { FalQueueStatus } from '~/types'
+import { readHttpPayloadJson } from '~/utils/http-payload'
+import { readRestDiagnosticText } from '~/utils/rest-client'
 
 const headersFor = (apiKey: string): Record<string, string> => ({
   Authorization: `Key ${apiKey}`,
@@ -29,7 +31,7 @@ const parseQueueStatus = (value: unknown, context: string): FalQueueStatus => {
 }
 
 const readErrorBody = async (response: Response): Promise<string> => {
-  const body = await response.text()
+  const body = await readRestDiagnosticText(response)
   return body.trim().length > 0 ? body : 'No response body'
 }
 
@@ -72,7 +74,7 @@ export const runFalQueue = async <T>(options: {
         if (!response.ok) {
           throw InfraError(`fal.ai queue submission failed (${response.status}): ${await readErrorBody(response)}`, { stage: 'fal:queue', status: response.status })
         }
-        return parseQueueStatus(await response.json() as unknown, 'fal.ai queue submission')
+        return parseQueueStatus(await readHttpPayloadJson(response, 'fal.ai queue submission', { payloadClass: 'control', stage: 'fal:queue' }), 'fal.ai queue submission')
       },
       (error) => classifyFetchRetry(error, 'runtime_http_create_conservative')
     )
@@ -94,7 +96,7 @@ export const runFalQueue = async <T>(options: {
             if (!response.ok) {
               throw InfraError(`fal.ai queue status failed (${response.status}): ${await readErrorBody(response)}`, { stage: 'fal:queue', status: response.status })
             }
-            const status = parseQueueStatus(await response.json() as unknown, 'fal.ai queue status')
+            const status = parseQueueStatus(await readHttpPayloadJson(response, 'fal.ai queue status', { payloadClass: 'control', stage: 'fal:queue' }), 'fal.ai queue status')
             options.onStatus?.(status)
             return status
           }, (error) => classifyFetchRetry(error, 'runtime_http_poll')),
@@ -120,7 +122,7 @@ export const runFalQueue = async <T>(options: {
       (error) => classifyFetchRetry(error, 'runtime_http_paid_result')
     )
 
-    return { requestId: submission.request_id, output: await resultResponse.json() as T }
+    return { requestId: submission.request_id, output: await readHttpPayloadJson(resultResponse, 'fal.ai queue result', { stage: 'fal:queue' }) as T }
   } catch (error) {
     if (submission?.cancel_url) await cancelFalQueueRequest(options.apiKey, submission.cancel_url)
     throw error

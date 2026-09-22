@@ -57,34 +57,34 @@ bun autoshow tts <input> [flags]
 
 ## Shared TTS Options
 
-| Flag                                                     | Description                                                                                                                                     |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--provider provider[=model]`                            | TTS provider/model selector; repeat to run multiple targets                                                                                     |
-| `--all-providers`                                        | Select every supported hosted TTS provider/model                                                                                                |
-| `--provider-concurrency <n>`                             | Hosted TTS provider/model targets to run concurrently per item; this does not limit requests inside one target; default `7`                     |
-| `--batch-concurrency <n>`                                | Batch text files to process concurrently; default `7`                                                                                           |
-| `--concurrency-mode <ramp\|immediate>`                   | Ramp from one request (`ramp`, default) or start at the configured cap (`immediate`)                                                            |
-| `--tts-voice <provider=value\|value>`                    | Generic TTS voice selector                                                                                                                      |
-| `--tts-speed <provider=value\|value>`                    | Generic TTS speed                                                                                                                               |
-| `--tts-language <provider=value\|value>`                 | Generic TTS language                                                                                                                            |
-| `--tts-ref-audio <provider=path\|path>`                  | Explicit one-off Mistral reference input                                                                                                        |
-| `--tts-text-normalization <provider=value\|value>`       | Generic text normalization                                                                                                                      |
-| `--tts-instructions <provider=value\|value>`             | Generic voice/style instructions                                                                                                                |
-| `--tts-stability <provider=value\|value>`                | Generic TTS voice stability (ElevenLabs `0-1`)                                                                                                  |
-| `--tts-similarity <provider=value\|value>`               | Generic TTS voice similarity boost (ElevenLabs `0-1`; not `eleven_v3`)                                                                          |
-| `--tts-style <provider=value\|value>`                    | Generic TTS voice style exaggeration (ElevenLabs `0-1`; not `eleven_v3`)                                                                        |
-| `--tts-speaker-boost <provider=value\|value>`            | Generic TTS speaker boost (ElevenLabs `true\|false`; not `eleven_v3`)                                                                           |
-| `--tts-seed <provider=value\|value>`                     | Generic TTS deterministic generation seed (ElevenLabs `0-4294967295`)                                                                           |
-| `--tts-pronunciation-dictionary <provider=value\|value>` | Generic TTS pronunciation dictionary locator as `dictionary_id` or `dictionary_id:version_id` (ElevenLabs; repeatable)                          |
-| `--tts-trailing-silence <provider=value\|value>`         | Generic TTS trailing silence in seconds (Hume `0-60`)                                                                                           |
-| `--tts-response-format <provider=value\|value>`          | Provider source audio format (Mistral `wav\|mp3\|flac\|opus`; ElevenLabs `mp3_44100_128\|mp3_44100_192\|wav_44100\|wav_48000`; Hume `mp3\|wav`) |
-| `--step-concurrency tts-chunk=<n>`                       | Hosted TTS requests allowed in parallel per provider; default `30`, `2` for all providers, or `50` for Grok-only                                |
-| `--allow-ambiguous-redispatch`                           | Explicitly authorize repurchasing a provider-admitted TTS slot that has no recoverable audio                                                    |
-| `--tts-dialogue-format <screenplay\|labeled>`            | Dialogue input format for multi-speaker TTS; requires `--tts-speaker`                                                                           |
-| `--tts-speaker SPEAKER=VOICE\|path`                      | Multi-speaker voice mapping; repeatable. Selects multi-speaker TTS                                                                              |
-| `--price`                                                | Show the aggregated estimate and exit                                                                                                           |
-| `--max-model-cents <n>`                                  | Exclude each provider/model whose estimated total across the invocation exceeds the per-model ceiling in cents; works with or without `--price` |
-| `--output-dir <dir>`                                     | Global flag: pin an exact run directory instead of a timestamped output directory                                                               |
+| Flag                                             | Description                                                                                                                                     |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--provider provider[=model]`                    | TTS provider/model selector; repeat to run multiple targets                                                                                     |
+| `--all-providers`                                | Select every supported hosted TTS provider/model                                                                                                |
+| `--provider-concurrency <n>`                     | Hosted TTS provider/model targets to run concurrently per item; this does not limit requests inside one target; default `7`                     |
+| `--batch-concurrency <n>`                        | Batch text files to process concurrently; default `7`                                                                                           |
+| `--concurrency-mode <ramp\                       | immediate>`                                                                                                                                     | Ramp from one request (`ramp`, default) or start at the configured cap (`immediate`) |
+| `--tts-voice <provider=value\                    | value>`                                                                                                                                         | Generic TTS voice selector |
+| `--tts-speed <provider=value\                    | value>`                                                                                                                                         | Generic TTS speed |
+| `--tts-language <provider=value\                 | value>`                                                                                                                                         | Generic TTS language |
+| `--tts-ref-audio <provider=path\                 | path>`                                                                                                                                          | Explicit one-off Mistral reference input |
+| `--tts-text-normalization <provider=value\       | value>`                                                                                                                                         | Generic text normalization |
+| `--tts-instructions <provider=value\             | value>`                                                                                                                                         | Generic voice/style instructions |
+| `--tts-stability <provider=value\                | value>`                                                                                                                                         | Generic TTS voice stability (ElevenLabs `0-1`) |
+| `--tts-similarity <provider=value\               | value>`                                                                                                                                         | Generic TTS voice similarity boost (ElevenLabs `0-1`; not `eleven_v3`) |
+| `--tts-style <provider=value\                    | value>`                                                                                                                                         | Generic TTS voice style exaggeration (ElevenLabs `0-1`; not `eleven_v3`) |
+| `--tts-speaker-boost <provider=value\            | value>`                                                                                                                                         | Generic TTS speaker boost (ElevenLabs `true\ | false`; not `eleven_v3`) |
+| `--tts-seed <provider=value\                     | value>`                                                                                                                                         | Generic TTS deterministic generation seed (ElevenLabs `0-4294967295`) |
+| `--tts-pronunciation-dictionary <provider=value\ | value>`                                                                                                                                         | Generic TTS pronunciation dictionary locator as `dictionary_id` or `dictionary_id:version_id` (ElevenLabs; repeatable) |
+| `--tts-trailing-silence <provider=value\         | value>`                                                                                                                                         | Generic TTS trailing silence in seconds (Hume `0-60`) |
+| `--tts-response-format <provider=value\          | value>`                                                                                                                                         | Provider source audio format (Mistral `wav\ | mp3\ | flac\ | opus`; ElevenLabs `mp3_44100_128\ | mp3_44100_192\ | wav_44100\ | wav_48000`; Hume `mp3\ | wav`) |
+| `--step-concurrency tts-chunk=<n>`               | Hosted TTS requests allowed in parallel per provider; default `30`, `2` for all providers, or `50` for Grok-only                                |
+| `--allow-ambiguous-redispatch`                   | Explicitly authorize repurchasing a provider-admitted TTS slot that has no recoverable audio                                                    |
+| `--tts-dialogue-format <screenplay\              | labeled>`                                                                                                                                       | Dialogue input format for multi-speaker TTS; requires `--tts-speaker` |
+| `--tts-speaker SPEAKER=VOICE\                    | path`                                                                                                                                           | Multi-speaker voice mapping; repeatable. Selects multi-speaker TTS |
+| `--price`                                        | Show the aggregated estimate and exit                                                                                                           |
+| `--max-model-cents <n>`                          | Exclude each provider/model whose estimated total across the invocation exceeds the per-model ceiling in cents; works with or without `--price` |
+| `--output-dir <dir>`                             | Global flag: pin an exact run directory instead of a timestamped output directory                                                               |
 
 See [Provider Capabilities](#provider-capabilities) for the per-model instructions, speed, pause, language, dialogue, stock, design, clone, and price matrix.
 
@@ -111,27 +111,27 @@ bun autoshow tts input/examples/tts/01-tts-short.md --all-providers --max-model-
 
 These flags apply to every provider. They run locally with ffmpeg after synthesis and never add provider requests.
 
-| Flag                                                  | Description                                                                                                                                         |
-| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--tts-audio-profile <native\|audiobook\|legacy-16k>` | Final audio profile; default `native`                                                                                                               |
-| `--tts-sample-rate <hz>`                              | Final sample rate: `16000`, `22050`, `24000`, `32000`, `44100`, or `48000`; default from the profile                                                |
-| `--tts-channels <1\|2>`                               | Final channel count; default from the profile                                                                                                       |
-| `--tts-loudness <lufs\|off>`                          | Integrated loudness target from `-40` to `-5` LUFS, or `off`; default from the profile                                                              |
-| `--tts-true-peak <dbtp>`                              | True-peak ceiling from `-9` to `0` dBTP, used with loudness normalization                                                                           |
-| `--tts-trim-silence <on\|off>`                        | Trim provider silence at chunk seams before inserting pauses; default `on`                                                                          |
-| `--tts-paragraph-pause <ms>`                          | Pause at paragraph and speaker-turn seams, `0-10000`; default `750`                                                                                 |
-| `--tts-sentence-pause <ms>`                           | Pause at sentence seams, `0-10000`; default `350`                                                                                                   |
-| `--tts-lead-in <ms>`                                  | Silence before the first audio, `0-10000`                                                                                                           |
-| `--tts-lead-out <ms>`                                 | Silence after the last audio, `0-10000`                                                                                                             |
-| `--tts-chunk-boundary <smart\|legacy>`                | How long text is split into provider requests; default `smart`                                                                                      |
-| `--tts-chunk-size <chars>`                            | Maximum characters per request, `100` or more; clamped to the provider/model limit                                                                  |
-| `--tts-pronunciations <file>`                         | Local JSON pronunciation lexicon applied to the text for every provider                                                                             |
-| `--tts-text-preflight <on\|off>`                      | Check the text for unsupported speech markup before dispatch; default `on`                                                                          |
-| `--tts-export-format <wav\|flac\|mp3\|m4a\|m4b>`      | Delivered container written beside the WAV master; default `wav`                                                                                    |
-| `--tts-bitrate <kbps>`                                | Bitrate for `mp3`, `m4a`, and `m4b`, `32-320`; default `192` for mp3 and `96` for m4a/m4b                                                           |
-| `--tts-metadata key=value`                            | Tag for non-WAV exports; repeatable. Keys: `title`, `artist`, `album`, `album_artist`, `composer`, `date`, `genre`, `comment`, `track`, `copyright` |
-| `--tts-cover <image>`                                 | `.jpg` or `.png` cover art embedded in `flac`, `mp3`, `m4a`, and `m4b` exports                                                                      |
-| `--tts-book`                                          | Directory input only: also assemble one book file with a chapter marker per input file                                                              |
+| Flag                          | Description                                                                                                                                         |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--tts-audio-profile <native\ | audiobook\                                                                                                                                          | legacy-16k>` | Final audio profile; default `native` |
+| `--tts-sample-rate <hz>`      | Final sample rate: `16000`, `22050`, `24000`, `32000`, `44100`, or `48000`; default from the profile                                                |
+| `--tts-channels <1\           | 2>`                                                                                                                                                 | Final channel count; default from the profile |
+| `--tts-loudness <lufs\        | off>`                                                                                                                                               | Integrated loudness target from `-40` to `-5` LUFS, or `off`; default from the profile |
+| `--tts-true-peak <dbtp>`      | True-peak ceiling from `-9` to `0` dBTP, used with loudness normalization                                                                           |
+| `--tts-trim-silence <on\      | off>`                                                                                                                                               | Trim provider silence at chunk seams before inserting pauses; default `on` |
+| `--tts-paragraph-pause <ms>`  | Pause at paragraph and speaker-turn seams, `0-10000`; default `750`                                                                                 |
+| `--tts-sentence-pause <ms>`   | Pause at sentence seams, `0-10000`; default `350`                                                                                                   |
+| `--tts-lead-in <ms>`          | Silence before the first audio, `0-10000`                                                                                                           |
+| `--tts-lead-out <ms>`         | Silence after the last audio, `0-10000`                                                                                                             |
+| `--tts-chunk-boundary <smart\ | legacy>`                                                                                                                                            | How long text is split into provider requests; default `smart` |
+| `--tts-chunk-size <chars>`    | Maximum characters per request, `100` or more; clamped to the provider/model limit                                                                  |
+| `--tts-pronunciations <file>` | Local JSON pronunciation lexicon applied to the text for every provider                                                                             |
+| `--tts-text-preflight <on\    | off>`                                                                                                                                               | Check the text for unsupported speech markup before dispatch; default `on` |
+| `--tts-export-format <wav\    | flac\                                                                                                                                               | mp3\ | m4a\ | m4b>` | Delivered container written beside the WAV master; default `wav` |
+| `--tts-bitrate <kbps>`        | Bitrate for `mp3`, `m4a`, and `m4b`, `32-320`; default `192` for mp3 and `96` for m4a/m4b                                                           |
+| `--tts-metadata key=value`    | Tag for non-WAV exports; repeatable. Keys: `title`, `artist`, `album`, `album_artist`, `composer`, `date`, `genre`, `comment`, `track`, `copyright` |
+| `--tts-cover <image>`         | `.jpg` or `.png` cover art embedded in `flac`, `mp3`, `m4a`, and `m4b` exports                                                                      |
+| `--tts-book`                  | Directory input only: also assemble one book file with a chapter marker per input file                                                              |
 
 Profiles:
 
@@ -220,13 +220,13 @@ bun autoshow tts input/examples/tts/01-tts-short.md --provider grok=grok-tts --t
 ```
 ### Mistral
 
-| Option        | Value                                                                                    |
-| ------------- | ---------------------------------------------------------------------------------------- |
-| Selector      | `--provider mistral[=<model>]`                                                           |
-| Models        | `voxtral-mini-tts-2603`                                                                  |
-| Voice source  | Existing `--tts-voice <id>` or authorized one-off `--tts-ref-audio <path>`               |
-| Controls      | `--tts-response-format <wav\|mp3\|flac\|opus>`                                           |
-| Dialogue mode | `--tts-dialogue-format screenplay\|labeled` plus repeatable `--tts-speaker SPEAKER=path` |
+| Option        | Value                                                                      |
+| ------------- | -------------------------------------------------------------------------- |
+| Selector      | `--provider mistral[=<model>]`                                             |
+| Models        | `voxtral-mini-tts-2603`                                                    |
+| Voice source  | Existing `--tts-voice <id>` or authorized one-off `--tts-ref-audio <path>` |
+| Controls      | `--tts-response-format <wav\                                               | mp3\ | flac\ | opus>` |
+| Dialogue mode | `--tts-dialogue-format screenplay\                                         | labeled` plus repeatable `--tts-speaker SPEAKER=path` |
 
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md --provider mistral=voxtral-mini-tts-2603 --tts-voice voice_abc123
@@ -268,12 +268,12 @@ Input may be plain text or SSML. Wrap SSML in `<speak>` to control pitch, rate, 
 
 ### Hume
 
-| Option   | Value                                                                                                                                                                  |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Selector | `--provider hume[=<model>]`                                                                                                                                            |
-| Models   | `octave-1`, `octave-2`                                                                                                                                                 |
-| Voice    | `--tts-voice <name-or-id>`, default `Male English Actor`                                                                                                               |
-| Controls | `--tts-speed <0.5..2>`, `--tts-trailing-silence <0..60>`, `--tts-response-format <mp3\|wav>` (single-voice), Octave 1 utterance `description` via `--tts-instructions` |
+| Option   | Value                                                                                  |
+| -------- | -------------------------------------------------------------------------------------- |
+| Selector | `--provider hume[=<model>]`                                                            |
+| Models   | `octave-1`, `octave-2`                                                                 |
+| Voice    | `--tts-voice <name-or-id>`, default `Male English Actor`                               |
+| Controls | `--tts-speed <0.5..2>`, `--tts-trailing-silence <0..60>`, `--tts-response-format <mp3\ | wav>` (single-voice), Octave 1 utterance `description` via `--tts-instructions` |
 
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md --provider hume=octave-2
@@ -348,16 +348,16 @@ Speed: ✅ numeric `--tts-speed`, ⚠️ SSML or tags only, ❌ not exposed on t
 
 Stock: ✅ provider-stock or built-in library voices selectable with `--tts-voice`. Design: ✅ `voice design` text-prompt creation. Clone: ✅ `voice clone` instant clone from authorized samples, ⚠️ provider-platform clone registered with `voice import`, ❌ not exposed. Hume Voice Design uses creation model `octave-1` even when the saved voice synthesizes with Octave 2.
 
-Pricing is the AutoShow estimate rate. Pricing: ✅ cheapest third, ⚠️ middle third, ❌ most expensive third. Cost rank is cheapest first (1 = cheapest); ties share a rank. Cartesia estimates use a Scale-plan credit allocation, not a universal per-character tariff.
+Pricing is the AutoShow estimate rate. Pricing: ✅ cheapest third, ⚠️ middle third, ❌ most expensive third. Cost rank is cheapest first (1 = cheapest); ties share a rank.
 
-| Provider                            | Released     | Instructions                  | Speed                   | Pause               | Language           | Native dialogue      | Stock | Design | Clone                   | Pricing                                              | Cost rank |
-| ----------------------------------- | ------------ | ----------------------------- | ----------------------- | ------------------- | ------------------ | -------------------- | ----- | ------ | ----------------------- | ---------------------------------------------------- | --------- |
-| Cartesia `sonic-3.6-2026-08-27`     | ✅ 2026-08-27 | ⚠️ SSML-like `<emotion>` tags | ✅ `--tts-speed` 0.6–1.5 | ✅ SSML `<break>`    | ✅ `--tts-language` | ❌ Local assembly     | ✅     | ❌      | ✅                       | ❌ `$0.037375` / 1K chars (Scale allocation estimate) | 6/9       |
-| Speechify `simba-3.2`               | ✅ 2026-07-08 | ⚠️ SSML `<speechify:style>`   | ⚠️ SSML rate            | ✅ SSML breaks       | ⚠️ English only    | ❌ Local assembly     | ✅     | ❌      | ❌                       | ✅ `$0.01` / 1K chars                                 | 1/9       |
-| Inworld `realtime-tts-2`            | ✅ 2026-05-05 | ✅ `--tts-instructions`        | ✅ `--tts-speed` 0.5–1.5 | ✅ SSML breaks       | ❌ Not exposed      | ❌ Local assembly     | ✅     | ✅      | ✅                       | ⚠️ `$0.025` / 1K chars                               | 5/9       |
-| Grok `grok-tts`                     | ✅ 2026-04    | ⚠️ Speech tags                | ✅ `--tts-speed` 0.7–1.5 | ⚠️ `[pause]` tags   | ✅ `--tts-language` | ❌ Local assembly     | ✅     | ❌      | ✅                       | ✅ `$0.015` / 1K chars                                | 3/9       |
-| Mistral `voxtral-mini-tts-2603`     | ⚠️ 2026-03   | ❌ Not exposed                 | ❌ Not exposed           | ❌ Not exposed       | ❌ Not exposed      | ❌ Local assembly     | ✅     | ❌      | ✅                       | ⚠️ `$0.016` / 1K output chars                        | 4/9       |
-| ElevenLabs `eleven_v3`              | ⚠️ 2026-02   | ⚠️ Audio tags                 | ❌ Not exposed           | ⚠️ Audio tags       | ✅ `--tts-language` | ✅ Up to 10 voices    | ✅     | ✅      | ✅                       | ❌ `$0.10` / 1K chars                                 | 7/9       |
-| OpenAI `gpt-4o-mini-tts-2025-12-15` | ❌ 2025-12-15 | ✅ `--tts-instructions`        | ✅ `--tts-speed` 0.25–4  | ⚠️ Qualitative only | ❌ Not exposed      | ❌ Local assembly     | ✅     | ❌      | ❌                       | ✅ About `$0.0126` / 1K chars                         | 2/9       |
-| Hume `octave-2`                     | ❌ 2025-10    | ❌ Not exposed                 | ✅ `--tts-speed` 0.5–2   | ⚠️ Trailing silence | ❌ Not exposed      | ⚠️ Native utterances | ✅     | ✅      | ⚠️ Platform then import | ❌ `$0.15` / 1K chars                                 | 8/9       |
-| Hume `octave-1`                     | ❌ 2025-02-26 | ✅ Utterance `description`     | ✅ `--tts-speed` 0.5–2   | ⚠️ Trailing silence | ❌ Not exposed      | ❌ Segmented          | ✅     | ✅      | ⚠️ Platform then import | ❌ `$0.15` / 1K chars                                 | 8/9       |
+| Provider                            | Released     | Instructions                  | Speed                   | Pause               | Language           | Native dialogue      | Stock | Design | Clone                   | Pricing                       | Cost rank |
+| ----------------------------------- | ------------ | ----------------------------- | ----------------------- | ------------------- | ------------------ | -------------------- | ----- | ------ | ----------------------- | ----------------------------- | --------- |
+| Cartesia `sonic-3.6-2026-08-27`     | ✅ 2026-08-27 | ⚠️ SSML-like `<emotion>` tags | ✅ `--tts-speed` 0.6–1.5 | ✅ SSML `<break>`    | ✅ `--tts-language` | ❌ Local assembly     | ✅     | ❌      | ✅                       | ⚠️ `$0.065` / 1K chars        | 6/9       |
+| Speechify `simba-3.2`               | ✅ 2026-07-08 | ⚠️ SSML `<speechify:style>`   | ⚠️ SSML rate            | ✅ SSML breaks       | ⚠️ English only    | ❌ Local assembly     | ✅     | ❌      | ❌                       | ✅ `$0.01` / 1K chars          | 1/9       |
+| Inworld `realtime-tts-2`            | ✅ 2026-05-05 | ✅ `--tts-instructions`        | ✅ `--tts-speed` 0.5–1.5 | ✅ SSML breaks       | ❌ Not exposed      | ❌ Local assembly     | ✅     | ✅      | ✅                       | ⚠️ `$0.025` / 1K chars        | 5/9       |
+| Grok `grok-tts`                     | ✅ 2026-04    | ⚠️ Speech tags                | ✅ `--tts-speed` 0.7–1.5 | ⚠️ `[pause]` tags   | ✅ `--tts-language` | ❌ Local assembly     | ✅     | ❌      | ✅                       | ✅ `$0.015` / 1K chars         | 3/9       |
+| Mistral `voxtral-mini-tts-2603`     | ⚠️ 2026-03   | ❌ Not exposed                 | ❌ Not exposed           | ❌ Not exposed       | ❌ Not exposed      | ❌ Local assembly     | ✅     | ❌      | ✅                       | ⚠️ `$0.016` / 1K output chars | 4/9       |
+| ElevenLabs `eleven_v3`              | ⚠️ 2026-02   | ⚠️ Audio tags                 | ❌ Not exposed           | ⚠️ Audio tags       | ✅ `--tts-language` | ✅ Up to 10 voices    | ✅     | ✅      | ✅                       | ❌ `$0.10` / 1K chars          | 7/9       |
+| OpenAI `gpt-4o-mini-tts-2025-12-15` | ❌ 2025-12-15 | ✅ `--tts-instructions`        | ✅ `--tts-speed` 0.25–4  | ⚠️ Qualitative only | ❌ Not exposed      | ❌ Local assembly     | ✅     | ❌      | ❌                       | ✅ About `$0.0126` / 1K chars  | 2/9       |
+| Hume `octave-2`                     | ❌ 2025-10    | ❌ Not exposed                 | ✅ `--tts-speed` 0.5–2   | ⚠️ Trailing silence | ❌ Not exposed      | ⚠️ Native utterances | ✅     | ✅      | ⚠️ Platform then import | ❌ `$0.15` / 1K chars          | 8/9       |
+| Hume `octave-1`                     | ❌ 2025-02-26 | ✅ Utterance `description`     | ✅ `--tts-speed` 0.5–2   | ⚠️ Trailing silence | ❌ Not exposed      | ❌ Segmented          | ✅     | ✅      | ⚠️ Platform then import | ❌ `$0.15` / 1K chars          | 8/9       |

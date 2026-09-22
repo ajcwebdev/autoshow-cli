@@ -9,7 +9,7 @@ import {
   normalizeLtxVideoResolution,
   normalizeLtxVideoSize
 } from '~/cli/commands/visuals/video/video-utils/video-normalization'
-import { downloadVideoOutputBytes } from '~/cli/commands/visuals/video/video-utils/video-output-download'
+import { downloadVideoOutput } from '~/cli/commands/visuals/video/video-utils/video-output-download'
 import { formatPolledJobError, runPolledJob } from '~/utils/polled-job-client/polled-job'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { validateModeInputs } from '../../video-utils/video-mode-validation'
@@ -159,7 +159,7 @@ export const runLtxVideoGen = async (
       }
 
       const outputPath = context.artifactPath()
-      await Bun.write(outputPath, await downloadVideoOutputBytes(videoUrl, 'LTX'))
+      await downloadVideoOutput(videoUrl, 'LTX', outputPath)
 
       return {
         artifactPaths: [outputPath],

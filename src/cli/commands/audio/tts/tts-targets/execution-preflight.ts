@@ -7,6 +7,10 @@ import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
 import { findHostedTtsCredential } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import { childEnv } from '~/utils/child-env'
 import { parseHumeVoiceCatalogEnvelope } from '../tts-services/hume/hume-advanced-provider'
+import { CARTESIA_API_VERSION } from '../tts-services/cartesia/cartesia-tts-request'
+import { readHttpPayloadJson } from '~/utils/http-payload'
+
+const CATALOG_PAYLOAD = { payloadClass: 'control', stage: 'tts:readiness' } as const
 
 export const mergeTtsExecutionReadinessObservations = (
   preIngest: readonly TtsExecutionReadinessObservation[],
@@ -96,7 +100,7 @@ export const listHumeVoiceIdsForReadiness = async (
           headers: response.headers
         })
       }
-      const page = parseHumeVoiceCatalogEnvelope(await response.json())
+      const page = parseHumeVoiceCatalogEnvelope(await readHttpPayloadJson(response, 'Hume voice catalog response', CATALOG_PAYLOAD))
       if (page.pageNumber !== pageNumber) {
         throw ValidationError('Hume voice catalog returned an unexpected page number.', { stage: 'tts:readiness', retryable: false })
       }
@@ -127,7 +131,7 @@ export const listInworldVoiceIdsForReadiness = async (
       headers: response.headers
     })
   }
-  const payload = await response.json() as { voices?: unknown }
+  const payload = await readHttpPayloadJson(response, 'Inworld voice catalog response', CATALOG_PAYLOAD) as { voices?: unknown }
   if (!Array.isArray(payload.voices)) {
     throw ValidationError('Inworld voice catalog response omits voices.', { stage: 'tts:readiness', retryable: false })
   }
@@ -154,7 +158,7 @@ const checkAdvancedVoiceReadiness = async (
       const results = await Promise.all(voiceIds.map(async voiceId => {
         const response = await request(`https://api.elevenlabs.io/v1/voices/${encodeURIComponent(voiceId)}`, { headers: { 'xi-api-key': apiKey } })
         if (!response.ok) return false
-        const payload = await response.json() as { voice_id?: unknown, sharing?: { disable_at_unix?: unknown } | null, fine_tuning?: { state?: Record<string, unknown> } | null }
+        const payload = await readHttpPayloadJson(response, 'ElevenLabs voice readiness response', CATALOG_PAYLOAD) as { voice_id?: unknown, sharing?: { disable_at_unix?: unknown } | null, fine_tuning?: { state?: Record<string, unknown> } | null }
         if (payload.voice_id !== voiceId) return false
         const relevantFineTuningState = payload.fine_tuning?.state?.[target.model]
         if (relevantFineTuningState === 'not_verified' || relevantFineTuningState === 'not_started' || relevantFineTuningState === 'failed') return false
@@ -177,9 +181,9 @@ const checkAdvancedVoiceReadiness = async (
     }
     if (target.service === 'cartesia') {
       const results = await Promise.all(voiceIds.map(async voiceId => {
-        const response = await request(`https://api.cartesia.ai/voices/${encodeURIComponent(voiceId)}`, { headers: { Authorization: `Bearer ${apiKey}`, 'Cartesia-Version': '2026-03-01' } })
+        const response = await request(`https://api.cartesia.ai/voices/${encodeURIComponent(voiceId)}`, { headers: { Authorization: `Bearer ${apiKey}`, 'Cartesia-Version': CARTESIA_API_VERSION } })
         if (!response.ok) return false
-        const payload = await response.json() as { id?: unknown }
+        const payload = await readHttpPayloadJson(response, 'Voice readiness response', CATALOG_PAYLOAD) as { id?: unknown }
         return payload.id === voiceId
       }))
       if (results.some(ready => !ready)) return advancedVoiceBlockedObservation(targetKey, 'cartesia-voice-not-ready', 'One or more approved Cartesia voices are missing or inaccessible for the configured account.', false)
@@ -189,7 +193,7 @@ const checkAdvancedVoiceReadiness = async (
     const results = await Promise.all(voiceIds.map(async voiceId => {
       const response = await request(`https://api.speechify.ai/v1/voices/${encodeURIComponent(voiceId)}`, { headers: { Authorization: `Bearer ${apiKey}` } })
       if (!response.ok) return false
-      const payload = await response.json() as { id?: unknown, models?: unknown }
+      const payload = await readHttpPayloadJson(response, 'Speechify voice readiness response', CATALOG_PAYLOAD) as { id?: unknown, models?: unknown }
       if (payload.id !== voiceId) return false
       const modelIds = Array.isArray(payload.models) ? payload.models.flatMap(value => value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { name?: unknown }).name === 'string' ? [(value as { name: string }).name] : []) : []
       return modelIds.length === 0 || modelIds.includes(target.model)

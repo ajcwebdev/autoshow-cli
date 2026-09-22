@@ -7,8 +7,9 @@ import { validateData } from '~/utils/validate/validation'
 import { materializeMediaInput } from '~/utils/media-url'
 import { UsageError, ValidationError } from '~/utils/error-handler'
 import type { SpeechifyTtsCustomVoiceGender, SpeechifyTtsCustomVoiceOptions, SpeechifyTtsCustomVoiceResult, TtsCustomVoiceSampleAudio } from '~/types'
-import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions, readRestDiagnosticText } from '~/utils/rest-client'
 import { ensureVoicePromise } from '../voice-promise-cache'
+import { readHttpPayloadText } from '~/utils/http-payload'
 
 const SPEECHIFY_TTS_DEFAULT_CUSTOM_VOICE_LOCALE = 'en-US'
 const SPEECHIFY_TTS_DEFAULT_CUSTOM_VOICE_GENDER = 'notSpecified'
@@ -140,7 +141,7 @@ const validateSpeechifyTtsCustomVoiceAudio = async (
 
 const readSpeechifyErrorBody = async (response: Response): Promise<string> => {
   try {
-    const text = await response.text()
+    const text = await readRestDiagnosticText(response)
     return text.trim()
   } catch {
     return ''
@@ -148,8 +149,9 @@ const readSpeechifyErrorBody = async (response: Response): Promise<string> => {
 }
 
 const readSpeechifyJsonResponse = async (response: Response, operationName: string): Promise<unknown> => {
+  const rawText = await readHttpPayloadText(response, `${operationName} response`, { payloadClass: 'control', stage: 'tts:speechify' })
   try {
-    return await response.json()
+    return JSON.parse(rawText) as unknown
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     throw ValidationError(`${operationName} returned invalid JSON: ${message}`, { stage: 'tts:speechify', ...(error instanceof Error ? { cause: error } : {}) })

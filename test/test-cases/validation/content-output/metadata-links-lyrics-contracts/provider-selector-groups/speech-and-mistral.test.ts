@@ -81,7 +81,7 @@ registerProviderSelectorCases([
       { sections: ['tts'], expected: GROK_TTS_LINKS },
       { sections: ['stt'], expected: GROK_STT_LINKS }
     ],
-    invalid: { sections: ['ocr'], message: 'Unknown links section(s) for --provider grok: ocr' }
+    invalid: { sections: ['music'], message: 'Unknown links section(s) for --provider grok: music' }
   },
   {
     name: 'links selector accepts together provider with general models stt and text sections',

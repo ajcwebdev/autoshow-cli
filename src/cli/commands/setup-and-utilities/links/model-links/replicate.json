@@ -12,7 +12,10 @@
       "https://replicate.com/docs/topics/predictions/output-files.md",
       "https://replicate.com/docs/topics/security/api-tokens.md",
       "https://replicate.com/docs/reference/how-does-replicate-work.md",
-      "https://replicate.com/docs/reference/http.md"
+      "https://replicate.com/docs/reference/http.md",
+      "https://replicate.com/docs/reference/error-codes.md",
+      "https://replicate.com/docs/reference/openapi.md",
+      "https://replicate.com/docs/topics/billing.md"
     ],
     "Models": [
       "https://replicate.com/docs/topics/models.md",
@@ -27,7 +30,8 @@
       "https://replicate.com/bytedance/seedream-5-lite/llms.txt",
       "https://replicate.com/bytedance/seedream-5-pro/llms.txt",
       "https://replicate.com/alibaba/qwen-image-3/llms.txt",
-      "https://replicate.com/alibaba/qwen-image-3-pro/llms.txt"
+      "https://replicate.com/alibaba/qwen-image-3-pro/llms.txt",
+      "https://replicate.com/sepal/audiogen/llms.txt"
     ]
   }
 }

@@ -1,5 +1,6 @@
+import { readHttpPayloadText } from '~/utils/http-payload'
 export const readJsonOrText = async (response: Response): Promise<unknown> => {
-  const text = await response.text()
+  const text = await readHttpPayloadText(response, 'Image provider response')
   if (text.length === 0) return ''
   try {
     return JSON.parse(text) as unknown

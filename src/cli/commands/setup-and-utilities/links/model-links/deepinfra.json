@@ -4,15 +4,16 @@
       "https://docs.deepinfra.com/llms.txt"
     ],
     "General": [
-      "https://docs.deepinfra.com/.md"
+      "https://docs.deepinfra.com/.md",
+      "https://docs.deepinfra.com/account/authentication.md",
+      "https://docs.deepinfra.com/account/rate-limits.md",
+      "https://docs.deepinfra.com/account/data-privacy.md"
     ],
     "Models": [
+      "https://docs.deepinfra.com/models.md",
+      "https://docs.deepinfra.com/api-reference/models/models-list.md",
       "https://deepinfra.com/openai/whisper-large-v3/api",
-      "https://deepinfra.com/openai/whisper-large-v3/api?example=openai-speech-http",
-      "https://deepinfra.com/openai/whisper-large-v3/api?example=openai-speech-js",
       "https://deepinfra.com/openai/whisper-large-v3-turbo/api",
-      "https://deepinfra.com/openai/whisper-large-v3-turbo/api?example=openai-speech-http",
-      "https://deepinfra.com/openai/whisper-large-v3-turbo/api?example=openai-speech-js",
       "https://deepinfra.com/Qwen/Qwen3-ASR-0.6B/api",
       "https://deepinfra.com/Qwen/Qwen3-ASR-1.7B/api",
       "https://deepinfra.com/mistralai/Voxtral-Mini-3B-2507/api",
@@ -23,7 +24,9 @@
       "https://deepinfra.com/deepseek-ai/DeepSeek-V4.1-Flash/api"
     ],
     "STT": [
-      "https://docs.deepinfra.com/api-reference/audio/openai-audio-transcriptions.md"
+      "https://docs.deepinfra.com/api-reference/audio/openai-audio-transcriptions.md",
+      "https://docs.deepinfra.com/apis/speech.md",
+      "https://docs.deepinfra.com/tutorials/whisper.md"
     ],
     "OCR": [
       "https://docs.deepinfra.com/api-reference/chat-completions/openai-chat-completions.md",

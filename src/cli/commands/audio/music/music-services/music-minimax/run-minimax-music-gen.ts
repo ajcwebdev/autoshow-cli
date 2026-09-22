@@ -19,13 +19,6 @@ const MINIMAX_MUSIC_AUDIO_SETTING = {
   format: 'mp3'
 } as const
 const MINIMAX_MUSIC_AUDIO_MIME_TYPE = 'audio/mpeg'
-/**
- * The generation response inlines the whole track as hex, so the JSON is about twice the audio
- * size. At the requested 256 kbps (32 KB per second) the shared 16 MiB HTTP capture limit truncates
- * a track longer than roughly four minutes; 64 MiB covers about sixteen minutes of that bitrate.
- */
-const MINIMAX_MUSIC_RESPONSE_CAPTURE_BYTES = 64 * 1024 * 1024
-
 const MinimaxLyricsResponseSchema = v.object({
   song_title: v.optional(v.string(), undefined),
   style_tags: v.optional(v.string(), undefined),
@@ -143,8 +136,7 @@ const requestMusicGeneration = async (
         responseContext: 'MiniMax music generation response',
         baseRespContext: 'MiniMax music generation',
         stage: 'music:minimax',
-        httpErrorMessage: 'MiniMax music generation failed',
-        maxResponseBytes: MINIMAX_MUSIC_RESPONSE_CAPTURE_BYTES
+        httpErrorMessage: 'MiniMax music generation failed'
       }
     )
   } catch (error) {

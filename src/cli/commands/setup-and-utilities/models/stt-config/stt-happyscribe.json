@@ -5,7 +5,7 @@
     "models": {
       "auto": {
         "description": "Automatic Happy Scribe STT with fixed en-US language and diarization enabled by default",
-        "pricingSourceUrl": "https://www.happyscribe.com/api/pricing",
+        "pricingSourceUrl": "https://www.happyscribe.com/pricing",
         "pricingCheckedAt": "2026-05-31",
         "pricingCurrency": "USD",
         "pricingTier": "Happy Scribe Product API automatic transcription reference pricing",

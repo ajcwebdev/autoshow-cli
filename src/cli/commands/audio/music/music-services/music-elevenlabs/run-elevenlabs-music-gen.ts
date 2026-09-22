@@ -14,6 +14,7 @@ import { createProviderRestClient } from '~/utils/rest-client'
 import { InfraError, ProviderError, ValidationError } from '~/utils/error-handler'
 import { DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS } from '~/cli/commands/audio/music/music-utils/music-pricing'
 import { buildElevenLabsCompositionPlan } from './elevenlabs-composition-plan'
+import { readHttpPayloadBytes } from '~/utils/http-payload'
 
 export const ELEVENLABS_MIN_DURATION_SECONDS = 3
 export const ELEVENLABS_MAX_DURATION_SECONDS = 600
@@ -202,7 +203,7 @@ export const runElevenLabsMusicGen = async (
           })
 
           return {
-            bytes: new Uint8Array(await response.arrayBuffer()),
+            bytes: await readHttpPayloadBytes(response, 'ElevenLabs music audio', { stage: 'music:elevenlabs' }),
             mimeType: response.headers.get('content-type')?.split(';')[0]?.trim() || undefined,
             requestId: readElevenLabsRequestId(response.headers)
           } satisfies ElevenLabsMusicResponseAudio

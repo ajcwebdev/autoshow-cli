@@ -4,16 +4,16 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-09-18
-- **Date Updated:** 2026-09-18
+- **Date Updated:** 2026-09-22
 - **Verification Status:** Passed
 
 ## Context
 
-A run's `manifest.json` identified each provider target by service and model but did not record the settings sent to it. Every command builds its provider entries through `createProviderStatesFromRecord`, and most commands passed only `{ service, model }`, so `providers[].options` was `{}`. TTS kept its resolved controls in `render-plan.json`, which compact archiving deletes; `render.json` keeps only hashes. Image, video, and music recorded some request values in item metadata, inconsistently by provider. `write` wrote no provider entries at all. STT and OCR recorded most of their options; URL recorded none.
+A run's `manifest.json` named each provider by service and model, but not the settings sent to it. Most commands left `providers[].options` empty. TTS kept its resolved controls in `render-plan.json`, which compact archiving deletes; `render.json` keeps output paths and slot metadata, not those controls. Image, video, and music stored some request values in item metadata, differently for each provider. `write` wrote no provider entries. STT and OCR recorded most of their options; URL recorded none.
 
-Two constraints limited where the record could live. `options` is frozen for audio targets after the first write (`assertAudioProviderIdentity`), so adding TTS settings there would break resume of every existing TTS directory. STT resume reads flat keys from `options`, so nesting settings inside it would break STT resume.
+Two constraints limited where the record could live. `options` is frozen for audio targets after the first write, so adding TTS settings there would break resume of every existing TTS directory. STT resume reads flat keys from `options`, so nesting settings inside it would break STT resume.
 
-Recording must also stay outside every identity hash. [ADR-025](ADR-025-master-tts-delivery-audio-outside-paid-slot-identity.md) freezes paid slot identity so purchased audio is never repurchased; a record that fed any hash would reintroduce that risk.
+The record must also stay outside every identity hash. [ADR-025](ADR-025-master-tts-delivery-audio-outside-paid-slot-identity.md) freezes paid slot identity so purchased audio is never repurchased; a record that fed any hash would reintroduce that risk.
 
 Why now: comparing nine audiobook runs across Speechify, ElevenLabs, and Inworld, there was no way to confirm from the output that `--tts-stability 0.8`, `--tts-seed`, or `--tts-speed 0.9` reached the provider.
 
@@ -21,10 +21,10 @@ Why now: comparing nine audiobook runs across Speechify, ElevenLabs, and Inworld
 
 **Option 1 (selected)**
 
-- **Option:** Add one optional `settings` field to every provider entry: a versioned envelope `{ schemaVersion, settingsSchema, request, local?, ignored? }` built by one shared helper, derived from the values each command already resolves, and excluded from identity checks and hashes.
-- **Pros:** One predictable location for every command; no change to `options`, so audio and STT resume are untouched; can be refreshed on finalize and resume.
-- **Cons:** Each command still has to pass its resolved request to the helper; older run directories have no record.
-- **Quantitative Notes:** Render identity, synthesis settings hash, output profile hash, voice context key, and per-slot request-control hashes were byte-identical between `HEAD` and this change for all eight hosted TTS providers.
+- **Option:** Add one optional `settings` field to every provider entry: a versioned envelope `{ schemaVersion, settingsSchema, request, local?, ignored? }`, derived from the values each command already resolves, and excluded from identity checks and hashes.
+- **Pros:** One predictable location for every command; no change to `options`, so audio and STT resume are untouched; the record can be refreshed on finalize and resume.
+- **Cons:** Only a command that supplies its resolved request gets a record; older run directories have none.
+- **Quantitative Notes:** Identity hashes for all eight hosted TTS providers stayed byte-identical.
 
 **Option 2**
 
@@ -42,40 +42,40 @@ Why now: comparing nine audiobook runs across Speechify, ElevenLabs, and Inworld
 
 ## Decision
 
-Each provider entry may carry `settings`, built by `createProviderSettingsRecord` in `src/cli/commands/command-shared/pipeline-manifest/provider-settings-record.ts`. `request` holds the effective values sent to the provider with defaults filled in, `local` holds local processing that shapes the output, and `ignored` lists flags a model accepts but does not apply. The helper drops empty values, stores paths relative to the project root, and redacts secret-like keys with `sanitizeArtifactMetadata`. Content files such as lexicons and prompt files are recorded by path and sha256 where the caller can read them.
+Each provider entry may carry `settings`. `request` holds the effective values sent to the provider, with defaults filled in. `local` holds local processing that shapes the output. `ignored` lists flags a model accepts but does not apply. Empty values are omitted. Paths inside the project are stored relative to the project root. Secret-like values are redacted. Lexicons and prompt files are recorded by path and sha256.
 
 This applies to:
 
-- `tts` and comic audio, where settings derive from the pure render plan (the serializer descriptor controls, which dispatch is already checked against, plus the resolved voice) and from the resolved delivery, chunking, export, and lexicon options.
-- `image`, `video`, and `music`, where each provider collector exposes the request object it passes to the runner.
-- `write`, which now writes one provider entry per successful LLM target.
-- `extract` STT, OCR, and URL; comic images and sound effects.
-- Generation and TTS resume, which keep the stored record and refresh it for targets they run again.
+- `tts` and comic audio: the resolved voice, and the delivery, chunking, export, and lexicon options sent to the provider.
+- `image`, `video`, and `music`: the request sent to the provider.
+- `write`: one provider entry per successful LLM target.
+- `extract` STT, OCR, and URL, plus comic images and sound effects.
+- Generation and TTS resume: the stored record is kept, and refreshed for targets that run again.
 
 It does not apply to:
 
-- Any identity or hash. `settings` never enters `purePlan`, request controls, slot hashes, or render identity, and the audio immutability check ignores it.
+- Paid-slot identity, render identity, or the audio immutability check. `settings` is ignored by all of them.
 - Measured outputs such as observed loudness or duration, which belong to render evidence.
-- Run directories created before this change; they are not backfilled.
+- Run directories created before this change. They stay without `settings`.
 
 ## Rationale
 
 - A dedicated field avoids both resume constraints from Context without migrating existing manifests.
-- Deriving TTS settings from the plan rather than from runtime options makes fresh, recovered, and reused renders record the same values, and those values are the ones already verified against every dispatched request.
-- One helper gives every command the same sanitizing and path rules, so no command can leak an API key, a PDF password, or a checkout path.
+- Recording the values already checked against what was sent means a fresh run, a recovered run, and a reused render show the same settings.
+- The same redaction and path rules apply to every command, so the record cannot contain an API key, a PDF password, or a checkout path.
 
 ## Consequences
 
 Positive outcomes:
 
-- A run record shows exactly which provider controls and local settings produced its output.
-- A non-wav Mistral `--tts-response-format` now plans the same format dispatch sends; previously the plan hard-coded `wav` and dispatch was blocked with "serializer controls differ".
+- A run record shows which provider controls and local settings produced its output.
+- Existing audio and STT directories still resume, because `options` is unchanged.
 
 Negative outcomes:
 
 - Free-text instructions, descriptions, and voice preview text are stored verbatim.
-- Lyrics files are recorded by path only, without a hash, because the music collectors are synchronous.
-- Failed LLM targets in `write` still get no provider entry.
+- Lyrics files are recorded by path only, without a hash.
+- Failed LLM targets in `write` are omitted from provider entries.
 
 ## Trade-offs
 
@@ -103,7 +103,3 @@ Negative outcomes:
 - `src/cli/commands/command-shared/pipeline-manifest/manifest-record-projection.ts`
 - `src/cli/commands/audio/tts/script-to-audio/tts-provider-settings.ts`
 - `src/cli/commands/command-shared/generation-command-utils.ts`
-- `test/test-cases/validation/audio/tts/tts-provider-settings-record.test.ts`
-- `test/test-cases/validation/resume-manifests/generation-provider-settings-contracts.test.ts`
-- `test/test-cases/validation/text/write/write-provider-settings-contracts.test.ts`
-- `test/test-cases/validation/text/extract-provider-settings-contracts.test.ts`

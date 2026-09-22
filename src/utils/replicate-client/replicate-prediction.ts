@@ -1,7 +1,8 @@
 import { REPLICATE_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { buildCaptureMetadata, redactPayloadPreview } from '~/utils/bounded-capture'
 import { AppProviderError, InfraError, ValidationError } from '~/utils/error-handler'
-import { createProviderRestClient, isRecord, joinRestUrl, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
+import { readHttpPayloadText } from '~/utils/http-payload'
+import { createProviderRestClient, isRecord, joinRestUrl, parseJsonOrText } from '~/utils/rest-client'
 import { classifyFetchRetry, classifyPaidCreateRetry, isRetryableStatus, pollUntil, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import type { BoundedCaptureResult, ReplicateFetchOptions, ReplicatePrediction, RetryClass, RunReplicatePredictionOptions } from '~/types'
@@ -157,8 +158,7 @@ const fetchReplicateJson = async (
     stage,
     retryClass
   })
-  const captured = await readRestResponseText(response)
-  return captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
+  return parseJsonOrText(await readHttpPayloadText(response, 'Replicate API response', { stage }))
 }
 
 export const runReplicatePrediction = async (

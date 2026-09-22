@@ -1,4 +1,3 @@
-import { writeFileExact } from '~/utils/bun-file-io'
 
 import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { tmpdir } from 'node:os'
@@ -10,6 +9,7 @@ import type { EstimateOcrTokenUsageOptions, HostedOcrEstimateOptions, HostedOcrT
 import { resolveHostedOcrTokenUsageEstimate } from '../ocr-utils/hosted-ocr-token-profiles'
 import { computeOcrTokenCost } from '~/utils/pricing/ocr-token-pricing'
 import { UsageError, InfraError, ValidationError } from '~/utils/error-handler'
+import { writeHttpPayloadToFile } from '~/utils/http-payload'
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp', '.gif', '.bmp'] as const
 const DEFAULT_EXTRACT_PAGE_COUNT = 1
@@ -87,8 +87,7 @@ const downloadToTemp = async (url: string): Promise<string> => {
   const tempPath = join(tmpdir(), `autoshow-price-${crypto.randomUUID()}.pdf`)
   const response = await fetch(url)
   if (!response.ok) throw InfraError(`Failed to fetch ${url}: ${response.status}`, { stage: 'ocr:extract-pricing', status: response.status })
-  const buffer = Buffer.from(await response.arrayBuffer())
-  await writeFileExact(tempPath, buffer)
+  await writeHttpPayloadToFile(response, tempPath)
   return tempPath
 }
 

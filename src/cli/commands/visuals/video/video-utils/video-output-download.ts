@@ -1,1 +1,1 @@
-export { downloadGeneratedVideo as downloadVideoOutputBytes } from '~/utils/polled-job-client/polled-job'
+export { downloadGeneratedVideo as downloadVideoOutput } from '~/utils/polled-job-client/polled-job'

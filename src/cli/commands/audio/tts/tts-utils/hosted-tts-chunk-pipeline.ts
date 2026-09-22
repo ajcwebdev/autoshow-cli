@@ -1,10 +1,34 @@
-import type { HostedTtsChunkPipelineOptions, Step4Metadata } from '~/types'
+import type { HostedTtsChunkPipelineOptions, HostedTtsInlineAudioResponse, Step4Metadata } from '~/types'
 import { rm } from 'node:fs/promises'
 import { concatAndConvertToWav, requireHostedTtsChunkScheduler, runTtsChunks } from '~/cli/commands/audio/tts/tts-utils/audio-utils'
 import { finalizeTtsRun } from '~/cli/commands/audio/tts/tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-retry'
 import { InfraError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
+import { assertInlineMediaResponseFits } from '~/utils/http-payload'
+
+// Deliberately slow narration for headroom. This is a heuristic, not a hard duration bound:
+// delivery tags, text normalization and provider behavior can lengthen the actual result.
+const SLOWEST_SPEECH_CHARACTERS_PER_SECOND = 8
+// Word and phoneme timestamps returned alongside the audio.
+const INLINE_TIMING_ENVELOPE_BYTES_PER_CHARACTER = 64
+
+export const assertInlineSpeechResponsesFit = (
+  providerLabel: string,
+  stage: string,
+  chunks: readonly string[],
+  response: HostedTtsInlineAudioResponse
+): void => {
+  const speed = typeof response.speed === 'number' && response.speed > 0 ? response.speed : 1
+  for (const [index, chunk] of chunks.entries()) {
+    const seconds = chunk.length / SLOWEST_SPEECH_CHARACTERS_PER_SECOND / speed
+    assertInlineMediaResponseFits(`${providerLabel} TTS chunk ${index + 1} of ${chunks.length}`, {
+      mediaBytes: Math.ceil(seconds * response.audioBytesPerSecond),
+      encoding: response.encoding,
+      envelopeBytes: chunk.length * INLINE_TIMING_ENVELOPE_BYTES_PER_CHARACTER
+    }, { stage })
+  }
+}
 
 export const runHostedTtsChunkPipeline = async (
   options: HostedTtsChunkPipelineOptions
@@ -14,6 +38,10 @@ export const runHostedTtsChunkPipeline = async (
   const progressInterval = Math.max(1, Math.ceil(chunks.length / 10))
   let completedChunkCount = 0
   let completed = false
+
+  if (options.inlineAudioResponse) {
+    assertInlineSpeechResponsesFit(providerLabel, `tts:${provider}`, chunks, options.inlineAudioResponse)
+  }
 
   try {
     const orderedChunkPaths = await runTtsChunks(chunks, async (chunk, index, admission) => {

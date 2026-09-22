@@ -1,6 +1,7 @@
 import { writeFileExact } from '~/utils/bun-file-io'
 
 import { ProviderError } from '~/utils/error-handler'
+import { readHttpPayloadText } from '~/utils/http-payload'
 
 export const saveNativeSubtitle = async (
   outputBase: string,
@@ -22,5 +23,5 @@ export const saveNativeSubtitle = async (
 export const fetchNativeSubtitle = async (url: string, headers: Record<string, string> = {}): Promise<string> => {
   const response = await fetch(url, { headers, signal: AbortSignal.timeout(60_000) })
   if (!response.ok) throw ProviderError(`Subtitle export failed: HTTP ${response.status}`, { stage: 'stt:subtitle-export', status: response.status, retryable: false })
-  return await response.text()
+  return await readHttpPayloadText(response, 'Subtitle export response', { stage: 'stt:subtitle-export' })
 }

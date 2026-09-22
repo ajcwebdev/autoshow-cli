@@ -84,12 +84,13 @@ test('readiness bounds stalled response bodies and refuses requests after the op
 test('setup and diagnostic children preserve tool settings without secrets', async () => {
   const { buildSetupChildEnv } = await import('~/cli/create-cli')
   const { buildNetworkProbeChildEnv } = await import('~/cli/commands/setup-and-utilities/setup/network-check')
-  await withEnv({ OPENAI_API_KEY: 'opaque-child-secret', AUTOSHOW_TEST_UNRELATED_SECRET: 'opaque-child-secret', AUTOSHOW_DISABLE_HTTP_KEEPALIVE: '1' }, async () => {
+  await withEnv({ OPENAI_API_KEY: 'opaque-child-secret', AUTOSHOW_TEST_UNRELATED_SECRET: 'opaque-child-secret', AUTOSHOW_DISABLE_HTTP_KEEPALIVE: '1', AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES: '1073741824' }, async () => {
     for (const env of [buildSetupChildEnv(), buildNetworkProbeChildEnv(1234)]) {
       const child = Bun.spawnSync([process.execPath, '--no-env-file', '-e', 'console.log(JSON.stringify(process.env))'], { env, stdout: 'pipe', stderr: 'pipe' })
       expect(child.exitCode).toBe(0)
       expect(child.stdout.toString()).not.toContain('opaque-child-secret')
       expect(JSON.parse(child.stdout.toString())['AUTOSHOW_DISABLE_HTTP_KEEPALIVE']).toBe('1')
+      expect(JSON.parse(child.stdout.toString())['AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES']).toBe('1073741824')
     }
     expect(buildNetworkProbeChildEnv(1234)['AUTOSHOW_NETWORK_CHECK_CHILD_TIMEOUT_MS']).toBe('1234')
   })

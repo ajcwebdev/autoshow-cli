@@ -4,7 +4,7 @@ import { runVideoGeneration } from '~/cli/commands/command-shared/media-generati
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/visuals/video/video-utils/video-pricing'
 import { normalizeLumaVideoAspectRatio, normalizeLumaVideoDuration, normalizeLumaVideoResolution } from '~/cli/commands/visuals/video/video-utils/video-normalization'
 import { videoMediaReferenceToUrlOrDataUrl } from '~/cli/commands/visuals/video/video-utils/video-media-inputs'
-import { downloadVideoOutputBytes } from '~/cli/commands/visuals/video/video-utils/video-output-download'
+import { downloadVideoOutput } from '~/cli/commands/visuals/video/video-utils/video-output-download'
 import { LUMALABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { LumalabsGenerationSchema, runPolledJob } from '~/utils/polled-job-client/polled-job'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
@@ -111,7 +111,7 @@ export const runLumalabsVideoGen = async (
       }
 
       const outputPath = context.artifactPath()
-      await Bun.write(outputPath, await downloadVideoOutputBytes(videoUrl, 'Luma Labs'))
+      await downloadVideoOutput(videoUrl, 'Luma Labs', outputPath)
 
       return {
         artifactPaths: [outputPath],

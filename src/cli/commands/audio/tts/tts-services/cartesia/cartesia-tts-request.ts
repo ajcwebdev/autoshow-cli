@@ -3,7 +3,9 @@ import { UsageError } from '~/utils/error-handler'
 
 const SONIC_36_LANGUAGES = new Set('en fr de es pt zh ja hi it ko nl pl ru sv tr tl bg ro ar cs el fi hr ms sk da ta uk hu no vi bn th he ka id te gu kn ml mr pa or ur'.split(' '))
 
-export const cartesiaTtsApiVersion = (_model: string): string => '2026-08-14'
+export const CARTESIA_API_VERSION = '2026-08-14'
+
+export const cartesiaTtsApiVersion = (_model: string): string => CARTESIA_API_VERSION
 export const cartesiaTtsVoiceField = (_model: string): string => 'voice'
 
 export const validateCartesiaTtsLanguage = (model: string, language?: string): string | undefined => {

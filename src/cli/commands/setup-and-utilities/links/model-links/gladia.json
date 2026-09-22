@@ -6,10 +6,13 @@
     "General": [
       "https://docs.gladia.io/api-reference.md",
       "https://docs.gladia.io/api-reference/authentication.md",
-      "https://docs.gladia.io/chapters/integrations/sdk.md",
-      "https://raw.githubusercontent.com/gladiaio/sdk/refs/heads/main/packages/sdk-js/README.md",
       "https://docs.gladia.io/chapters/limits-and-specifications/concurrency.md",
-      "https://docs.gladia.io/chapters/limits-and-specifications/supported-formats.md"
+      "https://docs.gladia.io/chapters/limits-and-specifications/supported-formats.md",
+      "https://docs.gladia.io/chapters/limits-and-specifications/data-retention.md",
+      "https://api.gladia.io/openapi.json"
+    ],
+    "Models": [
+      "https://docs.gladia.io/chapters/introduction/models.md"
     ],
     "STT": [
       "https://docs.gladia.io/chapters/pre-recorded-stt/quickstart.md",
@@ -17,9 +20,9 @@
       "https://docs.gladia.io/chapters/audio-intelligence/speaker-diarization.md",
       "https://docs.gladia.io/api-reference/v2/upload/audio-file.md",
       "https://docs.gladia.io/api-reference/v2/pre-recorded/init.md",
-      "https://docs.gladia.io/api-reference/v2/pre-recorded/webhook/created.md",
-      "https://docs.gladia.io/api-reference/v2/pre-recorded/webhook/success.md",
-      "https://docs.gladia.io/api-reference/v2/pre-recorded/webhook/error.md",
+      "https://docs.gladia.io/api-reference/v2/pre-recorded/get.md",
+      "https://docs.gladia.io/chapters/audio-intelligence/subtitles.md",
+      "https://docs.gladia.io/chapters/language/supported-languages.md",
       "https://www.gladia.io/pricing"
     ]
   }

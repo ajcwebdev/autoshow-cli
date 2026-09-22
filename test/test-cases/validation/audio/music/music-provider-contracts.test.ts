@@ -119,7 +119,7 @@ describe('music provider contracts', () => {
     })
   })
 
-  // The whole track arrives inline as hex, so this response must not be bound by the shared HTTP capture default.
+  // The whole track arrives inline as hex. Diagnostic capture is shrunk here to show it no longer governs a successful body.
   test('MiniMax music generation reads a track larger than the shared capture default', async () => {
     const longAudio = new Uint8Array(96 * 1024).fill(7)
     const longAudioHex = Buffer.from(longAudio).toString('hex')

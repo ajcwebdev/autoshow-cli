@@ -9,9 +9,16 @@ export const resolveInworldTtsApiModelId = (model: InworldTtsModel): string => {
   }
 }
 
+const INWORLD_TTS_SAMPLE_RATE_HERTZ = 48000
+/**
+ * Inworld documents WAV as uncompressed 16-bit samples at the requested rate. Channel count is
+ * undocumented, so mono is assumed and the pipeline's slow-speech estimate absorbs the difference.
+ */
+export const INWORLD_TTS_AUDIO_BYTES_PER_SECOND = INWORLD_TTS_SAMPLE_RATE_HERTZ * 2
+
 const audioConfig = (speed?: number) => {
   if (speed !== undefined && (!Number.isFinite(speed) || speed < 0.5 || speed > 1.5)) throw UsageError('Inworld speaking rate must be between 0.5 and 1.5.')
-  return { audioEncoding: 'WAV', sampleRateHertz: 48000, ...(speed !== undefined ? { speakingRate: speed } : {}) }
+  return { audioEncoding: 'WAV', sampleRateHertz: INWORLD_TTS_SAMPLE_RATE_HERTZ, ...(speed !== undefined ? { speakingRate: speed } : {}) }
 }
 
 export const inworldTtsRequestControls = (_model: string, steeringPrompt?: string, speed?: number) => {
