@@ -2,12 +2,14 @@ import { InfraError } from '~/utils/error-handler'
 import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
 import type { PolledJobCustomStep, PolledJobFailure, PolledJobStep } from '~/types'
+import { readHttpPayloadJson } from '~/utils/http-payload'
+import { readRestDiagnosticText } from '~/utils/rest-client'
 
 const isCustomStep = <T>(step: PolledJobStep<T>): step is PolledJobCustomStep<T> =>
   'run' in step
 
 const readHttpPayload = async (response: Response): Promise<unknown> =>
-  response.ok ? await response.json() as unknown : await response.text()
+  response.ok ? await readHttpPayloadJson(response, 'Polled job response') : await readRestDiagnosticText(response)
 
 const defaultErrorBody = (payload: unknown): string =>
   typeof payload === 'string' && payload.length > 0 ? payload : 'No response body'

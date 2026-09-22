@@ -4,9 +4,10 @@ import * as l from '~/utils/app-logger/app-logger'
 import type { FetchRemoteHtmlOptions, HtmlArticleBackend, RemoteHtmlFetchResult, UrlArticleRunResult, UrlArticleScrapeRunner, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { isAbortError, isRetryableStatus } from '~/utils/retries'
 import { resolveCredential } from '~/utils/validate/env-utils'
-import { InfraError, ProviderError, ValidationError } from '~/utils/error-handler'
+import { InfraError, isAppError, ProviderError, ValidationError } from '~/utils/error-handler'
 import { httpResponseError, httpResponseOptions, isRecord } from '~/utils/rest-client'
 import { formatErrorMessage } from '~/utils/value-helpers'
+import { readHttpPayloadJson, readHttpPayloadText } from '~/utils/http-payload'
 
 export { formatErrorMessage }
 
@@ -186,8 +187,9 @@ export const fetchUrlProviderJson = async (
 
   let payload: unknown
   try {
-    payload = await response.json()
-  } catch {
+    payload = await readHttpPayloadJson(response, `${providerLabel} ${action} response`)
+  } catch (error) {
+    if (isAppError(error)) throw error
     payload = null
   }
 
@@ -245,7 +247,7 @@ export const fetchRemoteHtml = async (
     throw InfraError(`Expected an HTML article response but received "${contentType || 'unknown'}"`, { stage: 'url:fetch' })
   }
 
-  const html = await response.text()
+  const html = await readHttpPayloadText(response, 'Article HTML response', { stage: 'url:fetch' })
   return {
     html,
     finalUrl: cleanString(response.url) ?? source,

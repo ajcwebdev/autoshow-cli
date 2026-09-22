@@ -1,5 +1,6 @@
 import type { BatchItem, BatchSource } from '~/types'
 import { parsePodcastFeedXml } from './metadata-podcast-rss'
+import { readHttpPayloadText } from '~/utils/http-payload'
 
 const PODCAST_HOST_PATTERNS: RegExp[] = [
   /feeds\.megaphone\.fm/i,
@@ -54,7 +55,7 @@ export const tryEnumeratePodcastFeed = async (url: string): Promise<BatchSource 
   try {
     const resp = await fetch(url, { redirect: 'follow' })
     if (!resp.ok) return null
-    xml = await resp.text()
+    xml = await readHttpPayloadText(resp, 'Podcast RSS feed')
   } catch {
     return null
   }

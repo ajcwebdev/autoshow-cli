@@ -8,6 +8,7 @@ import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retrie
 import { LINKS_FETCH_TIMEOUT_MS } from '~/utils/timeouts'
 import { formatErrorMessage } from '~/utils/value-helpers'
 import { checkHtmlConversion } from './links-conversion-check'
+import { readHttpPayloadText } from '~/utils/http-payload'
 
 export const HTML_MIME_HINTS = ['text/html', 'application/xhtml+xml'] as const
 
@@ -46,7 +47,7 @@ export const downloadUrl = async (
     }
 
     const contentType = (response.headers.get('content-type') ?? '').toLowerCase()
-    const fetchedText = (await response.text()).trim()
+    const fetchedText = (await readHttpPayloadText(response, 'Link content')).trim()
 
     return {
       contentType,

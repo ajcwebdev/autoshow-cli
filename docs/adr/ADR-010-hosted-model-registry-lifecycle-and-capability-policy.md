@@ -4,19 +4,19 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-13
-- **Date Updated:** 2026-09-17
+- **Date Updated:** 2026-09-22
 - **Verification Status:** Passed
-- **Supersession:** Replaces per-modality registry and reasoning configurations. Owns the durable registry, lifecycle, capability, and reasoning policy shared by the write, OCR, STT, TTS, music, image, and video registries. Catalog history and user-facing model docs live in the hosted registries under `src/cli/commands/setup-and-utilities/models/` and the command overviews under `docs/commands/` (especially `docs/commands/03-write/overview.md`); paid-approval gates, calibration evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
+- **Supersession:** Replaces per-modality registry and reasoning configurations. This record remains the accepted authority for selector identity, lifecycle, capability, reasoning, and pricing across write, OCR, STT, TTS, music, image, and video. Dated catalogs stay in the live registries and command docs. Benchmark evidence stays in [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
 
 ## Context
 
-Hosted-model selectors are public CLI surfaces: flags, help, pricing, `--all-*` expansion, resume, manifests, and historical artifacts. A selector is a complete runtime promise, not a validator string. Concrete identity, lifecycle, pricing, defaults, capabilities, and resume behavior must move together. Moving aliases, billing-only variants, and transport-incompatible products are not equivalent model selectors.
+Hosted-model selectors are public CLI surfaces: flags, help, pricing, `--all-*` expansion, resume, manifests, and saved runs. A selector is a complete runtime promise. Concrete identity, lifecycle, pricing, defaults, capabilities, and resume behavior have to move together. A moving alias, a billing-only variant, and a product the CLI cannot call are different things.
 
-Separate lists for execution, public selection, pricing, and resume can compile while diverging at runtime, so one inventory must drive every downstream surface. Reasoning is part of that promise: hosted LLM-backed write and OCR previously used provider-local effort levels, binary thinking flags, or untoggled reasoning, which changed token usage, latency, pricing, manifests, and resume compatibility without a unified public control.
+Separate lists for execution, public selection, pricing, and resume can each look valid and still disagree at runtime. Reasoning belongs to the same promise. Hosted write and OCR previously used provider-local effort levels, a binary thinking flag, or no control, so token use, latency, price, manifests, and resume could change without one public flag.
 
-Lifecycle transitions also need a reusable contract. A deprecated model can remain cheaper than its successor, so array order and price alone cannot determine safe defaults. A wall-clock switch makes the same installed commit resolve differently over time. Removing a selector without historical rates breaks committed cost evidence, while silently substituting a successor misstates provider identity.
+Lifecycle needs one contract too. A deprecated model can be cheaper than its successor, so list order and price cannot pick a safe default. A wall-clock switch would make one installed commit resolve a different model later. Removing a selector without its old rates breaks cost evidence for finished runs. Substituting a successor would misstate which model ran.
 
-Why now: repeated refreshes across write/OCR, STT, TTS/music, and image/video each rediscovered the same rules per modality, so the registry contract needs one authority that dated catalogs and benchmark evidence can reference instead of restating.
+Why now: refreshes across write/OCR, STT, TTS/music, and image/video kept restating these rules, and dated catalogs and benchmark evidence need one policy to cite.
 
 ## Options Considered
 
@@ -57,93 +57,89 @@ Why now: repeated refreshes across write/OCR, STT, TTS/music, and image/video ea
 
 ## Decision
 
-Govern every hosted-model registry with one shared policy covering selector identity, runtime contract completeness, lifecycle metadata, pricing provenance, and normalized reasoning capability.
+Govern every hosted-model registry with one shared policy for selector identity, a complete runtime contract, lifecycle, pricing provenance, and one public reasoning control.
 
 This applies to:
 
-- The hosted write, OCR, STT, TTS, music, image, and video registries and every command that resolves selectors through them.
-- CLI surfaces fed by those registries: validation, defaults, `--all-*` expansion, help, pricing, resume, and manifests.
-- Historical pricing for retired selectors and their preserved rates.
+- The hosted write, OCR, STT, TTS, music, image, and video registries, and every command that resolves selectors through them.
+- Validation, defaults, `--all-*` expansion, help, pricing, resume, and manifests.
+- Historical pricing for retired selectors.
 
 It does not apply to:
 
 - Local inference template controls.
-- Dated refresh chronology (live catalogs and command docs under `src/cli/commands/setup-and-utilities/models/` and `docs/commands/`).
-- Benchmark evidence and calibration records (governed by [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)).
+- Dated catalog history in the live registries and `docs/commands/`.
+- Benchmark evidence and calibration records ([ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)).
 
-### Concrete selector identity and eligibility
+### Concrete selector identity
 
-Register concrete, reproducible provider identifiers for current, generally available models that fit an implemented AutoShow command lifecycle. Do not register moving `*-latest` or preview aliases when a concrete stable target exists, duplicate aliases that resolve to the same model, or free-tier names that differ only in billing or availability rather than generation behavior.
+Register a concrete, stable provider id for a current, generally available model the CLI can run. Leave out moving `*-latest` and preview aliases when a stable id exists, duplicate names for the same model, and free-tier names that differ only in billing. A product with no upstream model id may use one stable AutoShow selector, documented as a local name. An open-weight deployment qualifies only when its version is pinned and the CLI represents its request, output, price, and capability contract.
 
-A product without an upstream model ID may use one stable AutoShow-local selector, documented as a local product identity rather than a claimed upstream model ID. A hosted open-weight deployment may be registered only when its deployment or version is pinned and its complete request, output, price, and capability contract is locally represented.
+Routine refreshes leave out products the CLI cannot already run, including domain-specific, streaming, realtime, and reference-audio products. Those need their own decision. Hosted image selectors produce raster output.
 
-Routine registry refreshes exclude domain-specific, medical, human, retrieval, dedicated-endpoint, streaming, realtime, avatar, cover, reference-audio, or other products whose transport or input/output lifecycle is not already represented. Such products require a separate architectural decision. Image generation remains raster-only; SVG or vector output selectors are not part of the active hosted generation surface.
-
-Current purpose-specific siblings and documented quality, latency, or service tiers may coexist. A newer model does not automatically replace a sibling with materially different operations or price/quality trade-offs. A superseded generation is removed from active selection even if an endpoint remains temporarily callable.
+Current siblings and documented quality, latency, or service tiers may coexist. A newer model leaves a sibling in place when the operations or the price/quality trade-off differ. A superseded generation leaves active selection even if the endpoint still answers.
 
 ### Complete runtime contract
 
-Every selector addition, replacement, or retirement updates the public contract together: accepted selectors, published pricing and limits, bare-provider defaults, exact `--all-*` expansion, model-specific capabilities (modes, voices, languages, formats, durations, resolutions, references, and reasoning), CLI help and examples, price preflight, resume selection, and historical identity when active support ends.
+Adding, replacing, or retiring a selector updates the public contract together: accepted names, published prices and limits, bare-provider defaults, exact `--all-*` membership, model capabilities (modes, voices, languages, formats, durations, resolutions, references, and reasoning), help and examples, price preflight, resume, and the identity kept after active support ends.
 
-Execution, all-provider expansion, price planning, and resume share one provider/model inventory. A provider or model that can run can also be resumed. Extract public provider selectors follow the stored STT or OCR route, so a provider shared by both services cannot use the wrong target kind for a given item.
-
-Invalid model or control combinations fail locally before price calculation, credential lookup, or provider dispatch. Listing a selector never implies support for a control the selected model does not implement. One provider's historical identity is never reinterpreted as another provider's result.
+A provider or model that can run can also be resumed. Extract follows the STT or OCR route stored for that item, including when one provider serves both. Invalid model or control combinations fail locally before price calculation, credential lookup, or dispatch. A listed model exposes only the controls it implements. A stored result keeps the provider that produced it.
 
 ### Lifecycle, defaults, expansion, and retirement
 
-Hosted registry entries carry static lifecycle metadata: `status` (`active` or `deprecated`), optional `shutdownDate` and concrete `replacementModel`, `defaultEligible`, and `allExpansionEligible`. Entries without lifecycle metadata resolve as active and eligible.
+Write and OCR can record a model as active or deprecated, with an optional shutdown date, a concrete replacement, and whether it may be the bare-provider default or part of `--all-*`. Until a narrower status is recorded, the model stays active and eligible. Selection ignores the current date, including any recorded shutdown date, so one commit always resolves the same target.
 
-Deprecated entries require dated source evidence; dates must be valid ISO calendar dates; replacements must be concrete models in the same service; and moving aliases cannot be replacements. Selection never consults the current date, so a given commit always resolves the same target.
+A replacement is a concrete model in the same service. Deprecation, shutdown, and replacement are recorded as a transition. An active model stays eligible.
 
-Bare-provider selection uses the cheapest active `defaultEligible` model unless a documented provider policy deliberately pins one representative target. `--all-*` preserves stable registry order after filtering `allExpansionEligible`. An explicit selector remains independently additive only while it is active or deliberately supported during a transition.
+Bare-provider selection uses the cheapest active default-eligible model unless a documented provider policy pins one representative. `--all-*` keeps stable registry order and includes only expansion-eligible models. An explicit name stays valid on its own while the model is active or still supported for a transition.
 
-Retired selectors are rejected for new runs and absent from defaults, help, current config, and all-provider expansion. Direct selection returns replacement-aware guidance when a concrete successor exists and never silently substitutes it. Completed manifests and benchmark artifacts keep their stored model identity. An unfinished retired target cannot dispatch under that identity; selecting a successor creates a distinct additive target rather than rewriting canonical state.
+Retired names are rejected for new runs and omitted from defaults, help, current config, and `--all-*`. When a concrete successor exists, the error names it and leaves the stored identity unchanged. Finished manifests and benchmark artifacts keep the model they stored. An unfinished retired target cannot run under the old name. Choosing the successor adds a new target.
 
-Historical pricing records preserve removed model rates and request-shape facts needed to reprice committed artifacts. Recorded provider cost remains authoritative over reconstructed cost. Removing an active priced model means moving its rates to historical handling, not deleting its billing identity.
+Historical pricing keeps the rates of removed models so committed runs can be repriced. The cost recorded on a run remains the authority for that run. Retiring a priced model moves its rates into that history.
 
-### Pricing and calibration provenance
+### Pricing provenance
 
-Registry rates come from dated primary provider evidence and preserve the provider's actual units and tiers. Context-tier pricing uses explicit boundaries; flat pricing is not invented where a provider publishes none. Cached-input rates are recorded as provenance when applicable, while ordinary estimates use uncached rates unless the planner has trustworthy cache evidence. Token-priced OCR estimates follow the calibration rules in [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md).
+Rates come from dated provider evidence and keep that provider's units and tiers. Context tiers use the published boundaries. The registry records a flat rate only when the provider publishes one. Published cache rates stay on record. Ordinary estimates use the uncached rate unless the planner has trustworthy evidence that a cache applies. Token-priced OCR estimates follow [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md).
 
-New models may temporarily reuse the nearest same-family token, latency, or duration heuristic only when the registry labels it provisional and keeps published rates separate. OCR evidence does not authorize a write heuristic, and one quality or timing sample does not override published token rates. Calibration promotion requires the healthy, model/mode/reasoning-qualified evidence contract in ADR-009 and the paid-approval and evidence rules in [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
+A new model may temporarily reuse the nearest same-family token, latency, or duration heuristic when the registry marks that estimate provisional and keeps published rates separate. An OCR sample calibrates OCR estimates only. One quality or timing sample leaves published token rates in place. Promoting a heuristic uses the qualified evidence contract in ADR-009 and the paid-approval rules in [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
 
-### Normalized reasoning capability
+### Normalized reasoning
 
-Expose `--reasoning-effort <default|disabled|minimal|low|medium|high|xhigh|max>` as the single public reasoning control for hosted LLM-backed write and OCR workflows and central consumers that dispatch through them.
+`--reasoning-effort <default|disabled|minimal|low|medium|high|xhigh|max>` is the public reasoning control for hosted LLM write and OCR, and for commands that dispatch them.
 
-Each model declares whether reasoning is unsupported, optional, or required; whether `disabled` is legal; and which named levels it accepts. Unsupported combinations fail before pricing or dispatch; the CLI never silently downgrades, promotes, or reinterprets an effort.
+Each model states whether reasoning is unsupported, optional, or required, whether `disabled` is legal, and which of these levels it accepts. Unsupported combinations fail before pricing or dispatch.
 
-An omitted flag leaves each model's existing default behavior unchanged. Explicit `default` emits no override and delegates to the provider default.
+Omitting the flag leaves the model's existing default unchanged. Explicit `default` sends no override.
 
-Write and OCR manifests, estimates, result diagnostics, and resume identity record requested and effective reasoning policies whenever the flag affects behavior. Resume rejects an explicit policy that differs from stored effective policy. Provider-specific levels outside the seven-value surface, such as `xhigh`, require an explicit public-enum expansion.
+When the flag affects behavior, write and OCR manifests, estimates, result diagnostics, and resume identity store the requested policy and the effective policy. Resume rejects an explicit policy that differs from the stored effective policy. A provider level outside these eight values is exposed only after the public enum grows to include it.
 
 ## Rationale
 
-- Concrete fixed IDs keep manifests, prices, benchmarks, and all-provider execution reproducible.
-- One selector contract prevents validator, pricing, resume, and documentation drift.
-- Shared execution and resume inventories prevent a provider or model from becoming fresh-run-only.
-- Static lifecycle metadata provides deterministic migrations without hardcoded defaults or date-driven behavior.
-- Preserving historical identities and rates protects evidence without continuing to advertise stale models.
-- One normalized reasoning concept keeps provider vocabulary out of the public CLI while model capabilities preserve real differences.
-- Separating durable policy from dated refresh catalogs and benchmark evidence keeps each authority discoverable.
+- Concrete fixed ids keep manifests, prices, benchmarks, and `--all-*` runs reproducible.
+- One selector contract keeps validation, pricing, resume, and help on the same names.
+- A shared run and resume inventory keeps every supported model resumable.
+- Static lifecycle metadata makes defaults and migrations deterministic on a given commit.
+- Preserved historical identities and rates keep finished runs attributable and repricable after the names leave help.
+- One reasoning flag keeps provider vocabulary out of the public CLI while each model still advertises the levels it accepts.
+- A durable policy, dated catalogs, and benchmark evidence stay findable because each has its own record.
 
 ## Consequences
 
 Positive outcomes:
 
 - Every hosted modality follows one identity, eligibility, retirement, pricing, validation, reasoning, resume, and historical-evidence contract.
-- Every supported provider or model can be selected additively through its matching resume command.
-- New models can declare capabilities without adding provider-specific public flags.
-- Deprecated models can leave automatic paid expansion before full retirement without changing behavior by date.
-- Historical outputs remain attributable and repricable after active selectors are removed.
-- Unsupported controls and retired targets fail before credentials, cost, quota use, or network access.
+- Every supported provider or model can be selected again through its resume command.
+- New models can declare capabilities without a new public flag for each provider.
+- A deprecated model can leave automatic paid expansion before it is fully retired, and a given commit keeps doing so.
+- Finished runs stay attributable and repricable after the selector leaves active help.
+- Unsupported controls and retired targets fail before credentials, spend, or network access.
 
 Negative outcomes:
 
-- Registry entries and per-model capability records require ongoing maintenance as provider products change.
-- Active selector surfaces and help grow as documented siblings and capability variants are added.
-- Provisional heuristics remain less precise until separately approved, qualified calibration evidence exists.
-- The normalized reasoning enum is intentionally not the union of every provider-specific level.
+- Registry entries and per-model capabilities need updates as provider products change.
+- Help grows as documented siblings and capability variants are added.
+- Provisional estimates stay coarse until qualified calibration evidence exists.
+- The public reasoning list is fixed at eight values until the enum is explicitly extended.
 
 ## Trade-offs
 
@@ -179,14 +175,13 @@ Negative outcomes:
 
 ## Implementation Note
 
-The policy ships in the hosted registries under `src/cli/commands/setup-and-utilities/models/` and the shared selector inventories under `src/cli/flags/service-selector-normalization/`. User-facing reasoning behavior is documented in `docs/commands/03-write/overview.md`. Live catalogs and command overviews under those paths are the durable record; there is no separate dated refresh-report tree. The 2026-08-22 speaker-aware STT catalog cut — removing Rev and retiring `universal-2`, `solaria-1`, and `enhanced` while keeping `universal-3-5-pro`, `melia-1`, and `solaria-3` — applies this retirement contract and is evidenced by the [speaker-aware STT combined report](../benchmarks/stt-with-speakers/combined-comparison-report.md).
+The policy is in force in the hosted registries under `src/cli/commands/setup-and-utilities/models/`. Command overviews under `docs/commands/` are the user-facing catalogs. Write reasoning behavior is documented in `docs/commands/03-write/overview.md`.
 
 ## API / Type Impact
 
-- Public model selectors are concrete active identities. Retired identities remain readable through historical rate records and stored artifacts.
-- Lifecycle metadata is optional and defaults to active and eligible until a transition is explicitly modeled.
-- `write`, hosted OCR `extract`, and matching resume paths accept the seven-value `--reasoning-effort` surface only where selected models advertise support.
-- Manifests distinguish omitted reasoning from explicit `default` and store requested and effective policy when the flag affects behavior.
+- Public selectors are concrete active identities. Retired identities remain on stored runs and in historical rates.
+- `write`, hosted OCR `extract`, and their resume paths accept the eight `--reasoning-effort` values only where the selected model advertises support.
+- Manifests distinguish an omitted flag from explicit `default`, and store the requested and effective policy when the flag changes behavior.
 
 ## Test Plan
 
@@ -201,17 +196,18 @@ bun test test/test-cases/validation/reports-pricing/historical-model-rate-contra
 bun test test/test-cases/validation/providers/provider-selection-contracts/
 bun test test/test-cases/validation/resume-manifests/resume-provider-*-contracts.test.ts
 ```
+
 1. Types, formatting, and price-mode contracts after registry or capability changes.
 2. Accepted selectors, `--reasoning-effort` parsing, omitted versus explicit-default behavior, retired-selector rejection, and local failure of unsupported model/control combinations.
-3. Dated evidence, same-service replacements, no moving aliases, and repricing of committed artifacts after retirement.
-4. Deterministic defaults, exact `--all-*` expansion, execution-to-resume inventory parity, and replacement-aware guidance without silent substitution.
+3. Dated evidence, same-service replacements, stable ids, and repricing of committed artifacts after retirement.
+4. Deterministic defaults, exact `--all-*` expansion, run-to-resume inventory parity, and successor guidance that preserves the stored identity.
 
 Verification is local and no-cost.
 
 ## Follow-up Actions
 
 - [ ] Calibrate materially different reasoning levels and provisional model heuristics — Blocked on explicit approval for paid benchmark runs
-- [ ] Evaluate provider-specific reasoning levels outside the seven-value surface through explicit public-enum expansion — Pending
+- [ ] Evaluate provider-specific reasoning levels outside the eight-value surface through explicit public-enum expansion — Pending
 
 ## References
 
@@ -224,6 +220,5 @@ Verification is local and no-cost.
 - Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md) — character voice and multi-speaker architecture
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — soundscape and multi-track pipeline
 - Live model catalogs: `src/cli/commands/setup-and-utilities/models/`
-- Shared selector inventories: `src/cli/flags/service-selector-normalization/`
-- User-facing write/reasoning docs: `docs/commands/03-write/overview.md`
-- STT catalog-cut evidence: [docs/benchmarks/stt-with-speakers/combined-comparison-report.md](../benchmarks/stt-with-speakers/combined-comparison-report.md)
+- User-facing model docs: `docs/commands/`
+- Write reasoning docs: `docs/commands/03-write/overview.md`

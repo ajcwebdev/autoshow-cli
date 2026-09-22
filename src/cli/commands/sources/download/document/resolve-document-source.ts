@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { CONVERTIBLE_EBOOK_EXTENSIONS } from '~/cli/commands/sources/metadata/formats/metadata-convertible-ebooks'
 import { InfraError } from '~/utils/error-handler'
+import { writeHttpPayloadToFile } from '~/utils/http-payload'
 
 const extensionFromUrl = (
   url: string,
@@ -65,8 +66,7 @@ export const downloadDocumentUrlToTempFile = async (
   )
   const filePath = join(tempDir, `document${ext}`)
   try {
-    const bytes = await response.arrayBuffer()
-    await Bun.write(filePath, bytes)
+    await writeHttpPayloadToFile(response, filePath)
   } catch (error) {
     await rm(tempDir, { recursive: true, force: true })
     throw error

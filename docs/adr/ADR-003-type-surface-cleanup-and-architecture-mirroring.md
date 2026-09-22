@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-09-10
+- **Date Updated:** 2026-09-22
 - **Verification Status:** Passed
 
 ## Context
@@ -57,7 +57,7 @@ Why now: type ownership had to match those subsystem boundaries so later work in
 - **Option:** Leave `src/types` and `migrated/` unchanged
 - **Pros:** Zero edit risk
 - **Cons:** Keeps unnecessary aliases and treats migration staging as permanent architecture
-- **Quantitative Notes:** 0 cleanup
+- **Quantitative Notes:** n/a
 
 ## Decision
 
@@ -89,14 +89,12 @@ It does not apply to:
 Positive outcomes:
 
 - The exported `~/types` surface is smaller, and remaining type files live with the subsystem they support.
-- `migrated/` is gone; later type work is reviewed by subsystem rather than against a staging namespace.
-- Reviews of ingestion, pipeline-state, and extract code can follow the same boundaries as [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), and [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md).
+- `migrated/` is gone. Later type work, including ingestion, pipeline-state, and extract reviews, follows the same boundaries as [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), and [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md).
 
 Negative outcomes:
 
 - Inlined shapes can be harder to read when they grow large.
 - The public barrel must stay aligned with subsystem files, and placing a cross-cutting contract in `pipeline-core/` versus `runtime-core/` remains a judgment call.
-- Multi-use and multi-reference declarations were left for later cleanup.
 
 ## Trade-offs
 
@@ -117,15 +115,11 @@ Negative outcomes:
 
 ## Implementation Note
 
-Single-use exports were removed or inlined and private single-parent aliases were folded into their parents. Remaining files live in subsystem and workflow directories under `src/types/`. `src/types/index.ts` is the only root file and the sole public `~/types` barrel. `src/types/migrated/` was removed without compatibility shims.
+The cleanup has shipped under `src/types/`. `src/types/index.ts` is the only root file and the sole public `~/types` barrel. `src/types/migrated/` was removed without compatibility shims.
 
 ### Bun 1.4 Image Declarations
 
-The 2026-08-31 evaluation removed redundant runtime declarations after confirming that Bun supplied the full type surface.
-
-Inspection of the installed `@types/bun@1.4.0` and `bun-types@1.4.0` declarations found the complete Bun.Image constructor, metadata, pipeline, and encoder declarations. All three runtime casts and all parallel local constructor declarations were removed. Production and tests now use `Bun.Image` directly, and the contract suite fails if a local constructor shim returns.
-
-The separate decision to retain TIFF conversion and ImageMagick routing is archived in [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md#bun-14-image-routing).
+The 2026-08-31 evaluation removed local `Bun.Image` constructor declarations because the installed Bun type packages already declare that surface. Production code uses `Bun.Image` directly. TIFF conversion and ImageMagick routing stay in [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md#bun-14-image-routing).
 
 ## API / Type Impact
 
@@ -142,9 +136,7 @@ bun run check
 ## Follow-up Actions
 
 - [ ] Review remaining multi-use exported declarations as a separate cleanup — Pending
-  These names were excluded because they still have more than one consumer.
 - [ ] Review remaining multi-reference non-exported declarations as a separate cleanup — Pending
-  These names were excluded because more than one parent still references them.
 
 ## References
 
@@ -153,4 +145,3 @@ bun run check
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
 - `src/types/`
 - `src/types/index.ts`
-- `test/test-cases/validation/runtime-contracts/bun-native-migration-contracts.test.ts`

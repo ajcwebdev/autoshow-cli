@@ -1,7 +1,8 @@
 import { AppError, type AppProviderError, ProviderError } from '~/utils/error-handler'
-import { buildCaptureMetadata, readBoundedResponseText, redactPayloadPreview } from '~/utils/bounded-capture'
+import { buildCaptureMetadata, captureDiagnosticText, readBoundedResponseText, redactPayloadPreview } from '~/utils/bounded-capture'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
-import type { BoundedCaptureResult, ProviderRestClientProfile, RetryClass } from '~/types'
+import { readHttpPayloadText } from '~/utils/http-payload'
+import type { BoundedCaptureResult, HttpPayloadClass, ProviderRestClientProfile, RetryClass } from '~/types'
 import { isRecord } from '~/utils/value-helpers'
 
 // Contract: native Error/DOMException abort and timeout causes may be constructed here
@@ -145,10 +146,14 @@ export const createProviderRestClient = <TOptions, TError extends Error>(
 export const resolveRestPath = (baseURL: string, path: string): string =>
   new URL(path.replace(/^\/+/, ''), baseURL.endsWith('/') ? baseURL : `${baseURL}/`).toString()
 
-export const readRestErrorText = async (response: Response): Promise<string> => {
-  const text = await response.text()
-  return text.trim() || `HTTP ${response.status}`
+/** Error-body text for diagnostics: whole when small, a redacted tail when it overflows bounded capture. */
+export const readRestDiagnosticText = async (response: Response): Promise<string> => {
+  const captured = await readRestResponseText(response)
+  return captured.truncated ? captured.sanitizedPreview : captured.text
 }
+
+export const readRestErrorText = async (response: Response): Promise<string> =>
+  (await readRestDiagnosticText(response)).trim() || `HTTP ${response.status}`
 
 export const joinRestUrl = (
   baseURL: string | undefined,
@@ -179,21 +184,20 @@ export const joinRestUrl = (
   }
 }
 
+/**
+ * Reads a successful JSON body whole. The payload class sizes the memory ceiling and defaults to
+ * `result`, because a provider may inline the media it was paid to generate.
+ */
 export const readJsonResponse = async (
   response: Response,
   errorMessagePrefix: string,
-  options: { invalidJsonMessagePrefix?: string | undefined, maxBytes?: number | undefined, stage?: string | undefined } = {}
+  options: { invalidJsonMessagePrefix?: string | undefined, maxBytes?: number | undefined, payloadClass?: HttpPayloadClass | undefined, stage?: string | undefined } = {}
 ): Promise<unknown> => {
-  const captured = await readRestResponseText(response, { maxBytes: options.maxBytes })
-  const rawText = captured.text
-  if (captured.truncated) {
-    throw new AppError(`${errorMessagePrefix} exceeded the ${captured.retainedBytes.toLocaleString()} byte response capture limit`, {
-      kind: 'validation',
-      stage: options.stage ?? 'rest:response-validation',
-      status: response.status,
-      metadata: buildCaptureMetadata(captured)
-    })
-  }
+  const rawText = await readHttpPayloadText(response, errorMessagePrefix, {
+    payloadClass: options.payloadClass,
+    maxBytes: options.maxBytes,
+    stage: options.stage ?? 'rest:response-validation'
+  })
 
   if (rawText.trim().length === 0) {
     return {}
@@ -207,11 +211,12 @@ export const readJsonResponse = async (
       stage: options.stage ?? 'rest:response-validation',
       cause: error instanceof Error ? error : new Error(String(error)),
       status: response.status,
-      metadata: buildCaptureMetadata(captured)
+      metadata: buildCaptureMetadata(captureDiagnosticText(rawText))
     })
   }
 }
 
+/** Bounded capture for diagnostics. Use `readJsonResponse` or `~/utils/http-payload` for a body that must be parsed. */
 export const readRestResponseText = async (
   response: Response,
   options: { maxBytes?: number | undefined } = {}

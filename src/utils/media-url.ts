@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import type { MaterializedMediaInput } from '~/types'
 import { InfraError } from '~/utils/error-handler'
+import { writeHttpPayloadToFile } from '~/utils/http-payload'
 
 const SAFE_FILE_NAME_PATTERN = /[^A-Za-z0-9._-]+/g
 
@@ -61,12 +62,11 @@ export const materializeMediaInput = async (
       throw InfraError(`HTTP ${response.status}`, { stage: 'download:media-url', status: response.status })
     }
 
-    const bytes = new Uint8Array(await response.arrayBuffer())
-    if (bytes.byteLength === 0) {
+    const size = await writeHttpPayloadToFile(response, outputPath)
+    if (size === 0) {
       throw InfraError('downloaded file is empty', { stage: 'download:media-url' })
     }
 
-    await Bun.write(outputPath, bytes)
     return {
       input: normalizedInput,
       path: outputPath,

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { findRepositoryStructureViolations } from '~/tools/repository-structure-check'
+import { findRawHttpBodyReads, findRepositoryStructureViolations } from '~/tools/repository-structure-check'
 import { triageImageAdvisories } from '~/tools/triage-image-advisories'
 
 test('repository structure rejects new root directories and Python sources while allowing nested tools', () => {
@@ -9,6 +9,32 @@ test('repository structure rejects new root directories and Python sources while
   expect(violations.join('\n')).toContain('scripts/')
   expect(violations.join('\n')).toContain('another-root/')
   expect(violations.join('\n')).toContain('src/nested/tool.py')
+})
+
+test('repository structure rejects raw HTTP body reads in source outside the payload reader', () => {
+  const raw = [
+    'const payload = await response.json()',
+    'const text = (await res.text()).trim()',
+    'const bytes = new Uint8Array(await audioResponse.arrayBuffer())',
+    'return await (uploadResponse).bytes()'
+  ]
+  for (const line of raw) expect(findRawHttpBodyReads('src/cli/commands/example.ts', line)).toHaveLength(1)
+
+  const allowed = [
+    'const payload = await readHttpPayloadJson(response, "Example response")',
+    'const text = await Bun.file(path).text()',
+    'const prior = await existing.json()',
+    'await request.arrayBuffer()',
+    'const data = await readJsonResponse(res, "Example response")'
+  ]
+  for (const line of allowed) expect(findRawHttpBodyReads('src/cli/commands/example.ts', line)).toEqual([])
+
+  expect(findRawHttpBodyReads('src/utils/http-payload.ts', raw[0] as string)).toEqual([])
+  expect(findRawHttpBodyReads('test/example.test.ts', raw[0] as string)).toEqual([])
+  const violations = findRepositoryStructureViolations(['src'], [], new Map(), new Map([['src/cli/commands/example.ts', `const ok = 1\n${raw[0]}`]]))
+  expect(violations).toHaveLength(1)
+  expect(violations[0]).toContain('src/cli/commands/example.ts:2')
+  expect(violations[0]).toContain('src/utils/http-payload.ts')
 })
 
 test('advisory triage retains duplicate match counts, distinct binaries, fixes and exact scan provenance', () => {

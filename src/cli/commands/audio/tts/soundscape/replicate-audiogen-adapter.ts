@@ -21,6 +21,7 @@ import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { SoundEffectProviderError } from './sound-effect-errors'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { REPLICATE_AUDIOGEN_MODEL_ID, REPLICATE_AUDIOGEN_PINNED_VERSION, REPLICATE_AUDIOGEN_SELECTOR } from './sfx-provider-targets'
+import { readHttpPayloadBytes } from '~/utils/http-payload'
 
 const DOCS = [
   `https://replicate.com/${REPLICATE_AUDIOGEN_MODEL_ID}/versions/${REPLICATE_AUDIOGEN_PINNED_VERSION}/api`,
@@ -337,7 +338,7 @@ export const createReplicateAudioGenAdapter = (input: {
               audioResponse.status
             )
           }
-          const downloaded = new Uint8Array(await audioResponse.arrayBuffer())
+          const downloaded = await readHttpPayloadBytes(audioResponse, 'Replicate AudioGen audio download', { payloadClass: 'download' })
           if (downloaded.byteLength === 0) {
             throw new SoundEffectProviderError('Replicate AudioGen output download was empty.', false, 'ambiguous')
           }

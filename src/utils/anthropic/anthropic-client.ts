@@ -123,7 +123,7 @@ export const uploadAnthropicFile = async (
     errorMessagePrefix: 'Anthropic Files upload failed'
   })
 
-  return await readJsonResponse(response, 'Anthropic Files upload response') as AnthropicFileMetadata
+  return await readJsonResponse(response, 'Anthropic Files upload response', { payloadClass: 'control' }) as AnthropicFileMetadata
 }
 
 export const deleteAnthropicFile = async (
@@ -140,5 +140,5 @@ export const deleteAnthropicFile = async (
     errorMessagePrefix: 'Anthropic Files delete failed'
   })
 
-  return await readJsonResponse(response, 'Anthropic Files delete response') as AnthropicDeletedFile
+  return await readJsonResponse(response, 'Anthropic Files delete response', { payloadClass: 'control' }) as AnthropicDeletedFile
 }

@@ -7,6 +7,7 @@ import { SoundEffectProviderError } from './sound-effect-errors'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { ELEVENLABS_SFX_SELECTOR, REPLICATE_AUDIOGEN_SELECTOR } from './sfx-provider-targets'
 import { readSoundscapeHeader } from './soundscape-http-headers'
+import { readHttpPayloadBytes } from '~/utils/http-payload'
 
 export { SoundEffectProviderError } from './sound-effect-errors'
 
@@ -53,7 +54,7 @@ const defaultRequest = (apiKey: string): ElevenLabsSoundEffectHttpRequest => asy
     body: JSON.stringify(input.body),
     signal: input.cancellation,
   })
-  const bytes = new Uint8Array(await response.arrayBuffer())
+  const bytes = await readHttpPayloadBytes(response, 'ElevenLabs sound effect audio')
   return { status: response.status, headers: response.headers, body: bytes }
 }
 

@@ -6,6 +6,7 @@ import type { Step2Metadata, TranscriptionResult } from '~/types'
 import { DEEPINFRA_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleSingleSpeakerStt } from '../../stt-shared/openai-compatible-single-speaker'
+import { readHttpPayloadText } from '~/utils/http-payload'
 
 const normalizeDeepinfraBaseURL = (baseURL: string): string =>
   baseURL.replace(/\/+$/, '').replace(/\/openai$/, '')
@@ -38,7 +39,7 @@ export const runDeepinfraTranscribe = async (
       signal: AbortSignal.timeout(20 * 60 * 1000)
     })
     if (!response.ok) throw ProviderError('DeepInfra subtitle transcription failed: HTTP ' + response.status, { stage: 'stt:deepinfra', retryable: false })
-    const raw = await response.text()
+    const raw = await readHttpPayloadText(response, 'DeepInfra subtitle transcription response', { stage: 'stt:deepinfra' })
     await Bun.write(buildTranscriptionOutputBase(outputDir, segmentNumber) + '.native.' + format, raw)
     const cues = parseCaptionCues(raw, format)
     const offset = segmentOffsetMinutes * 60

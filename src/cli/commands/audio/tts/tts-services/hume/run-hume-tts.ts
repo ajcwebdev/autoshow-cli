@@ -11,6 +11,7 @@ import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { readRestErrorText } from '~/utils/rest-client'
+import { readHttpPayloadBytes } from '~/utils/http-payload'
 
 const UUID_LIKE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -132,7 +133,7 @@ export const runHumeTts = async (
         }))
       }
       await accepted({ fields: { httpStatus: response.status } })
-      return new Uint8Array(await response.arrayBuffer())
+      return await readHttpPayloadBytes(response, 'Hume TTS audio', { stage: 'tts:hume' })
       })
     }
   })

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-09-10
+- **Date Updated:** 2026-09-22
 - **Verification Status:** Passed
 
 ## Context
@@ -17,11 +17,11 @@ Why now: canonical panel, dialogue, and soundscape artifacts are sufficiently pr
 
 ## Amendment: presentation recovery through resume, 2026-09-10
 
-The [recorded comic recovery amendment in ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md#amendment-recorded-comic-recovery-2026-09-10) extends existing `resume` to requested presentation work. `comic generate-slideshow` remains the explicit local rendering command. Its price mode now validates scene, panels, audio, timeline, and encoder availability before reporting zero cost; read-only visual planning predicts import paths without copying files.
+The [recorded comic recovery amendment in ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md#amendment-recorded-comic-recovery-2026-09-10) extends `resume` to a requested slideshow. `comic generate-slideshow` remains the command that renders locally. `comic generate-audio --slideshow` records the slideshow request before synthesis, so an interrupted run finishes the video from retained audio instead of stopping after audio.
 
-Presentation intent is recorded before rendering. The `generate-audio --slideshow` shortcut saves its pending presentation request and exact audio-plan dependency atomically with audio intent before synthesis, so a checkpoint does not lose the final local step. Resume reuses retained audio, then validates the final timeline and renders locally. Missing upstream media or changed dependency identities block recovery. Completed presentations are compared against a newly derived plan using their retained options and selected audio target, including older presentations without recovery intent, before being treated as no-ops.
+`resume` validates the timeline and renders locally. Missing upstream media, or options and audio selection that no longer match, block recovery. A completed presentation whose retained options and selected audio still match the current plan is a no-op, including presentations saved before this recovery behavior existed. `--price` checks the scene, panels, selected audio, timeline, and encoder, reports `$0.00`, and writes nothing.
 
-This does not automate selecting image variants, promoting generated panels, preparing scenes, or generating missing dialogue or sound effects. The existing canonical panel and complete audio requirements remain in force. Usage is maintained in [generate-slideshow](../commands/05-visuals/comic/05-generate-slideshow.md) and [resume](../commands/00-setup-and-utilities/resume.md#comic-recovery).
+Resume does not select image variants, promote generated panels, prepare scenes, or generate missing dialogue or sound effects. The canonical panel and complete-audio requirements remain in force. Usage is in [generate-slideshow](../commands/05-visuals/comic/05-generate-slideshow.md) and [resume](../commands/00-setup-and-utilities/resume.md#comic-recovery).
 
 ## Options Considered
 
@@ -30,7 +30,7 @@ This does not automate selecting image variants, promoting generated panels, pre
 - **Option:** Build a manifest-backed local still-panel plan, recompose its audio, and render hard cuts with FFmpeg
 - **Pros:** Exact ownership evidence, no provider calls, deterministic timing, immutable resume, preserved source artifacts
 - **Cons:** Adds derived plans, timelines, local transforms, and strict failures for incomplete evidence
-- **Quantitative Notes:** `$0`; one WAV and one MP4 per presentation identity
+- **Quantitative Notes:** `$0`; one published WAV and one published MP4
 
 **Option 2**
 
@@ -50,15 +50,15 @@ This does not automate selecting image variants, promoting generated panels, pre
 
 Add `autoshow comic generate-slideshow <script-path>` as an optional local presentation stage. It consumes canonical `panels/panel-NN.png` files and exactly one complete selected dialogue or soundscape run, sequences those panels in reviewed order, writes a presentation WAV from retained source audio, and renders a same-size H.264/AAC MP4 with hard cuts only.
 
-Visuals come from the current run when it contains a valid reviewed scene and complete panels; otherwise the command uses a matching run of the same script after validating source coverage and exact dialogue reconciliation. Matching names alone never establish compatibility. `comic generate-audio --slideshow` performs the same visual, panel, and encoder checks before TTS dispatch and fails locally if any prerequisite is missing. After audio already exists, `comic generate-slideshow` does only the local render.
+Visuals come from the current run when it contains a valid reviewed scene and complete panels; otherwise the command uses a matching run of the same script after validating source coverage and exact dialogue reconciliation. Matching names alone never establish compatibility. `comic generate-audio --slideshow` performs the same visual, panel, and encoder checks before paid synthesis and fails locally if any prerequisite is missing. After audio already exists, `comic generate-slideshow` does only the local render.
 
 Every reviewed panel must exist as one consecutive `panels/panel-NN.png` with identical even dimensions, which become the output dimensions with no crop, pad, or rescale. Missing files are reported together. Without `--audio-target`, exactly one complete selected soundscape run wins; otherwise exactly one selected dialogue run. Multiple complete candidates require `--audio-target <provider=model>`. Raw audio without a complete canonical audio run is rejected.
 
-Dialogue and discrete effects bind by exact source identity, speaker, and speech text, never by fuzzy matching. Inline effects belong to the panel that owns their dialogue segment; block effects belong to the unique panel owning the nearest preceding action or panel-note. Missing, duplicate, or ambiguous ownership fails.
+Dialogue and discrete effects bind by exact source identity, speaker, and speech text, never by fuzzy matching. Speech comparison normalizes whitespace and can omit parentheticals that repeat exact source delivery or timing cues. Inline effects belong to the panel that owns their dialogue segment; block effects belong to the unique panel owning the nearest preceding action or panel-note. Missing, duplicate, or ambiguous ownership fails.
 
 Panels play in reviewed order. Events on one panel keep their relative timing; events that overlapped across panels on the source clock are serialized so they cannot play under the wrong still. A panel without dialogue or a discrete effect holds for `--untimed-panel-ms` (default 2000). Ambience loops for the full presentation; if none exists, the audio is silence. The presentation WAV never replaces the source master.
 
-The video uses `--fps` (default 30), H.264, AAC, and hard cuts. Success writes `presentation/presentation.json`, `presentation/final/slideshow.wav`, and `presentation/final/slideshow.mp4`. Identical complete reruns no-op. `--price` reports `$0.00` and performs no writes.
+The video uses `--fps` (default 30), H.264, AAC, and hard cuts. Success writes `presentation/presentation.json`, `presentation/final/slideshow.wav`, and `presentation/final/slideshow.mp4`. The JSON file records the plan and resolved timeline. A changed plan, timeline, or option replaces those published files. An identical completed presentation is a no-op. `--price` reports `$0.00` and writes nothing.
 
 This applies to:
 
@@ -86,17 +86,16 @@ It does not apply to:
 Positive outcomes:
 
 - Approved still panels and canonical audio produce a synchronized local MP4 for zero provider cost.
-- Audio runs in other directories can reuse reviewed panels from a matching script run without copying files.
-- Combined audio-and-slideshow commands reject missing or incompatible visual inputs before paid synthesis begins.
-- Panel ownership, timing, and encoder settings remain reviewable.
+- An audio run can reuse reviewed panels from another run of the same script without copying those files by hand.
+- `comic generate-audio --slideshow` rejects missing or incompatible visuals, panels, or encoder setup before paid synthesis.
+- Interrupted local work resumes, and an identical completed presentation is a no-op.
 - Source dialogue and soundscape runs remain immutable and reusable.
-- Interrupted local work resumes and identical completed work no-ops.
 
 Negative outcomes:
 
 - The command rejects incomplete panel sets, differently sized images, untimed audio, and ambiguous provenance instead of producing a best-effort video.
 - Every reviewed panel must exist as a canonical `panels/panel-NN.png` in the current run or a matching run of the same script.
-- Presentations retain another WAV and MP4.
+- Each presentation keeps its own WAV, MP4, and `presentation/presentation.json`.
 
 ## Trade-offs
 
@@ -113,7 +112,7 @@ Negative outcomes:
 **Trade-off 3**
 
 - **Gain:** Original audio runs remain unchanged
-- **Sacrifice:** Additional derived WAV, MP4, plan, timeline, and run artifacts
+- **Sacrifice:** An additional derived WAV, MP4, and presentation JSON holding the plan and timeline
 
 **Trade-off 4**
 
@@ -123,11 +122,7 @@ Negative outcomes:
 **Trade-off 5**
 
 - **Gain:** Deterministic resume and no-op reruns
-- **Sacrifice:** Changing content or options produces a new presentation instead of overwriting the previous one
-
-## Implementation Note
-
-`comic generate-slideshow` ships in `src/cli/commands/visuals/comic/comic-commands/generate-slideshow/`. Flags live in `src/cli/flags/comic-flags.ts`.
+- **Sacrifice:** Changing content or options replaces the published WAV, MP4, and presentation JSON
 
 ## Test Plan
 
@@ -143,17 +138,13 @@ bun test test/test-cases/validation/cli/cli-usage-errors/
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 ```
 
-1. `bun run check` confirms type and lint health after documentation edits.
-2. `bun t --price` confirms no-cost `--price` planning with zero network calls and zero file mutations.
-3. The presentation contracts verify exact reconciliation, ownership failures, untimed panel holds, cross-panel serialization, ambience looping, panel validation, matching-script visual reuse, audio target selection, publication, and resume.
-4. The FFmpeg contract verifies duration, hard-cut image timing, source dimensions, H.264 video, and AAC audio.
+1. `bun run check` confirms type and lint health.
+2. `bun t --price` confirms `--price` planning with zero network calls and zero file mutations.
+3. The presentation contracts verify exact reconciliation, source-cue elision, ownership failures, untimed panel holds, cross-panel serialization, panel validation, matching-script visual reuse, audio target selection, and publication.
+4. The FFmpeg contract verifies duration, hard-cut image timing, source dimensions, H.264 video, AAC audio, and ambience looping.
 5. The CLI help, usage-error, and option-resolution contracts confirm the public `comic generate-slideshow` surface.
 
-No provider-backed test or paid suite is part of ADR verification.
-
-### Recovery verification recorded on 2026-09-10
-
-The implementation review recorded 23 passing presentation regression tests across three files after adding encoder readiness and explicit redispatch coverage. FFmpeg rendered actual synthetic slideshow outputs locally while provider responses were mocked. The [comic recovery contracts](../../test/test-cases/validation/resume-manifests/comic-resume-contracts.test.ts) demonstrated that a two-turn audio checkpoint reused its first segment, synthesized only the second, and completed the pending slideshow. Separate presentation-only recovery made no additional provider calls. Completed runs remained byte-identical under repeated price and execution checks, and stale presentation dependencies blocked reuse even without new recovery intent. This establishes local recovery behavior in those fixtures; production performance and live-provider reliability were not measured.
+No provider-backed test is part of this verification.
 
 ## References
 
@@ -163,6 +154,4 @@ The implementation review recorded 23 passing presentation regression tests acro
 - Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)
 - Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md)
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md)
-- `src/cli/commands/visuals/comic/comic-commands/generate-slideshow/generate-slideshow-command.ts`
-- `src/cli/flags/comic-flags.ts`
 - [comic generate-slideshow](../commands/05-visuals/comic/05-generate-slideshow.md)

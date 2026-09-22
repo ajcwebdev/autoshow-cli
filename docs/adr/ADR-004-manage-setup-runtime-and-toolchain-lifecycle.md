@@ -4,17 +4,17 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-09-10
+- **Date Updated:** 2026-09-22
 - **Verification Status:** Passed
 - **Supersession:** Docker distribution is governed separately by [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md). This record remains accepted authority for host setup reliability and toolchain lifecycle.
 
 ## Context
 
-AutoShow requires a local-lite tool set — FFmpeg and `ffprobe`, `yt-dlp`, MuPDF `mutool`, `qpdf`, Calibre `ebook-convert`, and Tesseract with English trained data — on macOS and Linux. Those tools must resolve the same way on every host: a user override if provided, otherwise a project-managed install under `runtime/`, otherwise an unmanaged system tool.
+AutoShow requires a local-lite tool set — FFmpeg and `ffprobe`, `yt-dlp`, MuPDF `mutool`, `qpdf`, Calibre `ebook-convert`, and Tesseract with English trained data — on macOS and Linux. Resolution order is an explicit `--bin-dir` override when that directory contains the binary, then a project-managed install under `runtime/` when this host installs one, then `PATH` on non-macOS hosts.
 
 Several issues motivated unifying this lifecycle:
 
-1. **Host provisioning drift.** macOS setup previously used Homebrew for several tools while other dependencies already lived under `runtime/`. Homebrew installs mutated global system state, varied by machine, and drifted from the managed runtime used for whisperfile, and local models.
+1. **Host provisioning drift.** macOS setup previously used Homebrew for several tools while other dependencies already lived under `runtime/`. Homebrew installs mutated global system state, varied by machine, and drifted from the managed runtime used for whisperfile and local models.
 2. **Download reliability and integrity.** Setup downloads used total-transfer timeouts that aborted large assets on ordinary bandwidth. Retries restarted from byte zero, downloads lacked checksum verification, and unthrottled concurrent downloads saturated the link.
 3. **Truthful reporting and diagnostics.** Setup could exit 0 after failed steps, and `setup --doctor` inspected version flags rather than whether the installed binaries actually run.
 4. **Hermetic toolchain delivery.** Upstream MuPDF and qpdf releases do not publish prebuilt macOS CLI binaries, so those tools have to be compiled without picking up Homebrew libraries.
@@ -108,20 +108,20 @@ Why now: host provisioning, download integrity, and offline diagnostic health re
 
 ## Decision
 
-AutoShow provisions the local-lite toolchain through managed `runtime/` artifacts on macOS and `apt` on Linux. macOS managed tools do not resolve through Homebrew or implicit `PATH` lookups.
+AutoShow provisions the local-lite toolchain as managed `runtime/` artifacts on macOS. On Linux, `yt-dlp` is a checksum-verified binary under `runtime/`; FFmpeg, MuPDF `mutool`, `qpdf`, Calibre `ebook-convert`, and Tesseract are installed with `apt`. macOS copies of these tools do not resolve through Homebrew or implicit `PATH` lookups.
 
-1. **Host provisioning and resolver precedence:** macOS setup does not invoke Homebrew for AutoShow-managed dependencies. Tools are installed under `runtime/`. Resolver precedence is:
-   1. Explicit `--bin-dir` override.
+1. **Host provisioning and resolver precedence:** macOS setup does not invoke Homebrew for AutoShow-managed dependencies. Those tools are installed under `runtime/`. Resolver precedence is:
+   1. Explicit `--bin-dir` override when that directory contains the tool.
    2. AutoShow-managed binary under `runtime/`.
-   3. `PATH` only for tools AutoShow does not manage on that host (Linux `apt` installs, and build prerequisites such as Xcode tools, `cmake`, and compilers).
-2. **Download integrity and reporting:** Downloads resume after interruption, verify checksums before install, and time out on stalled transfers rather than total elapsed time. Concurrent network transfers are bounded. Setup reports step timing, disk usage, and component health truthfully, and exits non-zero on partial failures. `setup --doctor` runs the installed binaries rather than inspecting version flags.
-3. **Hermetic macOS MuPDF and qpdf builds:** Both tools are built from pinned upstream source on macOS as hermetic binaries with no host package-manager libraries. Cold setup therefore includes a local compile step.
+   3. `PATH` on non-macOS hosts when no override or managed binary is present. Linux setup uses that fallback for `apt` installs, and it accepts an existing `yt-dlp` on `PATH` instead of downloading one. Build prerequisites such as Xcode tools, `cmake`, and compilers always come from the host.
+2. **Download integrity and reporting:** Downloads resume after interruption and verify checksums before install. A transfer aborts after 60 seconds without new data, and also when elapsed time reaches 15 minutes, or 60 minutes for the Calibre disk image and the whisperfile binary. Concurrent network transfers are bounded. Setup reports step timing, disk usage, and component health truthfully, and exits non-zero on partial failures. `setup --doctor` runs the installed binaries rather than inspecting version flags.
+3. **Hermetic macOS MuPDF and qpdf builds:** Both tools are built from pinned upstream source on macOS as hermetic binaries with no host package-manager libraries. The qpdf recipe compiles pinned libjpeg-turbo into that binary. Cold macOS setup also compiles FFmpeg against a static LAME library and Tesseract against Leptonica.
 
 This applies to:
 
-- AutoShow-installed, runtime-managed dependencies on macOS.
+- AutoShow-installed, runtime-managed dependencies on macOS, and the Linux `yt-dlp` binary under `runtime/`.
 - Setup download resume, checksum validation, bounded transfer concurrency, and doctor diagnostics.
-- Pinned source compilation of MuPDF and qpdf on supported macOS hosts.
+- Pinned source compilation on supported macOS hosts: MuPDF, qpdf with libjpeg-turbo, FFmpeg with LAME, and Tesseract with Leptonica.
 
 It does not apply to:
 
@@ -133,8 +133,8 @@ It does not apply to:
 ## Rationale
 
 - **Host provisioning:** Treating local dependencies as managed runtime assets under `runtime/` aligns macOS with the pattern already used for whisperfile, Defuddle, and model assets. It pins versions and avoids mutating host system state.
-- **Source builds:** Compiling MuPDF and qpdf from pinned source preserves exact versions and hermetic linkage without Apple Developer signing, notarization, or binary distribution infrastructure.
-- **Acquisition and reporting:** Stall-based timeouts and resumable downloads decouple reliability from bandwidth and file size. Bounding transfer concurrency prevents network contention, and truthful exit codes make incomplete installs fail closed.
+- **Source builds:** Compiling MuPDF and qpdf from pinned source, with qpdf linked to pinned libjpeg-turbo, preserves exact versions and hermetic linkage without Apple Developer signing, notarization, or binary distribution infrastructure.
+- **Acquisition and reporting:** Stall detection aborts a transfer that stops receiving data without treating a slow but active transfer as failed. A total deadline remains as a backstop. Resumable downloads continue from the last received byte. Bounding transfer concurrency prevents network contention, and truthful exit codes make incomplete installs fail closed.
 
 ## Consequences
 
@@ -148,7 +148,7 @@ Positive outcomes:
 Negative outcomes:
 
 - AutoShow maintainers must manage tool-specific download, packaging, and compilation recipes.
-- Cold setup on macOS compiles MuPDF and qpdf locally.
+- Cold setup on macOS compiles MuPDF, qpdf with libjpeg-turbo, FFmpeg with LAME, and Tesseract with Leptonica.
 - Sourcing `ebook-convert` requires extracting the official Calibre application bundle.
 - Resumable downloads add resume and checksum bookkeeping.
 
@@ -162,11 +162,11 @@ Negative outcomes:
 **Trade-off 2**
 
 - **Gain:** Hermetic runtime without mutating global package-manager state
-- **Sacrifice:** Cold setup incurs local compilation time for MuPDF and qpdf
+- **Sacrifice:** Cold setup incurs local compilation time for MuPDF, qpdf, FFmpeg, and Tesseract
 
 **Trade-off 3**
 
-- **Gain:** Transfer-size-independent, resumable, and integrity-verified downloads
+- **Gain:** Resumable, stall-aware, and integrity-verified downloads
 - **Sacrifice:** Setup owns resume and checksum verification
 
 **Trade-off 4**
@@ -177,18 +177,6 @@ Negative outcomes:
 ## Implementation Note
 
 Managed macOS tools resolve through `src/utils/runtime-paths.ts` and install from `src/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools.ts`. Download resume, checksum verification, and bounded transfer concurrency live under `src/cli/commands/setup-and-utilities/setup/setup-download/`. Setup orchestration, summary reporting, and `setup --doctor` live under `src/cli/commands/setup-and-utilities/setup/`. User-facing behavior is documented in `docs/commands/00-setup-and-utilities/setup.md`.
-
-### Bun 1.4 Archive Extraction
-
-The 2026-08-31 evaluation adopted streamed staged tar extraction and rejected direct `Bun.Archive.extract()` for setup downloads. This was a completed implementation decision on the evaluated Bun 1.4.0 runtime.
-
-The production setup downloader now feeds `Bun.file(path).stream()` through `DecompressionStream("gzip")` and incrementally parses and writes tar payloads into a newly created staging directory. It no longer loads the compressed download with `arrayBuffer()` or expands the complete archive with `Bun.gunzipSync()`.
-
-The extraction boundary applies PAX, global extended, GNU long-name, and GNU long-link metadata; verifies header checksums, padding, end markers, truncation, byte and entry limits; rejects absolute, traversal, Windows-style, duplicate, unsupported, and hard-link entries; prevents writes through archived symlinks; preserves executable modes; refuses a non-empty destination; and atomically renames the validated staging root into place. Failure cleanup is confined to the newly created staging directory. The ZIP central-directory implementation remains separate.
-
-A macOS ARM64 memory check used a tar.gz that expands to 134,223,872 bytes. The streamed extractor peaked at 41,762,816 bytes RSS, while the former `arrayBuffer()` plus `Bun.gunzipSync()` shape peaked at 147,111,936 bytes RSS. The same check exposed binary values in macOS `SCHILY.xattr.*` PAX extensions; the parser now ignores unsupported extension values while continuing to require valid UTF-8 for the supported `path`, `linkpath`, and `size` fields, with a regression contract covering that case.
-
-Direct `Bun.Archive.extract()` was rejected for this production path on Bun 1.4.0. A `Bun.Archive` created from in-memory tar or gzip bytes can extract the archive, but a `Bun.Archive` created from a file-backed `Bun.file()` reports an unrecognized archive on the validated macOS ARM64 host. Buffering the complete file first would retain the memory defect this phase is intended to remove. The native files view also does not expose enough link and duplicate metadata to serve as the security preflight boundary.
 
 ## Test Plan
 
@@ -213,4 +201,3 @@ bun test test/test-cases/validation/setup/
 - `src/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools.ts`
 - `src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts`
 - `test/test-cases/validation/setup/`
-- `test/test-cases/validation/runtime-contracts/bun-native-migration-contracts.test.ts`

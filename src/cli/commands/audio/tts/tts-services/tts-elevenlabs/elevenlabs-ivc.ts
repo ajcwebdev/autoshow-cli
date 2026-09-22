@@ -12,6 +12,7 @@ import type { ElevenLabsTtsIvcContext, ElevenLabsTtsIvcOptions, ElevenLabsTtsIvc
 import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { ensureVoicePromise } from '../voice-promise-cache'
+import { readHttpPayloadText } from '~/utils/http-payload'
 
 const ELEVENLABS_IVC_BEST_PRACTICE_MIN_SECONDS = 10
 const ELEVENLABS_IVC_BEST_PRACTICE_MAX_SECONDS = 2 * 60
@@ -144,9 +145,10 @@ const createElevenLabsTtsIvcVoice = async (
         }))
       }
 
+      const rawText = await readHttpPayloadText(response, 'ElevenLabs IVC voice creation response', { payloadClass: 'control', stage: 'tts:elevenlabs-ivc' })
       let payload: unknown
       try {
-        payload = await response.json()
+        payload = JSON.parse(rawText)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         throw ValidationError(`ElevenLabs IVC voice creation returned invalid JSON: ${message}`, {

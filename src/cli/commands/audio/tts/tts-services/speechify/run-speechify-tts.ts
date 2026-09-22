@@ -12,6 +12,7 @@ import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { readRestErrorText } from '~/utils/rest-client'
+import { readHttpPayloadJson } from '~/utils/http-payload'
 
 const SpeechifySpeechResponseSchema = v.object({
   audio_data: v.string()
@@ -118,7 +119,7 @@ export const runSpeechifyTts = async (
       }
       await accepted({ fields: { httpStatus: response.status } })
 
-      const payload = validateDataSafe(SpeechifySpeechResponseSchema, await response.json())
+      const payload = validateDataSafe(SpeechifySpeechResponseSchema, await readHttpPayloadJson(response, 'Speechify TTS response', { stage: 'tts:speechify' }))
       if (!payload) {
         throw ValidationError('Speechify TTS returned an invalid response: missing audio_data', { stage: 'tts:speechify' })
       }

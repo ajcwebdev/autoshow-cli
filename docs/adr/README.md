@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Compact index for ADR-001 through ADR-026. Twenty-three records are Accepted · Passed, ADR-014 is Accepted · Pending while native Bun migration evidence awaits review, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 is Proposed · Pending. Hosted-model policy lives in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) with live catalogs under `src/cli/commands/setup-and-utilities/models/` and command overviews under `docs/commands/`. ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 027. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
+Compact index for ADR-001 through ADR-027. Twenty-four records are Accepted · Passed, ADR-014 is Accepted · Pending while native Bun migration evidence awaits review, ADR-012 is Superseded · Passed after CLI `benchmark` removal, and ADR-016 is Proposed · Pending. Hosted-model policy lives in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) with live catalogs under `src/cli/commands/setup-and-utilities/models/` and command overviews under `docs/commands/`. ADR numbers are current-index identities: consolidations and moves renumber the sequence so it stays contiguous. The next new ADR is 028. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates.
 
 ## Authoring and Maintenance
 
@@ -20,14 +20,14 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 1: [ADR-001](ADR-001-source-ingestion-and-normalization.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Owns source identity, Step 0 classification and expansion, discovery caches that cannot change results, supported ebook normalization, unsupported ACSM policy, conversion metadata, and the normalized handoff to execution. Archives the Bun 1.4 XML adapter evaluation and the decision to retain tolerant scanning and raw inner XML.
+- **Decision:** Owns source identity, Step 0 classification and expansion, discovery caches, supported ebook normalization, unsupported ACSM policy, conversion metadata, and the normalized handoff to execution.
 - **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
 
 **ADR 2: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Owns the command-neutral batch work plan, the canonical pipeline `manifest.json` including the pooled OCR page ledger, execution-to-resume selection parity, non-mutating `resume --price`, and rejection of superseded manifest formats. Archives [recorded comic recovery and its fixture evidence](ADR-002-pipeline-state-resume-and-dry-run-planning.md#amendment-recorded-comic-recovery-2026-09-10), Bun.JSONL parsing contracts, and the measured distinction between evictable tokenizer data and durable recovery state.
-- **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md), [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md), [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md), [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
+- **Decision:** Owns the command-neutral batch work plan, the canonical pipeline `manifest.json` including the pooled OCR page ledger, execution-to-resume selection parity, non-mutating `resume --price`, rejection of superseded manifest formats, and [recorded comic recovery](ADR-002-pipeline-state-resume-and-dry-run-planning.md#amendment-recorded-comic-recovery-2026-09-10).
+- **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md), [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md), [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md), [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md), [ADR-025](ADR-025-master-tts-delivery-audio-outside-paid-slot-identity.md)
 
 **ADR 3: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)**
 
@@ -38,26 +38,26 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 4: [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Owns the host setup lifecycle: managed macOS tools under `runtime/`, resumable integrity-checked downloads, bounded transfer concurrency, truthful setup and doctor reporting, cleanup, and hermetic MuPDF and qpdf source builds. Archives streamed staged tar extraction, its memory evidence, and rejection of direct Bun.Archive extraction.
+- **Decision:** Owns the host setup lifecycle: managed macOS tools under `runtime/`, resumable integrity-checked downloads, bounded transfer concurrency, truthful setup and doctor reporting, and hermetic MuPDF and qpdf source builds.
 - **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-005](ADR-005-reduce-environment-variable-surface-area.md), [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)
 
 **ADR 5: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Reduces the environment-variable surface to credentials, standard system variables, and unavoidable child-process seams. Config that is not a credential is a CLI flag, typed parameter, or trusted default. Missing credentials share one error shape and exit code 2. `setup --doctor --strict` is the fail-closed readiness gate. Spawned children do not inherit the parent credential set. ADR-014 owns container credential delivery. Archives the redacted Bun 1.3.14/1.4.0 dotenv compatibility result.
+- **Decision:** Reduces the environment-variable surface to credentials, standard system variables, and unavoidable child-process seams. Config that is not a credential is a CLI flag, typed parameter, or trusted default. Missing credentials share one error shape and exit code 2. `setup --doctor --strict` is the fail-closed readiness gate. Spawned children do not inherit the parent credential set. ADR-014 owns container credential delivery. Archives the 2026-08-31 Bun 1.3.14/1.4.0 dotenv compatibility result.
 - **Related ADRs:** [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)
 
 **ADR 6: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Unifies the diagnostic vocabulary across `src/` and `test/`: typed `AppError` as the throw contract, `src/utils/app-logger/` as the output channel, shared CLI usage and provider-failure classification, rate-limit recovery, TTS ambiguous-redispatch authorization, and concise diagnostic rendering, all enforced by standing source-scan tests with documented allowlists.
+- **Decision:** Owns the `AppError` throw vocabulary, exit-code mapping, and the single CLI error funnel across `src/`, enforced by standing source-scan tests with documented allowlists. Logging, the output protocol, and TTS ambiguous-redispatch authorization belong to [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md).
 - **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-005](ADR-005-reduce-environment-variable-surface-area.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md), [ADR-019](ADR-019-quiet-passing-test-console-output.md), [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md)
 
 **ADR 7: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Integrates comic with the central model infrastructure, native command tree, and shared hosted coordinator for LLM/image/QA/dialogue/SFX work; retires comic's parallel model, parser, dispatcher, and help stacks and moves links selection onto the native parse boundary. Archives the [2026-09-10 command consolidation choices, rejected alternatives, compatibility window, and verification](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md#consolidation-selection-and-rejected-alternatives).
-- **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-005](ADR-005-reduce-environment-variable-surface-area.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-011](ADR-011-add-refresh-metadata-to-links.md), [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md)
+- **Decision:** Integrates comic with the central model infrastructure, native command tree, and shared hosted coordinator for LLM/image/QA/dialogue/SFX work; retires comic's parallel model, parser, dispatcher, and help stacks and moves links selection onto the native parse boundary. Archives the [2026-09-10 command consolidation choices, rejected alternatives, and compatibility window](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md#consolidation-selection-and-rejected-alternatives).
+- **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-005](ADR-005-reduce-environment-variable-surface-area.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-011](ADR-011-add-refresh-metadata-to-links.md), [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md), [ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md)
 
 **ADR 8: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md)**
 
@@ -68,7 +68,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 9: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Owns Step 2 URL, OCR, and STT execution plus artifacts: explicit article/X-Space routing, route-aware provider selection and resume, Tesseract-only local OCR, retry-aware hosted failures, fan-out and composite pool artifacts, page attribution, `auto|fixed` OCR ceilings, calibrated pricing and diagnostics, shared chapter filenames, and STT timing provenance, caption export, local alignment, and speaker reconciliation. Archives the Bun 1.4 TIFF/ImageMagick routing decision and the [September 2026 STT audit, automatic-reference measurements, and Parakeet live-validation limits](ADR-009-extract-execution-and-artifact-contracts.md#stt-caption-and-timing-archive).
+- **Decision:** Owns Step 2 URL, OCR, and STT execution plus artifacts: explicit article/X-Space routing, route-aware provider selection and resume, Tesseract-only local OCR, retry-aware hosted failures, fan-out and composite pool artifacts, page attribution, `auto|fixed` OCR ceilings, calibrated pricing and diagnostics, shared chapter filenames, and STT timing provenance, caption export, local alignment, and speaker reconciliation. Archives the Bun 1.4 TIFF/ImageMagick routing decision and the [September 2026 STT claim limits](ADR-009-extract-execution-and-artifact-contracts.md#stt-caption-and-timing-archive), including automatic references that are not acoustic ground truth and one Parakeet sample that records live-tested endpoint compatibility only.
 - **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md), [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
 
 **ADR 10: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
@@ -98,7 +98,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 14: [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)**
 
 - **Status:** Accepted · Pending
-- **Decision:** Owns the additive Debian slim local-lite Docker image, build context, non-root runtime, tool and Tesseract contracts, direct image invocation and mount behavior, credential boundary, and multi-architecture GHCR publication with OCI provenance. Archives Bun 1.3.14/1.4.0 measurements, pending native release gates, and rejection of the compiled production entrypoint.
+- **Decision:** Owns the additive Debian slim local-lite Docker image, non-root runtime, tool and Tesseract contracts, direct image invocation and mount behavior, credential boundary, and multi-architecture GHCR publication. Archives the 2026-08-31 Bun 1.3.14/1.4.0 image comparison and the rejection of a compiled production entrypoint. Native release review remains open.
 - **Related ADRs:** [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md), [ADR-005](ADR-005-reduce-environment-variable-surface-area.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
 
 **ADR 15: [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md)**
@@ -122,7 +122,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 18: [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Adds the local manifest-backed still-panel presentation layer: exact source reconciliation, panel-owned dialogue and effects, sequential timing, derived audio recomposition, immutable resume, and same-size H.264/AAC hard-cut rendering without provider calls or source-run mutation. Archives [presentation recovery through `resume`](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md#amendment-presentation-recovery-through-resume-2026-09-10) and local FFmpeg verification evidence.
+- **Decision:** Adds the local manifest-backed still-panel presentation layer: exact source reconciliation, panel-owned dialogue and effects, sequential timing, derived audio recomposition, immutable resume, and same-size H.264/AAC hard-cut rendering without provider calls or source-run mutation. [Presentation recovery through `resume`](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md#amendment-presentation-recovery-through-resume-2026-09-10) is part of this decision.
 - **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md), [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md)
 
 **ADR 19: [ADR-019](ADR-019-quiet-passing-test-console-output.md)**
@@ -148,45 +148,53 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 - **Status:** Accepted · Passed
 - **Decision:** Authors scene staging as a validated `metadata/blocking-plan.json`, compiles it deterministically into a per-panel ledger that is the single source of truth for the image prompt and the page judge, adds an advisory blocking audit behind a per-key hard policy with a blocking-class restart lane, and records per-location geometry separately from the location specification hash.
 - **Related ADRs:** [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md), [ADR-021](ADR-021-adopt-table-free-text-json-results-and-safe-retry-ownership.md)
+
 **ADR 23: [ADR-023](ADR-023-draft-episode-scripts-from-prose-treatments.md)**
 
 - **Status:** Accepted · Passed
 - **Decision:** Adds `comic draft-treatment`, which adapts a prose treatment into a fixed-count episode script in the exact parser shape, bootstraps character and location catalog entries without touching existing keys, and records its artifacts in a treatment run; adds the `draft-scenes --panel-count` contract so the scene stage keeps the authored panel count.
 - **Related ADRs:** [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md), [ADR-022](ADR-022-compile-a-text-first-blocking-plan-into-a-panel-ledger.md)
+
 **ADR 24: [ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Derives every advertised default, enumeration, and per-provider range from one capability registry per domain, collapses the triplicated TTS control tables and the provider-prefixed TTS/STT option flags onto a shared `provider=value` selector, replaces the five intra-step concurrency knobs with `--step-concurrency <scope>=N`, and moves comic model selection onto `--provider` plus per-role `--<role>-provider`; supersedes the flag surfaces of ADR-007 and ADR-008 while leaving their architectures accepted.
+- **Decision:** Derives every advertised default, enumeration, and per-provider range from one capability registry per domain, collapses the triplicated TTS control tables and the provider-prefixed TTS/STT option flags onto a shared `provider=value` selector, replaces the five intra-step concurrency knobs with `--step-concurrency <scope>=N` and `--url-provider-concurrency` with the shared `--provider-concurrency` lane, and moves comic model selection onto `--provider` plus per-role `--<role>-provider`; supersedes the flag surfaces of ADR-007 and ADR-008 while leaving their architectures accepted.
 - **Related ADRs:** [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
+
 **ADR 25: [ADR-025](ADR-025-master-tts-delivery-audio-outside-paid-slot-identity.md)**
 
 - **Status:** Accepted · Passed
 - **Decision:** Freezes the paid speech slot hash's output-format input so purchased audio is never orphaned, describes final audio with a separate TTS delivery profile that enters render identity only, masters once from retained native slot audio with boundary-aware chunking, seam trimming, fixed pauses, and optional loudness normalization for every hosted provider, and keeps encoding, tags, cover art, and book assembly as a derived export layer outside render identity.
-- **Related ADRs:** [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md), [ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md)
+- **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md), [ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md)
+
 **ADR 26: [ADR-026](ADR-026-record-effective-provider-settings-in-run-records.md)**
 
 - **Status:** Accepted · Passed
 - **Decision:** Adds an optional versioned `settings` envelope to every manifest provider entry, built by one shared helper that sanitizes secrets and relativizes paths, recording the effective request values sent to each provider, local output-shaping settings, and ignored flags for TTS, comic, image, video, music, write, STT, OCR, and URL, while keeping it outside every identity hash and the immutable `options` field.
 - **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-025](ADR-025-master-tts-delivery-audio-outside-paid-slot-identity.md)
 
+**ADR 27: [ADR-027](ADR-027-read-successful-http-bodies-whole-under-a-payload-class-ceiling.md)**
+
+- **Status:** Accepted · Passed
+- **Decision:** Returns every successful HTTP body whole or rejects it whole, under a payload-class memory ceiling (`control` 16 MiB, `result` 512 MiB and the default, `download` 2 GiB, none when the download streams to disk). `AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES` replaces every ceiling and is validated at startup. An oversize body is not retried, and the error names the observed size. Inlined TTS audio is estimated before dispatch when the request fixes the byte rate. Bounded capture remains for error bodies and subprocess output and does not fail a successful subprocess.
+- **Related ADRs:** [ADR-005](ADR-005-reduce-environment-variable-surface-area.md), [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md), [ADR-025](ADR-025-master-tts-delivery-audio-outside-paid-slot-identity.md)
+
 
 ## Bun 1.4 Migration Archive
 
 The 2026-08-31 migration evidence is retained by architectural owner. The archive records the results available on that date; it does not infer completion of unreviewed CI jobs.
 
-- **Ingestion and normalization:** [ADR-001](ADR-001-source-ingestion-and-normalization.md#bun-14-xml-evaluation) retains the XML compatibility decision and synthetic parsing/normalization baseline.
-- **State and price planning:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md#bun-14-journal-and-tokenizer-evidence) retains JSONL recovery boundaries, CPU baselines, and tokenizer eviction/reconstruction evidence.
+- **State and price planning:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) owns manifest, resume, and price planning. No-cost CPU, heap, and tokenizer profiles are reproduced from the [profiling guide](../commands/testing.md#profiling).
 - **Type ownership:** [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md#bun-14-image-declarations) retains the Bun.Image declaration cleanup.
-- **Setup acquisition:** [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md#bun-14-archive-extraction) retains streamed tar extraction, security boundaries, memory measurements, and the native archive rejection.
-- **Environment compatibility:** [ADR-005](ADR-005-reduce-environment-variable-surface-area.md#bun-14-dotenv-compatibility) retains the redacted dotenv comparison.
+- **Environment compatibility:** [ADR-005](ADR-005-reduce-environment-variable-surface-area.md#bun-14-dotenv-compatibility) retains the 2026-08-31 dotenv compatibility result.
 - **Image extraction:** [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md#bun-14-image-routing) retains TIFF and ImageMagick routing constraints.
-- **Docker distribution:** [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md#bun-14-migration-evidence) retains production-image provenance, samples, comparison results, the compiled-entrypoint rejection, bundle inventory, and native CI follow-ups.
+- **Docker distribution:** [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md#bun-14-migration-evidence) retains the 2026-08-31 native ARM64 comparison, the discarded emulated AMD64 run, the open native release review, and the compiled-entrypoint rejection.
 
 Runnable reproduction instructions live in the [Docker runtime validation guide](../docker.md#runtime-validation) and [testing profiling guide](../commands/testing.md#profiling). Generated diagnostic artifacts remain ignored.
 
 ## Consolidation Analysis
 
-No further consolidation is currently recommended. The current 24 records stay separate because they own different authorities and maintenance lifecycles.
+No further consolidation is currently recommended. The current 27 records stay separate because they own different authorities and maintenance lifecycles.
 
 ### Remaining Boundaries
 
@@ -218,7 +226,7 @@ No further consolidation is currently recommended. The current 24 records stay s
 **ADR set 6: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md) + [ADR-019](ADR-019-quiet-passing-test-console-output.md)**
 
 - **Recommendation:** Keep separate.
-- **Current rationale:** ADR-006 owns the error and logging vocabulary and the standing contracts that enforce it. ADR-019 owns quiet-on-pass versus captured-on-fail test console output.
+- **Current rationale:** ADR-006 owns the `AppError` vocabulary, the single CLI error funnel, and the standing checks that enforce them. ADR-019 owns quiet-on-pass versus captured-on-fail test console output.
 
 **ADR set 7: [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md) + [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)**
 
@@ -242,12 +250,12 @@ Open follow-up work from ADRs, excluding never-ending catalog-maintenance chores
 **Item 1: [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md)**
 
 - **Priority:** High
-- **Next step:** Finish isolating documentation verification from providers, network, and user configuration. Flag/model cross-check via `doc-command-flags-contract.test.ts` is partial; remaining work is full command inventory, consistent offline `--price` execution, committed fixtures, parse-only classification for unsafe examples, and documentation cost reports.
+- **Next step:** Finish isolating documentation verification from providers, network, and user configuration. Flag and model cross-check of the command references is in progress; remaining work is a full command inventory, consistent offline `--price` execution, committed fixtures, parse-only classification for unsafe examples, and documentation cost reports.
 
 **Item 2: [ADR-022](ADR-022-compile-a-text-first-blocking-plan-into-a-panel-ledger.md)**
 
 - **Priority:** High
-- **Next step:** Run the Phase 0 continuity baseline and the ten-panel prompt ablation as owner-run paid commands, then use their per-key precision to decide which blocking audit statuses `--blocking-hard-keys` promotes from advisory to hard; reviewed location geometry records and the deferred Phase 5 rendered blocking card remain pending behind that measurement.
+- **Next step:** Run the continuity baseline and the ten-panel prompt ablation as owner-run paid commands, then use their per-key precision to decide which blocking audit statuses `--blocking-hard-keys` promotes from advisory to hard. Reviewed location geometry, and the rendered blocking card and coverage keyframes, remain pending behind that measurement.
 
 **Item 3: [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)**
 
@@ -264,21 +272,36 @@ Open follow-up work from ADRs, excluding never-ending catalog-maintenance chores
 - **Priority:** Medium
 - **Next step:** Calibrate materially different reasoning levels and provisional model heuristics; deferred pending immediate approval for each exact paid run. Promote provisional OCR heuristics through ADR-012 calibration when approval is available. Watch Cartesia for a newer dated Sonic 3.6 snapshot; do not register `sonic-3.6` or `sonic-preview` (TTS catalog: [docs/commands/04-audio/tts/overview.md](../commands/04-audio/tts/overview.md)).
 
-**Item 6: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
+**Item 6: [ADR-025](ADR-025-master-tts-delivery-audio-outside-paid-slot-identity.md)**
+
+- **Priority:** Medium
+- **Next step:** Listen to the paid `eleven_v3` pilot before treating perceptual quality as established. Re-mastering from retained slots, wall-time estimates on the smart splitter, and re-export for single-file runs in an existing directory remain pending.
+
+**Item 7: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
 
 - **Priority:** Low
-- **Next step:** Evaluate provider-specific reasoning levels outside the seven-value surface through explicit public-enum expansion.
+- **Next step:** Evaluate provider-specific reasoning levels outside the eight-value surface through explicit public-enum expansion.
 
-**Item 7: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)**
+**Item 8: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)**
 
 - **Priority:** Low
 - **Next step:** Run the two deferred cleanup reviews: remaining multi-use exported declarations, and remaining multi-reference non-exported declarations.
 
-**Item 8: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)**
+**Item 9: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)**
 
 - **Priority:** Low
 - **Next step:** After the compatibility release, remove deprecated `comic reference-voice`, `comic review-sheet`, and `comic review-notes` aliases in a later announced breaking CLI release.
 
+**Item 10: [ADR-023](ADR-023-draft-episode-scripts-from-prose-treatments.md)**
+
+- **Priority:** Low
+- **Next step:** Decide how a first-try production should promote judge-retained originals when every hard failure is set-continuity, and whether a per-location style image should replace the catalog-wide `styleImage`.
+
+**Item 11: [ADR-026](ADR-026-record-effective-provider-settings-in-run-records.md)**
+
+- **Priority:** Low
+- **Next step:** Let resume rebuild generation and TTS options from `settings`, record provider entries for failed `write` targets, and hash lyrics files in music settings.
+
 ## Local reports workspace
 
-Agent task reports under `docs/reports/` are gitignored (except `.gitkeep`). Regenerable inventories (`environment-reference.md`, `help-output-inventory.md`) may appear locally. Cleanup audits **00–06** (and the high-priority metareport / architecture-consolidation write-ups) were completed on `staging` around 2026-09-17 and removed; see `docs/reports/README.md` locally. Ongoing truth is this ADR index, live model dirs under `src/cli/commands/setup-and-utilities/models/`, `docs/commands/`, `docs/diagrams.md`, and `docs/docker.md`.
+Agent task reports under `docs/reports/` are gitignored (except `.gitkeep`). Regenerable inventories (`environment-reference.md`, `help-output-inventory.md`) may appear locally. Cleanup audits **00–06** (and the high-priority metareport / architecture-consolidation write-ups) were completed on `staging` around 2026-09-17 and removed. The local `docs/reports/` tree currently keeps only `.gitkeep`. Ongoing truth is this ADR index, live model dirs under `src/cli/commands/setup-and-utilities/models/`, `docs/commands/`, `docs/diagrams.md`, and `docs/docker.md`.

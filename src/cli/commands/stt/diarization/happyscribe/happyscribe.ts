@@ -9,6 +9,7 @@ import {
   isRecord,
   normalizeHappyScribeId
 } from './happyscribe-utils'
+import { readHttpPayloadText } from '~/utils/http-payload'
 
 const ORGANIZATION_REQUEST_TIMEOUT_MS = 60_000
 
@@ -77,7 +78,7 @@ const listHappyScribeOrganizations = async (
         },
         signal: signal ?? null
       })
-      const payload = parseJsonOrText(await response.text())
+      const payload = parseJsonOrText(await readHttpPayloadText(response, 'Happy Scribe response', { stage: 'stt:happyscribe' }))
 
       if (!response.ok) {
         throw httpResponseError(

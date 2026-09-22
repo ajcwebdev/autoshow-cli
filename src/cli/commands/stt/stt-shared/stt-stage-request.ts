@@ -1,10 +1,11 @@
 import type { InferOutput } from 'valibot'
 import type { AsyncSttLifecycleMetrics, SttRequestMetrics, SttStageHttpError, SttStageRequestOptions, SttStageSchema } from '~/types'
 import { attachAsyncSttErrorContext, attachAsyncSttValidationContext } from '~/cli/commands/stt/async-lifecycle'
-import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
+import { httpResponseError, httpResponseOptions, readRestDiagnosticText } from '~/utils/rest-client'
 import { classifyFetchRetry, isRetryableStatus, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
 import { getErrorStatus } from '~/utils/error-handler'
+import { readHttpPayloadJson } from '~/utils/http-payload'
 
 export const lifecycleMetricsToCallbacks = (
   metrics: AsyncSttLifecycleMetrics
@@ -40,7 +41,7 @@ export const sttStageRequestWithRetryAfter = async <TSchema extends SttStageSche
         if (!response.ok) {
           const failure = options.readFailure
             ? await options.readFailure(response)
-            : { message: await response.text(), rawResponse: undefined }
+            : { message: await readRestDiagnosticText(response), rawResponse: undefined }
           throw httpResponseError(
             `${errorPrefix} ${failureLabel ?? stage} failed (${response.status}): ${failure.message}`,
             httpResponseOptions(response, {
@@ -55,7 +56,7 @@ export const sttStageRequestWithRetryAfter = async <TSchema extends SttStageSche
         }
 
         return {
-          payload: await response.json(),
+          payload: await readHttpPayloadJson(response, `${errorPrefix} ${failureLabel ?? stage} response`, { stage }),
           retryAfterMs: parseRetryAfterMs(response.headers) ?? null
         }
       },

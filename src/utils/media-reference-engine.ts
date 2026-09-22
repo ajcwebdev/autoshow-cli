@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs'
 import { basename, extname } from 'node:path'
 import { UsageError, InfraError } from '~/utils/error-handler'
 import type { MediaKindSpec, MediaReferenceBytes, ReferenceValidationOptions } from '~/types'
+import { readHttpPayloadBytes, writeHttpPayloadToFile } from '~/utils/http-payload'
 
 const isHttpUrl = (value: string): boolean => {
   try {
@@ -27,6 +28,7 @@ export const createMediaReferenceEngine = (spec: MediaKindSpec): {
   getReferenceMimeType: (value: string) => string | undefined
   validateReferences: (inputs: readonly string[] | undefined, options: ReferenceValidationOptions) => void
   resolveBytes: (value: string) => Promise<MediaReferenceBytes>
+  writeToFile: (value: string, path: string) => Promise<{ mimeType: string }>
   referenceToUrlOrDataUrl: (value: string) => Promise<string>
   referenceToUrlOrBase64: (value: string) => Promise<string>
 } => {
@@ -99,7 +101,7 @@ export const createMediaReferenceEngine = (spec: MediaKindSpec): {
     }
   }
 
-  const fetchBytes = async (url: string): Promise<MediaReferenceBytes> => {
+  const fetchReference = async (url: string) => {
     const response = await fetch(url, { headers: { accept: spec.accept } })
     if (!response.ok) {
       throw InfraError(spec.errors.download(response.status, url), {
@@ -121,7 +123,7 @@ export const createMediaReferenceEngine = (spec: MediaKindSpec): {
     }
     const urlName = basename(new URL(url).pathname)
     return {
-      bytes: new Uint8Array(await response.arrayBuffer()),
+      response,
       mimeType,
       fileName: urlName.length > 0 ? urlName : spec.defaultFileName(mimeType)
     }
@@ -142,7 +144,10 @@ export const createMediaReferenceEngine = (spec: MediaKindSpec): {
 
   const resolveBytes = async (value: string): Promise<MediaReferenceBytes> => {
     if (isDataUrl(value)) return dataUrlToBytes(value)
-    if (isHttpUrl(value)) return await fetchBytes(value)
+    if (isHttpUrl(value)) {
+      const { response, ...metadata } = await fetchReference(value)
+      return { ...metadata, bytes: await readHttpPayloadBytes(response, 'Media reference download', { payloadClass: 'download' }) }
+    }
     return await localFileToBytes(value)
   }
 
@@ -155,6 +160,16 @@ export const createMediaReferenceEngine = (spec: MediaKindSpec): {
     getReferenceMimeType,
     validateReferences,
     resolveBytes,
+    writeToFile: async (value: string, path: string): Promise<{ mimeType: string }> => {
+      if (isHttpUrl(value)) {
+        const { response, mimeType } = await fetchReference(value)
+        await writeHttpPayloadToFile(response, path)
+        return { mimeType }
+      }
+      const { bytes, mimeType } = await resolveBytes(value)
+      await Bun.write(path, bytes)
+      return { mimeType }
+    },
     referenceToUrlOrDataUrl: async (value) => {
       if (isHttpUrl(value) || isDataUrl(value)) return value
       const { bytes, mimeType } = await localFileToBytes(value)

@@ -1,9 +1,10 @@
-import { extractRestErrorMessage, httpResponseError, httpResponseOptions, parseJsonOrText } from '~/utils/rest-client'
+import { extractRestErrorMessage, httpResponseError, httpResponseOptions, parseJsonOrText, readRestDiagnosticText } from '~/utils/rest-client'
+import { readHttpPayloadBytes } from '~/utils/http-payload'
 
 export const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
 
 const readTtsHttpError = async (response: Response): Promise<string> => {
-  const rawText = await response.text()
+  const rawText = await readRestDiagnosticText(response)
   if (!rawText.trim()) {
     return `HTTP ${response.status}`
   }
@@ -36,5 +37,5 @@ export const fetchTtsAudioBytes = async (options: {
     }))
   }
 
-  return new Uint8Array(await response.arrayBuffer())
+  return await readHttpPayloadBytes(response, `${options.providerLabel} TTS audio`, { stage: 'tts:provider' })
 }

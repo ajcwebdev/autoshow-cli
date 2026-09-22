@@ -2,6 +2,7 @@ import { AppProviderError } from "~/utils/error-handler";
 import type { MergeableXListResponse, RecentSpaceLinkSearchResult, SpacesClientContract, XApiClientOptions, XApiProblem, XPost, XPostLookupResponse, XPostSearchResponse, XSpacesResponse, XUser, XUserLookupResponse } from '~/types';
 import { extractSpaceIdsFromText } from "./input";
 import { InfraError } from '~/utils/error-handler';
+import { readHttpPayloadText } from '~/utils/http-payload';
 
 const DEFAULT_BASE_URL = "https://api.x.com";
 const SPACE_FIELDS = [
@@ -286,7 +287,7 @@ export class XApiClient implements SpacesClientContract {
         Authorization: `Bearer ${this.options.bearerToken}`,
       },
     });
-    const responseText = await response.text();
+    const responseText = await readHttpPayloadText(response, 'X Spaces API response');
 
     if (this.options.verbose) {
       this.options.log?.(`[spaces] ${response.status} ${response.statusText}`);

@@ -144,9 +144,8 @@ export const resolveVideoMediaFileForUpload = async (
   if (!engine.isHttpUrl(value) && !engine.isDataUrl(value) && existsSync(value)) {
     return { path: value, mimeType: engine.getLocalMimeType(value) ?? 'video/mp4' }
   }
-  const { bytes, mimeType } = await engine.resolveBytes(value)
   const path = `${outputDir}/omni-upload-source.mp4`
-  await Bun.write(path, bytes)
+  const { mimeType } = await engine.writeToFile(value, path)
   return { path, mimeType }
 }
 

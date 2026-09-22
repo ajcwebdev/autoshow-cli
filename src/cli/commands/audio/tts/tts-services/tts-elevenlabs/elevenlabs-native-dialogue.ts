@@ -25,6 +25,8 @@ import { providerSecondsToMilliseconds } from '../../script-to-audio/advanced-pr
 import { ELEVENLABS_TTS_OUTPUT_FORMAT, elevenLabsChunkExtension, readElevenLabsError } from './elevenlabs-utils'
 import { parseElevenLabsDictionaryLocator, validateElevenLabsVoiceSettings } from './elevenlabs-utils'
 import { canonicalOffsetForProviderOffset } from '~/cli/commands/audio/tts/tts-utils/tts-timing-mapping'
+import { readHttpPayloadJson } from '~/utils/http-payload'
+import { assertInlineSpeechResponsesFit } from '../../tts-utils/hosted-tts-chunk-pipeline'
 
 const ELEVENLABS_NATIVE_DIALOGUE_MAX_CHARACTERS = 2000
 const ELEVENLABS_NATIVE_DIALOGUE_MAX_VOICES = 10
@@ -180,6 +182,16 @@ export const runElevenLabsNativeDialogue = async (
   const batches = planElevenLabsNativeDialogueBatches(turns)
   const outputFormat = options.controls?.responseFormat ?? ELEVENLABS_TTS_OUTPUT_FORMAT
   validateElevenLabsVoiceSettings(options.model, options.controls?.voiceSettings)
+  // The dialogue endpoint defines MP3 formats as codec_sample-rate_kbps:
+  // https://elevenlabs.io/docs/api-reference/text-to-dialogue/convert-with-timestamps
+  // WAV sample rate alone does not establish channel count/bit depth. Do not guess its byte rate.
+  const mp3BytesPerSecond = outputFormat === 'mp3_44100_128' ? 16_000 : outputFormat === 'mp3_44100_192' ? 24_000 : undefined
+  if (mp3BytesPerSecond !== undefined) {
+    assertInlineSpeechResponsesFit('ElevenLabs dialogue', 'tts:elevenlabs-dialogue', batches.map(batch => batch.turns.map(turn => turn.preparedText.providerText).join('')), {
+      audioBytesPerSecond: mp3BytesPerSecond,
+      encoding: 'base64'
+    })
+  }
   const stability = options.controls?.voiceSettings?.stability
   const dictionaries = options.controls?.pronunciationDictionaryLocators?.map(parseElevenLabsDictionaryLocator)
   const paths: string[] = []
@@ -225,7 +237,7 @@ export const runElevenLabsNativeDialogue = async (
           stage: 'tts:elevenlabs-dialogue', retryClass: 'runtime_http_create_conservative', retryable: response.status === 425 || response.status === 429, metadata: { provider: 'elevenlabs' }
         }))
         await accepted({ fields: { httpStatus: response.status } })
-        return await response.json() as ElevenLabsDialogueTimingResponse & { audio_base64?: unknown }
+        return await readHttpPayloadJson(response, 'ElevenLabs Text-to-Dialogue response', { stage: 'tts:elevenlabs-dialogue' }) as ElevenLabsDialogueTimingResponse & { audio_base64?: unknown }
       }))
       if (typeof payload.audio_base64 !== 'string' || !payload.audio_base64) throw InfraError('ElevenLabs Text-to-Dialogue returned no audio.', { stage: 'tts:elevenlabs' })
       const bytes = Uint8Array.from(Buffer.from(payload.audio_base64, 'base64'))

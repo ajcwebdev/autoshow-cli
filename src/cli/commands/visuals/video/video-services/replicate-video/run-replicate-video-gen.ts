@@ -16,7 +16,7 @@ import {
   tryResolveLocalVideoDurationSeconds,
   videoMediaReferenceToUrlOrDataUrl
 } from '../../video-utils/video-media-inputs'
-import { downloadVideoOutputBytes } from '../../video-utils/video-output-download'
+import { downloadVideoOutput } from '../../video-utils/video-output-download'
 import { getReplicateBaseUrl } from '~/cli/commands/visuals/image/image-generation-services/replicate/replicate-image-gen'
 import { normalizeReplicateOutputUris, runReplicatePrediction } from '~/utils/replicate-client/replicate-prediction'
 
@@ -302,7 +302,7 @@ export const runReplicateVideoGen = async (
       }
 
       const outputPath = context.artifactPath()
-      await Bun.write(outputPath, await downloadVideoOutputBytes(videoUrl, 'Replicate'))
+      await downloadVideoOutput(videoUrl, 'Replicate', outputPath)
 
       const observedDuration = await tryResolveLocalVideoDurationSeconds(outputPath)
       const videoDuration = observedDuration ?? estimate.durationSeconds

@@ -9,6 +9,7 @@ import { finalizeHostedSttResult } from '../../stt-shared/finalize-hosted-stt'
 import { createSttRetryMetrics, sttRetryMetricsToCallbacks } from '../../stt-retry-metrics'
 import { sttStageRequest } from '../../stt-shared/stt-stage-request'
 import { attachSttStageErrorContext } from '../../stt-error-context'
+import { readRestDiagnosticText } from '~/utils/rest-client'
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 
 const GrokSttWordSchema = v.looseObject({
@@ -36,7 +37,7 @@ const GrokErrorSchema = v.object({
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
 
 const readGrokError = async (response: Response): Promise<{ message: string, rawResponse: unknown }> => {
-  const rawText = await response.text()
+  const rawText = await readRestDiagnosticText(response)
   if (!rawText.trim()) {
     return { message: `HTTP ${response.status}`, rawResponse: rawText }
   }

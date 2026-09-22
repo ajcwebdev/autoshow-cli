@@ -15,6 +15,7 @@ import { logAudioDownload, logAudioNormalize, logAudioOutput } from './audio-log
 import { getYtDlpBinary, hasYtDlpBinary } from '~/cli/commands/command-shared/shared-yt-dlp-binary'
 import { hasRuntimeTool } from '~/utils/runtime-paths'
 import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
+import { writeHttpPayloadToFile } from '~/utils/http-payload'
 
 let ytDlpVersionVerified = false
 
@@ -123,8 +124,7 @@ const downloadDirectMediaUrl = async (url: string, outputDir: string): Promise<s
     },
     (error) => classifyFetchRetry(error, 'runtime_http_read')
   )
-  const bytes = await response.arrayBuffer()
-  await Bun.write(dest, bytes)
+  await writeHttpPayloadToFile(response, dest)
   return dest
 }
 
@@ -206,8 +206,7 @@ const downloadDirectAudioUrl = async (url: string, outputDir: string): Promise<s
 
   const ext = inferExtensionFromContentType(contentType)
   const rawPath = createTempDownloadPath(outputDir, 'raw-audio', ext)
-  const bytes = await resp.arrayBuffer()
-  await Bun.write(rawPath, bytes)
+  await writeHttpPayloadToFile(resp, rawPath)
 
   const rawFile = Bun.file(rawPath)
   if (rawFile.size < 1000) {

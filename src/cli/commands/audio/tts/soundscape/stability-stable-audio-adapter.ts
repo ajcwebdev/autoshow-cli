@@ -20,6 +20,7 @@ const DOCS = [
 
 import { STABILITY_STABLE_AUDIO_MODEL_ID } from './sfx-provider-targets'
 import { readSoundscapeHeader } from './soundscape-http-headers'
+import { readHttpPayloadBytes } from '~/utils/http-payload'
 export { STABILITY_STABLE_AUDIO_MODEL_ID }
 const STABILITY_STABLE_AUDIO_SERIALIZER_VERSION = 'stability.stable-audio-3.v2'
 export const STABILITY_STABLE_AUDIO_COST_USD = 0.26
@@ -122,7 +123,7 @@ const defaultRequest = (apiKey: string): StabilitySoundEffectHttpRequest => asyn
     body: input.body,
     signal: input.cancellation,
   })
-  return { status: response.status, headers: response.headers, body: new Uint8Array(await response.arrayBuffer()) }
+  return { status: response.status, headers: response.headers, body: await readHttpPayloadBytes(response, 'Stability Stable Audio response') }
 }
 
 export const createStabilitySoundEffectAdapter = (options: {

@@ -63,10 +63,7 @@ export const minimaxFetchJson = async <TSchema extends v.BaseSchema<unknown, unk
   const response = options.execute
     ? await options.execute(request)
     : await request()
-  const json = await readJsonResponse(response, options.responseContext, {
-    stage: options.stage,
-    ...(options.maxResponseBytes !== undefined ? { maxBytes: options.maxResponseBytes } : {})
-  })
+  const json = await readJsonResponse(response, options.responseContext, { stage: options.stage })
   if (typeof json === 'object' && json !== null && !Array.isArray(json) && Object.keys(json).length === 0) {
     throw ValidationError(`Empty response body for ${options.responseContext}`, { stage: options.stage })
   }

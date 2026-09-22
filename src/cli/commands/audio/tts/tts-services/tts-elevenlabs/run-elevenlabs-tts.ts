@@ -11,6 +11,7 @@ import { requireTtsCredential } from '~/cli/commands/audio/tts/tts-utils/tts-cre
 import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
+import { readHttpPayloadBytes } from '~/utils/http-payload'
 
 const parsePronunciationDictionaryLocator = (
   value: string
@@ -140,7 +141,7 @@ export const runElevenLabsTts = async (
         }))
       }
       await accepted({ fields: { httpStatus: response.status } })
-      return new Uint8Array(await response.arrayBuffer())
+      return await readHttpPayloadBytes(response, 'ElevenLabs TTS audio', { stage: 'tts:elevenlabs' })
       })
     }
   })

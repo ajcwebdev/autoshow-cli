@@ -4,14 +4,14 @@
 
 - **Decision Status:** Proposed
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-09-17
+- **Date Updated:** 2026-09-22
 - **Verification Status:** Pending
 
 ## Context
 
 Every command printed in project documentation is a product promise. Readers cannot tell maintained copy-and-paste examples from stale historical evidence, expected output, intentionally invalid examples, templates, or paid service invocations unless the repository classifies and governs them.
 
-Restricting automated verification to the root `README.md` leaves the command references and the rest of `docs/` unverified. Those files hold most user-facing invocations, including combinations of providers, models, inputs, and flags. Ungoverned examples drift: they cite missing fixtures, invalid options, mutated configuration, unrouted providers, or live network and paid endpoints.
+Restricting automated verification to the root `README.md` leaves the command references and the rest of `docs/` unverified. Those files hold most user-facing invocations. Ungoverned examples drift: they cite missing fixtures, invalid options, mutated configuration, unrouted providers, or live network and paid endpoints.
 
 Why now: A repository-wide documentation audit found 1,424 shell-like candidates across 199 Markdown files, including 803 concrete AutoShow invocations. Scoping contracts to the README alone leaves the primary command-reference surface exposed to silent drift.
 
@@ -27,7 +27,7 @@ Why now: A repository-wide documentation audit found 1,424 shell-like candidates
 **Option 2**
 
 - **Option:** Govern only the root `README.md`
-- **Pros:** Smallest implementation and fastest test execution
+- **Pros:** Smallest scope and fastest verification
 - **Cons:** Leaves most user-facing invocations outside the contract
 - **Quantitative Notes:** Covers only 59 of 803 concrete AutoShow occurrences
 
@@ -41,57 +41,49 @@ Why now: A repository-wide documentation audit found 1,424 shell-like candidates
 **Option 4**
 
 - **Option:** Parse and execute every shell-looking candidate indiscriminately
-- **Pros:** Minimal policy design and superficially broad runtime coverage
+- **Pros:** Minimal policy design and broad runtime coverage
 - **Cons:** Can install software, mutate config or Git state, build containers, contact paid APIs, and mistake expected output for executable commands
-- **Quantitative Notes:** Threatens repository state with 621 non-AutoShow and 173 stateful/utility candidates
-
-**Option 5**
-
-- **Option:** Rely on manual documentation review and ad-hoc price audits
-- **Pros:** No committed inventory or test infrastructure
-- **Cons:** Drift recurrences are frequent, verification is non-reproducible, and aggregate cost accuracy cannot be guaranteed
-- **Quantitative Notes:** High ongoing maintenance burden with zero automated regression protection
+- **Quantitative Notes:** Threatens repository state with 621 non-AutoShow and 173 stateful or utility candidates
 
 ## Decision
 
 Govern every shell-like command in the root `README.md` and every Markdown document under `docs/` as a documentation contract. Each example is classified and verified locally without mutating repository files or user configuration and without contacting paid services.
 
-Priceable workflows run with `--price`, make no provider or network calls, and report a numeric estimated cost, including explicit zero for free workflows. Commands that mutate configuration, install software, build or run Docker, perform Git mutations, or invoke paid services are parsed or rejected, never executed. Staged media, comic, voice, document, OCR, and batch examples use committed offline fixtures rather than live URLs or artifacts from prior paid runs. `setup` (and its `config` alias) does not accept `--price`; `autoshow setup --price` / `autoshow config --price` are unexpected-flag usage errors.
+Priceable workflows run with `--price`, make no provider or network calls, and report a numeric estimated cost. Commands that mutate configuration, install software, build or run Docker, perform Git mutations, or invoke paid services are recognized and never executed. Staged examples use committed offline fixtures. `setup` and its `config` alias do not accept `--price`.
 
 This applies to:
 
 - The root `README.md` and all `*.md` files recursively under `docs/`.
-- Fenced shell blocks, console-prompted lines, continued commands, indented code blocks, and command-looking inline code spans.
-- AutoShow workflows, utilities, stateful commands, external tools, package managers, and Docker invocations in documentation.
-- Historical quotations, generated report evidence, templates, placeholders, and deliberately invalid examples, which are verified statically without execution.
+- Documented AutoShow workflows, utilities, stateful commands, external tools, package managers, and Docker invocations.
+- Historical quotations, generated report evidence, templates, placeholders, and deliberately invalid examples, which are verified without execution.
 
 It does not apply to:
 
-- `AGENTS.md` and internal agent instruction files (governed as agent policy, not user documentation).
-- Markdown fixtures under `input/` or test directories (governed as pipeline test inputs).
+- `AGENTS.md` and internal agent instruction files, which are agent policy rather than user documentation.
+- Markdown fixtures under `input/` or test directories, which are pipeline test inputs.
 - Live execution of paid AI providers, third-party network endpoints, or destructive local commands.
 
 ## Rationale
 
-- Command references hold most user-facing invocations and configuration variants, so README-only contracts miss the primary surface.
-- Classifying examples and executing only the safe subset gives complete coverage without running paid, stateful, or destructive commands.
-- Isolated `--price` runs prove documented workflows have a known cost and make no network or provider calls.
-- Committed offline fixtures let staged workflows validate in a clean checkout.
+- Command references hold most user-facing invocations, so README-only contracts miss the primary surface.
+- Classifying examples and executing only the safe subset covers the documentation without running paid, stateful, or destructive commands.
+- Isolated `--price` runs show that a documented workflow has a known cost and makes no network or provider calls.
+- Committed offline fixtures let staged workflows validate from a clean checkout.
 
 ## Consequences
 
 Positive outcomes:
 
-- Documented commands stay verified against the CLI parser, options, and model catalog.
+- Documented commands stay aligned with the CLI's options and model catalog.
 - Paid, destructive, and stateful examples cannot run by accident.
-- Missing fixtures, broken routes, deprecated flags, and malformed syntax fail in local CI.
+- Missing fixtures, broken routes, deprecated flags, and malformed syntax fail local checks.
 - Documentation cost estimates can be aggregated without spend.
 
 Negative outcomes:
 
-- Adding or moving documentation examples requires inventory updates.
-- Generated reports need inventory updates when they change.
-- Offline fixtures for document, media, voice, and comic pipelines enlarge the test-fixture surface.
+- Adding or moving a documented example requires an inventory update.
+- Generated reports need an inventory update when their commands change.
+- Offline fixtures for staged workflows enlarge the fixture set kept in the repository.
 
 ## Trade-offs
 
@@ -122,8 +114,7 @@ Negative outcomes:
 - [ ] Make `--price` results consistent across commands so priceable examples verify the same way — Pending
 - [ ] Commit offline fixtures for document, transcript, batch, image, video, comic, and voice examples — Pending
 - [ ] Classify utilities, Docker, Git, external tools, and credential commands as parse-only or never-execute — Pending
-- [x] Cross-check documented flags and models against CLI parsers and the model catalog — Partial
-  `test/test-cases/validation/cli/doc-command-flags-contract.test.ts` now scans `docs/commands/**` for documented flags against live command definitions. Full inventory, offline `--price` execution, and cost reporting remain open.
+- [ ] Cross-check documented flags and models against the CLI and the model catalog — In progress
 - [ ] Publish documentation cost reports that map each example to its estimated cost — Pending
 
 ## References
@@ -140,4 +131,3 @@ Negative outcomes:
 - Related ADR: [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
 - [`README.md`](../../README.md)
 - [`docs/commands/`](../commands/)
-- `test/test-cases/validation/cli/doc-command-flags-contract.test.ts`

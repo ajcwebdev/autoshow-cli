@@ -4,18 +4,18 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-09-17
+- **Date Updated:** 2026-09-22
 - **Verification Status:** Passed
 
 ## Context
 
-`comic generate-audio` could render dialogue from `structured-script.json` v4 — concatenate speech, insert authored pauses, mix overlapping turns, apply voice filters, and write a mastered WAV — but it had no soundscape domain. It could not author sound-effect intent, generate clips independently of the selected voice, place those clips on the final speech clock, or mix them with ambience ducking.
+`comic generate-audio` could master dialogue from `structured-script.json` v4, but it had no soundscape domain. It could not author sound-effect intent, generate clips independently of the selected voice, place those clips on the final speech clock, or mix them with ambience ducking.
 
-Sound intent belongs in the script, not in a provider API. A cue should say what is heard, where it occurs, whether omission is allowed, and how it is placed. Absolute `timestampMs` values are unstable because dialogue duration changes with voice, provider, repair take, and pacing. A cue that cannot be resolved exactly must never be silently clamped, guessed, or dropped. Hosted generation is paid work: `--price` must remain read-only, uncached generation needs an explicit `--sfx-provider`, and offline fixtures must cover planning and mixing.
+Sound intent belongs in the script. A cue states what is heard, where it occurs, whether omission is allowed, and how it is placed. Absolute `timestampMs` values are unstable because dialogue duration changes with voice, provider, repair take, and pacing. A cue that cannot be resolved exactly must never be silently clamped, guessed, or dropped. Hosted generation is paid work: `--price` must remain read-only, uncached generation needs an explicit `--sfx-provider`, and offline fixtures must cover planning and mixing.
 
-The soundscape must extend the existing scene-run `manifest.json`, cache, scheduler, and price contracts rather than add a second stack. Provider-neutral effects must be reusable across dialogue targets so comparison renders do not repurchase the same clip.
+The soundscape extends the scene-run `manifest.json`, cache, and price contracts. The same generated clip is reusable across dialogue targets so comparison renders do not repurchase it.
 
-Why now: ADR-013 made speech identity, timing, caching, artifacts, and resume trustworthy enough to serve as the dialogue bus; the remaining gap is a durable sound-intent and multi-track mixing layer.
+Why now: ADR-013 made speech identity, timing, caching, artifacts, and resume trustworthy enough to serve as the dialogue clock; the remaining gap is a durable sound-intent and multi-track mixing layer.
 
 ## Options Considered
 
@@ -64,32 +64,31 @@ It does not apply to:
 - Inferring sound cues from panel coordinates or coupling audio placement to `scene.json` camera composition.
 - Treating provider-generated reverb or a textual spatial prompt as measured acoustic simulation.
 - A standalone general-purpose SFX command.
-- Hosted sound generation as ADR verification.
 - Presentation-specific panel reconciliation, derived slideshow audio, or still-image video rendering; [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md) consumes retained soundscape evidence without mutating it.
 
 ### Authored intent
 
 `structured-script.json` v5 adds a scene-level `soundscape` object. An empty cue and ambient-bed collection is valid and keeps dialogue-only behavior with no sound-effect provider call. Existing v4 scene runs must be rebuilt; `comic generate-audio` has no v4 upgrader.
 
-Markdown recognizes block labels `**SFX:**`, `**VOCAL SFX:**`, and `**AMBIENCE:**`, plus inline `[[SFX: ...]]` or `[[VOCAL SFX: ...]]` for mid-turn placement. Directives are required unless prefixed with `OPTIONAL`. An optional provider-neutral envelope may follow, such as `{duration: 2.5s, gain: -3dB, pan: -0.4}`: duration is 0.5–30 seconds, gain is in decibels, and pan is constant-power from -1 to 1. These controls never select a provider. A block directive anchors at its source-order boundary, an inline directive at its spoken-text offset, and an ambience block covers the full resolved scene unless it declares an explicit range. Unlabelled action or panel direction remains visual staging. LLM review may classify an explicitly authored directive, but may not invent a cue, change required/optional policy, or detach a cue from its source span.
+Markdown recognizes block labels `**SFX:**`, `**VOCAL SFX:**`, and `**AMBIENCE:**`, plus inline `[[SFX: ...]]` or `[[VOCAL SFX: ...]]` for mid-turn placement. Directives are required unless prefixed with `OPTIONAL`. An optional provider-neutral envelope may follow, such as `{duration: 2.5s, gain: -3dB, pan: -0.4}`: duration is 0.5–30 seconds, gain is in decibels, and pan runs from -1 to 1. These controls never select a provider. A block directive anchors at its source-order boundary, an inline directive at its spoken-text offset, and an ambience block covers the full resolved scene unless it declares an explicit range. Unlabelled action or panel direction remains visual staging. Script review preserves the parsed soundscape: it does not invent a cue, change required or optional policy, or detach a cue from its source span.
 
-Provider, model, transport, encoding, and cost never appear in `structured-script.json`. Required-cue failure prevents master publication; optional-cue omission is recorded in the result. One-shot clips are never time-stretched by default. Renaming or editing a prompt creates new generation work; moving the same clip or changing gain, pan, or ducking reuses the generated audio.
+Provider, model, transport, encoding, and cost never appear in `structured-script.json`. Required-cue failure prevents master publication; optional-cue omission is recorded in the result. One-shot clips are never time-stretched by default. A new prompt, model, or provider creates new generation work. Moving a clip, or changing gain, pan, ducking, or the master profile, reuses the generated audio.
 
 ### Timeline resolution
 
-A cue anchor is an explicit non-negative scene-clock position, a source-segment start or end plus a signed millisecond offset, or a Unicode text offset within a speakable segment plus a signed millisecond offset. Source-segment edge anchors resolve from the selected final dialogue timeline after pauses, overlaps, repairs, and provider timing. Text-offset anchors resolve only from retained provider timing mapped to that clock.
+A cue anchor is an explicit non-negative scene-clock position, a source-segment start or end plus a signed millisecond offset, or a text offset within a spoken segment plus a signed millisecond offset. Source-segment edge anchors resolve from the selected final dialogue timeline after pauses, overlaps, repairs, and provider timing. Text-offset anchors resolve only when retained provider timing maps that text onto the same clock.
 
-The default `--soundscape-timing-policy strict` fails before mastering when exact mapping is unavailable, naming the cue and missing evidence. `--soundscape-timing-policy proportional` maps the offset linearly across the retained turn range and records that estimate. Negative offsets are allowed. If a resolved clip would begin before the timeline origin, the mixer adds measured pre-roll and shifts every bus; it never truncates or clamps the cue to zero. A cue that extends past dialogue extends the scene and full-scene ambient range. Required cue collisions are mixed, not serialized, unless the source explicitly places them in sequence.
+`--soundscape-timing-policy strict` is the default. It fails before mastering when exact mapping is unavailable and names the cue and missing evidence. `--soundscape-timing-policy proportional` maps the offset linearly across the retained turn and records that estimate. Negative offsets are allowed. If a resolved clip would begin before the timeline origin, the mixer adds pre-roll and shifts every bus. It does not truncate the cue or move it to zero. A cue that extends past dialogue extends the scene and the full-scene ambient range. Required cue collisions are mixed together unless the source places them in sequence.
 
 ### Provider targets and execution
 
-`--sfx-provider <provider=model>` selects exactly one dedicated sound-effect target and has no paid hosted default. The accepted targets are ElevenLabs `eleven_text_to_sound_v2`, version-pinned Replicate AudioGen, and Stability `stable-audio-3`. Speech endpoints are not accepted. Dialogue `--provider` remains independent. A fresh render with prompt-based action-SFX or ambience requires an explicit SFX target. Resume may reuse the exact target pinned by a compatible retained plan; it may not infer a target from credentials. Empty sound intent performs no SFX target setup.
+`--sfx-provider <provider=model>` selects exactly one dedicated sound-effect target and has no paid hosted default. The accepted targets are ElevenLabs `eleven_text_to_sound_v2`, version-pinned Replicate AudioGen, and Stability `stable-audio-3`. Speech endpoints are not accepted. Dialogue `--provider` remains independent. A fresh render with authored action SFX, vocal reactions, or ambience requires an explicit SFX target. Resume reuses the exact target pinned by a compatible retained plan and does not infer a target from credentials. Empty sound intent performs no SFX target setup.
 
-AudioGen is a community deployment under CC BY-NC 4.0. `--sfx-license-use noncommercial|commercial|unknown` is required for that target and is never inferred from model selection; commercial use is ineligible. AudioGen and Stability render action SFX and ambience only. Vocal reactions stay on the ElevenLabs sound-effect target, or on a selected dialogue TTS adapter when it supports the requested delivery and preserves the selected character voice. Those voice-qualified results are not reused across incompatible dialogue targets. If neither target supports a required vocal reaction, static validation fails rather than converting it to dialogue text or generic foley.
+AudioGen is a community deployment under CC BY-NC 4.0. `--sfx-license-use noncommercial|commercial|unknown` is required for that target and is never inferred from model selection. Commercial use is ineligible. AudioGen and Stability render action SFX and ambience only. Vocal reactions are accepted only by the ElevenLabs sound-effect target. A required vocal reaction on an unsupported target fails static validation before dispatch, and the cue is left unchanged.
 
-Generation cache keys exclude placement, bus gain, pan, ducking, and final master profile, so mix edits reuse paid clips. A provider-neutral action-SFX or ambience result may feed every selected dialogue target's mix. `--step-concurrency sfx=<n>` is the work-class ceiling ([ADR-024](ADR-024-derive-cli-help-from-registries-and-generalize-provider-flags.md) replaced `--sfx-concurrency`) and `--concurrency-mode` chooses ramp or immediate admission. Ambiguous paid admission follows ADR-013's `--allow-ambiguous-redispatch` rule.
+`--step-concurrency sfx=<n>` caps sound-effect work, and `--concurrency-mode` chooses ramp or immediate admission. Ambiguous paid admission uses `--allow-ambiguous-redispatch` as defined by [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md).
 
-`--price` resolves the same plans, accounts for verified cache and resume hits, reports unknown prices as unknown rather than zero, and performs no credential check, network call, directory creation, cache write, or manifest update.
+`--price` resolves the same plans, counts verified cache and resume hits, and keeps a missing price unknown in the estimate, where it is not counted as zero. It performs no credential check, network call, directory creation, cache write, or manifest update.
 
 ### Mixing, artifacts, and failure
 
@@ -100,22 +99,21 @@ The accepted `comic-soundscape-v1` profile is fixture-locked:
 - **Master format:** 48 kHz stereo 24-bit PCM WAV
 - **Bus gains:** dialogue `0 dB`, vocal reactions `-1 dB`, action SFX `-3 dB`, ambience `-14 dB`
 - **Loudness:** `-16 LUFS` integrated, `-1 dBTP` true-peak, limiter ceiling `0.95`
-- **Ambience ducking:** `9 dB` from the dialogue and vocal-reaction envelope, with a `120 ms` bed-loop crossfade and constant-power stereo panning
+- **Ambience ducking:** `9 dB` from the dialogue and vocal-reaction envelope, with a `120 ms` bed-loop crossfade
 
-Stereo positioning comes only from explicit authored pan intent or the profile's center default. Surround, HRTF binaural rendering, automatic panel-coordinate panning, and provider-side spatial synthesis are outside this decision.
+Stereo position comes from explicit authored pan, rendered with constant-power panning, or from the profile's center default. Surround, HRTF binaural rendering, automatic panel-coordinate panning, and provider-side spatial synthesis are outside this decision.
 
-The scene run retains exactly one canonical `manifest.json`. Soundscape masters publish as `audio/final/<dialogue-target-key>.soundscape.wav`. Several dialogue targets share one set of SFX results while retaining distinct final mixes. A mix-only change reuses verified dialogue and SFX generation. A prompt or provider-affecting change creates new generation work. A dialogue repair re-resolves anchors without regenerating unchanged SFX.
+The scene run keeps one `manifest.json`. Soundscape masters publish as `audio/final/<dialogue-target-key>.soundscape.wav`. Dialogue targets share one set of SFX results and keep distinct final mixes. A dialogue repair re-resolves anchors and does not regenerate unchanged SFX.
 
-A failed required cue fails the soundscape render and prevents publication of that master while preserving verified artifacts for resume. A failed optional cue is recorded as omitted. Cancellation stops queued cue work, leaves state resumable, and never publishes a partial master as success.
+A failed required cue fails the soundscape render and prevents publication of that master while preserving verified artifacts for resume. A failed optional cue is recorded as omitted. Cancellation stops queued cue work, leaves state resumable, and does not publish a partial master as success.
 
 ## Rationale
 
-- Source-level sound intent remains stable when provider catalogs, API limits, and pricing change.
-- Timeline anchors preserve synchronization across voices, providers, pacing, repairs, and local transforms.
-- Offline fixture coverage validates mixing without provider cost.
-- Separate generation and mix identities prevent gain or placement edits from buying the same sound again.
-- Existing ADR-002, ADR-008, ADR-010, and ADR-013 contracts remain the authorities for manifests, scheduling, model capabilities, price planning, and audio render evidence.
-- Dedicated SFX targets join only where a documented non-speech API fits the common contract.
+- Source-level sound intent stays valid when provider catalogs, limits, and prices change.
+- Timeline anchors keep cues aligned across voices, providers, pacing, repairs, and local mix edits.
+- Offline fixtures prove planning and mixing without a provider charge.
+- Generation identity is separate from mix identity, so placement and level edits do not repurchase a clip.
+- A new SFX target is added only when a documented non-speech API fits this contract.
 
 ## Consequences
 
@@ -131,14 +129,14 @@ Negative outcomes:
 - `structured-script.json` advances to v5 and new canonical scene runs must be rebuilt; there is no v4 compatibility reader.
 - Final mastering now depends on a selected dialogue timeline, so exact mid-turn cues can block dialogue render targets that do not expose sufficient timing evidence.
 - Retaining reusable source audio and semantic stems increases disk usage.
-- The Replicate AudioGen target is a community deployment with weaker availability guarantees than an official hosted model, and commercial use is ineligible under its CC BY-NC 4.0 fixture.
+- The Replicate AudioGen target is a community deployment with weaker availability guarantees than an official hosted model, and commercial use is ineligible under its CC BY-NC 4.0 terms.
 
 ## Trade-offs
 
 **Trade-off 1**
 
 - **Gain:** Portable authored intent and provider-qualified execution
-- **Sacrifice:** More planning types and validation stages
+- **Sacrifice:** Sound intent, target support, and timing evidence are validated before dispatch
 
 **Trade-off 2**
 
@@ -148,7 +146,7 @@ Negative outcomes:
 **Trade-off 3**
 
 - **Gain:** Provider-output reuse across many mixes
-- **Sacrifice:** Additional retained artifacts and checksums
+- **Sacrifice:** More retained clips and stems on disk
 
 **Trade-off 4**
 
@@ -162,7 +160,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-`comic generate-audio` accepts `--sfx-provider`, `--sfx-license-use`, `--soundscape-timing-policy`, and `--step-concurrency sfx=<n>` in `src/cli/flags/comic-flags.ts`. Directive parsing lives in `src/cli/commands/visuals/comic/comic-utils/structured-script-utils/soundscape-directives.ts`. Planning, routing, mixing, and the three dedicated adapters live under `src/cli/commands/audio/tts/soundscape/`. Public types live in `src/types/soundscape-workflow/`.
+`comic generate-audio` accepts `--sfx-provider`, `--sfx-license-use`, `--soundscape-timing-policy`, and `--step-concurrency sfx=<n>`. Planning, routing, mixing, and the dedicated adapters live under `src/cli/commands/audio/tts/soundscape/`.
 
 ## Test Plan
 
@@ -180,23 +178,23 @@ bun test test/test-cases/validation/audio/music/replicate-audiogen-adapter-contr
 bun test test/test-cases/validation/audio/music/stability-stable-audio-adapter-contracts.test.ts
 git diff --check
 ```
-1. `bun run check` and `git diff --check` confirm type, lint, and whitespace health after documentation edits.
-2. `bun t --price` confirms no-cost `--price` planning with zero network calls and zero file mutations.
+
+1. `bun run check` and `git diff --check` confirm type, lint, and whitespace health.
+2. `bun t --price` confirms `--price` planning makes no network call and writes no files.
 3. The soundscape schema, timeline, mixer, and artifact contracts verify v5 parsing, directive extraction, exact and proportional anchor resolution, four-bus mixing, cache reuse, and canonical publication.
 4. The adapter contracts verify ElevenLabs, AudioGen, and Stability capability routing without paid provider calls.
 
 ## References
 
-- Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — canonical manifest, resume, and no-call price planning
-- Related ADR: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md) — workflow type ownership and the `~/types` barrel
-- Related ADR: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md) — structured failures and explicit TTS redispatch authorization
-- Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md) — shared provider infrastructure and comic boundaries
-- Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — bounded provider work and lane identity
-- Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — model-qualified capability, lifecycle, and pricing policy
-- Related ADR: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md) — exact TTS preflight, paid-approval state, and report evidence lifecycle
-- Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md) — dialogue, timing, cache, artifact, and mastering foundation
-- Related ADR: [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md) — derived panel timing, presentation remix, and still-image rendering
-- `src/types/soundscape-workflow/soundscape-types.ts`
+- Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — manifest, resume, and no-call price planning
+- Related ADR: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md) — shared workflow type ownership
+- Related ADR: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md) — structured failures and redispatch authorization
+- Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md) — comic boundaries on shared provider setup
+- Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — bounded concurrent provider work
+- Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — hosted model capability and pricing policy
+- Related ADR: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md) — paid-approval and retained run evidence
+- Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md) — dialogue clock, voice identity, and mastering foundation
+- Related ADR: [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md) — read-only panel presentation over retained soundscape audio
 - `src/cli/flags/comic-flags.ts`
 - ElevenLabs [Sound Effects API](https://elevenlabs.io/docs/api-reference/text-to-sound-effects/convert)
 - Replicate [AudioGen](https://replicate.com/sepal/audiogen)

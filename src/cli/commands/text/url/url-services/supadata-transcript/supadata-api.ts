@@ -7,6 +7,7 @@ import {
   parseSupadataJobStatus
 } from './supadata-response-parsers'
 import { toSupadataHttpError } from './supadata-utils'
+import { readHttpPayloadText } from '~/utils/http-payload'
 
 const REQUEST_TIMEOUT_MS = 70_000
 const POLL_REQUEST_TIMEOUT_MS = 60_000
@@ -46,7 +47,7 @@ export const fetchSupadataTranscript = async (
         },
         signal: signal ?? null
       })
-      const payload = parseJsonOrText(await response.text())
+      const payload = parseJsonOrText(await readHttpPayloadText(response, 'Supadata transcript response'))
 
       if (response.status === 206) {
         throw httpResponseError(
@@ -102,7 +103,7 @@ export const pollSupadataTranscriptJob = async (
         },
         signal: signal ?? null
       })
-      const payload = parseJsonOrText(await response.text())
+      const payload = parseJsonOrText(await readHttpPayloadText(response, 'Supadata polling response'))
       if (!response.ok) {
         throw toSupadataHttpError('poll', 'runtime_http_poll', response, payload, 'Supadata polling failed')
       }

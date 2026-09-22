@@ -8,7 +8,7 @@ import { ProviderError, ValidationError } from '~/utils/error-handler'
 import { extractRestErrorMessage, isRecord, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
 import { isRetryableStatus } from '~/utils/retries'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
-import { buildInworldTtsRequestBody, inworldTtsRequestControls, INWORLD_TTS_SERIALIZER_VERSION, normalizeInworldTimestampInfo } from './inworld-tts-request'
+import { buildInworldTtsRequestBody, inworldTtsRequestControls, INWORLD_TTS_AUDIO_BYTES_PER_SECOND, INWORLD_TTS_SERIALIZER_VERSION, normalizeInworldTimestampInfo } from './inworld-tts-request'
 import { resolveCredential } from '~/utils/validate/env-utils'
 
 export const parseInworldMarkups = (text: string): { sanitizedText: string, markups: string[] } => {
@@ -51,6 +51,7 @@ export const runInworldTts = async (
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
     requestEvidence: options.requestEvidence,
+    inlineAudioResponse: { audioBytesPerSecond: INWORLD_TTS_AUDIO_BYTES_PER_SECOND, encoding: 'base64', speed: options.speed },
     fetchChunkAudio: async ({ chunk, chunkIndex, requestAttempt, retryReasonCode, signal }) => {
       const resolvedVoice = voice === 'voice_inworld_standard_en' ? 'Dennis' : voice
       const body = buildInworldTtsRequestBody({ model: options.model, text: chunk, voiceId: resolvedVoice, steeringPrompt: options.steeringPrompt, speed: options.speed })

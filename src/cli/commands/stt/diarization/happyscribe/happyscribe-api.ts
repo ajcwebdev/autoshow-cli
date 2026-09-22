@@ -5,7 +5,8 @@ import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retrie
 import { HAPPYSCRIBE_STT_LANGUAGE } from './happyscribe'
 import { parseHappyScribeExport, parseHappyScribeOrder, parseHappyScribeSignedUploadUrl, parseHappyScribeTranscription } from './happyscribe-response-parsers'
 import { attachHappyScribeErrorContext, buildHappyScribeRetryHeaders, toHappyScribeHttpError } from './happyscribe-utils'
-import { parseJsonOrText, resolveRestPath } from '~/utils/rest-client'
+import { parseJsonOrText, readRestDiagnosticText, resolveRestPath } from '~/utils/rest-client'
+import { readHttpPayloadText } from '~/utils/http-payload'
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 const POLL_REQUEST_TIMEOUT_MS = 60 * 1000
@@ -27,7 +28,7 @@ export const createHappyScribeApiClient = (
         async (signal) => {
           options.onRequest?.()
           const response = await requestOptions.request(signal ?? undefined)
-          payload = parseJsonOrText(await response.text())
+          payload = parseJsonOrText(await readHttpPayloadText(response, 'Happy Scribe response', { stage: 'stt:happyscribe' }))
 
           if (!response.ok) {
             throw toHappyScribeHttpError(
@@ -137,7 +138,7 @@ export const createHappyScribeApiClient = (
           })
 
           if (!uploadResponse.ok) {
-            const payload = parseJsonOrText(await uploadResponse.text())
+            const payload = parseJsonOrText(await readRestDiagnosticText(uploadResponse))
             throw toHappyScribeHttpError(
               'upload',
               'runtime_http_create_retriable',
@@ -253,7 +254,7 @@ export const createHappyScribeApiClient = (
         timeoutMs: POLL_REQUEST_TIMEOUT_MS
       }, async (signal) => {
         const response = await fetch(url, { method: 'GET', headers, redirect: 'follow', signal: signal ?? null })
-        const raw = await response.text()
+        const raw = await readHttpPayloadText(response, 'Happy Scribe transcript download', { stage: 'stt:happyscribe' })
         const payload = format === 'text' ? raw : parseJsonOrText(raw)
         if (!response.ok) {
           throw toHappyScribeHttpError('result', 'runtime_http_read', response, payload, 'Happy Scribe transcript download failed')

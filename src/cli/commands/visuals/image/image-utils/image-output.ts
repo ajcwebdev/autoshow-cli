@@ -32,21 +32,22 @@ export const downloadImageUrl = async (
   fallbackExt: string,
   signal?: AbortSignal | undefined
 ): Promise<string> => {
-  let contentType: string | null = null
-  const bytes = await downloadGeneratedFile({
+  let outputPath = ''
+  await downloadGeneratedFile({
     url,
     operationName: 'generated-image-download',
     init: {
       headers: { accept: 'image/*,*/*;q=0.8' },
       ...(signal ? { signal } : {})
     },
-    inspectResponse: (response) => { contentType = response.headers.get('content-type') },
+    outputPath: (response) => {
+      const ext = mimeToExtension(response.headers.get('content-type'), urlToExtension(url, fallbackExt))
+      outputPath = outputPathForIndex(outputDir, ext, index).outputPath
+      return outputPath
+    },
     errorFactory: (response) => imageDownloadHttpError(`Generated image download failed (${response.status}): ${url}`, response)
   })
 
-  const ext = mimeToExtension(contentType, urlToExtension(url, fallbackExt))
-  const { outputPath } = outputPathForIndex(outputDir, ext, index)
-  await Bun.write(outputPath, bytes)
   return outputPath
 }
 

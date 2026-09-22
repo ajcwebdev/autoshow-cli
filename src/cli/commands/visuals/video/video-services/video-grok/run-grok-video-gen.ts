@@ -8,7 +8,7 @@ import {
   normalizeGrokVideoDuration,
   normalizeGrokVideoResolution
 } from '~/cli/commands/visuals/video/video-utils/video-normalization'
-import { downloadVideoOutputBytes } from '~/cli/commands/visuals/video/video-utils/video-output-download'
+import { downloadVideoOutput } from '~/cli/commands/visuals/video/video-utils/video-output-download'
 import { formatPolledJobError, runPolledJob } from '~/utils/polled-job-client/polled-job'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
@@ -133,7 +133,7 @@ export const runGrokVideoGen = async (
       }
 
       const outputPath = context.artifactPath()
-      await Bun.write(outputPath, await downloadVideoOutputBytes(videoUrl, 'Grok'))
+      await downloadVideoOutput(videoUrl, 'Grok', outputPath)
 
       return {
         artifactPaths: [outputPath],

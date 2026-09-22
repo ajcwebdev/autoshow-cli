@@ -3,6 +3,7 @@ import type { UrlArticleProviderAdapter, UrlRequestOptions, WebArticleMetadata }
 import { validateData } from '~/utils/validate/validation'
 import { resolveGlmBaseUrl } from '~/cli/commands/text/ocr/ocr-services/glm-ocr/glm'
 import { requireHostedUrlProviderApiKey, cleanString, countWords, createUrlArticleRun, createUrlProviderHttpError, getUrlRequestTimeoutMs, isRecord, withUrlProviderTimeout } from '../../url-utils'
+import { readHttpPayloadText } from '~/utils/http-payload'
 
 const GlmReaderResponseSchema = v.looseObject({
   reader_result: v.looseObject({
@@ -44,7 +45,7 @@ const runGlmReader = async (
     })
   )
 
-  const rawText = await response.text()
+  const rawText = await readHttpPayloadText(response, 'GLM reader response')
   let payload: unknown = null
   try {
     payload = JSON.parse(rawText) as unknown
