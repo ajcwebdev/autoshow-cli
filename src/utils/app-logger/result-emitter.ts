@@ -44,6 +44,14 @@ export const setResultCommand = (command: string | undefined): void => {
   active.command = command
 }
 
+const assignPendingResult = (
+  active: ResultInvocation,
+  data: Record<string, unknown>,
+  message: string
+): void => {
+  active.pending = { status: 'success', exitCode: 0, message, data }
+}
+
 export const stageResult = (data: Record<string, unknown>, message = 'Complete'): void => {
   const active = invocation()
   if (!active) return
@@ -53,7 +61,14 @@ export const stageResult = (data: Record<string, unknown>, message = 'Complete')
       metadata: { command: active.command }
     })
   }
-  active.pending = { status: 'success', exitCode: 0, message, data }
+  assignPendingResult(active, data, message)
+}
+
+// Later batch items must not replace the one terminal result.
+export const stageResultIfEmpty = (data: Record<string, unknown>, message = 'Complete'): void => {
+  const active = invocation()
+  if (!active || active.pending) return
+  assignPendingResult(active, data, message)
 }
 
 export const stageFailureResult = (

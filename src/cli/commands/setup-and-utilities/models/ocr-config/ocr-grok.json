@@ -89,7 +89,8 @@
           "supportedEfforts": [
             "low",
             "medium",
-            "high"
+            "high",
+            "xhigh"
           ]
         }
       }

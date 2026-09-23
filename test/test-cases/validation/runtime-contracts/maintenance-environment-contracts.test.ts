@@ -56,7 +56,8 @@ describe('maintenance environment contracts', () => {
     }
     const scripts = packageJson.scripts ?? {}
 
-    expect(scripts['check']).toBe('bun run --parallel check:structure check:names check:types')
+    expect(scripts['check']).toBe('bun run --parallel check:structure check:names check:types check:docs')
+    expect(scripts['check:docs']).toBe('env -i PATH="$PATH" HOME="$HOME" bun --no-env-file test test/test-cases/validation/cli/documentation-examples.test.ts')
     expect(scripts['check:structure']).toContain('env -i PATH="$PATH" HOME="$HOME" bun --no-env-file')
     expect(scripts['check:names']).toContain('env -i PATH="$PATH" HOME="$HOME" bun --no-env-file')
     expect(scripts['check:types']).toContain('bun --no-env-file node_modules/@typescript/native-preview/bin/tsgo --noEmit')
@@ -79,7 +80,7 @@ describe('maintenance environment contracts', () => {
       readFile(join(repositoryRoot, 'Dockerfile'), 'utf8'),
       readFile(join(repositoryRoot, 'docs/docker.md'), 'utf8'),
       readFile(join(repositoryRoot, 'docs/adr/ADR-014-distribute-the-cli-as-a-docker-image.md'), 'utf8'),
-      readFile(join(repositoryRoot, 'docs/adr/ADR-005-reduce-environment-variable-surface-area.md'), 'utf8')
+      readFile(join(repositoryRoot, 'docs/adr/ADR-004-setup-toolchain-and-runtime-configuration.md'), 'utf8')
     ])
 
     expect(dockerfile).toContain('RUN bun --no-env-file install --frozen-lockfile --production')

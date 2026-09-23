@@ -22,7 +22,6 @@ runtime/*
 
 input/*
 !input/examples/
-input/examples/*
 !input/examples/audio/
 !input/examples/batch/
 !input/examples/comic/
@@ -39,11 +38,6 @@ input/examples/tts/*
 !input/examples/audio/0-audio-short.mp3
 !input/examples/audio/1-audio.mp3
 !input/examples/audio/anthony-voice.mp3
-!input/examples/batch/2-direct-urls.md
-!input/examples/batch/2-urls.md
-!input/examples/batch/example-rss-feeds.md
-!input/examples/comic/01-registry-check.md
-!input/examples/comic/README.md
 !input/examples/document/1-document.jpg
 !input/examples/document/1-document.pdf
 !input/examples/document/1-document.png
@@ -58,9 +52,3 @@ input/examples/tts/*
 !input/examples/document/protected.pdf
 !input/examples/lyrics/01-cover.jpeg
 !input/examples/lyrics/01-example-song.mp3
-!input/examples/lyrics/01-example-song.txt
-!input/examples/tts/00-tts-shortest.txt
-!input/examples/tts/01-tts-short.md
-!input/examples/tts/04-tts-dialogue.txt
-
-topics

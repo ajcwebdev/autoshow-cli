@@ -9,17 +9,18 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 ```bash
 bun autoshow voice delete <registration-id> [flags]
 ```
-`delete` only works for a ready voice this project owns. If another current registration still uses the same provider voice, [retire](./08-retire.md) that registration first. Hume deletion also requires `--expected-name` with the exact current Hume voice name.
+
+`delete` works only for a ready voice this project owns. If another current registration still uses that provider voice, [retire](./08-retire.md) it first.
 
 ### Options
 
-| Flag                       | Description                                                     |
-| -------------------------- | --------------------------------------------------------------- |
-| `--generation-id <sha256>` | Optional unless more than one generation could match            |
-| `--confirm-voice-id <id>`  | Required exact provider resource ID confirmation                |
-| `--expected-name <name>`   | Exact current Hume voice name required for Hume deletion        |
-| `--reconcile`              | Finish an interrupted voice create without creating a new voice |
-| `--price`                  | Validate and estimate without provider calls or artifact writes |
+| Flag                       | Description                                                         |
+| -------------------------- | ------------------------------------------------------------------- |
+| `--generation-id <sha256>` | Optional unless more than one generation could match                |
+| `--confirm-voice-id <id>`  | Required exact provider resource ID confirmation                    |
+| `--expected-name <name>`   | Exact current Hume voice name required for Hume deletion            |
+| `--reconcile`              | Finish an ambiguous voice creation without creating the voice again |
+| `--price`                  | Validate and estimate without provider calls or artifact writes     |
 
 ### Examples
 

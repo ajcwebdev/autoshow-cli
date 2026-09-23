@@ -25,7 +25,7 @@ const normalizeLlmProviderUsage = (usage: unknown): NormalizedLlmUsage | undefin
     'promptTokenCount',
     'input_tokens_count'
   ])
-  const outputTokenCount = firstNumber(usage, [
+  const reportedOutputTokenCount = firstNumber(usage, [
     'outputTokenCount',
     'output_tokens',
     'completion_tokens',
@@ -33,6 +33,11 @@ const normalizeLlmProviderUsage = (usage: unknown): NormalizedLlmUsage | undefin
     'completionTokenCount',
     'output_tokens_count'
   ])
+  // Gemini reports visible candidates and billed thinking separately. Other
+  // providers already include reasoning in their completion/output total.
+  const outputTokenCount = reportedOutputTokenCount === undefined ? undefined
+    : reportedOutputTokenCount + (typeof usage['candidatesTokenCount'] === 'number'
+      ? finiteNumber(usage['thoughtsTokenCount']) ?? 0 : 0)
   const totalTokenCount = firstNumber(usage, [
     'totalTokenCount',
     'total_tokens',

@@ -38,7 +38,7 @@ const source = [
   'Heavy hatch closes',
 ].join('\n')
 
-describe('ADR-017 structured soundscape contracts', () => {
+describe('ADR-013 structured soundscape contracts', () => {
   test('parses strict v5 block and inline directives with exact source spans and stable anchors', async () => {
     const initial = parseScriptMarkdownToStructuredData(source, 'input/sound.md', { characterCatalog: characters, locationCatalog: locations })
     const sourceIdentity = initial.sourceIdentity

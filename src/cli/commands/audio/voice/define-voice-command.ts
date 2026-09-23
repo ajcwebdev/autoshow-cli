@@ -38,13 +38,13 @@ const designCommand = defineCliCommand({
     provider: commonRegistrationFlags.provider, model: commonRegistrationFlags.model, profile: commonRegistrationFlags.profile,
     'creation-model': strFlag('Provider model used only to create candidates'), description: strFlag('Provider voice design/remix description'),
     'preview-text': strFlag('Preview passage; ElevenLabs requires 100-1000 characters, other design providers require nonempty text'), candidates: strFlag('Bounded candidate count'), seed: strFlag('Optional non-negative deterministic seed'),
-    'source-voice-id': strFlag('ElevenLabs remix source voice ID'), 'eligibility-snapshot-hash': strFlag('Dated ElevenLabs remix eligibility proof SHA-256'),
+    'source-voice-id': strFlag('ElevenLabs remix source voice ID'), 'eligibility-snapshot-hash': strFlag('Lowercase SHA-256 required with --source-voice-id for an ElevenLabs remix'),
     save: strFlag('Candidate ID to materialize as a durable provider voice'),
     'subject-key': strFlag('Canonical character or role key when --save is set'),
     'voice-name': strFlag('Desired provider account voice name when --save is set'),
     'provenance-ref': commonRegistrationFlags['provenance-ref'],
     'consent-ref': commonRegistrationFlags['consent-ref'],
-    reconcile: boolFlag('Complete an ambiguous provider provisioning journal without recreating the voice'),
+    reconcile: boolFlag('Finish an ambiguous save without creating the voice again'),
     price: commonRegistrationFlags.price
   }
 }, handleDesign)

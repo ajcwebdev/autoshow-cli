@@ -151,7 +151,7 @@ const buildSoundscapeScene = async (root: string) => {
   return { structured, structuredRef, sceneRunIdentity, dialoguePlan, dialogueRef, firstDialogue, secondDialogue, first, selectedSoundscapeRuns, firstDialogueMedia: dialogueMedia(firstDialogue), secondDialogueMedia: dialogueMedia(secondDialogue) }
 }
 
-describe('ADR-017 Phase 8D artifact lineage audit', () => {
+describe('ADR-013 Phase 8D artifact lineage audit', () => {
   test('passes a two-target soundscape matrix and fails stale or missing presentation lineage', async () => {
     const root = await makeTempDir('autoshow-phase-8d-lineage-')
     try {

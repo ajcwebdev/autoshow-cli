@@ -67,14 +67,10 @@ CARTESIA_API_KEY=...
 
 ## Artifacts
 
-Sample audio, previews, auditions, and consent records are stored separately from ordinary project output.
-
-Registration files live beside the authored profiles:
+The command writes its registration catalog and current index beside the authored profiles. These files are not timestamped `output/` runs:
 
 - `input/characters/character-voice-registrations.json`
 - `input/characters/character-voice-current.json`
-- `input/characters/voice-candidates/`
-- `input/characters/voice-references/`
 
 Retired registrations remain in the catalog. Only approved voices are current.
 

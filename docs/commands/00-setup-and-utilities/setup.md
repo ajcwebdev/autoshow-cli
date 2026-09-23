@@ -14,7 +14,6 @@ For Docker-only network diagnostics (`setup --network-check serve|probe`), see [
 - [Setting Defaults and Configuration](#setting-defaults-and-configuration)
 - [Config Schema](#config-schema)
 - [Persisted Defaults and Precedence](#persisted-defaults-and-precedence)
-- [Testing](#testing)
 
 ## Usage
 
@@ -49,19 +48,11 @@ Valid `--step` values:
 yt-dlp | defuddle | whisperfile | calibre | all | transcription | music
 ```
 
-Isolated steps assume their prerequisites are already present. Pass `--force-redownload` with `--step` to replace existing downloads.
+An isolated step assumes its prerequisites are already present. Add `--force-redownload` to replace an existing download.
 
 ```bash
-bun autoshow setup --step yt-dlp
-
-bun autoshow setup --step calibre
-
-bun autoshow setup --step defuddle
-
 bun autoshow setup --step whisperfile
-bun autoshow setup --step transcription
-
-bun autoshow setup --step music
+bun autoshow setup --step whisperfile --force-redownload
 ```
 ## Model Downloads
 
@@ -82,7 +73,7 @@ Bare names and `whisperfile:<model>` are equivalent.
 
 ## Setting Defaults and Configuration
 
-View or set persistent CLI defaults saved to `config/autoshow.json`:
+View or set persistent defaults in `config/autoshow.json`. Override that path with `--config-path`. These flags save the file and skip runtime installation and doctor checks:
 
 ```bash
 bun autoshow setup --show
@@ -104,10 +95,6 @@ bun autoshow setup --max-cents 100
 bun autoshow setup --cookies-from-browser chrome
 bun autoshow setup --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
 ```
-Default path: `config/autoshow.json` in the project root. Override with `--config-path <path>`.
-
-Passing configuration flags updates and saves `config/autoshow.json` without running full runtime installation or doctor checks.
-
 `--concurrency-mode ramp` (the native default) starts hosted provider traffic gradually up to the configured cap. `immediate` starts at that cap.
 
 Model selector flags are repeatable. Repeating a provider selector saves all selected models in first-seen order:
@@ -181,7 +168,7 @@ Representative JSON shape:
 
 Model-selecting fields are arrays of models, not single strings. Use `bun autoshow setup --show` to inspect the saved file.
 
-Image, video, and music tuning defaults such as `duration` and `format` are edited in `config/autoshow.json`. `setup` CLI flags persist provider and model selectors only.
+Image, video, and music tuning defaults such as `duration` and `format` are edited in `config/autoshow.json`. The `setup` flags for image, video, and music persist the provider and model selectors.
 
 ## Persisted Defaults and Precedence
 
@@ -201,27 +188,10 @@ Cookie auth persists the cookies file path or browser name only. Do not copy coo
 Explicit CLI flags > config file defaults > native CLI defaults
 ```
 
-Only flags explicitly typed on the command line override config values. Native CLI defaults do not overwrite saved config defaults.
+A flag overrides the saved value only when you pass it. Built-in defaults do not replace saved config.
 
 If you type any provider/model selector for a step family at runtime, configured provider selections for that family are replaced instead of merged. For example, passing `--llm openai=...` on `write` suppresses configured Gemini and Anthropic LLM defaults for that run.
 
 ### Pricing and Budgets
 
 Set a hard budget with `--max-cents`. Hosted and mixed-provider commands fail before execution when the estimate exceeds that limit. `--allow-over-budget` is a one-off runtime override and is never persisted.
-
-## Testing
-
-Local no-cost coverage for `setup` and `--doctor`.
-
-### Quick Start
-
-```bash
-bun test test/test-cases/validation/setup/
-```
-### Price Preflight
-
-Setup has no provider-priced commands, so `--price` and `--budget` do not estimate anything for this suite.
-
-### Related Docs
-
-- [Testing Overview](../testing.md)

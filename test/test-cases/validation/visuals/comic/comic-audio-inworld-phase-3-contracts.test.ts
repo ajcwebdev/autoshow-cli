@@ -30,7 +30,7 @@ const fixture = async (root: string) => {
   return await buildComicAudioPhaseFixture(root, [voiceEntry('navigator', 'Alex'), voiceEntry('pilot', 'Dennis')])
 }
 
-describe('ADR-017 Phase 3E Inworld soundscape acceptance', () => {
+describe('ADR-013 Phase 3E Inworld soundscape acceptance', () => {
   test('keeps Inworld dialogue planning separate from ElevenLabs action and ambience routing', async () => {
     const root = await tempDirs.make()
     const { dialoguePlan, soundscapePlan, snapshot } = await fixture(root)

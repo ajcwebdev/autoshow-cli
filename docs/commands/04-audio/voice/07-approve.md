@@ -1,6 +1,6 @@
 # voice approve
 
-Approve an auditioned registration and make it current.
+Approve an auditioned registration and make its profile current.
 
 See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
 
@@ -10,7 +10,7 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice approve <registration-id> [flags]
 ```
 
-The registration must already be auditioned. Approval is local and does not call a provider. One subject can keep a separate current approval for each model.
+The registration must already be a ready, auditioned generation. Approval is local and does not call a provider. One subject can keep a separate current approval for each provider, model, and profile.
 
 ### Options
 

@@ -54,7 +54,6 @@
           "allowDisabled": false,
           "supportedEfforts": [
             "low",
-            "medium",
             "high",
             "max"
           ]

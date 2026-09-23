@@ -2,56 +2,47 @@
 
 See the [STT overview](../../overview.md) for provider selection and shared options.
 
-Generate captions from an audio or video file with `--captions`. The selected STT model runs once; caption export uses its saved timing evidence and writes `captions.srt`, `captions.vtt`, and `captions.json` beside `result.json`. Multiple providers each get captions in their own provider directory. This also works with media URLs, media batches, split transcription, and the YouTube caption-first path. Transcription uses normal provider pricing; local caption generation adds no provider call. `--price` estimates transcription without running it.
+Generate captions from an audio or video file with `--captions`. Transcription runs once at the provider's normal price; the caption files are written locally from that transcript and add no provider call. The export writes `captions.srt`, `captions.vtt`, and `captions.json` beside `result.json`. Each provider's captions stay in that provider's directory. The same export works for media URLs, media batches, split transcription, and [YouTube caption fallback](../../../url/overview.md#youtube-caption-fallback). `--price` estimates transcription without running it.
 
 ```bash
 bun autoshow extract audio.mp3 --provider deepinfra --captions
 bun autoshow extract video.mp4 --provider deepinfra --captions --caption-mode word --output-dir output/video-captions
 bun autoshow extract interview.mp4 --provider deepgram=nova-3 --diarization --captions --caption-format vtt
 ```
-Caption flags are validated before transcription. If caption generation fails, the transcript remains available; retry from the saved result below to adjust captions without paying for transcription again.
+Invalid caption options fail before transcription. If caption generation fails, the transcript remains. Export again from the saved result to change the layout without paying for transcription again.
 
-Export locally from a provider's saved `result.json`, or a directory containing that file. This path needs no audio, model, API credentials, or video rendering. Use a new `--output-dir` for each layout; existing caption files are not overwritten.
+Export from a saved `result.json`, or from a directory that contains that file. This path needs no audio, model, API credentials, or video rendering. Use a new `--output-dir` for each layout; existing caption files are not overwritten. Aligned and reconciled results from [local timing and speaker workflows](../timing/overview.md#local-timing-and-speaker-workflows) use this same export.
 
 ```bash
 bun autoshow extract output/<run>/providers/<provider-model>/result.json --captions --output-dir output/captions-phrases
 bun autoshow extract --captions --transcript-result output/<run>/providers/<provider-model>/result.json --caption-mode word --caption-format vtt --no-caption-speakers --output-dir output/captions-words
 ```
-| Flag                                                   | Behavior                                                                                                                                             |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--caption-format srt\|vtt\|ass\|ttml\|lrc\|both\|all` | Defaults to SRT and VTT (`both`). `all` writes all five formats.                                                                                     |
-| `--caption-mode phrase\|word`                          | Defaults to readable phrases. Word mode emits one evidence word/token span per cue. A provider-formatted multiword span retains its original bounds. |
-| `--caption-speakers`, `--no-caption-speakers`          | Include or hide speaker prefixes in exported files without changing provider evidence; default includes speakers.                                    |
-| `--caption-max-words`, `--caption-max-characters`      | Phrase grouping budgets; defaults are 10 words and 58 characters. Indivisible words can exceed a character budget.                                   |
-| `--caption-max-duration`, `--caption-break-gap`        | Cue-duration and silence-gap budgets in seconds; defaults are 5 and 0.9. Native word boundaries are preserved.                                       |
-| `--caption-line-width`, `--caption-max-lines`          | Defaults are 42 characters and 2 lines. Long words and added speaker prefixes can exceed these layout budgets.                                       |
-| `--caption-max-cps`                                    | Reading-speed threshold, default 20 characters/second. Violations are recorded without moving measured word timing.                                  |
-| `--caption-offset <seconds>`                           | Shift cue times without changing saved evidence. Saved-result export defaults to 0; fresh embedding uses the source audio start.                     |
+| Flag                                                   | Behavior                                                                                                                                                                                                 |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--caption-format srt\|vtt\|ass\|ttml\|lrc\|both\|all` | Defaults to SRT and VTT (`both`). `all` writes all five formats.                                                                                                                                         |
+| `--caption-mode phrase\|word`                          | Defaults to phrases. Word mode puts one timed word on each cue. A timed span that already contains several words stays one cue.                                                                          |
+| `--caption-speakers`, `--no-caption-speakers`          | Include or hide speaker prefixes. The default includes them.                                                                                                                                             |
+| `--caption-max-words`, `--caption-max-characters`      | Phrase grouping limits. Defaults are 10 words and 58 characters. A single word can exceed the character limit.                                                                                           |
+| `--caption-max-duration`, `--caption-break-gap`        | Cue length and silence-gap limits in seconds. Defaults are 5 and 0.9. Word times stay as measured.                                                                                                       |
+| `--caption-line-width`, `--caption-max-lines`          | Defaults are 42 characters and 2 lines. A long word or speaker prefix can exceed those limits.                                                                                                           |
+| `--caption-max-cps`                                    | Reading-speed warning threshold, default 20 characters/second. Warnings are listed in `captions.json`; word times stay as measured.                                                                      |
+| `--caption-offset <seconds>`                           | Shift cue times onto the source video timeline. Saved-result export defaults to 0. Fresh embedding uses the source audio start, records it in `captions.json`, and a later export needs the same offset. |
 
-The export includes `captions.json` with timing quality, inferred-word counts, invalid-word counts, layout warnings, and cue boundaries. Text with no usable timed word or segment causes an actionable error. Segment-only providers can produce word-mode cues with estimated timing.
+`captions.json` lists cue boundaries, layout warnings, and counts of inferred or invalid words. A transcript with only segment timing can still export word-mode cues, using estimated word times. Export fails when the transcript has no timed words or segments.
 
-ASS and LRC store centiseconds; LRC stores cue starts without ends. The JSON sidecar retains full ranges and records those format limits. TTML keeps millisecond ranges, Unicode text, and explicit line breaks. ASS rejects literal braces or ASS control sequences in transcript text; choose SRT, VTT, or TTML for those transcripts. [TTML specification](https://www.w3.org/TR/ttml1/), [ASS format guide](https://github.com/libass/libass/wiki/ASS-File-Format-Guide).
+ASS and LRC store centiseconds, and LRC stores cue starts without end times. `captions.json` keeps the full time ranges. ASS rejects literal braces or ASS control sequences in the transcript; use SRT, VTT, or TTML for that text.
 
-### Export aligned or reconciled captions
-
-Use the saved `result.json` from [local alignment or speaker reconciliation](../timing/overview.md#local-timing-and-speaker-workflows) with the same caption exporter.
-
-```bash
-bun autoshow extract output/aligned/result.json --captions --caption-mode word --caption-format all --output-dir output/aligned-captions --json
-```
 ## Container options and compatibility
 
-Use `--captions --embed-captions` with a local video to transcribe once, retain standalone SRT/VTT, and embed an English subtitle track into a separate video. `--caption-container mp4|mkv|both` defaults to MP4 for an MP4 source and MKV otherwise. Video and audio streams are copied without re-encoding. The source remains untouched. Use a player that supports standard selectable MP4/MKV subtitle tracks; select English in its subtitle menu. Captions are not forced. Other output containers are not supported.
+Use `--captions --embed-captions` with a local video to transcribe once, keep standalone SRT and VTT, and embed an English subtitle track in a separate video. `--caption-container mp4|mkv|both` defaults to MP4 for an MP4 source and MKV otherwise. Video and audio are copied without re-encoding, and the source file is left unchanged. The English track is selectable and is not forced on. Other containers are not supported.
 
-To embed an existing transcript with zero provider calls:
+To embed an existing transcript with no provider call:
 
 ```bash
 bun autoshow extract video.mp4 --captions --transcript-result consensus/result.json --embed-captions --caption-container both --no-caption-speakers --output-dir output/captioned-episode
 ```
-This produces `captioned.mp4` (mov_text), `captioned.mkv` (SubRip), `captions.srt`, `captions.vtt`, `captions.json`, and `caption-embedding.json`. Embedding requires both standalone formats, so omit `--caption-format` or select `both` or `all`.
+The output is `captioned.mp4` (mov_text), `captioned.mkv` (SubRip), `captions.srt`, `captions.vtt`, `captions.json`, and `caption-embedding.json`. Embedding keeps standalone SRT and VTT, so omit `--caption-format` or select `both` or `all`.
 
-Chapters, metadata, and compatible existing subtitle tracks are retained. Unsupported streams are reported before fresh transcription: for example, an existing MP4 mov_text track cannot be copied directly to MKV, and an MKV ASS track cannot be copied directly to MP4. Choose a compatible container or prepare a separate compatible source.
+Chapters, metadata, and compatible existing subtitle tracks are kept. Incompatible tracks are reported before transcription. An MP4 mov_text track cannot be copied into MKV, and an MKV ASS track cannot be copied into MP4. Choose a compatible container, or start from a source that already matches it.
 
-If embedding fails after a container is written, that container and the transcription artifacts remain; retry from the saved result into a new output directory.
-
-When saved word boundaries are not already on the source video timeline, pass `--caption-offset <seconds>` to shift exported cues without modifying evidence. Fresh embedding defaults to the source audio start offset and records the applied value in `captions.json`; offline retries from that result need the same offset.
+If embedding fails after a container is written, that container and the transcript remain. Retry from the saved result into a new output directory.

@@ -64,7 +64,7 @@ test('documentation read by verify-listed contract tests counts as code without 
   for (const path of [
     'docs/docker.md',
     'docs/adr/ADR-014-distribute-the-cli-as-a-docker-image.md',
-    'docs/adr/ADR-005-reduce-environment-variable-surface-area.md',
+    'docs/adr/ADR-004-setup-toolchain-and-runtime-configuration.md',
     'docs/commands/testing.md',
     'README.md',
     'test/test-cases/validation/cli/cli-help-contracts.test.ts'

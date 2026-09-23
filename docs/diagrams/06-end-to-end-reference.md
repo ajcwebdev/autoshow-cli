@@ -19,12 +19,15 @@ bun autoshow write output/<extract-run>/transcription.txt --provider openai --re
 ```
 extract command
   |
-  +--> parse flags and merge config defaults
+  +--> parse flags
   +--> apply logging, output, and yt-dlp cookie settings
-  +--> validate STT selection from --provider
+  +--> merge config defaults
   |
   v
-classify the URL as streaming media
+classify the URL as a streaming URL and route it as media
+  |
+  v
+validate STT selection from --provider
   |
   v
 Step 1: metadata and download
@@ -37,6 +40,7 @@ Step 1: metadata and download
 Step 2: transcription
   +--> run local whisperfile `small`
   +--> write transcription.txt and result.json
+  +--> write prompt.md
   +--> write extract manifest.json
   |
   v
@@ -49,7 +53,7 @@ write command
   |
   v
 Step 3: LLM writing
-  +--> use the configured LLM default unless `--provider` / `--llm` is passed
+  +--> use `--provider` / `--llm` when passed; otherwise use saved LLM defaults, or the cheapest hosted model when none are saved
   +--> write prompt.md
   +--> write prompt-md.md because --prompt-md is set
   +--> write text.json
@@ -58,6 +62,7 @@ Step 3: LLM writing
 rendered artifacts
   +--> text.md because --rendered-text is set
   +--> show-note.md
+  +--> write source.txt
   +--> write manifest.json
 ```
 This example is a single media extract followed by a text write. Directory, input-list, and source-backed batches follow the same extract steps per item; see [Input Routing & Batch Orchestration](02-input-routing-batch.md). Document and article routes replace Steps 1-2 on `extract`; `write` always starts at Step 3; see [Processing Pipelines](03-processing-pipelines.md).
@@ -69,6 +74,7 @@ output/<extract-run>/
   <publish-date>-<title-slug>.(mp3|m4a|ogg|flac)
   transcription.txt
   result.json
+  prompt.md
   manifest.json
 
 output/<write-run>/
@@ -77,9 +83,10 @@ output/<write-run>/
   text.json
   text.md
   show-note.md
+  source.txt
   manifest.json
 ```
-With more than one STT selection, extract provider-specific files move under `providers/<provider-model>/`. With more than one LLM selection, write uses `text-<model>.json` / `text-<model>.md` names. The full layout and `manifest.json` shape are in [Types, Metadata & Output Layout](05-types-and-output.md).
+With more than one STT selection, or a single Supadata or ScrapeCreators target, provider-specific files are written under `providers/<service>-<model>/`. With more than one LLM selection, write uses `text-<model>.json` / `text-<model>.md` names, and a shared model id includes the provider. The full layout and `manifest.json` shape are in [Types, Metadata & Output Layout](05-types-and-output.md).
 
 ## Credentials and Runtime
 

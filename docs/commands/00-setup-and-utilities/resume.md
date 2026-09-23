@@ -20,7 +20,7 @@ bun autoshow resume <outputDirs...> [flags]
 - `resume` updates the existing output directory in place.
 - `resume` exits with code `2` when items are still incomplete or failed after the backfill attempt.
 
-`--format`, `--aspect-ratio`, and `--duration` follow the stored run: OCR output or image encoding, image or video shape, and video or music length. `bun autoshow resume --help-topic run-specific` lists those meanings together; `--help-topic concurrency` lists the concurrency caps. Comic recovery restores recorded choices and rejects these overrides; see [Comic Recovery](#comic-recovery).
+`--format`, `--aspect-ratio`, and `--duration` follow the stored run: OCR output or image encoding, image or video shape, and video or music length. Comic recovery restores recorded choices and rejects these overrides; see [Comic Recovery](#comic-recovery).
 
 ## Provider Selection
 
@@ -38,7 +38,7 @@ See [`extract`](../02-extract/overview.md), [`write`](../03-write/overview.md), 
 
 Automatic OCR resume skips providers that failed with a non-retryable error such as quota, billing, account suspension, content policy, or auth. If only those providers remain, it reports `only blocked OCR providers remain` instead of rerunning them. Pass `--provider provider=model` to retry a blocked provider after the cause is fixed.
 
-Resume rejects retired provider-named option flags such as `--elevenlabs-tts-stability` or `--replicate-video-seed`. Use the provider-general spellings (`--tts-stability elevenlabs=0.4`), set the value under `defaults` in `config/autoshow.json`, or rerun the original command.
+Resume rejects provider-named option flags such as `--elevenlabs-tts-stability` or `--replicate-video-seed`. Use the provider-general spelling where one exists (`--tts-stability elevenlabs=0.4`), set the value under `defaults` in `config/autoshow.json`, or rerun the original command.
 
 ## Examples
 
@@ -58,11 +58,8 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_run --all-local
 bun autoshow resume ./output/2026-06-10_16-33-20-777_write \
   --provider together=kimi-k3 \
   --provider glm=glm-5.3-flash
-
-bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider glm=glm-5.3-flash
-bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider elevenlabs=eleven_v3
 ```
-Comic directories accept `--price`, `--allow-ambiguous-redispatch`, `--bin-dir`, and global logging/JSON flags (`--json`, `--quiet`, `--verbose`, `--color` / `--no-color`, `--log-level`). Their recorded concurrency settings are restored. The controls below apply to standalone and extract runs.
+Comic directories accept `--price`, `--allow-ambiguous-redispatch`, `--bin-dir`, and the global logging and JSON flags (`--json`, `--quiet`, `--verbose`, `--color` / `--no-color`, `--log-level`). Recorded concurrency is restored. The controls below apply to standalone and extract runs.
 
 | Flag                                   | Description                                                                                             |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -80,31 +77,30 @@ bun autoshow resume ./output/comic-run --price
 bun autoshow resume ./output/comic-run --price --json
 bun autoshow resume ./output/comic-run
 ```
-Recovery continues requested image, audio, and presentation work, in that order, using the choices recorded in the original run. Current configuration defaults never select replacement providers. Completed compatible runs are no-ops, and unrequested stages remain unrequested.
+Recovery continues requested image, audio, and presentation work, in that order, using the choices recorded in the original run. Current configuration defaults never select replacement providers. A `--max-generation-slots` limit is not restored; resume finishes the remaining audio slots. Completed compatible runs are no-ops, and unrequested stages remain unrequested.
 
 `--price` inspects the run without provider calls or writes. Each stage is marked `reuse`, `resume`, `not-requested`, `blocked`, or `after-audio`. With `--json`, check `comicPlans` and `ready` before running the same directory. A blocked plan can be inspected (`ready: false`), but its total covers only work that could be priced. Execution refuses a blocked plan. Invalid manifests or missing source files fail inspection.
 
-`generate-audio --slideshow` records the slideshow request with the audio request. Recovery reuses completed audio and then finishes the local slideshow. A presentation-only recovery never generates missing images, voices, or sound effects. Slideshow readiness still requires `panels/panel-NN.png` files; image variants are not selected or promoted automatically.
+A `generate-audio --slideshow` run reuses completed audio and then finishes the local slideshow. A presentation-only recovery never generates missing images, voices, or sound effects. Slideshow readiness still requires `panels/panel-NN.png`; resume does not choose or promote image variants.
 
 Recovery blocks when the original request is missing, inputs or casting changed, presentation dependencies are stale, or remaining provider work cannot be priced. Forced image regeneration, audits, and revision evaluation remain `comic generate-images` operations. Source preparation, references, voice approvals, provider additions, and rendering changes use their existing commands.
 
-Comic recovery rejects provider, model, rendering, configuration, character catalog, output path, and concurrency overrides. `--allow-ambiguous-redispatch` can retry an admitted TTS slot that has no recoverable audio, which may purchase it again; completed slots remain reusable. It does not authorize blocked sound-effect work.
+Comic recovery rejects provider, model, rendering, configuration, character catalog, output path, and concurrency overrides. `--allow-ambiguous-redispatch` can retry a TTS request that has no recoverable audio, which may purchase it again; completed audio stays reusable. It does not authorize blocked sound-effect work.
 
 See the [comic overview](../05-visuals/comic/00-comic-overview.md), [image generation](../05-visuals/comic/03-generate-images.md), [audio generation](../05-visuals/comic/04-generate-audio.md), and [local slideshow](../05-visuals/comic/05-generate-slideshow.md) for preparation and explicit stage operations.
 
 ## Write Options
 
-Write resumes reuse the stored `prompt.md` and run only the selected LLM providers that do not already have matching output. When a new provider would collide with an existing short-model filename, resume writes a provider-prefixed file instead, such as `text-together-glm-5.3-flash.json` beside `text-glm-5.3-flash.json`.
+Write resumes reuse the stored `prompt.md` and run only the selected LLM providers that do not already have matching output. When the new file would reuse an existing output name, resume adds the provider name, such as `text-together-glm-5.3-flash.json` beside `text-glm-5.3-flash.json`.
 
 | Flag                 | Description                                                                                              |
 | -------------------- | -------------------------------------------------------------------------------------------------------- |
 | `--prompt <name...>` | Override the prompt used to validate new LLM outputs. If omitted, resume uses the original run's prompt. |
 | `--prompt-md`        | Save a second prompt file (`prompt-md.md`) with Markdown examples alongside the JSON prompt              |
 
-## Extract, TTS, Image, Video, And Music Options
+## Extract And TTS Options
 
-These flags match the original commands. Meanings are the same unless noted. See [`extract`](../02-extract/overview.md), [`tts`](../04-audio/tts/overview.md), [`image`](../05-visuals/image/overview.md), [`video`](../05-visuals/video/overview.md), and [`music`](../04-audio/music/overview.md).
+These flags match the original commands. Meanings are the same unless noted.
 
 - Extract: `--ocr-provider-mode` must match the original run. Omit it to keep the stored mode; a different value is rejected.
-- TTS: resume accepts only provider-neutral options. `--allow-ambiguous-redispatch` may repurchase a stored generation that has no recoverable audio.
-- Image, video, and music: the stored target owns shared names such as `--duration` and `--aspect-ratio`.
+- TTS: resume accepts only provider-neutral options, and it does not accept `--tts-book`. `--allow-ambiguous-redispatch` may repurchase a stored generation that has no recoverable audio. When no chunking or mastering flag is passed, resume keeps the stored render so completed audio is not purchased again. Non-default mastering has to be passed again with the same `--tts-chunk-boundary`, `--tts-chunk-size`, `--tts-audio-profile`, or mastering overrides. A run that used `--tts-pronunciations` needs the same lexicon file again. A different voice, cast, synthesis control, or output plan stops before any repurchase.

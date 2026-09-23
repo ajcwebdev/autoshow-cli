@@ -3,16 +3,8 @@ import { UsageError } from '~/utils/error-handler'
 import { getModelRegistry } from './model-loader/registry'
 import { formatQuotedChoiceList } from '~/utils/value-helpers'
 
-export const NORMALIZED_REASONING_EFFORTS = [
-  'default',
-  'disabled',
-  'minimal',
-  'low',
-  'medium',
-  'high',
-  'xhigh',
-  'max'
-] as const
+import { NORMALIZED_REASONING_EFFORTS } from './reasoning-efforts'
+export { NORMALIZED_REASONING_EFFORTS } from './reasoning-efforts'
 
 export const isNormalizedReasoningEffort = (value: unknown): value is NormalizedReasoningEffort =>
   typeof value === 'string' && (NORMALIZED_REASONING_EFFORTS as readonly string[]).includes(value)

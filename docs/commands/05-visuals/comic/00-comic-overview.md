@@ -20,20 +20,20 @@ Draft comic scenes from episode scripts, generate panel and page images, publish
 1. Start from episode script Markdown under `input/scripts/` and [draft the scene](./01-draft-scenes.md) through the `structure`, `prompt`, `blocking`, `scene`, and `panel-prompts` stages.
 2. Create reusable [character and location reference images](./02-reference-sketch.md) before panel prompts consume them.
 3. [Generate review sketches and final panel images](./03-generate-images.md).
-4. Publish the panel-by-panel [review sheet](./06-review.md#review-sheet) with `review`, then turn a reviewer's Markdown into a structured change plan with [`review --notes`](./06-review.md#notes-processing).
+4. Publish the panel-by-panel [review sheet](./06-review.md#review-sheet) with `review`, then turn a reviewer's Markdown into paste-ready staging directives with [`review --notes`](./06-review.md#notes-processing).
 5. Register and approve [character voices](../../04-audio/voice/00-voice-overview.md).
 6. [Render multi-speaker scene audio](./04-generate-audio.md).
 7. [Synchronize panels into a slideshow](./05-generate-slideshow.md).
 
 ## Setup
 
-Set API keys for the text, image, and speech providers you select. The defaults need:
+Set API keys for the text, image, and speech providers you select. The default text and image models need:
 
 ```bash
 OPENAI_API_KEY=...
 ```
 
-Other image providers (Google Gemini, xAI Grok, Replicate, Luma Labs) and TTS or sound-effect providers need their own keys. See [Supported Models](#supported-models), [TTS](../../04-audio/tts/overview.md), and [voice](../../04-audio/voice/00-voice-overview.md).
+`generate-audio` with no `--provider` uses the cheapest hosted TTS provider. Other image providers (Google Gemini, xAI Grok, Replicate, Luma Labs) and TTS or sound-effect providers need their own keys. See [Supported Models](#supported-models), [TTS](../../04-audio/tts/overview.md), and [voice](../../04-audio/voice/00-voice-overview.md).
 
 Where supported, `--price` estimates cost without provider calls or writes. `draft-scenes --only prompt`, `--only panel-prompts`, `--rebind`, `--blocking-plan`, `--reconcile-from-directives`, and `review` make no provider calls. `review` has no `--price` option.
 
@@ -114,19 +114,17 @@ bun autoshow comic generate-images 01-01 --target sketches
 bun autoshow comic generate-images 01-01 --target images
 ```
 
-Panel prompt bundles from the previous step are reused automatically. Rebuild them with `draft-scenes --only panel-prompts`; `--force` on `generate-images` only regenerates image outputs. After bundles exist, `--target both` generates sketches and final images in one run.
+Panel prompt bundles from the previous step are reused. Rebuild them with `draft-scenes --only panel-prompts`. `--force` on `generate-images` regenerates image outputs. After bundles exist, `--target both` generates sketches and final images in one run.
 
-Final panel images land under `output/<timestamp>_01-sentient-agenda/panels/`.
-
-### 5. Publish the review sheet and apply reviewer notes
+### 5. Publish the review sheet and reconcile staging directives
 
 ```bash
 bun autoshow comic review 01-01 --export-doc
 bun autoshow comic review 01-01 --notes notes/01-sentient-agenda-review.md
-bun autoshow comic draft-scenes 01-01 --reconcile-from-directives
+bun autoshow comic draft-scenes 01-01 --reconcile-from-directives --output-dir output/<timestamp>_01-sentient-agenda
 ```
 
-`review` writes `metadata/review/review-sheet.html`. `review --notes` turns the reviewer's Markdown into a change plan, and `--reconcile-from-directives` applies the script's `**CAMERA:**`, `**BREAK-180:**`, `**COSTUME:**`, and `**EXTRAS:**` directives. None of the three calls a provider.
+`review` writes `metadata/review/review-sheet.html`. `review --notes` writes paste-ready staging directives to `metadata/review/review-notes-<run-id>.md` and leaves the episode script unchanged. `--reconcile-from-directives` applies `**CAMERA:**`, `**BREAK-180:**`, `**COSTUME:**`, and `**EXTRAS:**` directives already on that script. Pass `--output-dir` to keep the reviewed run. None of these three calls a provider. See [review](./06-review.md) and [reconcile from directives](./01-draft-scenes.md#reconcile-from-directives).
 
 ### 6. Register voices, render audio, and build the slideshow
 
@@ -139,7 +137,7 @@ bun autoshow comic generate-slideshow 01-01
 
 ## Output
 
-Each invocation resolves a timestamped run directory under `output/` following the `YYYY-MM-DD_HH-MM-SS-mmm_<slug>` convention. A scene run holds the structured script, blocking plan, scene JSON, panel prompts, and review sheet in `metadata/`, plus generated images, audio, and the slideshow:
+A new scene run is a timestamped directory under `output/` following the `YYYY-MM-DD_HH-MM-SS-mmm_<slug>` convention. A scene run holds the structured script, blocking plan, scene JSON, panel prompts, and review sheet in `metadata/`, plus generated images, audio, and the slideshow:
 
 ```text
 output/<YYYY-MM-DD_HH-MM-SS-mmm>_01-sentient-agenda/
@@ -151,11 +149,11 @@ output/<YYYY-MM-DD_HH-MM-SS-mmm>_01-sentient-agenda/
   presentation/final/slideshow.mp4
 ```
 
-Treatment runs write under `output/<timestamp>_<slug>-treatment/`; see [draft-treatment](./07-draft-treatment.md#artifacts). `generate-images --bloopers` copies non-promoted attempts to `<output-root>/bloopers/<episode>/<scene-slug>/`. Nothing under that blooper root is canonical.
+Treatment runs write under `output/<timestamp>_<slug>-treatment/`; see [draft-treatment](./07-draft-treatment.md#artifacts). `generate-images --bloopers` copies image attempts that were not kept as final panels to `<output-root>/bloopers/<episode>/<scene-slug>/`. Later stages use the scene run's `panels/` images.
 
 The full workspace tree is in [types and output](../../../diagrams/05-types-and-output.md#comic-character-and-run-layout).
 
-Later stages resume the latest existing run directory for the scene. A full `draft-scenes` run or `--only structure` starts a fresh run directory. `generate-images` resumes only a run that already contains `metadata/scene.json`. Pass global `--output-dir <path>` to pin an explicit run directory.
+Later stages resume the latest existing run directory for the scene. A full `draft-scenes` run, `--only structure`, or `--reconcile-from-directives` starts a fresh run directory unless global `--output-dir <path>` pins one. `generate-images` resumes only a run that already contains `metadata/scene.json`.
 
 For an interrupted recorded request, use [`resume <run-directory> --price` followed by `resume <run-directory>`](../../00-setup-and-utilities/resume.md#comic-recovery).
 
@@ -173,7 +171,7 @@ Pass multiple models with `--provider` to generate each panel with every model f
 
 ### Text Models (LLM)
 
-`--provider` (and `--llm-provider` on `reference-sketch`) accepts the same hosted text providers and model IDs as [`write`](../../03-write/overview.md). The default is `gpt-5.6-sol`.
+`--provider` (and `--llm-provider` on `reference-sketch`) accepts the same hosted text providers and model IDs as [`write`](../../03-write/overview.md). The default is `gpt-5.6-sol`. The blocking stage accepts only OpenAI and Gemini models.
 
 ## Command Docs
 
@@ -184,5 +182,3 @@ Pass multiple models with `--provider` to generate each panel with every model f
 - [generate-audio](./04-generate-audio.md)
 - [generate-slideshow](./05-generate-slideshow.md)
 - [review](./06-review.md)
-
-Deprecated `comic reference-voice`, `comic review-sheet`, and `comic review-notes` remain callable for one compatibility release; use `voice` and `comic review` instead.

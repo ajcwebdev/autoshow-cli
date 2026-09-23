@@ -2,7 +2,7 @@ import type { HostedOcrProfileStore, HostedOcrSchedulerProfileConfidence, Normal
 
 export type HostedOcrTokenReasoningPolicy = NormalizedReasoningEffort | 'unspecified'
 
-type HostedOcrTokenEstimateSource = 'profile' | 'blended-profile' | 'registry'
+type HostedOcrTokenEstimateSource = 'profile' | 'blended-profile' | 'calibrated-registry' | 'registry'
 type HostedOcrTokenDisqualificationReason = 'partial' | 'failed' | 'incomplete' | 'missing-usage'
 
 export type HostedOcrTokenUsageEstimate = {

@@ -23,7 +23,7 @@ describe('Flagship OCR additions', () => {
   })
 
   for (const format of ['png', 'pdf'] as const) {
-    for (const effort of ['default', 'low', 'medium', 'high', 'max'] as const) {
+    for (const effort of ['default', 'low', 'medium', 'high', 'xhigh', 'max'] as const) {
       test(`Fable 5.1 ${format} preserves Messages construction and ${effort} reasoning`, async () => {
         process.env['ANTHROPIC_API_KEY'] = 'test-key'
         const calls = installMockFetch((call) => {
@@ -81,7 +81,6 @@ describe('Flagship OCR additions', () => {
       await expect(runOpenAIOcr('/missing', metadata, 'gpt-6-astra', { reasoningEffort })).rejects.toThrow('does not support')
       await expect(runAnthropicOcr('/missing', metadata, 'claude-fable-5-1', { reasoningEffort })).rejects.toThrow('does not support')
     }
-    await expect(runAnthropicOcr('/missing', metadata, 'claude-fable-5-1', { reasoningEffort: 'xhigh' })).rejects.toThrow('does not support')
     expect(calls).toHaveLength(0)
   })
 

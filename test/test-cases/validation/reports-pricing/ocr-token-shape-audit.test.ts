@@ -9,8 +9,9 @@ const writeKimiRun = async (
   directory: string,
   promptTokens: number,
   completionTokens: number,
-  effectiveReasoningEffort: 'disabled' | 'unspecified',
-  status: 'full' | 'incomplete' = 'full'
+  effectiveReasoningEffort: 'disabled' | 'xhigh' | 'unspecified',
+  status: 'full' | 'incomplete' = 'full',
+  target = { service: 'kimi', model: 'kimi-k2.6' }
 ): Promise<void> => {
   await mkdir(directory, { recursive: true })
   await writeManifest(directory, createManifest('extract', 'single', [
@@ -18,14 +19,14 @@ const writeKimiRun = async (
       status,
       metadata: {},
       providers: [{
-        service: 'kimi',
-        model: 'kimi-k2.6',
+        service: target.service,
+        model: target.model,
         artifactDir: '.',
         status: 'succeeded',
         attempts: 1,
         options: {},
         metadata: {
-          extractionMethod: 'image+kimi-ocr',
+          extractionMethod: `image+${target.service}-ocr`,
           inputFamily: 'image',
           totalPages: 1,
           promptTokens,
@@ -38,6 +39,17 @@ const writeKimiRun = async (
 }
 
 describe('OCR token-shape evidence audit', () => {
+  test('preserves xhigh policy in historical evidence rather than collapsing it to unspecified', async () => {
+    await withTempDir('autoshow-ocr-token-audit-xhigh-', async dir => {
+      const runs = [join(dir, 'a'), join(dir, 'b'), join(dir, 'c')]
+      for (const run of runs) await writeKimiRun(run, 1000, 500, 'xhigh', 'full', { service: 'grok', model: 'grok-4.6' })
+      const report = await auditOcrTokenShapes({ runDirectories: runs, includeAllTokenProviders: true })
+      expect(report.buckets).toHaveLength(1)
+      expect(report.buckets[0]?.effectiveReasoningEffort).toBe('xhigh')
+      expect(report.buckets[0]?.healthySampleCount).toBe(3)
+    })
+  })
+
   test('promotes only a matching three-sample component with explicit reasoning policy', async () => {
     await withTempDir('autoshow-ocr-token-audit-', async (dir) => {
       const runs = [join(dir, 'run-a'), join(dir, 'run-b'), join(dir, 'run-c'), join(dir, 'run-incomplete')]

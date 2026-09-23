@@ -1,5 +1,5 @@
 export type NormalizedReasoningEffort =
-  (typeof import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NORMALIZED_REASONING_EFFORTS)[number]
+  (typeof import('~/cli/commands/setup-and-utilities/models/reasoning-efforts').NORMALIZED_REASONING_EFFORTS)[number]
 
 export type ReasoningSupport = 'unsupported' | 'optional' | 'required'
 

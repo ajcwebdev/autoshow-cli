@@ -20,11 +20,8 @@ const PAYLOAD_STDOUT_FILES = [
   'src/cli/commands/sources/download/download-targets/single/metadata-output.ts',
   'src/tools/analyze-typescript-complexity.ts',
   'src/tools/audit-ocr-token-shapes.ts',
-  'src/tools/bun-env-compat.ts',
   'src/tools/bun-profile.ts',
   'src/tools/ci-run-timings.ts',
-  'src/tools/docker-bun-baseline.ts',
-  'src/tools/help-output-audit.ts',
   'src/tools/install-alignment-model.ts',
   'src/tools/repository-structure-check.ts',
   'src/tools/triage-image-advisories.ts',
@@ -42,9 +39,7 @@ const PROCESS_EXIT_ALLOWLIST = new Set([
   'src/cli/failure-handlers.ts',
   'src/tools/repo-snapshot.ts',
   'src/tools/unique-source-name-check.ts',
-  'src/tools/bun-env-compat.ts',
-  'src/tools/bun-profile.ts',
-  'src/tools/docker-bun-baseline.ts'
+  'src/tools/bun-profile.ts'
 ])
 
 const ASSIGNED_ERROR_ALLOWLIST = new Set<string>([])

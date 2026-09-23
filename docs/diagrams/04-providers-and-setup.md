@@ -12,7 +12,7 @@ Hosted and local provider families, LLM fan-out, setup flow, and API-key require
 
 ## LLM Provider Fan-Out
 
-`write` runs each `--provider` / `--llm` selection (plus config defaults) through the hosted LLM pool. `--llm` is a compatibility alias for `--provider`; do not combine the two spellings. `--provider-concurrency` caps how many models run at once (default `7`). One model writes `text.json`; more than one writes `text-<model>.json`.
+`write` runs each `--provider` / `--llm` selection (plus config defaults) through the hosted LLM pool. With no selection and no saved LLM defaults, the cheapest hosted model is used. `--llm` is a compatibility alias for `--provider`; do not combine the two spellings. `--provider-concurrency` caps how many models run at once (default `7`). One model writes `text.json`. More than one writes `text-<model>.json`, and a shared model id includes the provider in the filename.
 
 ```
 write --provider / --llm
@@ -22,7 +22,7 @@ hosted LLM pool
 concurrency: --provider-concurrency
   |
   v
-text.json or text-<model>.json
+text.json, text-<model>.json, or text-<provider>-<model>.json
 ```
 Current model IDs are listed in command help.
 
@@ -30,16 +30,16 @@ Current model IDs are listed in command help.
 
 Selectors use `provider[=model]`. Repeat a flag to run more than one provider. Flags by command are in [System Overview](01-system-overview-cli.md#flag-system).
 
-| Step  | Providers                                                                                                                                                                                              |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Step  | Providers                                                                                                                                                                                                |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | STT   | Local: `whisperfile`. Hosted: `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`, `openai`. |
-| OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`.                                                     |
-| URL   | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`.                                                                                                                    |
-| LLM   | Hosted: `openai`, `gemini`, `anthropic`, `grok`, `glm`, `kimi`, `together`. Write has no local LLM.                                                                                                     |
-| TTS   | Hosted: `elevenlabs`, `grok`, `mistral`, `openai`, `speechify`, `hume`, `cartesia`, `inworld`.                                                                                                         |
-| Image | `gemini`, `openai`, `grok`, `replicate`, `lumalabs`, `fal`.                                                                                                                                            |
-| Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                               |
-| Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                     |
+| OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`.                                                       |
+| URL   | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`.                                                                                                                      |
+| LLM   | Hosted: `openai`, `gemini`, `anthropic`, `grok`, `glm`, `kimi`, `together`. Write has no local LLM.                                                                                                      |
+| TTS   | Hosted: `elevenlabs`, `grok`, `mistral`, `openai`, `speechify`, `hume`, `cartesia`, `inworld`.                                                                                                           |
+| Image | `gemini`, `openai`, `grok`, `replicate`, `lumalabs`, `fal`.                                                                                                                                              |
+| Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                 |
+| Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                       |
 
 ## Setup Pipeline
 
@@ -58,9 +58,12 @@ install local tools in parallel
   +--> Tesseract
   |
   v
+check ImageMagick, Fontconfig with DejaVu Sans, and the ffmpeg ass filter or pango-view
+  |
+  v
 print setup summary
 ```
-`--step` runs one of `yt-dlp`, `defuddle`, `whisperfile`, `calibre`, `all`, `transcription`, or `music` in isolation.
+`--step` runs one of `yt-dlp`, `defuddle`, `whisperfile`, `calibre`, `transcription`, or `music` in isolation. `all` runs the full pipeline. The default step is `all`.
 
 ## Hosted Provider Env Checks
 
@@ -103,20 +106,20 @@ Hosted commands require the matching environment variable:
 
 ## Setup Dependencies
 
-| Command/route                | Local dependencies                                         | Hosted/config dependencies            |
-| ---------------------------- | ---------------------------------------------------------- | ------------------------------------- |
-| `metadata` media             | ffprobe for local files, yt-dlp for streaming URLs         | Cookies when needed                   |
-| `metadata` X Space           | none                                                       | `X_BEARER_TOKEN`                      |
-| `download` media             | ffmpeg/ffprobe, yt-dlp                                     | Cookies when needed                   |
-| `download` X Space           | ffmpeg/ffprobe, yt-dlp                                     | `X_BEARER_TOKEN`; cookies when needed |
-| `extract` media              | ffmpeg/ffprobe, yt-dlp, plus whisperfile for local STT     | Selected hosted STT key               |
-| `extract` document OCR       | mutool and Tesseract when selected; Calibre for conversion | Selected hosted OCR key               |
-| `extract` article            | Defuddle                                                   | Selected hosted URL key               |
-| `extract` X Space            | none                                                       | `X_BEARER_TOKEN`                      |
-| `extract --transcript-video` | ffmpeg plus source audio and transcript files              | none                                  |
-| `write`                      | local `.md`/`.txt` files                                   | Selected hosted LLM key               |
-| `tts`                        | none                                                       | Selected hosted TTS key               |
-| `image`                      | none                                                       | Selected hosted image key             |
-| `video`                      | source image or video when required                        | Selected hosted video key             |
-| `music` hosted               | none                                                       | Selected hosted music key             |
-| `music --audio`/`--batch`    | ffmpeg, ffprobe, and local whisperfile `small.en`          | none                                  |
+| Command/route                | Local dependencies                                         | Hosted/config dependencies                            |
+| ---------------------------- | ---------------------------------------------------------- | ----------------------------------------------------- |
+| `metadata` media             | ffprobe for local files, yt-dlp for streaming URLs         | Cookies when needed                                   |
+| `metadata` X Space           | none                                                       | `X_BEARER_TOKEN`                                      |
+| `download` media             | ffmpeg/ffprobe, yt-dlp                                     | Cookies when needed                                   |
+| `download` X Space           | ffmpeg/ffprobe, yt-dlp                                     | `X_BEARER_TOKEN` for X post URLs; cookies when needed |
+| `extract` media              | ffmpeg/ffprobe, yt-dlp, plus whisperfile for local STT     | Selected hosted STT key                               |
+| `extract` document OCR       | mutool and Tesseract when selected; Calibre for conversion | Selected hosted OCR key                               |
+| `extract` article            | Defuddle                                                   | Selected hosted URL key                               |
+| `extract` X Space            | none                                                       | `X_BEARER_TOKEN`                                      |
+| `extract --transcript-video` | ffmpeg plus source audio and transcript files              | none                                                  |
+| `write`                      | local `.md`/`.txt` files                                   | Selected hosted LLM key                               |
+| `tts`                        | none                                                       | Selected hosted TTS key                               |
+| `image`                      | none                                                       | Selected hosted image key                             |
+| `video`                      | source image or video when required                        | Selected hosted video key                             |
+| `music` hosted               | none                                                       | Selected hosted music key                             |
+| `music --audio`/`--batch`    | ffmpeg, ffprobe, and local whisperfile `small.en`          | none                                                  |
