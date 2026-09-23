@@ -30,21 +30,9 @@ To build locally from source:
 docker build -t autoshow-cli:local .
 ```
 
-### Runtime Validation
+### Acceptance checks
 
-These local, no-cost commands reproduce the measurements archived in [ADR-014](adr/ADR-014-distribute-the-cli-as-a-docker-image.md#bun-14-migration-evidence) and [ADR-005](adr/ADR-005-reduce-environment-variable-surface-area.md#bun-14-dotenv-compatibility). Compare medians from the same Docker host, fixture, sample counts, and execution mode. Do not compare a native row with an emulated row.
-
-```sh
-bun baseline:docker --platform all --repeats 5 --fixture-repeats 3
-```
-
-After the platform images exist, add `--skip-build` to collect another sample from those images.
-
-```sh
-bun compare:env
-```
-
-`bun compare:env` compares the local `.env` with the Bun 1.3.14 image and the current image without printing credential values. A changed, missing, or added parsed result fails the command. Pass `--platform linux/amd64` or `--platform linux/arm64` to select an architecture.
+`bun t:docker --suite core` pulls the published image and runs local acceptance cases on the Docker daemon's native architecture. It uses no hosted inference or provider credentials; pulling the image requires network access. Failed runs retain their evidence and cached assets. Use `bun t:docker --help` to see suite, timeout, and evidence-directory options without starting Docker.
 
 The examples below use `autoshow-cli:local`. Substitute `ghcr.io/ajcwebdev/autoshow-cli:latest` if you pulled the published image.
 

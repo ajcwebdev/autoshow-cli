@@ -33,6 +33,7 @@ export const buildExtractionCallOpts = (target: string, baseDir: string, opts: D
     ocrProviderConcurrency: opts.ocrProviderConcurrency,
     ocrLocalConcurrency: opts.ocrLocalConcurrency,
     primaryOcr: opts.primaryOcr,
+    reasoningEffort: opts.reasoningEffort,
     configPath: opts.configPath
   }
 

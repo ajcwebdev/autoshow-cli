@@ -1,5 +1,6 @@
 import type { LifecycleRegistryService } from '~/types'
 import * as v from 'valibot'
+import { NAMED_REASONING_EFFORTS } from '../reasoning-efforts'
 
 const SttEstimationSchema = v.object({
   costMultiplier: v.optional(v.number(), undefined),
@@ -121,7 +122,7 @@ const ReasoningCapabilitiesSchema = v.pipe(
   v.strictObject({
     support: v.picklist(['unsupported', 'optional', 'required']),
     allowDisabled: v.optional(v.boolean(), undefined),
-    supportedEfforts: v.optional(v.array(v.picklist(['minimal', 'low', 'medium', 'high', 'xhigh', 'max'])), undefined)
+    supportedEfforts: v.optional(v.array(v.picklist(NAMED_REASONING_EFFORTS)), undefined)
   }),
   v.check(
     (capabilities) => capabilities.support !== 'unsupported'

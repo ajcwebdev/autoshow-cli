@@ -54,11 +54,9 @@ bun autoshow music --batch input/<dir>
 | Hosted generation     | `<prompt-or-text-file>` with `--provider` | Generates music with hosted ElevenLabs, MiniMax, or Gemini and writes MP3 outputs |
 | Lyric-video rendering | `--audio <file>` or `--batch <dir>`       | Uses local whisperfile captions and ffmpeg to write MP4/VTT/SRT outputs           |
 
-Do not mix a hosted prompt or `--provider`, `--all-providers`, `--duration`, `--lyrics-file`, or `--instrumental` with local `--audio`, `--captions`, `--batch`, `--model`, or `--font`. `--audio` and `--captions` cannot be combined with `--batch`. `--output-dir` pins the hosted run, single lyric-video run, or lyric-video batch parent directory. `--price` reports the pinned path without rendering or creating the run directory.
+Do not mix a hosted prompt or `--provider`, `--all-providers`, `--duration`, `--lyrics-file`, or `--instrumental` with local `--audio`, `--captions`, `--batch`, `--model`, or `--font`. `--audio` and `--captions` cannot be combined with `--batch`.
 
 ## Shared Music Options
-
-The `music` and `resume` commands use the same short option names, including `--duration`. Saved configuration uses the matching namespaced key, such as `defaults.music.duration`.
 
 Hosted generation flags:
 
@@ -71,7 +69,7 @@ Hosted generation flags:
 | `--duration <seconds>`                 | Requested music duration                                                                                                                             |
 | `--lyrics-file <path>`                 | Lyrics file (`.md` or `.txt`); MiniMax and Gemini use the lyrics as written, ElevenLabs uses headers such as `Verse 1` or `Chorus` as song structure |
 | `--instrumental`                       | Force instrumental generation for providers that support it; takes precedence over `--lyrics-file`                                                   |
-| `--price`                              | Show the estimate and exit                                                                                                                           |
+| `--price`                              | Show the estimate and the output path, then exit without rendering or creating the run directory                                                     |
 | `--max-model-cents <n>`                | Exclude each provider/model whose estimated total exceeds the per-model ceiling in cents; works with or without `--price`                            |
 | `--output-dir <dir>`                   | Global flag: pin an exact run directory instead of `output/<timestamp>_music-gen/`                                                                   |
 
@@ -97,13 +95,13 @@ bun autoshow music "chill lo-fi beat" --all-providers --max-model-cents 10 --pri
 
 ### ElevenLabs
 
-| Option       | Value                                                                                                      |
-| ------------ | ---------------------------------------------------------------------------------------------------------- |
-| Selector     | `--provider elevenlabs[=<model>]`                                                                          |
-| Models       | `music_v2`, `music_v2_5`                                                                                   |
-| Duration     | `--duration <seconds>` from `3` to `600`; omit to let the provider choose; `--price` estimates 180 seconds |
-| Lyrics       | `--lyrics-file <path>`; generated from prompt when omitted                                                 |
-| Instrumental | `--instrumental`                                                                                           |
+| Option       | Value                                                                                                                                                                   |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Selector     | `--provider elevenlabs[=<model>]`                                                                                                                                       |
+| Models       | `music_v2`, `music_v2_5`                                                                                                                                                |
+| Duration     | `--duration <seconds>` from `3` to `600`. Prompt-only requests omit the length. `--lyrics-file` without `--duration` uses 180 seconds. `--price` estimates 180 seconds. |
+| Lyrics       | `--lyrics-file <path>`; generated from prompt when omitted                                                                                                              |
+| Instrumental | `--instrumental`                                                                                                                                                        |
 
 ```bash
 bun autoshow music "cinematic orchestral trailer, dramatic strings and percussion" --provider elevenlabs=music_v2
@@ -159,10 +157,9 @@ With `--captions`, output names come from the caption file, not the audio file. 
 
 - **Single-target hosted runs**: write `output/<timestamp>_music-gen/generated-music.mp3` and `manifest.json`.
 - **Multi-target hosted runs**: write `generated-music-<provider>-<model>.mp3` per target and `manifest.json`.
-- **Provider settings**: each provider entry in `manifest.json` carries `settings.request` (model, duration, lyrics file, instrumental) and `settings.ignored`, which lists flags the selected model accepts but does not apply.
 - **Gemini `lyria-3.5` extras**: additional audio as `generated-music-gemini-lyria-3.5-part-<n>.mp3` and lyrics or song-structure text as `generated-music-gemini-lyria-3.5.txt`.
 - **Lyric-video single runs**: write `<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`.
-- **Lyric-video batch runs**: write `<slug>/<stem>.mp4`, `<slug>/<stem>.vtt`, `<slug>/<stem>.srt`, and `manifest.json`.
+- **Lyric-video batch runs**: write `<audio-name>/<stem>.mp4`, `<audio-name>/<stem>.vtt`, `<audio-name>/<stem>.srt`, and `manifest.json`.
 - **`--output-dir`**: pins an exact hosted or local output directory, including the parent directory for a lyric-video batch; individual batch items keep their child directories.
 
 ## Notes
@@ -171,11 +168,11 @@ With `--captions`, output names come from the caption file, not the audio file. 
 
 ## Provider Capabilities
 
-✅ supported, ⚠️ partial or qualified, ❌ not exposed. Rows are newest first. Released dates are provider announcement or model-origin dates. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01. Pricing is the per-run estimate. Pricing: ✅ cheapest third, ⚠️ middle third, ❌ most expensive third. Cost rank is cheapest first. All providers support `--instrumental`.
+✅ supported, ⚠️ partial or qualified, ❌ not exposed. Rows are newest first. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01. Pricing: ✅ cheapest third, ⚠️ middle third, ❌ most expensive third. Cost rank is cheapest first. All providers support `--instrumental`.
 
-| Provider                | Released      | Duration                    | Duration control | Lyrics                              | Output                     | Pricing                                           | Cost rank |
-| ----------------------- | ------------- | --------------------------- | ---------------- | ----------------------------------- | -------------------------- | ------------------------------------------------- | --------- |
-| ElevenLabs `music_v2_5` | ✅ 2026-09-11 | ✅ 3–600s                   | ✅ `--duration`  | ✅ `--lyrics-file` with sections    | ✅ 48 kHz / 192 kbps MP3   | ❌ $0.15/min ($0.45 at the 180s default estimate) | 3/3       |
+| Provider                | Released     | Duration                    | Duration control | Lyrics                             | Output                    | Pricing                                          | Cost rank |
+| ----------------------- | ------------ | --------------------------- | ---------------- | ---------------------------------- | ------------------------- | ------------------------------------------------ | --------- |
+| ElevenLabs `music_v2_5` | ✅ 2026-09-11 | ✅ 3–600s                    | ✅ `--duration`   | ✅ `--lyrics-file` with sections    | ✅ 48 kHz / 192 kbps MP3   | ❌ $0.15/min ($0.45 at the 180s default estimate) | 3/3       |
 | Gemini `lyria-3.5`      | ✅ 2026-09-04 | ⚠️ Full song; 120s estimate | ⚠️ Prompt only   | ✅ File or generated text/structure | ✅ 44.1 kHz stereo MP3     | ✅ $0.08/song request                             | 1/3       |
-| MiniMax `music-3.0`     | ✅ 2026-08-13 | ✅ Up to 5 minutes          | ❌ Ignored       | ✅ `--lyrics-file` or generated     | ✅ 44.1 kHz / 256 kbps MP3 | ⚠️ $0.15/track (+$0.01 generated lyrics)          | 2/3       |
-| ElevenLabs `music_v2`   | ✅ 2026-05-26 | ✅ 3–600s                   | ✅ `--duration`  | ✅ `--lyrics-file` with sections    | ✅ 48 kHz / 192 kbps MP3   | ❌ $0.15/min ($0.45 at the 180s default estimate) | 3/3       |
+| MiniMax `music-3.0`     | ✅ 2026-08-13 | ✅ Up to 5 minutes           | ❌ Ignored        | ✅ `--lyrics-file` or generated     | ✅ 44.1 kHz / 256 kbps MP3 | ⚠️ $0.15/track (+$0.01 generated lyrics)         | 2/3       |
+| ElevenLabs `music_v2`   | ✅ 2026-05-26 | ✅ 3–600s                    | ✅ `--duration`   | ✅ `--lyrics-file` with sections    | ✅ 48 kHz / 192 kbps MP3   | ❌ $0.15/min ($0.45 at the 180s default estimate) | 3/3       |

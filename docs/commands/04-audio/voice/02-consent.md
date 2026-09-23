@@ -10,7 +10,7 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice consent [subject-key] [flags]
 ```
 
-Grant requires `<subject-key>` plus `--allow` with at least one explicit action. Omitted actions stay denied. `--revoke` cannot be combined with `--allow` or a subject key.
+Grant requires `<subject-key>`, `--provenance-ref`, `--actor-id`, and `--allow` with at least one explicit action. Omitted actions stay denied. `--revoke` cannot be combined with `--allow` or a subject key.
 
 Consent records cannot be edited. A grant prints a `protected-consent:v1:...` locator for [clone](./05-clone.md) and other `--consent-ref` commands; after revoke, that locator is rejected. Do not put contact PII in `--actor-id` or `--provenance-ref`.
 
@@ -24,7 +24,7 @@ Consent records cannot be edited. A grant prints a `protected-consent:v1:...` lo
 | `--revoke <consent-ref>` | Protected consent-record locator to revoke                                                                    |
 | `--reason <text>`        | Required non-sensitive revocation reason when `--revoke` is set                                               |
 | `--actor-namespace <ns>` | Actor namespace: `local-user`, `project-role`, or `automation`; default `local-user`                          |
-| `--actor-id <id>`        | Opaque actor ID                                                                                               |
+| `--actor-id <id>`        | Required opaque actor ID                                                                                      |
 | `--price`                | Validate and estimate without provider calls or artifact writes                                               |
 
 ### Examples

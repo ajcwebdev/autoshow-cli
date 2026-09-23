@@ -128,34 +128,26 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   manifest.json
 ```
 
-Each provider entry in `manifest.json` carries `settings.request` with the backend's request timeout and attempt limit.
-
 ## Provider Capabilities
 
-Marks: ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Released dates are provider announcement or model-origin dates. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01. Rows are newest first.
-
-Pricing is the AutoShow estimate. Pricing: ✅ cheapest third, ⚠️ middle third, ❌ most expensive third. Cost rank is cheapest first within each table (1 = cheapest); ties share a rank.
+Prices are AutoShow estimates. Hosted article backends return markdown, billed per 1,000 pages.
 
 ### Article backends
 
-Hosted article backends return markdown except Zyte, which returns a structured article extract. Pricing is per 1,000 pages. File size uses ❌ under 100 MiB, ⚠️ 100 MiB to under 1 GiB, and ✅ 1 GiB or no cap.
-
-| Provider                | Released  | Output                        | File size           | Pricing                                             | Cost rank |
-| ----------------------- | --------- | ----------------------------- | ------------------- | --------------------------------------------------- | --------- |
-| GLM Reader `glm-reader` | ❌ 2025-11 | ✅ Markdown                    | ✅ No documented cap | ❌ $10.00/1k pages                                   | 4/5       |
-| Firecrawl `firecrawl`   | ❌ 2025-08 | ✅ Markdown                    | ✅ No documented cap | ✅ $0.83/1k pages                                    | 1/5       |
-| Supadata `supadata`     | ❌ 2024-08 | ✅ Markdown                    | ✅ No documented cap | ❌ $10.00/1k pages (1 credit/page at $10/1k credits) | 4/5       |
-| Spider `spider`         | ❌ 2024-01 | ✅ Markdown                    | ✅ No documented cap | ✅ $1.20/1k pages                                    | 2/5       |
-| Zyte `zyte`             | ❌ 2023-12 | ⚠️ Structured article extract | ✅ No documented cap | ⚠️ $1.60/1k pages                                   | 3/5       |
+| Provider                | Output                                     | Pricing                                           |
+| ----------------------- | ------------------------------------------ | ------------------------------------------------- |
+| GLM Reader `glm-reader` | Markdown                                   | $10.00/1k pages                                   |
+| Firecrawl `firecrawl`   | Markdown                                   | $0.83/1k pages                                    |
+| Supadata `supadata`     | Markdown                                   | $10.00/1k pages (1 credit/page at $10/1k credits) |
+| Spider `spider`         | Markdown                                   | $1.20/1k pages                                    |
+| Zyte `zyte`             | Markdown from a structured article extract | $1.60/1k pages                                    |
 
 ### Transcript backends
 
-Duration uses the same marks: under 2 hours is ❌, 2–4 hours is ⚠️, 5+ hours or no documented cap is ✅. File size uses ❌ under 100 MiB, ⚠️ 100 MiB to under 1 GiB, and ✅ 1 GiB or no cap. Cost rank is per-request retrieval cost.
-
-| Provider                            | Released  | YouTube | Other page URLs                                     | Word timestamps      | Transcript cleanup                | Duration            | File size            | Pricing                                     | Cost rank |
-| ----------------------------------- | --------- | ------- | --------------------------------------------------- | -------------------- | --------------------------------- | ------------------- | -------------------- | ------------------------------------------- | --------- |
-| Supadata `auto`                     | ❌ 2024-08 | ✅ Yes   | ✅ TikTok, Instagram, X/Twitter, Facebook, media URL | ❌ Chunk offsets only | ⚠️ Native transcript or generated | ✅ 12 hours          | ⚠️ 750 MB remote URL | ❌ $0.01/request native; $0.02/min generated | 2/2       |
-| ScrapeCreators `youtube-transcript` | ❌ 2024-06 | ✅ Yes   | ❌ YouTube only                                      | ❌ Cue times only     | ⚠️ Retrieves existing captions    | ✅ No documented cap | ✅ No upload          | ✅ $0.00188/request                          | 1/2       |
+| Provider                            | Pages                                                      | Timestamps    | Limits                      | Pricing                                   |
+| ----------------------------------- | ---------------------------------------------------------- | ------------- | --------------------------- | ----------------------------------------- |
+| Supadata `auto`                     | YouTube, TikTok, Instagram, X/Twitter, Facebook, media URL | Chunk offsets | 12 hours; 750 MB remote URL | $0.01/request native; $0.02/min generated |
+| ScrapeCreators `youtube-transcript` | YouTube only                                               | Cue times     | Existing captions           | $0.00188/request                          |
 
 ## X Space Path
 

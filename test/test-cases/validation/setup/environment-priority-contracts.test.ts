@@ -4,7 +4,6 @@ import { requireHostedUrlProviderApiKey } from '~/cli/commands/text/url/url-util
 import { runSyncCommand } from '~/utils/sync-subprocess'
 import { boundedReadinessFetch } from '~/utils/readiness-request'
 import { dockerClientEnvironment } from '../../../../src/tools/docker-process'
-import { renderEnvironmentReference } from '../../../../src/tools/environment-reference'
 import { buildTestWorkerEnv } from '../../../test-runner/process-execution'
 import { shouldRelaunchSetupWithNoOrphans } from '~/cli/create-cli'
 import { readConfiguredEnvVarSync } from '../../../test-utils/test-helpers'
@@ -60,9 +59,7 @@ test('readiness bounds ignored abort signals and distinguishes rejected credenti
   await expect(boundedReadinessFetch(denied)('https://example.invalid')).rejects.toThrow('401')
 })
 
-test('generated capabilities stay synchronized and Docker shares its connection contract', async () => {
-  const report = Bun.file('docs/reports/environment-reference.md')
-  if (await report.exists()) expect(await report.text()).toContain(renderEnvironmentReference())
+test('Docker shares its connection contract and publication keeps credentials out of URLs', async () => {
   const source = { PATH: '/bin', HOME: '/home/test', DOCKER_HOST: 'tcp://fixture:2376', DOCKER_CONTEXT: 'fixture', DOCKER_TLS_VERIFY: '1', DOCKER_CERT_PATH: '/certs', DOCKER_CONFIG: '/config', XDG_RUNTIME_DIR: '/run/test', OPENAI_API_KEY: 'secret' }
   const { OPENAI_API_KEY: _secret, ...expected } = source
   expect(dockerClientEnvironment(source)).toEqual(expected)
@@ -124,9 +121,12 @@ test('fake Docker observes the same host, context and TLS choices through the pa
     await Bun.write(`${root}/docker`, `#!/bin/sh\n/usr/bin/env > '${observed}'\nexit 71\n`)
     await chmod(`${root}/docker`, 0o755)
     const env = { PATH: `${root}:${process.env['PATH']}`, HOME: root, DOCKER_HOST: 'tcp://fixture:2376', DOCKER_CONTEXT: 'fixture-context', DOCKER_CONFIG: '/fixture/config', DOCKER_TLS_VERIFY: '1', DOCKER_CERT_PATH: '/fixture/certs', XDG_RUNTIME_DIR: '/fixture/runtime', OPENAI_API_KEY: 'opaque-docker-secret' }
-    await Bun.write(`${root}/synthetic.env`, 'SYNTHETIC_KEY=value\n')
-    const child = Bun.spawn([process.execPath, '--no-env-file', 'src/tools/docker-launcher.ts', 'compare', '--env-file', `${root}/synthetic.env`, '--output', `${root}/comparison.json`], { env, stdout: 'ignore', stderr: 'ignore' })
-    expect(await child.exited).not.toBe(0)
+    const child = Bun.spawn([process.execPath, '--no-env-file', 'src/tools/docker-launcher.ts', 'acceptance', '--suite', 'core', '--output', `${root}/acceptance`, '--cache', `${root}/cache`], { env, stdout: 'ignore', stderr: 'ignore' })
+    expect(await child.exited).toBe(1)
+    const result = await Bun.file(`${root}/acceptance/results.json`).json()
+    expect(result.passed).toBe(false)
+    expect(result.attemptedCount).toBe(0)
+    expect(result.commands[0].exitCode).toBe(71)
     const launcherEnv = await Bun.file(observed).text()
     const runner = createDockerProcessRunner(`${root}/docker`, env)
     expect((await runner(['version'], 1000, `${root}/logs/docker`)).exitCode).toBe(71)
@@ -137,8 +137,7 @@ test('fake Docker observes the same host, context and TLS choices through the pa
     }
     expect(launcherEnv + runnerEnv).not.toContain('opaque-docker-secret')
     const packageJson = await Bun.file('package.json').json()
-    for (const name of ['baseline:docker', 'compare:env', 't:docker']) expect(packageJson.scripts[name]).toContain('src/tools/docker-launcher.ts')
-    for (const path of ['src/tools/bun-env-compat.ts', 'src/tools/docker-bun-baseline.ts']) expect(await Bun.file(path).text()).toContain('env: dockerClientEnvironment(process.env)')
+    expect(packageJson.scripts['t:docker']).toContain('src/tools/docker-launcher.ts acceptance')
   })
 })
 
@@ -220,14 +219,4 @@ test('all hosted URL transports bind ambient credentials to their default destin
       })
     }
   } finally { globalThis.fetch = original }
-})
-
-test('environment regeneration preserves the consolidated summary and rejects damaged boundaries', async () => {
-  const { updateEnvironmentReferenceSection, ENVIRONMENT_REFERENCE_START: start, ENVIRONMENT_REFERENCE_END: end } = await import('../../../../src/tools/environment-reference')
-  const summary = `# Summary\n\nEvidence before.\n${start}\nOld content\n${end}\nEvidence after.\n`
-  const updated = updateEnvironmentReferenceSection(summary)
-  expect(updated.startsWith('# Summary\n\nEvidence before.\n')).toBe(true)
-  expect(updated.endsWith('\nEvidence after.\n')).toBe(true)
-  expect(updateEnvironmentReferenceSection(updated)).toBe(updated)
-  expect(() => updateEnvironmentReferenceSection(`${start}\nMissing end`)).toThrow('markers')
 })

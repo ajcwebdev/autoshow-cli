@@ -1,8 +1,6 @@
 # Image Service Tests
 
-Provider-backed image-generation coverage for the `image` command: fal.ai, Gemini, Grok, Luma Labs, OpenAI, and Replicate.
-
-Safety: these commands may call paid or quota-limited providers. Do not run them without explicit approval for that exact run.
+Live image generation for the `image` command: fal.ai, Gemini, Grok, Luma Labs, OpenAI, and Replicate. These `bun t` commands may call paid or quota-limited providers.
 
 ## Quick Start
 

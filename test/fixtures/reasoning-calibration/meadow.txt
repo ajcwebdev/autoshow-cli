@@ -1,0 +1,9 @@
+Meadow water monitoring review
+
+The Meadow district installed twelve water sensors along a stream in April. Each sensor recorded temperature every fifteen minutes. The monitoring team downloaded readings on Mondays and checked instrument batteries on Thursdays. A nearby school helped label locations, but students did not enter the stream or service electrical equipment.
+
+Ten sensors produced complete records for the first month. Two stopped after storms damaged their mounting brackets. The team replaced the brackets and restarted those instruments, preserving the gaps in the published data. It did not fill missing intervals with invented measurements. Rainfall records came from a separate weather station five kilometers upstream.
+
+The total project budget was 9600 dollars. Instruments cost 6000 dollars, installation cost 2400 dollars, and training cost 1200 dollars. A proposal to add dissolved oxygen sensors would cost another 3600 dollars. The council deferred that purchase until the team could demonstrate reliable temperature coverage through the summer.
+
+The team observed warmer afternoon readings at open sites than at shaded sites. It cautioned that one month of observations could not establish a long term trend. The next phase will add photographs of shade conditions and record maintenance visits in a shared log. A public review in September will compare data completeness, equipment failures, and maintenance costs. The council will use that review to decide whether to fund another season.

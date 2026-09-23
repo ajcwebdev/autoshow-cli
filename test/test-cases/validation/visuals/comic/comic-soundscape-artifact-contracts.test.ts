@@ -26,7 +26,7 @@ const locations: LocationReferenceCatalog = {
   locations: [{ key: 'hangar', name: 'Hangar', aliases: [], specification: 'Hangar.', sourceScripts: [] }],
 }
 
-describe('ADR-017 canonical soundscape artifact workflow', () => {
+describe('ADR-013 canonical soundscape artifact workflow', () => {
   test('reuses one mocked ElevenLabs generation result across dialogue targets and resumes without redispatch', async () => {
     const root = await makeTempDir('autoshow-soundscape-artifacts-')
     try {

@@ -1,0 +1,473 @@
+{
+  "version": 1,
+  "evidenceReport": "docs/adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md",
+  "scope": "English single-page prose images, 1020x1320; three original sources. Other modes, page bands and reasoning policies use existing estimates.",
+  "profiles": [
+    {
+      "provider": "anthropic",
+      "model": "claude-fable-5-1",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "completionTokensPerPage": 519
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-fable-5-1",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "completionTokensPerPage": 519
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-fable-5-1",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "max",
+      "sampleCount": 3,
+      "completionTokensPerPage": 519
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-fable-5-1",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "xhigh",
+      "sampleCount": 3,
+      "completionTokensPerPage": 519
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-fable-5",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "completionTokensPerPage": 519
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-fable-5",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "completionTokensPerPage": 519
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-fable-5",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "max",
+      "sampleCount": 3,
+      "completionTokensPerPage": 1881
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-fable-5",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "xhigh",
+      "sampleCount": 3,
+      "completionTokensPerPage": 519
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "max",
+      "sampleCount": 3,
+      "completionTokensPerPage": 1089
+    },
+    {
+      "provider": "deepinfra",
+      "model": "google/gemma-4-31B-it",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "promptTokensPerPage": 341
+    },
+    {
+      "provider": "deepinfra",
+      "model": "Qwen/Qwen3.8-27B",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "promptTokensPerPage": 1383,
+      "completionTokensPerPage": 307
+    },
+    {
+      "provider": "deepinfra",
+      "model": "Qwen/Qwen3.8-27B",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "promptTokensPerPage": 1411,
+      "completionTokensPerPage": 353
+    },
+    {
+      "provider": "deepinfra",
+      "model": "Qwen/Qwen3.8-27B",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "high",
+      "sampleCount": 3,
+      "promptTokensPerPage": 1423,
+      "completionTokensPerPage": 328
+    },
+    {
+      "provider": "deepinfra",
+      "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "promptTokensPerPage": 898,
+      "completionTokensPerPage": 294
+    },
+    {
+      "provider": "deepinfra",
+      "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "completionTokensPerPage": 366
+    },
+    {
+      "provider": "deepinfra",
+      "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "high",
+      "sampleCount": 3,
+      "completionTokensPerPage": 402
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.8-flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "completionTokensPerPage": 1118
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.8-flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "completionTokensPerPage": 340
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.7-flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "completionTokensPerPage": 1073
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.7-flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "completionTokensPerPage": 656
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.7-flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "high",
+      "sampleCount": 3,
+      "completionTokensPerPage": 1224
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "completionTokensPerPage": 1738
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "completionTokensPerPage": 340
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "high",
+      "sampleCount": 3,
+      "completionTokensPerPage": 1855
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.6-flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "completionTokensPerPage": 2038
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.6-flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "completionTokensPerPage": 324
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.6-flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "high",
+      "sampleCount": 3,
+      "completionTokensPerPage": 2377
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "completionTokensPerPage": 340
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "completionTokensPerPage": 294
+    },
+    {
+      "provider": "glm",
+      "model": "glm-5.3-flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "promptTokensPerPage": 1828,
+      "completionTokensPerPage": 309
+    },
+    {
+      "provider": "glm",
+      "model": "glm-5.3-flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "promptTokensPerPage": 1828,
+      "completionTokensPerPage": 280
+    },
+    {
+      "provider": "glm",
+      "model": "glm-5.3-flash",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "max",
+      "sampleCount": 3,
+      "promptTokensPerPage": 1828,
+      "completionTokensPerPage": 318
+    },
+    {
+      "provider": "grok",
+      "model": "grok-4.5",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "promptTokensPerPage": 1934,
+      "completionTokensPerPage": 277
+    },
+    {
+      "provider": "grok",
+      "model": "grok-4.5",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "promptTokensPerPage": 1934,
+      "completionTokensPerPage": 295
+    },
+    {
+      "provider": "grok",
+      "model": "grok-4.5",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "high",
+      "sampleCount": 3,
+      "promptTokensPerPage": 1934,
+      "completionTokensPerPage": 277
+    },
+    {
+      "provider": "grok",
+      "model": "grok-4.6",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "promptTokensPerPage": 2076,
+      "completionTokensPerPage": 295
+    },
+    {
+      "provider": "grok",
+      "model": "grok-4.6",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "promptTokensPerPage": 2076,
+      "completionTokensPerPage": 284
+    },
+    {
+      "provider": "grok",
+      "model": "grok-4.6",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "xhigh",
+      "sampleCount": 3,
+      "promptTokensPerPage": 2077,
+      "completionTokensPerPage": 295
+    },
+    {
+      "provider": "kimi",
+      "model": "kimi-k3",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "promptTokensPerPage": 1957,
+      "completionTokensPerPage": 920
+    },
+    {
+      "provider": "kimi",
+      "model": "kimi-k3",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "promptTokensPerPage": 1958,
+      "completionTokensPerPage": 664
+    },
+    {
+      "provider": "kimi",
+      "model": "kimi-k3",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "max",
+      "sampleCount": 3,
+      "promptTokensPerPage": 1957,
+      "completionTokensPerPage": 731
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "completionTokensPerPage": 294
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "completionTokensPerPage": 294
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "completionTokensPerPage": 294
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "completionTokensPerPage": 294
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "max",
+      "sampleCount": 3,
+      "completionTokensPerPage": 727
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-terra",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "completionTokensPerPage": 294
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-luna",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "default",
+      "sampleCount": 3,
+      "completionTokensPerPage": 638
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-luna",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "low",
+      "sampleCount": 3,
+      "completionTokensPerPage": 291
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-luna",
+      "ocrMode": "image",
+      "pageCountBand": "1",
+      "effectiveReasoningEffort": "max",
+      "sampleCount": 3,
+      "completionTokensPerPage": 1278
+    }
+  ]
+}

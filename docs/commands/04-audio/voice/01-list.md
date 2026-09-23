@@ -12,7 +12,7 @@ bun autoshow voice list [registration-id] [flags]
 
 With no arguments, `list` prints the local registration catalog and current index. That listing never calls a provider.
 
-With a registration id, `list` inspects that registration. `--live` checks whether the provider still has the voice. `--price` keeps the read local even when `--live` is set.
+With a registration id, `list` inspects that registration. `--live` checks whether the provider still has the voice. `--price` keeps the read local even when `--live` is set. Inspecting one registration also finishes an interrupted voice creation when the outcome is already known, without creating the voice again. If that outcome is ambiguous, pass `--reconcile`. `--price` does not finish it.
 
 With `--provider`, `list` prints a provider or account catalog. `--provider` cannot be combined with a registration id.
 
@@ -24,8 +24,8 @@ With `--provider`, `list` prints a provider or account catalog. `--provider` can
 | `--live`                   | Opt-in provider readiness check for one registration                                                    |
 | `--provider <name>`        | Remote catalog provider: `elevenlabs`, `grok`, `mistral`, `speechify`, `hume`, `cartesia`, or `inworld` |
 | `--source <source>`        | Catalog source: `account`, `provider-library`, or `shared-library`; default `account`                   |
-| `--cursor <cursor>`        | Pagination cursor from a previous catalog page                                                          |
-| `--reconcile`              | Finish an interrupted voice create without creating a new voice                                         |
+| `--cursor <cursor>`        | Opaque provider pagination cursor                                                                       |
+| `--reconcile`              | Complete an ambiguous provider provisioning journal without recreating the voice                        |
 | `--price`                  | Validate and estimate without provider calls or artifact writes                                         |
 
 ### Examples

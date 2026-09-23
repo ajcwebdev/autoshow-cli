@@ -107,7 +107,7 @@ export const createOpenAICompatibleReasoningRunner = (descriptor: {
       providerLabel: descriptor.providerLabel,
       operationName: `${descriptor.service}-llm`,
       customizeRequestBody: (requestBody) => {
-        if (policy.effective === 'low' || policy.effective === 'medium' || policy.effective === 'high') {
+        if (policy.effective === 'low' || policy.effective === 'medium' || policy.effective === 'high' || policy.effective === 'xhigh') {
           requestBody['reasoning_effort'] = policy.effective
         }
       }

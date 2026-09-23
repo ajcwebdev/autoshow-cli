@@ -1,3 +1,4 @@
+import { NORMALIZED_REASONING_EFFORTS } from '~/cli/commands/setup-and-utilities/models/reasoning-efforts'
 import { MistralOcrPageMetadataSchema } from './mistral-ocr-metadata-types'
 import * as v from 'valibot'
 import type { DocFormat, HostedOcrScheduler, ProviderIdentityBase } from '~/types'
@@ -74,7 +75,7 @@ export const ExtractionOptionsSchema = v.object({
   preparedMarkdown: v.optional(v.string(), undefined),
   htmlArticleProcessingTimeMs: v.optional(v.number(), undefined),
   htmlArticleBackend: v.optional(v.picklist(['defuddle', 'firecrawl', 'glm-reader', 'spider', 'supadata', 'zyte']), undefined),
-  reasoningEffort: v.optional(v.picklist(['default', 'disabled', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']), undefined)
+  reasoningEffort: v.optional(v.picklist(NORMALIZED_REASONING_EFFORTS), undefined)
 })
 
 const PageResultSchema = v.object({
@@ -161,8 +162,8 @@ export const ExtractionMetadataSchema = v.object({
   ocrProviderUsage: v.optional(v.array(v.record(v.string(), v.unknown())), undefined),
   hostedOcrScheduler: v.optional(v.record(v.string(), v.unknown()), undefined),
   hostedConcurrency: v.optional(v.record(v.string(), v.unknown()), undefined),
-  requestedReasoningEffort: v.optional(v.picklist(['default', 'disabled', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']), undefined),
-  effectiveReasoningEffort: v.optional(v.picklist(['default', 'disabled', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']), undefined),
+  requestedReasoningEffort: v.optional(v.picklist(NORMALIZED_REASONING_EFFORTS), undefined),
+  effectiveReasoningEffort: v.optional(v.picklist(NORMALIZED_REASONING_EFFORTS), undefined),
   ocrProviderMode: v.optional(v.picklist(['fanout', 'pool']), undefined),
   ocrPoolTargetUsage: v.optional(v.array(v.record(v.string(), v.unknown())), undefined)
 })

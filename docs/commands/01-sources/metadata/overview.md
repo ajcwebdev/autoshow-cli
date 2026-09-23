@@ -27,7 +27,7 @@ bun autoshow metadata <input> [flags]
 | Local document or image file                                          | Collect title, author, page count, format, and file size         |
 | YouTube channel or playlist URL                                       | Batch metadata for latest videos                                 |
 | RSS / podcast feed URL                                                | Batch metadata for latest episodes                               |
-| URL list file (`.md` / `.txt`)                                        | Batch metadata for each listed input                             |
+| URL list file (`.md` / `.txt`)                                        | Batch the selected listed inputs                                 |
 | Directory                                                             | Batch metadata for each supported local input                    |
 
 **Supported document formats:** PDF, EPUB, MOBI, AZW3, AZW, PRC, FB2, LIT, DOCX, PPTX, XLSX, ODT, ODS, ODP, RTF, CSV, CBZ
@@ -36,26 +36,28 @@ bun autoshow metadata <input> [flags]
 
 Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, and LIT) require Calibre.
 
+URL lists, RSS or podcast feeds, and YouTube channels or playlists honor `--batch-limit` and `--batch-order`. A directory includes every supported file.
+
 ## Flags
 
 ```text
 --password           Password for encrypted PDFs
---markdown           Output metadata as Markdown frontmatter YAML
---save               Write metadata.md with --markdown and emit saved-artifacts confirmation (manifest.json always written)
---url-provider       Article/HTML extraction backend: defuddle|firecrawl|glm-reader|spider|supadata|zyte (default defuddle; local .html/.htm always use defuddle)
---batch-limit        Batch: number of items to process or "all" (default 5)
---batch-order        Batch: item order newest|oldest (default newest)
---batch-concurrency  Batch: number of items to process concurrently (default 7)
---price              Show aggregated cost estimate for all active pipeline steps and exit
+--markdown           Print metadata as Markdown frontmatter YAML
+--save               With --markdown, write metadata.md and print a confirmation
+--url-provider       Article or HTML backend: defuddle|firecrawl|glm-reader|spider|supadata|zyte (default defuddle; local .html/.htm always use defuddle)
+--batch-limit        Number of items to process, or "all" (default 5)
+--batch-order        Item order: newest|oldest (default newest)
+--batch-concurrency  Number of items to process at once (default 7)
+--price              Show the cost estimate and exit
 ```
 
-`--json` is a global flag (see [`usage.md`](../../00-setup-and-utilities/usage.md)), not a metadata-only option. Do not combine `--json` with `--markdown` (both own stdout).
+`--json` is a global flag (see [`usage.md`](../../00-setup-and-utilities/usage.md)). Do not combine `--json` with `--markdown`; each one writes the metadata to stdout.
 
 Shared globals such as `--output-root`, `--output-dir`, and logging flags are documented in [`usage.md`](../../00-setup-and-utilities/usage.md).
 
 ## Output
 
-By default, metadata prints one compact terminal summary and writes `manifest.json` under a timestamped run directory. Use `--markdown` to print Markdown frontmatter YAML on stdout. Use global `--json` for the versioned result protocol, which includes the complete metadata object in the terminal result on stdout.
+Each item prints one compact summary and writes `manifest.json` under a timestamped run directory. Batch items prefix that summary with `[index/count]`. `--markdown` prints Markdown frontmatter YAML on stdout instead of the summary. For a batch, each item's metadata is in that item's `manifest.json`.
 
 **Terminal output (default)**
 
@@ -65,7 +67,7 @@ By default, metadata prints one compact terminal summary and writes `manifest.js
 
 Media metadata may also include chapters and description when the source provides them.
 
-**Document metadata fields (in the run `manifest.json` / JSON result)**
+**Document metadata fields**
 
 ```json
 {
@@ -80,21 +82,29 @@ Media metadata may also include chapters and description when the source provide
 
 **Run directory**
 
-Every metadata run writes:
+A single metadata run writes:
 
 ```text
 output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   manifest.json
 ```
 
-`--save --markdown` also writes `metadata.md` in that directory. `--save` emits a saved-artifacts confirmation log. (`manifest.json` is written even without `--save`.)
+A batch run writes a parent directory and one child directory per item:
+
+```text
+output/YYYY-MM-DD_HH-MM-SS-mmm_batch-label/
+  manifest.json
+  YYYY-MM-DD-slug/   # when the item has a content date
+  slug/              # otherwise
+    manifest.json
+```
+
+`--save --markdown` also writes `metadata.md` in the single-run directory or in each batch child directory. `manifest.json` is written even without `--save`.
 
 ## Examples
 
 ```bash
 bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU"
-
-bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU" --save
 
 bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU" --markdown
 
@@ -112,7 +122,7 @@ bun autoshow metadata https://example.com/feed --batch-limit 3
 
 bun autoshow metadata https://www.youtube.com/@channelname --batch-limit 5
 
-bun autoshow metadata input/examples/batch/2-urls.md --batch-limit all --save
+bun autoshow metadata input/examples/batch/2-urls.md --batch-limit all --save --markdown
 ```
 ## Setup and Environment
 

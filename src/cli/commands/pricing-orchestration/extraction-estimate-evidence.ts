@@ -9,7 +9,7 @@ export type EstimatedExtractTarget = {
   completionTokens?: number | undefined
   effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
   ocrMode?: string | undefined
-  tokenEstimateSource?: 'exact' | 'profile' | 'blended-profile' | 'registry' | undefined
+  tokenEstimateSource?: 'exact' | 'profile' | 'blended-profile' | 'calibrated-registry' | 'registry' | undefined
   tokenEstimateConfidence?: 'none' | 'sparse' | 'healthy' | undefined
   tokenProfileSampleCount?: number | undefined
   tokenProfilePromptTokensPerPage?: number | undefined

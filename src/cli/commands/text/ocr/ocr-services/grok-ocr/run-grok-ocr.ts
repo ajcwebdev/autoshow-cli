@@ -33,7 +33,7 @@ export const runGrokOcr = createChatImageOcrRunner({
   buildBody: ({ model, messages, reasoningPolicy }) => ({
     model,
     max_completion_tokens: GROK_OCR_MAX_COMPLETION_TOKENS,
-    ...(reasoningPolicy.effective === 'low' || reasoningPolicy.effective === 'medium' || reasoningPolicy.effective === 'high'
+    ...(reasoningPolicy.effective === 'low' || reasoningPolicy.effective === 'medium' || reasoningPolicy.effective === 'high' || reasoningPolicy.effective === 'xhigh'
       ? { reasoning_effort: reasoningPolicy.effective }
       : {}),
     messages

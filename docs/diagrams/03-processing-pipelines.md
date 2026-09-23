@@ -43,7 +43,7 @@ caption extraction
   |      youtube-captions.json
   |      transcription.txt
   |      result.json
-  |      requested STT providers are marked skipped
+  |      selected STT providers are skipped and are not recorded on the run
   |
   +--> unavailable:
          fall back to selected STT providers
@@ -53,12 +53,12 @@ The local STT provider is `whisperfile`. All others are hosted.
 Output layout:
 
 ```
-single provider:
+single audio STT provider:
   transcription.txt
   result.json
   manifest.json
 
-multi-provider:
+multi-provider, or one Supadata or ScrapeCreators target:
   providers/<service>-<model>/
     transcription.txt
     result.json
@@ -66,15 +66,15 @@ multi-provider:
 ```
 Provider failures do not discard the whole output directory. A run can finish as:
 
-| Status       | Meaning                                                                                                  |
-| ------------ | -------------------------------------------------------------------------------------------------------- |
-| `full`       | All requested providers completed or the selected single provider completed.                             |
-| `incomplete` | At least one provider succeeded and at least one requested provider failed, was missing, or was skipped. |
-| `failed`     | No requested provider produced a usable result.                                                          |
+| Status       | Meaning                                                                                                                             |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `full`       | Every requested provider succeeded. Skipped providers still leave the run `full` when every other provider succeeded.               |
+| `incomplete` | At least one provider succeeded while another failed or is missing, or no provider succeeded while one is missing or still running. |
+| `failed`     | No requested provider succeeded, and none are missing or still running.                                                             |
 
 ## Document and Article Pipeline
 
-Documents include PDFs, EPUB, Office/ODF files, ebooks, comic archives, RTF, CSV, and common image formats. HTML files and article URLs use article extraction. Format decides whether the item uses OCR, native text extraction, or article extraction.
+Documents include PDFs, EPUB, Office/ODF files, ebooks, comic archives, RTF, CSV, and common image formats. HTML files and article URLs use article extraction. The input format selects article extraction, native text, or OCR. EPUB and convertible ebooks use native text unless an OCR provider is selected.
 
 ```
 document/html target
@@ -88,8 +88,12 @@ detect format
   +--> CSV
   |      native CSV extraction
   |
-  +--> DOCX/PPTX/XLSX/ODF/ebook/RTF
+  +--> DOCX/PPTX/XLSX/ODF/RTF
   |      native document extraction
+  |
+  +--> EPUB or convertible ebook
+  |      convertible formats normalize to EPUB first
+  |      native text by default, or OCR when an OCR provider is selected
   |
   +--> PDF, images, CBZ
          OCR
@@ -110,11 +114,16 @@ single provider/native route:
   extraction.txt | result.json
   manifest.json
 
-multi-provider OCR:
+multi-provider OCR, fanout (default):
   providers/<service>-<model>/
     extraction.txt
     result.json
   extraction.txt | result.json  # primary provider output when --primary-ocr is set
+  manifest.json
+
+multi-provider OCR, pool:
+  extraction.txt | result.json  # composite extraction in page order; --primary-ocr is rejected
+  providers/<service>-<model>/attempts/
   manifest.json
 ```
 Article output:
@@ -164,7 +173,9 @@ write show notes
 ```
 `write` always starts at Step 3. It treats `.md`/`.txt` files as the source corpus. URLs, media, documents, HTML, and X Spaces go through `extract` first.
 
-Project lyric draft mode engages when the input is `./output/<name>/text` (or a `.md`/`.txt` under it) and `./output/<name>/prompt.md` exists (or `--prompt-file` is supplied). Defaults then use that `prompt.md`, optional `tracks.md`, and rendered drafts under `./output/<name>/lyrics`.
+When two providers share a model id, the JSON, rendered markdown, and show-note filenames include the provider (`text-<provider>-<model>.json`, and the same stem for `text-*.md` and `show-note-*.md`).
+
+Project lyric draft mode engages when the input is a directory named `text` (or a `.md`/`.txt` under it) and `prompt.md` exists in that directory's parent (or `--prompt-file` is supplied). Defaults then use that `prompt.md`, optional `tracks.md` beside it, and rendered drafts in the sibling `lyrics` directory.
 
 ## Transcript Video Pipeline
 

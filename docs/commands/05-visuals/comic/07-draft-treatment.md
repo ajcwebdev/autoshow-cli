@@ -27,11 +27,11 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 | `--scene <SC>`                         | Two-digit scene prefix for the generated script filename                                                                                                         | `01`                                         |
 | `--slug <text>`                        | Kebab-case script slug                                                                                                                                           | treatment title without the word "treatment" |
 | `--speaker <key>`                      | Character key whose quoted lines become dialogue instead of narration; repeatable                                                                                | none, so every panel is narration only       |
-| `--style-seed <filename>`              | PNG filename under the characters root used as the style reference for every new character                                                                       | `<slug>--style-seed.png`                     |
+| `--style-seed <filename>`              | PNG filename under the characters root written as every new character's `generationReference`                                                                    | `<slug>--style-seed.png`                     |
 | `--catalog-policy <policy>`            | `skip-existing` keeps an existing catalog key as authored and reports it; `fail` aborts before writing catalogs or the script                                    | `skip-existing`                              |
 | `--force`                              | Overwrite an existing script at the target path                                                                                                                  | `false`                                      |
 | `--provider <provider[=model]>`        | Text model for the drafting call                                                                                                                                 | `gpt-5.6-sol`                                |
-| `--concurrency-mode <ramp\|immediate>` | Approach the hosted LLM lane from one request (`ramp`) or start at the configured cap (`immediate`)                                                              | `ramp`                                       |
+| `--concurrency-mode <ramp\|immediate>` | Start hosted work from one request (`ramp`) or at the configured cap (`immediate`)                                                                               | `ramp`                                       |
 | `--price`                              | Estimate the drafting call without provider calls or writes                                                                                                      | `false`                                      |
 
 Global `--output-dir <path>` pins the treatment run directory. Global `--characters-root <path>` selects the character catalog root; the location catalog is its sibling `locations` directory.
@@ -40,23 +40,23 @@ Global `--output-dir <path>` pins the treatment run directory. Global `--charact
 
 ```bash
 bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear --price
-bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear
 bun autoshow comic draft-treatment input/camp.md --panel-count 20-25 --speaker papa-bear --force
 bun autoshow comic draft-treatment input/camp.md --panel-count 8 --slug camp-manzanita --style-seed camp-manzanita--style-seed.png --voice-pacing mixed
 bun autoshow comic draft-treatment input/camp-manzanita-treatment.pdf --episode 02 --speaker papa-bear --catalog-policy fail
 ```
+
 ### Behavior
 
 - `<treatment-path>` is a `.md`, `.txt`, or `.pdf` file. PDF text is extracted locally, so it costs nothing extra and never calls an OCR provider.
 - The style seed PNG named by `--style-seed` must already exist under the characters root. Generate the seed with [`image`](../image/overview.md) and copy it into `input/characters/` first.
-- The draft includes story and scene titles, the characters and locations the panels need, and a panel list whose length satisfies `--panel-count`. Each panel has a visual note, narration, and any dialogue for `--speaker` characters. A failed draft retries once; a second failure is saved as `treatment.invalid.json` and the command exits non-zero without touching `input/`.
-- With `--voice-pacing exclusive`, each panel has one voice and consecutive panels form runs: a long spoken passage is split across dialogue panels with no narration between them, and narration resumes after the speech without restating it. `--voice-pacing mixed` lets a panel carry narration and dialogue together. The run summary reports the drafted panel count and the number of voice changes.
-- The script is written to `input/scripts/<episode>-script/<scene>-<slug>.md`. The command refuses to overwrite an existing file without `--force` and refuses a target whose `<episode>-<scene>` shorthand would match more than one file. With no `--episode`, the next unused two-digit episode number is chosen.
+- The draft includes story and scene titles, the characters and locations the panels need, and a panel list whose length satisfies `--panel-count`. Each panel has a visual note, narration, and any dialogue for `--speaker` characters. A failed draft retries once. If the second attempt fails, the command exits non-zero, leaves `input/` unchanged, and saves the issues as `metadata/treatment/treatment.invalid.json` in the run directory.
+- With `--voice-pacing exclusive`, a long spoken passage is split across dialogue panels, and narration resumes afterward without restating that speech. The `treatment-script generated` line reports the drafted panel count and the number of voice changes. Pass that panel count to [`draft-scenes --panel-count`](./01-draft-scenes.md).
+- The script is written to `input/scripts/<episode>-script/<scene>-<slug>.md`. The command refuses to overwrite an existing file without `--force`, and refuses a target whose `<episode>-<scene>` shorthand would match more than one file. With no `--episode`, the next unused two-digit episode number is chosen. Catalogs and the script are written together only after the rendered script matches the merged catalogs.
 - `--price` estimates the drafting call, including one retry, without a provider call or writes.
 
 ### Emitted script shape
 
-Narration is written under a `**NARRATION**` label. Quoted lines from `--speaker` characters become dialogue under the character's uppercase catalog name. A bold slugline opens the scene and is repeated whenever the location changes. With the default exclusive pacing each panel carries one voice, so a narration panel leads into a run of speech panels:
+Narration is written under a `**NARRATION**` label. Quoted lines from `--speaker` characters become dialogue under the character's uppercase catalog name. A bold slugline opens the scene and is repeated whenever the location changes.
 
 ```markdown
 # Episode 02: Camp Manzanita
@@ -89,28 +89,29 @@ But in the 1850s this forest was the heart of the gold rush.
 
 ### Catalog merge
 
-- New characters are appended to `input/characters/characters-reference.json` with the style seed as their image reference plus the drafted description, aliases, and wardrobe. Existing entries are never modified. An alias that already belongs to another character, or that two new characters both claim, is dropped and listed in the merge report.
-- New locations are appended to `input/locations/locations-reference.json`. The catalog's style image is set to the style seed when the catalog is created or when its current style image is missing; otherwise it is kept and reported.
-- With `--catalog-policy skip-existing`, a drafted key that already exists is skipped and reported. With `--catalog-policy fail`, an existing key or a colliding alias aborts the command before writing catalogs or the script.
-- Run [`reference-sketch`](./02-reference-sketch.md) for every added character and location before building panel prompts; the merge report lists the exact commands.
+- New characters are appended to `input/characters/characters-reference.json` with the style seed as `generationReference` and the drafted description, aliases, and wardrobe. Existing entries stay as authored. An alias that already belongs to another character, or that two new characters both claim, is dropped and listed in the merge report. `--catalog-policy fail` treats that collision like an existing key and aborts before any write.
+- New locations are appended to `input/locations/locations-reference.json` with the canonical slugline as the first alias and the drafted style paragraph in `specification`. `styleImage` is set to the style seed when the catalog is created or the current file is missing on disk. An existing style image is kept, and the merge report says so.
+- Run [`reference-sketch`](./02-reference-sketch.md) for every added character and location before building panel prompts. The merge report lists those commands.
 
 ### Artifacts
 
 ```text
 output/<YYYY-MM-DD_HH-MM-SS-mmm>_<slug>-treatment/
   metadata/treatment/
-    treatment.json
-    treatment.invalid.json            # only when both attempts fail
     script.md
     merge-report.md
+    merge-report.json
+    treatment.invalid.json            # only when both attempts fail
 input/scripts/<episode>-script/<scene>-<slug>.md
 input/characters/characters-reference.json
 input/locations/locations-reference.json
 ```
 
+`merge-report.md` is the readable record of added keys, skipped keys, dropped aliases, and the `styleImage` action. `merge-report.json` is the same record for scripts.
+
 ### Walkthrough: camp-manzanita
 
-This walkthrough drafts `input/camp.md` into episode 02 with a narrator plus Papa Bear's spoken legend, fitting the treatment into 20-25 panels. Generate the style seed first.
+Generate the style seed, then draft `input/camp.md` into episode 02 with a narrator plus Papa Bear's spoken legend, fitting the treatment into 20-25 panels.
 
 ```bash
 bun autoshow image "<campfire comic style reference, no people>" --provider openai=gpt-image-2.5-sunburst --size 1536x1024 --quality high --format png --count 1 --output-dir output/camp-manzanita-style-seed
@@ -119,6 +120,7 @@ cp output/camp-manzanita-style-seed/generated-image.png input/characters/camp-ma
 bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear --panel-count 20-25 --price
 bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear --panel-count 20-25
 ```
-Continue with [`draft-scenes`](./01-draft-scenes.md) as `02-01`, passing `--panel-count` matching the drafted count from the run summary. See the [`comic` overview](./00-comic-overview.md) for the rest of the pipeline.
+
+Continue with [`draft-scenes`](./01-draft-scenes.md) as `02-01`, passing `--panel-count` matching the drafted panel count on the `treatment-script generated` line.
 
 Next: [draft-scenes](./01-draft-scenes.md).

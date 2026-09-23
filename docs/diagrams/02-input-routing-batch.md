@@ -14,7 +14,7 @@ How targets become single runs or batches.
 ```
 command + target + flags
         |
-        +--> write: <project>/text with prompt.md -> project lyric draft mode
+        +--> write: <project>/text, or a .md/.txt file under it, with prompt.md or --prompt-file -> project lyric draft mode
         +--> write: a local .md/.txt file or directory of those files
         |
         v
@@ -26,9 +26,9 @@ Write planning:
 ```
 write
   |
-  +--> URL, media, document, HTML, or X Space: usage error naming extract
-  +--> directory: collect .md/.txt files -> batch
-  +--> .md/.txt file: single text item
+  +--> URL, media, document, HTML, X Space, or .md/.txt input list: usage error naming extract
+  +--> directory: collect .md/.txt files -> one selected file is a single item; more than one is a batch
+  +--> other .md/.txt file: single text item
   +--> otherwise: usage error
 ```
 
@@ -39,17 +39,17 @@ normal target
   |
   +--> directory:
   |      collect input files
-  |      if the directory basename is `input`, also read `2-urls.md`
+  |      if the directory basename is `input` in any case, also read `2-urls.md`
   |      -> batch
   |
   +--> .md/.txt input list:
-  |      resolve relative paths and markdown links -> batch
+  |      resolve relative paths and markdown links -> source-backed batch
   |
   +--> batch source:
-  |      podcast feed or YouTube source -> source-backed batch
+  |      podcast feed, YouTube channel, or YouTube playlist -> source-backed batch
   |
   +--> YouTube collection:
-  |      playlist/channel expansion -> batch
+  |      multi-video YouTube URL not resolved as a channel or playlist source -> batch
   |
   +--> fallback:
          single target
@@ -70,7 +70,7 @@ input family
   +--> media        local media, direct media URL, streaming URL
   +--> document     PDF, EPUB, image, Office, ODF, ebook, archive, RTF, CSV
   +--> html_article remote article URL or local HTML
-  +--> x_space      X/Twitter Space or post
+  +--> x_space      X/Twitter Space, post, or raw Space ID
   +--> unsupported  unsupported extension, missing file, invalid route
   |
   v
@@ -92,12 +92,12 @@ Local `.html`/`.htm` files classify as `html_article`. `.acsm` is unsupported. S
 | Family         | `metadata`            | `download`                     | `extract`                 | `write`                                                                  |
 | -------------- | --------------------- | ------------------------------ | ------------------------- | ------------------------------------------------------------------------ |
 | Media          | metadata only         | download/stage media           | STT route                 | unsupported; extract first                                               |
-| Document/image | metadata only         | download/copy document         | OCR/native document route | unsupported; extract first                                               |
+| Document/image | metadata only         | document metadata only         | OCR/native document route | unsupported; extract first                                               |
 | HTML/article   | metadata only         | article prep/download metadata | URL/article route         | unsupported; extract first                                               |
 | X Space        | X API metadata lookup | Space audio download           | X Space route             | unsupported; extract first                                               |
 | Text input     | unsupported           | unsupported                    | unsupported               | local `.md`/`.txt`, including extract artifacts and project lyric drafts |
 
-Unsupported batch items stay in the parent manifest with item `status: "skipped"` and a `metadata.skipReason`.
+Unsupported extract batch items stay in the parent manifest with item `status: "skipped"` and a `metadata.skipReason`.
 
 ## Batch Layout
 

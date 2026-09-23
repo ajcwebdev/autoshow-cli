@@ -7,6 +7,8 @@ import type { ExtractionMetadata, HostedOcrTokenReasoningPolicy, HostedOcrTokenU
 import { projectHostedOcrTokenUsageEstimate, selectHostedOcrTokenUsageProfile } from '~/utils/pricing/ocr-token-pricing'
 import { roundMetric } from '~/utils/value-helpers'
 import { createJsonProfileStore } from '~/utils/json-profile-store'
+import { NORMALIZED_REASONING_EFFORTS } from '~/cli/commands/setup-and-utilities/models/reasoning-efforts'
+import calibration from '~/cli/commands/setup-and-utilities/models/ocr-calibration-profiles.json'
 
 const TOKEN_PROFILE_STORE_VERSION = 2
 const MAX_TOKEN_PROFILE_ENTRIES = 500
@@ -44,13 +46,7 @@ export const resolveHostedOcrModeFromExtractionMethod = (
 }
 
 const REASONING_POLICIES = new Set<HostedOcrTokenReasoningPolicy>([
-  'default',
-  'disabled',
-  'minimal',
-  'low',
-  'medium',
-  'high',
-  'max',
+  ...NORMALIZED_REASONING_EFFORTS,
   'unspecified'
 ])
 
@@ -311,6 +307,23 @@ export const resolveHostedOcrTokenUsageEstimate = (
     profilePath: input.profilePath,
     effectiveReasoningEffort
   })
+  // Curated evidence applies only to its exact route, page band and policy.
+  // A learned local profile still takes precedence. Never blend this small
+  // single-image corpus into PDF, CBZ, batch or unspecified-policy estimates.
+  const calibrated = !profile ? calibration.profiles.find(row => row.provider === input.provider
+    && row.model === input.model && row.ocrMode === ocrMode && row.pageCountBand === pageCountBand
+    && row.effectiveReasoningEffort === effectiveReasoningEffort) : undefined
+  if (calibrated) {
+    const prompt = calibrated.promptTokensPerPage ?? input.registryPromptTokensPerPage
+    const completion = calibrated.completionTokensPerPage ?? input.registryCompletionTokensPerPage
+    return {
+      promptTokens: Math.round(pageCount * prompt), completionTokens: Math.round(pageCount * completion),
+      tokenEstimateSource: 'calibrated-registry', tokenEstimateConfidence: 'healthy',
+      tokenProfileSampleCount: calibrated.sampleCount,
+      tokenProfilePromptTokensPerPage: prompt, tokenProfileCompletionTokensPerPage: completion,
+      tokenProfileEffectiveReasoningEffort: effectiveReasoningEffort
+    }
+  }
   return projectHostedOcrTokenUsageEstimate({
     pageCount,
     ocrMode,

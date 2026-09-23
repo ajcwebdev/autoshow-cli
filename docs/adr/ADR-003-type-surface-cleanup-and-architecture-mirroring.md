@@ -9,9 +9,7 @@
 
 ## Context
 
-`src/types` had two problems. Many declarations existed only to name a shape used once: exported aliases imported by a single file, and private aliases referenced by a single parent. Those names added indirection without protecting a module boundary. Most type files also lived under a `migrated/` staging namespace that no longer matched the subsystems they supported.
-
-The ingestion, pipeline-state, and extract boundaries in [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), and [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) already described durable architecture. Type files did not follow it.
+`src/types` carried declarations that existed only to name a shape used once, and most type files lived under a `migrated/` staging namespace that no longer matched the subsystems they supported. The ingestion, pipeline-state, and extract boundaries in [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-008](ADR-008-ocr-execution-pooling-and-artifacts.md), and [ADR-009](ADR-009-stt-timing-captions-and-alignment.md) already described durable architecture; type files did not follow it.
 
 Why now: type ownership had to match those subsystem boundaries so later work in those areas could be reviewed against a single tree.
 
@@ -20,21 +18,21 @@ Why now: type ownership had to match those subsystem boundaries so later work in
 **Option 1 (selected)**
 
 - **Option:** Remove or inline single-use exports, fold private single-parent aliases, and organize remaining files by durable subsystem and workflow ownership, keeping `src/types/index.ts` as the public barrel
-- **Pros:** Shrinks exported `~/types`, aligns file ownership with durable architecture, retires `migrated/`, and preserves the central public barrel
-- **Cons:** Requires import churn and a careful barrel update
-- **Quantitative Notes:** Majority of the type tree was under `migrated/` at decision time
+- **Pros:** Smaller exported `~/types`, ownership aligned with durable architecture, `migrated/` retired
+- **Cons:** Import churn and a careful barrel update
+- **Quantitative Notes:** Most of the type tree was under `migrated/` at decision time
 
 **Option 2**
 
 - **Option:** Include multi-use and cross-referenced declarations in the same cleanup
 - **Pros:** Broadest single pass
-- **Cons:** Mixes simple single-use edits with type hierarchies that still justify a shared name
-- **Quantitative Notes:** Rejected; remaining multi-use names stay out of this record
+- **Cons:** Mixes simple single-use edits with hierarchies that still justify a shared name
+- **Quantitative Notes:** n/a
 
 **Option 3**
 
 - **Option:** Strict 1:1 directory mirroring between `src/` and `src/types/`
-- **Pros:** Highly predictable structure
+- **Pros:** Predictable structure
 - **Cons:** Overfits ephemeral modules and produces thin folders
 - **Quantitative Notes:** n/a
 
@@ -63,13 +61,12 @@ Why now: type ownership had to match those subsystem boundaries so later work in
 
 Keep `src/types` organized by durable subsystem and workflow ownership, with `src/types/index.ts` as the sole public `~/types` barrel.
 
-Do not export a type whose only consumer is a single importing file. Fold a private alias into its parent when that parent is the only reference. Place remaining files by subsystem and workflow domain rather than by a strict `src/` mirror. Place genuinely cross-cutting contracts in shared subsystem directories such as `pipeline-core/` and `runtime-core/`, not at the `src/types` root. Do not use `src/types/migrated/` or deep-path compatibility shims.
+Do not export a type whose only consumer is a single importing file. Fold a private alias into its parent when that parent is the only reference. Place remaining files by subsystem and workflow domain rather than by a strict `src/` mirror, and place cross-cutting contracts in shared subsystem directories such as `pipeline-core/` and `runtime-core/`, not at the `src/types` root. Do not use `src/types/migrated/` or deep-path compatibility shims.
 
 This applies to:
 
 - Exported single-use and non-exported single-parent declarations in `src/types/`.
-- Subsystem- and workflow-scoped directories under `src/types/`.
-- Preserving `src/types/index.ts` as the single public `~/types` barrel.
+- Subsystem- and workflow-scoped directories under `src/types/`, and the single public barrel.
 
 It does not apply to:
 
@@ -79,17 +76,16 @@ It does not apply to:
 
 ## Rationale
 
-- A type imported from one file, and unused by other `src/types` declarations, does not protect a boundary and should not occupy the public barrel.
-- A private alias with one parent is local structure, not a shared contract, so folding it keeps the parent as the named shape.
-- `migrated/` was staging, not architecture. Durable subsystem directories match the source, pipeline-state, and extract boundaries already recorded in [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), and [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md).
-- A partial mirror of those boundaries avoids thin folders around ephemeral modules, and keeping the central barrel avoids rewriting every import.
+- A type imported from one file does not protect a boundary and should not occupy the public barrel.
+- A private alias with one parent is local structure, not a shared contract.
+- `migrated/` was staging, not architecture. A partial mirror of the durable boundaries avoids thin folders around ephemeral modules, and keeping the central barrel avoids rewriting every import.
 
 ## Consequences
 
 Positive outcomes:
 
 - The exported `~/types` surface is smaller, and remaining type files live with the subsystem they support.
-- `migrated/` is gone. Later type work, including ingestion, pipeline-state, and extract reviews, follows the same boundaries as [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), and [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md).
+- Later type work follows the same boundaries as [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-008](ADR-008-ocr-execution-pooling-and-artifacts.md), and [ADR-009](ADR-009-stt-timing-captions-and-alignment.md).
 
 Negative outcomes:
 
@@ -108,22 +104,17 @@ Negative outcomes:
 - **Gain:** Type ownership follows subsystem boundaries and `migrated/` is retired
 - **Sacrifice:** Import paths and barrel entries must track directory moves
 
-**Trade-off 3**
-
-- **Gain:** No 1:1 `src/` mirror and no co-located type files
-- **Sacrifice:** Cross-cutting contracts need an explicit shared-subsystem home
-
 ## Implementation Note
 
-The cleanup has shipped under `src/types/`. `src/types/index.ts` is the only root file and the sole public `~/types` barrel. `src/types/migrated/` was removed without compatibility shims.
+The cleanup has shipped: `src/types/index.ts` is the only root file and the sole public `~/types` barrel, and `src/types/migrated/` was removed without compatibility shims.
 
 ### Bun 1.4 Image Declarations
 
-The 2026-08-31 evaluation removed local `Bun.Image` constructor declarations because the installed Bun type packages already declare that surface. Production code uses `Bun.Image` directly. TIFF conversion and ImageMagick routing stay in [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md#bun-14-image-routing).
+The 2026-08-31 evaluation removed local `Bun.Image` declarations because the installed Bun type packages already declare that surface; TIFF conversion and ImageMagick routing stay in [ADR-008](ADR-008-ocr-execution-pooling-and-artifacts.md#bun-14-image-routing).
 
 ## API / Type Impact
 
-Single-use names are not part of the public `~/types` barrel. In-tree imports continue to use `~/types`. Deep paths under `src/types/` follow subsystem directories and are not a supported public API.
+Single-use names are not part of the public `~/types` barrel. In-tree imports continue to use `~/types`. Deep paths under `src/types/` are not a supported public API.
 
 ## Test Plan
 
@@ -142,6 +133,5 @@ bun run check
 
 - Related ADR: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
 - Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
-- Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
-- `src/types/`
-- `src/types/index.ts`
+- Related ADR: [ADR-008](ADR-008-ocr-execution-pooling-and-artifacts.md)
+- Related ADR: [ADR-009](ADR-009-stt-timing-captions-and-alignment.md)

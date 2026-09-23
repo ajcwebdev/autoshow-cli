@@ -42,7 +42,7 @@ describe('Anthropic REST contracts', () => {
     })
   })
 
-  for (const effort of ['default', 'low', 'medium', 'high', 'max'] as const) {
+  for (const effort of ['default', 'low', 'medium', 'high', 'xhigh', 'max'] as const) {
     test(`Fable 5.1 sends native lyric JSON with ${effort} reasoning and no forced tools`, async () => {
       process.env['ANTHROPIC_API_KEY'] = 'anthropic-key'
       const schema = await resolveStructuredSchema(['rapSongChapter'])

@@ -1,15 +1,8 @@
 import { UsageError } from '~/utils/error-handler'
 import { dockerClientEnvironment } from './docker-process'
 
-const scripts: Record<string, string> = {
-  baseline: 'src/tools/docker-bun-baseline.ts',
-  compare: 'src/tools/bun-env-compat.ts',
-  acceptance: 'test/docker-acceptance/docker-runner.ts'
-}
-
-const script = scripts[Bun.argv[2] ?? '']
-if (!script) throw UsageError('Expected Docker launcher: baseline, compare, or acceptance')
-const child = Bun.spawn([process.execPath, '--no-env-file', script, ...Bun.argv.slice(3)], {
+if (Bun.argv[2] !== 'acceptance') throw UsageError('Expected Docker launcher: acceptance')
+const child = Bun.spawn([process.execPath, '--no-env-file', 'test/docker-acceptance/docker-runner.ts', ...Bun.argv.slice(3)], {
   env: dockerClientEnvironment(process.env),
   stdin: 'inherit', stdout: 'inherit', stderr: 'inherit'
 })

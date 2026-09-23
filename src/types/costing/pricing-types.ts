@@ -1,7 +1,7 @@
 import type { ActualPipelineInputsBase, CostEstimateBase, CostSource, HostedOcrTokenReasoningPolicy, HtmlArticleBackend, ImageProvider, MusicProvider, NormalizedReasoningEffort, ProviderIdentityBase, ProviderModelBase, Step1Metadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, TimingStepEntry, VideoProvider } from '~/types'
 
 type TokenProfileEstimateFields = {
-  tokenEstimateSource?: 'exact' | 'profile' | 'blended-profile' | 'registry'
+  tokenEstimateSource?: 'exact' | 'profile' | 'blended-profile' | 'calibrated-registry' | 'registry'
   tokenEstimateConfidence?: 'none' | 'sparse' | 'healthy'
   tokenProfileSampleCount?: number
   tokenProfilePromptTokensPerPage?: number

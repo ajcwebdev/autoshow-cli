@@ -1,8 +1,6 @@
 # Video Service Tests
 
-Provider-backed video-generation coverage for the `video` command: fal.ai, Gemini, Grok, LTX, and Replicate.
-
-Safety: these commands may call paid or quota-limited providers. Do not run them without explicit approval for that exact run.
+Live video generation for the `video` command: fal.ai, Gemini, Grok, LTX, and Replicate. These `bun t` commands may call paid or quota-limited providers.
 
 ## Quick Start
 

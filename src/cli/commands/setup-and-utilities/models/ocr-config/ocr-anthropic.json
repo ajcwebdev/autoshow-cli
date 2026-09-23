@@ -29,6 +29,7 @@
             "low",
             "medium",
             "high",
+            "xhigh",
             "max"
           ]
         },
@@ -60,6 +61,7 @@
             "low",
             "medium",
             "high",
+            "xhigh",
             "max"
           ]
         }
@@ -67,10 +69,10 @@
       "claude-sonnet-5": {
         "description": "Claude Sonnet 5 OCR",
         "pricingSourceUrl": "https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en",
-        "pricingCheckedAt": "2026-07-13",
+        "pricingCheckedAt": "2026-09-23",
         "pricingCurrency": "USD",
-        "pricingTier": "Claude API introductory token pricing through 2026-08-31",
-        "pricingNotes": "Anthropic lists Claude Sonnet 5 introductory pricing at $2/1M input tokens and $10/1M output tokens through 2026-08-31, with standard pricing of $3/1M input tokens and $15/1M output tokens beginning 2026-09-01. OCR estimates currently use the introductory rates; prompt caching, batch discounts, fast mode, enterprise pricing, taxes, and provider credits are ignored.",
+        "pricingTier": "Claude API standard token pricing",
+        "pricingNotes": "Anthropic confirms $2/1M input and $10/1M output are now standard Sonnet 5 rates; the previously announced September 1 increase was canceled. Cache reads $0.20/M and cache writes $2.50/M (5m) or $4/M (1h) are not requested or automatically discounted. Published rates are separate from empirical token and latency estimates. Batch, regional premiums, taxes and credits are excluded.",
         "costPerMInputTokensCents": 200,
         "costPerMOutputTokensCents": 1000,
         "limits": {
@@ -90,6 +92,7 @@
             "low",
             "medium",
             "high",
+            "xhigh",
             "max"
           ]
         }
@@ -120,6 +123,7 @@
             "low",
             "medium",
             "high",
+            "xhigh",
             "max"
           ]
         }

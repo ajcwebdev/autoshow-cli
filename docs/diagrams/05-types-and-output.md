@@ -17,15 +17,15 @@ output/
     manifest.json                  # every run root, including metadata
     metadata.md                    # metadata --save --markdown only
 
-    <publish-date>-<title-slug>.(mp3|m4a|ogg|flac)   # normalized media artifact
-    source_media.(mp3|m4a|ogg|flac)    # staged artifact when materialized in run dir
+    <publish-date>-<title-slug>.(mp3|m4a|ogg|flac|wav)   # normalized media artifact; wav is the lossless profile
+    source-timeline.json                   # lossless audio profile
     transcription.txt                  # single-provider or primary text output
     youtube-captions.vtt               # when --youtube-captions succeeds
     youtube-captions.json
     prompt.md
     prompt-md.md                       # when --prompt-md is set
     text.json                          # single LLM provider
-    text-<model>.json                  # multi-provider LLM
+    text-<model>.json                  # multi-provider LLM; a shared model id uses text-<provider>-<model>.json, and rendered markdown and show notes use that stem
     text.md                            # when --rendered-text is set
     text-<model>.md
     show-note.md
@@ -35,6 +35,7 @@ output/
       result.json
 
     extraction.txt
+    extraction.md                      # X Space runs and document --docx-markdown
     result.json
     providers/<service>-<model>/       # OCR targets
     providers/<backend>/               # HTML article backends
@@ -46,10 +47,10 @@ output/
     text.md | text-<model>.md
     show-note.md | show-note-<model>.md
 
-    speech.wav
-    generated-image.*                  # extra images append -<n>
-    generated-video.mp4
-    generated-music.mp3
+    speech.wav                         # speech-<provider>-<model>.wav for more than one TTS target
+    generated-image.*                  # extra images append -<n>; more than one target uses generated-image-<provider>-<model>.*
+    generated-video.mp4                # generated-video-<provider>-<model>.mp4 for more than one video target
+    generated-music.mp3                # generated-music-<provider>-<model>.mp3 for more than one music target
 
     <label>.mp4
     <label>.vtt
@@ -196,7 +197,7 @@ output/<timestamp>_<scene-slug>/
           reference.<ext>             # when source and outline sheet are the same file
           sketch-sheet.png            # when source and outline sheet differ
           source.<ext>                # when source and outline sheet differ
-    location-references.json          # schemaVersion 3; readers still accept 2
+    location-references.json          # schemaVersion 3
     location-references/
       <snapshot-id>/
         <location-key>--establishing.png
@@ -226,7 +227,7 @@ output/<timestamp>_<scene-slug>/
   README.md
   <episode>/<scene-slug>/
     panel-NN-attempt-N.png
-    panel-NN-attempt-N.json
+    panel-NN-attempt-N.png.json
 ```
 
 ## Metadata
@@ -235,7 +236,7 @@ Item `status` and `providers` record completion and provider progress. Item meta
 
 Typical fields by step:
 
-- Step 1 media: title, slug, duration, author, source, publish metadata, and audio file name/size.
+- Step 1 media: title, slug, duration, channel, source, publish metadata, and audio file name/size.
 - Step 1 document: title, slug, author, page count when available, format, file size, and source.
 - Step 2 STT: service, model, output files, segment counts, timings, cost, and YouTube caption language/format when captions were used.
 - Step 2 extraction: method, provider/model/backend, format, page counts, language, and cost.

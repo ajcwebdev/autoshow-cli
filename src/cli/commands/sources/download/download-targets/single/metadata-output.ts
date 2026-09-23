@@ -1,7 +1,7 @@
 import { formatMetadataAsFrontmatter } from '~/cli/commands/sources/metadata/format-metadata-frontmatter'
 import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import * as l from '~/utils/app-logger/app-logger'
-import { stageResult } from '~/utils/app-logger/result-emitter'
+import { stageResultIfEmpty } from '~/utils/app-logger/result-emitter'
 import type { DocumentMetadata, WebArticleMetadata } from '~/types'
 
 export const buildDocumentMetadataView = (
@@ -27,13 +27,13 @@ export const writeMetadataTerminalOutput = (metadata: Record<string, unknown>, m
     .slice(0, 3)
   const message = highlights.length > 0 ? `Metadata: ${highlights.join(', ')}` : 'Metadata complete'
   if (markdown) {
-    stageResult(metadata, message)
+    stageResultIfEmpty(metadata, message)
     process.stdout.write(formatMetadataAsFrontmatter(metadata) + '\n')
     return
   }
 
   l.write('success', message, { category: 'artifact', metadata })
-  stageResult(metadata, message)
+  stageResultIfEmpty(metadata, message)
 }
 
 export const writeSavedMetadataArtifacts = async (

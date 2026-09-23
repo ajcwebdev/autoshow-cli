@@ -8,6 +8,7 @@ import { selectHostedOcrTokenUsageProfile } from '~/utils/pricing/ocr-token-pric
 import { isRecord } from '~/utils/rest-client'
 import { UsageError } from '~/utils/error-handler'
 import { roundMetric } from '~/utils/value-helpers'
+import { isNormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 
 const MINIMUM_HEALTHY_SAMPLES = 3
 const PROMOTION_ERROR_THRESHOLD = 20
@@ -21,20 +22,8 @@ const targetSelected = (
   includeAllTokenProviders: boolean | undefined
 ): boolean => includeAllTokenProviders === true || defaultTarget(provider, model)
 
-const reasoningPolicy = (value: unknown): HostedOcrTokenReasoningPolicy => {
-  switch (value) {
-    case 'default':
-    case 'disabled':
-    case 'minimal':
-    case 'low':
-    case 'medium':
-    case 'high':
-    case 'max':
-      return value
-    default:
-      return 'unspecified'
-  }
-}
+const reasoningPolicy = (value: unknown): HostedOcrTokenReasoningPolicy =>
+  isNormalizedReasoningEffort(value) ? value : 'unspecified'
 
 const bucketKey = (value: Pick<TokenShapeSample, 'provider' | 'model' | 'ocrMode' | 'pageCountBand' | 'effectiveReasoningEffort'>): string =>
   [value.provider, value.model, value.ocrMode, value.pageCountBand, value.effectiveReasoningEffort].join('\u0000')

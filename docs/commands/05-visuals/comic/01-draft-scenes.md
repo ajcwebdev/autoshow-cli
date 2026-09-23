@@ -1,6 +1,6 @@
 # comic draft-scenes
 
-`draft-scenes` turns episode script Markdown into structured script JSON, a scene-drafting prompt, a blocking plan, scene JSON, and panel prompt bundles.
+`draft-scenes` turns episode script Markdown into structured script JSON, scene and blocking prompts, a blocking plan, scene JSON, and panel prompt bundles.
 
 See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, and the full walkthrough.
 
@@ -18,23 +18,23 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 
 ### Options
 
-| Flag                                   | Description                                                                                                                                                                                                                                                                                   | Default                |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| `--only <stage>`                       | Run only `structure`, `prompt`, `blocking`, `scene`, or `panel-prompts`                                                                                                                                                                                                                       | none (runs all stages) |
-| `--blocking`, `--no-blocking`          | Run or skip the `blocking` stage in a full run; `--no-blocking` also drafts scene JSON and panel prompt bundles plan-free                                                                                                                                                                     | `--blocking`           |
-| `--blocking-plan <path>`               | Import a hand-authored blocking plan JSON instead of drafting one; makes no provider call and is only valid with `--only blocking` or a full run                                                                                                                                              | none                   |
-| `--rebind`                             | Remap the existing plan's citations to the current structured script and report unresolved ones; requires `--only blocking` and makes no provider call                                                                                                                                        | `false`                |
-| `--reconcile-from-directives`          | Apply the script's `**CAMERA:**`, `**BREAK-180:**`, `**COSTUME:**`, and `**EXTRAS:**` staging directives to the reviewed scene and blocking plan without an LLM call; rejects panel splits and merges and cannot be combined with `--only`, `--rebind`, `--blocking-plan`, or `--panel-count` | `false`                |
-| `--panel-count <n>`                    | Require exactly this many panels from the `scene` stage, one per authored `[Panel N]` note in order; only valid with `--only scene` or a full run                                                                                                                                             | none                   |
-| `--provider-concurrency <n>`           | Number of panels to build prompt bundles for in parallel during `panel-prompts`, and the hosted request cap for the `blocking` and `scene` stages                                                                                                                                             | `7`                    |
-| `--concurrency-mode <ramp\|immediate>` | Approach hosted LLM work from one request per provider/account lane (`ramp`) or start at the configured cap (`immediate`)                                                                                                                                                                     | `ramp`                 |
-| `--price`                              | Estimate API-backed stages without making API calls                                                                                                                                                                                                                                           | `false`                |
+| Flag                                   | Description                                                                                                                                                             | Default                |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| `--only <stage>`                       | Run only `structure`, `prompt`, `blocking`, `scene`, or `panel-prompts`                                                                                                 | none (runs all stages) |
+| `--blocking`, `--no-blocking`          | Include or skip the `blocking` stage. `--no-blocking` drafts later stages without a plan                                                                                | `--blocking`           |
+| `--blocking-plan <path>`               | Import a hand-authored plan instead of drafting one, with no provider call. Valid with `--only blocking` or a full run, and not with `--no-blocking`                    | none                   |
+| `--rebind`                             | Remap the plan's citations to the current structured script and report unresolved ones. Requires `--only blocking` and makes no provider call                           | `false`                |
+| `--reconcile-from-directives`          | Apply the script's staging directives to the reviewed scene and plan, with no provider call. Not valid with `--only`, `--rebind`, `--blocking-plan`, or `--panel-count` | `false`                |
+| `--panel-count <n>`                    | Require exactly this many panels from the `scene` stage. Valid with `--only scene` or a full run                                                                        | none                   |
+| `--provider-concurrency <n>`           | Panels built in parallel during `panel-prompts`, and the hosted request cap for `blocking` and `scene`                                                                  | `7`                    |
+| `--concurrency-mode <ramp\|immediate>` | Start hosted work from one request (`ramp`) or at the configured cap (`immediate`)                                                                                      | `ramp`                 |
+| `--price`                              | Estimate API-backed stages without making provider calls                                                                                                                | `false`                |
 
 ### Advanced Options
 
-| Flag                            | Description                                                                                                                                                                                | Default                                             |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
-| `--provider <provider[=model]>` | Text model for the `blocking` and `scene` stages (see [Supported Models](./00-comic-overview.md#supported-models)); the `blocking` stage requires an OpenAI or Gemini vision-capable model | `gpt-5.6-sol` for the `blocking` and `scene` stages |
+| Flag                            | Description                                                                                                                                                       | Default                                  |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `--provider <provider[=model]>` | Text model for `blocking` and `scene`. `blocking` requires an OpenAI or Gemini vision-capable model ([Supported Models](./00-comic-overview.md#supported-models)) | `gpt-5.6-sol` for `blocking` and `scene` |
 
 ### Examples
 
@@ -54,22 +54,22 @@ bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --no-block
 
 ### Behavior
 
-- The full run executes `structure`, `prompt`, `blocking`, `scene`, and `panel-prompts` in order. `--no-blocking` skips `blocking` and makes later stages ignore any existing `metadata/blocking-plan.json`.
-- `--only structure` parses episode Markdown into structured script JSON locally, and adds an LLM review pass only when `--provider` is passed explicitly.
-- `--only prompt` writes `metadata/draft-prompt.md` and `metadata/blocking-prompt.md` without calling an API. When a blocking plan already exists, the scene-drafting prompt includes it.
-- `--only blocking` drafts `metadata/blocking-plan.json` from the structured script, the character catalog, location specifications, and each location's establishing view. A plan that fails validation is saved as `metadata/blocking-plan.invalid.json`.
-- `--only scene` drafts scene JSON from an existing prompt bundle. When a plan exists, every panel must cite it. Invalid output is saved as `scene.invalid.json`.
-- `--panel-count <n>` requires exactly `n` panels, matching authored `[Panel N]` notes in order when those notes exist. The stage fails before any call when the authored note count differs from `n`. Treatments from [`draft-treatment`](./07-draft-treatment.md) always author one note per panel, so pass the same count here.
-- `--only panel-prompts` builds panel prompt bundles from existing scene JSON without calling an API. Register [character and location references](./02-reference-sketch.md) first. When a plan exists, `metadata/blocking/` receives `plan-overview.svg`, one `panel-NN.svg` per panel, `blocking-ledger.md`, and a `panel-NN-layout.png` for dense panels.
-- `--price` estimates the `blocking` and `scene` stages without calling a provider, and the `structure` stage when `--provider` is passed. Import, rebind, prompt, and panel-prompts report zero calls. `--panel-count` sets the panel count used in the scene estimate.
+- The full run executes `structure`, `prompt`, `blocking`, `scene`, and `panel-prompts` in order. `--no-blocking` skips `blocking` and later stages ignore any existing `metadata/blocking-plan.json`.
+- `--only structure` parses episode Markdown into structured script JSON locally. It calls a model only when `--provider` is passed.
+- `--only prompt` writes `metadata/draft-prompt.md` and `metadata/blocking-prompt.md` with no provider call. An existing blocking plan is included in the scene-drafting prompt.
+- `--only blocking` drafts `metadata/blocking-plan.json` from the structured script, the character catalog, location specifications, an optional floor plan in `input/locations/location-plans.json`, and each location's establishing view. A plan that still fails validation after one retry is saved as `metadata/blocking-plan.invalid.json`.
+- `--only scene` drafts scene JSON from the prompt bundle. With a plan, every panel must cite it, and a draft that contradicts the plan retries once. Invalid output is saved as `scene.invalid.json`.
+- `--panel-count <n>` requires exactly `n` panels, in the same order as authored `[Panel N]` notes when those notes exist. The stage fails before any call when the note count differs from `n`, and a draft that misses the count retries once. [`draft-treatment`](./07-draft-treatment.md) writes one note per panel, so pass that count here.
+- `--only panel-prompts` builds panel prompt bundles from scene JSON with no provider call. Register [character and location references](./02-reference-sketch.md) first. When a plan exists, local review files are also written under `metadata/blocking/`.
+- `--price` estimates `blocking` and `scene`, and `structure` when `--provider` is passed. Those estimates include one retry for a drafted blocking plan and for a scene draft that has a plan or `--panel-count`. Import, rebind, prompt, and panel-prompts report zero calls. `--panel-count` is the panel count used in the scene estimate.
 
 ### Blocking plan
 
-- When a reviewed `metadata/scene.json` already exists, the `blocking` stage leaves it untouched and writes `metadata/blocking-bindings.json` instead.
-- `--blocking-plan <path>` imports a hand-authored plan without a provider call. Stale citations are rejected with a `--rebind` hint. If a reviewed scene exists, the import file must include `panelBindings` for every panel that does not already cite blocking.
-- `--rebind` (with `--only blocking`) remaps every citation to the current structured script, writes the plan back, and exits non-zero if any citation remains unresolved. Identical repeated lines that cannot be told apart are left unresolved rather than guessed.
-- After a `structure` re-run, `--rebind` uses `metadata/structured-script.previous.json` to follow split or merged segments. That file does not exist until a later structure run replaces an existing script.
-- After editing the plan, rerun `--only panel-prompts`. `generate-images` refuses to start when the bundles were built from a different or missing plan.
+- When a reviewed `metadata/scene.json` already exists, `blocking` leaves it unchanged and writes `metadata/blocking-bindings.json` instead.
+- `--blocking-plan <path>` imports a hand-authored plan with no provider call. Stale citations are rejected and the error names `--rebind`. If a reviewed scene exists, the import must include `panelBindings` for every panel that does not already cite blocking.
+- `--rebind` rewrites the plan against the current structured script and exits non-zero when any citation stays unresolved. Repeated lines that cannot be distinguished stay unresolved.
+- To follow segments that were split or merged, re-run `structure` in the same run with global `--output-dir`, then `--rebind`. A full run and `--only structure` otherwise start a fresh run directory.
+- After editing the plan, rerun `--only panel-prompts`. `generate-images` refuses bundles built from a different or missing plan.
 
 See the workspace tree in [types and output](../../../diagrams/05-types-and-output.md) for the blocking files this command writes.
 
@@ -77,11 +77,11 @@ See the workspace tree in [types and output](../../../diagrams/05-types-and-outp
 
 `--reconcile-from-directives` applies these script directives with no provider call:
 
-- `**CAMERA:** {panel: <n>}` sets that panel's camera when the directive text names an existing camera setup id; otherwise it appends `Reviewer camera note: <text>` to the panel's shot plan.
-- `**BREAK-180:** {panel: <n>}` marks that panel as an axis break.
-- `**COSTUME:** {character: <key>}` appends the deviation to that character's wardrobe in `metadata/blocking-plan.json`.
-- `**EXTRAS:** {group: <key>, count: <n>, exclude: <a|b>}` updates the matching extras region's `count`, `exclude`, and `props`.
+- `**CAMERA:** {panel: <n>}` sets that panel's camera when the panel cites blocking and the text names a camera setup in the plan. Any other camera text is kept as a note on that panel's shot.
+- `**BREAK-180:** {panel: <n>}` marks that panel as an axis break when the panel cites blocking.
+- `**COSTUME:** {character: <key>}` records that character's wardrobe change on the blocking plan.
+- `**EXTRAS:** {group: <key>, count: <n>, exclude: <a|b>}` sets that group's count when the header includes one, and adds the listed names to its exclusions.
 
-A directive that asks for a panel split or merge is rejected; only a scene redraft can change the panel list. A directive targeting `next` instead of a bound panel number, or naming a panel, character, or ensemble the scene does not have, is skipped and reported rather than guessed. Applied changes and skips are written to `metadata/review/reconcile-<run-id>.json`. When the plan changed, rerun `--only panel-prompts`.
+A directive that splits or merges panels is rejected. Change the panel list by redrafting the scene. A directive that targets `next`, names a panel, character, or ensemble the scene does not have, or marks an axis break on a panel that does not cite blocking, is skipped and reported. Applied changes and skips are written to `metadata/review/reconcile-<run-id>.json`. The pass starts a fresh run directory unless global `--output-dir` pins the reviewed run. When the plan changes, rerun `--only panel-prompts`.
 
 Next: [reference-sketch](./02-reference-sketch.md).
