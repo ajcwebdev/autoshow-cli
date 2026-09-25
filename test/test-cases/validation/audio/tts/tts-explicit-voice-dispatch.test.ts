@@ -6,13 +6,12 @@ import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
 import { createHostedConcurrencyCoordinator } from '~/cli/commands/command-shared/hosted-concurrency-coordinator'
 import { createHostedTtsChunkScheduler } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-scheduler'
 import type { TtsOptions, TtsTarget, TtsTargetInvocation, TtsTargetInvocationControls, TtsVoiceMatrixEnvKey, VoiceMatrixCase } from '~/types'
-import { createMockWavBase64, createMockWavBytes } from '../../../../test-utils/media-fixtures'
+import { createMockWavBytes } from '../../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const MATRIX_ENV_KEYS = [
   'ELEVENLABS_API_KEY',
-  'MISTRAL_API_KEY',
   'OPENAI_API_KEY',
   'XAI_API_KEY',
   'INWORLD_API_KEY'
@@ -24,14 +23,12 @@ const tempDirs = setupContractSuiteLifecycle({
 })
 
 const audioBytes = createMockWavBytes()
-const audioBase64 = createMockWavBase64()
 
 const byteResponse = (): Response => new Response(audioBytes, {
   status: 200,
   headers: { 'content-type': 'audio/wav' }
 })
 
-const jsonAudioResponse = (): Response => Response.json({ audio_data: audioBase64 })
 
 const cases: readonly VoiceMatrixCase[] = [
   {
@@ -83,20 +80,6 @@ const cases: readonly VoiceMatrixCase[] = [
     respond: byteResponse,
     readSerializedVoice: call => String(call.bodyJson?.['voice_id'] ?? ''),
     readSerializedControl: call => call.bodyJson?.['text_normalization']
-  },
-  {
-    provider: 'mistral',
-    envKey: 'MISTRAL_API_KEY',
-    flags: {
-      'mistral-tts': 'voxtral-mini-tts-2603',
-      'tts-voice': 'voice-captured'
-    },
-    capturedVoice: 'voice-captured',
-    invocationVoices: ['voice-alice', 'voice-bob', 'voice-alice'],
-    invocationControls: [{ responseFormat: 'wav' }, { responseFormat: 'flac' }, { responseFormat: 'wav' }],
-    respond: jsonAudioResponse,
-    readSerializedVoice: call => String(call.bodyJson?.['voice_id'] ?? ''),
-    readSerializedControl: call => call.bodyJson?.['response_format']
   },
 
 ]

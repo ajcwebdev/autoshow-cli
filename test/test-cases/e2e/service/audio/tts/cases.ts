@@ -4,8 +4,6 @@ import {
   GROK_DEFAULT_TTS_VOICE,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 
-export const mistralTtsModels = 'voxtral-mini-tts-2603'
-export const mistralRefAudioPath = 'input/examples/audio/anthony-voice.mp3'
 const naturalShortTtsInputPath = 'test/test-cases/e2e/service/audio/tts/fixtures/natural-short.txt'
 const naturalShortTtsInputTitle = 'natural-short'
 

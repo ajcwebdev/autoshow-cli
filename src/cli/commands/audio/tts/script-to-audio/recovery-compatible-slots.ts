@@ -148,15 +148,16 @@ const recoverSlotReuseFromExistingWav = async (input: {
   slot: AttemptSlot
   slotHash: string
   expectedSha256?: string | undefined
+  audioArtifactRef?: string | undefined
   requiresMaterialization: boolean
 }): Promise<CurrentTtsRecoveredGenerationSlot> => {
-  const artifactRef = input.layout.slotWavPath(input.slotHash)
+  const artifactRef = input.audioArtifactRef ?? input.layout.slotWavPath(input.slotHash)
   const wavPath = `${input.rootDir}/${artifactRef}`
   return await recoverSlotReuseFromWav({
     ...input,
     wavPath,
     artifactRef,
-    resultPath: `${input.rootDir}/${input.layout.slotResultPath(input.slotHash)}`,
+    resultPath: `${input.rootDir}/${input.layout.slotResultPath(input.slotHash + '-' + input.slot.generationSlotId)}`,
     outputPath: wavPath
   })
 }
@@ -215,7 +216,7 @@ export const recoverInterruptedTtsWorkspaceSlots = async (
       slotHash,
       wavPath: options.materialize === false ? tempPath : slotPath,
       artifactRef,
-      resultPath: `${options.rootDir}/${layout.slotResultPath(slotHash)}`,
+      resultPath: `${options.rootDir}/${layout.slotResultPath(slotHash + '-' + slot.generationSlotId)}`,
       outputPath: options.materialize === false ? tempPath : slotPath,
       requiresMaterialization: true
     }))
@@ -238,6 +239,7 @@ const recoverArchivedSlots = async (
       pure.targetKey,
       pure.renderIdentity
     )
+    const archivedById = new Map<string, CompactTargetRender['slots'][number]>()
     const archivedByHash = new Map<string, CompactTargetRender['slots'][number]>()
     if (projection.archive) {
       const compactRender = await readVerifiedJson<CompactTargetRender>(
@@ -249,12 +251,17 @@ const recoverArchivedSlots = async (
       if (compactRender.targetKey !== pure.targetKey || compactRender.dialoguePlanId !== pure.planned.dialoguePlan.dialoguePlanId) {
         throw UsageError('Compact TTS slot archive does not bind the requested target and dialogue.')
       }
-      for (const slot of compactRender.slots) archivedByHash.set(slot.slotHash, slot)
+      for (const slot of compactRender.slots) {
+        archivedByHash.set(slot.slotHash, slot)
+        if (slot.generationSlotId) archivedById.set(slot.generationSlotId, slot)
+      }
     }
     const recovered = new Map<string, CurrentTtsRecoveredGenerationSlot>()
     for (const slot of pure.planned.slots) {
       let slotHash = paidSpeechSlotHashFor(options, pure.planned, slot)
-      const wavPath = `${options.rootDir}/${layout.slotWavPath(slotHash)}`
+      const archivedSlot = archivedById.get(slot.generationSlotId)
+      const matchingSlot = archivedSlot?.slotHash === slotHash ? archivedSlot : archivedByHash.get(slotHash)
+      const wavPath = `${options.rootDir}/${matchingSlot?.audioArtifactRef ?? layout.slotWavPath(slotHash)}`
       try {
         await lstat(wavPath)
       } catch (error) {
@@ -271,7 +278,8 @@ const recoverArchivedSlots = async (
         renderIdentity: pure.renderIdentity,
         slot,
         slotHash,
-        expectedSha256: archivedByHash.get(slotHash)?.sha256,
+        expectedSha256: matchingSlot?.sha256 ?? archivedByHash.get(slotHash)?.sha256,
+        audioArtifactRef: matchingSlot?.audioArtifactRef,
         requiresMaterialization: options.materialize !== false,
       }))
     }

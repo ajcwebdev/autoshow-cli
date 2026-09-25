@@ -109,14 +109,11 @@ export interface RejectionScenario {
 }
 
 export function rejectionScenarios(fixture: FixturePath): RejectionScenario[] {
-  const mistral = ['tts', fixture('text'), '--provider', 'mistral=voxtral-mini-tts-2603']
   const luma = ['image', 'a sunset', '--provider', 'lumalabs=uni-1']
   const tts = 'audio/tts/'
   return [
-    { id: 'reject-mistral-model', name: 'rejects invalid mistral model', source: `${tts}mistral-validation.test.ts`, args: ['tts', fixture('text'), '--provider', 'mistral=invalid-model'], exitCode: 2, diagnostic: 'Invalid model "invalid-model" for --provider/--tts mistral[=model]' },
-    { id: 'reject-mistral-voice', name: 'mistral execution rejects a missing voice source before provider setup', source: `${tts}mistral-validation.test.ts`, args: mistral, exitCode: 2, diagnostic: 'requires an existing voice ID or an explicitly authorized unnamed request reference', absent: ['MISTRAL_API_KEY'] },
-    { id: 'reject-mistral-voice-name', name: 'mistral named saved-voice creation flag is rejected as an unknown flag', source: `${tts}mistral-voxtral-mini-tts-2603-voice.test.ts`, args: [...mistral, '--tts-ref-audio', fixture('audio'), '--tts-voice-name', 'AutoShowVoice'], exitCode: 2, diagnostic: 'Unexpected flag: --tts-voice-name', absent: ['MISTRAL_API_KEY'] },
-    { id: 'reject-mistral-remote-reference', name: 'mistral dialogue rejects remote reference locators before provider setup', source: `${tts}mistral-dialogue-ref-audio.test.ts`, args: ['tts', fixture('dialogue'), '--provider', 'mistral=voxtral-mini-tts-2603', '--tts-dialogue-format', 'labeled', '--tts-speaker', `Host=${fixture('audio')}`, '--tts-speaker', `Guest=${PUBLIC_DOWNLOADS.audio}`], exitCode: 1, diagnostic: 'Unable to read the authorized reference audio.', absent: ['MISTRAL_API_KEY', PUBLIC_DOWNLOADS.audio, fixture('audio')] },
+    { id: 'reject-mistral-tts', name: 'rejects removed Mistral speech generation before provider setup', source: `${tts}removed-mistral.test.ts`, args: ['tts', fixture('text'), '--provider', 'mistral=voxtral-mini-tts-2603'], exitCode: 2, diagnostic: 'Unknown provider "mistral"', absent: ['MISTRAL_API_KEY'] },
+    { id: 'reject-tts-reference', name: 'rejects the removed reference-audio option', source: `${tts}removed-mistral.test.ts`, args: ['tts', fixture('text'), '--provider', 'openai', '--tts-ref-audio', fixture('audio')], exitCode: 2, diagnostic: 'Unexpected flag: --tts-ref-audio', absent: ['MISTRAL_API_KEY'] },
     { id: 'reject-unknown-bfl', name: 'rejects unknown BFL image provider', source: 'visuals/image/image-usage-errors.test.ts', args: ['image', 'a sunset', '--provider', 'bfl'], exitCode: 2, diagnostic: 'Unknown provider "bfl" for --provider. Expected gemini|openai|grok|replicate|lumalabs|fal.' },
     { id: 'reject-gemini-lite-size', name: 'rejects Gemini lite sizes other than 1K', source: 'visuals/image/image-usage-errors.test.ts', args: ['image', 'a sunset', '--provider', 'gemini=gemini-3.1-flash-lite-image', '--size', '2K'], exitCode: 2, diagnostic: 'Supported values: 1K' },
     { id: 'reject-luma-size', name: 'rejects unsupported Luma Labs image size flag', source: 'visuals/image/lumalabs-validation.test.ts', args: [...luma, '--size', '1024x1024'], exitCode: 2, diagnostic: '--size is not supported by Luma Labs/uni-1' },

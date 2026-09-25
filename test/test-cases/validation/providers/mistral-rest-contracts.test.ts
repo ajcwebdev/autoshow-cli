@@ -151,15 +151,70 @@ describe('Mistral REST contracts', () => {
     await expectProviderHttpError(async () => await mistralJsonRequest({
       apiKey: 'mistral-key',
       baseURL: 'https://mock.mistral.local',
-      path: '/audio/speech',
-      errorMessagePrefix: 'Mistral TTS failed',
-      body: { input: 'hello' }
+      path: '/ocr',
+      errorMessagePrefix: 'Mistral OCR failed',
+      body: { model: 'mistral-ocr-4-1', document: { type: 'image_url', image_url: 'https://example.test/fixture.png' } }
     }), {
       status: 429,
       headers: { 'retry-after': '7' },
       messageContains: 'rate limited'
     })
 
-    expect(calls.map((call) => call.url)).toEqual(['https://mock.mistral.local/v1/audio/speech'])
+    expect(calls.map((call) => call.url)).toEqual(['https://mock.mistral.local/v1/ocr'])
   })
 })
+
+test('Mistral STT/OCR selection, credentials, pricing and retained-target resume remain supported', async () => {
+  const { buildOptsFromFlags } = await import('~/cli/options/option-resolution/build-options-from-flags')
+  const { collectSttTargets } = await import('~/cli/commands/stt/stt-targets')
+  const { collectExplicitOcrTargets } = await import('~/cli/commands/text/ocr/ocr-targets')
+  const { getSttCost, getExtractPricing } = await import('~/cli/commands/setup-and-utilities/models/model-loader')
+  const { findHostedProviderCredential } = await import('~/cli/commands/setup-and-utilities/setup/hosted-provider-config')
+  const { writeSingleManifestFixture } = await import('../../../test-utils/manifest-helpers')
+  const { hasResumableSttTargetWork, priceSttTarget, resumeSttTarget } = await import('~/cli/commands/setup-and-utilities/resume/extract/stt-resume')
+  const { hasResumableOcrTargetWork, priceOcrTarget, resumeOcrTarget } = await import('~/cli/commands/setup-and-utilities/resume/extract/ocr-resume')
+  const { readManifest } = await import('~/cli/commands/command-shared/pipeline-manifest')
+  const { join } = await import('node:path')
+  const { pathToFileURL } = await import('node:url')
+  const { createSyntheticWavBytes } = await import('../../../test-utils/media-fixtures')
+  const opts = buildOptsFromFlags({ 'mistral-stt': 'voxtral-mini-2602', 'mistral-ocr': 'mistral-ocr-4-1' })
+  expect(collectSttTargets(opts)).toEqual([{ service: 'mistral', model: 'voxtral-mini-2602', local: false, diarizationOptions: { enabled: true } }])
+  expect(collectExplicitOcrTargets(opts)).toContainEqual({ service: 'mistral', model: 'mistral-ocr-4-1' })
+  expect(findHostedProviderCredential('mistral')).toMatchObject({ envVar: 'MISTRAL_API_KEY', stages: ['stt', 'ocr'] })
+  // Documented non-TTS rates remain independent of the removed speech-generation registry.
+  expect(getSttCost('mistral', 'voxtral-mini-2602')).toEqual({ costPerHourCents: 18 })
+  expect(getExtractPricing('mistral', 'mistral-ocr-4-1')).toMatchObject({ costPer1kPagesCents: 400 })
+  process.env['MISTRAL_API_KEY'] = 'mistral-key'
+  const calls = installMockFetch(call => call.url.endsWith('/ocr')
+    ? Response.json({ model: 'mistral-ocr-4-1', pages: [{ index: 0, markdown: 'Retained OCR.' }], usage_info: { pages_processed: 1 } })
+    : Response.json({ model: 'voxtral-mini-2602', text: 'Retained transcription.', segments: [{ start: 0, end: 1, text: 'Retained transcription.' }] }))
+  for (const route of ['media', 'document'] as const) {
+    const dir = await tempDirs.make(), source = join(dir, route === 'media' ? 'source.wav' : 'source.png')
+    await Bun.write(source, route === 'media' ? createSyntheticWavBytes({ durationSeconds: 1, amplitude: 0.2, frequencyHz: 440 }) : await Bun.file('input/examples/document/1-document.png').arrayBuffer())
+    const provider = { service: 'mistral', model: route === 'media' ? 'voxtral-mini-2602' : 'mistral-ocr-4-1', ...(route === 'media' ? { local: false } : {}) }
+    await writeSingleManifestFixture(dir, 'extract', {
+      ...(route === 'media' ? { step1: { url: pathToFileURL(source).href } } : { source: { filePath: source }, step1: { slug: 'source', pageCount: 1, format: 'png', fileSize: Bun.file(source).size } }),
+      completionStatus: 'failed', requestedProviders: [provider], missingProviders: [provider],
+      providerStates: [{ ...provider, artifactDir: '.', status: 'failed', attempts: 1 }]
+    }, { extractRoute: route })
+    const target = { kind: 'extract', extractRoute: route, scope: 'single', dir, manifestPath: join(dir, 'manifest.json') } as const
+    const before = calls.length
+    if (route === 'media') {
+      expect(await hasResumableSttTargetWork(target, undefined, { youtubeCaptions: false, currentTargets: collectSttTargets(opts) })).toBe(true)
+      expect((await priceSttTarget(target, opts)).steps[0]).toMatchObject({ provider: 'mistral', model: 'voxtral-mini-2602' })
+      expect(calls.length).toBe(before)
+      await resumeSttTarget(target, opts)
+    } else {
+      expect(await hasResumableOcrTargetWork(target, undefined)).toBe(true)
+      expect((await priceOcrTarget(target, opts)).steps[0]).toMatchObject({ provider: 'mistral', model: 'mistral-ocr-4-1' })
+      expect(calls.length).toBe(before)
+      await resumeOcrTarget(target, opts)
+    }
+    expect(calls.length).toBeGreaterThan(before)
+    expect((await readManifest(dir))?.items[0]?.providers[0]?.status).toBe('succeeded')
+  }
+  expect(calls.every(call => call.headers.get('authorization') === 'Bearer mistral-key')).toBe(true)
+  expect(calls.some(call => call.url.endsWith('/audio/transcriptions'))).toBe(true)
+  expect(calls.some(call => call.url.endsWith('/ocr'))).toBe(true)
+  expect(calls.some(call => /audio\/(speech|voices)/.test(call.url))).toBe(false)
+}, 30_000)

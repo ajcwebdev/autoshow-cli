@@ -48,16 +48,6 @@ describe('config image and TTS default contracts', () => {
     })
   })
 
-  test('buildConfigPatchFromFlags persists safe Mistral defaults but excludes request references', () => {
-    expectConfigPatchRoundTrip({
-      'mistral-tts': ['voxtral-mini-tts-2603'],
-      'tts-voice': 'voice_abc123',
-      'tts-ref-audio': 'input/examples/audio/anthony-voice.mp3'
-    }, 'tts', {
-      mistralTts: ['voxtral-mini-tts-2603'],
-      voice: 'voice_abc123'
-    }, { merge: false })
-  })
 
   test('buildConfigPatchFromFlags saves and merges TTS request-control defaults', () => {
     const requestControlFlags = {

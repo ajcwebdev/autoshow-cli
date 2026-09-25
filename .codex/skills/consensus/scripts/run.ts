@@ -5,6 +5,7 @@ import { dirname, join, resolve } from "node:path";
 
 import { type ConsensusCategory, rewriteComparisonReports } from "./shared/report_surfaces.ts";
 import { runSyncCommand } from "../../../../src/utils/sync-subprocess.ts";
+import { DASHBOARD_TAB_DIRS, hasAllDashboardTabs } from "./shared/build_combined_dashboard";
 
 type CommandName = "build-packet" | "build-report" | "compact-results" | "compact-archive" | "build-combined-report";
 
@@ -129,11 +130,6 @@ function categoryHelp(category: ConsensusCategory): string {
 }
 
 const DASHBOARD_SCRIPT = "shared/build_combined_dashboard.ts";
-const DASHBOARD_TAB_DIRS = ["ocr", "stt-local", "stt-with-speakers", "stt-without-speakers", "url", "tts"];
-
-function hasAllDashboardTabs(benchmarksRoot: string): boolean {
-  return DASHBOARD_TAB_DIRS.every((tab) => existsSync(join(benchmarksRoot, tab, ...(tab === "tts" ? [] : ["combined-comparison-report.json"]))));
-}
 
 function parseArgs(argv: string[]): ParsedArgs {
   if (argv.length === 0 || argv.includes("--help") || argv.includes("-h")) {

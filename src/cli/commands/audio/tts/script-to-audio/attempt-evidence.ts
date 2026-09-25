@@ -1,4 +1,4 @@
-import { lstat } from 'node:fs/promises'
+import { retainTtsSlotAudio } from './tts-slot-audio-cache'
 import type {
   AttemptContext,
   AttemptSlot,
@@ -16,7 +16,6 @@ import { promoteBatchResult } from './attempt-batches'
 import {
   contained,
   copyCreateOnly,
-  hasErrorCode,
   readObservedAudio,
   writeJson,
 } from './attempt-io'
@@ -387,14 +386,8 @@ const recordOutputForSlot = async (
     const batchResultDir = `${ctx.attemptRoot}/batch-results/${slot.batchId}/${slot.generationSlotId}`
     const destination = `${batchResultDir}/audio-${String(outputIndex).padStart(3, '0')}.wav`
     await copyCreateOnly(ctx.options.outputDir, path, destination)
-    const slotWavPath = `${ctx.options.outputDir}/${ctx.layout.slotWavPath(slotHash)}`
-    try {
-      await lstat(slotWavPath)
-    } catch (error) {
-      if (!hasErrorCode(error, 'ENOENT')) throw error
-      await copyCreateOnly(ctx.options.outputDir, destination, slotWavPath)
-    }
     const audio = await readObservedAudio(ctx.options.outputDir, destination)
+    slot.audioArtifactRef = await retainTtsSlotAudio(ctx.options.outputDir, ctx.layout, slotHash, destination, sha256Bytes(audio.bytes))
     if (timing && timingFactory) {
       throw UsageError('TTS serializer output supplied conflicting timing representations.')
     }
@@ -494,6 +487,11 @@ export const scopeFor = (
   ctx: AttemptContext,
   invocation?: TtsTargetInvocation | undefined
 ): TtsRequestEvidenceScope => ({
+  ...(ctx.purePlan.planned.strategy === 'segmented' ? { plannedChunks: Object.freeze((() => {
+    const slots = invocation ? ctx.purePlan.planned.slots.filter(slot => slot.turnIds.includes(invocation.sourceId)) : ctx.purePlan.planned.slots
+    const selected = invocation?.providerSegmentIndex === undefined ? slots : slots.slice(invocation.providerSegmentIndex, invocation.providerSegmentIndex + 1)
+    return selected.map(slot => slot.providerText)
+  })()) } : {}),
   forInvocation: (child) => scopeFor(ctx, child),
   recoverCompletedOutputs: invocation ? async () => recoverCompletedOutputs(ctx, invocation) : undefined,
   dispatch: async (observation, attempt, operationFn) => await dispatchAttemptRequest(ctx, invocation, observation, attempt, operationFn),

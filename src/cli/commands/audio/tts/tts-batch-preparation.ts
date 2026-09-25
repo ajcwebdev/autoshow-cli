@@ -2,9 +2,7 @@ import type { PreparedTtsInput, StandaloneTtsCommandOptions, TtsBatchEstimateRep
 import { configureModelCostFilter } from '~/cli/commands/pricing-orchestration/model-cost-filter'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { validateTtsRenderInputsForTargets } from './run-tts'
-import { collectTtsTargets, mergeTtsExecutionReadinessObservations, validateTtsTargetsForExecution } from './tts-targets'
-import { materializeStandaloneMistralReference } from '../voice/voice-assets/standalone-mistral-reference'
-import { hasMistralProtectedReferences } from '../voice/voice-assets/mistral-protected-reference-binding'
+import { collectTtsTargets, validateTtsTargetsForExecution } from './tts-targets'
 import { createBatchItemTtsSourceIdentity, createGenericTtsDialoguePlan, createSingleTurnTtsDialoguePlan } from './script-to-audio/generic-dialogue-plan'
 import { buildTtsEstimateForInput, enforceTtsBatchBudget, reportTtsBatchEstimates } from './tts-batch-estimates'
 import { prepareTtsInput } from './tts-single-run'
@@ -55,17 +53,6 @@ export const prepareTtsBatchExecution = async (
   ttsOptions: StandaloneTtsCommandOptions,
   targets: TtsTarget[]
 ): Promise<{ ttsOptions: StandaloneTtsCommandOptions, targets: TtsTarget[], executionReadiness: TtsExecutionReadinessObservation[] }> => {
-  let executionReadiness = await validateTtsTargetsForExecution(targets)
-  const hasProtectedMistralReference = hasMistralProtectedReferences(ttsOptions)
-  if (executionReadiness.every((entry) => entry.status === 'ready')) {
-    ttsOptions = await materializeStandaloneMistralReference(ttsOptions)
-    if (hasProtectedMistralReference) {
-      targets = collectTtsTargets(ttsOptions)
-      executionReadiness = mergeTtsExecutionReadinessObservations(
-        executionReadiness,
-        await validateTtsTargetsForExecution(targets)
-      )
-    }
-  }
+  const executionReadiness = await validateTtsTargetsForExecution(targets)
   return { ttsOptions, targets, executionReadiness }
 }

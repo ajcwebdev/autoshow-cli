@@ -23,7 +23,6 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     sonioxLanguage: options.sonioxTtsLanguage,
     sonioxSpeed: options.sonioxTtsSpeed,
     grokModels: options.grokTtsModels ?? [],
-    mistralModels: options.mistralTtsModels ?? [],
     openaiModels: options.openaiTtsModels ?? [],
     inworldModels: options.inworldTtsModels ?? [],
     speakerVoiceRegistry,
@@ -48,8 +47,6 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     grokSpeed: options.grokTtsSpeed,
     grokLanguage: trimmed(options.grokTtsLanguage),
     grokTextNormalization: options.grokTtsTextNormalization === true,
-    mistralVoiceId: trimmed(options.mistralTtsVoice),
-    mistralResponseFormat: trimmed(options.mistralTtsResponseFormat),
     elevenLabsResponseFormat: trimmed(options.elevenlabsTtsResponseFormat),
     dialogueRequested: multiSpeaker
   }

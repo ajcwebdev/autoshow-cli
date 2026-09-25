@@ -66,6 +66,8 @@ if (spentCents < ledger.priorEstimatedCents) throw UsageError('--spent-cents can
 if (!['all', 'emotion', 'speed-pauses'].includes(suite)) throw UsageError('--suite must be emotion, speed-pauses or all')
 if (!Number.isFinite(approvedBudgetCents) || approvedBudgetCents < 0) throw UsageError('--approved-budget-cents must be nonnegative; values above 25 require explicit user approval')
 const suites = suite === 'all' ? ['emotion', 'speed-pauses'] : [suite]
+const benchmarkDate = ledger.benchmarkDate ?? new Date().toISOString().slice(0, 10)
+if (typeof benchmarkDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(benchmarkDate)) throw UsageError('Invalid controls benchmark date in spending ledger')
 const cases = []
 for (const category of suites) {
   const parsed = v.parse(planSchema, await Bun.file(`input/examples/tts/controls/${category}/benchmark-plan.json`).json())
@@ -107,7 +109,7 @@ for (const entry of plan.cases) {
   // Adding an evaluation reference must not invalidate unchanged, already-paid synthesis.
   const { spokenLines: _spokenLines, ...synthesisEntry } = entry
   const fingerprint = new Bun.CryptoHasher('sha256').update(JSON.stringify(synthesisEntry)).update(prepared.sourceBytes).digest('hex')
-  const directory = resolve(outputDir ?? ledger.outputBase ?? 'docs/benchmarks/tts', entry.category === 'emotion' ? '2026-09-12_05-tts-emotion' : '2026-09-12_06-tts-speed-pauses', entry.id)
+  const directory = resolve(outputDir ?? ledger.outputBase ?? 'docs/benchmarks/tts', `${benchmarkDate}_${entry.category === 'emotion' ? '05-tts-emotion' : '06-tts-speed-pauses'}`, entry.id)
   const existing = Bun.file(`${directory}/manifest.json`)
   let reuse = false
   if (!await existing.exists() && await Bun.file(`${directory}/benchmark-fingerprint.txt`).exists()) throw UsageError(`Interrupted preparation at ${directory}; inspect it before retrying`)
@@ -137,6 +139,7 @@ if (run) for (const c of preparedCases) {
   // Reserve the full estimate before dispatch: failures and interruption never reset spending.
   spentCents += c.authorizationCents
   ledger.priorEstimatedCents = spentCents
+  ledger.benchmarkDate = benchmarkDate
   await Bun.write(ledgerPath, JSON.stringify(ledger, null, 2) + '\n')
   await runSingleTtsInput(c.entry.input, c.options, c.targets, remainingCents, {
     resolveReportedOutput: () => ({ path: resolve(c.directory, `${c.entry.id}.wav`), fileName: `${c.entry.id}.wav` })

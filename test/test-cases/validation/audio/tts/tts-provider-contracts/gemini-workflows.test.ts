@@ -8,7 +8,7 @@ import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/command
 import { dispatchResume } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
 import { readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { parseRootCli } from '../../../../../test-utils/cli-assertions'
+import { expectUnknownFlag, parseRootCli } from '../../../../../test-utils/cli-assertions'
 import { jsonResponse } from '../../../../../test-utils/rest-contract-helpers'
 import { createSyntheticWavBytes } from '../../../../../test-utils/media-fixtures'
 import { setupTtsContractLifecycle, installMockFetch } from './shared'
@@ -115,13 +115,14 @@ test('CLI unsupported controls and invalid format fail before dispatch', async (
   const root = await makeTempDir('gemini-cli-controls-'), input = join(root, 'source.txt')
   await Bun.write(input, 'No synthesis.')
   const calls = installMockFetch(() => { throw Error('Dispatch occurred') })
-  for (const [flag, value] of [['tts-speed', '1.2'], ['tts-language', 'en'], ['tts-seed', '1'], ['tts-stability', '0.5'], ['tts-similarity', '0.5'], ['tts-pronunciation-dictionary', 'dictionary'], ['tts-ref-audio', 'reference.wav'], ['tts-response-format', 'mp3']]) {
+  for (const [flag, value] of [['tts-speed', '1.2'], ['tts-language', 'en'], ['tts-seed', '1'], ['tts-stability', '0.5'], ['tts-similarity', '0.5'], ['tts-pronunciation-dictionary', 'dictionary'], ['tts-response-format', 'mp3']]) {
     const parsed = parseRootCli(['tts', input, '--provider', 'gemini', '--' + flag, value!, '--price'])
     const context: CliCommandContext = { argv: parsed.argv, command: parsed.command!, parameters: parsed.parameters, flags: parsed.flags, rawParsed: parsed.rawParsed, store: {} }
     let rejected = false
     try { await parsed.command!.handler(context) } catch { rejected = true }
     expect({ flag, rejected }).toEqual({ flag, rejected: true })
   }
+  expectUnknownFlag(['tts', input, '--provider', 'gemini', '--tts-ref-audio', 'reference.wav', '--price'], '--tts-ref-audio')
   expect(calls).toHaveLength(0)
 })
 

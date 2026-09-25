@@ -10,7 +10,6 @@ export const TOGETHER_ALL_LINKS = providerLinks('Together')
 
 export const MISTRAL_STT_LINKS = sectionLinks('Mistral', 'STT')
 export const MISTRAL_OCR_LINKS = sectionLinks('Mistral', 'OCR')
-export const MISTRAL_TTS_LINKS = sectionLinks('Mistral', 'TTS')
 export const MISTRAL_ALL_LINKS = providerLinks('Mistral')
 
 export const INWORLD_GENERAL_LINKS = sectionLinks('Inworld', 'General')

@@ -76,11 +76,8 @@ test('tts rejects --tts-voice combined with dialogue flags', () => {
   )).toThrow('--tts-voice cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
 })
 
-test('tts rejects reference audio combined with dialogue flags', () => {
-  expect(() => assertNoVoiceIdentityWithDialogue(
-    { ttsSpeakers: ['Host=Jasper'] },
-    new Set(['tts-ref-audio'])
-  )).toThrow('Voice identity options such as --tts-ref-audio cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
+test('tts rejects the removed reference-audio option locally', () => {
+  expect(() => buildOptsFromFlags({ 'openai-tts': true, 'tts-ref-audio': 'sample.wav' })).toThrow('--tts-ref-audio is no longer supported')
 })
 
 test('tts rejects --tts-dialogue-format without speaker mappings', () => {

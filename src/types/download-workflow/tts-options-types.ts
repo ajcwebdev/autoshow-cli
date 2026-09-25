@@ -17,9 +17,6 @@ export type TtsRuntimeOptions = {
   grokTtsVoice: string | undefined
   grokTtsLanguage: string | undefined
   grokTtsTextNormalization: boolean
-  mistralTtsModels: string[] | undefined
-  mistralTtsVoice: string | undefined
-  mistralTtsResponseFormat?: string | undefined
   elevenlabsTtsResponseFormat?: string | undefined
   ttsDialogueFormat: 'screenplay' | 'labeled' | undefined
   ttsSpeakers: string[] | undefined
@@ -45,8 +42,3 @@ export type TtsRuntimeOptions = {
 }
 
 export type TtsRuntimeOptionKey = keyof TtsRuntimeOptions
-
-export type TtsOptionResolutionAuthority = Readonly<{
-  cliReferenceInput?: 'standalone-mistral' | undefined
-  mistralSpeakerReferences?: 'sanitized' | undefined
-}>

@@ -1,3 +1,3 @@
 import { defineNativeRejections } from '../../../../../test-utils/native-rejection-scenarios'
 
-defineNativeRejections('audio/tts/mistral-validation.test.ts')
+defineNativeRejections('audio/tts/removed-mistral.test.ts')

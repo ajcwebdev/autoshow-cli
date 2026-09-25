@@ -4,14 +4,12 @@ import { collectInworldTtsTargets } from '../tts-services/inworld/inworld-tts-ta
 import { collectGeminiTtsTargets } from '../tts-services/tts-gemini/gemini-tts-targets'
 import { collectSonioxTtsTargets } from '../tts-services/tts-soniox/soniox-tts-targets'
 import { collectGrokTtsTargets } from '../tts-services/tts-grok/grok-tts-targets'
-import { collectMistralTtsTargets } from '../tts-services/tts-mistral/mistral-tts-targets'
 import { collectOpenAITtsTargets } from '../tts-services/tts-openai/openai-tts-targets'
 import { createTtsTargetSelection } from './tts-target-selection'
 import { validateTtsTargetSelection } from './target-validation'
 import { getMultiSpeakerStrategy } from './multi-speaker-capability'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { UsageError } from '~/utils/error-handler'
-import { getMistralProtectedReference, getMistralProtectedSpeakerReferences } from '../../voice/voice-assets/mistral-protected-reference-binding'
 import { filterModelCostTargets } from '~/cli/commands/pricing-orchestration/model-cost-filter'
 
 const getTtsTransport = (): string => 'hosted-api'
@@ -19,12 +17,8 @@ const getTtsTransport = (): string => 'hosted-api'
 export const preflightTtsTargetSelection = (
   options: TtsOptions
 ): TtsTargetSelection => {
-  const rawMistralReference = (options as { mistralTtsRefAudio?: unknown }).mistralTtsRefAudio
-  if (typeof rawMistralReference === 'string' && rawMistralReference.trim()) {
-    throw UsageError(
-      'Mistral request reference audio must cross the protected ingestion boundary before target collection.',
-      { hints: ['Pass the reference only through the standalone `tts` CLI edge, or create/import a voice with the shared `voice` command and synthesize with --mistral-tts-voice.'] }
-    )
+  if (Object.entries(options).some(([key, value]) => key.startsWith('mistralTts') && value !== undefined)) {
+    throw UsageError('Mistral TTS settings are no longer supported. Select an active TTS provider explicitly.')
   }
   const selection = createTtsTargetSelection(options)
   validateTtsTargetSelection(options, selection)
@@ -33,18 +27,12 @@ export const preflightTtsTargetSelection = (
 
 export const collectTtsTargets = (options: TtsOptions): TtsTarget[] => {
   const selection = preflightTtsTargetSelection(options)
-  const mistralProtectedReference = getMistralProtectedReference(options)
-  const mistralProtectedSpeakerReferences = getMistralProtectedSpeakerReferences(options)
 
   const collected: TtsTarget[] = [
     ...collectElevenLabsTtsTargets(selection),
     ...collectGeminiTtsTargets(selection),
     ...collectSonioxTtsTargets(selection),
     ...collectGrokTtsTargets(selection),
-    ...collectMistralTtsTargets(selection, mistralProtectedReference, mistralProtectedSpeakerReferences, {
-      pricePlanning: options.price === true,
-      skipMissingVoice: options.ttsAllProvidersSelected === true
-    }),
     ...collectOpenAITtsTargets(selection),
     ...collectInworldTtsTargets(selection)
   ]

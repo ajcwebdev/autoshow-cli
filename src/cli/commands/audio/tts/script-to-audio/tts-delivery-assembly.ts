@@ -1,8 +1,6 @@
 import type { AttemptSlot, AttemptTurn, FinalTimelineLayout, ProviderRenderStrategy, TtsChunkingOptions, TtsDeliveryMasteringResult, TtsDeliveryProfile, TtsDeliverySeamBoundary, TtsDeliverySegmentInput, TtsTarget } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { masterTtsDelivery } from '../tts-utils/tts-delivery-mastering'
-import { planTtsChunks } from '../tts-utils/tts-chunk-planner'
-import { chunkLimit, prepareSegmentedTurnText } from './comic-segmented-audio'
 
 type DeliveryPlan = {
   strategy: ProviderRenderStrategy
@@ -10,29 +8,22 @@ type DeliveryPlan = {
   slots: readonly AttemptSlot[]
 }
 
-// Seam kinds are re-derived from the same planner that produced the slot texts, so they never
-// enter slot or render-plan identity.
+// Consume the boundaries resolved with the exact provider requests. Mastering metadata
+// does not enter purchased-slot identity.
 export const resolveTtsDeliverySeams = (
   plan: DeliveryPlan,
-  target: TtsTarget,
-  chunking: TtsChunkingOptions | undefined
+  _target: TtsTarget,
+  _chunking: TtsChunkingOptions | undefined
 ): Map<string, TtsDeliverySeamBoundary> => {
   const seams = new Map<string, TtsDeliverySeamBoundary>()
   const batchIds = [...new Set(plan.slots.map((slot) => slot.batchId))]
   for (const [batchIndex, batchId] of batchIds.entries()) {
     const batchSlots = plan.slots.filter((slot) => slot.batchId === batchId)
-    const turn = batchSlots[0]?.turnIds.length === 1
-      ? plan.turns.find((candidate) => candidate.canonical.turnId === batchSlots[0]?.turnIds[0])
-      : undefined
-    const planned = plan.strategy === 'segmented' && turn
-      ? planTtsChunks(prepareSegmentedTurnText(turn.canonical.canonicalText, target, turn.canonical.delivery?.description).providerText, chunkLimit(target), chunking)
-      : []
-    const aligned = planned.length === batchSlots.length && planned.every((chunk, index) => chunk.text === batchSlots[index]?.providerText)
     for (const [slotIndex, slot] of batchSlots.entries()) {
       const lastInBatch = slotIndex === batchSlots.length - 1
       seams.set(slot.generationSlotId, lastInBatch
         ? batchIndex === batchIds.length - 1 ? 'end' : 'turn'
-        : aligned ? planned[slotIndex]?.boundaryAfter ?? 'sentence' : 'sentence')
+        : slot.chunk?.boundaryAfter ?? 'sentence')
     }
   }
   return seams

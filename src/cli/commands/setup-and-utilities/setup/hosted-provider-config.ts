@@ -83,14 +83,12 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'mistral',
     envVar: 'MISTRAL_API_KEY',
-    label: 'Mistral STT/OCR/TTS',
+    label: 'Mistral STT/OCR',
     hintUrl: 'https://console.mistral.ai/api-keys',
-    stages: ['stt', 'ocr', 'tts', 'voice'],
-    ttsPreflight: { provider: 'mistral', label: 'Mistral TTS' },
+    stages: ['stt', 'ocr'],
     configPaths: [
       'defaults.extract.stt.mistralStt',
       'defaults.extract.ocr.mistralOcr',
-      'defaults.tts.mistralTts'
     ]
   },
   {

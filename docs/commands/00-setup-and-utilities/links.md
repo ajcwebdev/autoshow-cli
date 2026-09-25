@@ -95,7 +95,7 @@ Accepted provider selectors are the lowercase names below. Fetch other documenta
 | `--provider ltx`            | `llmstxt`, `models`, `video`                                                           |
 | `--provider lumalabs`       | `general`, `image`, `llmstxt`, `models`, `video`                                       |
 | `--provider minimax`        | `general`, `llmstxt`, `models`, `music`                                                |
-| `--provider mistral`        | `general`, `llmstxt`, `models`, `ocr`, `stt`, `tts`                                    |
+| `--provider mistral`        | `general`, `llmstxt`, `models`, `ocr`, `stt`                                           |
 | `--provider openai`         | `general`, `image`, `llmstxt`, `models`, `ocr`, `stt`, `text`, `tts`                   |
 | `--provider replicate`      | `general`, `llmstxt`, `models`                                                         |
 | `--provider scrapecreators` | `general`, `llmstxt`, `stt`                                                            |

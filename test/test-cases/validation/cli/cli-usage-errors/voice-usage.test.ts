@@ -108,12 +108,12 @@ afterEach(() => {
 })
 
 test('voice capability sets match the active provider policy and reject retired TTS providers', async () => {
-  expect(VOICE_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'soniox', 'grok', 'mistral', 'openai', 'inworld'])
-  expect(VOICE_CATALOG_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'grok', 'mistral', 'inworld'])
+  expect(VOICE_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'soniox', 'grok', 'openai', 'inworld'])
+  expect(VOICE_CATALOG_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'grok', 'inworld'])
   expect(VOICE_LIFECYCLE_PROVIDERS).toEqual(VOICE_CATALOG_PROVIDERS)
   expect(DESIGN_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'inworld'])
-  expect(CLONE_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'grok', 'mistral', 'inworld'])
-  for (const provider of ['minimax', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra']) {
+  expect(CLONE_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'grok', 'inworld'])
+  for (const provider of ['minimax', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra', 'mistral']) {
     await rejectVoice(
       ['voice', 'import', 'hero', '--provider', provider, '--model', 'retired-model', '--voice-id', 'retired-voice', '--provenance-ref', 'project:casting', '--price'],
       `${provider} is no longer supported for TTS or voice management.`
@@ -138,7 +138,6 @@ test('voice import and zero-call catalog validation accept their exact capabilit
   const imports = [
     ['elevenlabs', 'eleven_v3', 'hpp4J3VqNfWAUOO0d1Us'],
     ['grok', 'grok-tts', 'eve'],
-    ['mistral', 'voxtral-mini-tts-2603', 'voice-existing'],
     ['openai', 'gpt-4o-mini-tts-2025-12-15', 'alloy'],
     ['inworld', 'realtime-tts-2', 'voice_inworld_standard_en'],
   ] as const
@@ -186,7 +185,6 @@ test('canonical audition planning resolves every active TTS provider', () => {
   const providers = [
     ['elevenlabs', 'eleven_v3', 'hpp4J3VqNfWAUOO0d1Us'],
     ['grok', 'grok-tts', 'eve'],
-    ['mistral', 'voxtral-mini-tts-2603', 'voice-existing'],
     ['openai', 'gpt-4o-mini-tts-2025-12-15', 'alloy'],
     ['inworld', 'realtime-tts-2', 'voice_inworld_standard_en'],
   ] as const satisfies ReadonlyArray<readonly [TtsProvider, string, string]>

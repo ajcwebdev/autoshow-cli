@@ -27,7 +27,6 @@ export type TtsInvocationControlsByProvider = {
     language?: OptionalControl<string>
     textNormalization?: OptionalControl<boolean>
   }>
-  mistral: Readonly<{ responseFormat?: OptionalControl<'wav' | 'mp3' | 'flac' | 'opus'> }>
   inworld: Readonly<{ steeringPrompt?: OptionalControl<string>, speed?: OptionalControl<number> }>
 }
 

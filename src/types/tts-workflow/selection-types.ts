@@ -14,7 +14,6 @@ export type TtsTargetSelection = {
   sonioxLanguage?: string | undefined
   sonioxSpeed?: number | undefined
   grokModels: string[]
-  mistralModels: string[]
   openaiModels: string[]
   inworldModels: string[]
   speakerVoiceRegistry: SpeakerVoiceRegistry | undefined
@@ -39,8 +38,6 @@ export type TtsTargetSelection = {
   grokSpeed?: number | undefined
   grokLanguage: string | undefined
   grokTextNormalization: boolean
-  mistralVoiceId: string | undefined
-  mistralResponseFormat?: string | undefined
   elevenLabsResponseFormat?: string | undefined
   dialogueRequested: boolean
 }

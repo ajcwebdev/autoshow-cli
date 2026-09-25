@@ -19,6 +19,7 @@ import {
   renderTabPanel
 } from '../../../../.codex/skills/consensus/scripts/shared/dashboard_client.js'
 import { dashboardAssetNames } from '../../../../.codex/skills/consensus/scripts/shared/build_combined_dashboard'
+import { buildTtsDashboard } from '../../../../.codex/skills/consensus/scripts/tts/build_tts_dashboard'
 import type { ArtifactReport } from '~/types'
 
 const projectRoot = resolve(import.meta.dir, '../../../../')
@@ -404,7 +405,7 @@ describe('committed benchmark dashboard', () => {
     expect(readFileSync(scriptPath, 'utf8')).toBe(readFileSync(DASHBOARD_CLIENT_SCRIPT, 'utf8'))
   })
 
-  test('keeps every combined-report tab and the current TTS artifacts in its data file', () => {
+  test('keeps every combined-report tab and matches the current TTS results, including an empty archive', () => {
     const raw = readFileSync(dataPath, 'utf8')
     const data = JSON.parse(raw) as BenchmarkDashboardData
 
@@ -433,7 +434,7 @@ describe('committed benchmark dashboard', () => {
 
     const tts = data.tabs.find((candidate) => candidate.key === 'tts')
     expect(tts?.rootLabel).toBe('docs/benchmarks/tts')
-    expect(JSON.stringify(tts)).toContain('soniox/tts-rt-v2')
+    expect(tts?.model).toEqual(buildTtsDashboard(join(benchmarksRoot, 'tts'), data.generatedAt).dashboardModel)
   })
 
   test('renders its data into tabbed panels with sortable metric tables', () => {
@@ -441,7 +442,7 @@ describe('committed benchmark dashboard', () => {
 
     expect(html).toContain('<input type="radio" name="dashboard-tab" id="tab-ocr" checked>')
     expect(html).toContain('id="tab-tts"')
-    expect(panelFor(html, 'tts')).toContain('soniox/tts-rt-v2')
+    expect(panelFor(html, 'tts')).toContain('TTS benchmark results')
 
     const ids = [...html.matchAll(/ id="([^"]+)"/g)].map((match) => match[1])
     expect(new Set(ids).size).toBe(ids.length)

@@ -70,7 +70,6 @@ const TtsDefaultsSchema = v.strictObject({
   geminiTts: ModelArraySchema,
   sonioxTts: ModelArraySchema,
   grokTts: ModelArraySchema,
-  mistralTts: ModelArraySchema,
   openaiTts: ModelArraySchema,
   inworldTts: ModelArraySchema,
   voice: StringOrStringListSchema,

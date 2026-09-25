@@ -1,9 +1,8 @@
-import { InternalError } from '~/utils/error-handler'
+import { InternalError, UsageError } from '~/utils/error-handler'
 import { rename } from 'node:fs/promises'
 import type {
   CurrentTtsObservedTurn,
   MultiSpeakerRunMetadata,
-  ProtectedAssetRef,
   Step4Metadata,
   TtsOptions,
   TtsRequestEvidenceScope,
@@ -16,7 +15,6 @@ import { concatAndConvertToWav } from './tts-utils/audio-utils'
 import { finalizeTtsRun } from './tts-utils/finalize-tts-run'
 import { bindHostedTtsChunkScheduler, normalizeHostedTtsChunkConcurrency } from './tts-utils/hosted-tts-chunk-scheduler'
 import { sha256Bytes } from './script-to-audio/contract-identity'
-import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '../voice/voice-assets/mistral-request-reference-policy'
 import {
   normalizeDialogueText,
   parseSpeakerVoiceMappings,
@@ -32,34 +30,15 @@ import {
 const sanitizeSegmentName = (value: string): string =>
   value.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'speaker'
 
-const cloneProtectedAssetRef = (asset: ProtectedAssetRef): Readonly<ProtectedAssetRef> => Object.freeze({
-  storeId: asset.storeId,
-  assetId: asset.assetId,
-  sha256: asset.sha256
-})
-
 const buildObservedVoice = (
-  target: TtsTarget,
+  _target: TtsTarget,
   kind: 'id' | 'ref-audio',
   value: string,
-  normalizedSpeaker?: string | undefined
-): CurrentTtsObservedTurn['voice'] => kind === 'ref-audio'
-  ? (() => {
-      const protectedAsset = (normalizedSpeaker ? target.protectedSpeakerVoiceAssets?.[normalizedSpeaker] : undefined)
-        ?? target.protectedVoiceAsset
-      return {
-      kind: 'reference-asset',
-      valueHash: protectedAsset?.sha256 ?? sha256Bytes(value),
-      ...(protectedAsset
-        ? { protectedAsset: cloneProtectedAssetRef(protectedAsset), authorizationRef: MISTRAL_CLI_REFERENCE_AUTHORIZATION }
-        : {})
-      }
-    })()
-  : {
-      kind: 'provider-id',
-      value,
-      valueHash: sha256Bytes(value)
-    }
+  _normalizedSpeaker?: string | undefined
+): CurrentTtsObservedTurn['voice'] => {
+  if (kind === 'ref-audio') throw UsageError('Reference audio TTS invocation is no longer supported.')
+  return { kind: 'provider-id', value, valueHash: sha256Bytes(value) }
+}
 
 export const runMultiSpeakerTts = async (
   text: string,
@@ -125,25 +104,27 @@ export const runMultiSpeakerTts = async (
     const segmentFileName = `segment-${index}-${sanitizeSegmentName(turn.speaker)}.wav`
     const segmentPath = `${segmentsDir}/${segmentFileName}`
 
-    const protectedAsset = speakerMapping.voiceKind === 'ref-audio'
-      ? target.protectedSpeakerVoiceAssets?.[speakerMapping.normalizedSpeaker] ?? target.protectedVoiceAsset
-      : undefined
-    const invocationProtectedAsset = protectedAsset ? cloneProtectedAssetRef(protectedAsset) : undefined
+    if (speakerMapping.voiceKind === 'ref-audio') throw UsageError('Reference audio TTS invocation is no longer supported.')
     const baseInvocation: TtsTargetInvocation = Object.freeze({
       sourceId: turnIds[i] as string,
       sourceIndex,
       speaker: turn.speaker,
       voice: Object.freeze({
         kind: speakerMapping.voiceKind,
-        value: speakerMapping.voice,
-        ...(invocationProtectedAsset
-          ? { protectedAsset: invocationProtectedAsset, authorizationRef: MISTRAL_CLI_REFERENCE_AUTHORIZATION }
-          : {})
+        value: speakerMapping.voice
       }),
       controls: resolveTtsTurnControlOverrides(target.service, turnIds[i] as string, turnControls),
       signal
     })
-    const providerSegments = turn.providerSegments?.length ? [...turn.providerSegments] : [turn.text]
+    const plannedChunks = requestEvidence?.forInvocation?.(baseInvocation)?.plannedChunks
+    const selectedIndexes = turn.providerSegmentIndexes
+    const providerSegments = plannedChunks
+      ? selectedIndexes?.length ? selectedIndexes.map(index => {
+        const chunk = plannedChunks[index]
+        if (chunk === undefined) throw InternalError('Selected TTS segment is missing from its resolved request plan.', { stage: 'tts:multi-speaker' })
+        return chunk
+      }) : [...plannedChunks]
+      : turn.providerSegments?.length ? [...turn.providerSegments] : [turn.text]
     const providerSegmentIndexes = turn.providerSegmentIndexes?.length
       ? [...turn.providerSegmentIndexes]
       : providerSegments.map((_segment, providerSegmentIndex) => providerSegmentIndex)

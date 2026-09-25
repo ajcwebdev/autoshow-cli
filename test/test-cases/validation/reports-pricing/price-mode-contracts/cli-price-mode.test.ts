@@ -60,7 +60,7 @@ describe('price mode contracts', () => {
       })
     }
 
-  test('ElevenLabs TTS rejects --tts-ref-audio before synthesis price planning', async () => {
+  test('TTS rejects removed --tts-ref-audio before synthesis price planning', async () => {
     const result = await runCommand([
       'src/cli/create-cli.ts',
       'tts',
@@ -75,7 +75,7 @@ describe('price mode contracts', () => {
     expect(result.exitCode).toBe(2)
     expect(result.outputDir).toBeNull()
     const output = `${result.stdout}\n${result.stderr}`
-    expect(output).toContain('--tts-ref-audio does not apply to elevenlabs TTS')
+    expect(output).toContain('Unexpected flag: --tts-ref-audio')
   })
 
   test('hosted OCR --price reports the detected PDF page count', async () => {

@@ -15,9 +15,9 @@ export const ttsMasteringFlags = {
   'tts-channels': strFlag(`Override the profile channel count: ${formatValueList(['1', '2'])}`),
   'tts-loudness': strFlag('Override the profile loudness target in LUFS from -40 to -5, or off to skip normalization'),
   'tts-true-peak': strFlag('Override the profile true-peak ceiling in dBTP from -9 to 0; needs loudness normalization'),
-  'tts-trim-silence': strFlag(`Override whether provider silence is trimmed at chunk seams before pauses are inserted: ${formatValueList(['on', 'off'])}`),
-  'tts-paragraph-pause': strFlag('Override the profile pause in ms at paragraph and speaker-turn seams, 0-10000'),
-  'tts-sentence-pause': strFlag('Override the profile pause in ms at sentence seams, 0-10000'),
+  'tts-trim-silence': strFlag(`Opt in to outer-edge silence trimming at chunk joins (default off; internal pauses are kept): ${formatValueList(['on', 'off'])}`),
+  'tts-paragraph-pause': strFlag('Add silence in ms at paragraph and speaker-turn chunk joins, 0-10000; default 0; does not enable trimming'),
+  'tts-sentence-pause': strFlag('Add silence in ms at sentence chunk joins, 0-10000; default 0; no clause or word padding'),
   'tts-lead-in': strFlag('Override the profile silence in ms before the first audio, 0-10000'),
   'tts-lead-out': strFlag('Override the profile silence in ms after the last audio, 0-10000'),
 } as const satisfies CliFlagsDefinition

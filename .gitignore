@@ -52,3 +52,13 @@ input/examples/tts/*
 !input/examples/document/protected.pdf
 !input/examples/lyrics/01-cover.jpeg
 !input/examples/lyrics/01-example-song.mp3
+
+# Tracked text fixtures must remain available in fresh checkouts.
+!input/examples/batch/2-direct-urls.md
+!input/examples/batch/2-urls.md
+!input/examples/batch/example-rss-feeds.md
+!input/examples/comic/01-registry-check.md
+!input/examples/comic/README.md
+!input/examples/lyrics/01-example-song.txt
+!input/examples/tts/00-tts-shortest.txt
+!input/examples/tts/01-tts-short.md

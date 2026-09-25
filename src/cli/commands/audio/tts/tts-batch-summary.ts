@@ -1,7 +1,7 @@
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { getTtsEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { splitTextIntoChunks } from './tts-utils/audio-utils'
-import { resolveTtsChunkCharacterLimit } from './tts-utils/tts-chunking'
+import { planProviderTtsChunks } from './tts-utils/tts-provider-chunk-policy'
+import { resolveSyntheticChunkLengths, resolveTtsChunkCharacterLimit } from './tts-utils/tts-chunking'
 import type { AggregatedPriceEstimate, HostedEstimateJob, PreparedTtsInput, SuccessfulTtsBatchItem, TtsBatchEstimateOptions, TtsBatchEstimateSummary, TtsTarget } from '~/types'
 const normalizePositiveInteger = (value: number | undefined): number =>
   typeof value === 'number' && Number.isFinite(value)
@@ -32,23 +32,6 @@ const simulateBatchWorkerPool = (
   return Math.max(...workerLoads)
 }
 
-const getSyntheticChunkLengths = (
-  characterCount: number,
-  maxChars: number
-): number[] => {
-  const lengths: number[] = []
-  let remaining = Math.max(0, Math.floor(characterCount))
-  const normalizedMaxChars = Math.max(1, Math.floor(maxChars))
-  while (remaining > normalizedMaxChars) {
-    lengths.push(normalizedMaxChars)
-    remaining -= normalizedMaxChars
-  }
-  if (remaining > 0) {
-    lengths.push(remaining)
-  }
-  return lengths
-}
-
 const getChunkLengths = (
   prepared: PreparedTtsInput,
   target: TtsTarget
@@ -58,14 +41,15 @@ const getChunkLengths = (
     return [prepared.ttsCharacterCount]
   }
   if (prepared.ttsTimingInputText.trim().length > 0) {
-    return splitTextIntoChunks(prepared.ttsTimingInputText, maxChars).map((chunk) => chunk.length)
+    return planProviderTtsChunks({ provider: target.service, model: target.model, text: prepared.ttsTimingInputText, voice: target.voice, characterLimit: maxChars }).map(chunk => chunk.text.length)
   }
-  return getSyntheticChunkLengths(prepared.ttsCharacterCount, maxChars)
+  return resolveSyntheticChunkLengths(prepared.ttsCharacterCount, maxChars)
 }
 
 const createHostedEstimateJobs = (
   preparedInputs: PreparedTtsInput[],
-  targets: TtsTarget[]
+  targets: TtsTarget[],
+  estimates: AggregatedPriceEstimate[]
 ): HostedEstimateJob[] => {
   const jobs: HostedEstimateJob[] = []
   let originalOrder = 0
@@ -74,7 +58,7 @@ const createHostedEstimateJobs = (
       const estimation = getTtsEstimation(target.service, target.model)
       jobs.push({
         provider: target.service,
-        durationsMs: getChunkLengths(prepared, target).map((length) =>
+        durationsMs: (estimates[inputIndex]?.steps.filter(step => step.step === 'tts')[targetIndex]?.chunkLengths ?? getChunkLengths(prepared, target)).map((length) =>
           Math.max(0, (length / 1000) * estimation.msPer1KChars)
         ),
         active: 0,
@@ -145,9 +129,10 @@ const simulateHostedProviderLane = (
 const simulateHostedTtsProviderQueues = (
   preparedInputs: PreparedTtsInput[],
   targets: TtsTarget[],
-  ttsChunkConcurrency: number
+  ttsChunkConcurrency: number,
+  estimates: AggregatedPriceEstimate[]
 ): number | undefined => {
-  const jobs = createHostedEstimateJobs(preparedInputs, targets)
+  const jobs = createHostedEstimateJobs(preparedInputs, targets, estimates)
   if (jobs.length === 0) {
     return undefined
   }
@@ -174,7 +159,7 @@ export const buildTtsBatchEstimateSummary = (
   const itemProcessingTimesMs = estimates.map((estimate) => estimate.timing?.totalProcessingTimeMs ?? 0)
   const normalizedChunkConcurrency = normalizePositiveInteger(ttsChunkConcurrency)
   const hostedWallTimeMs = options.preparedInputs && options.targets
-    ? simulateHostedTtsProviderQueues(options.preparedInputs, options.targets, normalizedChunkConcurrency)
+    ? simulateHostedTtsProviderQueues(options.preparedInputs, options.targets, normalizedChunkConcurrency, estimates)
     : undefined
 
   return {

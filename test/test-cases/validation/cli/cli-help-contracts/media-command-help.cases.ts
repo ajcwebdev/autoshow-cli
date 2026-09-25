@@ -38,7 +38,7 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(result.stdout).toContain('--tts-voice')
     expect(result.stdout).toContain('--tts-speed')
     expect(result.stdout).toContain('--tts-language')
-    expect(result.stdout).toContain('--tts-ref-audio')
+    expect(result.stdout).not.toContain('--tts-ref-audio')
     expect(result.stdout).not.toContain('--tts-voice-name')
     expect(result.stdout).not.toContain('--tts-consent-audio')
     expect(result.stdout).not.toContain('--tts-consent-language')

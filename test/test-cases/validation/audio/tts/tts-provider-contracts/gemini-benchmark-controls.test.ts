@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 import { join, resolve } from 'node:path'
-import { readdir } from 'node:fs/promises'
+import { readdir, realpath } from 'node:fs/promises'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
 import { prepareTtsInput } from '~/cli/commands/audio/tts/tts-single-run'
@@ -71,4 +71,27 @@ test('benchmark provider filtering and price are isolated; run rejects the conse
   expect(missing.stderr).toContain('No documented cases')
   expect(await Bun.file(ledgerPath).text()).toBe(ledger)
   expect(await readdir(root)).toEqual(['input'])
+
+  const freshLedger = JSON.stringify({ schemaVersion: 2, priorEstimatedCents: 0, outputBase: 'benchmark-output' })
+  await Bun.write(ledgerPath, freshLedger)
+  const selection = ['--provider', 'gemini=' + LITE, '--suite', 'emotion', '--price']
+  const caseId = 'gemini-' + LITE + '-instructions'
+  await Bun.write(join(root, 'benchmark-output', '2000-01-01_05-tts-emotion', caseId, 'benchmark-fingerprint.txt'), 'old fixture')
+  const fresh = await invoke(selection)
+  expect(fresh.code).toBe(0)
+  expect(JSON.parse(fresh.stdout)).toMatchObject({ spentCents: 0, cases: [{ id: caseId, reuse: false }] })
+  expect(await Bun.file(ledgerPath).text()).toBe(freshLedger)
+  const currentSuite = new Date().toISOString().slice(0, 10) + '_05-tts-emotion'
+  await Bun.write(join(root, 'benchmark-output', currentSuite, caseId, 'benchmark-fingerprint.txt'), 'incomplete fixture')
+  const interrupted = await invoke(selection)
+  expect(interrupted.code).not.toBe(0)
+  expect(interrupted.stderr).toContain('Interrupted preparation at ' + join(await realpath(root), 'benchmark-output', currentSuite, caseId))
+  const override = await invoke([...selection, '--output-dir', 'fresh-output'])
+  expect(override.code).toBe(0)
+  expect(JSON.parse(override.stdout).cases[0].reuse).toBe(false)
+  expect(await readdir(root)).not.toContain('fresh-output')
+  await Bun.write(ledgerPath, JSON.stringify({ ...JSON.parse(freshLedger), benchmarkDate: '2000-01-01' }))
+  const pinned = await invoke(selection)
+  expect(pinned.code).not.toBe(0)
+  expect(pinned.stderr).toContain('Interrupted preparation at ' + join(await realpath(root), 'benchmark-output', '2000-01-01_05-tts-emotion', caseId))
 })

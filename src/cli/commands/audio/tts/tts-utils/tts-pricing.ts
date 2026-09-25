@@ -14,7 +14,7 @@ export const estimateTtsTargetCosts = (
     if (target.service === 'soniox') return { provider: target.service, model: target.model, characterCount: normalizedCharCount, ...estimateSonioxTtsCost(normalizedCharCount, target.numericSpeed) }
     if (target.service === 'gemini') return { provider: target.service, model: target.model, characterCount: normalizedCharCount, ...estimateGeminiTtsCost(target.model, normalizedCharCount, target.transport?.replace('gemini-', ''), new Date(), plannedRequestCounts?.[index]) }
     const pricing = getTtsPricing(target.service, target.model)
-    const requestCount = pricing.costPerRequestCents === undefined ? undefined : estimateTtsRequestCount(target.service, target.model, normalizedCharCount)
+    const requestCount = pricing.costPerRequestCents === undefined ? undefined : plannedRequestCounts?.[index] ?? estimateTtsRequestCount(target.service, target.model, normalizedCharCount)
     const hasDualRates = pricing.inputCostPer1MCharsCents !== undefined && pricing.outputCostPer1MCharsCents !== undefined
     const rate: TtsRateEstimate = pricing.costPerRequestCents !== undefined
       ? {

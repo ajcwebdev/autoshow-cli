@@ -118,16 +118,16 @@ describe('inline media payload contracts (mocked transport, decoded artifact int
     expect(() => assertInlineSpeechResponsesFit('Inworld AI', 'tts:inworld', ['short', fullChunk], { ...response, speed: 0.5 })).toThrow('chunk 2 of 2')
   })
 
-  test('the Mistral client returns base64 audio larger than the former 16 MiB capture byte for byte', async () => {
-    installMockFetch(() => largeJsonResponse({ audio_data: LARGE_MEDIA_BASE64 }))
-    const response = await mistralJsonRequest<{ audio_data: string }>({
+  test('the Mistral client returns base64 OCR images larger than the former 16 MiB capture byte for byte', async () => {
+    installMockFetch(() => largeJsonResponse({ pages: [{ images: [{ image_base64: LARGE_MEDIA_BASE64 }] }] }))
+    const response = await mistralJsonRequest<{ pages: Array<{ images: Array<{ image_base64: string }> }> }>({
       apiKey: 'mistral-key',
       baseURL: 'https://mock.mistral.local',
-      path: '/audio/speech',
-      errorMessagePrefix: 'Mistral TTS failed',
-      body: { input: 'hello' }
+      path: '/ocr',
+      errorMessagePrefix: 'Mistral OCR failed',
+      body: { model: 'mistral-ocr-4-1', document: { type: 'image_url', image_url: 'https://example.test/fixture.png' } }
     })
-    expect(Buffer.from(response.audio_data, 'base64').equals(LARGE_MEDIA)).toBe(true)
+    expect(Buffer.from(response.pages[0]!.images[0]!.image_base64, 'base64').equals(LARGE_MEDIA)).toBe(true)
   })
 
   test('the Gemini client returns inline data larger than the former 16 MiB capture byte for byte', async () => {
@@ -161,10 +161,10 @@ describe('inline media payload contracts (mocked transport, decoded artifact int
 
   test('a shared client still rejects a body over the active ceiling whole, naming the override', async () => {
     process.env[HTTP_PAYLOAD_MAX_BYTES_ENV] = String(MIB)
-    installMockFetch(() => largeJsonResponse({ audio_data: LARGE_MEDIA_BASE64 }))
+    installMockFetch(() => largeJsonResponse({ pages: [{ images: [{ image_base64: LARGE_MEDIA_BASE64 }] }] }))
     let thrown: unknown
     try {
-      await mistralJsonRequest({ apiKey: 'mistral-key', baseURL: 'https://mock.mistral.local', path: '/audio/speech', errorMessagePrefix: 'Mistral TTS failed', body: { input: 'hello' } })
+      await mistralJsonRequest({ apiKey: 'mistral-key', baseURL: 'https://mock.mistral.local', path: '/ocr', errorMessagePrefix: 'Mistral OCR failed', body: { model: 'mistral-ocr-4-1', document: { type: 'image_url', image_url: 'https://example.test/fixture.png' } } })
     } catch (error) {
       thrown = error
     }

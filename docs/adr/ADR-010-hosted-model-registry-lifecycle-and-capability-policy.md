@@ -105,15 +105,18 @@ Every provider addition and refresh must document route-specific billing eligibi
 
 #### Excluded integrations
 
-On September 25, 2026, the following integrations were removed at the user's direction, including their adapters, selectors, credentials, configuration, historical rates, and committed benchmark records. This policy exclusion supersedes ordinary model retirement and historical-rate retention for these providers. Ignored local inputs, outputs, credentials, and purchased audio remain untouched. Excluded selectors and saved settings fail locally; no compatibility aliases or automatic substitutions are provided.
+On September 25, 2026, Hume, Cartesia, and Speechify TTS were removed at the user's direction, including their adapters, selectors, credentials, configuration, historical rates, and committed benchmark records. This policy exclusion supersedes ordinary model retirement and historical-rate retention for these providers. Ignored local inputs, outputs, credentials, and purchased audio remain untouched. Excluded selectors and saved settings fail locally; no compatibility aliases or automatic substitutions are provided.
 
 <!-- excluded-tts-providers:start -->
-| Provider  | Model identifiers                                                                                  | Billing evidence                                                                                                                                  |
+| Provider  | Model identifiers                                                                                  | Removal decision                                                                                                                                  |
 | --------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Hume      | `octave-1`, `octave-2`                                                                             | [Official FAQ](https://dev.hume.ai/docs/text-to-speech-tts/faq): Free and Starter cannot buy additional TTS usage; Creator or higher is required. |
 | Cartesia  | `sonic-3.6-2026-08-27`, `sonic-3.5-2026-05-04`, `sonic-3`, `sonic-3.6`, `sonic-preview`, `sonic-2` | [Official pricing](https://www.cartesia.ai/pricing): monthly plans supply model credits and paid subscribers receive overages.                    |
 | Speechify | `simba-3.2`, `simba-3.0`, `simba-english`                                                          | [Official API pricing](https://speechify.ai/pricing), rechecked 2026-09-25: Free cannot top up; continued usage requires a paid monthly plan.     |
+| Mistral   | `voxtral-mini-tts-2603`                                                                            | TTS and voice management removed; STT/OCR retained                                                                                                |
 <!-- excluded-tts-providers:end -->
+
+Mistral TTS and voice management were removed on September 25, 2026. Its STT/OCR models, pricing, credentials, shared REST client, and resume paths remain supported. Removed TTS selectors, controls, saved settings, reference-audio inputs, voice commands, and resume attempts fail locally without substitution. Existing Mistral manifests, benchmark evidence, registered assets, purchased audio, and remote voices remain intact; removal triggers no cleanup or remote deletion.
 
 The removed utterance endpoint was the only implementation of `--tts-trailing-silence`; that flag and its saved configuration key are removed too.
 

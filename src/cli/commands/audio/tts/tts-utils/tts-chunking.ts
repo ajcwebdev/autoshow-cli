@@ -1,25 +1,11 @@
 import type { HostedConcurrencyMode, TtsProvider } from '~/types'
-import { normalizeTtsChunkConcurrency, splitTextIntoChunks } from './audio-utils'
-import { getTtsMaxInputCharacters } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { normalizeTtsChunkConcurrency } from './audio-utils'
+import { resolveTtsChunkCharacterLimit } from './tts-chunk-limits'
+export { resolveTtsChunkCharacterLimit, TTS_CHUNK_CHARACTER_LIMITS } from './tts-chunk-limits'
+import { planProviderTtsChunks } from './tts-provider-chunk-policy'
 import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
 
-export const TTS_CHUNK_CHARACTER_LIMITS = {
-  gemini: 2000,
-  elevenlabs: 2000,
-  openai: 2000,
-  mistral: 2000,
-  soniox: 500,
-  grok: 2000,
-  inworld: 2000,
-} as const satisfies Record<TtsProvider, number | undefined>
-
-export const resolveTtsChunkCharacterLimit = (
-  provider: TtsProvider,
-  model: string | undefined
-): number | undefined =>
-  model ? getTtsMaxInputCharacters(provider, model) ?? TTS_CHUNK_CHARACTER_LIMITS[provider] : TTS_CHUNK_CHARACTER_LIMITS[provider]
-
-const resolveSyntheticChunkLengths = (
+export const resolveSyntheticChunkLengths = (
   characterCount: number,
   maxChars: number
 ): number[] => {
@@ -42,13 +28,15 @@ const resolveSyntheticChunkLengths = (
 
 const resolveTtsChunkLengths = (
   input: {
+    provider: TtsProvider
+    model?: string | undefined
     text?: string | undefined
     characterCount: number
     maxChars: number
   }
 ): number[] => {
   if (typeof input.text === 'string') {
-    return splitTextIntoChunks(input.text, input.maxChars).map((chunk) => chunk.length)
+    return planProviderTtsChunks({ provider: input.provider, model: input.model ?? '', text: input.text, characterLimit: input.maxChars }).map(chunk => chunk.text.length)
   }
 
   return resolveSyntheticChunkLengths(input.characterCount, input.maxChars)
@@ -89,6 +77,7 @@ export const estimateTtsSynthesisProcessingTimeMs = (
     characterCount: number
     msPer1KChars: number
     setupTimeMs?: number | undefined
+    chunkLengths?: readonly number[] | undefined
     chunkCharacterLimit?: number | undefined
     chunkConcurrency?: number | undefined
     concurrencyMode?: HostedConcurrencyMode | undefined
@@ -104,7 +93,8 @@ export const estimateTtsSynthesisProcessingTimeMs = (
     return setupTimeMs + (normalizedCharacterCount / 1000) * input.msPer1KChars
   }
 
-  const chunkLengths = resolveTtsChunkLengths({
+  const chunkLengths = input.chunkLengths ?? resolveTtsChunkLengths({
+    provider: input.provider, model: input.model,
     text: input.text,
     characterCount: normalizedCharacterCount,
     maxChars: chunkLimit,

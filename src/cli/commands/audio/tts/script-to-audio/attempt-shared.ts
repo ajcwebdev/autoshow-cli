@@ -11,7 +11,6 @@ export const REQUESTED_OUTPUT = { codec: 'pcm_s16le', container: 'wav', sampleRa
 
 export const CAPABILITY_SOURCE_REFS: Record<TtsTarget['service'], string[]> = {
   openai: ['https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create'],
-  mistral: ['https://docs.mistral.ai/studio-api/audio/text_to_speech/speech'],
   gemini: ['https://ai.google.dev/gemini-api/docs/speech-generation'],
   soniox: ['https://soniox.com/docs/api-reference/tts/generate_tts', 'https://soniox.com/docs/tts/models', 'https://soniox.com/docs/tts/rest-api/limits-and-quotas'],
   grok: ['https://docs.x.ai/developers/model-capabilities/audio/text-to-speech'],

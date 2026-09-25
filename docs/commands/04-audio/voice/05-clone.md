@@ -20,20 +20,20 @@ bun autoshow voice clone hero --provider gemini --model gemini-3.8-flash-lite-tt
 
 ### Options
 
-| Flag                        | Description                                                                                                  |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `--provider <name>`         | Clone provider: `gemini`, `elevenlabs`, `grok`, `mistral`, or `inworld`                                      |
-| `--model <model>`           | Provider TTS model used by this registration                                                                 |
-| `--profile <key>`           | Casting profile key                                                                                          |
-| `--voice-name <name>`       | Desired provider account voice name                                                                          |
-| `--sample <path>`           | Authorized local clone sample; repeatable for ElevenLabs and Inworld, exactly one for Gemini, Grok, Mistral, |
-| `--authorization-ref <ref>` | Opaque authorization record for the clone samples                                                            |
-| `--description <text>`      | Optional provider-safe voice description                                                                     |
-| `--consent-audio <path>`    | Separate recorded consent statement required for Gemini                                                      |
-| `--consent-ref <ref>`       | Protected consent-record reference                                                                           |
-| `--provenance-ref <ref>`    | Opaque non-secret provenance record reference                                                                |
-| `--reconcile`               | Finish an ambiguous clone without creating the voice again                                                   |
-| `--price`                   | Validate and estimate without provider calls or artifact writes                                              |
+| Flag                        | Description                                                                                         |
+| --------------------------- | --------------------------------------------------------------------------------------------------- |
+| `--provider <name>`         | Clone provider: `gemini`, `elevenlabs`, `grok`, or `inworld`                                        |
+| `--model <model>`           | Provider TTS model used by this registration                                                        |
+| `--profile <key>`           | Casting profile key                                                                                 |
+| `--voice-name <name>`       | Desired provider account voice name                                                                 |
+| `--sample <path>`           | Authorized local clone sample; repeatable for ElevenLabs and Inworld, exactly one for Gemini, Grok, |
+| `--authorization-ref <ref>` | Opaque authorization record for the clone samples                                                   |
+| `--description <text>`      | Optional provider-safe voice description                                                            |
+| `--consent-audio <path>`    | Separate recorded consent statement required for Gemini                                             |
+| `--consent-ref <ref>`       | Protected consent-record reference                                                                  |
+| `--provenance-ref <ref>`    | Opaque non-secret provenance record reference                                                       |
+| `--reconcile`               | Finish an ambiguous clone without creating the voice again                                          |
+| `--price`                   | Validate and estimate without provider calls or artifact writes                                     |
 
 ### Examples
 

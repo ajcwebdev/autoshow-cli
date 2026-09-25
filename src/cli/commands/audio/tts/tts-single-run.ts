@@ -18,9 +18,7 @@ import { isMultiSpeakerRequested, normalizeDialogueFromOptions } from './dialogu
 import { runTtsForTargets, validateTtsRenderInputsForTargets } from './run-tts'
 import { exportTtsDeliveryAudio } from './tts-delivery-export'
 import { applyTtsPronunciationLexicon } from './tts-utils/tts-pronunciation-lexicon'
-import { buildEstimatedTtsTargets, buildTtsArtifactMap, collectTtsTargets, getTtsArtifactFileName, mergeTtsExecutionReadinessObservations, validateTtsTargetsForExecution } from './tts-targets'
-import { materializeStandaloneMistralReference } from '../voice/voice-assets/standalone-mistral-reference'
-import { hasMistralProtectedReferences } from '../voice/voice-assets/mistral-protected-reference-binding'
+import { buildEstimatedTtsTargets, buildTtsArtifactMap, getTtsArtifactFileName, validateTtsTargetsForExecution } from './tts-targets'
 import { appendCurrentTtsProviderState, getCurrentTtsJournalAttemptKey, serializeTtsMetadataEntries } from './script-to-audio/current-render-artifacts'
 import { createFileTtsSourceIdentity, createGenericTtsDialoguePlan, createSingleTurnTtsDialoguePlan } from './script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from './script-to-audio/item-dialogue-plan-artifact'
@@ -346,18 +344,7 @@ export const runSingleTtsInput = async (
     return
   }
 
-  let executionReadiness = await validateTtsTargetsForExecution(targets)
-  const hasProtectedMistralReference = hasMistralProtectedReferences(ttsOptions)
-  if (executionReadiness.every((entry) => entry.status === 'ready')) {
-    ttsOptions = await materializeStandaloneMistralReference(ttsOptions)
-    if (hasProtectedMistralReference) {
-      targets = collectTtsTargets(ttsOptions)
-      executionReadiness = mergeTtsExecutionReadinessObservations(
-        executionReadiness,
-        await validateTtsTargetsForExecution(targets)
-      )
-    }
-  }
+  const executionReadiness = await validateTtsTargetsForExecution(targets)
   const outputDir = await createGenerationOutputDir(getInputStem(inputPath))
   await runPreparedTtsInput(prepared, outputDir, ttsOptions, targets, preflightEstimate, createdAt, executionReadiness, outputNaming)
 }

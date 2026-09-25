@@ -7,7 +7,7 @@ describe('option resolution contracts', () => {
 
   test('buildOptsFromFlags maps repeatable dialogue speaker flags', () => {
       const opts = buildOptsFromFlags({
-        'mistral-tts': 'voxtral-mini-tts-2603',
+        'elevenlabs-tts': 'eleven_v3',
         'tts-dialogue-format': 'screenplay',
         'tts-speaker': [
           'DUCO=voice_duco',

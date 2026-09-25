@@ -1,7 +1,6 @@
 import type { TtsOptions, TtsTargetSelection } from '~/types'
 import { InternalError, UsageError } from '~/utils/error-handler'
 import { resolveDialogueFormat } from '../dialogue-normalizer'
-import { getMistralProtectedSpeakerReferences } from '../../voice/voice-assets/mistral-protected-reference-binding'
 import { getMultiSpeakerStrategy } from './multi-speaker-capability'
 
 export const validateMultiSpeakerTtsSelection = (
@@ -21,7 +20,6 @@ export const validateMultiSpeakerTtsSelection = (
     { provider: 'elevenlabs' as const, models: selection.elevenlabsModels },
     { provider: 'soniox' as const, models: selection.sonioxModels ?? [] },
     { provider: 'grok' as const, models: selection.grokModels },
-    { provider: 'mistral' as const, models: selection.mistralModels },
     { provider: 'openai' as const, models: selection.openaiModels },
     { provider: 'inworld' as const, models: selection.inworldModels },
   ]
@@ -42,26 +40,5 @@ export const validateMultiSpeakerTtsSelection = (
   const referenceAudioSpeakers = registry.entries.filter((entry) => entry.voiceKind === 'ref-audio')
   if (referenceAudioSpeakers.length === 0) return
 
-  const selected = selectedProviders[0]
-  if (selected?.provider !== 'mistral') {
-    throw UsageError(
-      `--tts-speaker SPEAKER=path is supported only by one explicitly selected Mistral TTS target, not ${selected?.provider ?? 'the selected provider'}.`,
-      { hints: ['Use existing provider voice IDs for this target, or run standalone `tts` with one Mistral provider and explicit reference paths.'] }
-    )
-  }
-  const protectedReferences = getMistralProtectedSpeakerReferences(options)
-  const protectedBySpeaker = new Map(protectedReferences?.entries.map((entry) => [entry.speakerKey, entry]) ?? [])
-  if (
-    !protectedReferences
-    || protectedBySpeaker.size !== referenceAudioSpeakers.length
-    || referenceAudioSpeakers.some((entry) => {
-      const protectedReference = protectedBySpeaker.get(entry.normalizedSpeaker)
-      return !protectedReference || entry.voice !== `ref_audio:${protectedReference.protectedAsset.assetId}`
-    })
-  ) {
-    throw UsageError(
-      'Mistral dialogue reference paths must cross protected ingestion as exact per-speaker opaque assets before target collection.',
-      { hints: ['Pass every SPEAKER=path mapping explicitly to standalone `tts`; config, inherited paths, and copied runtime options are not authorized.'] }
-    )
-  }
+  throw UsageError('--tts-speaker reference audio is no longer supported. Use existing provider voice IDs.')
 }

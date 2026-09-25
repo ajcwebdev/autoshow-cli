@@ -37,10 +37,9 @@ describe('config load schema contracts', () => {
         },
         tts: {
           geminiTts: ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts'],
-          mistralTts: ['voxtral-mini-tts-2603'],
           openaiTts: ['gpt-4o-mini-tts-2025-12-15'],
           elevenlabsTts: ['eleven_v3'],
-          voice: ['mistral=voice_abc123', 'openai=alloy'],
+          voice: ['openai=alloy'],
           speed: 1.1,
           language: 'en',
           textNormalization: 'on',
@@ -83,7 +82,7 @@ describe('config load schema contracts', () => {
       defaults: { tts: { unsupportedConsentEmail: 'performer@example.com' } }
     })
 
-    await expect(loadConfig(mistralReference)).rejects.toThrow('Configured --tts-ref-audio paths cannot be used as synthesis defaults')
+    await expect(loadConfig(mistralReference)).rejects.toThrow('is no longer supported')
     await expect(loadConfig(elevenLabsClone)).rejects.toThrow('autoshow config')
     await expect(loadConfig(obsoleteConsent)).rejects.toThrow('autoshow config')
   })

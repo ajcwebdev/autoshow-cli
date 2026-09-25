@@ -63,13 +63,13 @@ test('selection and controls reject invalid values before any synthesis dispatch
 test('sentence chunks enforce the safety ceiling and preserve Unicode and whole tags', () => {
   const text = ('Hello 🌍. [warm] Here is another complete sentence. ').repeat(100)
   for (const maxChars of [40, 500, 5000]) {
-    const chunks = splitSonioxTtsText(text, { maxChars, boundary: 'legacy' })
+    const chunks = splitSonioxTtsText(text, { maxChars, boundary: 'smart', replay: 'legacy-v0' })
     expect(chunks.every(chunk => chunk.length <= Math.min(maxChars, 500) && chunk.isWellFormed())).toBe(true)
     expect(chunks.join(' ').replace(/\s+/gu, ' ')).toBe(text.trim())
     expect(chunks.every(chunk => [...chunk].filter(c => c === '[').length === [...chunk].filter(c => c === ']').length)).toBe(true)
   }
   expect(splitSonioxTtsText('a'.repeat(497) + '[pause]🌍')).toEqual(['a'.repeat(497), '[pause]🌍'])
-  expect(() => splitSonioxTtsText('[a very long tag]' + 'x'.repeat(30), { boundary: 'smart', maxChars: 3 })).toThrow('tag exceeds')
+  expect(() => splitSonioxTtsText('[a very long tag]' + 'x'.repeat(30), { boundary: 'smart', maxChars: 3 })).toThrow('notation exceeds')
   expect(() => splitSonioxTtsText('🌍🌍', { boundary: 'smart', maxChars: 1 })).toThrow('Unicode')
 })
 

@@ -1,6 +1,6 @@
 # TTS Service Tests
 
-Provider-backed text-to-speech coverage for the `tts` command: ElevenLabs, Grok, Inworld, Mistral, and OpenAI. These `bun t` commands may call paid or quota-limited providers.
+Provider-backed text-to-speech coverage for the `tts` command: ElevenLabs, Grok, Inworld, and OpenAI. These `bun t` commands may call paid or quota-limited providers.
 
 ## Quick Start
 
@@ -10,7 +10,7 @@ bun t test/test-cases/e2e/service/audio/tts/
 
 ## Provider Env Vars
 
-Live TTS synthesis tests need the matching provider key: `ELEVENLABS_API_KEY`, `XAI_API_KEY`, `INWORLD_API_KEY`, `MISTRAL_API_KEY`, or `OPENAI_API_KEY`.
+Live TTS synthesis tests need the matching provider key: `ELEVENLABS_API_KEY`, `XAI_API_KEY`, `INWORLD_API_KEY`, or `OPENAI_API_KEY`.
 
 ## Price Preflight
 

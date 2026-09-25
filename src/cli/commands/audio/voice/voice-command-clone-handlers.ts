@@ -11,7 +11,6 @@ import { loadVoiceRegistrationCatalog } from './character-voice-registry'
 import { managedVoiceAssetStore, MANAGED_VOICE_STORE_ROOT } from './managed-voice-store'
 import { loadVoiceConsentRecord } from './voice-consent-store'
 import { assertVoiceConsentAllows } from './voice-management-contracts'
-import { provisionMistralSavedReferenceRegistration } from './voice-registration-management'
 import {
   CLONE_PROVIDERS, PROFILE_DEFAULT, advancedCapabilityFixtureHash,
   advancedProvider, cloneFileExtension, cloneMediaType, isCloneProvider, maybeCompleteRegistrationJournal, optionalFlag,
@@ -40,7 +39,7 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   }
   const samplePaths = repeatableFlag(ctx, 'sample')
   if (samplePaths.length === 0) throw UsageError(`${provider} instant voice clone requires at least one --sample.`)
-  if ((provider === 'gemini' || provider === 'grok' || provider === 'mistral') && samplePaths.length !== 1) throw UsageError(`${provider} instant voice clone requires exactly one --sample.`)
+  if ((provider === 'gemini' || provider === 'grok') && samplePaths.length !== 1) throw UsageError(`${provider} instant voice clone requires exactly one --sample.`)
   const consentAudioPath = provider === 'gemini' ? requiredFlag(ctx, 'consent-audio') : undefined
   if (provider !== 'gemini' && optionalFlag(ctx, 'consent-audio')) throw UsageError('--consent-audio is currently supported only for Gemini replication.')
   const consentRecordRef = requiredFlag(ctx, 'consent-ref')
@@ -73,16 +72,6 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
     return
   }
   const brief = await requireBrief(subjectKey, profileKey)
-  if (provider === 'mistral') {
-    const registration = await provisionMistralSavedReferenceRegistration({
-      charactersRoot: getCharactersRoot(), journalRoot: join(MANAGED_VOICE_STORE_ROOT, 'journals'), protectedStore: managedVoiceAssetStore,
-      subjectKey, profileKey, providerModel, voiceName: request.desiredName, sourcePath: samplePaths[0]!, authorizationRef,
-      brief, provenanceRef: request.provenanceRef, consent, consentRecordRef, capabilityFixtureHash: advancedCapabilityFixtureHash('mistral'),
-      apiKey: resolveCredential('mistral', 'require', { stage: 'voice:mistral', description: 'Mistral voice clone' })
-    })
-    reportVoiceResult('Voice clone provisioned', { registrationId: registration.registrationId, generationId: registration.generationId, state: registration.provisioning.state })
-    return
-  }
   await assertProtectedStoreOutputDisjoint(getCharactersRoot(), MANAGED_VOICE_STORE_ROOT)
   if (!managedVoiceAssetStore.ingestManaged) throw UsageError('Managed protected store cannot retain clone samples.')
   const createdAt = new Date().toISOString()

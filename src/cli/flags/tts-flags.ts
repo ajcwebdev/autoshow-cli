@@ -30,7 +30,6 @@ export const genericTtsOptionFlags = {
 const standaloneTtsOnlyFlags = {
   'gemini-tts-mode': strFlag('Gemini transport: unary|stream|batch (default unary). Batch submits remote Batch API jobs; directory batching is local.'),
   'gemini-tts-batch-wait-seconds': strFlag('Seconds to wait for Gemini Batch jobs (default 86400; 0 submits and returns). Resume retains pending jobs.'),
-  'tts-ref-audio': strListFlag('Explicit one-off Mistral TTS reference audio path')
 } as const satisfies CliFlagsDefinition
 
 const ttsProviderSelectionFlags = {

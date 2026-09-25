@@ -18,16 +18,20 @@ export const buildTtsEstimateForInput = async (
   targets?: readonly TtsTarget[]
 ): Promise<AggregatedPriceEstimate> => {
   const selected = targets ?? collectTtsTargets(ttsOptions)
-  const requests = selected.map(target => target.service === 'gemini'
-    ? buildPureCurrentTtsRenderPlan({ target, sourceText: prepared.text, sourceIdentity: prepared.sourceIdentity, dialoguePlan: prepared.dialoguePlan, ttsOptions }).planned.slots.length
-    : 0)
-  const steps = await buildTtsTargetEstimates(selected, ttsOptions, prepared.ttsCharacterCount, requests)
+  const plans = selected.map(target => buildPureCurrentTtsRenderPlan({ target, sourceText: prepared.text, sourceIdentity: prepared.sourceIdentity, dialoguePlan: prepared.dialoguePlan, ttsOptions }))
+  const steps = (await Promise.all(selected.map((target, index) => {
+    const slots = plans[index]!.planned.slots
+    return buildTtsTargetEstimates([target], ttsOptions, slots.reduce((sum, slot) => sum + [...slot.providerText].length, 0), [slots.length])
+  }))).flat()
   for (const [index, target] of selected.entries()) {
+    const plan = plans[index]!
+    const step = steps[index]!
+    step.chunkLengths = plan.planned.slots.map(slot => slot.providerText.length)
+    step.requestCount = plan.planned.slots.length
     if (target.service !== 'soniox') continue
-    const plan = buildPureCurrentTtsRenderPlan({ target, sourceText: prepared.text, sourceIdentity: prepared.sourceIdentity, dialoguePlan: prepared.dialoguePlan, ttsOptions })
     const characters = plan.planned.slots.reduce((sum, slot) => sum + [...slot.providerText].length, 0)
     const cents = plan.plannedRenderCost.amounts.reduce((sum, amount) => sum + amount.amount * 100, 0)
-    Object.assign(steps[index]!, sonioxEstimateFromPlannedCost(characters, cents), { characterCount: characters })
+    Object.assign(step, sonioxEstimateFromPlannedCost(characters, cents), { characterCount: characters })
   }
   return aggregateExplicitPriceEstimate(steps, ttsOptions, {
     ttsTimingCharacterCount: prepared.ttsCharacterCount,

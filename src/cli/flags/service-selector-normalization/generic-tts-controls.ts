@@ -21,13 +21,12 @@ export const GENERIC_TTS_CONTROL_MAP = {
   'tts-speaker-boost': { elevenlabs: 'useSpeakerBoost' },
   'tts-seed': { elevenlabs: 'seed' },
   'tts-pronunciation-dictionary': { elevenlabs: 'pronunciationDictionaryLocators' },
-  'tts-response-format': { gemini: 'responseFormat', mistral: 'responseFormat', elevenlabs: 'responseFormat' }
+  'tts-response-format': { gemini: 'responseFormat', elevenlabs: 'responseFormat' }
 } as const satisfies GenericTtsControlMap
 
 // Flags that select a voice identity in the target layer rather than a control in the control layer.
 export const GENERIC_TTS_IDENTITY_MAP = {
-  'tts-voice': ['soniox', 'gemini', 'elevenlabs', 'grok', 'mistral', 'openai', 'inworld'],
-  'tts-ref-audio': ['mistral']
+  'tts-voice': ['soniox', 'gemini', 'elevenlabs', 'grok', 'openai', 'inworld'],
 } as const satisfies Record<string, readonly TtsProvider[]>
 
 export type GenericTtsControlFlag = keyof typeof GENERIC_TTS_CONTROL_MAP

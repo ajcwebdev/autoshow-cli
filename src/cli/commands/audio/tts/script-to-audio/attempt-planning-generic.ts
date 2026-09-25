@@ -1,9 +1,7 @@
-import type { AttemptSlot, AttemptTurn, CreateCurrentTtsRenderAttemptOptions, PlannedInputs, ProviderRenderStrategy, TtsTargetInvocation, TtsTargetSelection } from '~/types'
-import { splitSonioxTtsText } from '../tts-services/tts-soniox/soniox-tts-chunks'
-import { splitGeminiTtsText } from '../tts-services/tts-gemini/gemini-tts-chunks'
+import type { ResolvedTtsChunk, AttemptSlot, AttemptTurn, CreateCurrentTtsRenderAttemptOptions, PlannedInputs, ProviderRenderStrategy, TtsTargetInvocation, TtsTargetSelection } from '~/types'
 import { geminiNativeEligible, planGeminiNativeGroups } from '../tts-services/tts-gemini/gemini-dialogue-plan'
 import { UsageError } from '~/utils/error-handler'
-import { splitTtsText } from '../tts-utils/tts-chunk-planner'
+import { planProviderTtsChunks } from '../tts-utils/tts-provider-chunk-policy'
 import { getSpeakerVoice, isMultiSpeakerRequested, normalizeDialogueFromOptions, parseSpeakerVoiceMappings } from '../dialogue-normalizer'
 import { planElevenLabsNativeDialogueBatches } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
 import { createTtsTargetSelection } from '../tts-targets/tts-target-selection'
@@ -33,26 +31,15 @@ export const resolveGenericTurns = (
       : !mapping
         ? options.target.protectedVoiceAsset
         : undefined
-    if (
-      mapping?.voiceKind === 'ref-audio'
-      && (!protectedAsset || mapping.voice !== `ref_audio:${protectedAsset.assetId}`)
-    ) {
-      throw UsageError(`Reference-audio speaker ${mapping.speaker} does not bind its exact protected asset before render planning.`)
+    if (mapping?.voiceKind === 'ref-audio' || options.target.protectedVoiceAsset) {
+      throw UsageError('Reference audio TTS invocation is no longer supported.')
     }
-    const kind = mapping?.voiceKind === 'ref-audio' || (!mapping && options.target.protectedVoiceAsset)
-      ? 'reference-asset'
-      : 'provider-id'
+    const kind = 'provider-id'
     const invocation: TtsTargetInvocation = Object.freeze({
       sourceId: canonical.turnId,
       sourceIndex,
       speaker: canonical.originalSpeakerLabel,
-      voice: Object.freeze(mapping?.voiceKind === 'ref-audio'
-        ? {
-            kind: 'ref-audio' as const,
-            value,
-            ...(protectedAsset ? { protectedAsset, authorizationRef: 'explicit-cli:mistral-request-reference-v1' } : {})
-          }
-        : { kind: 'id' as const, value }),
+      voice: Object.freeze({ kind: 'id' as const, value }),
       controls: resolveTtsTurnControlOverrides(options.target.service, canonical.turnId, normalizedTurnControls)
     })
     const effectiveControls = resolveEffectiveProviderControls(options.target, invocation, options.target.service === 'gemini' && canonical.delivery ? { ...selection, geminiInstructions: canonical.delivery.description } : selection)
@@ -112,9 +99,16 @@ export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions,
   const nativeGroups = geminiNative ? planGeminiNativeGroups(options.target.model, turns) : native && registry
     ? resolveGenericNativeGroups(turns, registry, elevenLabsNative)
     : []
-  const slotGroups: Array<{ turnIds: string[], providerTexts: string[] }> = native
+  const slotGroups: Array<{ turnIds: string[], providerTexts: string[], chunks?: ResolvedTtsChunk[] }> = native
     ? nativeGroups
-    : turns.map((turn) => ({ turnIds: [turn.canonical.turnId], providerTexts: options.target.service === 'soniox' ? splitSonioxTtsText(turn.canonical.canonicalText, options.ttsOptions.ttsChunking) : options.target.service === 'gemini' ? splitGeminiTtsText(options.target.model, { text: turn.canonical.canonicalText, voice: turn.voice.value!, speaker: turn.canonical.originalSpeakerLabel, style: turn.effectiveControls['instructions'] as string | undefined }, options.ttsOptions.ttsChunking) : splitTtsText(prepareSegmentedTurnText(turn.canonical.canonicalText, options.target, turn.canonical.delivery?.description).providerText, limit, options.ttsOptions.ttsChunking) }))
+    : turns.map((turn) => {
+      const chunks = planProviderTtsChunks({ provider: options.target.service, model: options.target.model,
+        text: prepareSegmentedTurnText(turn.canonical.canonicalText, options.target, turn.canonical.delivery?.description).providerText,
+        voice: turn.voice.value, speaker: turn.canonical.originalSpeakerLabel,
+        style: turn.effectiveControls['instructions'] as string | undefined,
+        characterLimit: limit, chunking: options.ttsOptions.ttsChunking })
+      return { turnIds: [turn.canonical.turnId], providerTexts: chunks.map(chunk => chunk.text), chunks }
+    })
 
   let includesSetup = true
   const slots: AttemptSlot[] = []
@@ -126,7 +120,7 @@ export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions,
     const generationSlots = group.providerTexts.map((providerText, slotIndex) => {
       const cost = plannedCost(options.target, [...providerText].length, includesSetup, (primaryTurn.effectiveControls['speed'] as number | undefined) ?? (options.target.service === 'soniox' ? 1 : undefined))
       includesSetup = false
-      const slot = { batchId, generationSlotId: `${batchId}-slot-${String(slotIndex + 1).padStart(3, '0')}`, slotIndex, turnIds: group.turnIds, providerText, plannedCost: cost, expectedRequestControlsHash: hashCanonicalTtsValue(contract.controls), expectedEndpointKind: contract.endpointKind, expectedSerializerVersion: contract.serializerVersion, expectedVoiceField: providerSerializerVoiceField(options.target, strategy, primaryTurn.voice.kind) }
+      const slot = { batchId, generationSlotId: `${batchId}-slot-${String(slotIndex + 1).padStart(3, '0')}`, slotIndex, turnIds: group.turnIds, providerText, chunk: group.chunks?.[slotIndex], plannedCost: cost, expectedRequestControlsHash: hashCanonicalTtsValue(contract.controls), expectedEndpointKind: contract.endpointKind, expectedSerializerVersion: contract.serializerVersion, expectedVoiceField: providerSerializerVoiceField(options.target, strategy, primaryTurn.voice.kind) }
       slots.push(slot)
       return { generationSlotId: slot.generationSlotId, slotIndex, requestedTakeCount: 1, plannedCost: cost }
     })

@@ -9,11 +9,11 @@ const paragraphs = (count: number, sentencesEach: number): string =>
 const collapse = (value: string): string => value.replace(/\s+/gu, ' ').trim()
 
 describe('TTS chunk planner', () => {
-  test('legacy mode and an absent chunking option reproduce the original splitter byte for byte', () => {
+  test('saved legacy replay reproduces the original splitter; absent options use smart', () => {
     for (const text of [paragraphs(6, 9), 'x'.repeat(5000), `${'word '.repeat(900)}\nshort tail`, '  padded  ']) {
       for (const limit of [200, 2000, 5000]) {
-        expect(splitTtsText(text, limit)).toEqual(splitTextIntoChunks(text, limit))
-        expect(splitTtsText(text, limit, { boundary: 'legacy' })).toEqual(splitTextIntoChunks(text, limit))
+        expect(splitTtsText(text, limit)).toEqual(splitTtsText(text, limit, { boundary: 'smart' }))
+        expect(splitTtsText(text, limit, { boundary: 'smart', replay: 'legacy-v0' })).toEqual(splitTextIntoChunks(text, limit))
       }
     }
   })
@@ -79,8 +79,22 @@ describe('TTS chunk planner', () => {
     expect(resolveTtsChunkMaxChars(2000, { boundary: 'smart', maxChars: 9000 })).toBe(2000)
   })
 
+  test('abbreviations, initials and times are not classified as sentence ends', () => {
+    const text = 'x'.repeat(120) + ' Dr. Morgan returns at 4 p.m. with J. Smith. '.repeat(80)
+    const chunks = planTtsChunks(text, 500)
+    expect(chunks.some(chunk => chunk.boundaryAfter === 'sentence')).toBe(true)
+    expect(chunks.filter(chunk => chunk.boundaryAfter === 'sentence').every(chunk => !/(?:Dr|p\.m|J)\.$/.test(chunk.text))).toBe(true)
+    expect(collapse(chunks.map(chunk => chunk.text).join(' '))).toBe(collapse(text))
+  })
+
+  test('a notation larger than the budget and a budget smaller than one Unicode character fail explicitly', () => {
+    expect(() => planTtsChunks('[a long delivery tag]', 5)).toThrow('notation')
+    expect(() => planTtsChunks('🌍🌍', 1)).toThrow('Unicode')
+    expect(() => planTtsChunks('text', Number.NaN)).toThrow('positive')
+  })
+
   test('empty and whitespace-only text produce no chunks', () => {
     expect(planTtsChunks('   \n ', 1000, { boundary: 'smart' })).toEqual([])
-    expect(planTtsChunks('', 1000, { boundary: 'legacy' })).toEqual([])
+    expect(planTtsChunks('', 1000, { boundary: 'smart', replay: 'legacy-v0' })).toEqual([])
   })
 })

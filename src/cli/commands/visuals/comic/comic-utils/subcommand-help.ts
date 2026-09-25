@@ -133,7 +133,6 @@ export const generateAudioCommandDefinition = defineCliCommand({
   flags: comicGenerateAudioFlags,
   help: {
     examples: [
-      [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --provider mistral=voxtral-mini-tts-2603 --mode segmented`, 'Render approved Mistral saved/reference voices'],
       [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --provider elevenlabs=eleven_v3 --sfx-provider elevenlabs=eleven_text_to_sound_v2`, 'Render dialogue plus authored sound effects and ambience'],
       [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --sfx-provider replicate=sepal/audiogen@154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8 --sfx-license-use noncommercial`, 'Render authored action SFX and ambience with pinned AudioGen'],
       [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --sfx-provider stability=stable-audio-3`, 'Render authored action SFX and ambience with Stability Stable Audio 3'],

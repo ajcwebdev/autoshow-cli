@@ -1,8 +1,6 @@
 import { expect } from 'bun:test'
 import { runCommand } from '../../../../../test-utils/test-helpers'
 
-export const MISTRAL_TTS_MODEL = 'voxtral-mini-tts-2603'
-export const MISTRAL_REF_AUDIO_PATH = 'input/examples/audio/anthony-voice.mp3'
 
 const NO_PAID_TTS_ENV = {
   ANTHROPIC_API_KEY: '',

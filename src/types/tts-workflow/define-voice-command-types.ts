@@ -14,7 +14,6 @@ export const VOICE_CAPABILITY_REGISTRY = {
   elevenlabs: { models: ['eleven_v3'], import: true, catalog: true, design: true, clone: true, lifecycle: true },
   soniox: { models: ['tts-rt-v2'], import: true, catalog: false, design: false, clone: false, lifecycle: false },
   grok: { models: ['grok-tts'], import: true, catalog: true, design: false, clone: true, lifecycle: true },
-  mistral: { models: ['voxtral-mini-tts-2603'], import: true, catalog: true, design: false, clone: true, lifecycle: true },
   openai: { models: ['gpt-4o-mini-tts-2025-12-15'], import: true, catalog: false, design: false, clone: false, lifecycle: false },
   inworld: { models: ['realtime-tts-2'], import: true, catalog: true, design: true, clone: true, lifecycle: true },
 } as const satisfies Record<TtsProvider, VoiceProviderCapabilities>

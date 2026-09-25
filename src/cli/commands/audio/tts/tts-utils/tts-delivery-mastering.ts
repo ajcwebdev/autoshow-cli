@@ -7,6 +7,7 @@ import { InfraError, UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { inspectSoundscapeAudio } from '../soundscape/soundscape-audio'
 import { createSilenceWav } from './audio-utils'
+import { validateDeliveryWav, deliveryPcmFrames } from './tts-delivery-pcm'
 
 const SILENCE_THRESHOLD_DB = -50
 const SILENCE_MIN_SECONDS = 0.05
@@ -35,23 +36,36 @@ export const ttsSeamGapMs = (profile: TtsDeliveryProfile, boundary: TtsDeliveryS
 }
 
 export const parseSilenceDetectEdges = (stderr: string, durationSeconds: number): { leadEndSeconds: number, tailStartSeconds: number } => {
-  const events = [...stderr.matchAll(/silence_(start|end):\s*(-?\d+(?:\.\d+)?)/gu)].map((match) => ({ kind: match[1] as 'start' | 'end', at: Number(match[2]) }))
+  const intact = { leadEndSeconds: 0, tailStartSeconds: durationSeconds }
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return intact
+  const events = [...stderr.matchAll(/silence_(start|end):[ \t]*(\S*)/gu)]
   const intervals: Array<{ start: number, end: number }> = []
   let open: number | undefined
+  let previous = 0
   for (const event of events) {
-    if (event.kind === 'start') open = Math.max(0, event.at)
-    else if (open !== undefined) {
-      intervals.push({ start: open, end: event.at })
+    if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/iu.test(event[2] ?? '')) return intact
+    const at = Number(event[2])
+    // Reject the whole detection if any interval is ambiguous, unordered or out of range.
+    if (!Number.isFinite(at) || at < 0 || at > durationSeconds + 0.0001 || at < previous) return intact
+    previous = at
+    if (event[1] === 'start') {
+      if (open !== undefined) return intact
+      open = at
+    } else {
+      if (open === undefined || at <= open) return intact
+      intervals.push({ start: open, end: Math.min(at, durationSeconds) })
       open = undefined
     }
   }
   if (open !== undefined) intervals.push({ start: open, end: durationSeconds })
-  const lead = intervals.find((interval) => interval.start <= EDGE_TOLERANCE_SECONDS)
-  const tail = [...intervals].reverse().find((interval) => interval.end >= durationSeconds - EDGE_TOLERANCE_SECONDS)
-  return {
-    leadEndSeconds: lead ? Math.min(lead.end, durationSeconds) : 0,
-    tailStartSeconds: tail && tail !== lead ? tail.start : durationSeconds,
-  }
+  const lead = intervals[0]?.start !== undefined && intervals[0].start <= EDGE_TOLERANCE_SECONDS ? intervals[0] : undefined
+  const last = intervals.at(-1)
+  const tail = last && last.end >= durationSeconds - EDGE_TOLERANCE_SECONDS ? last : undefined
+  if (lead && lead === tail) return intact
+  const leadEndSeconds = lead?.end ?? 0
+  const tailStartSeconds = tail?.start ?? durationSeconds
+  if (tailStartSeconds - leadEndSeconds < MIN_SPEECH_SECONDS) return intact
+  return { leadEndSeconds, tailStartSeconds }
 }
 
 const formatFilter = (sampleRate: number, channels: 1 | 2): string =>
@@ -65,9 +79,9 @@ const renderSegment = async (input: {
   trimSilence: boolean
   label: string
   abortSignal?: AbortSignal | undefined
-}): Promise<{ trimLeadMs: number, trimTailMs: number, sourceDurationMs: number, durationMs: number }> => {
-  const source = await inspectSoundscapeAudio(input.sourcePath)
-  const sourceSeconds = source.durationMs / 1000
+}): Promise<{ trimLeadMs: number, trimTailMs: number, sourceDurationMs: number, frames: number }> => {
+  const sourceFrames = await deliveryPcmFrames(input.sourcePath)
+  const sourceSeconds = sourceFrames / input.sampleRate
   let startSeconds = 0
   let endSeconds = sourceSeconds
   if (input.trimSilence) {
@@ -80,22 +94,24 @@ const renderSegment = async (input: {
       endSeconds = trimmedEnd
     }
   }
-  const lengthSeconds = endSeconds - startSeconds
+  const startFrame = Math.round(startSeconds * input.sampleRate)
+  const endFrame = Math.round(endSeconds * input.sampleRate)
+  const lengthSeconds = (endFrame - startFrame) / input.sampleRate
   const fadeSeconds = Math.min(EDGE_FADE_SECONDS, lengthSeconds / 4)
   const filter = [
-    `atrim=start=${startSeconds.toFixed(6)}:end=${endSeconds.toFixed(6)}`,
+    `atrim=start_sample=${startFrame}:end_sample=${endFrame}`,
     'asetpts=PTS-STARTPTS',
     `afade=t=in:st=0:d=${fadeSeconds.toFixed(6)}`,
     `afade=t=out:st=${Math.max(0, lengthSeconds - fadeSeconds).toFixed(6)}:d=${fadeSeconds.toFixed(6)}`,
     formatFilter(input.sampleRate, input.channels),
   ].join(',')
   await runFfmpeg(['-i', input.sourcePath, '-vn', '-map', '0:a:0', '-af', filter, '-c:a', 'pcm_s16le', '-bitexact', '-y', input.outputPath], input.label, 'error', input.abortSignal)
-  const rendered = await inspectSoundscapeAudio(input.outputPath)
+  const frames = await deliveryPcmFrames(input.outputPath)
   return {
-    trimLeadMs: Math.round(startSeconds * 1000),
-    trimTailMs: Math.round((sourceSeconds - endSeconds) * 1000),
-    sourceDurationMs: source.durationMs,
-    durationMs: rendered.durationMs,
+    trimLeadMs: Math.round(startFrame / input.sampleRate * 1000),
+    trimTailMs: Math.round((sourceFrames - endFrame) / input.sampleRate * 1000),
+    sourceDurationMs: Math.round(sourceSeconds * 1000),
+    frames,
   }
 }
 
@@ -155,22 +171,44 @@ export const masterTtsDelivery = async (input: TtsDeliveryMasteringInput): Promi
   const parts: string[] = []
   const placements: TtsDeliveryPlacement[] = []
   const pauses: TtsDeliveryPause[] = []
-  let cursorMs = 0
+  let cursorFrames = 0
+  const milliseconds = (frames: number): number => Math.round(frames / sampleRate * 1000)
   const pushSilence = async (name: string, durationMs: number, pause: Omit<TtsDeliveryPause, 'startMs' | 'endMs'>): Promise<void> => {
     if (durationMs <= 0) return
-    parts.push(await createSilenceWav(join(input.workDir, name), durationMs, silenceProfile, input.abortSignal))
-    pauses.push({ ...pause, startMs: cursorMs, endMs: cursorMs + durationMs })
-    cursorMs += durationMs
+    const path = await createSilenceWav(join(input.workDir, name), durationMs, silenceProfile, input.abortSignal)
+    const frames = await deliveryPcmFrames(path)
+    parts.push(path)
+    pauses.push({ ...pause, startMs: milliseconds(cursorFrames), endMs: milliseconds(cursorFrames + frames) })
+    cursorFrames += frames
   }
   await pushSilence(`lead-in-${input.profile.leadInMs}ms.wav`, input.profile.leadInMs, { kind: 'lead-in' })
-  for (const [index, segment] of input.segments.entries()) {
+  // Adjacent outputs with the same purchased-slot identity form one continuous signal.
+  const slots: Array<{ id: string, paths: string[], boundaryAfter: TtsDeliverySeamBoundary }> = []
+  for (const segment of input.segments) {
+    const previous = slots.at(-1)
+    if (previous?.id === segment.id) {
+      previous.paths.push(segment.path)
+      previous.boundaryAfter = segment.boundaryAfter
+    } else slots.push({ id: segment.id, paths: [segment.path], boundaryAfter: segment.boundaryAfter })
+  }
+  for (const [index, segment] of slots.entries()) {
     const ordinal = String(index + 1).padStart(4, '0')
     const outputPath = join(input.workDir, `segment-${ordinal}.wav`)
-    const rendered = await renderSegment({ sourcePath: segment.path, outputPath, sampleRate, channels, trimSilence: input.profile.trimSilence, label: `${input.providerLabel} segment ${index + 1}`, abortSignal: input.abortSignal })
+    const normalized: string[] = []
+    for (const [partIndex, path] of segment.paths.entries()) {
+      await validateDeliveryWav(path)
+      const normalizedPath = join(input.workDir, `slot-${ordinal}-part-${partIndex}.wav`)
+      await runFfmpeg(['-xerror', '-err_detect', 'explode', '-i', path, '-vn', '-map', '0:a:0', '-af', formatFilter(sampleRate, channels), '-c:a', 'pcm_s16le', '-bitexact', '-y', normalizedPath], input.providerLabel, 'error', input.abortSignal)
+      await deliveryPcmFrames(normalizedPath)
+      normalized.push(normalizedPath)
+    }
+    const sourcePath = normalized.length === 1 ? normalized[0] as string : join(input.workDir, `slot-${ordinal}.wav`)
+    if (normalized.length > 1) await concatCopy(normalized, sourcePath, join(input.workDir, `slot-${ordinal}.txt`), input.abortSignal)
+    const rendered = await renderSegment({ sourcePath, outputPath, sampleRate, channels, trimSilence: input.profile.trimSilence, label: `${input.providerLabel} segment ${index + 1}`, abortSignal: input.abortSignal })
     parts.push(outputPath)
-    placements.push({ id: segment.id, startMs: cursorMs, endMs: cursorMs + rendered.durationMs, trimLeadMs: rendered.trimLeadMs, trimTailMs: rendered.trimTailMs, sourceDurationMs: rendered.sourceDurationMs })
-    cursorMs += rendered.durationMs
-    if (index < input.segments.length - 1) {
+    placements.push({ id: segment.id, startMs: milliseconds(cursorFrames), endMs: milliseconds(cursorFrames + rendered.frames), trimLeadMs: rendered.trimLeadMs, trimTailMs: rendered.trimTailMs, sourceDurationMs: rendered.sourceDurationMs })
+    cursorFrames += rendered.frames
+    if (index < slots.length - 1) {
       const gapMs = ttsSeamGapMs(input.profile, segment.boundaryAfter)
       await pushSilence(`gap-${ordinal}-${gapMs}ms.wav`, gapMs, { kind: 'seam-gap', afterId: segment.id, boundary: segment.boundaryAfter })
     }

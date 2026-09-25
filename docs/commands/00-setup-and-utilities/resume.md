@@ -103,7 +103,7 @@ Write resumes reuse the stored `prompt.md` and run only the selected LLM provide
 These flags match the original commands. Meanings are the same unless noted.
 
 - Extract: `--ocr-provider-mode` must match the original run. Omit it to keep the stored mode; a different value is rejected.
-- TTS: resume accepts only provider-neutral options, and it does not accept `--tts-book`. `--allow-ambiguous-redispatch` may repurchase a stored generation that has no recoverable audio. When no chunking or mastering flag is passed, resume keeps the stored render so completed audio is not purchased again. Non-default mastering has to be passed again with the same `--tts-chunk-boundary`, `--tts-chunk-size`, `--tts-audio-profile`, or mastering overrides. A run that used `--tts-pronunciations` needs the same lexicon file again. A different voice, cast, synthesis control, or output plan stops before any repurchase.
+- TTS: resume accepts only provider-neutral options, and it does not accept `--tts-book`. `--allow-ambiguous-redispatch` may repurchase a stored generation that has no recoverable audio. When no chunking or mastering flag is passed, resume keeps the stored render so completed audio is not purchased again. Saved shared chunking, mastering, export, and pronunciation settings are restored automatically. Older legacy and smart plans replay their original chunk algorithm; new runs always use the current smart planner. Explicit overrides must remain compatible with the retained plan. A different voice, cast, synthesis control, or output plan stops before any repurchase.
 
 ## Gemini remote TTS jobs
 

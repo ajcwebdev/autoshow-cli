@@ -66,7 +66,7 @@ describe('TTS delivery mastering', () => {
   })
 
   test('seam gaps follow the boundary kind and hard cuts get none', () => {
-    const profile = ttsDeliveryPreset('native')
+    const profile = { ...ttsDeliveryPreset('native'), gapsMs: { paragraph: 750, turn: 750, sentence: 350, clause: 120 } }
     expect(ttsSeamGapMs(profile, 'paragraph')).toBe(750)
     expect(ttsSeamGapMs(profile, 'turn')).toBe(750)
     expect(ttsSeamGapMs(profile, 'sentence')).toBe(350)
@@ -74,10 +74,10 @@ describe('TTS delivery mastering', () => {
     expect(ttsSeamGapMs(profile, 'hard')).toBe(0)
   })
 
-  test('artifact-integrity: native profile keeps the source sample rate, trims seam silence, and inserts boundary gaps', async () => {
+  test('artifact-integrity: opt-in trimming keeps the source sample rate and inserts explicit boundary gaps', async () => {
     await withTempDir('tts-delivery-native-', async (dir) => {
       const segments = await writeSegments(dir)
-      const result = await masterTtsDelivery({ segments, profile: ttsDeliveryPreset('native'), workDir: join(dir, 'work'), providerLabel: 'test' })
+      const result = await masterTtsDelivery({ segments, profile: { ...ttsDeliveryPreset('native'), trimSilence: true, gapsMs: { paragraph: 750, turn: 750, sentence: 350, clause: 120 } }, workDir: join(dir, 'work'), providerLabel: 'test' })
       const assembly = await Bun.file(join(dir, 'work', 'assembly.txt')).text()
       expect(assembly).not.toContain(dir)
       expect(assembly).not.toContain("file '/")

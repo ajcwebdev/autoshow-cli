@@ -262,7 +262,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'gemini-tts':        ['defaults', 'tts', 'geminiTts'],
   'soniox-tts':        ['defaults', 'tts', 'sonioxTts'],
   'grok-tts':          ['defaults', 'tts', 'grokTts'],
-  'mistral-tts':       ['defaults', 'tts', 'mistralTts'],
   'openai-tts':        ['defaults', 'tts', 'openaiTts'],
   'inworld-tts':       ['defaults', 'tts', 'inworldTts'],
   'tts-voice':         ['defaults', 'tts', 'voice'],
@@ -367,7 +366,6 @@ export const RUNTIME_ONLY_FLAGS = new Set([
   'reset',
   'config-path',
   'password',
-  'tts-ref-audio'
 ])
 
 const setNestedValue = (obj: Record<string, unknown>, path: string[], value: unknown): void => {

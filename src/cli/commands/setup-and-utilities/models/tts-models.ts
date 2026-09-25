@@ -1,7 +1,7 @@
 import { createModelValidator, createRetiringModelValidator, formatAllowedValues } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import { UsageError } from '~/utils/error-handler'
 import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
-import type { ElevenlabsTtsModel, GrokTtsModel, InworldTtsModel, MistralTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection } from '~/types'
+import type { ElevenlabsTtsModel, GrokTtsModel, InworldTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection } from '~/types'
 
 export const SUPPORTED_ELEVENLABS_TTS_MODELS = [
   'eleven_v3'
@@ -85,14 +85,6 @@ export const validateGrokTtsLanguage = (language: string): string => {
   }
   return normalized
 }
-
-export const SUPPORTED_MISTRAL_TTS_MODELS = [
-  'voxtral-mini-tts-2603'
-] as const satisfies readonly string[]
-
-export const MISTRAL_DEFAULT_REF_AUDIO = 'input/examples/audio/anthony-voice.mp3'
-
-export const validateMistralTtsModel = createModelValidator<MistralTtsModel>(SUPPORTED_MISTRAL_TTS_MODELS, 'mistral-tts')
 
 export const SUPPORTED_OPENAI_TTS_MODELS = [
   'gpt-4o-mini-tts-2025-12-15'

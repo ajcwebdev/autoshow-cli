@@ -1,4 +1,5 @@
 import type {
+  ResolvedTtsChunk,
   AnyCapabilityRecord,
   CanonicalAudioProviderProjection,
   CanonicalDialogueTurn,
@@ -39,6 +40,8 @@ export type AttemptTurn = {
 }
 
 export type AttemptSlot = {
+  chunk?: ResolvedTtsChunk | undefined
+  audioArtifactRef?: string | undefined
   batchId: string
   generationSlotId: string
   slotIndex: number

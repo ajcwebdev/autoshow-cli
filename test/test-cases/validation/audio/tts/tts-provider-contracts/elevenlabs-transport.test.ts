@@ -4,17 +4,12 @@ import {
   expect,
   test
 } from 'bun:test'
-import { join } from 'node:path'
 import { runElevenLabsTts } from '~/cli/commands/audio/tts/tts-services/tts-elevenlabs/run-elevenlabs-tts'
-import { runMistralTts } from '~/cli/commands/audio/tts/tts-services/tts-mistral/run-mistral-tts'
-import { runTts } from '~/cli/commands/audio/tts/run-tts'
 import { resolveTtsChunkCharacterLimit } from '~/cli/commands/audio/tts/tts-utils/tts-chunking'
-import type { TtsOptions } from '~/types'
-import { createMockWavBase64, createSyntheticWavBytes } from '../../../../../test-utils/media-fixtures'
+import { createSyntheticWavBytes } from '../../../../../test-utils/media-fixtures'
 import { installMockFetch } from '../../../../../test-utils/rest-contract-helpers'
 import {
   captureGatedAssertions,
-  LOCAL_AUDIO_PATH,
   LOCAL_SHORT_AUDIO_PATH,
   readWavSamples,
   segmentRms,
@@ -25,73 +20,6 @@ import {
 const { makeTempDir } = setupTtsContractLifecycle()
 
 describe('TTS provider service contracts', () => {
-  test('Mistral converts a protected non-mp3-wav reference to WAV before sending ref_audio', async () => {
-      const dir = await makeTempDir('autoshow-mistral-tts-ref-audio-')
-      const sourcePath = join(dir, 'reference.m4a')
-
-      await Bun.$`ffmpeg -v error -y -i ${LOCAL_SHORT_AUDIO_PATH} -t 1 -c:a aac ${sourcePath}`.quiet()
-
-      process.env['MISTRAL_API_KEY'] = 'mistral-key'
-
-      const calls = installMockFetch(() => Response.json({ audio_data: createMockWavBase64() }))
-
-      const result = await runMistralTts('Mistral reference synthesis.', dir, {
-        chunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 4, concurrencyMode: 'immediate' }),
-        model: 'voxtral-mini-tts-2603',
-        refAudioPath: sourcePath,
-        protectedReference: {
-          assetId: 'sha256_fixture_reference',
-          sourceExtension: '.m4a'
-        }
-      })
-
-      expect(await Bun.file(result.audioPath).exists()).toBe(true)
-      expect(calls).toHaveLength(1)
-      expect(calls[0]?.headers.get('authorization')).toBe('Bearer mistral-key')
-      expect(calls[0]).toMatchObject({
-        url: 'https://api.mistral.ai/v1/audio/speech',
-        method: 'POST'
-      })
-      expect(calls[0]?.bodyJson).toMatchObject({
-        model: 'voxtral-mini-tts-2603',
-        input: 'Mistral reference synthesis.',
-        stream: false,
-        response_format: 'wav'
-      })
-
-      const refAudio = String(calls[0]?.bodyJson?.['ref_audio'])
-      const refBytes = Buffer.from(refAudio, 'base64')
-      expect(refBytes.subarray(0, 4).toString('ascii')).toBe('RIFF')
-      expect(refBytes.subarray(8, 12).toString('ascii')).toBe('WAVE')
-      expect(await Bun.file(join(dir, 'mistral-reference-audio.wav')).exists()).toBe(false)
-      expect(result.metadata).toMatchObject({
-        ttsService: 'mistral',
-        ttsModel: 'voxtral-mini-tts-2603',
-        speaker: 'ref_audio:sha256_fixture_reference',
-        chunkCount: 1
-      })
-    }, 10_000)
-
-  test('Mistral multi-speaker reference paths fail locally before provider execution', async () => {
-      const dir = await makeTempDir('autoshow-mistral-tts-dialogue-ref-audio-')
-      process.env['MISTRAL_API_KEY'] = 'mistral-key'
-
-      const calls = installMockFetch(() => Response.json({ audio_data: createMockWavBase64() }))
-
-      await expect(runTts([
-        'Host: Welcome to the reference audio test.',
-        'Guest: Thanks. I should use the guest sample.'
-      ].join('\n'), dir, {
-        mistralTtsModels: ['voxtral-mini-tts-2603'],
-        ttsDialogueFormat: 'labeled',
-        ttsSpeakers: [
-          `Host=${LOCAL_SHORT_AUDIO_PATH}`,
-          `Guest=${LOCAL_AUDIO_PATH}`
-        ]
-      } as TtsOptions)).rejects.toThrow('must cross protected ingestion as exact per-speaker opaque assets')
-
-      expect(calls).toHaveLength(0)
-    }, 10_000)
 
   test('ElevenLabs TTS sends the baked output format, voice settings, seed, text normalization, and pronunciation dictionaries controls', async () => {
       const dir = await makeTempDir('autoshow-elevenlabs-tts-controls-')

@@ -1,4 +1,4 @@
-import type { AttemptSlot, AttemptTurn, CreateCurrentTtsRenderAttemptOptions, PlannedInputs, ProviderRenderStrategy, ResolvedVoiceBinding, TtsTargetInvocation, TtsTargetSelection } from '~/types'
+import type { ResolvedTtsChunk, AttemptSlot, AttemptTurn, CreateCurrentTtsRenderAttemptOptions, PlannedInputs, ProviderRenderStrategy, ResolvedVoiceBinding, TtsTargetInvocation, TtsTargetSelection } from '~/types'
 import { geminiNativeEligible, planGeminiNativeGroups } from '../tts-services/tts-gemini/gemini-dialogue-plan'
 import { UsageError } from '~/utils/error-handler'
 import { createTtsTargetSelection } from '../tts-targets/tts-target-selection'
@@ -111,9 +111,9 @@ export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _
   const nativeGroups = native
     ? geminiNative ? planGeminiNativeGroups(options.target.model, turns, context.providerSpeakerLabelByTurnId) : resolveComicNativeGroups(context, turns, elevenLabsNative)
     : []
-  const slotGroups: Array<{ turnIds: string[], providerTexts: string[], timingSegmentIndexes?: number[] | undefined }> = native
+  const slotGroups: Array<{ turnIds: string[], providerTexts: string[], timingSegmentIndexes?: number[] | undefined, chunks?: ResolvedTtsChunk[] }> = native
     ? nativeGroups
-    : turns.map(turn => segmentedSlotGroup(turn, options.target))
+    : turns.map(turn => segmentedSlotGroup(turn, options.target, options.ttsOptions.ttsChunking))
 
   let includesSetup = true
   const slots: AttemptSlot[] = []
@@ -125,7 +125,7 @@ export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _
       const cost = plannedCost(options.target, [...providerText].length, includesSetup, (primaryTurn.effectiveControls['speed'] as number | undefined) ?? (options.target.service === 'soniox' ? 1 : undefined))
       includesSetup = false
       const timingSegmentIndex = group.timingSegmentIndexes?.[slotIndex]
-      const slot = { batchId, generationSlotId: `${batchId}-slot-${String(slotIndex + 1).padStart(3, '0')}`, slotIndex, turnIds: group.turnIds, providerText, plannedCost: cost, expectedRequestControlsHash: hashCanonicalTtsValue(contract.controls), expectedEndpointKind: contract.endpointKind, expectedSerializerVersion: contract.serializerVersion, expectedVoiceField: providerSerializerVoiceField(options.target, strategy, primaryTurn.voice.kind), ...(timingSegmentIndex !== undefined ? { timingSegmentIndex } : {}) }
+      const slot = { batchId, generationSlotId: `${batchId}-slot-${String(slotIndex + 1).padStart(3, '0')}`, slotIndex, turnIds: group.turnIds, providerText, chunk: group.chunks?.[slotIndex], plannedCost: cost, expectedRequestControlsHash: hashCanonicalTtsValue(contract.controls), expectedEndpointKind: contract.endpointKind, expectedSerializerVersion: contract.serializerVersion, expectedVoiceField: providerSerializerVoiceField(options.target, strategy, primaryTurn.voice.kind), ...(timingSegmentIndex !== undefined ? { timingSegmentIndex } : {}) }
       slots.push(slot)
       return { generationSlotId: slot.generationSlotId, slotIndex, requestedTakeCount: 1, plannedCost: cost }
     })

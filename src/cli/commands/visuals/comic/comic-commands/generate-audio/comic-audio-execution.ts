@@ -12,7 +12,6 @@ import type {
   VoiceReferenceManifest,
 } from '~/types'
 import { canonicalTargetKey } from '../../../../audio/tts/script-to-audio/contract-identity'
-import { prepareComicSegmentedProviderTexts } from '../../../../audio/tts/script-to-audio/current-render-attempt'
 import { serializesComicDelivery } from '../../../../audio/tts/script-to-audio/comic-segmented-audio'
 import { runTtsForTargets } from '../../../../audio/tts/run-tts'
 import { validateTtsTargetsForExecution } from '../../../../audio/tts/tts-targets'
@@ -111,7 +110,6 @@ export const buildTargetExecution = (input: {
       speaker,
       text: turn.canonicalText,
       ...(delivery ? { delivery } : {}),
-      providerSegments: prepareComicSegmentedProviderTexts(turn, target).providerTexts,
     }
   })
   const ttsSpeakers = [...speakers].map(([speaker, locator]) => `${speaker}=${locator}`)

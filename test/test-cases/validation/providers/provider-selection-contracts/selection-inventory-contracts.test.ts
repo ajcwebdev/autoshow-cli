@@ -48,7 +48,6 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'elevenlabs-tts',
   'soniox-tts',
   'grok-tts',
-  'mistral-tts',
   'openai-tts',
   'inworld-tts',
   'gemini-image',

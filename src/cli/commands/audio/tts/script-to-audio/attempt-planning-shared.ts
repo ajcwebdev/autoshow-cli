@@ -112,9 +112,7 @@ export const voiceBinding = (target: TtsTarget, kind: AttemptTurn['voice']['kind
   const valueHash = kind === 'reference-asset' ? activeProtectedAsset?.sha256 ?? sha256Bytes(value) : sha256Bytes(value)
   const voice = { kind, ...(kind === 'reference-asset' ? {} : { value }), valueHash }
   const providerVoice = kind === 'reference-asset'
-    ? activeProtectedAsset
-      ? { kind: 'reference-asset' as const, provider: target.service, protectedAsset: activeProtectedAsset, origin: 'request-reference-audio' as const, authorizationRef: 'explicit-cli:mistral-request-reference-v1' }
-      : (() => { throw UsageError('Reference-audio synthesis requires a protected asset before render planning.') })()
+    ? (() => { throw UsageError('Reference audio TTS invocation is no longer supported.') })()
     : kind === 'local-model-voice'
       ? { kind: 'local-model-voice' as const, provider: target.service, model: target.model, voiceLocator: value, origin: 'local-model-voice' as const }
       : { kind: 'remote-resource' as const, provider: target.service, resourceId: value, namespace: 'provider' as const, origin: 'provider-stock' as const, ownership: 'provider' as const, deletion: { state: 'provider-managed' as const, checkedAt: EPOCH } }

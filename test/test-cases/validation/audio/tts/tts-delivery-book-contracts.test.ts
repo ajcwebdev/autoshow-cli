@@ -90,8 +90,8 @@ describe('TTS delivery export and book contracts', () => {
     expect(observed.chapters.map((chapter) => chapter.tags?.title)).toEqual(['01 first', '02 second', '10 tenth'])
     const chapterEnds = observed.chapters.map((chapter) => Number(chapter.end_time))
     expect(Math.abs(Number(observed.format.duration) - (chapterEnds.at(-1) ?? 0))).toBeLessThan(0.1)
-    // Each chapter: 500 ms lead-in + ~0.9 s trimmed speech + 1000 ms lead-out.
-    for (const chapter of observed.chapters) expect(Math.abs(Number(chapter.end_time) - Number(chapter.start_time) - 2.4)).toBeLessThan(0.1)
+    // Each chapter: 500 ms lead-in + 1 s provider audio with its natural silence + 1000 ms lead-out.
+    for (const chapter of observed.chapters) expect(Math.abs(Number(chapter.end_time) - Number(chapter.start_time) - 2.5)).toBeLessThan(0.1)
     for (const stem of ['01-first', '02-second', '10-tenth']) {
       expect(await Bun.file(join(outputDir, `${stem}.wav`)).exists()).toBe(true)
       expect(await Bun.file(join(outputDir, `${stem}.m4b`)).exists()).toBe(true)

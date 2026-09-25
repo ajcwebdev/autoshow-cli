@@ -93,7 +93,7 @@ Provider eligibility follows [ADR-010’s billing policy](ADR-010-hosted-model-r
 
 One shared, provider-neutral script-to-audio subsystem sits beneath `tts` and comic. It owns provider capabilities, voice provisioning and lifecycle, explicit per-invocation voice dispatch, native and segmented rendering, timing, scheduling, synthesis metadata, and delivery mastering. Comic consumes it for scene runs under [ADR-013](ADR-013-comic-scene-audio-and-presentation.md) and never creates provider clients or a second TTS stack.
 
-Managed models are Gemini `gemini-3.8-flash-tts` and `gemini-3.8-flash-lite-tts`, ElevenLabs `eleven_v3`, Grok `grok-tts`, Mistral `voxtral-mini-tts-2603`, OpenAI `gpt-4o-mini-tts-2025-12-15`, and Inworld `realtime-tts-2`. Import applies to all seven providers, including Soniox `tts-rt-v2`. Catalog, inspect, and delete apply to every provider except OpenAI and Soniox. Design applies to Gemini, ElevenLabs, and Inworld. Clone applies to Gemini, ElevenLabs, Grok, Mistral, and Inworld. Every provider must receive an explicit voice on each turn or fail locally with a model-specific capability error. No provider may silently reuse a default voice.
+Managed models are Gemini `gemini-3.8-flash-tts` and `gemini-3.8-flash-lite-tts`, ElevenLabs `eleven_v3`, Grok `grok-tts`, OpenAI `gpt-4o-mini-tts-2025-12-15`, and Inworld `realtime-tts-2`. Import applies to all six providers, including Soniox `tts-rt-v2`. Catalog, inspect, and delete apply to every provider except OpenAI and Soniox. Design applies to Gemini, ElevenLabs, and Inworld. Clone applies to Gemini, ElevenLabs, Grok, and Inworld. Every provider must receive an explicit voice on each turn or fail locally with a model-specific capability error. No provider may silently reuse a default voice.
 
 Purchased speech keeps the historical output format in its identity. A separate delivery profile, selected with `--tts-audio-profile` and the related mastering flags, identifies the render, and one mastering step produces the delivered file from the provider audio already stored for that purchase.
 
@@ -116,9 +116,9 @@ It does not apply to:
 
 ### Commands
 
-`tts` synthesizes with an existing stock, designed, or cloned voice, or with Mistral request-time `--tts-ref-audio`, on every implemented model. `voice` manages durable catalog, design, clone, inspect, and delete resources for providers that declare those capabilities; providers without a declared management capability stay synthesis-only. `comic reference-voice` forwards to the same actions as a deprecated alias for one compatibility release ([ADR-006](ADR-006-top-level-command-boundaries-and-deprecations.md)).
+`tts` synthesizes with an existing stock, designed, or cloned voice, on every implemented model. `voice` manages durable catalog, design, clone, inspect, and delete resources for providers that declare those capabilities; providers without a declared management capability stay synthesis-only. `comic reference-voice` forwards to the same actions as a deprecated alias for one compatibility release ([ADR-006](ADR-006-top-level-command-boundaries-and-deprecations.md)).
 
-Expressiveness stays model-specific. There is no shared delivery-tag language; exact tags and request controls are in the [TTS command docs](../commands/04-audio/tts/overview.md). Mistral `voxtral-mini-tts-2603` exposes none of the instruction, speed, or pause controls the other managed models accept.
+Expressiveness stays model-specific. There is no shared delivery-tag language; exact tags and request controls are in the [TTS command docs](../commands/04-audio/tts/overview.md).
 
 ### Voice lifecycle and preflight
 
@@ -159,7 +159,7 @@ Output storage has three lifetime classes:
 
 ### Delivery mastering and export
 
-`--tts-chunk-boundary smart` is the default chunk planner and `legacy` reproduces the earlier splitter. Chunk seams follow the plan that produced the purchased text, so recovery reproduces the original chunk without a new purchase. Seam mastering trims measured silence at chunk edges behind a 30 ms guard pad, inserts a fixed pause for each boundary kind, adds lead-in and lead-out, and optionally normalizes loudness to the profile target. `--tts-trim-silence off` disables trimming when a breath at a chunk edge must be kept. Default output keeps the provider's sample rate.
+New runs always use the shared smart chunk planner. Frozen legacy and earlier smart algorithms are internal replay modes for older saved plans. Provider policies resolve request limits, metadata overhead, protected syntax, and validation before any dispatch; the resulting plan supplies request text and boundaries to execution, estimates, settings, and joins. Chunk seams follow the plan that produced the purchased text, so recovery reproduces the original chunk without a new purchase. New native and audiobook profiles preserve provider silence, with trimming off and zero added join padding. Pause overrides add silence after the final output of a slot without enabling trimming; they do not alter pauses inside provider requests. Opt-in trimming validates silence intervals, retains a 30 ms speech guard, preserves internal pauses, and leaves ambiguous or all-silent audio intact. Outputs within one slot are normalized and concatenated before trimming or fades. Assembly positions use integer decoded sample frames and convert cumulative positions to existing millisecond fields. Audiobook loudness and 500/1,000 ms bookends remain unchanged. Saved profiles retain their exact prior trim and gap values. Default output keeps the provider's sample rate.
 
 Encoding to `flac`, `mp3`, `m4a`, or `m4b`, tags, cover art, and one book file per directory with one chapter per input are exports derived from the WAV master. They do not identify the render, are recorded in the manifest, and can be rebuilt without a new render or purchase. A pronunciation lexicon is applied before chunking, and a text preflight rejects speech markup the provider documents as unsupported.
 
@@ -216,7 +216,7 @@ Negative outcomes:
 **Trade-off 5**
 
 - **Gain:** Seam pauses are fixed and independent of the silence a provider left on each chunk
-- **Sacrifice:** Silence trimming can clip a breath at a chunk edge, bounded by the 30 ms guard pad and `--tts-trim-silence off`
+- **Sacrifice:** Opt-in silence trimming can clip very quiet edge speech; trimming is off by default and retains a 30 ms guard pad
 
 ## Implementation Note
 
@@ -226,7 +226,7 @@ Shipped as `tts` explicit-voice synthesis with native and segmented rendering, s
 
 - Before: a speaker map was a speaker string plus a voice string or path, and synthesis options mixed voice selection with invocation.
 - After: speaker maps carry provider-qualified voice bindings. `tts` synthesizes with an existing voice and never creates or deletes remote voices; `voice` owns the lifecycle actions. Public controls are `--mode auto|native|segmented` and `--allow-ambiguous-redispatch`. Audio artifacts live inside the run as `audio/slots/`, `audio/final/`, and `render.json`.
-- Delivery: `--tts-audio-profile`, `--tts-chunk-boundary smart|legacy`, `--tts-trim-silence`, and the related mastering, export, tag, cover-art, and lexicon flags select the render and its exports. None of them enters purchased-slot identity.
+- Delivery: `--tts-audio-profile`, `--tts-chunk-boundary smart`, `--tts-trim-silence`, and the related mastering, export, tag, cover-art, and lexicon flags select the render and its exports. None of them enters purchased-slot identity.
 
 ## Test Plan
 

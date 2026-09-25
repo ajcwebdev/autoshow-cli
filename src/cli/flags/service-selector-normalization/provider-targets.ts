@@ -24,7 +24,6 @@ export const STANDALONE_TTS_PROVIDER_TARGETS = {
   elevenlabs: 'elevenlabs-tts',
   soniox: 'soniox-tts',
   grok: 'grok-tts',
-  mistral: 'mistral-tts',
   openai: 'openai-tts',
   inworld: 'inworld-tts'
 } as const satisfies Record<string, string>
@@ -71,7 +70,6 @@ export const TTS_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
     elevenlabs: { modelsKey: 'elevenlabsTtsModels' },
     soniox: { modelsKey: 'sonioxTtsModels' },
     grok: { modelsKey: 'grokTtsModels' },
-    mistral: { modelsKey: 'mistralTtsModels' },
     openai: { modelsKey: 'openaiTtsModels' },
     inworld: { modelsKey: 'inworldTtsModels' }
   }

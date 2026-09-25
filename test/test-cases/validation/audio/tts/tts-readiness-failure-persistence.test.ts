@@ -4,18 +4,12 @@ import { join } from 'node:path'
 import { readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
 import { runSingleTtsInput, runTtsDirectoryBatch } from '~/cli/commands/audio/tts/define-tts-command'
-import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
-import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/audio/voice/voice-assets/mistral-request-reference-policy'
-import { createProtectedVoiceAssetStore } from '~/cli/commands/audio/voice/voice-assets/protected-voice-asset-store'
-import { planStandaloneMistralReference } from '~/cli/commands/audio/voice/voice-assets/standalone-mistral-reference'
 import { runTtsTargets } from '~/cli/commands/audio/tts/run-tts'
 import { createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/audio/tts/script-to-audio/generic-dialogue-plan'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
-import type { CanonicalAudioProviderProjection, HostedFixture, PipelineProviderState, ProtectedVoiceAssetStore, ProviderReadinessResult, TtsProvider, TtsTarget } from '~/types'
-import { createMockWavBytes } from '../../../../test-utils/media-fixtures'
+import type { CanonicalAudioProviderProjection, HostedFixture, PipelineProviderState, ProviderReadinessResult, TtsProvider } from '~/types'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
-import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const hostedFixture = (
   service: Extract<TtsProvider, 'openai' | 'grok'>,
@@ -88,13 +82,12 @@ const expectBranchOnlyFailure = async (
 }
 
 const withHostedCredentials = async <T>(
-  values: Partial<Record<'OPENAI_API_KEY' | 'XAI_API_KEY' | 'MISTRAL_API_KEY', string | undefined>>,
+  values: Partial<Record<'OPENAI_API_KEY' | 'XAI_API_KEY', string | undefined>>,
   operation: () => Promise<T>
 ): Promise<T> => {
   const prior = {
     OPENAI_API_KEY: process.env['OPENAI_API_KEY'],
-    XAI_API_KEY: process.env['XAI_API_KEY'],
-    MISTRAL_API_KEY: process.env['MISTRAL_API_KEY']
+    XAI_API_KEY: process.env['XAI_API_KEY']
   }
   for (const [key, value] of Object.entries(values)) {
     if (value === undefined) delete process.env[key]
@@ -134,7 +127,7 @@ describe('canonical TTS execution-readiness failures', () => {
             ttsDialogueFormat: 'labeled',
             ttsSpeakers: [`HOST=ref_audio:sha256_${'a'.repeat(64)}`]
           }
-        )).rejects.toThrow('does not bind its exact protected asset before render planning')
+        )).rejects.toThrow('Reference audio TTS invocation is no longer supported')
       } finally {
         configureBinDir(priorBinDir ?? '')
       }
@@ -272,65 +265,37 @@ describe('canonical TTS execution-readiness failures', () => {
     })
   })
 
-  test('a broken shared media runtime blocks protected Mistral and its hosted peer before ingestion', async () => {
+  test('a broken shared media runtime blocks every hosted peer', async () => {
     await withTempDir('autoshow-tts-readiness-protected-media-runtime-', async (dir) => {
       const inputPath = join(dir, 'source.txt')
-      const referencePath = join(dir, 'private-reference.wav')
       const outputDir = join(dir, 'run')
-      const storeRoot = join(dir, 'protected-store')
       const binDir = join(dir, 'broken-bin')
       await mkdir(binDir)
       await Bun.write(join(binDir, 'ffmpeg'), '#!/bin/sh\nexit 37\n')
       await Bun.write(join(binDir, 'ffprobe'), '#!/bin/sh\nexit 37\n')
       await chmod(join(binDir, 'ffmpeg'), 0o700)
       await chmod(join(binDir, 'ffprobe'), 0o700)
-      await Bun.write(inputPath, 'Unavailable shared media tools must block protected ingestion and every peer.')
-      await Bun.write(referencePath, createMockWavBytes())
+      await Bun.write(inputPath, 'Unavailable shared media tools must block every peer.')
       configurePinnedRunDir(outputDir)
 
-      const baseStore = createProtectedVoiceAssetStore({ storeId: 'media_runtime_refs', root: storeRoot })
-      let ingestCalls = 0
-      const store: ProtectedVoiceAssetStore = {
-        root: baseStore.root,
-        plan: async (input) => await baseStore.plan(input),
-        ingest: async (input, expected) => {
-          ingestCalls++
-          return await baseStore.ingest(input, expected)
-        },
-        resolve: async (asset) => await baseStore.resolve(asset)
-      }
       const options = {
         ...commandOptions(),
-        mistralTtsModels: ['voxtral-mini-tts-2603']
+        grokTtsModels: ['grok-tts']
       }
       const priorBinDir = getConfiguredBinDir()
       configureBinDir(binDir)
       try {
-        await planStandaloneMistralReference(options, {
-          sourcePath: referencePath,
-          authorizationRef: MISTRAL_CLI_REFERENCE_AUTHORIZATION
-        }, store)
-        const plannedMistral = requireDefined(collectTtsTargets(options)[0], 'a planned Mistral protected-reference target')
-        const mistralCalls = { run: 0, setup: 0, fetch: 0 }
-        const mistralTarget: TtsTarget = {
-          ...plannedMistral,
-          run: async () => {
-            mistralCalls.run++
-            mistralCalls.setup++
-            mistralCalls.fetch++
-            throw new Error('Media-readiness-gated Mistral target must not run.')
-          }
-        }
+        const grok = hostedFixture('grok', 'grok-tts', 'eve')
         const openai = hostedFixture('openai', 'gpt-4o-mini-tts-2025-12-15', 'alloy')
 
         await withHostedCredentials({
-          MISTRAL_API_KEY: 'configured-for-local-fixture',
+          XAI_API_KEY: 'configured-for-local-fixture',
           OPENAI_API_KEY: 'configured-for-local-fixture'
         }, async () => {
           await expect(runSingleTtsInput(
             inputPath,
             options,
-            [mistralTarget, openai.target],
+            [grok.target, openai.target],
             undefined
           )).rejects.toThrow('ffmpeg and ffprobe')
         })
@@ -348,9 +313,7 @@ describe('canonical TTS execution-readiness failures', () => {
             }
           })
         }
-        expect(ingestCalls).toBe(0)
-        expect(await Bun.file(storeRoot).exists()).toBe(false)
-        expect(mistralCalls).toEqual({ run: 0, setup: 0, fetch: 0 })
+        expect(grok.calls).toEqual({ run: 0, setup: 0, fetch: 0 })
         expect(openai.calls).toEqual({ run: 0, setup: 0, fetch: 0 })
       } finally {
         configureBinDir(priorBinDir ?? '')
@@ -408,60 +371,32 @@ describe('canonical TTS execution-readiness failures', () => {
     })
   })
 
-  test('a blocked batch peer persists every item and target without protected ingestion', async () => {
+  test('a blocked batch peer persists every item and target without dispatch', async () => {
     await withTempDir('autoshow-tts-readiness-batch-', async (dir) => {
       const inputDir = join(dir, 'inputs')
       const outputDir = join(dir, 'run')
-      const referencePath = join(dir, 'private-reference.wav')
-      const storeRoot = join(dir, 'protected-store')
       await mkdir(inputDir)
       await Bun.write(join(inputDir, 'first.txt'), 'First readiness-gated batch item.')
       await Bun.write(join(inputDir, 'second.txt'), 'Second readiness-gated batch item.')
-      await Bun.write(referencePath, createMockWavBytes())
       configurePinnedRunDir(outputDir)
 
-      const baseStore = createProtectedVoiceAssetStore({ storeId: 'batch_readiness_refs', root: storeRoot })
-      let ingestCalls = 0
-      const store: ProtectedVoiceAssetStore = {
-        root: baseStore.root,
-        plan: async (input) => await baseStore.plan(input),
-        ingest: async (input, expected) => {
-          ingestCalls++
-          return await baseStore.ingest(input, expected)
-        },
-        resolve: async (asset) => await baseStore.resolve(asset)
-      }
       const options = {
-        mistralTtsModels: ['voxtral-mini-tts-2603'],
+        grokTtsModels: ['grok-tts'],
         batchConcurrency: 2,
         price: false,
         allowOverBudget: false
       }
-      await planStandaloneMistralReference(options, {
-        sourcePath: referencePath,
-        authorizationRef: MISTRAL_CLI_REFERENCE_AUTHORIZATION
-      }, store)
-      const plannedMistral = requireDefined(collectTtsTargets(options)[0], 'a planned Mistral protected-reference target')
-      const mistralCalls = { run: 0, setup: 0, fetch: 0 }
-      const mistralTarget: TtsTarget = {
-        ...plannedMistral,
-        run: async () => {
-          mistralCalls.run++
-          mistralCalls.setup++
-          mistralCalls.fetch++
-          throw new Error('Readiness-gated Mistral target must not run.')
-        }
-      }
+      const grok = hostedFixture('grok', 'grok-tts', 'eve')
       const openai = hostedFixture('openai', 'gpt-4o-mini-tts-2025-12-15', 'alloy')
 
       await withHostedCredentials({
-        MISTRAL_API_KEY: 'configured-for-local-fixture',
+        XAI_API_KEY: 'configured-for-local-fixture',
         OPENAI_API_KEY: undefined
       }, async () => {
         await expect(runTtsDirectoryBatch(
           inputDir,
           options,
-          [mistralTarget, openai.target],
+          [grok.target, openai.target],
           undefined
         )).rejects.toThrow('TTS batch processing failed for 2 item(s)')
       })
@@ -480,9 +415,7 @@ describe('canonical TTS execution-readiness failures', () => {
         expect(peerProjection.readinessAttempts[0]).toMatchObject({ status: 'ready', admissionDisposition: 'peer-blocked' })
         expect(blockedProjection.readinessAttempts[0]).toMatchObject({ status: 'blocked', admissionDisposition: 'self-blocked' })
       }
-      expect(ingestCalls).toBe(0)
-      expect(await Bun.file(storeRoot).exists()).toBe(false)
-      expect(mistralCalls).toEqual({ run: 0, setup: 0, fetch: 0 })
+      expect(grok.calls).toEqual({ run: 0, setup: 0, fetch: 0 })
       expect(openai.calls).toEqual({ run: 0, setup: 0, fetch: 0 })
     })
   })

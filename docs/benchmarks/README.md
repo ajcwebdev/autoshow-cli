@@ -6,7 +6,7 @@ This directory holds committed benchmark run data and the reports generated from
 
 - Per-modality run directories for `ocr`, `stt-local`, `stt-with-speakers`, `stt-without-speakers`, `url`, `tts`, `music`, `video`, and `write`. Each run keeps its canonical manifest, the retained provider artifacts, the consensus reference it was scored against, and its per-run comparison report. Audio, video, and image files are git-ignored, so runs that produced media keep only their metadata, hashes, and reports in the repository.
 - The combined-report roots `ocr`, `stt-local`, `stt-with-speakers`, `stt-without-speakers`, and `url`. Each root holds `combined-comparison-report.json`, the data contract, and `combined-comparison-report.md`, the diffable text.
-- The `tts` root, which has no combined report. It holds independent narration, emotion/delivery, and speed/pause benchmarks. The controls benchmarks live directly in `tts/2026-09-12_05-tts-emotion/` and `tts/2026-09-12_06-tts-speed-pauses/`, each with its own plan, report, and recordings. Each control benchmark selects its newest dated directory independently. `dashboard.evidence.zip` holds the checksummed manifests, reports, audio hashes, and probe measurements used by the TTS tab.
+- The `tts` root, which has no combined report. Narration, emotion/delivery, and speed/pause benchmarks populate it when run. Controls use `tts/<YYYY-MM-DD>_05-tts-emotion/` and `tts/<YYYY-MM-DD>_06-tts-speed-pauses/`, dated when the benchmark first runs and pinned in the shared ledger for subsequent reuse. Each control benchmark selects its newest dated directory independently. An empty or absent root produces an empty TTS dashboard tab.
 - Hand-authored `2026-05-21_combined-provider-comparison-report.md` files beside the `music` and `video` runs, and a single `write` run without a combined report.
 - One shared visual dashboard made of four generated files. `combined-comparison-dashboard.json` holds every tab's data: one tab per combined-report root plus a TTS tab containing narration and both controls benchmarks. `combined-comparison-dashboard.html` is a static shell that names that JSON, its stylesheet `combined-comparison-dashboard.css`, and its script `combined-comparison-dashboard.js` by relative name, and the script renders the JSON in the browser.
 
@@ -24,7 +24,7 @@ Earlier combined reports also assigned three contiguous quality-cost terciles pe
 
 Compact a run only after trustworthy provider results exist. Preserve canonical result envelopes and historical identity, remove regenerable checkpoints, splits, and derived files only after validation, then regenerate the combined JSON and Markdown, then the dashboard, from those compacted artifacts. Finished artifacts keep the model identity they stored, and the cost recorded on a run remains the authority for that run.
 
-From the repository root, the following command rewrites the dashboard's four files without provider calls. Running `build-combined-report` for any combined-report root reruns it automatically when every tab root is present.
+From the repository root, the following command rewrites the dashboard's four files without provider calls. Running `build-combined-report` for any combined-report root reruns it automatically when all five combined-report roots are present.
 
 ```bash
 bun .codex/skills/consensus/scripts/run.ts build-combined-dashboard

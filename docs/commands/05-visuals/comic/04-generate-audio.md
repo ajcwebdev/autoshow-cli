@@ -40,7 +40,7 @@ Provider models and delivery markup are in [TTS](../../04-audio/tts/overview.md)
 
 ```bash
 bun autoshow comic generate-audio 01-01 --provider elevenlabs=eleven_v3
-bun autoshow comic generate-audio 01-01 --provider mistral=voxtral-mini-tts-2603 --mode segmented
+bun autoshow comic generate-audio 01-01 --provider grok=grok-tts --mode segmented
 bun autoshow comic generate-audio 01-01 --provider elevenlabs=eleven_v3 --sfx-provider elevenlabs=eleven_text_to_sound_v2
 bun autoshow comic generate-audio 01-01 --sfx-provider replicate=sepal/audiogen@154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8 --sfx-license-use noncommercial
 bun autoshow comic generate-audio 01-01 --provider elevenlabs --role "SHIP COMPUTER=role:computer"

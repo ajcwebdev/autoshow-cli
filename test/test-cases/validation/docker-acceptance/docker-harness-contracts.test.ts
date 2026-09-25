@@ -245,7 +245,7 @@ test('zero selected/executed cases and incomplete runs cannot pass', async () =>
 test('no-cost service CLI rejections are imported as data and require disabled networking', () => {
   const cases = dockerScenarios()
   const rejections = rejectionScenarios(containerFixture)
-  expect(rejections).toHaveLength(10)
+  expect(rejections).toHaveLength(8)
   for (const rejection of rejections) {
     const scenario = cases.find(item => item.id === rejection.id)!
     expect(scenario.network).toBe('none')

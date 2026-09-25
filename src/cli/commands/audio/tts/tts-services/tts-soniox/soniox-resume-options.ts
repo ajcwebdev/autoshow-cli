@@ -1,13 +1,8 @@
 import type { ProviderSettingsRecord, TtsOptions } from '~/types'
-import { ttsMasteringFlags, ttsExportFlags } from '~/cli/flags/tts-delivery-flags'
+import { restoreSharedTtsResumeOptions } from '../../tts-utils/tts-resume-options'
 
 const FLAGS = {
   sonioxTtsVoice: ['tts-voice'], sonioxTtsLanguage: ['tts-language'], sonioxTtsSpeed: ['tts-speed'],
-  ttsSpeakers: ['tts-speaker'], ttsDialogueFormat: ['tts-dialogue-format'],
-  ttsDialogue: [], ttsCanonicalTurns: [], ttsTurnControls: [],
-  ttsChunking: ['tts-chunk-boundary', 'tts-chunk-size'],
-  ttsDelivery: Object.keys(ttsMasteringFlags), ttsExport: Object.keys(ttsExportFlags),
-  ttsPronunciationLexicon: ['tts-pronunciations'], ttsPronunciationsPath: ['tts-pronunciations'],
 } as const
 
 export const recordSonioxResumeOptions = (options: TtsOptions) => Object.fromEntries(Object.keys(FLAGS).flatMap(key => {
@@ -16,6 +11,7 @@ export const recordSonioxResumeOptions = (options: TtsOptions) => Object.fromEnt
 }))
 
 export const restoreSonioxResumeOptions = (options: TtsOptions, settings?: ProviderSettingsRecord, explicitFlags: ReadonlySet<string> = new Set()): void => {
+  restoreSharedTtsResumeOptions(options, settings, explicitFlags)
   const saved = settings?.local?.['sonioxResume']
   if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return
   for (const [key, flags] of Object.entries(FLAGS)) {

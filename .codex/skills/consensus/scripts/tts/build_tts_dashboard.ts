@@ -106,6 +106,7 @@ function readSamples(root: string, runDir: string, suite: TtsDashboardSample['su
 }
 
 export function collectTtsDashboardSamples(rootDir: string): TtsDashboardSample[] {
+  if (!existsSync(rootDir)) return [];
   const retained = readRetainedTtsEvidence(rootDir);
   if (retained) return retained;
   const root = resolve(rootDir), samples: TtsDashboardSample[] = [];
@@ -121,7 +122,6 @@ export function collectTtsDashboardSamples(rootDir: string): TtsDashboardSample[
       if (existsSync(join(run, 'manifest.json'))) samples.push(...readSamples(root, run, suite));
     }
   }
-  if (!samples.length) throw Error(`No TTS benchmark manifests found in ${root}`);
   return samples;
 }
 
@@ -182,6 +182,7 @@ export function buildTtsDashboard(rootDir: string, generatedAt = new Date().toIS
     runs: runs.map((run, index) => ({ runName: run, shortLabel: `R${index + 1}`, detail: `${narration.filter(row => row.run === run).length} provider/model results` })),
     groups, sampleTables: [table('narration', 'Narration — individual results'), table('emotion', 'Emotion and delivery — individual cases'), table('speed-pauses', 'Speed and pauses — individual cases')],
     methodParagraphs: [
+      ...(!samples.length ? ['No TTS benchmark results are available. Run the benchmarks and regenerate the dashboard to populate this tab.'] : []),
       'Narration rankings use the common direct-child TTS benchmark corpus. Controls are shown separately because providers expose different native mechanisms. Emotion and delivery, and speed and pauses, each select their newest dated standalone benchmark directory independently; earlier revisions are excluded.',
       existsSync(join(rootDir, TTS_DASHBOARD_EVIDENCE))
         ? 'Retained evidence binds the current manifests and reports to recorded audio hashes and local ffprobe measurements. Narration costs and exact timings come from manifests; controls costs and timings retain the reports\' published precision. Original render records and controls manifests are unavailable. Locally present audio is hash-checked; absent audio is not reverified. Audio links require the original local recordings. Costs are not confirmed invoices or total historical spending; Soniox costs remain estimates.'

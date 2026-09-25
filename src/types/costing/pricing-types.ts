@@ -40,6 +40,7 @@ export type TtsStepEstimate = ProviderModelBase & Partial<Pick<import('~/types')
   inputCostPer1MCharactersCents?: number
   outputCostPer1MCharactersCents?: number
   characterCount?: number
+  chunkLengths?: readonly number[] | undefined
   chunkCharacterLimit?: number
   chunkConcurrency?: number
   totalCost: number
@@ -198,6 +199,7 @@ export type ComputeEstimatedProcessingTimesInput = {
     setupTimeMs?: number
     setupCostCents?: number
     setupNote?: string
+    chunkLengths?: readonly number[] | undefined
     chunkCharacterLimit?: number
     chunkConcurrency?: number
     characterCount?: number

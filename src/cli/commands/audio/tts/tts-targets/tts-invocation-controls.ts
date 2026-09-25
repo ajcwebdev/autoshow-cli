@@ -48,9 +48,6 @@ export const CONTROL_SPECS = {
     language: { kind: 'string', normalize: validateGrokTtsLanguage },
     textNormalization: { kind: 'boolean' },
   },
-  mistral: {
-    responseFormat: { kind: 'string', normalize: value => value.trim().toLowerCase(), allowedValues: ['wav', 'mp3', 'flac', 'opus'] },
-  },
   inworld: {
     steeringPrompt: { kind: 'string', normalize: trim },
     speed: { kind: 'number', min: 0.5, max: 1.5 },

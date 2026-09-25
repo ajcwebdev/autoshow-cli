@@ -1,3 +1,5 @@
+import { join } from 'node:path'
+import { resolveTtsDeliveryOptions } from '~/cli/options/option-resolution/tts-delivery-options'
 import { describe, expect, test } from 'bun:test'
 import { runGeminiTts } from '~/cli/commands/audio/tts/tts-services/tts-gemini/run-gemini-tts'
 import { decodeGeminiBase64, decodeGeminiAudio, decodeGeminiInteraction, decodeGeminiGenerateContent } from '~/cli/commands/audio/tts/tts-services/tts-gemini/gemini-tts-audio'
@@ -230,8 +232,8 @@ test('stream dialogue eligibility resolves implicit PCM before comparing per-tur
 test('chunk planning preserves complete inline pause notation in smart and legacy modes', async () => {
   const { splitGeminiTtsText } = await import('~/cli/commands/audio/tts/tts-services/tts-gemini/gemini-tts-chunks')
   const text = 'A'.repeat(14) + ' <short pause> next. ' + 'B'.repeat(14) + ' <long pause> done.'
-  for (const boundary of ['smart', 'legacy'] as const) {
-    const chunks = splitGeminiTtsText(LITE, { text, speaker: 'N', voice: 'Kore' }, { boundary, maxChars: 20 })
+  for (const replay of [undefined, 'legacy-v0'] as const) {
+    const chunks = splitGeminiTtsText(LITE, { text, speaker: 'N', voice: 'Kore' }, { boundary: 'smart', replay, maxChars: 20 })
     expect(chunks.join(' ')).toBe(text)
     expect(chunks.every(chunk => chunk.length <= 20 && (chunk.includes('<') === chunk.includes('>')))).toBe(true)
   }
@@ -239,5 +241,23 @@ test('chunk planning preserves complete inline pause notation in smart and legac
 
 test('too-small Unicode chunk budgets fail before dispatch instead of stalling', async () => {
   const { splitGeminiTtsText } = await import('~/cli/commands/audio/tts/tts-services/tts-gemini/gemini-tts-chunks')
-  expect(() => splitGeminiTtsText(LITE, { text: '😀😀', speaker: 'N', voice: 'Kore' }, { boundary: 'legacy', maxChars: 1 })).toThrow('Unicode')
+  expect(() => splitGeminiTtsText(LITE, { text: '😀😀', speaker: 'N', voice: 'Kore' }, { boundary: 'smart', replay: 'legacy-v0', maxChars: 1 })).toThrow('Unicode')
 })
+
+// Gemini's documented 8,192-token request limit includes style metadata. Large metadata
+// must reduce each request budget without turning paragraph joins into sentence joins.
+for (const model of [FLASH, LITE]) test(model + ' transport and artifact integrity: metadata-limited chunks retain paragraph joins', async () => {
+  process.env['GEMINI_API_KEY'] = 'fixture-key'
+  const calls = installMockFetch(() => jsonResponse(unary()))
+  const paragraph = 'The telescope followed a distant star across the dark sky. '.repeat(12).trim()
+  const text = Array(4).fill(paragraph).join('\n\n')
+  const options: TtsOptions = { geminiTtsModels: [model], geminiTtsVoice: 'Kore', geminiTtsInstructions: 'Speak calmly. '.repeat(200), ...resolveTtsDeliveryOptions({}) }
+  const target = collectTtsTargets(options)[0]!
+  const output = await makeTempDir('gemini-resolved-chunks-')
+  await runTtsForTargets(text, output, options, [target])
+  expect(calls).toHaveLength(4)
+  for (const call of calls) expect(call.bodyJson).toMatchObject({ model, input: [{ content: [{ type: 'text', text: paragraph, annotations: [{ type: 'speech_metadata', style: options.geminiTtsInstructions }] }] }] })
+  const ledgerPath = [...new Bun.Glob('providers/**/audio-run/transform-ledger.json').scanSync(output)][0]!
+  const ledger = await Bun.file(join(output, ledgerPath)).json() as { operations: Array<{ kind: string, finalRangeMs: { start: number, end: number } }> }
+  expect(ledger.operations.filter(operation => operation.kind === 'pause').map(operation => operation.finalRangeMs.end - operation.finalRangeMs.start)).toEqual([])
+}, 20_000)

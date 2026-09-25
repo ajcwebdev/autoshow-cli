@@ -65,9 +65,9 @@ const targetOptions = (registration: VoiceRegistration): TtsOptions => {
     case 'gemini': return { geminiTtsModels: [model], geminiTtsVoice: voice }
     case 'soniox': return { sonioxTtsModels: [model], sonioxTtsVoice: voice }
     case 'grok': return { grokTtsModels: [model], grokTtsVoice: voice }
-    case 'mistral': return { mistralTtsModels: [model], mistralTtsVoice: voice }
     case 'openai': return { openaiTtsModels: [model], openaiVoiceId: voice }
     case 'inworld': return { inworldTtsModels: [model], inworldTtsVoice: voice }
+    default: throw UsageError(`TTS provider ${registration.provider} is no longer supported for voice auditions.`)
   }
 }
 

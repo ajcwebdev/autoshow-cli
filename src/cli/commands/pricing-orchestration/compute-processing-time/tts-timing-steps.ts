@@ -18,6 +18,7 @@ export const buildTtsTimingSteps = (input: ComputeEstimatedProcessingTimesInput)
         model: ttsTarget.model,
         text: ttsTarget.characterCount === undefined ? input.ttsInputText : undefined,
         characterCount,
+        chunkLengths: ttsTarget.chunkLengths,
         msPer1KChars: estimation.msPer1KChars,
         setupTimeMs: ttsTarget.setupTimeMs,
         chunkCharacterLimit: ttsTarget.chunkCharacterLimit,

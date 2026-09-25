@@ -16,7 +16,6 @@ import { createGeminiAdvancedProvider, GEMINI_ADVANCED_CAPABILITY_FIXTURE } from
 import { validateGeminiVoice } from '../tts/tts-services/tts-gemini/gemini-tts-request'
 import { createGrokAdvancedProvider, GROK_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/tts-grok/grok-advanced-provider'
 import { createInworldAdvancedProvider, INWORLD_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/inworld/inworld-advanced-provider'
-import { createMistralAdvancedProvider, MISTRAL_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/tts-mistral/mistral-advanced-provider'
 import { createElevenLabsAdvancedProvider, ELEVENLABS_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/tts-elevenlabs/elevenlabs-advanced-provider'
 import { loadCharacterVoiceBriefCatalog } from './character-voice-registry'
 import { completePendingVoiceProvisioning } from './voice-provisioning-reconciliation'
@@ -67,7 +66,6 @@ export const advancedCapabilityFixtureHash = (provider: VoiceCatalogProviderName
   if (provider === 'elevenlabs') return ELEVENLABS_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'gemini') return GEMINI_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'grok') return GROK_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
-  if (provider === 'mistral') return MISTRAL_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'inworld') return INWORLD_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   throw UsageError(`Unsupported voice catalog provider ${provider}.`)
 }
@@ -79,12 +77,10 @@ export const advancedProvider = (provider: VoiceCatalogProviderName, options: {
   resolveElevenLabsProtectedAsset?: Parameters<typeof createElevenLabsAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
   resolveInworldProtectedAsset?: Parameters<typeof createInworldAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
   resolveGrokProtectedAsset?: Parameters<typeof createGrokAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
-  resolveMistralProtectedAsset?: Parameters<typeof createMistralAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
 } = {}): ManagedAdvancedProvider => {
   if (provider === 'gemini') return createGeminiAdvancedProvider({ apiKey: resolveCredential('gemini', 'require', { stage: 'voice:gemini', description: 'Gemini voice management' }), creationJournalRoot: join(MANAGED_VOICE_STORE_ROOT, 'gemini-creations'), protectedStore: managedVoiceAssetStore, resolveProtectedAsset: options.resolveGeminiProtectedAsset })
   if (provider === 'elevenlabs') return createElevenLabsAdvancedProvider({ apiKey: resolveCredential('elevenlabs', 'require', { providedValue: options.elevenLabsApiKey, useProvidedValue: options.elevenLabsApiKey !== undefined, stage: 'voice:elevenlabs', description: 'ElevenLabs voice management' }), ...(options.resolveElevenLabsProtectedAsset ? { resolveProtectedAsset: options.resolveElevenLabsProtectedAsset } : {}) })
   if (provider === 'grok') return createGrokAdvancedProvider({ apiKey: resolveCredential('grok', 'require', { stage: 'voice:grok', description: 'Grok voice management' }), ...(options.resolveGrokProtectedAsset ? { resolveProtectedAsset: options.resolveGrokProtectedAsset } : {}) })
-  if (provider === 'mistral') return createMistralAdvancedProvider({ apiKey: resolveCredential('mistral', 'require', { stage: 'voice:mistral', description: 'Mistral voice management' }), ...(options.resolveMistralProtectedAsset ? { resolveProtectedAsset: options.resolveMistralProtectedAsset } : {}) })
   if (provider === 'inworld') return createInworldAdvancedProvider({ apiKey: resolveCredential('inworld', 'require', { providedValue: options.inworldApiKey, useProvidedValue: options.inworldApiKey !== undefined, stage: 'voice:inworld', description: 'Inworld voice management' }), ...(options.resolveInworldProtectedAsset ? { resolveProtectedAsset: options.resolveInworldProtectedAsset } : {}) })
   throw UsageError(`Unsupported voice catalog provider ${provider}.`)
 }
@@ -124,7 +120,7 @@ export const parameter = (ctx: CliCommandContext, name: string): string => {
 
 export const providerFlag = (ctx: CliCommandContext): VoiceProviderName => {
   const provider = requiredFlag(ctx, 'provider')
-  if (['minimax', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra'].includes(provider)) throw UsageError(`${provider} is no longer supported for TTS or voice management. Select one of: ${VOICE_PROVIDERS.join(', ')}.`)
+  if (['minimax', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra', 'mistral'].includes(provider)) throw UsageError(`${provider} is no longer supported for TTS or voice management. Select one of: ${VOICE_PROVIDERS.join(', ')}.`)
   if (!isVoiceProvider(provider as TtsProvider)) throw UsageError(`Unknown voice provider ${provider}. Expected: ${VOICE_PROVIDERS.join(', ')}.`)
   return provider as VoiceProviderName
 }

@@ -47,13 +47,24 @@ export type TtsPronunciationLexicon = {
 export type TtsChunkBoundary = 'paragraph' | 'sentence' | 'clause' | 'word' | 'hard' | 'end'
 
 export type TtsChunkingOptions = {
-  boundary: 'smart' | 'legacy'
+  boundary: 'smart'
+  /** Internal compatibility mode for replaying a retained plan; never a new-run CLI option. */
+  replay?: 'legacy-v0' | 'smart-v1' | undefined
   maxChars?: number | undefined
 }
 
 export type PlannedTtsChunk = {
   text: string
   boundaryAfter: TtsChunkBoundary
+}
+
+export type ResolvedTtsChunk = PlannedTtsChunk & {
+  /** UTF-16 offsets into the prepared provider text, before whitespace trimming. */
+  sourceStart: number
+  sourceEnd: number
+  providerMaxChars: number
+  effectiveMaxChars: number
+  policyVersion: 'smart-v2' | 'legacy-v0' | 'smart-v1'
 }
 
 export type TtsDeliveryLoudness =
@@ -185,6 +196,8 @@ export type TtsTimingIdentity = Readonly<{ turnId: string, subjectKey: string }>
 export type TtsTimingFactory = (identity: TtsTimingIdentity) => import('./script-to-audio-types').NormalizedTiming<'take-audio-ms'>
 
 export type TtsRequestEvidenceScope = Readonly<{
+  /** Exact texts authorized by the immutable render plan, scoped to this invocation. */
+  plannedChunks?: readonly string[] | undefined
   forInvocation?: ((invocation: TtsTargetInvocation) => TtsRequestEvidenceScope) | undefined
   recoverCompletedOutputs?: (() => Promise<Readonly<{
     paths: readonly string[]

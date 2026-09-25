@@ -23,26 +23,6 @@ const buildTtsMetadata = createMetadataFixtureBuilder<Step4Metadata>({
 })
 
 describe('price mode contracts', () => {
-  test('Mistral TTS estimates use published output-character pricing and provisional speed', () => {
-      const model = 'voxtral-mini-tts-2603'
-      const opts = {
-        mistralTtsModels: [model],
-        mistralTtsVoice: 'voice-existing'
-      } as Parameters<typeof estimateTtsCosts>[0]
-
-      const cost = estimateTtsCosts(opts, 1000)[0]
-      expect(cost?.inputCostPer1MCharactersCents).toBe(0)
-      expect(cost?.outputCostPer1MCharactersCents).toBe(1600)
-      expect(cost?.totalCost).toBe(1.6)
-
-      const timing = computeEstimatedProcessingTimes({
-        ttsTargets: [{ service: 'mistral', model }],
-        ttsCharacterCount: 1000
-      })
-      expect(timing.steps.find((step) => step.provider === 'mistral')?.processingTimeMs)
-        .toBe(Math.round(getTtsEstimation('mistral', model).msPer1KChars))
-    })
-
   test('Grok TTS estimates use current xAI Voice API character pricing', () => {
       const cost = estimateTtsCosts({
         grokTtsModels: ['grok-tts']

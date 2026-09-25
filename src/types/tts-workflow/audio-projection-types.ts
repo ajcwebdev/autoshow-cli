@@ -163,6 +163,8 @@ export type CanonicalReadinessAttempt = {
 )
 
 export type CompactAudioArchiveSlot = {
+  generationSlotId?: string | undefined
+  audioArtifactRef?: string | undefined
   slotHash: string
   turnIds: string[]
   sha256: string

@@ -36,12 +36,10 @@ describe('option resolution contracts', () => {
         'scrapecreators-stt': 'youtube-transcript',
         'stt-language': ['scrapecreators=fr'],
         'grok-tts': 'grok-tts',
-        'mistral-tts': 'voxtral-mini-tts-2603',
         'elevenlabs-tts': 'eleven_v3',
         'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
         'tts-voice': [
           'grok=EVE',
-          'mistral=voice_abc123',
           'openai=alloy'
         ],
         'tts-speed': ['openai=1.1', 'elevenlabs=1.1'],
@@ -81,8 +79,6 @@ describe('option resolution contracts', () => {
       expect(opts.scrapecreatorsLang).toBe('fr')
       expect(opts.grokTtsModels?.[0]).toBe('grok-tts')
       expect(opts.grokTtsVoice).toBe('eve')
-      expect(opts.mistralTtsModels?.[0]).toBe('voxtral-mini-tts-2603')
-      expect(opts.mistralTtsVoice).toBe('voice_abc123')
       expect(opts.elevenlabsTtsModels?.[0]).toBe('eleven_v3')
       expect(opts.elevenlabsTtsLanguageCode).toBe('en')
       expect(opts.elevenlabsTtsStability).toBe(0.4)

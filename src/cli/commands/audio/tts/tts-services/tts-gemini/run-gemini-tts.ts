@@ -1,7 +1,7 @@
 import type { TtsOptions, TtsRequestEvidenceScope, TtsTargetInvocation } from '~/types'
 import { geminiJsonRequest } from '~/utils/gemini/gemini-rest'
 import { requireTtsCredential } from '../../tts-utils/tts-credentials'
-import { splitGeminiTtsText } from './gemini-tts-chunks'
+import { resolveTtsDispatchChunks } from '../../tts-utils/tts-provider-chunk-policy'
 import { runHostedTtsChunkPipeline } from '../../tts-utils/hosted-tts-chunk-pipeline'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { geminiSpeechMime, serializeGeminiInteraction, type GeminiSpeechTurn } from './gemini-tts-request'
@@ -17,7 +17,7 @@ export const runGeminiTts = async (text: string, outputDir: string, options: Tts
   const stream = options.geminiTtsMode === 'stream'
   const mime = geminiSpeechMime(options.responseFormat, stream)
   const groups = options.turns ? groupGeminiTurns(options.model, options.turns) : undefined
-  const chunks = groups ? groups.map(g => g.map(t => t.speaker + ': ' + t.text).join('\n')) : splitGeminiTtsText(options.model, { text, speaker: options.invocation?.speaker ?? 'NARRATOR', voice: options.voice, style: options.instructions }, options.ttsChunking)
+  const chunks = groups ? groups.map(g => g.map(t => t.speaker + ': ' + t.text).join('\n')) : resolveTtsDispatchChunks({ provider: 'gemini', model: options.model, text, speaker: options.invocation?.speaker ?? 'NARRATOR', voice: options.voice, style: options.instructions, chunking: options.ttsChunking }, options.requestEvidence)
   if (!chunks.length) throw UsageError('Gemini TTS input is empty.')
   const requests = chunks.map((chunk, index) => serializeGeminiInteraction(options.model, groups?.[index] ?? [{ text: chunk, speaker: options.invocation?.speaker ?? 'NARRATOR', voice: options.voice, style: options.instructions }], options.responseFormat, stream))
   const apiKey = requireTtsCredential('gemini')

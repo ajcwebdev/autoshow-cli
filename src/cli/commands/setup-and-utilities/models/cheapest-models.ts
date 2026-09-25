@@ -23,7 +23,6 @@ const DEFAULT_HOSTED_TTS_MODEL_BY_FLAG = {
   'elevenlabs-tts': 'eleven_v3',
   'soniox-tts': 'tts-rt-v2',
   'grok-tts': 'grok-tts',
-  'mistral-tts': 'voxtral-mini-tts-2603',
   'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
   'inworld-tts': 'realtime-tts-2',
 } as const satisfies Record<string, string>
@@ -335,7 +334,6 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   together: () => selectCheapestLlmModel('together'),
   'soniox-tts': () => selectCheapestTtsModel('soniox'),
   'grok-tts': () => selectCheapestTtsModel('grok'),
-  'mistral-tts': () => selectCheapestTtsModel('mistral'),
   'gemini-image': () => selectCheapestImageModel('gemini'),
   'openai-image': () => selectCheapestImageModel('openai'),
   'grok-image': () => 'grok-imagine-image-2.0',

@@ -52,7 +52,6 @@ const controlReader = (effectiveControls: Readonly<Record<string, unknown>>): Co
 
 const buildOpenAiSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'openai.tts.phase-0-v1', controls: { responseFormat: 'wav', ...(controls.string('instructions') ? { instructions: controls.string('instructions') } : {}), ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}) } })
 const buildGrokSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'grok.tts.phase-0-v1', controls: { ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}), language: controls.string('language') ?? 'auto', textNormalization: controls.boolean('textNormalization') === true, outputFormat: { codec: 'wav', sample_rate: 24000 } } })
-const buildMistralSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'mistral.tts.phase-0-v1', controls: { stream: false, responseFormat: controls.string('responseFormat') ?? 'wav' } })
 
 const buildInworldSerializer: SerializerBuilder = ({ target, controls }) => ({ endpointKind: 'realtime-tts', serializerVersion: INWORLD_TTS_SERIALIZER_VERSION, controls: inworldTtsRequestControls(target.model, controls.string('steeringPrompt'), controls.number('speed')) })
 
@@ -109,7 +108,6 @@ const SERIALIZER_BUILDERS = {
   grok: buildGrokSerializer,
   inworld: buildInworldSerializer,
   elevenlabs: buildElevenLabsSerializer,
-  mistral: buildMistralSerializer,
 } satisfies Record<TtsProvider, SerializerBuilder>
 
 export const buildProviderSerializerDescriptor = (
@@ -155,7 +153,6 @@ export const resolveEffectiveProviderControls = (
     case 'gemini': return resolveTtsTargetInvocationControls('gemini', invocation, { instructions: selection.geminiInstructions, responseFormat: selection.geminiResponseFormat })
     case 'soniox': return resolveTtsTargetInvocationControls('soniox', invocation, { language: selection.sonioxLanguage ?? 'en', speed: selection.sonioxSpeed ?? 1 })
     case 'grok': return resolveTtsTargetInvocationControls('grok', invocation, { speed: selection.grokSpeed, language: selection.grokLanguage, ...(selection.grokTextNormalization ? { textNormalization: true } : {}) })
-    case 'mistral': return resolveTtsTargetInvocationControls('mistral', invocation, { responseFormat: (selection.mistralResponseFormat ?? 'wav') as 'wav' | 'mp3' | 'flac' | 'opus' })
     case 'inworld': return resolveTtsTargetInvocationControls('inworld', invocation, { steeringPrompt: selection.inworldInstructions, speed: selection.inworldSpeed })
   }
 }
@@ -163,7 +160,7 @@ export const resolveEffectiveProviderControls = (
 export const providerSerializerVoiceField = (
   target: TtsTarget,
   strategy: ProviderRenderStrategy,
-  voiceKind: AttemptTurn['voice']['kind']
+  _voiceKind: AttemptTurn['voice']['kind']
 ): string => {
   switch (target.service) {
     case 'openai': return 'voice'
@@ -171,7 +168,6 @@ export const providerSerializerVoiceField = (
     case 'soniox': return 'voice'
     case 'grok': return 'voice_id'
     case 'elevenlabs': return strategy === 'native-dialogue' ? 'inputs[].voice_id' : 'path.voice_id'
-    case 'mistral': return voiceKind === 'reference-asset' ? 'ref_audio' : 'voice_id'
     case 'inworld': return 'voiceId'
   }
 }

@@ -37,7 +37,6 @@ import {
   SUPPORTED_MINIMAX_MUSIC_MODELS,
   SUPPORTED_MISTRAL_OCR_MODELS,
   SUPPORTED_MISTRAL_STT_MODELS,
-  SUPPORTED_MISTRAL_TTS_MODELS,
   SUPPORTED_OPENAI_IMAGE_MODELS,
   SUPPORTED_OPENAI_MODELS,
   SUPPORTED_OPENAI_OCR_MODELS,
@@ -97,7 +96,6 @@ export const SUPPORTED_MODEL_SOURCES = [
   { step: 'tts', service: 'elevenlabs', arrayName: 'SUPPORTED_ELEVENLABS_TTS_MODELS', models: SUPPORTED_ELEVENLABS_TTS_MODELS },
   { step: 'tts', service: 'soniox', arrayName: 'SUPPORTED_SONIOX_TTS_MODELS', models: SUPPORTED_SONIOX_TTS_MODELS },
   { step: 'tts', service: 'grok', arrayName: 'SUPPORTED_GROK_TTS_MODELS', models: SUPPORTED_GROK_TTS_MODELS },
-  { step: 'tts', service: 'mistral', arrayName: 'SUPPORTED_MISTRAL_TTS_MODELS', models: SUPPORTED_MISTRAL_TTS_MODELS },
   { step: 'tts', service: 'openai', arrayName: 'SUPPORTED_OPENAI_TTS_MODELS', models: SUPPORTED_OPENAI_TTS_MODELS },
   { step: 'tts', service: 'inworld', arrayName: 'SUPPORTED_INWORLD_TTS_MODELS', models: SUPPORTED_INWORLD_TTS_MODELS },
 

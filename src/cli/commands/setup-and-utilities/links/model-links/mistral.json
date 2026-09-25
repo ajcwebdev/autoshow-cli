@@ -10,7 +10,6 @@
       "https://docs.mistral.ai/admin/billing-usage/usage-limits"
     ],
     "Models": [
-      "https://docs.mistral.ai/models/voxtral-tts-26-03",
       "https://docs.mistral.ai/models",
       "https://docs.mistral.ai/api/endpoint/models",
       "https://docs.mistral.ai/models/voxtral-mini-transcribe-26-02"
@@ -28,16 +27,6 @@
       "https://docs.mistral.ai/api/endpoint/ocr",
       "https://raw.githubusercontent.com/mistralai/client-ts/refs/heads/main/docs/sdks/ocr/README.md",
       "https://docs.mistral.ai/studio/document-processing/overview"
-    ],
-    "TTS": [
-      "https://mistral.ai/news/voxtral-tts/",
-      "https://docs.mistral.ai/studio/audio/text_to_speech",
-      "https://docs.mistral.ai/api/endpoint/audio/speech",
-      "https://docs.mistral.ai/api/endpoint/audio/voices",
-      "https://docs.mistral.ai/studio/audio/text_to_speech/voices",
-      "https://docs.mistral.ai/studio/audio/text_to_speech/speech",
-      "https://raw.githubusercontent.com/mistralai/client-ts/refs/heads/main/docs/sdks/speech/README.md",
-      "https://raw.githubusercontent.com/mistralai/client-ts/refs/heads/main/docs/sdks/voices/README.md"
     ]
   }
 }

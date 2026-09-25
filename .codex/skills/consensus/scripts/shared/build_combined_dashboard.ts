@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import { writePortableFileSync } from "./portable_paths";
+import { existsSync } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { buildOcrCombinedReport } from "../ocr/build_combined_report";
 import { buildSttCombinedReport } from "../stt/build_combined_report";
@@ -29,6 +30,13 @@ export const DASHBOARD_TABS: DashboardTabSource[] = [
   { key: "url", label: "URL", build: buildUrlCombinedReport },
   { key: "tts", label: "TTS", build: buildTtsDashboard },
 ];
+
+export const DASHBOARD_TAB_DIRS = DASHBOARD_TABS.filter(tab => tab.key !== "tts").map(tab => tab.key);
+
+export function hasAllDashboardTabs(benchmarksRoot: string): boolean {
+  // TTS can render an empty tab before its first benchmark run.
+  return DASHBOARD_TAB_DIRS.every(tab => existsSync(join(benchmarksRoot, tab, "combined-comparison-report.json")));
+}
 
 export const DASHBOARD_FILE = "combined-comparison-dashboard.html";
 export const DASHBOARD_DATA_FILE = DEFAULT_DASHBOARD_ASSETS.data;

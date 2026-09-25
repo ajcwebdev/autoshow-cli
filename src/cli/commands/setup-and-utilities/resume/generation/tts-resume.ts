@@ -1,3 +1,4 @@
+import { restoreSharedTtsResumeOptions } from '~/cli/commands/audio/tts/tts-utils/tts-resume-options'
 import { buildPureCurrentTtsRenderPlan } from '~/cli/commands/audio/tts/script-to-audio/attempt-planning'
 import { restoreSonioxResumeOptions } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-resume-options'
 import { sonioxEstimateFromPlannedCost } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-tts-pricing'
@@ -8,7 +9,7 @@ import { collectTtsTargets, getTtsArtifactFileName } from '~/cli/commands/audio/
 import { runTtsForTargets } from '~/cli/commands/audio/tts/run-tts'
 import { deriveGenerationResumeModelFields, deriveGenerationResumeProviderFlags, TTS_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { appendCurrentTtsProviderState, compactSucceededTtsProviderState, getCurrentTtsJournalAttemptKey, serializeTtsMetadataEntries } from '~/cli/commands/audio/tts/script-to-audio/current-render-artifacts'
-import { planCurrentTtsRenderIdentity, planCurrentTtsResumePrice, prepareCurrentTtsCompletedRecovery } from '~/cli/commands/audio/tts/script-to-audio/current-render-attempt'
+import { planCurrentTtsRenderIdentity, planCurrentTtsResumePrice } from '~/cli/commands/audio/tts/script-to-audio/current-render-attempt'
 import { bindTtsDialoguePlanArtifact } from '~/cli/commands/audio/tts/script-to-audio/item-dialogue-plan-artifact'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
@@ -17,17 +18,13 @@ import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { applyTtsPronunciationLexicon } from '~/cli/commands/audio/tts/tts-utils/tts-pronunciation-lexicon'
 import { resolveTtsResumeSourceContext } from './tts-resume-source-context'
-import type { GenerationResumeConfig, GenerationResumeProviderIdentity, GenerationResumeRunContext, PipelineManifestItem, PipelineProviderState, ProtectedVoiceAssetStore, ResumeTarget, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
+import type { GenerationResumeConfig, GenerationResumeProviderIdentity, GenerationResumeRunContext, PipelineManifestItem, PipelineProviderState, ResumeTarget, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
 import { existsSync } from 'node:fs'
 import { mkdtemp } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import { resolveUserPath } from '~/utils/runtime-paths'
 import { materializeTtsDialoguePlanArtifact } from '~/cli/commands/audio/tts/script-to-audio/item-dialogue-plan-artifact'
 import { DEFAULT_ALL_PROVIDER_TTS_CHUNK_CONCURRENCY, DEFAULT_TTS_CHUNK_CONCURRENCY } from '~/utils/concurrency-defaults'
-import {
-  protectedRecoveryOnlyTargets,
-  resolveStoredMistralTtsTargetsForResume
-} from './mistral-resume-target-reconstruction'
 
 const TTS_PROVIDER_FLAGS = deriveGenerationResumeProviderFlags(
   TTS_GENERATION_SELECTION,
@@ -200,13 +197,15 @@ const resolveStoredTtsResumeInput = async (
 export const resolveStoredTtsTargetsForResume = async (
   providers: GenerationResumeProviderIdentity[],
   opts: TtsOptions,
-  target: ResumeTarget,
+  _target: ResumeTarget,
   item: PipelineManifestItem,
-  protectedStore?: ProtectedVoiceAssetStore,
   explicitFlags?: ReadonlySet<string>
 ): Promise<TtsTarget[]> => {
   const retired = providers.find(provider => !Object.hasOwn(TTS_MODEL_FIELDS, provider.service))
   if (retired) throw UsageError(`Stored TTS provider ${retired.service} is no longer supported for TTS and cannot be resumed or dispatched. Inspect the manifest as history, then select a supported provider for a new TTS run.`)
+  for (const provider of providers) {
+    restoreSharedTtsResumeOptions(opts, item.providers.find(state => state.targetKey === provider.targetKey)?.settings, explicitFlags)
+  }
   for (const provider of providers.filter(provider => provider.service === 'gemini')) {
     const retained = item.providers.find(state => state.targetKey === provider.targetKey)
     restoreGeminiResumeOptions(opts, retained?.settings, explicitFlags)
@@ -215,25 +214,7 @@ export const resolveStoredTtsTargetsForResume = async (
   for (const provider of providers.filter(provider => provider.service === 'soniox')) {
     restoreSonioxResumeOptions(opts, item.providers.find(state => state.targetKey === provider.targetKey)?.settings, explicitFlags)
   }
-  const ordinaryProviders = providers.filter((provider) => provider.service !== 'mistral')
-  const resolved = collectGenerationTargetsForProviders(
-    ordinaryProviders,
-    opts,
-    TTS_MODEL_FIELDS,
-    collectTtsTargets
-  )
-  const mistralProviders = providers.filter((provider) => provider.service === 'mistral')
-  if (mistralProviders.length === 0) return resolved
-  const input = await resolveStoredTtsResumeInput(target.dir, item)
-  resolved.push(...await resolveStoredMistralTtsTargetsForResume(
-    mistralProviders,
-    opts,
-    target,
-    item,
-    input,
-    protectedStore
-  ))
-  return resolved
+  return collectGenerationTargetsForProviders(providers, opts, TTS_MODEL_FIELDS, collectTtsTargets)
 }
 
 const resolveTtsResumeArtifactRoot = (
@@ -304,21 +285,28 @@ const adoptRetainedTtsDeliveryOptions = (
   currentByTargetKey: ReadonlyMap<string, unknown>
 ): void => {
   if (opts.ttsDeliveryFallbackAllowed !== true) return
-  const legacyChunking = { boundary: 'legacy' as const }
+  const legacyChunking = { ...opts.ttsChunking, boundary: 'smart' as const, replay: 'legacy-v0' as const }
+  const previousSmart = { ...opts.ttsChunking, boundary: 'smart' as const, replay: 'smart-v1' as const }
   const candidates: Array<Pick<TtsOptions, 'ttsChunking' | 'ttsDelivery'>> = [
     { ttsChunking: opts.ttsChunking, ttsDelivery: opts.ttsDelivery },
     { ttsChunking: opts.ttsChunking, ttsDelivery: undefined },
+    { ttsChunking: previousSmart, ttsDelivery: opts.ttsDelivery },
+    { ttsChunking: previousSmart, ttsDelivery: undefined },
     { ttsChunking: legacyChunking, ttsDelivery: opts.ttsDelivery },
     { ttsChunking: legacyChunking, ttsDelivery: undefined },
   ]
   const retainedTargets = targets.filter((target) => target.targetKey && currentByTargetKey.has(target.targetKey) && sourceContext.retainedPlanIdentities.has(target.targetKey))
   if (retainedTargets.length === 0) return
   const matches = (candidate: typeof candidates[number]): boolean => retainedTargets.every((target) => {
-    const retained = sourceContext.retainedPlanIdentities.get(target.targetKey as string)
-    const planned = planCurrentTtsRenderIdentity({ target, sourceText: input, ttsOptions: { ...opts, ...candidate }, sourceIdentity: sourceContext.sourceIdentity, dialoguePlan: sourceContext.dialoguePlan })
-    return retained?.kind === 'branch'
-      ? planned.branchPlanId === retained.branchPlanId
-      : planned.renderPlanId === retained?.renderPlanId && planned.renderIdentity === retained?.renderIdentity
+    try {
+      const retained = sourceContext.retainedPlanIdentities.get(target.targetKey as string)
+      const planned = planCurrentTtsRenderIdentity({ target, sourceText: input, ttsOptions: { ...opts, ...candidate }, sourceIdentity: sourceContext.sourceIdentity, dialoguePlan: sourceContext.dialoguePlan })
+      return retained?.kind === 'branch'
+        ? planned.branchPlanId === retained.branchPlanId
+        : planned.renderPlanId === retained?.renderPlanId && planned.renderIdentity === retained?.renderIdentity
+    } catch {
+      return false
+    }
   })
   const adopted = candidates.find(matches)
   if (!adopted || adopted === candidates[0]) return
@@ -330,7 +318,7 @@ const adoptRetainedTtsDeliveryOptions = (
       delete opts.ttsExport
     }
   }
-  l.write('info', `TTS resume adopted the retained render settings (chunk boundary: ${adopted.ttsChunking?.boundary ?? 'legacy'}, audio profile: ${adopted.ttsDelivery?.preset ?? 'legacy-16k'}).`, { category: 'pipeline' })
+  l.write('info', `TTS resume adopted the retained render settings (chunk boundary: ${adopted.ttsChunking?.replay ?? 'smart-v2'}, audio profile: ${adopted.ttsDelivery?.preset ?? 'legacy-16k'}).`, { category: 'pipeline' })
 }
 
 const resolveExactTtsResumeSourceContext = async (
@@ -401,42 +389,6 @@ const resolveExactTtsResumeSourceContext = async (
   return { sourceContext, currentByTargetKey }
 }
 
-const assertProtectedRecoveryOnlyTargetsAreComplete = async (
-  targets: readonly TtsTarget[],
-  input: string,
-  opts: TtsOptions,
-  outputDir: string,
-  sourceContext: Awaited<ReturnType<typeof resolveTtsResumeSourceContext>>,
-  currentByTargetKey: ReadonlyMap<string, PipelineProviderState>
-): Promise<void> => {
-  for (const target of targets) {
-    if (!protectedRecoveryOnlyTargets.has(target)) continue
-    const state = target.targetKey ? currentByTargetKey.get(target.targetKey) : undefined
-    if (!state) throw UsageError('Stored protected Mistral recovery target has no canonical provider state.')
-    let recovery
-    try {
-      recovery = await prepareCurrentTtsCompletedRecovery({
-        rootDir: outputDir,
-        state,
-        target,
-        sourceText: input,
-        ttsOptions: opts,
-        sourceIdentity: sourceContext.sourceIdentity,
-        dialoguePlan: sourceContext.dialoguePlan
-      })
-    } catch {
-      throw UsageError(
-        'Interrupted protected Mistral reference synthesis cannot be safely redispatched by resume. Re-run standalone `tts` with the explicitly authorized reference to create a new branch; no provider request was made.'
-      )
-    }
-    if (!recovery || recovery.kind !== 'complete-render') {
-      throw UsageError(
-        'Protected Mistral reference synthesis has no complete retained result eligible for zero-call recovery. Re-run standalone `tts` with the explicitly authorized reference to create a new branch; resume will not repurchase it.'
-      )
-    }
-  }
-}
-
 export const ttsResumeConfig = {
   kind: 'tts' as const,
   metadataKey: 'tts',
@@ -462,7 +414,7 @@ export const ttsResumeConfig = {
   collectTargets: (opts: TtsOptions) => collectTtsTargets(opts),
   requiresStoredSettings: providers => providers.some(provider => provider.service === 'gemini' || provider.service === 'soniox'),
   resolveStoredTargets: async (providers, opts, target, item, explicitFlags) =>
-    await resolveStoredTtsTargetsForResume(providers, opts, target, item, undefined, explicitFlags),
+    await resolveStoredTtsTargetsForResume(providers, opts, target, item, explicitFlags),
   runMissingTargets: async (
     targets: TtsTarget[],
     storedInput: string,
@@ -472,19 +424,11 @@ export const ttsResumeConfig = {
   ) => {
     const input = applyTtsPronunciationLexicon(storedInput, opts.ttsPronunciationLexicon).text
     const effectiveOpts = withSafeMultiTargetChunkConcurrency(targets, opts, context.explicitFlags)
-    const { sourceContext, currentByTargetKey } = await resolveExactTtsResumeSourceContext(targets, input, effectiveOpts, context)
+    const { sourceContext } = await resolveExactTtsResumeSourceContext(targets, input, effectiveOpts, context)
     if (!sourceContext.dialoguePlan) {
       throw UsageError('TTS resume source context is missing its canonical dialogue plan.')
     }
     const dialoguePlanArtifact = await materializeTtsDialoguePlanArtifact(outputDir, sourceContext.dialoguePlan)
-    await assertProtectedRecoveryOnlyTargetsAreComplete(
-      targets,
-      input,
-      effectiveOpts,
-      outputDir,
-      sourceContext,
-      currentByTargetKey
-    )
     const providerOrder = [
       ...context.currentProviderStates.flatMap((provider) => provider.targetKey ? [provider.targetKey] : []),
       ...targets.flatMap((target) =>
@@ -573,9 +517,6 @@ export const ttsResumeConfig = {
         continue
       }
       if (sourceContext.retainedPlanIdentities.get(target.targetKey)?.kind === 'branch') {
-        if (protectedRecoveryOnlyTargets.has(target)) {
-          throw UsageError('Price cannot authorize interrupted protected Mistral reference redispatch. Re-run standalone `tts` with the explicitly authorized reference to create a new branch.')
-        }
         queueFullTarget(target)
         continue
       }
@@ -603,9 +544,6 @@ export const ttsResumeConfig = {
         sourceIdentity: sourceContext.sourceIdentity,
         dialoguePlan: sourceContext.dialoguePlan
       })
-      if (protectedRecoveryOnlyTargets.has(target) && price.recoveryKind !== 'complete-render') {
-        throw UsageError('Price cannot authorize protected Mistral reference redispatch without one complete retained result. Re-run standalone `tts` with the explicitly authorized reference to create a new branch.')
-      }
       if (price.reconciliationBlockers.length > 0 && runtimeOptions.ttsAllowAmbiguousRedispatch !== true) {
         const blocker = price.reconciliationBlockers[0]
         if (!blocker) throw UsageError('Stored TTS generation slot has ambiguous provider work; automatic redispatch is blocked pending reconciliation.')

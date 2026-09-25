@@ -11,7 +11,6 @@ import {
   MISTRAL_MODELS_LINKS,
   MISTRAL_OCR_LINKS,
   MISTRAL_STT_LINKS,
-  MISTRAL_TTS_LINKS,
   TOGETHER_ALL_LINKS,
   TOGETHER_GENERAL_LINKS,
   TOGETHER_MODELS_LINKS,
@@ -54,12 +53,12 @@ registerProviderSelectorCases([
     invalid: { sections: ['ocr'], message: 'Unknown links section(s) for --provider together: ocr' }
   },
   {
-    name: 'links selector accepts mistral provider with general models stt ocr and tts sections',
+    name: 'links selector accepts mistral provider with general models stt and ocr sections',
     provider: 'mistral',
     all: { expected: MISTRAL_ALL_LINKS },
     selections: [
       { sections: ['models'], expected: MISTRAL_MODELS_LINKS },
-      { sections: ['stt', 'ocr', 'tts'], expected: [...MISTRAL_STT_LINKS, ...MISTRAL_OCR_LINKS, ...MISTRAL_TTS_LINKS] }
+      { sections: ['stt', 'ocr'], expected: [...MISTRAL_STT_LINKS, ...MISTRAL_OCR_LINKS] }
     ]
   }
 ])

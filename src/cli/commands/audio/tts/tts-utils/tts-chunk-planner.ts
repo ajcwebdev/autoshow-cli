@@ -1,20 +1,30 @@
 import type { PlannedTtsChunk, TtsChunkBoundary, TtsChunkingOptions } from '~/types'
-import { splitTextIntoChunks } from './audio-utils'
+import { UsageError } from '~/utils/error-handler'
+import { replaySavedTtsChunks } from './tts-saved-chunk-replay'
 
 const CLOSERS = `["'”’)\\]]*`
 const SENTENCE_END = new RegExp(`[.!?…]${CLOSERS}$`, 'u')
 const CLAUSE_END = new RegExp(`[,;:—–]${CLOSERS}$`, 'u')
 const BOUNDARY_RANK: Record<Exclude<TtsChunkBoundary, 'end'>, number> = { paragraph: 0, sentence: 1, clause: 2, word: 3, hard: 4 }
 const MIN_WINDOW_RATIO = 0.6
-const MAX_INLINE_TAG_LENGTH = 120
 
-export const resolveTtsChunkMaxChars = (limit: number, chunking?: TtsChunkingOptions | undefined): number =>
-  chunking?.maxChars !== undefined ? Math.max(1, Math.min(limit, chunking.maxChars)) : limit
+export const resolveTtsChunkMaxChars = (limit: number, chunking?: TtsChunkingOptions | undefined): number => {
+  const requested = chunking?.maxChars ?? limit
+  if (!Number.isFinite(limit) || !Number.isFinite(requested) || limit < 1 || requested < 1) throw UsageError('TTS chunk budget must be a positive number.')
+  return Math.floor(Math.min(limit, requested))
+}
+
+const isSentenceEnd = (text: string): boolean => {
+  if (!SENTENCE_END.test(text)) return false
+  const bare = text.replace(/["'”’)\]]+$/u, '')
+  // Titles, initials, decimals, and common dotted abbreviations are unsafe sentence cuts.
+  return !/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|vs|etc|e\.g|i\.e|a\.m|p\.m)|\b[A-Z]|\b(?:[A-Za-z]\.)+[A-Za-z]|\d)\.$/u.test(bare)
+}
 
 const classifySeam = (chunkText: string, separator: string, hardCut: boolean): TtsChunkBoundary => {
   if (hardCut) return 'hard'
   if (separator.includes('\n')) return 'paragraph'
-  if (SENTENCE_END.test(chunkText)) return 'sentence'
+  if (isSentenceEnd(chunkText)) return 'sentence'
   if (CLAUSE_END.test(chunkText)) return 'clause'
   return 'word'
 }
@@ -23,7 +33,22 @@ const insideInlineTag = (text: string, index: number): boolean => {
   const open = text.lastIndexOf('[', index - 1)
   if (open < 0 || text.lastIndexOf(']', index - 1) > open) return false
   const close = text.indexOf(']', index)
-  return close >= 0 && close - open <= MAX_INLINE_TAG_LENGTH
+  return close >= 0
+}
+
+export const preserveTtsInlineBoundary = (text: string, index: number, limit: number, pairs: readonly (readonly [string, string])[] = [['[', ']']]): number => {
+  for (const [open, close] of pairs) {
+    const start = text.lastIndexOf(open, index - 1), end = text.indexOf(close, index)
+    if (start < 0 || text.lastIndexOf(close, index - 1) > start || end < 0) continue
+    if (start > 0) return start
+    if (end + 1 <= limit) return end + 1
+    throw UsageError('TTS inline notation exceeds the available chunk budget; shorten the notation or increase --tts-chunk-size.')
+  }
+  if (splitsSurrogatePair(text, index)) {
+    if (index === 1) throw UsageError('TTS chunk size is too small for a complete Unicode character.')
+    return index - 1
+  }
+  return index
 }
 
 const splitsSurrogatePair = (text: string, index: number): boolean => {
@@ -55,7 +80,8 @@ const planSmartChunks = (text: string, maxChars: number, adjustBoundary?: (text:
   let remaining = text.trim()
   while (remaining.length > maxChars) {
     const cut = selectSmartCut(remaining, maxChars)
-    cut.index = adjustBoundary?.(remaining, cut.index, maxChars) ?? cut.index
+    cut.index = (adjustBoundary ?? preserveTtsInlineBoundary)(remaining, cut.index, maxChars)
+    if (cut.index < 1 || cut.index > maxChars) throw UsageError('TTS chunk policy produced an invalid boundary.')
     const chunkText = remaining.slice(0, cut.index).trim()
     const rest = remaining.slice(cut.index)
     const separator = /^\s+/u.exec(rest)?.[0] ?? ''
@@ -66,22 +92,9 @@ const planSmartChunks = (text: string, maxChars: number, adjustBoundary?: (text:
   return chunks
 }
 
-const planLegacyChunks = (text: string, maxChars: number, adjustBoundary?: (text: string, index: number, limit: number) => number): PlannedTtsChunk[] => {
-  const texts = splitTextIntoChunks(text, maxChars, adjustBoundary)
-  let cursor = 0
-  return texts.map((chunkText, index) => {
-    const start = text.indexOf(chunkText, cursor)
-    const end = start < 0 ? cursor : start + chunkText.length
-    cursor = end
-    if (index === texts.length - 1) return { text: chunkText, boundaryAfter: 'end' as const }
-    const separator = /^\s+/u.exec(text.slice(end))?.[0] ?? ''
-    return { text: chunkText, boundaryAfter: classifySeam(chunkText, separator, separator.length === 0) }
-  })
-}
-
 export const planTtsChunks = (text: string, limit: number, chunking?: TtsChunkingOptions | undefined, adjustBoundary?: (text: string, index: number, limit: number) => number): PlannedTtsChunk[] => {
   const maxChars = resolveTtsChunkMaxChars(limit, chunking)
-  return chunking?.boundary === 'smart' ? planSmartChunks(text, maxChars, adjustBoundary) : planLegacyChunks(text, maxChars, adjustBoundary)
+  return chunking?.replay ? replaySavedTtsChunks(text, maxChars, chunking.replay, adjustBoundary) : planSmartChunks(text, maxChars, adjustBoundary)
 }
 
 export const splitTtsText = (text: string, limit: number, chunking?: TtsChunkingOptions | undefined, adjustBoundary?: (text: string, index: number, limit: number) => number): string[] =>

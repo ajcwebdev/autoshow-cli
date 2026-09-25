@@ -127,7 +127,6 @@ const voiceExamples = [
       ['bun autoshow voice design hero --provider inworld --model realtime-tts-2 --creation-model realtime-tts-2 --description "Warm, weathered guide with a grounded midrange" --preview-text "A representative passage." --price', 'Plan Inworld Voice Design without provider calls'],
       ['bun autoshow voice clone hero --provider elevenlabs --model eleven_v3 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan an ElevenLabs clone without provider calls or writes'],
 
-      ['bun autoshow voice clone hero --provider mistral --model voxtral-mini-tts-2603 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a crash-safe Mistral saved-reference clone without provider calls'],
       ['bun autoshow voice design --save CANDIDATE_ID --provider elevenlabs --subject-key hero --voice-name HeroGuide --provenance-ref project:casting --price', 'Plan saving one selected design candidate without provider calls'],
       ['bun autoshow voice audition vr_123 --generation-id SHA256 --representative-line "We leave at dawn." --price', 'Estimate a canonical audition without provider calls'],
       ['bun autoshow voice approve vr_123 --generation-id SHA256 --actor-id editor', 'Approve an audition locally']

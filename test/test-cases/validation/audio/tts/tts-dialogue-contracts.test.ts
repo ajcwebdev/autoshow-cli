@@ -37,12 +37,12 @@ describe('TTS dialogue contracts', () => {
     }))).toThrow('requires at least one TTS provider')
 
     expect(() => collectTtsTargets(buildOptsFromFlags({
-      'mistral-tts': 'voxtral-mini-tts-2603',
+      'elevenlabs-tts': 'eleven_v3',
       'tts-speaker': ['DUCO=voice_duco']
     }))).toThrow('Dialogue TTS requires --tts-dialogue-format screenplay|labeled.')
 
     expect(() => collectTtsTargets(buildOptsFromFlags({
-      'mistral-tts': 'voxtral-mini-tts-2603',
+      'elevenlabs-tts': 'eleven_v3',
       'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['DUCO=alloy', 'CHAT=onyx']
@@ -51,7 +51,7 @@ describe('TTS dialogue contracts', () => {
 
   test('a dialogue format without speakers is inert unless it was typed explicitly', () => {
     const opts = buildOptsFromFlags({
-      'mistral-tts': 'voxtral-mini-tts-2603',
+      'elevenlabs-tts': 'eleven_v3',
       'tts-voice': 'voice-existing',
       'tts-dialogue-format': 'screenplay'
     })
@@ -66,7 +66,7 @@ describe('TTS dialogue contracts', () => {
       .toThrow('--tts-dialogue-format requires at least one --tts-speaker SPEAKER=VOICE mapping.')
 
     const dialogueOpts = buildOptsFromFlags({
-      'mistral-tts': 'voxtral-mini-tts-2603',
+      'elevenlabs-tts': 'eleven_v3',
       'tts-dialogue-format': 'screenplay',
       'tts-speaker': ['DUCO=voice_duco']
     })
@@ -161,6 +161,6 @@ describe('TTS dialogue contracts', () => {
       'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['DUCO=input/examples/audio/anthony-voice.mp3', 'CHAT=input/examples/audio/voice.mp3']
-    }))).toThrow('--tts-speaker SPEAKER=path mappings cannot enter generic TTS runtime options')
+    }))).toThrow('--tts-speaker reference audio is no longer supported')
   })
 })

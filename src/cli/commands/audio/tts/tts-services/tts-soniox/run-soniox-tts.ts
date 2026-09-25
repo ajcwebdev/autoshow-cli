@@ -5,7 +5,7 @@ import { UsageError } from '~/utils/error-handler'
 import { requireTtsCredential } from '../../tts-utils/tts-credentials'
 import { runHostedTtsChunkPipeline } from '../../tts-utils/hosted-tts-chunk-pipeline'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
-import { splitSonioxTtsText } from './soniox-tts-chunks'
+import { resolveTtsDispatchChunks } from '../../tts-utils/tts-provider-chunk-policy'
 import { decodeSonioxWavDuration, retainSonioxAudioResponse } from './soniox-tts-audio'
 import { serializeSonioxTts, sonioxTtsRequestControls, SONIOX_TTS_SERIALIZER_VERSION } from './soniox-tts-request'
 
@@ -19,7 +19,7 @@ export const runSonioxTts = async (text: string, outputDir: string, options: {
   abortSignal?: AbortSignal | undefined
   requestEvidence?: TtsRequestEvidenceScope | undefined
 }) => {
-  const chunks = splitSonioxTtsText(text, options.chunking)
+  const chunks = resolveTtsDispatchChunks({ provider: 'soniox', model: options.model, text: text, chunking: options.chunking }, options.requestEvidence)
   if (!chunks.length) throw UsageError('Soniox TTS input text is empty.')
   const requests = chunks.map(chunk => serializeSonioxTts(options.model, options.voiceId ?? 'Adrian', chunk, options.language, options.speed))
   const controls = sonioxTtsRequestControls(options.language, options.speed)

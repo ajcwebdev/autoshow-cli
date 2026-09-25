@@ -1,3 +1,5 @@
+import { verifyProviderProjectionArtifacts } from '~/cli/commands/command-shared/pipeline-manifest/projection-artifact-verifier'
+import { resolveTtsDeliveryOptions } from '~/cli/options/option-resolution/tts-delivery-options'
 import { setupTtsFixtureCredentials } from '../../../test-utils/tts-fixture-credentials'
 import { describe,expect,test } from 'bun:test'
 import { mkdir } from 'node:fs/promises'
@@ -12,7 +14,7 @@ import type { CanonicalAudioProviderProjection,PipelineProviderState,Step4Metada
 import { withTempDir } from '../../../test-utils/temp-dirs'
 import { canonicalFileInput,findRecoverableCompletedState,materializeFailedProviderState,resumeTarget,successfulTarget,ttsTarget } from './tts-resume-fixtures'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/audio/tts/tts-utils/tts-chunking'
-import { splitTextIntoChunks } from '~/cli/commands/audio/tts/tts-utils/audio-utils'
+import { splitTtsText } from '~/cli/commands/audio/tts/tts-utils/tts-chunk-planner'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { appendCurrentTtsProviderState, getCurrentTtsJournalAttemptKey } from '~/cli/commands/audio/tts/script-to-audio/current-render-artifacts'
 import { createCurrentTtsRenderAttempt, resolveCurrentTtsPriorAdmittedAttemptCount } from '~/cli/commands/audio/tts/script-to-audio/current-render-attempt'
@@ -128,7 +130,7 @@ describe('canonical TTS resume', () => {
       const sourceIdentity = await createFileTtsSourceIdentity(inputPath, text)
       const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text)
       const target = { ...ttsTarget(), voice: 'alloy' }
-      const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.openai)
+      const chunks = splitTtsText(text, TTS_CHUNK_CHARACTER_LIMITS.openai)
       expect(chunks.length).toBeGreaterThan(2)
       const bytes = createSyntheticWavBytes({ durationSeconds: 0.05, amplitude: 0.2, frequencyHz: 440 })
       const interruptedStates: PipelineProviderState[] = []
@@ -207,6 +209,27 @@ describe('canonical TTS resume', () => {
       expect(metadata[0]?.generationCheckpoint).toBeUndefined()
       expect(resumedProviderCalls).toBe(chunks.length - 1)
       expect(manifestCommits).toBe(3)
+      // Identical text slots can have different paid audio. Every archive reference must
+      // retain its own bytes, including after another delivery profile reuses the slots.
+      const manifest = await readManifest(dir)
+      const complete = manifest!.items[0]!.providers[0]!
+      const projection = complete.result!['ttsAudio'] as CanonicalAudioProviderProjection
+      const compact = await Bun.file(join(dir, projection.archive!.renderRef.path)).json()
+      expect(new Set(compact.slots.map((slot: { sha256: string }) => slot.sha256)).size).toBe(2)
+      expect(compact.slots.some((slot: { audioArtifactRef?: string }) => slot.audioArtifactRef)).toBe(true)
+      const variant = compact.slots.find((slot: { audioArtifactRef?: string }) => slot.audioArtifactRef)
+      const variantPath = join(dir, variant.audioArtifactRef)
+      const retainedBytes = await Bun.file(variantPath).bytes()
+      await Bun.write(variantPath, new Uint8Array(retainedBytes.length))
+      expect(await verifyProviderProjectionArtifacts(dir, complete)).toBe(false)
+      await Bun.write(variantPath, retainedBytes)
+      expect(await verifyProviderProjectionArtifacts(dir, complete)).toBe(true)
+      const callsBeforeMastering = resumedProviderCalls
+      await runTtsForTargets(text, dir, resolveTtsDeliveryOptions({}), [candidate], {
+        sourceIdentity, dialoguePlan, retainedProviderStates: [complete], recoveryRootDir: dir,
+        resolveReportedOutput: () => ({ path: join(dir, 'remastered.wav'), fileName: 'remastered.wav' }),
+      })
+      expect(resumedProviderCalls).toBe(callsBeforeMastering)
     })
   }, 10_000)
 })
