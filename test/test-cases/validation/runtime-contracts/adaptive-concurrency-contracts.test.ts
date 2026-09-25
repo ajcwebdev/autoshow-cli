@@ -71,7 +71,7 @@ const spawnLeaseChild = (
       lockWaitMs: 5,
       lockStaleMs: 1000
     })
-    const lease = await acquireAdaptiveProviderLease(['tts/speechify'], config, {
+    const lease = await acquireAdaptiveProviderLease(['tts/inworld'], config, {
       command: '${label}',
       leaseTtlMs: 2000
     })
@@ -364,7 +364,7 @@ describe('adaptive scheduler contracts', () => {
 
     for (let attempt = 0; attempt < 200; attempt += 1) {
       const snapshot = await readAdaptiveConcurrencySnapshot(config)
-      if ((snapshot.groups['tts/speechify']?.active ?? 0) > 0) {
+      if ((snapshot.groups['tts/inworld']?.active ?? 0) > 0) {
         break
       }
       await Bun.sleep(2)
@@ -425,13 +425,13 @@ describe('adaptive scheduler contracts', () => {
     const beforeMs = Date.now()
     await recordAdaptivePressure(['image/openai'], 'rate-limit', config)
     await recordAdaptivePressure(['video/gemini'], 'transient', config)
-    await recordAdaptivePressure(['tts/speechify'], 'timeout', config)
+    await recordAdaptivePressure(['tts/inworld'], 'timeout', config)
 
     let snapshot = await readAdaptiveConcurrencySnapshot(config)
     expect(snapshot.groups['image/openai']?.limit).toBe(1)
     expect(snapshot.groups['image/openai']?.cooldownUntilMs ?? 0).toBeGreaterThan(beforeMs)
     expect(snapshot.groups['video/gemini']?.limit).toBe(2)
-    expect(snapshot.groups['tts/speechify']?.limit).toBe(1)
+    expect(snapshot.groups['tts/inworld']?.limit).toBe(1)
 
     await recordAdaptiveSuccess(['image/openai'], config)
     snapshot = await readAdaptiveConcurrencySnapshot(config)
@@ -462,7 +462,7 @@ describe('runCommand adaptive pressure contracts', () => {
       'tts',
       'input/examples/tts/01-tts-short.md',
       '--provider',
-      'speechify=simba-3.2'
+      'inworld=realtime-tts-2'
     ], {
       env: {
         AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY: 'force',
@@ -478,7 +478,7 @@ describe('runCommand adaptive pressure contracts', () => {
     const snapshot = await readAdaptiveConcurrencySnapshot(resolveAdaptiveConcurrencyConfig(stateDir))
     expect(result.exitCode).toBe(1)
     expect(attempts).toEqual([1])
-    expect(snapshot.groups['tts/speechify']?.failureStreak).toBe(1)
+    expect(snapshot.groups['tts/inworld']?.failureStreak).toBe(1)
   })
 
   test('persistent synthetic rate-limit failure is returned unchanged after one attempt', async () => {
@@ -489,7 +489,7 @@ describe('runCommand adaptive pressure contracts', () => {
       'tts',
       'input/examples/tts/01-tts-short.md',
       '--provider',
-      'speechify=simba-3.2'
+      'inworld=realtime-tts-2'
     ], {
       env: {
         AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY: 'force',
@@ -562,7 +562,7 @@ describe('runCommand adaptive pressure contracts', () => {
       'tts',
       'input/examples/tts/01-tts-short.md',
       '--provider',
-      'speechify=simba-3.2'
+      'inworld=realtime-tts-2'
     ], {
       adaptiveStateDir: stateDir,
       adaptiveConfig: {},

@@ -81,8 +81,6 @@ const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['write', 'input/examples/document/1-epub.epub', '--epub-bun'], flag: '--epub-bun' },
   { argv: ['resume', 'output/x', '--epub-bun'], flag: '--epub-bun' },
   { argv: ['music', '--audio', 'input/a.mp3', '--keep-tmp'], flag: '--keep-tmp' },
-  { argv: ['tts', 'input/examples/tts/01-tts-short.md', '--speechify-tts-voice-locale', 'en-US'], flag: '--speechify-tts-voice-locale' },
-  { argv: ['tts', 'input/examples/tts/01-tts-short.md', '--speechify-tts-voice-gender', 'female'], flag: '--speechify-tts-voice-gender' },
   { argv: ['video', 'a sunset', '--minimax-video', 'MiniMax-Hailuo-2.3'], flag: '--minimax-video' },
   { argv: ['config', '--minimax-video', 'MiniMax-Hailuo-2.3'], flag: '--minimax-video' },
   { argv: ['tts', 'input/examples/tts/01-tts-short.md', '--elevenlabs-tts-clone-remove-background-noise'], flag: '--elevenlabs-tts-clone-remove-background-noise' },

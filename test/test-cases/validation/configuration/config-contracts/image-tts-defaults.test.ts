@@ -36,15 +36,15 @@ describe('config image and TTS default contracts', () => {
     })
   })
 
-  test('buildConfigPatchFromFlags saves and merges Speechify TTS defaults', () => {
+  test('buildConfigPatchFromFlags saves and merges Soniox TTS defaults', () => {
     expectConfigPatchRoundTrip({
-      'speechify-tts': ['simba-3.2'],
-      'tts-voice': ['speechify=narrator_voice', ],
-      'tts-language': ['speechify=en-US']
+      'soniox-tts': ['tts-rt-v2'],
+      'tts-voice': ['soniox=narrator_voice'],
+      'tts-language': ['soniox=en']
     }, 'tts', {
-      speechifyTts: ['simba-3.2'],
-      voice: ['speechify=narrator_voice', ],
-      language: ['speechify=en-US']
+      sonioxTts: ['tts-rt-v2'],
+      voice: ['soniox=narrator_voice'],
+      language: ['soniox=en']
     })
   })
 

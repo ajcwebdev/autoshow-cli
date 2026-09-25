@@ -11,8 +11,6 @@ import type {
   TypedProviderSynthesisSettings,
 } from '~/types'
 import {
-  validateSpeechifyTtsLanguageForModel,
-  validateSpeechifyTtsModel,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { UsageError } from '~/utils/error-handler'
 import { resolveTtsTargetInvocationControls } from '../tts-targets/tts-invocation-controls'
@@ -54,7 +52,6 @@ const controlReader = (effectiveControls: Readonly<Record<string, unknown>>): Co
 
 const buildOpenAiSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'openai.tts.phase-0-v1', controls: { responseFormat: 'wav', ...(controls.string('instructions') ? { instructions: controls.string('instructions') } : {}), ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}) } })
 const buildGrokSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'grok.tts.phase-0-v1', controls: { ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}), language: controls.string('language') ?? 'auto', textNormalization: controls.boolean('textNormalization') === true, outputFormat: { codec: 'wav', sample_rate: 24000 } } })
-const buildSpeechifySerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'speechify.tts.phase-0-v1', controls: { audioFormat: 'wav', ...(controls.string('language') ? { language: controls.string('language') } : {}) } })
 const buildMistralSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'mistral.tts.phase-0-v1', controls: { stream: false, responseFormat: controls.string('responseFormat') ?? 'wav' } })
 
 const buildInworldSerializer: SerializerBuilder = ({ target, controls }) => ({ endpointKind: 'realtime-tts', serializerVersion: INWORLD_TTS_SERIALIZER_VERSION, controls: inworldTtsRequestControls(target.model, controls.string('steeringPrompt'), controls.number('speed')) })
@@ -110,7 +107,6 @@ const SERIALIZER_BUILDERS = {
   openai: buildOpenAiSerializer,
   soniox: ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: SONIOX_TTS_SERIALIZER_VERSION, controls: sonioxTtsRequestControls(controls.string('language'), controls.number('speed')) }),
   grok: buildGrokSerializer,
-  speechify: buildSpeechifySerializer,
   inworld: buildInworldSerializer,
   elevenlabs: buildElevenLabsSerializer,
   mistral: buildMistralSerializer,
@@ -160,11 +156,6 @@ export const resolveEffectiveProviderControls = (
     case 'soniox': return resolveTtsTargetInvocationControls('soniox', invocation, { language: selection.sonioxLanguage ?? 'en', speed: selection.sonioxSpeed ?? 1 })
     case 'grok': return resolveTtsTargetInvocationControls('grok', invocation, { speed: selection.grokSpeed, language: selection.grokLanguage, ...(selection.grokTextNormalization ? { textNormalization: true } : {}) })
     case 'mistral': return resolveTtsTargetInvocationControls('mistral', invocation, { responseFormat: (selection.mistralResponseFormat ?? 'wav') as 'wav' | 'mp3' | 'flac' | 'opus' })
-    case 'speechify': {
-      const controls = resolveTtsTargetInvocationControls('speechify', invocation, { language: selection.speechifyLanguage })
-      const language = validateSpeechifyTtsLanguageForModel(validateSpeechifyTtsModel(target.model), controls.language)
-      return Object.freeze({ ...controls, ...(language ? { language } : {}) })
-    }
     case 'inworld': return resolveTtsTargetInvocationControls('inworld', invocation, { steeringPrompt: selection.inworldInstructions, speed: selection.inworldSpeed })
   }
 }
@@ -179,7 +170,6 @@ export const providerSerializerVoiceField = (
     case 'gemini': return 'generation_config.speech_config'
     case 'soniox': return 'voice'
     case 'grok': return 'voice_id'
-    case 'speechify': return 'voice_id'
     case 'elevenlabs': return strategy === 'native-dialogue' ? 'inputs[].voice_id' : 'path.voice_id'
     case 'mistral': return voiceKind === 'reference-asset' ? 'ref_audio' : 'voice_id'
     case 'inworld': return 'voiceId'

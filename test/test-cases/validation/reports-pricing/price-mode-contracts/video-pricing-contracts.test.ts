@@ -161,7 +161,6 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('grok-stt')).toBe('speech-to-text')
       expect(resolveCheapestModelForFlag('grok-tts')).toBe('grok-tts')
       expect(resolveCheapestModelForFlag('mistral-tts')).toBe('voxtral-mini-tts-2603')
-      expect(resolveCheapestModelForFlag('speechify-tts')).toBe('simba-3.2')
       expect(resolveCheapestModelForFlag('gemini-stt')).toBe('gemini-3.5-transcribe')
       expect(resolveCheapestModelForFlag('gladia-stt')).toBe('solaria-3')
       expect(resolveCheapestModelForFlag('supadata-stt')).toBe('auto')

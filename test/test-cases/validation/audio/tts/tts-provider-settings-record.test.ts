@@ -97,13 +97,11 @@ describe('TTS provider settings record (plan-derived, no dispatch)', () => {
     })
   })
 
-  test('Inworld records speed and steering instruction; Speechify records language', () => {
+  test('Inworld records speed and steering instruction', () => {
     const inworld = settingsFor(target('inworld', 'realtime-tts-2'), { inworldTtsSpeed: 0.9, inworldTtsInstructions: 'Calm, measured narration' })
     expect(inworld.request['voice']).toBeDefined()
     expect(JSON.stringify(inworld.request['controls'])).toContain('0.9')
     expect(JSON.stringify(inworld.request['controls'])).toContain('Calm, measured narration')
-    const speechify = settingsFor(target('speechify', 'simba-3.2'), { speechifyTtsLanguage: 'en-US' })
-    expect(speechify.request).toMatchObject({ voice: 'geffen_32', controls: { audioFormat: 'wav', language: 'en-US' } })
   })
 
   test('every hosted TTS provider produces a request record with endpoint, serializer, and voice', () => {
@@ -112,7 +110,6 @@ describe('TTS provider settings record (plan-derived, no dispatch)', () => {
       target('grok', 'grok-tts'),
       target('mistral', 'voxtral-mini-tts-2603', 'voice_fixture'),
       target('inworld', 'realtime-tts-2'),
-      target('speechify', 'simba-3.2'),
       target('elevenlabs', 'eleven_v3'),
     ]
     for (const ttsTarget of targets) {
@@ -127,7 +124,7 @@ describe('TTS provider settings record (plan-derived, no dispatch)', () => {
   test('audiobook delivery, pause overrides, chunking, and export settings are recorded locally', () => {
     const delivery = ttsDeliveryPreset('audiobook')
     delivery.gapsMs = { ...delivery.gapsMs, paragraph: 1000, turn: 1000, sentence: 450 }
-    const settings = settingsFor(target('speechify', 'simba-3.2'), {
+    const settings = settingsFor(target('inworld', 'realtime-tts-2'), {
       ttsDelivery: delivery,
       ttsChunking: { boundary: 'smart', maxChars: 300 },
       ttsExport: { format: 'mp3', bitrateKbps: 192, metadata: { title: 'Audiobook Test' } },

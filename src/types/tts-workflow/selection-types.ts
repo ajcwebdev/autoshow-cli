@@ -16,7 +16,6 @@ export type TtsTargetSelection = {
   grokModels: string[]
   mistralModels: string[]
   openaiModels: string[]
-  speechifyModels: string[]
   inworldModels: string[]
   speakerVoiceRegistry: SpeakerVoiceRegistry | undefined
   multiSpeakerRequested: boolean
@@ -33,8 +32,6 @@ export type TtsTargetSelection = {
   elevenLabsSeed: number | undefined
   elevenLabsTextNormalization: string | undefined
   elevenLabsPronunciationDictionaryLocators: string[] | undefined
-  speechifyVoiceId: string | undefined
-  speechifyLanguage: string | undefined
   inworldVoiceId: string | undefined
   inworldInstructions: string | undefined
   inworldSpeed: number | undefined

@@ -83,7 +83,6 @@ const withoutInheritedVoiceSelection = (options: TtsOptions): TtsOptions => ({
   mistralTtsVoice: undefined,
   openaiVoiceId: undefined,
   elevenlabsVoiceId: undefined,
-  speechifyVoice: undefined,
   inworldTtsVoice: undefined,
 })
 

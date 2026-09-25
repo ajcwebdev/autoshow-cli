@@ -7,7 +7,8 @@ import {
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { runSyncCommand } from '~/utils/sync-subprocess'
-import { renderCombinedDashboard } from '../../../../.codex/skills/consensus/scripts/shared/combined_report_html'
+import type { CombinedDashboardModel } from '../../../../.codex/skills/consensus/scripts/shared/combined_report_html'
+import { renderTabPanel } from '../../../../.codex/skills/consensus/scripts/shared/dashboard_client.js'
 import {
   buildUrlCombinedReport,
   rankUrlProviderGroup,
@@ -22,6 +23,8 @@ import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/command-shared/pipeline-m
 import { makeTempDirSync } from '../../../test-utils/temp-dirs'
 
 const tempRoots: string[] = []
+const renderUrlPanel = (model: CombinedDashboardModel): string =>
+  renderTabPanel({ key: 'url', label: 'URL', rootLabel: 'docs/benchmarks/url', model })
 
 afterEach(() => {
   for (const root of tempRoots.splice(0)) {
@@ -147,48 +150,7 @@ const sampleAggregate = (
   perRun: {}
 })
 
-type UrlSummaryMetric = 'price' | 'speed' | 'automatedQuality'
-
-const URL_SUMMARY_METRICS: readonly UrlSummaryMetric[] = ['price', 'speed', 'automatedQuality']
-const URL_SUMMARY_GROUPS = ['local', 'service'] as const
-
-export const normalizeMarkdownTable = (text: string): string =>
-  text.split('\n').map(line => line.split('|').map(cell => cell.trim()).join(' | ')).join('\n')
-
-export const formatUrlSummaryMetricValue = (metric: UrlSummaryMetric, value: number | null): string | null => {
-  if (value === null) return null
-  switch (metric) {
-    case 'price':
-      return value === 0 ? '$0.00' : `$${value.toFixed(4)}`
-    case 'speed':
-      return `${(value / 1000).toFixed(2)}s`
-    case 'automatedQuality':
-      return `${value.toFixed(2)}/100`
-  }
-}
-
-export const expectedUrlRankingRows = (
-  report: Pick<UrlCombinedArtifact<AggregatedUrlProvider, UrlMetricRankingEntry>, 'metricRankings' | 'runCount'>
-): string[] => URL_SUMMARY_GROUPS.flatMap(group =>
-  URL_SUMMARY_METRICS.flatMap(metric =>
-    report.metricRankings[group][metric].flatMap((entry) => {
-      const average = formatUrlSummaryMetricValue(metric, entry.value)
-      return average === null
-        ? []
-        : [`| ${entry.rank} | ${entry.providerKey} | ${entry.runsCovered}/${report.runCount} runs | ${average} |`]
-    })
-  )
-)
-
 describe('URL combined-report aggregation', () => {
-  test('formats retained URL summary values and omits null rankings', () => {
-    expect(formatUrlSummaryMetricValue('price', 0)).toBe('$0.00')
-    expect(formatUrlSummaryMetricValue('price', 1.23456)).toBe('$1.2346')
-    expect(formatUrlSummaryMetricValue('speed', 1234)).toBe('1.23s')
-    expect(formatUrlSummaryMetricValue('automatedQuality', 98.765)).toBe('98.77/100')
-    expect(formatUrlSummaryMetricValue('price', null)).toBeNull()
-  })
-
   test('exposes URL combined reports through unified help', () => {
     const runner = resolve(import.meta.dir, '../../../../.codex/skills/consensus/scripts/run.ts')
     const result = runSyncCommand('bun', [runner, 'url', '--help'])
@@ -239,7 +201,7 @@ describe('URL combined-report aggregation', () => {
     expect(report.humanQualityRowCount).toBe(0)
     expect(report.notes).toContain('No human-quality ranking is emitted because explicit human-quality rows are absent from the current source reports.')
     expect(result.markdown).toContain('explicit human-quality rows are absent')
-    expect(renderCombinedDashboard(result.dashboardModel)).toContain('explicit human-quality rows are absent')
+    expect(renderUrlPanel(result.dashboardModel)).toContain('explicit human-quality rows are absent')
     expect(local?.meanCostUSD).toBe(0)
     expect(local?.meanAutomatedQuality).toBe(40)
     expect(service?.meanAutomatedQuality).toBe(80)
@@ -254,7 +216,7 @@ describe('URL combined-report aggregation', () => {
     expect(report.runs[1]?.sourceUrl).toBeNull()
     expect(result.markdown).toContain('source `rankingSurfaces.*.automatedQuality.value` values')
     expect(result.markdown).toContain('[Article &lt;A&gt;](<https://example.com/article?x=1&y=2>)')
-    expect(renderCombinedDashboard(result.dashboardModel)).toContain('href="https://example.com/article?x=1&amp;y=2"')
+    expect(renderUrlPanel(result.dashboardModel)).toContain('href="https://example.com/article?x=1&amp;y=2"')
   })
 
   test('applies all pure-ranking tie-breaks and sorts missing values last', () => {
@@ -428,7 +390,7 @@ describe('URL combined-report aggregation', () => {
     })
 
     const result = buildUrlCombinedReport(root, '2026-07-18T00:00:00.000Z')
-    const html = renderCombinedDashboard(result.dashboardModel)
+    const html = renderUrlPanel(result.dashboardModel)
     expect(html).not.toContain('href="javascript:')
     expect(html).toContain('&lt;Unsafe &amp; Article&gt;')
     expect(html).toContain('javascript:alert(1)')
@@ -494,7 +456,7 @@ describe('URL combined-report aggregation', () => {
     expect(report.notes.some((note) => note.includes('rows are absent'))).toBe(false)
     expect(result.markdown).toContain(presenceNote)
     expect(result.markdown).not.toContain('rows are absent')
-    const html = renderCombinedDashboard(result.dashboardModel)
+    const html = renderUrlPanel(result.dashboardModel)
     expect(html).toContain(presenceNote)
     expect(html).not.toContain('rows are absent')
   })
@@ -519,41 +481,26 @@ describe('committed URL combined dashboard', () => {
     expect(Object.keys(report.metricRankings.service).sort()).toEqual(['automatedQuality', 'price', 'speed'])
   })
 
-  test('keeps the retained benchmark summary synchronized with URL aggregates', () => {
-    const benchmarkRoot = resolve(import.meta.dir, '../../../../docs/benchmarks')
-    const report = JSON.parse(readFileSync(join(benchmarkRoot, 'url', 'combined-comparison-report.json'), 'utf8')) as UrlCombinedArtifact<AggregatedUrlProvider, UrlMetricRankingEntry>
-    const summary = readFileSync(join(benchmarkRoot, 'summary.md'), 'utf8')
-    const urlSection = summary.split('## URL\n')[1]?.split('\n## Video')[0] ?? ''
-
-    const normalizedSummary = normalizeMarkdownTable(summary)
-    const normalizedUrlSection = normalizeMarkdownTable(urlSection)
-    const inventory = summary.split('## Source Inventory\n')[1]?.split('\n## ')[0] ?? ''
-    const inventoryRows = [...inventory.matchAll(/^\|\s*[a-z-]+\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*$/gm)]
-    const totalReports = inventoryRows.reduce((sum, row) => sum + Number(row[1]), 0)
-    const totalProviderRows = inventoryRows.reduce((sum, row) => sum + Number(row[2]), 0)
-    const groups = new Set(inventoryRows.flatMap(row => row[3]!.split(',').map(group => group.trim())))
-
-    expect(normalizedSummary).toContain(`| url | ${report.runCount} | ${report.providerRowCount} | local, service |`)
-    expect(inventoryRows.length).toBeGreaterThan(0)
-    expect(normalizedSummary).toContain(`| **Total** | **${totalReports}** | **${totalProviderRows}** | **${groups.size} groups** |`)
-    expect(urlSection).not.toContain('2/2 runs')
-
-    for (const expectedRow of expectedUrlRankingRows(report)) {
-      expect(normalizedUrlSection).toContain(expectedRow)
-    }
-  })
-
-  test('is self-contained, precomputed, and readable without JavaScript', () => {
+  test('ships the URL tab as data that the sibling script renders in the browser', () => {
     const benchmarkRoot = resolve(import.meta.dir, '../../../../docs/benchmarks')
     const html = readFileSync(join(benchmarkRoot, 'combined-comparison-dashboard.html'), 'utf8')
-    const panel = (html.split('<section class="panel" id="panel-url">')[1] ?? '').split('</main>')[0] ?? ''
+    const data = JSON.parse(readFileSync(join(benchmarkRoot, 'combined-comparison-dashboard.json'), 'utf8')) as {
+      tabs: Array<{ key: string, label: string, rootLabel: string, model: CombinedDashboardModel }>
+    }
+    const tab = data.tabs.find((candidate) => candidate.key === 'url')
 
-    expect(html).toContain('<style>')
-    expect(html).not.toMatch(/<link\b/i)
-    expect(html).not.toContain('fetch(')
-    expect(html).not.toContain('XMLHttpRequest')
-    expect(html).not.toMatch(/<script[^>]+src=/i)
+    // the page is a static shell: it names its generated siblings by relative name and holds no table itself
+    expect(html).not.toMatch(/<style[\s>]/i)
+    expect([...html.matchAll(/<link\b[^>]*>/gi)].map((match) => match[0])).toEqual(['<link rel="stylesheet" href="combined-comparison-dashboard.css">'])
+    expect([...html.matchAll(/<script\b[^>]*>/gi)].map((match) => match[0])).toEqual(['<script src="combined-comparison-dashboard.js">'])
+    expect(html).toContain('data-source="combined-comparison-dashboard.json"')
+    expect(html).not.toContain('<table')
     expect(html).not.toContain('All weighted rankings')
+
+    expect(tab?.rootLabel).toBe('docs/benchmarks/url')
+    expect(JSON.stringify(tab)).not.toContain('All weighted rankings')
+    const panel = renderTabPanel(tab!)
+    expect(panel).toContain('<code>docs/benchmarks/url</code>')
     expect(panel).toContain('<table class="providers">')
     expect(panel).toContain('<h3>Metric rankings</h3>')
     expect(panel).toContain('<h3>Per-run automated quality</h3>')

@@ -10,7 +10,7 @@ import { createMockWavBytes, createSyntheticWavBytes } from '../../../../test-ut
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 import { unary } from './tts-provider-contracts/gemini-fixtures'
 
-const envKeys = ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY', 'XAI_API_KEY', 'SPEECHIFY_API_KEY', 'INWORLD_API_KEY', 'SONIOX_API_KEY', 'GEMINI_API_KEY']
+const envKeys = ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY', 'XAI_API_KEY', 'INWORLD_API_KEY', 'SONIOX_API_KEY', 'GEMINI_API_KEY']
 const dirs = setupContractSuiteLifecycle({ envKeys, tempPrefix: 'autoshow-speed-benchmark-' })
 const audio = createMockWavBytes()
 const base64 = Buffer.from(audio).toString('base64')
@@ -27,7 +27,6 @@ for (const suite of ['emotion', 'speed-pauses']) {
         if (entry.provider === 'gemini') return Response.json(unary())
         if (entry.provider === 'soniox') return new Response(createSyntheticWavBytes({ sampleRate: 24000, durationSeconds: 0.1, amplitude: 0.2, frequencyHz: 440 }))
         if (entry.provider === 'inworld') return Response.json({ audioContent: base64 })
-        if (entry.provider === 'speechify') return Response.json({ audio_data: base64 })
         return new Response(audio, { headers: { 'content-type': 'audio/wav' } })
       })
       const options: TtsOptions = {
@@ -109,7 +108,7 @@ describe('speed capability validation', () => {
     expect(() => planCurrentTtsReadiness({ target: collectTtsTargets(options)[0]!, sourceText: 'Narrator: Hello.', ttsOptions: options })).toThrow('does not support numeric speed')
   })
   test('validates model-specific numeric ranges and rejects zero, NaN and infinity', () => {
-    for (const [provider,model,min,max] of [['inworld','realtime-tts-2',0.5,1.5], ['grok','grok-tts',0.7,1.5], ] as const) {
+    for (const [provider,model,min,max] of [['inworld','realtime-tts-2',0.5,1.5], ['grok','grok-tts',0.7,1.5]] as const) {
       for (const speed of [min,max]) expect(buildOptsFromFlags({ [`${provider}-tts`]: model, 'tts-speed': String(speed) })[`${provider}TtsSpeed`]).toBe(speed)
       for (const speed of [0,min - 0.01,max + 0.01,NaN,Infinity]) {
         expect(() => buildOptsFromFlags({ [`${provider}-tts`]: model, 'tts-speed': String(speed) })).toThrow()

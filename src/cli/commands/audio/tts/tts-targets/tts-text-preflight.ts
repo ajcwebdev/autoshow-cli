@@ -13,7 +13,6 @@ export type TtsSpeechMarkupSupport = 'supported' | 'unsupported' | 'unverified'
 // aloud and billed. Everything else is sent verbatim with a warning until support is verified.
 const SPEECH_MARKUP_SUPPORT: Partial<Record<TtsProvider, (model: string) => TtsSpeechMarkupSupport>> = {
   elevenlabs: (model) => model === 'eleven_v3' ? 'unsupported' : 'unverified',
-  speechify: () => 'supported',
   inworld: () => 'supported',
 }
 

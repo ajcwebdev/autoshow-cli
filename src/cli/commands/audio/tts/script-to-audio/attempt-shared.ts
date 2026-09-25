@@ -16,7 +16,6 @@ export const CAPABILITY_SOURCE_REFS: Record<TtsTarget['service'], string[]> = {
   soniox: ['https://soniox.com/docs/api-reference/tts/generate_tts', 'https://soniox.com/docs/tts/models', 'https://soniox.com/docs/tts/rest-api/limits-and-quotas'],
   grok: ['https://docs.x.ai/developers/model-capabilities/audio/text-to-speech'],
   elevenlabs: ['https://elevenlabs.io/docs/overview/capabilities/text-to-speech'],
-  speechify: ['https://docs.sws.speechify.com/tts/text-to-speech/get-started/models'],
   inworld: ['https://docs.inworld.ai/'],
 }
 

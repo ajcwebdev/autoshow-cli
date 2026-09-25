@@ -50,7 +50,6 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'grok-tts',
   'mistral-tts',
   'openai-tts',
-  'speechify-tts',
   'inworld-tts',
   'gemini-image',
   'openai-image',

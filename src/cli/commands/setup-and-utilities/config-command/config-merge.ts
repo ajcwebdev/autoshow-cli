@@ -264,7 +264,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'grok-tts':          ['defaults', 'tts', 'grokTts'],
   'mistral-tts':       ['defaults', 'tts', 'mistralTts'],
   'openai-tts':        ['defaults', 'tts', 'openaiTts'],
-  'speechify-tts':     ['defaults', 'tts', 'speechifyTts'],
   'inworld-tts':       ['defaults', 'tts', 'inworldTts'],
   'tts-voice':         ['defaults', 'tts', 'voice'],
   'tts-speed':         ['defaults', 'tts', 'speed'],

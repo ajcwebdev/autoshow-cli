@@ -3,10 +3,10 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
 import { SUPPORTED_INWORLD_TTS_MODELS, validateInworldTtsModel } from '~/cli/commands/setup-and-utilities/models/tts-models'
 
-test('benchmark exclusions do not remove the retained OpenAI and Speechify CLI targets', async () => {
-  const options = buildOptsFromFlags({ 'openai-tts': 'gpt-4o-mini-tts-2025-12-15', 'speechify-tts': 'simba-3.2' })
+test('benchmark exclusions do not remove the retained OpenAI CLI target', async () => {
+  const options = buildOptsFromFlags({ 'openai-tts': 'gpt-4o-mini-tts-2025-12-15' })
   expect(collectTtsTargets(options).map(t => [t.service, t.model])).toEqual(expect.arrayContaining([
-    ['openai', 'gpt-4o-mini-tts-2025-12-15'], ['speechify', 'simba-3.2'],
+    ['openai', 'gpt-4o-mini-tts-2025-12-15'],
   ]))
   expect(SUPPORTED_INWORLD_TTS_MODELS).toEqual(['realtime-tts-2'])
   expect(() => validateInworldTtsModel('realtime-tts-2-flash')).toThrow('Model "realtime-tts-2-flash" is retired for --provider/--tts inworld[=model]. Use "realtime-tts-2" instead.')
@@ -21,7 +21,7 @@ test('benchmark exclusions do not remove the retained OpenAI and Speechify CLI t
     expect(source.cases.filter((entry: { provider: string }) => entry.provider === 'soniox').map((entry: { id: string }) => entry.id)).toEqual(suite === 'emotion' ? ['soniox-tts-rt-v2-emotion-tags'] : ['soniox-tts-rt-v2-pacing-tags', 'soniox-tts-rt-v2-numeric'])
     expect(source.cases).toHaveLength(count)
     for (const entry of source.cases) {
-      expect(['openai', 'speechify']).not.toContain(entry.provider)
+      expect(['openai']).not.toContain(entry.provider)
       if (entry.provider === 'inworld') expect(entry.model).toBe('realtime-tts-2')
     }
   }

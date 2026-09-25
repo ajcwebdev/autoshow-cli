@@ -1,4 +1,4 @@
-import { validateSonioxTtsVoice, validateSonioxTtsLanguage, validateElevenLabsTtsTextNormalization, validateGrokTtsLanguage, validateGrokTtsVoice, validateInworldTtsVoice, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateSonioxTtsVoice, validateSonioxTtsLanguage, validateElevenLabsTtsTextNormalization, validateGrokTtsLanguage, validateGrokTtsVoice, validateInworldTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { CliFlagOccurrence, ResolvedModelOptions, TtsCliReferenceInput, TtsOptionResolutionAuthority, TtsOptionResolutionContext, TtsProvider, TtsRuntimeOptionKey, TtsRuntimeOptions } from '~/types'
 import { parseTtsDialogueFormat, readBooleanFlag, readOptionalStringFlag, readOptionalStringListFlag } from './flag-readers'
 import { validateCliValue } from './download-model-options'
@@ -111,7 +111,6 @@ const TTS_MODEL_KEYS = [
   'sonioxTtsModels',
   'grokTtsModels',
   'mistralTtsModels', 'openaiTtsModels',
-  'speechifyTtsModels',
   'inworldTtsModels'
 ] as const satisfies readonly TtsRuntimeOptionKey[]
 
@@ -177,9 +176,6 @@ const applyGenericTtsRuntimeOptions = (
       case 'openai':
         options.openaiVoiceId = voice
         break
-      case 'speechify':
-        options.speechifyVoice = readValidatedWhenSelected(voice, modelOptions.speechifyTtsModels, validateSpeechifyTtsVoice)
-        break
       case 'inworld':
         options.inworldTtsVoice = readValidatedWhenSelected(voice, modelOptions.inworldTtsModels, validateInworldTtsVoice)
         break
@@ -212,9 +208,6 @@ const applyGenericTtsRuntimeOptions = (
         break
       case 'grok':
         options.grokTtsLanguage = validateCliValue(validateGrokTtsLanguage, language)
-        break
-      case 'speechify':
-        options.speechifyTtsLanguage = language
         break
       case 'elevenlabs':
         options.elevenlabsTtsLanguageCode = language
@@ -317,8 +310,6 @@ export const buildTtsOptions = (
     mistralTtsVoice: undefined,
     ttsDialogueFormat: parseTtsDialogueFormat(readOptionalStringFlag(flags, 'tts-dialogue-format')),
     ttsSpeakers,
-    speechifyVoice: undefined,
-    speechifyTtsLanguage: undefined,
     inworldTtsVoice: undefined,
     inworldTtsInstructions: undefined,
     inworldTtsSpeed: undefined,

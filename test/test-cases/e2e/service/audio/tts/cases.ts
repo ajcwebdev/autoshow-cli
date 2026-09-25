@@ -2,7 +2,6 @@ import {
   ELEVENLABS_DEFAULT_VOICE_ID,
   OPENAI_DEFAULT_TTS_VOICE,
   GROK_DEFAULT_TTS_VOICE,
-  SPEECHIFY_DEFAULT_TTS_VOICE,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 
 export const mistralTtsModels = 'voxtral-mini-tts-2603'
@@ -37,15 +36,6 @@ export const grokTts = {
   envVarDescription: 'xAI Grok TTS',
   extraArgs: ['--tts-voice', GROK_DEFAULT_TTS_VOICE],
   resolveExpectedSpeaker: async () => GROK_DEFAULT_TTS_VOICE,
-} as const
-
-export const speechifyTts = {
-  provider: 'speechify',
-  ttsService: 'speechify',
-  envVarKey: 'SPEECHIFY_API_KEY',
-  envVarDescription: 'Speechify TTS',
-  extraArgs: ['--tts-voice', SPEECHIFY_DEFAULT_TTS_VOICE],
-  resolveExpectedSpeaker: async () => SPEECHIFY_DEFAULT_TTS_VOICE,
 } as const
 
 export const inworldTts = {

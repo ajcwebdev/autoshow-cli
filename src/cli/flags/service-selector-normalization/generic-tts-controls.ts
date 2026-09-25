@@ -11,8 +11,8 @@ export type GenericTtsControlMap = {
 }
 
 export const GENERIC_TTS_CONTROL_MAP = {
-  'tts-speed': { soniox: 'speed', openai: 'speed', elevenlabs: 'speed', grok: 'speed',   inworld: 'speed' },
-  'tts-language': { soniox: 'language', grok: 'language', speechify: 'language',  elevenlabs: 'languageCode' },
+  'tts-speed': { soniox: 'speed', openai: 'speed', elevenlabs: 'speed', grok: 'speed', inworld: 'speed' },
+  'tts-language': { soniox: 'language', grok: 'language', elevenlabs: 'languageCode' },
   'tts-text-normalization': { grok: 'textNormalization', elevenlabs: 'textNormalization' },
   'tts-instructions': { gemini: 'instructions', openai: 'instructions', inworld: 'steeringPrompt' },
   'tts-stability': { elevenlabs: 'stability' },
@@ -26,7 +26,7 @@ export const GENERIC_TTS_CONTROL_MAP = {
 
 // Flags that select a voice identity in the target layer rather than a control in the control layer.
 export const GENERIC_TTS_IDENTITY_MAP = {
-  'tts-voice': ['soniox', 'gemini', 'elevenlabs', 'grok', 'mistral', 'openai', 'speechify',   'inworld'],
+  'tts-voice': ['soniox', 'gemini', 'elevenlabs', 'grok', 'mistral', 'openai', 'inworld'],
   'tts-ref-audio': ['mistral']
 } as const satisfies Record<string, readonly TtsProvider[]>
 

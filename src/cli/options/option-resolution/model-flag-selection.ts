@@ -13,7 +13,6 @@ import {
   SUPPORTED_GEMINI_TTS_MODELS,
   SUPPORTED_MISTRAL_TTS_MODELS,
   SUPPORTED_OPENAI_TTS_MODELS,
-  SUPPORTED_SPEECHIFY_TTS_MODELS,
   SUPPORTED_INWORLD_TTS_MODELS,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import {
@@ -51,7 +50,6 @@ const ALL_SHORTCUT_MODEL_EXPANSIONS: Partial<Record<RepeatableModelFlag, { short
   'grok-tts': { shortcut: 'all-tts', supported: SUPPORTED_GROK_TTS_MODELS },
   'mistral-tts': { shortcut: 'all-tts', supported: SUPPORTED_MISTRAL_TTS_MODELS },
   'openai-tts': { shortcut: 'all-tts', supported: SUPPORTED_OPENAI_TTS_MODELS },
-  'speechify-tts': { shortcut: 'all-tts', supported: SUPPORTED_SPEECHIFY_TTS_MODELS },
   'inworld-tts': { shortcut: 'all-tts', supported: SUPPORTED_INWORLD_TTS_MODELS },
   ...GENERATION_ALL_SHORTCUT_MODEL_EXPANSIONS
 }

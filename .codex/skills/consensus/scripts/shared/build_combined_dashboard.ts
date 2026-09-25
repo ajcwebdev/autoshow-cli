@@ -1,15 +1,18 @@
 #!/usr/bin/env bun
 
 import { writePortableFileSync } from "./portable_paths";
-import { join, resolve } from "node:path";
+import { basename, dirname, extname, join, resolve } from "node:path";
 import { buildOcrCombinedReport } from "../ocr/build_combined_report";
 import { buildSttCombinedReport } from "../stt/build_combined_report";
 import { buildUrlCombinedReport } from "../url/build_combined_report";
 import { buildTtsDashboard } from "../tts/build_tts_dashboard";
 import {
+  DEFAULT_DASHBOARD_ASSETS,
   renderBenchmarkDashboard,
+  type BenchmarkDashboardBundle,
   type BenchmarkDashboardTab,
   type CombinedDashboardModel,
+  type DashboardAssetNames,
 } from "./combined_report_html";
 
 interface DashboardTabSource {
@@ -28,8 +31,28 @@ export const DASHBOARD_TABS: DashboardTabSource[] = [
 ];
 
 export const DASHBOARD_FILE = "combined-comparison-dashboard.html";
+export const DASHBOARD_DATA_FILE = DEFAULT_DASHBOARD_ASSETS.data;
+export const DASHBOARD_STYLESHEET_FILE = DEFAULT_DASHBOARD_ASSETS.stylesheet;
+export const DASHBOARD_SCRIPT_FILE = DEFAULT_DASHBOARD_ASSETS.script;
 
-export function buildCombinedDashboard(benchmarksRootRaw: string, generatedAt = new Date().toISOString()): string {
+/** The page, data, stylesheet, and script paths one dashboard build writes; the assets share the page's directory and stem. */
+export interface DashboardOutputPaths {
+  html: string;
+  data: string;
+  stylesheet: string;
+  script: string;
+}
+
+export function dashboardAssetNames(htmlPath: string): DashboardAssetNames {
+  const stem = basename(htmlPath, extname(htmlPath));
+  return { stylesheet: `${stem}.css`, script: `${stem}.js`, data: `${stem}.json` };
+}
+
+export function buildCombinedDashboard(
+  benchmarksRootRaw: string,
+  generatedAt = new Date().toISOString(),
+  assets: DashboardAssetNames = DEFAULT_DASHBOARD_ASSETS,
+): BenchmarkDashboardBundle {
   const benchmarksRoot = resolve(benchmarksRootRaw);
   const tabs: BenchmarkDashboardTab[] = DASHBOARD_TABS.map((tab) => {
     const tabRoot = join(benchmarksRoot, tab.key);
@@ -46,15 +69,30 @@ export function buildCombinedDashboard(benchmarksRootRaw: string, generatedAt = 
     title: "AutoShow Benchmark Dashboard",
     generatedAt,
     tabs,
+    assets,
   });
 }
 
-export function writeCombinedDashboard(benchmarksRootRaw: string, outPathRaw?: string): string {
+export function writeCombinedDashboard(benchmarksRootRaw: string, outPathRaw?: string): DashboardOutputPaths {
   const benchmarksRoot = resolve(benchmarksRootRaw);
-  const outPath = resolve(outPathRaw ?? join(benchmarksRoot, DASHBOARD_FILE));
-  writePortableFileSync(outPath, buildCombinedDashboard(benchmarksRoot));
-  console.log(`Wrote ${outPath}`);
-  return outPath;
+  const htmlPath = resolve(outPathRaw ?? join(benchmarksRoot, DASHBOARD_FILE));
+  const assets = dashboardAssetNames(htmlPath);
+  const outDir = dirname(htmlPath);
+  const paths: DashboardOutputPaths = {
+    html: htmlPath,
+    data: join(outDir, assets.data),
+    stylesheet: join(outDir, assets.stylesheet),
+    script: join(outDir, assets.script),
+  };
+  const bundle = buildCombinedDashboard(benchmarksRoot, undefined, assets);
+  writePortableFileSync(paths.html, bundle.html);
+  writePortableFileSync(paths.data, bundle.data);
+  writePortableFileSync(paths.stylesheet, bundle.stylesheet);
+  writePortableFileSync(paths.script, bundle.script);
+  for (const path of [paths.html, paths.data, paths.stylesheet, paths.script]) {
+    console.log(`Wrote ${path}`);
+  }
+  return paths;
 }
 
 export function defaultBenchmarksRoot(): string {
@@ -65,6 +103,7 @@ function main(): number {
   const argv = process.argv.slice(2);
   if (argv.includes("--help") || argv.includes("-h")) {
     console.log("Usage: bun scripts/shared/build_combined_dashboard.ts [benchmarks_root] [--out <path>]");
+    console.log("Writes the dashboard page plus its data, stylesheet, and script with the same stem beside it.");
     return 0;
   }
 

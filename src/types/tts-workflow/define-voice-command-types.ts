@@ -16,7 +16,6 @@ export const VOICE_CAPABILITY_REGISTRY = {
   grok: { models: ['grok-tts'], import: true, catalog: true, design: false, clone: true, lifecycle: true },
   mistral: { models: ['voxtral-mini-tts-2603'], import: true, catalog: true, design: false, clone: true, lifecycle: true },
   openai: { models: ['gpt-4o-mini-tts-2025-12-15'], import: true, catalog: false, design: false, clone: false, lifecycle: false },
-  speechify: { models: ['simba-3.2'], import: true, catalog: true, design: false, clone: false, lifecycle: true },
   inworld: { models: ['realtime-tts-2'], import: true, catalog: true, design: true, clone: true, lifecycle: true },
 } as const satisfies Record<TtsProvider, VoiceProviderCapabilities>
 

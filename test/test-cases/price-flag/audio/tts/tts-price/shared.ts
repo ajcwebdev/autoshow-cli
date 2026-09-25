@@ -11,7 +11,6 @@ const NO_PAID_TTS_ENV = {
   GEMINI_API_KEY: '',
   MISTRAL_API_KEY: '',
   OPENAI_API_KEY: '',
-  SPEECHIFY_API_KEY: '',
   XAI_API_KEY: ''
 } as const
 

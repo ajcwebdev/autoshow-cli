@@ -25,15 +25,15 @@ const excluded = section.split('\n').filter(line => /^\| [A-Z][a-z]+\s*\| `/.tes
 const dirs = setupContractSuiteLifecycle({ envKeys: [], tempPrefix: 'autoshow-excluded-provider-' })
 
 test('excluded provider decision remains disjoint from active selection, credentials and historical rates', () => {
-  expect(excluded).toHaveLength(2)
+  expect(excluded).toHaveLength(3)
   const targets = collectTtsTargets(buildOptsFromFlags({ 'all-tts': true }))
-  expect(Object.values(getModelRegistry().tts).flatMap(provider => Object.keys(provider.models))).toHaveLength(9)
-  expect(targets).toHaveLength(8)
+  expect(Object.values(getModelRegistry().tts).flatMap(provider => Object.keys(provider.models))).toHaveLength(8)
+  expect(targets).toHaveLength(7)
   // Mistral requires a saved voice or an explicitly authorized reference, so it is opt-in.
   expect([...new Set(targets.map(target => target.service))].sort()).toEqual(
-    ['elevenlabs', 'gemini', 'grok', 'inworld', 'openai', 'soniox', 'speechify']
+    ['elevenlabs', 'gemini', 'grok', 'inworld', 'openai', 'soniox']
   )
-  expect(TTS_PROVIDERS).toHaveLength(8)
+  expect(TTS_PROVIDERS).toHaveLength(7)
   for (const { provider, models } of excluded) {
     expect(TTS_PROVIDERS as readonly string[]).not.toContain(provider)
     expect(getModelRegistry().tts[provider]).toBeUndefined()
@@ -83,7 +83,7 @@ test('obsolete saved configuration and the removed single-provider control are r
   expectUnknownFlag(['tts', 'missing.txt', removedFlag, '1'], removedFlag)
   await Bun.write(file, JSON.stringify({ defaults: { tts: { [configKey]: 1 } } }))
   await expect(loadConfig(file)).rejects.toThrow()
-  await Bun.write(file, JSON.stringify({ defaults: { tts: { speechifyTts: ['simba-3.2'] } } }))
-  expect((await loadConfig(file)).defaults?.tts?.speechifyTts).toEqual(['simba-3.2'])
+  await Bun.write(file, JSON.stringify({ defaults: { tts: { sonioxTts: ['tts-rt-v2'] } } }))
+  expect((await loadConfig(file)).defaults?.tts?.sonioxTts).toEqual(['tts-rt-v2'])
   expect(calls).toHaveLength(0)
 })

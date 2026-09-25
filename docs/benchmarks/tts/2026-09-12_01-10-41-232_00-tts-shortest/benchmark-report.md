@@ -1,6 +1,6 @@
 # 00-tts-shortest — TTS benchmark
 
-9 retained model results; 9 succeeded. Single-voice synthesis. Updated from selected manifest artifacts on 2026-09-25 without provider calls.
+8 retained model results; 8 succeeded. Single-voice synthesis. Updated from selected manifest artifacts on 2026-09-25 without provider calls.
 
 [Manifest](./manifest.json) · [Batch comparison](../2026-09-12-benchmark-report.md)
 
@@ -10,7 +10,6 @@
 | grok/grok-tts                     | succeeded | 0.68            | 1.590   | $0.00026 | computed usage  | [WAV](./00-tts-shortest-grok-grok-tts.wav)                     |
 | mistral/voxtral-mini-tts-2603     | succeeded | 1.88            | 2.400   | $0.00027 | computed usage  | [WAV](./00-tts-shortest-mistral-voxtral-mini-tts-2603.wav)     |
 | openai/gpt-4o-mini-tts-2025-12-15 | succeeded | 2.04            | 1.700   | $0.00021 | computed usage  | [WAV](./00-tts-shortest-openai-gpt-4o-mini-tts-2025-12-15.wav) |
-| speechify/simba-3.2               | succeeded | 3.10            | 1.370   | $0.00017 | computed usage  | [WAV](./00-tts-shortest-speechify-simba-3.2.wav)               |
 | inworld/realtime-tts-2            | succeeded | 0.85            | 1.500   | $0.00043 | computed usage  | [WAV](./00-tts-shortest-inworld-realtime-tts-2.wav)            |
 | gemini/gemini-3.8-flash-tts       | succeeded | 3.52            | 1.207   | $0.00049 | provider usage  | [WAV](./00-tts-shortest-gemini-gemini-3.8-flash-tts.wav)       |
 | gemini/gemini-3.8-flash-lite-tts  | succeeded | 0.07 (recovery) | 1.543   | $0.00028 | estimated usage | [WAV](./00-tts-shortest-gemini-gemini-3.8-flash-lite-tts.wav)  |

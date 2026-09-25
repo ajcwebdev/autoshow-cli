@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { runCommand, STABLE_TTS_MD_PATH } from '../../../../../test-utils/test-helpers'
+import { runCommand, STABLE_TTS_MD_PATH } from '../../../../test-utils/test-helpers'
 
 // These CLI checks always use --price. Mocked synthesis coverage lives in validation/audio/tts.
 const cases = [

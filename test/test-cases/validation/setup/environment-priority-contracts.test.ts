@@ -162,7 +162,7 @@ test('voice and soundscape selections reject absent credentials before provider 
   const { createStabilitySoundEffectAdapter } = await import('~/cli/commands/audio/tts/soundscape/stability-stable-audio-adapter')
   const { createElevenLabsSoundEffectAdapter } = await import('~/cli/commands/audio/tts/soundscape/elevenlabs-sfx-adapter')
   const { createReplicateAudioGenAdapter } = await import('~/cli/commands/audio/tts/soundscape/replicate-audiogen-adapter')
-  for (const [provider, envKey] of [['elevenlabs', 'ELEVENLABS_API_KEY'], ['grok', 'XAI_API_KEY'], ['mistral', 'MISTRAL_API_KEY'],   ['inworld', 'INWORLD_API_KEY'], ['speechify', 'SPEECHIFY_API_KEY']] as const) {
+  for (const [provider, envKey] of [['elevenlabs', 'ELEVENLABS_API_KEY'], ['grok', 'XAI_API_KEY'], ['mistral', 'MISTRAL_API_KEY'],   ['inworld', 'INWORLD_API_KEY']] as const) {
     await withEnv({ [envKey]: '  ' }, () => expect(() => advancedProvider(provider)).toThrow(envKey))
   }
   expect(() => createStabilitySoundEffectAdapter({ apiKey: 'your_stability_api_key_here' })).toThrow('STABILITY_API_KEY')

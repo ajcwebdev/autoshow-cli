@@ -67,7 +67,6 @@ const targetOptions = (registration: VoiceRegistration): TtsOptions => {
     case 'grok': return { grokTtsModels: [model], grokTtsVoice: voice }
     case 'mistral': return { mistralTtsModels: [model], mistralTtsVoice: voice }
     case 'openai': return { openaiTtsModels: [model], openaiVoiceId: voice }
-    case 'speechify': return { speechifyTtsModels: [model], speechifyVoice: voice }
     case 'inworld': return { inworldTtsModels: [model], inworldTtsVoice: voice }
   }
 }

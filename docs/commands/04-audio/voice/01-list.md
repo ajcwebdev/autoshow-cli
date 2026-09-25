@@ -22,7 +22,7 @@ With `--provider`, `list` prints a provider or account catalog. `--provider` can
 | -------------------------- | ------------------------------------------------------------------------------------- |
 | `--generation-id <sha256>` | Optional unless more than one generation could match                                  |
 | `--live`                   | Opt-in provider readiness check for one registration                                  |
-| `--provider <name>`        | Remote catalog provider: `elevenlabs`, `grok`, `mistral`, `speechify`, or `inworld`   |
+| `--provider <name>`        | Remote catalog provider: `gemini`, `elevenlabs`, `grok`, `mistral`, or `inworld`      |
 | `--source <source>`        | Catalog source: `account`, `provider-library`, or `shared-library`; default `account` |
 | `--cursor <cursor>`        | Opaque provider pagination cursor                                                     |
 | `--reconcile`              | Complete an ambiguous provider provisioning journal without recreating the voice      |

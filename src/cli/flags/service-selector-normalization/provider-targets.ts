@@ -26,7 +26,6 @@ export const STANDALONE_TTS_PROVIDER_TARGETS = {
   grok: 'grok-tts',
   mistral: 'mistral-tts',
   openai: 'openai-tts',
-  speechify: 'speechify-tts',
   inworld: 'inworld-tts'
 } as const satisfies Record<string, string>
 
@@ -74,7 +73,6 @@ export const TTS_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
     grok: { modelsKey: 'grokTtsModels' },
     mistral: { modelsKey: 'mistralTtsModels' },
     openai: { modelsKey: 'openaiTtsModels' },
-    speechify: { modelsKey: 'speechifyTtsModels' },
     inworld: { modelsKey: 'inworldTtsModels' }
   }
 )

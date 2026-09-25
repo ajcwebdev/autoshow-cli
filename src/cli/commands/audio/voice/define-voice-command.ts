@@ -157,7 +157,7 @@ export const voiceCommand = defineCliCommand({
     notes: [
       'Each subcommand has its own flags: bun autoshow voice <subcommand> --help',
       'Voice import and local registration management support all active TTS providers. Remote capabilities are checked per subcommand from the typed voice capability registry.',
-      'OpenAI cloning is deferred, and Speechify cloning requires an unsupported challenge-and-consent workflow. tts, write, resume, and synthesis price never create voices.'
+      'OpenAI cloning is deferred. tts, write, resume, and synthesis price never create voices.'
     ]
   }
 }, async () => {})

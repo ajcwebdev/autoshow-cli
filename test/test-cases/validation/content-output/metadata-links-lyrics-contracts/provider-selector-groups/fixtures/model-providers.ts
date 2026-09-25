@@ -8,7 +8,6 @@ export const GROK_MODELS_LINKS = sectionLinks('Grok', 'Models')
 export const KIMI_MODELS_LINKS = sectionLinks('Kimi', 'Models')
 export const LTX_MODELS_LINKS = sectionLinks('LTX', 'Models')
 export const MISTRAL_MODELS_LINKS = sectionLinks('Mistral', 'Models')
-export const SPEECHIFY_MODELS_LINKS = sectionLinks('Speechify', 'Models')
 export const INWORLD_MODELS_LINKS = sectionLinks('Inworld', 'Models')
 export const REPLICATE_MODELS_LINKS = sectionLinks('Replicate', 'Models')
 

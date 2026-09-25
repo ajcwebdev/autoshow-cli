@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
-import { buildTtsDashboard } from '../../../../.codex/skills/consensus/scripts/tts/build_tts_dashboard'
-import { renderBenchmarkDashboard } from '../../../../.codex/skills/consensus/scripts/shared/combined_report_html'
+import { buildTtsDashboard, collectTtsDashboardSamples } from '../../../../.codex/skills/consensus/scripts/tts/build_tts_dashboard'
+import type { BenchmarkDashboardData, CombinedDashboardModel } from '../../../../.codex/skills/consensus/scripts/shared/combined_report_html'
+import { renderTabPanel } from '../../../../.codex/skills/consensus/scripts/shared/dashboard_client.js'
 import { TTS_DASHBOARD_EVIDENCE } from '../../../../.codex/skills/consensus/scripts/tts/retained_tts_evidence'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
@@ -64,12 +65,19 @@ describe('TTS dashboard metrics from archived audio', () => {
       const root = join(dir, 'tts')
       fixture(root, '01-short', { duration: 2, characters: 100, processingMs: 1000, recordedCents: 1 })
       fixture(root, '02-long', { duration: 8, characters: 900, processingMs: 9000, recordedCents: 9 })
-      fixture(root, '2026-09-12_detailed-instructions/05-tts-emotion/current', { recordedCents: 100 })
-      fixture(root, '2026-09-01_detailed-instructions/05-tts-emotion/obsolete', { recordedCents: 200 })
+      fixture(root, '2026-09-12_05-tts-emotion/current-emotion', { recordedCents: 100 })
+      fixture(root, '2026-09-01_05-tts-emotion/obsolete-emotion', { recordedCents: 200 })
+      fixture(root, '2026-09-10_06-tts-speed-pauses/current-timing', { recordedCents: 50 })
+      fixture(root, '2026-09-01_06-tts-speed-pauses/obsolete-timing', { recordedCents: 300 })
       const { dashboardModel, samples } = buildTtsDashboard(root)
-      expect(samples).toHaveLength(3)
-      expect(samples.filter(row => row.suite === 'emotion')).toHaveLength(1)
+      expect(samples).toHaveLength(4)
+      expect(samples.filter(row => row.suite === 'narration')).toHaveLength(2)
+      expect(samples.filter(row => row.suite === 'emotion').map(row => row.run)).toEqual(['2026-09-12_05-tts-emotion/current-emotion'])
+      expect(samples.filter(row => row.suite === 'speed-pauses').map(row => row.run)).toEqual(['2026-09-10_06-tts-speed-pauses/current-timing'])
       expect(samples.some(row => row.run.includes('obsolete'))).toBe(false)
+      expect(dashboardModel.sampleTables?.map(table => table.rows.length)).toEqual([2, 1, 1])
+      expect(dashboardModel.sampleTables![1]!.rows[0]![6]!.display).toBe('$1.00000')
+      expect(dashboardModel.sampleTables![2]!.rows[0]![6]!.display).toBe('$0.50000')
       const provider = dashboardModel.groups[0]!.providers[0]!
       expect(provider.coverage).toBe('2/2')
       expect(provider.speed.value).toBe(1) // (2 + 8) / (1 + 9), not the mean of per-run rates.
@@ -144,7 +152,7 @@ describe('TTS dashboard metrics from archived audio', () => {
 
   test('preserves documented listening defects and allows only safe relative artifact links', async () => {
     await withTempDir('tts-dashboard-notes-', async root => {
-      const { runDir } = fixture(root, '2026-09-12_detailed-instructions/05-tts-emotion/current')
+      const { runDir } = fixture(root, '2026-09-12_05-tts-emotion/current')
       writeFileSync(join(dirname(runDir), 'benchmark-report.md'), '> **Listening defect:** Instruction prose was spoken.\n')
       const { dashboardModel } = buildTtsDashboard(root)
       expect(dashboardModel.sampleTables![1]!.notes).toEqual(['**Listening defect:** Instruction prose was spoken.'])
@@ -152,7 +160,7 @@ describe('TTS dashboard metrics from archived audio', () => {
         [{ display: 'Valid', artifactHref: 'tts/run/sample-soniox-tts-rt-v2.wav' }],
         ...['javascript:alert(1)', '//example.com', '../outside.wav', 'tts/./a.wav', 'tts/a".wav'].map(artifactHref => [{ display: 'Invalid', artifactHref }])
       ] })
-      const html = renderBenchmarkDashboard({ title: 'Fixture', generatedAt: '2026-09-24', tabs: [{ key: 'tts', label: 'TTS', rootLabel: 'tts', model: dashboardModel }] })
+      const html = renderTabPanel({ key: 'tts', label: 'TTS', rootLabel: 'tts', model: dashboardModel })
       expect(html).toContain('href="tts/run/sample-soniox-tts-rt-v2.wav"')
       expect(html).not.toMatch(/href="(?:javascript:|\/\/|\.\.\/|tts\/\.\/|tts\/a&quot;)/)
       expect(html).toContain('&lt;unsafe&gt;')
@@ -160,9 +168,9 @@ describe('TTS dashboard metrics from archived audio', () => {
     })
   })
 
-  test('committed TTS panel exactly matches retained evidence, metrics and review notes without ignored audio', async () => {
+  test('one TTS tab reproduces independent benchmarks, retained metrics and review notes without ignored audio', async () => {
     const benchmarksRoot = resolve(import.meta.dir, '../../../../docs/benchmarks')
-    const html = readFileSync(join(benchmarksRoot, 'combined-comparison-dashboard.html'), 'utf8')
+    const data = JSON.parse(readFileSync(join(benchmarksRoot, 'combined-comparison-dashboard.json'), 'utf8')) as BenchmarkDashboardData
     await withTempDir('tts-dashboard-checkout-', async checkout => {
       const root = join(checkout, 'tts')
       mkdirSync(root)
@@ -176,7 +184,7 @@ describe('TTS dashboard metrics from archived audio', () => {
         writeFileSync(join(root, source), readFileSync(join(benchmarksRoot, 'tts', source)))
       }
       const { dashboardModel, samples } = buildTtsDashboard(root)
-      expect(samples).toHaveLength(51)
+      expect(samples).toHaveLength(47)
       expect(evidence.samples.every(row => /^[a-f0-9]{64}$/.test(row.audioSha256))).toBe(true)
       const soniox = samples.filter(row => row.providerKey === 'soniox/tts-rt-v2')
       expect(soniox.filter(row => row.suite === 'narration')).toHaveLength(4)
@@ -187,12 +195,27 @@ describe('TTS dashboard metrics from archived audio', () => {
       }
       expect(soniox.every(row => row.audioHref?.includes('tts-rt-v2'))).toBe(true)
       expect(soniox.every(row => row.costBasis === 'estimated usage')).toBe(true)
+      // Standalone benchmark directories remain together under the existing TTS tab.
+      const stable = (model: CombinedDashboardModel) => ({ ...model, generatedAt: 'CURRENT', rootDir: 'CURRENT' })
+      expect(data.tabs.filter(tab => tab.key.startsWith('tts')).map(tab => tab.key)).toEqual(['tts'])
+      const committed = data.tabs.find(tab => tab.key === 'tts')!
+      expect(committed.rootLabel).toBe('docs/benchmarks/tts')
+      expect(stable(committed.model)).toEqual(stable(dashboardModel))
       expect(dashboardModel.groups.flatMap(group => group.providers).every(row => row.quality.rank === null)).toBe(true)
-      const rendered = renderBenchmarkDashboard({ title: 'Current', generatedAt: 'current', tabs: [{ key: 'tts', label: 'TTS', rootLabel: 'docs/benchmarks/tts', model: dashboardModel }] })
-      const panel = (text: string) => text.split('<section class="panel" id="panel-tts">')[1]!.split('</main>')[0]!.replace(/Generated [^<]+/g, 'Generated CURRENT ')
-      expect(panel(html)).toBe(panel(rendered))
-      expect(panel(html)).toContain('This case fails spoken-text correctness')
-      expect([...panel(html).matchAll(/>WAV<\/a>/g)]).toHaveLength(samples.filter(row => row.audioHref).length)
+      expect(dashboardModel.sampleTables?.map(table => table.rows.length)).toEqual([32, 6, 9])
+      expect(dashboardModel.sampleTables![1]!.notes?.join(' ')).toContain('This case fails spoken-text correctness')
+      expect(dashboardModel.sampleTables![2]!.notes?.join(' ')).toContain('This timing case is unverified')
+      expect(samples.filter(row => row.suite === 'emotion').every(row => row.run.startsWith('2026-09-12_05-tts-emotion/'))).toBe(true)
+      expect(samples.filter(row => row.suite === 'speed-pauses').every(row => row.run.startsWith('2026-09-12_06-tts-speed-pauses/'))).toBe(true)
+      const panel = renderTabPanel(committed)
+      expect(panel).toContain('This case fails spoken-text correctness')
+      expect([...panel.matchAll(/>WAV<\/a>/g)]).toHaveLength(samples.filter(row => row.audioHref).length)
+      for (const suite of ['emotion', 'speed-pauses']) {
+        const newer = `2026-09-26_tts-${suite}`
+        mkdirSync(join(root, newer))
+        expect(() => collectTtsDashboardSamples(root)).toThrow(`Retained TTS evidence is stale: ${newer}`)
+        rmdirSync(join(root, newer))
+      }
       const addedManifest = join(root, 'new-narration', 'manifest.json')
       writeJson(addedManifest, {})
       expect(() => buildTtsDashboard(root)).toThrow('Retained TTS evidence is stale: new-narration/manifest.json')

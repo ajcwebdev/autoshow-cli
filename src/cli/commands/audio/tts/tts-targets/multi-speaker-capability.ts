@@ -8,7 +8,6 @@ const MULTI_SPEAKER_CAPABILITY: Partial<Record<TtsProvider, MultiSpeakerStrategy
   soniox: 'segment-and-concat',
   grok: 'segment-and-concat',
   mistral: 'segment-and-concat',
-  speechify: 'segment-and-concat',
   inworld: 'segment-and-concat',
 }
 

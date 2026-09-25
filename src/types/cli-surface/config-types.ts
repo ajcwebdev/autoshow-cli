@@ -72,7 +72,6 @@ const TtsDefaultsSchema = v.strictObject({
   grokTts: ModelArraySchema,
   mistralTts: ModelArraySchema,
   openaiTts: ModelArraySchema,
-  speechifyTts: ModelArraySchema,
   inworldTts: ModelArraySchema,
   voice: StringOrStringListSchema,
   speed: v.optional(v.union([v.number(), v.string(), v.array(v.string())]), undefined),

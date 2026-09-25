@@ -6,7 +6,6 @@ import { collectSonioxTtsTargets } from '../tts-services/tts-soniox/soniox-tts-t
 import { collectGrokTtsTargets } from '../tts-services/tts-grok/grok-tts-targets'
 import { collectMistralTtsTargets } from '../tts-services/tts-mistral/mistral-tts-targets'
 import { collectOpenAITtsTargets } from '../tts-services/tts-openai/openai-tts-targets'
-import { collectSpeechifyTtsTargets } from '../tts-services/speechify/speechify-tts-targets'
 import { createTtsTargetSelection } from './tts-target-selection'
 import { validateTtsTargetSelection } from './target-validation'
 import { getMultiSpeakerStrategy } from './multi-speaker-capability'
@@ -47,7 +46,6 @@ export const collectTtsTargets = (options: TtsOptions): TtsTarget[] => {
       skipMissingVoice: options.ttsAllProvidersSelected === true
     }),
     ...collectOpenAITtsTargets(selection),
-    ...collectSpeechifyTtsTargets(selection),
     ...collectInworldTtsTargets(selection)
   ]
 

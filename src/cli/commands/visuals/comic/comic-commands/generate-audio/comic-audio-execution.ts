@@ -125,7 +125,7 @@ export const buildTargetExecution = (input: {
     ttsMasteringProfile: { schemaVersion: 1, sampleRate: input.sampleRate, channels: input.channels, codec: input.codec, container: 'wav' },
   }
   if (Object.keys(protectedSpeakerVoiceAssets).length > 0) target.protectedSpeakerVoiceAssets = protectedSpeakerVoiceAssets
-  if (['elevenlabs', 'speechify', 'inworld'].includes(target.service)) {
+  if (['elevenlabs', 'inworld'].includes(target.service)) {
     target.readinessVoiceIds = [...new Set(input.snapshot.entries.filter((entry: ApprovedVoiceSnapshotEntry) => entry.provider === target.service && entry.providerModel === target.model && entry.providerVoice.kind === 'remote-resource').map((entry: ApprovedVoiceSnapshotEntry) => (entry.providerVoice as Extract<typeof entry.providerVoice, { kind: 'remote-resource' }>).resourceId))]
   }
   const context: ComicTtsRenderContext = {

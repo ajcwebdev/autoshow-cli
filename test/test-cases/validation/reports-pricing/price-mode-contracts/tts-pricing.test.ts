@@ -308,38 +308,6 @@ describe('price mode contracts', () => {
       expect(actualTotal).toBeLessThan(flattenedOvercount)
     })
 
-  test('Speechify TTS estimates use registry pricing and timing defaults', () => {
-      const costs = estimateTtsCosts({
-        speechifyTtsModels: ['simba-3.2']
-      } as Parameters<typeof estimateTtsCosts>[0], 1000)
-
-      expect(costs.map((cost) => ({
-        provider: cost.provider,
-        model: cost.model,
-        costPer1kCharactersCents: cost.costPer1kCharactersCents,
-        setupCostCents: cost.setupCostCents,
-        setupTimeMs: cost.setupTimeMs,
-        totalCost: cost.totalCost
-      }))).toEqual([
-        { provider: 'speechify', model: 'simba-3.2', costPer1kCharactersCents: 1, setupCostCents: undefined, setupTimeMs: undefined, totalCost: 1 }
-      ])
-
-      const timing = computeEstimatedProcessingTimes({
-        ttsTargets: [
-          { service: 'speechify', model: 'simba-3.2' }
-        ],
-        ttsCharacterCount: 1000
-      })
-
-      expect(timing.steps.map((step) => ({
-        provider: step.provider,
-        model: step.model,
-        processingTimeMs: step.processingTimeMs
-      }))).toEqual([
-        { provider: 'speechify', model: 'simba-3.2', processingTimeMs: 4_500 }
-      ])
-    })
-
   test('ElevenLabs TTS estimates use current API rates and target setup timing', () => {
       const baseCosts = estimateTtsCosts({
         elevenlabsTtsModels: ['eleven_v3']

@@ -198,16 +198,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     configPaths: ['defaults.extract.stt.deepgramStt']
   },
   {
-    providerId: 'speechify',
-    envVar: 'SPEECHIFY_API_KEY',
-    label: 'Speechify TTS',
-    hintUrl: 'https://console.speechify.com/',
-    stages: ['tts', 'voice'],
-    ttsPreflight: { provider: 'speechify', label: 'Speechify TTS' },
-    liveProbe: 'voice-catalog',
-    configPaths: ['defaults.tts.speechifyTts']
-  },
-  {
     providerId: 'inworld',
     envVar: 'INWORLD_API_KEY',
     label: 'Inworld AI TTS',

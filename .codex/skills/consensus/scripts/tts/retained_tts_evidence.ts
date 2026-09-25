@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import type { TtsDashboardSample } from './build_tts_dashboard';
+import { activeTtsControlBenchmarks } from './tts_benchmark_layout';
 
 export const TTS_DASHBOARD_EVIDENCE = 'dashboard.evidence.zip';
 const hash = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
@@ -51,9 +52,11 @@ export function readRetainedTtsEvidence(root: string): TtsDashboardSample[] | nu
     const manifest = `${directory}/manifest.json`;
     if (existsSync(join(root, manifest)) && !evidence.sources.includes(manifest)) throw Error(`Retained TTS evidence is stale: ${manifest}`);
   }
-  const latestRevision = directories.filter(name => /^\d{4}-\d{2}-\d{2}_detailed-instructions$/.test(name)).sort().at(-1);
-  if (latestRevision && !evidence.sources.some(source => source.startsWith(`${latestRevision}/`))) {
-    throw Error(`Retained TTS evidence is stale: ${latestRevision}`);
+  for (const { suite, directory } of activeTtsControlBenchmarks(root)) {
+    if (!evidence.sources.some(source => source.startsWith(`${directory}/`)) ||
+      !evidence.samples.some(sample => sample.suite === suite && sample.run.startsWith(`${directory}/`))) {
+      throw Error(`Retained TTS evidence is stale: ${directory}`);
+    }
   }
   return evidence.samples.map(({ audioSha256, ...sample }) => {
     if (!['narration', 'emotion', 'speed-pauses'].includes(sample.suite) || !sample.providerKey ||

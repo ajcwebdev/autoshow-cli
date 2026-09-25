@@ -182,8 +182,6 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
     'openai:gpt-4o-mini-tts': { inputCostPer1MCharsCents: 60, outputCostPer1MCharsCents: 1200 },
     'openai:tts-1': { inputCostPer1MCharsCents: 0, outputCostPer1MCharsCents: 1500 },
     'openai:tts-1-hd': { inputCostPer1MCharsCents: 0, outputCostPer1MCharsCents: 3000 },
-    'speechify:simba-3.0': { costPer1kCharsCents: 1 },
-    'speechify:simba-english': { costPer1kCharsCents: 1 },
     'inworld:realtime-tts-2-flash': { costPer1kCharsCents: 1.5 }
   },
   image: {
@@ -305,7 +303,6 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
     'elevenlabs:eleven_multilingual_v2': 'eleven_v3',
     'openai:tts-1': 'gpt-4o-mini-tts-2025-12-15',
     'openai:tts-1-hd': 'gpt-4o-mini-tts-2025-12-15',
-    'speechify:simba-3.0': 'simba-3.2',
     'inworld:realtime-tts-2-flash': 'realtime-tts-2'
   },
   image: {

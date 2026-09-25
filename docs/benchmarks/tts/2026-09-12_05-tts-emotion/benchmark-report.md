@@ -2,7 +2,7 @@
 
 > **Eleven v3 benchmark defect:** User listening review: the Eleven v3 recording speaks instruction prose, beginning with “as if sharing a private secret.” This case fails spoken-text correctness despite successful API execution and valid audio files.
 
-6 retained cases. Each case uses its documented provider controls; request success and valid audio do not establish audible-control or spoken-text correctness. [Listen](./listen.html) · [Historical plan](./benchmark-plan.json) · [Batch comparison](../../2026-09-12-benchmark-report.md)
+6 retained cases. This is a standalone benchmark with its own plan and results, displayed within the TTS dashboard tab. Each case uses its documented provider controls; request success and valid audio do not establish audible-control or spoken-text correctness. [Listen](./listen.html) · [Historical plan](./benchmark-plan.json) · [Benchmark index](../2026-09-12-benchmark-report.md)
 
 ## Scope and cost
 

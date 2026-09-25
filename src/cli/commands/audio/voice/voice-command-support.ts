@@ -6,7 +6,6 @@ import {
   resolveOpenAITtsVoiceForModel,
   validateGrokTtsVoice,
   validateInworldTtsVoice,
-  validateSpeechifyTtsVoiceForModel,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { boolFlag, strFlag } from '~/cli/flags/flag-utils'
 import * as l from '~/utils/app-logger/app-logger'
@@ -18,7 +17,6 @@ import { validateGeminiVoice } from '../tts/tts-services/tts-gemini/gemini-tts-r
 import { createGrokAdvancedProvider, GROK_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/tts-grok/grok-advanced-provider'
 import { createInworldAdvancedProvider, INWORLD_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/inworld/inworld-advanced-provider'
 import { createMistralAdvancedProvider, MISTRAL_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/tts-mistral/mistral-advanced-provider'
-import { createSpeechifyAdvancedProvider, SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/speechify/speechify-advanced-provider'
 import { createElevenLabsAdvancedProvider, ELEVENLABS_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/tts-elevenlabs/elevenlabs-advanced-provider'
 import { loadCharacterVoiceBriefCatalog } from './character-voice-registry'
 import { completePendingVoiceProvisioning } from './voice-provisioning-reconciliation'
@@ -71,7 +69,7 @@ export const advancedCapabilityFixtureHash = (provider: VoiceCatalogProviderName
   if (provider === 'grok') return GROK_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'mistral') return MISTRAL_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'inworld') return INWORLD_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
-  return SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
+  throw UsageError(`Unsupported voice catalog provider ${provider}.`)
 }
 
 export const advancedProvider = (provider: VoiceCatalogProviderName, options: {
@@ -88,7 +86,7 @@ export const advancedProvider = (provider: VoiceCatalogProviderName, options: {
   if (provider === 'grok') return createGrokAdvancedProvider({ apiKey: resolveCredential('grok', 'require', { stage: 'voice:grok', description: 'Grok voice management' }), ...(options.resolveGrokProtectedAsset ? { resolveProtectedAsset: options.resolveGrokProtectedAsset } : {}) })
   if (provider === 'mistral') return createMistralAdvancedProvider({ apiKey: resolveCredential('mistral', 'require', { stage: 'voice:mistral', description: 'Mistral voice management' }), ...(options.resolveMistralProtectedAsset ? { resolveProtectedAsset: options.resolveMistralProtectedAsset } : {}) })
   if (provider === 'inworld') return createInworldAdvancedProvider({ apiKey: resolveCredential('inworld', 'require', { providedValue: options.inworldApiKey, useProvidedValue: options.inworldApiKey !== undefined, stage: 'voice:inworld', description: 'Inworld voice management' }), ...(options.resolveInworldProtectedAsset ? { resolveProtectedAsset: options.resolveInworldProtectedAsset } : {}) })
-  return createSpeechifyAdvancedProvider({ apiKey: resolveCredential('speechify', 'require', { stage: 'voice:speechify', description: 'Speechify voice management' }) })
+  throw UsageError(`Unsupported voice catalog provider ${provider}.`)
 }
 
 export const commonRegistrationFlags = {
@@ -150,7 +148,6 @@ export const resolveVoiceImportResourceId = (provider: VoiceProviderName, model:
   if (provider === 'gemini') return validateGeminiVoice(value)
   if (provider === 'grok') return validateGrokTtsVoice(value)
   if (provider === 'openai') return resolveOpenAITtsVoiceForModel('gpt-4o-mini-tts-2025-12-15', value).voiceId
-  if (provider === 'speechify') return validateSpeechifyTtsVoiceForModel('simba-3.2', value)
   if (provider === 'inworld') return validateInworldTtsVoice(value)
   return value
 }

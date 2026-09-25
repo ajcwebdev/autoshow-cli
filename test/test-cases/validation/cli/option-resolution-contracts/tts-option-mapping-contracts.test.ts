@@ -26,12 +26,11 @@ describe('option resolution contracts', () => {
       const opts = buildOptsFromFlags({
         'grok-tts': 'grok-tts',
         'tts-voice': 'grok=AB12CD34',
-        'tts-language': ['grok=pt-br', 'speechify=en-US', 'elevenlabs=en'],
+        'tts-language': ['grok=pt-br', 'elevenlabs=en'],
         'tts-text-normalization': ['grok=true', 'elevenlabs=AUTO'],
         'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
         'tts-instructions': 'openai=Speak with calm narration.',
         'tts-speed': ['openai=1.25', 'elevenlabs=1.1'],
-        'speechify-tts': 'simba-3.2',
         'elevenlabs-tts': 'eleven_v3',
         'tts-stability': 'elevenlabs=0.4',
         'tts-similarity': 'elevenlabs=0.8',
@@ -46,7 +45,6 @@ describe('option resolution contracts', () => {
       expect(opts.grokTtsTextNormalization).toBe(true)
       expect(opts.openaiTtsInstructions).toBe('Speak with calm narration.')
       expect(opts.openaiTtsSpeed).toBe(1.25)
-      expect(opts.speechifyTtsLanguage).toBe('en-US')
       expect(opts.elevenlabsTtsLanguageCode).toBe('en')
       expect(opts.elevenlabsTtsStability).toBe(0.4)
       expect(opts.elevenlabsTtsSimilarityBoost).toBe(0.8)

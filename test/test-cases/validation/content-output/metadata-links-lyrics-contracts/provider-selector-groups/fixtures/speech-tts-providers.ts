@@ -13,9 +13,6 @@ export const MISTRAL_OCR_LINKS = sectionLinks('Mistral', 'OCR')
 export const MISTRAL_TTS_LINKS = sectionLinks('Mistral', 'TTS')
 export const MISTRAL_ALL_LINKS = providerLinks('Mistral')
 
-export const SPEECHIFY_TTS_LINKS = sectionLinks('Speechify', 'TTS')
-export const SPEECHIFY_ALL_LINKS = providerLinks('Speechify')
-
 export const INWORLD_GENERAL_LINKS = sectionLinks('Inworld', 'General')
 export const INWORLD_TTS_LINKS = sectionLinks('Inworld', 'TTS')
 export const INWORLD_ALL_LINKS = providerLinks('Inworld')

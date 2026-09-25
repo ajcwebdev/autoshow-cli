@@ -2,7 +2,7 @@ import { estimateSonioxTtsCost } from '~/cli/commands/audio/tts/tts-services/tts
 import type { AnyCapabilityRecord, AttemptTurn, CanonicalDialogueTurn, CapabilityFixture, ComicDialoguePlan, CreateCurrentTtsRenderAttemptOptions, GenericTtsDialoguePlan, PlannedCost, ProtectedAssetRef, ProviderRenderStrategy, RequestedAudioFormat, ResolvedVoiceBinding, SanitizedProviderError, TtsTarget, TypedProviderSynthesisSettings } from '~/types'
 import { estimateGeminiTtsCost } from '../tts-services/tts-gemini/gemini-tts-pricing'
 import { getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { ELEVENLABS_DEFAULT_VOICE_ID, SPEECHIFY_DEFAULT_TTS_VOICE } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { ELEVENLABS_DEFAULT_VOICE_ID } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { UsageError, extractErrorMetadata } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { parseRetryAfterMs } from '~/utils/retries'
@@ -156,7 +156,6 @@ export const defaultVoiceValue = (target: TtsTarget): string => {
     case 'soniox': return 'Adrian'
     case 'grok': return 'eve'
     case 'elevenlabs': return ELEVENLABS_DEFAULT_VOICE_ID
-    case 'speechify': return SPEECHIFY_DEFAULT_TTS_VOICE
     default: return 'provider-default'
   }
 }

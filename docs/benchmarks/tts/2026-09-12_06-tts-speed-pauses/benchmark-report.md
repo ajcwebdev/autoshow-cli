@@ -2,7 +2,7 @@
 
 > **Eleven v3 benchmark defect:** The Eleven v3 case uses the same unvalidated long-prose tag construction as the emotion case, which failed spoken-text correctness in user listening review. This timing case is unverified and must not be treated as evidence of correct control handling.
 
-9 retained cases. Each case uses its documented provider controls; request success and valid audio do not establish audible-control or spoken-text correctness. [Listen](./listen.html) · [Historical plan](./benchmark-plan.json) · [Batch comparison](../../2026-09-12-benchmark-report.md)
+9 retained cases. This is a standalone benchmark with its own plan and results, displayed within the TTS dashboard tab. Each case uses its documented provider controls; request success and valid audio do not establish audible-control or spoken-text correctness. [Listen](./listen.html) · [Historical plan](./benchmark-plan.json) · [Benchmark index](../2026-09-12-benchmark-report.md)
 
 ## Scope and cost
 

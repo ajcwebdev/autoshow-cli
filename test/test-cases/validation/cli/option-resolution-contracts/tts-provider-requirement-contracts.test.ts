@@ -26,10 +26,6 @@ describe('option resolution contracts', () => {
       }))).toThrow('ElevenLabs TTS request control flags require selecting elevenlabs TTS')
 
       expect(() => collectTtsTargets(buildOptsFromFlags({
-        'tts-language': 'speechify=en-US'
-      }))).toThrow('Speechify TTS request control flags require selecting speechify TTS')
-
-      expect(() => collectTtsTargets(buildOptsFromFlags({
         'tts-instructions': 'inworld=Sound reassuring'
       }))).toThrow('Inworld TTS request control flags require selecting inworld TTS')
 

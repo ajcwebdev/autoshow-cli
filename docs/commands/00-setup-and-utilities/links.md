@@ -100,7 +100,6 @@ Accepted provider selectors are the lowercase names below. Fetch other documenta
 | `--provider replicate`      | `general`, `llmstxt`, `models`                                                         |
 | `--provider scrapecreators` | `general`, `llmstxt`, `stt`                                                            |
 | `--provider soniox`         | `general`, `llmstxt`, `stt`                                                            |
-| `--provider speechify`      | `llmstxt`, `models`, `tts`                                                             |
 | `--provider speechmatics`   | `general`, `llmstxt`, `stt`                                                            |
 | `--provider spider`         | `general`, `llmstxt`, `url`                                                            |
 | `--provider supadata`       | `general`, `llmstxt`, `stt`, `url`                                                     |

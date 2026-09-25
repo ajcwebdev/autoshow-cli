@@ -45,7 +45,7 @@ This applies to:
 - `control` at 16 MiB for control-plane JSON such as status polls, catalogs, and metadata; `result` at 512 MiB, the default, for provider deliverables including media inlined as base64 or hex; `download` at 2 GiB for a download held in memory. A download written straight to disk is streamed and has no ceiling.
 - `AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES`, a positive whole number of bytes that replaces every ceiling. A malformed value is a usage error at startup, before any provider request. Setup and network-probe child processes receive the variable.
 - A `Content-Length` over the ceiling is rejected before the body is read, and a body that exceeds the ceiling while it is read is cancelled. The error is `validation` with `retryable: false`, and it names the observed size, the ceiling, and the variable.
-- Hosted TTS chunks whose inlined byte rate is fixed by the request are estimated before the first dispatch, so a lowered ceiling can reject the run before it is billed. Inworld WAV responses and ElevenLabs native dialogue MP3 batches are estimated; duration in the estimate is a heuristic. Providers whose byte rate the request does not fix, including Speechify, are not estimated.
+- Hosted TTS chunks whose inlined byte rate is fixed by the request are estimated before the first dispatch, so a lowered ceiling can reject the run before it is billed. Inworld WAV responses and ElevenLabs native dialogue MP3 batches are estimated; duration in the estimate is a heuristic. Providers whose byte rate the request does not fix are not estimated.
 - Error bodies and subprocess output still use bounded capture. A subprocess stream is read to the end. An HTTP error body stops after 64 MiB and the capture reports that it was truncated.
 
 It does not apply to:
@@ -74,7 +74,7 @@ Negative outcomes:
 
 - One response up to the ceiling is resident while it is decoded, so a container memory limit has to allow for it.
 - The Inworld estimate assumes mono and a slow-speech margin because the channel count is undocumented.
-- An inline-audio provider that is not estimated, including Speechify, can be billed before an oversize body is rejected.
+- An inline-audio provider without a pre-dispatch size estimate can be billed before an oversize body is rejected.
 
 ## Trade-offs
 

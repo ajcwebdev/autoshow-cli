@@ -22,7 +22,6 @@ import replicateLinks from './model-links/replicate.json'
 import scrapecreatorsLinks from './model-links/scrapecreators.json'
 import sonioxLinks from './model-links/soniox.json'
 import spiderLinks from './model-links/spider.json'
-import speechifyLinks from './model-links/speechify.json'
 import speechmaticsLinks from './model-links/speechmatics.json'
 import supadataLinks from './model-links/supadata.json'
 import togetherLinks from './model-links/together.json'
@@ -51,7 +50,6 @@ const providerLinks = [
   deepinfraLinks,
   sonioxLinks,
   speechmaticsLinks,
-  speechifyLinks,
   replicateLinks,
   happyscribeLinks,
   inworldLinks,

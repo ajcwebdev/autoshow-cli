@@ -55,8 +55,6 @@ const REMOVED_PROVIDER_NAMED_FLAGS = [
   'minimax-tts-pitch',
   'minimax-tts-emotion',
   'minimax-tts-pronunciation',
-  'speechify-tts-voice-locale',
-  'speechify-tts-voice-gender',
   'elevenlabs-tts-clone-remove-background-noise',
   'elevenlabs-tts-stability',
   'elevenlabs-tts-similarity-boost',

@@ -46,7 +46,6 @@ describe('--max-model-cents', () => {
 
     expect(result.exitCode).toBe(0)
     expect(output).toContain('Excluded')
-    expect(output).toContain('speechify')
     expect(output).not.toContain('speech-inworld-realtime-tts-2.wav')
     expect(output).not.toContain('speech-elevenlabs-eleven_v3.wav')
   })

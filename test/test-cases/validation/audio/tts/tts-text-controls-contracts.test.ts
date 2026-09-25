@@ -171,7 +171,7 @@ describe('TTS response format control', () => {
 describe('TTS text preflight provider support', () => {
   test('providers documented to accept timed SSML breaks produce no markup finding', () => {
     const text = 'Wait. <break time="1s" /> Go.'
-    for (const target of [{ service: 'speechify', model: 'simba-3.2' },  { service: 'inworld', model: 'realtime-tts-2' }] as const) {
+    for (const target of [{ service: 'inworld', model: 'realtime-tts-2' }] as const) {
       expect(inspectTtsText(text, [target])).toEqual([])
     }
   })

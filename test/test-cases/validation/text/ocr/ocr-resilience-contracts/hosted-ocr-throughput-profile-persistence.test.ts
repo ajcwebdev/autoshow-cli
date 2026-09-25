@@ -1,6 +1,7 @@
-import { mkdir, readFile, rm } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
+import { withTempDir } from '../../../../../test-utils/temp-dirs'
 import {
   findHostedOcrThroughputProfile,
   persistHostedOcrThroughputProfiles
@@ -13,19 +14,8 @@ import {
 
 const withProfileStorePath = async <T>(
   run: (profilePath: string) => Promise<T>
-): Promise<T> => {
-  const dir = join(
-    process.cwd(),
-    '.test-work',
-    `hosted-ocr-profile-store-${crypto.randomUUID()}`
-  )
-  await mkdir(dir, { recursive: true })
-  try {
-    return await run(join(dir, 'profiles.json'))
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}
+): Promise<T> => await withTempDir('hosted-ocr-profile-store-', async (dir) =>
+  await run(join(dir, 'profiles.json')))
 
 describe('hosted OCR throughput profile persistence contracts', () => {
   test('profile storage persists only privacy-preserving throughput fields', async () => {

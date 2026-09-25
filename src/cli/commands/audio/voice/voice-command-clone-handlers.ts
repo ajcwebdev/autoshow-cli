@@ -24,7 +24,6 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   const provider = providerFlag(ctx)
   if (!isCloneProvider(provider)) {
     if (provider === 'openai') throw UsageError('OpenAI voice cloning is deferred because creation requires a separate consent resource and the API does not expose matching catalog, inspection, and deletion operations.')
-    if (provider === 'speechify') throw UsageError('Speechify voice cloning is deferred because the current workflow requires a challenge phrase and a separate consent recording.')
     throw UsageError(`Voice clone supports ${CLONE_PROVIDERS.join(', ')}; ${provider} has no API cloning capability in this release.`)
   }
   const providerModel = requireVoiceModel(provider, requiredFlag(ctx, 'model'))

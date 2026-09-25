@@ -77,7 +77,6 @@ describe('option resolution contracts', () => {
       const grokOcrDefault = resolveCheapestModelForFlag('grok-ocr')
       const deepinfraOcrDefault = resolveCheapestModelForFlag('deepinfra-ocr')
       const kimiOcrDefault = resolveCheapestModelForFlag('kimi-ocr')
-      const speechifyTtsDefault = resolveCheapestModelForFlag('speechify-tts')
       const elevenlabsTtsDefault = resolveCheapestModelForFlag('elevenlabs-tts')
       const openaiTtsDefault = resolveCheapestModelForFlag('openai-tts')
       const opts = buildOptsFromFlags({
@@ -99,7 +98,6 @@ describe('option resolution contracts', () => {
         'grok-ocr': true,
         'deepinfra-ocr': true,
         'kimi-ocr': true,
-        'speechify-tts': true,
         'elevenlabs-tts': true,
         'openai-tts': true,
 
@@ -124,7 +122,6 @@ describe('option resolution contracts', () => {
       expect(grokOcrDefault).toBe('grok-4.5')
       expect(deepinfraOcrDefault).toBe('google/gemma-4-31B-it')
       expect(kimiOcrDefault).toBe('kimi-k2.6')
-      expect(speechifyTtsDefault).toBe('simba-3.2')
       expect(elevenlabsTtsDefault).toBe('eleven_v3')
       expect(openaiTtsDefault).toBe('gpt-4o-mini-tts-2025-12-15')
       expect(opts.openaiModels?.[0]).toBe(openaiDefault)
@@ -145,7 +142,6 @@ describe('option resolution contracts', () => {
       expect(opts.grokOcrModels?.[0]).toBe(grokOcrDefault)
       expect(opts.deepinfraOcrModels?.[0]).toBe(deepinfraOcrDefault)
       expect(opts.kimiOcrModels?.[0]).toBe(kimiOcrDefault)
-      expect(opts.speechifyTtsModels?.[0]).toBe(speechifyTtsDefault)
       expect(opts.elevenlabsTtsModels?.[0]).toBe(elevenlabsTtsDefault)
       expect(opts.openaiTtsModels?.[0]).toBe(openaiTtsDefault)
     })

@@ -111,8 +111,8 @@ describe('price mode contracts', () => {
   test('TTS timing uses each target remaining character count instead of one shared input', () => {
       const timing = computeEstimatedProcessingTimes({
         ttsTargets: [
-          { service: 'speechify', model: 'simba-3.2', characterCount: 6_000 },
-          { service: 'speechify', model: 'simba-3.2', characterCount: 24_000 }
+          { service: 'inworld', model: 'realtime-tts-2', characterCount: 6_000 },
+          { service: 'inworld', model: 'realtime-tts-2', characterCount: 24_000 }
         ],
         ttsCharacterCount: 939_201,
         ttsInputText: 'a'.repeat(939_201)

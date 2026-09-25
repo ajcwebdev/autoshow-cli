@@ -23,7 +23,6 @@ export const validateMultiSpeakerTtsSelection = (
     { provider: 'grok' as const, models: selection.grokModels },
     { provider: 'mistral' as const, models: selection.mistralModels },
     { provider: 'openai' as const, models: selection.openaiModels },
-    { provider: 'speechify' as const, models: selection.speechifyModels },
     { provider: 'inworld' as const, models: selection.inworldModels },
   ]
   const selectedProviders = allProviderModels.filter((provider) => provider.models.length > 0)

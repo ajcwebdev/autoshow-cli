@@ -10,9 +10,9 @@ describe('Synthesis voice option contracts', () => {
       'elevenlabs-tts': 'eleven_v3',
       'tts-voice': 'voice_existing'
     })
-    const speechify = buildOptsFromFlags({
-      'speechify-tts': 'simba-3.2',
-      'tts-voice': 'geffen_32'
+    const inworld = buildOptsFromFlags({
+      'inworld-tts': 'realtime-tts-2',
+      'tts-voice': 'voice_existing'
     })
     const mistralFlags = {
       'mistral-tts': 'voxtral-mini-tts-2603',
@@ -26,7 +26,7 @@ describe('Synthesis voice option contracts', () => {
     })
 
     expect(collectTtsTargets(elevenLabs).map(target => target.voice)).toEqual(['voice_existing'])
-    expect(collectTtsTargets(speechify).map(target => target.voice)).toEqual(['geffen_32'])
+    expect(collectTtsTargets(inworld).map(target => target.voice)).toEqual(['voice_existing'])
     expect(() => preflightTtsTargetSelection(mistral)).not.toThrow()
     expect(referenceInput?.sourcePath).toBe('input/examples/audio/anthony-voice.mp3')
     expect('mistralTtsRefAudio' in mistral).toBe(false)

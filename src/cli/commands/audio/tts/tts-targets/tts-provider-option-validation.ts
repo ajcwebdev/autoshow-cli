@@ -28,7 +28,6 @@ const validateRequiredProviderSelections = (selection: TtsTargetSelection): void
     { enabled: selection.sonioxLanguage !== undefined || selection.sonioxSpeed !== undefined, models: selection.sonioxModels ?? [], label: 'Soniox TTS', provider: 'soniox', detail: 'request control flags' },
     { enabled: Boolean(selection.grokLanguage || selection.grokTextNormalization || selection.grokSpeed !== undefined), models: selection.grokModels, label: 'Grok TTS', provider: 'grok', detail: 'request control flags' },
     { enabled: hasElevenLabsControls(selection), models: selection.elevenlabsModels, label: 'ElevenLabs TTS', provider: 'elevenlabs', detail: 'request control flags' },
-    { enabled: Boolean(selection.speechifyLanguage), models: selection.speechifyModels, label: 'Speechify TTS', provider: 'speechify', detail: 'request control flags' },
   ]
   for (const requirement of requirements) {
     if (requirement.enabled && requirement.models.length === 0) {

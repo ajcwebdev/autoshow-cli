@@ -36,7 +36,7 @@ Selectors use `provider[=model]`. Repeat a flag to run more than one provider. F
 | OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`.                                                       |
 | URL   | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`.                                                                                                                      |
 | LLM   | Hosted: `openai`, `gemini`, `anthropic`, `grok`, `glm`, `kimi`, `together`. Write has no local LLM.                                                                                                      |
-| TTS   | Hosted: `elevenlabs`, `grok`, `mistral`, `openai`, `speechify`, `inworld`.                                                                                                                               |
+| TTS   | Hosted: `gemini`, `elevenlabs`, `soniox`, `grok`, `mistral`, `openai`, `inworld`.                                                                                                                        |
 | Image | `gemini`, `openai`, `grok`, `replicate`, `lumalabs`, `fal`.                                                                                                                                              |
 | Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                 |
 | Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                       |
@@ -89,9 +89,8 @@ Hosted commands require the matching environment variable:
 | `ASSEMBLYAI_API_KEY`     | AssemblyAI STT                         |
 | `GLADIA_API_KEY`         | Gladia STT                             |
 | `DEEPGRAM_API_KEY`       | Deepgram STT                           |
-| `SPEECHIFY_API_KEY`      | Speechify TTS                          |
 | `INWORLD_API_KEY`        | Inworld AI TTS                         |
-| `SONIOX_API_KEY`         | Soniox STT                             |
+| `SONIOX_API_KEY`         | Soniox STT and TTS                     |
 | `SPEECHMATICS_API_KEY`   | Speechmatics STT                       |
 | `TOGETHER_API_KEY`       | Together write/STT                     |
 | `HAPPYSCRIBE_API_KEY`    | Happy Scribe STT                       |

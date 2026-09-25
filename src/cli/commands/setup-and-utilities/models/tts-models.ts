@@ -1,7 +1,7 @@
 import { createModelValidator, createRetiringModelValidator, formatAllowedValues } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import { UsageError } from '~/utils/error-handler'
 import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
-import type { ElevenlabsTtsModel, GrokTtsModel, InworldTtsModel, MistralTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection, SpeechifyTtsModel } from '~/types'
+import type { ElevenlabsTtsModel, GrokTtsModel, InworldTtsModel, MistralTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection } from '~/types'
 
 export const SUPPORTED_ELEVENLABS_TTS_MODELS = [
   'eleven_v3'
@@ -120,42 +120,6 @@ export const resolveOpenAITtsVoiceForModel = (
     `Invalid --tts-voice openai="${voice}". Allowed built-in values: ${formatAllowedValues(SUPPORTED_OPENAI_TTS_VOICES)}, or an eligible custom voice ID beginning with voice_.`
   )
 }
-
-export const SUPPORTED_SPEECHIFY_TTS_MODELS = [
-  'simba-3.2'
-] as const satisfies readonly string[]
-
-export const SPEECHIFY_DEFAULT_TTS_VOICE = 'geffen_32'
-export const validateSpeechifyTtsModel = createRetiringModelValidator<SpeechifyTtsModel>('tts', 'speechify', SUPPORTED_SPEECHIFY_TTS_MODELS, 'speechify-tts')
-
-export const validateSpeechifyTtsVoice = (voice: string): string => {
-  const normalized = voice.trim()
-  if (!normalized) {
-    throw UsageError('Invalid --speechify-voice value. Expected a non-empty Speechify voice ID.')
-  }
-  return normalized
-}
-
-export const validateSpeechifyTtsLanguageForModel = (
-  model: SpeechifyTtsModel,
-  language: string | undefined
-): string | undefined => {
-  const normalized = language?.trim()
-  if (!normalized) return undefined
-
-  const supported = normalized === 'en' || normalized.toLowerCase().startsWith('en-')
-  if (!supported) {
-    throw UsageError(
-      `Speechify ${model} supports only en or en-* languages; received "${language}".`
-    )
-  }
-  return normalized
-}
-
-export const validateSpeechifyTtsVoiceForModel = (
-  _model: SpeechifyTtsModel,
-  voice: string
-): string => validateSpeechifyTtsVoice(voice)
 
 export const SUPPORTED_INWORLD_TTS_MODELS = [
   'realtime-tts-2'

@@ -12,7 +12,6 @@ import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const MATRIX_ENV_KEYS = [
   'ELEVENLABS_API_KEY',
-  'SPEECHIFY_API_KEY',
   'MISTRAL_API_KEY',
   'OPENAI_API_KEY',
   'XAI_API_KEY',
@@ -98,21 +97,6 @@ const cases: readonly VoiceMatrixCase[] = [
     respond: jsonAudioResponse,
     readSerializedVoice: call => String(call.bodyJson?.['voice_id'] ?? ''),
     readSerializedControl: call => call.bodyJson?.['response_format']
-  },
-  {
-    provider: 'speechify',
-    envKey: 'SPEECHIFY_API_KEY',
-    flags: {
-      'speechify-tts': 'simba-3.2',
-      'tts-voice': 'voice-captured',
-      'tts-language': 'en-US'
-    },
-    capturedVoice: 'voice-captured',
-    invocationVoices: ['beatrice_32', 'dominic_32', 'beatrice_32'],
-    invocationControls: [{ language: 'en-US' }, { language: 'en-GB' }, { language: 'en-US' }],
-    respond: jsonAudioResponse,
-    readSerializedVoice: call => String(call.bodyJson?.['voice_id'] ?? ''),
-    readSerializedControl: call => call.bodyJson?.['language']
   },
 
 ]

@@ -6,7 +6,6 @@ import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-
 export const TTS_CHUNK_CHARACTER_LIMITS = {
   gemini: 2000,
   elevenlabs: 2000,
-  speechify: 2000,
   openai: 2000,
   mistral: 2000,
   soniox: 500,

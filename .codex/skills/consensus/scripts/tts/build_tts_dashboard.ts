@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { readCanonicalManifest, isRecord, type JsonObject } from "../shared/pipeline_manifest";
 import type { CombinedDashboardModel, DashboardGroup, DashboardProviderRow } from "../shared/combined_report_html";
 import { readRetainedTtsEvidence, TTS_DASHBOARD_EVIDENCE } from './retained_tts_evidence';
+import { activeTtsControlBenchmarks } from './tts_benchmark_layout';
 
 const object = (value: unknown): JsonObject => isRecord(value) ? value : {};
 const records = (value: unknown): JsonObject[] => Array.isArray(value) ? value.filter(isRecord) : [];
@@ -108,22 +109,16 @@ export function collectTtsDashboardSamples(rootDir: string): TtsDashboardSample[
   const retained = readRetainedTtsEvidence(rootDir);
   if (retained) return retained;
   const root = resolve(rootDir), samples: TtsDashboardSample[] = [];
-  // Direct child runs are the narration corpus. Nested controls are deliberately separate.
+  // Narration manifests and the independently versioned control benchmarks share the TTS archive root.
   for (const entry of readdirSync(root, { withFileTypes: true }).filter(entry => entry.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
     const run = join(root, entry.name);
     if (existsSync(join(run, 'manifest.json'))) samples.push(...readSamples(root, run, 'narration'));
   }
-  // Preserve earlier revisions; only the latest detailed-instructions revision is active here.
-  const revisions = readdirSync(root, { withFileTypes: true }).filter(entry => entry.isDirectory() && /^\d{4}-\d{2}-\d{2}_detailed-instructions$/.test(entry.name)).map(entry => entry.name).sort();
-  const active = revisions.at(-1);
-  if (active) for (const suite of ['emotion', 'speed-pauses'] as const) {
-    const revisionRoot = join(root, active);
-    for (const folder of readdirSync(revisionRoot, { withFileTypes: true }).filter(entry => entry.isDirectory() && entry.name.endsWith(`tts-${suite}`))) {
-      const suiteRoot = join(revisionRoot, folder.name);
-      for (const entry of readdirSync(suiteRoot, { withFileTypes: true }).filter(entry => entry.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
-        const run = join(suiteRoot, entry.name);
-        if (existsSync(join(run, 'manifest.json'))) samples.push(...readSamples(root, run, suite));
-      }
+  for (const { suite, directory } of activeTtsControlBenchmarks(root)) {
+    const suiteRoot = join(root, directory);
+    for (const entry of readdirSync(suiteRoot, { withFileTypes: true }).filter(entry => entry.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
+      const run = join(suiteRoot, entry.name);
+      if (existsSync(join(run, 'manifest.json'))) samples.push(...readSamples(root, run, suite));
     }
   }
   if (!samples.length) throw Error(`No TTS benchmark manifests found in ${root}`);
@@ -187,7 +182,7 @@ export function buildTtsDashboard(rootDir: string, generatedAt = new Date().toIS
     runs: runs.map((run, index) => ({ runName: run, shortLabel: `R${index + 1}`, detail: `${narration.filter(row => row.run === run).length} provider/model results` })),
     groups, sampleTables: [table('narration', 'Narration — individual results'), table('emotion', 'Emotion and delivery — individual cases'), table('speed-pauses', 'Speed and pauses — individual cases')],
     methodParagraphs: [
-      'Narration rankings use the common direct-child TTS benchmark corpus. Controls are shown separately because providers expose different native mechanisms. The newest dated detailed-instructions revision supplies controls cases; earlier revisions are excluded.',
+      'Narration rankings use the common direct-child TTS benchmark corpus. Controls are shown separately because providers expose different native mechanisms. Emotion and delivery, and speed and pauses, each select their newest dated standalone benchmark directory independently; earlier revisions are excluded.',
       existsSync(join(rootDir, TTS_DASHBOARD_EVIDENCE))
         ? 'Retained evidence binds the current manifests and reports to recorded audio hashes and local ffprobe measurements. Narration costs and exact timings come from manifests; controls costs and timings retain the reports\' published precision. Original render records and controls manifests are unavailable. Locally present audio is hash-checked; absent audio is not reverified. Audio links require the original local recordings. Costs are not confirmed invoices or total historical spending; Soniox costs remain estimates.'
         : 'Selected manifest audio references and SHA-256 hashes are authoritative. Duration and format are read locally with ffprobe. Current provider usage is preferred for cost, then recorded usage estimates, then the selected render estimate. Costs describe the selected audio, not all historical spending or confirmed invoices. Soniox costs remain estimates based on measured provider audio before local silence insertion.',

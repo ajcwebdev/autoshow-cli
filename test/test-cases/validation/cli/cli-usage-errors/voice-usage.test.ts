@@ -108,11 +108,11 @@ afterEach(() => {
 })
 
 test('voice capability sets match the active provider policy and reject retired TTS providers', async () => {
-  expect(VOICE_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'soniox', 'grok', 'mistral', 'openai', 'speechify',   'inworld'])
-  expect(VOICE_CATALOG_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'grok', 'mistral', 'speechify',   'inworld'])
+  expect(VOICE_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'soniox', 'grok', 'mistral', 'openai', 'inworld'])
+  expect(VOICE_CATALOG_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'grok', 'mistral', 'inworld'])
   expect(VOICE_LIFECYCLE_PROVIDERS).toEqual(VOICE_CATALOG_PROVIDERS)
-  expect(DESIGN_PROVIDERS).toEqual(['gemini', 'elevenlabs',  'inworld'])
-  expect(CLONE_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'grok', 'mistral',  'inworld'])
+  expect(DESIGN_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'inworld'])
+  expect(CLONE_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'grok', 'mistral', 'inworld'])
   for (const provider of ['minimax', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra']) {
     await rejectVoice(
       ['voice', 'import', 'hero', '--provider', provider, '--model', 'retired-model', '--voice-id', 'retired-voice', '--provenance-ref', 'project:casting', '--price'],
@@ -140,7 +140,6 @@ test('voice import and zero-call catalog validation accept their exact capabilit
     ['grok', 'grok-tts', 'eve'],
     ['mistral', 'voxtral-mini-tts-2603', 'voice-existing'],
     ['openai', 'gpt-4o-mini-tts-2025-12-15', 'alloy'],
-    ['speechify', 'simba-3.2', 'geffen_32'],
     ['inworld', 'realtime-tts-2', 'voice_inworld_standard_en'],
   ] as const
   for (const [provider, model, voiceId] of imports) {
@@ -189,7 +188,6 @@ test('canonical audition planning resolves every active TTS provider', () => {
     ['grok', 'grok-tts', 'eve'],
     ['mistral', 'voxtral-mini-tts-2603', 'voice-existing'],
     ['openai', 'gpt-4o-mini-tts-2025-12-15', 'alloy'],
-    ['speechify', 'simba-3.2', 'geffen_32'],
     ['inworld', 'realtime-tts-2', 'voice_inworld_standard_en'],
   ] as const satisfies ReadonlyArray<readonly [TtsProvider, string, string]>
 
@@ -228,12 +226,11 @@ test('canonical auditions install the shared hosted TTS scheduler', () => {
 
 test('voice clone explains each intentionally deferred workflow', async () => {
   await rejectVoice(['voice', 'clone', 'hero', '--provider', 'openai', '--price'], 'OpenAI voice cloning is deferred because creation requires a separate consent resource')
-  await rejectVoice(['voice', 'clone', 'hero', '--provider', 'speechify', '--price'], 'Speechify voice cloning is deferred because the current workflow requires a challenge phrase and a separate consent recording.')
 })
 
 test('voice design rejects catalog-only providers and unknown synthesis models', async () => {
   await rejectVoice(
-    ['voice', 'design', 'hero', '--provider', 'speechify', '--model', 'simba-3.2', '--creation-model', 'voice-design', '--description', 'Warm, weathered guide', '--preview-text', 'A short representative passage.', '--price'],
+    ['voice', 'design', 'hero', '--provider', 'grok', '--model', 'grok-tts', '--creation-model', 'voice-design', '--description', 'Warm, weathered guide', '--preview-text', 'A short representative passage.', '--price'],
     'Voice Design currently supports gemini, elevenlabs, inworld; the selected provider has no implemented text-prompt design adapter.'
   )
   await rejectVoice(

@@ -139,19 +139,9 @@ const checkAdvancedVoiceReadiness = async (
       if (missingVoiceIds.length > 0) return advancedVoiceBlockedObservation(targetKey, 'inworld-voice-not-ready', `Approved Inworld voice ${missingVoiceIds.join(', ')} is missing or inaccessible for the configured account. Run \`bun autoshow voice list --provider inworld --source provider-library\` and update the casting profile before synthesis.`, false)
       return { targetKey, accountState: 'available', status: 'ready' }
     }
-    if (target.service !== 'speechify') throw ValidationError(`No voice-catalog readiness adapter for ${target.service}.`, { stage: 'tts:readiness', retryable: false })
-    const results = await Promise.all(voiceIds.map(async voiceId => {
-      const response = await request(`https://api.speechify.ai/v1/voices/${encodeURIComponent(voiceId)}`, { headers: { Authorization: `Bearer ${apiKey}` } })
-      if (!response.ok) return false
-      const payload = await readHttpPayloadJson(response, 'Speechify voice readiness response', CATALOG_PAYLOAD) as { id?: unknown, models?: unknown }
-      if (payload.id !== voiceId) return false
-      const modelIds = Array.isArray(payload.models) ? payload.models.flatMap(value => value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { name?: unknown }).name === 'string' ? [(value as { name: string }).name] : []) : []
-      return modelIds.length === 0 || modelIds.includes(target.model)
-    }))
-    if (results.some(ready => !ready)) return advancedVoiceBlockedObservation(targetKey, 'speechify-voice-not-ready', 'One or more approved Speechify voices are missing, inaccessible, or unavailable for the selected model.', false)
-    return { targetKey, accountState: 'available', status: 'ready' }
+    throw ValidationError(`No voice-catalog readiness adapter for ${target.service}.`, { stage: 'tts:readiness', retryable: false })
   } catch (error) {
-    const label = target.service === 'elevenlabs' ? 'ElevenLabs' : target.service === 'inworld' ? 'Inworld' : 'Speechify'
+    const label = target.service === 'elevenlabs' ? 'ElevenLabs' : target.service === 'inworld' ? 'Inworld' : target.service
     const metadata = extractErrorMetadata(error)
     const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
     const retryable = metadata['retryable'] === false ? false : true

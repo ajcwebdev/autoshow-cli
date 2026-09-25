@@ -25,7 +25,6 @@ const DEFAULT_HOSTED_TTS_MODEL_BY_FLAG = {
   'grok-tts': 'grok-tts',
   'mistral-tts': 'voxtral-mini-tts-2603',
   'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
-  'speechify-tts': 'simba-3.2',
   'inworld-tts': 'realtime-tts-2',
 } as const satisfies Record<string, string>
 

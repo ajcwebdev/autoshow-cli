@@ -12,9 +12,6 @@ import {
   MISTRAL_OCR_LINKS,
   MISTRAL_STT_LINKS,
   MISTRAL_TTS_LINKS,
-  SPEECHIFY_ALL_LINKS,
-  SPEECHIFY_MODELS_LINKS,
-  SPEECHIFY_TTS_LINKS,
   TOGETHER_ALL_LINKS,
   TOGETHER_GENERAL_LINKS,
   TOGETHER_MODELS_LINKS,
@@ -23,16 +20,6 @@ import {
 import { registerProviderSelectorCases } from './provider-selector-cases'
 
 registerProviderSelectorCases([
-  {
-    name: 'links selector accepts speechify provider with models and tts sections',
-    provider: 'speechify',
-    all: { expected: SPEECHIFY_ALL_LINKS },
-    selections: [
-      { sections: ['tts'], expected: SPEECHIFY_TTS_LINKS },
-      { sections: ['models'], expected: SPEECHIFY_MODELS_LINKS }
-    ],
-    invalid: { sections: ['general'], message: 'Unknown links section(s) for --provider speechify: general' }
-  },
   {
     name: 'links selector accepts inworld provider with general models and tts sections',
     provider: 'inworld',

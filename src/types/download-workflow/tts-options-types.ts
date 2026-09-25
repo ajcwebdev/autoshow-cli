@@ -38,9 +38,6 @@ export type TtsRuntimeOptions = {
   elevenlabsTtsSeed: number | undefined
   elevenlabsTtsTextNormalization: string | undefined
   elevenlabsTtsPronunciationDictionaryLocators: string[] | undefined
-  speechifyTtsModels: string[] | undefined
-  speechifyVoice: string | undefined
-  speechifyTtsLanguage: string | undefined
   inworldTtsModels: string[] | undefined
   inworldTtsVoice: string | undefined
   inworldTtsInstructions: string | undefined

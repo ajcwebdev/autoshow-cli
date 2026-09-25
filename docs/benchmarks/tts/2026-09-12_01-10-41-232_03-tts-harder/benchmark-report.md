@@ -1,6 +1,6 @@
 # 03-tts-harder — TTS benchmark
 
-9 retained model results; 9 succeeded. Single-voice synthesis. Updated from selected manifest artifacts on 2026-09-25 without provider calls.
+8 retained model results; 8 succeeded. Single-voice synthesis. Updated from selected manifest artifacts on 2026-09-25 without provider calls.
 
 [Manifest](./manifest.json) · [Batch comparison](../2026-09-12-benchmark-report.md)
 
@@ -10,7 +10,6 @@
 | grok/grok-tts                     | succeeded | 23.54           | 134.711 | $0.02420 | computed usage  | [WAV](./03-tts-harder-grok-grok-tts.wav)                     |
 | mistral/voxtral-mini-tts-2603     | succeeded | 20.67           | 119.810 | $0.02581 | computed usage  | [WAV](./03-tts-harder-mistral-voxtral-mini-tts-2603.wav)     |
 | openai/gpt-4o-mini-tts-2025-12-15 | succeeded | 27.11           | 116.650 | $0.02032 | computed usage  | [WAV](./03-tts-harder-openai-gpt-4o-mini-tts-2025-12-15.wav) |
-| speechify/simba-3.2               | succeeded | 30.19           | 110.390 | $0.01613 | computed usage  | [WAV](./03-tts-harder-speechify-simba-3.2.wav)               |
 | inworld/realtime-tts-2            | succeeded | 33.41           | 118.180 | $0.04032 | computed usage  | [WAV](./03-tts-harder-inworld-realtime-tts-2.wav)            |
 | gemini/gemini-3.8-flash-tts       | succeeded | 24.72           | 139.339 | $0.04060 | provider usage  | [WAV](./03-tts-harder-gemini-gemini-3.8-flash-tts.wav)       |
 | gemini/gemini-3.8-flash-lite-tts  | succeeded | 0.20 (recovery) | 144.667 | $0.02050 | estimated usage | [WAV](./03-tts-harder-gemini-gemini-3.8-flash-lite-tts.wav)  |
