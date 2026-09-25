@@ -17,7 +17,7 @@ import { requireDefined } from '../../../../test-utils/value-assertions'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 import { COMIC_AUDIO_PHASE_2_CREATED_AT as CREATED_AT, COMIC_AUDIO_PHASE_2_HASH_A as HASH_A, COMIC_AUDIO_PHASE_2_HASH_B as HASH_B, buildComicAudioPhase2SnapshotEntry as snapshotEntry, buildComicAudioPhase2Structured as buildStructured } from './comic-audio-phase-fixture'
 
-setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'HUME_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
+setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
 
 describe('comic audio phase 2 contracts', () => {
   test('finalizes a fully compatible snapshot-identity change without another provider call', async () => {
@@ -149,7 +149,7 @@ describe('comic audio phase 2 contracts', () => {
     })).not.toThrow()
     expect(() => assertVoiceSnapshotCoversSelectedTargets({
       snapshot,
-      targets: [{ service: 'hume', model: 'octave-1' }],
+      targets: [{ service: 'inworld', model: 'realtime-tts-2' }],
       subjectKeys: ['pilot', 'navigator'],
       profileKey: 'default',
     })).toThrow(/immutable superset/)

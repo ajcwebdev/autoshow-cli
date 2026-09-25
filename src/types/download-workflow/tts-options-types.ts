@@ -1,6 +1,17 @@
 export type TtsRuntimeOptions = {
+  geminiTtsModels?: string[] | undefined
+  geminiTtsVoice?: string | undefined
+  geminiTtsInstructions?: string | undefined
+  geminiTtsResponseFormat?: string | undefined
+  geminiTtsMode?: 'unary' | 'stream' | 'batch' | undefined
+  geminiTtsBatchWaitSeconds?: number | undefined
+
   ttsAllProvidersSelected: boolean
   ttsAllowAmbiguousRedispatch: boolean
+  sonioxTtsModels?: string[] | undefined
+  sonioxTtsVoice?: string | undefined
+  sonioxTtsLanguage?: string | undefined
+  sonioxTtsSpeed?: number | undefined
   grokTtsModels: string[] | undefined
   grokTtsSpeed?: number | undefined
   grokTtsVoice: string | undefined
@@ -10,7 +21,6 @@ export type TtsRuntimeOptions = {
   mistralTtsVoice: string | undefined
   mistralTtsResponseFormat?: string | undefined
   elevenlabsTtsResponseFormat?: string | undefined
-  humeTtsResponseFormat?: string | undefined
   ttsDialogueFormat: 'screenplay' | 'labeled' | undefined
   ttsSpeakers: string[] | undefined
   openaiTtsModels: string[] | undefined
@@ -31,15 +41,6 @@ export type TtsRuntimeOptions = {
   speechifyTtsModels: string[] | undefined
   speechifyVoice: string | undefined
   speechifyTtsLanguage: string | undefined
-  humeTtsModels: string[] | undefined
-  humeTtsSpeed?: number | undefined
-  humeTtsTrailingSilence?: number | undefined
-  humeTtsDescription?: string | undefined
-  humeTtsVoice: string | undefined
-  cartesiaTtsModels: string[] | undefined
-  cartesiaTtsSpeed?: number | undefined
-  cartesiaTtsVoice: string | undefined
-  cartesiaTtsLanguage: string | undefined
   inworldTtsModels: string[] | undefined
   inworldTtsVoice: string | undefined
   inworldTtsInstructions: string | undefined

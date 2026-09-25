@@ -37,12 +37,14 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   },
   {
     providerId: 'gemini',
+    ttsPreflight: { provider: 'gemini', label: 'Gemini TTS' },
     envVar: 'GEMINI_API_KEY',
     label: 'Gemini write/STT/OCR/image/video/music',
     hintUrl: 'https://aistudio.google.com/apikey',
     stages: ['write', 'stt', 'ocr', 'image', 'video', 'music'],
     configPaths: [
       'defaults.llm.gemini',
+      'defaults.tts.geminiTts',
       'defaults.extract.stt.geminiStt',
       'defaults.extract.ocr.geminiOcr',
       'defaults.image.geminiImage',
@@ -206,26 +208,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     configPaths: ['defaults.tts.speechifyTts']
   },
   {
-    providerId: 'hume',
-    envVar: 'HUME_API_KEY',
-    label: 'Hume TTS',
-    hintUrl: 'https://platform.hume.ai/',
-    stages: ['tts', 'voice'],
-    ttsPreflight: { provider: 'hume', label: 'Hume TTS' },
-    liveProbe: 'voice-catalog',
-    configPaths: ['defaults.tts.humeTts']
-  },
-  {
-    providerId: 'cartesia',
-    envVar: 'CARTESIA_API_KEY',
-    label: 'Cartesia TTS',
-    hintUrl: 'https://play.cartesia.ai/',
-    stages: ['tts', 'voice'],
-    ttsPreflight: { provider: 'cartesia', label: 'Cartesia TTS' },
-    liveProbe: 'voice-catalog',
-    configPaths: ['defaults.tts.cartesiaTts']
-  },
-  {
     providerId: 'inworld',
     envVar: 'INWORLD_API_KEY',
     label: 'Inworld AI TTS',
@@ -238,10 +220,11 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'soniox',
     envVar: 'SONIOX_API_KEY',
-    label: 'Soniox STT',
+    label: 'Soniox STT/TTS',
     hintUrl: 'https://console.soniox.com',
-    stages: ['stt'],
-    configPaths: ['defaults.extract.stt.sonioxStt']
+    stages: ['stt', 'tts'],
+    ttsPreflight: { provider: 'soniox', label: 'Soniox TTS' },
+    configPaths: ['defaults.extract.stt.sonioxStt', 'defaults.tts.sonioxTts']
   },
   {
     providerId: 'speechmatics',

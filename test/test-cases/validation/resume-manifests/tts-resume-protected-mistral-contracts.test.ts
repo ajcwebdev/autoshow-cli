@@ -116,8 +116,8 @@ describe('canonical TTS resume — protected Mistral references', () => {
       let targetCalls = 0
       const config = {
         ...ttsResumeConfig,
-        resolveStoredTargets: async (...args: Parameters<typeof resolveStoredTtsTargetsForResume>) => {
-          const targets = await resolveStoredTtsTargetsForResume(args[0], args[1], args[2], args[3], store)
+        resolveStoredTargets: async (...args: Parameters<typeof ttsResumeConfig.resolveStoredTargets>) => {
+          const targets = await resolveStoredTtsTargetsForResume(args[0], args[1], args[2], args[3], store, args[4])
           for (const resolved of targets) {
             resolved.run = async () => {
               targetCalls++
@@ -168,8 +168,8 @@ describe('canonical TTS resume — protected Mistral references', () => {
       let resumedTargetCalls = 0
       const config = {
         ...ttsResumeConfig,
-        resolveStoredTargets: async (...args: Parameters<typeof resolveStoredTtsTargetsForResume>) => {
-          const targets = await resolveStoredTtsTargetsForResume(args[0], args[1], args[2], args[3], store)
+        resolveStoredTargets: async (...args: Parameters<typeof ttsResumeConfig.resolveStoredTargets>) => {
+          const targets = await resolveStoredTtsTargetsForResume(args[0], args[1], args[2], args[3], store, args[4])
           for (const resolved of targets) {
             resolved.run = async () => {
               resumedTargetCalls++

@@ -1,7 +1,11 @@
+import { buildPureCurrentTtsRenderPlan } from '~/cli/commands/audio/tts/script-to-audio/attempt-planning'
+import { restoreSonioxResumeOptions } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-resume-options'
+import { sonioxEstimateFromPlannedCost } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-tts-pricing'
+import { restoreGeminiResumeOptions } from '~/cli/commands/audio/tts/tts-services/tts-gemini/gemini-resume-options'
 import { buildUpdatedGenerationCostTiming, collectGenerationTargetsForProviders } from '../generation-resume'
 import { readManifest, updateManifest, type ManifestUpdater } from '~/cli/commands/command-shared/pipeline-manifest'
 import { collectTtsTargets, getTtsArtifactFileName } from '~/cli/commands/audio/tts/tts-targets'
-import { runTtsTargets } from '~/cli/commands/audio/tts/run-tts'
+import { runTtsForTargets } from '~/cli/commands/audio/tts/run-tts'
 import { deriveGenerationResumeModelFields, deriveGenerationResumeProviderFlags, TTS_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { appendCurrentTtsProviderState, compactSucceededTtsProviderState, getCurrentTtsJournalAttemptKey, serializeTtsMetadataEntries } from '~/cli/commands/audio/tts/script-to-audio/current-render-artifacts'
 import { planCurrentTtsRenderIdentity, planCurrentTtsResumePrice, prepareCurrentTtsCompletedRecovery } from '~/cli/commands/audio/tts/script-to-audio/current-render-attempt'
@@ -198,10 +202,19 @@ export const resolveStoredTtsTargetsForResume = async (
   opts: TtsOptions,
   target: ResumeTarget,
   item: PipelineManifestItem,
-  protectedStore?: ProtectedVoiceAssetStore
+  protectedStore?: ProtectedVoiceAssetStore,
+  explicitFlags?: ReadonlySet<string>
 ): Promise<TtsTarget[]> => {
-  const retired = providers.find(provider => ['gemini', 'deepgram', 'replicate', 'fal'].includes(provider.service))
+  const retired = providers.find(provider => !Object.hasOwn(TTS_MODEL_FIELDS, provider.service))
   if (retired) throw UsageError(`Stored TTS provider ${retired.service} is no longer supported for TTS and cannot be resumed or dispatched. Inspect the manifest as history, then select a supported provider for a new TTS run.`)
+  for (const provider of providers.filter(provider => provider.service === 'gemini')) {
+    const retained = item.providers.find(state => state.targetKey === provider.targetKey)
+    restoreGeminiResumeOptions(opts, retained?.settings, explicitFlags)
+    if (provider.transport === 'gemini-stream') opts.geminiTtsMode = 'stream'
+  }
+  for (const provider of providers.filter(provider => provider.service === 'soniox')) {
+    restoreSonioxResumeOptions(opts, item.providers.find(state => state.targetKey === provider.targetKey)?.settings, explicitFlags)
+  }
   const ordinaryProviders = providers.filter((provider) => provider.service !== 'mistral')
   const resolved = collectGenerationTargetsForProviders(
     ordinaryProviders,
@@ -236,16 +249,17 @@ const resolveTtsResumeArtifactRoot = (
 const createTtsBatchResumeReportedOutputResolver = (
   outputDir: string,
   artifactRoot: string,
-  targets: readonly TtsTarget[]
+  singleTarget: boolean
 ): ((target: TtsTarget, defaultFileName: string) => { path: string, fileName: string }) => {
   const itemStem = artifactRoot.split('/')[1]
   if (!itemStem) {
     throw UsageError('TTS batch resume could not recover the canonical item stem from retained artifact paths.')
   }
   return (target, defaultFileName) => {
-    const providerArtifact = defaultFileName || getTtsArtifactFileName(target, targets.length === 1)
+    // Count the whole retained item, not just the providers missing on this resume.
+    const providerArtifact = singleTarget ? defaultFileName : getTtsArtifactFileName(target, false)
     const extension = extname(providerArtifact) || '.wav'
-    const fileName = targets.length === 1
+    const fileName = singleTarget
       ? `${itemStem}${extension}`
       : providerArtifact.startsWith('speech')
         ? `${itemStem}${providerArtifact.slice('speech'.length)}`
@@ -446,8 +460,9 @@ export const ttsResumeConfig = {
     return entry.targetKey
   },
   collectTargets: (opts: TtsOptions) => collectTtsTargets(opts),
-  resolveStoredTargets: async (providers, opts, target, item) =>
-    await resolveStoredTtsTargetsForResume(providers, opts, target, item),
+  requiresStoredSettings: providers => providers.some(provider => provider.service === 'gemini' || provider.service === 'soniox'),
+  resolveStoredTargets: async (providers, opts, target, item, explicitFlags) =>
+    await resolveStoredTtsTargetsForResume(providers, opts, target, item, undefined, explicitFlags),
   runMissingTargets: async (
     targets: TtsTarget[],
     storedInput: string,
@@ -487,7 +502,7 @@ export const ttsResumeConfig = {
       outputDir,
       `.tts-resume-${String(itemIndex + 1).padStart(3, '0')}-`
     ))
-    return await runTtsTargets(targets, input, workspaceDir, effectiveOpts, {
+    return (await runTtsForTargets(input, workspaceDir, effectiveOpts, targets, {
       compactArchive: true,
       sourceIdentity: sourceContext.sourceIdentity,
       dialoguePlan: sourceContext.dialoguePlan,
@@ -496,7 +511,7 @@ export const ttsResumeConfig = {
       artifactOutputDir: outputDir,
       ...(artifactRoot ? { artifactRoot } : {}),
       resolveReportedOutput: artifactRoot
-        ? createTtsBatchResumeReportedOutputResolver(outputDir, artifactRoot, targets)
+        ? createTtsBatchResumeReportedOutputResolver(outputDir, artifactRoot, new Set(providerOrder).size === 1)
         : createTtsResumeReportedOutputResolver(outputDir, context.currentProviderStates),
       beforeDispatch: async (states) => await commitTtsResumePreparedStates(
         outputDir,
@@ -528,7 +543,7 @@ export const ttsResumeConfig = {
           manifestUpdater
         )
       }
-    })
+    })).metadata
   },
   buildEstimates: async (
     opts: TtsOptions,
@@ -544,19 +559,24 @@ export const ttsResumeConfig = {
       runtimeOptions,
       context
     )
-    const remaining: Array<{ target: TtsTarget, characterCount: number }> = []
+    const remaining: Array<{ target: TtsTarget, characterCount: number, plannedCents?: number }> = []
+    const queueFullTarget = (target: TtsTarget): void => {
+      if (target.service !== 'soniox') { remaining.push({ target, characterCount: input.length }); return }
+      const plan = buildPureCurrentTtsRenderPlan({ target, sourceText: input, ttsOptions: runtimeOptions, sourceIdentity: sourceContext.sourceIdentity, dialoguePlan: sourceContext.dialoguePlan })
+      remaining.push({ target, characterCount: plan.planned.slots.reduce((sum, slot) => sum + [...slot.providerText].length, 0), plannedCents: plan.plannedRenderCost.amounts.reduce((sum, amount) => sum + amount.amount * 100, 0) })
+    }
     for (const target of context.targets) {
       if (!target.targetKey) throw UsageError(`TTS resume target ${target.service}/${target.model} is missing its operation-scoped targetKey.`)
       const current = currentByTargetKey.get(target.targetKey)
       if (!current) {
-        remaining.push({ target, characterCount: input.length })
+        queueFullTarget(target)
         continue
       }
       if (sourceContext.retainedPlanIdentities.get(target.targetKey)?.kind === 'branch') {
         if (protectedRecoveryOnlyTargets.has(target)) {
           throw UsageError('Price cannot authorize interrupted protected Mistral reference redispatch. Re-run standalone `tts` with the explicitly authorized reference to create a new branch.')
         }
-        remaining.push({ target, characterCount: input.length })
+        queueFullTarget(target)
         continue
       }
       const retained = sourceContext.retainedPlanIdentities.get(target.targetKey)
@@ -571,7 +591,7 @@ export const ttsResumeConfig = {
         && retained.renderPlanId === planned.renderPlanId
         && retained.renderIdentity === planned.renderIdentity
       if (!retainedMatchesPlanned && current.status === 'failed' && target.allowFailedImplicitDefaultReplan === true) {
-        remaining.push({ target, characterCount: input.length })
+        queueFullTarget(target)
         continue
       }
       const price = await planCurrentTtsResumePrice({
@@ -594,11 +614,13 @@ export const ttsResumeConfig = {
         )
       }
       if (price.unresolvedSlotCount === 0) continue
-      remaining.push({ target, characterCount: price.unresolvedCharacterCount })
+      remaining.push({ target, characterCount: price.unresolvedCharacterCount, plannedCents: price.plannedCost.amounts.reduce((sum, amount) => sum + amount.amount * 100, 0) })
     }
     const estimates = []
     for (const entry of remaining) {
-      estimates.push(...await buildTtsTargetEstimates([entry.target], estimateOptions, entry.characterCount))
+      const targetEstimates = await buildTtsTargetEstimates([entry.target], estimateOptions, entry.characterCount)
+      if (entry.target.service === 'soniox' && entry.plannedCents !== undefined) Object.assign(targetEstimates[0]!, sonioxEstimateFromPlannedCost(entry.characterCount, entry.plannedCents))
+      estimates.push(...targetEstimates)
     }
     return estimates
   },

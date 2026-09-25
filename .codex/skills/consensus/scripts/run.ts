@@ -129,10 +129,10 @@ function categoryHelp(category: ConsensusCategory): string {
 }
 
 const DASHBOARD_SCRIPT = "shared/build_combined_dashboard.ts";
-const DASHBOARD_TAB_DIRS = ["ocr", "stt-local", "stt-with-speakers", "stt-without-speakers", "url"];
+const DASHBOARD_TAB_DIRS = ["ocr", "stt-local", "stt-with-speakers", "stt-without-speakers", "url", "tts"];
 
 function hasAllDashboardTabs(benchmarksRoot: string): boolean {
-  return DASHBOARD_TAB_DIRS.every((tab) => existsSync(join(benchmarksRoot, tab, "combined-comparison-report.json")));
+  return DASHBOARD_TAB_DIRS.every((tab) => existsSync(join(benchmarksRoot, tab, ...(tab === "tts" ? [] : ["combined-comparison-report.json"]))));
 }
 
 function parseArgs(argv: string[]): ParsedArgs {

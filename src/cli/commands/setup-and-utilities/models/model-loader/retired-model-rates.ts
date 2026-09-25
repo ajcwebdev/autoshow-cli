@@ -177,8 +177,6 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
     'fal:fal-ai/bytedance/seed-speech/tts/v2': { costPer1kCharsCents: 3 },
     'fal:fal-ai/maya': { costPer1kCharsCents: 0.5 },
     'fal:async/tts-pro/v1.0': { costPer1kCharsCents: 1 },
-    'cartesia:sonic-3': { costPer1kCharsCents: 3.7375 },
-    'cartesia:sonic-3.5-2026-05-04': { costPer1kCharsCents: 3.7375 },
     'elevenlabs:eleven_flash_v2_5': { costPer1kCharsCents: 5 },
     'elevenlabs:eleven_multilingual_v2': { costPer1kCharsCents: 10 },
     'openai:gpt-4o-mini-tts': { inputCostPer1MCharsCents: 60, outputCostPer1MCharsCents: 1200 },
@@ -308,7 +306,6 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
     'openai:tts-1': 'gpt-4o-mini-tts-2025-12-15',
     'openai:tts-1-hd': 'gpt-4o-mini-tts-2025-12-15',
     'speechify:simba-3.0': 'simba-3.2',
-    'cartesia:sonic-3.5-2026-05-04': 'sonic-3.6-2026-08-27',
     'inworld:realtime-tts-2-flash': 'realtime-tts-2'
   },
   image: {

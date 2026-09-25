@@ -1,3 +1,4 @@
+import { TTS_PROVIDERS as ACTIVE_TTS_PROVIDERS } from '~/types/provider-core/provider-types'
 import { readUtf8FileExact } from '~/utils/bun-file-io'
 import { existsSync } from 'node:fs'
 import { link, mkdir } from 'node:fs/promises'
@@ -38,8 +39,8 @@ const VOICE_ORIGINS = new Set([
   'provider-stock', 'community-library', 'designed', 'remixed', 'instant-clone', 'professional-clone',
   'imported-custom', 'saved-reference', 'request-reference-audio', 'local-model-voice'
 ])
-const TTS_PROVIDERS = new Set(['elevenlabs', 'grok', 'mistral', 'openai', 'speechify', 'hume', 'cartesia', 'inworld'])
-const RETIRED_TTS_PROVIDERS = new Set(['minimax', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra'])
+const TTS_PROVIDERS = new Set<string>(ACTIVE_TTS_PROVIDERS)
+const RETIRED_TTS_PROVIDERS = new Set(['minimax', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra'])
 
 const assertSafeKey = (value: string, label: string): void => {
   if (!SAFE_KEY.test(value)) throw UsageError(`${label} must be a safe lowercase key.`)

@@ -36,6 +36,7 @@ describe('config load schema contracts', () => {
           }
         },
         tts: {
+          geminiTts: ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts'],
           speechifyTts: ['simba-3.2'],
           mistralTts: ['voxtral-mini-tts-2603'],
           openaiTts: ['gpt-4o-mini-tts-2025-12-15'],
@@ -125,7 +126,7 @@ describe('config load schema contracts', () => {
   })
 
   test('obsolete TTS provider keys fail with migration guidance', async () => {
-    for (const key of ['geminiTts', 'deepgramTts', 'replicateTts', 'falTts']) {
+    for (const key of ['deepgramTts', 'replicateTts', 'falTts']) {
       const configPath = await writeTempConfig({ defaults: { tts: { [key]: ['historical-model'] } } })
       await expect(loadConfig(configPath)).rejects.toThrow(`TTS provider configuration ${key} is no longer supported.`)
     }

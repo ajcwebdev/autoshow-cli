@@ -1,5 +1,8 @@
+import { buildPureCurrentTtsRenderPlan } from './script-to-audio/attempt-planning'
+import { sonioxEstimateFromPlannedCost } from './tts-services/tts-soniox/soniox-tts-pricing'
+import { collectTtsTargets } from './tts-targets'
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
-import { buildTtsEstimates, buildTtsTargetEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/tts-estimates'
+import { buildTtsTargetEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/tts-estimates'
 import { logSuitePriceSummary } from '~/cli/commands/sources/download/download-targets/suite-price-logging'
 import type { ActualCostBreakdown, AggregatedPriceEstimate, EstimatedCostBreakdown, PreparedTtsInput, StepTimingBreakdown, TtsBatchEstimateReport, TtsOptions, TtsTarget } from '~/types'
 import { UsageError } from '~/utils/error-handler'
@@ -14,9 +17,18 @@ export const buildTtsEstimateForInput = async (
   ttsOptions: TtsOptions,
   targets?: readonly TtsTarget[]
 ): Promise<AggregatedPriceEstimate> => {
-  const steps = targets
-    ? await buildTtsTargetEstimates(targets, ttsOptions, prepared.ttsCharacterCount)
-    : await buildTtsEstimates(ttsOptions, prepared.ttsCharacterCount)
+  const selected = targets ?? collectTtsTargets(ttsOptions)
+  const requests = selected.map(target => target.service === 'gemini'
+    ? buildPureCurrentTtsRenderPlan({ target, sourceText: prepared.text, sourceIdentity: prepared.sourceIdentity, dialoguePlan: prepared.dialoguePlan, ttsOptions }).planned.slots.length
+    : 0)
+  const steps = await buildTtsTargetEstimates(selected, ttsOptions, prepared.ttsCharacterCount, requests)
+  for (const [index, target] of selected.entries()) {
+    if (target.service !== 'soniox') continue
+    const plan = buildPureCurrentTtsRenderPlan({ target, sourceText: prepared.text, sourceIdentity: prepared.sourceIdentity, dialoguePlan: prepared.dialoguePlan, ttsOptions })
+    const characters = plan.planned.slots.reduce((sum, slot) => sum + [...slot.providerText].length, 0)
+    const cents = plan.plannedRenderCost.amounts.reduce((sum, amount) => sum + amount.amount * 100, 0)
+    Object.assign(steps[index]!, sonioxEstimateFromPlannedCost(characters, cents), { characterCount: characters })
+  }
   return aggregateExplicitPriceEstimate(steps, ttsOptions, {
     ttsTimingCharacterCount: prepared.ttsCharacterCount,
     ttsInputText: prepared.ttsTimingInputText

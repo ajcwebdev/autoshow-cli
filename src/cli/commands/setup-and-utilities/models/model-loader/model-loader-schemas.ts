@@ -216,6 +216,8 @@ const LlmServiceSchema = v.pipe(
 )
 
 const TtsModelSchema = v.strictObject({
+  inputCostPer1MTokensCents: v.optional(v.number(), undefined),
+  outputCostPer1MAudioTokensCents: v.optional(v.number(), undefined),
   description: v.string(),
   ...PricingProvenanceFields,
   costPerRequestCents: v.optional(v.number(), undefined),
@@ -224,6 +226,8 @@ const TtsModelSchema = v.strictObject({
   outputCostPer1MCharsCents: v.optional(v.number(), undefined),
   hfRepo: v.optional(v.string(), undefined),
   limits: v.optional(v.object({
+    maxInputTokens: v.optional(v.number(), undefined),
+    maxOutputTokens: v.optional(v.number(), undefined),
     maxInputCharacters: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
   }), undefined),
   estimation: v.optional(v.object({

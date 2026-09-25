@@ -1,4 +1,6 @@
+import { estimateSonioxTtsCost } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-tts-pricing'
 import type { AnyCapabilityRecord, AttemptTurn, CanonicalDialogueTurn, CapabilityFixture, ComicDialoguePlan, CreateCurrentTtsRenderAttemptOptions, GenericTtsDialoguePlan, PlannedCost, ProtectedAssetRef, ProviderRenderStrategy, RequestedAudioFormat, ResolvedVoiceBinding, SanitizedProviderError, TtsTarget, TypedProviderSynthesisSettings } from '~/types'
+import { estimateGeminiTtsCost } from '../tts-services/tts-gemini/gemini-tts-pricing'
 import { getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { ELEVENLABS_DEFAULT_VOICE_ID, SPEECHIFY_DEFAULT_TTS_VOICE } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { UsageError, extractErrorMetadata } from '~/utils/error-handler'
@@ -19,7 +21,7 @@ export const sanitizeError = (error: unknown, phase: SanitizedProviderError['pha
     ? sanitizeLogText(error.message).replace(/\s+/gu, ' ').trim().slice(0, 600)
     : undefined
   const headers = metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
-  const requestId = headers?.get('x-request-id') ?? headers?.get('request-id') ?? headers?.get('cf-ray') ?? undefined
+  const requestId = (typeof metadata['requestId'] === 'string' ? metadata['requestId'] : undefined) ?? headers?.get('x-request-id') ?? headers?.get('request-id') ?? headers?.get('cf-ray') ?? undefined
   const retryAfterMs = parseRetryAfterMs(headers)
   const explicitRetryable = typeof metadata['retryable'] === 'boolean' ? metadata['retryable'] : undefined
   const message = status !== undefined
@@ -52,9 +54,9 @@ export const sanitizeError = (error: unknown, phase: SanitizedProviderError['pha
   }
 }
 
-export const plannedCost = (target: TtsTarget, characters: number, includeSetup: boolean): PlannedCost => {
+export const plannedCost = (target: TtsTarget, characters: number, includeSetup: boolean, speed = target.numericSpeed): PlannedCost => {
   const pricing = getTtsPricing(target.service, target.model)
-  const cents = pricing.costPerRequestCents !== undefined
+  const cents = target.service === 'soniox' ? estimateSonioxTtsCost(characters, speed).totalCost : target.service === 'gemini' ? estimateGeminiTtsCost(target.model, characters, target.transport?.replace('gemini-', '')).totalCost : pricing.costPerRequestCents !== undefined
     ? pricing.costPerRequestCents
     : pricing.inputCostPer1MCharsCents !== undefined && pricing.outputCostPer1MCharsCents !== undefined
     ? characters / 1e6 * (pricing.inputCostPer1MCharsCents + pricing.outputCostPer1MCharsCents)
@@ -70,9 +72,7 @@ export const buildCapabilityFixture = (
 ): CapabilityFixture => {
   const feature = strategy === 'native-dialogue'
     ? 'native-dialogue' as const
-    : strategy === 'native-utterances'
-      ? 'native-utterances' as const
-      : 'turn-synthesis' as const
+    : 'turn-synthesis' as const
   const scope = { provider: target.service, feature, model: target.model, transport }
   const documentationEvidence = withIdentity({
     checkedAt: CAPABILITY_CHECKED_AT,
@@ -88,16 +88,14 @@ export const buildCapabilityFixture = (
     ? target.service === 'elevenlabs'
       ? { voiceKinds, maxCharacters: 2000, supportedOutputFormats: ['mp3', 'wav', 'pcm'], minSpeakers: 1, maxSpeakers: 10 }
       : { voiceKinds, maxCharacters: chunkLimit(target), supportedOutputFormats: ['wav'], minSpeakers: 2, maxSpeakers: 2 }
-    : feature === 'native-utterances'
-      ? { voiceKinds, maxCharacters: target.service === 'hume' ? 5000 : chunkLimit(target), supportedOutputFormats: ['mp3', 'wav', 'pcm'], maxTakesPerRequest: target.service === 'hume' ? 5 : 1 }
-      : { voiceKinds, maxCharacters: chunkLimit(target), supportedOutputFormats: ['wav'] }
+    : { voiceKinds, maxCharacters: chunkLimit(target), supportedOutputFormats: ['wav'] }
   const record = {
     scope,
     maturity: target.service === 'grok' ? 'preview' as const : 'stable' as const,
     channel: 'api' as const,
     adapterSupport: 'implemented' as const,
     requirements: [],
-    constraints,
+    constraints: target.service === 'gemini' ? { ...constraints, maxInputTokens: 8192, maxOutputTokens: 16384, supportedOutputFormats: ['wav', 'pcm', 'mulaw', 'alaw'] } : constraints,
     documentationEvidence
   } as AnyCapabilityRecord
   validateCapabilityFacetSet([record])
@@ -154,9 +152,9 @@ export const requestedOutput = (options: Pick<CreateCurrentTtsRenderAttemptOptio
 export const defaultVoiceValue = (target: TtsTarget): string => {
   switch (target.service) {
     case 'openai': return 'alloy'
+    case 'gemini': return 'Kore'
+    case 'soniox': return 'Adrian'
     case 'grok': return 'eve'
-    case 'hume': return 'Male English Actor'
-    case 'cartesia': return 'f786b574-daa5-4673-aa0c-cbe3e8534c02'
     case 'elevenlabs': return ELEVENLABS_DEFAULT_VOICE_ID
     case 'speechify': return SPEECHIFY_DEFAULT_TTS_VOICE
     default: return 'provider-default'

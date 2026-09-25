@@ -13,6 +13,7 @@ const buildTtsEstimatesFromCosts = async (
     const estimation = getTtsEstimation(cost.provider, cost.model)
     const target = targets?.[index]
     estimates.push({
+      ...Object.fromEntries(Object.entries(cost).filter(([key]) => ['inputCostPer1MTokensCents', 'outputCostPer1MAudioTokensCents', 'estimatedTextTokens', 'estimatedAudioTokens', 'estimatedDurationSeconds', 'rateIdentity', 'executionMode', 'estimateProvenance', 'authorizationBoundCents'].includes(key))),
       step: 'tts' as const,
       provider: cost.provider,
       model: cost.model,
@@ -37,10 +38,11 @@ const buildTtsEstimatesFromCosts = async (
 export const buildTtsTargetEstimates = async (
   targets: readonly TtsTarget[],
   opts: TtsOptions,
-  characterCount: number
+  characterCount: number,
+  plannedRequestCounts?: readonly number[]
 ): Promise<TtsStepEstimate[]> => buildTtsEstimatesFromCosts(
   opts,
-  estimateTtsTargetCosts(targets, Math.max(0, Math.floor(characterCount))),
+  estimateTtsTargetCosts(targets, Math.max(0, Math.floor(characterCount)), plannedRequestCounts),
   targets
 )
 

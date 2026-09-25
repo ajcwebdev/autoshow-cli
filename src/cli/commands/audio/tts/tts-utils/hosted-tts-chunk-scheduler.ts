@@ -1,3 +1,4 @@
+import { createSonioxRequestLimiter } from '../tts-services/tts-soniox/soniox-request-limiter'
 import { drainProviderLane, extendProviderLanePause, LaneDrainLoop, LaneWakeTimer, reduceProviderLaneLimit, trimProviderLaneHistory } from '~/cli/commands/command-shared/provider-lane-drain'
 import type {
   HostedConcurrencyAdmissionToken,
@@ -40,6 +41,7 @@ const compareJobPriority = (
 }
 
 class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
+  readonly #sonioxRequestStart = createSonioxRequestLimiter()
   readonly #maxLimit: number
   readonly #maxActiveChunksPerJob: number | undefined
   readonly #defaultRateLimitPauseMs: number
@@ -68,11 +70,11 @@ class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
   }
 
   #getState(provider: TtsProvider, scopeLabel?: string | undefined): HostedTtsProviderChunkState {
-    const lane = createProviderLaneIdentity(provider, scopeLabel, HOSTED_TTS_DEFAULT_SCOPE_LABEL)
+    const lane = createProviderLaneIdentity(provider, provider === 'soniox' ? HOSTED_TTS_DEFAULT_SCOPE_LABEL : scopeLabel, HOSTED_TTS_DEFAULT_SCOPE_LABEL)
     const existing = this.#states.get(lane.laneKey)
     if (existing) return existing
 
-    const providerLimit = this.#maxLimit
+    const providerLimit = provider === 'soniox' ? Math.min(3, this.#maxLimit) : this.#maxLimit
     const state: HostedTtsProviderChunkState = {
       lane,
       provider,
@@ -286,6 +288,10 @@ class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
     })
   }
 
+  async waitForRequestStart(provider: TtsProvider, signal?: AbortSignal): Promise<void> {
+    if (provider === 'soniox') await this.#sonioxRequestStart(signal)
+  }
+
   async runChunks<T>(
     provider: TtsProvider,
     chunks: readonly string[],
@@ -475,6 +481,7 @@ export const bindHostedTtsChunkScheduler = (
       scopeLabel: options.scopeLabel ?? binding.scopeLabel
     }
   ),
+  ...(scheduler.waitForRequestStart ? { waitForRequestStart: (provider: TtsProvider, signal?: AbortSignal) => scheduler.waitForRequestStart!(provider, signal) } : {}),
   notifyRateLimit: (admission, feedback, error) => scheduler.notifyRateLimit(admission, feedback, error),
   notifyRetry: (admission) => scheduler.notifyRetry(admission),
   usesSharedHostedRateLimitRecovery: () => scheduler.usesSharedHostedRateLimitRecovery(),

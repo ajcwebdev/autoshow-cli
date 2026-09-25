@@ -30,14 +30,6 @@ describe('option resolution contracts', () => {
       }))).toThrow('Speechify TTS request control flags require selecting speechify TTS')
 
       expect(() => collectTtsTargets(buildOptsFromFlags({
-        'tts-voice': 'hume=Studio Voice'
-      }))).toThrow('Hume TTS voice flags require selecting hume TTS')
-
-      expect(() => collectTtsTargets(buildOptsFromFlags({
-        'tts-language': 'cartesia=en'
-      }))).toThrow('Cartesia TTS request control flags require selecting cartesia TTS')
-
-      expect(() => collectTtsTargets(buildOptsFromFlags({
         'tts-instructions': 'inworld=Sound reassuring'
       }))).toThrow('Inworld TTS request control flags require selecting inworld TTS')
 

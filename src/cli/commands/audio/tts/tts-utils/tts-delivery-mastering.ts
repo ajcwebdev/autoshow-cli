@@ -1,5 +1,5 @@
 import { mkdir } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import type { TtsDeliveryMasteringInput, TtsDeliveryMasteringResult, TtsDeliveryPause, TtsDeliveryPlacement, TtsDeliveryProfile, TtsDeliverySeamBoundary, TtsMasteringProfile } from '~/types'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
@@ -100,7 +100,7 @@ const renderSegment = async (input: {
 }
 
 const concatCopy = async (paths: readonly string[], outputPath: string, listPath: string, abortSignal?: AbortSignal | undefined): Promise<void> => {
-  await Bun.write(listPath, `${paths.map((path) => `file '${resolve(path).replace(/'/g, `'\\''`)}'`).join('\n')}\n`)
+  await Bun.write(listPath, `${paths.map((path) => `file '${relative(dirname(resolve(listPath)), resolve(path)).replace(/'/g, `'\\''`)}'`).join('\n')}\n`)
   await runFfmpeg(['-f', 'concat', '-safe', '0', '-i', listPath, '-c:a', 'copy', '-bitexact', '-y', outputPath], 'delivery assembly', 'error', abortSignal)
 }
 

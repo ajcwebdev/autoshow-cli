@@ -102,11 +102,13 @@ export const runMultiSpeakerTts = async (
             outputPath: result.audioPath
           }
         }),
-        _ttsRenderStrategy: target.service === 'hume' ? 'native-utterances' : 'native-dialogue'
+        _ttsRenderStrategy: 'native-dialogue'
       } as MultiSpeakerRunMetadata
     }
   }
 
+  const geminiUsage: NonNullable<Step4Metadata['geminiTtsUsage']> = []
+  let geminiUsageComplete = true
   const startTime = Date.now()
   const segmentsDir = `${outputDir}/segments`
   await ensureDirectory(segmentsDir)
@@ -156,6 +158,7 @@ export const runMultiSpeakerTts = async (
       const providerSegmentWorkspace = `${workspaceDir}/provider-segment-${String(providerSegmentIndex + 1).padStart(3, '0')}`
       await ensureDirectory(providerSegmentWorkspace)
       if (recovered) {
+        geminiUsageComplete = false
         signal.throwIfAborted()
         providerSegmentPaths.push(await concatAndConvertToWav(
           [...recovered.paths],
@@ -185,6 +188,8 @@ export const runMultiSpeakerTts = async (
             }
           : options
         const result = await target.run(providerText, providerSegmentWorkspace, segmentOptions, invocation, invocationEvidence)
+        geminiUsage.push(...result.metadata.geminiTtsUsage ?? [])
+        if (result.metadata.geminiTtsUsageComplete !== true) geminiUsageComplete = false
         providerSegmentPaths.push(result.audioPath)
         observedSpeaker = result.metadata.speaker?.trim() ?? observedSpeaker
       }
@@ -237,6 +242,7 @@ export const runMultiSpeakerTts = async (
     ...result,
     metadata: {
       ...result.metadata,
+      ...(target.service === 'gemini' ? { geminiTtsUsage: geminiUsage, geminiTtsUsageComplete: geminiUsageComplete && geminiUsage.length > 0 } : {}),
       _ttsObservedTurns: segmentResults.map((entry) => entry.turn),
       _ttsRenderStrategy: 'segmented'
     } as MultiSpeakerRunMetadata

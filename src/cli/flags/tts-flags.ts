@@ -24,16 +24,18 @@ export const genericTtsOptionFlags = {
   'tts-speaker-boost': strListFlag(genericTtsOptionDescription('tts-speaker-boost', 'Generic TTS speaker boost')),
   'tts-seed': strListFlag(genericTtsOptionDescription('tts-seed', 'Generic TTS deterministic generation seed')),
   'tts-pronunciation-dictionary': strListFlag(genericTtsOptionDescription('tts-pronunciation-dictionary', 'Generic TTS pronunciation dictionary locator as dictionary_id or dictionary_id:version_id')),
-  'tts-trailing-silence': strListFlag(genericTtsOptionDescription('tts-trailing-silence', 'Generic TTS trailing silence in seconds')),
   'tts-response-format': strListFlag(genericTtsOptionDescription('tts-response-format', 'Generic TTS audio response format')),
 } as const satisfies CliFlagsDefinition
 
 const standaloneTtsOnlyFlags = {
+  'gemini-tts-mode': strFlag('Gemini transport: unary|stream|batch (default unary). Batch submits remote Batch API jobs; directory batching is local.'),
+  'gemini-tts-batch-wait-seconds': strFlag('Seconds to wait for Gemini Batch jobs (default 86400; 0 submits and returns). Resume retains pending jobs.'),
   'tts-ref-audio': strListFlag('Explicit one-off Mistral TTS reference audio path')
 } as const satisfies CliFlagsDefinition
 
 const ttsProviderSelectionFlags = {
   provider: strListFlag(`TTS provider[=model]: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)}; repeatable (default: cheapest hosted)`),
+  model: strFlag('Model for exactly one selected TTS provider; alternatively use --provider provider=model.'),
   ...booleanAllProvidersFlag,
   ...pickFlags(sharedConcurrencyFlags, ['concurrency-mode', 'provider-concurrency'])
 } as const satisfies CliFlagsDefinition

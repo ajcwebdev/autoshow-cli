@@ -14,7 +14,6 @@ type ReasoningEstimateFields = {
   effectiveReasoningEffort?: NormalizedReasoningEffort
 }
 
-
 export type SttStepEstimate = CostEstimateBase & {
   step: 'stt'
   durationSeconds: number
@@ -33,7 +32,7 @@ export type LlmStepEstimate = ProviderModelBase & ReasoningEstimateFields & {
   pricingNote?: string
 }
 
-export type TtsStepEstimate = ProviderModelBase & {
+export type TtsStepEstimate = ProviderModelBase & Partial<Pick<import('~/types').TtsCostEstimate, 'inputCostPer1MTokensCents' | 'outputCostPer1MAudioTokensCents' | 'estimatedTextTokens' | 'estimatedAudioTokens' | 'estimatedDurationSeconds' | 'rateIdentity' | 'executionMode' | 'estimateProvenance' | 'authorizationBoundCents'>> & {
   step: 'tts'
   costPerRequestCents?: number
   requestCount?: number
@@ -157,6 +156,7 @@ export type ComputeEstimatedCostsInput = {
   audioDurationSeconds?: number | undefined
   llmTargets?: LlmPricingTarget[] | undefined
   ttsTargets?: Array<ProviderIdentityBase & {
+    numericSpeed?: number | undefined
     setupCostCents?: number
     setupTimeMs?: number
     setupNote?: string
@@ -235,7 +235,7 @@ type CostBreakdown<TStep> = {
 
 export type ActualCostBreakdown = CostBreakdown<StepCostEntry>
 
-export type EstimatedStepEntry = TokenProfileEstimateFields & ReasoningEstimateFields & {
+export type EstimatedStepEntry = Partial<Pick<import('~/types').TtsCostEstimate, 'inputCostPer1MTokensCents' | 'outputCostPer1MAudioTokensCents' | 'estimatedTextTokens' | 'estimatedAudioTokens' | 'estimatedDurationSeconds' | 'rateIdentity' | 'executionMode' | 'estimateProvenance' | 'authorizationBoundCents'>> & TokenProfileEstimateFields & ReasoningEstimateFields & {
   step: 'stt' | 'extract' | 'llm' | 'tts' | 'image' | 'video' | 'music'
   provider: string
   model: string

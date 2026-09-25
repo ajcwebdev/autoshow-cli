@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-10
-- **Date Updated:** 2026-09-22
+- **Date Updated:** 2026-09-24
 - **Verification Status:** Passed
 - **Supersession:** Absorbs the shared TTS, voice-management, rendering, slot, and compact authority of "Add Character Voice References and Multi-Speaker Script-to-Audio", whose comic scene-run authority moved to [ADR-013](ADR-013-comic-scene-audio-and-presentation.md), and all of "Master TTS Delivery Audio Outside Paid Slot Identity". The rule that `resume` adopts a pre-mastering canonical directory's legacy chunking and 16 kHz output, which [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) cites, belongs to this record. This is the standalone `tts` and `voice` command record.
 
@@ -85,13 +85,15 @@ Why now: multi-character script-to-audio was the next workflow requirement and i
 - **Option:** Use provider continuity fields for chunk seams and leave assembly unchanged
 - **Pros:** Prosody carry-over handled by the provider where supported
 - **Cons:** Unavailable on `eleven_v3`, conflicts with safe retry where a fresh run and a resume would send different requests, and leaves the 16 kHz re-encode in place
-- **Quantitative Notes:** Only Hume native utterances implement continuity
+- **Quantitative Notes:** No active adapter implements provider continuity
 
 ## Decision
 
+Provider eligibility follows [ADR-010’s billing policy](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md#subscription-free-api-eligibility).
+
 One shared, provider-neutral script-to-audio subsystem sits beneath `tts` and comic. It owns provider capabilities, voice provisioning and lifecycle, explicit per-invocation voice dispatch, native and segmented rendering, timing, scheduling, synthesis metadata, and delivery mastering. Comic consumes it for scene runs under [ADR-013](ADR-013-comic-scene-audio-and-presentation.md) and never creates provider clients or a second TTS stack.
 
-Managed models are ElevenLabs `eleven_v3`, Grok `grok-tts`, Mistral `voxtral-mini-tts-2603`, OpenAI `gpt-4o-mini-tts-2025-12-15`, Speechify `simba-3.2`, Hume `octave-1` and `octave-2`, Cartesia `sonic-3.6-2026-08-27`, and Inworld `realtime-tts-2`. Import applies to all eight. Catalog, inspect, and delete apply to every provider except OpenAI. Design applies to ElevenLabs, Hume, and Inworld. Clone applies to ElevenLabs, Grok, Mistral, Cartesia, and Inworld. Every provider must receive an explicit voice on each turn or fail locally with a model-specific capability error. No provider may silently reuse a default voice.
+Managed models are Gemini `gemini-3.8-flash-tts` and `gemini-3.8-flash-lite-tts`, ElevenLabs `eleven_v3`, Grok `grok-tts`, Mistral `voxtral-mini-tts-2603`, OpenAI `gpt-4o-mini-tts-2025-12-15`, Speechify `simba-3.2`, and Inworld `realtime-tts-2`. Import applies to all eight providers, including Soniox `tts-rt-v2`. Catalog, inspect, and delete apply to every provider except OpenAI and Soniox. Design applies to Gemini, ElevenLabs, and Inworld. Clone applies to Gemini, ElevenLabs, Grok, Mistral, and Inworld. Every provider must receive an explicit voice on each turn or fail locally with a model-specific capability error. No provider may silently reuse a default voice.
 
 Purchased speech keeps the historical output format in its identity. A separate delivery profile, selected with `--tts-audio-profile` and the related mastering flags, identifies the render, and one mastering step produces the delivered file from the provider audio already stored for that purchase.
 
@@ -109,7 +111,7 @@ It does not apply to:
 - Hosted lane ramp, rate-limit recovery, and work-selector fairness, which belong to [ADR-007](ADR-007-decompose-work-into-chunks-and-concurrency-lanes.md). This record only joins dialogue turns to those lanes.
 - Comic scene runs, voice briefs, scene snapshots, dialogue plans, `--delivery-policy`, soundscape, and presentation, which belong to [ADR-013](ADR-013-comic-scene-audio-and-presentation.md). Comic segmented planning stays on the legacy splitter, and the visual character catalog does not embed voice fields.
 - Retry classification and the authorization semantics of `--allow-ambiguous-redispatch`, which belong to [ADR-005](ADR-005-cli-error-result-and-retry-contract.md). This record applies that authorization to persisted TTS slots.
-- Provider continuity fields. Hume native utterances keep their continuity chain; ElevenLabs stitching stays unused.
+- Provider continuity fields. ElevenLabs stitching stays unused.
 - Live paid provider runs as verification.
 
 ### Commands
@@ -132,11 +134,11 @@ A declared capability, an implemented adapter, and current-account access are se
 
 ### Rendering, resume, and compact
 
-`--mode` selects `auto`, `native`, or `segmented`. `auto` uses native rendering when the model, account, speaker count, turn lengths, and voice registrations fit provider limits, and segmented rendering otherwise. `native` requires native multi-speaker dialogue and fails preflight when a constraint is violated. `segmented` synthesizes each turn independently, then normalizes timing and assembles locally. Native rendering is ElevenLabs `eleven_v3` Text-to-Dialogue and Hume `octave-2` utterances; every other model is segmented, and authored overlaps or local voice-effect filters force segmented rendering.
+`--mode` selects `auto`, `native`, or `segmented`. `auto` uses native rendering when the model, account, speaker count, turn lengths, and voice registrations fit provider limits, and segmented rendering otherwise. `native` requires native multi-speaker dialogue and fails preflight when a constraint is violated. `segmented` synthesizes each turn independently, then normalizes timing and assembles locally. Native rendering is ElevenLabs `eleven_v3` Text-to-Dialogue and Gemini TTS multi-speaker synthesis; every other model is segmented, and authored overlaps or local voice-effect filters force segmented rendering.
 
 Dialogue work uses the shared hosted TTS lanes. An ambiguous paid admission is never retried inside the running command. Continuing one requires `--allow-ambiguous-redispatch`, which warns that the slot may be purchased again. If synthesis stops after any request is sent, successful outputs are kept and the failure report names the reusable and unresolved slot counts.
 
-Completed audio is reused from `audio/slots/`. The same slot identity spends nothing on a later render, and a changed voice snapshot creates a new render identity without touching unrelated completed slots. `--price` subtracts retained slots and reports zero spend when a render can be assembled locally. `--max-generation-slots` stops after a bounded number of new slots without publishing a final WAV. A fully reused render closes as a local composition with no provider call.
+Completed audio is reused from `audio/slots/`. Version 2 paid-slot keys include provider and model as well as the canonical speech request identity, so models using the same voice and endpoint cannot share a slot accidentally. Legacy slots remain readable through checksum-bound archives for the same target; an unscoped legacy cache file alone cannot authorize reuse. Verified recovered audio is copied into the model-scoped cache when publishing a new render. The same slot identity spends nothing on a later render, and a changed voice snapshot creates a new render identity without touching unrelated completed slots. `--price` subtracts retained slots and reports zero spend when a render can be assembled locally. `--max-generation-slots` stops after a bounded number of new slots without publishing a final WAV. A fully reused render closes as a local composition with no provider call.
 
 Output storage has three lifetime classes:
 
@@ -261,5 +263,14 @@ bun test test/test-cases/validation/audio/voice/
 - TTS catalog: [docs/commands/04-audio/tts/overview.md](../commands/04-audio/tts/overview.md)
 - [voice overview](../commands/04-audio/voice/00-voice-overview.md)
 - [ElevenLabs Text-to-Dialogue](https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue)
-- [Hume Text to Speech overview](https://dev.hume.ai/docs/text-to-speech-tts/overview)
 - <https://elevenlabs.io/docs/eleven-api/guides/how-to/text-to-speech/request-stitching>
+
+## Gemini 3.8 transport and lifecycle extension
+
+Unary and buffered streaming synthesis use Interactions with canonical speech text and separate style metadata. Single-voice requests send only the selected voice in `speech_config`; speaker names stay in the local canonical plan. Native dialogue names both speakers in the configuration and annotates every turn. Live probes rejected the earlier single-voice payload containing named-speaker fields with HTTP 400. The two-model integration shares casting, retained artifacts, delivery, exports, auditions and registration rules. Native dialogue is restricted to two eligible stock voices and preserves one take without fabricated timing. Segmented generation remains available for custom voices, larger casts and incompatible controls. Conservative token planning includes metadata within the 8,192-input/16,384-output limits.
+
+Remote Batch execution serializes GenerateContent independently and journals stable slot keys, request fingerprints, upload handles and provider job IDs. Versioned provider-job links extend manifests without changing legacy manifest requirements. Atomic journal writes and a process lock protect submission and collection. Resume collects purchased work before preparing any remainder; ambiguous submission requires reconciliation. Delivery settings remain separate from transport request identity.
+
+Gemini design creates persistent resources before candidate selection. The creation journal precedes POST; returned IDs are retained before preview validation. Saving adopts rather than recreates. Requested preview text is separately synthesized into protected storage. Replication requires consent records, one decoded reference and separate consent audio. Known expiry and project ownership govern reuse and deletion. Operation prices remain unknown unless documented; synthesis estimates and observed usage carry explicit token schedules.
+
+Local verification and remaining provider-evidence gaps are recorded in the [implementation report](../reports/gemini-3.8-tts-integration-2026-09-24.md). No live provider or listening result is implied by mocked transport and artifact tests.

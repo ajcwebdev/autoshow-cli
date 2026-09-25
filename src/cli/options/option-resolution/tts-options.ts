@@ -1,4 +1,4 @@
-import { validateCartesiaTtsVoice, validateElevenLabsTtsTextNormalization, validateGrokTtsLanguage, validateGrokTtsVoice, validateHumeTtsVoice, validateInworldTtsVoice, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateSonioxTtsVoice, validateSonioxTtsLanguage, validateElevenLabsTtsTextNormalization, validateGrokTtsLanguage, validateGrokTtsVoice, validateInworldTtsVoice, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { CliFlagOccurrence, ResolvedModelOptions, TtsCliReferenceInput, TtsOptionResolutionAuthority, TtsOptionResolutionContext, TtsProvider, TtsRuntimeOptionKey, TtsRuntimeOptions } from '~/types'
 import { parseTtsDialogueFormat, readBooleanFlag, readOptionalStringFlag, readOptionalStringListFlag } from './flag-readers'
 import { validateCliValue } from './download-model-options'
@@ -106,11 +106,13 @@ export const resolveStandaloneMistralTtsSpeakerReferenceInputs = (
 }
 
 const TTS_MODEL_KEYS = [
+  'geminiTtsModels',
   'elevenlabsTtsModels',
+  'sonioxTtsModels',
   'grokTtsModels',
   'mistralTtsModels', 'openaiTtsModels',
-  'speechifyTtsModels', 'humeTtsModels',
-  'cartesiaTtsModels', 'inworldTtsModels'
+  'speechifyTtsModels',
+  'inworldTtsModels'
 ] as const satisfies readonly TtsRuntimeOptionKey[]
 
 // Bounds and allowed values come from CONTROL_SPECS via normalizeControlValue; the flag layer only
@@ -162,6 +164,10 @@ const applyGenericTtsRuntimeOptions = (
   for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-voice', selectedProviders)) {
     const voice = requireGenericTtsOptionString('tts-voice', value)
     switch (provider) {
+      case 'gemini': options.geminiTtsVoice = voice; break
+      case 'soniox':
+        options.sonioxTtsVoice = readValidatedWhenSelected(voice, modelOptions.sonioxTtsModels, validateSonioxTtsVoice)
+        break
       case 'grok':
         options.grokTtsVoice = readValidatedWhenSelected(voice, modelOptions.grokTtsModels, validateGrokTtsVoice)
         break
@@ -173,12 +179,6 @@ const applyGenericTtsRuntimeOptions = (
         break
       case 'speechify':
         options.speechifyVoice = readValidatedWhenSelected(voice, modelOptions.speechifyTtsModels, validateSpeechifyTtsVoice)
-        break
-      case 'hume':
-        options.humeTtsVoice = readValidatedWhenSelected(voice, modelOptions.humeTtsModels, validateHumeTtsVoice)
-        break
-      case 'cartesia':
-        options.cartesiaTtsVoice = readValidatedWhenSelected(voice, modelOptions.cartesiaTtsModels, validateCartesiaTtsVoice)
         break
       case 'inworld':
         options.inworldTtsVoice = readValidatedWhenSelected(voice, modelOptions.inworldTtsModels, validateInworldTtsVoice)
@@ -192,9 +192,8 @@ const applyGenericTtsRuntimeOptions = (
   for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-speed', selectedProviders)) {
     const parsed = coerceNumberControl('tts-speed', provider, value)
     switch (provider) {
+      case 'soniox': options.sonioxTtsSpeed = parsed; break
       case 'grok': options.grokTtsSpeed = parsed; break
-      case 'cartesia': options.cartesiaTtsSpeed = parsed; break
-      case 'hume': options.humeTtsSpeed = parsed; break
       case 'inworld': options.inworldTtsSpeed = parsed; break
       case 'openai':
         options.openaiTtsSpeed = parsed
@@ -208,14 +207,14 @@ const applyGenericTtsRuntimeOptions = (
   for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-language', selectedProviders)) {
     const language = requireGenericTtsOptionString('tts-language', value)
     switch (provider) {
+      case 'soniox':
+        options.sonioxTtsLanguage = validateCliValue(validateSonioxTtsLanguage, language)
+        break
       case 'grok':
         options.grokTtsLanguage = validateCliValue(validateGrokTtsLanguage, language)
         break
       case 'speechify':
         options.speechifyTtsLanguage = language
-        break
-      case 'cartesia':
-        options.cartesiaTtsLanguage = language
         break
       case 'elevenlabs':
         options.elevenlabsTtsLanguageCode = language
@@ -240,14 +239,12 @@ const applyGenericTtsRuntimeOptions = (
   for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-instructions', selectedProviders)) {
     const instructions = coerceControlValue('tts-instructions', provider, value) as string
     switch (provider) {
+      case 'gemini': options.geminiTtsInstructions = instructions; break
       case 'openai':
         options.openaiTtsInstructions = instructions
         break
       case 'inworld':
         options.inworldTtsInstructions = instructions
-        break
-      case 'hume':
-        options.humeTtsDescription = instructions
         break
     }
   }
@@ -280,14 +277,10 @@ const applyGenericTtsRuntimeOptions = (
   }
   if (pronunciationLocators.length > 0) options.elevenlabsTtsPronunciationDictionaryLocators = pronunciationLocators
 
-  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-trailing-silence', selectedProviders)) {
-    if (provider === 'hume') options.humeTtsTrailingSilence = coerceNumberControl('tts-trailing-silence', provider, value)
-  }
-
   for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-response-format', selectedProviders)) {
+    if (provider === 'gemini') options.geminiTtsResponseFormat = coerceControlValue('tts-response-format', provider, value) as string
     if (provider === 'mistral') options.mistralTtsResponseFormat = coerceControlValue('tts-response-format', provider, value) as string
     if (provider === 'elevenlabs') options.elevenlabsTtsResponseFormat = coerceControlValue('tts-response-format', provider, value) as string
-    if (provider === 'hume') options.humeTtsResponseFormat = coerceControlValue('tts-response-format', provider, value) as string
   }
 }
 
@@ -326,9 +319,6 @@ export const buildTtsOptions = (
     ttsSpeakers,
     speechifyVoice: undefined,
     speechifyTtsLanguage: undefined,
-    humeTtsVoice: undefined,
-    cartesiaTtsVoice: undefined,
-    cartesiaTtsLanguage: undefined,
     inworldTtsVoice: undefined,
     inworldTtsInstructions: undefined,
     inworldTtsSpeed: undefined,
@@ -345,13 +335,18 @@ export const buildTtsOptions = (
     elevenlabsTtsTextNormalization: undefined,
     elevenlabsTtsPronunciationDictionaryLocators: undefined,
     elevenlabsVoiceId: undefined,
-    humeTtsTrailingSilence: undefined,
-    humeTtsDescription: undefined,
     mistralTtsResponseFormat: undefined,
     elevenlabsTtsResponseFormat: undefined,
-    humeTtsResponseFormat: undefined,
   }
 
+  const mode = readOptionalStringFlag(flags, 'gemini-tts-mode')
+  const wait = readOptionalStringFlag(flags, 'gemini-tts-batch-wait-seconds')
+  if (mode !== undefined && !['unary', 'stream', 'batch'].includes(mode)) throw UsageError('--gemini-tts-mode must be unary, stream, or batch.')
+  if ((mode !== undefined || wait !== undefined) && !options.geminiTtsModels?.length) throw UsageError('Gemini transport controls require an explicit Gemini TTS selection.')
+  if (mode === 'batch' && options.ttsAllProvidersSelected) throw UsageError('Gemini remote Batch mode requires explicit --provider gemini selection.')
+  if (wait !== undefined && (mode !== 'batch' || !Number.isSafeInteger(Number(wait)) || Number(wait) < 0 || Number(wait) > 86400)) throw UsageError('--gemini-tts-batch-wait-seconds requires batch mode and an integer from 0 to 86400.')
+  if (mode) options.geminiTtsMode = mode as 'unary' | 'stream' | 'batch'
+  if (wait !== undefined) options.geminiTtsBatchWaitSeconds = Number(wait)
   applyGenericTtsRuntimeOptions(options, flags, flagOccurrences, modelOptions)
   return options
 }

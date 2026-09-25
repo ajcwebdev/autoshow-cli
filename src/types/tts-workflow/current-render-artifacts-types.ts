@@ -22,6 +22,8 @@ export type CurrentTtsObservedTurn = {
 }
 
 export type CurrentTtsRenderArtifacts = {
+  sonioxProviderAudioSeconds?: number | undefined
+  sonioxInputCharacters?: number | undefined
   artifactDir: string
   operation: 'tts-synthesis' | 'comic-audio'
   targetKey: string

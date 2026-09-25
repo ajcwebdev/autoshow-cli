@@ -104,7 +104,7 @@ describe('audited help behavior', () => {
         }
         if (parsed.command?.name === 'voice design' && !parsed.flags['save']) {
           const provider = parsed.flags['provider']
-          if (provider !== 'elevenlabs' && provider !== 'inworld' && provider !== 'hume') throw new Error(`Unknown design provider in ${example}`)
+          if (provider !== 'elevenlabs' && provider !== 'inworld' && provider !== 'gemini') throw new Error(`Unknown design provider in ${example}`)
           expect(() => validateVoiceDesignRequest({ provider, creationModel: String(parsed.flags['creation-model']), description: String(parsed.flags['description']), previewText: String(parsed.flags['preview-text']), candidateCount: Number(parsed.flags['candidates'] ?? 1) }), example).not.toThrow()
         }
         for (const occurrence of parsed.rawParsed.flagOccurrences) {

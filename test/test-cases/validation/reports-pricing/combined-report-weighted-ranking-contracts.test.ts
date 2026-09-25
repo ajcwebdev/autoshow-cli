@@ -299,7 +299,7 @@ describe('custom weighting composite', () => {
 })
 
 describe('committed benchmark dashboard', () => {
-  test('is a single self-contained page with one tab per combined-report root', () => {
+  test('is a single self-contained page with combined-report tabs and current TTS artifacts', () => {
     const html = readFileSync(dashboardPath, 'utf8')
 
     expect(html).toContain('<style>')
@@ -310,7 +310,10 @@ describe('committed benchmark dashboard', () => {
     expect(html).not.toContain('quality-cost-terciles-v1')
     expect(html).not.toContain('All weighted rankings')
     expect(html).not.toContain('/Users/')
-    expect([...html.matchAll(/<input type="radio" name="dashboard-tab"/g)]).toHaveLength(DASHBOARD_TABS.length)
+    expect([...html.matchAll(/<input type="radio" name="dashboard-tab"/g)]).toHaveLength(DASHBOARD_TABS.length + 1)
+    expect(html).toContain('id="tab-tts"')
+    expect(html).toContain('#tab-tts:checked ~ #panel-tts { display: block; }')
+    expect(panelFor(html, 'tts')).toContain('soniox/tts-rt-v2')
 
     const ids = [...html.matchAll(/ id="([^"]+)"/g)].map((match) => match[1])
     expect(new Set(ids).size).toBe(ids.length)

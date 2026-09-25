@@ -91,7 +91,9 @@ export const computeRenderIdentity = (input: {
   outputProfileHash: string
 }): string => hashCanonicalTtsValue(input)
 
-export const computePaidSpeechSlotHash = (input: {
+// Read legacy slots only through a checksum-bound archive for the same target.
+// V1 omitted the model and can collide across different synthesis targets.
+export const computeLegacyPaidSpeechSlotHash = (input: {
   dialoguePlanId: string
   turnIds: readonly string[]
   providerText: string
@@ -111,6 +113,17 @@ export const computePaidSpeechSlotHash = (input: {
   outputFormat: input.outputFormat,
   endpointKind: input.endpointKind,
   serializerVersion: input.serializerVersion,
+})
+
+export const computePaidSpeechSlotHash = (input: Parameters<typeof computeLegacyPaidSpeechSlotHash>[0] & {
+  provider: string
+  model: string
+}): string => hashCanonicalTtsValue({
+  schemaVersion: 2,
+  kind: 'paid-speech-slot',
+  provider: input.provider,
+  model: input.model,
+  requestIdentity: computeLegacyPaidSpeechSlotHash(input),
 })
 
 const ENCODED_PATH_SEPARATOR_OR_DOT = /%(?:2e|2f|5c)/i

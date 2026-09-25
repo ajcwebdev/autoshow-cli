@@ -1,3 +1,4 @@
+import { resumeGeminiRemoteBatch } from '../../audio/tts/tts-services/tts-gemini/gemini-tts-batch-workflow'
 import { partialCompletionError } from '~/cli/commands/command-shared/provider-batch-state'
 import { join, resolve as resolvePath } from 'node:path'
 import { PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
@@ -249,12 +250,15 @@ export const dispatchResume = async (
   const failures: Array<{ outputDir: string, message: string, error?: Record<string, unknown> }> = []
   const estimates: AggregatedPriceEstimate[] = []
   const resumeResults: ResumeResult[] = []
+  const providerJobResults: Record<string, unknown>[] = []
   const comicPlans: NonNullable<ResumeDispatchOutcome['comicPlan']>[] = []
   const sharedHostedConcurrency: { current?: HostedConcurrencyCoordinator | undefined } = {}
 
   for (let index = 0; index < outputDirs.length; index++) {
     const outputDir = outputDirs[index] as string
     try {
+      const providerJobs = await resumeGeminiRemoteBatch(outputDir, rawFlags, flagOccurrences.length ? new Set(flagOccurrences.map(occurrence => occurrence.name)) : undefined)
+      if (providerJobs) { providerJobResults.push(providerJobs); continue }
       const outcome = await dispatchSingleResume(
         outputDir,
         rawFlags,
@@ -299,6 +303,11 @@ export const dispatchResume = async (
 
   discardStagedResult()
 
+  if (rawFlags['price'] === true && providerJobResults.length > 0) {
+    l.report.result({ dryRun: true, providerJobResults, estimate: { steps: estimates.flatMap(estimate => estimate.steps), totalEstimatedCostCents: estimates.reduce((sum, estimate) => sum + estimate.totalEstimatedCost, 0) + providerJobResults.reduce((sum, result) => sum + Number(result['possibleAdditionalCostCents'] ?? 0), 0) } }, 'Resume provider-job price complete')
+    return
+  }
+
   if (estimates.length > 0 && comicPlans.length > 0) {
     l.report.result({ steps: estimates.flatMap(estimate => estimate.steps), totalEstimatedCost: estimates.reduce((sum, estimate) => sum + estimate.totalEstimatedCost, 0), comicPlans }, 'Resume price complete')
     return
@@ -315,6 +324,7 @@ export const dispatchResume = async (
   l.report.result({
     directories: outputDirs,
     results: resumeResults,
+    ...(providerJobResults.length ? { providerJobResults } : {}),
     totals: {
       full: resumeResults.reduce((sum, result) => sum + result.full, 0),
       incomplete: resumeResults.reduce((sum, result) => sum + result.incomplete, 0),

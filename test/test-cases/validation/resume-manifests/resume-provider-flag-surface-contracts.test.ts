@@ -57,7 +57,6 @@ const REMOVED_PROVIDER_NAMED_FLAGS = [
   'minimax-tts-pronunciation',
   'speechify-tts-voice-locale',
   'speechify-tts-voice-gender',
-  'hume-tts-voice-provider',
   'elevenlabs-tts-clone-remove-background-noise',
   'elevenlabs-tts-stability',
   'elevenlabs-tts-similarity-boost',
@@ -238,17 +237,13 @@ describe('resume provider flag surface', () => {
   test('resume keeps generic TTS options in place of provider-specific tuning', () => {
     expectResumeHasFlags([
       'tts-voice', 'tts-speed', 'tts-language', 'tts-text-normalization',
-      'tts-instructions', 'step-concurrency',
-      'tts-stability', 'tts-similarity', 'tts-style', 'tts-speaker-boost',
-      'tts-seed', 'tts-pronunciation-dictionary', 'tts-trailing-silence', 'tts-response-format'
+      'tts-instructions', 'step-concurrency', 'tts-stability', 'tts-similarity',
+      'tts-style', 'tts-speaker-boost', 'tts-seed', 'tts-pronunciation-dictionary',
+      'tts-response-format'
     ])
     expectResumeLacksFlags([
-      'tts-ref-audio',
-      'tts-voice-name',
-      'tts-consent-name',
-      'tts-consent-email',
+      'tts-ref-audio', 'tts-voice-name', 'tts-consent-name', 'tts-consent-email',
       'elevenlabs-tts-stability', 'elevenlabs-tts-similarity-boost',
-      'hume-tts-voice-provider',
       'minimax-tts-language-boost', 'minimax-tts-emotion'
     ])
   })

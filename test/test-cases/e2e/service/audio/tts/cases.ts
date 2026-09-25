@@ -9,8 +9,6 @@ export const mistralTtsModels = 'voxtral-mini-tts-2603'
 export const mistralRefAudioPath = 'input/examples/audio/anthony-voice.mp3'
 const naturalShortTtsInputPath = 'test/test-cases/e2e/service/audio/tts/fixtures/natural-short.txt'
 const naturalShortTtsInputTitle = 'natural-short'
-const humeTtsInputPath = 'test/test-cases/e2e/service/audio/tts/fixtures/hume-octave-2-short.txt'
-const humeTtsInputTitle = 'hume-octave-2-short'
 
 export const openaiTts = {
   provider: 'openai',
@@ -48,22 +46,6 @@ export const speechifyTts = {
   envVarDescription: 'Speechify TTS',
   extraArgs: ['--tts-voice', SPEECHIFY_DEFAULT_TTS_VOICE],
   resolveExpectedSpeaker: async () => SPEECHIFY_DEFAULT_TTS_VOICE,
-} as const
-
-export const humeTts = {
-  provider: 'hume',
-  ttsService: 'hume',
-  envVarKey: 'HUME_API_KEY',
-  envVarDescription: 'Hume TTS',
-  inputPath: humeTtsInputPath,
-  inputTitle: humeTtsInputTitle,
-} as const
-
-export const cartesiaTts = {
-  provider: 'cartesia',
-  ttsService: 'cartesia',
-  envVarKey: 'CARTESIA_API_KEY',
-  envVarDescription: 'Cartesia TTS',
 } as const
 
 export const inworldTts = {

@@ -1,21 +1,19 @@
 # 02-tts-hard — TTS benchmark
 
-All 11 models succeeded. Single-voice synthesis; no rerun was performed during archive reorganization.
+9 retained model results; 9 succeeded. Single-voice synthesis. Updated from selected manifest artifacts on 2026-09-25 without provider calls.
 
 [Manifest](./manifest.json) · [Batch comparison](../2026-09-12-benchmark-report.md)
 
-| Provider/model                    | Processing s | Audio s | Estimated cost USD | Audio                                                      |
-| --------------------------------- | -----------: | ------: | -----------------: | ---------------------------------------------------------- |
-| elevenlabs/eleven_v3              |        18.66 |   36.32 |           $0.04520 | [WAV](./02-tts-hard-elevenlabs-eleven_v3.wav)              |
-| grok/grok-tts                     |         6.41 |   35.04 |           $0.00678 | [WAV](./02-tts-hard-grok-grok-tts.wav)                     |
-| mistral/voxtral-mini-tts-2603     |        10.33 |   35.92 |           $0.00723 | [WAV](./02-tts-hard-mistral-voxtral-mini-tts-2603.wav)     |
-| openai/gpt-4o-mini-tts-2025-12-15 |        10.61 |   35.20 |           $0.00570 | [WAV](./02-tts-hard-openai-gpt-4o-mini-tts-2025-12-15.wav) |
-| speechify/simba-3.2               |         9.53 |   30.17 |           $0.00452 | [WAV](./02-tts-hard-speechify-simba-3.2.wav)               |
-| hume/octave-1                     |        22.23 |   37.42 |           $0.06780 | [WAV](./02-tts-hard-hume-octave-1.wav)                     |
-| hume/octave-2                     |        17.97 |   37.80 |           $0.06780 | [WAV](./02-tts-hard-hume-octave-2.wav)                     |
-| cartesia/sonic-3.5-2026-05-04     |         6.95 |   28.40 |           $0.01689 | [WAV](./02-tts-hard-cartesia-sonic-3.5-2026-05-04.wav)     |
-| cartesia/sonic-3.6-2026-08-27     |        10.52 |   29.04 |           $0.01689 | [WAV](./02-tts-hard-cartesia-sonic-3.6-2026-08-27.wav)     |
-| inworld/realtime-tts-2            |         9.42 |   28.84 |           $0.01130 | [WAV](./02-tts-hard-inworld-realtime-tts-2.wav)            |
-| inworld/realtime-tts-2-flash      |        11.05 |   29.26 |           $0.00678 | [WAV](./02-tts-hard-inworld-realtime-tts-2-flash.wav)      |
+| Provider/model                    | Execution | Recorded s      | Audio s | Cost USD | Cost basis      | Audio                                                      |
+| --------------------------------- | --------- | --------------- | ------- | -------- | --------------- | ---------------------------------------------------------- |
+| elevenlabs/eleven_v3              | succeeded | 18.66           | 36.320  | $0.04530 | computed usage  | [WAV](./02-tts-hard-elevenlabs-eleven_v3.wav)              |
+| grok/grok-tts                     | succeeded | 6.41            | 35.037  | $0.00679 | computed usage  | [WAV](./02-tts-hard-grok-grok-tts.wav)                     |
+| mistral/voxtral-mini-tts-2603     | succeeded | 10.33           | 35.920  | $0.00725 | computed usage  | [WAV](./02-tts-hard-mistral-voxtral-mini-tts-2603.wav)     |
+| openai/gpt-4o-mini-tts-2025-12-15 | succeeded | 10.61           | 35.200  | $0.00571 | computed usage  | [WAV](./02-tts-hard-openai-gpt-4o-mini-tts-2025-12-15.wav) |
+| speechify/simba-3.2               | succeeded | 9.53            | 30.170  | $0.00453 | computed usage  | [WAV](./02-tts-hard-speechify-simba-3.2.wav)               |
+| inworld/realtime-tts-2            | succeeded | 9.42            | 28.840  | $0.01132 | computed usage  | [WAV](./02-tts-hard-inworld-realtime-tts-2.wav)            |
+| gemini/gemini-3.8-flash-tts       | succeeded | 0.08 (recovery) | 35.762  | $0.00862 | estimated usage | [WAV](./02-tts-hard-gemini-gemini-3.8-flash-tts.wav)       |
+| gemini/gemini-3.8-flash-lite-tts  | succeeded | 13.48           | 40.640  | $0.00797 | provider usage  | [WAV](./02-tts-hard-gemini-gemini-3.8-flash-lite-tts.wav)  |
+| soniox/tts-rt-v2                  | succeeded | 34.37           | 41.399  | $0.00797 | estimated usage | [WAV](./02-tts-hard-soniox-tts-rt-v2.wav)                  |
 
-Costs are render-plan estimates, not confirmed provider charges. Processing times include concurrent scheduling effects. Automated and human quality scores are unavailable. See the batch comparison for commands, methodology, verification, and original-manifest provenance.
+Costs retain their recorded basis. Local recovery time is excluded from generation rankings. Automated and human quality scores are unavailable. Hash verification and decoded metadata establish artifact integrity, not spoken-text correctness or perceptual quality.

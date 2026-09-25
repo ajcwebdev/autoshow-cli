@@ -1,3 +1,6 @@
+import { join } from 'node:path'
+import { resolveCredential } from '~/utils/validate/env-utils'
+import { inspectGeminiVoiceImport } from '../tts/tts-services/tts-gemini/gemini-voice-availability'
 import type { CliCommandContext, VoiceConsentAction, VoiceConsentRecord } from '~/types'
 import { getCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import { assertProtectedStoreOutputDisjoint } from './voice-assets/protected-output-boundary'
@@ -93,7 +96,7 @@ export const handleImport = async (ctx: CliCommandContext): Promise<void> => {
   const provider = providerFlag(ctx)
   const model = requireVoiceModel(provider, requiredFlag(ctx, 'model'))
   const profileKey = optionalFlag(ctx, 'profile') ?? PROFILE_DEFAULT
-  const originRaw = optionalFlag(ctx, 'origin') ?? 'provider-stock'
+  const originRaw = optionalFlag(ctx, 'origin') ?? (provider === 'gemini' && requiredFlag(ctx, 'voice-id').startsWith('voice_') ? 'imported-custom' : 'provider-stock')
   if (!VOICE_ORIGINS.includes(originRaw as typeof VOICE_ORIGINS[number])) throw UsageError(`--origin must be ${VOICE_ORIGINS.join('|')}.`)
   const origin = originRaw as typeof VOICE_ORIGINS[number]
   const consentRef = optionalFlag(ctx, 'consent-ref')
@@ -101,7 +104,7 @@ export const handleImport = async (ctx: CliCommandContext): Promise<void> => {
   const brief = await requireBrief(subjectKey, profileKey)
   const accountScopeHash = optionalFlag(ctx, 'account-scope-hash')
   if (accountScopeHash && !/^[a-f0-9]{64}$/.test(accountScopeHash)) throw UsageError('--account-scope-hash must be a lowercase SHA-256 digest.')
-  if (origin !== 'provider-stock' && !accountScopeHash) throw UsageError('Account voice import requires a non-secret account scope hash.')
+  if (provider !== 'gemini' && origin !== 'provider-stock' && !accountScopeHash) throw UsageError('Account voice import requires a non-secret account scope hash.')
   const resourceId = resolveVoiceImportResourceId(provider, model, requiredFlag(ctx, 'voice-id'))
   const request = {
     charactersRoot: getCharactersRoot(), subjectKey, profileKey, provider, providerModel: model,
@@ -114,7 +117,9 @@ export const handleImport = async (ctx: CliCommandContext): Promise<void> => {
     reportVoicePrice('Voice import estimate', { operation: 'voice-import', estimatedCostCents: 0, mutation: false, subjectKey, provider, model })
     return
   }
-  const registration = await importExistingVoiceRegistration(request)
+  const gemini = provider === 'gemini' ? await inspectGeminiVoiceImport(resolveCredential('gemini', 'require', { stage: 'voice:gemini', description: 'Gemini voice import' }), model, resourceId, join(MANAGED_VOICE_STORE_ROOT, 'gemini-creations')) : undefined
+  if (gemini && accountScopeHash && accountScopeHash !== gemini.accountScopeHash) throw UsageError('Gemini import credentials do not match the requested account scope.')
+  const registration = await importExistingVoiceRegistration({ ...request, ...gemini })
   reportVoiceResult('Voice registration imported', { registrationId: registration.registrationId, generationId: registration.generationId, state: registration.provisioning.state })
 }
 

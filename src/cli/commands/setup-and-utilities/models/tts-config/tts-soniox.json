@@ -1,0 +1,23 @@
+{
+  "soniox": {
+    "description": "Soniox REST text-to-speech",
+    "type": "api",
+    "catalogSourceUrl": "https://soniox.com/docs/tts/models",
+    "catalogCheckedAt": "2026-09-24",
+    "catalogNotes": "Only active tts-rt-v2 is registered. Defaults: Adrian, en, speed 1. Voice names and existing cloned IDs are case-sensitive; this catalog does not establish account access. REST: 3 concurrent requests, 100 starts/minute, fixed 120-second audio cap. AutoShow uses a 500-character safety ceiling, WAV at 24 kHz, and rejects audio >=119 seconds as potentially truncated.",
+    "models": {
+      "tts-rt-v2": {
+        "description": "Soniox v2 speech with native inline tags, voice, language and numeric speed",
+        "pricingSourceUrl": "https://soniox.com/pricing",
+        "pricingCheckedAt": "2026-09-24",
+        "pricingCurrency": "USD",
+        "pricingTier": "Public TTS token pricing",
+        "pricingNotes": "$4/1M input text tokens and $21.50/1M output audio tokens. Estimate 0.3 input tokens/character, 50,000 characters/hour at speed 1, and 30,000 audio tokens/hour. REST returns audio without authoritative usage; measured provider duration still yields an estimate.",
+        "inputCostPer1MTokensCents": 400,
+        "outputCostPer1MAudioTokensCents": 2150,
+        "limits": { "maxInputCharacters": 500 },
+        "estimation": { "costMultiplier": 1, "msPer1KChars": 72000 }
+      }
+    }
+  }
+}

@@ -223,6 +223,7 @@ export type CurrencyAmount = {
 }
 
 export type PlannedCost = {
+  unknownReason?: string | undefined
   amounts: CurrencyAmount[]
 }
 

@@ -1,10 +1,7 @@
 import { createModelValidator, createRetiringModelValidator, formatAllowedValues } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import { UsageError } from '~/utils/error-handler'
-import {
-  getGrokTtsVoices,
-  getOpenAITtsVoices
-} from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { CartesiaTtsModel, ElevenlabsTtsModel, GrokTtsModel, HumeTtsModel, InworldTtsModel, MistralTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection, SpeechifyTtsModel } from '~/types'
+import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
+import type { ElevenlabsTtsModel, GrokTtsModel, InworldTtsModel, MistralTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection, SpeechifyTtsModel } from '~/types'
 
 export const SUPPORTED_ELEVENLABS_TTS_MODELS = [
   'eleven_v3'
@@ -34,11 +31,14 @@ const normalizeListedValue = (value: string, allowedValues: readonly string[]): 
   return allowedValues.find((candidate) => candidate.toLowerCase() === normalized)
 }
 
+export const SUPPORTED_GEMINI_TTS_MODELS = ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts'] as const
+export const validateGeminiTtsModel = createModelValidator(SUPPORTED_GEMINI_TTS_MODELS, 'gemini-tts')
+
 export const SUPPORTED_GROK_TTS_MODELS = [
   'grok-tts'
 ] as const satisfies readonly string[]
 
-export const SUPPORTED_GROK_TTS_VOICES = getGrokTtsVoices()
+export const SUPPORTED_GROK_TTS_VOICES: readonly string[] = getModelRegistry().tts['grok']?.voices ?? []
 export const GROK_DEFAULT_TTS_VOICE = 'eve'
 const SUPPORTED_GROK_TTS_LANGUAGES = [
   'auto',
@@ -100,7 +100,7 @@ export const SUPPORTED_OPENAI_TTS_MODELS = [
 
 export const OPENAI_DEFAULT_TTS_VOICE = 'alloy'
 
-export const SUPPORTED_OPENAI_TTS_VOICES = getOpenAITtsVoices()
+export const SUPPORTED_OPENAI_TTS_VOICES: readonly string[] = getModelRegistry().tts['openai']?.voices ?? []
 
 export const validateOpenAITtsModel = createRetiringModelValidator<OpenAITtsModel>('tts', 'openai', SUPPORTED_OPENAI_TTS_MODELS, 'openai-tts')
 
@@ -157,40 +157,6 @@ export const validateSpeechifyTtsVoiceForModel = (
   voice: string
 ): string => validateSpeechifyTtsVoice(voice)
 
-export const SUPPORTED_HUME_TTS_MODELS = [
-  'octave-1',
-  'octave-2'
-] as const satisfies readonly string[]
-
-export const HUME_DEFAULT_TTS_VOICE = 'Male English Actor'
-export const HUME_LIBRARY_VOICE_PROVIDER = 'HUME_AI'
-
-export const validateHumeTtsModel = createModelValidator<HumeTtsModel>(SUPPORTED_HUME_TTS_MODELS, 'hume-tts')
-
-export const validateHumeTtsVoice = (voice: string): string => {
-  const normalized = voice.trim()
-  if (!normalized) {
-    throw UsageError('Invalid --hume-tts-voice value. Expected a non-empty Hume voice name or ID.')
-  }
-  return normalized
-}
-
-export const SUPPORTED_CARTESIA_TTS_MODELS = [
-  'sonic-3.6-2026-08-27'
-] as const satisfies readonly string[]
-
-export const CARTESIA_DEFAULT_TTS_VOICE = 'f786b574-daa5-4673-aa0c-cbe3e8534c02'
-
-export const validateCartesiaTtsModel = createRetiringModelValidator<CartesiaTtsModel>('tts', 'cartesia', SUPPORTED_CARTESIA_TTS_MODELS, 'cartesia-tts')
-
-export const validateCartesiaTtsVoice = (voice: string): string => {
-  const normalized = voice.trim()
-  if (!normalized) {
-    throw UsageError('Invalid --cartesia-tts-voice value. Expected a non-empty Cartesia voice ID.')
-  }
-  return normalized
-}
-
 export const SUPPORTED_INWORLD_TTS_MODELS = [
   'realtime-tts-2'
 ] as const satisfies readonly string[]
@@ -205,4 +171,20 @@ export const validateInworldTtsVoice = (voice: string): string => {
     throw UsageError('Invalid --inworld-voice value. Expected a non-empty Inworld voice ID.')
   }
   return normalized
+}
+
+// Soniox REST reference and supported-languages table checked 2026-09-24.
+export const SUPPORTED_SONIOX_TTS_MODELS = ['tts-rt-v2'] as const
+export const SONIOX_DEFAULT_TTS_VOICE = 'Adrian'
+export const SUPPORTED_SONIOX_TTS_LANGUAGES = ['af', 'sq', 'ar', 'az', 'eu', 'be', 'bn', 'bs', 'bg', 'ca', 'zh', 'hr', 'cs', 'da', 'nl', 'en', 'et', 'fi', 'fr', 'gl', 'de', 'el', 'gu', 'he', 'hi', 'hu', 'id', 'it', 'ja', 'kn', 'kk', 'ko', 'lv', 'lt', 'mk', 'ms', 'ml', 'mr', 'no', 'fa', 'pl', 'pt', 'pa', 'ro', 'ru', 'sr', 'sk', 'sl', 'es', 'sw', 'sv', 'tl', 'ta', 'te', 'th', 'tr', 'uk', 'ur', 'vi', 'cy'] as const
+export const validateSonioxTtsModel = createModelValidator(SUPPORTED_SONIOX_TTS_MODELS, 'soniox-tts')
+export const validateSonioxTtsVoice = (value: string): string => {
+  const voice = value.trim()
+  if (!voice || [...voice].length > 50) throw UsageError('Soniox TTS voice must be a non-empty built-in name or existing cloned-voice ID of at most 50 characters. Voice access is checked by Soniox.')
+  return voice
+}
+export const validateSonioxTtsLanguage = (value: string): string => {
+  const language = normalizeListedValue(value, SUPPORTED_SONIOX_TTS_LANGUAGES)
+  if (!language) throw UsageError('Invalid Soniox TTS language. Allowed codes: ' + SUPPORTED_SONIOX_TTS_LANGUAGES.join(', ') + '. auto is not supported.')
+  return language
 }

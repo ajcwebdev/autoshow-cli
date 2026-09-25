@@ -70,7 +70,7 @@ Positive outcomes:
 
 - Every rendered `[default: …]` is the value the command uses, including the `key=value` defaults on scoped repeatable flags
 - Help shows each provider's accepted range; `--tts-speed` lists the providers that accept a numeric speed and notes that ElevenLabs `eleven_v3` rejects it
-- `--tts-trailing-silence`, `--tts-response-format`, and Hume's description on `--tts-instructions` expose capabilities that previously had no flag
+- `--tts-response-format` expose capabilities that previously had no flag
 - A new step concurrency scope adds no new flag
 
 Negative outcomes:
@@ -95,7 +95,7 @@ Negative outcomes:
 ## API / Type Impact
 
 - Removed CLI spellings: `--elevenlabs-tts-stability`, `--elevenlabs-tts-similarity-boost`, `--elevenlabs-tts-style`, `--elevenlabs-tts-use-speaker-boost`, `--elevenlabs-tts-seed`, `--elevenlabs-tts-pronunciation-dictionary-locator`, `--stt-happyscribe-organization-id`, `--stt-supadata-lang`, `--stt-scrapecreators-lang`, `--stt-grok-verbatim`, `--stt-supadata-chunk-size`, `--deepinfra-stt-response-format`, `--ocr-concurrency`, `--stt-segment-concurrency`, `--stt-preflight-concurrency`, `--tts-chunk-concurrency`, `--sfx-concurrency`, `--url-provider-concurrency`, comic `--concurrency`, `--image-model`, `--llm-model`, `--qa-model`, and `--whisper-engine`
-- Added CLI spellings: `--tts-stability`, `--tts-similarity`, `--tts-style`, `--tts-speaker-boost`, `--tts-seed`, `--tts-pronunciation-dictionary`, `--tts-trailing-silence`, `--tts-response-format`, `--stt-organization-id`, `--stt-language`, `--stt-verbatim`, `--stt-chunk-size`, `--stt-response-format`, `--step-concurrency`, comic `--qa-provider` and `--llm-provider`
+- Added CLI spellings: `--tts-stability`, `--tts-similarity`, `--tts-style`, `--tts-speaker-boost`, `--tts-seed`, `--tts-pronunciation-dictionary`, `--tts-response-format`, `--stt-organization-id`, `--stt-language`, `--stt-verbatim`, `--stt-chunk-size`, `--stt-response-format`, `--step-concurrency`, comic `--qa-provider` and `--llm-provider`
 - Config keys: `defaults.tts.{elevenlabsTtsStability,elevenlabsTtsSimilarityBoost,elevenlabsTtsStyle,elevenlabsTtsUseSpeakerBoost,elevenlabsTtsSeed,elevenlabsTtsPronunciationDictionaryLocators}` become `defaults.tts.{stability,similarity,style,speakerBoost,seed,pronunciationDictionary}`; `defaults.extract.stt.{happyscribeOrganizationId,supadataLang,scrapecreatorsLang,deepinfraResponseFormat,grokVerbatim,supadataChunkSize}` become `defaults.extract.stt.{organizationId,language,responseFormat,verbatim,chunkSize}`; `defaults.comic.sfxConcurrency` is added. Step concurrency scopes keep their existing domain-organized JSON paths.
 
 ## Test Plan

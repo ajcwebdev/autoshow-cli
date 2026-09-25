@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { buildOcrCombinedReport } from "../ocr/build_combined_report";
 import { buildSttCombinedReport } from "../stt/build_combined_report";
 import { buildUrlCombinedReport } from "../url/build_combined_report";
+import { buildTtsDashboard } from "../tts/build_tts_dashboard";
 import {
   renderBenchmarkDashboard,
   type BenchmarkDashboardTab,
@@ -23,6 +24,7 @@ export const DASHBOARD_TABS: DashboardTabSource[] = [
   { key: "stt-with-speakers", label: "STT with speakers", build: buildSttCombinedReport },
   { key: "stt-without-speakers", label: "STT without speakers", build: buildSttCombinedReport },
   { key: "url", label: "URL", build: buildUrlCombinedReport },
+  { key: "tts", label: "TTS", build: buildTtsDashboard },
 ];
 
 export const DASHBOARD_FILE = "combined-comparison-dashboard.html";

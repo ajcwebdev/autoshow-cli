@@ -5,7 +5,13 @@
     ],
     "General": [
       "https://soniox.com/docs/api-reference.mdx",
-      "https://soniox.com/docs/api-reference/errors.mdx"
+      "https://soniox.com/docs/api-reference/errors.mdx",
+      "https://soniox.com/docs/data-residency.mdx",
+      "https://soniox.com/docs/guides/temporary-api-keys.mdx",
+      "https://soniox.com/docs/guides/concurrency-limits.mdx",
+      "https://soniox.com/docs/guides/usage-logs.mdx",
+      "https://soniox.com/docs/guides/usage-summary.mdx",
+      "https://soniox.com/pricing"
     ],
     "STT": [
       "https://soniox.com/docs/api-reference/stt/files/upload_file.mdx",
@@ -21,8 +27,37 @@
       "https://soniox.com/docs/stt/async/error-handling.mdx",
       "https://soniox.com/docs/stt/concepts/speaker-diarization.mdx",
       "https://soniox.com/docs/stt/concepts/supported-languages.mdx",
-      "https://soniox.com/docs/stt/concepts/timestamps.mdx",
-      "https://soniox.com/pricing"
+      "https://soniox.com/docs/stt/concepts/timestamps.mdx"
+    ],
+    "TTS": [
+      "https://soniox.com/docs/tts/get-started.mdx",
+      "https://soniox.com/docs/tts/models.mdx",
+      "https://soniox.com/docs/api-reference/tts/generate_tts.mdx",
+      "https://soniox.com/docs/api-reference/tts/websocket-api.mdx",
+      "https://soniox.com/docs/api-reference/tts/get_tts_models.mdx",
+      "https://soniox.com/docs/api-reference/tts/get_shared_voices.mdx",
+      "https://soniox.com/docs/api-reference/tts/voices/create_voice.mdx",
+      "https://soniox.com/docs/api-reference/tts/voices/get_voices.mdx",
+      "https://soniox.com/docs/api-reference/tts/voices/get_voices_count.mdx",
+      "https://soniox.com/docs/api-reference/tts/voices/get_voice.mdx",
+      "https://soniox.com/docs/api-reference/tts/voices/recompute_voice.mdx",
+      "https://soniox.com/docs/api-reference/tts/voices/delete_voice.mdx",
+      "https://soniox.com/docs/tts/rest-api/generate-speech.mdx",
+      "https://soniox.com/docs/tts/rest-api/limits-and-quotas.mdx",
+      "https://soniox.com/docs/tts/rt/real-time-generation.mdx",
+      "https://soniox.com/docs/tts/rt/streams.mdx",
+      "https://soniox.com/docs/tts/rt/termination.mdx",
+      "https://soniox.com/docs/tts/rt/connection-keepalive.mdx",
+      "https://soniox.com/docs/tts/rt/timestamps.mdx",
+      "https://soniox.com/docs/tts/rt/limits-and-quotas.mdx",
+      "https://soniox.com/docs/tts/concepts/voices.mdx",
+      "https://soniox.com/docs/tts/concepts/voice-cloning.mdx",
+      "https://soniox.com/docs/tts/concepts/supported-languages.mdx",
+      "https://soniox.com/docs/tts/concepts/language-mixing.mdx",
+      "https://soniox.com/docs/tts/concepts/emotion-and-tone.mdx",
+      "https://soniox.com/docs/tts/concepts/audio-formats.mdx",
+      "https://soniox.com/docs/tts/concepts/speech-speed.mdx",
+      "https://soniox.com/docs/tts/concepts/reduce-silence.mdx"
     ]
   }
 }

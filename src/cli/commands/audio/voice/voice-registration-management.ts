@@ -173,6 +173,8 @@ export const importExistingVoiceRegistration = async (input: {
   providerModel: string
   resourceId: string
   origin: 'provider-stock' | 'designed' | 'remixed' | 'instant-clone' | 'professional-clone' | 'imported-custom' | 'saved-reference'
+  expiresAt?: string | undefined
+  sanitizedProviderMetadata?: SanitizedProviderVoiceMetadata | undefined
   ownership?: 'provider' | 'third-party' | 'account' | 'project' | undefined
   accountScopeHash?: string | undefined
   brief: CharacterVoiceBrief
@@ -190,6 +192,7 @@ export const importExistingVoiceRegistration = async (input: {
     kind: 'remote-resource',
     provider: input.provider,
     resourceId: input.resourceId.trim(),
+    ...(input.expiresAt ? { expiresAt: input.expiresAt } : {}),
     namespace,
     ...(input.accountScopeHash ? { accountScopeHash: input.accountScopeHash } : {}),
     origin: input.origin,

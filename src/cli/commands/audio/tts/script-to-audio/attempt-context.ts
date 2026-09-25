@@ -32,6 +32,7 @@ import {
 } from './attempt-shared'
 import {
   contained,
+  copyCreateOnly,
   materializeRecoveredBatch,
   writeJsonCreateOnly,
   writeTextCreateOnly,
@@ -59,6 +60,8 @@ const resolveAttemptLayout = (
   const targetDir = `${options.outputDir}/${targetRelativeDir}`
   const renderRoot = `${targetDir}/renders/${renderIdentity}`
   const paidSpeechSlotHash = (slot: AttemptSlot): string => slot.slotHash ?? computePaidSpeechSlotHash({
+    provider: options.target.service,
+    model: options.target.model,
     dialoguePlanId: planned.dialoguePlan.dialoguePlanId,
     turnIds: slot.turnIds,
     providerText: slot.providerText,
@@ -115,6 +118,13 @@ const prepareRecoveredExecution = async (
     recoveredBySlot.set(slotId, { ...recovered, path: `${layout.renderRoot}/slots/${recovered.value.slotHash}/provider-batch-result.json` })
   }
   await Promise.all([...recoveredBySlot.values()].map(async batch => await materializeRecoveredBatch(options.outputDir, batch)))
+  // Old attempts/archives retain verified audio under the previous slot identity.
+  // Copy it into the model-scoped cache before publishing a new compact archive.
+  for (const [slotId, recovered] of recoveredBySlot) {
+    const slot = planned.slots.find(entry => entry.generationSlotId === slotId)!
+    const path = `${options.outputDir}/${layout.layout.slotWavPath(layout.paidSpeechSlotHash(slot))}`
+    await copyCreateOnly(options.outputDir, recovered.outputPaths[0]!, path)
+  }
   const attemptSlots = requestedSlotLimit === undefined ? unresolvedSlots : unresolvedSlots.slice(0, requestedSlotLimit)
   const unresolvedPlannedCost = sumCosts(attemptSlots.map(slot => slot.plannedCost))
   const priorAttemptNumbers = (await readdir(layout.attemptsRoot).catch(() => []))

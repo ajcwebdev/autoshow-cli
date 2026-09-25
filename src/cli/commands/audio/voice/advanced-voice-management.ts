@@ -67,6 +67,7 @@ export const createAdvancedVoiceCandidates = async (input: {
   provider: Pick<TtsVoiceProvider, 'provider' | 'design'>
   providerModel: string
   creationModel: string
+  desiredName?: string | undefined
   subjectKey: string
   profileKey: string
   description: string
@@ -86,6 +87,8 @@ export const createAdvancedVoiceCandidates = async (input: {
     previewText: input.previewText,
     candidateCount: input.candidateCount,
     creationModel: input.creationModel,
+    desiredName: input.desiredName,
+    creationContext: `${input.subjectKey}/${input.profileKey}/${input.providerModel}`,
     ...(input.sourceVoice ? { sourceVoice: input.sourceVoice } : {}),
     ...(input.eligibilitySnapshotHash ? { eligibilitySnapshotHash: input.eligibilitySnapshotHash } : {}),
     ...(typeof input.seed === 'number' ? { seed: input.seed } : {})
@@ -125,8 +128,8 @@ export const createAdvancedVoiceCandidates = async (input: {
       ...(input.eligibilitySnapshotHash ? { eligibilitySnapshotHash: input.eligibilitySnapshotHash } : {}),
       description: input.description,
       generation: { previewText: input.previewText, candidateCount: input.candidateCount, ...(typeof input.seed === 'number' ? { seed: input.seed } : {}) },
-      previewAssets: [previewAsset],
-      plannedCost: input.plannedCost ?? EMPTY_COST,
+      previewAssets: [...new Map([previewAsset, ...(preview.additionalPreviewAssets ?? [])].map(asset => [asset.storeId + ':' + asset.assetId, asset])).values()],
+      plannedCost: input.plannedCost ?? (input.provider.provider === 'gemini' ? { amounts: [], unknownReason: 'Gemini voice creation has no documented operation rate; requested preview synthesis is billed separately.' } : EMPTY_COST),
       ...(preview.expiresAt ? { expiresAt: preview.expiresAt } : {}),
       expiryState: preview.expiresAt ? 'known' as const : 'not-exposed' as const,
       createdAt,
@@ -253,8 +256,8 @@ export const materializeAdvancedVoiceCandidate = async (input: {
   return { candidate: materialized, registration, attempt }
 }
 
-export const planAdvancedClone = (request: ProviderVoiceCloneRequest): { estimatedCostCents: 0, requestFingerprint: string } => ({
-  estimatedCostCents: 0,
+export const planAdvancedClone = (request: ProviderVoiceCloneRequest): { estimatedCostCents: 0 | null, requestFingerprint: string } => ({
+  estimatedCostCents: request.providerModel?.startsWith('gemini-') ? null : 0,
   requestFingerprint: hashCanonicalTtsValue({ ...request, protectedSamples: request.protectedSamples.map(sample => sample.sha256) })
 })
 
@@ -282,7 +285,7 @@ export const provisionAdvancedVoiceClone = async (input: {
 }): Promise<{ registration: VoiceRegistration, attempt?: VoiceProvisioningAttempt | undefined }> => {
   if (!input.provider.clone) throw UsageError(`${input.provider.provider} does not implement voice cloning.`)
   const now = input.now ?? (() => new Date().toISOString())
-  const sourceIdentityHash = hashCanonicalTtsValue({ cloneKind: input.request.cloneKind, samples: input.request.protectedSamples.map(sample => sample.sha256), desiredName: input.request.desiredName })
+  const sourceIdentityHash = hashCanonicalTtsValue({ cloneKind: input.request.cloneKind, samples: input.request.protectedSamples.map(sample => sample.sha256), desiredName: input.request.desiredName, ...(input.request.protectedConsentAudio ? { consentAudioSha256: input.request.protectedConsentAudio.sha256 } : {}) })
   const registrationId = `vr_${hashCanonicalTtsValue({ subjectKey: input.subjectKey, profileKey: input.profileKey, provider: input.provider.provider, providerModel: input.providerModel, sourceIdentityHash }).slice(0, 40)}`
   const attemptId = `vp_${hashCanonicalTtsValue({ registrationId, operation: 'clone', sourceIdentityHash }).slice(0, 40)}`
   const createdAt = now()

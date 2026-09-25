@@ -24,6 +24,8 @@ export type GenericOptionDomain = {
   retiredProviders: ReadonlySet<string>
   /** Every generic option flag this domain owns. */
   flagNames: readonly string[]
+  /** Identity flags whose identifier syntax reserves provider=value for qualified selection. */
+  strictProviderQualifierFlags?: readonly string[]
   /**
    * Capability controls backing a generic flag, keyed by provider. Identity flags return an empty
    * record and declare their providers through `identityProviders` instead.
@@ -83,6 +85,9 @@ export const createGenericProviderOptionSelectors = (domain: GenericOptionDomain
         const value = rawValue.slice(eqIndex + 1)
         if (value.length === 0) throw UsageError(`--${flagName} requires a value after "${possibleProvider}=".`)
         return { provider: possibleProvider, value }
+      }
+      if (domain.strictProviderQualifierFlags?.includes(flagName) && /^[a-z][a-z0-9-]*$/.test(possibleProvider)) {
+        throw UsageError(`Unknown provider "${possibleProvider}" for --${flagName}. Select one of: ${Object.keys(domain.providerTargets).join(', ')}.`)
       }
     }
     return { value: rawValue }

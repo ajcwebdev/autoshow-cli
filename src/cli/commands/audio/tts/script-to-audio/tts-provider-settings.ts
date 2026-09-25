@@ -1,3 +1,5 @@
+import { recordSonioxResumeOptions } from '../tts-services/tts-soniox/soniox-resume-options'
+import { recordGeminiResumeOptions } from '../tts-services/tts-gemini/gemini-resume-options'
 import type { AttemptTurn, ProviderSettingsRecord, PureCurrentTtsRenderPlan, PureCurrentTtsRenderPlanOptions } from '~/types'
 import { createProviderSettingsRecord } from '~/cli/commands/command-shared/pipeline-manifest/provider-settings-record'
 import { resolveTtsChunkMaxChars } from '../tts-utils/tts-chunk-planner'
@@ -47,10 +49,12 @@ const buildLocal = (options: PureCurrentTtsRenderPlanOptions): Record<string, un
   const delivery = tts.ttsDelivery
   const providerChunkLimit = chunkLimit(options.target)
   return {
+    ...(options.target.service === 'soniox' ? { sonioxResume: recordSonioxResumeOptions(tts) } : {}),
+    ...(options.target.service === 'gemini' ? { geminiResume: recordGeminiResumeOptions(tts) } : {}),
     audioProfile: delivery?.preset ?? 'legacy-16k',
     ...(delivery ? { delivery } : {}),
     chunking: {
-      boundary: tts.ttsChunking?.boundary ?? 'legacy',
+      boundary: options.target.service === 'soniox' ? 'smart' : tts.ttsChunking?.boundary ?? 'legacy',
       ...(tts.ttsChunking?.maxChars !== undefined ? { requestedMaxChars: tts.ttsChunking.maxChars } : {}),
       providerLimit: providerChunkLimit,
       effectiveMaxChars: resolveTtsChunkMaxChars(providerChunkLimit, tts.ttsChunking),

@@ -55,6 +55,7 @@ export type PipelineManifestItem = {
 }
 
 export type PipelineManifest = {
+  providerJobs?: { schemaVersion: 1, provider: 'gemini', kind: 'tts-batch-jobs', path: 'gemini-provider-jobs.json' } | undefined
   command: ProcessCommand
   scope: 'single' | 'batch'
   createdAt: string

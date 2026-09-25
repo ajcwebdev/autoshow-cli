@@ -111,8 +111,6 @@ describe('TTS provider settings record (plan-derived, no dispatch)', () => {
       target('openai', 'gpt-4o-mini-tts-2025-12-15'),
       target('grok', 'grok-tts'),
       target('mistral', 'voxtral-mini-tts-2603', 'voice_fixture'),
-      target('hume', 'octave-2'),
-      target('cartesia', 'sonic-3.6-2026-08-27'),
       target('inworld', 'realtime-tts-2'),
       target('speechify', 'simba-3.2'),
       target('elevenlabs', 'eleven_v3'),

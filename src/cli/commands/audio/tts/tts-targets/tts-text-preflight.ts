@@ -14,7 +14,6 @@ export type TtsSpeechMarkupSupport = 'supported' | 'unsupported' | 'unverified'
 const SPEECH_MARKUP_SUPPORT: Partial<Record<TtsProvider, (model: string) => TtsSpeechMarkupSupport>> = {
   elevenlabs: (model) => model === 'eleven_v3' ? 'unsupported' : 'unverified',
   speechify: () => 'supported',
-  cartesia: () => 'supported',
   inworld: () => 'supported',
 }
 

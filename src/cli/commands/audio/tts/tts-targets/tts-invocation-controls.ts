@@ -10,16 +10,19 @@ import type {
 } from '~/types'
 import {
   validateElevenLabsTtsTextNormalization,
+  validateSonioxTtsLanguage,
   validateGrokTtsLanguage,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { UsageError } from '~/utils/error-handler'
 import { ELEVENLABS_TTS_RESPONSE_FORMATS } from '../tts-services/tts-elevenlabs/elevenlabs-utils'
 
-export const HUME_TTS_RESPONSE_FORMATS = ['mp3', 'wav'] as const
-
 const trim = (value: string): string => value.trim()
 
 export const CONTROL_SPECS = {
+  gemini: {
+    instructions: { kind: 'string', preserveWhitespace: true },
+    responseFormat: { kind: 'string', allowedValues: ['wav', 'pcm', 'mulaw', 'alaw'] },
+  },
   openai: {
     instructions: { kind: 'string', preserveWhitespace: true },
     speed: { kind: 'number', min: 0.25, max: 4 },
@@ -36,6 +39,10 @@ export const CONTROL_SPECS = {
     pronunciationDictionaryLocators: { kind: 'string-array' },
     responseFormat: { kind: 'string', allowedValues: ELEVENLABS_TTS_RESPONSE_FORMATS },
   },
+  soniox: {
+    speed: { kind: 'number', min: 0.7, max: 1.3 },
+    language: { kind: 'string', normalize: validateSonioxTtsLanguage },
+  },
   grok: {
     speed: { kind: 'number', min: 0.7, max: 1.5 },
     language: { kind: 'string', normalize: validateGrokTtsLanguage },
@@ -45,16 +52,6 @@ export const CONTROL_SPECS = {
     responseFormat: { kind: 'string', normalize: value => value.trim().toLowerCase(), allowedValues: ['wav', 'mp3', 'flac', 'opus'] },
   },
   speechify: {
-    language: { kind: 'string', normalize: trim },
-  },
-  hume: {
-    speed: { kind: 'number', min: 0.5, max: 2 },
-    trailingSilence: { kind: 'number', min: 0, max: 60 },
-    description: { kind: 'string', normalize: trim },
-    responseFormat: { kind: 'string', allowedValues: HUME_TTS_RESPONSE_FORMATS },
-  },
-  cartesia: {
-    speed: { kind: 'number', min: 0.6, max: 1.5 },
     language: { kind: 'string', normalize: trim },
   },
   inworld: {

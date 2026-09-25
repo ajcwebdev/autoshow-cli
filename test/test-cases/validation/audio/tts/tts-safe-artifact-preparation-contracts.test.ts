@@ -35,7 +35,6 @@ const sourceContextFor = (text: string) => {
   }
 }
 
-
 const projectionFor = (state: PipelineProviderState): CanonicalAudioProviderProjection =>
   state.result?.['ttsAudio'] as CanonicalAudioProviderProjection
 
@@ -101,6 +100,7 @@ describe('safe artifact integration in the TTS lifecycle', () => {
       const attemptDirectories = (await readdir(attemptsDirectory)).filter((name) => name.startsWith('attempt-'))
       expect(attemptDirectories).toHaveLength(1)
       expect(attemptDirectories[0]).toMatch(/^attempt-001-invocation-/)
+      expect(await Bun.file(join(outputDir, first.preparedState.artifactDir, 'attempt-001.json')).exists()).toBe(false)
       const evidenceFiles = await readdir(join(attemptsDirectory, attemptDirectories[0] as string), { recursive: true })
       const acceptanceRef = requireDefined(evidenceFiles.find((path) => path.endsWith('-acceptance.json')), 'winning immutable acceptance evidence')
       const acceptance = JSON.parse(await readFile(

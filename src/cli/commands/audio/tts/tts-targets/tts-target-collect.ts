@@ -1,9 +1,9 @@
 import type { TtsOptions, TtsTarget, TtsTargetSelection } from '~/types'
 import { collectElevenLabsTtsTargets } from '../tts-services/tts-elevenlabs/elevenlabs-tts-targets'
-import { collectCartesiaTtsTargets } from '../tts-services/cartesia/cartesia-tts-targets'
 import { collectInworldTtsTargets } from '../tts-services/inworld/inworld-tts-targets'
+import { collectGeminiTtsTargets } from '../tts-services/tts-gemini/gemini-tts-targets'
+import { collectSonioxTtsTargets } from '../tts-services/tts-soniox/soniox-tts-targets'
 import { collectGrokTtsTargets } from '../tts-services/tts-grok/grok-tts-targets'
-import { collectHumeTtsTargets } from '../tts-services/hume/hume-tts-targets'
 import { collectMistralTtsTargets } from '../tts-services/tts-mistral/mistral-tts-targets'
 import { collectOpenAITtsTargets } from '../tts-services/tts-openai/openai-tts-targets'
 import { collectSpeechifyTtsTargets } from '../tts-services/speechify/speechify-tts-targets'
@@ -39,6 +39,8 @@ export const collectTtsTargets = (options: TtsOptions): TtsTarget[] => {
 
   const collected: TtsTarget[] = [
     ...collectElevenLabsTtsTargets(selection),
+    ...collectGeminiTtsTargets(selection),
+    ...collectSonioxTtsTargets(selection),
     ...collectGrokTtsTargets(selection),
     ...collectMistralTtsTargets(selection, mistralProtectedReference, mistralProtectedSpeakerReferences, {
       pricePlanning: options.price === true,
@@ -46,14 +48,12 @@ export const collectTtsTargets = (options: TtsOptions): TtsTarget[] => {
     }),
     ...collectOpenAITtsTargets(selection),
     ...collectSpeechifyTtsTargets(selection),
-    ...collectHumeTtsTargets(selection),
-    ...collectCartesiaTtsTargets(selection),
     ...collectInworldTtsTargets(selection)
   ]
 
   const targets = filterModelCostTargets(collected.map((target): TtsTarget => {
     const operation = 'tts-synthesis' as const
-    const transport = getTtsTransport()
+    const transport = target.transport ?? getTtsTransport()
     return Object.assign(target, {
       operation,
       transport,

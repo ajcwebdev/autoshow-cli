@@ -203,12 +203,14 @@ const runPreparedTtsInput = async (
   targets: TtsTarget[],
   preflightEstimate: AggregatedPriceEstimate,
   createdAt: string,
-  executionReadiness: readonly TtsExecutionReadinessObservation[]
+  executionReadiness: readonly TtsExecutionReadinessObservation[],
+  outputNaming?: Pick<TtsRunSourceContext, 'resolveReportedOutput'>
 ): Promise<Step4Metadata[]> => {
   const lifecycleStates = new Map<string, PipelineProviderState>()
   const publishedJournalAttempts = new Set<string>()
   const dialoguePlanArtifact = await materializeTtsDialoguePlanArtifact(outputDir, prepared.dialoguePlan)
   const run = await synthesizePreparedTtsInputForTargets(prepared, outputDir, ttsOptions, targets, preflightEstimate, {
+    ...outputNaming,
     executionReadiness,
     beforeDispatch: async (preparedStates) => {
       for (const unboundState of preparedStates) {
@@ -311,7 +313,8 @@ export const runSingleTtsInput = async (
   inputPath: string,
   ttsOptions: StandaloneTtsCommandOptions,
   targets: TtsTarget[],
-  maxCents: number | undefined
+  maxCents: number | undefined,
+  outputNaming?: Pick<TtsRunSourceContext, 'resolveReportedOutput'>
 ): Promise<void> => {
   if (!isTextInputPath(inputPath)) {
     throw UsageError(`tts only accepts .md or .txt files. Got: ${inputPath}`)
@@ -332,7 +335,10 @@ export const runSingleTtsInput = async (
     l.report.expectedOutput(
       getGenerationExpectedOutputDir('./output/<timestamp>_<label>/'),
       [
-        ...targets.map((target) => getTtsArtifactFileName(target, targets.length === 1)),
+        ...targets.map((target) => {
+          const defaultName = getTtsArtifactFileName(target, targets.length === 1)
+          return outputNaming?.resolveReportedOutput?.(target, defaultName).fileName ?? defaultName
+        }),
         ...targets.flatMap((target) => target.targetKey ? [`providers/${target.targetKey}/`] : []),
         'manifest.json'
       ]
@@ -353,5 +359,5 @@ export const runSingleTtsInput = async (
     }
   }
   const outputDir = await createGenerationOutputDir(getInputStem(inputPath))
-  await runPreparedTtsInput(prepared, outputDir, ttsOptions, targets, preflightEstimate, createdAt, executionReadiness)
+  await runPreparedTtsInput(prepared, outputDir, ttsOptions, targets, preflightEstimate, createdAt, executionReadiness, outputNaming)
 }

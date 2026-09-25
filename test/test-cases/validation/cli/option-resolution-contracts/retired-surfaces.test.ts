@@ -52,11 +52,6 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
     message: 'Model "tts-1-hd" is retired for --provider/--tts openai[=model]. Use "gpt-4o-mini-tts-2025-12-15" instead.'
   },
   {
-    flag: 'cartesia-tts',
-    model: 'sonic-3.5-2026-05-04',
-    message: 'Model "sonic-3.5-2026-05-04" is retired for --provider/--tts cartesia[=model]. Use "sonic-3.6-2026-08-27" instead. AutoShow will not silently substitute a different model identity.'
-  },
-  {
     flag: 'inworld-tts',
     model: 'realtime-tts-2-flash',
     message: 'Model "realtime-tts-2-flash" is retired for --provider/--tts inworld[=model]. Use "realtime-tts-2" instead. AutoShow will not silently substitute a different model identity.'

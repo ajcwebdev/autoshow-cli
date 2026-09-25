@@ -1,9 +1,10 @@
+import { decodeSonioxWavDuration } from '../tts-services/tts-soniox/soniox-tts-audio'
 import { lstat, readdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import type { AttemptSlot, CompactTargetRender, CurrentTtsPartialRecovery, CurrentTtsReconciliationBlocker, CurrentTtsRecoveredGenerationSlot, CurrentTtsSafeRedispatch, PipelineProviderState, ProviderRenderPlan, PureCurrentTtsRenderPlanOptions, RenderAdmissionJournalSnapshot } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { parseJsonlBytes } from '~/utils/jsonl-reader'
-import { canonicalTtsJson, computePaidSpeechSlotHash, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
+import { canonicalTtsJson, computeLegacyPaidSpeechSlotHash, computePaidSpeechSlotHash, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { validateProviderBatchResult, validateProviderRenderPlanIdentity, validateRenderAdmissionJournalSnapshot } from './contract-validation'
 import { contained, copyCreateOnly, hasErrorCode, readObservedAudio, readVerifiedJson } from './attempt-io'
 import { withIdentity } from './attempt-shared'
@@ -70,8 +71,11 @@ const compatibleSegmentedSlotHash = (plan: ProviderRenderPlan, generationSlotId:
 const paidSpeechSlotHashFor = (
   options: PureCurrentTtsRenderPlanOptions,
   planned: ReturnType<typeof buildPureCurrentTtsRenderPlan>['planned'],
-  slot: AttemptSlot
-): string => computePaidSpeechSlotHash({
+  slot: AttemptSlot,
+  legacy = false
+): string => (legacy ? computeLegacyPaidSpeechSlotHash : computePaidSpeechSlotHash)({
+  provider: options.target.service,
+  model: options.target.model,
   dialoguePlanId: planned.dialoguePlan.dialoguePlanId,
   turnIds: slot.turnIds,
   providerText: slot.providerText,
@@ -96,6 +100,7 @@ const recoverSlotReuseFromWav = async (input: {
   requiresMaterialization: boolean
 }): Promise<CurrentTtsRecoveredGenerationSlot> => {
   const audio = await readObservedAudio(input.rootDir, input.wavPath)
+  if (input.slot.expectedSerializerVersion === 'soniox.tts.rest.v1') decodeSonioxWavDuration(audio.bytes)
   const sha256 = sha256Bytes(audio.bytes)
   if (input.expectedSha256 && input.expectedSha256 !== sha256) {
     throw UsageError(`Stored TTS slot ${input.slotHash} no longer matches its archive checksum.`)
@@ -218,7 +223,6 @@ export const recoverInterruptedTtsWorkspaceSlots = async (
   return recovered
 }
 
-
 const recoverArchivedSlots = async (
     options: PureCurrentTtsRenderPlanOptions & {
       rootDir: string
@@ -242,17 +246,23 @@ const recoverArchivedSlots = async (
         projection.archive.renderRef.sha256,
         'Compact TTS render'
       )
+      if (compactRender.targetKey !== pure.targetKey || compactRender.dialoguePlanId !== pure.planned.dialoguePlan.dialoguePlanId) {
+        throw UsageError('Compact TTS slot archive does not bind the requested target and dialogue.')
+      }
       for (const slot of compactRender.slots) archivedByHash.set(slot.slotHash, slot)
     }
     const recovered = new Map<string, CurrentTtsRecoveredGenerationSlot>()
     for (const slot of pure.planned.slots) {
-      const slotHash = paidSpeechSlotHashFor(options, pure.planned, slot)
+      let slotHash = paidSpeechSlotHashFor(options, pure.planned, slot)
       const wavPath = `${options.rootDir}/${layout.slotWavPath(slotHash)}`
       try {
         await lstat(wavPath)
       } catch (error) {
-        if (hasErrorCode(error, 'ENOENT')) continue
-        throw error
+        if (!hasErrorCode(error, 'ENOENT')) throw error
+        const legacyHash = paidSpeechSlotHashFor(options, pure.planned, slot, true)
+        // An unscoped cache file alone cannot establish its provider/model.
+        if (!archivedByHash.has(legacyHash)) continue
+        slotHash = legacyHash
       }
       recovered.set(slot.generationSlotId, await recoverSlotReuseFromExistingWav({
         rootDir: options.rootDir,

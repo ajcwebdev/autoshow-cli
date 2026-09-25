@@ -36,19 +36,15 @@ describe('config image and TTS default contracts', () => {
     })
   })
 
-  test('buildConfigPatchFromFlags saves and merges Speechify, Hume, and Cartesia TTS defaults', () => {
+  test('buildConfigPatchFromFlags saves and merges Speechify TTS defaults', () => {
     expectConfigPatchRoundTrip({
       'speechify-tts': ['simba-3.2'],
-      'hume-tts': ['octave-2'],
-      'cartesia-tts': ['sonic-3.6-2026-08-27'],
-      'tts-voice': ['speechify=narrator_voice', 'hume=Studio Voice', 'cartesia=cartesia-voice-id'],
-      'tts-language': ['speechify=en-US', 'cartesia=en']
+      'tts-voice': ['speechify=narrator_voice', ],
+      'tts-language': ['speechify=en-US']
     }, 'tts', {
       speechifyTts: ['simba-3.2'],
-      humeTts: ['octave-2'],
-      cartesiaTts: ['sonic-3.6-2026-08-27'],
-      voice: ['speechify=narrator_voice', 'hume=Studio Voice', 'cartesia=cartesia-voice-id'],
-      language: ['speechify=en-US', 'cartesia=en']
+      voice: ['speechify=narrator_voice', ],
+      language: ['speechify=en-US']
     })
   })
 

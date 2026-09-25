@@ -9,10 +9,8 @@ const NO_PAID_TTS_ENV = {
   DEEPGRAM_API_KEY: '',
   ELEVENLABS_API_KEY: '',
   GEMINI_API_KEY: '',
-  HUME_API_KEY: '',
   MISTRAL_API_KEY: '',
   OPENAI_API_KEY: '',
-  CARTESIA_API_KEY: '',
   SPEECHIFY_API_KEY: '',
   XAI_API_KEY: ''
 } as const

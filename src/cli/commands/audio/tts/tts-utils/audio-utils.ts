@@ -6,7 +6,7 @@ import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { InfraError } from '~/utils/error-handler'
 import { normalizeHostedTtsChunkConcurrency } from './hosted-tts-chunk-scheduler'
 
-export const splitTextIntoChunks = (text: string, maxChars: number): string[] => {
+export const splitTextIntoChunks = (text: string, maxChars: number, adjustBoundary?: (text: string, index: number, limit: number) => number): string[] => {
   const chunks: string[] = []
   let remaining = text.trim()
 
@@ -19,6 +19,7 @@ export const splitTextIntoChunks = (text: string, maxChars: number): string[] =>
       splitAt = maxChars
     }
 
+    splitAt = adjustBoundary?.(remaining, splitAt, maxChars) ?? splitAt
     const chunk = remaining.slice(0, splitAt).trim()
     if (chunk.length > 0) {
       chunks.push(chunk)

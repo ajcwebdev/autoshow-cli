@@ -129,11 +129,13 @@ export type GenerationResumeConfig<TTarget extends ProviderIdentity, TMetadata, 
     opts: TOptions,
     target: ResumeTarget
   ) => TTarget[]
+  requiresStoredSettings?: (providers: readonly GenerationResumeProviderIdentity[]) => boolean
   resolveStoredTargets?: (
     providers: GenerationResumeProviderIdentity[],
     opts: TOptions,
     target: ResumeTarget,
-    item: PipelineManifestItem
+    item: PipelineManifestItem,
+    explicitFlags?: ReadonlySet<string>
   ) => TTarget[] | Promise<TTarget[]>
   runMissingTargets: (
     targets: TTarget[],
@@ -168,7 +170,6 @@ export type ProviderResumeEntry<TTarget extends ProviderIdentity, TSource = unkn
   completionStatus: ProviderCompletionStatus
   rawRecord: PipelineItemRecord
 }
-
 
 export type ProviderResumeProcessResult = {
   outputDir: string

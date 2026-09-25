@@ -45,8 +45,6 @@ const KNOWN_SERVICE_HINTS: Array<{ pattern: RegExp, service: string }> = [
   { pattern: /\bminimax\b/i, service: 'minimax' },
   { pattern: /\belevenlabs\b/i, service: 'elevenlabs' },
   { pattern: /\bdeepgram\b/i, service: 'deepgram' },
-  { pattern: /\bhume\b/i, service: 'hume' },
-  { pattern: /\bcartesia\b/i, service: 'cartesia' },
   { pattern: /\bdeepinfra\b/i, service: 'deepinfra' },
   { pattern: /\bsoniox\b/i, service: 'soniox' },
   { pattern: /\bspeechmatics\b/i, service: 'speechmatics' },

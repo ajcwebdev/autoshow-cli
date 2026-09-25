@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-13
-- **Date Updated:** 2026-09-23
+- **Date Updated:** 2026-09-25
 - **Verification Status:** Passed
 - **Supersession:** Replaces per-modality registry and reasoning configurations. Absorbs the calibration and billing-authority rules of "Govern Benchmark Evidence and Generated-Report Architecture" and the comic model-resolution decision of "Integrate Comic with Shared Model and Native CLI Infrastructure". This record is the accepted authority for selector identity, lifecycle, capability, reasoning, and pricing across write, OCR, STT, TTS, music, image, and video, and for every command that resolves models through the central registries. The benchmark evidence lifecycle and paid-approval rules live in [ADR-015](ADR-015-govern-documentation-examples-and-verification-evidence.md), and the combined-report architecture is documented in [docs/benchmarks/README.md](../benchmarks/README.md).
 
@@ -97,6 +97,25 @@ Register a concrete, stable provider id for a current, generally available model
 
 Routine refreshes leave out products the CLI cannot already run, including domain-specific, streaming, realtime, and reference-audio products; those need their own decision. Hosted image selectors produce raster output. Current siblings and documented quality, latency, or service tiers may coexist, and a newer model leaves a sibling in place when the operations or the price/quality trade-off differ. A superseded generation leaves active selection even if the endpoint still answers.
 
+### Subscription-free API eligibility
+
+Hosted API usage must be available without mandatory recurring fees or recurring minimum spending. Metered billing and one-time prepaid credits qualify. A free allowance followed by subscription-only overages does not qualify. Optional feature subscriptions or discounts do not disqualify independently available core API usage.
+
+Every provider addition and refresh must document route-specific billing eligibility with dated primary sources, including prepaid minimum purchases and expiry where documented. Conflicting or missing evidence remains unresolved. The [retained-provider audit](../reports/provider-pricing-eligibility-audit.md) records policy violations awaiting a separate removal decision; this change does not remove those other integrations.
+
+#### Excluded integrations
+
+On September 25, 2026, the following integrations were removed at the user's direction, including their adapters, selectors, credentials, configuration, historical rates, and committed benchmark records. This policy exclusion supersedes ordinary model retirement and historical-rate retention for these providers. Ignored local inputs, outputs, credentials, and purchased audio remain untouched. Excluded selectors and saved settings fail locally; no compatibility aliases or automatic substitutions are provided.
+
+<!-- excluded-tts-providers:start -->
+| Provider | Model identifiers                                                                                  | Billing evidence                                                                                                                                  |
+| -------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hume     | `octave-1`, `octave-2`                                                                             | [Official FAQ](https://dev.hume.ai/docs/text-to-speech-tts/faq): Free and Starter cannot buy additional TTS usage; Creator or higher is required. |
+| Cartesia | `sonic-3.6-2026-08-27`, `sonic-3.5-2026-05-04`, `sonic-3`, `sonic-3.6`, `sonic-preview`, `sonic-2` | [Official pricing](https://www.cartesia.ai/pricing): monthly plans supply model credits and paid subscribers receive overages.                    |
+<!-- excluded-tts-providers:end -->
+
+The removed utterance endpoint was the only implementation of `--tts-trailing-silence`; that flag and its saved configuration key are removed too.
+
 ### Complete runtime contract
 
 Adding, replacing, or retiring a selector updates the public contract together: accepted names, published prices and limits, bare-provider defaults, exact `--all-*` membership, model capabilities (modes, voices, languages, formats, durations, resolutions, references, and reasoning), help and examples, price preflight, resume, and the identity kept after active support ends.
@@ -183,7 +202,7 @@ All 345 planned cases completed, 341 qualified, and 50 OCR policy profiles passe
 
 #### Provider-contract decisions
 
-Before paid execution, the CLI refreshed 39 primary documents for OpenAI, Anthropic, Kimi, Grok and Cartesia, then 33 for Gemini, GLM, DeepInfra and Together. The dated review found no justified ninth public reasoning value. The eight-value definition was centralized across parsing, schemas, persisted profiles and audits; documented Anthropic/Grok xhigh support was added and unsupported direct Kimi K3 medium was removed. These findings describe the September 23 catalog, not a continuing monitoring service.
+Before paid execution, the CLI refreshed 39 primary documents for OpenAI, Anthropic, Kimi, Grok and then 33 for Gemini, GLM, DeepInfra and Together. The dated review found no justified ninth public reasoning value. The eight-value definition was centralized across parsing, schemas, persisted profiles and audits; documented Anthropic/Grok xhigh support was added and unsupported direct Kimi K3 medium was removed. These findings describe the September 23 catalog, not a continuing monitoring service.
 
 | Provider                   | Documented contract and decision                                                                                                                                          | Primary source                                                                                                                                                                       |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -193,9 +212,8 @@ Before paid execution, the CLI refreshed 39 primary documents for OpenAI, Anthro
 | Kimi                       | K3 accepts low, high and max, excluding medium. Explicit default delegates to upstream; omitted CLI effort selects low.                                                   | [Reasoning effort](https://platform.kimi.ai/docs/guide/use-reasoning-effort.md), [K3 repository](https://github.com/MoonshotAI/Kimi-K3/blob/main/README.md)                          |
 | Gemini                     | Existing minimal/low/medium/high vocabulary covers documented model levels; budget and thinking configuration fields are separate controls.                               | [Thinking](https://ai.google.dev/gemini-api/docs/thinking)                                                                                                                           |
 | GLM / Together / DeepInfra | Reviewed thinking modes, hosted IDs and effort controls; no additional public enum value is substantiated for the selected models.                                        | [GLM thinking](https://docs.z.ai/guides/capabilities/thinking-mode), [Together reasoning](https://docs.together.ai/docs/reasoning), [DeepInfra models](https://deepinfra.com/models) |
-| Cartesia                   | Latest dated Sonic 3.6 remains August 27, 2026. This is a dated check, not a scheduled monitoring service.                                                                | [Dated snapshots](https://docs.cartesia.ai/build-with-cartesia/tts-models/latest#dated-snapshots)                                                                                    |
 
-Anthropic had canceled its scheduled September price increase, so Sonnet 5 retained standard rates of $2/$10 per million input/output tokens and the stale price explanation was corrected. Cartesia retained `sonic-3.6-2026-08-27`, excluding moving aliases `sonic-3.6` and `sonic-preview`; the next catalog refresh should repeat the dated-snapshot check.
+Anthropic had canceled its scheduled September price increase, so Sonnet 5 retained standard rates of $2/$10 per million input/output tokens and the stale price explanation was corrected.
 
 #### Implementation lessons
 
@@ -387,7 +405,7 @@ Verification is local and no-cost.
 
 ## Follow-up Actions
 
-- [x] Calibrate materially different reasoning levels and provisional model heuristics — September 23: 345 completed cases, 341 qualified samples, 50 scoped OCR token profiles. Write usage and timing are recorded by policy; general write and unmeasured-context heuristics remain explicitly provisional. The [historical calibration record](#reasoning-calibration-and-provider-vocabulary-review-2026-09-23) preserves exclusions, spending, provenance and measurements. Cartesia still lists `sonic-3.6-2026-08-27`; moving aliases remain excluded.
+- [x] Calibrate materially different reasoning levels and provisional model heuristics — September 23: 345 completed cases, 341 qualified samples, 50 scoped OCR token profiles. Write usage and timing are recorded by policy; general write and unmeasured-context heuristics remain explicitly provisional. The [historical calibration record](#reasoning-calibration-and-provider-vocabulary-review-2026-09-23) preserves exclusions, spending, provenance and measurements.
 - [x] Evaluate provider-specific reasoning levels outside the eight-value surface through explicit public-enum expansion — September 23: primary-source review found no justified ninth value for registered models. Retain the eight-value enum, centralize its consumers, expose documented Anthropic/Grok xhigh support, and reject unsupported Kimi K3 medium. See the [dated evaluation](#provider-contract-decisions) and [expansion gate](#normalized-reasoning).
 
 ## References

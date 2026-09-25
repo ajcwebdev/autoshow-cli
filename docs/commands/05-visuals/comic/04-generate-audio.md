@@ -39,12 +39,12 @@ Provider models and delivery markup are in [TTS](../../04-audio/tts/overview.md)
 ### Examples
 
 ```bash
-bun autoshow comic generate-audio 01-01 --provider hume=octave-2
+bun autoshow comic generate-audio 01-01 --provider elevenlabs=eleven_v3
 bun autoshow comic generate-audio 01-01 --provider mistral=voxtral-mini-tts-2603 --mode segmented
 bun autoshow comic generate-audio 01-01 --provider elevenlabs=eleven_v3 --sfx-provider elevenlabs=eleven_text_to_sound_v2
 bun autoshow comic generate-audio 01-01 --sfx-provider replicate=sepal/audiogen@154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8 --sfx-license-use noncommercial
-bun autoshow comic generate-audio 01-01 --provider hume --role "SHIP COMPUTER=role:computer"
-bun autoshow comic generate-audio 01-01 --provider hume --slideshow
+bun autoshow comic generate-audio 01-01 --provider elevenlabs --role "SHIP COMPUTER=role:computer"
+bun autoshow comic generate-audio 01-01 --provider elevenlabs --slideshow
 bun autoshow comic generate-audio 01-01 --all-providers --price
 ```
 
@@ -53,7 +53,7 @@ bun autoshow comic generate-audio 01-01 --all-providers --price
 - `--output-dir` selects that directory. A populated directory must already be a scene run. A missing or empty directory starts a new scene run. `--price` requires an existing scene run and does not create a directory.
 - Authored `beat`, `pause`/`moment`, and `long`/`heavy` cues become fixed silences. `--pacing-profile loose-comedy` adds a short gap between turns. Compound speech overlaps unless `--role` assigns the label to one subject.
 - Every speaking subject needs one approved registration for each selected provider, model, and profile. A later run can select any subset of those targets.
-- `--mode auto` uses native multi-speaker synthesis when the provider and scene allow it, and per-turn synthesis otherwise. `native` fails when native synthesis is unavailable. `segmented` synthesizes each turn on its own. ElevenLabs `eleven_v3` and Hume `octave-2` can synthesize natively. Overlaps, authored delivery, and voice effects such as radio, intercom, telephone, and computer use per-turn synthesis. Hume native synthesis accepts at most 5,000 characters.
+- `--mode auto` uses native multi-speaker synthesis when the provider and scene allow it, and per-turn synthesis otherwise. `native` fails when native synthesis is unavailable. `segmented` synthesizes each turn on its own. ElevenLabs `eleven_v3` and Gemini TTS can synthesize natively. Overlaps, authored delivery, and voice effects such as radio, intercom, telephone, and computer use per-turn synthesis.
 - `--price` reports the cost of work still to do. Completed audio that can be mixed on disk is $0. Dialogue already sent to a provider with no recoverable audio is purchased again only when you pass `--allow-ambiguous-redispatch`. That flag does not retry a blocked sound effect.
 - `**SFX:**`, `**VOCAL SFX:**`, `**AMBIENCE:**`, `[[SFX: ...]]`, and `[[VOCAL SFX: ...]]` need `--sfx-provider`, unless a completed render of this scene already selected that sound-effect model. A directive is required unless it is prefixed with `OPTIONAL`. `{duration: 2.5s, gain: -3dB, pan: -0.4}` sets duration and mix. AudioGen and Stable Audio render action effects and ambience only. A required vocal reaction needs `elevenlabs=eleven_text_to_sound_v2`.
 - A scene with no spoken lines writes no dialogue file. With no sound-effect directives, the command finishes without a provider call.

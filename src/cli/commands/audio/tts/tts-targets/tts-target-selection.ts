@@ -11,13 +11,21 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     : undefined
 
   return {
+    geminiModels: options.geminiTtsModels ?? [],
+    geminiVoice: trimmed(options.geminiTtsVoice),
+    geminiInstructions: options.geminiTtsInstructions,
+    geminiResponseFormat: options.geminiTtsResponseFormat,
+    geminiMode: options.geminiTtsMode,
+    geminiBatchWaitSeconds: options.geminiTtsBatchWaitSeconds,
     elevenlabsModels: options.elevenlabsTtsModels ?? [],
+    sonioxModels: options.sonioxTtsModels ?? [],
+    sonioxVoiceId: options.sonioxTtsVoice,
+    sonioxLanguage: options.sonioxTtsLanguage,
+    sonioxSpeed: options.sonioxTtsSpeed,
     grokModels: options.grokTtsModels ?? [],
     mistralModels: options.mistralTtsModels ?? [],
     openaiModels: options.openaiTtsModels ?? [],
     speechifyModels: options.speechifyTtsModels ?? [],
-    humeModels: options.humeTtsModels ?? [],
-    cartesiaModels: options.cartesiaTtsModels ?? [],
     inworldModels: options.inworldTtsModels ?? [],
     speakerVoiceRegistry,
     multiSpeakerRequested: multiSpeaker,
@@ -36,13 +44,6 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     elevenLabsPronunciationDictionaryLocators,
     speechifyVoiceId: trimmed(options.speechifyVoice),
     speechifyLanguage: trimmed(options.speechifyTtsLanguage),
-    humeSpeed: options.humeTtsSpeed,
-    humeTrailingSilence: options.humeTtsTrailingSilence,
-    humeDescription: trimmed(options.humeTtsDescription),
-    humeVoice: trimmed(options.humeTtsVoice),
-    cartesiaVoiceId: trimmed(options.cartesiaTtsVoice),
-    cartesiaSpeed: options.cartesiaTtsSpeed,
-    cartesiaLanguage: trimmed(options.cartesiaTtsLanguage),
     inworldVoiceId: trimmed(options.inworldTtsVoice),
     inworldInstructions: trimmed(options.inworldTtsInstructions),
     inworldSpeed: options.inworldTtsSpeed,
@@ -53,7 +54,6 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     mistralVoiceId: trimmed(options.mistralTtsVoice),
     mistralResponseFormat: trimmed(options.mistralTtsResponseFormat),
     elevenLabsResponseFormat: trimmed(options.elevenlabsTtsResponseFormat),
-    humeResponseFormat: trimmed(options.humeTtsResponseFormat),
     dialogueRequested: multiSpeaker
   }
 }

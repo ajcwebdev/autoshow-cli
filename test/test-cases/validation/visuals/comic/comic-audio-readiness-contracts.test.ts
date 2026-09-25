@@ -12,10 +12,10 @@ import { buildTargetExecution, generateComicAudio } from '~/cli/commands/visuals
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
 import { createResourceGate } from '~/utils/resource-gate'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
+
+setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 import { COMIC_AUDIO_PHASE_2_CREATED_AT as CREATED_AT, COMIC_AUDIO_PHASE_2_HASH_A as HASH_A, COMIC_AUDIO_PHASE_2_HASH_B as HASH_B, buildComicAudioPhase2SnapshotEntry as snapshotEntry, buildComicAudioPhase2Structured as buildStructured } from './comic-audio-phase-fixture'
-
-setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'HUME_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
 
 describe('comic audio phase 2 contracts', () => {
   test('shared read-only execution readiness accepts canonical comic-audio targets', async () => {
@@ -68,26 +68,6 @@ describe('comic audio phase 2 contracts', () => {
     const observations = await validateTtsTargetsForExecution([target])
     expect(observations.map(observation => observation.status)).toEqual(['ready'])
     expect(calls).toHaveLength(1)
-  })
-
-  test('shared read-only execution readiness reuses one Hume catalog probe across model targets', async () => {
-    process.env['HUME_API_KEY'] = 'hume-test-key'
-    const calls = installMockFetch((input) => new Response(JSON.stringify({
-      page_number: 0,
-      page_size: 100,
-      total_pages: 1,
-      voices_page: [{ id: 'voice-shared', name: 'Shared', provider: new URL(input.url).searchParams.get('provider') }]
-    }), { status: 200, headers: { 'content-type': 'application/json' } }))
-    const targets: TtsTarget[] = ['octave-1', 'octave-2'].map(model => ({
-      service: 'hume', model, operation: 'comic-audio', transport: 'hosted-api',
-      targetKey: canonicalTargetKey('comic-audio', 'hume', model, 'hosted-api'),
-      readinessVoiceIds: ['voice-shared'],
-      run: async () => { throw new Error('provider must not run during readiness') },
-    }))
-    const observations = await validateTtsTargetsForExecution(targets)
-    expect(observations.map(observation => observation.status)).toEqual(['ready', 'ready'])
-    expect(calls).toHaveLength(2)
-    expect(calls.map(call => new URL(call.url).searchParams.get('provider')).sort()).toEqual(['CUSTOM_VOICE', 'HUME_AI'])
   })
 
   test('targetless zero-turn command completes locally without provider state', async () => {

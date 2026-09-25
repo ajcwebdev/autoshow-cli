@@ -33,12 +33,15 @@ export interface DashboardGroup {
   metricDirections: DashboardMetricDirections;
   evidenceColumns: string[];
   perRunMetricLabel?: string;
+  showPerRun?: boolean;
   providers: DashboardProviderRow[];
 }
 
 export interface DashboardRunInventoryCell {
   display: string;
   href?: string;
+  /** Explicit run-relative artifact links; ordinary source URLs remain HTTP(S)-only. */
+  artifactHref?: string;
 }
 
 export interface DashboardRunInventoryColumn {
@@ -64,6 +67,7 @@ export interface CombinedDashboardModel {
   groups: DashboardGroup[];
   methodParagraphs: string[];
   notes: string[];
+  sampleTables?: Array<{ title: string; columns: string[]; rows: DashboardRunInventoryCell[][]; notes?: string[] }>;
 }
 
 function esc(value: string): string {
@@ -128,6 +132,8 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .notes { color: var(--ink-2); font-size: 12px; }
 .run-link { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
 .wtable td, .wtable th { font-size: 12px; }
+.samples td:first-child { white-space: normal; min-width: 150px; max-width: 240px; overflow-wrap: anywhere; }
+.samples td:last-child { white-space: normal; min-width: 220px; max-width: 360px; }
 caption { caption-side: bottom; text-align: left; color: var(--muted); font-size: 11px; padding: 6px 10px; }
 .provider-sort { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .provider-sort > .sort-label { font-size: 12px; color: var(--ink-2); margin-right: 2px; }
@@ -343,8 +349,10 @@ function groupSection(group: DashboardGroup, model: CombinedDashboardModel, opti
     heading,
     `<h3>Metric rankings</h3>`,
     providerTable(group, options.idPrefix),
-    `<h3>${esc(group.perRunMetricLabel ?? "Per-run quality score")}</h3>`,
-    perRunHeatmap(group, model.runs),
+    ...(group.showPerRun === false ? [] : [
+      `<h3>${esc(group.perRunMetricLabel ?? "Per-run quality score")}</h3>`,
+      perRunHeatmap(group, model.runs),
+    ]),
     `</section>`,
   ].join("\n");
 }
@@ -370,7 +378,10 @@ function runInventoryCell(cell: DashboardRunInventoryCell | undefined): string {
   if (cell === undefined) {
     return "";
   }
-  const href = safeHttpHref(cell.href);
+  const artifact = cell.artifactHref;
+  const safeArtifact = artifact !== undefined && /^(?:[A-Za-z0-9_.~-]+\/)*[A-Za-z0-9_.~-]+$/.test(artifact)
+    && !artifact.split('/').some(part => part === '..' || part === '.') ? artifact : null;
+  const href = safeArtifact ?? safeHttpHref(cell.href);
   if (href === null) {
     return esc(cell.display);
   }
@@ -399,6 +410,7 @@ ${tiles}
 </div>
 ${runsDetails}
 ${model.groups.map((group) => groupSection(group, model, options)).join("\n")}
+${(model.sampleTables ?? []).map(table => `${sectionHeading(esc(table.title), options)}${(table.notes ?? []).map(note => `<p class="notes">${mdInline(note)}</p>`).join('\n')}<div class="tablewrap"><table class="wtable samples"><thead><tr>${table.columns.map(column => `<th>${esc(column)}</th>`).join('')}</tr></thead><tbody>${table.rows.map(row => `<tr>${row.map(cell => `<td>${runInventoryCell(cell)}</td>`).join('')}</tr>`).join('\n')}</tbody></table></div>`).join('\n')}
 ${sectionHeading("Method &amp; notes", options)}
 ${methodSection(model)}
 <ul class="notes">

@@ -4,9 +4,7 @@ import type { CliCommandContext, CloneProviderName, DesignProviderName, ManagedA
 import { getCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import {
   resolveOpenAITtsVoiceForModel,
-  validateCartesiaTtsVoice,
   validateGrokTtsVoice,
-  validateHumeTtsVoice,
   validateInworldTtsVoice,
   validateSpeechifyTtsVoiceForModel,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
@@ -15,9 +13,9 @@ import * as l from '~/utils/app-logger/app-logger'
 import { UsageError } from '~/utils/error-handler'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { hashCanonicalTtsValue } from '../tts/script-to-audio/contract-identity'
-import { createCartesiaAdvancedProvider, CARTESIA_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/cartesia/cartesia-advanced-provider'
+import { createGeminiAdvancedProvider, GEMINI_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/tts-gemini/gemini-advanced-provider'
+import { validateGeminiVoice } from '../tts/tts-services/tts-gemini/gemini-tts-request'
 import { createGrokAdvancedProvider, GROK_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/tts-grok/grok-advanced-provider'
-import { createHumeAdvancedProvider, HUME_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/hume/hume-advanced-provider'
 import { createInworldAdvancedProvider, INWORLD_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/inworld/inworld-advanced-provider'
 import { createMistralAdvancedProvider, MISTRAL_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/tts-mistral/mistral-advanced-provider'
 import { createSpeechifyAdvancedProvider, SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE } from '../tts/tts-services/speechify/speechify-advanced-provider'
@@ -69,28 +67,26 @@ export const isLifecycleProvider = (provider: TtsProvider): provider is VoiceLif
 
 export const advancedCapabilityFixtureHash = (provider: VoiceCatalogProviderName): string => {
   if (provider === 'elevenlabs') return ELEVENLABS_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
+  if (provider === 'gemini') return GEMINI_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'grok') return GROK_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'mistral') return MISTRAL_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
-  if (provider === 'hume') return HUME_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
-  if (provider === 'cartesia') return CARTESIA_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'inworld') return INWORLD_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   return SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
 }
 
 export const advancedProvider = (provider: VoiceCatalogProviderName, options: {
+  resolveGeminiProtectedAsset?: Parameters<typeof createGeminiAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
   elevenLabsApiKey?: string | undefined
   inworldApiKey?: string | undefined
   resolveElevenLabsProtectedAsset?: Parameters<typeof createElevenLabsAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
   resolveInworldProtectedAsset?: Parameters<typeof createInworldAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
-  resolveCartesiaProtectedAsset?: Parameters<typeof createCartesiaAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
   resolveGrokProtectedAsset?: Parameters<typeof createGrokAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
   resolveMistralProtectedAsset?: Parameters<typeof createMistralAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
 } = {}): ManagedAdvancedProvider => {
+  if (provider === 'gemini') return createGeminiAdvancedProvider({ apiKey: resolveCredential('gemini', 'require', { stage: 'voice:gemini', description: 'Gemini voice management' }), creationJournalRoot: join(MANAGED_VOICE_STORE_ROOT, 'gemini-creations'), protectedStore: managedVoiceAssetStore, resolveProtectedAsset: options.resolveGeminiProtectedAsset })
   if (provider === 'elevenlabs') return createElevenLabsAdvancedProvider({ apiKey: resolveCredential('elevenlabs', 'require', { providedValue: options.elevenLabsApiKey, useProvidedValue: options.elevenLabsApiKey !== undefined, stage: 'voice:elevenlabs', description: 'ElevenLabs voice management' }), ...(options.resolveElevenLabsProtectedAsset ? { resolveProtectedAsset: options.resolveElevenLabsProtectedAsset } : {}) })
   if (provider === 'grok') return createGrokAdvancedProvider({ apiKey: resolveCredential('grok', 'require', { stage: 'voice:grok', description: 'Grok voice management' }), ...(options.resolveGrokProtectedAsset ? { resolveProtectedAsset: options.resolveGrokProtectedAsset } : {}) })
   if (provider === 'mistral') return createMistralAdvancedProvider({ apiKey: resolveCredential('mistral', 'require', { stage: 'voice:mistral', description: 'Mistral voice management' }), ...(options.resolveMistralProtectedAsset ? { resolveProtectedAsset: options.resolveMistralProtectedAsset } : {}) })
-  if (provider === 'hume') return createHumeAdvancedProvider({ apiKey: resolveCredential('hume', 'require', { stage: 'voice:hume', description: 'Hume voice management' }) })
-  if (provider === 'cartesia') return createCartesiaAdvancedProvider({ apiKey: resolveCredential('cartesia', 'require', { stage: 'voice:cartesia', description: 'Cartesia voice management' }), ...(options.resolveCartesiaProtectedAsset ? { resolveProtectedAsset: options.resolveCartesiaProtectedAsset } : {}) })
   if (provider === 'inworld') return createInworldAdvancedProvider({ apiKey: resolveCredential('inworld', 'require', { providedValue: options.inworldApiKey, useProvidedValue: options.inworldApiKey !== undefined, stage: 'voice:inworld', description: 'Inworld voice management' }), ...(options.resolveInworldProtectedAsset ? { resolveProtectedAsset: options.resolveInworldProtectedAsset } : {}) })
   return createSpeechifyAdvancedProvider({ apiKey: resolveCredential('speechify', 'require', { stage: 'voice:speechify', description: 'Speechify voice management' }) })
 }
@@ -130,7 +126,7 @@ export const parameter = (ctx: CliCommandContext, name: string): string => {
 
 export const providerFlag = (ctx: CliCommandContext): VoiceProviderName => {
   const provider = requiredFlag(ctx, 'provider')
-  if (['minimax', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra'].includes(provider)) throw UsageError(`${provider} is no longer supported for TTS or voice management. Select one of: ${VOICE_PROVIDERS.join(', ')}.`)
+  if (['minimax', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra'].includes(provider)) throw UsageError(`${provider} is no longer supported for TTS or voice management. Select one of: ${VOICE_PROVIDERS.join(', ')}.`)
   if (!isVoiceProvider(provider as TtsProvider)) throw UsageError(`Unknown voice provider ${provider}. Expected: ${VOICE_PROVIDERS.join(', ')}.`)
   return provider as VoiceProviderName
 }
@@ -151,11 +147,10 @@ export const resolveVoiceImportResourceId = (provider: VoiceProviderName, model:
   requireVoiceModel(provider, model)
   const value = resourceId.trim()
   if (!value) throw UsageError('Voice import requires an existing provider resource ID.')
+  if (provider === 'gemini') return validateGeminiVoice(value)
   if (provider === 'grok') return validateGrokTtsVoice(value)
   if (provider === 'openai') return resolveOpenAITtsVoiceForModel('gpt-4o-mini-tts-2025-12-15', value).voiceId
   if (provider === 'speechify') return validateSpeechifyTtsVoiceForModel('simba-3.2', value)
-  if (provider === 'hume') return validateHumeTtsVoice(value)
-  if (provider === 'cartesia') return validateCartesiaTtsVoice(value)
   if (provider === 'inworld') return validateInworldTtsVoice(value)
   return value
 }

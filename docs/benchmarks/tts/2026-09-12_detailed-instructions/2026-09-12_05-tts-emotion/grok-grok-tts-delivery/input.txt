@@ -1,5 +1,0 @@
-<whisper>I am whispering. This is just for you.</whisper>
-<loud>I speak loudly. Please hear me.</loud>
-<higher-pitch>My voice has a high pitch.</higher-pitch>
-<lower-pitch>My voice has a low pitch.</lower-pitch>
-<emphasis>I stress this word: NOW.</emphasis>

@@ -34,3 +34,17 @@ Compatibility aliases are preserved:
 Automated quality uses roundtrip WER-derived accuracy when available, including median roundtrip WER from `voice-quality-report.json`. Human quality uses `humanSpeechScore` from `voice-quality-report.json`. Duration, bitrate, file size, and subjective judgment are not quality proxies.
 
 Markdown should use Local Models and Third-Party Service Models sections and should not describe TTS ranking surfaces as “Top 3”. Normalized TTS JSON and markdown omit overall ranking and model-tier output.
+
+## Repository dashboard
+
+From the repository root, refresh the TTS tab and the other benchmark tabs without provider calls:
+
+```bash
+bun .codex/skills/consensus/scripts/run.ts build-combined-dashboard
+```
+
+The TTS tab reads current selected results from direct-child narration manifests under `docs/benchmarks/tts/` and controls cases from the newest dated `*_detailed-instructions` revision. Complete run archives require verified render and final-audio hashes and local duration/format probes. The retained repository benchmark instead uses `dashboard.evidence.zip`: checksummed copies of the current manifests and reports, recorded audio hashes, and local ffprobe measurements. Its original render records and controls manifests were removed. Narration retains exact manifest costs and timings; controls retain the reports' published precision. Source changes invalidate the evidence archive. Locally present audio must match its recorded hash; a fresh checkout can reproduce the dashboard without ignored audio but cannot reverify or play absent recordings. The archive is read with `unzip`.
+
+Earlier controls revisions and unselected historical audio are excluded. Narration rankings require complete coverage of the common corpus; emotion/delivery and speed/pause cases have separate tables because their inputs and mechanisms differ. Evidence links point to retained manifests or reports, and audio links require the original local files.
+
+Costs prefer observed usage, then the manifest's recorded usage estimate, then the selected render's planned estimate. Historical spending is excluded; Soniox's measured-audio costs remain estimates. Throughput divides total final audio duration by total recorded generation time. Local recovery timings stay visible but are excluded from generation rankings. Existing controls-report listening defects are displayed separately from successful execution. Accuracy and human quality remain unranked without assessment scores; valid audio and measured performance do not establish spoken-text correctness or audible control effectiveness.

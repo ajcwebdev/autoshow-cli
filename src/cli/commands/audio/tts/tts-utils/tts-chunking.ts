@@ -4,12 +4,12 @@ import { getTtsMaxInputCharacters } from '~/cli/commands/setup-and-utilities/mod
 import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
 
 export const TTS_CHUNK_CHARACTER_LIMITS = {
+  gemini: 2000,
   elevenlabs: 2000,
   speechify: 2000,
   openai: 2000,
   mistral: 2000,
-  cartesia: 2000,
-  hume: 2000,
+  soniox: 500,
   grok: 2000,
   inworld: 2000,
 } as const satisfies Record<TtsProvider, number | undefined>

@@ -1,5 +1,0 @@
-Narrator: I speak at a normal pace. One, two, three, four, five.
-Narrator: I speak slowly. One, two, three, four, five.
-Narrator: I speak fast. One, two, three, four, five.
-Narrator: I pause here. [pause] Then I speak.
-Narrator: I take a long pause here. [long-pause] Then I speak.

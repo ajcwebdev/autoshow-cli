@@ -14,6 +14,10 @@ type TtsMetadataBase<TService extends string = string> = {
 }
 
 export type Step4Metadata = TtsMetadataBase<TtsProvider> & {
+  sonioxProviderAudioSeconds?: number | undefined
+  sonioxInputCharacters?: number | undefined
+  geminiTtsUsage?: Array<{ rateIdentity: string, executionMode: string, observedTextTokens: number, observedAudioTokens: number, totalCost: number }> | undefined
+  geminiTtsUsageComplete?: boolean | undefined
   hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
   clonedVoiceId?: string | undefined
   cloneCostCents?: number | undefined

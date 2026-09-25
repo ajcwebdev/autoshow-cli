@@ -19,7 +19,6 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(result.stdout).not.toContain('Replicate TTS')
     expect(result.stdout).not.toContain('fal TTS')
     expect(result.stdout).not.toContain('Speechify TTS')
-    expect(result.stdout).not.toContain('Hume TTS')
     expect(getFlagGroupSection(result.stdout, 'Multi-Speaker / Dialogue')).toContain('--tts-dialogue-format')
     const mastering = getFlagGroupSection(result.stdout, 'Audio Mastering / Export')
     for (const flag of ['--tts-audio-profile', '--tts-chunk-boundary', '--tts-chunk-size', '--tts-loudness', '--tts-paragraph-pause', '--tts-export-format', '--tts-metadata', '--tts-cover', '--tts-book', '--tts-pronunciations', '--tts-text-preflight']) {
@@ -102,11 +101,6 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(result.stdout).not.toContain('--speechify-tts-consent-email')
     expect(result.stdout).not.toContain('--speechify-tts-voice-locale')
     expect(result.stdout).not.toContain('--speechify-tts-voice-gender')
-    expect(result.stdout).not.toContain('--hume-tts  ')
-    expect(result.stdout).not.toContain('--hume-tts-voice-provider')
-    expect(result.stdout).not.toContain('--cartesia-tts  ')
-    expect(result.stdout).not.toContain('--cartesia-tts-voice')
-    expect(result.stdout).not.toContain('--cartesia-tts-language')
     expect(result.stdout).not.toContain('--elevenlabs-tts-output-format')
     expect(result.stdout).not.toContain('--elevenlabs-tts-language-code')
     expect(result.stdout).not.toContain('--elevenlabs-tts-clone-remove-background-noise')
@@ -126,7 +120,6 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(result.stdout).toContain('--tts-speaker-boost')
     expect(result.stdout).toContain('--tts-seed')
     expect(result.stdout).toContain('--tts-pronunciation-dictionary')
-    expect(result.stdout).toContain('--tts-trailing-silence')
     expect(result.stdout).toContain('--tts-response-format')
   })
 

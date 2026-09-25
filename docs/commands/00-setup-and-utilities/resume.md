@@ -104,3 +104,9 @@ These flags match the original commands. Meanings are the same unless noted.
 
 - Extract: `--ocr-provider-mode` must match the original run. Omit it to keep the stored mode; a different value is rejected.
 - TTS: resume accepts only provider-neutral options, and it does not accept `--tts-book`. `--allow-ambiguous-redispatch` may repurchase a stored generation that has no recoverable audio. When no chunking or mastering flag is passed, resume keeps the stored render so completed audio is not purchased again. Non-default mastering has to be passed again with the same `--tts-chunk-boundary`, `--tts-chunk-size`, `--tts-audio-profile`, or mastering overrides. A run that used `--tts-pronunciations` needs the same lexicon file again. A different voice, cast, synthesis control, or output plan stops before any repurchase.
+
+## Gemini remote TTS jobs
+
+For a recorded Gemini Batch run, `--provider-job-action status|wait|cancel` defaults to `wait`. Status retrieves current provider results; wait also assembles retained audio; cancel requests remote cancellation and reconciles completed work. Local interruption preserves remote execution. Known job IDs and successful slots are never resubmitted. `resume <output-dir> --price` is local and reports possible additional spending for unsubmitted or ambiguous slots. These controls reject incompatible runs. See [Gemini TTS](../04-audio/tts/overview.md#gemini).
+
+Recorded Gemini Batch jobs preserve their original synthesis and delivery settings; resume rejects TTS overrides. Pending jobs and validated audio are reused, and custom voices are rechecked for expiry before any unsubmitted work is dispatched.

@@ -46,7 +46,10 @@ const buildCanonicalVoiceAuditionPassages = (
 }
 
 const voiceId = (voice: ProviderVoiceRef): string => {
-  if (voice.kind === 'remote-resource') return voice.resourceId
+  if (voice.kind === 'remote-resource') {
+    if (voice.expiresAt && Date.parse(voice.expiresAt) <= Date.now()) throw UsageError('Voice resource has expired; new auditions are blocked.')
+    return voice.resourceId
+  }
   if (voice.kind === 'shared-library-resource') return voice.sharedVoiceId
   if (voice.kind === 'local-model-voice') return voice.voiceLocator
   throw UsageError('Canonical audition currently requires a materialized saved, stock, shared, or local-model voice; request references must first be saved by voice management.')
@@ -59,12 +62,12 @@ const targetOptions = (registration: VoiceRegistration): TtsOptions => {
   const model = registration.providerModel
   switch (registration.provider) {
     case 'elevenlabs': return { elevenlabsTtsModels: [model], elevenlabsVoiceId: voice }
+    case 'gemini': return { geminiTtsModels: [model], geminiTtsVoice: voice }
+    case 'soniox': return { sonioxTtsModels: [model], sonioxTtsVoice: voice }
     case 'grok': return { grokTtsModels: [model], grokTtsVoice: voice }
     case 'mistral': return { mistralTtsModels: [model], mistralTtsVoice: voice }
     case 'openai': return { openaiTtsModels: [model], openaiVoiceId: voice }
     case 'speechify': return { speechifyTtsModels: [model], speechifyVoice: voice }
-    case 'hume': return { humeTtsModels: [model], humeTtsVoice: voice }
-    case 'cartesia': return { cartesiaTtsModels: [model], cartesiaTtsVoice: voice }
     case 'inworld': return { inworldTtsModels: [model], inworldTtsVoice: voice }
   }
 }
@@ -127,11 +130,7 @@ export const runCanonicalVoiceAudition = async (input: {
       const providerText = registration.provider === 'elevenlabs' && registration.providerModel === 'eleven_v3'
         ? prepareElevenLabsDialogueText(passage.text, passage.delivery).providerText
         : passage.text
-      const deliveryUnsupported = Boolean(passage.delivery && registration.provider === 'hume' && registration.providerModel === 'octave-2')
       for (let takeIndex = 0; takeIndex < plan.takeCount; takeIndex += 1) {
-        if (registration.provider === 'hume' && (items.length > 0 || takeIndex > 0)) {
-          await new Promise(resolve => setTimeout(resolve, 7000))
-        }
         const takeId = `${passage.itemId}-${takeIndex + 1}`
         const outputDir = `${workspace}/${takeId}`
         await mkdir(outputDir, { recursive: true })
@@ -142,7 +141,7 @@ export const runCanonicalVoiceAudition = async (input: {
           voice: { kind: 'id', value: providerVoiceId },
           controls: Object.freeze({
             ...registration.synthesisSettings.values,
-            ...(passage.delivery && registration.provider === 'hume' && registration.providerModel === 'octave-1' ? { description: passage.delivery } : {})
+            ...(passage.delivery && registration.provider === 'gemini' ? { instructions: passage.delivery } : {}),
           })
         })
         const bytes = new Uint8Array(await Bun.file(result.audioPath).arrayBuffer())
@@ -164,7 +163,7 @@ export const runCanonicalVoiceAudition = async (input: {
               currency: 'USD'
             }))
           },
-          warnings: deliveryUnsupported ? ['Hume Octave 2 does not serialize acting descriptions; this audition take retains the canonical delivery as unsupported evidence.'] : []
+          warnings: []
         })
       }
       items.push({

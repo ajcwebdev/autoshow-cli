@@ -46,7 +46,7 @@ const validateTtsConfigAuthority = (parsed: unknown): void => {
   const tts = asRecord(defaults?.['tts'])
   if (!tts) return
 
-  const retiredKeys = ['geminiTts', 'deepgramTts', 'replicateTts', 'falTts'].filter(key => key in tts)
+  const retiredKeys = ['deepgramTts', 'replicateTts', 'falTts'].filter(key => key in tts)
   if (retiredKeys.length > 0) {
     throw ValidationError(`TTS provider configuration ${retiredKeys.join(', ')} is no longer supported. Remove the obsolete key and select an active TTS provider.`, { stage: 'config:load' })
   }

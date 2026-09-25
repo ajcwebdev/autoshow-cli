@@ -1,0 +1,4 @@
+interface:
+  display_name: "Provider Model Additions"
+  short_description: "Research AutoShow models for any individual report or subset"
+  default_prompt: "Use $provider-model-additions to research relevant models on existing autoshow-cli providers and create or refresh only the individual report or report subset I request."

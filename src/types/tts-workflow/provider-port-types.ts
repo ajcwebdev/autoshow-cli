@@ -78,6 +78,8 @@ export type ProviderVoiceCatalogPage = {
 }
 
 export type ProviderVoiceDesignRequest = {
+  desiredName?: string | undefined
+  creationContext?: string | undefined
   description: string
   previewText: string
   candidateCount: number
@@ -88,6 +90,7 @@ export type ProviderVoiceDesignRequest = {
 }
 
 export type ProviderVoiceDesignPreview = {
+  additionalPreviewAssets?: ProtectedAssetRef[] | undefined
   providerCandidateId: string
   providerOperationId?: string | undefined
   audioBase64: string
@@ -116,6 +119,8 @@ export type ProviderVoiceMaterializationRequest = {
 }
 
 export type ProviderVoiceCloneRequest = {
+  protectedConsentAudio?: ProtectedAssetRef | undefined
+  providerModel?: string | undefined
   cloneKind: 'instant' | 'professional'
   desiredName: string
   localAttemptId: string
@@ -150,7 +155,6 @@ export type ProviderVoiceInspection = {
 export type ProviderVoiceDeleteRequest = {
   providerVoice: ProviderVoiceRef
   expectedResourceId: string
-  expectedName?: string | undefined
 }
 
 export type VoiceCatalogPort = {

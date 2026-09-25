@@ -48,6 +48,16 @@
       "https://ai.google.dev/gemini-api/docs/transcribe.md.txt",
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.5-transcribe.md.txt"
     ],
+    "TTS": [
+      "https://ai.google.dev/gemini-api/docs/speech-generation.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts",
+      "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-lite-tts.md.txt",
+      "https://ai.google.dev/gemini-api/docs/voice-design.md.txt",
+      "https://ai.google.dev/gemini-api/docs/voice-replication.md.txt",
+      "https://ai.google.dev/gemini-api/docs/generate-content/speech-generation.md.txt",
+      "https://ai.google.dev/gemini-api/docs/generate-content/voice-design.md.txt",
+      "https://ai.google.dev/gemini-api/docs/generate-content/voice-replication.md.txt"
+    ],
     "Image": [
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-image.md.txt",
       "https://ai.google.dev/gemini-api/docs/image-generation.md.txt"

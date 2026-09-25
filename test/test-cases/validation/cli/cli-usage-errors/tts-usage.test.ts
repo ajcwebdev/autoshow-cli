@@ -51,7 +51,7 @@ test('tts rejects ambiguous generic TTS options with multiple providers', () => 
 })
 
 test('tts rejects retired generic selectors with actionable guidance and exposes no compatibility flags', () => {
-  for (const provider of ['minimax', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra']) {
+  for (const provider of ['minimax', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra']) {
     const parsed = parseCommandInvocation(
       ['tts', 'input/examples/tts/01-tts-short.md', '--provider', `${provider}=historical-model`],
       commandNamed('tts'),
@@ -82,7 +82,6 @@ test('tts rejects reference audio combined with dialogue flags', () => {
     new Set(['tts-ref-audio'])
   )).toThrow('Voice identity options such as --tts-ref-audio cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
 })
-
 
 test('tts rejects --tts-dialogue-format without speaker mappings', () => {
   const opts = buildOptsFromFlags({

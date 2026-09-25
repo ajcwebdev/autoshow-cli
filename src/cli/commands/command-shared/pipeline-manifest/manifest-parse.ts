@@ -109,6 +109,14 @@ export const expectedTtsItemStatus = (providers: readonly PipelineProviderState[
 }
 
 const validateTtsManifest = (value: PipelineManifest): boolean => {
+  if (value.providerJobs) return value.items.every(item => {
+    const summary = item.metadata['geminiBatch']
+    if (item.providers.length || !isRecord(summary) || summary['schemaVersion'] !== 1) return false
+    const total = summary['totalSlots'], completed = summary['completedSlots'], failed = summary['failedSlots']
+    if (![total, completed, failed].every(count => typeof count === 'number' && Number.isSafeInteger(count) && count >= 0)) return false
+    if (typeof total !== 'number' || typeof completed !== 'number' || typeof failed !== 'number' || total < 1 || completed + failed > total) return false
+    return item.status === (completed === total ? 'full' : failed === total ? 'failed' : 'incomplete')
+  })
   const items = value.items
     for (const item of items) {
       if (!item) return false
@@ -171,7 +179,7 @@ export const parseManifest = (
 ): PipelineManifest | undefined => {
   if (
     !isRecord(value)
-    || !hasOnlyKeys(value, ['command', 'scope', 'createdAt', 'updatedAt', 'source', 'items'])
+    || !hasOnlyKeys(value, ['command', 'scope', 'createdAt', 'updatedAt', 'source', 'items', 'providerJobs'])
     || !isProcessCommand(value['command'])
     || (value['scope'] !== 'single' && value['scope'] !== 'batch')
     || typeof value['createdAt'] !== 'string'
@@ -184,6 +192,9 @@ export const parseManifest = (
   ) {
     return undefined
   }
+
+  const jobs = value['providerJobs']
+  if (jobs !== undefined && (!isRecord(jobs) || !hasOnlyKeys(jobs, ['schemaVersion', 'provider', 'kind', 'path']) || jobs['schemaVersion'] !== 1 || jobs['provider'] !== 'gemini' || jobs['kind'] !== 'tts-batch-jobs' || jobs['path'] !== 'gemini-provider-jobs.json' || value['command'] !== 'tts')) return undefined
 
   const items = value['items'].map((item) => parseManifestItem(rootDir, item))
   if (
@@ -208,6 +219,7 @@ export const parseManifest = (
   }
 
   const manifest: PipelineManifest = {
+    ...(jobs ? { providerJobs: { schemaVersion: 1 as const, provider: 'gemini' as const, kind: 'tts-batch-jobs' as const, path: 'gemini-provider-jobs.json' as const } } : {}),
     command: value['command'],
     scope: value['scope'],
     createdAt: value['createdAt'],

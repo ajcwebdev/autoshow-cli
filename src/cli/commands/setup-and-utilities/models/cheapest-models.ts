@@ -1,3 +1,5 @@
+import { estimateSonioxTtsCost } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-tts-pricing'
+import { estimateGeminiTtsCost } from '~/cli/commands/audio/tts/tts-services/tts-gemini/gemini-tts-pricing'
 import { getModelRegistry } from './model-loader'
 import { filterModelNamesByLifecycle } from './model-loader/model-lifecycle'
 import { InternalError } from '~/utils/error-handler'
@@ -17,13 +19,13 @@ const DEFAULT_LOCAL_MODEL_BY_FLAG = {
 } as const satisfies Record<string, string>
 
 const DEFAULT_HOSTED_TTS_MODEL_BY_FLAG = {
+  'gemini-tts': 'gemini-3.8-flash-lite-tts',
   'elevenlabs-tts': 'eleven_v3',
+  'soniox-tts': 'tts-rt-v2',
   'grok-tts': 'grok-tts',
   'mistral-tts': 'voxtral-mini-tts-2603',
   'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
   'speechify-tts': 'simba-3.2',
-  'hume-tts': 'octave-1',
-  'cartesia-tts': 'sonic-3.6-2026-08-27',
   'inworld-tts': 'realtime-tts-2',
 } as const satisfies Record<string, string>
 
@@ -175,6 +177,7 @@ const ttsModelCost = (model: {
 }
 
 const selectCheapestTtsModel = (service: string): string => {
+  if (service === 'soniox') return 'tts-rt-v2'
   const serviceConfig = getModelRegistry().tts[service]
   if (!serviceConfig) {
     throw InternalError(`Missing TTS service config: ${service}`, { stage: 'models:cheapest' })
@@ -232,7 +235,7 @@ export const selectCheapestDefaultHostedTtsSelection = (): CheapestTtsSelection 
     for (const modelName of Object.keys(serviceConfig.models)) {
       const model = serviceConfig.models[modelName]
       if (!model) continue
-      const totalCost = ttsModelCost(model)
+      const totalCost = provider === 'soniox' ? estimateSonioxTtsCost(1000).totalCost : provider === 'gemini' ? estimateGeminiTtsCost(modelName, 1000).totalCost : ttsModelCost(model)
       if (!Number.isFinite(totalCost)) continue
 
       const candidate: CheapestTtsSelection = {
@@ -331,9 +334,9 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   glm: () => selectCheapestLlmModel('glm'),
   kimi: () => selectCheapestLlmModel('kimi'),
   together: () => selectCheapestLlmModel('together'),
+  'soniox-tts': () => selectCheapestTtsModel('soniox'),
   'grok-tts': () => selectCheapestTtsModel('grok'),
   'mistral-tts': () => selectCheapestTtsModel('mistral'),
-  'hume-tts': () => selectCheapestTtsModel('hume'),
   'gemini-image': () => selectCheapestImageModel('gemini'),
   'openai-image': () => selectCheapestImageModel('openai'),
   'grok-image': () => 'grok-imagine-image-2.0',

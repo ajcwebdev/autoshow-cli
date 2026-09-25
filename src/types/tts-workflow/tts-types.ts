@@ -299,6 +299,7 @@ export type HostedTtsRunChunksOptions = {
 }
 
 export type HostedTtsChunkScheduler = {
+  waitForRequestStart?: ((provider: TtsProvider, signal?: AbortSignal) => Promise<void>) | undefined
   runChunks: <T>(
     provider: TtsProvider,
     chunks: readonly string[],
@@ -333,6 +334,7 @@ export type TtsTarget = ProviderTargetBase<TtsProvider> & {
   allowFailedImplicitDefaultReplan?: boolean | undefined
   voice?: string
   multiSpeakerStrategy?: MultiSpeakerStrategy
+  numericSpeed?: number | undefined
   chunkCharacterLimit?: number | undefined
   setupCostCents?: number | undefined
   setupTimeMs?: number | undefined

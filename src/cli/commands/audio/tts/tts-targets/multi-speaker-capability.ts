@@ -2,13 +2,13 @@ import type { MultiSpeakerStrategy, TtsProvider, TtsTargetInvocation, TtsTargetV
 import { UsageError } from '~/utils/error-handler'
 
 const MULTI_SPEAKER_CAPABILITY: Partial<Record<TtsProvider, MultiSpeakerStrategy>> = {
+  gemini: 'segment-and-concat',
   openai: 'segment-and-concat',
   elevenlabs: 'segment-and-concat',
+  soniox: 'segment-and-concat',
   grok: 'segment-and-concat',
   mistral: 'segment-and-concat',
   speechify: 'segment-and-concat',
-  hume: 'segment-and-concat',
-  cartesia: 'segment-and-concat',
   inworld: 'segment-and-concat',
 }
 
@@ -19,7 +19,6 @@ export const getMultiSpeakerStrategy = (
   model?: string | undefined
 ): MultiSpeakerStrategy | undefined => {
   if (provider === 'elevenlabs' && model === 'eleven_v3') return 'native'
-  if (provider === 'hume' && model === 'octave-2') return 'native'
   return MULTI_SPEAKER_CAPABILITY[provider]
 }
 

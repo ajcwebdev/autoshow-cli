@@ -67,12 +67,12 @@ const OptionalStringOrNumberSchema = v.optional(v.union([v.string(), v.number()]
 
 const TtsDefaultsSchema = v.strictObject({
   elevenlabsTts: ModelArraySchema,
+  geminiTts: ModelArraySchema,
+  sonioxTts: ModelArraySchema,
   grokTts: ModelArraySchema,
   mistralTts: ModelArraySchema,
   openaiTts: ModelArraySchema,
   speechifyTts: ModelArraySchema,
-  humeTts: ModelArraySchema,
-  cartesiaTts: ModelArraySchema,
   inworldTts: ModelArraySchema,
   voice: StringOrStringListSchema,
   speed: v.optional(v.union([v.number(), v.string(), v.array(v.string())]), undefined),
@@ -89,7 +89,6 @@ const TtsDefaultsSchema = v.strictObject({
   speakerBoost: v.optional(v.union([v.boolean(), v.string(), v.array(v.string())]), undefined),
   seed: v.optional(v.union([v.number(), v.string(), v.array(v.string())]), undefined),
   pronunciationDictionary: v.optional(v.union([v.string(), v.array(v.string())]), undefined),
-  trailingSilence: v.optional(v.union([v.number(), v.string(), v.array(v.string())]), undefined),
   responseFormat: StringOrStringListSchema,
   // Run-scoped mastering, chunking, and export defaults; values are validated at resolution time.
   audioProfile: OptionalStringOrNumberSchema,

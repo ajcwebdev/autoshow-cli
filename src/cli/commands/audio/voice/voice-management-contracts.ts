@@ -1,3 +1,4 @@
+import { TTS_PROVIDERS as ACTIVE_TTS_PROVIDERS } from '~/types/provider-core/provider-types'
 import type {
   AuditActorRef,
   CurrentVoiceRegistrationIndex,
@@ -23,7 +24,7 @@ const AUDITION_REQUIRED_CATEGORIES = ['neutral', 'representative', 'pronunciatio
 const AUDIT_ACTOR_NAMESPACES = new Set(['local-user', 'project-role', 'automation'])
 const CONSENT_ACTIONS = new Set(['upload', 'new-synthesis', 'cache-reuse', 'resume', 'export', 'retention', 'deletion'])
 const PROVISIONING_OPERATIONS = new Set(['design', 'remix', 'clone', 'import'])
-const TTS_PROVIDERS = new Set(['elevenlabs', 'grok', 'mistral', 'openai', 'speechify', 'hume', 'cartesia', 'inworld'])
+const TTS_PROVIDERS = new Set<string>(ACTIVE_TTS_PROVIDERS)
 
 const assertAllowedKeys: (value: unknown, allowed: readonly string[], label: string) => asserts value is Record<string, unknown> = (value, allowed, label) => {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw UsageError(`${label} must be an object.`)
@@ -58,8 +59,9 @@ const assertNonSecretReference = (value: string, label: string): void => {
   }
 }
 
-const validatePlannedCost = (cost: { amounts: Array<{ amount: number, currency: string }> }, label: string): void => {
-  assertAllowedKeys(cost, ['amounts'], label)
+const validatePlannedCost = (cost: { amounts: Array<{ amount: number, currency: string }>, unknownReason?: string | undefined }, label: string): void => {
+  assertAllowedKeys(cost, ['amounts', 'unknownReason'], label)
+  if (cost.unknownReason !== undefined && (typeof cost.unknownReason !== 'string' || !cost.unknownReason.trim() || cost.amounts.length !== 0)) throw UsageError(`${label} unknown cost requires a reason and no numeric amount.`)
   if (!Array.isArray(cost.amounts)) throw UsageError(`${label} amounts must be an array.`)
   for (const amount of cost.amounts) {
     assertAllowedKeys(amount, ['amount', 'currency'], `${label} amount`)

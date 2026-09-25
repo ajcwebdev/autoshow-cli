@@ -63,10 +63,10 @@ const requestGemini = createProviderRestClient<GeminiFetchOptions, GeminiRestErr
   diagnostics: 'parsed-body'
 })
 
-const geminiFetch = async (url: string, init: RequestInit): Promise<Response> =>
+export const geminiFetch = async (url: string, init: RequestInit): Promise<Response> =>
   await requestGemini({ url, init })
 
-const geminiJsonRequest = async (
+export const geminiJsonRequest = async (
   apiKey: string,
   path: string,
   init: {

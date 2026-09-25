@@ -140,13 +140,9 @@ describe('historical model rate contracts', () => {
       inputCostPer1MCharsCents: 60,
       outputCostPer1MCharsCents: 1200
     })
-    expect(getTtsPricing('cartesia', 'sonic-3.5-2026-05-04')).toMatchObject({
-      costPer1kCharsCents: 3.7375
-    })
     expect(getTtsPricing('inworld', 'realtime-tts-2-flash')).toMatchObject({
       costPer1kCharsCents: 1.5
     })
-    expect(getRetiredModelReplacement('tts', 'cartesia', 'sonic-3.5-2026-05-04')).toBe('sonic-3.6-2026-08-27')
     expect(getRetiredModelReplacement('tts', 'inworld', 'realtime-tts-2-flash')).toBe('realtime-tts-2')
     expect(getImageCost('gemini', 'gemini-3.1-flash-image-preview')).toBe(6.7)
     expect(getMusicModelMeta('elevenlabs', 'music_v1')).toMatchObject({

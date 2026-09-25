@@ -1,0 +1,70 @@
+{
+  "gemini": {
+    "description": "Google Gemini 3.8 text-to-speech",
+    "type": "api",
+    "catalogSourceUrl": "https://ai.google.dev/gemini-api/docs/speech-generation",
+    "catalogCheckedAt": "2026-09-24",
+    "voices": [
+      "Zephyr",
+      "Puck",
+      "Charon",
+      "Kore",
+      "Fenrir",
+      "Leda",
+      "Orus",
+      "Aoede",
+      "Callirrhoe",
+      "Autonoe",
+      "Enceladus",
+      "Iapetus",
+      "Umbriel",
+      "Algieba",
+      "Despina",
+      "Erinome",
+      "Algenib",
+      "Rasalgethi",
+      "Laomedeia",
+      "Achernar",
+      "Alnilam",
+      "Schedar",
+      "Gacrux",
+      "Pulcherrima",
+      "Achird",
+      "Zubenelgenubi",
+      "Vindemiatrix",
+      "Sadachbia",
+      "Sadaltager",
+      "Sulafat"
+    ],
+    "models": {
+      "gemini-3.8-flash-tts": {
+        "description": "Gemini Flash TTS, automatic language detection (130 languages)",
+        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricingCheckedAt": "2026-09-24",
+        "pricingCurrency": "USD",
+        "pricingNotes": "Token billing; effective-date rates, Batch discounts and estimates are resolved by gemini-tts-pricing. January 2027 rates double.",
+        "inputCostPer1MTokensCents": 50,
+        "outputCostPer1MAudioTokensCents": 900,
+        "limits": {
+          "maxInputTokens": 8192,
+          "maxOutputTokens": 16384,
+          "maxInputCharacters": 2000
+        }
+      },
+      "gemini-3.8-flash-lite-tts": {
+        "description": "Gemini Flash-Lite TTS, automatic language detection (101 languages)",
+        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricingCheckedAt": "2026-09-24",
+        "pricingCurrency": "USD",
+        "pricingNotes": "Token billing; effective-date rates, Batch discounts and estimates are resolved by gemini-tts-pricing. January 2027 rates double.",
+        "inputCostPer1MTokensCents": 50,
+        "outputCostPer1MAudioTokensCents": 600,
+        "limits": {
+          "maxInputTokens": 8192,
+          "maxOutputTokens": 16384,
+          "maxInputCharacters": 2000
+        }
+      }
+    }
+  }
+}

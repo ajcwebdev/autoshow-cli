@@ -14,7 +14,7 @@ import { setupContractSuiteLifecycle } from '../../../../test-utils/rest-contrac
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 import { COMIC_AUDIO_PHASE_2_CREATED_AT as CREATED_AT, COMIC_AUDIO_PHASE_2_HASH_A as HASH_A, COMIC_AUDIO_PHASE_2_HASH_B as HASH_B, buildComicAudioPhase2SnapshotEntry as snapshotEntry, buildComicAudioPhase2Structured as buildStructured } from './comic-audio-phase-fixture'
 
-setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'HUME_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
+setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
 
 describe('comic audio phase 2 contracts', () => {
   test('maps host source paths to an explicit immutable-workspace identity alias without weakening containment', () => {
@@ -144,8 +144,8 @@ describe('comic audio phase 2 contracts', () => {
     const voiceSnapshot: VoiceReferenceManifest = { ...snapshotBase, snapshotId: hashCanonicalTtsValue(snapshotBase) }
     const overlapTurns = overlap.nodes.flatMap(node => node.kind === 'turn' ? [node.turn] : node.turns)
     const target: TtsTarget = {
-      service: 'hume', model: 'octave-2', operation: 'comic-audio', transport: 'hosted-api',
-      targetKey: canonicalTargetKey('comic-audio', 'hume', 'octave-2', 'hosted-api'),
+      service: 'elevenlabs', model: 'eleven_v3', operation: 'comic-audio', transport: 'hosted-api',
+      targetKey: canonicalTargetKey('comic-audio', 'elevenlabs', 'eleven_v3', 'hosted-api'),
       run: async () => { throw new Error('provider must not run during planning') },
     }
     const planned = planCurrentTtsReadiness({
@@ -197,7 +197,7 @@ describe('comic audio phase 2 contracts', () => {
     expect(plannedTurn?.timingCues).toEqual([expect.objectContaining({ kind: 'beat', afterTextOffset: 6, durationMs: 750 })])
   })
 
-  test('Hume comic planning binds approved snapshot entries and selects native utterances', async () => {
+  test('ElevenLabs comic planning binds approved snapshot entries and selects native dialogue', async () => {
     const root = await makeTempDir('autoshow-comic-audio-plan-')
     const sourcePath = join(root, 'scene.md')
     await writeFile(sourcePath, 'two speaker scene')
@@ -212,8 +212,8 @@ describe('comic audio phase 2 contracts', () => {
     const voiceSnapshot: VoiceReferenceManifest = { ...snapshotBase, snapshotId: hashCanonicalTtsValue(snapshotBase) }
     const turns = dialoguePlan.nodes.flatMap(node => node.kind === 'turn' ? [node.turn] : node.turns)
     const target: TtsTarget = {
-      service: 'hume', model: 'octave-2', operation: 'comic-audio', transport: 'hosted-api',
-      targetKey: canonicalTargetKey('comic-audio', 'hume', 'octave-2', 'hosted-api'),
+      service: 'elevenlabs', model: 'eleven_v3', operation: 'comic-audio', transport: 'hosted-api',
+      targetKey: canonicalTargetKey('comic-audio', 'elevenlabs', 'eleven_v3', 'hosted-api'),
       run: async () => { throw new Error('provider must not run during planning') },
     }
     const options: TtsOptions = {
@@ -233,7 +233,7 @@ describe('comic audio phase 2 contracts', () => {
     }
     const planned = planCurrentTtsReadiness({ target, sourceText: 'VOICE_001: Ready?\nVOICE_002: Ready.', ttsOptions: options, comicContext: context })
     expect(planned.operation).toBe('comic-audio')
-    expect(planned.strategy).toBe('native-utterances')
+    expect(planned.strategy).toBe('native-dialogue')
     expect(planned.renderPlan.voiceContext).toEqual({ kind: 'approved-snapshot', snapshotId: voiceSnapshot.snapshotId })
     expect(planned.renderPlan.requestedOutput).toEqual({ codec: 'pcm_s24le', container: 'wav', sampleRate: 48000, channels: 2 })
     expect(planned.renderPlan.nodes.every(node => node.kind === 'turn' && node.turn.voice.kind === 'approved-snapshot')).toBe(true)

@@ -398,7 +398,7 @@ describe('adaptive scheduler contracts', () => {
     expect(classifyAdaptivePressure('retryable status 503 service unavailable', 1, false)).toBe('transient')
     expect(classifyAdaptivePressure('validation failed', 1, false)).toBeNull()
 
-    expect(classifyAdaptivePressure('Cartesia TTS failed (402): quota_exceeded; 535 characters', 1, false)).toBeNull()
+    expect(classifyAdaptivePressure('Example TTS failed (402): quota_exceeded; 535 characters', 1, false)).toBeNull()
     expect(classifyAdaptivePressure('Together transcription failed (503)', 1, false)).toBe('transient')
 
     expect(classifyAdaptivePressure(

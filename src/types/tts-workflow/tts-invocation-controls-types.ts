@@ -3,6 +3,8 @@ import type { TtsProvider } from '~/types'
 type OptionalControl<T> = T | null | undefined
 
 export type TtsInvocationControlsByProvider = {
+  gemini: Readonly<{ instructions?: OptionalControl<string>, responseFormat?: OptionalControl<string> }>
+
   openai: Readonly<{
     instructions?: OptionalControl<string>
     speed?: OptionalControl<number>
@@ -19,6 +21,7 @@ export type TtsInvocationControlsByProvider = {
     pronunciationDictionaryLocators?: OptionalControl<readonly string[]>
     responseFormat?: OptionalControl<'mp3_44100_128' | 'mp3_44100_192' | 'wav_44100' | 'wav_48000'>
   }>
+  soniox: Readonly<{ speed?: OptionalControl<number>, language?: OptionalControl<string> }>
   grok: Readonly<{
     speed?: OptionalControl<number>
     language?: OptionalControl<string>
@@ -28,13 +31,6 @@ export type TtsInvocationControlsByProvider = {
   speechify: Readonly<{
     language?: OptionalControl<string>
   }>
-  hume: Readonly<{
-    speed?: OptionalControl<number>
-    trailingSilence?: OptionalControl<number>
-    description?: OptionalControl<string>
-    responseFormat?: OptionalControl<'mp3' | 'wav'>
-  }>
-  cartesia: Readonly<{ language?: OptionalControl<string>, speed?: OptionalControl<number> }>
   inworld: Readonly<{ steeringPrompt?: OptionalControl<string>, speed?: OptionalControl<number> }>
 }
 

@@ -78,6 +78,9 @@ describe('TTS delivery mastering', () => {
     await withTempDir('tts-delivery-native-', async (dir) => {
       const segments = await writeSegments(dir)
       const result = await masterTtsDelivery({ segments, profile: ttsDeliveryPreset('native'), workDir: join(dir, 'work'), providerLabel: 'test' })
+      const assembly = await Bun.file(join(dir, 'work', 'assembly.txt')).text()
+      expect(assembly).not.toContain(dir)
+      expect(assembly).not.toContain("file '/")
       const observed = await inspectSoundscapeAudio(result.path)
       expect(observed.format).toEqual({ codec: 'pcm_s16le', container: 'wav', sampleRate: SAMPLE_RATE, channels: 1 })
       expect(result.loudness).toBeUndefined()

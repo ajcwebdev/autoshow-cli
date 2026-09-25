@@ -50,11 +50,12 @@ const selectSmartCut = (remaining: string, maxChars: number): { index: number, h
   return { index: Math.max(1, index), hardCut: true }
 }
 
-const planSmartChunks = (text: string, maxChars: number): PlannedTtsChunk[] => {
+const planSmartChunks = (text: string, maxChars: number, adjustBoundary?: (text: string, index: number, limit: number) => number): PlannedTtsChunk[] => {
   const chunks: PlannedTtsChunk[] = []
   let remaining = text.trim()
   while (remaining.length > maxChars) {
     const cut = selectSmartCut(remaining, maxChars)
+    cut.index = adjustBoundary?.(remaining, cut.index, maxChars) ?? cut.index
     const chunkText = remaining.slice(0, cut.index).trim()
     const rest = remaining.slice(cut.index)
     const separator = /^\s+/u.exec(rest)?.[0] ?? ''
@@ -65,8 +66,8 @@ const planSmartChunks = (text: string, maxChars: number): PlannedTtsChunk[] => {
   return chunks
 }
 
-const planLegacyChunks = (text: string, maxChars: number): PlannedTtsChunk[] => {
-  const texts = splitTextIntoChunks(text, maxChars)
+const planLegacyChunks = (text: string, maxChars: number, adjustBoundary?: (text: string, index: number, limit: number) => number): PlannedTtsChunk[] => {
+  const texts = splitTextIntoChunks(text, maxChars, adjustBoundary)
   let cursor = 0
   return texts.map((chunkText, index) => {
     const start = text.indexOf(chunkText, cursor)
@@ -78,10 +79,10 @@ const planLegacyChunks = (text: string, maxChars: number): PlannedTtsChunk[] => 
   })
 }
 
-export const planTtsChunks = (text: string, limit: number, chunking?: TtsChunkingOptions | undefined): PlannedTtsChunk[] => {
+export const planTtsChunks = (text: string, limit: number, chunking?: TtsChunkingOptions | undefined, adjustBoundary?: (text: string, index: number, limit: number) => number): PlannedTtsChunk[] => {
   const maxChars = resolveTtsChunkMaxChars(limit, chunking)
-  return chunking?.boundary === 'smart' ? planSmartChunks(text, maxChars) : planLegacyChunks(text, maxChars)
+  return chunking?.boundary === 'smart' ? planSmartChunks(text, maxChars, adjustBoundary) : planLegacyChunks(text, maxChars, adjustBoundary)
 }
 
-export const splitTtsText = (text: string, limit: number, chunking?: TtsChunkingOptions | undefined): string[] =>
-  planTtsChunks(text, limit, chunking).map((chunk) => chunk.text)
+export const splitTtsText = (text: string, limit: number, chunking?: TtsChunkingOptions | undefined, adjustBoundary?: (text: string, index: number, limit: number) => number): string[] =>
+  planTtsChunks(text, limit, chunking, adjustBoundary).map((chunk) => chunk.text)

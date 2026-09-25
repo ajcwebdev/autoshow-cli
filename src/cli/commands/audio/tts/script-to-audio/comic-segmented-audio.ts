@@ -1,3 +1,5 @@
+import { splitSonioxTtsText } from '../tts-services/tts-soniox/soniox-tts-chunks'
+import { splitGeminiTtsText } from '../tts-services/tts-gemini/gemini-tts-chunks'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { AttemptSlot, AttemptTurn, CanonicalDialogueTurn, ComicDialoguePlan, TtsMasteringProfile, TtsTarget } from '~/types'
@@ -35,7 +37,7 @@ export const serializesComicDelivery = (
   target: Pick<TtsTarget, 'service' | 'model'>,
   delivery: string
 ): boolean => {
-  if (target.service === 'hume' && target.model === 'octave-1') return true
+  if (target.service === 'gemini') return true
   return prepareSegmentedTurnText('', target as TtsTarget, delivery).spans.some(span => span.kind === 'provider-only')
 }
 
@@ -60,7 +62,8 @@ const splitCanonicalTextAtTimingCues = (turn: CanonicalDialogueTurn): string[] =
 
 export const prepareComicSegmentedProviderTexts = (
   turn: CanonicalDialogueTurn,
-  target: TtsTarget
+  target: TtsTarget,
+  controls?: { instructions?: string | undefined } | undefined
 ): { providerTexts: string[], timingSegmentIndexes: number[] } => {
   const providerTexts: string[] = []
   const timingSegmentIndexes: number[] = []
@@ -68,7 +71,7 @@ export const prepareComicSegmentedProviderTexts = (
   for (const [timingSegmentIndex, segment] of splitCanonicalTextAtTimingCues(turn).entries()) {
     if (!segment) continue
     const prepared = prepareSegmentedTurnText(segment, target, turn.delivery?.description).providerText
-    for (const chunk of splitTextIntoChunks(prepared, limit)) {
+    for (const chunk of target.service === 'soniox' ? splitSonioxTtsText(prepared) : target.service === 'gemini' ? splitGeminiTtsText(target.model, { text: prepared, speaker: turn.originalSpeakerLabel, voice: target.voice ?? 'Kore', style: controls ? controls.instructions : turn.delivery?.description }) : splitTextIntoChunks(prepared, limit)) {
       providerTexts.push(chunk)
       timingSegmentIndexes.push(timingSegmentIndex)
     }
@@ -80,7 +83,7 @@ export const segmentedSlotGroup = (
   turn: AttemptTurn,
   target: TtsTarget
 ): { turnIds: string[], providerTexts: string[], timingSegmentIndexes: number[] } => {
-  const { providerTexts, timingSegmentIndexes } = prepareComicSegmentedProviderTexts(turn.canonical, target)
+  const { providerTexts, timingSegmentIndexes } = prepareComicSegmentedProviderTexts(turn.canonical, { ...target, ...(turn.voice.value ? { voice: turn.voice.value } : {}) }, { instructions: turn.effectiveControls['instructions'] as string | undefined })
   return { turnIds: [turn.canonical.turnId], providerTexts, timingSegmentIndexes }
 }
 

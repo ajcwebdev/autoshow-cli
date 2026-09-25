@@ -23,30 +23,4 @@ describe('option resolution contracts', () => {
     }))).toThrow('Model "simba-3.0" is retired for --provider/--tts speechify[=model]. Use "simba-3.2" instead.')
   })
 
-  test('Hume and Cartesia TTS target collection preserves model and voice controls', () => {
-      const targets = collectTtsTargets(buildOptsFromFlags({
-        'hume-tts': 'octave-2',
-        'cartesia-tts': 'sonic-3.6-2026-08-27',
-        'tts-voice': ['hume=Studio Voice', 'cartesia=cartesia-voice-id'],
-        'tts-language': 'cartesia=en'
-      }))
-
-      expect(targets.map((target) => ({
-        service: target.service,
-        model: target.model,
-        voice: target.voice
-      }))).toEqual([
-        {
-          service: 'hume',
-          model: 'octave-2',
-          voice: 'Studio Voice'
-        },
-        {
-          service: 'cartesia',
-          model: 'sonic-3.6-2026-08-27',
-          voice: 'cartesia-voice-id'
-        }
-      ])
-    })
-
 })

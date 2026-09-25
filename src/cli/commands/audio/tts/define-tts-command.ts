@@ -4,6 +4,7 @@ import { resolveTtsDeliveryOptionsWithLexicon } from '~/cli/options/option-resol
 import { resolveStandaloneMistralTtsCliReferenceInput, resolveStandaloneMistralTtsSpeakerReferenceInputs } from '~/cli/options/option-resolution/tts-options'
 import { ttsCommandFlags } from '~/cli/flags/tts-flags'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
+import { normalizeStandaloneTtsModel } from '~/cli/flags/service-selector-normalization/standalone-tts-model'
 import { assertNoVoiceIdentityWithDialogue, normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { defineCliCommand } from '~/cli/native/native-types'
@@ -17,6 +18,7 @@ import { getTtsInputKind, runSingleTtsInput } from './tts-single-run'
 import type { StandaloneTtsCommandOptions } from '~/types'
 import { runTtsDirectoryBatch } from './tts-batch-run'
 import * as l from '~/utils/app-logger/app-logger'
+import { runGeminiRemoteBatch } from './tts-services/tts-gemini/gemini-tts-batch-workflow'
 import { UsageError } from '~/utils/error-handler'
 
 export { getTtsBatchAudioFileName, moveTtsBatchAudioFiles, buildTtsBatchSource } from './tts-batch-plan'
@@ -30,9 +32,12 @@ export const ttsCommand = defineCliCommand({
   flags: ttsCommandFlags,
   help: {
     examples: [
+      ['bun autoshow tts input/examples/tts/01-tts-short.md --provider gemini --price', 'Estimate Gemini Flash-Lite speech with Kore'],
+      ['bun autoshow tts input/examples/tts/01-tts-short.md --provider gemini --gemini-tts-mode batch --gemini-tts-batch-wait-seconds 0 --price', 'Estimate a remote Gemini Batch job; remove --price to submit'],
       ['bun autoshow tts input/examples/tts/01-tts-short.md --provider elevenlabs=eleven_v3', 'Generate speech with ElevenLabs'],
       ['bun autoshow tts input/examples/tts/01-tts-short.md --provider elevenlabs=eleven_v3 --tts-voice YOUR_EXISTING_VOICE_ID', 'Use an existing ElevenLabs voice'],
       ['bun autoshow tts input/examples/tts/01-tts-short.md --provider mistral=voxtral-mini-tts-2603 --tts-ref-audio input/examples/audio/anthony-voice.mp3', 'Generate speech with Mistral Voxtral'],
+      ['bun autoshow tts input/examples/tts/01-tts-short.md --provider soniox --model tts-rt-v2 --tts-voice Adrian --tts-language en --tts-speed 1 --price', 'Estimate Soniox REST speech'],
       ['bun autoshow tts input/examples/tts/01-tts-short.md --provider grok=grok-tts --tts-voice eve', 'Generate speech with a Grok voice']
     ]
   }
@@ -45,14 +50,14 @@ export const ttsCommand = defineCliCommand({
   const flags = mergeConfigIntoRawFlags(rawFlags, config, ctx.rawParsed.explicitFlags, 'tts')
   const inputKind = await getTtsInputKind(inputPath)
   const maxCents = await resolveMaxCentsFromFlags(flags)
-  const providerNormalized = normalizeGenericProviderSelectorFlags(
+  const providerNormalized = normalizeStandaloneTtsModel(normalizeGenericProviderSelectorFlags(
     flags,
     ctx.rawParsed.explicitFlags,
     ctx.rawParsed.flagOccurrences,
     'provider',
     STANDALONE_TTS_PROVIDER_TARGETS,
     { allProvidersTarget: 'all-tts' }
-  )
+  ))
   if (
     providerNormalized.flags['all-tts'] !== true
     && !Object.values(STANDALONE_TTS_PROVIDER_TARGETS).some((flag) => {
@@ -119,7 +124,7 @@ export const ttsCommand = defineCliCommand({
     await resolveTtsDeliveryOptionsWithLexicon(sanitizedFlags)
   )
 
-  const targets = collectTtsTargets(ttsOptions)
+  let targets = collectTtsTargets(ttsOptions)
   if (
     ttsOptions.ttsAllProvidersSelected === true
     && ttsOptions.price !== true
@@ -134,6 +139,12 @@ export const ttsCommand = defineCliCommand({
 
   if (ttsOptions.ttsExport?.book && inputKind !== 'directory') {
     throw UsageError('--tts-book requires a directory input; each input file becomes one chapter.')
+  }
+
+  if (ttsOptions.geminiTtsMode === 'batch') {
+    await runGeminiRemoteBatch(inputPath, ttsOptions, targets.filter(t => t.service === 'gemini'), maxCents)
+    targets = targets.filter(t => t.service !== 'gemini')
+    if (!targets.length) return
   }
 
   if (inputKind === 'directory') {
